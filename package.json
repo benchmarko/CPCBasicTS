@@ -8,9 +8,17 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "qunit": "^2.6.1"
+    "qunit": "^2.6.1",
+    "typescript": ">2.9.2"
   },
+   "files": [
+    "src/"
+  ],
   "scripts": {
+    "start": "echo TODO",
+    "build": "cp src/*.html src/*.css dist/ && tsc",
+    "clean": "rm -rf dist/*",
+    "deploy": "echo TODO gh-pages -d dist",
     "test": "qunit"
   },
   "repository": {
