@@ -1,0 +1,29 @@
+{
+  "name": "cpcbasicts",
+  "version": "0.0.1",
+  "description": "# CPCBasicTS - Run CPC BASIC in a Browser",
+  "main": "cpcbasicts.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "qunit": "^2.6.1"
+  },
+  "scripts": {
+    "test": "qunit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/benchmarko/CPCBasicTS.git"
+  },
+  "keywords": [
+    "CPC BASIC, Locomotive BASIC, Amstrad CPC, Schneider CPC, BASIC Compiler"
+  ],
+  "author": "Marco Vieth",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/benchmarko/CPCBasicTS/issues"
+  },
+  "homepage": "https://github.com/benchmarko/CPCBasicTS#readme"
+}
