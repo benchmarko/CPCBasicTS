@@ -2,11 +2,13 @@
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //
-/* globals Utils */
+/* XXXglobals Utils */
 
 "use strict";
 
-function Sound(options) {
+import { Utils } from "./Utils";
+
+export function Sound(options) {
 	this.init(options);
 }
 

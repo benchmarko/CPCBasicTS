@@ -4,7 +4,7 @@
 
 "use strict";
 
-function Variables(config) {
+export function Variables(config) {
 	this.init(config);
 }
 
@@ -171,6 +171,8 @@ Variables.prototype = {
 	}
 };
 
+/*
 if (typeof module !== "undefined" && module.exports) {
 	module.exports = Variables;
 }
+*/

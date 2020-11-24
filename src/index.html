@@ -137,9 +137,30 @@
 		</div>
 	</fieldset>
 	<a id="screenshotLink"></a>
+<script>
+	window.exports = {};
+	window.require = function(sModule) {
+		var oModule = {};
+		
+		sModule = sModule.replace(/^.*[\\\/]/, '');
+		/*
+		oModule = {
+			sModule: window[sModule]
+		};
+		*/
+		//oModule[sModule] = window.exports[sModule];
+		oModule[sModule] = window.exports[sModule];
+		if (!oModule[sModule]) {
+			console.error("ERROR: Module not loaded:", sModule); //TTT: Utils?
+			throw new Error();
+		}
+		return oModule;
+	}
+</script>
 <script src="Utils.js"></script>
 <script src="Polyfills.js"></script>
 
+<script src="cpcCharset.js"></script>
 <script src="BasicFormatter.js"></script>
 <script src="BasicLexer.js"></script>
 <script src="BasicParser.js"></script>
@@ -148,8 +169,6 @@
 <script src="CodeGeneratorBasic.js"></script>
 <script src="CodeGeneratorJs.js"></script>
 <script src="CommonEventHandler.js"></script>
-<script src="Controller.js"></script>
-<script src="CpcVm.js"></script>
 <script src="CpcVmRsx.js"></script>
 <script src="Diff.js"></script>
 <script src="DiskImage.js"></script>
@@ -161,7 +180,8 @@
 <script src="Variables.js"></script>
 <script src="View.js"></script>
 <script src="ZipFile.js"></script>
-<script src="cpcCharset.js"></script>
+<script src="CpcVm.js"></script>
+<script src="Controller.js"></script>
 <script src="cpcconfig.js"></script>
 <script src="cpcbasic.js"></script>
 </body>

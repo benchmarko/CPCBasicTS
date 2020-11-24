@@ -6,13 +6,17 @@
 
 "use strict";
 
+/*
 var Utils;
 
 if (typeof require !== "undefined") {
 	Utils = require("./Utils.js"); // eslint-disable-line global-require
 }
+*/
 
-function Canvas(options) {
+import { Utils } from "./Utils";
+
+export function Canvas(options) {
 	this.init(options);
 }
 

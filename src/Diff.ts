@@ -5,7 +5,7 @@
 
 "use strict";
 
-var Diff = {
+export var Diff = {
 	// Refer to http://www.xmailserver.org/diff2.pdf
 
 	// Longest Common Subsequence
@@ -337,6 +337,8 @@ var Diff = {
 	}
 };
 
+/*
 if (typeof module !== "undefined" && module.exports) {
 	module.exports = Diff;
 }
+*/

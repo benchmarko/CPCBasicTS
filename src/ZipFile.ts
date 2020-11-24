@@ -2,21 +2,25 @@
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //
-/* globals Uint8Array */
+/* XXXglobals Uint8Array */
 
 "use strict";
 
+/*
 var Utils;
 
 if (typeof require !== "undefined") {
 	Utils = require("./Utils.js"); // eslint-disable-line global-require
 }
+*/
 
 // Idea based on: https://github.com/frash23/jzsip/blob/master/jzsip.js
 // (and Cpcemu: zip.cpp)
 // https://en.wikipedia.org/wiki/Zip_(file_format)
 
-function ZipFile(aData, sZipName) {
+import { Utils } from "./Utils";
+
+export function ZipFile(aData, sZipName) {
 	this.init(aData, sZipName);
 }
 
@@ -464,6 +468,8 @@ ZipFile.prototype = {
 };
 
 
+/*
 if (typeof module !== "undefined" && module.exports) {
 	module.exports = ZipFile;
 }
+*/

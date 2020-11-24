@@ -4,13 +4,17 @@
 
 "use strict";
 
+/*
 var Utils;
 
 if (typeof require !== "undefined") {
 	Utils = require("./Utils.js"); // eslint-disable-line global-require
 }
+*/
 
-function CommonEventHandler(oModel, oView, oController) {
+import { Utils } from "./Utils";
+
+export function CommonEventHandler(oModel, oView, oController) {
 	this.init(oModel, oView, oController);
 }
 
@@ -379,6 +383,8 @@ CommonEventHandler.prototype = {
 };
 
 
+/*
 if (typeof module !== "undefined" && module.exports) {
 	module.exports = CommonEventHandler;
 }
+*/

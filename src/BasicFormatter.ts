@@ -6,13 +6,16 @@
 
 "use strict";
 
+/*
 var Utils;
 
 if (typeof require !== "undefined") {
 	Utils = require("./Utils.js"); // eslint-disable-line global-require
 }
+*/
+import { Utils } from "./Utils";
 
-function BasicFormatter(options) {
+export function BasicFormatter(options) {
 	this.init(options);
 }
 
@@ -174,6 +177,8 @@ BasicFormatter.prototype = {
 };
 
 
+/*
 if (typeof module !== "undefined" && module.exports) {
 	module.exports = BasicFormatter;
 }
+*/

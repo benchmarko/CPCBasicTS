@@ -7,15 +7,19 @@
 
 "use strict";
 
+/*
 var Utils;
 
 if (typeof require !== "undefined") {
 	Utils = require("./Utils.js"); // eslint-disable-line global-require
 }
+*/
 
 // based on an idea of: https://www.codeproject.com/Articles/345888/How-to-write-a-simple-interpreter-in-JavaScript
 
-function BasicLexer(options) {
+import { Utils } from "./Utils";
+
+export function BasicLexer(options) {
 	this.init(options);
 }
 
@@ -361,6 +365,8 @@ BasicLexer.prototype = {
 };
 
 
+/*
 if (typeof module !== "undefined" && module.exports) {
 	module.exports = BasicLexer;
 }
+*/

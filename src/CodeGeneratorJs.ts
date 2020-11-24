@@ -6,13 +6,17 @@
 
 "use strict";
 
+/*
 var Utils;
 
 if (typeof require !== "undefined") {
 	Utils = require("./Utils.js"); // eslint-disable-line global-require
 }
+*/
 
-function CodeGeneratorJs(options) {
+import { Utils } from "./Utils";
+
+export function CodeGeneratorJs(options) {
 	this.init(options);
 }
 
@@ -1429,6 +1433,8 @@ CodeGeneratorJs.prototype = {
 };
 
 
+/*
 if (typeof module !== "undefined" && module.exports) {
 	module.exports = CodeGeneratorJs;
 }
+*/

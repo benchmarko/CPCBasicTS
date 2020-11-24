@@ -2,11 +2,13 @@
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //
-/* globals Utils */
+/* XXXglobals Utils */
 
 "use strict";
 
-function View(options) {
+import { Utils } from "./Utils";
+
+export function View(options) {
 	this.init(options);
 }
 

@@ -5,15 +5,19 @@
 
 "use strict";
 
+/*
 var Utils;
 
 if (typeof require !== "undefined") {
-	/* eslint-disable global-require */
+	/ * eslint-disable global-require * /
 	Utils = require("./Utils.js");
-	/* eslint-enable global-require */
+	/ * eslint-enable global-require * /
 }
+*/
 
-function BasicTokenizer(options) {
+import { Utils } from "./Utils";
+
+export function BasicTokenizer(options) {
 	this.init(options);
 }
 
@@ -481,6 +485,8 @@ BasicTokenizer.prototype = {
 };
 
 
+/*
 if (typeof module !== "undefined" && module.exports) {
 	module.exports = BasicTokenizer;
 }
+*/

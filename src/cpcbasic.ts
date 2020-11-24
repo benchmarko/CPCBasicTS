@@ -3,13 +3,25 @@
 // https://benchmarko.github.io/CPCBasic/
 //
 
-/* globals Controller, Model, Utils, View */
+/* XXXglobals Controller, Model, Utils, View */
 
 "use strict";
 
+/*
 var cpcBasicExternalConfig, cpcBasic;
+*/
 
-cpcBasic = {
+import { Utils } from "./Utils";
+import { Controller } from "./Controller";
+import { cpcconfig } from "./cpcconfig";
+import { Model } from "./Model";
+import { View } from "./View";
+
+declare global {
+    interface Window { cpcBasic: any; }
+}
+
+var cpcBasic = {
 	config: {
 		bench: 0, // debug: number of parse bench loops
 		debug: 0,
@@ -158,7 +170,7 @@ cpcBasic = {
 			oStartConfig = this.config,
 			sCpcBasicLog, oInitialConfig, iDebug;
 
-		Object.assign(oStartConfig, cpcBasicExternalConfig || {}); // merge external config from cpcconfig.js
+		Object.assign(oStartConfig, cpcconfig || {}); // merge external config from cpcconfig.js
 		oInitialConfig = Object.assign({}, oStartConfig); // save config
 		this.fnParseUri(oStartConfig); // modify config with URL parameters
 		this.model = new Model(oStartConfig, oInitialConfig);
@@ -188,4 +200,9 @@ cpcBasic = {
 };
 
 
-cpcBasic.fnOnLoad(); // if cpcbasic.js is the last script, we do not need to wait for window.onload
+window.cpcBasic = cpcBasic;
+
+//cpcBasic.fnOnLoad(); // if cpcbasic.js is the last script, we do not need to wait for window.onload
+window.onload = () => {
+    cpcBasic.fnOnLoad();
+};

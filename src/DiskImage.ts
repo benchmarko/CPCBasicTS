@@ -4,16 +4,20 @@
 
 "use strict";
 
+/*
 var Utils;
 
 if (typeof require !== "undefined") {
 	Utils = require("./Utils.js"); // eslint-disable-line global-require
 }
+*/
 
 // http://www.cpctech.org.uk/docs/extdsk.html
 // Extended DSK image definition
 
-function DiskImage(oConfig) {
+import { Utils } from "./Utils";
+
+export function DiskImage(oConfig) {
 	this.init(oConfig);
 }
 
@@ -600,6 +604,8 @@ DiskImage.prototype = {
 };
 
 
+/*
 if (typeof module !== "undefined" && module.exports) {
 	module.exports = DiskImage;
 }
+*/

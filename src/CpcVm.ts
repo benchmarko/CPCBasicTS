@@ -5,17 +5,23 @@
 
 "use strict";
 
+/*
 var Utils, CpcVmRsx, Random;
 
 if (typeof require !== "undefined") {
-	/* eslint-disable global-require */
+	/* eslint-disable global-require * /
 	Utils = require("./Utils.js");
 	CpcVmRsx = require("./CpcVmRsx.js");
 	Random = require("./Random.js");
-	/* eslint-enable global-require */
+	/ * eslint-enable global-require * /
 }
+*/
 
-function CpcVm(options) {
+import { Utils } from "./Utils";
+import { CpcVmRsx } from "./CpcVmRsx";
+import { Random } from "./Random";
+
+export function CpcVm(options) {
 	this.vmInit(options);
 }
 
@@ -3674,7 +3680,8 @@ CpcVm.prototype = {
 	}
 };
 
-
+/*
 if (typeof module !== "undefined" && module.exports) {
 	module.exports = CpcVm;
 }
+*/

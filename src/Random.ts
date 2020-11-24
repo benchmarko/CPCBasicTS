@@ -8,7 +8,7 @@
 // Random number generator taken from:
 // Raj Jain: The Art of Computer Systems Performance Analysis, John Wiley & Sons, 1991, page 442-444
 //
-function Random(nSeed) {
+export function Random(nSeed) {
 	this.init(nSeed);
 }
 

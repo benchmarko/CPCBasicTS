@@ -2,14 +2,15 @@
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //
-/* globals cpcBasicCharset Uint8Array */
+/* globals Uint8Array */
 
 "use strict";
 
+/*
 var Utils, BasicFormatter, BasicLexer, BasicParser, BasicTokenizer, Canvas, CodeGeneratorBasic, CodeGeneratorJs, CommonEventHandler, CpcVm, Diff, DiskImage, InputStack, Keyboard, Sound, Variables, ZipFile;
 
 if (typeof require !== "undefined") {
-	/* eslint-disable global-require */
+	/ * eslint-disable global-require * /
 	Utils = require("./Utils.js");
 	BasicFormatter = require("./BasicFormatter.js");
 	BasicLexer = require("./BasicLexer.js");
@@ -27,10 +28,32 @@ if (typeof require !== "undefined") {
 	Sound = require("./Sound.js");
 	Variables = require("./Variables.js");
 	ZipFile = require("./ZipFile.js");
-	/* eslint-enable global-require */
+	/ * eslint-enable global-require * /
 }
+*/
 
-function Controller(oModel, oView) {
+import { Utils } from "./Utils";
+import { BasicFormatter } from "./BasicFormatter";
+import { BasicLexer } from "./BasicLexer";
+import { BasicParser } from "./BasicParser";
+import { BasicTokenizer } from "./BasicTokenizer";
+import { Canvas } from "./Canvas"
+import { CodeGeneratorBasic } from "./CodeGeneratorBasic"
+import { CodeGeneratorJs } from "./CodeGeneratorJs"
+import { CommonEventHandler } from "./CommonEventHandler";
+import { cpcCharset } from "./cpcCharset";
+import { CpcVm } from "./CpcVm";
+import { Diff } from "./Diff";
+import { DiskImage } from "./DiskImage";
+import { InputStack } from "./InputStack";
+import { Keyboard } from "./Keyboard";
+import { Model } from "./Model"; //TTT
+import { Sound } from "./Sound";
+import { Variables } from "./Variables";
+import { View } from "./View"; //TTT
+import { ZipFile } from "./ZipFile";
+
+export function Controller(oModel, oView) {
 	this.init(oModel, oView);
 }
 
@@ -74,7 +97,7 @@ Controller.prototype = {
 
 		oView.setHidden("cpcArea", false); // make sure canvas is not hidden (allows to get width, height)
 		this.oCanvas = new Canvas({
-			aCharset: cpcBasicCharset,
+			aCharset: cpcCharset,
 			cpcDivId: "cpcArea",
 			onClickKey: this.fnPutKeyInBufferHandler
 		});

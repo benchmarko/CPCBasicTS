@@ -5,13 +5,17 @@
 
 "use strict";
 
+/*
 var Utils;
 
 if (typeof require !== "undefined") {
 	Utils = require("./Utils.js"); // eslint-disable-line global-require
 }
+*/
 
-function Keyboard(options) {
+import { Utils } from "./Utils";
+
+export function Keyboard(options) {
 	this.init(options);
 }
 

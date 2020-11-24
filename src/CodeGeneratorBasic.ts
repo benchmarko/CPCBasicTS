@@ -6,14 +6,20 @@
 
 "use strict";
 
+/*
 var Utils, BasicParser; // BasicParser just for keyword definitions
 
 if (typeof require !== "undefined") {
 	Utils = require("./Utils.js"); // eslint-disable-line global-require
 	BasicParser = require("./BasicParser.js"); // eslint-disable-line global-require
 }
+*/
 
-function CodeGeneratorBasic(options) {
+
+import { Utils } from "./Utils";
+import { BasicParser } from "./BasicParser"; // BasicParser just for keyword definitions
+
+export function CodeGeneratorBasic(options) {
 	this.init(options);
 }
 

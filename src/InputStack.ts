@@ -4,7 +4,7 @@
 
 "use strict";
 
-function InputStack() {
+export function InputStack() {
 	this.init();
 }
 
@@ -47,7 +47,9 @@ InputStack.prototype = {
 };
 
 
+/*
 if (typeof module !== "undefined" && module.exports) {
 	module.exports = InputStack;
 }
+*/
 // end

@@ -5,7 +5,7 @@
 
 "use strict";
 
-var Utils = {
+export var Utils = {
 	debug: 0,
 	console: typeof window !== "undefined" ? window.console : global.console, // browser or node.js
 
@@ -200,6 +200,8 @@ var Utils = {
 };
 
 
+/*
 if (typeof module !== "undefined" && module.exports) {
 	module.exports = Utils;
 }
+*/

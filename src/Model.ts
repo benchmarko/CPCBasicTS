@@ -4,13 +4,17 @@
 
 "use strict";
 
+/*
 var Utils;
 
 if (typeof require !== "undefined") {
 	Utils = require("./Utils.js"); // eslint-disable-line global-require
 }
+*/
 
-function Model(config, initialConfig) {
+import { Utils } from "./Utils";
+
+export function Model(config, initialConfig) {
 	this.init(config, initialConfig);
 }
 
@@ -89,6 +93,8 @@ Model.prototype = {
 	}
 };
 
+/*
 if (typeof module !== "undefined" && module.exports) {
 	module.exports = Model;
 }
+*/

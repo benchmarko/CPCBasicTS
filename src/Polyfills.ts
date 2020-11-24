@@ -5,12 +5,15 @@
 
 "use strict";
 
+/*
 var Utils;
 
 if (typeof require !== "undefined") {
 	Utils = require("./Utils.js"); // eslint-disable-line global-require
 }
+*/
 
+import { Utils } from "./Utils";
 
 // IE: window.console is only available when Dev Tools are open
 if (!Utils.console) {
@@ -547,6 +550,10 @@ if (!window.JSON) { // simple polyfill for JSON.parse only
 			var oJson = eval("(" + sText + ")"); // eslint-disable-line no-eval
 
 			return oJson;
+		},
+		stringify: function (o: object) {
+			Utils.console.error("Not implemented: window.JSON.stringify");
+			return String(o);
 		}
 	};
 }

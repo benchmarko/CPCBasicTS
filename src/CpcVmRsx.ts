@@ -5,13 +5,17 @@
 
 "use strict";
 
+/*
 var Utils;
 
 if (typeof require !== "undefined") {
 	Utils = require("./Utils.js"); // eslint-disable-line global-require
 }
+*/
 
-function CpcVmRsx(oVm) {
+import { Utils } from "./Utils";
+
+export function CpcVmRsx(oVm) {
 	this.rsxInit(oVm);
 }
 
@@ -165,6 +169,8 @@ CpcVmRsx.prototype = {
 };
 
 
+/*
 if (typeof module !== "undefined" && module.exports) {
 	module.exports = CpcVmRsx;
 }
+*/

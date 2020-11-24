@@ -7,11 +7,14 @@
 
 "use strict";
 
+/*
 var Utils;
 
 if (typeof require !== "undefined") {
 	Utils = require("./Utils.js"); // eslint-disable-line global-require
 }
+*/
+
 
 // [ https://www.codeproject.com/Articles/345888/How-to-write-a-simple-interpreter-in-JavaScript ; test online: http://jsfiddle.net/h3xwj/embedded/result/ ]
 //
@@ -26,7 +29,10 @@ if (typeof require !== "undefined") {
 // http://www.csidata.com/custserv/onlinehelp/vbsdocs/vbs232.htm  (operator precedence) ?
 // How to write a simple interpreter in JavaScript
 // Peter_Olson, 30 Oct 2014
-function BasicParser(options) {
+
+import { Utils } from "./Utils";
+
+export function BasicParser(options) {
 	this.init(options);
 }
 
@@ -1504,6 +1510,8 @@ BasicParser.prototype = {
 };
 
 
+/*
 if (typeof module !== "undefined" && module.exports) {
 	module.exports = BasicParser;
 }
+*/

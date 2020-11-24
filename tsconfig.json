@@ -1,3 +1,5 @@
+//https://www.typescriptlang.org/tsconfig
+//https://www.typescriptlang.org/tsconfig#strict
 {
   "compilerOptions": {
     "module": "commonjs",
@@ -12,7 +14,7 @@
       "es2017",
       "dom"
     ],
-    "strict": true,
+    "strict": false,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
