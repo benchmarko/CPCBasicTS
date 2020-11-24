@@ -46,7 +46,7 @@ View.prototype = {
 	},
 
 	setDisabled: function (sId, bDisabled) {
-		var element = document.getElementById(sId);
+		var element = document.getElementById(sId) as HTMLButtonElement;
 
 		element.disabled = bDisabled;
 		return this;
@@ -66,12 +66,12 @@ View.prototype = {
 	},
 
 	getAreaValue: function (sId) {
-		var area = document.getElementById(sId);
+		var area = document.getElementById(sId) as HTMLTextAreaElement;
 
 		return area.value;
 	},
 	setAreaValue: function (sId, sValue) {
-		var area = document.getElementById(sId);
+		var area = document.getElementById(sId) as HTMLTextAreaElement;
 
 		area.value = sValue;
 		return this;
@@ -111,12 +111,12 @@ View.prototype = {
 		return this;
 	},
 	getSelectValue: function (sId) {
-		var select = document.getElementById(sId);
+		var select = document.getElementById(sId) as HTMLSelectElement;
 
 		return select.value;
 	},
 	setSelectValue: function (sId, sValue) {
-		var select = document.getElementById(sId);
+		var select = document.getElementById(sId) as HTMLSelectElement;
 
 		if (sValue) {
 			select.value = sValue;
@@ -124,7 +124,7 @@ View.prototype = {
 		return this;
 	},
 	setSelectTitleFromSelectedOption: function (sId) {
-		var select = document.getElementById(sId),
+		var select = document.getElementById(sId) as HTMLSelectElement,
 			iSelectedIndex = select.selectedIndex,
 			sTitle;
 
@@ -165,7 +165,7 @@ View.prototype = {
 		textarea.setSelectionRange(selectionStart, selectionEnd);
 	},
 	setAreaSelection: function (sId, iPos, iEndPos) {
-		var area = document.getElementById(sId);
+		var area = document.getElementById(sId) as HTMLTextAreaElement;
 
 		if (area.selectionStart !== undefined) {
 			if (area.setSelectionRange) {

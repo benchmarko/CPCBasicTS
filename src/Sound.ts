@@ -8,8 +8,8 @@
 
 import { Utils } from "./Utils";
 
-export function Sound(options) {
-	this.init(options);
+export function Sound(/* options */) {
+	this.init();
 }
 
 Sound.prototype = {

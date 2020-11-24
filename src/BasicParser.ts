@@ -32,7 +32,7 @@ if (typeof require !== "undefined") {
 
 import { Utils } from "./Utils";
 
-export function BasicParser(options) {
+export function BasicParser(options?) {
 	this.init(options);
 }
 
@@ -285,7 +285,7 @@ BasicParser.prototype = {
 			aParseTree = [],
 			oPreviousToken, oToken,
 
-			symbol = function (id, nud, lbp, led) {
+			symbol = function (id, nud?, lbp?, led?) {
 				var oSymbol = oSymbols[id];
 
 				if (!oSymbol) {
@@ -304,7 +304,7 @@ BasicParser.prototype = {
 				return oSymbol;
 			},
 
-			advance = function (id) {
+			advance = function (id?) {
 				var oSym;
 
 				oPreviousToken = oToken;
@@ -432,7 +432,7 @@ BasicParser.prototype = {
 					oValue.type = "label"; // number => label
 				}
 				that.iLine = oValue.value; // set line number for error messages
-				oValue.args = statements();
+				oValue.args = statements(null);
 
 				if (oToken.type === "(eol)") {
 					advance("(eol)");
@@ -440,7 +440,7 @@ BasicParser.prototype = {
 				return oValue;
 			},
 
-			infix = function (id, lbp, rbp, led) {
+			infix = function (id, lbp, rbp?, led?) {
 				rbp = rbp || lbp;
 				symbol(id, null, lbp, led || function (left) {
 					var oValue = oPreviousToken;
@@ -450,7 +450,7 @@ BasicParser.prototype = {
 					return oValue;
 				});
 			},
-			infixr = function (id, lbp, rbp, led) {
+			infixr = function (id, lbp, rbp?, led?) {
 				rbp = rbp || lbp;
 				symbol(id, null, lbp, led || function (left) {
 					var oValue = oPreviousToken;
@@ -678,7 +678,7 @@ BasicParser.prototype = {
 				var aArgs;
 
 				advance("(");
-				aArgs = fnGetArgs(null, ")");
+				aArgs = fnGetArgs(null); //until ")"
 				advance(")");
 				return aArgs;
 			},
@@ -711,7 +711,7 @@ BasicParser.prototype = {
 				return aArgs;
 			},
 
-			fnCreateCmdCall = function (sType) { // optional sType
+			fnCreateCmdCall = function (sType) {
 				var oValue = oPreviousToken;
 
 				if (sType) {
@@ -722,7 +722,7 @@ BasicParser.prototype = {
 				return oValue;
 			},
 
-			fnCreateFuncCall = function (sType) { // optional sType
+			fnCreateFuncCall = function (sType) {
 				var oValue = oPreviousToken,
 					sKeyOpts, aTypes;
 
@@ -732,9 +732,9 @@ BasicParser.prototype = {
 
 				if (oToken.type === "(") { // args in parenthesis?
 					advance("(");
-					oValue.args = fnGetArgs(oValue.type, ")");
+					oValue.args = fnGetArgs(oValue.type); //until ")"
 					if (oToken.type !== ")") {
-						throw that.composeError(Error(), "Expected closing parenthesis for argument list after", oPreviousToken.value, oToken.pos);
+						throw that.composeError(Error(), "Expected closing parenthesis for argument list after", oPreviousToken.value, oToken.pos); //TTT
 					}
 					advance(")");
 				} else { // no parenthesis?
@@ -755,10 +755,10 @@ BasicParser.prototype = {
 			fnGenerateKeywordSymbols = function () {
 				var sKey, sValue,
 					fnFunc = function () {
-						return fnCreateFuncCall();
+						return fnCreateFuncCall(null);
 					},
 					fnCmd = function () {
-						return fnCreateCmdCall();
+						return fnCreateCmdCall(null);
 					};
 
 				for (sKey in BasicParser.mKeywords) {
@@ -978,7 +978,7 @@ BasicParser.prototype = {
 			if (oToken.type === ",") { // arguments starting with comma
 				advance(",");
 			}
-			oValue.args = fnGetArgs();
+			oValue.args = fnGetArgs(null);
 			return oValue;
 		});
 
@@ -1315,7 +1315,7 @@ BasicParser.prototype = {
 		});
 
 		stmt("mid$", function () { // mid$Assign
-			var oValue = fnCreateFuncCall("mid$Assign"),
+			var oValue = fnCreateFuncCall("mid$Assign"), // change type mid$ => mid$Assign
 				oRight;
 
 			if (oValue.args[0].type !== "identifier") {
@@ -1411,7 +1411,7 @@ BasicParser.prototype = {
 
 				if (oToken.type === "spc" || oToken.type === "tab") {
 					advance(oToken.type);
-					oValue2 = fnCreateFuncCall();
+					oValue2 = fnCreateFuncCall(null);
 				} else if (oToken.type === "using") {
 					oValue2 = oToken;
 					advance("using");

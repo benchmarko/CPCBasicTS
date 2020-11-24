@@ -17,7 +17,7 @@ if (typeof require !== "undefined") {
 
 import { Utils } from "./Utils";
 
-export function BasicTokenizer(options) {
+export function BasicTokenizer(options?) {
 	this.init(options);
 }
 

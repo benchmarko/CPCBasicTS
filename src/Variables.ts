@@ -4,7 +4,7 @@
 
 "use strict";
 
-export function Variables(config) {
+export function Variables(config?) {
 	this.init(config);
 }
 

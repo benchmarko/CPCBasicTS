@@ -1405,7 +1405,8 @@ CodeGeneratorJs.prototype = {
 				return sData;
 			},
 			oOut = {
-				text: ""
+				text: "",
+				error: undefined
 			},
 			aTokens, aParseTree, sOutput;
 

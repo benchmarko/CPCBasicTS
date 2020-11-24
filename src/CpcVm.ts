@@ -710,7 +710,7 @@ CpcVm.prototype = {
 				aFormat = sFormat.split(".", 2);
 				iDecimals = aFormat[1].length;
 				// To avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
-				arg = Number(Math.round(arg + "e" + iDecimals) + "e-" + iDecimals);
+				arg = Number(Math.round(Number(arg + "e" + iDecimals)) + "e-" + iDecimals);
 				arg = arg.toFixed(iDecimals);
 			}
 			if (sFormat.indexOf(",") >= 0) { // contains comma => insert thousands separator
@@ -2353,7 +2353,7 @@ CpcVm.prototype = {
 			this.vmSetCrtcData(iByte);
 			this.aCrtcData[this.iCrtcReg] = iByte;
 		} else if (Utils.debug > 0) {
-			Utils.console.debug("OUT", Number(iPort).toString(16, 4), iByte, ": unknown port");
+			Utils.console.debug("OUT", Number(iPort).toString(16), iByte, ": unknown port");
 		}
 	},
 
@@ -2934,7 +2934,7 @@ CpcVm.prototype = {
 
 	read: function (sVarType) {
 		var sType = this.vmDetermineVarType(sVarType),
-			item = 0;
+			item:string|number = 0;
 
 		if (this.iData < this.aData.length) {
 			item = this.aData[this.iData];
@@ -3087,7 +3087,7 @@ CpcVm.prototype = {
 		iDecimals = this.vmInRangeRound(iDecimals || 0, -39, 39, "ROUND");
 
 		// To avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
-		return Number(Math.round(n + "e" + iDecimals) + "e" + ((iDecimals >= 0) ? "-" + iDecimals : "+" + -iDecimals));
+		return Number(Math.round(Number(n + "e" + iDecimals)) + "e" + ((iDecimals >= 0) ? "-" + iDecimals : "+" + -iDecimals));
 	},
 
 	vmRunCallback: function (sInput, oMeta) {

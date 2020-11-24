@@ -19,7 +19,7 @@ if (typeof require !== "undefined") {
 
 import { Utils } from "./Utils";
 
-export function BasicLexer(options) {
+export function BasicLexer(options?) {
 	this.init(options);
 }
 
@@ -131,7 +131,7 @@ BasicLexer.prototype = {
 				} while (fn(sChar));
 				return sToken2;
 			},
-			addToken = function (type, value, iPos, sOrig) { // optional original value
+			addToken = function (type, value, iPos, sOrig?) { // optional original value
 				var oNode = {
 					type: type,
 					value: value,

@@ -160,7 +160,8 @@ BasicFormatter.prototype = {
 
 	renumber: function (sInput, iNew, iOld, iStep, iKeep) {
 		var oOut = {
-				text: ""
+				text: "",
+				error: undefined
 			},
 			aTokens, aParseTree, sOutput;
 
