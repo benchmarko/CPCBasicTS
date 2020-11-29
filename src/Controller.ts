@@ -47,10 +47,10 @@ import { Diff } from "./Diff";
 import { DiskImage } from "./DiskImage";
 import { InputStack } from "./InputStack";
 import { Keyboard } from "./Keyboard";
-import { Model } from "./Model"; //TTT
+//import { Model } from "./Model"; //TTT
 import { Sound } from "./Sound";
 import { Variables } from "./Variables";
-import { View } from "./View"; //TTT
+//import { View } from "./View"; //TTT
 import { ZipFile } from "./ZipFile";
 
 export function Controller(oModel, oView) {
@@ -941,7 +941,7 @@ Controller.prototype = {
 			sPath = "",
 			sDatabaseDir, sName, sExample, oExample, sKey, iLastSlash, sUrl,
 
-			fnExampleLoaded = function (sFullUrl, bSuppressLog) {
+			fnExampleLoaded = function (_sFullUrl, bSuppressLog) {
 				var sInput;
 
 				oExample = that.model.getExample(sExample);

@@ -162,7 +162,7 @@ var cpcBasic = {
 				}
 			};
 
-		Utils.console = oConsole;
+		Utils.console = oConsole as any; //TTT
 	},
 
 	fnDoStart: function () {
@@ -179,15 +179,16 @@ var cpcBasic = {
 		iDebug = Number(this.model.getProperty("debug"));
 		Utils.debug = iDebug;
 
-		if (Utils.console.cpcBasicLog) {
-			sCpcBasicLog = Utils.console.cpcBasicLog;
-			Utils.console.cpcBasicLog = null; // do not log any more to dummy console
+		const UtilsConsole = Utils.console as any;
+		if (UtilsConsole.cpcBasicLog) {
+			sCpcBasicLog = UtilsConsole.cpcBasicLog;
+			UtilsConsole.cpcBasicLog = null; // do not log any more to dummy console
 		}
 
 		if (Utils.debug > 1 && this.model.getProperty("showConsole")) { // console log window?
 			this.setDebugUtilsConsole(sCpcBasicLog);
 			Utils.console.log("CPCBasic log started at", Utils.dateFormat(new Date()));
-			Utils.console.changeLog(document.getElementById("consoleText"));
+			UtilsConsole.changeLog(document.getElementById("consoleText"));
 		}
 
 		that.controller = new Controller(this.model, this.view);

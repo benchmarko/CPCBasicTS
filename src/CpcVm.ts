@@ -284,7 +284,7 @@ CpcVm.prototype = {
 	},
 
 	vmResetWindowData: function (bResetPenPaper) {
-		var oWinData = this.mWinData[this.iMode],
+		const oWinData = this.mWinData[this.iMode],
 			oData = {
 				iPos: 0, // current text position in line
 				iVpos: 0,
@@ -293,6 +293,10 @@ CpcVm.prototype = {
 				bTransparent: false, // transparent mode
 				bCursorOn: false, // system switch
 				bCursorEnabled: true // user switch
+			},
+			oPenPaperData = {
+				iPen: 1,
+				iPaper: 0
 			},
 			oPrintData = {
 				iPos: 0,
@@ -303,15 +307,18 @@ CpcVm.prototype = {
 				iPos: 0,
 				iVpos: 0,
 				iRight: 255 // override
-			},
-			i, oWin;
+			};
+		let	oWin;
 
 		if (bResetPenPaper) {
+			/*
 			oData.iPen = 1;
 			oData.iPaper = 0;
+			*/
+			Object.assign(oData, oPenPaperData);
 		}
 
-		for (i = 0; i < this.aWindow.length - 2; i += 1) { // for window streams
+		for (let i = 0; i < this.aWindow.length - 2; i += 1) { // for window streams
 			oWin = this.aWindow[i];
 			Object.assign(oWin, oWinData, oData);
 		}
@@ -999,7 +1006,9 @@ CpcVm.prototype = {
 		case 0xbb4e: // TXT Initialize (ROM &1078)
 			this.oCanvas.resetCustomChars();
 			this.vmResetWindowData(true); // reset windows, including pen and paper
-			// falls through
+			// and TXT Reset...
+			this.vmResetControlBuffer(); 
+			break;
 		case 0xbb51: // TXT Reset (ROM &11088)
 			this.vmResetControlBuffer();
 			break;
@@ -1062,7 +1071,9 @@ CpcVm.prototype = {
 			this.iMode = 1;
 			this.oCanvas.setMode(this.iMode); // does not clear canvas
 			this.oCanvas.clearFullWindow(); // (SCR Mode Clear)
-			// fall through
+			// and SCR Reset:
+			this.vmResetInks();
+			break;
 		case 0xbc02: // SCR Reset (ROM &0AB1)
 			this.vmResetInks();
 			break;
@@ -1886,12 +1897,16 @@ CpcVm.prototype = {
 		this.oKeyboard.setExpansionToken(iToken, s);
 	},
 
-	keyDef: function (iCpcKey, iRepeat, iNormal, iShift, iCtrl) { // optional args iNormal,...
+	keyDef: function (iCpcKey, iRepeat, iNormal?, iShift?, iCtrl?) { // optional args iNormal,...
 		var oOptions = {
 			iCpcKey: this.vmInRangeRound(iCpcKey, 0, 79, "KEY DEF"),
-			iRepeat: this.vmInRangeRound(iRepeat, 0, 1, "KEY DEF")
+			iRepeat: this.vmInRangeRound(iRepeat, 0, 1, "KEY DEF"),
+			iNormal: (iNormal !== undefined && iNormal !== null) ? this.vmInRangeRound(iNormal, 0, 255, "KEY DEF") : undefined,
+			iShift: (iShift !== undefined && iShift !== null) ? this.vmInRangeRound(iShift, 0, 255, "KEY DEF") : undefined,
+			iCtrl: (iCtrl !== undefined && iCtrl !== null) ? this.vmInRangeRound(iCtrl, 0, 255, "KEY DEF") : undefined
 		};
 
+		/*
 		if (iNormal !== undefined && iNormal !== null) {
 			oOptions.iNormal = this.vmInRangeRound(iNormal, 0, 255, "KEY DEF");
 		}
@@ -1901,6 +1916,7 @@ CpcVm.prototype = {
 		if (iCtrl !== undefined && iCtrl !== null) {
 			oOptions.iCtrl = this.vmInRangeRound(iCtrl, 0, 255, "KEY DEF");
 		}
+		*/
 
 		this.oKeyboard.setCpcKeyExpansion(oOptions);
 	},

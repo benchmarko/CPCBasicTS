@@ -135,7 +135,8 @@ BasicLexer.prototype = {
 				var oNode = {
 					type: type,
 					value: value,
-					pos: iPos
+					pos: iPos,
+					orig: undefined
 				};
 
 				if (sOrig !== undefined) {

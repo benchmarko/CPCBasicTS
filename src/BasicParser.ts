@@ -1438,7 +1438,8 @@ BasicParser.prototype = {
 		});
 
 		stmt("?", function () {
-			var oValue = oSymbols.print.std(); // "?" is same as print
+			//TTT
+			var oValue = (oSymbols as any).print.std(); // "?" is same as print
 
 			oValue.type = "print";
 			return oValue;

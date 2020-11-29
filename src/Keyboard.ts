@@ -1056,13 +1056,13 @@ Keyboard.prototype = {
 
 		oCpcKeyExpansions.repeat[iCpcKey] = oOptions.iRepeat;
 
-		if ("iNormal" in oOptions) {
+		if (oOptions.iNormal !== undefined) {
 			oCpcKeyExpansions.normal[iCpcKey] = oOptions.iNormal;
 		}
-		if ("iShift" in oOptions) {
+		if (oOptions.iShift !== undefined) {
 			oCpcKeyExpansions.shift[iCpcKey] = oOptions.iShift;
 		}
-		if ("iCtrl" in oOptions) {
+		if (oOptions.iCtrl !== undefined) {
 			oCpcKeyExpansions.ctrl[iCpcKey] = oOptions.iCtrl;
 		}
 	},

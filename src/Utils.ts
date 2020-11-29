@@ -7,7 +7,7 @@
 
 export var Utils = {
 	debug: 0,
-	console: typeof window !== "undefined" ? window.console : global.console, // browser or node.js
+	console: typeof window !== "undefined" ? window.console : globalThis.console, // browser or node.js
 
 	fnLoadScriptOrStyle: function (script, sFullUrl, fnSuccess, fnError) {
 		// inspired by https://github.com/requirejs/requirejs/blob/master/require.js

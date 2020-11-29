@@ -131,17 +131,17 @@ BasicFormatter.prototype = {
 					}
 				}
 			},
-			fnSorter = function (a, b) {
-				return a.pos >= b.pos;
+			fnSortNumbers = function (a, b) {
+				return a - b;
 			},
 			fnApplyChanges = function () {
-				var aKeys = Object.keys(oChanges),
-					i, oLine;
+				var aKeys = Object.keys(oChanges).map(Number),
+					oLine;
 
-				aKeys.sort(fnSorter);
+				aKeys.sort(fnSortNumbers);
 
 				// apply changes to input in reverse order
-				for (i = aKeys.length - 1; i >= 0; i -= 1) {
+				for (let i = aKeys.length - 1; i >= 0; i -= 1) {
 					oLine = oChanges[aKeys[i]];
 					sInput = sInput.substring(0, oLine.pos) + oLine.newLine + sInput.substr(oLine.pos + oLine.len);
 				}

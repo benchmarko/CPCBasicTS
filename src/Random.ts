@@ -8,20 +8,23 @@
 // Random number generator taken from:
 // Raj Jain: The Art of Computer Systems Performance Analysis, John Wiley & Sons, 1991, page 442-444
 //
-export function Random(nSeed?) {
-	this.init(nSeed);
-}
+export class Random {
+	x: number;
 
-Random.prototype = {
-	init: function (nSeed) {
+	constructor(nSeed?: number) {
+		this.init(nSeed);
+	}
+	
+	init(nSeed: number) {
 		this.x = nSeed || 1; // do not use 0
-	},
-	random: function () {
-		var m = 2147483647, // prime number 2^31-1; modulus, do not change!
+	}
+
+	random() {
+		const m = 2147483647, // prime number 2^31-1; modulus, do not change!
 			a = 16807, // 7^5, one primitive root; multiplier
 			q = 127773, // m div a
-			r = 2836, // m mod a
-			x = this.x; // last random value
+			r = 2836; // m mod a
+		let x = this.x; // last random value
 
 		x = a * (x % q) - r * ((x / q) | 0); // eslint-disable-line no-bitwise
 		// we use "| 0" to get an integer div result

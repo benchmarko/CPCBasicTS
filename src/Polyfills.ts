@@ -17,11 +17,11 @@ import { Utils } from "./Utils";
 
 // IE: window.console is only available when Dev Tools are open
 if (!Utils.console) {
-	Utils.console = {
+	(Utils.console as any) = {
 		cpcBasicLog: "LOG:\n",
 		log: function () { // varargs
-			if (Utils.console.cpcBasicLog) {
-				Utils.console.cpcBasicLog += Array.prototype.slice.call(arguments).join(" ") + "\n";
+			if ((Utils.console as any).cpcBasicLog) {
+				(Utils.console as any).cpcBasicLog += Array.prototype.slice.call(arguments).join(" ") + "\n";
 			}
 		}
 	};
@@ -38,7 +38,7 @@ if (!Utils.console.debug) { // IE8 has no console.debug
 
 if ((typeof globalThis !== "undefined") && !globalThis.window) { // nodeJS
 	Utils.console.debug("Polyfill: window");
-	globalThis.window = {};
+	(globalThis.window as any) = {};
 }
 
 if (!Array.prototype.indexOf) { // IE8
@@ -126,7 +126,7 @@ if (window.document) {
 	if (!document.addEventListener) {
 		// or check: https://gist.github.com/fuzzyfox/6762206
 		Utils.console.debug("Polyfill: document.addEventListener, removeEventListener");
-		if (document.attachEvent) {
+		if ((document as any).attachEvent) {
 			(function () {
 				var eventListeners = [];
 
@@ -134,9 +134,9 @@ if (window.document) {
 					var fnFindCaret = function (event) {
 							var oRange, oRange2;
 
-							if (document.selection) {
+							if ((document as any).selection) {
 								event.target.focus();
-								oRange = document.selection.createRange();
+								oRange = (document as any).selection.createRange();
 								oRange2 = oRange.duplicate();
 								if (oRange2.moveToElementTxt) { // not on IE8
 									oRange2.moveToElementTxt(event.target);
@@ -170,7 +170,7 @@ if (window.document) {
 							});
 						}
 					} else { // e.g. "Click"
-						document.attachEvent("on" + sEvent, fnOnEvent);
+						(document as any).attachEvent("on" + sEvent, fnOnEvent);
 						eventListeners.push({
 							object: this,
 							sEvent: sEvent,
@@ -198,8 +198,8 @@ if (window.document) {
 		} else {
 			Utils.console.log("No document.attachEvent found."); // will be ignored
 			// debug: trying to fix
-			if (document.__proto__.addEventListener) { // eslint-disable-line no-proto
-				document.addEventListener = document.__proto__.addEventListener; // eslint-disable-line no-proto
+			if ((document as any).__proto__.addEventListener) { // eslint-disable-line no-proto
+				document.addEventListener = (document as any).__proto__.addEventListener; // eslint-disable-line no-proto
 			}
 		}
 	}
@@ -234,7 +234,7 @@ if (!Function.prototype.bind) { // IE8
 if (!Math.sign) { // IE11
 	Utils.console.debug("Polyfill: Math.sign");
 	Math.sign = function (x) {
-		return ((x > 0) - (x < 0)) || +x; // eslint-disable-line no-implicit-coercion
+		return (Number(x > 0) - Number(x < 0)) || Number(x);
 	};
 }
 
@@ -389,9 +389,9 @@ if (!String.prototype.trim) { // IE8
 	};
 }
 
-if (!String.prototype.trimEnd) {
+if (!(String as any).prototype.trimEnd) {
 	Utils.console.debug("Polyfill: String.prototype.trimEnd");
-	String.prototype.trimEnd = function () { // eslint-disable-line no-extend-native
+	(String as any).prototype.trimEnd = function () { // eslint-disable-line no-extend-native
 		return this.replace(/[\s\uFEFF\xA0]+$/, "");
 	};
 }
@@ -530,11 +530,11 @@ if (!Utils.localStorage) {
 
 if (!window.ArrayBuffer) { // IE9
 	Utils.console.debug("Polyfill: window.ArrayBuffer");
-	window.ArrayBuffer = Array;
+	window.ArrayBuffer = Array as any;
 }
 
 if (!window.AudioContext) { // ? not for IE
-	window.AudioContext = window.webkitAudioContext || window.mozAudioContext;
+	window.AudioContext = (window as any).webkitAudioContext || (window as any).mozAudioContext;
 	if (window.AudioContext) {
 		Utils.console.debug("Polyfill: window.AudioContext");
 	} else {
@@ -545,7 +545,7 @@ if (!window.AudioContext) { // ? not for IE
 if (!window.JSON) { // simple polyfill for JSON.parse only
 	// for a better implementation, see https://github.com/douglascrockford/JSON-js/blob/master/json2.js
 	Utils.console.debug("Polyfill: window.JSON.parse");
-	window.JSON = {
+	(window as any).JSON = {
 		parse: function (sText) {
 			var oJson = eval("(" + sText + ")"); // eslint-disable-line no-eval
 
@@ -555,13 +555,14 @@ if (!window.JSON) { // simple polyfill for JSON.parse only
 			Utils.console.error("Not implemented: window.JSON.stringify");
 			return String(o);
 		}
+		//how to set: Symbol(Symbol.toStringTag): "JSON" ?
 	};
 }
 
 if (!window.requestAnimationFrame) { // IE9, SliTaz tazweb browser
 	// https://wiki.selfhtml.org/wiki/JavaScript/Window/requestAnimationFrame
-	window.requestAnimationFrame = window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
-	window.cancelAnimationFrame = window.mozCancelAnimationFrame || window.webkitCancelAnimationFrame || window.msCancelAnimationFrame;
+	window.requestAnimationFrame = (window as any).mozRequestAnimationFrame || window.webkitRequestAnimationFrame || (window as any).msRequestAnimationFrame;
+	window.cancelAnimationFrame = (window as any).mozCancelAnimationFrame || window.webkitCancelAnimationFrame || (window as any).msCancelAnimationFrame;
 	if (!window.requestAnimationFrame || !window.cancelAnimationFrame) {
 		(function () {
 			var lastTime = 0;
@@ -586,9 +587,29 @@ if (!window.requestAnimationFrame) { // IE9, SliTaz tazweb browser
 
 if (!window.Uint8Array) { // IE9
 	Utils.console.debug("Polyfill: Uint8Array (fallback only)");
-	window.Uint8Array = function (oArrayBuffer) {
+	/*
+	(function () {
+		function myUint8ArrayConstructor(oArrayBuffer) {
+			return oArrayBuffer; // we just return the ArrayBuffer as fallback; enough for our needs
+		};
+
+		myUint8ArrayConstructor.BYTES_PER_ELEMENT = 1;
+		myUint8ArrayConstructor.of = function () {
+			Utils.console.error("Uint8Array.of: not implemented");
+			return this;
+		};
+		myUint8ArrayConstructor.from = function () {
+			Utils.console.error("Uint8Array.from: not implemented");
+			return this;
+		};
+		window.Uint8Array = myUint8ArrayConstructor;
+		// A more complex solution would be: https://github.com/inexorabletash/polyfill/blob/master/typedarray.js
+	}());
+	*/
+	(window as any).Uint8Array = function (oArrayBuffer) {
 		return oArrayBuffer; // we just return the ArrayBuffer as fallback; enough for our needs
 	};
+	(window.Uint8Array as any).BYTES_PER_ELEMENT = 1;
 	// A more complex solution would be: https://github.com/inexorabletash/polyfill/blob/master/typedarray.js
 }
 

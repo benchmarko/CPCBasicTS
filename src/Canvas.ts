@@ -208,9 +208,15 @@ Canvas.prototype = {
 	},
 
 	isLittleEndian: function () {
-		var b = new Uint8Array([255, 0, 0, 0]); // eslint-disable-line array-element-newline
-
-		return ((new Uint32Array(b, b.buffer))[0] === 255);
+		// https://gist.github.com/TooTallNate/4750953
+		//var b = new Uint8Array([255, 0, 0, 0]); // eslint-disable-line array-element-newline
+		//return ((new Uint32Array(b, b.buffer))[0] === 255);
+		var b = new ArrayBuffer(4),
+			a = new Uint32Array(b),
+			c = new Uint8Array(b);
+			  
+  		a[0] = 0xdeadbeef;
+  		return (c[0] === 0xef);
 	},
 
 	extractColorValues: function (sColor) { // from "#rrggbb"
