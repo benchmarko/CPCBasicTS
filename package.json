@@ -1,6 +1,6 @@
 {
   "name": "cpcbasicts",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "# CPCBasicTS - Run CPC BASIC in a Browser",
   "main": "cpcbasicts.js",
   "directories": {
@@ -9,6 +9,7 @@
   "dependencies": {},
   "devDependencies": {
     "gh-pages": "^3.1.0",
+    "mkdirp": "^1.0.4",
     "qunit": "^2.6.1",
     "typescript": ">2.9.2"
   },
@@ -17,9 +18,10 @@
   ],
   "scripts": {
     "start": "echo TODO",
-    "build": "tsc && cp src/*.html src/*.css dist/",
+    "build": "tsc && cp src/*.html src/*.css dist/ && mkdirp -p dist/ts && cp -r src/*.ts dist/ts/",
     "clean": "rm -rf dist/*",
-    "deploy": "gh-pages -d dist",
+    "cleancache": "rm -rf node_modules/.cache/gh-pages/",
+    "deploy": "npm run cleancache && gh-pages -d dist",
     "test": "qunit"
   },
   "repository": {

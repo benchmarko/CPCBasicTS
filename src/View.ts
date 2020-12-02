@@ -1,29 +1,47 @@
-// View.js - View Module to access HTML DOM
+// View.ts - View Module to access HTML DOM
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //
-/* XXXglobals Utils */
 
 "use strict";
 
 import { Utils } from "./Utils";
 
-export function View(options) {
-	this.init(options);
+export interface SelectOptionElement { // similar to HtmlOptionElement
+	value: string,
+	text: string,
+	title: string
+	selected: boolean
 }
 
-View.fnEventHandler = null;
+export class View {
 
-View.prototype = {
-	init: function (/* options */) {
-		this.bDirty = false;
-	},
+	static fnEventHandler = null;
 
-	getHidden: function (sId) {
-		return document.getElementById(sId).className.indexOf("displayNone") >= 0;
-	},
-	setHidden: function (sId, bHidden, sDisplay) { // optional sDisplay: block or flex
-		var element = document.getElementById(sId),
+	constructor() {
+		this.init();
+	}
+
+	init() {
+		//this.bDirty = false;
+	}
+
+	static getElementById1(sId: string) {
+		const element = document.getElementById(sId);
+
+		if (!element) {
+			throw new Error("Unknown " + sId);
+		}
+		return element;
+	}
+
+	getHidden(sId: string) {
+		const element = View.getElementById1(sId);
+
+		return element.className.indexOf("displayNone") >= 0;
+	}
+	setHidden(sId: string, bHidden: boolean, sDisplay: string) { // optional sDisplay: block or flex
+		const element = View.getElementById1(sId),
 			sDisplayVisible = "display" + Utils.stringCapitalize(sDisplay || "block");
 
 		if (bHidden) {
@@ -43,19 +61,19 @@ View.prototype = {
 		}
 
 		return this;
-	},
+	}
 
-	setDisabled: function (sId, bDisabled) {
-		var element = document.getElementById(sId) as HTMLButtonElement;
+	setDisabled(sId: string, bDisabled: boolean) {
+		var element = View.getElementById1(sId);
 
-		element.disabled = bDisabled;
+		(element as HTMLButtonElement).disabled = bDisabled;
 		return this;
-	},
+	}
 
-	toggleClass: function (sId, sClassName) {
-		var element = document.getElementById(sId),
-			sClasses = element.className,
-			iNameIndex = sClasses.indexOf(sClassName);
+	toggleClass(sId: string, sClassName: string) {
+		const element = View.getElementById1(sId);
+		let sClasses = element.className;
+		const iNameIndex = sClasses.indexOf(sClassName);
 
 		if (iNameIndex === -1) {
 			sClasses += " " + sClassName;
@@ -63,34 +81,35 @@ View.prototype = {
 			sClasses = sClasses.substr(0, iNameIndex) + sClasses.substr(iNameIndex + sClassName.length + 1);
 		}
 		element.className = sClasses;
-	},
+	}
 
-	getAreaValue: function (sId) {
-		var area = document.getElementById(sId) as HTMLTextAreaElement;
+	getAreaValue(sId: string) {
+		const element = View.getElementById1(sId);
 
-		return area.value;
-	},
-	setAreaValue: function (sId, sValue) {
-		var area = document.getElementById(sId) as HTMLTextAreaElement;
+		return (element as HTMLTextAreaElement).value;
+	}
+	setAreaValue(sId: string, sValue: string) {
+		const element = View.getElementById1(sId);
 
-		area.value = sValue;
+		(element as HTMLTextAreaElement).value = sValue;
 		return this;
-	},
+	}
 
-	setSelectOptions: function (sId, aOptions) {
-		var select, i, oItem, option;
+	setSelectOptions(sId: string, aOptions: SelectOptionElement[]) {
+		const element = View.getElementById1(sId),
+			select = element as HTMLSelectElement;
 
-		select = document.getElementById(sId);
-		for (i = 0; i < aOptions.length; i += 1) {
-			oItem = aOptions[i];
+		for (let i = 0; i < aOptions.length; i += 1) {
+			const oItem = aOptions[i];
 			if (i >= select.length) {
-				option = document.createElement("option");
+				const option = document.createElement("option");
 				option.value = oItem.value;
 				option.text = oItem.text;
 				option.title = oItem.title;
+				option.selected = oItem.selected; // multi-select
 				select.add(option, null); // null needed for old FF 3.x
 			} else {
-				option = select.options[i];
+				const option = select.options[i];
 				if (option.value !== oItem.value) {
 					option.value = oItem.value;
 				}
@@ -102,57 +121,60 @@ View.prototype = {
 					option.title = oItem.title;
 				}
 			}
+
+			/*
 			if (oItem.selected) { // multi-select
 				option.selected = oItem.selected;
 			}
+			*/
 		}
 		// remove additional select options
 		select.options.length = aOptions.length;
 		return this;
-	},
-	getSelectValue: function (sId) {
-		var select = document.getElementById(sId) as HTMLSelectElement;
+	}
+	getSelectValue(sId: string) {
+		const element = View.getElementById1(sId);
 
-		return select.value;
-	},
-	setSelectValue: function (sId, sValue) {
-		var select = document.getElementById(sId) as HTMLSelectElement;
+		return (element as HTMLSelectElement).value;
+	}
+	setSelectValue(sId: string, sValue: string) {
+		const element = View.getElementById1(sId);
 
 		if (sValue) {
-			select.value = sValue;
+			(element as HTMLSelectElement).value = sValue;
 		}
 		return this;
-	},
-	setSelectTitleFromSelectedOption: function (sId) {
-		var select = document.getElementById(sId) as HTMLSelectElement,
+	}
+	setSelectTitleFromSelectedOption(sId: string) {
+		const element = View.getElementById1(sId),
+			select = element as HTMLSelectElement,
 			iSelectedIndex = select.selectedIndex,
-			sTitle;
+			sTitle = (iSelectedIndex >= 0) ? select.options[iSelectedIndex].title : "";
 
-		sTitle = (iSelectedIndex >= 0) ? select.options[iSelectedIndex].title : "";
 		select.title = sTitle;
 		return this;
-	},
+	}
 
-	setAreaScrollTop: function (sId, scrollTop) {
-		var area = document.getElementById(sId);
+	setAreaScrollTop(sId: string, iScrollTop?: number) {
+		const element = View.getElementById1(sId),
+			area = element as HTMLTextAreaElement;
 
-		if (scrollTop === undefined) {
-			scrollTop = area.scrollHeight;
+		if (iScrollTop === undefined) {
+			iScrollTop = area.scrollHeight;
 		}
-		area.scrollTop = scrollTop;
-	},
+		area.scrollTop = iScrollTop;
+	}
 
-	fnSetSelectionRange: function (textarea, selectionStart, selectionEnd) {
-		var fullText, scrollHeight, scrollTop, textareaHeight;
-
+	private setSelectionRange(textarea: HTMLTextAreaElement, selectionStart: number, selectionEnd: number) {
 		// First scroll selection region to view
-		fullText = textarea.value;
+		const fullText = textarea.value;
 		textarea.value = fullText.substring(0, selectionEnd);
 		// For some unknown reason, you must store the scollHeight to a variable before setting the textarea value. Otherwise it won't work for long strings
-		scrollHeight = textarea.scrollHeight;
+		const scrollHeight = textarea.scrollHeight;
 		textarea.value = fullText;
-		scrollTop = scrollHeight;
-		textareaHeight = textarea.clientHeight;
+		const textareaHeight = textarea.clientHeight;
+
+		let scrollTop = scrollHeight;
 		if (scrollTop > textareaHeight) {
 			// scroll selection to center of textarea
 			scrollTop -= textareaHeight / 2;
@@ -163,14 +185,16 @@ View.prototype = {
 
 		// Continue to set selection range
 		textarea.setSelectionRange(selectionStart, selectionEnd);
-	},
-	setAreaSelection: function (sId, iPos, iEndPos) {
-		var area = document.getElementById(sId) as HTMLTextAreaElement;
+	}
+
+	setAreaSelection(sId: string, iPos: number, iEndPos: number) {
+		const element = View.getElementById1(sId),
+			area = element as HTMLTextAreaElement;
 
 		if (area.selectionStart !== undefined) {
-			if (area.setSelectionRange) {
+			if (area.setSelectionRange !== undefined) {
 				area.focus(); // not needed for scrolling but we want to see the selected text
-				this.fnSetSelectionRange(area, iPos, iEndPos);
+				this.setSelectionRange(area, iPos, iEndPos);
 			} else {
 				area.focus();
 				area.selectionStart = iPos;
@@ -178,11 +202,11 @@ View.prototype = {
 			}
 		}
 		return this;
-	},
+	}
 
-	attachEventHandler: function (sType, fnEventHandler) {
+	attachEventHandler(sType: string, fnEventHandler: EventListener) {
 		if (Utils.debug) {
-			Utils.console.debug("attachEventHandler: type=" + sType + ", fnEventHandler=" + (fnEventHandler ? "[function]" : null));
+			Utils.console.debug("attachEventHandler: type=" + sType + ", fnEventHandler=" + ((fnEventHandler != undefined) ? "[function]" : null));
 		}
 		document.addEventListener(sType, fnEventHandler, false);
 		return this;

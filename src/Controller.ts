@@ -51,6 +51,8 @@ import { Keyboard } from "./Keyboard";
 import { Sound } from "./Sound";
 import { Variables } from "./Variables";
 //import { View } from "./View"; //TTT
+import { SelectOptionElement } from "./View";
+
 import { ZipFile } from "./ZipFile";
 
 export function Controller(oModel, oView) {
@@ -215,23 +217,25 @@ Controller.prototype = {
 	},
 
 	setDatabaseSelectOptions: function () {
-		var sSelect = "databaseSelect",
-			aItems = [],
+		const sSelect = "databaseSelect",
+			aItems: SelectOptionElement[] = [],
 			oDatabases = this.model.getAllDatabases(),
-			sDatabase = this.model.getProperty("database"),
-			sValue, oDb, oItem;
+			sDatabase = this.model.getProperty("database");
 
-		for (sValue in oDatabases) {
+		for (let sValue in oDatabases) {
 			if (oDatabases.hasOwnProperty(sValue)) {
-				oDb = oDatabases[sValue];
-				oItem = {
-					value: sValue,
-					text: oDb.text,
-					title: oDb.title
-				};
+				const oDb = oDatabases[sValue],
+					oItem: SelectOptionElement = {
+						value: sValue,
+						text: oDb.text,
+						title: oDb.title,
+						selected: sValue === sDatabase
+					};
+				/*
 				if (sValue === sDatabase) {
 					oItem.selected = true;
 				}
+				*/
 				aItems.push(oItem);
 			}
 		}
@@ -239,26 +243,28 @@ Controller.prototype = {
 	},
 
 	setExampleSelectOptions: function () {
-		var iMaxTitleLength = 160,
+		const iMaxTitleLength = 160,
 			iMaxTextLength = 60, // (32 visible?)
 			sSelect = "exampleSelect",
-			aItems = [],
+			aItems: SelectOptionElement[] = [],
 			sExample = this.model.getProperty("example"),
-			oAllExamples = this.model.getAllExamples(),
-			bExampleSelected = false,
-			sKey, oExample, oItem;
+			oAllExamples = this.model.getAllExamples();
 
-		for (sKey in oAllExamples) {
+		let bExampleSelected = false;
+
+		for (let sKey in oAllExamples) {
 			if (oAllExamples.hasOwnProperty(sKey)) {
-				oExample = oAllExamples[sKey];
+				const oExample = oAllExamples[sKey];
 				if (oExample.meta !== "D") { // skip data files
-					oItem = {
+					const sTitle = (oExample.key + ": " + oExample.title).substr(0, iMaxTitleLength),
+						oItem: SelectOptionElement = {
 						value: oExample.key,
-						title: (oExample.key + ": " + oExample.title).substr(0, iMaxTitleLength)
+						title: sTitle,
+						text: sTitle.substr(0, iMaxTextLength),
+						selected: oExample.key === sExample
 					};
-					oItem.text = oItem.title.substr(0, iMaxTextLength);
-					if (oExample.key === sExample) {
-						oItem.selected = true;
+
+					if (oItem.selected) {
 						bExampleSelected = true;
 					}
 					aItems.push(oItem);
@@ -271,13 +277,13 @@ Controller.prototype = {
 		this.view.setSelectOptions(sSelect, aItems);
 	},
 
-	setVarSelectOptions: function (sSelect, oVariables) {
-		var iMaxVarLength = 35,
+	setVarSelectOptions: function (sSelect: string, oVariables) {
+		const iMaxVarLength = 35,
 			aVarNames = oVariables.getAllVariableNames(),
-			aItems = [],
-			i, oItem, sKey, sValue, sTitle, sStrippedTitle,
-			fnSortByStringProperties = function (a, b) { // can be used without "this" context
-				var x = a.value,
+			aItems: SelectOptionElement[] = [],
+
+			fnSortByStringProperties = function (a: SelectOptionElement, b: SelectOptionElement) { // can be used without "this" context
+				const x = a.value,
 					y = b.value;
 
 				if (x < y) {
@@ -288,17 +294,21 @@ Controller.prototype = {
 				return 0;
 			};
 
-		for (i = 0; i < aVarNames.length; i += 1) {
-			sKey = aVarNames[i];
-			sValue = oVariables.getVariable(sKey);
-			sTitle = sKey + "=" + sValue;
-			sStrippedTitle = sTitle.substr(0, iMaxVarLength); // limit length
+		for (let i = 0; i < aVarNames.length; i += 1) {
+			const sKey = aVarNames[i],
+				sValue = oVariables.getVariable(sKey),
+				sTitle = sKey + "=" + sValue;
+
+			let sStrippedTitle = sTitle.substr(0, iMaxVarLength); // limit length
 			if (sTitle !== sStrippedTitle) {
 				sStrippedTitle += " ...";
 			}
-			oItem = {
+
+			const oItem: SelectOptionElement = {
 				value: sKey,
-				title: sStrippedTitle
+				text: sStrippedTitle,
+				title: sStrippedTitle,
+				selected: false //TTT
 			};
 			oItem.text = oItem.title;
 			aItems.push(oItem);
@@ -1789,6 +1799,32 @@ Controller.prototype = {
 		this.view.setAreaValue("inp2Text", "");
 	},
 
+	generateFunction: function (sPar, sFunction) {
+		var aArgs = [],
+			iFirstIndex, iLastIndex, aMatch, fnFunction;
+
+		if (sFunction.startsWith("function anonymous(")) { // already a modified function (inside an anonymous function)?
+			iFirstIndex = sFunction.indexOf("{");
+			iLastIndex = sFunction.lastIndexOf("}");
+			if (iFirstIndex >= 0 && iLastIndex >= 0) {
+				sFunction = sFunction.substring(iFirstIndex + 1, iLastIndex - 1); // remove anonymous function
+			}
+			sFunction = sFunction.trim();
+		} else {
+			sFunction = "var o=cpcBasic.controller.oVm, v=o.vmGetAllVariables(); v." + sPar + " = " + sFunction;
+		}
+
+		aMatch = (/function \(([^)]*)/).exec(sFunction);
+		if (aMatch) {
+			aArgs = aMatch[1].split(",");
+		}
+
+		fnFunction = new Function(aArgs[0], aArgs[1], aArgs[2], aArgs[3], aArgs[4], sFunction); // eslint-disable-line no-new-func
+		// we support at most 5 arguments
+
+		return fnFunction;
+	},
+
 	changeVariable: function () {
 		var sPar = this.view.getSelectValue("varSelect"),
 			sValue = this.view.getSelectValue("varText"),
@@ -1797,8 +1833,13 @@ Controller.prototype = {
 
 		value = oVariables.getVariable(sPar);
 		if (typeof value === "function") { // TODO
+			value = this.generateFunction(sPar, sValue);
+			/*
 			value = sValue;
-			value = new Function("o", value); // eslint-disable-line no-new-func
+			value = "var o=cpcBasic.controller.oVm, v=o.vmGetAllVariables(); v." + sPar + " = " + sValue;
+			value = new Function("xR", value); // eslint-disable-line no-new-func
+			// new function must be called later with this.oVm, ...
+			*/
 			oVariables.setVariable(sPar, value);
 		} else {
 			sVarType = this.oVariables.determineStaticVarType(sPar);

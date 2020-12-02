@@ -1,4 +1,4 @@
-// Random.js - Random Number Generator
+// Random.ts - Random Number Generator
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 
@@ -9,13 +9,13 @@
 // Raj Jain: The Art of Computer Systems Performance Analysis, John Wiley & Sons, 1991, page 442-444
 //
 export class Random {
-	x: number;
+	x!: number;
 
 	constructor(nSeed?: number) {
 		this.init(nSeed);
 	}
 	
-	init(nSeed: number) {
+	init(nSeed?: number) {
 		this.x = nSeed || 1; // do not use 0
 	}
 

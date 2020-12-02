@@ -1,49 +1,55 @@
-// Variables.js - Variables
+// Variables.ts - Variables
 // (c) Marco Vieth, 2020
 // https://benchmarko.github.io/CPCBasic/
 
 "use strict";
 
-export function Variables(config?) {
-	this.init(config);
-}
+type VariableValue = string | number | object; //TTT any?  string | number | function | array
 
-Variables.prototype = {
-	init: function (config) {
-		this.config = config || {}; // store only a reference
+type VariableMap = { [k in string]: VariableValue }; //TTT
+
+type VariableTypeMap = { [k in string]: string };
+
+
+export class Variables {
+	oVariables!: VariableMap;
+	oVarTypes!: VariableTypeMap; // default variable types for variables starting with letters a-z
+
+	constructor() {
+		this.init();
+	}
+
+	init() {
 		this.oVariables = {};
 		this.oVarTypes = {}; // default variable types for variables starting with letters a-z
-	},
+	}
 
-	removeAllVariables: function () {
-		var oVariables = this.oVariables,
-			sName;
+	removeAllVariables() {
+		const oVariables = this.oVariables;
 
-		for (sName in oVariables) { // eslint-disable-line guard-for-in
+		for (let sName in oVariables) { // eslint-disable-line guard-for-in
 			delete oVariables[sName];
 		}
 		return this;
-	},
+	}
 
-	getAllVariables: function () {
+	getAllVariables() {
 		return this.oVariables;
-	},
+	}
 
-
-	createNDimArray: function (aDims, initVal) {
+	createNDimArray(aDims: number[], initVal: string | number) {
 		var aRet,
-			fnCreateRec = function (iIndex) {
-				var iLen, aArr, i;
+			fnCreateRec = function (iIndex: number) {
+				const iLen = aDims[iIndex],
+					aArr: VariableValue[] = new Array(iLen);
 
-				iLen = aDims[iIndex];
 				iIndex += 1;
-				aArr = new Array(iLen);
 				if (iIndex < aDims.length) { // more dimensions?
-					for (i = 0; i < iLen; i += 1) {
+					for (let i = 0; i < iLen; i += 1) {
 						aArr[i] = fnCreateRec(iIndex); // recursive call
 					}
 				} else { // one dimension
-					for (i = 0; i < iLen; i += 1) {
+					for (let i = 0; i < iLen; i += 1) {
 						aArr[i] = initVal;
 					}
 				}
@@ -52,11 +58,11 @@ Variables.prototype = {
 
 		aRet = fnCreateRec(0);
 		return aRet;
-	},
+	}
 
 	// determine static varType (first letter + optional fixed vartype) from a variable name
 	// format: (v.)<sname>(I|R|$)([...]([...])) with optional parts in ()
-	determineStaticVarType: function (sName) {
+	determineStaticVarType(sName: string) {
 		var sNameType;
 
 		if (sName.indexOf("v.") === 0) { // preceding variable object?
@@ -77,60 +83,61 @@ Variables.prototype = {
 			sNameType += "$";
 		}
 		return sNameType;
-	},
+	}
 
-	getVarDefault: function (sVarName, aDimensions) { // optional aDimensions
-		var iArrayIndices = sVarName.split("A").length - 1,
-			bIsString = sVarName.includes("$"),
-			sFirst, value, aValue, i;
+	getVarDefault(sVarName: string, aDimensions?: number[]) { // optional aDimensions
+		let bIsString = sVarName.includes("$");
 
 		if (!bIsString) { // check dynamic varType...
-			sFirst = sVarName.charAt(0);
+			let sFirst = sVarName.charAt(0);
 			if (sFirst === "_") { // ignore underscore (do not clash with keywords)
 				sFirst = sFirst.charAt(1);
 			}
 			bIsString = (this.getVarType(sFirst) === "$");
 		}
-		value = bIsString ? "" : 0;
+
+		let value: VariableValue = bIsString ? "" : 0,
+			iArrayIndices = sVarName.split("A").length - 1;
+
 		if (iArrayIndices) {
 			if (!aDimensions) {
 				aDimensions = [];
 				if (iArrayIndices > 3) { // on CPC up to 3 dimensions 0..10 without dim
 					iArrayIndices = 3;
 				}
-				for (i = 0; i < iArrayIndices; i += 1) {
+				for (let i = 0; i < iArrayIndices; i += 1) {
 					aDimensions.push(11);
 				}
 			}
-			aValue = this.createNDimArray(aDimensions, value);
+			const aValue = this.createNDimArray(aDimensions, value);
 			value = aValue;
 		}
 		return value;
-	},
+	}
 
-	initVariable: function (sName) {
-		this.oVariables[sName] = this.getVarDefault(sName, null);
+	initVariable(sName: string) {
+		this.oVariables[sName] = this.getVarDefault(sName, undefined);
 		return this;
-	},
+	}
 
-	dimVariable: function (sName, aDimensions) {
+	dimVariable(sName: string, aDimensions: number[]) {
 		this.oVariables[sName] = this.getVarDefault(sName, aDimensions);
 		return this;
-	},
+	}
 
-	getAllVariableNames: function () {
+	getAllVariableNames() {
 		return Object.keys(this.oVariables);
-	},
+	}
 
-	getVariableIndex: function (sName) {
+	getVariableIndex(sName: string) {
 		var aVarNames = this.getAllVariableNames(),
 			iPos;
 
 		iPos = aVarNames.indexOf(sName);
 		return iPos;
-	},
+	}
 
-	initAllVariables: function () {
+	initAllVariables() {
 		var aVariables = this.getAllVariableNames(),
 			i;
 
@@ -138,41 +145,35 @@ Variables.prototype = {
 			this.initVariable(aVariables[i]);
 		}
 		return this;
-	},
+	}
 
-	getVariable: function (sName) {
+	getVariable(sName: string) {
 		return this.oVariables[sName];
-	},
+	}
 
-	setVariable: function (sName, value) {
+	setVariable(sName: string, value: any) { //TTT value can be string, number, function, array
 		this.oVariables[sName] = value;
 		return this;
-	},
+	}
 
-	getVariableByIndex: function (iIndex) { // needed for RSX: @var
+	getVariableByIndex(iIndex: number) { // needed for RSX: @var
 		var aVariables = this.getAllVariableNames(),
 			sName = aVariables[iIndex];
 
 		return this.oVariables[sName];
-	},
+	}
 
-	variableExist: function (sName) {
+	variableExist(sName: string) {
 		return sName in this.oVariables;
-	},
+	}
 
 
-	getVarType: function (sVarChar) {
+	getVarType(sVarChar: string) {
 		return this.oVarTypes[sVarChar];
-	},
+	}
 
-	setVarType: function (sVarChar, sType) {
+	setVarType(sVarChar: string, sType: string) {
 		this.oVarTypes[sVarChar] = sType;
 		return this;
 	}
 };
-
-/*
-if (typeof module !== "undefined" && module.exports) {
-	module.exports = Variables;
-}
-*/

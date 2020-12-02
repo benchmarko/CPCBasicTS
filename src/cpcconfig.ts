@@ -1,4 +1,4 @@
-/* cpcconfig.js - configuration file for CPCBasic */
+/* cpcconfig.ts - configuration file for CPCBasic */
 
 "use strict";
 

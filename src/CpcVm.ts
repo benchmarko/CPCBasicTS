@@ -19,7 +19,9 @@ if (typeof require !== "undefined") {
 
 import { Utils } from "./Utils";
 import { CpcVmRsx } from "./CpcVmRsx";
+import { CpcKeyExpansionsOptions } from "./Keyboard";
 import { Random } from "./Random";
+import { SoundData, ToneEnvData, ToneEnvData1, ToneEnvData2, VolEnvData, VolEnvData1, VolEnvData2 } from "./Sound";
 
 export function CpcVm(options) {
 	this.vmInit(options);
@@ -1437,10 +1439,11 @@ CpcVm.prototype = {
 		this.stop(sLabel);
 	},
 
-	ent: function (iToneEnv) { // varargs
-		var aArgs = [],
-			bRepeat = false,
-			i, oArg;
+	ent: function (iToneEnv: number) { // varargs
+		const aArgs: ToneEnvData[] = [];
+
+		let	oArg: ToneEnvData,
+			bRepeat = false;
 
 		iToneEnv = this.vmInRangeRound(iToneEnv, -15, 15, "ENT");
 
@@ -1450,21 +1453,24 @@ CpcVm.prototype = {
 		}
 
 		if (iToneEnv) { // not 0
-			for (i = 1; i < arguments.length; i += 3) { // starting with 1: 3 parameters per section
+			for (let i = 1; i < arguments.length; i += 3) { // starting with 1: 3 parameters per section
 				if (arguments[i] !== null) {
 					oArg = {
 						steps: this.vmInRangeRound(arguments[i], 0, 239, "ENT"), // number of steps: 0..239
 						diff: this.vmInRangeRound(arguments[i + 1], -128, 127, "ENT"), // size (period change) of steps: -128..+127
-						time: this.vmInRangeRound(arguments[i + 2], 0, 255, "ENT") // time per step: 0..255 (0=256)
-					};
+						time: this.vmInRangeRound(arguments[i + 2], 0, 255, "ENT"), // time per step: 0..255 (0=256)
+						repeat: bRepeat
+					} as ToneEnvData1;
+					/*
 					if (bRepeat) {
 						oArg.repeat = true;
 					}
+					*/
 				} else { // special handling
 					oArg = {
 						period: this.vmInRangeRound(arguments[i + 1], 0, 4095, "ENT"), // absolute period
 						time: this.vmInRangeRound(arguments[i + 2], 0, 255, "ENT") // time: 0..255 (0=256)
-					};
+					} as ToneEnvData2;
 				}
 				aArgs.push(oArg);
 			}
@@ -1475,13 +1481,13 @@ CpcVm.prototype = {
 		}
 	},
 
-	env: function (iVolEnv) { // varargs
-		var aArgs = [],
-			i, oArg;
+	env: function (iVolEnv: number) { // varargs
+		const aArgs: VolEnvData[] = [];
+		let oArg;
 
 		iVolEnv = this.vmInRangeRound(iVolEnv, 1, 15, "ENV");
 
-		for (i = 1; i < arguments.length; i += 3) { // starting with 1: 3 parameters per section
+		for (let i = 1; i < arguments.length; i += 3) { // starting with 1: 3 parameters per section
 			if (arguments[i] !== null) {
 				oArg = {
 					steps: this.vmInRangeRound(arguments[i], 0, 127, "ENV"), // number of steps: 0..127
@@ -1489,7 +1495,7 @@ CpcVm.prototype = {
 					diff: this.vmInRangeRound(arguments[i + 1], -128, 127, "ENV") & 0x0f, // size (volume) of steps: moved to range 0..15
 					/* eslint-enable no-bitwise */
 					time: this.vmInRangeRound(arguments[i + 2], 0, 255, "ENV") // time per step: 0..255 (0=256)
-				};
+				} as VolEnvData1;
 				if (!oArg.time) { // (0=256)
 					oArg.time = 256;
 				}
@@ -1497,7 +1503,7 @@ CpcVm.prototype = {
 				oArg = {
 					register: this.vmInRangeRound(arguments[i + 1], 0, 15, "ENV"), // register: 0..15
 					period: this.vmInRangeRound(arguments[i + 2], -32768, 65535, "ENV")
-				};
+				} as VolEnvData2;
 			}
 			aArgs.push(oArg);
 		}
@@ -1897,8 +1903,8 @@ CpcVm.prototype = {
 		this.oKeyboard.setExpansionToken(iToken, s);
 	},
 
-	keyDef: function (iCpcKey, iRepeat, iNormal?, iShift?, iCtrl?) { // optional args iNormal,...
-		var oOptions = {
+	keyDef: function (iCpcKey: number, iRepeat: number, iNormal?: number, iShift?: number, iCtrl?: number) { // optional args iNormal,...
+		var oOptions: CpcKeyExpansionsOptions = {
 			iCpcKey: this.vmInRangeRound(iCpcKey, 0, 79, "KEY DEF"),
 			iRepeat: this.vmInRangeRound(iRepeat, 0, 1, "KEY DEF"),
 			iNormal: (iNormal !== undefined && iNormal !== null) ? this.vmInRangeRound(iNormal, 0, 255, "KEY DEF") : undefined,
@@ -3209,7 +3215,7 @@ CpcVm.prototype = {
 	},
 
 	sound: function (iState, iPeriod, iDuration, iVolume, iVolEnv, iToneEnv, iNoise) {
-		var oSoundData, i, oSqTimer;
+		var oSoundData: SoundData, i, oSqTimer;
 
 		iState = this.vmInRangeRound(iState, 1, 255, "SOUND");
 		iPeriod = this.vmInRangeRound(iPeriod, 0, 4095, "SOUND ,");

@@ -1,27 +1,110 @@
-// Keyboard.js - Keyboard handling
+// Keyboard.ts - Keyboard handling
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //
 
 "use strict";
 
-/*
-var Utils;
-
-if (typeof require !== "undefined") {
-	Utils = require("./Utils.js"); // eslint-disable-line global-require
-}
-*/
-
 import { Utils } from "./Utils";
+import { View } from "./View";
 
-export function Keyboard(options) {
-	this.init(options);
+export interface CpcKeyExpansionsOptions {
+	iCpcKey: number
+	iRepeat: number
+	iNormal?: number
+	iShift?: number
+	iCtrl?: number
 }
 
-Keyboard.prototype = {
+interface KeyboardOptions {
+	fnOnEscapeHandler?: (sKey: string, sPressedKey: string) => void
+	fnOnKeyDown?: () => void
+}
 
-	aCpcKey2Key: [
+type KeyExpansionsType = { [k in string]: number }; // numbers as keys are stored as string anyway, so use string
+
+type KeyExpansionsRepeatType = { [k in string]: number }; // numbers as keys are stored as string anyway, so use string
+
+type Key2CpcKeyType = { [k in string]: number };
+
+
+//TODO:
+
+type PressedBrowseKeysType = { [k in string]: boolean };
+
+type PressedKeysType = { [k in string]: {oKeys: PressedBrowseKeysType, shift: boolean, ctrl: boolean } }; //TTT
+
+//type PressedKeyType = { [k in string]: {oKeys: [l in string]: boolean, shift: boolean, ctrl: boolean} };
+//oCpcKey.oKeys[sPressedKey] = true;
+//oCpcKey.shift = bShiftKey;
+//oCpcKey.ctrl = bCtrlKey;
+
+
+interface CpcKey2Key {
+	keys: string
+	key: string
+	keyShift?: string
+	text?: string
+	title?: string
+	style?: number
+	numLockCpcKey?: number
+	// ...?
+	keyNumLock?: string
+	textNumLock?: string
+	titleNumLock?: string
+	textShift?: string
+	titleShift?: string
+}
+
+
+interface CpcKeyExpansions {
+	normal: KeyExpansionsType
+	shift: KeyExpansionsType
+	ctrl: KeyExpansionsType
+	repeat: KeyExpansionsRepeatType
+}
+
+type VirtualKeyboardLayoutType1 = { key: number, style?: number };
+
+type VirtualKeyboardLayoutType2 = (number | VirtualKeyboardLayoutType1);
+
+interface VirtualButtonRowOptions {
+	key: number,
+	text: string,
+	title: string,
+	className: string
+}
+
+export class Keyboard {
+	options: KeyboardOptions = {};
+
+	fnOnKeyDown = this.options.fnOnKeyDown;
+	aKeyBuffer: string[] = []; // buffered pressed keys
+	aExpansionTokens: string[] = []; // strings for expansion tokens 0..31 (in reality: 128..159)
+	oCpcKeyExpansions: CpcKeyExpansions = { // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
+		normal: {},
+		shift: {},
+		ctrl: {},
+		repeat: {}
+	};
+	bActive = false; // flag if keyboard is active/focused, set from outside
+
+	oKey2CpcKey: Key2CpcKeyType = this.initKey2CpcKeyMap();
+	bCodeStringsRemoved = false;
+
+	sPointerOutEvent = "";
+	fnVirtualKeyout: EventListener | null = null;
+
+	oPressedKeys: PressedKeysType = {}; // currently pressed browser keys
+	bShiftLock = false; // for virtual keyboard
+	bNumLock = false;
+
+
+	conctructor(options: KeyboardOptions) {
+		this.init(options);
+	}
+
+	static aCpcKey2Key: CpcKey2Key[] = [
 		{
 			keys: "38ArrowUp", // 0: cursor up
 			key: "ArrowUp",
@@ -242,32 +325,27 @@ Keyboard.prototype = {
 			keyShift: "L"
 		},
 		{
-			keys:
-			"75KeyK", // 37:
+			keys: "75KeyK", // 37:
 			key: "k",
 			keyShift: "K"
 		},
 		{
-			keys:
-			"77KeyM", // 38:
+			keys: "77KeyM", // 38:
 			key: "m",
 			keyShift: "M"
 		},
 		{
-			keys:
-			"188Comma", // 39: , >
+			keys: "188Comma", // 39: , >
 			key: ",",
 			keyShift: ">"
 		},
 		{
-			keys:
-			"56Digit8", // 40: 8 (
+			keys: "56Digit8", // 40: 8 (
 			key: "8",
 			keyShift: "("
 		},
 		{
-			keys:
-			"55Digit7", // 41: 7 '
+			keys: "55Digit7", // 41: 7 '
 			key: "7",
 			keyShift: "'"
 		},
@@ -463,7 +541,8 @@ Keyboard.prototype = {
 			title: "Joy fire 1"
 		},
 		{
-			keys: null // 78: ""? (joy 0 fire 3?)
+			keys: "", // 78: ""? not null? (joy 0 fire 3?) TTT
+			key: ""
 		},
 		{
 			keys: "8Backspace", // 79: del
@@ -499,22 +578,28 @@ Keyboard.prototype = {
 			title: "Joy down+right"
 		},
 		{
-			keys: null // 84:
+			keys: "", // 84: (not null?) TTT
+			key: ""
 		},
 		{
-			keys: "226IntlBackslash,60IntlBackslash,220IntlBackslash" // 85: < > | // key not on CPC! (Chrome: 226, FF: 60);  Android Bluetooth EN: 220IntlBackslash
+			keys: "226IntlBackslash,60IntlBackslash,220IntlBackslash", // 85: < > | // key not on CPC! (Chrome: 226, FF: 60);  Android Bluetooth EN: 220IntlBackslash
+			key: ""
 		},
 		{
-			keys: "111NumpadDivide" // 86:
+			keys: "111NumpadDivide", // 86:
+			key: ""
 		},
 		{
-			keys: "106NumpadMultiply" // 87:
+			keys: "106NumpadMultiply", // 87:
+			key: ""
 		},
 		{
-			keys: "109NumpadSubtract" // 88:
+			keys: "109NumpadSubtract", // 88:
+			key: ""
 		},
 		{
-			keys: "107NumpadAdd" // 89:
+			keys: "107NumpadAdd", // 89:
+			key: ""
 		},
 		{
 			keys: "",
@@ -525,9 +610,9 @@ Keyboard.prototype = {
 		}
 		// only on PC:
 		// "226IntlBackslash", "122F11", "123F12", "44PrintScreen", "145ScrollLock", "19Pause", "45Insert", "36Home", "33PageUp", "35End", "34PageDown", "111NumpadDivide", "106NumpadMultiply", "109NumpadSubtract", "107NumpadAdd"
-	],
+	];
 
-	mSpecialKeys: {
+	static mSpecialKeys: {[k in string]: string} = {
 		Alt: String.fromCharCode(224), // Copy
 
 		ArrowUp: String.fromCharCode(240),
@@ -567,14 +652,15 @@ Keyboard.prototype = {
 		DeadEqual: String.fromCharCode(161), // tick
 		"´": String.fromCharCode(161), // IE: tick
 		DeadEqualShift: "`" // backtick
-	},
+	};
 
 	/* eslint-disable array-element-newline */
-	aJoyKeyCodes: [
+	static aJoyKeyCodes = [
 		[72, 73, 74, 75, 76, 77],
 		[48, 49, 50, 51, 52, 53]
-	],
-	aVirtualKeyboardAlpha: [
+	];
+
+	static aVirtualKeyboardAlpha: VirtualKeyboardLayoutType2[][] = [
 		[66, 64, 65, 57, 56, 49, 48, 41, 40, 33, 32, 25, 24, 16, 79],
 		[68, 67, 59, 58, 50, 51, 43, 42, 35, 34, 27, 26, 17, 18],
 		[70, 69, 60, 61, 53, 52, 44, 45, 37, 36, 29, 28, 19, 90], // 90=virtual numpad button
@@ -586,19 +672,23 @@ Keyboard.prototype = {
 			}
 		],
 		[23, 9, 47, 6]
-	],
-	aVirtualKeyboardNum: [ // numpad
+	];
+
+	static aVirtualKeyboardNum: VirtualKeyboardLayoutType2[][] = [ // numpad
 		[10, 11, 3],
 		[20, 12, 4],
 		[13, 14, 5],
 		[15, 0, 7],
 		[8, 2, 1]
-	],
+	];
 	/* eslint-enable array-element-newline */
 
-	init: function (options) {
-		var cpcArea, oEventNames;
 
+	constructor(options: KeyboardOptions) {
+		this.init(options)
+	}
+
+	init(options: KeyboardOptions) {
 		this.options = Object.assign({}, options);
 
 		this.fnOnKeyDown = this.options.fnOnKeyDown;
@@ -606,29 +696,38 @@ Keyboard.prototype = {
 		this.aKeyBuffer = []; // buffered pressed keys
 
 		this.aExpansionTokens = []; // expansion tokens 0..31 (in reality: 128..159)
-		this.oCpcKeyExpansions = {}; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
+
+		/*
+		this.oCpcKeyExpansions = {
+			normal: {},
+			shift: {},
+			ctrl: {},
+			repeat: {}
+		}; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
+		*/
 
 		this.reset();
-		this.bActive = false; // flag if keyboard is active/focused, set from outside
+		//this.bActive = false; // flag if keyboard is active/focused, set from outside
 
-		this.oKey2CpcKey = this.initKey2CpcKeyMap();
+		//TTT check! this.oKey2CpcKey = this.initKey2CpcKeyMap();
 		this.bCodeStringsRemoved = false;
 
-		cpcArea = document.getElementById("cpcArea");
+		//const cpcArea = document.getElementById("cpcArea");
+		const cpcArea = View.getElementById1("cpcArea");
 		cpcArea.addEventListener("keydown", this.onCpcAreaKeydown.bind(this), false);
 		cpcArea.addEventListener("keyup", this.oncpcAreaKeyup.bind(this), false);
 
-		oEventNames = this.fnAttachPointerEvents("kbdArea", this.onVirtualKeyboardKeydown.bind(this), null, this.onVirtualKeyboardKeyup.bind(this));
+		const oEventNames = this.fnAttachPointerEvents("kbdArea", this.onVirtualKeyboardKeydown.bind(this), undefined, this.onVirtualKeyboardKeyup.bind(this));
 		if (oEventNames.out) {
 			this.sPointerOutEvent = oEventNames.out;
 			this.fnVirtualKeyout = this.onVirtualKeyboardKeyout.bind(this);
 		}
 
 		this.dragInit("pageBody", "kbdAreaBox");
-	},
+	}
 
-	fnAttachPointerEvents: function (sId, fnDown, fnMove, fnUp) {
-		var area = document.getElementById(sId),
+	fnAttachPointerEvents(sId: string, fnDown?: EventListener, fnMove?: EventListener, fnUp?: EventListener) {
+		const area = View.getElementById1(sId),
 			oPointerEventNames = {
 				down: "pointerdown",
 				move: "pointermove",
@@ -652,10 +751,9 @@ Keyboard.prototype = {
 				cancel: null,
 				out: "mouseout",
 				type: "mouse"
-			},
-			oEventNames;
-
-
+			};
+			
+		let oEventNames;
 		if (window.PointerEvent) {
 			oEventNames = oPointerEventNames;
 		} else if ("ontouchstart" in window || navigator.maxTouchPoints) {
@@ -681,58 +779,56 @@ Keyboard.prototype = {
 			}
 		}
 		return oEventNames;
-	},
+	}
 
-	initKey2CpcKeyMap: function () {
-		var aCpcKey2Key = this.aCpcKey2Key,
-			oKey2CpcKey = {},
-			iCpcKey, sMappedKeys, aMappedKeys, i, sKey;
+	initKey2CpcKeyMap() {
+		const aCpcKey2Key = Keyboard.aCpcKey2Key,
+			oKey2CpcKey: Key2CpcKeyType = {};
 
-		for (iCpcKey = 0; iCpcKey < aCpcKey2Key.length; iCpcKey += 1) {
-			sMappedKeys = aCpcKey2Key[iCpcKey].keys;
+		for (let iCpcKey = 0; iCpcKey < aCpcKey2Key.length; iCpcKey += 1) {
+			const sMappedKeys = aCpcKey2Key[iCpcKey].keys;
 			if (sMappedKeys) {
-				aMappedKeys = sMappedKeys.split(","); // maybe more
-				for (i = 0; i < aMappedKeys.length; i += 1) {
-					sKey = aMappedKeys[i];
+				const aMappedKeys = sMappedKeys.split(","); // maybe more
+				for (let i = 0; i < aMappedKeys.length; i += 1) {
+					const sKey = aMappedKeys[i];
 					oKey2CpcKey[sKey] = iCpcKey;
 				}
 			}
 		}
 		return oKey2CpcKey;
-	},
+	}
 
-	reset: function () {
-		this.fnOnKeyDown = null;
+	reset() {
+		this.fnOnKeyDown = undefined;
 		this.clearInput();
 		this.oPressedKeys = {}; // currently pressed browser keys
 		this.bShiftLock = false; // for virtual keyboard
 		this.bNumLock = false;
-		this.virtualKeyboardAdaptKeys();
+		this.virtualKeyboardAdaptKeys(false, false);
 		this.resetExpansionTokens();
 		this.resetCpcKeysExpansions();
-	},
+	}
 
-	clearInput: function () {
+	clearInput() {
 		this.aKeyBuffer.length = 0;
-	},
+	}
 
-	resetExpansionTokens: function () {
-		var aExpansionTokens = this.aExpansionTokens,
-			i;
+	resetExpansionTokens() {
+		const aExpansionTokens = this.aExpansionTokens;
 
-		for (i = 0; i <= 9; i += 1) {
+		for (let i = 0; i <= 9; i += 1) {
 			aExpansionTokens[i] = String(i);
 		}
 		aExpansionTokens[10] = ".";
 		aExpansionTokens[11] = "\r";
 		aExpansionTokens[12] = 'RUN"\r';
-		for (i = 13; i <= 31; i += 1) {
-			aExpansionTokens[i] = 0;
+		for (let i = 13; i <= 31; i += 1) {
+			aExpansionTokens[i] = "0"; //TTT was 0
 		}
-	},
+	}
 
-	resetCpcKeysExpansions: function () {
-		var oCpcKeyExpansions = this.oCpcKeyExpansions;
+	resetCpcKeysExpansions() {
+		const oCpcKeyExpansions = this.oCpcKeyExpansions;
 
 		oCpcKeyExpansions.normal = { // cpcKey => ExpansionToken (128-159)
 			15: 0 + 128, // F0
@@ -756,52 +852,53 @@ Keyboard.prototype = {
 		};
 
 		oCpcKeyExpansions.repeat = {};
-	},
+	}
 
-	getKeyDownHandler: function () {
+	getKeyDownHandler() {
 		return this.fnOnKeyDown;
-	},
+	}
 
-	setKeyDownHandler: function (fnOnKeyDown) {
+	setKeyDownHandler(fnOnKeyDown: () => void) {
 		this.fnOnKeyDown = fnOnKeyDown;
-	},
+	}
 
-	setActive: function (bActive) {
+	setActive(bActive: boolean) {
 		this.bActive = bActive;
-	},
+	}
 
-	removeCodeStringsFromKeymap: function () { // for certain browsers (IE, Edge) we get only codes but no code strings from the keyboard, so remove the code strings
-		var oKey2CpcKey = this.oKey2CpcKey,
-			oNewMap = {},
-			sKey, iKey;
+	removeCodeStringsFromKeymap() { // for certain browsers (IE, Edge) we get only codes but no code strings from the keyboard, so remove the code strings
+		const oKey2CpcKey = this.oKey2CpcKey,
+			oNewMap: Key2CpcKeyType = {};
 
 		if (Utils.debug > 1) {
 			Utils.console.log("removeCodeStringsFromKeymap: Unfortunately not all keys can be used.");
 		}
-		for (sKey in oKey2CpcKey) {
+		for (let sKey in oKey2CpcKey) {
 			if (oKey2CpcKey.hasOwnProperty(sKey)) {
-				iKey = parseInt(sKey, 10); // get just the number
+				const iKey = parseInt(sKey, 10); // get just the number
 				oNewMap[iKey] = oKey2CpcKey[sKey];
 			}
 		}
 		this.oKey2CpcKey = oNewMap;
-	},
+	}
 
-	fnPressCpcKey: function (iCpcKey, sPressedKey, sKey, bShiftKey, bCtrlKey) { // eslint-disable-line complexity
-		var oPressedKeys = this.oPressedKeys,
+	fnPressCpcKey(iCpcKey: number, sPressedKey: string, sKey: string, bShiftKey: boolean, bCtrlKey: boolean) { // eslint-disable-line complexity
+		const oPressedKeys = this.oPressedKeys,
 			oCpcKeyExpansions = this.oCpcKeyExpansions,
-			mSpecialKeys = this.mSpecialKeys,
-			sCpcKey = String(iCpcKey),
-			bKeyAlreadyPressed, oCpcKey, oExpansions, iExpKey, i, sShiftCtrlKey;
+			mSpecialKeys = Keyboard.mSpecialKeys,
+			sCpcKey = String(iCpcKey);
 
-		oCpcKey = oPressedKeys[sCpcKey];
+		let	oCpcKey = oPressedKeys[sCpcKey];
+
 		if (!oCpcKey) {
 			oPressedKeys[sCpcKey] = {
-				oKeys: {}
+				oKeys: {},
+				shift: false,
+				ctrl: false
 			};
 			oCpcKey = oPressedKeys[sCpcKey];
 		}
-		bKeyAlreadyPressed = oCpcKey.oKeys[sPressedKey];
+		const bKeyAlreadyPressed = oCpcKey.oKeys[sPressedKey];
 		oCpcKey.oKeys[sPressedKey] = true;
 		oCpcKey.shift = bShiftKey;
 		oCpcKey.ctrl = bCtrlKey;
@@ -809,10 +906,11 @@ Keyboard.prototype = {
 			Utils.console.log("fnPressCpcKey: sPressedKey=" + sPressedKey + ", sKey=" + sKey + ", affected cpc key=" + sCpcKey);
 		}
 
-		oExpansions = oCpcKeyExpansions.repeat;
-		if (bKeyAlreadyPressed && ((sCpcKey in oExpansions) && !oExpansions[sCpcKey])) {
+		const oRepeat = oCpcKeyExpansions.repeat;
+		if (bKeyAlreadyPressed && ((sCpcKey in oRepeat) && !oRepeat[sCpcKey])) {
 			sKey = ""; // repeat off => ignore key
 		} else {
+			let oExpansions: KeyExpansionsType;
 			if (bCtrlKey) {
 				oExpansions = oCpcKeyExpansions.ctrl;
 			} else if (bShiftKey) {
@@ -822,10 +920,10 @@ Keyboard.prototype = {
 			}
 
 			if (sCpcKey in oExpansions) {
-				iExpKey = oExpansions[sCpcKey];
+				const iExpKey = oExpansions[sCpcKey];
 				if (iExpKey >= 128 && iExpKey <= 159) {
 					sKey = this.aExpansionTokens[iExpKey - 128];
-					for (i = 0; i < sKey.length; i += 1) {
+					for (let i = 0; i < sKey.length; i += 1) {
 						this.putKeyInBuffer(sKey.charAt(i));
 					}
 				} else { // ascii code
@@ -836,7 +934,7 @@ Keyboard.prototype = {
 			}
 		}
 
-		sShiftCtrlKey = sKey + (bShiftKey ? "Shift" : "") + (bCtrlKey ? "Ctrl" : "");
+		const sShiftCtrlKey = sKey + (bShiftKey ? "Shift" : "") + (bCtrlKey ? "Ctrl" : "");
 
 		if (sShiftCtrlKey in mSpecialKeys) {
 			sKey = mSpecialKeys[sShiftCtrlKey];
@@ -856,15 +954,15 @@ Keyboard.prototype = {
 		}
 
 		if (this.fnOnKeyDown) { // special handler?
-			this.fnOnKeyDown(this.aKeyBuffer);
+			//this.fnOnKeyDown(this.aKeyBuffer);
+			this.fnOnKeyDown();
 		}
-	},
+	}
 
-	fnReleaseCpcKey: function (iCpcKey, sPressedKey, sKey, bShiftKey, bCtrlKey) {
-		var oPressedKeys = this.oPressedKeys,
-			oCpcKey;
+	fnReleaseCpcKey(iCpcKey: number, sPressedKey: string, sKey: string, bShiftKey: boolean, bCtrlKey: boolean) {
+		const oPressedKeys = this.oPressedKeys,
+			oCpcKey = oPressedKeys[iCpcKey];
 
-		oCpcKey = oPressedKeys[iCpcKey];
 		if (Utils.debug > 1) {
 			Utils.console.log("fnReleaseCpcKey: sPressedKey=" + sPressedKey + ", sKey=" + sKey + ", affected cpc key=" + iCpcKey + ", oKeys:", (oCpcKey ? oCpcKey.oKeys : "undef."));
 		}
@@ -879,10 +977,10 @@ Keyboard.prototype = {
 				oCpcKey.ctrl = bCtrlKey;
 			}
 		}
-	},
+	}
 
-	keyIdentifier2Char: function (sIdentifier, bShiftKey) {
-		var sChar = "";
+	keyIdentifier2Char(sIdentifier: string, bShiftKey: boolean) {
+		let sChar = "";
 
 		if ((/^U\+/i).test(sIdentifier || "")) { // unicode string?
 			sChar = String.fromCharCode(parseInt(sIdentifier.substr(2), 16));
@@ -894,18 +992,15 @@ Keyboard.prototype = {
 			sChar = sIdentifier; // take it, could be "Enter"
 		}
 		return sChar;
-	},
+	}
 
-	fnKeyboardKeydown: function (event) { // eslint-disable-line complexity
-		var iKeyCode = event.which || event.keyCode,
-			sPressedKey = iKeyCode,
-			sKey = event.key || this.keyIdentifier2Char(event.keyIdentifier, event.shiftKey) || "", // SliTaz web browser has not key but keyIdentifier
-			iCpcKey;
+	private fnKeyboardKeydown(event: KeyboardEvent) { // eslint-disable-line complexity
+		const iKeyCode = event.which || event.keyCode,
+			sPressedKey = String(iKeyCode) + (event.code ? event.code : ""); // event.code available for e.g. Chrome, Firefox
+		let sKey = event.key || this.keyIdentifier2Char((event as any).keyIdentifier, event.shiftKey) || ""; // SliTaz web browser has not key but keyIdentifier
 
-		if (event.code) { // available for e.g. Chrome, Firefox
-			sPressedKey += event.code;
-		} else if (!this.bCodeStringsRemoved) { // event.code not available on e.g. IE, Edge
-			this.removeCodeStringsFromKeymap(); // Remove code information from the mapping. Not all keys can be detected any more
+		if (!event.code && !this.bCodeStringsRemoved) { // event.code not available on e.g. IE, Edge
+			this.removeCodeStringsFromKeymap(); // remove code information from the mapping. Not all keys can be detected any more
 			this.bCodeStringsRemoved = true;
 		}
 
@@ -914,7 +1009,7 @@ Keyboard.prototype = {
 		}
 
 		if (sPressedKey in this.oKey2CpcKey) {
-			iCpcKey = this.oKey2CpcKey[sPressedKey];
+			let iCpcKey = this.oKey2CpcKey[sPressedKey];
 			if (iCpcKey === 85) { // map virtual cpc key 85 to 22 (english keyboard)
 				iCpcKey = 22;
 			}
@@ -950,24 +1045,19 @@ Keyboard.prototype = {
 		} else {
 			Utils.console.log("fnKeyboardKeydown: Unhandled key", sPressedKey + ":", sKey);
 		}
-	},
+	}
 
-	fnKeyboardKeyup: function (event) {
-		var iKeyCode = event.which || event.keyCode,
-			sPressedKey = iKeyCode,
-			sKey = event.key || this.keyIdentifier2Char(event.keyIdentifier, event.shiftKey) || "", // SliTaz web browser has not key but keyIdentifier
-			iCpcKey;
-
-		if (event.code) { // available for e.g. Chrome, Firefox
-			sPressedKey += event.code;
-		}
+	private fnKeyboardKeyup(event: KeyboardEvent) {
+		const iKeyCode = event.which || event.keyCode,
+			sPressedKey = String(iKeyCode) + (event.code ? event.code : ""); // event.code available for e.g. Chrome, Firefox
+		let sKey = event.key || this.keyIdentifier2Char((event as any).keyIdentifier, event.shiftKey) || ""; // SliTaz web browser has not key but keyIdentifier
 
 		if (Utils.debug > 1) {
 			Utils.console.log("fnKeyboardKeyup: keyCode=" + iKeyCode + " pressedKey=" + sPressedKey + " key='" + sKey + "' " + sKey.charCodeAt(0) + " loc=" + event.location + " ", event);
 		}
 
 		if (sPressedKey in this.oKey2CpcKey) {
-			iCpcKey = this.oKey2CpcKey[sPressedKey];
+			let iCpcKey = this.oKey2CpcKey[sPressedKey];
 			if (iCpcKey === 85) { // map virtual cpc key 85 to 22 (english keyboard)
 				iCpcKey = 22;
 			}
@@ -975,52 +1065,43 @@ Keyboard.prototype = {
 		} else {
 			Utils.console.log("fnKeyboardKeyup: Unhandled key", sPressedKey + ":", sKey);
 		}
-	},
+	}
 
-	getKeyFromBuffer: function () {
-		var sKey;
+	getKeyFromBuffer() {
+		const aKeyBuffer = this.aKeyBuffer,
+			sKey = aKeyBuffer.length ? aKeyBuffer.shift() : "";
 
-		if (this.aKeyBuffer.length) {
-			sKey = this.aKeyBuffer.shift();
-		} else {
-			sKey = "";
-		}
 		return sKey;
-	},
+	}
 
-	putKeyInBuffer: function (sKey) {
+	putKeyInBuffer(sKey: string) {
 		this.aKeyBuffer.push(sKey);
-	},
+	}
 
-	putKeysInBuffer: function (sInput) {
-		var i, sKey;
-
-		for (i = 0; i < sInput.length; i += 1) {
-			sKey = sInput.charAt(i);
+	putKeysInBuffer(sInput: string) {
+		for (let i = 0; i < sInput.length; i += 1) {
+			const sKey = sInput.charAt(i);
 			this.aKeyBuffer.push(sKey);
 		}
-	},
+	}
 
-	getKeyState: function (iCpcKey) {
-		var oPressedKeys = this.oPressedKeys,
-			iState = -1,
-			oCpcKey;
+	getKeyState(iCpcKey: number) {
+		const oPressedKeys = this.oPressedKeys;
+		let	iState = -1;
 
 		if (iCpcKey in oPressedKeys) {
-			oCpcKey = oPressedKeys[iCpcKey];
+			const oCpcKey = oPressedKeys[iCpcKey];
 			iState = 0 + (oCpcKey.shift ? 32 : 0) + (oCpcKey.ctrl ? 128 : 0);
 		}
 		return iState;
-	},
+	}
 
-	getJoyState: function (iJoy) {
-		var iValue = 0,
-			aJoy, i;
-
-		aJoy = this.aJoyKeyCodes[iJoy];
+	getJoyState(iJoy: number) {
+		const aJoy = Keyboard.aJoyKeyCodes[iJoy];
+		let iValue = 0;
 
 		/* eslint-disable no-bitwise */
-		for (i = 0; i < aJoy.length; i += 1) {
+		for (let i = 0; i < aJoy.length; i += 1) {
 			if (this.getKeyState(aJoy[i]) !== -1) {
 				iValue |= (1 << i);
 			}
@@ -1044,14 +1125,14 @@ Keyboard.prototype = {
 		/* eslint-enable no-bitwise */
 
 		return iValue;
-	},
+	}
 
-	setExpansionToken: function (iToken, sString) {
+	setExpansionToken(iToken: number, sString: string) {
 		this.aExpansionTokens[iToken] = sString;
-	},
+	}
 
-	setCpcKeyExpansion: function (oOptions) {
-		var oCpcKeyExpansions = this.oCpcKeyExpansions,
+	setCpcKeyExpansion(oOptions: CpcKeyExpansionsOptions) {
+		const oCpcKeyExpansions = this.oCpcKeyExpansions,
 			iCpcKey = oOptions.iCpcKey;
 
 		oCpcKeyExpansions.repeat[iCpcKey] = oOptions.iRepeat;
@@ -1065,40 +1146,40 @@ Keyboard.prototype = {
 		if (oOptions.iCtrl !== undefined) {
 			oCpcKeyExpansions.ctrl[iCpcKey] = oOptions.iCtrl;
 		}
-	},
+	}
 
-	onCpcAreaKeydown: function (event) {
+	onCpcAreaKeydown(event: KeyboardEvent) {
 		if (this.bActive) {
 			this.fnKeyboardKeydown(event);
 			event.preventDefault();
 			return false;
 		}
 		return undefined;
-	},
+	}
 
-	oncpcAreaKeyup: function (event) {
+	oncpcAreaKeyup(event: KeyboardEvent) {
 		if (this.bActive) {
 			this.fnKeyboardKeyup(event);
 			event.preventDefault();
 			return false;
 		}
 		return undefined;
-	},
+	}
 
 
-	mapNumLockCpcKey: function (iCpcKey) {
-		var oKey = this.aCpcKey2Key[iCpcKey];
+	mapNumLockCpcKey(iCpcKey: number) {
+		const oKey = Keyboard.aCpcKey2Key[iCpcKey];
 
 		if (oKey.numLockCpcKey) {
 			iCpcKey = oKey.numLockCpcKey;
 		}
 		return iCpcKey;
-	},
+	}
 
-	fnVirtualGetAscii: function (iCpcKey, bShiftKey, bNumLock) {
-		var oKey = this.aCpcKey2Key[iCpcKey],
-			sKey, sText, sTitle, oAscii;
+	fnVirtualGetAscii(iCpcKey: number, bShiftKey: boolean, bNumLock: boolean) {
+		const oKey = Keyboard.aCpcKey2Key[iCpcKey];
 
+		let sKey: string, sText: string, sTitle: string;
 		if (bNumLock && oKey.keyNumLock) {
 			sKey = oKey.keyNumLock;
 			sText = oKey.textNumLock || sKey;
@@ -1113,78 +1194,73 @@ Keyboard.prototype = {
 			sTitle = oKey.title || sText;
 		}
 
-		oAscii = {
+		const oAscii = {
 			key: sKey,
 			text: sText,
 			title: sTitle
 		};
 
 		return oAscii;
-	},
+	}
 
-	createButtonRow: function (sId, aOptions) {
-		var place = document.getElementById(sId),
-			buttonList, i, oItem, button, sHtml;
+	createButtonRow(sId: string, aOptions: VirtualButtonRowOptions[]) {
+		const place = View.getElementById1(sId);
 
 		if (place.insertAdjacentElement) {
-			buttonList = document.createElement("div");
+			const buttonList = document.createElement("div");
 			buttonList.className = "displayFlex";
-			for (i = 0; i < aOptions.length; i += 1) {
-				oItem = aOptions[i];
-				button = document.createElement("button");
+			for (let i = 0; i < aOptions.length; i += 1) {
+				const oItem = aOptions[i];
+				const button = document.createElement("button");
 				button.innerText = oItem.text;
 				button.setAttribute("title", oItem.title);
 				button.className = oItem.className;
-				button.setAttribute("data-key", oItem.key);
+				button.setAttribute("data-key", String(oItem.key));
 				buttonList.insertAdjacentElement("beforeend", button);
 			}
 			place.insertAdjacentElement("beforeend", buttonList);
 		} else { // Polyfill for old browsers
-			sHtml = "<div class=displayFlex>\n";
-			for (i = 0; i < aOptions.length; i += 1) {
-				oItem = aOptions[i];
+			let sHtml = "<div class=displayFlex>\n";
+			for (let i = 0; i < aOptions.length; i += 1) {
+				const oItem = aOptions[i];
 				sHtml += '<button title="' + oItem.title + '" class="' + oItem.className + '" data-key="' + oItem.key + '">' + oItem.text + "</button>\n";
 			}
 			sHtml += "</div>";
 			place.innerHTML += sHtml;
 		}
 		return this;
-	},
+	}
 
-	virtualKeyboardCreatePart: function (id, aVirtualKeyboard) {
-		var bShiftLock = this.bShiftLock,
+	virtualKeyboardCreatePart(sId: string, aVirtualKeyboard: VirtualKeyboardLayoutType2[][]) {
+		const oKeyArea = View.getElementById1(sId),
+			bShiftLock = this.bShiftLock,
 			bNumLock = this.bNumLock,
-			aCpcKey2Key = this.aCpcKey2Key,
-			oKeyArea = document.getElementById(id),
-			aButtons = oKeyArea.getElementsByTagName("button"),
-			aOptions, iRow, iCol, aRow, oCpcKey, iCpcKey, oKey, sClassName, oOptions, oAscii;
+			aCpcKey2Key = Keyboard.aCpcKey2Key,
+			aButtons = oKeyArea.getElementsByTagName("button");
 
 		if (!aButtons.length) { // not yet created?
-			for (iRow = 0; iRow < aVirtualKeyboard.length; iRow += 1) {
-				aRow = aVirtualKeyboard[iRow];
-				aOptions = [];
-				for (iCol = 0; iCol < aRow.length; iCol += 1) {
+			for (let iRow = 0; iRow < aVirtualKeyboard.length; iRow += 1) {
+				const aRow = aVirtualKeyboard[iRow];
+				const aOptions = [] as VirtualButtonRowOptions[];
+				for (let iCol = 0; iCol < aRow.length; iCol += 1) {
+					let	oCpcKey: VirtualKeyboardLayoutType1;
 					if (typeof aRow[iCol] === "number") {
 						oCpcKey = {
-							key: aRow[iCol]
+							key: aRow[iCol] as number
 						};
 					} else { // object
-						oCpcKey = aRow[iCol];
+						oCpcKey = aRow[iCol] as VirtualKeyboardLayoutType1;
 					}
-					iCpcKey = oCpcKey.key;
-					if (bNumLock) {
-						iCpcKey = this.mapNumLockCpcKey(iCpcKey);
-					}
+					const iCpcKey = bNumLock ? this.mapNumLockCpcKey(oCpcKey.key) : oCpcKey.key,
+						oKey = aCpcKey2Key[oCpcKey.key],
+						oAscii = this.fnVirtualGetAscii(iCpcKey, bShiftLock, bNumLock);
 
-					oKey = aCpcKey2Key[oCpcKey.key];
-					oAscii = this.fnVirtualGetAscii(iCpcKey, bShiftLock, bNumLock);
-
-					sClassName = "kbdButton" + (oCpcKey.style || oKey.style || "");
+					let sClassName = "kbdButton" + (oCpcKey.style || oKey.style || "");
 					if (iCol === aRow.length - 1) { // last column
 						sClassName += " kbdNoRightMargin";
 					}
 
-					oOptions = {
+					const oOptions: VirtualButtonRowOptions = {
 						key: iCpcKey,
 						text: oAscii.text,
 						title: oAscii.title,
@@ -1192,40 +1268,39 @@ Keyboard.prototype = {
 					};
 					aOptions.push(oOptions);
 				}
-				this.createButtonRow(id, aOptions);
+				this.createButtonRow(sId, aOptions);
 			}
 		}
-	},
+	}
 
-	virtualKeyboardCreate: function () {
-		this.virtualKeyboardCreatePart("kbdAlpha", this.aVirtualKeyboardAlpha);
-		this.virtualKeyboardCreatePart("kbdNum", this.aVirtualKeyboardNum);
-	},
+	virtualKeyboardCreate() {
+		this.virtualKeyboardCreatePart("kbdAlpha", Keyboard.aVirtualKeyboardAlpha);
+		this.virtualKeyboardCreatePart("kbdNum", Keyboard.aVirtualKeyboardNum);
+	}
 
-	virtualKeyboardAdaptKeys: function (bShiftLock, bNumLock) {
-		var oKeyArea = document.getElementById("kbdArea"),
-			aButtons = oKeyArea.getElementsByTagName("button"), // or: oKeyArea.childNodes and filter
-			i, oButton, iCpcKey, oAscii;
+	virtualKeyboardAdaptKeys(bShiftLock: boolean, bNumLock: boolean) {
+		const oKeyArea = View.getElementById1("kbdArea"),
+			aButtons = oKeyArea.getElementsByTagName("button"); // or: oKeyArea.childNodes and filter
 
-		for (i = 0; i < aButtons.length; i += 1) {
-			oButton = aButtons[i];
-			iCpcKey = Number(oButton.getAttribute("data-key"));
+		for (let i = 0; i < aButtons.length; i += 1) {
+			const oButton = aButtons[i];
+			let iCpcKey = Number(oButton.getAttribute("data-key"));
 			if (bNumLock) {
 				iCpcKey = this.mapNumLockCpcKey(iCpcKey);
 			}
 
-			oAscii = this.fnVirtualGetAscii(iCpcKey, bShiftLock, bNumLock);
+			const oAscii = this.fnVirtualGetAscii(iCpcKey, bShiftLock, bNumLock);
 			if (oAscii.key !== oButton.innerText) {
 				oButton.innerText = oAscii.text;
 				oButton.title = oAscii.title;
 			}
 		}
-	},
+	}
 
-	fnVirtualGetPressedKey: function (iCpcKey) {
-		var sPressedKey = "",
-			oKey = this.aCpcKey2Key[iCpcKey];
+	fnVirtualGetPressedKey(iCpcKey: number) {
+		const oKey = Keyboard.aCpcKey2Key[iCpcKey];
 
+		let sPressedKey = "";
 		if (oKey) {
 			sPressedKey = oKey.keys;
 			if (sPressedKey.indexOf(",") >= 0) { // TTT maybe more
@@ -1233,26 +1308,37 @@ Keyboard.prototype = {
 			}
 		}
 		return sPressedKey;
-	},
+	}
 
-	onVirtualKeyboardKeydown: function (event) {
-		var node = event.target || event.srcElement, // target, not currentTarget
-			sCpcKey = node.getAttribute("data-key"),
-			iCpcKey, sPressedKey, oAscii;
+	fnGetEventTarget(event: Event) {
+		const node = event.target || event.srcElement; // target, not currentTarget
+
+		if (!node) {
+			throw new Error("Keyboard: Undefined event target: " + node);
+		}
+		return node;
+	}
+
+	onVirtualKeyboardKeydown(event: Event) {
+		const node = this.fnGetEventTarget(event),
+			oHtmlElement = node as HTMLElement,
+			sCpcKey = oHtmlElement.getAttribute("data-key");
 
 		if (Utils.debug > 1) {
-			Utils.console.debug("onVirtualKeyboardKeydown: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", node.getAttribute("data-key"));
+			Utils.console.debug("onVirtualKeyboardKeydown: event", String(event), "type:", event.type, "title:", oHtmlElement.title, "cpcKey:", sCpcKey);
 		}
 
 		if (sCpcKey !== null) {
-			iCpcKey = Number(sCpcKey);
+			let iCpcKey = Number(sCpcKey);
 			if (this.bNumLock) {
 				iCpcKey = this.mapNumLockCpcKey(iCpcKey);
 			}
-			sPressedKey = this.fnVirtualGetPressedKey(iCpcKey);
-			oAscii = this.fnVirtualGetAscii(iCpcKey, this.bShiftLock || event.shiftKey, this.bNumLock);
 
-			this.fnPressCpcKey(iCpcKey, sPressedKey, oAscii.key, event.shiftKey, event.ctrlKey);
+			const sPressedKey = this.fnVirtualGetPressedKey(iCpcKey),
+				oPointerEvent = event as PointerEvent,
+				oAscii = this.fnVirtualGetAscii(iCpcKey, this.bShiftLock || oPointerEvent.shiftKey, this.bNumLock);
+
+			this.fnPressCpcKey(iCpcKey, sPressedKey, oAscii.key, oPointerEvent.shiftKey, oPointerEvent.ctrlKey);
 		}
 
 		if (this.sPointerOutEvent) {
@@ -1260,22 +1346,22 @@ Keyboard.prototype = {
 		}
 		event.preventDefault();
 		return false;
-	},
+	}
 
-	fnVirtualKeyboardKeyupOrKeyout: function (event) {
-		var node = event.target || event.srcElement,
-			sCpcKey = node.getAttribute("data-key"),
-			iCpcKey, sPressedKey, oAscii;
+	fnVirtualKeyboardKeyupOrKeyout(event: Event) {
+		const node = this.fnGetEventTarget(event) as HTMLElement,
+			sCpcKey = node.getAttribute("data-key");
 
 		if (sCpcKey !== null) {
-			iCpcKey = Number(sCpcKey);
+			let iCpcKey = Number(sCpcKey);
 			if (this.bNumLock) {
 				iCpcKey = this.mapNumLockCpcKey(iCpcKey);
 			}
-			sPressedKey = this.fnVirtualGetPressedKey(iCpcKey);
-			oAscii = this.fnVirtualGetAscii(iCpcKey, this.bShiftLock || event.shiftKey, this.bNumLock);
+			const sPressedKey = this.fnVirtualGetPressedKey(iCpcKey),
+				oPointerEvent = event as PointerEvent,
+				oAscii = this.fnVirtualGetAscii(iCpcKey, this.bShiftLock || oPointerEvent.shiftKey, this.bNumLock);
 
-			this.fnReleaseCpcKey(iCpcKey, sPressedKey, oAscii.key, event.shiftKey, event.ctrlKey);
+			this.fnReleaseCpcKey(iCpcKey, sPressedKey, oAscii.key, oPointerEvent.shiftKey, oPointerEvent.ctrlKey);
 
 			if (iCpcKey === 70) { // Caps Lock?
 				this.bShiftLock = !this.bShiftLock;
@@ -1285,13 +1371,14 @@ Keyboard.prototype = {
 				this.virtualKeyboardAdaptKeys(this.bShiftLock, this.bNumLock);
 			}
 		}
-	},
+	}
 
-	onVirtualKeyboardKeyup: function (event) {
-		var node = event.target || event.srcElement;
-
+	onVirtualKeyboardKeyup(event: Event) {
+		const node = this.fnGetEventTarget(event),
+			oHtmlElement = node as HTMLElement;
+	
 		if (Utils.debug > 1) {
-			Utils.console.debug("onVirtualKeyboardKeyup: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", node.getAttribute("data-key"));
+			Utils.console.debug("onVirtualKeyboardKeyup: event", String(event), "type:", event.type, "title:", oHtmlElement.title, "cpcKey:", oHtmlElement.getAttribute("data-key"));
 		}
 
 		this.fnVirtualKeyboardKeyupOrKeyout(event);
@@ -1301,10 +1388,10 @@ Keyboard.prototype = {
 		}
 		event.preventDefault();
 		return false;
-	},
+	}
 
-	onVirtualKeyboardKeyout: function (event) {
-		var node = event.target || event.srcElement;
+	onVirtualKeyboardKeyout(event: Event) {
+		const node = this.fnGetEventTarget(event);
 
 		if (Utils.debug > 1) {
 			Utils.console.debug("onVirtualKeyboardKeyout: event=", event);
@@ -1315,62 +1402,85 @@ Keyboard.prototype = {
 		}
 		event.preventDefault();
 		return false;
-	},
+	}
 
+	oDrag = {
+		dragItem: undefined as (HTMLElement | undefined),
+		active: false,
+		xOffset: 0,
+		yOffset: 0,
+		initialX: 0,
+		initialY: 0,
+		currentX: 0,
+		currentY: 0
+	}
 
 	// based on https://www.kirupa.com/html5/drag.htm
-	dragInit: function (sContainerId, sItemId) {
-		this.dragItem = document.getElementById(sItemId);
-		this.active = false;
-		this.xOffset = 0;
-		this.yOffset = 0;
+	dragInit(sContainerId: string, sItemId: string) {
+		const oDrag = this.oDrag;
+
+		oDrag.dragItem = View.getElementById1(sItemId);
+		oDrag.active = false;
+		oDrag.xOffset = 0;
+		oDrag.yOffset = 0;
 
 		this.fnAttachPointerEvents(sContainerId, this.dragStart.bind(this), this.drag.bind(this), this.dragEnd.bind(this));
-	},
+	}
 
-	dragStart: function (event) {
-		var node = event.target || event.srcElement,
-			parent2 = node.parentElement ? node.parentElement.parentElement : null;
+	dragStart(event: Event) {
+		const node = this.fnGetEventTarget(event) as HTMLElement,
+			parent2 = node.parentElement ? node.parentElement.parentElement : null,
+			oDrag = this.oDrag;
 
-		if (node === this.dragItem || parent2 === this.dragItem) {
+		if (node === oDrag.dragItem || parent2 === oDrag.dragItem) {
 			if (event.type === "touchstart") {
-				this.initialX = event.touches[0].clientX - this.xOffset;
-				this.initialY = event.touches[0].clientY - this.yOffset;
+				const oTouchEvent = event as TouchEvent;
+				oDrag.initialX = oTouchEvent.touches[0].clientX - oDrag.xOffset;
+				oDrag.initialY = oTouchEvent.touches[0].clientY - oDrag.yOffset;
 			} else {
-				this.initialX = event.clientX - this.xOffset;
-				this.initialY = event.clientY - this.yOffset;
+				const oDragEvent = event as DragEvent;
+				oDrag.initialX = oDragEvent.clientX - oDrag.xOffset;
+				oDrag.initialY = oDragEvent.clientY - oDrag.yOffset;
 			}
-			this.active = true;
+			oDrag.active = true;
 		}
-	},
+	}
 
-	dragEnd: function (/* event */) {
-		this.initialX = this.currentX;
-		this.initialY = this.currentY;
+	dragEnd(/* event */) {
+		const oDrag = this.oDrag;
 
-		this.active = false;
-	},
+		oDrag.initialX = oDrag.currentX;
+		oDrag.initialY = oDrag.currentY;
 
-	setTranslate: function (xPos, yPos, el) {
+		oDrag.active = false;
+	}
+
+	setTranslate(xPos: number, yPos: number, el: HTMLElement) {
 		el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)";
-	},
+	}
 
-	drag: function (event) {
-		if (this.active) {
+	drag(event: Event) {
+		const oDrag = this.oDrag;
+
+		if (oDrag.active) {
 			event.preventDefault();
 
 			if (event.type === "touchmove") {
-				this.currentX = event.touches[0].clientX - this.initialX;
-				this.currentY = event.touches[0].clientY - this.initialY;
+				const oTouchEvent = event as TouchEvent;
+				oDrag.currentX = oTouchEvent.touches[0].clientX - oDrag.initialX;
+				oDrag.currentY = oTouchEvent.touches[0].clientY - oDrag.initialY;
 			} else {
-				this.currentX = event.clientX - this.initialX;
-				this.currentY = event.clientY - this.initialY;
+				const oDragEvent = event as DragEvent;
+				oDrag.currentX = oDragEvent.clientX - oDrag.initialX;
+				oDrag.currentY = oDragEvent.clientY - oDrag.initialY;
 			}
 
-			this.xOffset = this.currentX;
-			this.yOffset = this.currentY;
+			oDrag.xOffset = oDrag.currentX;
+			oDrag.yOffset = oDrag.currentY;
 
-			this.setTranslate(this.currentX, this.currentY, this.dragItem);
+			if (oDrag.dragItem) {
+				this.setTranslate(oDrag.currentX, oDrag.currentY, oDrag.dragItem);
+			}
 		}
 	}
 };

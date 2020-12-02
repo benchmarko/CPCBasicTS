@@ -3,13 +3,7 @@
 // https://benchmarko.github.io/CPCBasic/
 //
 
-/* XXXglobals Controller, Model, Utils, View */
-
 "use strict";
-
-/*
-var cpcBasicExternalConfig, cpcBasic;
-*/
 
 import { Utils } from "./Utils";
 import { Controller } from "./Controller";
@@ -48,20 +42,20 @@ var cpcBasic = {
 	view: null,
 	controller: null,
 
-	fnHereDoc: function (fn) {
+	fnHereDoc: function (fn: () => void) {
 		return String(fn).
 			replace(/^[^/]+\/\*\S*/, "").
 			replace(/\*\/[^/]+$/, "");
 	},
 
-	addIndex: function (sDir, input) {
+	addIndex: function (sDir: string, input: string | (() => void)) {
 		if (typeof input !== "string") {
 			input = this.fnHereDoc(input);
 		}
 		return cpcBasic.controller.addIndex(sDir, input);
 	},
 
-	addItem: function (sKey, input) {
+	addItem: function (sKey: string, input: string | (() => void)) {
 		if (typeof input !== "string") {
 			input = this.fnHereDoc(input);
 		}
@@ -70,17 +64,15 @@ var cpcBasic = {
 
 	// https://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
 	fnParseUri: function (oConfig) {
-		var aMatch,
-			rPlus = /\+/g, // Regex for replacing addition symbol with a space
+		const rPlus = /\+/g, // Regex for replacing addition symbol with a space
 			rSearch = /([^&=]+)=?([^&]*)/g,
-			fnDecode = function (s) { return decodeURIComponent(s.replace(rPlus, " ")); },
-			sQuery = window.location.search.substring(1),
-			sName,
-			sValue;
+			fnDecode = function (s: string) { return decodeURIComponent(s.replace(rPlus, " ")); },
+			sQuery = window.location.search.substring(1);
 
+		let aMatch: RegExpExecArray;
 		while ((aMatch = rSearch.exec(sQuery)) !== null) {
-			sName = fnDecode(aMatch[1]);
-			sValue = fnDecode(aMatch[2]);
+			const sName = fnDecode(aMatch[1]);
+			let sValue: string | number | boolean = fnDecode(aMatch[2]);
 			if (sValue !== null && oConfig.hasOwnProperty(sName)) {
 				switch (typeof oConfig[sName]) {
 				case "string":
@@ -101,8 +93,8 @@ var cpcBasic = {
 		}
 	},
 
-	setDebugUtilsConsole: function (sCpcBasicLog) {
-		var oCurrentConsole = Utils.console,
+	setDebugUtilsConsole: function (sCpcBasicLog: string) {
+		const oCurrentConsole = Utils.console,
 			oConsole = {
 				consoleLog: {
 					value: sCpcBasicLog || "" // already something collected?
@@ -124,7 +116,7 @@ var cpcBasic = {
 					}
 					return arg;
 				},
-				rawLog: function (fnMethod, sLevel, aArgs) {
+				rawLog: function (fnMethod, sLevel: string, aArgs) {
 					if (sLevel) {
 						aArgs.unshift(sLevel);
 					}
@@ -166,19 +158,20 @@ var cpcBasic = {
 	},
 
 	fnDoStart: function () {
-		var that = this,
-			oStartConfig = this.config,
-			sCpcBasicLog, oInitialConfig, iDebug;
+		const that = this,
+			oStartConfig = this.config;
+		
 
 		Object.assign(oStartConfig, cpcconfig || {}); // merge external config from cpcconfig.js
-		oInitialConfig = Object.assign({}, oStartConfig); // save config
+		const oInitialConfig = Object.assign({}, oStartConfig); // save config
 		this.fnParseUri(oStartConfig); // modify config with URL parameters
 		this.model = new Model(oStartConfig, oInitialConfig);
-		this.view = new View({});
+		this.view = new View();
 
-		iDebug = Number(this.model.getProperty("debug"));
+		const iDebug = Number(this.model.getProperty("debug"));
 		Utils.debug = iDebug;
 
+		let sCpcBasicLog;
 		const UtilsConsole = Utils.console as any;
 		if (UtilsConsole.cpcBasicLog) {
 			sCpcBasicLog = UtilsConsole.cpcBasicLog;

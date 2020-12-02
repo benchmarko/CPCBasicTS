@@ -8,6 +8,7 @@
     "outDir": "./dist/",
     "target": "es5",
     "sourceMap": true,
+    "sourceRoot": "ts",
     "declaration": true,
     "jsx": "preserve",
     "lib": [
