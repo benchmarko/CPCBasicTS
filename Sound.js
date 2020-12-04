@@ -1,27 +1,25 @@
-// Sound.js - Sound output via WebAudio
+// Sound.ts - Sound output via WebAudio
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //
-/* XXXglobals Utils */
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Sound = void 0;
 var Utils_1 = require("./Utils");
-function Sound( /* options */) {
-    this.init();
-}
-exports.Sound = Sound;
-Sound.prototype = {
-    init: function ( /* options */) {
-        var i;
+var Sound = /** @class */ (function () {
+    function Sound() {
+        this.fScheduleAheadTime = 0.1; // 100 ms
+        this.init();
+    }
+    Sound.prototype.init = function () {
         this.bIsSoundOn = false;
         this.bIsActivatedByUser = false;
-        this.context = null;
-        this.oMergerNode = null;
+        this.context = undefined;
+        this.oMergerNode = undefined;
         this.aGainNodes = [];
         this.aOscillators = []; // 3 oscillators left, middle, right
         this.aQueues = []; // node queues and info for the three channels
-        for (i = 0; i < 3; i += 1) {
+        for (var i = 0; i < 3; i += 1) {
             this.aQueues[i] = {
                 aSoundData: [],
                 fNextNoteTime: 0,
@@ -29,92 +27,92 @@ Sound.prototype = {
                 iRendevousMask: 0
             };
         }
-        this.fScheduleAheadTime = 0.1; // 100 ms
+        //this.fScheduleAheadTime = 0.1; // 100 ms
         this.aVolEnv = [];
         this.aToneEnv = [];
         this.iReleaseMask = 0;
         if (Utils_1.Utils.debug > 1) {
             this.aDebugLog = []; // access: cpcBasic.controller.oSound.aDebugLog
         }
-    },
-    reset: function () {
-        var aOscillators = this.aOscillators, i;
+    };
+    Sound.prototype.reset = function () {
+        var aOscillators = this.aOscillators, oVolEnvData = {
+            steps: 1,
+            diff: 0,
+            time: 200
+        };
         this.resetQueue();
-        for (i = 0; i < 3; i += 1) {
+        for (var i = 0; i < 3; i += 1) {
             if (aOscillators[i]) {
                 this.stopOscillator(i);
             }
         }
         this.aVolEnv.length = 0;
-        this.setVolEnv(0, [
-            {
-                steps: 1,
-                diff: 0,
-                time: 200
-            }
-        ]);
+        this.setVolEnv(0, [oVolEnvData]); // set default ENV (should not be changed)
         this.aToneEnv.length = 0;
         this.iReleaseMask = 0;
-        if (Utils_1.Utils.debug > 1) {
+        if (this.aDebugLog) {
             this.aDebugLog.length = 0;
         }
-    },
-    stopOscillator: function (n) {
+    };
+    Sound.prototype.stopOscillator = function (n) {
         var aOscillators = this.aOscillators;
         if (aOscillators[n]) {
-            aOscillators[n].frequency.value = 0;
-            aOscillators[n].stop();
-            aOscillators[n].disconnect();
-            aOscillators[n] = null;
+            var oOscillatorNode = aOscillators[n];
+            oOscillatorNode.frequency.value = 0;
+            oOscillatorNode.stop();
+            oOscillatorNode.disconnect();
+            aOscillators[n] = undefined;
         }
-    },
-    debugLog: function (sMsg) {
-        this.aDebugLog.push([
-            this.context ? this.context.currentTime : 0,
-            sMsg
-        ]);
-    },
-    resetQueue: function () {
-        var aQueues = this.aQueues, oQueue, i;
-        for (i = 0; i < aQueues.length; i += 1) {
-            oQueue = aQueues[i];
+    };
+    Sound.prototype.debugLog = function (sMsg) {
+        if (this.aDebugLog) {
+            this.aDebugLog.push([
+                this.context ? this.context.currentTime : 0,
+                sMsg
+            ]);
+        }
+    };
+    Sound.prototype.resetQueue = function () {
+        var aQueues = this.aQueues;
+        for (var i = 0; i < aQueues.length; i += 1) {
+            var oQueue = aQueues[i];
             oQueue.aSoundData.length = 0;
             oQueue.fNextNoteTime = 0;
             oQueue.bOnHold = false;
             oQueue.iRendevousMask = 0;
         }
-    },
-    createSoundContext: function () {
+    };
+    Sound.prototype.createSoundContext = function () {
         var context = new window.AudioContext(), // may produce exception if not available
         aChannelMap2Cpc = [
             0,
             2,
             1
-        ], oMergerNode, oGainNode, i;
+        ];
         this.context = context;
-        oMergerNode = context.createChannelMerger(6); // create mergerNode with 6 inputs; we are using the first 3 for left, right, center
+        var oMergerNode = context.createChannelMerger(6); // create mergerNode with 6 inputs; we are using the first 3 for left, right, center
         this.oMergerNode = oMergerNode;
-        for (i = 0; i < 3; i += 1) {
-            oGainNode = context.createGain();
-            oGainNode.connect(this.oMergerNode, 0, aChannelMap2Cpc[i]); // connect output #0 of gainNode i to input #j of the mergerNode
+        for (var i = 0; i < 3; i += 1) {
+            var oGainNode = context.createGain();
+            oGainNode.connect(oMergerNode, 0, aChannelMap2Cpc[i]); // connect output #0 of gainNode i to input #j of the mergerNode
             this.aGainNodes[i] = oGainNode;
         }
-    },
-    playNoise: function (iOscillator, fTime, fDuration, iNoise) {
-        var ctx = this.context, bandHz, bufferSize = ctx.sampleRate * fDuration, // set the time of the note
+    };
+    Sound.prototype.playNoise = function (iOscillator, fTime, fDuration, iNoise) {
+        var ctx = this.context, bufferSize = ctx.sampleRate * fDuration, // set the time of the note
         buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate), // create an empty buffer
-        data = buffer.getChannelData(0), // get data
-        i, noise, bandpass;
+        data = buffer.getChannelData(0); // get data
         // fill the buffer with noise
-        for (i = 0; i < bufferSize; i += 1) {
+        for (var i = 0; i < bufferSize; i += 1) {
             data[i] = Math.random() * 2 - 1;
         }
         // create a buffer source for our created data
-        noise = ctx.createBufferSource();
+        var noise = ctx.createBufferSource();
         noise.buffer = buffer;
         if (iNoise > 1) {
-            bandHz = 20000 / iNoise;
-            bandpass = ctx.createBiquadFilter();
+            var bandHz = 20000 / iNoise;
+            var bandpass = ctx.createBiquadFilter();
             bandpass.type = "bandpass";
             bandpass.frequency.value = bandHz;
             // bandpass.Q.value = q; // ?
@@ -125,25 +123,25 @@ Sound.prototype = {
         }
         noise.start(fTime);
         noise.stop(fTime + fDuration);
-    },
-    applyVolEnv: function (aVolData, oGain, fTime, iVolume, iDuration, iVolEnvRepeat) {
-        var iMaxVolume = 15, i100ms2sec = 100, // time duration unit: 1/100 sec=10 ms, convert to sec
-        iLoop, iPart, iTime, oGroup, fVolume, iVolSteps, iVolDiff, iVolTime, i, iRegister, iPeriod;
-        iTime = 0;
-        for (iLoop = 0; iLoop < iVolEnvRepeat; iLoop += 1) {
-            for (iPart = 0; iPart < aVolData.length; iPart += 1) {
-                oGroup = aVolData[iPart];
+    };
+    Sound.prototype.applyVolEnv = function (aVolData, oGain, fTime, iVolume, iDuration, iVolEnvRepeat) {
+        var iMaxVolume = 15, i100ms2sec = 100; // time duration unit: 1/100 sec=10 ms, convert to sec
+        var iTime = 0;
+        for (var iLoop = 0; iLoop < iVolEnvRepeat; iLoop += 1) {
+            for (var iPart = 0; iPart < aVolData.length; iPart += 1) {
+                var oGroup = aVolData[iPart];
                 if (oGroup.steps !== undefined) {
-                    iVolSteps = oGroup.steps;
-                    iVolDiff = oGroup.diff;
-                    iVolTime = oGroup.time;
+                    var oGroup1 = oGroup;
+                    var iVolSteps = oGroup1.steps;
+                    var iVolDiff = oGroup1.diff;
+                    var iVolTime = oGroup1.time;
                     if (!iVolSteps) { // steps=0
                         iVolSteps = 1;
                         iVolume = 0; // we will set iVolDiff as absolute volume
                     }
-                    for (i = 0; i < iVolSteps; i += 1) {
+                    for (var i = 0; i < iVolSteps; i += 1) {
                         iVolume = (iVolume + iVolDiff) % (iMaxVolume + 1);
-                        fVolume = iVolume / iMaxVolume;
+                        var fVolume = iVolume / iMaxVolume;
                         oGain.setValueAtTime(fVolume * fVolume, fTime + iTime / i100ms2sec);
                         iTime += iVolTime;
                         if (iDuration && iTime >= iDuration) { // eslint-disable-line max-depth
@@ -154,13 +152,12 @@ Sound.prototype = {
                     }
                 }
                 else { // register
-                    iRegister = oGroup.register;
-                    iPeriod = oGroup.period;
+                    var oGroup2 = oGroup, iRegister = oGroup2.register, iPeriod = oGroup2.period;
                     if (iRegister === 0) {
                         iVolume = 15;
-                        fVolume = iVolume / iMaxVolume;
+                        var fVolume = iVolume / iMaxVolume;
                         oGain.setValueAtTime(fVolume * fVolume, fTime + iTime / i100ms2sec);
-                        iVolTime = iPeriod;
+                        var iVolTime = iPeriod;
                         iTime += iVolTime;
                         fVolume = 0;
                         oGain.linearRampToValueAtTime(fVolume, fTime + iTime / i100ms2sec); // or: exponentialRampToValueAtTime?
@@ -175,27 +172,29 @@ Sound.prototype = {
             iDuration = iTime;
         }
         return iDuration;
-    },
-    applyToneEnv: function (aToneData, oFrequency, fTime, iPeriod, iDuration) {
-        var iToneEnvRepeat = 1, i100ms2sec = 100, // time duration unit: 1/100 sec=10 ms, convert to sec
-        bRepeat, iLoop, iPart, iTime, oGroup, iToneSteps, iToneDiff, iToneTime, i, fFrequency;
-        bRepeat = aToneData[0];
+    };
+    Sound.prototype.applyToneEnv = function (aToneData, oFrequency, fTime, iPeriod, iDuration) {
+        var i100ms2sec = 100, // time duration unit: 1/100 sec=10 ms, convert to sec
+        bRepeat = aToneData[0], iToneEnvRepeat = bRepeat ? 5 : 1; // we use at most 5
+        /*
         if (bRepeat) {
             iToneEnvRepeat = 5; // we use at most 5 //TTT
         }
-        iTime = 0;
-        for (iLoop = 0; iLoop < iToneEnvRepeat; iLoop += 1) {
-            for (iPart = 0; iPart < aToneData.length; iPart += 1) {
-                oGroup = aToneData[iPart];
+        */
+        var iTime = 0;
+        for (var iLoop = 0; iLoop < iToneEnvRepeat; iLoop += 1) {
+            for (var iPart = 0; iPart < aToneData.length; iPart += 1) {
+                var oGroup = aToneData[iPart];
                 if (oGroup.steps !== undefined) {
-                    iToneSteps = oGroup.steps;
-                    iToneDiff = oGroup.diff;
-                    iToneTime = oGroup.time;
+                    var oGroup1 = oGroup, iToneSteps = oGroup1.steps || 1, // steps 0 => 1
+                    iToneDiff = oGroup1.diff, iToneTime = oGroup1.time;
+                    /*
                     if (!iToneSteps) { // steps=0
                         iToneSteps = 1;
                     }
-                    for (i = 0; i < iToneSteps; i += 1) {
-                        fFrequency = (iPeriod >= 3) ? 62500 / iPeriod : 0;
+                    */
+                    for (var i = 0; i < iToneSteps; i += 1) {
+                        var fFrequency = (iPeriod >= 3) ? 62500 / iPeriod : 0;
                         oFrequency.setValueAtTime(fFrequency, fTime + iTime / i100ms2sec);
                         iPeriod += iToneDiff;
                         iTime += iToneTime;
@@ -207,9 +206,7 @@ Sound.prototype = {
                     }
                 }
                 else { // absolute period
-                    iPeriod = oGroup.period;
-                    iToneTime = oGroup.time;
-                    fFrequency = (iPeriod >= 3) ? 62500 / iPeriod : 0;
+                    var oGroup2 = oGroup, iPeriod_1 = oGroup2.period, iToneTime = oGroup2.time, fFrequency = (iPeriod_1 >= 3) ? 62500 / iPeriod_1 : 0;
                     oFrequency.setValueAtTime(fFrequency, fTime + iTime / i100ms2sec);
                     // TODO
                     iTime += iToneTime;
@@ -217,25 +214,24 @@ Sound.prototype = {
                 }
             }
         }
-    },
-    scheduleNote: function (iOscillator, fTime, oSoundData) {
+    };
+    Sound.prototype.scheduleNote = function (iOscillator, fTime, oSoundData) {
         var iMaxVolume = 15, i100ms2sec = 100, // time duration unit: 1/100 sec=10 ms, convert to sec
-        ctx = this.context, iVolEnv = oSoundData.iVolEnv, iToneEnv = oSoundData.iToneEnv, iVolEnvRepeat = 1, oOscillator, oGain, iDuration, iVolume, fDuration, fVolume;
+        ctx = this.context;
+        var iVolEnv = oSoundData.iVolEnv, iToneEnv = oSoundData.iToneEnv, iVolEnvRepeat = 1;
         if (Utils_1.Utils.debug > 1) {
             this.debugLog("scheduleNote: " + iOscillator + " " + fTime);
         }
-        oOscillator = ctx.createOscillator();
+        var oOscillator = ctx.createOscillator();
         oOscillator.type = "square";
         oOscillator.frequency.value = (oSoundData.iPeriod >= 3) ? 62500 / oSoundData.iPeriod : 0;
         oOscillator.connect(this.aGainNodes[iOscillator]);
         if (fTime < ctx.currentTime) {
             Utils_1.Utils.console.log("TTT: scheduleNote:", fTime, "<", ctx.currentTime);
         }
-        iDuration = oSoundData.iDuration;
-        iVolume = oSoundData.iVolume;
-        oGain = this.aGainNodes[iOscillator].gain;
-        fVolume = iVolume / iMaxVolume;
+        var iVolume = oSoundData.iVolume, oGain = this.aGainNodes[iOscillator].gain, fVolume = iVolume / iMaxVolume;
         oGain.setValueAtTime(fVolume * fVolume, fTime); // start volume
+        var iDuration = oSoundData.iDuration;
         if (iDuration < 0) { // <0: repeat volume envelope?
             iVolEnvRepeat = Math.min(5, -iDuration); // we limit repeat to 5 times sice we precompute duration
             iDuration = 0;
@@ -249,7 +245,7 @@ Sound.prototype = {
         if (iToneEnv && this.aToneEnv[iToneEnv]) { // some tone envelope?
             this.applyToneEnv(this.aToneEnv[iToneEnv], oOscillator.frequency, fTime, oSoundData.iPeriod, iDuration);
         }
-        fDuration = iDuration / i100ms2sec;
+        var fDuration = iDuration / i100ms2sec;
         oOscillator.start(fTime);
         oOscillator.stop(fTime + fDuration);
         this.aOscillators[iOscillator] = oOscillator;
@@ -257,14 +253,15 @@ Sound.prototype = {
             this.playNoise(iOscillator, fTime, fDuration, oSoundData.iNoise);
         }
         return fDuration;
-    },
-    testCanQueue: function (iState) {
-        var aQueues = this.aQueues, bCanQueue = true;
+    };
+    Sound.prototype.testCanQueue = function (iState) {
+        var bCanQueue = true;
         if (this.bIsSoundOn && !this.bIsActivatedByUser) { // sound on but not yet activated? -> say cannot queue
             bCanQueue = false;
             /* eslint-disable no-bitwise */
         }
         else if (!(iState & 0x80)) { // 0x80: flush
+            var aQueues = this.aQueues;
             if ((iState & 0x01 && aQueues[0].aSoundData.length >= 4)
                 || (iState & 0x02 && aQueues[1].aSoundData.length >= 4)
                 || (iState & 0x04 && aQueues[2].aSoundData.length >= 4)) {
@@ -273,15 +270,14 @@ Sound.prototype = {
         }
         /* eslint-enable no-bitwise */
         return bCanQueue;
-    },
-    sound: function (oSoundData) {
-        var aQueues = this.aQueues, i, oQueue, iState;
+    };
+    Sound.prototype.sound = function (oSoundData) {
         if (!this.bIsSoundOn) {
             return;
         }
-        iState = oSoundData.iState;
-        for (i = 0; i < 3; i += 1) {
-            oQueue = aQueues[i];
+        var aQueues = this.aQueues, iState = oSoundData.iState;
+        for (var i = 0; i < 3; i += 1) {
+            var oQueue = aQueues[i];
             if ((iState >> i) & 0x01) { // eslint-disable-line no-bitwise
                 if (iState & 0x80) { // eslint-disable-line no-bitwise
                     oQueue.aSoundData.length = 0; // flush queue
@@ -296,14 +292,14 @@ Sound.prototype = {
             }
         }
         this.scheduler(); // schedule early to allow SQ busy check immiediately (can channels go out of sync by this?)
-    },
-    setVolEnv: function (iVolEnv, aVolEnvData) {
+    };
+    Sound.prototype.setVolEnv = function (iVolEnv, aVolEnvData) {
         this.aVolEnv[iVolEnv] = aVolEnvData;
-    },
-    setToneEnv: function (iToneEnv, aToneEnvData) {
+    };
+    Sound.prototype.setToneEnv = function (iToneEnv, aToneEnvData) {
         this.aToneEnv[iToneEnv] = aToneEnvData;
-    },
-    updateQueueStatus: function (i, oQueue) {
+    };
+    Sound.prototype.updateQueueStatus = function (i, oQueue) {
         var aSoundData = oQueue.aSoundData;
         if (aSoundData.length) {
             /* eslint-disable no-bitwise */
@@ -317,20 +313,19 @@ Sound.prototype = {
             oQueue.bOnHold = false;
             oQueue.iRendevousMask = 0;
         }
-    },
+    };
     // idea from: https://www.html5rocks.com/en/tutorials/audio/scheduling/
-    scheduler: function () {
-        var iCanPlayMask = 0, fCurrentTime, aQueues, oQueue, i, oSoundData;
+    Sound.prototype.scheduler = function () {
         if (!this.bIsSoundOn) {
             return;
         }
-        fCurrentTime = this.context.currentTime;
-        aQueues = this.aQueues;
-        for (i = 0; i < 3; i += 1) {
-            oQueue = aQueues[i];
+        var oContext = this.context, fCurrentTime = oContext.currentTime, aQueues = this.aQueues;
+        var iCanPlayMask = 0;
+        for (var i = 0; i < 3; i += 1) {
+            var oQueue = aQueues[i];
             while (oQueue.aSoundData.length && !oQueue.bOnHold && oQueue.fNextNoteTime < fCurrentTime + this.fScheduleAheadTime) { // something to schedule and not on hold and time reached
                 if (!oQueue.iRendevousMask) { // no rendevous needed, schedule now
-                    oSoundData = oQueue.aSoundData.shift();
+                    var oSoundData = oQueue.aSoundData.shift();
                     if (oQueue.fNextNoteTime < fCurrentTime) {
                         oQueue.fNextNoteTime = fCurrentTime;
                     }
@@ -346,11 +341,11 @@ Sound.prototype = {
         if (!iCanPlayMask) { // no channel can play
             return;
         }
-        for (i = 0; i < 3; i += 1) {
-            oQueue = aQueues[i];
+        for (var i = 0; i < 3; i += 1) {
+            var oQueue = aQueues[i];
             // we can play, if in rendevous
             if ((iCanPlayMask >> i) & 0x01 && ((oQueue.iRendevousMask & iCanPlayMask) === oQueue.iRendevousMask)) { // eslint-disable-line no-bitwise
-                oSoundData = oQueue.aSoundData.shift();
+                var oSoundData = oQueue.aSoundData.shift();
                 if (oQueue.fNextNoteTime < fCurrentTime) {
                     oQueue.fNextNoteTime = fCurrentTime;
                 }
@@ -358,33 +353,33 @@ Sound.prototype = {
                 this.updateQueueStatus(i, oQueue); // check if next note on hold
             }
         }
-    },
-    release: function (iReleaseMask) {
-        var aQueues = this.aQueues, i, oQueue, aSoundData;
+    };
+    Sound.prototype.release = function (iReleaseMask) {
+        var aQueues = this.aQueues;
         if (!aQueues.length) {
             return;
         }
         if (Utils_1.Utils.debug > 1) {
             this.debugLog("release: " + iReleaseMask);
         }
-        for (i = 0; i < 3; i += 1) {
-            oQueue = aQueues[i];
-            aSoundData = oQueue.aSoundData;
+        for (var i = 0; i < 3; i += 1) {
+            var oQueue = aQueues[i];
+            var aSoundData = oQueue.aSoundData;
             if (((iReleaseMask >> i) & 0x01) && aSoundData.length && oQueue.bOnHold) { // eslint-disable-line no-bitwise
                 oQueue.bOnHold = false; // release
             }
         }
         this.scheduler(); // extra schedule now so that following sound instructions are not releases early
-    },
-    sq: function (n) {
-        var aQueues = this.aQueues, oQueue = aQueues[n], aSoundData = oQueue.aSoundData, iSq;
-        iSq = 4 - aSoundData.length;
+    };
+    Sound.prototype.sq = function (n) {
+        var aQueues = this.aQueues, oQueue = aQueues[n], aSoundData = oQueue.aSoundData, oContext = this.context;
+        var iSq = 4 - aSoundData.length;
         if (iSq < 0) {
             iSq = 0;
         }
         /* eslint-disable no-bitwise */
         iSq |= (oQueue.iRendevousMask << 3);
-        if (this.aOscillators[n] && aQueues[n].fNextNoteTime > this.context.currentTime) { // note still playing?
+        if (this.aOscillators[n] && aQueues[n].fNextNoteTime > oContext.currentTime) { // note still playing?
             iSq |= 0x80; // eslint-disable-line no-bitwise
         }
         else if (aSoundData.length && (aSoundData[0].iState & 0x40)) {
@@ -392,32 +387,37 @@ Sound.prototype = {
         }
         /* eslint-enable no-bitwise */
         return iSq;
-    },
-    isSoundOn: function () {
+    };
+    Sound.prototype.isSoundOn = function () {
         return this.bIsSoundOn;
-    },
-    setActivatedByUser: function () {
+    };
+    Sound.prototype.setActivatedByUser = function () {
         this.bIsActivatedByUser = true;
-    },
-    isActivatedByUser: function () {
+    };
+    Sound.prototype.isActivatedByUser = function () {
         return this.bIsActivatedByUser;
-    },
-    soundOn: function () {
+    };
+    Sound.prototype.soundOn = function () {
         if (!this.bIsSoundOn) {
             if (!this.context) {
                 this.createSoundContext();
             }
-            this.oMergerNode.connect(this.context.destination);
+            var oMergerNode = this.oMergerNode, oContext = this.context;
+            oMergerNode.connect(oContext.destination);
             this.bIsSoundOn = true;
             Utils_1.Utils.console.log("soundOn: Sound switched on");
         }
-    },
-    soundOff: function () {
+    };
+    Sound.prototype.soundOff = function () {
         if (this.bIsSoundOn) {
-            this.oMergerNode.disconnect(this.context.destination);
+            var oMergerNode = this.oMergerNode, oContext = this.context;
+            oMergerNode.disconnect(oContext.destination);
             this.bIsSoundOn = false;
             Utils_1.Utils.console.log("soundOff: Sound switched off");
         }
-    }
-};
+    };
+    return Sound;
+}());
+exports.Sound = Sound;
+;
 //# sourceMappingURL=Sound.js.map

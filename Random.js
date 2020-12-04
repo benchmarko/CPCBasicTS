@@ -1,4 +1,4 @@
-// Random.js - Random Number Generator
+// Random.ts - Random Number Generator
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 "use strict";

@@ -6,130 +6,93 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CodeGeneratorJs = void 0;
-/*
-var Utils;
-
-if (typeof require !== "undefined") {
-    Utils = require("./Utils.js"); // eslint-disable-line global-require
-}
-*/
 var Utils_1 = require("./Utils");
-function CodeGeneratorJs(options) {
-    this.init(options);
-}
-exports.CodeGeneratorJs = CodeGeneratorJs;
-CodeGeneratorJs.prototype = {
-    init: function (options) {
-        this.options = options || {}; // e.g. tron (trace on flag), rsx (optional RSX names to check), bQuiet
-        this.lexer = this.options.lexer;
-        this.parser = this.options.parser;
-        this.reJsKeywords = this.createJsKeywordRegex();
-        this.reset();
-    },
-    reset: function () {
+var CodeGeneratorJs = /** @class */ (function () {
+    function CodeGeneratorJs(options) {
+        this.tron = false;
+        this.bQuiet = false;
         this.iLine = 0; // current line (label)
         this.oStack = {
             forLabel: [],
             forVarName: [],
             whileLabel: []
         };
-        this.resetCountsPerLine();
         this.aData = []; // collected data from data lines
         this.oLabels = {}; // labels or line numbers
         this.bMergeFound = false; // if we find chain or chain merge, the program is not complete and we cannot check for existing line numbers during compile time (or do a renumber)
-        this.lexer.reset();
-        this.parser.reset();
-        return this;
-    },
-    resetCountsPerLine: function () {
         this.iGosubCount = 0;
         this.iIfCount = 0;
         this.iStopCount = 0;
         this.iForCount = 0; // stack needed
         this.iWhileCount = 0; // stack needed
-    },
-    composeError: function () {
-        var aArgs = Array.prototype.slice.call(arguments);
+        this.init(options);
+    }
+    CodeGeneratorJs.prototype.init = function (options) {
+        //this.options = options || {}; // e.g. tron (trace on flag), rsx (optional RSX names to check), bQuiet
+        this.lexer = options.lexer;
+        this.parser = options.parser;
+        this.tron = options.tron;
+        this.rsx = options.rsx;
+        this.bQuiet = options.bQuiet || false;
+        //this.lexer = this.options.lexer;
+        //this.parser = this.options.parser;
+        this.reJsKeywords = this.createJsKeywordRegex();
+        this.reset();
+    };
+    CodeGeneratorJs.prototype.reset = function () {
+        var oStack = this.oStack;
+        oStack.forLabel.length = 0;
+        oStack.forVarName.length = 0;
+        oStack.whileLabel.length = 0;
+        /*
+        this.oStack = {
+            forLabel: [],
+            forVarName: [],
+            whileLabel: []
+        };
+        */
+        this.iLine = 0; // current line (label)
+        this.resetCountsPerLine();
+        //this.aData = []; // collected data from data lines
+        this.aData.length = 0;
+        this.oLabels = {}; // labels or line numbers
+        this.bMergeFound = false; // if we find chain or chain merge, the program is not complete and we cannot check for existing line numbers during compile time (or do a renumber)
+        this.lexer.reset();
+        this.parser.reset();
+        return this;
+    };
+    CodeGeneratorJs.prototype.resetCountsPerLine = function () {
+        this.iGosubCount = 0;
+        this.iIfCount = 0;
+        this.iStopCount = 0;
+        this.iForCount = 0; // stack needed
+        this.iWhileCount = 0; // stack needed
+    };
+    CodeGeneratorJs.prototype.composeError = function () {
+        //var aArgs = Array.prototype.slice.call(arguments);
+        var aArgs = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            aArgs[_i] = arguments[_i];
+        }
         aArgs.unshift("CodeGeneratorJs");
         aArgs.push(this.iLine);
         return Utils_1.Utils.composeError.apply(null, aArgs);
-    },
-    // ECMA 3 JS Keywords which must be avoided in dot notation for properties when using IE8
-    aJsKeywords: [
-        "do",
-        "if",
-        "in",
-        "for",
-        "int",
-        "new",
-        "try",
-        "var",
-        "byte",
-        "case",
-        "char",
-        "else",
-        "enum",
-        "goto",
-        "long",
-        "null",
-        "this",
-        "true",
-        "void",
-        "with",
-        "break",
-        "catch",
-        "class",
-        "const",
-        "false",
-        "final",
-        "float",
-        "short",
-        "super",
-        "throw",
-        "while",
-        "delete",
-        "double",
-        "export",
-        "import",
-        "native",
-        "public",
-        "return",
-        "static",
-        "switch",
-        "throws",
-        "typeof",
-        "boolean",
-        "default",
-        "extends",
-        "finally",
-        "package",
-        "private",
-        "abstract",
-        "continue",
-        "debugger",
-        "function",
-        "volatile",
-        "interface",
-        "protected",
-        "transient",
-        "implements",
-        "instanceof",
-        "synchronized"
-    ],
-    createJsKeywordRegex: function () {
-        var reJsKeywords;
-        reJsKeywords = new RegExp("^(" + this.aJsKeywords.join("|") + ")$");
+    };
+    CodeGeneratorJs.prototype.createJsKeywordRegex = function () {
+        var reJsKeywords = new RegExp("^(" + CodeGeneratorJs.aJsKeywords.join("|") + ")$");
         return reJsKeywords;
-    },
+    };
     //
     // evaluate
     //
-    evaluate: function (parseTree, oVariables) {
+    CodeGeneratorJs.prototype.evaluate = function (parseTree, oVariables) {
         var that = this, fnDeclareVariable = function (sName) {
             if (!oVariables.variableExist(sName)) { // variable not yet defined?
                 oVariables.initVariable(sName);
             }
-        }, oDevScopeArgs = null, bDevScopeArgsCollect = false, fnAdaptVariableName = function (sName, iArrayIndices) {
+        };
+        var oDevScopeArgs = null, bDevScopeArgsCollect = false;
+        var fnAdaptVariableName = function (sName, iArrayIndices) {
             sName = sName.toLowerCase();
             sName = sName.replace(/\./g, "_");
             if (oDevScopeArgs || !Utils_1.Utils.bSupportReservedNames) { // avoid keywords as def fn parameters; and for IE8 avoid keywords in dot notation
@@ -168,16 +131,14 @@ CodeGeneratorJs.prototype = {
             var sValue = parseNode(oArg); // eslint-disable-line no-use-before-define
             return sValue;
         }, fnParseArgRange = function (aArgs, iStart, iStop) {
-            var aNodeArgs = [], // do not modify node.args here (could be a parameter of defined function)
-            i;
-            for (i = iStart; i <= iStop; i += 1) {
+            var aNodeArgs = []; // do not modify node.args here (could be a parameter of defined function)
+            for (var i = iStart; i <= iStop; i += 1) {
                 aNodeArgs.push(fnParseOneArg(aArgs[i]));
             }
             return aNodeArgs;
         }, fnParseArgs = function (aArgs) {
-            var aNodeArgs = [], // do not modify node.args here (could be a parameter of defined function)
-            i;
-            for (i = 0; i < aArgs.length; i += 1) {
+            var aNodeArgs = []; // do not modify node.args here (could be a parameter of defined function)
+            for (var i = 0; i < aArgs.length; i += 1) {
                 aNodeArgs[i] = fnParseOneArg(aArgs[i]);
             }
             return aNodeArgs;
@@ -353,23 +314,21 @@ CodeGeneratorJs.prototype = {
             }
         }, mParseFunctions = {
             fnParseDefIntRealStr: function (node) {
-                var aNodeArgs, i, sArg;
-                aNodeArgs = fnParseArgs(node.args);
-                for (i = 0; i < aNodeArgs.length; i += 1) {
-                    sArg = aNodeArgs[i];
+                var aNodeArgs = fnParseArgs(node.args);
+                for (var i = 0; i < aNodeArgs.length; i += 1) {
+                    var sArg = aNodeArgs[i];
                     aNodeArgs[i] = "o." + node.type + '("' + sArg + '")';
                 }
                 node.pv = aNodeArgs.join("; ");
                 return node.pv;
             },
             fnParseErase: function (node) {
-                var aNodeArgs, i;
                 oDevScopeArgs = {};
                 bDevScopeArgsCollect = true;
-                aNodeArgs = fnParseArgs(node.args);
+                var aNodeArgs = fnParseArgs(node.args);
                 bDevScopeArgsCollect = false;
                 oDevScopeArgs = null;
-                for (i = 0; i < aNodeArgs.length; i += 1) {
+                for (var i = 0; i < aNodeArgs.length; i += 1) {
                     aNodeArgs[i] = '"' + aNodeArgs[i] + '"'; // put in quotes
                 }
                 node.pv = "o." + node.type + "(" + aNodeArgs.join(", ") + ")";
@@ -389,9 +348,9 @@ CodeGeneratorJs.prototype = {
                 }
             },
             fnCommandWithGoto: function (node, aNodeArgs) {
-                var sCommand = node.type, sLabel;
+                var sCommand = node.type;
                 aNodeArgs = aNodeArgs || fnParseArgs(node.args);
-                sLabel = that.iLine + "s" + that.iStopCount; // we use stopCount
+                var sLabel = that.iLine + "s" + that.iStopCount; // we use stopCount
                 that.iStopCount += 1;
                 node.pv = "o." + sCommand + "(" + aNodeArgs.join(", ") + "); o.goto(\"" + sLabel + "\"); break;\ncase \"" + sLabel + "\":";
                 return node.pv;
@@ -405,15 +364,12 @@ CodeGeneratorJs.prototype = {
                 return node.pv;
             },
             "|": function (node) {
-                var sRsxName, bRsxAvailable, aNodeArgs, sLabel, oError;
-                sRsxName = node.value.substr(1).toLowerCase().replace(/\./g, "_");
-                bRsxAvailable = that.options.rsx && that.options.rsx.rsxIsAvailable(sRsxName);
-                aNodeArgs = fnParseArgs(node.args);
-                sLabel = that.iLine + "s" + that.iStopCount; // we use stopCount
+                var sRsxName = node.value.substr(1).toLowerCase().replace(/\./g, "_");
+                var bRsxAvailable = that.rsx && that.rsx.rsxIsAvailable(sRsxName), aNodeArgs = fnParseArgs(node.args), sLabel = that.iLine + "s" + that.iStopCount; // we use stopCount
                 that.iStopCount += 1;
                 if (!bRsxAvailable) { // if RSX not available, we delay the error until it is executed (or catched by on error goto)
-                    if (!that.options.bQuiet) {
-                        oError = that.composeError(Error(), "Unknown RSX command", node.value, node.pos);
+                    if (!that.bQuiet) {
+                        var oError = that.composeError(Error(), "Unknown RSX command", node.value, node.pos);
                         Utils_1.Utils.console.warn(oError);
                     }
                     aNodeArgs.unshift('"' + sRsxName + '"'); // put as first arg
@@ -540,7 +496,7 @@ CodeGeneratorJs.prototype = {
                 }
                 value += "case " + label + ":";
                 aNodeArgs = fnParseArgs(node.args);
-                if (that.options.tron) {
+                if (that.tron) {
                     value += " o.vmTrace(\"" + that.iLine + "\");";
                 }
                 for (i = 0; i < aNodeArgs.length; i += 1) {
@@ -1205,8 +1161,8 @@ CodeGeneratorJs.prototype = {
         // create labels map
         fnCreateLabelsMap(this.oLabels);
         return fnEvaluate();
-    },
-    generate: function (sInput, oVariables, bAllowDirect) {
+    };
+    CodeGeneratorJs.prototype.generate = function (sInput, oVariables, bAllowDirect) {
         var fnCombineData = function (aData) {
             var sData = "";
             sData = aData.join(";\n");
@@ -1240,6 +1196,71 @@ CodeGeneratorJs.prototype = {
             }
         }
         return oOut;
-    }
-};
+    };
+    // ECMA 3 JS Keywords which must be avoided in dot notation for properties when using IE8
+    CodeGeneratorJs.aJsKeywords = [
+        "do",
+        "if",
+        "in",
+        "for",
+        "int",
+        "new",
+        "try",
+        "var",
+        "byte",
+        "case",
+        "char",
+        "else",
+        "enum",
+        "goto",
+        "long",
+        "null",
+        "this",
+        "true",
+        "void",
+        "with",
+        "break",
+        "catch",
+        "class",
+        "const",
+        "false",
+        "final",
+        "float",
+        "short",
+        "super",
+        "throw",
+        "while",
+        "delete",
+        "double",
+        "export",
+        "import",
+        "native",
+        "public",
+        "return",
+        "static",
+        "switch",
+        "throws",
+        "typeof",
+        "boolean",
+        "default",
+        "extends",
+        "finally",
+        "package",
+        "private",
+        "abstract",
+        "continue",
+        "debugger",
+        "function",
+        "volatile",
+        "interface",
+        "protected",
+        "transient",
+        "implements",
+        "instanceof",
+        "synchronized"
+    ];
+    return CodeGeneratorJs;
+}());
+exports.CodeGeneratorJs = CodeGeneratorJs;
+;
 //# sourceMappingURL=CodeGeneratorJs.js.map

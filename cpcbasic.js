@@ -2,12 +2,8 @@
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //
-/* XXXglobals Controller, Model, Utils, View */
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-/*
-var cpcBasicExternalConfig, cpcBasic;
-*/
 var Utils_1 = require("./Utils");
 var Controller_1 = require("./Controller");
 var cpcconfig_1 = require("./cpcconfig");
@@ -58,11 +54,12 @@ var cpcBasic = {
     },
     // https://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
     fnParseUri: function (oConfig) {
-        var aMatch, rPlus = /\+/g, // Regex for replacing addition symbol with a space
-        rSearch = /([^&=]+)=?([^&]*)/g, fnDecode = function (s) { return decodeURIComponent(s.replace(rPlus, " ")); }, sQuery = window.location.search.substring(1), sName, sValue;
+        var rPlus = /\+/g, // Regex for replacing addition symbol with a space
+        rSearch = /([^&=]+)=?([^&]*)/g, fnDecode = function (s) { return decodeURIComponent(s.replace(rPlus, " ")); }, sQuery = window.location.search.substring(1);
+        var aMatch;
         while ((aMatch = rSearch.exec(sQuery)) !== null) {
-            sName = fnDecode(aMatch[1]);
-            sValue = fnDecode(aMatch[2]);
+            var sName = fnDecode(aMatch[1]);
+            var sValue = fnDecode(aMatch[2]);
             if (sValue !== null && oConfig.hasOwnProperty(sName)) {
                 switch (typeof oConfig[sName]) {
                     case "string":
@@ -142,14 +139,15 @@ var cpcBasic = {
         Utils_1.Utils.console = oConsole; //TTT
     },
     fnDoStart: function () {
-        var that = this, oStartConfig = this.config, sCpcBasicLog, oInitialConfig, iDebug;
+        var that = this, oStartConfig = this.config;
         Object.assign(oStartConfig, cpcconfig_1.cpcconfig || {}); // merge external config from cpcconfig.js
-        oInitialConfig = Object.assign({}, oStartConfig); // save config
+        var oInitialConfig = Object.assign({}, oStartConfig); // save config
         this.fnParseUri(oStartConfig); // modify config with URL parameters
         this.model = new Model_1.Model(oStartConfig, oInitialConfig);
-        this.view = new View_1.View({});
-        iDebug = Number(this.model.getProperty("debug"));
+        this.view = new View_1.View();
+        var iDebug = Number(this.model.getProperty("debug"));
         Utils_1.Utils.debug = iDebug;
+        var sCpcBasicLog;
         var UtilsConsole = Utils_1.Utils.console;
         if (UtilsConsole.cpcBasicLog) {
             sCpcBasicLog = UtilsConsole.cpcBasicLog;

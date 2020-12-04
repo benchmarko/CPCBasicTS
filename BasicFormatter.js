@@ -1,4 +1,4 @@
-// BasicFormatter.js - Format BASIC source
+// BasicFormatter.ts - Format BASIC source
 // (c) Marco Vieth, 2020
 // https://benchmarko.github.io/CPCBasic/
 //
@@ -6,46 +6,41 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BasicFormatter = void 0;
-/*
-var Utils;
-
-if (typeof require !== "undefined") {
-    Utils = require("./Utils.js"); // eslint-disable-line global-require
-}
-*/
 var Utils_1 = require("./Utils");
-function BasicFormatter(options) {
-    this.init(options);
-}
-exports.BasicFormatter = BasicFormatter;
-BasicFormatter.prototype = {
-    init: function (options) {
-        this.options = options || {};
-        this.lexer = this.options.lexer;
-        this.parser = this.options.parser;
+var BasicFormatter = /** @class */ (function () {
+    function BasicFormatter(options) {
+        this.iLine = 0;
+        this.init(options);
+    }
+    BasicFormatter.prototype.init = function (options) {
+        this.lexer = options.lexer;
+        this.parser = options.parser;
         this.reset();
-    },
-    reset: function () {
+    };
+    BasicFormatter.prototype.reset = function () {
         this.iLine = 0; // current line (label)
-    },
-    composeError: function () {
-        var aArgs = Array.prototype.slice.call(arguments);
+    };
+    BasicFormatter.prototype.composeError = function () {
+        //var aArgs = Array.prototype.slice.call(arguments);
+        var aArgs = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            aArgs[_i] = arguments[_i];
+        }
         aArgs.unshift("BasicFormatter");
         return Utils_1.Utils.composeError.apply(null, aArgs);
-    },
-    fnRenumber: function (sInput, aParseTree, iNew, iOld, iStep, iKeep) {
+    };
+    BasicFormatter.prototype.fnRenumber = function (sInput, aParseTree, iNew, iOld, iStep, iKeep) {
         var that = this, oLines = {}, // line numbers
         aRefs = [], // references
         oChanges = {}, fnCreateLineNumbersMap = function () {
-            var iLastLine = 0, i, oNode, sLine, iLine;
+            var iLastLine = 0;
             oLines[0] = {
                 value: 0
             };
-            for (i = 0; i < aParseTree.length; i += 1) {
-                oNode = aParseTree[i];
+            for (var i = 0; i < aParseTree.length; i += 1) {
+                var oNode = aParseTree[i];
                 if (oNode.type === "label") {
-                    sLine = oNode.value;
-                    iLine = Number(oNode.value);
+                    var sLine = oNode.value, iLine = Number(oNode.value);
                     if (sLine in oLines) {
                         throw that.composeError(Error(), "Duplicate line number", sLine, oNode.pos);
                     }
@@ -64,9 +59,8 @@ BasicFormatter.prototype = {
                 }
             }
         }, fnAddReferences = function (aNodes) {
-            var i, oNode;
-            for (i = 0; i < aNodes.length; i += 1) {
-                oNode = aNodes[i];
+            for (var i = 0; i < aNodes.length; i += 1) {
+                var oNode = aNodes[i];
                 if (oNode.type === "linenumber") {
                     if (oNode.value in oLines) {
                         aRefs.push({
@@ -93,9 +87,9 @@ BasicFormatter.prototype = {
                 }
             }
         }, fnRenumberLines = function () {
-            var aKeys = Object.keys(oLines), i, oLine, oRef;
-            for (i = 0; i < aKeys.length; i += 1) {
-                oLine = oLines[aKeys[i]];
+            var aKeys = Object.keys(oLines);
+            for (var i = 0; i < aKeys.length; i += 1) {
+                var oLine = oLines[aKeys[i]];
                 if (oLine.value >= iOld && oLine.value < iKeep) {
                     if (iNew > 65535) {
                         throw that.composeError(Error(), "Line number overflow", oLine.value, oLine.pos);
@@ -105,8 +99,8 @@ BasicFormatter.prototype = {
                     iNew += iStep;
                 }
             }
-            for (i = 0; i < aRefs.length; i += 1) {
-                oRef = aRefs[i];
+            for (var i = 0; i < aRefs.length; i += 1) {
+                var oRef = aRefs[i];
                 if (oRef.value >= iOld && oRef.value < iKeep) {
                     if (oRef.value !== oLines[oRef.value].newLine) {
                         oRef.newLine = oLines[oRef.value].newLine;
@@ -117,11 +111,11 @@ BasicFormatter.prototype = {
         }, fnSortNumbers = function (a, b) {
             return a - b;
         }, fnApplyChanges = function () {
-            var aKeys = Object.keys(oChanges).map(Number), oLine;
+            var aKeys = Object.keys(oChanges).map(Number);
             aKeys.sort(fnSortNumbers);
             // apply changes to input in reverse order
             for (var i = aKeys.length - 1; i >= 0; i -= 1) {
-                oLine = oChanges[aKeys[i]];
+                var oLine = oChanges[aKeys[i]];
                 sInput = sInput.substring(0, oLine.pos) + oLine.newLine + sInput.substr(oLine.pos + oLine.len);
             }
         };
@@ -130,22 +124,23 @@ BasicFormatter.prototype = {
         fnRenumberLines();
         fnApplyChanges();
         return sInput;
-    },
-    renumber: function (sInput, iNew, iOld, iStep, iKeep) {
+    };
+    BasicFormatter.prototype.renumber = function (sInput, iNew, iOld, iStep, iKeep) {
         var oOut = {
             text: "",
             error: undefined
-        }, aTokens, aParseTree, sOutput;
+        };
         try {
-            aTokens = this.lexer.lex(sInput);
-            aParseTree = this.parser.parse(aTokens);
-            sOutput = this.fnRenumber(sInput, aParseTree, iNew, iOld, iStep, iKeep || 65535);
+            var aTokens = this.lexer.lex(sInput), aParseTree = this.parser.parse(aTokens), sOutput = this.fnRenumber(sInput, aParseTree, iNew, iOld, iStep, iKeep || 65535);
             oOut.text = sOutput;
         }
         catch (e) {
             oOut.error = e;
         }
         return oOut;
-    }
-};
+    };
+    return BasicFormatter;
+}());
+exports.BasicFormatter = BasicFormatter;
+;
 //# sourceMappingURL=BasicFormatter.js.map

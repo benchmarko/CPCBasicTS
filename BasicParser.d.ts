@@ -1,6 +1,11 @@
-export declare function BasicParser(options?: any): void;
-export declare namespace BasicParser {
-    var mParameterTypes: {
+import { BasicLexerToken } from "./BasicLexer";
+interface BasicParserOptions {
+    bQuiet?: boolean;
+}
+export declare class BasicParser {
+    iLine: number;
+    bQuiet: boolean;
+    static mParameterTypes: {
         c: string;
         f: string;
         o: string;
@@ -14,7 +19,7 @@ export declare namespace BasicParser {
         "n0?": string;
         "#": string;
     };
-    var mKeywords: {
+    static mKeywords: {
         abs: string;
         after: string;
         afterGosub: string;
@@ -202,7 +207,7 @@ export declare namespace BasicParser {
         ypos: string;
         zone: string;
     };
-    var mCloseTokens: {
+    static mCloseTokens: {
         ":": number;
         "(eol)": number;
         "(end)": number;
@@ -210,4 +215,10 @@ export declare namespace BasicParser {
         rem: number;
         "'": number;
     };
+    constructor(options?: BasicParserOptions);
+    init(options: BasicParserOptions): void;
+    reset(): void;
+    composeError(...aArgs: any[]): any;
+    parse(aTokens: BasicLexerToken[], bAllowDirect?: boolean): any[];
 }
+export {};

@@ -1,42 +1,38 @@
-// Variables.js - Variables
+// Variables.ts - Variables
 // (c) Marco Vieth, 2020
 // https://benchmarko.github.io/CPCBasic/
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Variables = void 0;
-function Variables(config) {
-    this.init(config);
-}
-exports.Variables = Variables;
-Variables.prototype = {
-    init: function (config) {
-        this.config = config || {}; // store only a reference
+var Variables = /** @class */ (function () {
+    function Variables() {
+        this.init();
+    }
+    Variables.prototype.init = function () {
         this.oVariables = {};
         this.oVarTypes = {}; // default variable types for variables starting with letters a-z
-    },
-    removeAllVariables: function () {
-        var oVariables = this.oVariables, sName;
-        for (sName in oVariables) { // eslint-disable-line guard-for-in
+    };
+    Variables.prototype.removeAllVariables = function () {
+        var oVariables = this.oVariables;
+        for (var sName in oVariables) { // eslint-disable-line guard-for-in
             delete oVariables[sName];
         }
         return this;
-    },
-    getAllVariables: function () {
+    };
+    Variables.prototype.getAllVariables = function () {
         return this.oVariables;
-    },
-    createNDimArray: function (aDims, initVal) {
+    };
+    Variables.prototype.createNDimArray = function (aDims, initVal) {
         var aRet, fnCreateRec = function (iIndex) {
-            var iLen, aArr, i;
-            iLen = aDims[iIndex];
+            var iLen = aDims[iIndex], aArr = new Array(iLen);
             iIndex += 1;
-            aArr = new Array(iLen);
             if (iIndex < aDims.length) { // more dimensions?
-                for (i = 0; i < iLen; i += 1) {
+                for (var i = 0; i < iLen; i += 1) {
                     aArr[i] = fnCreateRec(iIndex); // recursive call
                 }
             }
             else { // one dimension
-                for (i = 0; i < iLen; i += 1) {
+                for (var i = 0; i < iLen; i += 1) {
                     aArr[i] = initVal;
                 }
             }
@@ -44,10 +40,10 @@ Variables.prototype = {
         };
         aRet = fnCreateRec(0);
         return aRet;
-    },
+    };
     // determine static varType (first letter + optional fixed vartype) from a variable name
     // format: (v.)<sname>(I|R|$)([...]([...])) with optional parts in ()
-    determineStaticVarType: function (sName) {
+    Variables.prototype.determineStaticVarType = function (sName) {
         var sNameType;
         if (sName.indexOf("v.") === 0) { // preceding variable object?
             sName = sName.substr(2); // remove preceding "v."
@@ -67,75 +63,78 @@ Variables.prototype = {
             sNameType += "$";
         }
         return sNameType;
-    },
-    getVarDefault: function (sVarName, aDimensions) {
-        var iArrayIndices = sVarName.split("A").length - 1, bIsString = sVarName.includes("$"), sFirst, value, aValue, i;
+    };
+    Variables.prototype.getVarDefault = function (sVarName, aDimensions) {
+        var bIsString = sVarName.includes("$");
         if (!bIsString) { // check dynamic varType...
-            sFirst = sVarName.charAt(0);
+            var sFirst = sVarName.charAt(0);
             if (sFirst === "_") { // ignore underscore (do not clash with keywords)
                 sFirst = sFirst.charAt(1);
             }
             bIsString = (this.getVarType(sFirst) === "$");
         }
-        value = bIsString ? "" : 0;
+        var value = bIsString ? "" : 0, iArrayIndices = sVarName.split("A").length - 1;
         if (iArrayIndices) {
             if (!aDimensions) {
                 aDimensions = [];
                 if (iArrayIndices > 3) { // on CPC up to 3 dimensions 0..10 without dim
                     iArrayIndices = 3;
                 }
-                for (i = 0; i < iArrayIndices; i += 1) {
+                for (var i = 0; i < iArrayIndices; i += 1) {
                     aDimensions.push(11);
                 }
             }
-            aValue = this.createNDimArray(aDimensions, value);
+            var aValue = this.createNDimArray(aDimensions, value);
             value = aValue;
         }
         return value;
-    },
-    initVariable: function (sName) {
-        this.oVariables[sName] = this.getVarDefault(sName, null);
+    };
+    Variables.prototype.initVariable = function (sName) {
+        this.oVariables[sName] = this.getVarDefault(sName, undefined);
         return this;
-    },
-    dimVariable: function (sName, aDimensions) {
+    };
+    Variables.prototype.dimVariable = function (sName, aDimensions) {
         this.oVariables[sName] = this.getVarDefault(sName, aDimensions);
         return this;
-    },
-    getAllVariableNames: function () {
+    };
+    Variables.prototype.getAllVariableNames = function () {
         return Object.keys(this.oVariables);
-    },
-    getVariableIndex: function (sName) {
+    };
+    Variables.prototype.getVariableIndex = function (sName) {
         var aVarNames = this.getAllVariableNames(), iPos;
         iPos = aVarNames.indexOf(sName);
         return iPos;
-    },
-    initAllVariables: function () {
+    };
+    Variables.prototype.initAllVariables = function () {
         var aVariables = this.getAllVariableNames(), i;
         for (i = 0; i < aVariables.length; i += 1) {
             this.initVariable(aVariables[i]);
         }
         return this;
-    },
-    getVariable: function (sName) {
+    };
+    Variables.prototype.getVariable = function (sName) {
         return this.oVariables[sName];
-    },
-    setVariable: function (sName, value) {
+    };
+    Variables.prototype.setVariable = function (sName, value) {
         this.oVariables[sName] = value;
         return this;
-    },
-    getVariableByIndex: function (iIndex) {
+    };
+    Variables.prototype.getVariableByIndex = function (iIndex) {
         var aVariables = this.getAllVariableNames(), sName = aVariables[iIndex];
         return this.oVariables[sName];
-    },
-    variableExist: function (sName) {
+    };
+    Variables.prototype.variableExist = function (sName) {
         return sName in this.oVariables;
-    },
-    getVarType: function (sVarChar) {
+    };
+    Variables.prototype.getVarType = function (sVarChar) {
         return this.oVarTypes[sVarChar];
-    },
-    setVarType: function (sVarChar, sType) {
+    };
+    Variables.prototype.setVarType = function (sVarChar, sType) {
         this.oVarTypes[sVarChar] = sType;
         return this;
-    }
-};
+    };
+    return Variables;
+}());
+exports.Variables = Variables;
+;
 //# sourceMappingURL=Variables.js.map

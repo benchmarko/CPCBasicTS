@@ -1,4 +1,4 @@
-// BasicLexer.js - BASIC Lexer
+// BasicLexer.ts - BASIC Lexer
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //
@@ -7,35 +7,34 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BasicLexer = void 0;
-/*
-var Utils;
-
-if (typeof require !== "undefined") {
-    Utils = require("./Utils.js"); // eslint-disable-line global-require
-}
-*/
 // based on an idea of: https://www.codeproject.com/Articles/345888/How-to-write-a-simple-interpreter-in-JavaScript
 var Utils_1 = require("./Utils");
-function BasicLexer(options) {
-    this.init(options);
-}
-exports.BasicLexer = BasicLexer;
-BasicLexer.prototype = {
-    init: function (options) {
-        this.options = options || {}; // e.g. bQuiet
+var BasicLexer = /** @class */ (function () {
+    function BasicLexer(options) {
+        this.bQuiet = false;
+        this.iLine = 0;
+        this.bTakeNumberAsLine = true;
+        this.init(options);
+    }
+    BasicLexer.prototype.init = function (options) {
+        this.bQuiet = (options === null || options === void 0 ? void 0 : options.bQuiet) || false;
         this.reset();
-    },
-    reset: function () {
+    };
+    BasicLexer.prototype.reset = function () {
         this.iLine = 0; // for error messages
         this.bTakeNumberAsLine = true;
-    },
-    composeError: function () {
-        var aArgs = Array.prototype.slice.call(arguments);
+    };
+    BasicLexer.prototype.composeError = function () {
+        //var aArgs = Array.prototype.slice.call(arguments);
+        var aArgs = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            aArgs[_i] = arguments[_i];
+        }
         aArgs.unshift("BasicLexer");
         aArgs.push(this.iLine);
         return Utils_1.Utils.composeError.apply(null, aArgs);
-    },
-    lex: function (input) {
+    };
+    BasicLexer.prototype.lex = function (input) {
         var that = this, isComment = function (c) {
             return (/[']/).test(c);
         }, isOperator = function (c) {
@@ -80,7 +79,9 @@ BasicLexer.prototype = {
             return c !== "" && c !== "\n";
         }, isUnquotedData = function (c) {
             return c !== "" && (/[^:,\r\n]/).test(c);
-        }, aTokens = [], iIndex = 0, sToken, sChar, iStartPos, testChar = function (iAdd) {
+        }, aTokens = [];
+        var iIndex = 0, sToken, sChar, iStartPos;
+        var testChar = function (iAdd) {
             return input.charAt(iIndex + iAdd);
         }, advance = function () {
             iIndex += 1;
@@ -110,7 +111,6 @@ BasicLexer.prototype = {
                 return "\\x" + ("00" + sChar2.charCodeAt(0).toString(16)).slice(-2);
             });
         }, fnParseNumber = function (bStartsWithDot) {
-            var iNumber, sChar1, sChar2;
             sToken = "";
             if (bStartsWithDot) {
                 sToken += sChar;
@@ -125,8 +125,7 @@ BasicLexer.prototype = {
                 }
             }
             if (sChar === "e" || sChar === "E") { // we also try to check: [eE][+-]?\d+; because "E" could be ERR, ELSE,...
-                sChar1 = testChar(1);
-                sChar2 = testChar(2);
+                var sChar1 = testChar(1), sChar2 = testChar(2);
                 if (isDigit(sChar1) || (isSign(sChar1) && isDigit(sChar2))) { // so it is a number
                     sToken += sChar; // take "E"
                     sChar = advance();
@@ -140,8 +139,8 @@ BasicLexer.prototype = {
                 }
             }
             sToken = sToken.trim(); // remove trailing spaces
-            iNumber = parseFloat(sToken);
-            if (!isFinite(sToken)) { // Infnity?
+            var iNumber = parseFloat(sToken);
+            if (!isFinite(Number(sToken))) { // Infnity?
                 throw that.composeError(Error(), "Number is too large or too small", sToken, iStartPos); // for a 64-bit double
             }
             addToken("number", iNumber, iStartPos, sToken);
@@ -169,7 +168,7 @@ BasicLexer.prototype = {
                     sChar = "";
                     sToken = advanceWhile(isNotQuotes);
                     if (!isQuotes(sChar)) {
-                        if (!that.options.bQuiet) {
+                        if (!that.bQuiet) {
                             Utils_1.Utils.console.log(that.composeError({}, "Unterminated string", sToken, iStartPos + 1).message);
                         }
                     }
@@ -203,9 +202,9 @@ BasicLexer.prototype = {
                 }
             }
         }, fnTryContinueString = function () {
-            var sOut = "", sChar1;
+            var sOut = "";
             while (isNewLine(sChar)) {
-                sChar1 = testChar(1);
+                var sChar1 = testChar(1);
                 if (sChar1 !== "" && (sChar1 < "0" || sChar1 > "9")) { // heuristic: next char not a digit => continue with the string
                     sOut += advanceWhile(isNotQuotes);
                 }
@@ -269,7 +268,7 @@ BasicLexer.prototype = {
                 sChar = "";
                 sToken = advanceWhile(isNotQuotes);
                 if (!isQuotes(sChar)) {
-                    if (!that.options.bQuiet) {
+                    if (!that.bQuiet) {
                         Utils_1.Utils.console.log(this.composeError({}, "Unterminated string", sToken, iStartPos + 1).message);
                     }
                     sToken += fnTryContinueString(); // heuristic to detect an LF in the string
@@ -326,6 +325,9 @@ BasicLexer.prototype = {
         }
         addToken("(end)", "", iIndex);
         return aTokens;
-    }
-};
+    };
+    return BasicLexer;
+}());
+exports.BasicLexer = BasicLexer;
+;
 //# sourceMappingURL=BasicLexer.js.map

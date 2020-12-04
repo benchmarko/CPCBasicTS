@@ -1,26 +1,31 @@
-// View.js - View Module to access HTML DOM
+// View.ts - View Module to access HTML DOM
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //
-/* XXXglobals Utils */
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.View = void 0;
 var Utils_1 = require("./Utils");
-function View(options) {
-    this.init(options);
-}
-exports.View = View;
-View.fnEventHandler = null;
-View.prototype = {
-    init: function ( /* options */) {
-        this.bDirty = false;
-    },
-    getHidden: function (sId) {
-        return document.getElementById(sId).className.indexOf("displayNone") >= 0;
-    },
-    setHidden: function (sId, bHidden, sDisplay) {
-        var element = document.getElementById(sId), sDisplayVisible = "display" + Utils_1.Utils.stringCapitalize(sDisplay || "block");
+var View = /** @class */ (function () {
+    function View() {
+        this.init();
+    }
+    View.prototype.init = function () {
+        //this.bDirty = false;
+    };
+    View.getElementById1 = function (sId) {
+        var element = document.getElementById(sId);
+        if (!element) {
+            throw new Error("Unknown " + sId);
+        }
+        return element;
+    };
+    View.prototype.getHidden = function (sId) {
+        var element = View.getElementById1(sId);
+        return element.className.indexOf("displayNone") >= 0;
+    };
+    View.prototype.setHidden = function (sId, bHidden, sDisplay) {
+        var element = View.getElementById1(sId), sDisplayVisible = "display" + Utils_1.Utils.stringCapitalize(sDisplay || "block");
         if (bHidden) {
             if (element.className.indexOf("displayNone") < 0) {
                 this.toggleClass(sId, "displayNone");
@@ -38,14 +43,16 @@ View.prototype = {
             }
         }
         return this;
-    },
-    setDisabled: function (sId, bDisabled) {
-        var element = document.getElementById(sId);
+    };
+    View.prototype.setDisabled = function (sId, bDisabled) {
+        var element = View.getElementById1(sId);
         element.disabled = bDisabled;
         return this;
-    },
-    toggleClass: function (sId, sClassName) {
-        var element = document.getElementById(sId), sClasses = element.className, iNameIndex = sClasses.indexOf(sClassName);
+    };
+    View.prototype.toggleClass = function (sId, sClassName) {
+        var element = View.getElementById1(sId);
+        var sClasses = element.className;
+        var iNameIndex = sClasses.indexOf(sClassName);
         if (iNameIndex === -1) {
             sClasses += " " + sClassName;
         }
@@ -53,30 +60,30 @@ View.prototype = {
             sClasses = sClasses.substr(0, iNameIndex) + sClasses.substr(iNameIndex + sClassName.length + 1);
         }
         element.className = sClasses;
-    },
-    getAreaValue: function (sId) {
-        var area = document.getElementById(sId);
-        return area.value;
-    },
-    setAreaValue: function (sId, sValue) {
-        var area = document.getElementById(sId);
-        area.value = sValue;
+    };
+    View.prototype.getAreaValue = function (sId) {
+        var element = View.getElementById1(sId);
+        return element.value;
+    };
+    View.prototype.setAreaValue = function (sId, sValue) {
+        var element = View.getElementById1(sId);
+        element.value = sValue;
         return this;
-    },
-    setSelectOptions: function (sId, aOptions) {
-        var select, i, oItem, option;
-        select = document.getElementById(sId);
-        for (i = 0; i < aOptions.length; i += 1) {
-            oItem = aOptions[i];
+    };
+    View.prototype.setSelectOptions = function (sId, aOptions) {
+        var element = View.getElementById1(sId), select = element;
+        for (var i = 0; i < aOptions.length; i += 1) {
+            var oItem = aOptions[i];
             if (i >= select.length) {
-                option = document.createElement("option");
+                var option = document.createElement("option");
                 option.value = oItem.value;
                 option.text = oItem.text;
                 option.title = oItem.title;
+                option.selected = oItem.selected; // multi-select
                 select.add(option, null); // null needed for old FF 3.x
             }
             else {
-                option = select.options[i];
+                var option = select.options[i];
                 if (option.value !== oItem.value) {
                     option.value = oItem.value;
                 }
@@ -88,48 +95,48 @@ View.prototype = {
                     option.title = oItem.title;
                 }
             }
+            /*
             if (oItem.selected) { // multi-select
                 option.selected = oItem.selected;
             }
+            */
         }
         // remove additional select options
         select.options.length = aOptions.length;
         return this;
-    },
-    getSelectValue: function (sId) {
-        var select = document.getElementById(sId);
-        return select.value;
-    },
-    setSelectValue: function (sId, sValue) {
-        var select = document.getElementById(sId);
+    };
+    View.prototype.getSelectValue = function (sId) {
+        var element = View.getElementById1(sId);
+        return element.value;
+    };
+    View.prototype.setSelectValue = function (sId, sValue) {
+        var element = View.getElementById1(sId);
         if (sValue) {
-            select.value = sValue;
+            element.value = sValue;
         }
         return this;
-    },
-    setSelectTitleFromSelectedOption: function (sId) {
-        var select = document.getElementById(sId), iSelectedIndex = select.selectedIndex, sTitle;
-        sTitle = (iSelectedIndex >= 0) ? select.options[iSelectedIndex].title : "";
+    };
+    View.prototype.setSelectTitleFromSelectedOption = function (sId) {
+        var element = View.getElementById1(sId), select = element, iSelectedIndex = select.selectedIndex, sTitle = (iSelectedIndex >= 0) ? select.options[iSelectedIndex].title : "";
         select.title = sTitle;
         return this;
-    },
-    setAreaScrollTop: function (sId, scrollTop) {
-        var area = document.getElementById(sId);
-        if (scrollTop === undefined) {
-            scrollTop = area.scrollHeight;
+    };
+    View.prototype.setAreaScrollTop = function (sId, iScrollTop) {
+        var element = View.getElementById1(sId), area = element;
+        if (iScrollTop === undefined) {
+            iScrollTop = area.scrollHeight;
         }
-        area.scrollTop = scrollTop;
-    },
-    fnSetSelectionRange: function (textarea, selectionStart, selectionEnd) {
-        var fullText, scrollHeight, scrollTop, textareaHeight;
+        area.scrollTop = iScrollTop;
+    };
+    View.prototype.setSelectionRange = function (textarea, selectionStart, selectionEnd) {
         // First scroll selection region to view
-        fullText = textarea.value;
+        var fullText = textarea.value;
         textarea.value = fullText.substring(0, selectionEnd);
         // For some unknown reason, you must store the scollHeight to a variable before setting the textarea value. Otherwise it won't work for long strings
-        scrollHeight = textarea.scrollHeight;
+        var scrollHeight = textarea.scrollHeight;
         textarea.value = fullText;
-        scrollTop = scrollHeight;
-        textareaHeight = textarea.clientHeight;
+        var textareaHeight = textarea.clientHeight;
+        var scrollTop = scrollHeight;
         if (scrollTop > textareaHeight) {
             // scroll selection to center of textarea
             scrollTop -= textareaHeight / 2;
@@ -140,13 +147,13 @@ View.prototype = {
         textarea.scrollTop = scrollTop;
         // Continue to set selection range
         textarea.setSelectionRange(selectionStart, selectionEnd);
-    },
-    setAreaSelection: function (sId, iPos, iEndPos) {
-        var area = document.getElementById(sId);
+    };
+    View.prototype.setAreaSelection = function (sId, iPos, iEndPos) {
+        var element = View.getElementById1(sId), area = element;
         if (area.selectionStart !== undefined) {
-            if (area.setSelectionRange) {
+            if (area.setSelectionRange !== undefined) {
                 area.focus(); // not needed for scrolling but we want to see the selected text
-                this.fnSetSelectionRange(area, iPos, iEndPos);
+                this.setSelectionRange(area, iPos, iEndPos);
             }
             else {
                 area.focus();
@@ -155,13 +162,17 @@ View.prototype = {
             }
         }
         return this;
-    },
-    attachEventHandler: function (sType, fnEventHandler) {
+    };
+    View.prototype.attachEventHandler = function (sType, fnEventHandler) {
         if (Utils_1.Utils.debug) {
-            Utils_1.Utils.console.debug("attachEventHandler: type=" + sType + ", fnEventHandler=" + (fnEventHandler ? "[function]" : null));
+            Utils_1.Utils.console.debug("attachEventHandler: type=" + sType + ", fnEventHandler=" + ((fnEventHandler != undefined) ? "[function]" : null));
         }
         document.addEventListener(sType, fnEventHandler, false);
         return this;
-    }
-};
+    };
+    View.fnEventHandler = null;
+    return View;
+}());
+exports.View = View;
+;
 //# sourceMappingURL=View.js.map

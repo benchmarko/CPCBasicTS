@@ -42,6 +42,7 @@ var CodeGeneratorJs_1 = require("./CodeGeneratorJs");
 var CommonEventHandler_1 = require("./CommonEventHandler");
 var cpcCharset_1 = require("./cpcCharset");
 var CpcVm_1 = require("./CpcVm");
+var CpcVmRsx_1 = require("./CpcVmRsx");
 var Diff_1 = require("./Diff");
 var DiskImage_1 = require("./DiskImage");
 var InputStack_1 = require("./InputStack");
@@ -49,7 +50,6 @@ var Keyboard_1 = require("./Keyboard");
 //import { Model } from "./Model"; //TTT
 var Sound_1 = require("./Sound");
 var Variables_1 = require("./Variables");
-//import { View } from "./View"; //TTT
 var ZipFile_1 = require("./ZipFile");
 function Controller(oModel, oView) {
     this.init(oModel, oView);
@@ -85,7 +85,7 @@ Controller.prototype = {
         oView.setHidden("cpcArea", false); // make sure canvas is not hidden (allows to get width, height)
         this.oCanvas = new Canvas_1.Canvas({
             aCharset: cpcCharset_1.cpcCharset,
-            cpcDivId: "cpcArea",
+            //cpcDivId: "cpcArea",
             onClickKey: this.fnPutKeyInBufferHandler
         });
         oView.setHidden("cpcArea", !oModel.getProperty("showCpc"));
@@ -111,6 +111,8 @@ Controller.prototype = {
             tron: oModel.getProperty("tron")
         });
         this.oVm.vmReset();
+        this.oRsx = new CpcVmRsx_1.CpcVmRsx(this.oVm);
+        this.oVm.vmSetRsxClass(this.oRsx); //TTT
         this.oNoStop = Object.assign({}, this.oVm.vmGetStopObject());
         this.oSavedStop = {}; // backup of stop object
         this.setStopObject(this.oNoStop);
@@ -179,18 +181,20 @@ Controller.prototype = {
         return sKey;
     },
     setDatabaseSelectOptions: function () {
-        var sSelect = "databaseSelect", aItems = [], oDatabases = this.model.getAllDatabases(), sDatabase = this.model.getProperty("database"), sValue, oDb, oItem;
-        for (sValue in oDatabases) {
+        var sSelect = "databaseSelect", aItems = [], oDatabases = this.model.getAllDatabases(), sDatabase = this.model.getProperty("database");
+        for (var sValue in oDatabases) {
             if (oDatabases.hasOwnProperty(sValue)) {
-                oDb = oDatabases[sValue];
-                oItem = {
+                var oDb = oDatabases[sValue], oItem = {
                     value: sValue,
                     text: oDb.text,
-                    title: oDb.title
+                    title: oDb.title,
+                    selected: sValue === sDatabase
                 };
+                /*
                 if (sValue === sDatabase) {
                     oItem.selected = true;
                 }
+                */
                 aItems.push(oItem);
             }
         }
@@ -198,18 +202,19 @@ Controller.prototype = {
     },
     setExampleSelectOptions: function () {
         var iMaxTitleLength = 160, iMaxTextLength = 60, // (32 visible?)
-        sSelect = "exampleSelect", aItems = [], sExample = this.model.getProperty("example"), oAllExamples = this.model.getAllExamples(), bExampleSelected = false, sKey, oExample, oItem;
-        for (sKey in oAllExamples) {
+        sSelect = "exampleSelect", aItems = [], sExample = this.model.getProperty("example"), oAllExamples = this.model.getAllExamples();
+        var bExampleSelected = false;
+        for (var sKey in oAllExamples) {
             if (oAllExamples.hasOwnProperty(sKey)) {
-                oExample = oAllExamples[sKey];
+                var oExample = oAllExamples[sKey];
                 if (oExample.meta !== "D") { // skip data files
-                    oItem = {
+                    var sTitle = (oExample.key + ": " + oExample.title).substr(0, iMaxTitleLength), oItem = {
                         value: oExample.key,
-                        title: (oExample.key + ": " + oExample.title).substr(0, iMaxTitleLength)
+                        title: sTitle,
+                        text: sTitle.substr(0, iMaxTextLength),
+                        selected: oExample.key === sExample
                     };
-                    oItem.text = oItem.title.substr(0, iMaxTextLength);
-                    if (oExample.key === sExample) {
-                        oItem.selected = true;
+                    if (oItem.selected) {
                         bExampleSelected = true;
                     }
                     aItems.push(oItem);
@@ -222,7 +227,7 @@ Controller.prototype = {
         this.view.setSelectOptions(sSelect, aItems);
     },
     setVarSelectOptions: function (sSelect, oVariables) {
-        var iMaxVarLength = 35, aVarNames = oVariables.getAllVariableNames(), aItems = [], i, oItem, sKey, sValue, sTitle, sStrippedTitle, fnSortByStringProperties = function (a, b) {
+        var iMaxVarLength = 35, aVarNames = oVariables.getAllVariableNames(), aItems = [], fnSortByStringProperties = function (a, b) {
             var x = a.value, y = b.value;
             if (x < y) {
                 return -1;
@@ -232,17 +237,17 @@ Controller.prototype = {
             }
             return 0;
         };
-        for (i = 0; i < aVarNames.length; i += 1) {
-            sKey = aVarNames[i];
-            sValue = oVariables.getVariable(sKey);
-            sTitle = sKey + "=" + sValue;
-            sStrippedTitle = sTitle.substr(0, iMaxVarLength); // limit length
+        for (var i = 0; i < aVarNames.length; i += 1) {
+            var sKey = aVarNames[i], sValue = oVariables.getVariable(sKey), sTitle = sKey + "=" + sValue;
+            var sStrippedTitle = sTitle.substr(0, iMaxVarLength); // limit length
             if (sTitle !== sStrippedTitle) {
                 sStrippedTitle += " ...";
             }
-            oItem = {
+            var oItem = {
                 value: sKey,
-                title: sStrippedTitle
+                text: sStrippedTitle,
+                title: sStrippedTitle,
+                selected: false //TTT
             };
             oItem.text = oItem.title;
             aItems.push(oItem);
@@ -1504,12 +1509,38 @@ Controller.prototype = {
         }
         this.view.setAreaValue("inp2Text", "");
     },
+    generateFunction: function (sPar, sFunction) {
+        var aArgs = [], iFirstIndex, iLastIndex, aMatch, fnFunction;
+        if (sFunction.startsWith("function anonymous(")) { // already a modified function (inside an anonymous function)?
+            iFirstIndex = sFunction.indexOf("{");
+            iLastIndex = sFunction.lastIndexOf("}");
+            if (iFirstIndex >= 0 && iLastIndex >= 0) {
+                sFunction = sFunction.substring(iFirstIndex + 1, iLastIndex - 1); // remove anonymous function
+            }
+            sFunction = sFunction.trim();
+        }
+        else {
+            sFunction = "var o=cpcBasic.controller.oVm, v=o.vmGetAllVariables(); v." + sPar + " = " + sFunction;
+        }
+        aMatch = (/function \(([^)]*)/).exec(sFunction);
+        if (aMatch) {
+            aArgs = aMatch[1].split(",");
+        }
+        fnFunction = new Function(aArgs[0], aArgs[1], aArgs[2], aArgs[3], aArgs[4], sFunction); // eslint-disable-line no-new-func
+        // we support at most 5 arguments
+        return fnFunction;
+    },
     changeVariable: function () {
         var sPar = this.view.getSelectValue("varSelect"), sValue = this.view.getSelectValue("varText"), oVariables = this.oVariables, sVarType, sType, value, value2;
         value = oVariables.getVariable(sPar);
         if (typeof value === "function") { // TODO
+            value = this.generateFunction(sPar, sValue);
+            /*
             value = sValue;
-            value = new Function("o", value); // eslint-disable-line no-new-func
+            value = "var o=cpcBasic.controller.oVm, v=o.vmGetAllVariables(); v." + sPar + " = " + sValue;
+            value = new Function("xR", value); // eslint-disable-line no-new-func
+            // new function must be called later with this.oVm, ...
+            */
             oVariables.setVariable(sPar, value);
         }
         else {
