@@ -1,4 +1,4 @@
-// BasicFormatter.js - Format BASIC source
+// BasicFormatter.ts - Format BASIC source
 // (c) Marco Vieth, 2020
 // https://benchmarko.github.io/CPCBasic/
 //
@@ -6,57 +6,59 @@
 
 "use strict";
 
-/*
-var Utils;
-
-if (typeof require !== "undefined") {
-	Utils = require("./Utils.js"); // eslint-disable-line global-require
-}
-*/
 import { Utils } from "./Utils";
+import { BasicLexer } from "./BasicLexer";
+import { BasicParser } from "./BasicParser";
 
-export function BasicFormatter(options) {
-	this.init(options);
+interface BasicFormatterOptions {
+	lexer: BasicLexer
+	parser: BasicParser
 }
 
-BasicFormatter.prototype = {
-	init: function (options) {
-		this.options = options || {};
+export class BasicFormatter {
 
-		this.lexer = this.options.lexer;
-		this.parser = this.options.parser;
+	lexer: BasicLexer
+	parser: BasicParser
+	iLine = 0;
+
+	constructor(options: BasicFormatterOptions) {
+		this.init(options);
+	}
+
+	init(options: BasicFormatterOptions) {
+		this.lexer = options.lexer;
+		this.parser = options.parser;
 		this.reset();
-	},
+	}
 
-	reset: function () {
+	reset() {
 		this.iLine = 0; // current line (label)
-	},
+	}
 
-	composeError: function () { // varargs
-		var aArgs = Array.prototype.slice.call(arguments);
+	composeError(...aArgs) { //TTT
+		//var aArgs = Array.prototype.slice.call(arguments);
 
 		aArgs.unshift("BasicFormatter");
 		return Utils.composeError.apply(null, aArgs);
-	},
+	}
 
-	fnRenumber: function (sInput, aParseTree, iNew, iOld, iStep, iKeep) {
-		var that = this,
+	fnRenumber(sInput: string, aParseTree, iNew: number, iOld: number, iStep: number, iKeep: number) {
+		const that = this,
 			oLines = {}, // line numbers
 			aRefs = [], // references
 			oChanges = {},
 
 			fnCreateLineNumbersMap = function () { // create line numbers map
-				var iLastLine = 0,
-					i, oNode, sLine, iLine;
+				let iLastLine = 0;
 
 				oLines[0] = { // dummy line 0 for: on error goto 0
 					value: 0
 				};
-				for (i = 0; i < aParseTree.length; i += 1) {
-					oNode = aParseTree[i];
+				for (let i = 0; i < aParseTree.length; i += 1) {
+					const oNode = aParseTree[i];
 					if (oNode.type === "label") {
-						sLine = oNode.value;
-						iLine = Number(oNode.value);
+						const sLine = oNode.value,
+							iLine = Number(oNode.value);
 						if (sLine in oLines) {
 							throw that.composeError(Error(), "Duplicate line number", sLine, oNode.pos);
 						}
@@ -76,10 +78,8 @@ BasicFormatter.prototype = {
 				}
 			},
 			fnAddReferences = function (aNodes) {
-				var i, oNode;
-
-				for (i = 0; i < aNodes.length; i += 1) {
-					oNode = aNodes[i];
+				for (let i = 0; i < aNodes.length; i += 1) {
+					const oNode = aNodes[i];
 					if (oNode.type === "linenumber") {
 						if (oNode.value in oLines) {
 							aRefs.push({
@@ -106,11 +106,10 @@ BasicFormatter.prototype = {
 				}
 			},
 			fnRenumberLines = function () {
-				var aKeys = Object.keys(oLines),
-					i, oLine, oRef;
+				const aKeys = Object.keys(oLines);
 
-				for (i = 0; i < aKeys.length; i += 1) {
-					oLine = oLines[aKeys[i]];
+				for (let i = 0; i < aKeys.length; i += 1) {
+					const oLine = oLines[aKeys[i]];
 					if (oLine.value >= iOld && oLine.value < iKeep) {
 						if (iNew > 65535) {
 							throw that.composeError(Error(), "Line number overflow", oLine.value, oLine.pos);
@@ -121,8 +120,8 @@ BasicFormatter.prototype = {
 					}
 				}
 
-				for (i = 0; i < aRefs.length; i += 1) {
-					oRef = aRefs[i];
+				for (let i = 0; i < aRefs.length; i += 1) {
+					const oRef = aRefs[i];
 					if (oRef.value >= iOld && oRef.value < iKeep) {
 						if (oRef.value !== oLines[oRef.value].newLine) {
 							oRef.newLine = oLines[oRef.value].newLine;
@@ -131,18 +130,17 @@ BasicFormatter.prototype = {
 					}
 				}
 			},
-			fnSortNumbers = function (a, b) {
+			fnSortNumbers = function (a: number, b: number) {
 				return a - b;
 			},
 			fnApplyChanges = function () {
-				var aKeys = Object.keys(oChanges).map(Number),
-					oLine;
+				const aKeys = Object.keys(oChanges).map(Number);
 
 				aKeys.sort(fnSortNumbers);
 
 				// apply changes to input in reverse order
 				for (let i = aKeys.length - 1; i >= 0; i -= 1) {
-					oLine = oChanges[aKeys[i]];
+					const oLine = oChanges[aKeys[i]];
 					sInput = sInput.substring(0, oLine.pos) + oLine.newLine + sInput.substr(oLine.pos + oLine.len);
 				}
 			};
@@ -156,19 +154,19 @@ BasicFormatter.prototype = {
 		fnApplyChanges();
 
 		return sInput;
-	},
+	}
 
-	renumber: function (sInput, iNew, iOld, iStep, iKeep) {
-		var oOut = {
+	renumber(sInput: string, iNew: number, iOld: number, iStep: number, iKeep: number) {
+		const oOut = {
 				text: "",
 				error: undefined
-			},
-			aTokens, aParseTree, sOutput;
+			};
 
 		try {
-			aTokens = this.lexer.lex(sInput);
-			aParseTree = this.parser.parse(aTokens);
-			sOutput = this.fnRenumber(sInput, aParseTree, iNew, iOld, iStep, iKeep || 65535);
+			const aTokens = this.lexer.lex(sInput),
+				aParseTree = this.parser.parse(aTokens),
+				sOutput = this.fnRenumber(sInput, aParseTree, iNew, iOld, iStep, iKeep || 65535);
+
 			oOut.text = sOutput;
 		} catch (e) {
 			oOut.error = e;
@@ -176,10 +174,3 @@ BasicFormatter.prototype = {
 		return oOut;
 	}
 };
-
-
-/*
-if (typeof module !== "undefined" && module.exports) {
-	module.exports = BasicFormatter;
-}
-*/

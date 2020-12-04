@@ -43,6 +43,7 @@ import { CodeGeneratorJs } from "./CodeGeneratorJs"
 import { CommonEventHandler } from "./CommonEventHandler";
 import { cpcCharset } from "./cpcCharset";
 import { CpcVm } from "./CpcVm";
+import { CpcVmRsx } from "./CpcVmRsx";
 import { Diff } from "./Diff";
 import { DiskImage } from "./DiskImage";
 import { InputStack } from "./InputStack";
@@ -100,7 +101,7 @@ Controller.prototype = {
 		oView.setHidden("cpcArea", false); // make sure canvas is not hidden (allows to get width, height)
 		this.oCanvas = new Canvas({
 			aCharset: cpcCharset,
-			cpcDivId: "cpcArea",
+			//cpcDivId: "cpcArea",
 			onClickKey: this.fnPutKeyInBufferHandler
 		});
 		oView.setHidden("cpcArea", !oModel.getProperty("showCpc"));
@@ -132,6 +133,9 @@ Controller.prototype = {
 			tron: oModel.getProperty("tron")
 		});
 		this.oVm.vmReset();
+
+		this.oRsx = new CpcVmRsx(this.oVm);
+		this.oVm.vmSetRsxClass(this.oRsx); //TTT
 
 		this.oNoStop = Object.assign({}, this.oVm.vmGetStopObject());
 		this.oSavedStop = {}; // backup of stop object

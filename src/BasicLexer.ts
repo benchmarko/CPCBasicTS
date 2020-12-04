@@ -1,4 +1,4 @@
-// BasicLexer.js - BASIC Lexer
+// BasicLexer.ts - BASIC Lexer
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //
@@ -7,114 +7,122 @@
 
 "use strict";
 
-/*
-var Utils;
-
-if (typeof require !== "undefined") {
-	Utils = require("./Utils.js"); // eslint-disable-line global-require
-}
-*/
-
 // based on an idea of: https://www.codeproject.com/Articles/345888/How-to-write-a-simple-interpreter-in-JavaScript
 
 import { Utils } from "./Utils";
 
-export function BasicLexer(options?) {
-	this.init(options);
+interface BasicLexerOptions {
+	bQuiet?: boolean
 }
 
-BasicLexer.prototype = {
-	init: function (options) {
-		this.options = options || {}; // e.g. bQuiet
-		this.reset();
-	},
+export interface BasicLexerToken {
+	type: string
+	value: string | number
+	pos: number
+	orig?: string
+}
 
-	reset: function () {
+export class BasicLexer {
+	bQuiet = false
+	iLine = 0
+	bTakeNumberAsLine = true
+
+	constructor (options?) {
+		this.init(options);
+	}
+
+	init(options: BasicLexerOptions) {
+		this.bQuiet = options?.bQuiet || false;
+		this.reset();
+	}
+
+	reset() {
 		this.iLine = 0; // for error messages
 		this.bTakeNumberAsLine = true;
-	},
+	}
 
-	composeError: function () { // varargs
-		var aArgs = Array.prototype.slice.call(arguments);
+	composeError(...aArgs) { //TTT
+		//var aArgs = Array.prototype.slice.call(arguments);
 
 		aArgs.unshift("BasicLexer");
 		aArgs.push(this.iLine);
 		return Utils.composeError.apply(null, aArgs);
-	},
+	}
 
-	lex: function (input) { // eslint-disable-line complexity
-		var that = this,
-			isComment = function (c) { // isApostrophe
+	lex(input: string) { // eslint-disable-line complexity
+		const that = this,
+			isComment = function (c: string) { // isApostrophe
 				return (/[']/).test(c);
 			},
-			isOperator = function (c) {
+			isOperator = function (c: string) {
 				return (/[+\-*/^=()[\],;:?\\]/).test(c);
 			},
-			isComparison = function (c) {
+			isComparison = function (c: string) {
 				return (/[<>]/).test(c);
 			},
-			isComparison2 = function (c) {
+			isComparison2 = function (c: string) {
 				return (/[<>=]/).test(c);
 			},
-			isDigit = function (c) {
+			isDigit = function (c: string) {
 				return (/[0-9]/).test(c);
 			},
-			isDot = function (c) {
+			isDot = function (c: string) {
 				return (/[.]/).test(c);
 			},
-			isSign = function (c) {
+			isSign = function (c: string) {
 				return (/[+-]/).test(c);
 			},
-			isHexOrBin = function (c) { // bin: &X, hex: & or &H
+			isHexOrBin = function (c: string) { // bin: &X, hex: & or &H
 				return (/[&]/).test(c);
 			},
-			isBin2 = function (c) {
+			isBin2 = function (c: string) {
 				return (/[01]/).test(c);
 			},
-			isHex2 = function (c) {
+			isHex2 = function (c: string) {
 				return (/[0-9A-Fa-f]/).test(c);
 			},
-			isWhiteSpace = function (c) {
+			isWhiteSpace = function (c: string) {
 				return (/[ \r]/).test(c);
 			},
-			isNewLine = function (c) {
+			isNewLine = function (c: string) {
 				return (/[\n]/).test(c);
 			},
-			isQuotes = function (c) {
+			isQuotes = function (c: string) {
 				return (/["]/).test(c);
 			},
-			isNotQuotes = function (c) {
+			isNotQuotes = function (c: string) {
 				return c !== "" && !isQuotes(c) && !isNewLine(c); // quoted string must be in one line!
 			},
-			isIdentifierStart = function (c) {
+			isIdentifierStart = function (c: string) {
 				return c !== "" && (/[A-Za-z]/).test(c); // cannot use complete [A-Za-z]+[\w]*[$%!]?
 			},
-			isIdentifierMiddle = function (c) {
+			isIdentifierMiddle = function (c: string) {
 				return c !== "" && (/[A-Za-z0-9.]/).test(c);
 			},
-			isIdentifierEnd = function (c) {
+			isIdentifierEnd = function (c: string) {
 				return c !== "" && (/[$%!]/).test(c);
 			},
-			isStream = function (c) {
+			isStream = function (c: string) {
 				return (/[#]/).test(c);
 			},
-			isAddress = function (c) {
+			isAddress = function (c: string) {
 				return (/[@]/).test(c);
 			},
-			isRsx = function (c) {
+			isRsx = function (c: string) {
 				return (/[|]/).test(c);
 			},
-			isNotNewLine = function (c) {
+			isNotNewLine = function (c: string) {
 				return c !== "" && c !== "\n";
 			},
-			isUnquotedData = function (c) {
+			isUnquotedData = function (c: string) {
 				return c !== "" && (/[^:,\r\n]/).test(c);
 			},
-			aTokens = [],
-			iIndex = 0,
-			sToken, sChar, iStartPos,
+			aTokens: BasicLexerToken[] = [];
+					
+		let iIndex = 0,
+			sToken: string, sChar: string, iStartPos: number;
 
-			testChar = function (iAdd) {
+		const testChar = function (iAdd: number) {
 				return input.charAt(iIndex + iAdd);
 			},
 
@@ -122,7 +130,7 @@ BasicLexer.prototype = {
 				iIndex += 1;
 				return input.charAt(iIndex);
 			},
-			advanceWhile = function (fn) {
+			advanceWhile = function (fn: (arg0: string) => boolean) {
 				var sToken2 = "";
 
 				do {
@@ -131,8 +139,8 @@ BasicLexer.prototype = {
 				} while (fn(sChar));
 				return sToken2;
 			},
-			addToken = function (type, value, iPos, sOrig?) { // optional original value
-				var oNode = {
+			addToken = function (type: string, value: string | number, iPos: number, sOrig?: string) { // optional original value
+				var oNode: BasicLexerToken = {
 					type: type,
 					value: value,
 					pos: iPos,
@@ -146,14 +154,12 @@ BasicLexer.prototype = {
 				}
 				aTokens.push(oNode);
 			},
-			hexEscape = function (str) {
+			hexEscape = function (str: string) {
 				return str.replace(/[\x00-\x1f]/g, function (sChar2) { // eslint-disable-line no-control-regex
 					return "\\x" + ("00" + sChar2.charCodeAt(0).toString(16)).slice(-2);
 				});
 			},
-			fnParseNumber = function (bStartsWithDot) { // special handling for number
-				var iNumber, sChar1, sChar2;
-
+			fnParseNumber = function (bStartsWithDot: boolean) { // special handling for number
 				sToken = "";
 				if (bStartsWithDot) {
 					sToken += sChar;
@@ -168,8 +174,8 @@ BasicLexer.prototype = {
 					}
 				}
 				if (sChar === "e" || sChar === "E") { // we also try to check: [eE][+-]?\d+; because "E" could be ERR, ELSE,...
-					sChar1 = testChar(1);
-					sChar2 = testChar(2);
+					const sChar1 = testChar(1),
+						sChar2 = testChar(2);
 					if (isDigit(sChar1) || (isSign(sChar1) && isDigit(sChar2))) { // so it is a number
 						sToken += sChar; // take "E"
 						sChar = advance();
@@ -183,8 +189,8 @@ BasicLexer.prototype = {
 					}
 				}
 				sToken = sToken.trim(); // remove trailing spaces
-				iNumber = parseFloat(sToken);
-				if (!isFinite(sToken)) { // Infnity?
+				const iNumber = parseFloat(sToken);
+				if (!isFinite(Number(sToken))) { // Infnity?
 					throw that.composeError(Error(), "Number is too large or too small", sToken, iStartPos); // for a 64-bit double
 				}
 				addToken("number", iNumber, iStartPos, sToken);
@@ -215,7 +221,7 @@ BasicLexer.prototype = {
 						sChar = "";
 						sToken = advanceWhile(isNotQuotes);
 						if (!isQuotes(sChar)) {
-							if (!that.options.bQuiet) {
+							if (!that.bQuiet) {
 								Utils.console.log(that.composeError({}, "Unterminated string", sToken, iStartPos + 1).message);
 							}
 						}
@@ -251,11 +257,9 @@ BasicLexer.prototype = {
 				}
 			},
 			fnTryContinueString = function () { // There could be a LF in a string but no CR. In CPCBasic we use LF only as EOL, so we cannot detect the difference.
-				var sOut = "",
-					sChar1;
-
+				let sOut = "";
 				while (isNewLine(sChar)) {
-					sChar1 = testChar(1);
+					const sChar1 = testChar(1);
 					if (sChar1 !== "" && (sChar1 < "0" || sChar1 > "9")) { // heuristic: next char not a digit => continue with the string
 						sOut += advanceWhile(isNotQuotes);
 					} else {
@@ -312,7 +316,7 @@ BasicLexer.prototype = {
 
 				sToken = advanceWhile(isNotQuotes);
 				if (!isQuotes(sChar)) {
-					if (!that.options.bQuiet) {
+					if (!that.bQuiet) {
 						Utils.console.log(this.composeError({}, "Unterminated string", sToken, iStartPos + 1).message);
 					}
 					sToken += fnTryContinueString(); // heuristic to detect an LF in the string
@@ -364,10 +368,3 @@ BasicLexer.prototype = {
 		return aTokens;
 	}
 };
-
-
-/*
-if (typeof module !== "undefined" && module.exports) {
-	module.exports = BasicLexer;
-}
-*/

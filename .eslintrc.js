@@ -1,10 +1,19 @@
 module.exports = {
+    "root": true,
+    "parser": "@typescript-eslint/parser",
+    "plugins": [
+        "@typescript-eslint"
+    ],
+    "extends": [
+        "eslint:recommended",
+        "plugin:@typescript-eslint/eslint-recommended",
+        "plugin:@typescript-eslint/recommended"
+    ],
     "env": {
         "browser": true,
         "node": true,
         "es6": false
     },
-    "extends": "eslint:recommended",
     "rules": {
         "accessor-pairs": "error",
         "array-bracket-newline": "error",
