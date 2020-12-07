@@ -4,73 +4,68 @@
 //
 //
 
-"use strict";
-
-/*
-var Utils, BasicParser; // BasicParser just for keyword definitions
-
-if (typeof require !== "undefined") {
-	Utils = require("./Utils.js"); // eslint-disable-line global-require
-	BasicParser = require("./BasicParser.js"); // eslint-disable-line global-require
-}
-*/
-
-
 import { Utils } from "./Utils";
+import { BasicLexer } from "./BasicLexer";
 import { BasicParser } from "./BasicParser"; // BasicParser just for keyword definitions
 
-export function CodeGeneratorBasic(options) {
-	this.init(options);
+interface CodeGeneratorBasicOptions {
+	lexer: BasicLexer
+	parser: BasicParser
 }
 
-CodeGeneratorBasic.mCombinedKeywords = {
-	chainMerge: "CHAIN MERGE",
-	clearInput: "CLEAR INPUT",
-	graphicsPaper: "GRAPHICS PAPER",
-	graphicsPen: "GRAPHICS PEN",
-	keyDef: "KEY DEF",
-	lineInput: "LINE INPUT",
-	mid$Assign: "MID$",
-	onBreakCont: "ON BREAK CONT",
-	onBreakGosub: "ON BREAK GOSUB",
-	onBreakStop: "ON BREAK STOP",
-	onErrorGoto: "ON ERROR GOTO",
-	resumeNext: "RESUME NEXT",
-	speedInk: "SPEED INK",
-	speedKey: "SPEED KEY",
-	speedWrite: "SPEED WRITE",
-	symbolAfter: "SYMBOL AFTER",
-	windowSwap: "WINDOW SWAP"
-};
+export class CodeGeneratorBasic {
+	static mCombinedKeywords = {
+		chainMerge: "CHAIN MERGE",
+		clearInput: "CLEAR INPUT",
+		graphicsPaper: "GRAPHICS PAPER",
+		graphicsPen: "GRAPHICS PEN",
+		keyDef: "KEY DEF",
+		lineInput: "LINE INPUT",
+		mid$Assign: "MID$",
+		onBreakCont: "ON BREAK CONT",
+		onBreakGosub: "ON BREAK GOSUB",
+		onBreakStop: "ON BREAK STOP",
+		onErrorGoto: "ON ERROR GOTO",
+		resumeNext: "RESUME NEXT",
+		speedInk: "SPEED INK",
+		speedKey: "SPEED KEY",
+		speedWrite: "SPEED WRITE",
+		symbolAfter: "SYMBOL AFTER",
+		windowSwap: "WINDOW SWAP"
+	};
 
-CodeGeneratorBasic.prototype = {
-	init: function (options) {
-		this.options = options || {}; // e.g. tron, rsx
+	lexer: BasicLexer;
+	parser: BasicParser;
 
-		this.lexer = this.options.lexer;
-		this.parser = this.options.parser;
+
+	constructor(options: CodeGeneratorBasicOptions) {
+		this.init(options);
+	}
+
+	init(options: CodeGeneratorBasicOptions): void {
+		this.lexer = options.lexer;
+		this.parser = options.parser;
 
 		this.reset();
-	},
+	}
 
-	reset: function () {
+	reset() {
 		this.lexer.reset();
 		this.parser.reset();
 		return this;
-	},
+	}
 
-	composeError: function () { // varargs
-		var aArgs = Array.prototype.slice.call(arguments);
-
+	private composeError(...aArgs) { // eslint-disable-line class-methods-use-this
 		aArgs.unshift("CodeGeneratorBasic");
-		aArgs.push(this.iLine);
+		// check, correct:
+		//TTT aArgs.push(this.iLine);
 		return Utils.composeError.apply(null, aArgs);
-	},
+	}
 
 	//
 	// evaluate
 	//
-	evaluate: function (parseTree) {
+	private evaluate(parseTree) {
 		var that = this,
 
 			fnParseOneArg = function (oArg) {
@@ -152,16 +147,16 @@ CodeGeneratorBasic.prototype = {
 
 
 			mParseFunctions = {
-				string: function (node) {
+				string(node) {
 					var sValue = fnDecodeEscapeSequence(node.value);
 
 					sValue = sValue.replace(/\\\\/g, "\\"); // unescape backslashes
 					return '"' + sValue + '"';
 				},
-				"null": function () { // means: no parameter specified
+				"null"() { // means: no parameter specified
 					return "";
 				},
-				assign: function (node) {
+				assign(node) {
 					// see also "let"
 					var sValue;
 
@@ -171,16 +166,16 @@ CodeGeneratorBasic.prototype = {
 					sValue = fnParseOneArg(node.left) + node.value + fnParseOneArg(node.right);
 					return sValue;
 				},
-				number: function (node) {
+				number(node) {
 					return String(node.value).toUpperCase(); // maybe "e" inside
 				},
-				binnumber: function (node) {
+				binnumber(node) {
 					return String(node.value).toUpperCase(); // maybe "&x"
 				},
-				hexnumber: function (node) {
+				hexnumber(node) {
 					return String(node.value).toUpperCase();
 				},
-				identifier: function (node) { // identifier or identifier with array
+				identifier(node) { // identifier or identifier with array
 					var sValue, aNodeArgs, sBracketOpen, sBracketClose;
 
 					sValue = node.value; // keep case, maybe mixed
@@ -193,10 +188,10 @@ CodeGeneratorBasic.prototype = {
 
 					return sValue;
 				},
-				linenumber: function (node) {
+				linenumber(node) {
 					return node.value;
 				},
-				label: function (node) {
+				label(node) {
 					var aNodeArgs = fnParseArgs(node.args),
 						sValue;
 
@@ -209,7 +204,7 @@ CodeGeneratorBasic.prototype = {
 				},
 
 				// special keyword functions
-				"|": function (node) { // rsx
+				"|"(node) { // rsx
 					var aNodeArgs = fnParseArgs(node.args),
 						sValue;
 
@@ -220,7 +215,7 @@ CodeGeneratorBasic.prototype = {
 					}
 					return sValue;
 				},
-				afterGosub: function (node) {
+				afterGosub(node) {
 					var aNodeArgs = fnParseArgs(node.args),
 						sValue;
 
@@ -231,7 +226,7 @@ CodeGeneratorBasic.prototype = {
 					sValue += " GOSUB " + aNodeArgs[2];
 					return sValue;
 				},
-				chainMerge: function (node) {
+				chainMerge(node) {
 					var aNodeArgs = fnParseArgs(node.args),
 						sTypeUc = CodeGeneratorBasic.mCombinedKeywords[node.type] || node.type.toUpperCase(),
 						sValue;
@@ -243,7 +238,7 @@ CodeGeneratorBasic.prototype = {
 					sValue = sTypeUc + " " + aNodeArgs.join(",");
 					return sValue;
 				},
-				data: function (node) {
+				data(node) {
 					var aNodeArgs = [],
 						regExp = new RegExp(",|^ +| +$"),
 						i, sValue, sName;
@@ -273,7 +268,7 @@ CodeGeneratorBasic.prototype = {
 					sValue = sName + sValue;
 					return sValue;
 				},
-				def: function (node) {
+				def(node) {
 					var sName = fnParseOneArg(node.left),
 						sSpace = node.left.bSpace ? " " : "", // fast hack
 						aNodeArgs = fnParseArgs(node.args),
@@ -290,7 +285,7 @@ CodeGeneratorBasic.prototype = {
 					sValue = node.type.toUpperCase() + " " + sName + sNodeArgs + "=" + sExpression;
 					return sValue;
 				},
-				"else": function (node) { // similar to a comment, with unchecked tokens
+				"else"(node) { // similar to a comment, with unchecked tokens
 					var aArgs = node.args,
 						sValue = "",
 						oToken, i;
@@ -305,7 +300,7 @@ CodeGeneratorBasic.prototype = {
 					sValue = node.type.toUpperCase() + sValue;
 					return sValue;
 				},
-				ent: function (node) {
+				ent(node) {
 					var aArgs = node.args,
 						aNodeArgs = [],
 						bEqual = false,
@@ -326,10 +321,10 @@ CodeGeneratorBasic.prototype = {
 					sValue = node.type.toUpperCase() + " " + aNodeArgs.join(",");
 					return sValue;
 				},
-				env: function (node) {
+				env(node) {
 					return this.ent(node);
 				},
-				everyGosub: function (node) {
+				everyGosub(node) {
 					var aNodeArgs = fnParseArgs(node.args),
 						sValue;
 
@@ -340,7 +335,7 @@ CodeGeneratorBasic.prototype = {
 					sValue += " GOSUB " + aNodeArgs[2];
 					return sValue;
 				},
-				fn: function (node) {
+				fn(node) {
 					var aNodeArgs = fnParseArgs(node.args),
 						sNodeArgs = aNodeArgs.join(","),
 						sName = fnParseOneArg(node.left),
@@ -356,7 +351,7 @@ CodeGeneratorBasic.prototype = {
 					sValue = sName + sNodeArgs;
 					return sValue;
 				},
-				"for": function (node) {
+				"for"(node) {
 					var aNodeArgs = fnParseArgs(node.args),
 						sVarName, startValue, endValue, stepValue, sValue;
 
@@ -371,7 +366,7 @@ CodeGeneratorBasic.prototype = {
 					}
 					return sValue;
 				},
-				"if": function (node) {
+				"if"(node) {
 					var sValue, oNodeBranch, aNodeArgs;
 
 					sValue = node.type.toUpperCase() + " " + fnParseOneArg(node.left) + " THEN ";
@@ -394,7 +389,7 @@ CodeGeneratorBasic.prototype = {
 					}
 					return sValue;
 				},
-				input: function (node) { // input or line input
+				input(node) { // input or line input
 					var aNodeArgs = fnParseArgs(node.args),
 						sTypeUc = CodeGeneratorBasic.mCombinedKeywords[node.type] || node.type.toUpperCase(),
 						i = 0,
@@ -415,10 +410,10 @@ CodeGeneratorBasic.prototype = {
 					sValue += aNodeArgs.join(",");
 					return sValue;
 				},
-				lineInput: function (node) {
+				lineInput(node) {
 					return this.input(node);
 				},
-				list: function (node) {
+				list(node) {
 					var aNodeArgs = fnParseArgs(node.args),
 						sValue, sName;
 
@@ -439,7 +434,7 @@ CodeGeneratorBasic.prototype = {
 					sValue = sName + sValue;
 					return sValue;
 				},
-				mid$Assign: function (node) {
+				mid$Assign(node) {
 					var aNodeArgs = fnParseArgs(node.args),
 						sTypeUc = CodeGeneratorBasic.mCombinedKeywords[node.type],
 						sValue;
@@ -447,7 +442,7 @@ CodeGeneratorBasic.prototype = {
 					sValue = sTypeUc + "(" + aNodeArgs.join(",") + ")=" + fnParseOneArg(node.right);
 					return sValue;
 				},
-				onGosub: function (node) {
+				onGosub(node) {
 					var aNodeArgs = fnParseArgs(node.args),
 						sValue;
 
@@ -455,7 +450,7 @@ CodeGeneratorBasic.prototype = {
 					sValue = "ON " + sValue + " GOSUB " + aNodeArgs.join(",");
 					return sValue;
 				},
-				onGoto: function (node) {
+				onGoto(node) {
 					var aNodeArgs = fnParseArgs(node.args),
 						sValue;
 
@@ -463,14 +458,14 @@ CodeGeneratorBasic.prototype = {
 					sValue = "ON " + sValue + " GOTO " + aNodeArgs.join(",");
 					return sValue;
 				},
-				onSqGosub: function (node) {
+				onSqGosub(node) {
 					var aNodeArgs = fnParseArgs(node.args),
 						sValue;
 
 					sValue = "ON SQ(" + aNodeArgs[0] + ") GOSUB " + aNodeArgs[1];
 					return sValue;
 				},
-				print: function (node) {
+				print(node) {
 					var regExp = new RegExp("[a-zA-Z0-9.]"),
 						aNodeArgs = fnParseArgs(node.args),
 						bHasStream, sValue, i, sArg;
@@ -494,7 +489,7 @@ CodeGeneratorBasic.prototype = {
 					}
 					return sValue;
 				},
-				rem: function (node) {
+				rem(node) {
 					var aNodeArgs = fnParseArgs(node.args),
 						sValue = aNodeArgs[0],
 						sName;
@@ -514,7 +509,7 @@ CodeGeneratorBasic.prototype = {
 					sValue = sName + sValue;
 					return sValue;
 				},
-				using: function (node) {
+				using(node) {
 					var aNodeArgs = fnParseArgs(node.args),
 						sTemplate, sValue;
 
@@ -658,19 +653,19 @@ CodeGeneratorBasic.prototype = {
 			};
 
 		return fnEvaluate();
-	},
+	}
 
-	generate: function (sInput, oVariables, bAllowDirect) {
-		var oOut = {
-				text: "",
-				error: undefined
-			},
-			aTokens, aParseTree, sOutput;
+	generate(sInput: string, bAllowDirect?: boolean) {
+		const oOut = {
+			text: "",
+			error: undefined
+		};
 
 		try {
-			aTokens = this.lexer.lex(sInput);
-			aParseTree = this.parser.parse(aTokens, bAllowDirect);
-			sOutput = this.evaluate(aParseTree, oVariables);
+			const aTokens = this.lexer.lex(sInput),
+				aParseTree = this.parser.parse(aTokens, bAllowDirect),
+				sOutput = this.evaluate(aParseTree /* , oVariables*/);
+
 			oOut.text = sOutput;
 		} catch (e) {
 			oOut.error = e;
@@ -682,11 +677,4 @@ CodeGeneratorBasic.prototype = {
 		}
 		return oOut;
 	}
-};
-
-
-/*
-if (typeof module !== "undefined" && module.exports) {
-	module.exports = CodeGeneratorBasic;
 }
-*/

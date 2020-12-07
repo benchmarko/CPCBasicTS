@@ -5,8 +5,6 @@
 // BASIC lexer for Locomotive BASIC 1.1 for Amstrad CPC 6128
 //
 
-"use strict";
-
 // based on an idea of: https://www.codeproject.com/Articles/345888/How-to-write-a-simple-interpreter-in-JavaScript
 
 import { Utils } from "./Utils";
@@ -27,30 +25,29 @@ export class BasicLexer {
 	iLine = 0
 	bTakeNumberAsLine = true
 
-	constructor (options?) {
-		this.init(options);
-	}
-
-	init(options: BasicLexerOptions) {
+	constructor(options?: BasicLexerOptions) {
 		this.bQuiet = options?.bQuiet || false;
 		this.reset();
 	}
 
-	reset() {
+	reset(): void {
 		this.iLine = 0; // for error messages
 		this.bTakeNumberAsLine = true;
 	}
 
-	composeError(...aArgs) { //TTT
-		//var aArgs = Array.prototype.slice.call(arguments);
-
+	composeError(...aArgs) {
 		aArgs.unshift("BasicLexer");
 		aArgs.push(this.iLine);
 		return Utils.composeError.apply(null, aArgs);
 	}
 
-	lex(input: string) { // eslint-disable-line complexity
+	lex(input: string): BasicLexerToken[] { // eslint-disable-line complexity
+		let iIndex = 0,
+			sToken: string, sChar: string, iStartPos: number;
+
 		const that = this,
+			aTokens: BasicLexerToken[] = [],
+
 			isComment = function (c: string) { // isApostrophe
 				return (/[']/).test(c);
 			},
@@ -117,12 +114,8 @@ export class BasicLexer {
 			isUnquotedData = function (c: string) {
 				return c !== "" && (/[^:,\r\n]/).test(c);
 			},
-			aTokens: BasicLexerToken[] = [];
-					
-		let iIndex = 0,
-			sToken: string, sChar: string, iStartPos: number;
 
-		const testChar = function (iAdd: number) {
+			testChar = function (iAdd: number) {
 				return input.charAt(iIndex + iAdd);
 			},
 
@@ -176,6 +169,7 @@ export class BasicLexer {
 				if (sChar === "e" || sChar === "E") { // we also try to check: [eE][+-]?\d+; because "E" could be ERR, ELSE,...
 					const sChar1 = testChar(1),
 						sChar2 = testChar(2);
+
 					if (isDigit(sChar1) || (isSign(sChar1) && isDigit(sChar2))) { // so it is a number
 						sToken += sChar; // take "E"
 						sChar = advance();
@@ -190,6 +184,7 @@ export class BasicLexer {
 				}
 				sToken = sToken.trim(); // remove trailing spaces
 				const iNumber = parseFloat(sToken);
+
 				if (!isFinite(Number(sToken))) { // Infnity?
 					throw that.composeError(Error(), "Number is too large or too small", sToken, iStartPos); // for a 64-bit double
 				}
@@ -258,8 +253,10 @@ export class BasicLexer {
 			},
 			fnTryContinueString = function () { // There could be a LF in a string but no CR. In CPCBasic we use LF only as EOL, so we cannot detect the difference.
 				let sOut = "";
+
 				while (isNewLine(sChar)) {
 					const sChar1 = testChar(1);
+
 					if (sChar1 !== "" && (sChar1 < "0" || sChar1 > "9")) { // heuristic: next char not a digit => continue with the string
 						sOut += advanceWhile(isNotQuotes);
 					} else {
@@ -268,7 +265,6 @@ export class BasicLexer {
 				}
 				return sOut;
 			};
-
 
 		while (iIndex < input.length) {
 			iStartPos = iIndex;
@@ -367,4 +363,4 @@ export class BasicLexer {
 		addToken("(end)", "", iIndex);
 		return aTokens;
 	}
-};
+}

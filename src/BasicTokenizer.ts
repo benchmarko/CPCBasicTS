@@ -3,37 +3,32 @@
 // https://benchmarko.github.io/CPCBasic/
 //
 
-"use strict";
-
-/*
-var Utils;
-
-if (typeof require !== "undefined") {
-	/ * eslint-disable global-require * /
-	Utils = require("./Utils.js");
-	/ * eslint-enable global-require * /
-}
-*/
-
 import { Utils } from "./Utils";
 
-export function BasicTokenizer(options?) {
-	this.init(options);
-}
+export class BasicTokenizer {
+	sData: string;
+	iPos: number;
+	iLine: number;
+	iLineEnd: number;
+	sInput: string;
 
-BasicTokenizer.prototype = {
-	init: function (/* options */) {
-	},
+	constructor() {
+		this.init();
+	}
 
-	reset: function () {
+	init():void {
+		this.reset();
+	}
+
+	reset():void {
 		this.sData = "";
 		this.iPos = 0;
 		this.iLine = 0;
-	},
+	}
 
-	decode: function (sProgram) { // decode tokenized BASIC to ASCII
+	decode(sProgram: string): string { // decode tokenized BASIC to ASCII
 		// based on lbas2ascii.pl, 28.06.2006
-		var that = this,
+		var that = this, // eslint-disable-line @typescript-eslint/no-this-alias
 
 			fnNum8Dec = function () {
 				var iNum = that.sInput.charCodeAt(that.iPos);
@@ -482,11 +477,4 @@ BasicTokenizer.prototype = {
 		this.sInput = sProgram;
 		return fnParseProgram();
 	}
-};
-
-
-/*
-if (typeof module !== "undefined" && module.exports) {
-	module.exports = BasicTokenizer;
 }
-*/

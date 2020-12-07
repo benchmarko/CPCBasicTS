@@ -3,49 +3,48 @@
 // https://benchmarko.github.io/CPCBasic/
 //
 
-"use strict";
-
 import { Utils } from "./Utils";
 import { CpcVm } from "./CpcVm";
 
 export class CpcVmRsx {
-	oVm: CpcVm; //TTT
+	oVm: CpcVm;
 
 	constructor(oVm: CpcVm) {
 		this.rsxInit(oVm);
 	}
 
-	rsxInit(oVm: CpcVm) {
+	rsxInit(oVm: CpcVm): void {
 		this.oVm = oVm;
 	}
 
-	rsxIsAvailable(sName: string) {
+	rsxIsAvailable(sName: string): boolean {
 		return sName in this;
 	}
 
-	rsxExec(sName: string) { // varargs
+	rsxExec(sName: string, ...aArgs: (string |number)[]): void {
 		if (this.rsxIsAvailable(sName)) {
-			const aArgs = Array.prototype.slice.call(arguments, 1);
+			//const aArgs = Array.prototype.slice.call(arguments, 1);
+
 			this[sName].apply(this, aArgs);
 		} else {
 			throw this.oVm.vmComposeError(Error(), 28, "|" + sName); // Unknown command
 		}
 	}
 
-	a() {
+	a(): void {
 		this.oVm.vmNotImplemented("|A");
 	}
 
-	b() {
+	b(): void {
 		this.oVm.vmNotImplemented("|B");
 	}
 
-	basic() { // not an AMSDOS command
+	basic(): void { // not an AMSDOS command
 		Utils.console.log("basic: |BASIC");
 		this.oVm.vmStop("reset", 90);
 	}
 
-	cpm() {
+	cpm(): void {
 		this.oVm.vmNotImplemented("|CPM");
 	}
 
@@ -55,6 +54,7 @@ export class CpcVmRsx {
 
 	private fnGetParameterAsString(stringOrAddress?: string | number) {
 		let sString = ""; // for undefined
+
 		if (typeof stringOrAddress === "number") { // assuming addressOf
 			sString = String(this.fnGetVariableByAddress(stringOrAddress)); //TTT
 		} else if (typeof stringOrAddress === "string") {
@@ -63,19 +63,9 @@ export class CpcVmRsx {
 		return sString;
 	}
 
-	dir(fileMask?: string | number) { // optional; string or addressOf number
+	dir(fileMask?: string | number): void { // optional; string or addressOf number
 		const iStream = 0;
-		
 		let	sFileMask = this.fnGetParameterAsString(fileMask);
-
-		/*
-		let sFileMask = "";
-		if (typeof fileMask === "number") { // assuming addressOf
-			sFileMask = String(this.fnGetVariableByAddress(fileMask)); //TTT
-		} else if (typeof fileMask === "string") {
-			sFileMask = fileMask;
-		}
-		*/
 
 		if (sFileMask) {
 			sFileMask = this.oVm.vmAdaptFilename(sFileMask, "|DIR");
@@ -88,34 +78,25 @@ export class CpcVmRsx {
 		});
 	}
 
-	disc() {
+	disc(): void {
 		this.oVm.vmNotImplemented("|DISC");
 	}
 
-	disc_in() { // eslint-disable-line camelcase
+	disc_in(): void { // eslint-disable-line camelcase
 		this.oVm.vmNotImplemented("|DISC.IN");
 	}
 
-	disc_out() { // eslint-disable-line camelcase
+	disc_out(): void { // eslint-disable-line camelcase
 		this.oVm.vmNotImplemented("|DISC.OUT");
 	}
 
-	drive() {
+	drive(): void {
 		this.oVm.vmNotImplemented("|DRIVE");
 	}
 
-	era(fileMask?: string | number) {
+	era(fileMask?: string | number): void {
 		const iStream = 0;
-
 		let	sFileMask = this.fnGetParameterAsString(fileMask);
-		/*
-		let sFileMask = "";
-		if (typeof fileMask === "number") { // assuming addressOf
-			sFileMask = String(this.fnGetVariableByAddress(fileMask)); //TTT
-		} else if (typeof fileMask === "string") {
-			sFileMask = fileMask;
-		}
-		*/
 
 		sFileMask = this.oVm.vmAdaptFilename(sFileMask, "|ERA");
 
@@ -126,28 +107,10 @@ export class CpcVmRsx {
 		});
 	}
 
-	ren(newName: string | number, oldName: string | number) {
-		var iStream = 0;
-
+	ren(newName: string | number, oldName: string | number): void {
+		const iStream = 0;
 		let sNew = this.fnGetParameterAsString(newName),
 			sOld = this.fnGetParameterAsString(oldName);
-
-		/*
-		let sNew = "",
-			sOld = "";
-
-		if (typeof newName === "number") { // assuming addressOf
-			sNew = String(this.fnGetVariableByAddress(newName));
-		} else if (typeof newName === "string") {
-			sNew = newName;
-		}
-
-		if (typeof oldName === "number") { // assuming addressOf
-			sOld = String(this.fnGetVariableByAddress(oldName));
-		} else if (typeof oldName === "string") {
-			sOld = oldName;
-		}
-		*/
 
 		sNew = this.oVm.vmAdaptFilename(sNew, "|REN");
 		sOld = this.oVm.vmAdaptFilename(sOld, "|REN");
@@ -160,37 +123,39 @@ export class CpcVmRsx {
 		});
 	}
 
-	tape() {
+	tape(): void {
 		this.oVm.vmNotImplemented("|TAPE");
 	}
 
-	tape_in() { // eslint-disable-line camelcase
+	tape_in(): void { // eslint-disable-line camelcase
 		this.oVm.vmNotImplemented("|TAPE.IN");
 	}
 
-	tape_out() { // eslint-disable-line camelcase
+	tape_out(): void { // eslint-disable-line camelcase
 		this.oVm.vmNotImplemented("|TAPE.OUT");
 	}
 
-	user() {
+	user(): void {
 		this.oVm.vmNotImplemented("|USER");
 	}
 
-	mode(iMode: number, s) {
+	mode(iMode: number, s): void {
 		iMode = this.oVm.vmInRangeRound(iMode, 0, 3, "|MODE");
 		this.oVm.iMode = iMode;
 
 		const oWinData = CpcVm.mWinData[this.oVm.iMode];
+
 		Utils.console.log("rsxMode: (test)", iMode, s);
 
 		for (let i = 0; i < CpcVm.iStreamCount - 2; i += 1) { // for window streams
 			const oWin = this.oVm.aWindow[i];
+
 			Object.assign(oWin, oWinData);
 		}
 		this.oVm.oCanvas.changeMode(iMode); // or setMode?
 	}
 
-	renum() { // optional args: new number, old number, step, keep line (only for |renum)
+	renum(): void { // optional args: new number, old number, step, keep line (only for |renum)
 		this.oVm.renum.apply(this.oVm, arguments);
 	}
-};
+}

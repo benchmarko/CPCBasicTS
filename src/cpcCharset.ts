@@ -1,11 +1,7 @@
 // cpcCharset.js
 //
 
-"use strict";
-
 /* eslint-disable array-element-newline */
-
-// (cpcBasic.addChars([
 
 export var cpcCharset = [ // eslint-disable-line no-unused-vars
 	[0xff, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xff], // 0x00

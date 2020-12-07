@@ -3,20 +3,26 @@
 // https://benchmarko.github.io/CPCBasic/
 //
 
-"use strict";
+export interface CustomError extends Error {
+	value: any
+	pos?: number
+	line?: number | string
+	hidden?: boolean
+	shortMessage?: string
+}
 
-export var Utils = {
+export var Utils = { // eslint-disable-line vars-on-top
 	debug: 0,
 	console: typeof window !== "undefined" ? window.console : globalThis.console, // browser or node.js
 
-	fnLoadScriptOrStyle: function (script, sFullUrl, fnSuccess, fnError) {
+	fnLoadScriptOrStyle: function (script: HTMLScriptElement | HTMLLinkElement, sFullUrl: string, fnSuccess, fnError) {
 		// inspired by https://github.com/requirejs/requirejs/blob/master/require.js
 		var iIEtimeoutCount = 3,
-			onScriptLoad = function (event) {
-				var node = event.currentTarget || event.srcElement;
+			onScriptLoad = function (event: Event) {
+				const node = event.currentTarget || event.srcElement;
 
 				if (Utils.debug > 1) {
-					Utils.console.debug("onScriptLoad:", node.src || node.href);
+					Utils.console.debug("onScriptLoad:", (node as any).src || (node as any).href);
 				}
 				node.removeEventListener("load", onScriptLoad, false);
 				node.removeEventListener("error", onScriptError, false); // eslint-disable-line no-use-before-define
@@ -25,11 +31,11 @@ export var Utils = {
 					fnSuccess(sFullUrl);
 				}
 			},
-			onScriptError = function (event) {
-				var node = event.currentTarget || event.srcElement;
+			onScriptError = function (event: Event) {
+				const node = event.currentTarget || event.srcElement;
 
 				if (Utils.debug > 1) {
-					Utils.console.debug("onScriptError:", node.src || node.href);
+					Utils.console.debug("onScriptError:", (node as any).src || (node as any).href);
 				}
 				node.removeEventListener("load", onScriptLoad, false);
 				node.removeEventListener("error", onScriptError, false);
@@ -38,33 +44,30 @@ export var Utils = {
 					fnError(sFullUrl);
 				}
 			},
-			onScriptReadyStateChange = function (event) { // for old IE8
-				var node, iTimeout;
+			onScriptReadyStateChange = function (event: Event) { // for old IE8
+				const node = event ? (event.currentTarget || event.srcElement) : script,
+					node2 = node as any;
 
-				if (event) {
-					node = event.currentTarget || event.srcElement;
-				} else {
-					node = script;
-				}
-				if (node.detachEvent) {
-					node.detachEvent("onreadystatechange", onScriptReadyStateChange);
+				if (node2.detachEvent) {
+					node2.detachEvent("onreadystatechange", onScriptReadyStateChange);
 				}
 
 				if (Utils.debug > 1) {
-					Utils.console.debug("onScriptReadyStateChange: " + node.src || node.href);
+					Utils.console.debug("onScriptReadyStateChange: " + node2.src || node2.href);
 				}
 				// check also: https://stackoverflow.com/questions/1929742/can-script-readystate-be-trusted-to-detect-the-end-of-dynamic-script-loading
-				if (node.readyState !== "loaded" && node.readyState !== "complete") {
-					if (node.readyState === "loading" && iIEtimeoutCount) {
+				if (node2.readyState !== "loaded" && node2.readyState !== "complete") {
+					if (node2.readyState === "loading" && iIEtimeoutCount) {
 						iIEtimeoutCount -= 1;
-						iTimeout = 200; // some delay
-						Utils.console.error("onScriptReadyStateChange: Still loading: " + (node.src || node.href) + " Waiting " + iTimeout + "ms (count=" + iIEtimeoutCount + ")");
+						const iTimeout = 200; // some delay
+
+						Utils.console.error("onScriptReadyStateChange: Still loading: " + (node2.src || node2.href) + " Waiting " + iTimeout + "ms (count=" + iIEtimeoutCount + ")");
 						setTimeout(function () {
 							onScriptReadyStateChange(null); // check again
 						}, iTimeout);
 					} else {
 						// iIEtimeoutCount = 3;
-						Utils.console.error("onScriptReadyStateChange: Cannot load file " + (node.src || node.href) + " readystate=" + node.readyState);
+						Utils.console.error("onScriptReadyStateChange: Cannot load file " + (node2.src || node2.href) + " readystate=" + node2.readyState);
 						if (fnError) {
 							fnError(sFullUrl);
 						}
@@ -74,9 +77,9 @@ export var Utils = {
 				}
 			};
 
-		if (script.readyState) { // old IE8
+		if ((script as any).readyState) { // old IE8
 			iIEtimeoutCount = 3;
-			script.attachEvent("onreadystatechange", onScriptReadyStateChange);
+			(script as any).attachEvent("onreadystatechange", onScriptReadyStateChange);
 		} else { // Others
 			script.addEventListener("load", onScriptLoad, false);
 			script.addEventListener("error", onScriptError, false);
@@ -84,52 +87,53 @@ export var Utils = {
 		document.getElementsByTagName("head")[0].appendChild(script);
 		return sFullUrl;
 	},
-	loadScript: function (sUrl, fnSuccess, fnError) {
-		var script, sFullUrl;
+	loadScript: function (sUrl: string, fnSuccess, fnError) {
+		const script = document.createElement("script");
 
-		script = document.createElement("script");
 		script.type = "text/javascript";
 		script.charset = "utf-8";
 		script.async = true;
 		script.src = sUrl;
-		sFullUrl = script.src;
+
+		const sFullUrl = script.src;
+
 		this.fnLoadScriptOrStyle(script, sFullUrl, fnSuccess, fnError);
 	},
-	loadStyle: function (sUrl, fnSuccess, fnError) {
-		var link, sFullUrl;
+	loadStyle: function (sUrl: string, fnSuccess, fnError) {
+		const link = document.createElement("link");
 
-		link = document.createElement("link");
 		link.rel = "stylesheet";
 		link.href = sUrl;
-		sFullUrl = link.href;
+
+		const sFullUrl = link.href;
+
 		this.fnLoadScriptOrStyle(link, sFullUrl, fnSuccess, fnError);
 	},
 
-	dateFormat: function (d) {
+	dateFormat: function (d: Date) {
 		return d.getFullYear() + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + ("0" + d.getDate()).slice(-2) + " "
 			+ ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2) + ":" + ("0" + d.getSeconds()).slice(-2) + "." + ("0" + d.getMilliseconds()).slice(-3);
 	},
-	stringCapitalize: function (str) { // capitalize first letter
+	stringCapitalize: function (str: string) { // capitalize first letter
 		return str.charAt(0).toUpperCase() + str.substring(1);
 	},
-	numberWithCommas: function (x) {
+	numberWithCommas: function (x: number) {
 		// https://stackoverflow.com/questions/2901102/how-to-print-a-number-with-commas-as-thousands-separators-in-javascript
 		var aParts = String(x).split(".");
 
 		aParts[0] = aParts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 		return aParts.join(".");
 	},
-	toRadians: function (deg) {
+	toRadians: function (deg: number) {
 		return deg * Math.PI / 180;
 	},
-	toDegrees: function (rad) {
+	toDegrees: function (rad: number) {
 		return rad * 180 / Math.PI;
 	},
 	getChangedParameters: function (current, initial) {
-		var oChanged = {},
-			sName;
+		const oChanged = {};
 
-		for (sName in current) {
+		for (const sName in current) {
 			if (current.hasOwnProperty(sName)) {
 				if (current[sName] !== initial[sName]) {
 					oChanged[sName] = current[sName];
@@ -170,38 +174,32 @@ export var Utils = {
 	atob: typeof window !== "undefined" && window.atob && window.atob.bind ? window.atob.bind(window) : null, // we need bind: https://stackoverflow.com/questions/9677985/uncaught-typeerror-illegal-invocation-in-chrome
 	btoa: typeof window !== "undefined" && window.btoa && window.btoa.bind ? window.btoa.bind(window) : null,
 
-	composeError: function (name, oError, message, value, pos, line, hidden) {
-		var iEndPos;
+	composeError: function (name: string, oErrorObject: Error, message: string, value, pos?: number, line?: string | number, hidden?: boolean): CustomError {
+		const oCustomError = oErrorObject as CustomError;
 
 		if (name !== undefined) {
-			oError.name = name;
+			oCustomError.name = name;
 		}
 		if (message !== undefined) {
-			oError.message = message;
+			oCustomError.message = message;
 		}
 		if (value !== undefined) {
-			oError.value = value;
+			oCustomError.value = value;
 		}
 		if (pos !== undefined) {
-			oError.pos = pos;
+			oCustomError.pos = pos;
 		}
 		if (line !== undefined) {
-			oError.line = line;
+			oCustomError.line = line;
 		}
 		if (hidden !== undefined) {
-			oError.hidden = hidden;
+			oCustomError.hidden = hidden;
 		}
 
-		iEndPos = (oError.pos || 0) + ((oError.value !== undefined) ? String(oError.value).length : 0);
-		oError.shortMessage = oError.message + (oError.line !== undefined ? " in " + oError.line : " at pos " + (oError.pos || 0) + "-" + iEndPos) + ": " + oError.value;
-		oError.message += " in " + oError.line + " at pos " + (oError.pos || 0) + "-" + iEndPos + ": " + oError.value;
-		return oError;
+		const iEndPos = (oCustomError.pos || 0) + ((oCustomError.value !== undefined) ? String(oCustomError.value).length : 0);
+
+		oCustomError.shortMessage = oCustomError.message + (oCustomError.line !== undefined ? " in " + oCustomError.line : " at pos " + (oCustomError.pos || 0) + "-" + iEndPos) + ": " + oCustomError.value;
+		oCustomError.message += " in " + oCustomError.line + " at pos " + (oCustomError.pos || 0) + "-" + iEndPos + ": " + oCustomError.value;
+		return oCustomError;
 	}
 };
-
-
-/*
-if (typeof module !== "undefined" && module.exports) {
-	module.exports = Utils;
-}
-*/

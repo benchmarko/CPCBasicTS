@@ -1,6 +1,6 @@
 {
   "name": "cpcbasicts",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "# CPCBasicTS - Run CPC BASIC in a Browser",
   "main": "cpcbasicts.js",
   "directories": {
@@ -24,7 +24,7 @@
     "build": "tsc && cp src/*.html src/*.css dist/ && mkdirp -p dist/ts && cp -r src/*.ts dist/ts/",
     "clean": "rm -rf dist/*",
     "cleancache": "rm -rf node_modules/.cache/gh-pages/",
-    "deploy": "gh-pages -d dist",
+    "deploy": "gh-pages -d dist \"Benchmarko <benchmarko@users.noreply.github.com>\"",
     "test": "qunit",
     "lint": "eslint src --ext .ts"
   },

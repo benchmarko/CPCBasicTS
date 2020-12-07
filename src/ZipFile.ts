@@ -2,17 +2,6 @@
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //
-/* XXXglobals Uint8Array */
-
-"use strict";
-
-/*
-var Utils;
-
-if (typeof require !== "undefined") {
-	Utils = require("./Utils.js"); // eslint-disable-line global-require
-}
-*/
 
 // Idea based on: https://github.com/frash23/jzsip/blob/master/jzsip.js
 // (and Cpcemu: zip.cpp)
@@ -20,33 +9,35 @@ if (typeof require !== "undefined") {
 
 import { Utils } from "./Utils";
 
-export function ZipFile(aData, sZipName) {
-	this.init(aData, sZipName);
-}
+export class ZipFile {
+	aData: Uint8Array;
+	sZipName: string; // for error messages
+	oEntryTable: object; //TTT
 
-ZipFile.prototype = {
-	init: function (aData, sZipName) {
+	constructor(aData: Uint8Array, sZipName: string) {
+		this.init(aData, sZipName);
+	}
+
+	init(aData: Uint8Array, sZipName: string) {
 		this.aData = aData;
 		this.sZipName = sZipName; // for error messages
 		this.oEntryTable = this.readZipDirectory();
-	},
+	}
 
-	composeError: function () { // varargs
-		var aArgs = Array.prototype.slice.call(arguments);
-
+	composeError(...aArgs) { // varargs
 		aArgs[1] = this.sZipName + ": " + aArgs[1]; // put zipname in message
 		aArgs.unshift("ZipFile");
 		return Utils.composeError.apply(null, aArgs);
-	},
+	}
 
-	subArr: function (iBegin, iLength) {
+	subArr(iBegin: number, iLength: number) {
 		var aData = this.aData,
 			iEnd = iBegin + iLength;
 
 		return aData.slice ? aData.slice(iBegin, iEnd) : aData.subarray(iBegin, iEnd); // array.slice on Uint8Array not for IE11
-	},
+	}
 
-	readUTF: function (iOffset, iLen) {
+	readUTF(iOffset: number, iLen: number) {
 		var iCallSize = 25000, // use call window to avoid "maximum call stack error" for e.g. size 336461
 			sOut = "",
 			iChunkLen;
@@ -58,21 +49,21 @@ ZipFile.prototype = {
 			iLen -= iChunkLen;
 		}
 		return sOut;
-	},
+	}
 
-	readUInt: function (i) {
+	readUInt(i: number) {
 		var aData = this.aData;
 
 		return (aData[i + 3] << 24) | (aData[i + 2] << 16) | (aData[i + 1] << 8) | aData[i]; // eslint-disable-line no-bitwise
-	},
+	}
 
-	readUShort: function (i) {
+	readUShort(i: number) {
 		var aData = this.aData;
 
 		return ((aData[i + 1]) << 8) | aData[i]; // eslint-disable-line no-bitwise
-	},
+	}
 
-	readEocd: function (iEocdPos) { // read End of central directory
+	readEocd(iEocdPos: number) { // read End of central directory
 		var oEocd = {
 			iSignature: this.readUInt(iEocdPos),
 			iEntries: this.readUShort(iEocdPos + 10), // total number of central directory records
@@ -81,9 +72,9 @@ ZipFile.prototype = {
 		};
 
 		return oEocd;
-	},
+	}
 
-	readCdfh: function (iPos) { // read Central directory file header
+	readCdfh(iPos: number) { // read Central directory file header
 		var oCdfh = {
 			iSignature: this.readUInt(iPos),
 			iVersion: this.readUShort(iPos + 6), // version needed to extract (minimum)
@@ -100,9 +91,9 @@ ZipFile.prototype = {
 		};
 
 		return oCdfh;
-	},
+	}
 
-	readZipDirectory: function () {
+	readZipDirectory() {
 		var iEocdLen = 22, // End of central directory (EOCD)
 			iMaxEocdCommentLen = 0xffff,
 			iEocdSignature = 0x06054B50, // EOCD signature: "PK\x05\x06"
@@ -172,9 +163,9 @@ ZipFile.prototype = {
 			oEntryTable[oCdfh.sName] = oCdfh;
 		}
 		return oEntryTable;
-	},
+	}
 
-	inflate: function (iOffset, iCompressedSize, iFinalSize) {
+	inflate(iOffset: number, iCompressedSize: number, iFinalSize: number) {
 		/* eslint-disable array-element-newline */
 		var aStartLens = [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258],
 			aLExt = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0],
@@ -182,7 +173,7 @@ ZipFile.prototype = {
 			aDExt = [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13],
 			aDynamicTableOrder = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15],
 			/* eslint-enable array-element-newline */
-			that = this,
+			that = this, // eslint-disable-line @typescript-eslint/no-this-alias
 			aData = this.aData,
 			iBufEnd = iOffset + iCompressedSize, //TTT  -1?
 			iInCnt = iOffset, // read position
@@ -228,7 +219,7 @@ ZipFile.prototype = {
 				return null;
 			},
 
-			fnConstruct = function (oCodes, aLens2, n) {
+			fnConstruct = function (oCodes, aLens2, n: number) {
 				var aOffs = [/* undefined */, 0],
 					iLeft = 1,
 					i;
@@ -438,9 +429,9 @@ ZipFile.prototype = {
 			}
 		} while (!iLast);
 		return aOutBuf;
-	},
+	}
 
-	readData: function (sName) {
+	readData(sName: string) {
 		var sDataUTF8 = "",
 			oCdfh, aFileData, aSavedData;
 
@@ -465,11 +456,4 @@ ZipFile.prototype = {
 		}
 		return sDataUTF8;
 	}
-};
-
-
-/*
-if (typeof module !== "undefined" && module.exports) {
-	module.exports = ZipFile;
 }
-*/
