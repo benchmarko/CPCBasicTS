@@ -1,66 +1,41 @@
+"use strict";
 // CodeGeneratorBasic.js - Code Generator for BASIC (for testing, pretty print?)
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //
 //
-"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CodeGeneratorBasic = void 0;
-/*
-var Utils, BasicParser; // BasicParser just for keyword definitions
-
-if (typeof require !== "undefined") {
-    Utils = require("./Utils.js"); // eslint-disable-line global-require
-    BasicParser = require("./BasicParser.js"); // eslint-disable-line global-require
-}
-*/
 var Utils_1 = require("./Utils");
 var BasicParser_1 = require("./BasicParser"); // BasicParser just for keyword definitions
-function CodeGeneratorBasic(options) {
-    this.init(options);
-}
-exports.CodeGeneratorBasic = CodeGeneratorBasic;
-CodeGeneratorBasic.mCombinedKeywords = {
-    chainMerge: "CHAIN MERGE",
-    clearInput: "CLEAR INPUT",
-    graphicsPaper: "GRAPHICS PAPER",
-    graphicsPen: "GRAPHICS PEN",
-    keyDef: "KEY DEF",
-    lineInput: "LINE INPUT",
-    mid$Assign: "MID$",
-    onBreakCont: "ON BREAK CONT",
-    onBreakGosub: "ON BREAK GOSUB",
-    onBreakStop: "ON BREAK STOP",
-    onErrorGoto: "ON ERROR GOTO",
-    resumeNext: "RESUME NEXT",
-    speedInk: "SPEED INK",
-    speedKey: "SPEED KEY",
-    speedWrite: "SPEED WRITE",
-    symbolAfter: "SYMBOL AFTER",
-    windowSwap: "WINDOW SWAP"
-};
-CodeGeneratorBasic.prototype = {
-    init: function (options) {
-        this.options = options || {}; // e.g. tron, rsx
-        this.lexer = this.options.lexer;
-        this.parser = this.options.parser;
+var CodeGeneratorBasic = /** @class */ (function () {
+    function CodeGeneratorBasic(options) {
+        this.init(options);
+    }
+    CodeGeneratorBasic.prototype.init = function (options) {
+        this.lexer = options.lexer;
+        this.parser = options.parser;
         this.reset();
-    },
-    reset: function () {
+    };
+    CodeGeneratorBasic.prototype.reset = function () {
         this.lexer.reset();
         this.parser.reset();
         return this;
-    },
-    composeError: function () {
-        var aArgs = Array.prototype.slice.call(arguments);
+    };
+    CodeGeneratorBasic.prototype.composeError = function () {
+        var aArgs = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            aArgs[_i] = arguments[_i];
+        }
         aArgs.unshift("CodeGeneratorBasic");
-        aArgs.push(this.iLine);
+        // check, correct:
+        //TTT aArgs.push(this.iLine);
         return Utils_1.Utils.composeError.apply(null, aArgs);
-    },
+    };
     //
     // evaluate
     //
-    evaluate: function (parseTree) {
+    CodeGeneratorBasic.prototype.evaluate = function (parseTree) {
         var that = this, fnParseOneArg = function (oArg) {
             var sValue = parseNode(oArg); // eslint-disable-line no-use-before-define
             return sValue;
@@ -532,16 +507,14 @@ CodeGeneratorBasic.prototype = {
             return sOutput;
         };
         return fnEvaluate();
-    },
-    generate: function (sInput, oVariables, bAllowDirect) {
+    };
+    CodeGeneratorBasic.prototype.generate = function (sInput, bAllowDirect) {
         var oOut = {
             text: "",
             error: undefined
-        }, aTokens, aParseTree, sOutput;
+        };
         try {
-            aTokens = this.lexer.lex(sInput);
-            aParseTree = this.parser.parse(aTokens, bAllowDirect);
-            sOutput = this.evaluate(aParseTree, oVariables);
+            var aTokens = this.lexer.lex(sInput), aParseTree = this.parser.parse(aTokens, bAllowDirect), sOutput = this.evaluate(aParseTree /* , oVariables*/);
             oOut.text = sOutput;
         }
         catch (e) {
@@ -554,6 +527,27 @@ CodeGeneratorBasic.prototype = {
             }
         }
         return oOut;
-    }
-};
+    };
+    CodeGeneratorBasic.mCombinedKeywords = {
+        chainMerge: "CHAIN MERGE",
+        clearInput: "CLEAR INPUT",
+        graphicsPaper: "GRAPHICS PAPER",
+        graphicsPen: "GRAPHICS PEN",
+        keyDef: "KEY DEF",
+        lineInput: "LINE INPUT",
+        mid$Assign: "MID$",
+        onBreakCont: "ON BREAK CONT",
+        onBreakGosub: "ON BREAK GOSUB",
+        onBreakStop: "ON BREAK STOP",
+        onErrorGoto: "ON ERROR GOTO",
+        resumeNext: "RESUME NEXT",
+        speedInk: "SPEED INK",
+        speedKey: "SPEED KEY",
+        speedWrite: "SPEED WRITE",
+        symbolAfter: "SYMBOL AFTER",
+        windowSwap: "WINDOW SWAP"
+    };
+    return CodeGeneratorBasic;
+}());
+exports.CodeGeneratorBasic = CodeGeneratorBasic;
 //# sourceMappingURL=CodeGeneratorBasic.js.map

@@ -2,54 +2,47 @@
 // see: https://github.com/jzaefferer/undo
 //
 
-"use strict";
+export class InputStack {
+	aInput: string[];
+	iStackPosition : number;
 
-export function InputStack() {
-	this.init();
-}
+	constructor() {
+		this.init();
+	}
 
-InputStack.prototype = {
-	init: function () {
+	init() {
 		this.aInput = [];
 		this.iStackPosition = -1;
 		return this;
-	},
-	getInput: function () {
+	}
+	getInput() {
 		return this.aInput[this.iStackPosition];
-	},
-	clearRedo: function () {
+	}
+	clearRedo() {
 		this.aInput = this.aInput.slice(0, this.iStackPosition + 1);
 		return this;
-	},
-	save: function (sInput) {
+	}
+	save(sInput) {
 		this.clearRedo();
 		this.aInput.push(sInput);
 		this.iStackPosition += 1;
 		return this;
-	},
-	canUndo: function () {
+	}
+	canUndo() {
 		return this.iStackPosition >= 0;
-	},
-	canUndoKeepOne: function () {
+	}
+	canUndoKeepOne() {
 		return this.iStackPosition > 0;
-	},
-	undo: function () {
+	}
+	undo() {
 		this.iStackPosition -= 1;
 		return this.getInput();
-	},
-	canRedo: function () {
+	}
+	canRedo() {
 		return this.iStackPosition < this.aInput.length - 1;
-	},
-	redo: function () {
+	}
+	redo() {
 		this.iStackPosition += 1;
 		return this.getInput();
 	}
-};
-
-
-/*
-if (typeof module !== "undefined" && module.exports) {
-	module.exports = InputStack;
 }
-*/
-// end

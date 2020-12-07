@@ -1,59 +1,39 @@
+"use strict";
 // cpcbasic.js - CPCBasic for the Browser
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //
-"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var Utils_1 = require("./Utils");
 var Controller_1 = require("./Controller");
 var cpcconfig_1 = require("./cpcconfig");
 var Model_1 = require("./Model");
 var View_1 = require("./View");
-var cpcBasic = {
-    config: {
-        bench: 0,
-        debug: 0,
-        databaseDirs: "examples",
-        database: "examples",
-        example: "cpcbasic",
-        exampleIndex: "0index.js",
-        input: "",
-        kbdLayout: "alphanum",
-        showInput: true,
-        showInp2: false,
-        showCpc: true,
-        showKbd: false,
-        showKbdLayout: false,
-        showOutput: false,
-        showResult: false,
-        showText: false,
-        showVariable: false,
-        showConsole: false,
-        sound: true,
-        tron: false // trace on
-    },
-    model: null,
-    view: null,
-    controller: null,
-    fnHereDoc: function (fn) {
+var cpcBasic = /** @class */ (function () {
+    function cpcBasic() {
+    }
+    /*
+    static getConfig() {
+        return cpcBasic.config;
+    }
+    */
+    cpcBasic.fnHereDoc = function (fn) {
         return String(fn).
             replace(/^[^/]+\/\*\S*/, "").
             replace(/\*\/[^/]+$/, "");
-    },
-    addIndex: function (sDir, input) {
+    };
+    cpcBasic.addIndex = function (sDir, input) {
         if (typeof input !== "string") {
             input = this.fnHereDoc(input);
         }
         return cpcBasic.controller.addIndex(sDir, input);
-    },
-    addItem: function (sKey, input) {
-        if (typeof input !== "string") {
-            input = this.fnHereDoc(input);
-        }
-        return cpcBasic.controller.addItem(sKey, input);
-    },
+    };
+    cpcBasic.addItem = function (sKey, input) {
+        var sInput = (typeof input !== "string") ? this.fnHereDoc(input) : input;
+        return cpcBasic.controller.addItem(sKey, sInput);
+    };
     // https://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
-    fnParseUri: function (oConfig) {
+    cpcBasic.fnParseUri = function (oConfig) {
         var rPlus = /\+/g, // Regex for replacing addition symbol with a space
         rSearch = /([^&=]+)=?([^&]*)/g, fnDecode = function (s) { return decodeURIComponent(s.replace(rPlus, " ")); }, sQuery = window.location.search.substring(1);
         var aMatch;
@@ -78,8 +58,8 @@ var cpcBasic = {
             }
             oConfig[sName] = sValue;
         }
-    },
-    setDebugUtilsConsole: function (sCpcBasicLog) {
+    };
+    cpcBasic.setDebugUtilsConsole = function (sCpcBasicLog) {
         var oCurrentConsole = Utils_1.Utils.console, oConsole = {
             consoleLog: {
                 value: sCpcBasicLog || "" // already something collected?
@@ -137,15 +117,15 @@ var cpcBasic = {
             }
         };
         Utils_1.Utils.console = oConsole; //TTT
-    },
-    fnDoStart: function () {
-        var that = this, oStartConfig = this.config;
+    };
+    cpcBasic.fnDoStart = function () {
+        var oStartConfig = cpcBasic.config;
         Object.assign(oStartConfig, cpcconfig_1.cpcconfig || {}); // merge external config from cpcconfig.js
         var oInitialConfig = Object.assign({}, oStartConfig); // save config
-        this.fnParseUri(oStartConfig); // modify config with URL parameters
-        this.model = new Model_1.Model(oStartConfig, oInitialConfig);
-        this.view = new View_1.View();
-        var iDebug = Number(this.model.getProperty("debug"));
+        cpcBasic.fnParseUri(oStartConfig); // modify config with URL parameters
+        cpcBasic.model = new Model_1.Model(oStartConfig, oInitialConfig);
+        cpcBasic.view = new View_1.View();
+        var iDebug = Number(cpcBasic.model.getProperty("debug"));
         Utils_1.Utils.debug = iDebug;
         var sCpcBasicLog;
         var UtilsConsole = Utils_1.Utils.console;
@@ -153,20 +133,42 @@ var cpcBasic = {
             sCpcBasicLog = UtilsConsole.cpcBasicLog;
             UtilsConsole.cpcBasicLog = null; // do not log any more to dummy console
         }
-        if (Utils_1.Utils.debug > 1 && this.model.getProperty("showConsole")) { // console log window?
-            this.setDebugUtilsConsole(sCpcBasicLog);
+        if (Utils_1.Utils.debug > 1 && cpcBasic.model.getProperty("showConsole")) { // console log window?
+            cpcBasic.setDebugUtilsConsole(sCpcBasicLog);
             Utils_1.Utils.console.log("CPCBasic log started at", Utils_1.Utils.dateFormat(new Date()));
             UtilsConsole.changeLog(document.getElementById("consoleText"));
         }
-        that.controller = new Controller_1.Controller(this.model, this.view);
-    },
-    fnOnLoad: function () {
+        cpcBasic.controller = new Controller_1.Controller(cpcBasic.model, cpcBasic.view);
+    };
+    cpcBasic.fnOnLoad = function () {
         Utils_1.Utils.console.log("CPCBasic started at", Utils_1.Utils.dateFormat(new Date()));
-        this.fnDoStart();
-    }
-};
+        cpcBasic.fnDoStart();
+    };
+    cpcBasic.config = {
+        bench: 0,
+        debug: 0,
+        databaseDirs: "examples",
+        database: "examples",
+        example: "cpcbasic",
+        exampleIndex: "0index.js",
+        input: "",
+        kbdLayout: "alphanum",
+        showInput: true,
+        showInp2: false,
+        showCpc: true,
+        showKbd: false,
+        showKbdLayout: false,
+        showOutput: false,
+        showResult: false,
+        showText: false,
+        showVariable: false,
+        showConsole: false,
+        sound: true,
+        tron: false // trace on
+    };
+    return cpcBasic;
+}());
 window.cpcBasic = cpcBasic;
-//cpcBasic.fnOnLoad(); // if cpcbasic.js is the last script, we do not need to wait for window.onload
 window.onload = function () {
     cpcBasic.fnOnLoad();
 };

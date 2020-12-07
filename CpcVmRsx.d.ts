@@ -4,7 +4,7 @@ export declare class CpcVmRsx {
     constructor(oVm: CpcVm);
     rsxInit(oVm: CpcVm): void;
     rsxIsAvailable(sName: string): boolean;
-    rsxExec(sName: string): void;
+    rsxExec(sName: string, ...aArgs: (string | number)[]): void;
     a(): void;
     b(): void;
     basic(): void;

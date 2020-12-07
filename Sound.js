@@ -1,8 +1,8 @@
+"use strict";
 // Sound.ts - Sound output via WebAudio
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //
-"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Sound = void 0;
 var Utils_1 = require("./Utils");
@@ -206,7 +206,9 @@ var Sound = /** @class */ (function () {
                     }
                 }
                 else { // absolute period
-                    var oGroup2 = oGroup, iPeriod_1 = oGroup2.period, iToneTime = oGroup2.time, fFrequency = (iPeriod_1 >= 3) ? 62500 / iPeriod_1 : 0;
+                    var oGroup2 = oGroup;
+                    iPeriod = oGroup2.period;
+                    var iToneTime = oGroup2.time, fFrequency = (iPeriod >= 3) ? 62500 / iPeriod : 0;
                     oFrequency.setValueAtTime(fFrequency, fTime + iTime / i100ms2sec);
                     // TODO
                     iTime += iToneTime;
@@ -217,8 +219,8 @@ var Sound = /** @class */ (function () {
     };
     Sound.prototype.scheduleNote = function (iOscillator, fTime, oSoundData) {
         var iMaxVolume = 15, i100ms2sec = 100, // time duration unit: 1/100 sec=10 ms, convert to sec
-        ctx = this.context;
-        var iVolEnv = oSoundData.iVolEnv, iToneEnv = oSoundData.iToneEnv, iVolEnvRepeat = 1;
+        ctx = this.context, iToneEnv = oSoundData.iToneEnv;
+        var iVolEnv = oSoundData.iVolEnv, iVolEnvRepeat = 1;
         if (Utils_1.Utils.debug > 1) {
             this.debugLog("scheduleNote: " + iOscillator + " " + fTime);
         }
@@ -388,9 +390,11 @@ var Sound = /** @class */ (function () {
         /* eslint-enable no-bitwise */
         return iSq;
     };
-    Sound.prototype.isSoundOn = function () {
+    /*
+    private isSoundOn() {
         return this.bIsSoundOn;
-    };
+    }
+    */
     Sound.prototype.setActivatedByUser = function () {
         this.bIsActivatedByUser = true;
     };
@@ -419,5 +423,4 @@ var Sound = /** @class */ (function () {
     return Sound;
 }());
 exports.Sound = Sound;
-;
 //# sourceMappingURL=Sound.js.map

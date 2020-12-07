@@ -3,8 +3,6 @@
 // https://benchmarko.github.io/CPCBasic/
 //
 
-"use strict";
-
 import { Utils } from "./Utils";
 
 export interface SelectOptionElement { // similar to HtmlOptionElement
@@ -15,8 +13,7 @@ export interface SelectOptionElement { // similar to HtmlOptionElement
 }
 
 export class View {
-
-	static fnEventHandler = null;
+	//static fnEventHandler = null;
 
 	constructor() {
 		this.init();
@@ -35,12 +32,12 @@ export class View {
 		return element;
 	}
 
-	getHidden(sId: string) {
+	getHidden(sId: string): boolean {
 		const element = View.getElementById1(sId);
 
 		return element.className.indexOf("displayNone") >= 0;
 	}
-	setHidden(sId: string, bHidden: boolean, sDisplay: string) { // optional sDisplay: block or flex
+	setHidden(sId: string, bHidden: boolean, sDisplay?: string) { // optional sDisplay: block or flex
 		const element = View.getElementById1(sId),
 			sDisplayVisible = "display" + Utils.stringCapitalize(sDisplay || "block");
 
@@ -88,7 +85,7 @@ export class View {
 
 		return (element as HTMLTextAreaElement).value;
 	}
-	setAreaValue(sId: string, sValue: string) {
+	setAreaValue(sId: string, sValue: string): this {
 		const element = View.getElementById1(sId);
 
 		(element as HTMLTextAreaElement).value = sValue;
@@ -101,15 +98,18 @@ export class View {
 
 		for (let i = 0; i < aOptions.length; i += 1) {
 			const oItem = aOptions[i];
+
+			let option: HTMLOptionElement;
+ 
 			if (i >= select.length) {
-				const option = document.createElement("option");
+				option = document.createElement("option");
 				option.value = oItem.value;
 				option.text = oItem.text;
 				option.title = oItem.title;
 				option.selected = oItem.selected; // multi-select
 				select.add(option, null); // null needed for old FF 3.x
 			} else {
-				const option = select.options[i];
+				option = select.options[i];
 				if (option.value !== oItem.value) {
 					option.value = oItem.value;
 				}
@@ -120,6 +120,7 @@ export class View {
 					option.text = oItem.text;
 					option.title = oItem.title;
 				}
+				option.selected = oItem.selected; // multi-select
 			}
 
 			/*
@@ -187,7 +188,7 @@ export class View {
 		textarea.setSelectionRange(selectionStart, selectionEnd);
 	}
 
-	setAreaSelection(sId: string, iPos: number, iEndPos: number) {
+	setAreaSelection(sId: string, iPos: number, iEndPos: number): this {
 		const element = View.getElementById1(sId),
 			area = element as HTMLTextAreaElement;
 
@@ -204,11 +205,11 @@ export class View {
 		return this;
 	}
 
-	attachEventHandler(sType: string, fnEventHandler: EventListener) {
+	attachEventHandler(sType: string, fnEventHandler: EventListener): this {
 		if (Utils.debug) {
-			Utils.console.debug("attachEventHandler: type=" + sType + ", fnEventHandler=" + ((fnEventHandler != undefined) ? "[function]" : null));
+			Utils.console.debug("attachEventHandler: type=" + sType + ", fnEventHandler=" + ((fnEventHandler !== undefined) ? "[function]" : null));
 		}
 		document.addEventListener(sType, fnEventHandler, false);
 		return this;
 	}
-};
+}

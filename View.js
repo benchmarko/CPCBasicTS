@@ -1,12 +1,13 @@
+"use strict";
 // View.ts - View Module to access HTML DOM
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //
-"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.View = void 0;
 var Utils_1 = require("./Utils");
 var View = /** @class */ (function () {
+    //static fnEventHandler = null;
     function View() {
         this.init();
     }
@@ -74,8 +75,9 @@ var View = /** @class */ (function () {
         var element = View.getElementById1(sId), select = element;
         for (var i = 0; i < aOptions.length; i += 1) {
             var oItem = aOptions[i];
+            var option = void 0;
             if (i >= select.length) {
-                var option = document.createElement("option");
+                option = document.createElement("option");
                 option.value = oItem.value;
                 option.text = oItem.text;
                 option.title = oItem.title;
@@ -83,7 +85,7 @@ var View = /** @class */ (function () {
                 select.add(option, null); // null needed for old FF 3.x
             }
             else {
-                var option = select.options[i];
+                option = select.options[i];
                 if (option.value !== oItem.value) {
                     option.value = oItem.value;
                 }
@@ -94,6 +96,7 @@ var View = /** @class */ (function () {
                     option.text = oItem.text;
                     option.title = oItem.title;
                 }
+                option.selected = oItem.selected; // multi-select
             }
             /*
             if (oItem.selected) { // multi-select
@@ -165,14 +168,12 @@ var View = /** @class */ (function () {
     };
     View.prototype.attachEventHandler = function (sType, fnEventHandler) {
         if (Utils_1.Utils.debug) {
-            Utils_1.Utils.console.debug("attachEventHandler: type=" + sType + ", fnEventHandler=" + ((fnEventHandler != undefined) ? "[function]" : null));
+            Utils_1.Utils.console.debug("attachEventHandler: type=" + sType + ", fnEventHandler=" + ((fnEventHandler !== undefined) ? "[function]" : null));
         }
         document.addEventListener(sType, fnEventHandler, false);
         return this;
     };
-    View.fnEventHandler = null;
     return View;
 }());
 exports.View = View;
-;
 //# sourceMappingURL=View.js.map

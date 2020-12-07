@@ -1,10 +1,10 @@
+"use strict";
 // BasicParser.ts - BASIC Parser
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //
 // BASIC parser for Locomotive BASIC 1.1 for Amstrad CPC 6128
 //
-"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BasicParser = void 0;
 // [ https://www.codeproject.com/Articles/345888/How-to-write-a-simple-interpreter-in-JavaScript ; test online: http://jsfiddle.net/h3xwj/embedded/result/ ]
@@ -42,7 +42,6 @@ var BasicParser = /** @class */ (function () {
         this.iLine = 0; // for error messages
     };
     BasicParser.prototype.composeError = function () {
-        //var aArgs = Array.prototype.slice.call(arguments);
         var aArgs = [];
         for (var _i = 0; _i < arguments.length; _i++) {
             aArgs[_i] = arguments[_i];
@@ -59,9 +58,8 @@ var BasicParser = /** @class */ (function () {
     // Manipulates tokens to its left (e.g: +)? => left denotative function led(), otherwise null denotative function nud()), (e.g. unary -)
     // identifiers, numbers: also nud.
     BasicParser.prototype.parse = function (aTokens, bAllowDirect) {
-        var that = this, oSymbols = {}, aParseTree = [];
-        var iIndex = 0, oPreviousToken, oToken, //TODO: oToken: BasicParserNode, (changed by side effect!)
-        symbol = function (id, nud, lbp, led) {
+        var iIndex = 0, oPreviousToken, oToken; // TODO: oToken: BasicParserNode, (changed by side effect!)
+        var that = this, oSymbols = {}, aParseTree = [], symbol = function (id, nud, lbp, led) {
             var oSymbol = oSymbols[id];
             if (!oSymbol) {
                 oSymbols[id] = {};
@@ -384,7 +382,7 @@ var BasicParser = /** @class */ (function () {
                 sType = aTypes[0];
                 if (sType === "#0?") { // null stream to add?
                     var oExpression = fnCreateDummyArg("#"); // dummy stream with dummy arg
-                    oExpression.right = fnCreateDummyArg(null); //TTT any
+                    oExpression.right = fnCreateDummyArg(null);
                     aArgs.push(oExpression);
                 }
             }
@@ -403,7 +401,7 @@ var BasicParser = /** @class */ (function () {
             return aArgs;
         }, fnGetArgsInParenthesis = function () {
             advance("(");
-            var aArgs = fnGetArgs(null); //until ")"
+            var aArgs = fnGetArgs(null); // until ")"
             advance(")");
             return aArgs;
         }, fnGetArgsInParenthesesOrBrackets = function () {
@@ -444,7 +442,7 @@ var BasicParser = /** @class */ (function () {
             }
             if (oToken.type === "(") { // args in parenthesis?
                 advance("(");
-                oValue.args = fnGetArgs(oValue.type); //until ")"
+                oValue.args = fnGetArgs(oValue.type);
                 if (oToken.type !== ")") {
                     throw that.composeError(Error(), "Expected closing parenthesis for argument list after", oPreviousToken.value, oToken.pos); //TTT
                 }
@@ -1046,7 +1044,6 @@ var BasicParser = /** @class */ (function () {
             return oValue;
         });
         stmt("?", function () {
-            //TTT
             var oValue = oSymbols.print.std(); // "?" is same as print
             oValue.type = "print";
             return oValue;
@@ -1319,5 +1316,4 @@ var BasicParser = /** @class */ (function () {
     return BasicParser;
 }());
 exports.BasicParser = BasicParser;
-;
 //# sourceMappingURL=BasicParser.js.map

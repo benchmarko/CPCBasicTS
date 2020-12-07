@@ -1,9 +1,9 @@
+"use strict";
 // CodeGeneratorJs.js - Code Generator for JavaScript
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //
 //
-"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CodeGeneratorJs = void 0;
 var Utils_1 = require("./Utils");
@@ -36,7 +36,7 @@ var CodeGeneratorJs = /** @class */ (function () {
         this.bQuiet = options.bQuiet || false;
         //this.lexer = this.options.lexer;
         //this.parser = this.options.parser;
-        this.reJsKeywords = this.createJsKeywordRegex();
+        this.reJsKeywords = CodeGeneratorJs.createJsKeywordRegex();
         this.reset();
     };
     CodeGeneratorJs.prototype.reset = function () {
@@ -69,7 +69,6 @@ var CodeGeneratorJs = /** @class */ (function () {
         this.iWhileCount = 0; // stack needed
     };
     CodeGeneratorJs.prototype.composeError = function () {
-        //var aArgs = Array.prototype.slice.call(arguments);
         var aArgs = [];
         for (var _i = 0; _i < arguments.length; _i++) {
             aArgs[_i] = arguments[_i];
@@ -78,7 +77,7 @@ var CodeGeneratorJs = /** @class */ (function () {
         aArgs.push(this.iLine);
         return Utils_1.Utils.composeError.apply(null, aArgs);
     };
-    CodeGeneratorJs.prototype.createJsKeywordRegex = function () {
+    CodeGeneratorJs.createJsKeywordRegex = function () {
         var reJsKeywords = new RegExp("^(" + CodeGeneratorJs.aJsKeywords.join("|") + ")$");
         return reJsKeywords;
     };
@@ -86,7 +85,8 @@ var CodeGeneratorJs = /** @class */ (function () {
     // evaluate
     //
     CodeGeneratorJs.prototype.evaluate = function (parseTree, oVariables) {
-        var that = this, fnDeclareVariable = function (sName) {
+        var that = this, // eslint-disable-line @typescript-eslint/no-this-alias
+        fnDeclareVariable = function (sName) {
             if (!oVariables.variableExist(sName)) { // variable not yet defined?
                 oVariables.initVariable(sName);
             }
@@ -1262,5 +1262,4 @@ var CodeGeneratorJs = /** @class */ (function () {
     return CodeGeneratorJs;
 }());
 exports.CodeGeneratorJs = CodeGeneratorJs;
-;
 //# sourceMappingURL=CodeGeneratorJs.js.map

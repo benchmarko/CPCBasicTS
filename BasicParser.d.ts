@@ -218,7 +218,7 @@ export declare class BasicParser {
     constructor(options?: BasicParserOptions);
     init(options: BasicParserOptions): void;
     reset(): void;
-    composeError(...aArgs: any[]): any;
+    private composeError;
     parse(aTokens: BasicLexerToken[], bAllowDirect?: boolean): any[];
 }
 export {};

@@ -1,10 +1,10 @@
+"use strict";
 // BasicLexer.ts - BASIC Lexer
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //
 // BASIC lexer for Locomotive BASIC 1.1 for Amstrad CPC 6128
 //
-"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BasicLexer = void 0;
 // based on an idea of: https://www.codeproject.com/Articles/345888/How-to-write-a-simple-interpreter-in-JavaScript
@@ -14,18 +14,14 @@ var BasicLexer = /** @class */ (function () {
         this.bQuiet = false;
         this.iLine = 0;
         this.bTakeNumberAsLine = true;
-        this.init(options);
-    }
-    BasicLexer.prototype.init = function (options) {
         this.bQuiet = (options === null || options === void 0 ? void 0 : options.bQuiet) || false;
         this.reset();
-    };
+    }
     BasicLexer.prototype.reset = function () {
         this.iLine = 0; // for error messages
         this.bTakeNumberAsLine = true;
     };
     BasicLexer.prototype.composeError = function () {
-        //var aArgs = Array.prototype.slice.call(arguments);
         var aArgs = [];
         for (var _i = 0; _i < arguments.length; _i++) {
             aArgs[_i] = arguments[_i];
@@ -35,7 +31,8 @@ var BasicLexer = /** @class */ (function () {
         return Utils_1.Utils.composeError.apply(null, aArgs);
     };
     BasicLexer.prototype.lex = function (input) {
-        var that = this, isComment = function (c) {
+        var iIndex = 0, sToken, sChar, iStartPos;
+        var that = this, aTokens = [], isComment = function (c) {
             return (/[']/).test(c);
         }, isOperator = function (c) {
             return (/[+\-*/^=()[\],;:?\\]/).test(c);
@@ -79,9 +76,7 @@ var BasicLexer = /** @class */ (function () {
             return c !== "" && c !== "\n";
         }, isUnquotedData = function (c) {
             return c !== "" && (/[^:,\r\n]/).test(c);
-        }, aTokens = [];
-        var iIndex = 0, sToken, sChar, iStartPos;
-        var testChar = function (iAdd) {
+        }, testChar = function (iAdd) {
             return input.charAt(iIndex + iAdd);
         }, advance = function () {
             iIndex += 1;
@@ -329,5 +324,4 @@ var BasicLexer = /** @class */ (function () {
     return BasicLexer;
 }());
 exports.BasicLexer = BasicLexer;
-;
 //# sourceMappingURL=BasicLexer.js.map

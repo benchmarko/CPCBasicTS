@@ -4,17 +4,17 @@
 //
 //
 
-"use strict";
-
 import { Utils } from "./Utils";
 import { BasicLexer } from "./BasicLexer";
 import { BasicParser } from "./BasicParser";
+import { Variables } from "./Variables";
 import { CpcVmRsx } from "./CpcVmRsx";
+
 
 interface CodeGeneratorJsOptions {
 	lexer: BasicLexer
 	parser: BasicParser
-	rsx: undefined
+	rsx: CpcVmRsx
 	tron: boolean
 	bQuiet?: boolean
 }
@@ -118,7 +118,7 @@ export class CodeGeneratorJs {
 
 	init(options: CodeGeneratorJsOptions) {
 		//this.options = options || {}; // e.g. tron (trace on flag), rsx (optional RSX names to check), bQuiet
-		
+
 		this.lexer = options.lexer;
 		this.parser = options.parser;
 		this.tron = options.tron;
@@ -128,7 +128,7 @@ export class CodeGeneratorJs {
 		//this.lexer = this.options.lexer;
 		//this.parser = this.options.parser;
 
-		this.reJsKeywords = this.createJsKeywordRegex();
+		this.reJsKeywords = CodeGeneratorJs.createJsKeywordRegex();
 		this.reset();
 	}
 
@@ -162,7 +162,7 @@ export class CodeGeneratorJs {
 		return this;
 	}
 
-	resetCountsPerLine() {
+	private resetCountsPerLine() {
 		this.iGosubCount = 0;
 		this.iIfCount = 0;
 		this.iStopCount = 0;
@@ -170,24 +170,23 @@ export class CodeGeneratorJs {
 		this.iWhileCount = 0; // stack needed
 	}
 
-	composeError(...aArgs) { // varargs
-		//var aArgs = Array.prototype.slice.call(arguments);
-
+	private composeError(...aArgs) { // varargs
 		aArgs.unshift("CodeGeneratorJs");
 		aArgs.push(this.iLine);
 		return Utils.composeError.apply(null, aArgs);
 	}
 
-	createJsKeywordRegex() {
+	private static createJsKeywordRegex() {
 		const reJsKeywords = new RegExp("^(" + CodeGeneratorJs.aJsKeywords.join("|") + ")$");
+
 		return reJsKeywords;
 	}
 
 	//
 	// evaluate
 	//
-	evaluate(parseTree, oVariables) {
-		const that = this,
+	private evaluate(parseTree, oVariables: Variables) {
+		const that = this, // eslint-disable-line @typescript-eslint/no-this-alias
 
 			fnDeclareVariable = function (sName: string) {
 				if (!oVariables.variableExist(sName)) { // variable not yet defined?
@@ -1431,7 +1430,7 @@ export class CodeGeneratorJs {
 		return fnEvaluate();
 	}
 
-	generate(sInput, oVariables, bAllowDirect) {
+	generate(sInput: string, oVariables: Variables, bAllowDirect?: boolean) {
 		var fnCombineData = function (aData) {
 				var sData = "";
 
@@ -1468,4 +1467,4 @@ export class CodeGeneratorJs {
 		}
 		return oOut;
 	}
-};
+}

@@ -1,10 +1,11 @@
 import { BasicLexer } from "./BasicLexer";
 import { BasicParser } from "./BasicParser";
+import { Variables } from "./Variables";
 import { CpcVmRsx } from "./CpcVmRsx";
 interface CodeGeneratorJsOptions {
     lexer: BasicLexer;
     parser: BasicParser;
-    rsx: undefined;
+    rsx: CpcVmRsx;
     tron: boolean;
     bQuiet?: boolean;
 }
@@ -33,11 +34,11 @@ export declare class CodeGeneratorJs {
     constructor(options: CodeGeneratorJsOptions);
     init(options: CodeGeneratorJsOptions): void;
     reset(): this;
-    resetCountsPerLine(): void;
-    composeError(...aArgs: any[]): any;
-    createJsKeywordRegex(): RegExp;
-    evaluate(parseTree: any, oVariables: any): string;
-    generate(sInput: any, oVariables: any, bAllowDirect: any): {
+    private resetCountsPerLine;
+    private composeError;
+    private static createJsKeywordRegex;
+    private evaluate;
+    generate(sInput: string, oVariables: Variables, bAllowDirect?: boolean): {
         text: string;
         error: any;
     };

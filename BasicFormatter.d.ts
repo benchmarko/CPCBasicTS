@@ -9,10 +9,9 @@ export declare class BasicFormatter {
     parser: BasicParser;
     iLine: number;
     constructor(options: BasicFormatterOptions);
-    init(options: BasicFormatterOptions): void;
     reset(): void;
-    composeError(...aArgs: any[]): any;
-    fnRenumber(sInput: string, aParseTree: any, iNew: number, iOld: number, iStep: number, iKeep: number): string;
+    private composeError;
+    private fnRenumber;
     renumber(sInput: string, iNew: number, iOld: number, iStep: number, iKeep: number): {
         text: string;
         error: any;

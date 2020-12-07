@@ -1,36 +1,11 @@
+"use strict";
 // Controller.js - Controller
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //
 /* globals Uint8Array */
-"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Controller = void 0;
-/*
-var Utils, BasicFormatter, BasicLexer, BasicParser, BasicTokenizer, Canvas, CodeGeneratorBasic, CodeGeneratorJs, CommonEventHandler, CpcVm, Diff, DiskImage, InputStack, Keyboard, Sound, Variables, ZipFile;
-
-if (typeof require !== "undefined") {
-    / * eslint-disable global-require * /
-    Utils = require("./Utils.js");
-    BasicFormatter = require("./BasicFormatter.js");
-    BasicLexer = require("./BasicLexer.js");
-    BasicParser = require("./BasicParser.js");
-    BasicTokenizer = require("./BasicTokenizer.js");
-    Canvas = require("./Canvas.js");
-    CodeGeneratorBasic = require("./CodeGeneratorBasic.js");
-    CodeGeneratorJs = require("./CodeGeneratorJs.js");
-    CommonEventHandler = require("./CommonEventHandler.js");
-    CpcVm = require("./CpcVm.js");
-    Diff = require("./Diff.js"); //TTT Test
-    DiskImage = require("./DiskImage.js");
-    InputStack = require("./InputStack.js");
-    Keyboard = require("./Keyboard.js");
-    Sound = require("./Sound.js");
-    Variables = require("./Variables.js");
-    ZipFile = require("./ZipFile.js");
-    / * eslint-enable global-require * /
-}
-*/
 var Utils_1 = require("./Utils");
 var BasicFormatter_1 = require("./BasicFormatter");
 var BasicLexer_1 = require("./BasicLexer");
@@ -47,25 +22,27 @@ var Diff_1 = require("./Diff");
 var DiskImage_1 = require("./DiskImage");
 var InputStack_1 = require("./InputStack");
 var Keyboard_1 = require("./Keyboard");
-//import { Model } from "./Model"; //TTT
 var Sound_1 = require("./Sound");
 var Variables_1 = require("./Variables");
 var ZipFile_1 = require("./ZipFile");
-function Controller(oModel, oView) {
-    this.init(oModel, oView);
-}
-exports.Controller = Controller;
-Controller.prototype = {
-    init: function (oModel, oView) {
-        var sExample, sKbdLayout;
+var Controller = /** @class */ (function () {
+    function Controller(oModel, oView) {
+        this.sMetaIdent = "CPCBasic";
+        this.fnScript = undefined;
+        this.bTimeoutHandlerActive = false;
+        this.iNextLoopTimeOut = 0; // next timeout for the main loop
+        this.bInputSet = false;
         this.fnRunLoopHandler = this.fnRunLoop.bind(this);
         this.fnWaitKeyHandler = this.fnWaitKey.bind(this);
         this.fnWaitInputHandler = this.fnWaitInput.bind(this);
         this.fnOnEscapeHandler = this.fnOnEscape.bind(this);
         this.fnDirectInputHandler = this.fnDirectInput.bind(this);
         this.fnPutKeyInBufferHandler = this.fnPutKeyInBuffer.bind(this);
-        this.sMetaIdent = "CPCBasic";
-        this.fnScript = null;
+        this.init(oModel, oView);
+    }
+    Controller.prototype.init = function (oModel, oView) {
+        //this.sMetaIdent = "CPCBasic";
+        this.fnScript = undefined;
         this.bTimeoutHandlerActive = false;
         this.iNextLoopTimeOut = 0; // next timeout for the main loop
         this.bInputSet = false;
@@ -89,7 +66,7 @@ Controller.prototype = {
             onClickKey: this.fnPutKeyInBufferHandler
         });
         oView.setHidden("cpcArea", !oModel.getProperty("showCpc"));
-        sKbdLayout = oModel.getProperty("kbdLayout");
+        var sKbdLayout = oModel.getStringProperty("kbdLayout");
         oView.setSelectValue("kbdLayoutSelect", sKbdLayout);
         this.commonEventHandler.onKbdLayoutSelectChange();
         this.inputStack = new InputStack_1.InputStack();
@@ -101,26 +78,29 @@ Controller.prototype = {
         }
         this.oSound = new Sound_1.Sound();
         this.commonEventHandler.fnActivateUserAction(this.onUserAction.bind(this)); // check first user action, also if sound is not yet on
-        sExample = oModel.getProperty("example");
+        var sExample = oModel.getStringProperty("example");
         oView.setSelectValue("exampleSelect", sExample);
         this.oVm = new CpcVm_1.CpcVm({
             canvas: this.oCanvas,
             keyboard: this.oKeyboard,
             sound: this.oSound,
             variables: this.oVariables,
-            tron: oModel.getProperty("tron")
+            tron: oModel.getBooleanProperty("tron")
         });
         this.oVm.vmReset();
         this.oRsx = new CpcVmRsx_1.CpcVmRsx(this.oVm);
         this.oVm.vmSetRsxClass(this.oRsx); //TTT
         this.oNoStop = Object.assign({}, this.oVm.vmGetStopObject());
-        this.oSavedStop = {}; // backup of stop object
+        this.oSavedStop = {
+            sReason: "",
+            iPriority: 0
+        }; // backup of stop object
         this.setStopObject(this.oNoStop);
         this.oCodeGeneratorJs = new CodeGeneratorJs_1.CodeGeneratorJs({
             lexer: new BasicLexer_1.BasicLexer(),
             parser: new BasicParser_1.BasicParser(),
-            tron: this.model.getProperty("tron"),
-            rsx: this.oVm.rsx // just to check the names
+            tron: this.model.getBooleanProperty("tron"),
+            rsx: this.oRsx // just to check the names
         });
         this.oBasicTokenizer = new BasicTokenizer_1.BasicTokenizer(); // for tokenized BASIC
         this.initDatabases();
@@ -131,10 +111,10 @@ Controller.prototype = {
             this.oCanvas.startUpdateCanvas();
         }
         this.initDropZone();
-    },
-    initDatabases: function () {
+    };
+    Controller.prototype.initDatabases = function () {
         var oModel = this.model, oDatabases = {}, aDatabaseDirs, i, sDatabaseDir, aParts, sName;
-        aDatabaseDirs = oModel.getProperty("databaseDirs").split(",");
+        aDatabaseDirs = oModel.getStringProperty("databaseDirs").split(",");
         for (i = 0; i < aDatabaseDirs.length; i += 1) {
             sDatabaseDir = aDatabaseDirs[i];
             aParts = sDatabaseDir.split("/");
@@ -148,39 +128,36 @@ Controller.prototype = {
         this.model.addDatabases(oDatabases);
         this.setDatabaseSelectOptions();
         this.commonEventHandler.onDatabaseSelectChange();
-    },
-    onUserAction: function ( /* event, sId */) {
+    };
+    Controller.prototype.onUserAction = function ( /* event, sId */) {
         this.commonEventHandler.fnDeactivateUserAction();
-        this.oSound.setActivatedByUser(true);
+        this.oSound.setActivatedByUser();
         this.setSoundActive();
-    },
+    };
     // Also called from index file 0index.js
-    addIndex: function (sDir, input) {
-        var sInput, aIndex, i;
-        sInput = input.trim();
-        aIndex = JSON.parse(sInput);
-        for (i = 0; i < aIndex.length; i += 1) {
+    Controller.prototype.addIndex = function (sDir, sInput) {
+        sInput = sInput.trim();
+        var aIndex = JSON.parse(sInput);
+        for (var i = 0; i < aIndex.length; i += 1) {
             aIndex[i].dir = sDir;
             this.model.setExample(aIndex[i]);
         }
-    },
+    };
     // Also called from example files xxxxx.js
-    addItem: function (sKey, input) {
-        var sInput, oExample;
-        sInput = input.replace(/^\n/, ""); // remove preceding newline
-        sInput = sInput.replace(/\n$/, ""); // remove trailing newline
-        // beware of data files ending with newlines! (no trimEnd)
-        if (!sKey) {
-            sKey = this.model.getProperty("example");
+    Controller.prototype.addItem = function (sKey, sInput) {
+        if (!sKey) { // maybe ""
+            sKey = this.model.getStringProperty("example");
         }
-        oExample = this.model.getExample(sKey);
+        var oExample = this.model.getExample(sKey);
+        sInput = sInput.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
+        // beware of data files ending with newlines! (no trimEnd)
         oExample.key = sKey; // maybe changed
         oExample.script = sInput;
         oExample.loaded = true;
         Utils_1.Utils.console.log("addItem:", sKey);
         return sKey;
-    },
-    setDatabaseSelectOptions: function () {
+    };
+    Controller.prototype.setDatabaseSelectOptions = function () {
         var sSelect = "databaseSelect", aItems = [], oDatabases = this.model.getAllDatabases(), sDatabase = this.model.getProperty("database");
         for (var sValue in oDatabases) {
             if (oDatabases.hasOwnProperty(sValue)) {
@@ -199,8 +176,8 @@ Controller.prototype = {
             }
         }
         this.view.setSelectOptions(sSelect, aItems);
-    },
-    setExampleSelectOptions: function () {
+    };
+    Controller.prototype.setExampleSelectOptions = function () {
         var iMaxTitleLength = 160, iMaxTextLength = 60, // (32 visible?)
         sSelect = "exampleSelect", aItems = [], sExample = this.model.getProperty("example"), oAllExamples = this.model.getAllExamples();
         var bExampleSelected = false;
@@ -225,8 +202,8 @@ Controller.prototype = {
             aItems[0].selected = true; // if example is not found, select first element
         }
         this.view.setSelectOptions(sSelect, aItems);
-    },
-    setVarSelectOptions: function (sSelect, oVariables) {
+    };
+    Controller.prototype.setVarSelectOptions = function (sSelect, oVariables) {
         var iMaxVarLength = 35, aVarNames = oVariables.getAllVariableNames(), aItems = [], fnSortByStringProperties = function (a, b) {
             var x = a.value, y = b.value;
             if (x < y) {
@@ -254,29 +231,30 @@ Controller.prototype = {
         }
         aItems.sort(fnSortByStringProperties);
         this.view.setSelectOptions(sSelect, aItems);
-    },
-    updateStorageDatabase: function (sAction, sKey) {
-        var sDatabase = this.model.getProperty("database"), oStorage = Utils_1.Utils.localStorage, aDir, i, oExample, sData, oData; //
+    };
+    Controller.prototype.updateStorageDatabase = function (sAction, sKey) {
+        var sDatabase = this.model.getProperty("database"), oStorage = Utils_1.Utils.localStorage, aDir, sData, oData; //
         if (!sKey) { // no sKey => get all
             aDir = this.fnGetDirectoryEntries();
         }
         else {
             aDir = [sKey];
         }
-        for (i = 0; i < aDir.length; i += 1) {
+        for (var i = 0; i < aDir.length; i += 1) {
             sKey = aDir[i];
             if (sAction === "remove") {
                 this.model.removeExample(sKey);
             }
             else if (sAction === "set") {
-                oExample = this.model.getExample(sKey);
+                var oExample = this.model.getExample(sKey);
                 if (!oExample) {
                     sData = oStorage.getItem(sKey);
                     oData = this.splitMeta(sData);
                     oExample = {
                         key: sKey,
                         title: "",
-                        meta: oData.oMeta.sType // currently we take only the type
+                        meta: oData.oMeta.sType,
+                        type: undefined //TTT for what?
                     };
                     this.model.setExample(oExample);
                 }
@@ -288,8 +266,8 @@ Controller.prototype = {
         if (sDatabase === "storage") {
             this.setExampleSelectOptions();
         }
-    },
-    setInputText: function (sInput, bKeepStack) {
+    };
+    Controller.prototype.setInputText = function (sInput, bKeepStack) {
         this.view.setAreaValue("inputText", sInput);
         if (!bKeepStack) {
             this.fnInitUndoRedoButtons();
@@ -297,21 +275,20 @@ Controller.prototype = {
         else {
             this.fnUpdateUndoRedoButtons();
         }
-    },
-    invalidateScript: function () {
-        this.fnScript = null;
-    },
-    fnWaitForContinue: function () {
-        var iStream = 0, sKey;
-        sKey = this.oKeyboard.getKeyFromBuffer();
+    };
+    Controller.prototype.invalidateScript = function () {
+        this.fnScript = undefined;
+    };
+    Controller.prototype.fnWaitForContinue = function () {
+        var iStream = 0, sKey = this.oKeyboard.getKeyFromBuffer();
         if (sKey !== "") {
             this.oVm.cursor(iStream, 0);
             this.oKeyboard.setKeyDownHandler(null);
             this.startContinue();
         }
-    },
-    fnOnEscape: function () {
-        var oStop = this.oVm.vmGetStopObject(), iStream = 0, sMsg, oSavedStop;
+    };
+    Controller.prototype.fnOnEscape = function () {
+        var oStop = this.oVm.vmGetStopObject(), iStream = 0;
         if (this.oVm.vmOnBreakContSet()) {
             // ignore break
         }
@@ -320,7 +297,7 @@ Controller.prototype = {
                 oStop.oParas = {};
             }
             oStop.oParas.sInput = "";
-            sMsg = "*Break*\r\n";
+            var sMsg = "*Break*\r\n";
             this.oVm.print(iStream, sMsg);
         }
         else if (oStop.sReason !== "escape") { // first escape?
@@ -335,7 +312,7 @@ Controller.prototype = {
         else { // second escape
             this.oKeyboard.setKeyDownHandler(null);
             this.oVm.cursor(iStream, 0);
-            oSavedStop = this.getStopObject();
+            var oSavedStop = this.getStopObject();
             if (oSavedStop.sReason === "waitInput") { // sepcial handling: set line to repeat input
                 this.oVm.vmGotoLine(oSavedStop.oParas.iLine);
             }
@@ -345,13 +322,13 @@ Controller.prototype = {
             }
             else {
                 this.oVm.vmStop("stop", 0, true); // stop
-                sMsg = "Break in " + this.oVm.iLine + "\r\n";
+                var sMsg = "Break in " + this.oVm.iLine + "\r\n";
                 this.oVm.print(iStream, sMsg);
             }
         }
         this.startMainLoop();
-    },
-    fnWaitSound: function () {
+    };
+    Controller.prototype.fnWaitSound = function () {
         var oStop = this.oVm.vmGetStopObject(), aSoundData;
         this.oVm.vmLoopCondition(); // update iNextFrameTime, timers, inks; schedule sound: free queue
         if (this.oSound.isActivatedByUser()) { // only if activated
@@ -366,10 +343,9 @@ Controller.prototype = {
             }
         }
         this.iNextLoopTimeOut = this.oVm.vmGetTimeUntilFrame(); // wait until next frame
-    },
-    fnWaitKey: function () {
-        var sKey;
-        sKey = this.oKeyboard.getKeyFromBuffer();
+    };
+    Controller.prototype.fnWaitKey = function () {
+        var sKey = this.oKeyboard.getKeyFromBuffer();
         if (sKey !== "") { // do we have a key from the buffer already?
             Utils_1.Utils.console.log("Wait for key:", sKey);
             this.oVm.vmStop("", 0, true);
@@ -380,9 +356,10 @@ Controller.prototype = {
             this.oKeyboard.setKeyDownHandler(this.fnWaitKeyHandler); // wait until keypress handler (for call &bb18)
         }
         return sKey;
-    },
-    fnWaitInput: function () {
-        var oStop = this.oVm.vmGetStopObject(), oInput = oStop.oParas, iStream = oInput.iStream, sInput = oInput.sInput, bInputOk = false, sKey;
+    };
+    Controller.prototype.fnWaitInput = function () {
+        var oStop = this.oVm.vmGetStopObject(), oInput = oStop.oParas, iStream = oInput.iStream;
+        var sInput = oInput.sInput, sKey;
         do {
             sKey = this.oKeyboard.getKeyFromBuffer(); // (inkey$ could insert frame if checked too often)
             // chr13 shows as empty string!
@@ -481,6 +458,7 @@ Controller.prototype = {
             }
         } while (sKey !== "" && sKey !== "\r"); // get all keys until CR or no more key
         oInput.sInput = sInput;
+        var bInputOk = false;
         if (sKey === "\r") {
             Utils_1.Utils.console.log("fnWaitInput:", sInput, "reason", oStop.sReason);
             if (!oInput.sNoCRLF) {
@@ -508,10 +486,12 @@ Controller.prototype = {
             }
             this.oKeyboard.setKeyDownHandler(this.fnWaitInputHandler); // make sure it is set
         }
-    },
+    };
     // merge two scripts with sorted line numbers, lines from script2 overwrite lines from script1
-    mergeScripts: function (sScript1, sScript2) {
-        var aLines1 = sScript1.trimEnd().split("\n"), aLines2 = sScript2.trimEnd().split("\n"), aResult = [], iLine1, sLine2, iLine2, sResult;
+    Controller.prototype.mergeScripts = function (sScript1, sScript2) {
+        var aLines1 = sScript1.trimEnd().split("\n"), //TTT
+        aLines2 = sScript2.trimEnd().split("\n");
+        var aResult = [], iLine1, iLine2;
         while (aLines1.length && aLines2.length) {
             iLine1 = iLine1 || parseInt(aLines1[0], 10);
             iLine2 = iLine2 || parseInt(aLines2[0], 10);
@@ -520,7 +500,7 @@ Controller.prototype = {
                 iLine1 = 0;
             }
             else { // use line from script2
-                sLine2 = aLines2.shift();
+                var sLine2 = aLines2.shift();
                 if (String(iLine2) !== sLine2) { // line not empty?
                     aResult.push(sLine2);
                 }
@@ -537,11 +517,11 @@ Controller.prototype = {
                 aResult.pop(); // remove additional newline
             }
         }
-        sResult = aResult.join("\n");
+        var sResult = aResult.join("\n");
         return sResult;
-    },
+    };
     // get line range from a script with sorted line numbers
-    fnGetLinesInRange: function (sScript, iFirstLine, iLastLine) {
+    Controller.prototype.fnGetLinesInRange = function (sScript, iFirstLine, iLastLine) {
         var aLines = sScript ? sScript.split("\n") : [];
         while (aLines.length && parseInt(aLines[0], 10) < iFirstLine) {
             aLines.shift();
@@ -553,19 +533,18 @@ Controller.prototype = {
             aLines.pop();
         }
         return aLines;
-    },
-    fnPrepareMaskRegExp: function (sMask) {
-        var oRegExp;
+    };
+    Controller.fnPrepareMaskRegExp = function (sMask) {
         sMask = sMask.replace(/([.+^$[\]\\(){}|-])/g, "\\$1");
         sMask = sMask.replace(/\?/g, ".");
         sMask = sMask.replace(/\*/g, ".*");
-        oRegExp = new RegExp("^" + sMask + "$");
+        var oRegExp = new RegExp("^" + sMask + "$");
         return oRegExp;
-    },
-    fnGetExampleDirectoryEntries: function (sMask) {
+    };
+    Controller.prototype.fnGetExampleDirectoryEntries = function (sMask) {
         var aDir = [], oAllExamples = this.model.getAllExamples(), sKey, sKey2, sMatchKey2, oExample, oRegExp;
         if (sMask) {
-            oRegExp = this.fnPrepareMaskRegExp(sMask);
+            oRegExp = Controller.fnPrepareMaskRegExp(sMask);
         }
         for (sKey in oAllExamples) {
             if (oAllExamples.hasOwnProperty(sKey)) {
@@ -581,11 +560,11 @@ Controller.prototype = {
             }
         }
         return aDir;
-    },
-    fnGetDirectoryEntries: function (sMask) {
+    };
+    Controller.prototype.fnGetDirectoryEntries = function (sMask) {
         var oStorage = Utils_1.Utils.localStorage, aDir = [], oRegExp, i, sKey;
         if (sMask) {
-            oRegExp = this.fnPrepareMaskRegExp(sMask);
+            oRegExp = Controller.fnPrepareMaskRegExp(sMask);
         }
         for (i = 0; i < oStorage.length; i += 1) {
             sKey = oStorage.key(i);
@@ -594,8 +573,8 @@ Controller.prototype = {
             }
         }
         return aDir;
-    },
-    fnPrintDirectoryEntries: function (iStream, aDir, bSort) {
+    };
+    Controller.prototype.fnPrintDirectoryEntries = function (iStream, aDir, bSort) {
         var i, sKey, aParts;
         // first format names
         for (i = 0; i < aDir.length; i += 1) {
@@ -617,13 +596,13 @@ Controller.prototype = {
             this.oVm.print(iStream, sKey);
         }
         this.oVm.print(iStream, "\r\n");
-    },
-    fnFileCat: function (oParas) {
+    };
+    Controller.prototype.fnFileCat = function (oParas) {
         var iStream = oParas.iStream, aDir = this.fnGetDirectoryEntries();
         this.fnPrintDirectoryEntries(iStream, aDir, true);
         this.oVm.vmStop("", 0, true);
-    },
-    fnFileDir: function (oParas) {
+    };
+    Controller.prototype.fnFileDir = function (oParas) {
         var iStream = oParas.iStream, sFileMask = oParas.sFileMask, sPath = "", aDir, aDir2, sExample, iLastSlash, i;
         if (sFileMask) {
             sFileMask = this.fnLocalStorageName(sFileMask);
@@ -643,8 +622,8 @@ Controller.prototype = {
         aDir = aDir2.concat(aDir); // combine
         this.fnPrintDirectoryEntries(iStream, aDir, false);
         this.oVm.vmStop("", 0, true);
-    },
-    fnFileEra: function (oParas) {
+    };
+    Controller.prototype.fnFileEra = function (oParas) {
         var iStream = oParas.iStream, oStorage = Utils_1.Utils.localStorage, sFileMask = oParas.sFileMask, aDir, i, sName;
         sFileMask = this.fnLocalStorageName(sFileMask);
         aDir = this.fnGetDirectoryEntries(sFileMask);
@@ -666,8 +645,8 @@ Controller.prototype = {
             }
         }
         this.oVm.vmStop("", 0, true);
-    },
-    fnFileRen: function (oParas) {
+    };
+    Controller.prototype.fnFileRen = function (oParas) {
         var iStream = oParas.iStream, oStorage = Utils_1.Utils.localStorage, sNew = oParas.sNew, sOld = oParas.sOld, sItem;
         sNew = this.fnLocalStorageName(sNew);
         sOld = this.fnLocalStorageName(sOld);
@@ -687,9 +666,9 @@ Controller.prototype = {
             this.oVm.print(iStream, sOld + " not found\r\n");
         }
         this.oVm.vmStop("", 0, true);
-    },
+    };
     // Hisoft Devpac GENA3 Z80 Assember (http://www.cpcwiki.eu/index.php/Hisoft_Devpac)
-    asmGena3Convert: function (sData) {
+    Controller.asmGena3Convert = function (sData) {
         var iPos = 0, sOut = "", iLength = sData.length, fnUInt16 = function (iPos2) {
             return sData.charCodeAt(iPos2) + sData.charCodeAt(iPos2 + 1) * 256;
         }, iLineNum, iIndex1, iIndex2;
@@ -710,21 +689,22 @@ Controller.prototype = {
             iPos = iIndex1 + 1;
         }
         return sOut;
-    },
-    loadFileContinue: function (sInput) {
-        var oInFile = this.oVm.vmGetInFileObject(), sCommand = oInFile.sCommand, iStartLine = 0, bPutInMemory = false, oData, sType;
+    };
+    Controller.prototype.loadFileContinue = function (sInput) {
+        var oInFile = this.oVm.vmGetInFileObject(), sCommand = oInFile.sCommand;
+        var iStartLine = 0, bPutInMemory = false, oData;
         if (sInput !== null && sInput !== undefined) {
             oData = this.splitMeta(sInput);
             sInput = oData.sData; // maybe changed
             if (oData.oMeta.sEncoding === "base64") {
                 sInput = Utils_1.Utils.atob(sInput); // decode base64
             }
-            sType = oData.oMeta.sType;
+            var sType = oData.oMeta.sType;
             if (sType === "T") { // tokenized basic?
                 sInput = this.oBasicTokenizer.decode(sInput);
             }
             else if (sType === "P") { // protected BASIC?
-                sInput = DiskImage_1.DiskImage.prototype.unOrProtectData(sInput);
+                sInput = DiskImage_1.DiskImage.unOrProtectData(sInput);
                 sInput = this.oBasicTokenizer.decode(sInput);
             }
             else if (sType === "B") { // binary?
@@ -734,12 +714,12 @@ Controller.prototype = {
                 sInput = sInput.replace(/\x1a+$/, ""); // eslint-disable-line no-control-regex
             }
             else if (sType === "G") { // Hisoft Devpac GENA3 Z80 Assember
-                sInput = this.asmGena3Convert(sInput);
+                sInput = Controller.asmGena3Convert(sInput);
             }
         }
         if (oInFile.fnFileCallback) {
             try {
-                bPutInMemory = oInFile.fnFileCallback(sInput, oData && oData.oMeta);
+                bPutInMemory = oInFile.fnFileCallback(sInput, oData && oData.oMeta); //TTT
             }
             catch (e) {
                 Utils_1.Utils.console.warn(e);
@@ -806,11 +786,11 @@ Controller.prototype = {
         }
         this.oVm.vmSetStartLine(iStartLine);
         this.startMainLoop();
-    },
-    loadExample: function () {
-        var that = this, oInFile = this.oVm.vmGetInFileObject(), sPath = "", sDatabaseDir, sName, sExample, oExample, sKey, iLastSlash, sUrl, fnExampleLoaded = function (_sFullUrl, bSuppressLog) {
+    };
+    Controller.prototype.loadExample = function () {
+        var that = this, oInFile = this.oVm.vmGetInFileObject(), sExample, sUrl, fnExampleLoaded = function (_sFullUrl, bSuppressLog) {
             var sInput;
-            oExample = that.model.getExample(sExample);
+            var oExample = that.model.getExample(sExample);
             if (!bSuppressLog) {
                 Utils_1.Utils.console.log("Example", sUrl, oExample.meta || "", "loaded");
             }
@@ -819,29 +799,28 @@ Controller.prototype = {
             that.oVm.vmStop("", 0, true);
             that.loadFileContinue(sInput);
         }, fnExampleError = function () {
-            var oError;
             Utils_1.Utils.console.log("Example", sUrl, "error");
             that.model.setProperty("example", oInFile.sMemorizedExample);
             that.oVm.vmStop("", 0, true);
-            oError = that.oVm.vmComposeError(Error(), 32, sExample + " not found"); // TODO: set also derr=146 (xx not found)
+            var oError = that.oVm.vmComposeError(Error(), 32, sExample + " not found"); // TODO: set also derr=146 (xx not found)
             // error or onError set
             if (oError.hidden) {
                 that.oVm.vmStop("", 0, true); // clear onError
             }
             that.outputError(oError, true);
-            that.loadFileContinue(null, oError);
+            that.loadFileContinue(null);
         };
-        sName = oInFile.sName;
-        sKey = this.model.getProperty("example");
+        var sName = oInFile.sName;
+        var sKey = this.model.getStringProperty("example");
         if (sName.charAt(0) === "/") { // absolute path?
             sName = sName.substr(1); // remove "/"
             oInFile.sMemorizedExample = sName; // change!
         }
         else {
             oInFile.sMemorizedExample = sKey;
-            iLastSlash = sKey.lastIndexOf("/");
+            var iLastSlash = sKey.lastIndexOf("/");
             if (iLastSlash >= 0) {
-                sPath = sKey.substr(0, iLastSlash); // take path from selected example
+                var sPath = sKey.substr(0, iLastSlash); // take path from selected example
                 sName = sPath + "/" + sName;
                 sName = sName.replace(/\w+\/\.\.\//, ""); // simplify 2 dots (go back) in path: "dir/.."" => ""
             }
@@ -850,14 +829,14 @@ Controller.prototype = {
         if (Utils_1.Utils.debug > 0) {
             Utils_1.Utils.console.debug("loadExample: sName=" + sName + " (current=" + sKey + ")");
         }
-        oExample = this.model.getExample(sExample); // already loaded
+        var oExample = this.model.getExample(sExample); // already loaded
         if (oExample && oExample.loaded) {
             this.model.setProperty("example", sExample);
             fnExampleLoaded("", true);
         }
         else if (sExample && oExample) { // need to load
             this.model.setProperty("example", sExample);
-            sDatabaseDir = this.model.getDatabase().src;
+            var sDatabaseDir = this.model.getDatabase().src;
             sUrl = sDatabaseDir + "/" + sExample + ".js";
             Utils_1.Utils.loadScript(sUrl, fnExampleLoaded, fnExampleError);
         }
@@ -873,15 +852,15 @@ Controller.prototype = {
                 this.loadFileContinue(""); // empty input?
             }
         }
-    },
-    fnLocalStorageName: function (sName, sDefaultExtension) {
+    };
+    Controller.prototype.fnLocalStorageName = function (sName, sDefaultExtension) {
         // modify name so we do not clash with localstorage methods/properites
         if (sName.indexOf(".") < 0) { // no dot inside name?
             sName += "." + (sDefaultExtension || ""); // append dot or default extension
         }
         return sName;
-    },
-    tryLoadingFromLocalStorage: function (sName) {
+    };
+    Controller.prototype.tryLoadingFromLocalStorage = function (sName) {
         var oStorage = Utils_1.Utils.localStorage, aExtensions = [
             null,
             "bas",
@@ -895,9 +874,9 @@ Controller.prototype = {
             }
         }
         return sInput; // null=not found
-    },
+    };
     // run loop: fileLoad
-    fnFileLoad: function () {
+    Controller.prototype.fnFileLoad = function () {
         var oInFile = this.oVm.vmGetInFileObject(), sName, sInput;
         if (oInFile.bOpen) {
             if (oInFile.sCommand === "chainMerge" && oInFile.iFirst && oInFile.iLast) { // special handling to delete line numbers first
@@ -921,15 +900,15 @@ Controller.prototype = {
                 this.loadFileContinue(sInput);
             }
             else { // load from example
-                this.loadExample(sName);
+                this.loadExample( /* sName */); //TTT
             }
         }
         else {
             Utils_1.Utils.console.error("fnFileLoad:", sName, "File not open!");
         }
         this.iNextLoopTimeOut = this.oVm.vmGetTimeUntilFrame(); // wait until next frame
-    },
-    joinMeta: function (oMeta) {
+    };
+    Controller.prototype.joinMeta = function (oMeta) {
         var sMeta = [
             this.sMetaIdent,
             oMeta.sType,
@@ -938,15 +917,15 @@ Controller.prototype = {
             oMeta.iEntry
         ].join(";");
         return sMeta;
-    },
-    splitMeta: function (sInput) {
-        var oMeta, iIndex, sMeta, aMeta;
+    };
+    Controller.prototype.splitMeta = function (sInput) {
+        var oMeta;
         if (sInput.indexOf(this.sMetaIdent) === 0) { // starts with metaIdent?
-            iIndex = sInput.indexOf(","); // metadata separator
+            var iIndex = sInput.indexOf(","); // metadata separator
             if (iIndex >= 0) {
-                sMeta = sInput.substr(0, iIndex);
+                var sMeta = sInput.substr(0, iIndex);
                 sInput = sInput.substr(iIndex + 1);
-                aMeta = sMeta.split(";");
+                var aMeta = sMeta.split(";");
                 oMeta = {
                     sType: aMeta[1],
                     iStart: aMeta[2],
@@ -960,9 +939,9 @@ Controller.prototype = {
             oMeta: oMeta || {},
             sData: sInput
         };
-    },
+    };
     // run loop: fileSave
-    fnFileSave: function () {
+    Controller.prototype.fnFileSave = function () {
         var oOutFile = this.oVm.vmGetOutFileObject(), oStorage = Utils_1.Utils.localStorage, sDefaultExtension = "", sName, sType, sStorageName, sFileData, sMeta;
         if (oOutFile.bOpen) {
             sType = oOutFile.sType;
@@ -1002,8 +981,8 @@ Controller.prototype = {
             Utils_1.Utils.console.error("fnFileSave: file not open!");
         }
         this.oVm.vmStop("", 0, true); // continue
-    },
-    fnDeleteLines: function (oParas) {
+    };
+    Controller.prototype.fnDeleteLines = function (oParas) {
         var sInputText = this.view.getAreaValue("inputText"), aLines = this.fnGetLinesInRange(sInputText, oParas.iFirst, oParas.iLast), iLine, i, oError, sInput;
         if (aLines.length) {
             for (i = 0; i < aLines.length; i += 1) {
@@ -1023,16 +1002,16 @@ Controller.prototype = {
         }
         this.oVm.vmGotoLine(0); // reset current line
         this.oVm.vmStop("end", 0, true);
-    },
-    fnNew: function ( /* oParas */) {
+    };
+    Controller.prototype.fnNew = function ( /* oParas */) {
         var sInput = "";
         this.setInputText(sInput);
         this.oVariables.removeAllVariables();
         this.oVm.vmGotoLine(0); // reset current line
         this.oVm.vmStop("end", 0, true);
         this.invalidateScript();
-    },
-    fnList: function (oParas) {
+    };
+    Controller.prototype.fnList = function (oParas) {
         var sInput = this.view.getAreaValue("inputText"), iStream = oParas.iStream, aLines = this.fnGetLinesInRange(sInput, oParas.iFirst, oParas.iLast), oRegExp = new RegExp(/([\x00-\x1f])/g), // eslint-disable-line no-control-regex
         i, sLine;
         for (i = 0; i < aLines.length; i += 1) {
@@ -1044,8 +1023,8 @@ Controller.prototype = {
         }
         this.oVm.vmGotoLine(0); // reset current line
         this.oVm.vmStop("end", 0, true);
-    },
-    fnReset: function () {
+    };
+    Controller.prototype.fnReset = function () {
         var oVm = this.oVm;
         this.oVariables.removeAllVariables();
         oVm.vmReset();
@@ -1053,8 +1032,8 @@ Controller.prototype = {
         oVm.sOut = "";
         this.view.setAreaValue("outputText", "");
         this.invalidateScript();
-    },
-    outputError: function (oError, bNoSelection) {
+    };
+    Controller.prototype.outputError = function (oError, bNoSelection) {
         var iStream = 0, sShortError = oError.shortMessage || oError.message, sEscapedShortError, iEndPos;
         if (!bNoSelection) {
             iEndPos = oError.pos + ((oError.value !== undefined) ? String(oError.value).length : 0);
@@ -1063,8 +1042,8 @@ Controller.prototype = {
         sEscapedShortError = sShortError.replace(/([\x00-\x1f])/g, "\x01$1"); // eslint-disable-line no-control-regex
         this.oVm.print(iStream, sEscapedShortError + "\r\n");
         return sShortError;
-    },
-    fnRenumLines: function (oParas) {
+    };
+    Controller.prototype.fnRenumLines = function (oParas) {
         var oVm = this.oVm, sInput = this.view.getAreaValue("inputText"), oOutput;
         if (!this.oBasicFormatter) {
             this.oBasicFormatter = new BasicFormatter_1.BasicFormatter({
@@ -1086,8 +1065,8 @@ Controller.prototype = {
         this.oVm.vmGotoLine(0); // reset current line
         oVm.vmStop("end", 0, true);
         return oOutput;
-    },
-    fnEditLineCallback: function () {
+    };
+    Controller.prototype.fnEditLineCallback = function () {
         var oInput = this.oVm.vmGetStopObject().oParas, sInput = oInput.sInput, sInputText = this.view.getAreaValue("inputText");
         sInput = this.mergeScripts(sInputText, sInput);
         this.setInputText(sInput);
@@ -1097,8 +1076,8 @@ Controller.prototype = {
         this.oVm.cursor(oInput.iStream, 0);
         this.oVm.vmStop("end", 90);
         return true;
-    },
-    fnEditLine: function (oParas) {
+    };
+    Controller.prototype.fnEditLine = function (oParas) {
         var sInput = this.view.getAreaValue("inputText"), iStream = oParas.iStream, iLine = oParas.iLine, aLines = this.fnGetLinesInRange(sInput, iLine, iLine), sLine, oError;
         if (aLines.length) {
             sLine = aLines[0];
@@ -1113,12 +1092,12 @@ Controller.prototype = {
             this.fnWaitInput();
         }
         else {
-            oError = this.oVm.vmComposeError(Error(), 8, iLine); // "Line does not exist"
+            oError = this.oVm.vmComposeError(Error(), 8, String(iLine)); // "Line does not exist"
             this.oVm.print(iStream, String(oError) + "\r\n");
             this.oVm.vmStop("stop", 60, true);
         }
-    },
-    fnParse: function () {
+    };
+    Controller.prototype.fnParse = function () {
         var sInput = this.view.getAreaValue("inputText"), iBench = this.model.getProperty("bench"), i, iTime, oOutput, sOutput;
         this.oVariables.removeAllVariables();
         if (!iBench) {
@@ -1151,15 +1130,15 @@ Controller.prototype = {
         this.setVarSelectOptions("varSelect", this.oVariables);
         this.commonEventHandler.onVarSelectChange();
         return oOutput;
-    },
-    fnPretty: function () {
-        var sInput = this.view.getAreaValue("inputText"), oCodeGeneratorBasic, oOutput, sOutput, sDiff;
-        oCodeGeneratorBasic = new CodeGeneratorBasic_1.CodeGeneratorBasic({
+    };
+    Controller.prototype.fnPretty = function () {
+        var sInput = this.view.getAreaValue("inputText"), oCodeGeneratorBasic = new CodeGeneratorBasic_1.CodeGeneratorBasic({
             lexer: new BasicLexer_1.BasicLexer(),
             parser: new BasicParser_1.BasicParser()
         });
         oCodeGeneratorBasic.reset();
-        oOutput = oCodeGeneratorBasic.generate(sInput, this.oVariables);
+        var oOutput = oCodeGeneratorBasic.generate(sInput); // not needed: this.oVariables
+        var sOutput;
         if (oOutput.error) {
             sOutput = this.outputError(oOutput.error);
         }
@@ -1168,14 +1147,15 @@ Controller.prototype = {
             this.fnPutChangedInputOnStack();
             this.setInputText(sOutput, true);
             this.fnPutChangedInputOnStack();
-            sDiff = Diff_1.Diff.testDiff(sInput.toUpperCase(), sOutput.toUpperCase()); //TTT: for testing
+            var sDiff = Diff_1.Diff.testDiff(sInput.toUpperCase(), sOutput.toUpperCase()); //TTT: for testing
             this.view.setAreaValue("outputText", sDiff);
         }
         if (sOutput && sOutput.length > 0) {
             sOutput += "\n";
         }
-    },
-    selectJsError: function (sScript, e) {
+        //TTT need sOutput?
+    };
+    Controller.prototype.selectJsError = function (sScript, e) {
         var iPos = 0, iLine = 0, iErrLine = e.lineNumber - 3; // for some reason line 0 is 3
         while (iPos < sScript.length && iLine < iErrLine) {
             iPos = sScript.indexOf("\n", iPos) + 1;
@@ -1184,8 +1164,8 @@ Controller.prototype = {
         iPos += e.columnNumber;
         Utils_1.Utils.console.warn("Info: JS Error occurred at line", e.lineNumber, "column", e.columnNumber, "pos", iPos);
         this.view.setAreaSelection("outputText", iPos, iPos + 1);
-    },
-    fnRun: function (oParas) {
+    };
+    Controller.prototype.fnRun = function (oParas) {
         var sScript = this.view.getAreaValue("outputText"), iLine = oParas && oParas.iLine || 0, oVm = this.oVm;
         iLine = iLine || 0;
         if (iLine === 0) {
@@ -1206,7 +1186,7 @@ Controller.prototype = {
                 }
                 e.shortMessage = "JS " + String(e);
                 this.outputError(e, true);
-                this.fnScript = null;
+                this.fnScript = undefined;
             }
         }
         else {
@@ -1215,7 +1195,7 @@ Controller.prototype = {
         oVm.vmReset4Run();
         if (!this.bInputSet) {
             this.bInputSet = true;
-            this.oKeyboard.putKeysInBuffer(this.model.getProperty("input"));
+            this.oKeyboard.putKeysInBuffer(this.model.getStringProperty("input"));
         }
         if (this.fnScript) {
             oVm.sOut = this.view.getAreaValue("resultText");
@@ -1229,14 +1209,14 @@ Controller.prototype = {
         if (Utils_1.Utils.debug > 1) {
             Utils_1.Utils.console.debug("End of fnRun");
         }
-    },
-    fnParseRun: function () {
+    };
+    Controller.prototype.fnParseRun = function () {
         var oOutput = this.fnParse();
         if (!oOutput.error) {
             this.fnRun();
         }
-    },
-    fnRunPart1: function () {
+    };
+    Controller.prototype.fnRunPart1 = function () {
         try {
             this.fnScript(this.oVm);
         }
@@ -1259,14 +1239,15 @@ Controller.prototype = {
                 this.outputError(e, true);
             }
         }
-    },
-    fnDirectInput: function () {
-        var oInput = this.oVm.vmGetStopObject().oParas, iStream = oInput.iStream, sInput = oInput.sInput, sInputText, sMsg, oOutput, sOutput, fnScript;
+    };
+    Controller.prototype.fnDirectInput = function () {
+        var oInput = this.oVm.vmGetStopObject().oParas, iStream = oInput.iStream;
+        var sInput = oInput.sInput, oOutput, sOutput;
         sInput = sInput.trim();
         oInput.sInput = "";
         if (sInput !== "") {
             this.oVm.cursor(iStream, 0);
-            sInputText = this.view.getAreaValue("inputText");
+            var sInputText = this.view.getAreaValue("inputText");
             if ((/^\d+($| )/).test(sInput)) { // start with number?
                 if (Utils_1.Utils.debug > 0) {
                     Utils_1.Utils.console.debug("fnDirectInput: insert line=" + sInput);
@@ -1312,7 +1293,7 @@ Controller.prototype = {
                 this.oVm.vmSetStartLine(this.oVm.iLine); // fast hack
                 this.oVm.vmGotoLine("direct");
                 try {
-                    fnScript = new Function("o", sOutput); // eslint-disable-line no-new-func
+                    var fnScript = new Function("o", sOutput); // eslint-disable-line no-new-func
                     this.fnScript = fnScript;
                 }
                 catch (e) {
@@ -1324,14 +1305,14 @@ Controller.prototype = {
                 this.updateResultText();
                 return true;
             }
-            sMsg = oInput.sMessage;
+            var sMsg = oInput.sMessage;
             this.oVm.print(iStream, sMsg);
             this.oVm.cursor(iStream, 1);
         }
         this.updateResultText();
         return false;
-    },
-    startWithDirectInput: function () {
+    };
+    Controller.prototype.startWithDirectInput = function () {
         var oVm = this.oVm, iStream = 0, sMsg = "Ready\r\n";
         this.oVm.tagoff(iStream);
         if (this.oVm.pos(iStream) > 1) {
@@ -1347,12 +1328,12 @@ Controller.prototype = {
             sInput: ""
         });
         this.fnWaitInput();
-    },
-    updateResultText: function () {
+    };
+    Controller.prototype.updateResultText = function () {
         this.view.setAreaValue("resultText", this.oVm.sOut);
         this.view.setAreaScrollTop("resultText"); // scroll to bottom
-    },
-    exitLoop: function () {
+    };
+    Controller.prototype.exitLoop = function () {
         var oStop = this.oVm.vmGetStopObject(), sReason = oStop.sReason;
         this.updateResultText();
         this.view.setDisabled("runButton", sReason === "reset");
@@ -1363,36 +1344,36 @@ Controller.prototype = {
         if (sReason === "stop" || sReason === "end" || sReason === "error" || sReason === "parse" || sReason === "parseRun") {
             this.startWithDirectInput();
         }
-    },
-    fnBreak: function () {
+    };
+    Controller.prototype.fnBreak = function () {
         // empty
-    },
-    fnDirect: function () {
+    };
+    Controller.prototype.fnDirect = function () {
         // TTT: break in direct mode?
-    },
-    fnEnd: function () {
+    };
+    Controller.prototype.fnEnd = function () {
         // empty
-    },
-    fnError: function () {
+    };
+    Controller.prototype.fnError = function () {
         // empty
-    },
-    fnEscape: function () {
+    };
+    Controller.prototype.fnEscape = function () {
         // empty
-    },
-    fnWaitFrame: function () {
+    };
+    Controller.prototype.fnWaitFrame = function () {
         this.oVm.vmStop("", 0, true);
         this.iNextLoopTimeOut = this.oVm.vmGetTimeUntilFrame(); // wait until next frame
-    },
-    fnOnError: function () {
+    };
+    Controller.prototype.fnOnError = function () {
         this.oVm.vmStop("", 0, true); // continue
-    },
-    fnStop: function () {
+    };
+    Controller.prototype.fnStop = function () {
         // empty
-    },
-    fnTimer: function () {
+    };
+    Controller.prototype.fnTimer = function () {
         this.oVm.vmStop("", 0, true); // continue
-    },
-    fnRunLoop: function () {
+    };
+    Controller.prototype.fnRunLoop = function () {
         var oStop = this.oVm.vmGetStopObject(), sHandler;
         this.iNextLoopTimeOut = 0;
         if (!oStop.sReason && this.fnScript) {
@@ -1413,25 +1394,25 @@ Controller.prototype = {
         else {
             setTimeout(this.fnRunLoopHandler, this.iNextLoopTimeOut);
         }
-    },
-    startMainLoop: function () {
+    };
+    Controller.prototype.startMainLoop = function () {
         if (!this.bTimeoutHandlerActive) {
             this.bTimeoutHandlerActive = true;
             this.fnRunLoop();
         }
-    },
-    setStopObject: function (oStop) {
+    };
+    Controller.prototype.setStopObject = function (oStop) {
         Object.assign(this.oSavedStop, oStop);
-    },
-    getStopObject: function () {
+    };
+    Controller.prototype.getStopObject = function () {
         return this.oSavedStop;
-    },
-    startParse: function () {
+    };
+    Controller.prototype.startParse = function () {
         this.oKeyboard.setKeyDownHandler(null);
         this.oVm.vmStop("parse", 99);
         this.startMainLoop();
-    },
-    startRenum: function () {
+    };
+    Controller.prototype.startRenum = function () {
         var iStream = 0;
         this.oVm.vmStop("renumLines", 99, false, {
             iNew: 10,
@@ -1444,33 +1425,34 @@ Controller.prototype = {
         }
         this.oVm.print(iStream, "renum\r\n");
         this.startMainLoop();
-    },
-    startRun: function () {
+    };
+    Controller.prototype.startRun = function () {
         this.setStopObject(this.oNoStop);
         this.oKeyboard.setKeyDownHandler(null);
         this.oVm.vmStop("run", 99);
         this.startMainLoop();
-    },
-    startParseRun: function () {
+    };
+    Controller.prototype.startParseRun = function () {
         this.setStopObject(this.oNoStop);
         this.oKeyboard.setKeyDownHandler(null);
         this.oVm.vmStop("parseRun", 99);
         this.startMainLoop();
-    },
-    startBreak: function () {
+    };
+    Controller.prototype.startBreak = function () {
         var oVm = this.oVm, oStop = oVm.vmGetStopObject();
         this.setStopObject(oStop);
         this.oKeyboard.setKeyDownHandler(null);
         this.oVm.vmStop("break", 80);
         this.startMainLoop();
-    },
-    startContinue: function () {
+    };
+    Controller.prototype.startContinue = function () {
         var oVm = this.oVm, oStop = oVm.vmGetStopObject(), oSavedStop = this.getStopObject();
         this.view.setDisabled("runButton", true);
         this.view.setDisabled("stopButton", false);
         this.view.setDisabled("continueButton", true);
         if (oStop.sReason === "break" || oStop.sReason === "escape" || oStop.sReason === "stop" || oStop.sReason === "direct") {
-            if (!oSavedStop.fnInputCallback) { // no keyboard callback? make sure no handler is set (especially for direct->continue)
+            //TTT if (!oSavedStop.fnInputCallback) { // no keyboard callback? make sure no handler is set (especially for direct->continue)
+            if (oSavedStop.oParas && !oSavedStop.oParas.fnInputCallback) { // no keyboard callback? make sure no handler is set (especially for direct->continue)
                 this.oKeyboard.setKeyDownHandler(null);
             }
             if (oStop.sReason === "direct" || oStop.sReason === "escape") {
@@ -1480,25 +1462,25 @@ Controller.prototype = {
             this.setStopObject(this.oNoStop);
         }
         this.startMainLoop();
-    },
-    startReset: function () {
+    };
+    Controller.prototype.startReset = function () {
         this.setStopObject(this.oNoStop);
         this.oKeyboard.setKeyDownHandler(null);
         this.oVm.vmStop("reset", 99);
         this.startMainLoop();
-    },
-    startScreenshot: function () {
+    };
+    Controller.prototype.startScreenshot = function () {
         var image = this.oCanvas.canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"); // here is the most important part because if you do not replace you will get a DOM 18 exception.
         return image;
-    },
-    fnPutKeyInBuffer: function (sKey) {
+    };
+    Controller.prototype.fnPutKeyInBuffer = function (sKey) {
         var oKeyDownHandler = this.oKeyboard.getKeyDownHandler();
         this.oKeyboard.putKeyInBuffer(sKey);
         if (oKeyDownHandler) {
             oKeyDownHandler();
         }
-    },
-    startEnter: function () {
+    };
+    Controller.prototype.startEnter = function () {
         var sInput = this.view.getAreaValue("inp2Text"), i;
         sInput = sInput.replace("\n", "\r"); // LF => CR
         if (!sInput.endsWith("\r")) {
@@ -1508,8 +1490,8 @@ Controller.prototype = {
             this.fnPutKeyInBuffer(sInput.charAt(i));
         }
         this.view.setAreaValue("inp2Text", "");
-    },
-    generateFunction: function (sPar, sFunction) {
+    };
+    Controller.generateFunction = function (sPar, sFunction) {
         var aArgs = [], iFirstIndex, iLastIndex, aMatch, fnFunction;
         if (sFunction.startsWith("function anonymous(")) { // already a modified function (inside an anonymous function)?
             iFirstIndex = sFunction.indexOf("{");
@@ -1529,12 +1511,12 @@ Controller.prototype = {
         fnFunction = new Function(aArgs[0], aArgs[1], aArgs[2], aArgs[3], aArgs[4], sFunction); // eslint-disable-line no-new-func
         // we support at most 5 arguments
         return fnFunction;
-    },
-    changeVariable: function () {
+    };
+    Controller.prototype.changeVariable = function () {
         var sPar = this.view.getSelectValue("varSelect"), sValue = this.view.getSelectValue("varText"), oVariables = this.oVariables, sVarType, sType, value, value2;
         value = oVariables.getVariable(sPar);
         if (typeof value === "function") { // TODO
-            value = this.generateFunction(sPar, sValue);
+            value = Controller.generateFunction(sPar, sValue);
             /*
             value = sValue;
             value = "var o=cpcBasic.controller.oVm, v=o.vmGetAllVariables(); v." + sPar + " = " + sValue;
@@ -1563,8 +1545,8 @@ Controller.prototype = {
         }
         this.setVarSelectOptions("varSelect", oVariables);
         this.commonEventHandler.onVarSelectChange(); // title change?
-    },
-    setSoundActive: function () {
+    };
+    Controller.prototype.setSoundActive = function () {
         var oSound = this.oSound, soundButton = document.getElementById("soundButton"), bActive = this.model.getProperty("sound"), sText = "", oStop;
         if (bActive) {
             try {
@@ -1585,10 +1567,10 @@ Controller.prototype = {
             }
         }
         soundButton.innerText = sText;
-    },
+    };
     // https://stackoverflow.com/questions/10261989/html5-javascript-drag-and-drop-file-from-external-window-windows-explorer
     // https://www.w3.org/TR/file-upload/#dfn-filereader
-    fnHandleFileSelect: function (event) {
+    Controller.prototype.fnHandleFileSelect = function (event) {
         var aFiles = event.dataTransfer ? event.dataTransfer.files : event.target.files, // dataTransfer for drag&drop, target.files for file input
         iFile = 0, oStorage = Utils_1.Utils.localStorage, that = this, reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/), // eslint-disable-line no-control-regex
         // starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
@@ -1661,7 +1643,7 @@ Controller.prototype = {
                         }
                     }
                 }
-                oHeader = DiskImage_1.DiskImage.prototype.parseAmsdosHeader(sData);
+                oHeader = DiskImage_1.DiskImage.parseAmsdosHeader(sData);
                 if (oHeader) {
                     sData = sData.substr(0x80); // remove header
                 }
@@ -1672,7 +1654,7 @@ Controller.prototype = {
                         iLength: sData.length
                     };
                 }
-                else if (DiskImage_1.DiskImage.prototype.testDiskIdent(sData.substr(0, 8)) !== null) { // disk image file?
+                else if (DiskImage_1.DiskImage.testDiskIdent(sData.substr(0, 8)) !== null) { // disk image file?
                     try {
                         oDsk = new DiskImage_1.DiskImage({
                             sData: sData,
@@ -1767,40 +1749,41 @@ Controller.prototype = {
         else {
             Utils_1.Utils.console.warn("FileReader API not supported.");
         }
-    },
-    fnHandleDragOver: function (evt) {
+    };
+    Controller.prototype.fnHandleDragOver = function (evt) {
         evt.stopPropagation();
         evt.preventDefault();
         evt.dataTransfer.dropEffect = "copy"; // Explicitly show this is a copy.
-    },
-    initDropZone: function () {
+    };
+    Controller.prototype.initDropZone = function () {
         var dropZone = document.getElementById("dropZone");
         dropZone.addEventListener("dragover", this.fnHandleDragOver.bind(this), false);
         dropZone.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
         this.oCanvas.canvas.addEventListener("dragover", this.fnHandleDragOver.bind(this), false); //TTT fast hack
         this.oCanvas.canvas.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
         document.getElementById("fileInput").addEventListener("change", this.fnHandleFileSelect.bind(this), false);
-    },
-    fnUpdateUndoRedoButtons: function () {
+    };
+    Controller.prototype.fnUpdateUndoRedoButtons = function () {
         this.view.setDisabled("undoButton", !this.inputStack.canUndoKeepOne());
         this.view.setDisabled("redoButton", !this.inputStack.canRedo());
-    },
-    fnInitUndoRedoButtons: function () {
+    };
+    Controller.prototype.fnInitUndoRedoButtons = function () {
         this.inputStack.init();
         this.fnUpdateUndoRedoButtons();
-    },
-    fnPutChangedInputOnStack: function () {
+    };
+    Controller.prototype.fnPutChangedInputOnStack = function () {
         var sInput = this.view.getAreaValue("inputText"), sStackInput = this.inputStack.getInput();
         if (sStackInput !== sInput) {
             this.inputStack.save(sInput);
             this.fnUpdateUndoRedoButtons();
         }
-    },
+    };
     // currently not used. Can be called manually: cpcBasic.controller.exportAsBase64(file);
-    exportAsBase64: function (sStorageName) {
-        var oStorage = Utils_1.Utils.localStorage, sData = oStorage.getItem(sStorageName), sOut = "", sMeta = "", iIndex;
+    Controller.exportAsBase64 = function (sStorageName) {
+        var oStorage = Utils_1.Utils.localStorage;
+        var sData = oStorage.getItem(sStorageName), sOut = "", sMeta = "";
         if (sData !== null) {
-            iIndex = sData.indexOf(","); // metadata separator
+            var iIndex = sData.indexOf(","); // metadata separator
             if (iIndex >= 0) {
                 sMeta = sData.substr(0, iIndex);
                 sData = sData.substr(iIndex + 1);
@@ -1814,6 +1797,8 @@ Controller.prototype = {
         }
         Utils_1.Utils.console.log(sOut);
         return sOut;
-    }
-};
+    };
+    return Controller;
+}());
+exports.Controller = Controller;
 //# sourceMappingURL=Controller.js.map

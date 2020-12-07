@@ -1,19 +1,26 @@
+export interface CustomError extends Error {
+    value: any;
+    pos?: number;
+    line?: number | string;
+    hidden?: boolean;
+    shortMessage?: string;
+}
 export declare var Utils: {
     debug: number;
     console: Console;
-    fnLoadScriptOrStyle: (script: any, sFullUrl: any, fnSuccess: any, fnError: any) => any;
-    loadScript: (sUrl: any, fnSuccess: any, fnError: any) => void;
-    loadStyle: (sUrl: any, fnSuccess: any, fnError: any) => void;
-    dateFormat: (d: any) => string;
-    stringCapitalize: (str: any) => any;
-    numberWithCommas: (x: any) => string;
-    toRadians: (deg: any) => number;
-    toDegrees: (rad: any) => number;
+    fnLoadScriptOrStyle: (script: HTMLScriptElement | HTMLLinkElement, sFullUrl: string, fnSuccess: any, fnError: any) => string;
+    loadScript: (sUrl: string, fnSuccess: any, fnError: any) => void;
+    loadStyle: (sUrl: string, fnSuccess: any, fnError: any) => void;
+    dateFormat: (d: Date) => string;
+    stringCapitalize: (str: string) => string;
+    numberWithCommas: (x: number) => string;
+    toRadians: (deg: number) => number;
+    toDegrees: (rad: number) => number;
     getChangedParameters: (current: any, initial: any) => {};
     bSupportsBinaryLiterals: boolean;
     bSupportReservedNames: boolean;
     localStorage: any;
     atob: any;
     btoa: any;
-    composeError: (name: any, oError: any, message: any, value: any, pos: any, line: any, hidden: any) => any;
+    composeError: (name: string, oErrorObject: Error, message: string, value: any, pos?: number, line?: string | number, hidden?: boolean) => CustomError;
 };

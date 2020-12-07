@@ -2,35 +2,36 @@
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 
-"use strict";
-
-/*
-var Utils;
-
-if (typeof require !== "undefined") {
-	Utils = require("./Utils.js"); // eslint-disable-line global-require
-}
-*/
-
 import { Utils } from "./Utils";
+import { Model } from "./Model";
+import { View } from "./View";
 
-export function CommonEventHandler(oModel, oView, oController) {
-	this.init(oModel, oView, oController);
-}
+export class CommonEventHandler {
+	static fnEventHandler: undefined;
 
-CommonEventHandler.fnEventHandler = null;
+	model: Model;
+	view: View;
+	controller: any; //Controller; //TTT
 
-CommonEventHandler.prototype = {
-	init: function (oModel, oView, oController) {
+	fnUserAction = undefined;
+
+
+	constructor(oModel, oView, oController) {
+		this.init(oModel, oView, oController);
+	}
+
+	//CommonEventHandler.fnEventHandler = null;
+
+	init(oModel, oView, oController) {
 		this.model = oModel;
 		this.view = oView;
 		this.controller = oController;
 
-		this.fnUserAction = null;
+		this.fnUserAction = undefined;
 		this.attachEventHandler();
-	},
+	}
 
-	fnCommonEventHandler: function (event) {
+	fnCommonEventHandler(event) {
 		var oTarget = event.target,
 			sId = (oTarget) ? oTarget.getAttribute("id") : oTarget,
 			sType = event.type, // click or change
@@ -63,164 +64,164 @@ CommonEventHandler.prototype = {
 				this.onWindowClick(event);
 			}
 		}
-	},
+	}
 
-	attachEventHandler: function () {
+	private attachEventHandler() {
 		if (!CommonEventHandler.fnEventHandler) {
 			CommonEventHandler.fnEventHandler = this.fnCommonEventHandler.bind(this);
 		}
 		this.view.attachEventHandler("click", CommonEventHandler.fnEventHandler);
 		this.view.attachEventHandler("change", CommonEventHandler.fnEventHandler);
 		return this;
-	},
+	}
 
-	toogleHidden: function (sId, sProp, sDisplay) {
+	toogleHidden(sId: string, sProp: string, sDisplay?: string) {
 		var bVisible = !this.model.getProperty(sProp);
 
 		this.model.setProperty(sProp, bVisible);
 		this.view.setHidden(sId, !bVisible, sDisplay);
 		return bVisible;
-	},
+	}
 
-	fnActivateUserAction: function (fnAction) {
+	fnActivateUserAction(fnAction) {
 		this.fnUserAction = fnAction;
-	},
+	}
 
-	fnDeactivateUserAction: function () {
-		this.fnUserAction = null;
-	},
+	fnDeactivateUserAction() {
+		this.fnUserAction = undefined;
+	}
 
-	onSpecialButtonClick: function () {
+	onSpecialButtonClick() {
 		this.toogleHidden("specialArea", "showSpecial");
-	},
+	}
 
-	onInputButtonClick: function () {
+	onInputButtonClick() {
 		this.toogleHidden("inputArea", "showInput");
-	},
+	}
 
-	onInp2ButtonClick: function () {
+	onInp2ButtonClick() {
 		this.toogleHidden("inp2Area", "showInp2");
-	},
+	}
 
-	onOutputButtonClick: function () {
+	onOutputButtonClick() {
 		this.toogleHidden("outputArea", "showOutput");
-	},
+	}
 
-	onResultButtonClick: function () {
+	onResultButtonClick() {
 		this.toogleHidden("resultArea", "showResult");
-	},
+	}
 
-	onTextButtonClick: function () {
+	onTextButtonClick() {
 		this.toogleHidden("textArea", "showText");
-	},
+	}
 
-	onVariableButtonClick: function () {
+	onVariableButtonClick() {
 		this.toogleHidden("variableArea", "showVariable");
-	},
+	}
 
-	onCpcButtonClick: function () {
+	onCpcButtonClick() {
 		if (this.toogleHidden("cpcArea", "showCpc")) {
 			this.controller.oCanvas.startUpdateCanvas();
 		} else {
 			this.controller.oCanvas.stopUpdateCanvas();
 		}
-	},
+	}
 
-	onKbdButtonClick: function () {
+	onKbdButtonClick() {
 		if (this.toogleHidden("kbdArea", "showKbd", "flex")) {
 			if (this.view.getHidden("kbdArea")) { // on old browsers, display "flex" is not available, so set "block" if still hidden
 				this.view.setHidden("kbdArea", false);
 			}
 			this.controller.oKeyboard.virtualKeyboardCreate(); // maybe draw it
 		}
-	},
+	}
 
-	onKbdLayoutButtonClick: function () {
+	onKbdLayoutButtonClick() {
 		this.toogleHidden("kbdLayoutArea", "showKbdLayout");
-	},
+	}
 
-	onConsoleButtonClick: function () {
+	onConsoleButtonClick() {
 		this.toogleHidden("consoleArea", "showConsole");
-	},
+	}
 
-	onParseButtonClick: function () {
+	onParseButtonClick() {
 		this.controller.startParse();
-	},
+	}
 
-	onRenumButtonClick: function () {
+	onRenumButtonClick() {
 		this.controller.startRenum();
-	},
+	}
 
-	onPrettyButtonClick: function () {
+	onPrettyButtonClick() {
 		this.controller.fnPretty();
-	},
+	}
 
-	fnUpdateAreaText: function (sInput) {
+	fnUpdateAreaText(sInput) {
 		this.controller.setInputText(sInput, true);
 		this.view.setAreaValue("outputText", "");
-	},
+	}
 
-	onUndoButtonClick: function () {
+	onUndoButtonClick() {
 		var sInput = this.controller.inputStack.undo();
 
 		this.fnUpdateAreaText(sInput);
-	},
+	}
 
-	onRedoButtonClick: function () {
+	onRedoButtonClick() {
 		var sInput = this.controller.inputStack.redo();
 
 		this.fnUpdateAreaText(sInput);
-	},
+	}
 
-	onRunButtonClick: function () {
+	onRunButtonClick() {
 		var sInput = this.view.getAreaValue("outputText");
 
 		this.controller.startRun(sInput);
-	},
+	}
 
-	onStopButtonClick: function () {
+	onStopButtonClick() {
 		this.controller.startBreak();
-	},
+	}
 
-	onContinueButtonClick: function (event) {
+	onContinueButtonClick(event) {
 		this.controller.startContinue();
 		this.onCpcCanvasClick(event);
-	},
+	}
 
-	onResetButtonClick: function () {
+	onResetButtonClick() {
 		this.controller.startReset();
-	},
+	}
 
-	onParseRunButtonClick: function (event) {
+	onParseRunButtonClick(event) {
 		this.controller.startParseRun();
 		this.onCpcCanvasClick(event);
-	},
+	}
 
-	onHelpButtonClick: function () {
+	onHelpButtonClick() {
 		window.open("https://github.com/benchmarko/CPCBasic/#readme");
-	},
+	}
 
-	onInputTextClick: function () {
+	onInputTextClick() {
 		// nothing
-	},
+	}
 
-	onOutputTextClick: function () {
+	onOutputTextClick() {
 		// nothing
-	},
+	}
 
-	onResultTextClick: function () {
+	onResultTextClick() {
 		// nothing
-	},
+	}
 
-	onVarTextClick: function () {
+	onVarTextClick() {
 		// nothing
-	},
+	}
 
-	onOutputTextChange: function () {
+	onOutputTextChange() {
 		this.controller.invalidateScript();
-	},
+	}
 
-	encodeUriParam: function (params) {
+	private encodeUriParam(params) {
 		var aParts = [],
 			sKey,
 			sValue;
@@ -232,17 +233,17 @@ CommonEventHandler.prototype = {
 			}
 		}
 		return aParts.join("&");
-	},
+	}
 
-	onReloadButtonClick: function () {
+	onReloadButtonClick() {
 		var oChanged = Utils.getChangedParameters(this.model.getAllProperties(), this.model.getAllInitialProperties()),
 			sParas = this.encodeUriParam(oChanged);
 
 		sParas = sParas.replace(/%2[Ff]/g, "/"); // unescape %2F -> /
 		window.location.search = "?" + sParas;
-	},
+	}
 
-	onDatabaseSelectChange: function () {
+	onDatabaseSelectChange() {
 		var that = this,
 			sDatabase = this.view.getSelectValue("databaseSelect"),
 			sUrl, oDatabase,
@@ -289,21 +290,23 @@ CommonEventHandler.prototype = {
 			sUrl = oDatabase.src + "/" + this.model.getProperty("exampleIndex");
 			Utils.loadScript(sUrl, fnDatabaseLoaded, fnDatabaseError);
 		}
-	},
+	}
 
-	onExampleSelectChange: function () {
+	onExampleSelectChange() {
 		var oController = this.controller,
 			oVm = oController.oVm,
 			oInFile = oVm.vmGetInFileObject(),
 			sDataBase = this.model.getProperty("database"),
-			sExample, oExample, sType;
+			sType;
 
 		oVm.closein();
 
 		oInFile.bOpen = true;
 
-		sExample = this.view.getSelectValue("exampleSelect");
-		oExample = this.model.getExample(sExample);
+		let sExample = this.view.getSelectValue("exampleSelect");
+
+		const oExample = this.model.getExample(sExample);
+
 		oInFile.sCommand = "run";
 		if (oExample && oExample.meta) { // TTT TODO: this is just a workaround, meta is in input now; should change command after loading!
 			sType = oExample.meta.charAt(0);
@@ -323,9 +326,9 @@ CommonEventHandler.prototype = {
 		oInFile.fnFileCallback = oVm.fnLoadHandler;
 		oVm.vmStop("fileLoad", 90);
 		oController.startMainLoop();
-	},
+	}
 
-	onVarSelectChange: function () {
+	onVarSelectChange() {
 		var sPar = this.view.getSelectValue("varSelect"),
 			oVariables = this.controller.oVariables,
 			sValue;
@@ -335,9 +338,9 @@ CommonEventHandler.prototype = {
 			sValue = "";
 		}
 		this.view.setAreaValue("varText", sValue);
-	},
+	}
 
-	onKbdLayoutSelectChange: function () {
+	onKbdLayoutSelectChange() {
 		var sValue = this.view.getSelectValue("kbdLayoutSelect");
 
 		this.model.setProperty("kbdLayout", sValue);
@@ -345,13 +348,13 @@ CommonEventHandler.prototype = {
 
 		this.view.setHidden("kbdAlpha", sValue === "num");
 		this.view.setHidden("kbdNum", sValue === "alpha");
-	},
+	}
 
-	onVarTextChange: function () {
+	onVarTextChange() {
 		this.controller.changeVariable();
-	},
+	}
 
-	onScreenshotButtonClick: function () {
+	onScreenshotButtonClick() {
 		var sExample = this.view.getSelectValue("exampleSelect"),
 			image = this.controller.startScreenshot(),
 			link = document.getElementById("screenshotLink"),
@@ -360,31 +363,24 @@ CommonEventHandler.prototype = {
 		link.setAttribute("download", sName);
 		link.setAttribute("href", image);
 		link.click();
-	},
+	}
 
-	onEnterButtonClick: function () {
+	onEnterButtonClick() {
 		this.controller.startEnter();
-	},
+	}
 
-	onSoundButtonClick: function () {
+	onSoundButtonClick() {
 		this.model.setProperty("sound", !this.model.getProperty("sound"));
 		this.controller.setSoundActive();
-	},
+	}
 
-	onCpcCanvasClick: function (event) {
+	onCpcCanvasClick(event) {
 		this.controller.oCanvas.onCpcCanvasClick(event);
 		this.controller.oKeyboard.setActive(true);
-	},
+	}
 
-	onWindowClick: function (event) {
+	onWindowClick(event) {
 		this.controller.oCanvas.onWindowClick(event);
 		this.controller.oKeyboard.setActive(false);
 	}
-};
-
-
-/*
-if (typeof module !== "undefined" && module.exports) {
-	module.exports = CommonEventHandler;
 }
-*/

@@ -2,8 +2,6 @@
 // (c) Marco Vieth, 2020
 // https://benchmarko.github.io/CPCBasic/
 
-"use strict";
-
 type VariableValue = string | number | object; //TTT any?  string | number | function | array
 
 type VariableMap = { [k in string]: VariableValue }; //TTT
@@ -27,7 +25,7 @@ export class Variables {
 	removeAllVariables() {
 		const oVariables = this.oVariables;
 
-		for (let sName in oVariables) { // eslint-disable-line guard-for-in
+		for (const sName in oVariables) { // eslint-disable-line guard-for-in
 			delete oVariables[sName];
 		}
 		return this;

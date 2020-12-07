@@ -1,31 +1,24 @@
+"use strict";
 // CommonEventHandler.js - Common event handler for browser events
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
-"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CommonEventHandler = void 0;
-/*
-var Utils;
-
-if (typeof require !== "undefined") {
-    Utils = require("./Utils.js"); // eslint-disable-line global-require
-}
-*/
 var Utils_1 = require("./Utils");
-function CommonEventHandler(oModel, oView, oController) {
-    this.init(oModel, oView, oController);
-}
-exports.CommonEventHandler = CommonEventHandler;
-CommonEventHandler.fnEventHandler = null;
-CommonEventHandler.prototype = {
-    init: function (oModel, oView, oController) {
+var CommonEventHandler = /** @class */ (function () {
+    function CommonEventHandler(oModel, oView, oController) {
+        this.fnUserAction = undefined;
+        this.init(oModel, oView, oController);
+    }
+    //CommonEventHandler.fnEventHandler = null;
+    CommonEventHandler.prototype.init = function (oModel, oView, oController) {
         this.model = oModel;
         this.view = oView;
         this.controller = oController;
-        this.fnUserAction = null;
+        this.fnUserAction = undefined;
         this.attachEventHandler();
-    },
-    fnCommonEventHandler: function (event) {
+    };
+    CommonEventHandler.prototype.fnCommonEventHandler = function (event) {
         var oTarget = event.target, sId = (oTarget) ? oTarget.getAttribute("id") : oTarget, sType = event.type, // click or change
         sHandler;
         if (this.fnUserAction) {
@@ -55,128 +48,128 @@ CommonEventHandler.prototype = {
                 this.onWindowClick(event);
             }
         }
-    },
-    attachEventHandler: function () {
+    };
+    CommonEventHandler.prototype.attachEventHandler = function () {
         if (!CommonEventHandler.fnEventHandler) {
             CommonEventHandler.fnEventHandler = this.fnCommonEventHandler.bind(this);
         }
         this.view.attachEventHandler("click", CommonEventHandler.fnEventHandler);
         this.view.attachEventHandler("change", CommonEventHandler.fnEventHandler);
         return this;
-    },
-    toogleHidden: function (sId, sProp, sDisplay) {
+    };
+    CommonEventHandler.prototype.toogleHidden = function (sId, sProp, sDisplay) {
         var bVisible = !this.model.getProperty(sProp);
         this.model.setProperty(sProp, bVisible);
         this.view.setHidden(sId, !bVisible, sDisplay);
         return bVisible;
-    },
-    fnActivateUserAction: function (fnAction) {
+    };
+    CommonEventHandler.prototype.fnActivateUserAction = function (fnAction) {
         this.fnUserAction = fnAction;
-    },
-    fnDeactivateUserAction: function () {
-        this.fnUserAction = null;
-    },
-    onSpecialButtonClick: function () {
+    };
+    CommonEventHandler.prototype.fnDeactivateUserAction = function () {
+        this.fnUserAction = undefined;
+    };
+    CommonEventHandler.prototype.onSpecialButtonClick = function () {
         this.toogleHidden("specialArea", "showSpecial");
-    },
-    onInputButtonClick: function () {
+    };
+    CommonEventHandler.prototype.onInputButtonClick = function () {
         this.toogleHidden("inputArea", "showInput");
-    },
-    onInp2ButtonClick: function () {
+    };
+    CommonEventHandler.prototype.onInp2ButtonClick = function () {
         this.toogleHidden("inp2Area", "showInp2");
-    },
-    onOutputButtonClick: function () {
+    };
+    CommonEventHandler.prototype.onOutputButtonClick = function () {
         this.toogleHidden("outputArea", "showOutput");
-    },
-    onResultButtonClick: function () {
+    };
+    CommonEventHandler.prototype.onResultButtonClick = function () {
         this.toogleHidden("resultArea", "showResult");
-    },
-    onTextButtonClick: function () {
+    };
+    CommonEventHandler.prototype.onTextButtonClick = function () {
         this.toogleHidden("textArea", "showText");
-    },
-    onVariableButtonClick: function () {
+    };
+    CommonEventHandler.prototype.onVariableButtonClick = function () {
         this.toogleHidden("variableArea", "showVariable");
-    },
-    onCpcButtonClick: function () {
+    };
+    CommonEventHandler.prototype.onCpcButtonClick = function () {
         if (this.toogleHidden("cpcArea", "showCpc")) {
             this.controller.oCanvas.startUpdateCanvas();
         }
         else {
             this.controller.oCanvas.stopUpdateCanvas();
         }
-    },
-    onKbdButtonClick: function () {
+    };
+    CommonEventHandler.prototype.onKbdButtonClick = function () {
         if (this.toogleHidden("kbdArea", "showKbd", "flex")) {
             if (this.view.getHidden("kbdArea")) { // on old browsers, display "flex" is not available, so set "block" if still hidden
                 this.view.setHidden("kbdArea", false);
             }
             this.controller.oKeyboard.virtualKeyboardCreate(); // maybe draw it
         }
-    },
-    onKbdLayoutButtonClick: function () {
+    };
+    CommonEventHandler.prototype.onKbdLayoutButtonClick = function () {
         this.toogleHidden("kbdLayoutArea", "showKbdLayout");
-    },
-    onConsoleButtonClick: function () {
+    };
+    CommonEventHandler.prototype.onConsoleButtonClick = function () {
         this.toogleHidden("consoleArea", "showConsole");
-    },
-    onParseButtonClick: function () {
+    };
+    CommonEventHandler.prototype.onParseButtonClick = function () {
         this.controller.startParse();
-    },
-    onRenumButtonClick: function () {
+    };
+    CommonEventHandler.prototype.onRenumButtonClick = function () {
         this.controller.startRenum();
-    },
-    onPrettyButtonClick: function () {
+    };
+    CommonEventHandler.prototype.onPrettyButtonClick = function () {
         this.controller.fnPretty();
-    },
-    fnUpdateAreaText: function (sInput) {
+    };
+    CommonEventHandler.prototype.fnUpdateAreaText = function (sInput) {
         this.controller.setInputText(sInput, true);
         this.view.setAreaValue("outputText", "");
-    },
-    onUndoButtonClick: function () {
+    };
+    CommonEventHandler.prototype.onUndoButtonClick = function () {
         var sInput = this.controller.inputStack.undo();
         this.fnUpdateAreaText(sInput);
-    },
-    onRedoButtonClick: function () {
+    };
+    CommonEventHandler.prototype.onRedoButtonClick = function () {
         var sInput = this.controller.inputStack.redo();
         this.fnUpdateAreaText(sInput);
-    },
-    onRunButtonClick: function () {
+    };
+    CommonEventHandler.prototype.onRunButtonClick = function () {
         var sInput = this.view.getAreaValue("outputText");
         this.controller.startRun(sInput);
-    },
-    onStopButtonClick: function () {
+    };
+    CommonEventHandler.prototype.onStopButtonClick = function () {
         this.controller.startBreak();
-    },
-    onContinueButtonClick: function (event) {
+    };
+    CommonEventHandler.prototype.onContinueButtonClick = function (event) {
         this.controller.startContinue();
         this.onCpcCanvasClick(event);
-    },
-    onResetButtonClick: function () {
+    };
+    CommonEventHandler.prototype.onResetButtonClick = function () {
         this.controller.startReset();
-    },
-    onParseRunButtonClick: function (event) {
+    };
+    CommonEventHandler.prototype.onParseRunButtonClick = function (event) {
         this.controller.startParseRun();
         this.onCpcCanvasClick(event);
-    },
-    onHelpButtonClick: function () {
+    };
+    CommonEventHandler.prototype.onHelpButtonClick = function () {
         window.open("https://github.com/benchmarko/CPCBasic/#readme");
-    },
-    onInputTextClick: function () {
+    };
+    CommonEventHandler.prototype.onInputTextClick = function () {
         // nothing
-    },
-    onOutputTextClick: function () {
+    };
+    CommonEventHandler.prototype.onOutputTextClick = function () {
         // nothing
-    },
-    onResultTextClick: function () {
+    };
+    CommonEventHandler.prototype.onResultTextClick = function () {
         // nothing
-    },
-    onVarTextClick: function () {
+    };
+    CommonEventHandler.prototype.onVarTextClick = function () {
         // nothing
-    },
-    onOutputTextChange: function () {
+    };
+    CommonEventHandler.prototype.onOutputTextChange = function () {
         this.controller.invalidateScript();
-    },
-    encodeUriParam: function (params) {
+    };
+    CommonEventHandler.prototype.encodeUriParam = function (params) {
         var aParts = [], sKey, sValue;
         for (sKey in params) {
             if (params.hasOwnProperty(sKey)) {
@@ -185,13 +178,13 @@ CommonEventHandler.prototype = {
             }
         }
         return aParts.join("&");
-    },
-    onReloadButtonClick: function () {
+    };
+    CommonEventHandler.prototype.onReloadButtonClick = function () {
         var oChanged = Utils_1.Utils.getChangedParameters(this.model.getAllProperties(), this.model.getAllInitialProperties()), sParas = this.encodeUriParam(oChanged);
         sParas = sParas.replace(/%2[Ff]/g, "/"); // unescape %2F -> /
         window.location.search = "?" + sParas;
-    },
-    onDatabaseSelectChange: function () {
+    };
+    CommonEventHandler.prototype.onDatabaseSelectChange = function () {
         var that = this, sDatabase = this.view.getSelectValue("databaseSelect"), sUrl, oDatabase, fnDatabaseLoaded = function ( /* sFullUrl */) {
             oDatabase.loaded = true;
             Utils_1.Utils.console.log("fnDatabaseLoaded: database loaded: " + sDatabase + ": " + sUrl);
@@ -232,13 +225,13 @@ CommonEventHandler.prototype = {
             sUrl = oDatabase.src + "/" + this.model.getProperty("exampleIndex");
             Utils_1.Utils.loadScript(sUrl, fnDatabaseLoaded, fnDatabaseError);
         }
-    },
-    onExampleSelectChange: function () {
-        var oController = this.controller, oVm = oController.oVm, oInFile = oVm.vmGetInFileObject(), sDataBase = this.model.getProperty("database"), sExample, oExample, sType;
+    };
+    CommonEventHandler.prototype.onExampleSelectChange = function () {
+        var oController = this.controller, oVm = oController.oVm, oInFile = oVm.vmGetInFileObject(), sDataBase = this.model.getProperty("database"), sType;
         oVm.closein();
         oInFile.bOpen = true;
-        sExample = this.view.getSelectValue("exampleSelect");
-        oExample = this.model.getExample(sExample);
+        var sExample = this.view.getSelectValue("exampleSelect");
+        var oExample = this.model.getExample(sExample);
         oInFile.sCommand = "run";
         if (oExample && oExample.meta) { // TTT TODO: this is just a workaround, meta is in input now; should change command after loading!
             sType = oExample.meta.charAt(0);
@@ -257,45 +250,47 @@ CommonEventHandler.prototype = {
         oInFile.fnFileCallback = oVm.fnLoadHandler;
         oVm.vmStop("fileLoad", 90);
         oController.startMainLoop();
-    },
-    onVarSelectChange: function () {
+    };
+    CommonEventHandler.prototype.onVarSelectChange = function () {
         var sPar = this.view.getSelectValue("varSelect"), oVariables = this.controller.oVariables, sValue;
         sValue = oVariables.getVariable(sPar);
         if (sValue === undefined) {
             sValue = "";
         }
         this.view.setAreaValue("varText", sValue);
-    },
-    onKbdLayoutSelectChange: function () {
+    };
+    CommonEventHandler.prototype.onKbdLayoutSelectChange = function () {
         var sValue = this.view.getSelectValue("kbdLayoutSelect");
         this.model.setProperty("kbdLayout", sValue);
         this.view.setSelectTitleFromSelectedOption("kbdLayoutSelect");
         this.view.setHidden("kbdAlpha", sValue === "num");
         this.view.setHidden("kbdNum", sValue === "alpha");
-    },
-    onVarTextChange: function () {
+    };
+    CommonEventHandler.prototype.onVarTextChange = function () {
         this.controller.changeVariable();
-    },
-    onScreenshotButtonClick: function () {
+    };
+    CommonEventHandler.prototype.onScreenshotButtonClick = function () {
         var sExample = this.view.getSelectValue("exampleSelect"), image = this.controller.startScreenshot(), link = document.getElementById("screenshotLink"), sName = sExample + ".png";
         link.setAttribute("download", sName);
         link.setAttribute("href", image);
         link.click();
-    },
-    onEnterButtonClick: function () {
+    };
+    CommonEventHandler.prototype.onEnterButtonClick = function () {
         this.controller.startEnter();
-    },
-    onSoundButtonClick: function () {
+    };
+    CommonEventHandler.prototype.onSoundButtonClick = function () {
         this.model.setProperty("sound", !this.model.getProperty("sound"));
         this.controller.setSoundActive();
-    },
-    onCpcCanvasClick: function (event) {
+    };
+    CommonEventHandler.prototype.onCpcCanvasClick = function (event) {
         this.controller.oCanvas.onCpcCanvasClick(event);
         this.controller.oKeyboard.setActive(true);
-    },
-    onWindowClick: function (event) {
+    };
+    CommonEventHandler.prototype.onWindowClick = function (event) {
         this.controller.oCanvas.onWindowClick(event);
         this.controller.oKeyboard.setActive(false);
-    }
-};
+    };
+    return CommonEventHandler;
+}());
+exports.CommonEventHandler = CommonEventHandler;
 //# sourceMappingURL=CommonEventHandler.js.map

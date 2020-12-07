@@ -1,35 +1,27 @@
+"use strict";
 // BasicTokenizer.js - Tokenize BASIC programs
 // (c) Marco Vieth, 2020
 // https://benchmarko.github.io/CPCBasic/
 //
-"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BasicTokenizer = void 0;
-/*
-var Utils;
-
-if (typeof require !== "undefined") {
-    / * eslint-disable global-require * /
-    Utils = require("./Utils.js");
-    / * eslint-enable global-require * /
-}
-*/
 var Utils_1 = require("./Utils");
-function BasicTokenizer(options) {
-    this.init(options);
-}
-exports.BasicTokenizer = BasicTokenizer;
-BasicTokenizer.prototype = {
-    init: function ( /* options */) {
-    },
-    reset: function () {
+var BasicTokenizer = /** @class */ (function () {
+    function BasicTokenizer() {
+        this.init();
+    }
+    BasicTokenizer.prototype.init = function () {
+        this.reset();
+    };
+    BasicTokenizer.prototype.reset = function () {
         this.sData = "";
         this.iPos = 0;
         this.iLine = 0;
-    },
-    decode: function (sProgram) {
+    };
+    BasicTokenizer.prototype.decode = function (sProgram) {
         // based on lbas2ascii.pl, 28.06.2006
-        var that = this, fnNum8Dec = function () {
+        var that = this, // eslint-disable-line @typescript-eslint/no-this-alias
+        fnNum8Dec = function () {
             var iNum = that.sInput.charCodeAt(that.iPos);
             that.iPos += 1;
             return iNum;
@@ -423,6 +415,8 @@ BasicTokenizer.prototype = {
         };
         this.sInput = sProgram;
         return fnParseProgram();
-    }
-};
+    };
+    return BasicTokenizer;
+}());
+exports.BasicTokenizer = BasicTokenizer;
 //# sourceMappingURL=BasicTokenizer.js.map

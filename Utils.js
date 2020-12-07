@@ -1,8 +1,8 @@
+"use strict";
 // Utils.js - Utililities for CPCBasic
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //
-"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Utils = void 0;
 exports.Utils = {
@@ -31,32 +31,26 @@ exports.Utils = {
                 fnError(sFullUrl);
             }
         }, onScriptReadyStateChange = function (event) {
-            var node, iTimeout;
-            if (event) {
-                node = event.currentTarget || event.srcElement;
-            }
-            else {
-                node = script;
-            }
-            if (node.detachEvent) {
-                node.detachEvent("onreadystatechange", onScriptReadyStateChange);
+            var node = event ? (event.currentTarget || event.srcElement) : script, node2 = node;
+            if (node2.detachEvent) {
+                node2.detachEvent("onreadystatechange", onScriptReadyStateChange);
             }
             if (exports.Utils.debug > 1) {
-                exports.Utils.console.debug("onScriptReadyStateChange: " + node.src || node.href);
+                exports.Utils.console.debug("onScriptReadyStateChange: " + node2.src || node2.href);
             }
             // check also: https://stackoverflow.com/questions/1929742/can-script-readystate-be-trusted-to-detect-the-end-of-dynamic-script-loading
-            if (node.readyState !== "loaded" && node.readyState !== "complete") {
-                if (node.readyState === "loading" && iIEtimeoutCount) {
+            if (node2.readyState !== "loaded" && node2.readyState !== "complete") {
+                if (node2.readyState === "loading" && iIEtimeoutCount) {
                     iIEtimeoutCount -= 1;
-                    iTimeout = 200; // some delay
-                    exports.Utils.console.error("onScriptReadyStateChange: Still loading: " + (node.src || node.href) + " Waiting " + iTimeout + "ms (count=" + iIEtimeoutCount + ")");
+                    var iTimeout = 200; // some delay
+                    exports.Utils.console.error("onScriptReadyStateChange: Still loading: " + (node2.src || node2.href) + " Waiting " + iTimeout + "ms (count=" + iIEtimeoutCount + ")");
                     setTimeout(function () {
                         onScriptReadyStateChange(null); // check again
                     }, iTimeout);
                 }
                 else {
                     // iIEtimeoutCount = 3;
-                    exports.Utils.console.error("onScriptReadyStateChange: Cannot load file " + (node.src || node.href) + " readystate=" + node.readyState);
+                    exports.Utils.console.error("onScriptReadyStateChange: Cannot load file " + (node2.src || node2.href) + " readystate=" + node2.readyState);
                     if (fnError) {
                         fnError(sFullUrl);
                     }
@@ -78,21 +72,19 @@ exports.Utils = {
         return sFullUrl;
     },
     loadScript: function (sUrl, fnSuccess, fnError) {
-        var script, sFullUrl;
-        script = document.createElement("script");
+        var script = document.createElement("script");
         script.type = "text/javascript";
         script.charset = "utf-8";
         script.async = true;
         script.src = sUrl;
-        sFullUrl = script.src;
+        var sFullUrl = script.src;
         this.fnLoadScriptOrStyle(script, sFullUrl, fnSuccess, fnError);
     },
     loadStyle: function (sUrl, fnSuccess, fnError) {
-        var link, sFullUrl;
-        link = document.createElement("link");
+        var link = document.createElement("link");
         link.rel = "stylesheet";
         link.href = sUrl;
-        sFullUrl = link.href;
+        var sFullUrl = link.href;
         this.fnLoadScriptOrStyle(link, sFullUrl, fnSuccess, fnError);
     },
     dateFormat: function (d) {
@@ -115,8 +107,8 @@ exports.Utils = {
         return rad * 180 / Math.PI;
     },
     getChangedParameters: function (current, initial) {
-        var oChanged = {}, sName;
-        for (sName in current) {
+        var oChanged = {};
+        for (var sName in current) {
             if (current.hasOwnProperty(sName)) {
                 if (current[sName] !== initial[sName]) {
                     oChanged[sName] = current[sName];
@@ -155,30 +147,30 @@ exports.Utils = {
     }()),
     atob: typeof window !== "undefined" && window.atob && window.atob.bind ? window.atob.bind(window) : null,
     btoa: typeof window !== "undefined" && window.btoa && window.btoa.bind ? window.btoa.bind(window) : null,
-    composeError: function (name, oError, message, value, pos, line, hidden) {
-        var iEndPos;
+    composeError: function (name, oErrorObject, message, value, pos, line, hidden) {
+        var oCustomError = oErrorObject;
         if (name !== undefined) {
-            oError.name = name;
+            oCustomError.name = name;
         }
         if (message !== undefined) {
-            oError.message = message;
+            oCustomError.message = message;
         }
         if (value !== undefined) {
-            oError.value = value;
+            oCustomError.value = value;
         }
         if (pos !== undefined) {
-            oError.pos = pos;
+            oCustomError.pos = pos;
         }
         if (line !== undefined) {
-            oError.line = line;
+            oCustomError.line = line;
         }
         if (hidden !== undefined) {
-            oError.hidden = hidden;
+            oCustomError.hidden = hidden;
         }
-        iEndPos = (oError.pos || 0) + ((oError.value !== undefined) ? String(oError.value).length : 0);
-        oError.shortMessage = oError.message + (oError.line !== undefined ? " in " + oError.line : " at pos " + (oError.pos || 0) + "-" + iEndPos) + ": " + oError.value;
-        oError.message += " in " + oError.line + " at pos " + (oError.pos || 0) + "-" + iEndPos + ": " + oError.value;
-        return oError;
+        var iEndPos = (oCustomError.pos || 0) + ((oCustomError.value !== undefined) ? String(oCustomError.value).length : 0);
+        oCustomError.shortMessage = oCustomError.message + (oCustomError.line !== undefined ? " in " + oCustomError.line : " at pos " + (oCustomError.pos || 0) + "-" + iEndPos) + ": " + oCustomError.value;
+        oCustomError.message += " in " + oCustomError.line + " at pos " + (oCustomError.pos || 0) + "-" + iEndPos + ": " + oCustomError.value;
+        return oCustomError;
     }
 };
 //# sourceMappingURL=Utils.js.map

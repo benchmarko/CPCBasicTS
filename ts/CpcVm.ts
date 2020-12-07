@@ -3,17 +3,11 @@
 // https://benchmarko.github.io/CPCBasic/
 //
 
-"use strict";
-
 import { Utils } from "./Utils";
-//import { CpcVmRsx } from "./CpcVmRsx";
-import { CpcKeyExpansionsOptions } from "./Keyboard";
+import { Keyboard, CpcKeyExpansionsOptions } from "./Keyboard";
 import { Random } from "./Random";
-import { SoundData, ToneEnvData, ToneEnvData1, ToneEnvData2, VolEnvData, VolEnvData1, VolEnvData2 } from "./Sound";
-
+import { Sound, SoundData, ToneEnvData, ToneEnvData1, ToneEnvData2, VolEnvData, VolEnvData1, VolEnvData2 } from "./Sound";
 import { Canvas } from "./Canvas";
-import { Keyboard } from "./Keyboard";
-import { Sound } from "./Sound";
 import { Variables } from "./Variables";
 
 interface CpcVmOptions {
@@ -24,8 +18,6 @@ interface CpcVmOptions {
 	tron: boolean
 }
 
-
-
 interface FileBase {
 	bOpen: boolean
 	sCommand: string
@@ -33,40 +25,60 @@ interface FileBase {
 	iLine: number
 	iStart: number
 	aFileData: string[]
-	fnFileCallback: () => void
+	fnFileCallback: (...aArgs) => void | boolean
 }
 
 interface InFile extends FileBase {
-	//bOpen: boolean
-	//sCommand: string
-	//sName: string
-	//iLine: number
-	//fnFileCallback: () => void
 	iFirst: number
 	iLast: number
 	sMemorizedExample: string
 }
 interface OutFile extends FileBase {
-	//bOpen: boolean
-	//sCommand: string
-	//sName: string
-	//iLine: number
-	//aFileData: []
-	//fnFileCallback: () => void
-	//iStart: number
 	iStream: number
 	sType: string
 	iLength: number
 	iEntry: number
 }
 
-export class CpcVm {
+export interface StopParas {
+	iStream?: number
+	sMessage?: string
+	fnInputCallback?: any //TTT
+	sInput?: string
+	iLine?: string | number
+	sCommand?: string
+	sNoCRLF?: string
 
-	fnOpeninHandler = this.vmOpeninCallback.bind(this);
-	fnCloseinHandler = this.vmCloseinCallback.bind(this);
-	fnCloseoutHandler = this.vmCloseoutCallback.bind(this);
-	fnLoadHandler = this.vmLoadCallback.bind(this);
-	fnRunHandler = this.vmRunCallback.bind(this);
+	aTypes?: string[]
+
+	// delete lines
+	iFirst?: number
+	iLast?: number
+
+	// renum lines
+	iNew?: number
+	iOld?: number
+	iStep?: number
+	iKeep?: number
+
+	sFileMask?: string
+	sNew?: string,
+	sOld?: string
+}
+
+export interface StopEntry {
+	sReason: string // stop reason
+	iPriority: number // stop priority (higher number means higher priority which can overwrite lower priority)
+	oParas?: StopParas
+}
+
+
+export class CpcVm {
+	fnOpeninHandler: FileBase["fnFileCallback"]; // = undefined;
+	fnCloseinHandler = undefined;
+	fnCloseoutHandler = undefined;
+	fnLoadHandler = undefined;
+	fnRunHandler = undefined;
 
 	options: CpcVmOptions;
 	oCanvas: Canvas;
@@ -75,16 +87,11 @@ export class CpcVm {
 	oVariables: Variables;
 	tronFlag: boolean;
 
-	//rsx: CpcVmRsx;
 	oRandom: Random;
 
-	oStop = {
-		sReason: "", // stop reason
-		iPriority: 0, // stop priority (higher number means higher priority which can overwrite lower priority)
-		oParas: null
-	};
+	oStop: StopEntry;
 
-	aInputValues = []; // values to input into script
+	aInputValues: (string | number)[]; // values to input into script
 	oInFile: InFile; // file handling
 	oOutFile: OutFile; // file handling
 
@@ -134,7 +141,7 @@ export class CpcVm {
 
 	bDeg: boolean; // degree or radians
 
-	bTron: boolean;  // trace flag
+	bTron: boolean; // trace flag
 	iTronLine: number; // last trace line
 
 	iRamSelect: number;
@@ -160,6 +167,12 @@ export class CpcVm {
 
 
 	constructor(options: CpcVmOptions) {
+		this.fnOpeninHandler = this.vmOpeninCallback.bind(this);
+		this.fnCloseinHandler = this.vmCloseinCallback.bind(this);
+		this.fnCloseoutHandler = this.vmCloseoutCallback.bind(this);
+		this.fnLoadHandler = this.vmLoadCallback.bind(this);
+		this.fnRunHandler = this.vmRunCallback.bind(this);
+
 		this.vmInit(options);
 	}
 
@@ -227,7 +240,7 @@ export class CpcVm {
 		376: 159
 	};
 
-	static mControlCodeParameterCount = [
+	private static mControlCodeParameterCount = [
 		0, // 0x00
 		1, // 0x01
 		0, // 0x02
@@ -262,9 +275,44 @@ export class CpcVm {
 		2 //  0x1f
 	];
 
-	vmInit(options: CpcVmOptions) {
-		var i;
+	private static aErrors = [ // BASIC error numbers
+		"Improper argument", // 0
+		"Unexpected NEXT", // 1
+		"Syntax Error", // 2
+		"Unexpected RETURN", // 3
+		"DATA exhausted", // 4
+		"Improper argument", // 5
+		"Overflow", // 6
+		"Memory full", // 7
+		"Line does not exist", // 8
+		"Subscript out of range", // 9
+		"Array already dimensioned", // 10
+		"Division by zero", // 11
+		"Invalid direct command", // 12
+		"Type mismatch", // 13
+		"String space full", // 14
+		"String too long", // 15
+		"String expression too complex", // 16
+		"Cannot CONTinue", // 17
+		"Unknown user function", // 18
+		"RESUME missing", // 19
+		"Unexpected RESUME", // 20
+		"Direct command found", // 21
+		"Operand missing", // 22
+		"Line too long", // 23
+		"EOF met", // 24
+		"File type error", // 25
+		"NEXT missing", // 26
+		"File already open", // 27
+		"Unknown command", // 28
+		"WEND missing", // 29
+		"Unexpected WEND", // 30
+		"File not open", // 31,
+		"Broken", // 32 "Broken in" (derr=146: xxx not found)
+		"Unknown error" // 33...
+	];
 
+	vmInit(options: CpcVmOptions): void {
 		/*
 		this.fnOpeninHandler = this.vmOpeninCallback.bind(this);
 		this.fnCloseinHandler = this.vmCloseinCallback.bind(this);
@@ -287,7 +335,7 @@ export class CpcVm {
 		this.oStop = {
 			sReason: "", // stop reason
 			iPriority: 0, // stop priority (higher number means higher priority which can overwrite lower priority)
-			oParas: null // optional stop parameters
+			oParas: undefined // optional stop parameters
 		};
 		// special stop reasons and priorities:
 		// "timer": 20 (timer expired)
@@ -340,7 +388,7 @@ export class CpcVm {
 			sType: "",
 			iLength: 0,
 			iEntry: undefined
-	}; // file handling
+		}; // file handling
 		// "bOpen": File open flag
 		// "sCommand": Command that started the file open (in: chain, chainMerge, load, merge, openin, run; out: save, openput)
 		// "sName": File name
@@ -365,30 +413,30 @@ export class CpcVm {
 		this.aData = []; // array for BASIC data lines (continuous)
 
 		this.aWindow = []; // window data for window 0..7,8,9
-		for (i = 0; i < CpcVm.iStreamCount; i += 1) {
+		for (let i = 0; i < CpcVm.iStreamCount; i += 1) {
 			this.aWindow[i] = {};
 		}
 
 		this.aTimer = []; // BASIC timer 0..3 (3 has highest priority)
-		for (i = 0; i < CpcVm.iTimerCount; i += 1) {
+		for (let i = 0; i < CpcVm.iTimerCount; i += 1) {
 			this.aTimer[i] = {};
 		}
 
 		this.aSoundData = [];
 
 		this.aSqTimer = []; // Sound queue timer 0..2
-		for (i = 0; i < CpcVm.iSqTimerCount; i += 1) {
+		for (let i = 0; i < CpcVm.iSqTimerCount; i += 1) {
 			this.aSqTimer[i] = {};
 		}
 
 		this.aCrtcData = [];
 	}
 
-	vmSetRsxClass(oRsx: object) {
+	vmSetRsxClass(oRsx: object): void {
 		this.rsx = oRsx; //TTT just for the script
 	}
 
-	vmReset() {
+	vmReset(): void {
 		this.iStartTime = Date.now();
 		this.oRandom.init();
 		this.lastRnd = 0;
@@ -460,8 +508,8 @@ export class CpcVm {
 		this.iInkeyTime = 0; // if >0, next time when inkey$ can be checked without inserting "waitFrame"
 	}
 
-	vmResetTimers() {
-		var oData = {
+	vmResetTimers(): void {
+		const oData = {
 				iLine: 0, // gosub line when timer expires
 				bRepeat: false, // flag if timer is repeating (every) or one time (after)
 				iIntervalMs: 0, // interval or timeout
@@ -472,20 +520,19 @@ export class CpcVm {
 				iSavedPriority: 0 // priority befora calling the handler
 			},
 			aTimer = this.aTimer,
-			aSqTimer = this.aSqTimer,
-			i;
+			aSqTimer = this.aSqTimer;
 
-		for (i = 0; i < CpcVm.iTimerCount; i += 1) {
+		for (let i = 0; i < CpcVm.iTimerCount; i += 1) {
 			Object.assign(aTimer[i], oData);
 		}
 
 		// sound queue timer
-		for (i = 0; i < CpcVm.iSqTimerCount; i += 1) {
+		for (let i = 0; i < CpcVm.iSqTimerCount; i += 1) {
 			Object.assign(aSqTimer[i], oData);
 		}
 	}
 
-	vmResetWindowData(bResetPenPaper: boolean) {
+	vmResetWindowData(bResetPenPaper: boolean): void {
 		const oWinData = CpcVm.mWinData[this.iMode],
 			oData = {
 				iPos: 0, // current text position in line
@@ -532,16 +579,16 @@ export class CpcVm {
 		Object.assign(oWin, oWinData, oCassetteData);
 	}
 
-	vmResetControlBuffer() {
+	vmResetControlBuffer(): void {
 		this.sPrintControlBuf = ""; // collected control characters for PRINT
 	}
 
-	vmResetFileHandling(oFile: FileBase) {
+	vmResetFileHandling(oFile: FileBase): void {
 		oFile.bOpen = false;
 		oFile.sCommand = ""; // to be sure
 	}
 
-	vmResetData() {
+	vmResetData(): void {
 		this.aData.length = 0; // array for BASIC data lines (continuous)
 		this.iData = 0; // current index
 		this.oDataLineIndex = { // line number index for the data line buffer
@@ -549,13 +596,13 @@ export class CpcVm {
 		};
 	}
 
-	vmResetInks() {
+	vmResetInks(): void {
 		this.oCanvas.setDefaultInks();
 		this.oCanvas.setSpeedInk(10, 10);
 	}
 
-	vmReset4Run() {
-		var iStream = 0;
+	vmReset4Run(): void {
+		const iStream = 0;
 
 		this.vmResetInks();
 		this.clearInput();
@@ -568,20 +615,20 @@ export class CpcVm {
 		return this.oVariables.getAllVariables();
 	}
 
-	vmSetStartLine(iLine) {
+	vmSetStartLine(iLine): void {
 		this.iStartLine = iLine;
 	}
 
-	vmOnBreakContSet() {
+	vmOnBreakContSet(): boolean {
 		return this.iBreakGosubLine < 0; // on break cont
 	}
 
-	vmOnBreakHandlerActive() {
+	vmOnBreakHandlerActive(): number {
 		return this.iBreakResumeLine;
 	}
 
-	vmEscape() {
-		var bStop = true;
+	vmEscape(): boolean {
+		let bStop = true;
 
 		if (this.iBreakGosubLine > 0) { // on break gosub n
 			if (!this.iBreakResumeLine) { // do not nest break gosub
@@ -596,20 +643,20 @@ export class CpcVm {
 		return bStop;
 	}
 
-	vmAssertNumber(n: number, sErr: string) {
+	vmAssertNumber(n: number, sErr: string): void {
 		if (typeof n !== "number") {
 			throw this.vmComposeError(Error(), 13, sErr + " " + n); // Type mismatch
 		}
 	}
 
-	vmAssertString(s: string, sErr: string) {
+	vmAssertString(s: string, sErr: string): void {
 		if (typeof s !== "string") {
 			throw this.vmComposeError(Error(), 13, sErr + " " + s); // Type mismatch
 		}
 	}
 
 	// round number (-2^31..2^31) to integer; throw error if no number
-	vmRound(n: number, sErr?: string) { // optional sErr
+	vmRound(n: number, sErr?: string): number { // optional sErr
 		this.vmAssertNumber(n, sErr || "?");
 		return (n >= 0) ? (n + 0.5) | 0 : (n - 0.5) | 0; // eslint-disable-line no-bitwise
 	}
@@ -623,7 +670,7 @@ export class CpcVm {
 	}
 	*/
 
-	vmInRangeRound(n: number, iMin: number, iMax: number, sErr?: string) { // optional sErr
+	vmInRangeRound(n: number, iMin: number, iMax: number, sErr?: string): number {
 		n = this.vmRound(n, sErr);
 		if (n < iMin || n > iMax) {
 			Utils.console.warn("vmInRangeRound: number not in range:", iMin + "<=" + n + "<=" + iMax);
@@ -632,14 +679,14 @@ export class CpcVm {
 		return n;
 	}
 
-	vmDetermineVarType(sVarType) { // also used in controller
-		var sType = (sVarType.length > 1) ? sVarType.charAt(1) : this.oVariables.getVarType(sVarType.charAt(0));
+	vmDetermineVarType(sVarType: string): string { // also used in controller
+		const sType = (sVarType.length > 1) ? sVarType.charAt(1) : this.oVariables.getVarType(sVarType.charAt(0));
 
 		return sType;
 	}
 
-	vmAssertNumberType(sVarType) {
-		var sType = this.vmDetermineVarType(sVarType);
+	vmAssertNumberType(sVarType: string): void {
+		const sType = this.vmDetermineVarType(sVarType);
 
 		if (sType !== "I" && sType !== "R") { // not integer or real?
 			throw this.vmComposeError(Error(), 13, "type " + sType); // "Type mismatch"
@@ -647,13 +694,13 @@ export class CpcVm {
 	}
 
 	// format a value for assignment to a variable with type determined from sVarType
-	vmAssign(sVarType, value) {
-		var sType = this.vmDetermineVarType(sVarType);
+	vmAssign(sVarType: string, value: string | number): (string | number) {
+		const sType = this.vmDetermineVarType(sVarType);
 
 		if (sType === "R") { // real
-			this.vmAssertNumber(value, "=");
+			this.vmAssertNumber(value as number, "=");
 		} else if (sType === "I") { // integer
-			value = this.vmRound(value, "="); // round number to integer
+			value = this.vmRound(value as number, "="); // round number to integer
 		} else if (sType === "$") { // string
 			if (typeof value !== "string") {
 				Utils.console.warn("vmAssign: expected string but got:", value);
@@ -663,49 +710,7 @@ export class CpcVm {
 		return value;
 	}
 
-	vmGetError(iErr) { // BASIC error numbers
-		var aErrors = [
-				"Improper argument", // 0
-				"Unexpected NEXT", // 1
-				"Syntax Error", // 2
-				"Unexpected RETURN", // 3
-				"DATA exhausted", // 4
-				"Improper argument", // 5
-				"Overflow", // 6
-				"Memory full", // 7
-				"Line does not exist", // 8
-				"Subscript out of range", // 9
-				"Array already dimensioned", // 10
-				"Division by zero", // 11
-				"Invalid direct command", // 12
-				"Type mismatch", // 13
-				"String space full", // 14
-				"String too long", // 15
-				"String expression too complex", // 16
-				"Cannot CONTinue", // 17
-				"Unknown user function", // 18
-				"RESUME missing", // 19
-				"Unexpected RESUME", // 20
-				"Direct command found", // 21
-				"Operand missing", // 22
-				"Line too long", // 23
-				"EOF met", // 24
-				"File type error", // 25
-				"NEXT missing", // 26
-				"File already open", // 27
-				"Unknown command", // 28
-				"WEND missing", // 29
-				"Unexpected WEND", // 30
-				"File not open", // 31,
-				"Broken", // 32 "Broken in" (derr=146: xxx not found)
-				"Unknown error" // 33...
-			],
-			sError = aErrors[iErr] || aErrors[aErrors.length - 1]; // Unknown error
-
-		return sError;
-	}
-
-	vmGotoLine(line, sMsg) {
+	vmGotoLine(line: string | number, sMsg?: string): void {
 		if (Utils.debug > 5) {
 			if (typeof line === "number" || Utils.debug > 7) { // non-number labels only in higher debug levels
 				Utils.console.debug("dvmGotoLine:", sMsg + ": " + line);
@@ -714,13 +719,12 @@ export class CpcVm {
 		this.iLine = line;
 	}
 
-	fnCheckSqTimer() {
-		var bTimerExpired = false,
-			oTimer, i;
+	private fnCheckSqTimer() {
+		let bTimerExpired = false;
 
 		if (this.iTimerPriority < 2) {
-			for (i = 0; i < CpcVm.iSqTimerCount; i += 1) {
-				oTimer = this.aSqTimer[i];
+			for (let i = 0; i < CpcVm.iSqTimerCount; i += 1) {
+				const oTimer = this.aSqTimer[i];
 
 				// use oSound.sq(i) and not this.sq(i) since that would reset onSq timer
 				if (oTimer.bActive && !oTimer.bHandlerRunning && (this.oSound.sq(i) & 0x07)) { // eslint-disable-line no-bitwise
@@ -736,12 +740,12 @@ export class CpcVm {
 		return bTimerExpired;
 	}
 
-	vmCheckTimer(iTime) {
-		var bTimerExpired = false,
-			iDelta, oTimer, i;
+	private vmCheckTimer(iTime: number) {
+		let bTimerExpired = false;
 
-		for (i = CpcVm.iTimerCount - 1; i > this.iTimerPriority; i -= 1) { // check timers starting with highest priority first
-			oTimer = this.aTimer[i];
+		for (let i = CpcVm.iTimerCount - 1; i > this.iTimerPriority; i -= 1) { // check timers starting with highest priority first
+			const oTimer = this.aTimer[i];
+
 			if (oTimer.bActive && !oTimer.bHandlerRunning && iTime > oTimer.iNextTimeMs) { // timer expired?
 				this.gosub(this.iLine, oTimer.iLine);
 				oTimer.bHandlerRunning = true;
@@ -751,7 +755,8 @@ export class CpcVm {
 				if (!oTimer.bRepeat) { // not repeating
 					oTimer.bActive = false;
 				} else {
-					iDelta = iTime - oTimer.iNextTimeMs;
+					const iDelta = iTime - oTimer.iNextTimeMs;
+
 					oTimer.iNextTimeMs += oTimer.iIntervalMs * Math.ceil(iDelta / oTimer.iIntervalMs);
 				}
 				bTimerExpired = true;
@@ -765,11 +770,10 @@ export class CpcVm {
 		return bTimerExpired;
 	}
 
-	vmCheckTimerHandlers() {
-		var i, oTimer;
+	private vmCheckTimerHandlers() {
+		for (let i = CpcVm.iTimerCount - 1; i >= 0; i -= 1) {
+			const oTimer = this.aTimer[i];
 
-		for (i = CpcVm.iTimerCount - 1; i >= 0; i -= 1) {
-			oTimer = this.aTimer[i];
 			if (oTimer.bHandlerRunning) {
 				if (oTimer.iStackIndexReturn > this.aGosubStack.length) {
 					oTimer.bHandlerRunning = false;
@@ -780,12 +784,12 @@ export class CpcVm {
 		}
 	}
 
-	vmCheckSqTimerHandlers() {
-		var bTimerReloaded = false,
-			i, oTimer;
+	private vmCheckSqTimerHandlers() {
+		let bTimerReloaded = false;
 
-		for (i = CpcVm.iSqTimerCount - 1; i >= 0; i -= 1) {
-			oTimer = this.aSqTimer[i];
+		for (let i = CpcVm.iSqTimerCount - 1; i >= 0; i -= 1) {
+			const oTimer = this.aSqTimer[i];
+
 			if (oTimer.bHandlerRunning) {
 				if (oTimer.iStackIndexReturn > this.aGosubStack.length) {
 					oTimer.bHandlerRunning = false;
@@ -802,11 +806,9 @@ export class CpcVm {
 		return bTimerReloaded;
 	}
 
-	vmCheckNextFrame(iTime) {
-		var	iDelta;
-
+	private vmCheckNextFrame(iTime: number) {
 		if (iTime >= this.iNextFrameTime) { // next time of frame fly
-			iDelta = iTime - this.iNextFrameTime;
+			const iDelta = iTime - this.iNextFrameTime;
 
 			if (iDelta > CpcVm.iFrameTimeMs) {
 				this.iNextFrameTime += CpcVm.iFrameTimeMs * Math.ceil(iDelta / CpcVm.iFrameTimeMs);
@@ -819,16 +821,15 @@ export class CpcVm {
 		}
 	}
 
-	vmGetTimeUntilFrame(iTime) {
-		var iTimeUntilFrame;
-
+	vmGetTimeUntilFrame(iTime?: number): number {
 		iTime = iTime || Date.now();
-		iTimeUntilFrame = this.iNextFrameTime - iTime;
+		const iTimeUntilFrame = this.iNextFrameTime - iTime;
+
 		return iTimeUntilFrame;
 	}
 
-	vmLoopCondition() {
-		var iTime = Date.now();
+	vmLoopCondition(): boolean {
+		const iTime = Date.now();
 
 		if (iTime >= this.iNextFrameTime) {
 			this.vmCheckNextFrame(iTime);
@@ -841,12 +842,12 @@ export class CpcVm {
 		return this.oStop.sReason === "";
 	}
 
-	vmInitUntypedVariables(sVarChar) {
-		var aNames = this.oVariables.getAllVariableNames(),
-			i, sName;
+	private vmInitUntypedVariables(sVarChar: string) {
+		const aNames = this.oVariables.getAllVariableNames();
 
-		for (i = 0; i < aNames.length; i += 1) {
-			sName = aNames[i];
+		for (let i = 0; i < aNames.length; i += 1) {
+			const sName = aNames[i];
+
 			if (sName.charAt(0) === sVarChar) {
 				if (sName.indexOf("$") === -1 && sName.indexOf("%") === -1 && sName.indexOf("!") === -1) { // no explicit type?
 					this.oVariables.initVariable(sName);
@@ -855,20 +856,23 @@ export class CpcVm {
 		}
 	}
 
-	vmDefineVarTypes(sType, sNameOrRange, sErr) {
-		var aRange, iFirst, iLast, i, sVarChar;
-
+	private vmDefineVarTypes(sType: string, sNameOrRange: string, sErr: string) {
 		this.vmAssertString(sNameOrRange, sErr);
+
+		let iFirst: number, iLast: number;
+
 		if (sNameOrRange.indexOf("-") >= 0) {
-			aRange = sNameOrRange.split("-", 2);
+			const aRange = sNameOrRange.split("-", 2);
+
 			iFirst = aRange[0].trim().toLowerCase().charCodeAt(0);
 			iLast = aRange[1].trim().toLowerCase().charCodeAt(0);
 		} else {
 			iFirst = sNameOrRange.trim().toLowerCase().charCodeAt(0);
 			iLast = iFirst;
 		}
-		for (i = iFirst; i <= iLast; i += 1) {
-			sVarChar = String.fromCharCode(i);
+		for (let i = iFirst; i <= iLast; i += 1) {
+			const sVarChar = String.fromCharCode(i);
+
 			if (this.oVariables.getVarType(sVarChar) !== sType) { // type changed?
 				this.oVariables.setVarType(sVarChar, sType);
 				// initialize all untyped variables starting with sVarChar!
@@ -877,7 +881,7 @@ export class CpcVm {
 		}
 	}
 
-	vmStop(sReason: string, iPriority: number, bForce?: boolean, oParas?) { // optional bForce, oParas
+	vmStop(sReason: string, iPriority: number, bForce?: boolean, oParas?: StopParas): void { // optional bForce, oParas
 		iPriority = iPriority || 0;
 		if (bForce || iPriority >= this.oStop.iPriority) {
 			this.oStop.iPriority = iPriority;
@@ -886,15 +890,15 @@ export class CpcVm {
 		}
 	}
 
-	vmNotImplemented(sName: string) {
+	vmNotImplemented(sName: string): void {
 		Utils.console.warn("Not implemented:", sName);
 	}
 
 	// not complete
-	vmUsingFormat1(sFormat: string, arg) {
-		var sPadChar = " ",
-			re1 = /^\\ *\\$/,
-			iDecimals, iPadLen, sPad, aFormat, sStr;
+	vmUsingFormat1(sFormat: string, arg): string {
+		const sPadChar = " ",
+			re1 = /^\\ *\\$/;
+		let sStr: string;
 
 		if (typeof arg === "string") {
 			if (sFormat === "&") {
@@ -903,8 +907,9 @@ export class CpcVm {
 				sStr = arg.charAt(0);
 			} else if (re1.test(sFormat)) { // "\...\"
 				sStr = arg.substr(0, sFormat.length);
-				iPadLen = sFormat.length - arg.length;
-				sPad = (iPadLen > 0) ? sPadChar.repeat(iPadLen) : "";
+				const iPadLen = sFormat.length - arg.length,
+					sPad = (iPadLen > 0) ? sPadChar.repeat(iPadLen) : "";
+
 				sStr = arg + sPad; // string left aligned
 			} else { // no string format
 				throw this.vmComposeError(Error(), 13, "USING format " + sFormat); // "Type mismatch"
@@ -916,8 +921,9 @@ export class CpcVm {
 			if (sFormat.indexOf(".") < 0) { // no decimal point?
 				arg = Number(arg).toFixed(0);
 			} else { // assume ###.##
-				aFormat = sFormat.split(".", 2);
-				iDecimals = aFormat[1].length;
+				const aFormat = sFormat.split(".", 2),
+					iDecimals = aFormat[1].length;
+
 				// To avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
 				arg = Number(Math.round(Number(arg + "e" + iDecimals)) + "e-" + iDecimals);
 				arg = arg.toFixed(iDecimals);
@@ -926,8 +932,9 @@ export class CpcVm {
 				arg = Utils.numberWithCommas(arg);
 			}
 
-			iPadLen = sFormat.length - arg.length;
-			sPad = (iPadLen > 0) ? sPadChar.repeat(iPadLen) : "";
+			const iPadLen = sFormat.length - arg.length,
+				sPad = (iPadLen > 0) ? sPadChar.repeat(iPadLen) : "";
+
 			sStr = sPad + arg;
 			if (sStr.length > sFormat.length) {
 				sStr = "%" + sStr; // mark too long
@@ -936,27 +943,27 @@ export class CpcVm {
 		return sStr;
 	}
 
-	vmGetStopObject() {
+	vmGetStopObject(): StopEntry {
 		return this.oStop;
 	}
 
-	vmGetInFileObject() {
+	vmGetInFileObject(): InFile {
 		return this.oInFile;
 	}
 
-	vmGetOutFileObject() {
+	vmGetOutFileObject(): OutFile {
 		return this.oOutFile;
 	}
 
-	vmAdaptFilename(sName, sErr) {
-		var iIndex;
-
+	vmAdaptFilename(sName: string, sErr: string): string {
 		this.vmAssertString(sName, sErr);
 		sName = sName.replace(/ /g, ""); // remove spaces
 		if (sName.indexOf("!") === 0) {
 			sName = sName.substr(1); // remove preceding "!"
 		}
-		iIndex = sName.indexOf(":");
+
+		const iIndex = sName.indexOf(":");
+
 		if (iIndex >= 0) {
 			sName = sName.substr(iIndex + 1); // remove user and drive letter including ":"
 		}
@@ -972,8 +979,8 @@ export class CpcVm {
 		return this.aSoundData;
 	}
 
-	vmTrace(iLine) {
-		var iStream = 0;
+	vmTrace(iLine): void {
+		const iStream = 0;
 
 		this.iTronLine = iLine;
 		if (this.bTron) {
@@ -981,7 +988,7 @@ export class CpcVm {
 		}
 	}
 
-	vmDrawMovePlot(sType, x, y, iGPen, iGColMode) {
+	vmDrawMovePlot(sType: string, x: number, y: number, iGPen?: number | null, iGColMode?: number): void {
 		x = this.vmInRangeRound(x, -32768, 32767, sType);
 		y = this.vmInRangeRound(y, -32768, 32767, sType);
 		if (iGPen !== undefined && iGPen !== null) {
@@ -995,7 +1002,7 @@ export class CpcVm {
 		this.oCanvas[sType.toLowerCase()](x, y); // draw, drawr, move, mover, plot, plotr
 	}
 
-	vmAfterEveryGosub(sType, iInterval, iTimer, iLine) {
+	private vmAfterEveryGosub(sType: string, iInterval: number, iTimer: number, iLine) {
 		var oTimer,	iIntervalMs;
 
 		iInterval = this.vmInRangeRound(iInterval, 0, 32767, sType); // more would be overflow
@@ -1014,11 +1021,10 @@ export class CpcVm {
 		}
 	}
 
-	vmCopyFromScreen(iSource, iDest) {
-		var i, iByte;
+	private vmCopyFromScreen(iSource: number, iDest: number) {
+		for (let i = 0; i < 0x4000; i += 1) {
+			let iByte = this.oCanvas.getByte(iSource + i); // get byte from screen memory
 
-		for (i = 0; i < 0x4000; i += 1) {
-			iByte = this.oCanvas.getByte(iSource + i); // get byte from screen memory
 			if (iByte === null) { // byte not visible on screen?
 				iByte = this.aMem[iSource + i] || 0; // get it from our memory
 			}
@@ -1026,24 +1032,23 @@ export class CpcVm {
 		}
 	}
 
-	vmCopyToScreen(iSource, iDest) {
-		var i, iByte;
+	private vmCopyToScreen(iSource: number, iDest: number) {
+		for (let i = 0; i < 0x4000; i += 1) {
+			const iByte = this.aMem[iSource + i] || 0; // get it from our memory
 
-		for (i = 0; i < 0x4000; i += 1) {
-			iByte = this.aMem[iSource + i] || 0; // get it from our memory
 			this.oCanvas.setByte(iDest + i, iByte);
 		}
 	}
 
-	vmSetScreenBase(iByte) {
-		var iPage, iOldPage, iAddr;
-
+	private vmSetScreenBase(iByte: number) {
 		iByte = this.vmInRangeRound(iByte, 0, 255, "screenBase");
-		iPage = iByte >> 6; // eslint-disable-line no-bitwise
-		iOldPage = this.iScreenPage;
+
+		const iPage = iByte >> 6, // eslint-disable-line no-bitwise
+			iOldPage = this.iScreenPage;
 
 		if (iPage !== iOldPage) {
-			iAddr = iOldPage << 14; // eslint-disable-line no-bitwise
+			let iAddr = iOldPage << 14; // eslint-disable-line no-bitwise
+
 			this.vmCopyFromScreen(iAddr, iAddr);
 
 			this.iScreenPage = iPage;
@@ -1052,33 +1057,32 @@ export class CpcVm {
 		}
 	}
 
-	vmSetScreenOffset(iOffset) {
+	private vmSetScreenOffset(iOffset: number) {
 		this.oCanvas.setScreenOffset(iOffset);
 	}
 
 	// could be also set vmSetScreenViewBase? thisiScreenViewPage?  We always draw on visible canvas?
 
-	vmSetTransparentMode(iStream, iTransparent) {
-		var oWin = this.aWindow[iStream];
+	private vmSetTransparentMode(iStream: number, iTransparent: number) {
+		const oWin = this.aWindow[iStream];
 
 		oWin.bTransparent = Boolean(iTransparent);
 	}
 
 	// --
 
-	abs(n) {
+	abs(n: number): number {
 		this.vmAssertNumber(n, "ABS");
 		return Math.abs(n);
 	}
 
-	addressOf(sVar) { // addressOf operator
-		var iPos;
-
+	addressOf(sVar: string): number { // addressOf operator
 		// not really implemented
 		sVar = sVar.replace("v.", "");
-
 		sVar = sVar.replace("[", "(");
-		iPos = sVar.indexOf("("); // array variable with indices?
+
+		let iPos = sVar.indexOf("("); // array variable with indices?
+
 		if (iPos >= 0) {
 			sVar = sVar.substr(0, iPos); // remove indices
 		}
@@ -1090,13 +1094,13 @@ export class CpcVm {
 		return iPos;
 	}
 
-	afterGosub(iInterval, iTimer, iLine) {
+	afterGosub(iInterval: number, iTimer: number, iLine: number): void {
 		this.vmAfterEveryGosub("AFTER", iInterval, iTimer, iLine);
 	}
 
 	// and
 
-	vmGetCpcCharCode(iCode) {
+	private static vmGetCpcCharCode(iCode: number): number {
 		if (iCode > 255) { // map some UTF-8 character codes
 			if (CpcVm.mUtf8ToCpc[iCode]) {
 				iCode = CpcVm.mUtf8ToCpc[iCode];
@@ -1105,30 +1109,30 @@ export class CpcVm {
 		return iCode;
 	}
 
-	asc(s) {
+	asc(s: string): number {
 		this.vmAssertString(s, "ASC");
 		if (!s.length) {
 			throw this.vmComposeError(Error(), 5, "ASC"); // Improper argument
 		}
-		return this.vmGetCpcCharCode(s.charCodeAt(0));
+		return CpcVm.vmGetCpcCharCode(s.charCodeAt(0));
 	}
 
-	atn(n) {
+	atn(n: number): number {
 		this.vmAssertNumber(n, "ATN");
 		return Math.atan((this.bDeg) ? Utils.toRadians(n) : n);
 	}
 
-	auto() {
+	auto(): void {
 		this.vmNotImplemented("AUTO");
 	}
 
-	bin$(n, iPad) {
+	bin$(n: number, iPad?: number): string {
 		n = this.vmInRangeRound(n, -32768, 65535, "BIN$");
 		iPad = this.vmInRangeRound(iPad || 0, 0, 16, "BIN$");
-		return n.toString(2).padStart(iPad || 16, 0);
+		return n.toString(2).padStart(iPad || 16, "0");
 	}
 
-	border(iInk1, iInk2) { // ink2 optional
+	border(iInk1: number, iInk2?: number): void { // ink2 optional
 		iInk1 = this.vmInRangeRound(iInk1, 0, 31, "BORDER");
 		if (iInk2 === undefined) {
 			iInk2 = iInk1;
@@ -1140,11 +1144,11 @@ export class CpcVm {
 
 	// break
 
-	vmMcSetMode(iMode) {
-		var iAddr = this.iScreenPage << 14, // eslint-disable-line no-bitwise
-			iCanvasMode = this.oCanvas.getMode();
-
+	private vmMcSetMode(iMode: number) {
 		iMode = this.vmInRangeRound(iMode, 0, 3, "MCSetMode");
+
+		const iAddr = this.iScreenPage << 14, // eslint-disable-line no-bitwise
+			iCanvasMode = this.oCanvas.getMode();
 
 		if (iMode !== iCanvasMode) {
 			// keep screen bytes, just interpret in other mode
@@ -1156,26 +1160,25 @@ export class CpcVm {
 		}
 	}
 
-	vmTxtInverse(iStream) { // iStream must be checked
-		var oWin = this.aWindow[iStream],
-			iTmp;
+	private vmTxtInverse(iStream: number) { // iStream must be checked
+		const oWin = this.aWindow[iStream],
+			iTmp = oWin.iPen;
 
-		iTmp = oWin.iPen;
 		this.pen(iStream, oWin.iPaper);
 		this.paper(iStream, iTmp);
 	}
 
-	vmPutKeyInBuffer(sKey) {
-		var oKeyDownHandler = this.oKeyboard.getKeyDownHandler();
-
+	private vmPutKeyInBuffer(sKey: string) {
 		this.oKeyboard.putKeyInBuffer(sKey);
+
+		const oKeyDownHandler = this.oKeyboard.getKeyDownHandler();
 
 		if (oKeyDownHandler) {
 			oKeyDownHandler();
 		}
 	}
 
-	call(iAddr) { // eslint-disable-line complexity
+	call(iAddr: number): void { // eslint-disable-line complexity
 		// varargs (adr + parameters)
 		iAddr = this.vmInRangeRound(iAddr, -32768, 65535, "CALL");
 		if (iAddr < 0) { // 2nd complement of 16 bit address?
@@ -1209,7 +1212,7 @@ export class CpcVm {
 			this.oCanvas.resetCustomChars();
 			this.vmResetWindowData(true); // reset windows, including pen and paper
 			// and TXT Reset...
-			this.vmResetControlBuffer(); 
+			this.vmResetControlBuffer();
 			break;
 		case 0xbb51: // TXT Reset (ROM &11088)
 			this.vmResetControlBuffer();
@@ -1325,8 +1328,8 @@ export class CpcVm {
 		}
 	}
 
-	cat() {
-		var iStream = 0;
+	cat(): void {
+		const iStream = 0;
 
 		this.vmStop("fileCat", 45, false, {
 			iStream: iStream,
@@ -1334,8 +1337,8 @@ export class CpcVm {
 		});
 	}
 
-	chain(sName: string, iLine) { // optional iLine
-		var oInFile = this.oInFile;
+	chain(sName: string, iLine): void { // optional iLine
+		const oInFile = this.oInFile;
 
 		sName = this.vmAdaptFilename(sName, "CHAIN");
 		this.closein();
@@ -1347,8 +1350,8 @@ export class CpcVm {
 		this.vmStop("fileLoad", 90);
 	}
 
-	chainMerge(sName: string, iLine, iFirst: number, iLast: number) { // optional iLine, iStart, iEnd
-		var oInFile = this.oInFile;
+	chainMerge(sName: string, iLine, iFirst: number, iLast: number): void { // optional iLine, iStart, iEnd
+		const oInFile = this.oInFile;
 
 		sName = this.vmAdaptFilename(sName, "CHAIN MERGE");
 		this.closein();
@@ -1362,16 +1365,16 @@ export class CpcVm {
 		this.vmStop("fileLoad", 90);
 	}
 
-	chr$(n: number) {
+	chr$(n: number): string {
 		n = this.vmInRangeRound(n, 0, 255, "CHR$");
 		return String.fromCharCode(n);
 	}
 
-	cint(n: number) {
+	cint(n: number): number {
 		return this.vmInRangeRound(n, -32768, 32767);
 	}
 
-	clear() {
+	clear(): void {
 		this.vmResetTimers();
 		this.ei();
 		this.vmSetStartLine(0);
@@ -1391,11 +1394,11 @@ export class CpcVm {
 		this.closeout();
 	}
 
-	clearInput() {
+	clearInput(): void {
 		this.oKeyboard.clearInput();
 	}
 
-	clg(iGPaper?: number) {
+	clg(iGPaper?: number): void {
 		if (iGPaper !== undefined) {
 			iGPaper = this.vmInRangeRound(iGPaper, 0, 15, "CLG");
 			this.oCanvas.setGPaper(iGPaper);
@@ -1403,28 +1406,28 @@ export class CpcVm {
 		this.oCanvas.clearGraphicsWindow();
 	}
 
-	vmCloseinCallback() {
-		var oInFile = this.oInFile;
+	vmCloseinCallback(): void {
+		const oInFile = this.oInFile;
 
 		this.vmResetFileHandling(oInFile);
 	}
 
-	closein() {
-		var oInFile = this.oInFile;
+	closein(): void {
+		const oInFile = this.oInFile;
 
 		if (oInFile.bOpen) {
 			this.vmCloseinCallback(); // not really used as a callback here
 		}
 	}
 
-	vmCloseoutCallback() {
-		var oOutFile = this.oOutFile;
+	vmCloseoutCallback(): void {
+		const oOutFile = this.oOutFile;
 
 		this.vmResetFileHandling(oOutFile);
 	}
 
-	closeout() {
-		var oOutFile = this.oOutFile;
+	closeout(): void {
+		const oOutFile = this.oOutFile;
 
 		if (oOutFile.bOpen) {
 			if (oOutFile.sCommand !== "openout") {
@@ -1441,11 +1444,10 @@ export class CpcVm {
 	}
 
 	// also called for chr$(12), call &bb6c
-	cls(iStream) { // optional iStream
-		var oWin;
-
+	cls(iStream?: number): void { // optional iStream
 		iStream = this.vmInRangeRound(iStream || 0, 0, 7, "CLS");
-		oWin = this.aWindow[iStream];
+
+		const oWin = this.aWindow[iStream];
 
 		this.vmDrawUndrawCursor(iStream); // why, if we clear anyway?
 
@@ -1458,14 +1460,15 @@ export class CpcVm {
 		}
 	}
 
-	commaTab(iStream) { // special function used for comma in print (ROM &F25C), called delayed by print
-		var	iZone = this.iZone,
-			oWin, iCount;
-
+	commaTab(iStream: number): string { // special function used for comma in print (ROM &F25C), called delayed by print
 		iStream = this.vmInRangeRound(iStream || 0, 0, 9, "commaTab");
-		oWin = this.aWindow[iStream];
+
 		this.vmMoveCursor2AllowedPos(iStream);
-		iCount = iZone - (oWin.iPos % iZone);
+
+		const iZone = this.iZone,
+			oWin = this.aWindow[iStream];
+		let iCount = iZone - (oWin.iPos % iZone);
+
 		if (oWin.iPos) { // <>0: not begin of line
 			if (oWin.iPos + iCount + iZone > (oWin.iRight + 1 - oWin.iLeft)) {
 				oWin.iPos += iCount + iZone;
@@ -1476,7 +1479,7 @@ export class CpcVm {
 		return " ".repeat(iCount);
 	}
 
-	cont() {
+	cont(): void {
 		if (!this.iStartLine) {
 			throw this.vmComposeError(Error(), 17, "CONT"); // cannot continue
 		}
@@ -1484,37 +1487,37 @@ export class CpcVm {
 		this.iStartLine = 0;
 	}
 
-	copychr$(iStream) {
-		var oWin, iChar, sChar;
-
+	copychr$(iStream: number): string {
 		iStream = this.vmInRangeRound(iStream, 0, 7, "COPYCHR$");
 		this.vmMoveCursor2AllowedPos(iStream);
-		oWin = this.aWindow[iStream];
+
 		this.vmDrawUndrawCursor(iStream); // undraw
-		iChar = this.oCanvas.readChar(oWin.iPos + oWin.iLeft, oWin.iVpos + oWin.iTop, oWin.iPen, oWin.iPaper);
+		const oWin = this.aWindow[iStream],
+			iChar = this.oCanvas.readChar(oWin.iPos + oWin.iLeft, oWin.iVpos + oWin.iTop, oWin.iPen, oWin.iPaper),
+			sChar = (iChar >= 0) ? String.fromCharCode(iChar) : "";
+
 		this.vmDrawUndrawCursor(iStream); // draw
-		sChar = (iChar >= 0) ? String.fromCharCode(iChar) : "";
 		return sChar;
 	}
 
-	cos(n) {
+	cos(n: number): number {
 		this.vmAssertNumber(n, "COS");
 		return Math.cos((this.bDeg) ? Utils.toRadians(n) : n);
 	}
 
-	creal(n) {
+	creal(n: number): number {
 		this.vmAssertNumber(n, "CREAL");
 		return n;
 	}
 
-	vmPlaceRemoveCursor(iStream) {
+	vmPlaceRemoveCursor(iStream: number): void {
 		var oWin = this.aWindow[iStream];
 
 		this.vmMoveCursor2AllowedPos(iStream);
 		this.oCanvas.drawCursor(oWin.iPos + oWin.iLeft, oWin.iVpos + oWin.iTop, oWin.iPen, oWin.iPaper);
 	}
 
-	vmDrawUndrawCursor(iStream) {
+	vmDrawUndrawCursor(iStream: number): void {
 		var oWin = this.aWindow[iStream];
 
 		if (oWin.bCursorOn && oWin.bCursorEnabled) {
@@ -1522,11 +1525,10 @@ export class CpcVm {
 		}
 	}
 
-	cursor(iStream: number, iCursorOn: number, iCursorEnabled?: number) { // one of iCursorOn, iCursorEnabled is optional
-		var oWin;
-
+	cursor(iStream: number, iCursorOn: number | null, iCursorEnabled?: number): void { // one of iCursorOn, iCursorEnabled is optional
 		iStream = this.vmInRangeRound(iStream || 0, 0, 7, "CURSOR");
-		oWin = this.aWindow[iStream];
+		const oWin = this.aWindow[iStream];
+
 		if (iCursorOn !== null) { // system
 			iCursorOn = this.vmInRangeRound(iCursorOn, 0, 1, "CURSOR");
 			this.vmDrawUndrawCursor(iStream); // undraw
@@ -1541,20 +1543,17 @@ export class CpcVm {
 		}
 	}
 
-	data() { // varargs
-		var iLine, i;
-
-		iLine = arguments[0]; // line number
+	data(iLine: number, ...aArgs): void { // varargs
 		if (!this.oDataLineIndex[iLine]) {
 			this.oDataLineIndex[iLine] = this.aData.length; // set current index for the line
 		}
 		// append data
-		for (i = 1; i < arguments.length; i += 1) {
-			this.aData.push(arguments[i]);
+		for (let i = 0; i < aArgs.length; i += 1) {
+			this.aData.push(aArgs[i]);
 		}
 	}
 
-	dec$(n, sFrmt) {
+	dec$(n: number, sFrmt: string): string {
 		this.vmAssertNumber(n, "DEC$");
 		this.vmAssertString(sFrmt, "DEC$");
 		return this.vmUsingFormat1(sFrmt, n);
@@ -1562,23 +1561,23 @@ export class CpcVm {
 
 	// def fn
 
-	defint(sNameOrRange) {
+	defint(sNameOrRange: string): void {
 		this.vmDefineVarTypes("I", sNameOrRange, "DEFINT");
 	}
 
-	defreal(sNameOrRange) {
+	defreal(sNameOrRange: string): void {
 		this.vmDefineVarTypes("R", sNameOrRange, "DEFREAL");
 	}
 
-	defstr(sNameOrRange) {
+	defstr(sNameOrRange: string): void {
 		this.vmDefineVarTypes("$", sNameOrRange, "DEFSTR");
 	}
 
-	deg() {
+	deg(): void {
 		this.bDeg = true;
 	}
 
-	"delete"(iFirst, iLast) { // varargs
+	"delete"(iFirst?: number | null, iLast?: number): void {
 		if (iFirst !== undefined && iFirst !== null) {
 			iFirst = this.vmInRangeRound(iFirst, 1, 65535, "DELETE");
 		}
@@ -1596,51 +1595,51 @@ export class CpcVm {
 		});
 	}
 
-	derr() {
+	derr(): number { // eslint-disable-line class-methods-use-this
 		return 0; // "[Not implemented yet: derr]"
 	}
 
-	di() {
+	di(): void {
 		this.iTimerPriority = 3; // increase priority
 	}
 
-	dim(sVarName) { // varargs
-		var aDimensions = [],
-			i, iSize;
+	dim(sVarName: string): void { // varargs
+		const aDimensions = [];
 
-		for (i = 1; i < arguments.length; i += 1) {
-			iSize = this.vmInRangeRound(arguments[i], 0, 32767, "DIM") + 1; // for basic we have sizes +1
+		for (let i = 1; i < arguments.length; i += 1) {
+			const iSize = this.vmInRangeRound(arguments[i], 0, 32767, "DIM") + 1; // for basic we have sizes +1
+
 			aDimensions.push(iSize);
 		}
 		this.oVariables.dimVariable(sVarName, aDimensions);
 	}
 
-	draw(x, y, iGPen, iGColMode) {
+	draw(x: number, y: number, iGPen?: number | null, iGColMode?: number): void {
 		this.vmDrawMovePlot("DRAW", x, y, iGPen, iGColMode);
 	}
 
-	drawr(x, y, iGPen, iGColMode) {
+	drawr(x: number, y: number, iGPen?: number | null, iGColMode?: number): void {
 		this.vmDrawMovePlot("DRAWR", x, y, iGPen, iGColMode);
 	}
 
-	edit(iLine) {
+	edit(iLine): void {
 		this.vmStop("editLine", 90, false, {
 			iLine: iLine
 		});
 	}
 
-	ei() {
+	ei(): void {
 		this.iTimerPriority = -1; // decrease priority
 	}
 
 	// else
 
-	end(sLabel) {
+	end(sLabel: string): void {
 		this.stop(sLabel);
 	}
 
-	ent(iToneEnv: number) { // varargs
-		const aArgs: ToneEnvData[] = [];
+	ent(iToneEnv: number, ...aArgs): void { // varargs
+		const aEnvData: ToneEnvData[] = [];
 
 		let	oArg: ToneEnvData,
 			bRepeat = false;
@@ -1653,12 +1652,12 @@ export class CpcVm {
 		}
 
 		if (iToneEnv) { // not 0
-			for (let i = 1; i < arguments.length; i += 3) { // starting with 1: 3 parameters per section
-				if (arguments[i] !== null) {
+			for (let i = 0; i < aArgs.length; i += 3) { // starting with 1: 3 parameters per section
+				if (aArgs[i] !== null) {
 					oArg = {
-						steps: this.vmInRangeRound(arguments[i], 0, 239, "ENT"), // number of steps: 0..239
-						diff: this.vmInRangeRound(arguments[i + 1], -128, 127, "ENT"), // size (period change) of steps: -128..+127
-						time: this.vmInRangeRound(arguments[i + 2], 0, 255, "ENT"), // time per step: 0..255 (0=256)
+						steps: this.vmInRangeRound(aArgs[i], 0, 239, "ENT"), // number of steps: 0..239
+						diff: this.vmInRangeRound(aArgs[i + 1], -128, 127, "ENT"), // size (period change) of steps: -128..+127
+						time: this.vmInRangeRound(aArgs[i + 2], 0, 255, "ENT"), // time per step: 0..255 (0=256)
 						repeat: bRepeat
 					} as ToneEnvData1;
 					/*
@@ -1668,51 +1667,51 @@ export class CpcVm {
 					*/
 				} else { // special handling
 					oArg = {
-						period: this.vmInRangeRound(arguments[i + 1], 0, 4095, "ENT"), // absolute period
-						time: this.vmInRangeRound(arguments[i + 2], 0, 255, "ENT") // time: 0..255 (0=256)
+						period: this.vmInRangeRound(aArgs[i + 1], 0, 4095, "ENT"), // absolute period
+						time: this.vmInRangeRound(aArgs[i + 2], 0, 255, "ENT") // time: 0..255 (0=256)
 					} as ToneEnvData2;
 				}
-				aArgs.push(oArg);
+				aEnvData.push(oArg);
 			}
-			this.oSound.setToneEnv(iToneEnv, aArgs);
+			this.oSound.setToneEnv(iToneEnv, aEnvData);
 		} else { // 0
 			Utils.console.warn("ENT: iToneEnv", iToneEnv);
 			throw this.vmComposeError(Error(), 5, "ENT " + iToneEnv); // Improper argument
 		}
 	}
 
-	env(iVolEnv: number) { // varargs
-		const aArgs: VolEnvData[] = [];
+	env(iVolEnv: number, ...aArgs): void { // varargs
+		const aEnvData: VolEnvData[] = [];
 		let oArg;
 
 		iVolEnv = this.vmInRangeRound(iVolEnv, 1, 15, "ENV");
 
-		for (let i = 1; i < arguments.length; i += 3) { // starting with 1: 3 parameters per section
-			if (arguments[i] !== null) {
+		for (let i = 0; i < aArgs.length; i += 3) { // starting with 1: 3 parameters per section
+			if (aArgs[i] !== null) {
 				oArg = {
-					steps: this.vmInRangeRound(arguments[i], 0, 127, "ENV"), // number of steps: 0..127
+					steps: this.vmInRangeRound(aArgs[i], 0, 127, "ENV"), // number of steps: 0..127
 					/* eslint-disable no-bitwise */
-					diff: this.vmInRangeRound(arguments[i + 1], -128, 127, "ENV") & 0x0f, // size (volume) of steps: moved to range 0..15
+					diff: this.vmInRangeRound(aArgs[i + 1], -128, 127, "ENV") & 0x0f, // size (volume) of steps: moved to range 0..15
 					/* eslint-enable no-bitwise */
-					time: this.vmInRangeRound(arguments[i + 2], 0, 255, "ENV") // time per step: 0..255 (0=256)
+					time: this.vmInRangeRound(aArgs[i + 2], 0, 255, "ENV") // time per step: 0..255 (0=256)
 				} as VolEnvData1;
 				if (!oArg.time) { // (0=256)
 					oArg.time = 256;
 				}
 			} else { // special handling for register parameters
 				oArg = {
-					register: this.vmInRangeRound(arguments[i + 1], 0, 15, "ENV"), // register: 0..15
-					period: this.vmInRangeRound(arguments[i + 2], -32768, 65535, "ENV")
+					register: this.vmInRangeRound(aArgs[i + 1], 0, 15, "ENV"), // register: 0..15
+					period: this.vmInRangeRound(aArgs[i + 2], -32768, 65535, "ENV")
 				} as VolEnvData2;
 			}
-			aArgs.push(oArg);
+			aEnvData.push(oArg);
 		}
-		this.oSound.setVolEnv(iVolEnv, aArgs);
+		this.oSound.setVolEnv(iVolEnv, aEnvData);
 	}
 
-	eof() {
-		var oInFile = this.oInFile,
-			iEof = -1;
+	eof(): number {
+		const oInFile = this.oInFile;
+		let iEof = -1;
 
 		if (oInFile.bOpen && oInFile.aFileData.length) {
 			iEof = 0;
@@ -1720,64 +1719,59 @@ export class CpcVm {
 		return iEof;
 	}
 
-	vmFindArrayVariable(sName) {
-		var aNames;
-
+	vmFindArrayVariable(sName: string): string {
 		sName += "A";
 		if (this.oVariables.variableExist(sName)) { // one dim array variable?
 			return sName;
 		}
 
 		// find multi-dim array variable
-		aNames = this.oVariables.getAllVariableNames();
+		let aNames = this.oVariables.getAllVariableNames();
+
 		aNames = aNames.filter(function (sVar) {
-			return (sVar.indexOf(sName) === 0) ? sVar : null; // find aray varA
+			return (sVar.indexOf(sName) === 0) ? sVar : null; // find array varA
 		});
 		return aNames[0]; // we should find exactly one
 	}
 
-	erase() { // varargs
-		var i, sName;
+	erase(...aArgs: string[]): void { // varargs
+		for (let i = 0; i < aArgs.length; i += 1) {
+			const sName = this.vmFindArrayVariable(aArgs[i]);
 
-		for (i = 0; i < arguments.length; i += 1) {
-			sName = this.vmFindArrayVariable(arguments[i]);
 			if (sName) {
 				this.oVariables.initVariable(sName);
 			} else {
-				Utils.console.warn("Array variable not found:", arguments[i]);
-				throw this.vmComposeError(Error(), 5, "ERASE " + arguments[i]); // Improper argument
+				Utils.console.warn("Array variable not found:", aArgs[i]);
+				throw this.vmComposeError(Error(), 5, "ERASE " + aArgs[i]); // Improper argument
 			}
 		}
 	}
 
-	erl() {
-		var iErl = parseInt(String(this.iErl), 10); //TTT in cpcBasic we have an error label here, so return number only
+	erl(): number {
+		const iErl = parseInt(String(this.iErl), 10); //TTT in cpcBasic we have an error label here, so return number only
 
 		return iErl || 0;
 	}
 
-	err() {
+	err(): number {
 		return this.iErr;
 	}
 
-	vmComposeError(oError, iErr, sErrInfo) {
-		var sError, sErrorWithInfo, sLine,
-			bHidden = false; // hide errors wich are catched
+	vmComposeError(oError, iErr: number, sErrInfo: string) {
+		const aErrors = CpcVm.aErrors,
+			sError = aErrors[iErr] || aErrors[aErrors.length - 1]; // maybe Unknown error
 
 		this.iErr = iErr;
 		this.iErl = this.iLine;
 
-		sError = this.vmGetError(iErr);
+		let sLine = this.iErl;
 
-		sLine = this.iErl;
 		if (this.iTronLine) {
 			sLine += " (trace: " + this.iTronLine + ")";
 		}
 
-		sErrorWithInfo = sError + " in " + sLine;
-		if (sErrInfo) {
-			sErrorWithInfo += ": " + sErrInfo;
-		}
+		const sErrorWithInfo = sError + " in " + sLine + (sErrInfo ? (": " + sErrInfo) : "");
+		let	bHidden = false; // hide errors wich are catched
 
 		if (this.iErrorGotoLine && !this.iErrorResumeLine) {
 			this.iErrorResumeLine = Number(this.iErl); //TTT
@@ -1791,26 +1785,26 @@ export class CpcVm {
 		return Utils.composeError("CpcVm", oError, sError, sErrInfo, undefined, sLine, bHidden);
 	}
 
-	error(iErr, sErrInfo) {
+	error(iErr: number, sErrInfo: string): void {
 		iErr = this.vmInRangeRound(iErr, 0, 255, "ERROR"); // could trigger another error
 		throw this.vmComposeError(Error(), iErr, sErrInfo);
 	}
 
-	everyGosub(iInterval, iTimer, iLine) {
+	everyGosub(iInterval: number, iTimer: number, iLine: number): void {
 		this.vmAfterEveryGosub("EVERY", iInterval, iTimer, iLine);
 	}
 
-	exp(n) {
+	exp(n: number): number {
 		this.vmAssertNumber(n, "EXP");
 		return Math.exp(n);
 	}
 
-	fill(iGPen) {
+	fill(iGPen: number): void {
 		iGPen = this.vmInRangeRound(iGPen, 0, 15, "FILL");
 		this.oCanvas.fill(iGPen);
 	}
 
-	fix(n) {
+	fix(n: number): number {
 		this.vmAssertNumber(n, "FIX");
 		return Math.trunc(n); // (ES6: Math.trunc)
 	}
@@ -1819,29 +1813,29 @@ export class CpcVm {
 
 	// for
 
-	frame() {
+	frame(): void {
 		this.vmStop("waitFrame", 40);
 	}
 
-	fre(/* arg */) { // arg is number or string
+	fre(/* arg */): number { // arg is number or string
 		return this.iHimem; // example, e.g. 42245;
 	}
 
-	gosub(retLabel, n) {
+	gosub(retLabel: string | number, n: number): void {
 		this.vmGotoLine(n, "gosub (ret=" + retLabel + ")");
 		this.aGosubStack.push(retLabel);
 	}
 
-	"goto"(n) {
+	"goto"(n: string): void {
 		this.vmGotoLine(n, "goto");
 	}
 
-	graphicsPaper(iGPaper) {
+	graphicsPaper(iGPaper: number): void {
 		iGPaper = this.vmInRangeRound(iGPaper, 0, 15, "GRAPHICS PAPER");
 		this.oCanvas.setGPaper(iGPaper);
 	}
 
-	graphicsPen(iGPen: number | null, iTransparentMode?: number) {
+	graphicsPen(iGPen: number | null, iTransparentMode?: number): void {
 		if (iGPen !== null) {
 			iGPen = this.vmInRangeRound(iGPen, 0, 15, "GRAPHICS PEN");
 			this.oCanvas.setGPen(iGPen);
@@ -1853,19 +1847,19 @@ export class CpcVm {
 		}
 	}
 
-	hex$(n, iPad) {
+	hex$(n: number, iPad?: number): string {
 		n = this.vmInRangeRound(n, -32768, 65535, "HEX$");
 		iPad = this.vmInRangeRound(iPad || 0, 0, 16, "HEX$");
 		return n.toString(16).toUpperCase().padStart(iPad, "0");
 	}
 
-	himem() {
+	himem(): number {
 		return this.iHimem;
 	}
 
 	// if
 
-	ink(iPen, iInk1, iInk2) { // optional iInk2
+	ink(iPen: number, iInk1: number, iInk2?: number): void { // optional iInk2
 		iPen = this.vmInRangeRound(iPen, 0, 15, "INK");
 		iInk1 = this.vmInRangeRound(iInk1, 0, 31, "INK");
 		if (iInk2 === undefined) {
@@ -1876,20 +1870,20 @@ export class CpcVm {
 		this.oCanvas.setInk(iPen, iInk1, iInk2);
 	}
 
-	inkey(iKey) {
+	inkey(iKey: number): number {
 		iKey = this.vmInRangeRound(iKey, 0, 79, "INKEY");
 		return this.oKeyboard.getKeyState(iKey);
 	}
 
-	inkey$() {
-		var sKey = this.oKeyboard.getKeyFromBuffer(),
-			iNow;
+	inkey$(): string {
+		const sKey = this.oKeyboard.getKeyFromBuffer();
 
 		// do some slowdown, if checked too early again without key press
 		if (sKey !== "") { // some key pressed?
 			this.iInkeyTime = 0;
 		} else { // no key
-			iNow = Date.now();
+			const iNow = Date.now();
+
 			if (this.iInkeyTimeMs && iNow < this.iInkeyTimeMs) { // last inkey without key was in range of frame fly?
 				this.frame(); // then insert a frame fly
 			}
@@ -1898,8 +1892,8 @@ export class CpcVm {
 		return sKey;
 	}
 
-	inp(iPort) {
-		var iByte = 255;
+	inp(iPort: number): number {
+		const iByte = 255; //TTT
 
 		iPort = this.vmInRangeRound(iPort, -32768, 65535, "INP");
 		if (iPort < 0) { // 2nd complement of 16 bit address?
@@ -1908,39 +1902,43 @@ export class CpcVm {
 		return iByte;
 	}
 
-	vmSetInputValues(aInputValues) {
+	vmSetInputValues(aInputValues: (string | number)[]): void {
 		this.aInputValues = aInputValues;
 	}
 
 	vmGetNextInput() {
-		var aInputValues = this.aInputValues,
-			sValue;
+		const aInputValues = this.aInputValues,
+			sValue = aInputValues.shift();
 
-		sValue = aInputValues.shift();
 		return sValue;
 	}
 
-	vmInputCallback() {
-		var oInput = this.vmGetStopObject().oParas,
+	vmInputCallback(): boolean {
+		const oInput = this.vmGetStopObject().oParas,
 			iStream = oInput.iStream,
 			sInput = oInput.sInput,
 			aInputValues = sInput.split(","),
-			aTypes = oInput.aTypes,
-			bInputOk = true,
-			i, sVarType, sType, value;
+			aConvertedInputValues: (string | number)[] = [],
+			aTypes = oInput.aTypes;
+		let bInputOk = true;
 
 		Utils.console.log("vmInputCallback:", sInput);
 		if (aInputValues.length === aTypes.length) {
-			for (i = 0; i < aTypes.length; i += 1) {
-				sVarType = aTypes[i];
-				sType = this.vmDetermineVarType(sVarType);
-				value = aInputValues[i];
+			for (let i = 0; i < aTypes.length; i += 1) {
+				const sVarType = aTypes[i],
+					sType = this.vmDetermineVarType(sVarType),
+					sValue = aInputValues[i];
+
 				if (sType !== "$") { // not a string?
-					value = this.vmVal(value); // convert to number (also binary, hex), empty string gets 0
-					if (isNaN(value)) {
+					const iValue = this.vmVal(sValue); // convert to number (also binary, hex), empty string gets 0
+
+					if (isNaN(iValue)) {
 						bInputOk = false;
 					}
-					aInputValues[i] = this.vmAssign(sVarType, value);
+					//aInputValues[i] = this.vmAssign(sVarType, value);
+					aConvertedInputValues.push(iValue);
+				} else {
+					aConvertedInputValues.push(sValue);
 				}
 			}
 		} else {
@@ -1954,17 +1952,18 @@ export class CpcVm {
 			this.print(iStream, oInput.sMessage);
 			this.cursor(iStream, 1);
 		} else {
-			this.vmSetInputValues(aInputValues);
+			this.vmSetInputValues(aConvertedInputValues);
 		}
 		return bInputOk;
 	}
 
 	vmInputNextFileItem(sType: string) {
-		var that = this,
-			aFileData = this.oInFile.aFileData,
-			sLine, iIndex, value,
+		const that = this,
+			aFileData = this.oInFile.aFileData;
 
-			fnGetString = function () {
+		let	sLine: string, iIndex: number, value;
+
+		const fnGetString = function () {
 				if (sLine.charAt(0) === '"') { // quoted string?
 					iIndex = sLine.indexOf('"', 1); // closing quotes in this line?
 					if (iIndex >= 0) {
@@ -1990,8 +1989,6 @@ export class CpcVm {
 				return value;
 			},
 			fnGetNumber = function () {
-				var nValue;
-
 				iIndex = sLine.indexOf(","); // multiple args?
 				if (iIndex >= 0) {
 					value = sLine.substr(0, iIndex); // take arg
@@ -2007,7 +2004,9 @@ export class CpcVm {
 						sLine = "";
 					}
 				}
-				nValue = that.vmVal(value); // convert to number (also binary, hex)
+
+				const nValue = that.vmVal(value); // convert to number (also binary, hex)
+
 				if (isNaN(nValue)) { // eslint-disable-line max-depth
 					throw that.vmComposeError(Error(), 13, "INPUT #9 " + nValue + ": " + value); // Type mismatch
 				}
@@ -2032,22 +2031,20 @@ export class CpcVm {
 		return value;
 	}
 
-	vmInputFromFile(aTypes) {
-		var aInputValues = [],
-			i, sVarType, sType, value;
+	vmInputFromFile(aTypes: string[]): void {
+		const aInputValues = [];
 
-		for (i = 0; i < aTypes.length; i += 1) {
-			sVarType = aTypes[i];
-			sType = this.vmDetermineVarType(sVarType);
-
-			value = this.vmInputNextFileItem(sType);
+		for (let i = 0; i < aTypes.length; i += 1) {
+			const sVarType = aTypes[i],
+				sType = this.vmDetermineVarType(sVarType),
+				value = this.vmInputNextFileItem(sType);
 
 			aInputValues[i] = this.vmAssign(sVarType, value);
 		}
 		this.vmSetInputValues(aInputValues);
 	}
 
-	input(iStream: number, sNoCRLF: string, sMsg: string) { // varargs
+	input(iStream: number, sNoCRLF: string, sMsg: string): void { // varargs
 		iStream = this.vmInRangeRound(iStream || 0, 0, 9, "waitInput");
 		if (iStream < 8) {
 			this.print(iStream, sMsg);
@@ -2073,7 +2070,7 @@ export class CpcVm {
 		}
 	}
 
-	instr(p1: string | number, p2: string, p3?: string) { // optional startpos as first parameter
+	instr(p1: string | number, p2: string, p3?: string): number { // optional startpos as first parameter
 		this.vmAssertString(p2, "INSTR");
 		if (typeof p1 === "string") { // p1=string, p2=search string
 			return p1.indexOf(p2) + 1;
@@ -2083,17 +2080,17 @@ export class CpcVm {
 		return p2.indexOf(p3, p1) + 1; // p2=string, p3=search string
 	}
 
-	"int"(n: number) {
+	"int"(n: number): number {
 		this.vmAssertNumber(n, "INT");
 		return Math.floor(n);
 	}
 
-	joy(iJoy: number) {
+	joy(iJoy: number): number {
 		iJoy = this.vmInRangeRound(iJoy, 0, 1, "JOY");
 		return this.oKeyboard.getJoyState(iJoy);
 	}
 
-	key(iToken: number, s: string) {
+	key(iToken: number, s: string): void {
 		iToken = this.vmRound(iToken, "KEY");
 		if (iToken >= 128 && iToken <= 159) {
 			iToken -= 128;
@@ -2103,8 +2100,8 @@ export class CpcVm {
 		this.oKeyboard.setExpansionToken(iToken, s);
 	}
 
-	keyDef(iCpcKey: number, iRepeat: number, iNormal?: number, iShift?: number, iCtrl?: number) { // optional args iNormal,...
-		var oOptions: CpcKeyExpansionsOptions = {
+	keyDef(iCpcKey: number, iRepeat: number, iNormal?: number | null, iShift?: number | null, iCtrl?: number): void { // optional args iNormal,...
+		const oOptions: CpcKeyExpansionsOptions = {
 			iCpcKey: this.vmInRangeRound(iCpcKey, 0, 79, "KEY DEF"),
 			iRepeat: this.vmInRangeRound(iRepeat, 0, 1, "KEY DEF"),
 			iNormal: (iNormal !== undefined && iNormal !== null) ? this.vmInRangeRound(iNormal, 0, 255, "KEY DEF") : undefined,
@@ -2112,36 +2109,24 @@ export class CpcVm {
 			iCtrl: (iCtrl !== undefined && iCtrl !== null) ? this.vmInRangeRound(iCtrl, 0, 255, "KEY DEF") : undefined
 		};
 
-		/*
-		if (iNormal !== undefined && iNormal !== null) {
-			oOptions.iNormal = this.vmInRangeRound(iNormal, 0, 255, "KEY DEF");
-		}
-		if (iShift !== undefined && iShift !== null) {
-			oOptions.iShift = this.vmInRangeRound(iShift, 0, 255, "KEY DEF");
-		}
-		if (iCtrl !== undefined && iCtrl !== null) {
-			oOptions.iCtrl = this.vmInRangeRound(iCtrl, 0, 255, "KEY DEF");
-		}
-		*/
-
 		this.oKeyboard.setCpcKeyExpansion(oOptions);
 	}
 
-	left$(s: string, iLen: number) {
+	left$(s: string, iLen: number): string {
 		this.vmAssertString(s, "LEFT$");
 		iLen = this.vmInRangeRound(iLen, 0, 255, "LEFT$");
 		return s.substr(0, iLen);
 	}
 
-	len(s: string) {
+	len(s: string): number {
 		this.vmAssertString(s, "LEN");
 		return s.length;
 	}
 
 	// let
 
-	vmLineInputCallback() {
-		var oInput = this.vmGetStopObject().oParas,
+	vmLineInputCallback(): boolean {
+		const oInput = this.vmGetStopObject().oParas,
 			sInput = oInput.sInput;
 
 		Utils.console.log("vmLineInputCallback:", sInput);
@@ -2150,12 +2135,12 @@ export class CpcVm {
 		return true;
 	}
 
-	lineInput(iStream, sNoCRLF, sMsg, sVarType) { // sVarType must be string variable
-		var sType = this.vmDetermineVarType(sVarType);
-
+	lineInput(iStream: number | null, sNoCRLF: string, sMsg: string, sVarType: string): void { // sVarType must be string variable
 		iStream = this.vmInRangeRound(iStream || 0, 0, 9, "LINE INPUT");
 		if (iStream < 8) {
 			this.print(iStream, sMsg);
+			const sType = this.vmDetermineVarType(sVarType);
+
 			if (sType !== "$") { // not string?
 				this.print(iStream, "\r\n");
 				throw this.vmComposeError(Error(), 13, "LINE INPUT " + sType); // Type mismatch
@@ -2182,7 +2167,7 @@ export class CpcVm {
 		}
 	}
 
-	list(iStream, iFirst, iLast) { // varargs
+	list(iStream: number | null, iFirst?: number, iLast?: number): void { // varargs
 		iStream = this.vmInRangeRound(iStream || 0, 0, 9, "LIST");
 
 		if (iFirst !== undefined && iFirst !== null) {
@@ -2208,15 +2193,15 @@ export class CpcVm {
 		});
 	}
 
-	vmLoadCallback(sInput, oMeta) {
-		var oInFile = this.oInFile,
-			bPutInMemory = false,
-			iStart, iLength, i, iByte;
+	vmLoadCallback(sInput: string, oMeta): boolean {
+		const oInFile = this.oInFile;
+
+		let	bPutInMemory = false;
 
 		if (sInput !== null && oMeta) {
 			if (oMeta.sType === "B" || oInFile.iStart !== undefined) { // only for binary files or when a load address is specified (feature)
-				iStart = oInFile.iStart !== undefined ? oInFile.iStart : Number(oMeta.iStart);
-				iLength = Number(oMeta.iLength); // we do not really need the length from metadata
+				const iStart = oInFile.iStart !== undefined ? oInFile.iStart : Number(oMeta.iStart);
+				let	iLength = Number(oMeta.iLength); // we do not really need the length from metadata
 
 				if (isNaN(iLength)) {
 					iLength = sInput.length; // only valid after atob()
@@ -2224,8 +2209,9 @@ export class CpcVm {
 				if (Utils.debug > 1) {
 					Utils.console.debug("vmLoadCallback:", oInFile.sName + ": putting data in memory", iStart, "-", iStart + iLength);
 				}
-				for (i = 0; i < iLength; i += 1) {
-					iByte = sInput.charCodeAt(i);
+				for (let i = 0; i < iLength; i += 1) {
+					const iByte = sInput.charCodeAt(i);
+
 					this.poke((iStart + i) & 0xffff, iByte); // eslint-disable-line no-bitwise
 				}
 				bPutInMemory = true;
@@ -2235,8 +2221,8 @@ export class CpcVm {
 		return bPutInMemory;
 	}
 
-	load(sName, iStart) { // optional iStart
-		var oInFile = this.oInFile;
+	load(sName: string, iStart: number): void { // optional iStart
+		const oInFile = this.oInFile;
 
 		sName = this.vmAdaptFilename(sName, "LOAD");
 		if (iStart !== undefined) {
@@ -2254,14 +2240,14 @@ export class CpcVm {
 		this.vmStop("fileLoad", 90);
 	}
 
-	vmLocate(iStream, iPos, iVpos) {
+	vmLocate(iStream: number, iPos: number, iVpos: number): void {
 		var oWin = this.aWindow[iStream];
 
 		oWin.iPos = iPos - 1;
 		oWin.iVpos = iVpos - 1;
 	}
 
-	locate(iStream, iPos, iVpos) {
+	locate(iStream: number, iPos: number, iVpos: number): void {
 		iStream = this.vmInRangeRound(iStream || 0, 0, 7, "LOCATE");
 		iPos = this.vmInRangeRound(iPos, 1, 255, "LOCATE");
 		iVpos = this.vmInRangeRound(iVpos, 1, 255, "LOCATE");
@@ -2271,27 +2257,28 @@ export class CpcVm {
 		this.vmDrawUndrawCursor(iStream); // draw
 	}
 
-	log(n) {
+	log(n: number): number {
 		this.vmAssertNumber(n, "LOG");
 		return Math.log(n);
 	}
 
-	log10(n) {
+	log10(n: number): number {
 		this.vmAssertNumber(n, "LOG10");
 		return Math.log10(n);
 	}
 
-	lower$(s) {
-		var fnLowerCase = function (sMatch) {
+	lower$(s: string): string {
+		this.vmAssertString(s, "LOWER$");
+
+		const fnLowerCase = function (sMatch: string) {
 			return sMatch.toLowerCase();
 		};
 
-		this.vmAssertString(s, "LOWER$");
 		s = s.replace(/[A-Z]/g, fnLowerCase); // replace only characters A-Z
 		return s;
 	}
 
-	mask(iMask, iFirst) { // one of iMask, iFirst is optional
+	mask(iMask: number | null, iFirst?: number): void { // one of iMask, iFirst is optional
 		if (iMask !== null) {
 			iMask = this.vmInRangeRound(iMask, 0, 255, "MASK");
 			this.oCanvas.setMask(iMask);
@@ -2303,16 +2290,14 @@ export class CpcVm {
 		}
 	}
 
-	max() { // varargs
-		var i;
-
-		for (i = 0; i < arguments.length; i += 1) {
-			this.vmAssertNumber(arguments[i], "MAX");
+	max(...aArgs: number[]): number {
+		for (let i = 0; i < aArgs.length; i += 1) {
+			this.vmAssertNumber(aArgs[i], "MAX");
 		}
-		return Math.max.apply(null, arguments);
+		return Math.max.apply(null, aArgs);
 	}
 
-	memory(n) {
+	memory(n: number): void {
 		n = this.vmInRangeRound(n, -32768, 65535, "MEMORY");
 
 		if (n < CpcVm.iMinHimem || n > this.iMinCharHimem) {
@@ -2321,8 +2306,8 @@ export class CpcVm {
 		this.iHimem = n;
 	}
 
-	merge(sName) {
-		var oInFile = this.oInFile;
+	merge(sName: string): void {
+		const oInFile = this.oInFile;
 
 		sName = this.vmAdaptFilename(sName, "MERGE");
 		this.closein();
@@ -2333,7 +2318,7 @@ export class CpcVm {
 		this.vmStop("fileLoad", 90);
 	}
 
-	mid$(s, iStart, iLen) { // as function; iLen is optional
+	mid$(s: string, iStart: number, iLen?: number): string { // as function; iLen is optional
 		this.vmAssertString(s, "MID$");
 		iStart = this.vmInRangeRound(iStart, 1, 255, "MID$");
 		if (iLen !== undefined) {
@@ -2342,7 +2327,7 @@ export class CpcVm {
 		return s.substr(iStart - 1, iLen);
 	}
 
-	mid$Assign(s, iStart, iLen, sNew) {
+	mid$Assign(s: string, iStart: number, iLen: number | null, sNew: string): string {
 		this.vmAssertString(s, "MID$");
 		this.vmAssertString(sNew, "MID$");
 		iStart = this.vmInRangeRound(iStart, 1, 255, "MID$") - 1;
@@ -2357,18 +2342,16 @@ export class CpcVm {
 		return s;
 	}
 
-	min() { // varargs
-		var i;
-
-		for (i = 0; i < arguments.length; i += 1) {
-			this.vmAssertNumber(arguments[i], "MIN");
+	min(...aArgs: number[]): number {
+		for (let i = 0; i < aArgs.length; i += 1) {
+			this.vmAssertNumber(aArgs[i], "MIN");
 		}
-		return Math.min.apply(null, arguments);
+		return Math.min.apply(null, aArgs);
 	}
 
 	// mod
 
-	mode(iMode) {
+	mode(iMode: number): void {
 		iMode = this.vmInRangeRound(iMode, 0, 3, "MODE");
 		this.iMode = iMode;
 		this.vmResetWindowData(false); // do not reset pen and paper
@@ -2378,15 +2361,15 @@ export class CpcVm {
 		this.oCanvas.clearFullWindow(); // always with paper 0 (SCR MODE CLEAR)
 	}
 
-	move(x, y, iGPen, iGColMode) {
+	move(x: number, y: number, iGPen?: number | null, iGColMode?: number): void {
 		this.vmDrawMovePlot("MOVE", x, y, iGPen, iGColMode);
 	}
 
-	mover(x, y, iGPen, iGColMode) {
+	mover(x: number, y: number, iGPen?: number | null, iGColMode?: number): void {
 		this.vmDrawMovePlot("MOVER", x, y, iGPen, iGColMode);
 	}
 
-	"new"() {
+	"new"(): void {
 		this.clear();
 		this.vmStop("new", 90, false, {
 			sCommand: "NEW"
@@ -2397,60 +2380,62 @@ export class CpcVm {
 
 	// not
 
-	onBreakCont() {
+	onBreakCont(): void {
 		this.iBreakGosubLine = -1;
 		this.iBreakResumeLine = 0;
 	}
 
-	onBreakGosub(iLine) {
+	onBreakGosub(iLine): void {
 		this.iBreakGosubLine = iLine;
 		this.iBreakResumeLine = 0;
 	}
 
-	onBreakStop() {
+	onBreakStop(): void {
 		this.iBreakGosubLine = 0;
 		this.iBreakResumeLine = 0;
 	}
 
-	onErrorGoto(iLine) {
+	onErrorGoto(iLine): void {
 		this.iErrorGotoLine = iLine;
 		if (!iLine && this.iErrorResumeLine) { // line=0 but an error to resume?
 			throw this.vmComposeError(Error(), this.iErr, "ON ERROR GOTO without RESUME from " + this.iErl);
 		}
 	}
 
-	onGosub(retLabel, n) { // varargs
-		var iLine;
-
+	onGosub(retLabel: string, n: number, ...aArgs: number[]): void {
 		n = this.vmInRangeRound(n, 0, 255, "ON GOSUB");
-		if (!n || (n + 2) > arguments.length) { // out of range? => continue with line after onGosub
+
+		let iLine; //: string;
+
+		if (!n || n > aArgs.length) { // out of range? => continue with line after onGosub
 			if (Utils.debug > 0) {
 				Utils.console.debug("onGosub: out of range: n=" + n + " in " + this.iLine);
 			}
 			iLine = retLabel;
 		} else {
-			iLine = arguments[n + 1]; // n=1...; start with argument 2
+			iLine = aArgs[n - 1]; // n=1...
 			this.aGosubStack.push(retLabel);
 		}
 		this.vmGotoLine(iLine, "onGosub (n=" + n + ", ret=" + retLabel + ", iLine=" + iLine + ")");
 	}
 
-	onGoto(retLabel, n) { // varargs
-		var iLine;
-
+	onGoto(retLabel: string, n: number, ...aArgs: number[]): void {
 		n = this.vmInRangeRound(n, 0, 255, "ON GOTO");
-		if (!n || (n + 2) > arguments.length) { // out of range? => continue with line after onGoto
+
+		let iLine; //: string;
+
+		if (!n || n > aArgs.length) { // out of range? => continue with line after onGoto
 			if (Utils.debug > 0) {
 				Utils.console.debug("onGoto: out of range: n=" + n + " in " + this.iLine);
 			}
 			iLine = retLabel;
 		} else {
-			iLine = arguments[n + 1];
+			iLine = aArgs[n - 1];
 		}
 		this.vmGotoLine(iLine, "onGoto (n=" + n + ", ret=" + retLabel + ", iLine=" + iLine + ")");
 	}
 
-	fnChannel2ChannelIndex(iChannel) {
+	private fnChannel2ChannelIndex(iChannel: number): number { // eslint-disable-line class-methods-use-this
 		if (iChannel === 4) {
 			iChannel = 2;
 		} else {
@@ -2459,38 +2444,40 @@ export class CpcVm {
 		return iChannel;
 	}
 
-	onSqGosub(iChannel, iLine) {
-		var oSqTimer;
-
+	onSqGosub(iChannel: number, iLine): void {
 		iChannel = this.vmInRangeRound(iChannel, 1, 4, "ON SQ GOSUB");
 		if (iChannel === 3) {
 			throw this.vmComposeError(Error(), 5, "ON SQ GOSUB " + iChannel); // Improper argument
 		}
 		iChannel = this.fnChannel2ChannelIndex(iChannel);
-		oSqTimer = this.aSqTimer[iChannel];
+
+		const oSqTimer = this.aSqTimer[iChannel];
+
 		oSqTimer.iLine = iLine;
 		oSqTimer.bActive = true;
 		oSqTimer.bRepeat = true; // means reloaded for sq
 	}
 
-	vmOpeninCallback(sInput) {
-		var oInFile = this.oInFile;
-
+	vmOpeninCallback(sInput: string | null): void {
 		if (sInput !== null) {
 			sInput = sInput.replace(/\r\n/g, "\n"); // remove CR (maybe from ASCII file in "binary" form)
 			if (sInput.endsWith("\n")) {
 				sInput = sInput.substr(0, sInput.length - 1); // remove last "\n" (TTT: also for data files?)
 			}
+
+			const oInFile = this.oInFile;
+
 			oInFile.aFileData = sInput.split("\n");
 		} else {
 			this.closein();
 		}
 	}
 
-	openin(sName) {
-		var oInFile = this.oInFile;
-
+	openin(sName: string): void {
 		sName = this.vmAdaptFilename(sName, "OPENIN");
+
+		const oInFile = this.oInFile;
+
 		if (!oInFile.bOpen) {
 			if (sName) {
 				oInFile.bOpen = true;
@@ -2504,8 +2491,8 @@ export class CpcVm {
 		}
 	}
 
-	openout(sName) {
-		var oOutFile = this.oOutFile;
+	openout(sName: string): void {
+		const oOutFile = this.oOutFile;
 
 		if (oOutFile.bOpen) {
 			throw this.vmComposeError(Error(), 27, "OPENOUT " + oOutFile.sName); // file already open
@@ -2521,7 +2508,7 @@ export class CpcVm {
 
 	// or
 
-	origin(xOff, yOff, xLeft, xRight, yTop, yBottom) { // parameters starting from xLeft are optional
+	origin(xOff: number, yOff: number, xLeft?: number, xRight?: number, yTop?: number, yBottom?: number): void { // parameters starting from xLeft are optional
 		xOff = this.vmInRangeRound(xOff, -32768, 32767, "ORIGIN");
 		yOff = this.vmInRangeRound(yOff, -32768, 32767, "ORIGIN");
 		this.oCanvas.setOrigin(xOff, yOff);
@@ -2535,7 +2522,7 @@ export class CpcVm {
 		}
 	}
 
-	vmSetRamSelect(iBank) {
+	vmSetRamSelect(iBank: number): void {
 		// we support RAM select for banks 0,4... (so not for 1 to 3)
 		if (!iBank) {
 			this.iRamSelect = 0;
@@ -2544,28 +2531,26 @@ export class CpcVm {
 		}
 	}
 
-	vmSetCrtcData(iByte) {
-		var iCrtcReg = this.iCrtcReg,
-			aCrtcData = this.aCrtcData,
-			iOffset;
+	vmSetCrtcData(iByte: number): void {
+		const iCrtcReg = this.iCrtcReg,
+			aCrtcData = this.aCrtcData;
 
 		aCrtcData[iCrtcReg] = iByte;
 		if (iCrtcReg === 12 || iCrtcReg === 13) { // screen offset changed
-			iOffset = (((aCrtcData[12] || 0) & 0x03) << 9) | ((aCrtcData[13] || 0) << 1); // eslint-disable-line no-bitwise
+			const iOffset = (((aCrtcData[12] || 0) & 0x03) << 9) | ((aCrtcData[13] || 0) << 1); // eslint-disable-line no-bitwise
+
 			this.vmSetScreenOffset(iOffset);
 		}
 	}
 
-	out(iPort, iByte) {
-		var iPortHigh;
-
+	out(iPort: number, iByte: number): void {
 		iPort = this.vmInRangeRound(iPort, -32768, 65535, "OUT");
 		if (iPort < 0) { // 2nd complement of 16 bit address?
 			iPort += 65536;
 		}
 		iByte = this.vmInRangeRound(iByte, 0, 255, "OUT");
-		iPortHigh = iPort >> 8; // eslint-disable-line no-bitwise
 
+		const iPortHigh = iPort >> 8; // eslint-disable-line no-bitwise
 
 		if (iPortHigh === 0x7f) { // 7Fxx = RAM select
 			this.vmSetRamSelect(iByte - 0xc0);
@@ -2579,17 +2564,17 @@ export class CpcVm {
 		}
 	}
 
-	paper(iStream, iPaper) {
-		var oWin;
-
+	paper(iStream: number | null, iPaper: number): void {
 		iStream = this.vmInRangeRound(iStream || 0, 0, 7, "PAPER");
 		iPaper = this.vmInRangeRound(iPaper, 0, 15, "PAPER");
-		oWin = this.aWindow[iStream];
+
+		const oWin = this.aWindow[iStream];
+
 		oWin.iPaper = iPaper;
 	}
 
-	vmGetCharDataByte(iAddr) {
-		var iDataPos = (iAddr - 1 - this.iMinCharHimem) % 8,
+	vmGetCharDataByte(iAddr: number) {
+		const iDataPos = (iAddr - 1 - this.iMinCharHimem) % 8,
 			iChar = this.iMinCustomChar + (iAddr - 1 - iDataPos - this.iMinCharHimem) / 8,
 			aCharData = this.oCanvas.getCharData(iChar);
 
@@ -2646,15 +2631,15 @@ export class CpcVm {
 		}
 	}
 
-	pi() {
+	pi(): number {
 		return Math.PI; // or less precise: 3.14159265
 	}
 
-	plot(x, y, iGPen, iGColMode) { // 2, up to 4 parameters
+	plot(x: number, y: number, iGPen?: number | null, iGColMode?: number): void { // 2, up to 4 parameters
 		this.vmDrawMovePlot("PLOT", x, y, iGPen, iGColMode);
 	}
 
-	plotr(x, y, iGPen, iGColMode) {
+	plotr(x: number, y: number, iGPen?: number | null, iGColMode?: number): void {
 		this.vmDrawMovePlot("PLOTR", x, y, iGPen, iGColMode);
 	}
 
@@ -2727,7 +2712,7 @@ export class CpcVm {
 		return y;
 	}
 
-	vmMoveCursor2AllowedPos(iStream) {
+	vmMoveCursor2AllowedPos(iStream: number) {
 		var oWin = this.aWindow[iStream],
 			iLeft = oWin.iLeft,
 			iRight = oWin.iRight,
@@ -2782,7 +2767,7 @@ export class CpcVm {
 			oWin.iVpos += 1; // "\r\n", newline if string does not fit in line
 		}
 		for (i = 0; i < sStr.length; i += 1) {
-			iChar = this.vmGetCpcCharCode(sStr.charCodeAt(i));
+			iChar = CpcVm.vmGetCpcCharCode(sStr.charCodeAt(i));
 			this.vmMoveCursor2AllowedPos(iStream);
 			this.oCanvas.printChar(iChar, oWin.iPos + oWin.iLeft, oWin.iVpos + oWin.iTop, oWin.iPen, oWin.iPaper, oWin.bTransparent);
 			oWin.iPos += 1;
@@ -2983,7 +2968,7 @@ export class CpcVm {
 		var iChar, i;
 
 		for (i = 0; i < sStr.length; i += 1) {
-			iChar = this.vmGetCpcCharCode(sStr.charCodeAt(i));
+			iChar = CpcVm.vmGetCpcCharCode(sStr.charCodeAt(i));
 			this.oCanvas.printGChar(iChar);
 		}
 	}
@@ -3279,11 +3264,10 @@ export class CpcVm {
 		return Number(Math.round(Number(n + "e" + iDecimals)) + "e" + ((iDecimals >= 0) ? "-" + iDecimals : "+" + -iDecimals));
 	}
 
-	vmRunCallback(sInput, oMeta) {
-		var oInFile = this.oInFile,
-			bPutInMemory;
+	private vmRunCallback(sInput: string, oMeta) {
+		const oInFile = this.oInFile,
+			bPutInMemory = sInput !== null && oMeta && (oMeta.sType === "B" || oInFile.iStart !== undefined);
 
-		bPutInMemory = sInput !== null && oMeta && (oMeta.sType === "B" || oInFile.iStart !== undefined);
 		// TODO: we could put it in memory as we do it for LOAD
 
 		if (sInput !== null) {
@@ -3867,10 +3851,4 @@ export class CpcVm {
 		n = this.vmInRangeRound(n, 1, 255, "ZONE");
 		this.iZone = n;
 	}
-};
-
-/*
-if (typeof module !== "undefined" && module.exports) {
-	module.exports = CpcVm;
 }
-*/

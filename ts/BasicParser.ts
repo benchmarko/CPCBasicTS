@@ -5,8 +5,6 @@
 // BASIC parser for Locomotive BASIC 1.1 for Amstrad CPC 6128
 //
 
-"use strict";
-
 // [ https://www.codeproject.com/Articles/345888/How-to-write-a-simple-interpreter-in-JavaScript ; test online: http://jsfiddle.net/h3xwj/embedded/result/ ]
 //
 // http://crockford.com/javascript/tdop/tdop.html
@@ -270,9 +268,7 @@ export class BasicParser {
 		this.iLine = 0; // for error messages
 	}
 
-	composeError(...aArgs) {
-		//var aArgs = Array.prototype.slice.call(arguments);
-
+	private composeError(...aArgs) {
 		aArgs.unshift("BasicParser");
 		aArgs.push(this.iLine);
 		return Utils.composeError.apply(null, aArgs);
@@ -286,13 +282,14 @@ export class BasicParser {
 	// Manipulates tokens to its left (e.g: +)? => left denotative function led(), otherwise null denotative function nud()), (e.g. unary -)
 	// identifiers, numbers: also nud.
 	parse(aTokens: BasicLexerToken[], bAllowDirect?: boolean) {
+		let iIndex = 0,
+			oPreviousToken, oToken; // TODO: oToken: BasicParserNode, (changed by side effect!)
+
 		const that = this,
 			oSymbols = {},
-			aParseTree = [];
-		let iIndex = 0,
-			oPreviousToken, oToken, //TODO: oToken: BasicParserNode, (changed by side effect!)
+			aParseTree = [],
 
-			symbol = function (id, nud?, lbp?, led?) {
+			symbol = function (id: string, nud?, lbp?, led?) {
 				var oSymbol = oSymbols[id];
 
 				if (!oSymbol) {
@@ -326,6 +323,7 @@ export class BasicParser {
 					oToken.type = oToken.value.toLowerCase(); // modify type identifier => keyword xy
 				}
 				const oSym = oSymbols[oToken.type];
+
 				if (!oSym) {
 					throw that.composeError(Error(), "Unknown token", oToken.type, oToken.pos);
 				}
@@ -347,7 +345,9 @@ export class BasicParser {
 						throw that.composeError(Error(), "Unexpected token", t.type, t.pos);
 					}
 				}
+
 				let left = s.nud(t); // process literals, variables, and prefix operators
+
 				while (rbp < oSymbols[oToken.type].lbp) { // as long as the right binding power is less than the left binding power of the next token...
 					t = oToken;
 					s = oSymbols[t.type];
@@ -364,8 +364,10 @@ export class BasicParser {
 				if (oToken.type !== "identifier") {
 					throw that.composeError(Error(), "Expected identifier", oToken.type, oToken.pos);
 				}
+
 				const oLeft = expression(90), // take it (can also be an array) and stop
 					oValue = oToken;
+
 				advance("="); // equal as assignment
 				oValue.left = oLeft;
 				oValue.right = expression(0);
@@ -383,6 +385,7 @@ export class BasicParser {
 				}
 
 				let oValue;
+
 				if (t.type === "identifier") {
 					oValue = assignment();
 				} else {
@@ -411,6 +414,7 @@ export class BasicParser {
 						bColonExpected = false;
 					} else {
 						const oStatement = statement();
+
 						aStatements.push(oStatement);
 						bColonExpected = true;
 					}
@@ -512,6 +516,7 @@ export class BasicParser {
 
 				if (oRange) {
 					let oRight;
+
 					if (oToken.type === "number") {
 						oRight = oToken;
 						advance("number");
@@ -538,6 +543,7 @@ export class BasicParser {
 					throw that.composeError(Error(), "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], oToken.value, oToken.pos);
 				}
 				const oExpression = expression(0); // n or n-n
+
 				if (fnIsSingleLetterIdentifier(oExpression)) { // ok
 					oExpression.type = "letter"; // change type: identifier -> letter
 				} else if (oExpression.type === "-" && fnIsSingleLetterIdentifier(oExpression.left) && fnIsSingleLetterIdentifier(oExpression.right)) { // also ok
@@ -553,8 +559,10 @@ export class BasicParser {
 			fnCheckRemainingTypes = function (aTypes) {
 				for (let i = 0; i < aTypes.length; i += 1) { // some more parameters expected?
 					const sType = aTypes[i];
+
 					if (!sType.endsWith("?") && !sType.endsWith("*")) { // mandatory?
 						const sText = BasicParser.mParameterTypes[sType] || ("parameter " + sType);
+
 						throw that.composeError(Error(), "Expected " + sText + " for " + oPreviousToken.type, oToken.value, oToken.pos);
 					}
 				}
@@ -571,6 +579,7 @@ export class BasicParser {
 
 				if (sKeyword) {
 					const sKeyOpts = BasicParser.mKeywords[sKeyword];
+
 					if (sKeyOpts) {
 						aTypes = sKeyOpts.split(" ");
 						aTypes.shift(); // remove keyword type
@@ -589,6 +598,7 @@ export class BasicParser {
 					}
 					const sTypeFirstChar = sType.charAt(0);
 					let oExpression;
+
 					if (sType === "#0?") { // optional stream?
 						if (oToken.type === "#") { // stream?
 							oExpression = fnGetOptionalStream();
@@ -652,8 +662,9 @@ export class BasicParser {
 					fnCheckRemainingTypes(aTypes); // error if remaining mandatory args
 					sType = aTypes[0];
 					if (sType === "#0?") { // null stream to add?
-						let oExpression = fnCreateDummyArg("#"); // dummy stream with dummy arg
-						(oExpression as any).right = fnCreateDummyArg(null); //TTT any
+						const oExpression = fnCreateDummyArg("#"); // dummy stream with dummy arg
+
+						(oExpression as any).right = fnCreateDummyArg(null);
 						aArgs.push(oExpression);
 					}
 				}
@@ -677,27 +688,31 @@ export class BasicParser {
 
 			fnGetArgsInParenthesis = function () {
 				advance("(");
-				const aArgs = fnGetArgs(null); //until ")"
+				const aArgs = fnGetArgs(null); // until ")"
+
 				advance(")");
 				return aArgs;
 			},
 
 			fnGetArgsInParenthesesOrBrackets = function () {
 				const oBrackets = {
-						"(": ")",
-						"[": "]"
-					};
+					"(": ")",
+					"[": "]"
+				};
 
 				let oBracketOpen;
+
 				if (oToken.type === "(" || oToken.type === "[") { // oBrackets[oToken.type]
 					oBracketOpen = oToken;
 				}
 
 				advance(oBracketOpen ? oBracketOpen.type : "(");
 				const aArgs = fnGetArgs(null); // (until "]" or ")")
+
 				aArgs.unshift(oBracketOpen);
 
 				let oBracketClose;
+
 				if (oToken.type === ")" || oToken.type === "]") {
 					oBracketClose = oToken;
 				}
@@ -731,7 +746,7 @@ export class BasicParser {
 
 				if (oToken.type === "(") { // args in parenthesis?
 					advance("(");
-					oValue.args = fnGetArgs(oValue.type); //until ")"
+					oValue.args = fnGetArgs(oValue.type);
 					if (oToken.type !== ")") {
 						throw that.composeError(Error(), "Expected closing parenthesis for argument list after", oPreviousToken.value, oToken.pos); //TTT
 					}
@@ -741,8 +756,10 @@ export class BasicParser {
 
 					// if we have a check, make sure there are no non-optional parameters left
 					const sKeyOpts = BasicParser.mKeywords[oValue.type];
+
 					if (sKeyOpts) {
 						const aTypes = sKeyOpts.split(" ");
+
 						aTypes.shift(); // remove key
 						fnCheckRemainingTypes(aTypes);
 					}
@@ -759,9 +776,10 @@ export class BasicParser {
 						return fnCreateCmdCall(null);
 					};
 
-				for (let sKey in BasicParser.mKeywords) {
+				for (const sKey in BasicParser.mKeywords) {
 					if (BasicParser.mKeywords.hasOwnProperty(sKey)) {
 						const sValue = BasicParser.mKeywords[sKey];
+
 						if (sValue.charAt(0) === "f") {
 							symbol(sKey, fnFunc);
 						} else if (sValue.charAt(0) === "c") {
@@ -774,6 +792,7 @@ export class BasicParser {
 				oValue.args = [];
 
 				const oStream = fnGetOptionalStream();
+
 				oValue.args.push(oStream);
 				if (oStream.len !== 0) { // not an inserted stream?
 					advance(",");
@@ -870,11 +889,13 @@ export class BasicParser {
 						left: oName, // identifier
 						pos: oName.pos // same pos as identifier?
 					};
+
 					return oValue;
 				}
 			}
 
 			let oValue = oName;
+
 			if (oToken.type === "(" || oToken.type === "[") {
 				oValue = oPreviousToken;
 
@@ -984,12 +1005,13 @@ export class BasicParser {
 			}
 			advance("gosub");
 			const aLine = fnGetArgs("gosub"); // line number
+
 			oValue.args.push(aLine[0]);
 			return oValue;
 		});
 
 		stmt("chain", function () {
-			let sName = "chain",	
+			let sName = "chain",
 				oValue;
 
 			if (oToken.type !== "merge") { // not chain merge?
@@ -1002,12 +1024,14 @@ export class BasicParser {
 				oValue.args = [];
 
 				let oValue2 = expression(0); // filename
+
 				oValue.args.push(oValue2);
 
 				if (oToken.type === ",") {
 					advance(",");
 
 					let bNumberExpression = false; // line number (expression) found
+
 					if (oToken.type !== "," && oToken.type !== "(eol)" && oToken.type !== "(eof)") {
 						oValue2 = expression(0); // line number or expression
 						oValue.args.push(oValue2);
@@ -1126,15 +1150,18 @@ export class BasicParser {
 			oValue.args.push(expression(0)); // should be number or variable
 
 			let iCount = 0;
+
 			while (oToken.type === ",") {
 				advance(",");
 				if (oToken.type === "=" && iCount % 3 === 0) { // special handling for parameter "number of steps"
 					advance("=");
 					const oExpression = fnCreateDummyArg(null); // insert null parameter
+
 					oValue.args.push(oExpression);
 					iCount += 1;
 				}
 				const oExpression = expression(0);
+
 				oValue.args.push(oExpression);
 				iCount += 1;
 			}
@@ -1150,15 +1177,18 @@ export class BasicParser {
 			oValue.args.push(expression(0)); // should be number or variable
 
 			let iCount = 0;
+
 			while (oToken.type === ",") {
 				advance(",");
 				if (oToken.type === "=" && iCount % 3 === 0) { // special handling for parameter "number of steps"
 					advance("=");
 					const oExpression = fnCreateDummyArg(null); // insert null parameter
+
 					oValue.args.push(oExpression);
 					iCount += 1;
 				}
 				const oExpression = expression(0);
+
 				oValue.args.push(oExpression);
 				iCount += 1;
 			}
@@ -1173,7 +1203,9 @@ export class BasicParser {
 				oValue.args.push(fnCreateDummyArg(null));
 			}
 			advance("gosub");
+
 			const aLine = fnGetArgs("gosub"); // line number
+
 			oValue.args.push(aLine[0]);
 			return oValue;
 		});
@@ -1184,7 +1216,9 @@ export class BasicParser {
 			if (oToken.type !== "identifier") {
 				throw that.composeError(Error(), "Expected identifier", oToken.type, oToken.pos);
 			}
+
 			const oName = expression(90); // take simple identifier, nothing more
+
 			if (oName.type !== "identifier") {
 				throw that.composeError(Error(), "Expected simple identifier", oToken.type, oToken.pos);
 			}
@@ -1209,6 +1243,7 @@ export class BasicParser {
 
 			if (oToken.type === "pen" || oToken.type === "paper") { // graphics pen/paper
 				const sName = "graphics" + Utils.stringCapitalize(oToken.type);
+
 				advance(oToken.type);
 				oValue = fnCreateCmdCall(sName);
 			} else {
@@ -1230,8 +1265,10 @@ export class BasicParser {
 				advance("then");
 				if (oToken.type === "number") {
 					const oValue2 = fnCreateCmdCall("goto"); // take "then" as "goto", checks also for line number
+
 					oValue2.len = 0; // mark it as inserted
 					const oToken2 = oToken;
+
 					oValue.right = statements("else");
 					if (oValue.right.length && oValue.right[0].type !== "rem") {
 						if (!that.bQuiet) {
@@ -1248,8 +1285,10 @@ export class BasicParser {
 				advance("else");
 				if (oToken.type === "number") {
 					const oValue2 = fnCreateCmdCall("goto"); // take "then" as "goto", checks also for line number
+
 					oValue2.len = 0; // mark it as inserted
 					const oToken2 = oToken;
+
 					oValue.third = statements("else");
 					if (oValue.third.length) {
 						if (!that.bQuiet) {
@@ -1311,6 +1350,7 @@ export class BasicParser {
 
 			advance("="); // equal as assignment
 			const oRight = expression(0);
+
 			oValue.right = oRight;
 
 			return oValue;
@@ -1347,6 +1387,7 @@ export class BasicParser {
 				}
 			} else if (oToken.type === "sq") { // on sq(n) gosub
 				let oLeft = expression(0);
+
 				oLeft = oLeft.args[0];
 				if (oToken.type === "gosub") {
 					advance("gosub");
@@ -1358,6 +1399,7 @@ export class BasicParser {
 				}
 			} else {
 				const oLeft = expression(0);
+
 				if (oToken.type === "gosub") {
 					advance("gosub");
 					oValue.type = "onGosub";
@@ -1384,6 +1426,7 @@ export class BasicParser {
 			oValue.args.push(oStream);
 
 			let bCommaAfterStream = false;
+
 			if (oStream.len !== 0) { // not an inserted stream?
 				bCommaAfterStream = true;
 			}
@@ -1395,6 +1438,7 @@ export class BasicParser {
 				}
 
 				let	oValue2;
+
 				if (oToken.type === "spc" || oToken.type === "tab") {
 					advance(oToken.type);
 					oValue2 = fnCreateFuncCall(null);
@@ -1402,6 +1446,7 @@ export class BasicParser {
 					oValue2 = oToken;
 					advance("using");
 					const t = expression(0); // format
+
 					advance(";"); // after the format there must be a ";"
 
 					oValue2.args = fnGetArgsSepByCommaSemi();
@@ -1425,7 +1470,6 @@ export class BasicParser {
 		});
 
 		stmt("?", function () {
-			//TTT
 			const oValue = (oSymbols as any).print.std(); // "?" is same as print
 
 			oValue.type = "print";
@@ -1440,6 +1484,7 @@ export class BasicParser {
 				sName = "resumeNext";
 			}
 			const oValue = fnCreateCmdCall(sName);
+
 			return oValue;
 		});
 
@@ -1494,4 +1539,4 @@ export class BasicParser {
 		}
 		return aParseTree;
 	}
-};
+}

@@ -1,27 +1,23 @@
+"use strict";
 // BasicFormatter.ts - Format BASIC source
 // (c) Marco Vieth, 2020
 // https://benchmarko.github.io/CPCBasic/
 //
 //
-"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BasicFormatter = void 0;
 var Utils_1 = require("./Utils");
 var BasicFormatter = /** @class */ (function () {
     function BasicFormatter(options) {
         this.iLine = 0;
-        this.init(options);
-    }
-    BasicFormatter.prototype.init = function (options) {
         this.lexer = options.lexer;
         this.parser = options.parser;
         this.reset();
-    };
+    }
     BasicFormatter.prototype.reset = function () {
         this.iLine = 0; // current line (label)
     };
     BasicFormatter.prototype.composeError = function () {
-        //var aArgs = Array.prototype.slice.call(arguments);
         var aArgs = [];
         for (var _i = 0; _i < arguments.length; _i++) {
             aArgs[_i] = arguments[_i];
@@ -142,5 +138,4 @@ var BasicFormatter = /** @class */ (function () {
     return BasicFormatter;
 }());
 exports.BasicFormatter = BasicFormatter;
-;
 //# sourceMappingURL=BasicFormatter.js.map

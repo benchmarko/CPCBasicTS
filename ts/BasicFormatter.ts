@@ -4,8 +4,6 @@
 //
 //
 
-"use strict";
-
 import { Utils } from "./Utils";
 import { BasicLexer } from "./BasicLexer";
 import { BasicParser } from "./BasicParser";
@@ -16,33 +14,26 @@ interface BasicFormatterOptions {
 }
 
 export class BasicFormatter {
-
 	lexer: BasicLexer
 	parser: BasicParser
 	iLine = 0;
 
 	constructor(options: BasicFormatterOptions) {
-		this.init(options);
-	}
-
-	init(options: BasicFormatterOptions) {
 		this.lexer = options.lexer;
 		this.parser = options.parser;
 		this.reset();
 	}
 
-	reset() {
+	reset(): void {
 		this.iLine = 0; // current line (label)
 	}
 
-	composeError(...aArgs) { //TTT
-		//var aArgs = Array.prototype.slice.call(arguments);
-
+	private composeError(...aArgs) {
 		aArgs.unshift("BasicFormatter");
 		return Utils.composeError.apply(null, aArgs);
 	}
 
-	fnRenumber(sInput: string, aParseTree, iNew: number, iOld: number, iStep: number, iKeep: number) {
+	private fnRenumber(sInput: string, aParseTree, iNew: number, iOld: number, iStep: number, iKeep: number) {
 		const that = this,
 			oLines = {}, // line numbers
 			aRefs = [], // references
@@ -56,9 +47,11 @@ export class BasicFormatter {
 				};
 				for (let i = 0; i < aParseTree.length; i += 1) {
 					const oNode = aParseTree[i];
+
 					if (oNode.type === "label") {
 						const sLine = oNode.value,
 							iLine = Number(oNode.value);
+
 						if (sLine in oLines) {
 							throw that.composeError(Error(), "Duplicate line number", sLine, oNode.pos);
 						}
@@ -80,6 +73,7 @@ export class BasicFormatter {
 			fnAddReferences = function (aNodes) {
 				for (let i = 0; i < aNodes.length; i += 1) {
 					const oNode = aNodes[i];
+
 					if (oNode.type === "linenumber") {
 						if (oNode.value in oLines) {
 							aRefs.push({
@@ -110,6 +104,7 @@ export class BasicFormatter {
 
 				for (let i = 0; i < aKeys.length; i += 1) {
 					const oLine = oLines[aKeys[i]];
+
 					if (oLine.value >= iOld && oLine.value < iKeep) {
 						if (iNew > 65535) {
 							throw that.composeError(Error(), "Line number overflow", oLine.value, oLine.pos);
@@ -122,6 +117,7 @@ export class BasicFormatter {
 
 				for (let i = 0; i < aRefs.length; i += 1) {
 					const oRef = aRefs[i];
+
 					if (oRef.value >= iOld && oRef.value < iKeep) {
 						if (oRef.value !== oLines[oRef.value].newLine) {
 							oRef.newLine = oLines[oRef.value].newLine;
@@ -141,6 +137,7 @@ export class BasicFormatter {
 				// apply changes to input in reverse order
 				for (let i = aKeys.length - 1; i >= 0; i -= 1) {
 					const oLine = oChanges[aKeys[i]];
+
 					sInput = sInput.substring(0, oLine.pos) + oLine.newLine + sInput.substr(oLine.pos + oLine.len);
 				}
 			};
@@ -158,9 +155,9 @@ export class BasicFormatter {
 
 	renumber(sInput: string, iNew: number, iOld: number, iStep: number, iKeep: number) {
 		const oOut = {
-				text: "",
-				error: undefined
-			};
+			text: "",
+			error: undefined
+		};
 
 		try {
 			const aTokens = this.lexer.lex(sInput),
@@ -173,4 +170,4 @@ export class BasicFormatter {
 		}
 		return oOut;
 	}
-};
+}

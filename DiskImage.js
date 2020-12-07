@@ -1,47 +1,69 @@
+"use strict";
 // DiskImage.js - DiskImage
 // (c) Marco Vieth, 2020
 // https://benchmarko.github.io/CPCBasic/
-"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DiskImage = void 0;
-/*
-var Utils;
-
-if (typeof require !== "undefined") {
-    Utils = require("./Utils.js"); // eslint-disable-line global-require
-}
-*/
 // http://www.cpctech.org.uk/docs/extdsk.html
 // Extended DSK image definition
 var Utils_1 = require("./Utils");
-function DiskImage(oConfig) {
-    this.init(oConfig);
-}
-exports.DiskImage = DiskImage;
-DiskImage.prototype = {
-    init: function (oConfig) {
-        this.oConfig = oConfig || {};
+var DiskImage = /** @class */ (function () {
+    function DiskImage(oConfig) {
+        this.init(oConfig);
+    }
+    DiskImage.prototype.init = function (oConfig) {
+        this.sDiskName = oConfig.sDiskName;
         this.sData = oConfig.sData;
         this.reset();
-    },
-    reset: function () {
+    };
+    DiskImage.prototype.reset = function () {
         this.iPos = 0;
+        //this.oDiskInfo = undefined;
         this.oDiskInfo = {
             oTrackInfo: {
                 aSectorInfo: []
             }
+        }; //TTT
+        /*
+        this.oDiskInfo = {
+            sIdent: undefined,
+            sCreator: undefined,
+            iTracks: undefined,
+            iHeads: undefined,
+            iTrackSize: undefined,
+            oTrackInfo: {
+                sIdent: undefined,
+                iTrack: undefined,
+                iHead: undefined,
+                iDataRate: undefined,
+                iRecMode: undefined,
+                iBps: undefined,
+                iSpt: undefined,
+                iGap3: undefined,
+                iFill: undefined,
+                aSectorInfo: [],
+                iDataPos: undefined,
+                oSectorNum2Index: undefined
+            },
+            bExtended: undefined,
+            aTrackSizes: undefined,
+            aTrackPos: undefined
         };
+        */
         this.oFormat = {};
         return this;
-    },
-    composeError: function () {
-        var aArgs = Array.prototype.slice.call(arguments);
-        aArgs[1] = this.oConfig.sDiskName + ": " + aArgs[1]; // put DiskName in message
+    };
+    DiskImage.prototype.composeError = function () {
+        var aArgs = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            aArgs[_i] = arguments[_i];
+        }
+        aArgs[1] = this.sDiskName + ": " + aArgs[1]; // put DiskName in message
         aArgs.unshift("DiskImage");
         return Utils_1.Utils.composeError.apply(null, aArgs);
-    },
-    testDiskIdent: function (sIdent) {
-        var bExtended = null;
+    };
+    DiskImage.testDiskIdent = function (sIdent) {
+        var bExtended;
         if (sIdent === "MV - CPC") {
             bExtended = false;
         }
@@ -49,22 +71,22 @@ DiskImage.prototype = {
             bExtended = true;
         }
         return bExtended;
-    },
-    readUtf: function (iPos, iLen) {
+    };
+    DiskImage.prototype.readUtf = function (iPos, iLen) {
         var sOut = this.sData.substr(iPos, iLen);
         return sOut;
-    },
-    readUInt8: function (iPos) {
+    };
+    DiskImage.prototype.readUInt8 = function (iPos) {
         var iNum = this.sData.charCodeAt(iPos);
         return iNum;
-    },
-    readUInt16: function (iPos) {
+    };
+    DiskImage.prototype.readUInt16 = function (iPos) {
         return this.readUInt8(iPos) + this.readUInt8(iPos + 1) * 256;
-    },
-    readDiskInfo: function (iPos) {
+    };
+    DiskImage.prototype.readDiskInfo = function (iPos) {
         var iDiskInfoSize = 0x100, oDiskInfo = this.oDiskInfo, sIdent, i, iTrackSizeCount, iTrackSize, aTrackSizes, aTrackPos, iTrackPos;
         sIdent = this.readUtf(iPos, 8); // check first 8 characters as characteristic
-        oDiskInfo.bExtended = this.testDiskIdent(sIdent);
+        oDiskInfo.bExtended = DiskImage.testDiskIdent(sIdent);
         if (oDiskInfo.bExtended === null) {
             throw this.composeError(Error(), "Dsk: Ident not found");
         }
@@ -86,8 +108,8 @@ DiskImage.prototype = {
         }
         oDiskInfo.aTrackSizes = aTrackSizes;
         oDiskInfo.aTrackPos = aTrackPos;
-    },
-    readTrackInfo: function (iPos) {
+    };
+    DiskImage.prototype.readTrackInfo = function (iPos) {
         var iTrackInfoSize = 0x100, oTrackInfo = this.oDiskInfo.oTrackInfo, aSectorInfo = oTrackInfo.aSectorInfo, i, oSectorInfo, iSectorSize, oSectorNum2Index, iSectorPos;
         oTrackInfo.iDataPos = iPos + iTrackInfoSize;
         oTrackInfo.sIdent = this.readUtf(iPos, 12);
@@ -124,37 +146,304 @@ DiskImage.prototype = {
             oSectorNum2Index[oSectorInfo.iSector] = i;
             iPos += 8;
         }
-    },
-    seekTrack: function (iTrack, iHead) {
-        var oDiskInfo = this.oDiskInfo, oTrackInfo = oDiskInfo.oTrackInfo, iTrackInfoPos;
+    };
+    DiskImage.prototype.seekTrack = function (iTrack, iHead) {
+        var oDiskInfo = this.oDiskInfo, oTrackInfo = oDiskInfo.oTrackInfo;
         if (oTrackInfo.iTrack === iTrack && oTrackInfo.iHead === iHead) { // already positionend?
             return;
         }
         if (!oDiskInfo.sIdent) {
             this.readDiskInfo(0);
         }
-        iTrackInfoPos = oDiskInfo.aTrackPos[iTrack * oDiskInfo.iHeads + iHead];
+        var iTrackInfoPos = oDiskInfo.aTrackPos[iTrack * oDiskInfo.iHeads + iHead];
         this.readTrackInfo(iTrackInfoPos);
-    },
-    sectorNum2Index: function (iSector) {
+    };
+    DiskImage.prototype.sectorNum2Index = function (iSector) {
         var oTrackInfo = this.oDiskInfo.oTrackInfo, iSectorIndex = oTrackInfo.oSectorNum2Index[iSector];
         return iSectorIndex;
-    },
-    seekSector: function (iSectorIndex) {
+    };
+    DiskImage.prototype.seekSector = function (iSectorIndex) {
         var aSectorInfo = this.oDiskInfo.oTrackInfo.aSectorInfo, oSectorInfo = aSectorInfo[iSectorIndex];
         return oSectorInfo;
-    },
-    readSector: function (iSector) {
-        var oTrackInfo = this.oDiskInfo.oTrackInfo, iSectorIndex = this.sectorNum2Index(iSector), oSectorInfo, sOut;
+    };
+    DiskImage.prototype.readSector = function (iSector) {
+        var oTrackInfo = this.oDiskInfo.oTrackInfo, iSectorIndex = this.sectorNum2Index(iSector);
         if (iSectorIndex === undefined) {
             throw this.composeError(Error(), "Dsk: Track " + oTrackInfo.iTrack + ": Sector not found", iSector, 0);
         }
-        oSectorInfo = this.seekSector(iSectorIndex);
-        sOut = this.readUtf(oSectorInfo.iDataPos, oSectorInfo.iSectorSize);
+        var oSectorInfo = this.seekSector(iSectorIndex), sOut = this.readUtf(oSectorInfo.iDataPos, oSectorInfo.iSectorSize);
         return sOut;
-    },
+    };
     // ...
-    mFormatDescriptors: {
+    DiskImage.prototype.getFormatDescriptor = function (sFormat) {
+        var oFormat = DiskImage.mFormatDescriptors[sFormat];
+        if (!oFormat) {
+            throw this.composeError(Error(), "Dsk: Unknown format", sFormat);
+        }
+        if (oFormat.sParentRef) {
+            var oParentFormat = this.getFormatDescriptor(oFormat.sParentRef); // recursive
+            oFormat = Object.assign({}, oParentFormat, oFormat);
+        }
+        else {
+            oFormat = Object.assign({}, oFormat);
+        }
+        oFormat.sFormat = sFormat;
+        return oFormat; //TTT
+    };
+    DiskImage.prototype.determineFormat = function () {
+        var oDiskInfo = this.oDiskInfo, iTrack = 0, iHead = 0;
+        this.seekTrack(iTrack, iHead);
+        var oTrackInfo = oDiskInfo.oTrackInfo;
+        var iFirstSector = 0xff;
+        for (var i = 0; i < oTrackInfo.iSpt; i += 1) {
+            var iSector = oTrackInfo.aSectorInfo[i].iSector;
+            if (iSector < iFirstSector) {
+                iFirstSector = iSector;
+            }
+        }
+        var sFormat = "";
+        if (iFirstSector === 0xc1) {
+            sFormat = "data";
+        }
+        else if (iFirstSector === 0x41) {
+            sFormat = "system";
+        }
+        else if ((iFirstSector === 0x01) && (oDiskInfo.iTracks === 80)) { // big780k TTT
+            sFormat = "big780k";
+        }
+        else {
+            throw this.composeError(Error(), "Dsk: Unknown format with sector", iFirstSector);
+        }
+        if (oDiskInfo.iHeads > 1) { // maybe 2
+            sFormat += String(oDiskInfo.iHeads); // e.g. "data": "data2"
+        }
+        return this.getFormatDescriptor(sFormat);
+    };
+    DiskImage.prototype.readDirectoryExtents = function (aExtents, iPos, iEndPos) {
+        var fnRemoveHighBit7 = function (sStr) {
+            var sOut = "";
+            for (var i = 0; i < sStr.length; i += 1) {
+                var iChar = sStr.charCodeAt(i);
+                sOut += String.fromCharCode(iChar & 0x7f); // eslint-disable-line no-bitwise
+            }
+            return sOut;
+        }, fnUnpackFtypeFlags = function (oExtent, sExt) {
+            var aFTypes = [
+                "bReadOnly",
+                "bSystem",
+                "bBackup" // not known
+            ];
+            for (var i = 0; i < aFTypes.length; i += 1) {
+                var sFType = aFTypes[i], iChar = sExt.charCodeAt(i);
+                oExtent[sFType] = Boolean(iChar & 0x80); // eslint-disable-line no-bitwise
+            }
+        };
+        while (iPos < iEndPos) {
+            var oExtent = {
+                iUser: this.readUInt8(iPos),
+                sName: this.readUtf(iPos + 1, 8),
+                sExt: this.readUtf(iPos + 9, 3),
+                iExtent: this.readUInt8(iPos + 12),
+                iLastRecBytes: this.readUInt8(iPos + 13),
+                iExtentHi: this.readUInt8(iPos + 14),
+                iRecords: this.readUInt8(iPos + 15),
+                aBlocks: [],
+                bReadOnly: undefined,
+                bSystem: undefined,
+                bBackup: undefined
+            };
+            iPos += 16;
+            oExtent.sName = fnRemoveHighBit7(oExtent.sName);
+            fnUnpackFtypeFlags(oExtent, oExtent.sExt);
+            oExtent.sExt = fnRemoveHighBit7(oExtent.sExt);
+            var aBlocks = oExtent.aBlocks;
+            for (var i = 0; i < 16; i += 1) {
+                var iBlock = this.readUInt8(iPos + i);
+                if (iBlock) {
+                    aBlocks.push(iBlock);
+                }
+                else { // last block
+                    break;
+                }
+            }
+            iPos += 16;
+            aExtents.push(oExtent);
+        }
+        return aExtents;
+    };
+    // do not know if we need to sort the extents per file, but...
+    DiskImage.prototype.sortFileExtents = function (oDir) {
+        var fnSortByExtentNumber = function (a, b) {
+            return a.iExtent - b.iExtent;
+        };
+        for (var sName in oDir) {
+            if (oDir.hasOwnProperty(sName)) {
+                var aFileExtents = oDir[sName];
+                aFileExtents.sort(fnSortByExtentNumber);
+            }
+        }
+    };
+    DiskImage.prototype.prepareDirectoryList = function (aExtents, iFill, reFilePattern) {
+        var oDir = {};
+        for (var i = 0; i < aExtents.length; i += 1) {
+            var oExtent = aExtents[i];
+            if (iFill === null || oExtent.iUser !== iFill) {
+                var sName = oExtent.sName + "." + oExtent.sExt; // and oExtent.iUser?
+                // (do not convert filename here (to display messages in filenames))
+                if (!reFilePattern || reFilePattern.test(sName)) {
+                    if (!(sName in oDir)) {
+                        oDir[sName] = [];
+                    }
+                    oDir[sName].push(oExtent);
+                }
+            }
+        }
+        this.sortFileExtents(oDir);
+        return oDir;
+    };
+    DiskImage.prototype.convertBlock2Sector = function (iBlock) {
+        var oFormat = this.oFormat, iSpt = oFormat.iSpt, iBlockSectors = 2, iLogSec = iBlock * iBlockSectors, // directory is in block 0-1
+        oPos = {
+            iTrack: Math.floor(iLogSec / iSpt) + oFormat.iOff,
+            iHead: 0,
+            iSector: (iLogSec % iSpt) + oFormat.iFirstSector
+        };
+        return oPos;
+    };
+    DiskImage.prototype.readDirectory = function ( /* sFilePattern */) {
+        var iDirectorySectors = 4, aExtents = [], oFormat = this.determineFormat(), iOff = oFormat.iOff, iFirstSector = oFormat.iFirstSector;
+        this.oFormat = oFormat;
+        this.seekTrack(iOff, 0);
+        for (var i = 0; i < iDirectorySectors; i += 1) {
+            var iSectorIndex = this.sectorNum2Index(iFirstSector + i);
+            if (iSectorIndex === undefined) {
+                throw this.composeError(Error(), "Dsk: Cannot read directory at track " + iOff + " sector", iFirstSector);
+            }
+            var oSectorInfo = this.seekSector(iSectorIndex);
+            this.readDirectoryExtents(aExtents, oSectorInfo.iDataPos, oSectorInfo.iDataPos + oSectorInfo.iSectorSize);
+        }
+        var oDir = this.prepareDirectoryList(aExtents, oFormat.iFill, null);
+        return oDir;
+    };
+    DiskImage.prototype.nextSector = function (oPos) {
+        var oFormat = this.oFormat;
+        oPos.iSector += 1;
+        if (oPos.iSector >= oFormat.iFirstSector + oFormat.iSpt) {
+            oPos.iTrack += 1;
+            oPos.iSector = oFormat.iFirstSector;
+        }
+    };
+    DiskImage.prototype.readBlock = function (iBlock) {
+        var iBlockSectors = 2, oPos = this.convertBlock2Sector(iBlock);
+        var sOut = "";
+        for (var i = 0; i < iBlockSectors; i += 1) {
+            this.seekTrack(oPos.iTrack, oPos.iHead);
+            sOut += this.readSector(oPos.iSector);
+            this.nextSector(oPos);
+        }
+        return sOut;
+    };
+    DiskImage.prototype.readFile = function (aFileExtents) {
+        var iRecPerBlock = 8, iAmsdosHeaderLength = 0x80;
+        var sOut = "";
+        for (var i = 0; i < aFileExtents.length; i += 1) {
+            var oExtent = aFileExtents[i], aBlocks = oExtent.aBlocks;
+            var iRecords = oExtent.iRecords;
+            for (var iBlock = 0; iBlock < aBlocks.length; iBlock += 1) {
+                var sBlock = this.readBlock(aBlocks[iBlock]);
+                if (iRecords < iRecPerBlock) { // block with some remaining data
+                    sBlock = sBlock.substr(0, 0x80 * iRecords);
+                }
+                sOut += sBlock;
+                iRecords -= iRecPerBlock;
+                if (iRecords <= 0) {
+                    break;
+                }
+            }
+        }
+        var oHeader = DiskImage.parseAmsdosHeader(sOut);
+        var iRealLen;
+        if (oHeader) {
+            iRealLen = oHeader.iLength + iAmsdosHeaderLength;
+        }
+        var iFileLen = sOut.length;
+        if (iRealLen === null) { // no real length: ASCII: find EOF (0x1a) in last record
+            var iLastRecPos = iFileLen > 0x80 ? (iFileLen - 0x80) : 0, iIndex = sOut.indexOf(String.fromCharCode(0x1a), iLastRecPos);
+            if (iIndex >= 0) {
+                iRealLen = iIndex;
+                if (Utils_1.Utils.debug > 0) {
+                    Utils_1.Utils.console.debug("files_get: ASCII file length '$file_len' truncated to '$real_len'", 1);
+                }
+            }
+        }
+        if (iRealLen !== null) { // now real length (from header or ASCII)?
+            sOut = sOut.substr(0, iRealLen);
+        }
+        return sOut;
+    };
+    // ...
+    // see AMSDOS ROM, &D252
+    DiskImage.unOrProtectData = function (sData) {
+        var sOut = "", 
+        /* eslint-disable array-element-newline */
+        aTable1 = [0xe2, 0x9d, 0xdb, 0x1a, 0x42, 0x29, 0x39, 0xc6, 0xb3, 0xc6, 0x90, 0x45, 0x8a], // 13 bytes
+        aTable2 = [0x49, 0xb1, 0x36, 0xf0, 0x2e, 0x1e, 0x06, 0x2a, 0x28, 0x19, 0xea], // 11 bytes
+        /* eslint-enable array-element-newline */
+        i, iByte;
+        for (i = 0; i < sData.length; i += 1) {
+            iByte = sData.charCodeAt(i);
+            iByte ^= aTable1[(i & 0x7f) % aTable1.length] ^ aTable2[(i & 0x7f) % aTable2.length]; // eslint-disable-line no-bitwise
+            sOut += String.fromCharCode(iByte);
+        }
+        return sOut;
+    };
+    // ...
+    DiskImage.computeChecksum = function (sData) {
+        var iSum = 0, i;
+        for (i = 0; i < sData.length; i += 1) {
+            iSum += sData.charCodeAt(i);
+        }
+        return iSum;
+    };
+    DiskImage.parseAmsdosHeader = function (sData) {
+        var oHeader, iComputed, iSum;
+        // http://www.benchmarko.de/cpcemu/cpcdoc/chapter/cpcdoc7_e.html#I_AMSDOS_HD
+        // http://www.cpcwiki.eu/index.php/AMSDOS_Header
+        if (sData.length >= 0x80) {
+            iComputed = DiskImage.computeChecksum(sData.substr(0, 66));
+            iSum = sData.charCodeAt(67) + sData.charCodeAt(68) * 256;
+            if (iComputed === iSum) {
+                oHeader = {
+                    iUser: sData.charCodeAt(0),
+                    sName: sData.substr(1, 8),
+                    sExt: sData.substr(9, 2),
+                    iType: sData.charCodeAt(18),
+                    iStart: sData.charCodeAt(21) + sData.charCodeAt(22) * 256,
+                    iPseudoLen: sData.charCodeAt(24) + sData.charCodeAt(25) * 256,
+                    iEntry: sData.charCodeAt(26) + sData.charCodeAt(27) * 256,
+                    iLength: sData.charCodeAt(64) + sData.charCodeAt(65) * 256 + sData.charCodeAt(66) * 65536,
+                    sType: ""
+                };
+                if (oHeader.iType === 0) { // tokenized BASIC (T=not official)
+                    oHeader.sType = "T";
+                }
+                else if (oHeader.iType === 1) { // protected BASIC
+                    oHeader.sType = "P";
+                }
+                else if (oHeader.iType === 2) { // Binary
+                    oHeader.sType = "B";
+                }
+                else if (oHeader.iType === 8) { // GENA3 Assember (G=not official)
+                    oHeader.sType = "G";
+                }
+                else { // assume ASCII
+                    oHeader.sType = "A";
+                }
+            }
+        }
+        return oHeader;
+    };
+    DiskImage.mFormatDescriptors = {
         data: {
             iTracks: 40,
             iHeads: 1,
@@ -207,272 +496,8 @@ DiskImage.prototype = {
             sParentRef: "big780k",
             iHeads: 2
         }
-    },
-    getFormatDescriptor: function (sFormat) {
-        var oFormat = this.mFormatDescriptors[sFormat], oParentFormat;
-        if (!oFormat) {
-            throw this.composeError(Error(), "Dsk: Unknown format", sFormat);
-        }
-        if (oFormat.sParentRef) {
-            oParentFormat = this.getFormatDescriptor(oFormat.sParentRef); // recursive
-            oFormat = Object.assign({}, oParentFormat, oFormat);
-        }
-        else {
-            oFormat = Object.assign({}, oFormat);
-        }
-        oFormat.sFormat = sFormat;
-        return oFormat;
-    },
-    determineFormat: function () {
-        var oDiskInfo = this.oDiskInfo, oTrackInfo, iTrack = 0, iHead = 0, iFirstSector = 0xff, sFormat = "", i, iSector;
-        this.seekTrack(iTrack, iHead);
-        oTrackInfo = oDiskInfo.oTrackInfo;
-        for (i = 0; i < oTrackInfo.iSpt; i += 1) {
-            iSector = oTrackInfo.aSectorInfo[i].iSector;
-            if (iSector < iFirstSector) {
-                iFirstSector = iSector;
-            }
-        }
-        if (iFirstSector === 0xc1) {
-            sFormat = "data";
-        }
-        else if (iFirstSector === 0x41) {
-            sFormat = "system";
-        }
-        else if ((iFirstSector === 0x01) && (oDiskInfo.iTracks === 80)) { // big780k TTT
-            sFormat = "big780k";
-        }
-        else {
-            throw this.composeError(Error(), "Dsk: Unknown format with sector", iFirstSector);
-        }
-        if (oDiskInfo.iHeads > 1) { // maybe 2
-            sFormat += String(oDiskInfo.iHeads); // e.g. "data": "data2"
-        }
-        return this.getFormatDescriptor(sFormat);
-    },
-    readDirectoryExtents: function (aExtents, iPos, iEndPos) {
-        var oExtent, iChar, i, aBlocks, iBlock, fnRemoveHighBit7 = function (sStr) {
-            var sOut = "";
-            for (i = 0; i < sStr.length; i += 1) {
-                iChar = sStr.charCodeAt(i);
-                sOut += String.fromCharCode(iChar & 0x7f); // eslint-disable-line no-bitwise
-            }
-            return sOut;
-        }, fnUnpackFtypeFlags = function (sExt) {
-            var aFTypes = [
-                "bReadOnly",
-                "bSystem",
-                "bBackup" // not known
-            ], sFType;
-            for (i = 0; i < aFTypes.length; i += 1) {
-                sFType = aFTypes[i];
-                iChar = sExt.charCodeAt(i);
-                oExtent[sFType] = Boolean(iChar & 0x80); // eslint-disable-line no-bitwise
-            }
-        };
-        while (iPos < iEndPos) {
-            oExtent = {
-                iUser: this.readUInt8(iPos),
-                sName: this.readUtf(iPos + 1, 8),
-                sExt: this.readUtf(iPos + 9, 3),
-                iExtent: this.readUInt8(iPos + 12),
-                iLastRecBytes: this.readUInt8(iPos + 13),
-                iExtentHi: this.readUInt8(iPos + 14),
-                iRecords: this.readUInt8(iPos + 15),
-                aBlocks: []
-            };
-            iPos += 16;
-            oExtent.sName = fnRemoveHighBit7(oExtent.sName);
-            fnUnpackFtypeFlags(oExtent.sExt);
-            oExtent.sExt = fnRemoveHighBit7(oExtent.sExt);
-            aBlocks = oExtent.aBlocks;
-            for (i = 0; i < 16; i += 1) {
-                iBlock = this.readUInt8(iPos + i);
-                if (iBlock) {
-                    aBlocks.push(iBlock);
-                }
-                else { // last block
-                    break;
-                }
-            }
-            iPos += 16;
-            aExtents.push(oExtent);
-        }
-        return aExtents;
-    },
-    // do not know if we need to sort the extents per file, but...
-    sortFileExtents: function (oDir) {
-        var fnSortByExtentNumber = function (a, b) {
-            return a.iExtent - b.iExtent;
-        }, sName, aFileExtents;
-        for (sName in oDir) {
-            if (oDir.hasOwnProperty(sName)) {
-                aFileExtents = oDir[sName];
-                aFileExtents.sort(fnSortByExtentNumber);
-            }
-        }
-    },
-    prepareDirectoryList: function (aExtents, iFill, reFilePattern) {
-        var oDir = {}, i, oExtent, sName;
-        for (i = 0; i < aExtents.length; i += 1) {
-            oExtent = aExtents[i];
-            if (iFill === null || oExtent.iUser !== iFill) {
-                sName = oExtent.sName + "." + oExtent.sExt; // and oExtent.iUser?
-                // (do not convert filename here (to display messages in filenames))
-                if (!reFilePattern || reFilePattern.test(sName)) {
-                    if (!(sName in oDir)) {
-                        oDir[sName] = [];
-                    }
-                    oDir[sName].push(oExtent);
-                }
-            }
-        }
-        this.sortFileExtents(oDir);
-        return oDir;
-    },
-    convertBlock2Sector: function (iBlock) {
-        var oFormat = this.oFormat, iSpt = oFormat.iSpt, iBlockSectors = 2, iLogSec = iBlock * iBlockSectors, // directory is in block 0-1
-        oPos;
-        oPos = {
-            iTrack: Math.floor(iLogSec / iSpt) + oFormat.iOff,
-            iHead: 0,
-            iSector: (iLogSec % iSpt) + oFormat.iFirstSector
-        };
-        return oPos;
-    },
-    readDirectory: function ( /* sFilePattern */) {
-        var iDirectorySectors = 4, oSectorInfo, i, oFormat, iOff, iFirstSector, iSectorIndex, aExtents = [], oDir;
-        oFormat = this.determineFormat();
-        this.oFormat = oFormat;
-        iOff = oFormat.iOff;
-        this.seekTrack(iOff, 0);
-        iFirstSector = oFormat.iFirstSector;
-        for (i = 0; i < iDirectorySectors; i += 1) {
-            iSectorIndex = this.sectorNum2Index(iFirstSector + i);
-            if (iSectorIndex === undefined) {
-                throw this.composeError(Error(), "Dsk: Cannot read directory at track " + iOff + " sector", iFirstSector);
-            }
-            oSectorInfo = this.seekSector(iSectorIndex);
-            this.readDirectoryExtents(aExtents, oSectorInfo.iDataPos, oSectorInfo.iDataPos + oSectorInfo.iSectorSize);
-        }
-        oDir = this.prepareDirectoryList(aExtents, oFormat.iFill, null);
-        return oDir;
-    },
-    nextSector: function (oPos) {
-        var oFormat = this.oFormat;
-        oPos.iSector += 1;
-        if (oPos.iSector >= oFormat.iFirstSector + oFormat.iSpt) {
-            oPos.iTrack += 1;
-            oPos.iSector = oFormat.iFirstSector;
-        }
-    },
-    readBlock: function (iBlock) {
-        var iBlockSectors = 2, oPos = this.convertBlock2Sector(iBlock), sOut = "", i;
-        for (i = 0; i < iBlockSectors; i += 1) {
-            this.seekTrack(oPos.iTrack, oPos.iHead);
-            sOut += this.readSector(oPos.iSector);
-            this.nextSector(oPos);
-        }
-        return sOut;
-    },
-    readFile: function (aFileExtents) {
-        var sOut = "", iRealLen = null, iRecPerBlock = 8, iAmsdosHeaderLength = 0x80, i, iBlock, oExtent, iRecords, aBlocks, sBlock, oHeader, iFileLen, iLastRecPos, iIndex;
-        for (i = 0; i < aFileExtents.length; i += 1) {
-            oExtent = aFileExtents[i];
-            iRecords = oExtent.iRecords;
-            aBlocks = oExtent.aBlocks;
-            for (iBlock = 0; iBlock < aBlocks.length; iBlock += 1) {
-                sBlock = this.readBlock(aBlocks[iBlock]);
-                if (iRecords < iRecPerBlock) { // block with some remaining data
-                    sBlock = sBlock.substr(0, 0x80 * iRecords);
-                }
-                sOut += sBlock;
-                iRecords -= iRecPerBlock;
-                if (iRecords <= 0) {
-                    break;
-                }
-            }
-        }
-        oHeader = this.parseAmsdosHeader(sOut);
-        if (oHeader) {
-            iRealLen = oHeader.iLength + iAmsdosHeaderLength;
-        }
-        iFileLen = sOut.length;
-        if (iRealLen === null) { // no real length: ASCII: find EOF (0x1a) in last record
-            iLastRecPos = iFileLen > 0x80 ? (iFileLen - 0x80) : 0;
-            iIndex = sOut.indexOf(String.fromCharCode(0x1a), iLastRecPos);
-            if (iIndex >= 0) {
-                iRealLen = iIndex;
-                if (Utils_1.Utils.debug > 0) {
-                    Utils_1.Utils.console.debug("files_get: ASCII file length '$file_len' truncated to '$real_len'", 1);
-                }
-            }
-        }
-        if (iRealLen !== null) { // now real length (from header or ASCII)?
-            sOut = sOut.substr(0, iRealLen);
-        }
-        return sOut;
-    },
-    // ...
-    // see AMSDOS ROM, &D252
-    unOrProtectData: function (sData) {
-        var sOut = "", 
-        /* eslint-disable array-element-newline */
-        aTable1 = [0xe2, 0x9d, 0xdb, 0x1a, 0x42, 0x29, 0x39, 0xc6, 0xb3, 0xc6, 0x90, 0x45, 0x8a], // 13 bytes
-        aTable2 = [0x49, 0xb1, 0x36, 0xf0, 0x2e, 0x1e, 0x06, 0x2a, 0x28, 0x19, 0xea], // 11 bytes
-        /* eslint-enable array-element-newline */
-        i, iByte;
-        for (i = 0; i < sData.length; i += 1) {
-            iByte = sData.charCodeAt(i);
-            iByte ^= aTable1[(i & 0x7f) % aTable1.length] ^ aTable2[(i & 0x7f) % aTable2.length]; // eslint-disable-line no-bitwise
-            sOut += String.fromCharCode(iByte);
-        }
-        return sOut;
-    },
-    // ...
-    computeChecksum: function (sData) {
-        var iSum = 0, i;
-        for (i = 0; i < sData.length; i += 1) {
-            iSum += sData.charCodeAt(i);
-        }
-        return iSum;
-    },
-    parseAmsdosHeader: function (sData) {
-        var oHeader = null, iComputed, iSum;
-        // http://www.benchmarko.de/cpcemu/cpcdoc/chapter/cpcdoc7_e.html#I_AMSDOS_HD
-        // http://www.cpcwiki.eu/index.php/AMSDOS_Header
-        if (sData.length >= 0x80) {
-            iComputed = this.computeChecksum(sData.substr(0, 66));
-            iSum = sData.charCodeAt(67) + sData.charCodeAt(68) * 256;
-            if (iComputed === iSum) {
-                oHeader = {
-                    iUser: sData.charCodeAt(0),
-                    iName: sData.substr(1, 8),
-                    iExt: sData.substr(9, 2),
-                    iType: sData.charCodeAt(18),
-                    iStart: sData.charCodeAt(21) + sData.charCodeAt(22) * 256,
-                    iPseudoLen: sData.charCodeAt(24) + sData.charCodeAt(25) * 256,
-                    iEntry: sData.charCodeAt(26) + sData.charCodeAt(27) * 256,
-                    iLength: sData.charCodeAt(64) + sData.charCodeAt(65) * 256 + sData.charCodeAt(66) * 65536
-                };
-                if (oHeader.iType === 0) { // tokenized BASIC (T=not official)
-                    oHeader.sType = "T";
-                }
-                else if (oHeader.iType === 1) { // protected BASIC
-                    oHeader.sType = "P";
-                }
-                else if (oHeader.iType === 2) { // Binary
-                    oHeader.sType = "B";
-                }
-                else if (oHeader.iType === 8) { // GENA3 Assember (G=not official)
-                    oHeader.sType = "G";
-                }
-                else { // assume ASCII
-                    oHeader.sType = "A";
-                }
-            }
-        }
-        return oHeader;
-    }
-};
+    };
+    return DiskImage;
+}());
+exports.DiskImage = DiskImage;
 //# sourceMappingURL=DiskImage.js.map

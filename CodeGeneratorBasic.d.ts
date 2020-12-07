@@ -1,6 +1,11 @@
-export declare function CodeGeneratorBasic(options: any): void;
-export declare namespace CodeGeneratorBasic {
-    var mCombinedKeywords: {
+import { BasicLexer } from "./BasicLexer";
+import { BasicParser } from "./BasicParser";
+interface CodeGeneratorBasicOptions {
+    lexer: BasicLexer;
+    parser: BasicParser;
+}
+export declare class CodeGeneratorBasic {
+    static mCombinedKeywords: {
         chainMerge: string;
         clearInput: string;
         graphicsPaper: string;
@@ -19,4 +24,16 @@ export declare namespace CodeGeneratorBasic {
         symbolAfter: string;
         windowSwap: string;
     };
+    lexer: BasicLexer;
+    parser: BasicParser;
+    constructor(options: CodeGeneratorBasicOptions);
+    init(options: CodeGeneratorBasicOptions): void;
+    reset(): this;
+    private composeError;
+    private evaluate;
+    generate(sInput: string, bAllowDirect?: boolean): {
+        text: string;
+        error: any;
+    };
 }
+export {};

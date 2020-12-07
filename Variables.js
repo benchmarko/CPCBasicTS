@@ -1,7 +1,7 @@
+"use strict";
 // Variables.ts - Variables
 // (c) Marco Vieth, 2020
 // https://benchmarko.github.io/CPCBasic/
-"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Variables = void 0;
 var Variables = /** @class */ (function () {

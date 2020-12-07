@@ -1,48 +1,49 @@
+"use strict";
 // InputStack.js - InputStack...
 // see: https://github.com/jzaefferer/undo
 //
-"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.InputStack = void 0;
-function InputStack() {
-    this.init();
-}
-exports.InputStack = InputStack;
-InputStack.prototype = {
-    init: function () {
+var InputStack = /** @class */ (function () {
+    function InputStack() {
+        this.init();
+    }
+    InputStack.prototype.init = function () {
         this.aInput = [];
         this.iStackPosition = -1;
         return this;
-    },
-    getInput: function () {
+    };
+    InputStack.prototype.getInput = function () {
         return this.aInput[this.iStackPosition];
-    },
-    clearRedo: function () {
+    };
+    InputStack.prototype.clearRedo = function () {
         this.aInput = this.aInput.slice(0, this.iStackPosition + 1);
         return this;
-    },
-    save: function (sInput) {
+    };
+    InputStack.prototype.save = function (sInput) {
         this.clearRedo();
         this.aInput.push(sInput);
         this.iStackPosition += 1;
         return this;
-    },
-    canUndo: function () {
+    };
+    InputStack.prototype.canUndo = function () {
         return this.iStackPosition >= 0;
-    },
-    canUndoKeepOne: function () {
+    };
+    InputStack.prototype.canUndoKeepOne = function () {
         return this.iStackPosition > 0;
-    },
-    undo: function () {
+    };
+    InputStack.prototype.undo = function () {
         this.iStackPosition -= 1;
         return this.getInput();
-    },
-    canRedo: function () {
+    };
+    InputStack.prototype.canRedo = function () {
         return this.iStackPosition < this.aInput.length - 1;
-    },
-    redo: function () {
+    };
+    InputStack.prototype.redo = function () {
         this.iStackPosition += 1;
         return this.getInput();
-    }
-};
+    };
+    return InputStack;
+}());
+exports.InputStack = InputStack;
 //# sourceMappingURL=InputStack.js.map

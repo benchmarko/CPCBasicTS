@@ -3,8 +3,6 @@
 // https://benchmarko.github.io/CPCBasic/
 //
 
-"use strict";
-
 import { Utils } from "./Utils";
 
 export interface SoundData {
@@ -70,7 +68,7 @@ export class Sound {
 		this.init();
 	}
 
-	init() {
+	init(): void {
 		this.bIsSoundOn = false;
 		this.bIsActivatedByUser = false;
 		this.context = undefined;
@@ -96,7 +94,7 @@ export class Sound {
 		}
 	}
 
-	reset() {
+	reset(): void {
 		const aOscillators = this.aOscillators,
 			oVolEnvData: VolEnvData1 = {
 				steps: 1,
@@ -113,7 +111,7 @@ export class Sound {
 		}
 
 		this.aVolEnv.length = 0;
-		this.setVolEnv(0, [ oVolEnvData ]); // set default ENV (should not be changed)
+		this.setVolEnv(0, [oVolEnvData]); // set default ENV (should not be changed)
 
 		this.aToneEnv.length = 0;
 		this.iReleaseMask = 0;
@@ -123,7 +121,7 @@ export class Sound {
 		}
 	}
 
-	stopOscillator(n: number) {
+	private stopOscillator(n: number) {
 		const aOscillators = this.aOscillators;
 
 		if (aOscillators[n]) {
@@ -145,7 +143,7 @@ export class Sound {
 		}
 	}
 
-	resetQueue() {
+	resetQueue(): void {
 		const aQueues = this.aQueues;
 
 		for (let i = 0; i < aQueues.length; i += 1) {
@@ -157,7 +155,7 @@ export class Sound {
 		}
 	}
 
-	createSoundContext() {
+	private createSoundContext() {
 		const context = new window.AudioContext(), // may produce exception if not available
 			aChannelMap2Cpc = [ // channel map for CPC: left, middle (center), right; so swap middle and right
 				0,
@@ -177,7 +175,7 @@ export class Sound {
 		}
 	}
 
-	playNoise(iOscillator: number, fTime: number, fDuration: number, iNoise: number) { // could be improved
+	private playNoise(iOscillator: number, fTime: number, fDuration: number, iNoise: number) { // could be improved
 		const ctx = this.context as AudioContext,
 			bufferSize = ctx.sampleRate * fDuration, // set the time of the note
 			buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate), // create an empty buffer
@@ -207,7 +205,7 @@ export class Sound {
 		noise.stop(fTime + fDuration);
 	}
 
-	applyVolEnv(aVolData: VolEnvData[], oGain: AudioParam, fTime: number, iVolume: number, iDuration: number, iVolEnvRepeat: number) {
+	private applyVolEnv(aVolData: VolEnvData[], oGain: AudioParam, fTime: number, iVolume: number, iDuration: number, iVolEnvRepeat: number) { // eslint-disable-line class-methods-use-this
 		const iMaxVolume = 15,
 			i100ms2sec = 100; // time duration unit: 1/100 sec=10 ms, convert to sec
 
@@ -260,7 +258,7 @@ export class Sound {
 		return iDuration;
 	}
 
-	applyToneEnv(aToneData: ToneEnvData[], oFrequency: AudioParam, fTime: number, iPeriod: number, iDuration: number) {
+	private applyToneEnv(aToneData: ToneEnvData[], oFrequency: AudioParam, fTime: number, iPeriod: number, iDuration: number) { // eslint-disable-line class-methods-use-this
 		const i100ms2sec = 100, // time duration unit: 1/100 sec=10 ms, convert to sec
 			bRepeat = aToneData[0],
 			iToneEnvRepeat = bRepeat ? 5 : 1; // we use at most 5
@@ -299,9 +297,11 @@ export class Sound {
 						}
 					}
 				} else { // absolute period
-					const oGroup2 = oGroup as ToneEnvData2,
-						iPeriod = oGroup2.period,
-						iToneTime = oGroup2.time,
+					const oGroup2 = oGroup as ToneEnvData2;
+
+					iPeriod = oGroup2.period;
+
+					const iToneTime = oGroup2.time,
 						fFrequency = (iPeriod >= 3) ? 62500 / iPeriod : 0;
 
 					oFrequency.setValueAtTime(fFrequency, fTime + iTime / i100ms2sec);
@@ -313,13 +313,13 @@ export class Sound {
 		}
 	}
 
-	scheduleNote(iOscillator: number, fTime: number, oSoundData: SoundData) {
+	private scheduleNote(iOscillator: number, fTime: number, oSoundData: SoundData) {
 		const iMaxVolume = 15,
 			i100ms2sec = 100, // time duration unit: 1/100 sec=10 ms, convert to sec
-			ctx = this.context as AudioContext;
+			ctx = this.context as AudioContext,
+			iToneEnv = oSoundData.iToneEnv;
 
 		let iVolEnv = oSoundData.iVolEnv,
-			iToneEnv = oSoundData.iToneEnv,
 			iVolEnvRepeat = 1;
 
 		if (Utils.debug > 1) {
@@ -369,7 +369,7 @@ export class Sound {
 		return fDuration;
 	}
 
-	testCanQueue(iState: number) {
+	testCanQueue(iState: number): boolean {
 		let bCanQueue = true;
 
 		if (this.bIsSoundOn && !this.bIsActivatedByUser) { // sound on but not yet activated? -> say cannot queue
@@ -388,7 +388,7 @@ export class Sound {
 		return bCanQueue;
 	}
 
-	sound(oSoundData: SoundData) {
+	sound(oSoundData: SoundData): void {
 		if (!this.bIsSoundOn) {
 			return;
 		}
@@ -414,15 +414,15 @@ export class Sound {
 		this.scheduler(); // schedule early to allow SQ busy check immiediately (can channels go out of sync by this?)
 	}
 
-	setVolEnv(iVolEnv: number, aVolEnvData: VolEnvData[]) {
+	setVolEnv(iVolEnv: number, aVolEnvData: VolEnvData[]): void {
 		this.aVolEnv[iVolEnv] = aVolEnvData;
 	}
 
-	setToneEnv(iToneEnv: number, aToneEnvData: ToneEnvData[]) {
+	setToneEnv(iToneEnv: number, aToneEnvData: ToneEnvData[]): void {
 		this.aToneEnv[iToneEnv] = aToneEnvData;
 	}
 
-	updateQueueStatus(i: number, oQueue: Queue) {
+	private updateQueueStatus(i: number, oQueue: Queue) { // eslint-disable-line class-methods-use-this
 		const aSoundData = oQueue.aSoundData;
 
 		if (aSoundData.length) {
@@ -439,7 +439,7 @@ export class Sound {
 	}
 
 	// idea from: https://www.html5rocks.com/en/tutorials/audio/scheduling/
-	scheduler() {
+	scheduler(): void {
 		if (!this.bIsSoundOn) {
 			return;
 		}
@@ -485,7 +485,7 @@ export class Sound {
 		}
 	}
 
-	release(iReleaseMask: number) {
+	release(iReleaseMask: number): void {
 		const aQueues = this.aQueues;
 
 		if (!aQueues.length) {
@@ -506,7 +506,7 @@ export class Sound {
 		this.scheduler(); // extra schedule now so that following sound instructions are not releases early
 	}
 
-	sq(n: number) {
+	sq(n: number): number {
 		const aQueues = this.aQueues,
 			oQueue = aQueues[n],
 			aSoundData = oQueue.aSoundData,
@@ -528,19 +528,21 @@ export class Sound {
 		return iSq;
 	}
 
-	isSoundOn() {
+	/*
+	private isSoundOn() {
 		return this.bIsSoundOn;
 	}
+	*/
 
-	setActivatedByUser() {
+	setActivatedByUser(): void {
 		this.bIsActivatedByUser = true;
 	}
 
-	isActivatedByUser() {
+	isActivatedByUser(): boolean {
 		return this.bIsActivatedByUser;
 	}
 
-	soundOn() {
+	soundOn(): void {
 		if (!this.bIsSoundOn) {
 			if (!this.context) {
 				this.createSoundContext();
@@ -554,14 +556,14 @@ export class Sound {
 		}
 	}
 
-	soundOff() {
+	soundOff(): void {
 		if (this.bIsSoundOn) {
 			const oMergerNode = this.oMergerNode as ChannelMergerNode,
-			oContext = this.context as AudioContext;
+				oContext = this.context as AudioContext;
 
 			oMergerNode.disconnect(oContext.destination);
 			this.bIsSoundOn = false;
 			Utils.console.log("soundOff: Sound switched off");
 		}
 	}
-};
+}

@@ -1,8 +1,8 @@
+"use strict";
 // CpcVmRsx.js - CPC Virtual Machine: RSX
 // (c) Marco Vieth, 2020
 // https://benchmarko.github.io/CPCBasic/
 //
-"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CpcVmRsx = void 0;
 var Utils_1 = require("./Utils");
@@ -18,8 +18,12 @@ var CpcVmRsx = /** @class */ (function () {
         return sName in this;
     };
     CpcVmRsx.prototype.rsxExec = function (sName) {
+        var aArgs = [];
+        for (var _i = 1; _i < arguments.length; _i++) {
+            aArgs[_i - 1] = arguments[_i];
+        }
         if (this.rsxIsAvailable(sName)) {
-            var aArgs = Array.prototype.slice.call(arguments, 1);
+            //const aArgs = Array.prototype.slice.call(arguments, 1);
             this[sName].apply(this, aArgs);
         }
         else {
@@ -55,14 +59,6 @@ var CpcVmRsx = /** @class */ (function () {
     CpcVmRsx.prototype.dir = function (fileMask) {
         var iStream = 0;
         var sFileMask = this.fnGetParameterAsString(fileMask);
-        /*
-        let sFileMask = "";
-        if (typeof fileMask === "number") { // assuming addressOf
-            sFileMask = String(this.fnGetVariableByAddress(fileMask)); //TTT
-        } else if (typeof fileMask === "string") {
-            sFileMask = fileMask;
-        }
-        */
         if (sFileMask) {
             sFileMask = this.oVm.vmAdaptFilename(sFileMask, "|DIR");
         }
@@ -87,14 +83,6 @@ var CpcVmRsx = /** @class */ (function () {
     CpcVmRsx.prototype.era = function (fileMask) {
         var iStream = 0;
         var sFileMask = this.fnGetParameterAsString(fileMask);
-        /*
-        let sFileMask = "";
-        if (typeof fileMask === "number") { // assuming addressOf
-            sFileMask = String(this.fnGetVariableByAddress(fileMask)); //TTT
-        } else if (typeof fileMask === "string") {
-            sFileMask = fileMask;
-        }
-        */
         sFileMask = this.oVm.vmAdaptFilename(sFileMask, "|ERA");
         this.oVm.vmStop("fileEra", 45, false, {
             iStream: iStream,
@@ -105,22 +93,6 @@ var CpcVmRsx = /** @class */ (function () {
     CpcVmRsx.prototype.ren = function (newName, oldName) {
         var iStream = 0;
         var sNew = this.fnGetParameterAsString(newName), sOld = this.fnGetParameterAsString(oldName);
-        /*
-        let sNew = "",
-            sOld = "";
-
-        if (typeof newName === "number") { // assuming addressOf
-            sNew = String(this.fnGetVariableByAddress(newName));
-        } else if (typeof newName === "string") {
-            sNew = newName;
-        }
-
-        if (typeof oldName === "number") { // assuming addressOf
-            sOld = String(this.fnGetVariableByAddress(oldName));
-        } else if (typeof oldName === "string") {
-            sOld = oldName;
-        }
-        */
         sNew = this.oVm.vmAdaptFilename(sNew, "|REN");
         sOld = this.oVm.vmAdaptFilename(sOld, "|REN");
         this.oVm.vmStop("fileRen", 45, false, {
@@ -159,5 +131,4 @@ var CpcVmRsx = /** @class */ (function () {
     return CpcVmRsx;
 }());
 exports.CpcVmRsx = CpcVmRsx;
-;
 //# sourceMappingURL=CpcVmRsx.js.map

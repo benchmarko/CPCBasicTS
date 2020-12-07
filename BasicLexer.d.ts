@@ -11,8 +11,7 @@ export declare class BasicLexer {
     bQuiet: boolean;
     iLine: number;
     bTakeNumberAsLine: boolean;
-    constructor(options?: any);
-    init(options: BasicLexerOptions): void;
+    constructor(options?: BasicLexerOptions);
     reset(): void;
     composeError(...aArgs: any[]): any;
     lex(input: string): BasicLexerToken[];
