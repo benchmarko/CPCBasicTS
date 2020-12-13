@@ -4,7 +4,7 @@
 //
 /* globals Uint8Array */
 
-import { Utils } from "./Utils";
+import { Utils, CustomError } from "./Utils";
 import { BasicFormatter } from "./BasicFormatter";
 import { BasicLexer } from "./BasicLexer";
 import { BasicParser } from "./BasicParser";
@@ -20,12 +20,41 @@ import { Diff } from "./Diff";
 import { DiskImage } from "./DiskImage";
 import { InputStack } from "./InputStack";
 import { Keyboard } from "./Keyboard";
-import { Model } from "./Model";
+import { Model, DatabasesType } from "./Model";
 import { Sound } from "./Sound";
 import { Variables } from "./Variables";
 import { View, SelectOptionElement } from "./View";
 
 import { ZipFile } from "./ZipFile";
+
+
+/*
+type FileMeta = {
+	sType?: string,
+	iStart?: number,
+	iLength?: number,
+	iEntry?: number,
+	sEncoding?: string
+};
+
+type FileMetaAndData = {
+	oMeta: FileMeta,
+	sData: string
+};
+*/
+
+interface FileMeta {
+	sType?: string
+	iStart?: number
+	iLength?: number
+	iEntry?: number
+	sEncoding?: string
+}
+
+interface FileMetaAndData {
+	oMeta: FileMeta
+	sData: string
+}
 
 export class Controller {
 	fnRunLoopHandler: undefined;
@@ -95,26 +124,25 @@ export class Controller {
 		this.view = oView;
 		this.commonEventHandler = new CommonEventHandler(oModel, oView, this);
 
-		oView.setHidden("consoleBox", !oModel.getProperty("showConsole"));
+		oView.setHidden("consoleBox", !oModel.getProperty<boolean>("showConsole"));
 
-		oView.setHidden("inputArea", !oModel.getProperty("showInput"));
-		oView.setHidden("inp2Area", !oModel.getProperty("showInp2"));
-		oView.setHidden("outputArea", !oModel.getProperty("showOutput"));
-		oView.setHidden("resultArea", !oModel.getProperty("showResult"));
-		oView.setHidden("textArea", !oModel.getProperty("showText"));
-		oView.setHidden("variableArea", !oModel.getProperty("showVariable"));
-		oView.setHidden("kbdArea", !oModel.getProperty("showKbd"), "flex");
-		oView.setHidden("kbdLayoutArea", !oModel.getProperty("showKbdLayout"));
+		oView.setHidden("inputArea", !oModel.getProperty<boolean>("showInput"));
+		oView.setHidden("inp2Area", !oModel.getProperty<boolean>("showInp2"));
+		oView.setHidden("outputArea", !oModel.getProperty<boolean>("showOutput"));
+		oView.setHidden("resultArea", !oModel.getProperty<boolean>("showResult"));
+		oView.setHidden("textArea", !oModel.getProperty<boolean>("showText"));
+		oView.setHidden("variableArea", !oModel.getProperty<boolean>("showVariable"));
+		oView.setHidden("kbdArea", !oModel.getProperty<boolean>("showKbd"), "flex");
+		oView.setHidden("kbdLayoutArea", !oModel.getProperty<boolean>("showKbdLayout"));
 
 		oView.setHidden("cpcArea", false); // make sure canvas is not hidden (allows to get width, height)
 		this.oCanvas = new Canvas({
 			aCharset: cpcCharset,
-			//cpcDivId: "cpcArea",
 			onClickKey: this.fnPutKeyInBufferHandler
 		});
-		oView.setHidden("cpcArea", !oModel.getProperty("showCpc"));
+		oView.setHidden("cpcArea", !oModel.getProperty<boolean>("showCpc"));
 
-		const sKbdLayout = oModel.getStringProperty("kbdLayout");
+		const sKbdLayout = oModel.getProperty<string>("kbdLayout");
 
 		oView.setSelectValue("kbdLayoutSelect", sKbdLayout);
 		this.commonEventHandler.onKbdLayoutSelectChange();
@@ -124,14 +152,14 @@ export class Controller {
 		this.oKeyboard = new Keyboard({
 			fnOnEscapeHandler: this.fnOnEscapeHandler
 		});
-		if (this.model.getProperty("showKbd")) { // maybe we need to draw virtual keyboard
+		if (this.model.getProperty<boolean>("showKbd")) { // maybe we need to draw virtual keyboard
 			this.oKeyboard.virtualKeyboardCreate();
 		}
 
 		this.oSound = new Sound();
 		this.commonEventHandler.fnActivateUserAction(this.onUserAction.bind(this)); // check first user action, also if sound is not yet on
 
-		const sExample = oModel.getStringProperty("example");
+		const sExample = oModel.getProperty<string>("example");
 
 		oView.setSelectValue("exampleSelect", sExample);
 
@@ -140,7 +168,7 @@ export class Controller {
 			keyboard: this.oKeyboard,
 			sound: this.oSound,
 			variables: this.oVariables,
-			tron: oModel.getBooleanProperty("tron")
+			tron: oModel.getProperty<boolean>("tron")
 		});
 		this.oVm.vmReset();
 
@@ -157,17 +185,17 @@ export class Controller {
 		this.oCodeGeneratorJs = new CodeGeneratorJs({
 			lexer: new BasicLexer(),
 			parser: new BasicParser(),
-			tron: this.model.getBooleanProperty("tron"),
+			tron: this.model.getProperty<boolean>("tron"),
 			rsx: this.oRsx // just to check the names
 		});
 
 		this.oBasicTokenizer = new BasicTokenizer(); // for tokenized BASIC
 
 		this.initDatabases();
-		if (oModel.getProperty("sound")) { // activate sound needs user action
+		if (oModel.getProperty<boolean>("sound")) { // activate sound needs user action
 			this.setSoundActive(); // activate in waiting state
 		}
-		if (oModel.getProperty("showCpc")) {
+		if (oModel.getProperty<boolean>("showCpc")) {
 			this.oCanvas.startUpdateCanvas();
 		}
 
@@ -175,15 +203,15 @@ export class Controller {
 	}
 
 	private initDatabases() {
-		var oModel = this.model,
-			oDatabases = {},
-			aDatabaseDirs, i, sDatabaseDir, aParts, sName;
+		const oModel = this.model,
+			oDatabases: DatabasesType = {},
+			aDatabaseDirs = oModel.getProperty<string>("databaseDirs").split(",");
 
-		aDatabaseDirs = oModel.getStringProperty("databaseDirs").split(",");
-		for (i = 0; i < aDatabaseDirs.length; i += 1) {
-			sDatabaseDir = aDatabaseDirs[i];
-			aParts = sDatabaseDir.split("/");
-			sName = aParts[aParts.length - 1];
+		for (let i = 0; i < aDatabaseDirs.length; i += 1) {
+			const sDatabaseDir = aDatabaseDirs[i],
+				aParts = sDatabaseDir.split("/"),
+				sName = aParts[aParts.length - 1];
+
 			oDatabases[sName] = {
 				text: sName,
 				title: sDatabaseDir,
@@ -203,7 +231,7 @@ export class Controller {
 	}
 
 	// Also called from index file 0index.js
-	addIndex(sDir: string, sInput: string) { // sDir maybe ""
+	addIndex(sDir: string, sInput: string): void { // sDir maybe ""
 		sInput = sInput.trim();
 
 		const aIndex = JSON.parse(sInput);
@@ -215,15 +243,14 @@ export class Controller {
 	}
 
 	// Also called from example files xxxxx.js
-	addItem(sKey: string, sInput: string) { // sKey maybe ""
+	addItem(sKey: string, sInput: string): string { // sKey maybe ""
 		if (!sKey) { // maybe ""
-			sKey = this.model.getStringProperty("example");
+			sKey = this.model.getProperty<string>("example");
 		}
+		sInput = sInput.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
+		// beware of data files ending with newlines! (do not use trimEnd)
 
 		const oExample = this.model.getExample(sKey);
-
-		sInput = sInput.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
-		// beware of data files ending with newlines! (no trimEnd)
 
 		oExample.key = sKey; // maybe changed
 		oExample.script = sInput;
@@ -236,7 +263,7 @@ export class Controller {
 		const sSelect = "databaseSelect",
 			aItems: SelectOptionElement[] = [],
 			oDatabases = this.model.getAllDatabases(),
-			sDatabase = this.model.getProperty("database");
+			sDatabase = this.model.getProperty<string>("database");
 
 		for (const sValue in oDatabases) {
 			if (oDatabases.hasOwnProperty(sValue)) {
@@ -264,7 +291,7 @@ export class Controller {
 			iMaxTextLength = 60, // (32 visible?)
 			sSelect = "exampleSelect",
 			aItems: SelectOptionElement[] = [],
-			sExample = this.model.getProperty("example"),
+			sExample = this.model.getProperty<string>("example"),
 			oAllExamples = this.model.getAllExamples();
 
 		let bExampleSelected = false;
@@ -338,9 +365,10 @@ export class Controller {
 	}
 
 	updateStorageDatabase(sAction: string, sKey: string) {
-		var sDatabase = this.model.getProperty("database"),
-			oStorage = Utils.localStorage,
-			aDir, sData, oData; //
+		const sDatabase = this.model.getProperty<string>("database"),
+			oStorage = Utils.localStorage;
+
+		let	aDir: string[];
 
 		if (!sKey) { // no sKey => get all
 			aDir = this.fnGetDirectoryEntries();
@@ -356,8 +384,9 @@ export class Controller {
 				let oExample = this.model.getExample(sKey);
 
 				if (!oExample) {
-					sData = oStorage.getItem(sKey);
-					oData = this.splitMeta(sData);
+					const sData = oStorage.getItem(sKey),
+						oData = this.splitMeta(sData);
+
 					oExample = {
 						key: sKey,
 						title: "", // or set sKey?
@@ -447,12 +476,12 @@ export class Controller {
 	}
 
 	private fnWaitSound() { // rather fnEvent
-		var oStop = this.oVm.vmGetStopObject(),
-			aSoundData;
+		const oStop = this.oVm.vmGetStopObject();
 
 		this.oVm.vmLoopCondition(); // update iNextFrameTime, timers, inks; schedule sound: free queue
 		if (this.oSound.isActivatedByUser()) { // only if activated
-			aSoundData = this.oVm.vmGetSoundData();
+			const aSoundData = this.oVm.vmGetSoundData();
+
 			while (aSoundData.length && this.oSound.testCanQueue(aSoundData[0].iState)) {
 				this.oSound.sound(aSoundData.shift());
 			}
@@ -611,8 +640,8 @@ export class Controller {
 
 	// merge two scripts with sorted line numbers, lines from script2 overwrite lines from script1
 	private mergeScripts(sScript1: string, sScript2: string) { // eslint-disable-line class-methods-use-this
-		const aLines1 = (sScript1 as any).trimEnd().split("\n"), //TTT
-			aLines2 = (sScript2 as any).trimEnd().split("\n");
+		const aLines1 = Utils.stringTrimEnd(sScript1).split("\n"), //TTT
+			aLines2 = Utils.stringTrimEnd(sScript2).split("\n");
 		let aResult = [],
 			iLine1: number, iLine2: number;
 
@@ -650,8 +679,8 @@ export class Controller {
 	}
 
 	// get line range from a script with sorted line numbers
-	private fnGetLinesInRange(sScript, iFirstLine, iLastLine) { // eslint-disable-line class-methods-use-this
-		var aLines = sScript ? sScript.split("\n") : [];
+	private fnGetLinesInRange(sScript: string, iFirstLine: number, iLastLine: number) { // eslint-disable-line class-methods-use-this
+		const aLines = sScript ? sScript.split("\n") : [];
 
 		while (aLines.length && parseInt(aLines[0], 10) < iFirstLine) {
 			aLines.shift();
@@ -678,22 +707,20 @@ export class Controller {
 	}
 
 	private fnGetExampleDirectoryEntries(sMask?: string) { // optional sMask
-		var aDir = [],
-			oAllExamples = this.model.getAllExamples(),
-			sKey, sKey2, sMatchKey2, oExample, oRegExp;
+		const aDir: string[] = [],
+			oAllExamples = this.model.getAllExamples();
+		let oRegExp: RegExp;
 
 		if (sMask) {
 			oRegExp = Controller.fnPrepareMaskRegExp(sMask);
 		}
 
-		for (sKey in oAllExamples) {
+		for (const sKey in oAllExamples) {
 			if (oAllExamples.hasOwnProperty(sKey)) {
-				oExample = oAllExamples[sKey];
-				sKey2 = oExample.key;
-				sMatchKey2 = sKey2;
-				if (sKey2.indexOf(".") < 0) {
-					sMatchKey2 = sKey2 + ".";
-				}
+				const oExample = oAllExamples[sKey],
+					sKey2 = oExample.key,
+					sMatchKey2 = sKey2 + ((sKey2.indexOf(".") < 0) ? "." : "");
+
 				if (!oRegExp || oRegExp.test(sMatchKey2)) {
 					aDir.push(sKey2);
 				}
@@ -702,36 +729,42 @@ export class Controller {
 		return aDir;
 	}
 
-	private fnGetDirectoryEntries(sMask?: string) {
-		var oStorage = Utils.localStorage,
-			aDir = [],
-			oRegExp, i, sKey;
+	private fnGetDirectoryEntries(sMask?: string) { // eslint-disable-line class-methods-use-this
+		const oStorage = Utils.localStorage,
+			aDir: string[] = [];
+		let	oRegExp: RegExp;
 
 		if (sMask) {
 			oRegExp = Controller.fnPrepareMaskRegExp(sMask);
 		}
 
-		for (i = 0; i < oStorage.length; i += 1) {
-			sKey = oStorage.key(i);
-			if (!oRegExp || oRegExp.test(sKey)) {
-				aDir.push(sKey);
+		for (let i = 0; i < oStorage.length; i += 1) {
+			const sKey = oStorage.key(i),
+				sValue = oStorage[sKey];
+
+			if (sValue.startsWith(this.sMetaIdent)) { // take only cpcBasic files
+				if (!oRegExp || oRegExp.test(sKey)) {
+					aDir.push(sKey);
+				}
 			}
 		}
 		return aDir;
 	}
 
-	private fnPrintDirectoryEntries(iStream, aDir, bSort) {
-		var i, sKey, aParts;
+	private fnPrintDirectoryEntries(iStream: number, aDir: string[], bSort: boolean) {
+		// first, format names
+		for (let i = 0; i < aDir.length; i += 1) {
+			const sKey = aDir[i],
+				aParts = sKey.split(".");
 
-		// first format names
-		for (i = 0; i < aDir.length; i += 1) {
-			sKey = aDir[i];
-			aParts = sKey.split(".");
 			if (aParts.length === 2) {
 				aDir[i] = aParts[0].padEnd(8, " ") + "." + aParts[1].padEnd(3, " ");
-			} else {
+			}
+			/*
+			 else {
 				Utils.console.warn("fnPrintDirectoryEntries: Wrong entry:", aDir[i]); // maybe other data, is using local page
 			}
+			*/
 		}
 
 		if (bSort) {
@@ -739,41 +772,42 @@ export class Controller {
 		}
 
 		this.oVm.print(iStream, "\r\n");
-		for (i = 0; i < aDir.length; i += 1) {
-			sKey = aDir[i] + "  ";
+		for (let i = 0; i < aDir.length; i += 1) {
+			const sKey = aDir[i] + "  ";
+
 			this.oVm.print(iStream, sKey);
 		}
 		this.oVm.print(iStream, "\r\n");
 	}
 
 	fnFileCat(oParas: StopParas) {
-		var iStream = oParas.iStream,
+		const iStream = oParas.iStream,
 			aDir = this.fnGetDirectoryEntries();
 
 		this.fnPrintDirectoryEntries(iStream, aDir, true);
+
+		// currently only from localstorage
+
 		this.oVm.vmStop("", 0, true);
 	}
 
 	fnFileDir(oParas: StopParas) {
-		var iStream = oParas.iStream,
-			sFileMask = oParas.sFileMask,
-			sPath = "",
-			aDir, aDir2, sExample, iLastSlash, i;
+		const iStream = oParas.iStream,
+			sExample = this.model.getProperty<string>("example"), // if we have a fileMask, include also example names from same directory
+			iLastSlash = sExample.lastIndexOf("/");
 
-		if (sFileMask) {
-			sFileMask =	this.fnLocalStorageName(sFileMask);
-		}
-		aDir = this.fnGetDirectoryEntries(sFileMask);
+		let sFileMask = oParas.sFileMask ? this.fnLocalStorageName(oParas.sFileMask) : "",
+			aDir = this.fnGetDirectoryEntries(sFileMask),
+			sPath = "";
 
-		// if we have a fileMask, include also example names from same directory:
-		sExample = this.model.getProperty("example");
-		iLastSlash = sExample.lastIndexOf("/");
 		if (iLastSlash >= 0) {
 			sPath = sExample.substr(0, iLastSlash) + "/";
-			sFileMask = sPath + sFileMask; // only in same directory
+			sFileMask = sPath + (sFileMask ? sFileMask : "*.*"); // only in same directory
 		}
-		aDir2 = this.fnGetExampleDirectoryEntries(sFileMask); // also from examples
-		for (i = 0; i < aDir2.length; i += 1) {
+
+		const aDir2 = this.fnGetExampleDirectoryEntries(sFileMask); // also from examples
+
+		for (let i = 0; i < aDir2.length; i += 1) {
 			aDir2[i] = aDir2[i].substr(sPath.length); // remove preceding path including "/"
 		}
 		aDir = aDir2.concat(aDir); // combine
@@ -783,20 +817,18 @@ export class Controller {
 	}
 
 	fnFileEra(oParas: StopParas) {
-		var iStream = oParas.iStream,
+		const iStream = oParas.iStream,
 			oStorage = Utils.localStorage,
-			sFileMask = oParas.sFileMask,
-			aDir, i, sName;
-
-		sFileMask =	this.fnLocalStorageName(sFileMask);
-		aDir = this.fnGetDirectoryEntries(sFileMask);
+			sFileMask = this.fnLocalStorageName(oParas.sFileMask),
+			aDir = this.fnGetDirectoryEntries(sFileMask);
 
 		if (!aDir.length) {
 			this.oVm.print(iStream, sFileMask + " not found\r\n");
 		}
 
-		for (i = 0; i < aDir.length; i += 1) {
-			sName = aDir[i];
+		for (let i = 0; i < aDir.length; i += 1) {
+			const sName = aDir[i];
+
 			if (oStorage.getItem(sName) !== null) {
 				oStorage.removeItem(sName);
 				this.updateStorageDatabase("remove", sName);
@@ -812,16 +844,12 @@ export class Controller {
 	}
 
 	fnFileRen(oParas: StopParas) {
-		var iStream = oParas.iStream,
+		const iStream = oParas.iStream,
 			oStorage = Utils.localStorage,
-			sNew = oParas.sNew,
-			sOld = oParas.sOld,
-			sItem;
+			sNew = this.fnLocalStorageName(oParas.sNew),
+			sOld = this.fnLocalStorageName(oParas.sOld),
+			sItem = oStorage.getItem(sOld);
 
-		sNew = this.fnLocalStorageName(sNew);
-		sOld = this.fnLocalStorageName(sOld);
-
-		sItem = oStorage.getItem(sOld);
 		if (sItem !== null) {
 			if (!oStorage.getItem(sNew)) {
 				oStorage.setItem(sNew, sItem);
@@ -838,25 +866,27 @@ export class Controller {
 	}
 
 	// Hisoft Devpac GENA3 Z80 Assember (http://www.cpcwiki.eu/index.php/Hisoft_Devpac)
-	private static asmGena3Convert(sData) {
-		var iPos = 0,
-			sOut = "",
-			iLength = sData.length,
-			fnUInt16 = function (iPos2) {
+	private static asmGena3Convert(sData: string) {
+		const fnUInt16 = function (iPos2: number) {
 				return sData.charCodeAt(iPos2) + sData.charCodeAt(iPos2 + 1) * 256;
 			},
-			iLineNum, iIndex1, iIndex2;
+			iLength = sData.length;
+		let iPos = 0,
+			sOut = "";
 
 		iPos += 4; // what is the meaning of these bytes?
 
 		while (iPos < iLength) {
-			iLineNum = fnUInt16(iPos);
+			const iLineNum = fnUInt16(iPos);
+
 			iPos += 2;
-			iIndex1 = sData.indexOf("\r", iPos); // EOL marker 0x0d
+			let iIndex1 = sData.indexOf("\r", iPos); // EOL marker 0x0d
+
 			if (iIndex1 < 0) {
 				iIndex1 = iLength;
 			}
-			iIndex2 = sData.indexOf("\x1c", iPos); // EOL marker 0x1c
+			let iIndex2 = sData.indexOf("\x1c", iPos); // EOL marker 0x1c
+
 			if (iIndex2 < 0) {
 				iIndex2 = iLength;
 			}
@@ -871,9 +901,9 @@ export class Controller {
 	private loadFileContinue(sInput: string) { // eslint-disable-line complexity
 		const oInFile = this.oVm.vmGetInFileObject(),
 			sCommand = oInFile.sCommand;
-		var	iStartLine = 0,
+		let	iStartLine = 0,
 			bPutInMemory = false,
-			oData;
+			oData: FileMetaAndData;
 
 		if (sInput !== null && sInput !== undefined) {
 			oData = this.splitMeta(sInput);
@@ -973,19 +1003,18 @@ export class Controller {
 	}
 
 	private loadExample() {
-		var that = this,
-			oInFile = this.oVm.vmGetInFileObject(),
-			sExample: string, sUrl: string,
+		const that = this,
+			oInFile = this.oVm.vmGetInFileObject();
+		var	sExample: string, sUrl: string,
 
-			fnExampleLoaded = function (_sFullUrl: string, bSuppressLog: boolean) {
-				var sInput;
-
+			fnExampleLoaded = function (_sFullUrl: string, bSuppressLog?: boolean) {
 				const oExample = that.model.getExample(sExample);
 
 				if (!bSuppressLog) {
 					Utils.console.log("Example", sUrl, oExample.meta || "", "loaded");
 				}
-				sInput = oExample.script;
+				const sInput = oExample.script;
+
 				that.model.setProperty("example", oInFile.sMemorizedExample);
 				that.oVm.vmStop("", 0, true);
 				that.loadFileContinue(sInput);
@@ -1007,7 +1036,7 @@ export class Controller {
 			};
 
 		let sName = oInFile.sName;
-		const sKey = this.model.getStringProperty("example");
+		const sKey = this.model.getProperty<string>("example");
 
 		if (sName.charAt(0) === "/") { // absolute path?
 			sName = sName.substr(1); // remove "/"
@@ -1061,17 +1090,19 @@ export class Controller {
 		return sName;
 	}
 
-	private tryLoadingFromLocalStorage(sName) {
-		var oStorage = Utils.localStorage,
+	private tryLoadingFromLocalStorage(sName: string) {
+		const oStorage = Utils.localStorage,
 			aExtensions = [
 				null,
 				"bas",
 				"bin"
-			],
-			i, sStorageName, sInput;
+			];
 
-		for (i = 0; i < aExtensions.length; i += 1)	{
-			sStorageName = this.fnLocalStorageName(sName, aExtensions[i]);
+		let sInput: string;
+
+		for (let i = 0; i < aExtensions.length; i += 1)	{
+			const sStorageName = this.fnLocalStorageName(sName, aExtensions[i]);
+
 			sInput = oStorage.getItem(sStorageName);
 			if (sInput !== null) {
 				break; // found
@@ -1082,8 +1113,7 @@ export class Controller {
 
 	// run loop: fileLoad
 	fnFileLoad() {
-		var oInFile = this.oVm.vmGetInFileObject(),
-			sName, sInput;
+		const oInFile = this.oVm.vmGetInFileObject();
 
 		if (oInFile.bOpen) {
 			if (oInFile.sCommand === "chainMerge" && oInFile.iFirst && oInFile.iLast) { // special handling to delete line numbers first
@@ -1095,12 +1125,14 @@ export class Controller {
 				this.oVm.vmStop("fileLoad", 90); // restore
 			}
 
-			sName = oInFile.sName;
+			const sName = oInFile.sName;
+
 			if (Utils.debug > 1) {
 				Utils.console.debug("fnFileLoad:", oInFile.sCommand, sName, "details:", oInFile);
 			}
 
-			sInput = this.tryLoadingFromLocalStorage(sName);
+			const sInput = this.tryLoadingFromLocalStorage(sName);
+
 			if (sInput !== null) {
 				if (Utils.debug > 0) {
 					Utils.console.debug("fnFileLoad:", oInFile.sCommand, sName, "from localStorage");
@@ -1111,13 +1143,13 @@ export class Controller {
 				this.loadExample(/* sName */); //TTT
 			}
 		} else {
-			Utils.console.error("fnFileLoad:", sName, "File not open!");
+			Utils.console.error("fnFileLoad:", oInFile.sName, "File not open!"); // hopefully isName is defined
 		}
 		this.iNextLoopTimeOut = this.oVm.vmGetTimeUntilFrame(); // wait until next frame
 	}
 
-	private joinMeta(oMeta) {
-		var sMeta = [
+	private joinMeta(oMeta: FileMeta) {
+		const sMeta = [
 			this.sMetaIdent,
 			oMeta.sType,
 			oMeta.iStart,
@@ -1129,7 +1161,7 @@ export class Controller {
 	}
 
 	private splitMeta(sInput: string) {
-		var oMeta;
+		let oMeta: FileMeta;
 
 		if (sInput.indexOf(this.sMetaIdent) === 0) { // starts with metaIdent?
 			const iIndex = sInput.indexOf(","); // metadata separator
@@ -1143,37 +1175,41 @@ export class Controller {
 
 				oMeta = {
 					sType: aMeta[1],
-					iStart: aMeta[2],
-					iLength: aMeta[3],
-					iEntry: aMeta[4],
+					iStart: Number(aMeta[2]),
+					iLength: Number(aMeta[3]),
+					iEntry: Number(aMeta[4]),
 					sEncoding: aMeta[5]
 				};
 			}
+		} else {
+			oMeta = {};
 		}
 
-		return {
-			oMeta: oMeta || {},
+		const oMetaAndData: FileMetaAndData = {
+			oMeta: oMeta,
 			sData: sInput
 		};
+
+		return oMetaAndData;
 	}
 
 	// run loop: fileSave
 	fnFileSave() {
-		var oOutFile = this.oVm.vmGetOutFileObject(),
-			oStorage = Utils.localStorage,
-			sDefaultExtension = "",
-			sName, sType, sStorageName, sFileData, sMeta;
+		const oOutFile = this.oVm.vmGetOutFileObject(),
+			oStorage = Utils.localStorage;
+		let	sDefaultExtension = "";
 
 		if (oOutFile.bOpen) {
-			sType = oOutFile.sType;
-			sName = oOutFile.sName;
+			const sType = oOutFile.sType,
+				sName = oOutFile.sName;
 
 			if (sType === "P" || sType === "T") {
 				sDefaultExtension = "bas";
 			} else if (sType === "B") {
 				sDefaultExtension = "bin";
 			}
-			sStorageName = this.fnLocalStorageName(sName, sDefaultExtension);
+			const sStorageName = this.fnLocalStorageName(sName, sDefaultExtension);
+			let sFileData: string;
 
 			if (oOutFile.aFileData) {
 				sFileData = oOutFile.aFileData.join("");
@@ -1195,7 +1231,8 @@ export class Controller {
 				}
 			}
 
-			sMeta = this.joinMeta(oOutFile);
+			const sMeta = this.joinMeta(oOutFile);
+
 			oStorage.setItem(sStorageName, sMeta + "," + sFileData);
 			this.updateStorageDatabase("set", sStorageName);
 			this.oVm.vmResetFileHandling(oOutFile); // make sure it is closed
@@ -1206,22 +1243,25 @@ export class Controller {
 	}
 
 	fnDeleteLines(oParas: StopParas) {
-		var sInputText = this.view.getAreaValue("inputText"),
-			aLines = this.fnGetLinesInRange(sInputText, oParas.iFirst, oParas.iLast),
-			iLine, i, oError, sInput;
+		const sInputText = this.view.getAreaValue("inputText"),
+			aLines = this.fnGetLinesInRange(sInputText, oParas.iFirst, oParas.iLast);
+		let	oError: CustomError;
 
 		if (aLines.length) {
-			for (i = 0; i < aLines.length; i += 1) {
-				iLine = parseInt(aLines[i], 10);
+			for (let i = 0; i < aLines.length; i += 1) {
+				const iLine = parseInt(aLines[i], 10);
+
 				if (isNaN(iLine)) {
 					oError = this.oVm.vmComposeError(Error(), 21, oParas.sCommand); // "Direct command found"
 					this.outputError(oError, true);
 					break;
 				}
-				aLines[i] = iLine; // keep just the line numbers
+				aLines[i] = String(iLine); // keep just the line numbers
 			}
+
 			if (!oError) {
-				sInput = aLines.join("\n");
+				let sInput = aLines.join("\n");
+
 				sInput = this.mergeScripts(sInputText, sInput); // delete sInput lines
 				this.setInputText(sInput);
 			}
@@ -1232,7 +1272,7 @@ export class Controller {
 	}
 
 	fnNew(/* oParas */) {
-		var sInput = "";
+		const sInput = "";
 
 		this.setInputText(sInput);
 		this.oVariables.removeAllVariables();
@@ -1243,14 +1283,14 @@ export class Controller {
 	}
 
 	fnList(oParas: StopParas) {
-		var sInput = this.view.getAreaValue("inputText"),
+		const sInput = this.view.getAreaValue("inputText"),
 			iStream = oParas.iStream,
 			aLines = this.fnGetLinesInRange(sInput, oParas.iFirst, oParas.iLast),
-			oRegExp = new RegExp(/([\x00-\x1f])/g), // eslint-disable-line no-control-regex
-			i, sLine;
+			oRegExp = new RegExp(/([\x00-\x1f])/g); // eslint-disable-line no-control-regex
 
-		for (i = 0; i < aLines.length; i += 1) {
-			sLine = aLines[i];
+		for (let i = 0; i < aLines.length; i += 1) {
+			let sLine = aLines[i];
+
 			if (iStream !== 9) {
 				sLine = sLine.replace(oRegExp, "\x01$1"); // escape control characters to print them directly
 			}
@@ -1262,7 +1302,7 @@ export class Controller {
 	}
 
 	fnReset() {
-		var oVm = this.oVm;
+		const oVm = this.oVm;
 
 		this.oVariables.removeAllVariables();
 		oVm.vmReset();
@@ -1273,24 +1313,24 @@ export class Controller {
 	}
 
 	private outputError(oError, bNoSelection?: boolean) {
-		var iStream = 0,
-			sShortError = oError.shortMessage || oError.message,
-			sEscapedShortError, iEndPos;
+		const iStream = 0,
+			sShortError = oError.shortMessage || oError.message;
 
 		if (!bNoSelection) {
-			iEndPos = oError.pos + ((oError.value !== undefined) ? String(oError.value).length : 0);
+			const iEndPos = oError.pos + ((oError.value !== undefined) ? String(oError.value).length : 0);
+
 			this.view.setAreaSelection("inputText", oError.pos, iEndPos);
 		}
 
-		sEscapedShortError = sShortError.replace(/([\x00-\x1f])/g, "\x01$1"); // eslint-disable-line no-control-regex
+		const sEscapedShortError = sShortError.replace(/([\x00-\x1f])/g, "\x01$1"); // eslint-disable-line no-control-regex
+
 		this.oVm.print(iStream, sEscapedShortError + "\r\n");
 		return sShortError;
 	}
 
 	fnRenumLines(oParas: StopParas) {
-		var oVm = this.oVm,
-			sInput = this.view.getAreaValue("inputText"),
-			oOutput;
+		const oVm = this.oVm,
+			sInput = this.view.getAreaValue("inputText");
 
 		if (!this.oBasicFormatter) {
 			this.oBasicFormatter = new BasicFormatter({
@@ -1300,7 +1340,7 @@ export class Controller {
 		}
 
 		this.oBasicFormatter.reset();
-		oOutput = this.oBasicFormatter.renumber(sInput, oParas.iNew, oParas.iOld, oParas.iStep, oParas.iKeep);
+		const oOutput = this.oBasicFormatter.renumber(sInput, oParas.iNew, oParas.iOld, oParas.iStep, oParas.iKeep);
 
 		if (oOutput.error) {
 			Utils.console.warn(oOutput.error);
@@ -1316,9 +1356,9 @@ export class Controller {
 	}
 
 	private fnEditLineCallback() {
-		var oInput = this.oVm.vmGetStopObject().oParas,
-			sInput = oInput.sInput,
+		const oInput = this.oVm.vmGetStopObject().oParas,
 			sInputText = this.view.getAreaValue("inputText");
+		let sInput = oInput.sInput;
 
 		sInput = this.mergeScripts(sInputText, sInput);
 		this.setInputText(sInput);
@@ -1331,14 +1371,14 @@ export class Controller {
 	}
 
 	fnEditLine(oParas: StopParas) {
-		var sInput = this.view.getAreaValue("inputText"),
+		const sInput = this.view.getAreaValue("inputText"),
 			iStream = oParas.iStream,
-			iLine = oParas.iLine,
-			aLines = this.fnGetLinesInRange(sInput, iLine, iLine),
-			sLine, oError;
+			iLine = oParas.iLine as number, //TTT
+			aLines = this.fnGetLinesInRange(sInput, iLine, iLine);
 
 		if (aLines.length) {
-			sLine = aLines[0];
+			const sLine = aLines[0];
+
 			this.oVm.print(iStream, sLine);
 			this.oVm.cursor(iStream, 1);
 			this.oVm.vmStop("waitInput", 45, true, {
@@ -1349,39 +1389,53 @@ export class Controller {
 			});
 			this.fnWaitInput();
 		} else {
-			oError = this.oVm.vmComposeError(Error(), 8, String(iLine)); // "Line does not exist"
+			const oError = this.oVm.vmComposeError(Error(), 8, String(iLine)); // "Line does not exist"
+
 			this.oVm.print(iStream, String(oError) + "\r\n");
 			this.oVm.vmStop("stop", 60, true);
 		}
 	}
 
+	private fnParseBench(sInput: string, iBench: number) {
+		let oOutput;
+
+		for (let i = 0; i < iBench; i += 1) {
+			this.oCodeGeneratorJs.reset();
+			let iTime = Date.now();
+
+			oOutput = this.oCodeGeneratorJs.generate(sInput, this.oVariables);
+			iTime = Date.now() - iTime;
+			Utils.console.debug("bench size", sInput.length, "labels", Object.keys(this.oCodeGeneratorJs.oLabels).length, "loop", i, ":", iTime, "ms");
+			if (oOutput.error) {
+				break;
+			}
+		}
+
+		return oOutput;
+	}
+
 	fnParse() {
-		var sInput = this.view.getAreaValue("inputText"),
-			iBench = this.model.getProperty("bench"),
-			i, iTime, oOutput, sOutput;
+		const sInput = this.view.getAreaValue("inputText"),
+			iBench = this.model.getProperty<number>("bench");
 
 		this.oVariables.removeAllVariables();
+		let	oOutput;
+
 		if (!iBench) {
 			this.oCodeGeneratorJs.reset();
 			oOutput = this.oCodeGeneratorJs.generate(sInput, this.oVariables);
 		} else {
-			for (i = 0; i < iBench; i += 1) {
-				this.oCodeGeneratorJs.reset();
-				iTime = Date.now();
-				oOutput = this.oCodeGeneratorJs.generate(sInput, this.oVariables);
-				iTime = Date.now() - iTime;
-				Utils.console.debug("bench size", sInput.length, "labels", Object.keys(this.oCodeGeneratorJs.oLabels).length, "loop", i, ":", iTime, "ms");
-				if (oOutput.error) {
-					break;
-				}
-			}
+			oOutput = this.fnParseBench(sInput, iBench);
 		}
+
+		let sOutput: string;
 
 		if (oOutput.error) {
 			sOutput = this.outputError(oOutput.error);
 		} else {
 			sOutput = oOutput.text;
 		}
+
 		if (sOutput && sOutput.length > 0) {
 			sOutput += "\n";
 		}
@@ -1425,25 +1479,27 @@ export class Controller {
 	}
 
 	private selectJsError(sScript: string, e) {
-		var iPos = 0,
-			iLine = 0,
-			iErrLine = e.lineNumber - 3; // for some reason line 0 is 3
+		const iLineNumber = e.lineNumber,
+			iColumnNumber = e.columnNumber,
+			iErrLine = iLineNumber - 3; // for some reason line 0 is 3
+		let iPos = 0,
+			iLine = 0;
 
 		while (iPos < sScript.length && iLine < iErrLine) {
 			iPos = sScript.indexOf("\n", iPos) + 1;
 			iLine += 1;
 		}
-		iPos += e.columnNumber;
+		iPos += iColumnNumber;
 
-		Utils.console.warn("Info: JS Error occurred at line", e.lineNumber, "column", e.columnNumber, "pos", iPos);
+		Utils.console.warn("Info: JS Error occurred at line", iLineNumber, "column", iColumnNumber, "pos", iPos);
 
 		this.view.setAreaSelection("outputText", iPos, iPos + 1);
 	}
 
 	private fnRun(oParas?: StopParas) {
-		var sScript = this.view.getAreaValue("outputText"),
-			iLine = oParas && oParas.iLine || 0,
+		const sScript = this.view.getAreaValue("outputText"),
 			oVm = this.oVm;
+		let iLine = oParas && oParas.iLine || 0;
 
 		iLine = iLine || 0;
 		if (iLine === 0) {
@@ -1473,7 +1529,7 @@ export class Controller {
 		oVm.vmReset4Run();
 		if (!this.bInputSet) {
 			this.bInputSet = true;
-			this.oKeyboard.putKeysInBuffer(this.model.getStringProperty("input"));
+			this.oKeyboard.putKeysInBuffer(this.model.getProperty<string>("input"));
 		}
 
 		if (this.fnScript) {
@@ -1492,7 +1548,7 @@ export class Controller {
 	}
 
 	private fnParseRun() {
-		var oOutput = this.fnParse();
+		const oOutput = this.fnParse();
 
 		if (!oOutput.error) {
 			this.fnRun();
@@ -1524,8 +1580,7 @@ export class Controller {
 	private fnDirectInput() {
 		const oInput = this.oVm.vmGetStopObject().oParas,
 			iStream = oInput.iStream;
-		let sInput = oInput.sInput,
-			oOutput, sOutput;
+		let sInput = oInput.sInput;
 
 		sInput = sInput.trim();
 		oInput.sInput = "";
@@ -1550,6 +1605,9 @@ export class Controller {
 			}
 
 			Utils.console.log("fnDirectInput: execute:", sInput);
+
+			let oOutput,
+				sOutput: string;
 
 			if (sInputText) { // do we have a program?
 				oOutput = this.oCodeGeneratorJs.reset().generate(sInput + "\n" + sInputText, this.oVariables, true); // compile both; allow direct command
@@ -1656,6 +1714,17 @@ export class Controller {
 
 	fnBreak() {
 		// empty
+
+		//TTT
+		/*
+		this.oRunLoop = new this.RunLoop(this);
+		this.oRunLoop.fnTest("msg1");
+		*/
+		/*
+		if (this.oRunLoop.fnTest) {
+			this.oRunLoop.fnTest("ok1"); //TTT
+		}
+		*/
 	}
 
 	fnDirect() {
@@ -1692,15 +1761,15 @@ export class Controller {
 	}
 
 	private fnRunLoop() {
-		var oStop = this.oVm.vmGetStopObject(),
-			sHandler;
+		const oStop = this.oVm.vmGetStopObject();
 
 		this.iNextLoopTimeOut = 0;
 		if (!oStop.sReason && this.fnScript) {
 			this.fnRunPart1(); // could change sReason
 		}
 
-		sHandler = "fn" + Utils.stringCapitalize(oStop.sReason);
+		const sHandler = "fn" + Utils.stringCapitalize(oStop.sReason);
+
 		if (sHandler in this) {
 			this[sHandler](oStop.oParas);
 		} else {
@@ -1739,7 +1808,7 @@ export class Controller {
 	}
 
 	startRenum() {
-		var iStream = 0;
+		const iStream = 0;
 
 		this.oVm.vmStop("renumLines", 99, false, {
 			iNew: 10,
@@ -1771,7 +1840,7 @@ export class Controller {
 	}
 
 	startBreak() {
-		var oVm = this.oVm,
+		const oVm = this.oVm,
 			oStop = oVm.vmGetStopObject();
 
 		this.setStopObject(oStop);
@@ -1781,7 +1850,7 @@ export class Controller {
 	}
 
 	startContinue() {
-		var oVm = this.oVm,
+		const oVm = this.oVm,
 			oStop = oVm.vmGetStopObject(),
 			oSavedStop = this.getStopObject();
 
@@ -1810,15 +1879,15 @@ export class Controller {
 	}
 
 	startScreenshot() {
-		var image = this.oCanvas.canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"); // here is the most important part because if you do not replace you will get a DOM 18 exception.
+		const image = this.oCanvas.canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"); // here is the most important part because if you do not replace you will get a DOM 18 exception.
 
 		return image;
 	}
 
-	private fnPutKeyInBuffer(sKey) {
-		var oKeyDownHandler = this.oKeyboard.getKeyDownHandler();
-
+	private fnPutKeyInBuffer(sKey: string) {
 		this.oKeyboard.putKeyInBuffer(sKey);
+
+		const oKeyDownHandler = this.oKeyboard.getKeyDownHandler();
 
 		if (oKeyDownHandler) {
 			oKeyDownHandler();
@@ -1840,13 +1909,11 @@ export class Controller {
 		this.view.setAreaValue("inp2Text", "");
 	}
 
-	private static generateFunction(sPar, sFunction) {
-		var aArgs = [],
-			iFirstIndex, iLastIndex, aMatch, fnFunction;
-
+	private static generateFunction(sPar: string, sFunction: string) {
 		if (sFunction.startsWith("function anonymous(")) { // already a modified function (inside an anonymous function)?
-			iFirstIndex = sFunction.indexOf("{");
-			iLastIndex = sFunction.lastIndexOf("}");
+			const iFirstIndex = sFunction.indexOf("{"),
+				iLastIndex = sFunction.lastIndexOf("}");
+
 			if (iFirstIndex >= 0 && iLastIndex >= 0) {
 				sFunction = sFunction.substring(iFirstIndex + 1, iLastIndex - 1); // remove anonymous function
 			}
@@ -1855,36 +1922,32 @@ export class Controller {
 			sFunction = "var o=cpcBasic.controller.oVm, v=o.vmGetAllVariables(); v." + sPar + " = " + sFunction;
 		}
 
-		aMatch = (/function \(([^)]*)/).exec(sFunction);
+		const aMatch = (/function \(([^)]*)/).exec(sFunction);
+
+		let aArgs = [];
+
 		if (aMatch) {
 			aArgs = aMatch[1].split(",");
 		}
 
-		fnFunction = new Function(aArgs[0], aArgs[1], aArgs[2], aArgs[3], aArgs[4], sFunction); // eslint-disable-line no-new-func
+		const fnFunction = new Function(aArgs[0], aArgs[1], aArgs[2], aArgs[3], aArgs[4], sFunction); // eslint-disable-line no-new-func
 		// we support at most 5 arguments
 
 		return fnFunction;
 	}
 
 	changeVariable() {
-		var sPar = this.view.getSelectValue("varSelect"),
+		const sPar = this.view.getSelectValue("varSelect"),
 			sValue = this.view.getSelectValue("varText"),
-			oVariables = this.oVariables,
-			sVarType, sType, value, value2;
+			oVariables = this.oVariables;
+		let value = oVariables.getVariable(sPar);
 
-		value = oVariables.getVariable(sPar);
-		if (typeof value === "function") { // TODO
+		if (typeof value === "function") {
 			value = Controller.generateFunction(sPar, sValue);
-			/*
-			value = sValue;
-			value = "var o=cpcBasic.controller.oVm, v=o.vmGetAllVariables(); v." + sPar + " = " + sValue;
-			value = new Function("xR", value); // eslint-disable-line no-new-func
-			// new function must be called later with this.oVm, ...
-			*/
 			oVariables.setVariable(sPar, value);
 		} else {
-			sVarType = this.oVariables.determineStaticVarType(sPar);
-			sType = this.oVm.vmDetermineVarType(sVarType); // do we know dynamic type?
+			const sVarType = this.oVariables.determineStaticVarType(sPar),
+				sType = this.oVm.vmDetermineVarType(sVarType); // do we know dynamic type?
 
 			if (sType !== "$") { // not string? => convert to number
 				value = parseFloat(sValue);
@@ -1893,7 +1956,8 @@ export class Controller {
 			}
 
 			try {
-				value2 = this.oVm.vmAssign(sVarType, value);
+				const value2 = this.oVm.vmAssign(sVarType, value);
+
 				oVariables.setVariable(sPar, value2);
 				Utils.console.log("Variable", sPar, "changed:", oVariables.getVariable(sPar), "=>", value);
 			} catch (e) {
@@ -1905,11 +1969,10 @@ export class Controller {
 	}
 
 	setSoundActive() {
-		var oSound = this.oSound,
-			soundButton = document.getElementById("soundButton"),
-			bActive = this.model.getProperty("sound"),
-			sText = "",
-			oStop;
+		const oSound = this.oSound,
+			soundButton = View.getElementById1("soundButton"),
+			bActive = this.model.getProperty<boolean>("sound");
+		let	sText: string;
 
 		if (bActive) {
 			try {
@@ -1922,7 +1985,8 @@ export class Controller {
 		} else {
 			oSound.soundOff();
 			sText = "Sound is off";
-			oStop = this.oVm && this.oVm.vmGetStopObject();
+			const oStop = this.oVm && this.oVm.vmGetStopObject();
+
 			if (oStop && oStop.sReason === "waitSound") {
 				this.oVm.vmStop("", 0, true); // do not wait
 			}
@@ -1933,21 +1997,20 @@ export class Controller {
 	// https://stackoverflow.com/questions/10261989/html5-javascript-drag-and-drop-file-from-external-window-windows-explorer
 	// https://www.w3.org/TR/file-upload/#dfn-filereader
 	fnHandleFileSelect(event) {
-		var aFiles = event.dataTransfer ? event.dataTransfer.files : event.target.files, // dataTransfer for drag&drop, target.files for file input
-			iFile = 0,
+		const aFiles = event.dataTransfer ? event.dataTransfer.files : event.target.files, // dataTransfer for drag&drop, target.files for file input
 			oStorage = Utils.localStorage,
 			that = this,
 			reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/), // eslint-disable-line no-control-regex
 			// starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
-			aImported = [],
+			aImported = [];
+		let iFile = 0,
 			f, oReader;
 
 		function fnEndOfImport() {
-			var iStream = 0,
-				oVm = that.oVm,
-				i;
+			const iStream = 0,
+				oVm = that.oVm;
 
-			for (i = 0; i < aImported.length; i += 1) {
+			for (let i = 0; i < aImported.length; i += 1) {
 				oVm.print(iStream, aImported[i], " ");
 			}
 			oVm.print(iStream, "\r\n", aImported.length + " file" + (aImported.length !== 1 ? "s" : "") + " imported.\r\n");
@@ -1955,12 +2018,11 @@ export class Controller {
 		}
 
 		function fnReadNextFile() {
-			var sText;
-
 			if (iFile < aFiles.length) {
 				f = aFiles[iFile];
 				iFile += 1;
-				sText = f.name + " " + (f.type || "n/a") + " " + f.size + " " + (f.lastModifiedDate ? f.lastModifiedDate.toLocaleDateString() : "n/a");
+				const sText = f.name + " " + (f.type || "n/a") + " " + f.size + " " + (f.lastModifiedDate ? f.lastModifiedDate.toLocaleDateString() : "n/a");
+
 				Utils.console.log(sText);
 				if (f.type === "text/plain") {
 					oReader.readAsText(f);
@@ -1991,10 +2053,9 @@ export class Controller {
 		}
 
 		function fnLoad2(sData: string, sName: string, sType: string) {
-			var sStorageName, sMeta, iIndex, oHeader,
-				oDsk, oDir, aDiskFiles, i, sFileName, sInfo1;
+			let oHeader,
+				sStorageName = that.oVm.vmAdaptFilename(sName, "FILE");
 
-			sStorageName = that.oVm.vmAdaptFilename(sName, "FILE");
 			sStorageName = that.fnLocalStorageName(sStorageName);
 
 			if (sType === "text/plain") {
@@ -2006,9 +2067,11 @@ export class Controller {
 			} else {
 				if (sType === "application/x-zip-compressed" || sType === "cpcBasic/binary") { // are we a file inside zip?
 				} else { // e.g. "data:application/octet-stream;base64,..."
-					iIndex = sData.indexOf(",");
+					const iIndex = sData.indexOf(",");
+
 					if (iIndex >= 0) {
-						sInfo1 = sData.substr(0, iIndex);
+						const sInfo1 = sData.substr(0, iIndex);
+
 						sData = sData.substr(iIndex + 1); // remove meta prefix
 						if (sInfo1.indexOf("base64") >= 0) {
 							sData = Utils.atob(sData); // decode base64
@@ -2025,16 +2088,18 @@ export class Controller {
 						iStart: 0,
 						iLength: sData.length
 					};
-				} else if (DiskImage.testDiskIdent(sData.substr(0, 8)) !== null) { // disk image file?
+				} else if (DiskImage.testDiskIdent(sData.substr(0, 8))) { // disk image file?
 					try {
-						oDsk = new DiskImage({
-							sData: sData,
-							sDiskName: sName
-						});
-						oDir = oDsk.readDirectory();
-						aDiskFiles = Object.keys(oDir);
-						for (i = 0; i < aDiskFiles.length; i += 1) {
-							sFileName = aDiskFiles[i];
+						const oDsk = new DiskImage({
+								sData: sData,
+								sDiskName: sName
+							}),
+							oDir = oDsk.readDirectory(),
+							aDiskFiles = Object.keys(oDir);
+
+						for (let i = 0; i < aDiskFiles.length; i += 1) {
+							const sFileName = aDiskFiles[i];
+
 							try { // eslint-disable-line max-depth
 								sData = oDsk.readFile(oDir[sFileName]);
 								fnLoad2(sData, sFileName, "cpcBasic/binary"); // recursive
@@ -2058,7 +2123,8 @@ export class Controller {
 			}
 
 			if (oHeader) {
-				sMeta = that.joinMeta(oHeader);
+				const sMeta = that.joinMeta(oHeader);
+
 				try {
 					oStorage.setItem(sStorageName, sMeta + "," + sData);
 					that.updateStorageDatabase("set", sStorageName);
@@ -2075,12 +2141,13 @@ export class Controller {
 		}
 
 		function fnOnLoad(evt) {
-			var sData = evt.target.result,
+			const sData = evt.target.result,
 				sName = f.name,
-				sType = f.type,
-				oZip, aEntries, i;
+				sType = f.type;
 
 			if (sType === "application/x-zip-compressed") {
+				let oZip: ZipFile;
+
 				try {
 					oZip = new ZipFile(new Uint8Array(sData), sName); // rather aData
 				} catch (e) {
@@ -2088,18 +2155,23 @@ export class Controller {
 					that.outputError(e, true);
 				}
 				if (oZip) {
-					aEntries = Object.keys(oZip.oEntryTable);
-					for (i = 0; i < aEntries.length; i += 1) {
-						sName = aEntries[i];
+					const aEntries = Object.keys(oZip.oEntryTable);
+
+					for (let i = 0; i < aEntries.length; i += 1) {
+						const sName2 = aEntries[i];
+
+						let sData2: string;
+
 						try {
-							sData = oZip.readData(sName);
+							sData2 = oZip.readData(sName2);
 						} catch (e) {
 							Utils.console.error(e);
 							that.outputError(e, true);
-							sData = null;
+							sData2 = null;
 						}
-						if (sData) {
-							fnLoad2(sData, sName, sType);
+
+						if (sData2) {
+							fnLoad2(sData2, sName2, sType);
 						}
 					}
 				}
@@ -2123,14 +2195,14 @@ export class Controller {
 		}
 	}
 
-	private fnHandleDragOver(evt) { // eslint-disable-line class-methods-use-this
+	private fnHandleDragOver(evt: DragEvent) { // eslint-disable-line class-methods-use-this
 		evt.stopPropagation();
 		evt.preventDefault();
 		evt.dataTransfer.dropEffect = "copy"; // Explicitly show this is a copy.
 	}
 
 	private initDropZone() {
-		var dropZone = document.getElementById("dropZone");
+		const dropZone = View.getElementById1("dropZone");
 
 		dropZone.addEventListener("dragover", this.fnHandleDragOver.bind(this), false);
 		dropZone.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
@@ -2138,7 +2210,7 @@ export class Controller {
 		this.oCanvas.canvas.addEventListener("dragover", this.fnHandleDragOver.bind(this), false); //TTT fast hack
 		this.oCanvas.canvas.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
 
-		document.getElementById("fileInput").addEventListener("change", this.fnHandleFileSelect.bind(this), false);
+		View.getElementById1("fileInput").addEventListener("change", this.fnHandleFileSelect.bind(this), false);
 	}
 
 	private fnUpdateUndoRedoButtons() {
@@ -2152,7 +2224,7 @@ export class Controller {
 	}
 
 	private fnPutChangedInputOnStack() {
-		var sInput = this.view.getAreaValue("inputText"),
+		const sInput = this.view.getAreaValue("inputText"),
 			sStackInput = this.inputStack.getInput();
 
 		if (sStackInput !== sInput) {
@@ -2165,14 +2237,14 @@ export class Controller {
 	static exportAsBase64(sStorageName: string): string { //TTT
 		const oStorage = Utils.localStorage;
 		let sData = oStorage.getItem(sStorageName),
-			sOut = "",
-			sMeta = "";
+			sOut = "";
 
 		if (sData !== null) {
 			const iIndex = sData.indexOf(","); // metadata separator
 
 			if (iIndex >= 0) {
-				sMeta = sData.substr(0, iIndex);
+				const sMeta = sData.substr(0, iIndex);
+
 				sData = sData.substr(iIndex + 1);
 				sData = Utils.btoa(sData);
 				sOut = sMeta + ";base64," + sData;
@@ -2184,4 +2256,24 @@ export class Controller {
 		Utils.console.log(sOut);
 		return sOut;
 	}
+
+	// test
+	RunLoop = class {
+		oController: Controller;
+
+		constructor(oController: Controller) {
+			//Utils.console.log("Test: RunLoop: constructor", a);
+			this.oController = oController;
+		}
+
+		fnTest(s1) {
+			//this.oVm.vmStop("", 0, true); // continue
+			//oVm.vmStop("", 0, true); // continue
+			this.oController.oVm.print(0, "test:", s1);
+			Utils.console.log("Test: RunLoop: fnTest", s1);
+		}
+	}
+
+	oRunLoop: any; //TTT RunLoop
+
 }

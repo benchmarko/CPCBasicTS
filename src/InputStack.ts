@@ -10,38 +10,37 @@ export class InputStack {
 		this.init();
 	}
 
-	init() {
+	init(): void {
 		this.aInput = [];
 		this.iStackPosition = -1;
-		return this;
 	}
-	getInput() {
+	getInput(): string {
 		return this.aInput[this.iStackPosition];
 	}
-	clearRedo() {
+	clearRedo(): void {
 		this.aInput = this.aInput.slice(0, this.iStackPosition + 1);
-		return this;
 	}
-	save(sInput) {
+	save(sInput: string): void {
 		this.clearRedo();
 		this.aInput.push(sInput);
 		this.iStackPosition += 1;
-		return this;
 	}
-	canUndo() {
+	/*
+	canUndo(): boolean {
 		return this.iStackPosition >= 0;
 	}
-	canUndoKeepOne() {
+	*/
+	canUndoKeepOne(): boolean {
 		return this.iStackPosition > 0;
 	}
-	undo() {
+	undo(): string {
 		this.iStackPosition -= 1;
 		return this.getInput();
 	}
-	canRedo() {
+	canRedo(): boolean {
 		return this.iStackPosition < this.aInput.length - 1;
 	}
-	redo() {
+	redo(): string {
 		this.iStackPosition += 1;
 		return this.getInput();
 	}

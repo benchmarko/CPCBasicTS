@@ -124,7 +124,7 @@ export class BasicLexer {
 				return input.charAt(iIndex);
 			},
 			advanceWhile = function (fn: (arg0: string) => boolean) {
-				var sToken2 = "";
+				let sToken2 = "";
 
 				do {
 					sToken2 += sChar;
@@ -133,11 +133,11 @@ export class BasicLexer {
 				return sToken2;
 			},
 			addToken = function (type: string, value: string | number, iPos: number, sOrig?: string) { // optional original value
-				var oNode: BasicLexerToken = {
+				const oNode: BasicLexerToken = {
 					type: type,
 					value: value,
-					pos: iPos,
-					orig: undefined
+					pos: iPos
+					//orig: undefined
 				};
 
 				if (sOrig !== undefined) {
