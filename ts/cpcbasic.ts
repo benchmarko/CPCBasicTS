@@ -9,10 +9,6 @@ import { cpcconfig } from "./cpcconfig";
 import { Model } from "./Model";
 import { View } from "./View";
 
-declare global {
-    interface Window { cpcBasic: any; }
-}
-
 class cpcBasic { // eslint-disable-line vars-on-top
 	static config = {
 		bench: 0, // debug: number of parse bench loops
@@ -107,13 +103,13 @@ class cpcBasic { // eslint-disable-line vars-on-top
 				},
 				console: oCurrentConsole,
 				fnMapObjectProperties: function (arg) {
-					var aRes, sKey, value;
-
 					if (typeof arg === "object") {
-						aRes = [];
-						for (sKey in arg) { // eslint-disable-line guard-for-in
+						const aRes = [];
+
+						for (const sKey in arg) { // eslint-disable-line guard-for-in
 							// if (arg.hasOwnProperty(sKey)) {
-							value = arg[sKey];
+							const value = arg[sKey];
+
 							if (typeof value !== "object" && typeof value !== "function") {
 								aRes.push(sKey + ": " + value);
 							}
@@ -151,7 +147,7 @@ class cpcBasic { // eslint-disable-line vars-on-top
 					this.rawLog(this.console && this.console.error, "ERROR:", Array.prototype.slice.call(arguments));
 				},
 				changeLog: function (oLog) {
-					var oldLog = this.consoleLog;
+					const oldLog = this.consoleLog;
 
 					this.consoleLog = oLog;
 					if (oldLog && oldLog.value && oLog) { // some log entires collected?
@@ -160,7 +156,7 @@ class cpcBasic { // eslint-disable-line vars-on-top
 				}
 			};
 
-		Utils.console = oConsole as any; //TTT
+		Utils.console = oConsole as any;
 	}
 
 	private static fnDoStart() {
@@ -173,22 +169,22 @@ class cpcBasic { // eslint-disable-line vars-on-top
 		cpcBasic.model = new Model(oStartConfig, oInitialConfig);
 		cpcBasic.view = new View();
 
-		const iDebug = Number(cpcBasic.model.getProperty("debug"));
+		const iDebug = Number(cpcBasic.model.getProperty<number>("debug"));
 
 		Utils.debug = iDebug;
 
-		let sCpcBasicLog;
 		const UtilsConsole = Utils.console as any;
+		let sCpcBasicLog: string;
 
 		if (UtilsConsole.cpcBasicLog) {
 			sCpcBasicLog = UtilsConsole.cpcBasicLog;
 			UtilsConsole.cpcBasicLog = null; // do not log any more to dummy console
 		}
 
-		if (Utils.debug > 1 && cpcBasic.model.getProperty("showConsole")) { // console log window?
+		if (Utils.debug > 1 && cpcBasic.model.getProperty<boolean>("showConsole")) { // console log window?
 			cpcBasic.setDebugUtilsConsole(sCpcBasicLog);
 			Utils.console.log("CPCBasic log started at", Utils.dateFormat(new Date()));
-			UtilsConsole.changeLog(document.getElementById("consoleText"));
+			UtilsConsole.changeLog(View.getElementById1("consoleText"));
 		}
 
 		cpcBasic.controller = new Controller(cpcBasic.model, cpcBasic.view);
@@ -200,6 +196,9 @@ class cpcBasic { // eslint-disable-line vars-on-top
 	}
 }
 
+declare global {
+    interface Window { cpcBasic: cpcBasic; }
+}
 
 window.cpcBasic = cpcBasic;
 

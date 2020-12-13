@@ -11,18 +11,21 @@ export interface CustomError extends Error {
 	shortMessage?: string
 }
 
-export var Utils = { // eslint-disable-line vars-on-top
-	debug: 0,
-	console: typeof window !== "undefined" ? window.console : globalThis.console, // browser or node.js
+export class Utils { // eslint-disable-line vars-on-top
+	static debug = 0;
 
-	fnLoadScriptOrStyle: function (script: HTMLScriptElement | HTMLLinkElement, sFullUrl: string, fnSuccess, fnError) {
+	static console = (function () {
+		return typeof window !== "undefined" ? window.console : globalThis.console; // browser or node.js
+	}());
+
+	private static fnLoadScriptOrStyle(script: HTMLScriptElement | HTMLLinkElement, sFullUrl: string, fnSuccess: (sStr: string) => void, fnError: (sStr: string) => void) {
 		// inspired by https://github.com/requirejs/requirejs/blob/master/require.js
-		var iIEtimeoutCount = 3,
-			onScriptLoad = function (event: Event) {
-				const node = event.currentTarget || event.srcElement;
+		let iIEtimeoutCount = 3;
+		const onScriptLoad = function (event: Event) {
+				const node = (event.currentTarget || event.srcElement) as HTMLScriptElement | HTMLLinkElement;
 
 				if (Utils.debug > 1) {
-					Utils.console.debug("onScriptLoad:", (node as any).src || (node as any).href);
+					Utils.console.debug("onScriptLoad:", (node as HTMLScriptElement).src || (node as HTMLLinkElement).href);
 				}
 				node.removeEventListener("load", onScriptLoad, false);
 				node.removeEventListener("error", onScriptError, false); // eslint-disable-line no-use-before-define
@@ -32,10 +35,10 @@ export var Utils = { // eslint-disable-line vars-on-top
 				}
 			},
 			onScriptError = function (event: Event) {
-				const node = event.currentTarget || event.srcElement;
+				const node = (event.currentTarget || event.srcElement) as HTMLScriptElement | HTMLLinkElement;
 
 				if (Utils.debug > 1) {
-					Utils.console.debug("onScriptError:", (node as any).src || (node as any).href);
+					Utils.console.debug("onScriptError:", (node as HTMLScriptElement).src || (node as HTMLLinkElement).href);
 				}
 				node.removeEventListener("load", onScriptLoad, false);
 				node.removeEventListener("error", onScriptError, false);
@@ -86,8 +89,9 @@ export var Utils = { // eslint-disable-line vars-on-top
 		}
 		document.getElementsByTagName("head")[0].appendChild(script);
 		return sFullUrl;
-	},
-	loadScript: function (sUrl: string, fnSuccess, fnError) {
+	}
+
+	static loadScript(sUrl: string, fnSuccess: (sStr: string) => void, fnError: (sStr: string) => void): void {
 		const script = document.createElement("script");
 
 		script.type = "text/javascript";
@@ -98,8 +102,9 @@ export var Utils = { // eslint-disable-line vars-on-top
 		const sFullUrl = script.src;
 
 		this.fnLoadScriptOrStyle(script, sFullUrl, fnSuccess, fnError);
-	},
-	loadStyle: function (sUrl: string, fnSuccess, fnError) {
+	}
+
+	static loadStyle(sUrl: string, fnSuccess: (sStr: string) => void, fnError: (sStr: string) => void): void {
 		const link = document.createElement("link");
 
 		link.rel = "stylesheet";
@@ -108,29 +113,34 @@ export var Utils = { // eslint-disable-line vars-on-top
 		const sFullUrl = link.href;
 
 		this.fnLoadScriptOrStyle(link, sFullUrl, fnSuccess, fnError);
-	},
+	}
 
-	dateFormat: function (d: Date) {
+	static dateFormat(d: Date): string {
 		return d.getFullYear() + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + ("0" + d.getDate()).slice(-2) + " "
 			+ ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2) + ":" + ("0" + d.getSeconds()).slice(-2) + "." + ("0" + d.getMilliseconds()).slice(-3);
-	},
-	stringCapitalize: function (str: string) { // capitalize first letter
+	}
+
+	static stringCapitalize(str: string): string { // capitalize first letter
 		return str.charAt(0).toUpperCase() + str.substring(1);
-	},
-	numberWithCommas: function (x: number) {
+	}
+
+	static numberWithCommas(x: number): string {
 		// https://stackoverflow.com/questions/2901102/how-to-print-a-number-with-commas-as-thousands-separators-in-javascript
 		var aParts = String(x).split(".");
 
 		aParts[0] = aParts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 		return aParts.join(".");
-	},
-	toRadians: function (deg: number) {
+	}
+
+	static toRadians(deg: number): number {
 		return deg * Math.PI / 180;
-	},
-	toDegrees: function (rad: number) {
+	}
+
+	static toDegrees(rad: number): number {
 		return rad * 180 / Math.PI;
-	},
-	getChangedParameters: function (current, initial) {
+	}
+
+	static getChangedParameters(current, initial) {
 		const oChanged = {};
 
 		for (const sName in current) {
@@ -141,40 +151,50 @@ export var Utils = { // eslint-disable-line vars-on-top
 			}
 		}
 		return oChanged;
-	},
-	bSupportsBinaryLiterals: (function () { // does the browser support binary literals?
+	}
+
+	static bSupportsBinaryLiterals = (function () { // does the browser support binary literals?
 		try {
 			Function("0b01"); // eslint-disable-line no-new-func
 		} catch (e) {
 			return false;
 		}
 		return true;
-	}()),
+	}());
 
-	bSupportReservedNames: (function () { // does the browser support reserved names (delete, new, return) in dot notation? (not old IE8; "goto" is ok)
+	static bSupportReservedNames = (function () { // does the browser support reserved names (delete, new, return) in dot notation? (not old IE8; "goto" is ok)
 		try {
 			Function("({}).return()"); // eslint-disable-line no-new-func
 		} catch (e) {
 			return false;
 		}
 		return true;
-	}()),
+	}());
 
-	localStorage: (function () {
-		var rc;
+	static stringTrimEnd(sStr: string): string {
+		return sStr.replace(/[\s\uFEFF\xA0]+$/, "");
+	}
+
+	static localStorage = (function () {
+		let rc: Storage | undefined;
 
 		try {
 			rc = typeof window !== "undefined" ? window.localStorage : null; // due to a bug in MS Edge this will throw an error when hosting locally (https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/8816771/)
 		} catch (e) {
-			rc = null;
+			rc = undefined;
 		}
 		return rc;
-	}()),
+	}());
 
-	atob: typeof window !== "undefined" && window.atob && window.atob.bind ? window.atob.bind(window) : null, // we need bind: https://stackoverflow.com/questions/9677985/uncaught-typeerror-illegal-invocation-in-chrome
-	btoa: typeof window !== "undefined" && window.btoa && window.btoa.bind ? window.btoa.bind(window) : null,
+	static atob = (function () {
+		return typeof window !== "undefined" && window.atob && window.atob.bind ? window.atob.bind(window) : null; // we need bind: https://stackoverflow.com/questions/9677985/uncaught-typeerror-illegal-invocation-in-chrome
+	}());
 
-	composeError: function (name: string, oErrorObject: Error, message: string, value, pos?: number, line?: string | number, hidden?: boolean): CustomError {
+	static btoa = (function () {
+		return typeof window !== "undefined" && window.btoa && window.btoa.bind ? window.btoa.bind(window) : null; // we need bind!
+	}());
+
+	static composeError(name: string, oErrorObject: Error, message: string, value, pos?: number, line?: string | number, hidden?: boolean): CustomError {
 		const oCustomError = oErrorObject as CustomError;
 
 		if (name !== undefined) {
@@ -202,4 +222,4 @@ export var Utils = { // eslint-disable-line vars-on-top
 		oCustomError.message += " in " + oCustomError.line + " at pos " + (oCustomError.pos || 0) + "-" + iEndPos + ": " + oCustomError.value;
 		return oCustomError;
 	}
-};
+}

@@ -23,7 +23,6 @@ var CpcVmRsx = /** @class */ (function () {
             aArgs[_i - 1] = arguments[_i];
         }
         if (this.rsxIsAvailable(sName)) {
-            //const aArgs = Array.prototype.slice.call(arguments, 1);
             this[sName].apply(this, aArgs);
         }
         else {
@@ -49,7 +48,7 @@ var CpcVmRsx = /** @class */ (function () {
     CpcVmRsx.prototype.fnGetParameterAsString = function (stringOrAddress) {
         var sString = ""; // for undefined
         if (typeof stringOrAddress === "number") { // assuming addressOf
-            sString = String(this.fnGetVariableByAddress(stringOrAddress)); //TTT
+            sString = String(this.fnGetVariableByAddress(stringOrAddress));
         }
         else if (typeof stringOrAddress === "string") {
             sString = stringOrAddress;
@@ -114,11 +113,11 @@ var CpcVmRsx = /** @class */ (function () {
     CpcVmRsx.prototype.user = function () {
         this.oVm.vmNotImplemented("|USER");
     };
-    CpcVmRsx.prototype.mode = function (iMode, s) {
+    CpcVmRsx.prototype.mode = function (iMode) {
         iMode = this.oVm.vmInRangeRound(iMode, 0, 3, "|MODE");
         this.oVm.iMode = iMode;
         var oWinData = CpcVm_1.CpcVm.mWinData[this.oVm.iMode];
-        Utils_1.Utils.console.log("rsxMode: (test)", iMode, s);
+        Utils_1.Utils.console.log("rsxMode: (test)", iMode);
         for (var i = 0; i < CpcVm_1.CpcVm.iStreamCount - 2; i += 1) { // for window streams
             var oWin = this.oVm.aWindow[i];
             Object.assign(oWin, oWinData);

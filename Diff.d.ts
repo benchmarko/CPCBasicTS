@@ -1,5 +1,5 @@
-export declare var Diff: {
-    LCS: (A: any, B: any, equals: any) => any[];
-    diff: (A: any, B: any, equals: any) => any[];
-    testDiff: (sText1: any, sText2: any) => any;
-};
+export declare class Diff {
+    private static fnLCS;
+    private static diff;
+    static testDiff(sText1: string, sText2: string): string;
+}

@@ -53,12 +53,6 @@ declare type VirtualKeyboardLayoutType1 = {
     style?: number;
 };
 declare type VirtualKeyboardLayoutType2 = (number | VirtualKeyboardLayoutType1);
-interface VirtualButtonRowOptions {
-    key: number;
-    text: string;
-    title: string;
-    className: string;
-}
 export declare class Keyboard {
     options: KeyboardOptions;
     fnOnKeyDown: () => void;
@@ -69,11 +63,10 @@ export declare class Keyboard {
     oKey2CpcKey: Key2CpcKeyType;
     bCodeStringsRemoved: boolean;
     sPointerOutEvent: string;
-    fnVirtualKeyout: EventListener | null;
+    fnVirtualKeyout: EventListener;
     oPressedKeys: PressedKeysType;
     bShiftLock: boolean;
     bNumLock: boolean;
-    conctructor(options: KeyboardOptions): void;
     static aCpcKey2Key: CpcKey2Key[];
     static mSpecialKeys: {
         [k in string]: string;
@@ -83,8 +76,8 @@ export declare class Keyboard {
     static aVirtualKeyboardNum: VirtualKeyboardLayoutType2[][];
     constructor(options: KeyboardOptions);
     init(options: KeyboardOptions): void;
-    fnAttachPointerEvents(sId: string, fnDown?: EventListener, fnMove?: EventListener, fnUp?: EventListener): any;
-    initKey2CpcKeyMap(): Key2CpcKeyType;
+    private fnAttachPointerEvents;
+    private initKey2CpcKeyMap;
     reset(): void;
     clearInput(): void;
     resetExpansionTokens(): void;
@@ -92,10 +85,10 @@ export declare class Keyboard {
     getKeyDownHandler(): () => void;
     setKeyDownHandler(fnOnKeyDown: () => void): void;
     setActive(bActive: boolean): void;
-    removeCodeStringsFromKeymap(): void;
-    fnPressCpcKey(iCpcKey: number, sPressedKey: string, sKey: string, bShiftKey: boolean, bCtrlKey: boolean): void;
-    fnReleaseCpcKey(iCpcKey: number, sPressedKey: string, sKey: string, bShiftKey: boolean, bCtrlKey: boolean): void;
-    keyIdentifier2Char(sIdentifier: string, bShiftKey: boolean): string;
+    private removeCodeStringsFromKeymap;
+    private fnPressCpcKey;
+    private fnReleaseCpcKey;
+    private keyIdentifier2Char;
     private fnKeyboardKeydown;
     private fnKeyboardKeyup;
     getKeyFromBuffer(): string;
@@ -105,24 +98,20 @@ export declare class Keyboard {
     getJoyState(iJoy: number): number;
     setExpansionToken(iToken: number, sString: string): void;
     setCpcKeyExpansion(oOptions: CpcKeyExpansionsOptions): void;
-    onCpcAreaKeydown(event: KeyboardEvent): boolean;
-    oncpcAreaKeyup(event: KeyboardEvent): boolean;
-    mapNumLockCpcKey(iCpcKey: number): number;
-    fnVirtualGetAscii(iCpcKey: number, bShiftKey: boolean, bNumLock: boolean): {
-        key: string;
-        text: string;
-        title: string;
-    };
-    createButtonRow(sId: string, aOptions: VirtualButtonRowOptions[]): this;
-    virtualKeyboardCreatePart(sId: string, aVirtualKeyboard: VirtualKeyboardLayoutType2[][]): void;
+    private onCpcAreaKeydown;
+    private oncpcAreaKeyup;
+    private mapNumLockCpcKey;
+    private fnVirtualGetAscii;
+    private createButtonRow;
+    private virtualKeyboardCreatePart;
     virtualKeyboardCreate(): void;
-    virtualKeyboardAdaptKeys(bShiftLock: boolean, bNumLock: boolean): void;
-    fnVirtualGetPressedKey(iCpcKey: number): string;
-    fnGetEventTarget(event: Event): EventTarget;
-    onVirtualKeyboardKeydown(event: Event): boolean;
-    fnVirtualKeyboardKeyupOrKeyout(event: Event): void;
-    onVirtualKeyboardKeyup(event: Event): boolean;
-    onVirtualKeyboardKeyout(event: Event): boolean;
+    private virtualKeyboardAdaptKeys;
+    private fnVirtualGetPressedKey;
+    private fnGetEventTarget;
+    private onVirtualKeyboardKeydown;
+    private fnVirtualKeyboardKeyupOrKeyout;
+    private onVirtualKeyboardKeyup;
+    private onVirtualKeyboardKeyout;
     oDrag: {
         dragItem: HTMLElement;
         active: boolean;
@@ -133,10 +122,10 @@ export declare class Keyboard {
         currentX: number;
         currentY: number;
     };
-    dragInit(sContainerId: string, sItemId: string): void;
-    dragStart(event: Event): void;
-    dragEnd(): void;
-    setTranslate(xPos: number, yPos: number, el: HTMLElement): void;
-    drag(event: Event): void;
+    private dragInit;
+    private dragStart;
+    private dragEnd;
+    private setTranslate;
+    private drag;
 }
 export {};

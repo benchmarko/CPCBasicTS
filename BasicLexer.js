@@ -92,8 +92,8 @@ var BasicLexer = /** @class */ (function () {
             var oNode = {
                 type: type,
                 value: value,
-                pos: iPos,
-                orig: undefined
+                pos: iPos
+                //orig: undefined
             };
             if (sOrig !== undefined) {
                 if (sOrig !== String(value)) {

@@ -1,5 +1,5 @@
-/* cpcconfig.ts - configuration file for CPCBasic */
 "use strict";
+/* cpcconfig.ts - configuration file for CPCBasic */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.cpcconfig = void 0;
 exports.cpcconfig = {

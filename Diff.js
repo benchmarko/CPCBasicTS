@@ -1,11 +1,13 @@
+"use strict";
 // Diff.js - Diff strings
 // (c) Slava Kim
 // https://github.com/Slava/diff.js
 //
-"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Diff = void 0;
-exports.Diff = {
+var Diff = /** @class */ (function () {
+    function Diff() {
+    }
     // Refer to http://www.xmailserver.org/diff2.pdf
     // Longest Common Subsequence
     // @param A - sequence of atoms - Array
@@ -13,7 +15,7 @@ exports.Diff = {
     // @param equals - optional comparator of atoms - returns true or false,
     //                 if not specified, triple equals operator is used
     // @returns Array - sequence of atoms, one of LCSs, edit script from A to B
-    LCS: function (A, B, /* optional */ equals) {
+    Diff.fnLCS = function (aA, aB, equals) {
         // Helpers
         var inRange = function (x, l, r) {
             return (l <= x && x <= r) || (r <= x && x <= l);
@@ -38,141 +40,145 @@ exports.Diff = {
         //                    D,     - optimal edit distance
         //                    LCS ]  - length of LCS
         findMidSnake = function (startA, endA, startB, endB) {
-            var N = endA - startA + 1, M = endB - startB + 1, Max = N + M, Delta = N - M, halfMaxCeil = (Max + 1) / 2 | 0, // eslint-disable-line no-bitwise
+            var iN = endA - startA + 1, iM = endB - startB + 1, iMax = iN + iM, iDelta = iN - iM, iHhalfMaxCeil = (iMax + 1) / 2 | 0, // eslint-disable-line no-bitwise
             //foundOverlap = false,
-            overlap = null, 
             // Maps -Max .. 0 .. +Max, diagonal index to endpoints for furthest reaching D-path on current iteration.
-            V = {}, 
+            oV = {}, 
             // Same but for reversed paths.
-            U = {}, D, k, x, y, xx, SES, K, i, j;
+            oU = {};
+            var aOverlap, iD;
             // Special case for the base case, D = 0, k = 0, x = y = 0
-            V[1] = 0;
+            oV[1] = 0;
             // Special case for the base case reversed, D = 0, k = 0, x = N, y = M
-            U[Delta - 1] = N;
+            oU[iDelta - 1] = iN;
             // Iterate over each possible length of edit script
-            for (D = 0; D <= halfMaxCeil; D += 1) {
+            for (iD = 0; iD <= iHhalfMaxCeil; iD += 1) {
                 // Iterate over each diagonal
-                for (k = -D; k <= D && !overlap; k += 2) {
+                for (var k = -iD; k <= iD && !aOverlap; k += 2) {
+                    var x = void 0;
                     // Positions in sequences A and B of furthest going D-path on diagonal k.
                     // Choose from each diagonal we extend
-                    if (k === -D || (k !== D && V[k - 1] < V[k + 1])) {
+                    if (k === -iD || (k !== iD && oV[k - 1] < oV[k + 1])) {
                         // Extending path one point down, that's why x doesn't change, y
                         // increases implicitly
-                        x = V[k + 1];
+                        x = oV[k + 1];
                     }
                     else {
                         // Extending path one point to the right, x increases
-                        x = V[k - 1] + 1;
+                        x = oV[k - 1] + 1;
                     }
                     // We can calculate the y out of x and diagonal index.
-                    y = x - k;
-                    if (isNaN(y) || x > N || y > M) {
+                    var y = x - k;
+                    if (isNaN(y) || x > iN || y > iM) {
                         continue;
                     }
-                    xx = x;
+                    var xx = x;
                     // Try to extend the D-path with diagonal paths. Possible only if atoms
                     // A_x match B_y
-                    while (x < N && y < M // if there are atoms to compare
-                        && equals(A[startA + x], B[startB + y])) {
+                    while (x < iN && y < iM // if there are atoms to compare
+                        && equals(aA[startA + x], aB[startB + y])) {
                         x += 1;
                         y += 1;
                     }
                     // We can safely update diagonal k, since on every iteration we consider
                     // only even or only odd diagonals and the result of one depends only on
                     // diagonals of different iteration.
-                    V[k] = x;
+                    oV[k] = x;
                     // Check feasibility, Delta is checked for being odd.
-                    if ((Delta & 1) === 1 && inRange(k, Delta - (D - 1), Delta + (D - 1))) { // eslint-disable-line no-bitwise
+                    if ((iDelta & 1) === 1 && inRange(k, iDelta - (iD - 1), iDelta + (iD - 1))) { // eslint-disable-line no-bitwise
                         // Forward D-path can overlap with reversed D-1-path
-                        if (V[k] >= U[k]) {
+                        if (oV[k] >= oU[k]) {
                             // Found an overlap, the middle snake, convert X-components to dots
-                            overlap = [
+                            aOverlap = [
                                 xx,
                                 x
                             ].map(toPoint, k); // XXX ES5
                         }
                     }
                 }
-                if (overlap) {
-                    SES = D * 2 - 1;
+                var SES = void 0;
+                if (aOverlap) {
+                    SES = iD * 2 - 1;
                 }
                 // Iterate over each diagonal for reversed case
-                for (k = -D; k <= D && !overlap; k += 2) {
+                for (var k = -iD; k <= iD && !aOverlap; k += 2) {
                     // The real diagonal we are looking for is k + Delta
-                    K = k + Delta;
-                    if (k === D || (k !== -D && U[K - 1] < U[K + 1])) {
-                        x = U[K - 1];
+                    var K = k + iDelta;
+                    var x = void 0;
+                    if (k === iD || (k !== -iD && oU[K - 1] < oU[K + 1])) {
+                        x = oU[K - 1];
                     }
                     else {
-                        x = U[K + 1] - 1;
+                        x = oU[K + 1] - 1;
                     }
-                    y = x - K;
+                    var y = x - K;
                     if (isNaN(y) || x < 0 || y < 0) {
                         continue;
                     }
-                    xx = x;
-                    while (x > 0 && y > 0 && equals(A[startA + x - 1], B[startB + y - 1])) {
+                    var xx = x;
+                    while (x > 0 && y > 0 && equals(aA[startA + x - 1], aB[startB + y - 1])) {
                         x -= 1;
                         y -= 1;
                     }
-                    U[K] = x;
-                    if (Delta % 2 === 0 && inRange(K, -D, D)) {
-                        if (U[K] <= V[K]) {
-                            overlap = [
+                    oU[K] = x;
+                    if (iDelta % 2 === 0 && inRange(K, -iD, iD)) {
+                        if (oU[K] <= oV[K]) {
+                            aOverlap = [
                                 x,
                                 xx
                             ].map(toPoint, K); // XXX ES5
                         }
                     }
                 }
-                if (overlap) {
-                    SES = SES || D * 2;
+                if (aOverlap) {
+                    SES = SES || iD * 2;
                     // Remember we had offset of each sequence?
-                    for (i = 0; i < 2; i += 1) {
-                        for (j = 0; j < 2; j += 1) {
-                            overlap[i][j] += [startA, startB][j] - i;
+                    for (var i = 0; i < 2; i += 1) {
+                        for (var j = 0; j < 2; j += 1) {
+                            aOverlap[i][j] += [
+                                startA,
+                                startB
+                            ][j] - i;
                         }
                     }
-                    return overlap.concat([
+                    return aOverlap.concat([
                         SES,
-                        (Max - SES) / 2
+                        (iMax - SES) / 2
                     ]);
                 }
             }
         }, lcsAtoms = [], lcs = function (startA, endA, startB, endB) {
-            var N = endA - startA + 1, M = endB - startB + 1, middleSnake, x, y, u, v, D;
+            var N = endA - startA + 1, M = endB - startB + 1;
             if (N > 0 && M > 0) {
-                middleSnake = findMidSnake(startA, endA, startB, endB);
+                var middleSnake = findMidSnake(startA, endA, startB, endB), 
                 // A[x;u] == B[y,v] and is part of LCS
-                x = middleSnake[0][0];
-                y = middleSnake[0][1];
-                u = middleSnake[1][0];
-                v = middleSnake[1][1];
-                D = middleSnake[2];
+                x = middleSnake[0][0], y = middleSnake[0][1], u = middleSnake[1][0], v = middleSnake[1][1], D = middleSnake[2];
                 if (D > 1) {
                     lcs(startA, x - 1, startB, y - 1);
                     if (x <= u) {
-                        [].push.apply(lcsAtoms, A.slice(x, u + 1));
+                        [].push.apply(lcsAtoms, aA.slice(x, u + 1));
                     }
                     lcs(u + 1, endA, v + 1, endB);
                 }
                 else if (M > N) {
-                    [].push.apply(lcsAtoms, A.slice(startA, endA + 1));
+                    [].push.apply(lcsAtoms, aA.slice(startA, endA + 1));
                 }
                 else {
-                    [].push.apply(lcsAtoms, B.slice(startB, endB + 1));
+                    [].push.apply(lcsAtoms, aB.slice(startB, endB + 1));
                 }
             }
         };
+        /*
         // We just compare atoms with default equals operator by default
         if (equals === undefined) {
             equals = function (a, b) {
                 return a === b;
             };
         }
-        lcs(0, A.length - 1, 0, B.length - 1);
+        */
+        lcs(0, aA.length - 1, 0, aB.length - 1);
         return lcsAtoms;
-    },
+    };
     // Diff sequence
     // @param A - sequence of atoms - Array
     // @param B - sequence of atoms - Array
@@ -182,61 +188,61 @@ exports.Diff = {
     //   - operation: one of "none", "add", "delete"
     //   - atom: the atom found in either A or B
     // Applying operations from diff sequence you should be able to transform A to B
-    diff: function (A, B, equals) {
-        var diff = [], i = 0, j = 0, N = A.length, M = B.length, K = 0, customIndexOf, lcs, k, atom, ni, nj;
-        // We just compare atoms with default equals operator by default
-        if (equals === undefined) {
-            equals = function (a, b) {
-                return a === b;
-            };
-        }
+    Diff.diff = function (aA, aB, fnEquals) {
+        var aDiff = [], 
         // Accepts custom comparator
-        customIndexOf = function (item, start, equals2) {
-            var arr = this, i2;
-            for (i2 = start; i2 < arr.length; i2 += 1) {
-                if (equals2(item, arr[i2])) {
+        customIndexOf = function (item, start, fnEquals2) {
+            var aArr = this;
+            for (var i2 = start; i2 < aArr.length; i2 += 1) {
+                if (fnEquals2(item, aArr[i2])) {
                     return i2;
                 }
             }
             return -1;
         };
-        while (i < N && j < M && equals(A[i], B[j])) {
+        var i = 0, j = 0;
+        // We just compare atoms with default equals operator by default
+        if (fnEquals === undefined) {
+            fnEquals = function (a, b) {
+                return a === b;
+            };
+        }
+        var iN = aA.length, iM = aB.length, iK = 0;
+        while (i < iN && j < iM && fnEquals(aA[i], aB[j])) {
             i += 1;
             j += 1;
         }
-        while (i < N && j < M && equals(A[N - 1], B[M - 1])) {
-            N -= 1;
-            M -= 1;
-            K += 1;
+        while (i < iN && j < iM && fnEquals(aA[iN - 1], aB[iM - 1])) {
+            iN -= 1;
+            iM -= 1;
+            iK += 1;
         }
-        [].push.apply(diff, A.slice(0, i).map(function (atom2) {
+        [].push.apply(aDiff, aA.slice(0, i).map(function (sAtom2) {
             return {
                 operation: "none",
-                atom: atom2
+                atom: sAtom2
             };
         }));
-        lcs = this.LCS(A.slice(i, N), B.slice(j, M), equals);
-        for (k = 0; k < lcs.length; k += 1) {
-            atom = lcs[k];
-            ni = customIndexOf.call(A, atom, i, equals);
-            nj = customIndexOf.call(B, atom, j, equals);
+        var lcs = Diff.fnLCS(aA.slice(i, iN), aB.slice(j, iM), fnEquals);
+        for (var k = 0; k < lcs.length; k += 1) {
+            var atom = lcs[k], ni = customIndexOf.call(aA, atom, i, fnEquals), nj = customIndexOf.call(aB, atom, j, fnEquals);
             // XXX ES5 map
             // Delete unmatched atoms from A
-            [].push.apply(diff, A.slice(i, ni).map(function (atom2) {
+            [].push.apply(aDiff, aA.slice(i, ni).map(function (sAtom2) {
                 return {
                     operation: "delete",
-                    atom: atom2
+                    atom: sAtom2
                 };
             }));
             // Add unmatched atoms from B
-            [].push.apply(diff, B.slice(j, nj).map(function (atom2) {
+            [].push.apply(aDiff, aB.slice(j, nj).map(function (sAtom2) {
                 return {
                     operation: "add",
-                    atom: atom2
+                    atom: sAtom2
                 };
             }));
             // Add the atom found in both sequences
-            diff.push({
+            aDiff.push({
                 operation: "none",
                 atom: atom
             });
@@ -244,29 +250,29 @@ exports.Diff = {
             j = nj + 1;
         }
         // Don't forget about the rest
-        [].push.apply(diff, A.slice(i, N).map(function (atom2) {
+        [].push.apply(aDiff, aA.slice(i, iN).map(function (atom2) {
             return {
                 operation: "delete",
                 atom: atom2
             };
         }));
-        [].push.apply(diff, B.slice(j, M).map(function (atom2) {
+        [].push.apply(aDiff, aB.slice(j, iM).map(function (atom2) {
             return {
                 operation: "add",
                 atom: atom2
             };
         }));
-        [].push.apply(diff, A.slice(N, N + K).map(function (atom2) {
+        [].push.apply(aDiff, aA.slice(iN, iN + iK).map(function (atom2) {
             return {
                 operation: "none",
                 atom: atom2
             };
         }));
-        return diff;
-    },
-    testDiff: function (sText1, sText2) {
-        var aText1 = sText1.split("\n"), aText2 = sText2.split("\n"), sDiff;
-        sDiff = this.diff(aText1, aText2).map(function (o) {
+        return aDiff;
+    };
+    Diff.testDiff = function (sText1, sText2) {
+        var aText1 = sText1.split("\n"), aText2 = sText2.split("\n");
+        var sDiff = Diff.diff(aText1, aText2).map(function (o) {
             var sResult = "";
             if (o.operation === "add") {
                 sResult = "+ " + o.atom;
@@ -278,6 +284,8 @@ exports.Diff = {
         }).join("\n");
         sDiff = sDiff.replace(/\n\n+/g, "\n");
         return sDiff;
-    }
-};
+    };
+    return Diff;
+}());
+exports.Diff = Diff;
 //# sourceMappingURL=Diff.js.map

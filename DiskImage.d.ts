@@ -68,7 +68,7 @@ export declare class DiskImage {
     init(oConfig: DiskImageOptions): void;
     reset(): this;
     private composeError;
-    static testDiskIdent(sIdent: string): boolean;
+    static testDiskIdent(sIdent: string): number;
     private readUtf;
     private readUInt8;
     private readUInt16;

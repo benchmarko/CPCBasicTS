@@ -21,10 +21,8 @@ export class CpcVmRsx {
 		return sName in this;
 	}
 
-	rsxExec(sName: string, ...aArgs: (string |number)[]): void {
+	rsxExec(sName: string, ...aArgs: (string | number)[]): void {
 		if (this.rsxIsAvailable(sName)) {
-			//const aArgs = Array.prototype.slice.call(arguments, 1);
-
 			this[sName].apply(this, aArgs);
 		} else {
 			throw this.oVm.vmComposeError(Error(), 28, "|" + sName); // Unknown command
@@ -56,7 +54,7 @@ export class CpcVmRsx {
 		let sString = ""; // for undefined
 
 		if (typeof stringOrAddress === "number") { // assuming addressOf
-			sString = String(this.fnGetVariableByAddress(stringOrAddress)); //TTT
+			sString = String(this.fnGetVariableByAddress(stringOrAddress));
 		} else if (typeof stringOrAddress === "string") {
 			sString = stringOrAddress;
 		}
@@ -139,13 +137,13 @@ export class CpcVmRsx {
 		this.oVm.vmNotImplemented("|USER");
 	}
 
-	mode(iMode: number, s): void {
+	mode(iMode: number): void {
 		iMode = this.oVm.vmInRangeRound(iMode, 0, 3, "|MODE");
 		this.oVm.iMode = iMode;
 
 		const oWinData = CpcVm.mWinData[this.oVm.iMode];
 
-		Utils.console.log("rsxMode: (test)", iMode, s);
+		Utils.console.log("rsxMode: (test)", iMode);
 
 		for (let i = 0; i < CpcVm.iStreamCount - 2; i += 1) { // for window streams
 			const oWin = this.oVm.aWindow[i];

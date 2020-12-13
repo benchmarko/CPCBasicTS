@@ -11,18 +11,59 @@ export class CommonEventHandler {
 
 	model: Model;
 	view: View;
-	controller: any; //Controller; //TTT
+	controller: any; // TODO
 
 	fnUserAction = undefined;
 
+	mHandlers: {[k: string]: (e: Event) => void};
 
-	constructor(oModel, oView, oController) {
+
+	constructor(oModel: Model, oView: View, oController) {
+		this.mHandlers = { //TTT curerently not used, just to avoid warnings
+			onSpecialButtonClick: this.onSpecialButtonClick,
+			onInputButtonClick: this.onInputButtonClick,
+			onInp2ButtonClick: this.onInp2ButtonClick,
+			onOutputButtonClick: this.onOutputButtonClick,
+			onResultButtonClick: this.onResultButtonClick,
+			onTextButtonClick: this.onTextButtonClick,
+			onVariableButtonClick: this.onVariableButtonClick,
+			onCpcButtonClick: this.onCpcButtonClick,
+			onKbdButtonClick: this.onKbdButtonClick,
+			onKbdLayoutButtonClick: this.onKbdLayoutButtonClick,
+			onConsoleButtonClick: this.onConsoleButtonClick,
+			onParseButtonClick: this.onParseButtonClick,
+			onRenumButtonClick: this.onRenumButtonClick,
+			onPrettyButtonClick: this.onPrettyButtonClick,
+			onUndoButtonClick: this.onUndoButtonClick,
+			onRedoButtonClick: this.onRedoButtonClick,
+			onRunButtonClick: this.onRunButtonClick,
+			onStopButtonClick: this.onStopButtonClick,
+			onContinueButtonClick: this.onContinueButtonClick,
+			onResetButtonClick: this.onResetButtonClick,
+			onParseRunButtonClick: this.onParseRunButtonClick,
+			onHelpButtonClick: this.onHelpButtonClick,
+			onInputTextClick: this.onInputTextClick,
+			onOutputTextClick: this.onOutputTextClick,
+			onResultTextClick: this.onResultTextClick,
+			onVarTextClick: this.onVarTextClick,
+			onOutputTextChange: this.onOutputTextChange,
+			onReloadButtonClick: this.onReloadButtonClick,
+			onDatabaseSelectChange: this.onDatabaseSelectChange,
+			onExampleSelectChange: this.onExampleSelectChange,
+			onVarSelectChange: this.onVarSelectChange,
+			onKbdLayoutSelectChange: this.onKbdLayoutSelectChange,
+			onVarTextChange: this.onVarTextChange,
+			onScreenshotButtonClick: this.onScreenshotButtonClick,
+			onEnterButtonClick: this.onEnterButtonClick,
+			onSoundButtonClick: this.onSoundButtonClick,
+			onCpcCanvasClick: this.onCpcCanvasClick,
+			onWindowClick: this.onWindowClick
+		};
+
 		this.init(oModel, oView, oController);
 	}
 
-	//CommonEventHandler.fnEventHandler = null;
-
-	init(oModel, oView, oController) {
+	init(oModel: Model, oView: View, oController): void {
 		this.model = oModel;
 		this.view = oView;
 		this.controller = oController;
@@ -31,11 +72,10 @@ export class CommonEventHandler {
 		this.attachEventHandler();
 	}
 
-	fnCommonEventHandler(event) {
-		var oTarget = event.target,
-			sId = (oTarget) ? oTarget.getAttribute("id") : oTarget,
-			sType = event.type, // click or change
-			sHandler;
+	private fnCommonEventHandler(event: Event) {
+		const oTarget = event.target as HTMLButtonElement,
+			sId = (oTarget) ? oTarget.getAttribute("id") : String(oTarget),
+			sType = event.type; // click or change
 
 		if (this.fnUserAction) {
 			this.fnUserAction(event, sId);
@@ -43,10 +83,13 @@ export class CommonEventHandler {
 
 		if (sId) {
 			if (!oTarget.disabled) { // check needed for IE which also fires for disabled buttons
-				sHandler = "on" + Utils.stringCapitalize(sId) + Utils.stringCapitalize(sType);
+				const sHandler = "on" + Utils.stringCapitalize(sId) + Utils.stringCapitalize(sType);
+
 				if (Utils.debug) {
 					Utils.console.debug("fnCommonEventHandler: sHandler=" + sHandler);
 				}
+				//if (this.mHandlers[sHandler]) { // old: if (sHandler in this) { this[sHandler](event);
+				//	this.mHandlers[sHandler](event); // different this context!
 				if (sHandler in this) {
 					this[sHandler](event);
 				} else if (!sHandler.endsWith("SelectClick") && !sHandler.endsWith("InputClick")) { // do not print all messages
@@ -75,51 +118,51 @@ export class CommonEventHandler {
 		return this;
 	}
 
-	toogleHidden(sId: string, sProp: string, sDisplay?: string) {
-		var bVisible = !this.model.getProperty(sProp);
+	private toogleHidden(sId: string, sProp: string, sDisplay?: string) {
+		const bVisible = !this.model.getProperty<boolean>(sProp);
 
 		this.model.setProperty(sProp, bVisible);
 		this.view.setHidden(sId, !bVisible, sDisplay);
 		return bVisible;
 	}
 
-	fnActivateUserAction(fnAction) {
+	fnActivateUserAction(fnAction: () => void): void {
 		this.fnUserAction = fnAction;
 	}
 
-	fnDeactivateUserAction() {
+	fnDeactivateUserAction(): void {
 		this.fnUserAction = undefined;
 	}
 
-	onSpecialButtonClick() {
+	private onSpecialButtonClick() {
 		this.toogleHidden("specialArea", "showSpecial");
 	}
 
-	onInputButtonClick() {
+	private onInputButtonClick() {
 		this.toogleHidden("inputArea", "showInput");
 	}
 
-	onInp2ButtonClick() {
+	private onInp2ButtonClick() {
 		this.toogleHidden("inp2Area", "showInp2");
 	}
 
-	onOutputButtonClick() {
+	private onOutputButtonClick() {
 		this.toogleHidden("outputArea", "showOutput");
 	}
 
-	onResultButtonClick() {
+	private onResultButtonClick() {
 		this.toogleHidden("resultArea", "showResult");
 	}
 
-	onTextButtonClick() {
+	private onTextButtonClick() {
 		this.toogleHidden("textArea", "showText");
 	}
 
-	onVariableButtonClick() {
+	private onVariableButtonClick() {
 		this.toogleHidden("variableArea", "showVariable");
 	}
 
-	onCpcButtonClick() {
+	private onCpcButtonClick() {
 		if (this.toogleHidden("cpcArea", "showCpc")) {
 			this.controller.oCanvas.startUpdateCanvas();
 		} else {
@@ -127,7 +170,7 @@ export class CommonEventHandler {
 		}
 	}
 
-	onKbdButtonClick() {
+	private onKbdButtonClick() {
 		if (this.toogleHidden("kbdArea", "showKbd", "flex")) {
 			if (this.view.getHidden("kbdArea")) { // on old browsers, display "flex" is not available, so set "block" if still hidden
 				this.view.setHidden("kbdArea", false);
@@ -136,106 +179,105 @@ export class CommonEventHandler {
 		}
 	}
 
-	onKbdLayoutButtonClick() {
+	private onKbdLayoutButtonClick() {
 		this.toogleHidden("kbdLayoutArea", "showKbdLayout");
 	}
 
-	onConsoleButtonClick() {
+	private onConsoleButtonClick() {
 		this.toogleHidden("consoleArea", "showConsole");
 	}
 
-	onParseButtonClick() {
+	private onParseButtonClick() {
 		this.controller.startParse();
 	}
 
-	onRenumButtonClick() {
+	private onRenumButtonClick() {
 		this.controller.startRenum();
 	}
 
-	onPrettyButtonClick() {
+	private onPrettyButtonClick() {
 		this.controller.fnPretty();
 	}
 
-	fnUpdateAreaText(sInput) {
+	private fnUpdateAreaText(sInput: string) {
 		this.controller.setInputText(sInput, true);
 		this.view.setAreaValue("outputText", "");
 	}
 
-	onUndoButtonClick() {
-		var sInput = this.controller.inputStack.undo();
+	private onUndoButtonClick() {
+		const sInput = this.controller.inputStack.undo();
 
 		this.fnUpdateAreaText(sInput);
 	}
 
-	onRedoButtonClick() {
-		var sInput = this.controller.inputStack.redo();
+	private onRedoButtonClick() {
+		const sInput = this.controller.inputStack.redo();
 
 		this.fnUpdateAreaText(sInput);
 	}
 
-	onRunButtonClick() {
-		var sInput = this.view.getAreaValue("outputText");
+	private onRunButtonClick() {
+		const sInput = this.view.getAreaValue("outputText");
 
 		this.controller.startRun(sInput);
 	}
 
-	onStopButtonClick() {
+	private onStopButtonClick() {
 		this.controller.startBreak();
 	}
 
-	onContinueButtonClick(event) {
+	private onContinueButtonClick(event: Event) {
 		this.controller.startContinue();
 		this.onCpcCanvasClick(event);
 	}
 
-	onResetButtonClick() {
+	private onResetButtonClick() {
 		this.controller.startReset();
 	}
 
-	onParseRunButtonClick(event) {
+	private onParseRunButtonClick(event: Event) {
 		this.controller.startParseRun();
 		this.onCpcCanvasClick(event);
 	}
 
-	onHelpButtonClick() {
+	private onHelpButtonClick() { // eslint-disable-line class-methods-use-this
 		window.open("https://github.com/benchmarko/CPCBasic/#readme");
 	}
 
-	onInputTextClick() {
+	private onInputTextClick() { // eslint-disable-line class-methods-use-this
 		// nothing
 	}
 
-	onOutputTextClick() {
+	private onOutputTextClick() { // eslint-disable-line class-methods-use-this
 		// nothing
 	}
 
-	onResultTextClick() {
+	private onResultTextClick() { // eslint-disable-line class-methods-use-this
 		// nothing
 	}
 
-	onVarTextClick() {
+	private onVarTextClick() { // eslint-disable-line class-methods-use-this
 		// nothing
 	}
 
-	onOutputTextChange() {
+	private onOutputTextChange() {
 		this.controller.invalidateScript();
 	}
 
-	private encodeUriParam(params) {
-		var aParts = [],
-			sKey,
-			sValue;
+	private encodeUriParam(params) { // eslint-disable-line class-methods-use-this
+		const aParts = [];
 
-		for (sKey in params) {
+		for (const sKey in params) {
 			if (params.hasOwnProperty(sKey)) {
-				sValue = params[sKey];
+				const sValue = params[sKey];
+
 				aParts[aParts.length] = encodeURIComponent(sKey) + "=" + encodeURIComponent((sValue === null) ? "" : sValue);
 			}
 		}
 		return aParts.join("&");
 	}
 
-	onReloadButtonClick() {
+	private onReloadButtonClick() {
 		var oChanged = Utils.getChangedParameters(this.model.getAllProperties(), this.model.getAllInitialProperties()),
 			sParas = this.encodeUriParam(oChanged);
 
@@ -243,10 +285,11 @@ export class CommonEventHandler {
 		window.location.search = "?" + sParas;
 	}
 
-	onDatabaseSelectChange() {
-		var that = this,
+	onDatabaseSelectChange(): void {
+		let	sUrl: string,
+			oDatabase;
+		const that = this,
 			sDatabase = this.view.getSelectValue("databaseSelect"),
-			sUrl, oDatabase,
 
 			fnDatabaseLoaded = function (/* sFullUrl */) {
 				oDatabase.loaded = true;
@@ -287,29 +330,28 @@ export class CommonEventHandler {
 			this.onExampleSelectChange();
 		} else {
 			that.controller.setInputText("#loading database " + sDatabase + "...");
-			sUrl = oDatabase.src + "/" + this.model.getProperty("exampleIndex");
+			sUrl = oDatabase.src + "/" + this.model.getProperty<string>("exampleIndex");
 			Utils.loadScript(sUrl, fnDatabaseLoaded, fnDatabaseError);
 		}
 	}
 
-	onExampleSelectChange() {
-		var oController = this.controller,
+	private onExampleSelectChange() {
+		const oController = this.controller,
 			oVm = oController.oVm,
 			oInFile = oVm.vmGetInFileObject(),
-			sDataBase = this.model.getProperty("database"),
-			sType;
+			sDataBase = this.model.getProperty<string>("database");
 
 		oVm.closein();
 
 		oInFile.bOpen = true;
 
 		let sExample = this.view.getSelectValue("exampleSelect");
-
 		const oExample = this.model.getExample(sExample);
 
 		oInFile.sCommand = "run";
 		if (oExample && oExample.meta) { // TTT TODO: this is just a workaround, meta is in input now; should change command after loading!
-			sType = oExample.meta.charAt(0);
+			const sType = oExample.meta.charAt(0);
+
 			if (sType === "B" || sType === "D" || sType === "G") { // binary, data only, Gena Assembler?
 				oInFile.sCommand = "load";
 			}
@@ -328,20 +370,19 @@ export class CommonEventHandler {
 		oController.startMainLoop();
 	}
 
-	onVarSelectChange() {
-		var sPar = this.view.getSelectValue("varSelect"),
-			oVariables = this.controller.oVariables,
-			sValue;
+	onVarSelectChange(): void {
+		const sPar = this.view.getSelectValue("varSelect"),
+			oVariables = this.controller.oVariables;
+		let sValue = oVariables.getVariable(sPar);
 
-		sValue = oVariables.getVariable(sPar);
 		if (sValue === undefined) {
 			sValue = "";
 		}
 		this.view.setAreaValue("varText", sValue);
 	}
 
-	onKbdLayoutSelectChange() {
-		var sValue = this.view.getSelectValue("kbdLayoutSelect");
+	onKbdLayoutSelectChange(): void {
+		const sValue = this.view.getSelectValue("kbdLayoutSelect");
 
 		this.model.setProperty("kbdLayout", sValue);
 		this.view.setSelectTitleFromSelectedOption("kbdLayoutSelect");
@@ -350,14 +391,14 @@ export class CommonEventHandler {
 		this.view.setHidden("kbdNum", sValue === "alpha");
 	}
 
-	onVarTextChange() {
+	private onVarTextChange() {
 		this.controller.changeVariable();
 	}
 
-	onScreenshotButtonClick() {
+	private onScreenshotButtonClick() {
 		var sExample = this.view.getSelectValue("exampleSelect"),
 			image = this.controller.startScreenshot(),
-			link = document.getElementById("screenshotLink"),
+			link = View.getElementById1("screenshotLink"),
 			sName = sExample + ".png";
 
 		link.setAttribute("download", sName);
@@ -365,21 +406,21 @@ export class CommonEventHandler {
 		link.click();
 	}
 
-	onEnterButtonClick() {
+	private onEnterButtonClick() {
 		this.controller.startEnter();
 	}
 
-	onSoundButtonClick() {
-		this.model.setProperty("sound", !this.model.getProperty("sound"));
+	private onSoundButtonClick() {
+		this.model.setProperty("sound", !this.model.getProperty<boolean>("sound"));
 		this.controller.setSoundActive();
 	}
 
-	onCpcCanvasClick(event) {
+	onCpcCanvasClick(event: Event): void {
 		this.controller.oCanvas.onCpcCanvasClick(event);
 		this.controller.oKeyboard.setActive(true);
 	}
 
-	onWindowClick(event) {
+	onWindowClick(event: Event): void {
 		this.controller.oCanvas.onWindowClick(event);
 		this.controller.oKeyboard.setActive(false);
 	}

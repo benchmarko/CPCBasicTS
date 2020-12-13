@@ -66,12 +66,11 @@ var cpcBasic = /** @class */ (function () {
             },
             console: oCurrentConsole,
             fnMapObjectProperties: function (arg) {
-                var aRes, sKey, value;
                 if (typeof arg === "object") {
-                    aRes = [];
-                    for (sKey in arg) { // eslint-disable-line guard-for-in
+                    var aRes = [];
+                    for (var sKey in arg) { // eslint-disable-line guard-for-in
                         // if (arg.hasOwnProperty(sKey)) {
-                        value = arg[sKey];
+                        var value = arg[sKey];
                         if (typeof value !== "object" && typeof value !== "function") {
                             aRes.push(sKey + ": " + value);
                         }
@@ -116,7 +115,7 @@ var cpcBasic = /** @class */ (function () {
                 }
             }
         };
-        Utils_1.Utils.console = oConsole; //TTT
+        Utils_1.Utils.console = oConsole;
     };
     cpcBasic.fnDoStart = function () {
         var oStartConfig = cpcBasic.config;
@@ -127,8 +126,8 @@ var cpcBasic = /** @class */ (function () {
         cpcBasic.view = new View_1.View();
         var iDebug = Number(cpcBasic.model.getProperty("debug"));
         Utils_1.Utils.debug = iDebug;
-        var sCpcBasicLog;
         var UtilsConsole = Utils_1.Utils.console;
+        var sCpcBasicLog;
         if (UtilsConsole.cpcBasicLog) {
             sCpcBasicLog = UtilsConsole.cpcBasicLog;
             UtilsConsole.cpcBasicLog = null; // do not log any more to dummy console
@@ -136,7 +135,7 @@ var cpcBasic = /** @class */ (function () {
         if (Utils_1.Utils.debug > 1 && cpcBasic.model.getProperty("showConsole")) { // console log window?
             cpcBasic.setDebugUtilsConsole(sCpcBasicLog);
             Utils_1.Utils.console.log("CPCBasic log started at", Utils_1.Utils.dateFormat(new Date()));
-            UtilsConsole.changeLog(document.getElementById("consoleText"));
+            UtilsConsole.changeLog(View_1.View.getElementById1("consoleText"));
         }
         cpcBasic.controller = new Controller_1.Controller(cpcBasic.model, cpcBasic.view);
     };

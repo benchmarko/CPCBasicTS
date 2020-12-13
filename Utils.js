@@ -5,15 +5,16 @@
 //
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Utils = void 0;
-exports.Utils = {
-    debug: 0,
-    console: typeof window !== "undefined" ? window.console : globalThis.console,
-    fnLoadScriptOrStyle: function (script, sFullUrl, fnSuccess, fnError) {
+var Utils = /** @class */ (function () {
+    function Utils() {
+    }
+    Utils.fnLoadScriptOrStyle = function (script, sFullUrl, fnSuccess, fnError) {
         // inspired by https://github.com/requirejs/requirejs/blob/master/require.js
-        var iIEtimeoutCount = 3, onScriptLoad = function (event) {
-            var node = event.currentTarget || event.srcElement;
-            if (exports.Utils.debug > 1) {
-                exports.Utils.console.debug("onScriptLoad:", node.src || node.href);
+        var iIEtimeoutCount = 3;
+        var onScriptLoad = function (event) {
+            var node = (event.currentTarget || event.srcElement);
+            if (Utils.debug > 1) {
+                Utils.console.debug("onScriptLoad:", node.src || node.href);
             }
             node.removeEventListener("load", onScriptLoad, false);
             node.removeEventListener("error", onScriptError, false); // eslint-disable-line no-use-before-define
@@ -21,9 +22,9 @@ exports.Utils = {
                 fnSuccess(sFullUrl);
             }
         }, onScriptError = function (event) {
-            var node = event.currentTarget || event.srcElement;
-            if (exports.Utils.debug > 1) {
-                exports.Utils.console.debug("onScriptError:", node.src || node.href);
+            var node = (event.currentTarget || event.srcElement);
+            if (Utils.debug > 1) {
+                Utils.console.debug("onScriptError:", node.src || node.href);
             }
             node.removeEventListener("load", onScriptLoad, false);
             node.removeEventListener("error", onScriptError, false);
@@ -35,22 +36,22 @@ exports.Utils = {
             if (node2.detachEvent) {
                 node2.detachEvent("onreadystatechange", onScriptReadyStateChange);
             }
-            if (exports.Utils.debug > 1) {
-                exports.Utils.console.debug("onScriptReadyStateChange: " + node2.src || node2.href);
+            if (Utils.debug > 1) {
+                Utils.console.debug("onScriptReadyStateChange: " + node2.src || node2.href);
             }
             // check also: https://stackoverflow.com/questions/1929742/can-script-readystate-be-trusted-to-detect-the-end-of-dynamic-script-loading
             if (node2.readyState !== "loaded" && node2.readyState !== "complete") {
                 if (node2.readyState === "loading" && iIEtimeoutCount) {
                     iIEtimeoutCount -= 1;
                     var iTimeout = 200; // some delay
-                    exports.Utils.console.error("onScriptReadyStateChange: Still loading: " + (node2.src || node2.href) + " Waiting " + iTimeout + "ms (count=" + iIEtimeoutCount + ")");
+                    Utils.console.error("onScriptReadyStateChange: Still loading: " + (node2.src || node2.href) + " Waiting " + iTimeout + "ms (count=" + iIEtimeoutCount + ")");
                     setTimeout(function () {
                         onScriptReadyStateChange(null); // check again
                     }, iTimeout);
                 }
                 else {
                     // iIEtimeoutCount = 3;
-                    exports.Utils.console.error("onScriptReadyStateChange: Cannot load file " + (node2.src || node2.href) + " readystate=" + node2.readyState);
+                    Utils.console.error("onScriptReadyStateChange: Cannot load file " + (node2.src || node2.href) + " readystate=" + node2.readyState);
                     if (fnError) {
                         fnError(sFullUrl);
                     }
@@ -70,8 +71,8 @@ exports.Utils = {
         }
         document.getElementsByTagName("head")[0].appendChild(script);
         return sFullUrl;
-    },
-    loadScript: function (sUrl, fnSuccess, fnError) {
+    };
+    Utils.loadScript = function (sUrl, fnSuccess, fnError) {
         var script = document.createElement("script");
         script.type = "text/javascript";
         script.charset = "utf-8";
@@ -79,34 +80,34 @@ exports.Utils = {
         script.src = sUrl;
         var sFullUrl = script.src;
         this.fnLoadScriptOrStyle(script, sFullUrl, fnSuccess, fnError);
-    },
-    loadStyle: function (sUrl, fnSuccess, fnError) {
+    };
+    Utils.loadStyle = function (sUrl, fnSuccess, fnError) {
         var link = document.createElement("link");
         link.rel = "stylesheet";
         link.href = sUrl;
         var sFullUrl = link.href;
         this.fnLoadScriptOrStyle(link, sFullUrl, fnSuccess, fnError);
-    },
-    dateFormat: function (d) {
+    };
+    Utils.dateFormat = function (d) {
         return d.getFullYear() + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + ("0" + d.getDate()).slice(-2) + " "
             + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2) + ":" + ("0" + d.getSeconds()).slice(-2) + "." + ("0" + d.getMilliseconds()).slice(-3);
-    },
-    stringCapitalize: function (str) {
+    };
+    Utils.stringCapitalize = function (str) {
         return str.charAt(0).toUpperCase() + str.substring(1);
-    },
-    numberWithCommas: function (x) {
+    };
+    Utils.numberWithCommas = function (x) {
         // https://stackoverflow.com/questions/2901102/how-to-print-a-number-with-commas-as-thousands-separators-in-javascript
         var aParts = String(x).split(".");
         aParts[0] = aParts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
         return aParts.join(".");
-    },
-    toRadians: function (deg) {
+    };
+    Utils.toRadians = function (deg) {
         return deg * Math.PI / 180;
-    },
-    toDegrees: function (rad) {
+    };
+    Utils.toDegrees = function (rad) {
         return rad * 180 / Math.PI;
-    },
-    getChangedParameters: function (current, initial) {
+    };
+    Utils.getChangedParameters = function (current, initial) {
         var oChanged = {};
         for (var sName in current) {
             if (current.hasOwnProperty(sName)) {
@@ -116,38 +117,11 @@ exports.Utils = {
             }
         }
         return oChanged;
-    },
-    bSupportsBinaryLiterals: (function () {
-        try {
-            Function("0b01"); // eslint-disable-line no-new-func
-        }
-        catch (e) {
-            return false;
-        }
-        return true;
-    }()),
-    bSupportReservedNames: (function () {
-        try {
-            Function("({}).return()"); // eslint-disable-line no-new-func
-        }
-        catch (e) {
-            return false;
-        }
-        return true;
-    }()),
-    localStorage: (function () {
-        var rc;
-        try {
-            rc = typeof window !== "undefined" ? window.localStorage : null; // due to a bug in MS Edge this will throw an error when hosting locally (https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/8816771/)
-        }
-        catch (e) {
-            rc = null;
-        }
-        return rc;
-    }()),
-    atob: typeof window !== "undefined" && window.atob && window.atob.bind ? window.atob.bind(window) : null,
-    btoa: typeof window !== "undefined" && window.btoa && window.btoa.bind ? window.btoa.bind(window) : null,
-    composeError: function (name, oErrorObject, message, value, pos, line, hidden) {
+    };
+    Utils.stringTrimEnd = function (sStr) {
+        return sStr.replace(/[\s\uFEFF\xA0]+$/, "");
+    };
+    Utils.composeError = function (name, oErrorObject, message, value, pos, line, hidden) {
         var oCustomError = oErrorObject;
         if (name !== undefined) {
             oCustomError.name = name;
@@ -171,6 +145,46 @@ exports.Utils = {
         oCustomError.shortMessage = oCustomError.message + (oCustomError.line !== undefined ? " in " + oCustomError.line : " at pos " + (oCustomError.pos || 0) + "-" + iEndPos) + ": " + oCustomError.value;
         oCustomError.message += " in " + oCustomError.line + " at pos " + (oCustomError.pos || 0) + "-" + iEndPos + ": " + oCustomError.value;
         return oCustomError;
-    }
-};
+    };
+    Utils.debug = 0;
+    Utils.console = (function () {
+        return typeof window !== "undefined" ? window.console : globalThis.console; // browser or node.js
+    }());
+    Utils.bSupportsBinaryLiterals = (function () {
+        try {
+            Function("0b01"); // eslint-disable-line no-new-func
+        }
+        catch (e) {
+            return false;
+        }
+        return true;
+    }());
+    Utils.bSupportReservedNames = (function () {
+        try {
+            Function("({}).return()"); // eslint-disable-line no-new-func
+        }
+        catch (e) {
+            return false;
+        }
+        return true;
+    }());
+    Utils.localStorage = (function () {
+        var rc;
+        try {
+            rc = typeof window !== "undefined" ? window.localStorage : null; // due to a bug in MS Edge this will throw an error when hosting locally (https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/8816771/)
+        }
+        catch (e) {
+            rc = undefined;
+        }
+        return rc;
+    }());
+    Utils.atob = (function () {
+        return typeof window !== "undefined" && window.atob && window.atob.bind ? window.atob.bind(window) : null; // we need bind: https://stackoverflow.com/questions/9677985/uncaught-typeerror-illegal-invocation-in-chrome
+    }());
+    Utils.btoa = (function () {
+        return typeof window !== "undefined" && window.btoa && window.btoa.bind ? window.btoa.bind(window) : null; // we need bind!
+    }());
+    return Utils;
+}());
+exports.Utils = Utils;
 //# sourceMappingURL=Utils.js.map

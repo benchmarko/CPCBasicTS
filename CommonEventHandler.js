@@ -5,12 +5,52 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CommonEventHandler = void 0;
 var Utils_1 = require("./Utils");
+var View_1 = require("./View");
 var CommonEventHandler = /** @class */ (function () {
     function CommonEventHandler(oModel, oView, oController) {
         this.fnUserAction = undefined;
+        this.mHandlers = {
+            onSpecialButtonClick: this.onSpecialButtonClick,
+            onInputButtonClick: this.onInputButtonClick,
+            onInp2ButtonClick: this.onInp2ButtonClick,
+            onOutputButtonClick: this.onOutputButtonClick,
+            onResultButtonClick: this.onResultButtonClick,
+            onTextButtonClick: this.onTextButtonClick,
+            onVariableButtonClick: this.onVariableButtonClick,
+            onCpcButtonClick: this.onCpcButtonClick,
+            onKbdButtonClick: this.onKbdButtonClick,
+            onKbdLayoutButtonClick: this.onKbdLayoutButtonClick,
+            onConsoleButtonClick: this.onConsoleButtonClick,
+            onParseButtonClick: this.onParseButtonClick,
+            onRenumButtonClick: this.onRenumButtonClick,
+            onPrettyButtonClick: this.onPrettyButtonClick,
+            onUndoButtonClick: this.onUndoButtonClick,
+            onRedoButtonClick: this.onRedoButtonClick,
+            onRunButtonClick: this.onRunButtonClick,
+            onStopButtonClick: this.onStopButtonClick,
+            onContinueButtonClick: this.onContinueButtonClick,
+            onResetButtonClick: this.onResetButtonClick,
+            onParseRunButtonClick: this.onParseRunButtonClick,
+            onHelpButtonClick: this.onHelpButtonClick,
+            onInputTextClick: this.onInputTextClick,
+            onOutputTextClick: this.onOutputTextClick,
+            onResultTextClick: this.onResultTextClick,
+            onVarTextClick: this.onVarTextClick,
+            onOutputTextChange: this.onOutputTextChange,
+            onReloadButtonClick: this.onReloadButtonClick,
+            onDatabaseSelectChange: this.onDatabaseSelectChange,
+            onExampleSelectChange: this.onExampleSelectChange,
+            onVarSelectChange: this.onVarSelectChange,
+            onKbdLayoutSelectChange: this.onKbdLayoutSelectChange,
+            onVarTextChange: this.onVarTextChange,
+            onScreenshotButtonClick: this.onScreenshotButtonClick,
+            onEnterButtonClick: this.onEnterButtonClick,
+            onSoundButtonClick: this.onSoundButtonClick,
+            onCpcCanvasClick: this.onCpcCanvasClick,
+            onWindowClick: this.onWindowClick
+        };
         this.init(oModel, oView, oController);
     }
-    //CommonEventHandler.fnEventHandler = null;
     CommonEventHandler.prototype.init = function (oModel, oView, oController) {
         this.model = oModel;
         this.view = oView;
@@ -19,17 +59,18 @@ var CommonEventHandler = /** @class */ (function () {
         this.attachEventHandler();
     };
     CommonEventHandler.prototype.fnCommonEventHandler = function (event) {
-        var oTarget = event.target, sId = (oTarget) ? oTarget.getAttribute("id") : oTarget, sType = event.type, // click or change
-        sHandler;
+        var oTarget = event.target, sId = (oTarget) ? oTarget.getAttribute("id") : String(oTarget), sType = event.type; // click or change
         if (this.fnUserAction) {
             this.fnUserAction(event, sId);
         }
         if (sId) {
             if (!oTarget.disabled) { // check needed for IE which also fires for disabled buttons
-                sHandler = "on" + Utils_1.Utils.stringCapitalize(sId) + Utils_1.Utils.stringCapitalize(sType);
+                var sHandler = "on" + Utils_1.Utils.stringCapitalize(sId) + Utils_1.Utils.stringCapitalize(sType);
                 if (Utils_1.Utils.debug) {
                     Utils_1.Utils.console.debug("fnCommonEventHandler: sHandler=" + sHandler);
                 }
+                //if (this.mHandlers[sHandler]) { // old: if (sHandler in this) { this[sHandler](event);
+                //	this.mHandlers[sHandler](event); // different this context!
                 if (sHandler in this) {
                     this[sHandler](event);
                 }
@@ -170,10 +211,10 @@ var CommonEventHandler = /** @class */ (function () {
         this.controller.invalidateScript();
     };
     CommonEventHandler.prototype.encodeUriParam = function (params) {
-        var aParts = [], sKey, sValue;
-        for (sKey in params) {
+        var aParts = [];
+        for (var sKey in params) {
             if (params.hasOwnProperty(sKey)) {
-                sValue = params[sKey];
+                var sValue = params[sKey];
                 aParts[aParts.length] = encodeURIComponent(sKey) + "=" + encodeURIComponent((sValue === null) ? "" : sValue);
             }
         }
@@ -185,7 +226,8 @@ var CommonEventHandler = /** @class */ (function () {
         window.location.search = "?" + sParas;
     };
     CommonEventHandler.prototype.onDatabaseSelectChange = function () {
-        var that = this, sDatabase = this.view.getSelectValue("databaseSelect"), sUrl, oDatabase, fnDatabaseLoaded = function ( /* sFullUrl */) {
+        var sUrl, oDatabase;
+        var that = this, sDatabase = this.view.getSelectValue("databaseSelect"), fnDatabaseLoaded = function ( /* sFullUrl */) {
             oDatabase.loaded = true;
             Utils_1.Utils.console.log("fnDatabaseLoaded: database loaded: " + sDatabase + ": " + sUrl);
             that.controller.setExampleSelectOptions();
@@ -227,14 +269,14 @@ var CommonEventHandler = /** @class */ (function () {
         }
     };
     CommonEventHandler.prototype.onExampleSelectChange = function () {
-        var oController = this.controller, oVm = oController.oVm, oInFile = oVm.vmGetInFileObject(), sDataBase = this.model.getProperty("database"), sType;
+        var oController = this.controller, oVm = oController.oVm, oInFile = oVm.vmGetInFileObject(), sDataBase = this.model.getProperty("database");
         oVm.closein();
         oInFile.bOpen = true;
         var sExample = this.view.getSelectValue("exampleSelect");
         var oExample = this.model.getExample(sExample);
         oInFile.sCommand = "run";
         if (oExample && oExample.meta) { // TTT TODO: this is just a workaround, meta is in input now; should change command after loading!
-            sType = oExample.meta.charAt(0);
+            var sType = oExample.meta.charAt(0);
             if (sType === "B" || sType === "D" || sType === "G") { // binary, data only, Gena Assembler?
                 oInFile.sCommand = "load";
             }
@@ -252,8 +294,8 @@ var CommonEventHandler = /** @class */ (function () {
         oController.startMainLoop();
     };
     CommonEventHandler.prototype.onVarSelectChange = function () {
-        var sPar = this.view.getSelectValue("varSelect"), oVariables = this.controller.oVariables, sValue;
-        sValue = oVariables.getVariable(sPar);
+        var sPar = this.view.getSelectValue("varSelect"), oVariables = this.controller.oVariables;
+        var sValue = oVariables.getVariable(sPar);
         if (sValue === undefined) {
             sValue = "";
         }
@@ -270,7 +312,7 @@ var CommonEventHandler = /** @class */ (function () {
         this.controller.changeVariable();
     };
     CommonEventHandler.prototype.onScreenshotButtonClick = function () {
-        var sExample = this.view.getSelectValue("exampleSelect"), image = this.controller.startScreenshot(), link = document.getElementById("screenshotLink"), sName = sExample + ".png";
+        var sExample = this.view.getSelectValue("exampleSelect"), image = this.controller.startScreenshot(), link = View_1.View.getElementById1("screenshotLink"), sName = sExample + ".png";
         link.setAttribute("download", sName);
         link.setAttribute("href", image);
         link.click();

@@ -1,8 +1,8 @@
+"use strict";
 // Keyboard.ts - Keyboard handling
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //
-"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Keyboard = void 0;
 var Utils_1 = require("./Utils");
@@ -10,24 +10,6 @@ var View_1 = require("./View");
 var Keyboard = /** @class */ (function () {
     /* eslint-enable array-element-newline */
     function Keyboard(options) {
-        this.options = {};
-        this.fnOnKeyDown = this.options.fnOnKeyDown;
-        this.aKeyBuffer = []; // buffered pressed keys
-        this.aExpansionTokens = []; // strings for expansion tokens 0..31 (in reality: 128..159)
-        this.oCpcKeyExpansions = {
-            normal: {},
-            shift: {},
-            ctrl: {},
-            repeat: {}
-        };
-        this.bActive = false; // flag if keyboard is active/focused, set from outside
-        this.oKey2CpcKey = this.initKey2CpcKeyMap();
-        this.bCodeStringsRemoved = false;
-        this.sPointerOutEvent = "";
-        this.fnVirtualKeyout = null;
-        this.oPressedKeys = {}; // currently pressed browser keys
-        this.bShiftLock = false; // for virtual keyboard
-        this.bNumLock = false;
         this.oDrag = {
             dragItem: undefined,
             active: false,
@@ -40,27 +22,22 @@ var Keyboard = /** @class */ (function () {
         };
         this.init(options);
     }
-    Keyboard.prototype.conctructor = function (options) {
-        this.init(options);
-    };
     Keyboard.prototype.init = function (options) {
         this.options = Object.assign({}, options);
         this.fnOnKeyDown = this.options.fnOnKeyDown;
+        this.oKey2CpcKey = this.initKey2CpcKeyMap();
         this.aKeyBuffer = []; // buffered pressed keys
         this.aExpansionTokens = []; // expansion tokens 0..31 (in reality: 128..159)
-        /*
         this.oCpcKeyExpansions = {
             normal: {},
             shift: {},
             ctrl: {},
             repeat: {}
         }; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
-        */
+        // reset: this.oPressedKeys = {}; // currently pressed browser keys
         this.reset();
-        //this.bActive = false; // flag if keyboard is active/focused, set from outside
-        //TTT check! this.oKey2CpcKey = this.initKey2CpcKeyMap();
+        this.bActive = false; // flag if keyboard is active/focused, set from outside
         this.bCodeStringsRemoved = false;
-        //const cpcArea = document.getElementById("cpcArea");
         var cpcArea = View_1.View.getElementById1("cpcArea");
         cpcArea.addEventListener("keydown", this.onCpcAreaKeydown.bind(this), false);
         cpcArea.addEventListener("keyup", this.oncpcAreaKeyup.bind(this), false);
@@ -271,7 +248,6 @@ var Keyboard = /** @class */ (function () {
             this.options.fnOnEscapeHandler(sKey, sPressedKey);
         }
         if (this.fnOnKeyDown) { // special handler?
-            //this.fnOnKeyDown(this.aKeyBuffer);
             this.fnOnKeyDown();
         }
     };
@@ -366,8 +342,8 @@ var Keyboard = /** @class */ (function () {
         }
     };
     Keyboard.prototype.fnKeyboardKeyup = function (event) {
-        var iKeyCode = event.which || event.keyCode, sPressedKey = String(iKeyCode) + (event.code ? event.code : ""); // event.code available for e.g. Chrome, Firefox
-        var sKey = event.key || this.keyIdentifier2Char(event.keyIdentifier, event.shiftKey) || ""; // SliTaz web browser has not key but keyIdentifier
+        var iKeyCode = event.which || event.keyCode, sPressedKey = String(iKeyCode) + (event.code ? event.code : ""), // event.code available for e.g. Chrome, Firefox
+        sKey = event.key || this.keyIdentifier2Char(event.keyIdentifier, event.shiftKey) || ""; // SliTaz web browser has not key but keyIdentifier
         if (Utils_1.Utils.debug > 1) {
             Utils_1.Utils.console.log("fnKeyboardKeyup: keyCode=" + iKeyCode + " pressedKey=" + sPressedKey + " key='" + sKey + "' " + sKey.charCodeAt(0) + " loc=" + event.location + " ", event);
         }
@@ -501,8 +477,7 @@ var Keyboard = /** @class */ (function () {
             var buttonList = document.createElement("div");
             buttonList.className = "displayFlex";
             for (var i = 0; i < aOptions.length; i += 1) {
-                var oItem = aOptions[i];
-                var button = document.createElement("button");
+                var oItem = aOptions[i], button = document.createElement("button");
                 button.innerText = oItem.text;
                 button.setAttribute("title", oItem.title);
                 button.className = oItem.className;
@@ -526,8 +501,7 @@ var Keyboard = /** @class */ (function () {
         var oKeyArea = View_1.View.getElementById1(sId), bShiftLock = this.bShiftLock, bNumLock = this.bNumLock, aCpcKey2Key = Keyboard.aCpcKey2Key, aButtons = oKeyArea.getElementsByTagName("button");
         if (!aButtons.length) { // not yet created?
             for (var iRow = 0; iRow < aVirtualKeyboard.length; iRow += 1) {
-                var aRow = aVirtualKeyboard[iRow];
-                var aOptions = [];
+                var aRow = aVirtualKeyboard[iRow], aOptions = [];
                 for (var iCol = 0; iCol < aRow.length; iCol += 1) {
                     var oCpcKey = void 0;
                     if (typeof aRow[iCol] === "number") {
@@ -538,12 +512,7 @@ var Keyboard = /** @class */ (function () {
                     else { // object
                         oCpcKey = aRow[iCol];
                     }
-                    var iCpcKey = bNumLock ? this.mapNumLockCpcKey(oCpcKey.key) : oCpcKey.key, oKey = aCpcKey2Key[oCpcKey.key], oAscii = this.fnVirtualGetAscii(iCpcKey, bShiftLock, bNumLock);
-                    var sClassName = "kbdButton" + (oCpcKey.style || oKey.style || "");
-                    if (iCol === aRow.length - 1) { // last column
-                        sClassName += " kbdNoRightMargin";
-                    }
-                    var oOptions = {
+                    var iCpcKey = bNumLock ? this.mapNumLockCpcKey(oCpcKey.key) : oCpcKey.key, oKey = aCpcKey2Key[oCpcKey.key], oAscii = this.fnVirtualGetAscii(iCpcKey, bShiftLock, bNumLock), sClassName = "kbdButton" + (oCpcKey.style || oKey.style || "") + ((iCol === aRow.length - 1) ? " kbdNoRightMargin" : ""), oOptions = {
                         key: iCpcKey,
                         text: oAscii.text,
                         title: oAscii.title,
@@ -1281,5 +1250,4 @@ var Keyboard = /** @class */ (function () {
     return Keyboard;
 }());
 exports.Keyboard = Keyboard;
-;
 //# sourceMappingURL=Keyboard.js.map

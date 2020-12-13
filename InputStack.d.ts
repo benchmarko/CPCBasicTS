@@ -2,11 +2,10 @@ export declare class InputStack {
     aInput: string[];
     iStackPosition: number;
     constructor();
-    init(): this;
+    init(): void;
     getInput(): string;
-    clearRedo(): this;
-    save(sInput: any): this;
-    canUndo(): boolean;
+    clearRedo(): void;
+    save(sInput: string): void;
     canUndoKeepOne(): boolean;
     undo(): string;
     canRedo(): boolean;

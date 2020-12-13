@@ -1,7 +1,7 @@
+"use strict";
 // Random.ts - Random Number Generator
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
-"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Random = void 0;
 //
@@ -32,5 +32,4 @@ var Random = /** @class */ (function () {
     return Random;
 }());
 exports.Random = Random;
-;
 //# sourceMappingURL=Random.js.map

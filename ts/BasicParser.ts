@@ -290,7 +290,7 @@ export class BasicParser {
 			aParseTree = [],
 
 			symbol = function (id: string, nud?, lbp?, led?) {
-				var oSymbol = oSymbols[id];
+				let oSymbol = oSymbols[id];
 
 				if (!oSymbol) {
 					oSymbols[id] = {};

@@ -51,7 +51,7 @@ export declare class Sound {
     init(): void;
     reset(): void;
     private stopOscillator;
-    debugLog(sMsg: string): void;
+    private debugLog;
     resetQueue(): void;
     private createSoundContext;
     private playNoise;

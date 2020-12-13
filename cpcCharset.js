@@ -263,5 +263,4 @@ exports.cpcCharset = [
     [0x00, 0x24, 0x66, 0xff, 0x66, 0x24, 0x00, 0x00] //  0xff
 ];
 /* eslint-enable array-element-newline */
-// );
 //# sourceMappingURL=cpcCharset.js.map

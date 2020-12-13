@@ -79,9 +79,13 @@ export declare class Controller {
     fnList(oParas: StopParas): void;
     fnReset(): void;
     private outputError;
-    fnRenumLines(oParas: StopParas): any;
+    fnRenumLines(oParas: StopParas): {
+        text: string;
+        error: any;
+    };
     private fnEditLineCallback;
     fnEditLine(oParas: StopParas): void;
+    private fnParseBench;
     fnParse(): any;
     fnPretty(): void;
     private selectJsError;
@@ -112,7 +116,7 @@ export declare class Controller {
     startBreak(): void;
     startContinue(): void;
     startReset(): void;
-    startScreenshot(): any;
+    startScreenshot(): string;
     private fnPutKeyInBuffer;
     startEnter(): void;
     private static generateFunction;
@@ -125,4 +129,11 @@ export declare class Controller {
     private fnInitUndoRedoButtons;
     private fnPutChangedInputOnStack;
     static exportAsBase64(sStorageName: string): string;
+    RunLoop: {
+        new (oController: Controller): {
+            oController: Controller;
+            fnTest(s1: any): void;
+        };
+    };
+    oRunLoop: any;
 }

@@ -263,5 +263,3 @@ export var cpcCharset = [ // eslint-disable-line no-unused-vars
 ];
 
 /* eslint-enable array-element-newline */
-
-// );

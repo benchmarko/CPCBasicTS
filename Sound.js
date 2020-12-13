@@ -8,7 +8,6 @@ exports.Sound = void 0;
 var Utils_1 = require("./Utils");
 var Sound = /** @class */ (function () {
     function Sound() {
-        this.fScheduleAheadTime = 0.1; // 100 ms
         this.init();
     }
     Sound.prototype.init = function () {
@@ -27,7 +26,7 @@ var Sound = /** @class */ (function () {
                 iRendevousMask: 0
             };
         }
-        //this.fScheduleAheadTime = 0.1; // 100 ms
+        this.fScheduleAheadTime = 0.1; // 100 ms
         this.aVolEnv = [];
         this.aToneEnv = [];
         this.iReleaseMask = 0;
@@ -84,14 +83,13 @@ var Sound = /** @class */ (function () {
         }
     };
     Sound.prototype.createSoundContext = function () {
-        var context = new window.AudioContext(), // may produce exception if not available
-        aChannelMap2Cpc = [
+        var aChannelMap2Cpc = [
             0,
             2,
             1
-        ];
+        ], context = new window.AudioContext(), // may produce exception if not available
+        oMergerNode = context.createChannelMerger(6); // create mergerNode with 6 inputs; we are using the first 3 for left, right, center
         this.context = context;
-        var oMergerNode = context.createChannelMerger(6); // create mergerNode with 6 inputs; we are using the first 3 for left, right, center
         this.oMergerNode = oMergerNode;
         for (var i = 0; i < 3; i += 1) {
             var oGainNode = context.createGain();
@@ -102,17 +100,15 @@ var Sound = /** @class */ (function () {
     Sound.prototype.playNoise = function (iOscillator, fTime, fDuration, iNoise) {
         var ctx = this.context, bufferSize = ctx.sampleRate * fDuration, // set the time of the note
         buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate), // create an empty buffer
-        data = buffer.getChannelData(0); // get data
+        data = buffer.getChannelData(0), // get data
+        noise = ctx.createBufferSource(); // create a buffer source for noise data
         // fill the buffer with noise
         for (var i = 0; i < bufferSize; i += 1) {
             data[i] = Math.random() * 2 - 1;
         }
-        // create a buffer source for our created data
-        var noise = ctx.createBufferSource();
         noise.buffer = buffer;
         if (iNoise > 1) {
-            var bandHz = 20000 / iNoise;
-            var bandpass = ctx.createBiquadFilter();
+            var bandHz = 20000 / iNoise, bandpass = ctx.createBiquadFilter();
             bandpass.type = "bandpass";
             bandpass.frequency.value = bandHz;
             // bandpass.Q.value = q; // ?
@@ -131,10 +127,8 @@ var Sound = /** @class */ (function () {
             for (var iPart = 0; iPart < aVolData.length; iPart += 1) {
                 var oGroup = aVolData[iPart];
                 if (oGroup.steps !== undefined) {
-                    var oGroup1 = oGroup;
+                    var oGroup1 = oGroup, iVolDiff = oGroup1.diff, iVolTime = oGroup1.time;
                     var iVolSteps = oGroup1.steps;
-                    var iVolDiff = oGroup1.diff;
-                    var iVolTime = oGroup1.time;
                     if (!iVolSteps) { // steps=0
                         iVolSteps = 1;
                         iVolume = 0; // we will set iVolDiff as absolute volume
@@ -152,12 +146,11 @@ var Sound = /** @class */ (function () {
                     }
                 }
                 else { // register
-                    var oGroup2 = oGroup, iRegister = oGroup2.register, iPeriod = oGroup2.period;
+                    var oGroup2 = oGroup, iRegister = oGroup2.register, iPeriod = oGroup2.period, iVolTime = iPeriod;
                     if (iRegister === 0) {
                         iVolume = 15;
                         var fVolume = iVolume / iMaxVolume;
                         oGain.setValueAtTime(fVolume * fVolume, fTime + iTime / i100ms2sec);
-                        var iVolTime = iPeriod;
                         iTime += iVolTime;
                         fVolume = 0;
                         oGain.linearRampToValueAtTime(fVolume, fTime + iTime / i100ms2sec); // or: exponentialRampToValueAtTime?
@@ -176,11 +169,6 @@ var Sound = /** @class */ (function () {
     Sound.prototype.applyToneEnv = function (aToneData, oFrequency, fTime, iPeriod, iDuration) {
         var i100ms2sec = 100, // time duration unit: 1/100 sec=10 ms, convert to sec
         bRepeat = aToneData[0], iToneEnvRepeat = bRepeat ? 5 : 1; // we use at most 5
-        /*
-        if (bRepeat) {
-            iToneEnvRepeat = 5; // we use at most 5 //TTT
-        }
-        */
         var iTime = 0;
         for (var iLoop = 0; iLoop < iToneEnvRepeat; iLoop += 1) {
             for (var iPart = 0; iPart < aToneData.length; iPart += 1) {
@@ -188,11 +176,6 @@ var Sound = /** @class */ (function () {
                 if (oGroup.steps !== undefined) {
                     var oGroup1 = oGroup, iToneSteps = oGroup1.steps || 1, // steps 0 => 1
                     iToneDiff = oGroup1.diff, iToneTime = oGroup1.time;
-                    /*
-                    if (!iToneSteps) { // steps=0
-                        iToneSteps = 1;
-                    }
-                    */
                     for (var i = 0; i < iToneSteps; i += 1) {
                         var fFrequency = (iPeriod >= 3) ? 62500 / iPeriod : 0;
                         oFrequency.setValueAtTime(fFrequency, fTime + iTime / i100ms2sec);
@@ -206,9 +189,9 @@ var Sound = /** @class */ (function () {
                     }
                 }
                 else { // absolute period
-                    var oGroup2 = oGroup;
+                    var oGroup2 = oGroup, iToneTime = oGroup2.time;
                     iPeriod = oGroup2.period;
-                    var iToneTime = oGroup2.time, fFrequency = (iPeriod >= 3) ? 62500 / iPeriod : 0;
+                    var fFrequency = (iPeriod >= 3) ? 62500 / iPeriod : 0;
                     oFrequency.setValueAtTime(fFrequency, fTime + iTime / i100ms2sec);
                     // TODO
                     iTime += iToneTime;
@@ -279,8 +262,8 @@ var Sound = /** @class */ (function () {
         }
         var aQueues = this.aQueues, iState = oSoundData.iState;
         for (var i = 0; i < 3; i += 1) {
-            var oQueue = aQueues[i];
             if ((iState >> i) & 0x01) { // eslint-disable-line no-bitwise
+                var oQueue = aQueues[i];
                 if (iState & 0x80) { // eslint-disable-line no-bitwise
                     oQueue.aSoundData.length = 0; // flush queue
                     oQueue.fNextNoteTime = 0;
@@ -327,10 +310,10 @@ var Sound = /** @class */ (function () {
             var oQueue = aQueues[i];
             while (oQueue.aSoundData.length && !oQueue.bOnHold && oQueue.fNextNoteTime < fCurrentTime + this.fScheduleAheadTime) { // something to schedule and not on hold and time reached
                 if (!oQueue.iRendevousMask) { // no rendevous needed, schedule now
-                    var oSoundData = oQueue.aSoundData.shift();
                     if (oQueue.fNextNoteTime < fCurrentTime) {
                         oQueue.fNextNoteTime = fCurrentTime;
                     }
+                    var oSoundData = oQueue.aSoundData.shift();
                     oQueue.fNextNoteTime += this.scheduleNote(i, oQueue.fNextNoteTime, oSoundData);
                     this.updateQueueStatus(i, oQueue); // check if next note on hold
                 }
@@ -347,10 +330,10 @@ var Sound = /** @class */ (function () {
             var oQueue = aQueues[i];
             // we can play, if in rendevous
             if ((iCanPlayMask >> i) & 0x01 && ((oQueue.iRendevousMask & iCanPlayMask) === oQueue.iRendevousMask)) { // eslint-disable-line no-bitwise
-                var oSoundData = oQueue.aSoundData.shift();
                 if (oQueue.fNextNoteTime < fCurrentTime) {
                     oQueue.fNextNoteTime = fCurrentTime;
                 }
+                var oSoundData = oQueue.aSoundData.shift();
                 oQueue.fNextNoteTime += this.scheduleNote(i, oQueue.fNextNoteTime, oSoundData);
                 this.updateQueueStatus(i, oQueue); // check if next note on hold
             }
@@ -365,8 +348,7 @@ var Sound = /** @class */ (function () {
             this.debugLog("release: " + iReleaseMask);
         }
         for (var i = 0; i < 3; i += 1) {
-            var oQueue = aQueues[i];
-            var aSoundData = oQueue.aSoundData;
+            var oQueue = aQueues[i], aSoundData = oQueue.aSoundData;
             if (((iReleaseMask >> i) & 0x01) && aSoundData.length && oQueue.bOnHold) { // eslint-disable-line no-bitwise
                 oQueue.bOnHold = false; // release
             }

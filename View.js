@@ -7,12 +7,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.View = void 0;
 var Utils_1 = require("./Utils");
 var View = /** @class */ (function () {
-    //static fnEventHandler = null;
     function View() {
         this.init();
     }
     View.prototype.init = function () {
-        //this.bDirty = false;
+        // empty
     };
     View.getElementById1 = function (sId) {
         var element = document.getElementById(sId);
@@ -26,6 +25,7 @@ var View = /** @class */ (function () {
         return element.className.indexOf("displayNone") >= 0;
     };
     View.prototype.setHidden = function (sId, bHidden, sDisplay) {
+        // optional sDisplay: block or flex
         var element = View.getElementById1(sId), sDisplayVisible = "display" + Utils_1.Utils.stringCapitalize(sDisplay || "block");
         if (bHidden) {
             if (element.className.indexOf("displayNone") < 0) {
@@ -72,20 +72,20 @@ var View = /** @class */ (function () {
         return this;
     };
     View.prototype.setSelectOptions = function (sId, aOptions) {
-        var element = View.getElementById1(sId), select = element;
+        var element = View.getElementById1(sId);
         for (var i = 0; i < aOptions.length; i += 1) {
             var oItem = aOptions[i];
             var option = void 0;
-            if (i >= select.length) {
+            if (i >= element.length) {
                 option = document.createElement("option");
                 option.value = oItem.value;
                 option.text = oItem.text;
                 option.title = oItem.title;
                 option.selected = oItem.selected; // multi-select
-                select.add(option, null); // null needed for old FF 3.x
+                element.add(option, null); // null needed for old FF 3.x
             }
             else {
-                option = select.options[i];
+                option = element.options[i];
                 if (option.value !== oItem.value) {
                     option.value = oItem.value;
                 }
@@ -98,14 +98,9 @@ var View = /** @class */ (function () {
                 }
                 option.selected = oItem.selected; // multi-select
             }
-            /*
-            if (oItem.selected) { // multi-select
-                option.selected = oItem.selected;
-            }
-            */
         }
         // remove additional select options
-        select.options.length = aOptions.length;
+        element.options.length = aOptions.length;
         return this;
     };
     View.prototype.getSelectValue = function (sId) {
@@ -120,16 +115,17 @@ var View = /** @class */ (function () {
         return this;
     };
     View.prototype.setSelectTitleFromSelectedOption = function (sId) {
-        var element = View.getElementById1(sId), select = element, iSelectedIndex = select.selectedIndex, sTitle = (iSelectedIndex >= 0) ? select.options[iSelectedIndex].title : "";
-        select.title = sTitle;
+        var element = View.getElementById1(sId), iSelectedIndex = element.selectedIndex, sTitle = (iSelectedIndex >= 0) ? element.options[iSelectedIndex].title : "";
+        element.title = sTitle;
         return this;
     };
     View.prototype.setAreaScrollTop = function (sId, iScrollTop) {
-        var element = View.getElementById1(sId), area = element;
+        var element = View.getElementById1(sId);
         if (iScrollTop === undefined) {
-            iScrollTop = area.scrollHeight;
+            iScrollTop = element.scrollHeight;
         }
-        area.scrollTop = iScrollTop;
+        element.scrollTop = iScrollTop;
+        return this;
     };
     View.prototype.setSelectionRange = function (textarea, selectionStart, selectionEnd) {
         // First scroll selection region to view
@@ -150,18 +146,19 @@ var View = /** @class */ (function () {
         textarea.scrollTop = scrollTop;
         // Continue to set selection range
         textarea.setSelectionRange(selectionStart, selectionEnd);
+        return this;
     };
     View.prototype.setAreaSelection = function (sId, iPos, iEndPos) {
-        var element = View.getElementById1(sId), area = element;
-        if (area.selectionStart !== undefined) {
-            if (area.setSelectionRange !== undefined) {
-                area.focus(); // not needed for scrolling but we want to see the selected text
-                this.setSelectionRange(area, iPos, iEndPos);
+        var element = View.getElementById1(sId);
+        if (element.selectionStart !== undefined) {
+            if (element.setSelectionRange !== undefined) {
+                element.focus(); // not needed for scrolling but we want to see the selected text
+                this.setSelectionRange(element, iPos, iEndPos);
             }
             else {
-                area.focus();
-                area.selectionStart = iPos;
-                area.selectionEnd = iEndPos;
+                element.focus();
+                element.selectionStart = iPos;
+                element.selectionEnd = iEndPos;
             }
         }
         return this;

@@ -2,48 +2,53 @@ export interface CanvasOptions {
     aCharset: number[][];
     onClickKey?: (arg0: string) => void;
 }
+interface ModeData {
+    iPens: number;
+    iPixelWidth: number;
+    iPixelHeight: number;
+}
 export declare class Canvas {
-    fnUpdateCanvasHandler: undefined;
-    fnUpdateCanvas2Handler: undefined;
+    fnUpdateCanvasHandler: () => void;
+    fnUpdateCanvas2Handler: () => void;
     iFps: number;
-    iTextFpsCounter: number;
-    cpcAreaBox: any;
-    textText: any;
+    cpcAreaBox: HTMLElement;
+    textText: HTMLTextAreaElement;
     aCharset: number[][];
+    oCustomCharset: {
+        [k: number]: number[];
+    };
     onClickKey?: (arg0: string) => void;
     iGColMode: number;
-    bClipped: boolean;
     iMask: number;
     iMaskBit: number;
     iMaskFirst: number;
     iOffset: number;
-    canvas: any;
+    canvas: HTMLCanvasElement;
     iWidth: number;
     iHeight: number;
     iBorderWidth: number;
-    dataset8: any;
+    dataset8: Uint8Array;
     bNeedUpdate: boolean;
     bNeedTextUpdate: boolean;
     aColorValues: number[][];
-    aCurrentInks: any[];
-    aSpeedInk: any[];
-    aPen2ColorMap: any[];
-    animationTimeout: any;
-    animationFrame: any;
-    imageData: any;
-    fnCopy2Canvas: any;
-    bLittleEndian: boolean;
-    aPen2Color32: any;
-    aData32: any;
-    bUse32BitCopy: boolean;
-    iGPen: any;
-    iGPaper: any;
+    aCurrentInks: number[][];
+    aSpeedInk: number[];
     iInkSet: number;
+    aPen2ColorMap: number[][];
+    iAnimationTimeoutId: number;
+    iAnimationFrame: number;
+    imageData: ImageData;
+    fnCopy2Canvas: () => void;
+    bLittleEndian: boolean;
+    aPen2Color32: Uint32Array;
+    aData32: Uint32Array;
+    bUse32BitCopy: boolean;
+    iGPen: number;
+    iGPaper: number;
     iSpeedInkCount: number;
-    oCustomCharset: {};
-    aTextBuffer: any[];
+    aTextBuffer: number[][];
     bHasFocus: boolean;
-    oModeData: any;
+    oModeData: ModeData;
     iMode: number;
     xPos: number;
     yPos: number;
@@ -76,12 +81,13 @@ export declare class Canvas {
     private copy2Canvas8bit;
     private copy2Canvas32bit;
     private copy2Canvas32bitWithOffset;
+    private applyCopy2CanvasFunction;
     setScreenOffset(iOffset: number): void;
     private updateTextWindow;
     private updateColorMap;
     updateSpeedInk(): void;
-    setCustomChar(iChar: number, aCharData: any): void;
-    getCharData(iChar: number): any;
+    setCustomChar(iChar: number, aCharData: number[]): void;
+    getCharData(iChar: number): number[];
     setDefaultInks(): void;
     private setFocusOnCanvas;
     private getMousePos;
@@ -145,3 +151,4 @@ export declare class Canvas {
     changeMode(iMode: number): void;
     setMode(iMode: number): void;
 }
+export {};

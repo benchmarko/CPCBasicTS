@@ -22,6 +22,6 @@ export declare class CpcVmRsx {
     tape_in(): void;
     tape_out(): void;
     user(): void;
-    mode(iMode: number, s: any): void;
+    mode(iMode: number): void;
     renum(): void;
 }

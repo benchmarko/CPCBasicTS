@@ -5,22 +5,23 @@ export interface CustomError extends Error {
     hidden?: boolean;
     shortMessage?: string;
 }
-export declare var Utils: {
-    debug: number;
-    console: Console;
-    fnLoadScriptOrStyle: (script: HTMLScriptElement | HTMLLinkElement, sFullUrl: string, fnSuccess: any, fnError: any) => string;
-    loadScript: (sUrl: string, fnSuccess: any, fnError: any) => void;
-    loadStyle: (sUrl: string, fnSuccess: any, fnError: any) => void;
-    dateFormat: (d: Date) => string;
-    stringCapitalize: (str: string) => string;
-    numberWithCommas: (x: number) => string;
-    toRadians: (deg: number) => number;
-    toDegrees: (rad: number) => number;
-    getChangedParameters: (current: any, initial: any) => {};
-    bSupportsBinaryLiterals: boolean;
-    bSupportReservedNames: boolean;
-    localStorage: any;
-    atob: any;
-    btoa: any;
-    composeError: (name: string, oErrorObject: Error, message: string, value: any, pos?: number, line?: string | number, hidden?: boolean) => CustomError;
-};
+export declare class Utils {
+    static debug: number;
+    static console: Console;
+    private static fnLoadScriptOrStyle;
+    static loadScript(sUrl: string, fnSuccess: (sStr: string) => void, fnError: (sStr: string) => void): void;
+    static loadStyle(sUrl: string, fnSuccess: (sStr: string) => void, fnError: (sStr: string) => void): void;
+    static dateFormat(d: Date): string;
+    static stringCapitalize(str: string): string;
+    static numberWithCommas(x: number): string;
+    static toRadians(deg: number): number;
+    static toDegrees(rad: number): number;
+    static getChangedParameters(current: any, initial: any): {};
+    static bSupportsBinaryLiterals: boolean;
+    static bSupportReservedNames: boolean;
+    static stringTrimEnd(sStr: string): string;
+    static localStorage: Storage;
+    static atob: any;
+    static btoa: any;
+    static composeError(name: string, oErrorObject: Error, message: string, value: any, pos?: number, line?: string | number, hidden?: boolean): CustomError;
+}

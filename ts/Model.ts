@@ -8,7 +8,7 @@ type ConfigEntryType = string | number | boolean;
 
 type ConfigType = { [k in string]: ConfigEntryType };
 
-interface DatabaseEntry {
+export interface DatabaseEntry {
 	text: string
 	title: string
 	src: string
@@ -23,7 +23,7 @@ interface ExampleEntry {
 	loaded?: boolean
 }
 
-type DatabasesType = { [k in string]: DatabaseEntry };
+export type DatabasesType = { [k in string]: DatabaseEntry };
 
 type ExamplesType = { [k in string]: { [l in string]: ExampleEntry }};
 
@@ -44,18 +44,11 @@ export class Model {
 		this.databases = {};
 		this.examples = {}; // loaded examples per database
 	}
-	getProperty(sProperty: string): ConfigEntryType {
-		return this.config[sProperty];
+	getProperty<T extends ConfigEntryType>(sProperty: string): T {
+		return this.config[sProperty] as T;
 	}
-	getStringProperty(sProperty: string): string {
-		return this.config[sProperty] as string;
-	}
-	getBooleanProperty(sProperty: string): boolean {
-		return this.config[sProperty] as boolean;
-	}
-	setProperty(sProperty: string, value: ConfigEntryType): this {
+	setProperty<T extends ConfigEntryType>(sProperty: string, value: T): void {
 		this.config[sProperty] = value;
-		return this;
 	}
 	getAllProperties(): ConfigType {
 		return this.config;
@@ -64,7 +57,7 @@ export class Model {
 		return this.initialConfig;
 	}
 
-	addDatabases(oDb: DatabasesType): this {
+	addDatabases(oDb: DatabasesType): void {
 		for (const sPar in oDb) {
 			if (oDb.hasOwnProperty(sPar)) {
 				const oEntry = oDb[sPar];
@@ -73,29 +66,28 @@ export class Model {
 				this.examples[sPar] = {};
 			}
 		}
-		return this;
 	}
 	getAllDatabases(): DatabasesType {
 		return this.databases;
 	}
 	getDatabase(): DatabaseEntry {
-		const sDatabase = this.getStringProperty("database");
+		const sDatabase = this.getProperty<string>("database");
 
 		return this.databases[sDatabase];
 	}
 
 	getAllExamples(): {	[x: string]: ExampleEntry; } {
-		const sDatabase = this.getStringProperty("database");
+		const sDatabase = this.getProperty<string>("database");
 
 		return this.examples[sDatabase];
 	}
 	getExample(sKey: string): ExampleEntry {
-		const sDatabase = this.getStringProperty("database");
+		const sDatabase = this.getProperty<string>("database");
 
 		return this.examples[sDatabase][sKey];
 	}
-	setExample(oExample: ExampleEntry): this {
-		const sDatabase = this.getStringProperty("database"),
+	setExample(oExample: ExampleEntry): void {
+		const sDatabase = this.getProperty<string>("database"),
 			sKey = oExample.key;
 
 		if (!this.examples[sDatabase][sKey]) {
@@ -104,15 +96,13 @@ export class Model {
 			}
 		}
 		this.examples[sDatabase][sKey] = oExample;
-		return this;
 	}
-	removeExample(sKey: string): this {
-		const sDatabase = this.getStringProperty("database");
+	removeExample(sKey: string): void {
+		const sDatabase = this.getProperty<string>("database");
 
 		if (!this.examples[sDatabase][sKey]) {
 			Utils.console.warn("removeExample: example does not exist: " + sKey);
 		}
 		delete this.examples[sDatabase][sKey];
-		return this;
 	}
 }

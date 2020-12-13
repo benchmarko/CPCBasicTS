@@ -10,57 +10,25 @@ var Utils_1 = require("./Utils");
 var View_1 = require("./View");
 var Canvas = /** @class */ (function () {
     function Canvas(options) {
-        this.iFps = 15; // FPS for canvas update
-        this.iTextFpsCounter = 0;
-        this.cpcAreaBox = undefined;
-        this.textText = undefined;
-        this.iGColMode = 0; // 0=normal, 1=xor, 2=and, 3=or
-        this.bClipped = false;
-        this.iMask = 255;
-        this.iMaskBit = 128;
-        this.iMaskFirst = 1;
-        this.iOffset = 0; // screen offset
-        this.canvas = undefined;
-        this.dataset8 = undefined;
-        this.bNeedUpdate = false;
-        this.bNeedTextUpdate = false;
-        this.aCurrentInks = [];
-        this.aSpeedInk = [];
-        this.aPen2ColorMap = [];
-        this.animationTimeout = undefined;
-        this.animationFrame = undefined;
-        this.imageData = undefined;
-        this.fnCopy2Canvas = undefined;
-        this.aPen2Color32 = undefined;
-        this.aData32 = undefined;
-        this.iGPen = null; // force update
-        this.iGPaper = null;
-        this.iInkSet = 0;
-        this.oCustomCharset = {};
-        this.aTextBuffer = [];
-        this.oModeData = undefined;
         this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
         this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
         this.init(options);
     }
     Canvas.prototype.init = function (options) {
         var iBorderWidth = 4;
-        var ctx;
         this.aCharset = options.aCharset;
         this.onClickKey = options.onClickKey;
         this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
         this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
         this.iFps = 15; // FPS for canvas update
-        this.iTextFpsCounter = 0;
         this.cpcAreaBox = View_1.View.getElementById1("cpcAreaBox");
-        this.textText = View_1.View.getElementById1("textText");
+        this.textText = View_1.View.getElementById1("textText"); // View.setAreaValue()
         this.iGColMode = 0; // 0=normal, 1=xor, 2=and, 3=or
-        this.bClipped = false;
         this.iMask = 255;
         this.iMaskBit = 128;
         this.iMaskFirst = 1;
         this.iOffset = 0; // screen offset
-        var canvas = document.getElementById("cpcCanvas");
+        var canvas = View_1.View.getElementById1("cpcCanvas");
         this.canvas = canvas;
         // make sure canvas is not hidden (allows to get width, height, set style)
         if (canvas.offsetParent === null) {
@@ -79,13 +47,12 @@ var Canvas = /** @class */ (function () {
         this.aCurrentInks = [];
         this.aSpeedInk = [];
         this.aPen2ColorMap = [];
-        this.animationTimeout = null;
-        this.animationFrame = null;
+        this.iAnimationTimeoutId = undefined;
+        this.iAnimationFrame = undefined;
         if (this.canvas.getContext) {
-            ctx = this.canvas.getContext("2d");
+            var ctx = this.canvas.getContext("2d");
             this.imageData = ctx.getImageData(0, 0, iWidth, iHeight);
             if (typeof Uint32Array !== "undefined" && this.imageData.data.buffer) { // imageData.data.buffer not available on IE10
-                this.fnCopy2Canvas = this.iOffset ? this.copy2Canvas32bitWithOffset : this.copy2Canvas32bit;
                 this.bLittleEndian = Canvas.isLittleEndian();
                 this.aPen2Color32 = new Uint32Array(new ArrayBuffer(Canvas.aModeData[3].iPens * 4));
                 this.aData32 = new Uint32Array(this.imageData.data.buffer);
@@ -93,11 +60,11 @@ var Canvas = /** @class */ (function () {
                 Utils_1.Utils.console.log("Canvas: using optimized copy2Canvas32bit, littleEndian:", this.bLittleEndian);
             }
             else {
-                this.fnCopy2Canvas = this.iOffset ? this.copy2Canvas8bit : this.copy2Canvas8bit; // TODO
                 this.setAlpha(255);
                 this.bUse32BitCopy = false;
                 Utils_1.Utils.console.log("Canvas: using copy2Canvas8bit");
             }
+            this.applyCopy2CanvasFunction(this.iOffset);
         }
         else {
             Utils_1.Utils.console.warn("Error: canvas.getContext is not supported.");
@@ -109,8 +76,8 @@ var Canvas = /** @class */ (function () {
         this.resetTextBuffer();
         this.setNeedTextUpdate();
         this.changeMode(1);
-        this.iGPen = null; // force update
-        this.iGPaper = null;
+        this.iGPen = undefined; // undefined to force update
+        this.iGPaper = undefined;
         this.iInkSet = 0;
         this.setDefaultInks();
         this.aSpeedInk[0] = 10;
@@ -162,7 +129,7 @@ var Canvas = /** @class */ (function () {
         this.bNeedTextUpdate = true;
     };
     Canvas.prototype.updateCanvas2 = function () {
-        this.animationFrame = requestAnimationFrame(this.fnUpdateCanvasHandler);
+        this.iAnimationFrame = requestAnimationFrame(this.fnUpdateCanvasHandler);
         if (this.bNeedUpdate) { // could be improved: update only updateRect
             this.bNeedUpdate = false;
             // we always do a full updateCanvas...
@@ -180,19 +147,19 @@ var Canvas = /** @class */ (function () {
     // http://creativejs.com/resources/requestanimationframe/ (set frame rate)
     // https://stackoverflow.com/questions/19764018/controlling-fps-with-requestanimationframe
     Canvas.prototype.updateCanvas = function () {
-        this.animationTimeout = setTimeout(this.fnUpdateCanvas2Handler, 1000 / this.iFps);
+        this.iAnimationTimeoutId = setTimeout(this.fnUpdateCanvas2Handler, 1000 / this.iFps);
     };
     Canvas.prototype.startUpdateCanvas = function () {
-        if (this.animationFrame === null && this.canvas.offsetParent !== null) { // animation off and canvas visible in DOM?
+        if (this.iAnimationFrame === undefined && this.canvas.offsetParent !== null) { // animation off and canvas visible in DOM?
             this.updateCanvas();
         }
     };
     Canvas.prototype.stopUpdateCanvas = function () {
-        if (this.animationFrame !== null) {
-            cancelAnimationFrame(this.animationFrame);
-            clearTimeout(this.animationTimeout);
-            this.animationFrame = null;
-            this.animationTimeout = null;
+        if (this.iAnimationFrame !== undefined) {
+            cancelAnimationFrame(this.iAnimationFrame);
+            clearTimeout(this.iAnimationTimeoutId);
+            this.iAnimationFrame = undefined;
+            this.iAnimationTimeoutId = undefined;
         }
     };
     Canvas.prototype.copy2Canvas8bit = function () {
@@ -225,6 +192,14 @@ var Canvas = /** @class */ (function () {
         }
         ctx.putImageData(this.imageData, 0, 0);
     };
+    Canvas.prototype.applyCopy2CanvasFunction = function (iOffset) {
+        if (this.bUse32BitCopy) {
+            this.fnCopy2Canvas = iOffset ? this.copy2Canvas32bitWithOffset : this.copy2Canvas32bit;
+        }
+        else {
+            this.fnCopy2Canvas = iOffset ? this.copy2Canvas8bit : this.copy2Canvas8bit; // TODO: for older browsers
+        }
+    };
     Canvas.prototype.setScreenOffset = function (iOffset) {
         if (iOffset) {
             // TODO
@@ -233,12 +208,7 @@ var Canvas = /** @class */ (function () {
         }
         if (iOffset !== this.iOffset) {
             this.iOffset = iOffset;
-            if (this.bUse32BitCopy) {
-                this.fnCopy2Canvas = iOffset ? this.copy2Canvas32bitWithOffset : this.copy2Canvas32bit;
-            }
-            else {
-                this.fnCopy2Canvas = iOffset ? this.copy2Canvas8bit : this.copy2Canvas8bit; // TODO: for older browsers
-            }
+            this.applyCopy2CanvasFunction(iOffset);
             this.setNeedUpdate();
         }
     };
@@ -937,15 +907,14 @@ var Canvas = /** @class */ (function () {
         xRight = Canvas.fnPutInRange(xRight, 0, this.iWidth - 1);
         yTop = Canvas.fnPutInRange(yTop, 0, this.iHeight - 1);
         yBottom = Canvas.fnPutInRange(yBottom, 0, this.iHeight - 1);
-        var tmp;
         // exchange coordinates, if needed (left>right or top<bottom)
         if (xRight < xLeft) {
-            tmp = xRight;
+            var tmp = xRight;
             xRight = xLeft;
             xLeft = tmp;
         }
         if (yTop < yBottom) {
-            tmp = yTop;
+            var tmp = yTop;
             yTop = yBottom;
             yBottom = tmp;
         }

@@ -24,6 +24,7 @@ var InputStack_1 = require("./InputStack");
 var Keyboard_1 = require("./Keyboard");
 var Sound_1 = require("./Sound");
 var Variables_1 = require("./Variables");
+var View_1 = require("./View");
 var ZipFile_1 = require("./ZipFile");
 var Controller = /** @class */ (function () {
     function Controller(oModel, oView) {
@@ -32,6 +33,20 @@ var Controller = /** @class */ (function () {
         this.bTimeoutHandlerActive = false;
         this.iNextLoopTimeOut = 0; // next timeout for the main loop
         this.bInputSet = false;
+        // test
+        this.RunLoop = /** @class */ (function () {
+            function class_1(oController) {
+                //Utils.console.log("Test: RunLoop: constructor", a);
+                this.oController = oController;
+            }
+            class_1.prototype.fnTest = function (s1) {
+                //this.oVm.vmStop("", 0, true); // continue
+                //oVm.vmStop("", 0, true); // continue
+                this.oController.oVm.print(0, "test:", s1);
+                Utils_1.Utils.console.log("Test: RunLoop: fnTest", s1);
+            };
+            return class_1;
+        }());
         this.fnRunLoopHandler = this.fnRunLoop.bind(this);
         this.fnWaitKeyHandler = this.fnWaitKey.bind(this);
         this.fnWaitInputHandler = this.fnWaitInput.bind(this);
@@ -62,11 +77,10 @@ var Controller = /** @class */ (function () {
         oView.setHidden("cpcArea", false); // make sure canvas is not hidden (allows to get width, height)
         this.oCanvas = new Canvas_1.Canvas({
             aCharset: cpcCharset_1.cpcCharset,
-            //cpcDivId: "cpcArea",
             onClickKey: this.fnPutKeyInBufferHandler
         });
         oView.setHidden("cpcArea", !oModel.getProperty("showCpc"));
-        var sKbdLayout = oModel.getStringProperty("kbdLayout");
+        var sKbdLayout = oModel.getProperty("kbdLayout");
         oView.setSelectValue("kbdLayoutSelect", sKbdLayout);
         this.commonEventHandler.onKbdLayoutSelectChange();
         this.inputStack = new InputStack_1.InputStack();
@@ -78,14 +92,14 @@ var Controller = /** @class */ (function () {
         }
         this.oSound = new Sound_1.Sound();
         this.commonEventHandler.fnActivateUserAction(this.onUserAction.bind(this)); // check first user action, also if sound is not yet on
-        var sExample = oModel.getStringProperty("example");
+        var sExample = oModel.getProperty("example");
         oView.setSelectValue("exampleSelect", sExample);
         this.oVm = new CpcVm_1.CpcVm({
             canvas: this.oCanvas,
             keyboard: this.oKeyboard,
             sound: this.oSound,
             variables: this.oVariables,
-            tron: oModel.getBooleanProperty("tron")
+            tron: oModel.getProperty("tron")
         });
         this.oVm.vmReset();
         this.oRsx = new CpcVmRsx_1.CpcVmRsx(this.oVm);
@@ -99,7 +113,7 @@ var Controller = /** @class */ (function () {
         this.oCodeGeneratorJs = new CodeGeneratorJs_1.CodeGeneratorJs({
             lexer: new BasicLexer_1.BasicLexer(),
             parser: new BasicParser_1.BasicParser(),
-            tron: this.model.getBooleanProperty("tron"),
+            tron: this.model.getProperty("tron"),
             rsx: this.oRsx // just to check the names
         });
         this.oBasicTokenizer = new BasicTokenizer_1.BasicTokenizer(); // for tokenized BASIC
@@ -113,12 +127,9 @@ var Controller = /** @class */ (function () {
         this.initDropZone();
     };
     Controller.prototype.initDatabases = function () {
-        var oModel = this.model, oDatabases = {}, aDatabaseDirs, i, sDatabaseDir, aParts, sName;
-        aDatabaseDirs = oModel.getStringProperty("databaseDirs").split(",");
-        for (i = 0; i < aDatabaseDirs.length; i += 1) {
-            sDatabaseDir = aDatabaseDirs[i];
-            aParts = sDatabaseDir.split("/");
-            sName = aParts[aParts.length - 1];
+        var oModel = this.model, oDatabases = {}, aDatabaseDirs = oModel.getProperty("databaseDirs").split(",");
+        for (var i = 0; i < aDatabaseDirs.length; i += 1) {
+            var sDatabaseDir = aDatabaseDirs[i], aParts = sDatabaseDir.split("/"), sName = aParts[aParts.length - 1];
             oDatabases[sName] = {
                 text: sName,
                 title: sDatabaseDir,
@@ -146,11 +157,11 @@ var Controller = /** @class */ (function () {
     // Also called from example files xxxxx.js
     Controller.prototype.addItem = function (sKey, sInput) {
         if (!sKey) { // maybe ""
-            sKey = this.model.getStringProperty("example");
+            sKey = this.model.getProperty("example");
         }
-        var oExample = this.model.getExample(sKey);
         sInput = sInput.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
-        // beware of data files ending with newlines! (no trimEnd)
+        // beware of data files ending with newlines! (do not use trimEnd)
+        var oExample = this.model.getExample(sKey);
         oExample.key = sKey; // maybe changed
         oExample.script = sInput;
         oExample.loaded = true;
@@ -233,7 +244,8 @@ var Controller = /** @class */ (function () {
         this.view.setSelectOptions(sSelect, aItems);
     };
     Controller.prototype.updateStorageDatabase = function (sAction, sKey) {
-        var sDatabase = this.model.getProperty("database"), oStorage = Utils_1.Utils.localStorage, aDir, sData, oData; //
+        var sDatabase = this.model.getProperty("database"), oStorage = Utils_1.Utils.localStorage;
+        var aDir;
         if (!sKey) { // no sKey => get all
             aDir = this.fnGetDirectoryEntries();
         }
@@ -248,8 +260,7 @@ var Controller = /** @class */ (function () {
             else if (sAction === "set") {
                 var oExample = this.model.getExample(sKey);
                 if (!oExample) {
-                    sData = oStorage.getItem(sKey);
-                    oData = this.splitMeta(sData);
+                    var sData = oStorage.getItem(sKey), oData = this.splitMeta(sData);
                     oExample = {
                         key: sKey,
                         title: "",
@@ -329,10 +340,10 @@ var Controller = /** @class */ (function () {
         this.startMainLoop();
     };
     Controller.prototype.fnWaitSound = function () {
-        var oStop = this.oVm.vmGetStopObject(), aSoundData;
+        var oStop = this.oVm.vmGetStopObject();
         this.oVm.vmLoopCondition(); // update iNextFrameTime, timers, inks; schedule sound: free queue
         if (this.oSound.isActivatedByUser()) { // only if activated
-            aSoundData = this.oVm.vmGetSoundData();
+            var aSoundData = this.oVm.vmGetSoundData();
             while (aSoundData.length && this.oSound.testCanQueue(aSoundData[0].iState)) {
                 this.oSound.sound(aSoundData.shift());
             }
@@ -489,8 +500,8 @@ var Controller = /** @class */ (function () {
     };
     // merge two scripts with sorted line numbers, lines from script2 overwrite lines from script1
     Controller.prototype.mergeScripts = function (sScript1, sScript2) {
-        var aLines1 = sScript1.trimEnd().split("\n"), //TTT
-        aLines2 = sScript2.trimEnd().split("\n");
+        var aLines1 = Utils_1.Utils.stringTrimEnd(sScript1).split("\n"), //TTT
+        aLines2 = Utils_1.Utils.stringTrimEnd(sScript2).split("\n");
         var aResult = [], iLine1, iLine2;
         while (aLines1.length && aLines2.length) {
             iLine1 = iLine1 || parseInt(aLines1[0], 10);
@@ -542,18 +553,14 @@ var Controller = /** @class */ (function () {
         return oRegExp;
     };
     Controller.prototype.fnGetExampleDirectoryEntries = function (sMask) {
-        var aDir = [], oAllExamples = this.model.getAllExamples(), sKey, sKey2, sMatchKey2, oExample, oRegExp;
+        var aDir = [], oAllExamples = this.model.getAllExamples();
+        var oRegExp;
         if (sMask) {
             oRegExp = Controller.fnPrepareMaskRegExp(sMask);
         }
-        for (sKey in oAllExamples) {
+        for (var sKey in oAllExamples) {
             if (oAllExamples.hasOwnProperty(sKey)) {
-                oExample = oAllExamples[sKey];
-                sKey2 = oExample.key;
-                sMatchKey2 = sKey2;
-                if (sKey2.indexOf(".") < 0) {
-                    sMatchKey2 = sKey2 + ".";
-                }
+                var oExample = oAllExamples[sKey], sKey2 = oExample.key, sMatchKey2 = sKey2 + ((sKey2.indexOf(".") < 0) ? "." : "");
                 if (!oRegExp || oRegExp.test(sMatchKey2)) {
                     aDir.push(sKey2);
                 }
@@ -562,37 +569,40 @@ var Controller = /** @class */ (function () {
         return aDir;
     };
     Controller.prototype.fnGetDirectoryEntries = function (sMask) {
-        var oStorage = Utils_1.Utils.localStorage, aDir = [], oRegExp, i, sKey;
+        var oStorage = Utils_1.Utils.localStorage, aDir = [];
+        var oRegExp;
         if (sMask) {
             oRegExp = Controller.fnPrepareMaskRegExp(sMask);
         }
-        for (i = 0; i < oStorage.length; i += 1) {
-            sKey = oStorage.key(i);
-            if (!oRegExp || oRegExp.test(sKey)) {
-                aDir.push(sKey);
+        for (var i = 0; i < oStorage.length; i += 1) {
+            var sKey = oStorage.key(i), sValue = oStorage[sKey];
+            if (sValue.startsWith(this.sMetaIdent)) { // take only cpcBasic files
+                if (!oRegExp || oRegExp.test(sKey)) {
+                    aDir.push(sKey);
+                }
             }
         }
         return aDir;
     };
     Controller.prototype.fnPrintDirectoryEntries = function (iStream, aDir, bSort) {
-        var i, sKey, aParts;
-        // first format names
-        for (i = 0; i < aDir.length; i += 1) {
-            sKey = aDir[i];
-            aParts = sKey.split(".");
+        // first, format names
+        for (var i = 0; i < aDir.length; i += 1) {
+            var sKey = aDir[i], aParts = sKey.split(".");
             if (aParts.length === 2) {
                 aDir[i] = aParts[0].padEnd(8, " ") + "." + aParts[1].padEnd(3, " ");
             }
-            else {
-                Utils_1.Utils.console.warn("fnPrintDirectoryEntries: Wrong entry:", aDir[i]); // maybe other data, is using local page
+            /*
+             else {
+                Utils.console.warn("fnPrintDirectoryEntries: Wrong entry:", aDir[i]); // maybe other data, is using local page
             }
+            */
         }
         if (bSort) {
             aDir.sort();
         }
         this.oVm.print(iStream, "\r\n");
-        for (i = 0; i < aDir.length; i += 1) {
-            sKey = aDir[i] + "  ";
+        for (var i = 0; i < aDir.length; i += 1) {
+            var sKey = aDir[i] + "  ";
             this.oVm.print(iStream, sKey);
         }
         this.oVm.print(iStream, "\r\n");
@@ -600,23 +610,19 @@ var Controller = /** @class */ (function () {
     Controller.prototype.fnFileCat = function (oParas) {
         var iStream = oParas.iStream, aDir = this.fnGetDirectoryEntries();
         this.fnPrintDirectoryEntries(iStream, aDir, true);
+        // currently only from localstorage
         this.oVm.vmStop("", 0, true);
     };
     Controller.prototype.fnFileDir = function (oParas) {
-        var iStream = oParas.iStream, sFileMask = oParas.sFileMask, sPath = "", aDir, aDir2, sExample, iLastSlash, i;
-        if (sFileMask) {
-            sFileMask = this.fnLocalStorageName(sFileMask);
-        }
-        aDir = this.fnGetDirectoryEntries(sFileMask);
-        // if we have a fileMask, include also example names from same directory:
-        sExample = this.model.getProperty("example");
+        var iStream = oParas.iStream, sExample = this.model.getProperty("example"), // if we have a fileMask, include also example names from same directory
         iLastSlash = sExample.lastIndexOf("/");
+        var sFileMask = oParas.sFileMask ? this.fnLocalStorageName(oParas.sFileMask) : "", aDir = this.fnGetDirectoryEntries(sFileMask), sPath = "";
         if (iLastSlash >= 0) {
             sPath = sExample.substr(0, iLastSlash) + "/";
-            sFileMask = sPath + sFileMask; // only in same directory
+            sFileMask = sPath + (sFileMask ? sFileMask : "*.*"); // only in same directory
         }
-        aDir2 = this.fnGetExampleDirectoryEntries(sFileMask); // also from examples
-        for (i = 0; i < aDir2.length; i += 1) {
+        var aDir2 = this.fnGetExampleDirectoryEntries(sFileMask); // also from examples
+        for (var i = 0; i < aDir2.length; i += 1) {
             aDir2[i] = aDir2[i].substr(sPath.length); // remove preceding path including "/"
         }
         aDir = aDir2.concat(aDir); // combine
@@ -624,14 +630,12 @@ var Controller = /** @class */ (function () {
         this.oVm.vmStop("", 0, true);
     };
     Controller.prototype.fnFileEra = function (oParas) {
-        var iStream = oParas.iStream, oStorage = Utils_1.Utils.localStorage, sFileMask = oParas.sFileMask, aDir, i, sName;
-        sFileMask = this.fnLocalStorageName(sFileMask);
-        aDir = this.fnGetDirectoryEntries(sFileMask);
+        var iStream = oParas.iStream, oStorage = Utils_1.Utils.localStorage, sFileMask = this.fnLocalStorageName(oParas.sFileMask), aDir = this.fnGetDirectoryEntries(sFileMask);
         if (!aDir.length) {
             this.oVm.print(iStream, sFileMask + " not found\r\n");
         }
-        for (i = 0; i < aDir.length; i += 1) {
-            sName = aDir[i];
+        for (var i = 0; i < aDir.length; i += 1) {
+            var sName = aDir[i];
             if (oStorage.getItem(sName) !== null) {
                 oStorage.removeItem(sName);
                 this.updateStorageDatabase("remove", sName);
@@ -647,10 +651,7 @@ var Controller = /** @class */ (function () {
         this.oVm.vmStop("", 0, true);
     };
     Controller.prototype.fnFileRen = function (oParas) {
-        var iStream = oParas.iStream, oStorage = Utils_1.Utils.localStorage, sNew = oParas.sNew, sOld = oParas.sOld, sItem;
-        sNew = this.fnLocalStorageName(sNew);
-        sOld = this.fnLocalStorageName(sOld);
-        sItem = oStorage.getItem(sOld);
+        var iStream = oParas.iStream, oStorage = Utils_1.Utils.localStorage, sNew = this.fnLocalStorageName(oParas.sNew), sOld = this.fnLocalStorageName(oParas.sOld), sItem = oStorage.getItem(sOld);
         if (sItem !== null) {
             if (!oStorage.getItem(sNew)) {
                 oStorage.setItem(sNew, sItem);
@@ -669,18 +670,19 @@ var Controller = /** @class */ (function () {
     };
     // Hisoft Devpac GENA3 Z80 Assember (http://www.cpcwiki.eu/index.php/Hisoft_Devpac)
     Controller.asmGena3Convert = function (sData) {
-        var iPos = 0, sOut = "", iLength = sData.length, fnUInt16 = function (iPos2) {
+        var fnUInt16 = function (iPos2) {
             return sData.charCodeAt(iPos2) + sData.charCodeAt(iPos2 + 1) * 256;
-        }, iLineNum, iIndex1, iIndex2;
+        }, iLength = sData.length;
+        var iPos = 0, sOut = "";
         iPos += 4; // what is the meaning of these bytes?
         while (iPos < iLength) {
-            iLineNum = fnUInt16(iPos);
+            var iLineNum = fnUInt16(iPos);
             iPos += 2;
-            iIndex1 = sData.indexOf("\r", iPos); // EOL marker 0x0d
+            var iIndex1 = sData.indexOf("\r", iPos); // EOL marker 0x0d
             if (iIndex1 < 0) {
                 iIndex1 = iLength;
             }
-            iIndex2 = sData.indexOf("\x1c", iPos); // EOL marker 0x1c
+            var iIndex2 = sData.indexOf("\x1c", iPos); // EOL marker 0x1c
             if (iIndex2 < 0) {
                 iIndex2 = iLength;
             }
@@ -788,13 +790,13 @@ var Controller = /** @class */ (function () {
         this.startMainLoop();
     };
     Controller.prototype.loadExample = function () {
-        var that = this, oInFile = this.oVm.vmGetInFileObject(), sExample, sUrl, fnExampleLoaded = function (_sFullUrl, bSuppressLog) {
-            var sInput;
+        var that = this, oInFile = this.oVm.vmGetInFileObject();
+        var sExample, sUrl, fnExampleLoaded = function (_sFullUrl, bSuppressLog) {
             var oExample = that.model.getExample(sExample);
             if (!bSuppressLog) {
                 Utils_1.Utils.console.log("Example", sUrl, oExample.meta || "", "loaded");
             }
-            sInput = oExample.script;
+            var sInput = oExample.script;
             that.model.setProperty("example", oInFile.sMemorizedExample);
             that.oVm.vmStop("", 0, true);
             that.loadFileContinue(sInput);
@@ -811,7 +813,7 @@ var Controller = /** @class */ (function () {
             that.loadFileContinue(null);
         };
         var sName = oInFile.sName;
-        var sKey = this.model.getStringProperty("example");
+        var sKey = this.model.getProperty("example");
         if (sName.charAt(0) === "/") { // absolute path?
             sName = sName.substr(1); // remove "/"
             oInFile.sMemorizedExample = sName; // change!
@@ -865,9 +867,10 @@ var Controller = /** @class */ (function () {
             null,
             "bas",
             "bin"
-        ], i, sStorageName, sInput;
-        for (i = 0; i < aExtensions.length; i += 1) {
-            sStorageName = this.fnLocalStorageName(sName, aExtensions[i]);
+        ];
+        var sInput;
+        for (var i = 0; i < aExtensions.length; i += 1) {
+            var sStorageName = this.fnLocalStorageName(sName, aExtensions[i]);
             sInput = oStorage.getItem(sStorageName);
             if (sInput !== null) {
                 break; // found
@@ -877,7 +880,7 @@ var Controller = /** @class */ (function () {
     };
     // run loop: fileLoad
     Controller.prototype.fnFileLoad = function () {
-        var oInFile = this.oVm.vmGetInFileObject(), sName, sInput;
+        var oInFile = this.oVm.vmGetInFileObject();
         if (oInFile.bOpen) {
             if (oInFile.sCommand === "chainMerge" && oInFile.iFirst && oInFile.iLast) { // special handling to delete line numbers first
                 this.fnDeleteLines({
@@ -887,11 +890,11 @@ var Controller = /** @class */ (function () {
                 });
                 this.oVm.vmStop("fileLoad", 90); // restore
             }
-            sName = oInFile.sName;
+            var sName = oInFile.sName;
             if (Utils_1.Utils.debug > 1) {
                 Utils_1.Utils.console.debug("fnFileLoad:", oInFile.sCommand, sName, "details:", oInFile);
             }
-            sInput = this.tryLoadingFromLocalStorage(sName);
+            var sInput = this.tryLoadingFromLocalStorage(sName);
             if (sInput !== null) {
                 if (Utils_1.Utils.debug > 0) {
                     Utils_1.Utils.console.debug("fnFileLoad:", oInFile.sCommand, sName, "from localStorage");
@@ -904,7 +907,7 @@ var Controller = /** @class */ (function () {
             }
         }
         else {
-            Utils_1.Utils.console.error("fnFileLoad:", sName, "File not open!");
+            Utils_1.Utils.console.error("fnFileLoad:", oInFile.sName, "File not open!"); // hopefully isName is defined
         }
         this.iNextLoopTimeOut = this.oVm.vmGetTimeUntilFrame(); // wait until next frame
     };
@@ -928,31 +931,36 @@ var Controller = /** @class */ (function () {
                 var aMeta = sMeta.split(";");
                 oMeta = {
                     sType: aMeta[1],
-                    iStart: aMeta[2],
-                    iLength: aMeta[3],
-                    iEntry: aMeta[4],
+                    iStart: Number(aMeta[2]),
+                    iLength: Number(aMeta[3]),
+                    iEntry: Number(aMeta[4]),
                     sEncoding: aMeta[5]
                 };
             }
         }
-        return {
-            oMeta: oMeta || {},
+        else {
+            oMeta = {};
+        }
+        var oMetaAndData = {
+            oMeta: oMeta,
             sData: sInput
         };
+        return oMetaAndData;
     };
     // run loop: fileSave
     Controller.prototype.fnFileSave = function () {
-        var oOutFile = this.oVm.vmGetOutFileObject(), oStorage = Utils_1.Utils.localStorage, sDefaultExtension = "", sName, sType, sStorageName, sFileData, sMeta;
+        var oOutFile = this.oVm.vmGetOutFileObject(), oStorage = Utils_1.Utils.localStorage;
+        var sDefaultExtension = "";
         if (oOutFile.bOpen) {
-            sType = oOutFile.sType;
-            sName = oOutFile.sName;
+            var sType = oOutFile.sType, sName = oOutFile.sName;
             if (sType === "P" || sType === "T") {
                 sDefaultExtension = "bas";
             }
             else if (sType === "B") {
                 sDefaultExtension = "bin";
             }
-            sStorageName = this.fnLocalStorageName(sName, sDefaultExtension);
+            var sStorageName = this.fnLocalStorageName(sName, sDefaultExtension);
+            var sFileData = void 0;
             if (oOutFile.aFileData) {
                 sFileData = oOutFile.aFileData.join("");
             }
@@ -972,7 +980,7 @@ var Controller = /** @class */ (function () {
                     Utils_1.Utils.console.warn(e);
                 }
             }
-            sMeta = this.joinMeta(oOutFile);
+            var sMeta = this.joinMeta(oOutFile);
             oStorage.setItem(sStorageName, sMeta + "," + sFileData);
             this.updateStorageDatabase("set", sStorageName);
             this.oVm.vmResetFileHandling(oOutFile); // make sure it is closed
@@ -983,19 +991,20 @@ var Controller = /** @class */ (function () {
         this.oVm.vmStop("", 0, true); // continue
     };
     Controller.prototype.fnDeleteLines = function (oParas) {
-        var sInputText = this.view.getAreaValue("inputText"), aLines = this.fnGetLinesInRange(sInputText, oParas.iFirst, oParas.iLast), iLine, i, oError, sInput;
+        var sInputText = this.view.getAreaValue("inputText"), aLines = this.fnGetLinesInRange(sInputText, oParas.iFirst, oParas.iLast);
+        var oError;
         if (aLines.length) {
-            for (i = 0; i < aLines.length; i += 1) {
-                iLine = parseInt(aLines[i], 10);
+            for (var i = 0; i < aLines.length; i += 1) {
+                var iLine = parseInt(aLines[i], 10);
                 if (isNaN(iLine)) {
                     oError = this.oVm.vmComposeError(Error(), 21, oParas.sCommand); // "Direct command found"
                     this.outputError(oError, true);
                     break;
                 }
-                aLines[i] = iLine; // keep just the line numbers
+                aLines[i] = String(iLine); // keep just the line numbers
             }
             if (!oError) {
-                sInput = aLines.join("\n");
+                var sInput = aLines.join("\n");
                 sInput = this.mergeScripts(sInputText, sInput); // delete sInput lines
                 this.setInputText(sInput);
             }
@@ -1012,10 +1021,9 @@ var Controller = /** @class */ (function () {
         this.invalidateScript();
     };
     Controller.prototype.fnList = function (oParas) {
-        var sInput = this.view.getAreaValue("inputText"), iStream = oParas.iStream, aLines = this.fnGetLinesInRange(sInput, oParas.iFirst, oParas.iLast), oRegExp = new RegExp(/([\x00-\x1f])/g), // eslint-disable-line no-control-regex
-        i, sLine;
-        for (i = 0; i < aLines.length; i += 1) {
-            sLine = aLines[i];
+        var sInput = this.view.getAreaValue("inputText"), iStream = oParas.iStream, aLines = this.fnGetLinesInRange(sInput, oParas.iFirst, oParas.iLast), oRegExp = new RegExp(/([\x00-\x1f])/g); // eslint-disable-line no-control-regex
+        for (var i = 0; i < aLines.length; i += 1) {
+            var sLine = aLines[i];
             if (iStream !== 9) {
                 sLine = sLine.replace(oRegExp, "\x01$1"); // escape control characters to print them directly
             }
@@ -1034,17 +1042,17 @@ var Controller = /** @class */ (function () {
         this.invalidateScript();
     };
     Controller.prototype.outputError = function (oError, bNoSelection) {
-        var iStream = 0, sShortError = oError.shortMessage || oError.message, sEscapedShortError, iEndPos;
+        var iStream = 0, sShortError = oError.shortMessage || oError.message;
         if (!bNoSelection) {
-            iEndPos = oError.pos + ((oError.value !== undefined) ? String(oError.value).length : 0);
+            var iEndPos = oError.pos + ((oError.value !== undefined) ? String(oError.value).length : 0);
             this.view.setAreaSelection("inputText", oError.pos, iEndPos);
         }
-        sEscapedShortError = sShortError.replace(/([\x00-\x1f])/g, "\x01$1"); // eslint-disable-line no-control-regex
+        var sEscapedShortError = sShortError.replace(/([\x00-\x1f])/g, "\x01$1"); // eslint-disable-line no-control-regex
         this.oVm.print(iStream, sEscapedShortError + "\r\n");
         return sShortError;
     };
     Controller.prototype.fnRenumLines = function (oParas) {
-        var oVm = this.oVm, sInput = this.view.getAreaValue("inputText"), oOutput;
+        var oVm = this.oVm, sInput = this.view.getAreaValue("inputText");
         if (!this.oBasicFormatter) {
             this.oBasicFormatter = new BasicFormatter_1.BasicFormatter({
                 lexer: new BasicLexer_1.BasicLexer(),
@@ -1052,7 +1060,7 @@ var Controller = /** @class */ (function () {
             });
         }
         this.oBasicFormatter.reset();
-        oOutput = this.oBasicFormatter.renumber(sInput, oParas.iNew, oParas.iOld, oParas.iStep, oParas.iKeep);
+        var oOutput = this.oBasicFormatter.renumber(sInput, oParas.iNew, oParas.iOld, oParas.iStep, oParas.iKeep);
         if (oOutput.error) {
             Utils_1.Utils.console.warn(oOutput.error);
             this.outputError(oOutput.error);
@@ -1067,7 +1075,8 @@ var Controller = /** @class */ (function () {
         return oOutput;
     };
     Controller.prototype.fnEditLineCallback = function () {
-        var oInput = this.oVm.vmGetStopObject().oParas, sInput = oInput.sInput, sInputText = this.view.getAreaValue("inputText");
+        var oInput = this.oVm.vmGetStopObject().oParas, sInputText = this.view.getAreaValue("inputText");
+        var sInput = oInput.sInput;
         sInput = this.mergeScripts(sInputText, sInput);
         this.setInputText(sInput);
         this.oVm.vmSetStartLine(0);
@@ -1078,9 +1087,10 @@ var Controller = /** @class */ (function () {
         return true;
     };
     Controller.prototype.fnEditLine = function (oParas) {
-        var sInput = this.view.getAreaValue("inputText"), iStream = oParas.iStream, iLine = oParas.iLine, aLines = this.fnGetLinesInRange(sInput, iLine, iLine), sLine, oError;
+        var sInput = this.view.getAreaValue("inputText"), iStream = oParas.iStream, iLine = oParas.iLine, //TTT
+        aLines = this.fnGetLinesInRange(sInput, iLine, iLine);
         if (aLines.length) {
-            sLine = aLines[0];
+            var sLine = aLines[0];
             this.oVm.print(iStream, sLine);
             this.oVm.cursor(iStream, 1);
             this.oVm.vmStop("waitInput", 45, true, {
@@ -1092,30 +1102,37 @@ var Controller = /** @class */ (function () {
             this.fnWaitInput();
         }
         else {
-            oError = this.oVm.vmComposeError(Error(), 8, String(iLine)); // "Line does not exist"
+            var oError = this.oVm.vmComposeError(Error(), 8, String(iLine)); // "Line does not exist"
             this.oVm.print(iStream, String(oError) + "\r\n");
             this.oVm.vmStop("stop", 60, true);
         }
     };
+    Controller.prototype.fnParseBench = function (sInput, iBench) {
+        var oOutput;
+        for (var i = 0; i < iBench; i += 1) {
+            this.oCodeGeneratorJs.reset();
+            var iTime = Date.now();
+            oOutput = this.oCodeGeneratorJs.generate(sInput, this.oVariables);
+            iTime = Date.now() - iTime;
+            Utils_1.Utils.console.debug("bench size", sInput.length, "labels", Object.keys(this.oCodeGeneratorJs.oLabels).length, "loop", i, ":", iTime, "ms");
+            if (oOutput.error) {
+                break;
+            }
+        }
+        return oOutput;
+    };
     Controller.prototype.fnParse = function () {
-        var sInput = this.view.getAreaValue("inputText"), iBench = this.model.getProperty("bench"), i, iTime, oOutput, sOutput;
+        var sInput = this.view.getAreaValue("inputText"), iBench = this.model.getProperty("bench");
         this.oVariables.removeAllVariables();
+        var oOutput;
         if (!iBench) {
             this.oCodeGeneratorJs.reset();
             oOutput = this.oCodeGeneratorJs.generate(sInput, this.oVariables);
         }
         else {
-            for (i = 0; i < iBench; i += 1) {
-                this.oCodeGeneratorJs.reset();
-                iTime = Date.now();
-                oOutput = this.oCodeGeneratorJs.generate(sInput, this.oVariables);
-                iTime = Date.now() - iTime;
-                Utils_1.Utils.console.debug("bench size", sInput.length, "labels", Object.keys(this.oCodeGeneratorJs.oLabels).length, "loop", i, ":", iTime, "ms");
-                if (oOutput.error) {
-                    break;
-                }
-            }
+            oOutput = this.fnParseBench(sInput, iBench);
         }
+        var sOutput;
         if (oOutput.error) {
             sOutput = this.outputError(oOutput.error);
         }
@@ -1156,17 +1173,19 @@ var Controller = /** @class */ (function () {
         //TTT need sOutput?
     };
     Controller.prototype.selectJsError = function (sScript, e) {
-        var iPos = 0, iLine = 0, iErrLine = e.lineNumber - 3; // for some reason line 0 is 3
+        var iLineNumber = e.lineNumber, iColumnNumber = e.columnNumber, iErrLine = iLineNumber - 3; // for some reason line 0 is 3
+        var iPos = 0, iLine = 0;
         while (iPos < sScript.length && iLine < iErrLine) {
             iPos = sScript.indexOf("\n", iPos) + 1;
             iLine += 1;
         }
-        iPos += e.columnNumber;
-        Utils_1.Utils.console.warn("Info: JS Error occurred at line", e.lineNumber, "column", e.columnNumber, "pos", iPos);
+        iPos += iColumnNumber;
+        Utils_1.Utils.console.warn("Info: JS Error occurred at line", iLineNumber, "column", iColumnNumber, "pos", iPos);
         this.view.setAreaSelection("outputText", iPos, iPos + 1);
     };
     Controller.prototype.fnRun = function (oParas) {
-        var sScript = this.view.getAreaValue("outputText"), iLine = oParas && oParas.iLine || 0, oVm = this.oVm;
+        var sScript = this.view.getAreaValue("outputText"), oVm = this.oVm;
+        var iLine = oParas && oParas.iLine || 0;
         iLine = iLine || 0;
         if (iLine === 0) {
             oVm.vmResetData(); // start from the beginning => also reset data! (or put it in line 0 in the script)
@@ -1195,7 +1214,7 @@ var Controller = /** @class */ (function () {
         oVm.vmReset4Run();
         if (!this.bInputSet) {
             this.bInputSet = true;
-            this.oKeyboard.putKeysInBuffer(this.model.getStringProperty("input"));
+            this.oKeyboard.putKeysInBuffer(this.model.getProperty("input"));
         }
         if (this.fnScript) {
             oVm.sOut = this.view.getAreaValue("resultText");
@@ -1242,7 +1261,7 @@ var Controller = /** @class */ (function () {
     };
     Controller.prototype.fnDirectInput = function () {
         var oInput = this.oVm.vmGetStopObject().oParas, iStream = oInput.iStream;
-        var sInput = oInput.sInput, oOutput, sOutput;
+        var sInput = oInput.sInput;
         sInput = sInput.trim();
         oInput.sInput = "";
         if (sInput !== "") {
@@ -1262,6 +1281,7 @@ var Controller = /** @class */ (function () {
                 return false; // continue direct input
             }
             Utils_1.Utils.console.log("fnDirectInput: execute:", sInput);
+            var oOutput = void 0, sOutput = void 0;
             if (sInputText) { // do we have a program?
                 oOutput = this.oCodeGeneratorJs.reset().generate(sInput + "\n" + sInputText, this.oVariables, true); // compile both; allow direct command
                 if (oOutput.error) {
@@ -1347,6 +1367,16 @@ var Controller = /** @class */ (function () {
     };
     Controller.prototype.fnBreak = function () {
         // empty
+        //TTT
+        /*
+        this.oRunLoop = new this.RunLoop(this);
+        this.oRunLoop.fnTest("msg1");
+        */
+        /*
+        if (this.oRunLoop.fnTest) {
+            this.oRunLoop.fnTest("ok1"); //TTT
+        }
+        */
     };
     Controller.prototype.fnDirect = function () {
         // TTT: break in direct mode?
@@ -1374,12 +1404,12 @@ var Controller = /** @class */ (function () {
         this.oVm.vmStop("", 0, true); // continue
     };
     Controller.prototype.fnRunLoop = function () {
-        var oStop = this.oVm.vmGetStopObject(), sHandler;
+        var oStop = this.oVm.vmGetStopObject();
         this.iNextLoopTimeOut = 0;
         if (!oStop.sReason && this.fnScript) {
             this.fnRunPart1(); // could change sReason
         }
-        sHandler = "fn" + Utils_1.Utils.stringCapitalize(oStop.sReason);
+        var sHandler = "fn" + Utils_1.Utils.stringCapitalize(oStop.sReason);
         if (sHandler in this) {
             this[sHandler](oStop.oParas);
         }
@@ -1474,8 +1504,8 @@ var Controller = /** @class */ (function () {
         return image;
     };
     Controller.prototype.fnPutKeyInBuffer = function (sKey) {
-        var oKeyDownHandler = this.oKeyboard.getKeyDownHandler();
         this.oKeyboard.putKeyInBuffer(sKey);
+        var oKeyDownHandler = this.oKeyboard.getKeyDownHandler();
         if (oKeyDownHandler) {
             oKeyDownHandler();
         }
@@ -1492,10 +1522,8 @@ var Controller = /** @class */ (function () {
         this.view.setAreaValue("inp2Text", "");
     };
     Controller.generateFunction = function (sPar, sFunction) {
-        var aArgs = [], iFirstIndex, iLastIndex, aMatch, fnFunction;
         if (sFunction.startsWith("function anonymous(")) { // already a modified function (inside an anonymous function)?
-            iFirstIndex = sFunction.indexOf("{");
-            iLastIndex = sFunction.lastIndexOf("}");
+            var iFirstIndex = sFunction.indexOf("{"), iLastIndex = sFunction.lastIndexOf("}");
             if (iFirstIndex >= 0 && iLastIndex >= 0) {
                 sFunction = sFunction.substring(iFirstIndex + 1, iLastIndex - 1); // remove anonymous function
             }
@@ -1504,30 +1532,24 @@ var Controller = /** @class */ (function () {
         else {
             sFunction = "var o=cpcBasic.controller.oVm, v=o.vmGetAllVariables(); v." + sPar + " = " + sFunction;
         }
-        aMatch = (/function \(([^)]*)/).exec(sFunction);
+        var aMatch = (/function \(([^)]*)/).exec(sFunction);
+        var aArgs = [];
         if (aMatch) {
             aArgs = aMatch[1].split(",");
         }
-        fnFunction = new Function(aArgs[0], aArgs[1], aArgs[2], aArgs[3], aArgs[4], sFunction); // eslint-disable-line no-new-func
+        var fnFunction = new Function(aArgs[0], aArgs[1], aArgs[2], aArgs[3], aArgs[4], sFunction); // eslint-disable-line no-new-func
         // we support at most 5 arguments
         return fnFunction;
     };
     Controller.prototype.changeVariable = function () {
-        var sPar = this.view.getSelectValue("varSelect"), sValue = this.view.getSelectValue("varText"), oVariables = this.oVariables, sVarType, sType, value, value2;
-        value = oVariables.getVariable(sPar);
-        if (typeof value === "function") { // TODO
+        var sPar = this.view.getSelectValue("varSelect"), sValue = this.view.getSelectValue("varText"), oVariables = this.oVariables;
+        var value = oVariables.getVariable(sPar);
+        if (typeof value === "function") {
             value = Controller.generateFunction(sPar, sValue);
-            /*
-            value = sValue;
-            value = "var o=cpcBasic.controller.oVm, v=o.vmGetAllVariables(); v." + sPar + " = " + sValue;
-            value = new Function("xR", value); // eslint-disable-line no-new-func
-            // new function must be called later with this.oVm, ...
-            */
             oVariables.setVariable(sPar, value);
         }
         else {
-            sVarType = this.oVariables.determineStaticVarType(sPar);
-            sType = this.oVm.vmDetermineVarType(sVarType); // do we know dynamic type?
+            var sVarType = this.oVariables.determineStaticVarType(sPar), sType = this.oVm.vmDetermineVarType(sVarType); // do we know dynamic type?
             if (sType !== "$") { // not string? => convert to number
                 value = parseFloat(sValue);
             }
@@ -1535,7 +1557,7 @@ var Controller = /** @class */ (function () {
                 value = sValue;
             }
             try {
-                value2 = this.oVm.vmAssign(sVarType, value);
+                var value2 = this.oVm.vmAssign(sVarType, value);
                 oVariables.setVariable(sPar, value2);
                 Utils_1.Utils.console.log("Variable", sPar, "changed:", oVariables.getVariable(sPar), "=>", value);
             }
@@ -1547,7 +1569,8 @@ var Controller = /** @class */ (function () {
         this.commonEventHandler.onVarSelectChange(); // title change?
     };
     Controller.prototype.setSoundActive = function () {
-        var oSound = this.oSound, soundButton = document.getElementById("soundButton"), bActive = this.model.getProperty("sound"), sText = "", oStop;
+        var oSound = this.oSound, soundButton = View_1.View.getElementById1("soundButton"), bActive = this.model.getProperty("sound");
+        var sText;
         if (bActive) {
             try {
                 oSound.soundOn();
@@ -1561,7 +1584,7 @@ var Controller = /** @class */ (function () {
         else {
             oSound.soundOff();
             sText = "Sound is off";
-            oStop = this.oVm && this.oVm.vmGetStopObject();
+            var oStop = this.oVm && this.oVm.vmGetStopObject();
             if (oStop && oStop.sReason === "waitSound") {
                 this.oVm.vmStop("", 0, true); // do not wait
             }
@@ -1572,23 +1595,23 @@ var Controller = /** @class */ (function () {
     // https://www.w3.org/TR/file-upload/#dfn-filereader
     Controller.prototype.fnHandleFileSelect = function (event) {
         var aFiles = event.dataTransfer ? event.dataTransfer.files : event.target.files, // dataTransfer for drag&drop, target.files for file input
-        iFile = 0, oStorage = Utils_1.Utils.localStorage, that = this, reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/), // eslint-disable-line no-control-regex
+        oStorage = Utils_1.Utils.localStorage, that = this, reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/), // eslint-disable-line no-control-regex
         // starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
-        aImported = [], f, oReader;
+        aImported = [];
+        var iFile = 0, f, oReader;
         function fnEndOfImport() {
-            var iStream = 0, oVm = that.oVm, i;
-            for (i = 0; i < aImported.length; i += 1) {
+            var iStream = 0, oVm = that.oVm;
+            for (var i = 0; i < aImported.length; i += 1) {
                 oVm.print(iStream, aImported[i], " ");
             }
             oVm.print(iStream, "\r\n", aImported.length + " file" + (aImported.length !== 1 ? "s" : "") + " imported.\r\n");
             that.updateResultText();
         }
         function fnReadNextFile() {
-            var sText;
             if (iFile < aFiles.length) {
                 f = aFiles[iFile];
                 iFile += 1;
-                sText = f.name + " " + (f.type || "n/a") + " " + f.size + " " + (f.lastModifiedDate ? f.lastModifiedDate.toLocaleDateString() : "n/a");
+                var sText = f.name + " " + (f.type || "n/a") + " " + f.size + " " + (f.lastModifiedDate ? f.lastModifiedDate.toLocaleDateString() : "n/a");
                 Utils_1.Utils.console.log(sText);
                 if (f.type === "text/plain") {
                     oReader.readAsText(f);
@@ -1620,8 +1643,7 @@ var Controller = /** @class */ (function () {
             fnReadNextFile();
         }
         function fnLoad2(sData, sName, sType) {
-            var sStorageName, sMeta, iIndex, oHeader, oDsk, oDir, aDiskFiles, i, sFileName, sInfo1;
-            sStorageName = that.oVm.vmAdaptFilename(sName, "FILE");
+            var oHeader, sStorageName = that.oVm.vmAdaptFilename(sName, "FILE");
             sStorageName = that.fnLocalStorageName(sStorageName);
             if (sType === "text/plain") {
                 oHeader = {
@@ -1634,9 +1656,9 @@ var Controller = /** @class */ (function () {
                 if (sType === "application/x-zip-compressed" || sType === "cpcBasic/binary") { // are we a file inside zip?
                 }
                 else { // e.g. "data:application/octet-stream;base64,..."
-                    iIndex = sData.indexOf(",");
+                    var iIndex = sData.indexOf(",");
                     if (iIndex >= 0) {
-                        sInfo1 = sData.substr(0, iIndex);
+                        var sInfo1 = sData.substr(0, iIndex);
                         sData = sData.substr(iIndex + 1); // remove meta prefix
                         if (sInfo1.indexOf("base64") >= 0) {
                             sData = Utils_1.Utils.atob(sData); // decode base64
@@ -1654,16 +1676,14 @@ var Controller = /** @class */ (function () {
                         iLength: sData.length
                     };
                 }
-                else if (DiskImage_1.DiskImage.testDiskIdent(sData.substr(0, 8)) !== null) { // disk image file?
+                else if (DiskImage_1.DiskImage.testDiskIdent(sData.substr(0, 8))) { // disk image file?
                     try {
-                        oDsk = new DiskImage_1.DiskImage({
+                        var oDsk = new DiskImage_1.DiskImage({
                             sData: sData,
                             sDiskName: sName
-                        });
-                        oDir = oDsk.readDirectory();
-                        aDiskFiles = Object.keys(oDir);
-                        for (i = 0; i < aDiskFiles.length; i += 1) {
-                            sFileName = aDiskFiles[i];
+                        }), oDir = oDsk.readDirectory(), aDiskFiles = Object.keys(oDir);
+                        for (var i = 0; i < aDiskFiles.length; i += 1) {
+                            var sFileName = aDiskFiles[i];
                             try { // eslint-disable-line max-depth
                                 sData = oDsk.readFile(oDir[sFileName]);
                                 fnLoad2(sData, sFileName, "cpcBasic/binary"); // recursive
@@ -1689,7 +1709,7 @@ var Controller = /** @class */ (function () {
                 }
             }
             if (oHeader) {
-                sMeta = that.joinMeta(oHeader);
+                var sMeta = that.joinMeta(oHeader);
                 try {
                     oStorage.setItem(sStorageName, sMeta + "," + sData);
                     that.updateStorageDatabase("set", sStorageName);
@@ -1706,8 +1726,9 @@ var Controller = /** @class */ (function () {
             }
         }
         function fnOnLoad(evt) {
-            var sData = evt.target.result, sName = f.name, sType = f.type, oZip, aEntries, i;
+            var sData = evt.target.result, sName = f.name, sType = f.type;
             if (sType === "application/x-zip-compressed") {
+                var oZip = void 0;
                 try {
                     oZip = new ZipFile_1.ZipFile(new Uint8Array(sData), sName); // rather aData
                 }
@@ -1716,19 +1737,20 @@ var Controller = /** @class */ (function () {
                     that.outputError(e, true);
                 }
                 if (oZip) {
-                    aEntries = Object.keys(oZip.oEntryTable);
-                    for (i = 0; i < aEntries.length; i += 1) {
-                        sName = aEntries[i];
+                    var aEntries = Object.keys(oZip.oEntryTable);
+                    for (var i = 0; i < aEntries.length; i += 1) {
+                        var sName2 = aEntries[i];
+                        var sData2 = void 0;
                         try {
-                            sData = oZip.readData(sName);
+                            sData2 = oZip.readData(sName2);
                         }
                         catch (e) {
                             Utils_1.Utils.console.error(e);
                             that.outputError(e, true);
-                            sData = null;
+                            sData2 = null;
                         }
-                        if (sData) {
-                            fnLoad2(sData, sName, sType);
+                        if (sData2) {
+                            fnLoad2(sData2, sName2, sType);
                         }
                     }
                 }
@@ -1756,12 +1778,12 @@ var Controller = /** @class */ (function () {
         evt.dataTransfer.dropEffect = "copy"; // Explicitly show this is a copy.
     };
     Controller.prototype.initDropZone = function () {
-        var dropZone = document.getElementById("dropZone");
+        var dropZone = View_1.View.getElementById1("dropZone");
         dropZone.addEventListener("dragover", this.fnHandleDragOver.bind(this), false);
         dropZone.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
         this.oCanvas.canvas.addEventListener("dragover", this.fnHandleDragOver.bind(this), false); //TTT fast hack
         this.oCanvas.canvas.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
-        document.getElementById("fileInput").addEventListener("change", this.fnHandleFileSelect.bind(this), false);
+        View_1.View.getElementById1("fileInput").addEventListener("change", this.fnHandleFileSelect.bind(this), false);
     };
     Controller.prototype.fnUpdateUndoRedoButtons = function () {
         this.view.setDisabled("undoButton", !this.inputStack.canUndoKeepOne());
@@ -1781,11 +1803,11 @@ var Controller = /** @class */ (function () {
     // currently not used. Can be called manually: cpcBasic.controller.exportAsBase64(file);
     Controller.exportAsBase64 = function (sStorageName) {
         var oStorage = Utils_1.Utils.localStorage;
-        var sData = oStorage.getItem(sStorageName), sOut = "", sMeta = "";
+        var sData = oStorage.getItem(sStorageName), sOut = "";
         if (sData !== null) {
             var iIndex = sData.indexOf(","); // metadata separator
             if (iIndex >= 0) {
-                sMeta = sData.substr(0, iIndex);
+                var sMeta = sData.substr(0, iIndex);
                 sData = sData.substr(iIndex + 1);
                 sData = Utils_1.Utils.btoa(sData);
                 sOut = sMeta + ";base64," + sData;

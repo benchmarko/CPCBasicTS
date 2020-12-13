@@ -51,17 +51,17 @@ interface Queue {
 
 
 export class Sound {
-	bIsSoundOn!: boolean;
+	bIsSoundOn: boolean;
 	bIsActivatedByUser!: boolean;
 	context?: AudioContext;
 	oMergerNode?: ChannelMergerNode;
-	aGainNodes!: GainNode[];
-	aOscillators!: (OscillatorNode | undefined)[]; // 3 oscillators left, middle, right
-	aQueues!: Queue[]; // node queues and info for the three channels
-	fScheduleAheadTime = 0.1; // 100 ms
-	aVolEnv!: VolEnvData[][];
-	aToneEnv!: ToneEnvData[][];
-	iReleaseMask!: number;
+	aGainNodes: GainNode[];
+	aOscillators: (OscillatorNode | undefined)[]; // 3 oscillators left, middle, right
+	aQueues: Queue[]; // node queues and info for the three channels
+	fScheduleAheadTime: number;
+	aVolEnv: VolEnvData[][];
+	aToneEnv: ToneEnvData[][];
+	iReleaseMask: number;
 	aDebugLog?: [number, string][];
 
 	constructor() {
@@ -85,7 +85,7 @@ export class Sound {
 			};
 		}
 
-		//this.fScheduleAheadTime = 0.1; // 100 ms
+		this.fScheduleAheadTime = 0.1; // 100 ms
 		this.aVolEnv = [];
 		this.aToneEnv = [];
 		this.iReleaseMask = 0;
@@ -134,7 +134,7 @@ export class Sound {
 		}
 	}
 
-	debugLog(sMsg: string) {
+	private debugLog(sMsg: string) {
 		if (this.aDebugLog) {
 			this.aDebugLog.push([
 				this.context ? this.context.currentTime : 0,
@@ -148,6 +148,7 @@ export class Sound {
 
 		for (let i = 0; i < aQueues.length; i += 1) {
 			const oQueue = aQueues[i];
+
 			oQueue.aSoundData.length = 0;
 			oQueue.fNextNoteTime = 0;
 			oQueue.bOnHold = false;
@@ -156,20 +157,20 @@ export class Sound {
 	}
 
 	private createSoundContext() {
-		const context = new window.AudioContext(), // may produce exception if not available
-			aChannelMap2Cpc = [ // channel map for CPC: left, middle (center), right; so swap middle and right
+		const aChannelMap2Cpc = [ // channel map for CPC: left, middle (center), right; so swap middle and right
 				0,
 				2,
 				1
-			];
+			],
+			context = new window.AudioContext(), // may produce exception if not available
+			oMergerNode = context.createChannelMerger(6); // create mergerNode with 6 inputs; we are using the first 3 for left, right, center
 
 		this.context = context;
-
-		const oMergerNode = context.createChannelMerger(6); // create mergerNode with 6 inputs; we are using the first 3 for left, right, center
 		this.oMergerNode = oMergerNode;
 
 		for (let i = 0; i < 3; i += 1) {
 			const oGainNode = context.createGain();
+
 			oGainNode.connect(oMergerNode, 0, aChannelMap2Cpc[i]); // connect output #0 of gainNode i to input #j of the mergerNode
 			this.aGainNodes[i] = oGainNode;
 		}
@@ -179,20 +180,19 @@ export class Sound {
 		const ctx = this.context as AudioContext,
 			bufferSize = ctx.sampleRate * fDuration, // set the time of the note
 			buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate), // create an empty buffer
-			data = buffer.getChannelData(0); // get data
+			data = buffer.getChannelData(0), // get data
+			noise = ctx.createBufferSource(); // create a buffer source for noise data
 
 		// fill the buffer with noise
 		for (let i = 0; i < bufferSize; i += 1) {
 			data[i] = Math.random() * 2 - 1;
 		}
 
-		// create a buffer source for our created data
-		const noise = ctx.createBufferSource();
 		noise.buffer = buffer;
 
 		if (iNoise > 1) {
-			const bandHz = 20000 / iNoise;
-			const bandpass = ctx.createBiquadFilter();
+			const bandHz = 20000 / iNoise,
+				bandpass = ctx.createBiquadFilter();
 
 			bandpass.type = "bandpass";
 			bandpass.frequency.value = bandHz;
@@ -210,14 +210,17 @@ export class Sound {
 			i100ms2sec = 100; // time duration unit: 1/100 sec=10 ms, convert to sec
 
 		let iTime = 0;
+
 		for (let iLoop = 0; iLoop < iVolEnvRepeat; iLoop += 1) {
 			for (let iPart = 0; iPart < aVolData.length; iPart += 1) {
 				const oGroup = aVolData[iPart];
+
 				if ((oGroup as VolEnvData1).steps !== undefined) {
-					const oGroup1 = oGroup as VolEnvData1;
+					const oGroup1 = oGroup as VolEnvData1,
+						iVolDiff = oGroup1.diff,
+						iVolTime = oGroup1.time;
 					let iVolSteps = oGroup1.steps;
-					const iVolDiff = oGroup1.diff;
-					const iVolTime = oGroup1.time;
+
 					if (!iVolSteps) { // steps=0
 						iVolSteps = 1;
 						iVolume = 0; // we will set iVolDiff as absolute volume
@@ -225,6 +228,7 @@ export class Sound {
 					for (let i = 0; i < iVolSteps; i += 1) {
 						iVolume = (iVolume + iVolDiff) % (iMaxVolume + 1);
 						const fVolume = iVolume / iMaxVolume;
+
 						oGain.setValueAtTime(fVolume * fVolume, fTime + iTime / i100ms2sec);
 						iTime += iVolTime;
 						if (iDuration && iTime >= iDuration) { // eslint-disable-line max-depth
@@ -236,13 +240,14 @@ export class Sound {
 				} else { // register
 					const oGroup2 = oGroup as VolEnvData2,
 						iRegister = oGroup2.register,
-						iPeriod = oGroup2.period;
+						iPeriod = oGroup2.period,
+						iVolTime = iPeriod;
 
 					if (iRegister === 0) {
 						iVolume = 15;
 						let fVolume = iVolume / iMaxVolume;
+
 						oGain.setValueAtTime(fVolume * fVolume, fTime + iTime / i100ms2sec);
-						const iVolTime = iPeriod;
 						iTime += iVolTime;
 						fVolume = 0;
 						oGain.linearRampToValueAtTime(fVolume, fTime + iTime / i100ms2sec); // or: exponentialRampToValueAtTime?
@@ -263,30 +268,21 @@ export class Sound {
 			bRepeat = aToneData[0],
 			iToneEnvRepeat = bRepeat ? 5 : 1; // we use at most 5
 
-		/*
-		if (bRepeat) {
-			iToneEnvRepeat = 5; // we use at most 5 //TTT
-		}
-		*/
-
 		let iTime = 0;
+
 		for (let iLoop = 0; iLoop < iToneEnvRepeat; iLoop += 1) {
 			for (let iPart = 0; iPart < aToneData.length; iPart += 1) {
 				const oGroup = aToneData[iPart];
+
 				if ((oGroup as ToneEnvData1).steps !== undefined) {
 					const oGroup1 = oGroup as ToneEnvData1,
 						iToneSteps = oGroup1.steps || 1, // steps 0 => 1
 						iToneDiff = oGroup1.diff,
 						iToneTime = oGroup1.time;
 
-					/*
-					if (!iToneSteps) { // steps=0
-						iToneSteps = 1;
-					}
-					*/
-
 					for (let i = 0; i < iToneSteps; i += 1) {
 						const fFrequency = (iPeriod >= 3) ? 62500 / iPeriod : 0;
+
 						oFrequency.setValueAtTime(fFrequency, fTime + iTime / i100ms2sec);
 						iPeriod += iToneDiff;
 						iTime += iToneTime;
@@ -297,12 +293,12 @@ export class Sound {
 						}
 					}
 				} else { // absolute period
-					const oGroup2 = oGroup as ToneEnvData2;
+					const oGroup2 = oGroup as ToneEnvData2,
+						iToneTime = oGroup2.time;
 
 					iPeriod = oGroup2.period;
 
-					const iToneTime = oGroup2.time,
-						fFrequency = (iPeriod >= 3) ? 62500 / iPeriod : 0;
+					const fFrequency = (iPeriod >= 3) ? 62500 / iPeriod : 0;
 
 					oFrequency.setValueAtTime(fFrequency, fTime + iTime / i100ms2sec);
 					// TODO
@@ -326,6 +322,7 @@ export class Sound {
 			this.debugLog("scheduleNote: " + iOscillator + " " + fTime);
 		}
 		const oOscillator = ctx.createOscillator();
+
 		oOscillator.type = "square";
 
 		oOscillator.frequency.value = (oSoundData.iPeriod >= 3) ? 62500 / oSoundData.iPeriod : 0;
@@ -342,6 +339,7 @@ export class Sound {
 		oGain.setValueAtTime(fVolume * fVolume, fTime); // start volume
 
 		let iDuration = oSoundData.iDuration;
+
 		if (iDuration < 0) { // <0: repeat volume envelope?
 			iVolEnvRepeat = Math.min(5, -iDuration); // we limit repeat to 5 times sice we precompute duration
 			iDuration = 0;
@@ -359,6 +357,7 @@ export class Sound {
 		}
 
 		const fDuration = iDuration / i100ms2sec;
+
 		oOscillator.start(fTime);
 		oOscillator.stop(fTime + fDuration);
 		this.aOscillators[iOscillator] = oOscillator;
@@ -377,6 +376,7 @@ export class Sound {
 		/* eslint-disable no-bitwise */
 		} else if (!(iState & 0x80)) { // 0x80: flush
 			const aQueues = this.aQueues;
+
 			if ((iState & 0x01 && aQueues[0].aSoundData.length >= 4)
 				|| (iState & 0x02 && aQueues[1].aSoundData.length >= 4)
 				|| (iState & 0x04 && aQueues[2].aSoundData.length >= 4)) {
@@ -397,8 +397,9 @@ export class Sound {
 			iState = oSoundData.iState;
 
 		for (let i = 0; i < 3; i += 1) {
-			const oQueue = aQueues[i];
 			if ((iState >> i) & 0x01) { // eslint-disable-line no-bitwise
+				const oQueue = aQueues[i];
+
 				if (iState & 0x80) { // eslint-disable-line no-bitwise
 					oQueue.aSoundData.length = 0; // flush queue
 					oQueue.fNextNoteTime = 0;
@@ -447,17 +448,18 @@ export class Sound {
 		const oContext = this.context as AudioContext,
 			fCurrentTime = oContext.currentTime,
 			aQueues = this.aQueues;
-
 		let iCanPlayMask = 0;
 
 		for (let i = 0; i < 3; i += 1) {
 			const oQueue = aQueues[i];
+
 			while (oQueue.aSoundData.length && !oQueue.bOnHold && oQueue.fNextNoteTime < fCurrentTime + this.fScheduleAheadTime) { // something to schedule and not on hold and time reached
 				if (!oQueue.iRendevousMask) { // no rendevous needed, schedule now
-					const oSoundData = oQueue.aSoundData.shift() as SoundData;
 					if (oQueue.fNextNoteTime < fCurrentTime) {
 						oQueue.fNextNoteTime = fCurrentTime;
 					}
+					const oSoundData = oQueue.aSoundData.shift() as SoundData;
+
 					oQueue.fNextNoteTime += this.scheduleNote(i, oQueue.fNextNoteTime, oSoundData);
 					this.updateQueueStatus(i, oQueue); // check if next note on hold
 				} else { // need rendevous
@@ -473,12 +475,14 @@ export class Sound {
 
 		for (let i = 0; i < 3; i += 1) {
 			const oQueue = aQueues[i];
+
 			// we can play, if in rendevous
 			if ((iCanPlayMask >> i) & 0x01 && ((oQueue.iRendevousMask & iCanPlayMask) === oQueue.iRendevousMask)) { // eslint-disable-line no-bitwise
-				const oSoundData = oQueue.aSoundData.shift() as SoundData;
 				if (oQueue.fNextNoteTime < fCurrentTime) {
 					oQueue.fNextNoteTime = fCurrentTime;
 				}
+				const oSoundData = oQueue.aSoundData.shift() as SoundData;
+
 				oQueue.fNextNoteTime += this.scheduleNote(i, oQueue.fNextNoteTime, oSoundData);
 				this.updateQueueStatus(i, oQueue); // check if next note on hold
 			}
@@ -497,8 +501,9 @@ export class Sound {
 		}
 
 		for (let i = 0; i < 3; i += 1) {
-			const oQueue = aQueues[i];
-			const aSoundData = oQueue.aSoundData;
+			const oQueue = aQueues[i],
+				aSoundData = oQueue.aSoundData;
+
 			if (((iReleaseMask >> i) & 0x01) && aSoundData.length && oQueue.bOnHold) { // eslint-disable-line no-bitwise
 				oQueue.bOnHold = false; // release
 			}
@@ -513,6 +518,7 @@ export class Sound {
 			oContext = this.context as AudioContext;
 
 		let iSq = 4 - aSoundData.length;
+
 		if (iSq < 0) {
 			iSq = 0;
 		}

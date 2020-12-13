@@ -13,17 +13,15 @@ export interface SelectOptionElement { // similar to HtmlOptionElement
 }
 
 export class View {
-	//static fnEventHandler = null;
-
 	constructor() {
 		this.init();
 	}
 
-	init() {
-		//this.bDirty = false;
+	init(): void { // eslint-disable-line class-methods-use-this
+		// empty
 	}
 
-	static getElementById1(sId: string) {
+	static getElementById1(sId: string): HTMLElement {
 		const element = document.getElementById(sId);
 
 		if (!element) {
@@ -32,12 +30,13 @@ export class View {
 		return element;
 	}
 
-	getHidden(sId: string): boolean {
+	getHidden(sId: string): boolean { // eslint-disable-line class-methods-use-this
 		const element = View.getElementById1(sId);
 
 		return element.className.indexOf("displayNone") >= 0;
 	}
-	setHidden(sId: string, bHidden: boolean, sDisplay?: string) { // optional sDisplay: block or flex
+	setHidden(sId: string, bHidden: boolean, sDisplay?: string): this { // eslint-disable-line class-methods-use-this
+		// optional sDisplay: block or flex
 		const element = View.getElementById1(sId),
 			sDisplayVisible = "display" + Utils.stringCapitalize(sDisplay || "block");
 
@@ -60,14 +59,14 @@ export class View {
 		return this;
 	}
 
-	setDisabled(sId: string, bDisabled: boolean) {
-		var element = View.getElementById1(sId);
+	setDisabled(sId: string, bDisabled: boolean): this {
+		const element = View.getElementById1(sId) as HTMLButtonElement;
 
-		(element as HTMLButtonElement).disabled = bDisabled;
+		element.disabled = bDisabled;
 		return this;
 	}
 
-	toggleClass(sId: string, sClassName: string) {
+	toggleClass(sId: string, sClassName: string): void { // eslint-disable-line class-methods-use-this
 		const element = View.getElementById1(sId);
 		let sClasses = element.className;
 		const iNameIndex = sClasses.indexOf(sClassName);
@@ -80,36 +79,34 @@ export class View {
 		element.className = sClasses;
 	}
 
-	getAreaValue(sId: string) {
-		const element = View.getElementById1(sId);
+	getAreaValue(sId: string): string { // eslint-disable-line class-methods-use-this
+		const element = View.getElementById1(sId) as HTMLTextAreaElement;
 
-		return (element as HTMLTextAreaElement).value;
+		return element.value;
 	}
 	setAreaValue(sId: string, sValue: string): this {
-		const element = View.getElementById1(sId);
+		const element = View.getElementById1(sId) as HTMLTextAreaElement;
 
-		(element as HTMLTextAreaElement).value = sValue;
+		element.value = sValue;
 		return this;
 	}
 
-	setSelectOptions(sId: string, aOptions: SelectOptionElement[]) {
-		const element = View.getElementById1(sId),
-			select = element as HTMLSelectElement;
+	setSelectOptions(sId: string, aOptions: SelectOptionElement[]): this {
+		const element = View.getElementById1(sId) as HTMLSelectElement;
 
 		for (let i = 0; i < aOptions.length; i += 1) {
 			const oItem = aOptions[i];
-
 			let option: HTMLOptionElement;
- 
-			if (i >= select.length) {
+
+			if (i >= element.length) {
 				option = document.createElement("option");
 				option.value = oItem.value;
 				option.text = oItem.text;
 				option.title = oItem.title;
 				option.selected = oItem.selected; // multi-select
-				select.add(option, null); // null needed for old FF 3.x
+				element.add(option, null); // null needed for old FF 3.x
 			} else {
-				option = select.options[i];
+				option = element.options[i];
 				if (option.value !== oItem.value) {
 					option.value = oItem.value;
 				}
@@ -122,60 +119,55 @@ export class View {
 				}
 				option.selected = oItem.selected; // multi-select
 			}
-
-			/*
-			if (oItem.selected) { // multi-select
-				option.selected = oItem.selected;
-			}
-			*/
 		}
 		// remove additional select options
-		select.options.length = aOptions.length;
+		element.options.length = aOptions.length;
 		return this;
 	}
-	getSelectValue(sId: string) {
-		const element = View.getElementById1(sId);
+	getSelectValue(sId: string): string { // eslint-disable-line class-methods-use-this
+		const element = View.getElementById1(sId) as HTMLSelectElement;
 
-		return (element as HTMLSelectElement).value;
+		return element.value;
 	}
-	setSelectValue(sId: string, sValue: string) {
-		const element = View.getElementById1(sId);
+	setSelectValue(sId: string, sValue: string): this {
+		const element = View.getElementById1(sId) as HTMLSelectElement;
 
 		if (sValue) {
-			(element as HTMLSelectElement).value = sValue;
+			element.value = sValue;
 		}
 		return this;
 	}
-	setSelectTitleFromSelectedOption(sId: string) {
-		const element = View.getElementById1(sId),
-			select = element as HTMLSelectElement,
-			iSelectedIndex = select.selectedIndex,
-			sTitle = (iSelectedIndex >= 0) ? select.options[iSelectedIndex].title : "";
+	setSelectTitleFromSelectedOption(sId: string): this {
+		const element = View.getElementById1(sId) as HTMLSelectElement,
+			iSelectedIndex = element.selectedIndex,
+			sTitle = (iSelectedIndex >= 0) ? element.options[iSelectedIndex].title : "";
 
-		select.title = sTitle;
+		element.title = sTitle;
 		return this;
 	}
 
-	setAreaScrollTop(sId: string, iScrollTop?: number) {
-		const element = View.getElementById1(sId),
-			area = element as HTMLTextAreaElement;
+	setAreaScrollTop(sId: string, iScrollTop?: number): this { // eslint-disable-line class-methods-use-this
+		const element = View.getElementById1(sId) as HTMLTextAreaElement;
 
 		if (iScrollTop === undefined) {
-			iScrollTop = area.scrollHeight;
+			iScrollTop = element.scrollHeight;
 		}
-		area.scrollTop = iScrollTop;
+		element.scrollTop = iScrollTop;
+		return this;
 	}
 
-	private setSelectionRange(textarea: HTMLTextAreaElement, selectionStart: number, selectionEnd: number) {
+	private setSelectionRange(textarea: HTMLTextAreaElement, selectionStart: number, selectionEnd: number) { // eslint-disable-line class-methods-use-this
 		// First scroll selection region to view
 		const fullText = textarea.value;
+
 		textarea.value = fullText.substring(0, selectionEnd);
 		// For some unknown reason, you must store the scollHeight to a variable before setting the textarea value. Otherwise it won't work for long strings
 		const scrollHeight = textarea.scrollHeight;
+
 		textarea.value = fullText;
 		const textareaHeight = textarea.clientHeight;
-
 		let scrollTop = scrollHeight;
+
 		if (scrollTop > textareaHeight) {
 			// scroll selection to center of textarea
 			scrollTop -= textareaHeight / 2;
@@ -186,20 +178,20 @@ export class View {
 
 		// Continue to set selection range
 		textarea.setSelectionRange(selectionStart, selectionEnd);
+		return this;
 	}
 
 	setAreaSelection(sId: string, iPos: number, iEndPos: number): this {
-		const element = View.getElementById1(sId),
-			area = element as HTMLTextAreaElement;
+		const element = View.getElementById1(sId) as HTMLTextAreaElement;
 
-		if (area.selectionStart !== undefined) {
-			if (area.setSelectionRange !== undefined) {
-				area.focus(); // not needed for scrolling but we want to see the selected text
-				this.setSelectionRange(area, iPos, iEndPos);
+		if (element.selectionStart !== undefined) {
+			if (element.setSelectionRange !== undefined) {
+				element.focus(); // not needed for scrolling but we want to see the selected text
+				this.setSelectionRange(element, iPos, iEndPos);
 			} else {
-				area.focus();
-				area.selectionStart = iPos;
-				area.selectionEnd = iEndPos;
+				element.focus();
+				element.selectionStart = iPos;
+				element.selectionEnd = iEndPos;
 			}
 		}
 		return this;

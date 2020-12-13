@@ -18,15 +18,8 @@ var Model = /** @class */ (function () {
     Model.prototype.getProperty = function (sProperty) {
         return this.config[sProperty];
     };
-    Model.prototype.getStringProperty = function (sProperty) {
-        return this.config[sProperty];
-    };
-    Model.prototype.getBooleanProperty = function (sProperty) {
-        return this.config[sProperty];
-    };
     Model.prototype.setProperty = function (sProperty, value) {
         this.config[sProperty] = value;
-        return this;
     };
     Model.prototype.getAllProperties = function () {
         return this.config;
@@ -42,40 +35,37 @@ var Model = /** @class */ (function () {
                 this.examples[sPar] = {};
             }
         }
-        return this;
     };
     Model.prototype.getAllDatabases = function () {
         return this.databases;
     };
     Model.prototype.getDatabase = function () {
-        var sDatabase = this.getStringProperty("database");
+        var sDatabase = this.getProperty("database");
         return this.databases[sDatabase];
     };
     Model.prototype.getAllExamples = function () {
-        var sDatabase = this.getStringProperty("database");
+        var sDatabase = this.getProperty("database");
         return this.examples[sDatabase];
     };
     Model.prototype.getExample = function (sKey) {
-        var sDatabase = this.getStringProperty("database");
+        var sDatabase = this.getProperty("database");
         return this.examples[sDatabase][sKey];
     };
     Model.prototype.setExample = function (oExample) {
-        var sDatabase = this.getStringProperty("database"), sKey = oExample.key;
+        var sDatabase = this.getProperty("database"), sKey = oExample.key;
         if (!this.examples[sDatabase][sKey]) {
             if (Utils_1.Utils.debug > 1) {
                 Utils_1.Utils.console.debug("setExample: creating new example:", sKey);
             }
         }
         this.examples[sDatabase][sKey] = oExample;
-        return this;
     };
     Model.prototype.removeExample = function (sKey) {
-        var sDatabase = this.getStringProperty("database");
+        var sDatabase = this.getProperty("database");
         if (!this.examples[sDatabase][sKey]) {
             Utils_1.Utils.console.warn("removeExample: example does not exist: " + sKey);
         }
         delete this.examples[sDatabase][sKey];
-        return this;
     };
     return Model;
 }());

@@ -18,7 +18,7 @@ export declare class View {
     getSelectValue(sId: string): string;
     setSelectValue(sId: string, sValue: string): this;
     setSelectTitleFromSelectedOption(sId: string): this;
-    setAreaScrollTop(sId: string, iScrollTop?: number): void;
+    setAreaScrollTop(sId: string, iScrollTop?: number): this;
     private setSelectionRange;
     setAreaSelection(sId: string, iPos: number, iEndPos: number): this;
     attachEventHandler(sType: string, fnEventHandler: EventListener): this;

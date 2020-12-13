@@ -2,8 +2,6 @@
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 
-"use strict";
-
 //
 // Random number generator taken from:
 // Raj Jain: The Art of Computer Systems Performance Analysis, John Wiley & Sons, 1991, page 442-444
@@ -14,12 +12,12 @@ export class Random {
 	constructor(nSeed?: number) {
 		this.init(nSeed);
 	}
-	
-	init(nSeed?: number) {
+
+	init(nSeed?: number): void {
 		this.x = nSeed || 1; // do not use 0
 	}
 
-	random() {
+	random(): number {
 		const m = 2147483647, // prime number 2^31-1; modulus, do not change!
 			a = 16807, // 7^5, one primitive root; multiplier
 			q = 127773, // m div a
@@ -34,4 +32,4 @@ export class Random {
 		this.x = x;
 		return x / m;
 	}
-};
+}

@@ -62,16 +62,16 @@ var BasicTokenizer = /** @class */ (function () {
         // Check also: https://mfukar.github.io/2015/10/29/amstrad-fp.html
         // Example PI: b=[0xa2,0xda,0x0f,0x49,0x82]; e=b[4]-128; m=(b[3] >= 128 ? -1 : +1) * (0x80000000 + ((b[3] & 0x7f) <<24) + (b[2] << 16) + (b[1] <<8) + b[0]); z=m*Math.pow(2,e-32);console.log(m,e,z)
         fnNumFp = function () {
-            var value = fnNum32Dec(), // signed integer
-            exponent = fnNum8Dec(), mantissa, sOut;
+            var value = fnNum32Dec(); // signed integer
+            var exponent = fnNum8Dec(), sOut;
             if (!exponent) { // exponent zero? => 0
                 sOut = "0";
             }
             else { // beware: JavaScript has no unsigned int except for ">>> 0"
-                mantissa = value >= 0 ? value + 0x80000000 : value;
+                var mantissa = value >= 0 ? value + 0x80000000 : value;
                 exponent -= 0x81; // 2-complement: 2^-127 .. 2^128
-                sOut = mantissa * Math.pow(2, exponent - 31);
-                sOut = sOut.toPrecision(9); // some rounding, formatting
+                var iNum = mantissa * Math.pow(2, exponent - 31);
+                sOut = iNum.toPrecision(9); // some rounding, formatting
                 if (sOut.indexOf("e") >= 0) {
                     sOut = sOut.replace(/\.?0*e/, "E"); // exponential uppercase, no zeros
                     sOut = sOut.replace(/(E[+-])(\d)$/, "$10$2"); // exponent 1 digit to 2 digits
@@ -82,30 +82,29 @@ var BasicTokenizer = /** @class */ (function () {
             }
             return sOut;
         }, fnGetBit7TerminatedString = function () {
-            var sData = that.sInput, iPos = that.iPos, sOut;
+            var sData = that.sInput;
+            var iPos = that.iPos;
             while (sData.charCodeAt(iPos) <= 0x7f) { // last character b7=1 (>= 0x80)
                 iPos += 1;
             }
-            sOut = sData.substring(that.iPos, iPos) + String.fromCharCode(sData.charCodeAt(iPos) & 0x7f); // eslint-disable-line no-bitwise
+            var sOut = sData.substring(that.iPos, iPos) + String.fromCharCode(sData.charCodeAt(iPos) & 0x7f); // eslint-disable-line no-bitwise
             that.iPos = iPos + 1;
             return sOut;
         }, fnVar = function () {
-            var sOut;
             fnNum16Dec(); // ignore offset
-            sOut = fnGetBit7TerminatedString();
+            var sOut = fnGetBit7TerminatedString();
             return sOut;
         }, fnRsx = function () {
-            var sOut = "";
             fnNum8Dec(); // ignore length
-            sOut = fnGetBit7TerminatedString();
+            var sOut = fnGetBit7TerminatedString();
             return "|" + sOut;
         }, fnStringUntilEol = function () {
             var sOut = that.sInput.substring(that.iPos, that.iLineEnd - 1); // take remaining line
             that.iPos = that.iLineEnd;
             return sOut;
         }, fnQuotedString = function () {
-            var sOut = "", iClosingQuotes;
-            iClosingQuotes = that.sInput.indexOf('"', that.iPos);
+            var iClosingQuotes = that.sInput.indexOf('"', that.iPos);
+            var sOut = "";
             if (iClosingQuotes < 0 || iClosingQuotes >= that.iLineEnd) { // unclosed quoted string (quotes not found or not in this line)
                 sOut = fnStringUntilEol(); // take remaining line
             }
@@ -358,19 +357,19 @@ var BasicTokenizer = /** @class */ (function () {
             0x7e: "COPYCHR$",
             0x7f: "VPOS"
         }, fnParseNextLine = function () {
-            var sInput = that.sInput, sOut = "", bSpace = false, iLineLength, iToken, iNextToken, bOldSpace, tstr;
-            iLineLength = fnNum16Dec();
+            var sInput = that.sInput, iLineLength = fnNum16Dec();
             if (!iLineLength) {
                 return null; // nothing more
             }
             that.iLineEnd = that.iPos + iLineLength - 2;
             that.iLine = fnNum16Dec();
+            var sOut = "", bSpace = false;
             while (that.iPos < that.iLineEnd) {
-                bOldSpace = bSpace;
-                iToken = fnNum8Dec();
+                var bOldSpace = bSpace;
+                var iToken = fnNum8Dec();
                 if (iToken === 0x01) { // statement seperator ":"?
                     if (that.iPos < sInput.length) {
-                        iNextToken = sInput.charCodeAt(that.iPos); // test next token
+                        var iNextToken = sInput.charCodeAt(that.iPos); // test next token
                         if (iNextToken === 0x97 || iNextToken === 0xc0) { // ELSE or rem '?
                             iToken = iNextToken; // ignore ':'
                             that.iPos += 1;
@@ -378,16 +377,21 @@ var BasicTokenizer = /** @class */ (function () {
                     }
                 }
                 bSpace = ((iToken >= 0x02 && iToken <= 0x1f) || (iToken === 0x7c)); // constant 0..9; variable, or RSX?
+                var token = void 0;
                 if (iToken === 0xff) { // extended token?
                     iToken = fnNum8Dec(); // get it
-                    tstr = mTokensFF[iToken];
+                    token = mTokensFF[iToken];
                 }
                 else {
-                    tstr = mTokens[iToken];
+                    token = mTokens[iToken];
                 }
-                if (tstr !== undefined) {
-                    if (typeof tstr === "function") {
-                        tstr = tstr();
+                var tstr = void 0;
+                if (token !== undefined) {
+                    if (typeof token === "function") {
+                        tstr = token();
+                    }
+                    else { // string
+                        tstr = token;
                     }
                     if ((/[a-zA-Z0-9.]$/).test(tstr) && iToken !== 0xe4) { // last character char, number, dot? (not for token "FN")
                         bSpace = true; // maybe need space next time...

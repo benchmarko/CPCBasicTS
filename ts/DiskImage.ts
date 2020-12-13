@@ -226,15 +226,15 @@ export class DiskImage {
 		return Utils.composeError.apply(null, aArgs);
 	}
 
-	static testDiskIdent(sIdent: string): boolean {
-		let bExtended: boolean;
+	static testDiskIdent(sIdent: string): number {
+		let iDiskType = 0;
 
 		if (sIdent === "MV - CPC") {
-			bExtended = false;
+			iDiskType = 1;
 		} else if (sIdent === "EXTENDED") {
-			bExtended = true;
+			iDiskType = 2;
 		}
-		return bExtended;
+		return iDiskType;
 	}
 
 	private readUtf(iPos: number, iLen: number) {
@@ -254,12 +254,11 @@ export class DiskImage {
 	}
 
 	private readDiskInfo(iPos: number) {
-		var iDiskInfoSize = 0x100,
+		const iDiskInfoSize = 0x100,
 			oDiskInfo = this.oDiskInfo,
-			sIdent, i, iTrackSizeCount, iTrackSize, aTrackSizes, aTrackPos, iTrackPos;
+			sIdent = this.readUtf(iPos, 8); // check first 8 characters as characteristic
 
-		sIdent = this.readUtf(iPos, 8); // check first 8 characters as characteristic
-		oDiskInfo.bExtended = DiskImage.testDiskIdent(sIdent);
+		oDiskInfo.bExtended = (DiskImage.testDiskIdent(sIdent) === 2);
 		if (oDiskInfo.bExtended === null) {
 			throw this.composeError(Error(), "Dsk: Ident not found");
 		}
@@ -270,15 +269,16 @@ export class DiskImage {
 		oDiskInfo.iHeads = this.readUInt8(iPos + 49);
 		oDiskInfo.iTrackSize = this.readUInt16(iPos + 50);
 
-		iTrackPos = iDiskInfoSize;
-		aTrackSizes = [];
-		aTrackPos = [];
+		const aTrackSizes = [],
+			aTrackPos = [],
+			iTrackSizeCount = oDiskInfo.iTracks * oDiskInfo.iHeads; // number of track sizes
+		let	iTrackPos = iDiskInfoSize;
 
 		iPos += 52; // track sizes high bytes start at offset 52 (0x35)
-		iTrackSizeCount = oDiskInfo.iTracks * oDiskInfo.iHeads; // number of track sizes
-		for (i = 0; i < iTrackSizeCount; i += 1) {
+		for (let i = 0; i < iTrackSizeCount; i += 1) {
 			aTrackPos.push(iTrackPos);
-			iTrackSize = oDiskInfo.iTrackSize || (this.readUInt8(iPos + i) * 256); // take common track size or read individual track size (extended)
+			const iTrackSize = oDiskInfo.iTrackSize || (this.readUInt8(iPos + i) * 256); // take common track size or read individual track size (extended)
+
 			aTrackSizes.push(iTrackSize);
 			iTrackPos += iTrackSize;
 		}
@@ -287,10 +287,9 @@ export class DiskImage {
 	}
 
 	private readTrackInfo(iPos: number) {
-		var	iTrackInfoSize = 0x100,
+		const iTrackInfoSize = 0x100,
 			oTrackInfo = this.oDiskInfo.oTrackInfo,
-			aSectorInfo = oTrackInfo.aSectorInfo,
-			i, oSectorInfo, iSectorSize, oSectorNum2Index, iSectorPos;
+			aSectorInfo = oTrackInfo.aSectorInfo;
 
 		oTrackInfo.iDataPos = iPos + iTrackInfoSize;
 
@@ -310,14 +309,17 @@ export class DiskImage {
 
 		aSectorInfo.length = oTrackInfo.iSpt;
 
-		oSectorNum2Index = {};
+		const oSectorNum2Index = {};
+
 		oTrackInfo.oSectorNum2Index = oSectorNum2Index;
 
 		iPos += 24; // start sector info
 
-		iSectorPos = oTrackInfo.iDataPos;
-		for (i = 0; i < oTrackInfo.iSpt; i += 1) {
-			oSectorInfo = aSectorInfo[i] || {}; // resue if possible
+		let iSectorPos = oTrackInfo.iDataPos;
+
+		for (let i = 0; i < oTrackInfo.iSpt; i += 1) {
+			const oSectorInfo = aSectorInfo[i] || {}; // resue if possible
+
 			aSectorInfo[i] = oSectorInfo;
 
 			oSectorInfo.iDataPos = iSectorPos;
@@ -329,7 +331,8 @@ export class DiskImage {
 			oSectorInfo.iState1 = this.readUInt8(iPos + 4);
 			oSectorInfo.iState2 = this.readUInt8(iPos + 5);
 
-			iSectorSize = this.readUInt16(iPos + 6) || (0x0080 << oTrackInfo.iBps); // eslint-disable-line no-bitwise
+			const iSectorSize = this.readUInt16(iPos + 6) || (0x0080 << oTrackInfo.iBps); // eslint-disable-line no-bitwise
+
 			oSectorInfo.iSectorSize = iSectorSize;
 			iSectorPos += iSectorSize;
 
@@ -363,7 +366,7 @@ export class DiskImage {
 	}
 
 	private seekSector(iSectorIndex: number) {
-		var aSectorInfo = this.oDiskInfo.oTrackInfo.aSectorInfo,
+		const aSectorInfo = this.oDiskInfo.oTrackInfo.aSectorInfo,
 			oSectorInfo = aSectorInfo[iSectorIndex];
 
 		return oSectorInfo;
@@ -385,7 +388,7 @@ export class DiskImage {
 	// ...
 
 	private getFormatDescriptor(sFormat: string) {
-		var oFormat = DiskImage.mFormatDescriptors[sFormat];
+		let oFormat = DiskImage.mFormatDescriptors[sFormat];
 
 		if (!oFormat) {
 			throw this.composeError(Error(), "Dsk: Unknown format", sFormat);
@@ -442,7 +445,7 @@ export class DiskImage {
 
 	private readDirectoryExtents(aExtents: ExtentEntry[], iPos: number, iEndPos: number) {
 		const fnRemoveHighBit7 = function (sStr: string) {
-				var sOut = "";
+				let sOut = "";
 
 				for (let i = 0; i < sStr.length; i += 1) {
 					const iChar = sStr.charCodeAt(i);
@@ -641,7 +644,7 @@ export class DiskImage {
 
 		const iFileLen = sOut.length;
 
-		if (iRealLen === null) { // no real length: ASCII: find EOF (0x1a) in last record
+		if (iRealLen === undefined) { // no real length: ASCII: find EOF (0x1a) in last record
 			const iLastRecPos = iFileLen > 0x80 ? (iFileLen - 0x80) : 0,
 				iIndex = sOut.indexOf(String.fromCharCode(0x1a), iLastRecPos);
 
@@ -653,7 +656,7 @@ export class DiskImage {
 			}
 		}
 
-		if (iRealLen !== null) { // now real length (from header or ASCII)?
+		if (iRealLen !== undefined) { // now real length (from header or ASCII)?
 			sOut = sOut.substr(0, iRealLen);
 		}
 		return sOut;
@@ -663,15 +666,15 @@ export class DiskImage {
 
 	// see AMSDOS ROM, &D252
 	static unOrProtectData(sData: string): string {
-		var sOut = "",
-			/* eslint-disable array-element-newline */
+		const /* eslint-disable array-element-newline */
 			aTable1 = [0xe2, 0x9d, 0xdb, 0x1a, 0x42, 0x29, 0x39, 0xc6, 0xb3, 0xc6, 0x90, 0x45, 0x8a], // 13 bytes
-			aTable2 = [0x49, 0xb1, 0x36, 0xf0, 0x2e, 0x1e, 0x06, 0x2a, 0x28, 0x19, 0xea], // 11 bytes
+			aTable2 = [0x49, 0xb1, 0x36, 0xf0, 0x2e, 0x1e, 0x06, 0x2a, 0x28, 0x19, 0xea]; // 11 bytes
 			/* eslint-enable array-element-newline */
-			i, iByte;
+		let sOut = "";
 
-		for (i = 0; i < sData.length; i += 1) {
-			iByte = sData.charCodeAt(i);
+		for (let i = 0; i < sData.length; i += 1) {
+			let iByte = sData.charCodeAt(i);
+
 			iByte ^= aTable1[(i & 0x7f) % aTable1.length] ^ aTable2[(i & 0x7f) % aTable2.length]; // eslint-disable-line no-bitwise
 			sOut += String.fromCharCode(iByte);
 		}
@@ -680,25 +683,24 @@ export class DiskImage {
 
 	// ...
 
-	private static computeChecksum(sData) {
-		var iSum = 0,
-			i;
+	private static computeChecksum(sData: string) {
+		let iSum = 0;
 
-		for (i = 0; i < sData.length; i += 1) {
+		for (let i = 0; i < sData.length; i += 1) {
 			iSum += sData.charCodeAt(i);
 		}
 		return iSum;
 	}
 
 	static parseAmsdosHeader(sData: string): AmsdosHeader {
-		var oHeader: AmsdosHeader,
-			iComputed, iSum;
+		let oHeader: AmsdosHeader;
 
 		// http://www.benchmarko.de/cpcemu/cpcdoc/chapter/cpcdoc7_e.html#I_AMSDOS_HD
 		// http://www.cpcwiki.eu/index.php/AMSDOS_Header
 		if (sData.length >= 0x80) {
-			iComputed = DiskImage.computeChecksum(sData.substr(0, 66));
-			iSum = sData.charCodeAt(67) + sData.charCodeAt(68) * 256;
+			const iComputed = DiskImage.computeChecksum(sData.substr(0, 66)),
+				iSum = sData.charCodeAt(67) + sData.charCodeAt(68) * 256;
+
 			if (iComputed === iSum) {
 				oHeader = {
 					iUser: sData.charCodeAt(0),

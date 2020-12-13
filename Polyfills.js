@@ -1,16 +1,14 @@
+"use strict";
 // Polyfills.js - Some Polyfills for old browsers, e.g. IE8
 //
-/* globals globalThis */
-"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-/*
-var Utils;
-
-if (typeof require !== "undefined") {
-    Utils = require("./Utils.js"); // eslint-disable-line global-require
-}
-*/
+exports.Polyfills = void 0;
+/* globals globalThis */
 var Utils_1 = require("./Utils");
+exports.Polyfills = {
+    iCount: 0 //TTT
+    // empty
+};
 // IE: window.console is only available when Dev Tools are open
 if (!Utils_1.Utils.console) {
     Utils_1.Utils.console = {
@@ -35,7 +33,7 @@ if ((typeof globalThis !== "undefined") && !globalThis.window) { // nodeJS
     globalThis.window = {};
 }
 if (!Array.prototype.indexOf) { // IE8
-    Array.prototype.indexOf = function (element, iFrom) {
+    Array.prototype.indexOf = function (searchElement, iFrom) {
         var iLen = this.length >>> 0; // eslint-disable-line no-bitwise
         iFrom = Number(iFrom) || 0;
         iFrom = (iFrom < 0) ? Math.ceil(iFrom) : Math.floor(iFrom);
@@ -43,7 +41,7 @@ if (!Array.prototype.indexOf) { // IE8
             iFrom += iLen;
         }
         for (; iFrom < iLen; iFrom += 1) {
-            if (iFrom in this && this[iFrom] === element) {
+            if (iFrom in this && this[iFrom] === searchElement) {
                 return iFrom;
             }
         }
@@ -54,14 +52,14 @@ if (!Array.prototype.map) { // IE8
     // based on: https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Global_Objects/Array/map
     Utils_1.Utils.console.debug("Polyfill: Array.prototype.map");
     Array.prototype.map = function (callback, thisArg) {
-        var aValues = [], oObject = Object(this), len = oObject.length, T, i, kValue, mappedValue;
+        var aValues = [], oObject = Object(this), len = oObject.length;
+        var T;
         if (arguments.length > 1) {
             T = thisArg;
         }
-        for (i = 0; i < len; i += 1) {
+        for (var i = 0; i < len; i += 1) {
             if (i in oObject) {
-                kValue = oObject[i];
-                mappedValue = callback.call(T, kValue, i, oObject);
+                var kValue = oObject[i], mappedValue = callback.call(T, kValue, i, oObject);
                 aValues[i] = mappedValue;
             }
         }
@@ -87,11 +85,15 @@ if (window.Element) {
 if (window.Event) {
     if (!Event.prototype.preventDefault) { // IE8
         Utils_1.Utils.console.debug("Polyfill: Event.prototype.preventDefault");
-        Event.prototype.preventDefault = function () { }; // eslint-disable-line no-empty-function
+        Event.prototype.preventDefault = function () {
+            // empty
+        };
     }
     if (!Event.prototype.stopPropagation) { // IE8
         Utils_1.Utils.console.debug("Polyfill: Event.prototype.stopPropagation");
-        Event.prototype.stopPropagation = function () { }; // eslint-disable-line no-empty-function
+        Event.prototype.stopPropagation = function () {
+            // empty
+        };
     }
 }
 if (!Date.now) { // IE8
@@ -109,11 +111,9 @@ if (window.document) {
                 var eventListeners = [];
                 document.addEventListener = function (sEvent, fnHandler) {
                     var fnFindCaret = function (event) {
-                        var oRange, oRange2;
                         if (document.selection) {
                             event.target.focus();
-                            oRange = document.selection.createRange();
-                            oRange2 = oRange.duplicate();
+                            var oRange = document.selection.createRange(), oRange2 = oRange.duplicate();
                             if (oRange2.moveToElementTxt) { // not on IE8
                                 oRange2.moveToElementTxt(event.target);
                             }
@@ -129,11 +129,11 @@ if (window.document) {
                         }
                         fnHandler(event);
                         return false;
-                    }, aElements, i;
+                    };
                     // The change event is not bubbled and fired on document for old IE8. So attach it to every select tag
                     if (sEvent === "change") {
-                        aElements = document.getElementsByTagName("select");
-                        for (i = 0; i < aElements.length; i += 1) {
+                        var aElements = document.getElementsByTagName("select");
+                        for (var i = 0; i < aElements.length; i += 1) {
                             aElements[i].attachEvent("on" + sEvent, fnOnEvent);
                             eventListeners.push({
                                 object: this,
@@ -154,9 +154,9 @@ if (window.document) {
                     }
                 };
                 document.removeEventListener = function (sEvent, fnHandler) {
-                    var counter = 0, eventListener;
+                    var counter = 0;
                     while (counter < eventListeners.length) {
-                        eventListener = eventListeners[counter];
+                        var eventListener = eventListeners[counter];
                         if (eventListener.object === this && eventListener.sEvent === sEvent && eventListener.fnHandler === fnHandler) {
                             this.detachEvent("on" + sEvent, eventListener.fnOnEvent);
                             eventListeners.splice(counter, 1);
@@ -211,10 +211,10 @@ if (!Math.trunc) { // IE11
 if (!Object.assign) { // IE11
     Utils_1.Utils.console.debug("Polyfill: Object.assign");
     Object.assign = function (oTarget) {
-        var oTo = oTarget, i, oNextSource, sNextKey;
-        for (i = 1; i < arguments.length; i += 1) {
-            oNextSource = arguments[i];
-            for (sNextKey in oNextSource) {
+        var oTo = oTarget;
+        for (var i = 1; i < arguments.length; i += 1) {
+            var oNextSource = arguments[i];
+            for (var sNextKey in oNextSource) {
                 if (oNextSource.hasOwnProperty(sNextKey)) {
                     oTo[sNextKey] = oNextSource[sNextKey];
                 }
@@ -237,11 +237,11 @@ if (!Object.keys) { // IE8
     Utils_1.Utils.console.debug("Polyfill: Object.keys");
     // https://tokenposts.blogspot.com/2012/04/javascript-objectkeys-browser.html
     Object.keys = function (o) {
-        var k = [], p;
+        var k = [];
         if (o !== Object(o)) {
             throw new TypeError("Object.keys called on a non-object");
         }
-        for (p in o) {
+        for (var p in o) {
             if (Object.prototype.hasOwnProperty.call(o, p)) {
                 k.push(p);
             }
@@ -252,12 +252,11 @@ if (!Object.keys) { // IE8
 if (!String.prototype.endsWith) {
     Utils_1.Utils.console.debug("Polyfill: String.prototype.endsWith");
     String.prototype.endsWith = function (sSearch, iPosition) {
-        var iLastIndex;
         if (iPosition === undefined) {
             iPosition = this.length;
         }
         iPosition -= sSearch.length;
-        iLastIndex = this.indexOf(sSearch, iPosition);
+        var iLastIndex = this.indexOf(sSearch, iPosition);
         return iLastIndex !== -1 && iLastIndex === iPosition;
     };
 }
@@ -310,8 +309,9 @@ if (!String.prototype.padEnd) { // IE11
 if (!String.prototype.repeat) { // IE11
     Utils_1.Utils.console.debug("Polyfill: String.prototype.repeat");
     String.prototype.repeat = function (iCount) {
-        var sStr = String(this), sOut = "", i;
-        for (i = 0; i < iCount; i += 1) {
+        var sStr = String(this);
+        var sOut = "";
+        for (var i = 0; i < iCount; i += 1) {
             sOut += sStr;
         }
         return sOut;
@@ -330,23 +330,16 @@ if (!String.prototype.trim) { // IE8
         return this.replace(/^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g, "");
     };
 }
-if (!String.prototype.trimEnd) {
-    Utils_1.Utils.console.debug("Polyfill: String.prototype.trimEnd");
-    String.prototype.trimEnd = function () {
-        return this.replace(/[\s\uFEFF\xA0]+$/, "");
-    };
-}
 // based on: https://github.com/mathiasbynens/base64/blob/master/base64.js
 // https://mths.be/base64 v0.1.0 by @mathias | MIT license
-if (!Utils_1.Utils.atob) { // IE9 (and node.js?)
+if (!Utils_1.Utils.atob) { // IE9 (and node.js)
     Utils_1.Utils.console.debug("Polyfill: window.atob, btoa");
     (function () {
         var TABLE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/", REGEX_SPACE_CHARACTERS = /[\t\n\f\r ]/g; // http://whatwg.org/html/common-microsyntaxes.html#space-character
         /* eslint-disable no-bitwise */
         Utils_1.Utils.atob = function (input) {
-            var bitCounter = 0, output = "", position = 0, bitStorage, buffer, length;
             input = String(input).replace(REGEX_SPACE_CHARACTERS, "");
-            length = input.length;
+            var length = input.length;
             if (length % 4 === 0) {
                 input = input.replace(/[=]=?$/, ""); // additional brackets to maks eslint happy
                 length = input.length;
@@ -354,8 +347,9 @@ if (!Utils_1.Utils.atob) { // IE9 (and node.js?)
             if (length % 4 === 1 || (/[^+a-zA-Z0-9/]/).test(input)) { // http://whatwg.org/C#alphanumeric-ascii-characters
                 throw new TypeError("Polyfills:atob: Invalid character: the string to be decoded is not correctly encoded.");
             }
+            var bitCounter = 0, output = "", position = 0, bitStorage;
             while (position < length) {
-                buffer = TABLE.indexOf(input.charAt(position));
+                var buffer = TABLE.indexOf(input.charAt(position));
                 bitStorage = bitCounter % 4 ? bitStorage * 64 + buffer : buffer;
                 bitCounter += 1;
                 if ((bitCounter - 1) % 4) { // Unless this is the first of a group of 4 characters...
@@ -366,34 +360,32 @@ if (!Utils_1.Utils.atob) { // IE9 (and node.js?)
             return output;
         };
         Utils_1.Utils.btoa = function (input) {
-            var output = "", position = 0, padding, length, a, b, c, buffer;
             input = String(input);
             if ((/[^\0-\xFF]/).test(input)) {
                 throw new TypeError("Polyfills:btoa: The string to be encoded contains characters outside of the Latin1 range.");
             }
-            padding = input.length % 3;
-            length = input.length - padding; // Make sure any padding is handled outside of the loop
+            var padding = input.length % 3, length = input.length - padding; // Make sure any padding is handled outside of the loop
+            var output = "", position = 0;
             while (position < length) {
                 // Read three bytes, i.e. 24 bits.
-                a = input.charCodeAt(position) << 16;
+                var a = input.charCodeAt(position) << 16;
                 position += 1;
-                b = input.charCodeAt(position) << 8;
+                var b = input.charCodeAt(position) << 8;
                 position += 1;
-                c = input.charCodeAt(position);
+                var c = input.charCodeAt(position);
                 position += 1;
-                buffer = a + b + c;
+                var buffer = a + b + c;
                 // Turn the 24 bits into four chunks of 6 bits each, and append the matching character for each of them to the output
                 output += TABLE.charAt(buffer >> 18 & 0x3F) + TABLE.charAt(buffer >> 12 & 0x3F) + TABLE.charAt(buffer >> 6 & 0x3F) + TABLE.charAt(buffer & 0x3F);
             }
             if (padding === 2) {
-                a = input.charCodeAt(position) << 8;
+                var a = input.charCodeAt(position) << 8;
                 position += 1;
-                b = input.charCodeAt(position);
-                buffer = a + b;
+                var b = input.charCodeAt(position), buffer = a + b;
                 output += TABLE.charAt(buffer >> 10) + TABLE.charAt((buffer >> 4) & 0x3F) + TABLE.charAt((buffer << 2) & 0x3F) + "=";
             }
             else if (padding === 1) {
-                buffer = input.charCodeAt(position);
+                var buffer = input.charCodeAt(position);
                 output += TABLE.charAt(buffer >> 2) + TABLE.charAt((buffer << 4) & 0x3F) + "==";
             }
             return output;
@@ -410,8 +402,7 @@ if (!Utils_1.Utils.localStorage) {
         };
         Storage.prototype = {
             clear: function () {
-                var key;
-                for (key in this) {
+                for (var key in this) {
                     if (this.hasOwnProperty(key)) {
                         delete this[key];
                     }
@@ -419,8 +410,8 @@ if (!Utils_1.Utils.localStorage) {
                 this.length = 0;
             },
             key: function (index) {
-                var i = 0, key;
-                for (key in this) {
+                var i = 0;
+                for (var key in this) {
                     if (this.hasOwnProperty(key) && key !== "length") {
                         if (i === index) {
                             return key;
@@ -527,4 +518,5 @@ if (!window.Uint8Array) { // IE9
     // A more complex solution would be: https://github.com/inexorabletash/polyfill/blob/master/typedarray.js
 }
 Utils_1.Utils.console.debug("Polyfill: end of Polyfills");
+// end
 //# sourceMappingURL=Polyfills.js.map

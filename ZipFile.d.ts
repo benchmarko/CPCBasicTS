@@ -28,6 +28,12 @@ export declare class ZipFile {
         iExtraFieldLength: number;
         iFileCommentLength: number;
         iLocalOffset: number;
+        sName: any;
+        bIsDirectory: any;
+        aExtra: any;
+        sComment: any;
+        iTimestamp: any;
+        iDataStart: any;
     };
     readZipDirectory(): {};
     inflate(iOffset: number, iCompressedSize: number, iFinalSize: number): Uint8Array;

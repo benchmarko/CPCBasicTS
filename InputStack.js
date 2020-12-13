@@ -11,24 +11,23 @@ var InputStack = /** @class */ (function () {
     InputStack.prototype.init = function () {
         this.aInput = [];
         this.iStackPosition = -1;
-        return this;
     };
     InputStack.prototype.getInput = function () {
         return this.aInput[this.iStackPosition];
     };
     InputStack.prototype.clearRedo = function () {
         this.aInput = this.aInput.slice(0, this.iStackPosition + 1);
-        return this;
     };
     InputStack.prototype.save = function (sInput) {
         this.clearRedo();
         this.aInput.push(sInput);
         this.iStackPosition += 1;
-        return this;
     };
-    InputStack.prototype.canUndo = function () {
+    /*
+    canUndo(): boolean {
         return this.iStackPosition >= 0;
-    };
+    }
+    */
     InputStack.prototype.canUndoKeepOne = function () {
         return this.iStackPosition > 0;
     };

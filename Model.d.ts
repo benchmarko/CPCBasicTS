@@ -2,7 +2,7 @@ declare type ConfigEntryType = string | number | boolean;
 declare type ConfigType = {
     [k in string]: ConfigEntryType;
 };
-interface DatabaseEntry {
+export interface DatabaseEntry {
     text: string;
     title: string;
     src: string;
@@ -15,7 +15,7 @@ interface ExampleEntry {
     script?: string;
     loaded?: boolean;
 }
-declare type DatabasesType = {
+export declare type DatabasesType = {
     [k in string]: DatabaseEntry;
 };
 declare type ExamplesType = {
@@ -30,20 +30,18 @@ export declare class Model {
     examples: ExamplesType;
     constructor(config: ConfigType, initialConfig: ConfigType);
     init(config: ConfigType, initialConfig: ConfigType): void;
-    getProperty(sProperty: string): ConfigEntryType;
-    getStringProperty(sProperty: string): string;
-    getBooleanProperty(sProperty: string): boolean;
-    setProperty(sProperty: string, value: ConfigEntryType): this;
+    getProperty<T extends ConfigEntryType>(sProperty: string): T;
+    setProperty<T extends ConfigEntryType>(sProperty: string, value: T): void;
     getAllProperties(): ConfigType;
     getAllInitialProperties(): ConfigType;
-    addDatabases(oDb: DatabasesType): this;
+    addDatabases(oDb: DatabasesType): void;
     getAllDatabases(): DatabasesType;
     getDatabase(): DatabaseEntry;
     getAllExamples(): {
         [x: string]: ExampleEntry;
     };
     getExample(sKey: string): ExampleEntry;
-    setExample(oExample: ExampleEntry): this;
-    removeExample(sKey: string): this;
+    setExample(oExample: ExampleEntry): void;
+    removeExample(sKey: string): void;
 }
 export {};
