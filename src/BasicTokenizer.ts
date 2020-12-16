@@ -1,4 +1,4 @@
-// BasicTokenizer.js - Tokenize BASIC programs
+// BasicTokenizer.ts - Tokenize BASIC programs
 // (c) Marco Vieth, 2020
 // https://benchmarko.github.io/CPCBasic/
 //

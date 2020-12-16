@@ -1,17 +1,5 @@
-// CodeGeneratorBasic.qunit.js - QUnit tests for CPCBasic CodeGeneratorBasic
+// CodeGeneratorBasic.qunit.ts - QUnit tests for CPCBasic CodeGeneratorBasic
 //
-
-/*
-"use strict";
-
-var BasicLexer, BasicParser, CodeGeneratorBasic;
-
-if (typeof require !== "undefined") {
-	BasicLexer = require("../BasicLexer.js"); // eslint-disable-line global-require
-	BasicParser = require("../BasicParser.js"); // eslint-disable-line global-require
-	CodeGeneratorBasic = require("../CodeGeneratorBasic.js"); // eslint-disable-line global-require
-}
-*/
 
 import { BasicLexer } from "../BasicLexer";
 import { BasicParser } from "../BasicParser";
@@ -20,7 +8,7 @@ import { QUnit } from "qunit"; //TTT
 
 
 QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
-	var mAllTests = {
+	const mAllTests = {
 		"abs, after gosub, and, asc, atn, auto": {
 			"a=abs(2.3)": "a=ABS(2.3)",
 
@@ -669,27 +657,25 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 	};
 
 	function runTestsFor(assert, oTests) {
-		var oCodeGeneratorBasic = new CodeGeneratorBasic({
-				lexer: new BasicLexer(),
-				parser: new BasicParser()
-			}),
-			sKey, sExpected, oOutput, sResult;
+		const oCodeGeneratorBasic = new CodeGeneratorBasic({
+			lexer: new BasicLexer(),
+			parser: new BasicParser()
+		});
 
-		for (sKey in oTests) {
+		for (const sKey in oTests) {
 			if (oTests.hasOwnProperty(sKey)) {
-				sExpected = oTests[sKey];
 				oCodeGeneratorBasic.reset();
-				oOutput = oCodeGeneratorBasic.generate(sKey, true);
-				sResult = oOutput.error ? oOutput.error : oOutput.text;
+				const sExpected = oTests[sKey],
+					oOutput = oCodeGeneratorBasic.generate(sKey, true),
+					sResult = oOutput.error ? oOutput.error : oOutput.text;
+
 				assert.strictEqual(sResult, sExpected, sKey);
 			}
 		}
 	}
 
 	function generateTests(oAllTests) {
-		var sCategory;
-
-		for (sCategory in oAllTests) {
+		for (const sCategory in oAllTests) {
 			if (oAllTests.hasOwnProperty(sCategory)) {
 				(function (sCat) {
 					QUnit.test(sCat, function (assert) {

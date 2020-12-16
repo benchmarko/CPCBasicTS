@@ -1,4 +1,4 @@
-// Utils.js - Utililities for CPCBasic
+// Utils.ts - Utililities for CPCBasic
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //
@@ -126,7 +126,7 @@ export class Utils { // eslint-disable-line vars-on-top
 
 	static numberWithCommas(x: number): string {
 		// https://stackoverflow.com/questions/2901102/how-to-print-a-number-with-commas-as-thousands-separators-in-javascript
-		var aParts = String(x).split(".");
+		const aParts = String(x).split(".");
 
 		aParts[0] = aParts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 		return aParts.join(".");
@@ -188,13 +188,13 @@ export class Utils { // eslint-disable-line vars-on-top
 
 	static atob = (function () {
 		return typeof window !== "undefined" && window.atob && window.atob.bind ? window.atob.bind(window) : null; // we need bind: https://stackoverflow.com/questions/9677985/uncaught-typeerror-illegal-invocation-in-chrome
-	}());
+	}()) as (arg0: string) => string;
 
 	static btoa = (function () {
 		return typeof window !== "undefined" && window.btoa && window.btoa.bind ? window.btoa.bind(window) : null; // we need bind!
-	}());
+	}()) as (arg0: string) => string;
 
-	static composeError(name: string, oErrorObject: Error, message: string, value, pos?: number, line?: string | number, hidden?: boolean): CustomError {
+	static composeError(name: string, oErrorObject: Error, message: string, value: any, pos?: number, line?: string | number, hidden?: boolean): CustomError {
 		const oCustomError = oErrorObject as CustomError;
 
 		if (name !== undefined) {

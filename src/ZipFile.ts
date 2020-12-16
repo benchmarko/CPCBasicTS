@@ -1,4 +1,4 @@
-// ZipFile.js - ZIP file handling
+// ZipFile.ts - ZIP file handling
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //
@@ -15,11 +15,41 @@ type CodeType = {
 	symbol: number[]
 };
 
+interface CentralDirFileHeader {
+	iSignature: number
+	iVersion: number // version needed to extract (minimum)
+	iFlag: number // General purpose bit flag
+	iCompressionMethod: number // compression method
+	iModificationTime: number // File last modification time (DOS time)
+	iCrc: number // CRC-32 of uncompressed data
+	iCompressedSize: number // compressed size
+	iSize: number // Uncompressed size
+	iFileNameLength: number // file name length
+	iExtraFieldLength: number // extra field length
+	iFileCommentLength: number // file comment length
+	iLocalOffset:number // relative offset of local file header
+	sName: string
+	bIsDirectory: boolean
+	aExtra: Uint8Array
+	sComment: string
+	iTimestamp: number
+	iDataStart: number
+}
+
+type ZipDirectoryType = {[k in string]: CentralDirFileHeader}
+
+interface EndOfCentralDir {
+	iSignature: number
+	iEntries: number // total number of central directory records
+	iCdfhOffset: number // offset of start of central directory, relative to start of archive
+	iCdSize: number // size of central directory (just for information)
+}
+
 
 export class ZipFile {
 	aData: Uint8Array;
 	sZipName: string; // for error messages
-	oEntryTable: object; //TTT
+	private oEntryTable: ZipDirectoryType;
 
 	constructor(aData: Uint8Array, sZipName: string) {
 		this.init(aData, sZipName);
@@ -31,20 +61,24 @@ export class ZipFile {
 		this.oEntryTable = this.readZipDirectory();
 	}
 
-	composeError(...aArgs) { // varargs
+	getZipDirectory(): ZipDirectoryType {
+		return this.oEntryTable;
+	}
+
+	private composeError(...aArgs) { // varargs
 		aArgs[1] = this.sZipName + ": " + aArgs[1]; // put zipname in message
 		aArgs.unshift("ZipFile");
 		return Utils.composeError.apply(null, aArgs);
 	}
 
-	subArr(iBegin: number, iLength: number): Uint8Array {
+	private subArr(iBegin: number, iLength: number) {
 		const aData = this.aData,
 			iEnd = iBegin + iLength;
 
 		return aData.slice ? aData.slice(iBegin, iEnd) : aData.subarray(iBegin, iEnd); // array.slice on Uint8Array not for IE11
 	}
 
-	readUTF(iOffset: number, iLen: number): string {
+	private readUTF(iOffset: number, iLen: number) {
 		const iCallSize = 25000; // use call window to avoid "maximum call stack error" for e.g. size 336461
 		let sOut = "";
 
@@ -58,20 +92,20 @@ export class ZipFile {
 		return sOut;
 	}
 
-	readUInt(i: number): number {
+	private readUInt(i: number) {
 		const aData = this.aData;
 
 		return (aData[i + 3] << 24) | (aData[i + 2] << 16) | (aData[i + 1] << 8) | aData[i]; // eslint-disable-line no-bitwise
 	}
 
-	readUShort(i: number): number {
+	private readUShort(i: number) {
 		const aData = this.aData;
 
 		return ((aData[i + 1]) << 8) | aData[i]; // eslint-disable-line no-bitwise
 	}
 
-	readEocd(iEocdPos: number) { // read End of central directory
-		const oEocd = {
+	private readEocd(iEocdPos: number) { // read End of central directory
+		const oEocd: EndOfCentralDir = {
 			iSignature: this.readUInt(iEocdPos),
 			iEntries: this.readUShort(iEocdPos + 10), // total number of central directory records
 			iCdfhOffset: this.readUInt(iEocdPos + 16), // offset of start of central directory, relative to start of archive
@@ -81,8 +115,8 @@ export class ZipFile {
 		return oEocd;
 	}
 
-	readCdfh(iPos: number) { // read Central directory file header
-		const oCdfh = {
+	private readCdfh(iPos: number) { // read Central directory file header
+		const oCdfh: CentralDirFileHeader = {
 			iSignature: this.readUInt(iPos),
 			iVersion: this.readUShort(iPos + 6), // version needed to extract (minimum)
 			iFlag: this.readUShort(iPos + 8), // General purpose bit flag
@@ -106,7 +140,7 @@ export class ZipFile {
 		return oCdfh;
 	}
 
-	readZipDirectory() {
+	private readZipDirectory() {
 		const iEocdLen = 22, // End of central directory (EOCD)
 			iMaxEocdCommentLen = 0xffff,
 			iEocdSignature = 0x06054B50, // EOCD signature: "PK\x05\x06"
@@ -115,11 +149,11 @@ export class ZipFile {
 			iLfhSignature = 0x04034b50, // Local file header signature
 			iLfhLen = 30, // Local file header length
 			aData = this.aData,
-			oEntryTable = {};
+			oEntryTable: ZipDirectoryType = {};
 
 		// find End of central directory (EOCD) record
 		let i = aData.length - iEocdLen + 1, // +1 because of loop
-			oEocd;
+			oEocd: EndOfCentralDir;
 
 		const n = Math.max(0, i - iMaxEocdCommentLen);
 
@@ -183,7 +217,7 @@ export class ZipFile {
 		return oEntryTable;
 	}
 
-	inflate(iOffset: number, iCompressedSize: number, iFinalSize: number): Uint8Array {
+	private inflate(iOffset: number, iCompressedSize: number, iFinalSize: number) {
 		/* eslint-disable array-element-newline */
 		const aStartLens = [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258],
 			aLExt = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0],
@@ -193,7 +227,7 @@ export class ZipFile {
 			/* eslint-enable array-element-newline */
 			that = this, // eslint-disable-line @typescript-eslint/no-this-alias
 			aData = this.aData,
-			iBufEnd = iOffset + iCompressedSize, //TTT  -1?
+			iBufEnd = iOffset + iCompressedSize,
 			aOutBuf = new Uint8Array(iFinalSize);
 		let	iInCnt = iOffset, // read position
 			iOutCnt = 0, // bytes written to outbuf
@@ -240,9 +274,7 @@ export class ZipFile {
 			},
 
 			fnConstruct = function (oCodes: CodeType, aLens2: number[], n: number) {
-				const aOffs = [/* undefined */, 0];
-				let iLeft = 1,
-					i: number;
+				let i: number;
 
 				for (i = 0; i <= 0xF; i += 1) {
 					oCodes.count[i] = 0;
@@ -256,11 +288,18 @@ export class ZipFile {
 					return 0;
 				}
 
+				let iLeft = 1;
+
 				for (i = 1; i <= 0xF; i += 1) {
 					if ((iLeft = (iLeft << 1) - oCodes.count[i]) < 0) { // eslint-disable-line no-bitwise
 						return iLeft;
 					}
 				}
+
+				const aOffs = [
+					undefined,
+					0
+				];
 
 				for (i = 1; i < 0xF; i += 1) {
 					aOffs[i + 1] = aOffs[i] + oCodes.count[i];
@@ -478,7 +517,7 @@ export class ZipFile {
 		} else {
 			throw this.composeError(Error(), "Zip: readData: compression method not supported:" + oCdfh.iCompressionMethod, "", 0);
 		}
-		if (sDataUTF8.length !== oCdfh.iSize) { //TTT assert
+		if (sDataUTF8.length !== oCdfh.iSize) { // assert
 			Utils.console.error("Zip: readData: different length 2!");
 		}
 		return sDataUTF8;

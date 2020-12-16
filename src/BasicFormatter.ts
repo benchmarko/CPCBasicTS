@@ -28,7 +28,7 @@ export class BasicFormatter {
 		this.iLine = 0; // current line (label)
 	}
 
-	private composeError(...aArgs) {
+	private composeError(...aArgs) { // eslint-disable-line class-methods-use-this
 		aArgs.unshift("BasicFormatter");
 		return Utils.composeError.apply(null, aArgs);
 	}

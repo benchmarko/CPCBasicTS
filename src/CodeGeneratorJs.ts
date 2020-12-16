@@ -1,4 +1,4 @@
-// CodeGeneratorJs.js - Code Generator for JavaScript
+// CodeGeneratorJs.ts - Code Generator for JavaScript
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //
@@ -6,7 +6,7 @@
 
 import { Utils } from "./Utils";
 import { BasicLexer } from "./BasicLexer";
-import { BasicParser } from "./BasicParser";
+import { BasicParser, ParserNode } from "./BasicParser";
 import { Variables } from "./Variables";
 import { CpcVmRsx } from "./CpcVmRsx";
 
@@ -17,6 +17,13 @@ interface CodeGeneratorJsOptions {
 	rsx: CpcVmRsx
 	tron: boolean
 	bQuiet?: boolean
+}
+
+interface CodeNode extends ParserNode {
+	left?: CodeNode
+	right?: CodeNode
+	pt: string
+	pv: string
 }
 
 export class CodeGeneratorJs {
@@ -35,7 +42,7 @@ export class CodeGeneratorJs {
 		whileLabel: []
 	};
 
-	aData = []; // collected data from data lines
+	aData: string[] = []; // collected data from data lines
 
 	oLabels = {}; // labels or line numbers
 
@@ -116,42 +123,28 @@ export class CodeGeneratorJs {
 		this.init(options);
 	}
 
-	init(options: CodeGeneratorJsOptions) {
-		//this.options = options || {}; // e.g. tron (trace on flag), rsx (optional RSX names to check), bQuiet
-
+	init(options: CodeGeneratorJsOptions): void {
 		this.lexer = options.lexer;
 		this.parser = options.parser;
 		this.tron = options.tron;
 		this.rsx = options.rsx;
 		this.bQuiet = options.bQuiet || false;
 
-		//this.lexer = this.options.lexer;
-		//this.parser = this.options.parser;
-
 		this.reJsKeywords = CodeGeneratorJs.createJsKeywordRegex();
 		this.reset();
 	}
 
-	reset() {
+	reset(): void {
 		const oStack = this.oStack;
 
 		oStack.forLabel.length = 0;
 		oStack.forVarName.length = 0;
 		oStack.whileLabel.length = 0;
 
-		/*
-		this.oStack = {
-			forLabel: [],
-			forVarName: [],
-			whileLabel: []
-		};
-		*/
-
 		this.iLine = 0; // current line (label)
 
 		this.resetCountsPerLine();
 
-		//this.aData = []; // collected data from data lines
 		this.aData.length = 0;
 
 		this.oLabels = {}; // labels or line numbers
@@ -159,7 +152,6 @@ export class CodeGeneratorJs {
 
 		this.lexer.reset();
 		this.parser.reset();
-		return this;
 	}
 
 	private resetCountsPerLine() {
@@ -185,7 +177,7 @@ export class CodeGeneratorJs {
 	//
 	// evaluate
 	//
-	private evaluate(parseTree, oVariables: Variables) {
+	private evaluate(parseTree: ParserNode[], oVariables: Variables) {
 		const that = this, // eslint-disable-line @typescript-eslint/no-this-alias
 
 			fnDeclareVariable = function (sName: string) {
@@ -233,13 +225,13 @@ export class CodeGeneratorJs {
 				return sName;
 			},
 
-			fnParseOneArg = function (oArg) {
-				const sValue = parseNode(oArg); // eslint-disable-line no-use-before-define
+			fnParseOneArg = function (oArg: ParserNode) {
+				const sValue = parseNode(oArg as CodeNode); // eslint-disable-line no-use-before-define
 
 				return sValue;
 			},
 
-			fnParseArgRange = function (aArgs, iStart: number, iStop: number) {
+			fnParseArgRange = function (aArgs: ParserNode[], iStart: number, iStop: number) {
 				const aNodeArgs = []; // do not modify node.args here (could be a parameter of defined function)
 
 				for (let i = iStart; i <= iStop; i += 1) {
@@ -248,8 +240,8 @@ export class CodeGeneratorJs {
 				return aNodeArgs;
 			},
 
-			fnParseArgs = function (aArgs) {
-				var aNodeArgs = []; // do not modify node.args here (could be a parameter of defined function)
+			fnParseArgs = function (aArgs: ParserNode[]) {
+				const aNodeArgs: string[] = []; // do not modify node.args here (could be a parameter of defined function)
 
 				for (let i = 0; i < aArgs.length; i += 1) {
 					aNodeArgs[i] = fnParseOneArg(aArgs[i]);
@@ -261,13 +253,13 @@ export class CodeGeneratorJs {
 				return oVariables.determineStaticVarType(sName);
 			},
 
-			fnIsIntConst = function (a) {
+			fnIsIntConst = function (a: string) {
 				const reIntConst = /^[+-]?([0-9]+|0x[0-9a-f]+|0b[0-1]+)$/; // regex for integer, hex, binary constant
 
-				return reIntConst.test(String(a));
+				return reIntConst.test(a);
 			},
 
-			fnGetRoundString = function (node) {
+			fnGetRoundString = function (node: CodeNode) {
 				if (node.pt !== "I") { // no rounding needed for integer, hex, binary constants, integer variables, functions returning integer (optimization)
 					node.pv = "o.vmRound(" + node.pv + ")";
 				}
@@ -278,7 +270,7 @@ export class CodeGeneratorJs {
 				return sFind && sString.indexOf(sFind) >= 0;
 			},
 
-			fnPropagateStaticTypes = function (node, oLeft, oRight, sTypes: string) {
+			fnPropagateStaticTypes = function (node: CodeNode, oLeft: CodeNode, oRight: CodeNode, sTypes: string) {
 				if (oLeft.pt && oRight.pt) {
 					if (fnIsInString(sTypes, oLeft.pt + oRight.pt)) {
 						node.pt = oLeft.pt === oRight.pt ? oLeft.pt : "R";
@@ -291,7 +283,7 @@ export class CodeGeneratorJs {
 			},
 
 			mOperators = {
-				"+": function (node, oLeft, oRight) {
+				"+": function (node: CodeNode, oLeft: CodeNode, oRight: CodeNode) {
 					const a = oLeft.pv;
 
 					if (oRight === undefined) { // unary plus? => skip it
@@ -307,13 +299,13 @@ export class CodeGeneratorJs {
 					}
 					return node.pv;
 				},
-				"-": function (node, oLeft, oRight) {
-					let a = oLeft.pv;
+				"-": function (node: CodeNode, oLeft: CodeNode, oRight: CodeNode) {
+					const a = oLeft.pv;
 
 					if (oRight === undefined) { // unary minus?
 						// when optimizing, beware of "--" operator in JavaScript!
 						if (fnIsIntConst(a) || oLeft.type === "number") { // int const or number const (also fp)
-							a = String(a); // also ok for hex or bin strings
+							//already string a = String(a); // also ok for hex or bin strings
 							if (a.charAt(0) === "-") { // starting already with "-"?
 								node.pv = a.substr(1); // remove "-"
 							} else {
@@ -334,93 +326,93 @@ export class CodeGeneratorJs {
 					}
 					return node.pv;
 				},
-				"*": function (node, oLeft, oRight) {
+				"*": function (node: CodeNode, oLeft: CodeNode, oRight: CodeNode) {
 					node.pv = oLeft.pv + " * " + oRight.pv;
 					fnPropagateStaticTypes(node, oLeft, oRight, "II RR IR RI");
 					return node.pv;
 				},
-				"/": function (node, oLeft, oRight) {
+				"/": function (node: CodeNode, oLeft: CodeNode, oRight: CodeNode) {
 					node.pv = oLeft.pv + " / " + oRight.pv;
 					fnPropagateStaticTypes(node, oLeft, oRight, "II RR IR RI");
 					return node.pv;
 				},
-				"\\": function (node, oLeft, oRight) {
+				"\\": function (node: CodeNode, oLeft: CodeNode, oRight: CodeNode) {
 					node.pv = "(" + oLeft.pv + " / " + oRight.pv + ") | 0"; // integer division
 					fnPropagateStaticTypes(node, oLeft, oRight, "II RR IR RI");
 					node.pt = "I";
 					return node.pv;
 				},
-				"^": function (node, oLeft, oRight) {
+				"^": function (node: CodeNode, oLeft: CodeNode, oRight: CodeNode) {
 					node.pv = "Math.pow(" + oLeft.pv + ", " + oRight.pv + ")";
 					fnPropagateStaticTypes(node, oLeft, oRight, "II RR IR RI");
 					return node.pv;
 				},
-				and: function (node, oLeft, oRight) {
+				and: function (node: CodeNode, oLeft: CodeNode, oRight: CodeNode) {
 					node.pv = fnGetRoundString(oLeft) + " & " + fnGetRoundString(oRight);
 					fnPropagateStaticTypes(node, oLeft, oRight, "II RR IR RI");
 					node.pt = "I";
 					return node.pv;
 				},
-				or: function (node, oLeft, oRight) {
+				or: function (node: CodeNode, oLeft: CodeNode, oRight: CodeNode) {
 					node.pv = fnGetRoundString(oLeft) + " | " + fnGetRoundString(oRight);
 					fnPropagateStaticTypes(node, oLeft, oRight, "II RR IR RI");
 					node.pt = "I";
 					return node.pv;
 				},
-				xor: function (node, oLeft, oRight) {
+				xor: function (node: CodeNode, oLeft: CodeNode, oRight: CodeNode) {
 					node.pv = fnGetRoundString(oLeft) + " ^ " + fnGetRoundString(oRight);
 					fnPropagateStaticTypes(node, oLeft, oRight, "II RR IR RI");
 					node.pt = "I";
 					return node.pv;
 				},
-				not: function (node, oRight) {
+				not: function (node: CodeNode, oRight: CodeNode) {
 					node.pv = "~(" + fnGetRoundString(oRight) + ")"; // a can be an expression
 					node.pt = "I";
 					return node.pv;
 				},
-				mod: function (node, oLeft, oRight) {
+				mod: function (node: CodeNode, oLeft: CodeNode, oRight: CodeNode) {
 					node.pv = fnGetRoundString(oLeft) + " % " + fnGetRoundString(oRight);
 					fnPropagateStaticTypes(node, oLeft, oRight, "II RR IR RI");
 					node.pt = "I";
 					return node.pv;
 				},
-				">": function (node, oLeft, oRight) {
+				">": function (node: CodeNode, oLeft: CodeNode, oRight: CodeNode) {
 					node.pv = oLeft.pv + " > " + oRight.pv + " ? -1 : 0";
 					fnPropagateStaticTypes(node, oLeft, oRight, "II RR IR RI $$");
 					node.pt = "I";
 					return node.pv;
 				},
-				"<": function (node, oLeft, oRight) {
+				"<": function (node: CodeNode, oLeft: CodeNode, oRight: CodeNode) {
 					node.pv = oLeft.pv + " < " + oRight.pv + " ? -1 : 0";
 					fnPropagateStaticTypes(node, oLeft, oRight, "II RR IR RI $$");
 					node.pt = "I";
 					return node.pv;
 				},
-				">=": function (node, oLeft, oRight) {
+				">=": function (node: CodeNode, oLeft: CodeNode, oRight: CodeNode) {
 					node.pv = oLeft.pv + " >= " + oRight.pv + " ? -1 : 0";
 					fnPropagateStaticTypes(node, oLeft, oRight, "II RR IR RI $$");
 					node.pt = "I";
 					return node.pv;
 				},
-				"<=": function (node, oLeft, oRight) {
+				"<=": function (node: CodeNode, oLeft: CodeNode, oRight: CodeNode) {
 					node.pv = oLeft.pv + " <= " + oRight.pv + " ? -1 : 0";
 					fnPropagateStaticTypes(node, oLeft, oRight, "II RR IR RI $$");
 					node.pt = "I";
 					return node.pv;
 				},
-				"=": function (node, oLeft, oRight) {
+				"=": function (node: CodeNode, oLeft: CodeNode, oRight: CodeNode) {
 					node.pv = oLeft.pv + " === " + oRight.pv + " ? -1 : 0";
 					fnPropagateStaticTypes(node, oLeft, oRight, "II RR IR RI $$");
 					node.pt = "I";
 					return node.pv;
 				},
-				"<>": function (node, oLeft, oRight) {
+				"<>": function (node: CodeNode, oLeft: CodeNode, oRight: CodeNode) {
 					node.pv = oLeft.pv + " !== " + oRight.pv + " ? -1 : 0";
 					fnPropagateStaticTypes(node, oLeft, oRight, "II RR IR RI $$");
 					node.pt = "I";
 					return node.pv;
 				},
-				"@": function (node, oRight) {
+				"@": function (node: CodeNode, oRight: CodeNode) {
 					node.pv = 'o.addressOf("' + oRight.pv + '")'; // address of
 					if (oRight.type !== "identifier") {
 						throw that.composeError(Error(), "Expected identifier", node.value, node.pos);
@@ -428,7 +420,7 @@ export class CodeGeneratorJs {
 					node.pt = "I";
 					return node.pv;
 				},
-				"#": function (node, oRight) { // stream as prefix operator
+				"#": function (node: CodeNode, oRight: CodeNode) { // stream as prefix operator
 					node.pv = oRight.pv;
 					node.pt = "I";
 					return node.pv;
@@ -436,21 +428,23 @@ export class CodeGeneratorJs {
 			},
 
 			mParseFunctions = {
-				fnParseDefIntRealStr: function (node) {
+				fnParseDefIntRealStr: function (node: CodeNode) {
 					const aNodeArgs = fnParseArgs(node.args);
 
 					for (let i = 0; i < aNodeArgs.length; i += 1) {
 						const sArg = aNodeArgs[i];
+
 						aNodeArgs[i] = "o." + node.type + '("' + sArg + '")';
 					}
 					node.pv = aNodeArgs.join("; ");
 					return node.pv;
 				},
 
-				fnParseErase: function (node) {
+				fnParseErase: function (node: CodeNode) {
 					oDevScopeArgs = {};
 					bDevScopeArgsCollect = true;
 					const aNodeArgs = fnParseArgs(node.args);
+
 					bDevScopeArgsCollect = false;
 					oDevScopeArgs = null;
 
@@ -461,7 +455,7 @@ export class CodeGeneratorJs {
 					return node.pv;
 				},
 
-				fnAddReferenceLabel: function (sLabel: string, node) {
+				fnAddReferenceLabel: function (sLabel: string, node: CodeNode) {
 					if (sLabel in that.oLabels) {
 						that.oLabels[sLabel] += 1;
 					} else {
@@ -474,27 +468,28 @@ export class CodeGeneratorJs {
 					}
 				},
 
-				fnCommandWithGoto: function (node, aNodeArgs) { // optional aNodeArgs
+				fnCommandWithGoto: function (node: CodeNode, aNodeArgs) { // optional aNodeArgs
 					const sCommand = node.type;
 
 					aNodeArgs = aNodeArgs || fnParseArgs(node.args);
 					const sLabel = that.iLine + "s" + that.iStopCount; // we use stopCount
+
 					that.iStopCount += 1;
 					node.pv = "o." + sCommand + "(" + aNodeArgs.join(", ") + "); o.goto(\"" + sLabel + "\"); break;\ncase \"" + sLabel + "\":";
 					return node.pv;
 				},
 
-				";": function (node) { // input, line input
+				";": function (node: CodeNode) { // input, line input
 					node.pv = ";";
 					return node.pv;
 				},
 
-				",": function (node) { // input, line input
+				",": function (node: CodeNode) { // input, line input
 					node.pv = ",";
 					return node.pv;
 				},
 
-				"|": function (node) { // rsx
+				"|": function (node: CodeNode) { // rsx
 					let sRsxName = node.value.substr(1).toLowerCase().replace(/\./g, "_");
 					const bRsxAvailable = that.rsx && that.rsx.rsxIsAvailable(sRsxName),
 						aNodeArgs = fnParseArgs(node.args),
@@ -505,6 +500,7 @@ export class CodeGeneratorJs {
 					if (!bRsxAvailable) { // if RSX not available, we delay the error until it is executed (or catched by on error goto)
 						if (!that.bQuiet) {
 							const oError = that.composeError(Error(), "Unknown RSX command", node.value, node.pos);
+
 							Utils.console.warn(oError);
 						}
 						aNodeArgs.unshift('"' + sRsxName + '"'); // put as first arg
@@ -514,13 +510,13 @@ export class CodeGeneratorJs {
 					node.pv = "o.rsx." + sRsxName + "(" + aNodeArgs.join(", ") + "); o.goto(\"" + sLabel + "\"); break;\ncase \"" + sLabel + "\":"; // most RSX commands need goto (era, ren,...)
 					return node.pv;
 				},
-				number: function (node) {
+				number: function (node: CodeNode) {
 					node.pt = (/^[0-9]+$/).test(node.value) ? "I" : "R";
-					node.pv = node.value;
+					node.pv = node.value; // keep string
 					return node.pv;
 				},
-				binnumber: function (node) {
-					var sValue = node.value.slice(2); // remove &x
+				binnumber: function (node: CodeNode) {
+					let sValue = node.value.slice(2); // remove &x
 
 					if (Utils.bSupportsBinaryLiterals) {
 						sValue = "0b" + ((sValue.length) ? sValue : "0"); // &x->0b; 0b is ES6
@@ -531,8 +527,8 @@ export class CodeGeneratorJs {
 					node.pv = sValue;
 					return node.pv;
 				},
-				hexnumber: function (node) {
-					var sValue = node.value.slice(1); // remove &
+				hexnumber: function (node: CodeNode) {
+					let sValue = node.value.slice(1); // remove &
 
 					if (sValue.charAt(0).toLowerCase() === "h") { // optional h
 						sValue = sValue.slice(1); // remove
@@ -543,24 +539,19 @@ export class CodeGeneratorJs {
 					node.pv = sValue;
 					return node.pv;
 				},
-				linenumber: function (node) {
+				linenumber: function (node: CodeNode) {
 					node.pv = node.value;
 					return node.pv;
 				},
-				identifier: function (node) { // identifier or identifier with array
-					var aNodeArgs = [],
-						sName, sValue, sVarType;
+				identifier: function (node: CodeNode) { // identifier or identifier with array
+					const aNodeArgs = node.args ? fnParseArgRange(node.args, 1, node.args.length - 2) : [], // array: we skip open and close bracket
+						sName = fnAdaptVariableName(node.value, aNodeArgs.length), // here we use node.value
+						sValue = sName + aNodeArgs.map(function (val) {
+							return "[" + val + "]";
+						}).join("");
 
-					if (node.args) { // array?
-						aNodeArgs = fnParseArgRange(node.args, 1, node.args.length - 2); // we skip open and close bracket
-					}
-					sName = fnAdaptVariableName(node.value, aNodeArgs.length); // here we use node.value
+					let sVarType = fnDetermineStaticVarType(sName);
 
-					sValue = sName + aNodeArgs.map(function (val) {
-						return "[" + val + "]";
-					}).join("");
-
-					sVarType = fnDetermineStaticVarType(sName);
 					if (sVarType.length > 1) {
 						sVarType = sVarType.charAt(1);
 						node.pt = sVarType;
@@ -568,12 +559,12 @@ export class CodeGeneratorJs {
 					node.pv = sValue;
 					return node.pv;
 				},
-				letter: function (node) { // for defint, defreal, defstr
+				letter: function (node: CodeNode) { // for defint, defreal, defstr
 					node.pv = node.value;
 					return node.pv;
 				},
-				range: function (node) { // for defint, defreal, defstr
-					var sLeft = fnParseOneArg(node.left),
+				range: function (node: CodeNode) { // for defint, defreal, defstr
+					const sLeft = fnParseOneArg(node.left),
 						sRight = fnParseOneArg(node.right);
 
 					if (sLeft > sRight) {
@@ -582,8 +573,8 @@ export class CodeGeneratorJs {
 					node.pv = sLeft + " - " + sRight;
 					return node.pv;
 				},
-				linerange: function (node) { // for delete, list
-					var sLeft = fnParseOneArg(node.left),
+				linerange: function (node: CodeNode) { // for delete, list
+					const sLeft = fnParseOneArg(node.left),
 						sRight = fnParseOneArg(node.right);
 
 					if (sLeft > sRight) {
@@ -592,18 +583,18 @@ export class CodeGeneratorJs {
 					node.pv = !sRight ? sLeft : sLeft + ", " + sRight;
 					return node.pv;
 				},
-				string: function (node) {
+				string: function (node: CodeNode) {
 					node.pt = "$";
 					node.pv = '"' + node.value + '"';
 					return node.pv;
 				},
-				"null": function (node) { // means: no parameter specified
+				"null": function (node: CodeNode) { // means: no parameter specified
 					node.pv = "null";
 					return node.pv;
 				},
-				assign: function (node) {
+				assign: function (node: CodeNode) {
 					// see also "let"
-					var sName, sVarType, value, sValue;
+					let sName: string;
 
 					if (node.left.type === "identifier") {
 						sName = fnParseOneArg(node.left);
@@ -611,14 +602,17 @@ export class CodeGeneratorJs {
 						throw that.composeError(Error(), "Unexpected assing type", node.type, node.pos); // should not occur
 					}
 
-					value = fnParseOneArg(node.right);
+					const value = fnParseOneArg(node.right);
 
 					fnPropagateStaticTypes(node, node.left, node.right, "II RR IR RI $$");
-					sVarType = fnDetermineStaticVarType(sName);
+					const sVarType = fnDetermineStaticVarType(sName);
+
+					let sValue: string;
 
 					if (node.pt) {
-						if (node.left.pt === "I" && node.right.pt === "R") {
+						if (node.left.pt === "I" && node.right.pt === "R") { // special handing for IR: rounding needed
 							sValue = "o.vmRound(" + value + ")";
+							node.pt = "I"; // "R" => "I"
 						} else {
 							sValue = value;
 						}
@@ -629,17 +623,17 @@ export class CodeGeneratorJs {
 					node.pv = sValue;
 					return node.pv;
 				},
-				label: function (node) {
-					var bDirect = false,
-						value = "",
-						label, aNodeArgs, value2, i;
+				label: function (node: CodeNode) {
+					let label = node.value;
 
-					label = node.value;
-					that.iLine = label; // set line before parsing args
+					that.iLine = Number(label); //TTT set line before parsing args
 
 					that.resetCountsPerLine(); // we want to have "stable" counts, even if other lines change, e.g. direct
 
-					if (isNaN(label)) {
+					let value = "",
+						bDirect = false;
+
+					if (isNaN(Number(label))) {
 						if (label === "direct") { // special handling
 							bDirect = true;
 							value = "o.goto(\"directEnd\"); break;\n";
@@ -649,13 +643,14 @@ export class CodeGeneratorJs {
 
 					value += "case " + label + ":";
 
-					aNodeArgs = fnParseArgs(node.args);
+					const aNodeArgs = fnParseArgs(node.args);
 
 					if (that.tron) {
 						value += " o.vmTrace(\"" + that.iLine + "\");";
 					}
-					for (i = 0; i < aNodeArgs.length; i += 1) {
-						value2 = aNodeArgs[i];
+					for (let i = 0; i < aNodeArgs.length; i += 1) {
+						let value2 = aNodeArgs[i];
+
 						if (value2 !== "") {
 							if (!(/[}:;\n]$/).test(value2)) { // does not end with } : ; \n
 								value2 += ";";
@@ -676,117 +671,127 @@ export class CodeGeneratorJs {
 
 				// special keyword functions
 
-				afterGosub: function (node) {
-					var aNodeArgs = fnParseArgs(node.args);
+				afterGosub: function (node: CodeNode) {
+					const aNodeArgs = fnParseArgs(node.args);
 
 					this.fnAddReferenceLabel(aNodeArgs[2], node.args[2]); // argument 2 = line number
 					node.pv = "o." + node.type + "(" + aNodeArgs.join(", ") + ")";
 					return node.pv;
 				},
-				call: function (node) {
+				call: function (node: CodeNode) {
 					node.pv = this.fnCommandWithGoto(node);
 					return node.pv;
 				},
-				chain: function (node) {
+				chain: function (node: CodeNode) {
 					node.pv = this.fnCommandWithGoto(node);
 					return node.pv;
 				},
-				chainMerge: function (node) {
+				chainMerge: function (node: CodeNode) {
 					that.bMergeFound = true;
 					node.pv = this.fnCommandWithGoto(node);
 					return node.pv;
 				},
-				clear: function (node) { // will also do e.g. closeout
+				clear: function (node: CodeNode) { // will also do e.g. closeout
 					node.pv = this.fnCommandWithGoto(node);
 					return node.pv;
 				},
-				closeout: function (node) {
+				closeout: function (node: CodeNode) {
 					node.pv = this.fnCommandWithGoto(node);
 					return node.pv;
 				},
-				cont: function (node) {
+				cont: function (node: CodeNode) {
 					node.pv = "o." + node.type + "(); break;"; // append break
 					return node.pv;
 				},
-				data: function (node) {
-					var aNodeArgs = fnParseArgs(node.args);
+				data: function (node: CodeNode) {
+					const aNodeArgs = fnParseArgs(node.args);
 
-					aNodeArgs.unshift(that.iLine); // prepend line number
+					aNodeArgs.unshift(String(that.iLine)); // prepend line number
 					that.aData.push("o.data(" + aNodeArgs.join(", ") + ")"); // will be set at the beginning of the script
 					node.pv = "/* data */";
 					return node.pv;
 				},
-				def: function (node) { // somehow special because we need to get plain variables
-					var aNodeArgs, sName, sExpression, sVarType, sValue;
-
-					sName = fnParseOneArg(node.left);
+				def: function (node: CodeNode) { // somehow special because we need to get plain variables
+					const sName = fnParseOneArg(node.left);
 
 					oDevScopeArgs = {};
 					bDevScopeArgsCollect = true;
-					aNodeArgs = fnParseArgs(node.args);
+					const aNodeArgs = fnParseArgs(node.args);
+
 					bDevScopeArgsCollect = false;
-					sExpression = fnParseOneArg(node.right);
+					const sExpression = fnParseOneArg(node.right);
+
 					oDevScopeArgs = null;
 
-					fnPropagateStaticTypes(node, node.left, node.value, "II RR IR RI $$");
-					sVarType = fnDetermineStaticVarType(sName);
+					fnPropagateStaticTypes(node, node.left, node.right, "II RR IR RI $$");
+
+					let sValue: string;
+
 					if (node.pt) {
-						sValue = sExpression;
+						if (node.left.pt === "I" && node.right.pt === "R") { // special handing for IR: rounding needed
+							sValue = "o.vmRound(" + sExpression + ")";
+							node.pt = "I"; // "R" => "I"
+						} else {
+							sValue = sExpression;
+						}
 					} else {
+						const sVarType = fnDetermineStaticVarType(sName);
+
 						sValue = "o.vmAssign(\"" + sVarType + "\", " + sExpression + ")";
 					}
 					sValue = sName + " = function (" + aNodeArgs.join(", ") + ") { return " + sValue + "; };";
 					node.pv = sValue;
 					return node.pv;
 				},
-				defint: function (node) { // somehow special
+				defint: function (node: CodeNode) { // somehow special
 					node.pv = this.fnParseDefIntRealStr(node);
 					return node.pv;
 				},
-				defreal: function (node) { // somehow special
+				defreal: function (node: CodeNode) { // somehow special
 					node.pv = this.fnParseDefIntRealStr(node);
 					return node.pv;
 				},
-				defstr: function (node) { // somehow special
+				defstr: function (node: CodeNode) { // somehow special
 					node.pv = this.fnParseDefIntRealStr(node);
 					return node.pv;
 				},
-				dim: function (node) {
-					var aNodeArgs = [],
-						oNodeArg, sName, aArgs, iIndex, sFullExpression, i;
+				dim: function (node: CodeNode) {
+					const aArgs: string[] = [];
 
-					for (i = 0; i < node.args.length; i += 1) {
-						oNodeArg = node.args[i];
+					for (let i = 0; i < node.args.length; i += 1) {
+						const oNodeArg = node.args[i];
+
 						if (oNodeArg.type !== "identifier") {
 							throw that.composeError(Error(), "Expected identifier in DIM", node.type, node.pos);
 						}
-						aArgs = fnParseArgRange(oNodeArg.args, 1, oNodeArg.args.length - 2); // we skip open and close bracket
+						const aNodeArgs = fnParseArgRange(oNodeArg.args, 1, oNodeArg.args.length - 2), // we skip open and close bracket
+							sFullExpression = fnParseOneArg(oNodeArg);
+						let sName = sFullExpression;
 
-						sFullExpression = fnParseOneArg(oNodeArg);
-						sName = sFullExpression;
 						sName = sName.substr(2); // remove preceding "v."
-						iIndex = sName.indexOf("["); // we should always have it
+						const iIndex = sName.indexOf("["); // we should always have it
+
 						sName = sName.substr(0, iIndex);
-						aNodeArgs.push("/* " + sFullExpression + " = */ o.dim(\"" + sName + "\", " + aArgs.join(", ") + ")");
+						aArgs.push("/* " + sFullExpression + " = */ o.dim(\"" + sName + "\", " + aNodeArgs.join(", ") + ")");
 					}
 
-					node.pv = aNodeArgs.join("; ");
+					node.pv = aArgs.join("; ");
 					return node.pv;
 				},
-				"delete": function (node) {
-					var aNodeArgs = fnParseArgs(node.args),
+				"delete": function (node: CodeNode) {
+					const aNodeArgs = fnParseArgs(node.args),
 						sName = Utils.bSupportReservedNames ? "o.delete" : 'o["delete"]';
 
 					node.pv = sName + "(" + aNodeArgs.join(", ") + "); break;";
 					return node.pv;
 				},
-				"else": function (node) { // similar to a comment, with unchecked tokens
-					var aArgs = node.args,
-						sValue = node.type,
-						oToken, i;
+				"else": function (node: CodeNode) { // similar to a comment, with unchecked tokens
+					const aArgs = node.args;
+					let	sValue = node.type;
 
-					for (i = 0; i < aArgs.length; i += 1) {
-						oToken = aArgs[i];
+					for (let i = 0; i < aArgs.length; i += 1) {
+						const oToken = aArgs[i];
+
 						if (oToken.value) {
 							sValue += " " + oToken.value;
 						}
@@ -794,34 +799,34 @@ export class CodeGeneratorJs {
 					node.pv = "// " + sValue + "\n";
 					return node.pv;
 				},
-				end: function (node) {
-					var sName = that.iLine + "s" + that.iStopCount; // same as stop, use also stopCount
+				end: function (node: CodeNode) {
+					const sName = that.iLine + "s" + that.iStopCount; // same as stop, use also stopCount
 
 					that.iStopCount += 1;
 					node.pv = "o.end(\"" + sName + "\"); break;\ncase \"" + sName + "\":";
 					return node.pv;
 				},
-				erase: function (node) { // somehow special because we need to get plain variables
-					var value = this.fnParseErase(node);
+				erase: function (node: CodeNode) { // somehow special because we need to get plain variables
+					const value = this.fnParseErase(node);
 
 					node.pv = value;
 					return node.pv;
 				},
-				error: function (node) {
-					var aNodeArgs = fnParseArgs(node.args);
+				error: function (node: CodeNode) {
+					const aNodeArgs = fnParseArgs(node.args);
 
 					node.pv = "o.error(" + aNodeArgs[0] + "); break";
 					return node.pv;
 				},
-				everyGosub: function (node) {
-					var aNodeArgs = fnParseArgs(node.args);
+				everyGosub: function (node: CodeNode) {
+					const aNodeArgs = fnParseArgs(node.args);
 
 					this.fnAddReferenceLabel(aNodeArgs[2], node.args[2]); // argument 2 = line number
 					node.pv = "o." + node.type + "(" + aNodeArgs.join(", ") + ")";
 					return node.pv;
 				},
-				fn: function (node) {
-					var aNodeArgs = fnParseArgs(node.args),
+				fn: function (node: CodeNode) {
+					const aNodeArgs = fnParseArgs(node.args),
 						sName = fnParseOneArg(node.left);
 
 					if (node.left.pt) {
@@ -831,34 +836,33 @@ export class CodeGeneratorJs {
 					return node.pv;
 				},
 
-				"for": function (node) {
-					var aNodeArgs = fnParseArgs(node.args),
-						sVarName, sLabel, value, startValue, endValue, stepValue, startNode, endNode, stepNode, bStartIsIntConst, bEndIsIntConst, bStepIsIntConst, sStepName, sEndName, sVarType, sType, sEndNameOrValue;
+				"for": function (node: CodeNode) {
+					const aNodeArgs = fnParseArgs(node.args),
+						sVarName = aNodeArgs[0],
+						sLabel = that.iLine + "f" + that.iForCount;
 
-					sVarName = aNodeArgs[0];
-					sLabel = that.iLine + "f" + that.iForCount;
 					that.oStack.forLabel.push(sLabel);
 					that.oStack.forVarName.push(sVarName);
 					that.iForCount += 1;
 
-					startValue = aNodeArgs[1];
-					endValue = aNodeArgs[2];
-					stepValue = aNodeArgs[3];
+					let startValue = aNodeArgs[1],
+						endValue = aNodeArgs[2],
+						stepValue = aNodeArgs[3];
+
 					if (stepValue === "null") {
-						stepValue = 1;
+						stepValue = "1";
 					}
 
-					startNode = node.args[1];
-					endNode = node.args[2];
-					stepNode = node.args[3];
+					const startNode = node.args[1] as CodeNode, //TTT
+						endNode = node.args[2] as CodeNode,
+						stepNode = node.args[3] as CodeNode,
+						// optimization for integer constants (check value and not type, because we also want to accept e.g. -<number>):
+						bStartIsIntConst = fnIsIntConst(startValue),
+						bEndIsIntConst = fnIsIntConst(endValue),
+						bStepIsIntConst = fnIsIntConst(stepValue),
+						sVarType = fnDetermineStaticVarType(sVarName),
+						sType = (sVarType.length > 1) ? sVarType.charAt(1) : "";
 
-					// optimization for integer constants (check value and not type, because we also want to accept e.g. -<number>)
-					bStartIsIntConst = fnIsIntConst(startValue);
-					bEndIsIntConst = fnIsIntConst(endValue);
-					bStepIsIntConst = fnIsIntConst(stepValue);
-
-					sVarType = fnDetermineStaticVarType(sVarName);
-					sType = (sVarType.length > 1) ? sVarType.charAt(1) : "";
 					if (sType === "$") {
 						throw that.composeError(Error(), "String type in FOR at", node.type, node.pos);
 					}
@@ -868,24 +872,33 @@ export class CodeGeneratorJs {
 							startValue = "o.vmAssign(\"" + sVarType + "\", " + startValue + ")"; // assign checks and rounds, if needed
 						}
 					}
+
+					let	sEndName: string;
+
 					if (!bEndIsIntConst) {
 						if (endNode.pt !== "I") {
 							endValue = "o.vmAssign(\"" + sVarType + "\", " + endValue + ")";
 						}
 						sEndName = sVarName + "End";
-						value = sEndName.substr(2); // remove preceding "v."
-						fnDeclareVariable(value); // declare also end variable
+						const value2 = sEndName.substr(2); // remove preceding "v."
+
+						fnDeclareVariable(value2); // declare also end variable
 					}
+
+					let sStepName: string;
+
 					if (!bStepIsIntConst) {
 						if (stepNode.pt !== "I") {
 							stepValue = "o.vmAssign(\"" + sVarType + "\", " + stepValue + ")";
 						}
 						sStepName = sVarName + "Step";
-						value = sStepName.substr(2); // remove preceding "v."
-						fnDeclareVariable(value); // declare also step variable
+						const value2 = sStepName.substr(2); // remove preceding "v."
+
+						fnDeclareVariable(value2); // declare also step variable
 					}
 
-					value = "/* for() */";
+					let value = "/* for() */";
+
 					if (sType !== "I") {
 						value += " o.vmAssertNumberType(\"" + sVarType + "\");"; // do a type check: assert number type
 					}
@@ -905,13 +918,14 @@ export class CodeGeneratorJs {
 
 					value += "\ncase \"" + sLabel + "b\": ";
 
-					sEndNameOrValue = bEndIsIntConst ? endValue : sEndName;
+					const sEndNameOrValue = bEndIsIntConst ? endValue : sEndName;
+
 					if (bStepIsIntConst) {
-						if (stepValue > 0) {
+						if (Number(stepValue) > 0) {
 							value += "if (" + sVarName + " > " + sEndNameOrValue + ") { o.goto(\"" + sLabel + "e\"); break; }";
-						} else if (stepValue < 0) {
+						} else if (Number(stepValue) < 0) {
 							value += "if (" + sVarName + " < " + sEndNameOrValue + ") { o.goto(\"" + sLabel + "e\"); break; }";
-						} else { // stepValue === 0 => endless loop, if starting with var < end
+						} else { // stepValue === 0 => endless loop, if starting with variable < end
 							value += "if (" + sVarName + " < " + sEndNameOrValue + ") { o.goto(\"" + sLabel + "e\"); break; }";
 						}
 					} else {
@@ -921,147 +935,154 @@ export class CodeGeneratorJs {
 					return node.pv;
 				},
 
-				frame: function (node) {
+				frame: function (node: CodeNode) {
 					node.pv = this.fnCommandWithGoto(node);
 					return node.pv;
 				},
-				gosub: function (node) {
-					var aNodeArgs = fnParseArgs(node.args),
-						iLine = aNodeArgs[0],
+				gosub: function (node: CodeNode) {
+					const aNodeArgs = fnParseArgs(node.args),
+						sLine = aNodeArgs[0],
 						sName = that.iLine + "g" + that.iGosubCount;
 
 					that.iGosubCount += 1;
-					this.fnAddReferenceLabel(iLine, node.args[0]);
-					node.pv = 'o.gosub("' + sName + '", ' + iLine + '); break; \ncase "' + sName + '":';
+					this.fnAddReferenceLabel(sLine, node.args[0]);
+					node.pv = 'o.gosub("' + sName + '", ' + sLine + '); break; \ncase "' + sName + '":';
 					return node.pv;
 				},
-				"goto": function (node) {
-					var aNodeArgs = fnParseArgs(node.args),
-						iLine = aNodeArgs[0];
+				"goto": function (node: CodeNode) {
+					const aNodeArgs = fnParseArgs(node.args),
+						sLine = aNodeArgs[0];
 
-					this.fnAddReferenceLabel(iLine, node.args[0]);
-					node.pv = "o.goto(" + iLine + "); break";
+					this.fnAddReferenceLabel(sLine, node.args[0]);
+					node.pv = "o.goto(" + sLine + "); break";
 					return node.pv;
 				},
-				"if": function (node) {
-					var aNodeArgs, sLabel, value, sPart;
+				"if": function (node: CodeNode) {
+					const sLabel = that.iLine + "i" + that.iIfCount;
 
-					sLabel = that.iLine + "i" + that.iIfCount;
 					that.iIfCount += 1;
 
-					value = "if (" + fnParseOneArg(node.left) + ') { o.goto("' + sLabel + '"); break; } ';
-					if (node.third) {
-						aNodeArgs = fnParseArgs(node.third);
-						sPart = aNodeArgs.join("; ");
-						value += "/* else */ " + sPart + "; ";
+					let value = "if (" + fnParseOneArg(node.left) + ') { o.goto("' + sLabel + '"); break; } ';
+
+					if (node.args2) { // "else" statements?
+						const aNodeArgs2 = fnParseArgs(node.args2),
+							sPart2 = aNodeArgs2.join("; ");
+
+						value += "/* else */ " + sPart2 + "; ";
 					}
 					value += 'o.goto("' + sLabel + 'e"); break;';
-					aNodeArgs = fnParseArgs(node.right);
-					sPart = aNodeArgs.join("; ");
+					const aNodeArgs = fnParseArgs(node.args), // "then" statements
+						sPart = aNodeArgs.join("; ");
+
 					value += '\ncase "' + sLabel + '": ' + sPart + ";";
 					value += '\ncase "' + sLabel + 'e": ';
 					node.pv = value;
 					return node.pv;
 				},
-				input: function (node) { // input or lineInput
-					var aNodeArgs = fnParseArgs(node.args),
-						aVarTypes = [],
-						sLabel, value, i, sStream, sNoCRLF, sMsg, sPrompt;
+				input: function (node: CodeNode) { // input or lineInput
+					const aNodeArgs = fnParseArgs(node.args),
+						aVarTypes = [];
+					let sLabel = that.iLine + "s" + that.iStopCount;
 
-					sLabel = that.iLine + "s" + that.iStopCount;
 					that.iStopCount += 1;
 
-					sStream = aNodeArgs.shift();
-					sNoCRLF = aNodeArgs.shift();
+					const sStream = aNodeArgs.shift();
+					let sNoCRLF = aNodeArgs.shift();
+
 					if (sNoCRLF === ";") { // ; or null
 						sNoCRLF = '"' + sNoCRLF + '"';
 					}
-					sMsg = aNodeArgs.shift();
+					let sMsg = aNodeArgs.shift();
+
 					if (node.args[2].type === "null") { // message type
 						sMsg = '""';
 					}
-					sPrompt = aNodeArgs.shift();
+					const sPrompt = aNodeArgs.shift();
+
 					if (sPrompt === ";" || sPrompt === "null") { // ";" => insert prompt "? " in quoted string
 						sMsg = sMsg.substr(0, sMsg.length - 1) + "? " + sMsg.substr(-1, 1);
 					}
 
-					for (i = 0; i < aNodeArgs.length; i += 1) {
+					for (let i = 0; i < aNodeArgs.length; i += 1) {
 						aVarTypes[i] = fnDetermineStaticVarType(aNodeArgs[i]);
 					}
 
-					value = "o.goto(\"" + sLabel + "\"); break;\ncase \"" + sLabel + "\":"; // also before input
+					let value = "o.goto(\"" + sLabel + "\"); break;\ncase \"" + sLabel + "\":"; // also before input
+
 					sLabel = that.iLine + "s" + that.iStopCount;
 					that.iStopCount += 1;
 
 					value += "o." + node.type + "(" + sStream + ", " + sNoCRLF + ", " + sMsg + ", \"" + aVarTypes.join('", "') + "\"); o.goto(\"" + sLabel + "\"); break;\ncase \"" + sLabel + "\":";
-					for (i = 0; i < aNodeArgs.length; i += 1) {
+					for (let i = 0; i < aNodeArgs.length; i += 1) {
 						value += "; " + aNodeArgs[i] + " = o.vmGetNextInput()";
 					}
 
 					node.pv = value;
 					return node.pv;
 				},
-				let: function (node) {
+				let: function (node: CodeNode) {
 					node.pv = this.assign(node.right);
 					return node.pv;
 				},
-				lineInput: function (node) {
+				lineInput: function (node: CodeNode) {
 					return this.input(node); // similar to input but with one arg of type string only
 				},
-				list: function (node) {
-					var aNodeArgs = fnParseArgs(node.args), // or: fnCommandWithGoto
-						stream;
+				list: function (node: CodeNode) {
+					const aNodeArgs = fnParseArgs(node.args); // or: fnCommandWithGoto
 
 					if (node.args.length && node.args[node.args.length - 1].type === "#") { // last parameter stream?
-						stream = aNodeArgs.pop();
+						const stream = aNodeArgs.pop();
+
 						aNodeArgs.unshift(stream); // put it first
 					}
 
 					node.pv = "o.list(" + aNodeArgs.join(", ") + "); break;";
 					return node.pv;
 				},
-				load: function (node) {
+				load: function (node: CodeNode) {
 					node.pv = this.fnCommandWithGoto(node);
 					return node.pv;
 				},
-				merge: function (node) {
+				merge: function (node: CodeNode) {
 					that.bMergeFound = true;
 					node.pv = this.fnCommandWithGoto(node);
 					return node.pv;
 				},
-				mid$Assign: function (node) {
-					var aNodeArgs = fnParseArgs(node.args),
-						sName, sVarType, sValue, right;
-
-					sName = aNodeArgs[0];
-					sVarType = fnDetermineStaticVarType(sName);
+				mid$Assign: function (node: CodeNode) {
+					const aNodeArgs = fnParseArgs(node.args);
 
 					if (aNodeArgs.length < 3) {
 						aNodeArgs.push("null"); // empty length
 					}
-					right = fnParseOneArg(node.right);
-					aNodeArgs.push(right);
+					const sRight = fnParseOneArg(node.right);
 
-					sValue = sName + " = o.vmAssign(\"" + sVarType + "\", o.mid$Assign(" + aNodeArgs.join(", ") + "))";
+					aNodeArgs.push(sRight);
+
+					const sName = aNodeArgs[0],
+						sVarType = fnDetermineStaticVarType(sName),
+						sValue = sName + " = o.vmAssign(\"" + sVarType + "\", o.mid$Assign(" + aNodeArgs.join(", ") + "))";
+
 					node.pv = sValue;
 					return node.pv;
 				},
-				"new": function (node) {
-					var sName = Utils.bSupportReservedNames ? "o.new" : 'o["new"]';
+				"new": function (node: CodeNode) {
+					const sName = Utils.bSupportReservedNames ? "o.new" : 'o["new"]';
 
 					node.pv = sName + "();";
 					return node.pv;
 				},
-				next: function (node) {
-					var aNodeArgs = fnParseArgs(node.args),
-						i, sLabel, sVarName, oErrorNode;
+				next: function (node: CodeNode) {
+					const aNodeArgs = fnParseArgs(node.args);
 
 					if (!aNodeArgs.length) {
 						aNodeArgs.push(""); // we have no variable, so use empty argument
 					}
-					for (i = 0; i < aNodeArgs.length; i += 1) {
-						sLabel = that.oStack.forLabel.pop();
-						sVarName = that.oStack.forVarName.pop();
+					for (let i = 0; i < aNodeArgs.length; i += 1) {
+						const sLabel = that.oStack.forLabel.pop(),
+							sVarName = that.oStack.forVarName.pop();
+
+						let oErrorNode: ParserNode;
+
 						if (sLabel === undefined) {
 							if (aNodeArgs[i] === "") { // inserted node?
 								oErrorNode = node;
@@ -1079,72 +1100,70 @@ export class CodeGeneratorJs {
 					node.pv = aNodeArgs.join("; ");
 					return node.pv;
 				},
-				onBreakGosub: function (node) {
-					var aNodeArgs = fnParseArgs(node.args),
-						iLine = aNodeArgs[0];
+				onBreakGosub: function (node: CodeNode) {
+					const aNodeArgs = fnParseArgs(node.args),
+						sLine = aNodeArgs[0];
 
-					this.fnAddReferenceLabel(iLine, node.args[0]);
-					node.pv = "o." + node.type + "(" + iLine + ")";
+					this.fnAddReferenceLabel(sLine, node.args[0]);
+					node.pv = "o." + node.type + "(" + sLine + ")";
 					return node.pv;
 				},
-				onErrorGoto: function (node) {
-					var aNodeArgs = fnParseArgs(node.args),
-						iLine = aNodeArgs[0];
+				onErrorGoto: function (node: CodeNode) {
+					const aNodeArgs = fnParseArgs(node.args),
+						sLine = aNodeArgs[0];
 
-					if (iLine) { // only for lines > 0
-						this.fnAddReferenceLabel(iLine, node.args[0]);
+					if (Number(sLine)) { // only for lines > 0
+						this.fnAddReferenceLabel(sLine, node.args[0]);
 					}
-					node.pv = "o." + node.type + "(" + iLine + ")";
+					node.pv = "o." + node.type + "(" + sLine + ")";
 					return node.pv;
 				},
-				onGosub: function (node) {
-					var aNodeArgs = fnParseArgs(node.args),
+				onGosub: function (node: CodeNode) {
+					const aNodeArgs = fnParseArgs(node.args),
 						sName = node.type,
-						sLabel = that.iLine + "g" + that.iGosubCount,
-						i;
+						sLabel = that.iLine + "g" + that.iGosubCount;
 
 					that.iGosubCount += 1;
-					for (i = 1; i < aNodeArgs.length; i += 1) { // start with argument 1
+					for (let i = 1; i < aNodeArgs.length; i += 1) { // start with argument 1
 						this.fnAddReferenceLabel(aNodeArgs[i], node.args[i]);
 					}
 					aNodeArgs.unshift('"' + sLabel + '"');
 					node.pv = "o." + sName + "(" + aNodeArgs.join(", ") + '); break; \ncase "' + sLabel + '":';
 					return node.pv;
 				},
-				onGoto: function (node) {
-					var aNodeArgs = fnParseArgs(node.args),
+				onGoto: function (node: CodeNode) {
+					const aNodeArgs = fnParseArgs(node.args),
 						sName = node.type,
-						sLabel = that.iLine + "s" + that.iStopCount,
-						i;
+						sLabel = that.iLine + "s" + that.iStopCount;
 
 					that.iStopCount += 1;
-					for (i = 1; i < aNodeArgs.length; i += 1) { // start with argument 1
+					for (let i = 1; i < aNodeArgs.length; i += 1) { // start with argument 1
 						this.fnAddReferenceLabel(aNodeArgs[i], node.args[i]);
 					}
 					aNodeArgs.unshift('"' + sLabel + '"');
 					node.pv = "o." + sName + "(" + aNodeArgs.join(", ") + "); break\ncase \"" + sLabel + "\":";
 					return node.pv;
 				},
-				onSqGosub: function (node) {
-					var aNodeArgs = fnParseArgs(node.args);
+				onSqGosub: function (node: CodeNode) {
+					const aNodeArgs = fnParseArgs(node.args);
 
 					this.fnAddReferenceLabel(aNodeArgs[1], node.args[1]); // argument 1: line number
 					node.pv = "o." + node.type + "(" + aNodeArgs.join(", ") + ")";
 					return node.pv;
 				},
-				openin: function (node) {
+				openin: function (node: CodeNode) {
 					return this.fnCommandWithGoto(node);
 				},
 
-				print: function (node) {
-					var aArgs = node.args,
-						aNodeArgs = [],
-						bNewLine = true,
-						oArg, sArg, i;
+				print: function (node: CodeNode) {
+					const aArgs = node.args,
+						aNodeArgs = [];
+					let	bNewLine = true;
 
-					for (i = 0; i < aArgs.length; i += 1) {
-						oArg = aArgs[i];
-						sArg = fnParseOneArg(oArg);
+					for (let i = 0; i < aArgs.length; i += 1) {
+						const oArg = aArgs[i];
+						let sArg = fnParseOneArg(oArg);
+
 						if (i === aArgs.length - 1) {
 							if (oArg.type === ";" || oArg.type === "," || oArg.type === "spc" || oArg.type === "tab") {
 								bNewLine = false;
@@ -1160,22 +1179,25 @@ export class CodeGeneratorJs {
 					}
 
 					if (bNewLine) {
-						sArg = '"\\r\\n"';
-						aNodeArgs.push(sArg);
+						const sArg2 = '"\\r\\n"';
+
+						aNodeArgs.push(sArg2);
 					}
 
 					node.pv = "o." + node.type + "(" + aNodeArgs.join(", ") + ")";
 					return node.pv;
 				},
 
-				randomize: function (node) {
-					var aNodeArgs, value, sLabel;
+				randomize: function (node: CodeNode) {
+					let value: string;
 
 					if (node.args.length) {
-						aNodeArgs = fnParseArgs(node.args);
+						const aNodeArgs = fnParseArgs(node.args);
+
 						value = "o." + node.type + "(" + aNodeArgs.join(", ") + ")";
 					} else {
-						sLabel = that.iLine + "s" + that.iStopCount;
+						const sLabel = that.iLine + "s" + that.iStopCount;
+
 						that.iStopCount += 1;
 						value = "o.goto(\"" + sLabel + "\"); break;\ncase \"" + sLabel + "\":"; // also before input
 
@@ -1184,21 +1206,21 @@ export class CodeGeneratorJs {
 					node.pv = value;
 					return node.pv;
 				},
-				read: function (node) {
-					var aNodeArgs = fnParseArgs(node.args),
-						i, sName, sVarType;
+				read: function (node: CodeNode) {
+					const aNodeArgs = fnParseArgs(node.args);
 
-					for (i = 0; i < aNodeArgs.length; i += 1) {
-						sName = aNodeArgs[i];
-						sVarType = fnDetermineStaticVarType(sName);
+					for (let i = 0; i < aNodeArgs.length; i += 1) {
+						const sName = aNodeArgs[i],
+							sVarType = fnDetermineStaticVarType(sName);
+
 						aNodeArgs[i] = sName + " = o.read(\"" + sVarType + "\")";
 					}
 					node.pv = aNodeArgs.join("; ");
 					return node.pv;
 				},
-				rem: function (node) {
-					var aNodeArgs = fnParseArgs(node.args),
-						sValue = aNodeArgs[0];
+				rem: function (node: CodeNode) {
+					const aNodeArgs = fnParseArgs(node.args);
+					let	sValue = aNodeArgs[0];
 
 					if (sValue !== undefined) {
 						sValue = " " + sValue.substr(1, sValue.length - 2); // remove surrounding quotes
@@ -1208,12 +1230,12 @@ export class CodeGeneratorJs {
 					node.pv = "//" + sValue + "\n";
 					return node.pv;
 				},
-				renum: function (node) {
+				renum: function (node: CodeNode) {
 					node.pv = this.fnCommandWithGoto(node);
 					return node.pv;
 				},
-				restore: function (node) {
-					var aNodeArgs = fnParseArgs(node.args);
+				restore: function (node: CodeNode) {
+					const aNodeArgs = fnParseArgs(node.args);
 
 					if (aNodeArgs.length) {
 						this.fnAddReferenceLabel(aNodeArgs[0], node.args[0]); // optional line number
@@ -1221,8 +1243,8 @@ export class CodeGeneratorJs {
 					node.pv = "o." + node.type + "(" + aNodeArgs.join(", ") + ")";
 					return node.pv;
 				},
-				resume: function (node) {
-					var aNodeArgs = fnParseArgs(node.args);
+				resume: function (node: CodeNode) {
+					const aNodeArgs = fnParseArgs(node.args);
 
 					if (aNodeArgs.length) {
 						this.fnAddReferenceLabel(aNodeArgs[0], node.args[0]); // optional line number
@@ -1230,13 +1252,13 @@ export class CodeGeneratorJs {
 					node.pv = "o." + node.type + "(" + aNodeArgs.join(", ") + "); break"; // append break
 					return node.pv;
 				},
-				"return": function (node) {
-					var sName = Utils.bSupportReservedNames ? "o.return" : 'o["return"]';
+				"return": function (node: CodeNode) {
+					const sName = Utils.bSupportReservedNames ? "o.return" : 'o["return"]';
 
 					node.pv = sName + "(); break;";
 					return node.pv;
 				},
-				run: function (node) { // optional arg can be number or string
+				run: function (node: CodeNode) { // optional arg can be number or string
 					if (node.args.length) {
 						if (node.args[0].type === "linenumber" || node.args[0].type === "number") { // optional line number //TTT should be linenumber only
 							this.fnAddReferenceLabel(fnParseOneArg(node.args[0]), node.args[0]); // parse only one arg, args are parsed later
@@ -1246,53 +1268,56 @@ export class CodeGeneratorJs {
 					node.pv = this.fnCommandWithGoto(node);
 					return node.pv;
 				},
-				save: function (node) {
-					var aNodeArgs = [],
-						sFileName, sType, aNodeArgs2;
+				save: function (node: CodeNode) {
+					let aNodeArgs: string[] = [];
 
 					if (node.args.length) {
-						sFileName = fnParseOneArg(node.args[0]);
+						const sFileName = fnParseOneArg(node.args[0]);
+
 						aNodeArgs.push(sFileName);
 						if (node.args.length > 1) {
 							oDevScopeArgs = {};
 							bDevScopeArgsCollect = true;
-							sType = '"' + fnParseOneArg(node.args[1]) + '"';
+							const sType = '"' + fnParseOneArg(node.args[1]) + '"';
+
 							aNodeArgs.push(sType);
 							bDevScopeArgsCollect = false;
 							oDevScopeArgs = null;
-							aNodeArgs2 = node.args.slice(2); // get remaining args
-							aNodeArgs2 = fnParseArgs(aNodeArgs2);
-							aNodeArgs = aNodeArgs.concat(aNodeArgs2);
+
+							const aNodeArgs2 = node.args.slice(2), // get remaining args
+								aNodeArgs3 = fnParseArgs(aNodeArgs2);
+
+							aNodeArgs = aNodeArgs.concat(aNodeArgs3);
 						}
 					}
 					node.pv = this.fnCommandWithGoto(node, aNodeArgs);
 					return node.pv;
 				},
-				sound: function (node) {
+				sound: function (node: CodeNode) {
 					node.pv = this.fnCommandWithGoto(node); // maybe queue is full, so insert break
 					return node.pv;
 				},
-				spc: function (node) {
-					var aNodeArgs = fnParseArgs(node.args);
+				spc: function (node: CodeNode) {
+					const aNodeArgs = fnParseArgs(node.args);
 
 					node.pv = "{type: \"spc\", args: [" + aNodeArgs.join(", ") + "]}"; // we must delay the spc() call until print() is called because we need stream
 					return node.pv;
 				},
-				stop: function (node) {
-					var sName = that.iLine + "s" + that.iStopCount;
+				stop: function (node: CodeNode) {
+					const sName = that.iLine + "s" + that.iStopCount;
 
 					that.iStopCount += 1;
 					node.pv = "o.stop(\"" + sName + "\"); break;\ncase \"" + sName + "\":";
 					return node.pv;
 				},
-				tab: function (node) {
-					var aNodeArgs = fnParseArgs(node.args);
+				tab: function (node: CodeNode) {
+					const aNodeArgs = fnParseArgs(node.args);
 
 					node.pv = "{type: \"tab\", args: [" + aNodeArgs.join(", ") + "]}"; // we must delay the tab() call until print() is called
 					return node.pv;
 				},
-				wend: function (node) {
-					var sLabel = that.oStack.whileLabel.pop();
+				wend: function (node: CodeNode) {
+					const sLabel = that.oStack.whileLabel.pop();
 
 					if (sLabel === undefined) {
 						throw that.composeError(Error(), "Unexpected WEND", node.type, node.pos);
@@ -1300,8 +1325,8 @@ export class CodeGeneratorJs {
 					node.pv = "/* o.wend() */ o.goto(\"" + sLabel + "\"); break;\ncase \"" + sLabel + "e\":";
 					return node.pv;
 				},
-				"while": function (node) {
-					var aNodeArgs = fnParseArgs(node.args),
+				"while": function (node: CodeNode) {
+					const aNodeArgs = fnParseArgs(node.args),
 						sLabel = that.iLine + "w" + that.iWhileCount;
 
 					that.oStack.whileLabel.push(sLabel);
@@ -1311,8 +1336,8 @@ export class CodeGeneratorJs {
 				}
 			},
 
-			fnParseOther = function (node) {
-				var aNodeArgs = fnParseArgs(node.args),
+			fnParseOther = function (node: CodeNode) {
+				const aNodeArgs = fnParseArgs(node.args),
 					sTypeWithSpaces = " " + node.type + " ";
 
 				node.pv = "o." + node.type + "(" + aNodeArgs.join(", ") + ")";
@@ -1329,12 +1354,12 @@ export class CodeGeneratorJs {
 			},
 
 
-			parseNode = function (node) {
-				var value, value2;
-
+			parseNode = function (node: CodeNode) {
 				if (Utils.debug > 3) {
 					Utils.console.debug("evaluate: parseNode node=%o type=" + node.type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
 				}
+
+				let value: string;
 
 				if (mOperators[node.type]) {
 					if (node.left) {
@@ -1343,7 +1368,8 @@ export class CodeGeneratorJs {
 							value = "(" + value + ")";
 							node.left.pv = value;
 						}
-						value2 = parseNode(node.right);
+						let value2 = parseNode(node.right);
+
 						if (mOperators[node.right.type] && node.right.left) { // binary operator?
 							value2 = "(" + value2 + ")";
 							node.right.pv = value2;
@@ -1362,25 +1388,27 @@ export class CodeGeneratorJs {
 				return value;
 			},
 
-			fnCommentUnusedCases = function (sOutput2, oLabels2) {
-				sOutput2 = sOutput2.replace(/^case (\d+):/gm, function (sAll, sLine) {
+			fnCommentUnusedCases = function (sOutput2: string, oLabels2) {
+				sOutput2 = sOutput2.replace(/^case (\d+):/gm, function (sAll: string, sLine: string) {
 					return (oLabels2[sLine]) ? sAll : "/* " + sAll + " */";
 				});
 				return sOutput2;
 			},
 
 			fnCreateLabelsMap = function (oLabels2) {
-				var iLastLine = -1,
-					i, oNode, sLine, iLine;
+				let iLastLine = -1;
 
-				for (i = 0; i < parseTree.length; i += 1) {
-					oNode = parseTree[i];
+				for (let i = 0; i < parseTree.length; i += 1) {
+					const oNode = parseTree[i];
+
 					if (oNode.type === "label") {
-						sLine = oNode.value;
+						const sLine = oNode.value;
+
 						if (sLine in oLabels2) {
 							throw that.composeError(Error(), "Duplicate line number", sLine, oNode.pos);
 						}
-						iLine = Number(sLine);
+						const iLine = Number(sLine);
+
 						if (!isNaN(iLine)) { // not for "direct"
 							if (iLine <= iLastLine) {
 								throw that.composeError(Error(), "Line number not increasing", sLine, oNode.pos);
@@ -1396,14 +1424,14 @@ export class CodeGeneratorJs {
 			},
 
 			fnEvaluate = function () {
-				var sOutput = "",
-					i, sNode;
+				let sOutput = "";
 
-				for (i = 0; i < parseTree.length; i += 1) {
+				for (let i = 0; i < parseTree.length; i += 1) {
 					if (Utils.debug > 2) {
 						Utils.console.debug("evaluate: parseTree i=%d, node=%o", i, parseTree[i]);
 					}
-					sNode = parseNode(parseTree[i]);
+					const sNode = parseNode(parseTree[i] as CodeNode);
+
 					if ((sNode !== undefined) && (sNode !== "")) {
 						if (sNode !== null) {
 							if (sOutput.length === 0) {
@@ -1431,8 +1459,8 @@ export class CodeGeneratorJs {
 	}
 
 	generate(sInput: string, oVariables: Variables, bAllowDirect?: boolean) {
-		var fnCombineData = function (aData) {
-				var sData = "";
+		const fnCombineData = function (aData: string[]) {
+				let sData = "";
 
 				sData = aData.join(";\n");
 				if (sData.length) {
@@ -1443,13 +1471,13 @@ export class CodeGeneratorJs {
 			oOut = {
 				text: "",
 				error: undefined
-			},
-			aTokens, aParseTree, sOutput;
+			};
 
 		try {
-			aTokens = this.lexer.lex(sInput);
-			aParseTree = this.parser.parse(aTokens, bAllowDirect);
-			sOutput = this.evaluate(aParseTree, oVariables);
+			const aTokens = this.lexer.lex(sInput),
+				aParseTree = this.parser.parse(aTokens, bAllowDirect),
+				sOutput = this.evaluate(aParseTree, oVariables);
+
 			oOut.text = '"use strict"\n'
 				+ "var v=o.vmGetAllVariables();\n"
 				+ "while (o.vmLoopCondition()) {\nswitch (o.iLine) {\ncase 0:\n"

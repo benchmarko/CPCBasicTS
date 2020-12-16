@@ -1,15 +1,19 @@
 # CPCBasicTS Unchained - Run CPC BASIC in a Browser
 
-(Clone of CPCBasic 0.9.20, will be converted to TypeScript.)
+(Clone of [CPCBasic](https://github.com/benchmarko/CPCBasic/) 0.9.20, converted to TypeScript.)
 
 CPCBasic lets you run CPC BASIC programs in a browser. The supported BASIC style is known as Amstrad CPC 6128 Locomotive BASIC 1.1.
 BASIC programs are compiled to JavaScript which can be run in the browser. A library provides the functionality of the commands that are not directly available in JavaScript.
 
-CPCBasic Links:
-[CPCBasic Demo](https://benchmarko.github.io/CPCBasic/cpcbasic.html?example=cpcbasic),
-[Colors CPC Demo](https://benchmarko.github.io/CPCBasic/cpcbasic.html?example=demo/colors),
-[Source code](https://github.com/benchmarko/CPCBasic/),
-[HTML Readme](https://github.com/benchmarko/CPCBasic/#readme),
+CPCBasicTS Links:
+[CPCBasicTS Demo](https://benchmarko.github.io/CPCBasicTS/?example=cpcbasic),
+[Colors CPC Demo](https://benchmarko.github.io/CPCBasicTS/?example=demo/colors),
+[Source code](https://github.com/benchmarko/CPCBasicTS/),
+[HTML Readme](https://github.com/benchmarko/CPCBasicTS/#readme),
+
+[For reference: CPCBasic Links:
+[CPCBasic Demo](https://benchmarko.github.io/CPCBasic/index.html?example=cpcbasic),
+[CPCBasic Source Code](https://github.com/benchmarko/CPCBasic/)]
 
 ## Features
 
@@ -21,14 +25,14 @@ CPCBasic Links:
 - Runs locally without a server (even on mobile devices, but without input)
 - HTML5 / JavaScript without external libraries
 
-[![A sample with cpcbasic](./img/cpcbasic.gif)](https://benchmarko.github.io/CPCBasic/cpcbasic.html?example=cpcbasic)]
+[![A sample with cpcbasic](https://benchmarko.github.io/CPCBasic/img/cpcbasic.gif)](https://benchmarko.github.io/CPCBasicTS/?example=cpcbasic)]
 
-[![Art](./img/art.png)](https://benchmarko.github.io/CPCBasic/cpcbasic.html?example=art)]
-[![Graphics](./img/graphics.png)](https://benchmarko.github.io/CPCBasic/cpcbasic.html?example=demo/graphics)]
-[![Labyrinth](./img/labyrinth.png)](https://benchmarko.github.io/CPCBasic/cpcbasic.html?example=labyrinth)]
-[![Landscape](./img/landscape.png)](https://benchmarko.github.io/CPCBasic/cpcbasic.html?example=landscape)]
+[![Art](https://benchmarko.github.io/CPCBasic/img/art.png)](https://benchmarko.github.io/CPCBasicTS/?example=art)]
+[![Graphics](https://benchmarko.github.io/CPCBasic/img/graphics.png)](https://benchmarko.github.io/CPCBasicTS/?example=demo/graphics)]
+[![Labyrinth](https://benchmarko.github.io/CPCBasic/img/labyrinth.png)](https://benchmarko.github.io/CPCBasicTS/?example=labyrinth)]
+[![Landscape](https://benchmarko.github.io/CPCBasic/img/landscape.png)](https://benchmarko.github.io/CPCBasicTS/?example=landscape)]
 
-More examples are in the sample library [CPCBasicApps](https://github.com/benchmarko/CPCBasicApps/#readme). They are included in CPCBasic as *apps*, example: [10print](https://benchmarko.github.io/CPCBasic/cpcbasic.html?database=apps&example=demo/10print).
+More examples are in the sample library [CPCBasicApps](https://github.com/benchmarko/CPCBasicApps/#readme). They are included in CPCBasic as *apps*, example: [10print](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=demo/10print).
 
 ## Why CPCBasic
 
@@ -60,7 +64,7 @@ With CPC Basic we do not get that accuracy. But if we compile it to JavaScript, 
   - The **Sound** button activates or deactivates sound.
     - If you use the *Reload* button with sound activated, the sound needs to be activated again. Just do a user action, e.g. click somewhere. This is a browser limitation.
 - The *Text View* window shows the text which is written in text mode.
-- The *Keyboard* window shows a virtual keyboard which can be also used with touch devices. You can test the functionality with the test program [keyboard](https://benchmarko.github.io/CPCBasic/cpcbasic.html?example=test/keyboard&showKbd=true).
+- The *Keyboard* window shows a virtual keyboard which can be also used with touch devices. You can test the functionality with the test program [keyboard](https://benchmarko.github.io/CPCBasicTS/?example=test/keyboard&showKbd=true).
 - The *Input* window is an alternative way to send input to the CPC.
 - The *Console* window shows the textual output. This is useful for copying and pasting the output. It is cleared when the CPC screen is cleared (*MODE* or *CLS*).
 - The *Variables* window allows you to see the variables used by the program.
@@ -123,10 +127,10 @@ With CPC Basic we do not get that accuracy. But if we compile it to JavaScript, 
   The next *INKEY$* will return it. This could be useful to select options presented on the screen.
   Another feature: After a MOVE 1000,1000, a mouse click does a *MOVE* at the click position.
   This can be detected by a BASIC program.
-  Example: [Mouse Painting](https://benchmarko.github.io/CPCBasic/cpcbasic.html?example=test/mousepa)
+  Example: [Mouse Painting](https://benchmarko.github.io/CPCBasicTS/?example=test/mousepa)
 - *MODE 3*: High resolution mode with real 640x400 pixels, 16 colors and 8x8 pixels per character.
   This is different to the unofficial and not very useful Gate Array mode 3 on a real CPC: [CPC live: Graphics](http://cpctech.cpc-live.com/docs/graphics.html).
-Several examples use CPCBasic mode 3, e.g. [Art](https://benchmarko.github.io/CPCBasic/cpcbasic.html?example=test/art), [Landscape](https://benchmarko.github.io/CPCBasic/cpcbasic.html?example=test/landscape), [Rectangles](https://benchmarko.github.io/CPCBasic/cpcbasic.html?example=test/rectangles).
+Several examples use CPCBasic mode 3, e.g. [Art](https://benchmarko.github.io/CPCBasicTS/?example=test/art), [Landscape](https://benchmarko.github.io/CPCBasicTS/?example=test/landscape), [Rectangles](https://benchmarko.github.io/CPCBasicTS/?example=test/rectangles).
 - *|MODE,n*: Change mode without *CLS*, including mode 3 (experimental)
 - *|RENUM,...*: similar to *RENUM* but with a 4th parameter to keep line numbers starting with this line
 - Computations with numbers are not limited to 16 bit
@@ -203,11 +207,11 @@ Several examples use CPCBasic mode 3, e.g. [Art](https://benchmarko.github.io/CP
 - Use the URL parameter *tron=true* to compile with BASIC line number trace. The trace can be switched on and off in BASIC with *TRON* and *TROFF*. A side effect of "trace on" in CPCBasic is that the correct line number is reported in case of an error.
 - For debugging in a desktop browser, you will usually use the Browser Development Tools (F12).
 - You can also use a *Console log* window which is usually hidden. You can activate it with the URL parameters *showConsole=true* and *debug=2*. Example:
- [CPCBasic Debug](https://benchmarko.github.io/CPCBasic/cpcbasic.html?showConsole=true&debug=2).
+ [CPCBasic Debug](https://benchmarko.github.io/CPCBasicTS/?showConsole=true&debug=2).
  This is especially useful on mobile devices. Clear its content manually, if needed.
 - There is also an experimental parameter *bench=n* to time the *parsing step* n times.
   An example with a large BASIC program:
-[sultans2 parsing](https://benchmarko.github.io/CPCBasic/cpcbasic.html?bench=5&database=apps&example=games/sultan2) (Check the console in the browser developer tools).
+[sultans2 parsing](https://benchmarko.github.io/CPCBasicTS/?bench=5&database=apps&example=games/sultan2) (Check the console in the browser developer tools).
 
 ## URL parameters
 
@@ -238,15 +242,15 @@ Several examples use CPCBasic mode 3, e.g. [Art](https://benchmarko.github.io/CP
 
 QUnit tests:
 
-- [BasicParser.qunit.html](https://benchmarko.github.io/CPCBasic/test/BasicParser.qunit.html)
-- [CodeGeneratorBasic.qunit.html](https://benchmarko.github.io/CPCBasic/test/CodeGeneratorBasic.qunit.html)
-- [Model.qunit.html](https://benchmarko.github.io/CPCBasic/test/Model.qunit.html)
-- [testParseExamples.qunit.html](https://benchmarko.github.io/CPCBasic/test/testParseExamples.qunit.html) (parse all examples)
-- [testsuite.qunit.html](https://benchmarko.github.io/CPCBasic/test/testsuite.qunit.html) (run all tests)
+- [BasicParser.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/BasicParser.qunit.html)
+- [CodeGeneratorBasic.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/CodeGeneratorBasic.qunit.html)
+- [Model.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/Model.qunit.html)
+- [testParseExamples.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/testParseExamples.qunit.html) (parse all examples)
+- [testsuite.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/testsuite.qunit.html) (run all tests)
 
 IFrames test:
 
-- [testIFrames.qunit.html](https://benchmarko.github.io/CPCBasic/test/testIFrames.qunit.html) (CPCBasic in IFrames)
+- [testIFrames.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/testIFrames.qunit.html) (CPCBasic in IFrames)
 
 ## Possible Future Enhancements
 

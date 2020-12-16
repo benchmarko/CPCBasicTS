@@ -1,4 +1,4 @@
-// DiskImage.js - DiskImage
+// DiskImage.ts - DiskImage
 // (c) Marco Vieth, 2020
 // https://benchmarko.github.io/CPCBasic/
 
@@ -31,7 +31,7 @@ interface TrackInfo {
 	iFill: number
 	aSectorInfo: SectorInfo
 	iDataPos: number
-	oSectorNum2Index: SectorNum2IndexMap;
+	oSectorNum2Index: SectorNum2IndexMap
 }
 
 interface DiskInfo {
@@ -54,7 +54,7 @@ interface ExtentEntry {
 	iLastRecBytes: number
 	iExtentHi: number // used for what?
 	iRecords: number
-	aBlocks: number[],
+	aBlocks: number[]
 
 	bReadOnly: boolean
 	bSystem: boolean
@@ -79,7 +79,7 @@ interface FormatDescriptor {
 	iOff: number// number of reserved tracks (also the track where the directory starts)
 }
 
-interface AmsdosHeader {
+export interface AmsdosHeader {
 	iUser: number
 	sName: string
 	sExt: string
@@ -90,6 +90,8 @@ interface AmsdosHeader {
 	iLength: number
 	sType: string
 }
+
+type DirectoryListType = {[k in string]: ExtentEntry[]};
 
 interface SectorPos {
 	iTrack: number
@@ -161,11 +163,11 @@ export class DiskImage {
 		}
 	}
 
-	sDiskName: string;
-	sData: string;
-	iPos: number;
-	oDiskInfo: DiskInfo;
-	oFormat: FormatDescriptor;
+	private sDiskName: string;
+	private sData: string;
+	//private iPos: number;
+	private oDiskInfo: DiskInfo;
+	private oFormat: FormatDescriptor;
 
 
 	constructor(oConfig: DiskImageOptions) {
@@ -178,46 +180,16 @@ export class DiskImage {
 		this.reset();
 	}
 
-	reset() {
-		this.iPos = 0;
-
-		//this.oDiskInfo = undefined;
+	reset(): void {
+		//this.iPos = 0;
 
 		this.oDiskInfo = {
 			oTrackInfo: {
 				aSectorInfo: [] as SectorInfo
 			} as TrackInfo
-		} as DiskInfo; //TTT
-
-		/*
-		this.oDiskInfo = {
-			sIdent: undefined,
-			sCreator: undefined,
-			iTracks: undefined,
-			iHeads: undefined,
-			iTrackSize: undefined,
-			oTrackInfo: {
-				sIdent: undefined,
-				iTrack: undefined,
-				iHead: undefined,
-				iDataRate: undefined,
-				iRecMode: undefined,
-				iBps: undefined,
-				iSpt: undefined,
-				iGap3: undefined,
-				iFill: undefined,
-				aSectorInfo: [],
-				iDataPos: undefined,
-				oSectorNum2Index: undefined
-			},
-			bExtended: undefined,
-			aTrackSizes: undefined,
-			aTrackPos: undefined
-		};
-		*/
+		} as DiskInfo;
 
 		this.oFormat = {} as FormatDescriptor;
-		return this;
 	}
 
 	private composeError(...aArgs) { // varargs
@@ -511,8 +483,8 @@ export class DiskImage {
 	}
 
 	// do not know if we need to sort the extents per file, but...
-	private sortFileExtents(oDir) { // eslint-disable-line class-methods-use-this
-		const fnSortByExtentNumber = function (a, b) {
+	private sortFileExtents(oDir: DirectoryListType) { // eslint-disable-line class-methods-use-this
+		const fnSortByExtentNumber = function (a: ExtentEntry, b: ExtentEntry) {
 			return a.iExtent - b.iExtent;
 		};
 
@@ -526,7 +498,7 @@ export class DiskImage {
 	}
 
 	private prepareDirectoryList(aExtents: ExtentEntry[], iFill: number, reFilePattern: RegExp) {
-		const oDir = {};
+		const oDir: DirectoryListType = {};
 
 		for (let i = 0; i < aExtents.length; i += 1) {
 			const oExtent = aExtents[i];
@@ -561,7 +533,7 @@ export class DiskImage {
 		return oPos;
 	}
 
-	readDirectory(/* sFilePattern */) {
+	readDirectory(): DirectoryListType {
 		const iDirectorySectors = 4,
 			aExtents: ExtentEntry[] = [],
 			oFormat = this.determineFormat(),
@@ -610,7 +582,7 @@ export class DiskImage {
 		return sOut;
 	}
 
-	readFile(aFileExtents) {
+	readFile(aFileExtents: ExtentEntry[]): string {
 		const iRecPerBlock = 8,
 			iAmsdosHeaderLength = 0x80;
 		let sOut = "";
