@@ -1,4 +1,4 @@
-// CommonEventHandler.js - Common event handler for browser events
+// CommonEventHandler.ts - Common event handler for browser events
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 
@@ -278,8 +278,8 @@ export class CommonEventHandler {
 	}
 
 	private onReloadButtonClick() {
-		var oChanged = Utils.getChangedParameters(this.model.getAllProperties(), this.model.getAllInitialProperties()),
-			sParas = this.encodeUriParam(oChanged);
+		const oChanged = Utils.getChangedParameters(this.model.getAllProperties(), this.model.getAllInitialProperties());
+		let	sParas = this.encodeUriParam(oChanged);
 
 		sParas = sParas.replace(/%2[Ff]/g, "/"); // unescape %2F -> /
 		window.location.search = "?" + sParas;

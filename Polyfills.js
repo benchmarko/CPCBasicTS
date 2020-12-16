@@ -1,5 +1,5 @@
 "use strict";
-// Polyfills.js - Some Polyfills for old browsers, e.g. IE8
+// Polyfills.ts - Some Polyfills for old browsers, e.g. IE8, and nodeJS
 //
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Polyfills = void 0;

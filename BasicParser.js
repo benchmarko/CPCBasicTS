@@ -21,16 +21,9 @@ exports.BasicParser = void 0;
 // How to write a simple interpreter in JavaScript
 // Peter_Olson, 30 Oct 2014
 var Utils_1 = require("./Utils");
-/* // TODO
-interface BasicParserNode extends BasicLexerToken {
-    left: BasicParserNode
-    right: BasicParserNode
-    bSpace?: boolean
-}
-*/
 var BasicParser = /** @class */ (function () {
     function BasicParser(options) {
-        this.iLine = 0;
+        this.sLine = "0";
         this.bQuiet = false;
         this.init(options);
     }
@@ -39,7 +32,7 @@ var BasicParser = /** @class */ (function () {
         this.reset();
     };
     BasicParser.prototype.reset = function () {
-        this.iLine = 0; // for error messages
+        this.sLine = "0"; // for error messages
     };
     BasicParser.prototype.composeError = function () {
         var aArgs = [];
@@ -47,7 +40,7 @@ var BasicParser = /** @class */ (function () {
             aArgs[_i] = arguments[_i];
         }
         aArgs.unshift("BasicParser");
-        aArgs.push(this.iLine);
+        aArgs.push(this.sLine);
         return Utils_1.Utils.composeError.apply(null, aArgs);
     };
     // http://crockford.com/javascript/tdop/tdop.html (old: http://javascript.crockford.com/tdop/tdop.html)
@@ -58,8 +51,10 @@ var BasicParser = /** @class */ (function () {
     // Manipulates tokens to its left (e.g: +)? => left denotative function led(), otherwise null denotative function nud()), (e.g. unary -)
     // identifiers, numbers: also nud.
     BasicParser.prototype.parse = function (aTokens, bAllowDirect) {
-        var iIndex = 0, oPreviousToken, oToken; // TODO: oToken: BasicParserNode, (changed by side effect!)
-        var that = this, oSymbols = {}, aParseTree = [], symbol = function (id, nud, lbp, led) {
+        var iIndex = 0, oPreviousToken, oToken;
+        var that = this, oSymbols = {}, aParseTree = [], getToken = function () {
+            return oToken;
+        }, symbol = function (id, nud, lbp, led) {
             var oSymbol = oSymbols[id];
             if (!oSymbol) {
                 oSymbols[id] = {};
@@ -81,7 +76,19 @@ var BasicParser = /** @class */ (function () {
                 throw that.composeError(Error(), "Expected " + id, (oToken.value === "") ? oToken.type : oToken.value, oToken.pos);
             }
             if (iIndex >= aTokens.length) {
-                oToken = oSymbols["(end)"];
+                //oToken = oSymbols["(end)"]; //TTT
+                Utils_1.Utils.console.warn("advance: end of file"); //TTT
+                if (aTokens.length && aTokens[aTokens.length - 1].type === "(end)") {
+                    oToken = aTokens[aTokens.length - 1];
+                }
+                else {
+                    Utils_1.Utils.console.warn("advance: No (end) token!");
+                    oToken = {
+                        type: "(end)",
+                        value: null,
+                        pos: null
+                    };
+                }
                 return oToken;
             }
             oToken = aTokens[iIndex]; // we get a lex token and reuse it as parseTree token
@@ -174,6 +181,7 @@ var BasicParser = /** @class */ (function () {
                 oValue = {
                     type: "label",
                     value: "direct",
+                    pos: null,
                     len: 0
                 };
             }
@@ -182,7 +190,7 @@ var BasicParser = /** @class */ (function () {
                 oValue = oPreviousToken; // number token
                 oValue.type = "label"; // number => label
             }
-            that.iLine = oValue.value; // set line number for error messages
+            that.sLine = oValue.value; // set line number for error messages
             oValue.args = statements(null);
             if (oToken.type === "(eol)") {
                 advance("(eol)");
@@ -215,11 +223,13 @@ var BasicParser = /** @class */ (function () {
             x.std = f;
             return x;
         }, fnCreateDummyArg = function (value) {
-            return {
+            var oValue = {
                 type: String(value),
                 value: value,
+                pos: null,
                 len: 0
             };
+            return oValue;
         }, fnGetOptionalStream = function () {
             var oValue;
             if (oToken.type === "#") { // stream?
@@ -231,11 +241,12 @@ var BasicParser = /** @class */ (function () {
             }
             return oValue;
         }, fnGetLineRange = function (sTypeFirstChar) {
-            var oRange, oLeft;
+            var oLeft;
             if (oToken.type === "number") {
                 oLeft = oToken;
                 advance("number");
             }
+            var oRange;
             if (oToken.type === "-") {
                 oRange = oToken;
                 advance("-");
@@ -285,8 +296,7 @@ var BasicParser = /** @class */ (function () {
                 }
             }
         }, fnGetArgs = function (sKeyword) {
-            var aArgs = [], sSeparator = ",", mCloseTokens = BasicParser.mCloseTokens;
-            var bNeedMore = false, sType = "xxx", aTypes;
+            var aTypes;
             if (sKeyword) {
                 var sKeyOpts = BasicParser.mKeywords[sKeyword];
                 if (sKeyOpts) {
@@ -297,6 +307,8 @@ var BasicParser = /** @class */ (function () {
                     Utils_1.Utils.console.warn("fnGetArgs: No options for keyword", sKeyword);
                 }
             }
+            var aArgs = [], sSeparator = ",", mCloseTokens = BasicParser.mCloseTokens;
+            var bNeedMore = false, sType = "xxx";
             while (bNeedMore || (sType && !mCloseTokens[oToken.type])) {
                 bNeedMore = false;
                 if (aTypes && sType.slice(-1) !== "*") { // "*"= any number of parameters
@@ -310,7 +322,7 @@ var BasicParser = /** @class */ (function () {
                 if (sType === "#0?") { // optional stream?
                     if (oToken.type === "#") { // stream?
                         oExpression = fnGetOptionalStream();
-                        if (oToken.type === ",") {
+                        if (getToken().type === ",") { // oToken.type
                             advance(",");
                             bNeedMore = true;
                         }
@@ -443,7 +455,7 @@ var BasicParser = /** @class */ (function () {
             if (oToken.type === "(") { // args in parenthesis?
                 advance("(");
                 oValue.args = fnGetArgs(oValue.type);
-                if (oToken.type !== ")") {
+                if (getToken().type !== ")") {
                     throw that.composeError(Error(), "Expected closing parenthesis for argument list after", oPreviousToken.value, oToken.pos); //TTT
                 }
                 advance(")");
@@ -492,7 +504,7 @@ var BasicParser = /** @class */ (function () {
             }
             if (oToken.type === "string") { // message
                 oValue.args.push(oToken);
-                advance("string");
+                oToken = advance("string");
                 if (oToken.type === ";" || oToken.type === ",") { // ";" => need to append prompt "? " , "," = no prompt
                     oValue.args.push(oToken);
                     advance(oToken.type);
@@ -534,20 +546,20 @@ var BasicParser = /** @class */ (function () {
         symbol("using");
         symbol("(eol)");
         symbol("(end)");
-        symbol("number", function (number) {
-            return number;
+        symbol("number", function (oNode) {
+            return oNode;
         });
-        symbol("binnumber", function (number) {
-            return number;
+        symbol("binnumber", function (oNode) {
+            return oNode;
         });
-        symbol("hexnumber", function (number) {
-            return number;
+        symbol("hexnumber", function (oNode) {
+            return oNode;
         });
-        symbol("linenumber", function (number) {
-            return number;
+        symbol("linenumber", function (oNode) {
+            return oNode;
         });
-        symbol("string", function (s) {
-            return s;
+        symbol("string", function (oNode) {
+            return oNode;
         });
         symbol("identifier", function (oName) {
             var sName = oName.value, bStartsWithFn = sName.toLowerCase().startsWith("fn");
@@ -618,7 +630,7 @@ var BasicParser = /** @class */ (function () {
                 oToken.value = oPreviousToken.value + oToken.value; // "fn" + identifier
                 oToken.bSpace = true; //fast hack: set space for CodeGeneratorBasic
                 oValue.left = oToken;
-                advance("identifier");
+                oToken = advance("identifier");
             }
             else {
                 throw that.composeError(Error(), "Expected identifier", oToken.type, oToken.pos);
@@ -659,7 +671,7 @@ var BasicParser = /** @class */ (function () {
                 oValue = fnCreateCmdCall(sName);
             }
             else { // chain merge with optional DELETE
-                advance("merge");
+                oToken = advance("merge");
                 oValue = oPreviousToken;
                 sName = "chainMerge";
                 oValue.type = sName;
@@ -709,7 +721,7 @@ var BasicParser = /** @class */ (function () {
                 if (!bParameterFound) {
                     oValue.args.push(fnCreateDummyArg(null)); // insert null parameter
                 }
-                advance(",");
+                oToken = advance(",");
                 bParameterFound = false;
                 if (oToken.type === "(eol)" || oToken.type === "(end)") {
                     break;
@@ -727,7 +739,7 @@ var BasicParser = /** @class */ (function () {
         stmt("def", function () {
             var oValue = oPreviousToken;
             if (oToken.type === "fn") { // fn <identifier> separate?
-                advance("fn");
+                oToken = advance("fn");
                 if (oToken.type === "identifier") {
                     oToken.value = oPreviousToken.value + oToken.value;
                     oToken.bSpace = true; //fast hack: set space for CodeGeneratorBasic
@@ -743,7 +755,7 @@ var BasicParser = /** @class */ (function () {
             else {
                 throw that.composeError(Error(), "Invalid DEF", oToken.type, oToken.pos);
             }
-            advance();
+            oToken = advance();
             oValue.args = (oToken.type === "(") ? fnGetArgsInParenthesis() : [];
             advance("=");
             oValue.right = expression(0);
@@ -768,7 +780,7 @@ var BasicParser = /** @class */ (function () {
             oValue.args.push(expression(0)); // should be number or variable
             var iCount = 0;
             while (oToken.type === ",") {
-                advance(",");
+                oToken = advance(",");
                 if (oToken.type === "=" && iCount % 3 === 0) { // special handling for parameter "number of steps"
                     advance("=");
                     var oExpression_1 = fnCreateDummyArg(null); // insert null parameter
@@ -787,7 +799,7 @@ var BasicParser = /** @class */ (function () {
             oValue.args.push(expression(0)); // should be number or variable
             var iCount = 0;
             while (oToken.type === ",") {
-                advance(",");
+                oToken = advance(",");
                 if (oToken.type === "=" && iCount % 3 === 0) { // special handling for parameter "number of steps"
                     advance("=");
                     var oExpression_2 = fnCreateDummyArg(null); // insert null parameter
@@ -822,7 +834,7 @@ var BasicParser = /** @class */ (function () {
             oValue.args = [oName];
             advance("=");
             oValue.args.push(expression(0));
-            advance("to");
+            oToken = advance("to");
             oValue.args.push(expression(0));
             if (oToken.type === "step") {
                 advance("step");
@@ -847,11 +859,11 @@ var BasicParser = /** @class */ (function () {
         });
         stmt("if", function () {
             var oValue = oPreviousToken;
-            oValue.args = [];
             oValue.left = expression(0);
+            var aArgs;
             if (oToken.type === "goto") {
                 // skip "then"
-                oValue.right = statements("else");
+                aArgs = statements("else");
             }
             else {
                 advance("then");
@@ -859,42 +871,46 @@ var BasicParser = /** @class */ (function () {
                     var oValue2 = fnCreateCmdCall("goto"); // take "then" as "goto", checks also for line number
                     oValue2.len = 0; // mark it as inserted
                     var oToken2 = oToken;
-                    oValue.right = statements("else");
-                    if (oValue.right.length && oValue.right[0].type !== "rem") {
+                    aArgs = statements("else");
+                    if (aArgs.length && aArgs[0].type !== "rem") {
                         if (!that.bQuiet) {
                             Utils_1.Utils.console.warn(that.composeError({}, "IF: Unreachable code after THEN", oToken2.type, oToken2.pos).message);
                         }
                     }
-                    oValue.right.unshift(oValue2);
+                    aArgs.unshift(oValue2);
                 }
                 else {
-                    oValue.right = statements("else");
+                    aArgs = statements("else");
                 }
             }
+            oValue.args = aArgs; // then statements
+            aArgs = undefined;
             if (oToken.type === "else") {
-                advance("else");
+                oToken = advance("else");
                 if (oToken.type === "number") {
                     var oValue2 = fnCreateCmdCall("goto"); // take "then" as "goto", checks also for line number
                     oValue2.len = 0; // mark it as inserted
                     var oToken2 = oToken;
-                    oValue.third = statements("else");
-                    if (oValue.third.length) {
+                    aArgs = statements("else");
+                    if (aArgs.length) {
                         if (!that.bQuiet) {
                             Utils_1.Utils.console.warn(that.composeError({}, "IF: Unreachable code after ELSE", oToken2.type, oToken2.pos).message);
                         }
                     }
-                    oValue.third.unshift(oValue2);
+                    aArgs.unshift(oValue2);
                 }
                 else if (oToken.type === "if") {
-                    oValue.third = [statement()];
+                    aArgs = [statement()];
                 }
                 else {
-                    oValue.third = statements("else");
+                    aArgs = statements("else");
                 }
+                /*
+                } else {
+                    aArgs = undefined;
+                */
             }
-            else {
-                oValue.third = null;
-            }
+            oValue.args2 = aArgs; // else statements
             return oValue;
         });
         stmt("input", function () {
@@ -936,7 +952,7 @@ var BasicParser = /** @class */ (function () {
             var oValue = oPreviousToken;
             oValue.args = [];
             if (oToken.type === "break") {
-                advance("break");
+                oToken = advance("break");
                 if (oToken.type === "gosub") {
                     advance("gosub");
                     oValue.type = "onBreakGosub";
@@ -955,7 +971,7 @@ var BasicParser = /** @class */ (function () {
                 }
             }
             else if (oToken.type === "error") { // on error goto
-                advance("error");
+                oToken = advance("error");
                 if (oToken.type === "goto") {
                     advance("goto");
                     oValue.type = "onErrorGoto";
@@ -968,6 +984,7 @@ var BasicParser = /** @class */ (function () {
             else if (oToken.type === "sq") { // on sq(n) gosub
                 var oLeft = expression(0);
                 oLeft = oLeft.args[0];
+                oToken = getToken();
                 if (oToken.type === "gosub") {
                     advance("gosub");
                     oValue.type = "onSqGosub";

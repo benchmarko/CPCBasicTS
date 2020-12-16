@@ -122,18 +122,12 @@ export declare class Controller {
     private static generateFunction;
     changeVariable(): void;
     setSoundActive(): void;
-    fnHandleFileSelect(event: any): void;
+    private static createMinimalAmsdosHeader;
+    fnHandleFileSelect(event: DragEvent): void;
     private fnHandleDragOver;
     private initDropZone;
     private fnUpdateUndoRedoButtons;
     private fnInitUndoRedoButtons;
     private fnPutChangedInputOnStack;
     static exportAsBase64(sStorageName: string): string;
-    RunLoop: {
-        new (oController: Controller): {
-            oController: Controller;
-            fnTest(s1: any): void;
-        };
-    };
-    oRunLoop: any;
 }

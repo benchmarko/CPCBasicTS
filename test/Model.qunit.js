@@ -1,16 +1,7 @@
 "use strict";
-// Model.qunit.js - QUnit tests for CPCBasic Model
+// Model.qunit.ts - QUnit tests for CPCBasic Model
 //
 Object.defineProperty(exports, "__esModule", { value: true });
-/*
-"use strict";
-
-var Model;
-
-if (typeof require !== "undefined") {
-    Model = require("../Model.js"); // eslint-disable-line global-require
-}
-*/
 var Model_1 = require("../Model");
 var qunit_1 = require("qunit"); //TTT
 qunit_1.QUnit.module("Model: Properties", function (hooks) {
@@ -29,9 +20,8 @@ qunit_1.QUnit.module("Model: Properties", function (hooks) {
         assert.ok(oModel, "defined");
     });
     qunit_1.QUnit.test("properties", function (assert) {
-        var oModel = this.model, // eslint-disable-line no-invalid-this
-        oAllProperties;
-        oAllProperties = oModel.getAllInitialProperties();
+        var oModel = this.model; // eslint-disable-line no-invalid-this
+        var oAllProperties = oModel.getAllInitialProperties();
         assert.strictEqual(Object.keys(oAllProperties).join(" "), "p1", "all initial properties: p1");
         assert.strictEqual(oModel.getProperty("p1"), "v1", "p1=v1");
         assert.strictEqual(oModel.getProperty("p2"), "v2", "p2=v2");
@@ -52,7 +42,7 @@ qunit_1.QUnit.module("Model: Properties", function (hooks) {
 });
 qunit_1.QUnit.module("Model: Databases", function (hooks) {
     hooks.beforeEach(function ( /* assert */) {
-        // var that = this, // eslint-disable-line no-invalid-this
+        // const that = this, // eslint-disable-line no-invalid-this
     });
     qunit_1.QUnit.test("databases", function (assert) {
         var oModel = new Model_1.Model({}, {}), mDatabases = {
@@ -66,8 +56,7 @@ qunit_1.QUnit.module("Model: Databases", function (hooks) {
                 title: "title2",
                 src: ""
             }
-        }, oDatabases;
-        oDatabases = oModel.getAllDatabases();
+        }, oDatabases = oModel.getAllDatabases();
         assert.strictEqual(Object.keys(oDatabases).length, 0, "no databases");
         oModel.addDatabases(mDatabases);
         assert.strictEqual(Object.keys(oDatabases).join(" "), "db1 db2", "two databases: db1, db2");
@@ -89,14 +78,21 @@ qunit_1.QUnit.module("Model: Examples", function (hooks) {
                 src: "db1Src"
             },
             db2: {
-                text: "db2text"
+                text: "db2text",
+                title: null,
+                src: ""
             }
         }, mExample1 = {
-            key: "ex1"
+            key: "ex1",
+            title: "ex1",
+            type: null,
+            meta: null
         }, mExample2 = {
-            key: "ex2"
-        }, oModel;
-        oModel = new Model_1.Model({}, {});
+            key: "ex2",
+            title: "ex2",
+            type: null,
+            meta: null
+        }, oModel = new Model_1.Model({}, {});
         oModel.addDatabases(mDatabases);
         oModel.setProperty("database", "db1");
         oModel.setExample(mExample1);

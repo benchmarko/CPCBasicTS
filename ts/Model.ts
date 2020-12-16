@@ -1,4 +1,4 @@
-// Model.js - Model (MVC)
+// Model.ts - Model (MVC)
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 
@@ -14,7 +14,7 @@ export interface DatabaseEntry {
 	src: string
 }
 
-interface ExampleEntry {
+export interface ExampleEntry {
 	key: string
 	title: string
 	type: string

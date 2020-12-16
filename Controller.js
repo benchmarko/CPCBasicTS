@@ -1,9 +1,8 @@
 "use strict";
-// Controller.js - Controller
+// Controller.ts - Controller
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //
-/* globals Uint8Array */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Controller = void 0;
 var Utils_1 = require("./Utils");
@@ -33,20 +32,6 @@ var Controller = /** @class */ (function () {
         this.bTimeoutHandlerActive = false;
         this.iNextLoopTimeOut = 0; // next timeout for the main loop
         this.bInputSet = false;
-        // test
-        this.RunLoop = /** @class */ (function () {
-            function class_1(oController) {
-                //Utils.console.log("Test: RunLoop: constructor", a);
-                this.oController = oController;
-            }
-            class_1.prototype.fnTest = function (s1) {
-                //this.oVm.vmStop("", 0, true); // continue
-                //oVm.vmStop("", 0, true); // continue
-                this.oController.oVm.print(0, "test:", s1);
-                Utils_1.Utils.console.log("Test: RunLoop: fnTest", s1);
-            };
-            return class_1;
-        }());
         this.fnRunLoopHandler = this.fnRunLoop.bind(this);
         this.fnWaitKeyHandler = this.fnWaitKey.bind(this);
         this.fnWaitInputHandler = this.fnWaitInput.bind(this);
@@ -56,7 +41,6 @@ var Controller = /** @class */ (function () {
         this.init(oModel, oView);
     }
     Controller.prototype.init = function (oModel, oView) {
-        //this.sMetaIdent = "CPCBasic";
         this.fnScript = undefined;
         this.bTimeoutHandlerActive = false;
         this.iNextLoopTimeOut = 0; // next timeout for the main loop
@@ -178,11 +162,6 @@ var Controller = /** @class */ (function () {
                     title: oDb.title,
                     selected: sValue === sDatabase
                 };
-                /*
-                if (sValue === sDatabase) {
-                    oItem.selected = true;
-                }
-                */
                 aItems.push(oItem);
             }
         }
@@ -235,7 +214,7 @@ var Controller = /** @class */ (function () {
                 value: sKey,
                 text: sStrippedTitle,
                 title: sStrippedTitle,
-                selected: false //TTT
+                selected: false
             };
             oItem.text = oItem.title;
             aItems.push(oItem);
@@ -1154,7 +1133,7 @@ var Controller = /** @class */ (function () {
             parser: new BasicParser_1.BasicParser()
         });
         oCodeGeneratorBasic.reset();
-        var oOutput = oCodeGeneratorBasic.generate(sInput); // not needed: this.oVariables
+        var oOutput = oCodeGeneratorBasic.generate(sInput);
         var sOutput;
         if (oOutput.error) {
             sOutput = this.outputError(oOutput.error);
@@ -1281,9 +1260,11 @@ var Controller = /** @class */ (function () {
                 return false; // continue direct input
             }
             Utils_1.Utils.console.log("fnDirectInput: execute:", sInput);
+            var oCodeGeneratorJs = this.oCodeGeneratorJs;
             var oOutput = void 0, sOutput = void 0;
             if (sInputText) { // do we have a program?
-                oOutput = this.oCodeGeneratorJs.reset().generate(sInput + "\n" + sInputText, this.oVariables, true); // compile both; allow direct command
+                oCodeGeneratorJs.reset();
+                oOutput = oCodeGeneratorJs.generate(sInput + "\n" + sInputText, this.oVariables, true); // compile both; allow direct command
                 if (oOutput.error) {
                     if (oOutput.error.pos >= sInput.length + 1) { // error not in direct?
                         oOutput.error.pos -= (sInput.length + 1);
@@ -1297,7 +1278,8 @@ var Controller = /** @class */ (function () {
                 }
             }
             if (!oOutput) {
-                oOutput = this.oCodeGeneratorJs.reset().generate(sInput, this.oVariables, true); // compile direct input only
+                oCodeGeneratorJs.reset();
+                oOutput = oCodeGeneratorJs.generate(sInput, this.oVariables, true); // compile direct input only
             }
             if (oOutput.error) {
                 sOutput = this.outputError(oOutput.error, true);
@@ -1481,7 +1463,6 @@ var Controller = /** @class */ (function () {
         this.view.setDisabled("stopButton", false);
         this.view.setDisabled("continueButton", true);
         if (oStop.sReason === "break" || oStop.sReason === "escape" || oStop.sReason === "stop" || oStop.sReason === "direct") {
-            //TTT if (!oSavedStop.fnInputCallback) { // no keyboard callback? make sure no handler is set (especially for direct->continue)
             if (oSavedStop.oParas && !oSavedStop.oParas.fnInputCallback) { // no keyboard callback? make sure no handler is set (especially for direct->continue)
                 this.oKeyboard.setKeyDownHandler(null);
             }
@@ -1511,12 +1492,12 @@ var Controller = /** @class */ (function () {
         }
     };
     Controller.prototype.startEnter = function () {
-        var sInput = this.view.getAreaValue("inp2Text"), i;
+        var sInput = this.view.getAreaValue("inp2Text");
         sInput = sInput.replace("\n", "\r"); // LF => CR
         if (!sInput.endsWith("\r")) {
             sInput += "\r";
         }
-        for (i = 0; i < sInput.length; i += 1) {
+        for (var i = 0; i < sInput.length; i += 1) {
             this.fnPutKeyInBuffer(sInput.charAt(i));
         }
         this.view.setAreaValue("inp2Text", "");
@@ -1591,6 +1572,14 @@ var Controller = /** @class */ (function () {
         }
         soundButton.innerText = sText;
     };
+    Controller.createMinimalAmsdosHeader = function (sType, iStart, iLength) {
+        var oHeader = {
+            sType: sType,
+            iStart: iStart,
+            iLength: iLength
+        };
+        return oHeader;
+    };
     // https://stackoverflow.com/questions/10261989/html5-javascript-drag-and-drop-file-from-external-window-windows-explorer
     // https://www.w3.org/TR/file-upload/#dfn-filereader
     Controller.prototype.fnHandleFileSelect = function (event) {
@@ -1611,7 +1600,7 @@ var Controller = /** @class */ (function () {
             if (iFile < aFiles.length) {
                 f = aFiles[iFile];
                 iFile += 1;
-                var sText = f.name + " " + (f.type || "n/a") + " " + f.size + " " + (f.lastModifiedDate ? f.lastModifiedDate.toLocaleDateString() : "n/a");
+                var lastModifiedDate = f.lastModifiedDate, sText = f.name + " " + (f.type || "n/a") + " " + f.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
                 Utils_1.Utils.console.log(sText);
                 if (f.type === "text/plain") {
                     oReader.readAsText(f);
@@ -1627,18 +1616,20 @@ var Controller = /** @class */ (function () {
                 fnEndOfImport();
             }
         }
-        function fnErrorHandler(evt) {
-            switch (evt.target.error.code) {
-                case evt.target.error.NOT_FOUND_ERR:
+        function fnErrorHandler(event2) {
+            switch (event2.target.error.code) {
+                case event2.target.error.NOT_FOUND_ERR:
                     Utils_1.Utils.console.warn("File Not Found!");
                     break;
-                case evt.target.error.NOT_READABLE_ERR:
-                    Utils_1.Utils.console.warn("File is not readable");
+                /*
+                case event2.target.error.NOT_READABLE_ERR: //TTT
+                    Utils.console.warn("File is not readable");
                     break;
-                case evt.target.error.ABORT_ERR:
+                */
+                case event2.target.error.ABORT_ERR:
                     break; // nothing
                 default:
-                    Utils_1.Utils.console.warn("An error occurred reading this file.");
+                    Utils_1.Utils.console.warn("An error occurred reading file", f.name);
             }
             fnReadNextFile();
         }
@@ -1646,14 +1637,11 @@ var Controller = /** @class */ (function () {
             var oHeader, sStorageName = that.oVm.vmAdaptFilename(sName, "FILE");
             sStorageName = that.fnLocalStorageName(sStorageName);
             if (sType === "text/plain") {
-                oHeader = {
-                    sType: "A",
-                    iStart: 0,
-                    iLength: sData.length
-                };
+                oHeader = Controller.createMinimalAmsdosHeader("A", 0, sData.length);
             }
             else {
                 if (sType === "application/x-zip-compressed" || sType === "cpcBasic/binary") { // are we a file inside zip?
+                    // empty
                 }
                 else { // e.g. "data:application/octet-stream;base64,..."
                     var iIndex = sData.indexOf(",");
@@ -1670,11 +1658,7 @@ var Controller = /** @class */ (function () {
                     sData = sData.substr(0x80); // remove header
                 }
                 else if (reRegExpIsText.test(sData)) {
-                    oHeader = {
-                        sType: "A",
-                        iStart: 0,
-                        iLength: sData.length
-                    };
+                    oHeader = Controller.createMinimalAmsdosHeader("A", 0, sData.length);
                 }
                 else if (DiskImage_1.DiskImage.testDiskIdent(sData.substr(0, 8))) { // disk image file?
                     try {
@@ -1701,11 +1685,7 @@ var Controller = /** @class */ (function () {
                     oHeader = null; // ignore dsk file
                 }
                 else { // binary
-                    oHeader = {
-                        sType: "B",
-                        iStart: 0,
-                        iLength: sData.length
-                    };
+                    oHeader = Controller.createMinimalAmsdosHeader("B", 0, sData.length);
                 }
             }
             if (oHeader) {
@@ -1725,19 +1705,19 @@ var Controller = /** @class */ (function () {
                 }
             }
         }
-        function fnOnLoad(evt) {
-            var sData = evt.target.result, sName = f.name, sType = f.type;
+        function fnOnLoad(event2) {
+            var data = event2.target.result, sName = f.name, sType = f.type;
             if (sType === "application/x-zip-compressed") {
                 var oZip = void 0;
                 try {
-                    oZip = new ZipFile_1.ZipFile(new Uint8Array(sData), sName); // rather aData
+                    oZip = new ZipFile_1.ZipFile(new Uint8Array(data), sName); // rather aData
                 }
                 catch (e) {
                     Utils_1.Utils.console.error(e);
                     that.outputError(e, true);
                 }
                 if (oZip) {
-                    var aEntries = Object.keys(oZip.oEntryTable);
+                    var oZipDirectory = oZip.getZipDirectory(), aEntries = Object.keys(oZipDirectory);
                     for (var i = 0; i < aEntries.length; i += 1) {
                         var sName2 = aEntries[i];
                         var sData2 = void 0;
@@ -1756,7 +1736,7 @@ var Controller = /** @class */ (function () {
                 }
             }
             else {
-                fnLoad2(sData, sName, sType);
+                fnLoad2(data, sName, sType);
             }
             fnReadNextFile();
         }

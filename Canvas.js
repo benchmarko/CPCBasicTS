@@ -1,5 +1,5 @@
 "use strict";
-// Canvas.js - Graphics output to HTML canvas
+// Canvas.ts - Graphics output to HTML canvas
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //

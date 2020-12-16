@@ -1,15 +1,5 @@
-// Model.qunit.js - QUnit tests for CPCBasic Model
+// Model.qunit.ts - QUnit tests for CPCBasic Model
 //
-
-/*
-"use strict";
-
-var Model;
-
-if (typeof require !== "undefined") {
-	Model = require("../Model.js"); // eslint-disable-line global-require
-}
-*/
 
 import { Model } from "../Model";
 import { QUnit } from "qunit"; //TTT
@@ -17,7 +7,7 @@ import { QUnit } from "qunit"; //TTT
 
 QUnit.module("Model: Properties", function (hooks) {
 	hooks.beforeEach(function (/* assert */) {
-		var that = this, // eslint-disable-line no-invalid-this
+		const that = this, // eslint-disable-line no-invalid-this
 			oInitialConfig = {
 				p1: "v1"
 			},
@@ -30,16 +20,16 @@ QUnit.module("Model: Properties", function (hooks) {
 	});
 
 	QUnit.test("init without options", function (assert) {
-		var oModel = new Model({}, {});
+		const oModel = new Model({}, {});
 
 		assert.ok(oModel, "defined");
 	});
 
 	QUnit.test("properties", function (assert) {
-		var oModel = this.model, // eslint-disable-line no-invalid-this
-			oAllProperties;
+		const oModel = this.model; // eslint-disable-line no-invalid-this
 
-		oAllProperties = oModel.getAllInitialProperties();
+		let oAllProperties = oModel.getAllInitialProperties();
+
 		assert.strictEqual(Object.keys(oAllProperties).join(" "), "p1", "all initial properties: p1");
 
 		assert.strictEqual(oModel.getProperty("p1"), "v1", "p1=v1");
@@ -68,11 +58,11 @@ QUnit.module("Model: Properties", function (hooks) {
 
 QUnit.module("Model: Databases", function (hooks) {
 	hooks.beforeEach(function (/* assert */) {
-		// var that = this, // eslint-disable-line no-invalid-this
+		// const that = this, // eslint-disable-line no-invalid-this
 	});
 
 	QUnit.test("databases", function (assert) {
-		var oModel = new Model({}, {}),
+		const oModel = new Model({}, {}),
 			mDatabases = {
 				db1: {
 					text: "text1",
@@ -85,9 +75,8 @@ QUnit.module("Model: Databases", function (hooks) {
 					src: ""
 				}
 			},
-			oDatabases;
+			oDatabases = oModel.getAllDatabases();
 
-		oDatabases = oModel.getAllDatabases();
 		assert.strictEqual(Object.keys(oDatabases).length, 0, "no databases");
 
 		oModel.addDatabases(mDatabases);
@@ -111,7 +100,7 @@ QUnit.module("Model: Databases", function (hooks) {
 
 QUnit.module("Model: Examples", function (hooks) {
 	hooks.beforeEach(function (/* assert */) {
-		var that = this, // eslint-disable-line no-invalid-this
+		const that = this, // eslint-disable-line no-invalid-this
 			mDatabases = {
 				db1: {
 					text: "db1Text",
@@ -119,18 +108,25 @@ QUnit.module("Model: Examples", function (hooks) {
 					src: "db1Src"
 				},
 				db2: {
-					text: "db2text"
+					text: "db2text",
+					title: null,
+					src: ""
 				}
 			},
 			mExample1 = {
-				key: "ex1"
+				key: "ex1",
+				title: "ex1",
+				type: null,
+				meta: null
 			},
 			mExample2 = {
-				key: "ex2"
+				key: "ex2",
+				title: "ex2",
+				type: null,
+				meta: null
 			},
-			oModel;
+			oModel = new Model({}, {});
 
-		oModel = new Model({}, {});
 		oModel.addDatabases(mDatabases);
 		oModel.setProperty("database", "db1");
 		oModel.setExample(mExample1);
@@ -139,7 +135,7 @@ QUnit.module("Model: Examples", function (hooks) {
 	});
 
 	QUnit.test("examples", function (assert) {
-		var oModel = this.model; // eslint-disable-line no-invalid-this
+		const oModel = this.model; // eslint-disable-line no-invalid-this
 
 		assert.strictEqual(oModel.getExample("ex1").key, "ex1", "ex1");
 		assert.strictEqual(oModel.getExample("ex2").key, "ex2", "ex2");

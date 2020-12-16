@@ -13,16 +13,16 @@ interface BasicLexerOptions {
 	bQuiet?: boolean
 }
 
-export interface BasicLexerToken {
+export interface LexerToken {
 	type: string
-	value: string | number
+	value: string
 	pos: number
 	orig?: string
 }
 
 export class BasicLexer {
 	bQuiet = false
-	iLine = 0
+	sLine = "0"
 	bTakeNumberAsLine = true
 
 	constructor(options?: BasicLexerOptions) {
@@ -31,22 +31,22 @@ export class BasicLexer {
 	}
 
 	reset(): void {
-		this.iLine = 0; // for error messages
+		this.sLine = "0"; // for error messages
 		this.bTakeNumberAsLine = true;
 	}
 
-	composeError(...aArgs) {
+	private composeError(...aArgs) {
 		aArgs.unshift("BasicLexer");
-		aArgs.push(this.iLine);
+		aArgs.push(this.sLine);
 		return Utils.composeError.apply(null, aArgs);
 	}
 
-	lex(input: string): BasicLexerToken[] { // eslint-disable-line complexity
+	lex(input: string): LexerToken[] { // eslint-disable-line complexity
 		let iIndex = 0,
 			sToken: string, sChar: string, iStartPos: number;
 
 		const that = this,
-			aTokens: BasicLexerToken[] = [],
+			aTokens: LexerToken[] = [],
 
 			isComment = function (c: string) { // isApostrophe
 				return (/[']/).test(c);
@@ -132,16 +132,15 @@ export class BasicLexer {
 				} while (fn(sChar));
 				return sToken2;
 			},
-			addToken = function (type: string, value: string | number, iPos: number, sOrig?: string) { // optional original value
-				const oNode: BasicLexerToken = {
+			addToken = function (type: string, value: string, iPos: number, sOrig?: string) { // optional original value
+				const oNode: LexerToken = {
 					type: type,
 					value: value,
 					pos: iPos
-					//orig: undefined
 				};
 
 				if (sOrig !== undefined) {
-					if (sOrig !== String(value)) {
+					if (sOrig !== value) {
 						oNode.orig = sOrig;
 					}
 				}
@@ -183,15 +182,15 @@ export class BasicLexer {
 					}
 				}
 				sToken = sToken.trim(); // remove trailing spaces
-				const iNumber = parseFloat(sToken);
-
 				if (!isFinite(Number(sToken))) { // Infnity?
 					throw that.composeError(Error(), "Number is too large or too small", sToken, iStartPos); // for a 64-bit double
 				}
-				addToken("number", iNumber, iStartPos, sToken);
+				const iNumber = parseFloat(sToken);
+
+				addToken("number", String(iNumber), iStartPos, sToken); // store number as string
 				if (that.bTakeNumberAsLine) {
 					that.bTakeNumberAsLine = false;
-					that.iLine = iNumber; // save just for error message
+					that.sLine = String(iNumber); // save just for error message
 				}
 			},
 			fnParseCompleteLineForRem = function () { // special handling for line comment

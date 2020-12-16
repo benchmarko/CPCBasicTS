@@ -1,5 +1,5 @@
 "use strict";
-// Diff.js - Diff strings
+// Diff.ts - Diff strings
 // (c) Slava Kim
 // https://github.com/Slava/diff.js
 //

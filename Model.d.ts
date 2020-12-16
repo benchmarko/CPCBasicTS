@@ -7,7 +7,7 @@ export interface DatabaseEntry {
     title: string;
     src: string;
 }
-interface ExampleEntry {
+export interface ExampleEntry {
     key: string;
     title: string;
     type: string;

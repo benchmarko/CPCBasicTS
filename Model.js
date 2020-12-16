@@ -1,5 +1,5 @@
 "use strict";
-// Model.js - Model (MVC)
+// Model.ts - Model (MVC)
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 Object.defineProperty(exports, "__esModule", { value: true });

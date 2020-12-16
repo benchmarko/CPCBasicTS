@@ -1,4 +1,4 @@
-// cpcCharset.js
+// cpcCharset.ts
 //
 
 /* eslint-disable array-element-newline */

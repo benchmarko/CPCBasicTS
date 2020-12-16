@@ -1,18 +1,7 @@
 "use strict";
-// CodeGeneratorBasic.qunit.js - QUnit tests for CPCBasic CodeGeneratorBasic
+// CodeGeneratorBasic.qunit.ts - QUnit tests for CPCBasic CodeGeneratorBasic
 //
 Object.defineProperty(exports, "__esModule", { value: true });
-/*
-"use strict";
-
-var BasicLexer, BasicParser, CodeGeneratorBasic;
-
-if (typeof require !== "undefined") {
-    BasicLexer = require("../BasicLexer.js"); // eslint-disable-line global-require
-    BasicParser = require("../BasicParser.js"); // eslint-disable-line global-require
-    CodeGeneratorBasic = require("../CodeGeneratorBasic.js"); // eslint-disable-line global-require
-}
-*/
 var BasicLexer_1 = require("../BasicLexer");
 var BasicParser_1 = require("../BasicParser");
 var CodeGeneratorBasic_1 = require("../CodeGeneratorBasic");
@@ -524,20 +513,17 @@ qunit_1.QUnit.module("CodeGeneratorBasic: Tests", function ( /* hooks */) {
         var oCodeGeneratorBasic = new CodeGeneratorBasic_1.CodeGeneratorBasic({
             lexer: new BasicLexer_1.BasicLexer(),
             parser: new BasicParser_1.BasicParser()
-        }), sKey, sExpected, oOutput, sResult;
-        for (sKey in oTests) {
+        });
+        for (var sKey in oTests) {
             if (oTests.hasOwnProperty(sKey)) {
-                sExpected = oTests[sKey];
                 oCodeGeneratorBasic.reset();
-                oOutput = oCodeGeneratorBasic.generate(sKey, true);
-                sResult = oOutput.error ? oOutput.error : oOutput.text;
+                var sExpected = oTests[sKey], oOutput = oCodeGeneratorBasic.generate(sKey, true), sResult = oOutput.error ? oOutput.error : oOutput.text;
                 assert.strictEqual(sResult, sExpected, sKey);
             }
         }
     }
     function generateTests(oAllTests) {
-        var sCategory;
-        for (sCategory in oAllTests) {
+        for (var sCategory in oAllTests) {
             if (oAllTests.hasOwnProperty(sCategory)) {
                 (function (sCat) {
                     qunit_1.QUnit.test(sCat, function (assert) {

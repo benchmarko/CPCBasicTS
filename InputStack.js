@@ -1,5 +1,5 @@
 "use strict";
-// InputStack.js - InputStack...
+// InputStack.ts - InputStack...
 // see: https://github.com/jzaefferer/undo
 //
 Object.defineProperty(exports, "__esModule", { value: true });

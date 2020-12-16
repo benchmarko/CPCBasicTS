@@ -1,4 +1,4 @@
-// CpcVm.js - CPC Virtual Machine
+// CpcVm.ts - CPC Virtual Machine
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //
@@ -522,7 +522,7 @@ export class CpcVm {
 
 		this.iZone = 13; // print tab zone value
 
-		this.defreal("a-z"); // init var types
+		this.defreal("a-z"); // init vartypes
 
 		this.iMode = null;
 		this.vmResetWindowData(true); // reset all, including pen and paper
@@ -694,7 +694,7 @@ export class CpcVm {
 	/*
 	// round for comparison TODO
 	vmRound4Cmp(n) {
-		var nAdd = (n >= 0) ? 0.5 : -0.5;
+		const nAdd = (n >= 0) ? 0.5 : -0.5;
 
 		return ((n * 1e12 + nAdd) | 0) / 1e12; // eslint-disable-line no-bitwise
 	}
@@ -1540,14 +1540,14 @@ export class CpcVm {
 	}
 
 	vmPlaceRemoveCursor(iStream: number): void {
-		var oWin = this.aWindow[iStream];
+		const oWin = this.aWindow[iStream];
 
 		this.vmMoveCursor2AllowedPos(iStream);
 		this.oCanvas.drawCursor(oWin.iPos + oWin.iLeft, oWin.iVpos + oWin.iTop, oWin.iPen, oWin.iPaper);
 	}
 
 	vmDrawUndrawCursor(iStream: number): void {
-		var oWin = this.aWindow[iStream];
+		const oWin = this.aWindow[iStream];
 
 		if (oWin.bCursorOn && oWin.bCursorEnabled) {
 			this.vmPlaceRemoveCursor(iStream);
@@ -2265,7 +2265,7 @@ export class CpcVm {
 	}
 
 	vmLocate(iStream: number, iPos: number, iVpos: number): void {
-		var oWin = this.aWindow[iStream];
+		const oWin = this.aWindow[iStream];
 
 		oWin.iPos = iPos - 1;
 		oWin.iVpos = iVpos - 1;
@@ -2606,7 +2606,7 @@ export class CpcVm {
 	}
 
 	vmSetCharDataByte(iAddr: number, iByte: number): void {
-		var iDataPos = (iAddr - 1 - this.iMinCharHimem) % 8,
+		const iDataPos = (iAddr - 1 - this.iMinCharHimem) % 8,
 			iChar = this.iMinCustomChar + (iAddr - 1 - iDataPos - this.iMinCharHimem) / 8,
 			aCharData = Object.assign({}, this.oCanvas.getCharData(iChar)); // we need a copy to not modify original data
 
@@ -2735,12 +2735,12 @@ export class CpcVm {
 	}
 
 	private vmMoveCursor2AllowedPos(iStream: number) {
-		var oWin = this.aWindow[iStream],
+		const oWin = this.aWindow[iStream],
 			iLeft = oWin.iLeft,
 			iRight = oWin.iRight,
 			iTop = oWin.iTop,
-			iBottom = oWin.iBottom,
-			x = oWin.iPos,
+			iBottom = oWin.iBottom;
+		let	x = oWin.iPos,
 			y = oWin.iVpos;
 
 		if (x > (iRight - iLeft)) {
@@ -3066,12 +3066,11 @@ export class CpcVm {
 	}
 
 	// https://en.wikipedia.org/wiki/Jenkins_hash_function
-	private vmHashCode(s: string) {
-		var iHash = 0,
-			i;
+	private vmHashCode(s: string) { // eslint-disable-line class-methods-use-this
+		let iHash = 0;
 
 		/* eslint-disable no-bitwise */
-		for (i = 0; i < s.length; i += 1) {
+		for (let i = 0; i < s.length; i += 1) {
 			iHash += s.charCodeAt(i);
 			iHash += iHash << 10;
 			iHash ^= iHash >> 6;

@@ -45,7 +45,7 @@ var Variables = /** @class */ (function () {
         if (sName.indexOf("v.") === 0) { // preceding variable object?
             sName = sName.substr(2); // remove preceding "v."
         }
-        var sNameType = sName.charAt(0); // take first character to determine var type later
+        var sNameType = sName.charAt(0); // take first character to determine variable type later
         if (sNameType === "_") { // ignore underscore (do not clash with keywords)
             sNameType = sName.charAt(1);
         }

@@ -1,5 +1,5 @@
 "use strict";
-// DiskImage.js - DiskImage
+// DiskImage.ts - DiskImage
 // (c) Marco Vieth, 2020
 // https://benchmarko.github.io/CPCBasic/
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -17,41 +17,13 @@ var DiskImage = /** @class */ (function () {
         this.reset();
     };
     DiskImage.prototype.reset = function () {
-        this.iPos = 0;
-        //this.oDiskInfo = undefined;
+        //this.iPos = 0;
         this.oDiskInfo = {
             oTrackInfo: {
                 aSectorInfo: []
             }
-        }; //TTT
-        /*
-        this.oDiskInfo = {
-            sIdent: undefined,
-            sCreator: undefined,
-            iTracks: undefined,
-            iHeads: undefined,
-            iTrackSize: undefined,
-            oTrackInfo: {
-                sIdent: undefined,
-                iTrack: undefined,
-                iHead: undefined,
-                iDataRate: undefined,
-                iRecMode: undefined,
-                iBps: undefined,
-                iSpt: undefined,
-                iGap3: undefined,
-                iFill: undefined,
-                aSectorInfo: [],
-                iDataPos: undefined,
-                oSectorNum2Index: undefined
-            },
-            bExtended: undefined,
-            aTrackSizes: undefined,
-            aTrackPos: undefined
         };
-        */
         this.oFormat = {};
-        return this;
     };
     DiskImage.prototype.composeError = function () {
         var aArgs = [];
@@ -307,7 +279,7 @@ var DiskImage = /** @class */ (function () {
         };
         return oPos;
     };
-    DiskImage.prototype.readDirectory = function ( /* sFilePattern */) {
+    DiskImage.prototype.readDirectory = function () {
         var iDirectorySectors = 4, aExtents = [], oFormat = this.determineFormat(), iOff = oFormat.iOff, iFirstSector = oFormat.iFirstSector;
         this.oFormat = oFormat;
         this.seekTrack(iOff, 0);

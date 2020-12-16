@@ -1,19 +1,19 @@
 interface BasicLexerOptions {
     bQuiet?: boolean;
 }
-export interface BasicLexerToken {
+export interface LexerToken {
     type: string;
-    value: string | number;
+    value: string;
     pos: number;
     orig?: string;
 }
 export declare class BasicLexer {
     bQuiet: boolean;
-    iLine: number;
+    sLine: string;
     bTakeNumberAsLine: boolean;
     constructor(options?: BasicLexerOptions);
     reset(): void;
-    composeError(...aArgs: any[]): any;
-    lex(input: string): BasicLexerToken[];
+    private composeError;
+    lex(input: string): LexerToken[];
 }
 export {};

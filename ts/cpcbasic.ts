@@ -1,4 +1,4 @@
-// cpcbasic.js - CPCBasic for the Browser
+// cpcbasic.ts - CPCBasic for the Browser
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //

@@ -12,13 +12,13 @@ var Utils_1 = require("./Utils");
 var BasicLexer = /** @class */ (function () {
     function BasicLexer(options) {
         this.bQuiet = false;
-        this.iLine = 0;
+        this.sLine = "0";
         this.bTakeNumberAsLine = true;
         this.bQuiet = (options === null || options === void 0 ? void 0 : options.bQuiet) || false;
         this.reset();
     }
     BasicLexer.prototype.reset = function () {
-        this.iLine = 0; // for error messages
+        this.sLine = "0"; // for error messages
         this.bTakeNumberAsLine = true;
     };
     BasicLexer.prototype.composeError = function () {
@@ -27,7 +27,7 @@ var BasicLexer = /** @class */ (function () {
             aArgs[_i] = arguments[_i];
         }
         aArgs.unshift("BasicLexer");
-        aArgs.push(this.iLine);
+        aArgs.push(this.sLine);
         return Utils_1.Utils.composeError.apply(null, aArgs);
     };
     BasicLexer.prototype.lex = function (input) {
@@ -93,10 +93,9 @@ var BasicLexer = /** @class */ (function () {
                 type: type,
                 value: value,
                 pos: iPos
-                //orig: undefined
             };
             if (sOrig !== undefined) {
-                if (sOrig !== String(value)) {
+                if (sOrig !== value) {
                     oNode.orig = sOrig;
                 }
             }
@@ -134,14 +133,14 @@ var BasicLexer = /** @class */ (function () {
                 }
             }
             sToken = sToken.trim(); // remove trailing spaces
-            var iNumber = parseFloat(sToken);
             if (!isFinite(Number(sToken))) { // Infnity?
                 throw that.composeError(Error(), "Number is too large or too small", sToken, iStartPos); // for a 64-bit double
             }
-            addToken("number", iNumber, iStartPos, sToken);
+            var iNumber = parseFloat(sToken);
+            addToken("number", String(iNumber), iStartPos, sToken); // store number as string
             if (that.bTakeNumberAsLine) {
                 that.bTakeNumberAsLine = false;
-                that.iLine = iNumber; // save just for error message
+                that.sLine = String(iNumber); // save just for error message
             }
         }, fnParseCompleteLineForRem = function () {
             if (sChar === " ") {

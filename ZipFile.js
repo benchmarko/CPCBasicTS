@@ -1,5 +1,5 @@
 "use strict";
-// ZipFile.js - ZIP file handling
+// ZipFile.ts - ZIP file handling
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //
@@ -17,6 +17,9 @@ var ZipFile = /** @class */ (function () {
         this.aData = aData;
         this.sZipName = sZipName; // for error messages
         this.oEntryTable = this.readZipDirectory();
+    };
+    ZipFile.prototype.getZipDirectory = function () {
+        return this.oEntryTable;
     };
     ZipFile.prototype.composeError = function () {
         var aArgs = [];
@@ -145,8 +148,7 @@ var ZipFile = /** @class */ (function () {
         var aStartLens = [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258], aLExt = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0], aDists = [1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577], aDExt = [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13], aDynamicTableOrder = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15], 
         /* eslint-enable array-element-newline */
         that = this, // eslint-disable-line @typescript-eslint/no-this-alias
-        aData = this.aData, iBufEnd = iOffset + iCompressedSize, //TTT  -1?
-        aOutBuf = new Uint8Array(iFinalSize);
+        aData = this.aData, iBufEnd = iOffset + iCompressedSize, aOutBuf = new Uint8Array(iFinalSize);
         var iInCnt = iOffset, // read position
         iOutCnt = 0, // bytes written to outbuf
         iBitCnt = 0, // helper to keep track of where we are in #bits
@@ -179,8 +181,7 @@ var ZipFile = /** @class */ (function () {
             }
             return null;
         }, fnConstruct = function (oCodes, aLens2, n) {
-            var aOffs = [/* undefined */ , 0];
-            var iLeft = 1, i;
+            var i;
             for (i = 0; i <= 0xF; i += 1) {
                 oCodes.count[i] = 0;
             }
@@ -190,11 +191,16 @@ var ZipFile = /** @class */ (function () {
             if (oCodes.count[0] === n) {
                 return 0;
             }
+            var iLeft = 1;
             for (i = 1; i <= 0xF; i += 1) {
                 if ((iLeft = (iLeft << 1) - oCodes.count[i]) < 0) { // eslint-disable-line no-bitwise
                     return iLeft;
                 }
             }
+            var aOffs = [
+                undefined,
+                0
+            ];
             for (i = 1; i < 0xF; i += 1) {
                 aOffs[i + 1] = aOffs[i] + oCodes.count[i];
             }
@@ -378,7 +384,7 @@ var ZipFile = /** @class */ (function () {
         else {
             throw this.composeError(Error(), "Zip: readData: compression method not supported:" + oCdfh.iCompressionMethod, "", 0);
         }
-        if (sDataUTF8.length !== oCdfh.iSize) { //TTT assert
+        if (sDataUTF8.length !== oCdfh.iSize) { // assert
             Utils_1.Utils.console.error("Zip: readData: different length 2!");
         }
         return sDataUTF8;

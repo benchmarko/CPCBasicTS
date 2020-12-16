@@ -1,5 +1,5 @@
 "use strict";
-// cpcCharset.js
+// cpcCharset.ts
 //
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.cpcCharset = void 0;

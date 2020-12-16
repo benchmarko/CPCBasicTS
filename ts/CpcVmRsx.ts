@@ -1,4 +1,4 @@
-// CpcVmRsx.js - CPC Virtual Machine: RSX
+// CpcVmRst.ts - CPC Virtual Machine: RSX
 // (c) Marco Vieth, 2020
 // https://benchmarko.github.io/CPCBasic/
 //

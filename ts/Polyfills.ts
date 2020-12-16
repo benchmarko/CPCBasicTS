@@ -1,4 +1,4 @@
-// Polyfills.js - Some Polyfills for old browsers, e.g. IE8
+// Polyfills.ts - Some Polyfills for old browsers, e.g. IE8, and nodeJS
 //
 
 /* globals globalThis */

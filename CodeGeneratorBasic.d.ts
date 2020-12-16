@@ -28,7 +28,7 @@ export declare class CodeGeneratorBasic {
     parser: BasicParser;
     constructor(options: CodeGeneratorBasicOptions);
     init(options: CodeGeneratorBasicOptions): void;
-    reset(): this;
+    reset(): void;
     private composeError;
     private evaluate;
     generate(sInput: string, bAllowDirect?: boolean): {

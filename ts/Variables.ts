@@ -63,7 +63,7 @@ export class Variables {
 			sName = sName.substr(2); // remove preceding "v."
 		}
 
-		let sNameType = sName.charAt(0); // take first character to determine var type later
+		let sNameType = sName.charAt(0); // take first character to determine variable type later
 
 		if (sNameType === "_") { // ignore underscore (do not clash with keywords)
 			sNameType = sName.charAt(1);

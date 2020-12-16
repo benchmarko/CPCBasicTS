@@ -1,5 +1,5 @@
 "use strict";
-// CpcVm.js - CPC Virtual Machine
+// CpcVm.ts - CPC Virtual Machine
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //
@@ -166,7 +166,7 @@ var CpcVm = /** @class */ (function () {
         this.vmResetTimers();
         this.iTimerPriority = -1; // priority of running task: -1=low (min priority to start new timers)
         this.iZone = 13; // print tab zone value
-        this.defreal("a-z"); // init var types
+        this.defreal("a-z"); // init vartypes
         this.iMode = null;
         this.vmResetWindowData(true); // reset all, including pen and paper
         this.width(132); // set default printer width
@@ -304,7 +304,7 @@ var CpcVm = /** @class */ (function () {
     /*
     // round for comparison TODO
     vmRound4Cmp(n) {
-        var nAdd = (n >= 0) ? 0.5 : -0.5;
+        const nAdd = (n >= 0) ? 0.5 : -0.5;
 
         return ((n * 1e12 + nAdd) | 0) / 1e12; // eslint-disable-line no-bitwise
     }
@@ -2066,7 +2066,8 @@ var CpcVm = /** @class */ (function () {
         return y;
     };
     CpcVm.prototype.vmMoveCursor2AllowedPos = function (iStream) {
-        var oWin = this.aWindow[iStream], iLeft = oWin.iLeft, iRight = oWin.iRight, iTop = oWin.iTop, iBottom = oWin.iBottom, x = oWin.iPos, y = oWin.iVpos;
+        var oWin = this.aWindow[iStream], iLeft = oWin.iLeft, iRight = oWin.iRight, iTop = oWin.iTop, iBottom = oWin.iBottom;
+        var x = oWin.iPos, y = oWin.iVpos;
         if (x > (iRight - iLeft)) {
             y += 1;
             x = 0;
@@ -2370,9 +2371,9 @@ var CpcVm = /** @class */ (function () {
     };
     // https://en.wikipedia.org/wiki/Jenkins_hash_function
     CpcVm.prototype.vmHashCode = function (s) {
-        var iHash = 0, i;
+        var iHash = 0;
         /* eslint-disable no-bitwise */
-        for (i = 0; i < s.length; i += 1) {
+        for (var i = 0; i < s.length; i += 1) {
             iHash += s.charCodeAt(i);
             iHash += iHash << 10;
             iHash ^= iHash >> 6;

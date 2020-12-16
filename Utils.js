@@ -1,5 +1,5 @@
 "use strict";
-// Utils.js - Utililities for CPCBasic
+// Utils.ts - Utililities for CPCBasic
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 //

@@ -22,7 +22,7 @@ export declare class CodeGeneratorJs {
         forVarName: any[];
         whileLabel: any[];
     };
-    aData: any[];
+    aData: string[];
     oLabels: {};
     bMergeFound: boolean;
     iGosubCount: number;
@@ -33,7 +33,7 @@ export declare class CodeGeneratorJs {
     static aJsKeywords: string[];
     constructor(options: CodeGeneratorJsOptions);
     init(options: CodeGeneratorJsOptions): void;
-    reset(): this;
+    reset(): void;
     private resetCountsPerLine;
     private composeError;
     private static createJsKeywordRegex;

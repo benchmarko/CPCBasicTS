@@ -1,5 +1,5 @@
 "use strict";
-// CommonEventHandler.js - Common event handler for browser events
+// CommonEventHandler.ts - Common event handler for browser events
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasic/
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -221,7 +221,8 @@ var CommonEventHandler = /** @class */ (function () {
         return aParts.join("&");
     };
     CommonEventHandler.prototype.onReloadButtonClick = function () {
-        var oChanged = Utils_1.Utils.getChangedParameters(this.model.getAllProperties(), this.model.getAllInitialProperties()), sParas = this.encodeUriParam(oChanged);
+        var oChanged = Utils_1.Utils.getChangedParameters(this.model.getAllProperties(), this.model.getAllInitialProperties());
+        var sParas = this.encodeUriParam(oChanged);
         sParas = sParas.replace(/%2[Ff]/g, "/"); // unescape %2F -> /
         window.location.search = "?" + sParas;
     };

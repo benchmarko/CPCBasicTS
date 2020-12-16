@@ -2,51 +2,20 @@ export interface DiskImageOptions {
     sDiskName: string;
     sData: string;
 }
-interface SectorInfo {
-    length: number;
+interface ExtentEntry {
+    iUser: number;
+    sName: string;
+    sExt: string;
+    iExtent: number;
+    iLastRecBytes: number;
+    iExtentHi: number;
+    iRecords: number;
+    aBlocks: number[];
+    bReadOnly: boolean;
+    bSystem: boolean;
+    bBackup: boolean;
 }
-declare type SectorNum2IndexMap = {
-    [k in number]: number;
-};
-interface TrackInfo {
-    sIdent: string;
-    iTrack: number;
-    iHead: number;
-    iDataRate: number;
-    iRecMode: number;
-    iBps: number;
-    iSpt: number;
-    iGap3: number;
-    iFill: number;
-    aSectorInfo: SectorInfo;
-    iDataPos: number;
-    oSectorNum2Index: SectorNum2IndexMap;
-}
-interface DiskInfo {
-    sIdent: string;
-    sCreator: string;
-    iTracks: number;
-    iHeads: number;
-    iTrackSize: number;
-    oTrackInfo: TrackInfo;
-    bExtended: boolean;
-    aTrackSizes: number[];
-    aTrackPos: number[];
-}
-interface FormatDescriptor {
-    iTracks: number;
-    iHeads: number;
-    iBps: number;
-    iSpt: number;
-    iGap3: number;
-    iFill: number;
-    iFirstSector: number;
-    iBls: number;
-    iAl0: number;
-    iAl1: number;
-    iOff: number;
-}
-interface AmsdosHeader {
+export interface AmsdosHeader {
     iUser: number;
     sName: string;
     sExt: string;
@@ -57,16 +26,18 @@ interface AmsdosHeader {
     iLength: number;
     sType: string;
 }
+declare type DirectoryListType = {
+    [k in string]: ExtentEntry[];
+};
 export declare class DiskImage {
     private static mFormatDescriptors;
-    sDiskName: string;
-    sData: string;
-    iPos: number;
-    oDiskInfo: DiskInfo;
-    oFormat: FormatDescriptor;
+    private sDiskName;
+    private sData;
+    private oDiskInfo;
+    private oFormat;
     constructor(oConfig: DiskImageOptions);
     init(oConfig: DiskImageOptions): void;
-    reset(): this;
+    reset(): void;
     private composeError;
     static testDiskIdent(sIdent: string): number;
     private readUtf;
@@ -84,10 +55,10 @@ export declare class DiskImage {
     private sortFileExtents;
     private prepareDirectoryList;
     private convertBlock2Sector;
-    readDirectory(): {};
+    readDirectory(): DirectoryListType;
     private nextSector;
     private readBlock;
-    readFile(aFileExtents: any): string;
+    readFile(aFileExtents: ExtentEntry[]): string;
     static unOrProtectData(sData: string): string;
     private static computeChecksum;
     static parseAmsdosHeader(sData: string): AmsdosHeader;
