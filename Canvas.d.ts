@@ -93,7 +93,7 @@ export declare class Canvas {
     private getMousePos;
     private canvasClickAction2;
     onCpcCanvasClick(event: Event): void;
-    onWindowClick(): void;
+    onWindowClick(_event: Event): void;
     getXpos(): number;
     getYpos(): number;
     private fillMyRect;

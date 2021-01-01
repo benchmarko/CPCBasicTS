@@ -8,6 +8,7 @@ interface CodeGeneratorJsOptions {
     rsx: CpcVmRsx;
     tron: boolean;
     bQuiet?: boolean;
+    bNoCodeFrame?: boolean;
 }
 export declare class CodeGeneratorJs {
     lexer: BasicLexer;
@@ -15,6 +16,7 @@ export declare class CodeGeneratorJs {
     tron: boolean;
     rsx: CpcVmRsx;
     bQuiet: boolean;
+    bNoCodeFrame: boolean;
     iLine: number;
     reJsKeywords: RegExp;
     oStack: {

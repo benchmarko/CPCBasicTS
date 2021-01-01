@@ -1,6 +1,6 @@
 // View.ts - View Module to access HTML DOM
 // (c) Marco Vieth, 2019
-// https://benchmarko.github.io/CPCBasic/
+// https://benchmarko.github.io/CPCBasicTS/
 //
 
 import { Utils } from "./Utils";
@@ -197,11 +197,12 @@ export class View {
 		return this;
 	}
 
-	attachEventHandler(sType: string, fnEventHandler: EventListener): this {
+	attachEventHandler(sType: string, eventHandler: EventListenerOrEventListenerObject): this {
 		if (Utils.debug) {
-			Utils.console.debug("attachEventHandler: type=" + sType + ", fnEventHandler=" + ((fnEventHandler !== undefined) ? "[function]" : null));
+			Utils.console.debug("attachEventHandler: type=" + sType + ", eventHandler=" + ((eventHandler !== undefined) ? "[?]" : null));
 		}
-		document.addEventListener(sType, fnEventHandler, false);
+		//document.addEventListener(sType, fnEventHandler, false);
+		document.addEventListener(sType, eventHandler, false);
 		return this;
 	}
 }

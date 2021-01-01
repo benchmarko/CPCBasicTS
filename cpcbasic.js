@@ -1,7 +1,7 @@
 "use strict";
 // cpcbasic.ts - CPCBasic for the Browser
 // (c) Marco Vieth, 2019
-// https://benchmarko.github.io/CPCBasic/
+// https://benchmarko.github.io/CPCBasicTS/
 //
 Object.defineProperty(exports, "__esModule", { value: true });
 var Utils_1 = require("./Utils");

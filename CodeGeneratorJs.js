@@ -1,7 +1,7 @@
 "use strict";
 // CodeGeneratorJs.ts - Code Generator for JavaScript
 // (c) Marco Vieth, 2019
-// https://benchmarko.github.io/CPCBasic/
+// https://benchmarko.github.io/CPCBasicTS/
 //
 //
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -33,6 +33,7 @@ var CodeGeneratorJs = /** @class */ (function () {
         this.tron = options.tron;
         this.rsx = options.rsx;
         this.bQuiet = options.bQuiet || false;
+        this.bNoCodeFrame = options.bNoCodeFrame || false;
         this.reJsKeywords = CodeGeneratorJs.createJsKeywordRegex();
         this.reset();
     };
@@ -209,6 +210,7 @@ var CodeGeneratorJs = /** @class */ (function () {
             "/": function (node, oLeft, oRight) {
                 node.pv = oLeft.pv + " / " + oRight.pv;
                 fnPropagateStaticTypes(node, oLeft, oRight, "II RR IR RI");
+                node.pt = "R"; // event II can get a fraction
                 return node.pv;
             },
             "\\": function (node, oLeft, oRight) {
@@ -424,8 +426,9 @@ var CodeGeneratorJs = /** @class */ (function () {
                 return node.pv;
             },
             linerange: function (node) {
-                var sLeft = fnParseOneArg(node.left), sRight = fnParseOneArg(node.right);
-                if (sLeft > sRight) {
+                var sLeft = fnParseOneArg(node.left), sRight = fnParseOneArg(node.right), iLeft = Number(sLeft), // "null" gets NaN (should we check node.left.type for null?)
+                iRight = Number(sRight);
+                if (iLeft > iRight) { // comparison with NaN and number is always false
                     throw that.composeError(Error(), "Decreasing line range", node.value, node.pos);
                 }
                 node.pv = !sRight ? sLeft : sLeft + ", " + sRight;
@@ -481,7 +484,12 @@ var CodeGeneratorJs = /** @class */ (function () {
                     }
                     label = '"' + label + '"'; // for "direct"
                 }
-                value += "case " + label + ":";
+                if (!that.bNoCodeFrame) {
+                    value += "case " + label + ":";
+                }
+                else {
+                    value = "";
+                }
                 var aNodeArgs = fnParseArgs(node.args);
                 if (that.tron) {
                     value += " o.vmTrace(\"" + that.iLine + "\");";
@@ -498,7 +506,7 @@ var CodeGeneratorJs = /** @class */ (function () {
                         value += " " + value2;
                     }
                 }
-                if (bDirect) {
+                if (bDirect && !that.bNoCodeFrame) {
                     value += "\n o.goto(\"end\"); break;\ncase \"directEnd\":"; // put in next line because of possible "rem"
                 }
                 node.pv = value;
@@ -1158,14 +1166,21 @@ var CodeGeneratorJs = /** @class */ (function () {
             error: undefined
         };
         try {
-            var aTokens = this.lexer.lex(sInput), aParseTree = this.parser.parse(aTokens, bAllowDirect), sOutput = this.evaluate(aParseTree, oVariables);
-            oOut.text = '"use strict"\n'
-                + "var v=o.vmGetAllVariables();\n"
-                + "while (o.vmLoopCondition()) {\nswitch (o.iLine) {\ncase 0:\n"
-                + fnCombineData(this.aData)
-                + " o.goto(o.iStartLine ? o.iStartLine : \"start\"); break;\ncase \"start\":\n"
-                + sOutput
-                + "\ncase \"end\": o.vmStop(\"end\", 90); break;\ndefault: o.error(8); o.goto(\"end\"); break;\n}}\n";
+            var aTokens = this.lexer.lex(sInput), aParseTree = this.parser.parse(aTokens, bAllowDirect);
+            var sOutput = this.evaluate(aParseTree, oVariables);
+            if (!this.bNoCodeFrame) {
+                sOutput = '"use strict"\n'
+                    + "var v=o.vmGetAllVariables();\n"
+                    + "while (o.vmLoopCondition()) {\nswitch (o.iLine) {\ncase 0:\n"
+                    + fnCombineData(this.aData)
+                    + " o.goto(o.iStartLine ? o.iStartLine : \"start\"); break;\ncase \"start\":\n"
+                    + sOutput
+                    + "\ncase \"end\": o.vmStop(\"end\", 90); break;\ndefault: o.error(8); o.goto(\"end\"); break;\n}}\n";
+            }
+            else {
+                sOutput = fnCombineData(this.aData) + sOutput;
+            }
+            oOut.text = sOutput;
         }
         catch (e) {
             oOut.error = e;

@@ -1,7 +1,7 @@
 "use strict";
 // Controller.ts - Controller
 // (c) Marco Vieth, 2019
-// https://benchmarko.github.io/CPCBasic/
+// https://benchmarko.github.io/CPCBasicTS/
 //
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Controller = void 0;
@@ -25,6 +25,13 @@ var Sound_1 = require("./Sound");
 var Variables_1 = require("./Variables");
 var View_1 = require("./View");
 var ZipFile_1 = require("./ZipFile");
+/*
+export interface ControllerInterface {
+    startParse: () => void
+    startRenum: () => void
+    fnPretty: () => void
+}
+*/
 var Controller = /** @class */ (function () {
     function Controller(oModel, oView) {
         this.sMetaIdent = "CPCBasic";
@@ -49,6 +56,9 @@ var Controller = /** @class */ (function () {
         this.model = oModel;
         this.view = oView;
         this.commonEventHandler = new CommonEventHandler_1.CommonEventHandler(oModel, oView, this);
+        //this.commonEventHandler = new this.CommonEventHandler(this);
+        this.view.attachEventHandler("click", this.commonEventHandler);
+        this.view.attachEventHandler("change", this.commonEventHandler);
         oView.setHidden("consoleBox", !oModel.getProperty("showConsole"));
         oView.setHidden("inputArea", !oModel.getProperty("showInput"));
         oView.setHidden("inp2Area", !oModel.getProperty("showInp2"));
@@ -122,7 +132,7 @@ var Controller = /** @class */ (function () {
         }
         this.model.addDatabases(oDatabases);
         this.setDatabaseSelectOptions();
-        this.commonEventHandler.onDatabaseSelectChange();
+        this.onDatabaseSelectChange();
     };
     Controller.prototype.onUserAction = function ( /* event, sId */) {
         this.commonEventHandler.fnDeactivateUserAction();
@@ -1780,6 +1790,93 @@ var Controller = /** @class */ (function () {
             this.fnUpdateUndoRedoButtons();
         }
     };
+    // TTT
+    Controller.prototype.startUpdateCanvas = function () {
+        this.oCanvas.startUpdateCanvas();
+    };
+    Controller.prototype.stopUpdateCanvas = function () {
+        this.oCanvas.stopUpdateCanvas();
+    };
+    Controller.prototype.virtualKeyboardCreate = function () {
+        this.oKeyboard.virtualKeyboardCreate(); // maybe draw it
+    };
+    Controller.prototype.getVariable = function (sPar) {
+        return this.oVariables.getVariable(sPar);
+    };
+    Controller.prototype.undoStackElement = function () {
+        return this.inputStack.undo();
+    };
+    Controller.prototype.redoStackElement = function () {
+        return this.inputStack.redo();
+    };
+    Controller.prototype.onDatabaseSelectChange = function () {
+        var sUrl, oDatabase;
+        var that = this, sDatabase = this.view.getSelectValue("databaseSelect"), fnDatabaseLoaded = function (_sFullUrl) {
+            oDatabase.loaded = true;
+            Utils_1.Utils.console.log("fnDatabaseLoaded: database loaded: " + sDatabase + ": " + sUrl);
+            that.setExampleSelectOptions();
+            if (oDatabase.error) {
+                Utils_1.Utils.console.error("fnDatabaseLoaded: database contains errors: " + sDatabase + ": " + sUrl);
+                that.setInputText(oDatabase.script);
+                that.view.setAreaValue("resultText", oDatabase.error);
+            }
+            else {
+                that.onExampleSelectChange();
+            }
+        }, fnDatabaseError = function (_sFullUrl) {
+            oDatabase.loaded = false;
+            Utils_1.Utils.console.error("fnDatabaseError: database error: " + sDatabase + ": " + sUrl);
+            that.setExampleSelectOptions();
+            that.onExampleSelectChange();
+            that.setInputText("");
+            that.view.setAreaValue("resultText", "Cannot load database: " + sDatabase);
+        };
+        this.model.setProperty("database", sDatabase);
+        this.view.setSelectTitleFromSelectedOption("databaseSelect");
+        oDatabase = this.model.getDatabase();
+        if (!oDatabase) {
+            Utils_1.Utils.console.error("onDatabaseSelectChange: database not available:", sDatabase);
+            return;
+        }
+        if (oDatabase.text === "storage") { // sepcial handling: browser localStorage
+            this.updateStorageDatabase("set", null); // set all
+            oDatabase.loaded = true;
+        }
+        if (oDatabase.loaded) {
+            this.setExampleSelectOptions();
+            this.onExampleSelectChange();
+        }
+        else {
+            that.setInputText("#loading database " + sDatabase + "...");
+            sUrl = oDatabase.src + "/" + this.model.getProperty("exampleIndex");
+            Utils_1.Utils.loadScript(sUrl, fnDatabaseLoaded, fnDatabaseError);
+        }
+    };
+    Controller.prototype.onExampleSelectChange = function () {
+        var oVm = this.oVm, oInFile = oVm.vmGetInFileObject(), sDataBase = this.model.getProperty("database");
+        oVm.closein();
+        oInFile.bOpen = true;
+        var sExample = this.view.getSelectValue("exampleSelect");
+        var oExample = this.model.getExample(sExample);
+        oInFile.sCommand = "run";
+        if (oExample && oExample.meta) { // TTT TODO: this is just a workaround, meta is in input now; should change command after loading!
+            var sType = oExample.meta.charAt(0);
+            if (sType === "B" || sType === "D" || sType === "G") { // binary, data only, Gena Assembler?
+                oInFile.sCommand = "load";
+            }
+        }
+        if (sDataBase !== "storage") {
+            sExample = "/" + sExample; // load absolute
+        }
+        else {
+            this.model.setProperty("example", sExample);
+        }
+        oInFile.sName = sExample;
+        oInFile.iStart = undefined;
+        oInFile.fnFileCallback = oVm.fnLoadHandler;
+        oVm.vmStop("fileLoad", 90);
+        this.startMainLoop();
+    };
     // currently not used. Can be called manually: cpcBasic.controller.exportAsBase64(file);
     Controller.exportAsBase64 = function (sStorageName) {
         var oStorage = Utils_1.Utils.localStorage;
@@ -1799,6 +1896,14 @@ var Controller = /** @class */ (function () {
         }
         Utils_1.Utils.console.log(sOut);
         return sOut;
+    };
+    Controller.prototype.onCpcCanvasClick = function (event) {
+        this.oCanvas.onCpcCanvasClick(event);
+        this.oKeyboard.setActive(true);
+    };
+    Controller.prototype.onWindowClick = function (event) {
+        this.oCanvas.onWindowClick(event);
+        this.oKeyboard.setActive(false);
     };
     return Controller;
 }());

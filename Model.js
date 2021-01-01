@@ -1,7 +1,7 @@
 "use strict";
 // Model.ts - Model (MVC)
 // (c) Marco Vieth, 2019
-// https://benchmarko.github.io/CPCBasic/
+// https://benchmarko.github.io/CPCBasicTS/
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Model = void 0;
 var Utils_1 = require("./Utils");
@@ -26,6 +26,17 @@ var Model = /** @class */ (function () {
     };
     Model.prototype.getAllInitialProperties = function () {
         return this.initialConfig;
+    };
+    Model.prototype.getChangedProperties = function () {
+        var oCurrent = this.config, oInitial = this.initialConfig, oChanged = {};
+        for (var sName in oCurrent) {
+            if (oCurrent.hasOwnProperty(sName)) {
+                if (oCurrent[sName] !== oInitial[sName]) {
+                    oChanged[sName] = oCurrent[sName];
+                }
+            }
+        }
+        return oChanged;
     };
     Model.prototype.addDatabases = function (oDb) {
         for (var sPar in oDb) {

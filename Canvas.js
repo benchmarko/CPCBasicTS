@@ -1,7 +1,7 @@
 "use strict";
 // Canvas.ts - Graphics output to HTML canvas
 // (c) Marco Vieth, 2019
-// https://benchmarko.github.io/CPCBasic/
+// https://benchmarko.github.io/CPCBasicTS/
 //
 /* globals ArrayBuffer, Uint8Array, Uint32Array */
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -325,7 +325,7 @@ var Canvas = /** @class */ (function () {
         }
         event.stopPropagation();
     };
-    Canvas.prototype.onWindowClick = function () {
+    Canvas.prototype.onWindowClick = function (_event) {
         if (this.bHasFocus) {
             this.bHasFocus = false;
             this.cpcAreaBox.style.background = "";

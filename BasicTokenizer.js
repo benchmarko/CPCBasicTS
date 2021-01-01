@@ -1,7 +1,7 @@
 "use strict";
 // BasicTokenizer.ts - Tokenize BASIC programs
 // (c) Marco Vieth, 2020
-// https://benchmarko.github.io/CPCBasic/
+// https://benchmarko.github.io/CPCBasicTS/
 //
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BasicTokenizer = void 0;

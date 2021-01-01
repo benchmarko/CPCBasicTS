@@ -1,7 +1,7 @@
 "use strict";
 // DiskImage.ts - DiskImage
 // (c) Marco Vieth, 2020
-// https://benchmarko.github.io/CPCBasic/
+// https://benchmarko.github.io/CPCBasicTS/
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DiskImage = void 0;
 // http://www.cpctech.org.uk/docs/extdsk.html

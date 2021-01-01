@@ -1,7 +1,7 @@
 "use strict";
 // CodeGeneratorBasic.ts - Code Generator for BASIC (for testing, pretty print?)
 // (c) Marco Vieth, 2019
-// https://benchmarko.github.io/CPCBasic/
+// https://benchmarko.github.io/CPCBasicTS/
 //
 //
 Object.defineProperty(exports, "__esModule", { value: true });

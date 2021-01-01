@@ -1,7 +1,7 @@
 "use strict";
 // Utils.ts - Utililities for CPCBasic
 // (c) Marco Vieth, 2019
-// https://benchmarko.github.io/CPCBasic/
+// https://benchmarko.github.io/CPCBasicTS/
 //
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Utils = void 0;
@@ -106,17 +106,6 @@ var Utils = /** @class */ (function () {
     };
     Utils.toDegrees = function (rad) {
         return rad * 180 / Math.PI;
-    };
-    Utils.getChangedParameters = function (current, initial) {
-        var oChanged = {};
-        for (var sName in current) {
-            if (current.hasOwnProperty(sName)) {
-                if (current[sName] !== initial[sName]) {
-                    oChanged[sName] = current[sName];
-                }
-            }
-        }
-        return oChanged;
     };
     Utils.stringTrimEnd = function (sStr) {
         return sStr.replace(/[\s\uFEFF\xA0]+$/, "");

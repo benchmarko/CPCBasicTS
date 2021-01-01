@@ -1,7 +1,7 @@
 "use strict";
 // CpcVm.ts - CPC Virtual Machine
 // (c) Marco Vieth, 2019
-// https://benchmarko.github.io/CPCBasic/
+// https://benchmarko.github.io/CPCBasicTS/
 //
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CpcVm = void 0;

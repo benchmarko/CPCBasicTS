@@ -1,10 +1,10 @@
 // CodeGeneratorBasic.ts - Code Generator for BASIC (for testing, pretty print?)
 // (c) Marco Vieth, 2019
-// https://benchmarko.github.io/CPCBasic/
+// https://benchmarko.github.io/CPCBasicTS/
 //
 //
 
-import { Utils } from "./Utils";
+import { Utils, CustomError } from "./Utils";
 import { BasicLexer } from "./BasicLexer";
 import { BasicParser, ParserNode } from "./BasicParser"; // BasicParser just for keyword definitions
 
@@ -58,7 +58,7 @@ export class CodeGeneratorBasic {
 		aArgs.unshift("CodeGeneratorBasic");
 		// check, correct:
 		//TTT aArgs.push(this.iLine);
-		return Utils.composeError.apply(null, aArgs);
+		return Utils.composeError.apply(null, aArgs) as CustomError;
 	}
 
 	//

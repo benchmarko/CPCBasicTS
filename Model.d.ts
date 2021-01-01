@@ -34,6 +34,7 @@ export declare class Model {
     setProperty<T extends ConfigEntryType>(sProperty: string, value: T): void;
     getAllProperties(): ConfigType;
     getAllInitialProperties(): ConfigType;
+    getChangedProperties(): ConfigType;
     addDatabases(oDb: DatabasesType): void;
     getAllDatabases(): DatabasesType;
     getDatabase(): DatabaseEntry;

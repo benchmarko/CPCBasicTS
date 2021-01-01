@@ -1,6 +1,6 @@
 // Canvas.ts - Graphics output to HTML canvas
 // (c) Marco Vieth, 2019
-// https://benchmarko.github.io/CPCBasic/
+// https://benchmarko.github.io/CPCBasicTS/
 //
 /* globals ArrayBuffer, Uint8Array, Uint32Array */
 
@@ -592,7 +592,7 @@ export class Canvas {
 		event.stopPropagation();
 	}
 
-	onWindowClick(): void {
+	onWindowClick(_event: Event): void {
 		if (this.bHasFocus) {
 			this.bHasFocus = false;
 			this.cpcAreaBox.style.background = "";

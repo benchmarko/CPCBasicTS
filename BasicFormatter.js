@@ -1,7 +1,7 @@
 "use strict";
 // BasicFormatter.ts - Format BASIC source
 // (c) Marco Vieth, 2020
-// https://benchmarko.github.io/CPCBasic/
+// https://benchmarko.github.io/CPCBasicTS/
 //
 //
 Object.defineProperty(exports, "__esModule", { value: true });

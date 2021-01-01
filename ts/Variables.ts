@@ -1,6 +1,6 @@
 // Variables.ts - Variables
 // (c) Marco Vieth, 2020
-// https://benchmarko.github.io/CPCBasic/
+// https://benchmarko.github.io/CPCBasicTS/
 
 type VariableValue = string | number | object; //TTT any?  string | number | function | array
 

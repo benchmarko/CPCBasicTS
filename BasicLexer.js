@@ -1,7 +1,7 @@
 "use strict";
 // BasicLexer.ts - BASIC Lexer
 // (c) Marco Vieth, 2019
-// https://benchmarko.github.io/CPCBasic/
+// https://benchmarko.github.io/CPCBasicTS/
 //
 // BASIC lexer for Locomotive BASIC 1.1 for Amstrad CPC 6128
 //

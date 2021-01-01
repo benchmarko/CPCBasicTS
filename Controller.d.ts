@@ -1,3 +1,4 @@
+import { IController } from "./Interfaces";
 import { BasicFormatter } from "./BasicFormatter";
 import { BasicTokenizer } from "./BasicTokenizer";
 import { Canvas } from "./Canvas";
@@ -11,7 +12,7 @@ import { Model } from "./Model";
 import { Sound } from "./Sound";
 import { Variables } from "./Variables";
 import { View } from "./View";
-export declare class Controller {
+export declare class Controller implements IController {
     fnRunLoopHandler: undefined;
     fnWaitKeyHandler: undefined;
     fnWaitInputHandler: undefined;
@@ -129,5 +130,15 @@ export declare class Controller {
     private fnUpdateUndoRedoButtons;
     private fnInitUndoRedoButtons;
     private fnPutChangedInputOnStack;
+    startUpdateCanvas(): void;
+    stopUpdateCanvas(): void;
+    virtualKeyboardCreate(): void;
+    getVariable(sPar: string): string | number | object;
+    undoStackElement(): string;
+    redoStackElement(): string;
+    onDatabaseSelectChange(): void;
+    onExampleSelectChange(): void;
     static exportAsBase64(sStorageName: string): string;
+    onCpcCanvasClick(event: Event): void;
+    onWindowClick(event: Event): void;
 }

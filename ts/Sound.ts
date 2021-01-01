@@ -1,6 +1,6 @@
 // Sound.ts - Sound output via WebAudio
 // (c) Marco Vieth, 2019
-// https://benchmarko.github.io/CPCBasic/
+// https://benchmarko.github.io/CPCBasicTS/
 //
 
 import { Utils } from "./Utils";

@@ -16,7 +16,6 @@ export declare class Utils {
     static numberWithCommas(x: number): string;
     static toRadians(deg: number): number;
     static toDegrees(rad: number): number;
-    static getChangedParameters(current: any, initial: any): {};
     static bSupportsBinaryLiterals: boolean;
     static bSupportReservedNames: boolean;
     static stringTrimEnd(sStr: string): string;

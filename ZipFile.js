@@ -1,7 +1,7 @@
 "use strict";
 // ZipFile.ts - ZIP file handling
 // (c) Marco Vieth, 2019
-// https://benchmarko.github.io/CPCBasic/
+// https://benchmarko.github.io/CPCBasicTS/
 //
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ZipFile = void 0;

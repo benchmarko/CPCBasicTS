@@ -62,7 +62,7 @@ qunit_1.QUnit.module("CodeGeneratorBasic: Tests", function ( /* hooks */) {
             "cursor #2,1,1": "CURSOR#2,1,1",
             "cursor #2,,1": "CURSOR#2,,1"
         },
-        "data, dec$, def fn, defint, defreal, defstr, deg, dee, derr, di, dim, draw, drawr": {
+        "data, dec$, def fn, defint, defreal, defstr, deg, delete, derr, di, dim, draw, drawr": {
             "data ": "DATA",
             "data ,": "DATA ,",
             "data 1,2,3": "DATA 1,2,3",
@@ -94,6 +94,10 @@ qunit_1.QUnit.module("CodeGeneratorBasic: Tests", function ( /* hooks */) {
             "defstr a,b-c,v,x-y": "DEFSTR a,b-c,v,x-y",
             "deg ": "DEG",
             "delete": "DELETE",
+            "delete 10": "DELETE 10",
+            "delete 1-": "DELETE 1-",
+            "delete -1": "DELETE -1",
+            "delete 1-2": "DELETE 1-2",
             "a=derr ": "a=DERR",
             "di ": "DI",
             "dim a(1)": "DIM a(1)",
@@ -512,7 +516,9 @@ qunit_1.QUnit.module("CodeGeneratorBasic: Tests", function ( /* hooks */) {
     function runTestsFor(assert, oTests) {
         var oCodeGeneratorBasic = new CodeGeneratorBasic_1.CodeGeneratorBasic({
             lexer: new BasicLexer_1.BasicLexer(),
-            parser: new BasicParser_1.BasicParser()
+            parser: new BasicParser_1.BasicParser({
+                bQuiet: true
+            })
         });
         for (var sKey in oTests) {
             if (oTests.hasOwnProperty(sKey)) {

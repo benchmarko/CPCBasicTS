@@ -1,7 +1,7 @@
 "use strict";
 // Keyboard.ts - Keyboard handling
 // (c) Marco Vieth, 2019
-// https://benchmarko.github.io/CPCBasic/
+// https://benchmarko.github.io/CPCBasicTS/
 //
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Keyboard = void 0;

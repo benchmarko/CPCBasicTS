@@ -21,5 +21,5 @@ export declare class View {
     setAreaScrollTop(sId: string, iScrollTop?: number): this;
     private setSelectionRange;
     setAreaSelection(sId: string, iPos: number, iEndPos: number): this;
-    attachEventHandler(sType: string, fnEventHandler: EventListener): this;
+    attachEventHandler(sType: string, eventHandler: EventListenerOrEventListenerObject): this;
 }

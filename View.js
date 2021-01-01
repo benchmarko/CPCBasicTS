@@ -1,7 +1,7 @@
 "use strict";
 // View.ts - View Module to access HTML DOM
 // (c) Marco Vieth, 2019
-// https://benchmarko.github.io/CPCBasic/
+// https://benchmarko.github.io/CPCBasicTS/
 //
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.View = void 0;
@@ -163,11 +163,12 @@ var View = /** @class */ (function () {
         }
         return this;
     };
-    View.prototype.attachEventHandler = function (sType, fnEventHandler) {
+    View.prototype.attachEventHandler = function (sType, eventHandler) {
         if (Utils_1.Utils.debug) {
-            Utils_1.Utils.console.debug("attachEventHandler: type=" + sType + ", fnEventHandler=" + ((fnEventHandler !== undefined) ? "[function]" : null));
+            Utils_1.Utils.console.debug("attachEventHandler: type=" + sType + ", eventHandler=" + ((eventHandler !== undefined) ? "[?]" : null));
         }
-        document.addEventListener(sType, fnEventHandler, false);
+        //document.addEventListener(sType, fnEventHandler, false);
+        document.addEventListener(sType, eventHandler, false);
         return this;
     };
     return View;
