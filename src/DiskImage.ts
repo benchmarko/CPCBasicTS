@@ -1,6 +1,6 @@
 // DiskImage.ts - DiskImage
 // (c) Marco Vieth, 2020
-// https://benchmarko.github.io/CPCBasic/
+// https://benchmarko.github.io/CPCBasicTS/
 
 // http://www.cpctech.org.uk/docs/extdsk.html
 // Extended DSK image definition

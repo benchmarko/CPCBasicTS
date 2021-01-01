@@ -1,6 +1,6 @@
 // ZipFile.ts - ZIP file handling
 // (c) Marco Vieth, 2019
-// https://benchmarko.github.io/CPCBasic/
+// https://benchmarko.github.io/CPCBasicTS/
 //
 
 // Idea based on: https://github.com/frash23/jzsip/blob/master/jzsip.js

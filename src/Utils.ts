@@ -1,6 +1,6 @@
 // Utils.ts - Utililities for CPCBasic
 // (c) Marco Vieth, 2019
-// https://benchmarko.github.io/CPCBasic/
+// https://benchmarko.github.io/CPCBasicTS/
 //
 
 export interface CustomError extends Error {
@@ -138,19 +138,6 @@ export class Utils { // eslint-disable-line vars-on-top
 
 	static toDegrees(rad: number): number {
 		return rad * 180 / Math.PI;
-	}
-
-	static getChangedParameters(current, initial) {
-		const oChanged = {};
-
-		for (const sName in current) {
-			if (current.hasOwnProperty(sName)) {
-				if (current[sName] !== initial[sName]) {
-					oChanged[sName] = current[sName];
-				}
-			}
-		}
-		return oChanged;
 	}
 
 	static bSupportsBinaryLiterals = (function () { // does the browser support binary literals?

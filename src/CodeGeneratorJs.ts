@@ -1,6 +1,6 @@
 // CodeGeneratorJs.ts - Code Generator for JavaScript
 // (c) Marco Vieth, 2019
-// https://benchmarko.github.io/CPCBasic/
+// https://benchmarko.github.io/CPCBasicTS/
 //
 //
 
@@ -17,6 +17,7 @@ interface CodeGeneratorJsOptions {
 	rsx: CpcVmRsx
 	tron: boolean
 	bQuiet?: boolean
+	bNoCodeFrame?: boolean
 }
 
 interface CodeNode extends ParserNode {
@@ -32,6 +33,7 @@ export class CodeGeneratorJs {
 	tron = false;
 	rsx: CpcVmRsx;
 	bQuiet = false;
+	bNoCodeFrame: boolean
 
 	iLine = 0; // current line (label)
 	reJsKeywords: RegExp;
@@ -129,6 +131,7 @@ export class CodeGeneratorJs {
 		this.tron = options.tron;
 		this.rsx = options.rsx;
 		this.bQuiet = options.bQuiet || false;
+		this.bNoCodeFrame = options.bNoCodeFrame || false;
 
 		this.reJsKeywords = CodeGeneratorJs.createJsKeywordRegex();
 		this.reset();
@@ -334,6 +337,7 @@ export class CodeGeneratorJs {
 				"/": function (node: CodeNode, oLeft: CodeNode, oRight: CodeNode) {
 					node.pv = oLeft.pv + " / " + oRight.pv;
 					fnPropagateStaticTypes(node, oLeft, oRight, "II RR IR RI");
+					node.pt = "R"; // event II can get a fraction
 					return node.pv;
 				},
 				"\\": function (node: CodeNode, oLeft: CodeNode, oRight: CodeNode) {
@@ -575,9 +579,11 @@ export class CodeGeneratorJs {
 				},
 				linerange: function (node: CodeNode) { // for delete, list
 					const sLeft = fnParseOneArg(node.left),
-						sRight = fnParseOneArg(node.right);
+						sRight = fnParseOneArg(node.right),
+						iLeft = Number(sLeft), // "null" gets NaN (should we check node.left.type for null?)
+						iRight = Number(sRight);
 
-					if (sLeft > sRight) {
+					if (iLeft > iRight) { // comparison with NaN and number is always false
 						throw that.composeError(Error(), "Decreasing line range", node.value, node.pos);
 					}
 					node.pv = !sRight ? sLeft : sLeft + ", " + sRight;
@@ -641,7 +647,11 @@ export class CodeGeneratorJs {
 						label = '"' + label + '"'; // for "direct"
 					}
 
-					value += "case " + label + ":";
+					if (!that.bNoCodeFrame) {
+						value += "case " + label + ":";
+					} else {
+						value = "";
+					}
 
 					const aNodeArgs = fnParseArgs(node.args);
 
@@ -661,7 +671,7 @@ export class CodeGeneratorJs {
 						}
 					}
 
-					if (bDirect) {
+					if (bDirect && !that.bNoCodeFrame) {
 						value += "\n o.goto(\"end\"); break;\ncase \"directEnd\":"; // put in next line because of possible "rem"
 					}
 
@@ -1475,16 +1485,21 @@ export class CodeGeneratorJs {
 
 		try {
 			const aTokens = this.lexer.lex(sInput),
-				aParseTree = this.parser.parse(aTokens, bAllowDirect),
-				sOutput = this.evaluate(aParseTree, oVariables);
+				aParseTree = this.parser.parse(aTokens, bAllowDirect);
+			let	sOutput = this.evaluate(aParseTree, oVariables);
 
-			oOut.text = '"use strict"\n'
-				+ "var v=o.vmGetAllVariables();\n"
-				+ "while (o.vmLoopCondition()) {\nswitch (o.iLine) {\ncase 0:\n"
-				+ fnCombineData(this.aData)
-				+ " o.goto(o.iStartLine ? o.iStartLine : \"start\"); break;\ncase \"start\":\n"
-				+ sOutput
-				+ "\ncase \"end\": o.vmStop(\"end\", 90); break;\ndefault: o.error(8); o.goto(\"end\"); break;\n}}\n";
+			if (!this.bNoCodeFrame) {
+				sOutput = '"use strict"\n'
+					+ "var v=o.vmGetAllVariables();\n"
+					+ "while (o.vmLoopCondition()) {\nswitch (o.iLine) {\ncase 0:\n"
+					+ fnCombineData(this.aData)
+					+ " o.goto(o.iStartLine ? o.iStartLine : \"start\"); break;\ncase \"start\":\n"
+					+ sOutput
+					+ "\ncase \"end\": o.vmStop(\"end\", 90); break;\ndefault: o.error(8); o.goto(\"end\"); break;\n}}\n";
+			} else {
+				sOutput = fnCombineData(this.aData) + sOutput;
+			}
+			oOut.text = sOutput;
 		} catch (e) {
 			oOut.error = e;
 			if ("pos" in e) {

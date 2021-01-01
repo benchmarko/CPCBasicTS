@@ -1,6 +1,6 @@
 // Model.ts - Model (MVC)
 // (c) Marco Vieth, 2019
-// https://benchmarko.github.io/CPCBasic/
+// https://benchmarko.github.io/CPCBasicTS/
 
 import { Utils } from "./Utils";
 
@@ -55,6 +55,21 @@ export class Model {
 	}
 	getAllInitialProperties(): ConfigType {
 		return this.initialConfig;
+	}
+
+	getChangedProperties(): ConfigType {
+		const oCurrent = this.config,
+			oInitial = this.initialConfig,
+			oChanged = {};
+
+		for (const sName in oCurrent) {
+			if (oCurrent.hasOwnProperty(sName)) {
+				if (oCurrent[sName] !== oInitial[sName]) {
+					oChanged[sName] = oCurrent[sName];
+				}
+			}
+		}
+		return oChanged;
 	}
 
 	addDatabases(oDb: DatabasesType): void {

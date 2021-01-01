@@ -1,6 +1,6 @@
 // Random.ts - Random Number Generator
 // (c) Marco Vieth, 2019
-// https://benchmarko.github.io/CPCBasic/
+// https://benchmarko.github.io/CPCBasicTS/
 
 //
 // Random number generator taken from:
