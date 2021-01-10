@@ -1,14 +1,20 @@
 // CodeGeneratorBasic.qunit.ts - QUnit tests for CPCBasic CodeGeneratorBasic
 //
 
+const bGenerateAllResults = false;
+
+import { Utils } from "../Utils";
 import { BasicLexer } from "../BasicLexer";
 import { BasicParser } from "../BasicParser";
 import { CodeGeneratorBasic } from "../CodeGeneratorBasic";
 import { QUnit } from "qunit"; //TTT
 
+type TestsType = {[k in string]: string};
+
+type AllTestsType = {[k in string]: TestsType};
 
 QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
-	const mAllTests = {
+	const mAllTests: AllTestsType = {
 		"abs, after gosub, and, asc, atn, auto": {
 			"a=abs(2.3)": "a=ABS(2.3)",
 
@@ -660,7 +666,7 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 		}
 	};
 
-	function runTestsFor(assert, oTests) {
+	function runTestsFor(assert, oTests: TestsType, aResults?: string[]) {
 		const oCodeGeneratorBasic = new CodeGeneratorBasic({
 			lexer: new BasicLexer(),
 			parser: new BasicParser({
@@ -673,14 +679,20 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 				oCodeGeneratorBasic.reset();
 				const sExpected = oTests[sKey],
 					oOutput = oCodeGeneratorBasic.generate(sKey, true),
-					sResult = oOutput.error ? oOutput.error : oOutput.text;
+					sResult = oOutput.error ? String(oOutput.error) : oOutput.text;
 
-				assert.strictEqual(sResult, sExpected, sKey);
+				if (aResults) {
+					aResults.push('"' + sKey.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '": "' + sResult.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '"');
+				}
+
+				if (assert) {
+					assert.strictEqual(sResult, sExpected, sKey);
+				}
 			}
 		}
 	}
 
-	function generateTests(oAllTests) {
+	function generateTests(oAllTests: AllTestsType) {
 		for (const sCategory in oAllTests) {
 			if (oAllTests.hasOwnProperty(sCategory)) {
 				(function (sCat) {
@@ -693,6 +705,32 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 	}
 
 	generateTests(mAllTests);
+
+	// generate result list (not used during the test, just for debugging)
+
+	function generateAllResults(oAllTests: AllTestsType) {
+		let sResult = "";
+
+		for (const sCategory in oAllTests) {
+			if (oAllTests.hasOwnProperty(sCategory)) {
+				const aResults: string[] = [],
+					bContainsSpace = sCategory.indexOf(" ") >= 0,
+					sMarker = bContainsSpace ? '"' : "";
+
+				sResult += sMarker + sCategory + sMarker + ": {\n";
+
+				runTestsFor(undefined, oAllTests[sCategory], aResults);
+				sResult += aResults.join(",\n");
+				sResult += "\n},\n";
+			}
+		}
+		Utils.console.log(sResult);
+		return sResult;
+	}
+
+	if (bGenerateAllResults) {
+		generateAllResults(mAllTests);
+	}
 });
 
 // end

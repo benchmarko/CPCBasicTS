@@ -4,9 +4,12 @@
 //
 //
 
-// Interfaces.ts - Interfaces
-// (c) Marco Vieth, 2020
-//
+import { CustomError } from "./Utils";
+
+export interface IOutput {
+    text: string
+    error: CustomError
+}
 
 export interface IController {
     startParse: () => void
@@ -21,7 +24,7 @@ export interface IController {
     startEnter: () => void
 
     fnPretty: () => void
-    setInputText: (arg0: string, arg1?: boolean) => void
+    setInputText: (sInput: string, bKeepStack?: boolean) => void
     setExampleSelectOptions: () => void
     invalidateScript: () => void
     setSoundActive: () => void
@@ -29,7 +32,6 @@ export interface IController {
     changeVariable: () => void
     onExampleSelectChange: () => void
     onDatabaseSelectChange: () => void
-    updateStorageDatabase(sAction: string, sKey: string): void
 
     onCpcCanvasClick: (event: Event) => void
     onWindowClick: (event: Event) => void
@@ -42,5 +44,9 @@ export interface IController {
     undoStackElement: () => string
     redoStackElement: () => string
  }
+
+export interface ICpcVmRsx {
+    rsxIsAvailable: (sName: string) => boolean
+}
 
 //

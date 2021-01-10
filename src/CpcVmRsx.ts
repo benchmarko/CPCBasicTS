@@ -4,9 +4,10 @@
 //
 
 import { Utils } from "./Utils";
+import { ICpcVmRsx } from "./Interfaces";
 import { CpcVm } from "./CpcVm";
 
-export class CpcVmRsx {
+export class CpcVmRsx implements ICpcVmRsx {
 	oVm: CpcVm;
 
 	constructor(oVm: CpcVm) {

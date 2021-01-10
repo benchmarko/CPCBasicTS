@@ -7,6 +7,7 @@
 import { Utils, CustomError } from "./Utils";
 import { BasicLexer } from "./BasicLexer";
 import { BasicParser, ParserNode } from "./BasicParser"; // BasicParser just for keyword definitions
+import { IOutput } from "./Interfaces";
 
 interface CodeGeneratorBasicOptions {
 	lexer: BasicLexer
@@ -650,8 +651,8 @@ export class CodeGeneratorBasic {
 		return fnEvaluate();
 	}
 
-	generate(sInput: string, bAllowDirect?: boolean) {
-		const oOut = {
+	generate(sInput: string, bAllowDirect?: boolean): IOutput {
+		const oOut: IOutput = {
 			text: "",
 			error: undefined
 		};

@@ -4,17 +4,16 @@
 const bGenerateAllResults = false;
 
 import { Utils } from "../Utils";
+import { ICpcVmRsx } from "../Interfaces";
 import { BasicLexer } from "../BasicLexer";
 import { BasicParser } from "../BasicParser";
 import { CodeGeneratorJs } from "../CodeGeneratorJs";
 import { QUnit } from "qunit"; //TTT
 import { Variables } from "../Variables";
 
-/*
-function binOrHex(sBin: string) {
-	return "0x" + Utils.bSupportsBinaryLiterals ? sBin : parseInt(sBin.substr(2), 2).toString(16).toLowerCase();
-}
-*/
+type TestsType = {[k in string]: string};
+
+type AllTestsType = {[k in string]: TestsType};
 
 QUnit.module("CodeGeneratorJs: Tests", function (/* hooks */) {
 	const mAllTests = {
@@ -526,7 +525,7 @@ QUnit.module("CodeGeneratorJs: Tests", function (/* hooks */) {
 	};
 
 
-	function runTestsFor(assert, oTests, aResults?) {
+	function runTestsFor(assert, oTests: TestsType, aResults?: string[]) {
 		const oCodeGeneratorJs = new CodeGeneratorJs({
 				lexer: new BasicLexer(),
 				parser: new BasicParser({
@@ -537,7 +536,7 @@ QUnit.module("CodeGeneratorJs: Tests", function (/* hooks */) {
 					rsxIsAvailable: function (sRsx: string) { // not needed to suppress warnings when using bQuiet
 						return (/^a|b|basic|cpm|dir|disc|disc\.in|disc\.out|drive|era|ren|tape|tape\.in|tape\.out|user|mode|renum$/).test(sRsx);
 					}
-				} as any,
+				} as ICpcVmRsx,
 				bNoCodeFrame: true
 			}),
 			fnReplacer = function (sBin: string) {
@@ -566,7 +565,7 @@ QUnit.module("CodeGeneratorJs: Tests", function (/* hooks */) {
 		}
 	}
 
-	function generateTests(oAllTests) {
+	function generateTests(oAllTests: AllTestsType) {
 		for (const sCategory in oAllTests) {
 			if (oAllTests.hasOwnProperty(sCategory)) {
 				(function (sCat) {
@@ -582,12 +581,12 @@ QUnit.module("CodeGeneratorJs: Tests", function (/* hooks */) {
 
 	// generate result list (not used during the test, just for debugging)
 
-	function generateAllResults(oAllTests) {
+	function generateAllResults(oAllTests: AllTestsType) {
 		let sResult = "";
 
 		for (const sCategory in oAllTests) {
 			if (oAllTests.hasOwnProperty(sCategory)) {
-				const aResults = [],
+				const aResults: string[] = [],
 					bContainsSpace = sCategory.indexOf(" ") >= 0,
 					sMarker = bContainsSpace ? '"' : "";
 

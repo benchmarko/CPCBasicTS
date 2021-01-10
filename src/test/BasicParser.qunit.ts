@@ -7,8 +7,11 @@ const bGenerateAllResults = false;
 import { Utils } from "../Utils";
 import { BasicLexer } from "../BasicLexer"; // we use BasicLexer here just for convenient input
 import { BasicParser, ParserNode } from "../BasicParser";
-
 import { QUnit } from "qunit"; //TTT
+
+type TestsType = {[k in string]: string};
+
+type AllTestsType = {[k in string]: TestsType};
 
 /*
 declare global {
@@ -18,27 +21,8 @@ declare global {
 
 QUnit.dump.maxDepth = 10;
 
-QUnit.module("BasicParser: Tests", function (hooks) {
-	hooks.before(function (/* assert */) {
-		/*
-		const that = this; // eslint-disable-line no-invalid-this
-
-		that.oTester = {
-			oBasicLexer: new BasicLexer(),
-			oBasicParser: new BasicParser()
-		};
-		*/
-	});
-	hooks.beforeEach(function (/* assert */) {
-		/*
-		const that = this; // eslint-disable-line no-invalid-this
-
-		that.oBasicLexer.reset();
-		that.oBasicParser.reset();
-		*/
-	});
-
-	const mAllTests = { // eslint-disable-line vars-on-top
+QUnit.module("BasicParser: Tests", function () {
+	const mAllTests: AllTestsType = { // eslint-disable-line vars-on-top
 		LIST: {
 			"1 LIST": '[{"type":"label","value":"1","pos":0,"args":[{"type":"list","value":"LIST","pos":2,"args":[]}]}]',
 			"2 LIST 10": '[{"type":"label","value":"2","pos":0,"args":[{"type":"list","value":"LIST","pos":2,"args":[{"type":"number","value":"10","pos":7},{"type":"#","value":"#","len":0,"pos":null,"right":{"type":"null","value":null,"len":0,"pos":null}}]}]}]',
@@ -55,7 +39,7 @@ QUnit.module("BasicParser: Tests", function (hooks) {
 		}
 	};
 
-	function runTestsFor(assert, oTests) {
+	function runTestsFor(assert, oTests: TestsType, aResults?: string[]) {
 		const oBasicLexer = new BasicLexer(),
 			oBasicParser = new BasicParser();
 
@@ -63,24 +47,34 @@ QUnit.module("BasicParser: Tests", function (hooks) {
 			if (oTests.hasOwnProperty(sKey)) {
 				const sExpected = oTests[sKey];
 				let	oExpected,
-					aParseTree: ParserNode[];
+					aParseTree: ParserNode[],
+					sActual: string;
 
 				try {
 					oExpected = JSON.parse(sExpected);
 					const aTokens = oBasicLexer.lex(sKey);
 
 					aParseTree = oBasicParser.parse(aTokens);
+					sActual = JSON.stringify(aParseTree);
 				} catch (e) {
 					Utils.console.error(e);
 					aParseTree = e;
+					sActual = String(e);
 				}
-				// or: sJson = JSON.stringify(aParseTree); //assert.strictEqual(sJson, sExpected);
-				assert.deepEqual(aParseTree, oExpected, sKey);
+
+				if (aResults) {
+					aResults.push('"' + sKey + '": \'' + sActual + "'");
+				}
+
+				if (assert) {
+					assert.deepEqual(aParseTree, oExpected, sKey);
+					// or: sJson = JSON.stringify(aParseTree); //assert.strictEqual(sJson, sExpected);
+				}
 			}
 		}
 	}
 
-	function generateTests(oAllTests) {
+	function generateTests(oAllTests: AllTestsType) {
 		for (const sCategory in oAllTests) {
 			if (oAllTests.hasOwnProperty(sCategory)) {
 				(function (sCat) {
@@ -97,36 +91,17 @@ QUnit.module("BasicParser: Tests", function (hooks) {
 
 	// generate result list (not used during the test, just for debugging)
 
-	function generateCategoryResults(oTests) {
-		const oBasicLexer = new BasicLexer(),
-			oBasicParser = new BasicParser(),
-			aResults = [];
-
-		for (const sKey in oTests) {
-			if (oTests.hasOwnProperty(sKey)) {
-				let sActual: string;
-
-				try {
-					const aTokens = oBasicLexer.lex(sKey),
-						aParseTree = oBasicParser.parse(aTokens);
-
-					sActual = JSON.stringify(aParseTree);
-				} catch (e) {
-					Utils.console.error(e);
-				}
-				aResults.push('"' + sKey + '": \'' + sActual + "'");
-			}
-		}
-		return aResults.join(",\n");
-	}
-
-	function generateAllResults(oAllTests) {
+	function generateAllResults(oAllTests: AllTestsType) {
 		let	sResult = "";
 
 		for (const sCategory in oAllTests) {
 			if (oAllTests.hasOwnProperty(sCategory)) {
+				const aResults: string[] = [];
+
 				sResult += sCategory + ": {\n";
-				sResult += generateCategoryResults(oAllTests[sCategory]);
+
+				runTestsFor(undefined, oAllTests[sCategory], aResults);
+				sResult += aResults.join(",\n");
 				sResult += "\n},\n";
 			}
 		}

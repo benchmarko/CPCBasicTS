@@ -2,7 +2,7 @@
 // (c) Marco Vieth, 2020
 // https://benchmarko.github.io/CPCBasicTS/
 
-type VariableValue = string | number | object; //TTT any?  string | number | function | array
+export type VariableValue = string | number | object; //TTT any?  string | number | function | array
 
 export type VariableMap = { [k in string]: VariableValue };
 

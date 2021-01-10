@@ -4,7 +4,7 @@
 //
 
 import { Utils, CustomError } from "./Utils";
-import { IController } from "./Interfaces";
+import { IController, IOutput } from "./Interfaces";
 import { BasicFormatter } from "./BasicFormatter";
 import { BasicLexer } from "./BasicLexer";
 import { BasicParser } from "./BasicParser";
@@ -22,7 +22,7 @@ import { InputStack } from "./InputStack";
 import { Keyboard } from "./Keyboard";
 import { Model, DatabasesType } from "./Model";
 import { Sound } from "./Sound";
-import { Variables } from "./Variables";
+import { Variables, VariableValue } from "./Variables";
 import { View, SelectOptionElement } from "./View";
 
 import { ZipFile } from "./ZipFile";
@@ -39,14 +39,6 @@ interface FileMetaAndData {
 	oMeta: FileMeta
 	sData: string
 }
-
-/*
-export interface ControllerInterface {
-	startParse: () => void
-	startRenum: () => void
-	fnPretty: () => void
-}
-*/
 
 export class Controller implements IController {
 	fnRunLoopHandler: undefined;
@@ -113,7 +105,6 @@ export class Controller implements IController {
 		this.model = oModel;
 		this.view = oView;
 		this.commonEventHandler = new CommonEventHandler(oModel, oView, this);
-		//this.commonEventHandler = new this.CommonEventHandler(this);
 		this.view.attachEventHandler("click", this.commonEventHandler);
 		this.view.attachEventHandler("change", this.commonEventHandler);
 
@@ -166,10 +157,10 @@ export class Controller implements IController {
 		this.oVm.vmReset();
 
 		this.oRsx = new CpcVmRsx(this.oVm);
-		this.oVm.vmSetRsxClass(this.oRsx); //TTT
+		this.oVm.vmSetRsxClass(this.oRsx);
 
 		this.oNoStop = Object.assign({}, this.oVm.vmGetStopObject());
-		this.oSavedStop = { //TTT
+		this.oSavedStop = {
 			sReason: "",
 			iPriority: 0
 		}; // backup of stop object
@@ -352,7 +343,7 @@ export class Controller implements IController {
 		this.view.setSelectOptions(sSelect, aItems);
 	}
 
-	updateStorageDatabase(sAction: string, sKey: string) {
+	private updateStorageDatabase(sAction: string, sKey: string) {
 		const sDatabase = this.model.getProperty<string>("database"),
 			oStorage = Utils.localStorage;
 
@@ -393,7 +384,7 @@ export class Controller implements IController {
 		}
 	}
 
-	setInputText(sInput: string, bKeepStack?: boolean) {
+	setInputText(sInput: string, bKeepStack?: boolean): void {
 		this.view.setAreaValue("inputText", sInput);
 		if (!bKeepStack) {
 			this.fnInitUndoRedoButtons();
@@ -402,7 +393,7 @@ export class Controller implements IController {
 		}
 	}
 
-	invalidateScript() {
+	invalidateScript(): void {
 		this.fnScript = undefined;
 	}
 
@@ -628,7 +619,7 @@ export class Controller implements IController {
 
 	// merge two scripts with sorted line numbers, lines from script2 overwrite lines from script1
 	private mergeScripts(sScript1: string, sScript2: string) { // eslint-disable-line class-methods-use-this
-		const aLines1 = Utils.stringTrimEnd(sScript1).split("\n"), //TTT
+		const aLines1 = Utils.stringTrimEnd(sScript1).split("\n"),
 			aLines2 = Utils.stringTrimEnd(sScript2).split("\n");
 		let aResult = [],
 			iLine1: number, iLine2: number;
@@ -768,7 +759,7 @@ export class Controller implements IController {
 		this.oVm.print(iStream, "\r\n");
 	}
 
-	fnFileCat(oParas: StopParas) {
+	fnFileCat(oParas: StopParas): void {
 		const iStream = oParas.iStream,
 			aDir = this.fnGetDirectoryEntries();
 
@@ -779,7 +770,7 @@ export class Controller implements IController {
 		this.oVm.vmStop("", 0, true);
 	}
 
-	fnFileDir(oParas: StopParas) {
+	fnFileDir(oParas: StopParas): void {
 		const iStream = oParas.iStream,
 			sExample = this.model.getProperty<string>("example"), // if we have a fileMask, include also example names from same directory
 			iLastSlash = sExample.lastIndexOf("/");
@@ -804,7 +795,7 @@ export class Controller implements IController {
 		this.oVm.vmStop("", 0, true);
 	}
 
-	fnFileEra(oParas: StopParas) {
+	fnFileEra(oParas: StopParas): void {
 		const iStream = oParas.iStream,
 			oStorage = Utils.localStorage,
 			sFileMask = this.fnLocalStorageName(oParas.sFileMask),
@@ -831,7 +822,7 @@ export class Controller implements IController {
 		this.oVm.vmStop("", 0, true);
 	}
 
-	fnFileRen(oParas: StopParas) {
+	fnFileRen(oParas: StopParas): void {
 		const iStream = oParas.iStream,
 			oStorage = Utils.localStorage,
 			sNew = this.fnLocalStorageName(oParas.sNew),
@@ -906,7 +897,7 @@ export class Controller implements IController {
 
 			if (sType === "T") { // tokenized basic?
 				sInput = this.oBasicTokenizer.decode(sInput);
-			} else if (sType === "P") { // protected BASIC?
+			} else if (sType === "P") { // BASIC?
 				sInput = DiskImage.unOrProtectData(sInput);
 				sInput = this.oBasicTokenizer.decode(sInput);
 			} else if (sType === "B") { // binary?
@@ -1182,7 +1173,7 @@ export class Controller implements IController {
 	}
 
 	// run loop: fileSave
-	fnFileSave() {
+	fnFileSave(): void {
 		const oOutFile = this.oVm.vmGetOutFileObject(),
 			oStorage = Utils.localStorage;
 		let	sDefaultExtension = "";
@@ -1230,7 +1221,7 @@ export class Controller implements IController {
 		this.oVm.vmStop("", 0, true); // continue
 	}
 
-	fnDeleteLines(oParas: StopParas) {
+	fnDeleteLines(oParas: StopParas): void {
 		const sInputText = this.view.getAreaValue("inputText"),
 			aLines = this.fnGetLinesInRange(sInputText, oParas.iFirst, oParas.iLast);
 		let	oError: CustomError;
@@ -1259,7 +1250,7 @@ export class Controller implements IController {
 		this.oVm.vmStop("end", 0, true);
 	}
 
-	fnNew(/* oParas */) {
+	fnNew(/* oParas */): void {
 		const sInput = "";
 
 		this.setInputText(sInput);
@@ -1270,7 +1261,7 @@ export class Controller implements IController {
 		this.invalidateScript();
 	}
 
-	fnList(oParas: StopParas) {
+	fnList(oParas: StopParas): void {
 		const sInput = this.view.getAreaValue("inputText"),
 			iStream = oParas.iStream,
 			aLines = this.fnGetLinesInRange(sInput, oParas.iFirst, oParas.iLast),
@@ -1289,7 +1280,7 @@ export class Controller implements IController {
 		this.oVm.vmStop("end", 0, true);
 	}
 
-	fnReset() {
+	fnReset(): void {
 		const oVm = this.oVm;
 
 		this.oVariables.removeAllVariables();
@@ -1316,7 +1307,7 @@ export class Controller implements IController {
 		return sShortError;
 	}
 
-	fnRenumLines(oParas: StopParas) {
+	fnRenumLines(oParas: StopParas): void {
 		const oVm = this.oVm,
 			sInput = this.view.getAreaValue("inputText");
 
@@ -1340,7 +1331,7 @@ export class Controller implements IController {
 		}
 		this.oVm.vmGotoLine(0); // reset current line
 		oVm.vmStop("end", 0, true);
-		return oOutput;
+		//return oOutput;
 	}
 
 	private fnEditLineCallback() {
@@ -1385,7 +1376,7 @@ export class Controller implements IController {
 	}
 
 	private fnParseBench(sInput: string, iBench: number) {
-		let oOutput;
+		let oOutput: IOutput;
 
 		for (let i = 0; i < iBench; i += 1) {
 			this.oCodeGeneratorJs.reset();
@@ -1402,12 +1393,12 @@ export class Controller implements IController {
 		return oOutput;
 	}
 
-	fnParse() {
+	fnParse(): IOutput {
 		const sInput = this.view.getAreaValue("inputText"),
 			iBench = this.model.getProperty<number>("bench");
 
 		this.oVariables.removeAllVariables();
-		let	oOutput;
+		let	oOutput: IOutput;
 
 		if (!iBench) {
 			this.oCodeGeneratorJs.reset();
@@ -1435,7 +1426,7 @@ export class Controller implements IController {
 		return oOutput;
 	}
 
-	fnPretty() {
+	fnPretty(): void {
 		const sInput = this.view.getAreaValue("inputText"),
 			oCodeGeneratorBasic = new CodeGeneratorBasic({
 				lexer: new BasicLexer(),
@@ -1595,20 +1586,22 @@ export class Controller implements IController {
 			Utils.console.log("fnDirectInput: execute:", sInput);
 
 			const oCodeGeneratorJs = this.oCodeGeneratorJs;
-			let	oOutput,
+			let	oOutput: IOutput,
 				sOutput: string;
 
 			if (sInputText) { // do we have a program?
 				oCodeGeneratorJs.reset();
 				oOutput = oCodeGeneratorJs.generate(sInput + "\n" + sInputText, this.oVariables, true); // compile both; allow direct command
 				if (oOutput.error) {
-					if (oOutput.error.pos >= sInput.length + 1) { // error not in direct?
-						oOutput.error.pos -= (sInput.length + 1);
-						oOutput.error.message = "[prg] " + oOutput.error.message;
-						if (oOutput.error.shortMessage) { // eslint-disable-line max-depth
-							oOutput.error.shortMessage = "[prg] " + oOutput.error.shortMessage;
+					const oError = oOutput.error;
+
+					if (oError.pos >= sInput.length + 1) { // error not in direct?
+						oError.pos -= (sInput.length + 1);
+						oError.message = "[prg] " + oError.message;
+						if (oError.shortMessage) { // eslint-disable-line max-depth
+							oError.shortMessage = "[prg] " + oError.shortMessage;
 						}
-						sOutput = this.outputError(oOutput.error, true);
+						sOutput = this.outputError(oError, true);
 						oOutput = null;
 					}
 				}
@@ -1792,13 +1785,13 @@ export class Controller implements IController {
 	}
 
 
-	startParse() {
+	startParse(): void {
 		this.oKeyboard.setKeyDownHandler(null);
 		this.oVm.vmStop("parse", 99);
 		this.startMainLoop();
 	}
 
-	startRenum() {
+	startRenum(): void {
 		const iStream = 0;
 
 		this.oVm.vmStop("renumLines", 99, false, {
@@ -1815,7 +1808,7 @@ export class Controller implements IController {
 		this.startMainLoop();
 	}
 
-	startRun() {
+	startRun(): void {
 		this.setStopObject(this.oNoStop);
 
 		this.oKeyboard.setKeyDownHandler(null);
@@ -1823,14 +1816,14 @@ export class Controller implements IController {
 		this.startMainLoop();
 	}
 
-	startParseRun() {
+	startParseRun(): void {
 		this.setStopObject(this.oNoStop);
 		this.oKeyboard.setKeyDownHandler(null);
 		this.oVm.vmStop("parseRun", 99);
 		this.startMainLoop();
 	}
 
-	startBreak() {
+	startBreak(): void {
 		const oVm = this.oVm,
 			oStop = oVm.vmGetStopObject();
 
@@ -1840,7 +1833,7 @@ export class Controller implements IController {
 		this.startMainLoop();
 	}
 
-	startContinue() {
+	startContinue(): void {
 		const oVm = this.oVm,
 			oStop = oVm.vmGetStopObject(),
 			oSavedStop = this.getStopObject();
@@ -1861,17 +1854,15 @@ export class Controller implements IController {
 		this.startMainLoop();
 	}
 
-	startReset() {
+	startReset(): void {
 		this.setStopObject(this.oNoStop);
 		this.oKeyboard.setKeyDownHandler(null);
 		this.oVm.vmStop("reset", 99);
 		this.startMainLoop();
 	}
 
-	startScreenshot() {
-		const image = this.oCanvas.canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"); // here is the most important part because if you do not replace you will get a DOM 18 exception.
-
-		return image;
+	startScreenshot(): string {
+		return this.oCanvas.canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"); // here is the most important part because if you do not replace you will get a DOM 18 exception.
 	}
 
 	private fnPutKeyInBuffer(sKey: string) {
@@ -1884,7 +1875,7 @@ export class Controller implements IController {
 		}
 	}
 
-	startEnter() {
+	startEnter(): void {
 		let sInput = this.view.getAreaValue("inp2Text");
 
 		sInput = sInput.replace("\n", "\r"); // LF => CR
@@ -1957,7 +1948,7 @@ export class Controller implements IController {
 		this.commonEventHandler.onVarSelectChange(); // title change?
 	}
 
-	setSoundActive() {
+	setSoundActive(): void {
 		const oSound = this.oSound,
 			soundButton = View.getElementById1("soundButton"),
 			bActive = this.model.getProperty<boolean>("sound");
@@ -1995,7 +1986,7 @@ export class Controller implements IController {
 
 	// https://stackoverflow.com/questions/10261989/html5-javascript-drag-and-drop-file-from-external-window-windows-explorer
 	// https://www.w3.org/TR/file-upload/#dfn-filereader
-	fnHandleFileSelect(event: DragEvent) {
+	private fnHandleFileSelect(event: DragEvent) {
 		const aFiles = event.dataTransfer ? event.dataTransfer.files : ((event.target as any).files as FileList), // dataTransfer for drag&drop, target.files for file input
 			oStorage = Utils.localStorage,
 			that = this,
@@ -2042,11 +2033,6 @@ export class Controller implements IController {
 			case event2.target.error.NOT_FOUND_ERR:
 				Utils.console.warn("File Not Found!");
 				break;
-			/*
-			case event2.target.error.NOT_READABLE_ERR: //TTT
-				Utils.console.warn("File is not readable");
-				break;
-			*/
 			case event2.target.error.ABORT_ERR:
 				break; // nothing
 			default:
@@ -2191,7 +2177,7 @@ export class Controller implements IController {
 	private fnHandleDragOver(evt: DragEvent) { // eslint-disable-line class-methods-use-this
 		evt.stopPropagation();
 		evt.preventDefault();
-		evt.dataTransfer.dropEffect = "copy"; // Explicitly show this is a copy.
+		evt.dataTransfer.dropEffect = "copy"; // explicitly show this is a copy
 	}
 
 	private initDropZone() {
@@ -2239,7 +2225,7 @@ export class Controller implements IController {
 		this.oKeyboard.virtualKeyboardCreate(); // maybe draw it
 	}
 
-	getVariable(sPar: string) {
+	getVariable(sPar: string): VariableValue {
 		return this.oVariables.getVariable(sPar);
 	}
 
@@ -2388,435 +2374,5 @@ export class Controller implements IController {
 	}
 
 	oRunLoop: any; //TTT RunLoop
-	*/
-
-	/*
-	private CommonEventHandler = class {
-		//static
-		//fnEventHandler: undefined;
-
-		model: Model;
-		view: View;
-		controller: Controller;
-
-		fnUserAction: (event: Event, sId: string) => void;
-
-		mHandlers: { [k: string]: (e: Event) => void };
-
-		constructor(oController: Controller) {
-			/ *
-			this.mHandlers = { //TTT currently not used, just to avoid warnings
-				onSpecialButtonClick: this.onSpecialButtonClick,
-				onInputButtonClick: this.onInputButtonClick,
-				onInp2ButtonClick: this.onInp2ButtonClick,
-				onOutputButtonClick: this.onOutputButtonClick,
-				onResultButtonClick: this.onResultButtonClick,
-				onTextButtonClick: this.onTextButtonClick,
-				onVariableButtonClick: this.onVariableButtonClick,
-				onCpcButtonClick: this.onCpcButtonClick,
-				onKbdButtonClick: this.onKbdButtonClick,
-				onKbdLayoutButtonClick: this.onKbdLayoutButtonClick,
-				onConsoleButtonClick: this.onConsoleButtonClick,
-				onParseButtonClick: this.onParseButtonClick,
-				onRenumButtonClick: this.onRenumButtonClick,
-				onPrettyButtonClick: this.onPrettyButtonClick,
-				onUndoButtonClick: this.onUndoButtonClick,
-				onRedoButtonClick: this.onRedoButtonClick,
-				onRunButtonClick: this.onRunButtonClick,
-				onStopButtonClick: this.onStopButtonClick,
-				onContinueButtonClick: this.onContinueButtonClick,
-				onResetButtonClick: this.onResetButtonClick,
-				onParseRunButtonClick: this.onParseRunButtonClick,
-				onHelpButtonClick: this.onHelpButtonClick,
-				onInputTextClick: this.onInputTextClick,
-				onOutputTextClick: this.onOutputTextClick,
-				onResultTextClick: this.onResultTextClick,
-				onVarTextClick: this.onVarTextClick,
-				onOutputTextChange: this.onOutputTextChange,
-				onReloadButtonClick: this.onReloadButtonClick,
-				onDatabaseSelectChange: this.onDatabaseSelectChange,
-				onExampleSelectChange: this.onExampleSelectChange,
-				onVarSelectChange: this.onVarSelectChange,
-				onKbdLayoutSelectChange: this.onKbdLayoutSelectChange,
-				onVarTextChange: this.onVarTextChange,
-				onScreenshotButtonClick: this.onScreenshotButtonClick,
-				onEnterButtonClick: this.onEnterButtonClick,
-				onSoundButtonClick: this.onSoundButtonClick,
-				onCpcCanvasClick: this.onCpcCanvasClick,
-				onWindowClick: this.onWindowClick
-			};
-			* /
-
-			this.init(oController);
-		}
-
-		init(oController: Controller): void {
-			this.controller = oController;
-			this.model = oController.model;
-			this.view = oController.view;
-
-			this.fnUserAction = undefined;
-		}
-
-		handleEvent(event: Event): void {
-			const oTarget = event.target as HTMLButtonElement,
-				sId = (oTarget) ? oTarget.getAttribute("id") : String(oTarget),
-				sType = event.type; // click or change
-
-			if (this.fnUserAction) {
-				this.fnUserAction(event, sId);
-			}
-
-			if (sId) {
-				if (!oTarget.disabled) { // check needed for IE which also fires for disabled buttons
-					const sHandler = "on" + Utils.stringCapitalize(sId) + Utils.stringCapitalize(sType);
-
-					if (Utils.debug) {
-						Utils.console.debug("fnCommonEventHandler: sHandler=" + sHandler);
-					}
-					//if (this.mHandlers[sHandler]) { // old: if (sHandler in this) { this[sHandler](event);
-					//	this.mHandlers[sHandler](event); // different this context!
-					if (sHandler in this) {
-						this[sHandler](event);
-					} else if (!sHandler.endsWith("SelectClick") && !sHandler.endsWith("InputClick")) { // do not print all messages
-						Utils.console.log("Event handler not found:", sHandler);
-					}
-				}
-			} else if (oTarget.getAttribute("data-key") === null) { // not for keyboard buttons
-				if (Utils.debug) {
-					Utils.console.debug("Event handler for", sType, "unknown target:", oTarget.tagName, oTarget.id);
-				}
-			}
-
-			if (sType === "click") { // special
-				if (sId !== "cpcCanvas") {
-					this.onWindowClick(event);
-				}
-			}
-		}
-
-		/ *
-		private attachEventHandler() {
-			if (!this.fnEventHandler) {
-				this.fnEventHandler = this.fnCommonEventHandler.bind(this);
-			}
-			this.view.attachEventHandler("click", this.fnEventHandler);
-			this.view.attachEventHandler("change", this.fnEventHandler);
-			return this;
-		}
-		* /
-
-		private toogleHidden(sId: string, sProp: string, sDisplay?: string) {
-			const bVisible = !this.model.getProperty<boolean>(sProp);
-
-			this.model.setProperty(sProp, bVisible);
-			this.view.setHidden(sId, !bVisible, sDisplay);
-			return bVisible;
-		}
-
-		fnActivateUserAction(fnAction: (event: Event, sId: string) => void): void {
-			this.fnUserAction = fnAction;
-		}
-
-		fnDeactivateUserAction(): void {
-			this.fnUserAction = undefined;
-		}
-
-		protected onSpecialButtonClick() {
-			this.toogleHidden("specialArea", "showSpecial");
-		}
-
-		protected onInputButtonClick() {
-			this.toogleHidden("inputArea", "showInput");
-		}
-
-		protected onInp2ButtonClick() {
-			this.toogleHidden("inp2Area", "showInp2");
-		}
-
-		protected onOutputButtonClick() {
-			this.toogleHidden("outputArea", "showOutput");
-		}
-
-		protected onResultButtonClick() {
-			this.toogleHidden("resultArea", "showResult");
-		}
-
-		protected onTextButtonClick() {
-			this.toogleHidden("textArea", "showText");
-		}
-
-		protected onVariableButtonClick() {
-			this.toogleHidden("variableArea", "showVariable");
-		}
-
-		protected onCpcButtonClick() {
-			if (this.toogleHidden("cpcArea", "showCpc")) {
-				this.controller.oCanvas.startUpdateCanvas();
-			} else {
-				this.controller.oCanvas.stopUpdateCanvas();
-			}
-		}
-
-		protected onKbdButtonClick() {
-			if (this.toogleHidden("kbdArea", "showKbd", "flex")) {
-				if (this.view.getHidden("kbdArea")) { // on old browsers, display "flex" is not available, so set "block" if still hidden
-					this.view.setHidden("kbdArea", false);
-				}
-				this.controller.oKeyboard.virtualKeyboardCreate(); // maybe draw it
-			}
-		}
-
-		protected onKbdLayoutButtonClick() {
-			this.toogleHidden("kbdLayoutArea", "showKbdLayout");
-		}
-
-		protected onConsoleButtonClick() {
-			this.toogleHidden("consoleArea", "showConsole");
-		}
-
-		protected onParseButtonClick() {
-			this.controller.startParse();
-		}
-
-		protected onRenumButtonClick() {
-			this.controller.startRenum();
-		}
-
-		protected onPrettyButtonClick() {
-			this.controller.fnPretty();
-		}
-
-		private fnUpdateAreaText(sInput: string) {
-			this.controller.setInputText(sInput, true);
-			this.view.setAreaValue("outputText", "");
-		}
-
-		protected onUndoButtonClick() {
-			const sInput = this.controller.inputStack.undo();
-
-			this.fnUpdateAreaText(sInput);
-		}
-
-		protected onRedoButtonClick() {
-			const sInput = this.controller.inputStack.redo();
-
-			this.fnUpdateAreaText(sInput);
-		}
-
-		protected onRunButtonClick() {
-			//const sInput = this.view.getAreaValue("outputText");
-			//this.controller.startRun(sInput); //TTT
-			this.controller.startRun();
-		}
-
-		protected onStopButtonClick() {
-			this.controller.startBreak();
-		}
-
-		protected onContinueButtonClick(event: Event) {
-			this.controller.startContinue();
-			this.onCpcCanvasClick(event);
-		}
-
-		protected onResetButtonClick() {
-			this.controller.startReset();
-		}
-
-		protected onParseRunButtonClick(event: Event) {
-			this.controller.startParseRun();
-			this.onCpcCanvasClick(event);
-		}
-
-		protected onHelpButtonClick() { // eslint-disable-line class-methods-use-this
-			window.open("https://github.com/benchmarko/CPCBasic/#readme");
-		}
-
-		protected onInputTextClick() { // eslint-disable-line class-methods-use-this
-			// nothing
-		}
-
-		protected onOutputTextClick() { // eslint-disable-line class-methods-use-this
-			// nothing
-		}
-
-		protected onResultTextClick() { // eslint-disable-line class-methods-use-this
-			// nothing
-		}
-
-		protected onVarTextClick() { // eslint-disable-line class-methods-use-this
-			// nothing
-		}
-
-		protected onOutputTextChange() {
-			this.controller.invalidateScript();
-		}
-
-		private encodeUriParam(params) { // eslint-disable-line class-methods-use-this
-			const aParts = [];
-
-			for (const sKey in params) {
-				if (params.hasOwnProperty(sKey)) {
-					const sValue = params[sKey];
-
-					aParts[aParts.length] = encodeURIComponent(sKey) + "=" + encodeURIComponent((sValue === null) ? "" : sValue);
-				}
-			}
-			return aParts.join("&");
-		}
-
-		protected onReloadButtonClick() {
-			//const oChanged = Utils.getChangedParameters(this.model.getAllProperties(), this.model.getAllInitialProperties());
-			const oChanged = this.controller.model.getChangedProperties();
-			let sParas = this.encodeUriParam(oChanged);
-
-			sParas = sParas.replace(/%2[Ff]/g, "/"); // unescape %2F -> /
-			window.location.search = "?" + sParas;
-		}
-
-		onDatabaseSelectChange(): void {
-			let sUrl: string,
-				oDatabase;
-			const that = this,
-				sDatabase = this.view.getSelectValue("databaseSelect"),
-
-				fnDatabaseLoaded = function (_sFullUrl) {
-					oDatabase.loaded = true;
-					Utils.console.log("fnDatabaseLoaded: database loaded: " + sDatabase + ": " + sUrl);
-					that.controller.setExampleSelectOptions();
-					if (oDatabase.error) {
-						Utils.console.error("fnDatabaseLoaded: database contains errors: " + sDatabase + ": " + sUrl);
-						that.controller.setInputText(oDatabase.script);
-						that.view.setAreaValue("resultText", oDatabase.error);
-					} else {
-						that.onExampleSelectChange();
-					}
-				},
-				fnDatabaseError = function (_sFullUrl) {
-					oDatabase.loaded = false;
-					Utils.console.error("fnDatabaseError: database error: " + sDatabase + ": " + sUrl);
-					that.controller.setExampleSelectOptions();
-					that.onExampleSelectChange();
-					that.controller.setInputText("");
-					that.view.setAreaValue("resultText", "Cannot load database: " + sDatabase);
-				};
-
-			this.model.setProperty("database", sDatabase);
-			this.view.setSelectTitleFromSelectedOption("databaseSelect");
-			oDatabase = this.model.getDatabase();
-			if (!oDatabase) {
-				Utils.console.error("onDatabaseSelectChange: database not available:", sDatabase);
-				return;
-			}
-
-			if (oDatabase.text === "storage") { // sepcial handling: browser localStorage
-				this.controller.updateStorageDatabase("set", null); // set all
-				oDatabase.loaded = true;
-			}
-
-			if (oDatabase.loaded) {
-				this.controller.setExampleSelectOptions();
-				this.onExampleSelectChange();
-			} else {
-				that.controller.setInputText("#loading database " + sDatabase + "...");
-				sUrl = oDatabase.src + "/" + this.model.getProperty<string>("exampleIndex");
-				Utils.loadScript(sUrl, fnDatabaseLoaded, fnDatabaseError);
-			}
-		}
-
-		private onExampleSelectChange() {
-			const oController = this.controller,
-				oVm = oController.oVm,
-				oInFile = oVm.vmGetInFileObject(),
-				sDataBase = this.model.getProperty<string>("database");
-
-			oVm.closein();
-
-			oInFile.bOpen = true;
-
-			let sExample = this.view.getSelectValue("exampleSelect");
-			const oExample = this.model.getExample(sExample);
-
-			oInFile.sCommand = "run";
-			if (oExample && oExample.meta) { // TTT TODO: this is just a workaround, meta is in input now; should change command after loading!
-				const sType = oExample.meta.charAt(0);
-
-				if (sType === "B" || sType === "D" || sType === "G") { // binary, data only, Gena Assembler?
-					oInFile.sCommand = "load";
-				}
-			}
-
-			if (sDataBase !== "storage") {
-				sExample = "/" + sExample; // load absolute
-			} else {
-				this.model.setProperty("example", sExample);
-			}
-
-			oInFile.sName = sExample;
-			oInFile.iStart = undefined;
-			oInFile.fnFileCallback = oVm.fnLoadHandler;
-			oVm.vmStop("fileLoad", 90);
-			oController.startMainLoop();
-		}
-
-		onVarSelectChange(): void {
-			const sPar = this.view.getSelectValue("varSelect"),
-				oVariables = this.controller.oVariables,
-				value = oVariables.getVariable(sPar),
-				sValue = (value !== undefined) ? String(value) : "";
-
-			/ *
-			if (sValue === undefined) {
-				sValue = "";
-			}
-			* /
-			this.view.setAreaValue("varText", sValue);
-		}
-
-		onKbdLayoutSelectChange(): void {
-			const sValue = this.view.getSelectValue("kbdLayoutSelect");
-
-			this.model.setProperty("kbdLayout", sValue);
-			this.view.setSelectTitleFromSelectedOption("kbdLayoutSelect");
-
-			this.view.setHidden("kbdAlpha", sValue === "num");
-			this.view.setHidden("kbdNum", sValue === "alpha");
-		}
-
-		protected onVarTextChange() {
-			this.controller.changeVariable();
-		}
-
-		protected onScreenshotButtonClick() {
-			var sExample = this.view.getSelectValue("exampleSelect"),
-				image = this.controller.startScreenshot(),
-				link = View.getElementById1("screenshotLink"),
-				sName = sExample + ".png";
-
-			link.setAttribute("download", sName);
-			link.setAttribute("href", image);
-			link.click();
-		}
-
-		protected onEnterButtonClick() {
-			this.controller.startEnter();
-		}
-
-		protected onSoundButtonClick() {
-			this.model.setProperty("sound", !this.model.getProperty<boolean>("sound"));
-			this.controller.setSoundActive();
-		}
-
-		onCpcCanvasClick(event: Event): void {
-			this.controller.oCanvas.onCpcCanvasClick(event);
-			this.controller.oKeyboard.setActive(true);
-		}
-
-		onWindowClick(event: Event): void {
-			this.controller.oCanvas.onWindowClick(event);
-			this.controller.oKeyboard.setActive(false);
-		}
-	}
-	private commonEventHandler: any; //TTT CommonEventHandler;
 	*/
 }

@@ -4,7 +4,7 @@
 //
 
 export interface CustomError extends Error {
-	value: any
+	value: string
 	pos?: number
 	line?: number | string
 	hidden?: boolean
@@ -181,7 +181,7 @@ export class Utils { // eslint-disable-line vars-on-top
 		return typeof window !== "undefined" && window.btoa && window.btoa.bind ? window.btoa.bind(window) : null; // we need bind!
 	}()) as (arg0: string) => string;
 
-	static composeError(name: string, oErrorObject: Error, message: string, value: any, pos?: number, line?: string | number, hidden?: boolean): CustomError {
+	static composeError(name: string, oErrorObject: Error, message: string, value: string, pos?: number, line?: string | number, hidden?: boolean): CustomError {
 		const oCustomError = oErrorObject as CustomError;
 
 		if (name !== undefined) {

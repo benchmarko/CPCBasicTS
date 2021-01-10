@@ -201,7 +201,6 @@ export class View {
 		if (Utils.debug) {
 			Utils.console.debug("attachEventHandler: type=" + sType + ", eventHandler=" + ((eventHandler !== undefined) ? "[?]" : null));
 		}
-		//document.addEventListener(sType, fnEventHandler, false);
 		document.addEventListener(sType, eventHandler, false);
 		return this;
 	}

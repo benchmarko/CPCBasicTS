@@ -7,6 +7,7 @@
 import { Utils } from "./Utils";
 import { BasicLexer } from "./BasicLexer";
 import { BasicParser } from "./BasicParser";
+import { IOutput } from "./Interfaces";
 
 interface BasicFormatterOptions {
 	lexer: BasicLexer
@@ -153,8 +154,8 @@ export class BasicFormatter {
 		return sInput;
 	}
 
-	renumber(sInput: string, iNew: number, iOld: number, iStep: number, iKeep: number) {
-		const oOut = {
+	renumber(sInput: string, iNew: number, iOld: number, iStep: number, iKeep: number): IOutput {
+		const oOut: IOutput = {
 			text: "",
 			error: undefined
 		};
