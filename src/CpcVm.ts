@@ -9,6 +9,7 @@ import { Random } from "./Random";
 import { Sound, SoundData, ToneEnvData, ToneEnvData1, ToneEnvData2, VolEnvData, VolEnvData1, VolEnvData2 } from "./Sound";
 import { Canvas } from "./Canvas";
 import { Variables, VariableMap } from "./Variables";
+import { ICpcVmRsx } from "./Interfaces";
 
 interface CpcVmOptions {
 	canvas: Canvas
@@ -193,7 +194,7 @@ export class CpcVm {
 
 	iInkeyTimeMs: number; // next time of frame fly
 
-	rsx: any; //TTT not so nice here
+	rsx: ICpcVmRsx;
 
 
 	constructor(options: CpcVmOptions) {
@@ -343,22 +344,11 @@ export class CpcVm {
 	];
 
 	vmInit(options: CpcVmOptions): void {
-		/*
-		this.fnOpeninHandler = this.vmOpeninCallback.bind(this);
-		this.fnCloseinHandler = this.vmCloseinCallback.bind(this);
-		this.fnCloseoutHandler = this.vmCloseoutCallback.bind(this);
-		this.fnLoadHandler = this.vmLoadCallback.bind(this);
-		this.fnRunHandler = this.vmRunCallback.bind(this);
-		*/
-
 		this.oCanvas = options.canvas;
 		this.oKeyboard = options.keyboard;
 		this.oSound = options.sound;
 		this.oVariables = options.variables;
 		this.tronFlag = options.tron;
-
-
-		//this.rsx = new CpcVmRsx(this); //TTT
 
 		this.oRandom = new Random();
 
@@ -462,8 +452,8 @@ export class CpcVm {
 		this.aCrtcData = [];
 	}
 
-	vmSetRsxClass(oRsx: any): void {
-		this.rsx = oRsx; //TTT just for the script
+	vmSetRsxClass(oRsx: ICpcVmRsx): void {
+		this.rsx = oRsx; // this.rsx just used in the script
 	}
 
 	vmReset(): void {
@@ -484,8 +474,8 @@ export class CpcVm {
 		this.iBreakResumeLine = 0;
 
 		this.aInputValues.length = 0;
-		this.vmResetFileHandling(this.oInFile);
-		this.vmResetFileHandling(this.oOutFile);
+		CpcVm.vmResetFileHandling(this.oInFile);
+		CpcVm.vmResetFileHandling(this.oOutFile);
 
 		this.vmResetControlBuffer();
 
@@ -609,11 +599,11 @@ export class CpcVm {
 		Object.assign(oWin, oWinData, oCassetteData);
 	}
 
-	vmResetControlBuffer(): void {
+	private vmResetControlBuffer() {
 		this.sPrintControlBuf = ""; // collected control characters for PRINT
 	}
 
-	vmResetFileHandling(oFile: FileBase): void { // eslint-disable-line class-methods-use-this
+	static vmResetFileHandling(oFile: FileBase): void {
 		oFile.bOpen = false;
 		oFile.sCommand = ""; // to be sure
 	}
@@ -626,7 +616,7 @@ export class CpcVm {
 		};
 	}
 
-	vmResetInks(): void {
+	private vmResetInks() {
 		this.oCanvas.setDefaultInks();
 		this.oCanvas.setSpeedInk(10, 10);
 	}
@@ -641,7 +631,7 @@ export class CpcVm {
 		this.cursor(iStream, 0);
 	}
 
-	vmGetAllVariables(): VariableMap { // called from JS program
+	vmGetAllVariables(): VariableMap { // also called from JS script
 		return this.oVariables.getAllVariables();
 	}
 
@@ -679,7 +669,7 @@ export class CpcVm {
 		}
 	}
 
-	vmAssertString(s: string, sErr: string): void {
+	private vmAssertString(s: string, sErr: string): void {
 		if (typeof s !== "string") {
 			throw this.vmComposeError(Error(), 13, sErr + " " + s); // Type mismatch
 		}
@@ -1438,7 +1428,7 @@ export class CpcVm {
 	vmCloseinCallback(): void {
 		const oInFile = this.oInFile;
 
-		this.vmResetFileHandling(oInFile);
+		CpcVm.vmResetFileHandling(oInFile);
 	}
 
 	closein(): void {
@@ -1452,7 +1442,7 @@ export class CpcVm {
 	vmCloseoutCallback(): void {
 		const oOutFile = this.oOutFile;
 
-		this.vmResetFileHandling(oOutFile);
+		CpcVm.vmResetFileHandling(oOutFile);
 	}
 
 	closeout(): void {
@@ -1954,7 +1944,7 @@ export class CpcVm {
 					sValue = aInputValues[i];
 
 				if (sType !== "$") { // not a string?
-					const iValue = this.vmVal(sValue); // convert to number (also binary, hex), empty string gets 0
+					const iValue = CpcVm.vmVal(sValue); // convert to number (also binary, hex), empty string gets 0
 
 					if (isNaN(iValue)) {
 						bInputOk = false;
@@ -2029,7 +2019,7 @@ export class CpcVm {
 					}
 				}
 
-				const nValue = that.vmVal(value); // convert to number (also binary, hex)
+				const nValue = CpcVm.vmVal(value); // convert to number (also binary, hex)
 
 				if (isNaN(nValue)) { // eslint-disable-line max-depth
 					throw that.vmComposeError(Error(), 13, "INPUT #9 " + nValue + ": " + value); // Type mismatch
@@ -2459,7 +2449,7 @@ export class CpcVm {
 		this.vmGotoLine(iLine, "onGoto (n=" + n + ", ret=" + retLabel + ", iLine=" + iLine + ")");
 	}
 
-	private fnChannel2ChannelIndex(iChannel: number): number { // eslint-disable-line class-methods-use-this
+	private static fnChannel2ChannelIndex(iChannel: number) {
 		if (iChannel === 4) {
 			iChannel = 2;
 		} else {
@@ -2473,7 +2463,7 @@ export class CpcVm {
 		if (iChannel === 3) {
 			throw this.vmComposeError(Error(), 5, "ON SQ GOSUB " + iChannel); // Improper argument
 		}
-		iChannel = this.fnChannel2ChannelIndex(iChannel);
+		iChannel = CpcVm.fnChannel2ChannelIndex(iChannel);
 
 		const oSqTimer = this.aSqTimer[iChannel];
 
@@ -3066,7 +3056,7 @@ export class CpcVm {
 	}
 
 	// https://en.wikipedia.org/wiki/Jenkins_hash_function
-	private vmHashCode(s: string) { // eslint-disable-line class-methods-use-this
+	private static vmHashCode(s: string) {
 		let iHash = 0;
 
 		/* eslint-disable no-bitwise */
@@ -3085,7 +3075,7 @@ export class CpcVm {
 	private vmRandomizeCallback() {
 		const oInput = this.vmGetStopObject().oParas,
 			sInput = oInput.sInput,
-			value = this.vmVal(sInput); // convert to number (also binary, hex)
+			value = CpcVm.vmVal(sInput); // convert to number (also binary, hex)
 		let	bInputOk = true;
 
 		Utils.console.log("vmRandomizeCallback:", sInput);
@@ -3116,7 +3106,7 @@ export class CpcVm {
 			});
 		} else { // n can also be floating point, so compute a hash value of n
 			this.vmAssertNumber(n, "RANDOMIZE");
-			n = this.vmHashCode(String(n));
+			n = CpcVm.vmHashCode(String(n));
 			if (n === 0) {
 				n = iRndInit;
 			}
@@ -3139,7 +3129,7 @@ export class CpcVm {
 				item = sType === "$" ? "" : 0; // set arg depending on expected type
 			} else if (sType !== "$") { // not string expected? => convert to number (also binary, hex)
 				// Note : Using a number variable to read a string would cause a syntax error on a real CPC. We cannot detect it since we get always strings.
-				item = this.val(item as any); //TTT
+				item = this.val(String(item));
 			}
 			item = this.vmAssign(sVarType, item); // maybe rounding for type I
 		} else {
@@ -3485,7 +3475,7 @@ export class CpcVm {
 		if (iChannel === 3) {
 			throw this.vmComposeError(Error(), 5, "ON SQ GOSUB " + iChannel); // Improper argument
 		}
-		iChannel = this.fnChannel2ChannelIndex(iChannel);
+		iChannel = CpcVm.fnChannel2ChannelIndex(iChannel);
 		const iSq = this.oSound.sq(iChannel),
 			oSqTimer = this.aSqTimer[iChannel];
 
@@ -3723,7 +3713,7 @@ export class CpcVm {
 		return s;
 	}
 
-	vmVal(s: string): number {
+	private static vmVal(s: string) {
 		let iNum = 0;
 
 		s = s.trim().toLowerCase();
@@ -3744,7 +3734,7 @@ export class CpcVm {
 
 	val(s: string): number {
 		this.vmAssertString(s, "VAL");
-		let iNum = this.vmVal(s);
+		let iNum = CpcVm.vmVal(s);
 
 		if (isNaN(iNum)) {
 			iNum = 0;

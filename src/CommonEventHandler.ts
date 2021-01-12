@@ -14,8 +14,6 @@ export class CommonEventHandler implements EventListenerObject {
 
 	fnUserAction: (event: Event, sId: string) => void;
 
-	mHandlers: { [k: string]: (e: Event) => void };
-
 	constructor(oModel: Model, oView: View, oController: IController) {
 		this.init(oModel, oView, oController);
 	}
@@ -26,42 +24,6 @@ export class CommonEventHandler implements EventListenerObject {
 		this.controller = oController;
 
 		this.fnUserAction = undefined;
-	}
-
-	handleEvent(event: Event): void {
-		const oTarget = event.target as HTMLButtonElement,
-			sId = (oTarget) ? oTarget.getAttribute("id") : String(oTarget),
-			sType = event.type; // click or change
-
-		if (this.fnUserAction) {
-			this.fnUserAction(event, sId);
-		}
-
-		if (sId) {
-			if (!oTarget.disabled) { // check needed for IE which also fires for disabled buttons
-				const sHandler = "on" + Utils.stringCapitalize(sId) + Utils.stringCapitalize(sType);
-
-				if (Utils.debug) {
-					Utils.console.debug("fnCommonEventHandler: sHandler=" + sHandler);
-				}
-
-				if (sHandler in this) {
-					this[sHandler](event);
-				} else if (!sHandler.endsWith("SelectClick") && !sHandler.endsWith("InputClick")) { // do not print all messages
-					Utils.console.log("Event handler not found:", sHandler);
-				}
-			}
-		} else if (oTarget.getAttribute("data-key") === null) { // not for keyboard buttons
-			if (Utils.debug) {
-				Utils.console.debug("Event handler for", sType, "unknown target:", oTarget.tagName, oTarget.id);
-			}
-		}
-
-		if (sType === "click") { // special
-			if (sId !== "cpcCanvas") {
-				this.onWindowClick(event);
-			}
-		}
 	}
 
 	private toogleHidden(sId: string, sProp: string, sDisplay?: string) {
@@ -80,35 +42,35 @@ export class CommonEventHandler implements EventListenerObject {
 		this.fnUserAction = undefined;
 	}
 
-	protected onSpecialButtonClick(): void {
+	private onSpecialButtonClick() {
 		this.toogleHidden("specialArea", "showSpecial");
 	}
 
-	protected onInputButtonClick(): void {
+	private onInputButtonClick() {
 		this.toogleHidden("inputArea", "showInput");
 	}
 
-	protected onInp2ButtonClick(): void {
+	private onInp2ButtonClick() {
 		this.toogleHidden("inp2Area", "showInp2");
 	}
 
-	protected onOutputButtonClick(): void {
+	private onOutputButtonClick() {
 		this.toogleHidden("outputArea", "showOutput");
 	}
 
-	protected onResultButtonClick(): void {
+	private onResultButtonClick() {
 		this.toogleHidden("resultArea", "showResult");
 	}
 
-	protected onTextButtonClick(): void {
+	private onTextButtonClick() {
 		this.toogleHidden("textArea", "showText");
 	}
 
-	protected onVariableButtonClick(): void {
+	private onVariableButtonClick() {
 		this.toogleHidden("variableArea", "showVariable");
 	}
 
-	protected onCpcButtonClick(): void {
+	private onCpcButtonClick() {
 		if (this.toogleHidden("cpcArea", "showCpc")) {
 			this.controller.startUpdateCanvas();
 		} else {
@@ -116,7 +78,7 @@ export class CommonEventHandler implements EventListenerObject {
 		}
 	}
 
-	protected onKbdButtonClick(): void {
+	private onKbdButtonClick() {
 		if (this.toogleHidden("kbdArea", "showKbd", "flex")) {
 			if (this.view.getHidden("kbdArea")) { // on old browsers, display "flex" is not available, so set "block" if still hidden
 				this.view.setHidden("kbdArea", false);
@@ -125,23 +87,23 @@ export class CommonEventHandler implements EventListenerObject {
 		}
 	}
 
-	protected onKbdLayoutButtonClick(): void {
+	private onKbdLayoutButtonClick() {
 		this.toogleHidden("kbdLayoutArea", "showKbdLayout");
 	}
 
-	protected onConsoleButtonClick(): void {
+	private onConsoleButtonClick() {
 		this.toogleHidden("consoleArea", "showConsole");
 	}
 
-	protected onParseButtonClick(): void {
+	private onParseButtonClick() {
 		this.controller.startParse();
 	}
 
-	protected onRenumButtonClick(): void {
+	private onRenumButtonClick() {
 		this.controller.startRenum();
 	}
 
-	protected onPrettyButtonClick(): void {
+	private onPrettyButtonClick() {
 		this.controller.fnPretty();
 	}
 
@@ -150,65 +112,71 @@ export class CommonEventHandler implements EventListenerObject {
 		this.view.setAreaValue("outputText", "");
 	}
 
-	protected onUndoButtonClick(): void {
+	private onUndoButtonClick() {
 		const sInput = this.controller.undoStackElement();
 
 		this.fnUpdateAreaText(sInput);
 	}
 
-	protected onRedoButtonClick(): void {
+	private onRedoButtonClick() {
 		const sInput = this.controller.redoStackElement();
 
 		this.fnUpdateAreaText(sInput);
 	}
 
-	protected onRunButtonClick(): void {
+	private onRunButtonClick() {
 		this.controller.startRun();
 	}
 
-	protected onStopButtonClick(): void {
+	private onStopButtonClick() {
 		this.controller.startBreak();
 	}
 
-	protected onContinueButtonClick(event: Event): void {
+	private onContinueButtonClick(event: Event) {
 		this.controller.startContinue();
 		this.onCpcCanvasClick(event);
 	}
 
-	protected onResetButtonClick(): void {
+	private onResetButtonClick() {
 		this.controller.startReset();
 	}
 
-	protected onParseRunButtonClick(event: Event): void {
+	private onParseRunButtonClick(event: Event) {
 		this.controller.startParseRun();
 		this.onCpcCanvasClick(event);
 	}
 
-	protected onHelpButtonClick(): void { // eslint-disable-line class-methods-use-this
+	private static onHelpButtonClick() {
 		window.open("https://github.com/benchmarko/CPCBasicTS/#readme");
 	}
 
-	protected onInputTextClick(): void { // eslint-disable-line class-methods-use-this
+	/*
+	private onInputTextClick() {
 		// nothing
 	}
 
-	protected onOutputTextClick(): void { // eslint-disable-line class-methods-use-this
+	private onOutputTextClick() {
 		// nothing
 	}
 
-	protected onResultTextClick(): void { // eslint-disable-line class-methods-use-this
+	private onResultTextClick() {
 		// nothing
 	}
 
-	protected onVarTextClick(): void { // eslint-disable-line class-methods-use-this
+	private onVarTextClick() {
+		// nothing
+	}
+	*/
+
+	private static onNothing() {
 		// nothing
 	}
 
-	protected onOutputTextChange(): void {
+	private onOutputTextChange() {
 		this.controller.invalidateScript();
 	}
 
-	private encodeUriParam(params) { // eslint-disable-line class-methods-use-this
+	private static encodeUriParam(params) {
 		const aParts = [];
 
 		for (const sKey in params) {
@@ -221,9 +189,9 @@ export class CommonEventHandler implements EventListenerObject {
 		return aParts.join("&");
 	}
 
-	protected onReloadButtonClick(): void {
+	private onReloadButtonClick() {
 		const oChanged = this.model.getChangedProperties();
-		let sParas = this.encodeUriParam(oChanged);
+		let sParas = CommonEventHandler.encodeUriParam(oChanged);
 
 		sParas = sParas.replace(/%2[Ff]/g, "/"); // unescape %2F -> /
 		window.location.search = "?" + sParas;
@@ -255,11 +223,11 @@ export class CommonEventHandler implements EventListenerObject {
 		this.view.setHidden("kbdNum", sValue === "alpha");
 	}
 
-	protected onVarTextChange(): void {
+	private onVarTextChange() {
 		this.controller.changeVariable();
 	}
 
-	protected onScreenshotButtonClick(): void {
+	private onScreenshotButtonClick() {
 		var sExample = this.view.getSelectValue("exampleSelect"),
 			image = this.controller.startScreenshot(),
 			link = View.getElementById1("screenshotLink"),
@@ -270,11 +238,11 @@ export class CommonEventHandler implements EventListenerObject {
 		link.click();
 	}
 
-	protected onEnterButtonClick(): void {
+	private onEnterButtonClick() {
 		this.controller.startEnter();
 	}
 
-	protected onSoundButtonClick(): void {
+	private onSoundButtonClick() {
 		this.model.setProperty("sound", !this.model.getProperty<boolean>("sound"));
 		this.controller.setSoundActive();
 	}
@@ -285,5 +253,85 @@ export class CommonEventHandler implements EventListenerObject {
 
 	onWindowClick(event: Event): void {
 		this.controller.onWindowClick(event);
+	}
+
+	/* eslint-disable no-invalid-this */
+	mHandlers = { // { [k: string]: (e: Event) => void }
+		onSpecialButtonClick: this.onSpecialButtonClick,
+		onInputButtonClick: this.onInputButtonClick,
+		onInp2ButtonClick: this.onInp2ButtonClick,
+		onOutputButtonClick: this.onOutputButtonClick,
+		onResultButtonClick: this.onResultButtonClick,
+		onTextButtonClick: this.onTextButtonClick,
+		onVariableButtonClick: this.onVariableButtonClick,
+		onCpcButtonClick: this.onCpcButtonClick,
+		onKbdButtonClick: this.onKbdButtonClick,
+		onKbdLayoutButtonClick: this.onKbdLayoutButtonClick,
+		onConsoleButtonClick: this.onConsoleButtonClick,
+		onParseButtonClick: this.onParseButtonClick,
+		onRenumButtonClick: this.onRenumButtonClick,
+		onPrettyButtonClick: this.onPrettyButtonClick,
+		onUndoButtonClick: this.onUndoButtonClick,
+		onRedoButtonClick: this.onRedoButtonClick,
+		onRunButtonClick: this.onRunButtonClick,
+		onStopButtonClick: this.onStopButtonClick,
+		onContinueButtonClick: this.onContinueButtonClick,
+		onResetButtonClick: this.onResetButtonClick,
+		onParseRunButtonClick: this.onParseRunButtonClick,
+		onHelpButtonClick: CommonEventHandler.onHelpButtonClick,
+		onInputTextClick: CommonEventHandler.onNothing,
+		onOutputTextClick: CommonEventHandler.onNothing,
+		onResultTextClick: CommonEventHandler.onNothing,
+		onVarTextClick: CommonEventHandler.onNothing,
+		onOutputTextChange: this.onOutputTextChange,
+		onReloadButtonClick: this.onReloadButtonClick,
+		onDatabaseSelectChange: this.onDatabaseSelectChange,
+		onExampleSelectChange: this.onExampleSelectChange,
+		onVarSelectChange: this.onVarSelectChange,
+		onKbdLayoutSelectChange: this.onKbdLayoutSelectChange,
+		onVarTextChange: this.onVarTextChange,
+		onScreenshotButtonClick: this.onScreenshotButtonClick,
+		onEnterButtonClick: this.onEnterButtonClick,
+		onSoundButtonClick: this.onSoundButtonClick,
+		onCpcCanvasClick: this.onCpcCanvasClick,
+		onWindowClick: this.onWindowClick
+	};
+	/* eslint-enable no-invalid-this */
+
+
+	handleEvent(event: Event): void {
+		const oTarget = event.target as HTMLButtonElement,
+			sId = (oTarget) ? oTarget.getAttribute("id") : String(oTarget),
+			sType = event.type; // click or change
+
+		if (this.fnUserAction) {
+			this.fnUserAction(event, sId);
+		}
+
+		if (sId) {
+			if (!oTarget.disabled) { // check needed for IE which also fires for disabled buttons
+				const sHandler = "on" + Utils.stringCapitalize(sId) + Utils.stringCapitalize(sType);
+
+				if (Utils.debug) {
+					Utils.console.debug("fnCommonEventHandler: sHandler=" + sHandler);
+				}
+
+				if (sHandler in this.mHandlers) {
+					this.mHandlers[sHandler].call(this, event);
+				} else if (!sHandler.endsWith("SelectClick") && !sHandler.endsWith("InputClick")) { // do not print all messages
+					Utils.console.log("Event handler not found:", sHandler);
+				}
+			}
+		} else if (oTarget.getAttribute("data-key") === null) { // not for keyboard buttons
+			if (Utils.debug) {
+				Utils.console.debug("Event handler for", sType, "unknown target:", oTarget.tagName, oTarget.id);
+			}
+		}
+
+		if (sType === "click") { // special
+			if (sId !== "cpcCanvas") {
+				this.onWindowClick(event);
+			}
+		}
 	}
 }

@@ -8,6 +8,7 @@
 var fs, path, __dirname;
 
 import { Utils } from "../Utils";
+import { ICpcVmRsx } from "../Interfaces";
 import { Polyfills } from "../Polyfills";
 import { BasicLexer } from "../BasicLexer";
 import { BasicParser } from "../BasicParser";
@@ -71,9 +72,9 @@ class cpcBasic {
 		tron: false,
 		rsx: {
 			rsxIsAvailable: function (sRsx: string) { // not needed to suppress warnings when using bQuiet
-				return (/^dir|disc|era|tape$/).test(sRsx);
+				return (/^a|b|basic|cpm|dir|disc|disc\.in|disc\.out|drive|era|ren|tape|tape\.in|tape\.out|user|mode|renum$/).test(sRsx);
 			}
-		} as any
+		} as ICpcVmRsx
 	})
 
 	static oBasicTokenizer = new BasicTokenizer(); // for loading tokenized examples

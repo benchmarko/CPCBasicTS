@@ -48,7 +48,7 @@ export class Controller implements IController {
 	fnDirectInputHandler: undefined;
 	fnPutKeyInBufferHandler: undefined;
 
-	sMetaIdent = "CPCBasic";
+	static sMetaIdent = "CPCBasic";
 
 	fnScript = undefined;
 
@@ -350,7 +350,7 @@ export class Controller implements IController {
 		let	aDir: string[];
 
 		if (!sKey) { // no sKey => get all
-			aDir = this.fnGetDirectoryEntries();
+			aDir = Controller.fnGetDirectoryEntries();
 		} else {
 			aDir = [sKey];
 		}
@@ -364,7 +364,7 @@ export class Controller implements IController {
 
 				if (!oExample) {
 					const sData = oStorage.getItem(sKey),
-						oData = this.splitMeta(sData);
+						oData = Controller.splitMeta(sData);
 
 					oExample = {
 						key: sKey,
@@ -618,7 +618,7 @@ export class Controller implements IController {
 	}
 
 	// merge two scripts with sorted line numbers, lines from script2 overwrite lines from script1
-	private mergeScripts(sScript1: string, sScript2: string) { // eslint-disable-line class-methods-use-this
+	private static mergeScripts(sScript1: string, sScript2: string) {
 		const aLines1 = Utils.stringTrimEnd(sScript1).split("\n"),
 			aLines2 = Utils.stringTrimEnd(sScript2).split("\n");
 		let aResult = [],
@@ -658,7 +658,7 @@ export class Controller implements IController {
 	}
 
 	// get line range from a script with sorted line numbers
-	private fnGetLinesInRange(sScript: string, iFirstLine: number, iLastLine: number) { // eslint-disable-line class-methods-use-this
+	private static fnGetLinesInRange(sScript: string, iFirstLine: number, iLastLine: number) {
 		const aLines = sScript ? sScript.split("\n") : [];
 
 		while (aLines.length && parseInt(aLines[0], 10) < iFirstLine) {
@@ -708,7 +708,7 @@ export class Controller implements IController {
 		return aDir;
 	}
 
-	private fnGetDirectoryEntries(sMask?: string) { // eslint-disable-line class-methods-use-this
+	private static fnGetDirectoryEntries(sMask?: string) {
 		const oStorage = Utils.localStorage,
 			aDir: string[] = [];
 		let	oRegExp: RegExp;
@@ -761,7 +761,7 @@ export class Controller implements IController {
 
 	fnFileCat(oParas: StopParas): void {
 		const iStream = oParas.iStream,
-			aDir = this.fnGetDirectoryEntries();
+			aDir = Controller.fnGetDirectoryEntries();
 
 		this.fnPrintDirectoryEntries(iStream, aDir, true);
 
@@ -775,8 +775,8 @@ export class Controller implements IController {
 			sExample = this.model.getProperty<string>("example"), // if we have a fileMask, include also example names from same directory
 			iLastSlash = sExample.lastIndexOf("/");
 
-		let sFileMask = oParas.sFileMask ? this.fnLocalStorageName(oParas.sFileMask) : "",
-			aDir = this.fnGetDirectoryEntries(sFileMask),
+		let sFileMask = oParas.sFileMask ? Controller.fnLocalStorageName(oParas.sFileMask) : "",
+			aDir = Controller.fnGetDirectoryEntries(sFileMask),
 			sPath = "";
 
 		if (iLastSlash >= 0) {
@@ -798,8 +798,8 @@ export class Controller implements IController {
 	fnFileEra(oParas: StopParas): void {
 		const iStream = oParas.iStream,
 			oStorage = Utils.localStorage,
-			sFileMask = this.fnLocalStorageName(oParas.sFileMask),
-			aDir = this.fnGetDirectoryEntries(sFileMask);
+			sFileMask = Controller.fnLocalStorageName(oParas.sFileMask),
+			aDir = Controller.fnGetDirectoryEntries(sFileMask);
 
 		if (!aDir.length) {
 			this.oVm.print(iStream, sFileMask + " not found\r\n");
@@ -825,8 +825,8 @@ export class Controller implements IController {
 	fnFileRen(oParas: StopParas): void {
 		const iStream = oParas.iStream,
 			oStorage = Utils.localStorage,
-			sNew = this.fnLocalStorageName(oParas.sNew),
-			sOld = this.fnLocalStorageName(oParas.sOld),
+			sNew = Controller.fnLocalStorageName(oParas.sNew),
+			sOld = Controller.fnLocalStorageName(oParas.sOld),
 			sItem = oStorage.getItem(sOld);
 
 		if (sItem !== null) {
@@ -885,7 +885,7 @@ export class Controller implements IController {
 			oData: FileMetaAndData;
 
 		if (sInput !== null && sInput !== undefined) {
-			oData = this.splitMeta(sInput);
+			oData = Controller.splitMeta(sInput);
 
 			sInput = oData.sData; // maybe changed
 
@@ -933,7 +933,7 @@ export class Controller implements IController {
 		case "openin":
 			break;
 		case "chainMerge":
-			sInput = this.mergeScripts(this.view.getAreaValue("inputText"), sInput);
+			sInput = Controller.mergeScripts(this.view.getAreaValue("inputText"), sInput);
 			this.setInputText(sInput);
 			this.view.setAreaValue("resultText", "");
 			iStartLine = oInFile.iLine || 0;
@@ -949,7 +949,7 @@ export class Controller implements IController {
 			}
 			break;
 		case "merge":
-			sInput = this.mergeScripts(this.view.getAreaValue("inputText"), sInput);
+			sInput = Controller.mergeScripts(this.view.getAreaValue("inputText"), sInput);
 			this.setInputText(sInput);
 			this.view.setAreaValue("resultText", "");
 			this.invalidateScript();
@@ -1061,7 +1061,7 @@ export class Controller implements IController {
 		}
 	}
 
-	private fnLocalStorageName(sName: string, sDefaultExtension?: string): string { // eslint-disable-line class-methods-use-this
+	private static fnLocalStorageName(sName: string, sDefaultExtension?: string) {
 		// modify name so we do not clash with localstorage methods/properites
 		if (sName.indexOf(".") < 0) { // no dot inside name?
 			sName += "." + (sDefaultExtension || ""); // append dot or default extension
@@ -1080,7 +1080,7 @@ export class Controller implements IController {
 		let sInput: string;
 
 		for (let i = 0; i < aExtensions.length; i += 1)	{
-			const sStorageName = this.fnLocalStorageName(sName, aExtensions[i]);
+			const sStorageName = Controller.fnLocalStorageName(sName, aExtensions[i]);
 
 			sInput = oStorage.getItem(sStorageName);
 			if (sInput !== null) {
@@ -1127,9 +1127,9 @@ export class Controller implements IController {
 		this.iNextLoopTimeOut = this.oVm.vmGetTimeUntilFrame(); // wait until next frame
 	}
 
-	private joinMeta(oMeta: FileMeta) {
+	private static joinMeta(oMeta: FileMeta) {
 		const sMeta = [
-			this.sMetaIdent,
+			Controller.sMetaIdent,
 			oMeta.sType,
 			oMeta.iStart,
 			oMeta.iLength,
@@ -1139,10 +1139,10 @@ export class Controller implements IController {
 		return sMeta;
 	}
 
-	private splitMeta(sInput: string) {
+	private static splitMeta(sInput: string) {
 		let oMeta: FileMeta;
 
-		if (sInput.indexOf(this.sMetaIdent) === 0) { // starts with metaIdent?
+		if (sInput.indexOf(Controller.sMetaIdent) === 0) { // starts with metaIdent?
 			const iIndex = sInput.indexOf(","); // metadata separator
 
 			if (iIndex >= 0) {
@@ -1187,7 +1187,7 @@ export class Controller implements IController {
 			} else if (sType === "B") {
 				sDefaultExtension = "bin";
 			}
-			const sStorageName = this.fnLocalStorageName(sName, sDefaultExtension);
+			const sStorageName = Controller.fnLocalStorageName(sName, sDefaultExtension);
 			let sFileData: string;
 
 			if (oOutFile.aFileData) {
@@ -1210,11 +1210,11 @@ export class Controller implements IController {
 				}
 			}
 
-			const sMeta = this.joinMeta(oOutFile);
+			const sMeta = Controller.joinMeta(oOutFile);
 
 			oStorage.setItem(sStorageName, sMeta + "," + sFileData);
 			this.updateStorageDatabase("set", sStorageName);
-			this.oVm.vmResetFileHandling(oOutFile); // make sure it is closed
+			CpcVm.vmResetFileHandling(oOutFile); // make sure it is closed
 		} else {
 			Utils.console.error("fnFileSave: file not open!");
 		}
@@ -1223,7 +1223,7 @@ export class Controller implements IController {
 
 	fnDeleteLines(oParas: StopParas): void {
 		const sInputText = this.view.getAreaValue("inputText"),
-			aLines = this.fnGetLinesInRange(sInputText, oParas.iFirst, oParas.iLast);
+			aLines = Controller.fnGetLinesInRange(sInputText, oParas.iFirst, oParas.iLast);
 		let	oError: CustomError;
 
 		if (aLines.length) {
@@ -1241,7 +1241,7 @@ export class Controller implements IController {
 			if (!oError) {
 				let sInput = aLines.join("\n");
 
-				sInput = this.mergeScripts(sInputText, sInput); // delete sInput lines
+				sInput = Controller.mergeScripts(sInputText, sInput); // delete sInput lines
 				this.setInputText(sInput);
 			}
 		}
@@ -1264,7 +1264,7 @@ export class Controller implements IController {
 	fnList(oParas: StopParas): void {
 		const sInput = this.view.getAreaValue("inputText"),
 			iStream = oParas.iStream,
-			aLines = this.fnGetLinesInRange(sInput, oParas.iFirst, oParas.iLast),
+			aLines = Controller.fnGetLinesInRange(sInput, oParas.iFirst, oParas.iLast),
 			oRegExp = new RegExp(/([\x00-\x1f])/g); // eslint-disable-line no-control-regex
 
 		for (let i = 0; i < aLines.length; i += 1) {
@@ -1339,7 +1339,7 @@ export class Controller implements IController {
 			sInputText = this.view.getAreaValue("inputText");
 		let sInput = oInput.sInput;
 
-		sInput = this.mergeScripts(sInputText, sInput);
+		sInput = Controller.mergeScripts(sInputText, sInput);
 		this.setInputText(sInput);
 		this.oVm.vmSetStartLine(0);
 		this.oVm.vmGotoLine(0); // to be sure
@@ -1353,7 +1353,7 @@ export class Controller implements IController {
 		const sInput = this.view.getAreaValue("inputText"),
 			iStream = oParas.iStream,
 			iLine = oParas.iLine as number, //TTT
-			aLines = this.fnGetLinesInRange(sInput, iLine, iLine);
+			aLines = Controller.fnGetLinesInRange(sInput, iLine, iLine);
 
 		if (aLines.length) {
 			const sLine = aLines[0];
@@ -1571,7 +1571,7 @@ export class Controller implements IController {
 				if (Utils.debug > 0) {
 					Utils.console.debug("fnDirectInput: insert line=" + sInput);
 				}
-				sInput = this.mergeScripts(sInputText, sInput);
+				sInput = Controller.mergeScripts(sInputText, sInput);
 				this.setInputText(sInput, true);
 
 				this.oVm.vmSetStartLine(0);
@@ -2045,7 +2045,7 @@ export class Controller implements IController {
 			let oHeader: AmsdosHeader,
 				sStorageName = that.oVm.vmAdaptFilename(sName, "FILE");
 
-			sStorageName = that.fnLocalStorageName(sStorageName);
+			sStorageName = Controller.fnLocalStorageName(sStorageName);
 
 			if (sType === "text/plain") {
 				oHeader = Controller.createMinimalAmsdosHeader("A", 0, sData.length);
@@ -2101,7 +2101,7 @@ export class Controller implements IController {
 			}
 
 			if (oHeader) {
-				const sMeta = that.joinMeta(oHeader);
+				const sMeta = Controller.joinMeta(oHeader);
 
 				try {
 					oStorage.setItem(sStorageName, sMeta + "," + sData);
@@ -2174,7 +2174,7 @@ export class Controller implements IController {
 		}
 	}
 
-	private fnHandleDragOver(evt: DragEvent) { // eslint-disable-line class-methods-use-this
+	private static fnHandleDragOver(evt: DragEvent) {
 		evt.stopPropagation();
 		evt.preventDefault();
 		evt.dataTransfer.dropEffect = "copy"; // explicitly show this is a copy
@@ -2183,10 +2183,10 @@ export class Controller implements IController {
 	private initDropZone() {
 		const dropZone = View.getElementById1("dropZone");
 
-		dropZone.addEventListener("dragover", this.fnHandleDragOver.bind(this), false);
+		dropZone.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
 		dropZone.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
 
-		this.oCanvas.canvas.addEventListener("dragover", this.fnHandleDragOver.bind(this), false); //TTT fast hack
+		this.oCanvas.canvas.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false); //TTT fast hack
 		this.oCanvas.canvas.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
 
 		View.getElementById1("fileInput").addEventListener("change", this.fnHandleFileSelect.bind(this), false);

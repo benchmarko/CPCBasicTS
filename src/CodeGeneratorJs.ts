@@ -289,20 +289,6 @@ export class CodeGeneratorJs {
 
 	// mOperators
 
-	/*
-	mOperators = class {
-		oCodeGen: CodeGeneratorJs
-
-		fnPropagateStaticTypes;
-		composeError;
-
-		constructor(oCodeGen: CodeGeneratorJs) {
-			this.oCodeGen = oCodeGen;
-			this.fnPropagateStaticTypes = oCodeGen.fnPropagateStaticTypes;
-			this.composeError = oCodeGen.composeError;
-		}
-	*/
-
 	private plus(node: CodeNode, oLeft: CodeNode, oRight: CodeNode) { // "+"
 		const a = oLeft.pv;
 
@@ -326,7 +312,6 @@ export class CodeGeneratorJs {
 		if (oRight === undefined) { // unary minus?
 			// when optimizing, beware of "--" operator in JavaScript!
 			if (CodeGeneratorJs.fnIsIntConst(a) || oLeft.type === "number") { // int const or number const (also fp)
-				//already string a = String(a); // also ok for hex or bin strings
 				if (a.charAt(0) === "-") { // starting already with "-"?
 					node.pv = a.substr(1); // remove "-"
 				} else {
@@ -395,7 +380,7 @@ export class CodeGeneratorJs {
 		return node.pv;
 	}
 
-	private not(node: CodeNode, oRight: CodeNode) {
+	private static not(node: CodeNode, oRight: CodeNode) {
 		node.pv = "~(" + CodeGeneratorJs.fnGetRoundString(oRight) + ")"; // a can be an expression
 		node.pt = "I";
 		return node.pv;
@@ -459,7 +444,8 @@ export class CodeGeneratorJs {
 		return node.pv;
 	}
 
-	private stream(node: CodeNode, oRight: CodeNode) { // "#" stream as prefix operator
+	private static stream(node: CodeNode, oRight: CodeNode) {
+		// "#" stream as prefix operator
 		node.pv = oRight.pv;
 		node.pt = "I";
 		return node.pv;
@@ -467,7 +453,7 @@ export class CodeGeneratorJs {
 
 
 	/* eslint-disable no-invalid-this */
-	mOperators = {
+	mOperators = { // to call methods, use mOperators[].call(this,...)
 		"+": this.plus,
 		"-": this.minus,
 		"*": this.mult,
@@ -477,7 +463,7 @@ export class CodeGeneratorJs {
 		and: this.and,
 		or: this.or,
 		xor: this.xor,
-		not: this.not,
+		not: CodeGeneratorJs.not,
 		mod: this.mod,
 		">": this.greater,
 		"<": this.less,
@@ -486,27 +472,12 @@ export class CodeGeneratorJs {
 		"=": this.equal,
 		"<>": this.notEqual,
 		"@": this.addressOf,
-		"#": this.stream
+		"#": CodeGeneratorJs.stream
 	};
 	/* eslint-enable no-invalid-this */
 
 
 	// mParseFunctions
-	/*
-	mParseFunctions = class {
-		oCodeGen: CodeGeneratorJs
-
-		fnParseArgs;
-		fnPropagateStaticTypes;
-		composeError;
-
-		constructor(oCodeGen: CodeGeneratorJs) {
-			this.oCodeGen = oCodeGen;
-			this.fnParseArgs = oCodeGen.fnParseArgs;
-			this.fnPropagateStaticTypes = oCodeGen.fnPropagateStaticTypes;
-			this.composeError = oCodeGen.composeError;
-		}
-	*/
 
 	private fnParseDefIntRealStr(node: CodeNode) {
 		const aNodeArgs = this.fnParseArgs(node.args);
@@ -559,12 +530,14 @@ export class CodeGeneratorJs {
 		return node.pv;
 	}
 
-	private semicolon(node: CodeNode) { // ";" input, line input
+	private static semicolon(node: CodeNode) {
+		// ";" input, line input
 		node.pv = ";";
 		return node.pv;
 	}
 
-	private comma(node: CodeNode) { // "," input, line input
+	private static comma(node: CodeNode) {
+		// "," input, line input
 		node.pv = ",";
 		return node.pv;
 	}
@@ -590,12 +563,12 @@ export class CodeGeneratorJs {
 		node.pv = "o.rsx." + sRsxName + "(" + aNodeArgs.join(", ") + "); o.goto(\"" + sLabel + "\"); break;\ncase \"" + sLabel + "\":"; // most RSX commands need goto (era, ren,...)
 		return node.pv;
 	}
-	private number(node: CodeNode) {
+	private static number(node: CodeNode) {
 		node.pt = (/^[0-9]+$/).test(node.value) ? "I" : "R";
 		node.pv = node.value; // keep string
 		return node.pv;
 	}
-	private binnumber(node: CodeNode) {
+	private static binnumber(node: CodeNode) {
 		let sValue = node.value.slice(2); // remove &x
 
 		if (Utils.bSupportsBinaryLiterals) {
@@ -607,7 +580,7 @@ export class CodeGeneratorJs {
 		node.pv = sValue;
 		return node.pv;
 	}
-	private hexnumber(node: CodeNode) {
+	private static hexnumber(node: CodeNode) {
 		let sValue = node.value.slice(1); // remove &
 
 		if (sValue.charAt(0).toLowerCase() === "h") { // optional h
@@ -619,7 +592,7 @@ export class CodeGeneratorJs {
 		node.pv = sValue;
 		return node.pv;
 	}
-	private linenumber(node: CodeNode) {
+	private static linenumber(node: CodeNode) {
 		node.pv = node.value;
 		return node.pv;
 	}
@@ -639,7 +612,7 @@ export class CodeGeneratorJs {
 		node.pv = sValue;
 		return node.pv;
 	}
-	private letter(node: CodeNode) { // for defint, defreal, defstr
+	private static letter(node: CodeNode) { // for defint, defreal, defstr
 		node.pv = node.value;
 		return node.pv;
 	}
@@ -665,12 +638,12 @@ export class CodeGeneratorJs {
 		node.pv = !sRight ? sLeft : sLeft + ", " + sRight;
 		return node.pv;
 	}
-	private string(node: CodeNode) {
+	private static string(node: CodeNode) {
 		node.pt = "$";
 		node.pv = '"' + node.value + '"';
 		return node.pv;
 	}
-	private fnNull(node: CodeNode) { // "null": means: no parameter specified
+	private static fnNull(node: CodeNode) { // "null": means: no parameter specified
 		node.pv = "null";
 		return node.pv;
 	}
@@ -708,8 +681,7 @@ export class CodeGeneratorJs {
 	private label(node: CodeNode) {
 		let label = node.value;
 
-		this.iLine = Number(label); //TTT set line before parsing args
-
+		this.iLine = Number(label); // set line before parsing args
 		this.resetCountsPerLine(); // we want to have "stable" counts, even if other lines change, e.g. direct
 
 		let value = "",
@@ -785,7 +757,7 @@ export class CodeGeneratorJs {
 		node.pv = this.fnCommandWithGoto(node);
 		return node.pv;
 	}
-	private cont(node: CodeNode) {
+	private static cont(node: CodeNode) {
 		node.pv = "o." + node.type + "(); break;"; // append break
 		return node.pv;
 	}
@@ -871,7 +843,7 @@ export class CodeGeneratorJs {
 		node.pv = sName + "(" + aNodeArgs.join(", ") + "); break;";
 		return node.pv;
 	}
-	private "else"(node: CodeNode) { // similar to a comment, with unchecked tokens
+	private static "else"(node: CodeNode) { // similar to a comment, with unchecked tokens
 		const aArgs = node.args;
 		let	sValue = node.type;
 
@@ -1151,7 +1123,7 @@ export class CodeGeneratorJs {
 		node.pv = sValue;
 		return node.pv;
 	}
-	private "new"(node: CodeNode) {
+	private static "new"(node: CodeNode) {
 		const sName = Utils.bSupportReservedNames ? "o.new" : 'o["new"]';
 
 		node.pv = sName + "();";
@@ -1338,7 +1310,7 @@ export class CodeGeneratorJs {
 		node.pv = "o." + node.type + "(" + aNodeArgs.join(", ") + "); break"; // append break
 		return node.pv;
 	}
-	private "return"(node: CodeNode) {
+	private static "return"(node: CodeNode) {
 		const sName = Utils.bSupportReservedNames ? "o.return" : 'o["return"]';
 
 		node.pv = sName + "(); break;";
@@ -1422,20 +1394,20 @@ export class CodeGeneratorJs {
 	}
 
 	/* eslint-disable no-invalid-this */
-	mParseFunctions = {
-		";": this.semicolon,
-		",": this.comma,
+	mParseFunctions = { // to call methods, use mParseFunctions[].call(this,...)
+		";": CodeGeneratorJs.semicolon,
+		",": CodeGeneratorJs.comma,
 		"|": this.vertical,
-		number: this.number,
-		binnumber: this.binnumber,
-		hexnumber: this.hexnumber,
-		linenumber: this.linenumber,
+		number: CodeGeneratorJs.number,
+		binnumber: CodeGeneratorJs.binnumber,
+		hexnumber: CodeGeneratorJs.hexnumber,
+		linenumber: CodeGeneratorJs.linenumber,
 		identifier: this.identifier,
-		letter: this.letter,
+		letter: CodeGeneratorJs.letter,
 		range: this.range,
 		linerange: this.linerange,
-		string: this.string,
-		"null": this.fnNull,
+		string: CodeGeneratorJs.string,
+		"null": CodeGeneratorJs.fnNull,
 		assign: this.assign,
 		label: this.label,
 		// special keyword functions
@@ -1445,7 +1417,7 @@ export class CodeGeneratorJs {
 		chainMerge: this.chainMerge,
 		clear: this.clear,
 		closeout: this.closeout,
-		cont: this.cont,
+		cont: CodeGeneratorJs.cont,
 		data: this.data,
 		def: this.def,
 		defint: this.defint,
@@ -1453,7 +1425,7 @@ export class CodeGeneratorJs {
 		defstr: this.defstr,
 		dim: this.dim,
 		"delete": this.delete,
-		"else": this.else,
+		"else": CodeGeneratorJs.else,
 		end: this.end,
 		erase: this.erase,
 		error: this.error,
@@ -1471,7 +1443,7 @@ export class CodeGeneratorJs {
 		load: this.load,
 		merge: this.merge,
 		mid$Assign: this.mid$Assign,
-		"new": this.new,
+		"new": CodeGeneratorJs.new,
 		next: this.next,
 		onBreakGosub: this.onBreakGosub,
 		onErrorGoto: this.onErrorGoto,
@@ -1486,7 +1458,7 @@ export class CodeGeneratorJs {
 		renum: this.renum,
 		restore: this.restore,
 		resume: this.resume,
-		"return": this.return,
+		"return": CodeGeneratorJs.return,
 		run: this.run,
 		save: this.save,
 		sound: this.sound,
@@ -1539,15 +1511,12 @@ export class CodeGeneratorJs {
 					value2 = "(" + value2 + ")";
 					node.right.pv = value2;
 				}
-				//value = mOperators[node.type](node, node.left, node.right);
 				value = mOperators[node.type].call(this, node, node.left, node.right);
 			} else {
 				value = this.parseNode(node.right);
-				//value = mOperators[node.type](node, node.right);
 				value = mOperators[node.type].call(this, node, node.right);
 			}
 		} else if (this.mParseFunctions[node.type]) { // function with special handling?
-			//value = this.mParseFunctions[node.type](node);
 			value = this.mParseFunctions[node.type].call(this, node);
 		} else { // for other functions, generate code directly
 			value = this.fnParseOther(node);
@@ -1591,7 +1560,6 @@ export class CodeGeneratorJs {
 			}
 		}
 	}
-	// TTT2
 
 	//
 	// evaluate

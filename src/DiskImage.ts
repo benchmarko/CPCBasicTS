@@ -117,7 +117,7 @@ export class DiskImage {
 			iAl0: 0xc0, // bit significant representation of reserved directory blocks 0..7 (0x80=0, 0xc00=0 and 1,,...)
 			iAl1: 0x00, // bit significant representation of reserved directory blocks 8..15 (0x80=8,...)
 			iOff: 0 // number of reserved tracks (also the track where the directory starts)
-		},
+		} as FormatDescriptor,
 
 		// double sided data
 		data2: {
@@ -165,7 +165,6 @@ export class DiskImage {
 
 	private sDiskName: string;
 	private sData: string;
-	//private iPos: number;
 	private oDiskInfo: DiskInfo;
 	private oFormat: FormatDescriptor;
 
@@ -181,8 +180,6 @@ export class DiskImage {
 	}
 
 	reset(): void {
-		//this.iPos = 0;
-
 		this.oDiskInfo = {
 			oTrackInfo: {
 				aSectorInfo: [] as SectorInfo
@@ -415,33 +412,33 @@ export class DiskImage {
 		return this.getFormatDescriptor(sFormat);
 	}
 
+	private static fnRemoveHighBit7(sStr: string) {
+		let sOut = "";
+
+		for (let i = 0; i < sStr.length; i += 1) {
+			const iChar = sStr.charCodeAt(i);
+
+			sOut += String.fromCharCode(iChar & 0x7f); // eslint-disable-line no-bitwise
+		}
+		return sOut;
+	}
+
+	private static fnUnpackFtypeFlags(oExtent: ExtentEntry, sExt: string) {
+		const aFTypes = [ //TTT maybe set directly
+			"bReadOnly",
+			"bSystem",
+			"bBackup" // not known
+		];
+
+		for (let i = 0; i < aFTypes.length; i += 1) {
+			const sFType = aFTypes[i],
+				iChar = sExt.charCodeAt(i);
+
+			oExtent[sFType] = Boolean(iChar & 0x80); // eslint-disable-line no-bitwise
+		}
+	}
+
 	private readDirectoryExtents(aExtents: ExtentEntry[], iPos: number, iEndPos: number) {
-		const fnRemoveHighBit7 = function (sStr: string) {
-				let sOut = "";
-
-				for (let i = 0; i < sStr.length; i += 1) {
-					const iChar = sStr.charCodeAt(i);
-
-					sOut += String.fromCharCode(iChar & 0x7f); // eslint-disable-line no-bitwise
-				}
-				return sOut;
-			},
-
-			fnUnpackFtypeFlags = function (oExtent: ExtentEntry, sExt: string) {
-				const aFTypes = [ //TTT maybe set directly
-					"bReadOnly",
-					"bSystem",
-					"bBackup" // not known
-				];
-
-				for (let i = 0; i < aFTypes.length; i += 1) {
-					const sFType = aFTypes[i],
-						iChar = sExt.charCodeAt(i);
-
-					oExtent[sFType] = Boolean(iChar & 0x80); // eslint-disable-line no-bitwise
-				}
-			};
-
 		while (iPos < iEndPos) {
 			const oExtent: ExtentEntry = {
 				iUser: this.readUInt8(iPos),
@@ -461,9 +458,9 @@ export class DiskImage {
 
 			iPos += 16;
 
-			oExtent.sName = fnRemoveHighBit7(oExtent.sName);
-			fnUnpackFtypeFlags(oExtent, oExtent.sExt);
-			oExtent.sExt = fnRemoveHighBit7(oExtent.sExt);
+			oExtent.sName = DiskImage.fnRemoveHighBit7(oExtent.sName);
+			DiskImage.fnUnpackFtypeFlags(oExtent, oExtent.sExt);
+			oExtent.sExt = DiskImage.fnRemoveHighBit7(oExtent.sExt);
 
 			const aBlocks = oExtent.aBlocks;
 
@@ -482,22 +479,22 @@ export class DiskImage {
 		return aExtents;
 	}
 
-	// do not know if we need to sort the extents per file, but...
-	private sortFileExtents(oDir: DirectoryListType) { // eslint-disable-line class-methods-use-this
-		const fnSortByExtentNumber = function (a: ExtentEntry, b: ExtentEntry) {
-			return a.iExtent - b.iExtent;
-		};
+	private static fnSortByExtentNumber(a: ExtentEntry, b: ExtentEntry) {
+		return a.iExtent - b.iExtent;
+	}
 
+	// do not know if we need to sort the extents per file, but...
+	private static sortFileExtents(oDir: DirectoryListType) {
 		for (const sName in oDir) {
 			if (oDir.hasOwnProperty(sName)) {
 				const aFileExtents = oDir[sName];
 
-				aFileExtents.sort(fnSortByExtentNumber);
+				aFileExtents.sort(DiskImage.fnSortByExtentNumber);
 			}
 		}
 	}
 
-	private prepareDirectoryList(aExtents: ExtentEntry[], iFill: number, reFilePattern: RegExp) {
+	private static prepareDirectoryList(aExtents: ExtentEntry[], iFill: number, reFilePattern: RegExp) {
 		const oDir: DirectoryListType = {};
 
 		for (let i = 0; i < aExtents.length; i += 1) {
@@ -515,7 +512,7 @@ export class DiskImage {
 				}
 			}
 		}
-		this.sortFileExtents(oDir);
+		DiskImage.sortFileExtents(oDir);
 		return oDir;
 	}
 
@@ -554,7 +551,7 @@ export class DiskImage {
 			this.readDirectoryExtents(aExtents, oSectorInfo.iDataPos, oSectorInfo.iDataPos + oSectorInfo.iSectorSize);
 		}
 
-		const oDir = this.prepareDirectoryList(aExtents, oFormat.iFill, null);
+		const oDir = DiskImage.prepareDirectoryList(aExtents, oFormat.iFill, null);
 
 		return oDir;
 	}
