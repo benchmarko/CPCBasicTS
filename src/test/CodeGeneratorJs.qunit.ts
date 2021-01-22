@@ -128,7 +128,7 @@ QUnit.module("CodeGeneratorJs: Tests", function (/* hooks */) {
 			"drawr x,y,m,g1": " o.drawr(v.x, v.y, v.m, v.g1);"
 		},
 		"edit, ei, else, end, ent, env, eof, erase, erl, err, error, every gosub, exp": {
-			"edit 20": " o.edit(20);",
+			"edit 20": " o.edit(20); break;",
 			"ei ": " o.ei();",
 			"else": " // else",
 			"else 10": " // else 10",

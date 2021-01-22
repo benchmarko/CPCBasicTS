@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="cpcbasic.css" />
-<title id="title">CPC BasicTS v0.0.10</title>
+<title id="title">CPC BasicTS v0.0.11</title>
 </head>
 
 <body id="pageBody">
@@ -143,15 +143,9 @@
 		var oModule = {};
 		
 		sModule = sModule.replace(/^.*[\\\/]/, '');
-		/*
-		oModule = {
-			sModule: window[sModule]
-		};
-		*/
-		//oModule[sModule] = window.exports[sModule];
 		oModule[sModule] = window.exports[sModule];
 		if (!oModule[sModule]) {
-			console.error("ERROR: Module not loaded:", sModule); //TTT: Utils?
+			console.error("ERROR: Module not loaded:", sModule);
 			throw new Error();
 		}
 		return oModule;

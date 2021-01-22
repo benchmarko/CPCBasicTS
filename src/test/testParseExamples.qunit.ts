@@ -20,13 +20,15 @@ import { DiskImage } from "../DiskImage";
 import { cpcconfig } from "../cpcconfig";
 
 
+const oGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(); // for old IE
+
 function detectNodeJs() {
 	let bNodeJs = false;
 
 	// https://www.npmjs.com/package/detect-node
 	// Only Node.JS has a process variable that is of [[Class]] process
 	try {
-		if (Object.prototype.toString.call(globalThis.process) === "[object process]") {
+		if (Object.prototype.toString.call(oGlobalThis.process) === "[object process]") {
 			bNodeJs = true;
 		}
 	} catch (e) {
@@ -386,9 +388,9 @@ declare global {
 	}
 }
 
-if (typeof globalThis.QUnit !== "undefined") {
+if (typeof oGlobalThis.QUnit !== "undefined") {
 	Utils.console.log("Using QUnit");
-	const QUnit = globalThis.QUnit;
+	const QUnit = oGlobalThis.QUnit;
 
 	QUnit.config.testTimeout = 5 * 1000;
 	QUnit.module("testParseExamples: Tests", function (/* hooks */) {

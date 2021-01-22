@@ -198,16 +198,6 @@ export class Diff {
 				}
 			};
 
-
-		/*
-		// We just compare atoms with default equals operator by default
-		if (equals === undefined) {
-			equals = function (a, b) {
-				return a === b;
-			};
-		}
-		*/
-
 		lcs(0, aA.length - 1, 0, aB.length - 1);
 		return lcsAtoms;
 	}

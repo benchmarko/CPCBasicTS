@@ -843,6 +843,12 @@ export class CodeGeneratorJs {
 		node.pv = sName + "(" + aNodeArgs.join(", ") + "); break;";
 		return node.pv;
 	}
+	private edit(node: CodeNode) {
+		const aNodeArgs = this.fnParseArgs(node.args);
+
+		node.pv = "o.edit(" + aNodeArgs.join(", ") + "); break;";
+		return node.pv;
+	}
 	private static "else"(node: CodeNode) { // similar to a comment, with unchecked tokens
 		const aArgs = node.args;
 		let	sValue = node.type;
@@ -1425,6 +1431,7 @@ export class CodeGeneratorJs {
 		defstr: this.defstr,
 		dim: this.dim,
 		"delete": this.delete,
+		edit: this.edit,
 		"else": CodeGeneratorJs.else,
 		end: this.end,
 		erase: this.erase,

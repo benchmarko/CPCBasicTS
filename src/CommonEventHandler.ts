@@ -150,24 +150,6 @@ export class CommonEventHandler implements EventListenerObject {
 		window.open("https://github.com/benchmarko/CPCBasicTS/#readme");
 	}
 
-	/*
-	private onInputTextClick() {
-		// nothing
-	}
-
-	private onOutputTextClick() {
-		// nothing
-	}
-
-	private onResultTextClick() {
-		// nothing
-	}
-
-	private onVarTextClick() {
-		// nothing
-	}
-	*/
-
 	private static onNothing() {
 		// nothing
 	}

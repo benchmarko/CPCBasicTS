@@ -332,8 +332,7 @@ export class BasicParser {
 					throw that.composeError(Error(), "Expected " + id, (oToken.value === "") ? oToken.type : oToken.value, oToken.pos);
 				}
 				if (iIndex >= aTokens.length) {
-					//oToken = oSymbols["(end)"]; //TTT
-					Utils.console.warn("advance: end of file"); //TTT
+					Utils.console.warn("advance: end of file");
 					if (aTokens.length && aTokens[aTokens.length - 1].type === "(end)") {
 						oToken = aTokens[aTokens.length - 1];
 					} else {
@@ -534,12 +533,21 @@ export class BasicParser {
 				return oValue;
 			},
 
+			fnChangeNumber2LineNumber = function (oNode: ParserNode) {
+				if (oNode.type === "number") {
+					oNode.type = "linenumber"; // change type: number => linenumber
+				} else {
+					throw that.composeError(Error(), "Expected number type", oNode.type, oNode.pos);
+				}
+			},
+
 			fnGetLineRange = function (sTypeFirstChar: string) { // l1 or l1-l2 or l1- or -l2 or nothing
 				let oLeft: ParserNode;
 
 				if (oToken.type === "number") {
 					oLeft = oToken;
 					advance("number");
+					fnChangeNumber2LineNumber(oLeft);
 				}
 
 				let oRange: ParserNode;
@@ -555,6 +563,7 @@ export class BasicParser {
 					if (oToken.type === "number") {
 						oRight = oToken;
 						advance("number");
+						fnChangeNumber2LineNumber(oRight);
 					}
 					if (!oLeft && !oRight) {
 						throw that.composeError(Error(), "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], oPreviousToken.value, oPreviousToken.pos);
@@ -564,6 +573,7 @@ export class BasicParser {
 					oRange.right = oRight || fnCreateDummyArg(null); // insert dummy for right (do not skip it)
 				} else if (oLeft) {
 					oRange = oLeft; // single line number
+					oRange.type = "linenumber"; // change type: number => linenumber
 				}
 
 				return oRange;
@@ -657,7 +667,7 @@ export class BasicParser {
 							if (oExpression.type !== "number") { // maybe an expression and no plain number
 								throw that.composeError(Error(), "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], oExpression.value, oExpression.pos);
 							}
-							oExpression.type = "linenumber"; // change type: number => linenumber
+							fnChangeNumber2LineNumber(oExpression);
 						} else if (sTypeFirstChar === "v") { // variable (identifier)
 							oExpression = expression(0);
 							if (oExpression.type !== "identifier") {
@@ -1339,10 +1349,6 @@ export class BasicParser {
 				} else {
 					aArgs = statements("else");
 				}
-			/*
-			} else {
-				aArgs = undefined;
-			*/
 			}
 			oValue.args2 = aArgs; // else statements
 			return oValue;

@@ -25,11 +25,7 @@ export class InputStack {
 		this.aInput.push(sInput);
 		this.iStackPosition += 1;
 	}
-	/*
-	canUndo(): boolean {
-		return this.iStackPosition >= 0;
-	}
-	*/
+
 	canUndoKeepOne(): boolean {
 		return this.iStackPosition > 0;
 	}

@@ -117,8 +117,7 @@ export class DiskImage {
 			iAl0: 0xc0, // bit significant representation of reserved directory blocks 0..7 (0x80=0, 0xc00=0 and 1,,...)
 			iAl1: 0x00, // bit significant representation of reserved directory blocks 8..15 (0x80=8,...)
 			iOff: 0 // number of reserved tracks (also the track where the directory starts)
-		} as FormatDescriptor,
-
+		},
 		// double sided data
 		data2: {
 			sParentRef: "data",
@@ -357,21 +356,22 @@ export class DiskImage {
 	// ...
 
 	private getFormatDescriptor(sFormat: string) {
-		let oFormat = DiskImage.mFormatDescriptors[sFormat];
+		const oDerivedFormat = DiskImage.mFormatDescriptors[sFormat];
 
-		if (!oFormat) {
+		if (!oDerivedFormat) {
 			throw this.composeError(Error(), "Dsk: Unknown format", sFormat);
 		}
 
-		if (oFormat.sParentRef) {
-			const oParentFormat = this.getFormatDescriptor(oFormat.sParentRef); // recursive
+		let oFormat: FormatDescriptor;
 
-			oFormat = Object.assign({}, oParentFormat, oFormat);
+		if (oDerivedFormat.sParentRef) {
+			const oParentFormat = this.getFormatDescriptor(oDerivedFormat.sParentRef); // recursive
+
+			oFormat = Object.assign({}, oParentFormat, oDerivedFormat);
 		} else {
-			oFormat = Object.assign({}, oFormat);
+			oFormat = Object.assign({}, oDerivedFormat); // get a copy
 		}
-		oFormat.sFormat = sFormat;
-		return oFormat as FormatDescriptor; //TTT
+		return oFormat;
 	}
 
 	private	determineFormat() {
@@ -399,7 +399,7 @@ export class DiskImage {
 			sFormat = "data";
 		} else if (iFirstSector === 0x41) {
 			sFormat = "system";
-		} else if ((iFirstSector === 0x01) && (oDiskInfo.iTracks === 80)) { // big780k TTT
+		} else if ((iFirstSector === 0x01) && (oDiskInfo.iTracks === 80)) { // big780k
 			sFormat = "big780k";
 		} else {
 			throw this.composeError(Error(), "Dsk: Unknown format with sector", iFirstSector);
@@ -424,7 +424,7 @@ export class DiskImage {
 	}
 
 	private static fnUnpackFtypeFlags(oExtent: ExtentEntry, sExt: string) {
-		const aFTypes = [ //TTT maybe set directly
+		const aFTypes = [
 			"bReadOnly",
 			"bSystem",
 			"bBackup" // not known

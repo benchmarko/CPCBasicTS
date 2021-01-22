@@ -37,12 +37,6 @@ class cpcBasic { // eslint-disable-line vars-on-top
 	static view: View;
 	static controller: Controller;
 
-	/*
-	static getConfig() {
-		return cpcBasic.config;
-	}
-	*/
-
 	static fnHereDoc(fn: () => void) {
 		return String(fn).
 			replace(/^[^/]+\/\*\S*/, "").

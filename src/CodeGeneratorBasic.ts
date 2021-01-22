@@ -62,13 +62,7 @@ export class CodeGeneratorBasic {
 		return Utils.composeError.apply(null, aArgs) as CustomError;
 	}
 
-	/*
-	//
 	// evaluate
-	//
-	private evaluate(parseTree: ParserNode[]) {
-		const that = this,
-	*/
 
 	private fnParseOneArg(oArg: ParserNode) {
 		const sValue = this.parseNode(oArg); // eslint-disable-line no-use-before-define

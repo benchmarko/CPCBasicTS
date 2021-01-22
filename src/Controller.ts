@@ -14,7 +14,7 @@ import { CodeGeneratorBasic } from "./CodeGeneratorBasic";
 import { CodeGeneratorJs } from "./CodeGeneratorJs";
 import { CommonEventHandler } from "./CommonEventHandler";
 import { cpcCharset } from "./cpcCharset";
-import { CpcVm, StopEntry, StopParas } from "./CpcVm";
+import { CpcVm, FileMeta, StopEntry, StopParas } from "./CpcVm";
 import { CpcVmRsx } from "./CpcVmRsx";
 import { Diff } from "./Diff";
 import { DiskImage, AmsdosHeader } from "./DiskImage";
@@ -27,6 +27,7 @@ import { View, SelectOptionElement } from "./View";
 
 import { ZipFile } from "./ZipFile";
 
+/*
 interface FileMeta {
 	sType?: string
 	iStart?: number
@@ -34,6 +35,7 @@ interface FileMeta {
 	iEntry?: number
 	sEncoding?: string
 }
+*/
 
 interface FileMetaAndData {
 	oMeta: FileMeta
@@ -739,11 +741,6 @@ export class Controller implements IController {
 			if (aParts.length === 2) {
 				aDir[i] = aParts[0].padEnd(8, " ") + "." + aParts[1].padEnd(3, " ");
 			}
-			/*
-			 else {
-				Utils.console.warn("fnPrintDirectoryEntries: Wrong entry:", aDir[i]); // maybe other data, is using local page
-			}
-			*/
 		}
 
 		if (bSort) {
@@ -1331,7 +1328,6 @@ export class Controller implements IController {
 		}
 		this.oVm.vmGotoLine(0); // reset current line
 		oVm.vmStop("end", 0, true);
-		//return oOutput;
 	}
 
 	private fnEditLineCallback() {
@@ -1436,25 +1432,20 @@ export class Controller implements IController {
 		oCodeGeneratorBasic.reset();
 
 		const oOutput = oCodeGeneratorBasic.generate(sInput);
-		let sOutput: string;
 
 		if (oOutput.error) {
-			sOutput = this.outputError(oOutput.error);
+			this.outputError(oOutput.error);
 		} else {
-			sOutput = oOutput.text;
+			const sOutput = oOutput.text;
 
 			this.fnPutChangedInputOnStack();
 			this.setInputText(sOutput, true);
 			this.fnPutChangedInputOnStack();
 
-			const sDiff = Diff.testDiff(sInput.toUpperCase(), sOutput.toUpperCase()); //TTT: for testing
+			const sDiff = Diff.testDiff(sInput.toUpperCase(), sOutput.toUpperCase()); // for testing
 
 			this.view.setAreaValue("outputText", sDiff);
 		}
-		if (sOutput && sOutput.length > 0) {
-			sOutput += "\n";
-		}
-		//TTT need sOutput?
 	}
 
 	private selectJsError(sScript: string, e) {
@@ -1697,16 +1688,13 @@ export class Controller implements IController {
 	}
 
 	fnBreak() {
-		// empty
-
-		//TTT
-		/*
+		/* TTT
 		this.oRunLoop = new this.RunLoop(this);
 		this.oRunLoop.fnTest("msg1");
 		*/
 		/*
 		if (this.oRunLoop.fnTest) {
-			this.oRunLoop.fnTest("ok1"); //TTT
+			this.oRunLoop.fnTest("ok1");
 		}
 		*/
 	}
@@ -2212,7 +2200,6 @@ export class Controller implements IController {
 		}
 	}
 
-	// TTT
 	startUpdateCanvas(): void {
 		this.oCanvas.startUpdateCanvas();
 	}
@@ -2322,7 +2309,7 @@ export class Controller implements IController {
 	}
 
 	// currently not used. Can be called manually: cpcBasic.controller.exportAsBase64(file);
-	static exportAsBase64(sStorageName: string): string { //TTT
+	static exportAsBase64(sStorageName: string): string {
 		const oStorage = Utils.localStorage;
 		let sData = oStorage.getItem(sStorageName),
 			sOut = "";

@@ -1,6 +1,5 @@
 // BasicParser.qunit.ts - QUnit tests for CPCBasic BasicParser
 //
-/* xxxglobals QUnit */
 
 const bGenerateAllResults = false;
 
@@ -13,29 +12,23 @@ type TestsType = {[k in string]: string};
 
 type AllTestsType = {[k in string]: TestsType};
 
-/*
-declare global {
-    interface Window { QUnit: QUnit; }
-}
-*/
-
 QUnit.dump.maxDepth = 10;
 
 QUnit.module("BasicParser: Tests", function () {
 	const mAllTests: AllTestsType = { // eslint-disable-line vars-on-top
 		LIST: {
 			"1 LIST": '[{"type":"label","value":"1","pos":0,"args":[{"type":"list","value":"LIST","pos":2,"args":[]}]}]',
-			"2 LIST 10": '[{"type":"label","value":"2","pos":0,"args":[{"type":"list","value":"LIST","pos":2,"args":[{"type":"number","value":"10","pos":7},{"type":"#","value":"#","len":0,"pos":null,"right":{"type":"null","value":null,"len":0,"pos":null}}]}]}]',
-			"3 LIST 2-": '[{"type":"label","value":"3","pos":0,"args":[{"type":"list","value":"LIST","pos":2,"args":[{"type":"linerange","value":"-","pos":8,"left":{"type":"number","value":"2","pos":7},"right":{"type":"null","value":null,"len":0,"pos":null}},{"type":"#","value":"#","len":0,"pos":null,"right":{"type":"null","value":null,"len":0,"pos":null}}]}]}]',
-			"4 LIST -2": '[{"type":"label","value":"4","pos":0,"args":[{"type":"list","value":"LIST","pos":2,"args":[{"type":"linerange","value":"-","pos":7,"left":{"type":"null","value":null,"len":0,"pos":null},"right":{"type":"number","value":"2","pos":8}},{"type":"#","value":"#","len":0,"pos":null,"right":{"type":"null","value":null,"len":0,"pos":null}}]}]}]',
-			"5 LIST 2-3": '[{"type":"label","value":"5","pos":0,"args":[{"type":"list","value":"LIST","pos":2,"args":[{"type":"linerange","value":"-","pos":8,"left":{"type":"number","value":"2","pos":7},"right":{"type":"number","value":"3","pos":9}},{"type":"#","value":"#","len":0,"pos":null,"right":{"type":"null","value":null,"len":0,"pos":null}}]}]}]',
+			"2 LIST 10": '[{"type":"label","value":"2","pos":0,"args":[{"type":"list","value":"LIST","pos":2,"args":[{"type":"linenumber","value":"10","pos":7},{"type":"#","value":"#","len":0,"pos":null,"right":{"type":"null","value":null,"len":0,"pos":null}}]}]}]',
+			"3 LIST 2-": '[{"type":"label","value":"3","pos":0,"args":[{"type":"list","value":"LIST","pos":2,"args":[{"type":"linerange","value":"-","pos":8,"left":{"type":"linenumber","value":"2","pos":7},"right":{"type":"null","value":null,"len":0,"pos":null}},{"type":"#","value":"#","len":0,"pos":null,"right":{"type":"null","value":null,"len":0,"pos":null}}]}]}]',
+			"4 LIST -2": '[{"type":"label","value":"4","pos":0,"args":[{"type":"list","value":"LIST","pos":2,"args":[{"type":"linerange","value":"-","pos":7,"left":{"type":"null","value":null,"len":0,"pos":null},"right":{"type":"linenumber","value":"2","pos":8}},{"type":"#","value":"#","len":0,"pos":null,"right":{"type":"null","value":null,"len":0,"pos":null}}]}]}]',
+			"5 LIST 2-3": '[{"type":"label","value":"5","pos":0,"args":[{"type":"list","value":"LIST","pos":2,"args":[{"type":"linerange","value":"-","pos":8,"left":{"type":"linenumber","value":"2","pos":7},"right":{"type":"linenumber","value":"3","pos":9}},{"type":"#","value":"#","len":0,"pos":null,"right":{"type":"null","value":null,"len":0,"pos":null}}]}]}]',
 			"6 LIST #2": '[{"type":"label","value":"6","pos":0,"args":[{"type":"list","value":"LIST","pos":2,"args":[{"type":"null","value":null,"len":0,"pos":null},{"type":"#","value":"#","pos":7,"right":{"type":"number","value":"2","pos":8}}]}]}]',
 			"7 LIST ,#2": '[{"type":"label","value":"7","pos":0,"args":[{"type":"list","value":"LIST","pos":2,"args":[{"type":"null","value":null,"len":0,"pos":null},{"type":"#","value":"#","pos":8,"right":{"type":"number","value":"2","pos":9}}]}]}]',
-			"8 LIST 10,#2": '[{"type":"label","value":"8","pos":0,"args":[{"type":"list","value":"LIST","pos":2,"args":[{"type":"number","value":"10","pos":7},{"type":"#","value":"#","pos":10,"right":{"type":"number","value":"2","pos":11}}]}]}]',
-			"9 LIST 1-,#2": '[{"type":"label","value":"9","pos":0,"args":[{"type":"list","value":"LIST","pos":2,"args":[{"type":"linerange","value":"-","pos":8,"left":{"type":"number","value":"1","pos":7},"right":{"type":"null","value":null,"len":0,"pos":null}},{"type":"#","value":"#","pos":10,"right":{"type":"number","value":"2","pos":11}}]}]}]',
-			"1 LIST -1,#2": '[{"type":"label","value":"1","pos":0,"args":[{"type":"list","value":"LIST","pos":2,"args":[{"type":"linerange","value":"-","pos":7,"left":{"type":"null","value":null,"len":0,"pos":null},"right":{"type":"number","value":"1","pos":8}},{"type":"#","value":"#","pos":10,"right":{"type":"number","value":"2","pos":11}}]}]}]',
-			"2 LIST 1-2,#3": '[{"type":"label","value":"2","pos":0,"args":[{"type":"list","value":"LIST","pos":2,"args":[{"type":"linerange","value":"-","pos":8,"left":{"type":"number","value":"1","pos":7},"right":{"type":"number","value":"2","pos":9}},{"type":"#","value":"#","pos":11,"right":{"type":"number","value":"3","pos":12}}]}]}]',
-			"3 LIST 2-3,#4": '[{"type":"label","value":"3","pos":0,"args":[{"type":"list","value":"LIST","pos":2,"args":[{"type":"linerange","value":"-","pos":8,"left":{"type":"number","value":"2","pos":7},"right":{"type":"number","value":"3","pos":9}},{"type":"#","value":"#","pos":11,"right":{"type":"number","value":"4","pos":12}}]}]}]'
+			"8 LIST 10,#2": '[{"type":"label","value":"8","pos":0,"args":[{"type":"list","value":"LIST","pos":2,"args":[{"type":"linenumber","value":"10","pos":7},{"type":"#","value":"#","pos":10,"right":{"type":"number","value":"2","pos":11}}]}]}]',
+			"9 LIST 1-,#2": '[{"type":"label","value":"9","pos":0,"args":[{"type":"list","value":"LIST","pos":2,"args":[{"type":"linerange","value":"-","pos":8,"left":{"type":"linenumber","value":"1","pos":7},"right":{"type":"null","value":null,"len":0,"pos":null}},{"type":"#","value":"#","pos":10,"right":{"type":"number","value":"2","pos":11}}]}]}]',
+			"1 LIST -1,#2": '[{"type":"label","value":"1","pos":0,"args":[{"type":"list","value":"LIST","pos":2,"args":[{"type":"linerange","value":"-","pos":7,"left":{"type":"null","value":null,"len":0,"pos":null},"right":{"type":"linenumber","value":"1","pos":8}},{"type":"#","value":"#","pos":10,"right":{"type":"number","value":"2","pos":11}}]}]}]',
+			"2 LIST 1-2,#3": '[{"type":"label","value":"2","pos":0,"args":[{"type":"list","value":"LIST","pos":2,"args":[{"type":"linerange","value":"-","pos":8,"left":{"type":"linenumber","value":"1","pos":7},"right":{"type":"linenumber","value":"2","pos":9}},{"type":"#","value":"#","pos":11,"right":{"type":"number","value":"3","pos":12}}]}]}]',
+			"3 LIST 2-3,#4": '[{"type":"label","value":"3","pos":0,"args":[{"type":"list","value":"LIST","pos":2,"args":[{"type":"linerange","value":"-","pos":8,"left":{"type":"linenumber","value":"2","pos":7},"right":{"type":"linenumber","value":"3","pos":9}},{"type":"#","value":"#","pos":11,"right":{"type":"number","value":"4","pos":12}}]}]}]'
 		}
 	};
 

@@ -578,25 +578,6 @@ if (!window.requestAnimationFrame) { // IE9, SliTaz tazweb browser
 
 if (!window.Uint8Array) { // IE9
 	Utils.console.debug("Polyfill: Uint8Array (fallback only)");
-	/*
-	(function () {
-		function myUint8ArrayConstructor(oArrayBuffer) {
-			return oArrayBuffer; // we just return the ArrayBuffer as fallback; enough for our needs
-		};
-
-		myUint8ArrayConstructor.BYTES_PER_ELEMENT = 1;
-		myUint8ArrayConstructor.of = function () {
-			Utils.console.error("Uint8Array.of: not implemented");
-			return this;
-		};
-		myUint8ArrayConstructor.from = function () {
-			Utils.console.error("Uint8Array.from: not implemented");
-			return this;
-		};
-		window.Uint8Array = myUint8ArrayConstructor;
-		// A more complex solution would be: https://github.com/inexorabletash/polyfill/blob/master/typedarray.js
-	}());
-	*/
 	(window as any).Uint8Array = function (oArrayBuffer) {
 		return oArrayBuffer; // we just return the ArrayBuffer as fallback; enough for our needs
 	};

@@ -40,12 +40,13 @@ export class BasicFormatter {
 
 	private composeError(...aArgs) { // eslint-disable-line class-methods-use-this
 		aArgs.unshift("BasicFormatter");
+		aArgs.push(this.iLine);
 		return Utils.composeError.apply(null, aArgs);
 	}
 
 	// renumber
 
-	private fnCreateLineNumbersMap(aParseTree: ParserNode[]) { // create line numbers map
+	private fnCreateLineNumbersMap(aNodes: ParserNode[]) { // create line numbers map
 		const oLines: LinesType = {}; // line numbers
 		let iLastLine = 0;
 
@@ -54,13 +55,14 @@ export class BasicFormatter {
 			pos: undefined,
 			len: undefined
 		};
-		for (let i = 0; i < aParseTree.length; i += 1) {
-			const oNode = aParseTree[i];
+		for (let i = 0; i < aNodes.length; i += 1) {
+			const oNode = aNodes[i];
 
 			if (oNode.type === "label") {
 				const sLine = oNode.value,
 					iLine = Number(oNode.value);
 
+				this.iLine = iLine;
 				if (sLine in oLines) {
 					throw this.composeError(Error(), "Duplicate line number", sLine, oNode.pos);
 				}
@@ -101,7 +103,12 @@ export class BasicFormatter {
 		for (let i = 0; i < aNodes.length; i += 1) {
 			const oNode = aNodes[i];
 
-			addSingleReference(oNode);
+			if (oNode.type === "label") {
+				this.iLine = Number(oNode.value); // for error messages
+			} else {
+				addSingleReference(oNode);
+			}
+
 			if (oNode.left) {
 				addSingleReference(oNode.left);
 			}
@@ -111,7 +118,7 @@ export class BasicFormatter {
 			if (oNode.args) {
 				this.fnAddReferences(oNode.args, oLines, aRefs);
 			}
-			if (oNode.args2) { // else
+			if (oNode.args2) { // for "ELSE"
 				this.fnAddReferences(oNode.args2, oLines, aRefs);
 			}
 		}

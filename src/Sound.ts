@@ -534,12 +534,6 @@ export class Sound {
 		return iSq;
 	}
 
-	/*
-	private isSoundOn() {
-		return this.bIsSoundOn;
-	}
-	*/
-
 	setActivatedByUser(): void {
 		this.bIsActivatedByUser = true;
 	}

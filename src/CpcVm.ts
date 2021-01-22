@@ -19,6 +19,14 @@ interface CpcVmOptions {
 	tron: boolean
 }
 
+export interface FileMeta {
+	sType?: string
+	iStart?: number
+	iLength?: number
+	iEntry?: number
+	sEncoding?: string
+}
+
 interface FileBase {
 	bOpen: boolean
 	sCommand: string
@@ -159,7 +167,7 @@ export class CpcVm {
 	iTimeUntilFrame: number;
 	iStopCount: number;
 
-	iLine: string | number; //TTT
+	iLine: string | number;
 	iStartLine: number;
 
 	iErrorGotoLine: number;
@@ -170,7 +178,7 @@ export class CpcVm {
 	sOut: string;
 
 	iErr: number; // last error code
-	iErl: string | number; //TTT line of last error
+	iErl: string | number; // line of last error
 
 	bDeg: boolean; // degree or radians
 
@@ -439,14 +447,14 @@ export class CpcVm {
 
 		this.aTimer = []; // BASIC timer 0..3 (3 has highest priority)
 		for (let i = 0; i < CpcVm.iTimerCount; i += 1) {
-			this.aTimer[i] = {} as TimerEntry; //TTT
+			this.aTimer[i] = {} as TimerEntry;
 		}
 
 		this.aSoundData = [];
 
 		this.aSqTimer = []; // Sound queue timer 0..2
 		for (let i = 0; i < CpcVm.iSqTimerCount; i += 1) {
-			this.aSqTimer[i] = {} as TimerEntry; //TTT
+			this.aSqTimer[i] = {} as TimerEntry;
 		}
 
 		this.aCrtcData = [];
@@ -580,10 +588,6 @@ export class CpcVm {
 		let	oWin: WindowData;
 
 		if (bResetPenPaper) {
-			/*
-			oData.iPen = 1;
-			oData.iPaper = 0;
-			*/
 			Object.assign(oData, oPenPaperData);
 		}
 
@@ -652,7 +656,7 @@ export class CpcVm {
 
 		if (this.iBreakGosubLine > 0) { // on break gosub n
 			if (!this.iBreakResumeLine) { // do not nest break gosub
-				this.iBreakResumeLine = Number(this.iLine); //TTT
+				this.iBreakResumeLine = Number(this.iLine);
 				this.gosub(this.iLine, this.iBreakGosubLine);
 			}
 			bStop = false;
@@ -999,7 +1003,7 @@ export class CpcVm {
 		return this.aSoundData;
 	}
 
-	vmTrace(iLine): void {
+	vmTrace(iLine: number): void {
 		const iStream = 0;
 
 		this.iTronLine = iLine;
@@ -1733,18 +1737,19 @@ export class CpcVm {
 		return iEof;
 	}
 
-	vmFindArrayVariable(sName: string): string {
+	private vmFindArrayVariable(sName: string): string {
 		sName += "A";
 		if (this.oVariables.variableExist(sName)) { // one dim array variable?
 			return sName;
 		}
 
 		// find multi-dim array variable
+		const fnArrayVarFilter = function (sVar: string) {
+			return (sVar.indexOf(sName) === 0) ? sVar : null; // find array varA
+		};
 		let aNames = this.oVariables.getAllVariableNames();
 
-		aNames = aNames.filter(function (sVar) {
-			return (sVar.indexOf(sName) === 0) ? sVar : null; // find array varA
-		});
+		aNames = aNames.filter(fnArrayVarFilter); // find array varA... with any number of indices
 		return aNames[0]; // we should find exactly one
 	}
 
@@ -1762,7 +1767,7 @@ export class CpcVm {
 	}
 
 	erl(): number {
-		const iErl = parseInt(String(this.iErl), 10); //TTT in cpcBasic we have an error label here, so return number only
+		const iErl = parseInt(String(this.iErl), 10); // in cpcBasic we have an error label here, so return number only
 
 		return iErl || 0;
 	}
@@ -1907,7 +1912,7 @@ export class CpcVm {
 	}
 
 	inp(iPort: number): number {
-		const iByte = 255; //TTT
+		const iByte = 255; // we return always the same
 
 		iPort = this.vmInRangeRound(iPort, -32768, 65535, "INP");
 		if (iPort < 0) { // 2nd complement of 16 bit address?
@@ -1971,75 +1976,82 @@ export class CpcVm {
 		return bInputOk;
 	}
 
+	private fnFileInputGetString(aFileData: string[]) {
+		let sLine = aFileData[0].replace(/^\s+/, ""), // remove preceding whitespace
+			value: string;
+
+		if (sLine.charAt(0) === '"') { // quoted string?
+			const iIndex = sLine.indexOf('"', 1); // closing quotes in this line?
+
+			if (iIndex >= 0) {
+				value = sLine.substr(1, iIndex - 1); // take string without quotes
+				sLine = sLine.substr(iIndex + 1);
+				sLine = sLine.replace(/^\s*,/, ""); // multiple args => remove next comma
+			} else if (aFileData.length > 1) { // no closing quotes in this line => try to combine with next line
+				aFileData.shift(); // remove line
+				sLine += "\n" + aFileData[0]; // combine lines
+			} else {
+				throw this.vmComposeError(Error(), 13, "INPUT #9: no closing quotes" + value);
+			}
+		} else { // unquoted string
+			const iIndex = sLine.indexOf(","); // multiple args?
+
+			if (iIndex >= 0) {
+				value = sLine.substr(0, iIndex); // take arg
+				sLine = sLine.substr(iIndex + 1);
+			} else {
+				value = sLine; // take line
+				sLine = "";
+			}
+		}
+
+		aFileData[0] = sLine;
+		return value;
+	}
+
+	private fnFileInputGetNumber(aFileData: string[]) {
+		let sLine = aFileData[0].replace(/^\s+/, ""), // remove preceding whitespace
+			iIndex = sLine.indexOf(","), // multiple args?
+			value: string;
+
+		if (iIndex >= 0) {
+			value = sLine.substr(0, iIndex); // take arg
+			sLine = sLine.substr(iIndex + 1);
+		} else {
+			iIndex = sLine.indexOf(" "); // space?
+			if (iIndex >= 0) {
+				value = sLine.substr(0, iIndex); // take item until space
+				sLine = sLine.substr(iIndex);
+				sLine = sLine.replace(/^\s*/, ""); // remove spaces after number
+			} else {
+				value = sLine; // take line
+				sLine = "";
+			}
+		}
+
+		const nValue = CpcVm.vmVal(value); // convert to number (also binary, hex)
+
+		if (isNaN(nValue)) { // eslint-disable-line max-depth
+			throw this.vmComposeError(Error(), 13, "INPUT #9 " + nValue + ": " + value); // Type mismatch
+		}
+
+		aFileData[0] = sLine;
+		return nValue;
+	}
+
 	private vmInputNextFileItem(sType: string) {
-		const that = this,
-			aFileData = this.oInFile.aFileData;
-
-		let	sLine: string, iIndex: number, value;
-
-		const fnGetString = function () {
-				if (sLine.charAt(0) === '"') { // quoted string?
-					iIndex = sLine.indexOf('"', 1); // closing quotes in this line?
-					if (iIndex >= 0) {
-						value = sLine.substr(1, iIndex - 1); // take string without quotes
-						sLine = sLine.substr(iIndex + 1);
-						sLine = sLine.replace(/^\s*,/, ""); // multiple args => remove next comma
-					} else if (aFileData.length > 1) { // no closing quotes in this line => try to combine with next line
-						aFileData.shift(); // remove line
-						sLine += "\n" + aFileData[0]; // combine lines
-					} else {
-						throw that.vmComposeError(Error(), 13, "INPUT #9: no closing quotes" + value); // TTT
-					}
-				} else { // unquoted string
-					iIndex = sLine.indexOf(","); // multiple args?
-					if (iIndex >= 0) {
-						value = sLine.substr(0, iIndex); // take arg
-						sLine = sLine.substr(iIndex + 1);
-					} else {
-						value = sLine; // take line
-						sLine = "";
-					}
-				}
-				return value;
-			},
-			fnGetNumber = function () {
-				iIndex = sLine.indexOf(","); // multiple args?
-				if (iIndex >= 0) {
-					value = sLine.substr(0, iIndex); // take arg
-					sLine = sLine.substr(iIndex + 1);
-				} else {
-					iIndex = sLine.indexOf(" "); // space?
-					if (iIndex >= 0) {
-						value = sLine.substr(0, iIndex); // take item until space
-						sLine = sLine.substr(iIndex);
-						sLine = sLine.replace(/^\s*/, ""); // remove spaces after number
-					} else {
-						value = sLine; // take line
-						sLine = "";
-					}
-				}
-
-				const nValue = CpcVm.vmVal(value); // convert to number (also binary, hex)
-
-				if (isNaN(nValue)) { // eslint-disable-line max-depth
-					throw that.vmComposeError(Error(), 13, "INPUT #9 " + nValue + ": " + value); // Type mismatch
-				}
-				return nValue;
-			};
+		const aFileData = this.oInFile.aFileData;
+		let value: string |number;
 
 		while (aFileData.length && value === undefined) {
-			sLine = aFileData[0];
-			sLine = sLine.replace(/^\s+/, ""); // remove preceding whitespace
 			if (sType === "$") {
-				value = fnGetString();
-			} else { // number type sLine.length TTT
-				value = fnGetNumber();
+				value = this.fnFileInputGetString(aFileData);
+			} else { // number type
+				value = this.fnFileInputGetNumber(aFileData);
 			}
 
-			if (sLine.length) {
-				aFileData[0] = sLine;
-			} else {
-				aFileData.shift(); // remove line
+			if (!aFileData[0].length) {
+				aFileData.shift(); // remove empty line
 			}
 		}
 		return value;
@@ -2207,7 +2219,7 @@ export class CpcVm {
 		});
 	}
 
-	vmLoadCallback(sInput: string, oMeta): boolean {
+	vmLoadCallback(sInput: string, oMeta: FileMeta): boolean {
 		const oInFile = this.oInFile;
 
 		let	bPutInMemory = false;
@@ -2281,14 +2293,14 @@ export class CpcVm {
 		return Math.log10(n);
 	}
 
+	private static fnLowerCase(sMatch: string) {
+		return sMatch.toLowerCase();
+	}
+
 	lower$(s: string): string {
 		this.vmAssertString(s, "LOWER$");
 
-		const fnLowerCase = function (sMatch: string) {
-			return sMatch.toLowerCase();
-		};
-
-		s = s.replace(/[A-Z]/g, fnLowerCase); // replace only characters A-Z
+		s = s.replace(/[A-Z]/g, CpcVm.fnLowerCase); // replace only characters A-Z
 		return s;
 	}
 
@@ -2419,7 +2431,7 @@ export class CpcVm {
 	onGosub(retLabel: string, n: number, ...aArgs: number[]): void {
 		n = this.vmInRangeRound(n, 0, 255, "ON GOSUB");
 
-		let iLine; //: string;
+		let iLine: string | number;
 
 		if (!n || n > aArgs.length) { // out of range? => continue with line after onGosub
 			if (Utils.debug > 0) {
@@ -2436,7 +2448,7 @@ export class CpcVm {
 	onGoto(retLabel: string, n: number, ...aArgs: number[]): void {
 		n = this.vmInRangeRound(n, 0, 255, "ON GOTO");
 
-		let iLine; //: string;
+		let iLine: string | number;
 
 		if (!n || n > aArgs.length) { // out of range? => continue with line after onGoto
 			if (Utils.debug > 0) {
@@ -3275,7 +3287,7 @@ export class CpcVm {
 		return Number(Math.round(Number(n + "e" + iDecimals)) + "e" + ((iDecimals >= 0) ? "-" + iDecimals : "+" + -iDecimals));
 	}
 
-	private vmRunCallback(sInput: string, oMeta) {
+	private vmRunCallback(sInput: string, oMeta: FileMeta) {
 		const oInFile = this.oInFile,
 			bPutInMemory = sInput !== null && oMeta && (oMeta.sType === "B" || oInFile.iStart !== undefined);
 
@@ -3651,14 +3663,14 @@ export class CpcVm {
 		return n;
 	}
 
+	private static fnUpperCase(sMatch: string) {
+		return sMatch.toUpperCase();
+	}
+
 	upper$(s: string): string {
 		this.vmAssertString(s, "UPPER$");
 
-		const fnUpperCase = function (sMatch: string) {
-			return sMatch.toUpperCase();
-		};
-
-		s = s.replace(/[a-z]/g, fnUpperCase); // replace only characters a-z
+		s = s.replace(/[a-z]/g, CpcVm.fnUpperCase); // replace only characters a-z
 		return s;
 	}
 
