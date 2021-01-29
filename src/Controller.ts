@@ -61,7 +61,7 @@ export class Controller implements IController {
 
 	oVariables: Variables;
 
-	oBasicFormatter: BasicFormatter;
+	oBasicFormatter?: BasicFormatter;
 
 	oBasicTokenizer: BasicTokenizer;
 	model: Model;
@@ -91,10 +91,8 @@ export class Controller implements IController {
 		this.fnOnEscapeHandler = this.fnOnEscape.bind(this);
 		this.fnDirectInputHandler = this.fnDirectInput.bind(this);
 		this.fnPutKeyInBufferHandler = this.fnPutKeyInBuffer.bind(this);
-		this.init(oModel, oView);
-	}
 
-	init(oModel: Model, oView: View): void {
+
 		this.fnScript = undefined;
 
 		this.bTimeoutHandlerActive = false;
@@ -365,7 +363,7 @@ export class Controller implements IController {
 				let oExample = this.model.getExample(sKey);
 
 				if (!oExample) {
-					const sData = oStorage.getItem(sKey),
+					const sData = oStorage.getItem(sKey) || "",
 						oData = Controller.splitMeta(sData);
 
 					oExample = {
@@ -2186,7 +2184,7 @@ export class Controller implements IController {
 	}
 
 	private fnInitUndoRedoButtons() {
-		this.inputStack.init();
+		this.inputStack.reset();
 		this.fnUpdateUndoRedoButtons();
 	}
 

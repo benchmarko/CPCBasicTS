@@ -71,7 +71,7 @@ interface WindowData extends WindowDimensions {
 
 interface TimerEntry {
 	bActive: boolean
-	iLine: number | string
+	iLine: number
 	bRepeat: boolean
 	iIntervalMs: number
 	iNextTimeMs: number
@@ -752,7 +752,7 @@ export class CpcVm {
 
 				// use oSound.sq(i) and not this.sq(i) since that would reset onSq timer
 				if (oTimer.bActive && !oTimer.bHandlerRunning && (this.oSound.sq(i) & 0x07)) { // eslint-disable-line no-bitwise
-					this.gosub(this.iLine, oTimer.iLine as any); //TTT
+					this.gosub(this.iLine, oTimer.iLine);
 					oTimer.bHandlerRunning = true;
 					oTimer.iStackIndexReturn = this.aGosubStack.length;
 					oTimer.bRepeat = false; // one shot
@@ -771,7 +771,7 @@ export class CpcVm {
 			const oTimer = this.aTimer[i];
 
 			if (oTimer.bActive && !oTimer.bHandlerRunning && iTime > oTimer.iNextTimeMs) { // timer expired?
-				this.gosub(this.iLine, oTimer.iLine as any); //TTT
+				this.gosub(this.iLine, oTimer.iLine);
 				oTimer.bHandlerRunning = true;
 				oTimer.iStackIndexReturn = this.aGosubStack.length;
 				oTimer.iSavedPriority = this.iTimerPriority;

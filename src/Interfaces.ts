@@ -8,7 +8,7 @@ import { CustomError } from "./Utils";
 
 export interface IOutput {
     text: string
-    error: CustomError
+    error?: CustomError
 }
 
 export interface IController {
@@ -39,7 +39,7 @@ export interface IController {
     startUpdateCanvas: () => void
     stopUpdateCanvas: () => void
     virtualKeyboardCreate: () => void
-    getVariable: (sPar: string) => any
+    getVariable: (sPar: string) => string | number | object // see VariableValue in Variables.ts
 
     undoStackElement: () => string
     redoStackElement: () => string

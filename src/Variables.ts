@@ -14,13 +14,16 @@ export class Variables {
 	oVarTypes: VariableTypeMap; // default variable types for variables starting with letters a-z
 
 	constructor() {
-		this.init();
-	}
-
-	init(): void {
 		this.oVariables = {};
 		this.oVarTypes = {}; // default variable types for variables starting with letters a-z
 	}
+
+	/*
+	private init(): void {
+		this.oVariables = {};
+		this.oVarTypes = {}; // default variable types for variables starting with letters a-z
+	}
+	*/
 
 	removeAllVariables(): void {
 		const oVariables = this.oVariables;
@@ -30,7 +33,7 @@ export class Variables {
 		}
 	}
 
-	getAllVariables() {
+	getAllVariables(): VariableMap {
 		return this.oVariables;
 	}
 

@@ -14,7 +14,16 @@ export interface DiskImageOptions {
 }
 
 interface SectorInfo {
+	iTrack: number
+	iHead: number
+	iSector: number
+	iBps: number
+	iState1: number
+	iState2: number
+
+	iSectorSize: number
 	length: number
+	iDataPos: number
 }
 
 type SectorNum2IndexMap = { [k in number]: number };
@@ -29,7 +38,7 @@ interface TrackInfo {
 	iSpt: number
 	iGap3: number
 	iFill: number
-	aSectorInfo: SectorInfo
+	aSectorInfo: SectorInfo[]
 	iDataPos: number
 	oSectorNum2Index: SectorNum2IndexMap
 }
@@ -77,7 +86,10 @@ interface FormatDescriptor {
 	iAl0: number // bit significant representation of reserved directory blocks 0..7 (0x80=0, 0xc00=0 and 1,,...)
 	iAl1: number // bit significant representation of reserved directory blocks 8..15 (0x80=8,...)
 	iOff: number// number of reserved tracks (also the track where the directory starts)
+	sParentRef?: string // reference to parent format definition
 }
+
+type PartialFormatDescriptorMap = {[k in string]: Partial<FormatDescriptor>};
 
 export interface AmsdosHeader {
 	iUser: number
@@ -100,7 +112,7 @@ interface SectorPos {
 }
 
 export class DiskImage {
-	private static mFormatDescriptors = {
+	private static mFormatDescriptors: PartialFormatDescriptorMap = {
 		data: {
 			iTracks: 40, // number of tracks (1-85)
 			iHeads: 1, // number of heads/sides (1-2)
@@ -169,29 +181,33 @@ export class DiskImage {
 
 
 	constructor(oConfig: DiskImageOptions) {
-		this.init(oConfig);
-	}
-
-	init(oConfig: DiskImageOptions): void {
 		this.sDiskName = oConfig.sDiskName;
 		this.sData = oConfig.sData;
-		this.reset();
+
+		// reset
+		this.oDiskInfo = DiskImage.getInitialDiskInfo();
+		this.oFormat = DiskImage.getInitialFormat();
+	}
+
+	private static getInitialDiskInfo() {
+		return {
+			oTrackInfo: {
+				aSectorInfo: [] as SectorInfo[]
+			} /* as TrackInfo */
+		} as DiskInfo;
+	}
+
+	private static getInitialFormat() {
+		return {} as FormatDescriptor;
 	}
 
 	reset(): void {
-		this.oDiskInfo = {
-			oTrackInfo: {
-				aSectorInfo: [] as SectorInfo
-			} as TrackInfo
-		} as DiskInfo;
-
-		this.oFormat = {} as FormatDescriptor;
+		this.oDiskInfo = DiskImage.getInitialDiskInfo();
+		this.oFormat = DiskImage.getInitialFormat();
 	}
 
-	private composeError(...aArgs) { // varargs
-		aArgs[1] = this.sDiskName + ": " + aArgs[1]; // put DiskName in message
-		aArgs.unshift("DiskImage");
-		return Utils.composeError.apply(null, aArgs);
+	private composeError(oError: Error, message: string, value: string, pos?: number) {
+		return Utils.composeError("DiskImage", oError, this.sDiskName + ": " + message, value, pos);
 	}
 
 	static testDiskIdent(sIdent: string): number {
@@ -228,7 +244,7 @@ export class DiskImage {
 
 		oDiskInfo.bExtended = (DiskImage.testDiskIdent(sIdent) === 2);
 		if (oDiskInfo.bExtended === null) {
-			throw this.composeError(Error(), "Dsk: Ident not found");
+			throw this.composeError(Error(), "Dsk: Ident not found", sIdent);
 		}
 
 		oDiskInfo.sIdent = sIdent + this.readUtf(iPos + 8, 34 - 8); // read remaining ident
@@ -277,7 +293,7 @@ export class DiskImage {
 
 		aSectorInfo.length = oTrackInfo.iSpt;
 
-		const oSectorNum2Index = {};
+		const oSectorNum2Index: SectorNum2IndexMap = {};
 
 		oTrackInfo.oSectorNum2Index = oSectorNum2Index;
 
@@ -286,7 +302,7 @@ export class DiskImage {
 		let iSectorPos = oTrackInfo.iDataPos;
 
 		for (let i = 0; i < oTrackInfo.iSpt; i += 1) {
-			const oSectorInfo = aSectorInfo[i] || {}; // resue if possible
+			const oSectorInfo = aSectorInfo[i] || {} as SectorInfo; // resue SectorInfo object if possible
 
 			aSectorInfo[i] = oSectorInfo;
 
@@ -345,7 +361,7 @@ export class DiskImage {
 			iSectorIndex = this.sectorNum2Index(iSector);
 
 		if (iSectorIndex === undefined) {
-			throw this.composeError(Error(), "Dsk: Track " + oTrackInfo.iTrack + ": Sector not found", iSector, 0);
+			throw this.composeError(Error(), "Dsk: Track " + oTrackInfo.iTrack + ": Sector not found", String(iSector), 0);
 		}
 		const oSectorInfo = this.seekSector(iSectorIndex),
 			sOut = this.readUtf(oSectorInfo.iDataPos, oSectorInfo.iSectorSize);
@@ -369,7 +385,7 @@ export class DiskImage {
 
 			oFormat = Object.assign({}, oParentFormat, oDerivedFormat);
 		} else {
-			oFormat = Object.assign({}, oDerivedFormat); // get a copy
+			oFormat = Object.assign({} as FormatDescriptor, oDerivedFormat); // get a copy
 		}
 		return oFormat;
 	}
@@ -402,7 +418,7 @@ export class DiskImage {
 		} else if ((iFirstSector === 0x01) && (oDiskInfo.iTracks === 80)) { // big780k
 			sFormat = "big780k";
 		} else {
-			throw this.composeError(Error(), "Dsk: Unknown format with sector", iFirstSector);
+			throw this.composeError(Error(), "Dsk: Unknown format with sector", String(iFirstSector));
 		}
 
 		if (oDiskInfo.iHeads > 1) { // maybe 2
@@ -423,44 +439,25 @@ export class DiskImage {
 		return sOut;
 	}
 
-	private static fnUnpackFtypeFlags(oExtent: ExtentEntry, sExt: string) {
-		const aFTypes = [
-			"bReadOnly",
-			"bSystem",
-			"bBackup" // not known
-		];
-
-		for (let i = 0; i < aFTypes.length; i += 1) {
-			const sFType = aFTypes[i],
-				iChar = sExt.charCodeAt(i);
-
-			oExtent[sFType] = Boolean(iChar & 0x80); // eslint-disable-line no-bitwise
-		}
-	}
-
 	private readDirectoryExtents(aExtents: ExtentEntry[], iPos: number, iEndPos: number) {
 		while (iPos < iEndPos) {
-			const oExtent: ExtentEntry = {
-				iUser: this.readUInt8(iPos),
-				sName: this.readUtf(iPos + 1, 8),
-				sExt: this.readUtf(iPos + 9, 3), // extension with high bits set for special flags
-				iExtent: this.readUInt8(iPos + 12),
-				iLastRecBytes: this.readUInt8(iPos + 13),
-				iExtentHi: this.readUInt8(iPos + 14), // used for what?
-				iRecords: this.readUInt8(iPos + 15),
-				aBlocks: [],
+			const sExtWithFlags = this.readUtf(iPos + 9, 3), // extension with high bits set for special flags
+				oExtent: ExtentEntry = {
+					iUser: this.readUInt8(iPos),
+					sName: DiskImage.fnRemoveHighBit7(this.readUtf(iPos + 1, 8)),
+					sExt: DiskImage.fnRemoveHighBit7(sExtWithFlags), // extension
+					iExtent: this.readUInt8(iPos + 12),
+					iLastRecBytes: this.readUInt8(iPos + 13),
+					iExtentHi: this.readUInt8(iPos + 14), // used for what?
+					iRecords: this.readUInt8(iPos + 15),
+					aBlocks: [],
 
-				bReadOnly: undefined,
-				bSystem: undefined,
-				bBackup: undefined
-
-			};
+					bReadOnly: Boolean(sExtWithFlags.charCodeAt(0) & 0x80), /* eslint-disable-line no-bitwise */
+					bSystem: Boolean(sExtWithFlags.charCodeAt(1) & 0x80), /* eslint-disable-line no-bitwise */
+					bBackup: Boolean(sExtWithFlags.charCodeAt(2) & 0x80) /* eslint-disable-line no-bitwise */
+				};
 
 			iPos += 16;
-
-			oExtent.sName = DiskImage.fnRemoveHighBit7(oExtent.sName);
-			DiskImage.fnUnpackFtypeFlags(oExtent, oExtent.sExt);
-			oExtent.sExt = DiskImage.fnRemoveHighBit7(oExtent.sExt);
 
 			const aBlocks = oExtent.aBlocks;
 
@@ -494,7 +491,7 @@ export class DiskImage {
 		}
 	}
 
-	private static prepareDirectoryList(aExtents: ExtentEntry[], iFill: number, reFilePattern: RegExp) {
+	private static prepareDirectoryList(aExtents: ExtentEntry[], iFill: number, reFilePattern?: RegExp) {
 		const oDir: DirectoryListType = {};
 
 		for (let i = 0; i < aExtents.length; i += 1) {
@@ -544,14 +541,14 @@ export class DiskImage {
 			const iSectorIndex = this.sectorNum2Index(iFirstSector + i);
 
 			if (iSectorIndex === undefined) {
-				throw this.composeError(Error(), "Dsk: Cannot read directory at track " + iOff + " sector", iFirstSector);
+				throw this.composeError(Error(), "Dsk: Cannot read directory at track " + iOff + " sector", String(iFirstSector));
 			}
 			const oSectorInfo = this.seekSector(iSectorIndex);
 
 			this.readDirectoryExtents(aExtents, oSectorInfo.iDataPos, oSectorInfo.iDataPos + oSectorInfo.iSectorSize);
 		}
 
-		const oDir = DiskImage.prepareDirectoryList(aExtents, oFormat.iFill, null);
+		const oDir = DiskImage.prepareDirectoryList(aExtents, oFormat.iFill);
 
 		return oDir;
 	}
@@ -580,8 +577,7 @@ export class DiskImage {
 	}
 
 	readFile(aFileExtents: ExtentEntry[]): string {
-		const iRecPerBlock = 8,
-			iAmsdosHeaderLength = 0x80;
+		const iRecPerBlock = 8;
 		let sOut = "";
 
 		for (let i = 0; i < aFileExtents.length; i += 1) {
@@ -605,16 +601,17 @@ export class DiskImage {
 		}
 
 		const oHeader = DiskImage.parseAmsdosHeader(sOut);
-		let iRealLen: number;
+		let iRealLen: number | undefined;
 
 		if (oHeader) {
+			const iAmsdosHeaderLength = 0x80;
+
 			iRealLen = oHeader.iLength + iAmsdosHeaderLength;
 		}
 
-		const iFileLen = sOut.length;
-
 		if (iRealLen === undefined) { // no real length: ASCII: find EOF (0x1a) in last record
-			const iLastRecPos = iFileLen > 0x80 ? (iFileLen - 0x80) : 0,
+			const iFileLen = sOut.length,
+				iLastRecPos = iFileLen > 0x80 ? (iFileLen - 0x80) : 0,
 				iIndex = sOut.indexOf(String.fromCharCode(0x1a), iLastRecPos);
 
 			if (iIndex >= 0) {
@@ -634,11 +631,16 @@ export class DiskImage {
 	// ...
 
 	// see AMSDOS ROM, &D252
+	/* eslint-disable array-element-newline */
+	private static mProtectTable = [
+		[0xe2, 0x9d, 0xdb, 0x1a, 0x42, 0x29, 0x39, 0xc6, 0xb3, 0xc6, 0x90, 0x45, 0x8a], // 13 bytes
+		[0x49, 0xb1, 0x36, 0xf0, 0x2e, 0x1e, 0x06, 0x2a, 0x28, 0x19, 0xea] // 11 bytes
+	];
+	/* eslint-enable array-element-newline */
+
 	static unOrProtectData(sData: string): string {
-		const /* eslint-disable array-element-newline */
-			aTable1 = [0xe2, 0x9d, 0xdb, 0x1a, 0x42, 0x29, 0x39, 0xc6, 0xb3, 0xc6, 0x90, 0x45, 0x8a], // 13 bytes
-			aTable2 = [0x49, 0xb1, 0x36, 0xf0, 0x2e, 0x1e, 0x06, 0x2a, 0x28, 0x19, 0xea]; // 11 bytes
-			/* eslint-enable array-element-newline */
+		const aTable1 = DiskImage.mProtectTable[0],
+			aTable2 = DiskImage.mProtectTable[1];
 		let sOut = "";
 
 		for (let i = 0; i < sData.length; i += 1) {
@@ -661,8 +663,8 @@ export class DiskImage {
 		return iSum;
 	}
 
-	static parseAmsdosHeader(sData: string): AmsdosHeader {
-		let oHeader: AmsdosHeader;
+	static parseAmsdosHeader(sData: string): AmsdosHeader | undefined {
+		let oHeader: AmsdosHeader | undefined;
 
 		// http://www.benchmarko.de/cpcemu/cpcdoc/chapter/cpcdoc7_e.html#I_AMSDOS_HD
 		// http://www.cpcwiki.eu/index.php/AMSDOS_Header

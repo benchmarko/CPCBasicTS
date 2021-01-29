@@ -109,21 +109,21 @@ QUnit.module("Model: Examples", function (hooks) {
 				},
 				db2: {
 					text: "db2text",
-					title: null,
+					title: "",
 					src: ""
 				}
 			},
 			mExample1 = {
 				key: "ex1",
 				title: "ex1",
-				type: null,
-				meta: null
+				type: "",
+				meta: ""
 			},
 			mExample2 = {
 				key: "ex2",
 				title: "ex2",
-				type: null,
-				meta: null
+				type: "",
+				meta: ""
 			},
 			oModel = new Model({}, {});
 

@@ -5,38 +5,65 @@
 // node  testParseExamples.qunit.js
 // npm test...
 
+/*
 var fs, path, __dirname;
+*/
+
+
+interface NodeHttps {
+	get: (sUrl: string, fn: (res: any) => void) => any
+}
+
+let https: NodeHttps; // nodeJs
 
 import { Utils } from "../Utils";
-import { ICpcVmRsx } from "../Interfaces";
+import { ICpcVmRsx, IOutput } from "../Interfaces";
 import { Polyfills } from "../Polyfills";
 import { BasicLexer } from "../BasicLexer";
 import { BasicParser } from "../BasicParser";
 import { BasicTokenizer } from "../BasicTokenizer";
 import { CodeGeneratorJs } from "../CodeGeneratorJs";
-import { Model, DatabasesType, ExampleEntry } from "../Model";
+import { Model, ConfigType, DatabasesType, ExampleEntry } from "../Model";
 import { Variables } from "../Variables";
 import { DiskImage } from "../DiskImage";
 import { cpcconfig } from "../cpcconfig";
 
+// eslint-disable-next-line no-new-func
+const oGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(), // for old IE
+	bNodeJsAvail = (function () {
+		let bNodeJs = false;
 
-const oGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(); // for old IE
-
-function detectNodeJs() {
-	let bNodeJs = false;
-
-	// https://www.npmjs.com/package/detect-node
-	// Only Node.JS has a process variable that is of [[Class]] process
-	try {
-		if (Object.prototype.toString.call(oGlobalThis.process) === "[object process]") {
-			bNodeJs = true;
+		// https://www.npmjs.com/package/detect-node
+		// Only Node.JS has a process variable that is of [[Class]] process
+		try {
+			if (Object.prototype.toString.call(oGlobalThis.process) === "[object process]") {
+				bNodeJs = true;
+			}
+		} catch (e) {
+			// empty
 		}
-	} catch (e) {
-		// empty
-	}
-	return bNodeJs;
-}
+		return bNodeJs;
+	}());
 
+
+function nodeReadUrl(sUrl: string, fnDataLoaded: (oError: Error | undefined, sData?: string) => void) {
+	https.get(sUrl, (resp) => {
+		let sData = "";
+
+		// A chunk of data has been received.
+		resp.on("data", (sChunk: string) => {
+			sData += sChunk;
+		});
+
+		// The whole response has been received. Print out the result.
+		resp.on("end", () => {
+			fnDataLoaded(undefined, sData);
+		});
+	}).on("error", (err: Error) => {
+		Utils.console.log("Error: " + err.message);
+		fnDataLoaded(err);
+	});
+}
 
 function createModel() {
 	const oStartConfig = {};
@@ -166,7 +193,7 @@ interface FileMetaAndData {
 function splitMeta(sInput: string) {
 	const sMetaIdent = "CPCBasic";
 
-	let oMeta: FileMeta;
+	let oMeta: FileMeta | undefined;
 
 	if (sInput.indexOf(sMetaIdent) === 0) { // starts with metaIdent?
 		const iIndex = sInput.indexOf(","); // metadata separator
@@ -186,12 +213,10 @@ function splitMeta(sInput: string) {
 				sEncoding: aMeta[5]
 			};
 		}
-	} else {
-		oMeta = {};
 	}
 
 	const oMetaAndData: FileMetaAndData = {
-		oMeta: oMeta,
+		oMeta: oMeta || {},
 		sData: sInput
 	};
 
@@ -205,7 +230,7 @@ function asmGena3Convert(sInput: string) {
 
 // taken from Controller.js
 function testCheckMeta(sInput: string) {
-	const oData = splitMeta(sInput);
+	const oData = splitMeta(sInput || "");
 
 	sInput = oData.sData; // maybe changed
 
@@ -232,19 +257,24 @@ function testCheckMeta(sInput: string) {
 
 function testParseExample(oExample: ExampleEntry) {
 	const oCodeGeneratorJs = cpcBasic.oCodeGeneratorJs,
-		sScript = oExample.script,
+		sScript = oExample.script || "",
 		oVariables = new Variables(),
 		sInput = testCheckMeta(sScript);
 
-	let oOutput;
+	let	oOutput: IOutput;
 
 	if (oExample.meta !== "D") { // skip data files
 		oCodeGeneratorJs.reset();
 		oOutput = oCodeGeneratorJs.generate(sInput, oVariables, true);
 	} else {
 		oOutput = {
-			text: "UNPARSED DATA FILE: " + oExample.key
+			text: "UNPARSED DATA FILE: " + oExample.key,
+			error: undefined
 		};
+	}
+
+	if (Utils.debug > 0) {
+		Utils.console.debug("testParseExample:", oExample.key, "inputLen:", sInput.length, "outputLen:", oOutput.text.length);
 	}
 
 	if (cpcBasic.assert) {
@@ -255,16 +285,18 @@ function testParseExample(oExample: ExampleEntry) {
 }
 
 function fnEval(sCode: string) {
-	return eval(sCode);
+	return eval(sCode); // eslint-disable-line no-eval
 }
 
-function fnExampleLoaded(err: Error, sCode: string) {
-	if (err) {
-		throw err;
+function fnExampleLoaded(oError: Error | undefined, sCode?: string) {
+	if (oError) {
+		throw oError;
 	}
 	cpcBasic.fnExampleDone1();
 
-	fnEval(sCode); // load example
+	if (sCode) {
+		fnEval(sCode); // load example (for nodeJs)
+	}
 
 	const sKey = cpcBasic.model.getProperty<string>("example"),
 		oExample = cpcBasic.model.getExample(sKey),
@@ -278,11 +310,11 @@ function fnExampleLoaded(err: Error, sCode: string) {
 }
 
 function fnExampleLoadedUtils(/* sUrl */) {
-	return fnExampleLoaded(null, "");
+	return fnExampleLoaded(undefined, "");
 }
 
 function fnExampleErrorUtils(sUrl: string) {
-	return fnExampleLoaded(new Error("fnExampleErrorUtils: " + sUrl), null);
+	return fnExampleLoaded(new Error("fnExampleErrorUtils: " + sUrl), "");
 }
 
 function testLoadExample(oExample: ExampleEntry) {
@@ -294,8 +326,12 @@ function testLoadExample(oExample: ExampleEntry) {
 		cpcBasic.fnExampleDone1 = cpcBasic.assert.async();
 	}
 
+	/*
 	if (fs) {
 		fs.readFile(sUrl, "utf8", fnExampleLoaded);
+	*/
+	if (https) {
+		nodeReadUrl(sUrl, fnExampleLoaded);
 	} else {
 		Utils.loadScript(sUrl, fnExampleLoadedUtils, fnExampleErrorUtils);
 	}
@@ -317,13 +353,15 @@ function testNextExample() {
 }
 
 
-function fnIndexLoaded(err: Error, sCode: string) {
+function fnIndexLoaded(oError: Error | undefined, sCode?: string) {
 	cpcBasic.fnIndexDone1();
-	if (err) {
-		throw err;
+	if (oError) {
+		throw oError;
 	}
 
-	fnEval(sCode); // load index
+	if (sCode) {
+		fnEval(sCode); // load index (for nodeJs)
+	}
 
 	const oAllExamples = cpcBasic.model.getAllExamples();
 
@@ -338,53 +376,91 @@ function fnIndexLoaded(err: Error, sCode: string) {
 }
 
 function fnIndexLoadedUtils(/* sUrl */) {
-	return fnIndexLoaded(null, "");
+	return fnIndexLoaded(undefined, "");
 }
 
 function fnIndexErrorUtils(sUrl: string) {
-	return fnIndexLoaded(new Error("fnIndexErrorUtils: " + sUrl), null);
+	return fnIndexLoaded(new Error("fnIndexErrorUtils: " + sUrl));
 }
 
 
 function testLoadIndex() {
-	const bNodeJs = detectNodeJs();
-
-	Utils.console.log("bNodeJs:", bNodeJs, " Polyfills.iCount=", Polyfills.iCount);
+	Utils.console.log("testLoadIndex: bNodeJs:", bNodeJsAvail, " Polyfills.iCount=", Polyfills.iCount);
 
 	cpcBasic.initDatabases();
 
 	cpcBasic.model.setProperty("database", "examples");
-	const oExampeDb = cpcBasic.model.getDatabase();
-	let	sDir = oExampeDb.src;
+	const oExampeDb = cpcBasic.model.getDatabase(),
+		sDir = oExampeDb.src;
 
-	if (bNodeJs) {
-		sDir = "../../../CPCBasic/examples/"; //TTT
+	/*
+	if (bNodeJsAvail) {
+		sDir = "../../../CPCBasic/examples/"; //TTT works only locally, not on server
 		sDir = path.resolve(__dirname, sDir); // to get it working also for "npm test" and not only for node ...
 	}
+	*/
 
 	cpcBasic.sRelativeDir = sDir;
 
 	const sUrl = cpcBasic.sRelativeDir + "/0index.js"; // "./examples/0index.js";
 
+	/*
 	if (fs) {
-		//sUrl = path.resolve(__dirname, sUrl); // to get it working also for "npm test" and not only for node ...
 		fs.readFile(sUrl, "utf8", fnIndexLoaded);
+	*/
+	if (https) {
+		nodeReadUrl(sUrl, fnIndexLoaded);
 	} else {
 		Utils.loadScript(sUrl, fnIndexLoadedUtils, fnIndexErrorUtils);
 	}
 }
 
+function fnParseArgs(aArgs: string[]) {
+	const oSettings: ConfigType = {
+		debug: 0
+	};
+	let i = 0;
 
-if (detectNodeJs()) {
-	const sNodeRequire = 'fs = require("fs"); path = require("path");';
+	while (i < aArgs.length) {
+		const sName = aArgs[i];
 
-	eval(sNodeRequire); // to trick typescript
+		i += 1;
+		if (sName in oSettings) {
+			oSettings[sName] = parseInt(aArgs[i], 10);
+			i += 1;
+		}
+	}
+	return oSettings;
+}
+
+if (bNodeJsAvail) {
+	//const sNodeRequire = 'fs = require("fs"); path = require("path");';
+	const sNodeRequire = 'https = require("https");';
+
+	fnEval(sNodeRequire); // to trick typescript
 }
 
 
 declare global {
     interface Window {
-		QUnit: any
+		QUnit: unknown
+	}
+
+	interface NodeJsProcess {
+		argv: string[]
+	}
+	let process: NodeJsProcess;
+}
+
+
+// https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/node/process.d.ts
+
+if (typeof process !== "undefined") { // nodeJs
+	const oSettings = fnParseArgs(process.argv.slice(2));
+
+	Utils.console.log("PPP: ", oSettings.debug);
+	if (oSettings.debug) {
+		Utils.debug = oSettings.debug as number;
 	}
 }
 

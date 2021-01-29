@@ -23,6 +23,8 @@ interface LineEntry {
 
 type LinesType = { [k in string]: LineEntry };
 
+type ChangesType = { [k in number]: LineEntry};
+
 export class BasicFormatter {
 	lexer: BasicLexer
 	parser: BasicParser
@@ -38,10 +40,8 @@ export class BasicFormatter {
 		this.iLine = 0; // current line (label)
 	}
 
-	private composeError(...aArgs) { // eslint-disable-line class-methods-use-this
-		aArgs.unshift("BasicFormatter");
-		aArgs.push(this.iLine);
-		return Utils.composeError.apply(null, aArgs);
+	private composeError(oError: Error, message: string, value: string, pos: number) {
+		return Utils.composeError("BasicFormatter", oError, message, value, pos, this.iLine);
 	}
 
 	// renumber
@@ -52,8 +52,8 @@ export class BasicFormatter {
 
 		oLines[0] = { // dummy line 0 for: on error goto 0
 			value: 0,
-			pos: undefined,
-			len: undefined
+			pos: 0,
+			len: 0
 		};
 		for (let i = 0; i < aNodes.length; i += 1) {
 			const oNode = aNodes[i];
@@ -83,49 +83,47 @@ export class BasicFormatter {
 		return oLines;
 	}
 
-	private fnAddReferences(aNodes: ParserNode[], oLines: LinesType, aRefs: LineEntry[]) {
-		const that = this;
-
-		function addSingleReference(oNode: ParserNode) {
-			if (oNode.type === "linenumber") {
-				if (oNode.value in oLines) {
-					aRefs.push({
-						value: Number(oNode.value),
-						pos: oNode.pos,
-						len: String(oNode.orig || oNode.value).length
-					});
-				} else {
-					throw that.composeError(Error(), "Line does not exist", oNode.value, oNode.pos);
-				}
+	private fnAddSingleReference(oNode: ParserNode, oLines: LinesType, aRefs: LineEntry[]) {
+		if (oNode.type === "linenumber") {
+			if (oNode.value in oLines) {
+				aRefs.push({
+					value: Number(oNode.value),
+					pos: oNode.pos,
+					len: String(oNode.orig || oNode.value).length
+				});
+			} else {
+				throw this.composeError(Error(), "Line does not exist", oNode.value, oNode.pos);
 			}
 		}
+	}
 
+	private fnAddReferences(aNodes: ParserNode[], oLines: LinesType, aRefs: LineEntry[]) {
 		for (let i = 0; i < aNodes.length; i += 1) {
 			const oNode = aNodes[i];
 
 			if (oNode.type === "label") {
 				this.iLine = Number(oNode.value); // for error messages
 			} else {
-				addSingleReference(oNode);
+				this.fnAddSingleReference(oNode, oLines, aRefs);
 			}
 
 			if (oNode.left) {
-				addSingleReference(oNode.left);
+				this.fnAddSingleReference(oNode.left, oLines, aRefs);
 			}
 			if (oNode.right) {
-				addSingleReference(oNode.right);
+				this.fnAddSingleReference(oNode.right, oLines, aRefs);
 			}
 			if (oNode.args) {
-				this.fnAddReferences(oNode.args, oLines, aRefs);
+				this.fnAddReferences(oNode.args, oLines, aRefs); // revursive
 			}
 			if (oNode.args2) { // for "ELSE"
-				this.fnAddReferences(oNode.args2, oLines, aRefs);
+				this.fnAddReferences(oNode.args2, oLines, aRefs); // revursive
 			}
 		}
 	}
 
 	private fnRenumberLines(oLines: LinesType, aRefs: LineEntry[], iNew: number, iOld: number, iStep: number, iKeep: number) {
-		const oChanges = {},
+		const oChanges: ChangesType = {},
 			aKeys = Object.keys(oLines);
 
 		for (let i = 0; i < aKeys.length; i += 1) {
@@ -133,7 +131,7 @@ export class BasicFormatter {
 
 			if (oLine.value >= iOld && oLine.value < iKeep) {
 				if (iNew > 65535) {
-					throw this.composeError(Error(), "Line number overflow", oLine.value, oLine.pos);
+					throw this.composeError(Error(), "Line number overflow", String(oLine.value), oLine.pos);
 				}
 				oLine.newLine = iNew;
 				oChanges[oLine.pos] = oLine;
@@ -158,7 +156,7 @@ export class BasicFormatter {
 		return a - b;
 	}
 
-	private static fnApplyChanges(sInput: string, oChanges) {
+	private static fnApplyChanges(sInput: string, oChanges: ChangesType) {
 		const aKeys = Object.keys(oChanges).map(Number);
 
 		aKeys.sort(BasicFormatter.fnSortNumbers);
@@ -186,8 +184,7 @@ export class BasicFormatter {
 
 	renumber(sInput: string, iNew: number, iOld: number, iStep: number, iKeep: number): IOutput {
 		const oOut: IOutput = {
-			text: "",
-			error: undefined
+			text: ""
 		};
 
 		try {

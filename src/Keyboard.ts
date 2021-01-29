@@ -26,16 +26,9 @@ type KeyExpansionsRepeatType = { [k in string]: number }; // numbers as keys are
 type Key2CpcKeyType = { [k in string]: number };
 
 
-//TODO:
-
 type PressedBrowseKeysType = { [k in string]: boolean };
 
-type PressedKeysType = { [k in string]: {oKeys: PressedBrowseKeysType, shift: boolean, ctrl: boolean } }; //TTT
-
-//type PressedKeyType = { [k in string]: {oKeys: [l in string]: boolean, shift: boolean, ctrl: boolean} };
-//oCpcKey.oKeys[sPressedKey] = true;
-//oCpcKey.shift = bShiftKey;
-//oCpcKey.ctrl = bCtrlKey;
+type PressedKeysType = { [k in string]: {oKeys: PressedBrowseKeysType, shift: boolean, ctrl: boolean } };
 
 
 interface CpcKey2Key {
@@ -76,7 +69,7 @@ interface VirtualButtonRowOptions {
 export class Keyboard {
 	options: KeyboardOptions;
 
-	fnOnKeyDown: () => void;
+	fnOnKeyDown?: () => void;
 	aKeyBuffer: string[]; // buffered pressed keys
 	aExpansionTokens: string[]; // strings for expansion tokens 0..31 (in reality: 128..159)
 	oCpcKeyExpansions: CpcKeyExpansions; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
@@ -86,8 +79,8 @@ export class Keyboard {
 	oKey2CpcKey: Key2CpcKeyType;
 	bCodeStringsRemoved: boolean;
 
-	sPointerOutEvent: string;
-	fnVirtualKeyout: EventListener;
+	sPointerOutEvent?: string;
+	fnVirtualKeyout?: EventListener;
 
 	oPressedKeys: PressedKeysType; // currently pressed browser keys
 	bShiftLock: boolean; // for virtual keyboard
@@ -674,10 +667,6 @@ export class Keyboard {
 
 
 	constructor(options: KeyboardOptions) {
-		this.init(options);
-	}
-
-	init(options: KeyboardOptions): void {
 		this.options = Object.assign({}, options);
 
 		this.fnOnKeyDown = this.options.fnOnKeyDown;
@@ -696,7 +685,7 @@ export class Keyboard {
 
 		// reset: this.oPressedKeys = {}; // currently pressed browser keys
 
-		this.reset();
+		//this.reset();
 		this.bActive = false; // flag if keyboard is active/focused, set from outside
 
 		this.bCodeStringsRemoved = false;
@@ -714,6 +703,12 @@ export class Keyboard {
 		}
 
 		this.dragInit("pageBody", "kbdAreaBox");
+
+		// reset
+		this.oPressedKeys = {}; // currently pressed browser keys
+		this.bShiftLock = false; // for virtual keyboard
+		this.bNumLock = false;
+		//this.reset();
 	}
 
 	private fnAttachPointerEvents(sId: string, fnDown?: EventListener, fnMove?: EventListener, fnUp?: EventListener) { // eslint-disable-line class-methods-use-this
@@ -731,14 +726,14 @@ export class Keyboard {
 				move: "touchmove",
 				up: "touchend",
 				cancel: "touchcancel",
-				out: null,
+				out: "", // n.a.
 				type: "touch"
 			},
 			oMouseEventNames = {
 				down: "mousedown",
 				move: "mousemove",
 				up: "mouseup",
-				cancel: null,
+				cancel: "", // n.a.
 				out: "mouseout",
 				type: "mouse"
 			};
@@ -848,7 +843,7 @@ export class Keyboard {
 		oCpcKeyExpansions.repeat = {};
 	}
 
-	getKeyDownHandler(): () => void {
+	getKeyDownHandler(): (() => void) | undefined {
 		return this.fnOnKeyDown;
 	}
 
@@ -977,7 +972,10 @@ export class Keyboard {
 		}
 	}
 
-	private keyIdentifier2Char(sIdentifier: string, bShiftKey: boolean) { // eslint-disable-line class-methods-use-this
+	private static keyIdentifier2Char(event: KeyboardEvent) {
+		// SliTaz web browser has not key but keyIdentifier
+		const sIdentifier = (event as any).keyIdentifier,
+			bShiftKey = event.shiftKey;
 		let sChar = "";
 
 		if ((/^U\+/i).test(sIdentifier || "")) { // unicode string?
@@ -995,7 +993,7 @@ export class Keyboard {
 	private fnKeyboardKeydown(event: KeyboardEvent) { // eslint-disable-line complexity
 		const iKeyCode = event.which || event.keyCode,
 			sPressedKey = String(iKeyCode) + (event.code ? event.code : ""); // event.code available for e.g. Chrome, Firefox
-		let sKey = event.key || this.keyIdentifier2Char((event as any).keyIdentifier, event.shiftKey) || ""; // SliTaz web browser has not key but keyIdentifier
+		let sKey = event.key || Keyboard.keyIdentifier2Char(event) || ""; // SliTaz web browser has not key but keyIdentifier
 
 		if (!event.code && !this.bCodeStringsRemoved) { // event.code not available on e.g. IE, Edge
 			this.removeCodeStringsFromKeymap(); // remove code information from the mapping. Not all keys can be detected any more
@@ -1049,7 +1047,7 @@ export class Keyboard {
 	private fnKeyboardKeyup(event: KeyboardEvent) {
 		const iKeyCode = event.which || event.keyCode,
 			sPressedKey = String(iKeyCode) + (event.code ? event.code : ""), // event.code available for e.g. Chrome, Firefox
-			sKey = event.key || this.keyIdentifier2Char((event as any).keyIdentifier, event.shiftKey) || ""; // SliTaz web browser has not key but keyIdentifier
+			sKey = event.key || Keyboard.keyIdentifier2Char(event) || ""; // SliTaz web browser has not key but keyIdentifier
 
 		if (Utils.debug > 1) {
 			Utils.console.log("fnKeyboardKeyup: keyCode=" + iKeyCode + " pressedKey=" + sPressedKey + " key='" + sKey + "' " + sKey.charCodeAt(0) + " loc=" + event.location + " ", event);
@@ -1069,7 +1067,7 @@ export class Keyboard {
 
 	getKeyFromBuffer(): string {
 		const aKeyBuffer = this.aKeyBuffer,
-			sKey = aKeyBuffer.length ? aKeyBuffer.shift() : "";
+			sKey = aKeyBuffer.length ? aKeyBuffer.shift() as string : "";
 
 		return sKey;
 	}
@@ -1350,7 +1348,7 @@ export class Keyboard {
 			this.fnPressCpcKey(iCpcKey, sPressedKey, oAscii.key, oPointerEvent.shiftKey, oPointerEvent.ctrlKey);
 		}
 
-		if (this.sPointerOutEvent) {
+		if (this.sPointerOutEvent && this.fnVirtualKeyout) {
 			node.addEventListener(this.sPointerOutEvent, this.fnVirtualKeyout, false);
 		}
 		event.preventDefault();
@@ -1393,7 +1391,7 @@ export class Keyboard {
 
 		this.fnVirtualKeyboardKeyupOrKeyout(event);
 
-		if (this.sPointerOutEvent) {
+		if (this.sPointerOutEvent && this.fnVirtualKeyout) {
 			node.removeEventListener(this.sPointerOutEvent, this.fnVirtualKeyout); // do not need out event any more
 		}
 		event.preventDefault();
@@ -1407,7 +1405,7 @@ export class Keyboard {
 			Utils.console.debug("onVirtualKeyboardKeyout: event=", event);
 		}
 		this.fnVirtualKeyboardKeyupOrKeyout(event);
-		if (this.sPointerOutEvent) {
+		if (this.sPointerOutEvent && this.fnVirtualKeyout) {
 			node.removeEventListener(this.sPointerOutEvent, this.fnVirtualKeyout);
 		}
 		event.preventDefault();

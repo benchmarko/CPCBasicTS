@@ -6,11 +6,11 @@
 import { Utils } from "./Utils";
 import { Controller } from "./Controller";
 import { cpcconfig } from "./cpcconfig";
-import { Model } from "./Model";
+import { Model, ConfigType } from "./Model";
 import { View } from "./View";
 
 class cpcBasic { // eslint-disable-line vars-on-top
-	static config = {
+	static config: ConfigType = {
 		bench: 0, // debug: number of parse bench loops
 		debug: 0,
 		databaseDirs: "examples", // example base directories (comma separated)
@@ -57,7 +57,7 @@ class cpcBasic { // eslint-disable-line vars-on-top
 	}
 
 	// https://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
-	private static fnParseUri(oConfig) {
+	private static fnParseUri(oConfig: ConfigType) {
 		const rPlus = /\+/g, // Regex for replacing addition symbol with a space
 			rSearch = /([^&=]+)=?([^&]*)/g,
 			fnDecode = function (s: string) { return decodeURIComponent(s.replace(rPlus, " ")); },
@@ -154,9 +154,10 @@ class cpcBasic { // eslint-disable-line vars-on-top
 	}
 
 	private static fnDoStart() {
-		const oStartConfig = cpcBasic.config;
+		const oStartConfig = cpcBasic.config,
+			oExternalConfig = cpcconfig || {}; // external config from cpcconfig.js
 
-		Object.assign(oStartConfig, cpcconfig || {}); // merge external config from cpcconfig.js
+		Object.assign(oStartConfig, oExternalConfig);
 		const oInitialConfig = Object.assign({}, oStartConfig); // save config
 
 		cpcBasic.fnParseUri(oStartConfig); // modify config with URL parameters
@@ -172,7 +173,7 @@ class cpcBasic { // eslint-disable-line vars-on-top
 
 		if (UtilsConsole.cpcBasicLog) {
 			sCpcBasicLog = UtilsConsole.cpcBasicLog;
-			UtilsConsole.cpcBasicLog = null; // do not log any more to dummy console
+			UtilsConsole.cpcBasicLog = undefined; // do not log any more to dummy console
 		}
 
 		if (Utils.debug > 1 && cpcBasic.model.getProperty<boolean>("showConsole")) { // console log window?

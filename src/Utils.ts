@@ -47,7 +47,7 @@ export class Utils { // eslint-disable-line vars-on-top
 					fnError(sFullUrl);
 				}
 			},
-			onScriptReadyStateChange = function (event: Event) { // for old IE8
+			onScriptReadyStateChange = function (event?: Event) { // for old IE8
 				const node = event ? (event.currentTarget || event.srcElement) : script,
 					node2 = node as any;
 
@@ -66,7 +66,7 @@ export class Utils { // eslint-disable-line vars-on-top
 
 						Utils.console.error("onScriptReadyStateChange: Still loading: " + (node2.src || node2.href) + " Waiting " + iTimeout + "ms (count=" + iIEtimeoutCount + ")");
 						setTimeout(function () {
-							onScriptReadyStateChange(null); // check again
+							onScriptReadyStateChange(undefined); // check again
 						}, iTimeout);
 					} else {
 						// iIEtimeoutCount = 3;
@@ -165,12 +165,14 @@ export class Utils { // eslint-disable-line vars-on-top
 	static localStorage = (function () {
 		let rc: Storage | undefined;
 
-		try {
-			rc = typeof window !== "undefined" ? window.localStorage : null; // due to a bug in MS Edge this will throw an error when hosting locally (https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/8816771/)
-		} catch (e) {
-			rc = undefined;
+		if (typeof window !== "undefined") {
+			try {
+				rc = window.localStorage; // due to a bug in MS Edge this will throw an error when hosting locally (https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/8816771/)
+			} catch (_e) {
+				// empty
+			}
 		}
-		return rc;
+		return rc as Storage; // if it is undefined, localStorage is set in Polyfills
 	}());
 
 	static atob = (function () {

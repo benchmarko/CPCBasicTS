@@ -6,7 +6,7 @@ import { Utils } from "./Utils";
 
 type ConfigEntryType = string | number | boolean;
 
-type ConfigType = { [k in string]: ConfigEntryType };
+export type ConfigType = { [k in string]: ConfigEntryType };
 
 export interface DatabaseEntry {
 	text: string
@@ -35,10 +35,6 @@ export class Model {
 
 
 	constructor(config: ConfigType, initialConfig: ConfigType) {
-		this.init(config, initialConfig);
-	}
-
-	init(config: ConfigType, initialConfig: ConfigType): void {
 		this.config = config || {}; // store only a reference
 		this.initialConfig = initialConfig || {};
 		this.databases = {};
@@ -60,7 +56,7 @@ export class Model {
 	getChangedProperties(): ConfigType {
 		const oCurrent = this.config,
 			oInitial = this.initialConfig,
-			oChanged = {};
+			oChanged: ConfigType = {};
 
 		for (const sName in oCurrent) {
 			if (oCurrent.hasOwnProperty(sName)) {

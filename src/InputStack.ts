@@ -7,13 +7,16 @@ export class InputStack {
 	iStackPosition : number;
 
 	constructor() {
-		this.init();
-	}
-
-	init(): void {
+		// reset
 		this.aInput = [];
 		this.iStackPosition = -1;
 	}
+
+	reset(): void {
+		this.aInput.length = 0;
+		this.iStackPosition = -1;
+	}
+
 	getInput(): string {
 		return this.aInput[this.iStackPosition];
 	}
