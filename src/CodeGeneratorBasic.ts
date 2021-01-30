@@ -52,7 +52,7 @@ export class CodeGeneratorBasic {
 
 	reset(): void {
 		this.lexer.reset();
-		this.parser.reset();
+		//this.parser.reset();
 	}
 
 	private composeError(...aArgs) { // eslint-disable-line class-methods-use-this

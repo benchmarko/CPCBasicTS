@@ -161,7 +161,7 @@ export class CodeGeneratorJs {
 		this.bMergeFound = false; // if we find chain or chain merge, the program is not complete and we cannot check for existing line numbers during compile time (or do a renumber)
 
 		this.lexer.reset();
-		this.parser.reset();
+		//this.parser.reset();
 	}
 
 	private resetCountsPerLine() {

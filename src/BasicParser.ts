@@ -48,10 +48,41 @@ interface SymbolType {
 }
 
 export class BasicParser {
-	sLine = "0";
+	sLine = "0"; // for error messages
 	bQuiet = false;
 
-	static mParameterTypes = {
+	oSymbols: { [k in string]: SymbolType } = {};
+
+	// set during parse
+	aTokens: LexerToken[];
+	bAllowDirect: boolean;
+
+	iIndex = 0;
+	oPreviousToken: ParserNode;
+	oToken: ParserNode; // current token
+	aParseTree: ParserNode[] = [];
+
+	constructor(options?: BasicParserOptions) {
+		this.bQuiet = options?.bQuiet || false;
+		this.fnGenerateSymbols();
+
+		// set also during parse()
+		this.aTokens = [];
+		this.bAllowDirect = false;
+	}
+
+	/*
+	private init(options?: BasicParserOptions): void {
+		this.bQuiet = options?.bQuiet || false;
+		this.reset();
+	}
+
+	private reset(): void {
+		this.sLine = "0"; // for error messages
+	}
+	*/
+
+	private static mParameterTypes: { [k in string]: string } = {
 		c: "command",
 		f: "function",
 		o: "operator",
@@ -69,7 +100,7 @@ export class BasicParser {
 
 	// first letter: c=command, f=function, o=operator, x=additional keyword for command
 	// following are arguments: n=number, s=string, l=line number (checked), v=variable (checked), r=letter or range, a=any, n0?=optional parameter with default null, #=stream, #0?=optional stream with default 0; suffix ?=optional (optionals must be last); last *=any number of arguments may follow
-	static mKeywords: {[k in string]: string} = {
+	static mKeywords: { [k in string]: string } = {
 		abs: "f n", // ABS(<numeric expression>)
 		after: "c", // => afterGosub
 		afterGosub: "c n n?", // AFTER <timer delay>[,<timer number>] GOSUB <line number> / (special, cannot check optional first n, and line number)
@@ -258,7 +289,7 @@ export class BasicParser {
 		zone: "c n" // ZONE <integer expression>  / integer expression=1..255
 	}
 
-	static mCloseTokens = {
+	private static mCloseTokens: { [k in string]: number } = {
 		":": 1,
 		"(eol)": 1,
 		"(end)": 1,
@@ -267,25 +298,1323 @@ export class BasicParser {
 		"'": 1
 	}
 
-	constructor(options?: BasicParserOptions) {
-		this.init(options);
+	private composeError(oError: Error, message: string, value: string, pos: number) {
+		return Utils.composeError("BasicParser", oError, message, value, pos, this.sLine);
 	}
 
-	init(options: BasicParserOptions): void {
-		this.bQuiet = options?.bQuiet || false;
 
-		this.reset();
+	// http://crockford.com/javascript/tdop/tdop.html (old: http://javascript.crockford.com/tdop/tdop.html)
+	// http://crockford.com/javascript/tdop/parse.js
+	// Operator precedence parsing
+	//
+	// Operator: With left binding power (lbp) and operational function.
+	// Manipulates tokens to its left (e.g: +)? => left denotative function led(), otherwise null denotative function nud()), (e.g. unary -)
+	// identifiers, numbers: also nud.
+	private getToken() {
+		return this.oToken;
 	}
 
-	reset(): void {
-		this.sLine = "0"; // for error messages
+	private symbol(id: string, nud?: ParseExpressionFunction, lbp?: number, led?: ParseExpressionFunction) {
+		let oSymbol = this.oSymbols[id];
+
+		if (!oSymbol) {
+			this.oSymbols[id] = {} as SymbolType;
+			oSymbol = this.oSymbols[id];
+		}
+		if (nud) {
+			oSymbol.nud = nud;
+		}
+		if (lbp) {
+			oSymbol.lbp = lbp;
+		}
+		if (led) {
+			oSymbol.led = led;
+		}
+		return oSymbol;
 	}
 
-	private composeError(...aArgs) {
-		aArgs.unshift("BasicParser");
-		aArgs.push(this.sLine);
-		return Utils.composeError.apply(null, aArgs);
+	private advance(id?: string) {
+		/*
+		const aTokens = this.aTokens;
+		let oToken = this.oToken;
+		*/
+
+		this.oPreviousToken = this.oToken;
+		if (id && this.oToken.type !== id) {
+			throw this.composeError(Error(), "Expected " + id, (this.oToken.value === "") ? this.oToken.type : this.oToken.value, this.oToken.pos);
+		}
+		if (this.iIndex >= this.aTokens.length) {
+			Utils.console.warn("advance: end of file");
+			if (this.aTokens.length && this.aTokens[this.aTokens.length - 1].type === "(end)") {
+				this.oToken = this.aTokens[this.aTokens.length - 1];
+			} else {
+				Utils.console.warn("advance: No (end) token!");
+				this.oToken = BasicParser.fnCreateDummyArg("(end)");
+				this.oToken.value = ""; // null
+			}
+			return this.oToken;
+		}
+		this.oToken = this.aTokens[this.iIndex] as ParserNode; // we get a lex token and reuse it as parseTree token
+		this.iIndex += 1;
+		if (this.oToken.type === "identifier" && BasicParser.mKeywords[this.oToken.value.toLowerCase()]) {
+			this.oToken.type = this.oToken.value.toLowerCase(); // modify type identifier => keyword xy
+		}
+		const oSym = this.oSymbols[this.oToken.type];
+
+		if (!oSym) {
+			throw this.composeError(Error(), "Unknown token", this.oToken.type, this.oToken.pos);
+		}
+		return this.oToken;
 	}
+
+	private expression(rbp: number) {
+		let t = this.oToken,
+			s = this.oSymbols[t.type];
+
+		if (Utils.debug > 3) {
+			Utils.console.debug("parse: expression rbp=" + rbp + " type=" + t.type + " t=%o", t);
+		}
+		this.advance(t.type);
+		if (!s.nud) {
+			if (t.type === "(end)") {
+				throw this.composeError(Error(), "Unexpected end of file", "", t.pos);
+			} else {
+				throw this.composeError(Error(), "Unexpected token", t.type, t.pos);
+			}
+		}
+
+		let left = s.nud.call(this, t); // process literals, variables, and prefix operators
+
+		t = this.oToken;
+		s = this.oSymbols[t.type];
+		while (rbp < s.lbp) { // as long as the right binding power is less than the left binding power of the next token...
+			this.advance(t.type);
+			if (!s.led) {
+				throw this.composeError(Error(), "Unexpected token", t.type, t.pos); //TTT how to get this error?
+			}
+			left = s.led.call(this, left); // ...the led method is invoked on the following token (infix and suffix operators), can be recursive
+			t = this.oToken;
+			s = this.oSymbols[t.type];
+		}
+
+		/*
+		while (rbp < this.oSymbols[this.oToken.type].lbp) { // as long as the right binding power is less than the left binding power of the next token...
+			t = this.oToken;
+			s = this.oSymbols[t.type];
+			this.advance(t.type);
+			if (!s.led) {
+				throw this.composeError(Error(), "Unexpected token", t.type, t.pos); //TTT how to get this error?
+			}
+			left = s.led.call(this, left); // ...the led method is invoked on the following token (infix and suffix operators), can be recursive
+		}
+		*/
+		return left;
+	}
+
+	private assignment() { // "=" as assignment, similar to let
+		if (this.oToken.type !== "identifier") {
+			throw this.composeError(Error(), "Expected identifier", this.oToken.type, this.oToken.pos);
+		}
+
+		const oLeft = this.expression(90), // take it (can also be an array) and stop
+			oValue = this.oToken;
+
+		this.advance("="); // equal as assignment
+		oValue.left = oLeft;
+		oValue.right = this.expression(0);
+		oValue.type = "assign"; // replace "="
+		return oValue;
+	}
+
+	private statement() {
+		const t = this.oToken,
+			s = this.oSymbols[t.type];
+
+		if (s.std) { // statement?
+			this.advance();
+			return s.std.call(this);
+		}
+
+		let oValue: ParserNode;
+
+		if (t.type === "identifier") {
+			oValue = this.assignment();
+		} else {
+			oValue = this.expression(0);
+		}
+
+		if (oValue.type !== "assign" && oValue.type !== "fcall" && oValue.type !== "def" && oValue.type !== "(" && oValue.type !== "[") {
+			throw this.composeError(Error(), "Bad expression statement", t.value, t.pos);
+		}
+		return oValue;
+	}
+
+	private statements(sStopType: string) {
+		const aStatements: ParserNode[] = [];
+
+		let bColonExpected = false;
+
+		while (this.oToken.type !== "(end)" && this.oToken.type !== "(eol)") {
+			if (sStopType && this.oToken.type === sStopType) {
+				break;
+			}
+			if (bColonExpected || this.oToken.type === ":") {
+				if (this.oToken.type !== "'" && this.oToken.type !== "else") { // no colon required for line comment or ELSE
+					this.advance(":");
+				}
+				bColonExpected = false;
+			} else {
+				const oStatement = this.statement();
+
+				aStatements.push(oStatement);
+				bColonExpected = true;
+			}
+		}
+		return aStatements;
+	}
+
+	private line() {
+		let oValue: ParserNode;
+
+		if (this.oToken.type !== "number" && this.bAllowDirect) {
+			this.bAllowDirect = false; // allow only once
+			oValue = BasicParser.fnCreateDummyArg("label");
+			oValue.value = "direct"; // insert "direct" label
+		} else {
+			this.advance("number");
+			oValue = this.oPreviousToken; // number token
+			oValue.type = "label"; // number => label
+		}
+		this.sLine = oValue.value; // set line number for error messages
+		oValue.args = this.statements("");
+
+		if (this.oToken.type === "(eol)") {
+			this.advance("(eol)");
+		}
+		return oValue;
+	}
+
+	private infix(id: string, lbp: number, rbp?: number, led?: ParseExpressionFunction) {
+		const that = this;
+
+		rbp = rbp || lbp;
+		this.symbol(id, undefined, lbp, led || function (left: ParserNode) {
+			const oValue = that.oPreviousToken;
+
+			oValue.left = left;
+			oValue.right = that.expression(rbp as number);
+			return oValue;
+		});
+	}
+	private infixr(id: string, lbp: number, rbp?: number, led?: ParseExpressionFunction) {
+		const that = this;
+
+		rbp = rbp || lbp;
+		this.symbol(id, undefined, lbp, led || function (left) {
+			const oValue = that.oPreviousToken;
+
+			oValue.left = left;
+			oValue.right = that.expression(rbp as number - 1);
+			return oValue;
+		});
+	}
+	private prefix(id: string, rbp: number) {
+		const that = this;
+
+		this.symbol(id, function () {
+			const oValue = that.oPreviousToken;
+
+			oValue.right = that.expression(rbp);
+			return oValue;
+		});
+	}
+	private stmt(s: string, f: ParseStatmentFunction) {
+		const x = this.symbol(s);
+
+		x.std = f;
+		return x;
+	}
+
+	private static fnCreateDummyArg(value: string) {
+		const oValue: ParserNode = {
+			type: value, // e.g. "null"
+			value: value, // e.g. "null"
+			pos: 0,
+			len: 0
+		};
+
+		return oValue;
+	}
+
+	private fnGetOptionalStream() {
+		let oValue: ParserNode;
+
+		if (this.oToken.type === "#") { // stream?
+			oValue = this.expression(0);
+		} else { // create dummy
+			oValue = BasicParser.fnCreateDummyArg("#"); // dummy stream
+			oValue.right = BasicParser.fnCreateDummyArg("null"); // ...with dummy parameter
+		}
+		return oValue;
+	}
+
+	private fnChangeNumber2LineNumber(oNode: ParserNode) {
+		if (oNode.type === "number") {
+			oNode.type = "linenumber"; // change type: number => linenumber
+		} else {
+			throw this.composeError(Error(), "Expected number type", oNode.type, oNode.pos);
+		}
+	}
+
+	private fnGetLineRange(sTypeFirstChar: string) { // l1 or l1-l2 or l1- or -l2 or nothing
+		let oLeft: ParserNode | undefined;
+
+		if (this.oToken.type === "number") {
+			oLeft = this.oToken;
+			this.advance("number");
+			this.fnChangeNumber2LineNumber(oLeft);
+		}
+
+		let oRange: ParserNode;
+
+		if (this.oToken.type === "-") {
+			oRange = this.oToken;
+			this.advance("-");
+		}
+
+		if (oRange) {
+			let oRight: ParserNode | undefined;
+
+			if (this.oToken.type === "number") {
+				oRight = this.oToken;
+				this.advance("number");
+				this.fnChangeNumber2LineNumber(oRight);
+			}
+			if (!oLeft && !oRight) {
+				throw this.composeError(Error(), "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], this.oPreviousToken.value, this.oPreviousToken.pos);
+			}
+			oRange.type = "linerange"; // change "-" => "linerange"
+			oRange.left = oLeft || BasicParser.fnCreateDummyArg("null"); // insert dummy for left
+			oRange.right = oRight || BasicParser.fnCreateDummyArg("null"); // insert dummy for right (do not skip it)
+		} else if (oLeft) {
+			oRange = oLeft; // single line number
+			oRange.type = "linenumber"; // change type: number => linenumber
+		} else {
+			throw this.composeError(Error(), "Undefined range", this.oToken.type, this.oToken.pos);
+		}
+
+		return oRange;
+	}
+
+	private static fnIsSingleLetterIdentifier(oValue: ParserNode) {
+		return oValue.type === "identifier" && !oValue.args && oValue.value.length === 1;
+	}
+
+	private fnGetLetterRange(sTypeFirstChar: string) { // l1 or l1-l2 or l1- or -l2 or nothing
+		if (this.oToken.type !== "identifier") {
+			throw this.composeError(Error(), "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], this.oToken.value, this.oToken.pos);
+		}
+		const oExpression = this.expression(0); // n or n-n
+
+		if (BasicParser.fnIsSingleLetterIdentifier(oExpression)) { // ok
+			oExpression.type = "letter"; // change type: identifier -> letter
+		} else if (oExpression.type === "-" && oExpression.left && oExpression.right && BasicParser.fnIsSingleLetterIdentifier(oExpression.left) && BasicParser.fnIsSingleLetterIdentifier(oExpression.right)) { // also ok
+			oExpression.type = "range"; // change type: "-" => range
+			oExpression.left.type = "letter"; // change type: identifier -> letter
+			oExpression.right.type = "letter"; // change type: identifier -> letter
+		} else {
+			throw this.composeError(Error(), "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], oExpression.value, oExpression.pos);
+		}
+		return oExpression;
+	}
+
+	private fnCheckRemainingTypes(aTypes: string[]) {
+		for (let i = 0; i < aTypes.length; i += 1) { // some more parameters expected?
+			const sType = aTypes[i];
+
+			if (!sType.endsWith("?") && !sType.endsWith("*")) { // mandatory?
+				const sText = BasicParser.mParameterTypes[sType] || ("parameter " + sType);
+
+				throw this.composeError(Error(), "Expected " + sText + " for " + this.oPreviousToken.type, this.oToken.value, this.oToken.pos);
+			}
+		}
+	}
+
+	private fnGetArgs(sKeyword?: string) { // eslint-disable-line complexity
+		let aTypes: string[] | undefined;
+
+		if (sKeyword) {
+			const sKeyOpts = BasicParser.mKeywords[sKeyword];
+
+			if (sKeyOpts) {
+				aTypes = sKeyOpts.split(" ");
+				aTypes.shift(); // remove keyword type
+			} else {
+				Utils.console.warn("fnGetArgs: No options for keyword", sKeyword);
+			}
+		}
+
+		const aArgs: ParserNode[] = [],
+			sSeparator = ",",
+			mCloseTokens = BasicParser.mCloseTokens;
+		let bNeedMore = false,
+			sType = "xxx";
+
+		while (bNeedMore || (sType && !mCloseTokens[this.oToken.type])) {
+			bNeedMore = false;
+			if (aTypes && sType.slice(-1) !== "*") { // "*"= any number of parameters
+				sType = aTypes.shift() || "";
+				if (!sType) {
+					throw this.composeError(Error(), "Expected end of arguments", this.oPreviousToken.type, this.oPreviousToken.pos);
+				}
+			}
+			const sTypeFirstChar = sType.charAt(0);
+			let oExpression: ParserNode;
+
+			if (sType === "#0?") { // optional stream?
+				if (this.oToken.type === "#") { // stream?
+					oExpression = this.fnGetOptionalStream();
+					if (this.getToken().type === ",") { // oToken.type
+						this.advance(",");
+						bNeedMore = true;
+					}
+				} else {
+					oExpression = this.fnGetOptionalStream();
+				}
+			} else {
+				if (sTypeFirstChar === "#") { // stream expected? (for functions)
+					oExpression = this.expression(0);
+					if (oExpression.type !== "#") { // maybe a number
+						throw this.composeError(Error(), "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], oExpression.value, oExpression.pos);
+					}
+				} else if (this.oToken.type === sSeparator && sType.substr(0, 2) === "n0") { // n0 or n0?: if parameter not specified, insert default value null?
+					oExpression = BasicParser.fnCreateDummyArg("null");
+				} else if (sTypeFirstChar === "l") {
+					oExpression = this.expression(0);
+					if (oExpression.type !== "number") { // maybe an expression and no plain number
+						throw this.composeError(Error(), "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], oExpression.value, oExpression.pos);
+					}
+					this.fnChangeNumber2LineNumber(oExpression);
+				} else if (sTypeFirstChar === "v") { // variable (identifier)
+					oExpression = this.expression(0);
+					if (oExpression.type !== "identifier") {
+						throw this.composeError(Error(), "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], oExpression.value, oExpression.pos);
+					}
+				} else if (sTypeFirstChar === "r") { // letter or range of letters (defint, defreal, defstr)
+					oExpression = this.fnGetLetterRange(sTypeFirstChar);
+				} else if (sTypeFirstChar === "q") { // line number range
+					if (sType === "q0?") { // optional line number range
+						if (this.oToken.type === "number" || this.oToken.type === "-") { // eslint-disable-line max-depth
+							oExpression = this.fnGetLineRange(sTypeFirstChar);
+						} else {
+							oExpression = BasicParser.fnCreateDummyArg("null");
+							if (aTypes && aTypes.length) { // eslint-disable-line max-depth
+								bNeedMore = true; // maybe take it as next parameter
+							}
+						}
+					} else {
+						oExpression = this.fnGetLineRange(sTypeFirstChar);
+					}
+				} else {
+					oExpression = this.expression(0);
+					if (oExpression.type === "#") { // got stream?
+						throw this.composeError(Error(), "Unexpected stream", oExpression.value, oExpression.pos);
+					}
+				}
+				if (this.oToken.type === sSeparator) {
+					this.advance(sSeparator);
+					bNeedMore = true;
+				} else if (!bNeedMore) {
+					sType = ""; // stop
+				}
+			}
+			aArgs.push(oExpression);
+		}
+		if (aTypes && aTypes.length) { // some more parameters expected?
+			this.fnCheckRemainingTypes(aTypes); // error if remaining mandatory args
+			sType = aTypes[0];
+			if (sType === "#0?") { // null stream to add?
+				const oExpression = BasicParser.fnCreateDummyArg("#"); // dummy stream with dummy arg
+
+				oExpression.right = BasicParser.fnCreateDummyArg("null");
+				aArgs.push(oExpression);
+			}
+		}
+		return aArgs;
+	}
+
+	private fnGetArgsSepByCommaSemi() {
+		const mCloseTokens = BasicParser.mCloseTokens,
+			aArgs: ParserNode[] = [];
+
+		while (!mCloseTokens[this.oToken.type]) {
+			aArgs.push(this.expression(0));
+			if (this.oToken.type === "," || this.oToken.type === ";") {
+				this.advance(this.oToken.type);
+			} else {
+				break;
+			}
+		}
+		return aArgs;
+	}
+
+	private fnGetArgsInParenthesis() {
+		this.advance("(");
+		const aArgs = this.fnGetArgs(undefined); // until ")"
+
+		this.advance(")");
+		return aArgs;
+	}
+
+	private static mBrackets: { [k in string]: string } = {
+		"(": ")",
+		"[": "]"
+	};
+
+	private fnGetArgsInParenthesesOrBrackets() {
+		const oBrackets = BasicParser.mBrackets;
+		let oBracketOpen: ParserNode;
+
+		if (this.oToken.type === "(" || this.oToken.type === "[") {
+			oBracketOpen = this.oToken;
+		}
+
+		this.advance(oBracketOpen ? oBracketOpen.type : "(");
+		const aArgs = this.fnGetArgs(undefined); // (until "]" or ")")
+
+		aArgs.unshift(oBracketOpen);
+
+		let oBracketClose: ParserNode;
+
+		if (this.oToken.type === ")" || this.oToken.type === "]") {
+			oBracketClose = this.oToken;
+		}
+		this.advance(oBracketClose ? oBracketClose.type : ")");
+		aArgs.push(oBracketClose);
+		if (oBrackets[oBracketOpen.type] !== oBracketClose.type) {
+			if (!this.bQuiet) {
+				Utils.console.warn(this.composeError({} as Error, "Inconsistent bracket style", this.oPreviousToken.value, this.oPreviousToken.pos).message);
+			}
+		}
+		return aArgs;
+	}
+
+	private fnCreateCmdCall(sType?: string) {
+		const oValue = this.oPreviousToken;
+
+		if (sType) {
+			oValue.type = sType; // override
+		}
+
+		oValue.args = this.fnGetArgs(oValue.type);
+		return oValue;
+	}
+
+	private fnCreateFuncCall() {
+		const oValue = this.oPreviousToken;
+
+		if (this.oToken.type === "(") { // args in parenthesis?
+			this.advance("(");
+			oValue.args = this.fnGetArgs(oValue.type);
+			this.advance(")");
+		} else { // no parenthesis?
+			oValue.args = [];
+
+			// if we have a check, make sure there are no non-optional parameters left
+			const sKeyOpts = BasicParser.mKeywords[oValue.type];
+
+			if (sKeyOpts) {
+				const aTypes = sKeyOpts.split(" ");
+
+				aTypes.shift(); // remove key
+				this.fnCheckRemainingTypes(aTypes);
+			}
+		}
+
+		return oValue;
+	}
+
+	private fnGenerateKeywordSymbols() {
+		for (const sKey in BasicParser.mKeywords) {
+			if (BasicParser.mKeywords.hasOwnProperty(sKey)) {
+				const sValue = BasicParser.mKeywords[sKey];
+
+				if (sValue.charAt(0) === "f") {
+					this.symbol(sKey, this.fnCreateFuncCall);
+				} else if (sValue.charAt(0) === "c") {
+					this.stmt(sKey, this.fnCreateCmdCall);
+				}
+			}
+		}
+	}
+
+	// ...
+
+	private fnIdentifier(oName: ParserNode) {
+		const sName = oName.value,
+			bStartsWithFn = sName.toLowerCase().startsWith("fn");
+
+		if (bStartsWithFn) {
+			if (this.oToken.type !== "(") { // Fnxxx name without ()
+				const oValue: ParserNode = {
+					type: "fn",
+					value: sName.substr(0, 2), // fn
+					args: [],
+					left: oName, // identifier
+					pos: oName.pos // same pos as identifier?
+				};
+
+				return oValue;
+			}
+		}
+
+		let oValue = oName;
+
+		if (this.oToken.type === "(" || this.oToken.type === "[") {
+			oValue = this.oPreviousToken;
+
+			if (bStartsWithFn) {
+				oValue.args = this.fnGetArgsInParenthesis();
+				oValue.type = "fn"; // FNxxx in e.g. print
+				oValue.left = {
+					type: "identifier",
+					value: oValue.value,
+					pos: oValue.pos
+				};
+			} else {
+				oValue.args = this.fnGetArgsInParenthesesOrBrackets();
+			}
+		}
+		return oValue;
+	}
+
+	private fnParenthesis() { // "("
+		const oValue = this.expression(0);
+
+		this.advance(")");
+		return oValue;
+	}
+
+	private fnBracket() { // "["
+		const oValue = this.expression(0);
+
+		this.advance("]");
+		return oValue;
+	}
+
+	private fnFn() { // separate fn
+		const oValue = this.oPreviousToken, // "fn"
+			oValue2 = this.oToken; // identifier
+
+		this.advance("identifier");
+
+		oValue2.value = oValue.value + oValue2.value; // combine "fn" + identifier (maybe simplify by separating in lexer)
+		oValue2.bSpace = true; // fast hack: set space for CodeGeneratorBasic
+		oValue.left = oValue2;
+
+		/*
+		if (this.oToken.type === "identifier") { // maybe simplify by separating in lexer
+			this.oToken.value = this.oPreviousToken.value + this.oToken.value; // "fn" + identifier
+			this.oToken.bSpace = true; // fast hack: set space for CodeGeneratorBasic
+			oValue.left = this.oToken;
+			this.oToken = this.advance("identifier");
+		} else {
+			throw this.composeError(Error(), "Expected identifier", this.oToken.type, this.oToken.pos);
+		}
+		*/
+
+		if (this.oToken.type !== "(") { // FN xxx name without ()?
+			oValue.args = [];
+		} else {
+			oValue.args = this.fnGetArgsInParenthesis();
+		}
+		return oValue;
+	}
+
+	private fnApostrophe() { // "'" apostrophe comment => rem
+		return this.fnCreateCmdCall("rem");
+	}
+
+	private fnRsx() { // rsx: "|"
+		const oValue = this.oPreviousToken;
+
+		if (this.oToken.type === ",") { // arguments starting with comma
+			this.advance(",");
+		}
+		oValue.args = this.fnGetArgs(undefined);
+		return oValue;
+	}
+
+	private fnAfterOrEvery() {
+		const sType = this.oPreviousToken.type + "Gosub", // "afterGosub" or "everyGosub"
+			oValue = this.fnCreateCmdCall(sType); // interval and optional timer
+
+		if (oValue.args.length < 2) { // add default timer 0
+			oValue.args.push(BasicParser.fnCreateDummyArg("null"));
+		}
+		this.advance("gosub");
+		const aLine = this.fnGetArgs("gosub"); // line number
+
+		oValue.args.push(aLine[0]);
+		return oValue;
+	}
+
+	private fnChain() {
+		let sName = "chain",
+			oValue: ParserNode;
+
+		if (this.oToken.type !== "merge") { // not chain merge?
+			oValue = this.fnCreateCmdCall(sName);
+		} else { // chain merge with optional DELETE
+			this.oToken = this.advance("merge");
+			oValue = this.oPreviousToken;
+			sName = "chainMerge";
+			oValue.type = sName;
+			oValue.args = [];
+
+			let oValue2 = this.expression(0); // filename
+
+			oValue.args.push(oValue2);
+
+			if (this.oToken.type === ",") {
+				this.advance(",");
+
+				let bNumberExpression = false; // line number (expression) found
+
+				if (this.oToken.type !== "," && this.oToken.type !== "(eol)" && this.oToken.type !== "(eof)") {
+					oValue2 = this.expression(0); // line number or expression
+					oValue.args.push(oValue2);
+					bNumberExpression = true;
+				}
+
+				if (this.oToken.type === ",") {
+					this.advance(",");
+					this.advance("delete");
+
+					if (!bNumberExpression) {
+						oValue2 = BasicParser.fnCreateDummyArg("null"); // insert dummy arg for line
+						oValue.args.push(oValue2);
+					}
+
+					oValue2 = this.fnGetLineRange("q");
+					oValue.args.push(oValue2);
+				}
+			}
+		}
+		return oValue;
+	}
+
+	private fnClear() {
+		let sName = "clear";
+
+		if (this.oToken.type === "input") { // clear input?
+			this.advance("input");
+			sName = "clearInput";
+		}
+		return this.fnCreateCmdCall(sName);
+	}
+
+	private fnData() {
+		const oValue = this.oPreviousToken;
+		let bParameterFound = false;
+
+		oValue.args = [];
+
+		// data is special: it can have empty parameters, also the last parameter, and also if no parameters
+		if (this.oToken.type !== "," && this.oToken.type !== "(eol)" && this.oToken.type !== "(end)") {
+			oValue.args.push(this.expression(0)); // take first argument
+			bParameterFound = true;
+		}
+
+		while (this.oToken.type === ",") {
+			if (!bParameterFound) {
+				oValue.args.push(BasicParser.fnCreateDummyArg("null")); // insert null parameter
+			}
+			this.oToken = this.advance(",");
+			bParameterFound = false;
+			if (this.oToken.type === "(eol)" || this.oToken.type === "(end)") {
+				break;
+			} else if (this.oToken.type !== ",") {
+				oValue.args.push(this.expression(0));
+				bParameterFound = true;
+			}
+		}
+
+		if (!bParameterFound) {
+			oValue.args.push(BasicParser.fnCreateDummyArg("null")); // insert null parameter
+		}
+
+		return oValue;
+	}
+
+	private fnDef() { // somehow special
+		const oValue = this.oPreviousToken; // def
+		let	oValue2 = this.oToken, // fn or fn<identifier>
+			oFn: ParserNode | undefined;
+
+		if (oValue2.type === "fn") { // fn and <identifier> separate?
+			oFn = oValue2;
+			oValue2 = this.advance("fn");
+		}
+
+		this.oToken = this.advance("identifier");
+
+		if (oFn) { // separate fn?
+			oValue2.value = oFn.value + oValue2.value; // combine "fn" + identifier (maybe simplify by separating in lexer)
+			oValue2.bSpace = true; // fast hack: set space for CodeGeneratorBasic
+		} else if (!oValue2.value.toLowerCase().startsWith("fn")) { // not fn<identifier>
+			throw this.composeError(Error(), "Invalid DEF", this.oToken.type, this.oToken.pos);
+		}
+
+		oValue.left = oValue2;
+
+		oValue.args = (this.oToken.type === "(") ? this.fnGetArgsInParenthesis() : [];
+		this.advance("=");
+
+		oValue.right = this.expression(0);
+		return oValue;
+	}
+
+	private fnElse() { // similar to a comment, normally not used
+		const oValue = this.oPreviousToken;
+
+		oValue.args = [];
+
+		if (!this.bQuiet) {
+			Utils.console.warn(this.composeError({} as Error, "ELSE: Weird use of ELSE", this.oPreviousToken.type, this.oPreviousToken.pos).message);
+		}
+
+		// TODO: data line as separate statement is taken
+		while (this.oToken.type !== "(eol)" && this.oToken.type !== "(end)") {
+			oValue.args.push(this.oToken); // collect tokens unchecked, may contain syntax error
+			this.advance(this.oToken.type);
+		}
+
+		return oValue;
+	}
+
+	private fnEntOrEnv() {
+		const oValue = this.oPreviousToken;
+
+		oValue.args = [];
+
+		oValue.args.push(this.expression(0)); // should be number or variable
+
+		let iCount = 0;
+
+		while (this.oToken.type === ",") {
+			this.oToken = this.advance(",");
+			if (this.oToken.type === "=" && iCount % 3 === 0) { // special handling for parameter "number of steps"
+				this.advance("=");
+				const oExpression = BasicParser.fnCreateDummyArg("null"); // insert null parameter
+
+				oValue.args.push(oExpression);
+				iCount += 1;
+			}
+			const oExpression = this.expression(0);
+
+			oValue.args.push(oExpression);
+			iCount += 1;
+		}
+
+		return oValue;
+	}
+
+	private fnFor() {
+		const oValue = this.oPreviousToken;
+
+		if (this.oToken.type !== "identifier") {
+			throw this.composeError(Error(), "Expected identifier", this.oToken.type, this.oToken.pos);
+		}
+
+		const oName = this.expression(90); // take simple identifier, nothing more
+
+		if (oName.type !== "identifier") {
+			throw this.composeError(Error(), "Expected simple identifier", this.oToken.type, this.oToken.pos);
+		}
+		oValue.args = [oName];
+		this.advance("=");
+		oValue.args.push(this.expression(0));
+
+		this.oToken = this.advance("to");
+		oValue.args.push(this.expression(0));
+
+		if (this.oToken.type === "step") {
+			this.advance("step");
+			oValue.args.push(this.expression(0));
+		} else {
+			oValue.args.push(BasicParser.fnCreateDummyArg("null"));
+		}
+		return oValue;
+	}
+
+	private fnGraphics() {
+		let oValue: ParserNode;
+
+		if (this.oToken.type === "pen" || this.oToken.type === "paper") { // graphics pen/paper
+			const sName = "graphics" + Utils.stringCapitalize(this.oToken.type);
+
+			this.advance(this.oToken.type);
+			oValue = this.fnCreateCmdCall(sName);
+		} else {
+			throw this.composeError(Error(), "Expected PEN or PAPER", this.oToken.type, this.oToken.pos);
+		}
+		return oValue;
+	}
+
+	private fnIf() {
+		const oValue = this.oPreviousToken;
+
+		oValue.left = this.expression(0);
+
+		let aArgs: ParserNode[] | undefined;
+
+		if (this.oToken.type === "goto") {
+			// skip "then"
+			aArgs = this.statements("else");
+		} else {
+			this.advance("then");
+			if (this.oToken.type === "number") {
+				const oValue2 = this.fnCreateCmdCall("goto"); // take "then" as "goto", checks also for line number
+
+				oValue2.len = 0; // mark it as inserted
+				const oToken2 = this.oToken;
+
+				aArgs = this.statements("else");
+				if (aArgs.length && aArgs[0].type !== "rem") {
+					if (!this.bQuiet) {
+						Utils.console.warn(this.composeError({} as Error, "IF: Unreachable code after THEN", oToken2.type, oToken2.pos).message);
+					}
+				}
+				aArgs.unshift(oValue2);
+			} else {
+				aArgs = this.statements("else");
+			}
+		}
+		oValue.args = aArgs; // then statements
+
+		aArgs = undefined;
+		if (this.oToken.type === "else") {
+			this.oToken = this.advance("else");
+			if (this.oToken.type === "number") {
+				const oValue2 = this.fnCreateCmdCall("goto"); // take "then" as "goto", checks also for line number
+
+				oValue2.len = 0; // mark it as inserted
+				const oToken2 = this.oToken;
+
+				aArgs = this.statements("else");
+				if (aArgs.length) {
+					if (!this.bQuiet) {
+						Utils.console.warn(this.composeError({} as Error, "IF: Unreachable code after ELSE", oToken2.type, oToken2.pos).message);
+					}
+				}
+				aArgs.unshift(oValue2);
+			} else if (this.oToken.type === "if") {
+				aArgs = [this.statement()];
+			} else {
+				aArgs = this.statements("else");
+			}
+		}
+		oValue.args2 = aArgs; // else statements
+		return oValue;
+	}
+
+	private fnInput() { // input or line input
+		const oValue = this.oPreviousToken;
+
+		oValue.args = [];
+
+		const oStream = this.fnGetOptionalStream();
+
+		oValue.args.push(oStream);
+		if (oStream.len !== 0) { // not an inserted stream?
+			this.advance(",");
+		}
+
+		if (this.oToken.type === ";") { // no newline after input?
+			oValue.args.push(this.oToken);
+			this.advance(";");
+		} else {
+			oValue.args.push(BasicParser.fnCreateDummyArg("null"));
+		}
+
+		if (this.oToken.type === "string") { // message
+			oValue.args.push(this.oToken);
+			this.oToken = this.advance("string");
+			if (this.oToken.type === ";" || this.oToken.type === ",") { // ";" => need to append prompt "? " , "," = no prompt
+				oValue.args.push(this.oToken);
+				this.advance(this.oToken.type);
+			} else {
+				throw this.composeError(Error(), "Expected ; or ,", this.oToken.type, this.oToken.pos);
+			}
+		} else {
+			oValue.args.push(BasicParser.fnCreateDummyArg("null")); // dummy message
+			oValue.args.push(BasicParser.fnCreateDummyArg("null")); // dummy prompt
+		}
+
+		do { // we need loop for input
+			const oValue2 = this.expression(90); // we expect "identifier", no fnxx
+
+			if (oValue2.type !== "identifier") {
+				throw this.composeError(Error(), "Expected identifier", this.oPreviousToken.type, this.oPreviousToken.pos);
+			}
+
+			oValue.args.push(oValue2);
+			if (oValue.type === "lineInput") {
+				break; // no loop for lineInput (only one arg)
+			}
+		} while ((this.oToken.type === ",") && this.advance(","));
+		return oValue;
+	}
+
+	private fnKey() {
+		let sName = "key";
+
+		if (this.oToken.type === "def") { // key def?
+			this.advance("def");
+			sName = "keyDef";
+		}
+		return this.fnCreateCmdCall(sName);
+	}
+
+	private fnLet() {
+		const oValue = this.oPreviousToken;
+
+		oValue.right = this.assignment();
+		return oValue;
+	}
+
+	private fnLine() {
+		const oValue = this.oPreviousToken;
+
+		oValue.type = "lineInput"; // change type line => lineInput
+		this.advance("input"); // ignore this token
+		this.oPreviousToken = oValue; // set to token "lineInput"
+
+		return this.fnInput(); // continue with input
+	}
+
+	private fnMid$() { // mid$Assign
+		this.oPreviousToken.type = "mid$Assign"; // change type mid$ => mid$Assign
+		const oValue = this.fnCreateFuncCall();
+
+		if (oValue.args[0].type !== "identifier") {
+			throw this.composeError(Error(), "Expected identifier", oValue.args[0].value, oValue.args[0].pos);
+		}
+
+		this.advance("="); // equal as assignment
+		const oRight = this.expression(0);
+
+		oValue.right = oRight;
+
+		return oValue;
+	}
+
+	private fnOn() {
+		const oValue = this.oPreviousToken;
+
+		oValue.args = [];
+
+		if (this.oToken.type === "break") {
+			this.oToken = this.advance("break");
+			if (this.oToken.type === "gosub") {
+				this.advance("gosub");
+				oValue.type = "onBreakGosub";
+				oValue.args = this.fnGetArgs(oValue.type);
+			} else if (this.oToken.type === "cont") {
+				this.advance("cont");
+				oValue.type = "onBreakCont";
+			} else if (this.oToken.type === "stop") {
+				this.advance("stop");
+				oValue.type = "onBreakStop";
+			} else {
+				throw this.composeError(Error(), "Expected GOSUB, CONT or STOP", this.oToken.type, this.oToken.pos);
+			}
+		} else if (this.oToken.type === "error") { // on error goto
+			this.oToken = this.advance("error");
+			this.advance("goto");
+			oValue.type = "onErrorGoto";
+			oValue.args = this.fnGetArgs(oValue.type);
+		} else if (this.oToken.type === "sq") { // on sq(n) gosub
+			let oLeft = this.expression(0);
+
+			oLeft = oLeft.args[0];
+			this.oToken = this.getToken();
+			this.advance("gosub");
+			oValue.type = "onSqGosub";
+			oValue.args = this.fnGetArgs(oValue.type);
+			oValue.args.unshift(oLeft);
+		} else {
+			const oLeft = this.expression(0);
+
+			if (this.oToken.type === "gosub") {
+				this.advance("gosub");
+				oValue.type = "onGosub";
+				oValue.args = this.fnGetArgs(oValue.type);
+				oValue.args.unshift(oLeft);
+			} else if (this.oToken.type === "goto") {
+				this.advance("goto");
+				oValue.type = "onGoto";
+				oValue.args = this.fnGetArgs(oValue.type);
+				oValue.args.unshift(oLeft);
+			} else {
+				throw this.composeError(Error(), "Expected GOTO or GOSUB", this.oToken.type, this.oToken.pos);
+			}
+		}
+		return oValue;
+	}
+
+	private fnPrint() {
+		const oValue = this.oPreviousToken,
+			mCloseTokens = BasicParser.mCloseTokens,
+			oStream = this.fnGetOptionalStream();
+
+		oValue.args = [];
+		oValue.args.push(oStream);
+
+		let bCommaAfterStream = false;
+
+		if (oStream.len !== 0) { // not an inserted stream?
+			bCommaAfterStream = true;
+		}
+
+		while (!mCloseTokens[this.oToken.type]) {
+			if (bCommaAfterStream) {
+				this.advance(",");
+				bCommaAfterStream = false;
+			}
+
+			let oValue2;
+
+			if (this.oToken.type === "spc" || this.oToken.type === "tab") {
+				this.advance(this.oToken.type);
+				oValue2 = this.fnCreateFuncCall();
+			} else if (this.oToken.type === "using") {
+				oValue2 = this.oToken;
+				this.advance("using");
+				const t = this.expression(0); // format
+
+				this.advance(";"); // after the format there must be a ";"
+
+				oValue2.args = this.fnGetArgsSepByCommaSemi();
+				oValue2.args.unshift(t);
+				if (this.oPreviousToken.type === ";") { // using closed by ";"?
+					oValue.args.push(oValue2);
+					oValue2 = this.oPreviousToken; // keep it for print
+				}
+			} else if (BasicParser.mKeywords[this.oToken.type] && (BasicParser.mKeywords[this.oToken.type].charAt(0) === "c" || BasicParser.mKeywords[this.oToken.type].charAt(0) === "x")) { // stop also at keyword which is c=command or x=command addition
+				break;
+				//TTT: oValue2 not set?
+			} else if (this.oToken.type === ";" || this.oToken.type === ",") { // separator ";" or comma tab separator ","
+				oValue2 = this.oToken;
+				this.advance(this.oToken.type);
+			} else {
+				oValue2 = this.expression(0);
+			}
+			oValue.args.push(oValue2);
+		}
+		return oValue;
+	}
+
+	private fnQuestion() { // "?"
+		//const oValue = (this.oSymbols as any).print.std(); // "?" is same as print
+		const oValue = this.fnPrint();
+
+		oValue.type = "print";
+		return oValue;
+	}
+
+	private fnResume() {
+		let sName = "resume";
+
+		if (this.oToken.type === "next") { // resume next
+			this.advance("next");
+			sName = "resumeNext";
+		}
+		const oValue = this.fnCreateCmdCall(sName);
+
+		return oValue;
+	}
+
+	private fnSpeed() {
+		let sName = "";
+
+		switch (this.oToken.type) {
+		case "ink":
+			sName = "speedInk";
+			this.advance("ink");
+			break;
+		case "key":
+			sName = "speedKey";
+			this.advance("key");
+			break;
+		case "write":
+			sName = "speedWrite";
+			this.advance("write");
+			break;
+		default:
+			throw this.composeError(Error(), "Expected INK, KEY or WRITE", this.oToken.type, this.oToken.pos);
+		}
+		return this.fnCreateCmdCall(sName);
+	}
+
+	private fnSymbol() {
+		let sName = "symbol";
+
+		if (this.oToken.type === "after") { // symbol after?
+			this.advance("after");
+			sName = "symbolAfter";
+		}
+		return this.fnCreateCmdCall(sName);
+	}
+
+	private fnWindow() {
+		let sName = "window";
+
+		if (this.oToken.type === "swap") {
+			this.advance("swap");
+			sName = "windowSwap";
+		}
+		return this.fnCreateCmdCall(sName);
+	}
+
+
+	private fnGenerateSymbols() {
+		this.fnGenerateKeywordSymbols();
+
+		this.symbol(":");
+		this.symbol(";");
+		this.symbol(",");
+		this.symbol(")");
+		this.symbol("]");
+
+		// define additional statement parts
+		this.symbol("break");
+		this.symbol("spc");
+		this.symbol("step");
+		this.symbol("swap");
+		this.symbol("then");
+		this.symbol("tab");
+		this.symbol("to");
+		this.symbol("using");
+
+		this.symbol("(eol)");
+		this.symbol("(end)");
+
+		this.symbol("number", function (oNode) {
+			return oNode;
+		});
+
+		this.symbol("binnumber", function (oNode) {
+			return oNode;
+		});
+
+		this.symbol("hexnumber", function (oNode) {
+			return oNode;
+		});
+
+		this.symbol("linenumber", function (oNode) {
+			return oNode;
+		});
+
+		this.symbol("string", function (oNode) {
+			return oNode;
+		});
+
+		this.symbol("identifier", this.fnIdentifier);
+
+		this.symbol("(", this.fnParenthesis);
+
+		this.symbol("[", this.fnBracket);
+
+		this.prefix("@", 95); // address of
+
+		this.infix("^", 90, 80);
+
+		this.prefix("+", 80);
+		this.prefix("-", 80);
+
+		this.infix("*", 70);
+		this.infix("/", 70);
+
+		this.infix("\\", 60); // integer division
+
+		this.infix("mod", 50);
+
+		this.infix("+", 40);
+		this.infix("-", 40);
+
+		this.infixr("=", 30); // equal for comparison
+		this.infixr("<>", 30);
+		this.infixr("<", 30);
+		this.infixr("<=", 30);
+		this.infixr(">", 30);
+		this.infixr(">=", 30);
+
+		this.prefix("not", 23);
+		this.infixr("and", 22);
+		this.infixr("or", 21);
+		this.infixr("xor", 20);
+
+		this.prefix("#", 10); // priority ok?
+
+		this.symbol("fn", this.fnFn); // separate fn
+
+		// statements ...
+
+		this.stmt("'", this.fnApostrophe);
+
+		this.stmt("|", this.fnRsx); // rsx
+
+		this.stmt("after", this.fnAfterOrEvery);
+
+		this.stmt("chain", this.fnChain);
+
+		this.stmt("clear", this.fnClear);
+
+		this.stmt("data", this.fnData);
+
+		this.stmt("def", this.fnDef);
+
+		this.stmt("else", this.fnElse); // simular to a comment, normally not used
+
+		this.stmt("ent", this.fnEntOrEnv);
+
+		this.stmt("env", this.fnEntOrEnv);
+
+		this.stmt("every", this.fnAfterOrEvery);
+
+		this.stmt("for", this.fnFor);
+
+		this.stmt("graphics", this.fnGraphics);
+
+		this.stmt("if", this.fnIf);
+
+		this.stmt("input", this.fnInput);
+
+		this.stmt("key", this.fnKey);
+
+		this.stmt("let", this.fnLet);
+
+		this.stmt("line", this.fnLine);
+
+		this.stmt("mid$", this.fnMid$); // mid$Assign
+
+		this.stmt("on", this.fnOn);
+
+		this.stmt("print", this.fnPrint);
+
+		this.stmt("?", this.fnQuestion); // "?" is same as print
+
+		this.stmt("resume", this.fnResume);
+
+		this.stmt("speed", this.fnSpeed);
+
+		this.stmt("symbol", this.fnSymbol);
+
+		this.stmt("window", this.fnWindow);
+	}
+
 
 	// http://crockford.com/javascript/tdop/tdop.html (old: http://javascript.crockford.com/tdop/tdop.html)
 	// http://crockford.com/javascript/tdop/parse.js
@@ -295,1295 +1624,21 @@ export class BasicParser {
 	// Manipulates tokens to its left (e.g: +)? => left denotative function led(), otherwise null denotative function nud()), (e.g. unary -)
 	// identifiers, numbers: also nud.
 	parse(aTokens: LexerToken[], bAllowDirect?: boolean): ParserNode[] {
-		let iIndex = 0,
-			oPreviousToken: ParserNode,
-			oToken: ParserNode;
+		const aParseTree = this.aParseTree;
 
-		const that = this,
-			oSymbols: {[k in string]: SymbolType} = {},
-			aParseTree: ParserNode[] = [],
-
-			getToken = function () {
-				return oToken;
-			},
-
-			symbol = function (id: string, nud?: ParseExpressionFunction, lbp?: number, led?: ParseExpressionFunction) {
-				let oSymbol = oSymbols[id];
-
-				if (!oSymbol) {
-					oSymbols[id] = {} as SymbolType;
-					oSymbol = oSymbols[id];
-				}
-				if (nud) {
-					oSymbol.nud = nud;
-				}
-				if (lbp) {
-					oSymbol.lbp = lbp;
-				}
-				if (led) {
-					oSymbol.led = led;
-				}
-				return oSymbol;
-			},
-
-			advance = function (id?: string) {
-				oPreviousToken = oToken;
-				if (id && oToken.type !== id) {
-					throw that.composeError(Error(), "Expected " + id, (oToken.value === "") ? oToken.type : oToken.value, oToken.pos);
-				}
-				if (iIndex >= aTokens.length) {
-					Utils.console.warn("advance: end of file");
-					if (aTokens.length && aTokens[aTokens.length - 1].type === "(end)") {
-						oToken = aTokens[aTokens.length - 1];
-					} else {
-						Utils.console.warn("advance: No (end) token!");
-						oToken = {
-							type: "(end)",
-							value: null,
-							pos: null
-						};
-					}
-					return oToken;
-				}
-				oToken = aTokens[iIndex] as ParserNode; // we get a lex token and reuse it as parseTree token
-				iIndex += 1;
-				if (oToken.type === "identifier" && BasicParser.mKeywords[oToken.value.toLowerCase()]) {
-					oToken.type = oToken.value.toLowerCase(); // modify type identifier => keyword xy
-				}
-				const oSym = oSymbols[oToken.type];
-
-				if (!oSym) {
-					throw that.composeError(Error(), "Unknown token", oToken.type, oToken.pos);
-				}
-				return oToken;
-			},
-
-			expression = function (rbp: number) {
-				let t = oToken,
-					s = oSymbols[t.type];
-
-				if (Utils.debug > 3) {
-					Utils.console.debug("parse: expression rbp=" + rbp + " type=" + t.type + " t=%o", t);
-				}
-				advance(t.type);
-				if (!s.nud) {
-					if (t.type === "(end)") {
-						throw that.composeError(Error(), "Unexpected end of file", "", t.pos);
-					} else {
-						throw that.composeError(Error(), "Unexpected token", t.type, t.pos);
-					}
-				}
-
-				let left = s.nud(t); // process literals, variables, and prefix operators
-
-				while (rbp < oSymbols[oToken.type].lbp) { // as long as the right binding power is less than the left binding power of the next token...
-					t = oToken;
-					s = oSymbols[t.type];
-					advance(t.type);
-					if (!s.led) {
-						throw that.composeError(Error(), "Unexpected token", t.type, t.pos); //TTT how to get this error?
-					}
-					left = s.led(left); // ...the led method is invoked on the following token (infix and suffix operators), can be recursive
-				}
-				return left;
-			},
-
-			assignment = function () { // "=" as assignment, similar to let
-				if (oToken.type !== "identifier") {
-					throw that.composeError(Error(), "Expected identifier", oToken.type, oToken.pos);
-				}
-
-				const oLeft = expression(90), // take it (can also be an array) and stop
-					oValue = oToken;
-
-				advance("="); // equal as assignment
-				oValue.left = oLeft;
-				oValue.right = expression(0);
-				oValue.type = "assign"; // replace "="
-				return oValue;
-			},
-
-			statement = function () {
-				const t = oToken,
-					s = oSymbols[t.type];
-
-				if (s.std) { // statement?
-					advance();
-					return s.std();
-				}
-
-				let oValue: ParserNode;
-
-				if (t.type === "identifier") {
-					oValue = assignment();
-				} else {
-					oValue = expression(0);
-				}
-
-				if (oValue.type !== "assign" && oValue.type !== "fcall" && oValue.type !== "def" && oValue.type !== "(" && oValue.type !== "[") {
-					throw that.composeError(Error(), "Bad expression statement", t.value, t.pos);
-				}
-				return oValue;
-			},
-
-			statements = function (sStopType: string) {
-				const aStatements: ParserNode[] = [];
-
-				let	bColonExpected = false;
-
-				while (oToken.type !== "(end)" && oToken.type !== "(eol)") {
-					if (sStopType && oToken.type === sStopType) {
-						break;
-					}
-					if (bColonExpected || oToken.type === ":") {
-						if (oToken.type !== "'" && oToken.type !== "else") { // no colon required for line comment or ELSE
-							advance(":");
-						}
-						bColonExpected = false;
-					} else {
-						const oStatement = statement();
-
-						aStatements.push(oStatement);
-						bColonExpected = true;
-					}
-				}
-				return aStatements;
-			},
-
-			line = function () {
-				let oValue: ParserNode;
-
-				if (oToken.type !== "number" && bAllowDirect) {
-					bAllowDirect = false; // allow only once
-					oValue = { // insert "direct" label
-						type: "label",
-						value: "direct",
-						pos: null,
-						len: 0
-					};
-				} else {
-					advance("number");
-					oValue = oPreviousToken; // number token
-					oValue.type = "label"; // number => label
-				}
-				that.sLine = oValue.value; // set line number for error messages
-				oValue.args = statements(null);
-
-				if (oToken.type === "(eol)") {
-					advance("(eol)");
-				}
-				return oValue;
-			},
-
-			infix = function (id: string, lbp: number, rbp?: number, led?: ParseExpressionFunction) {
-				rbp = rbp || lbp;
-				symbol(id, null, lbp, led || function (left: ParserNode) {
-					const oValue = oPreviousToken;
-
-					oValue.left = left;
-					oValue.right = expression(rbp);
-					return oValue;
-				});
-			},
-			infixr = function (id: string, lbp: number, rbp?: number, led?: ParseExpressionFunction) {
-				rbp = rbp || lbp;
-				symbol(id, null, lbp, led || function (left) {
-					const oValue = oPreviousToken;
-
-					oValue.left = left;
-					oValue.right = expression(rbp - 1);
-					return oValue;
-				});
-			},
-			prefix = function (id: string, rbp: number) {
-				symbol(id, function () {
-					const oValue = oPreviousToken;
-
-					oValue.right = expression(rbp);
-					return oValue;
-				});
-			},
-			stmt = function (s: string, f: ParseStatmentFunction) {
-				const x = symbol(s);
-
-				x.std = f;
-				return x;
-			},
-
-			fnCreateDummyArg = function (value: string) {
-				const oValue: ParserNode = {
-					type: String(value), // e.g. "null"
-					value: value, // e.g. null
-					pos: null,
-					len: 0
-				};
-
-				return oValue;
-			},
-
-			fnGetOptionalStream = function () {
-				let oValue: ParserNode;
-
-				if (oToken.type === "#") { // stream?
-					oValue = expression(0);
-				} else { // create dummy
-					oValue = fnCreateDummyArg("#"); // dummy stream
-					oValue.right = fnCreateDummyArg(null); // ...with dummy parameter
-				}
-				return oValue;
-			},
-
-			fnChangeNumber2LineNumber = function (oNode: ParserNode) {
-				if (oNode.type === "number") {
-					oNode.type = "linenumber"; // change type: number => linenumber
-				} else {
-					throw that.composeError(Error(), "Expected number type", oNode.type, oNode.pos);
-				}
-			},
-
-			fnGetLineRange = function (sTypeFirstChar: string) { // l1 or l1-l2 or l1- or -l2 or nothing
-				let oLeft: ParserNode;
-
-				if (oToken.type === "number") {
-					oLeft = oToken;
-					advance("number");
-					fnChangeNumber2LineNumber(oLeft);
-				}
-
-				let oRange: ParserNode;
-
-				if (oToken.type === "-") {
-					oRange = oToken;
-					advance("-");
-				}
-
-				if (oRange) {
-					let oRight: ParserNode;
-
-					if (oToken.type === "number") {
-						oRight = oToken;
-						advance("number");
-						fnChangeNumber2LineNumber(oRight);
-					}
-					if (!oLeft && !oRight) {
-						throw that.composeError(Error(), "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], oPreviousToken.value, oPreviousToken.pos);
-					}
-					oRange.type = "linerange"; // change "-" => "linerange"
-					oRange.left = oLeft || fnCreateDummyArg(null); // insert dummy for left
-					oRange.right = oRight || fnCreateDummyArg(null); // insert dummy for right (do not skip it)
-				} else if (oLeft) {
-					oRange = oLeft; // single line number
-					oRange.type = "linenumber"; // change type: number => linenumber
-				}
-
-				return oRange;
-			},
-
-			fnIsSingleLetterIdentifier = function (oValue: ParserNode) {
-				return oValue.type === "identifier" && !oValue.args && oValue.value.length === 1;
-			},
-
-			fnGetLetterRange = function (sTypeFirstChar: string) { // l1 or l1-l2 or l1- or -l2 or nothing
-				if (oToken.type !== "identifier") {
-					throw that.composeError(Error(), "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], oToken.value, oToken.pos);
-				}
-				const oExpression = expression(0); // n or n-n
-
-				if (fnIsSingleLetterIdentifier(oExpression)) { // ok
-					oExpression.type = "letter"; // change type: identifier -> letter
-				} else if (oExpression.type === "-" && fnIsSingleLetterIdentifier(oExpression.left) && fnIsSingleLetterIdentifier(oExpression.right)) { // also ok
-					oExpression.type = "range"; // change type: "-" => range
-					oExpression.left.type = "letter"; // change type: identifier -> letter
-					oExpression.right.type = "letter"; // change type: identifier -> letter
-				} else {
-					throw that.composeError(Error(), "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], oExpression.value, oExpression.pos);
-				}
-				return oExpression;
-			},
-
-			fnCheckRemainingTypes = function (aTypes: string[]) {
-				for (let i = 0; i < aTypes.length; i += 1) { // some more parameters expected?
-					const sType = aTypes[i];
-
-					if (!sType.endsWith("?") && !sType.endsWith("*")) { // mandatory?
-						const sText = BasicParser.mParameterTypes[sType] || ("parameter " + sType);
-
-						throw that.composeError(Error(), "Expected " + sText + " for " + oPreviousToken.type, oToken.value, oToken.pos);
-					}
-				}
-			},
-
-			fnGetArgs = function (sKeyword: string) { // eslint-disable-line complexity
-				let	aTypes: string[];
-
-				if (sKeyword) {
-					const sKeyOpts = BasicParser.mKeywords[sKeyword];
-
-					if (sKeyOpts) {
-						aTypes = sKeyOpts.split(" ");
-						aTypes.shift(); // remove keyword type
-					} else {
-						Utils.console.warn("fnGetArgs: No options for keyword", sKeyword);
-					}
-				}
-
-				const aArgs: ParserNode[] = [],
-					sSeparator = ",",
-					mCloseTokens = BasicParser.mCloseTokens;
-				let	bNeedMore = false,
-					sType = "xxx";
-
-				while (bNeedMore || (sType && !mCloseTokens[oToken.type])) {
-					bNeedMore = false;
-					if (aTypes && sType.slice(-1) !== "*") { // "*"= any number of parameters
-						sType = aTypes.shift();
-						if (!sType) {
-							throw that.composeError(Error(), "Expected end of arguments", oPreviousToken.type, oPreviousToken.pos);
-						}
-					}
-					const sTypeFirstChar = sType.charAt(0);
-					let oExpression: ParserNode;
-
-					if (sType === "#0?") { // optional stream?
-						if (oToken.type === "#") { // stream?
-							oExpression = fnGetOptionalStream();
-							if (getToken().type === ",") { // oToken.type
-								advance(",");
-								bNeedMore = true;
-							}
-						} else {
-							oExpression = fnGetOptionalStream();
-						}
-					} else {
-						if (sTypeFirstChar === "#") { // stream expected? (for functions)
-							oExpression = expression(0);
-							if (oExpression.type !== "#") { // maybe a number
-								throw that.composeError(Error(), "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], oExpression.value, oExpression.pos);
-							}
-						} else if (oToken.type === sSeparator && sType.substr(0, 2) === "n0") { // n0 or n0?: if parameter not specified, insert default value null?
-							oExpression = fnCreateDummyArg(null);
-						} else if (sTypeFirstChar === "l") {
-							oExpression = expression(0);
-							if (oExpression.type !== "number") { // maybe an expression and no plain number
-								throw that.composeError(Error(), "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], oExpression.value, oExpression.pos);
-							}
-							fnChangeNumber2LineNumber(oExpression);
-						} else if (sTypeFirstChar === "v") { // variable (identifier)
-							oExpression = expression(0);
-							if (oExpression.type !== "identifier") {
-								throw that.composeError(Error(), "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], oExpression.value, oExpression.pos);
-							}
-						} else if (sTypeFirstChar === "r") { // letter or range of letters (defint, defreal, defstr)
-							oExpression = fnGetLetterRange(sTypeFirstChar);
-						} else if (sTypeFirstChar === "q") { // line number range
-							if (sType === "q0?") { // optional line number range
-								if (oToken.type === "number" || oToken.type === "-") { // eslint-disable-line max-depth
-									oExpression = fnGetLineRange(sTypeFirstChar);
-								} else {
-									oExpression = fnCreateDummyArg(null);
-									if (aTypes.length) { // eslint-disable-line max-depth
-										bNeedMore = true; // maybe take it as next parameter
-									}
-								}
-							} else {
-								oExpression = fnGetLineRange(sTypeFirstChar);
-							}
-						} else {
-							oExpression = expression(0);
-							if (oExpression.type === "#") { // got stream?
-								throw that.composeError(Error(), "Unexpected stream", oExpression.value, oExpression.pos);
-							}
-						}
-						if (oToken.type === sSeparator) {
-							advance(sSeparator);
-							bNeedMore = true;
-						} else if (!bNeedMore) {
-							sType = ""; // stop
-						}
-					}
-					aArgs.push(oExpression);
-				}
-				if (aTypes && aTypes.length) { // some more parameters expected?
-					fnCheckRemainingTypes(aTypes); // error if remaining mandatory args
-					sType = aTypes[0];
-					if (sType === "#0?") { // null stream to add?
-						const oExpression = fnCreateDummyArg("#"); // dummy stream with dummy arg
-
-						oExpression.right = fnCreateDummyArg(null);
-						aArgs.push(oExpression);
-					}
-				}
-				return aArgs;
-			},
-
-			fnGetArgsSepByCommaSemi = function () {
-				const mCloseTokens = BasicParser.mCloseTokens,
-					aArgs: ParserNode[] = [];
-
-				while (!mCloseTokens[oToken.type]) {
-					aArgs.push(expression(0));
-					if (oToken.type === "," || oToken.type === ";") {
-						advance(oToken.type);
-					} else {
-						break;
-					}
-				}
-				return aArgs;
-			},
-
-			fnGetArgsInParenthesis = function () {
-				advance("(");
-				const aArgs = fnGetArgs(null); // until ")"
-
-				advance(")");
-				return aArgs;
-			},
-
-			fnGetArgsInParenthesesOrBrackets = function () {
-				const oBrackets = {
-					"(": ")",
-					"[": "]"
-				};
-
-				let oBracketOpen: ParserNode;
-
-				if (oToken.type === "(" || oToken.type === "[") { // oBrackets[oToken.type]
-					oBracketOpen = oToken;
-				}
-
-				advance(oBracketOpen ? oBracketOpen.type : "(");
-				const aArgs = fnGetArgs(null); // (until "]" or ")")
-
-				aArgs.unshift(oBracketOpen);
-
-				let oBracketClose: ParserNode;
-
-				if (oToken.type === ")" || oToken.type === "]") {
-					oBracketClose = oToken;
-				}
-				advance(oBracketClose ? oBracketClose.type : ")");
-				aArgs.push(oBracketClose);
-				if (oBrackets[oBracketOpen.type] !== oBracketClose.type) {
-					if (!that.bQuiet) {
-						Utils.console.warn(that.composeError({}, "Inconsistent bracket style", oPreviousToken.value, oPreviousToken.pos).message);
-					}
-				}
-				return aArgs;
-			},
-
-			fnCreateCmdCall = function (sType: string) {
-				const oValue = oPreviousToken;
-
-				if (sType) {
-					oValue.type = sType;
-				}
-
-				oValue.args = fnGetArgs(oValue.type);
-				return oValue;
-			},
-
-			fnCreateFuncCall = function (sType: string) {
-				const oValue = oPreviousToken;
-
-				if (sType) {
-					oValue.type = sType;
-				}
-
-				if (oToken.type === "(") { // args in parenthesis?
-					advance("(");
-					oValue.args = fnGetArgs(oValue.type);
-					if (getToken().type !== ")") {
-						throw that.composeError(Error(), "Expected closing parenthesis for argument list after", oPreviousToken.value, oToken.pos); //TTT
-					}
-					advance(")");
-				} else { // no parenthesis?
-					oValue.args = [];
-
-					// if we have a check, make sure there are no non-optional parameters left
-					const sKeyOpts = BasicParser.mKeywords[oValue.type];
-
-					if (sKeyOpts) {
-						const aTypes = sKeyOpts.split(" ");
-
-						aTypes.shift(); // remove key
-						fnCheckRemainingTypes(aTypes);
-					}
-				}
-
-				return oValue;
-			},
-
-			fnGenerateKeywordSymbols = function () {
-				const fnFunc = function () {
-						return fnCreateFuncCall(null);
-					},
-					fnCmd = function () {
-						return fnCreateCmdCall(null);
-					};
-
-				for (const sKey in BasicParser.mKeywords) {
-					if (BasicParser.mKeywords.hasOwnProperty(sKey)) {
-						const sValue = BasicParser.mKeywords[sKey];
-
-						if (sValue.charAt(0) === "f") {
-							symbol(sKey, fnFunc);
-						} else if (sValue.charAt(0) === "c") {
-							stmt(sKey, fnCmd);
-						}
-					}
-				}
-			},
-			fnInputOrLineInput = function (oValue: ParserNode) {
-				oValue.args = [];
-
-				const oStream = fnGetOptionalStream();
-
-				oValue.args.push(oStream);
-				if (oStream.len !== 0) { // not an inserted stream?
-					advance(",");
-				}
-
-				if (oToken.type === ";") { // no newline after input?
-					oValue.args.push(oToken);
-					advance(";");
-				} else {
-					oValue.args.push(fnCreateDummyArg(null));
-				}
-
-				if (oToken.type === "string") { // message
-					oValue.args.push(oToken);
-					oToken = advance("string");
-					if (oToken.type === ";" || oToken.type === ",") { // ";" => need to append prompt "? " , "," = no prompt
-						oValue.args.push(oToken);
-						advance(oToken.type);
-					} else {
-						throw that.composeError(Error(), "Expected ; or ,", oToken.type, oToken.pos);
-					}
-				} else {
-					oValue.args.push(fnCreateDummyArg(null)); // dummy message
-					oValue.args.push(fnCreateDummyArg(null)); // dummy prompt
-				}
-
-				do { // we need loop for input
-					const oValue2 = expression(90); // we expect "identifier", no fnxx
-
-					if (oValue2.type !== "identifier") {
-						throw that.composeError(Error(), "Expected identifier", oPreviousToken.type, oPreviousToken.pos);
-					}
-
-					oValue.args.push(oValue2);
-					if (oValue.type === "lineInput") {
-						break; // no loop for lineInput (only one arg)
-					}
-				} while ((oToken.type === ",") && advance(","));
-				return oValue;
-			};
-
-
-		fnGenerateKeywordSymbols();
-
-		symbol(":");
-		symbol(";");
-		symbol(",");
-		symbol(")");
-		symbol("]");
-
-		// define additional statement parts
-		symbol("break");
-		symbol("spc");
-		symbol("step");
-		symbol("swap");
-		symbol("then");
-		symbol("tab");
-		symbol("to");
-		symbol("using");
-
-		symbol("(eol)");
-		symbol("(end)");
-
-		symbol("number", function (oNode) {
-			return oNode;
-		});
-
-		symbol("binnumber", function (oNode) {
-			return oNode;
-		});
-
-		symbol("hexnumber", function (oNode) {
-			return oNode;
-		});
-
-		symbol("linenumber", function (oNode) {
-			return oNode;
-		});
-
-		symbol("string", function (oNode) {
-			return oNode;
-		});
-
-		symbol("identifier", function (oName: ParserNode) {
-			const sName = oName.value,
-				bStartsWithFn = sName.toLowerCase().startsWith("fn");
-
-			if (bStartsWithFn) {
-				if (oToken.type !== "(") { // Fnxxx name without ()?
-					const oValue: ParserNode = {
-						type: "fn",
-						value: sName.substr(0, 2), // fn
-						args: [],
-						left: oName, // identifier
-						pos: oName.pos // same pos as identifier?
-					};
-
-					return oValue;
-				}
-			}
-
-			let oValue = oName;
-
-			if (oToken.type === "(" || oToken.type === "[") {
-				oValue = oPreviousToken;
-
-				if (bStartsWithFn) {
-					oValue.args = fnGetArgsInParenthesis();
-					oValue.type = "fn"; // FNxxx in e.g. print
-					oValue.left = {
-						type: "identifier",
-						value: oValue.value,
-						pos: oValue.pos
-					};
-				} else {
-					oValue.args = fnGetArgsInParenthesesOrBrackets();
-				}
-			}
-			return oValue;
-		});
-
-		symbol("(", function () {
-			const oValue = expression(0);
-
-			advance(")");
-			return oValue;
-		});
-
-		symbol("[", function () {
-			const oValue = expression(0);
-
-			advance("]");
-			return oValue;
-		});
-
-		prefix("@", 95); // address of
-
-		infix("^", 90, 80);
-
-		prefix("+", 80);
-		prefix("-", 80);
-
-		infix("*", 70);
-		infix("/", 70);
-
-		infix("\\", 60); // integer division
-
-		infix("mod", 50);
-
-		infix("+", 40);
-		infix("-", 40);
-
-		infixr("=", 30); // equal for comparison
-		infixr("<>", 30);
-		infixr("<", 30);
-		infixr("<=", 30);
-		infixr(">", 30);
-		infixr(">=", 30);
-
-		prefix("not", 23);
-		infixr("and", 22);
-		infixr("or", 21);
-		infixr("xor", 20);
-
-		prefix("#", 10); // priority ok?
-
-
-		symbol("fn", function () { // separate fn
-			const oValue = oPreviousToken;
-
-			if (oToken.type === "identifier") { // maybe simplify by separating in lexer
-				oToken.value = oPreviousToken.value + oToken.value; // "fn" + identifier
-				oToken.bSpace = true; //fast hack: set space for CodeGeneratorBasic
-				oValue.left = oToken;
-				oToken = advance("identifier");
-			} else {
-				throw that.composeError(Error(), "Expected identifier", oToken.type, oToken.pos);
-			}
-
-			if (oToken.type !== "(") { // FN xxx name without ()?
-				oValue.args = [];
-			} else {
-				oValue.args = fnGetArgsInParenthesis();
-			}
-			return oValue;
-		});
-
-
-		// statements ...
-
-		stmt("'", function () { // apostrophe comment => rem
-			return fnCreateCmdCall("rem");
-		});
-
-		stmt("|", function () { // rsx
-			const oValue = oPreviousToken;
-
-			if (oToken.type === ",") { // arguments starting with comma
-				advance(",");
-			}
-			oValue.args = fnGetArgs(null);
-			return oValue;
-		});
-
-		stmt("after", function () {
-			const oValue = fnCreateCmdCall("afterGosub"); // interval and optional timer
-
-			if (oValue.args.length < 2) { // add default timer 0
-				oValue.args.push(fnCreateDummyArg(null));
-			}
-			advance("gosub");
-			const aLine = fnGetArgs("gosub"); // line number
-
-			oValue.args.push(aLine[0]);
-			return oValue;
-		});
-
-		stmt("chain", function () {
-			let sName = "chain",
-				oValue;
-
-			if (oToken.type !== "merge") { // not chain merge?
-				oValue = fnCreateCmdCall(sName);
-			} else { // chain merge with optional DELETE
-				oToken = advance("merge");
-				oValue = oPreviousToken;
-				sName = "chainMerge";
-				oValue.type = sName;
-				oValue.args = [];
-
-				let oValue2 = expression(0); // filename
-
-				oValue.args.push(oValue2);
-
-				if (oToken.type === ",") {
-					advance(",");
-
-					let bNumberExpression = false; // line number (expression) found
-
-					if (oToken.type !== "," && oToken.type !== "(eol)" && oToken.type !== "(eof)") {
-						oValue2 = expression(0); // line number or expression
-						oValue.args.push(oValue2);
-						bNumberExpression = true;
-					}
-
-					if (oToken.type === ",") {
-						advance(",");
-						advance("delete");
-
-						if (!bNumberExpression) {
-							oValue2 = fnCreateDummyArg(null); // insert dummy arg for line
-							oValue.args.push(oValue2);
-						}
-
-						oValue2 = fnGetLineRange("q");
-						oValue.args.push(oValue2);
-					}
-				}
-			}
-			return oValue;
-		});
-
-		stmt("clear", function () {
-			let sName = "clear";
-
-			if (oToken.type === "input") { // clear input?
-				advance("input");
-				sName = "clearInput";
-			}
-			return fnCreateCmdCall(sName);
-		});
-
-		stmt("data", function () {
-			const oValue = oPreviousToken;
-			let bParameterFound = false;
-
-			oValue.args = [];
-
-			// data is special: it can have empty parameters, also the last parameter, and also if no parameters
-			if (oToken.type !== "," && oToken.type !== "(eol)" && oToken.type !== "(end)") {
-				oValue.args.push(expression(0)); // take first argument
-				bParameterFound = true;
-			}
-
-			while (oToken.type === ",") {
-				if (!bParameterFound) {
-					oValue.args.push(fnCreateDummyArg(null)); // insert null parameter
-				}
-				oToken = advance(",");
-				bParameterFound = false;
-				if (oToken.type === "(eol)" || oToken.type === "(end)") {
-					break;
-				} else if (oToken.type !== ",") {
-					oValue.args.push(expression(0));
-					bParameterFound = true;
-				}
-			}
-
-			if (!bParameterFound) {
-				oValue.args.push(fnCreateDummyArg(null)); // insert null parameter
-			}
-
-			return oValue;
-		});
-
-		stmt("def", function () { // somehow special
-			const oValue = oPreviousToken;
-
-			if (oToken.type === "fn") { // fn <identifier> separate?
-				oToken = advance("fn");
-				if (oToken.type === "identifier") {
-					oToken.value = oPreviousToken.value + oToken.value;
-					oToken.bSpace = true; //fast hack: set space for CodeGeneratorBasic
-					oValue.left = oToken;
-				} else {
-					throw that.composeError(Error(), "Invalid DEF", oToken.type, oToken.pos);
-				}
-			} else if (oToken.type === "identifier" && oToken.value.toLowerCase().startsWith("fn")) { // fn<identifier>
-				oValue.left = oToken;
-			} else {
-				throw that.composeError(Error(), "Invalid DEF", oToken.type, oToken.pos);
-			}
-			oToken = advance();
-
-			oValue.args = (oToken.type === "(") ? fnGetArgsInParenthesis() : [];
-			advance("=");
-
-			oValue.right = expression(0);
-			return oValue;
-		});
-
-		stmt("else", function () { // simular to a comment, normally not used
-			const oValue = oPreviousToken;
-
-			oValue.args = [];
-
-			if (!that.bQuiet) {
-				Utils.console.warn(that.composeError({}, "ELSE: Weird use of ELSE", oPreviousToken.type, oPreviousToken.pos).message);
-			}
-
-			// TODO: data line as separate statement is taken
-			while (oToken.type !== "(eol)" && oToken.type !== "(end)") {
-				oValue.args.push(oToken); // collect tokens unchecked, may contain syntax error
-				advance(oToken.type);
-			}
-
-			return oValue;
-		});
-
-		stmt("ent", function () {
-			const oValue = oPreviousToken;
-
-			oValue.args = [];
-
-			oValue.args.push(expression(0)); // should be number or variable
-
-			let iCount = 0;
-
-			while (oToken.type === ",") {
-				oToken = advance(",");
-				if (oToken.type === "=" && iCount % 3 === 0) { // special handling for parameter "number of steps"
-					advance("=");
-					const oExpression = fnCreateDummyArg(null); // insert null parameter
-
-					oValue.args.push(oExpression);
-					iCount += 1;
-				}
-				const oExpression = expression(0);
-
-				oValue.args.push(oExpression);
-				iCount += 1;
-			}
-
-			return oValue;
-		});
-
-		stmt("env", function () {
-			const oValue = oPreviousToken;
-
-			oValue.args = [];
-
-			oValue.args.push(expression(0)); // should be number or variable
-
-			let iCount = 0;
-
-			while (oToken.type === ",") {
-				oToken = advance(",");
-				if (oToken.type === "=" && iCount % 3 === 0) { // special handling for parameter "number of steps"
-					advance("=");
-					const oExpression = fnCreateDummyArg(null); // insert null parameter
-
-					oValue.args.push(oExpression);
-					iCount += 1;
-				}
-				const oExpression = expression(0);
-
-				oValue.args.push(oExpression);
-				iCount += 1;
-			}
-
-			return oValue;
-		});
-
-		stmt("every", function () {
-			const oValue = fnCreateCmdCall("everyGosub"); // interval and optional timer
-
-			if (oValue.args.length < 2) { // add default timer
-				oValue.args.push(fnCreateDummyArg(null));
-			}
-			advance("gosub");
-
-			const aLine = fnGetArgs("gosub"); // line number
-
-			oValue.args.push(aLine[0]);
-			return oValue;
-		});
-
-		stmt("for", function () {
-			const oValue = oPreviousToken;
-
-			if (oToken.type !== "identifier") {
-				throw that.composeError(Error(), "Expected identifier", oToken.type, oToken.pos);
-			}
-
-			const oName = expression(90); // take simple identifier, nothing more
-
-			if (oName.type !== "identifier") {
-				throw that.composeError(Error(), "Expected simple identifier", oToken.type, oToken.pos);
-			}
-			oValue.args = [oName];
-			advance("=");
-			oValue.args.push(expression(0));
-
-			oToken = advance("to");
-			oValue.args.push(expression(0));
-
-			if (oToken.type === "step") {
-				advance("step");
-				oValue.args.push(expression(0));
-			} else {
-				oValue.args.push(fnCreateDummyArg(null));
-			}
-			return oValue;
-		});
-
-		stmt("graphics", function () {
-			let oValue;
-
-			if (oToken.type === "pen" || oToken.type === "paper") { // graphics pen/paper
-				const sName = "graphics" + Utils.stringCapitalize(oToken.type);
-
-				advance(oToken.type);
-				oValue = fnCreateCmdCall(sName);
-			} else {
-				throw that.composeError(Error(), "Expected PEN or PAPER", oToken.type, oToken.pos);
-			}
-			return oValue;
-		});
-
-		stmt("if", function () {
-			const oValue = oPreviousToken;
-
-			oValue.left = expression(0);
-
-			let aArgs: ParserNode[];
-
-			if (oToken.type === "goto") {
-				// skip "then"
-				aArgs = statements("else");
-			} else {
-				advance("then");
-				if (oToken.type === "number") {
-					const oValue2 = fnCreateCmdCall("goto"); // take "then" as "goto", checks also for line number
-
-					oValue2.len = 0; // mark it as inserted
-					const oToken2 = oToken;
-
-					aArgs = statements("else");
-					if (aArgs.length && aArgs[0].type !== "rem") {
-						if (!that.bQuiet) {
-							Utils.console.warn(that.composeError({}, "IF: Unreachable code after THEN", oToken2.type, oToken2.pos).message);
-						}
-					}
-					aArgs.unshift(oValue2);
-				} else {
-					aArgs = statements("else");
-				}
-			}
-			oValue.args = aArgs; // then statements
-
-			aArgs = undefined;
-			if (oToken.type === "else") {
-				oToken = advance("else");
-				if (oToken.type === "number") {
-					const oValue2 = fnCreateCmdCall("goto"); // take "then" as "goto", checks also for line number
-
-					oValue2.len = 0; // mark it as inserted
-					const oToken2 = oToken;
-
-					aArgs = statements("else");
-					if (aArgs.length) {
-						if (!that.bQuiet) {
-							Utils.console.warn(that.composeError({}, "IF: Unreachable code after ELSE", oToken2.type, oToken2.pos).message);
-						}
-					}
-					aArgs.unshift(oValue2);
-				} else if (oToken.type === "if") {
-					aArgs = [statement()];
-				} else {
-					aArgs = statements("else");
-				}
-			}
-			oValue.args2 = aArgs; // else statements
-			return oValue;
-		});
-
-		stmt("input", function () {
-			const oValue = oPreviousToken;
-
-			fnInputOrLineInput(oValue);
-			return oValue;
-		});
-
-		stmt("key", function () {
-			let sName = "key";
-
-			if (oToken.type === "def") { // key def?
-				advance("def");
-				sName = "keyDef";
-			}
-			return fnCreateCmdCall(sName);
-		});
-
-		stmt("let", function () {
-			const oValue = oPreviousToken;
-
-			oValue.right = assignment();
-			return oValue;
-		});
-
-		stmt("line", function () {
-			const oValue = oPreviousToken;
-
-			advance("input");
-			oValue.type = "lineInput";
-
-			fnInputOrLineInput(oValue);
-			return oValue;
-		});
-
-		stmt("mid$", function () { // mid$Assign
-			const oValue = fnCreateFuncCall("mid$Assign"); // change type mid$ => mid$Assign
-
-			if (oValue.args[0].type !== "identifier") {
-				throw that.composeError(Error(), "Expected identifier", oValue.args[0].value, oValue.args[0].pos);
-			}
-
-			advance("="); // equal as assignment
-			const oRight = expression(0);
-
-			oValue.right = oRight;
-
-			return oValue;
-		});
-
-		stmt("on", function () {
-			const oValue = oPreviousToken;
-
-			oValue.args = [];
-
-			if (oToken.type === "break") {
-				oToken = advance("break");
-				if (oToken.type === "gosub") {
-					advance("gosub");
-					oValue.type = "onBreakGosub";
-					oValue.args = fnGetArgs(oValue.type);
-				} else if (oToken.type === "cont") {
-					advance("cont");
-					oValue.type = "onBreakCont";
-				} else if (oToken.type === "stop") {
-					advance("stop");
-					oValue.type = "onBreakStop";
-				} else {
-					throw that.composeError(Error(), "Expected GOSUB, CONT or STOP", oToken.type, oToken.pos);
-				}
-			} else if (oToken.type === "error") { // on error goto
-				oToken = advance("error");
-				if (oToken.type === "goto") {
-					advance("goto");
-					oValue.type = "onErrorGoto";
-					oValue.args = fnGetArgs(oValue.type);
-				} else {
-					throw that.composeError(Error(), "Expected GOTO", oToken.type, oToken.pos);
-				}
-			} else if (oToken.type === "sq") { // on sq(n) gosub
-				let oLeft = expression(0);
-
-				oLeft = oLeft.args[0];
-				oToken = getToken();
-				if (oToken.type === "gosub") {
-					advance("gosub");
-					oValue.type = "onSqGosub";
-					oValue.args = fnGetArgs(oValue.type);
-					oValue.args.unshift(oLeft);
-				} else {
-					throw that.composeError(Error(), "Expected GOSUB", oToken.type, oToken.pos);
-				}
-			} else {
-				const oLeft = expression(0);
-
-				if (oToken.type === "gosub") {
-					advance("gosub");
-					oValue.type = "onGosub";
-					oValue.args = fnGetArgs(oValue.type);
-					oValue.args.unshift(oLeft);
-				} else if (oToken.type === "goto") {
-					advance("goto");
-					oValue.type = "onGoto";
-					oValue.args = fnGetArgs(oValue.type);
-					oValue.args.unshift(oLeft);
-				} else {
-					throw that.composeError(Error(), "Expected GOTO or GOSUB", oToken.type, oToken.pos);
-				}
-			}
-			return oValue;
-		});
-
-		stmt("print", function () {
-			const oValue = oPreviousToken,
-				mCloseTokens = BasicParser.mCloseTokens,
-				oStream = fnGetOptionalStream();
-
-			oValue.args = [];
-			oValue.args.push(oStream);
-
-			let bCommaAfterStream = false;
-
-			if (oStream.len !== 0) { // not an inserted stream?
-				bCommaAfterStream = true;
-			}
-
-			while (!mCloseTokens[oToken.type]) {
-				if (bCommaAfterStream) {
-					advance(",");
-					bCommaAfterStream = false;
-				}
-
-				let	oValue2;
-
-				if (oToken.type === "spc" || oToken.type === "tab") {
-					advance(oToken.type);
-					oValue2 = fnCreateFuncCall(null);
-				} else if (oToken.type === "using") {
-					oValue2 = oToken;
-					advance("using");
-					const t = expression(0); // format
-
-					advance(";"); // after the format there must be a ";"
-
-					oValue2.args = fnGetArgsSepByCommaSemi();
-					oValue2.args.unshift(t);
-					if (oPreviousToken.type === ";") { // using closed by ";"?
-						oValue.args.push(oValue2);
-						oValue2 = oPreviousToken; // keep it for print
-					}
-				} else if (BasicParser.mKeywords[oToken.type] && (BasicParser.mKeywords[oToken.type].charAt(0) === "c" || BasicParser.mKeywords[oToken.type].charAt(0) === "x")) { // stop also at keyword which is c=command or x=command addition
-					break;
-					//TTT: oValue2 not set?
-				} else if (oToken.type === ";" || oToken.type === ",") { // separator ";" or comma tab separator ","
-					oValue2 = oToken;
-					advance(oToken.type);
-				} else {
-					oValue2 = expression(0);
-				}
-				oValue.args.push(oValue2);
-			}
-			return oValue;
-		});
-
-		stmt("?", function () {
-			const oValue = (oSymbols as any).print.std(); // "?" is same as print
-
-			oValue.type = "print";
-			return oValue;
-		});
-
-		stmt("resume", function () {
-			let sName = "resume";
-
-			if (oToken.type === "next") { // resume next
-				advance("next");
-				sName = "resumeNext";
-			}
-			const oValue = fnCreateCmdCall(sName);
-
-			return oValue;
-		});
-
-		stmt("speed", function () {
-			let sName = "";
-
-			switch (oToken.type) {
-			case "ink":
-				sName = "speedInk";
-				advance("ink");
-				break;
-			case "key":
-				sName = "speedKey";
-				advance("key");
-				break;
-			case "write":
-				sName = "speedWrite";
-				advance("write");
-				break;
-			default:
-				throw that.composeError(Error(), "Expected INK, KEY or WRITE", oToken.type, oToken.pos);
-			}
-			return fnCreateCmdCall(sName);
-		});
-
-		stmt("symbol", function () {
-			let sName = "symbol";
-
-			if (oToken.type === "after") { // symbol after?
-				advance("after");
-				sName = "symbolAfter";
-			}
-			return fnCreateCmdCall(sName);
-		});
-
-		stmt("window", function () {
-			let sName = "window";
-
-			if (oToken.type === "swap") {
-				advance("swap");
-				sName = "windowSwap";
-			}
-			return fnCreateCmdCall(sName);
-		});
-
+		this.aTokens = aTokens;
+		this.bAllowDirect = bAllowDirect || false;
 
 		// line
-		iIndex = 0;
-		advance();
-		while (oToken.type !== "(end)") {
-			aParseTree.push(line());
+		this.sLine = "0"; // for error messages
+		this.iIndex = 0;
+		this.oPreviousToken = undefined;
+		this.oToken = undefined;
+		aParseTree.length = 0;
+
+		this.advance();
+		while (this.oToken.type !== "(end)") {
+			aParseTree.push(this.line());
 		}
 		return aParseTree;
 	}
