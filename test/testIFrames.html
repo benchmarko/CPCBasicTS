@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="title">CPCBasicTS in IFrames</title>
+</head>
+<body>
+	<iframe width="690" height="520" src="../index.html?showInput=false"> 
+		<a href="../index.html">CPCBasicTS</a> 
+	</iframe>
+	<iframe width="690" height="520" src="../index.html?showInput=false&example=art"> 
+		<a href="../index.html">CPCBasicTS</a> 
+	</iframe>
+	<br>
+	<iframe width="690" height="730" src="../index.html?showInput=false&example=1st&showKbd=true"> 
+		<a href="../index.html">CPCBasicTS</a> 
+	</iframe>
+	<iframe width="690" height="730" src="../index.html?showInput=false&example=test/keyboard&showKbd=true"> 
+		<a href="../index.html">CPCBasicTS</a> 
+	</iframe>
+
+	<script type="text/javascript">
+		var sParams = window.location.href.split("?")[1];
+		if (sParams) {
+			var iframes = document.getElementsByTagName("iframe");
+			console.log("Adapt frame URLs: sParams=", sParams, "iframes.length=", iframes.length);
+			for (var i = 0; i < iframes.length; i += 1) {
+				console.log("Adapt frame", i + ":", iframes[i].src + "&" + sParams)
+				iframes[i].src += "&" + sParams;
+			}
+		}
+	</script>
+</body>
+</html>
