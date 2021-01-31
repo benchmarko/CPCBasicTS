@@ -30,9 +30,11 @@ var BasicParser = /** @class */ (function () {
         this.aParseTree = [];
         this.bQuiet = (options === null || options === void 0 ? void 0 : options.bQuiet) || false;
         this.fnGenerateSymbols();
-        // set also during parse()
+        // set also during parse:
         this.aTokens = [];
         this.bAllowDirect = false;
+        this.oPreviousToken = {}; // to avoid warnings
+        this.oToken = this.oPreviousToken;
     }
     BasicParser.prototype.composeError = function (oError, message, value, pos) {
         return Utils_1.Utils.composeError("BasicParser", oError, message, value, pos, this.sLine);
@@ -122,17 +124,6 @@ var BasicParser = /** @class */ (function () {
             t = this.oToken;
             s = this.oSymbols[t.type];
         }
-        /*
-        while (rbp < this.oSymbols[this.oToken.type].lbp) { // as long as the right binding power is less than the left binding power of the next token...
-            t = this.oToken;
-            s = this.oSymbols[t.type];
-            this.advance(t.type);
-            if (!s.led) {
-                throw this.composeError(Error(), "Unexpected token", t.type, t.pos); //TTT how to get this error?
-            }
-            left = s.led.call(this, left); // ...the led method is invoked on the following token (infix and suffix operators), can be recursive
-        }
-        */
         return left;
     };
     BasicParser.prototype.assignment = function () {
@@ -567,16 +558,6 @@ var BasicParser = /** @class */ (function () {
         oValue2.value = oValue.value + oValue2.value; // combine "fn" + identifier (maybe simplify by separating in lexer)
         oValue2.bSpace = true; // fast hack: set space for CodeGeneratorBasic
         oValue.left = oValue2;
-        /*
-        if (this.oToken.type === "identifier") { // maybe simplify by separating in lexer
-            this.oToken.value = this.oPreviousToken.value + this.oToken.value; // "fn" + identifier
-            this.oToken.bSpace = true; // fast hack: set space for CodeGeneratorBasic
-            oValue.left = this.oToken;
-            this.oToken = this.advance("identifier");
-        } else {
-            throw this.composeError(Error(), "Expected identifier", this.oToken.type, this.oToken.pos);
-        }
-        */
         if (this.oToken.type !== "(") { // FN xxx name without ()?
             oValue.args = [];
         }
@@ -1154,16 +1135,6 @@ var BasicParser = /** @class */ (function () {
         }
         return aParseTree;
     };
-    /*
-    private init(options?: BasicParserOptions): void {
-        this.bQuiet = options?.bQuiet || false;
-        this.reset();
-    }
-
-    private reset(): void {
-        this.sLine = "0"; // for error messages
-    }
-    */
     BasicParser.mParameterTypes = {
         c: "command",
         f: "function",

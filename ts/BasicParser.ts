@@ -66,21 +66,13 @@ export class BasicParser {
 		this.bQuiet = options?.bQuiet || false;
 		this.fnGenerateSymbols();
 
-		// set also during parse()
+		// set also during parse:
 		this.aTokens = [];
 		this.bAllowDirect = false;
-	}
 
-	/*
-	private init(options?: BasicParserOptions): void {
-		this.bQuiet = options?.bQuiet || false;
-		this.reset();
+		this.oPreviousToken = {} as ParserNode; // to avoid warnings
+		this.oToken = this.oPreviousToken;
 	}
-
-	private reset(): void {
-		this.sLine = "0"; // for error messages
-	}
-	*/
 
 	private static mParameterTypes: { [k in string]: string } = {
 		c: "command",
@@ -396,18 +388,6 @@ export class BasicParser {
 			t = this.oToken;
 			s = this.oSymbols[t.type];
 		}
-
-		/*
-		while (rbp < this.oSymbols[this.oToken.type].lbp) { // as long as the right binding power is less than the left binding power of the next token...
-			t = this.oToken;
-			s = this.oSymbols[t.type];
-			this.advance(t.type);
-			if (!s.led) {
-				throw this.composeError(Error(), "Unexpected token", t.type, t.pos); //TTT how to get this error?
-			}
-			left = s.led.call(this, left); // ...the led method is invoked on the following token (infix and suffix operators), can be recursive
-		}
-		*/
 		return left;
 	}
 
@@ -575,7 +555,7 @@ export class BasicParser {
 			this.fnChangeNumber2LineNumber(oLeft);
 		}
 
-		let oRange: ParserNode;
+		let oRange: ParserNode | undefined;
 
 		if (this.oToken.type === "-") {
 			oRange = this.oToken;
@@ -773,7 +753,7 @@ export class BasicParser {
 
 	private fnGetArgsInParenthesesOrBrackets() {
 		const oBrackets = BasicParser.mBrackets;
-		let oBracketOpen: ParserNode;
+		let oBracketOpen: ParserNode | undefined;
 
 		if (this.oToken.type === "(" || this.oToken.type === "[") {
 			oBracketOpen = this.oToken;
@@ -911,17 +891,6 @@ export class BasicParser {
 		oValue2.value = oValue.value + oValue2.value; // combine "fn" + identifier (maybe simplify by separating in lexer)
 		oValue2.bSpace = true; // fast hack: set space for CodeGeneratorBasic
 		oValue.left = oValue2;
-
-		/*
-		if (this.oToken.type === "identifier") { // maybe simplify by separating in lexer
-			this.oToken.value = this.oPreviousToken.value + this.oToken.value; // "fn" + identifier
-			this.oToken.bSpace = true; // fast hack: set space for CodeGeneratorBasic
-			oValue.left = this.oToken;
-			this.oToken = this.advance("identifier");
-		} else {
-			throw this.composeError(Error(), "Expected identifier", this.oToken.type, this.oToken.pos);
-		}
-		*/
 
 		if (this.oToken.type !== "(") { // FN xxx name without ()?
 			oValue.args = [];
