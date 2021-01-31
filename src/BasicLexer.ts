@@ -25,8 +25,14 @@ export class BasicLexer {
 	sLine = "0"
 	bTakeNumberAsLine = true
 
+	sInput: string
+	iIndex = 0
+	aTokens: LexerToken[] = []
+
 	constructor(options?: BasicLexerOptions) {
 		this.bQuiet = options?.bQuiet || false;
+
+		this.sInput = "";
 		this.reset();
 	}
 
@@ -35,331 +41,364 @@ export class BasicLexer {
 		this.bTakeNumberAsLine = true;
 	}
 
-	private composeError(...aArgs) {
-		aArgs.unshift("BasicLexer");
-		aArgs.push(this.sLine);
-		return Utils.composeError.apply(null, aArgs);
+	private composeError(oError: Error, message: string, value: string, pos: number) {
+		return Utils.composeError("BasicLexer", oError, message, value, pos, this.sLine);
 	}
 
-	lex(input: string): LexerToken[] { // eslint-disable-line complexity
-		let iIndex = 0,
-			sToken: string, sChar: string, iStartPos: number;
 
-		const that = this,
-			aTokens: LexerToken[] = [],
+	private static isComment(c: string) { // isApostrophe
+		return (/[']/).test(c);
+	}
+	private static isOperator(c: string) {
+		return (/[+\-*/^=()[\],;:?\\]/).test(c);
+	}
+	private static isComparison(c: string) {
+		return (/[<>]/).test(c);
+	}
+	private static isComparison2(c: string) {
+		return (/[<>=]/).test(c);
+	}
+	private static isDigit(c: string) {
+		return (/[0-9]/).test(c);
+	}
+	private static isDot(c: string) {
+		return (/[.]/).test(c);
+	}
+	private static isSign(c: string) {
+		return (/[+-]/).test(c);
+	}
+	private static isHexOrBin(c: string) { // bin: &X, hex: & or &H
+		return (/[&]/).test(c);
+	}
+	private static isBin2(c: string) {
+		return (/[01]/).test(c);
+	}
+	private static isHex2(c: string) {
+		return (/[0-9A-Fa-f]/).test(c);
+	}
+	private static isWhiteSpace(c: string) {
+		return (/[ \r]/).test(c);
+	}
+	private static isNewLine(c: string) {
+		return (/[\n]/).test(c);
+	}
+	private static isQuotes(c: string) {
+		return (/["]/).test(c);
+	}
+	private static isNotQuotes(c: string) {
+		return c !== "" && !BasicLexer.isQuotes(c) && !BasicLexer.isNewLine(c); // quoted string must be in one line!
+	}
+	private static isIdentifierStart(c: string) {
+		return c !== "" && (/[A-Za-z]/).test(c); // cannot use complete [A-Za-z]+[\w]*[$%!]?
+	}
+	private static isIdentifierMiddle(c: string) {
+		return c !== "" && (/[A-Za-z0-9.]/).test(c);
+	}
+	private static isIdentifierEnd(c: string) {
+		return c !== "" && (/[$%!]/).test(c);
+	}
+	private static isStream(c: string) {
+		return (/[#]/).test(c);
+	}
+	private static isAddress(c: string) {
+		return (/[@]/).test(c);
+	}
+	private static isRsx(c: string) {
+		return (/[|]/).test(c);
+	}
+	private static isNotNewLine(c: string) {
+		return c !== "" && c !== "\n";
+	}
+	private static isUnquotedData(c: string) {
+		return c !== "" && (/[^:,\r\n]/).test(c);
+	}
 
-			isComment = function (c: string) { // isApostrophe
-				return (/[']/).test(c);
-			},
-			isOperator = function (c: string) {
-				return (/[+\-*/^=()[\],;:?\\]/).test(c);
-			},
-			isComparison = function (c: string) {
-				return (/[<>]/).test(c);
-			},
-			isComparison2 = function (c: string) {
-				return (/[<>=]/).test(c);
-			},
-			isDigit = function (c: string) {
-				return (/[0-9]/).test(c);
-			},
-			isDot = function (c: string) {
-				return (/[.]/).test(c);
-			},
-			isSign = function (c: string) {
-				return (/[+-]/).test(c);
-			},
-			isHexOrBin = function (c: string) { // bin: &X, hex: & or &H
-				return (/[&]/).test(c);
-			},
-			isBin2 = function (c: string) {
-				return (/[01]/).test(c);
-			},
-			isHex2 = function (c: string) {
-				return (/[0-9A-Fa-f]/).test(c);
-			},
-			isWhiteSpace = function (c: string) {
-				return (/[ \r]/).test(c);
-			},
-			isNewLine = function (c: string) {
-				return (/[\n]/).test(c);
-			},
-			isQuotes = function (c: string) {
-				return (/["]/).test(c);
-			},
-			isNotQuotes = function (c: string) {
-				return c !== "" && !isQuotes(c) && !isNewLine(c); // quoted string must be in one line!
-			},
-			isIdentifierStart = function (c: string) {
-				return c !== "" && (/[A-Za-z]/).test(c); // cannot use complete [A-Za-z]+[\w]*[$%!]?
-			},
-			isIdentifierMiddle = function (c: string) {
-				return c !== "" && (/[A-Za-z0-9.]/).test(c);
-			},
-			isIdentifierEnd = function (c: string) {
-				return c !== "" && (/[$%!]/).test(c);
-			},
-			isStream = function (c: string) {
-				return (/[#]/).test(c);
-			},
-			isAddress = function (c: string) {
-				return (/[@]/).test(c);
-			},
-			isRsx = function (c: string) {
-				return (/[|]/).test(c);
-			},
-			isNotNewLine = function (c: string) {
-				return c !== "" && c !== "\n";
-			},
-			isUnquotedData = function (c: string) {
-				return c !== "" && (/[^:,\r\n]/).test(c);
-			},
+	private testChar(iAdd: number) {
+		return this.sInput.charAt(this.iIndex + iAdd);
+	}
 
-			testChar = function (iAdd: number) {
-				return input.charAt(iIndex + iAdd);
-			},
+	private getChar() {
+		return this.sInput.charAt(this.iIndex);
+	}
 
-			advance = function () {
-				iIndex += 1;
-				return input.charAt(iIndex);
-			},
-			advanceWhile = function (fn: (arg0: string) => boolean) {
-				let sToken2 = "";
+	private advance() {
+		this.iIndex += 1;
+		return this.getChar();
+	}
+	private advanceWhile(sChar: string, fn: (arg0: string) => boolean) {
+		let sToken2 = "";
 
-				do {
-					sToken2 += sChar;
-					sChar = advance();
-				} while (fn(sChar));
-				return sToken2;
-			},
-			addToken = function (type: string, value: string, iPos: number, sOrig?: string) { // optional original value
-				const oNode: LexerToken = {
-					type: type,
-					value: value,
-					pos: iPos
-				};
+		do {
+			sToken2 += sChar;
+			sChar = this.advance();
+		} while (fn(sChar));
+		return sToken2;
+	}
+	private addToken(type: string, value: string, iPos: number, sOrig?: string) { // optional original value
+		const oNode: LexerToken = {
+			type: type,
+			value: value,
+			pos: iPos
+		};
 
-				if (sOrig !== undefined) {
-					if (sOrig !== value) {
-						oNode.orig = sOrig;
+		if (sOrig !== undefined) {
+			if (sOrig !== value) {
+				oNode.orig = sOrig;
+			}
+		}
+		this.aTokens.push(oNode);
+	}
+	private static hexEscape(str: string) {
+		return str.replace(/[\x00-\x1f]/g, function (sChar2) { // eslint-disable-line no-control-regex
+			return "\\x" + ("00" + sChar2.charCodeAt(0).toString(16)).slice(-2);
+		});
+	}
+	private fnParseNumber(sChar: string, iStartPos: number, bStartsWithDot: boolean) { // special handling for number
+		let sToken = "";
+
+		if (bStartsWithDot) {
+			sToken += sChar;
+			sChar = this.advance();
+		}
+		sToken += this.advanceWhile(sChar, BasicLexer.isDigit); // TODO: isDigitOrSpace: numbers may contain spaces!
+		sChar = this.getChar();
+		if (sChar === "." && !bStartsWithDot) {
+			sToken += sChar;
+			sChar = this.advance();
+			if (BasicLexer.isDigit(sChar)) { // digits after dot?
+				sToken += this.advanceWhile(sChar, BasicLexer.isDigit);
+				sChar = this.getChar();
+			}
+		}
+		if (sChar === "e" || sChar === "E") { // we also try to check: [eE][+-]?\d+; because "E" could be ERR, ELSE,...
+			const sChar1 = this.testChar(1),
+				sChar2 = this.testChar(2);
+
+			if (BasicLexer.isDigit(sChar1) || (BasicLexer.isSign(sChar1) && BasicLexer.isDigit(sChar2))) { // so it is a number
+				sToken += sChar; // take "E"
+				sChar = this.advance();
+				if (BasicLexer.isSign(sChar)) {
+					sToken += sChar; // take sign "+" or "-"
+					sChar = this.advance();
+				}
+				if (BasicLexer.isDigit(sChar)) {
+					sToken += this.advanceWhile(sChar, BasicLexer.isDigit);
+					sChar = this.getChar();
+				}
+			}
+		}
+		sToken = sToken.trim(); // remove trailing spaces
+		if (!isFinite(Number(sToken))) { // Infnity?
+			throw this.composeError(Error(), "Number is too large or too small", sToken, iStartPos); // for a 64-bit double
+		}
+		const iNumber = parseFloat(sToken);
+
+		this.addToken("number", String(iNumber), iStartPos, sToken); // store number as string
+		if (this.bTakeNumberAsLine) {
+			this.bTakeNumberAsLine = false;
+			this.sLine = String(iNumber); // save just for error message
+		}
+	}
+	private fnParseCompleteLineForRem(sChar: string, iStartPos: number) { // special handling for line comment
+		if (sChar === " ") {
+			sChar = this.advance();
+		}
+		if (BasicLexer.isNotNewLine(sChar)) {
+			const sToken = this.advanceWhile(sChar, BasicLexer.isNotNewLine);
+
+			sChar = this.getChar();
+			this.addToken("string", sToken, iStartPos + 1);
+		}
+	}
+	private fnParseCompleteLineForData(sChar: string, iStartPos: number) { // special handling because strings in data lines need not be quoted
+		while (BasicLexer.isNotNewLine(sChar)) {
+			if (BasicLexer.isWhiteSpace(sChar)) {
+				this.advanceWhile(sChar, BasicLexer.isWhiteSpace);
+				sChar = this.getChar();
+			}
+			if (BasicLexer.isNewLine(sChar)) { // now newline?
+				break;
+			}
+
+			if (BasicLexer.isQuotes(sChar)) {
+				sChar = "";
+				let sToken = this.advanceWhile(sChar, BasicLexer.isNotQuotes);
+
+				sChar = this.getChar();
+				if (!BasicLexer.isQuotes(sChar)) {
+					if (!this.bQuiet) {
+						Utils.console.log(this.composeError({} as Error, "Unterminated string", sToken, iStartPos + 1).message);
 					}
 				}
-				aTokens.push(oNode);
-			},
-			hexEscape = function (str: string) {
-				return str.replace(/[\x00-\x1f]/g, function (sChar2) { // eslint-disable-line no-control-regex
-					return "\\x" + ("00" + sChar2.charCodeAt(0).toString(16)).slice(-2);
-				});
-			},
-			fnParseNumber = function (bStartsWithDot: boolean) { // special handling for number
-				sToken = "";
-				if (bStartsWithDot) {
-					sToken += sChar;
-					sChar = advance();
+				sToken = sToken.replace(/\\/g, "\\\\"); // escape backslashes
+				sToken = BasicLexer.hexEscape(sToken);
+				this.addToken("string", sToken, iStartPos + 1); // this is a quoted string (but we cannot detect it during runtime)
+				if (sChar === '"') { // not for newline
+					sChar = this.advance();
 				}
-				sToken += advanceWhile(isDigit); // TODO: isDigitOrSpace: numbers may contain spaces!
-				if (sChar === "." && !bStartsWithDot) {
-					sToken += sChar;
-					sChar = advance();
-					if (isDigit(sChar)) { // digits after dot?
-						sToken += advanceWhile(isDigit);
-					}
-				}
-				if (sChar === "e" || sChar === "E") { // we also try to check: [eE][+-]?\d+; because "E" could be ERR, ELSE,...
-					const sChar1 = testChar(1),
-						sChar2 = testChar(2);
+			} else if (sChar === ",") { // empty argument?
+				// parser can insert dummy token
+			} else {
+				let sToken = this.advanceWhile(sChar, BasicLexer.isUnquotedData);
 
-					if (isDigit(sChar1) || (isSign(sChar1) && isDigit(sChar2))) { // so it is a number
-						sToken += sChar; // take "E"
-						sChar = advance();
-						if (isSign(sChar)) {
-							sToken += sChar; // take sign "+" or "-"
-							sChar = advance();
-						}
-						if (isDigit(sChar)) {
-							sToken += advanceWhile(isDigit);
-						}
-					}
-				}
-				sToken = sToken.trim(); // remove trailing spaces
-				if (!isFinite(Number(sToken))) { // Infnity?
-					throw that.composeError(Error(), "Number is too large or too small", sToken, iStartPos); // for a 64-bit double
-				}
-				const iNumber = parseFloat(sToken);
+				sChar = this.getChar();
+				sToken = sToken.trim(); // remove whitespace before and after
+				sToken = sToken.replace(/\\/g, "\\\\"); // escape backslashes
+				sToken = sToken.replace(/"/g, "\\\""); // escape "
+				this.addToken("string", sToken, iStartPos); // could be interpreted as string or number during runtime
+			}
 
-				addToken("number", String(iNumber), iStartPos, sToken); // store number as string
-				if (that.bTakeNumberAsLine) {
-					that.bTakeNumberAsLine = false;
-					that.sLine = String(iNumber); // save just for error message
-				}
-			},
-			fnParseCompleteLineForRem = function () { // special handling for line comment
-				if (sChar === " ") {
-					sChar = advance();
-				}
-				if (isNotNewLine(sChar)) {
-					sToken = advanceWhile(isNotNewLine);
-					addToken("string", sToken, iStartPos + 1);
-				}
-			},
-			fnParseCompleteLineForData = function () { // special handling because strings in data lines need not be quoted
-				while (isNotNewLine(sChar)) {
-					if (isWhiteSpace(sChar)) {
-						advanceWhile(isWhiteSpace);
-					}
-					if (isNewLine(sChar)) { // now newline?
-						break;
-					}
+			if (BasicLexer.isWhiteSpace(sChar)) {
+				this.advanceWhile(sChar, BasicLexer.isWhiteSpace);
+				sChar = this.getChar();
+			}
 
-					if (isQuotes(sChar)) {
-						sChar = "";
-						sToken = advanceWhile(isNotQuotes);
-						if (!isQuotes(sChar)) {
-							if (!that.bQuiet) {
-								Utils.console.log(that.composeError({}, "Unterminated string", sToken, iStartPos + 1).message);
-							}
-						}
-						sToken = sToken.replace(/\\/g, "\\\\"); // escape backslashes
-						sToken = hexEscape(sToken);
-						addToken("string", sToken, iStartPos + 1); // this is a quoted string (but we cannot detect it during runtime)
-						if (sChar === '"') { // not for newline
-							sChar = advance();
-						}
-					} else if (sChar === ",") { // empty argument?
-						// parser can insert dummy token
-					} else {
-						sToken = advanceWhile(isUnquotedData);
-						sToken = sToken.trim(); // remove whitespace before and after
-						sToken = sToken.replace(/\\/g, "\\\\"); // escape backslashes
-						sToken = sToken.replace(/"/g, "\\\""); // escape "
-						addToken("string", sToken, iStartPos); // could be interpreted as string or number during runtime
-					}
+			if (sChar !== ",") {
+				break;
+			}
+			this.addToken(sChar, sChar, iStartPos); // ","
+			sChar = this.advance();
 
-					if (isWhiteSpace(sChar)) {
-						advanceWhile(isWhiteSpace);
-					}
+			if (sChar === "\r") { // IE8 has "/r/n" newlines
+				sChar = this.advance();
+			}
+		}
+	}
+	private fnTryContinueString(sChar: string) { // There could be a LF in a string but no CR. In CPCBasic we use LF only as EOL, so we cannot detect the difference.
+		let sOut = "";
 
-					if (sChar !== ",") {
-						break;
-					}
-					addToken(sChar, sChar, iStartPos); // ","
-					sChar = advance();
+		while (BasicLexer.isNewLine(sChar)) {
+			const sChar1 = this.testChar(1);
 
-					if (sChar === "\r") { // IE8 has "/r/n" newlines
-						sChar = advance();
-					}
-				}
-			},
-			fnTryContinueString = function () { // There could be a LF in a string but no CR. In CPCBasic we use LF only as EOL, so we cannot detect the difference.
-				let sOut = "";
+			if (sChar1 !== "" && (sChar1 < "0" || sChar1 > "9")) { // heuristic: next char not a digit => continue with the string
+				sOut += this.advanceWhile(sChar, BasicLexer.isNotQuotes);
+				sChar = this.getChar();
+			} else {
+				break;
+			}
+		}
+		return sOut;
+	}
 
-				while (isNewLine(sChar)) {
-					const sChar1 = testChar(1);
 
-					if (sChar1 !== "" && (sChar1 < "0" || sChar1 > "9")) { // heuristic: next char not a digit => continue with the string
-						sOut += advanceWhile(isNotQuotes);
-					} else {
-						break;
-					}
-				}
-				return sOut;
-			};
+	lex(sInput: string): LexerToken[] { // eslint-disable-line complexity
+		let iStartPos: number,
+			sChar: string,
+			sToken: string;
 
-		while (iIndex < input.length) {
-			iStartPos = iIndex;
-			sChar = input.charAt(iIndex);
-			if (isWhiteSpace(sChar)) {
-				sChar = advance();
-			} else if (isNewLine(sChar)) {
-				addToken("(eol)", "", iStartPos);
-				sChar = advance();
+		this.sInput = sInput;
+		this.iIndex = 0;
+
+		this.sLine = "0"; // for error messages
+		this.bTakeNumberAsLine = true;
+
+		this.aTokens = []; //this.aTokens.length = 0;
+
+		while (this.iIndex < sInput.length) {
+			iStartPos = this.iIndex;
+			sChar = this.getChar();
+			if (BasicLexer.isWhiteSpace(sChar)) {
+				sChar = this.advance();
+			} else if (BasicLexer.isNewLine(sChar)) {
+				this.addToken("(eol)", "", iStartPos);
+				sChar = this.advance();
 				this.bTakeNumberAsLine = true;
-			} else if (isComment(sChar)) {
-				addToken(sChar, sChar, iStartPos);
-				sChar = advance();
-				if (isNotNewLine(sChar)) {
-					sToken = advanceWhile(isNotNewLine);
-					addToken("string", sToken, iStartPos);
+			} else if (BasicLexer.isComment(sChar)) {
+				this.addToken(sChar, sChar, iStartPos);
+				sChar = this.advance();
+				if (BasicLexer.isNotNewLine(sChar)) {
+					sToken = this.advanceWhile(sChar, BasicLexer.isNotNewLine);
+					sChar = this.getChar();
+					this.addToken("string", sToken, iStartPos);
 				}
-			} else if (isOperator(sChar)) {
-				addToken(sChar, sChar, iStartPos);
-				sChar = advance();
-			} else if (isDigit(sChar)) {
-				fnParseNumber(false);
-			} else if (isDot(sChar)) { // number starting with dot
-				fnParseNumber(true);
-			} else if (isHexOrBin(sChar)) {
+			} else if (BasicLexer.isOperator(sChar)) {
+				this.addToken(sChar, sChar, iStartPos);
+				sChar = this.advance();
+			} else if (BasicLexer.isDigit(sChar)) {
+				this.fnParseNumber(sChar, iStartPos, false);
+			} else if (BasicLexer.isDot(sChar)) { // number starting with dot
+				this.fnParseNumber(sChar, iStartPos, true);
+			} else if (BasicLexer.isHexOrBin(sChar)) {
 				sToken = sChar;
-				sChar = advance();
+				sChar = this.advance();
 				if (sChar.toLowerCase() === "x") { // binary?
-					sToken += advanceWhile(isBin2);
-					addToken("binnumber", sToken, iStartPos);
+					sToken += this.advanceWhile(sChar, BasicLexer.isBin2);
+					sChar = this.getChar();
+					this.addToken("binnumber", sToken, iStartPos);
 				} else { // hex
 					if (sChar.toLowerCase() === "h") { // optional h
 						sToken += sChar;
-						sChar = advance();
+						sChar = this.advance();
 					}
-					if (isHex2(sChar)) {
-						sToken += advanceWhile(isHex2);
-						addToken("hexnumber", sToken, iStartPos);
+					if (BasicLexer.isHex2(sChar)) {
+						sToken += this.advanceWhile(sChar, BasicLexer.isHex2);
+						sChar = this.getChar();
+						this.addToken("hexnumber", sToken, iStartPos);
 					} else {
 						throw this.composeError(Error(), "Expected number", sToken, iStartPos);
 					}
 				}
-			} else if (isQuotes(sChar)) {
+			} else if (BasicLexer.isQuotes(sChar)) {
 				sChar = "";
 
-				sToken = advanceWhile(isNotQuotes);
-				if (!isQuotes(sChar)) {
-					if (!that.bQuiet) {
-						Utils.console.log(this.composeError({}, "Unterminated string", sToken, iStartPos + 1).message);
+				sToken = this.advanceWhile(sChar, BasicLexer.isNotQuotes);
+				sChar = this.getChar();
+				if (!BasicLexer.isQuotes(sChar)) {
+					if (!this.bQuiet) {
+						Utils.console.log(this.composeError({} as Error, "Unterminated string", sToken, iStartPos + 1).message);
 					}
-					sToken += fnTryContinueString(); // heuristic to detect an LF in the string
+					sToken += this.fnTryContinueString(sChar); // heuristic to detect an LF in the string
+					sChar = this.getChar();
 				}
 				sToken = sToken.replace(/\\/g, "\\\\"); // escape backslashes
-				sToken = hexEscape(sToken);
-				addToken("string", sToken, iStartPos + 1);
+				sToken = BasicLexer.hexEscape(sToken);
+				this.addToken("string", sToken, iStartPos + 1);
 				if (sChar === '"') { // not for newline
-					sChar = advance();
+					sChar = this.advance();
 				}
-			} else if (isIdentifierStart(sChar)) {
+			} else if (BasicLexer.isIdentifierStart(sChar)) {
 				sToken = sChar;
-				sChar = advance();
-				if (isIdentifierMiddle(sChar)) {
-					sToken += advanceWhile(isIdentifierMiddle);
+				sChar = this.advance();
+				if (BasicLexer.isIdentifierMiddle(sChar)) {
+					sToken += this.advanceWhile(sChar, BasicLexer.isIdentifierMiddle);
+					sChar = this.getChar();
 				}
-				if (isIdentifierEnd(sChar)) {
+				if (BasicLexer.isIdentifierEnd(sChar)) {
 					sToken += sChar;
-					sChar = advance();
+					sChar = this.advance();
 				}
-				addToken("identifier", sToken, iStartPos);
+				this.addToken("identifier", sToken, iStartPos);
 				sToken = sToken.toLowerCase();
 				if (sToken === "rem") { // special handling for line comment
-					fnParseCompleteLineForRem();
+					this.fnParseCompleteLineForRem(sChar, iStartPos);
+					sChar = this.getChar();
 				} else if (sToken === "data") { // special handling because strings in data lines need not be quoted
-					fnParseCompleteLineForData();
+					this.fnParseCompleteLineForData(sChar, iStartPos);
+					sChar = this.getChar();
 				}
-			} else if (isAddress(sChar)) {
-				addToken(sChar, sChar, iStartPos);
-				sChar = advance();
-			} else if (isRsx(sChar)) {
+			} else if (BasicLexer.isAddress(sChar)) {
+				this.addToken(sChar, sChar, iStartPos);
+				sChar = this.advance();
+			} else if (BasicLexer.isRsx(sChar)) {
 				sToken = sChar;
-				sChar = advance();
-				if (isIdentifierMiddle(sChar)) {
-					sToken += advanceWhile(isIdentifierMiddle);
-					addToken("|", sToken, iStartPos);
+				sChar = this.advance();
+				if (BasicLexer.isIdentifierMiddle(sChar)) {
+					sToken += this.advanceWhile(sChar, BasicLexer.isIdentifierMiddle);
+					sChar = this.getChar();
+					this.addToken("|", sToken, iStartPos);
 				}
-			} else if (isStream(sChar)) { // stream can be an expression
-				addToken(sChar, sChar, iStartPos);
-				sChar = advance();
-			} else if (isComparison(sChar)) {
-				sToken = advanceWhile(isComparison2);
-				addToken(sToken, sToken, iStartPos); // like operator
+			} else if (BasicLexer.isStream(sChar)) { // stream can be an expression
+				this.addToken(sChar, sChar, iStartPos);
+				sChar = this.advance();
+			} else if (BasicLexer.isComparison(sChar)) {
+				sToken = this.advanceWhile(sChar, BasicLexer.isComparison2);
+				this.addToken(sToken, sToken, iStartPos); // like operator
+				sChar = this.getChar();
 			} else {
 				throw this.composeError(Error(), "Unrecognized token", sChar, iStartPos);
 			}
 		}
-		addToken("(end)", "", iIndex);
-		return aTokens;
+		this.addToken("(end)", "", this.iIndex);
+		return this.aTokens;
 	}
 }
