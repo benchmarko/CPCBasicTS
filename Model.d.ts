@@ -10,7 +10,6 @@ export interface DatabaseEntry {
 export interface ExampleEntry {
     key: string;
     title: string;
-    type: string;
     meta: string;
     script?: string;
     loaded?: boolean;

@@ -10,7 +10,6 @@ export declare class BasicFormatter {
     parser: BasicParser;
     iLine: number;
     constructor(options: BasicFormatterOptions);
-    reset(): void;
     private composeError;
     private fnCreateLineNumbersMap;
     private fnAddSingleReference;

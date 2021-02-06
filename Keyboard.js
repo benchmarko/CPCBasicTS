@@ -32,7 +32,6 @@ var Keyboard = /** @class */ (function () {
             repeat: {}
         }; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
         // reset: this.oPressedKeys = {}; // currently pressed browser keys
-        //this.reset();
         this.bActive = false; // flag if keyboard is active/focused, set from outside
         this.bCodeStringsRemoved = false;
         var cpcArea = View_1.View.getElementById1("cpcArea");
@@ -48,7 +47,6 @@ var Keyboard = /** @class */ (function () {
         this.oPressedKeys = {}; // currently pressed browser keys
         this.bShiftLock = false; // for virtual keyboard
         this.bNumLock = false;
-        //this.reset();
     }
     Keyboard.prototype.fnAttachPointerEvents = function (sId, fnDown, fnMove, fnUp) {
         var area = View_1.View.getElementById1(sId), oPointerEventNames = {

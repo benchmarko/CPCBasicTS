@@ -182,7 +182,6 @@ function testParseExample(oExample) {
     var oCodeGeneratorJs = cpcBasic.oCodeGeneratorJs, sScript = oExample.script || "", oVariables = new Variables_1.Variables(), sInput = testCheckMeta(sScript);
     var oOutput;
     if (oExample.meta !== "D") { // skip data files
-        oCodeGeneratorJs.reset();
         oOutput = oCodeGeneratorJs.generate(sInput, oVariables, true);
     }
     else {
@@ -315,12 +314,11 @@ function fnParseArgs(aArgs) {
 if (bNodeJsAvail) {
     //const sNodeRequire = 'fs = require("fs"); path = require("path");';
     var sNodeRequire = 'https = require("https");';
-    fnEval(sNodeRequire); // to trick typescript
+    fnEval(sNodeRequire); // to trick TypeScript
 }
 // https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/node/process.d.ts
 if (typeof process !== "undefined") { // nodeJs
     var oSettings = fnParseArgs(process.argv.slice(2));
-    Utils_1.Utils.console.log("PPP: ", oSettings.debug);
     if (oSettings.debug) {
         Utils_1.Utils.debug = oSettings.debug;
     }

@@ -12,18 +12,13 @@ var Utils_1 = require("./Utils");
 var BasicLexer = /** @class */ (function () {
     function BasicLexer(options) {
         this.bQuiet = false;
-        this.sLine = "0";
+        this.sLine = "0"; // for error messages
         this.bTakeNumberAsLine = true;
+        this.sInput = "";
         this.iIndex = 0;
         this.aTokens = [];
         this.bQuiet = (options === null || options === void 0 ? void 0 : options.bQuiet) || false;
-        this.sInput = "";
-        this.reset();
     }
-    BasicLexer.prototype.reset = function () {
-        this.sLine = "0"; // for error messages
-        this.bTakeNumberAsLine = true;
-    };
     BasicLexer.prototype.composeError = function (oError, message, value, pos) {
         return Utils_1.Utils.composeError("BasicLexer", oError, message, value, pos, this.sLine);
     };

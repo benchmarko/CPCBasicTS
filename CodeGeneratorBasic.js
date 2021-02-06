@@ -44,28 +44,12 @@ var CodeGeneratorBasic = /** @class */ (function () {
             rem: this.rem,
             using: this.using
         };
-        this.init(options);
-    }
-    CodeGeneratorBasic.prototype.init = function (options) {
         this.lexer = options.lexer;
         this.parser = options.parser;
-        this.reset();
+    }
+    CodeGeneratorBasic.prototype.composeError = function (oError, message, value, pos) {
+        return Utils_1.Utils.composeError("CodeGeneratorBasic", oError, message, value, pos);
     };
-    CodeGeneratorBasic.prototype.reset = function () {
-        this.lexer.reset();
-        //this.parser.reset();
-    };
-    CodeGeneratorBasic.prototype.composeError = function () {
-        var aArgs = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            aArgs[_i] = arguments[_i];
-        }
-        aArgs.unshift("CodeGeneratorBasic");
-        // check, correct:
-        //TTT aArgs.push(this.iLine);
-        return Utils_1.Utils.composeError.apply(null, aArgs);
-    };
-    // evaluate
     CodeGeneratorBasic.prototype.fnParseOneArg = function (oArg) {
         var sValue = this.parseNode(oArg); // eslint-disable-line no-use-before-define
         return sValue;
@@ -85,7 +69,6 @@ var CodeGeneratorBasic = /** @class */ (function () {
             return String.fromCharCode(parseInt(arguments[1], 16));
         });
     };
-    // mParseFunctions
     CodeGeneratorBasic.string = function (node) {
         var sValue = CodeGeneratorBasic.fnDecodeEscapeSequence(node.value);
         sValue = sValue.replace(/\\\\/g, "\\"); // unescape backslashes
@@ -493,8 +476,7 @@ var CodeGeneratorBasic = /** @class */ (function () {
     };
     CodeGeneratorBasic.prototype.generate = function (sInput, bAllowDirect) {
         var oOut = {
-            text: "",
-            error: undefined
+            text: ""
         };
         try {
             var aTokens = this.lexer.lex(sInput), aParseTree = this.parser.parse(aTokens, bAllowDirect), sOutput = this.evaluate(aParseTree);

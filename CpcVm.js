@@ -13,17 +13,44 @@ var CpcVm = /** @class */ (function () {
         this.fnLoadHandler = undefined;
         this.fnRunHandler = undefined;
         this.aGosubStack = []; // stack of line numbers for gosub/return
+        this.iData = 0; // current index
         this.oDataLineIndex = {
             0: 0 // for line 0: index 0
         };
+        this.iCrtcReg = 0;
+        this.sPrintControlBuf = "";
+        this.iStartTime = 0;
+        this.lastRnd = 0; // last random number
+        this.iNextFrameTime = 0;
+        //iTimeUntilFrame: number;
+        this.iStopCount = 0;
+        this.iLine = 0;
+        this.iStartLine = 0;
+        this.iErrorGotoLine = 0;
+        this.iErrorResumeLine = 0;
+        this.iBreakGosubLine = 0;
+        this.iBreakResumeLine = 0;
+        this.sOut = "";
+        this.iErr = 0; // last error code
+        this.iErl = 0; // line of last error
+        this.bDeg = false; // degree or radians
+        this.bTron = false; // trace flag
+        this.iTronLine = 0; // last trace line
+        this.iRamSelect = 0;
+        this.iScreenPage = 3; // 16K screen page, 3=0xc000..0xffff
+        this.iMinCharHimem = CpcVm.iMaxHimem;
+        this.iMaxCharHimem = CpcVm.iMaxHimem;
+        this.iHimem = CpcVm.iMaxHimem;
+        this.iMinCustomChar = 256;
+        this.iTimerPriority = -1; // priority of running task: -1=low (min priority to start new timers)
+        this.iZone = 13; // print tab zone value
+        this.iMode = -1;
+        this.iInkeyTimeMs = 0; // next time of frame fly
         this.fnOpeninHandler = this.vmOpeninCallback.bind(this);
         this.fnCloseinHandler = this.vmCloseinCallback.bind(this);
         this.fnCloseoutHandler = this.vmCloseoutCallback.bind(this);
         this.fnLoadHandler = this.vmLoadCallback.bind(this);
         this.fnRunHandler = this.vmRunCallback.bind(this);
-        this.vmInit(options);
-    }
-    CpcVm.prototype.vmInit = function (options) {
         this.oCanvas = options.canvas;
         this.oKeyboard = options.keyboard;
         this.oSound = options.sound;
@@ -33,11 +60,13 @@ var CpcVm = /** @class */ (function () {
         this.oStop = {
             sReason: "",
             iPriority: 0,
-            oParas: undefined // optional stop parameters
+            oParas: {} //TTT
         };
         // special stop reasons and priorities:
+        // "": 0 (no stop)
+        // "direct": 0 (direct input mode)
         // "timer": 20 (timer expired)
-        // "key": 30  (wait for key)
+        // "waitKey": 30  (wait for key)
         // "waitFrame": 40 (FRAME command: wait for frame fly)
         // "waitSound": 43 (wait for sound queue)
         // "waitInput": 45 (wait for input: INPUT, LINE INPUT, RANDOMIZE without parameter)
@@ -51,38 +80,42 @@ var CpcVm = /** @class */ (function () {
         // "break": 80 (break pressed)
         // "escape": 85 (escape key, set in controller)
         // "renumLines": 85 (RENUMber program)
-        // "deleteLines": 90,
+        // "deleteLines": 85,
+        // "editLine": 85
         // "end": 90 (end of program)
         // "list": 90,
         // "fileLoad": 90 (CHAIN, CHAIN MERGE, LOAD, MERGE, OPENIN, RUN)
         // "fileSave": 90 (OPENOUT, SAVE)
-        // "reset": 90 (reset system)
-        // "run": 90
+        // "new": 90
+        // "run": 95
+        // "parse": 95 (parse, used in controller)
+        // "parseRun": 95 (parse and run, used in controller)
+        // "reset": 99 (reset system)
         this.aInputValues = []; // values to input into script
         this.oInFile = {
             bOpen: false,
             sCommand: "",
             sName: "",
-            iLine: undefined,
-            iStart: undefined,
+            iLine: 0,
+            iStart: 0,
             aFileData: [],
             fnFileCallback: undefined,
-            iFirst: undefined,
-            iLast: undefined,
+            iFirst: 0,
+            iLast: 0,
             sMemorizedExample: ""
         };
         this.oOutFile = {
             bOpen: false,
             sCommand: "",
             sName: "",
-            iLine: undefined,
-            iStart: undefined,
+            iLine: 0,
+            iStart: 0,
             aFileData: [],
             fnFileCallback: undefined,
             iStream: 0,
             sType: "",
             iLength: 0,
-            iEntry: undefined
+            iEntry: 0 //undefined
         }; // file handling
         // "bOpen": File open flag
         // "sCommand": Command that started the file open (in: chain, chainMerge, load, merge, openin, run; out: save, openput)
@@ -115,7 +148,7 @@ var CpcVm = /** @class */ (function () {
             this.aSqTimer[i] = {};
         }
         this.aCrtcData = [];
-    };
+    }
     CpcVm.prototype.vmSetRsxClass = function (oRsx) {
         this.rsx = oRsx; // this.rsx just used in the script
     };
@@ -124,7 +157,7 @@ var CpcVm = /** @class */ (function () {
         this.oRandom.init();
         this.lastRnd = 0;
         this.iNextFrameTime = Date.now() + CpcVm.iFrameTimeMs; // next time of frame fly
-        this.iTimeUntilFrame = 0;
+        //this.iTimeUntilFrame = 0;
         this.iStopCount = 0;
         this.iLine = 0; // current line number (or label)
         this.iStartLine = 0; // line to start
@@ -159,7 +192,7 @@ var CpcVm = /** @class */ (function () {
         this.iTimerPriority = -1; // priority of running task: -1=low (min priority to start new timers)
         this.iZone = 13; // print tab zone value
         this.defreal("a-z"); // init vartypes
-        this.iMode = null;
+        this.iMode = -1;
         this.vmResetWindowData(true); // reset all, including pen and paper
         this.width(132); // set default printer width
         this.mode(1); // including vmResetWindowData() without pen and paper
@@ -251,7 +284,7 @@ var CpcVm = /** @class */ (function () {
     CpcVm.prototype.vmGetAllVariables = function () {
         return this.oVariables.getAllVariables();
     };
-    CpcVm.prototype.vmSetStartLine = function (iLine /*: number*/) {
+    CpcVm.prototype.vmSetStartLine = function (iLine) {
         this.iStartLine = iLine;
     };
     CpcVm.prototype.vmOnBreakContSet = function () {
@@ -482,11 +515,18 @@ var CpcVm = /** @class */ (function () {
         }
     };
     CpcVm.prototype.vmStop = function (sReason, iPriority, bForce, oParas) {
+        var iDefaultPriority = CpcVm.mStopPriority[sReason];
+        if (iDefaultPriority === undefined) {
+            Utils_1.Utils.console.warn("Programming error: vmStop: Unknown reason:", sReason);
+        }
         iPriority = iPriority || 0;
+        if (iPriority !== 0) {
+            iPriority = iDefaultPriority;
+        }
         if (bForce || iPriority >= this.oStop.iPriority) {
             this.oStop.iPriority = iPriority;
             this.oStop.sReason = sReason;
-            this.oStop.oParas = oParas;
+            this.oStop.oParas = oParas || CpcVm.oEmptyParas; //TTT
         }
     };
     CpcVm.prototype.vmNotImplemented = function (sName) {
@@ -517,19 +557,19 @@ var CpcVm = /** @class */ (function () {
                 throw this.vmComposeError(Error(), 13, "USING format " + sFormat); // "Type mismatch"
             }
             if (sFormat.indexOf(".") < 0) { // no decimal point?
-                arg = Number(arg).toFixed(0);
+                sStr = arg.toFixed(0);
             }
             else { // assume ###.##
                 var aFormat = sFormat.split(".", 2), iDecimals = aFormat[1].length;
                 // To avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
                 arg = Number(Math.round(Number(arg + "e" + iDecimals)) + "e-" + iDecimals);
-                arg = arg.toFixed(iDecimals);
+                sStr = arg.toFixed(iDecimals);
             }
             if (sFormat.indexOf(",") >= 0) { // contains comma => insert thousands separator
-                arg = Utils_1.Utils.numberWithCommas(arg);
+                sStr = Utils_1.Utils.numberWithCommas(sStr);
             }
-            var iPadLen = sFormat.length - arg.length, sPad = (iPadLen > 0) ? sPadChar.repeat(iPadLen) : "";
-            sStr = sPad + arg;
+            var iPadLen = sFormat.length - sStr.length, sPad = (iPadLen > 0) ? sPadChar.repeat(iPadLen) : "";
+            sStr = sPad + sStr;
             if (sStr.length > sFormat.length) {
                 sStr = "%" + sStr; // mark too long
             }
@@ -871,11 +911,13 @@ var CpcVm = /** @class */ (function () {
         }
     };
     CpcVm.prototype.cat = function () {
-        var iStream = 0;
-        this.vmStop("fileCat", 45, false, {
+        var iStream = 0, oFileParas = {
+            sCommand: "cat",
             iStream: iStream,
-            sCommand: "cat"
-        });
+            sFileMask: "",
+            iLine: this.iLine // unused
+        };
+        this.vmStop("fileCat", 45, false, oFileParas);
     };
     CpcVm.prototype.chain = function (sName, iLine) {
         var oInFile = this.oInFile;
@@ -1084,10 +1126,12 @@ var CpcVm = /** @class */ (function () {
         else if (iLast !== undefined) {
             iLast = this.vmInRangeRound(iLast, 1, 65535, "DELETE");
         }
-        this.vmStop("deleteLines", 90, false, {
+        this.vmStop("deleteLines", 85, false, {
+            sCommand: "DELETE",
+            iStream: 0,
             iFirst: iFirst || 1,
             iLast: iLast || iFirst,
-            sCommand: "DELETE"
+            iLine: this.iLine // unused
         });
     };
     CpcVm.prototype.derr = function () {
@@ -1111,9 +1155,14 @@ var CpcVm = /** @class */ (function () {
         this.vmDrawMovePlot("DRAWR", x, y, iGPen, iGColMode);
     };
     CpcVm.prototype.edit = function (iLine) {
-        this.vmStop("editLine", 90, false, {
-            iLine: iLine
-        });
+        var oLineParas = {
+            sCommand: "edit",
+            iStream: 0,
+            iFirst: iLine,
+            iLast: 0,
+            iLine: this.iLine // unused
+        };
+        this.vmStop("editLine", 85, false, oLineParas);
     };
     CpcVm.prototype.ei = function () {
         this.iTimerPriority = -1; // decrease priority
@@ -1481,6 +1530,7 @@ var CpcVm = /** @class */ (function () {
         if (iStream < 8) {
             this.print(iStream, sMsg);
             this.vmStop("waitInput", 45, false, {
+                sCommand: "input",
                 iStream: iStream,
                 sMessage: sMsg,
                 sNoCRLF: sNoCRLF,
@@ -1568,6 +1618,7 @@ var CpcVm = /** @class */ (function () {
             }
             this.cursor(iStream, 1);
             this.vmStop("waitInput", 45, false, {
+                sCommand: "lineinput",
                 iStream: iStream,
                 sMessage: sMsg,
                 sNoCRLF: sNoCRLF,
@@ -1606,9 +1657,11 @@ var CpcVm = /** @class */ (function () {
             }
         }
         this.vmStop("list", 90, false, {
+            sCommand: "list",
             iStream: iStream,
             iFirst: iFirst || 1,
-            iLast: iLast || iFirst
+            iLast: iLast || iFirst,
+            iLine: this.iLine // unused
         });
     };
     CpcVm.prototype.vmLoadCallback = function (sInput, oMeta) {
@@ -1766,9 +1819,14 @@ var CpcVm = /** @class */ (function () {
     };
     CpcVm.prototype["new"] = function () {
         this.clear();
-        this.vmStop("new", 90, false, {
-            sCommand: "NEW"
-        });
+        var oLineParas = {
+            sCommand: "new",
+            iStream: 0,
+            iFirst: 0,
+            iLast: 0,
+            iLine: this.iLine // unused
+        };
+        this.vmStop("new", 90, false, oLineParas);
     };
     // next
     // not
@@ -2263,7 +2321,7 @@ var CpcVm = /** @class */ (function () {
                     this.vmPrintChars(iStream, sOut); // print chars collected so far
                     sOut = "";
                 }
-                var iParaCount = CpcVm.mControlCodeParameterCount[iCode];
+                var iParaCount = CpcVm.aControlCodeParameterCount[iCode];
                 if (i + iParaCount <= sStr.length) {
                     sOut += this.vmHandleControlCode(iCode, sStr.substr(i, iParaCount), iStream);
                     i += iParaCount;
@@ -2395,13 +2453,15 @@ var CpcVm = /** @class */ (function () {
         if (n === undefined) { // no arguments? input...
             var sMsg = "Random number seed ? ";
             this.print(iStream, sMsg);
-            this.vmStop("waitInput", 45, false, {
+            var oInputParas = {
+                sCommand: "randomize",
                 iStream: iStream,
                 sMessage: sMsg,
                 fnInputCallback: this.vmRandomizeCallback.bind(this),
                 sInput: "",
                 iLine: this.iLine // to repeat in case of break
-            });
+            };
+            this.vmStop("waitInput", 45, false, oInputParas);
         }
         else { // n can also be floating point, so compute a hash value of n
             this.vmAssertNumber(n, "RANDOMIZE");
@@ -2464,12 +2524,16 @@ var CpcVm = /** @class */ (function () {
         if (iKeep !== undefined) {
             iKeep = this.vmInRangeRound(iKeep, 1, 65535, "RENUM");
         }
-        this.vmStop("renumLines", 85, false, {
+        var oLineRenumParas = {
+            sCommand: "renum",
+            iStream: 0,
+            iLine: this.iLine,
             iNew: iNew || 10,
             iOld: iOld || 1,
             iStep: iStep || 10,
             iKeep: iKeep || 65535 // keep lines
-        });
+        };
+        this.vmStop("renumLines", 85, false, oLineRenumParas);
     };
     CpcVm.prototype.restore = function (iLine) {
         iLine = iLine || 0;
@@ -2563,9 +2627,14 @@ var CpcVm = /** @class */ (function () {
         var oInFile = this.oInFile, bPutInMemory = sInput !== null && oMeta && (oMeta.sType === "B" || oInFile.iStart !== undefined);
         // TODO: we could put it in memory as we do it for LOAD
         if (sInput !== null) {
-            this.vmStop("run", 90, false, {
-                iLine: oInFile.iLine
-            });
+            var oLineParas = {
+                sCommand: "run",
+                iStream: 0,
+                iFirst: oInFile.iLine,
+                iLast: 0,
+                iLine: this.iLine
+            };
+            this.vmStop("run", 95, false, oLineParas);
         }
         this.closein();
         return bPutInMemory;
@@ -2582,9 +2651,14 @@ var CpcVm = /** @class */ (function () {
             this.vmStop("fileLoad", 90);
         }
         else { // line number or no argument = undefined
-            this.vmStop("run", 90, false, {
-                iLine: numOrString || 0
-            });
+            var oLineParas = {
+                sCommand: "run",
+                iStream: 0,
+                iFirst: numOrString || 0,
+                iLast: 0,
+                iLine: this.iLine
+            };
+            this.vmStop("run", 95, false, oLineParas);
         }
     };
     CpcVm.prototype.save = function (sName, sType, iStart, iLength, iEntry) {
@@ -3069,6 +3143,7 @@ var CpcVm = /** @class */ (function () {
     CpcVm.iStreamCount = 10; // 0..7 window, 8 printer, 9 cassette
     CpcVm.iMinHimem = 370;
     CpcVm.iMaxHimem = 42747; // high memory limit (42747 after symbol after 256)
+    CpcVm.oEmptyParas = {};
     CpcVm.mWinData = [
         {
             iLeft: 0,
@@ -3124,7 +3199,7 @@ var CpcVm = /** @class */ (function () {
         382: 158,
         376: 159
     };
-    CpcVm.mControlCodeParameterCount = [
+    CpcVm.aControlCodeParameterCount = [
         0,
         1,
         0,
@@ -3194,6 +3269,165 @@ var CpcVm = /** @class */ (function () {
         "Broken",
         "Unknown error" // 33...
     ];
+    /*
+    mStopEntries = {
+        "": {
+            sReason: "", // stop reason
+            iPriority: 0, // stop priority (higher number means higher priority which can overwrite lower priority)
+            oParas: {} // stop parameters
+        },
+        timer: {
+            sReason: "timer", // timer expired
+            iPriority: 20,
+            oParas: {}
+        },
+        waitKey: {
+            sReason: "waitKey", // wait for key
+            iPriority: 30,
+            oParas: {}
+        },
+        waitFrame: {
+            sReason: "waitFrame", // FRAME command: wait for frame fly
+            iPriority: 40,
+            oParas: {}
+        },
+        waitInput: {
+            sReason: "waitInput", // wait for input: INPUT, LINE INPUT, RANDOMIZE without parameter
+            iPriority: 45,
+            oParas: {}
+        },
+        fileCat: {
+            sReason: "fileCat", // CAT
+            iPriority: 45,
+            oParas: {}
+        },
+        fileDir: {
+            sReason: "fileDir", // |DIR
+            iPriority: 45,
+            oParas: {}
+        },
+        fileEra: {
+            sReason: "fileEra", // |ERA
+            iPriority: 45,
+            oParas: {}
+        },
+        fileRen: {
+            sReason: "fileRen", // |REN
+            iPriority: 45,
+            oParas: {}
+        },
+        error: {
+            sReason: "error", // BASIC error, ERROR command
+            iPriority: 50,
+            oParas: {}
+        },
+        onError: {
+            sReason: "onError", // ON ERROR GOTO active, hide error
+            iPriority: 50,
+            oParas: {}
+        },
+        stop: {
+            sReason: "stop", // STOP or END command
+            iPriority: 60,
+            oParas: {}
+        },
+        "break": {
+            sReason: "break", // break pressed
+            iPriority: 80,
+            oParas: {}
+        },
+        escape: {
+            sReason: "escape", // escape key, set in controller
+            iPriority: 85,
+            oParas: {}
+        },
+        renumLines: {
+            sReason: "renumLines", // RENUMber program
+            iPriority: 85,
+            oParas: {}
+        },
+        deleteLines: {
+            sReason: "deleteLines", // delete lines
+            iPriority: 85,
+            oParas: {}
+        },
+        end: {
+            sReason: "end", // end of program
+            iPriority: 90,
+            oParas: {}
+        },
+        list: {
+            sReason: "list", // LIST program
+            iPriority: 90,
+            oParas: {}
+        },
+        fileLoad: {
+            sReason: "fileLoad", // CHAIN, CHAIN MERGE, LOAD, MERGE, OPENIN, RUN
+            iPriority: 90,
+            oParas: {}
+        },
+        fileSave: {
+            sReason: "fileSave", // OPENOUT, SAVE
+            iPriority: 90,
+            oParas: {}
+        },
+        reset: {
+            sReason: "reset", // reset system
+            iPriority: 90,
+            oParas: {}
+        },
+        run: {
+            sReason: "run",
+            iPriority: 90,
+            oParas: {}
+        },
+        parseRun: {
+            sReason: "parseRun",
+            iPriority: 99,
+            oParas: {}
+        }
+    };
+    */
+    // unused:
+    /*
+    mStopEntries1 = { //TTT
+        parseRun: {
+            sReason: "parseRun",
+            iPriority: 99,
+            oParas: {}
+        }
+    }
+    */
+    CpcVm.mStopPriority = {
+        "": 0,
+        direct: 0,
+        timer: 20,
+        waitKey: 30,
+        waitFrame: 40,
+        waitSound: 43,
+        waitInput: 45,
+        fileCat: 45,
+        fileDir: 45,
+        fileEra: 45,
+        fileRen: 45,
+        error: 50,
+        onError: 50,
+        stop: 60,
+        "break": 80,
+        escape: 85,
+        renumLines: 85,
+        deleteLines: 85,
+        editLine: 85,
+        end: 90,
+        list: 90,
+        fileLoad: 90,
+        fileSave: 90,
+        "new": 90,
+        run: 95,
+        parse: 95,
+        parseRun: 95,
+        reset: 99 // reset system
+    };
     return CpcVm;
 }());
 exports.CpcVm = CpcVm;

@@ -39,7 +39,6 @@ qunit_1.QUnit.module("BasicFormatter:renumber: Tests", function () {
         }, iNew = 10, iOld = 1, iStep = 10, iKeep = undefined;
         for (var sKey in oTests) {
             if (oTests.hasOwnProperty(sKey)) {
-                oBasicFormatter.reset();
                 var oOutput = oBasicFormatter.renumber(sKey, iNew, iOld, iStep, iKeep), sResult = oOutput.error ? String(oOutput.error) : oOutput.text;
                 var sExpected = oTests[sKey];
                 if (!Utils_1.Utils.bSupportsBinaryLiterals) {

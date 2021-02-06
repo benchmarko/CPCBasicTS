@@ -22,23 +22,15 @@ export interface LexerToken {
 
 export class BasicLexer {
 	bQuiet = false
-	sLine = "0"
+	sLine = "0" // for error messages
 	bTakeNumberAsLine = true
 
-	sInput: string
+	sInput = "";
 	iIndex = 0
 	aTokens: LexerToken[] = []
 
 	constructor(options?: BasicLexerOptions) {
 		this.bQuiet = options?.bQuiet || false;
-
-		this.sInput = "";
-		this.reset();
-	}
-
-	reset(): void {
-		this.sLine = "0"; // for error messages
-		this.bTakeNumberAsLine = true;
 	}
 
 	private composeError(oError: Error, message: string, value: string, pos: number) {

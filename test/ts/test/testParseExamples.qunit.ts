@@ -264,7 +264,6 @@ function testParseExample(oExample: ExampleEntry) {
 	let	oOutput: IOutput;
 
 	if (oExample.meta !== "D") { // skip data files
-		oCodeGeneratorJs.reset();
 		oOutput = oCodeGeneratorJs.generate(sInput, oVariables, true);
 	} else {
 		oOutput = {
@@ -437,7 +436,7 @@ if (bNodeJsAvail) {
 	//const sNodeRequire = 'fs = require("fs"); path = require("path");';
 	const sNodeRequire = 'https = require("https");';
 
-	fnEval(sNodeRequire); // to trick typescript
+	fnEval(sNodeRequire); // to trick TypeScript
 }
 
 
@@ -458,7 +457,6 @@ declare global {
 if (typeof process !== "undefined") { // nodeJs
 	const oSettings = fnParseArgs(process.argv.slice(2));
 
-	Utils.console.log("PPP: ", oSettings.debug);
 	if (oSettings.debug) {
 		Utils.debug = oSettings.debug as number;
 	}

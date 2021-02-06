@@ -13,7 +13,7 @@ interface CpcVmOptions {
     tron: boolean;
 }
 export interface FileMeta {
-    sType?: string;
+    sType: string;
     iStart?: number;
     iLength?: number;
     iEntry?: number;
@@ -26,7 +26,7 @@ interface FileBase {
     iLine: number;
     iStart: number;
     aFileData: string[];
-    fnFileCallback: (...aArgs: any[]) => void | boolean;
+    fnFileCallback: ((...aArgs: any[]) => void | boolean) | undefined;
 }
 interface InFile extends FileBase {
     iFirst: number;
@@ -66,29 +66,38 @@ interface TimerEntry {
     iStackIndexReturn: number;
     iSavedPriority: number;
 }
-export interface StopParas {
-    iStream?: number;
-    sMessage?: string;
-    fnInputCallback?: any;
-    sInput?: string;
-    iLine?: string | number;
-    sCommand?: string;
-    sNoCRLF?: string;
-    aTypes?: string[];
-    iFirst?: number;
-    iLast?: number;
-    iNew?: number;
-    iOld?: number;
-    iStep?: number;
-    iKeep?: number;
-    sFileMask?: string;
+export interface VmBaseParas {
+    sCommand: string;
+    iStream: number;
+    iLine: string | number;
+}
+export interface VmLineParas extends VmBaseParas {
+    iFirst: number;
+    iLast: number;
+}
+export interface VmLineRenumParas extends VmBaseParas {
+    iNew: number;
+    iOld: number;
+    iStep: number;
+    iKeep: number;
+}
+export interface VmFileParas extends VmBaseParas {
+    sFileMask: string;
     sNew?: string;
     sOld?: string;
 }
-export interface StopEntry {
+export interface VmInputParas extends VmBaseParas {
+    sMessage?: string;
+    sNoCRLF?: string;
+    aTypes?: string[];
+    sInput: string;
+    fnInputCallback?: any;
+}
+export declare type VmStopParas = VmFileParas | VmInputParas | VmLineParas | VmLineRenumParas;
+export interface VmStopEntry {
     sReason: string;
     iPriority: number;
-    oParas?: StopParas;
+    oParas: VmStopParas;
 }
 export declare class CpcVm {
     fnOpeninHandler: FileBase["fnFileCallback"];
@@ -96,14 +105,13 @@ export declare class CpcVm {
     fnCloseoutHandler: any;
     fnLoadHandler: any;
     fnRunHandler: any;
-    options: CpcVmOptions;
     oCanvas: Canvas;
     oKeyboard: Keyboard;
     oSound: Sound;
     oVariables: Variables;
     tronFlag: boolean;
     oRandom: Random;
-    oStop: StopEntry;
+    oStop: VmStopEntry;
     aInputValues: (string | number)[];
     oInFile: InFile;
     oOutFile: OutFile;
@@ -125,7 +133,6 @@ export declare class CpcVm {
     iStartTime: number;
     lastRnd: number;
     iNextFrameTime: number;
-    iTimeUntilFrame: number;
     iStopCount: number;
     iLine: string | number;
     iStartLine: number;
@@ -150,51 +157,24 @@ export declare class CpcVm {
     iMode: number;
     iInkeyTimeMs: number;
     rsx: ICpcVmRsx;
-    constructor(options: CpcVmOptions);
     static iFrameTimeMs: number;
     static iTimerCount: number;
     static iSqTimerCount: number;
     static iStreamCount: number;
     static iMinHimem: number;
     static iMaxHimem: number;
+    static oEmptyParas: {};
     static mWinData: {
         iLeft: number;
         iRight: number;
         iTop: number;
         iBottom: number;
     }[];
-    static mUtf8ToCpc: {
-        8364: number;
-        8218: number;
-        402: number;
-        8222: number;
-        8230: number;
-        8224: number;
-        8225: number;
-        710: number;
-        8240: number;
-        352: number;
-        8249: number;
-        338: number;
-        381: number;
-        8216: number;
-        8217: number;
-        8220: number;
-        8221: number;
-        8226: number;
-        8211: number;
-        8212: number;
-        732: number;
-        8482: number;
-        353: number;
-        8250: number;
-        339: number;
-        382: number;
-        376: number;
-    };
-    private static mControlCodeParameterCount;
+    private static mUtf8ToCpc;
+    private static aControlCodeParameterCount;
     private static aErrors;
-    vmInit(options: CpcVmOptions): void;
+    private static mStopPriority;
+    constructor(options: CpcVmOptions);
     vmSetRsxClass(oRsx: ICpcVmRsx): void;
     vmReset(): void;
     vmResetTimers(): void;
@@ -205,7 +185,7 @@ export declare class CpcVm {
     private vmResetInks;
     vmReset4Run(): void;
     vmGetAllVariables(): VariableMap;
-    vmSetStartLine(iLine: any): void;
+    vmSetStartLine(iLine: number): void;
     vmOnBreakContSet(): boolean;
     vmOnBreakHandlerActive(): number;
     vmEscape(): boolean;
@@ -226,10 +206,10 @@ export declare class CpcVm {
     vmLoopCondition(): boolean;
     private vmInitUntypedVariables;
     private vmDefineVarTypes;
-    vmStop(sReason: string, iPriority: number, bForce?: boolean, oParas?: StopParas): void;
+    vmStop(sReason: string, iPriority: number, bForce?: boolean, oParas?: VmStopParas): void;
     vmNotImplemented(sName: string): void;
     private vmUsingFormat1;
-    vmGetStopObject(): StopEntry;
+    vmGetStopObject(): VmStopEntry;
     vmGetInFileObject(): InFile;
     vmGetOutFileObject(): OutFile;
     vmAdaptFilename(sName: string, sErr: string): string;

@@ -15,7 +15,6 @@ export declare class BasicLexer {
     iIndex: number;
     aTokens: LexerToken[];
     constructor(options?: BasicLexerOptions);
-    reset(): void;
     private composeError;
     private static isComment;
     private static isOperator;

@@ -82,7 +82,7 @@ export declare class Keyboard {
     resetExpansionTokens(): void;
     resetCpcKeysExpansions(): void;
     getKeyDownHandler(): (() => void) | undefined;
-    setKeyDownHandler(fnOnKeyDown: () => void): void;
+    setKeyDownHandler(fnOnKeyDown?: () => void): void;
     setActive(bActive: boolean): void;
     private removeCodeStringsFromKeymap;
     private fnPressCpcKey;

@@ -17,7 +17,7 @@ export interface DatabaseEntry {
 export interface ExampleEntry {
 	key: string
 	title: string
-	type: string
+	//type: string
 	meta: string // D=data
 	script?: string
 	loaded?: boolean

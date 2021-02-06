@@ -14,7 +14,7 @@ import { CodeGeneratorBasic } from "./CodeGeneratorBasic";
 import { CodeGeneratorJs } from "./CodeGeneratorJs";
 import { CommonEventHandler } from "./CommonEventHandler";
 import { cpcCharset } from "./cpcCharset";
-import { CpcVm, FileMeta, StopEntry, StopParas } from "./CpcVm";
+import { CpcVm, FileMeta, VmStopEntry, VmStopParas, VmFileParas, VmInputParas, VmLineParas, VmLineRenumParas } from "./CpcVm";
 import { CpcVmRsx } from "./CpcVmRsx";
 import { Diff } from "./Diff";
 import { DiskImage, AmsdosHeader } from "./DiskImage";
@@ -43,16 +43,16 @@ interface FileMetaAndData {
 }
 
 export class Controller implements IController {
-	fnRunLoopHandler: undefined;
-	fnWaitKeyHandler: undefined;
-	fnWaitInputHandler: undefined;
-	fnOnEscapeHandler: undefined;
-	fnDirectInputHandler: undefined;
-	fnPutKeyInBufferHandler: undefined;
+	fnRunLoopHandler: () => void;
+	fnWaitKeyHandler: () => void;
+	fnWaitInputHandler: () => void;
+	fnOnEscapeHandler: () => void;
+	fnDirectInputHandler: () => void;
+	fnPutKeyInBufferHandler: (sKey: string) => void;
 
 	static sMetaIdent = "CPCBasic";
 
-	fnScript = undefined;
+	fnScript?: Function; // eslint-disable-line @typescript-eslint/ban-types
 
 	bTimeoutHandlerActive = false;
 	iNextLoopTimeOut = 0; // next timeout for the main loop
@@ -80,8 +80,8 @@ export class Controller implements IController {
 	oVm: CpcVm;
 	oRsx: CpcVmRsx;
 
-	oNoStop: StopEntry;
-	oSavedStop: StopEntry; // backup of stop object
+	oNoStop: VmStopEntry;
+	oSavedStop: VmStopEntry; // backup of stop object
 
 
 	constructor(oModel: Model, oView: View) {
@@ -141,7 +141,7 @@ export class Controller implements IController {
 		}
 
 		this.oSound = new Sound();
-		this.commonEventHandler.fnActivateUserAction(this.onUserAction.bind(this)); // check first user action, also if sound is not yet on
+		this.commonEventHandler.fnSetUserAction(this.onUserAction.bind(this)); // check first user action, also if sound is not yet on
 
 		const sExample = oModel.getProperty<string>("example");
 
@@ -162,7 +162,14 @@ export class Controller implements IController {
 		this.oNoStop = Object.assign({}, this.oVm.vmGetStopObject());
 		this.oSavedStop = {
 			sReason: "",
-			iPriority: 0
+			iPriority: 0,
+			oParas: {
+				sCommand: "",
+				iStream: 0,
+				iLine: 0,
+				iFirst: 0, // unused
+				iLast: 0 // unused
+			}
 		}; // backup of stop object
 		this.setStopObject(this.oNoStop);
 
@@ -209,7 +216,7 @@ export class Controller implements IController {
 	}
 
 	private onUserAction(/* event, sId */) {
-		this.commonEventHandler.fnDeactivateUserAction();
+		this.commonEventHandler.fnSetUserAction(undefined); // deactivate user action
 		this.oSound.setActivatedByUser();
 		this.setSoundActive();
 	}
@@ -369,8 +376,8 @@ export class Controller implements IController {
 					oExample = {
 						key: sKey,
 						title: "", // or set sKey?
-						meta: oData.oMeta.sType, // currently we take only the type
-						type: undefined //TTT for what?
+						meta: oData.oMeta.sType // currently we take only the type
+						//type: undefined //TTT for what?
 					};
 					this.model.setExample(oExample);
 				}
@@ -403,22 +410,24 @@ export class Controller implements IController {
 
 		if (sKey !== "") {
 			this.oVm.cursor(iStream, 0);
-			this.oKeyboard.setKeyDownHandler(null);
+			this.oKeyboard.setKeyDownHandler(undefined);
 			this.startContinue();
 		}
 	}
 
 	private fnOnEscape() {
 		const oStop = this.oVm.vmGetStopObject(),
-			iStream = 0;
+			iStream = 0; //oParas.iStream;
 
 		if (this.oVm.vmOnBreakContSet()) {
 			// ignore break
 		} else if (oStop.sReason === "direct" || this.oVm.vmOnBreakHandlerActive()) {
+			/*
 			if (!oStop.oParas) {
 				oStop.oParas = {};
 			}
-			oStop.oParas.sInput = "";
+			*/
+			(oStop.oParas as VmInputParas).sInput = "";
 			const sMsg = "*Break*\r\n";
 
 			this.oVm.print(iStream, sMsg);
@@ -428,16 +437,20 @@ export class Controller implements IController {
 			this.oKeyboard.setKeyDownHandler(this.fnWaitForContinue.bind(this));
 			this.setStopObject(oStop);
 			this.oVm.vmStop("escape", 85, false, {
-				iStream: iStream
+				sCommand: "escape",
+				iStream: iStream,
+				iFirst: 0, // unused
+				iLast: 0, // unused
+				iLine: this.oVm.iLine
 			});
 		} else { // second escape
-			this.oKeyboard.setKeyDownHandler(null);
+			this.oKeyboard.setKeyDownHandler(undefined);
 			this.oVm.cursor(iStream, 0);
 
 			const oSavedStop = this.getStopObject();
 
 			if (oSavedStop.sReason === "waitInput") { // sepcial handling: set line to repeat input
-				this.oVm.vmGotoLine(oSavedStop.oParas.iLine);
+				this.oVm.vmGotoLine((oSavedStop.oParas as VmInputParas).iLine);
 			}
 
 			if (!this.oVm.vmEscape()) {
@@ -462,7 +475,7 @@ export class Controller implements IController {
 			const aSoundData = this.oVm.vmGetSoundData();
 
 			while (aSoundData.length && this.oSound.testCanQueue(aSoundData[0].iState)) {
-				this.oSound.sound(aSoundData.shift());
+				this.oSound.sound(aSoundData.shift()!);
 			}
 			if (!aSoundData.length) {
 				if (oStop.sReason === "waitSound") { // only for this reason
@@ -479,7 +492,7 @@ export class Controller implements IController {
 		if (sKey !== "") { // do we have a key from the buffer already?
 			Utils.console.log("Wait for key:", sKey);
 			this.oVm.vmStop("", 0, true);
-			this.oKeyboard.setKeyDownHandler(null);
+			this.oKeyboard.setKeyDownHandler(undefined);
 		} else {
 			this.fnWaitSound(); // sound and blinking events
 			this.oKeyboard.setKeyDownHandler(this.fnWaitKeyHandler); // wait until keypress handler (for call &bb18)
@@ -489,10 +502,15 @@ export class Controller implements IController {
 
 	private fnWaitInput() { // eslint-disable-line complexity
 		const oStop = this.oVm.vmGetStopObject(),
-			oInput = oStop.oParas,
+			oInput = oStop.oParas as VmInputParas,
 			iStream = oInput.iStream;
 		let sInput = oInput.sInput,
 			sKey: string;
+
+		if (sInput === undefined || iStream === undefined) {
+			this.outputError(this.oVm.vmComposeError(Error(), 32, "Programming Error: fnWaitInput"), true);
+			return;
+		}
 
 		do {
 			sKey = this.oKeyboard.getKeyFromBuffer(); // (inkey$ could insert frame if checked too often)
@@ -600,7 +618,7 @@ export class Controller implements IController {
 				bInputOk = true;
 			}
 			if (bInputOk) {
-				this.oKeyboard.setKeyDownHandler(null);
+				this.oKeyboard.setKeyDownHandler(undefined);
 				if (oStop.sReason === "waitInput") { // only for this reason
 					this.oVm.vmStop("", 0, true); // no more wait
 				} else {
@@ -688,7 +706,7 @@ export class Controller implements IController {
 	private fnGetExampleDirectoryEntries(sMask?: string) { // optional sMask
 		const aDir: string[] = [],
 			oAllExamples = this.model.getAllExamples();
-		let oRegExp: RegExp;
+		let oRegExp: RegExp | undefined;
 
 		if (sMask) {
 			oRegExp = Controller.fnPrepareMaskRegExp(sMask);
@@ -711,17 +729,16 @@ export class Controller implements IController {
 	private static fnGetDirectoryEntries(sMask?: string) {
 		const oStorage = Utils.localStorage,
 			aDir: string[] = [];
-		let	oRegExp: RegExp;
+		let	oRegExp: RegExp | undefined;
 
 		if (sMask) {
 			oRegExp = Controller.fnPrepareMaskRegExp(sMask);
 		}
 
 		for (let i = 0; i < oStorage.length; i += 1) {
-			const sKey = oStorage.key(i),
-				sValue = oStorage[sKey];
+			const sKey = oStorage.key(i);
 
-			if (sValue.startsWith(this.sMetaIdent)) { // take only cpcBasic files
+			if (sKey !== null && oStorage[sKey].startsWith(this.sMetaIdent)) { // take only cpcBasic files
 				if (!oRegExp || oRegExp.test(sKey)) {
 					aDir.push(sKey);
 				}
@@ -754,7 +771,7 @@ export class Controller implements IController {
 		this.oVm.print(iStream, "\r\n");
 	}
 
-	fnFileCat(oParas: StopParas): void {
+	private fnFileCat(oParas: VmFileParas): void {
 		const iStream = oParas.iStream,
 			aDir = Controller.fnGetDirectoryEntries();
 
@@ -765,7 +782,7 @@ export class Controller implements IController {
 		this.oVm.vmStop("", 0, true);
 	}
 
-	fnFileDir(oParas: StopParas): void {
+	private fnFileDir(oParas: VmFileParas): void {
 		const iStream = oParas.iStream,
 			sExample = this.model.getProperty<string>("example"), // if we have a fileMask, include also example names from same directory
 			iLastSlash = sExample.lastIndexOf("/");
@@ -790,7 +807,7 @@ export class Controller implements IController {
 		this.oVm.vmStop("", 0, true);
 	}
 
-	fnFileEra(oParas: StopParas): void {
+	private fnFileEra(oParas: VmFileParas): void {
 		const iStream = oParas.iStream,
 			oStorage = Utils.localStorage,
 			sFileMask = Controller.fnLocalStorageName(oParas.sFileMask),
@@ -817,7 +834,7 @@ export class Controller implements IController {
 		this.oVm.vmStop("", 0, true);
 	}
 
-	fnFileRen(oParas: StopParas): void {
+	private fnFileRen(oParas: VmFileParas): void {
 		const iStream = oParas.iStream,
 			oStorage = Utils.localStorage,
 			sNew = Controller.fnLocalStorageName(oParas.sNew),
@@ -906,7 +923,7 @@ export class Controller implements IController {
 
 		if (oInFile.fnFileCallback) {
 			try {
-				bPutInMemory = oInFile.fnFileCallback(sInput, oData && oData.oMeta) as boolean; //TTT
+				bPutInMemory = oInFile.fnFileCallback(sInput, oData && oData.oMeta) as boolean;
 			} catch (e) {
 				Utils.console.warn(e);
 			}
@@ -1064,7 +1081,7 @@ export class Controller implements IController {
 		return sName;
 	}
 
-	private tryLoadingFromLocalStorage(sName: string) {
+	private static tryLoadingFromLocalStorage(sName: string) {
 		const oStorage = Utils.localStorage,
 			aExtensions = [
 				null,
@@ -1085,8 +1102,7 @@ export class Controller implements IController {
 		return sInput; // null=not found
 	}
 
-	// run loop: fileLoad
-	fnFileLoad() {
+	private fnFileLoad() {
 		const oInFile = this.oVm.vmGetInFileObject();
 
 		if (oInFile.bOpen) {
@@ -1094,7 +1110,9 @@ export class Controller implements IController {
 				this.fnDeleteLines({
 					iFirst: oInFile.iFirst,
 					iLast: oInFile.iLast,
-					sCommand: "CHAIN MERGE"
+					sCommand: "CHAIN MERGE",
+					iStream: 0, // unused
+					iLine: this.oVm.iLine
 				});
 				this.oVm.vmStop("fileLoad", 90); // restore
 			}
@@ -1105,7 +1123,7 @@ export class Controller implements IController {
 				Utils.console.debug("fnFileLoad:", oInFile.sCommand, sName, "details:", oInFile);
 			}
 
-			const sInput = this.tryLoadingFromLocalStorage(sName);
+			const sInput = Controller.tryLoadingFromLocalStorage(sName);
 
 			if (sInput !== null) {
 				if (Utils.debug > 0) {
@@ -1156,7 +1174,9 @@ export class Controller implements IController {
 				};
 			}
 		} else {
-			oMeta = {};
+			oMeta = {
+				sType: ""
+			};
 		}
 
 		const oMetaAndData: FileMetaAndData = {
@@ -1167,8 +1187,7 @@ export class Controller implements IController {
 		return oMetaAndData;
 	}
 
-	// run loop: fileSave
-	fnFileSave(): void {
+	private fnFileSave() {
 		const oOutFile = this.oVm.vmGetOutFileObject(),
 			oStorage = Utils.localStorage;
 		let	sDefaultExtension = "";
@@ -1216,7 +1235,7 @@ export class Controller implements IController {
 		this.oVm.vmStop("", 0, true); // continue
 	}
 
-	fnDeleteLines(oParas: StopParas): void {
+	private fnDeleteLines(oParas: VmLineParas) {
 		const sInputText = this.view.getAreaValue("inputText"),
 			aLines = Controller.fnGetLinesInRange(sInputText, oParas.iFirst, oParas.iLast);
 		let	oError: CustomError;
@@ -1245,7 +1264,7 @@ export class Controller implements IController {
 		this.oVm.vmStop("end", 0, true);
 	}
 
-	fnNew(/* oParas */): void {
+	private fnNew() {
 		const sInput = "";
 
 		this.setInputText(sInput);
@@ -1256,7 +1275,7 @@ export class Controller implements IController {
 		this.invalidateScript();
 	}
 
-	fnList(oParas: StopParas): void {
+	private fnList(oParas: VmLineParas) {
 		const sInput = this.view.getAreaValue("inputText"),
 			iStream = oParas.iStream,
 			aLines = Controller.fnGetLinesInRange(sInput, oParas.iFirst, oParas.iLast),
@@ -1275,7 +1294,7 @@ export class Controller implements IController {
 		this.oVm.vmStop("end", 0, true);
 	}
 
-	fnReset(): void {
+	private fnReset() {
 		const oVm = this.oVm;
 
 		this.oVariables.removeAllVariables();
@@ -1286,14 +1305,14 @@ export class Controller implements IController {
 		this.invalidateScript();
 	}
 
-	private outputError(oError, bNoSelection?: boolean) {
+	private outputError(oError: CustomError, bNoSelection?: boolean) {
 		const iStream = 0,
 			sShortError = oError.shortMessage || oError.message;
 
 		if (!bNoSelection) {
-			const iEndPos = oError.pos + ((oError.value !== undefined) ? String(oError.value).length : 0);
+			const iEndPos = (oError.pos || 0) + ((oError.value !== undefined) ? String(oError.value).length : 0);
 
-			this.view.setAreaSelection("inputText", oError.pos, iEndPos);
+			this.view.setAreaSelection("inputText", oError.pos || 0, iEndPos);
 		}
 
 		const sEscapedShortError = sShortError.replace(/([\x00-\x1f])/g, "\x01$1"); // eslint-disable-line no-control-regex
@@ -1302,7 +1321,7 @@ export class Controller implements IController {
 		return sShortError;
 	}
 
-	fnRenumLines(oParas: StopParas): void {
+	private fnRenumLines(oParas: VmLineRenumParas) {
 		const oVm = this.oVm,
 			sInput = this.view.getAreaValue("inputText");
 
@@ -1313,7 +1332,6 @@ export class Controller implements IController {
 			});
 		}
 
-		this.oBasicFormatter.reset();
 		const oOutput = this.oBasicFormatter.renumber(sInput, oParas.iNew, oParas.iOld, oParas.iStep, oParas.iKeep);
 
 		if (oOutput.error) {
@@ -1329,7 +1347,7 @@ export class Controller implements IController {
 	}
 
 	private fnEditLineCallback() {
-		const oInput = this.oVm.vmGetStopObject().oParas,
+		const oInput = this.oVm.vmGetStopObject().oParas as VmInputParas,
 			sInputText = this.view.getAreaValue("inputText");
 		let sInput = oInput.sInput;
 
@@ -1343,10 +1361,10 @@ export class Controller implements IController {
 		return true;
 	}
 
-	fnEditLine(oParas: StopParas) {
+	private fnEditLine(oParas: VmLineParas) {
 		const sInput = this.view.getAreaValue("inputText"),
 			iStream = oParas.iStream,
-			iLine = oParas.iLine as number, //TTT
+			iLine = oParas.iFirst,
 			aLines = Controller.fnGetLinesInRange(sInput, iLine, iLine);
 
 		if (aLines.length) {
@@ -1354,12 +1372,16 @@ export class Controller implements IController {
 
 			this.oVm.print(iStream, sLine);
 			this.oVm.cursor(iStream, 1);
-			this.oVm.vmStop("waitInput", 45, true, {
+			const oInputParas: VmInputParas = { //TTT
+				sCommand: oParas.sCommand, //TTT
+				iLine: oParas.iLine, //TTT
 				iStream: iStream,
 				sMessage: "",
 				fnInputCallback: this.fnEditLineCallback.bind(this),
 				sInput: sLine
-			});
+			};
+
+			this.oVm.vmStop("waitInput", 45, true, oInputParas);
 			this.fnWaitInput();
 		} else {
 			const oError = this.oVm.vmComposeError(Error(), 8, String(iLine)); // "Line does not exist"
@@ -1373,12 +1395,11 @@ export class Controller implements IController {
 		let oOutput: IOutput;
 
 		for (let i = 0; i < iBench; i += 1) {
-			this.oCodeGeneratorJs.reset();
 			let iTime = Date.now();
 
 			oOutput = this.oCodeGeneratorJs.generate(sInput, this.oVariables);
 			iTime = Date.now() - iTime;
-			Utils.console.debug("bench size", sInput.length, "labels", Object.keys(this.oCodeGeneratorJs.oLabels).length, "loop", i, ":", iTime, "ms");
+			Utils.console.debug("bench size", sInput.length, "labels", this.oCodeGeneratorJs.debugGetLabelsCount(), "loop", i, ":", iTime, "ms");
 			if (oOutput.error) {
 				break;
 			}
@@ -1387,7 +1408,7 @@ export class Controller implements IController {
 		return oOutput;
 	}
 
-	fnParse(): IOutput {
+	private fnParse(): IOutput {
 		const sInput = this.view.getAreaValue("inputText"),
 			iBench = this.model.getProperty<number>("bench");
 
@@ -1395,7 +1416,6 @@ export class Controller implements IController {
 		let	oOutput: IOutput;
 
 		if (!iBench) {
-			this.oCodeGeneratorJs.reset();
 			oOutput = this.oCodeGeneratorJs.generate(sInput, this.oVariables);
 		} else {
 			oOutput = this.fnParseBench(sInput, iBench);
@@ -1425,11 +1445,8 @@ export class Controller implements IController {
 			oCodeGeneratorBasic = new CodeGeneratorBasic({
 				lexer: new BasicLexer(),
 				parser: new BasicParser()
-			});
-
-		oCodeGeneratorBasic.reset();
-
-		const oOutput = oCodeGeneratorBasic.generate(sInput);
+			}),
+			oOutput = oCodeGeneratorBasic.generate(sInput);
 
 		if (oOutput.error) {
 			this.outputError(oOutput.error);
@@ -1464,10 +1481,10 @@ export class Controller implements IController {
 		this.view.setAreaSelection("outputText", iPos, iPos + 1);
 	}
 
-	private fnRun(oParas?: StopParas) {
+	private fnRun(oParas?: VmStopParas) {
 		const sScript = this.view.getAreaValue("outputText"),
 			oVm = this.oVm;
-		let iLine = oParas && oParas.iLine || 0;
+		let iLine = oParas && (oParas as VmLineParas).iFirst || 0;
 
 		iLine = iLine || 0;
 		if (iLine === 0) {
@@ -1504,7 +1521,7 @@ export class Controller implements IController {
 			oVm.sOut = this.view.getAreaValue("resultText");
 			oVm.vmStop("", 0, true);
 			oVm.vmGotoLine(0); // to load DATA lines
-			this.oVm.vmSetStartLine(iLine); // clear resets also startline
+			this.oVm.vmSetStartLine(iLine as number); // clear resets also startline
 
 			this.view.setDisabled("runButton", true);
 			this.view.setDisabled("stopButton", false);
@@ -1546,7 +1563,7 @@ export class Controller implements IController {
 	}
 
 	private fnDirectInput() {
-		const oInput = this.oVm.vmGetStopObject().oParas,
+		const oInput = this.oVm.vmGetStopObject().oParas as VmInputParas,
 			iStream = oInput.iStream;
 		let sInput = oInput.sInput;
 
@@ -1579,7 +1596,6 @@ export class Controller implements IController {
 				sOutput: string;
 
 			if (sInputText) { // do we have a program?
-				oCodeGeneratorJs.reset();
 				oOutput = oCodeGeneratorJs.generate(sInput + "\n" + sInputText, this.oVariables, true); // compile both; allow direct command
 				if (oOutput.error) {
 					const oError = oOutput.error;
@@ -1597,7 +1613,6 @@ export class Controller implements IController {
 			}
 
 			if (!oOutput) {
-				oCodeGeneratorJs.reset();
 				oOutput = oCodeGeneratorJs.generate(sInput, this.oVariables, true); // compile direct input only
 			}
 
@@ -1613,7 +1628,7 @@ export class Controller implements IController {
 			this.view.setAreaValue("outputText", sOutput);
 
 			if (!oOutput.error) {
-				this.oVm.vmSetStartLine(this.oVm.iLine); // fast hack
+				this.oVm.vmSetStartLine(this.oVm.iLine as number); // fast hack
 				this.oVm.vmGotoLine("direct");
 
 				try {
@@ -1653,11 +1668,13 @@ export class Controller implements IController {
 		this.oVm.cursor(iStream, 1, 1);
 
 		oVm.vmStop("direct", 0, true, {
+			sCommand: "direct",
 			iStream: iStream,
 			sMessage: sMsg,
 			// sNoCRLF: true,
 			fnInputCallback: this.fnDirectInputHandler,
-			sInput: ""
+			sInput: "",
+			iLine: this.oVm.iLine
 		});
 		this.fnWaitInput();
 	}
@@ -1685,48 +1702,52 @@ export class Controller implements IController {
 		}
 	}
 
-	fnBreak() {
-		/* TTT
-		this.oRunLoop = new this.RunLoop(this);
-		this.oRunLoop.fnTest("msg1");
-		*/
-		/*
-		if (this.oRunLoop.fnTest) {
-			this.oRunLoop.fnTest("ok1");
-		}
-		*/
+	/*
+	private fnBreak() {
+		// empty
 	}
+	*/
 
-	fnDirect() {
+	/*
+	private fnDirect() {
 		// TTT: break in direct mode?
 	}
+	*/
 
-	fnEnd() {
+	/*
+	private fnEnd() {
 		// empty
 	}
 
-	fnError() {
+	private fnError() {
 		// empty
 	}
 
-	fnEscape() {
+	private fnEscape() {
 		// empty
 	}
+	*/
 
-	fnWaitFrame() {
+	private fnWaitFrame() {
 		this.oVm.vmStop("", 0, true);
 		this.iNextLoopTimeOut = this.oVm.vmGetTimeUntilFrame(); // wait until next frame
 	}
 
-	fnOnError() { //TTT
+	private fnOnError() { //TTT
 		this.oVm.vmStop("", 0, true); // continue
 	}
 
-	fnStop() {
+	/*
+	private fnStop() {
+		// empty
+	}
+	*/
+
+	private static fnDummy() {
 		// empty
 	}
 
-	fnTimer() {
+	private fnTimer() {
 		this.oVm.vmStop("", 0, true); // continue
 	}
 
@@ -1738,6 +1759,14 @@ export class Controller implements IController {
 			this.fnRunPart1(); // could change sReason
 		}
 
+		if (oStop.sReason in this.mHandlers) {
+			this.mHandlers[oStop.sReason].call(this, oStop.oParas);
+		} else {
+			Utils.console.warn("runLoop: Unknown run mode:", oStop.sReason);
+			this.oVm.vmStop("error", 50);
+		}
+
+		/*
 		const sHandler = "fn" + Utils.stringCapitalize(oStop.sReason);
 
 		if (sHandler in this) {
@@ -1746,6 +1775,7 @@ export class Controller implements IController {
 			Utils.console.warn("runLoop: Unknown run mode:", oStop.sReason);
 			this.oVm.vmStop("error", 55);
 		}
+		*/
 
 		if (oStop.sReason && oStop.sReason !== "waitSound" && oStop.sReason !== "waitKey" && oStop.sReason !== "waitInput") {
 			this.bTimeoutHandlerActive = false; // not running any more
@@ -1762,7 +1792,7 @@ export class Controller implements IController {
 		}
 	}
 
-	private setStopObject(oStop: StopEntry) {
+	private setStopObject(oStop: VmStopEntry) {
 		Object.assign(this.oSavedStop, oStop);
 	}
 
@@ -1772,19 +1802,22 @@ export class Controller implements IController {
 
 
 	startParse(): void {
-		this.oKeyboard.setKeyDownHandler(null);
-		this.oVm.vmStop("parse", 99);
+		this.oKeyboard.setKeyDownHandler(undefined);
+		this.oVm.vmStop("parse", 95);
 		this.startMainLoop();
 	}
 
 	startRenum(): void {
 		const iStream = 0;
 
-		this.oVm.vmStop("renumLines", 99, false, {
+		this.oVm.vmStop("renumLines", 85, false, {
+			sCommand: "renum",
+			iStream: 0, // unused
 			iNew: 10,
 			iOld: 1,
 			iStep: 10,
-			iKeep: 65535 // keep lines
+			iKeep: 65535, // keep lines
+			iLine: this.oVm.iLine
 		});
 
 		if (this.oVm.pos(iStream) > 1) {
@@ -1797,15 +1830,15 @@ export class Controller implements IController {
 	startRun(): void {
 		this.setStopObject(this.oNoStop);
 
-		this.oKeyboard.setKeyDownHandler(null);
-		this.oVm.vmStop("run", 99);
+		this.oKeyboard.setKeyDownHandler(undefined);
+		this.oVm.vmStop("run", 95);
 		this.startMainLoop();
 	}
 
 	startParseRun(): void {
 		this.setStopObject(this.oNoStop);
-		this.oKeyboard.setKeyDownHandler(null);
-		this.oVm.vmStop("parseRun", 99);
+		this.oKeyboard.setKeyDownHandler(undefined);
+		this.oVm.vmStop("parseRun", 95);
 		this.startMainLoop();
 	}
 
@@ -1814,7 +1847,7 @@ export class Controller implements IController {
 			oStop = oVm.vmGetStopObject();
 
 		this.setStopObject(oStop);
-		this.oKeyboard.setKeyDownHandler(null);
+		this.oKeyboard.setKeyDownHandler(undefined);
 		this.oVm.vmStop("break", 80);
 		this.startMainLoop();
 	}
@@ -1828,8 +1861,8 @@ export class Controller implements IController {
 		this.view.setDisabled("stopButton", false);
 		this.view.setDisabled("continueButton", true);
 		if (oStop.sReason === "break" || oStop.sReason === "escape" || oStop.sReason === "stop" || oStop.sReason === "direct") {
-			if (oSavedStop.oParas && !oSavedStop.oParas.fnInputCallback) { // no keyboard callback? make sure no handler is set (especially for direct->continue)
-				this.oKeyboard.setKeyDownHandler(null);
+			if (oSavedStop.oParas && !(oSavedStop.oParas as VmInputParas).fnInputCallback) { // no keyboard callback? make sure no handler is set (especially for direct->continue)
+				this.oKeyboard.setKeyDownHandler(undefined);
 			}
 			if (oStop.sReason === "direct" || oStop.sReason === "escape") {
 				this.oVm.cursor(oStop.oParas.iStream, 0); // switch it off (for continue button)
@@ -1842,7 +1875,7 @@ export class Controller implements IController {
 
 	startReset(): void {
 		this.setStopObject(this.oNoStop);
-		this.oKeyboard.setKeyDownHandler(null);
+		this.oKeyboard.setKeyDownHandler(undefined);
 		this.oVm.vmStop("reset", 99);
 		this.startMainLoop();
 	}
@@ -1902,7 +1935,7 @@ export class Controller implements IController {
 		return fnFunction;
 	}
 
-	changeVariable() {
+	changeVariable(): void {
 		const sPar = this.view.getSelectValue("varSelect"),
 			sValue = this.view.getSelectValue("varText"),
 			oVariables = this.oVariables;
@@ -2340,24 +2373,35 @@ export class Controller implements IController {
 		this.oKeyboard.setActive(false);
 	}
 
-	/*
-	// test
-	RunLoop = class {
-		oController: Controller;
 
-		constructor(oController: Controller) {
-			//Utils.console.log("Test: RunLoop: constructor", a);
-			this.oController = oController;
-		}
-
-		fnTest(s1) {
-			//this.oVm.vmStop("", 0, true); // continue
-			//oVm.vmStop("", 0, true); // continue
-			this.oController.oVm.print(0, "test:", s1);
-			Utils.console.log("Test: RunLoop: fnTest", s1);
-		}
+	/* eslint-disable no-invalid-this */
+	private mHandlers = { // { [k: string]: (e: Event) => void }
+		timer: this.fnTimer,
+		waitKey: this.fnWaitKey,
+		waitFrame: this.fnWaitFrame,
+		waitSound: this.fnWaitSound,
+		waitInput: this.fnWaitInput,
+		fileCat: this.fnFileCat,
+		fileDir: this.fnFileDir,
+		fileEra: this.fnFileEra,
+		fileRen: this.fnFileRen,
+		error: Controller.fnDummy,
+		onError: this.fnOnError,
+		stop: Controller.fnDummy,
+		"break": Controller.fnDummy,
+		escape: Controller.fnDummy,
+		renumLines: this.fnRenumLines,
+		deleteLines: this.fnDeleteLines,
+		end: Controller.fnDummy,
+		editLine: this.fnEditLine,
+		list: this.fnList,
+		fileLoad: this.fnFileLoad,
+		fileSave: this.fnFileSave,
+		"new": this.fnNew,
+		run: this.fnRun,
+		parse: this.fnParse,
+		parseRun: this.fnParseRun,
+		reset: this.fnReset
 	}
-
-	oRunLoop: any; //TTT RunLoop
-	*/
+	/* eslint-enable no-invalid-this */
 }

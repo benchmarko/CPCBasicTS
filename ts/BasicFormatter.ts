@@ -28,16 +28,11 @@ type ChangesType = { [k in number]: LineEntry};
 export class BasicFormatter {
 	lexer: BasicLexer
 	parser: BasicParser
-	iLine = 0;
+	iLine = 0; // current line (label)
 
 	constructor(options: BasicFormatterOptions) {
 		this.lexer = options.lexer;
 		this.parser = options.parser;
-		this.reset();
-	}
-
-	reset(): void {
-		this.iLine = 0; // current line (label)
 	}
 
 	private composeError(oError: Error, message: string, value: string, pos: number) {
@@ -186,6 +181,8 @@ export class BasicFormatter {
 		const oOut: IOutput = {
 			text: ""
 		};
+
+		this.iLine = 0; // current line (label)
 
 		try {
 			const aTokens = this.lexer.lex(sInput),

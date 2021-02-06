@@ -49,25 +49,19 @@ var CommonEventHandler = /** @class */ (function () {
             onCpcCanvasClick: this.onCpcCanvasClick,
             onWindowClick: this.onWindowClick
         };
-        this.init(oModel, oView, oController);
-    }
-    CommonEventHandler.prototype.init = function (oModel, oView, oController) {
         this.model = oModel;
         this.view = oView;
         this.controller = oController;
         this.fnUserAction = undefined;
-    };
+    }
     CommonEventHandler.prototype.toogleHidden = function (sId, sProp, sDisplay) {
         var bVisible = !this.model.getProperty(sProp);
         this.model.setProperty(sProp, bVisible);
         this.view.setHidden(sId, !bVisible, sDisplay);
         return bVisible;
     };
-    CommonEventHandler.prototype.fnActivateUserAction = function (fnAction) {
+    CommonEventHandler.prototype.fnSetUserAction = function (fnAction) {
         this.fnUserAction = fnAction;
-    };
-    CommonEventHandler.prototype.fnDeactivateUserAction = function () {
-        this.fnUserAction = undefined;
     };
     CommonEventHandler.prototype.onSpecialButtonClick = function () {
         this.toogleHidden("specialArea", "showSpecial");

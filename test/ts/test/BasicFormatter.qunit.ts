@@ -52,7 +52,6 @@ QUnit.module("BasicFormatter:renumber: Tests", function () {
 
 		for (const sKey in oTests) {
 			if (oTests.hasOwnProperty(sKey)) {
-				oBasicFormatter.reset();
 				const oOutput = oBasicFormatter.renumber(sKey, iNew, iOld, iStep, iKeep),
 					sResult = oOutput.error ? String(oOutput.error) : oOutput.text;
 				let sExpected = oTests[sKey];

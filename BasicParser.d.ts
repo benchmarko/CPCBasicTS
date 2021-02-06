@@ -67,7 +67,6 @@ export declare class BasicParser {
     private fnGenerateKeywordSymbols;
     private fnIdentifier;
     private fnParenthesis;
-    private fnBracket;
     private fnFn;
     private fnApostrophe;
     private fnRsx;

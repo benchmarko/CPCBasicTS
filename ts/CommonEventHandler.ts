@@ -4,7 +4,7 @@
 
 import { Utils } from "./Utils";
 import { IController } from "./Interfaces";
-import { Model } from "./Model";
+import { Model, ConfigType } from "./Model";
 import { View } from "./View";
 
 export class CommonEventHandler implements EventListenerObject {
@@ -12,13 +12,9 @@ export class CommonEventHandler implements EventListenerObject {
 	view: View;
 	controller: IController;
 
-	fnUserAction: (event: Event, sId: string) => void;
+	fnUserAction: ((event: Event, sId: string) => void) | undefined;
 
 	constructor(oModel: Model, oView: View, oController: IController) {
-		this.init(oModel, oView, oController);
-	}
-
-	init(oModel: Model, oView: View, oController: IController): void {
 		this.model = oModel;
 		this.view = oView;
 		this.controller = oController;
@@ -34,12 +30,8 @@ export class CommonEventHandler implements EventListenerObject {
 		return bVisible;
 	}
 
-	fnActivateUserAction(fnAction: (event: Event, sId: string) => void): void {
+	fnSetUserAction(fnAction: ((event: Event, sId: string) => void) | undefined): void {
 		this.fnUserAction = fnAction;
-	}
-
-	fnDeactivateUserAction(): void {
-		this.fnUserAction = undefined;
 	}
 
 	private onSpecialButtonClick() {
@@ -158,7 +150,7 @@ export class CommonEventHandler implements EventListenerObject {
 		this.controller.invalidateScript();
 	}
 
-	private static encodeUriParam(params) {
+	private static encodeUriParam(params: ConfigType) {
 		const aParts = [];
 
 		for (const sKey in params) {
@@ -238,7 +230,7 @@ export class CommonEventHandler implements EventListenerObject {
 	}
 
 	/* eslint-disable no-invalid-this */
-	mHandlers = { // { [k: string]: (e: Event) => void }
+	private mHandlers = { // { [k: string]: (e: Event) => void }
 		onSpecialButtonClick: this.onSpecialButtonClick,
 		onInputButtonClick: this.onInputButtonClick,
 		onInp2ButtonClick: this.onInp2ButtonClick,
@@ -283,7 +275,7 @@ export class CommonEventHandler implements EventListenerObject {
 
 	handleEvent(event: Event): void {
 		const oTarget = event.target as HTMLButtonElement,
-			sId = (oTarget) ? oTarget.getAttribute("id") : String(oTarget),
+			sId = (oTarget) ? oTarget.getAttribute("id") as string : String(oTarget),
 			sType = event.type; // click or change
 
 		if (this.fnUserAction) {

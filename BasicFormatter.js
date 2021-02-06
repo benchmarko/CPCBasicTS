@@ -9,14 +9,10 @@ exports.BasicFormatter = void 0;
 var Utils_1 = require("./Utils");
 var BasicFormatter = /** @class */ (function () {
     function BasicFormatter(options) {
-        this.iLine = 0;
+        this.iLine = 0; // current line (label)
         this.lexer = options.lexer;
         this.parser = options.parser;
-        this.reset();
     }
-    BasicFormatter.prototype.reset = function () {
-        this.iLine = 0; // current line (label)
-    };
     BasicFormatter.prototype.composeError = function (oError, message, value, pos) {
         return Utils_1.Utils.composeError("BasicFormatter", oError, message, value, pos, this.iLine);
     };
@@ -138,6 +134,7 @@ var BasicFormatter = /** @class */ (function () {
         var oOut = {
             text: ""
         };
+        this.iLine = 0; // current line (label)
         try {
             var aTokens = this.lexer.lex(sInput), aParseTree = this.parser.parse(aTokens), sOutput = this.fnRenumber(sInput, aParseTree, iNew, iOld, iStep, iKeep || 65535);
             oOut.text = sOutput;

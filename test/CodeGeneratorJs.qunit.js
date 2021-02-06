@@ -11,6 +11,55 @@ var qunit_1 = require("qunit"); //TTT
 var Variables_1 = require("../Variables");
 qunit_1.QUnit.module("CodeGeneratorJs: Tests", function ( /* hooks */) {
     var mAllTests = {
+        numbers: {
+            "a=1": " v.a = o.vmAssign(\"a\", 1);",
+            "a=1.2": " v.a = o.vmAssign(\"a\", 1.2);",
+            "a=-1.2": " v.a = o.vmAssign(\"a\", -1.2);",
+            "a=+7.2": " v.a = o.vmAssign(\"a\", 7.2);",
+            "a=&A7": " v.a = o.vmAssign(\"a\", 0xA7);",
+            "a=-&A7": " v.a = o.vmAssign(\"a\", -(0xA7));",
+            "a=&7FFF": " v.a = o.vmAssign(\"a\", 0x7FFF);",
+            "a=&X10100111": " v.a = o.vmAssign(\"a\", 0b10100111);",
+            "a=-&X111111111111111": " v.a = o.vmAssign(\"a\", -0b111111111111111);"
+        },
+        strings: {
+            "a$=\"a12\"": " v.a$ = \"a12\";",
+            "a$=+\"7.1\"": " v.a$ = \"7.1\";"
+        },
+        variables: {
+            "a!=1.4": " v.aR = 1.4;",
+            "a%=1.4": " v.aI = o.vmRound(1.4);",
+            "a$=\"1.4\"": " v.a$ = \"1.4\";",
+            "insert.line=2": " v.insert_line = o.vmAssign(\"i\", 2);",
+            "a!(2)=1.4": " v.aRA[2] = 1.4;",
+            "a%(2)=1.4": " v.aIA[2] = o.vmRound(1.4);",
+            "a$(2)=\"1.4\"": " v.a$A[2] = \"1.4\";",
+            "a$[2]=\"1.4\"": " v.a$A[2] = \"1.4\";",
+            "a(9)=b(1,2)": " v.aA[9] = o.vmAssign(\"a\", v.bAA[1][2]);",
+            "a[9]=b[1,2]": " v.aA[9] = o.vmAssign(\"a\", v.bAA[1][2]);",
+            "a(10,10,10)=b(10,9)": " v.aAAA[10][10][10] = o.vmAssign(\"a\", v.bAA[10][9]);"
+        },
+        expressions: {
+            "a=1+2+3": " v.a = o.vmAssign(\"a\", (1 + 2) + 3);",
+            "a=3-2-1:": " v.a = o.vmAssign(\"a\", (3 - 2) - 1);",
+            "a=&A7+&X10100111-(123-27)": " v.a = o.vmAssign(\"a\", (0xA7 + 0b10100111) - (123 - 27));",
+            "a=(3+2)*(3-7)": " v.a = o.vmAssign(\"a\", (3 + 2) * (3 - 7));",
+            "a=-(10-7)-(-6-2)": " v.a = o.vmAssign(\"a\", -(10 - 7) - (-6 - 2));",
+            "a=20/2.5": " v.a = o.vmAssign(\"a\", 20 / 2.5);",
+            "a=20\\3": " v.a = o.vmAssign(\"a\", (20 / 3) | 0);",
+            "a=3^2:": " v.a = o.vmAssign(\"a\", Math.pow(3, 2));",
+            "a=&X1001 AND &X1110": " v.a = o.vmAssign(\"a\", 0b1001 & 0b1110);",
+            "a=&X1001 OR &X110": " v.a = o.vmAssign(\"a\", 0b1001 | 0b110);",
+            "a=&X1001 XOR &X1010": " v.a = o.vmAssign(\"a\", 0b1001 ^ 0b1010);",
+            "a=NOT &X1001": " v.a = o.vmAssign(\"a\", ~(0b1001));",
+            "a=+++++++++---9": " v.a = o.vmAssign(\"a\", -9);",
+            "a=(1=0)": " v.a = o.vmAssign(\"a\", 1 === 0 ? -1 : 0);",
+            "a=(1>0)*(0<1)": " v.a = o.vmAssign(\"a\", (1 > 0 ? -1 : 0) * (0 < 1 ? -1 : 0));",
+            "a=(b%>=c%)*(d<=e)": " v.a = o.vmAssign(\"a\", (v.bI >= v.cI ? -1 : 0) * (v.d <= v.e ? -1 : 0));"
+        },
+        special: {
+            "a$=\"string with\nnewline\"": " v.a$ = \"string with\\x0anewline\";"
+        },
         "abs, after gosub, and, asc, atn, auto": {
             "a=abs(2.3)": " v.a = o.vmAssign(\"a\", o.abs(2.3));",
             "10 after 2 gosub 10": " o.afterGosub(2, null, 10);",
@@ -165,6 +214,8 @@ qunit_1.QUnit.module("CodeGeneratorJs: Tests", function ( /* hooks */) {
             "for a!=1.5 to 9.5": " /* for() */ o.vmAssertNumberType(\"aR\"); v.aR = o.vmAssign(\"aR\", 1.5); v.aREnd = o.vmAssign(\"aR\", 9.5); o.goto(\"NaNf0b\"); break;\ncase \"NaNf0\": v.aR += 1;\ncase \"NaNf0b\": if (v.aR > v.aREnd) { o.goto(\"NaNf0e\"); break; }",
             "for a=1 to 10 step 3": " /* for() */ o.vmAssertNumberType(\"a\"); v.a = 1; o.goto(\"NaNf0b\"); break;\ncase \"NaNf0\": v.a += 3;\ncase \"NaNf0b\": if (v.a > 10) { o.goto(\"NaNf0e\"); break; }",
             "for a=5+b to -4 step -2.3": " /* for() */ o.vmAssertNumberType(\"a\"); v.a = o.vmAssign(\"a\", 5 + v.b); v.aStep = o.vmAssign(\"a\", -2.3); o.goto(\"NaNf0b\"); break;\ncase \"NaNf0\": v.a += v.aStep;\ncase \"NaNf0b\": if (v.aStep > 0 && v.a > -4 || v.aStep < 0 && v.a < -4) { o.goto(\"NaNf0e\"); break; }",
+            "for a=b to c step d": " /* for() */ o.vmAssertNumberType(\"a\"); v.a = o.vmAssign(\"a\", v.b); v.aEnd = o.vmAssign(\"a\", v.c); v.aStep = o.vmAssign(\"a\", v.d); o.goto(\"NaNf0b\"); break;\ncase \"NaNf0\": v.a += v.aStep;\ncase \"NaNf0b\": if (v.aStep > 0 && v.a > v.aEnd || v.aStep < 0 && v.a < v.aEnd) { o.goto(\"NaNf0e\"); break; }",
+            "for a=b% to c%": " /* for() */ o.vmAssertNumberType(\"a\"); v.a = v.bI; v.aEnd = v.cI; o.goto(\"NaNf0b\"); break;\ncase \"NaNf0\": v.a += 1;\ncase \"NaNf0b\": if (v.a > v.aEnd) { o.goto(\"NaNf0e\"); break; }",
             "frame ": " o.frame(); o.goto(\"NaNs0\"); break;\ncase \"NaNs0\":",
             "a=fre(0)": " v.a = o.vmAssign(\"a\", o.fre(0));",
             "a=fre(\"\")": " v.a = o.vmAssign(\"a\", o.fre(\"\"));",
@@ -232,7 +283,7 @@ qunit_1.QUnit.module("CodeGeneratorJs: Tests", function ( /* hooks */) {
             "key def 68,1,159,160,161": " o.keyDef(68, 1, 159, 160, 161);",
             "key def num,fire,normal,shift,ctrl": " o.keyDef(v.num, v.fire, v.normal, v.shift, v.ctrl);"
         },
-        "left$, len, , line input, list, load, locate, log, log10, lower$": {
+        "left$, len, let, line input, list, load, locate, log, log10, lower$": {
             "a$=left$(b$,n)": " v.a$ = o.left$(v.b$, v.n);",
             "a=len(a$)": " v.a = o.vmAssign(\"a\", o.len(v.a$));",
             "let a=a+1": " v.a = o.vmAssign(\"a\", v.a + 1);",
@@ -281,6 +332,9 @@ qunit_1.QUnit.module("CodeGeneratorJs: Tests", function ( /* hooks */) {
             "a$=mid$(\"string\",3,2)": " v.a$ = o.mid$(\"string\", 3, 2);",
             "a$=mid$(b$,p)": " v.a$ = o.mid$(v.b$, v.p);",
             "a$=mid$(b$,p,lg)": " v.a$ = o.mid$(v.b$, v.p, v.lg);",
+            "mid$(a$,2)=b$": " v.a$ = o.vmAssign(\"a$\", o.mid$Assign(v.a$, 2, null, v.b$));",
+            "mid$(a$,2,2)=b$": " v.a$ = o.vmAssign(\"a$\", o.mid$Assign(v.a$, 2, 2, v.b$));",
+            "mid$(a$,b%,c!)=\"string\"": " v.a$ = o.vmAssign(\"a$\", o.mid$Assign(v.a$, v.bI, v.cR, \"string\"));",
             "a=min(1)": " v.a = o.vmAssign(\"a\", o.min(1));",
             "a=min(1,5)": " v.a = o.vmAssign(\"a\", o.min(1, 5));",
             "a=min(b,c,d)": " v.a = o.vmAssign(\"a\", o.min(v.b, v.c, v.d));",
@@ -362,7 +416,11 @@ qunit_1.QUnit.module("CodeGeneratorJs: Tests", function ( /* hooks */) {
             "print a$,b": " o.print(null, v.a$, {type: \"commaTab\", args: []}, v.b, \"\\r\\n\");",
             "print#2,a$,b": " o.print(2, v.a$, {type: \"commaTab\", args: []}, v.b, \"\\r\\n\");",
             "print using\"####\";ri;": " o.print(null, o.using(\"####\", v.ri));",
+            "print using \"##.##\";-1.2": " o.print(null, o.using(\"##.##\", -1.2), \"\\r\\n\");",
             "print using\"### ########\";a,b": " o.print(null, o.using(\"### ########\", v.a, v.b), \"\\r\\n\");",
+            "print using \"\\   \\\";\"n1\";\"n2\";\" xx3\";": " o.print(null, o.using(\"\\\\   \\\\\", \"n1\", \"n2\", \" xx3\"));",
+            "print using \"!\";\"a1\";\"a2\";": " o.print(null, o.using(\"!\", \"a1\", \"a2\"));",
+            "print using \"&\";\"a1\";\"a2\";": " o.print(null, o.using(\"&\", \"a1\", \"a2\"));",
             "print#9,tab(t);t$;i;\"h1\"": " o.print(9, {type: \"tab\", args: [v.t]}, v.t$, v.i, \"h1\", \"\\r\\n\");",
             "?": " o.print(null, \"\\r\\n\");",
             "?#2,ti-t0!;spc(5);": " o.print(2, v.ti - v.t0R, {type: \"spc\", args: [5]});"
@@ -517,12 +575,15 @@ qunit_1.QUnit.module("CodeGeneratorJs: Tests", function ( /* hooks */) {
             "|renum,1,2,3,4": " o.rsx.renum(1, 2, 3, 4); o.goto(\"NaNs0\"); break;\ncase \"NaNs0\":"
         }
     };
+    function fnReplacer(sBin) {
+        return "0x" + parseInt(sBin.substr(2), 2).toString(16).toLowerCase();
+    }
     function runTestsFor(assert, oTests, aResults) {
-        var oCodeGeneratorJs = new CodeGeneratorJs_1.CodeGeneratorJs({
-            lexer: new BasicLexer_1.BasicLexer(),
-            parser: new BasicParser_1.BasicParser({
-                bQuiet: true
-            }),
+        var bAllowDirect = true, oOptions = {
+            bQuiet: true
+        }, oCodeGeneratorJs = new CodeGeneratorJs_1.CodeGeneratorJs({
+            lexer: new BasicLexer_1.BasicLexer(oOptions),
+            parser: new BasicParser_1.BasicParser(oOptions),
             tron: false,
             rsx: {
                 rsxIsAvailable: function (sRsx) {
@@ -530,13 +591,10 @@ qunit_1.QUnit.module("CodeGeneratorJs: Tests", function ( /* hooks */) {
                 }
             },
             bNoCodeFrame: true
-        }), fnReplacer = function (sBin) {
-            return "0x" + parseInt(sBin.substr(2), 2).toString(16).toLowerCase();
-        };
+        });
         for (var sKey in oTests) {
             if (oTests.hasOwnProperty(sKey)) {
-                oCodeGeneratorJs.reset();
-                var oVariables = new Variables_1.Variables(), oOutput = oCodeGeneratorJs.generate(sKey, oVariables, true), sResult = oOutput.error ? String(oOutput.error) : oOutput.text;
+                var oVariables = new Variables_1.Variables(), oOutput = oCodeGeneratorJs.generate(sKey, oVariables, bAllowDirect), sResult = oOutput.error ? String(oOutput.error) : oOutput.text;
                 var sExpected = oTests[sKey];
                 if (!Utils_1.Utils.bSupportsBinaryLiterals) {
                     sExpected = sExpected.replace(/(0b[01]+)/g, fnReplacer); // for old IE

@@ -61,11 +61,13 @@ var CpcVmRsx = /** @class */ (function () {
         if (sFileMask) {
             sFileMask = this.oVm.vmAdaptFilename(sFileMask, "|DIR");
         }
-        this.oVm.vmStop("fileDir", 45, false, {
+        var oFileParas = {
             iStream: iStream,
             sCommand: "|dir",
-            sFileMask: sFileMask
-        });
+            sFileMask: sFileMask,
+            iLine: this.oVm.iLine //TTT
+        };
+        this.oVm.vmStop("fileDir", 45, false, oFileParas);
     };
     CpcVmRsx.prototype.disc = function () {
         this.oVm.vmNotImplemented("|DISC");
@@ -83,23 +85,28 @@ var CpcVmRsx = /** @class */ (function () {
         var iStream = 0;
         var sFileMask = this.fnGetParameterAsString(fileMask);
         sFileMask = this.oVm.vmAdaptFilename(sFileMask, "|ERA");
-        this.oVm.vmStop("fileEra", 45, false, {
+        var oFileParas = {
             iStream: iStream,
             sCommand: "|era",
-            sFileMask: sFileMask
-        });
+            sFileMask: sFileMask,
+            iLine: this.oVm.iLine //TTT
+        };
+        this.oVm.vmStop("fileEra", 45, false, oFileParas);
     };
     CpcVmRsx.prototype.ren = function (newName, oldName) {
         var iStream = 0;
         var sNew = this.fnGetParameterAsString(newName), sOld = this.fnGetParameterAsString(oldName);
         sNew = this.oVm.vmAdaptFilename(sNew, "|REN");
         sOld = this.oVm.vmAdaptFilename(sOld, "|REN");
-        this.oVm.vmStop("fileRen", 45, false, {
+        var oFileParas = {
             iStream: iStream,
             sCommand: "|ren",
+            sFileMask: "",
             sNew: sNew,
-            sOld: sOld
-        });
+            sOld: sOld,
+            iLine: this.oVm.iLine //TTT
+        };
+        this.oVm.vmStop("fileRen", 45, false, oFileParas);
     };
     CpcVmRsx.prototype.tape = function () {
         this.oVm.vmNotImplemented("|TAPE");

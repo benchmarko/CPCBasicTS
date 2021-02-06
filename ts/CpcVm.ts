@@ -20,7 +20,7 @@ interface CpcVmOptions {
 }
 
 export interface FileMeta {
-	sType?: string
+	sType: string
 	iStart?: number
 	iLength?: number
 	iEntry?: number
@@ -34,7 +34,7 @@ interface FileBase {
 	iLine: number
 	iStart: number
 	aFileData: string[]
-	fnFileCallback: (...aArgs) => void | boolean
+	fnFileCallback: ((...aArgs) => void | boolean) | undefined
 }
 
 interface InFile extends FileBase {
@@ -81,7 +81,8 @@ interface TimerEntry {
 	iSavedPriority: number
 }
 
-export interface StopParas {
+/*
+export interface VmMiscParas {
 	iStream?: number
 	sMessage?: string
 	fnInputCallback?: any //TTT
@@ -106,11 +107,55 @@ export interface StopParas {
 	sNew?: string,
 	sOld?: string
 }
+*/
 
-export interface StopEntry {
+export interface VmBaseParas {
+	sCommand: string
+	iStream: number
+	iLine: string | number
+}
+
+export interface VmLineParas extends VmBaseParas { // delete lines, list lines, edit line, run line
+	//sCommand: string
+	//iStream: number
+	iFirst: number
+	iLast: number
+}
+
+export interface VmLineRenumParas extends VmBaseParas { // renum lines
+	//sCommand: string
+	//iStream: number
+	iNew: number
+	iOld: number
+	iStep: number
+	iKeep: number
+}
+
+export interface VmFileParas extends VmBaseParas {
+	//sCommand: string
+	//iStream: number
+	sFileMask: string // CAT, |DIR, |ERA
+	sNew?: string // |REN
+	sOld?: string // |REN
+}
+
+export interface VmInputParas extends VmBaseParas {
+	//sCommand: string
+	//iStream: number
+	//iLine: string | number
+	sMessage?: string
+	sNoCRLF?: string
+	aTypes?: string[]
+	sInput: string
+	fnInputCallback?: any //TTT
+}
+
+export type VmStopParas = VmFileParas | VmInputParas | VmLineParas | VmLineRenumParas
+
+export interface VmStopEntry {
 	sReason: string // stop reason
 	iPriority: number // stop priority (higher number means higher priority which can overwrite lower priority)
-	oParas?: StopParas
+	oParas: VmStopParas
 }
 
 
@@ -121,7 +166,6 @@ export class CpcVm {
 	fnLoadHandler = undefined;
 	fnRunHandler = undefined;
 
-	options: CpcVmOptions;
 	oCanvas: Canvas;
 	oKeyboard: Keyboard;
 	oSound: Sound;
@@ -130,7 +174,7 @@ export class CpcVm {
 
 	oRandom: Random;
 
-	oStop: StopEntry;
+	oStop: VmStopEntry;
 
 	aInputValues: (string | number)[]; // values to input into script
 	oInFile: InFile; // file handling
@@ -143,7 +187,7 @@ export class CpcVm {
 	aMem: number[]; // for peek, poke
 
 	aData: number[]; // array for BASIC data lines (continuous)
-	iData: number; // current index
+	iData = 0; // current index
 	oDataLineIndex: {[k in number]: number} = { // line number index for the data line buffer
 		0: 0 // for line 0: index 0
 	};
@@ -156,64 +200,53 @@ export class CpcVm {
 	aSoundData: SoundData[];
 
 	aCrtcData: number[];
-	iCrtcReg: number;
+	iCrtcReg = 0;
 
-	sPrintControlBuf: string;
+	sPrintControlBuf = "";
 
-	iStartTime: number;
-	lastRnd: number;
+	iStartTime = 0;
+	lastRnd = 0; // last random number
 
-	iNextFrameTime: number;
-	iTimeUntilFrame: number;
-	iStopCount: number;
+	iNextFrameTime = 0;
+	//iTimeUntilFrame: number;
+	iStopCount = 0;
 
-	iLine: string | number;
-	iStartLine: number;
+	iLine: string | number = 0;
+	iStartLine = 0;
 
-	iErrorGotoLine: number;
-	iErrorResumeLine: number;
-	iBreakGosubLine: number;
-	iBreakResumeLine: number;
+	iErrorGotoLine = 0;
+	iErrorResumeLine = 0;
+	iBreakGosubLine = 0;
+	iBreakResumeLine = 0;
 
-	sOut: string;
+	sOut = "";
 
-	iErr: number; // last error code
-	iErl: string | number; // line of last error
+	iErr = 0; // last error code
+	iErl: string | number = 0; // line of last error
 
-	bDeg: boolean; // degree or radians
+	bDeg = false; // degree or radians
 
-	bTron: boolean; // trace flag
-	iTronLine: number; // last trace line
+	bTron = false; // trace flag
+	iTronLine = 0; // last trace line
 
-	iRamSelect: number;
+	iRamSelect = 0;
 
-	iScreenPage: number;
+	iScreenPage = 3; // 16K screen page, 3=0xc000..0xffff
 
-	iMinCharHimem: number;
-	iMaxCharHimem: number;
-	iHimem: number;
-	iMinCustomChar: number;
+	iMinCharHimem = CpcVm.iMaxHimem;
+	iMaxCharHimem = CpcVm.iMaxHimem;
+	iHimem = CpcVm.iMaxHimem;
+	iMinCustomChar = 256;
 
-	iTimerPriority: number; // priority of running task: -1=low (min priority to start new timers)
+	iTimerPriority = -1; // priority of running task: -1=low (min priority to start new timers)
 
-	iZone: number;
+	iZone = 13; // print tab zone value
 
-	iMode: number;
+	iMode = -1;
 
-	iInkeyTimeMs: number; // next time of frame fly
+	iInkeyTimeMs = 0; // next time of frame fly
 
 	rsx: ICpcVmRsx;
-
-
-	constructor(options: CpcVmOptions) {
-		this.fnOpeninHandler = this.vmOpeninCallback.bind(this);
-		this.fnCloseinHandler = this.vmCloseinCallback.bind(this);
-		this.fnCloseoutHandler = this.vmCloseoutCallback.bind(this);
-		this.fnLoadHandler = this.vmLoadCallback.bind(this);
-		this.fnRunHandler = this.vmRunCallback.bind(this);
-
-		this.vmInit(options);
-	}
 
 	static iFrameTimeMs = 1000 / 50; // 50 Hz => 20 ms
 	static iTimerCount = 4; // number of timers
@@ -221,6 +254,8 @@ export class CpcVm {
 	static iStreamCount = 10; // 0..7 window, 8 printer, 9 cassette
 	static iMinHimem = 370;
 	static iMaxHimem = 42747; // high memory limit (42747 after symbol after 256)
+
+	static oEmptyParas = {};
 
 	static mWinData = [ // window data for mode mode 0,1,2,3 (we are counting from 0 here)
 		{
@@ -249,7 +284,7 @@ export class CpcVm {
 		}
 	];
 
-	static mUtf8ToCpc = { // needed for UTF-8 character data in openin / input#9
+	private static mUtf8ToCpc: { [k in number]: number } = { // needed for UTF-8 character data in openin / input#9
 		8364: 128,
 		8218: 130,
 		402: 131,
@@ -279,7 +314,7 @@ export class CpcVm {
 		376: 159
 	};
 
-	private static mControlCodeParameterCount = [
+	private static aControlCodeParameterCount = [
 		0, // 0x00
 		1, // 0x01
 		0, // 0x02
@@ -351,7 +386,176 @@ export class CpcVm {
 		"Unknown error" // 33...
 	];
 
-	vmInit(options: CpcVmOptions): void {
+
+	/*
+	mStopEntries = {
+		"": {
+			sReason: "", // stop reason
+			iPriority: 0, // stop priority (higher number means higher priority which can overwrite lower priority)
+			oParas: {} // stop parameters
+		},
+		timer: {
+			sReason: "timer", // timer expired
+			iPriority: 20,
+			oParas: {}
+		},
+		waitKey: {
+			sReason: "waitKey", // wait for key
+			iPriority: 30,
+			oParas: {}
+		},
+		waitFrame: {
+			sReason: "waitFrame", // FRAME command: wait for frame fly
+			iPriority: 40,
+			oParas: {}
+		},
+		waitInput: {
+			sReason: "waitInput", // wait for input: INPUT, LINE INPUT, RANDOMIZE without parameter
+			iPriority: 45,
+			oParas: {}
+		},
+		fileCat: {
+			sReason: "fileCat", // CAT
+			iPriority: 45,
+			oParas: {}
+		},
+		fileDir: {
+			sReason: "fileDir", // |DIR
+			iPriority: 45,
+			oParas: {}
+		},
+		fileEra: {
+			sReason: "fileEra", // |ERA
+			iPriority: 45,
+			oParas: {}
+		},
+		fileRen: {
+			sReason: "fileRen", // |REN
+			iPriority: 45,
+			oParas: {}
+		},
+		error: {
+			sReason: "error", // BASIC error, ERROR command
+			iPriority: 50,
+			oParas: {}
+		},
+		onError: {
+			sReason: "onError", // ON ERROR GOTO active, hide error
+			iPriority: 50,
+			oParas: {}
+		},
+		stop: {
+			sReason: "stop", // STOP or END command
+			iPriority: 60,
+			oParas: {}
+		},
+		"break": {
+			sReason: "break", // break pressed
+			iPriority: 80,
+			oParas: {}
+		},
+		escape: {
+			sReason: "escape", // escape key, set in controller
+			iPriority: 85,
+			oParas: {}
+		},
+		renumLines: {
+			sReason: "renumLines", // RENUMber program
+			iPriority: 85,
+			oParas: {}
+		},
+		deleteLines: {
+			sReason: "deleteLines", // delete lines
+			iPriority: 85,
+			oParas: {}
+		},
+		end: {
+			sReason: "end", // end of program
+			iPriority: 90,
+			oParas: {}
+		},
+		list: {
+			sReason: "list", // LIST program
+			iPriority: 90,
+			oParas: {}
+		},
+		fileLoad: {
+			sReason: "fileLoad", // CHAIN, CHAIN MERGE, LOAD, MERGE, OPENIN, RUN
+			iPriority: 90,
+			oParas: {}
+		},
+		fileSave: {
+			sReason: "fileSave", // OPENOUT, SAVE
+			iPriority: 90,
+			oParas: {}
+		},
+		reset: {
+			sReason: "reset", // reset system
+			iPriority: 90,
+			oParas: {}
+		},
+		run: {
+			sReason: "run",
+			iPriority: 90,
+			oParas: {}
+		},
+		parseRun: {
+			sReason: "parseRun",
+			iPriority: 99,
+			oParas: {}
+		}
+	};
+	*/
+
+	// unused:
+	/*
+	mStopEntries1 = { //TTT
+		parseRun: {
+			sReason: "parseRun",
+			iPriority: 99,
+			oParas: {}
+		}
+	}
+	*/
+
+	private static mStopPriority: {[k in string]: number} = {
+		"": 0, // nothing
+		direct: 0, // direct input mode
+		timer: 20, // timer expired
+		waitKey: 30, // wait for key
+		waitFrame: 40, // FRAME command: wait for frame fly
+		waitSound: 43, // wait for sound queue
+		waitInput: 45, // wait for input: INPUT, LINE INPUT, RANDOMIZE without parameter
+		fileCat: 45, // CAT
+		fileDir: 45, // |DIR
+		fileEra: 45, // |ERA
+		fileRen: 45, // |REN
+		error: 50, // BASIC error, ERROR command
+		onError: 50, // ON ERROR GOTO active, hide error
+		stop: 60, // STOP or END command
+		"break": 80, // break pressed
+		escape: 85, // escape key, set in controller
+		renumLines: 85, // RENUMber program
+		deleteLines: 85, // delete lines
+		editLine: 85, // edit line
+		end: 90, // end of program
+		list: 90, // LIST program
+		fileLoad: 90, // CHAIN, CHAIN MERGE, LOAD, MERGE, OPENIN, RUN
+		fileSave: 90, // OPENOUT, SAVE
+		"new": 90, // NEW, remove program, variables
+		run: 95,
+		parse: 95, // set in controller
+		parseRun: 95, // parse and run, used in controller
+		reset: 99 // reset system
+	};
+
+	constructor(options: CpcVmOptions) {
+		this.fnOpeninHandler = this.vmOpeninCallback.bind(this);
+		this.fnCloseinHandler = this.vmCloseinCallback.bind(this);
+		this.fnCloseoutHandler = this.vmCloseoutCallback.bind(this);
+		this.fnLoadHandler = this.vmLoadCallback.bind(this);
+		this.fnRunHandler = this.vmRunCallback.bind(this);
+
 		this.oCanvas = options.canvas;
 		this.oKeyboard = options.keyboard;
 		this.oSound = options.sound;
@@ -363,11 +567,13 @@ export class CpcVm {
 		this.oStop = {
 			sReason: "", // stop reason
 			iPriority: 0, // stop priority (higher number means higher priority which can overwrite lower priority)
-			oParas: undefined // optional stop parameters
+			oParas: {} as VmStopParas //TTT
 		};
 		// special stop reasons and priorities:
+		// "": 0 (no stop)
+		// "direct": 0 (direct input mode)
 		// "timer": 20 (timer expired)
-		// "key": 30  (wait for key)
+		// "waitKey": 30  (wait for key)
 		// "waitFrame": 40 (FRAME command: wait for frame fly)
 		// "waitSound": 43 (wait for sound queue)
 		// "waitInput": 45 (wait for input: INPUT, LINE INPUT, RANDOMIZE without parameter)
@@ -381,13 +587,17 @@ export class CpcVm {
 		// "break": 80 (break pressed)
 		// "escape": 85 (escape key, set in controller)
 		// "renumLines": 85 (RENUMber program)
-		// "deleteLines": 90,
+		// "deleteLines": 85,
+		// "editLine": 85
 		// "end": 90 (end of program)
 		// "list": 90,
 		// "fileLoad": 90 (CHAIN, CHAIN MERGE, LOAD, MERGE, OPENIN, RUN)
 		// "fileSave": 90 (OPENOUT, SAVE)
-		// "reset": 90 (reset system)
-		// "run": 90
+		// "new": 90
+		// "run": 95
+		// "parse": 95 (parse, used in controller)
+		// "parseRun": 95 (parse and run, used in controller)
+		// "reset": 99 (reset system)
 
 		this.aInputValues = []; // values to input into script
 
@@ -395,12 +605,12 @@ export class CpcVm {
 			bOpen: false,
 			sCommand: "",
 			sName: "",
-			iLine: undefined,
-			iStart: undefined,
+			iLine: 0, //undefined,
+			iStart: 0, //undefined,
 			aFileData: [],
 			fnFileCallback: undefined,
-			iFirst: undefined,
-			iLast: undefined,
+			iFirst: 0, //undefined,
+			iLast: 0, //undefined,
 			sMemorizedExample: ""
 		};
 
@@ -408,14 +618,14 @@ export class CpcVm {
 			bOpen: false,
 			sCommand: "",
 			sName: "",
-			iLine: undefined,
-			iStart: undefined,
+			iLine: 0, //undefined,
+			iStart: 0, //undefined,
 			aFileData: [],
 			fnFileCallback: undefined,
 			iStream: 0,
 			sType: "",
 			iLength: 0,
-			iEntry: undefined
+			iEntry: 0 //undefined
 		}; // file handling
 		// "bOpen": File open flag
 		// "sCommand": Command that started the file open (in: chain, chainMerge, load, merge, openin, run; out: save, openput)
@@ -470,7 +680,7 @@ export class CpcVm {
 		this.lastRnd = 0;
 
 		this.iNextFrameTime = Date.now() + CpcVm.iFrameTimeMs; // next time of frame fly
-		this.iTimeUntilFrame = 0;
+		//this.iTimeUntilFrame = 0;
 		this.iStopCount = 0;
 
 		this.iLine = 0; // current line number (or label)
@@ -522,7 +732,7 @@ export class CpcVm {
 
 		this.defreal("a-z"); // init vartypes
 
-		this.iMode = null;
+		this.iMode = -1;
 		this.vmResetWindowData(true); // reset all, including pen and paper
 		this.width(132); // set default printer width
 
@@ -639,7 +849,7 @@ export class CpcVm {
 		return this.oVariables.getAllVariables();
 	}
 
-	vmSetStartLine(iLine /*: number*/): void {
+	vmSetStartLine(iLine: number): void {
 		this.iStartLine = iLine;
 	}
 
@@ -905,12 +1115,21 @@ export class CpcVm {
 		}
 	}
 
-	vmStop(sReason: string, iPriority: number, bForce?: boolean, oParas?: StopParas): void { // optional bForce, oParas
+	vmStop(sReason: string, iPriority: number, bForce?: boolean, oParas?: VmStopParas): void { // optional bForce, oParas
+		const iDefaultPriority = CpcVm.mStopPriority[sReason];
+
+		if (iDefaultPriority === undefined) {
+			Utils.console.warn("Programming error: vmStop: Unknown reason:", sReason);
+		}
+
 		iPriority = iPriority || 0;
+		if (iPriority !== 0) {
+			iPriority = iDefaultPriority;
+		}
 		if (bForce || iPriority >= this.oStop.iPriority) {
 			this.oStop.iPriority = iPriority;
 			this.oStop.sReason = sReason;
-			this.oStop.oParas = oParas;
+			this.oStop.oParas = oParas || CpcVm.oEmptyParas as VmStopParas; //TTT
 		}
 	}
 
@@ -919,7 +1138,7 @@ export class CpcVm {
 	}
 
 	// not complete
-	private vmUsingFormat1(sFormat: string, arg) {
+	private vmUsingFormat1(sFormat: string, arg: string | number) {
 		const sPadChar = " ",
 			re1 = /^\\ *\\$/;
 		let sStr: string;
@@ -943,23 +1162,23 @@ export class CpcVm {
 				throw this.vmComposeError(Error(), 13, "USING format " + sFormat); // "Type mismatch"
 			}
 			if (sFormat.indexOf(".") < 0) { // no decimal point?
-				arg = Number(arg).toFixed(0);
+				sStr = arg.toFixed(0);
 			} else { // assume ###.##
 				const aFormat = sFormat.split(".", 2),
 					iDecimals = aFormat[1].length;
 
 				// To avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
 				arg = Number(Math.round(Number(arg + "e" + iDecimals)) + "e-" + iDecimals);
-				arg = arg.toFixed(iDecimals);
+				sStr = arg.toFixed(iDecimals);
 			}
 			if (sFormat.indexOf(",") >= 0) { // contains comma => insert thousands separator
-				arg = Utils.numberWithCommas(arg);
+				sStr = Utils.numberWithCommas(sStr);
 			}
 
-			const iPadLen = sFormat.length - arg.length,
+			const iPadLen = sFormat.length - sStr.length,
 				sPad = (iPadLen > 0) ? sPadChar.repeat(iPadLen) : "";
 
-			sStr = sPad + arg;
+			sStr = sPad + sStr;
 			if (sStr.length > sFormat.length) {
 				sStr = "%" + sStr; // mark too long
 			}
@@ -967,7 +1186,7 @@ export class CpcVm {
 		return sStr;
 	}
 
-	vmGetStopObject(): StopEntry {
+	vmGetStopObject(): VmStopEntry {
 		return this.oStop;
 	}
 
@@ -1352,12 +1571,15 @@ export class CpcVm {
 	}
 
 	cat(): void {
-		const iStream = 0;
+		const iStream = 0,
+			oFileParas: VmFileParas = {
+				sCommand: "cat",
+				iStream: iStream,
+				sFileMask: "",
+				iLine: this.iLine // unused
+			};
 
-		this.vmStop("fileCat", 45, false, {
-			iStream: iStream,
-			sCommand: "cat"
-		});
+		this.vmStop("fileCat", 45, false, oFileParas);
 	}
 
 	chain(sName: string, iLine?: number): void { // optional iLine
@@ -1611,10 +1833,12 @@ export class CpcVm {
 			iLast = this.vmInRangeRound(iLast, 1, 65535, "DELETE");
 		}
 
-		this.vmStop("deleteLines", 90, false, {
+		this.vmStop("deleteLines", 85, false, {
+			sCommand: "DELETE",
+			iStream: 0, // unused
 			iFirst: iFirst || 1,
 			iLast: iLast || iFirst,
-			sCommand: "DELETE"
+			iLine: this.iLine // unused
 		});
 	}
 
@@ -1646,9 +1870,15 @@ export class CpcVm {
 	}
 
 	edit(iLine: number): void {
-		this.vmStop("editLine", 90, false, {
-			iLine: iLine
-		});
+		const oLineParas: VmLineParas = {
+			sCommand: "edit",
+			iStream: 0, // unused
+			iFirst: iLine,
+			iLast: 0, // unused,
+			iLine: this.iLine // unused
+		};
+
+		this.vmStop("editLine", 85, false, oLineParas);
 	}
 
 	ei(): void {
@@ -1933,7 +2163,7 @@ export class CpcVm {
 	}
 
 	vmInputCallback(): boolean {
-		const oInput = this.vmGetStopObject().oParas,
+		const oInput = this.vmGetStopObject().oParas as VmInputParas,
 			iStream = oInput.iStream,
 			sInput = oInput.sInput,
 			aInputValues = sInput.split(","),
@@ -2075,6 +2305,7 @@ export class CpcVm {
 		if (iStream < 8) {
 			this.print(iStream, sMsg);
 			this.vmStop("waitInput", 45, false, {
+				sCommand: "input",
 				iStream: iStream,
 				sMessage: sMsg,
 				sNoCRLF: sNoCRLF,
@@ -2152,7 +2383,7 @@ export class CpcVm {
 	// let
 
 	vmLineInputCallback(): boolean {
-		const oInput = this.vmGetStopObject().oParas,
+		const oInput = this.vmGetStopObject().oParas as VmInputParas,
 			sInput = oInput.sInput;
 
 		Utils.console.log("vmLineInputCallback:", sInput);
@@ -2174,6 +2405,7 @@ export class CpcVm {
 
 			this.cursor(iStream, 1);
 			this.vmStop("waitInput", 45, false, {
+				sCommand: "lineinput",
 				iStream: iStream,
 				sMessage: sMsg,
 				sNoCRLF: sNoCRLF,
@@ -2213,9 +2445,11 @@ export class CpcVm {
 		}
 
 		this.vmStop("list", 90, false, {
+			sCommand: "list",
 			iStream: iStream,
 			iFirst: iFirst || 1,
-			iLast: iLast || iFirst
+			iLast: iLast || iFirst,
+			iLine: this.iLine // unused
 		});
 	}
 
@@ -2397,9 +2631,16 @@ export class CpcVm {
 
 	"new"(): void {
 		this.clear();
-		this.vmStop("new", 90, false, {
-			sCommand: "NEW"
-		});
+
+		const oLineParas: VmLineParas = { //TTT
+			sCommand: "new",
+			iStream: 0, // unused
+			iFirst: 0, // unused
+			iLast: 0, // unused
+			iLine: this.iLine // unused
+		};
+
+		this.vmStop("new", 90, false, oLineParas);
 	}
 
 	// next
@@ -2970,7 +3211,7 @@ export class CpcVm {
 					this.vmPrintChars(iStream, sOut); // print chars collected so far
 					sOut = "";
 				}
-				const iParaCount = CpcVm.mControlCodeParameterCount[iCode];
+				const iParaCount = CpcVm.aControlCodeParameterCount[iCode];
 
 				if (i + iParaCount <= sStr.length) {
 					sOut += this.vmHandleControlCode(iCode, sStr.substr(i, iParaCount), iStream);
@@ -3085,7 +3326,7 @@ export class CpcVm {
 	}
 
 	private vmRandomizeCallback() {
-		const oInput = this.vmGetStopObject().oParas,
+		const oInput = this.vmGetStopObject().oParas as VmInputParas,
 			sInput = oInput.sInput,
 			value = CpcVm.vmVal(sInput); // convert to number (also binary, hex)
 		let	bInputOk = true;
@@ -3109,13 +3350,16 @@ export class CpcVm {
 			const sMsg = "Random number seed ? ";
 
 			this.print(iStream, sMsg);
-			this.vmStop("waitInput", 45, false, {
+			const oInputParas: VmInputParas = {
+				sCommand: "randomize",
 				iStream: iStream,
 				sMessage: sMsg,
 				fnInputCallback: this.vmRandomizeCallback.bind(this),
 				sInput: "",
 				iLine: this.iLine // to repeat in case of break
-			});
+			};
+
+			this.vmStop("waitInput", 45, false, oInputParas);
 		} else { // n can also be floating point, so compute a hash value of n
 			this.vmAssertNumber(n, "RANDOMIZE");
 			n = CpcVm.vmHashCode(String(n));
@@ -3185,12 +3429,17 @@ export class CpcVm {
 			iKeep = this.vmInRangeRound(iKeep, 1, 65535, "RENUM");
 		}
 
-		this.vmStop("renumLines", 85, false, {
+		const oLineRenumParas: VmLineRenumParas = {
+			sCommand: "renum",
+			iStream: 0, // unused
+			iLine: this.iLine, // unused
 			iNew: iNew || 10,
 			iOld: iOld || 1,
 			iStep: iStep || 10,
 			iKeep: iKeep || 65535 // keep lines
-		});
+		};
+
+		this.vmStop("renumLines", 85, false, oLineRenumParas);
 	}
 
 	restore(iLine?: number): void {
@@ -3294,9 +3543,15 @@ export class CpcVm {
 		// TODO: we could put it in memory as we do it for LOAD
 
 		if (sInput !== null) {
-			this.vmStop("run", 90, false, {
-				iLine: oInFile.iLine
-			});
+			const oLineParas: VmLineParas = {
+				sCommand: "run",
+				iStream: 0, // unused
+				iFirst: oInFile.iLine,
+				iLast: 0, // unused
+				iLine: this.iLine
+			};
+
+			this.vmStop("run", 95, false, oLineParas);
 		}
 		this.closein();
 		return bPutInMemory;
@@ -3315,9 +3570,15 @@ export class CpcVm {
 			oInFile.fnFileCallback = this.fnRunHandler;
 			this.vmStop("fileLoad", 90);
 		} else { // line number or no argument = undefined
-			this.vmStop("run", 90, false, {
-				iLine: numOrString || 0
-			});
+			const oLineParas: VmLineParas = {
+				sCommand: "run",
+				iStream: 0, // unused
+				iFirst: numOrString || 0,
+				iLast: 0, // unused
+				iLine: this.iLine
+			};
+
+			this.vmStop("run", 95, false, oLineParas);
 		}
 	}
 

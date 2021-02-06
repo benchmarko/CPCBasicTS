@@ -27,10 +27,38 @@ var View_1 = require("./View");
 var ZipFile_1 = require("./ZipFile");
 var Controller = /** @class */ (function () {
     function Controller(oModel, oView) {
-        this.fnScript = undefined;
         this.bTimeoutHandlerActive = false;
         this.iNextLoopTimeOut = 0; // next timeout for the main loop
         this.bInputSet = false;
+        /* eslint-disable no-invalid-this */
+        this.mHandlers = {
+            timer: this.fnTimer,
+            waitKey: this.fnWaitKey,
+            waitFrame: this.fnWaitFrame,
+            waitSound: this.fnWaitSound,
+            waitInput: this.fnWaitInput,
+            fileCat: this.fnFileCat,
+            fileDir: this.fnFileDir,
+            fileEra: this.fnFileEra,
+            fileRen: this.fnFileRen,
+            error: Controller.fnDummy,
+            onError: this.fnOnError,
+            stop: Controller.fnDummy,
+            "break": Controller.fnDummy,
+            escape: Controller.fnDummy,
+            renumLines: this.fnRenumLines,
+            deleteLines: this.fnDeleteLines,
+            end: Controller.fnDummy,
+            editLine: this.fnEditLine,
+            list: this.fnList,
+            fileLoad: this.fnFileLoad,
+            fileSave: this.fnFileSave,
+            "new": this.fnNew,
+            run: this.fnRun,
+            parse: this.fnParse,
+            parseRun: this.fnParseRun,
+            reset: this.fnReset
+        };
         this.fnRunLoopHandler = this.fnRunLoop.bind(this);
         this.fnWaitKeyHandler = this.fnWaitKey.bind(this);
         this.fnWaitInputHandler = this.fnWaitInput.bind(this);
@@ -73,7 +101,7 @@ var Controller = /** @class */ (function () {
             this.oKeyboard.virtualKeyboardCreate();
         }
         this.oSound = new Sound_1.Sound();
-        this.commonEventHandler.fnActivateUserAction(this.onUserAction.bind(this)); // check first user action, also if sound is not yet on
+        this.commonEventHandler.fnSetUserAction(this.onUserAction.bind(this)); // check first user action, also if sound is not yet on
         var sExample = oModel.getProperty("example");
         oView.setSelectValue("exampleSelect", sExample);
         this.oVm = new CpcVm_1.CpcVm({
@@ -89,7 +117,14 @@ var Controller = /** @class */ (function () {
         this.oNoStop = Object.assign({}, this.oVm.vmGetStopObject());
         this.oSavedStop = {
             sReason: "",
-            iPriority: 0
+            iPriority: 0,
+            oParas: {
+                sCommand: "",
+                iStream: 0,
+                iLine: 0,
+                iFirst: 0,
+                iLast: 0 // unused
+            }
         }; // backup of stop object
         this.setStopObject(this.oNoStop);
         this.oCodeGeneratorJs = new CodeGeneratorJs_1.CodeGeneratorJs({
@@ -123,7 +158,7 @@ var Controller = /** @class */ (function () {
         this.onDatabaseSelectChange();
     };
     Controller.prototype.onUserAction = function ( /* event, sId */) {
-        this.commonEventHandler.fnDeactivateUserAction();
+        this.commonEventHandler.fnSetUserAction(undefined); // deactivate user action
         this.oSound.setActivatedByUser();
         this.setSoundActive();
     };
@@ -241,8 +276,8 @@ var Controller = /** @class */ (function () {
                     oExample = {
                         key: sKey,
                         title: "",
-                        meta: oData.oMeta.sType,
-                        type: undefined //TTT for what?
+                        meta: oData.oMeta.sType // currently we take only the type
+                        //type: undefined //TTT for what?
                     };
                     this.model.setExample(oExample);
                 }
@@ -271,19 +306,21 @@ var Controller = /** @class */ (function () {
         var iStream = 0, sKey = this.oKeyboard.getKeyFromBuffer();
         if (sKey !== "") {
             this.oVm.cursor(iStream, 0);
-            this.oKeyboard.setKeyDownHandler(null);
+            this.oKeyboard.setKeyDownHandler(undefined);
             this.startContinue();
         }
     };
     Controller.prototype.fnOnEscape = function () {
-        var oStop = this.oVm.vmGetStopObject(), iStream = 0;
+        var oStop = this.oVm.vmGetStopObject(), iStream = 0; //oParas.iStream;
         if (this.oVm.vmOnBreakContSet()) {
             // ignore break
         }
         else if (oStop.sReason === "direct" || this.oVm.vmOnBreakHandlerActive()) {
+            /*
             if (!oStop.oParas) {
                 oStop.oParas = {};
             }
+            */
             oStop.oParas.sInput = "";
             var sMsg = "*Break*\r\n";
             this.oVm.print(iStream, sMsg);
@@ -294,11 +331,15 @@ var Controller = /** @class */ (function () {
             this.oKeyboard.setKeyDownHandler(this.fnWaitForContinue.bind(this));
             this.setStopObject(oStop);
             this.oVm.vmStop("escape", 85, false, {
-                iStream: iStream
+                sCommand: "escape",
+                iStream: iStream,
+                iFirst: 0,
+                iLast: 0,
+                iLine: this.oVm.iLine
             });
         }
         else { // second escape
-            this.oKeyboard.setKeyDownHandler(null);
+            this.oKeyboard.setKeyDownHandler(undefined);
             this.oVm.cursor(iStream, 0);
             var oSavedStop = this.getStopObject();
             if (oSavedStop.sReason === "waitInput") { // sepcial handling: set line to repeat input
@@ -337,7 +378,7 @@ var Controller = /** @class */ (function () {
         if (sKey !== "") { // do we have a key from the buffer already?
             Utils_1.Utils.console.log("Wait for key:", sKey);
             this.oVm.vmStop("", 0, true);
-            this.oKeyboard.setKeyDownHandler(null);
+            this.oKeyboard.setKeyDownHandler(undefined);
         }
         else {
             this.fnWaitSound(); // sound and blinking events
@@ -348,6 +389,10 @@ var Controller = /** @class */ (function () {
     Controller.prototype.fnWaitInput = function () {
         var oStop = this.oVm.vmGetStopObject(), oInput = oStop.oParas, iStream = oInput.iStream;
         var sInput = oInput.sInput, sKey;
+        if (sInput === undefined || iStream === undefined) {
+            this.outputError(this.oVm.vmComposeError(Error(), 32, "Programming Error: fnWaitInput"), true);
+            return;
+        }
         do {
             sKey = this.oKeyboard.getKeyFromBuffer(); // (inkey$ could insert frame if checked too often)
             // chr13 shows as empty string!
@@ -459,7 +504,7 @@ var Controller = /** @class */ (function () {
                 bInputOk = true;
             }
             if (bInputOk) {
-                this.oKeyboard.setKeyDownHandler(null);
+                this.oKeyboard.setKeyDownHandler(undefined);
                 if (oStop.sReason === "waitInput") { // only for this reason
                     this.oVm.vmStop("", 0, true); // no more wait
                 }
@@ -551,8 +596,8 @@ var Controller = /** @class */ (function () {
             oRegExp = Controller.fnPrepareMaskRegExp(sMask);
         }
         for (var i = 0; i < oStorage.length; i += 1) {
-            var sKey = oStorage.key(i), sValue = oStorage[sKey];
-            if (sValue.startsWith(this.sMetaIdent)) { // take only cpcBasic files
+            var sKey = oStorage.key(i);
+            if (sKey !== null && oStorage[sKey].startsWith(this.sMetaIdent)) { // take only cpcBasic files
                 if (!oRegExp || oRegExp.test(sKey)) {
                     aDir.push(sKey);
                 }
@@ -692,7 +737,7 @@ var Controller = /** @class */ (function () {
         }
         if (oInFile.fnFileCallback) {
             try {
-                bPutInMemory = oInFile.fnFileCallback(sInput, oData && oData.oMeta); //TTT
+                bPutInMemory = oInFile.fnFileCallback(sInput, oData && oData.oMeta);
             }
             catch (e) {
                 Utils_1.Utils.console.warn(e);
@@ -833,7 +878,7 @@ var Controller = /** @class */ (function () {
         }
         return sName;
     };
-    Controller.prototype.tryLoadingFromLocalStorage = function (sName) {
+    Controller.tryLoadingFromLocalStorage = function (sName) {
         var oStorage = Utils_1.Utils.localStorage, aExtensions = [
             null,
             "bas",
@@ -849,7 +894,6 @@ var Controller = /** @class */ (function () {
         }
         return sInput; // null=not found
     };
-    // run loop: fileLoad
     Controller.prototype.fnFileLoad = function () {
         var oInFile = this.oVm.vmGetInFileObject();
         if (oInFile.bOpen) {
@@ -857,7 +901,9 @@ var Controller = /** @class */ (function () {
                 this.fnDeleteLines({
                     iFirst: oInFile.iFirst,
                     iLast: oInFile.iLast,
-                    sCommand: "CHAIN MERGE"
+                    sCommand: "CHAIN MERGE",
+                    iStream: 0,
+                    iLine: this.oVm.iLine
                 });
                 this.oVm.vmStop("fileLoad", 90); // restore
             }
@@ -865,7 +911,7 @@ var Controller = /** @class */ (function () {
             if (Utils_1.Utils.debug > 1) {
                 Utils_1.Utils.console.debug("fnFileLoad:", oInFile.sCommand, sName, "details:", oInFile);
             }
-            var sInput = this.tryLoadingFromLocalStorage(sName);
+            var sInput = Controller.tryLoadingFromLocalStorage(sName);
             if (sInput !== null) {
                 if (Utils_1.Utils.debug > 0) {
                     Utils_1.Utils.console.debug("fnFileLoad:", oInFile.sCommand, sName, "from localStorage");
@@ -910,7 +956,9 @@ var Controller = /** @class */ (function () {
             }
         }
         else {
-            oMeta = {};
+            oMeta = {
+                sType: ""
+            };
         }
         var oMetaAndData = {
             oMeta: oMeta,
@@ -918,7 +966,6 @@ var Controller = /** @class */ (function () {
         };
         return oMetaAndData;
     };
-    // run loop: fileSave
     Controller.prototype.fnFileSave = function () {
         var oOutFile = this.oVm.vmGetOutFileObject(), oStorage = Utils_1.Utils.localStorage;
         var sDefaultExtension = "";
@@ -983,7 +1030,7 @@ var Controller = /** @class */ (function () {
         this.oVm.vmGotoLine(0); // reset current line
         this.oVm.vmStop("end", 0, true);
     };
-    Controller.prototype.fnNew = function ( /* oParas */) {
+    Controller.prototype.fnNew = function () {
         var sInput = "";
         this.setInputText(sInput);
         this.oVariables.removeAllVariables();
@@ -1015,8 +1062,8 @@ var Controller = /** @class */ (function () {
     Controller.prototype.outputError = function (oError, bNoSelection) {
         var iStream = 0, sShortError = oError.shortMessage || oError.message;
         if (!bNoSelection) {
-            var iEndPos = oError.pos + ((oError.value !== undefined) ? String(oError.value).length : 0);
-            this.view.setAreaSelection("inputText", oError.pos, iEndPos);
+            var iEndPos = (oError.pos || 0) + ((oError.value !== undefined) ? String(oError.value).length : 0);
+            this.view.setAreaSelection("inputText", oError.pos || 0, iEndPos);
         }
         var sEscapedShortError = sShortError.replace(/([\x00-\x1f])/g, "\x01$1"); // eslint-disable-line no-control-regex
         this.oVm.print(iStream, sEscapedShortError + "\r\n");
@@ -1030,7 +1077,6 @@ var Controller = /** @class */ (function () {
                 parser: new BasicParser_1.BasicParser()
             });
         }
-        this.oBasicFormatter.reset();
         var oOutput = this.oBasicFormatter.renumber(sInput, oParas.iNew, oParas.iOld, oParas.iStep, oParas.iKeep);
         if (oOutput.error) {
             Utils_1.Utils.console.warn(oOutput.error);
@@ -1057,18 +1103,20 @@ var Controller = /** @class */ (function () {
         return true;
     };
     Controller.prototype.fnEditLine = function (oParas) {
-        var sInput = this.view.getAreaValue("inputText"), iStream = oParas.iStream, iLine = oParas.iLine, //TTT
-        aLines = Controller.fnGetLinesInRange(sInput, iLine, iLine);
+        var sInput = this.view.getAreaValue("inputText"), iStream = oParas.iStream, iLine = oParas.iFirst, aLines = Controller.fnGetLinesInRange(sInput, iLine, iLine);
         if (aLines.length) {
             var sLine = aLines[0];
             this.oVm.print(iStream, sLine);
             this.oVm.cursor(iStream, 1);
-            this.oVm.vmStop("waitInput", 45, true, {
+            var oInputParas = {
+                sCommand: oParas.sCommand,
+                iLine: oParas.iLine,
                 iStream: iStream,
                 sMessage: "",
                 fnInputCallback: this.fnEditLineCallback.bind(this),
                 sInput: sLine
-            });
+            };
+            this.oVm.vmStop("waitInput", 45, true, oInputParas);
             this.fnWaitInput();
         }
         else {
@@ -1080,11 +1128,10 @@ var Controller = /** @class */ (function () {
     Controller.prototype.fnParseBench = function (sInput, iBench) {
         var oOutput;
         for (var i = 0; i < iBench; i += 1) {
-            this.oCodeGeneratorJs.reset();
             var iTime = Date.now();
             oOutput = this.oCodeGeneratorJs.generate(sInput, this.oVariables);
             iTime = Date.now() - iTime;
-            Utils_1.Utils.console.debug("bench size", sInput.length, "labels", Object.keys(this.oCodeGeneratorJs.oLabels).length, "loop", i, ":", iTime, "ms");
+            Utils_1.Utils.console.debug("bench size", sInput.length, "labels", this.oCodeGeneratorJs.debugGetLabelsCount(), "loop", i, ":", iTime, "ms");
             if (oOutput.error) {
                 break;
             }
@@ -1096,7 +1143,6 @@ var Controller = /** @class */ (function () {
         this.oVariables.removeAllVariables();
         var oOutput;
         if (!iBench) {
-            this.oCodeGeneratorJs.reset();
             oOutput = this.oCodeGeneratorJs.generate(sInput, this.oVariables);
         }
         else {
@@ -1122,9 +1168,7 @@ var Controller = /** @class */ (function () {
         var sInput = this.view.getAreaValue("inputText"), oCodeGeneratorBasic = new CodeGeneratorBasic_1.CodeGeneratorBasic({
             lexer: new BasicLexer_1.BasicLexer(),
             parser: new BasicParser_1.BasicParser()
-        });
-        oCodeGeneratorBasic.reset();
-        var oOutput = oCodeGeneratorBasic.generate(sInput);
+        }), oOutput = oCodeGeneratorBasic.generate(sInput);
         if (oOutput.error) {
             this.outputError(oOutput.error);
         }
@@ -1150,7 +1194,7 @@ var Controller = /** @class */ (function () {
     };
     Controller.prototype.fnRun = function (oParas) {
         var sScript = this.view.getAreaValue("outputText"), oVm = this.oVm;
-        var iLine = oParas && oParas.iLine || 0;
+        var iLine = oParas && oParas.iFirst || 0;
         iLine = iLine || 0;
         if (iLine === 0) {
             oVm.vmResetData(); // start from the beginning => also reset data! (or put it in line 0 in the script)
@@ -1249,7 +1293,6 @@ var Controller = /** @class */ (function () {
             var oCodeGeneratorJs = this.oCodeGeneratorJs;
             var oOutput = void 0, sOutput = void 0;
             if (sInputText) { // do we have a program?
-                oCodeGeneratorJs.reset();
                 oOutput = oCodeGeneratorJs.generate(sInput + "\n" + sInputText, this.oVariables, true); // compile both; allow direct command
                 if (oOutput.error) {
                     var oError = oOutput.error;
@@ -1265,7 +1308,6 @@ var Controller = /** @class */ (function () {
                 }
             }
             if (!oOutput) {
-                oCodeGeneratorJs.reset();
                 oOutput = oCodeGeneratorJs.generate(sInput, this.oVariables, true); // compile direct input only
             }
             if (oOutput.error) {
@@ -1310,11 +1352,13 @@ var Controller = /** @class */ (function () {
         this.oVm.print(iStream, sMsg);
         this.oVm.cursor(iStream, 1, 1);
         oVm.vmStop("direct", 0, true, {
+            sCommand: "direct",
             iStream: iStream,
             sMessage: sMsg,
             // sNoCRLF: true,
             fnInputCallback: this.fnDirectInputHandler,
-            sInput: ""
+            sInput: "",
+            iLine: this.oVm.iLine
         });
         this.fnWaitInput();
     };
@@ -1334,29 +1378,29 @@ var Controller = /** @class */ (function () {
             this.startWithDirectInput();
         }
     };
-    Controller.prototype.fnBreak = function () {
-        /* TTT
-        this.oRunLoop = new this.RunLoop(this);
-        this.oRunLoop.fnTest("msg1");
-        */
-        /*
-        if (this.oRunLoop.fnTest) {
-            this.oRunLoop.fnTest("ok1");
-        }
-        */
-    };
-    Controller.prototype.fnDirect = function () {
+    /*
+    private fnBreak() {
+        // empty
+    }
+    */
+    /*
+    private fnDirect() {
         // TTT: break in direct mode?
-    };
-    Controller.prototype.fnEnd = function () {
+    }
+    */
+    /*
+    private fnEnd() {
         // empty
-    };
-    Controller.prototype.fnError = function () {
+    }
+
+    private fnError() {
         // empty
-    };
-    Controller.prototype.fnEscape = function () {
+    }
+
+    private fnEscape() {
         // empty
-    };
+    }
+    */
     Controller.prototype.fnWaitFrame = function () {
         this.oVm.vmStop("", 0, true);
         this.iNextLoopTimeOut = this.oVm.vmGetTimeUntilFrame(); // wait until next frame
@@ -1364,7 +1408,12 @@ var Controller = /** @class */ (function () {
     Controller.prototype.fnOnError = function () {
         this.oVm.vmStop("", 0, true); // continue
     };
-    Controller.prototype.fnStop = function () {
+    /*
+    private fnStop() {
+        // empty
+    }
+    */
+    Controller.fnDummy = function () {
         // empty
     };
     Controller.prototype.fnTimer = function () {
@@ -1376,14 +1425,23 @@ var Controller = /** @class */ (function () {
         if (!oStop.sReason && this.fnScript) {
             this.fnRunPart1(); // could change sReason
         }
-        var sHandler = "fn" + Utils_1.Utils.stringCapitalize(oStop.sReason);
-        if (sHandler in this) {
-            this[sHandler](oStop.oParas);
+        if (oStop.sReason in this.mHandlers) {
+            this.mHandlers[oStop.sReason].call(this, oStop.oParas);
         }
         else {
             Utils_1.Utils.console.warn("runLoop: Unknown run mode:", oStop.sReason);
+            this.oVm.vmStop("error", 50);
+        }
+        /*
+        const sHandler = "fn" + Utils.stringCapitalize(oStop.sReason);
+
+        if (sHandler in this) {
+            this[sHandler](oStop.oParas);
+        } else {
+            Utils.console.warn("runLoop: Unknown run mode:", oStop.sReason);
             this.oVm.vmStop("error", 55);
         }
+        */
         if (oStop.sReason && oStop.sReason !== "waitSound" && oStop.sReason !== "waitKey" && oStop.sReason !== "waitInput") {
             this.bTimeoutHandlerActive = false; // not running any more
             this.exitLoop();
@@ -1405,17 +1463,20 @@ var Controller = /** @class */ (function () {
         return this.oSavedStop;
     };
     Controller.prototype.startParse = function () {
-        this.oKeyboard.setKeyDownHandler(null);
-        this.oVm.vmStop("parse", 99);
+        this.oKeyboard.setKeyDownHandler(undefined);
+        this.oVm.vmStop("parse", 95);
         this.startMainLoop();
     };
     Controller.prototype.startRenum = function () {
         var iStream = 0;
-        this.oVm.vmStop("renumLines", 99, false, {
+        this.oVm.vmStop("renumLines", 85, false, {
+            sCommand: "renum",
+            iStream: 0,
             iNew: 10,
             iOld: 1,
             iStep: 10,
-            iKeep: 65535 // keep lines
+            iKeep: 65535,
+            iLine: this.oVm.iLine
         });
         if (this.oVm.pos(iStream) > 1) {
             this.oVm.print(iStream, "\r\n");
@@ -1425,20 +1486,20 @@ var Controller = /** @class */ (function () {
     };
     Controller.prototype.startRun = function () {
         this.setStopObject(this.oNoStop);
-        this.oKeyboard.setKeyDownHandler(null);
-        this.oVm.vmStop("run", 99);
+        this.oKeyboard.setKeyDownHandler(undefined);
+        this.oVm.vmStop("run", 95);
         this.startMainLoop();
     };
     Controller.prototype.startParseRun = function () {
         this.setStopObject(this.oNoStop);
-        this.oKeyboard.setKeyDownHandler(null);
-        this.oVm.vmStop("parseRun", 99);
+        this.oKeyboard.setKeyDownHandler(undefined);
+        this.oVm.vmStop("parseRun", 95);
         this.startMainLoop();
     };
     Controller.prototype.startBreak = function () {
         var oVm = this.oVm, oStop = oVm.vmGetStopObject();
         this.setStopObject(oStop);
-        this.oKeyboard.setKeyDownHandler(null);
+        this.oKeyboard.setKeyDownHandler(undefined);
         this.oVm.vmStop("break", 80);
         this.startMainLoop();
     };
@@ -1449,7 +1510,7 @@ var Controller = /** @class */ (function () {
         this.view.setDisabled("continueButton", true);
         if (oStop.sReason === "break" || oStop.sReason === "escape" || oStop.sReason === "stop" || oStop.sReason === "direct") {
             if (oSavedStop.oParas && !oSavedStop.oParas.fnInputCallback) { // no keyboard callback? make sure no handler is set (especially for direct->continue)
-                this.oKeyboard.setKeyDownHandler(null);
+                this.oKeyboard.setKeyDownHandler(undefined);
             }
             if (oStop.sReason === "direct" || oStop.sReason === "escape") {
                 this.oVm.cursor(oStop.oParas.iStream, 0); // switch it off (for continue button)
@@ -1461,7 +1522,7 @@ var Controller = /** @class */ (function () {
     };
     Controller.prototype.startReset = function () {
         this.setStopObject(this.oNoStop);
-        this.oKeyboard.setKeyDownHandler(null);
+        this.oKeyboard.setKeyDownHandler(undefined);
         this.oVm.vmStop("reset", 99);
         this.startMainLoop();
     };

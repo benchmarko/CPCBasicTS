@@ -124,7 +124,7 @@ export class Utils { // eslint-disable-line vars-on-top
 		return str.charAt(0).toUpperCase() + str.substring(1);
 	}
 
-	static numberWithCommas(x: number): string {
+	static numberWithCommas(x: number | string): string {
 		// https://stackoverflow.com/questions/2901102/how-to-print-a-number-with-commas-as-thousands-separators-in-javascript
 		const aParts = String(x).split(".");
 

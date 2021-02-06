@@ -13,7 +13,7 @@ export declare class Utils {
     static loadStyle(sUrl: string, fnSuccess: (sStr: string) => void, fnError: (sStr: string) => void): void;
     static dateFormat(d: Date): string;
     static stringCapitalize(str: string): string;
-    static numberWithCommas(x: number): string;
+    static numberWithCommas(x: number | string): string;
     static toRadians(deg: number): number;
     static toDegrees(rad: number): number;
     static bSupportsBinaryLiterals: boolean;
