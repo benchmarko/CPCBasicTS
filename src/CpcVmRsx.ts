@@ -5,7 +5,7 @@
 
 import { Utils } from "./Utils";
 import { ICpcVmRsx } from "./Interfaces";
-import { CpcVm } from "./CpcVm";
+import { CpcVm, VmFileParas } from "./CpcVm";
 
 export class CpcVmRsx implements ICpcVmRsx {
 	oVm: CpcVm;
@@ -70,11 +70,14 @@ export class CpcVmRsx implements ICpcVmRsx {
 			sFileMask = this.oVm.vmAdaptFilename(sFileMask, "|DIR");
 		}
 
-		this.oVm.vmStop("fileDir", 45, false, {
+		const oFileParas: VmFileParas = {
 			iStream: iStream,
 			sCommand: "|dir",
-			sFileMask: sFileMask
-		});
+			sFileMask: sFileMask,
+			iLine: this.oVm.iLine //TTT
+		};
+
+		this.oVm.vmStop("fileDir", 45, false, oFileParas);
 	}
 
 	disc(): void {
@@ -99,11 +102,14 @@ export class CpcVmRsx implements ICpcVmRsx {
 
 		sFileMask = this.oVm.vmAdaptFilename(sFileMask, "|ERA");
 
-		this.oVm.vmStop("fileEra", 45, false, {
+		const oFileParas: VmFileParas = {
 			iStream: iStream,
 			sCommand: "|era",
-			sFileMask: sFileMask
-		});
+			sFileMask: sFileMask,
+			iLine: this.oVm.iLine //TTT
+		};
+
+		this.oVm.vmStop("fileEra", 45, false, oFileParas);
 	}
 
 	ren(newName: string | number, oldName: string | number): void {
@@ -114,12 +120,16 @@ export class CpcVmRsx implements ICpcVmRsx {
 		sNew = this.oVm.vmAdaptFilename(sNew, "|REN");
 		sOld = this.oVm.vmAdaptFilename(sOld, "|REN");
 
-		this.oVm.vmStop("fileRen", 45, false, {
+		const oFileParas: VmFileParas = {
 			iStream: iStream,
 			sCommand: "|ren",
+			sFileMask: "", // unused
 			sNew: sNew,
-			sOld: sOld
-		});
+			sOld: sOld,
+			iLine: this.oVm.iLine //TTT
+		};
+
+		this.oVm.vmStop("fileRen", 45, false, oFileParas);
 	}
 
 	tape(): void {

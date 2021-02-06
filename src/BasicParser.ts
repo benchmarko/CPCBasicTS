@@ -326,37 +326,36 @@ export class BasicParser {
 	}
 
 	private advance(id?: string) {
-		/*
-		const aTokens = this.aTokens;
 		let oToken = this.oToken;
-		*/
 
 		this.oPreviousToken = this.oToken;
-		if (id && this.oToken.type !== id) {
-			throw this.composeError(Error(), "Expected " + id, (this.oToken.value === "") ? this.oToken.type : this.oToken.value, this.oToken.pos);
+		if (id && oToken.type !== id) {
+			throw this.composeError(Error(), "Expected " + id, (oToken.value === "") ? oToken.type : oToken.value, oToken.pos);
 		}
 		if (this.iIndex >= this.aTokens.length) {
 			Utils.console.warn("advance: end of file");
 			if (this.aTokens.length && this.aTokens[this.aTokens.length - 1].type === "(end)") {
-				this.oToken = this.aTokens[this.aTokens.length - 1];
+				oToken = this.aTokens[this.aTokens.length - 1];
 			} else {
 				Utils.console.warn("advance: No (end) token!");
-				this.oToken = BasicParser.fnCreateDummyArg("(end)");
-				this.oToken.value = ""; // null
+				oToken = BasicParser.fnCreateDummyArg("(end)");
+				oToken.value = ""; // null
 			}
-			return this.oToken;
+			return oToken;
 		}
-		this.oToken = this.aTokens[this.iIndex] as ParserNode; // we get a lex token and reuse it as parseTree token
+		oToken = this.aTokens[this.iIndex] as ParserNode; // we get a lex token and reuse it as parseTree token
 		this.iIndex += 1;
-		if (this.oToken.type === "identifier" && BasicParser.mKeywords[this.oToken.value.toLowerCase()]) {
-			this.oToken.type = this.oToken.value.toLowerCase(); // modify type identifier => keyword xy
+		if (oToken.type === "identifier" && BasicParser.mKeywords[oToken.value.toLowerCase()]) {
+			oToken.type = oToken.value.toLowerCase(); // modify type identifier => keyword xy
 		}
-		const oSym = this.oSymbols[this.oToken.type];
+		const oSym = this.oSymbols[oToken.type];
 
 		if (!oSym) {
-			throw this.composeError(Error(), "Unknown token", this.oToken.type, this.oToken.pos);
+			throw this.composeError(Error(), "Unknown token", oToken.type, oToken.pos);
 		}
-		return this.oToken;
+
+		this.oToken = oToken;
+		return oToken;
 	}
 
 	private expression(rbp: number) {
@@ -379,7 +378,7 @@ export class BasicParser {
 
 		t = this.oToken;
 		s = this.oSymbols[t.type];
-		while (rbp < s.lbp) { // as long as the right binding power is less than the left binding power of the next token...
+		while (rbp < (s.lbp || 0)) { // as long as the right binding power is less than the left binding power of the next token...
 			this.advance(t.type);
 			if (!s.led) {
 				throw this.composeError(Error(), "Unexpected token", t.type, t.pos); //TTT how to get this error?
@@ -475,6 +474,20 @@ export class BasicParser {
 	}
 
 	private infix(id: string, lbp: number, rbp?: number, led?: ParseExpressionFunction) {
+		rbp = rbp || lbp;
+		const fnLed = led || ((left: ParserNode) => {
+			const oValue = this.oPreviousToken;
+
+			oValue.left = left;
+			oValue.right = this.expression(rbp as number);
+			return oValue;
+		});
+
+		this.symbol(id, undefined, lbp, fnLed);
+	}
+
+	/*
+	private infix(id: string, lbp: number, rbp?: number, led?: ParseExpressionFunction) {
 		const that = this;
 
 		rbp = rbp || lbp;
@@ -486,6 +499,21 @@ export class BasicParser {
 			return oValue;
 		});
 	}
+	*/
+
+	private infixr(id: string, lbp: number) {
+		const fnLed = ((left: ParserNode) => {
+			const oValue = this.oPreviousToken;
+
+			oValue.left = left;
+			oValue.right = this.expression(lbp - 1);
+			return oValue;
+		});
+
+		this.symbol(id, undefined, lbp, fnLed);
+	}
+
+	/*
 	private infixr(id: string, lbp: number, rbp?: number, led?: ParseExpressionFunction) {
 		const that = this;
 
@@ -498,6 +526,20 @@ export class BasicParser {
 			return oValue;
 		});
 	}
+*/
+
+	private prefix(id: string, rbp: number) {
+		const fnNud = () => {
+			const oValue = this.oPreviousToken;
+
+			oValue.right = this.expression(rbp);
+			return oValue;
+		};
+
+		this.symbol(id, fnNud);
+	}
+
+	/*
 	private prefix(id: string, rbp: number) {
 		const that = this;
 
@@ -508,12 +550,15 @@ export class BasicParser {
 			return oValue;
 		});
 	}
+	*/
+
 	private stmt(s: string, f: ParseStatmentFunction) {
 		const x = this.symbol(s);
 
 		x.std = f;
 		return x;
 	}
+
 
 	private static fnCreateDummyArg(value: string) {
 		const oValue: ParserNode = {
@@ -752,7 +797,7 @@ export class BasicParser {
 	};
 
 	private fnGetArgsInParenthesesOrBrackets() {
-		const oBrackets = BasicParser.mBrackets;
+		const mBrackets = BasicParser.mBrackets;
 		let oBracketOpen: ParserNode | undefined;
 
 		if (this.oToken.type === "(" || this.oToken.type === "[") {
@@ -760,18 +805,26 @@ export class BasicParser {
 		}
 
 		this.advance(oBracketOpen ? oBracketOpen.type : "(");
+		if (!oBracketOpen) {
+			throw this.composeError(Error(), "Programming error: Undefined oBracketOpen", this.oToken.type, this.oToken.pos); // should not occure
+		}
+
 		const aArgs = this.fnGetArgs(undefined); // (until "]" or ")")
 
 		aArgs.unshift(oBracketOpen);
 
-		let oBracketClose: ParserNode;
+		let oBracketClose: ParserNode | undefined;
 
 		if (this.oToken.type === ")" || this.oToken.type === "]") {
 			oBracketClose = this.oToken;
 		}
 		this.advance(oBracketClose ? oBracketClose.type : ")");
+		if (!oBracketClose) {
+			throw this.composeError(Error(), "Programming error: Undefined oBracketClose", this.oToken.type, this.oToken.pos); // should not occure
+		}
+
 		aArgs.push(oBracketClose);
-		if (oBrackets[oBracketOpen.type] !== oBracketClose.type) {
+		if (mBrackets[oBracketOpen.type] !== oBracketClose.type) {
 			if (!this.bQuiet) {
 				Utils.console.warn(this.composeError({} as Error, "Inconsistent bracket style", this.oPreviousToken.value, this.oPreviousToken.pos).message);
 			}
@@ -875,12 +928,14 @@ export class BasicParser {
 		return oValue;
 	}
 
+	/*
 	private fnBracket() { // "["
 		const oValue = this.expression(0);
 
 		this.advance("]");
 		return oValue;
 	}
+	*/
 
 	private fnFn() { // separate fn
 		const oValue = this.oPreviousToken, // "fn"
@@ -918,6 +973,9 @@ export class BasicParser {
 		const sType = this.oPreviousToken.type + "Gosub", // "afterGosub" or "everyGosub"
 			oValue = this.fnCreateCmdCall(sType); // interval and optional timer
 
+		if (!oValue.args) {
+			throw this.composeError(Error(), "Programming error: Undefined args", this.oToken.type, this.oToken.pos); // should not occure
+		}
 		if (oValue.args.length < 2) { // add default timer 0
 			oValue.args.push(BasicParser.fnCreateDummyArg("null"));
 		}
@@ -1162,7 +1220,7 @@ export class BasicParser {
 		}
 		oValue.args = aArgs; // then statements
 
-		aArgs = undefined;
+		aArgs = null;
 		if (this.oToken.type === "else") {
 			this.oToken = this.advance("else");
 			if (this.oToken.type === "number") {
@@ -1267,6 +1325,9 @@ export class BasicParser {
 		this.oPreviousToken.type = "mid$Assign"; // change type mid$ => mid$Assign
 		const oValue = this.fnCreateFuncCall();
 
+		if (!oValue.args) {
+			throw this.composeError(Error(), "Programming error: Undefined args", this.oToken.type, this.oToken.pos); // should not occure
+		}
 		if (oValue.args[0].type !== "identifier") {
 			throw this.composeError(Error(), "Expected identifier", oValue.args[0].value, oValue.args[0].pos);
 		}
@@ -1307,6 +1368,9 @@ export class BasicParser {
 		} else if (this.oToken.type === "sq") { // on sq(n) gosub
 			let oLeft = this.expression(0);
 
+			if (!oLeft.args) {
+				throw this.composeError(Error(), "Programming error: Undefined args", this.oToken.type, this.oToken.pos); // should not occure
+			}
 			oLeft = oLeft.args[0];
 			this.oToken = this.getToken();
 			this.advance("gosub");
@@ -1386,7 +1450,6 @@ export class BasicParser {
 	}
 
 	private fnQuestion() { // "?"
-		//const oValue = (this.oSymbols as any).print.std(); // "?" is same as print
 		const oValue = this.fnPrint();
 
 		oValue.type = "print";
@@ -1455,6 +1518,7 @@ export class BasicParser {
 		this.symbol(";");
 		this.symbol(",");
 		this.symbol(")");
+		this.symbol("[");
 		this.symbol("]");
 
 		// define additional statement parts
@@ -1494,7 +1558,7 @@ export class BasicParser {
 
 		this.symbol("(", this.fnParenthesis);
 
-		this.symbol("[", this.fnBracket);
+		//this.symbol("[", this.fnBracket);
 
 		this.prefix("@", 95); // address of
 
@@ -1601,8 +1665,9 @@ export class BasicParser {
 		// line
 		this.sLine = "0"; // for error messages
 		this.iIndex = 0;
-		this.oPreviousToken = undefined;
-		this.oToken = undefined;
+
+		this.oToken = {} as ParserNode;
+		this.oPreviousToken = this.oToken; // just to avoid warning
 		aParseTree.length = 0;
 
 		this.advance();

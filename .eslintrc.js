@@ -13,7 +13,7 @@ module.exports = {
 	"env": {
 		"browser": true,
 		"node": true,
-		"es6": false
+		"es6": true
 	},
 	"rules": {
 		"accessor-pairs": "error",

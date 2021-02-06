@@ -358,6 +358,9 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 			'a$=mid$("string",3,2)': 'a$=MID$("string",3,2)',
 			"a$=mid$(b$,p)": "a$=MID$(b$,p)",
 			"a$=mid$(b$,p,lg)": "a$=MID$(b$,p,lg)",
+			"mid$(a$,2)=b$": "MID$(a$,2)=b$",
+			"mid$(a$,2,2)=b$": "MID$(a$,2,2)=b$",
+			"mid$(a$,b%,c!)=\"string\"": "MID$(a$,b%,c!)=\"string\"",
 
 			"a=min(1)": "a=MIN(1)",
 			"a=min(1,5)": "a=MIN(1,5)",
@@ -676,7 +679,6 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 
 		for (const sKey in oTests) {
 			if (oTests.hasOwnProperty(sKey)) {
-				oCodeGeneratorBasic.reset();
 				const sExpected = oTests[sKey],
 					oOutput = oCodeGeneratorBasic.generate(sKey, true),
 					sResult = oOutput.error ? String(oOutput.error) : oOutput.text;

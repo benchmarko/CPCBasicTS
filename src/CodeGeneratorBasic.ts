@@ -4,7 +4,7 @@
 //
 //
 
-import { Utils, CustomError } from "./Utils";
+import { Utils } from "./Utils";
 import { BasicLexer } from "./BasicLexer";
 import { BasicParser, ParserNode } from "./BasicParser"; // BasicParser just for keyword definitions
 import { IOutput } from "./Interfaces";
@@ -40,29 +40,13 @@ export class CodeGeneratorBasic {
 
 
 	constructor(options: CodeGeneratorBasicOptions) {
-		this.init(options);
-	}
-
-	init(options: CodeGeneratorBasicOptions): void {
 		this.lexer = options.lexer;
 		this.parser = options.parser;
-
-		this.reset();
 	}
 
-	reset(): void {
-		this.lexer.reset();
-		//this.parser.reset();
+	private composeError(oError: Error, message: string, value: string, pos: number) { // eslint-disable-line class-methods-use-this
+		return Utils.composeError("CodeGeneratorBasic", oError, message, value, pos);
 	}
-
-	private composeError(...aArgs) { // eslint-disable-line class-methods-use-this
-		aArgs.unshift("CodeGeneratorBasic");
-		// check, correct:
-		//TTT aArgs.push(this.iLine);
-		return Utils.composeError.apply(null, aArgs) as CustomError;
-	}
-
-	// evaluate
 
 	private fnParseOneArg(oArg: ParserNode) {
 		const sValue = this.parseNode(oArg); // eslint-disable-line no-use-before-define
@@ -71,7 +55,7 @@ export class CodeGeneratorBasic {
 	}
 
 	private fnParseArgs(aArgs: ParserNode[]) {
-		const aNodeArgs = []; // do not modify node.args here (could be a parameter of defined function)
+		const aNodeArgs: string[] = []; // do not modify node.args here (could be a parameter of defined function)
 
 		for (let i = 0; i < aArgs.length; i += 1) {
 			const sValue = this.fnParseOneArg(aArgs[i]);
@@ -83,7 +67,7 @@ export class CodeGeneratorBasic {
 		return aNodeArgs;
 	}
 
-	static mOperators = {
+	private static mOperators = {
 		"+": "+",
 		"-": "-",
 		"*": "*",
@@ -105,7 +89,7 @@ export class CodeGeneratorBasic {
 		"#": "#"
 	};
 
-	static mOperatorPrecedence = {
+	private static mOperatorPrecedence = {
 		"@": 95, // prefix
 		"^": 90,
 
@@ -141,8 +125,6 @@ export class CodeGeneratorBasic {
 		});
 	}
 
-
-	// mParseFunctions
 
 	private static string(node: ParserNode) {
 		let sValue = CodeGeneratorBasic.fnDecodeEscapeSequence(node.value);
@@ -683,8 +665,7 @@ export class CodeGeneratorBasic {
 
 	generate(sInput: string, bAllowDirect?: boolean): IOutput {
 		const oOut: IOutput = {
-			text: "",
-			error: undefined
+			text: ""
 		};
 
 		try {

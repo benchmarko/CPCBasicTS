@@ -685,7 +685,6 @@ export class Keyboard {
 
 		// reset: this.oPressedKeys = {}; // currently pressed browser keys
 
-		//this.reset();
 		this.bActive = false; // flag if keyboard is active/focused, set from outside
 
 		this.bCodeStringsRemoved = false;
@@ -708,7 +707,6 @@ export class Keyboard {
 		this.oPressedKeys = {}; // currently pressed browser keys
 		this.bShiftLock = false; // for virtual keyboard
 		this.bNumLock = false;
-		//this.reset();
 	}
 
 	private fnAttachPointerEvents(sId: string, fnDown?: EventListener, fnMove?: EventListener, fnUp?: EventListener) { // eslint-disable-line class-methods-use-this
@@ -847,7 +845,7 @@ export class Keyboard {
 		return this.fnOnKeyDown;
 	}
 
-	setKeyDownHandler(fnOnKeyDown: () => void): void {
+	setKeyDownHandler(fnOnKeyDown?: () => void): void {
 		this.fnOnKeyDown = fnOnKeyDown;
 	}
 
