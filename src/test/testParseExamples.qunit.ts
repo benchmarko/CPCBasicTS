@@ -287,7 +287,7 @@ function fnEval(sCode: string) {
 	return eval(sCode); // eslint-disable-line no-eval
 }
 
-function fnExampleLoaded(oError: Error | undefined, sCode?: string) {
+function fnExampleLoaded(oError?: Error, sCode?: string) {
 	if (oError) {
 		throw oError;
 	}

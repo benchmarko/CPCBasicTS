@@ -20,22 +20,13 @@ import { Diff } from "./Diff";
 import { DiskImage, AmsdosHeader } from "./DiskImage";
 import { InputStack } from "./InputStack";
 import { Keyboard } from "./Keyboard";
+import { VirtualKeyboard } from "./VirtualKeyboard";
 import { Model, DatabasesType } from "./Model";
 import { Sound } from "./Sound";
 import { Variables, VariableValue } from "./Variables";
 import { View, SelectOptionElement } from "./View";
 
 import { ZipFile } from "./ZipFile";
-
-/*
-interface FileMeta {
-	sType?: string
-	iStart?: number
-	iLength?: number
-	iEntry?: number
-	sEncoding?: string
-}
-*/
 
 interface FileMetaAndData {
 	oMeta: FileMeta
@@ -75,6 +66,7 @@ export class Controller implements IController {
 	inputStack: InputStack;
 
 	oKeyboard: Keyboard;
+	oVirtualKeyboard?: VirtualKeyboard;
 	oSound: Sound;
 
 	oVm: CpcVm;
@@ -136,8 +128,21 @@ export class Controller implements IController {
 		this.oKeyboard = new Keyboard({
 			fnOnEscapeHandler: this.fnOnEscapeHandler
 		});
+
+		/*
 		if (this.model.getProperty<boolean>("showKbd")) { // maybe we need to draw virtual keyboard
 			this.oKeyboard.virtualKeyboardCreate();
+		}
+		*/
+		if (this.model.getProperty<boolean>("showKbd")) { // maybe we need to draw virtual keyboard
+			/*
+			this.oVirtualKeyboard = new VirtualKeyboard({
+				fnPressCpcKey: this.oKeyboard.fnPressCpcKey,
+				fnReleaseCpcKey: this.oKeyboard.fnReleaseCpcKey
+			});
+			this.oVirtualKeyboard.virtualKeyboardCreate();
+			*/
+			this.virtualKeyboardCreate();
 		}
 
 		this.oSound = new Sound();
@@ -150,6 +155,7 @@ export class Controller implements IController {
 		this.oVm = new CpcVm({
 			canvas: this.oCanvas,
 			keyboard: this.oKeyboard,
+			virtualKeyboard: this.oVirtualKeyboard,
 			sound: this.oSound,
 			variables: this.oVariables,
 			tron: oModel.getProperty<boolean>("tron")
@@ -377,7 +383,6 @@ export class Controller implements IController {
 						key: sKey,
 						title: "", // or set sKey?
 						meta: oData.oMeta.sType // currently we take only the type
-						//type: undefined //TTT for what?
 					};
 					this.model.setExample(oExample);
 				}
@@ -640,7 +645,7 @@ export class Controller implements IController {
 		const aLines1 = Utils.stringTrimEnd(sScript1).split("\n"),
 			aLines2 = Utils.stringTrimEnd(sScript2).split("\n");
 		let aResult = [],
-			iLine1: number, iLine2: number;
+			iLine1: number | undefined, iLine2: number | undefined;
 
 		while (aLines1.length && aLines2.length) {
 			iLine1 = iLine1 || parseInt(aLines1[0], 10);
@@ -837,8 +842,8 @@ export class Controller implements IController {
 	private fnFileRen(oParas: VmFileParas): void {
 		const iStream = oParas.iStream,
 			oStorage = Utils.localStorage,
-			sNew = Controller.fnLocalStorageName(oParas.sNew),
-			sOld = Controller.fnLocalStorageName(oParas.sOld),
+			sNew = Controller.fnLocalStorageName(oParas.sNew as string),
+			sOld = Controller.fnLocalStorageName(oParas.sOld as string),
 			sItem = oStorage.getItem(sOld);
 
 		if (sItem !== null) {
@@ -889,12 +894,12 @@ export class Controller implements IController {
 		return sOut;
 	}
 
-	private loadFileContinue(sInput: string) { // eslint-disable-line complexity
+	private loadFileContinue(sInput: string | null | undefined) { // eslint-disable-line complexity
 		const oInFile = this.oVm.vmGetInFileObject(),
 			sCommand = oInFile.sCommand;
 		let	iStartLine = 0,
 			bPutInMemory = false,
-			oData: FileMetaAndData;
+			oData: FileMetaAndData | undefined;
 
 		if (sInput !== null && sInput !== undefined) {
 			oData = Controller.splitMeta(sInput);
@@ -1084,12 +1089,12 @@ export class Controller implements IController {
 	private static tryLoadingFromLocalStorage(sName: string) {
 		const oStorage = Utils.localStorage,
 			aExtensions = [
-				null,
+				"",
 				"bas",
 				"bin"
 			];
 
-		let sInput: string;
+		let sInput: string | null = null;
 
 		for (let i = 0; i < aExtensions.length; i += 1)	{
 			const sStorageName = Controller.fnLocalStorageName(sName, aExtensions[i]);
@@ -1540,9 +1545,9 @@ export class Controller implements IController {
 		}
 	}
 
-	private fnRunPart1() {
+	private fnRunPart1(fnScript: Function) { // eslint-disable-line @typescript-eslint/ban-types
 		try {
-			this.fnScript(this.oVm);
+			fnScript(this.oVm);
 		} catch (e) {
 			if (e.name === "CpcVm") {
 				if (!e.hidden) {
@@ -1592,7 +1597,7 @@ export class Controller implements IController {
 			Utils.console.log("fnDirectInput: execute:", sInput);
 
 			const oCodeGeneratorJs = this.oCodeGeneratorJs;
-			let	oOutput: IOutput,
+			let	oOutput: IOutput | undefined,
 				sOutput: string;
 
 			if (sInputText) { // do we have a program?
@@ -1607,7 +1612,7 @@ export class Controller implements IController {
 							oError.shortMessage = "[prg] " + oError.shortMessage;
 						}
 						sOutput = this.outputError(oError, true);
-						oOutput = null;
+						oOutput = undefined;
 					}
 				}
 			}
@@ -1702,46 +1707,14 @@ export class Controller implements IController {
 		}
 	}
 
-	/*
-	private fnBreak() {
-		// empty
-	}
-	*/
-
-	/*
-	private fnDirect() {
-		// TTT: break in direct mode?
-	}
-	*/
-
-	/*
-	private fnEnd() {
-		// empty
-	}
-
-	private fnError() {
-		// empty
-	}
-
-	private fnEscape() {
-		// empty
-	}
-	*/
-
 	private fnWaitFrame() {
 		this.oVm.vmStop("", 0, true);
 		this.iNextLoopTimeOut = this.oVm.vmGetTimeUntilFrame(); // wait until next frame
 	}
 
-	private fnOnError() { //TTT
+	private fnOnError() {
 		this.oVm.vmStop("", 0, true); // continue
 	}
-
-	/*
-	private fnStop() {
-		// empty
-	}
-	*/
 
 	private static fnDummy() {
 		// empty
@@ -1756,7 +1729,7 @@ export class Controller implements IController {
 
 		this.iNextLoopTimeOut = 0;
 		if (!oStop.sReason && this.fnScript) {
-			this.fnRunPart1(); // could change sReason
+			this.fnRunPart1(this.fnScript); // could change sReason
 		}
 
 		if (oStop.sReason in this.mHandlers) {
@@ -1765,17 +1738,6 @@ export class Controller implements IController {
 			Utils.console.warn("runLoop: Unknown run mode:", oStop.sReason);
 			this.oVm.vmStop("error", 50);
 		}
-
-		/*
-		const sHandler = "fn" + Utils.stringCapitalize(oStop.sReason);
-
-		if (sHandler in this) {
-			this[sHandler](oStop.oParas);
-		} else {
-			Utils.console.warn("runLoop: Unknown run mode:", oStop.sReason);
-			this.oVm.vmStop("error", 55);
-		}
-		*/
 
 		if (oStop.sReason && oStop.sReason !== "waitSound" && oStop.sReason !== "waitKey" && oStop.sReason !== "waitInput") {
 			this.bTimeoutHandlerActive = false; // not running any more
@@ -2240,7 +2202,14 @@ export class Controller implements IController {
 	}
 
 	virtualKeyboardCreate(): void {
-		this.oKeyboard.virtualKeyboardCreate(); // maybe draw it
+		//this.oKeyboard.virtualKeyboardCreate(); // maybe draw it
+		if (!this.oVirtualKeyboard) {
+			this.oVirtualKeyboard = new VirtualKeyboard({
+				fnPressCpcKey: this.oKeyboard.fnPressCpcKey.bind(this.oKeyboard),
+				fnReleaseCpcKey: this.oKeyboard.fnReleaseCpcKey.bind(this.oKeyboard)
+			});
+		}
+		this.oVirtualKeyboard.virtualKeyboardCreate(); // maybe draw it
 	}
 
 	getVariable(sPar: string): VariableValue {

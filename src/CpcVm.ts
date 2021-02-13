@@ -5,6 +5,7 @@
 
 import { Utils, CustomError } from "./Utils";
 import { Keyboard, CpcKeyExpansionsOptions } from "./Keyboard";
+import { VirtualKeyboard } from "./VirtualKeyboard";
 import { Random } from "./Random";
 import { Sound, SoundData, ToneEnvData, ToneEnvData1, ToneEnvData2, VolEnvData, VolEnvData1, VolEnvData2 } from "./Sound";
 import { Canvas } from "./Canvas";
@@ -14,6 +15,7 @@ import { ICpcVmRsx } from "./Interfaces";
 interface CpcVmOptions {
 	canvas: Canvas
 	keyboard: Keyboard
+	virtualKeyboard: VirtualKeyboard
 	sound: Sound
 	variables: Variables
 	tron: boolean
@@ -116,15 +118,11 @@ export interface VmBaseParas {
 }
 
 export interface VmLineParas extends VmBaseParas { // delete lines, list lines, edit line, run line
-	//sCommand: string
-	//iStream: number
 	iFirst: number
 	iLast: number
 }
 
 export interface VmLineRenumParas extends VmBaseParas { // renum lines
-	//sCommand: string
-	//iStream: number
 	iNew: number
 	iOld: number
 	iStep: number
@@ -132,22 +130,17 @@ export interface VmLineRenumParas extends VmBaseParas { // renum lines
 }
 
 export interface VmFileParas extends VmBaseParas {
-	//sCommand: string
-	//iStream: number
 	sFileMask: string // CAT, |DIR, |ERA
 	sNew?: string // |REN
 	sOld?: string // |REN
 }
 
 export interface VmInputParas extends VmBaseParas {
-	//sCommand: string
-	//iStream: number
-	//iLine: string | number
+	sInput: string
 	sMessage?: string
 	sNoCRLF?: string
 	aTypes?: string[]
-	sInput: string
-	fnInputCallback?: any //TTT
+	fnInputCallback?: any
 }
 
 export type VmStopParas = VmFileParas | VmInputParas | VmLineParas | VmLineRenumParas
@@ -168,6 +161,7 @@ export class CpcVm {
 
 	oCanvas: Canvas;
 	oKeyboard: Keyboard;
+	oVirtualKeyboard: VirtualKeyboard;
 	oSound: Sound;
 	oVariables: Variables;
 	tronFlag: boolean;
@@ -208,7 +202,6 @@ export class CpcVm {
 	lastRnd = 0; // last random number
 
 	iNextFrameTime = 0;
-	//iTimeUntilFrame: number;
 	iStopCount = 0;
 
 	iLine: string | number = 0;
@@ -386,138 +379,6 @@ export class CpcVm {
 		"Unknown error" // 33...
 	];
 
-
-	/*
-	mStopEntries = {
-		"": {
-			sReason: "", // stop reason
-			iPriority: 0, // stop priority (higher number means higher priority which can overwrite lower priority)
-			oParas: {} // stop parameters
-		},
-		timer: {
-			sReason: "timer", // timer expired
-			iPriority: 20,
-			oParas: {}
-		},
-		waitKey: {
-			sReason: "waitKey", // wait for key
-			iPriority: 30,
-			oParas: {}
-		},
-		waitFrame: {
-			sReason: "waitFrame", // FRAME command: wait for frame fly
-			iPriority: 40,
-			oParas: {}
-		},
-		waitInput: {
-			sReason: "waitInput", // wait for input: INPUT, LINE INPUT, RANDOMIZE without parameter
-			iPriority: 45,
-			oParas: {}
-		},
-		fileCat: {
-			sReason: "fileCat", // CAT
-			iPriority: 45,
-			oParas: {}
-		},
-		fileDir: {
-			sReason: "fileDir", // |DIR
-			iPriority: 45,
-			oParas: {}
-		},
-		fileEra: {
-			sReason: "fileEra", // |ERA
-			iPriority: 45,
-			oParas: {}
-		},
-		fileRen: {
-			sReason: "fileRen", // |REN
-			iPriority: 45,
-			oParas: {}
-		},
-		error: {
-			sReason: "error", // BASIC error, ERROR command
-			iPriority: 50,
-			oParas: {}
-		},
-		onError: {
-			sReason: "onError", // ON ERROR GOTO active, hide error
-			iPriority: 50,
-			oParas: {}
-		},
-		stop: {
-			sReason: "stop", // STOP or END command
-			iPriority: 60,
-			oParas: {}
-		},
-		"break": {
-			sReason: "break", // break pressed
-			iPriority: 80,
-			oParas: {}
-		},
-		escape: {
-			sReason: "escape", // escape key, set in controller
-			iPriority: 85,
-			oParas: {}
-		},
-		renumLines: {
-			sReason: "renumLines", // RENUMber program
-			iPriority: 85,
-			oParas: {}
-		},
-		deleteLines: {
-			sReason: "deleteLines", // delete lines
-			iPriority: 85,
-			oParas: {}
-		},
-		end: {
-			sReason: "end", // end of program
-			iPriority: 90,
-			oParas: {}
-		},
-		list: {
-			sReason: "list", // LIST program
-			iPriority: 90,
-			oParas: {}
-		},
-		fileLoad: {
-			sReason: "fileLoad", // CHAIN, CHAIN MERGE, LOAD, MERGE, OPENIN, RUN
-			iPriority: 90,
-			oParas: {}
-		},
-		fileSave: {
-			sReason: "fileSave", // OPENOUT, SAVE
-			iPriority: 90,
-			oParas: {}
-		},
-		reset: {
-			sReason: "reset", // reset system
-			iPriority: 90,
-			oParas: {}
-		},
-		run: {
-			sReason: "run",
-			iPriority: 90,
-			oParas: {}
-		},
-		parseRun: {
-			sReason: "parseRun",
-			iPriority: 99,
-			oParas: {}
-		}
-	};
-	*/
-
-	// unused:
-	/*
-	mStopEntries1 = { //TTT
-		parseRun: {
-			sReason: "parseRun",
-			iPriority: 99,
-			oParas: {}
-		}
-	}
-	*/
-
 	private static mStopPriority: {[k in string]: number} = {
 		"": 0, // nothing
 		direct: 0, // direct input mode
@@ -558,6 +419,7 @@ export class CpcVm {
 
 		this.oCanvas = options.canvas;
 		this.oKeyboard = options.keyboard;
+		this.oVirtualKeyboard = options.virtualKeyboard;
 		this.oSound = options.sound;
 		this.oVariables = options.variables;
 		this.tronFlag = options.tron;
@@ -569,35 +431,6 @@ export class CpcVm {
 			iPriority: 0, // stop priority (higher number means higher priority which can overwrite lower priority)
 			oParas: {} as VmStopParas //TTT
 		};
-		// special stop reasons and priorities:
-		// "": 0 (no stop)
-		// "direct": 0 (direct input mode)
-		// "timer": 20 (timer expired)
-		// "waitKey": 30  (wait for key)
-		// "waitFrame": 40 (FRAME command: wait for frame fly)
-		// "waitSound": 43 (wait for sound queue)
-		// "waitInput": 45 (wait for input: INPUT, LINE INPUT, RANDOMIZE without parameter)
-		// "fileCat": 45 (CAT)
-		// "fileDir": 45 (|DIR)
-		// "fileEra": 45 (|ERA)
-		// "fileRen": 45 (|REN)
-		// "error": 50 (BASIC error, ERROR command)
-		// "onError": 50 (ON ERROR GOTO active, hide error)
-		// "stop": 60 (STOP or END command)
-		// "break": 80 (break pressed)
-		// "escape": 85 (escape key, set in controller)
-		// "renumLines": 85 (RENUMber program)
-		// "deleteLines": 85,
-		// "editLine": 85
-		// "end": 90 (end of program)
-		// "list": 90,
-		// "fileLoad": 90 (CHAIN, CHAIN MERGE, LOAD, MERGE, OPENIN, RUN)
-		// "fileSave": 90 (OPENOUT, SAVE)
-		// "new": 90
-		// "run": 95
-		// "parse": 95 (parse, used in controller)
-		// "parseRun": 95 (parse and run, used in controller)
-		// "reset": 99 (reset system)
 
 		this.aInputValues = []; // values to input into script
 
@@ -605,12 +438,12 @@ export class CpcVm {
 			bOpen: false,
 			sCommand: "",
 			sName: "",
-			iLine: 0, //undefined,
-			iStart: 0, //undefined,
+			iLine: 0,
+			iStart: 0,
 			aFileData: [],
 			fnFileCallback: undefined,
-			iFirst: 0, //undefined,
-			iLast: 0, //undefined,
+			iFirst: 0,
+			iLast: 0,
 			sMemorizedExample: ""
 		};
 
@@ -618,14 +451,14 @@ export class CpcVm {
 			bOpen: false,
 			sCommand: "",
 			sName: "",
-			iLine: 0, //undefined,
-			iStart: 0, //undefined,
+			iLine: 0,
+			iStart: 0,
 			aFileData: [],
 			fnFileCallback: undefined,
 			iStream: 0,
 			sType: "",
 			iLength: 0,
-			iEntry: 0 //undefined
+			iEntry: 0
 		}; // file handling
 		// "bOpen": File open flag
 		// "sCommand": Command that started the file open (in: chain, chainMerge, load, merge, openin, run; out: save, openput)
@@ -680,7 +513,6 @@ export class CpcVm {
 		this.lastRnd = 0;
 
 		this.iNextFrameTime = Date.now() + CpcVm.iFrameTimeMs; // next time of frame fly
-		//this.iTimeUntilFrame = 0;
 		this.iStopCount = 0;
 
 		this.iLine = 0; // current line number (or label)
@@ -739,7 +571,12 @@ export class CpcVm {
 		this.mode(1); // including vmResetWindowData() without pen and paper
 
 		this.oCanvas.reset();
+
 		this.oKeyboard.reset();
+		if (this.oVirtualKeyboard) {
+			this.oVirtualKeyboard.reset(); //TTT
+		}
+
 		this.oSound.reset();
 		this.aSoundData.length = 0;
 
@@ -1340,8 +1177,6 @@ export class CpcVm {
 		this.vmAfterEveryGosub("AFTER", iInterval, iTimer, iLine);
 	}
 
-	// and
-
 	private static vmGetCpcCharCode(iCode: number): number {
 		if (iCode > 255) { // map some UTF-8 character codes
 			if (CpcVm.mUtf8ToCpc[iCode]) {
@@ -1885,8 +1720,6 @@ export class CpcVm {
 		this.iTimerPriority = -1; // decrease priority
 	}
 
-	// else
-
 	end(sLabel: string): void {
 		this.stop(sLabel);
 	}
@@ -2058,10 +1891,6 @@ export class CpcVm {
 		return Math.trunc(n); // (ES6: Math.trunc)
 	}
 
-	// fn
-
-	// for
-
 	frame(): void {
 		this.vmStop("waitFrame", 40);
 	}
@@ -2105,8 +1934,6 @@ export class CpcVm {
 	himem(): number {
 		return this.iHimem;
 	}
-
-	// if
 
 	ink(iPen: number, iInk1: number, iInk2?: number): void { // optional iInk2
 		iPen = this.vmInRangeRound(iPen, 0, 15, "INK");
@@ -2184,7 +2011,6 @@ export class CpcVm {
 					if (isNaN(iValue)) {
 						bInputOk = false;
 					}
-					//aInputValues[i] = this.vmAssign(sVarType, value);
 					aConvertedInputValues.push(iValue);
 				} else {
 					aConvertedInputValues.push(sValue);
@@ -2642,10 +2468,6 @@ export class CpcVm {
 
 		this.vmStop("new", 90, false, oLineParas);
 	}
-
-	// next
-
-	// not
 
 	onBreakCont(): void {
 		this.iBreakGosubLine = -1;
@@ -3825,7 +3647,7 @@ export class CpcVm {
 		this.oCanvas.resetCustomChars();
 		if (iChar === 256) { // maybe move up again
 			iMinCharHimem = CpcVm.iMaxHimem;
-			this.iMaxCharHimem = iMinCharHimem; //TTT corrected
+			this.iMaxCharHimem = iMinCharHimem;
 		}
 		// TODO: Copy char data to screen memory, if screen starts at 0x4000 and chardata is in that range (and ram 0 is selected)
 		this.iMinCustomChar = iChar;
@@ -3900,13 +3722,9 @@ export class CpcVm {
 		return this.oCanvas.testr(x, y);
 	}
 
-	// then
-
 	time(): number {
 		return ((Date.now() - this.iStartTime) * 300 / 1000) | 0; // eslint-disable-line no-bitwise
 	}
-
-	// to
 
 	troff(): void {
 		this.bTron = false;
@@ -3935,9 +3753,9 @@ export class CpcVm {
 		return s;
 	}
 
-	using(sFormat: string, ...aArgs): string { // varargs
+	using(sFormat: string, ...aArgs: (string | number)[]): string { // varargs
 		const reFormat = /(!|&|\\ *\\|(?:\*\*|\$\$|\*\*\$)?\+?(?:#|,)+\.?#*(?:\^\^\^\^)?[+-]?)/g,
-			aFormat = [];
+			aFormat: string[] = [];
 
 		this.vmAssertString(sFormat, "USING");
 
@@ -3960,27 +3778,23 @@ export class CpcVm {
 		}
 
 		let iFormat = 0,
-			s = "",
-			sFrmt;
+			s = "";
 
 		for (let i = 0; i < aArgs.length; i += 1) { // start with 1
 			iFormat %= aFormat.length;
 			if (iFormat === 0) {
-				sFrmt = aFormat[iFormat]; // non-format characters at the beginning of the format string
+				s += aFormat[iFormat]; // non-format characters at the beginning of the format string
 				iFormat += 1;
-				s += sFrmt;
 			}
 			if (iFormat < aFormat.length) {
 				const arg = aArgs[i];
 
-				sFrmt = aFormat[iFormat]; // format characters
+				s += this.vmUsingFormat1(aFormat[iFormat], arg); // format characters
 				iFormat += 1;
-				s += this.vmUsingFormat1(sFrmt, arg);
 			}
 			if (iFormat < aFormat.length) {
-				sFrmt = aFormat[iFormat]; // following non-format characters
+				s += aFormat[iFormat]; // following non-format characters
 				iFormat += 1;
-				s += sFrmt;
 			}
 		}
 		return s;
@@ -4123,8 +3937,6 @@ export class CpcVm {
 			// currently we print data also to console...
 		}
 	}
-
-	// xor
 
 	xpos(): number {
 		return this.oCanvas.getXpos();
