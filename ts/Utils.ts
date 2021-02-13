@@ -140,23 +140,18 @@ export class Utils { // eslint-disable-line vars-on-top
 		return rad * 180 / Math.PI;
 	}
 
-	static bSupportsBinaryLiterals = (function () { // does the browser support binary literals?
+	private static testIsSupported(sTestExpression: string) { // does the browser support something?
 		try {
-			Function("0b01"); // eslint-disable-line no-new-func
+			Function(sTestExpression); // eslint-disable-line no-new-func
 		} catch (e) {
 			return false;
 		}
 		return true;
-	}());
+	}
 
-	static bSupportReservedNames = (function () { // does the browser support reserved names (delete, new, return) in dot notation? (not old IE8; "goto" is ok)
-		try {
-			Function("({}).return()"); // eslint-disable-line no-new-func
-		} catch (e) {
-			return false;
-		}
-		return true;
-	}());
+	static bSupportsBinaryLiterals = Utils.testIsSupported("0b01"); // does the browser support binary literals?
+
+	static bSupportReservedNames = Utils.testIsSupported("({}).return()"); // does the browser support reserved names (delete, new, return) in dot notation? (not old IE8; "goto" is ok)
 
 	static stringTrimEnd(sStr: string): string {
 		return sStr.replace(/[\s\uFEFF\xA0]+$/, "");
@@ -183,9 +178,13 @@ export class Utils { // eslint-disable-line vars-on-top
 		return typeof window !== "undefined" && window.btoa && window.btoa.bind ? window.btoa.bind(window) : null; // we need bind!
 	}()) as (arg0: string) => string;
 
-	static composeError(name: string, oErrorObject: Error, message: string, value: string, pos?: number, line?: string | number, hidden?: boolean): CustomError {
+	static composeError(name: string, oErrorObject: Error, message: string, value: string, pos: number, line?: string | number, hidden?: boolean): CustomError {
 		const oCustomError = oErrorObject as CustomError;
 
+		oCustomError.name = name;
+		oCustomError.message = message;
+		oCustomError.value = value;
+		/*
 		if (name !== undefined) {
 			oCustomError.name = name;
 		}
@@ -195,6 +194,7 @@ export class Utils { // eslint-disable-line vars-on-top
 		if (value !== undefined) {
 			oCustomError.value = value;
 		}
+		*/
 		if (pos !== undefined) {
 			oCustomError.pos = pos;
 		}

@@ -28,31 +28,12 @@ declare type PressedKeysType = {
         ctrl: boolean;
     };
 };
-interface CpcKey2Key {
-    keys: string;
-    key: string;
-    keyShift?: string;
-    text?: string;
-    title?: string;
-    style?: number;
-    numLockCpcKey?: number;
-    keyNumLock?: string;
-    textNumLock?: string;
-    titleNumLock?: string;
-    textShift?: string;
-    titleShift?: string;
-}
 interface CpcKeyExpansions {
     normal: KeyExpansionsType;
     shift: KeyExpansionsType;
     ctrl: KeyExpansionsType;
     repeat: KeyExpansionsRepeatType;
 }
-declare type VirtualKeyboardLayoutType1 = {
-    key: number;
-    style?: number;
-};
-declare type VirtualKeyboardLayoutType2 = (number | VirtualKeyboardLayoutType1);
 export declare class Keyboard {
     options: KeyboardOptions;
     fnOnKeyDown?: () => void;
@@ -67,16 +48,10 @@ export declare class Keyboard {
     oPressedKeys: PressedKeysType;
     bShiftLock: boolean;
     bNumLock: boolean;
-    static aCpcKey2Key: CpcKey2Key[];
-    static mSpecialKeys: {
-        [k in string]: string;
-    };
-    static aJoyKeyCodes: number[][];
-    static aVirtualKeyboardAlpha: VirtualKeyboardLayoutType2[][];
-    static aVirtualKeyboardNum: VirtualKeyboardLayoutType2[][];
+    private static oKey2CpcKey;
+    private static mSpecialKeys;
+    private static aJoyKeyCodes;
     constructor(options: KeyboardOptions);
-    private fnAttachPointerEvents;
-    private initKey2CpcKeyMap;
     reset(): void;
     clearInput(): void;
     resetExpansionTokens(): void;
@@ -85,8 +60,8 @@ export declare class Keyboard {
     setKeyDownHandler(fnOnKeyDown?: () => void): void;
     setActive(bActive: boolean): void;
     private removeCodeStringsFromKeymap;
-    private fnPressCpcKey;
-    private fnReleaseCpcKey;
+    fnPressCpcKey(iCpcKey: number, sPressedKey: string, sKey: string, bShiftKey: boolean, bCtrlKey: boolean): void;
+    fnReleaseCpcKey(iCpcKey: number, sPressedKey: string, sKey: string, bShiftKey: boolean, bCtrlKey: boolean): void;
     private static keyIdentifier2Char;
     private fnKeyboardKeydown;
     private fnKeyboardKeyup;
@@ -99,32 +74,5 @@ export declare class Keyboard {
     setCpcKeyExpansion(oOptions: CpcKeyExpansionsOptions): void;
     private onCpcAreaKeydown;
     private oncpcAreaKeyup;
-    private mapNumLockCpcKey;
-    private fnVirtualGetAscii;
-    private createButtonRow;
-    private virtualKeyboardCreatePart;
-    virtualKeyboardCreate(): void;
-    private virtualKeyboardAdaptKeys;
-    private fnVirtualGetPressedKey;
-    private fnGetEventTarget;
-    private onVirtualKeyboardKeydown;
-    private fnVirtualKeyboardKeyupOrKeyout;
-    private onVirtualKeyboardKeyup;
-    private onVirtualKeyboardKeyout;
-    oDrag: {
-        dragItem: HTMLElement;
-        active: boolean;
-        xOffset: number;
-        yOffset: number;
-        initialX: number;
-        initialY: number;
-        currentX: number;
-        currentY: number;
-    };
-    private dragInit;
-    private dragStart;
-    private dragEnd;
-    private setTranslate;
-    private drag;
 }
 export {};

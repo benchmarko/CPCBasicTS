@@ -16,11 +16,12 @@ export declare class Utils {
     static numberWithCommas(x: number | string): string;
     static toRadians(deg: number): number;
     static toDegrees(rad: number): number;
+    private static testIsSupported;
     static bSupportsBinaryLiterals: boolean;
     static bSupportReservedNames: boolean;
     static stringTrimEnd(sStr: string): string;
     static localStorage: Storage;
     static atob: (arg0: string) => string;
     static btoa: (arg0: string) => string;
-    static composeError(name: string, oErrorObject: Error, message: string, value: string, pos?: number, line?: string | number, hidden?: boolean): CustomError;
+    static composeError(name: string, oErrorObject: Error, message: string, value: string, pos: number, line?: string | number, hidden?: boolean): CustomError;
 }

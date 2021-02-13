@@ -21,6 +21,7 @@ var Diff_1 = require("./Diff");
 var DiskImage_1 = require("./DiskImage");
 var InputStack_1 = require("./InputStack");
 var Keyboard_1 = require("./Keyboard");
+var VirtualKeyboard_1 = require("./VirtualKeyboard");
 var Sound_1 = require("./Sound");
 var Variables_1 = require("./Variables");
 var View_1 = require("./View");
@@ -97,8 +98,20 @@ var Controller = /** @class */ (function () {
         this.oKeyboard = new Keyboard_1.Keyboard({
             fnOnEscapeHandler: this.fnOnEscapeHandler
         });
-        if (this.model.getProperty("showKbd")) { // maybe we need to draw virtual keyboard
+        /*
+        if (this.model.getProperty<boolean>("showKbd")) { // maybe we need to draw virtual keyboard
             this.oKeyboard.virtualKeyboardCreate();
+        }
+        */
+        if (this.model.getProperty("showKbd")) { // maybe we need to draw virtual keyboard
+            /*
+            this.oVirtualKeyboard = new VirtualKeyboard({
+                fnPressCpcKey: this.oKeyboard.fnPressCpcKey,
+                fnReleaseCpcKey: this.oKeyboard.fnReleaseCpcKey
+            });
+            this.oVirtualKeyboard.virtualKeyboardCreate();
+            */
+            this.virtualKeyboardCreate();
         }
         this.oSound = new Sound_1.Sound();
         this.commonEventHandler.fnSetUserAction(this.onUserAction.bind(this)); // check first user action, also if sound is not yet on
@@ -107,6 +120,7 @@ var Controller = /** @class */ (function () {
         this.oVm = new CpcVm_1.CpcVm({
             canvas: this.oCanvas,
             keyboard: this.oKeyboard,
+            virtualKeyboard: this.oVirtualKeyboard,
             sound: this.oSound,
             variables: this.oVariables,
             tron: oModel.getProperty("tron")
@@ -277,7 +291,6 @@ var Controller = /** @class */ (function () {
                         key: sKey,
                         title: "",
                         meta: oData.oMeta.sType // currently we take only the type
-                        //type: undefined //TTT for what?
                     };
                     this.model.setExample(oExample);
                 }
@@ -880,11 +893,11 @@ var Controller = /** @class */ (function () {
     };
     Controller.tryLoadingFromLocalStorage = function (sName) {
         var oStorage = Utils_1.Utils.localStorage, aExtensions = [
-            null,
+            "",
             "bas",
             "bin"
         ];
-        var sInput;
+        var sInput = null;
         for (var i = 0; i < aExtensions.length; i += 1) {
             var sStorageName = Controller.fnLocalStorageName(sName, aExtensions[i]);
             sInput = oStorage.getItem(sStorageName);
@@ -1244,9 +1257,9 @@ var Controller = /** @class */ (function () {
             this.fnRun();
         }
     };
-    Controller.prototype.fnRunPart1 = function () {
+    Controller.prototype.fnRunPart1 = function (fnScript) {
         try {
-            this.fnScript(this.oVm);
+            fnScript(this.oVm);
         }
         catch (e) {
             if (e.name === "CpcVm") {
@@ -1303,7 +1316,7 @@ var Controller = /** @class */ (function () {
                             oError.shortMessage = "[prg] " + oError.shortMessage;
                         }
                         sOutput = this.outputError(oError, true);
-                        oOutput = null;
+                        oOutput = undefined;
                     }
                 }
             }
@@ -1378,29 +1391,6 @@ var Controller = /** @class */ (function () {
             this.startWithDirectInput();
         }
     };
-    /*
-    private fnBreak() {
-        // empty
-    }
-    */
-    /*
-    private fnDirect() {
-        // TTT: break in direct mode?
-    }
-    */
-    /*
-    private fnEnd() {
-        // empty
-    }
-
-    private fnError() {
-        // empty
-    }
-
-    private fnEscape() {
-        // empty
-    }
-    */
     Controller.prototype.fnWaitFrame = function () {
         this.oVm.vmStop("", 0, true);
         this.iNextLoopTimeOut = this.oVm.vmGetTimeUntilFrame(); // wait until next frame
@@ -1408,11 +1398,6 @@ var Controller = /** @class */ (function () {
     Controller.prototype.fnOnError = function () {
         this.oVm.vmStop("", 0, true); // continue
     };
-    /*
-    private fnStop() {
-        // empty
-    }
-    */
     Controller.fnDummy = function () {
         // empty
     };
@@ -1423,7 +1408,7 @@ var Controller = /** @class */ (function () {
         var oStop = this.oVm.vmGetStopObject();
         this.iNextLoopTimeOut = 0;
         if (!oStop.sReason && this.fnScript) {
-            this.fnRunPart1(); // could change sReason
+            this.fnRunPart1(this.fnScript); // could change sReason
         }
         if (oStop.sReason in this.mHandlers) {
             this.mHandlers[oStop.sReason].call(this, oStop.oParas);
@@ -1432,16 +1417,6 @@ var Controller = /** @class */ (function () {
             Utils_1.Utils.console.warn("runLoop: Unknown run mode:", oStop.sReason);
             this.oVm.vmStop("error", 50);
         }
-        /*
-        const sHandler = "fn" + Utils.stringCapitalize(oStop.sReason);
-
-        if (sHandler in this) {
-            this[sHandler](oStop.oParas);
-        } else {
-            Utils.console.warn("runLoop: Unknown run mode:", oStop.sReason);
-            this.oVm.vmStop("error", 55);
-        }
-        */
         if (oStop.sReason && oStop.sReason !== "waitSound" && oStop.sReason !== "waitKey" && oStop.sReason !== "waitInput") {
             this.bTimeoutHandlerActive = false; // not running any more
             this.exitLoop();
@@ -1827,7 +1802,14 @@ var Controller = /** @class */ (function () {
         this.oCanvas.stopUpdateCanvas();
     };
     Controller.prototype.virtualKeyboardCreate = function () {
-        this.oKeyboard.virtualKeyboardCreate(); // maybe draw it
+        //this.oKeyboard.virtualKeyboardCreate(); // maybe draw it
+        if (!this.oVirtualKeyboard) {
+            this.oVirtualKeyboard = new VirtualKeyboard_1.VirtualKeyboard({
+                fnPressCpcKey: this.oKeyboard.fnPressCpcKey.bind(this.oKeyboard),
+                fnReleaseCpcKey: this.oKeyboard.fnReleaseCpcKey.bind(this.oKeyboard)
+            });
+        }
+        this.oVirtualKeyboard.virtualKeyboardCreate(); // maybe draw it
     };
     Controller.prototype.getVariable = function (sPar) {
         return this.oVariables.getVariable(sPar);

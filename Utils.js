@@ -107,11 +107,24 @@ var Utils = /** @class */ (function () {
     Utils.toDegrees = function (rad) {
         return rad * 180 / Math.PI;
     };
+    Utils.testIsSupported = function (sTestExpression) {
+        try {
+            Function(sTestExpression); // eslint-disable-line no-new-func
+        }
+        catch (e) {
+            return false;
+        }
+        return true;
+    };
     Utils.stringTrimEnd = function (sStr) {
         return sStr.replace(/[\s\uFEFF\xA0]+$/, "");
     };
     Utils.composeError = function (name, oErrorObject, message, value, pos, line, hidden) {
         var oCustomError = oErrorObject;
+        oCustomError.name = name;
+        oCustomError.message = message;
+        oCustomError.value = value;
+        /*
         if (name !== undefined) {
             oCustomError.name = name;
         }
@@ -121,6 +134,7 @@ var Utils = /** @class */ (function () {
         if (value !== undefined) {
             oCustomError.value = value;
         }
+        */
         if (pos !== undefined) {
             oCustomError.pos = pos;
         }
@@ -139,24 +153,8 @@ var Utils = /** @class */ (function () {
     Utils.console = (function () {
         return typeof window !== "undefined" ? window.console : globalThis.console; // browser or node.js
     }());
-    Utils.bSupportsBinaryLiterals = (function () {
-        try {
-            Function("0b01"); // eslint-disable-line no-new-func
-        }
-        catch (e) {
-            return false;
-        }
-        return true;
-    }());
-    Utils.bSupportReservedNames = (function () {
-        try {
-            Function("({}).return()"); // eslint-disable-line no-new-func
-        }
-        catch (e) {
-            return false;
-        }
-        return true;
-    }());
+    Utils.bSupportsBinaryLiterals = Utils.testIsSupported("0b01"); // does the browser support binary literals?
+    Utils.bSupportReservedNames = Utils.testIsSupported("({}).return()"); // does the browser support reserved names (delete, new, return) in dot notation? (not old IE8; "goto" is ok)
     Utils.localStorage = (function () {
         var rc;
         if (typeof window !== "undefined") {

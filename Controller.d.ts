@@ -8,6 +8,7 @@ import { CpcVm, VmStopEntry } from "./CpcVm";
 import { CpcVmRsx } from "./CpcVmRsx";
 import { InputStack } from "./InputStack";
 import { Keyboard } from "./Keyboard";
+import { VirtualKeyboard } from "./VirtualKeyboard";
 import { Model } from "./Model";
 import { Sound } from "./Sound";
 import { Variables, VariableValue } from "./Variables";
@@ -34,6 +35,7 @@ export declare class Controller implements IController {
     oCanvas: Canvas;
     inputStack: InputStack;
     oKeyboard: Keyboard;
+    oVirtualKeyboard?: VirtualKeyboard;
     oSound: Sound;
     oVm: CpcVm;
     oRsx: CpcVmRsx;

@@ -1,5 +1,6 @@
 import { CustomError } from "./Utils";
 import { Keyboard } from "./Keyboard";
+import { VirtualKeyboard } from "./VirtualKeyboard";
 import { Random } from "./Random";
 import { Sound, SoundData } from "./Sound";
 import { Canvas } from "./Canvas";
@@ -8,6 +9,7 @@ import { ICpcVmRsx } from "./Interfaces";
 interface CpcVmOptions {
     canvas: Canvas;
     keyboard: Keyboard;
+    virtualKeyboard: VirtualKeyboard;
     sound: Sound;
     variables: Variables;
     tron: boolean;
@@ -87,10 +89,10 @@ export interface VmFileParas extends VmBaseParas {
     sOld?: string;
 }
 export interface VmInputParas extends VmBaseParas {
+    sInput: string;
     sMessage?: string;
     sNoCRLF?: string;
     aTypes?: string[];
-    sInput: string;
     fnInputCallback?: any;
 }
 export declare type VmStopParas = VmFileParas | VmInputParas | VmLineParas | VmLineRenumParas;
@@ -107,6 +109,7 @@ export declare class CpcVm {
     fnRunHandler: any;
     oCanvas: Canvas;
     oKeyboard: Keyboard;
+    oVirtualKeyboard: VirtualKeyboard;
     oSound: Sound;
     oVariables: Variables;
     tronFlag: boolean;
@@ -412,7 +415,7 @@ export declare class CpcVm {
     unt(n: number): number;
     private static fnUpperCase;
     upper$(s: string): string;
-    using(sFormat: string, ...aArgs: any[]): string;
+    using(sFormat: string, ...aArgs: (string | number)[]): string;
     private static vmVal;
     val(s: string): number;
     vpos(iStream: number): number;
