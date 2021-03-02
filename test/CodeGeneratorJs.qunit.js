@@ -7,9 +7,8 @@ var Utils_1 = require("../Utils");
 var BasicLexer_1 = require("../BasicLexer");
 var BasicParser_1 = require("../BasicParser");
 var CodeGeneratorJs_1 = require("../CodeGeneratorJs");
-var qunit_1 = require("qunit"); //TTT
 var Variables_1 = require("../Variables");
-qunit_1.QUnit.module("CodeGeneratorJs: Tests", function ( /* hooks */) {
+QUnit.module("CodeGeneratorJs: Tests", function () {
     var mAllTests = {
         numbers: {
             "a=1": " v.a = o.vmAssign(\"a\", 1);",
@@ -612,7 +611,7 @@ qunit_1.QUnit.module("CodeGeneratorJs: Tests", function ( /* hooks */) {
         for (var sCategory in oAllTests) {
             if (oAllTests.hasOwnProperty(sCategory)) {
                 (function (sCat) {
-                    qunit_1.QUnit.test(sCat, function (assert) {
+                    QUnit.test(sCat, function (assert) {
                         runTestsFor(assert, oAllTests[sCat]);
                     });
                 }(sCategory));

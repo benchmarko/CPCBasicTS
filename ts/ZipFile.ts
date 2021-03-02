@@ -52,10 +52,6 @@ export class ZipFile {
 	private oEntryTable: ZipDirectoryType;
 
 	constructor(aData: Uint8Array, sZipName: string) {
-		this.init(aData, sZipName);
-	}
-
-	init(aData: Uint8Array, sZipName: string): void {
 		this.aData = aData;
 		this.sZipName = sZipName; // for error messages
 		this.oEntryTable = this.readZipDirectory();
@@ -65,10 +61,17 @@ export class ZipFile {
 		return this.oEntryTable;
 	}
 
+	/*
 	private composeError(...aArgs) { // varargs
 		aArgs[1] = this.sZipName + ": " + aArgs[1]; // put zipname in message
 		aArgs.unshift("ZipFile");
 		return Utils.composeError.apply(null, aArgs);
+	}
+	*/
+
+	private composeError(oError: Error, message: string, value: string, pos: number) {
+		message = this.sZipName + ": " + message; // put zipname in message
+		return Utils.composeError("ZipFile", oError, message, value, pos);
 	}
 
 	private subArr(iBegin: number, iLength: number) {
@@ -129,12 +132,14 @@ export class ZipFile {
 			iExtraFieldLength: this.readUShort(iPos + 30), // extra field length
 			iFileCommentLength: this.readUShort(iPos + 32), // file comment length
 			iLocalOffset: this.readUInt(iPos + 42), // relative offset of local file header
-			sName: undefined,
-			bIsDirectory: undefined,
-			aExtra: undefined,
-			sComment: undefined,
-			iTimestamp: undefined,
-			iDataStart: undefined
+
+			// set later...
+			sName: "",
+			bIsDirectory: false,
+			aExtra: [] as unknown as Uint8Array,
+			sComment: "",
+			iTimestamp: 0,
+			iDataStart: 0
 		};
 
 		return oCdfh;
@@ -153,7 +158,7 @@ export class ZipFile {
 
 		// find End of central directory (EOCD) record
 		let i = aData.length - iEocdLen + 1, // +1 because of loop
-			oEocd: EndOfCentralDir;
+			oEocd: EndOfCentralDir | undefined;
 
 		const n = Math.max(0, i - iMaxEocdCommentLen);
 
@@ -242,7 +247,7 @@ export class ZipFile {
 
 				while (iBitCnt < iNeed) {
 					if (iInCnt === iBufEnd) {
-						throw that.composeError(Error(), "Zip: inflate: Data overflow", that.sZipName);
+						throw that.composeError(Error(), "Zip: inflate: Data overflow", that.sZipName, -1);
 					}
 					iOut |= aData[iInCnt] << iBitCnt; // eslint-disable-line no-bitwise
 					iInCnt += 1;

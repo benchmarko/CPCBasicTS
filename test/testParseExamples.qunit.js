@@ -212,7 +212,7 @@ function fnExampleLoaded(oError, sCode) {
     var sKey = cpcBasic.model.getProperty("example"), oExample = cpcBasic.model.getExample(sKey), oOutput = testParseExample(oExample);
     if (!oOutput.error) {
         if (cpcBasic.iTestIndex < cpcBasic.aTestExamples.length) {
-            testNextExample();
+            testNextExample(); // eslint-disable-line no-use-before-define
         }
     }
 }
@@ -237,7 +237,7 @@ function testLoadExample(oExample) {
         nodeReadUrl(sUrl, fnExampleLoaded);
     }
     else {
-        Utils_1.Utils.loadScript(sUrl, fnExampleLoadedUtils, fnExampleErrorUtils);
+        Utils_1.Utils.loadScript(sUrl, fnExampleLoadedUtils, fnExampleErrorUtils, sExample);
     }
 }
 function testNextExample() {
@@ -275,7 +275,8 @@ function fnIndexErrorUtils(sUrl) {
 function testLoadIndex() {
     Utils_1.Utils.console.log("testLoadIndex: bNodeJs:", bNodeJsAvail, " Polyfills.iCount=", Polyfills_1.Polyfills.iCount);
     cpcBasic.initDatabases();
-    cpcBasic.model.setProperty("database", "examples");
+    var sKey = "examples";
+    cpcBasic.model.setProperty("database", sKey);
     var oExampeDb = cpcBasic.model.getDatabase(), sDir = oExampeDb.src;
     /*
     if (bNodeJsAvail) {
@@ -293,7 +294,7 @@ function testLoadIndex() {
         nodeReadUrl(sUrl, fnIndexLoaded);
     }
     else {
-        Utils_1.Utils.loadScript(sUrl, fnIndexLoadedUtils, fnIndexErrorUtils);
+        Utils_1.Utils.loadScript(sUrl, fnIndexLoadedUtils, fnIndexErrorUtils, sKey);
     }
 }
 function fnParseArgs(aArgs) {

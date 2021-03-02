@@ -5,9 +5,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var bGenerateAllResults = false;
 var Utils_1 = require("../Utils");
 var BasicLexer_1 = require("../BasicLexer");
-var qunit_1 = require("qunit"); //TTT
-qunit_1.QUnit.dump.maxDepth = 10;
-qunit_1.QUnit.module("BasicLexer: Tests", function () {
+QUnit.dump.maxDepth = 10;
+QUnit.module("BasicLexer: Tests", function () {
     var mAllTests = {
         numbers: {
             "a=1": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"number","value":"1","pos":2},{"type":"(end)","value":"","pos":3}]',
@@ -628,7 +627,7 @@ qunit_1.QUnit.module("BasicLexer: Tests", function () {
         for (var sCategory in oAllTests) {
             if (oAllTests.hasOwnProperty(sCategory)) {
                 (function (sCat) {
-                    qunit_1.QUnit.test(sCat, function (assert) {
+                    QUnit.test(sCat, function (assert) {
                         runTestsFor(assert, oAllTests[sCat]);
                     });
                 }(sCategory));

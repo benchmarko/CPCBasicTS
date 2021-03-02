@@ -26,7 +26,6 @@ export declare class ZipFile {
     sZipName: string;
     private oEntryTable;
     constructor(aData: Uint8Array, sZipName: string);
-    init(aData: Uint8Array, sZipName: string): void;
     getZipDirectory(): ZipDirectoryType;
     private composeError;
     private subArr;

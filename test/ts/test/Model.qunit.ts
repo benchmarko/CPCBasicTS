@@ -2,12 +2,15 @@
 //
 
 import { Model } from "../Model";
-import { QUnit } from "qunit"; //TTT
+import {} from "qunit";
+
+//type QUnitAssertType1 = { strictEqual: (r: any, e: any, sMsg: string) => void };
+//type QUnitHooksType1 = { beforeEach: (a: any) => void };
 
 
-QUnit.module("Model: Properties", function (hooks) {
-	hooks.beforeEach(function (/* assert */) {
-		const that = this, // eslint-disable-line no-invalid-this
+QUnit.module("Model: Properties", function (hooks: NestedHooks) {
+	hooks.beforeEach(function (this: any) {
+		const that = this, // eslint-disable-line no-invalid-this, @typescript-eslint/no-this-alias
 			oInitialConfig = {
 				p1: "v1"
 			},
@@ -19,13 +22,13 @@ QUnit.module("Model: Properties", function (hooks) {
 		that.model = new Model(oConfig, oInitialConfig);
 	});
 
-	QUnit.test("init without options", function (assert) {
+	QUnit.test("init without options", function (assert: Assert) {
 		const oModel = new Model({}, {});
 
 		assert.ok(oModel, "defined");
 	});
 
-	QUnit.test("properties", function (assert) {
+	QUnit.test("properties", function (this: any, assert: Assert) {
 		const oModel = this.model; // eslint-disable-line no-invalid-this
 
 		let oAllProperties = oModel.getAllInitialProperties();
@@ -56,12 +59,12 @@ QUnit.module("Model: Properties", function (hooks) {
 });
 
 
-QUnit.module("Model: Databases", function (hooks) {
-	hooks.beforeEach(function (/* assert */) {
-		// const that = this, // eslint-disable-line no-invalid-this
+QUnit.module("Model: Databases", function (hooks: NestedHooks) {
+	hooks.beforeEach(function () {
+		// empty
 	});
 
-	QUnit.test("databases", function (assert) {
+	QUnit.test("databases", function (assert: Assert) {
 		const oModel = new Model({}, {}),
 			mDatabases = {
 				db1: {
@@ -98,9 +101,9 @@ QUnit.module("Model: Databases", function (hooks) {
 });
 
 
-QUnit.module("Model: Examples", function (hooks) {
-	hooks.beforeEach(function (/* assert */) {
-		const that = this, // eslint-disable-line no-invalid-this
+QUnit.module("Model: Examples", function (hooks: NestedHooks) {
+	hooks.beforeEach(function (this: any) {
+		const that = this, // eslint-disable-line no-invalid-this, @typescript-eslint/no-this-alias
 			mDatabases = {
 				db1: {
 					text: "db1Text",
@@ -134,7 +137,7 @@ QUnit.module("Model: Examples", function (hooks) {
 		that.model = oModel;
 	});
 
-	QUnit.test("examples", function (assert) {
+	QUnit.test("examples", function (this: any, assert: Assert) {
 		const oModel = this.model; // eslint-disable-line no-invalid-this
 
 		assert.strictEqual(oModel.getExample("ex1").key, "ex1", "ex1");

@@ -7,8 +7,14 @@
 import { Utils } from "./Utils";
 import { View } from "./View";
 
+
+type CharType = number[]; // 8 bytes char bitmap
+
+type CharsetType = CharType[];
+
+
 export interface CanvasOptions {
-	aCharset: number[][]
+	aCharset: CharsetType //number[][]
 	onClickKey?: (arg0: string) => void
 }
 
@@ -19,86 +25,163 @@ interface ModeData {
 }
 
 export class Canvas {
-	fnUpdateCanvasHandler: () => void;
-	fnUpdateCanvas2Handler: () => void;
+	private fnUpdateCanvasHandler: () => void;
+	private fnUpdateCanvas2Handler: () => void;
 
-	iFps: number; // FPS for canvas update
+	private iFps: number; // FPS for canvas update
 
-	cpcAreaBox: HTMLElement;
-	textText: HTMLTextAreaElement;
+	private cpcAreaBox: HTMLElement;
+	private textText: HTMLTextAreaElement;
 
-	aCharset: number[][];
-	oCustomCharset: {[k: number]: number[]};
+	private aCharset: CharsetType;
+	private oCustomCharset: {[k: number]: CharType} = {};
 
-	onClickKey?: (arg0: string) => void;
+	private onClickKey?: (arg0: string) => void;
 
-	iGColMode: number; // 0=normal, 1=xor, 2=and, 3=or
+	private iGColMode: number; // 0=normal, 1=xor, 2=and, 3=or
 
-	iMask: number;
-	iMaskBit: number;
-	iMaskFirst: number;
+	private iMask: number;
+	private iMaskBit: number;
+	private iMaskFirst: number;
 
-	iOffset: number; // screen offset
+	private iOffset: number; // screen offset
 
-	canvas: HTMLCanvasElement;
+	private canvas: HTMLCanvasElement;
 
-	iWidth: number;
-	iHeight: number;
-	iBorderWidth: number;
+	private iWidth: number;
+	private iHeight: number;
+	private iBorderWidth: number;
 
-	dataset8: Uint8Array;
+	private dataset8: Uint8Array;
 
-	bNeedUpdate: boolean;
-	bNeedTextUpdate: boolean;
+	private bNeedUpdate: boolean;
+	private bNeedTextUpdate: boolean;
 
-	aColorValues: number[][];
+	private aColorValues: number[][];
 
-	aCurrentInks: number[][];
-	aSpeedInk: number[];
-	iInkSet: number;
+	private aCurrentInks: number[][];
+	private aSpeedInk: number[];
+	private iInkSet = 0;
 
-	aPen2ColorMap: number[][];
+	private aPen2ColorMap: number[][];
 
-	iAnimationTimeoutId: number;
-	iAnimationFrame: number;
+	private iAnimationTimeoutId?: number;
+	private iAnimationFrame?: number;
 
-	imageData: ImageData;
+	private ctx: CanvasRenderingContext2D;
+	private imageData: ImageData;
 
-	fnCopy2Canvas: () => void;
-	bLittleEndian: boolean;
-	aPen2Color32: Uint32Array;
-	aData32: Uint32Array;
-	bUse32BitCopy: boolean;
+	private fnCopy2Canvas?: () => void;
+	private bLittleEndian = true;
+	private aPen2Color32?: Uint32Array;
+	private aData32?: Uint32Array;
+	private bUse32BitCopy = true; // determined later
 
-	iGPen: number;
-	iGPaper: number;
+	private iGPen = 0;
+	private iGPaper = 0;
 
-	iSpeedInkCount: number;
+	private iSpeedInkCount = 0; // usually 10
 
-	aTextBuffer: number[][]; // textbuffer characters at row,column
+	private aTextBuffer: number[][] = []; // textbuffer characters at row,column
 
-	bHasFocus: boolean;
+	private bHasFocus = false; // canvas has focus
 
-	oModeData: ModeData;
-	iMode: number;
+	private iMode = 0;
+	private oModeData = Canvas.aModeData[0];
 
-	xPos: number;
-	yPos: number;
+	private xPos = 0;
+	private yPos = 0;
 
-	xOrig: number;
-	yOrig: number;
-	xLeft: number;
-	xRight: number;
-	yTop: number;
-	yBottom: number;
+	private xOrig = 0;
+	private yOrig = 0;
+	private xLeft = 0;
+	private xRight = 639;
+	private yTop = 399;
+	private yBottom = 0;
 
-	bGTransparent: boolean;
-
+	private bGTransparent = false;
 
 	constructor(options: CanvasOptions) {
 		this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
 		this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
-		this.init(options);
+
+		const iBorderWidth = 4;
+
+		this.aCharset = options.aCharset;
+		this.onClickKey = options.onClickKey;
+
+		this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
+		this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
+
+		this.iFps = 15; // FPS for canvas update
+
+		this.cpcAreaBox = View.getElementById1("cpcAreaBox");
+		this.textText = View.getElementById1("textText") as HTMLTextAreaElement; // View.setAreaValue()
+
+		this.iGColMode = 0; // 0=normal, 1=xor, 2=and, 3=or
+
+		this.iMask = 255;
+		this.iMaskBit = 128;
+		this.iMaskFirst = 1;
+
+		this.iOffset = 0; // screen offset
+
+		const canvas = View.getElementById1("cpcCanvas") as HTMLCanvasElement;
+
+		this.canvas = canvas;
+
+		// make sure canvas is not hidden (allows to get width, height, set style)
+		if (canvas.offsetParent === null) {
+			Utils.console.error("Error: canvas is not visible!");
+		}
+
+		const iWidth = canvas.width,
+			iHeight = canvas.height;
+
+		this.iWidth = iWidth;
+		this.iHeight = iHeight;
+		this.iBorderWidth = iBorderWidth;
+		canvas.style.borderWidth = iBorderWidth + "px";
+		canvas.style.borderStyle = "solid";
+
+		this.dataset8 = new Uint8Array(new ArrayBuffer(iWidth * iHeight)); // array with pen values
+
+		this.bNeedUpdate = false;
+		this.bNeedTextUpdate = false;
+
+		this.aColorValues = Canvas.extractAllColorValues(Canvas.aColors);
+
+		this.aCurrentInks = [];
+		this.aSpeedInk = [];
+		this.aPen2ColorMap = [];
+
+		this.iAnimationTimeoutId = undefined;
+		this.iAnimationFrame = undefined;
+
+		if (this.canvas.getContext) { // not available on e.g. IE8
+			this.ctx = this.canvas.getContext("2d") as CanvasRenderingContext2D;
+
+			this.imageData = this.ctx.getImageData(0, 0, iWidth, iHeight);
+
+			if (typeof Uint32Array !== "undefined" && this.imageData.data.buffer) {	// imageData.data.buffer not available on IE10
+				this.bLittleEndian = Canvas.isLittleEndian();
+				this.aPen2Color32 = new Uint32Array(new ArrayBuffer(Canvas.aModeData[3].iPens * 4));
+				this.aData32 = new Uint32Array(this.imageData.data.buffer);
+				this.bUse32BitCopy = true;
+				Utils.console.log("Canvas: using optimized copy2Canvas32bit, littleEndian:", this.bLittleEndian);
+			} else {
+				this.setAlpha(255);
+				this.bUse32BitCopy = false;
+				Utils.console.log("Canvas: using copy2Canvas8bit");
+			}
+
+			this.applyCopy2CanvasFunction(this.iOffset);
+		} else {
+			Utils.console.warn("Error: canvas.getContext is not supported.");
+			this.ctx = {} as CanvasRenderingContext2D; // not available
+			this.imageData = {} as ImageData; // not available
+		}
+		this.reset();
 	}
 
 	// http://www.cpcwiki.eu/index.php/CPC_Palette
@@ -177,92 +260,13 @@ export class Canvas {
 		+ "\u2B60\u2B62\u25B2\u25BC\u25B6\u25C0\u1FBC6\u1FBC5\u1FBC7\u1FBC8\uFFBDC\uFFBDD\u2B65\u2B64";
 
 
-	init(options: CanvasOptions): void {
-		const iBorderWidth = 4;
-
-		this.aCharset = options.aCharset;
-		this.onClickKey = options.onClickKey;
-
-		this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
-		this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
-
-		this.iFps = 15; // FPS for canvas update
-
-		this.cpcAreaBox = View.getElementById1("cpcAreaBox");
-		this.textText = View.getElementById1("textText") as HTMLTextAreaElement; // View.setAreaValue()
-
-		this.iGColMode = 0; // 0=normal, 1=xor, 2=and, 3=or
-
-		this.iMask = 255;
-		this.iMaskBit = 128;
-		this.iMaskFirst = 1;
-
-		this.iOffset = 0; // screen offset
-
-		const canvas = View.getElementById1("cpcCanvas") as HTMLCanvasElement;
-
-		this.canvas = canvas;
-
-		// make sure canvas is not hidden (allows to get width, height, set style)
-		if (canvas.offsetParent === null) {
-			Utils.console.error("Error: canvas is not visible!");
-		}
-
-		const iWidth = canvas.width,
-			iHeight = canvas.height;
-
-		this.iWidth = iWidth;
-		this.iHeight = iHeight;
-		this.iBorderWidth = iBorderWidth;
-		canvas.style.borderWidth = iBorderWidth + "px";
-		canvas.style.borderStyle = "solid";
-
-		this.dataset8 = new Uint8Array(new ArrayBuffer(iWidth * iHeight)); // array with pen values
-
-		this.bNeedUpdate = false;
-		this.bNeedTextUpdate = false;
-
-		this.aColorValues = Canvas.extractAllColorValues(Canvas.aColors);
-
-		this.aCurrentInks = [];
-		this.aSpeedInk = [];
-		this.aPen2ColorMap = [];
-
-		this.iAnimationTimeoutId = undefined;
-		this.iAnimationFrame = undefined;
-
-		if (this.canvas.getContext) {
-			const ctx = this.canvas.getContext("2d");
-
-			this.imageData = ctx.getImageData(0, 0, iWidth, iHeight);
-
-			if (typeof Uint32Array !== "undefined" && this.imageData.data.buffer) {	// imageData.data.buffer not available on IE10
-				this.bLittleEndian = Canvas.isLittleEndian();
-				this.aPen2Color32 = new Uint32Array(new ArrayBuffer(Canvas.aModeData[3].iPens * 4));
-				this.aData32 = new Uint32Array(this.imageData.data.buffer);
-				this.bUse32BitCopy = true;
-				Utils.console.log("Canvas: using optimized copy2Canvas32bit, littleEndian:", this.bLittleEndian);
-			} else {
-				this.setAlpha(255);
-				this.bUse32BitCopy = false;
-				Utils.console.log("Canvas: using copy2Canvas8bit");
-			}
-
-			this.applyCopy2CanvasFunction(this.iOffset);
-		} else {
-			Utils.console.warn("Error: canvas.getContext is not supported.");
-			this.imageData = null;
-		}
-		this.reset();
-	}
-
 	reset(): void {
 		this.resetTextBuffer();
 		this.setNeedTextUpdate();
 
 		this.changeMode(1);
-		this.iGPen = undefined; // undefined to force update
-		this.iGPaper = undefined;
+		//this.iGPen = undefined; //TTT undefined to force update
+		//this.iGPaper = undefined; //TTT
 		this.iInkSet = 0;
 		this.setDefaultInks();
 
@@ -283,7 +287,7 @@ export class Canvas {
 	}
 
 	private resetTextBuffer() {
-		this.aTextBuffer = [];
+		this.aTextBuffer.length = 0;
 	}
 
 	static isLittleEndian(): boolean {
@@ -336,7 +340,7 @@ export class Canvas {
 		if (this.bNeedUpdate) { // could be improved: update only updateRect
 			this.bNeedUpdate = false;
 			// we always do a full updateCanvas...
-			if (this.imageData) { // not available on e.g. IE8
+			if (this.fnCopy2Canvas) { // not available on e.g. IE8
 				this.fnCopy2Canvas();
 			}
 		}
@@ -371,8 +375,7 @@ export class Canvas {
 	}
 
 	private copy2Canvas8bit() {
-		const ctx = this.canvas.getContext("2d"),
-			buf8 = this.imageData.data, // use Uint8ClampedArray from canvas
+		const buf8 = this.imageData.data, // use Uint8ClampedArray from canvas
 			dataset8 = this.dataset8,
 			iLength = dataset8.length, // or: this.iWidth * this.iHeight
 			aPen2ColorMap = this.aPen2ColorMap;
@@ -386,27 +389,25 @@ export class Canvas {
 			buf8[j + 2] = aColor[2]; // b
 			// alpha already set to 255
 		}
-		ctx.putImageData(this.imageData, 0, 0);
+		this.ctx.putImageData(this.imageData, 0, 0);
 	}
 
 	private copy2Canvas32bit() {
-		const ctx = this.canvas.getContext("2d"),
-			dataset8 = this.dataset8,
-			aData32 = this.aData32,
-			aPen2Color32 = this.aPen2Color32;
+		const dataset8 = this.dataset8,
+			aData32 = this.aData32 as Uint32Array,
+			aPen2Color32 = this.aPen2Color32 as Uint32Array;
 
 		for (let i = 0; i < aData32.length; i += 1) {
 			aData32[i] = aPen2Color32[dataset8[i]];
 		}
 
-		ctx.putImageData(this.imageData, 0, 0);
+		this.ctx.putImageData(this.imageData, 0, 0);
 	}
 
 	private copy2Canvas32bitWithOffset() {
-		const ctx = this.canvas.getContext("2d"),
-			dataset8 = this.dataset8,
-			aData32 = this.aData32,
-			aPen2Color32 = this.aPen2Color32,
+		const dataset8 = this.dataset8,
+			aData32 = this.aData32 as Uint32Array,
+			aPen2Color32 = this.aPen2Color32 as Uint32Array,
 			iOffset = this.iOffset;
 
 		for (let i = 0; i < aData32.length - iOffset; i += 1) {
@@ -417,7 +418,7 @@ export class Canvas {
 			aData32[i + iOffset - aData32.length] = aPen2Color32[dataset8[i]];
 		}
 
-		ctx.putImageData(this.imageData, 0, 0);
+		this.ctx.putImageData(this.imageData, 0, 0);
 	}
 
 	private applyCopy2CanvasFunction(iOffset: number) {
@@ -511,11 +512,11 @@ export class Canvas {
 		}
 	}
 
-	setCustomChar(iChar: number, aCharData: number[]): void {
+	setCustomChar(iChar: number, aCharData: CharType): void {
 		this.oCustomCharset[iChar] = aCharData;
 	}
 
-	getCharData(iChar: number): number[] {
+	getCharData(iChar: number): CharType {
 		const aCharData = this.oCustomCharset[iChar] || this.aCharset[iChar];
 
 		return aCharData;
@@ -536,7 +537,7 @@ export class Canvas {
 		this.bHasFocus = true;
 	}
 
-	private getMousePos(event) {
+	private getMousePos(event: MouseEvent) {
 		const oRect = this.canvas.getBoundingClientRect(),
 			oPos = {
 				x: event.clientX - this.iBorderWidth - oRect.left,
@@ -546,7 +547,7 @@ export class Canvas {
 		return oPos;
 	}
 
-	private canvasClickAction2(event) {
+	private canvasClickAction2(event: MouseEvent) {
 		const oPos = this.getMousePos(event),
 			iCharWidth = this.oModeData.iPixelWidth * 8,
 			iCharHeight = this.oModeData.iPixelHeight * 8;
@@ -579,11 +580,11 @@ export class Canvas {
 			this.move(x, y);
 		}
 		if (Utils.debug > 0) {
-			Utils.console.debug("onCpcCanvasClick: x-xOrig", x, "y-yOrig", y, "iChar", iChar, "char", String.fromCharCode(iChar), "detail", event.detail);
+			Utils.console.debug("onCpcCanvasClick: x-xOrig", x, "y-yOrig", y, "iChar", iChar, "char", (iChar !== undefined ? String.fromCharCode(iChar) : "?"), "detail", event.detail);
 		}
 	}
 
-	onCpcCanvasClick(event: Event): void {
+	onCpcCanvasClick(event: MouseEvent): void {
 		if (!this.bHasFocus) {
 			this.setFocusOnCanvas();
 		} else {
@@ -697,7 +698,7 @@ export class Canvas {
 	}
 
 	private readCharData(x: number, y: number, iExpectedPen: number) {
-		const aCharData = [],
+		const aCharData: CharType = [],
 			iPixelWidth = this.oModeData.iPixelWidth,
 			iPixelHeight = this.oModeData.iPixelHeight;
 
@@ -788,7 +789,7 @@ export class Canvas {
 		return iPen;
 	}
 
-	getByte(iAddr: number): number {
+	getByte(iAddr: number): number | null {
 		/* eslint-disable no-bitwise */
 		const iMode = this.iMode,
 			iPixelWidth = this.oModeData.iPixelWidth,
@@ -1141,7 +1142,7 @@ export class Canvas {
 	private getCharFromTextBuffer(x: number, y: number) {
 		const aTextBuffer = this.aTextBuffer;
 
-		let iChar: number;
+		let iChar: number | undefined;
 
 		if (aTextBuffer[y]) {
 			iChar = this.aTextBuffer[y][x]; // can be undefined, if not set
@@ -1180,7 +1181,7 @@ export class Canvas {
 		this.setNeedUpdate();
 	}
 
-	private findMatchingChar(aCharData) {
+	private findMatchingChar(aCharData: CharType) {
 		const aCharset = this.aCharset;
 		let	iChar = -1; // not detected
 
@@ -1267,7 +1268,7 @@ export class Canvas {
 		});
 
 		while (aPixels.length) {
-			const oPixel = aPixels.pop();
+			const oPixel = aPixels.pop() as {x: number, y: number};
 
 			let y1 = oPixel.y,
 				p1 = this.testSubPixel(oPixel.x, y1);
@@ -1478,5 +1479,13 @@ export class Canvas {
 		this.setGPen(this.iGPen); // keep, but maybe different for other mode
 		this.setGPaper(this.iGPaper); // keep, maybe different for other mode
 		this.setGTransparentMode(false);
+	}
+
+	startScreenshot(): string {
+		return this.canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"); // here is the most important part because if you do not replace you will get a DOM 18 exception.
+	}
+
+	getCanvas(): HTMLCanvasElement {
+		return this.canvas;
 	}
 }

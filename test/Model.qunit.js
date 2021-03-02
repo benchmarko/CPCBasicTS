@@ -3,10 +3,11 @@
 //
 Object.defineProperty(exports, "__esModule", { value: true });
 var Model_1 = require("../Model");
-var qunit_1 = require("qunit"); //TTT
-qunit_1.QUnit.module("Model: Properties", function (hooks) {
-    hooks.beforeEach(function ( /* assert */) {
-        var that = this, // eslint-disable-line no-invalid-this
+//type QUnitAssertType1 = { strictEqual: (r: any, e: any, sMsg: string) => void };
+//type QUnitHooksType1 = { beforeEach: (a: any) => void };
+QUnit.module("Model: Properties", function (hooks) {
+    hooks.beforeEach(function () {
+        var that = this, // eslint-disable-line no-invalid-this, @typescript-eslint/no-this-alias
         oInitialConfig = {
             p1: "v1"
         }, oConfig = {
@@ -15,11 +16,11 @@ qunit_1.QUnit.module("Model: Properties", function (hooks) {
         };
         that.model = new Model_1.Model(oConfig, oInitialConfig);
     });
-    qunit_1.QUnit.test("init without options", function (assert) {
+    QUnit.test("init without options", function (assert) {
         var oModel = new Model_1.Model({}, {});
         assert.ok(oModel, "defined");
     });
-    qunit_1.QUnit.test("properties", function (assert) {
+    QUnit.test("properties", function (assert) {
         var oModel = this.model; // eslint-disable-line no-invalid-this
         var oAllProperties = oModel.getAllInitialProperties();
         assert.strictEqual(Object.keys(oAllProperties).join(" "), "p1", "all initial properties: p1");
@@ -40,11 +41,11 @@ qunit_1.QUnit.module("Model: Properties", function (hooks) {
         assert.strictEqual(Object.keys(oAllProperties).join(" "), "p1", "all initial properties: p1");
     });
 });
-qunit_1.QUnit.module("Model: Databases", function (hooks) {
-    hooks.beforeEach(function ( /* assert */) {
-        // const that = this, // eslint-disable-line no-invalid-this
+QUnit.module("Model: Databases", function (hooks) {
+    hooks.beforeEach(function () {
+        // empty
     });
-    qunit_1.QUnit.test("databases", function (assert) {
+    QUnit.test("databases", function (assert) {
         var oModel = new Model_1.Model({}, {}), mDatabases = {
             db1: {
                 text: "text1",
@@ -68,9 +69,9 @@ qunit_1.QUnit.module("Model: Databases", function (hooks) {
         assert.strictEqual(oModel.getDatabase(), undefined, "databases undefined");
     });
 });
-qunit_1.QUnit.module("Model: Examples", function (hooks) {
-    hooks.beforeEach(function ( /* assert */) {
-        var that = this, // eslint-disable-line no-invalid-this
+QUnit.module("Model: Examples", function (hooks) {
+    hooks.beforeEach(function () {
+        var that = this, // eslint-disable-line no-invalid-this, @typescript-eslint/no-this-alias
         mDatabases = {
             db1: {
                 text: "db1Text",
@@ -99,7 +100,7 @@ qunit_1.QUnit.module("Model: Examples", function (hooks) {
         oModel.setExample(mExample2);
         that.model = oModel;
     });
-    qunit_1.QUnit.test("examples", function (assert) {
+    QUnit.test("examples", function (assert) {
         var oModel = this.model; // eslint-disable-line no-invalid-this
         assert.strictEqual(oModel.getExample("ex1").key, "ex1", "ex1");
         assert.strictEqual(oModel.getExample("ex2").key, "ex2", "ex2");

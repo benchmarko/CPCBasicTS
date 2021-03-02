@@ -11,18 +11,19 @@ exports.Polyfills = {
 };
 // IE: window.console is only available when Dev Tools are open
 if (!Utils_1.Utils.console) {
-    Utils_1.Utils.console = {
+    var oUtilsConsole_1 = {
         cpcBasicLog: "LOG:\n",
         log: function () {
-            if (Utils_1.Utils.console.cpcBasicLog) {
-                Utils_1.Utils.console.cpcBasicLog += Array.prototype.slice.call(arguments).join(" ") + "\n";
+            if (oUtilsConsole_1.cpcBasicLog) {
+                oUtilsConsole_1.cpcBasicLog += Array.prototype.slice.call(arguments).join(" ") + "\n";
             }
         }
     };
-    Utils_1.Utils.console.info = Utils_1.Utils.console.log;
-    Utils_1.Utils.console.warn = Utils_1.Utils.console.log;
-    Utils_1.Utils.console.error = Utils_1.Utils.console.log;
-    Utils_1.Utils.console.debug = Utils_1.Utils.console.log;
+    oUtilsConsole_1.info = oUtilsConsole_1.log;
+    oUtilsConsole_1.warn = oUtilsConsole_1.log;
+    oUtilsConsole_1.error = oUtilsConsole_1.log;
+    oUtilsConsole_1.debug = oUtilsConsole_1.log;
+    Utils_1.Utils.console = oUtilsConsole_1;
 }
 if (!Utils_1.Utils.console.debug) { // IE8 has no console.debug
     Utils_1.Utils.console.debug = Utils_1.Utils.console.log;
@@ -69,16 +70,16 @@ if (!Array.prototype.map) { // IE8
 if (window.Element) {
     if (!Element.prototype.addEventListener) { // IE8
         Utils_1.Utils.console.debug("Polyfill: Element.prototype.addEventListener");
-        Element.prototype.addEventListener = function (e, callback) {
-            e = "on" + e;
-            return this.attachEvent(e, callback);
+        Element.prototype.addEventListener = function (sEvent, fnCallback) {
+            sEvent = "on" + sEvent;
+            return this.attachEvent(sEvent, fnCallback);
         };
     }
     if (!Element.prototype.removeEventListener) { // IE8
         Utils_1.Utils.console.debug("Polyfill: Element.prototype.removeEventListener");
-        Element.prototype.removeEventListener = function (e, callback) {
-            e = "on" + e;
-            return this.detachEvent(e, callback);
+        Element.prototype.removeEventListener = function (sEvent, fnCallback) {
+            sEvent = "on" + sEvent;
+            return this.detachEvent(sEvent, fnCallback);
         };
     }
 }
@@ -108,23 +109,25 @@ if (window.document) {
         Utils_1.Utils.console.debug("Polyfill: document.addEventListener, removeEventListener");
         if (document.attachEvent) {
             (function () {
-                var eventListeners = [];
+                var aEventListeners = [];
                 document.addEventListener = function (sEvent, fnHandler) {
                     var fnFindCaret = function (event) {
-                        if (document.selection) {
-                            event.target.focus();
-                            var oRange = document.selection.createRange(), oRange2 = oRange.duplicate();
+                        var documentSelection = document.selection; // IE only
+                        if (documentSelection) {
+                            var eventTarget = event.target;
+                            eventTarget.focus();
+                            var oRange = documentSelection.createRange(), oRange2 = oRange.duplicate();
                             if (oRange2.moveToElementTxt) { // not on IE8
                                 oRange2.moveToElementTxt(event.target);
                             }
                             oRange2.setEndPoint("EndToEnd", oRange);
-                            event.target.selectionStart = oRange2.text.length - oRange.text.length;
-                            event.target.selectionEnd = event.target.selectionStart + oRange.text.length;
+                            eventTarget.selectionStart = oRange2.text.length - oRange.text.length;
+                            eventTarget.selectionEnd = eventTarget.selectionStart + oRange.text.length;
                         }
                     }, fnOnEvent = function (event) {
                         event = event || window.event;
-                        event.target = event.target || event.srcElement;
-                        if (event.type === "click" && event.target && event.target.tagName === "TEXTAREA") {
+                        var eventTarget = event.target || event.srcElement;
+                        if (event.type === "click" && eventTarget && eventTarget.tagName === "TEXTAREA") {
                             fnFindCaret(event);
                         }
                         fnHandler(event);
@@ -135,7 +138,7 @@ if (window.document) {
                         var aElements = document.getElementsByTagName("select");
                         for (var i = 0; i < aElements.length; i += 1) {
                             aElements[i].attachEvent("on" + sEvent, fnOnEvent);
-                            eventListeners.push({
+                            aEventListeners.push({
                                 object: this,
                                 sEvent: sEvent,
                                 fnHandler: fnHandler,
@@ -145,7 +148,7 @@ if (window.document) {
                     }
                     else { // e.g. "Click"
                         document.attachEvent("on" + sEvent, fnOnEvent);
-                        eventListeners.push({
+                        aEventListeners.push({
                             object: this,
                             sEvent: sEvent,
                             fnHandler: fnHandler,
@@ -155,11 +158,11 @@ if (window.document) {
                 };
                 document.removeEventListener = function (sEvent, fnHandler) {
                     var counter = 0;
-                    while (counter < eventListeners.length) {
-                        var eventListener = eventListeners[counter];
-                        if (eventListener.object === this && eventListener.sEvent === sEvent && eventListener.fnHandler === fnHandler) {
-                            this.detachEvent("on" + sEvent, eventListener.fnOnEvent);
-                            eventListeners.splice(counter, 1);
+                    while (counter < aEventListeners.length) {
+                        var oEventListener = aEventListeners[counter];
+                        if (oEventListener.object === this && oEventListener.sEvent === sEvent && oEventListener.fnHandler === fnHandler) {
+                            this.detachEvent("on" + sEvent, oEventListener.fnOnEvent);
+                            aEventListeners.splice(counter, 1);
                             break;
                         }
                         counter += 1;
@@ -182,8 +185,9 @@ if (!Function.prototype.bind) { // IE8
     Utils_1.Utils.console.debug("Polyfill: Function.prototype.bind");
     (function () {
         var ArrayPrototypeSlice = Array.prototype.slice; // since IE6
-        Function.prototype.bind = function ( /* otherThis */) {
-            var that = this, thatArg = arguments[0], args = ArrayPrototypeSlice.call(arguments, 1), argLen = args.length;
+        Function.prototype.bind = function () {
+            var that = this, // eslint-disable-line @typescript-eslint/no-this-alias
+            thatArg = arguments[0], args = ArrayPrototypeSlice.call(arguments, 1), argLen = args.length;
             if (typeof that !== "function") {
                 // closest thing possible to the ECMAScript 5 internal IsCallable function
                 throw new TypeError("Function.prototype.bind - what is trying to be bound is not callable");
@@ -195,6 +199,26 @@ if (!Function.prototype.bind) { // IE8
             };
         };
     }());
+    /* does not work:
+    (function () {
+        //const ArrayPrototypeSlice = Array.prototype.slice; // since IE6
+
+        Function.prototype.bind = function (thatArg: object, ...aArgs: any[]) { // eslint-disable-line no-extend-native, @typescript-eslint/ban-types
+            const that = this,
+                iArgs = aArgs.length;
+
+            if (typeof that !== "function") {
+                // closest thing possible to the ECMAScript 5 internal IsCallable function
+                throw new TypeError("Function.prototype.bind - what is trying to be bound is not callable");
+            }
+            return function (...aArgs2: any[]) {
+                aArgs.length = iArgs; // set args to length of bound args
+                aArgs.concat(aArgs2); // concat current args
+                return that.apply(thatArg, aArgs);
+            };
+        };
+    }());
+    */
 }
 if (!Math.sign) { // IE11
     Utils_1.Utils.console.debug("Polyfill: Math.sign");
@@ -223,9 +247,10 @@ if (!Object.assign) { // IE11
         return oTo;
     };
 }
+/*
 if (!Object.create) { // IE8
-    Utils_1.Utils.console.debug("Polyfill: Object.create");
-    Object.create = function (proto) {
+    Utils.console.debug("Polyfill: Object.create");
+    Object.create = function (proto) { // props are not supported
         function Ctor() {
             // empty
         }
@@ -233,6 +258,7 @@ if (!Object.create) { // IE8
         return new Ctor();
     };
 }
+*/
 if (!Object.keys) { // IE8
     Utils_1.Utils.console.debug("Polyfill: Object.keys");
     // https://tokenposts.blogspot.com/2012/04/javascript-objectkeys-browser.html
@@ -263,6 +289,7 @@ if (!String.prototype.endsWith) {
 if (!String.prototype.includes) { // IE11
     Utils_1.Utils.console.debug("Polyfill: String.prototype.includes");
     String.prototype.includes = function (sSearch, iStart) {
+        if (iStart === void 0) { iStart = 0; }
         var bRet;
         if (iStart + sSearch.length > this.length) {
             bRet = false;
@@ -335,21 +362,21 @@ if (!String.prototype.trim) { // IE8
 if (!Utils_1.Utils.atob) { // IE9 (and node.js)
     Utils_1.Utils.console.debug("Polyfill: window.atob, btoa");
     (function () {
-        var TABLE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/", REGEX_SPACE_CHARACTERS = /[\t\n\f\r ]/g; // http://whatwg.org/html/common-microsyntaxes.html#space-character
+        var sTable = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/", reSpaceCharacters = /[\t\n\f\r ]/g; // http://whatwg.org/html/common-microsyntaxes.html#space-character
         /* eslint-disable no-bitwise */
-        Utils_1.Utils.atob = function (input) {
-            input = String(input).replace(REGEX_SPACE_CHARACTERS, "");
-            var length = input.length;
+        Utils_1.Utils.atob = function (sInput) {
+            sInput = String(sInput).replace(reSpaceCharacters, "");
+            var length = sInput.length;
             if (length % 4 === 0) {
-                input = input.replace(/[=]=?$/, ""); // additional brackets to maks eslint happy
-                length = input.length;
+                sInput = sInput.replace(/[=]=?$/, ""); // additional brackets to maks eslint happy
+                length = sInput.length;
             }
-            if (length % 4 === 1 || (/[^+a-zA-Z0-9/]/).test(input)) { // http://whatwg.org/C#alphanumeric-ascii-characters
+            if (length % 4 === 1 || (/[^+a-zA-Z0-9/]/).test(sInput)) { // http://whatwg.org/C#alphanumeric-ascii-characters
                 throw new TypeError("Polyfills:atob: Invalid character: the string to be decoded is not correctly encoded.");
             }
-            var bitCounter = 0, output = "", position = 0, bitStorage;
+            var bitCounter = 0, output = "", position = 0, bitStorage = 0;
             while (position < length) {
-                var buffer = TABLE.indexOf(input.charAt(position));
+                var buffer = sTable.indexOf(sInput.charAt(position));
                 bitStorage = bitCounter % 4 ? bitStorage * 64 + buffer : buffer;
                 bitCounter += 1;
                 if ((bitCounter - 1) % 4) { // Unless this is the first of a group of 4 characters...
@@ -376,17 +403,17 @@ if (!Utils_1.Utils.atob) { // IE9 (and node.js)
                 position += 1;
                 var buffer = a + b + c;
                 // Turn the 24 bits into four chunks of 6 bits each, and append the matching character for each of them to the output
-                output += TABLE.charAt(buffer >> 18 & 0x3F) + TABLE.charAt(buffer >> 12 & 0x3F) + TABLE.charAt(buffer >> 6 & 0x3F) + TABLE.charAt(buffer & 0x3F);
+                output += sTable.charAt(buffer >> 18 & 0x3F) + sTable.charAt(buffer >> 12 & 0x3F) + sTable.charAt(buffer >> 6 & 0x3F) + sTable.charAt(buffer & 0x3F);
             }
             if (padding === 2) {
                 var a = input.charCodeAt(position) << 8;
                 position += 1;
                 var b = input.charCodeAt(position), buffer = a + b;
-                output += TABLE.charAt(buffer >> 10) + TABLE.charAt((buffer >> 4) & 0x3F) + TABLE.charAt((buffer << 2) & 0x3F) + "=";
+                output += sTable.charAt(buffer >> 10) + sTable.charAt((buffer >> 4) & 0x3F) + sTable.charAt((buffer << 2) & 0x3F) + "=";
             }
             else if (padding === 1) {
                 var buffer = input.charCodeAt(position);
-                output += TABLE.charAt(buffer >> 2) + TABLE.charAt((buffer << 4) & 0x3F) + "==";
+                output += sTable.charAt(buffer >> 2) + sTable.charAt((buffer << 4) & 0x3F) + "==";
             }
             return output;
         };
@@ -397,19 +424,63 @@ if (!Utils_1.Utils.atob) { // IE9 (and node.js)
 if (!Utils_1.Utils.localStorage) {
     Utils_1.Utils.console.debug("Polyfill: window.localStorage");
     (function () {
-        var Storage = function () {
-            this.clear();
-        };
-        Storage.prototype = {
-            clear: function () {
+        /*
+            const Storage = function (this: any) {
+                this.clear();
+            };
+    
+            Storage.prototype = {
+                clear: function () {
+                    for (const key in this) {
+                        if (this.hasOwnProperty(key)) {
+                            delete this[key];
+                        }
+                    }
+                    this.length = 0;
+                },
+                key: function (index: number) {
+                    let i = 0;
+    
+                    for (const key in this) {
+                        if (this.hasOwnProperty(key) && key !== "length") {
+                            if (i === index) {
+                                return key;
+                            }
+                            i += 1;
+                        }
+                    }
+                    return null;
+                },
+                getItem: function (sKey: string) {
+                    return this.hasOwnProperty(sKey) ? this[sKey] : null;
+                },
+                setItem: function (sKey: string, value: string) {
+                    if (this.getItem(sKey) === null) {
+                        this.length += 1;
+                    }
+                    this[sKey] = String(value);
+                },
+                removeItem: function (sKey: string) {
+                    if (this.getItem(sKey) !== null) {
+                        delete this[sKey];
+                        this.length -= 1;
+                    }
+                }
+            };
+            */
+        var Storage = /** @class */ (function () {
+            function Storage() {
+                this.length = 0;
+            }
+            Storage.prototype.clear = function () {
                 for (var key in this) {
                     if (this.hasOwnProperty(key)) {
                         delete this[key];
                     }
                 }
                 this.length = 0;
-            },
-            key: function (index) {
+            };
+            Storage.prototype.key = function (index) {
                 var i = 0;
                 for (var key in this) {
                     if (this.hasOwnProperty(key) && key !== "length") {
@@ -420,23 +491,24 @@ if (!Utils_1.Utils.localStorage) {
                     }
                 }
                 return null;
-            },
-            getItem: function (key) {
-                return this.hasOwnProperty(key) ? this[key] : null;
-            },
-            setItem: function (key, value) {
-                if (this.getItem(key) === null) {
+            };
+            Storage.prototype.getItem = function (sKey) {
+                return this.hasOwnProperty(sKey) ? this[sKey] : null;
+            };
+            Storage.prototype.setItem = function (sKey, value) {
+                if (this.getItem(sKey) === null) {
                     this.length += 1;
                 }
-                this[key] = String(value);
-            },
-            removeItem: function (key) {
-                if (this.getItem(key) !== null) {
-                    delete this[key];
+                this[sKey] = String(value);
+            };
+            Storage.prototype.removeItem = function (sKey) {
+                if (this.getItem(sKey) !== null) {
+                    delete this[sKey];
                     this.length -= 1;
                 }
-            }
-        };
+            };
+            return Storage;
+        }());
         Utils_1.Utils.localStorage = new Storage();
     }());
 }

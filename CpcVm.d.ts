@@ -1,6 +1,5 @@
 import { CustomError } from "./Utils";
 import { Keyboard } from "./Keyboard";
-import { VirtualKeyboard } from "./VirtualKeyboard";
 import { Random } from "./Random";
 import { Sound, SoundData } from "./Sound";
 import { Canvas } from "./Canvas";
@@ -9,7 +8,6 @@ import { ICpcVmRsx } from "./Interfaces";
 interface CpcVmOptions {
     canvas: Canvas;
     keyboard: Keyboard;
-    virtualKeyboard: VirtualKeyboard;
     sound: Sound;
     variables: Variables;
     tron: boolean;
@@ -26,7 +24,7 @@ interface FileBase {
     sCommand: string;
     sName: string;
     iLine: number;
-    iStart: number;
+    iStart: (number | undefined);
     aFileData: string[];
     fnFileCallback: ((...aArgs: any[]) => void | boolean) | undefined;
 }
@@ -90,10 +88,10 @@ export interface VmFileParas extends VmBaseParas {
 }
 export interface VmInputParas extends VmBaseParas {
     sInput: string;
-    sMessage?: string;
+    sMessage: string;
     sNoCRLF?: string;
     aTypes?: string[];
-    fnInputCallback?: any;
+    fnInputCallback: () => boolean;
 }
 export declare type VmStopParas = VmFileParas | VmInputParas | VmLineParas | VmLineRenumParas;
 export interface VmStopEntry {
@@ -101,15 +99,18 @@ export interface VmStopEntry {
     iPriority: number;
     oParas: VmStopParas;
 }
+declare type PrintObjectType = {
+    type: string;
+    args: (string | number)[];
+};
 export declare class CpcVm {
     fnOpeninHandler: FileBase["fnFileCallback"];
     fnCloseinHandler: () => void;
-    fnCloseoutHandler: any;
-    fnLoadHandler: any;
-    fnRunHandler: any;
+    fnCloseoutHandler: () => void;
+    fnLoadHandler: (sInput: string, oMeta: FileMeta) => boolean;
+    fnRunHandler: (sInput: string, oMeta: FileMeta) => boolean;
     oCanvas: Canvas;
     oKeyboard: Keyboard;
-    oVirtualKeyboard: VirtualKeyboard;
     oSound: Sound;
     oVariables: Variables;
     tronFlag: boolean;
@@ -121,7 +122,7 @@ export declare class CpcVm {
     iInkeyTime: number;
     aGosubStack: (number | string)[];
     aMem: number[];
-    aData: number[];
+    aData: (string | null)[];
     iData: number;
     oDataLineIndex: {
         [k in number]: number;
@@ -159,7 +160,7 @@ export declare class CpcVm {
     iZone: number;
     iMode: number;
     iInkeyTimeMs: number;
-    rsx: ICpcVmRsx;
+    rsx?: ICpcVmRsx;
     static iFrameTimeMs: number;
     static iTimerCount: number;
     static iSqTimerCount: number;
@@ -182,7 +183,7 @@ export declare class CpcVm {
     vmReset(): void;
     vmResetTimers(): void;
     vmResetWindowData(bResetPenPaper: boolean): void;
-    private vmResetControlBuffer;
+    vmResetControlBuffer(): void;
     static vmResetFileHandling(oFile: FileBase): void;
     vmResetData(): void;
     private vmResetInks;
@@ -192,10 +193,10 @@ export declare class CpcVm {
     vmOnBreakContSet(): boolean;
     vmOnBreakHandlerActive(): number;
     vmEscape(): boolean;
-    vmAssertNumber(n: number, sErr: string): void;
+    vmAssertNumber(n: number | undefined, sErr: string): void;
     private vmAssertString;
-    vmRound(n: number, sErr?: string): number;
-    vmInRangeRound(n: number, iMin: number, iMax: number, sErr?: string): number;
+    vmRound(n: number | undefined, sErr?: string): number;
+    vmInRangeRound(n: number | undefined, iMin: number, iMax: number, sErr?: string): number;
     vmDetermineVarType(sVarType: string): string;
     vmAssertNumberType(sVarType: string): void;
     vmAssign(sVarType: string, value: string | number): (string | number);
@@ -259,7 +260,7 @@ export declare class CpcVm {
     vmPlaceRemoveCursor(iStream: number): void;
     vmDrawUndrawCursor(iStream: number): void;
     cursor(iStream: number, iCursorOn: number | null, iCursorEnabled?: number): void;
-    data(iLine: number, ...aArgs: any[]): void;
+    data(iLine: number, ...aArgs: (string | null)[]): void;
     dec$(n: number, sFrmt: string): string;
     defint(sNameOrRange: string): void;
     defreal(sNameOrRange: string): void;
@@ -300,7 +301,7 @@ export declare class CpcVm {
     inkey$(): string;
     inp(iPort: number): number;
     vmSetInputValues(aInputValues: (string | number)[]): void;
-    vmGetNextInput(): string | number;
+    vmGetNextInput(): string | number | undefined;
     vmInputCallback(): boolean;
     private fnFileInputGetString;
     private fnFileInputGetNumber;
@@ -369,7 +370,7 @@ export declare class CpcVm {
     private vmHandleControlCode;
     private vmPrintCharsOrControls;
     private vmPrintGraphChars;
-    print(iStream: number, ...aArgs: any[]): void;
+    print(iStream: number, ...aArgs: (string | number | PrintObjectType)[]): void;
     rad(): void;
     private static vmHashCode;
     private vmRandomizeCallback;
@@ -423,7 +424,7 @@ export declare class CpcVm {
     width(iWidth: number): void;
     window(iStream: number, iLeft: number, iRight: number, iTop: number, iBottom: number): void;
     windowSwap(iStream1: number, iStream2?: number): void;
-    write(iStream: number, ...aArgs: any[]): void;
+    write(iStream: number, ...aArgs: (string | number)[]): void;
     xpos(): number;
     ypos(): number;
     zone(n: number): void;

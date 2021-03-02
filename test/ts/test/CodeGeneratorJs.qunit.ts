@@ -8,14 +8,16 @@ import { ICpcVmRsx } from "../Interfaces";
 import { BasicLexer } from "../BasicLexer";
 import { BasicParser } from "../BasicParser";
 import { CodeGeneratorJs } from "../CodeGeneratorJs";
-import { QUnit } from "qunit"; //TTT
+import {} from "qunit";
 import { Variables } from "../Variables";
+
+//type QUnitAssertType1 = { strictEqual: (r: any, e: any, sMsg: string) => void };
 
 type TestsType = {[k in string]: string};
 
 type AllTestsType = {[k in string]: TestsType};
 
-QUnit.module("CodeGeneratorJs: Tests", function (/* hooks */) {
+QUnit.module("CodeGeneratorJs: Tests", function () {
 	const mAllTests = {
 		numbers: {
 			"a=1": " v.a = o.vmAssign(\"a\", 1);",
@@ -586,7 +588,7 @@ QUnit.module("CodeGeneratorJs: Tests", function (/* hooks */) {
 		return "0x" + parseInt(sBin.substr(2), 2).toString(16).toLowerCase();
 	}
 
-	function runTestsFor(assert, oTests: TestsType, aResults?: string[]) {
+	function runTestsFor(assert: Assert | undefined, oTests: TestsType, aResults?: string[]) {
 		const bAllowDirect = true,
 			oOptions = {
 				bQuiet: true
@@ -627,8 +629,8 @@ QUnit.module("CodeGeneratorJs: Tests", function (/* hooks */) {
 	function generateTests(oAllTests: AllTestsType) {
 		for (const sCategory in oAllTests) {
 			if (oAllTests.hasOwnProperty(sCategory)) {
-				(function (sCat) {
-					QUnit.test(sCat, function (assert) {
+				(function (sCat) { // eslint-disable-line no-loop-func
+					QUnit.test(sCat, function (assert: Assert) {
 						runTestsFor(assert, oAllTests[sCat]);
 					});
 				}(sCategory));

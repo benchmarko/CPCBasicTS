@@ -5,6 +5,7 @@ export interface CpcKeyExpansionsOptions {
     iShift?: number;
     iCtrl?: number;
 }
+export declare type PressReleaseCpcKey = (iCpcKey: number, sPressedKey: string, sKey: string, bShiftKey: boolean, bCtrlKey: boolean) => void;
 interface KeyboardOptions {
     fnOnEscapeHandler?: (sKey: string, sPressedKey: string) => void;
     fnOnKeyDown?: () => void;
@@ -48,7 +49,7 @@ export declare class Keyboard {
     oPressedKeys: PressedKeysType;
     bShiftLock: boolean;
     bNumLock: boolean;
-    private static oKey2CpcKey;
+    private static mKey2CpcKey;
     private static mSpecialKeys;
     private static aJoyKeyCodes;
     constructor(options: KeyboardOptions);

@@ -7,7 +7,9 @@ import { Utils } from "../Utils";
 import { BasicLexer } from "../BasicLexer";
 import { BasicParser } from "../BasicParser";
 import { CodeGeneratorBasic } from "../CodeGeneratorBasic";
-import { QUnit } from "qunit"; //TTT
+import {} from "qunit";
+
+//type QUnitAssertType1 = { strictEqual: (r: any, e: any, sMsg: string) => void };
 
 type TestsType = {[k in string]: string};
 
@@ -669,7 +671,7 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 		}
 	};
 
-	function runTestsFor(assert, oTests: TestsType, aResults?: string[]) {
+	function runTestsFor(assert: Assert | undefined, oTests: TestsType, aResults?: string[]) {
 		const oCodeGeneratorBasic = new CodeGeneratorBasic({
 			lexer: new BasicLexer(),
 			parser: new BasicParser({
@@ -697,8 +699,8 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 	function generateTests(oAllTests: AllTestsType) {
 		for (const sCategory in oAllTests) {
 			if (oAllTests.hasOwnProperty(sCategory)) {
-				(function (sCat) {
-					QUnit.test(sCat, function (assert) {
+				(function (sCat) { // eslint-disable-line no-loop-func
+					QUnit.test(sCat, function (assert: Assert) {
 						runTestsFor(assert, oAllTests[sCat]);
 					});
 				}(sCategory));

@@ -11,24 +11,23 @@ exports.ZipFile = void 0;
 var Utils_1 = require("./Utils");
 var ZipFile = /** @class */ (function () {
     function ZipFile(aData, sZipName) {
-        this.init(aData, sZipName);
-    }
-    ZipFile.prototype.init = function (aData, sZipName) {
         this.aData = aData;
         this.sZipName = sZipName; // for error messages
         this.oEntryTable = this.readZipDirectory();
-    };
+    }
     ZipFile.prototype.getZipDirectory = function () {
         return this.oEntryTable;
     };
-    ZipFile.prototype.composeError = function () {
-        var aArgs = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            aArgs[_i] = arguments[_i];
-        }
+    /*
+    private composeError(...aArgs) { // varargs
         aArgs[1] = this.sZipName + ": " + aArgs[1]; // put zipname in message
         aArgs.unshift("ZipFile");
-        return Utils_1.Utils.composeError.apply(null, aArgs);
+        return Utils.composeError.apply(null, aArgs);
+    }
+    */
+    ZipFile.prototype.composeError = function (oError, message, value, pos) {
+        message = this.sZipName + ": " + message; // put zipname in message
+        return Utils_1.Utils.composeError("ZipFile", oError, message, value, pos);
     };
     ZipFile.prototype.subArr = function (iBegin, iLength) {
         var aData = this.aData, iEnd = iBegin + iLength;
@@ -76,12 +75,13 @@ var ZipFile = /** @class */ (function () {
             iExtraFieldLength: this.readUShort(iPos + 30),
             iFileCommentLength: this.readUShort(iPos + 32),
             iLocalOffset: this.readUInt(iPos + 42),
-            sName: undefined,
-            bIsDirectory: undefined,
-            aExtra: undefined,
-            sComment: undefined,
-            iTimestamp: undefined,
-            iDataStart: undefined
+            // set later...
+            sName: "",
+            bIsDirectory: false,
+            aExtra: [],
+            sComment: "",
+            iTimestamp: 0,
+            iDataStart: 0
         };
         return oCdfh;
     };
@@ -157,7 +157,7 @@ var ZipFile = /** @class */ (function () {
             var iOut = iBitBuf;
             while (iBitCnt < iNeed) {
                 if (iInCnt === iBufEnd) {
-                    throw that.composeError(Error(), "Zip: inflate: Data overflow", that.sZipName);
+                    throw that.composeError(Error(), "Zip: inflate: Data overflow", that.sZipName, -1);
                 }
                 iOut |= aData[iInCnt] << iBitCnt; // eslint-disable-line no-bitwise
                 iInCnt += 1;

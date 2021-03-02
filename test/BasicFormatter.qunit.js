@@ -7,9 +7,8 @@ var Utils_1 = require("../Utils");
 var BasicLexer_1 = require("../BasicLexer"); // we use BasicLexer here just for convenient input
 var BasicParser_1 = require("../BasicParser");
 var BasicFormatter_1 = require("../BasicFormatter");
-var qunit_1 = require("qunit"); //TTT
-qunit_1.QUnit.dump.maxDepth = 10;
-qunit_1.QUnit.module("BasicFormatter:renumber: Tests", function () {
+QUnit.dump.maxDepth = 10;
+QUnit.module("BasicFormatter:renumber: Tests", function () {
     var mAllTests = {
         DELETE: {
             "1 DELETE": "10 DELETE",
@@ -36,7 +35,7 @@ qunit_1.QUnit.module("BasicFormatter:renumber: Tests", function () {
             })
         }), fnReplacer = function (sBin) {
             return "0x" + parseInt(sBin.substr(2), 2).toString(16).toLowerCase();
-        }, iNew = 10, iOld = 1, iStep = 10, iKeep = undefined;
+        }, iNew = 10, iOld = 1, iStep = 10, iKeep = 65535;
         for (var sKey in oTests) {
             if (oTests.hasOwnProperty(sKey)) {
                 var oOutput = oBasicFormatter.renumber(sKey, iNew, iOld, iStep, iKeep), sResult = oOutput.error ? String(oOutput.error) : oOutput.text;
@@ -57,7 +56,7 @@ qunit_1.QUnit.module("BasicFormatter:renumber: Tests", function () {
         for (var sCategory in oAllTests) {
             if (oAllTests.hasOwnProperty(sCategory)) {
                 (function (sCat) {
-                    qunit_1.QUnit.test(sCat, function (assert) {
+                    QUnit.test(sCat, function (assert) {
                         runTestsFor(assert, oAllTests[sCat]);
                     });
                 }(sCategory));

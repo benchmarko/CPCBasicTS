@@ -98,19 +98,7 @@ var Controller = /** @class */ (function () {
         this.oKeyboard = new Keyboard_1.Keyboard({
             fnOnEscapeHandler: this.fnOnEscapeHandler
         });
-        /*
-        if (this.model.getProperty<boolean>("showKbd")) { // maybe we need to draw virtual keyboard
-            this.oKeyboard.virtualKeyboardCreate();
-        }
-        */
         if (this.model.getProperty("showKbd")) { // maybe we need to draw virtual keyboard
-            /*
-            this.oVirtualKeyboard = new VirtualKeyboard({
-                fnPressCpcKey: this.oKeyboard.fnPressCpcKey,
-                fnReleaseCpcKey: this.oKeyboard.fnReleaseCpcKey
-            });
-            this.oVirtualKeyboard.virtualKeyboardCreate();
-            */
             this.virtualKeyboardCreate();
         }
         this.oSound = new Sound_1.Sound();
@@ -120,7 +108,6 @@ var Controller = /** @class */ (function () {
         this.oVm = new CpcVm_1.CpcVm({
             canvas: this.oCanvas,
             keyboard: this.oKeyboard,
-            virtualKeyboard: this.oVirtualKeyboard,
             sound: this.oSound,
             variables: this.oVariables,
             tron: oModel.getProperty("tron")
@@ -188,7 +175,8 @@ var Controller = /** @class */ (function () {
     // Also called from example files xxxxx.js
     Controller.prototype.addItem = function (sKey, sInput) {
         if (!sKey) { // maybe ""
-            sKey = this.model.getProperty("example");
+            sKey = (document.currentScript && document.currentScript.getAttribute("data-key")) || this.model.getProperty("example");
+            // on IE we can just get the current example
         }
         sInput = sInput.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
         // beware of data files ending with newlines! (do not use trimEnd)
@@ -820,7 +808,10 @@ var Controller = /** @class */ (function () {
     };
     Controller.prototype.loadExample = function () {
         var that = this, oInFile = this.oVm.vmGetInFileObject();
-        var sExample, sUrl, fnExampleLoaded = function (_sFullUrl, bSuppressLog) {
+        var sExample, sUrl, fnExampleLoaded = function (_sFullUrl, sKey, bSuppressLog) {
+            if (sKey !== sExample) {
+                Utils_1.Utils.console.warn("fnExampleLoaded: Unexpected", sKey, "<>", sExample);
+            }
             var oExample = that.model.getExample(sExample);
             if (!bSuppressLog) {
                 Utils_1.Utils.console.log("Example", sUrl, oExample.meta || "", "loaded");
@@ -863,13 +854,13 @@ var Controller = /** @class */ (function () {
         var oExample = this.model.getExample(sExample); // already loaded
         if (oExample && oExample.loaded) {
             this.model.setProperty("example", sExample);
-            fnExampleLoaded("", true);
+            fnExampleLoaded("", sExample, true);
         }
         else if (sExample && oExample) { // need to load
             this.model.setProperty("example", sExample);
             var sDatabaseDir = this.model.getDatabase().src;
             sUrl = sDatabaseDir + "/" + sExample + ".js";
-            Utils_1.Utils.loadScript(sUrl, fnExampleLoaded, fnExampleError);
+            Utils_1.Utils.loadScript(sUrl, fnExampleLoaded, fnExampleError, sExample);
         }
         else { // keep original sExample in this error case
             sUrl = sExample;
@@ -968,7 +959,7 @@ var Controller = /** @class */ (function () {
                 };
             }
         }
-        else {
+        if (!oMeta) {
             oMeta = {
                 sType: ""
             };
@@ -1067,6 +1058,9 @@ var Controller = /** @class */ (function () {
         var oVm = this.oVm;
         this.oVariables.removeAllVariables();
         oVm.vmReset();
+        if (this.oVirtualKeyboard) {
+            this.oVirtualKeyboard.reset();
+        }
         oVm.vmStop("end", 0, true); // set "end" with priority 0, so that "compile only" still works
         oVm.sOut = "";
         this.view.setAreaValue("outputText", "");
@@ -1195,7 +1189,8 @@ var Controller = /** @class */ (function () {
         }
     };
     Controller.prototype.selectJsError = function (sScript, e) {
-        var iLineNumber = e.lineNumber, iColumnNumber = e.columnNumber, iErrLine = iLineNumber - 3; // for some reason line 0 is 3
+        var iLineNumber = e.lineNumber, // only on FireFox
+        iColumnNumber = e.columnNumber, iErrLine = iLineNumber - 3; // for some reason line 0 is 3
         var iPos = 0, iLine = 0;
         while (iPos < sScript.length && iLine < iErrLine) {
             iPos = sScript.indexOf("\n", iPos) + 1;
@@ -1359,6 +1354,7 @@ var Controller = /** @class */ (function () {
     Controller.prototype.startWithDirectInput = function () {
         var oVm = this.oVm, iStream = 0, sMsg = "Ready\r\n";
         this.oVm.tagoff(iStream);
+        this.oVm.vmResetControlBuffer();
         if (this.oVm.pos(iStream) > 1) {
             this.oVm.print(iStream, "\r\n");
         }
@@ -1502,7 +1498,7 @@ var Controller = /** @class */ (function () {
         this.startMainLoop();
     };
     Controller.prototype.startScreenshot = function () {
-        return this.oCanvas.canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"); // here is the most important part because if you do not replace you will get a DOM 18 exception.
+        return this.oCanvas.startScreenshot();
     };
     Controller.prototype.fnPutKeyInBuffer = function (sKey) {
         this.oKeyboard.putKeyInBuffer(sKey);
@@ -1533,12 +1529,7 @@ var Controller = /** @class */ (function () {
         else {
             sFunction = "var o=cpcBasic.controller.oVm, v=o.vmGetAllVariables(); v." + sPar + " = " + sFunction;
         }
-        var aMatch = (/function \(([^)]*)/).exec(sFunction);
-        var aArgs = [];
-        if (aMatch) {
-            aArgs = aMatch[1].split(",");
-        }
-        var fnFunction = new Function(aArgs[0], aArgs[1], aArgs[2], aArgs[3], aArgs[4], sFunction); // eslint-disable-line no-new-func
+        var aMatch = (/function \(([^)]*)/).exec(sFunction), aArgs = aMatch ? aMatch[1].split(",") : [], fnFunction = new Function(aArgs[0], aArgs[1], aArgs[2], aArgs[3], aArgs[4], sFunction); // eslint-disable-line no-new-func
         // we support at most 5 arguments
         return fnFunction;
     };
@@ -1600,119 +1591,200 @@ var Controller = /** @class */ (function () {
         };
         return oHeader;
     };
+    Controller.prototype.fnEndOfImport = function (aImported) {
+        var iStream = 0, oVm = this.oVm;
+        for (var i = 0; i < aImported.length; i += 1) {
+            oVm.print(iStream, aImported[i], " ");
+        }
+        oVm.print(iStream, "\r\n", aImported.length + " file" + (aImported.length !== 1 ? "s" : "") + " imported.\r\n");
+        this.updateResultText();
+    };
+    // starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
+    Controller.prototype.fnLoad2 = function (sData, sName, sType, aImported) {
+        var oHeader, sStorageName = this.oVm.vmAdaptFilename(sName, "FILE");
+        sStorageName = Controller.fnLocalStorageName(sStorageName);
+        if (sType === "text/plain") {
+            oHeader = Controller.createMinimalAmsdosHeader("A", 0, sData.length);
+        }
+        else {
+            if (sType === "application/x-zip-compressed" || sType === "cpcBasic/binary") { // are we a file inside zip?
+                // empty
+            }
+            else { // e.g. "data:application/octet-stream;base64,..."
+                var iIndex = sData.indexOf(",");
+                if (iIndex >= 0) {
+                    var sInfo1 = sData.substr(0, iIndex);
+                    sData = sData.substr(iIndex + 1); // remove meta prefix
+                    if (sInfo1.indexOf("base64") >= 0) {
+                        sData = Utils_1.Utils.atob(sData); // decode base64
+                    }
+                }
+            }
+            oHeader = DiskImage_1.DiskImage.parseAmsdosHeader(sData);
+            if (oHeader) {
+                sData = sData.substr(0x80); // remove header
+            }
+            else if (Controller.reRegExpIsText.test(sData)) {
+                oHeader = Controller.createMinimalAmsdosHeader("A", 0, sData.length);
+            }
+            else if (DiskImage_1.DiskImage.testDiskIdent(sData.substr(0, 8))) { // disk image file?
+                try {
+                    var oDsk = new DiskImage_1.DiskImage({
+                        sData: sData,
+                        sDiskName: sName
+                    }), oDir = oDsk.readDirectory(), aDiskFiles = Object.keys(oDir);
+                    for (var i = 0; i < aDiskFiles.length; i += 1) {
+                        var sFileName = aDiskFiles[i];
+                        try { // eslint-disable-line max-depth
+                            sData = oDsk.readFile(oDir[sFileName]);
+                            this.fnLoad2(sData, sFileName, "cpcBasic/binary", aImported); // recursive
+                        }
+                        catch (e) {
+                            Utils_1.Utils.console.error(e);
+                            this.outputError(e, true);
+                        }
+                    }
+                }
+                catch (e) {
+                    Utils_1.Utils.console.error(e);
+                    this.outputError(e, true);
+                }
+                oHeader = undefined; // ignore dsk file
+            }
+            else { // binary
+                oHeader = Controller.createMinimalAmsdosHeader("B", 0, sData.length);
+            }
+        }
+        if (oHeader) {
+            var sMeta = Controller.joinMeta(oHeader);
+            try {
+                Utils_1.Utils.localStorage.setItem(sStorageName, sMeta + "," + sData);
+                this.updateStorageDatabase("set", sStorageName);
+                Utils_1.Utils.console.log("fnOnLoad: file: " + sStorageName + " meta: " + sMeta + " imported");
+                aImported.push(sName);
+            }
+            catch (e) { // maybe quota exceeded
+                Utils_1.Utils.console.error(e);
+                if (e.name === "QuotaExceededError") {
+                    e.shortMessage = sStorageName + ": Quota exceeded";
+                }
+                this.outputError(e, true);
+            }
+        }
+    };
     // https://stackoverflow.com/questions/10261989/html5-javascript-drag-and-drop-file-from-external-window-windows-explorer
     // https://www.w3.org/TR/file-upload/#dfn-filereader
     Controller.prototype.fnHandleFileSelect = function (event) {
-        var aFiles = event.dataTransfer ? event.dataTransfer.files : event.target.files, // dataTransfer for drag&drop, target.files for file input
-        oStorage = Utils_1.Utils.localStorage, that = this, reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/), // eslint-disable-line no-control-regex
-        // starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
-        aImported = [];
-        var iFile = 0, f, oReader;
-        function fnEndOfImport() {
-            var iStream = 0, oVm = that.oVm;
-            for (var i = 0; i < aImported.length; i += 1) {
-                oVm.print(iStream, aImported[i], " ");
-            }
-            oVm.print(iStream, "\r\n", aImported.length + " file" + (aImported.length !== 1 ? "s" : "") + " imported.\r\n");
-            that.updateResultText();
-        }
+        var oDataTransfer = event.dataTransfer, aFiles = oDataTransfer ? oDataTransfer.files : event.target.files, // dataTransfer for drag&drop, target.files for file input
+        that = this, aImported = [];
+        var iFile = 0, oFile, oReader;
         function fnReadNextFile() {
             if (iFile < aFiles.length) {
-                f = aFiles[iFile];
+                oFile = aFiles[iFile];
                 iFile += 1;
-                var lastModifiedDate = f.lastModifiedDate, sText = f.name + " " + (f.type || "n/a") + " " + f.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
+                var lastModified = oFile.lastModified, lastModifiedDate = lastModified ? new Date(lastModified) : oFile.lastModifiedDate, // lastModifiedDate deprecated, but for old IE
+                sText = oFile.name + " " + (oFile.type || "n/a") + " " + oFile.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
                 Utils_1.Utils.console.log(sText);
-                if (f.type === "text/plain") {
-                    oReader.readAsText(f);
+                if (oFile.type === "text/plain") {
+                    oReader.readAsText(oFile);
                 }
-                else if (f.type === "application/x-zip-compressed") {
-                    oReader.readAsArrayBuffer(f);
+                else if (oFile.type === "application/x-zip-compressed") {
+                    oReader.readAsArrayBuffer(oFile);
                 }
                 else {
-                    oReader.readAsDataURL(f);
+                    oReader.readAsDataURL(oFile);
                 }
             }
             else {
-                fnEndOfImport();
+                that.fnEndOfImport(aImported);
             }
         }
         function fnErrorHandler(event2) {
-            switch (event2.target.error.code) {
-                case event2.target.error.NOT_FOUND_ERR:
-                    Utils_1.Utils.console.warn("File Not Found!");
-                    break;
-                case event2.target.error.ABORT_ERR:
-                    break; // nothing
-                default:
-                    Utils_1.Utils.console.warn("An error occurred reading file", f.name);
+            var oTarget = event2.target;
+            var sMsg = "fnErrorHandler: Error reading file " + oFile.name;
+            if (oTarget !== null && oTarget.error !== null) {
+                if (oTarget.error.NOT_FOUND_ERR) {
+                    sMsg += ": File not found";
+                }
+                else if (oTarget.error.ABORT_ERR) {
+                    sMsg = ""; // nothing
+                }
+            }
+            if (sMsg) {
+                Utils_1.Utils.console.warn(sMsg);
             }
             fnReadNextFile();
         }
-        function fnLoad2(sData, sName, sType) {
-            var oHeader, sStorageName = that.oVm.vmAdaptFilename(sName, "FILE");
+        /*
+        function fnLoad2(sData: string, sName: string, sType: string) {
+            let oHeader: AmsdosHeader | undefined,
+                sStorageName = that.oVm.vmAdaptFilename(sName, "FILE");
+
             sStorageName = Controller.fnLocalStorageName(sStorageName);
+
             if (sType === "text/plain") {
                 oHeader = Controller.createMinimalAmsdosHeader("A", 0, sData.length);
-            }
-            else {
+            } else {
                 if (sType === "application/x-zip-compressed" || sType === "cpcBasic/binary") { // are we a file inside zip?
                     // empty
-                }
-                else { // e.g. "data:application/octet-stream;base64,..."
-                    var iIndex = sData.indexOf(",");
+                } else { // e.g. "data:application/octet-stream;base64,..."
+                    const iIndex = sData.indexOf(",");
+
                     if (iIndex >= 0) {
-                        var sInfo1 = sData.substr(0, iIndex);
+                        const sInfo1 = sData.substr(0, iIndex);
+
                         sData = sData.substr(iIndex + 1); // remove meta prefix
                         if (sInfo1.indexOf("base64") >= 0) {
-                            sData = Utils_1.Utils.atob(sData); // decode base64
+                            sData = Utils.atob(sData); // decode base64
                         }
                     }
                 }
-                oHeader = DiskImage_1.DiskImage.parseAmsdosHeader(sData);
+
+                oHeader = DiskImage.parseAmsdosHeader(sData);
                 if (oHeader) {
                     sData = sData.substr(0x80); // remove header
-                }
-                else if (reRegExpIsText.test(sData)) {
+                } else if (reRegExpIsText.test(sData)) {
                     oHeader = Controller.createMinimalAmsdosHeader("A", 0, sData.length);
-                }
-                else if (DiskImage_1.DiskImage.testDiskIdent(sData.substr(0, 8))) { // disk image file?
+                } else if (DiskImage.testDiskIdent(sData.substr(0, 8))) { // disk image file?
                     try {
-                        var oDsk = new DiskImage_1.DiskImage({
-                            sData: sData,
-                            sDiskName: sName
-                        }), oDir = oDsk.readDirectory(), aDiskFiles = Object.keys(oDir);
-                        for (var i = 0; i < aDiskFiles.length; i += 1) {
-                            var sFileName = aDiskFiles[i];
+                        const oDsk = new DiskImage({
+                                sData: sData,
+                                sDiskName: sName
+                            }),
+                            oDir = oDsk.readDirectory(),
+                            aDiskFiles = Object.keys(oDir);
+
+                        for (let i = 0; i < aDiskFiles.length; i += 1) {
+                            const sFileName = aDiskFiles[i];
+
                             try { // eslint-disable-line max-depth
                                 sData = oDsk.readFile(oDir[sFileName]);
                                 fnLoad2(sData, sFileName, "cpcBasic/binary"); // recursive
-                            }
-                            catch (e) {
-                                Utils_1.Utils.console.error(e);
+                            } catch (e) {
+                                Utils.console.error(e);
                                 that.outputError(e, true);
                             }
                         }
-                    }
-                    catch (e) {
-                        Utils_1.Utils.console.error(e);
+                    } catch (e) {
+                        Utils.console.error(e);
                         that.outputError(e, true);
                     }
-                    oHeader = null; // ignore dsk file
-                }
-                else { // binary
+                    oHeader = undefined; // ignore dsk file
+                } else { // binary
                     oHeader = Controller.createMinimalAmsdosHeader("B", 0, sData.length);
                 }
             }
+
             if (oHeader) {
-                var sMeta = Controller.joinMeta(oHeader);
+                const sMeta = Controller.joinMeta(oHeader);
+
                 try {
                     oStorage.setItem(sStorageName, sMeta + "," + sData);
                     that.updateStorageDatabase("set", sStorageName);
-                    Utils_1.Utils.console.log("fnOnLoad: file: " + sStorageName + " meta: " + sMeta + " imported");
+                    Utils.console.log("fnOnLoad: file: " + sStorageName + " meta: " + sMeta + " imported");
                     aImported.push(sName);
-                }
-                catch (e) { // maybe quota exceeded
-                    Utils_1.Utils.console.error(e);
+                } catch (e) { // maybe quota exceeded
+                    Utils.console.error(e);
                     if (e.name === "QuotaExceededError") {
                         e.shortMessage = sStorageName + ": Quota exceeded";
                     }
@@ -1720,9 +1792,10 @@ var Controller = /** @class */ (function () {
                 }
             }
         }
+        */
         function fnOnLoad(event2) {
-            var data = event2.target.result, sName = f.name, sType = f.type;
-            if (sType === "application/x-zip-compressed") {
+            var oTarget = event2.target, data = (oTarget && oTarget.result) || null, sName = oFile.name, sType = oFile.type;
+            if (sType === "application/x-zip-compressed" && data instanceof ArrayBuffer) {
                 var oZip = void 0;
                 try {
                     oZip = new ZipFile_1.ZipFile(new Uint8Array(data), sName); // rather aData
@@ -1742,16 +1815,19 @@ var Controller = /** @class */ (function () {
                         catch (e) {
                             Utils_1.Utils.console.error(e);
                             that.outputError(e, true);
-                            sData2 = null;
+                            //sData2 = undefined;
                         }
                         if (sData2) {
-                            fnLoad2(sData2, sName2, sType);
+                            that.fnLoad2(sData2, sName2, sType, aImported);
                         }
                     }
                 }
             }
+            else if (typeof data === "string") {
+                that.fnLoad2(data, sName, sType, aImported);
+            }
             else {
-                fnLoad2(data, sName, sType);
+                Utils_1.Utils.console.warn("Error loading file", sName, "with type", sType, " unexpected data:", data);
             }
             fnReadNextFile();
         }
@@ -1770,14 +1846,17 @@ var Controller = /** @class */ (function () {
     Controller.fnHandleDragOver = function (evt) {
         evt.stopPropagation();
         evt.preventDefault();
-        evt.dataTransfer.dropEffect = "copy"; // explicitly show this is a copy
+        if (evt.dataTransfer !== null) {
+            evt.dataTransfer.dropEffect = "copy"; // explicitly show this is a copy
+        }
     };
     Controller.prototype.initDropZone = function () {
         var dropZone = View_1.View.getElementById1("dropZone");
         dropZone.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
         dropZone.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
-        this.oCanvas.canvas.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false); //TTT fast hack
-        this.oCanvas.canvas.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
+        var canvasElement = this.oCanvas.getCanvas();
+        canvasElement.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false); //TTT fast hack
+        canvasElement.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
         View_1.View.getElementById1("fileInput").addEventListener("change", this.fnHandleFileSelect.bind(this), false);
     };
     Controller.prototype.fnUpdateUndoRedoButtons = function () {
@@ -1802,14 +1881,12 @@ var Controller = /** @class */ (function () {
         this.oCanvas.stopUpdateCanvas();
     };
     Controller.prototype.virtualKeyboardCreate = function () {
-        //this.oKeyboard.virtualKeyboardCreate(); // maybe draw it
         if (!this.oVirtualKeyboard) {
             this.oVirtualKeyboard = new VirtualKeyboard_1.VirtualKeyboard({
                 fnPressCpcKey: this.oKeyboard.fnPressCpcKey.bind(this.oKeyboard),
                 fnReleaseCpcKey: this.oKeyboard.fnReleaseCpcKey.bind(this.oKeyboard)
             });
         }
-        this.oVirtualKeyboard.virtualKeyboardCreate(); // maybe draw it
     };
     Controller.prototype.getVariable = function (sPar) {
         return this.oVariables.getVariable(sPar);
@@ -1821,20 +1898,23 @@ var Controller = /** @class */ (function () {
         return this.inputStack.redo();
     };
     Controller.prototype.onDatabaseSelectChange = function () {
-        var sUrl, oDatabase;
-        var that = this, sDatabase = this.view.getSelectValue("databaseSelect"), fnDatabaseLoaded = function (_sFullUrl) {
+        var sUrl;
+        var sDatabase = this.view.getSelectValue("databaseSelect");
+        this.model.setProperty("database", sDatabase);
+        this.view.setSelectTitleFromSelectedOption("databaseSelect");
+        var oDatabase = this.model.getDatabase(), that = this, fnDatabaseLoaded = function () {
             oDatabase.loaded = true;
             Utils_1.Utils.console.log("fnDatabaseLoaded: database loaded: " + sDatabase + ": " + sUrl);
             that.setExampleSelectOptions();
             if (oDatabase.error) {
                 Utils_1.Utils.console.error("fnDatabaseLoaded: database contains errors: " + sDatabase + ": " + sUrl);
-                that.setInputText(oDatabase.script);
+                that.setInputText(oDatabase.script || "");
                 that.view.setAreaValue("resultText", oDatabase.error);
             }
             else {
                 that.onExampleSelectChange();
             }
-        }, fnDatabaseError = function (_sFullUrl) {
+        }, fnDatabaseError = function () {
             oDatabase.loaded = false;
             Utils_1.Utils.console.error("fnDatabaseError: database error: " + sDatabase + ": " + sUrl);
             that.setExampleSelectOptions();
@@ -1842,15 +1922,17 @@ var Controller = /** @class */ (function () {
             that.setInputText("");
             that.view.setAreaValue("resultText", "Cannot load database: " + sDatabase);
         };
+        /*
         this.model.setProperty("database", sDatabase);
         this.view.setSelectTitleFromSelectedOption("databaseSelect");
         oDatabase = this.model.getDatabase();
+        */
         if (!oDatabase) {
             Utils_1.Utils.console.error("onDatabaseSelectChange: database not available:", sDatabase);
             return;
         }
         if (oDatabase.text === "storage") { // sepcial handling: browser localStorage
-            this.updateStorageDatabase("set", null); // set all
+            this.updateStorageDatabase("set", ""); // set all
             oDatabase.loaded = true;
         }
         if (oDatabase.loaded) {
@@ -1859,8 +1941,9 @@ var Controller = /** @class */ (function () {
         }
         else {
             that.setInputText("#loading database " + sDatabase + "...");
-            sUrl = oDatabase.src + "/" + this.model.getProperty("exampleIndex");
-            Utils_1.Utils.loadScript(sUrl, fnDatabaseLoaded, fnDatabaseError);
+            var sExampleIndex = this.model.getProperty("exampleIndex");
+            sUrl = oDatabase.src + "/" + sExampleIndex;
+            Utils_1.Utils.loadScript(sUrl, fnDatabaseLoaded, fnDatabaseError, sDatabase);
         }
     };
     Controller.prototype.onExampleSelectChange = function () {
@@ -1917,6 +2000,7 @@ var Controller = /** @class */ (function () {
         this.oKeyboard.setActive(false);
     };
     Controller.sMetaIdent = "CPCBasic";
+    Controller.reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/); // eslint-disable-line no-control-regex
     return Controller;
 }());
 exports.Controller = Controller;

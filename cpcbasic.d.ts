@@ -10,7 +10,7 @@ declare class cpcBasic {
     static addIndex(sDir: string, input: string | (() => void)): void;
     static addItem(sKey: string, input: string | (() => void)): string;
     private static fnParseUri;
-    private static setDebugUtilsConsole;
+    private static createDebugUtilsConsole;
     private static fnDoStart;
     static fnOnLoad(): void;
 }

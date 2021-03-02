@@ -1,6 +1,6 @@
 export interface CustomError extends Error {
     value: string;
-    pos?: number;
+    pos: number;
     line?: number | string;
     hidden?: boolean;
     shortMessage?: string;
@@ -9,8 +9,7 @@ export declare class Utils {
     static debug: number;
     static console: Console;
     private static fnLoadScriptOrStyle;
-    static loadScript(sUrl: string, fnSuccess: (sStr: string) => void, fnError: (sStr: string) => void): void;
-    static loadStyle(sUrl: string, fnSuccess: (sStr: string) => void, fnError: (sStr: string) => void): void;
+    static loadScript(sUrl: string, fnSuccess: (sUrl2: string, sKey: string) => void, fnError: (sUrl2: string, sKey: string) => void, sKey: string): void;
     static dateFormat(d: Date): string;
     static stringCapitalize(str: string): string;
     static numberWithCommas(x: number | string): string;

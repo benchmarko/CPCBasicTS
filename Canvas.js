@@ -10,11 +10,28 @@ var Utils_1 = require("./Utils");
 var View_1 = require("./View");
 var Canvas = /** @class */ (function () {
     function Canvas(options) {
+        this.oCustomCharset = {};
+        this.iInkSet = 0;
+        this.bLittleEndian = true;
+        this.bUse32BitCopy = true; // determined later
+        this.iGPen = 0;
+        this.iGPaper = 0;
+        this.iSpeedInkCount = 0; // usually 10
+        this.aTextBuffer = []; // textbuffer characters at row,column
+        this.bHasFocus = false; // canvas has focus
+        this.iMode = 0;
+        this.oModeData = Canvas.aModeData[0];
+        this.xPos = 0;
+        this.yPos = 0;
+        this.xOrig = 0;
+        this.yOrig = 0;
+        this.xLeft = 0;
+        this.xRight = 639;
+        this.yTop = 399;
+        this.yBottom = 0;
+        this.bGTransparent = false;
         this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
         this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
-        this.init(options);
-    }
-    Canvas.prototype.init = function (options) {
         var iBorderWidth = 4;
         this.aCharset = options.aCharset;
         this.onClickKey = options.onClickKey;
@@ -49,9 +66,9 @@ var Canvas = /** @class */ (function () {
         this.aPen2ColorMap = [];
         this.iAnimationTimeoutId = undefined;
         this.iAnimationFrame = undefined;
-        if (this.canvas.getContext) {
-            var ctx = this.canvas.getContext("2d");
-            this.imageData = ctx.getImageData(0, 0, iWidth, iHeight);
+        if (this.canvas.getContext) { // not available on e.g. IE8
+            this.ctx = this.canvas.getContext("2d");
+            this.imageData = this.ctx.getImageData(0, 0, iWidth, iHeight);
             if (typeof Uint32Array !== "undefined" && this.imageData.data.buffer) { // imageData.data.buffer not available on IE10
                 this.bLittleEndian = Canvas.isLittleEndian();
                 this.aPen2Color32 = new Uint32Array(new ArrayBuffer(Canvas.aModeData[3].iPens * 4));
@@ -68,16 +85,17 @@ var Canvas = /** @class */ (function () {
         }
         else {
             Utils_1.Utils.console.warn("Error: canvas.getContext is not supported.");
-            this.imageData = null;
+            this.ctx = {}; // not available
+            this.imageData = {}; // not available
         }
         this.reset();
-    };
+    }
     Canvas.prototype.reset = function () {
         this.resetTextBuffer();
         this.setNeedTextUpdate();
         this.changeMode(1);
-        this.iGPen = undefined; // undefined to force update
-        this.iGPaper = undefined;
+        //this.iGPen = undefined; //TTT undefined to force update
+        //this.iGPaper = undefined; //TTT
         this.iInkSet = 0;
         this.setDefaultInks();
         this.aSpeedInk[0] = 10;
@@ -94,7 +112,7 @@ var Canvas = /** @class */ (function () {
         this.oCustomCharset = {}; // symbol
     };
     Canvas.prototype.resetTextBuffer = function () {
-        this.aTextBuffer = [];
+        this.aTextBuffer.length = 0;
     };
     Canvas.isLittleEndian = function () {
         // https://gist.github.com/TooTallNate/4750953
@@ -133,7 +151,7 @@ var Canvas = /** @class */ (function () {
         if (this.bNeedUpdate) { // could be improved: update only updateRect
             this.bNeedUpdate = false;
             // we always do a full updateCanvas...
-            if (this.imageData) { // not available on e.g. IE8
+            if (this.fnCopy2Canvas) { // not available on e.g. IE8
                 this.fnCopy2Canvas();
             }
         }
@@ -163,7 +181,7 @@ var Canvas = /** @class */ (function () {
         }
     };
     Canvas.prototype.copy2Canvas8bit = function () {
-        var ctx = this.canvas.getContext("2d"), buf8 = this.imageData.data, // use Uint8ClampedArray from canvas
+        var buf8 = this.imageData.data, // use Uint8ClampedArray from canvas
         dataset8 = this.dataset8, iLength = dataset8.length, // or: this.iWidth * this.iHeight
         aPen2ColorMap = this.aPen2ColorMap;
         for (var i = 0; i < iLength; i += 1) {
@@ -173,24 +191,24 @@ var Canvas = /** @class */ (function () {
             buf8[j + 2] = aColor[2]; // b
             // alpha already set to 255
         }
-        ctx.putImageData(this.imageData, 0, 0);
+        this.ctx.putImageData(this.imageData, 0, 0);
     };
     Canvas.prototype.copy2Canvas32bit = function () {
-        var ctx = this.canvas.getContext("2d"), dataset8 = this.dataset8, aData32 = this.aData32, aPen2Color32 = this.aPen2Color32;
+        var dataset8 = this.dataset8, aData32 = this.aData32, aPen2Color32 = this.aPen2Color32;
         for (var i = 0; i < aData32.length; i += 1) {
             aData32[i] = aPen2Color32[dataset8[i]];
         }
-        ctx.putImageData(this.imageData, 0, 0);
+        this.ctx.putImageData(this.imageData, 0, 0);
     };
     Canvas.prototype.copy2Canvas32bitWithOffset = function () {
-        var ctx = this.canvas.getContext("2d"), dataset8 = this.dataset8, aData32 = this.aData32, aPen2Color32 = this.aPen2Color32, iOffset = this.iOffset;
+        var dataset8 = this.dataset8, aData32 = this.aData32, aPen2Color32 = this.aPen2Color32, iOffset = this.iOffset;
         for (var i = 0; i < aData32.length - iOffset; i += 1) {
             aData32[i + iOffset] = aPen2Color32[dataset8[i]];
         }
         for (var i = aData32.length - iOffset; i < aData32.length; i += 1) {
             aData32[i + iOffset - aData32.length] = aPen2Color32[dataset8[i]];
         }
-        ctx.putImageData(this.imageData, 0, 0);
+        this.ctx.putImageData(this.imageData, 0, 0);
     };
     Canvas.prototype.applyCopy2CanvasFunction = function (iOffset) {
         if (this.bUse32BitCopy) {
@@ -313,7 +331,7 @@ var Canvas = /** @class */ (function () {
             this.move(x, y);
         }
         if (Utils_1.Utils.debug > 0) {
-            Utils_1.Utils.console.debug("onCpcCanvasClick: x-xOrig", x, "y-yOrig", y, "iChar", iChar, "char", String.fromCharCode(iChar), "detail", event.detail);
+            Utils_1.Utils.console.debug("onCpcCanvasClick: x-xOrig", x, "y-yOrig", y, "iChar", iChar, "char", (iChar !== undefined ? String.fromCharCode(iChar) : "?"), "detail", event.detail);
         }
     };
     Canvas.prototype.onCpcCanvasClick = function (event) {
@@ -1003,6 +1021,12 @@ var Canvas = /** @class */ (function () {
         this.setGPen(this.iGPen); // keep, but maybe different for other mode
         this.setGPaper(this.iGPaper); // keep, maybe different for other mode
         this.setGTransparentMode(false);
+    };
+    Canvas.prototype.startScreenshot = function () {
+        return this.canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"); // here is the most important part because if you do not replace you will get a DOM 18 exception.
+    };
+    Canvas.prototype.getCanvas = function () {
+        return this.canvas;
     };
     // http://www.cpcwiki.eu/index.php/CPC_Palette
     Canvas.aColors = [

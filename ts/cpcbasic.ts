@@ -63,7 +63,7 @@ class cpcBasic { // eslint-disable-line vars-on-top
 			fnDecode = function (s: string) { return decodeURIComponent(s.replace(rPlus, " ")); },
 			sQuery = window.location.search.substring(1);
 
-		let aMatch: RegExpExecArray;
+		let aMatch: RegExpExecArray | null;
 
 		while ((aMatch = rSearch.exec(sQuery)) !== null) {
 			const sName = fnDecode(aMatch[1]);
@@ -89,14 +89,14 @@ class cpcBasic { // eslint-disable-line vars-on-top
 		}
 	}
 
-	private static setDebugUtilsConsole(sCpcBasicLog: string) {
+	private static createDebugUtilsConsole(sCpcBasicLog: string) {
 		const oCurrentConsole = Utils.console,
 			oConsole = {
 				consoleLog: {
 					value: sCpcBasicLog || "" // already something collected?
 				},
 				console: oCurrentConsole,
-				fnMapObjectProperties: function (arg) {
+				fnMapObjectProperties: function (arg: any) {
 					if (typeof arg === "object") {
 						const aRes = [];
 
@@ -112,7 +112,7 @@ class cpcBasic { // eslint-disable-line vars-on-top
 					}
 					return arg;
 				},
-				rawLog: function (fnMethod, sLevel: string, aArgs) {
+				rawLog: function (fnMethod: (aArgs: any) => void, sLevel: string, aArgs: any) {
 					if (sLevel) {
 						aArgs.unshift(sLevel);
 					}
@@ -140,7 +140,7 @@ class cpcBasic { // eslint-disable-line vars-on-top
 				error: function () {
 					this.rawLog(this.console && this.console.error, "ERROR:", Array.prototype.slice.call(arguments));
 				},
-				changeLog: function (oLog) {
+				changeLog: function (oLog: any) {
 					const oldLog = this.consoleLog;
 
 					this.consoleLog = oLog;
@@ -150,7 +150,8 @@ class cpcBasic { // eslint-disable-line vars-on-top
 				}
 			};
 
-		Utils.console = oConsole as any;
+		//Utils.console = oConsole as any;
+		return oConsole;
 	}
 
 	private static fnDoStart() {
@@ -168,8 +169,8 @@ class cpcBasic { // eslint-disable-line vars-on-top
 
 		Utils.debug = iDebug;
 
-		const UtilsConsole = Utils.console as any;
-		let sCpcBasicLog: string;
+		let UtilsConsole = Utils.console as any,
+			sCpcBasicLog = "";
 
 		if (UtilsConsole.cpcBasicLog) {
 			sCpcBasicLog = UtilsConsole.cpcBasicLog;
@@ -177,7 +178,8 @@ class cpcBasic { // eslint-disable-line vars-on-top
 		}
 
 		if (Utils.debug > 1 && cpcBasic.model.getProperty<boolean>("showConsole")) { // console log window?
-			cpcBasic.setDebugUtilsConsole(sCpcBasicLog);
+			UtilsConsole = cpcBasic.createDebugUtilsConsole(sCpcBasicLog);
+			Utils.console = UtilsConsole;
 			Utils.console.log("CPCBasic log started at", Utils.dateFormat(new Date()));
 			UtilsConsole.changeLog(View.getElementById1("consoleText"));
 		}

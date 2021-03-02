@@ -7,8 +7,7 @@ var Utils_1 = require("../Utils");
 var BasicLexer_1 = require("../BasicLexer");
 var BasicParser_1 = require("../BasicParser");
 var CodeGeneratorBasic_1 = require("../CodeGeneratorBasic");
-var qunit_1 = require("qunit"); //TTT
-qunit_1.QUnit.module("CodeGeneratorBasic: Tests", function ( /* hooks */) {
+QUnit.module("CodeGeneratorBasic: Tests", function ( /* hooks */) {
     var mAllTests = {
         "abs, after gosub, and, asc, atn, auto": {
             "a=abs(2.3)": "a=ABS(2.3)",
@@ -541,7 +540,7 @@ qunit_1.QUnit.module("CodeGeneratorBasic: Tests", function ( /* hooks */) {
         for (var sCategory in oAllTests) {
             if (oAllTests.hasOwnProperty(sCategory)) {
                 (function (sCat) {
-                    qunit_1.QUnit.test(sCat, function (assert) {
+                    QUnit.test(sCat, function (assert) {
                         runTestsFor(assert, oAllTests[sCat]);
                     });
                 }(sCategory));

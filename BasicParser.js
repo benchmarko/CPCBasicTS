@@ -827,7 +827,7 @@ var BasicParser = /** @class */ (function () {
             }
         }
         oValue.args = aArgs; // then statements
-        aArgs = null;
+        aArgs = undefined;
         if (this.oToken.type === "else") {
             this.oToken = this.advance("else");
             if (this.oToken.type === "number") {
@@ -849,7 +849,9 @@ var BasicParser = /** @class */ (function () {
                 aArgs = this.statements("else");
             }
         }
-        oValue.args2 = aArgs; // else statements
+        if (aArgs !== undefined) {
+            oValue.args2 = aArgs; // else statements
+        }
         return oValue;
     };
     BasicParser.prototype.fnInput = function () {

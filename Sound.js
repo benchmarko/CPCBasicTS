@@ -8,16 +8,14 @@ exports.Sound = void 0;
 var Utils_1 = require("./Utils");
 var Sound = /** @class */ (function () {
     function Sound() {
-        this.init();
-    }
-    Sound.prototype.init = function () {
         this.bIsSoundOn = false;
-        this.bIsActivatedByUser = false;
-        this.context = undefined;
-        this.oMergerNode = undefined;
         this.aGainNodes = [];
         this.aOscillators = []; // 3 oscillators left, middle, right
         this.aQueues = []; // node queues and info for the three channels
+        this.fScheduleAheadTime = 0.1; // 100 ms
+        this.aVolEnv = [];
+        this.aToneEnv = [];
+        this.bIsActivatedByUser = false;
         for (var i = 0; i < 3; i += 1) {
             this.aQueues[i] = {
                 aSoundData: [],
@@ -26,14 +24,10 @@ var Sound = /** @class */ (function () {
                 iRendevousMask: 0
             };
         }
-        this.fScheduleAheadTime = 0.1; // 100 ms
-        this.aVolEnv = [];
-        this.aToneEnv = [];
-        this.iReleaseMask = 0;
         if (Utils_1.Utils.debug > 1) {
             this.aDebugLog = []; // access: cpcBasic.controller.oSound.aDebugLog
         }
-    };
+    }
     Sound.prototype.reset = function () {
         var aOscillators = this.aOscillators, oVolEnvData = {
             steps: 1,
@@ -49,7 +43,6 @@ var Sound = /** @class */ (function () {
         this.aVolEnv.length = 0;
         this.setVolEnv(0, [oVolEnvData]); // set default ENV (should not be changed)
         this.aToneEnv.length = 0;
-        this.iReleaseMask = 0;
         if (this.aDebugLog) {
             this.aDebugLog.length = 0;
         }

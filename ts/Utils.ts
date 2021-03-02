@@ -5,7 +5,7 @@
 
 export interface CustomError extends Error {
 	value: string
-	pos?: number
+	pos: number
 	line?: number | string
 	hidden?: boolean
 	shortMessage?: string
@@ -18,22 +18,28 @@ export class Utils { // eslint-disable-line vars-on-top
 		return typeof window !== "undefined" ? window.console : globalThis.console; // browser or node.js
 	}());
 
-	private static fnLoadScriptOrStyle(script: HTMLScriptElement | HTMLLinkElement, sFullUrl: string, fnSuccess: (sStr: string) => void, fnError: (sStr: string) => void) {
+	private static fnLoadScriptOrStyle(script: HTMLScriptElement | HTMLLinkElement, fnSuccess: (sUrl: string, sKey: string) => void, fnError: (sUrl: string, sKey: string) => void) {
 		// inspired by https://github.com/requirejs/requirejs/blob/master/require.js
 		let iIEtimeoutCount = 3;
 		const onScriptLoad = function (event: Event) {
-				const node = (event.currentTarget || event.srcElement) as HTMLScriptElement | HTMLLinkElement;
+				const sType = event.type, // "load" or "error"
+					node = (event.currentTarget || event.srcElement) as HTMLScriptElement | HTMLLinkElement,
+					sFullUrl = (node as HTMLScriptElement).src || (node as HTMLLinkElement).href, // src for script, href for link
+					sKey = node.getAttribute("data-key") as string;
 
 				if (Utils.debug > 1) {
-					Utils.console.debug("onScriptLoad:", (node as HTMLScriptElement).src || (node as HTMLLinkElement).href);
+					Utils.console.debug("onScriptLoad:", sType, sFullUrl, sKey);
 				}
 				node.removeEventListener("load", onScriptLoad, false);
-				node.removeEventListener("error", onScriptError, false); // eslint-disable-line no-use-before-define
+				node.removeEventListener("error", onScriptLoad, false);
 
-				if (fnSuccess) {
-					fnSuccess(sFullUrl);
+				if (sType === "load") {
+					fnSuccess(sFullUrl, sKey);
+				} else {
+					fnError(sFullUrl, sKey);
 				}
 			},
+			/*
 			onScriptError = function (event: Event) {
 				const node = (event.currentTarget || event.srcElement) as HTMLScriptElement | HTMLLinkElement;
 
@@ -47,8 +53,11 @@ export class Utils { // eslint-disable-line vars-on-top
 					fnError(sFullUrl);
 				}
 			},
+			*/
 			onScriptReadyStateChange = function (event?: Event) { // for old IE8
-				const node = event ? (event.currentTarget || event.srcElement) : script,
+				const node = (event ? (event.currentTarget || event.srcElement) : script) as HTMLScriptElement | HTMLLinkElement,
+					sFullUrl = (node as HTMLScriptElement).src || (node as HTMLLinkElement).href, // src for script, href for link
+					sKey = node.getAttribute("data-key") as string,
 					node2 = node as any;
 
 				if (node2.detachEvent) {
@@ -56,7 +65,7 @@ export class Utils { // eslint-disable-line vars-on-top
 				}
 
 				if (Utils.debug > 1) {
-					Utils.console.debug("onScriptReadyStateChange: " + node2.src || node2.href);
+					Utils.console.debug("onScriptReadyStateChange: " + sFullUrl);
 				}
 				// check also: https://stackoverflow.com/questions/1929742/can-script-readystate-be-trusted-to-detect-the-end-of-dynamic-script-loading
 				if (node2.readyState !== "loaded" && node2.readyState !== "complete") {
@@ -64,19 +73,17 @@ export class Utils { // eslint-disable-line vars-on-top
 						iIEtimeoutCount -= 1;
 						const iTimeout = 200; // some delay
 
-						Utils.console.error("onScriptReadyStateChange: Still loading: " + (node2.src || node2.href) + " Waiting " + iTimeout + "ms (count=" + iIEtimeoutCount + ")");
+						Utils.console.error("onScriptReadyStateChange: Still loading: " + sFullUrl + " Waiting " + iTimeout + "ms (count=" + iIEtimeoutCount + ")");
 						setTimeout(function () {
 							onScriptReadyStateChange(undefined); // check again
 						}, iTimeout);
 					} else {
 						// iIEtimeoutCount = 3;
-						Utils.console.error("onScriptReadyStateChange: Cannot load file " + (node2.src || node2.href) + " readystate=" + node2.readyState);
-						if (fnError) {
-							fnError(sFullUrl);
-						}
+						Utils.console.error("onScriptReadyStateChange: Cannot load file " + sFullUrl + " readystate=" + node2.readyState);
+						fnError(sFullUrl, sKey);
 					}
-				} else if (fnSuccess) {
-					fnSuccess(sFullUrl);
+				} else {
+					fnSuccess(sFullUrl, sKey);
 				}
 			};
 
@@ -85,13 +92,12 @@ export class Utils { // eslint-disable-line vars-on-top
 			(script as any).attachEvent("onreadystatechange", onScriptReadyStateChange);
 		} else { // Others
 			script.addEventListener("load", onScriptLoad, false);
-			script.addEventListener("error", onScriptError, false);
+			script.addEventListener("error", onScriptLoad, false);
 		}
 		document.getElementsByTagName("head")[0].appendChild(script);
-		return sFullUrl;
 	}
 
-	static loadScript(sUrl: string, fnSuccess: (sStr: string) => void, fnError: (sStr: string) => void): void {
+	static loadScript(sUrl: string, fnSuccess: (sUrl2: string, sKey: string) => void, fnError: (sUrl2: string, sKey: string) => void, sKey: string): void {
 		const script = document.createElement("script");
 
 		script.type = "text/javascript";
@@ -99,21 +105,26 @@ export class Utils { // eslint-disable-line vars-on-top
 		script.async = true;
 		script.src = sUrl;
 
-		const sFullUrl = script.src;
+		script.setAttribute("data-key", sKey);
 
-		this.fnLoadScriptOrStyle(script, sFullUrl, fnSuccess, fnError);
+		//const sFullUrl = script.src;
+
+		this.fnLoadScriptOrStyle(script, fnSuccess, fnError);
 	}
 
+	/*
+	// not used:
 	static loadStyle(sUrl: string, fnSuccess: (sStr: string) => void, fnError: (sStr: string) => void): void {
 		const link = document.createElement("link");
 
 		link.rel = "stylesheet";
 		link.href = sUrl;
 
-		const sFullUrl = link.href;
+		//const sFullUrl = link.href;
 
-		this.fnLoadScriptOrStyle(link, sFullUrl, fnSuccess, fnError);
+		this.fnLoadScriptOrStyle(link, fnSuccess, fnError);
 	}
+	*/
 
 	static dateFormat(d: Date): string {
 		return d.getFullYear() + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + ("0" + d.getDate()).slice(-2) + " "

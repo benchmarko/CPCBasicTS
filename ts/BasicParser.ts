@@ -1220,7 +1220,7 @@ export class BasicParser {
 		}
 		oValue.args = aArgs; // then statements
 
-		aArgs = null;
+		aArgs = undefined;
 		if (this.oToken.type === "else") {
 			this.oToken = this.advance("else");
 			if (this.oToken.type === "number") {
@@ -1242,7 +1242,9 @@ export class BasicParser {
 				aArgs = this.statements("else");
 			}
 		}
-		oValue.args2 = aArgs; // else statements
+		if (aArgs !== undefined) {
+			oValue.args2 = aArgs; // else statements
+		}
 		return oValue;
 	}
 

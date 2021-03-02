@@ -54,7 +54,7 @@ var cpcBasic = /** @class */ (function () {
             oConfig[sName] = sValue;
         }
     };
-    cpcBasic.setDebugUtilsConsole = function (sCpcBasicLog) {
+    cpcBasic.createDebugUtilsConsole = function (sCpcBasicLog) {
         var oCurrentConsole = Utils_1.Utils.console, oConsole = {
             consoleLog: {
                 value: sCpcBasicLog || "" // already something collected?
@@ -110,7 +110,8 @@ var cpcBasic = /** @class */ (function () {
                 }
             }
         };
-        Utils_1.Utils.console = oConsole;
+        //Utils.console = oConsole as any;
+        return oConsole;
     };
     cpcBasic.fnDoStart = function () {
         var oStartConfig = cpcBasic.config, oExternalConfig = cpcconfig_1.cpcconfig || {}; // external config from cpcconfig.js
@@ -121,14 +122,14 @@ var cpcBasic = /** @class */ (function () {
         cpcBasic.view = new View_1.View();
         var iDebug = Number(cpcBasic.model.getProperty("debug"));
         Utils_1.Utils.debug = iDebug;
-        var UtilsConsole = Utils_1.Utils.console;
-        var sCpcBasicLog;
+        var UtilsConsole = Utils_1.Utils.console, sCpcBasicLog = "";
         if (UtilsConsole.cpcBasicLog) {
             sCpcBasicLog = UtilsConsole.cpcBasicLog;
             UtilsConsole.cpcBasicLog = undefined; // do not log any more to dummy console
         }
         if (Utils_1.Utils.debug > 1 && cpcBasic.model.getProperty("showConsole")) { // console log window?
-            cpcBasic.setDebugUtilsConsole(sCpcBasicLog);
+            UtilsConsole = cpcBasic.createDebugUtilsConsole(sCpcBasicLog);
+            Utils_1.Utils.console = UtilsConsole;
             Utils_1.Utils.console.log("CPCBasic log started at", Utils_1.Utils.dateFormat(new Date()));
             UtilsConsole.changeLog(View_1.View.getElementById1("consoleText"));
         }

@@ -4,27 +4,13 @@
 //
 
 import { Utils } from "./Utils";
+import { PressReleaseCpcKey } from "./Keyboard";
 import { View } from "./View";
 
 interface VirtualKeyboardOptions {
-	//fnOnEscapeHandler?: (sKey: string, sPressedKey: string) => void
-	//fnOnKeyDown?: () => void
-	fnPressCpcKey: (iCpcKey: number, sPressedKey: string, sKey: string, bShiftKey: boolean, bCtrlKey: boolean) => void,
-	fnReleaseCpcKey: (iCpcKey: number, sPressedKey: string, sKey: string, bShiftKey: boolean, bCtrlKey: boolean) => void
+	fnPressCpcKey: PressReleaseCpcKey,
+	fnReleaseCpcKey: PressReleaseCpcKey
 }
-
-/*
-type KeyExpansionsType = { [k in string]: number }; // numbers as keys are stored as string anyway, so use string
-
-type KeyExpansionsRepeatType = { [k in string]: number }; // numbers as keys are stored as string anyway, so use string
-
-type Key2CpcKeyType = { [k in string]: number };
-
-
-type PressedBrowseKeysType = { [k in string]: boolean };
-
-type PressedKeysType = { [k in string]: {oKeys: PressedBrowseKeysType, shift: boolean, ctrl: boolean } };
-*/
 
 interface CpcKey2Key {
 	keys: string
@@ -42,19 +28,9 @@ interface CpcKey2Key {
 	titleShift?: string
 }
 
-
-/*
-interface CpcKeyExpansions {
-	normal: KeyExpansionsType
-	shift: KeyExpansionsType
-	ctrl: KeyExpansionsType
-	repeat: KeyExpansionsRepeatType
-}
-*/
-
 type VirtualVirtualKeyboardLayoutType1 = { key: number, style?: number };
 
-type VirtualVirtualKeyboardLayoutType2 = (number | VirtualVirtualKeyboardLayoutType1);
+type VirtualVirtualKeyboardLayoutType2 = number | VirtualVirtualKeyboardLayoutType1;
 
 interface VirtualButtonRowOptions {
 	key: number,
@@ -64,22 +40,16 @@ interface VirtualButtonRowOptions {
 }
 
 export class VirtualKeyboard {
-	//options: VirtualKeyboardOptions;
+	private fnPressCpcKey: PressReleaseCpcKey;
+	private fnReleaseCpcKey: PressReleaseCpcKey;
 
-	fnPressCpcKey: any; //(any) => void;
-	fnReleaseCpcKey: any; //(any) => void
+	private sPointerOutEvent?: string;
+	private fnVirtualKeyout?: EventListener;
 
-	fnOnKeyDown?: () => void;
+	private bShiftLock = false;
+	private bNumLock = false;
 
-	bActive: boolean; // flag if VirtualKeyboard is active/focused, set from outside
-
-	sPointerOutEvent?: string;
-	fnVirtualKeyout?: EventListener;
-
-	bShiftLock: boolean; // for virtual keyboard
-	bNumLock: boolean;
-
-	static aCpcKey2Key: CpcKey2Key[] = [
+	private static aCpcKey2Key: CpcKey2Key[] = [
 		{
 			keys: "38ArrowUp", // 0: cursor up
 			key: "ArrowUp",
@@ -183,7 +153,7 @@ export class VirtualKeyboard {
 			key: "0",
 			text: "f0",
 			style: 1
-			//numLockCpcKey: 90 // Num lock
+			// numLockCpcKey: 90 // Num lock
 		},
 		{
 			keys: "46Delete", // 16: clr
@@ -588,7 +558,7 @@ export class VirtualKeyboard {
 	];
 
 	/* eslint-disable array-element-newline */
-	static aVirtualVirtualKeyboardAlpha: VirtualVirtualKeyboardLayoutType2[][] = [
+	private static aVirtualVirtualKeyboardAlpha: VirtualVirtualKeyboardLayoutType2[][] = [
 		[66, 64, 65, 57, 56, 49, 48, 41, 40, 33, 32, 25, 24, 16, 79],
 		[68, 67, 59, 58, 50, 51, 43, 42, 35, 34, 27, 26, 17, 18],
 		[70, 69, 60, 61, 53, 52, 44, 45, 37, 36, 29, 28, 19, 90], // 90=virtual numpad button
@@ -602,7 +572,7 @@ export class VirtualKeyboard {
 		[23, 9, 47, 6]
 	];
 
-	static aVirtualVirtualKeyboardNum: VirtualVirtualKeyboardLayoutType2[][] = [ // numpad
+	private static aVirtualVirtualKeyboardNum: VirtualVirtualKeyboardLayoutType2[][] = [ // numpad
 		[10, 11, 3],
 		[20, 12, 4],
 		[13, 14, 5],
@@ -611,13 +581,20 @@ export class VirtualKeyboard {
 	];
 	/* eslint-enable array-element-newline */
 
+	private oDrag = {
+		dragItem: undefined as (HTMLElement | undefined),
+		active: false,
+		xOffset: 0,
+		yOffset: 0,
+		initialX: 0,
+		initialY: 0,
+		currentX: 0,
+		currentY: 0
+	};
 
 	constructor(options: VirtualKeyboardOptions) {
-		//this.options = Object.assign({}, options);
 		this.fnPressCpcKey = options.fnPressCpcKey;
 		this.fnReleaseCpcKey = options.fnReleaseCpcKey;
-
-		this.bActive = false; // flag if VirtualKeyboard is active/focused, set from outside
 
 		const oEventNames = this.fnAttachPointerEvents("kbdArea", this.onVirtualVirtualKeyboardKeydown.bind(this), undefined, this.onVirtualVirtualKeyboardKeyup.bind(this));
 
@@ -627,6 +604,8 @@ export class VirtualKeyboard {
 		}
 
 		this.dragInit("pageBody", "kbdAreaBox");
+
+		this.virtualKeyboardCreate();
 	}
 
 	private fnAttachPointerEvents(sId: string, fnDown?: EventListener, fnMove?: EventListener, fnUp?: EventListener) { // eslint-disable-line class-methods-use-this
@@ -685,12 +664,9 @@ export class VirtualKeyboard {
 		return oEventNames;
 	}
 
-
 	reset(): void {
 		this.virtualKeyboardAdaptKeys(false, false);
 	}
-
-	// ...
 
 	private mapNumLockCpcKey(iCpcKey: number) { // eslint-disable-line class-methods-use-this
 		const oKey = VirtualKeyboard.aCpcKey2Key[iCpcKey];
@@ -802,7 +778,7 @@ export class VirtualKeyboard {
 		}
 	}
 
-	virtualKeyboardCreate(): void {
+	private virtualKeyboardCreate(): void {
 		this.virtualKeyboardCreatePart("kbdAlpha", VirtualKeyboard.aVirtualVirtualKeyboardAlpha);
 		this.virtualKeyboardCreatePart("kbdNum", VirtualKeyboard.aVirtualVirtualKeyboardNum);
 	}
@@ -935,17 +911,6 @@ export class VirtualKeyboard {
 		}
 		event.preventDefault();
 		return false;
-	}
-
-	oDrag = {
-		dragItem: undefined as (HTMLElement | undefined),
-		active: false,
-		xOffset: 0,
-		yOffset: 0,
-		initialX: 0,
-		initialY: 0,
-		currentX: 0,
-		currentY: 0
 	}
 
 	// based on https://www.kirupa.com/html5/drag.htm

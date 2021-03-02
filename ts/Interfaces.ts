@@ -33,7 +33,7 @@ export interface IController {
     onExampleSelectChange: () => void
     onDatabaseSelectChange: () => void
 
-    onCpcCanvasClick: (event: Event) => void
+    onCpcCanvasClick: (event: MouseEvent) => void
     onWindowClick: (event: Event) => void
 
     startUpdateCanvas: () => void

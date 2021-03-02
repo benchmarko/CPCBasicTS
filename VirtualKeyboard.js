@@ -8,8 +8,10 @@ exports.VirtualKeyboard = void 0;
 var Utils_1 = require("./Utils");
 var View_1 = require("./View");
 var VirtualKeyboard = /** @class */ (function () {
-    /* eslint-enable array-element-newline */
     function VirtualKeyboard(options) {
+        this.bShiftLock = false;
+        this.bNumLock = false;
+        /* eslint-enable array-element-newline */
         this.oDrag = {
             dragItem: undefined,
             active: false,
@@ -20,16 +22,15 @@ var VirtualKeyboard = /** @class */ (function () {
             currentX: 0,
             currentY: 0
         };
-        //this.options = Object.assign({}, options);
         this.fnPressCpcKey = options.fnPressCpcKey;
         this.fnReleaseCpcKey = options.fnReleaseCpcKey;
-        this.bActive = false; // flag if VirtualKeyboard is active/focused, set from outside
         var oEventNames = this.fnAttachPointerEvents("kbdArea", this.onVirtualVirtualKeyboardKeydown.bind(this), undefined, this.onVirtualVirtualKeyboardKeyup.bind(this));
         if (oEventNames.out) {
             this.sPointerOutEvent = oEventNames.out;
             this.fnVirtualKeyout = this.onVirtualVirtualKeyboardKeyout.bind(this);
         }
         this.dragInit("pageBody", "kbdAreaBox");
+        this.virtualKeyboardCreate();
     }
     VirtualKeyboard.prototype.fnAttachPointerEvents = function (sId, fnDown, fnMove, fnUp) {
         var area = View_1.View.getElementById1(sId), oPointerEventNames = {
@@ -84,7 +85,6 @@ var VirtualKeyboard = /** @class */ (function () {
     VirtualKeyboard.prototype.reset = function () {
         this.virtualKeyboardAdaptKeys(false, false);
     };
-    // ...
     VirtualKeyboard.prototype.mapNumLockCpcKey = function (iCpcKey) {
         var oKey = VirtualKeyboard.aCpcKey2Key[iCpcKey];
         if (oKey.numLockCpcKey) {
@@ -428,7 +428,7 @@ var VirtualKeyboard = /** @class */ (function () {
             key: "0",
             text: "f0",
             style: 1
-            //numLockCpcKey: 90 // Num lock
+            // numLockCpcKey: 90 // Num lock
         },
         {
             keys: "46Delete",

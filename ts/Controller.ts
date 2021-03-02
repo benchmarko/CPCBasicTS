@@ -34,46 +34,46 @@ interface FileMetaAndData {
 }
 
 export class Controller implements IController {
-	fnRunLoopHandler: () => void;
-	fnWaitKeyHandler: () => void;
-	fnWaitInputHandler: () => void;
-	fnOnEscapeHandler: () => void;
-	fnDirectInputHandler: () => void;
-	fnPutKeyInBufferHandler: (sKey: string) => void;
+	private fnRunLoopHandler: () => void;
+	private fnWaitKeyHandler: () => void;
+	private fnWaitInputHandler: () => void;
+	private fnOnEscapeHandler: () => void;
+	private fnDirectInputHandler: () => boolean;
+	private fnPutKeyInBufferHandler: (sKey: string) => void;
 
-	static sMetaIdent = "CPCBasic";
+	private static sMetaIdent = "CPCBasic";
 
-	fnScript?: Function; // eslint-disable-line @typescript-eslint/ban-types
+	private fnScript?: Function; // eslint-disable-line @typescript-eslint/ban-types
 
-	bTimeoutHandlerActive = false;
-	iNextLoopTimeOut = 0; // next timeout for the main loop
+	private bTimeoutHandlerActive = false;
+	private iNextLoopTimeOut = 0; // next timeout for the main loop
 
-	bInputSet = false;
+	private bInputSet = false;
 
-	oVariables: Variables;
+	private oVariables: Variables;
 
-	oBasicFormatter?: BasicFormatter;
+	private oBasicFormatter?: BasicFormatter;
 
-	oBasicTokenizer: BasicTokenizer;
-	model: Model;
-	view: View;
-	commonEventHandler: CommonEventHandler;
+	private oBasicTokenizer: BasicTokenizer;
+	private model: Model;
+	private view: View;
+	private commonEventHandler: CommonEventHandler;
 
-	oCodeGeneratorJs: CodeGeneratorJs;
+	private oCodeGeneratorJs: CodeGeneratorJs;
 
-	oCanvas: Canvas;
+	private oCanvas: Canvas;
 
-	inputStack: InputStack;
+	private inputStack: InputStack;
 
-	oKeyboard: Keyboard;
-	oVirtualKeyboard?: VirtualKeyboard;
-	oSound: Sound;
+	private oKeyboard: Keyboard;
+	private oVirtualKeyboard?: VirtualKeyboard;
+	private oSound: Sound;
 
-	oVm: CpcVm;
-	oRsx: CpcVmRsx;
+	private oVm: CpcVm;
+	private oRsx: CpcVmRsx;
 
-	oNoStop: VmStopEntry;
-	oSavedStop: VmStopEntry; // backup of stop object
+	private oNoStop: VmStopEntry;
+	private oSavedStop: VmStopEntry; // backup of stop object
 
 
 	constructor(oModel: Model, oView: View) {
@@ -129,19 +129,7 @@ export class Controller implements IController {
 			fnOnEscapeHandler: this.fnOnEscapeHandler
 		});
 
-		/*
 		if (this.model.getProperty<boolean>("showKbd")) { // maybe we need to draw virtual keyboard
-			this.oKeyboard.virtualKeyboardCreate();
-		}
-		*/
-		if (this.model.getProperty<boolean>("showKbd")) { // maybe we need to draw virtual keyboard
-			/*
-			this.oVirtualKeyboard = new VirtualKeyboard({
-				fnPressCpcKey: this.oKeyboard.fnPressCpcKey,
-				fnReleaseCpcKey: this.oKeyboard.fnReleaseCpcKey
-			});
-			this.oVirtualKeyboard.virtualKeyboardCreate();
-			*/
 			this.virtualKeyboardCreate();
 		}
 
@@ -155,7 +143,6 @@ export class Controller implements IController {
 		this.oVm = new CpcVm({
 			canvas: this.oCanvas,
 			keyboard: this.oKeyboard,
-			virtualKeyboard: this.oVirtualKeyboard,
 			sound: this.oSound,
 			variables: this.oVariables,
 			tron: oModel.getProperty<boolean>("tron")
@@ -242,7 +229,8 @@ export class Controller implements IController {
 	// Also called from example files xxxxx.js
 	addItem(sKey: string, sInput: string): string { // sKey maybe ""
 		if (!sKey) { // maybe ""
-			sKey = this.model.getProperty<string>("example");
+			sKey = (document.currentScript && document.currentScript.getAttribute("data-key")) || this.model.getProperty<string>("example");
+			// on IE we can just get the current example
 		}
 		sInput = sInput.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
 		// beware of data files ending with newlines! (do not use trimEnd)
@@ -1003,7 +991,10 @@ export class Controller implements IController {
 			oInFile = this.oVm.vmGetInFileObject();
 		var	sExample: string, sUrl: string,
 
-			fnExampleLoaded = function (_sFullUrl: string, bSuppressLog?: boolean) {
+			fnExampleLoaded = function (_sFullUrl: string, sKey: string, bSuppressLog?: boolean) {
+				if (sKey !== sExample) {
+					Utils.console.warn("fnExampleLoaded: Unexpected", sKey, "<>", sExample);
+				}
 				const oExample = that.model.getExample(sExample);
 
 				if (!bSuppressLog) {
@@ -1058,13 +1049,13 @@ export class Controller implements IController {
 
 		if (oExample && oExample.loaded) {
 			this.model.setProperty("example", sExample);
-			fnExampleLoaded("", true);
+			fnExampleLoaded("", sExample, true);
 		} else if (sExample && oExample) { // need to load
 			this.model.setProperty("example", sExample);
 			const sDatabaseDir = this.model.getDatabase().src;
 
 			sUrl = sDatabaseDir + "/" + sExample + ".js";
-			Utils.loadScript(sUrl, fnExampleLoaded, fnExampleError);
+			Utils.loadScript(sUrl, fnExampleLoaded, fnExampleError, sExample);
 		} else { // keep original sExample in this error case
 			sUrl = sExample;
 			if (sExample !== "") { // only if not empty
@@ -1158,7 +1149,7 @@ export class Controller implements IController {
 	}
 
 	private static splitMeta(sInput: string) {
-		let oMeta: FileMeta;
+		let oMeta: FileMeta | undefined;
 
 		if (sInput.indexOf(Controller.sMetaIdent) === 0) { // starts with metaIdent?
 			const iIndex = sInput.indexOf(","); // metadata separator
@@ -1178,7 +1169,9 @@ export class Controller implements IController {
 					sEncoding: aMeta[5]
 				};
 			}
-		} else {
+		}
+
+		if (!oMeta) {
 			oMeta = {
 				sType: ""
 			};
@@ -1243,7 +1236,7 @@ export class Controller implements IController {
 	private fnDeleteLines(oParas: VmLineParas) {
 		const sInputText = this.view.getAreaValue("inputText"),
 			aLines = Controller.fnGetLinesInRange(sInputText, oParas.iFirst, oParas.iLast);
-		let	oError: CustomError;
+		let	oError: CustomError | undefined;
 
 		if (aLines.length) {
 			for (let i = 0; i < aLines.length; i += 1) {
@@ -1303,7 +1296,12 @@ export class Controller implements IController {
 		const oVm = this.oVm;
 
 		this.oVariables.removeAllVariables();
+
 		oVm.vmReset();
+		if (this.oVirtualKeyboard) {
+			this.oVirtualKeyboard.reset();
+		}
+
 		oVm.vmStop("end", 0, true); // set "end" with priority 0, so that "compile only" still works
 		oVm.sOut = "";
 		this.view.setAreaValue("outputText", "");
@@ -1397,7 +1395,7 @@ export class Controller implements IController {
 	}
 
 	private fnParseBench(sInput: string, iBench: number) {
-		let oOutput: IOutput;
+		let oOutput: IOutput | undefined;
 
 		for (let i = 0; i < iBench; i += 1) {
 			let iTime = Date.now();
@@ -1423,7 +1421,7 @@ export class Controller implements IController {
 		if (!iBench) {
 			oOutput = this.oCodeGeneratorJs.generate(sInput, this.oVariables);
 		} else {
-			oOutput = this.fnParseBench(sInput, iBench);
+			oOutput = this.fnParseBench(sInput, iBench) as IOutput;
 		}
 
 		let sOutput: string;
@@ -1468,9 +1466,9 @@ export class Controller implements IController {
 		}
 	}
 
-	private selectJsError(sScript: string, e) {
-		const iLineNumber = e.lineNumber,
-			iColumnNumber = e.columnNumber,
+	private selectJsError(sScript: string, e: Error) {
+		const iLineNumber = (e as any).lineNumber, // only on FireFox
+			iColumnNumber = (e as any).columnNumber,
 			iErrLine = iLineNumber - 3; // for some reason line 0 is 3
 		let iPos = 0,
 			iLine = 0;
@@ -1666,6 +1664,7 @@ export class Controller implements IController {
 			sMsg = "Ready\r\n";
 
 		this.oVm.tagoff(iStream);
+		this.oVm.vmResetControlBuffer();
 		if (this.oVm.pos(iStream) > 1) {
 			this.oVm.print(iStream, "\r\n");
 		}
@@ -1843,7 +1842,7 @@ export class Controller implements IController {
 	}
 
 	startScreenshot(): string {
-		return this.oCanvas.canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"); // here is the most important part because if you do not replace you will get a DOM 18 exception.
+		return this.oCanvas.startScreenshot();
 	}
 
 	private fnPutKeyInBuffer(sKey: string) {
@@ -1883,16 +1882,10 @@ export class Controller implements IController {
 			sFunction = "var o=cpcBasic.controller.oVm, v=o.vmGetAllVariables(); v." + sPar + " = " + sFunction;
 		}
 
-		const aMatch = (/function \(([^)]*)/).exec(sFunction);
-
-		let aArgs = [];
-
-		if (aMatch) {
-			aArgs = aMatch[1].split(",");
-		}
-
-		const fnFunction = new Function(aArgs[0], aArgs[1], aArgs[2], aArgs[3], aArgs[4], sFunction); // eslint-disable-line no-new-func
-		// we support at most 5 arguments
+		const aMatch = (/function \(([^)]*)/).exec(sFunction),
+			aArgs = aMatch ? aMatch[1].split(",") : [],
+			fnFunction = new Function(aArgs[0], aArgs[1], aArgs[2], aArgs[3], aArgs[4], sFunction); // eslint-disable-line no-new-func
+			// we support at most 5 arguments
 
 		return fnFunction;
 	}
@@ -1965,65 +1958,150 @@ export class Controller implements IController {
 		return oHeader;
 	}
 
+
+	private fnEndOfImport(aImported: string[]) {
+		const iStream = 0,
+			oVm = this.oVm;
+
+		for (let i = 0; i < aImported.length; i += 1) {
+			oVm.print(iStream, aImported[i], " ");
+		}
+		oVm.print(iStream, "\r\n", aImported.length + " file" + (aImported.length !== 1 ? "s" : "") + " imported.\r\n");
+		this.updateResultText();
+	}
+
+	private static reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/); // eslint-disable-line no-control-regex
+	// starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
+
+	private fnLoad2(sData: string, sName: string, sType: string, aImported: string[]) {
+		let oHeader: AmsdosHeader | undefined,
+			sStorageName = this.oVm.vmAdaptFilename(sName, "FILE");
+
+		sStorageName = Controller.fnLocalStorageName(sStorageName);
+
+		if (sType === "text/plain") {
+			oHeader = Controller.createMinimalAmsdosHeader("A", 0, sData.length);
+		} else {
+			if (sType === "application/x-zip-compressed" || sType === "cpcBasic/binary") { // are we a file inside zip?
+				// empty
+			} else { // e.g. "data:application/octet-stream;base64,..."
+				const iIndex = sData.indexOf(",");
+
+				if (iIndex >= 0) {
+					const sInfo1 = sData.substr(0, iIndex);
+
+					sData = sData.substr(iIndex + 1); // remove meta prefix
+					if (sInfo1.indexOf("base64") >= 0) {
+						sData = Utils.atob(sData); // decode base64
+					}
+				}
+			}
+
+			oHeader = DiskImage.parseAmsdosHeader(sData);
+			if (oHeader) {
+				sData = sData.substr(0x80); // remove header
+			} else if (Controller.reRegExpIsText.test(sData)) {
+				oHeader = Controller.createMinimalAmsdosHeader("A", 0, sData.length);
+			} else if (DiskImage.testDiskIdent(sData.substr(0, 8))) { // disk image file?
+				try {
+					const oDsk = new DiskImage({
+							sData: sData,
+							sDiskName: sName
+						}),
+						oDir = oDsk.readDirectory(),
+						aDiskFiles = Object.keys(oDir);
+
+					for (let i = 0; i < aDiskFiles.length; i += 1) {
+						const sFileName = aDiskFiles[i];
+
+						try { // eslint-disable-line max-depth
+							sData = oDsk.readFile(oDir[sFileName]);
+							this.fnLoad2(sData, sFileName, "cpcBasic/binary", aImported); // recursive
+						} catch (e) {
+							Utils.console.error(e);
+							this.outputError(e, true);
+						}
+					}
+				} catch (e) {
+					Utils.console.error(e);
+					this.outputError(e, true);
+				}
+				oHeader = undefined; // ignore dsk file
+			} else { // binary
+				oHeader = Controller.createMinimalAmsdosHeader("B", 0, sData.length);
+			}
+		}
+
+		if (oHeader) {
+			const sMeta = Controller.joinMeta(oHeader);
+
+			try {
+				Utils.localStorage.setItem(sStorageName, sMeta + "," + sData);
+				this.updateStorageDatabase("set", sStorageName);
+				Utils.console.log("fnOnLoad: file: " + sStorageName + " meta: " + sMeta + " imported");
+				aImported.push(sName);
+			} catch (e) { // maybe quota exceeded
+				Utils.console.error(e);
+				if (e.name === "QuotaExceededError") {
+					e.shortMessage = sStorageName + ": Quota exceeded";
+				}
+				this.outputError(e, true);
+			}
+		}
+	}
+
 	// https://stackoverflow.com/questions/10261989/html5-javascript-drag-and-drop-file-from-external-window-windows-explorer
 	// https://www.w3.org/TR/file-upload/#dfn-filereader
-	private fnHandleFileSelect(event: DragEvent) {
-		const aFiles = event.dataTransfer ? event.dataTransfer.files : ((event.target as any).files as FileList), // dataTransfer for drag&drop, target.files for file input
-			oStorage = Utils.localStorage,
+	private fnHandleFileSelect(event: Event) {
+		const oDataTransfer = (event as DragEvent).dataTransfer,
+			aFiles = oDataTransfer ? oDataTransfer.files : ((event.target as any).files as FileList), // dataTransfer for drag&drop, target.files for file input
 			that = this,
-			reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/), // eslint-disable-line no-control-regex
-			// starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
 			aImported: string[] = [];
 		let iFile = 0,
-			f: File,
+			oFile: File,
 			oReader: FileReader;
-
-		function fnEndOfImport() {
-			const iStream = 0,
-				oVm = that.oVm;
-
-			for (let i = 0; i < aImported.length; i += 1) {
-				oVm.print(iStream, aImported[i], " ");
-			}
-			oVm.print(iStream, "\r\n", aImported.length + " file" + (aImported.length !== 1 ? "s" : "") + " imported.\r\n");
-			that.updateResultText();
-		}
 
 		function fnReadNextFile() {
 			if (iFile < aFiles.length) {
-				f = aFiles[iFile];
+				oFile = aFiles[iFile];
 				iFile += 1;
-				const lastModifiedDate = (f as any).lastModifiedDate,
-					sText = f.name + " " + (f.type || "n/a") + " " + f.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
+				const lastModified = oFile.lastModified,
+					lastModifiedDate = lastModified ? new Date(lastModified) : (oFile as any).lastModifiedDate, // lastModifiedDate deprecated, but for old IE
+					sText = oFile.name + " " + (oFile.type || "n/a") + " " + oFile.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
 
 				Utils.console.log(sText);
-				if (f.type === "text/plain") {
-					oReader.readAsText(f);
-				} else if (f.type === "application/x-zip-compressed") {
-					oReader.readAsArrayBuffer(f);
+				if (oFile.type === "text/plain") {
+					oReader.readAsText(oFile);
+				} else if (oFile.type === "application/x-zip-compressed") {
+					oReader.readAsArrayBuffer(oFile);
 				} else {
-					oReader.readAsDataURL(f);
+					oReader.readAsDataURL(oFile);
 				}
 			} else {
-				fnEndOfImport();
+				that.fnEndOfImport(aImported);
 			}
 		}
 
 		function fnErrorHandler(event2: ProgressEvent<FileReader>) {
-			switch (event2.target.error.code) {
-			case event2.target.error.NOT_FOUND_ERR:
-				Utils.console.warn("File Not Found!");
-				break;
-			case event2.target.error.ABORT_ERR:
-				break; // nothing
-			default:
-				Utils.console.warn("An error occurred reading file", f.name);
+			const oTarget = event2.target;
+			let sMsg = "fnErrorHandler: Error reading file " + oFile.name;
+
+			if (oTarget !== null && oTarget.error !== null) {
+				if (oTarget.error.NOT_FOUND_ERR) {
+					sMsg += ": File not found";
+				} else if (oTarget.error.ABORT_ERR) {
+					sMsg = ""; // nothing
+				}
+			}
+			if (sMsg) {
+				Utils.console.warn(sMsg);
 			}
 			fnReadNextFile();
 		}
 
+		/*
 		function fnLoad2(sData: string, sName: string, sType: string) {
-			let oHeader: AmsdosHeader,
+			let oHeader: AmsdosHeader | undefined,
 				sStorageName = that.oVm.vmAdaptFilename(sName, "FILE");
 
 			sStorageName = Controller.fnLocalStorageName(sStorageName);
@@ -2075,7 +2153,7 @@ export class Controller implements IController {
 						Utils.console.error(e);
 						that.outputError(e, true);
 					}
-					oHeader = null; // ignore dsk file
+					oHeader = undefined; // ignore dsk file
 				} else { // binary
 					oHeader = Controller.createMinimalAmsdosHeader("B", 0, sData.length);
 				}
@@ -2098,17 +2176,19 @@ export class Controller implements IController {
 				}
 			}
 		}
+		*/
 
 		function fnOnLoad(event2: ProgressEvent<FileReader>) {
-			const data = event2.target.result,
-				sName = f.name,
-				sType = f.type;
+			const oTarget = event2.target,
+				data = (oTarget && oTarget.result) || null,
+				sName = oFile.name,
+				sType = oFile.type;
 
-			if (sType === "application/x-zip-compressed") {
-				let oZip: ZipFile;
+			if (sType === "application/x-zip-compressed" && data instanceof ArrayBuffer) {
+				let oZip: ZipFile | undefined;
 
 				try {
-					oZip = new ZipFile(new Uint8Array(data as ArrayBuffer), sName); // rather aData
+					oZip = new ZipFile(new Uint8Array(data), sName); // rather aData
 				} catch (e) {
 					Utils.console.error(e);
 					that.outputError(e, true);
@@ -2119,24 +2199,25 @@ export class Controller implements IController {
 
 					for (let i = 0; i < aEntries.length; i += 1) {
 						const sName2 = aEntries[i];
-
-						let sData2: string;
+						let sData2: string | undefined;
 
 						try {
 							sData2 = oZip.readData(sName2);
 						} catch (e) {
 							Utils.console.error(e);
 							that.outputError(e, true);
-							sData2 = null;
+							//sData2 = undefined;
 						}
 
 						if (sData2) {
-							fnLoad2(sData2, sName2, sType);
+							that.fnLoad2(sData2, sName2, sType, aImported);
 						}
 					}
 				}
+			} else if (typeof data === "string") {
+				that.fnLoad2(data, sName, sType, aImported);
 			} else {
-				fnLoad2(data as string, sName, sType);
+				Utils.console.warn("Error loading file", sName, "with type", sType, " unexpected data:", data);
 			}
 
 			fnReadNextFile();
@@ -2158,7 +2239,9 @@ export class Controller implements IController {
 	private static fnHandleDragOver(evt: DragEvent) {
 		evt.stopPropagation();
 		evt.preventDefault();
-		evt.dataTransfer.dropEffect = "copy"; // explicitly show this is a copy
+		if (evt.dataTransfer !== null) {
+			evt.dataTransfer.dropEffect = "copy"; // explicitly show this is a copy
+		}
 	}
 
 	private initDropZone() {
@@ -2167,8 +2250,10 @@ export class Controller implements IController {
 		dropZone.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
 		dropZone.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
 
-		this.oCanvas.canvas.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false); //TTT fast hack
-		this.oCanvas.canvas.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
+		const canvasElement = this.oCanvas.getCanvas();
+
+		canvasElement.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false); //TTT fast hack
+		canvasElement.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
 
 		View.getElementById1("fileInput").addEventListener("change", this.fnHandleFileSelect.bind(this), false);
 	}
@@ -2202,14 +2287,12 @@ export class Controller implements IController {
 	}
 
 	virtualKeyboardCreate(): void {
-		//this.oKeyboard.virtualKeyboardCreate(); // maybe draw it
 		if (!this.oVirtualKeyboard) {
 			this.oVirtualKeyboard = new VirtualKeyboard({
 				fnPressCpcKey: this.oKeyboard.fnPressCpcKey.bind(this.oKeyboard),
 				fnReleaseCpcKey: this.oKeyboard.fnReleaseCpcKey.bind(this.oKeyboard)
 			});
 		}
-		this.oVirtualKeyboard.virtualKeyboardCreate(); // maybe draw it
 	}
 
 	getVariable(sPar: string): VariableValue {
@@ -2225,24 +2308,27 @@ export class Controller implements IController {
 	}
 
 	onDatabaseSelectChange(): void {
-		let sUrl: string,
-			oDatabase;
-		const that = this,
-			sDatabase = this.view.getSelectValue("databaseSelect"),
+		let sUrl: string;
+		const sDatabase = this.view.getSelectValue("databaseSelect");
 
-			fnDatabaseLoaded = function (_sFullUrl: string) {
+		this.model.setProperty("database", sDatabase);
+		this.view.setSelectTitleFromSelectedOption("databaseSelect");
+
+		const oDatabase = this.model.getDatabase(),
+			that = this,
+			fnDatabaseLoaded = function () {
 				oDatabase.loaded = true;
 				Utils.console.log("fnDatabaseLoaded: database loaded: " + sDatabase + ": " + sUrl);
 				that.setExampleSelectOptions();
 				if (oDatabase.error) {
 					Utils.console.error("fnDatabaseLoaded: database contains errors: " + sDatabase + ": " + sUrl);
-					that.setInputText(oDatabase.script);
+					that.setInputText(oDatabase.script || "");
 					that.view.setAreaValue("resultText", oDatabase.error);
 				} else {
 					that.onExampleSelectChange();
 				}
 			},
-			fnDatabaseError = function (_sFullUrl: string) {
+			fnDatabaseError = function () {
 				oDatabase.loaded = false;
 				Utils.console.error("fnDatabaseError: database error: " + sDatabase + ": " + sUrl);
 				that.setExampleSelectOptions();
@@ -2251,16 +2337,18 @@ export class Controller implements IController {
 				that.view.setAreaValue("resultText", "Cannot load database: " + sDatabase);
 			};
 
+		/*
 		this.model.setProperty("database", sDatabase);
 		this.view.setSelectTitleFromSelectedOption("databaseSelect");
 		oDatabase = this.model.getDatabase();
+		*/
 		if (!oDatabase) {
 			Utils.console.error("onDatabaseSelectChange: database not available:", sDatabase);
 			return;
 		}
 
 		if (oDatabase.text === "storage") { // sepcial handling: browser localStorage
-			this.updateStorageDatabase("set", null); // set all
+			this.updateStorageDatabase("set", ""); // set all
 			oDatabase.loaded = true;
 		}
 
@@ -2269,8 +2357,10 @@ export class Controller implements IController {
 			this.onExampleSelectChange();
 		} else {
 			that.setInputText("#loading database " + sDatabase + "...");
-			sUrl = oDatabase.src + "/" + this.model.getProperty<string>("exampleIndex");
-			Utils.loadScript(sUrl, fnDatabaseLoaded, fnDatabaseError);
+			const sExampleIndex = this.model.getProperty<string>("exampleIndex");
+
+			sUrl = oDatabase.src + "/" + sExampleIndex;
+			Utils.loadScript(sUrl, fnDatabaseLoaded, fnDatabaseError, sDatabase);
 		}
 	}
 
@@ -2332,7 +2422,7 @@ export class Controller implements IController {
 		return sOut;
 	}
 
-	onCpcCanvasClick(event: Event): void {
+	onCpcCanvasClick(event: MouseEvent): void {
 		this.oCanvas.onCpcCanvasClick(event);
 		this.oKeyboard.setActive(true);
 	}
@@ -2344,7 +2434,7 @@ export class Controller implements IController {
 
 
 	/* eslint-disable no-invalid-this */
-	private mHandlers = { // { [k: string]: (e: Event) => void }
+	private mHandlers: { [k: string]: (oParas: any) => void } = { // { [k: string]: (e: Event) => void }
 		timer: this.fnTimer,
 		waitKey: this.fnWaitKey,
 		waitFrame: this.fnWaitFrame,

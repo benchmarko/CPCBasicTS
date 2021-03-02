@@ -28,27 +28,19 @@ export interface VolEnvData2 {
     period: number;
 }
 export declare type VolEnvData = VolEnvData1 | VolEnvData2;
-interface Queue {
-    aSoundData: SoundData[];
-    fNextNoteTime: number;
-    bOnHold: boolean;
-    iRendevousMask: number;
-}
 export declare class Sound {
-    bIsSoundOn: boolean;
-    bIsActivatedByUser: boolean;
-    context?: AudioContext;
-    oMergerNode?: ChannelMergerNode;
-    aGainNodes: GainNode[];
-    aOscillators: (OscillatorNode | undefined)[];
-    aQueues: Queue[];
-    fScheduleAheadTime: number;
-    aVolEnv: VolEnvData[][];
-    aToneEnv: ToneEnvData[][];
-    iReleaseMask: number;
-    aDebugLog?: [number, string][];
+    private bIsSoundOn;
+    private bIsActivatedByUser;
+    private context?;
+    private oMergerNode?;
+    private aGainNodes;
+    private aOscillators;
+    private aQueues;
+    private fScheduleAheadTime;
+    private aVolEnv;
+    private aToneEnv;
+    private aDebugLog?;
     constructor();
-    init(): void;
     reset(): void;
     private stopOscillator;
     private debugLog;
@@ -71,4 +63,3 @@ export declare class Sound {
     soundOn(): void;
     soundOff(): void;
 }
-export {};

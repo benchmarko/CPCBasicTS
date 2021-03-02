@@ -7,7 +7,9 @@ import { Utils } from "../Utils";
 import { BasicLexer } from "../BasicLexer"; // we use BasicLexer here just for convenient input
 import { BasicParser } from "../BasicParser";
 import { BasicFormatter } from "../BasicFormatter";
-import { QUnit } from "qunit"; //TTT
+import {} from "qunit"; //TTT
+
+//type QUnitAssertType1 = { strictEqual: (r: any, e: any, sMsg: string) => void };
 
 type TestsType = {[k in string]: string};
 
@@ -35,7 +37,7 @@ QUnit.module("BasicFormatter:renumber: Tests", function () {
 		}
 	};
 
-	function runTestsFor(assert, oTests: TestsType, aResults?: string[]) {
+	function runTestsFor(assert: Assert | undefined, oTests: TestsType, aResults?: string[]) {
 		const oBasicFormatter = new BasicFormatter({
 				lexer: new BasicLexer(),
 				parser: new BasicParser({
@@ -48,7 +50,7 @@ QUnit.module("BasicFormatter:renumber: Tests", function () {
 			iNew = 10,
 			iOld = 1,
 			iStep = 10,
-			iKeep = undefined;
+			iKeep = 65535;
 
 		for (const sKey in oTests) {
 			if (oTests.hasOwnProperty(sKey)) {
@@ -73,8 +75,8 @@ QUnit.module("BasicFormatter:renumber: Tests", function () {
 	function generateTests(oAllTests: AllTestsType) {
 		for (const sCategory in oAllTests) {
 			if (oAllTests.hasOwnProperty(sCategory)) {
-				(function (sCat) {
-					QUnit.test(sCat, function (assert) {
+				(function (sCat) { // eslint-disable-line no-loop-func
+					QUnit.test(sCat, function (assert: Assert) {
 						runTestsFor(assert, oAllTests[sCat]);
 					});
 				}(sCategory));

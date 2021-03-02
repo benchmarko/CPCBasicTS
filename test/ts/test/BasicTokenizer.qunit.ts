@@ -5,7 +5,9 @@ const bGenerateAllResults = false;
 
 import { Utils } from "../Utils";
 import { BasicTokenizer } from "../BasicTokenizer";
-import { QUnit } from "qunit"; //TTT
+import {} from "qunit";
+
+//type QUnitAssertType1 = { strictEqual: (r: any, e: any, sMsg: string) => void };
 
 type TestsType = {[k in string]: string};
 
@@ -20,7 +22,7 @@ QUnit.module("BasicTokenizer:decode: Tests", function () {
 		}
 	};
 
-	function runTestsFor(assert, oTests: TestsType, aResults?: string[]) {
+	function runTestsFor(assert: Assert | undefined, oTests: TestsType, aResults?: string[]) {
 		const oBasicTokenizer = new BasicTokenizer();
 
 		for (const sKey in oTests) {
@@ -44,8 +46,8 @@ QUnit.module("BasicTokenizer:decode: Tests", function () {
 	function generateTests(oAllTests: AllTestsType) {
 		for (const sCategory in oAllTests) {
 			if (oAllTests.hasOwnProperty(sCategory)) {
-				(function (sCat) {
-					QUnit.test(sCat, function (assert) {
+				(function (sCat) { // eslint-disable-line no-loop-func
+					QUnit.test(sCat, function (assert: Assert) {
 						runTestsFor(assert, oAllTests[sCat]);
 					});
 				}(sCategory));
