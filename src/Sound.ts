@@ -51,31 +51,20 @@ interface Queue {
 
 
 export class Sound {
-	bIsSoundOn: boolean;
-	bIsActivatedByUser!: boolean;
-	context?: AudioContext;
-	oMergerNode?: ChannelMergerNode;
-	aGainNodes: GainNode[];
-	aOscillators: (OscillatorNode | undefined)[]; // 3 oscillators left, middle, right
-	aQueues: Queue[]; // node queues and info for the three channels
-	fScheduleAheadTime: number;
-	aVolEnv: VolEnvData[][];
-	aToneEnv: ToneEnvData[][];
-	iReleaseMask: number;
-	aDebugLog?: [number, string][];
+	private bIsSoundOn = false;
+	private bIsActivatedByUser!: boolean;
+	private context?: AudioContext;
+	private oMergerNode?: ChannelMergerNode;
+	private aGainNodes: GainNode[] = [];
+	private aOscillators: (OscillatorNode | undefined)[] = []; // 3 oscillators left, middle, right
+	private aQueues: Queue[] = []; // node queues and info for the three channels
+	private fScheduleAheadTime = 0.1; // 100 ms
+	private aVolEnv: VolEnvData[][] = [];
+	private aToneEnv: ToneEnvData[][] = [];
+	private aDebugLog?: [number, string][];
 
 	constructor() {
-		this.init();
-	}
-
-	init(): void {
-		this.bIsSoundOn = false;
 		this.bIsActivatedByUser = false;
-		this.context = undefined;
-		this.oMergerNode = undefined;
-		this.aGainNodes = [];
-		this.aOscillators = []; // 3 oscillators left, middle, right
-		this.aQueues = []; // node queues and info for the three channels
 		for (let i = 0; i < 3; i += 1) {
 			this.aQueues[i] = {
 				aSoundData: [],
@@ -85,10 +74,6 @@ export class Sound {
 			};
 		}
 
-		this.fScheduleAheadTime = 0.1; // 100 ms
-		this.aVolEnv = [];
-		this.aToneEnv = [];
-		this.iReleaseMask = 0;
 		if (Utils.debug > 1) {
 			this.aDebugLog = []; // access: cpcBasic.controller.oSound.aDebugLog
 		}
@@ -114,7 +99,6 @@ export class Sound {
 		this.setVolEnv(0, [oVolEnvData]); // set default ENV (should not be changed)
 
 		this.aToneEnv.length = 0;
-		this.iReleaseMask = 0;
 
 		if (this.aDebugLog) {
 			this.aDebugLog.length = 0;

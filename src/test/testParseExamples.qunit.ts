@@ -28,6 +28,8 @@ import { Variables } from "../Variables";
 import { DiskImage } from "../DiskImage";
 import { cpcconfig } from "../cpcconfig";
 
+type QUnitAssertType3 = { ok: (r: any, e: any, sMsg: string) => void, expect: (arg: any) => void, async: () => (() => void) };
+
 // eslint-disable-next-line no-new-func
 const oGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(), // for old IE
 	bNodeJsAvail = (function () {
@@ -303,7 +305,7 @@ function fnExampleLoaded(oError?: Error, sCode?: string) {
 
 	if (!oOutput.error) {
 		if (cpcBasic.iTestIndex < cpcBasic.aTestExamples.length) {
-			testNextExample();
+			testNextExample(); // eslint-disable-line no-use-before-define
 		}
 	}
 }
@@ -332,7 +334,7 @@ function testLoadExample(oExample: ExampleEntry) {
 	if (https) {
 		nodeReadUrl(sUrl, fnExampleLoaded);
 	} else {
-		Utils.loadScript(sUrl, fnExampleLoadedUtils, fnExampleErrorUtils);
+		Utils.loadScript(sUrl, fnExampleLoadedUtils, fnExampleErrorUtils, sExample);
 	}
 }
 
@@ -388,7 +390,9 @@ function testLoadIndex() {
 
 	cpcBasic.initDatabases();
 
-	cpcBasic.model.setProperty("database", "examples");
+	const sKey = "examples";
+
+	cpcBasic.model.setProperty("database", sKey);
 	const oExampeDb = cpcBasic.model.getDatabase(),
 		sDir = oExampeDb.src;
 
@@ -410,7 +414,7 @@ function testLoadIndex() {
 	if (https) {
 		nodeReadUrl(sUrl, fnIndexLoaded);
 	} else {
-		Utils.loadScript(sUrl, fnIndexLoadedUtils, fnIndexErrorUtils);
+		Utils.loadScript(sUrl, fnIndexLoadedUtils, fnIndexErrorUtils, sKey);
 	}
 }
 
@@ -468,7 +472,7 @@ if (typeof oGlobalThis.QUnit !== "undefined") {
 
 	QUnit.config.testTimeout = 5 * 1000;
 	QUnit.module("testParseExamples: Tests", function (/* hooks */) {
-		QUnit.test("testParseExamples", function (assert) {
+		QUnit.test("testParseExamples", function (assert: QUnitAssertType3) {
 			cpcBasic.assert = assert;
 
 			cpcBasic.fnIndexDone1 = assert.async();

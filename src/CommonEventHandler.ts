@@ -126,7 +126,7 @@ export class CommonEventHandler implements EventListenerObject {
 
 	private onContinueButtonClick(event: Event) {
 		this.controller.startContinue();
-		this.onCpcCanvasClick(event);
+		this.onCpcCanvasClick(event as MouseEvent);
 	}
 
 	private onResetButtonClick() {
@@ -135,7 +135,7 @@ export class CommonEventHandler implements EventListenerObject {
 
 	private onParseRunButtonClick(event: Event) {
 		this.controller.startParseRun();
-		this.onCpcCanvasClick(event);
+		this.onCpcCanvasClick(event as MouseEvent);
 	}
 
 	private static onHelpButtonClick() {
@@ -222,7 +222,7 @@ export class CommonEventHandler implements EventListenerObject {
 	}
 
 	onCpcCanvasClick(event: Event): void {
-		this.controller.onCpcCanvasClick(event);
+		this.controller.onCpcCanvasClick(event as MouseEvent);
 	}
 
 	onWindowClick(event: Event): void {
@@ -230,7 +230,7 @@ export class CommonEventHandler implements EventListenerObject {
 	}
 
 	/* eslint-disable no-invalid-this */
-	private mHandlers = { // { [k: string]: (e: Event) => void }
+	private mHandlers: { [k: string]: (e: Event | MouseEvent) => void } = {
 		onSpecialButtonClick: this.onSpecialButtonClick,
 		onInputButtonClick: this.onInputButtonClick,
 		onInp2ButtonClick: this.onInp2ButtonClick,

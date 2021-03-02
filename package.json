@@ -1,6 +1,6 @@
 {
   "name": "cpcbasicts",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "description": "# CPCBasicTS - Run CPC BASIC in a Browser",
   "main": "cpcbasicts.js",
   "directories": {
@@ -8,6 +8,7 @@
   },
   "dependencies": {},
   "devDependencies": {
+    "@types/qunit": "^2.11.1",
     "@typescript-eslint/eslint-plugin": "^4.9.0",
     "@typescript-eslint/parser": "^4.9.0",
     "eslint": "^7.14.0",

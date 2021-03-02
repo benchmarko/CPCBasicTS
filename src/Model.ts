@@ -12,6 +12,9 @@ export interface DatabaseEntry {
 	text: string
 	title: string
 	src: string
+	script?: string
+	error?: string
+	loaded?: boolean
 }
 
 export interface ExampleEntry {

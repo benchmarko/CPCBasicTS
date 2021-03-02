@@ -5,7 +5,9 @@ const bGenerateAllResults = false;
 
 import { Utils } from "../Utils";
 import { BasicLexer, LexerToken } from "../BasicLexer";
-import { QUnit } from "qunit"; //TTT
+import { } from "qunit"; //TTT
+
+//type QUnitAssertType2 = { deepEqual: (r: any, e: any, sMsg: string) => void };
 
 type TestsType = { [k in string]: string };
 
@@ -601,7 +603,7 @@ QUnit.module("BasicLexer: Tests", function () {
 		return "0x" + parseInt(sBin.substr(2), 2).toString(16).toLowerCase();
 	}
 
-	function runTestsFor(assert, oTests: TestsType, aResults?: string[]) {
+	function runTestsFor(assert: Assert | undefined, oTests: TestsType, aResults?: string[]) {
 		const oOptions = {
 				bQuiet: true
 			},
@@ -647,8 +649,8 @@ QUnit.module("BasicLexer: Tests", function () {
 	function generateTests(oAllTests: AllTestsType) {
 		for (const sCategory in oAllTests) {
 			if (oAllTests.hasOwnProperty(sCategory)) {
-				(function (sCat) {
-					QUnit.test(sCat, function (assert) {
+				(function (sCat) { // eslint-disable-line no-loop-func
+					QUnit.test(sCat, function (assert: Assert) {
 						runTestsFor(assert, oAllTests[sCat]);
 					});
 				}(sCategory));
