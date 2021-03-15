@@ -8,15 +8,17 @@ import { ICpcVmRsx } from "./Interfaces";
 import { CpcVm, VmFileParas } from "./CpcVm";
 
 export class CpcVmRsx implements ICpcVmRsx {
-	oVm: CpcVm;
+	private oVm: CpcVm;
 
 	constructor(oVm: CpcVm) {
-		this.rsxInit(oVm);
-	}
-
-	rsxInit(oVm: CpcVm): void {
 		this.oVm = oVm;
 	}
+
+	/*
+	private rsxInit(oVm: CpcVm): void {
+		this.oVm = oVm;
+	}
+	*/
 
 	rsxIsAvailable(sName: string): boolean {
 		return sName in this;

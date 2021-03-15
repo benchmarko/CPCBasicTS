@@ -10,8 +10,8 @@ type VariableTypeMap = { [k in string]: string };
 
 
 export class Variables {
-	oVariables: VariableMap;
-	oVarTypes: VariableTypeMap; // default variable types for variables starting with letters a-z
+	private oVariables: VariableMap;
+	private oVarTypes: VariableTypeMap; // default variable types for variables starting with letters a-z
 
 	constructor() {
 		this.oVariables = {};

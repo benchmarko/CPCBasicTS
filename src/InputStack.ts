@@ -3,14 +3,13 @@
 //
 
 export class InputStack {
-	aInput: string[];
-	iStackPosition : number;
+	private aInput: string[] = [];
+	private iStackPosition = -1;
 
+	/*
 	constructor() {
-		// reset
-		this.aInput = [];
-		this.iStackPosition = -1;
 	}
+	*/
 
 	reset(): void {
 		this.aInput.length = 0;

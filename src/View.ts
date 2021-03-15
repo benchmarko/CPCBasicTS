@@ -13,13 +13,10 @@ export interface SelectOptionElement { // similar to HtmlOptionElement
 }
 
 export class View {
+	/*
 	constructor() {
-		this.init();
 	}
-
-	init(): void { // eslint-disable-line class-methods-use-this
-		// empty
-	}
+	*/
 
 	static getElementById1(sId: string): HTMLElement {
 		const element = document.getElementById(sId);

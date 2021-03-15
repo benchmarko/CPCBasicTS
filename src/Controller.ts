@@ -43,18 +43,17 @@ export class Controller implements IController {
 
 	private static sMetaIdent = "CPCBasic";
 
-	private fnScript?: Function; // eslint-disable-line @typescript-eslint/ban-types
+	private fnScript?: Function = undefined; // eslint-disable-line @typescript-eslint/ban-types
 
 	private bTimeoutHandlerActive = false;
 	private iNextLoopTimeOut = 0; // next timeout for the main loop
 
 	private bInputSet = false;
 
-	private oVariables: Variables;
+	private oVariables = new Variables();
 
 	private oBasicFormatter?: BasicFormatter;
-
-	private oBasicTokenizer: BasicTokenizer;
+	private oBasicTokenizer?: BasicTokenizer; // for tokenized BASIC
 	private model: Model;
 	private view: View;
 	private commonEventHandler: CommonEventHandler;
@@ -63,18 +62,17 @@ export class Controller implements IController {
 
 	private oCanvas: Canvas;
 
-	private inputStack: InputStack;
+	private inputStack = new InputStack();
 
 	private oKeyboard: Keyboard;
 	private oVirtualKeyboard?: VirtualKeyboard;
-	private oSound: Sound;
+	private oSound = new Sound();
 
 	private oVm: CpcVm;
 	private oRsx: CpcVmRsx;
 
 	private oNoStop: VmStopEntry;
 	private oSavedStop: VmStopEntry; // backup of stop object
-
 
 	constructor(oModel: Model, oView: View) {
 		this.fnRunLoopHandler = this.fnRunLoop.bind(this);
@@ -83,16 +81,6 @@ export class Controller implements IController {
 		this.fnOnEscapeHandler = this.fnOnEscape.bind(this);
 		this.fnDirectInputHandler = this.fnDirectInput.bind(this);
 		this.fnPutKeyInBufferHandler = this.fnPutKeyInBuffer.bind(this);
-
-
-		this.fnScript = undefined;
-
-		this.bTimeoutHandlerActive = false;
-		this.iNextLoopTimeOut = 0; // next timeout for the main loop
-
-		this.bInputSet = false;
-
-		this.oVariables = new Variables();
 
 		this.model = oModel;
 		this.view = oView;
@@ -123,8 +111,6 @@ export class Controller implements IController {
 		oView.setSelectValue("kbdLayoutSelect", sKbdLayout);
 		this.commonEventHandler.onKbdLayoutSelectChange();
 
-		this.inputStack = new InputStack();
-
 		this.oKeyboard = new Keyboard({
 			fnOnEscapeHandler: this.fnOnEscapeHandler
 		});
@@ -133,7 +119,6 @@ export class Controller implements IController {
 			this.virtualKeyboardCreate();
 		}
 
-		this.oSound = new Sound();
 		this.commonEventHandler.fnSetUserAction(this.onUserAction.bind(this)); // check first user action, also if sound is not yet on
 
 		const sExample = oModel.getProperty<string>("example");
@@ -172,8 +157,6 @@ export class Controller implements IController {
 			tron: this.model.getProperty<boolean>("tron"),
 			rsx: this.oRsx // just to check the names
 		});
-
-		this.oBasicTokenizer = new BasicTokenizer(); // for tokenized BASIC
 
 		this.initDatabases();
 		if (oModel.getProperty<boolean>("sound")) { // activate sound needs user action
@@ -348,10 +331,14 @@ export class Controller implements IController {
 		const sDatabase = this.model.getProperty<string>("database"),
 			oStorage = Utils.localStorage;
 
+		if (sDatabase !== "storage") {
+			this.model.setProperty<string>("database", "storage"); // switch to storage database
+		}
+
 		let	aDir: string[];
 
 		if (!sKey) { // no sKey => get all
-			aDir = Controller.fnGetDirectoryEntries();
+			aDir = Controller.fnGetStorageDirectoryEntries();
 		} else {
 			aDir = [sKey];
 		}
@@ -381,6 +368,8 @@ export class Controller implements IController {
 
 		if (sDatabase === "storage") {
 			this.setExampleSelectOptions();
+		} else {
+			this.model.setProperty<string>("database", sDatabase); // restore database
 		}
 	}
 
@@ -719,7 +708,7 @@ export class Controller implements IController {
 		return aDir;
 	}
 
-	private static fnGetDirectoryEntries(sMask?: string) {
+	private static fnGetStorageDirectoryEntries(sMask?: string) {
 		const oStorage = Utils.localStorage,
 			aDir: string[] = [];
 		let	oRegExp: RegExp | undefined;
@@ -766,7 +755,7 @@ export class Controller implements IController {
 
 	private fnFileCat(oParas: VmFileParas): void {
 		const iStream = oParas.iStream,
-			aDir = Controller.fnGetDirectoryEntries();
+			aDir = Controller.fnGetStorageDirectoryEntries();
 
 		this.fnPrintDirectoryEntries(iStream, aDir, true);
 
@@ -781,7 +770,7 @@ export class Controller implements IController {
 			iLastSlash = sExample.lastIndexOf("/");
 
 		let sFileMask = oParas.sFileMask ? Controller.fnLocalStorageName(oParas.sFileMask) : "",
-			aDir = Controller.fnGetDirectoryEntries(sFileMask),
+			aDir = Controller.fnGetStorageDirectoryEntries(sFileMask),
 			sPath = "";
 
 		if (iLastSlash >= 0) {
@@ -804,7 +793,7 @@ export class Controller implements IController {
 		const iStream = oParas.iStream,
 			oStorage = Utils.localStorage,
 			sFileMask = Controller.fnLocalStorageName(oParas.sFileMask),
-			aDir = Controller.fnGetDirectoryEntries(sFileMask);
+			aDir = Controller.fnGetStorageDirectoryEntries(sFileMask);
 
 		if (!aDir.length) {
 			this.oVm.print(iStream, sFileMask + " not found\r\n");
@@ -882,6 +871,13 @@ export class Controller implements IController {
 		return sOut;
 	}
 
+	private decodeTokenizedBasic(sInput: string) {
+		if (!this.oBasicTokenizer) {
+			this.oBasicTokenizer = new BasicTokenizer();
+		}
+		return this.oBasicTokenizer.decode(sInput);
+	}
+
 	private loadFileContinue(sInput: string | null | undefined) { // eslint-disable-line complexity
 		const oInFile = this.oVm.vmGetInFileObject(),
 			sCommand = oInFile.sCommand;
@@ -901,10 +897,10 @@ export class Controller implements IController {
 			const sType = oData.oMeta.sType;
 
 			if (sType === "T") { // tokenized basic?
-				sInput = this.oBasicTokenizer.decode(sInput);
+				sInput = this.decodeTokenizedBasic(sInput);
 			} else if (sType === "P") { // BASIC?
 				sInput = DiskImage.unOrProtectData(sInput);
-				sInput = this.oBasicTokenizer.decode(sInput);
+				sInput = this.decodeTokenizedBasic(sInput);
 			} else if (sType === "B") { // binary?
 			} else if (sType === "A") { // ASCII?
 				// remove EOF character(s) (0x1a) from the end of file
@@ -1077,22 +1073,27 @@ export class Controller implements IController {
 		return sName;
 	}
 
+	private static aDefaultExtensions = [
+		"",
+		"bas",
+		"bin"
+	];
+
 	private static tryLoadingFromLocalStorage(sName: string) {
-		const oStorage = Utils.localStorage,
-			aExtensions = [
-				"",
-				"bas",
-				"bin"
-			];
+		const oStorage = Utils.localStorage;
 
 		let sInput: string | null = null;
 
-		for (let i = 0; i < aExtensions.length; i += 1)	{
-			const sStorageName = Controller.fnLocalStorageName(sName, aExtensions[i]);
+		if (sName.indexOf(".") >= 0) { // extension specified?
+			sInput = oStorage.getItem(sName);
+		} else {
+			for (let i = 0; i < Controller.aDefaultExtensions.length; i += 1)	{
+				const sStorageName = Controller.fnLocalStorageName(sName, Controller.aDefaultExtensions[i]);
 
-			sInput = oStorage.getItem(sStorageName);
-			if (sInput !== null) {
-				break; // found
+				sInput = oStorage.getItem(sStorageName);
+				if (sInput !== null) {
+					break; // found
+				}
 			}
 		}
 		return sInput; // null=not found
@@ -1113,7 +1114,19 @@ export class Controller implements IController {
 				this.oVm.vmStop("fileLoad", 90); // restore
 			}
 
-			const sName = oInFile.sName;
+			let sName = oInFile.sName;
+
+			if (oInFile.sMemorizedExample) { //TTT check this
+				const sKey = this.model.getProperty<string>("example"),
+					iLastSlash = sKey.lastIndexOf("/");
+
+				if (iLastSlash >= 0) {
+					const sPath = sKey.substr(0, iLastSlash); // take path from selected example
+
+					sName = sPath + "/" + sName;
+					sName = sName.replace(/\w+\/\.\.\//, ""); // simplify 2 dots (go back) in path: "dir/.."" => ""
+				}
+			}
 
 			if (Utils.debug > 1) {
 				Utils.console.debug("fnFileLoad:", oInFile.sCommand, sName, "details:", oInFile);
@@ -1122,6 +1135,11 @@ export class Controller implements IController {
 			const sInput = Controller.tryLoadingFromLocalStorage(sName);
 
 			if (sInput !== null) {
+				/*TTT
+				if (this.model.getProperty<string>("database") === "storage") {
+					oInFile.sMemorizedExample = sName;
+				}
+				*/
 				if (Utils.debug > 0) {
 					Utils.console.debug("fnFileLoad:", oInFile.sCommand, sName, "from localStorage");
 				}
@@ -1202,7 +1220,18 @@ export class Controller implements IController {
 			const sStorageName = Controller.fnLocalStorageName(sName, sDefaultExtension);
 			let sFileData: string;
 
+			/*
 			if (oOutFile.aFileData) {
+				sFileData = oOutFile.aFileData.join("");
+			} else { // no file data (assuming sType A, P or T) => get text
+				sFileData = this.view.getAreaValue("inputText");
+				oOutFile.iLength = sFileData.length; // set length
+				oOutFile.sType = "A"; // override sType: currently we support type "A" only
+			}
+			*/
+
+			//TTT TODO!! oOutFile.aFileData.length ?
+			if (oOutFile.aFileData.length || (sType === "B") || (oOutFile.sCommand = "openout")) { // sType A(for openout) or B
 				sFileData = oOutFile.aFileData.join("");
 			} else { // no file data (assuming sType A, P or T) => get text
 				sFileData = this.view.getAreaValue("inputText");
@@ -1572,7 +1601,7 @@ export class Controller implements IController {
 
 		sInput = sInput.trim();
 		oInput.sInput = "";
-		if (sInput !== "") {
+		if (sInput !== "") { // direct input
 			this.oVm.cursor(iStream, 0);
 			const sInputText = this.view.getAreaValue("inputText");
 
@@ -1598,7 +1627,7 @@ export class Controller implements IController {
 			let	oOutput: IOutput | undefined,
 				sOutput: string;
 
-			if (sInputText) { // do we have a program?
+			if (sInputText && (/^\d+($| )/).test(sInputText)) { // do we have a program starting with a line number?
 				oOutput = oCodeGeneratorJs.generate(sInput + "\n" + sInputText, this.oVariables, true); // compile both; allow direct command
 				if (oOutput.error) {
 					const oError = oOutput.error;
@@ -2066,7 +2095,7 @@ export class Controller implements IController {
 				oFile = aFiles[iFile];
 				iFile += 1;
 				const lastModified = oFile.lastModified,
-					lastModifiedDate = lastModified ? new Date(lastModified) : (oFile as any).lastModifiedDate, // lastModifiedDate deprecated, but for old IE
+					lastModifiedDate = lastModified ? new Date(lastModified) : (oFile as any).lastModifiedDate as Date, // lastModifiedDate deprecated, but for old IE
 					sText = oFile.name + " " + (oFile.type || "n/a") + " " + oFile.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
 
 				Utils.console.log(sText);
@@ -2320,13 +2349,16 @@ export class Controller implements IController {
 				oDatabase.loaded = true;
 				Utils.console.log("fnDatabaseLoaded: database loaded: " + sDatabase + ": " + sUrl);
 				that.setExampleSelectOptions();
+				// TTT
+				/*
 				if (oDatabase.error) {
 					Utils.console.error("fnDatabaseLoaded: database contains errors: " + sDatabase + ": " + sUrl);
 					that.setInputText(oDatabase.script || "");
 					that.view.setAreaValue("resultText", oDatabase.error);
 				} else {
-					that.onExampleSelectChange();
-				}
+				*/
+				that.onExampleSelectChange();
+				//}
 			},
 			fnDatabaseError = function () {
 				oDatabase.loaded = false;
@@ -2356,7 +2388,7 @@ export class Controller implements IController {
 			this.setExampleSelectOptions();
 			this.onExampleSelectChange();
 		} else {
-			that.setInputText("#loading database " + sDatabase + "...");
+			this.setInputText("#loading database " + sDatabase + "...");
 			const sExampleIndex = this.model.getProperty<string>("exampleIndex");
 
 			sUrl = oDatabase.src + "/" + sExampleIndex;

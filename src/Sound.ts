@@ -52,7 +52,7 @@ interface Queue {
 
 export class Sound {
 	private bIsSoundOn = false;
-	private bIsActivatedByUser!: boolean;
+	private bIsActivatedByUser = false;
 	private context?: AudioContext;
 	private oMergerNode?: ChannelMergerNode;
 	private aGainNodes: GainNode[] = [];
@@ -64,7 +64,6 @@ export class Sound {
 	private aDebugLog?: [number, string][];
 
 	constructor() {
-		this.bIsActivatedByUser = false;
 		for (let i = 0; i < 3; i += 1) {
 			this.aQueues[i] = {
 				aSoundData: [],

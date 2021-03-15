@@ -8,18 +8,16 @@ import { Model, ConfigType } from "./Model";
 import { View } from "./View";
 
 export class CommonEventHandler implements EventListenerObject {
-	model: Model;
-	view: View;
-	controller: IController;
+	private model: Model;
+	private view: View;
+	private controller: IController;
 
-	fnUserAction: ((event: Event, sId: string) => void) | undefined;
+	private fnUserAction: ((event: Event, sId: string) => void) | undefined = undefined;
 
 	constructor(oModel: Model, oView: View, oController: IController) {
 		this.model = oModel;
 		this.view = oView;
 		this.controller = oController;
-
-		this.fnUserAction = undefined;
 	}
 
 	private toogleHidden(sId: string, sProp: string, sDisplay?: string) {

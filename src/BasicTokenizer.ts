@@ -8,19 +8,17 @@
 import { Utils } from "./Utils";
 
 export class BasicTokenizer {
-	iPos: number;
-	iLine: number;
-	iLineEnd: number;
-	sInput: string;
+	private iPos = 0;
+	private iLine = 0;
 
+	// will also be set in decode
+	private iLineEnd = 0;
+	private sInput = "";
+
+	/*
 	constructor() {
-		this.iPos = 0;
-		this.iLine = 0;
-
-		// will also be set in decode
-		this.iLineEnd = 0;
-		this.sInput = "";
 	}
+	*/
 
 	private fnNum8Dec() {
 		const iNum = this.sInput.charCodeAt(this.iPos);

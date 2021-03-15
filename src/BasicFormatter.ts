@@ -26,9 +26,9 @@ type LinesType = { [k in string]: LineEntry };
 type ChangesType = { [k in number]: LineEntry};
 
 export class BasicFormatter {
-	lexer: BasicLexer
-	parser: BasicParser
-	iLine = 0; // current line (label)
+	private lexer: BasicLexer
+	private parser: BasicParser
+	private iLine = 0; // current line (label)
 
 	constructor(options: BasicFormatterOptions) {
 		this.lexer = options.lexer;
