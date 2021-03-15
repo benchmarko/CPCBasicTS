@@ -16,7 +16,7 @@ export declare class Controller implements IController {
     private bInputSet;
     private oVariables;
     private oBasicFormatter?;
-    private oBasicTokenizer;
+    private oBasicTokenizer?;
     private model;
     private view;
     private commonEventHandler;
@@ -50,16 +50,18 @@ export declare class Controller implements IController {
     private static fnGetLinesInRange;
     private static fnPrepareMaskRegExp;
     private fnGetExampleDirectoryEntries;
-    private static fnGetDirectoryEntries;
+    private static fnGetStorageDirectoryEntries;
     private fnPrintDirectoryEntries;
     private fnFileCat;
     private fnFileDir;
     private fnFileEra;
     private fnFileRen;
     private static asmGena3Convert;
+    private decodeTokenizedBasic;
     private loadFileContinue;
     private loadExample;
     private static fnLocalStorageName;
+    private static aDefaultExtensions;
     private static tryLoadingFromLocalStorage;
     private fnFileLoad;
     private static joinMeta;

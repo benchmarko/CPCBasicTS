@@ -26,13 +26,13 @@ var BasicParser = /** @class */ (function () {
         this.sLine = "0"; // for error messages
         this.bQuiet = false;
         this.oSymbols = {};
+        // set also during parse
+        this.aTokens = [];
+        this.bAllowDirect = false;
         this.iIndex = 0;
         this.aParseTree = [];
         this.bQuiet = (options === null || options === void 0 ? void 0 : options.bQuiet) || false;
         this.fnGenerateSymbols();
-        // set also during parse:
-        this.aTokens = [];
-        this.bAllowDirect = false;
         this.oPreviousToken = {}; // to avoid warnings
         this.oToken = this.oPreviousToken;
     }

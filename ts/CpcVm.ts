@@ -124,103 +124,103 @@ export interface VmStopEntry {
 type PrintObjectType = {type: string, args: (string | number)[]};
 
 export class CpcVm {
-	fnOpeninHandler: FileBase["fnFileCallback"]; // = undefined;
-	fnCloseinHandler: () => void;
-	fnCloseoutHandler: () => void;
+	private fnOpeninHandler: FileBase["fnFileCallback"]; // = undefined;
+	private fnCloseinHandler: () => void;
+	private fnCloseoutHandler: () => void;
 	fnLoadHandler: (sInput: string, oMeta: FileMeta) => boolean;
-	fnRunHandler: (sInput: string, oMeta: FileMeta) => boolean;
+	private fnRunHandler: (sInput: string, oMeta: FileMeta) => boolean;
 
 	oCanvas: Canvas;
-	oKeyboard: Keyboard;
-	oSound: Sound;
+	private oKeyboard: Keyboard;
+	private oSound: Sound;
 	oVariables: Variables;
-	tronFlag: boolean;
+	private tronFlag: boolean;
 
-	oRandom: Random;
+	private oRandom: Random;
 
-	oStop: VmStopEntry;
+	private oStop: VmStopEntry;
 
-	aInputValues: (string | number)[]; // values to input into script
-	oInFile: InFile; // file handling
-	oOutFile: OutFile; // file handling
+	private aInputValues: (string | number)[]; // values to input into script
+	private oInFile: InFile; // file handling
+	private oOutFile: OutFile; // file handling
 
+	//TTT check!
 	iInkeyTime: number; // if >0, next time when inkey$ can be checked without inserting "waitFrame"
+	private iInkeyTimeMs = 0; // next time of frame fly
 
-	aGosubStack: (number | string)[] = []; // stack of line numbers for gosub/return
+	private aGosubStack: (number | string)[] = []; // stack of line numbers for gosub/return
 
-	aMem: number[]; // for peek, poke
+	private aMem: number[]; // for peek, poke
 
-	aData: (string | null)[]; // array for BASIC data lines (continuous)
-	iData = 0; // current index
-	oDataLineIndex: {[k in number]: number} = { // line number index for the data line buffer
+	private aData: (string | null)[]; // array for BASIC data lines (continuous)
+	private iData = 0; // current index
+	private oDataLineIndex: {[k in number]: number} = { // line number index for the data line buffer
 		0: 0 // for line 0: index 0
 	};
 
 	aWindow: WindowData[]; // window data for window 0..7,8,9
 
-	aTimer: TimerEntry[]; // BASIC timer 0..3 (3 has highest priority)
-	aSqTimer: TimerEntry[]; // Sound queue timer 0..2
+	private aTimer: TimerEntry[]; // BASIC timer 0..3 (3 has highest priority)
+	private aSqTimer: TimerEntry[]; // Sound queue timer 0..2
 
-	aSoundData: SoundData[];
+	private aSoundData: SoundData[];
 
-	aCrtcData: number[];
-	iCrtcReg = 0;
+	private aCrtcData: number[];
+	private iCrtcReg = 0;
 
-	sPrintControlBuf = "";
+	private sPrintControlBuf = "";
 
-	iStartTime = 0;
-	lastRnd = 0; // last random number
+	private iStartTime = 0;
+	private lastRnd = 0; // last random number
 
-	iNextFrameTime = 0;
-	iStopCount = 0;
+	private iNextFrameTime = 0;
+	private iStopCount = 0;
 
 	iLine: string | number = 0;
-	iStartLine = 0;
+	private iStartLine = 0;
 
-	iErrorGotoLine = 0;
-	iErrorResumeLine = 0;
-	iBreakGosubLine = 0;
-	iBreakResumeLine = 0;
+	private iErrorGotoLine = 0;
+	private iErrorResumeLine = 0;
+	private iBreakGosubLine = 0;
+	private iBreakResumeLine = 0;
 
 	sOut = "";
 
-	iErr = 0; // last error code
-	iErl: string | number = 0; // line of last error
+	private iErr = 0; // last error code
+	private iErl: string | number = 0; // line of last error
 
-	bDeg = false; // degree or radians
+	private bDeg = false; // degree or radians
 
-	bTron = false; // trace flag
-	iTronLine = 0; // last trace line
+	private bTron = false; // trace flag
+	private iTronLine = 0; // last trace line
 
-	iRamSelect = 0;
+	private iRamSelect = 0;
 
-	iScreenPage = 3; // 16K screen page, 3=0xc000..0xffff
+	private iScreenPage = 3; // 16K screen page, 3=0xc000..0xffff
 
-	iMinCharHimem = CpcVm.iMaxHimem;
-	iMaxCharHimem = CpcVm.iMaxHimem;
-	iHimem = CpcVm.iMaxHimem;
-	iMinCustomChar = 256;
+	private iMinCharHimem = CpcVm.iMaxHimem;
+	private iMaxCharHimem = CpcVm.iMaxHimem;
+	private iHimem = CpcVm.iMaxHimem;
+	private iMinCustomChar = 256;
 
-	iTimerPriority = -1; // priority of running task: -1=low (min priority to start new timers)
+	private iTimerPriority = -1; // priority of running task: -1=low (min priority to start new timers)
 
-	iZone = 13; // print tab zone value
+	private iZone = 13; // print tab zone value
 
 	iMode = -1;
-
-	iInkeyTimeMs = 0; // next time of frame fly
 
 	rsx?: ICpcVmRsx; //TTT
 
 	//mCanvasActions: {[k in string]: (x: number, y: number) => void};
 
-	static iFrameTimeMs = 1000 / 50; // 50 Hz => 20 ms
-	static iTimerCount = 4; // number of timers
-	static iSqTimerCount = 3; // sound queue timers
+	private static iFrameTimeMs = 1000 / 50; // 50 Hz => 20 ms
+	private static iTimerCount = 4; // number of timers
+	private static iSqTimerCount = 3; // sound queue timers
 	static iStreamCount = 10; // 0..7 window, 8 printer, 9 cassette
-	static iMinHimem = 370;
-	static iMaxHimem = 42747; // high memory limit (42747 after symbol after 256)
+	private static iMinHimem = 370;
+	private static iMaxHimem = 42747; // high memory limit (42747 after symbol after 256)
 
-	static oEmptyParas = {};
+	private static oEmptyParas = {};
 
 	static mWinData = [ // window data for mode mode 0,1,2,3 (we are counting from 0 here)
 		{

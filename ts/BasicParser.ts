@@ -48,27 +48,23 @@ interface SymbolType {
 }
 
 export class BasicParser {
-	sLine = "0"; // for error messages
-	bQuiet = false;
+	private sLine = "0"; // for error messages
+	private bQuiet = false;
 
-	oSymbols: { [k in string]: SymbolType } = {};
+	private oSymbols: { [k in string]: SymbolType } = {};
 
-	// set during parse
-	aTokens: LexerToken[];
-	bAllowDirect: boolean;
+	// set also during parse
+	private aTokens: LexerToken[] = [];
+	private bAllowDirect = false;
 
-	iIndex = 0;
-	oPreviousToken: ParserNode;
-	oToken: ParserNode; // current token
-	aParseTree: ParserNode[] = [];
+	private iIndex = 0;
+	private oPreviousToken: ParserNode;
+	private oToken: ParserNode; // current token
+	private aParseTree: ParserNode[] = [];
 
 	constructor(options?: BasicParserOptions) {
 		this.bQuiet = options?.bQuiet || false;
 		this.fnGenerateSymbols();
-
-		// set also during parse:
-		this.aTokens = [];
-		this.bAllowDirect = false;
 
 		this.oPreviousToken = {} as ParserNode; // to avoid warnings
 		this.oToken = this.oPreviousToken;

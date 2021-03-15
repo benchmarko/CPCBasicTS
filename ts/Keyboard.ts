@@ -37,24 +37,43 @@ interface CpcKeyExpansions {
 }
 
 export class Keyboard {
-	options: KeyboardOptions;
+	private options: KeyboardOptions;
 
-	fnOnKeyDown?: () => void;
-	aKeyBuffer: string[]; // buffered pressed keys
-	aExpansionTokens: string[]; // strings for expansion tokens 0..31 (in reality: 128..159)
-	oCpcKeyExpansions: CpcKeyExpansions; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
+	private fnOnKeyDown?: () => void;
+	private aKeyBuffer: string[] = []; // buffered pressed keys
+	private aExpansionTokens: string[] = []; // strings for expansion tokens 0..31 (in reality: 128..159)
+	private oCpcKeyExpansions: CpcKeyExpansions; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
 
-	bActive: boolean; // flag if keyboard is active/focused, set from outside
+	private bActive = false; // flag if keyboard is active/focused, set from outside
 
-	oKey2CpcKey: Key2CpcKeyType;
-	bCodeStringsRemoved: boolean;
+	private oKey2CpcKey: Key2CpcKeyType;
+	private bCodeStringsRemoved = false;
 
-	sPointerOutEvent?: string;
-	fnVirtualKeyout?: EventListener;
+	//private sPointerOutEvent?: string;
+	//private fnVirtualKeyout?: EventListener;
 
-	oPressedKeys: PressedKeysType; // currently pressed browser keys
-	bShiftLock: boolean; // for virtual keyboard
-	bNumLock: boolean;
+	private oPressedKeys: PressedKeysType = {}; // currently pressed browser keys
+	//private bShiftLock: boolean; // for virtual keyboard
+	//private bNumLock: boolean;
+
+	constructor(options: KeyboardOptions) {
+		this.options = Object.assign({}, options);
+
+		this.fnOnKeyDown = this.options.fnOnKeyDown;
+		this.oKey2CpcKey = Keyboard.mKey2CpcKey;
+
+		this.oCpcKeyExpansions = {
+			normal: {},
+			shift: {},
+			ctrl: {},
+			repeat: {}
+		}; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
+
+		const cpcArea = View.getElementById1("cpcArea");
+
+		cpcArea.addEventListener("keydown", this.onCpcAreaKeydown.bind(this), false);
+		cpcArea.addEventListener("keyup", this.oncpcAreaKeyup.bind(this), false);
+	}
 
 	// use this:
 	private static mKey2CpcKey = {
@@ -230,45 +249,12 @@ export class Keyboard {
 	];
 	/* eslint-enable array-element-newline */
 
-
-	constructor(options: KeyboardOptions) {
-		this.options = Object.assign({}, options);
-
-		this.fnOnKeyDown = this.options.fnOnKeyDown;
-		this.oKey2CpcKey = Keyboard.mKey2CpcKey;
-
-		this.aKeyBuffer = []; // buffered pressed keys
-
-		this.aExpansionTokens = []; // expansion tokens 0..31 (in reality: 128..159)
-
-		this.oCpcKeyExpansions = {
-			normal: {},
-			shift: {},
-			ctrl: {},
-			repeat: {}
-		}; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
-
-		this.bActive = false; // flag if keyboard is active/focused, set from outside
-
-		this.bCodeStringsRemoved = false;
-
-		const cpcArea = View.getElementById1("cpcArea");
-
-		cpcArea.addEventListener("keydown", this.onCpcAreaKeydown.bind(this), false);
-		cpcArea.addEventListener("keyup", this.oncpcAreaKeyup.bind(this), false);
-
-		// reset
-		this.oPressedKeys = {}; // currently pressed browser keys
-		this.bShiftLock = false; // for virtual keyboard
-		this.bNumLock = false;
-	}
-
 	reset(): void {
 		this.fnOnKeyDown = undefined;
 		this.clearInput();
 		this.oPressedKeys = {}; // currently pressed browser keys
-		this.bShiftLock = false; // for virtual keyboard
-		this.bNumLock = false;
+		//this.bShiftLock = false; // for virtual keyboard
+		//this.bNumLock = false;
 		this.resetExpansionTokens();
 		this.resetCpcKeysExpansions();
 	}

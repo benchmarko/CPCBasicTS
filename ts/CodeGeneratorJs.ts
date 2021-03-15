@@ -64,6 +64,17 @@ export class CodeGeneratorJs {
 	private oVariables: Variables = {} as Variables; // will be set later
 	private oDefScopeArgs?: { [k: string]: boolean };
 
+	constructor(options: CodeGeneratorJsOptions) {
+		this.lexer = options.lexer;
+		this.parser = options.parser;
+		this.tron = options.tron;
+		this.rsx = options.rsx;
+		this.bQuiet = options.bQuiet || false;
+		this.bNoCodeFrame = options.bNoCodeFrame || false;
+
+		this.reJsKeywords = CodeGeneratorJs.createJsKeywordRegex();
+	}
+
 	// ECMA 3 JS Keywords which must be avoided in dot notation for properties when using IE8
 	private static aJsKeywords = [
 		"do",
@@ -126,18 +137,6 @@ export class CodeGeneratorJs {
 		"instanceof",
 		"synchronized"
 	];
-
-
-	constructor(options: CodeGeneratorJsOptions) {
-		this.lexer = options.lexer;
-		this.parser = options.parser;
-		this.tron = options.tron;
-		this.rsx = options.rsx;
-		this.bQuiet = options.bQuiet || false;
-		this.bNoCodeFrame = options.bNoCodeFrame || false;
-
-		this.reJsKeywords = CodeGeneratorJs.createJsKeywordRegex();
-	}
 
 	private reset() {
 		const oStack = this.oStack;
@@ -1577,7 +1576,7 @@ export class CodeGeneratorJs {
 					throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occure TTT
 				}
 				value = this.parseNode(node.right);
-				value = mOperators[node.type].call(this, node, node.left as CodeNode, node.right); // unary operator: we just use node.right
+				value = mOperators[node.type].call(this, node, node.left! as CodeNode, node.right); // unary operator: we just use node.right
 			}
 		} else if (this.mParseFunctions[node.type]) { // function with special handling?
 			value = this.mParseFunctions[node.type].call(this, node);

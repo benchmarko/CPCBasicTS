@@ -10,8 +10,20 @@ var Utils_1 = require("./Utils");
 var View_1 = require("./View");
 var Canvas = /** @class */ (function () {
     function Canvas(options) {
+        this.iFps = 15; // FPS for canvas update
         this.oCustomCharset = {};
+        this.iGColMode = 0; // 0=normal, 1=xor, 2=and, 3=or
+        this.iMask = 255;
+        this.iMaskBit = 128;
+        this.iMaskFirst = 1;
+        this.iOffset = 0; // screen offset
+        this.iBorderWidth = 4;
+        this.bNeedUpdate = false;
+        this.bNeedTextUpdate = false;
+        this.aCurrentInks = [];
+        this.aSpeedInk = [];
         this.iInkSet = 0;
+        this.aPen2ColorMap = [];
         this.bLittleEndian = true;
         this.bUse32BitCopy = true; // determined later
         this.iGPen = 0;
@@ -32,19 +44,10 @@ var Canvas = /** @class */ (function () {
         this.bGTransparent = false;
         this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
         this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
-        var iBorderWidth = 4;
         this.aCharset = options.aCharset;
         this.onClickKey = options.onClickKey;
-        this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
-        this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
-        this.iFps = 15; // FPS for canvas update
         this.cpcAreaBox = View_1.View.getElementById1("cpcAreaBox");
         this.textText = View_1.View.getElementById1("textText"); // View.setAreaValue()
-        this.iGColMode = 0; // 0=normal, 1=xor, 2=and, 3=or
-        this.iMask = 255;
-        this.iMaskBit = 128;
-        this.iMaskFirst = 1;
-        this.iOffset = 0; // screen offset
         var canvas = View_1.View.getElementById1("cpcCanvas");
         this.canvas = canvas;
         // make sure canvas is not hidden (allows to get width, height, set style)
@@ -54,16 +57,10 @@ var Canvas = /** @class */ (function () {
         var iWidth = canvas.width, iHeight = canvas.height;
         this.iWidth = iWidth;
         this.iHeight = iHeight;
-        this.iBorderWidth = iBorderWidth;
-        canvas.style.borderWidth = iBorderWidth + "px";
+        canvas.style.borderWidth = this.iBorderWidth + "px";
         canvas.style.borderStyle = "solid";
         this.dataset8 = new Uint8Array(new ArrayBuffer(iWidth * iHeight)); // array with pen values
-        this.bNeedUpdate = false;
-        this.bNeedTextUpdate = false;
         this.aColorValues = Canvas.extractAllColorValues(Canvas.aColors);
-        this.aCurrentInks = [];
-        this.aSpeedInk = [];
-        this.aPen2ColorMap = [];
         this.iAnimationTimeoutId = undefined;
         this.iAnimationFrame = undefined;
         if (this.canvas.getContext) { // not available on e.g. IE8
@@ -839,19 +836,20 @@ var Canvas = /** @class */ (function () {
         }
         return iChar;
     };
-    // idea from: https://simpledevcode.wordpress.com/2015/12/29/flood-fill-algorithm-using-c-net/
+    // fill: idea from: https://simpledevcode.wordpress.com/2015/12/29/flood-fill-algorithm-using-c-net/
+    Canvas.prototype.fnIsNotInWindow = function (x, y) {
+        return (x < this.xLeft || x > this.xRight || y < (this.iHeight - 1 - this.yTop) || y > (this.iHeight - 1 - this.yBottom));
+    };
     Canvas.prototype.fill = function (iFillPen) {
-        var that = this, iGPen = this.iGPen, iPixelWidth = this.oModeData.iPixelWidth, iPixelHeight = this.oModeData.iPixelHeight, aPixels = [], fnIsStopPen = function (p) {
+        var iGPen = this.iGPen, iPixelWidth = this.oModeData.iPixelWidth, iPixelHeight = this.oModeData.iPixelHeight, aPixels = [], fnIsStopPen = function (p) {
             return p === iFillPen || p === iGPen;
-        }, fnIsNotInWindow = function (x, y) {
-            return (x < that.xLeft || x > that.xRight || y < (that.iHeight - 1 - that.yTop) || y > (that.iHeight - 1 - that.yBottom));
         };
         var xPos = this.xPos, yPos = this.yPos;
         iFillPen %= this.oModeData.iPens; // limit pens
         // apply origin
         xPos += this.xOrig;
         yPos = this.iHeight - 1 - (yPos + this.yOrig);
-        if (fnIsNotInWindow(xPos, yPos)) {
+        if (this.fnIsNotInWindow(xPos, yPos)) {
             return;
         }
         aPixels.push({
@@ -861,14 +859,14 @@ var Canvas = /** @class */ (function () {
         while (aPixels.length) {
             var oPixel = aPixels.pop();
             var y1 = oPixel.y, p1 = this.testSubPixel(oPixel.x, y1);
-            while (y1 >= (that.iHeight - 1 - that.yTop) && !fnIsStopPen(p1)) {
+            while (y1 >= (this.iHeight - 1 - this.yTop) && !fnIsStopPen(p1)) {
                 y1 -= iPixelHeight;
                 p1 = this.testSubPixel(oPixel.x, y1);
             }
             y1 += iPixelHeight;
             var bSpanLeft = false, bSpanRight = false;
             p1 = this.testSubPixel(oPixel.x, y1);
-            while (y1 <= (that.iHeight - 1 - that.yBottom) && !fnIsStopPen(p1)) {
+            while (y1 <= (this.iHeight - 1 - this.yBottom) && !fnIsStopPen(p1)) {
                 this.setSubPixels(oPixel.x, y1, iFillPen, 0);
                 var x1 = oPixel.x - iPixelWidth;
                 var p2 = this.testSubPixel(x1, y1);
@@ -911,9 +909,7 @@ var Canvas = /** @class */ (function () {
     };
     Canvas.prototype.setOrigin = function (xOrig, yOrig) {
         var iPixelWidth = this.oModeData.iPixelWidth;
-        /* eslint-disable no-bitwise */
-        xOrig &= ~(iPixelWidth - 1);
-        /* eslint-enable no-bitwise */
+        xOrig &= ~(iPixelWidth - 1); // eslint-disable-line no-bitwise
         this.xOrig = xOrig; // must be integer
         this.yOrig = yOrig;
         this.move(0, 0);

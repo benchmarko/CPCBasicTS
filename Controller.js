@@ -28,9 +28,13 @@ var View_1 = require("./View");
 var ZipFile_1 = require("./ZipFile");
 var Controller = /** @class */ (function () {
     function Controller(oModel, oView) {
+        this.fnScript = undefined; // eslint-disable-line @typescript-eslint/ban-types
         this.bTimeoutHandlerActive = false;
         this.iNextLoopTimeOut = 0; // next timeout for the main loop
         this.bInputSet = false;
+        this.oVariables = new Variables_1.Variables();
+        this.inputStack = new InputStack_1.InputStack();
+        this.oSound = new Sound_1.Sound();
         /* eslint-disable no-invalid-this */
         this.mHandlers = {
             timer: this.fnTimer,
@@ -66,11 +70,6 @@ var Controller = /** @class */ (function () {
         this.fnOnEscapeHandler = this.fnOnEscape.bind(this);
         this.fnDirectInputHandler = this.fnDirectInput.bind(this);
         this.fnPutKeyInBufferHandler = this.fnPutKeyInBuffer.bind(this);
-        this.fnScript = undefined;
-        this.bTimeoutHandlerActive = false;
-        this.iNextLoopTimeOut = 0; // next timeout for the main loop
-        this.bInputSet = false;
-        this.oVariables = new Variables_1.Variables();
         this.model = oModel;
         this.view = oView;
         this.commonEventHandler = new CommonEventHandler_1.CommonEventHandler(oModel, oView, this);
@@ -94,14 +93,12 @@ var Controller = /** @class */ (function () {
         var sKbdLayout = oModel.getProperty("kbdLayout");
         oView.setSelectValue("kbdLayoutSelect", sKbdLayout);
         this.commonEventHandler.onKbdLayoutSelectChange();
-        this.inputStack = new InputStack_1.InputStack();
         this.oKeyboard = new Keyboard_1.Keyboard({
             fnOnEscapeHandler: this.fnOnEscapeHandler
         });
         if (this.model.getProperty("showKbd")) { // maybe we need to draw virtual keyboard
             this.virtualKeyboardCreate();
         }
-        this.oSound = new Sound_1.Sound();
         this.commonEventHandler.fnSetUserAction(this.onUserAction.bind(this)); // check first user action, also if sound is not yet on
         var sExample = oModel.getProperty("example");
         oView.setSelectValue("exampleSelect", sExample);
@@ -134,7 +131,6 @@ var Controller = /** @class */ (function () {
             tron: this.model.getProperty("tron"),
             rsx: this.oRsx // just to check the names
         });
-        this.oBasicTokenizer = new BasicTokenizer_1.BasicTokenizer(); // for tokenized BASIC
         this.initDatabases();
         if (oModel.getProperty("sound")) { // activate sound needs user action
             this.setSoundActive(); // activate in waiting state
@@ -259,9 +255,12 @@ var Controller = /** @class */ (function () {
     };
     Controller.prototype.updateStorageDatabase = function (sAction, sKey) {
         var sDatabase = this.model.getProperty("database"), oStorage = Utils_1.Utils.localStorage;
+        if (sDatabase !== "storage") {
+            this.model.setProperty("database", "storage"); // switch to storage database
+        }
         var aDir;
         if (!sKey) { // no sKey => get all
-            aDir = Controller.fnGetDirectoryEntries();
+            aDir = Controller.fnGetStorageDirectoryEntries();
         }
         else {
             aDir = [sKey];
@@ -289,6 +288,9 @@ var Controller = /** @class */ (function () {
         }
         if (sDatabase === "storage") {
             this.setExampleSelectOptions();
+        }
+        else {
+            this.model.setProperty("database", sDatabase); // restore database
         }
     };
     Controller.prototype.setInputText = function (sInput, bKeepStack) {
@@ -590,7 +592,7 @@ var Controller = /** @class */ (function () {
         }
         return aDir;
     };
-    Controller.fnGetDirectoryEntries = function (sMask) {
+    Controller.fnGetStorageDirectoryEntries = function (sMask) {
         var oStorage = Utils_1.Utils.localStorage, aDir = [];
         var oRegExp;
         if (sMask) {
@@ -625,7 +627,7 @@ var Controller = /** @class */ (function () {
         this.oVm.print(iStream, "\r\n");
     };
     Controller.prototype.fnFileCat = function (oParas) {
-        var iStream = oParas.iStream, aDir = Controller.fnGetDirectoryEntries();
+        var iStream = oParas.iStream, aDir = Controller.fnGetStorageDirectoryEntries();
         this.fnPrintDirectoryEntries(iStream, aDir, true);
         // currently only from localstorage
         this.oVm.vmStop("", 0, true);
@@ -633,7 +635,7 @@ var Controller = /** @class */ (function () {
     Controller.prototype.fnFileDir = function (oParas) {
         var iStream = oParas.iStream, sExample = this.model.getProperty("example"), // if we have a fileMask, include also example names from same directory
         iLastSlash = sExample.lastIndexOf("/");
-        var sFileMask = oParas.sFileMask ? Controller.fnLocalStorageName(oParas.sFileMask) : "", aDir = Controller.fnGetDirectoryEntries(sFileMask), sPath = "";
+        var sFileMask = oParas.sFileMask ? Controller.fnLocalStorageName(oParas.sFileMask) : "", aDir = Controller.fnGetStorageDirectoryEntries(sFileMask), sPath = "";
         if (iLastSlash >= 0) {
             sPath = sExample.substr(0, iLastSlash) + "/";
             sFileMask = sPath + (sFileMask ? sFileMask : "*.*"); // only in same directory
@@ -647,7 +649,7 @@ var Controller = /** @class */ (function () {
         this.oVm.vmStop("", 0, true);
     };
     Controller.prototype.fnFileEra = function (oParas) {
-        var iStream = oParas.iStream, oStorage = Utils_1.Utils.localStorage, sFileMask = Controller.fnLocalStorageName(oParas.sFileMask), aDir = Controller.fnGetDirectoryEntries(sFileMask);
+        var iStream = oParas.iStream, oStorage = Utils_1.Utils.localStorage, sFileMask = Controller.fnLocalStorageName(oParas.sFileMask), aDir = Controller.fnGetStorageDirectoryEntries(sFileMask);
         if (!aDir.length) {
             this.oVm.print(iStream, sFileMask + " not found\r\n");
         }
@@ -709,6 +711,12 @@ var Controller = /** @class */ (function () {
         }
         return sOut;
     };
+    Controller.prototype.decodeTokenizedBasic = function (sInput) {
+        if (!this.oBasicTokenizer) {
+            this.oBasicTokenizer = new BasicTokenizer_1.BasicTokenizer();
+        }
+        return this.oBasicTokenizer.decode(sInput);
+    };
     Controller.prototype.loadFileContinue = function (sInput) {
         var oInFile = this.oVm.vmGetInFileObject(), sCommand = oInFile.sCommand;
         var iStartLine = 0, bPutInMemory = false, oData;
@@ -720,11 +728,11 @@ var Controller = /** @class */ (function () {
             }
             var sType = oData.oMeta.sType;
             if (sType === "T") { // tokenized basic?
-                sInput = this.oBasicTokenizer.decode(sInput);
+                sInput = this.decodeTokenizedBasic(sInput);
             }
             else if (sType === "P") { // BASIC?
                 sInput = DiskImage_1.DiskImage.unOrProtectData(sInput);
-                sInput = this.oBasicTokenizer.decode(sInput);
+                sInput = this.decodeTokenizedBasic(sInput);
             }
             else if (sType === "B") { // binary?
             }
@@ -883,17 +891,18 @@ var Controller = /** @class */ (function () {
         return sName;
     };
     Controller.tryLoadingFromLocalStorage = function (sName) {
-        var oStorage = Utils_1.Utils.localStorage, aExtensions = [
-            "",
-            "bas",
-            "bin"
-        ];
+        var oStorage = Utils_1.Utils.localStorage;
         var sInput = null;
-        for (var i = 0; i < aExtensions.length; i += 1) {
-            var sStorageName = Controller.fnLocalStorageName(sName, aExtensions[i]);
-            sInput = oStorage.getItem(sStorageName);
-            if (sInput !== null) {
-                break; // found
+        if (sName.indexOf(".") >= 0) { // extension specified?
+            sInput = oStorage.getItem(sName);
+        }
+        else {
+            for (var i = 0; i < Controller.aDefaultExtensions.length; i += 1) {
+                var sStorageName = Controller.fnLocalStorageName(sName, Controller.aDefaultExtensions[i]);
+                sInput = oStorage.getItem(sStorageName);
+                if (sInput !== null) {
+                    break; // found
+                }
             }
         }
         return sInput; // null=not found
@@ -912,11 +921,24 @@ var Controller = /** @class */ (function () {
                 this.oVm.vmStop("fileLoad", 90); // restore
             }
             var sName = oInFile.sName;
+            if (oInFile.sMemorizedExample) { //TTT check this
+                var sKey = this.model.getProperty("example"), iLastSlash = sKey.lastIndexOf("/");
+                if (iLastSlash >= 0) {
+                    var sPath = sKey.substr(0, iLastSlash); // take path from selected example
+                    sName = sPath + "/" + sName;
+                    sName = sName.replace(/\w+\/\.\.\//, ""); // simplify 2 dots (go back) in path: "dir/.."" => ""
+                }
+            }
             if (Utils_1.Utils.debug > 1) {
                 Utils_1.Utils.console.debug("fnFileLoad:", oInFile.sCommand, sName, "details:", oInFile);
             }
             var sInput = Controller.tryLoadingFromLocalStorage(sName);
             if (sInput !== null) {
+                /*TTT
+                if (this.model.getProperty<string>("database") === "storage") {
+                    oInFile.sMemorizedExample = sName;
+                }
+                */
                 if (Utils_1.Utils.debug > 0) {
                     Utils_1.Utils.console.debug("fnFileLoad:", oInFile.sCommand, sName, "from localStorage");
                 }
@@ -983,7 +1005,17 @@ var Controller = /** @class */ (function () {
             }
             var sStorageName = Controller.fnLocalStorageName(sName, sDefaultExtension);
             var sFileData = void 0;
+            /*
             if (oOutFile.aFileData) {
+                sFileData = oOutFile.aFileData.join("");
+            } else { // no file data (assuming sType A, P or T) => get text
+                sFileData = this.view.getAreaValue("inputText");
+                oOutFile.iLength = sFileData.length; // set length
+                oOutFile.sType = "A"; // override sType: currently we support type "A" only
+            }
+            */
+            //TTT TODO!! oOutFile.aFileData.length ?
+            if (oOutFile.aFileData.length || (sType === "B") || (oOutFile.sCommand = "openout")) { // sType A(for openout) or B
                 sFileData = oOutFile.aFileData.join("");
             }
             else { // no file data (assuming sType A, P or T) => get text
@@ -1281,7 +1313,7 @@ var Controller = /** @class */ (function () {
         var sInput = oInput.sInput;
         sInput = sInput.trim();
         oInput.sInput = "";
-        if (sInput !== "") {
+        if (sInput !== "") { // direct input
             this.oVm.cursor(iStream, 0);
             var sInputText = this.view.getAreaValue("inputText");
             if ((/^\d+($| )/).test(sInput)) { // start with number?
@@ -1300,7 +1332,7 @@ var Controller = /** @class */ (function () {
             Utils_1.Utils.console.log("fnDirectInput: execute:", sInput);
             var oCodeGeneratorJs = this.oCodeGeneratorJs;
             var oOutput = void 0, sOutput = void 0;
-            if (sInputText) { // do we have a program?
+            if (sInputText && (/^\d+($| )/).test(sInputText)) { // do we have a program starting with a line number?
                 oOutput = oCodeGeneratorJs.generate(sInput + "\n" + sInputText, this.oVariables, true); // compile both; allow direct command
                 if (oOutput.error) {
                     var oError = oOutput.error;
@@ -1906,14 +1938,16 @@ var Controller = /** @class */ (function () {
             oDatabase.loaded = true;
             Utils_1.Utils.console.log("fnDatabaseLoaded: database loaded: " + sDatabase + ": " + sUrl);
             that.setExampleSelectOptions();
+            // TTT
+            /*
             if (oDatabase.error) {
-                Utils_1.Utils.console.error("fnDatabaseLoaded: database contains errors: " + sDatabase + ": " + sUrl);
+                Utils.console.error("fnDatabaseLoaded: database contains errors: " + sDatabase + ": " + sUrl);
                 that.setInputText(oDatabase.script || "");
                 that.view.setAreaValue("resultText", oDatabase.error);
-            }
-            else {
-                that.onExampleSelectChange();
-            }
+            } else {
+            */
+            that.onExampleSelectChange();
+            //}
         }, fnDatabaseError = function () {
             oDatabase.loaded = false;
             Utils_1.Utils.console.error("fnDatabaseError: database error: " + sDatabase + ": " + sUrl);
@@ -1940,7 +1974,7 @@ var Controller = /** @class */ (function () {
             this.onExampleSelectChange();
         }
         else {
-            that.setInputText("#loading database " + sDatabase + "...");
+            this.setInputText("#loading database " + sDatabase + "...");
             var sExampleIndex = this.model.getProperty("exampleIndex");
             sUrl = oDatabase.src + "/" + sExampleIndex;
             Utils_1.Utils.loadScript(sUrl, fnDatabaseLoaded, fnDatabaseError, sDatabase);
@@ -2000,6 +2034,11 @@ var Controller = /** @class */ (function () {
         this.oKeyboard.setActive(false);
     };
     Controller.sMetaIdent = "CPCBasic";
+    Controller.aDefaultExtensions = [
+        "",
+        "bas",
+        "bin"
+    ];
     Controller.reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/); // eslint-disable-line no-control-regex
     return Controller;
 }());

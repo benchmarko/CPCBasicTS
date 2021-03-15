@@ -37,8 +37,8 @@ export declare class CodeGeneratorJs {
     private iWhileCount;
     private oVariables;
     private oDefScopeArgs?;
-    private static aJsKeywords;
     constructor(options: CodeGeneratorJsOptions);
+    private static aJsKeywords;
     private reset;
     private resetCountsPerLine;
     private composeError;

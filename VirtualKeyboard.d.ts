@@ -10,11 +10,11 @@ export declare class VirtualKeyboard {
     private fnVirtualKeyout?;
     private bShiftLock;
     private bNumLock;
+    constructor(options: VirtualKeyboardOptions);
     private static aCpcKey2Key;
     private static aVirtualVirtualKeyboardAlpha;
     private static aVirtualVirtualKeyboardNum;
     private oDrag;
-    constructor(options: VirtualKeyboardOptions);
     private fnAttachPointerEvents;
     reset(): void;
     private mapNumLockCpcKey;

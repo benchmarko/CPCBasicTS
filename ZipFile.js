@@ -143,6 +143,58 @@ var ZipFile = /** @class */ (function () {
         }
         return oEntryTable;
     };
+    ZipFile.fnInflateConstruct = function (oCodes, aLens2, n) {
+        var i;
+        for (i = 0; i <= 0xF; i += 1) {
+            oCodes.count[i] = 0;
+        }
+        for (i = 0; i < n; i += 1) {
+            oCodes.count[aLens2[i]] += 1;
+        }
+        if (oCodes.count[0] === n) {
+            return 0;
+        }
+        var iLeft = 1;
+        for (i = 1; i <= 0xF; i += 1) {
+            if ((iLeft = (iLeft << 1) - oCodes.count[i]) < 0) { // eslint-disable-line no-bitwise
+                return iLeft;
+            }
+        }
+        var aOffs = [
+            undefined,
+            0
+        ];
+        for (i = 1; i < 0xF; i += 1) {
+            aOffs[i + 1] = aOffs[i] + oCodes.count[i];
+        }
+        for (i = 0; i < n; i += 1) {
+            if (aLens2[i] !== 0) {
+                oCodes.symbol[aOffs[aLens2[i]]] = i;
+                aOffs[aLens2[i]] += 1;
+            }
+        }
+        return iLeft;
+    };
+    ZipFile.fnConstructFixedHuffman = function (aLens, oLenCode, oDistCode) {
+        var iSymbol;
+        for (iSymbol = 0; iSymbol < 0x90; iSymbol += 1) {
+            aLens[iSymbol] = 8;
+        }
+        for (; iSymbol < 0x100; iSymbol += 1) {
+            aLens[iSymbol] = 9;
+        }
+        for (; iSymbol < 0x118; iSymbol += 1) {
+            aLens[iSymbol] = 7;
+        }
+        for (; iSymbol < 0x120; iSymbol += 1) {
+            aLens[iSymbol] = 8;
+        }
+        ZipFile.fnInflateConstruct(oLenCode, aLens, 0x120);
+        for (iSymbol = 0; iSymbol < 0x1E; iSymbol += 1) {
+            aLens[iSymbol] = 5;
+        }
+        ZipFile.fnInflateConstruct(oDistCode, aLens, 0x1E);
+    };
     ZipFile.prototype.inflate = function (iOffset, iCompressedSize, iFinalSize) {
         /* eslint-disable array-element-newline */
         var aStartLens = [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258], aLExt = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0], aDists = [1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577], aDExt = [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13], aDynamicTableOrder = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15], 
@@ -180,30 +232,40 @@ var ZipFile = /** @class */ (function () {
                 code <<= 1; // eslint-disable-line no-bitwise
             }
             return null;
-        }, fnConstruct = function (oCodes, aLens2, n) {
-            var i;
+        }, 
+        /*
+        fnConstruct = function (oCodes: CodeType, aLens2: number[], n: number) {
+            let i: number;
+
             for (i = 0; i <= 0xF; i += 1) {
                 oCodes.count[i] = 0;
             }
+
             for (i = 0; i < n; i += 1) {
                 oCodes.count[aLens2[i]] += 1;
             }
+
             if (oCodes.count[0] === n) {
                 return 0;
             }
-            var iLeft = 1;
+
+            let iLeft = 1;
+
             for (i = 1; i <= 0xF; i += 1) {
                 if ((iLeft = (iLeft << 1) - oCodes.count[i]) < 0) { // eslint-disable-line no-bitwise
                     return iLeft;
                 }
             }
-            var aOffs = [
+
+            const aOffs = [
                 undefined,
                 0
             ];
+
             for (i = 1; i < 0xF; i += 1) {
                 aOffs[i + 1] = aOffs[i] + oCodes.count[i];
             }
+
             for (i = 0; i < n; i += 1) {
                 if (aLens2[i] !== 0) {
                     oCodes.symbol[aOffs[aLens2[i]]] = i;
@@ -211,7 +273,9 @@ var ZipFile = /** @class */ (function () {
                 }
             }
             return iLeft;
-        }, fnInflateStored = function () {
+        },
+        */
+        fnInflateStored = function () {
             iBitBuf = 0;
             iBitCnt = 0;
             if (iInCnt + 4 > iBufEnd) {
@@ -233,8 +297,11 @@ var ZipFile = /** @class */ (function () {
                 iInCnt += 1;
                 iLen -= 1;
             }
-        }, fnConstructFixedHuffman = function () {
-            var iSymbol;
+        }, 
+        /*
+        fnConstructFixedHuffman = function () { //TTT untested?
+            let iSymbol: number;
+
             for (iSymbol = 0; iSymbol < 0x90; iSymbol += 1) {
                 aLens[iSymbol] = 8;
             }
@@ -247,12 +314,14 @@ var ZipFile = /** @class */ (function () {
             for (; iSymbol < 0x120; iSymbol += 1) {
                 aLens[iSymbol] = 8;
             }
-            fnConstruct(oLenCode, aLens, 0x120);
+            ZipFile.fnInflateConstruct(oLenCode, aLens, 0x120);
             for (iSymbol = 0; iSymbol < 0x1E; iSymbol += 1) {
                 aLens[iSymbol] = 5;
             }
-            fnConstruct(oDistCode, aLens, 0x1E);
-        }, fnConstructDynamicHuffman = function () {
+            ZipFile.fnInflateConstruct(oDistCode, aLens, 0x1E);
+        },
+        */
+        fnConstructDynamicHuffman = function () {
             var iNLen = fnBits(5) + 257, iNDist = fnBits(5) + 1, iNCode = fnBits(4) + 4;
             if (iNLen > 0x11E || iNDist > 0x1E) {
                 throw that.composeError(Error(), "Zip: inflate: length/distance code overflow", "", 0);
@@ -264,7 +333,7 @@ var ZipFile = /** @class */ (function () {
             for (; i < 19; i += 1) {
                 aLens[aDynamicTableOrder[i]] = 0;
             }
-            if (fnConstruct(oLenCode, aLens, 19) !== 0) {
+            if (ZipFile.fnInflateConstruct(oLenCode, aLens, 19) !== 0) {
                 throw that.composeError(Error(), "Zip: inflate: length codes incomplete", "", 0);
             }
             for (i = 0; i < iNLen + iNDist;) {
@@ -300,7 +369,7 @@ var ZipFile = /** @class */ (function () {
                 }
                 /* eslint-enable max-depth */
             }
-            var iErr1 = fnConstruct(oLenCode, aLens, iNLen), iErr2 = fnConstruct(oDistCode, aLens.slice(iNLen), iNDist);
+            var iErr1 = ZipFile.fnInflateConstruct(oLenCode, aLens, iNLen), iErr2 = ZipFile.fnInflateConstruct(oDistCode, aLens.slice(iNLen), iNDist);
             if ((iErr1 < 0 || (iErr1 > 0 && iNLen - oLenCode.count[0] !== 1))
                 || (iErr2 < 0 || (iErr2 > 0 && iNDist - oDistCode.count[0] !== 1))) {
                 throw that.composeError(Error(), "Zip: inflate: bad literal or length codes", "", 0);
@@ -353,7 +422,7 @@ var ZipFile = /** @class */ (function () {
                     };
                     aLens = [];
                     if (iType === 1) { // construct fixed huffman tables
-                        fnConstructFixedHuffman();
+                        ZipFile.fnConstructFixedHuffman(aLens, oLenCode, oDistCode);
                     }
                     else { // construct dynamic huffman tables
                         fnConstructDynamicHuffman();

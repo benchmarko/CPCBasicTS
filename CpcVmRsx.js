@@ -9,11 +9,13 @@ var Utils_1 = require("./Utils");
 var CpcVm_1 = require("./CpcVm");
 var CpcVmRsx = /** @class */ (function () {
     function CpcVmRsx(oVm) {
-        this.rsxInit(oVm);
-    }
-    CpcVmRsx.prototype.rsxInit = function (oVm) {
         this.oVm = oVm;
-    };
+    }
+    /*
+    private rsxInit(oVm: CpcVm): void {
+        this.oVm = oVm;
+    }
+    */
     CpcVmRsx.prototype.rsxIsAvailable = function (sName) {
         return sName in this;
     };

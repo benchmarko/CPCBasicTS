@@ -8,6 +8,7 @@ var Utils_1 = require("./Utils");
 var View_1 = require("./View");
 var CommonEventHandler = /** @class */ (function () {
     function CommonEventHandler(oModel, oView, oController) {
+        this.fnUserAction = undefined;
         /* eslint-disable no-invalid-this */
         this.mHandlers = {
             onSpecialButtonClick: this.onSpecialButtonClick,
@@ -52,7 +53,6 @@ var CommonEventHandler = /** @class */ (function () {
         this.model = oModel;
         this.view = oView;
         this.controller = oController;
-        this.fnUserAction = undefined;
     }
     CommonEventHandler.prototype.toogleHidden = function (sId, sProp, sDisplay) {
         var bVisible = !this.model.getProperty(sProp);

@@ -8,11 +8,11 @@ exports.View = void 0;
 var Utils_1 = require("./Utils");
 var View = /** @class */ (function () {
     function View() {
-        this.init();
     }
-    View.prototype.init = function () {
-        // empty
-    };
+    /*
+    constructor() {
+    }
+    */
     View.getElementById1 = function (sId) {
         var element = document.getElementById(sId);
         if (!element) {

@@ -1,7 +1,6 @@
 export declare class InputStack {
-    aInput: string[];
-    iStackPosition: number;
-    constructor();
+    private aInput;
+    private iStackPosition;
     reset(): void;
     getInput(): string;
     clearRedo(): void;

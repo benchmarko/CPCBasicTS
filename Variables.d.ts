@@ -2,12 +2,9 @@ export declare type VariableValue = string | number | object;
 export declare type VariableMap = {
     [k in string]: VariableValue;
 };
-declare type VariableTypeMap = {
-    [k in string]: string;
-};
 export declare class Variables {
-    oVariables: VariableMap;
-    oVarTypes: VariableTypeMap;
+    private oVariables;
+    private oVarTypes;
     constructor();
     removeAllVariables(): void;
     getAllVariables(): VariableMap;
@@ -26,4 +23,3 @@ export declare class Variables {
     getVarType(sVarChar: string): string;
     setVarType(sVarChar: string, sType: string): void;
 }
-export {};

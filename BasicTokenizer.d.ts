@@ -1,9 +1,8 @@
 export declare class BasicTokenizer {
-    iPos: number;
-    iLine: number;
-    iLineEnd: number;
-    sInput: string;
-    constructor();
+    private iPos;
+    private iLine;
+    private iLineEnd;
+    private sInput;
     private fnNum8Dec;
     private fnNum16Dec;
     private fnNum32Dec;

@@ -28,7 +28,7 @@ export class Canvas {
 	private fnUpdateCanvasHandler: () => void;
 	private fnUpdateCanvas2Handler: () => void;
 
-	private iFps: number; // FPS for canvas update
+	private iFps = 15; // FPS for canvas update
 
 	private cpcAreaBox: HTMLElement;
 	private textText: HTMLTextAreaElement;
@@ -38,32 +38,32 @@ export class Canvas {
 
 	private onClickKey?: (arg0: string) => void;
 
-	private iGColMode: number; // 0=normal, 1=xor, 2=and, 3=or
+	private iGColMode = 0; // 0=normal, 1=xor, 2=and, 3=or
 
-	private iMask: number;
-	private iMaskBit: number;
-	private iMaskFirst: number;
+	private iMask = 255;
+	private iMaskBit = 128;
+	private iMaskFirst = 1;
 
-	private iOffset: number; // screen offset
+	private iOffset = 0; // screen offset
 
 	private canvas: HTMLCanvasElement;
 
 	private iWidth: number;
 	private iHeight: number;
-	private iBorderWidth: number;
+	private iBorderWidth = 4;
 
 	private dataset8: Uint8Array;
 
-	private bNeedUpdate: boolean;
-	private bNeedTextUpdate: boolean;
+	private bNeedUpdate = false;
+	private bNeedTextUpdate = false;
 
 	private aColorValues: number[][];
 
-	private aCurrentInks: number[][];
-	private aSpeedInk: number[];
+	private aCurrentInks: number[][] = [];
+	private aSpeedInk: number[] = [];
 	private iInkSet = 0;
 
-	private aPen2ColorMap: number[][];
+	private aPen2ColorMap: number[][] = [];
 
 	private iAnimationTimeoutId?: number;
 	private iAnimationFrame?: number;
@@ -105,26 +105,11 @@ export class Canvas {
 		this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
 		this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
 
-		const iBorderWidth = 4;
-
 		this.aCharset = options.aCharset;
 		this.onClickKey = options.onClickKey;
 
-		this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
-		this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
-
-		this.iFps = 15; // FPS for canvas update
-
 		this.cpcAreaBox = View.getElementById1("cpcAreaBox");
 		this.textText = View.getElementById1("textText") as HTMLTextAreaElement; // View.setAreaValue()
-
-		this.iGColMode = 0; // 0=normal, 1=xor, 2=and, 3=or
-
-		this.iMask = 255;
-		this.iMaskBit = 128;
-		this.iMaskFirst = 1;
-
-		this.iOffset = 0; // screen offset
 
 		const canvas = View.getElementById1("cpcCanvas") as HTMLCanvasElement;
 
@@ -140,20 +125,12 @@ export class Canvas {
 
 		this.iWidth = iWidth;
 		this.iHeight = iHeight;
-		this.iBorderWidth = iBorderWidth;
-		canvas.style.borderWidth = iBorderWidth + "px";
+		canvas.style.borderWidth = this.iBorderWidth + "px";
 		canvas.style.borderStyle = "solid";
 
 		this.dataset8 = new Uint8Array(new ArrayBuffer(iWidth * iHeight)); // array with pen values
 
-		this.bNeedUpdate = false;
-		this.bNeedTextUpdate = false;
-
 		this.aColorValues = Canvas.extractAllColorValues(Canvas.aColors);
-
-		this.aCurrentInks = [];
-		this.aSpeedInk = [];
-		this.aPen2ColorMap = [];
 
 		this.iAnimationTimeoutId = undefined;
 		this.iAnimationFrame = undefined;
@@ -290,7 +267,7 @@ export class Canvas {
 		this.aTextBuffer.length = 0;
 	}
 
-	static isLittleEndian(): boolean {
+	private static isLittleEndian() {
 		// https://gist.github.com/TooTallNate/4750953
 		const b = new ArrayBuffer(4),
 			a = new Uint32Array(b),
@@ -300,7 +277,7 @@ export class Canvas {
 		return (c[0] === 0xef);
 	}
 
-	static extractColorValues(sColor: string): number[] { // from "#rrggbb"
+	private static extractColorValues(sColor: string): number[] { // from "#rrggbb"
 		return [
 			parseInt(sColor.substring(1, 3), 16),
 			parseInt(sColor.substring(3, 5), 16),
@@ -308,7 +285,7 @@ export class Canvas {
 		];
 	}
 
-	static extractAllColorValues(aColors: string[]): number[][] {
+	private static extractAllColorValues(aColors: string[]): number[][] {
 		const aColorValues: number[][] = [];
 
 		for (let i = 0; i < aColors.length; i += 1) {
@@ -1234,21 +1211,19 @@ export class Canvas {
 		return iChar;
 	}
 
+	// fill: idea from: https://simpledevcode.wordpress.com/2015/12/29/flood-fill-algorithm-using-c-net/
+	private fnIsNotInWindow(x: number, y: number) {
+		return (x < this.xLeft || x > this.xRight || y < (this.iHeight - 1 - this.yTop) || y > (this.iHeight - 1 - this.yBottom));
+	}
 
-	// idea from: https://simpledevcode.wordpress.com/2015/12/29/flood-fill-algorithm-using-c-net/
 	fill(iFillPen: number): void {
-		const that = this,
-			iGPen = this.iGPen,
+		const iGPen = this.iGPen,
 			iPixelWidth = this.oModeData.iPixelWidth,
 			iPixelHeight = this.oModeData.iPixelHeight,
 			aPixels: ({x: number, y: number})[] = [],
 			fnIsStopPen = function (p: number) {
 				return p === iFillPen || p === iGPen;
-			},
-			fnIsNotInWindow = function (x: number, y: number) {
-				return (x < that.xLeft || x > that.xRight || y < (that.iHeight - 1 - that.yTop) || y > (that.iHeight - 1 - that.yBottom));
 			};
-
 		let xPos = this.xPos,
 			yPos = this.yPos;
 
@@ -1258,7 +1233,7 @@ export class Canvas {
 		xPos += this.xOrig;
 		yPos = this.iHeight - 1 - (yPos + this.yOrig);
 
-		if (fnIsNotInWindow(xPos, yPos)) {
+		if (this.fnIsNotInWindow(xPos, yPos)) {
 			return;
 		}
 
@@ -1273,7 +1248,7 @@ export class Canvas {
 			let y1 = oPixel.y,
 				p1 = this.testSubPixel(oPixel.x, y1);
 
-			while (y1 >= (that.iHeight - 1 - that.yTop) && !fnIsStopPen(p1)) {
+			while (y1 >= (this.iHeight - 1 - this.yTop) && !fnIsStopPen(p1)) {
 				y1 -= iPixelHeight;
 				p1 = this.testSubPixel(oPixel.x, y1);
 			}
@@ -1283,7 +1258,7 @@ export class Canvas {
 				bSpanRight = false;
 
 			p1 = this.testSubPixel(oPixel.x, y1);
-			while (y1 <= (that.iHeight - 1 - that.yBottom) && !fnIsStopPen(p1)) {
+			while (y1 <= (this.iHeight - 1 - this.yBottom) && !fnIsStopPen(p1)) {
 				this.setSubPixels(oPixel.x, y1, iFillPen, 0);
 
 				let x1 = oPixel.x - iPixelWidth;
@@ -1330,9 +1305,7 @@ export class Canvas {
 	setOrigin(xOrig: number, yOrig: number): void {
 		const iPixelWidth = this.oModeData.iPixelWidth;
 
-		/* eslint-disable no-bitwise */
-		xOrig &= ~(iPixelWidth - 1);
-		/* eslint-enable no-bitwise */
+		xOrig &= ~(iPixelWidth - 1); // eslint-disable-line no-bitwise
 
 		this.xOrig = xOrig; // must be integer
 		this.yOrig = yOrig;

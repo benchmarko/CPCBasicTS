@@ -112,6 +112,20 @@ interface SectorPos {
 }
 
 export class DiskImage {
+	private sDiskName: string;
+	private sData: string;
+	private oDiskInfo: DiskInfo;
+	private oFormat: FormatDescriptor;
+
+	constructor(oConfig: DiskImageOptions) {
+		this.sDiskName = oConfig.sDiskName;
+		this.sData = oConfig.sData;
+
+		// reset
+		this.oDiskInfo = DiskImage.getInitialDiskInfo();
+		this.oFormat = DiskImage.getInitialFormat();
+	}
+
 	private static mFormatDescriptors: PartialFormatDescriptorMap = {
 		data: {
 			iTracks: 40, // number of tracks (1-85)
@@ -172,21 +186,6 @@ export class DiskImage {
 			sParentRef: "big780k",
 			iHeads: 2
 		}
-	}
-
-	private sDiskName: string;
-	private sData: string;
-	private oDiskInfo: DiskInfo;
-	private oFormat: FormatDescriptor;
-
-
-	constructor(oConfig: DiskImageOptions) {
-		this.sDiskName = oConfig.sDiskName;
-		this.sData = oConfig.sData;
-
-		// reset
-		this.oDiskInfo = DiskImage.getInitialDiskInfo();
-		this.oFormat = DiskImage.getInitialFormat();
 	}
 
 	private static getInitialDiskInfo() {

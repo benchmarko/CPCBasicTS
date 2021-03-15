@@ -9,6 +9,7 @@ var Utils_1 = require("./Utils");
 var Random_1 = require("./Random");
 var CpcVm = /** @class */ (function () {
     function CpcVm(options) {
+        this.iInkeyTimeMs = 0; // next time of frame fly
         this.aGosubStack = []; // stack of line numbers for gosub/return
         this.iData = 0; // current index
         this.oDataLineIndex = {
@@ -41,7 +42,6 @@ var CpcVm = /** @class */ (function () {
         this.iTimerPriority = -1; // priority of running task: -1=low (min priority to start new timers)
         this.iZone = 13; // print tab zone value
         this.iMode = -1;
-        this.iInkeyTimeMs = 0; // next time of frame fly
         this.fnOpeninHandler = this.vmOpeninCallback.bind(this);
         this.fnCloseinHandler = this.vmCloseinCallback.bind(this);
         this.fnCloseoutHandler = this.vmCloseoutCallback.bind(this);

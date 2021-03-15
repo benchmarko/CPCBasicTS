@@ -1,1 +1,1 @@
-export declare var cpcCharset: number[][];
+export declare const cpcCharset: number[][];

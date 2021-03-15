@@ -6,11 +6,11 @@
 import { Utils } from "./Utils";
 import { Controller } from "./Controller";
 import { cpcconfig } from "./cpcconfig";
-import { Model, ConfigType } from "./Model";
+import { Model, ConfigType, ConfigEntryType } from "./Model";
 import { View } from "./View";
 
 class cpcBasic { // eslint-disable-line vars-on-top
-	static config: ConfigType = {
+	private static config: ConfigType = {
 		bench: 0, // debug: number of parse bench loops
 		debug: 0,
 		databaseDirs: "examples", // example base directories (comma separated)
@@ -33,11 +33,11 @@ class cpcBasic { // eslint-disable-line vars-on-top
 		tron: false // trace on
 	};
 
-	static model: Model;
-	static view: View;
-	static controller: Controller;
+	private static model: Model;
+	private static view: View;
+	private static controller: Controller;
 
-	static fnHereDoc(fn: () => void) {
+	private static fnHereDoc(fn: () => void) {
 		return String(fn).
 			replace(/^[^/]+\/\*\S*/, "").
 			replace(/\*\/[^/]+$/, "");
@@ -67,7 +67,7 @@ class cpcBasic { // eslint-disable-line vars-on-top
 
 		while ((aMatch = rSearch.exec(sQuery)) !== null) {
 			const sName = fnDecode(aMatch[1]);
-			let sValue: string | number | boolean = fnDecode(aMatch[2]);
+			let sValue: ConfigEntryType = fnDecode(aMatch[2]);
 
 			if (sValue !== null && oConfig.hasOwnProperty(sName)) {
 				switch (typeof oConfig[sName]) {

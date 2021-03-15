@@ -10,49 +10,20 @@ interface KeyboardOptions {
     fnOnEscapeHandler?: (sKey: string, sPressedKey: string) => void;
     fnOnKeyDown?: () => void;
 }
-declare type KeyExpansionsType = {
-    [k in string]: number;
-};
-declare type KeyExpansionsRepeatType = {
-    [k in string]: number;
-};
-declare type Key2CpcKeyType = {
-    [k in string]: number;
-};
-declare type PressedBrowseKeysType = {
-    [k in string]: boolean;
-};
-declare type PressedKeysType = {
-    [k in string]: {
-        oKeys: PressedBrowseKeysType;
-        shift: boolean;
-        ctrl: boolean;
-    };
-};
-interface CpcKeyExpansions {
-    normal: KeyExpansionsType;
-    shift: KeyExpansionsType;
-    ctrl: KeyExpansionsType;
-    repeat: KeyExpansionsRepeatType;
-}
 export declare class Keyboard {
-    options: KeyboardOptions;
-    fnOnKeyDown?: () => void;
-    aKeyBuffer: string[];
-    aExpansionTokens: string[];
-    oCpcKeyExpansions: CpcKeyExpansions;
-    bActive: boolean;
-    oKey2CpcKey: Key2CpcKeyType;
-    bCodeStringsRemoved: boolean;
-    sPointerOutEvent?: string;
-    fnVirtualKeyout?: EventListener;
-    oPressedKeys: PressedKeysType;
-    bShiftLock: boolean;
-    bNumLock: boolean;
+    private options;
+    private fnOnKeyDown?;
+    private aKeyBuffer;
+    private aExpansionTokens;
+    private oCpcKeyExpansions;
+    private bActive;
+    private oKey2CpcKey;
+    private bCodeStringsRemoved;
+    private oPressedKeys;
+    constructor(options: KeyboardOptions);
     private static mKey2CpcKey;
     private static mSpecialKeys;
     private static aJoyKeyCodes;
-    constructor(options: KeyboardOptions);
     reset(): void;
     clearInput(): void;
     resetExpansionTokens(): void;

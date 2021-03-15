@@ -1,5 +1,5 @@
 export declare class Random {
-    x: number;
+    private x;
     constructor(nSeed?: number);
     init(nSeed?: number): void;
     random(): number;

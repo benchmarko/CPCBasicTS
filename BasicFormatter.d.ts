@@ -6,9 +6,9 @@ interface BasicFormatterOptions {
     parser: BasicParser;
 }
 export declare class BasicFormatter {
-    lexer: BasicLexer;
-    parser: BasicParser;
-    iLine: number;
+    private lexer;
+    private parser;
+    private iLine;
     constructor(options: BasicFormatterOptions);
     private composeError;
     private fnCreateLineNumbersMap;

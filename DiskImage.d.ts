@@ -30,12 +30,12 @@ declare type DirectoryListType = {
     [k in string]: ExtentEntry[];
 };
 export declare class DiskImage {
-    private static mFormatDescriptors;
     private sDiskName;
     private sData;
     private oDiskInfo;
     private oFormat;
     constructor(oConfig: DiskImageOptions);
+    private static mFormatDescriptors;
     private static getInitialDiskInfo;
     private static getInitialFormat;
     reset(): void;

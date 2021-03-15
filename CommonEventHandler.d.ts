@@ -2,10 +2,10 @@ import { IController } from "./Interfaces";
 import { Model } from "./Model";
 import { View } from "./View";
 export declare class CommonEventHandler implements EventListenerObject {
-    model: Model;
-    view: View;
-    controller: IController;
-    fnUserAction: ((event: Event, sId: string) => void) | undefined;
+    private model;
+    private view;
+    private controller;
+    private fnUserAction;
     constructor(oModel: Model, oView: View, oController: IController);
     private toogleHidden;
     fnSetUserAction(fnAction: ((event: Event, sId: string) => void) | undefined): void;

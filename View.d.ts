@@ -5,8 +5,6 @@ export interface SelectOptionElement {
     selected: boolean;
 }
 export declare class View {
-    constructor();
-    init(): void;
     static getElementById1(sId: string): HTMLElement;
     getHidden(sId: string): boolean;
     setHidden(sId: string, bHidden: boolean, sDisplay?: string): this;

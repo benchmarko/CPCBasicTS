@@ -9,6 +9,37 @@ var Diff = /** @class */ (function () {
     function Diff() {
     }
     // Refer to http://www.xmailserver.org/diff2.pdf
+    Diff.inRange = function (x, l, r) {
+        return (l <= x && x <= r) || (r <= x && x <= l);
+    };
+    /* can we use it here? need to define aA, aB, lcsAtoms, findMidSnake():
+    private static lcs(startA: number, endA: number, startB: number, endB: number) {
+        const N = endA - startA + 1,
+            M = endB - startB + 1;
+
+        if (N > 0 && M > 0) {
+            const middleSnake = findMidSnake(startA, endA, startB, endB),
+                // A[x;u] == B[y,v] and is part of LCS
+                x = middleSnake[0][0],
+                y = middleSnake[0][1],
+                u = middleSnake[1][0],
+                v = middleSnake[1][1],
+                D = middleSnake[2];
+
+            if (D > 1) {
+                Diff.lcs(startA, x - 1, startB, y - 1);
+                if (x <= u) {
+                    [].push.apply(lcsAtoms, aA.slice(x, u + 1));
+                }
+                lcs(u + 1, endA, v + 1, endB);
+            } else if (M > N) {
+                [].push.apply(lcsAtoms, aA.slice(startA, endA + 1));
+            } else {
+                [].push.apply(lcsAtoms, aB.slice(startB, endB + 1));
+            }
+        }
+    }
+    */
     // Longest Common Subsequence
     // @param A - sequence of atoms - Array
     // @param B - sequence of atoms - Array
@@ -17,11 +48,7 @@ var Diff = /** @class */ (function () {
     // @returns Array - sequence of atoms, one of LCSs, edit script from A to B
     Diff.fnLCS = function (aA, aB, equals) {
         // Helpers
-        var inRange = function (x, l, r) {
-            return (l <= x && x <= r) || (r <= x && x <= l);
-        }, 
-        // Takes X-component as argument, diagonal as context,
-        // returns array-pair of form x, y
+        var // Takes X-component as argument, diagonal as context, returns array-pair of form x, y
         toPoint = function (x) {
             return [
                 x,
@@ -85,7 +112,7 @@ var Diff = /** @class */ (function () {
                     // diagonals of different iteration.
                     oV[k] = x;
                     // Check feasibility, Delta is checked for being odd.
-                    if ((iDelta & 1) === 1 && inRange(k, iDelta - (iD - 1), iDelta + (iD - 1))) { // eslint-disable-line no-bitwise
+                    if ((iDelta & 1) === 1 && Diff.inRange(k, iDelta - (iD - 1), iDelta + (iD - 1))) { // eslint-disable-line no-bitwise
                         // Forward D-path can overlap with reversed D-1-path
                         if (oV[k] >= oU[k]) {
                             // Found an overlap, the middle snake, convert X-components to dots
@@ -121,7 +148,7 @@ var Diff = /** @class */ (function () {
                         y -= 1;
                     }
                     oU[K] = x;
-                    if (iDelta % 2 === 0 && inRange(K, -iD, iD)) {
+                    if (iDelta % 2 === 0 && Diff.inRange(K, -iD, iD)) {
                         if (oU[K] <= oV[K]) {
                             aOverlap = [
                                 x,

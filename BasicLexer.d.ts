@@ -8,12 +8,12 @@ export interface LexerToken {
     orig?: string;
 }
 export declare class BasicLexer {
-    bQuiet: boolean;
-    sLine: string;
-    bTakeNumberAsLine: boolean;
-    sInput: string;
-    iIndex: number;
-    aTokens: LexerToken[];
+    private bQuiet;
+    private sLine;
+    private bTakeNumberAsLine;
+    private sInput;
+    private iIndex;
+    private aTokens;
     constructor(options?: BasicLexerOptions);
     private composeError;
     private static isComment;

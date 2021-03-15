@@ -15,7 +15,15 @@ interface CodeGeneratorBasicOptions {
 }
 
 export class CodeGeneratorBasic {
-	static mCombinedKeywords = {
+	private lexer: BasicLexer;
+	private parser: BasicParser;
+
+	constructor(options: CodeGeneratorBasicOptions) {
+		this.lexer = options.lexer;
+		this.parser = options.parser;
+	}
+
+	private static mCombinedKeywords: { [k: string]: string } = {
 		chainMerge: "CHAIN MERGE",
 		clearInput: "CLEAR INPUT",
 		graphicsPaper: "GRAPHICS PAPER",
@@ -33,41 +41,9 @@ export class CodeGeneratorBasic {
 		speedWrite: "SPEED WRITE",
 		symbolAfter: "SYMBOL AFTER",
 		windowSwap: "WINDOW SWAP"
-	};
-
-	lexer: BasicLexer;
-	parser: BasicParser;
-
-
-	constructor(options: CodeGeneratorBasicOptions) {
-		this.lexer = options.lexer;
-		this.parser = options.parser;
 	}
 
-	private composeError(oError: Error, message: string, value: string, pos: number) { // eslint-disable-line class-methods-use-this
-		return Utils.composeError("CodeGeneratorBasic", oError, message, value, pos);
-	}
-
-	private fnParseOneArg(oArg: ParserNode) {
-		const sValue = this.parseNode(oArg); // eslint-disable-line no-use-before-define
-
-		return sValue;
-	}
-
-	private fnParseArgs(aArgs: ParserNode[]) {
-		const aNodeArgs: string[] = []; // do not modify node.args here (could be a parameter of defined function)
-
-		for (let i = 0; i < aArgs.length; i += 1) {
-			const sValue = this.fnParseOneArg(aArgs[i]);
-
-			if (!(i === 0 && sValue === "#" && aArgs[i].type === "#")) { // ignore empty stream as first argument (hmm, not for e.g. data!)
-				aNodeArgs.push(sValue);
-			}
-		}
-		return aNodeArgs;
-	}
-
-	private static mOperators = {
+	private static mOperators: { [k: string]: string } = {
 		"+": "+",
 		"-": "-",
 		"*": "*",
@@ -87,9 +63,9 @@ export class CodeGeneratorBasic {
 		"<>": "<>",
 		"@": "@",
 		"#": "#"
-	};
+	}
 
-	private static mOperatorPrecedence = {
+	private static mOperatorPrecedence: { [k: string]: number } = {
 		"@": 95, // prefix
 		"^": 90,
 
@@ -117,7 +93,30 @@ export class CodeGeneratorBasic {
 		or: 21,
 		xor: 20,
 		"#": 10 // priority?
-	};
+	}
+
+	private composeError(oError: Error, message: string, value: string, pos: number) { // eslint-disable-line class-methods-use-this
+		return Utils.composeError("CodeGeneratorBasic", oError, message, value, pos);
+	}
+
+	private fnParseOneArg(oArg: ParserNode) {
+		const sValue = this.parseNode(oArg); // eslint-disable-line no-use-before-define
+
+		return sValue;
+	}
+
+	private fnParseArgs(aArgs: ParserNode[]) {
+		const aNodeArgs: string[] = []; // do not modify node.args here (could be a parameter of defined function)
+
+		for (let i = 0; i < aArgs.length; i += 1) {
+			const sValue = this.fnParseOneArg(aArgs[i]);
+
+			if (!(i === 0 && sValue === "#" && aArgs[i].type === "#")) { // ignore empty stream as first argument (hmm, not for e.g. data!)
+				aNodeArgs.push(sValue);
+			}
+		}
+		return aNodeArgs;
+	}
 
 	private static fnDecodeEscapeSequence(str: string) {
 		return str.replace(/\\x([0-9A-Fa-f]{2})/g, function () {
@@ -212,7 +211,7 @@ export class CodeGeneratorBasic {
 		return sValue;
 	}
 	private data(node: ParserNode) {
-		const aNodeArgs = [],
+		const aNodeArgs: string[] = [],
 			regExp = new RegExp(",|^ +| +$");
 
 		for (let i = 0; i < node.args.length; i += 1) {
@@ -478,7 +477,7 @@ export class CodeGeneratorBasic {
 
 		let sTemplate = aNodeArgs.shift();
 
-		if (sTemplate.charAt(0) !== '"') { // not a string => space required
+		if (sTemplate && sTemplate.charAt(0) !== '"') { // not a string => space required
 			sTemplate = " " + sTemplate;
 		}
 		const sValue = node.type.toUpperCase() + sTemplate + ";" + aNodeArgs.join(","); // separator between args could be "," or ";", we use ","
@@ -487,7 +486,7 @@ export class CodeGeneratorBasic {
 	}
 
 	/* eslint-disable no-invalid-this */
-	mParseFunctions = { // to call methods, use mParseFunctions[].call(this,...)
+	mParseFunctions: { [k: string]: (node: ParserNode) => string } = { // to call methods, use mParseFunctions[].call(this,...)
 		string: CodeGeneratorBasic.string,
 		"null": CodeGeneratorBasic.fnNull,
 		assign: this.assign,
@@ -597,16 +596,17 @@ export class CodeGeneratorBasic {
 					}
 				}
 
-				let value2 = this.parseNode(node.right);
+				const oRight = node.right as ParserNode;
+				let value2 = this.parseNode(oRight);
 
-				if (mOperators[node.right.type] && (node.right.left || node.right.right)) { // binary operator (or unary operator, e.g. not)
+				if (mOperators[oRight.type] && (oRight.left || oRight.right)) { // binary operator (or unary operator, e.g. not)
 					const p = mPrecedence[node.type];
 					let pr: number;
 
-					if (node.right.left) { // right is binary
-						pr = mPrecedence[node.right.type] || 0;
+					if (oRight.left) { // right is binary
+						pr = mPrecedence[oRight.type] || 0;
 					} else {
-						pr = mPrecedence["p" + node.right.type] || mPrecedence[node.right.type] || 0;
+						pr = mPrecedence["p" + oRight.type] || mPrecedence[oRight.type] || 0;
 					}
 
 					if ((pr < p) || ((pr === p) && node.type === "-")) { // "-" is special
@@ -615,15 +615,19 @@ export class CodeGeneratorBasic {
 				}
 				value += mOperators[sType].toUpperCase() + value2;
 			} else { // unary operator
-				value = this.parseNode(node.right);
-				const p = mPrecedence["p" + node.type] || mPrecedence[node.type] || 0; // check unary operator first
+				const oRight = node.right as ParserNode;
+
+				value = this.parseNode(oRight);
 				let pr: number;
 
-				if (node.right.left) { // was binary op?
-					pr = mPrecedence[node.right.type] || 0; // no special prio
+				if (oRight.left) { // was binary op?
+					pr = mPrecedence[oRight.type] || 0; // no special prio
 				} else {
-					pr = mPrecedence["p" + node.right.type] || mPrecedence[node.right.type] || 0; // check unary operator first
+					pr = mPrecedence["p" + oRight.type] || mPrecedence[oRight.type] || 0; // check unary operator first
 				}
+
+				const p = mPrecedence["p" + node.type] || mPrecedence[node.type] || 0; // check unary operator first
+
 				if (p && pr && (pr < p)) {
 					value = "(" + value + ")";
 				}
@@ -661,7 +665,6 @@ export class CodeGeneratorBasic {
 		}
 		return sOutput;
 	}
-
 
 	generate(sInput: string, bAllowDirect?: boolean): IOutput {
 		const oOut: IOutput = {

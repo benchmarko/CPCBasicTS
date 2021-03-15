@@ -7,7 +7,7 @@
 // Raj Jain: The Art of Computer Systems Performance Analysis, John Wiley & Sons, 1991, page 442-444
 //
 export class Random {
-	x!: number;
+	private x!: number;
 
 	constructor(nSeed?: number) {
 		this.init(nSeed);

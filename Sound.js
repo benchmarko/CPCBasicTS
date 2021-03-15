@@ -9,13 +9,13 @@ var Utils_1 = require("./Utils");
 var Sound = /** @class */ (function () {
     function Sound() {
         this.bIsSoundOn = false;
+        this.bIsActivatedByUser = false;
         this.aGainNodes = [];
         this.aOscillators = []; // 3 oscillators left, middle, right
         this.aQueues = []; // node queues and info for the three channels
         this.fScheduleAheadTime = 0.1; // 100 ms
         this.aVolEnv = [];
         this.aToneEnv = [];
-        this.bIsActivatedByUser = false;
         for (var i = 0; i < 3; i += 1) {
             this.aQueues[i] = {
                 aSoundData: [],

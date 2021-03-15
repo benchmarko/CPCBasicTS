@@ -8,35 +8,36 @@ exports.Keyboard = void 0;
 var Utils_1 = require("./Utils");
 var View_1 = require("./View");
 var Keyboard = /** @class */ (function () {
-    /* eslint-enable array-element-newline */
+    //private bShiftLock: boolean; // for virtual keyboard
+    //private bNumLock: boolean;
     function Keyboard(options) {
+        this.aKeyBuffer = []; // buffered pressed keys
+        this.aExpansionTokens = []; // strings for expansion tokens 0..31 (in reality: 128..159)
+        this.bActive = false; // flag if keyboard is active/focused, set from outside
+        this.bCodeStringsRemoved = false;
+        //private sPointerOutEvent?: string;
+        //private fnVirtualKeyout?: EventListener;
+        this.oPressedKeys = {}; // currently pressed browser keys
         this.options = Object.assign({}, options);
         this.fnOnKeyDown = this.options.fnOnKeyDown;
         this.oKey2CpcKey = Keyboard.mKey2CpcKey;
-        this.aKeyBuffer = []; // buffered pressed keys
-        this.aExpansionTokens = []; // expansion tokens 0..31 (in reality: 128..159)
         this.oCpcKeyExpansions = {
             normal: {},
             shift: {},
             ctrl: {},
             repeat: {}
         }; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
-        this.bActive = false; // flag if keyboard is active/focused, set from outside
-        this.bCodeStringsRemoved = false;
         var cpcArea = View_1.View.getElementById1("cpcArea");
         cpcArea.addEventListener("keydown", this.onCpcAreaKeydown.bind(this), false);
         cpcArea.addEventListener("keyup", this.oncpcAreaKeyup.bind(this), false);
-        // reset
-        this.oPressedKeys = {}; // currently pressed browser keys
-        this.bShiftLock = false; // for virtual keyboard
-        this.bNumLock = false;
     }
+    /* eslint-enable array-element-newline */
     Keyboard.prototype.reset = function () {
         this.fnOnKeyDown = undefined;
         this.clearInput();
         this.oPressedKeys = {}; // currently pressed browser keys
-        this.bShiftLock = false; // for virtual keyboard
-        this.bNumLock = false;
+        //this.bShiftLock = false; // for virtual keyboard
+        //this.bNumLock = false;
         this.resetExpansionTokens();
         this.resetCpcKeysExpansions();
     };

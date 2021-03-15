@@ -6,6 +6,39 @@
 export class Diff {
 	// Refer to http://www.xmailserver.org/diff2.pdf
 
+	private static inRange(x: number, l: number, r: number) {
+		return (l <= x && x <= r) || (r <= x && x <= l);
+	}
+
+	/* can we use it here? need to define aA, aB, lcsAtoms, findMidSnake():
+	private static lcs(startA: number, endA: number, startB: number, endB: number) {
+		const N = endA - startA + 1,
+			M = endB - startB + 1;
+
+		if (N > 0 && M > 0) {
+			const middleSnake = findMidSnake(startA, endA, startB, endB),
+				// A[x;u] == B[y,v] and is part of LCS
+				x = middleSnake[0][0],
+				y = middleSnake[0][1],
+				u = middleSnake[1][0],
+				v = middleSnake[1][1],
+				D = middleSnake[2];
+
+			if (D > 1) {
+				Diff.lcs(startA, x - 1, startB, y - 1);
+				if (x <= u) {
+					[].push.apply(lcsAtoms, aA.slice(x, u + 1));
+				}
+				lcs(u + 1, endA, v + 1, endB);
+			} else if (M > N) {
+				[].push.apply(lcsAtoms, aA.slice(startA, endA + 1));
+			} else {
+				[].push.apply(lcsAtoms, aB.slice(startB, endB + 1));
+			}
+		}
+	}
+	*/
+
 	// Longest Common Subsequence
 	// @param A - sequence of atoms - Array
 	// @param B - sequence of atoms - Array
@@ -14,12 +47,7 @@ export class Diff {
 	// @returns Array - sequence of atoms, one of LCSs, edit script from A to B
 	private static fnLCS(aA: string[], aB: string[], equals: (a: string, b: string) => boolean) {
 		// Helpers
-		const inRange = function (x: number, l: number, r: number) {
-				return (l <= x && x <= r) || (r <= x && x <= l);
-			},
-
-			// Takes X-component as argument, diagonal as context,
-			// returns array-pair of form x, y
+		const // Takes X-component as argument, diagonal as context, returns array-pair of form x, y
 			toPoint = function (x: number) {
 				return [
 					x,
@@ -97,7 +125,7 @@ export class Diff {
 						oV[k] = x;
 
 						// Check feasibility, Delta is checked for being odd.
-						if ((iDelta & 1) === 1 && inRange(k, iDelta - (iD - 1), iDelta + (iD - 1))) { // eslint-disable-line no-bitwise
+						if ((iDelta & 1) === 1 && Diff.inRange(k, iDelta - (iD - 1), iDelta + (iD - 1))) { // eslint-disable-line no-bitwise
 							// Forward D-path can overlap with reversed D-1-path
 							if (oV[k] >= oU[k]) {
 								// Found an overlap, the middle snake, convert X-components to dots
@@ -141,7 +169,7 @@ export class Diff {
 						}
 						oU[K] = x;
 
-						if (iDelta % 2 === 0 && inRange(K, -iD, iD)) {
+						if (iDelta % 2 === 0 && Diff.inRange(K, -iD, iD)) {
 							if (oU[K] <= oV[K]) {
 								aOverlap = [
 									x,
@@ -214,7 +242,7 @@ export class Diff {
 	private static diff(aA: string[], aB: string[], fnEquals?: (a: string, b: string) => boolean) {
 		const aDiff = [],
 			// Accepts custom comparator
-			customIndexOf = function (item: string, start: number, fnEquals2?: (a: string, b: string) => boolean) {
+			customIndexOf = function (item: string, start: number, fnEquals2: (a: string, b: string) => boolean) {
 				const aArr = this;
 
 				for (let i2 = start; i2 < aArr.length; i2 += 1) {

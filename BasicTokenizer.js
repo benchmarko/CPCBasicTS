@@ -10,6 +10,11 @@ exports.BasicTokenizer = void 0;
 var Utils_1 = require("./Utils");
 var BasicTokenizer = /** @class */ (function () {
     function BasicTokenizer() {
+        this.iPos = 0;
+        this.iLine = 0;
+        // will also be set in decode
+        this.iLineEnd = 0;
+        this.sInput = "";
         /* eslint-disable no-invalid-this */
         this.mTokens = {
             0x00: "",
@@ -238,12 +243,11 @@ var BasicTokenizer = /** @class */ (function () {
             0x7e: "COPYCHR$",
             0x7f: "VPOS"
         };
-        this.iPos = 0;
-        this.iLine = 0;
-        // will also be set in decode
-        this.iLineEnd = 0;
-        this.sInput = "";
     }
+    /*
+    constructor() {
+    }
+    */
     BasicTokenizer.prototype.fnNum8Dec = function () {
         var iNum = this.sInput.charCodeAt(this.iPos);
         this.iPos += 1;

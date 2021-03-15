@@ -4,7 +4,7 @@
 
 import { Utils } from "./Utils";
 
-type ConfigEntryType = string | number | boolean;
+export type ConfigEntryType = string | number | boolean;
 
 export type ConfigType = { [k in string]: ConfigEntryType };
 
@@ -13,14 +13,13 @@ export interface DatabaseEntry {
 	title: string
 	src: string
 	script?: string
-	error?: string
+	//error?: string
 	loaded?: boolean
 }
 
 export interface ExampleEntry {
 	key: string
 	title: string
-	//type: string
 	meta: string // D=data
 	script?: string
 	loaded?: boolean
@@ -31,11 +30,10 @@ export type DatabasesType = { [k in string]: DatabaseEntry };
 type ExamplesType = { [k in string]: { [l in string]: ExampleEntry }};
 
 export class Model {
-	config: ConfigType;
-	initialConfig: ConfigType;
-	databases: DatabasesType;
-	examples: ExamplesType;
-
+	private config: ConfigType;
+	private initialConfig: ConfigType;
+	private databases: DatabasesType;
+	private examples: ExamplesType;
 
 	constructor(config: ConfigType, initialConfig: ConfigType) {
 		this.config = config || {}; // store only a reference
@@ -43,6 +41,7 @@ export class Model {
 		this.databases = {};
 		this.examples = {}; // loaded examples per database
 	}
+
 	getProperty<T extends ConfigEntryType>(sProperty: string): T {
 		return this.config[sProperty] as T;
 	}

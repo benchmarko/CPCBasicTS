@@ -63,9 +63,9 @@ export declare class Canvas {
     reset(): void;
     resetCustomChars(): void;
     private resetTextBuffer;
-    static isLittleEndian(): boolean;
-    static extractColorValues(sColor: string): number[];
-    static extractAllColorValues(aColors: string[]): number[][];
+    private static isLittleEndian;
+    private static extractColorValues;
+    private static extractAllColorValues;
     private setAlpha;
     private setNeedUpdate;
     private setNeedTextUpdate;
@@ -129,6 +129,7 @@ export declare class Canvas {
     drawCursor(x: number, y: number, iPen: number, iPaper: number): void;
     private findMatchingChar;
     readChar(x: number, y: number, iPen: number, iPaper: number): number;
+    private fnIsNotInWindow;
     fill(iFillPen: number): void;
     private static fnPutInRange;
     setOrigin(xOrig: number, yOrig: number): void;

@@ -6,10 +6,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.InputStack = void 0;
 var InputStack = /** @class */ (function () {
     function InputStack() {
-        // reset
         this.aInput = [];
         this.iStackPosition = -1;
     }
+    /*
+    constructor() {
+    }
+    */
     InputStack.prototype.reset = function () {
         this.aInput.length = 0;
         this.iStackPosition = -1;

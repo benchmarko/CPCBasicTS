@@ -10,27 +10,16 @@ export interface ParserNode extends LexerToken {
     len?: number;
     bSpace?: boolean;
 }
-declare type ParseExpressionFunction = (arg0: ParserNode) => ParserNode;
-declare type ParseStatmentFunction = () => ParserNode;
-interface SymbolType {
-    id: string;
-    nud?: ParseExpressionFunction;
-    lbp?: number;
-    led?: ParseExpressionFunction;
-    std?: ParseStatmentFunction;
-}
 export declare class BasicParser {
-    sLine: string;
-    bQuiet: boolean;
-    oSymbols: {
-        [k in string]: SymbolType;
-    };
-    aTokens: LexerToken[];
-    bAllowDirect: boolean;
-    iIndex: number;
-    oPreviousToken: ParserNode;
-    oToken: ParserNode;
-    aParseTree: ParserNode[];
+    private sLine;
+    private bQuiet;
+    private oSymbols;
+    private aTokens;
+    private bAllowDirect;
+    private iIndex;
+    private oPreviousToken;
+    private oToken;
+    private aParseTree;
     constructor(options?: BasicParserOptions);
     private static mParameterTypes;
     static mKeywords: {

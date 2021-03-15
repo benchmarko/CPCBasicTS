@@ -49,6 +49,22 @@ export class VirtualKeyboard {
 	private bShiftLock = false;
 	private bNumLock = false;
 
+	constructor(options: VirtualKeyboardOptions) {
+		this.fnPressCpcKey = options.fnPressCpcKey;
+		this.fnReleaseCpcKey = options.fnReleaseCpcKey;
+
+		const oEventNames = this.fnAttachPointerEvents("kbdArea", this.onVirtualVirtualKeyboardKeydown.bind(this), undefined, this.onVirtualVirtualKeyboardKeyup.bind(this));
+
+		if (oEventNames.out) {
+			this.sPointerOutEvent = oEventNames.out;
+			this.fnVirtualKeyout = this.onVirtualVirtualKeyboardKeyout.bind(this);
+		}
+
+		this.dragInit("pageBody", "kbdAreaBox");
+
+		this.virtualKeyboardCreate();
+	}
+
 	private static aCpcKey2Key: CpcKey2Key[] = [
 		{
 			keys: "38ArrowUp", // 0: cursor up
@@ -591,22 +607,6 @@ export class VirtualKeyboard {
 		currentX: 0,
 		currentY: 0
 	};
-
-	constructor(options: VirtualKeyboardOptions) {
-		this.fnPressCpcKey = options.fnPressCpcKey;
-		this.fnReleaseCpcKey = options.fnReleaseCpcKey;
-
-		const oEventNames = this.fnAttachPointerEvents("kbdArea", this.onVirtualVirtualKeyboardKeydown.bind(this), undefined, this.onVirtualVirtualKeyboardKeyup.bind(this));
-
-		if (oEventNames.out) {
-			this.sPointerOutEvent = oEventNames.out;
-			this.fnVirtualKeyout = this.onVirtualVirtualKeyboardKeyout.bind(this);
-		}
-
-		this.dragInit("pageBody", "kbdAreaBox");
-
-		this.virtualKeyboardCreate();
-	}
 
 	private fnAttachPointerEvents(sId: string, fnDown?: EventListener, fnMove?: EventListener, fnUp?: EventListener) { // eslint-disable-line class-methods-use-this
 		const area = View.getElementById1(sId),

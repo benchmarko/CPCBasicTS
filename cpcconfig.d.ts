@@ -1,3 +1,3 @@
-export declare var cpcconfig: {
+export declare const cpcconfig: {
     databaseDirs: string;
 };
