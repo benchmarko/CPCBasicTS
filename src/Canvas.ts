@@ -14,7 +14,7 @@ type CharsetType = CharType[];
 
 
 export interface CanvasOptions {
-	aCharset: CharsetType //number[][]
+	aCharset: CharsetType
 	onClickKey?: (arg0: string) => void
 }
 
@@ -242,8 +242,6 @@ export class Canvas {
 		this.setNeedTextUpdate();
 
 		this.changeMode(1);
-		//this.iGPen = undefined; //TTT undefined to force update
-		//this.iGPaper = undefined; //TTT
 		this.iInkSet = 0;
 		this.setDefaultInks();
 

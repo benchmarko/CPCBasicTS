@@ -1374,7 +1374,7 @@ export class CodeGeneratorJs {
 	}
 	private run(node: CodeNode) { // optional arg can be number or string
 		if (node.args.length) {
-			if (node.args[0].type === "linenumber" || node.args[0].type === "number") { // optional line number //TTT should be linenumber only
+			if (node.args[0].type === "linenumber" || node.args[0].type === "number") { // optional line number, should be linenumber only
 				this.fnAddReferenceLabel(this.fnParseOneArg(node.args[0]), node.args[0]); // parse only one arg, args are parsed later
 			}
 		}

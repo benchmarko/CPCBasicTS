@@ -7,8 +7,6 @@ import { Utils } from "../Utils";
 import { BasicTokenizer } from "../BasicTokenizer";
 import {} from "qunit";
 
-//type QUnitAssertType1 = { strictEqual: (r: any, e: any, sMsg: string) => void };
-
 type TestsType = {[k in string]: string};
 
 type AllTestsType = {[k in string]: TestsType};

@@ -482,21 +482,6 @@ export class BasicParser {
 		this.symbol(id, undefined, lbp, fnLed);
 	}
 
-	/*
-	private infix(id: string, lbp: number, rbp?: number, led?: ParseExpressionFunction) {
-		const that = this;
-
-		rbp = rbp || lbp;
-		this.symbol(id, undefined, lbp, led || function (left: ParserNode) {
-			const oValue = that.oPreviousToken;
-
-			oValue.left = left;
-			oValue.right = that.expression(rbp as number);
-			return oValue;
-		});
-	}
-	*/
-
 	private infixr(id: string, lbp: number) {
 		const fnLed = ((left: ParserNode) => {
 			const oValue = this.oPreviousToken;
@@ -509,21 +494,6 @@ export class BasicParser {
 		this.symbol(id, undefined, lbp, fnLed);
 	}
 
-	/*
-	private infixr(id: string, lbp: number, rbp?: number, led?: ParseExpressionFunction) {
-		const that = this;
-
-		rbp = rbp || lbp;
-		this.symbol(id, undefined, lbp, led || function (left) {
-			const oValue = that.oPreviousToken;
-
-			oValue.left = left;
-			oValue.right = that.expression(rbp as number - 1);
-			return oValue;
-		});
-	}
-*/
-
 	private prefix(id: string, rbp: number) {
 		const fnNud = () => {
 			const oValue = this.oPreviousToken;
@@ -534,19 +504,6 @@ export class BasicParser {
 
 		this.symbol(id, fnNud);
 	}
-
-	/*
-	private prefix(id: string, rbp: number) {
-		const that = this;
-
-		this.symbol(id, function () {
-			const oValue = that.oPreviousToken;
-
-			oValue.right = that.expression(rbp);
-			return oValue;
-		});
-	}
-	*/
 
 	private stmt(s: string, f: ParseStatmentFunction) {
 		const x = this.symbol(s);
@@ -923,15 +880,6 @@ export class BasicParser {
 		this.advance(")");
 		return oValue;
 	}
-
-	/*
-	private fnBracket() { // "["
-		const oValue = this.expression(0);
-
-		this.advance("]");
-		return oValue;
-	}
-	*/
 
 	private fnFn() { // separate fn
 		const oValue = this.oPreviousToken, // "fn"
@@ -1555,8 +1503,6 @@ export class BasicParser {
 		this.symbol("identifier", this.fnIdentifier);
 
 		this.symbol("(", this.fnParenthesis);
-
-		//this.symbol("[", this.fnBracket);
 
 		this.prefix("@", 95); // address of
 

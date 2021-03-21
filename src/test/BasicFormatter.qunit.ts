@@ -7,9 +7,7 @@ import { Utils } from "../Utils";
 import { BasicLexer } from "../BasicLexer"; // we use BasicLexer here just for convenient input
 import { BasicParser } from "../BasicParser";
 import { BasicFormatter } from "../BasicFormatter";
-import {} from "qunit"; //TTT
-
-//type QUnitAssertType1 = { strictEqual: (r: any, e: any, sMsg: string) => void };
+import {} from "qunit";
 
 type TestsType = {[k in string]: string};
 

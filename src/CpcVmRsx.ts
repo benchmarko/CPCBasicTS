@@ -14,12 +14,6 @@ export class CpcVmRsx implements ICpcVmRsx {
 		this.oVm = oVm;
 	}
 
-	/*
-	private rsxInit(oVm: CpcVm): void {
-		this.oVm = oVm;
-	}
-	*/
-
 	rsxIsAvailable(sName: string): boolean {
 		return sName in this;
 	}
@@ -76,7 +70,7 @@ export class CpcVmRsx implements ICpcVmRsx {
 			iStream: iStream,
 			sCommand: "|dir",
 			sFileMask: sFileMask,
-			iLine: this.oVm.iLine //TTT
+			iLine: this.oVm.iLine
 		};
 
 		this.oVm.vmStop("fileDir", 45, false, oFileParas);
@@ -108,7 +102,7 @@ export class CpcVmRsx implements ICpcVmRsx {
 			iStream: iStream,
 			sCommand: "|era",
 			sFileMask: sFileMask,
-			iLine: this.oVm.iLine //TTT
+			iLine: this.oVm.iLine
 		};
 
 		this.oVm.vmStop("fileEra", 45, false, oFileParas);
@@ -128,7 +122,7 @@ export class CpcVmRsx implements ICpcVmRsx {
 			sFileMask: "", // unused
 			sNew: sNew,
 			sOld: sOld,
-			iLine: this.oVm.iLine //TTT
+			iLine: this.oVm.iLine
 		};
 
 		this.oVm.vmStop("fileRen", 45, false, oFileParas);
