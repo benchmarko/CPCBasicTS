@@ -52,16 +52,6 @@ var CpcVm = /** @class */ (function () {
         this.oSound = options.sound;
         this.oVariables = options.variables;
         this.tronFlag = options.tron;
-        /*
-        this.mCanvasActions = {
-            draw: this.oCanvas.draw,
-            drawr: this.oCanvas.drawr,
-            move: this.oCanvas.move,
-            mover: this.oCanvas.mover,
-            plot: this.oCanvas.plot,
-            plotr: this.oCanvas.plotr
-        };
-        */
         this.oRandom = new Random_1.Random();
         this.oStop = {
             sReason: "",
@@ -588,10 +578,6 @@ var CpcVm = /** @class */ (function () {
         }
     };
     CpcVm.prototype.vmDrawMovePlot = function (sType, iGPen, iGColMode) {
-        /*
-        x = this.vmInRangeRound(x, -32768, 32767, sType);
-        y = this.vmInRangeRound(y, -32768, 32767, sType);
-        */
         if (iGPen !== undefined && iGPen !== null) {
             iGPen = this.vmInRangeRound(iGPen, 0, 15, sType);
             this.oCanvas.setGPen(iGPen);
@@ -600,34 +586,6 @@ var CpcVm = /** @class */ (function () {
             iGColMode = this.vmInRangeRound(iGColMode, 0, 3, sType);
             this.oCanvas.setGColMode(iGColMode);
         }
-        //this.oCanvas[sType.toLowerCase()](x, y); // draw, drawr, move, mover, plot, plotr
-        /*
-        switch (sType) {
-        case "DRAW":
-            oCanvas.draw(x, y);
-            break;
-        case "DRAWR":
-            oCanvas.drawr(x, y);
-            break;
-        case "MOVE":
-            oCanvas.move(x, y);
-            break;
-        case "MOVER":
-            oCanvas.mover(x, y);
-            break;
-        case "PLOT":
-            oCanvas.plot(x, y);
-            break;
-        case "PLOTR":
-            oCanvas.plotr(x, y);
-            break;
-        default:
-            Utils.console.error("vmDrawMovePlot: Unknown type", sType);
-            break;
-        }
-        */
-        //const fnCanvas = this.mCanvasActions[sType.toLowerCase()];
-        //fnCanvas.call(oCanvas, x, y);
     };
     CpcVm.prototype.vmAfterEveryGosub = function (sType, iInterval, iTimer, iLine) {
         iInterval = this.vmInRangeRound(iInterval, 0, 32767, sType); // more would be overflow
@@ -1463,7 +1421,6 @@ var CpcVm = /** @class */ (function () {
             else if (aFileData.length > 1) { // no closing quotes in this line => try to combine with next line
                 aFileData.shift(); // remove line
                 sLine += "\n" + aFileData[0]; // combine lines
-                ///sValue=? //TTT
             }
             else {
                 throw this.vmComposeError(Error(), 13, "INPUT #9: no closing quotes: " + sLine);
@@ -2328,12 +2285,6 @@ var CpcVm = /** @class */ (function () {
         return sOut;
     };
     CpcVm.prototype.vmPrintCharsOrControls = function (iStream, sStr) {
-        /*
-        if (sBuf && sBuf.length) {
-            sStr = sBuf + sStr;
-            sBuf = "";
-        }
-        */
         var sBuf = "", sOut = "", i = 0;
         while (i < sStr.length) {
             var iCode = sStr.charCodeAt(i);
@@ -2397,8 +2348,6 @@ var CpcVm = /** @class */ (function () {
             var sStr = void 0;
             if (typeof arg === "object") { // delayed call for spc(), tab(), commaTab() with side effect (position)
                 var aSpecialArgs = arg.args;
-                //aSpecialArgs.unshift(iStream);
-                //sStr = this[sType].apply(this, aSpecialArgs);
                 switch (arg.type) {
                     case "commaTab":
                         sStr = this.commaTab(iStream);
@@ -2426,7 +2375,6 @@ var CpcVm = /** @class */ (function () {
                 else {
                     if (sBuf.length) {
                         sStr = sBuf + sStr;
-                        //sBuf = "";
                     }
                     sBuf = this.vmPrintCharsOrControls(iStream, sStr);
                 }
@@ -2729,7 +2677,6 @@ var CpcVm = /** @class */ (function () {
                     iEntry += 65536;
                 }
             }
-            //aFileData = [];
             for (var i = 0; i < iLength; i += 1) {
                 var iAddress = (iStart + i) & 0xffff; // eslint-disable-line no-bitwise
                 aFileData[i] = String.fromCharCode(this.peek(iAddress));
@@ -2765,29 +2712,6 @@ var CpcVm = /** @class */ (function () {
     CpcVm.prototype.sound = function (iState, iPeriod, iDuration, iVolume, iVolEnv, iToneEnv, iNoise) {
         iState = this.vmInRangeRound(iState, 1, 255, "SOUND");
         iPeriod = this.vmInRangeRound(iPeriod, 0, 4095, "SOUND ,");
-        /*
-        if (iDuration !== undefined) {
-            iDuration = this.vmInRangeRound(iDuration, -32768, 32767, "SOUND ,,");
-        } else {
-            iDuration = 20;
-        }
-
-        if (iVolume !== undefined && iVolume !== null) {
-            iVolume = this.vmInRangeRound(iVolume, 0, 15, "SOUND ,,,");
-        } else {
-            iVolume = 12;
-        }
-
-        if (iVolEnv !== undefined && iVolEnv !== null) {
-            iVolEnv = this.vmInRangeRound(iVolEnv, 0, 15, "SOUND ,,,,");
-        }
-        if (iToneEnv !== undefined && iToneEnv !== null) {
-            iToneEnv = this.vmInRangeRound(iToneEnv, 0, 15, "SOUND ,,,,,");
-        }
-        if (iNoise !== undefined && iNoise !== null) {
-            iNoise = this.vmInRangeRound(iNoise, 0, 31, "SOUND ,,,,,,");
-        }
-        */
         var oSoundData = {
             iState: iState,
             iPeriod: iPeriod,
@@ -3176,7 +3100,6 @@ var CpcVm = /** @class */ (function () {
         n = this.vmInRangeRound(n, 1, 255, "ZONE");
         this.iZone = n;
     };
-    //mCanvasActions: {[k in string]: (x: number, y: number) => void};
     CpcVm.iFrameTimeMs = 1000 / 50; // 50 Hz => 20 ms
     CpcVm.iTimerCount = 4; // number of timers
     CpcVm.iSqTimerCount = 3; // sound queue timers

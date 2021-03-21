@@ -205,20 +205,6 @@ var BasicParser = /** @class */ (function () {
         });
         this.symbol(id, undefined, lbp, fnLed);
     };
-    /*
-    private infix(id: string, lbp: number, rbp?: number, led?: ParseExpressionFunction) {
-        const that = this;
-
-        rbp = rbp || lbp;
-        this.symbol(id, undefined, lbp, led || function (left: ParserNode) {
-            const oValue = that.oPreviousToken;
-
-            oValue.left = left;
-            oValue.right = that.expression(rbp as number);
-            return oValue;
-        });
-    }
-    */
     BasicParser.prototype.infixr = function (id, lbp) {
         var _this = this;
         var fnLed = (function (left) {
@@ -229,20 +215,6 @@ var BasicParser = /** @class */ (function () {
         });
         this.symbol(id, undefined, lbp, fnLed);
     };
-    /*
-    private infixr(id: string, lbp: number, rbp?: number, led?: ParseExpressionFunction) {
-        const that = this;
-
-        rbp = rbp || lbp;
-        this.symbol(id, undefined, lbp, led || function (left) {
-            const oValue = that.oPreviousToken;
-
-            oValue.left = left;
-            oValue.right = that.expression(rbp as number - 1);
-            return oValue;
-        });
-    }
-*/
     BasicParser.prototype.prefix = function (id, rbp) {
         var _this = this;
         var fnNud = function () {
@@ -252,18 +224,6 @@ var BasicParser = /** @class */ (function () {
         };
         this.symbol(id, fnNud);
     };
-    /*
-    private prefix(id: string, rbp: number) {
-        const that = this;
-
-        this.symbol(id, function () {
-            const oValue = that.oPreviousToken;
-
-            oValue.right = that.expression(rbp);
-            return oValue;
-        });
-    }
-    */
     BasicParser.prototype.stmt = function (s, f) {
         var x = this.symbol(s);
         x.std = f;
@@ -592,14 +552,6 @@ var BasicParser = /** @class */ (function () {
         this.advance(")");
         return oValue;
     };
-    /*
-    private fnBracket() { // "["
-        const oValue = this.expression(0);
-
-        this.advance("]");
-        return oValue;
-    }
-    */
     BasicParser.prototype.fnFn = function () {
         var oValue = this.oPreviousToken, // "fn"
         oValue2 = this.oToken; // identifier
@@ -1121,7 +1073,6 @@ var BasicParser = /** @class */ (function () {
         });
         this.symbol("identifier", this.fnIdentifier);
         this.symbol("(", this.fnParenthesis);
-        //this.symbol("[", this.fnBracket);
         this.prefix("@", 95); // address of
         this.infix("^", 90, 80);
         this.prefix("+", 80);

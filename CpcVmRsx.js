@@ -11,11 +11,6 @@ var CpcVmRsx = /** @class */ (function () {
     function CpcVmRsx(oVm) {
         this.oVm = oVm;
     }
-    /*
-    private rsxInit(oVm: CpcVm): void {
-        this.oVm = oVm;
-    }
-    */
     CpcVmRsx.prototype.rsxIsAvailable = function (sName) {
         return sName in this;
     };
@@ -67,7 +62,7 @@ var CpcVmRsx = /** @class */ (function () {
             iStream: iStream,
             sCommand: "|dir",
             sFileMask: sFileMask,
-            iLine: this.oVm.iLine //TTT
+            iLine: this.oVm.iLine
         };
         this.oVm.vmStop("fileDir", 45, false, oFileParas);
     };
@@ -91,7 +86,7 @@ var CpcVmRsx = /** @class */ (function () {
             iStream: iStream,
             sCommand: "|era",
             sFileMask: sFileMask,
-            iLine: this.oVm.iLine //TTT
+            iLine: this.oVm.iLine
         };
         this.oVm.vmStop("fileEra", 45, false, oFileParas);
     };
@@ -106,7 +101,7 @@ var CpcVmRsx = /** @class */ (function () {
             sFileMask: "",
             sNew: sNew,
             sOld: sOld,
-            iLine: this.oVm.iLine //TTT
+            iLine: this.oVm.iLine
         };
         this.oVm.vmStop("fileRen", 45, false, oFileParas);
     };

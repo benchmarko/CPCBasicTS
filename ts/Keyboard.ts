@@ -49,12 +49,7 @@ export class Keyboard {
 	private oKey2CpcKey: Key2CpcKeyType;
 	private bCodeStringsRemoved = false;
 
-	//private sPointerOutEvent?: string;
-	//private fnVirtualKeyout?: EventListener;
-
 	private oPressedKeys: PressedKeysType = {}; // currently pressed browser keys
-	//private bShiftLock: boolean; // for virtual keyboard
-	//private bNumLock: boolean;
 
 	constructor(options: KeyboardOptions) {
 		this.options = Object.assign({}, options);
@@ -253,8 +248,6 @@ export class Keyboard {
 		this.fnOnKeyDown = undefined;
 		this.clearInput();
 		this.oPressedKeys = {}; // currently pressed browser keys
-		//this.bShiftLock = false; // for virtual keyboard
-		//this.bNumLock = false;
 		this.resetExpansionTokens();
 		this.resetCpcKeysExpansions();
 	}
@@ -273,7 +266,7 @@ export class Keyboard {
 		aExpansionTokens[11] = "\r";
 		aExpansionTokens[12] = 'RUN"\r';
 		for (let i = 13; i <= 31; i += 1) {
-			aExpansionTokens[i] = "0"; //TTT was 0
+			aExpansionTokens[i] = "0";
 		}
 	}
 

@@ -39,21 +39,6 @@ export class Utils { // eslint-disable-line vars-on-top
 					fnError(sFullUrl, sKey);
 				}
 			},
-			/*
-			onScriptError = function (event: Event) {
-				const node = (event.currentTarget || event.srcElement) as HTMLScriptElement | HTMLLinkElement;
-
-				if (Utils.debug > 1) {
-					Utils.console.debug("onScriptError:", (node as HTMLScriptElement).src || (node as HTMLLinkElement).href);
-				}
-				node.removeEventListener("load", onScriptLoad, false);
-				node.removeEventListener("error", onScriptError, false);
-
-				if (fnError) {
-					fnError(sFullUrl);
-				}
-			},
-			*/
 			onScriptReadyStateChange = function (event?: Event) { // for old IE8
 				const node = (event ? (event.currentTarget || event.srcElement) : script) as HTMLScriptElement | HTMLLinkElement,
 					sFullUrl = (node as HTMLScriptElement).src || (node as HTMLLinkElement).href, // src for script, href for link
@@ -107,24 +92,8 @@ export class Utils { // eslint-disable-line vars-on-top
 
 		script.setAttribute("data-key", sKey);
 
-		//const sFullUrl = script.src;
-
 		this.fnLoadScriptOrStyle(script, fnSuccess, fnError);
 	}
-
-	/*
-	// not used:
-	static loadStyle(sUrl: string, fnSuccess: (sStr: string) => void, fnError: (sStr: string) => void): void {
-		const link = document.createElement("link");
-
-		link.rel = "stylesheet";
-		link.href = sUrl;
-
-		//const sFullUrl = link.href;
-
-		this.fnLoadScriptOrStyle(link, fnSuccess, fnError);
-	}
-	*/
 
 	static dateFormat(d: Date): string {
 		return d.getFullYear() + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + ("0" + d.getDate()).slice(-2) + " "
@@ -195,17 +164,6 @@ export class Utils { // eslint-disable-line vars-on-top
 		oCustomError.name = name;
 		oCustomError.message = message;
 		oCustomError.value = value;
-		/*
-		if (name !== undefined) {
-			oCustomError.name = name;
-		}
-		if (message !== undefined) {
-			oCustomError.message = message;
-		}
-		if (value !== undefined) {
-			oCustomError.value = value;
-		}
-		*/
 		if (pos !== undefined) {
 			oCustomError.pos = pos;
 		}

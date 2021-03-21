@@ -4,10 +4,6 @@
 import { Model } from "../Model";
 import {} from "qunit";
 
-//type QUnitAssertType1 = { strictEqual: (r: any, e: any, sMsg: string) => void };
-//type QUnitHooksType1 = { beforeEach: (a: any) => void };
-
-
 QUnit.module("Model: Properties", function (hooks: NestedHooks) {
 	hooks.beforeEach(function (this: any) {
 		const that = this, // eslint-disable-line no-invalid-this, @typescript-eslint/no-this-alias

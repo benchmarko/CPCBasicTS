@@ -68,7 +68,6 @@ var Diff = /** @class */ (function () {
         //                    LCS ]  - length of LCS
         findMidSnake = function (startA, endA, startB, endB) {
             var iN = endA - startA + 1, iM = endB - startB + 1, iMax = iN + iM, iDelta = iN - iM, iHhalfMaxCeil = (iMax + 1) / 2 | 0, // eslint-disable-line no-bitwise
-            //foundOverlap = false,
             // Maps -Max .. 0 .. +Max, diagonal index to endpoints for furthest reaching D-path on current iteration.
             oV = {}, 
             // Same but for reversed paths.

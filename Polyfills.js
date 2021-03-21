@@ -6,7 +6,7 @@ exports.Polyfills = void 0;
 /* globals globalThis */
 var Utils_1 = require("./Utils");
 exports.Polyfills = {
-    iCount: 0 //TTT
+    iCount: 0
     // empty
 };
 // IE: window.console is only available when Dev Tools are open
@@ -199,26 +199,6 @@ if (!Function.prototype.bind) { // IE8
             };
         };
     }());
-    /* does not work:
-    (function () {
-        //const ArrayPrototypeSlice = Array.prototype.slice; // since IE6
-
-        Function.prototype.bind = function (thatArg: object, ...aArgs: any[]) { // eslint-disable-line no-extend-native, @typescript-eslint/ban-types
-            const that = this,
-                iArgs = aArgs.length;
-
-            if (typeof that !== "function") {
-                // closest thing possible to the ECMAScript 5 internal IsCallable function
-                throw new TypeError("Function.prototype.bind - what is trying to be bound is not callable");
-            }
-            return function (...aArgs2: any[]) {
-                aArgs.length = iArgs; // set args to length of bound args
-                aArgs.concat(aArgs2); // concat current args
-                return that.apply(thatArg, aArgs);
-            };
-        };
-    }());
-    */
 }
 if (!Math.sign) { // IE11
     Utils_1.Utils.console.debug("Polyfill: Math.sign");
@@ -247,18 +227,6 @@ if (!Object.assign) { // IE11
         return oTo;
     };
 }
-/*
-if (!Object.create) { // IE8
-    Utils.console.debug("Polyfill: Object.create");
-    Object.create = function (proto) { // props are not supported
-        function Ctor() {
-            // empty
-        }
-        Ctor.prototype = proto;
-        return new Ctor();
-    };
-}
-*/
 if (!Object.keys) { // IE8
     Utils_1.Utils.console.debug("Polyfill: Object.keys");
     // https://tokenposts.blogspot.com/2012/04/javascript-objectkeys-browser.html
@@ -424,50 +392,6 @@ if (!Utils_1.Utils.atob) { // IE9 (and node.js)
 if (!Utils_1.Utils.localStorage) {
     Utils_1.Utils.console.debug("Polyfill: window.localStorage");
     (function () {
-        /*
-            const Storage = function (this: any) {
-                this.clear();
-            };
-    
-            Storage.prototype = {
-                clear: function () {
-                    for (const key in this) {
-                        if (this.hasOwnProperty(key)) {
-                            delete this[key];
-                        }
-                    }
-                    this.length = 0;
-                },
-                key: function (index: number) {
-                    let i = 0;
-    
-                    for (const key in this) {
-                        if (this.hasOwnProperty(key) && key !== "length") {
-                            if (i === index) {
-                                return key;
-                            }
-                            i += 1;
-                        }
-                    }
-                    return null;
-                },
-                getItem: function (sKey: string) {
-                    return this.hasOwnProperty(sKey) ? this[sKey] : null;
-                },
-                setItem: function (sKey: string, value: string) {
-                    if (this.getItem(sKey) === null) {
-                        this.length += 1;
-                    }
-                    this[sKey] = String(value);
-                },
-                removeItem: function (sKey: string) {
-                    if (this.getItem(sKey) !== null) {
-                        delete this[sKey];
-                        this.length -= 1;
-                    }
-                }
-            };
-            */
         var Storage = /** @class */ (function () {
             function Storage() {
                 this.length = 0;
@@ -537,7 +461,6 @@ if (!window.JSON) { // simple polyfill for JSON.parse only
             Utils_1.Utils.console.error("Not implemented: window.JSON.stringify");
             return String(o);
         }
-        //how to set: Symbol(Symbol.toStringTag): "JSON" ?
     };
 }
 if (!window.requestAnimationFrame) { // IE9, SliTaz tazweb browser

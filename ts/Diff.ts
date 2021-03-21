@@ -72,7 +72,6 @@ export class Diff {
 					iMax = iN + iM,
 					iDelta = iN - iM,
 					iHhalfMaxCeil = (iMax + 1) / 2 | 0, // eslint-disable-line no-bitwise
-					//foundOverlap = false,
 					// Maps -Max .. 0 .. +Max, diagonal index to endpoints for furthest reaching D-path on current iteration.
 					oV: {[k: number]: number} = {},
 					// Same but for reversed paths.

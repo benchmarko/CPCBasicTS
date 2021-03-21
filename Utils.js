@@ -26,23 +26,7 @@ var Utils = /** @class */ (function () {
             else {
                 fnError(sFullUrl, sKey);
             }
-        }, 
-        /*
-        onScriptError = function (event: Event) {
-            const node = (event.currentTarget || event.srcElement) as HTMLScriptElement | HTMLLinkElement;
-
-            if (Utils.debug > 1) {
-                Utils.console.debug("onScriptError:", (node as HTMLScriptElement).src || (node as HTMLLinkElement).href);
-            }
-            node.removeEventListener("load", onScriptLoad, false);
-            node.removeEventListener("error", onScriptError, false);
-
-            if (fnError) {
-                fnError(sFullUrl);
-            }
-        },
-        */
-        onScriptReadyStateChange = function (event) {
+        }, onScriptReadyStateChange = function (event) {
             var node = (event ? (event.currentTarget || event.srcElement) : script), sFullUrl = node.src || node.href, // src for script, href for link
             sKey = node.getAttribute("data-key"), node2 = node;
             if (node2.detachEvent) {
@@ -88,22 +72,8 @@ var Utils = /** @class */ (function () {
         script.async = true;
         script.src = sUrl;
         script.setAttribute("data-key", sKey);
-        //const sFullUrl = script.src;
         this.fnLoadScriptOrStyle(script, fnSuccess, fnError);
     };
-    /*
-    // not used:
-    static loadStyle(sUrl: string, fnSuccess: (sStr: string) => void, fnError: (sStr: string) => void): void {
-        const link = document.createElement("link");
-
-        link.rel = "stylesheet";
-        link.href = sUrl;
-
-        //const sFullUrl = link.href;
-
-        this.fnLoadScriptOrStyle(link, fnSuccess, fnError);
-    }
-    */
     Utils.dateFormat = function (d) {
         return d.getFullYear() + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + ("0" + d.getDate()).slice(-2) + " "
             + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2) + ":" + ("0" + d.getSeconds()).slice(-2) + "." + ("0" + d.getMilliseconds()).slice(-3);
@@ -140,17 +110,6 @@ var Utils = /** @class */ (function () {
         oCustomError.name = name;
         oCustomError.message = message;
         oCustomError.value = value;
-        /*
-        if (name !== undefined) {
-            oCustomError.name = name;
-        }
-        if (message !== undefined) {
-            oCustomError.message = message;
-        }
-        if (value !== undefined) {
-            oCustomError.value = value;
-        }
-        */
         if (pos !== undefined) {
             oCustomError.pos = pos;
         }

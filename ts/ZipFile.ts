@@ -61,14 +61,6 @@ export class ZipFile {
 		return this.oEntryTable;
 	}
 
-	/*
-	private composeError(...aArgs) { // varargs
-		aArgs[1] = this.sZipName + ": " + aArgs[1]; // put zipname in message
-		aArgs.unshift("ZipFile");
-		return Utils.composeError.apply(null, aArgs);
-	}
-	*/
-
 	private composeError(oError: Error, message: string, value: string, pos: number) {
 		message = this.sZipName + ": " + message; // put zipname in message
 		return Utils.composeError("ZipFile", oError, message, value, pos);
@@ -251,7 +243,7 @@ export class ZipFile {
 		];
 
 		for (i = 1; i < 0xF; i += 1) {
-			aOffs[i + 1] = aOffs[i] + oCodes.count[i];
+			aOffs[i + 1] = aOffs[i]! + oCodes.count[i];
 		}
 
 		for (i = 0; i < n; i += 1) {
@@ -340,49 +332,6 @@ export class ZipFile {
 				}
 				return null;
 			},
-
-			/*
-			fnConstruct = function (oCodes: CodeType, aLens2: number[], n: number) {
-				let i: number;
-
-				for (i = 0; i <= 0xF; i += 1) {
-					oCodes.count[i] = 0;
-				}
-
-				for (i = 0; i < n; i += 1) {
-					oCodes.count[aLens2[i]] += 1;
-				}
-
-				if (oCodes.count[0] === n) {
-					return 0;
-				}
-
-				let iLeft = 1;
-
-				for (i = 1; i <= 0xF; i += 1) {
-					if ((iLeft = (iLeft << 1) - oCodes.count[i]) < 0) { // eslint-disable-line no-bitwise
-						return iLeft;
-					}
-				}
-
-				const aOffs = [
-					undefined,
-					0
-				];
-
-				for (i = 1; i < 0xF; i += 1) {
-					aOffs[i + 1] = aOffs[i] + oCodes.count[i];
-				}
-
-				for (i = 0; i < n; i += 1) {
-					if (aLens2[i] !== 0) {
-						oCodes.symbol[aOffs[aLens2[i]]] = i;
-						aOffs[aLens2[i]] += 1;
-					}
-				}
-				return iLeft;
-			},
-			*/
 
 			fnInflateStored = function () {
 				iBitBuf = 0;

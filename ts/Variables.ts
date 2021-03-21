@@ -18,13 +18,6 @@ export class Variables {
 		this.oVarTypes = {}; // default variable types for variables starting with letters a-z
 	}
 
-	/*
-	private init(): void {
-		this.oVariables = {};
-		this.oVarTypes = {}; // default variable types for variables starting with letters a-z
-	}
-	*/
-
 	removeAllVariables(): void {
 		const oVariables = this.oVariables;
 

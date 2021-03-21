@@ -8,15 +8,11 @@ exports.Keyboard = void 0;
 var Utils_1 = require("./Utils");
 var View_1 = require("./View");
 var Keyboard = /** @class */ (function () {
-    //private bShiftLock: boolean; // for virtual keyboard
-    //private bNumLock: boolean;
     function Keyboard(options) {
         this.aKeyBuffer = []; // buffered pressed keys
         this.aExpansionTokens = []; // strings for expansion tokens 0..31 (in reality: 128..159)
         this.bActive = false; // flag if keyboard is active/focused, set from outside
         this.bCodeStringsRemoved = false;
-        //private sPointerOutEvent?: string;
-        //private fnVirtualKeyout?: EventListener;
         this.oPressedKeys = {}; // currently pressed browser keys
         this.options = Object.assign({}, options);
         this.fnOnKeyDown = this.options.fnOnKeyDown;
@@ -36,8 +32,6 @@ var Keyboard = /** @class */ (function () {
         this.fnOnKeyDown = undefined;
         this.clearInput();
         this.oPressedKeys = {}; // currently pressed browser keys
-        //this.bShiftLock = false; // for virtual keyboard
-        //this.bNumLock = false;
         this.resetExpansionTokens();
         this.resetCpcKeysExpansions();
     };
@@ -53,7 +47,7 @@ var Keyboard = /** @class */ (function () {
         aExpansionTokens[11] = "\r";
         aExpansionTokens[12] = 'RUN"\r';
         for (var i = 13; i <= 31; i += 1) {
-            aExpansionTokens[i] = "0"; //TTT was 0
+            aExpansionTokens[i] = "0";
         }
     };
     Keyboard.prototype.resetCpcKeysExpansions = function () {

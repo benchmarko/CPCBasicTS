@@ -314,16 +314,11 @@ var Controller = /** @class */ (function () {
         }
     };
     Controller.prototype.fnOnEscape = function () {
-        var oStop = this.oVm.vmGetStopObject(), iStream = 0; //oParas.iStream;
+        var oStop = this.oVm.vmGetStopObject(), iStream = 0;
         if (this.oVm.vmOnBreakContSet()) {
             // ignore break
         }
         else if (oStop.sReason === "direct" || this.oVm.vmOnBreakHandlerActive()) {
-            /*
-            if (!oStop.oParas) {
-                oStop.oParas = {};
-            }
-            */
             oStop.oParas.sInput = "";
             var sMsg = "*Break*\r\n";
             this.oVm.print(iStream, sMsg);
@@ -523,13 +518,26 @@ var Controller = /** @class */ (function () {
             this.oKeyboard.setKeyDownHandler(this.fnWaitInputHandler); // make sure it is set
         }
     };
+    //TODO
+    Controller.prototype.parseLineNumber = function (sLine) {
+        var iLine = parseInt(sLine, 10);
+        if (iLine < 0 || iLine > 65535) { //0?
+            //throw this.composeError(Error(), "Line number overflow", iLine, -1);
+            //this.outputError(this.oVm.vmComposeError(Error(), 6, String(iLine)), true);
+            //iLine = -1; //TTT
+            //const oError = this.oVm.vmComposeError(Error(), 6, String(iLine));
+            //this.oVm.vmStop("", 0, true); // clear error, onError
+            //this.outputError(oError, true);
+        }
+        return iLine;
+    };
     // merge two scripts with sorted line numbers, lines from script2 overwrite lines from script1
-    Controller.mergeScripts = function (sScript1, sScript2) {
+    Controller.prototype.mergeScripts = function (sScript1, sScript2) {
         var aLines1 = Utils_1.Utils.stringTrimEnd(sScript1).split("\n"), aLines2 = Utils_1.Utils.stringTrimEnd(sScript2).split("\n");
         var aResult = [], iLine1, iLine2;
         while (aLines1.length && aLines2.length) {
-            iLine1 = iLine1 || parseInt(aLines1[0], 10);
-            iLine2 = iLine2 || parseInt(aLines2[0], 10);
+            iLine1 = iLine1 || this.parseLineNumber(aLines1[0]);
+            iLine2 = iLine2 || this.parseLineNumber(aLines2[0]);
             if (iLine1 < iLine2) { // use line from script1
                 aResult.push(aLines1.shift());
                 iLine1 = 0;
@@ -766,7 +774,7 @@ var Controller = /** @class */ (function () {
             case "openin":
                 break;
             case "chainMerge":
-                sInput = Controller.mergeScripts(this.view.getAreaValue("inputText"), sInput);
+                sInput = this.mergeScripts(this.view.getAreaValue("inputText"), sInput);
                 this.setInputText(sInput);
                 this.view.setAreaValue("resultText", "");
                 iStartLine = oInFile.iLine || 0;
@@ -782,7 +790,7 @@ var Controller = /** @class */ (function () {
                 }
                 break;
             case "merge":
-                sInput = Controller.mergeScripts(this.view.getAreaValue("inputText"), sInput);
+                sInput = this.mergeScripts(this.view.getAreaValue("inputText"), sInput);
                 this.setInputText(sInput);
                 this.view.setAreaValue("resultText", "");
                 this.invalidateScript();
@@ -921,14 +929,19 @@ var Controller = /** @class */ (function () {
                 this.oVm.vmStop("fileLoad", 90); // restore
             }
             var sName = oInFile.sName;
+            /*TTT
             if (oInFile.sMemorizedExample) { //TTT check this
-                var sKey = this.model.getProperty("example"), iLastSlash = sKey.lastIndexOf("/");
+                const sKey = this.model.getProperty<string>("example"),
+                    iLastSlash = sKey.lastIndexOf("/");
+
                 if (iLastSlash >= 0) {
-                    var sPath = sKey.substr(0, iLastSlash); // take path from selected example
+                    const sPath = sKey.substr(0, iLastSlash); // take path from selected example
+
                     sName = sPath + "/" + sName;
                     sName = sName.replace(/\w+\/\.\.\//, ""); // simplify 2 dots (go back) in path: "dir/.."" => ""
                 }
             }
+            */
             if (Utils_1.Utils.debug > 1) {
                 Utils_1.Utils.console.debug("fnFileLoad:", oInFile.sCommand, sName, "details:", oInFile);
             }
@@ -1005,17 +1018,7 @@ var Controller = /** @class */ (function () {
             }
             var sStorageName = Controller.fnLocalStorageName(sName, sDefaultExtension);
             var sFileData = void 0;
-            /*
-            if (oOutFile.aFileData) {
-                sFileData = oOutFile.aFileData.join("");
-            } else { // no file data (assuming sType A, P or T) => get text
-                sFileData = this.view.getAreaValue("inputText");
-                oOutFile.iLength = sFileData.length; // set length
-                oOutFile.sType = "A"; // override sType: currently we support type "A" only
-            }
-            */
-            //TTT TODO!! oOutFile.aFileData.length ?
-            if (oOutFile.aFileData.length || (sType === "B") || (oOutFile.sCommand = "openout")) { // sType A(for openout) or B
+            if (oOutFile.aFileData.length || (sType === "B") || (oOutFile.sCommand === "openout")) { // sType A(for openout) or B
                 sFileData = oOutFile.aFileData.join("");
             }
             else { // no file data (assuming sType A, P or T) => get text
@@ -1059,7 +1062,7 @@ var Controller = /** @class */ (function () {
             }
             if (!oError) {
                 var sInput = aLines.join("\n");
-                sInput = Controller.mergeScripts(sInputText, sInput); // delete sInput lines
+                sInput = this.mergeScripts(sInputText, sInput); // delete sInput lines
                 this.setInputText(sInput);
             }
         }
@@ -1132,7 +1135,7 @@ var Controller = /** @class */ (function () {
     Controller.prototype.fnEditLineCallback = function () {
         var oInput = this.oVm.vmGetStopObject().oParas, sInputText = this.view.getAreaValue("inputText");
         var sInput = oInput.sInput;
-        sInput = Controller.mergeScripts(sInputText, sInput);
+        sInput = this.mergeScripts(sInputText, sInput);
         this.setInputText(sInput);
         this.oVm.vmSetStartLine(0);
         this.oVm.vmGotoLine(0); // to be sure
@@ -1320,7 +1323,7 @@ var Controller = /** @class */ (function () {
                 if (Utils_1.Utils.debug > 0) {
                     Utils_1.Utils.console.debug("fnDirectInput: insert line=" + sInput);
                 }
-                sInput = Controller.mergeScripts(sInputText, sInput);
+                sInput = this.mergeScripts(sInputText, sInput);
                 this.setInputText(sInput, true);
                 this.oVm.vmSetStartLine(0);
                 this.oVm.vmGotoLine(0); // to be sure
@@ -1747,84 +1750,6 @@ var Controller = /** @class */ (function () {
             }
             fnReadNextFile();
         }
-        /*
-        function fnLoad2(sData: string, sName: string, sType: string) {
-            let oHeader: AmsdosHeader | undefined,
-                sStorageName = that.oVm.vmAdaptFilename(sName, "FILE");
-
-            sStorageName = Controller.fnLocalStorageName(sStorageName);
-
-            if (sType === "text/plain") {
-                oHeader = Controller.createMinimalAmsdosHeader("A", 0, sData.length);
-            } else {
-                if (sType === "application/x-zip-compressed" || sType === "cpcBasic/binary") { // are we a file inside zip?
-                    // empty
-                } else { // e.g. "data:application/octet-stream;base64,..."
-                    const iIndex = sData.indexOf(",");
-
-                    if (iIndex >= 0) {
-                        const sInfo1 = sData.substr(0, iIndex);
-
-                        sData = sData.substr(iIndex + 1); // remove meta prefix
-                        if (sInfo1.indexOf("base64") >= 0) {
-                            sData = Utils.atob(sData); // decode base64
-                        }
-                    }
-                }
-
-                oHeader = DiskImage.parseAmsdosHeader(sData);
-                if (oHeader) {
-                    sData = sData.substr(0x80); // remove header
-                } else if (reRegExpIsText.test(sData)) {
-                    oHeader = Controller.createMinimalAmsdosHeader("A", 0, sData.length);
-                } else if (DiskImage.testDiskIdent(sData.substr(0, 8))) { // disk image file?
-                    try {
-                        const oDsk = new DiskImage({
-                                sData: sData,
-                                sDiskName: sName
-                            }),
-                            oDir = oDsk.readDirectory(),
-                            aDiskFiles = Object.keys(oDir);
-
-                        for (let i = 0; i < aDiskFiles.length; i += 1) {
-                            const sFileName = aDiskFiles[i];
-
-                            try { // eslint-disable-line max-depth
-                                sData = oDsk.readFile(oDir[sFileName]);
-                                fnLoad2(sData, sFileName, "cpcBasic/binary"); // recursive
-                            } catch (e) {
-                                Utils.console.error(e);
-                                that.outputError(e, true);
-                            }
-                        }
-                    } catch (e) {
-                        Utils.console.error(e);
-                        that.outputError(e, true);
-                    }
-                    oHeader = undefined; // ignore dsk file
-                } else { // binary
-                    oHeader = Controller.createMinimalAmsdosHeader("B", 0, sData.length);
-                }
-            }
-
-            if (oHeader) {
-                const sMeta = Controller.joinMeta(oHeader);
-
-                try {
-                    oStorage.setItem(sStorageName, sMeta + "," + sData);
-                    that.updateStorageDatabase("set", sStorageName);
-                    Utils.console.log("fnOnLoad: file: " + sStorageName + " meta: " + sMeta + " imported");
-                    aImported.push(sName);
-                } catch (e) { // maybe quota exceeded
-                    Utils.console.error(e);
-                    if (e.name === "QuotaExceededError") {
-                        e.shortMessage = sStorageName + ": Quota exceeded";
-                    }
-                    that.outputError(e, true);
-                }
-            }
-        }
-        */
         function fnOnLoad(event2) {
             var oTarget = event2.target, data = (oTarget && oTarget.result) || null, sName = oFile.name, sType = oFile.type;
             if (sType === "application/x-zip-compressed" && data instanceof ArrayBuffer) {
@@ -1847,7 +1772,6 @@ var Controller = /** @class */ (function () {
                         catch (e) {
                             Utils_1.Utils.console.error(e);
                             that.outputError(e, true);
-                            //sData2 = undefined;
                         }
                         if (sData2) {
                             that.fnLoad2(sData2, sName2, sType, aImported);
@@ -1938,16 +1862,7 @@ var Controller = /** @class */ (function () {
             oDatabase.loaded = true;
             Utils_1.Utils.console.log("fnDatabaseLoaded: database loaded: " + sDatabase + ": " + sUrl);
             that.setExampleSelectOptions();
-            // TTT
-            /*
-            if (oDatabase.error) {
-                Utils.console.error("fnDatabaseLoaded: database contains errors: " + sDatabase + ": " + sUrl);
-                that.setInputText(oDatabase.script || "");
-                that.view.setAreaValue("resultText", oDatabase.error);
-            } else {
-            */
             that.onExampleSelectChange();
-            //}
         }, fnDatabaseError = function () {
             oDatabase.loaded = false;
             Utils_1.Utils.console.error("fnDatabaseError: database error: " + sDatabase + ": " + sUrl);
@@ -1956,11 +1871,6 @@ var Controller = /** @class */ (function () {
             that.setInputText("");
             that.view.setAreaValue("resultText", "Cannot load database: " + sDatabase);
         };
-        /*
-        this.model.setProperty("database", sDatabase);
-        this.view.setSelectTitleFromSelectedOption("databaseSelect");
-        oDatabase = this.model.getDatabase();
-        */
         if (!oDatabase) {
             Utils_1.Utils.console.error("onDatabaseSelectChange: database not available:", sDatabase);
             return;

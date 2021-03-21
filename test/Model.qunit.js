@@ -3,8 +3,6 @@
 //
 Object.defineProperty(exports, "__esModule", { value: true });
 var Model_1 = require("../Model");
-//type QUnitAssertType1 = { strictEqual: (r: any, e: any, sMsg: string) => void };
-//type QUnitHooksType1 = { beforeEach: (a: any) => void };
 QUnit.module("Model: Properties", function (hooks) {
     hooks.beforeEach(function () {
         var that = this, // eslint-disable-line no-invalid-this, @typescript-eslint/no-this-alias

@@ -9,12 +9,6 @@ var Variables = /** @class */ (function () {
         this.oVariables = {};
         this.oVarTypes = {}; // default variable types for variables starting with letters a-z
     }
-    /*
-    private init(): void {
-        this.oVariables = {};
-        this.oVarTypes = {}; // default variable types for variables starting with letters a-z
-    }
-    */
     Variables.prototype.removeAllVariables = function () {
         var oVariables = this.oVariables;
         for (var sName in oVariables) { // eslint-disable-line guard-for-in

@@ -91,8 +91,6 @@ var Canvas = /** @class */ (function () {
         this.resetTextBuffer();
         this.setNeedTextUpdate();
         this.changeMode(1);
-        //this.iGPen = undefined; //TTT undefined to force update
-        //this.iGPaper = undefined; //TTT
         this.iInkSet = 0;
         this.setDefaultInks();
         this.aSpeedInk[0] = 10;
