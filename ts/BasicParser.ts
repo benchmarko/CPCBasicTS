@@ -249,8 +249,8 @@ export class BasicParser {
 		symbol: "c n n *", // SYMBOL <character number>,<list of: rows>   or => symbolAfter  / character number=0..255, list of 1..8 rows=0..255
 		symbolAfter: "c n", // SYMBOL AFTER <integer expression>  / integer expression=0..256 (special)
 		tab: "f n", // TAB(<integer expression)  / see: PRINT TAB
-		tag: "c #?", // TAG[#<stream expression>]
-		tagoff: "c #?", // TAGOFF[#<stream expression>]
+		tag: "c #0?", // TAG[#<stream expression>]
+		tagoff: "c #0?", // TAGOFF[#<stream expression>]
 		tan: "f n", // TAN(<numeric expression>)
 		test: "f n n", // TEST(<x coordinate>,<y coordinate>)
 		testr: "f n n", // TESTR(<x offset>,<y offset>)
@@ -269,7 +269,7 @@ export class BasicParser {
 		"while": "c n", // WHILE <logical expression>
 		width: "c n", // WIDTH <integer expression>
 		window: "c #0? n n n n", // WINDOW[#<stream expression>,]<left>,<right>,<top>,<bottom>  / or: => windowSwap
-		windowSwap: "c n n?", // WINDOW SWAP <stream expression>,<stream expression>  / (special: with numbers, not streams)
+		windowSwap: "c n n?", // WINDOW SWAP <stream expression>[,<stream expression>]  / (special: with numbers, not streams)
 		write: "c #0? *", // WRITE [#<stream expression>,][<write list>]  / (not checked from this)
 		xor: "o", // <argument> XOR <argument>
 		xpos: "f", // XPOS
@@ -513,10 +513,10 @@ export class BasicParser {
 	}
 
 
-	private static fnCreateDummyArg(value: string) {
+	private static fnCreateDummyArg(sType: string, sValue?: string) {
 		const oValue: ParserNode = {
-			type: value, // e.g. "null"
-			value: value, // e.g. "null"
+			type: sType, // e.g. "null"
+			value: sValue || sType, // e.g. "null"
 			pos: 0,
 			len: 0
 		};
@@ -531,7 +531,7 @@ export class BasicParser {
 			oValue = this.expression(0);
 		} else { // create dummy
 			oValue = BasicParser.fnCreateDummyArg("#"); // dummy stream
-			oValue.right = BasicParser.fnCreateDummyArg("null"); // ...with dummy parameter
+			oValue.right = BasicParser.fnCreateDummyArg("null", "0"); // ...with dummy parameter
 		}
 		return oValue;
 	}
@@ -714,7 +714,7 @@ export class BasicParser {
 			if (sType === "#0?") { // null stream to add?
 				const oExpression = BasicParser.fnCreateDummyArg("#"); // dummy stream with dummy arg
 
-				oExpression.right = BasicParser.fnCreateDummyArg("null");
+				oExpression.right = BasicParser.fnCreateDummyArg("null", "0");
 				aArgs.push(oExpression);
 			}
 		}

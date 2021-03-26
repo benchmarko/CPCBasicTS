@@ -30,7 +30,7 @@ export declare class CodeGeneratorBasic {
     private chainMerge;
     private data;
     private def;
-    private static "else";
+    private "else";
     private ent;
     private env;
     private everyGosub;

@@ -30,8 +30,8 @@ var ZipFile = /** @class */ (function () {
         var iCallSize = 25000; // use call window to avoid "maximum call stack error" for e.g. size 336461
         var sOut = "";
         while (iLen) {
-            var iChunkLen = Math.min(iLen, iCallSize);
-            sOut += String.fromCharCode.apply(null, this.subArr(iOffset, iChunkLen)); // on Chrome this is faster than single character processing
+            var iChunkLen = Math.min(iLen, iCallSize), aNums = this.subArr(iOffset, iChunkLen);
+            sOut += String.fromCharCode.apply(null, aNums); // on Chrome this is faster than single character processing
             iOffset += iChunkLen;
             iLen -= iChunkLen;
         }
@@ -162,8 +162,8 @@ var ZipFile = /** @class */ (function () {
         }
         for (i = 0; i < n; i += 1) {
             if (aLens2[i] !== 0) {
-                oCodes.symbol[aOffs[aLens2[i]]] = i;
-                aOffs[aLens2[i]] += 1;
+                oCodes.symbol[aOffs[aLens2[i]]] = i; // TTT
+                aOffs[aLens2[i]] += 1; // TTT
             }
         }
         return iLeft;
@@ -247,31 +247,7 @@ var ZipFile = /** @class */ (function () {
                 iInCnt += 1;
                 iLen -= 1;
             }
-        }, 
-        /*
-        fnConstructFixedHuffman = function () { //TTT untested?
-            let iSymbol: number;
-
-            for (iSymbol = 0; iSymbol < 0x90; iSymbol += 1) {
-                aLens[iSymbol] = 8;
-            }
-            for (; iSymbol < 0x100; iSymbol += 1) {
-                aLens[iSymbol] = 9;
-            }
-            for (; iSymbol < 0x118; iSymbol += 1) {
-                aLens[iSymbol] = 7;
-            }
-            for (; iSymbol < 0x120; iSymbol += 1) {
-                aLens[iSymbol] = 8;
-            }
-            ZipFile.fnInflateConstruct(oLenCode, aLens, 0x120);
-            for (iSymbol = 0; iSymbol < 0x1E; iSymbol += 1) {
-                aLens[iSymbol] = 5;
-            }
-            ZipFile.fnInflateConstruct(oDistCode, aLens, 0x1E);
-        },
-        */
-        fnConstructDynamicHuffman = function () {
+        }, fnConstructDynamicHuffman = function () {
             var iNLen = fnBits(5) + 257, iNDist = fnBits(5) + 1, iNCode = fnBits(4) + 4;
             if (iNLen > 0x11E || iNDist > 0x1E) {
                 throw that.composeError(Error(), "Zip: inflate: length/distance code overflow", "", 0);
@@ -287,7 +263,7 @@ var ZipFile = /** @class */ (function () {
                 throw that.composeError(Error(), "Zip: inflate: length codes incomplete", "", 0);
             }
             for (i = 0; i < iNLen + iNDist;) {
-                var iSymbol = fnDecode(oLenCode);
+                var iSymbol = fnDecode(oLenCode); // TTT
                 /* eslint-disable max-depth */
                 if (iSymbol < 16) {
                     aLens[i] = iSymbol;
@@ -327,7 +303,7 @@ var ZipFile = /** @class */ (function () {
         }, fnInflateHuffmann = function () {
             var iSymbol;
             do { // decode deflated data
-                iSymbol = fnDecode(oLenCode);
+                iSymbol = fnDecode(oLenCode); // TTT
                 if (iSymbol < 256) {
                     aOutBuf[iOutCnt] = iSymbol;
                     iOutCnt += 1;
@@ -338,7 +314,7 @@ var ZipFile = /** @class */ (function () {
                         throw that.composeError(Error(), "Zip: inflate: Invalid length/distance", "", 0);
                     }
                     var iLen = aStartLens[iSymbol] + fnBits(aLExt[iSymbol]);
-                    iSymbol = fnDecode(oDistCode);
+                    iSymbol = fnDecode(oDistCode); // TTT
                     var iDist = aDists[iSymbol] + fnBits(aDExt[iSymbol]);
                     if (iDist > iOutCnt) {
                         throw that.composeError(Error(), "Zip: inflate: distance out of range", "", 0);

@@ -3,11 +3,43 @@
 // https://github.com/Slava/diff.js
 //
 
+import { Utils } from "./Utils";
+
+type AtomEntryType = {
+	operation: string,
+	atom: string
+};
+
+type OverlapReturnType = [
+	number[],
+	number[],
+	number,
+	number
+];
+
 export class Diff {
 	// Refer to http://www.xmailserver.org/diff2.pdf
 
+	private static composeError(oError: Error, message: string, value: string, pos: number) {
+		return Utils.composeError("Diff", oError, message, value, pos, 0);
+	}
+
 	private static inRange(x: number, l: number, r: number) {
 		return (l <= x && x <= r) || (r <= x && x <= l);
+	}
+
+	private static fnEquals(a: string, b: string) {
+		return a === b;
+	}
+
+	// Accepts custom comparator
+	private static customIndexOf(aArr: string[], item: string, start: number, fnEquals: (a: string, b: string) => boolean) {
+		for (let i2 = start; i2 < aArr.length; i2 += 1) {
+			if (fnEquals(item, aArr[i2])) {
+				return i2;
+			}
+		}
+		return -1;
 	}
 
 	/* can we use it here? need to define aA, aB, lcsAtoms, findMidSnake():
@@ -48,10 +80,10 @@ export class Diff {
 	private static fnLCS(aA: string[], aB: string[], equals: (a: string, b: string) => boolean) {
 		// Helpers
 		const // Takes X-component as argument, diagonal as context, returns array-pair of form x, y
-			toPoint = function (x: number) {
+			toPoint = function (this: any, x: number) {
 				return [
 					x,
-					x - this
+					x - this // eslint-disable-line no-invalid-this
 				]; // XXX context is not the best way to pass diagonal
 			},
 
@@ -76,7 +108,7 @@ export class Diff {
 					oV: {[k: number]: number} = {},
 					// Same but for reversed paths.
 					oU: {[k: number]: number} = {};
-				let	aOverlap,
+				let	aOverlap: number[][] | undefined,
 					iD: number;
 
 				// Special case for the base case, D = 0, k = 0, x = y = 0
@@ -136,7 +168,7 @@ export class Diff {
 						}
 					}
 
-					let SES: number;
+					let SES: number | undefined;
 
 					if (aOverlap) {
 						SES = iD * 2 - 1;
@@ -192,9 +224,10 @@ export class Diff {
 						return aOverlap.concat([
 							SES,
 							(iMax - SES) / 2
-						]);
+						]) as OverlapReturnType;
 					}
 				}
+				throw Diff.composeError(Error(), "Programming error in findMidSnake", "", 0); // should not occure
 			},
 
 			lcsAtoms: string[] = [],
@@ -214,13 +247,13 @@ export class Diff {
 					if (D > 1) {
 						lcs(startA, x - 1, startB, y - 1);
 						if (x <= u) {
-							[].push.apply(lcsAtoms, aA.slice(x, u + 1));
+							([] as string[]).push.apply(lcsAtoms, aA.slice(x, u + 1));
 						}
 						lcs(u + 1, endA, v + 1, endB);
 					} else if (M > N) {
-						[].push.apply(lcsAtoms, aA.slice(startA, endA + 1));
+						([] as string[]).push.apply(lcsAtoms, aA.slice(startA, endA + 1));
 					} else {
-						[].push.apply(lcsAtoms, aB.slice(startB, endB + 1));
+						([] as string[]).push.apply(lcsAtoms, aB.slice(startB, endB + 1));
 					}
 				}
 			};
@@ -232,14 +265,16 @@ export class Diff {
 	// Diff sequence
 	// @param A - sequence of atoms - Array
 	// @param B - sequence of atoms - Array
-	// @param equals - optional comparator of atoms - returns true or false,
-	//                 if not specified, triple equals operator is used
+	// [@param equals - optional comparator of atoms - returns true or false,
+	//                 if not specified, triple equals operator is used]
 	// @returns Array - sequence of objects in a form of:
 	//   - operation: one of "none", "add", "delete"
 	//   - atom: the atom found in either A or B
 	// Applying operations from diff sequence you should be able to transform A to B
-	private static diff(aA: string[], aB: string[], fnEquals?: (a: string, b: string) => boolean) {
-		const aDiff = [],
+	private static diff(aA: string[], aB: string[]) {
+		const aDiff: AtomEntryType[] = [],
+			fnEquals = Diff.fnEquals;
+		/*
 			// Accepts custom comparator
 			customIndexOf = function (item: string, start: number, fnEquals2: (a: string, b: string) => boolean) {
 				const aArr = this;
@@ -252,17 +287,17 @@ export class Diff {
 				return -1;
 			};
 
-		let	i = 0,
-			j = 0;
-
 		// We just compare atoms with default equals operator by default
 		if (fnEquals === undefined) {
 			fnEquals = function (a: string, b: string) {
 				return a === b;
 			};
 		}
+		*/
 
-		let iN = aA.length,
+		let	i = 0,
+			j = 0,
+			iN = aA.length,
 			iM = aB.length,
 			iK = 0;
 
@@ -277,7 +312,7 @@ export class Diff {
 			iK += 1;
 		}
 
-		[].push.apply(aDiff, aA.slice(0, i).map(function (sAtom2) {
+		([] as AtomEntryType[]).push.apply(aDiff, aA.slice(0, i).map(function (sAtom2) {
 			return {
 				operation: "none",
 				atom: sAtom2
@@ -288,12 +323,14 @@ export class Diff {
 
 		for (let k = 0; k < lcs.length; k += 1) {
 			const atom = lcs[k],
-				ni = customIndexOf.call(aA, atom, i, fnEquals),
-				nj = customIndexOf.call(aB, atom, j, fnEquals);
+				//ni = customIndexOf.call(aA, atom, i, fnEquals),
+				//nj = customIndexOf.call(aB, atom, j, fnEquals);
+				ni = Diff.customIndexOf(aA, atom, i, fnEquals),
+				nj = Diff.customIndexOf(aB, atom, j, fnEquals);
 
 			// XXX ES5 map
 			// Delete unmatched atoms from A
-			[].push.apply(aDiff, aA.slice(i, ni).map(function (sAtom2) {
+			([] as AtomEntryType[]).push.apply(aDiff, aA.slice(i, ni).map(function (sAtom2) {
 				return {
 					operation: "delete",
 					atom: sAtom2
@@ -301,7 +338,7 @@ export class Diff {
 			}));
 
 			// Add unmatched atoms from B
-			[].push.apply(aDiff, aB.slice(j, nj).map(function (sAtom2) {
+			([] as AtomEntryType[]).push.apply(aDiff, aB.slice(j, nj).map(function (sAtom2) {
 				return {
 					operation: "add",
 					atom: sAtom2
@@ -320,21 +357,21 @@ export class Diff {
 
 		// Don't forget about the rest
 
-		[].push.apply(aDiff, aA.slice(i, iN).map(function (atom2) {
+		([] as AtomEntryType[]).push.apply(aDiff, aA.slice(i, iN).map(function (atom2) {
 			return {
 				operation: "delete",
 				atom: atom2
 			};
 		}));
 
-		[].push.apply(aDiff, aB.slice(j, iM).map(function (atom2) {
+		([] as AtomEntryType[]).push.apply(aDiff, aB.slice(j, iM).map(function (atom2) {
 			return {
 				operation: "add",
 				atom: atom2
 			};
 		}));
 
-		[].push.apply(aDiff, aA.slice(iN, iN + iK).map(function (atom2) {
+		([] as AtomEntryType[]).push.apply(aDiff, aA.slice(iN, iN + iK).map(function (atom2) {
 			return {
 				operation: "none",
 				atom: atom2

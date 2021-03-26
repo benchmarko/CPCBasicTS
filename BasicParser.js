@@ -229,10 +229,10 @@ var BasicParser = /** @class */ (function () {
         x.std = f;
         return x;
     };
-    BasicParser.fnCreateDummyArg = function (value) {
+    BasicParser.fnCreateDummyArg = function (sType, sValue) {
         var oValue = {
-            type: value,
-            value: value,
+            type: sType,
+            value: sValue || sType,
             pos: 0,
             len: 0
         };
@@ -245,7 +245,7 @@ var BasicParser = /** @class */ (function () {
         }
         else { // create dummy
             oValue = BasicParser.fnCreateDummyArg("#"); // dummy stream
-            oValue.right = BasicParser.fnCreateDummyArg("null"); // ...with dummy parameter
+            oValue.right = BasicParser.fnCreateDummyArg("null", "0"); // ...with dummy parameter
         }
         return oValue;
     };
@@ -421,7 +421,7 @@ var BasicParser = /** @class */ (function () {
             sType = aTypes[0];
             if (sType === "#0?") { // null stream to add?
                 var oExpression = BasicParser.fnCreateDummyArg("#"); // dummy stream with dummy arg
-                oExpression.right = BasicParser.fnCreateDummyArg("null");
+                oExpression.right = BasicParser.fnCreateDummyArg("null", "0");
                 aArgs.push(oExpression);
             }
         }
@@ -1323,8 +1323,8 @@ var BasicParser = /** @class */ (function () {
         symbol: "c n n *",
         symbolAfter: "c n",
         tab: "f n",
-        tag: "c #?",
-        tagoff: "c #?",
+        tag: "c #0?",
+        tagoff: "c #0?",
         tan: "f n",
         test: "f n n",
         testr: "f n n",

@@ -26,7 +26,7 @@ var CodeGeneratorBasic = /** @class */ (function () {
             chainMerge: this.chainMerge,
             data: this.data,
             def: this.def,
-            "else": CodeGeneratorBasic.else,
+            "else": this.else,
             ent: this.ent,
             env: this.env,
             everyGosub: this.everyGosub,
@@ -56,6 +56,9 @@ var CodeGeneratorBasic = /** @class */ (function () {
     };
     CodeGeneratorBasic.prototype.fnParseArgs = function (aArgs) {
         var aNodeArgs = []; // do not modify node.args here (could be a parameter of defined function)
+        if (!aArgs) {
+            throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occure TTT
+        }
         for (var i = 0; i < aArgs.length; i += 1) {
             var sValue = this.fnParseOneArg(aArgs[i]);
             if (!(i === 0 && sValue === "#" && aArgs[i].type === "#")) { // ignore empty stream as first argument (hmm, not for e.g. data!)
@@ -79,6 +82,9 @@ var CodeGeneratorBasic = /** @class */ (function () {
     };
     CodeGeneratorBasic.prototype.assign = function (node) {
         // see also "let"
+        if (!node.left || !node.right) {
+            throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occure
+        }
         if (node.left.type !== "identifier") {
             throw this.composeError(Error(), "Unexpected assing type", node.type, node.pos); // should not occur
         }
@@ -140,9 +146,29 @@ var CodeGeneratorBasic = /** @class */ (function () {
         return sValue;
     };
     CodeGeneratorBasic.prototype.data = function (node) {
-        var aNodeArgs = [], regExp = new RegExp(",|^ +| +$");
-        for (var i = 0; i < node.args.length; i += 1) {
-            var sValue2 = this.fnParseOneArg(node.args[i]);
+        /*
+        const aNodeArgs: string[] = [],
+            regExp = new RegExp(",|^ +| +$");
+
+        for (let i = 0; i < node.args.length; i += 1) {
+            let sValue2 = this.fnParseOneArg(node.args[i]);
+
+            if (sValue2) {
+                sValue2 = sValue2.substr(1, sValue2.length - 2); // remove surrounding quotes
+                sValue2 = sValue2.replace(/\\"/g, "\""); // unescape "
+
+                if (sValue2) {
+                    if (regExp.test(sValue2)) {
+                        sValue2 = '"' + sValue2 + '"';
+                    }
+                }
+            }
+            aNodeArgs.push(sValue2);
+        }
+        */
+        var aNodeArgs = this.fnParseArgs(node.args), regExp = new RegExp(",|^ +| +$");
+        for (var i = 0; i < aNodeArgs.length; i += 1) {
+            var sValue2 = aNodeArgs[i];
             if (sValue2) {
                 sValue2 = sValue2.substr(1, sValue2.length - 2); // remove surrounding quotes
                 sValue2 = sValue2.replace(/\\"/g, "\""); // unescape "
@@ -152,7 +178,7 @@ var CodeGeneratorBasic = /** @class */ (function () {
                     }
                 }
             }
-            aNodeArgs.push(sValue2);
+            aNodeArgs[i] = sValue2;
         }
         var sName = node.type.toUpperCase(), sValue = aNodeArgs.join(",");
         if (sValue !== "") { // argument?
@@ -162,6 +188,9 @@ var CodeGeneratorBasic = /** @class */ (function () {
         return sValue;
     };
     CodeGeneratorBasic.prototype.def = function (node) {
+        if (!node.left || !node.right) {
+            throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occure
+        }
         var sName = this.fnParseOneArg(node.left), sSpace = node.left.bSpace ? " " : "", // fast hack
         aNodeArgs = this.fnParseArgs(node.args), sExpression = this.fnParseOneArg(node.right);
         var sNodeArgs = aNodeArgs.join(",");
@@ -171,7 +200,10 @@ var CodeGeneratorBasic = /** @class */ (function () {
         var sName2 = sName.substr(0, 2).toUpperCase() + sSpace + sName.substr(2), sValue = node.type.toUpperCase() + " " + sName2 + sNodeArgs + "=" + sExpression;
         return sValue;
     };
-    CodeGeneratorBasic["else"] = function (node) {
+    CodeGeneratorBasic.prototype["else"] = function (node) {
+        if (!node.args) {
+            throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occure
+        }
         var aArgs = node.args;
         var sValue = "";
         for (var i = 0; i < aArgs.length; i += 1) {
@@ -185,6 +217,9 @@ var CodeGeneratorBasic = /** @class */ (function () {
         return sValue;
     };
     CodeGeneratorBasic.prototype.ent = function (node) {
+        if (!node.args) {
+            throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occure
+        }
         var aArgs = node.args, aNodeArgs = [];
         var bEqual = false;
         for (var i = 0; i < aArgs.length; i += 1) {
@@ -216,6 +251,9 @@ var CodeGeneratorBasic = /** @class */ (function () {
         return sValue;
     };
     CodeGeneratorBasic.prototype.fn = function (node) {
+        if (!node.left) {
+            throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occure
+        }
         var aNodeArgs = this.fnParseArgs(node.args), sName = this.fnParseOneArg(node.left), sSpace = node.left.bSpace ? " " : ""; // fast hack
         var sNodeArgs = aNodeArgs.join(",");
         if (sNodeArgs !== "") { // not empty?
@@ -233,6 +271,12 @@ var CodeGeneratorBasic = /** @class */ (function () {
         return sValue;
     };
     CodeGeneratorBasic.prototype["if"] = function (node) {
+        if (!node.left) {
+            throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occure
+        }
+        if (!node.args) {
+            throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occure
+        }
         var sValue = node.type.toUpperCase() + " " + this.fnParseOneArg(node.left) + " THEN ";
         var oNodeBranch = node.args, aNodeArgs = this.fnParseArgs(oNodeBranch); // args for "then"
         if (oNodeBranch.length && oNodeBranch[0].type === "goto" && oNodeBranch[0].len === 0) { // inserted goto?
@@ -283,6 +327,9 @@ var CodeGeneratorBasic = /** @class */ (function () {
         return sValue;
     };
     CodeGeneratorBasic.prototype.mid$Assign = function (node) {
+        if (!node.right) {
+            throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occure TTT
+        }
         var aNodeArgs = this.fnParseArgs(node.args), sTypeUc = CodeGeneratorBasic.mCombinedKeywords[node.type], sValue = sTypeUc + "(" + aNodeArgs.join(",") + ")=" + this.fnParseOneArg(node.right);
         return sValue;
     };

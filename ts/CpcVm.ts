@@ -123,6 +123,7 @@ export interface VmStopEntry {
 
 type PrintObjectType = {type: string, args: (string | number)[]};
 
+type DataEntryType = (string | undefined);
 export class CpcVm {
 	private fnOpeninHandler: FileBase["fnFileCallback"]; // = undefined;
 	private fnCloseinHandler: () => void;
@@ -144,15 +145,14 @@ export class CpcVm {
 	private oInFile: InFile; // file handling
 	private oOutFile: OutFile; // file handling
 
-	//TTT check iInkeyTime, iInkeyTimeMs!
-	iInkeyTime: number; // if >0, next time when inkey$ can be checked without inserting "waitFrame"
-	private iInkeyTimeMs = 0; // next time of frame fly
+	//iInkeyTime: number; // if >0, next time when inkey$ can be checked without inserting "waitFrame"
+	private iInkeyTimeMs = 0; // next time of frame fly (if >0, next time when inkey$ can be checked without inserting "waitFrame")
 
 	private aGosubStack: (number | string)[] = []; // stack of line numbers for gosub/return
 
 	private aMem: number[]; // for peek, poke
 
-	private aData: (string | null)[]; // array for BASIC data lines (continuous)
+	private aData: DataEntryType[]; // array for BASIC data lines (continuous)
 	private iData = 0; // current index
 	private oDataLineIndex: {[k in number]: number} = { // line number index for the data line buffer
 		0: 0 // for line 0: index 0
@@ -444,7 +444,7 @@ export class CpcVm {
 		// "iLast": last line to delete (CHAIN MERGE)
 
 
-		this.iInkeyTime = 0; // if >0, next time when inkey$ can be checked without inserting "waitFrame"
+		//this.iInkeyTime = 0; // if >0, next time when inkey$ can be checked without inserting "waitFrame"
 
 		this.aGosubStack = []; // stack of line numbers for gosub/return
 
@@ -546,7 +546,7 @@ export class CpcVm {
 		this.oSound.reset();
 		this.aSoundData.length = 0;
 
-		this.iInkeyTime = 0; // if >0, next time when inkey$ can be checked without inserting "waitFrame"
+		this.iInkeyTimeMs = 0; // if >0, next time when inkey$ can be checked without inserting "waitFrame"
 	}
 
 	vmResetTimers(): void {
@@ -1034,8 +1034,8 @@ export class CpcVm {
 		}
 	}
 
-	private vmDrawMovePlot(sType: string, iGPen?: number | null, iGColMode?: number) {
-		if (iGPen !== undefined && iGPen !== null) {
+	private vmDrawMovePlot(sType: string, iGPen?: number, iGColMode?: number) {
+		if (iGPen !== undefined) {
 			iGPen = this.vmInRangeRound(iGPen, 0, 15, sType);
 			this.oCanvas.setGPen(iGPen);
 		}
@@ -1269,10 +1269,10 @@ export class CpcVm {
 			this.cls(0);
 			break;
 		case 0xbb7b: // TXT Cursor Enable (ROM &1289); user switch (cursor enabled)
-			this.cursor(0, null, 1);
+			this.cursor(0, undefined, 1);
 			break;
 		case 0xbb7e: // TXT Cursor Disable (ROM &129A); user switch
-			this.cursor(0, null, 0);
+			this.cursor(0, undefined, 0);
 			break;
 		case 0xbb81: // TXT Cursor On (ROM &1279); system switch (cursor on)
 			this.cursor(0, 1);
@@ -1487,8 +1487,8 @@ export class CpcVm {
 	}
 
 	// also called for chr$(12), call &bb6c
-	cls(iStream?: number): void { // optional iStream
-		iStream = this.vmInRangeRound(iStream || 0, 0, 7, "CLS");
+	cls(iStream: number): void {
+		iStream = this.vmInRangeRound(iStream, 0, 7, "CLS");
 
 		const oWin = this.aWindow[iStream];
 
@@ -1504,7 +1504,7 @@ export class CpcVm {
 	}
 
 	commaTab(iStream: number): string { // special function used for comma in print (ROM &F25C), called delayed by print
-		iStream = this.vmInRangeRound(iStream || 0, 0, 9, "commaTab");
+		iStream = this.vmInRangeRound(iStream, 0, 9, "commaTab");
 
 		this.vmMoveCursor2AllowedPos(iStream);
 
@@ -1568,11 +1568,11 @@ export class CpcVm {
 		}
 	}
 
-	cursor(iStream: number, iCursorOn: number | null, iCursorEnabled?: number): void { // one of iCursorOn, iCursorEnabled is optional
-		iStream = this.vmInRangeRound(iStream || 0, 0, 7, "CURSOR");
+	cursor(iStream: number, iCursorOn?: number, iCursorEnabled?: number): void { // one of iCursorOn, iCursorEnabled is optional
+		iStream = this.vmInRangeRound(iStream, 0, 7, "CURSOR");
 		const oWin = this.aWindow[iStream];
 
-		if (iCursorOn !== null) { // system
+		if (iCursorOn !== undefined) { // system
 			iCursorOn = this.vmInRangeRound(iCursorOn, 0, 1, "CURSOR");
 			this.vmDrawUndrawCursor(iStream); // undraw
 			oWin.bCursorOn = Boolean(iCursorOn);
@@ -1586,7 +1586,7 @@ export class CpcVm {
 		}
 	}
 
-	data(iLine: number, ...aArgs: (string | null)[]): void { // varargs
+	data(iLine: number, ...aArgs: DataEntryType[]): void { // varargs
 		if (!this.oDataLineIndex[iLine]) {
 			this.oDataLineIndex[iLine] = this.aData.length; // set current index for the line
 		}
@@ -1620,16 +1620,12 @@ export class CpcVm {
 		this.bDeg = true;
 	}
 
-	"delete"(iFirst?: number | null, iLast?: number): void {
-		if (iFirst !== undefined && iFirst !== null) {
-			iFirst = this.vmInRangeRound(iFirst, 1, 65535, "DELETE");
-		} else {
-			iFirst = 1;
-		}
+	"delete"(iFirst = 1, iLast?: number): void {
+		iFirst = this.vmInRangeRound(iFirst, 1, 65535, "DELETE");
 
-		if (iLast === null) { // range with missing last?
-			iLast = 65535;
-		} else if (iLast !== undefined) {
+		if (iLast === undefined) { // just one parameter specified?
+			iLast = iFirst;
+		} else { // range
 			iLast = this.vmInRangeRound(iLast, 1, 65535, "DELETE");
 		}
 
@@ -1637,7 +1633,7 @@ export class CpcVm {
 			sCommand: "DELETE",
 			iStream: 0, // unused
 			iFirst: iFirst,
-			iLast: iLast || iFirst,
+			iLast: iLast,
 			iLine: this.iLine // unused
 		});
 	}
@@ -1661,14 +1657,14 @@ export class CpcVm {
 		this.oVariables.dimVariable(sVarName, aDimensions);
 	}
 
-	draw(x: number, y: number, iGPen?: number | null, iGColMode?: number): void {
+	draw(x: number, y: number, iGPen?: number, iGColMode?: number): void {
 		x = this.vmInRangeRound(x, -32768, 32767, "DRAW");
 		y = this.vmInRangeRound(y, -32768, 32767, "DRAW");
 		this.vmDrawMovePlot("DRAW", iGPen, iGColMode);
 		this.oCanvas.draw(x, y);
 	}
 
-	drawr(x: number, y: number, iGPen?: number | null, iGColMode?: number): void {
+	drawr(x: number, y: number, iGPen?: number, iGColMode?: number): void {
 		x = this.vmInRangeRound(x, -32768, 32767, "DRAWR");
 		y = this.vmInRangeRound(y, -32768, 32767, "DRAWR");
 		this.vmDrawMovePlot("DRAWR", iGPen, iGColMode);
@@ -1710,7 +1706,7 @@ export class CpcVm {
 
 		if (iToneEnv) { // not 0
 			for (let i = 0; i < aArgs.length; i += 3) { // starting with 1: 3 parameters per section
-				if (aArgs[i] !== null) {
+				if (aArgs[i] !== undefined) {
 					oArg = {
 						steps: this.vmInRangeRound(aArgs[i], 0, 239, "ENT"), // number of steps: 0..239
 						diff: this.vmInRangeRound(aArgs[i + 1], -128, 127, "ENT"), // size (period change) of steps: -128..+127
@@ -1739,7 +1735,7 @@ export class CpcVm {
 		iVolEnv = this.vmInRangeRound(iVolEnv, 1, 15, "ENV");
 
 		for (let i = 0; i < aArgs.length; i += 3) { // starting with 1: 3 parameters per section
-			if (aArgs[i] !== null) {
+			if (aArgs[i] !== undefined) {
 				oArg = {
 					steps: this.vmInRangeRound(aArgs[i], 0, 127, "ENV"), // number of steps: 0..127
 					/* eslint-disable no-bitwise */
@@ -1884,8 +1880,8 @@ export class CpcVm {
 		this.oCanvas.setGPaper(iGPaper);
 	}
 
-	graphicsPen(iGPen: number | null, iTransparentMode?: number): void {
-		if (iGPen !== null) {
+	graphicsPen(iGPen?: number, iTransparentMode?: number): void {
+		if (iGPen !== undefined) {
 			iGPen = this.vmInRangeRound(iGPen, 0, 15, "GRAPHICS PEN");
 			this.oCanvas.setGPen(iGPen);
 		}
@@ -1927,7 +1923,7 @@ export class CpcVm {
 
 		// do some slowdown, if checked too early again without key press
 		if (sKey !== "") { // some key pressed?
-			this.iInkeyTime = 0;
+			this.iInkeyTimeMs = 0;
 		} else { // no key
 			const iNow = Date.now();
 
@@ -2099,7 +2095,7 @@ export class CpcVm {
 	}
 
 	input(iStream: number, sNoCRLF: string, sMsg: string): void { // varargs
-		iStream = this.vmInRangeRound(iStream || 0, 0, 9, "waitInput");
+		iStream = this.vmInRangeRound(iStream, 0, 9, "INPUT");
 		if (iStream < 8) {
 			this.print(iStream, sMsg);
 			this.vmStop("waitInput", 45, false, {
@@ -2155,13 +2151,13 @@ export class CpcVm {
 		this.oKeyboard.setExpansionToken(iToken, s);
 	}
 
-	keyDef(iCpcKey: number, iRepeat: number, iNormal?: number | null, iShift?: number | null, iCtrl?: number): void { // optional args iNormal,...
+	keyDef(iCpcKey: number, iRepeat: number, iNormal?: number | undefined, iShift?: number | undefined, iCtrl?: number): void { // optional args iNormal,...
 		const oOptions: CpcKeyExpansionsOptions = {
 			iCpcKey: this.vmInRangeRound(iCpcKey, 0, 79, "KEY DEF"),
 			iRepeat: this.vmInRangeRound(iRepeat, 0, 1, "KEY DEF"),
-			iNormal: (iNormal !== undefined && iNormal !== null) ? this.vmInRangeRound(iNormal, 0, 255, "KEY DEF") : undefined,
-			iShift: (iShift !== undefined && iShift !== null) ? this.vmInRangeRound(iShift, 0, 255, "KEY DEF") : undefined,
-			iCtrl: (iCtrl !== undefined && iCtrl !== null) ? this.vmInRangeRound(iCtrl, 0, 255, "KEY DEF") : undefined
+			iNormal: (iNormal !== undefined) ? this.vmInRangeRound(iNormal, 0, 255, "KEY DEF") : undefined,
+			iShift: (iShift !== undefined) ? this.vmInRangeRound(iShift, 0, 255, "KEY DEF") : undefined,
+			iCtrl: (iCtrl !== undefined) ? this.vmInRangeRound(iCtrl, 0, 255, "KEY DEF") : undefined
 		};
 
 		this.oKeyboard.setCpcKeyExpansion(oOptions);
@@ -2190,8 +2186,8 @@ export class CpcVm {
 		return true;
 	}
 
-	lineInput(iStream: number | null, sNoCRLF: string, sMsg: string, sVarType: string): void { // sVarType must be string variable
-		iStream = this.vmInRangeRound(iStream || 0, 0, 9, "LINE INPUT");
+	lineInput(iStream: number, sNoCRLF: string, sMsg: string, sVarType: string): void { // sVarType must be string variable
+		iStream = this.vmInRangeRound(iStream, 0, 9, "LINE INPUT");
 		if (iStream < 8) {
 			this.print(iStream, sMsg);
 			const sType = this.vmDetermineVarType(sVarType);
@@ -2223,16 +2219,13 @@ export class CpcVm {
 		}
 	}
 
-	list(iStream: number | null, iFirst?: number, iLast?: number): void { // varargs
-		iStream = this.vmInRangeRound(iStream || 0, 0, 9, "LIST");
+	list(iStream: number, iFirst = 1, iLast?: number): void { // varargs
+		iStream = this.vmInRangeRound(iStream, 0, 9, "LIST");
 
-		if (iFirst !== undefined && iFirst !== null) {
-			iFirst = this.vmInRangeRound(iFirst, 1, 65535, "LIST");
-		}
-
-		if (iLast === null) { // range with missing last?
-			iLast = 65535;
-		} else if (iLast !== undefined) {
+		iFirst = this.vmInRangeRound(iFirst, 1, 65535, "LIST");
+		if (iLast === undefined) { // just one parameter specified?
+			iLast = iFirst;
+		} else { // range
 			iLast = this.vmInRangeRound(iLast, 1, 65535, "LIST");
 		}
 
@@ -2242,12 +2235,11 @@ export class CpcVm {
 			}
 		}
 
-		iFirst ||= 1;
 		this.vmStop("list", 90, false, {
 			sCommand: "list",
 			iStream: iStream,
 			iFirst: iFirst,
-			iLast: iLast || iFirst,
+			iLast: iLast,
 			iLine: this.iLine // unused
 		});
 	}
@@ -2307,7 +2299,7 @@ export class CpcVm {
 	}
 
 	locate(iStream: number, iPos: number, iVpos: number): void {
-		iStream = this.vmInRangeRound(iStream || 0, 0, 7, "LOCATE");
+		iStream = this.vmInRangeRound(iStream, 0, 7, "LOCATE");
 		iPos = this.vmInRangeRound(iPos, 1, 255, "LOCATE");
 		iVpos = this.vmInRangeRound(iVpos, 1, 255, "LOCATE");
 
@@ -2337,8 +2329,8 @@ export class CpcVm {
 		return s;
 	}
 
-	mask(iMask: number | null, iFirst?: number): void { // one of iMask, iFirst is optional
-		if (iMask !== null) {
+	mask(iMask: number | undefined, iFirst?: number): void { // one of iMask, iFirst is optional
+		if (iMask !== undefined) { //TTT
 			iMask = this.vmInRangeRound(iMask, 0, 255, "MASK");
 			this.oCanvas.setMask(iMask);
 		}
@@ -2386,11 +2378,11 @@ export class CpcVm {
 		return s.substr(iStart - 1, iLen);
 	}
 
-	mid$Assign(s: string, iStart: number, iLen: number | null, sNew: string): string {
+	mid$Assign(s: string, iStart: number, iLen: number | undefined, sNew: string): string {
 		this.vmAssertString(s, "MID$");
 		this.vmAssertString(sNew, "MID$");
 		iStart = this.vmInRangeRound(iStart, 1, 255, "MID$") - 1;
-		iLen = (iLen !== null) ? this.vmInRangeRound(iLen, 0, 255, "MID$") : sNew.length;
+		iLen = (iLen !== undefined) ? this.vmInRangeRound(iLen, 0, 255, "MID$") : sNew.length;
 		if (iLen > sNew.length) {
 			iLen = sNew.length;
 		}
@@ -2420,14 +2412,14 @@ export class CpcVm {
 		this.oCanvas.clearFullWindow(); // always with paper 0 (SCR MODE CLEAR)
 	}
 
-	move(x: number, y: number, iGPen?: number | null, iGColMode?: number): void {
+	move(x: number, y: number, iGPen?: number, iGColMode?: number): void {
 		x = this.vmInRangeRound(x, -32768, 32767, "MOVE");
 		y = this.vmInRangeRound(y, -32768, 32767, "MOVE");
 		this.vmDrawMovePlot("MOVE", iGPen, iGColMode);
 		this.oCanvas.move(x, y);
 	}
 
-	mover(x: number, y: number, iGPen?: number | null, iGColMode?: number): void {
+	mover(x: number, y: number, iGPen?: number, iGColMode?: number): void {
 		x = this.vmInRangeRound(x, -32768, 32767, "MOVER");
 		y = this.vmInRangeRound(y, -32768, 32767, "MOVER");
 		this.vmDrawMovePlot("MOVER", iGPen, iGColMode);
@@ -2632,8 +2624,8 @@ export class CpcVm {
 		}
 	}
 
-	paper(iStream: number | null, iPaper: number): void {
-		iStream = this.vmInRangeRound(iStream || 0, 0, 7, "PAPER");
+	paper(iStream: number, iPaper: number): void {
+		iStream = this.vmInRangeRound(iStream, 0, 7, "PAPER");
 		iPaper = this.vmInRangeRound(iPaper, 0, 15, "PAPER");
 
 		const oWin = this.aWindow[iStream];
@@ -2683,16 +2675,16 @@ export class CpcVm {
 		return iByte;
 	}
 
-	pen(iStream: number, iPen: number | null, iTransparent?: number): void {
-		if (iPen !== null) {
-			iStream = this.vmInRangeRound(iStream || 0, 0, 7, "PEN");
+	pen(iStream: number, iPen: number | undefined, iTransparent?: number): void {
+		iStream = this.vmInRangeRound(iStream, 0, 7, "PEN");
+		if (iPen !== undefined) {
 			const oWin = this.aWindow[iStream];
 
 			iPen = this.vmInRangeRound(iPen, 0, 15, "PEN");
 			oWin.iPen = iPen;
 		}
 
-		if (iTransparent !== null && iTransparent !== undefined) {
+		if (iTransparent !== undefined) {
 			iTransparent = this.vmInRangeRound(iTransparent, 0, 1, "PEN");
 			this.vmSetTransparentMode(iStream, iTransparent);
 		}
@@ -2702,14 +2694,14 @@ export class CpcVm {
 		return Math.PI; // or less precise: 3.14159265
 	}
 
-	plot(x: number, y: number, iGPen?: number | null, iGColMode?: number): void { // 2, up to 4 parameters
+	plot(x: number, y: number, iGPen?: number, iGColMode?: number): void { // 2, up to 4 parameters
 		x = this.vmInRangeRound(x, -32768, 32767, "PLOT");
 		y = this.vmInRangeRound(y, -32768, 32767, "PLOT");
 		this.vmDrawMovePlot("PLOT", iGPen, iGColMode);
 		this.oCanvas.plot(x, y);
 	}
 
-	plotr(x: number, y: number, iGPen?: number | null, iGColMode?: number): void {
+	plotr(x: number, y: number, iGPen?: number, iGColMode?: number): void {
 		x = this.vmInRangeRound(x, -32768, 32767, "PLOTR");
 		y = this.vmInRangeRound(y, -32768, 32767, "PLOTR");
 		this.vmDrawMovePlot("PLOTR", iGPen, iGColMode);
@@ -3043,8 +3035,7 @@ export class CpcVm {
 	}
 
 	print(iStream: number, ...aArgs: (string | number | PrintObjectType)[]): void { // eslint-disable-line complexity
-		//, @typescript-eslint/ban-types
-		iStream = this.vmInRangeRound(iStream || 0, 0, 9, "PRINT");
+		iStream = this.vmInRangeRound(iStream, 0, 9, "PRINT");
 		const oWin = this.aWindow[iStream];
 
 		if (iStream < 8) {
@@ -3199,7 +3190,7 @@ export class CpcVm {
 			const dataItem = this.aData[this.iData];
 
 			this.iData += 1;
-			if (dataItem === null) { // empty arg?
+			if (dataItem === undefined) { // empty arg?
 				item = sType === "$" ? "" : 0; // set arg depending on expected type
 			} else if (sType !== "$") { // not string expected? => convert to number (also binary, hex)
 				// Note : Using a number variable to read a string would cause a syntax error on a real CPC. We cannot detect it since we get always strings.
@@ -3235,28 +3226,20 @@ export class CpcVm {
 		return iRemain;
 	}
 
-	renum(iNew?: number, iOld?: number, iStep?: number, iKeep?: number): void { // varargs: new number, old number, step, keep line (only for |renum)
-		if (iNew !== null && iNew !== undefined) {
-			iNew = this.vmInRangeRound(iNew, 1, 65535, "RENUM");
-		}
-		if (iOld !== null && iOld !== undefined) {
-			iOld = this.vmInRangeRound(iOld, 1, 65535, "RENUM");
-		}
-		if (iStep !== undefined) {
-			iStep = this.vmInRangeRound(iStep, 1, 65535, "RENUM");
-		}
-		if (iKeep !== undefined) {
-			iKeep = this.vmInRangeRound(iKeep, 1, 65535, "RENUM");
-		}
+	renum(iNew = 10, iOld = 1, iStep = 10, iKeep = 65535): void { // varargs: new number, old number, step, keep line (only for |renum)
+		iNew = this.vmInRangeRound(iNew, 1, 65535, "RENUM");
+		iOld = this.vmInRangeRound(iOld, 1, 65535, "RENUM");
+		iStep = this.vmInRangeRound(iStep, 1, 65535, "RENUM");
+		iKeep = this.vmInRangeRound(iKeep, 1, 65535, "RENUM");
 
 		const oLineRenumParas: VmLineRenumParas = {
 			sCommand: "renum",
 			iStream: 0, // unused
 			iLine: this.iLine, // unused
-			iNew: iNew || 10,
-			iOld: iOld || 1,
-			iStep: iStep || 10,
-			iKeep: iKeep || 65535 // keep lines
+			iNew: iNew,
+			iOld: iOld,
+			iStep: iStep,
+			iKeep: iKeep // keep lines
 		};
 
 		this.vmStop("renumLines", 85, false, oLineRenumParas);
@@ -3477,10 +3460,10 @@ export class CpcVm {
 			iState: iState,
 			iPeriod: iPeriod,
 			iDuration: (iDuration !== undefined) ? this.vmInRangeRound(iDuration, -32768, 32767, "SOUND ,,") : 20,
-			iVolume: (iVolume !== undefined && iVolume !== null) ? this.vmInRangeRound(iVolume, 0, 15, "SOUND ,,,") : 12,
-			iVolEnv: (iVolEnv !== undefined && iVolEnv !== null) ? this.vmInRangeRound(iVolEnv, 0, 15, "SOUND ,,,,") : 0,
-			iToneEnv: (iToneEnv !== undefined && iToneEnv !== null) ? this.vmInRangeRound(iToneEnv, 0, 15, "SOUND ,,,,,") : 0,
-			iNoise: (iNoise !== undefined && iNoise !== null) ? this.vmInRangeRound(iNoise, 0, 31, "SOUND ,,,,,,") : 0
+			iVolume: (iVolume !== undefined) ? this.vmInRangeRound(iVolume, 0, 15, "SOUND ,,,") : 12,
+			iVolEnv: (iVolEnv !== undefined) ? this.vmInRangeRound(iVolEnv, 0, 15, "SOUND ,,,,") : 0,
+			iToneEnv: (iToneEnv !== undefined) ? this.vmInRangeRound(iToneEnv, 0, 15, "SOUND ,,,,,") : 0,
+			iNoise: (iNoise !== undefined) ? this.vmInRangeRound(iNoise, 0, 31, "SOUND ,,,,,,") : 0
 		};
 
 		if (this.oSound.testCanQueue(iState)) {
@@ -3504,7 +3487,7 @@ export class CpcVm {
 	}
 
 	spc(iStream: number, n: number): string { // special spc function with additional parameter iStream, which is called delayed by print (ROM &F277)
-		iStream = this.vmInRangeRound(iStream || 0, 0, 9, "SPC");
+		iStream = this.vmInRangeRound(iStream, 0, 9, "SPC");
 		n = this.vmInRangeRound(n, -32768, 32767, "SPC");
 
 		let sStr = "";
@@ -3630,7 +3613,7 @@ export class CpcVm {
 	}
 
 	tab(iStream: number, n: number): string { // special tab function with additional parameter iStream, which is called delayed by print (ROM &F280)
-		iStream = this.vmInRangeRound(iStream || 0, 0, 9, "TAB");
+		iStream = this.vmInRangeRound(iStream, 0, 9, "TAB");
 		n = this.vmInRangeRound(n, -32768, 32767, "TAB");
 
 		const oWin = this.aWindow[iStream],
@@ -3657,24 +3640,15 @@ export class CpcVm {
 		return sStr;
 	}
 
-	tag(iStream?: number): void { // optional iStream
-		if (iStream) {
-			iStream = this.vmInRangeRound(iStream, 0, 7, "TAG");
-		} else {
-			iStream = 0;
-		}
+	tag(iStream: number): void {
+		iStream = this.vmInRangeRound(iStream, 0, 7, "TAG");
 		const oWin = this.aWindow[iStream];
 
 		oWin.bTag = true;
 	}
 
-	tagoff(iStream?: number): void { // optional iStream
-		if (iStream) {
-			iStream = this.vmInRangeRound(iStream, 0, 7, "TAGOFF");
-		} else {
-			iStream = 0;
-		}
-
+	tagoff(iStream: number): void {
+		iStream = this.vmInRangeRound(iStream, 0, 7, "TAGOFF");
 		const oWin = this.aWindow[iStream];
 
 		oWin.bTag = false;
@@ -3843,7 +3817,7 @@ export class CpcVm {
 	}
 
 	window(iStream: number, iLeft: number, iRight: number, iTop: number, iBottom: number): void {
-		iStream = this.vmInRangeRound(iStream || 0, 0, 7, "WINDOW");
+		iStream = this.vmInRangeRound(iStream, 0, 7, "WINDOW");
 
 		iLeft = this.vmInRangeRound(iLeft, 1, 255, "WINDOW");
 		iRight = this.vmInRangeRound(iRight, 1, 255, "WINDOW");
@@ -3861,8 +3835,8 @@ export class CpcVm {
 		oWin.iVpos = 0;
 	}
 
-	windowSwap(iStream1: number, iStream2?: number): void { // iStream2 is optional
-		iStream1 = this.vmInRangeRound(iStream1 || 0, 0, 7, "WINDOW SWAP");
+	windowSwap(iStream1: number, iStream2?: number): void { // stream numbers; iStream2 is optional
+		iStream1 = this.vmInRangeRound(iStream1, 0, 7, "WINDOW SWAP");
 		iStream2 = this.vmInRangeRound(iStream2 || 0, 0, 7, "WINDOW SWAP");
 
 		const oTemp = this.aWindow[iStream1];
@@ -3872,7 +3846,7 @@ export class CpcVm {
 	}
 
 	write(iStream: number, ...aArgs: (string | number)[]): void { // varargs
-		iStream = this.vmInRangeRound(iStream || 0, 0, 9, "WRITE");
+		iStream = this.vmInRangeRound(iStream, 0, 9, "WRITE");
 
 		const aWriteArgs = [];
 		let sStr: string;

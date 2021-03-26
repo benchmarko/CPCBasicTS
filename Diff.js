@@ -5,12 +5,28 @@
 //
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Diff = void 0;
+var Utils_1 = require("./Utils");
 var Diff = /** @class */ (function () {
     function Diff() {
     }
     // Refer to http://www.xmailserver.org/diff2.pdf
+    Diff.composeError = function (oError, message, value, pos) {
+        return Utils_1.Utils.composeError("Diff", oError, message, value, pos, 0);
+    };
     Diff.inRange = function (x, l, r) {
         return (l <= x && x <= r) || (r <= x && x <= l);
+    };
+    Diff.fnEquals = function (a, b) {
+        return a === b;
+    };
+    // Accepts custom comparator
+    Diff.customIndexOf = function (aArr, item, start, fnEquals) {
+        for (var i2 = start; i2 < aArr.length; i2 += 1) {
+            if (fnEquals(item, aArr[i2])) {
+                return i2;
+            }
+        }
+        return -1;
     };
     /* can we use it here? need to define aA, aB, lcsAtoms, findMidSnake():
     private static lcs(startA: number, endA: number, startB: number, endB: number) {
@@ -52,7 +68,7 @@ var Diff = /** @class */ (function () {
         toPoint = function (x) {
             return [
                 x,
-                x - this
+                x - this // eslint-disable-line no-invalid-this
             ]; // XXX context is not the best way to pass diagonal
         }, 
         // NOTE: all intervals from now on are both sides inclusive
@@ -173,6 +189,7 @@ var Diff = /** @class */ (function () {
                     ]);
                 }
             }
+            throw Diff.composeError(Error(), "Programming error in findMidSnake", "", 0); // should not occure
         }, lcsAtoms = [], lcs = function (startA, endA, startB, endB) {
             var N = endA - startA + 1, M = endB - startB + 1;
             if (N > 0 && M > 0) {
@@ -200,32 +217,35 @@ var Diff = /** @class */ (function () {
     // Diff sequence
     // @param A - sequence of atoms - Array
     // @param B - sequence of atoms - Array
-    // @param equals - optional comparator of atoms - returns true or false,
-    //                 if not specified, triple equals operator is used
+    // [@param equals - optional comparator of atoms - returns true or false,
+    //                 if not specified, triple equals operator is used]
     // @returns Array - sequence of objects in a form of:
     //   - operation: one of "none", "add", "delete"
     //   - atom: the atom found in either A or B
     // Applying operations from diff sequence you should be able to transform A to B
-    Diff.diff = function (aA, aB, fnEquals) {
-        var aDiff = [], 
-        // Accepts custom comparator
-        customIndexOf = function (item, start, fnEquals2) {
-            var aArr = this;
-            for (var i2 = start; i2 < aArr.length; i2 += 1) {
-                if (fnEquals2(item, aArr[i2])) {
-                    return i2;
+    Diff.diff = function (aA, aB) {
+        var aDiff = [], fnEquals = Diff.fnEquals;
+        /*
+            // Accepts custom comparator
+            customIndexOf = function (item: string, start: number, fnEquals2: (a: string, b: string) => boolean) {
+                const aArr = this;
+
+                for (let i2 = start; i2 < aArr.length; i2 += 1) {
+                    if (fnEquals2(item, aArr[i2])) {
+                        return i2;
+                    }
                 }
-            }
-            return -1;
-        };
-        var i = 0, j = 0;
+                return -1;
+            };
+
         // We just compare atoms with default equals operator by default
         if (fnEquals === undefined) {
-            fnEquals = function (a, b) {
+            fnEquals = function (a: string, b: string) {
                 return a === b;
             };
         }
-        var iN = aA.length, iM = aB.length, iK = 0;
+        */
+        var i = 0, j = 0, iN = aA.length, iM = aB.length, iK = 0;
         while (i < iN && j < iM && fnEquals(aA[i], aB[j])) {
             i += 1;
             j += 1;
@@ -243,7 +263,10 @@ var Diff = /** @class */ (function () {
         }));
         var lcs = Diff.fnLCS(aA.slice(i, iN), aB.slice(j, iM), fnEquals);
         for (var k = 0; k < lcs.length; k += 1) {
-            var atom = lcs[k], ni = customIndexOf.call(aA, atom, i, fnEquals), nj = customIndexOf.call(aB, atom, j, fnEquals);
+            var atom = lcs[k], 
+            //ni = customIndexOf.call(aA, atom, i, fnEquals),
+            //nj = customIndexOf.call(aB, atom, j, fnEquals);
+            ni = Diff.customIndexOf(aA, atom, i, fnEquals), nj = Diff.customIndexOf(aB, atom, j, fnEquals);
             // XXX ES5 map
             // Delete unmatched atoms from A
             [].push.apply(aDiff, aA.slice(i, ni).map(function (sAtom2) {

@@ -623,13 +623,16 @@ export class CodeGeneratorJs {
 		}
 		const sLeft = this.fnParseOneArg(node.left),
 			sRight = this.fnParseOneArg(node.right),
-			iLeft = Number(sLeft), // "null" gets NaN (should we check node.left.type for null?)
+			iLeft = Number(sLeft), // "undefined" gets NaN (should we check node.left.type for null?)
 			iRight = Number(sRight);
 
 		if (iLeft > iRight) { // comparison with NaN and number is always false
 			throw this.composeError(Error(), "Decreasing line range", node.value, node.pos);
 		}
-		node.pv = !sRight ? sLeft : sLeft + ", " + sRight;
+
+		const sRightSpecified = (sRight === "undefined") ? "65535" : sRight; // make sure we set a missing right range parameter
+
+		node.pv = !sRight ? sLeft : sLeft + ", " + sRightSpecified;
 		return node.pv;
 	}
 	private static string(node: CodeNode) {
@@ -638,7 +641,7 @@ export class CodeGeneratorJs {
 		return node.pv;
 	}
 	private static fnNull(node: CodeNode) { // "null": means: no parameter specified
-		node.pv = "null";
+		node.pv = node.value !== "null" ? node.value : "undefined"; // use explicit value or convert "null" to "undefined"
 		return node.pv;
 	}
 	private assign(node: CodeNode) {
@@ -851,6 +854,10 @@ export class CodeGeneratorJs {
 		const aNodeArgs = this.fnParseArgs(node.args),
 			sName = Utils.bSupportReservedNames ? "o.delete" : 'o["delete"]';
 
+		if (!aNodeArgs.length) { // no arguments? => complete range
+			aNodeArgs.push("1");
+			aNodeArgs.push("65535");
+		}
 		node.pv = sName + "(" + aNodeArgs.join(", ") + "); break;";
 		return node.pv;
 	}
@@ -930,22 +937,24 @@ export class CodeGeneratorJs {
 		this.oStack.forVarName.push(sVarName);
 		this.iForCount += 1;
 
+		if (!node.args) {
+			throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occure
+		}
+
+		const startNode = node.args[1],
+			endNode = node.args[2],
+			stepNode = node.args[3];
+
 		let startValue = aNodeArgs[1],
 			endValue = aNodeArgs[2],
 			stepValue = aNodeArgs[3];
 
-		if (stepValue === "null") {
+		if (stepNode.type === "null") { // value not available?
 			stepValue = "1";
 		}
 
-		if (!node.args) {
-			throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occure
-		}
-		const startNode = node.args[1] as CodeNode,
-			endNode = node.args[2] as CodeNode,
-			stepNode = node.args[3] as CodeNode,
-			// optimization for integer constants (check value and not type, because we also want to accept e.g. -<number>):
-			bStartIsIntConst = CodeGeneratorJs.fnIsIntConst(startValue),
+		// optimization for integer constants (check value and not type, because we also want to accept e.g. -<number>):
+		const bStartIsIntConst = CodeGeneratorJs.fnIsIntConst(startValue),
 			bEndIsIntConst = CodeGeneratorJs.fnIsIntConst(endValue),
 			bStepIsIntConst = CodeGeneratorJs.fnIsIntConst(stepValue),
 			sVarType = this.fnDetermineStaticVarType(sVarName),
@@ -1103,7 +1112,7 @@ export class CodeGeneratorJs {
 		}
 		const sPrompt = aNodeArgs[3];
 
-		if (sPrompt === ";" || sPrompt === "null") { // ";" => insert prompt "? " in quoted string
+		if (sPrompt === ";" || node.args[3].type === "null") { // ";" => insert prompt "? " in quoted string
 			sMsg = sMsg.substr(0, sMsg.length - 1) + "? " + sMsg.substr(-1, 1);
 		}
 
@@ -1140,10 +1149,10 @@ export class CodeGeneratorJs {
 		if (!node.args) {
 			throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occure
 		}
-		if (node.args.length && node.args[node.args.length - 1].type === "#") { // last parameter stream?
-			const stream = aNodeArgs.pop() || "0";
+		if (!node.args.length || node.args[node.args.length - 1].type === "#") { // last parameter stream? or no parameters?
+			const sStream = aNodeArgs.pop() || "0";
 
-			aNodeArgs.unshift(stream); // put it first
+			aNodeArgs.unshift(sStream); // put it first
 		}
 
 		node.pv = "o.list(" + aNodeArgs.join(", ") + "); break;";
@@ -1162,7 +1171,7 @@ export class CodeGeneratorJs {
 		const aNodeArgs = this.fnParseArgs(node.args);
 
 		if (aNodeArgs.length < 3) {
-			aNodeArgs.push("null"); // empty length
+			aNodeArgs.push("undefined"); // empty length
 		}
 
 		if (!node.right) {
@@ -1639,7 +1648,8 @@ export class CodeGeneratorJs {
 			if (Utils.debug > 2) {
 				Utils.console.debug("evaluate: parseTree i=%d, node=%o", i, parseTree[i]);
 			}
-			const sNode = this.parseNode(parseTree[i] as CodeNode);
+			//const sNode = this.parseNode(parseTree[i] as CodeNode);
+			const sNode = this.fnParseOneArg(parseTree[i]);
 
 			if ((sNode !== undefined) && (sNode !== "")) {
 				if (sNode !== null) {

@@ -20,7 +20,7 @@ export class CpcVmRsx implements ICpcVmRsx {
 
 	rsxExec(sName: string, ...aArgs: (string | number)[]): void {
 		if (this.rsxIsAvailable(sName)) {
-			this[sName].apply(this, aArgs);
+			(this as any)[sName].apply(this, aArgs);
 		} else {
 			throw this.oVm.vmComposeError(Error(), 28, "|" + sName); // Unknown command
 		}
@@ -160,7 +160,8 @@ export class CpcVmRsx implements ICpcVmRsx {
 		this.oVm.oCanvas.changeMode(iMode); // or setMode?
 	}
 
-	renum(): void { // optional args: new number, old number, step, keep line (only for |renum)
-		this.oVm.renum.apply(this.oVm, arguments);
+	renum(...aArgs: number[]): void { // optional args: new number, old number, step, keep line (only for |renum)
+		//this.oVm.renum.apply(this.oVm, arguments as any);
+		this.oVm.renum.apply(aArgs);
 	}
 }

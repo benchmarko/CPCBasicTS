@@ -23,5 +23,5 @@ export declare class CpcVmRsx implements ICpcVmRsx {
     tape_out(): void;
     user(): void;
     mode(iMode: number): void;
-    renum(): void;
+    renum(...aArgs: number[]): void;
 }

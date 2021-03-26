@@ -929,29 +929,11 @@ var Controller = /** @class */ (function () {
                 this.oVm.vmStop("fileLoad", 90); // restore
             }
             var sName = oInFile.sName;
-            /*TTT
-            if (oInFile.sMemorizedExample) { //TTT check this
-                const sKey = this.model.getProperty<string>("example"),
-                    iLastSlash = sKey.lastIndexOf("/");
-
-                if (iLastSlash >= 0) {
-                    const sPath = sKey.substr(0, iLastSlash); // take path from selected example
-
-                    sName = sPath + "/" + sName;
-                    sName = sName.replace(/\w+\/\.\.\//, ""); // simplify 2 dots (go back) in path: "dir/.."" => ""
-                }
-            }
-            */
             if (Utils_1.Utils.debug > 1) {
                 Utils_1.Utils.console.debug("fnFileLoad:", oInFile.sCommand, sName, "details:", oInFile);
             }
             var sInput = Controller.tryLoadingFromLocalStorage(sName);
             if (sInput !== null) {
-                /*TTT
-                if (this.model.getProperty<string>("database") === "storage") {
-                    oInFile.sMemorizedExample = sName;
-                }
-                */
                 if (Utils_1.Utils.debug > 0) {
                     Utils_1.Utils.console.debug("fnFileLoad:", oInFile.sCommand, sName, "from localStorage");
                 }

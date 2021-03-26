@@ -9,7 +9,8 @@ var Utils_1 = require("./Utils");
 var Random_1 = require("./Random");
 var CpcVm = /** @class */ (function () {
     function CpcVm(options) {
-        this.iInkeyTimeMs = 0; // next time of frame fly
+        //iInkeyTime: number; // if >0, next time when inkey$ can be checked without inserting "waitFrame"
+        this.iInkeyTimeMs = 0; // next time of frame fly (if >0, next time when inkey$ can be checked without inserting "waitFrame")
         this.aGosubStack = []; // stack of line numbers for gosub/return
         this.iData = 0; // current index
         this.oDataLineIndex = {
@@ -97,7 +98,7 @@ var CpcVm = /** @class */ (function () {
         // "iLine": run line (CHAIN, CHAIN MERGE)
         // "iFirst": first line to delete (CHAIN MERGE)
         // "iLast": last line to delete (CHAIN MERGE)
-        this.iInkeyTime = 0; // if >0, next time when inkey$ can be checked without inserting "waitFrame"
+        //this.iInkeyTime = 0; // if >0, next time when inkey$ can be checked without inserting "waitFrame"
         this.aGosubStack = []; // stack of line numbers for gosub/return
         this.aMem = []; // for peek, poke
         this.aData = []; // array for BASIC data lines (continuous)
@@ -166,7 +167,7 @@ var CpcVm = /** @class */ (function () {
         this.oKeyboard.reset();
         this.oSound.reset();
         this.aSoundData.length = 0;
-        this.iInkeyTime = 0; // if >0, next time when inkey$ can be checked without inserting "waitFrame"
+        this.iInkeyTimeMs = 0; // if >0, next time when inkey$ can be checked without inserting "waitFrame"
     };
     CpcVm.prototype.vmResetTimers = function () {
         var oData = {
@@ -578,7 +579,7 @@ var CpcVm = /** @class */ (function () {
         }
     };
     CpcVm.prototype.vmDrawMovePlot = function (sType, iGPen, iGColMode) {
-        if (iGPen !== undefined && iGPen !== null) {
+        if (iGPen !== undefined) {
             iGPen = this.vmInRangeRound(iGPen, 0, 15, sType);
             this.oCanvas.setGPen(iGPen);
         }
@@ -774,10 +775,10 @@ var CpcVm = /** @class */ (function () {
                 this.cls(0);
                 break;
             case 0xbb7b: // TXT Cursor Enable (ROM &1289); user switch (cursor enabled)
-                this.cursor(0, null, 1);
+                this.cursor(0, undefined, 1);
                 break;
             case 0xbb7e: // TXT Cursor Disable (ROM &129A); user switch
-                this.cursor(0, null, 0);
+                this.cursor(0, undefined, 0);
                 break;
             case 0xbb81: // TXT Cursor On (ROM &1279); system switch (cursor on)
                 this.cursor(0, 1);
@@ -973,7 +974,7 @@ var CpcVm = /** @class */ (function () {
     };
     // also called for chr$(12), call &bb6c
     CpcVm.prototype.cls = function (iStream) {
-        iStream = this.vmInRangeRound(iStream || 0, 0, 7, "CLS");
+        iStream = this.vmInRangeRound(iStream, 0, 7, "CLS");
         var oWin = this.aWindow[iStream];
         this.vmDrawUndrawCursor(iStream); // why, if we clear anyway?
         this.oCanvas.clearTextWindow(oWin.iLeft, oWin.iRight, oWin.iTop, oWin.iBottom, oWin.iPaper); // cls window
@@ -984,7 +985,7 @@ var CpcVm = /** @class */ (function () {
         }
     };
     CpcVm.prototype.commaTab = function (iStream) {
-        iStream = this.vmInRangeRound(iStream || 0, 0, 9, "commaTab");
+        iStream = this.vmInRangeRound(iStream, 0, 9, "commaTab");
         this.vmMoveCursor2AllowedPos(iStream);
         var iZone = this.iZone, oWin = this.aWindow[iStream];
         var iCount = iZone - (oWin.iPos % iZone);
@@ -1032,9 +1033,9 @@ var CpcVm = /** @class */ (function () {
         }
     };
     CpcVm.prototype.cursor = function (iStream, iCursorOn, iCursorEnabled) {
-        iStream = this.vmInRangeRound(iStream || 0, 0, 7, "CURSOR");
+        iStream = this.vmInRangeRound(iStream, 0, 7, "CURSOR");
         var oWin = this.aWindow[iStream];
-        if (iCursorOn !== null) { // system
+        if (iCursorOn !== undefined) { // system
             iCursorOn = this.vmInRangeRound(iCursorOn, 0, 1, "CURSOR");
             this.vmDrawUndrawCursor(iStream); // undraw
             oWin.bCursorOn = Boolean(iCursorOn);
@@ -1079,23 +1080,19 @@ var CpcVm = /** @class */ (function () {
         this.bDeg = true;
     };
     CpcVm.prototype["delete"] = function (iFirst, iLast) {
-        if (iFirst !== undefined && iFirst !== null) {
-            iFirst = this.vmInRangeRound(iFirst, 1, 65535, "DELETE");
+        if (iFirst === void 0) { iFirst = 1; }
+        iFirst = this.vmInRangeRound(iFirst, 1, 65535, "DELETE");
+        if (iLast === undefined) { // just one parameter specified?
+            iLast = iFirst;
         }
-        else {
-            iFirst = 1;
-        }
-        if (iLast === null) { // range with missing last?
-            iLast = 65535;
-        }
-        else if (iLast !== undefined) {
+        else { // range
             iLast = this.vmInRangeRound(iLast, 1, 65535, "DELETE");
         }
         this.vmStop("deleteLines", 85, false, {
             sCommand: "DELETE",
             iStream: 0,
             iFirst: iFirst,
-            iLast: iLast || iFirst,
+            iLast: iLast,
             iLine: this.iLine // unused
         });
     };
@@ -1155,7 +1152,7 @@ var CpcVm = /** @class */ (function () {
         }
         if (iToneEnv) { // not 0
             for (var i = 0; i < aArgs.length; i += 3) { // starting with 1: 3 parameters per section
-                if (aArgs[i] !== null) {
+                if (aArgs[i] !== undefined) {
                     oArg = {
                         steps: this.vmInRangeRound(aArgs[i], 0, 239, "ENT"),
                         diff: this.vmInRangeRound(aArgs[i + 1], -128, 127, "ENT"),
@@ -1187,7 +1184,7 @@ var CpcVm = /** @class */ (function () {
         var oArg;
         iVolEnv = this.vmInRangeRound(iVolEnv, 1, 15, "ENV");
         for (var i = 0; i < aArgs.length; i += 3) { // starting with 1: 3 parameters per section
-            if (aArgs[i] !== null) {
+            if (aArgs[i] !== undefined) {
                 oArg = {
                     steps: this.vmInRangeRound(aArgs[i], 0, 127, "ENV"),
                     /* eslint-disable no-bitwise */
@@ -1312,7 +1309,7 @@ var CpcVm = /** @class */ (function () {
         this.oCanvas.setGPaper(iGPaper);
     };
     CpcVm.prototype.graphicsPen = function (iGPen, iTransparentMode) {
-        if (iGPen !== null) {
+        if (iGPen !== undefined) {
             iGPen = this.vmInRangeRound(iGPen, 0, 15, "GRAPHICS PEN");
             this.oCanvas.setGPen(iGPen);
         }
@@ -1348,7 +1345,7 @@ var CpcVm = /** @class */ (function () {
         var sKey = this.oKeyboard.getKeyFromBuffer();
         // do some slowdown, if checked too early again without key press
         if (sKey !== "") { // some key pressed?
-            this.iInkeyTime = 0;
+            this.iInkeyTimeMs = 0;
         }
         else { // no key
             var iNow = Date.now();
@@ -1492,7 +1489,7 @@ var CpcVm = /** @class */ (function () {
         this.vmSetInputValues(aInputValues);
     };
     CpcVm.prototype.input = function (iStream, sNoCRLF, sMsg) {
-        iStream = this.vmInRangeRound(iStream || 0, 0, 9, "waitInput");
+        iStream = this.vmInRangeRound(iStream, 0, 9, "INPUT");
         if (iStream < 8) {
             this.print(iStream, sMsg);
             this.vmStop("waitInput", 45, false, {
@@ -1550,9 +1547,9 @@ var CpcVm = /** @class */ (function () {
         var oOptions = {
             iCpcKey: this.vmInRangeRound(iCpcKey, 0, 79, "KEY DEF"),
             iRepeat: this.vmInRangeRound(iRepeat, 0, 1, "KEY DEF"),
-            iNormal: (iNormal !== undefined && iNormal !== null) ? this.vmInRangeRound(iNormal, 0, 255, "KEY DEF") : undefined,
-            iShift: (iShift !== undefined && iShift !== null) ? this.vmInRangeRound(iShift, 0, 255, "KEY DEF") : undefined,
-            iCtrl: (iCtrl !== undefined && iCtrl !== null) ? this.vmInRangeRound(iCtrl, 0, 255, "KEY DEF") : undefined
+            iNormal: (iNormal !== undefined) ? this.vmInRangeRound(iNormal, 0, 255, "KEY DEF") : undefined,
+            iShift: (iShift !== undefined) ? this.vmInRangeRound(iShift, 0, 255, "KEY DEF") : undefined,
+            iCtrl: (iCtrl !== undefined) ? this.vmInRangeRound(iCtrl, 0, 255, "KEY DEF") : undefined
         };
         this.oKeyboard.setCpcKeyExpansion(oOptions);
     };
@@ -1574,7 +1571,7 @@ var CpcVm = /** @class */ (function () {
         return true;
     };
     CpcVm.prototype.lineInput = function (iStream, sNoCRLF, sMsg, sVarType) {
-        iStream = this.vmInRangeRound(iStream || 0, 0, 9, "LINE INPUT");
+        iStream = this.vmInRangeRound(iStream, 0, 9, "LINE INPUT");
         if (iStream < 8) {
             this.print(iStream, sMsg);
             var sType = this.vmDetermineVarType(sVarType);
@@ -1607,14 +1604,13 @@ var CpcVm = /** @class */ (function () {
         }
     };
     CpcVm.prototype.list = function (iStream, iFirst, iLast) {
-        iStream = this.vmInRangeRound(iStream || 0, 0, 9, "LIST");
-        if (iFirst !== undefined && iFirst !== null) {
-            iFirst = this.vmInRangeRound(iFirst, 1, 65535, "LIST");
+        if (iFirst === void 0) { iFirst = 1; }
+        iStream = this.vmInRangeRound(iStream, 0, 9, "LIST");
+        iFirst = this.vmInRangeRound(iFirst, 1, 65535, "LIST");
+        if (iLast === undefined) { // just one parameter specified?
+            iLast = iFirst;
         }
-        if (iLast === null) { // range with missing last?
-            iLast = 65535;
-        }
-        else if (iLast !== undefined) {
+        else { // range
             iLast = this.vmInRangeRound(iLast, 1, 65535, "LIST");
         }
         if (iStream === 9) {
@@ -1622,12 +1618,11 @@ var CpcVm = /** @class */ (function () {
                 throw this.vmComposeError(Error(), 31, "LIST #" + iStream); // File not open
             }
         }
-        iFirst || (iFirst = 1);
         this.vmStop("list", 90, false, {
             sCommand: "list",
             iStream: iStream,
             iFirst: iFirst,
-            iLast: iLast || iFirst,
+            iLast: iLast,
             iLine: this.iLine // unused
         });
     };
@@ -1677,7 +1672,7 @@ var CpcVm = /** @class */ (function () {
         oWin.iVpos = iVpos - 1;
     };
     CpcVm.prototype.locate = function (iStream, iPos, iVpos) {
-        iStream = this.vmInRangeRound(iStream || 0, 0, 7, "LOCATE");
+        iStream = this.vmInRangeRound(iStream, 0, 7, "LOCATE");
         iPos = this.vmInRangeRound(iPos, 1, 255, "LOCATE");
         iVpos = this.vmInRangeRound(iVpos, 1, 255, "LOCATE");
         this.vmDrawUndrawCursor(iStream); // undraw
@@ -1701,7 +1696,7 @@ var CpcVm = /** @class */ (function () {
         return s;
     };
     CpcVm.prototype.mask = function (iMask, iFirst) {
-        if (iMask !== null) {
+        if (iMask !== undefined) { //TTT
             iMask = this.vmInRangeRound(iMask, 0, 255, "MASK");
             this.oCanvas.setMask(iMask);
         }
@@ -1749,7 +1744,7 @@ var CpcVm = /** @class */ (function () {
         this.vmAssertString(s, "MID$");
         this.vmAssertString(sNew, "MID$");
         iStart = this.vmInRangeRound(iStart, 1, 255, "MID$") - 1;
-        iLen = (iLen !== null) ? this.vmInRangeRound(iLen, 0, 255, "MID$") : sNew.length;
+        iLen = (iLen !== undefined) ? this.vmInRangeRound(iLen, 0, 255, "MID$") : sNew.length;
         if (iLen > sNew.length) {
             iLen = sNew.length;
         }
@@ -1969,7 +1964,7 @@ var CpcVm = /** @class */ (function () {
         }
     };
     CpcVm.prototype.paper = function (iStream, iPaper) {
-        iStream = this.vmInRangeRound(iStream || 0, 0, 7, "PAPER");
+        iStream = this.vmInRangeRound(iStream, 0, 7, "PAPER");
         iPaper = this.vmInRangeRound(iPaper, 0, 15, "PAPER");
         var oWin = this.aWindow[iStream];
         oWin.iPaper = iPaper;
@@ -2010,13 +2005,13 @@ var CpcVm = /** @class */ (function () {
         return iByte;
     };
     CpcVm.prototype.pen = function (iStream, iPen, iTransparent) {
-        if (iPen !== null) {
-            iStream = this.vmInRangeRound(iStream || 0, 0, 7, "PEN");
+        iStream = this.vmInRangeRound(iStream, 0, 7, "PEN");
+        if (iPen !== undefined) {
             var oWin = this.aWindow[iStream];
             iPen = this.vmInRangeRound(iPen, 0, 15, "PEN");
             oWin.iPen = iPen;
         }
-        if (iTransparent !== null && iTransparent !== undefined) {
+        if (iTransparent !== undefined) {
             iTransparent = this.vmInRangeRound(iTransparent, 0, 1, "PEN");
             this.vmSetTransparentMode(iStream, iTransparent);
         }
@@ -2325,8 +2320,7 @@ var CpcVm = /** @class */ (function () {
         for (var _i = 1; _i < arguments.length; _i++) {
             aArgs[_i - 1] = arguments[_i];
         }
-        //, @typescript-eslint/ban-types
-        iStream = this.vmInRangeRound(iStream || 0, 0, 9, "PRINT");
+        iStream = this.vmInRangeRound(iStream, 0, 9, "PRINT");
         var oWin = this.aWindow[iStream];
         if (iStream < 8) {
             if (!oWin.bTag) {
@@ -2469,7 +2463,7 @@ var CpcVm = /** @class */ (function () {
         if (this.iData < this.aData.length) {
             var dataItem = this.aData[this.iData];
             this.iData += 1;
-            if (dataItem === null) { // empty arg?
+            if (dataItem === undefined) { // empty arg?
                 item = sType === "$" ? "" : 0; // set arg depending on expected type
             }
             else if (sType !== "$") { // not string expected? => convert to number (also binary, hex)
@@ -2503,26 +2497,22 @@ var CpcVm = /** @class */ (function () {
         return iRemain;
     };
     CpcVm.prototype.renum = function (iNew, iOld, iStep, iKeep) {
-        if (iNew !== null && iNew !== undefined) {
-            iNew = this.vmInRangeRound(iNew, 1, 65535, "RENUM");
-        }
-        if (iOld !== null && iOld !== undefined) {
-            iOld = this.vmInRangeRound(iOld, 1, 65535, "RENUM");
-        }
-        if (iStep !== undefined) {
-            iStep = this.vmInRangeRound(iStep, 1, 65535, "RENUM");
-        }
-        if (iKeep !== undefined) {
-            iKeep = this.vmInRangeRound(iKeep, 1, 65535, "RENUM");
-        }
+        if (iNew === void 0) { iNew = 10; }
+        if (iOld === void 0) { iOld = 1; }
+        if (iStep === void 0) { iStep = 10; }
+        if (iKeep === void 0) { iKeep = 65535; }
+        iNew = this.vmInRangeRound(iNew, 1, 65535, "RENUM");
+        iOld = this.vmInRangeRound(iOld, 1, 65535, "RENUM");
+        iStep = this.vmInRangeRound(iStep, 1, 65535, "RENUM");
+        iKeep = this.vmInRangeRound(iKeep, 1, 65535, "RENUM");
         var oLineRenumParas = {
             sCommand: "renum",
             iStream: 0,
             iLine: this.iLine,
-            iNew: iNew || 10,
-            iOld: iOld || 1,
-            iStep: iStep || 10,
-            iKeep: iKeep || 65535 // keep lines
+            iNew: iNew,
+            iOld: iOld,
+            iStep: iStep,
+            iKeep: iKeep // keep lines
         };
         this.vmStop("renumLines", 85, false, oLineRenumParas);
     };
@@ -2716,10 +2706,10 @@ var CpcVm = /** @class */ (function () {
             iState: iState,
             iPeriod: iPeriod,
             iDuration: (iDuration !== undefined) ? this.vmInRangeRound(iDuration, -32768, 32767, "SOUND ,,") : 20,
-            iVolume: (iVolume !== undefined && iVolume !== null) ? this.vmInRangeRound(iVolume, 0, 15, "SOUND ,,,") : 12,
-            iVolEnv: (iVolEnv !== undefined && iVolEnv !== null) ? this.vmInRangeRound(iVolEnv, 0, 15, "SOUND ,,,,") : 0,
-            iToneEnv: (iToneEnv !== undefined && iToneEnv !== null) ? this.vmInRangeRound(iToneEnv, 0, 15, "SOUND ,,,,,") : 0,
-            iNoise: (iNoise !== undefined && iNoise !== null) ? this.vmInRangeRound(iNoise, 0, 31, "SOUND ,,,,,,") : 0
+            iVolume: (iVolume !== undefined) ? this.vmInRangeRound(iVolume, 0, 15, "SOUND ,,,") : 12,
+            iVolEnv: (iVolEnv !== undefined) ? this.vmInRangeRound(iVolEnv, 0, 15, "SOUND ,,,,") : 0,
+            iToneEnv: (iToneEnv !== undefined) ? this.vmInRangeRound(iToneEnv, 0, 15, "SOUND ,,,,,") : 0,
+            iNoise: (iNoise !== undefined) ? this.vmInRangeRound(iNoise, 0, 31, "SOUND ,,,,,,") : 0
         };
         if (this.oSound.testCanQueue(iState)) {
             this.oSound.sound(oSoundData);
@@ -2740,7 +2730,7 @@ var CpcVm = /** @class */ (function () {
         return " ".repeat(n);
     };
     CpcVm.prototype.spc = function (iStream, n) {
-        iStream = this.vmInRangeRound(iStream || 0, 0, 9, "SPC");
+        iStream = this.vmInRangeRound(iStream, 0, 9, "SPC");
         n = this.vmInRangeRound(n, -32768, 32767, "SPC");
         var sStr = "";
         if (n >= 0) {
@@ -2847,7 +2837,7 @@ var CpcVm = /** @class */ (function () {
         this.iMinCharHimem = iMinCharHimem;
     };
     CpcVm.prototype.tab = function (iStream, n) {
-        iStream = this.vmInRangeRound(iStream || 0, 0, 9, "TAB");
+        iStream = this.vmInRangeRound(iStream, 0, 9, "TAB");
         n = this.vmInRangeRound(n, -32768, 32767, "TAB");
         var oWin = this.aWindow[iStream], iWidth = oWin.iRight - oWin.iLeft + 1;
         var sStr = "";
@@ -2870,22 +2860,12 @@ var CpcVm = /** @class */ (function () {
         return sStr;
     };
     CpcVm.prototype.tag = function (iStream) {
-        if (iStream) {
-            iStream = this.vmInRangeRound(iStream, 0, 7, "TAG");
-        }
-        else {
-            iStream = 0;
-        }
+        iStream = this.vmInRangeRound(iStream, 0, 7, "TAG");
         var oWin = this.aWindow[iStream];
         oWin.bTag = true;
     };
     CpcVm.prototype.tagoff = function (iStream) {
-        if (iStream) {
-            iStream = this.vmInRangeRound(iStream, 0, 7, "TAGOFF");
-        }
-        else {
-            iStream = 0;
-        }
+        iStream = this.vmInRangeRound(iStream, 0, 7, "TAGOFF");
         var oWin = this.aWindow[iStream];
         oWin.bTag = false;
     };
@@ -3026,7 +3006,7 @@ var CpcVm = /** @class */ (function () {
         oWin.iRight = oWin.iLeft + iWidth;
     };
     CpcVm.prototype.window = function (iStream, iLeft, iRight, iTop, iBottom) {
-        iStream = this.vmInRangeRound(iStream || 0, 0, 7, "WINDOW");
+        iStream = this.vmInRangeRound(iStream, 0, 7, "WINDOW");
         iLeft = this.vmInRangeRound(iLeft, 1, 255, "WINDOW");
         iRight = this.vmInRangeRound(iRight, 1, 255, "WINDOW");
         iTop = this.vmInRangeRound(iTop, 1, 255, "WINDOW");
@@ -3040,7 +3020,7 @@ var CpcVm = /** @class */ (function () {
         oWin.iVpos = 0;
     };
     CpcVm.prototype.windowSwap = function (iStream1, iStream2) {
-        iStream1 = this.vmInRangeRound(iStream1 || 0, 0, 7, "WINDOW SWAP");
+        iStream1 = this.vmInRangeRound(iStream1, 0, 7, "WINDOW SWAP");
         iStream2 = this.vmInRangeRound(iStream2 || 0, 0, 7, "WINDOW SWAP");
         var oTemp = this.aWindow[iStream1];
         this.aWindow[iStream1] = this.aWindow[iStream2];
@@ -3051,7 +3031,7 @@ var CpcVm = /** @class */ (function () {
         for (var _i = 1; _i < arguments.length; _i++) {
             aArgs[_i - 1] = arguments[_i];
         }
-        iStream = this.vmInRangeRound(iStream || 0, 0, 9, "WRITE");
+        iStream = this.vmInRangeRound(iStream, 0, 9, "WRITE");
         var aWriteArgs = [];
         var sStr;
         for (var i = 0; i < aArgs.length; i += 1) {

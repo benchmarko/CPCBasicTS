@@ -524,12 +524,13 @@ var CodeGeneratorJs = /** @class */ (function () {
         if (!node.left || !node.right) {
             throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occure
         }
-        var sLeft = this.fnParseOneArg(node.left), sRight = this.fnParseOneArg(node.right), iLeft = Number(sLeft), // "null" gets NaN (should we check node.left.type for null?)
+        var sLeft = this.fnParseOneArg(node.left), sRight = this.fnParseOneArg(node.right), iLeft = Number(sLeft), // "undefined" gets NaN (should we check node.left.type for null?)
         iRight = Number(sRight);
         if (iLeft > iRight) { // comparison with NaN and number is always false
             throw this.composeError(Error(), "Decreasing line range", node.value, node.pos);
         }
-        node.pv = !sRight ? sLeft : sLeft + ", " + sRight;
+        var sRightSpecified = (sRight === "undefined") ? "65535" : sRight; // make sure we set a missing right range parameter
+        node.pv = !sRight ? sLeft : sLeft + ", " + sRightSpecified;
         return node.pv;
     };
     CodeGeneratorJs.string = function (node) {
@@ -538,7 +539,7 @@ var CodeGeneratorJs = /** @class */ (function () {
         return node.pv;
     };
     CodeGeneratorJs.fnNull = function (node) {
-        node.pv = "null";
+        node.pv = node.value !== "null" ? node.value : "undefined"; // use explicit value or convert "null" to "undefined"
         return node.pv;
     };
     CodeGeneratorJs.prototype.assign = function (node) {
@@ -722,6 +723,10 @@ var CodeGeneratorJs = /** @class */ (function () {
     };
     CodeGeneratorJs.prototype["delete"] = function (node) {
         var aNodeArgs = this.fnParseArgs(node.args), sName = Utils_1.Utils.bSupportReservedNames ? "o.delete" : 'o["delete"]';
+        if (!aNodeArgs.length) { // no arguments? => complete range
+            aNodeArgs.push("1");
+            aNodeArgs.push("65535");
+        }
         node.pv = sName + "(" + aNodeArgs.join(", ") + "); break;";
         return node.pv;
     };
@@ -785,16 +790,16 @@ var CodeGeneratorJs = /** @class */ (function () {
         this.oStack.forLabel.push(sLabel);
         this.oStack.forVarName.push(sVarName);
         this.iForCount += 1;
-        var startValue = aNodeArgs[1], endValue = aNodeArgs[2], stepValue = aNodeArgs[3];
-        if (stepValue === "null") {
-            stepValue = "1";
-        }
         if (!node.args) {
             throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occure
         }
-        var startNode = node.args[1], endNode = node.args[2], stepNode = node.args[3], 
+        var startNode = node.args[1], endNode = node.args[2], stepNode = node.args[3];
+        var startValue = aNodeArgs[1], endValue = aNodeArgs[2], stepValue = aNodeArgs[3];
+        if (stepNode.type === "null") { // value not available?
+            stepValue = "1";
+        }
         // optimization for integer constants (check value and not type, because we also want to accept e.g. -<number>):
-        bStartIsIntConst = CodeGeneratorJs.fnIsIntConst(startValue), bEndIsIntConst = CodeGeneratorJs.fnIsIntConst(endValue), bStepIsIntConst = CodeGeneratorJs.fnIsIntConst(stepValue), sVarType = this.fnDetermineStaticVarType(sVarName), sType = (sVarType.length > 1) ? sVarType.charAt(1) : "";
+        var bStartIsIntConst = CodeGeneratorJs.fnIsIntConst(startValue), bEndIsIntConst = CodeGeneratorJs.fnIsIntConst(endValue), bStepIsIntConst = CodeGeneratorJs.fnIsIntConst(stepValue), sVarType = this.fnDetermineStaticVarType(sVarName), sType = (sVarType.length > 1) ? sVarType.charAt(1) : "";
         if (sType === "$") {
             throw this.composeError(Error(), "String type in FOR at", node.type, node.pos);
         }
@@ -916,7 +921,7 @@ var CodeGeneratorJs = /** @class */ (function () {
             sMsg = '""';
         }
         var sPrompt = aNodeArgs[3];
-        if (sPrompt === ";" || sPrompt === "null") { // ";" => insert prompt "? " in quoted string
+        if (sPrompt === ";" || node.args[3].type === "null") { // ";" => insert prompt "? " in quoted string
             sMsg = sMsg.substr(0, sMsg.length - 1) + "? " + sMsg.substr(-1, 1);
         }
         for (var i = 4; i < aNodeArgs.length; i += 1) {
@@ -947,9 +952,9 @@ var CodeGeneratorJs = /** @class */ (function () {
         if (!node.args) {
             throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occure
         }
-        if (node.args.length && node.args[node.args.length - 1].type === "#") { // last parameter stream?
-            var stream = aNodeArgs.pop() || "0";
-            aNodeArgs.unshift(stream); // put it first
+        if (!node.args.length || node.args[node.args.length - 1].type === "#") { // last parameter stream? or no parameters?
+            var sStream = aNodeArgs.pop() || "0";
+            aNodeArgs.unshift(sStream); // put it first
         }
         node.pv = "o.list(" + aNodeArgs.join(", ") + "); break;";
         return node.pv;
@@ -966,7 +971,7 @@ var CodeGeneratorJs = /** @class */ (function () {
     CodeGeneratorJs.prototype.mid$Assign = function (node) {
         var aNodeArgs = this.fnParseArgs(node.args);
         if (aNodeArgs.length < 3) {
-            aNodeArgs.push("null"); // empty length
+            aNodeArgs.push("undefined"); // empty length
         }
         if (!node.right) {
             throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occure TTT
@@ -1296,7 +1301,8 @@ var CodeGeneratorJs = /** @class */ (function () {
             if (Utils_1.Utils.debug > 2) {
                 Utils_1.Utils.console.debug("evaluate: parseTree i=%d, node=%o", i, parseTree[i]);
             }
-            var sNode = this.parseNode(parseTree[i]);
+            //const sNode = this.parseNode(parseTree[i] as CodeNode);
+            var sNode = this.fnParseOneArg(parseTree[i]);
             if ((sNode !== undefined) && (sNode !== "")) {
                 if (sNode !== null) {
                     if (sOutput.length === 0) {
