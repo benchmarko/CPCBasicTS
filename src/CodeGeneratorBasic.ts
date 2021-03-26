@@ -105,8 +105,12 @@ export class CodeGeneratorBasic {
 		return sValue;
 	}
 
-	private fnParseArgs(aArgs: ParserNode[]) {
+	private fnParseArgs(aArgs: ParserNode[] | undefined) {
 		const aNodeArgs: string[] = []; // do not modify node.args here (could be a parameter of defined function)
+
+		if (!aArgs) {
+			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occure TTT
+		}
 
 		for (let i = 0; i < aArgs.length; i += 1) {
 			const sValue = this.fnParseOneArg(aArgs[i]);
@@ -136,6 +140,9 @@ export class CodeGeneratorBasic {
 	}
 	private assign(node: ParserNode) {
 		// see also "let"
+		if (!node.left || !node.right) {
+			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occure
+		}
 		if (node.left.type !== "identifier") {
 			throw this.composeError(Error(), "Unexpected assing type", node.type, node.pos); // should not occur
 		}
@@ -211,6 +218,7 @@ export class CodeGeneratorBasic {
 		return sValue;
 	}
 	private data(node: ParserNode) {
+		/*
 		const aNodeArgs: string[] = [],
 			regExp = new RegExp(",|^ +| +$");
 
@@ -229,6 +237,25 @@ export class CodeGeneratorBasic {
 			}
 			aNodeArgs.push(sValue2);
 		}
+		*/
+		const aNodeArgs = this.fnParseArgs(node.args),
+			regExp = new RegExp(",|^ +| +$");
+
+		for (let i = 0; i < aNodeArgs.length; i += 1) {
+			let sValue2 = aNodeArgs[i];
+
+			if (sValue2) {
+				sValue2 = sValue2.substr(1, sValue2.length - 2); // remove surrounding quotes
+				sValue2 = sValue2.replace(/\\"/g, "\""); // unescape "
+
+				if (sValue2) {
+					if (regExp.test(sValue2)) {
+						sValue2 = '"' + sValue2 + '"';
+					}
+				}
+			}
+			aNodeArgs[i] = sValue2;
+		}
 
 		let sName = node.type.toUpperCase(),
 			sValue = aNodeArgs.join(",");
@@ -241,6 +268,10 @@ export class CodeGeneratorBasic {
 		return sValue;
 	}
 	private def(node: ParserNode) {
+		if (!node.left || !node.right) {
+			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occure
+		}
+
 		const sName = this.fnParseOneArg(node.left),
 			sSpace = node.left.bSpace ? " " : "", // fast hack
 			aNodeArgs = this.fnParseArgs(node.args),
@@ -256,7 +287,11 @@ export class CodeGeneratorBasic {
 
 		return sValue;
 	}
-	private static "else"(node: ParserNode) { // similar to a comment, with unchecked tokens
+	private "else"(node: ParserNode) { // similar to a comment, with unchecked tokens
+		if (!node.args) {
+			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occure
+		}
+
 		const aArgs = node.args;
 		let sValue = "";
 
@@ -272,6 +307,10 @@ export class CodeGeneratorBasic {
 		return sValue;
 	}
 	private ent(node: ParserNode) {
+		if (!node.args) {
+			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occure
+		}
+
 		const aArgs = node.args,
 			aNodeArgs = [];
 		let bEqual = false;
@@ -307,6 +346,10 @@ export class CodeGeneratorBasic {
 		return sValue;
 	}
 	private fn(node: ParserNode) {
+		if (!node.left) {
+			throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occure
+		}
+
 		const aNodeArgs = this.fnParseArgs(node.args),
 			sName = this.fnParseOneArg(node.left),
 			sSpace = node.left.bSpace ? " " : ""; // fast hack
@@ -335,13 +378,20 @@ export class CodeGeneratorBasic {
 		return sValue;
 	}
 	private "if"(node: ParserNode) {
+		if (!node.left) {
+			throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occure
+		}
+		if (!node.args) {
+			throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occure
+		}
+
 		let sValue = node.type.toUpperCase() + " " + this.fnParseOneArg(node.left) + " THEN ";
 
 		const oNodeBranch = node.args,
 			aNodeArgs = this.fnParseArgs(oNodeBranch); // args for "then"
 
 		if (oNodeBranch.length && oNodeBranch[0].type === "goto" && oNodeBranch[0].len === 0) { // inserted goto?
-			aNodeArgs[0] = this.fnParseOneArg(oNodeBranch[0].args[0]); // take just line number
+			aNodeArgs[0] = this.fnParseOneArg(oNodeBranch[0].args![0]); // take just line number
 		}
 		sValue += aNodeArgs.join(":");
 
@@ -351,7 +401,7 @@ export class CodeGeneratorBasic {
 				aNodeArgs2 = this.fnParseArgs(oNodeBranch2); // args for "else"
 
 			if (oNodeBranch2.length && oNodeBranch2[0].type === "goto" && oNodeBranch2[0].len === 0) { // inserted goto?
-				aNodeArgs2[0] = this.fnParseOneArg(oNodeBranch2[0].args[0]); // take just line number
+				aNodeArgs2[0] = this.fnParseOneArg(oNodeBranch2[0].args![0]); // take just line number
 			}
 			sValue += aNodeArgs2.join(":");
 		}
@@ -403,6 +453,10 @@ export class CodeGeneratorBasic {
 		return sValue;
 	}
 	private mid$Assign(node: ParserNode) {
+		if (!node.right) {
+			throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occure TTT
+		}
+
 		const aNodeArgs = this.fnParseArgs(node.args),
 			sTypeUc = CodeGeneratorBasic.mCombinedKeywords[node.type],
 			sValue = sTypeUc + "(" + aNodeArgs.join(",") + ")=" + this.fnParseOneArg(node.right);
@@ -501,7 +555,7 @@ export class CodeGeneratorBasic {
 		chainMerge: this.chainMerge,
 		data: this.data,
 		def: this.def,
-		"else": CodeGeneratorBasic.else,
+		"else": this.else,
 		ent: this.ent,
 		env: this.env,
 		everyGosub: this.everyGosub,

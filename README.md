@@ -130,7 +130,7 @@ With CPC Basic we do not get that accuracy. But if we compile it to JavaScript, 
   Example: [Mouse Painting](https://benchmarko.github.io/CPCBasicTS/?example=test/mousepa)
 - *MODE 3*: High resolution mode with real 640x400 pixels, 16 colors and 8x8 pixels per character.
   This is different to the unofficial and not very useful Gate Array mode 3 on a real CPC: [CPC live: Graphics](http://cpctech.cpc-live.com/docs/graphics.html).
-Several examples use CPCBasic mode 3, e.g. [Art](https://benchmarko.github.io/CPCBasicTS/?example=test/art), [Landscape](https://benchmarko.github.io/CPCBasicTS/?example=test/landscape), [Rectangles](https://benchmarko.github.io/CPCBasicTS/?example=test/rectangles).
+Several examples use CPCBasic mode 3, e.g. [Art](https://benchmarko.github.io/CPCBasicTS/?example=art), [Landscape](https://benchmarko.github.io/CPCBasicTS/?example=landscape), [Rectangles](https://benchmarko.github.io/CPCBasicTS/?example=test/rectangles).
 - *|MODE,n*: Change mode without *CLS*, including mode 3 (experimental)
 - *|RENUM,...*: similar to *RENUM* but with a 4th parameter to keep line numbers starting with this line
 - Computations with numbers are not limited to 16 bit
@@ -242,20 +242,26 @@ Several examples use CPCBasic mode 3, e.g. [Art](https://benchmarko.github.io/CP
 
 QUnit tests:
 
+- [BasicFormatter.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/BasicFormatter.qunit.html)
+- [BasicLexer.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/BasicLexer.qunit.html)
 - [BasicParser.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/BasicParser.qunit.html)
+- [BasicTokenizer.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/BasicTokenizer.qunit.html)
 - [CodeGeneratorBasic.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/CodeGeneratorBasic.qunit.html)
+- [CodeGeneratorJs.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/CodeGeneratorJs.qunit.html)
+- [DiskImage.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/DiskImage.qunit.html)
 - [Model.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/Model.qunit.html)
+- [ZipFile.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/ZipFile.qunit.html)
 - [testParseExamples.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/testParseExamples.qunit.html) (parse all examples)
 - [testsuite.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/testsuite.qunit.html) (run all tests)
 
 IFrames test:
 
-- [testIFrames.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/testIFrames.qunit.html) (CPCBasic in IFrames)
+- [testIFrames.html](https://benchmarko.github.io/CPCBasicTS/test/testIFrames.html) (CPCBasicTS in IFrames)
 
 ## Possible Future Enhancements
 
 - Create buttons for the keys that the BASIC program checks (useful for e.g. mobile devices)
-- Save and restore snapshot of variables, also system varaibles
+- Save and restore snapshot of variables, also system variables
 - RSX extension libraries / plugins programmed in JavaScript
 - Can we detect busy loops and insert *FRAME* automatically?
 - Shall we support hardware scrolling with *OUT* or is it already a hardware emulation feature?

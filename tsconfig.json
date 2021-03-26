@@ -15,7 +15,7 @@
       "es2017",
       "dom"
     ],
-    "strict": false,
+    "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
