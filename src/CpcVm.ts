@@ -1624,7 +1624,7 @@ export class CpcVm {
 		iFirst = this.vmInRangeRound(iFirst, 1, 65535, "DELETE");
 
 		if (iLast === undefined) { // just one parameter specified?
-			iLast = iFirst;
+			iLast = 65535;
 		} else { // range
 			iLast = this.vmInRangeRound(iLast, 1, 65535, "DELETE");
 		}
@@ -2224,7 +2224,7 @@ export class CpcVm {
 
 		iFirst = this.vmInRangeRound(iFirst, 1, 65535, "LIST");
 		if (iLast === undefined) { // just one parameter specified?
-			iLast = iFirst;
+			iLast = 65535;
 		} else { // range
 			iLast = this.vmInRangeRound(iLast, 1, 65535, "LIST");
 		}
