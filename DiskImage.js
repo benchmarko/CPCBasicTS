@@ -44,22 +44,32 @@ var DiskImage = /** @class */ (function () {
     };
     DiskImage.prototype.readUtf = function (iPos, iLen) {
         var sOut = this.sData.substr(iPos, iLen);
+        if (sOut.length !== iLen) {
+            throw this.composeError(new Error(), "End of File", "", iPos);
+        }
         return sOut;
     };
     DiskImage.prototype.readUInt8 = function (iPos) {
         var iNum = this.sData.charCodeAt(iPos);
+        if (Number.isNaN(iNum)) {
+            throw this.composeError(new Error(), "End of File", String(iNum), iPos);
+        }
         return iNum;
     };
     DiskImage.prototype.readUInt16 = function (iPos) {
         return this.readUInt8(iPos) + this.readUInt8(iPos + 1) * 256;
     };
     DiskImage.prototype.readDiskInfo = function (iPos) {
-        var iDiskInfoSize = 0x100, oDiskInfo = this.oDiskInfo, sIdent = this.readUtf(iPos, 8); // check first 8 characters as characteristic
-        oDiskInfo.bExtended = (DiskImage.testDiskIdent(sIdent) === 2);
-        if (oDiskInfo.bExtended === null) {
-            throw this.composeError(Error(), "Dsk: Ident not found", sIdent);
+        var iDiskInfoSize = 0x100, oDiskInfo = this.oDiskInfo, sIdent = this.readUtf(iPos, 8), // check first 8 characters as characteristic
+        iDiskType = DiskImage.testDiskIdent(sIdent);
+        if (!iDiskType) {
+            throw this.composeError(Error(), "Ident not found", sIdent, iPos);
         }
+        oDiskInfo.bExtended = (iDiskType === 2);
         oDiskInfo.sIdent = sIdent + this.readUtf(iPos + 8, 34 - 8); // read remaining ident
+        if (oDiskInfo.sIdent.substr(34 - 11, 9) !== "Disk-Info") { // some tools use "Disk-Info  " instead of "Disk-Info\r\n", so compare without "\r\n"
+            throw this.composeError(Error(), "Disk ident not found", oDiskInfo.sIdent.substr(34 - 11, 9), iPos);
+        }
         oDiskInfo.sCreator = this.readUtf(iPos + 34, 14);
         oDiskInfo.iTracks = this.readUInt8(iPos + 48);
         oDiskInfo.iHeads = this.readUInt8(iPos + 49);
@@ -80,8 +90,8 @@ var DiskImage = /** @class */ (function () {
         var iTrackInfoSize = 0x100, oTrackInfo = this.oDiskInfo.oTrackInfo, aSectorInfo = oTrackInfo.aSectorInfo;
         oTrackInfo.iDataPos = iPos + iTrackInfoSize;
         oTrackInfo.sIdent = this.readUtf(iPos, 12);
-        if (oTrackInfo.sIdent.substr(0, 10) !== "Track-Info") { // some tools use ""Track-Info  " instead of ""Track-Info\r\n", so compare without "\r\n"
-            throw this.composeError(Error(), "Dsk: Track ident not found", oTrackInfo.sIdent, iPos);
+        if (oTrackInfo.sIdent.substr(0, 10) !== "Track-Info") { // some tools use "Track-Info  " instead of "Track-Info\r\n", so compare without "\r\n"
+            throw this.composeError(Error(), "Track ident not found", oTrackInfo.sIdent.substr(0, 10), iPos);
         }
         // 4 unused bytes
         oTrackInfo.iTrack = this.readUInt8(iPos + 16);
@@ -136,7 +146,7 @@ var DiskImage = /** @class */ (function () {
     DiskImage.prototype.readSector = function (iSector) {
         var oTrackInfo = this.oDiskInfo.oTrackInfo, iSectorIndex = this.sectorNum2Index(iSector);
         if (iSectorIndex === undefined) {
-            throw this.composeError(Error(), "Dsk: Track " + oTrackInfo.iTrack + ": Sector not found", String(iSector), 0);
+            throw this.composeError(Error(), "Track " + oTrackInfo.iTrack + ": Sector not found", String(iSector), 0);
         }
         var oSectorInfo = this.seekSector(iSectorIndex), sOut = this.readUtf(oSectorInfo.iDataPos, oSectorInfo.iSectorSize);
         return sOut;
@@ -145,7 +155,7 @@ var DiskImage = /** @class */ (function () {
     DiskImage.prototype.getFormatDescriptor = function (sFormat) {
         var oDerivedFormat = DiskImage.mFormatDescriptors[sFormat];
         if (!oDerivedFormat) {
-            throw this.composeError(Error(), "Dsk: Unknown format", sFormat);
+            throw this.composeError(Error(), "Unknown format", sFormat);
         }
         var oFormat;
         if (oDerivedFormat.sParentRef) {
@@ -179,7 +189,7 @@ var DiskImage = /** @class */ (function () {
             sFormat = "big780k";
         }
         else {
-            throw this.composeError(Error(), "Dsk: Unknown format with sector", String(iFirstSector));
+            throw this.composeError(Error(), "Unknown format with sector", String(iFirstSector));
         }
         if (oDiskInfo.iHeads > 1) { // maybe 2
             sFormat += String(oDiskInfo.iHeads); // e.g. "data": "data2"
@@ -272,7 +282,7 @@ var DiskImage = /** @class */ (function () {
         for (var i = 0; i < iDirectorySectors; i += 1) {
             var iSectorIndex = this.sectorNum2Index(iFirstSector + i);
             if (iSectorIndex === undefined) {
-                throw this.composeError(Error(), "Dsk: Cannot read directory at track " + iOff + " sector", String(iFirstSector));
+                throw this.composeError(Error(), "Cannot read directory at track " + iOff + " sector", String(iFirstSector));
             }
             var oSectorInfo = this.seekSector(iSectorIndex);
             this.readDirectoryExtents(aExtents, oSectorInfo.iDataPos, oSectorInfo.iDataPos + oSectorInfo.iSectorSize);
@@ -356,6 +366,13 @@ var DiskImage = /** @class */ (function () {
         return iSum;
     };
     DiskImage.parseAmsdosHeader = function (sData) {
+        var mTypeMap = {
+            0: "T",
+            1: "P",
+            2: "B",
+            8: "G",
+            0x16: "A" // ASCII
+        };
         var oHeader;
         // http://www.benchmarko.de/cpcemu/cpcdoc/chapter/cpcdoc7_e.html#I_AMSDOS_HD
         // http://www.cpcwiki.eu/index.php/AMSDOS_Header
@@ -373,24 +390,64 @@ var DiskImage = /** @class */ (function () {
                     iLength: sData.charCodeAt(64) + sData.charCodeAt(65) * 256 + sData.charCodeAt(66) * 65536,
                     sType: ""
                 };
-                if (oHeader.iType === 0) { // tokenized BASIC (T=not official)
-                    oHeader.sType = "T";
-                }
-                else if (oHeader.iType === 1) { // protected BASIC
-                    oHeader.sType = "P";
-                }
-                else if (oHeader.iType === 2) { // Binary
-                    oHeader.sType = "B";
-                }
-                else if (oHeader.iType === 8) { // GENA3 Assember (G=not official)
-                    oHeader.sType = "G";
-                }
-                else { // assume ASCII
-                    oHeader.sType = "A";
-                }
+                oHeader.sType = mTypeMap[oHeader.iType] || mTypeMap[16]; // default: ASCII
             }
         }
         return oHeader;
+    };
+    // for testing only
+    /*
+    private static writeUInt8(aData: Uint8Array, iPos: number, iValue: number) {
+        aData[iPos] = iValue;
+    }
+
+    private static writeUInt16(aData: Uint8Array, iPos: number, iValue: number) {
+        aData[iPos] = iValue & 0xff;
+        aData[iPos + 1] = (iValue >> 8) & 0xff;
+    }
+    */
+    DiskImage.uInt8ToString = function (iValue) {
+        return String.fromCharCode(iValue);
+    };
+    DiskImage.uInt16ToString = function (iValue) {
+        return DiskImage.uInt8ToString(iValue & 0xff) + DiskImage.uInt8ToString((iValue >> 8) & 0xff); // eslint-disable-line no-bitwise
+    };
+    DiskImage.uInt24ToString = function (iValue) {
+        return DiskImage.uInt16ToString(iValue & 0xffff) + DiskImage.uInt8ToString(iValue >> 16); // eslint-disable-line no-bitwise
+    };
+    DiskImage.combineAmsdosHeader = function (oHeader) {
+        var mTypeMap = {
+            T: 0,
+            P: 1,
+            B: 2,
+            G: 8,
+            A: 0x16 // ASCII
+        };
+        var iType = oHeader.iType;
+        if (oHeader.sType) { // overwrite iType form sType
+            iType = mTypeMap[oHeader.sType];
+            if (iType === undefined) {
+                iType = mTypeMap.A;
+            }
+        }
+        var sData1 = DiskImage.uInt8ToString(oHeader.iUser)
+            + oHeader.sName.padEnd(8, " ")
+            + oHeader.sExt.padEnd(3, " ")
+            + DiskImage.uInt16ToString(0)
+            + DiskImage.uInt16ToString(0)
+            + DiskImage.uInt8ToString(0) // block number (unused)
+            + DiskImage.uInt8ToString(0) // last block (unused)
+            + DiskImage.uInt8ToString(iType)
+            + DiskImage.uInt16ToString(0) // data location (unused)
+            + DiskImage.uInt16ToString(oHeader.iStart)
+            + DiskImage.uInt8ToString(0xff) // first block (unused, always 0xff)
+            + DiskImage.uInt16ToString(oHeader.iPseudoLen) // logical length
+            + DiskImage.uInt16ToString(oHeader.iEntry)
+            + " ".repeat(36)
+            + DiskImage.uInt24ToString(oHeader.iLength), iChecksum = DiskImage.computeChecksum(sData1), sData = sData1
+            + DiskImage.uInt16ToString(iChecksum)
+            + "\x00".repeat(59);
+        return sData;
     };
     DiskImage.mFormatDescriptors = {
         data: {

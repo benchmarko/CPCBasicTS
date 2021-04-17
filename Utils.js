@@ -121,7 +121,7 @@ var Utils = /** @class */ (function () {
         }
         var iEndPos = (oCustomError.pos || 0) + ((oCustomError.value !== undefined) ? String(oCustomError.value).length : 0);
         oCustomError.shortMessage = oCustomError.message + (oCustomError.line !== undefined ? " in " + oCustomError.line : " at pos " + (oCustomError.pos || 0) + "-" + iEndPos) + ": " + oCustomError.value;
-        oCustomError.message += " in " + oCustomError.line + " at pos " + (oCustomError.pos || 0) + "-" + iEndPos + ": " + oCustomError.value;
+        oCustomError.message += (oCustomError.line !== undefined ? " in " + oCustomError.line : "") + " at pos " + (oCustomError.pos || 0) + "-" + iEndPos + ": " + oCustomError.value;
         return oCustomError;
     };
     Utils.debug = 0;

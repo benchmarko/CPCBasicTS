@@ -1083,7 +1083,7 @@ var CpcVm = /** @class */ (function () {
         if (iFirst === void 0) { iFirst = 1; }
         iFirst = this.vmInRangeRound(iFirst, 1, 65535, "DELETE");
         if (iLast === undefined) { // just one parameter specified?
-            iLast = iFirst;
+            iLast = 65535;
         }
         else { // range
             iLast = this.vmInRangeRound(iLast, 1, 65535, "DELETE");
@@ -1608,7 +1608,7 @@ var CpcVm = /** @class */ (function () {
         iStream = this.vmInRangeRound(iStream, 0, 9, "LIST");
         iFirst = this.vmInRangeRound(iFirst, 1, 65535, "LIST");
         if (iLast === undefined) { // just one parameter specified?
-            iLast = iFirst;
+            iLast = 65535;
         }
         else { // range
             iLast = this.vmInRangeRound(iLast, 1, 65535, "LIST");

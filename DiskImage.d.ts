@@ -66,5 +66,9 @@ export declare class DiskImage {
     static unOrProtectData(sData: string): string;
     private static computeChecksum;
     static parseAmsdosHeader(sData: string): AmsdosHeader | undefined;
+    private static uInt8ToString;
+    private static uInt16ToString;
+    private static uInt24ToString;
+    static combineAmsdosHeader(oHeader: AmsdosHeader): string;
 }
 export {};
