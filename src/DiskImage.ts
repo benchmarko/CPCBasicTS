@@ -2,8 +2,9 @@
 // (c) Marco Vieth, 2020
 // https://benchmarko.github.io/CPCBasicTS/
 
-// http://www.cpctech.org.uk/docs/extdsk.html
 // Extended DSK image definition
+// https://www.cpcwiki.eu/index.php/Format:DSK_disk_image_file_format
+// http://www.cpctech.org.uk/docs/extdsk.html
 
 import { Utils } from "./Utils";
 
@@ -233,7 +234,7 @@ export class DiskImage {
 	private readUInt8(iPos: number) {
 		const iNum = this.sData.charCodeAt(iPos);
 
-		if (Number.isNaN(iNum)) {
+		if (isNaN(iNum)) {
 			throw this.composeError(new Error(), "End of File", String(iNum), iPos);
 		}
 
@@ -257,8 +258,15 @@ export class DiskImage {
 
 		oDiskInfo.sIdent = sIdent + this.readUtf(iPos + 8, 34 - 8); // read remaining ident
 
+		/*
 		if (oDiskInfo.sIdent.substr(34 - 11, 9) !== "Disk-Info") { // some tools use "Disk-Info  " instead of "Disk-Info\r\n", so compare without "\r\n"
 			throw this.composeError(Error(), "Disk ident not found", oDiskInfo.sIdent.substr(34 - 11, 9), iPos);
+		}
+		*/
+		if (oDiskInfo.sIdent.substr(34 - 11, 9) !== "Disk-Info") { // some tools use "Disk-Info  " instead of "Disk-Info\r\n", so compare without "\r\n"
+			//throw this.composeError(Error(), "Disk ident not found", oDiskInfo.sIdent.substr(34 - 11, 9), iPos);
+			// "Disk-Info" string is optional
+			Utils.console.warn(this.composeError({} as Error, "Disk ident not found", oDiskInfo.sIdent.substr(34 - 11, 9), iPos + 34 - 11).message);
 		}
 
 		oDiskInfo.sCreator = this.readUtf(iPos + 34, 14);
@@ -292,7 +300,9 @@ export class DiskImage {
 
 		oTrackInfo.sIdent = this.readUtf(iPos, 12);
 		if (oTrackInfo.sIdent.substr(0, 10) !== "Track-Info") { // some tools use "Track-Info  " instead of "Track-Info\r\n", so compare without "\r\n"
-			throw this.composeError(Error(), "Track ident not found", oTrackInfo.sIdent.substr(0, 10), iPos);
+			//throw this.composeError(Error(), "Track ident not found", oTrackInfo.sIdent.substr(0, 10), iPos);
+			// "Track-Info" string is optional
+			Utils.console.warn(this.composeError({} as Error, "Track ident not found", oTrackInfo.sIdent.substr(0, 10), iPos).message);
 		}
 		// 4 unused bytes
 		oTrackInfo.iTrack = this.readUInt8(iPos + 16);
@@ -630,7 +640,7 @@ export class DiskImage {
 			if (iIndex >= 0) {
 				iRealLen = iIndex;
 				if (Utils.debug > 0) {
-					Utils.console.debug("files_get: ASCII file length '$file_len' truncated to '$real_len'", 1);
+					Utils.console.debug("readFile: ASCII file length " + iFileLen + " truncated to " + iRealLen);
 				}
 			}
 		}

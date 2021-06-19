@@ -168,9 +168,7 @@ export class CodeGeneratorJs {
 	}
 
 	private static createJsKeywordRegex() {
-		const reJsKeywords = new RegExp("^(" + CodeGeneratorJs.aJsKeywords.join("|") + ")$");
-
-		return reJsKeywords;
+		return new RegExp("^(" + CodeGeneratorJs.aJsKeywords.join("|") + ")$");
 	}
 
 
@@ -219,9 +217,7 @@ export class CodeGeneratorJs {
 	}
 
 	private fnParseOneArg(oArg: ParserNode) {
-		const sValue = this.parseNode(oArg as CodeNode); // eslint-disable-line no-use-before-define
-
-		return sValue;
+		return this.parseNode(oArg as CodeNode); // eslint-disable-line no-use-before-define
 	}
 
 	private fnParseArgRange(aArgs: ParserNode[], iStart: number, iStop: number) {
