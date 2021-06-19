@@ -153,8 +153,7 @@ var CodeGeneratorJs = /** @class */ (function () {
         return Utils_1.Utils.composeError("CodeGeneratorJs", oError, message, value, pos, this.iLine);
     };
     CodeGeneratorJs.createJsKeywordRegex = function () {
-        var reJsKeywords = new RegExp("^(" + CodeGeneratorJs.aJsKeywords.join("|") + ")$");
-        return reJsKeywords;
+        return new RegExp("^(" + CodeGeneratorJs.aJsKeywords.join("|") + ")$");
     };
     CodeGeneratorJs.prototype.fnDeclareVariable = function (sName) {
         if (!this.oVariables.variableExist(sName)) { // variable not yet defined?
@@ -199,8 +198,7 @@ var CodeGeneratorJs = /** @class */ (function () {
         return sName;
     };
     CodeGeneratorJs.prototype.fnParseOneArg = function (oArg) {
-        var sValue = this.parseNode(oArg); // eslint-disable-line no-use-before-define
-        return sValue;
+        return this.parseNode(oArg); // eslint-disable-line no-use-before-define
     };
     CodeGeneratorJs.prototype.fnParseArgRange = function (aArgs, iStart, iStop) {
         var aNodeArgs = []; // do not modify node.args here (could be a parameter of defined function)

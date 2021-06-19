@@ -15,7 +15,7 @@ interface BasicFormatterOptions {
 }
 
 interface LineEntry {
-	value: number,
+	value: string,
 	pos: number,
 	len: number,
 	newLine?: number
@@ -26,9 +26,9 @@ type LinesType = { [k in string]: LineEntry };
 type ChangesType = { [k in number]: LineEntry};
 
 export class BasicFormatter {
-	private lexer: BasicLexer
-	private parser: BasicParser
-	private iLine = 0; // current line (label)
+	private lexer: BasicLexer;
+	private parser: BasicParser;
+	private sLine = ""; // current line (label) for error messages
 
 	constructor(options: BasicFormatterOptions) {
 		this.lexer = options.lexer;
@@ -36,28 +36,23 @@ export class BasicFormatter {
 	}
 
 	private composeError(oError: Error, message: string, value: string, pos: number) {
-		return Utils.composeError("BasicFormatter", oError, message, value, pos, this.iLine);
+		return Utils.composeError("BasicFormatter", oError, message, value, pos, this.sLine);
 	}
 
 	// renumber
 
 	private fnCreateLineNumbersMap(aNodes: ParserNode[]) { // create line numbers map
 		const oLines: LinesType = {}; // line numbers
-		let iLastLine = 0;
+		let iLastLine = -1;
 
-		oLines[0] = { // dummy line 0 for: on error goto 0
-			value: 0,
-			pos: 0,
-			len: 0
-		};
 		for (let i = 0; i < aNodes.length; i += 1) {
 			const oNode = aNodes[i];
 
 			if (oNode.type === "label") {
 				const sLine = oNode.value,
-					iLine = Number(oNode.value);
+					iLine = Number(sLine);
 
-				this.iLine = iLine;
+				this.sLine = sLine;
 				if (sLine in oLines) {
 					throw this.composeError(Error(), "Duplicate line number", sLine, oNode.pos);
 				}
@@ -67,10 +62,10 @@ export class BasicFormatter {
 				if (iLine < 1 || iLine > 65535) {
 					throw this.composeError(Error(), "Line number overflow", sLine, oNode.pos);
 				}
-				oLines[oNode.value] = {
-					value: iLine,
+				oLines[sLine] = {
+					value: sLine,
 					pos: oNode.pos,
-					len: String(oNode.orig || oNode.value).length
+					len: (oNode.orig || sLine).length
 				};
 				iLastLine = iLine;
 			}
@@ -82,9 +77,9 @@ export class BasicFormatter {
 		if (oNode.type === "linenumber") {
 			if (oNode.value in oLines) {
 				aRefs.push({
-					value: Number(oNode.value),
+					value: oNode.value,
 					pos: oNode.pos,
-					len: String(oNode.orig || oNode.value).length
+					len: (oNode.orig || oNode.value).length
 				});
 			} else {
 				throw this.composeError(Error(), "Line does not exist", oNode.value, oNode.pos);
@@ -97,7 +92,7 @@ export class BasicFormatter {
 			const oNode = aNodes[i];
 
 			if (oNode.type === "label") {
-				this.iLine = Number(oNode.value); // for error messages
+				this.sLine = oNode.value;
 			} else {
 				this.fnAddSingleReference(oNode, oLines, aRefs);
 			}
@@ -109,10 +104,14 @@ export class BasicFormatter {
 				this.fnAddSingleReference(oNode.right, oLines, aRefs);
 			}
 			if (oNode.args) {
-				this.fnAddReferences(oNode.args, oLines, aRefs); // revursive
+				if (oNode.type === "onErrorGoto" && oNode.args.length === 1 && oNode.args[0].value === "0") {
+					// ignore "on error goto 0"
+				} else {
+					this.fnAddReferences(oNode.args, oLines, aRefs); // recursive
+				}
 			}
 			if (oNode.args2) { // for "ELSE"
-				this.fnAddReferences(oNode.args2, oLines, aRefs); // revursive
+				this.fnAddReferences(oNode.args2, oLines, aRefs); // recursive
 			}
 		}
 	}
@@ -122,11 +121,12 @@ export class BasicFormatter {
 			aKeys = Object.keys(oLines);
 
 		for (let i = 0; i < aKeys.length; i += 1) {
-			const oLine = oLines[aKeys[i]];
+			const oLine = oLines[aKeys[i]],
+				iLine = Number(oLine.value);
 
-			if (oLine.value >= iOld && oLine.value < iKeep) {
+			if (iLine >= iOld && iLine < iKeep) {
 				if (iNew > 65535) {
-					throw this.composeError(Error(), "Line number overflow", String(oLine.value), oLine.pos);
+					throw this.composeError(Error(), "Line number overflow", oLine.value, oLine.pos);
 				}
 				oLine.newLine = iNew;
 				oChanges[oLine.pos] = oLine;
@@ -135,11 +135,13 @@ export class BasicFormatter {
 		}
 
 		for (let i = 0; i < aRefs.length; i += 1) {
-			const oRef = aRefs[i];
+			const oRef = aRefs[i],
+				sLine = oRef.value,
+				iLine = Number(sLine);
 
-			if (oRef.value >= iOld && oRef.value < iKeep) {
-				if (oRef.value !== oLines[oRef.value].newLine) {
-					oRef.newLine = oLines[oRef.value].newLine;
+			if (iLine >= iOld && iLine < iKeep) {
+				if (iLine !== oLines[sLine].newLine) {
+					oRef.newLine = oLines[sLine].newLine;
 					oChanges[oRef.pos] = oRef;
 				}
 			}
@@ -182,8 +184,7 @@ export class BasicFormatter {
 			text: ""
 		};
 
-		this.iLine = 0; // current line (label)
-
+		this.sLine = ""; // current line (label)
 		try {
 			const aTokens = this.lexer.lex(sInput),
 				aParseTree = this.parser.parse(aTokens),

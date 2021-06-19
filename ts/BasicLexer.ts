@@ -21,13 +21,13 @@ export interface LexerToken {
 }
 
 export class BasicLexer {
-	private bQuiet = false
-	private sLine = "0" // for error messages
-	private bTakeNumberAsLine = true
+	private bQuiet = false;
+	private sLine = "0"; // for error messages
+	private bTakeNumberAsLine = true; // first number in a line is assumed to be a line number
 
 	private sInput = "";
-	private iIndex = 0
-	private aTokens: LexerToken[] = []
+	private iIndex = 0;
+	private aTokens: LexerToken[] = [];
 
 	constructor(options?: BasicLexerOptions) {
 		this.bQuiet = options?.bQuiet || false;

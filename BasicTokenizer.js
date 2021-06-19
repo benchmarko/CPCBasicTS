@@ -434,6 +434,7 @@ var BasicTokenizer = /** @class */ (function () {
     BasicTokenizer.prototype.fnParseProgram = function () {
         var sOut = "", sLine;
         this.iPos = 0;
+        this.iLine = 0;
         while ((sLine = this.fnParseNextLine()) !== undefined) {
             sOut += sLine + "\n";
             // CPC uses "\r\n" line breaks, JavaScript uses "\n", textArea cannot contain "\r"

@@ -146,26 +146,6 @@ var CodeGeneratorBasic = /** @class */ (function () {
         return sValue;
     };
     CodeGeneratorBasic.prototype.data = function (node) {
-        /*
-        const aNodeArgs: string[] = [],
-            regExp = new RegExp(",|^ +| +$");
-
-        for (let i = 0; i < node.args.length; i += 1) {
-            let sValue2 = this.fnParseOneArg(node.args[i]);
-
-            if (sValue2) {
-                sValue2 = sValue2.substr(1, sValue2.length - 2); // remove surrounding quotes
-                sValue2 = sValue2.replace(/\\"/g, "\""); // unescape "
-
-                if (sValue2) {
-                    if (regExp.test(sValue2)) {
-                        sValue2 = '"' + sValue2 + '"';
-                    }
-                }
-            }
-            aNodeArgs.push(sValue2);
-        }
-        */
         var aNodeArgs = this.fnParseArgs(node.args), regExp = new RegExp(",|^ +| +$");
         for (var i = 0; i < aNodeArgs.length; i += 1) {
             var sValue2 = aNodeArgs[i];

@@ -8,7 +8,7 @@ interface BasicFormatterOptions {
 export declare class BasicFormatter {
     private lexer;
     private parser;
-    private iLine;
+    private sLine;
     constructor(options: BasicFormatterOptions);
     private composeError;
     private fnCreateLineNumbersMap;

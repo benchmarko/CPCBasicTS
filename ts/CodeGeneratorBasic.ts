@@ -218,26 +218,6 @@ export class CodeGeneratorBasic {
 		return sValue;
 	}
 	private data(node: ParserNode) {
-		/*
-		const aNodeArgs: string[] = [],
-			regExp = new RegExp(",|^ +| +$");
-
-		for (let i = 0; i < node.args.length; i += 1) {
-			let sValue2 = this.fnParseOneArg(node.args[i]);
-
-			if (sValue2) {
-				sValue2 = sValue2.substr(1, sValue2.length - 2); // remove surrounding quotes
-				sValue2 = sValue2.replace(/\\"/g, "\""); // unescape "
-
-				if (sValue2) {
-					if (regExp.test(sValue2)) {
-						sValue2 = '"' + sValue2 + '"';
-					}
-				}
-			}
-			aNodeArgs.push(sValue2);
-		}
-		*/
 		const aNodeArgs = this.fnParseArgs(node.args),
 			regExp = new RegExp(",|^ +| +$");
 

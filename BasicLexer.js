@@ -13,7 +13,7 @@ var BasicLexer = /** @class */ (function () {
     function BasicLexer(options) {
         this.bQuiet = false;
         this.sLine = "0"; // for error messages
-        this.bTakeNumberAsLine = true;
+        this.bTakeNumberAsLine = true; // first number in a line is assumed to be a line number
         this.sInput = "";
         this.iIndex = 0;
         this.aTokens = [];

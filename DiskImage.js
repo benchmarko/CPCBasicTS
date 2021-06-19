@@ -4,8 +4,9 @@
 // https://benchmarko.github.io/CPCBasicTS/
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DiskImage = void 0;
-// http://www.cpctech.org.uk/docs/extdsk.html
 // Extended DSK image definition
+// https://www.cpcwiki.eu/index.php/Format:DSK_disk_image_file_format
+// http://www.cpctech.org.uk/docs/extdsk.html
 var Utils_1 = require("./Utils");
 var DiskImage = /** @class */ (function () {
     function DiskImage(oConfig) {
@@ -51,7 +52,7 @@ var DiskImage = /** @class */ (function () {
     };
     DiskImage.prototype.readUInt8 = function (iPos) {
         var iNum = this.sData.charCodeAt(iPos);
-        if (Number.isNaN(iNum)) {
+        if (isNaN(iNum)) {
             throw this.composeError(new Error(), "End of File", String(iNum), iPos);
         }
         return iNum;
@@ -67,8 +68,15 @@ var DiskImage = /** @class */ (function () {
         }
         oDiskInfo.bExtended = (iDiskType === 2);
         oDiskInfo.sIdent = sIdent + this.readUtf(iPos + 8, 34 - 8); // read remaining ident
+        /*
         if (oDiskInfo.sIdent.substr(34 - 11, 9) !== "Disk-Info") { // some tools use "Disk-Info  " instead of "Disk-Info\r\n", so compare without "\r\n"
             throw this.composeError(Error(), "Disk ident not found", oDiskInfo.sIdent.substr(34 - 11, 9), iPos);
+        }
+        */
+        if (oDiskInfo.sIdent.substr(34 - 11, 9) !== "Disk-Info") { // some tools use "Disk-Info  " instead of "Disk-Info\r\n", so compare without "\r\n"
+            //throw this.composeError(Error(), "Disk ident not found", oDiskInfo.sIdent.substr(34 - 11, 9), iPos);
+            // "Disk-Info" string is optional
+            Utils_1.Utils.console.warn(this.composeError({}, "Disk ident not found", oDiskInfo.sIdent.substr(34 - 11, 9), iPos + 34 - 11).message);
         }
         oDiskInfo.sCreator = this.readUtf(iPos + 34, 14);
         oDiskInfo.iTracks = this.readUInt8(iPos + 48);
@@ -91,7 +99,9 @@ var DiskImage = /** @class */ (function () {
         oTrackInfo.iDataPos = iPos + iTrackInfoSize;
         oTrackInfo.sIdent = this.readUtf(iPos, 12);
         if (oTrackInfo.sIdent.substr(0, 10) !== "Track-Info") { // some tools use "Track-Info  " instead of "Track-Info\r\n", so compare without "\r\n"
-            throw this.composeError(Error(), "Track ident not found", oTrackInfo.sIdent.substr(0, 10), iPos);
+            //throw this.composeError(Error(), "Track ident not found", oTrackInfo.sIdent.substr(0, 10), iPos);
+            // "Track-Info" string is optional
+            Utils_1.Utils.console.warn(this.composeError({}, "Track ident not found", oTrackInfo.sIdent.substr(0, 10), iPos).message);
         }
         // 4 unused bytes
         oTrackInfo.iTrack = this.readUInt8(iPos + 16);
@@ -337,7 +347,7 @@ var DiskImage = /** @class */ (function () {
             if (iIndex >= 0) {
                 iRealLen = iIndex;
                 if (Utils_1.Utils.debug > 0) {
-                    Utils_1.Utils.console.debug("files_get: ASCII file length '$file_len' truncated to '$real_len'", 1);
+                    Utils_1.Utils.console.debug("readFile: ASCII file length " + iFileLen + " truncated to " + iRealLen);
                 }
             }
         }

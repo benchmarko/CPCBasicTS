@@ -14,7 +14,18 @@ interface NodeHttps {
 	get: (sUrl: string, fn: (res: any) => void) => any
 }
 
-let https: NodeHttps; // nodeJs
+interface NodeFs {
+	readFile: (sName: string, sEncoding: string, fn: (res: any) => void) => any
+}
+
+interface NodePath {
+	resolve: (sDir: string, sName: string) => string
+}
+
+let https: NodeHttps, // nodeJs
+	fs: NodeFs,
+	path: NodePath,
+	__dirname: string; // eslint-disable-line no-underscore-dangle
 
 import { Utils } from "../Utils";
 import { ICpcVmRsx, IOutput } from "../Interfaces";
@@ -23,7 +34,7 @@ import { BasicLexer } from "../BasicLexer";
 import { BasicParser } from "../BasicParser";
 import { BasicTokenizer } from "../BasicTokenizer";
 import { CodeGeneratorJs } from "../CodeGeneratorJs";
-import { Model, ConfigType, DatabasesType, ExampleEntry } from "../Model";
+import { Model, ConfigType, DatabaseEntry, DatabasesType, ExampleEntry } from "../Model";
 import { Variables } from "../Variables";
 import { DiskImage } from "../DiskImage";
 import { cpcconfig } from "../cpcconfig";
@@ -48,7 +59,18 @@ const oGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function(
 	}());
 
 
+function isUrl(s: string) {
+	return s.startsWith("http"); // http or https
+}
+
+function fnEval(sCode: string) {
+	return eval(sCode); // eslint-disable-line no-eval
+}
+
 function nodeReadUrl(sUrl: string, fnDataLoaded: (oError: Error | undefined, sData?: string) => void) {
+	if (!https) {
+		fnEval('https = require("https");'); // to trick TypeScript
+	}
 	https.get(sUrl, (resp) => {
 		let sData = "";
 
@@ -67,6 +89,23 @@ function nodeReadUrl(sUrl: string, fnDataLoaded: (oError: Error | undefined, sDa
 	});
 }
 
+function nodeReadFile(sName: string, fnDataLoaded: (oError: Error | undefined, sData?: string) => void) {
+	if (!fs) {
+		fnEval('fs = require("fs");'); // to trick TypeScript
+	}
+	fs.readFile(sName, "utf8", fnDataLoaded);
+}
+
+function nodeGetAbsolutePath(sName: string) {
+	if (!path) {
+		fnEval('path = require("path");'); // to trick TypeScript
+	}
+	const sAbsolutePath = path.resolve(__dirname, sName);
+
+	return sAbsolutePath;
+}
+
+
 function createModel() {
 	const oStartConfig = {};
 
@@ -79,19 +118,21 @@ function createModel() {
 
 
 class cpcBasic {
-	static sRelativeDir = "../";
-	static model = createModel();
-
-	static iTestIndex: number;
-
 	static assert: any;
 
-	static aTestExamples: string[];
+	static iTotalExamples: number;
 
-	static fnExampleDone1: () => void;
+	static sBaseDir = "../"; // base test directory (relative to dist)
+	static sDataBaseDirOrUrl = "";
+	static model = createModel();
 
+	static aDatabaseNames: string[];
+	static iDatabaseIndex: number;
 	static fnIndexDone1: () => void;
 
+	static aTestExamples: string[];
+	static iTestIndex: number; // example index for current database
+	static fnExampleDone1: () => void;
 
 	static oCodeGeneratorJs = new CodeGeneratorJs({
 		lexer: new BasicLexer({
@@ -110,10 +151,11 @@ class cpcBasic {
 
 	static oBasicTokenizer = new BasicTokenizer(); // for loading tokenized examples
 
-	static initDatabases() {
+	static initDatabases(): string[] {
 		const oModel = cpcBasic.model,
 			oDatabases: DatabasesType = {},
-			aDatabaseDirs = oModel.getProperty<string>("databaseDirs").split(",");
+			aDatabaseDirs = oModel.getProperty<string>("databaseDirs").split(","),
+			aDatabaseNames: string[] = [];
 
 		for (let i = 0; i < aDatabaseDirs.length; i += 1) {
 			const sDatabaseDir = aDatabaseDirs[i],
@@ -125,8 +167,10 @@ class cpcBasic {
 				title: sDatabaseDir,
 				src: sDatabaseDir
 			};
+			aDatabaseNames.push(sName);
 		}
 		cpcBasic.model.addDatabases(oDatabases);
+		return aDatabaseNames;
 	}
 
 	private static addIndex2(sDir: string, sInput: string) { // sDir maybe ""
@@ -285,10 +329,6 @@ function testParseExample(oExample: ExampleEntry) {
 	return oOutput;
 }
 
-function fnEval(sCode: string) {
-	return eval(sCode); // eslint-disable-line no-eval
-}
-
 function fnExampleLoaded(oError?: Error, sCode?: string) {
 	if (oError) {
 		throw oError;
@@ -304,9 +344,9 @@ function fnExampleLoaded(oError?: Error, sCode?: string) {
 		oOutput = testParseExample(oExample);
 
 	if (!oOutput.error) {
-		if (cpcBasic.iTestIndex < cpcBasic.aTestExamples.length) {
-			testNextExample(); // eslint-disable-line no-use-before-define
-		}
+		//if (cpcBasic.iTestIndex < cpcBasic.aTestExamples.length) {
+		testNextExample(); // eslint-disable-line no-use-before-define
+		//}
 	}
 }
 
@@ -321,7 +361,7 @@ function fnExampleErrorUtils(sUrl: string) {
 function testLoadExample(oExample: ExampleEntry) {
 	const sExample = oExample.key,
 		//sUrl = cpcBasic.sRelativeDir + oExample.dir + "/" + sExample + ".js";
-		sUrl = cpcBasic.sRelativeDir + "/" + sExample + ".js";
+		sFileOrUrl = cpcBasic.sDataBaseDirOrUrl + "/" + sExample + ".js";
 
 	if (cpcBasic.assert) {
 		cpcBasic.fnExampleDone1 = cpcBasic.assert.async();
@@ -331,10 +371,19 @@ function testLoadExample(oExample: ExampleEntry) {
 	if (fs) {
 		fs.readFile(sUrl, "utf8", fnExampleLoaded);
 	*/
+	/*
 	if (https) {
 		nodeReadUrl(sUrl, fnExampleLoaded);
+	*/
+
+	if (bNodeJsAvail) {
+		if (isUrl(sFileOrUrl)) {
+			nodeReadUrl(sFileOrUrl, fnExampleLoaded);
+		} else {
+			nodeReadFile(sFileOrUrl, fnExampleLoaded);
+		}
 	} else {
-		Utils.loadScript(sUrl, fnExampleLoadedUtils, fnExampleErrorUtils, sExample);
+		Utils.loadScript(sFileOrUrl, fnExampleLoadedUtils, fnExampleErrorUtils, sExample);
 	}
 }
 
@@ -350,15 +399,17 @@ function testNextExample() {
 		const oExample = cpcBasic.model.getExample(sKey);
 
 		testLoadExample(oExample);
+	} else { // another database?
+		testNextIndex(); // eslint-disable-line no-use-before-define
 	}
 }
 
 
 function fnIndexLoaded(oError: Error | undefined, sCode?: string) {
-	cpcBasic.fnIndexDone1();
 	if (oError) {
 		throw oError;
 	}
+	cpcBasic.fnIndexDone1();
 
 	if (sCode) {
 		fnEval(sCode); // load index (for nodeJs)
@@ -369,8 +420,9 @@ function fnIndexLoaded(oError: Error | undefined, sCode?: string) {
 	cpcBasic.aTestExamples = Object.keys(oAllExamples);
 	cpcBasic.iTestIndex = 0;
 
+	cpcBasic.iTotalExamples += cpcBasic.aTestExamples.length;
 	if (cpcBasic.assert) {
-		cpcBasic.assert.expect(cpcBasic.aTestExamples.length);
+		cpcBasic.assert.expect(cpcBasic.iTotalExamples);
 	}
 
 	testNextExample();
@@ -385,16 +437,8 @@ function fnIndexErrorUtils(sUrl: string) {
 }
 
 
-function testLoadIndex() {
-	Utils.console.log("testLoadIndex: bNodeJs:", bNodeJsAvail, " Polyfills.iCount=", Polyfills.iCount);
-
-	cpcBasic.initDatabases();
-
-	const sKey = "examples";
-
-	cpcBasic.model.setProperty("database", sKey);
-	const oExampeDb = cpcBasic.model.getDatabase(),
-		sDir = oExampeDb.src;
+function testLoadIndex(oExampeDb: DatabaseEntry) {
+	let sDir = oExampeDb.src;
 
 	/*
 	if (bNodeJsAvail) {
@@ -403,19 +447,79 @@ function testLoadIndex() {
 	}
 	*/
 
-	cpcBasic.sRelativeDir = sDir;
+	/*
+	if (bNodeJsAvail) {
+		if (!isUrl(sDir)) {
+			sDir = path.resolve(__dirname, sDir); // convert to absolute path to get it working also for "npm test" and not only for node
+		}
+	}
+	*/
 
-	const sUrl = cpcBasic.sRelativeDir + "/0index.js"; // "./examples/0index.js";
+	if (!isUrl(sDir)) {
+		sDir = cpcBasic.sBaseDir + sDir;
+	}
 
+	if (cpcBasic.assert) {
+		cpcBasic.fnIndexDone1 = cpcBasic.assert.async();
+	}
+
+	if (bNodeJsAvail) {
+		if (!isUrl(sDir)) {
+			if (Utils.debug > 0) {
+				Utils.console.debug("testParseExamples: __dirname=", __dirname, " sDir=", sDir);
+			}
+			sDir = nodeGetAbsolutePath(sDir); // convert to absolute path to get it working also for "npm test" and not only for node
+		}
+	}
+	cpcBasic.sDataBaseDirOrUrl = sDir;
+
+	const sFileOrUrl = cpcBasic.sDataBaseDirOrUrl + "/0index.js"; // "./examples/0index.js";
+
+	Utils.console.log("testParseExamples: Using Database index:", sFileOrUrl);
 	/*
 	if (fs) {
 		fs.readFile(sUrl, "utf8", fnIndexLoaded);
 	*/
+	/*
 	if (https) {
 		nodeReadUrl(sUrl, fnIndexLoaded);
+	*/
+
+	if (bNodeJsAvail) {
+		if (isUrl(sDir)) {
+			nodeReadUrl(sFileOrUrl, fnIndexLoaded);
+		} else {
+			nodeReadFile(sFileOrUrl, fnIndexLoaded);
+		}
 	} else {
-		Utils.loadScript(sUrl, fnIndexLoadedUtils, fnIndexErrorUtils, sKey);
+		Utils.loadScript(sFileOrUrl, fnIndexLoadedUtils, fnIndexErrorUtils, oExampeDb.text);
 	}
+}
+
+function testNextIndex() {
+	const aDatabaseNames = cpcBasic.aDatabaseNames,
+		iDatabaseIndex = cpcBasic.iDatabaseIndex;
+
+	if (iDatabaseIndex < aDatabaseNames.length) {
+		const sKey = aDatabaseNames[iDatabaseIndex]; // e.g. "examples";
+
+		if (sKey !== "storage") { // ignore "storage"
+			cpcBasic.iDatabaseIndex += 1;
+			cpcBasic.model.setProperty("database", sKey);
+			const oExampeDb = cpcBasic.model.getDatabase();
+
+			testLoadIndex(oExampeDb);
+		}
+	}
+}
+
+function testStart() {
+	Utils.console.log("testParseExamples: bNodeJs:", bNodeJsAvail, " Polyfills.iCount=", Polyfills.iCount);
+
+	cpcBasic.iTotalExamples = 0;
+	cpcBasic.aDatabaseNames = cpcBasic.initDatabases();
+	cpcBasic.iDatabaseIndex = 0;
+	testNextIndex();
 }
 
 function fnParseArgs(aArgs: string[]) {
@@ -436,12 +540,14 @@ function fnParseArgs(aArgs: string[]) {
 	return oSettings;
 }
 
+/*
 if (bNodeJsAvail) {
 	//const sNodeRequire = 'fs = require("fs"); path = require("path");';
 	const sNodeRequire = 'https = require("https");';
 
 	fnEval(sNodeRequire); // to trick TypeScript
 }
+*/
 
 
 declare global {
@@ -475,9 +581,11 @@ if (typeof oGlobalThis.QUnit !== "undefined") {
 		QUnit.test("testParseExamples", function (assert: QUnitAssertType3) {
 			cpcBasic.assert = assert;
 
+			/*
 			cpcBasic.fnIndexDone1 = assert.async();
 			assert.expect(1);
-			testLoadIndex();
+			*/
+			testStart();
 		});
 	});
 } else {
@@ -488,7 +596,6 @@ if (typeof oGlobalThis.QUnit !== "undefined") {
 		// empty
 	};
 
-	testLoadIndex();
+	testStart();
 }
-
 // end

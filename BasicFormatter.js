@@ -9,27 +9,22 @@ exports.BasicFormatter = void 0;
 var Utils_1 = require("./Utils");
 var BasicFormatter = /** @class */ (function () {
     function BasicFormatter(options) {
-        this.iLine = 0; // current line (label)
+        this.sLine = ""; // current line (label) for error messages
         this.lexer = options.lexer;
         this.parser = options.parser;
     }
     BasicFormatter.prototype.composeError = function (oError, message, value, pos) {
-        return Utils_1.Utils.composeError("BasicFormatter", oError, message, value, pos, this.iLine);
+        return Utils_1.Utils.composeError("BasicFormatter", oError, message, value, pos, this.sLine);
     };
     // renumber
     BasicFormatter.prototype.fnCreateLineNumbersMap = function (aNodes) {
         var oLines = {}; // line numbers
-        var iLastLine = 0;
-        oLines[0] = {
-            value: 0,
-            pos: 0,
-            len: 0
-        };
+        var iLastLine = -1;
         for (var i = 0; i < aNodes.length; i += 1) {
             var oNode = aNodes[i];
             if (oNode.type === "label") {
-                var sLine = oNode.value, iLine = Number(oNode.value);
-                this.iLine = iLine;
+                var sLine = oNode.value, iLine = Number(sLine);
+                this.sLine = sLine;
                 if (sLine in oLines) {
                     throw this.composeError(Error(), "Duplicate line number", sLine, oNode.pos);
                 }
@@ -39,10 +34,10 @@ var BasicFormatter = /** @class */ (function () {
                 if (iLine < 1 || iLine > 65535) {
                     throw this.composeError(Error(), "Line number overflow", sLine, oNode.pos);
                 }
-                oLines[oNode.value] = {
-                    value: iLine,
+                oLines[sLine] = {
+                    value: sLine,
                     pos: oNode.pos,
-                    len: String(oNode.orig || oNode.value).length
+                    len: (oNode.orig || sLine).length
                 };
                 iLastLine = iLine;
             }
@@ -53,9 +48,9 @@ var BasicFormatter = /** @class */ (function () {
         if (oNode.type === "linenumber") {
             if (oNode.value in oLines) {
                 aRefs.push({
-                    value: Number(oNode.value),
+                    value: oNode.value,
                     pos: oNode.pos,
-                    len: String(oNode.orig || oNode.value).length
+                    len: (oNode.orig || oNode.value).length
                 });
             }
             else {
@@ -67,7 +62,7 @@ var BasicFormatter = /** @class */ (function () {
         for (var i = 0; i < aNodes.length; i += 1) {
             var oNode = aNodes[i];
             if (oNode.type === "label") {
-                this.iLine = Number(oNode.value); // for error messages
+                this.sLine = oNode.value;
             }
             else {
                 this.fnAddSingleReference(oNode, oLines, aRefs);
@@ -79,20 +74,25 @@ var BasicFormatter = /** @class */ (function () {
                 this.fnAddSingleReference(oNode.right, oLines, aRefs);
             }
             if (oNode.args) {
-                this.fnAddReferences(oNode.args, oLines, aRefs); // revursive
+                if (oNode.type === "onErrorGoto" && oNode.args.length === 1 && oNode.args[0].value === "0") {
+                    // ignore "on error goto 0"
+                }
+                else {
+                    this.fnAddReferences(oNode.args, oLines, aRefs); // recursive
+                }
             }
             if (oNode.args2) { // for "ELSE"
-                this.fnAddReferences(oNode.args2, oLines, aRefs); // revursive
+                this.fnAddReferences(oNode.args2, oLines, aRefs); // recursive
             }
         }
     };
     BasicFormatter.prototype.fnRenumberLines = function (oLines, aRefs, iNew, iOld, iStep, iKeep) {
         var oChanges = {}, aKeys = Object.keys(oLines);
         for (var i = 0; i < aKeys.length; i += 1) {
-            var oLine = oLines[aKeys[i]];
-            if (oLine.value >= iOld && oLine.value < iKeep) {
+            var oLine = oLines[aKeys[i]], iLine = Number(oLine.value);
+            if (iLine >= iOld && iLine < iKeep) {
                 if (iNew > 65535) {
-                    throw this.composeError(Error(), "Line number overflow", String(oLine.value), oLine.pos);
+                    throw this.composeError(Error(), "Line number overflow", oLine.value, oLine.pos);
                 }
                 oLine.newLine = iNew;
                 oChanges[oLine.pos] = oLine;
@@ -100,10 +100,10 @@ var BasicFormatter = /** @class */ (function () {
             }
         }
         for (var i = 0; i < aRefs.length; i += 1) {
-            var oRef = aRefs[i];
-            if (oRef.value >= iOld && oRef.value < iKeep) {
-                if (oRef.value !== oLines[oRef.value].newLine) {
-                    oRef.newLine = oLines[oRef.value].newLine;
+            var oRef = aRefs[i], sLine = oRef.value, iLine = Number(sLine);
+            if (iLine >= iOld && iLine < iKeep) {
+                if (iLine !== oLines[sLine].newLine) {
+                    oRef.newLine = oLines[sLine].newLine;
                     oChanges[oRef.pos] = oRef;
                 }
             }
@@ -134,7 +134,7 @@ var BasicFormatter = /** @class */ (function () {
         var oOut = {
             text: ""
         };
-        this.iLine = 0; // current line (label)
+        this.sLine = ""; // current line (label)
         try {
             var aTokens = this.lexer.lex(sInput), aParseTree = this.parser.parse(aTokens), sOutput = this.fnRenumber(sInput, aParseTree, iNew, iOld, iStep, iKeep || 65535);
             oOut.text = sOutput;
