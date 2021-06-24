@@ -499,6 +499,7 @@ function testLoadIndex(oExampeDb: DatabaseEntry) {
 function testNextIndex() {
 	const aDatabaseNames = cpcBasic.aDatabaseNames,
 		iDatabaseIndex = cpcBasic.iDatabaseIndex;
+	let bNextIndex = false;
 
 	if (iDatabaseIndex < aDatabaseNames.length) {
 		const sKey = aDatabaseNames[iDatabaseIndex]; // e.g. "examples";
@@ -508,8 +509,13 @@ function testNextIndex() {
 			cpcBasic.model.setProperty("database", sKey);
 			const oExampeDb = cpcBasic.model.getDatabase();
 
+			bNextIndex = true;
 			testLoadIndex(oExampeDb);
 		}
+	}
+
+	if (!bNextIndex) {
+		Utils.console.log("testParseExamples: Total examples:", cpcBasic.iTotalExamples);
 	}
 }
 

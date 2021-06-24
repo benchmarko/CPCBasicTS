@@ -362,14 +362,19 @@ function testLoadIndex(oExampeDb) {
 }
 function testNextIndex() {
     var aDatabaseNames = cpcBasic.aDatabaseNames, iDatabaseIndex = cpcBasic.iDatabaseIndex;
+    var bNextIndex = false;
     if (iDatabaseIndex < aDatabaseNames.length) {
         var sKey = aDatabaseNames[iDatabaseIndex]; // e.g. "examples";
         if (sKey !== "storage") { // ignore "storage"
             cpcBasic.iDatabaseIndex += 1;
             cpcBasic.model.setProperty("database", sKey);
             var oExampeDb = cpcBasic.model.getDatabase();
+            bNextIndex = true;
             testLoadIndex(oExampeDb);
         }
+    }
+    if (!bNextIndex) {
+        Utils_1.Utils.console.log("testParseExamples: Total examples:", cpcBasic.iTotalExamples);
     }
 }
 function testStart() {

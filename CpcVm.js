@@ -1080,13 +1080,20 @@ var CpcVm = /** @class */ (function () {
         this.bDeg = true;
     };
     CpcVm.prototype["delete"] = function (iFirst, iLast) {
-        if (iFirst === void 0) { iFirst = 1; }
-        iFirst = this.vmInRangeRound(iFirst, 1, 65535, "DELETE");
-        if (iLast === undefined) { // just one parameter specified?
-            iLast = 65535;
+        if (iFirst === undefined) {
+            iFirst = 1;
+            if (iLast === undefined) { // no first and last parameter?
+                iLast = 65535;
+            }
         }
-        else { // range
-            iLast = this.vmInRangeRound(iLast, 1, 65535, "DELETE");
+        else {
+            iFirst = this.vmInRangeRound(iFirst, 1, 65535, "DELETE");
+            if (iLast === undefined) { // just one parameter?
+                iLast = iFirst;
+            }
+            else { // range
+                iLast = this.vmInRangeRound(iLast, 1, 65535, "DELETE");
+            }
         }
         this.vmStop("deleteLines", 85, false, {
             sCommand: "DELETE",
@@ -1604,14 +1611,21 @@ var CpcVm = /** @class */ (function () {
         }
     };
     CpcVm.prototype.list = function (iStream, iFirst, iLast) {
-        if (iFirst === void 0) { iFirst = 1; }
         iStream = this.vmInRangeRound(iStream, 0, 9, "LIST");
-        iFirst = this.vmInRangeRound(iFirst, 1, 65535, "LIST");
-        if (iLast === undefined) { // just one parameter specified?
-            iLast = 65535;
+        if (iFirst === undefined) {
+            iFirst = 1;
+            if (iLast === undefined) { // no first and last parameter?
+                iLast = 65535;
+            }
         }
-        else { // range
-            iLast = this.vmInRangeRound(iLast, 1, 65535, "LIST");
+        else {
+            iFirst = this.vmInRangeRound(iFirst, 1, 65535, "LIST");
+            if (iLast === undefined) { // just one parameter?
+                iLast = iFirst;
+            }
+            else { // range
+                iLast = this.vmInRangeRound(iLast, 1, 65535, "LIST");
+            }
         }
         if (iStream === 9) {
             if (!this.oOutFile.bOpen) { // catch here

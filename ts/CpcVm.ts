@@ -1620,13 +1620,19 @@ export class CpcVm {
 		this.bDeg = true;
 	}
 
-	"delete"(iFirst = 1, iLast?: number): void {
-		iFirst = this.vmInRangeRound(iFirst, 1, 65535, "DELETE");
-
-		if (iLast === undefined) { // just one parameter specified?
-			iLast = 65535;
-		} else { // range
-			iLast = this.vmInRangeRound(iLast, 1, 65535, "DELETE");
+	"delete"(iFirst?: number, iLast?: number): void {
+		if (iFirst === undefined) {
+			iFirst = 1;
+			if (iLast === undefined) { // no first and last parameter?
+				iLast = 65535;
+			}
+		} else {
+			iFirst = this.vmInRangeRound(iFirst, 1, 65535, "DELETE");
+			if (iLast === undefined) { // just one parameter?
+				iLast = iFirst;
+			} else { // range
+				iLast = this.vmInRangeRound(iLast, 1, 65535, "DELETE");
+			}
 		}
 
 		this.vmStop("deleteLines", 85, false, {
@@ -2219,14 +2225,21 @@ export class CpcVm {
 		}
 	}
 
-	list(iStream: number, iFirst = 1, iLast?: number): void { // varargs
+	list(iStream: number, iFirst?: number, iLast?: number): void { // varargs
 		iStream = this.vmInRangeRound(iStream, 0, 9, "LIST");
 
-		iFirst = this.vmInRangeRound(iFirst, 1, 65535, "LIST");
-		if (iLast === undefined) { // just one parameter specified?
-			iLast = 65535;
-		} else { // range
-			iLast = this.vmInRangeRound(iLast, 1, 65535, "LIST");
+		if (iFirst === undefined) {
+			iFirst = 1;
+			if (iLast === undefined) { // no first and last parameter?
+				iLast = 65535;
+			}
+		} else {
+			iFirst = this.vmInRangeRound(iFirst, 1, 65535, "LIST");
+			if (iLast === undefined) { // just one parameter?
+				iLast = iFirst;
+			} else { // range
+				iLast = this.vmInRangeRound(iLast, 1, 65535, "LIST");
+			}
 		}
 
 		if (iStream === 9) {
