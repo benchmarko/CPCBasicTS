@@ -6,16 +6,21 @@ var Model_1 = require("../Model");
 QUnit.module("Model: Properties", function (hooks) {
     hooks.beforeEach(function () {
         var that = this, // eslint-disable-line no-invalid-this, @typescript-eslint/no-this-alias
-        oInitialConfig = {
+        oConfig = {
             p1: "v1"
-        }, oConfig = {
+        };
+        /*
+        oConfig = {
             p1: "v1",
             p2: "v2"
         };
-        that.model = new Model_1.Model(oConfig, oInitialConfig);
+        */
+        that.model = new Model_1.Model(oConfig);
+        that.model.setProperty("p2", "v2");
+        //that.model.getAllProperties().p2 = "v2";
     });
     QUnit.test("init without options", function (assert) {
-        var oModel = new Model_1.Model({}, {});
+        var oModel = new Model_1.Model({});
         assert.ok(oModel, "defined");
     });
     QUnit.test("properties", function (assert) {
@@ -44,7 +49,7 @@ QUnit.module("Model: Databases", function (hooks) {
         // empty
     });
     QUnit.test("databases", function (assert) {
-        var oModel = new Model_1.Model({}, {}), mDatabases = {
+        var oModel = new Model_1.Model({}), mDatabases = {
             db1: {
                 text: "text1",
                 title: "title1",
@@ -91,7 +96,7 @@ QUnit.module("Model: Examples", function (hooks) {
             title: "ex2",
             type: "",
             meta: ""
-        }, oModel = new Model_1.Model({}, {});
+        }, oModel = new Model_1.Model({});
         oModel.addDatabases(mDatabases);
         oModel.setProperty("database", "db1");
         oModel.setExample(mExample1);

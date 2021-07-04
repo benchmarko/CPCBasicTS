@@ -4,6 +4,8 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 // decode based on lbas2ascii.pl, 28.06.2006
+// http://cpctech.cpc-live.com/docs/bastech.html
+// https://www.cpcwiki.eu/index.php/Technical_information_about_Locomotive_BASIC#BASIC_tokens
 //
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BasicTokenizer = void 0;
@@ -15,6 +17,12 @@ var BasicTokenizer = /** @class */ (function () {
         // will also be set in decode
         this.iLineEnd = 0;
         this.sInput = "";
+        this.oDebug = {
+            iStartPos: 0,
+            iLine: 0,
+            sInfo: ""
+        };
+        // on sq?
         /* eslint-disable no-invalid-this */
         this.mTokens = {
             0x00: "",
@@ -322,15 +330,17 @@ var BasicTokenizer = /** @class */ (function () {
     BasicTokenizer.prototype.fnGetBit7TerminatedString = function () {
         var sData = this.sInput;
         var iPos = this.iPos;
-        while (sData.charCodeAt(iPos) <= 0x7f) { // last character b7=1 (>= 0x80)
+        while (sData.charCodeAt(iPos) <= 0x7f && iPos < this.iLineEnd) { //TTT last character b7=1 (>= 0x80)
             iPos += 1;
         }
         var sOut = sData.substring(this.iPos, iPos) + String.fromCharCode(sData.charCodeAt(iPos) & 0x7f); // eslint-disable-line no-bitwise
-        this.iPos = iPos + 1;
+        if (iPos < this.iLineEnd) { // maybe corrupted if used in DATA line
+            this.iPos = iPos + 1;
+        }
         return sOut;
     };
     BasicTokenizer.prototype.fnVar = function () {
-        this.fnNum16Dec(); // ignore offset
+        this.fnNum16Dec(); // ignore offset (offset to memory location of variable)
         return this.fnGetBit7TerminatedString();
     };
     BasicTokenizer.prototype.fnIntVar = function () {
@@ -343,7 +353,7 @@ var BasicTokenizer = /** @class */ (function () {
         return this.fnVar() + "!";
     };
     BasicTokenizer.prototype.fnRsx = function () {
-        this.fnNum8Dec(); // ignore length
+        this.fnNum8Dec(); // ignore length (offset to tokens following RSX name)
         return "|" + this.fnGetBit7TerminatedString();
     };
     BasicTokenizer.prototype.fnStringUntilEol = function () {
@@ -378,15 +388,42 @@ var BasicTokenizer = /** @class */ (function () {
         }
         return sOut;
     };
-    BasicTokenizer.prototype.fnParseNextLine = function () {
-        var sInput = this.sInput, iLineLength = this.fnNum16Dec();
+    BasicTokenizer.prototype.debugPrintInfo = function () {
+        var oDebug = this.oDebug;
+        Utils_1.Utils.console.debug("BasicTokenizer Details:\n", oDebug.sInfo);
+        oDebug.iLine = 0;
+        oDebug.sInfo = "";
+    };
+    BasicTokenizer.prototype.debugCollectInfo = function (sTokenLine) {
+        var oDebug = this.oDebug, sHex = this.sInput.substring(oDebug.iStartPos, this.iPos).split("").map(function (s) {
+            return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0");
+        }).join(",");
+        if (this.iLine !== oDebug.iLine) {
+            if (oDebug.sInfo) {
+                oDebug.sInfo += "\n";
+            }
+            oDebug.iLine = this.iLine;
+            oDebug.sInfo += oDebug.iLine + ": ";
+            //this.debugPrintInfo();
+            //oDebug.sInfo = "";
+        }
+        oDebug.sInfo += " [" + sHex + "] " + sTokenLine;
+    };
+    BasicTokenizer.prototype.fnParseLineFragment = function () {
+        var sInput = this.sInput;
+        /*
+            iLineLength = this.fnNum16Dec();
+
         if (!iLineLength) {
             return undefined; // nothing more
         }
         this.iLineEnd = this.iPos + iLineLength - 2;
         this.iLine = this.fnNum16Dec();
+        */
+        //this.iLineEnd = this.iPos + iLineLength - 2;
         var sOut = "", bSpace = false;
         while (this.iPos < this.iLineEnd) {
+            this.oDebug.iStartPos = this.iPos;
             var bOldSpace = bSpace;
             var iToken = this.fnNum8Dec();
             if (iToken === 0x01) { // statement seperator ":"?
@@ -423,27 +460,55 @@ var BasicTokenizer = /** @class */ (function () {
                 tstr = String.fromCharCode(iToken);
             }
             if (bOldSpace) {
-                if ((/^[a-zA-Z0-9$%!]+$/).test(tstr) || (iToken >= 0x02 && iToken <= 0x1f)) {
+                //if ((/^[a-zA-Z0-9$%!]+$/).test(tstr) || (iToken >= 0x02 && iToken <= 0x1f)) {
+                if ((/^[a-zA-Z0-9$%!]/).test(tstr) || (iToken >= 0x02 && iToken <= 0x1f)) { //TTT
                     tstr = " " + tstr;
                 }
             }
             sOut += tstr;
+            if (Utils_1.Utils.debug > 2) {
+                this.debugCollectInfo(tstr);
+            }
         }
-        return this.iLine + " " + sOut;
+        return sOut;
+    };
+    BasicTokenizer.prototype.fnParseNextLine = function () {
+        var iLineLength = this.fnNum16Dec();
+        if (!iLineLength) {
+            return undefined; // nothing more
+        }
+        this.iLine = this.fnNum16Dec();
+        this.iLineEnd = this.iPos - 4 + iLineLength;
+        return this.iLine + " " + this.fnParseLineFragment();
     };
     BasicTokenizer.prototype.fnParseProgram = function () {
         var sOut = "", sLine;
-        this.iPos = 0;
-        this.iLine = 0;
         while ((sLine = this.fnParseNextLine()) !== undefined) {
             sOut += sLine + "\n";
             // CPC uses "\r\n" line breaks, JavaScript uses "\n", textArea cannot contain "\r"
         }
         return sOut;
     };
+    BasicTokenizer.prototype.decodeLineFragment = function (sProgram, iOffset, iLength) {
+        this.sInput = sProgram;
+        this.iPos = iOffset;
+        this.iLine = 0;
+        this.iLineEnd = this.iPos + iLength;
+        var sOut = this.fnParseLineFragment();
+        if (Utils_1.Utils.debug > 2) {
+            this.debugPrintInfo();
+        }
+        return sOut;
+    };
     BasicTokenizer.prototype.decode = function (sProgram) {
         this.sInput = sProgram;
-        return this.fnParseProgram();
+        this.iPos = 0;
+        this.iLine = 0;
+        var sOut = this.fnParseProgram();
+        if (Utils_1.Utils.debug > 2) {
+            this.debugPrintInfo();
+        }
+        return sOut;
     };
     return BasicTokenizer;
 }());

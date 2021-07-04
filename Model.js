@@ -6,9 +6,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Model = void 0;
 var Utils_1 = require("./Utils");
 var Model = /** @class */ (function () {
-    function Model(config, initialConfig) {
+    function Model(config) {
         this.config = config || {}; // store only a reference
-        this.initialConfig = initialConfig || {};
+        this.initialConfig = Object.assign({}, this.config); // save initial config
         this.databases = {};
         this.examples = {}; // loaded examples per database
     }

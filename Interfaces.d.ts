@@ -14,6 +14,7 @@ export interface IController {
     startScreenshot: () => string;
     startEnter: () => void;
     fnPretty: () => void;
+    fnDownload: () => void;
     setInputText: (sInput: string, bKeepStack?: boolean) => void;
     setExampleSelectOptions: () => void;
     invalidateScript: () => void;

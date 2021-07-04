@@ -24,7 +24,7 @@ export declare class Model {
     private initialConfig;
     private databases;
     private examples;
-    constructor(config: ConfigType, initialConfig: ConfigType);
+    constructor(config: ConfigType);
     getProperty<T extends ConfigEntryType>(sProperty: string): T;
     setProperty<T extends ConfigEntryType>(sProperty: string, value: T): void;
     getAllProperties(): ConfigType;

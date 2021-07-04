@@ -34,6 +34,7 @@ import { BasicLexer } from "../BasicLexer";
 import { BasicParser } from "../BasicParser";
 import { BasicTokenizer } from "../BasicTokenizer";
 import { CodeGeneratorJs } from "../CodeGeneratorJs";
+import { CodeGeneratorToken } from "../CodeGeneratorToken";
 import { Model, ConfigType, DatabaseEntry, DatabasesType, ExampleEntry } from "../Model";
 import { Variables } from "../Variables";
 import { DiskImage } from "../DiskImage";
@@ -110,8 +111,7 @@ function createModel() {
 	const oStartConfig = {};
 
 	Object.assign(oStartConfig, cpcconfig || {}); // merge external config from cpcconfig.js
-	const oInitialConfig = Object.assign({}, oStartConfig), // save config
-		oModel = new Model(oStartConfig, oInitialConfig);
+	const oModel = new Model(oStartConfig);
 
 	return oModel;
 }
@@ -134,22 +134,134 @@ class cpcBasic {
 	static iTestIndex: number; // example index for current database
 	static fnExampleDone1: () => void;
 
+	static oRsx = {
+		rsxIsAvailable: function (sRsx: string): boolean { // not needed to suppress warnings when using bQuiet
+			return (/^a|b|basic|cpm|dir|disc|disc\.in|disc\.out|drive|era|ren|tape|tape\.in|tape\.out|user|mode|renum$/).test(sRsx);
+		}
+		// will be programmatically extended by methods...
+	} as ICpcVmRsx;
+
+	static oLexer = new BasicLexer({
+		bQuiet: true
+	});
+
+	static oParser = new BasicParser({
+		bQuiet: true
+	});
+
 	static oCodeGeneratorJs = new CodeGeneratorJs({
-		lexer: new BasicLexer({
-			bQuiet: true
-		}),
-		parser: new BasicParser({
-			bQuiet: true
-		}),
+		lexer: cpcBasic.oLexer,
+		parser: cpcBasic.oParser,
 		tron: false,
-		rsx: {
-			rsxIsAvailable: function (sRsx: string) { // not needed to suppress warnings when using bQuiet
-				return (/^a|b|basic|cpm|dir|disc|disc\.in|disc\.out|drive|era|ren|tape|tape\.in|tape\.out|user|mode|renum$/).test(sRsx);
-			}
-		} as ICpcVmRsx
+		rsx: cpcBasic.oRsx
 	})
 
+	static oCodeGeneratorToken = new CodeGeneratorToken({
+		lexer: cpcBasic.oLexer,
+		parser: cpcBasic.oParser
+	})
+
+	static oVmMock = {
+		rsx: cpcBasic.oRsx,
+		iLine: "" as string | number, //TTT
+
+		oTestVariables1: new Variables(),
+		iTestStepCounter1: 0,
+
+		iMaxSteps: 10, // number of steps to simulate
+
+		initTest1: function () {
+			cpcBasic.oVmMock.iTestStepCounter1 = cpcBasic.oVmMock.iMaxSteps;
+			cpcBasic.oVmMock.iLine = 0; // or "start";
+			//cpcBasic.oVmMock.oTestVariables1.removeAllVariables();
+			cpcBasic.oVmMock.oTestVariables1.initAllVariables();
+		},
+
+		vmGetAllVariables: function () {
+			return cpcBasic.oVmMock.oTestVariables1.getAllVariables();
+		},
+		vmLoopCondition: function () {
+			cpcBasic.oVmMock.iTestStepCounter1 -= 1;
+			return cpcBasic.oVmMock.iTestStepCounter1 > 0;
+		},
+
+		vmRound: function (n: number) {
+			return (n >= 0) ? (n + 0.5) | 0 : (n - 0.5) | 0; // eslint-disable-line no-bitwise
+		},
+
+		vmAssign: function () { //_sVarType: string, _value: string | number) {
+			return 0; //TTT value;
+		},
+
+		vmAssertNumberType: function () {
+			// empty
+		},
+
+		dim(sVarName: string): void { // varargs
+			const aDimensions = [];
+
+			for (let i = 1; i < arguments.length; i += 1) {
+				const iSize = this.vmRound(arguments[i]) + 1; // for basic we have sizes +1
+
+				aDimensions.push(iSize);
+			}
+			cpcBasic.oVmMock.oTestVariables1.dimVariable(sVarName, aDimensions);
+		},
+
+		vmGetNextInput: function () {
+			return 0;
+		},
+
+		vmStop: function (sReason: string) {
+			if (sReason === "end") {
+				cpcBasic.oVmMock.iTestStepCounter1 = 0;
+			}
+		},
+
+		"goto": function (line: string | number) {
+			cpcBasic.oVmMock.iLine = line;
+		},
+
+		gosub: function (retLabel: string | number /* , line: string | number */) {
+			cpcBasic.oVmMock.iLine = retLabel; // we could use retLabel or line
+		}
+
+		// will be programmatically extended by methods...
+	};
+
 	static oBasicTokenizer = new BasicTokenizer(); // for loading tokenized examples
+
+	static initVmMock1() {
+		const oVmMock = cpcBasic.oVmMock,
+			mKeywords = BasicParser.mKeywords;
+
+		for (const sKey in mKeywords) {
+			if (mKeywords.hasOwnProperty(sKey)) {
+				if (!(oVmMock as any)[sKey]) {
+					(oVmMock as any)[sKey] = function () {
+						return sKey;
+					};
+				}
+			}
+		}
+
+		const oRsx = oVmMock.rsx,
+			sRsxKeys = "a|b|basic|cpm|dir|disc|disc.in|disc.out|drive|era|ren|tape|tape.in|tape.out|user|mode|renum",
+			aRsxKeys = sRsxKeys.split("|");
+
+		for (let i = 0; i < aRsxKeys.length; i += 1) {
+			const sKey = aRsxKeys[i];
+
+			if (!(oRsx as any)[sKey]) {
+				(oRsx as any)[sKey] = function () {
+					return sKey;
+				};
+			}
+		}
+
+		//oVmMock.iMaxSteps = 10;
+	}
+
 
 	static initDatabases(): string[] {
 		const oModel = cpcBasic.model,
@@ -301,17 +413,71 @@ function testCheckMeta(sInput: string) {
 	return sInput;
 }
 
+
 function testParseExample(oExample: ExampleEntry) {
 	const oCodeGeneratorJs = cpcBasic.oCodeGeneratorJs,
+		oCodeGeneratorToken = cpcBasic.oCodeGeneratorToken,
+		oBasicTokenizer = cpcBasic.oBasicTokenizer,
 		sScript = oExample.script || "",
-		oVariables = new Variables(),
 		sInput = testCheckMeta(sScript);
 
-	let	oOutput: IOutput;
+	let	sChecks = "",
+		oOutput: IOutput,
+		fnScript: Function; // eslint-disable-line @typescript-eslint/ban-types
 
 	if (oExample.meta !== "D") { // skip data files
-		oOutput = oCodeGeneratorJs.generate(sInput, oVariables, true);
+		sChecks = "Js";
+		const oVariables = cpcBasic.oVmMock.oTestVariables1;
+
+		// test lexer, parser and JS code generator
+		oVariables.removeAllVariables();
+		oOutput = oCodeGeneratorJs.generate(sInput, oVariables);
+
+		if (!oOutput.error) {
+			const sJsScript = oOutput.text;
+
+			try {
+				// test generate function
+				sChecks += ",Fn";
+				fnScript = new Function("o", sJsScript); // eslint-disable-line no-new-func
+
+				// test execute function (running script for fixed number of steps)
+				sChecks += ",exec";
+				cpcBasic.oVmMock.initTest1();
+				fnScript(cpcBasic.oVmMock);
+				sChecks += "(line " + cpcBasic.oVmMock.iLine + ")";
+
+				// test tokenizer
+				sChecks += ",token";
+				const oTokens = oCodeGeneratorToken.generate(sInput);
+
+				sChecks += "(" + oTokens.text.length + ")";
+
+				// test de-tokenizer
+				sChecks += ",deToken";
+				const sDecoded = oBasicTokenizer.decode(oTokens.text);
+
+				sChecks += "(" + sDecoded.length + ")";
+
+				sChecks += ",Js2";
+				oVariables.removeAllVariables();
+				const oOutput2 = oCodeGeneratorJs.generate(sDecoded, oVariables);
+
+				sChecks += ",Fn2";
+				fnScript = new Function("o", oOutput2.text); // eslint-disable-line no-new-func
+
+				// test execute function (running script for fixed number of steps)
+				sChecks += ",exec2";
+				cpcBasic.oVmMock.initTest1();
+				fnScript(cpcBasic.oVmMock);
+				sChecks += "(line " + cpcBasic.oVmMock.iLine + ")";
+			} catch (e) {
+				oOutput.error = e;
+				Utils.console.error(e);
+			}
+		}
 	} else {
+		sChecks = "ignored";
 		oOutput = {
 			text: "UNPARSED DATA FILE: " + oExample.key,
 			error: undefined
@@ -323,7 +489,7 @@ function testParseExample(oExample: ExampleEntry) {
 	}
 
 	if (cpcBasic.assert) {
-		cpcBasic.assert.ok(!oOutput.error, oExample.key);
+		cpcBasic.assert.ok(!oOutput.error, oExample.key + ": " + sChecks);
 	}
 
 	return oOutput;
@@ -344,9 +510,7 @@ function fnExampleLoaded(oError?: Error, sCode?: string) {
 		oOutput = testParseExample(oExample);
 
 	if (!oOutput.error) {
-		//if (cpcBasic.iTestIndex < cpcBasic.aTestExamples.length) {
 		testNextExample(); // eslint-disable-line no-use-before-define
-		//}
 	}
 }
 
@@ -360,21 +524,11 @@ function fnExampleErrorUtils(sUrl: string) {
 
 function testLoadExample(oExample: ExampleEntry) {
 	const sExample = oExample.key,
-		//sUrl = cpcBasic.sRelativeDir + oExample.dir + "/" + sExample + ".js";
 		sFileOrUrl = cpcBasic.sDataBaseDirOrUrl + "/" + sExample + ".js";
 
 	if (cpcBasic.assert) {
 		cpcBasic.fnExampleDone1 = cpcBasic.assert.async();
 	}
-
-	/*
-	if (fs) {
-		fs.readFile(sUrl, "utf8", fnExampleLoaded);
-	*/
-	/*
-	if (https) {
-		nodeReadUrl(sUrl, fnExampleLoaded);
-	*/
 
 	if (bNodeJsAvail) {
 		if (isUrl(sFileOrUrl)) {
@@ -440,21 +594,6 @@ function fnIndexErrorUtils(sUrl: string) {
 function testLoadIndex(oExampeDb: DatabaseEntry) {
 	let sDir = oExampeDb.src;
 
-	/*
-	if (bNodeJsAvail) {
-		sDir = "../../../CPCBasic/examples/"; //TTT works only locally, not on server
-		sDir = path.resolve(__dirname, sDir); // to get it working also for "npm test" and not only for node ...
-	}
-	*/
-
-	/*
-	if (bNodeJsAvail) {
-		if (!isUrl(sDir)) {
-			sDir = path.resolve(__dirname, sDir); // convert to absolute path to get it working also for "npm test" and not only for node
-		}
-	}
-	*/
-
 	if (!isUrl(sDir)) {
 		sDir = cpcBasic.sBaseDir + sDir;
 	}
@@ -476,14 +615,6 @@ function testLoadIndex(oExampeDb: DatabaseEntry) {
 	const sFileOrUrl = cpcBasic.sDataBaseDirOrUrl + "/0index.js"; // "./examples/0index.js";
 
 	Utils.console.log("testParseExamples: Using Database index:", sFileOrUrl);
-	/*
-	if (fs) {
-		fs.readFile(sUrl, "utf8", fnIndexLoaded);
-	*/
-	/*
-	if (https) {
-		nodeReadUrl(sUrl, fnIndexLoaded);
-	*/
 
 	if (bNodeJsAvail) {
 		if (isUrl(sDir)) {
@@ -522,6 +653,7 @@ function testNextIndex() {
 function testStart() {
 	Utils.console.log("testParseExamples: bNodeJs:", bNodeJsAvail, " Polyfills.iCount=", Polyfills.iCount);
 
+	cpcBasic.initVmMock1();
 	cpcBasic.iTotalExamples = 0;
 	cpcBasic.aDatabaseNames = cpcBasic.initDatabases();
 	cpcBasic.iDatabaseIndex = 0;
@@ -545,16 +677,6 @@ function fnParseArgs(aArgs: string[]) {
 	}
 	return oSettings;
 }
-
-/*
-if (bNodeJsAvail) {
-	//const sNodeRequire = 'fs = require("fs"); path = require("path");';
-	const sNodeRequire = 'https = require("https");';
-
-	fnEval(sNodeRequire); // to trick TypeScript
-}
-*/
-
 
 declare global {
     interface Window {
@@ -586,11 +708,6 @@ if (typeof oGlobalThis.QUnit !== "undefined") {
 	QUnit.module("testParseExamples: Tests", function (/* hooks */) {
 		QUnit.test("testParseExamples", function (assert: QUnitAssertType3) {
 			cpcBasic.assert = assert;
-
-			/*
-			cpcBasic.fnIndexDone1 = assert.async();
-			assert.expect(1);
-			*/
 			testStart();
 		});
 	});

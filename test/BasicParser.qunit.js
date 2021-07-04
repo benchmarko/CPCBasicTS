@@ -363,6 +363,7 @@ QUnit.module("BasicParser: Tests", function () {
             "on break cont": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"onBreakCont","value":"on","pos":0,"args":[]}]}]',
             "10 on break gosub 10": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onBreakGosub","value":"on","pos":3,"args":[{"type":"linenumber","value":"10","pos":18}]}]}]',
             "on break stop": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"onBreakStop","value":"on","pos":0,"args":[]}]}]',
+            "10 on error goto 0": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onErrorGoto","value":"on","pos":3,"args":[{"type":"linenumber","value":"0","pos":17}]}]}]',
             "10 on error goto 10": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onErrorGoto","value":"on","pos":3,"args":[{"type":"linenumber","value":"10","pos":17}]}]}]',
             "10 on 1 gosub 10": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onGosub","value":"on","pos":3,"args":[{"type":"number","value":"1","pos":6},{"type":"linenumber","value":"10","pos":14}]}]}]',
             "10 on x gosub 10,20\n20 rem": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onGosub","value":"on","pos":3,"args":[{"type":"identifier","value":"x","pos":6},{"type":"linenumber","value":"10","pos":14},{"type":"linenumber","value":"20","pos":17}]}]},{"type":"label","value":"20","pos":20,"args":[{"type":"rem","value":"rem","pos":23,"args":[]}]}]',

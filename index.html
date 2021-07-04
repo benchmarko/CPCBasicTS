@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="cpcbasic.css" />
-<title id="title">CPC BasicTS v0.0.22</title>
+<title id="title">CPC BasicTS v0.0.23</title>
 </head>
 
 <body id="pageBody">
@@ -28,9 +28,10 @@
 				<button id="parseButton" title="Check BASIC script (compile to JavaScript)">Check</button>
 				<button id="renumButton" title="Renumber lines">Renum</button>
 				<button id="prettyButton" title="Pretty print (experimental)">Pretty</button>
+				<!-- <button id="tokenizeButton" title="Tokenize (experimental)">Tokenize</button> -->
 				<button id="undoButton" title="Undo changes" disabled>Undo</button>
 				<button id="redoButton" title="Redo changes" disabled>Redo</button>
-			</div>
+				<button id="downloadButton" title="Download tokenized (experimental)">Download</a></button>
 		</div>
 	</fieldset>
 	<fieldset class="flexBox clearLeft" id="cpcAreaBox">
@@ -162,6 +163,7 @@
 <script src="BasicTokenizer.js"></script>
 <script src="CodeGeneratorBasic.js"></script>
 <script src="CodeGeneratorJs.js"></script>
+<script src="CodeGeneratorToken.js"></script>
 <script src="Diff.js"></script>
 <script src="DiskImage.js"></script>
 <script src="InputStack.js"></script>

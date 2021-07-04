@@ -10,6 +10,7 @@ var Utils_1 = require("./Utils");
 var BasicParser_1 = require("./BasicParser"); // BasicParser just for keyword definitions
 var CodeGeneratorBasic = /** @class */ (function () {
     function CodeGeneratorBasic(options) {
+        this.iLine = 0; // current line (label)
         /* eslint-disable no-invalid-this */
         this.mParseFunctions = {
             string: CodeGeneratorBasic.string,
@@ -48,7 +49,7 @@ var CodeGeneratorBasic = /** @class */ (function () {
         this.parser = options.parser;
     }
     CodeGeneratorBasic.prototype.composeError = function (oError, message, value, pos) {
-        return Utils_1.Utils.composeError("CodeGeneratorBasic", oError, message, value, pos);
+        return Utils_1.Utils.composeError("CodeGeneratorBasic", oError, message, value, pos, this.iLine);
     };
     CodeGeneratorBasic.prototype.fnParseOneArg = function (oArg) {
         var sValue = this.parseNode(oArg); // eslint-disable-line no-use-before-define
@@ -112,6 +113,7 @@ var CodeGeneratorBasic = /** @class */ (function () {
         return node.value;
     };
     CodeGeneratorBasic.prototype.label = function (node) {
+        this.iLine = Number(node.value); // set line before parsing args
         var aNodeArgs = this.fnParseArgs(node.args);
         var sValue = aNodeArgs.join(":");
         if (node.value !== "direct") {
@@ -146,7 +148,7 @@ var CodeGeneratorBasic = /** @class */ (function () {
         return sValue;
     };
     CodeGeneratorBasic.prototype.data = function (node) {
-        var aNodeArgs = this.fnParseArgs(node.args), regExp = new RegExp(",|^ +| +$");
+        var aNodeArgs = this.fnParseArgs(node.args), regExp = new RegExp(":|,|^ +| +$|\\|"); // separator or comma or spaces at end or beginning, or "|" which is corrupted on CPC
         for (var i = 0; i < aNodeArgs.length; i += 1) {
             var sValue2 = aNodeArgs[i];
             if (sValue2) {
@@ -507,6 +509,7 @@ var CodeGeneratorBasic = /** @class */ (function () {
         var oOut = {
             text: ""
         };
+        this.iLine = 0;
         try {
             var aTokens = this.lexer.lex(sInput), aParseTree = this.parser.parse(aTokens, bAllowDirect), sOutput = this.evaluate(aParseTree);
             oOut.text = sOutput;

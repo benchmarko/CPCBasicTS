@@ -17,6 +17,7 @@ export declare class Controller implements IController {
     private oVariables;
     private oBasicFormatter?;
     private oBasicTokenizer?;
+    private oCodeGeneratorToken?;
     private model;
     private view;
     private commonEventHandler;
@@ -59,6 +60,7 @@ export declare class Controller implements IController {
     private fnFileRen;
     private static asmGena3Convert;
     private decodeTokenizedBasic;
+    private encodeTokenizedBasic;
     private loadFileContinue;
     private loadExample;
     private static fnLocalStorageName;
@@ -79,6 +81,8 @@ export declare class Controller implements IController {
     private fnParseBench;
     private fnParse;
     fnPretty(): void;
+    private fnDownloadNewFile;
+    fnDownload(): void;
     private selectJsError;
     private fnRun;
     private fnParseRun;

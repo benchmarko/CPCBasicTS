@@ -689,7 +689,7 @@ export class DiskImage {
 	static parseAmsdosHeader(sData: string): AmsdosHeader | undefined {
 		const mTypeMap: { [k in number]: string } = {
 			0: "T", // tokenized BASIC (T=not official)
-			1: "P", // protected BASIC
+			1: "P", // protected BASIC (also tokenized)
 			2: "B", // Binary
 			8: "G", // GENA3 Assember (G=not official)
 			0x16: "A" // ASCII
@@ -766,19 +766,19 @@ export class DiskImage {
 		}
 
 		const sData1
-			= DiskImage.uInt8ToString(oHeader.iUser)
-			+ oHeader.sName.padEnd(8, " ")
-			+ oHeader.sExt.padEnd(3, " ")
+			= DiskImage.uInt8ToString(oHeader.iUser || 0)
+			+ (oHeader.sName || "").padEnd(8, " ")
+			+ (oHeader.sExt || "").padEnd(3, " ")
 			+ DiskImage.uInt16ToString(0)
 			+ DiskImage.uInt16ToString(0)
 			+ DiskImage.uInt8ToString(0) // block number (unused)
 			+ DiskImage.uInt8ToString(0) // last block (unused)
 			+ DiskImage.uInt8ToString(iType)
 			+ DiskImage.uInt16ToString(0) // data location (unused)
-			+ DiskImage.uInt16ToString(oHeader.iStart)
+			+ DiskImage.uInt16ToString(oHeader.iStart || 0)
 			+ DiskImage.uInt8ToString(0xff) // first block (unused, always 0xff)
-			+ DiskImage.uInt16ToString(oHeader.iPseudoLen) // logical length
-			+ DiskImage.uInt16ToString(oHeader.iEntry)
+			+ DiskImage.uInt16ToString(oHeader.iPseudoLen || oHeader.iLength) // logical length
+			+ DiskImage.uInt16ToString(oHeader.iEntry || 0)
 			+ " ".repeat(36)
 			+ DiskImage.uInt24ToString(oHeader.iLength),
 

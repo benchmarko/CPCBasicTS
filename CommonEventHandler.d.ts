@@ -26,6 +26,7 @@ export declare class CommonEventHandler implements EventListenerObject {
     private fnUpdateAreaText;
     private onUndoButtonClick;
     private onRedoButtonClick;
+    private onDownloadButtonClick;
     private onRunButtonClick;
     private onStopButtonClick;
     private onContinueButtonClick;

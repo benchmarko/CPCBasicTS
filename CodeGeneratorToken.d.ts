@@ -1,25 +1,36 @@
 import { BasicLexer } from "./BasicLexer";
 import { BasicParser, ParserNode } from "./BasicParser";
 import { IOutput } from "./Interfaces";
-interface CodeGeneratorBasicOptions {
+interface CodeGeneratorTokenOptions {
     lexer: BasicLexer;
     parser: BasicParser;
 }
-export declare class CodeGeneratorBasic {
+export declare class CodeGeneratorToken {
     private lexer;
     private parser;
     private iLine;
-    constructor(options: CodeGeneratorBasicOptions);
-    private static mCombinedKeywords;
+    constructor(options: CodeGeneratorTokenOptions);
     private static mOperators;
     private static mOperatorPrecedence;
+    private static mTokens;
+    private static mTokensFF;
     private composeError;
+    private static convUInt8ToString;
+    private static convUInt16ToString;
+    private static convInt32ToString;
+    private static token2String;
+    private static getBit7TerminatedString;
     private fnParseOneArg;
     private fnParseArgs;
+    private static semicolon;
+    private static letter;
+    private range;
+    private linerange;
     private static fnDecodeEscapeSequence;
     private static string;
     private static fnNull;
     private assign;
+    private static floatToByteString;
     private static number;
     private static binnumber;
     private static hexnumber;
@@ -42,6 +53,7 @@ export declare class CodeGeneratorBasic {
     private lineInput;
     private list;
     private mid$Assign;
+    private onErrorGoto;
     private onGosub;
     private onGoto;
     private onSqGosub;

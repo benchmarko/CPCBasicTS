@@ -28,11 +28,11 @@ var cpcBasic = /** @class */ (function () {
         return cpcBasic.controller.addItem(sKey, sInput);
     };
     // https://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
-    cpcBasic.fnParseUri = function (oConfig) {
+    cpcBasic.fnParseUri = function (sUrlQuery, oConfig) {
         var rPlus = /\+/g, // Regex for replacing addition symbol with a space
-        rSearch = /([^&=]+)=?([^&]*)/g, fnDecode = function (s) { return decodeURIComponent(s.replace(rPlus, " ")); }, sQuery = window.location.search.substring(1);
+        rSearch = /([^&=]+)=?([^&]*)/g, fnDecode = function (s) { return decodeURIComponent(s.replace(rPlus, " ")); };
         var aMatch;
-        while ((aMatch = rSearch.exec(sQuery)) !== null) {
+        while ((aMatch = rSearch.exec(sUrlQuery)) !== null) {
             var sName = fnDecode(aMatch[1]);
             var sValue = fnDecode(aMatch[2]);
             if (sValue !== null && oConfig.hasOwnProperty(sName)) {
@@ -116,9 +116,10 @@ var cpcBasic = /** @class */ (function () {
     cpcBasic.fnDoStart = function () {
         var oStartConfig = cpcBasic.config, oExternalConfig = cpcconfig_1.cpcconfig || {}; // external config from cpcconfig.js
         Object.assign(oStartConfig, oExternalConfig);
-        var oInitialConfig = Object.assign({}, oStartConfig); // save config
-        cpcBasic.fnParseUri(oStartConfig); // modify config with URL parameters
-        cpcBasic.model = new Model_1.Model(oStartConfig, oInitialConfig);
+        //const oInitialConfig = Object.assign({}, oStartConfig); // save config
+        cpcBasic.model = new Model_1.Model(oStartConfig);
+        var sUrlQuery = window.location.search.substring(1);
+        cpcBasic.fnParseUri(sUrlQuery, oStartConfig); // modify config with URL parameters
         cpcBasic.view = new View_1.View();
         var iDebug = Number(cpcBasic.model.getProperty("debug"));
         Utils_1.Utils.debug = iDebug;

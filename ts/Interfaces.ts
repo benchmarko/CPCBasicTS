@@ -24,6 +24,8 @@ export interface IController {
     startEnter: () => void
 
     fnPretty: () => void
+    fnDownload: () => void
+    //fnTokenize: () => void
     setInputText: (sInput: string, bKeepStack?: boolean) => void
     setExampleSelectOptions: () => void
     invalidateScript: () => void

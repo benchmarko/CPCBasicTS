@@ -25,8 +25,10 @@ var CommonEventHandler = /** @class */ (function () {
             onParseButtonClick: this.onParseButtonClick,
             onRenumButtonClick: this.onRenumButtonClick,
             onPrettyButtonClick: this.onPrettyButtonClick,
+            //onTokenizeButtonClick: this.onTokenizeButtonClick,
             onUndoButtonClick: this.onUndoButtonClick,
             onRedoButtonClick: this.onRedoButtonClick,
+            onDownloadButtonClick: this.onDownloadButtonClick,
             onRunButtonClick: this.onRunButtonClick,
             onStopButtonClick: this.onStopButtonClick,
             onContinueButtonClick: this.onContinueButtonClick,
@@ -115,6 +117,11 @@ var CommonEventHandler = /** @class */ (function () {
     CommonEventHandler.prototype.onPrettyButtonClick = function () {
         this.controller.fnPretty();
     };
+    /*
+    private onTokenizeButtonClick() {
+        this.controller.fnTokenize();
+    }
+    */
     CommonEventHandler.prototype.fnUpdateAreaText = function (sInput) {
         this.controller.setInputText(sInput, true);
         this.view.setAreaValue("outputText", "");
@@ -126,6 +133,9 @@ var CommonEventHandler = /** @class */ (function () {
     CommonEventHandler.prototype.onRedoButtonClick = function () {
         var sInput = this.controller.redoStackElement();
         this.fnUpdateAreaText(sInput);
+    };
+    CommonEventHandler.prototype.onDownloadButtonClick = function () {
+        this.controller.fnDownload();
     };
     CommonEventHandler.prototype.onRunButtonClick = function () {
         this.controller.startRun();

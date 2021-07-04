@@ -3,6 +3,7 @@ export declare class BasicTokenizer {
     private iLine;
     private iLineEnd;
     private sInput;
+    private oDebug;
     private fnNum8Dec;
     private fnNum16Dec;
     private fnNum32Dec;
@@ -23,7 +24,11 @@ export declare class BasicTokenizer {
     private fnQuotedString;
     private mTokens;
     private mTokensFF;
+    private debugPrintInfo;
+    private debugCollectInfo;
+    private fnParseLineFragment;
     private fnParseNextLine;
     private fnParseProgram;
+    decodeLineFragment(sProgram: string, iOffset: number, iLength: number): string;
     decode(sProgram: string): string;
 }

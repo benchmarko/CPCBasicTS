@@ -35,9 +35,9 @@ export class Model {
 	private databases: DatabasesType;
 	private examples: ExamplesType;
 
-	constructor(config: ConfigType, initialConfig: ConfigType) {
+	constructor(config: ConfigType) {
 		this.config = config || {}; // store only a reference
-		this.initialConfig = initialConfig || {};
+		this.initialConfig = Object.assign({}, this.config); // save initial config
 		this.databases = {};
 		this.examples = {}; // loaded examples per database
 	}

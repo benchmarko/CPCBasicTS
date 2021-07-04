@@ -371,6 +371,7 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			"on break cont": " o.onBreakCont();",
 			"10 on break gosub 10": " o.onBreakGosub(10);",
 			"on break stop": " o.onBreakStop();",
+			"10 on error goto 0": " o.onErrorGoto(0);",
 			"10 on error goto 10": " o.onErrorGoto(10);",
 			"10 on 1 gosub 10": " o.onGosub(\"10g0\", 1, 10); break; \ncase \"10g0\":",
 			"10 on x gosub 10,20\n20 rem": " o.onGosub(\"10g0\", v.x, 10, 20); break; \ncase \"10g0\":\n //",
