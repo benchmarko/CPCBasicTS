@@ -401,6 +401,7 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 
 			"on break stop": "ON BREAK STOP",
 
+			"on error goto 0": "ON ERROR GOTO 0",
 			"on error goto 10": "ON ERROR GOTO 10",
 
 			"on 1 gosub 10": "ON 1 GOSUB 10",

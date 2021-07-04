@@ -17,6 +17,7 @@ interface CodeGeneratorBasicOptions {
 export class CodeGeneratorBasic {
 	private lexer: BasicLexer;
 	private parser: BasicParser;
+	private iLine = 0; // current line (label)
 
 	constructor(options: CodeGeneratorBasicOptions) {
 		this.lexer = options.lexer;
@@ -96,7 +97,7 @@ export class CodeGeneratorBasic {
 	}
 
 	private composeError(oError: Error, message: string, value: string, pos: number) { // eslint-disable-line class-methods-use-this
-		return Utils.composeError("CodeGeneratorBasic", oError, message, value, pos);
+		return Utils.composeError("CodeGeneratorBasic", oError, message, value, pos, this.iLine);
 	}
 
 	private fnParseOneArg(oArg: ParserNode) {
@@ -176,6 +177,8 @@ export class CodeGeneratorBasic {
 		return node.value;
 	}
 	private label(node: ParserNode) {
+		this.iLine = Number(node.value); // set line before parsing args
+
 		const aNodeArgs = this.fnParseArgs(node.args);
 		let sValue = aNodeArgs.join(":");
 
@@ -219,7 +222,7 @@ export class CodeGeneratorBasic {
 	}
 	private data(node: ParserNode) {
 		const aNodeArgs = this.fnParseArgs(node.args),
-			regExp = new RegExp(",|^ +| +$");
+			regExp = new RegExp(":|,|^ +| +$|\\|"); // separator or comma or spaces at end or beginning, or "|" which is corrupted on CPC
 
 		for (let i = 0; i < aNodeArgs.length; i += 1) {
 			let sValue2 = aNodeArgs[i];
@@ -705,6 +708,7 @@ export class CodeGeneratorBasic {
 			text: ""
 		};
 
+		this.iLine = 0;
 		try {
 			const aTokens = this.lexer.lex(sInput),
 				aParseTree = this.parser.parse(aTokens, bAllowDirect),

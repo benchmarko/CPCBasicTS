@@ -3,6 +3,8 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 // decode based on lbas2ascii.pl, 28.06.2006
+// http://cpctech.cpc-live.com/docs/bastech.html
+// https://www.cpcwiki.eu/index.php/Technical_information_about_Locomotive_BASIC#BASIC_tokens
 //
 
 import { Utils } from "./Utils";
@@ -14,6 +16,12 @@ export class BasicTokenizer {
 	// will also be set in decode
 	private iLineEnd = 0;
 	private sInput = "";
+
+	private oDebug = {
+		iStartPos: 0,
+		iLine: 0,
+		sInfo: ""
+	};
 
 	/*
 	constructor() {
@@ -31,7 +39,7 @@ export class BasicTokenizer {
 		return this.fnNum8Dec() + this.fnNum8Dec() * 256;
 	}
 
-	private fnNum32Dec() { // used for FLoating Point
+	private fnNum32Dec() { // used for Floating Point
 		return this.fnNum16Dec() + this.fnNum16Dec() * 65536;
 	}
 
@@ -108,18 +116,20 @@ export class BasicTokenizer {
 		const sData = this.sInput;
 		let iPos = this.iPos;
 
-		while (sData.charCodeAt(iPos) <= 0x7f) { // last character b7=1 (>= 0x80)
+		while (sData.charCodeAt(iPos) <= 0x7f && iPos < this.iLineEnd) { //TTT last character b7=1 (>= 0x80)
 			iPos += 1;
 		}
 
 		const sOut = sData.substring(this.iPos, iPos) + String.fromCharCode(sData.charCodeAt(iPos) & 0x7f); // eslint-disable-line no-bitwise
 
-		this.iPos = iPos + 1;
+		if (iPos < this.iLineEnd) { // maybe corrupted if used in DATA line
+			this.iPos = iPos + 1;
+		}
 		return sOut;
 	}
 
 	private fnVar() {
-		this.fnNum16Dec(); // ignore offset
+		this.fnNum16Dec(); // ignore offset (offset to memory location of variable)
 		return this.fnGetBit7TerminatedString();
 	}
 
@@ -136,7 +146,7 @@ export class BasicTokenizer {
 	}
 
 	private fnRsx() {
-		this.fnNum8Dec(); // ignore length
+		this.fnNum8Dec(); // ignore length (offset to tokens following RSX name)
 		return "|" + this.fnGetBit7TerminatedString();
 	}
 
@@ -176,6 +186,8 @@ export class BasicTokenizer {
 		}
 		return sOut;
 	}
+
+	// on sq?
 
 	/* eslint-disable no-invalid-this */
 	private mTokens: { [k: string]: string | (() => string) } = {
@@ -409,8 +421,37 @@ export class BasicTokenizer {
 		0x7f: "VPOS"
 	}
 
-	private fnParseNextLine() {
-		const sInput = this.sInput,
+	private debugPrintInfo() {
+		const oDebug = this.oDebug;
+
+		Utils.console.debug("BasicTokenizer Details:\n", oDebug.sInfo);
+		oDebug.iLine = 0;
+		oDebug.sInfo = "";
+	}
+
+	private debugCollectInfo(sTokenLine: string) {
+		const oDebug = this.oDebug,
+			sHex = this.sInput.substring(oDebug.iStartPos, this.iPos).split("").map(function (s) {
+				return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0");
+			}).join(",");
+
+		if (this.iLine !== oDebug.iLine) {
+			if (oDebug.sInfo) {
+				oDebug.sInfo += "\n";
+			}
+			oDebug.iLine = this.iLine;
+			oDebug.sInfo += oDebug.iLine + ": ";
+			//this.debugPrintInfo();
+			//oDebug.sInfo = "";
+		}
+
+		oDebug.sInfo += " [" + sHex + "] " + sTokenLine;
+	}
+
+	private fnParseLineFragment() {
+		const sInput = this.sInput;
+
+		/*
 			iLineLength = this.fnNum16Dec();
 
 		if (!iLineLength) {
@@ -418,11 +459,15 @@ export class BasicTokenizer {
 		}
 		this.iLineEnd = this.iPos + iLineLength - 2;
 		this.iLine = this.fnNum16Dec();
+		*/
+		//this.iLineEnd = this.iPos + iLineLength - 2;
 
 		let sOut = "",
 			bSpace = false;
 
 		while (this.iPos < this.iLineEnd) {
+			this.oDebug.iStartPos = this.iPos;
+
 			const bOldSpace = bSpace;
 			let iToken = this.fnNum8Dec();
 
@@ -464,21 +509,37 @@ export class BasicTokenizer {
 				tstr = String.fromCharCode(iToken);
 			}
 			if (bOldSpace) {
-				if ((/^[a-zA-Z0-9$%!]+$/).test(tstr) || (iToken >= 0x02 && iToken <= 0x1f)) {
+				//if ((/^[a-zA-Z0-9$%!]+$/).test(tstr) || (iToken >= 0x02 && iToken <= 0x1f)) {
+				if ((/^[a-zA-Z0-9$%!]/).test(tstr) || (iToken >= 0x02 && iToken <= 0x1f)) { //TTT
 					tstr = " " + tstr;
 				}
 			}
 			sOut += tstr;
+
+			if (Utils.debug > 2) {
+				this.debugCollectInfo(tstr);
+			}
 		}
-		return this.iLine + " " + sOut;
+
+		return sOut;
+	}
+
+	private fnParseNextLine() {
+		const iLineLength = this.fnNum16Dec();
+
+		if (!iLineLength) {
+			return undefined; // nothing more
+		}
+		this.iLine = this.fnNum16Dec();
+		this.iLineEnd = this.iPos - 4 + iLineLength;
+
+		return this.iLine + " " + this.fnParseLineFragment();
 	}
 
 	private fnParseProgram() {
 		let sOut = "",
 			sLine: string | undefined;
 
-		this.iPos = 0;
-		this.iLine = 0;
 		while ((sLine = this.fnParseNextLine()) !== undefined) {
 			sOut += sLine + "\n";
 			// CPC uses "\r\n" line breaks, JavaScript uses "\n", textArea cannot contain "\r"
@@ -486,8 +547,30 @@ export class BasicTokenizer {
 		return sOut;
 	}
 
+	decodeLineFragment(sProgram: string, iOffset: number, iLength: number): string { // decode tokenized BASIC line fragment to ASCII
+		this.sInput = sProgram;
+		this.iPos = iOffset;
+		this.iLine = 0;
+		this.iLineEnd = this.iPos + iLength;
+
+		const sOut = this.fnParseLineFragment();
+
+		if (Utils.debug > 2) {
+			this.debugPrintInfo();
+		}
+		return sOut;
+	}
+
 	decode(sProgram: string): string { // decode tokenized BASIC to ASCII
 		this.sInput = sProgram;
-		return this.fnParseProgram();
+		this.iPos = 0;
+		this.iLine = 0;
+
+		const sOut = this.fnParseProgram();
+
+		if (Utils.debug > 2) {
+			this.debugPrintInfo();
+		}
+		return sOut;
 	}
 }

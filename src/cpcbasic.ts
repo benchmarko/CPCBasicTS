@@ -57,15 +57,14 @@ class cpcBasic { // eslint-disable-line vars-on-top
 	}
 
 	// https://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
-	private static fnParseUri(oConfig: ConfigType) {
+	private static fnParseUri(sUrlQuery: string, oConfig: ConfigType) {
 		const rPlus = /\+/g, // Regex for replacing addition symbol with a space
 			rSearch = /([^&=]+)=?([^&]*)/g,
-			fnDecode = function (s: string) { return decodeURIComponent(s.replace(rPlus, " ")); },
-			sQuery = window.location.search.substring(1);
+			fnDecode = function (s: string) { return decodeURIComponent(s.replace(rPlus, " ")); };
 
 		let aMatch: RegExpExecArray | null;
 
-		while ((aMatch = rSearch.exec(sQuery)) !== null) {
+		while ((aMatch = rSearch.exec(sUrlQuery)) !== null) {
 			const sName = fnDecode(aMatch[1]);
 			let sValue: ConfigEntryType = fnDecode(aMatch[2]);
 
@@ -159,10 +158,14 @@ class cpcBasic { // eslint-disable-line vars-on-top
 			oExternalConfig = cpcconfig || {}; // external config from cpcconfig.js
 
 		Object.assign(oStartConfig, oExternalConfig);
-		const oInitialConfig = Object.assign({}, oStartConfig); // save config
+		//const oInitialConfig = Object.assign({}, oStartConfig); // save config
 
-		cpcBasic.fnParseUri(oStartConfig); // modify config with URL parameters
-		cpcBasic.model = new Model(oStartConfig, oInitialConfig);
+		cpcBasic.model = new Model(oStartConfig);
+
+		const sUrlQuery = window.location.search.substring(1);
+
+		cpcBasic.fnParseUri(sUrlQuery, oStartConfig); // modify config with URL parameters
+
 		cpcBasic.view = new View();
 
 		const iDebug = Number(cpcBasic.model.getProperty<number>("debug"));

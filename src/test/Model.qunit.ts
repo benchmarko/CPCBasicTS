@@ -7,19 +7,23 @@ import {} from "qunit";
 QUnit.module("Model: Properties", function (hooks: NestedHooks) {
 	hooks.beforeEach(function (this: any) {
 		const that = this, // eslint-disable-line no-invalid-this, @typescript-eslint/no-this-alias
-			oInitialConfig = {
+			oConfig = {
 				p1: "v1"
-			},
+			};
+			/*
 			oConfig = {
 				p1: "v1",
 				p2: "v2"
 			};
+			*/
 
-		that.model = new Model(oConfig, oInitialConfig);
+		that.model = new Model(oConfig);
+		that.model.setProperty("p2", "v2");
+		//that.model.getAllProperties().p2 = "v2";
 	});
 
 	QUnit.test("init without options", function (assert: Assert) {
-		const oModel = new Model({}, {});
+		const oModel = new Model({});
 
 		assert.ok(oModel, "defined");
 	});
@@ -61,7 +65,7 @@ QUnit.module("Model: Databases", function (hooks: NestedHooks) {
 	});
 
 	QUnit.test("databases", function (assert: Assert) {
-		const oModel = new Model({}, {}),
+		const oModel = new Model({}),
 			mDatabases = {
 				db1: {
 					text: "text1",
@@ -124,7 +128,7 @@ QUnit.module("Model: Examples", function (hooks: NestedHooks) {
 				type: "",
 				meta: ""
 			},
-			oModel = new Model({}, {});
+			oModel = new Model({});
 
 		oModel.addDatabases(mDatabases);
 		oModel.setProperty("database", "db1");
