@@ -2095,7 +2095,7 @@ export class CpcVm {
 				sType = this.vmDetermineVarType(sVarType),
 				value = this.vmInputNextFileItem(sType);
 
-			aInputValues[i] = this.vmAssign(sVarType, value as string | number); // TTT
+			aInputValues[i] = this.vmAssign(sVarType, value as string | number);
 		}
 		this.vmSetInputValues(aInputValues);
 	}
@@ -2343,7 +2343,7 @@ export class CpcVm {
 	}
 
 	mask(iMask: number | undefined, iFirst?: number): void { // one of iMask, iFirst is optional
-		if (iMask !== undefined) { //TTT
+		if (iMask !== undefined) {
 			iMask = this.vmInRangeRound(iMask, 0, 255, "MASK");
 			this.oCanvas.setMask(iMask);
 		}
@@ -3084,7 +3084,7 @@ export class CpcVm {
 					sStr = this.tab(iStream, aSpecialArgs[0] as number);
 					break;
 				default:
-					throw this.vmComposeError(Error(), 5, "PRINT " + arg.type); // Improper argument TTT
+					throw this.vmComposeError(Error(), 5, "PRINT " + arg.type); // Improper argument
 				}
 			} else if (typeof arg === "number") {
 				sStr = ((arg >= 0) ? " " : "") + String(arg) + " ";

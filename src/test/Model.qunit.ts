@@ -10,16 +10,9 @@ QUnit.module("Model: Properties", function (hooks: NestedHooks) {
 			oConfig = {
 				p1: "v1"
 			};
-			/*
-			oConfig = {
-				p1: "v1",
-				p2: "v2"
-			};
-			*/
 
 		that.model = new Model(oConfig);
 		that.model.setProperty("p2", "v2");
-		//that.model.getAllProperties().p2 = "v2";
 	});
 
 	QUnit.test("init without options", function (assert: Assert) {

@@ -23,11 +23,6 @@ export class BasicTokenizer {
 		sInfo: ""
 	};
 
-	/*
-	constructor() {
-	}
-	*/
-
 	private fnNum8Dec() {
 		const iNum = this.sInput.charCodeAt(this.iPos);
 
@@ -116,7 +111,7 @@ export class BasicTokenizer {
 		const sData = this.sInput;
 		let iPos = this.iPos;
 
-		while (sData.charCodeAt(iPos) <= 0x7f && iPos < this.iLineEnd) { //TTT last character b7=1 (>= 0x80)
+		while (sData.charCodeAt(iPos) <= 0x7f && iPos < this.iLineEnd) { // last character b7=1 (>= 0x80)
 			iPos += 1;
 		}
 
@@ -250,7 +245,7 @@ export class BasicTokenizer {
 		0x94: "DRAW",
 		0x95: "DRAWR",
 		0x96: "EDIT",
-		0x97: "ELSE",
+		0x97: "ELSE", // always with 0x01 0x97
 		0x98: "END",
 		0x99: "ENT",
 		0x9a: "ENV",
@@ -291,7 +286,7 @@ export class BasicTokenizer {
 		0xbd: "PLOTR",
 		0xbe: "POKE",
 		0xbf: "PRINT",
-		0xc0: this.fnApostrophe, // "'" symbol (same function as REM keyword)
+		0xc0: this.fnApostrophe, // "'" symbol (same function as REM keyword); always with 0x01 0xC0
 		0xc1: "RAD",
 		0xc2: "RANDOMIZE",
 		0xc3: "READ",
@@ -441,8 +436,6 @@ export class BasicTokenizer {
 			}
 			oDebug.iLine = this.iLine;
 			oDebug.sInfo += oDebug.iLine + ": ";
-			//this.debugPrintInfo();
-			//oDebug.sInfo = "";
 		}
 
 		oDebug.sInfo += " [" + sHex + "] " + sTokenLine;
@@ -450,18 +443,6 @@ export class BasicTokenizer {
 
 	private fnParseLineFragment() {
 		const sInput = this.sInput;
-
-		/*
-			iLineLength = this.fnNum16Dec();
-
-		if (!iLineLength) {
-			return undefined; // nothing more
-		}
-		this.iLineEnd = this.iPos + iLineLength - 2;
-		this.iLine = this.fnNum16Dec();
-		*/
-		//this.iLineEnd = this.iPos + iLineLength - 2;
-
 		let sOut = "",
 			bSpace = false;
 
@@ -509,8 +490,7 @@ export class BasicTokenizer {
 				tstr = String.fromCharCode(iToken);
 			}
 			if (bOldSpace) {
-				//if ((/^[a-zA-Z0-9$%!]+$/).test(tstr) || (iToken >= 0x02 && iToken <= 0x1f)) {
-				if ((/^[a-zA-Z0-9$%!]/).test(tstr) || (iToken >= 0x02 && iToken <= 0x1f)) { //TTT
+				if ((/^[a-zA-Z0-9$%!]/).test(tstr) || (iToken >= 0x02 && iToken <= 0x1f)) {
 					tstr = " " + tstr;
 				}
 			}

@@ -248,6 +248,7 @@ QUnit tests:
 - [BasicTokenizer.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/BasicTokenizer.qunit.html)
 - [CodeGeneratorBasic.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/CodeGeneratorBasic.qunit.html)
 - [CodeGeneratorJs.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/CodeGeneratorJs.qunit.html)
+- [CodeGeneratorToken.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/CodeGeneratorToken.qunit.html)
 - [DiskImage.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/DiskImage.qunit.html)
 - [Model.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/Model.qunit.html)
 - [ZipFile.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/ZipFile.qunit.html)
@@ -302,4 +303,4 @@ IFrames test:
 
 - [Locomotive Software](https://www.cpcwiki.eu/index.php/Locomotive_Software) - The developer of CPCs BASIC and operating system
 
-### **mv, 11/2020**
+### **mv, 07/2021**

@@ -149,7 +149,6 @@ class cpcBasic { // eslint-disable-line vars-on-top
 				}
 			};
 
-		//Utils.console = oConsole as any;
 		return oConsole;
 	}
 
@@ -158,7 +157,6 @@ class cpcBasic { // eslint-disable-line vars-on-top
 			oExternalConfig = cpcconfig || {}; // external config from cpcconfig.js
 
 		Object.assign(oStartConfig, oExternalConfig);
-		//const oInitialConfig = Object.assign({}, oStartConfig); // save config
 
 		cpcBasic.model = new Model(oStartConfig);
 
