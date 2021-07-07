@@ -81,6 +81,7 @@ export declare class Controller implements IController {
     private fnParseBench;
     private fnParse;
     fnPretty(): void;
+    private static fnDownloadBlob;
     private fnDownloadNewFile;
     fnDownload(): void;
     private selectJsError;

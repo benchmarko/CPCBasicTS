@@ -25,6 +25,7 @@ var BasicParser = /** @class */ (function () {
     function BasicParser(options) {
         this.sLine = "0"; // for error messages
         this.bQuiet = false;
+        this.bKeepBrackets = false;
         this.oSymbols = {};
         // set also during parse
         this.aTokens = [];
@@ -32,6 +33,7 @@ var BasicParser = /** @class */ (function () {
         this.iIndex = 0;
         this.aParseTree = [];
         this.bQuiet = (options === null || options === void 0 ? void 0 : options.bQuiet) || false;
+        this.bKeepBrackets = (options === null || options === void 0 ? void 0 : options.bKeepBrackets) || false;
         this.fnGenerateSymbols();
         this.oPreviousToken = {}; // to avoid warnings
         this.oToken = this.oPreviousToken;
@@ -164,6 +166,9 @@ var BasicParser = /** @class */ (function () {
             if (bColonExpected || this.oToken.type === ":") {
                 if (this.oToken.type !== "'" && this.oToken.type !== "else") { // no colon required for line comment or ELSE
                     this.advance(":");
+                    if (this.bKeepBrackets) { // TTT reuse
+                        aStatements.push(this.oPreviousToken);
+                    }
                 }
                 bColonExpected = false;
             }
@@ -232,10 +237,21 @@ var BasicParser = /** @class */ (function () {
     BasicParser.fnCreateDummyArg = function (sType, sValue) {
         var oValue = {
             type: sType,
-            value: sValue || sType,
+            value: sValue !== undefined ? sValue : sType,
             pos: 0,
             len: 0
         };
+        return oValue;
+    };
+    BasicParser.prototype.fnCombineTwoTokensNoArgs = function (sToken2) {
+        var oPreviousToken = this.oPreviousToken, sName = oPreviousToken.type + Utils_1.Utils.stringCapitalize(this.oToken.type); // e.g ."speedInk"
+        oPreviousToken.value += (this.oToken.ws || " ") + this.oToken.value; // combine values of both
+        this.oToken = this.advance(sToken2); // for "speed" e.g. "ink", "key", "write" (this.oToken.type)
+        this.oPreviousToken = oPreviousToken; // fast hack to get e.g. "speed" token
+        return sName;
+    };
+    BasicParser.prototype.fnCombineTwoTokens = function (sToken2) {
+        var sName = this.fnCombineTwoTokensNoArgs(sToken2), oValue = this.fnCreateCmdCall(sName);
         return oValue;
     };
     BasicParser.prototype.fnGetOptionalStream = function () {
@@ -521,11 +537,15 @@ var BasicParser = /** @class */ (function () {
             if (this.oToken.type !== "(") { // Fnxxx name without ()
                 var oValue_1 = {
                     type: "fn",
-                    value: sName.substr(0, 2),
+                    value: sName,
                     args: [],
                     left: oName,
                     pos: oName.pos // same pos as identifier?
                 };
+                if (oName.ws) {
+                    oValue_1.ws = oName.ws;
+                    oName.ws = "";
+                }
                 return oValue_1;
             }
         }
@@ -548,16 +568,50 @@ var BasicParser = /** @class */ (function () {
         return oValue;
     };
     BasicParser.prototype.fnParenthesis = function () {
-        var oValue = this.expression(0);
+        var oValue;
+        if (this.bKeepBrackets) {
+            oValue = this.oPreviousToken; // "("
+            oValue.args = [
+                this.expression(0),
+                this.oToken // ")" (hopefully)
+            ];
+            /*
+            oValue = BasicParser.fnCreateDummyArg("args", "");
+            const sWs = this.oPreviousToken.ws;
+
+            if (sWs) { // fast hack to move whitespace
+                this.oPreviousToken.ws = "";
+                oValue.ws = sWs;
+            }
+
+            oValue.args = [
+                this.oPreviousToken, // "("
+                this.expression(0),
+                this.oToken // ")" (hopefully)
+            ];
+            */
+        }
+        else {
+            oValue = this.expression(0);
+        }
         this.advance(")");
         return oValue;
     };
     BasicParser.prototype.fnFn = function () {
         var oValue = this.oPreviousToken, // "fn"
         oValue2 = this.oToken; // identifier
+        this.fnCombineTwoTokensNoArgs("identifier");
+        /*
         this.advance("identifier");
+
         oValue2.value = oValue.value + oValue2.value; // combine "fn" + identifier (maybe simplify by separating in lexer)
         oValue2.bSpace = true; // fast hack: set space for CodeGeneratorBasic
+        */
+        oValue2.value = "fn" + oValue2.value; // combine "fn" + identifier (maybe simplify by separating in lexer)
+        if (oValue2.ws) {
+            //oValue.ws = oValue2.ws; //TTT
+            oValue2.ws = "";
+        }
         oValue.left = oValue2;
         if (this.oToken.type !== "(") { // FN xxx name without ()?
             oValue.args = [];
@@ -593,20 +647,28 @@ var BasicParser = /** @class */ (function () {
         return oValue;
     };
     BasicParser.prototype.fnChain = function () {
-        var sName = "chain", oValue;
+        var //sName = "chain",
+        oValue;
         if (this.oToken.type !== "merge") { // not chain merge?
-            oValue = this.fnCreateCmdCall(sName);
+            oValue = this.fnCreateCmdCall(this.oPreviousToken.type); // chain
         }
         else { // chain merge with optional DELETE
+            /*
             this.oToken = this.advance("merge");
             oValue = this.oPreviousToken;
             sName = "chainMerge";
             oValue.type = sName;
             oValue.args = [];
+            */
+            var sName = this.fnCombineTwoTokensNoArgs(this.oToken.type); // chainMerge
+            oValue = this.oPreviousToken;
+            oValue.type = sName;
+            oValue.args = [];
             var oValue2 = this.expression(0); // filename
             oValue.args.push(oValue2);
+            this.oToken = this.getToken();
             if (this.oToken.type === ",") {
-                this.advance(",");
+                this.oToken = this.advance(",");
                 var bNumberExpression = false; // line number (expression) found
                 if (this.oToken.type !== "," && this.oToken.type !== "(eol)" && this.oToken.type !== "(eof)") {
                     oValue2 = this.expression(0); // line number or expression
@@ -628,12 +690,15 @@ var BasicParser = /** @class */ (function () {
         return oValue;
     };
     BasicParser.prototype.fnClear = function () {
-        var sName = "clear";
-        if (this.oToken.type === "input") { // clear input?
-            this.advance("input");
-            sName = "clearInput";
+        var sTokenType = this.oToken.type;
+        var oValue;
+        if (sTokenType === "input") {
+            oValue = this.fnCombineTwoTokens(sTokenType);
         }
-        return this.fnCreateCmdCall(sName);
+        else {
+            oValue = this.fnCreateCmdCall(this.oPreviousToken.type); // "symbol"
+        }
+        return oValue;
     };
     BasicParser.prototype.fnData = function () {
         var oValue = this.oPreviousToken;
@@ -649,6 +714,9 @@ var BasicParser = /** @class */ (function () {
                 oValue.args.push(BasicParser.fnCreateDummyArg("null")); // insert null parameter
             }
             this.oToken = this.advance(",");
+            if (this.bKeepBrackets) { //TTT reuse
+                oValue.args.push(this.oPreviousToken); // ","
+            }
             bParameterFound = false;
             if (this.oToken.type === "(eol)" || this.oToken.type === "(end)") {
                 break;
@@ -690,6 +758,9 @@ var BasicParser = /** @class */ (function () {
         oValue.args = [];
         if (!this.bQuiet) {
             Utils_1.Utils.console.warn(this.composeError({}, "ELSE: Weird use of ELSE", this.oPreviousToken.type, this.oPreviousToken.pos).message);
+        }
+        if (this.oToken.type === "number") { // first token number?
+            this.fnChangeNumber2LineNumber(this.oToken);
         }
         // TODO: data line as separate statement is taken
         while (this.oToken.type !== "(eol)" && this.oToken.type !== "(end)") {
@@ -741,15 +812,23 @@ var BasicParser = /** @class */ (function () {
         return oValue;
     };
     BasicParser.prototype.fnGraphics = function () {
-        var oValue;
+        var sTokenType = this.oToken.type;
+        if (sTokenType !== "pen" && sTokenType !== "paper") {
+            throw this.composeError(Error(), "Expected PEN or PAPER", sTokenType, this.oToken.pos);
+        }
+        var oValue = this.fnCombineTwoTokens(sTokenType);
+        /*
+        let oValue: ParserNode;
+
         if (this.oToken.type === "pen" || this.oToken.type === "paper") { // graphics pen/paper
-            var sName = "graphics" + Utils_1.Utils.stringCapitalize(this.oToken.type);
+            const sName = "graphics" + Utils.stringCapitalize(this.oToken.type);
+
             this.advance(this.oToken.type);
             oValue = this.fnCreateCmdCall(sName);
-        }
-        else {
+        } else {
             throw this.composeError(Error(), "Expected PEN or PAPER", this.oToken.type, this.oToken.pos);
         }
+        */
         return oValue;
     };
     BasicParser.prototype.fnIf = function () {
@@ -849,12 +928,15 @@ var BasicParser = /** @class */ (function () {
         return oValue;
     };
     BasicParser.prototype.fnKey = function () {
-        var sName = "key";
-        if (this.oToken.type === "def") { // key def?
-            this.advance("def");
-            sName = "keyDef";
+        var sTokenType = this.oToken.type;
+        var oValue;
+        if (sTokenType === "def") {
+            oValue = this.fnCombineTwoTokens(sTokenType);
         }
-        return this.fnCreateCmdCall(sName);
+        else {
+            oValue = this.fnCreateCmdCall(this.oPreviousToken.type); // "symbol"
+        }
+        return oValue;
     };
     BasicParser.prototype.fnLet = function () {
         var oValue = this.oPreviousToken;
@@ -993,49 +1075,72 @@ var BasicParser = /** @class */ (function () {
         return oValue;
     };
     BasicParser.prototype.fnResume = function () {
-        var sName = "resume";
-        if (this.oToken.type === "next") { // resume next
-            this.advance("next");
-            sName = "resumeNext";
+        var sTokenType = this.oToken.type;
+        var oValue;
+        if (sTokenType === "next") {
+            oValue = this.fnCombineTwoTokens(sTokenType);
         }
-        var oValue = this.fnCreateCmdCall(sName);
+        else {
+            oValue = this.fnCreateCmdCall(this.oPreviousToken.type);
+        }
         return oValue;
     };
     BasicParser.prototype.fnSpeed = function () {
-        var sName = "";
-        switch (this.oToken.type) {
-            case "ink":
-                sName = "speedInk";
-                this.advance("ink");
-                break;
-            case "key":
-                sName = "speedKey";
-                this.advance("key");
-                break;
-            case "write":
-                sName = "speedWrite";
-                this.advance("write");
-                break;
-            default:
-                throw this.composeError(Error(), "Expected INK, KEY or WRITE", this.oToken.type, this.oToken.pos);
+        var sTokenType = this.oToken.type;
+        if (sTokenType !== "ink" && sTokenType !== "key" && sTokenType !== "write") {
+            throw this.composeError(Error(), "Expected INK, KEY or WRITE", sTokenType, this.oToken.pos);
         }
-        return this.fnCreateCmdCall(sName);
+        var oValue = this.fnCombineTwoTokens(sTokenType);
+        /*
+        let sName = "";
+
+        switch (this.oToken.type) {
+        case "ink":
+            sName = "speedInk";
+            break;
+        case "key":
+            sName = "speedKey";
+            break;
+        case "write":
+            sName = "speedWrite";
+            break;
+        default:
+            throw this.composeError(Error(), "Expected INK, KEY or WRITE", this.oToken.type, this.oToken.pos);
+        }
+
+        const oPreviousToken = this.oPreviousToken;
+
+        oPreviousToken.value += (this.oToken.ws || "") + this.oToken.value; // combine
+
+        this.advance(); // "ink", "key", "write" (this.oToken.type)
+
+        this.oPreviousToken = oPreviousToken; // fast hack to get "speed" token
+
+        const oValue = this.fnCreateCmdCall(sName);
+        */
+        return oValue;
     };
     BasicParser.prototype.fnSymbol = function () {
-        var sName = "symbol";
-        if (this.oToken.type === "after") { // symbol after?
-            this.advance("after");
-            sName = "symbolAfter";
+        var sTokenType = this.oToken.type;
+        var oValue;
+        if (sTokenType === "after") { // symbol after?
+            oValue = this.fnCombineTwoTokens(sTokenType);
         }
-        return this.fnCreateCmdCall(sName);
+        else {
+            oValue = this.fnCreateCmdCall(this.oPreviousToken.type); // "symbol"
+        }
+        return oValue;
     };
     BasicParser.prototype.fnWindow = function () {
-        var sName = "window";
-        if (this.oToken.type === "swap") {
-            this.advance("swap");
-            sName = "windowSwap";
+        var sTokenType = this.oToken.type;
+        var oValue;
+        if (sTokenType === "swap") {
+            oValue = this.fnCombineTwoTokens(sTokenType);
         }
-        return this.fnCreateCmdCall(sName);
+        else {
+            oValue = this.fnCreateCmdCall(this.oPreviousToken.type);
+        }
+        return oValue;
     };
     BasicParser.prototype.fnGenerateSymbols = function () {
         this.fnGenerateKeywordSymbols();
@@ -1069,6 +1174,12 @@ var BasicParser = /** @class */ (function () {
             return oNode;
         });
         this.symbol("string", function (oNode) {
+            return oNode;
+        });
+        this.symbol("unquoted", function (oNode) {
+            return oNode;
+        });
+        this.symbol("ws", function (oNode) {
             return oNode;
         });
         this.symbol("identifier", this.fnIdentifier);
@@ -1131,7 +1242,6 @@ var BasicParser = /** @class */ (function () {
     // Manipulates tokens to its left (e.g: +)? => left denotative function led(), otherwise null denotative function nud()), (e.g. unary -)
     // identifiers, numbers: also nud.
     BasicParser.prototype.parse = function (aTokens, bAllowDirect) {
-        var aParseTree = this.aParseTree;
         this.aTokens = aTokens;
         this.bAllowDirect = bAllowDirect || false;
         // line
@@ -1139,6 +1249,7 @@ var BasicParser = /** @class */ (function () {
         this.iIndex = 0;
         this.oToken = {};
         this.oPreviousToken = this.oToken; // just to avoid warning
+        var aParseTree = this.aParseTree;
         aParseTree.length = 0;
         this.advance();
         while (this.oToken.type !== "(end)") {

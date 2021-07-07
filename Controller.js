@@ -522,13 +522,16 @@ var Controller = /** @class */ (function () {
     //TODO
     Controller.prototype.parseLineNumber = function (sLine) {
         var iLine = parseInt(sLine, 10);
-        if (iLine < 0 || iLine > 65535) { //0?
-            //throw this.composeError(Error(), "Line number overflow", iLine, -1);
-            //this.outputError(this.oVm.vmComposeError(Error(), 6, String(iLine)), true);
-            //iLine = -1; //TTT
-            //const oError = this.oVm.vmComposeError(Error(), 6, String(iLine));
-            //this.oVm.vmStop("", 0, true); // clear error, onError
-            //this.outputError(oError, true);
+        if (iLine < 0 || iLine > 65535) {
+            /*
+            throw this.composeError(Error(), "Line number overflow", iLine, -1);
+            this.outputError(this.oVm.vmComposeError(Error(), 6, String(iLine)), true);
+            iLine = -1; //TTT
+            const oError = this.oVm.vmComposeError(Error(), 6, String(iLine));
+
+            this.oVm.vmStop("", 0, true); // clear error, onError
+            this.outputError(oError, true);
+            */
         }
         return iLine;
     };
@@ -730,8 +733,12 @@ var Controller = /** @class */ (function () {
         if (sName === void 0) { sName = "test"; }
         if (!this.oCodeGeneratorToken) {
             this.oCodeGeneratorToken = new CodeGeneratorToken_1.CodeGeneratorToken({
-                lexer: new BasicLexer_1.BasicLexer(),
-                parser: new BasicParser_1.BasicParser()
+                lexer: new BasicLexer_1.BasicLexer({
+                    bKeepWhiteSpace: true
+                }),
+                parser: new BasicParser_1.BasicParser({
+                    bKeepBrackets: true
+                })
             });
         }
         var oOutput = this.oCodeGeneratorToken.generate(sInput);
@@ -1028,35 +1035,6 @@ var Controller = /** @class */ (function () {
             else { // no file data (assuming sType A, P or T) => get text
                 sFileData = this.view.getAreaValue("inputText");
                 if (sType === "T" || sType === "P") {
-                    /*
-                    const oCodeGeneratorToken = new CodeGeneratorToken({
-                            lexer: new BasicLexer(),
-                            parser: new BasicParser()
-                        }),
-                        oOutput = oCodeGeneratorToken.generate(sFileData);
-
-                    if (oOutput.error) {
-                        this.outputError(oOutput.error);
-                        oOutFile.sType = "A"; // override sType
-                    } else {
-                        if (Utils.debug > 1) {
-                            const sOutput = oOutput.text,
-                                sHex = sOutput.split("").map(function (s) { return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0"); }).join(","),
-                                sDecoded = this.decodeTokenizedBasic(sOutput),
-                                sDiff = Diff.testDiff(sFileData.toUpperCase(), sDecoded.toUpperCase()); // for testing
-
-                            Utils.console.debug("TokenizerInput (" + sStorageName + "):\n", sFileData);
-                            Utils.console.debug("TokenizerHex (" + sStorageName + "):\n", sHex);
-                            Utils.console.debug("TokenizerDecoded (" + sStorageName + "):\n", sDecoded);
-                            Utils.console.debug("TokenizerDiff (" + sStorageName + "):\n", sDiff);
-                        }
-                        sFileData = oOutput.text;
-
-                        if (sType === "P") {
-                            sFileData = DiskImage.unOrProtectData(sFileData);
-                        }
-                    }
-                    */
                     sFileData = this.encodeTokenizedBasic(sFileData, sStorageName);
                     if (sFileData === "") {
                         oOutFile.sType = "A"; // override sType
@@ -1249,8 +1227,12 @@ var Controller = /** @class */ (function () {
     };
     Controller.prototype.fnPretty = function () {
         var sInput = this.view.getAreaValue("inputText"), oCodeGeneratorBasic = new CodeGeneratorBasic_1.CodeGeneratorBasic({
-            lexer: new BasicLexer_1.BasicLexer(),
-            parser: new BasicParser_1.BasicParser()
+            lexer: new BasicLexer_1.BasicLexer({
+                bKeepWhiteSpace: true
+            }),
+            parser: new BasicParser_1.BasicParser({
+                bKeepBrackets: true
+            })
         }), oOutput = oCodeGeneratorBasic.generate(sInput);
         if (oOutput.error) {
             this.outputError(oOutput.error);
@@ -1264,55 +1246,70 @@ var Controller = /** @class */ (function () {
             this.view.setAreaValue("outputText", sDiff);
         }
     };
-    /*
-    fnTokenize(): void {
-        const sInput = this.view.getAreaValue("inputText"),
-            oCodeGeneratorToken = new CodeGeneratorToken({
-                lexer: new BasicLexer(),
-                parser: new BasicParser()
-            }),
-            oOutput = oCodeGeneratorToken.generate(sInput);
-
-        if (oOutput.error) {
-            this.outputError(oOutput.error);
-        } else {
-            const sOutput = oOutput.text,
-                sHex = sOutput.split("").map(function (s) { return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0"); }).join(","),
-                sDecoded = this.decodeTokenizedBasic(sOutput),
-                sDiff = Diff.testDiff(sInput.toUpperCase(), sDecoded.toUpperCase()); // for testing
-
-            this.view.setAreaValue("outputText", sOutput + "\n---\n\n" + sHex + "\n---\n\n" + sDecoded + "\n---\n\n" + sDiff);
-        }
-    }
-    */
-    // https://stackoverflow.com/questions/19327749/javascript-blob-filename-without-link
-    // Does not work to set filename on Chrome!
+    // https://blog.logrocket.com/programmatic-file-downloads-in-the-browser-9a5186298d5c/
+    Controller.fnDownloadBlob = function (blob, sFilename) {
+        var url = URL.createObjectURL(blob), a = document.createElement("a"), clickHandler = function () {
+            setTimeout(function () {
+                URL.revokeObjectURL(url);
+                a.removeEventListener("click", clickHandler);
+            }, 150);
+        };
+        a.href = url;
+        a.download = sFilename || "download";
+        a.addEventListener("click", clickHandler, false);
+        a.click();
+        return a;
+    };
     Controller.prototype.fnDownloadNewFile = function (sData, sFileName) {
         var sType = "octet/stream", oBuffer = new ArrayBuffer(sData.length), oData8 = new Uint8Array(oBuffer);
         for (var i = 0; i < sData.length; i += 1) {
             oData8[i] = sData.charCodeAt(i);
         }
+        var blob = new Blob([oData8.buffer], {
+            type: sType
+        });
         if (window.navigator && window.navigator.msSaveOrOpenBlob) { // IE11 support
-            var blob = new Blob([oBuffer], {
-                type: sType
-            });
             window.navigator.msSaveOrOpenBlob(blob, sFileName);
         }
-        else { // other browsers
-            var file = new File([oBuffer], sFileName, {
-                type: sType
-            }), exportUrl = URL.createObjectURL(file);
-            window.location.assign(exportUrl);
-            URL.revokeObjectURL(exportUrl);
+        else {
+            Controller.fnDownloadBlob(blob, sFileName);
         }
     };
     /*
-    // <!-- <button id="downloadButtonXXX" title="Download (experimental)"><a id="downloadButton" href="#">Download</a></button> -->
-    //	<a id="downloadButton" href="#">Download</a>
-    // does not work without notice on Chrome and not at all on FF:
+    // not for us
+    // https://jetrockets.pro/blog/problem-with-download-file-in-google-chrome
+
+    private static urlToFile(url: string, filename: string) {
+        return fetch(url).then((res) => res.arrayBuffer().then((buf) => new File([buf], filename)));
+    }
+
+    private fnDownloadNewFile(fileData: string, fileName: string) { // eslint-disable-line class-methods-use-this
+        const fileUrl = `data:application/octet-stream;base64,${fileData}`;
+
+        Controller.urlToFile(fileUrl, fileName).then((file) => {
+            const blob = new Blob([file], {
+                    type: "application/octet-stream"
+                }),
+                blobURL = window.URL.createObjectURL(blob),
+                link = document.createElement("a");
+
+            link.href = blobURL;
+
+            link.setAttribute("download", fileName);
+
+            document.body.appendChild(link);
+
+            link.click();
+
+            link.remove();
+        });
+    }
+
+
+    // https://stackoverflow.com/questions/19327749/javascript-blob-filename-without-link
+    // Does not work to set filename on Chrome!
     private fnDownloadNewFile(sData: string, sFileName: string) { // eslint-disable-line class-methods-use-this
-        const downloadButtonAnchor = View.getElementById1("downloadButton") as HTMLAnchorElement,
-            sType = "octet/stream",
+        const sType = "octet/stream",
             oBuffer = new ArrayBuffer(sData.length),
             oData8 = new Uint8Array(oBuffer);
 
@@ -1326,17 +1323,14 @@ var Controller = /** @class */ (function () {
             });
 
             window.navigator.msSaveOrOpenBlob(blob, sFileName);
-        } else {
-            const blob = new Blob([oBuffer], {
+        } else { // other browsers
+            const file = new File([oBuffer], sFileName, {
                     type: sType
                 }),
-                exportUrl = URL.createObjectURL(blob);
+                exportUrl = URL.createObjectURL(file);
 
-            downloadButtonAnchor.href = exportUrl;
-            downloadButtonAnchor.target = "_blank";
-            downloadButtonAnchor.download = sFileName;
-
-            //URL.revokeObjectURL(exportUrl);
+            window.location.assign(exportUrl);
+            URL.revokeObjectURL(exportUrl);
         }
     }
     */

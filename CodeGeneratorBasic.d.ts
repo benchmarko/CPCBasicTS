@@ -14,10 +14,14 @@ export declare class CodeGeneratorBasic {
     private static mOperators;
     private static mOperatorPrecedence;
     private composeError;
+    private static fnWs;
+    private static fnSpace1;
     private fnParseOneArg;
     private fnParseArgs;
     private static fnDecodeEscapeSequence;
+    private fnParenthesisOpen;
     private static string;
+    private static unquoted;
     private static fnNull;
     private assign;
     private static number;
@@ -38,6 +42,7 @@ export declare class CodeGeneratorBasic {
     private fn;
     private "for";
     private "if";
+    private static fnHasStream;
     private input;
     private lineInput;
     private list;

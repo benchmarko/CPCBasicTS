@@ -89,6 +89,7 @@ export declare class CodeGeneratorJs {
     private range;
     private linerange;
     private static string;
+    private static unquoted;
     private static fnNull;
     private assign;
     private label;

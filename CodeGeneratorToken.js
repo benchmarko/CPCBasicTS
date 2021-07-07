@@ -13,11 +13,15 @@ var CodeGeneratorToken = /** @class */ (function () {
         this.iLine = 0; // current line (label)
         /* eslint-disable no-invalid-this */
         this.mParseFunctions = {
+            args: this.fnArgs,
+            "(": this.fnParenthesisOpen,
             ";": CodeGeneratorToken.semicolon,
+            ":": this.colon,
             letter: CodeGeneratorToken.letter,
             range: this.range,
             linerange: this.linerange,
             string: CodeGeneratorToken.string,
+            unquoted: CodeGeneratorToken.unquoted,
             "null": CodeGeneratorToken.fnNull,
             assign: this.assign,
             number: CodeGeneratorToken.number,
@@ -52,6 +56,7 @@ var CodeGeneratorToken = /** @class */ (function () {
         };
         this.lexer = options.lexer;
         this.parser = options.parser;
+        this.sStatementSeparator = CodeGeneratorToken.token2String(":");
     }
     CodeGeneratorToken.prototype.composeError = function (oError, message, value, pos) {
         return Utils_1.Utils.composeError("CodeGeneratorToken", oError, message, value, pos, this.iLine);
@@ -71,7 +76,7 @@ var CodeGeneratorToken = /** @class */ (function () {
             iToken = CodeGeneratorToken.mTokensFF[sName];
             if (iToken === undefined) {
                 Utils_1.Utils.console.warn("token2String: Not a token: " + sName);
-                return sName; //TTT
+                return sName; // return something
             }
             sResult = CodeGeneratorToken.convUInt8ToString(0xff); // prefix for special tokens
         }
@@ -81,27 +86,51 @@ var CodeGeneratorToken = /** @class */ (function () {
     CodeGeneratorToken.getBit7TerminatedString = function (s) {
         return s.substr(0, s.length - 1) + String.fromCharCode(s.charCodeAt(s.length - 1) | 0x80); // eslint-disable-line no-bitwise
     };
+    CodeGeneratorToken.prototype.combineArgsWithSeparator = function (aNodeArgs) {
+        var sSeparator = "";
+        if (aNodeArgs.length > 1 && aNodeArgs[1].charAt(0) !== this.sStatementSeparator) { // no separator for multiple items?
+            // (use charAt(0) because of apostrophe with separator prefix)
+            sSeparator = this.sStatementSeparator;
+        }
+        var sValue = aNodeArgs.join(sSeparator);
+        return sValue;
+    };
     CodeGeneratorToken.prototype.fnParseOneArg = function (oArg) {
-        var sValue = this.parseNode(oArg); // eslint-disable-line no-use-before-define
+        var sValue = this.parseNode(oArg);
+        if (oArg.ws && oArg.ws !== " ") {
+            sValue = oArg.ws + sValue; //TTT whitespace
+        }
         return sValue;
     };
     CodeGeneratorToken.prototype.fnParseArgs = function (aArgs) {
         var aNodeArgs = []; // do not modify node.args here (could be a parameter of defined function)
         if (!aArgs) {
-            throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occure TTT
+            throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occure
         }
         for (var i = 0; i < aArgs.length; i += 1) {
             var sValue = this.fnParseOneArg(aArgs[i]);
-            //if (sValue.length > 0) { //TTT
             if (!(i === 0 && sValue === "#" && aArgs[i].type === "#")) { // ignore empty stream as first argument (hmm, not for e.g. data!)
                 aNodeArgs.push(sValue);
             }
-            //}
         }
         return aNodeArgs;
     };
+    CodeGeneratorToken.prototype.fnArgs = function (node) {
+        var aNodeArgs = this.fnParseArgs(node.args);
+        return aNodeArgs.join(node.value);
+    };
     CodeGeneratorToken.semicolon = function (node) {
         return node.value; // ";"
+    };
+    CodeGeneratorToken.prototype.colon = function () {
+        /*
+        if (Utils.debug > 2) {
+            Utils.console.log("TTT: colon=", node.value); //TTT
+        }
+        return ""; // currently we ignore them // node.value; // ":"
+        */
+        //return CodeGeneratorToken.token2String(node.value); // statement separator
+        return this.sStatementSeparator;
     };
     CodeGeneratorToken.letter = function (node) {
         return node.value;
@@ -125,10 +154,23 @@ var CodeGeneratorToken = /** @class */ (function () {
             return String.fromCharCode(parseInt(arguments[1], 16));
         });
     };
+    CodeGeneratorToken.prototype.fnParenthesisOpen = function (node) {
+        var oValue = node.value;
+        if (node.args) {
+            var aNodeArgs = this.fnParseArgs(node.args);
+            oValue += aNodeArgs.join("");
+        }
+        return oValue;
+    };
     CodeGeneratorToken.string = function (node) {
         var sValue = CodeGeneratorToken.fnDecodeEscapeSequence(node.value);
         sValue = sValue.replace(/\\\\/g, "\\"); // unescape backslashes
         return '"' + sValue + '"'; //TTT how to set unterminated string?
+    };
+    CodeGeneratorToken.unquoted = function (node) {
+        var sValue = CodeGeneratorToken.fnDecodeEscapeSequence(node.value);
+        sValue = sValue.replace(/\\\\/g, "\\"); // unescape backslashes
+        return sValue;
     };
     CodeGeneratorToken.fnNull = function () {
         return "";
@@ -156,76 +198,8 @@ var CodeGeneratorToken = /** @class */ (function () {
             iExponent += 0x80;
         }
         var sBytes = CodeGeneratorToken.convInt32ToString(iSign + iMantissa) + CodeGeneratorToken.convUInt8ToString(iExponent);
-        // sBytes.split("").map(function(s) { return s.charCodeAt(0).toString(16)})
         return sBytes;
     };
-    /*
-    private static floatToByteString(value: number) {
-        let bytes = 0,
-            exponent = 0,
-            significand;
-
-        switch (value) {
-        case Number.POSITIVE_INFINITY: bytes = 0x7F800000;
-            break;
-        case Number.NEGATIVE_INFINITY: bytes = 0xFF800000;
-            break;
-        case +0.0: bytes = 0x40000000;
-            break;
-        case -0.0: bytes = 0xC0000000;
-            break;
-        default:
-            if (Number.isNaN(value)) {
-                bytes = 0x7FC00000;
-                break;
-            }
-
-            if (value <= 0.0) { // -0.0
-                bytes = 0x80000000;
-                value = -value;
-            }
-
-            exponent = Math.floor(Math.log(value) / Math.log(2));
-            //significand = ((value / Math.pow(2, exponent)) * 0x00800000) | 0; // eslint-disable-line no-bitwise
-            significand = ((value / Math.pow(2, exponent)) * 0x08000000) | 0; // eslint-disable-line no-bitwise
-
-            //exponent += 127;
-            exponent += 0x81;
-            if (exponent >= 0xFF) {
-                exponent = 0xFF;
-                significand = 0;
-            } else if (exponent < 0) {
-                exponent = 0;
-            }
-
-            //bytes |= (exponent << 23); // eslint-disable-line no-bitwise
-            bytes |= (significand & ~(-1 << 31)); // eslint-disable-line no-bitwise
-            break;
-        }
-        / *
-        const aBytes = [
-            (bytes >> 24),
-            (bytes >> 16) & 0xff,
-            (bytes >> 8) & 0xff,
-            bytes & 0xff
-        ];
-        * /
-
-        const aBytes = CodeGeneratorToken.convInt32ToString(bytes) + CodeGeneratorToken.convUInt8ToString(exponent);
-
-        return aBytes;
-        //return bytes;
-    }
-    */
-    /*
-    private static fpToByteString(iNumber: number) {
-        let sBinString = iNumber.toString(2), // binstring
-            sResult;
-
-        sResult = sBinString;
-        return sResult;
-    }
-    */
     CodeGeneratorToken.number = function (node) {
         var sNumber = node.value.toUpperCase(), // maybe "e" inside
         iNumber = Number(sNumber);
@@ -234,13 +208,11 @@ var CodeGeneratorToken = /** @class */ (function () {
             if (iNumber >= 0 && iNumber <= 9) { // integer number constant 0-9? (not sure when 10 is used)
                 sResult = CodeGeneratorToken.token2String(sNumber);
             }
-            else if (iNumber >= 10) {
-                if (iNumber <= 0xff) {
-                    sResult = CodeGeneratorToken.token2String("_dec8") + CodeGeneratorToken.convUInt8ToString(iNumber);
-                }
-                else if (iNumber <= 0xffff) {
-                    sResult = CodeGeneratorToken.token2String("_dec16") + CodeGeneratorToken.convUInt16ToString(iNumber);
-                }
+            else if (iNumber >= 10 && iNumber <= 0xff) {
+                sResult = CodeGeneratorToken.token2String("_dec8") + CodeGeneratorToken.convUInt8ToString(iNumber);
+            }
+            else if (iNumber >= -0x7fff && iNumber <= 0x7fff) {
+                sResult = (iNumber < 0 ? CodeGeneratorToken.token2String("-") : "") + CodeGeneratorToken.token2String("_dec16") + CodeGeneratorToken.convUInt16ToString(iNumber);
             }
         }
         if (sResult === "") { // no integer number yet, use float...
@@ -294,7 +266,9 @@ var CodeGeneratorToken = /** @class */ (function () {
     CodeGeneratorToken.prototype.label = function (node) {
         this.iLine = Number(node.value); // set line before parsing args
         var iLine = this.iLine, aNodeArgs = this.fnParseArgs(node.args);
-        var sValue = aNodeArgs.join(CodeGeneratorToken.token2String(":")); // statement seperator ":"
+        //let sValue = aNodeArgs.join(CodeGeneratorToken.token2String(":")); // statement seperator ":"
+        //let sValue = aNodeArgs.join("");
+        var sValue = this.combineArgsWithSeparator(aNodeArgs);
         if (node.value !== "direct") {
             sValue = CodeGeneratorToken.convUInt16ToString(iLine) + sValue + CodeGeneratorToken.token2String("_eol");
             var iLen = sValue.length + 2;
@@ -323,7 +297,6 @@ var CodeGeneratorToken = /** @class */ (function () {
     };
     CodeGeneratorToken.prototype.chainMerge = function (node) {
         var aNodeArgs = this.fnParseArgs(node.args);
-        //sTypeUc = CodeGeneratorToken.mCombinedKeywords[node.type] || node.type.toUpperCase(); //TTT
         var sValue = CodeGeneratorToken.token2String(node.type);
         if (aNodeArgs.length === 3) {
             aNodeArgs[2] = CodeGeneratorToken.token2String("delete") + aNodeArgs[2];
@@ -332,21 +305,26 @@ var CodeGeneratorToken = /** @class */ (function () {
         return sValue;
     };
     CodeGeneratorToken.prototype.data = function (node) {
-        var aNodeArgs = this.fnParseArgs(node.args), regExp = new RegExp(":|,|^ +| +$|\\|"); // separator or comma or spaces at end or beginning, or "|" which is corrupted on CPC
+        var aNodeArgs = this.fnParseArgs(node.args);
+        //regExp = new RegExp(":|,|^ +| +$|\\|"); // separator or comma or spaces at end or beginning, or "|" which is corrupted on CPC
         for (var i = 0; i < aNodeArgs.length; i += 1) {
             var sValue2 = aNodeArgs[i];
+            /*
             if (sValue2) {
                 sValue2 = sValue2.substr(1, sValue2.length - 2); // remove surrounding quotes
                 sValue2 = sValue2.replace(/\\"/g, "\""); // unescape "
+
                 if (sValue2) {
                     if (regExp.test(sValue2)) {
                         sValue2 = '"' + sValue2 + '"';
                     }
                 }
             }
+            */
             aNodeArgs[i] = sValue2;
         }
-        var sValue = aNodeArgs.join(",");
+        //let sValue = aNodeArgs.join(",");
+        var sValue = aNodeArgs.join("");
         if (sValue !== "" && sValue !== "," && sValue !== '"') { // argument?
             sValue = " " + sValue;
         }
@@ -367,10 +345,6 @@ var CodeGeneratorToken = /** @class */ (function () {
         if (sNodeArgs !== "") { // not empty?
             sNodeArgs = "(" + sNodeArgs + ")";
         }
-        /*
-        const sName2 = sSpace.length ? sName.replace("FN", "FN ") : sName,
-            sValue = CodeGeneratorToken.token2String(node.type) + " " + sName2 + sNodeArgs + "=" + sExpression;
-        */
         var sValue = CodeGeneratorToken.token2String(node.type) + " " + CodeGeneratorToken.token2String("fn") + sSpace + sName + sNodeArgs + CodeGeneratorToken.token2String("=") + sExpression;
         return sValue;
     };
@@ -378,14 +352,21 @@ var CodeGeneratorToken = /** @class */ (function () {
         if (!node.args) {
             throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occure
         }
+        var sValue = CodeGeneratorToken.token2String(":") + CodeGeneratorToken.token2String(node.type); // always prefix with ":"
         var aArgs = node.args;
-        var sValue = CodeGeneratorToken.token2String(node.type);
+        // we do not have a parse tree here but a simple list
         for (var i = 0; i < aArgs.length; i += 1) {
             var oToken = aArgs[i];
-            if (oToken.value) {
-                sValue += " " + oToken.value;
+            var sValue2 = oToken.value;
+            if (sValue2) {
+                if (oToken.type === "linenumber") { //test
+                    sValue2 = CodeGeneratorToken.linenumber(oToken);
+                }
+                //sValue += oToken.value;
+                sValue += sValue2;
             }
         }
+        //const aNodeArgs = this.fnParseArgs(node.args); // cannot parse!
         // TODO: whitespaces?
         return sValue;
     };
@@ -427,19 +408,35 @@ var CodeGeneratorToken = /** @class */ (function () {
         if (!node.left) {
             throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occure
         }
-        var aNodeArgs = this.fnParseArgs(node.args), sName = this.fnParseOneArg(node.left).replace("FN", ""), // get identifier without FN
-        sSpace = node.left.bSpace ? " " : ""; // fast hack
+        var aNodeArgs = this.fnParseArgs(node.args), 
+        //sName = this.fnParseOneArg(node.left).replace("FN", ""), // get identifier without FN
+        sName = this.fnParseOneArg(node.left).replace(/FN/i, ""), // get identifier without FN
+        sSpace = node.value.indexOf(" ") >= 0 ? " " : ""; //node.left.bSpace ? " " : ""; // fast hack
         var sNodeArgs = aNodeArgs.join(",");
         if (sNodeArgs !== "") { // not empty?
             sNodeArgs = "(" + sNodeArgs + ")";
         }
         var sName2 = CodeGeneratorToken.token2String(node.type) + sSpace + sName, sValue = sName2 + sNodeArgs;
+        /*
+            //TTT
+        const aNodeArgs = this.fnParseArgs(node.args);
+            //sName = this.fnParseOneArg(node.left).replace("FN", ""), // get identifier without FN
+            //sSpace = node.left.bSpace ? " " : ""; // fast hack
+        let sNodeArgs = aNodeArgs.join(",");
+
+        if (sNodeArgs !== "") { // not empty?
+            sNodeArgs = "(" + sNodeArgs + ")";
+        }
+
+        const sName2 = node.value.replace(/FN/i, ""),
+            sValue = CodeGeneratorToken.token2String(node.type) + sName2 + sNodeArgs;
+        */
         return sValue;
     };
     CodeGeneratorToken.prototype["for"] = function (node) {
         var aNodeArgs = this.fnParseArgs(node.args), sVarName = aNodeArgs[0], startValue = aNodeArgs[1], endValue = aNodeArgs[2], stepValue = aNodeArgs[3];
         var sValue = CodeGeneratorToken.token2String(node.type) + sVarName + CodeGeneratorToken.token2String("=") + startValue + CodeGeneratorToken.token2String("to") + endValue;
-        if (stepValue !== "") { // "null" is "" //TTT or: node.args[3].type === "null"
+        if (stepValue !== "") { // "null" is ""
             sValue += CodeGeneratorToken.token2String("step") + stepValue;
         }
         return sValue;
@@ -456,21 +453,32 @@ var CodeGeneratorToken = /** @class */ (function () {
         if (oNodeBranch.length && oNodeBranch[0].type === "goto" && oNodeBranch[0].len === 0) { // inserted goto?
             aNodeArgs[0] = this.fnParseOneArg(oNodeBranch[0].args[0]); // take just line number
         }
-        sValue += aNodeArgs.join(CodeGeneratorToken.token2String(":"));
+        //sValue += aNodeArgs.join(CodeGeneratorToken.token2String(":"));
+        //sValue += aNodeArgs.join("");
+        sValue += this.combineArgsWithSeparator(aNodeArgs);
         if (node.args2) {
-            sValue += CodeGeneratorToken.token2String(":") + CodeGeneratorToken.token2String("else"); // ":" before "else"!
+            if (!sValue.endsWith(this.sStatementSeparator)) {
+                sValue += this.sStatementSeparator; // ":" before "else"!
+            }
+            sValue += CodeGeneratorToken.token2String("else");
             var oNodeBranch2 = node.args2, aNodeArgs2 = this.fnParseArgs(oNodeBranch2); // args for "else"
             if (oNodeBranch2.length && oNodeBranch2[0].type === "goto" && oNodeBranch2[0].len === 0) { // inserted goto?
                 aNodeArgs2[0] = this.fnParseOneArg(oNodeBranch2[0].args[0]); // take just line number
             }
-            sValue += aNodeArgs2.join(CodeGeneratorToken.token2String(":"));
+            //sValue += aNodeArgs2.join(CodeGeneratorToken.token2String(":"));
+            //sValue += aNodeArgs2.join("");
+            sValue += this.combineArgsWithSeparator(aNodeArgs2);
         }
         return sValue;
     };
+    CodeGeneratorToken.fnHasStream = function (node) {
+        //bHasStream = aNodeArgs.length && (String(aNodeArgs[0]).charAt(0) === "#");
+        //bHasStream = node.args && node.args.length && (node.args[0].type === "#");
+        var bHasStream = node.args && node.args.length && (node.args[0].type === "#") && node.args[0].right && (node.args[0].right.type !== "null");
+        return bHasStream;
+    };
     CodeGeneratorToken.prototype.input = function (node) {
-        var aNodeArgs = this.fnParseArgs(node.args), 
-        //sTypeUc = CodeGeneratorToken.mCombinedKeywords[node.type] || node.type.toUpperCase(), //TTT
-        bHasStream = aNodeArgs.length && (String(aNodeArgs[0]).charAt(0) === "#");
+        var aNodeArgs = this.fnParseArgs(node.args), bHasStream = CodeGeneratorToken.fnHasStream(node);
         var sValue = CodeGeneratorToken.token2String(node.type), i = 0;
         if (bHasStream) { // stream?
             i += 1;
@@ -508,9 +516,7 @@ var CodeGeneratorToken = /** @class */ (function () {
         if (!node.right) {
             throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occure TTT
         }
-        var aNodeArgs = this.fnParseArgs(node.args), 
-        //sTypeUc = CodeGeneratorToken.mCombinedKeywords[node.type],
-        sValue = CodeGeneratorToken.token2String(node.type) + "(" + aNodeArgs.join(",") + ")" + CodeGeneratorToken.token2String("=") + this.fnParseOneArg(node.right);
+        var aNodeArgs = this.fnParseArgs(node.args), sValue = CodeGeneratorToken.token2String(node.type) + "(" + aNodeArgs.join(",") + ")" + CodeGeneratorToken.token2String("=") + this.fnParseOneArg(node.right);
         return sValue;
     };
     CodeGeneratorToken.prototype.onErrorGoto = function (node) {
@@ -541,7 +547,7 @@ var CodeGeneratorToken = /** @class */ (function () {
         return sValue;
     };
     CodeGeneratorToken.prototype.print = function (node) {
-        var regExp = new RegExp("[a-zA-Z0-9.]"), aNodeArgs = this.fnParseArgs(node.args), bHasStream = aNodeArgs.length && (String(aNodeArgs[0]).charAt(0) === "#"), sToken = node.value.toLowerCase(); // we use value to get PRINT or ?
+        var regExp = new RegExp("[a-zA-Z0-9.]"), aNodeArgs = this.fnParseArgs(node.args), bHasStream = CodeGeneratorToken.fnHasStream(node), sToken = node.value.toLowerCase(); // we use value to get PRINT or ?
         var sValue = CodeGeneratorToken.token2String(node.type); // print and ? are tokenized as print, or use sToken here to keep it different
         if (sToken === "print" && aNodeArgs.length && !bHasStream) { // PRINT with args and not stream?
             sValue += " ";
@@ -574,6 +580,9 @@ var CodeGeneratorToken = /** @class */ (function () {
                 sName += " ";
             }
         }
+        else {
+            sName = this.sStatementSeparator + sName; // always prefix apostrophe with ":"
+        }
         sValue = sName + sValue;
         return sValue;
     };
@@ -589,7 +598,6 @@ var CodeGeneratorToken = /** @class */ (function () {
     /* eslint-enable no-invalid-this */
     CodeGeneratorToken.prototype.fnParseOther = function (node) {
         var sType = node.type, sKeyType = BasicParser_1.BasicParser.mKeywords[sType];
-        //sTypeUc = CodeGeneratorToken.mCombinedKeywords[sType] || sType.toUpperCase();
         var sValue = CodeGeneratorToken.token2String(sType), sArgs = "";
         if (node.left) {
             sArgs += this.fnParseOneArg(node.left);
@@ -608,11 +616,8 @@ var CodeGeneratorToken = /** @class */ (function () {
         if (node.args2) { // ELSE part already handled
             throw this.composeError(Error(), "Programming error: args2", node.type, node.pos); // should not occur
         }
-        //let sValue = CodeGeneratorToken.token2String(sTypeUc);
-        //sValue += sArgs;
         // for e.g. tab, spc...
         if (sKeyType) {
-            //sValue = sTypeUc;
             if (sArgs.length) {
                 if (sKeyType.charAt(0) === "f") { // function with parameters?
                     sValue += "(" + sArgs + ")";
@@ -627,7 +632,6 @@ var CodeGeneratorToken = /** @class */ (function () {
         }
         else {
             sValue = sArgs; // for e.g. string
-            //sValue += sArgs; // for e.g. string //TTT
         }
         return sValue;
     };
@@ -684,15 +688,6 @@ var CodeGeneratorToken = /** @class */ (function () {
                 if (p && pr && (pr < p)) {
                     value = "(" + value + ")";
                 }
-                /*
-                if (sType === "#") { // stream?
-                    if (value !== "") {
-                        value = sType + value;
-                    }
-                } else {
-                    value = CodeGeneratorToken.token2String(mOperators[sType]) + value;
-                }
-                */
                 value = CodeGeneratorToken.token2String(mOperators[sType]) + value;
             }
         }
@@ -713,13 +708,6 @@ var CodeGeneratorToken = /** @class */ (function () {
             var sNode = this.parseNode(parseTree[i]);
             if ((sNode !== undefined) && (sNode !== "")) {
                 if (sNode !== null) {
-                    /*
-                    if (sOutput.length === 0) {
-                        sOutput = sNode;
-                    } else {
-                        sOutput += "\n" + sNode;
-                    }
-                    */
                     sOutput += sNode;
                 }
                 else {
@@ -752,27 +740,6 @@ var CodeGeneratorToken = /** @class */ (function () {
         }
         return oOut;
     };
-    /*
-    private static mCombinedKeywords: { [k: string]: string } = {
-        chainMerge: "CHAIN MERGE",
-        clearInput: "CLEAR INPUT",
-        graphicsPaper: "GRAPHICS PAPER",
-        graphicsPen: "GRAPHICS PEN",
-        keyDef: "KEY DEF",
-        lineInput: "LINE INPUT",
-        mid$Assign: "MID$",
-        onBreakCont: "ON BREAK CONT",
-        onBreakGosub: "ON BREAK GOSUB",
-        onBreakStop: "ON BREAK STOP",
-        onErrorGoto: "ON ERROR GOTO",
-        resumeNext: "RESUME NEXT",
-        speedInk: "SPEED INK",
-        speedKey: "SPEED KEY",
-        speedWrite: "SPEED WRITE",
-        symbolAfter: "SYMBOL AFTER",
-        windowSwap: "WINDOW SWAP"
-    }
-    */
     CodeGeneratorToken.mOperators = {
         "+": "+",
         "-": "-",
@@ -918,12 +885,10 @@ var CodeGeneratorToken = /** @class */ (function () {
         next: 0xb0,
         "new": 0xb1,
         on: 0xb2,
-        //"on break": 0xb3, // "on break"
         onBreakCont: 0x8bb3,
         onBreakGosub: 0x9fb3,
         onBreakStop: 0xceb3,
         _onErrorGoto0: 0xb4,
-        //onErrorGoto: 0xa09cb2, // 3 tokens
         _onSq: 0xb5,
         openin: 0xb6,
         openout: 0xb7,
@@ -949,7 +914,6 @@ var CodeGeneratorToken = /** @class */ (function () {
         run: 0xca,
         save: 0xcb,
         sound: 0xcc,
-        //speed: 0xcd,
         speedInk: 0xa2cd,
         speedKey: 0xa4cd,
         speedWrite: 0xd9cd,
@@ -982,7 +946,7 @@ var CodeGeneratorToken = /** @class */ (function () {
         fn: 0xe4,
         spc: 0xe5,
         step: 0xe6,
-        //swap: 0xe7,
+        // swap: 0xe7, only: windowSwap...
         // "<unused>":         0xe8,
         // "<unused>":         0xe9,
         tab: 0xea,

@@ -11,6 +11,7 @@ import { Utils } from "./Utils";
 
 interface BasicLexerOptions {
 	bQuiet?: boolean
+	bKeepWhiteSpace?: boolean
 }
 
 export interface LexerToken {
@@ -18,19 +19,24 @@ export interface LexerToken {
 	value: string
 	pos: number
 	orig?: string
+	ws?: string
 }
 
 export class BasicLexer {
 	private bQuiet = false;
+	private bKeepWhiteSpace = false;
+
 	private sLine = "0"; // for error messages
 	private bTakeNumberAsLine = true; // first number in a line is assumed to be a line number
 
 	private sInput = "";
 	private iIndex = 0;
 	private aTokens: LexerToken[] = [];
+	private sWhiteSpace = ""; //TTT whitespace collected
 
 	constructor(options?: BasicLexerOptions) {
 		this.bQuiet = options?.bQuiet || false;
+		this.bKeepWhiteSpace = options?.bKeepWhiteSpace || false;
 	}
 
 	private composeError(oError: Error, message: string, value: string, pos: number) {
@@ -71,6 +77,11 @@ export class BasicLexer {
 	private static isWhiteSpace(c: string) {
 		return (/[ \r]/).test(c);
 	}
+	/*
+	private static isNotWhiteSpace(c: string) {
+		return c !== "" && !BasicLexer.isWhiteSpace(c) && !BasicLexer.isNewLine(c);
+	}
+	*/
 	private static isNewLine(c: string) {
 		return (/[\n]/).test(c);
 	}
@@ -138,6 +149,10 @@ export class BasicLexer {
 				oNode.orig = sOrig;
 			}
 		}
+		if (this.sWhiteSpace !== "") {
+			oNode.ws = this.sWhiteSpace;
+			this.sWhiteSpace = "";
+		}
 		this.aTokens.push(oNode);
 	}
 	private static hexEscape(str: string) {
@@ -203,10 +218,16 @@ export class BasicLexer {
 		}
 	}
 	private fnParseCompleteLineForData(sChar: string, iStartPos: number) { // special handling because strings in data lines need not be quoted
+		const reSpacesAtEnd = new RegExp(/\s+$/);
+
 		while (BasicLexer.isNotNewLine(sChar)) {
 			if (BasicLexer.isWhiteSpace(sChar)) {
-				this.advanceWhile(sChar, BasicLexer.isWhiteSpace);
+				const sToken = this.advanceWhile(sChar, BasicLexer.isWhiteSpace);
+
 				sChar = this.getChar();
+				if (this.bKeepWhiteSpace) {
+					this.sWhiteSpace = sToken;
+				}
 			}
 			if (BasicLexer.isNewLine(sChar)) { // now newline?
 				break;
@@ -234,15 +255,26 @@ export class BasicLexer {
 				let sToken = this.advanceWhile(sChar, BasicLexer.isUnquotedData);
 
 				sChar = this.getChar();
+
+				const aMatch = reSpacesAtEnd.exec(sToken),
+					sEndingSpaces = (aMatch && aMatch[0]) || "";
+
 				sToken = sToken.trim(); // remove whitespace before and after
 				sToken = sToken.replace(/\\/g, "\\\\"); // escape backslashes
-				sToken = sToken.replace(/"/g, "\\\""); // escape "
-				this.addToken("string", sToken, iStartPos); // could be interpreted as string or number during runtime
+				//sToken = sToken.replace(/"/g, "\\\""); // escape "
+				this.addToken("unquoted", sToken, iStartPos); // could be interpreted as string or number during runtime
+				if (this.bKeepWhiteSpace) {
+					this.sWhiteSpace = sEndingSpaces;
+				}
 			}
 
 			if (BasicLexer.isWhiteSpace(sChar)) {
-				this.advanceWhile(sChar, BasicLexer.isWhiteSpace);
+				const sToken = this.advanceWhile(sChar, BasicLexer.isWhiteSpace);
+
 				sChar = this.getChar();
+				if (this.bKeepWhiteSpace) {
+					this.sWhiteSpace = sToken;
+				}
 			}
 
 			if (sChar !== ",") {
@@ -283,14 +315,20 @@ export class BasicLexer {
 
 		this.sLine = "0"; // for error messages
 		this.bTakeNumberAsLine = true;
+		this.sWhiteSpace = "";
 
-		this.aTokens = []; //this.aTokens.length = 0;
+		this.aTokens.length = 0;
 
 		while (this.iIndex < sInput.length) {
 			iStartPos = this.iIndex;
 			sChar = this.getChar();
 			if (BasicLexer.isWhiteSpace(sChar)) {
-				sChar = this.advance();
+				sToken = this.advanceWhile(sChar, BasicLexer.isWhiteSpace);
+				sChar = this.getChar();
+				if (this.bKeepWhiteSpace) {
+					//this.addToken("ws", sToken, iStartPos);
+					this.sWhiteSpace = sToken;
+				}
 			} else if (BasicLexer.isNewLine(sChar)) {
 				this.addToken("(eol)", "", iStartPos);
 				sChar = this.advance();

@@ -15,6 +15,67 @@ type AllTestsType = {[k in string]: TestsType};
 
 QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 	const mAllTests: AllTestsType = {
+		numbers: {
+			"a=1": "a=1",
+			"a=1.2": "a=1.2",
+			"a=-1.2": "a=-1.2",
+			"a=+7.2": "a=+7.2",
+			"a=&A7": "a=&A7",
+			"a=-&A7": "a=-&A7",
+			"a=&7FFF": "a=&7FFF",
+			"a=&X10100111": "a=&X10100111",
+			"a=-&X111111111111111": "a=-&X111111111111111",
+			"a=255": "a=255",
+			"a=-255": "a=-255",
+			"a=256": "a=256",
+			"a=-256": "a=-256",
+			"a=32767": "a=32767",
+			"a=-32767": "a=-32767",
+			"a=32768": "a=32768",
+			"a=-32768": "a=-32768",
+			"a=1.2e+9": "a=1200000000"
+		},
+		strings: {
+			"a$=\"a12\"": "a$=\"a12\"",
+			"a$=+\"7.1\"": "a$=+\"7.1\""
+		},
+		variables: {
+			"a!=1.4": "a!=1.4",
+			"a%=1.4": "a%=1.4",
+			"a$=\"1.4\"": "a$=\"1.4\"",
+			"insert.line=2": "insert.line=2",
+			"a!(2)=1.4": "a!(2)=1.4",
+			"a%(2)=1.4": "a%(2)=1.4",
+			"a$(2)=\"1.4\"": "a$(2)=\"1.4\"",
+			"a$[2]=\"1.4\"": "a$[2]=\"1.4\"",
+			"a(9)=b(1,2)": "a(9)=b(1,2)",
+			"a[9]=b[1,2]": "a[9]=b[1,2]",
+			"a(10,10,10)=b(10,9)": "a(10,10,10)=b(10,9)"
+		},
+		expressions: {
+			"a=1+2+3": "a=1+2+3",
+			"a=3-2-1": "a=3-2-1",
+			"a=&A7+&X10100111-(123-27)": "a=&A7+&X10100111-(123-27)",
+			"a=(3+2)*(3-7)": "a=(3+2)*(3-7)",
+			"a=-(10-7)-(-6-2)": "a=-(10-7)-(-6-2)",
+			"a=20/2.5": "a=20/2.5",
+			"a=20\\3": "a=20\\3",
+			"a=3^2": "a=3^2",
+			"a=&X1001 AND &X1110": "a=&X1001 AND &X1110",
+			"a=&X1001 OR &X110": "a=&X1001 OR &X110",
+			"a=&X1001 XOR &X1010": "a=&X1001 XOR &X1010",
+			"a=NOT &X1001": "a=NOT &X1001",
+			"a=+++++++++---9": "a=+++++++++---9",
+			"a=(1=0)": "a=(1=0)", // optimal: a=1=0
+			"a=(1>0)*(0<1)": "a=(1>0)*(0<1)",
+			"a=(b%>=c%)*(d<=e)": "a=(b%>=c%)*(d<=e)"
+		},
+		special: {
+			"a$=\"string with\nnewline\"": "a$=\"string with\nnewline\"",
+			"::a=3-2-1: :": "::a=3-2-1: :",
+			" a =  ( b% >= c%  ) *     ( d <=e )  ": " a =  ( b% >= c%  ) *     ( d <=e )", // additional spaces
+			"a = (((3+2))*((3-7)))": "a = (((3+2))*((3-7)))" // additional brackets
+		},
 		"abs, after gosub, and, asc, atn, auto": {
 			"a=abs(2.3)": "a=ABS(2.3)",
 
@@ -38,19 +99,20 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 			"border 5,a": "BORDER 5,a"
 		},
 		"call, cat, chain, chain merge, chr$, cint, clg, closein, closeout, cls, cont, copychr$, cos, creal, cursor": {
-			"call&a7bc": "CALL &A7BC",
+			"call &a7bc": "CALL &A7BC",
+			"call&a7bc": "CALL&A7BC",
 			"call 4711,1,2,3,4": "CALL 4711,1,2,3,4",
 
 			"cat ": "CAT",
 
-			'chain"f1"': 'CHAIN "f1"',
-			'chain"f2" , 10': 'CHAIN "f2",10',
-			'chain"f3" , 10+3': 'CHAIN "f3",10+3',
+			'chain "f1"': 'CHAIN "f1"',
+			'chain "f2" , 10': 'CHAIN "f2", 10',
+			'chain "f3" , 10+3': 'CHAIN "f3", 10+3',
 
 			'chain merge "f1"': 'CHAIN MERGE "f1"',
-			'chain merge "f2" , 10': 'CHAIN MERGE "f2",10',
-			'chain merge "f3" , 10+3': 'CHAIN MERGE "f3",10+3',
-			'chain merge "f4" , 10+3, delete 100-200': 'CHAIN MERGE "f4",10+3,DELETE 100-200',
+			'chain merge "f2" , 10': 'CHAIN MERGE "f2", 10',
+			'chain merge "f3" , 10+3': 'CHAIN MERGE "f3", 10+3',
+			'chain merge "f4" , 10+3, delete 100-200': 'CHAIN MERGE "f4", 10+3,DELETE 100-200',
 			'chain merge "f5" , , delete 100-200': 'CHAIN MERGE "f5",,DELETE 100-200',
 
 			"a=chr$(65)": "a=CHR$(65)",
@@ -69,8 +131,9 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 			"closeout ": "CLOSEOUT",
 
 			"cls ": "CLS",
-			"cls #5": "CLS#5",
-			"cls #a+7-2*b": "CLS#a+7-2*b",
+			"cls#2": "CLS#2",
+			"cls #5": "CLS #5",
+			"cls #a+7-2*b": "CLS #a+7-2*b",
 
 			"cont ": "CONT",
 
@@ -85,17 +148,17 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 			"cursor 0": "CURSOR 0",
 			"cursor 1": "CURSOR 1",
 			"cursor 1,1": "CURSOR 1,1",
-			"cursor ,1": "CURSOR ,1",
-			"cursor #2": "CURSOR#2",
-			"cursor #2,1": "CURSOR#2,1",
-			"cursor #2,1,1": "CURSOR#2,1,1",
-			"cursor #2,,1": "CURSOR#2,,1"
+			"cursor ,1": "CURSOR,1", //TTT
+			"cursor#2": "CURSOR#2",
+			"cursor#2,1": "CURSOR#2,1",
+			"cursor#2,1,1": "CURSOR#2,1,1",
+			"cursor#2,,1": "CURSOR#2,,1"
 		},
 		"data, dec$, def fn, defint, defreal, defstr, deg, delete, derr, di, dim, draw, drawr": {
 			"data ": "DATA",
 			"data ,": "DATA ,",
 			"data 1,2,3": "DATA 1,2,3",
-			'data "item1"," item2","item3 "': 'DATA item1," item2","item3 "',
+			'data "item1"," item2","item3 "': 'DATA "item1"," item2","item3 "',
 			"data item1,item2,item3": "DATA item1,item2,item3",
 			"data &a3,4,abc,": "DATA &a3,4,abc,", // &a3 is not converted
 			'data " ",!"#$%&\'()*+,","': 'DATA " ",!"#$%&\'()*+,","',
@@ -166,6 +229,7 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 			"else": "ELSE",
 			"else 10": "ELSE 10",
 			"else a=7": "ELSE a = 7", // TODO: whitespace
+			"a=1 else a=2": "a=1 ELSE a = 2", //TTT
 
 			"end ": "END",
 
@@ -235,7 +299,7 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 
 			"graphics pen 5": "GRAPHICS PEN 5",
 			"graphics pen 5,1": "GRAPHICS PEN 5,1",
-			"graphics pen ,0": "GRAPHICS PEN ,0",
+			"graphics pen ,0": "GRAPHICS PEN,0", //TTT
 			"graphics pen 2.3*a,1+b": "GRAPHICS PEN 2.3*a,1+b"
 		},
 		"hex$, himem": {
@@ -254,7 +318,7 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 			"if a=1 then 10:a=never1": "IF a=1 THEN 10:a=never1",
 			"if a=1 then 10 else 20": "IF a=1 THEN 10 ELSE 20",
 			"if a=1 then 10 else goto 20": "IF a=1 THEN 10 ELSE GOTO 20",
-			"if a=b+5*c then a=a+1: goto 10 else a=a-1:goto 20": "IF a=b+5*c THEN a=a+1:GOTO 10 ELSE a=a-1:GOTO 20",
+			"if a=b+5*c then a=a+1:goto 10 else a=a-1:goto 20": "IF a=b+5*c THEN a=a+1:GOTO 10 ELSE a=a-1:GOTO 20",
 
 			"ink 2,19": "INK 2,19",
 			"ink 2,19,22": "INK 2,19,22",
@@ -342,7 +406,7 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 			"mask &x10101011": "MASK &X10101011",
 			"mask 2^(8-x),1": "MASK 2^(8-x),1",
 			"mask a,b": "MASK a,b",
-			"mask ,b": "MASK ,b",
+			"mask ,b": "MASK,b", //TTT
 
 			"a=max(1)": "a=MAX(1)",
 			"a=max(1,5)": "a=MAX(1,5)",
@@ -491,7 +555,8 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 			"rem comment until EOL": "REM comment until EOL",
 			"'": "'",
 			"'comment until EOL": "'comment until EOL",
-			"a=1 'comment": "a=1:'comment",
+			"a=1 'comment": "a=1 'comment",
+			"a=1 :'comment": "a=1 :'comment",
 
 			"a=remain(0)": "a=REMAIN(0)",
 			"a=remain(ti)": "a=REMAIN(ti)",
@@ -672,10 +737,20 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 
 	function runTestsFor(assert: Assert | undefined, oTests: TestsType, aResults?: string[]) {
 		const oCodeGeneratorBasic = new CodeGeneratorBasic({
+			lexer: new BasicLexer({
+				bKeepWhiteSpace: true
+			}),
+			parser: new BasicParser({
+				bQuiet: true,
+				bKeepBrackets: true
+			}
+			/*
 			lexer: new BasicLexer(),
 			parser: new BasicParser({
 				bQuiet: true
-			})
+			}
+			*/
+			)
 		});
 
 		for (const sKey in oTests) {

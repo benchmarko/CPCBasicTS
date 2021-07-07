@@ -1491,7 +1491,7 @@ var CpcVm = /** @class */ (function () {
         var aInputValues = [];
         for (var i = 0; i < aTypes.length; i += 1) {
             var sVarType = aTypes[i], sType = this.vmDetermineVarType(sVarType), value = this.vmInputNextFileItem(sType);
-            aInputValues[i] = this.vmAssign(sVarType, value); // TTT
+            aInputValues[i] = this.vmAssign(sVarType, value);
         }
         this.vmSetInputValues(aInputValues);
     };
@@ -1710,7 +1710,7 @@ var CpcVm = /** @class */ (function () {
         return s;
     };
     CpcVm.prototype.mask = function (iMask, iFirst) {
-        if (iMask !== undefined) { //TTT
+        if (iMask !== undefined) {
             iMask = this.vmInRangeRound(iMask, 0, 255, "MASK");
             this.oCanvas.setMask(iMask);
         }
@@ -2367,7 +2367,7 @@ var CpcVm = /** @class */ (function () {
                         sStr = this.tab(iStream, aSpecialArgs[0]);
                         break;
                     default:
-                        throw this.vmComposeError(Error(), 5, "PRINT " + arg.type); // Improper argument TTT
+                        throw this.vmComposeError(Error(), 5, "PRINT " + arg.type); // Improper argument
                 }
             }
             else if (typeof arg === "number") {

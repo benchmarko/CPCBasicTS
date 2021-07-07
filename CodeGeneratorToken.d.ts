@@ -9,6 +9,7 @@ export declare class CodeGeneratorToken {
     private lexer;
     private parser;
     private iLine;
+    private sStatementSeparator;
     constructor(options: CodeGeneratorTokenOptions);
     private static mOperators;
     private static mOperatorPrecedence;
@@ -20,14 +21,19 @@ export declare class CodeGeneratorToken {
     private static convInt32ToString;
     private static token2String;
     private static getBit7TerminatedString;
+    private combineArgsWithSeparator;
     private fnParseOneArg;
     private fnParseArgs;
+    private fnArgs;
     private static semicolon;
+    private colon;
     private static letter;
     private range;
     private linerange;
     private static fnDecodeEscapeSequence;
+    private fnParenthesisOpen;
     private static string;
+    private static unquoted;
     private static fnNull;
     private assign;
     private static floatToByteString;
@@ -49,6 +55,7 @@ export declare class CodeGeneratorToken {
     private fn;
     private "for";
     private "if";
+    private static fnHasStream;
     private input;
     private lineInput;
     private list;

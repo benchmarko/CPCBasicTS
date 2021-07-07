@@ -104,7 +104,6 @@ var cpcBasic = /** @class */ (function () {
         for (var i = 0; i < aRsxKeys.length; i += 1) {
             _loop_2(i);
         }
-        //oVmMock.iMaxSteps = 10;
     };
     cpcBasic.initDatabases = function () {
         var oModel = cpcBasic.model, oDatabases = {}, aDatabaseDirs = oModel.getProperty("databaseDirs").split(","), aDatabaseNames = [];
@@ -168,10 +167,15 @@ var cpcBasic = /** @class */ (function () {
         // will be programmatically extended by methods...
     };
     cpcBasic.oLexer = new BasicLexer_1.BasicLexer({
-        bQuiet: true
+        bQuiet: true,
+        bKeepWhiteSpace: true
     });
     cpcBasic.oParser = new BasicParser_1.BasicParser({
         bQuiet: true
+    });
+    cpcBasic.oConvertParser = new BasicParser_1.BasicParser({
+        bQuiet: true,
+        bKeepBrackets: true
     });
     cpcBasic.oCodeGeneratorJs = new CodeGeneratorJs_1.CodeGeneratorJs({
         lexer: cpcBasic.oLexer,
@@ -181,7 +185,7 @@ var cpcBasic = /** @class */ (function () {
     });
     cpcBasic.oCodeGeneratorToken = new CodeGeneratorToken_1.CodeGeneratorToken({
         lexer: cpcBasic.oLexer,
-        parser: cpcBasic.oParser
+        parser: cpcBasic.oConvertParser
     });
     cpcBasic.oVmMock = {
         rsx: cpcBasic.oRsx,
@@ -192,7 +196,6 @@ var cpcBasic = /** @class */ (function () {
         initTest1: function () {
             cpcBasic.oVmMock.iTestStepCounter1 = cpcBasic.oVmMock.iMaxSteps;
             cpcBasic.oVmMock.iLine = 0; // or "start";
-            //cpcBasic.oVmMock.oTestVariables1.removeAllVariables();
             cpcBasic.oVmMock.oTestVariables1.initAllVariables();
         },
         vmGetAllVariables: function () {
@@ -206,7 +209,7 @@ var cpcBasic = /** @class */ (function () {
             return (n >= 0) ? (n + 0.5) | 0 : (n - 0.5) | 0; // eslint-disable-line no-bitwise
         },
         vmAssign: function () {
-            return 0; //TTT value;
+            return 0;
         },
         vmAssertNumberType: function () {
             // empty

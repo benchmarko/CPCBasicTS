@@ -233,7 +233,7 @@ export class CodeGeneratorJs {
 		const aNodeArgs: string[] = []; // do not modify node.args here (could be a parameter of defined function)
 
 		if (!aArgs) {
-			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occure TTT
+			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occure
 		}
 
 		for (let i = 0; i < aArgs.length; i += 1) {
@@ -635,6 +635,14 @@ export class CodeGeneratorJs {
 		node.pt = "$";
 		node.pv = '"' + node.value + '"';
 		return node.pv;
+	}
+	private static unquoted(node: CodeNode) { // data line item, can be interpreted as string or number
+		const sValue = node.value.replace(/"/g, "\\\""); // escape "
+
+		node.pt = "$";
+		node.pv = '"' + sValue + '"';
+		return node.pv;
+		//return CodeGeneratorJs.string(node); // for JS we quote it as well
 	}
 	private static fnNull(node: CodeNode) { // "null": means: no parameter specified
 		node.pv = node.value !== "null" ? node.value : "undefined"; // use explicit value or convert "null" to "undefined"
@@ -1171,7 +1179,7 @@ export class CodeGeneratorJs {
 		}
 
 		if (!node.right) {
-			throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occure TTT
+			throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occure
 		}
 		const sRight = this.fnParseOneArg(node.right);
 
@@ -1466,6 +1474,7 @@ export class CodeGeneratorJs {
 		range: this.range,
 		linerange: this.linerange,
 		string: CodeGeneratorJs.string,
+		unquoted: CodeGeneratorJs.unquoted,
 		"null": CodeGeneratorJs.fnNull,
 		assign: this.assign,
 		label: this.label,
@@ -1567,7 +1576,7 @@ export class CodeGeneratorJs {
 				}
 
 				if (!node.right) {
-					throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occure TTT
+					throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occure
 				}
 				let value2 = this.parseNode(node.right);
 
@@ -1578,7 +1587,7 @@ export class CodeGeneratorJs {
 				value = mOperators[node.type].call(this, node, node.left, node.right);
 			} else {
 				if (!node.right) {
-					throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occure TTT
+					throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occure
 				}
 				value = this.parseNode(node.right);
 				value = mOperators[node.type].call(this, node, node.left! as CodeNode, node.right); // unary operator: we just use node.right
@@ -1644,7 +1653,6 @@ export class CodeGeneratorJs {
 			if (Utils.debug > 2) {
 				Utils.console.debug("evaluate: parseTree i=%d, node=%o", i, parseTree[i]);
 			}
-			//const sNode = this.parseNode(parseTree[i] as CodeNode);
 			const sNode = this.fnParseOneArg(parseTree[i]);
 
 			if ((sNode !== undefined) && (sNode !== "")) {

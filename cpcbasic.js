@@ -110,13 +110,11 @@ var cpcBasic = /** @class */ (function () {
                 }
             }
         };
-        //Utils.console = oConsole as any;
         return oConsole;
     };
     cpcBasic.fnDoStart = function () {
         var oStartConfig = cpcBasic.config, oExternalConfig = cpcconfig_1.cpcconfig || {}; // external config from cpcconfig.js
         Object.assign(oStartConfig, oExternalConfig);
-        //const oInitialConfig = Object.assign({}, oStartConfig); // save config
         cpcBasic.model = new Model_1.Model(oStartConfig);
         var sUrlQuery = window.location.search.substring(1);
         cpcBasic.fnParseUri(sUrlQuery, oStartConfig); // modify config with URL parameters

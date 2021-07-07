@@ -252,10 +252,6 @@ var BasicTokenizer = /** @class */ (function () {
             0x7f: "VPOS"
         };
     }
-    /*
-    constructor() {
-    }
-    */
     BasicTokenizer.prototype.fnNum8Dec = function () {
         var iNum = this.sInput.charCodeAt(this.iPos);
         this.iPos += 1;
@@ -330,7 +326,7 @@ var BasicTokenizer = /** @class */ (function () {
     BasicTokenizer.prototype.fnGetBit7TerminatedString = function () {
         var sData = this.sInput;
         var iPos = this.iPos;
-        while (sData.charCodeAt(iPos) <= 0x7f && iPos < this.iLineEnd) { //TTT last character b7=1 (>= 0x80)
+        while (sData.charCodeAt(iPos) <= 0x7f && iPos < this.iLineEnd) { // last character b7=1 (>= 0x80)
             iPos += 1;
         }
         var sOut = sData.substring(this.iPos, iPos) + String.fromCharCode(sData.charCodeAt(iPos) & 0x7f); // eslint-disable-line no-bitwise
@@ -404,23 +400,11 @@ var BasicTokenizer = /** @class */ (function () {
             }
             oDebug.iLine = this.iLine;
             oDebug.sInfo += oDebug.iLine + ": ";
-            //this.debugPrintInfo();
-            //oDebug.sInfo = "";
         }
         oDebug.sInfo += " [" + sHex + "] " + sTokenLine;
     };
     BasicTokenizer.prototype.fnParseLineFragment = function () {
         var sInput = this.sInput;
-        /*
-            iLineLength = this.fnNum16Dec();
-
-        if (!iLineLength) {
-            return undefined; // nothing more
-        }
-        this.iLineEnd = this.iPos + iLineLength - 2;
-        this.iLine = this.fnNum16Dec();
-        */
-        //this.iLineEnd = this.iPos + iLineLength - 2;
         var sOut = "", bSpace = false;
         while (this.iPos < this.iLineEnd) {
             this.oDebug.iStartPos = this.iPos;
@@ -460,8 +444,7 @@ var BasicTokenizer = /** @class */ (function () {
                 tstr = String.fromCharCode(iToken);
             }
             if (bOldSpace) {
-                //if ((/^[a-zA-Z0-9$%!]+$/).test(tstr) || (iToken >= 0x02 && iToken <= 0x1f)) {
-                if ((/^[a-zA-Z0-9$%!]/).test(tstr) || (iToken >= 0x02 && iToken <= 0x1f)) { //TTT
+                if ((/^[a-zA-Z0-9$%!]/).test(tstr) || (iToken >= 0x02 && iToken <= 0x1f)) {
                     tstr = " " + tstr;
                 }
             }

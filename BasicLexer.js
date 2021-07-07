@@ -12,12 +12,15 @@ var Utils_1 = require("./Utils");
 var BasicLexer = /** @class */ (function () {
     function BasicLexer(options) {
         this.bQuiet = false;
+        this.bKeepWhiteSpace = false;
         this.sLine = "0"; // for error messages
         this.bTakeNumberAsLine = true; // first number in a line is assumed to be a line number
         this.sInput = "";
         this.iIndex = 0;
         this.aTokens = [];
+        this.sWhiteSpace = ""; //TTT whitespace collected
         this.bQuiet = (options === null || options === void 0 ? void 0 : options.bQuiet) || false;
+        this.bKeepWhiteSpace = (options === null || options === void 0 ? void 0 : options.bKeepWhiteSpace) || false;
     }
     BasicLexer.prototype.composeError = function (oError, message, value, pos) {
         return Utils_1.Utils.composeError("BasicLexer", oError, message, value, pos, this.sLine);
@@ -55,6 +58,11 @@ var BasicLexer = /** @class */ (function () {
     BasicLexer.isWhiteSpace = function (c) {
         return (/[ \r]/).test(c);
     };
+    /*
+    private static isNotWhiteSpace(c: string) {
+        return c !== "" && !BasicLexer.isWhiteSpace(c) && !BasicLexer.isNewLine(c);
+    }
+    */
     BasicLexer.isNewLine = function (c) {
         return (/[\n]/).test(c);
     };
@@ -117,6 +125,10 @@ var BasicLexer = /** @class */ (function () {
                 oNode.orig = sOrig;
             }
         }
+        if (this.sWhiteSpace !== "") {
+            oNode.ws = this.sWhiteSpace;
+            this.sWhiteSpace = "";
+        }
         this.aTokens.push(oNode);
     };
     BasicLexer.hexEscape = function (str) {
@@ -177,10 +189,14 @@ var BasicLexer = /** @class */ (function () {
         }
     };
     BasicLexer.prototype.fnParseCompleteLineForData = function (sChar, iStartPos) {
+        var reSpacesAtEnd = new RegExp(/\s+$/);
         while (BasicLexer.isNotNewLine(sChar)) {
             if (BasicLexer.isWhiteSpace(sChar)) {
-                this.advanceWhile(sChar, BasicLexer.isWhiteSpace);
+                var sToken = this.advanceWhile(sChar, BasicLexer.isWhiteSpace);
                 sChar = this.getChar();
+                if (this.bKeepWhiteSpace) {
+                    this.sWhiteSpace = sToken;
+                }
             }
             if (BasicLexer.isNewLine(sChar)) { // now newline?
                 break;
@@ -207,14 +223,21 @@ var BasicLexer = /** @class */ (function () {
             else {
                 var sToken = this.advanceWhile(sChar, BasicLexer.isUnquotedData);
                 sChar = this.getChar();
+                var aMatch = reSpacesAtEnd.exec(sToken), sEndingSpaces = (aMatch && aMatch[0]) || "";
                 sToken = sToken.trim(); // remove whitespace before and after
                 sToken = sToken.replace(/\\/g, "\\\\"); // escape backslashes
-                sToken = sToken.replace(/"/g, "\\\""); // escape "
-                this.addToken("string", sToken, iStartPos); // could be interpreted as string or number during runtime
+                //sToken = sToken.replace(/"/g, "\\\""); // escape "
+                this.addToken("unquoted", sToken, iStartPos); // could be interpreted as string or number during runtime
+                if (this.bKeepWhiteSpace) {
+                    this.sWhiteSpace = sEndingSpaces;
+                }
             }
             if (BasicLexer.isWhiteSpace(sChar)) {
-                this.advanceWhile(sChar, BasicLexer.isWhiteSpace);
+                var sToken = this.advanceWhile(sChar, BasicLexer.isWhiteSpace);
                 sChar = this.getChar();
+                if (this.bKeepWhiteSpace) {
+                    this.sWhiteSpace = sToken;
+                }
             }
             if (sChar !== ",") {
                 break;
@@ -246,12 +269,18 @@ var BasicLexer = /** @class */ (function () {
         this.iIndex = 0;
         this.sLine = "0"; // for error messages
         this.bTakeNumberAsLine = true;
-        this.aTokens = []; //this.aTokens.length = 0;
+        this.sWhiteSpace = "";
+        this.aTokens.length = 0;
         while (this.iIndex < sInput.length) {
             iStartPos = this.iIndex;
             sChar = this.getChar();
             if (BasicLexer.isWhiteSpace(sChar)) {
-                sChar = this.advance();
+                sToken = this.advanceWhile(sChar, BasicLexer.isWhiteSpace);
+                sChar = this.getChar();
+                if (this.bKeepWhiteSpace) {
+                    //this.addToken("ws", sToken, iStartPos);
+                    this.sWhiteSpace = sToken;
+                }
             }
             else if (BasicLexer.isNewLine(sChar)) {
                 this.addToken("(eol)", "", iStartPos);

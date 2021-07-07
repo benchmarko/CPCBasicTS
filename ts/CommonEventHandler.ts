@@ -97,12 +97,6 @@ export class CommonEventHandler implements EventListenerObject {
 		this.controller.fnPretty();
 	}
 
-	/*
-	private onTokenizeButtonClick() {
-		this.controller.fnTokenize();
-	}
-	*/
-
 	private fnUpdateAreaText(sInput: string) {
 		this.controller.setInputText(sInput, true);
 		this.view.setAreaValue("outputText", "");
@@ -253,7 +247,6 @@ export class CommonEventHandler implements EventListenerObject {
 		onParseButtonClick: this.onParseButtonClick,
 		onRenumButtonClick: this.onRenumButtonClick,
 		onPrettyButtonClick: this.onPrettyButtonClick,
-		//onTokenizeButtonClick: this.onTokenizeButtonClick,
 		onUndoButtonClick: this.onUndoButtonClick,
 		onRedoButtonClick: this.onRedoButtonClick,
 		onDownloadButtonClick: this.onDownloadButtonClick,

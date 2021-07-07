@@ -142,11 +142,17 @@ class cpcBasic {
 	} as ICpcVmRsx;
 
 	static oLexer = new BasicLexer({
-		bQuiet: true
+		bQuiet: true,
+		bKeepWhiteSpace: true
 	});
 
 	static oParser = new BasicParser({
 		bQuiet: true
+	});
+
+	static oConvertParser = new BasicParser({ // TODO: use one BasicParser
+		bQuiet: true,
+		bKeepBrackets: true
 	});
 
 	static oCodeGeneratorJs = new CodeGeneratorJs({
@@ -158,12 +164,12 @@ class cpcBasic {
 
 	static oCodeGeneratorToken = new CodeGeneratorToken({
 		lexer: cpcBasic.oLexer,
-		parser: cpcBasic.oParser
+		parser: cpcBasic.oConvertParser
 	})
 
 	static oVmMock = {
 		rsx: cpcBasic.oRsx,
-		iLine: "" as string | number, //TTT
+		iLine: "" as string | number,
 
 		oTestVariables1: new Variables(),
 		iTestStepCounter1: 0,
@@ -173,7 +179,6 @@ class cpcBasic {
 		initTest1: function () {
 			cpcBasic.oVmMock.iTestStepCounter1 = cpcBasic.oVmMock.iMaxSteps;
 			cpcBasic.oVmMock.iLine = 0; // or "start";
-			//cpcBasic.oVmMock.oTestVariables1.removeAllVariables();
 			cpcBasic.oVmMock.oTestVariables1.initAllVariables();
 		},
 
@@ -189,8 +194,8 @@ class cpcBasic {
 			return (n >= 0) ? (n + 0.5) | 0 : (n - 0.5) | 0; // eslint-disable-line no-bitwise
 		},
 
-		vmAssign: function () { //_sVarType: string, _value: string | number) {
-			return 0; //TTT value;
+		vmAssign: function () {
+			return 0;
 		},
 
 		vmAssertNumberType: function () {
@@ -258,8 +263,6 @@ class cpcBasic {
 				};
 			}
 		}
-
-		//oVmMock.iMaxSteps = 10;
 	}
 
 

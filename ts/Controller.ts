@@ -614,17 +614,19 @@ export class Controller implements IController {
 	}
 
 	//TODO
-	private parseLineNumber(sLine: string) {
+	private parseLineNumber(sLine: string) { // eslint-disable-line class-methods-use-this
 		const iLine = parseInt(sLine, 10);
 
-		if (iLine < 0 || iLine > 65535) { //0?
-			//throw this.composeError(Error(), "Line number overflow", iLine, -1);
-			//this.outputError(this.oVm.vmComposeError(Error(), 6, String(iLine)), true);
-			//iLine = -1; //TTT
-			//const oError = this.oVm.vmComposeError(Error(), 6, String(iLine));
+		if (iLine < 0 || iLine > 65535) {
+			/*
+			throw this.composeError(Error(), "Line number overflow", iLine, -1);
+			this.outputError(this.oVm.vmComposeError(Error(), 6, String(iLine)), true);
+			iLine = -1; //TTT
+			const oError = this.oVm.vmComposeError(Error(), 6, String(iLine));
 
-			//this.oVm.vmStop("", 0, true); // clear error, onError
-			//this.outputError(oError, true);
+			this.oVm.vmStop("", 0, true); // clear error, onError
+			this.outputError(oError, true);
+			*/
 		}
 		return iLine;
 	}
@@ -893,8 +895,12 @@ export class Controller implements IController {
 	private encodeTokenizedBasic(sInput: string, sName = "test") {
 		if (!this.oCodeGeneratorToken) {
 			this.oCodeGeneratorToken = new CodeGeneratorToken({
-				lexer: new BasicLexer(),
-				parser: new BasicParser()
+				lexer: new BasicLexer({
+					bKeepWhiteSpace: true
+				}),
+				parser: new BasicParser({
+					bKeepBrackets: true
+				})
 			});
 		}
 		const oOutput = this.oCodeGeneratorToken.generate(sInput);
@@ -1247,35 +1253,6 @@ export class Controller implements IController {
 				sFileData = this.view.getAreaValue("inputText");
 
 				if (sType === "T" || sType === "P") {
-					/*
-					const oCodeGeneratorToken = new CodeGeneratorToken({
-							lexer: new BasicLexer(),
-							parser: new BasicParser()
-						}),
-						oOutput = oCodeGeneratorToken.generate(sFileData);
-
-					if (oOutput.error) {
-						this.outputError(oOutput.error);
-						oOutFile.sType = "A"; // override sType
-					} else {
-						if (Utils.debug > 1) {
-							const sOutput = oOutput.text,
-								sHex = sOutput.split("").map(function (s) { return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0"); }).join(","),
-								sDecoded = this.decodeTokenizedBasic(sOutput),
-								sDiff = Diff.testDiff(sFileData.toUpperCase(), sDecoded.toUpperCase()); // for testing
-
-							Utils.console.debug("TokenizerInput (" + sStorageName + "):\n", sFileData);
-							Utils.console.debug("TokenizerHex (" + sStorageName + "):\n", sHex);
-							Utils.console.debug("TokenizerDecoded (" + sStorageName + "):\n", sDecoded);
-							Utils.console.debug("TokenizerDiff (" + sStorageName + "):\n", sDiff);
-						}
-						sFileData = oOutput.text;
-
-						if (sType === "P") {
-							sFileData = DiskImage.unOrProtectData(sFileData);
-						}
-					}
-					*/
 					sFileData = this.encodeTokenizedBasic(sFileData, sStorageName);
 					if (sFileData === "") {
 						oOutFile.sType = "A"; // override sType
@@ -1522,8 +1499,12 @@ export class Controller implements IController {
 	fnPretty(): void {
 		const sInput = this.view.getAreaValue("inputText"),
 			oCodeGeneratorBasic = new CodeGeneratorBasic({
-				lexer: new BasicLexer(),
-				parser: new BasicParser()
+				lexer: new BasicLexer({
+					bKeepWhiteSpace: true
+				}),
+				parser: new BasicParser({
+					bKeepBrackets: true
+				})
 			}),
 			oOutput = oCodeGeneratorBasic.generate(sInput);
 
@@ -1542,27 +1523,78 @@ export class Controller implements IController {
 		}
 	}
 
-	/*
-	fnTokenize(): void {
-		const sInput = this.view.getAreaValue("inputText"),
-			oCodeGeneratorToken = new CodeGeneratorToken({
-				lexer: new BasicLexer(),
-				parser: new BasicParser()
-			}),
-			oOutput = oCodeGeneratorToken.generate(sInput);
 
-		if (oOutput.error) {
-			this.outputError(oOutput.error);
+	// https://blog.logrocket.com/programmatic-file-downloads-in-the-browser-9a5186298d5c/
+	private static fnDownloadBlob(blob: Blob, sFilename: string) {
+		const url = URL.createObjectURL(blob),
+			a = document.createElement("a"),
+			clickHandler = function () {
+				setTimeout(function () {
+					URL.revokeObjectURL(url);
+					a.removeEventListener("click", clickHandler);
+				}, 150);
+			};
+
+		a.href = url;
+		a.download = sFilename || "download";
+
+		a.addEventListener("click", clickHandler, false);
+
+		a.click();
+
+		return a;
+	}
+
+	private fnDownloadNewFile(sData: string, sFileName: string) { // eslint-disable-line class-methods-use-this
+		const sType = "octet/stream",
+			oBuffer = new ArrayBuffer(sData.length),
+			oData8 = new Uint8Array(oBuffer);
+
+		for (let i = 0; i < sData.length; i += 1) {
+			oData8[i] = sData.charCodeAt(i);
+		}
+
+		const blob = new Blob([oData8.buffer], {
+			type: sType
+		});
+
+		if (window.navigator && window.navigator.msSaveOrOpenBlob) { // IE11 support
+			window.navigator.msSaveOrOpenBlob(blob, sFileName);
 		} else {
-			const sOutput = oOutput.text,
-				sHex = sOutput.split("").map(function (s) { return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0"); }).join(","),
-				sDecoded = this.decodeTokenizedBasic(sOutput),
-				sDiff = Diff.testDiff(sInput.toUpperCase(), sDecoded.toUpperCase()); // for testing
-
-			this.view.setAreaValue("outputText", sOutput + "\n---\n\n" + sHex + "\n---\n\n" + sDecoded + "\n---\n\n" + sDiff);
+			Controller.fnDownloadBlob(blob, sFileName);
 		}
 	}
-	*/
+
+
+	/*
+	// not for us
+	// https://jetrockets.pro/blog/problem-with-download-file-in-google-chrome
+
+	private static urlToFile(url: string, filename: string) {
+		return fetch(url).then((res) => res.arrayBuffer().then((buf) => new File([buf], filename)));
+	}
+
+	private fnDownloadNewFile(fileData: string, fileName: string) { // eslint-disable-line class-methods-use-this
+		const fileUrl = `data:application/octet-stream;base64,${fileData}`;
+
+		Controller.urlToFile(fileUrl, fileName).then((file) => {
+			const blob = new Blob([file], {
+					type: "application/octet-stream"
+				}),
+				blobURL = window.URL.createObjectURL(blob),
+				link = document.createElement("a");
+
+			link.href = blobURL;
+
+			link.setAttribute("download", fileName);
+
+			document.body.appendChild(link);
+
+			link.click();
+
+			link.remove();
+		});
+	}
 
 
 	// https://stackoverflow.com/questions/19327749/javascript-blob-filename-without-link
@@ -1590,40 +1622,6 @@ export class Controller implements IController {
 
 			window.location.assign(exportUrl);
 			URL.revokeObjectURL(exportUrl);
-		}
-	}
-
-	/*
-	// <!-- <button id="downloadButtonXXX" title="Download (experimental)"><a id="downloadButton" href="#">Download</a></button> -->
-	//	<a id="downloadButton" href="#">Download</a>
-	// does not work without notice on Chrome and not at all on FF:
-	private fnDownloadNewFile(sData: string, sFileName: string) { // eslint-disable-line class-methods-use-this
-		const downloadButtonAnchor = View.getElementById1("downloadButton") as HTMLAnchorElement,
-			sType = "octet/stream",
-			oBuffer = new ArrayBuffer(sData.length),
-			oData8 = new Uint8Array(oBuffer);
-
-		for (let i = 0; i < sData.length; i += 1) {
-			oData8[i] = sData.charCodeAt(i);
-		}
-
-		if (window.navigator && window.navigator.msSaveOrOpenBlob) { // IE11 support
-			const blob = new Blob([oBuffer], {
-				type: sType
-			});
-
-			window.navigator.msSaveOrOpenBlob(blob, sFileName);
-		} else {
-			const blob = new Blob([oBuffer], {
-					type: sType
-				}),
-				exportUrl = URL.createObjectURL(blob);
-
-			downloadButtonAnchor.href = exportUrl;
-			downloadButtonAnchor.target = "_blank";
-			downloadButtonAnchor.download = sFileName;
-
-			//URL.revokeObjectURL(exportUrl);
 		}
 	}
 	*/

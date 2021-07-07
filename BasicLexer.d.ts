@@ -1,19 +1,23 @@
 interface BasicLexerOptions {
     bQuiet?: boolean;
+    bKeepWhiteSpace?: boolean;
 }
 export interface LexerToken {
     type: string;
     value: string;
     pos: number;
     orig?: string;
+    ws?: string;
 }
 export declare class BasicLexer {
     private bQuiet;
+    private bKeepWhiteSpace;
     private sLine;
     private bTakeNumberAsLine;
     private sInput;
     private iIndex;
     private aTokens;
+    private sWhiteSpace;
     constructor(options?: BasicLexerOptions);
     private composeError;
     private static isComment;

@@ -1,6 +1,7 @@
 import { LexerToken } from "./BasicLexer";
 interface BasicParserOptions {
     bQuiet?: boolean;
+    bKeepBrackets?: boolean;
 }
 export interface ParserNode extends LexerToken {
     left?: ParserNode;
@@ -9,10 +10,12 @@ export interface ParserNode extends LexerToken {
     args2?: ParserNode[];
     len?: number;
     bSpace?: boolean;
+    bParenthesis?: boolean;
 }
 export declare class BasicParser {
     private sLine;
     private bQuiet;
+    private bKeepBrackets;
     private oSymbols;
     private aTokens;
     private bAllowDirect;
@@ -40,6 +43,8 @@ export declare class BasicParser {
     private prefix;
     private stmt;
     private static fnCreateDummyArg;
+    private fnCombineTwoTokensNoArgs;
+    private fnCombineTwoTokens;
     private fnGetOptionalStream;
     private fnChangeNumber2LineNumber;
     private fnGetLineRange;
