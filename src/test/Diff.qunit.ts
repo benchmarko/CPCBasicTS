@@ -28,7 +28,6 @@ QUnit.module("Diff: Tests", function () {
 				const aParts = sKey.split("#", 2),
 					sText1 = aParts[0],
 					sText2 = aParts[1],
-					//oDiff = new Diff(),
 					sExpected = oTests[sKey];
 				let sResult: string;
 

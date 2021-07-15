@@ -2,7 +2,7 @@
 
 (Clone of [CPCBasic](https://github.com/benchmarko/CPCBasic/) 0.9.20, converted to TypeScript.)
 
-CPCBasic lets you run CPC BASIC programs in a browser. The supported BASIC style is known as Amstrad CPC 6128 Locomotive BASIC 1.1.
+CPCBasicTS lets you run CPC BASIC programs in a browser. The supported BASIC style is known as Amstrad CPC 6128 Locomotive BASIC 1.1.
 BASIC programs are compiled to JavaScript which can be run in the browser. A library provides the functionality of the commands that are not directly available in JavaScript.
 
 CPCBasicTS Links:
@@ -32,9 +32,9 @@ CPCBasicTS Links:
 [![Labyrinth](https://benchmarko.github.io/CPCBasic/img/labyrinth.png)](https://benchmarko.github.io/CPCBasicTS/?example=labyrinth)]
 [![Landscape](https://benchmarko.github.io/CPCBasic/img/landscape.png)](https://benchmarko.github.io/CPCBasicTS/?example=landscape)]
 
-More examples are in the sample library [CPCBasicApps](https://github.com/benchmarko/CPCBasicApps/#readme). They are included in CPCBasic as *apps*, example: [10print](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=demo/10print).
+More examples are in the sample library [CPCBasicApps](https://github.com/benchmarko/CPCBasicApps/#readme). They are included in CPCBasicTS as *apps*, example: [10print](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=demo/10print).
 
-## Why CPCBasic
+## Why CPCBasicTS
 
 There are several great CPC emulators which emulate a complete CPC with exact timing and allow demos to run, pushing CPC hardware to its limits.
 
@@ -42,7 +42,7 @@ With CPC Basic we do not get that accuracy. But if we compile it to JavaScript, 
 
 ## Usage
 
-- Just open cpcbasic.html in a browser.
+- Just open index.html in a browser.
   The user interface shows several windows, which can be reduced and expanded by pressing the **green** buttons.
 - The *Input* window is used to input and modify the BASIC code.
   - Use the *first selection field* to select the example library: CPCBasic *examples* or CPCBasicApps *apps*.
@@ -52,6 +52,7 @@ With CPC Basic we do not get that accuracy. But if we compile it to JavaScript, 
   - The **Check** button checks the syntax of the program. It compiles the program to JavaScript.
   - The **Renum** button renumbers the line numbers starting with 10 and increasing by 10 (see also *RENUM*)
   - The **Pretty** button performs a pretty print on the input (currently it has a fixed style)
+  - The **Download** button downloads the program in tokenized BASIC format with AMSDOS header. In can be imported via Drag&Drop in CPCBasicTS later. It can also used directly with the emulator *CPCEMU* in *|TAPE* mode or put in a DSK image to load with any other CPC emulator.
   - The **Undo** button reverts the last renum or pretty print
   - The **Redo** button activates the last renum or pretty print
 - The *CPC* window shows the output on a CPC screen.
@@ -72,7 +73,7 @@ With CPC Basic we do not get that accuracy. But if we compile it to JavaScript, 
 
 ## Restrictions
 
-- CPCBasic is still in progress and not complete or accurate. The goal is that most BASIC programs run without change.
+- CPCBasicTS is still in progress and not complete or accurate. The goal is that most BASIC programs run without change.
 - It is BASIC only and can not execute Z80 machine code
 - Unimplemented commands are ignored: *AUTO*, *PRINT #8*, *RESUME* (partly), *SPEED KEY/WRITE*, *WIDTH*, *WRITE #8*, some AMDSOS commands.
 - Sound: More hardware volume envelopes
@@ -85,35 +86,8 @@ With CPC Basic we do not get that accuracy. But if we compile it to JavaScript, 
 - *ON ERROR GOTO* and *RESUME* without line number do not fully work because this would require to single step every instruction.
 - Resulting JavaScript looks ugly because there is no *GOTO* in JavaScript.
   Control structures need to be converted to *GOTO* because for some commands and events it is necessary to jump out of a block.
-- Interpreted CPC BASIC may contain lines of arbitrary content if they are not executed, e.g. comments without marking them as comments. The CPCBasic compiler does not allow this.
+- Interpreted CPC BASIC may contain lines of arbitrary content if they are not executed, e.g. comments without marking them as comments. The CPCBasicTS compiler does not allow this.
 - Maybe something more...
-
-## Fixed Restrictions
-
-- [fixed: *TEST*, *TESTR* can not distinguish between pens of the same color]
-- [fixed: Changing the color with *INK*, existing drawings will not be changed and the colors will
-  not blink. Currently you have to redraw the screen with another color to get a blinking effect.]
-- [fixed: Comparison with equal in assignment is possible now: `a=0: x=(a=0): ?x`, returns -1 for true as on the CPC]
-- [fixed: No sound]
-- [fixed: *ENT* (tone envelopes); hardware volume envelopes with sepcial *ENV* syntax "="]
-- [fixed: *RESTORE* for lines without *DATA*: search next *DATA* line]
-- [done: Separate sample library; sample category]
-- [fixed: Almost no type checking]
-- [fixed: Access screen memory in the range &c000-&ffff with *PEEK&POKE*]
-- [done: Pause key: Use ESC, and then any key to continue]
-- [done: *COPYCHR$*]
-- [done: *SPEED INK*]
-- [done: *FILL*]
-- [done: *RENUM*]
-- [done: *SAVE* ASCII, *OPENOUT*, *PRINT #9*, *WRITE #9*]
-- [done: *CURSOR*, *CONT*]
-- [done: Edit and direct input and execution mode; cursor]
-- [done: *DELETE*, *EDIT*, *LIST*, *NEW*]
-- [done: *CAT*, *|DIR*, *|ERA*, *|REN*]
-- [done: Drag and drop BASIC programs (tokenized or ASCII) into CPCBasic]
-- [done: DSK images support, for reading]
-- [done: *MASK*]
-- [done: Mixed parentheses and brackets for arrays, e.g. `a(3]=6: ?a[3)`]
 
 ## Extensions and Features
 
@@ -130,7 +104,7 @@ With CPC Basic we do not get that accuracy. But if we compile it to JavaScript, 
   Example: [Mouse Painting](https://benchmarko.github.io/CPCBasicTS/?example=test/mousepa)
 - *MODE 3*: High resolution mode with real 640x400 pixels, 16 colors and 8x8 pixels per character.
   This is different to the unofficial and not very useful Gate Array mode 3 on a real CPC: [CPC live: Graphics](http://cpctech.cpc-live.com/docs/graphics.html).
-Several examples use CPCBasic mode 3, e.g. [Art](https://benchmarko.github.io/CPCBasicTS/?example=art), [Landscape](https://benchmarko.github.io/CPCBasicTS/?example=landscape), [Rectangles](https://benchmarko.github.io/CPCBasicTS/?example=test/rectangles).
+Several examples use CPCBasicTS mode 3, e.g. [Art](https://benchmarko.github.io/CPCBasicTS/?example=art), [Landscape](https://benchmarko.github.io/CPCBasicTS/?example=landscape), [Rectangles](https://benchmarko.github.io/CPCBasicTS/?example=test/rectangles).
 - *|MODE,n*: Change mode without *CLS*, including mode 3 (experimental)
 - *|RENUM,...*: similar to *RENUM* but with a 4th parameter to keep line numbers starting with this line
 - Computations with numbers are not limited to 16 bit
@@ -189,7 +163,7 @@ Several examples use CPCBasic mode 3, e.g. [Art](https://benchmarko.github.io/CP
 
 ## Programming hints
 
-- CPCBasic is BASIC with "wrap factor". However, do not use busy waiting. Put in *FRAME* or *CALL &BD19* commands.
+- CPCBasicTS is BASIC with "wrap factor". However, do not use busy waiting. Put in *FRAME* or *CALL &BD19* commands.
   - An example on how to insert a delay of one second:
   `t!=TIME+300:WHILE TIME<t!:CALL &BD19:WEND`
   - There is a special feature when using the *INKEY$* function: If it returns no key more than once during a frame, a *FRAME* or *CALL &BD19* is implicitely called.
@@ -199,15 +173,29 @@ Several examples use CPCBasic mode 3, e.g. [Art](https://benchmarko.github.io/CP
     - This is not true for the *INKEY* function. Use *CALL &BD19* again. An example on how to wait 5 seconds or the SPACE key: `t!=TIME+300*5:WHILE TIME<t! AND INKEY(47)<0:CALL &BD19:WEND :?"Done."`
 - Use URL parameter "tron=true" to activate line tracing mode with *TRON* and *TROFF*
 - Use *OPENIN* and *INPUT#9* to load data from a file in the current "directory" or from Browser local storage
-- If the program is complete (that means, no *MERGE* or *CHAIN MERGE* inside), line number destinations are checked for existence. For example, if the *line number* in *GOTO line* does not exist, the compilation fails.
+- If the program is complete (that means, no *MERGE* or *CHAIN MERGE* inside), line number destinations are checked for existence. For example, if the line number in *GOTO line* does not exist, the compilation fails.
 - The commands and functions are checked for number of arguments but not always for argument types.
+
+## BASIC Features
+
+Did you know?
+
+- Comparison with equal in assignment, e.g. `a=0: t=(a=0): f=(a<>0): ?t;f` returns -1 and 0 for true and false
+- *ENV*: Special syntax with "=" to define hardware volume envelopes, e.g. `ENV num,=reg,period`. Same for *ENT*, e.g. `ENT num,=period,ti`
+- Mixed parentheses and brackets in arrays, e.g. `a(3]=6: ?a[3)` returns 6.
+- Instead of <= or >= you could also write =< or =>. During tokenization it is converted to the "standard" format.
+- When you use float parameters where integer parameters are expected the are automatically rounded. This works also for array indices, e.g.
+`a(3.2)=3:a(3.5)=4:?a(3.4);a(4.4)` returns 3 and 4.
+- Variables typed with DEFINT, DEFREAL or DEFSTR are aliases for those with type extension, e.g. `defint a: a=1: a%=2: ?a;a%` returns 2 and 2.
+- Tokenized BASIC contains a lot of spaces which can be squeezed out and visualized by colons and the end of the line: `a=&170:WHILE PEEK(a)<>0:e=a+PEEK(a):FOR i=a TO e-2:POKE a,PEEK(i):a=a+ABS(PEEK(i)<>&20):NEXT:FOR i=a TO e-2:POKE i,&01:NEXT:a=e:?:WEND` . This simple version expects lines not longer than 255 tokens and also modified strings and comments. Put it at the end of a program and run it.
+- *ELSE* as command...
 
 ## Debugging
 
-- Use the URL parameter *tron=true* to compile with BASIC line number trace. The trace can be switched on and off in BASIC with *TRON* and *TROFF*. A side effect of "trace on" in CPCBasic is that the correct line number is reported in case of an error.
+- Use the URL parameter *tron=true* to compile with BASIC line number trace. The trace can be switched on and off in BASIC with *TRON* and *TROFF*. A side effect of "trace on" in CPCBasicTS is that the correct line number is reported in case of an error.
 - For debugging in a desktop browser, you will usually use the Browser Development Tools (F12).
 - You can also use a *Console log* window which is usually hidden. You can activate it with the URL parameters *showConsole=true* and *debug=2*. Example:
- [CPCBasic Debug](https://benchmarko.github.io/CPCBasicTS/?showConsole=true&debug=2).
+ [CPCBasicTS Debug](https://benchmarko.github.io/CPCBasicTS/?showConsole=true&debug=2).
  This is especially useful on mobile devices. Clear its content manually, if needed.
 - There is also an experimental parameter *bench=n* to time the *parsing step* n times.
   An example with a large BASIC program:
@@ -224,7 +212,7 @@ Several examples use CPCBasic mode 3, e.g. [Art](https://benchmarko.github.io/CP
 - input= (keyboard input when starting the app, use %0D for return)
 - kbdLayout=alphanum (virtual keyboard layout: alphanum, alpha, num)
 - showInput=true
-- showInp2=alse
+- showInp2=false
 - showCpc=true
 - showKbd=false
 - showKbdLayout=false
@@ -249,6 +237,7 @@ QUnit tests:
 - [CodeGeneratorBasic.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/CodeGeneratorBasic.qunit.html)
 - [CodeGeneratorJs.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/CodeGeneratorJs.qunit.html)
 - [CodeGeneratorToken.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/CodeGeneratorToken.qunit.html)
+- [Diff.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/Diff.qunit.html)
 - [DiskImage.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/DiskImage.qunit.html)
 - [Model.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/Model.qunit.html)
 - [ZipFile.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/ZipFile.qunit.html)
@@ -286,7 +275,7 @@ IFrames test:
 
 - [The story of Amstrad’s amazing CPC 464](https://www.theregister.co.uk/2014/02/12/archaeologic_amstrad_cpc_464/)
 
-- [CPCemu](http://www.cpc-emu.org/) - CPC Emulator, currently version 1.7, hopefully there will be an update soon ...
+- [CPCemu](http://www.cpc-emu.org/) - CPC Emulator, since version 2.0 with very accurate emulation
 
 - [Arnold TNG - The Warp factor](http://www.yasara.org/cpc/index.html) - Modified Arnold CPC emulator at various speed levels.
 
@@ -297,7 +286,7 @@ IFrames test:
 - [JSBasic - A BASIC to JavaScript Compiler](https://www.codeproject.com/Articles/25069/JSBasic-A-BASIC-to-JavaScript-Compiler), with
   [Demo: SpaceWar](http://jsbasic.apphb.com/default.aspx?sourceCode=SpaceWar)
 
-- [Top Down Operator Precedence](http://crockford.com/javascript/tdop/tdop.html) - Douglas Crockford, 2007-02-21. CPCBasic uses this approach.
+- [Top Down Operator Precedence](http://crockford.com/javascript/tdop/tdop.html) - Douglas Crockford, 2007-02-21. CPCBasicTS uses this approach.
 
 - [BM Benchmark Suite](https://github.com/benchmarko/BMbench) - A collection of simple benchmarks in various programming languages
 

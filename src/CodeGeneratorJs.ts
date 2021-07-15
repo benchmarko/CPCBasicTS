@@ -642,7 +642,6 @@ export class CodeGeneratorJs {
 		node.pt = "$";
 		node.pv = '"' + sValue + '"';
 		return node.pv;
-		//return CodeGeneratorJs.string(node); // for JS we quote it as well
 	}
 	private static fnNull(node: CodeNode) { // "null": means: no parameter specified
 		node.pv = node.value !== "null" ? node.value : "undefined"; // use explicit value or convert "null" to "undefined"

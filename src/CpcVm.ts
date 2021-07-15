@@ -145,7 +145,6 @@ export class CpcVm {
 	private oInFile: InFile; // file handling
 	private oOutFile: OutFile; // file handling
 
-	//iInkeyTime: number; // if >0, next time when inkey$ can be checked without inserting "waitFrame"
 	private iInkeyTimeMs = 0; // next time of frame fly (if >0, next time when inkey$ can be checked without inserting "waitFrame")
 
 	private aGosubStack: (number | string)[] = []; // stack of line numbers for gosub/return
@@ -353,8 +352,8 @@ export class CpcVm {
 		"": 0, // nothing
 		direct: 0, // direct input mode
 		timer: 20, // timer expired
-		waitKey: 30, // wait for key
 		waitFrame: 40, // FRAME command: wait for frame fly
+		waitKey: 41, // wait for key (higher priority that waitFrame)
 		waitSound: 43, // wait for sound queue
 		waitInput: 45, // wait for input: INPUT, LINE INPUT, RANDOMIZE without parameter
 		fileCat: 45, // CAT
@@ -442,9 +441,6 @@ export class CpcVm {
 		// "iLine": run line (CHAIN, CHAIN MERGE)
 		// "iFirst": first line to delete (CHAIN MERGE)
 		// "iLast": last line to delete (CHAIN MERGE)
-
-
-		//this.iInkeyTime = 0; // if >0, next time when inkey$ can be checked without inserting "waitFrame"
 
 		this.aGosubStack = []; // stack of line numbers for gosub/return
 
