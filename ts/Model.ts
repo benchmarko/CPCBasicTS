@@ -13,7 +13,6 @@ export interface DatabaseEntry {
 	title: string
 	src: string
 	script?: string
-	//error?: string
 	loaded?: boolean
 }
 

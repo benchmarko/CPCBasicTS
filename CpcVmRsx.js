@@ -133,7 +133,6 @@ var CpcVmRsx = /** @class */ (function () {
         for (var _i = 0; _i < arguments.length; _i++) {
             aArgs[_i] = arguments[_i];
         }
-        //this.oVm.renum.apply(this.oVm, arguments as any);
         this.oVm.renum.apply(aArgs);
     };
     return CpcVmRsx;

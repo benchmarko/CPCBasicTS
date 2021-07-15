@@ -575,21 +575,6 @@ var BasicParser = /** @class */ (function () {
                 this.expression(0),
                 this.oToken // ")" (hopefully)
             ];
-            /*
-            oValue = BasicParser.fnCreateDummyArg("args", "");
-            const sWs = this.oPreviousToken.ws;
-
-            if (sWs) { // fast hack to move whitespace
-                this.oPreviousToken.ws = "";
-                oValue.ws = sWs;
-            }
-
-            oValue.args = [
-                this.oPreviousToken, // "("
-                this.expression(0),
-                this.oToken // ")" (hopefully)
-            ];
-            */
         }
         else {
             oValue = this.expression(0);
@@ -601,15 +586,8 @@ var BasicParser = /** @class */ (function () {
         var oValue = this.oPreviousToken, // "fn"
         oValue2 = this.oToken; // identifier
         this.fnCombineTwoTokensNoArgs("identifier");
-        /*
-        this.advance("identifier");
-
-        oValue2.value = oValue.value + oValue2.value; // combine "fn" + identifier (maybe simplify by separating in lexer)
-        oValue2.bSpace = true; // fast hack: set space for CodeGeneratorBasic
-        */
         oValue2.value = "fn" + oValue2.value; // combine "fn" + identifier (maybe simplify by separating in lexer)
         if (oValue2.ws) {
-            //oValue.ws = oValue2.ws; //TTT
             oValue2.ws = "";
         }
         oValue.left = oValue2;
@@ -647,19 +625,11 @@ var BasicParser = /** @class */ (function () {
         return oValue;
     };
     BasicParser.prototype.fnChain = function () {
-        var //sName = "chain",
-        oValue;
+        var oValue;
         if (this.oToken.type !== "merge") { // not chain merge?
             oValue = this.fnCreateCmdCall(this.oPreviousToken.type); // chain
         }
         else { // chain merge with optional DELETE
-            /*
-            this.oToken = this.advance("merge");
-            oValue = this.oPreviousToken;
-            sName = "chainMerge";
-            oValue.type = sName;
-            oValue.args = [];
-            */
             var sName = this.fnCombineTwoTokensNoArgs(this.oToken.type); // chainMerge
             oValue = this.oPreviousToken;
             oValue.type = sName;
@@ -817,18 +787,6 @@ var BasicParser = /** @class */ (function () {
             throw this.composeError(Error(), "Expected PEN or PAPER", sTokenType, this.oToken.pos);
         }
         var oValue = this.fnCombineTwoTokens(sTokenType);
-        /*
-        let oValue: ParserNode;
-
-        if (this.oToken.type === "pen" || this.oToken.type === "paper") { // graphics pen/paper
-            const sName = "graphics" + Utils.stringCapitalize(this.oToken.type);
-
-            this.advance(this.oToken.type);
-            oValue = this.fnCreateCmdCall(sName);
-        } else {
-            throw this.composeError(Error(), "Expected PEN or PAPER", this.oToken.type, this.oToken.pos);
-        }
-        */
         return oValue;
     };
     BasicParser.prototype.fnIf = function () {
@@ -1091,33 +1049,6 @@ var BasicParser = /** @class */ (function () {
             throw this.composeError(Error(), "Expected INK, KEY or WRITE", sTokenType, this.oToken.pos);
         }
         var oValue = this.fnCombineTwoTokens(sTokenType);
-        /*
-        let sName = "";
-
-        switch (this.oToken.type) {
-        case "ink":
-            sName = "speedInk";
-            break;
-        case "key":
-            sName = "speedKey";
-            break;
-        case "write":
-            sName = "speedWrite";
-            break;
-        default:
-            throw this.composeError(Error(), "Expected INK, KEY or WRITE", this.oToken.type, this.oToken.pos);
-        }
-
-        const oPreviousToken = this.oPreviousToken;
-
-        oPreviousToken.value += (this.oToken.ws || "") + this.oToken.value; // combine
-
-        this.advance(); // "ink", "key", "write" (this.oToken.type)
-
-        this.oPreviousToken = oPreviousToken; // fast hack to get "speed" token
-
-        const oValue = this.fnCreateCmdCall(sName);
-        */
         return oValue;
     };
     BasicParser.prototype.fnSymbol = function () {

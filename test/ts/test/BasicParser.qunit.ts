@@ -8,8 +8,6 @@ import { BasicLexer } from "../BasicLexer"; // we use BasicLexer here just for c
 import { BasicParser, ParserNode } from "../BasicParser";
 import { } from "qunit";
 
-//type QUnitAssertType2 = { deepEqual: (r: any, e: any, sMsg: string) => void };
-
 type TestsType = { [k in string]: string };
 
 type AllTestsType = { [k in string]: TestsType };

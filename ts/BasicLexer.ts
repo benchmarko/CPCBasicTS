@@ -77,11 +77,6 @@ export class BasicLexer {
 	private static isWhiteSpace(c: string) {
 		return (/[ \r]/).test(c);
 	}
-	/*
-	private static isNotWhiteSpace(c: string) {
-		return c !== "" && !BasicLexer.isWhiteSpace(c) && !BasicLexer.isNewLine(c);
-	}
-	*/
 	private static isNewLine(c: string) {
 		return (/[\n]/).test(c);
 	}

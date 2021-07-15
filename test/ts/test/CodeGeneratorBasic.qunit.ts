@@ -743,14 +743,7 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 			parser: new BasicParser({
 				bQuiet: true,
 				bKeepBrackets: true
-			}
-			/*
-			lexer: new BasicLexer(),
-			parser: new BasicParser({
-				bQuiet: true
-			}
-			*/
-			)
+			})
 		});
 
 		for (const sKey in oTests) {

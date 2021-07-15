@@ -58,11 +58,6 @@ var BasicLexer = /** @class */ (function () {
     BasicLexer.isWhiteSpace = function (c) {
         return (/[ \r]/).test(c);
     };
-    /*
-    private static isNotWhiteSpace(c: string) {
-        return c !== "" && !BasicLexer.isWhiteSpace(c) && !BasicLexer.isNewLine(c);
-    }
-    */
     BasicLexer.isNewLine = function (c) {
         return (/[\n]/).test(c);
     };

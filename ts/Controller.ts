@@ -1566,66 +1566,6 @@ export class Controller implements IController {
 	}
 
 
-	/*
-	// not for us
-	// https://jetrockets.pro/blog/problem-with-download-file-in-google-chrome
-
-	private static urlToFile(url: string, filename: string) {
-		return fetch(url).then((res) => res.arrayBuffer().then((buf) => new File([buf], filename)));
-	}
-
-	private fnDownloadNewFile(fileData: string, fileName: string) { // eslint-disable-line class-methods-use-this
-		const fileUrl = `data:application/octet-stream;base64,${fileData}`;
-
-		Controller.urlToFile(fileUrl, fileName).then((file) => {
-			const blob = new Blob([file], {
-					type: "application/octet-stream"
-				}),
-				blobURL = window.URL.createObjectURL(blob),
-				link = document.createElement("a");
-
-			link.href = blobURL;
-
-			link.setAttribute("download", fileName);
-
-			document.body.appendChild(link);
-
-			link.click();
-
-			link.remove();
-		});
-	}
-
-
-	// https://stackoverflow.com/questions/19327749/javascript-blob-filename-without-link
-	// Does not work to set filename on Chrome!
-	private fnDownloadNewFile(sData: string, sFileName: string) { // eslint-disable-line class-methods-use-this
-		const sType = "octet/stream",
-			oBuffer = new ArrayBuffer(sData.length),
-			oData8 = new Uint8Array(oBuffer);
-
-		for (let i = 0; i < sData.length; i += 1) {
-			oData8[i] = sData.charCodeAt(i);
-		}
-
-		if (window.navigator && window.navigator.msSaveOrOpenBlob) { // IE11 support
-			const blob = new Blob([oBuffer], {
-				type: sType
-			});
-
-			window.navigator.msSaveOrOpenBlob(blob, sFileName);
-		} else { // other browsers
-			const file = new File([oBuffer], sFileName, {
-					type: sType
-				}),
-				exportUrl = URL.createObjectURL(file);
-
-			window.location.assign(exportUrl);
-			URL.revokeObjectURL(exportUrl);
-		}
-	}
-	*/
-
 	fnDownload(): void {
 		const sInput = this.view.getAreaValue("inputText"),
 			sTokens = this.encodeTokenizedBasic(sInput);

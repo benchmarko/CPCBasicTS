@@ -98,7 +98,7 @@ var CodeGeneratorToken = /** @class */ (function () {
     CodeGeneratorToken.prototype.fnParseOneArg = function (oArg) {
         var sValue = this.parseNode(oArg);
         if (oArg.ws && oArg.ws !== " ") {
-            sValue = oArg.ws + sValue; //TTT whitespace
+            sValue = oArg.ws + sValue;
         }
         return sValue;
     };
@@ -123,13 +123,6 @@ var CodeGeneratorToken = /** @class */ (function () {
         return node.value; // ";"
     };
     CodeGeneratorToken.prototype.colon = function () {
-        /*
-        if (Utils.debug > 2) {
-            Utils.console.log("TTT: colon=", node.value); //TTT
-        }
-        return ""; // currently we ignore them // node.value; // ":"
-        */
-        //return CodeGeneratorToken.token2String(node.value); // statement separator
         return this.sStatementSeparator;
     };
     CodeGeneratorToken.letter = function (node) {
@@ -266,13 +259,10 @@ var CodeGeneratorToken = /** @class */ (function () {
     CodeGeneratorToken.prototype.label = function (node) {
         this.iLine = Number(node.value); // set line before parsing args
         var iLine = this.iLine, aNodeArgs = this.fnParseArgs(node.args);
-        //let sValue = aNodeArgs.join(CodeGeneratorToken.token2String(":")); // statement seperator ":"
-        //let sValue = aNodeArgs.join("");
         var sValue = this.combineArgsWithSeparator(aNodeArgs);
         if (node.value !== "direct") {
             sValue = CodeGeneratorToken.convUInt16ToString(iLine) + sValue + CodeGeneratorToken.token2String("_eol");
             var iLen = sValue.length + 2;
-            //"[DEBUG:" + iLine + "] " +
             sValue = CodeGeneratorToken.convUInt16ToString(iLen) + sValue;
         }
         return sValue;
@@ -306,24 +296,10 @@ var CodeGeneratorToken = /** @class */ (function () {
     };
     CodeGeneratorToken.prototype.data = function (node) {
         var aNodeArgs = this.fnParseArgs(node.args);
-        //regExp = new RegExp(":|,|^ +| +$|\\|"); // separator or comma or spaces at end or beginning, or "|" which is corrupted on CPC
         for (var i = 0; i < aNodeArgs.length; i += 1) {
             var sValue2 = aNodeArgs[i];
-            /*
-            if (sValue2) {
-                sValue2 = sValue2.substr(1, sValue2.length - 2); // remove surrounding quotes
-                sValue2 = sValue2.replace(/\\"/g, "\""); // unescape "
-
-                if (sValue2) {
-                    if (regExp.test(sValue2)) {
-                        sValue2 = '"' + sValue2 + '"';
-                    }
-                }
-            }
-            */
             aNodeArgs[i] = sValue2;
         }
-        //let sValue = aNodeArgs.join(",");
         var sValue = aNodeArgs.join("");
         if (sValue !== "" && sValue !== "," && sValue !== '"') { // argument?
             sValue = " " + sValue;
@@ -359,15 +335,12 @@ var CodeGeneratorToken = /** @class */ (function () {
             var oToken = aArgs[i];
             var sValue2 = oToken.value;
             if (sValue2) {
-                if (oToken.type === "linenumber") { //test
+                if (oToken.type === "linenumber") {
                     sValue2 = CodeGeneratorToken.linenumber(oToken);
                 }
-                //sValue += oToken.value;
                 sValue += sValue2;
             }
         }
-        //const aNodeArgs = this.fnParseArgs(node.args); // cannot parse!
-        // TODO: whitespaces?
         return sValue;
     };
     CodeGeneratorToken.prototype.ent = function (node) {
@@ -408,29 +381,13 @@ var CodeGeneratorToken = /** @class */ (function () {
         if (!node.left) {
             throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occure
         }
-        var aNodeArgs = this.fnParseArgs(node.args), 
-        //sName = this.fnParseOneArg(node.left).replace("FN", ""), // get identifier without FN
-        sName = this.fnParseOneArg(node.left).replace(/FN/i, ""), // get identifier without FN
-        sSpace = node.value.indexOf(" ") >= 0 ? " " : ""; //node.left.bSpace ? " " : ""; // fast hack
+        var aNodeArgs = this.fnParseArgs(node.args), sName = this.fnParseOneArg(node.left).replace(/FN/i, ""), // get identifier without FN
+        sSpace = node.value.indexOf(" ") >= 0 ? " " : "";
         var sNodeArgs = aNodeArgs.join(",");
         if (sNodeArgs !== "") { // not empty?
             sNodeArgs = "(" + sNodeArgs + ")";
         }
         var sName2 = CodeGeneratorToken.token2String(node.type) + sSpace + sName, sValue = sName2 + sNodeArgs;
-        /*
-            //TTT
-        const aNodeArgs = this.fnParseArgs(node.args);
-            //sName = this.fnParseOneArg(node.left).replace("FN", ""), // get identifier without FN
-            //sSpace = node.left.bSpace ? " " : ""; // fast hack
-        let sNodeArgs = aNodeArgs.join(",");
-
-        if (sNodeArgs !== "") { // not empty?
-            sNodeArgs = "(" + sNodeArgs + ")";
-        }
-
-        const sName2 = node.value.replace(/FN/i, ""),
-            sValue = CodeGeneratorToken.token2String(node.type) + sName2 + sNodeArgs;
-        */
         return sValue;
     };
     CodeGeneratorToken.prototype["for"] = function (node) {
@@ -453,8 +410,6 @@ var CodeGeneratorToken = /** @class */ (function () {
         if (oNodeBranch.length && oNodeBranch[0].type === "goto" && oNodeBranch[0].len === 0) { // inserted goto?
             aNodeArgs[0] = this.fnParseOneArg(oNodeBranch[0].args[0]); // take just line number
         }
-        //sValue += aNodeArgs.join(CodeGeneratorToken.token2String(":"));
-        //sValue += aNodeArgs.join("");
         sValue += this.combineArgsWithSeparator(aNodeArgs);
         if (node.args2) {
             if (!sValue.endsWith(this.sStatementSeparator)) {
@@ -465,15 +420,11 @@ var CodeGeneratorToken = /** @class */ (function () {
             if (oNodeBranch2.length && oNodeBranch2[0].type === "goto" && oNodeBranch2[0].len === 0) { // inserted goto?
                 aNodeArgs2[0] = this.fnParseOneArg(oNodeBranch2[0].args[0]); // take just line number
             }
-            //sValue += aNodeArgs2.join(CodeGeneratorToken.token2String(":"));
-            //sValue += aNodeArgs2.join("");
             sValue += this.combineArgsWithSeparator(aNodeArgs2);
         }
         return sValue;
     };
     CodeGeneratorToken.fnHasStream = function (node) {
-        //bHasStream = aNodeArgs.length && (String(aNodeArgs[0]).charAt(0) === "#");
-        //bHasStream = node.args && node.args.length && (node.args[0].type === "#");
         var bHasStream = node.args && node.args.length && (node.args[0].type === "#") && node.args[0].right && (node.args[0].right.type !== "null");
         return bHasStream;
     };
@@ -504,11 +455,6 @@ var CodeGeneratorToken = /** @class */ (function () {
         }
         var sValue = aNodeArgs.join(",");
         var sName = CodeGeneratorToken.token2String(node.type);
-        /*
-        if (sValue !== "") { // argument?
-            sName += " ";
-        }
-        */
         sValue = sName + sValue;
         return sValue;
     };

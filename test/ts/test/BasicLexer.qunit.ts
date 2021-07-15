@@ -615,14 +615,11 @@ QUnit.module("BasicLexer: Tests", function () {
 				}
 
 				if (aResults) {
-					//aResults.push('"' + sKey + '": \'' + sResult + "'");
-					// escape " in key, ' in value
 					aResults.push('"' + sKey.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + "\": '" + sResult.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/'/g, "\\'") + "'");
 				}
 
 				if (assert) {
 					assert.deepEqual(aTokens, oExpected, sKey);
-					// or: sJson = JSON.stringify(aParseTree); //assert.strictEqual(sJson, sExpected);
 				}
 			}
 		}

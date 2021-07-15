@@ -9,7 +9,6 @@ var Utils_1 = require("./Utils");
 var Random_1 = require("./Random");
 var CpcVm = /** @class */ (function () {
     function CpcVm(options) {
-        //iInkeyTime: number; // if >0, next time when inkey$ can be checked without inserting "waitFrame"
         this.iInkeyTimeMs = 0; // next time of frame fly (if >0, next time when inkey$ can be checked without inserting "waitFrame")
         this.aGosubStack = []; // stack of line numbers for gosub/return
         this.iData = 0; // current index
@@ -98,7 +97,6 @@ var CpcVm = /** @class */ (function () {
         // "iLine": run line (CHAIN, CHAIN MERGE)
         // "iFirst": first line to delete (CHAIN MERGE)
         // "iLast": last line to delete (CHAIN MERGE)
-        //this.iInkeyTime = 0; // if >0, next time when inkey$ can be checked without inserting "waitFrame"
         this.aGosubStack = []; // stack of line numbers for gosub/return
         this.aMem = []; // for peek, poke
         this.aData = []; // array for BASIC data lines (continuous)
@@ -3230,8 +3228,8 @@ var CpcVm = /** @class */ (function () {
         "": 0,
         direct: 0,
         timer: 20,
-        waitKey: 30,
         waitFrame: 40,
+        waitKey: 41,
         waitSound: 43,
         waitInput: 45,
         fileCat: 45,

@@ -161,7 +161,6 @@ export class CpcVmRsx implements ICpcVmRsx {
 	}
 
 	renum(...aArgs: number[]): void { // optional args: new number, old number, step, keep line (only for |renum)
-		//this.oVm.renum.apply(this.oVm, arguments as any);
 		this.oVm.renum.apply(aArgs);
 	}
 }

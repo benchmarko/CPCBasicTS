@@ -16,9 +16,7 @@ QUnit.module("Diff: Tests", function () {
     function runTestsFor(assert, oTests, aResults) {
         for (var sKey in oTests) {
             if (oTests.hasOwnProperty(sKey)) {
-                var aParts = sKey.split("#", 2), sText1 = aParts[0], sText2 = aParts[1], 
-                //oDiff = new Diff(),
-                sExpected = oTests[sKey];
+                var aParts = sKey.split("#", 2), sText1 = aParts[0], sText2 = aParts[1], sExpected = oTests[sKey];
                 var sResult = void 0;
                 try {
                     sResult = Diff_1.Diff.testDiff(sText1, sText2);

@@ -542,7 +542,6 @@ var CodeGeneratorJs = /** @class */ (function () {
         node.pt = "$";
         node.pv = '"' + sValue + '"';
         return node.pv;
-        //return CodeGeneratorJs.string(node); // for JS we quote it as well
     };
     CodeGeneratorJs.fnNull = function (node) {
         node.pv = node.value !== "null" ? node.value : "undefined"; // use explicit value or convert "null" to "undefined"
