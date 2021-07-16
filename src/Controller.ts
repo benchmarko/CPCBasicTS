@@ -52,9 +52,10 @@ export class Controller implements IController {
 
 	private oVariables = new Variables();
 
-	private oBasicFormatter?: BasicFormatter;
+	private oBasicFormatter?: BasicFormatter; // for renum
 	private oBasicTokenizer?: BasicTokenizer; // to decode tokenized BASIC
 	private oCodeGeneratorToken?: CodeGeneratorToken; // to encode tokenized BASIC
+	private oCodeGeneratorBasic?: CodeGeneratorBasic; // for pretty print
 	private model: Model;
 	private view: View;
 	private commonEventHandler: CommonEventHandler;
@@ -106,6 +107,8 @@ export class Controller implements IController {
 			onClickKey: this.fnPutKeyInBufferHandler
 		});
 		oView.setHidden("cpcArea", !oModel.getProperty<boolean>("showCpc"));
+
+		oView.setHidden("convertArea", !oModel.getProperty<boolean>("showConvert"), "flex");
 
 		const sKbdLayout = oModel.getProperty<string>("kbdLayout");
 
@@ -899,7 +902,9 @@ export class Controller implements IController {
 					bKeepWhiteSpace: true
 				}),
 				parser: new BasicParser({
-					bKeepBrackets: true
+					bKeepBrackets: true,
+					bKeepColons: true,
+					bKeepDataComma: true
 				})
 			});
 		}
@@ -919,6 +924,34 @@ export class Controller implements IController {
 			Utils.console.debug("TokenizerDiff (" + sName + "):\n", sDiff);
 		}
 
+		return oOutput.text;
+	}
+
+	private prettyPrintBasic(sInput: string, bKeepWhiteSpace: boolean, bKeepBrackets: boolean) {
+		if (!this.oCodeGeneratorBasic) {
+			this.oCodeGeneratorBasic = new CodeGeneratorBasic({
+				lexer: new BasicLexer(),
+				parser: new BasicParser()
+			});
+		}
+
+		const bKeepColons = bKeepBrackets, // we switch all with one setting
+			bKeepDataComma = true;
+
+		this.oCodeGeneratorBasic.getLexer().setOptions({
+			bKeepWhiteSpace: bKeepWhiteSpace
+		});
+		this.oCodeGeneratorBasic.getParser().setOptions({
+			bKeepBrackets: bKeepBrackets,
+			bKeepColons: bKeepColons,
+			bKeepDataComma: bKeepDataComma
+		});
+
+		const oOutput = this.oCodeGeneratorBasic.generate(sInput);
+
+		if (oOutput.error) {
+			this.outputError(oOutput.error);
+		}
 		return oOutput.text;
 	}
 
@@ -1496,6 +1529,7 @@ export class Controller implements IController {
 		return oOutput;
 	}
 
+	/*
 	fnPretty(): void {
 		const sInput = this.view.getAreaValue("inputText"),
 			oCodeGeneratorBasic = new CodeGeneratorBasic({
@@ -1518,6 +1552,25 @@ export class Controller implements IController {
 			this.fnPutChangedInputOnStack();
 
 			const sDiff = Diff.testDiff(sInput.toUpperCase(), sOutput.toUpperCase()); // for testing
+
+			this.view.setAreaValue("outputText", sDiff);
+		}
+	}
+	*/
+
+	fnPretty(): void {
+		const sInput = this.view.getAreaValue("inputText"),
+			bKeepWhiteSpace = this.view.getInputChecked("prettySpaceInput"),
+			bKeepBrackets = this.view.getInputChecked("prettyBracketsInput"),
+			sOutput = this.prettyPrintBasic(sInput, bKeepWhiteSpace, bKeepBrackets);
+
+		if (sOutput) {
+			this.fnPutChangedInputOnStack();
+			this.setInputText(sOutput, true);
+			this.fnPutChangedInputOnStack();
+
+			// for testing:
+			const sDiff = Diff.testDiff(sInput.toUpperCase(), sOutput.toUpperCase());
 
 			this.view.setAreaValue("outputText", sDiff);
 		}
@@ -1887,10 +1940,10 @@ export class Controller implements IController {
 		this.oVm.vmStop("renumLines", 85, false, {
 			sCommand: "renum",
 			iStream: 0, // unused
-			iNew: 10,
-			iOld: 1,
-			iStep: 10,
-			iKeep: 65535, // keep lines
+			iNew: Number(this.view.getInputValue("renumNewInput")), // 10
+			iOld: Number(this.view.getInputValue("renumStartInput")), // 1
+			iStep: Number(this.view.getInputValue("renumStepInput")), // 10
+			iKeep: Number(this.view.getInputValue("renumKeepInput")), // 65535, keep lines
 			iLine: this.oVm.iLine
 		});
 

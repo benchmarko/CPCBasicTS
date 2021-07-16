@@ -33,11 +33,21 @@ body {
 	display: block;
 }
 
+.popover {
+	position: absolute;
+	background-color: WhiteSmoke;
+}
+
+
 .area {
 	padding: 2px;
 	margin: 1px;
 	border: 0.5px solid #7A7A7A;
 	float: left;
+}
+
+.flexColumn {
+	flex-direction: column;
 }
 
 .field {
