@@ -34,15 +34,20 @@ export class BasicLexer {
 	private aTokens: LexerToken[] = [];
 	private sWhiteSpace = ""; //TTT whitespace collected
 
+	setOptions(options: BasicLexerOptions): void {
+		this.bQuiet = options.bQuiet || false;
+		this.bKeepWhiteSpace = options.bKeepWhiteSpace || false;
+	}
+
 	constructor(options?: BasicLexerOptions) {
-		this.bQuiet = options?.bQuiet || false;
-		this.bKeepWhiteSpace = options?.bKeepWhiteSpace || false;
+		if (options) {
+			this.setOptions(options);
+		}
 	}
 
 	private composeError(oError: Error, message: string, value: string, pos: number) {
 		return Utils.composeError("BasicLexer", oError, message, value, pos, this.sLine);
 	}
-
 
 	private static isComment(c: string) { // isApostrophe
 		return (/[']/).test(c);

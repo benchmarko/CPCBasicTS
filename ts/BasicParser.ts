@@ -25,6 +25,8 @@ import { LexerToken } from "./BasicLexer";
 interface BasicParserOptions {
 	bQuiet?: boolean
 	bKeepBrackets?: boolean
+	bKeepColons?: boolean
+	bKeepDataComma?: boolean
 }
 
 export interface ParserNode extends LexerToken {
@@ -53,6 +55,8 @@ export class BasicParser {
 	private sLine = "0"; // for error messages
 	private bQuiet = false;
 	private bKeepBrackets = false;
+	private bKeepColons = false;
+	private bKeepDataComma = false;
 
 	private oSymbols: { [k in string]: SymbolType } = {};
 
@@ -65,9 +69,18 @@ export class BasicParser {
 	private oToken: ParserNode; // current token
 	private aParseTree: ParserNode[] = [];
 
+	setOptions(options: BasicParserOptions): void {
+		this.bQuiet = options.bQuiet || false;
+		this.bKeepBrackets = options.bKeepBrackets || false;
+		this.bKeepColons = options.bKeepColons || false;
+		this.bKeepDataComma = options.bKeepDataComma || false;
+	}
+
 	constructor(options?: BasicParserOptions) {
-		this.bQuiet = options?.bQuiet || false;
-		this.bKeepBrackets = options?.bKeepBrackets || false;
+		if (options) {
+			this.setOptions(options);
+		}
+
 		this.fnGenerateSymbols();
 
 		this.oPreviousToken = {} as ParserNode; // to avoid warnings
@@ -440,7 +453,7 @@ export class BasicParser {
 			if (bColonExpected || this.oToken.type === ":") {
 				if (this.oToken.type !== "'" && this.oToken.type !== "else") { // no colon required for line comment or ELSE
 					this.advance(":");
-					if (this.bKeepBrackets) { // TTT reuse
+					if (this.bKeepColons) {
 						aStatements.push(this.oPreviousToken);
 					}
 				}
@@ -1047,7 +1060,7 @@ export class BasicParser {
 				oValue.args.push(BasicParser.fnCreateDummyArg("null")); // insert null parameter
 			}
 			this.oToken = this.advance(",");
-			if (this.bKeepBrackets) { //TTT reuse
+			if (this.bKeepDataComma) {
 				oValue.args.push(this.oPreviousToken); // ","
 			}
 

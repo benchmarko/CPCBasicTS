@@ -29,6 +29,7 @@ class cpcBasic { // eslint-disable-line vars-on-top
 		showText: false,
 		showVariable: false,
 		showConsole: false,
+		showConvert: false,
 		sound: true,
 		tron: false // trace on
 	};

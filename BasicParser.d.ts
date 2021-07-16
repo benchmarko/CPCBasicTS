@@ -2,6 +2,8 @@ import { LexerToken } from "./BasicLexer";
 interface BasicParserOptions {
     bQuiet?: boolean;
     bKeepBrackets?: boolean;
+    bKeepColons?: boolean;
+    bKeepDataComma?: boolean;
 }
 export interface ParserNode extends LexerToken {
     left?: ParserNode;
@@ -16,6 +18,8 @@ export declare class BasicParser {
     private sLine;
     private bQuiet;
     private bKeepBrackets;
+    private bKeepColons;
+    private bKeepDataComma;
     private oSymbols;
     private aTokens;
     private bAllowDirect;
@@ -23,6 +27,7 @@ export declare class BasicParser {
     private oPreviousToken;
     private oToken;
     private aParseTree;
+    setOptions(options: BasicParserOptions): void;
     constructor(options?: BasicParserOptions);
     private static mParameterTypes;
     static mKeywords: {

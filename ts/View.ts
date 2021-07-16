@@ -69,9 +69,9 @@ export class View {
 		const iNameIndex = sClasses.indexOf(sClassName);
 
 		if (iNameIndex === -1) {
-			sClasses += " " + sClassName;
+			sClasses = sClasses.trim() + " " + sClassName;
 		} else {
-			sClasses = sClasses.substr(0, iNameIndex) + sClasses.substr(iNameIndex + sClassName.length + 1);
+			sClasses = sClasses.substr(0, iNameIndex) + sClasses.substr(iNameIndex + sClassName.length + 1).trim();
 		}
 		element.className = sClasses;
 	}
@@ -86,6 +86,24 @@ export class View {
 
 		element.value = sValue;
 		return this;
+	}
+
+	getInputValue(sId: string): string { // eslint-disable-line class-methods-use-this
+		const element = View.getElementById1(sId) as HTMLInputElement;
+
+		return element.value;
+	}
+	setInputValue(sId: string, sValue: string): this {
+		const element = View.getElementById1(sId) as HTMLInputElement;
+
+		element.value = sValue;
+		return this;
+	}
+
+	getInputChecked(sId: string): boolean { // eslint-disable-line class-methods-use-this
+		const element = View.getElementById1(sId) as HTMLInputElement;
+
+		return element.checked;
 	}
 
 	setSelectOptions(sId: string, aOptions: SelectOptionElement[]): this {

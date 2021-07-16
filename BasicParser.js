@@ -26,18 +26,27 @@ var BasicParser = /** @class */ (function () {
         this.sLine = "0"; // for error messages
         this.bQuiet = false;
         this.bKeepBrackets = false;
+        this.bKeepColons = false;
+        this.bKeepDataComma = false;
         this.oSymbols = {};
         // set also during parse
         this.aTokens = [];
         this.bAllowDirect = false;
         this.iIndex = 0;
         this.aParseTree = [];
-        this.bQuiet = (options === null || options === void 0 ? void 0 : options.bQuiet) || false;
-        this.bKeepBrackets = (options === null || options === void 0 ? void 0 : options.bKeepBrackets) || false;
+        if (options) {
+            this.setOptions(options);
+        }
         this.fnGenerateSymbols();
         this.oPreviousToken = {}; // to avoid warnings
         this.oToken = this.oPreviousToken;
     }
+    BasicParser.prototype.setOptions = function (options) {
+        this.bQuiet = options.bQuiet || false;
+        this.bKeepBrackets = options.bKeepBrackets || false;
+        this.bKeepColons = options.bKeepColons || false;
+        this.bKeepDataComma = options.bKeepDataComma || false;
+    };
     BasicParser.prototype.composeError = function (oError, message, value, pos) {
         return Utils_1.Utils.composeError("BasicParser", oError, message, value, pos, this.sLine);
     };
@@ -166,7 +175,7 @@ var BasicParser = /** @class */ (function () {
             if (bColonExpected || this.oToken.type === ":") {
                 if (this.oToken.type !== "'" && this.oToken.type !== "else") { // no colon required for line comment or ELSE
                     this.advance(":");
-                    if (this.bKeepBrackets) { // TTT reuse
+                    if (this.bKeepColons) {
                         aStatements.push(this.oPreviousToken);
                     }
                 }
@@ -684,7 +693,7 @@ var BasicParser = /** @class */ (function () {
                 oValue.args.push(BasicParser.fnCreateDummyArg("null")); // insert null parameter
             }
             this.oToken = this.advance(",");
-            if (this.bKeepBrackets) { //TTT reuse
+            if (this.bKeepDataComma) {
                 oValue.args.push(this.oPreviousToken); // ","
             }
             bParameterFound = false;

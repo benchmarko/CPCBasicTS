@@ -55,10 +55,10 @@ var View = /** @class */ (function () {
         var sClasses = element.className;
         var iNameIndex = sClasses.indexOf(sClassName);
         if (iNameIndex === -1) {
-            sClasses += " " + sClassName;
+            sClasses = sClasses.trim() + " " + sClassName;
         }
         else {
-            sClasses = sClasses.substr(0, iNameIndex) + sClasses.substr(iNameIndex + sClassName.length + 1);
+            sClasses = sClasses.substr(0, iNameIndex) + sClasses.substr(iNameIndex + sClassName.length + 1).trim();
         }
         element.className = sClasses;
     };
@@ -70,6 +70,19 @@ var View = /** @class */ (function () {
         var element = View.getElementById1(sId);
         element.value = sValue;
         return this;
+    };
+    View.prototype.getInputValue = function (sId) {
+        var element = View.getElementById1(sId);
+        return element.value;
+    };
+    View.prototype.setInputValue = function (sId, sValue) {
+        var element = View.getElementById1(sId);
+        element.value = sValue;
+        return this;
+    };
+    View.prototype.getInputChecked = function (sId) {
+        var element = View.getElementById1(sId);
+        return element.checked;
     };
     View.prototype.setSelectOptions = function (sId, aOptions) {
         var element = View.getElementById1(sId);

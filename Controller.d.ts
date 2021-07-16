@@ -18,6 +18,7 @@ export declare class Controller implements IController {
     private oBasicFormatter?;
     private oBasicTokenizer?;
     private oCodeGeneratorToken?;
+    private oCodeGeneratorBasic?;
     private model;
     private view;
     private commonEventHandler;
@@ -61,6 +62,7 @@ export declare class Controller implements IController {
     private static asmGena3Convert;
     private decodeTokenizedBasic;
     private encodeTokenizedBasic;
+    private prettyPrintBasic;
     private loadFileContinue;
     private loadExample;
     private static fnLocalStorageName;

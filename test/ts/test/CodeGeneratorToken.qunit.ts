@@ -607,7 +607,9 @@ QUnit.module("CodeGeneratorToken: Tests", function (/* hooks */) {
 			}),
 			parser: new BasicParser({
 				bQuiet: true,
-				bKeepBrackets: true
+				bKeepBrackets: true,
+				bKeepColons: true,
+				bKeepDataComma: true
 			})
 		});
 

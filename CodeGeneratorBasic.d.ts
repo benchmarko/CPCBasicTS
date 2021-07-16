@@ -10,6 +10,8 @@ export declare class CodeGeneratorBasic {
     private parser;
     private iLine;
     constructor(options: CodeGeneratorBasicOptions);
+    getLexer(): BasicLexer;
+    getParser(): BasicParser;
     private static mCombinedKeywords;
     private static mOperators;
     private static mOperatorPrecedence;
@@ -18,6 +20,8 @@ export declare class CodeGeneratorBasic {
     private static fnSpace1;
     private fnParseOneArg;
     private fnParseArgs;
+    private static fnColonsAvailable;
+    private static combineArgsWithColon;
     private static fnDecodeEscapeSequence;
     private fnParenthesisOpen;
     private static string;
@@ -41,6 +45,7 @@ export declare class CodeGeneratorBasic {
     private everyGosub;
     private fn;
     private "for";
+    private fnThenOrElsePart;
     private "if";
     private static fnHasStream;
     private input;

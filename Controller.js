@@ -91,6 +91,7 @@ var Controller = /** @class */ (function () {
             onClickKey: this.fnPutKeyInBufferHandler
         });
         oView.setHidden("cpcArea", !oModel.getProperty("showCpc"));
+        oView.setHidden("convertArea", !oModel.getProperty("showConvert"), "flex");
         var sKbdLayout = oModel.getProperty("kbdLayout");
         oView.setSelectValue("kbdLayoutSelect", sKbdLayout);
         this.commonEventHandler.onKbdLayoutSelectChange();
@@ -737,7 +738,9 @@ var Controller = /** @class */ (function () {
                     bKeepWhiteSpace: true
                 }),
                 parser: new BasicParser_1.BasicParser({
-                    bKeepBrackets: true
+                    bKeepBrackets: true,
+                    bKeepColons: true,
+                    bKeepDataComma: true
                 })
             });
         }
@@ -751,6 +754,29 @@ var Controller = /** @class */ (function () {
             Utils_1.Utils.console.debug("TokenizerHex (" + sName + "):\n", sHex);
             Utils_1.Utils.console.debug("TokenizerDecoded (" + sName + "):\n", sDecoded);
             Utils_1.Utils.console.debug("TokenizerDiff (" + sName + "):\n", sDiff);
+        }
+        return oOutput.text;
+    };
+    Controller.prototype.prettyPrintBasic = function (sInput, bKeepWhiteSpace, bKeepBrackets) {
+        if (!this.oCodeGeneratorBasic) {
+            this.oCodeGeneratorBasic = new CodeGeneratorBasic_1.CodeGeneratorBasic({
+                lexer: new BasicLexer_1.BasicLexer(),
+                parser: new BasicParser_1.BasicParser()
+            });
+        }
+        var bKeepColons = bKeepBrackets, // we switch all with one setting
+        bKeepDataComma = true;
+        this.oCodeGeneratorBasic.getLexer().setOptions({
+            bKeepWhiteSpace: bKeepWhiteSpace
+        });
+        this.oCodeGeneratorBasic.getParser().setOptions({
+            bKeepBrackets: bKeepBrackets,
+            bKeepColons: bKeepColons,
+            bKeepDataComma: bKeepDataComma
+        });
+        var oOutput = this.oCodeGeneratorBasic.generate(sInput);
+        if (oOutput.error) {
+            this.outputError(oOutput.error);
         }
         return oOutput.text;
     };
@@ -1225,24 +1251,42 @@ var Controller = /** @class */ (function () {
         this.commonEventHandler.onVarSelectChange();
         return oOutput;
     };
-    Controller.prototype.fnPretty = function () {
-        var sInput = this.view.getAreaValue("inputText"), oCodeGeneratorBasic = new CodeGeneratorBasic_1.CodeGeneratorBasic({
-            lexer: new BasicLexer_1.BasicLexer({
-                bKeepWhiteSpace: true
+    /*
+    fnPretty(): void {
+        const sInput = this.view.getAreaValue("inputText"),
+            oCodeGeneratorBasic = new CodeGeneratorBasic({
+                lexer: new BasicLexer({
+                    bKeepWhiteSpace: true
+                }),
+                parser: new BasicParser({
+                    bKeepBrackets: true
+                })
             }),
-            parser: new BasicParser_1.BasicParser({
-                bKeepBrackets: true
-            })
-        }), oOutput = oCodeGeneratorBasic.generate(sInput);
+            oOutput = oCodeGeneratorBasic.generate(sInput);
+
         if (oOutput.error) {
             this.outputError(oOutput.error);
-        }
-        else {
-            var sOutput = oOutput.text;
+        } else {
+            const sOutput = oOutput.text;
+
             this.fnPutChangedInputOnStack();
             this.setInputText(sOutput, true);
             this.fnPutChangedInputOnStack();
-            var sDiff = Diff_1.Diff.testDiff(sInput.toUpperCase(), sOutput.toUpperCase()); // for testing
+
+            const sDiff = Diff.testDiff(sInput.toUpperCase(), sOutput.toUpperCase()); // for testing
+
+            this.view.setAreaValue("outputText", sDiff);
+        }
+    }
+    */
+    Controller.prototype.fnPretty = function () {
+        var sInput = this.view.getAreaValue("inputText"), bKeepWhiteSpace = this.view.getInputChecked("prettySpaceInput"), bKeepBrackets = this.view.getInputChecked("prettyBracketsInput"), sOutput = this.prettyPrintBasic(sInput, bKeepWhiteSpace, bKeepBrackets);
+        if (sOutput) {
+            this.fnPutChangedInputOnStack();
+            this.setInputText(sOutput, true);
+            this.fnPutChangedInputOnStack();
+            // for testing:
+            var sDiff = Diff_1.Diff.testDiff(sInput.toUpperCase(), sOutput.toUpperCase());
             this.view.setAreaValue("outputText", sDiff);
         }
     };
@@ -1537,10 +1581,10 @@ var Controller = /** @class */ (function () {
         this.oVm.vmStop("renumLines", 85, false, {
             sCommand: "renum",
             iStream: 0,
-            iNew: 10,
-            iOld: 1,
-            iStep: 10,
-            iKeep: 65535,
+            iNew: Number(this.view.getInputValue("renumNewInput")),
+            iOld: Number(this.view.getInputValue("renumStartInput")),
+            iStep: Number(this.view.getInputValue("renumStepInput")),
+            iKeep: Number(this.view.getInputValue("renumKeepInput")),
             iLine: this.oVm.iLine
         });
         if (this.oVm.pos(iStream) > 1) {

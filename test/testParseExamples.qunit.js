@@ -175,7 +175,9 @@ var cpcBasic = /** @class */ (function () {
     });
     cpcBasic.oConvertParser = new BasicParser_1.BasicParser({
         bQuiet: true,
-        bKeepBrackets: true
+        bKeepBrackets: true,
+        bKeepColons: true,
+        bKeepDataComma: true
     });
     cpcBasic.oCodeGeneratorJs = new CodeGeneratorJs_1.CodeGeneratorJs({
         lexer: cpcBasic.oLexer,

@@ -12,6 +12,9 @@ export declare class View {
     toggleClass(sId: string, sClassName: string): void;
     getAreaValue(sId: string): string;
     setAreaValue(sId: string, sValue: string): this;
+    getInputValue(sId: string): string;
+    setInputValue(sId: string, sValue: string): this;
+    getInputChecked(sId: string): boolean;
     setSelectOptions(sId: string, aOptions: SelectOptionElement[]): this;
     getSelectValue(sId: string): string;
     setSelectValue(sId: string, sValue: string): this;

@@ -18,6 +18,7 @@ export declare class BasicLexer {
     private iIndex;
     private aTokens;
     private sWhiteSpace;
+    setOptions(options: BasicLexerOptions): void;
     constructor(options?: BasicLexerOptions);
     private composeError;
     private static isComment;

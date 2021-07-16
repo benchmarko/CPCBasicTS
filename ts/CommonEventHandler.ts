@@ -68,6 +68,14 @@ export class CommonEventHandler implements EventListenerObject {
 		}
 	}
 
+	private onConvertButtonClick() {
+		if (this.toogleHidden("convertArea", "showConvert", "flex")) {
+			// todo
+		} else {
+			// todo
+		}
+	}
+
 	private onKbdButtonClick() {
 		if (this.toogleHidden("kbdArea", "showKbd", "flex")) {
 			if (this.view.getHidden("kbdArea")) { // on old browsers, display "flex" is not available, so set "block" if still hidden
@@ -241,6 +249,7 @@ export class CommonEventHandler implements EventListenerObject {
 		onTextButtonClick: this.onTextButtonClick,
 		onVariableButtonClick: this.onVariableButtonClick,
 		onCpcButtonClick: this.onCpcButtonClick,
+		onConvertButtonClick: this.onConvertButtonClick,
 		onKbdButtonClick: this.onKbdButtonClick,
 		onKbdLayoutButtonClick: this.onKbdLayoutButtonClick,
 		onConsoleButtonClick: this.onConsoleButtonClick,

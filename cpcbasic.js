@@ -157,6 +157,7 @@ var cpcBasic = /** @class */ (function () {
         showText: false,
         showVariable: false,
         showConsole: false,
+        showConvert: false,
         sound: true,
         tron: false // trace on
     };

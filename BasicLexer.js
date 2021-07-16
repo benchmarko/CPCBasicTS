@@ -19,9 +19,14 @@ var BasicLexer = /** @class */ (function () {
         this.iIndex = 0;
         this.aTokens = [];
         this.sWhiteSpace = ""; //TTT whitespace collected
-        this.bQuiet = (options === null || options === void 0 ? void 0 : options.bQuiet) || false;
-        this.bKeepWhiteSpace = (options === null || options === void 0 ? void 0 : options.bKeepWhiteSpace) || false;
+        if (options) {
+            this.setOptions(options);
+        }
     }
+    BasicLexer.prototype.setOptions = function (options) {
+        this.bQuiet = options.bQuiet || false;
+        this.bKeepWhiteSpace = options.bKeepWhiteSpace || false;
+    };
     BasicLexer.prototype.composeError = function (oError, message, value, pos) {
         return Utils_1.Utils.composeError("BasicLexer", oError, message, value, pos, this.sLine);
     };

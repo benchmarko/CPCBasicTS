@@ -19,6 +19,7 @@ var CommonEventHandler = /** @class */ (function () {
             onTextButtonClick: this.onTextButtonClick,
             onVariableButtonClick: this.onVariableButtonClick,
             onCpcButtonClick: this.onCpcButtonClick,
+            onConvertButtonClick: this.onConvertButtonClick,
             onKbdButtonClick: this.onKbdButtonClick,
             onKbdLayoutButtonClick: this.onKbdLayoutButtonClick,
             onConsoleButtonClick: this.onConsoleButtonClick,
@@ -91,6 +92,14 @@ var CommonEventHandler = /** @class */ (function () {
         }
         else {
             this.controller.stopUpdateCanvas();
+        }
+    };
+    CommonEventHandler.prototype.onConvertButtonClick = function () {
+        if (this.toogleHidden("convertArea", "showConvert", "flex")) {
+            // todo
+        }
+        else {
+            // todo
         }
     };
     CommonEventHandler.prototype.onKbdButtonClick = function () {

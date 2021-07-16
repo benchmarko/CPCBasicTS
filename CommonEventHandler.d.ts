@@ -17,6 +17,7 @@ export declare class CommonEventHandler implements EventListenerObject {
     private onTextButtonClick;
     private onVariableButtonClick;
     private onCpcButtonClick;
+    private onConvertButtonClick;
     private onKbdButtonClick;
     private onKbdLayoutButtonClick;
     private onConsoleButtonClick;
