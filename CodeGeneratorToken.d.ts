@@ -30,7 +30,6 @@ export declare class CodeGeneratorToken {
     private static letter;
     private range;
     private linerange;
-    private static fnDecodeEscapeSequence;
     private fnParenthesisOpen;
     private static string;
     private static unquoted;

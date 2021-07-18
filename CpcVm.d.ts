@@ -180,7 +180,7 @@ export declare class CpcVm {
     vmOnBreakContSet(): boolean;
     vmOnBreakHandlerActive(): number;
     vmEscape(): boolean;
-    vmAssertNumber(n: number | undefined, sErr: string): void;
+    private vmAssertNumber;
     private vmAssertString;
     vmRound(n: number | undefined, sErr?: string): number;
     vmInRangeRound(n: number | undefined, iMin: number, iMax: number, sErr?: string): number;

@@ -10,6 +10,8 @@ export declare class Utils {
     static console: Console;
     private static fnLoadScriptOrStyle;
     static loadScript(sUrl: string, fnSuccess: (sUrl2: string, sKey: string) => void, fnError: (sUrl2: string, sKey: string) => void, sKey: string): void;
+    static hexEscape(str: string): string;
+    static hexUnescape(str: string): string;
     static dateFormat(d: Date): string;
     static stringCapitalize(str: string): string;
     static numberWithCommas(x: number | string): string;

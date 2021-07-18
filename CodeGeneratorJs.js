@@ -533,14 +533,18 @@ var CodeGeneratorJs = /** @class */ (function () {
         return node.pv;
     };
     CodeGeneratorJs.string = function (node) {
+        var sValue = node.value;
+        sValue = sValue.replace(/\\/g, "\\\\"); // escape backslashes
+        sValue = Utils_1.Utils.hexEscape(sValue);
         node.pt = "$";
-        node.pv = '"' + node.value + '"';
+        node.pv = '"' + sValue + '"';
         return node.pv;
     };
     CodeGeneratorJs.unquoted = function (node) {
-        var sValue = node.value.replace(/"/g, "\\\""); // escape "
+        //const sValue = node.value.replace(/"/g, "\\\""); // escape "
         node.pt = "$";
-        node.pv = '"' + sValue + '"';
+        //node.pv = '"' + sValue + '"';
+        node.pv = node.value;
         return node.pv;
     };
     CodeGeneratorJs.fnNull = function (node) {
@@ -656,6 +660,11 @@ var CodeGeneratorJs = /** @class */ (function () {
     };
     CodeGeneratorJs.prototype.data = function (node) {
         var aNodeArgs = this.fnParseArgs(node.args);
+        for (var i = 0; i < node.args.length; i += 1) {
+            if (node.args[i].type === "unquoted") {
+                aNodeArgs[i] = '"' + aNodeArgs[i].replace(/"/g, "\\\"") + '"'; // escape quotes, put in quotes
+            }
+        }
         aNodeArgs.unshift(String(this.iLine)); // prepend line number
         this.aData.push("o.data(" + aNodeArgs.join(", ") + ")"); // will be set at the beginning of the script
         node.pv = "/* data */";
@@ -1113,13 +1122,14 @@ var CodeGeneratorJs = /** @class */ (function () {
     };
     CodeGeneratorJs.prototype.rem = function (node) {
         var aNodeArgs = this.fnParseArgs(node.args);
-        var sValue = aNodeArgs[0];
+        var sValue = aNodeArgs.length ? " " + aNodeArgs[0] : "";
+        /*
         if (sValue !== undefined) {
             sValue = " " + sValue.substr(1, sValue.length - 2); // remove surrounding quotes
-        }
-        else {
+        } else {
             sValue = "";
         }
+        */
         node.pv = "//" + sValue + "\n";
         return node.pv;
     };

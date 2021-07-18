@@ -142,11 +142,13 @@ var CodeGeneratorToken = /** @class */ (function () {
         var sLeft = this.fnParseOneArg(node.left), sRight = this.fnParseOneArg(node.right);
         return sLeft + CodeGeneratorToken.token2String("-") + sRight;
     };
-    CodeGeneratorToken.fnDecodeEscapeSequence = function (str) {
+    /*
+    private static fnDecodeEscapeSequence(str: string) {
         return str.replace(/\\x([0-9A-Fa-f]{2})/g, function () {
             return String.fromCharCode(parseInt(arguments[1], 16));
         });
-    };
+    }
+    */
     CodeGeneratorToken.prototype.fnParenthesisOpen = function (node) {
         var oValue = node.value;
         if (node.args) {
@@ -156,14 +158,14 @@ var CodeGeneratorToken = /** @class */ (function () {
         return oValue;
     };
     CodeGeneratorToken.string = function (node) {
-        var sValue = CodeGeneratorToken.fnDecodeEscapeSequence(node.value);
-        sValue = sValue.replace(/\\\\/g, "\\"); // unescape backslashes
-        return '"' + sValue + '"'; //TTT how to set unterminated string?
+        //let sValue = Utils.hexUnescape(node.value);
+        //sValue = sValue.replace(/\\\\/g, "\\"); // unescape backslashes
+        return '"' + node.value + '"'; //TTT how to set unterminated string?
     };
     CodeGeneratorToken.unquoted = function (node) {
-        var sValue = CodeGeneratorToken.fnDecodeEscapeSequence(node.value);
-        sValue = sValue.replace(/\\\\/g, "\\"); // unescape backslashes
-        return sValue;
+        //let sValue = Utils.hexUnescape(node.value);
+        //sValue = sValue.replace(/\\\\/g, "\\"); // unescape backslashes
+        return node.value;
     };
     CodeGeneratorToken.fnNull = function () {
         return "";
@@ -512,25 +514,39 @@ var CodeGeneratorToken = /** @class */ (function () {
     };
     CodeGeneratorToken.prototype.rem = function (node) {
         var aNodeArgs = this.fnParseArgs(node.args);
-        var sValue = aNodeArgs[0];
+        var sValue = aNodeArgs.length ? aNodeArgs[0] : "", sName = CodeGeneratorToken.token2String(node.value.toLowerCase()); // we use value to get REM or '
+        /*
+        let sValue = aNodeArgs[0];
+
         if (sValue !== undefined) {
             sValue = sValue.substr(1, sValue.length - 2); // remove surrounding quotes
-        }
-        else {
+        } else {
             sValue = "";
         }
-        var sToken = node.value.toLowerCase(); // use value; for "rem", "REM", "'"
-        var sName = CodeGeneratorToken.token2String(sToken);
+        const sToken = node.value.toLowerCase(); // use value; for "rem", "REM", "'"
+        let sName = CodeGeneratorToken.token2String(sToken);
+
         if (sToken !== "'") { // not simple rem?
             if (sValue !== "") { // argument?
                 sName += " ";
             }
-        }
-        else {
+        } else {
             sName = this.sStatementSeparator + sName; // always prefix apostrophe with ":"
         }
+
         sValue = sName + sValue;
         return sValue;
+        */
+        if (node.value !== "'") { // for "rem"
+            //const oArg0 = node.args && node.args[0];
+            if (sValue !== "") { //&& oArg0 && !oArg0.ws) {
+                sValue = " " + sValue; // add removed space
+            }
+        }
+        else { // apostrophe
+            sName = this.sStatementSeparator + sName; // always prefix apostrophe with ":"
+        }
+        return sName + sValue;
     };
     CodeGeneratorToken.prototype.using = function (node) {
         var aNodeArgs = this.fnParseArgs(node.args);

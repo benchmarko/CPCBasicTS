@@ -95,6 +95,18 @@ export class Utils { // eslint-disable-line vars-on-top
 		this.fnLoadScriptOrStyle(script, fnSuccess, fnError);
 	}
 
+	static hexEscape(str: string): string { // as hex
+		return str.replace(/[\x00-\x1f]/g, function (sChar: string) { // eslint-disable-line no-control-regex
+			return "\\x" + ("00" + sChar.charCodeAt(0).toString(16)).slice(-2);
+		});
+	}
+
+	static hexUnescape(str: string): string {
+		return str.replace(/\\x([0-9A-Fa-f]{2})/g, function () {
+			return String.fromCharCode(parseInt(arguments[1], 16));
+		});
+	}
+
 	static dateFormat(d: Date): string {
 		return d.getFullYear() + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + ("0" + d.getDate()).slice(-2) + " "
 			+ ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2) + ":" + ("0" + d.getSeconds()).slice(-2) + "." + ("0" + d.getMilliseconds()).slice(-3);

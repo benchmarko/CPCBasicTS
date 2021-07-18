@@ -47,11 +47,12 @@ export declare class BasicLexer {
     private getChar;
     private advance;
     private advanceWhile;
+    private debugCheckValue;
     private addToken;
-    private static hexEscape;
     private fnParseNumber;
-    private fnParseCompleteLineForRem;
+    private fnParseCompleteLineForRemOrApostrophe;
     private fnParseCompleteLineForData;
+    private fnParseIdentifier;
     private fnTryContinueString;
     lex(sInput: string): LexerToken[];
 }
