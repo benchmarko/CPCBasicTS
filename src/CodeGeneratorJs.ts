@@ -631,16 +631,23 @@ export class CodeGeneratorJs {
 		node.pv = !sRight ? sLeft : sLeft + ", " + sRightSpecified;
 		return node.pv;
 	}
+
 	private static string(node: CodeNode) {
-		node.pt = "$";
-		node.pv = '"' + node.value + '"';
-		return node.pv;
-	}
-	private static unquoted(node: CodeNode) { // data line item, can be interpreted as string or number
-		const sValue = node.value.replace(/"/g, "\\\""); // escape "
+		let sValue = node.value;
+
+		sValue = sValue.replace(/\\/g, "\\\\"); // escape backslashes
+		sValue = Utils.hexEscape(sValue);
 
 		node.pt = "$";
 		node.pv = '"' + sValue + '"';
+		return node.pv;
+	}
+	private static unquoted(node: CodeNode) { // comment or data line item, which can be interpreted as string or number
+		//const sValue = node.value.replace(/"/g, "\\\""); // escape "
+
+		node.pt = "$";
+		//node.pv = '"' + sValue + '"';
+		node.pv = node.value;
 		return node.pv;
 	}
 	private static fnNull(node: CodeNode) { // "null": means: no parameter specified
@@ -770,6 +777,12 @@ export class CodeGeneratorJs {
 	}
 	private data(node: CodeNode) {
 		const aNodeArgs = this.fnParseArgs(node.args);
+
+		for (let i = 0; i < node.args.length; i += 1) {
+			if (node.args[i].type === "unquoted") {
+				aNodeArgs[i] = '"' + aNodeArgs[i].replace(/"/g, "\\\"") + '"'; // escape quotes, put in quotes
+			}
+		}
 
 		aNodeArgs.unshift(String(this.iLine)); // prepend line number
 		this.aData.push("o.data(" + aNodeArgs.join(", ") + ")"); // will be set at the beginning of the script
@@ -1346,13 +1359,15 @@ export class CodeGeneratorJs {
 	}
 	private rem(node: CodeNode) {
 		const aNodeArgs = this.fnParseArgs(node.args);
-		let	sValue = aNodeArgs[0];
+		const sValue = aNodeArgs.length ? " " + aNodeArgs[0] : "";
 
+		/*
 		if (sValue !== undefined) {
 			sValue = " " + sValue.substr(1, sValue.length - 2); // remove surrounding quotes
 		} else {
 			sValue = "";
 		}
+		*/
 		node.pv = "//" + sValue + "\n";
 		return node.pv;
 	}

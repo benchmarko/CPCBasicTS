@@ -251,7 +251,7 @@ IFrames test:
 ## Possible Future Enhancements
 
 - Create buttons for the keys that the BASIC program checks (useful for e.g. mobile devices)
-- Save and restore snapshot of variables, also system variables
+- Save and restore snapshot of variables, including system variables
 - RSX extension libraries / plugins programmed in JavaScript
 - Can we detect busy loops and insert *FRAME* automatically?
 - Shall we support hardware scrolling with *OUT* or is it already a hardware emulation feature?

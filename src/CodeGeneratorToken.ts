@@ -449,11 +449,13 @@ export class CodeGeneratorToken {
 		return sLeft + CodeGeneratorToken.token2String("-") + sRight;
 	}
 
+	/*
 	private static fnDecodeEscapeSequence(str: string) {
 		return str.replace(/\\x([0-9A-Fa-f]{2})/g, function () {
 			return String.fromCharCode(parseInt(arguments[1], 16));
 		});
 	}
+	*/
 
 	private fnParenthesisOpen(node: ParserNode) { // special construct to combine tokens (only used in BasicParser keep brackets mode)
 		let oValue = node.value;
@@ -468,16 +470,16 @@ export class CodeGeneratorToken {
 	}
 
 	private static string(node: ParserNode) {
-		let sValue = CodeGeneratorToken.fnDecodeEscapeSequence(node.value);
+		//let sValue = Utils.hexUnescape(node.value);
 
-		sValue = sValue.replace(/\\\\/g, "\\"); // unescape backslashes
-		return '"' + sValue + '"'; //TTT how to set unterminated string?
+		//sValue = sValue.replace(/\\\\/g, "\\"); // unescape backslashes
+		return '"' + node.value + '"'; //TTT how to set unterminated string?
 	}
 	private static unquoted(node: ParserNode) {
-		let sValue = CodeGeneratorToken.fnDecodeEscapeSequence(node.value);
+		//let sValue = Utils.hexUnescape(node.value);
 
-		sValue = sValue.replace(/\\\\/g, "\\"); // unescape backslashes
-		return sValue;
+		//sValue = sValue.replace(/\\\\/g, "\\"); // unescape backslashes
+		return node.value;
 	}
 	private static fnNull() { // "null" means: no parameter specified
 		return "";
@@ -930,6 +932,10 @@ export class CodeGeneratorToken {
 	}
 	private rem(node: ParserNode) {
 		const aNodeArgs = this.fnParseArgs(node.args);
+		let sValue = aNodeArgs.length ? aNodeArgs[0] : "",
+			sName = CodeGeneratorToken.token2String(node.value.toLowerCase()); // we use value to get REM or '
+
+		/*
 		let sValue = aNodeArgs[0];
 
 		if (sValue !== undefined) {
@@ -950,6 +956,19 @@ export class CodeGeneratorToken {
 
 		sValue = sName + sValue;
 		return sValue;
+		*/
+
+		if (node.value !== "'") { // for "rem"
+			//const oArg0 = node.args && node.args[0];
+
+			if (sValue !== "") { //&& oArg0 && !oArg0.ws) {
+				sValue = " " + sValue; // add removed space
+			}
+		} else { // apostrophe
+			sName = this.sStatementSeparator + sName; // always prefix apostrophe with ":"
+		}
+
+		return sName + sValue;
 	}
 	private using(node: ParserNode) {
 		const aNodeArgs = this.fnParseArgs(node.args);

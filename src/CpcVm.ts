@@ -676,7 +676,7 @@ export class CpcVm {
 		return bStop;
 	}
 
-	vmAssertNumber(n: number | undefined, sErr: string): void {
+	private vmAssertNumber(n: number | undefined, sErr: string) {
 		if (typeof n !== "number") {
 			throw this.vmComposeError(Error(), 13, sErr + " " + n); // Type mismatch
 		}

@@ -62,7 +62,7 @@ QUnit.module("BasicLexer: Tests", function () {
 			"a=(b%>=c%)*(d<=e)": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"(","value":"(","pos":2},{"type":"identifier","value":"b%","pos":3},{"type":">=","value":">=","pos":5},{"type":"identifier","value":"c%","pos":7},{"type":")","value":")","pos":9},{"type":"*","value":"*","pos":10},{"type":"(","value":"(","pos":11},{"type":"identifier","value":"d","pos":12},{"type":"<=","value":"<=","pos":13},{"type":"identifier","value":"e","pos":15},{"type":")","value":")","pos":16},{"type":"(end)","value":"","pos":17}]'
 		},
 		special: {
-			"a$=\"string with\nnewline\"": '[{"type":"identifier","value":"a$","pos":0},{"type":"=","value":"=","pos":2},{"type":"string","value":"string with\\\\x0anewline","pos":4},{"type":"(end)","value":"","pos":24}]'
+			"a$=\"string with\\nnewline\"": '[{"type":"identifier","value":"a$","pos":0},{"type":"=","value":"=","pos":2},{"type":"string","value":"string with\\\\nnewline","pos":4},{"type":"(end)","value":"","pos":25}]'
 		},
 		"abs, after gosub, and, asc, atn, auto": {
 			"a=abs(2.3)": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"identifier","value":"abs","pos":2},{"type":"(","value":"(","pos":5},{"type":"number","value":"2.3","pos":6},{"type":")","value":")","pos":9},{"type":"(end)","value":"","pos":10}]',
@@ -119,15 +119,15 @@ QUnit.module("BasicLexer: Tests", function () {
 			"cursor #2,,1": '[{"type":"identifier","value":"cursor","pos":0},{"type":"#","value":"#","pos":7},{"type":"number","value":"2","pos":8},{"type":",","value":",","pos":9},{"type":",","value":",","pos":10},{"type":"number","value":"1","pos":11},{"type":"(end)","value":"","pos":12}]'
 		},
 		"data, dec$, def fn, defint, defreal, defstr, deg, delete, derr, di, dim, draw, drawr": {
-			"data ": '[{"type":"identifier","value":"data","pos":0},{"type":"unquoted","value":"","pos":0},{"type":"(end)","value":"","pos":6}]',
-			"data ,": '[{"type":"identifier","value":"data","pos":0},{"type":",","value":",","pos":0},{"type":"(end)","value":"","pos":6}]',
-			"data 1,2,3": '[{"type":"identifier","value":"data","pos":0},{"type":"unquoted","value":"1","pos":0},{"type":",","value":",","pos":0},{"type":"unquoted","value":"2","pos":0},{"type":",","value":",","pos":0},{"type":"unquoted","value":"3","pos":0},{"type":"(end)","value":"","pos":10}]',
-			"data \"item1\",\" item2\",\"item3 \"": '[{"type":"identifier","value":"data","pos":0},{"type":"string","value":"item1","pos":1},{"type":",","value":",","pos":0},{"type":"string","value":" item2","pos":1},{"type":",","value":",","pos":0},{"type":"string","value":"item3 ","pos":1},{"type":"(end)","value":"","pos":30}]',
-			"data item1,item2,item3": '[{"type":"identifier","value":"data","pos":0},{"type":"unquoted","value":"item1","pos":0},{"type":",","value":",","pos":0},{"type":"unquoted","value":"item2","pos":0},{"type":",","value":",","pos":0},{"type":"unquoted","value":"item3","pos":0},{"type":"(end)","value":"","pos":22}]',
-			"data &a3,4,abc,": '[{"type":"identifier","value":"data","pos":0},{"type":"unquoted","value":"&a3","pos":0},{"type":",","value":",","pos":0},{"type":"unquoted","value":"4","pos":0},{"type":",","value":",","pos":0},{"type":"unquoted","value":"abc","pos":0},{"type":",","value":",","pos":0},{"type":"(end)","value":"","pos":15}]',
-			"data \" \",!\"#$%&'()*+,\",\"": '[{"type":"identifier","value":"data","pos":0},{"type":"string","value":" ","pos":1},{"type":",","value":",","pos":0},{"type":"unquoted","value":"!\\"#$%&\'()*+","pos":0},{"type":",","value":",","pos":0},{"type":"string","value":",","pos":1},{"type":"(end)","value":"","pos":24}]',
+			"data ": '[{"type":"identifier","value":"data","pos":0},{"type":"unquoted","value":"","pos":5},{"type":"(end)","value":"","pos":6}]',
+			"data ,": '[{"type":"identifier","value":"data","pos":0},{"type":",","value":",","pos":5},{"type":"(end)","value":"","pos":6}]',
+			"data 1,2,3": '[{"type":"identifier","value":"data","pos":0},{"type":"unquoted","value":"1","pos":5},{"type":",","value":",","pos":6},{"type":"unquoted","value":"2","pos":7},{"type":",","value":",","pos":8},{"type":"unquoted","value":"3","pos":9},{"type":"(end)","value":"","pos":10}]',
+			"data \"item1\",\" item2\",\"item3 \"": '[{"type":"identifier","value":"data","pos":0},{"type":"string","value":"item1","pos":6},{"type":",","value":",","pos":12},{"type":"string","value":" item2","pos":14},{"type":",","value":",","pos":21},{"type":"string","value":"item3 ","pos":23},{"type":"(end)","value":"","pos":30}]',
+			"data item1,item2,item3": '[{"type":"identifier","value":"data","pos":0},{"type":"unquoted","value":"item1","pos":5},{"type":",","value":",","pos":10},{"type":"unquoted","value":"item2","pos":11},{"type":",","value":",","pos":16},{"type":"unquoted","value":"item3","pos":17},{"type":"(end)","value":"","pos":22}]',
+			"data &a3,4,abc,": '[{"type":"identifier","value":"data","pos":0},{"type":"unquoted","value":"&a3","pos":5},{"type":",","value":",","pos":8},{"type":"unquoted","value":"4","pos":9},{"type":",","value":",","pos":10},{"type":"unquoted","value":"abc","pos":11},{"type":",","value":",","pos":14},{"type":"(end)","value":"","pos":15}]',
+			"data \" \",!\"#$%&'()*+,\",\"": '[{"type":"identifier","value":"data","pos":0},{"type":"string","value":" ","pos":6},{"type":",","value":",","pos":8},{"type":"unquoted","value":"!\\"#$%&\'()*+","pos":9},{"type":",","value":",","pos":20},{"type":"string","value":",","pos":22},{"type":"(end)","value":"","pos":24}]',
 			"a$=dec$(3,\"##.##\")": '[{"type":"identifier","value":"a$","pos":0},{"type":"=","value":"=","pos":2},{"type":"identifier","value":"dec$","pos":3},{"type":"(","value":"(","pos":7},{"type":"number","value":"3","pos":8},{"type":",","value":",","pos":9},{"type":"string","value":"##.##","pos":11},{"type":")","value":")","pos":17},{"type":"(end)","value":"","pos":18}]',
-			"a$=dec$(a$,\"\\    \\\")": '[{"type":"identifier","value":"a$","pos":0},{"type":"=","value":"=","pos":2},{"type":"identifier","value":"dec$","pos":3},{"type":"(","value":"(","pos":7},{"type":"identifier","value":"a$","pos":8},{"type":",","value":",","pos":10},{"type":"string","value":"\\\\\\\\    \\\\\\\\","pos":12},{"type":")","value":")","pos":19},{"type":"(end)","value":"","pos":20}]',
+			"a$=dec$(a$,\"\\    \\\")": '[{"type":"identifier","value":"a$","pos":0},{"type":"=","value":"=","pos":2},{"type":"identifier","value":"dec$","pos":3},{"type":"(","value":"(","pos":7},{"type":"identifier","value":"a$","pos":8},{"type":",","value":",","pos":10},{"type":"string","value":"\\\\    \\\\","pos":12},{"type":")","value":")","pos":19},{"type":"(end)","value":"","pos":20}]',
 			"def fnclk=10": '[{"type":"identifier","value":"def","pos":0},{"type":"identifier","value":"fnclk","pos":4},{"type":"=","value":"=","pos":9},{"type":"number","value":"10","pos":10},{"type":"(end)","value":"","pos":12}]',
 			"def fnclk(a)=a*10": '[{"type":"identifier","value":"def","pos":0},{"type":"identifier","value":"fnclk","pos":4},{"type":"(","value":"(","pos":9},{"type":"identifier","value":"a","pos":10},{"type":")","value":")","pos":11},{"type":"=","value":"=","pos":12},{"type":"identifier","value":"a","pos":13},{"type":"*","value":"*","pos":14},{"type":"number","value":"10","pos":15},{"type":"(end)","value":"","pos":17}]',
 			"def fnclk(a,b)=a*10+b": '[{"type":"identifier","value":"def","pos":0},{"type":"identifier","value":"fnclk","pos":4},{"type":"(","value":"(","pos":9},{"type":"identifier","value":"a","pos":10},{"type":",","value":",","pos":11},{"type":"identifier","value":"b","pos":12},{"type":")","value":")","pos":13},{"type":"=","value":"=","pos":14},{"type":"identifier","value":"a","pos":15},{"type":"*","value":"*","pos":16},{"type":"number","value":"10","pos":17},{"type":"+","value":"+","pos":19},{"type":"identifier","value":"b","pos":20},{"type":"(end)","value":"","pos":21}]',
@@ -423,7 +423,7 @@ QUnit.module("BasicLexer: Tests", function () {
 			"print using\"####\";ri;": '[{"type":"identifier","value":"print","pos":0},{"type":"identifier","value":"using","pos":6},{"type":"string","value":"####","pos":12},{"type":";","value":";","pos":17},{"type":"identifier","value":"ri","pos":18},{"type":";","value":";","pos":20},{"type":"(end)","value":"","pos":21}]',
 			"print using \"##.##\";-1.2": '[{"type":"identifier","value":"print","pos":0},{"type":"identifier","value":"using","pos":6},{"type":"string","value":"##.##","pos":13},{"type":";","value":";","pos":19},{"type":"-","value":"-","pos":20},{"type":"number","value":"1.2","pos":21},{"type":"(end)","value":"","pos":24}]',
 			"print using\"### ########\";a,b": '[{"type":"identifier","value":"print","pos":0},{"type":"identifier","value":"using","pos":6},{"type":"string","value":"### ########","pos":12},{"type":";","value":";","pos":25},{"type":"identifier","value":"a","pos":26},{"type":",","value":",","pos":27},{"type":"identifier","value":"b","pos":28},{"type":"(end)","value":"","pos":29}]',
-			"print using \"\\   \\\";\"n1\";\"n2\";\" xx3\";": '[{"type":"identifier","value":"print","pos":0},{"type":"identifier","value":"using","pos":6},{"type":"string","value":"\\\\\\\\   \\\\\\\\","pos":13},{"type":";","value":";","pos":19},{"type":"string","value":"n1","pos":21},{"type":";","value":";","pos":24},{"type":"string","value":"n2","pos":26},{"type":";","value":";","pos":29},{"type":"string","value":" xx3","pos":31},{"type":";","value":";","pos":36},{"type":"(end)","value":"","pos":37}]',
+			"print using \"\\   \\\";\"n1\";\"n2\";\" xx3\";": '[{"type":"identifier","value":"print","pos":0},{"type":"identifier","value":"using","pos":6},{"type":"string","value":"\\\\   \\\\","pos":13},{"type":";","value":";","pos":19},{"type":"string","value":"n1","pos":21},{"type":";","value":";","pos":24},{"type":"string","value":"n2","pos":26},{"type":";","value":";","pos":29},{"type":"string","value":" xx3","pos":31},{"type":";","value":";","pos":36},{"type":"(end)","value":"","pos":37}]',
 			"print using \"!\";\"a1\";\"a2\";": '[{"type":"identifier","value":"print","pos":0},{"type":"identifier","value":"using","pos":6},{"type":"string","value":"!","pos":13},{"type":";","value":";","pos":15},{"type":"string","value":"a1","pos":17},{"type":";","value":";","pos":20},{"type":"string","value":"a2","pos":22},{"type":";","value":";","pos":25},{"type":"(end)","value":"","pos":26}]',
 			"print using \"&\";\"a1\";\"a2\";": '[{"type":"identifier","value":"print","pos":0},{"type":"identifier","value":"using","pos":6},{"type":"string","value":"&","pos":13},{"type":";","value":";","pos":15},{"type":"string","value":"a1","pos":17},{"type":";","value":";","pos":20},{"type":"string","value":"a2","pos":22},{"type":";","value":";","pos":25},{"type":"(end)","value":"","pos":26}]',
 			"print#9,tab(t);t$;i;\"h1\"": '[{"type":"identifier","value":"print","pos":0},{"type":"#","value":"#","pos":5},{"type":"number","value":"9","pos":6},{"type":",","value":",","pos":7},{"type":"identifier","value":"tab","pos":8},{"type":"(","value":"(","pos":11},{"type":"identifier","value":"t","pos":12},{"type":")","value":")","pos":13},{"type":";","value":";","pos":14},{"type":"identifier","value":"t$","pos":15},{"type":";","value":";","pos":17},{"type":"identifier","value":"i","pos":18},{"type":";","value":";","pos":19},{"type":"string","value":"h1","pos":21},{"type":"(end)","value":"","pos":24}]',
@@ -440,10 +440,10 @@ QUnit.module("BasicLexer: Tests", function () {
 			"release 1": '[{"type":"identifier","value":"release","pos":0},{"type":"number","value":"1","pos":8},{"type":"(end)","value":"","pos":9}]',
 			"release n+1": '[{"type":"identifier","value":"release","pos":0},{"type":"identifier","value":"n","pos":8},{"type":"+","value":"+","pos":9},{"type":"number","value":"1","pos":10},{"type":"(end)","value":"","pos":11}]',
 			"rem ": '[{"type":"identifier","value":"rem","pos":0},{"type":"(end)","value":"","pos":4}]',
-			"rem comment until EOL": '[{"type":"identifier","value":"rem","pos":0},{"type":"string","value":"comment until EOL","pos":1},{"type":"(end)","value":"","pos":21}]',
+			"rem comment until EOL": '[{"type":"identifier","value":"rem","pos":0},{"type":"unquoted","value":"comment until EOL","pos":4},{"type":"(end)","value":"","pos":21}]',
 			"'": '[{"type":"\'","value":"\'","pos":0},{"type":"(end)","value":"","pos":1}]',
-			"'comment until EOL": '[{"type":"\'","value":"\'","pos":0},{"type":"string","value":"comment until EOL","pos":0},{"type":"(end)","value":"","pos":18}]',
-			"a=1 'comment": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"number","value":"1","pos":2},{"type":"\'","value":"\'","pos":4},{"type":"string","value":"comment","pos":4},{"type":"(end)","value":"","pos":12}]',
+			"'comment until EOL": '[{"type":"\'","value":"\'","pos":0},{"type":"unquoted","value":"comment until EOL","pos":1},{"type":"(end)","value":"","pos":18}]',
+			"a=1 'comment": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"number","value":"1","pos":2},{"type":"\'","value":"\'","pos":4},{"type":"unquoted","value":"comment","pos":5},{"type":"(end)","value":"","pos":12}]',
 			"a=remain(0)": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"identifier","value":"remain","pos":2},{"type":"(","value":"(","pos":8},{"type":"number","value":"0","pos":9},{"type":")","value":")","pos":10},{"type":"(end)","value":"","pos":11}]',
 			"a=remain(ti)": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"identifier","value":"remain","pos":2},{"type":"(","value":"(","pos":8},{"type":"identifier","value":"ti","pos":9},{"type":")","value":")","pos":11},{"type":"(end)","value":"","pos":12}]',
 			"renum ": '[{"type":"identifier","value":"renum","pos":0},{"type":"(end)","value":"","pos":6}]',
@@ -606,6 +606,27 @@ QUnit.module("BasicLexer: Tests", function () {
 					oExpected = JSON.parse(sExpected);
 
 					aTokens = oBasicLexer.lex(sKey);
+
+					/*
+					// escape
+					for (let i = 0; i < aTokens.length; i += 1) {
+						if (aTokens[i].type === "string") { // eslint-disable-line max-depth
+							aTokens[i].value = aTokens[i].value.replace(/\\/g, "\\\\"); // escape backslashes
+							aTokens[i].value = Utils.escapeControlAsHex(aTokens[i].value);
+						}
+					}
+					*/
+
+					/*
+					// usually we can rely on JSON escape, but for some control characters it does not work
+					// escape
+					for (let i = 0; i < aTokens.length; i += 1) {
+						if (aTokens[i].type === "string") { // eslint-disable-line max-depth
+							//aTokens[i].value = aTokens[i].value.replace(/\\/g, "\\\\"); // escape backslashes
+							aTokens[i].value = Utils.hexEscape(aTokens[i].value);
+						}
+					}
+					*/
 
 					sResult = JSON.stringify(aTokens);
 				} catch (e) {

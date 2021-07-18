@@ -137,6 +137,31 @@ export class BasicLexer {
 		} while (fn(sChar));
 		return sToken2;
 	}
+
+	/*
+	private static debugHexUnescape(str: string) { // also called: fnDecodeEscapeSequence
+		return str.replace(/\\x([0-9A-Fa-f]{2})/g, function () {
+			return String.fromCharCode(parseInt(arguments[1], 16));
+		});
+	}
+	*/
+
+	private debugCheckValue(type: string, value: string, iPos: number, sOrig?: string) {
+		const sOrigValue = sOrig || value,
+			sPart = this.sInput.substr(iPos, sOrigValue.length);
+
+		/*
+		if (type === "string") {
+			sPart = sPart.replace(/\\\\/g, "\\"); // unescape backslashes
+			sPart = BasicLexer.debugHexUnescape(sPart);
+		}
+		*/
+
+		if (sPart !== sOrigValue) {
+			Utils.console.debug("BasicLexer:debugCheckValue:", type, sPart, "<>", sOrigValue, "at pos", iPos);
+		}
+	}
+
 	private addToken(type: string, value: string, iPos: number, sOrig?: string) { // optional original value
 		const oNode: LexerToken = {
 			type: type,
@@ -153,13 +178,20 @@ export class BasicLexer {
 			oNode.ws = this.sWhiteSpace;
 			this.sWhiteSpace = "";
 		}
+
+		if (Utils.debug > 1) {
+			this.debugCheckValue(type, value, iPos, oNode.orig); // check position of added value
+		}
+
 		this.aTokens.push(oNode);
 	}
+	/*
 	private static hexEscape(str: string) {
 		return str.replace(/[\x00-\x1f]/g, function (sChar2) { // eslint-disable-line no-control-regex
 			return "\\x" + ("00" + sChar2.charCodeAt(0).toString(16)).slice(-2);
 		});
 	}
+	*/
 	private fnParseNumber(sChar: string, iStartPos: number, bStartsWithDot: boolean) { // special handling for number
 		let sToken = "";
 
@@ -206,23 +238,23 @@ export class BasicLexer {
 			this.sLine = String(iNumber); // save just for error message
 		}
 	}
-	private fnParseCompleteLineForRem(sChar: string, iStartPos: number) { // special handling for line comment
-		if (sChar === " ") {
-			sChar = this.advance();
-		}
+	private fnParseCompleteLineForRemOrApostrophe(sChar: string, iStartPos: number) { // special handling for line comment
 		if (BasicLexer.isNotNewLine(sChar)) {
 			const sToken = this.advanceWhile(sChar, BasicLexer.isNotNewLine);
 
 			sChar = this.getChar();
-			this.addToken("string", sToken, iStartPos + 1);
+			this.addToken("unquoted", sToken, iStartPos);
 		}
+		return sChar;
 	}
 	private fnParseCompleteLineForData(sChar: string, iStartPos: number) { // special handling because strings in data lines need not be quoted
 		const reSpacesAtEnd = new RegExp(/\s+$/);
+		let iPos: number,
+			sToken: string;
 
 		while (BasicLexer.isNotNewLine(sChar)) {
 			if (BasicLexer.isWhiteSpace(sChar)) {
-				const sToken = this.advanceWhile(sChar, BasicLexer.isWhiteSpace);
+				sToken = this.advanceWhile(sChar, BasicLexer.isWhiteSpace);
 
 				sChar = this.getChar();
 				if (this.bKeepWhiteSpace) {
@@ -233,9 +265,10 @@ export class BasicLexer {
 				break;
 			}
 
+			iPos = this.iIndex;
 			if (BasicLexer.isQuotes(sChar)) {
 				sChar = "";
-				let sToken = this.advanceWhile(sChar, BasicLexer.isNotQuotes);
+				sToken = this.advanceWhile(sChar, BasicLexer.isNotQuotes);
 
 				sChar = this.getChar();
 				if (!BasicLexer.isQuotes(sChar)) {
@@ -243,16 +276,16 @@ export class BasicLexer {
 						Utils.console.log(this.composeError({} as Error, "Unterminated string", sToken, iStartPos + 1).message);
 					}
 				}
-				sToken = sToken.replace(/\\/g, "\\\\"); // escape backslashes
-				sToken = BasicLexer.hexEscape(sToken);
-				this.addToken("string", sToken, iStartPos + 1); // this is a quoted string (but we cannot detect it during runtime)
+				//sToken = sToken.replace(/\\/g, "\\\\"); // escape backslashes
+				//sToken = BasicLexer.hexEscape(sToken);
+				this.addToken("string", sToken, iPos + 1); // this is a quoted string (but we cannot detect it during runtime)
 				if (sChar === '"') { // not for newline
 					sChar = this.advance();
 				}
 			} else if (sChar === ",") { // empty argument?
 				// parser can insert dummy token
 			} else {
-				let sToken = this.advanceWhile(sChar, BasicLexer.isUnquotedData);
+				sToken = this.advanceWhile(sChar, BasicLexer.isUnquotedData);
 
 				sChar = this.getChar();
 
@@ -260,16 +293,16 @@ export class BasicLexer {
 					sEndingSpaces = (aMatch && aMatch[0]) || "";
 
 				sToken = sToken.trim(); // remove whitespace before and after
-				sToken = sToken.replace(/\\/g, "\\\\"); // escape backslashes
+				//sToken = sToken.replace(/\\/g, "\\\\"); // escape backslashes
 				//sToken = sToken.replace(/"/g, "\\\""); // escape "
-				this.addToken("unquoted", sToken, iStartPos); // could be interpreted as string or number during runtime
+				this.addToken("unquoted", sToken, iPos); // could be interpreted as string or number during runtime
 				if (this.bKeepWhiteSpace) {
 					this.sWhiteSpace = sEndingSpaces;
 				}
 			}
 
 			if (BasicLexer.isWhiteSpace(sChar)) {
-				const sToken = this.advanceWhile(sChar, BasicLexer.isWhiteSpace);
+				sToken = this.advanceWhile(sChar, BasicLexer.isWhiteSpace);
 
 				sChar = this.getChar();
 				if (this.bKeepWhiteSpace) {
@@ -280,7 +313,8 @@ export class BasicLexer {
 			if (sChar !== ",") {
 				break;
 			}
-			this.addToken(sChar, sChar, iStartPos); // ","
+			iPos = this.iIndex;
+			this.addToken(sChar, sChar, iPos); // ","
 			sChar = this.advance();
 
 			if (sChar === "\r") { // IE8 has "/r/n" newlines
@@ -288,6 +322,38 @@ export class BasicLexer {
 			}
 		}
 	}
+	private fnParseIdentifier(sChar: string, iStartPos: number) {
+		let sToken = sChar;
+
+		sChar = this.advance();
+		if (BasicLexer.isIdentifierMiddle(sChar)) {
+			sToken += this.advanceWhile(sChar, BasicLexer.isIdentifierMiddle);
+			sChar = this.getChar();
+		}
+		if (BasicLexer.isIdentifierEnd(sChar)) {
+			sToken += sChar;
+			sChar = this.advance();
+		}
+		this.addToken("identifier", sToken, iStartPos);
+		sToken = sToken.toLowerCase();
+
+		if (sToken === "rem") { // special handling for line comment
+			iStartPos += sToken.length;
+			if (sChar === " ") { // ignore first space
+				if (this.bKeepWhiteSpace) {
+					this.sWhiteSpace = sChar;
+				}
+				sChar = this.advance();
+				iStartPos += 1;
+			}
+			this.fnParseCompleteLineForRemOrApostrophe(sChar, iStartPos);
+			this.getChar();
+		} else if (sToken === "data") { // special handling because strings in data lines need not to be quoted
+			this.fnParseCompleteLineForData(sChar, iStartPos);
+			sChar = this.getChar();
+		}
+	}
+
 	private fnTryContinueString(sChar: string) { // There could be a LF in a string but no CR. In CPCBasic we use LF only as EOL, so we cannot detect the difference.
 		let sOut = "";
 
@@ -326,7 +392,6 @@ export class BasicLexer {
 				sToken = this.advanceWhile(sChar, BasicLexer.isWhiteSpace);
 				sChar = this.getChar();
 				if (this.bKeepWhiteSpace) {
-					//this.addToken("ws", sToken, iStartPos);
 					this.sWhiteSpace = sToken;
 				}
 			} else if (BasicLexer.isNewLine(sChar)) {
@@ -336,11 +401,14 @@ export class BasicLexer {
 			} else if (BasicLexer.isComment(sChar)) {
 				this.addToken(sChar, sChar, iStartPos);
 				sChar = this.advance();
+				/*
 				if (BasicLexer.isNotNewLine(sChar)) {
 					sToken = this.advanceWhile(sChar, BasicLexer.isNotNewLine);
 					sChar = this.getChar();
 					this.addToken("string", sToken, iStartPos);
 				}
+				*/
+				this.fnParseCompleteLineForRemOrApostrophe(sChar, iStartPos + 1);
 			} else if (BasicLexer.isOperator(sChar)) {
 				this.addToken(sChar, sChar, iStartPos);
 				sChar = this.advance();
@@ -380,13 +448,15 @@ export class BasicLexer {
 					sToken += this.fnTryContinueString(sChar); // heuristic to detect an LF in the string
 					sChar = this.getChar();
 				}
-				sToken = sToken.replace(/\\/g, "\\\\"); // escape backslashes
-				sToken = BasicLexer.hexEscape(sToken);
+				//sToken = sToken.replace(/\\/g, "\\\\"); // escape backslashes
+				//sToken = BasicLexer.hexEscape(sToken);
 				this.addToken("string", sToken, iStartPos + 1);
 				if (sChar === '"') { // not for newline
 					sChar = this.advance();
 				}
 			} else if (BasicLexer.isIdentifierStart(sChar)) {
+				this.fnParseIdentifier(sChar, iStartPos);
+				/*
 				sToken = sChar;
 				sChar = this.advance();
 				if (BasicLexer.isIdentifierMiddle(sChar)) {
@@ -400,12 +470,21 @@ export class BasicLexer {
 				this.addToken("identifier", sToken, iStartPos);
 				sToken = sToken.toLowerCase();
 				if (sToken === "rem") { // special handling for line comment
-					this.fnParseCompleteLineForRem(sChar, iStartPos);
-					sChar = this.getChar();
+					iStartPos += sToken.length;
+					if (sChar === " ") { // ignore first space
+						if (this.bKeepWhiteSpace) { // eslint-disable-line max-depth
+							this.sWhiteSpace = sChar;
+						}
+						sChar = this.advance();
+						iStartPos += 1;
+					}
+					this.fnParseCompleteLineForRemOrApostrophe(sChar, iStartPos);
+					this.getChar();
 				} else if (sToken === "data") { // special handling because strings in data lines need not be quoted
 					this.fnParseCompleteLineForData(sChar, iStartPos);
 					sChar = this.getChar();
 				}
+				*/
 			} else if (BasicLexer.isAddress(sChar)) {
 				this.addToken(sChar, sChar, iStartPos);
 				sChar = this.advance();

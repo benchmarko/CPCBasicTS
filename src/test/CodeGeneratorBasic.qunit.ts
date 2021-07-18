@@ -72,9 +72,9 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 		},
 		special: {
 			"a$=\"string with\nnewline\"": "a$=\"string with\nnewline\"",
-			"::a=3-2-1: :": "::a=3-2-1: :",
-			" a =  ( b% >= c%  ) *     ( d <=e )  ": " a =  ( b% >= c%  ) *     ( d <=e )", // additional spaces
-			"a = (((3+2))*((3-7)))": "a = (((3+2))*((3-7)))" // additional brackets
+			"::a=3-2-1: :": "::a=3-2-1::",
+			" a =  ( b% >= c%  ) *     ( d <=e )  ": "a=(b%>=c%)*(d<=e)", // additional spaces removed
+			"a = (((3+2))*((3-7)))": "a=(((3+2))*((3-7)))" // additional brackets
 		},
 		"abs, after gosub, and, asc, atn, auto": {
 			"a=abs(2.3)": "a=ABS(2.3)",
@@ -106,14 +106,15 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 			"cat ": "CAT",
 
 			'chain "f1"': 'CHAIN "f1"',
-			'chain "f2" , 10': 'CHAIN "f2", 10',
-			'chain "f3" , 10+3': 'CHAIN "f3", 10+3',
+			'chain "f2",10': 'CHAIN "f2",10',
+			'chain "f3",10+3': 'CHAIN "f3",10+3',
 
 			'chain merge "f1"': 'CHAIN MERGE "f1"',
-			'chain merge "f2" , 10': 'CHAIN MERGE "f2", 10',
-			'chain merge "f3" , 10+3': 'CHAIN MERGE "f3", 10+3',
-			'chain merge "f4" , 10+3, delete 100-200': 'CHAIN MERGE "f4", 10+3,DELETE 100-200',
-			'chain merge "f5" , , delete 100-200': 'CHAIN MERGE "f5",,DELETE 100-200',
+			'chain merge "f2",10': 'CHAIN MERGE "f2",10',
+			'chain merge "f3",10+3': 'CHAIN MERGE "f3",10+3',
+			'chain merge "f4",10+3, delete 100-200': 'CHAIN MERGE "f4",10+3,DELETE 100-200',
+			'chain merge "f5",,delete 100-200': 'CHAIN MERGE "f5",,DELETE 100-200',
+			' 1  chain   merge  "f5"': '1 CHAIN MERGE "f5"',
 
 			"a=chr$(65)": "a=CHR$(65)",
 
@@ -174,6 +175,7 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 			"def fn clk(a)=a*10": "DEF FN clk(a)=a*10",
 			"def fn clk(a,b)=a*10+b": "DEF FN clk(a,b)=a*10+b",
 			"def fn clk$(a$,b$)=a$+b$": "DEF FN clk$(a$,b$)=a$+b$",
+			' 1  def   fn  a$ = "abc"': '1 DEF FN a$="abc"',
 
 			"defint a": "DEFINT a",
 			"defint a-t": "DEFINT a-t",
@@ -229,7 +231,7 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 			"else": "ELSE",
 			"else 10": "ELSE 10",
 			"else a=7": "ELSE a = 7", // TODO: whitespace
-			"a=1 else a=2": "a=1: ELSE a = 2", //TTT
+			"a=1 else a=2": "a=1:ELSE a = 2", //TTT
 
 			"end ": "END",
 
@@ -374,6 +376,7 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 			'line input ;"para noCRLF";a$': 'LINE INPUT ;"para noCRLF";a$',
 			'line input#2,;"para noCRLF";a$': 'LINE INPUT #2,;"para noCRLF";a$',
 			'line input#stream,;"string";a$': 'LINE INPUT #stream,;"string";a$',
+			" 1  line   input  a$": "1 LINE INPUT a$",
 
 			"list ": "LIST",
 			"list 10": "LIST 10",
@@ -460,13 +463,17 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 		},
 		"on break ..., on error goto, on gosub, on goto, on sq gosub, openin, openout, or, origin, out": {
 			"on break cont": "ON BREAK CONT",
+			" 1  on  break   cont": "1 ON BREAK CONT",
 
 			"on break gosub 10": "ON BREAK GOSUB 10",
+			" 1  on  break   gosub   1 ": "1 ON BREAK GOSUB 1",
 
 			"on break stop": "ON BREAK STOP",
+			" 1  on  break   stop": "1 ON BREAK STOP",
 
 			"on error goto 0": "ON ERROR GOTO 0",
 			"on error goto 10": "ON ERROR GOTO 10",
+			" 1  on  error   goto   1 ": "1 ON ERROR GOTO 1",
 
 			"on 1 gosub 10": "ON 1 GOSUB 10",
 			"on x gosub 10,20": "ON x GOSUB 10,20",
@@ -532,9 +539,10 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 			"print a$": "PRINT a$",
 			"print a$,b": "PRINT a$,b",
 			"print#2,a$,b": "PRINT #2,a$,b",
-			'print using"####";ri;': 'PRINT USING"####";ri;',
-			'print using"### ########";a,b': 'PRINT USING"### ########";a,b',
+			'print using"####";ri;': 'PRINT USING "####";ri;',
+			'print using"### ########";a,b': 'PRINT USING "### ########";a,b',
 			'print#9,tab(t);t$;i;"h1"': 'PRINT #9,TAB(t);t$;i;"h1"',
+			' 1   print   using    "####" ;  ri  ;': '1 PRINT USING "####";ri;',
 			"?": "?",
 			"?#2,ti-t0!;spc(5);": "?#2,ti-t0!;SPC(5);"
 		},
@@ -555,8 +563,8 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 			"rem comment until EOL": "REM comment until EOL",
 			"'": "'",
 			"'comment until EOL": "'comment until EOL",
-			"a=1 'comment": "a=1: 'comment", //TTT
-			"a=1 :'comment": "a=1 :'comment",
+			"a=1 'comment": "a=1:'comment", //TTT
+			"a=1 :'comment": "a=1:'comment",
 
 			"a=remain(0)": "a=REMAIN(0)",
 			"a=remain(ti)": "a=REMAIN(ti)",
@@ -695,6 +703,7 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 
 			"window swap 1": "WINDOW SWAP 1",
 			"window swap 1,0": "WINDOW SWAP 1,0",
+			" 1  window   swap  1,0": "1 WINDOW SWAP 1,0",
 
 			"write a$": "WRITE a$",
 			"write a$,b": "WRITE a$,b",
@@ -732,10 +741,46 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 			// special
 			"|mode,3": "|MODE,3",
 			"|renum,1,2,3,4": "|RENUM,1,2,3,4"
-		}
-	};
+		},
+		keepSpaces: {
+			' 1  chain   merge  "f5"': ' 1  CHAIN   MERGE  "f5"',
+			' 1  def   fn  a$ = "abc"': ' 1  DEF  FN a$= "abc"', //TTT: TODO
+			" 1  line   input  a$": " 1  LINE   INPUT  a$",
+			" 1  on  break   cont": " 1  ON  BREAK   CONT",
+			" 1  on  break   gosub   1 ": " 1  ON  BREAK   GOSUB   1",
+			" 1  on  break   stop": " 1  ON  BREAK   STOP",
+			" 1  on  error   goto   1 ": " 1  ON  ERROR   GOTO   1",
+			' 1   print   using    "####" ;  ri  ;': ' 1   PRINT   USING    "####";  ri  ;',
+			" 1  window   swap  1,0": " 1  WINDOW   SWAP  1,0",
+			"a=1 else a=2": "a=1: ELSE a = 2", //TTT
+			"a=1 'comment": "a=1: 'comment", //TTT
+			"a=1 :'comment": "a=1 :'comment",
+			"::a=3-2-1: :": "::a=3-2-1: :",
+			" a =  ( b% >= c%  ) *     ( d <=e )  ": " a =  ( b% >= c%  ) *     ( d <=e )", // additional spaces
+			"a = (((3+2))*((3-7)))": "a = (((3+2))*((3-7)))" // additional brackets
 
-	function runTestsFor(assert: Assert | undefined, oTests: TestsType, aResults?: string[]) {
+		}
+	},
+
+		oLexer = new BasicLexer({
+			bKeepWhiteSpace: false
+		}),
+
+		oParser = new BasicParser({
+			bQuiet: true,
+			bKeepBrackets: true,
+			bKeepColons: true,
+			bKeepDataComma: true
+		}),
+
+		oCodeGeneratorBasic = new CodeGeneratorBasic({
+			lexer: oLexer,
+			parser: oParser
+		});
+
+
+	function runTestsFor(assert: Assert | undefined, sCategory: string, oTests: TestsType, aResults?: string[]) {
+		/*
 		const oCodeGeneratorBasic = new CodeGeneratorBasic({
 			lexer: new BasicLexer({
 				bKeepWhiteSpace: true
@@ -746,6 +791,11 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 				bKeepColons: true,
 				bKeepDataComma: true
 			})
+		});
+		*/
+
+		oLexer.setOptions({
+			bKeepWhiteSpace: sCategory === "keepSpaces"
 		});
 
 		for (const sKey in oTests) {
@@ -770,7 +820,7 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 			if (oAllTests.hasOwnProperty(sCategory)) {
 				(function (sCat) { // eslint-disable-line no-loop-func
 					QUnit.test(sCat, function (assert: Assert) {
-						runTestsFor(assert, oAllTests[sCat]);
+						runTestsFor(assert, sCat, oAllTests[sCat]);
 					});
 				}(sCategory));
 			}
@@ -792,7 +842,7 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 
 				sResult += sMarker + sCategory + sMarker + ": {\n";
 
-				runTestsFor(undefined, oAllTests[sCategory], aResults);
+				runTestsFor(undefined, sCategory, oAllTests[sCategory], aResults);
 				sResult += aResults.join(",\n");
 				sResult += "\n},\n";
 			}
