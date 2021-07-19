@@ -711,7 +711,7 @@ export class CodeGeneratorToken {
 		}
 		return sValue;
 	}
-	private ent(node: ParserNode) {
+	private entEnv(node: ParserNode) { // "ent" or "env"
 		if (!node.args) {
 			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occure
 		}
@@ -737,9 +737,7 @@ export class CodeGeneratorToken {
 
 		return sValue;
 	}
-	private env(node: ParserNode) {
-		return this.ent(node);
-	}
+
 	private everyGosub(node: ParserNode) {
 		const aNodeArgs = this.fnParseArgs(node.args);
 		let sValue = CodeGeneratorToken.token2String("every") + aNodeArgs[0];
@@ -782,6 +780,16 @@ export class CodeGeneratorToken {
 		}
 		return sValue;
 	}
+
+	private fnThenOrElsePart(oNodeBranch: ParserNode[]) {
+		const aNodeArgs = this.fnParseArgs(oNodeBranch); // args for "then" oe "else"
+
+		if (oNodeBranch.length && oNodeBranch[0].type === "goto" && oNodeBranch[0].len === 0) { // inserted goto?
+			aNodeArgs[0] = this.fnParseOneArg(oNodeBranch[0].args![0]); // take just line number
+		}
+		return this.combineArgsWithSeparator(aNodeArgs);
+	}
+
 	private "if"(node: ParserNode) {
 		if (!node.left) {
 			throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occure
@@ -792,6 +800,7 @@ export class CodeGeneratorToken {
 
 		let sValue = CodeGeneratorToken.token2String(node.type) + this.fnParseOneArg(node.left) + CodeGeneratorToken.token2String("then");
 
+		/*
 		const oNodeBranch = node.args,
 			aNodeArgs = this.fnParseArgs(oNodeBranch); // args for "then"
 
@@ -799,13 +808,17 @@ export class CodeGeneratorToken {
 			aNodeArgs[0] = this.fnParseOneArg(oNodeBranch[0].args![0]); // take just line number
 		}
 		sValue += this.combineArgsWithSeparator(aNodeArgs);
+		*/
+
+		sValue += this.fnThenOrElsePart(node.args); // "then" part
 
 		if (node.args2) {
 			if (!sValue.endsWith(this.sStatementSeparator)) {
 				sValue += this.sStatementSeparator; // ":" before "else"!
 			}
 
-			sValue += CodeGeneratorToken.token2String("else");
+			sValue += CodeGeneratorToken.token2String("else") + this.fnThenOrElsePart(node.args2); // "else" part
+			/*
 			const oNodeBranch2 = node.args2,
 				aNodeArgs2 = this.fnParseArgs(oNodeBranch2); // args for "else"
 
@@ -813,6 +826,7 @@ export class CodeGeneratorToken {
 				aNodeArgs2[0] = this.fnParseOneArg(oNodeBranch2[0].args![0]); // take just line number
 			}
 			sValue += this.combineArgsWithSeparator(aNodeArgs2);
+			*/
 		}
 		return sValue;
 	}
@@ -824,7 +838,7 @@ export class CodeGeneratorToken {
 		return bHasStream;
 	}
 
-	private input(node: ParserNode) { // input or line input
+	private inputLineInput(node: ParserNode) { // input or line input
 		const aNodeArgs = this.fnParseArgs(node.args),
 			bHasStream = CodeGeneratorToken.fnHasStream(node);
 		let sValue = CodeGeneratorToken.token2String(node.type),
@@ -842,9 +856,6 @@ export class CodeGeneratorToken {
 		aNodeArgs.splice(i, 4, aNodeArgs[i] + aNodeArgs[i + 1] + aNodeArgs[i + 2] + aNodeArgs[i + 3]); // combine 4 elements into one
 		sValue += aNodeArgs.join(",");
 		return sValue;
-	}
-	private lineInput(node: ParserNode) {
-		return this.input(node);
 	}
 	private list(node: ParserNode) {
 		const aNodeArgs = this.fnParseArgs(node.args);
@@ -886,23 +897,18 @@ export class CodeGeneratorToken {
 		return sValue;
 	}
 
-	private onGosub(node: ParserNode) {
-		const aNodeArgs = this.fnParseArgs(node.args);
-		let sValue = aNodeArgs.shift();
+	private onGotoGosub(node: ParserNode) {
+		const sLeft = this.fnParseOneArg(node.left as ParserNode),
+			aNodeArgs = this.fnParseArgs(node.args),
+			sType2 = node.type === "onGoto" ? "goto" : "gosub";
 
-		sValue = CodeGeneratorToken.token2String("on") + sValue + CodeGeneratorToken.token2String("gosub") + aNodeArgs.join(",");
-		return sValue;
+		return CodeGeneratorToken.token2String("on") + sLeft + CodeGeneratorToken.token2String(sType2) + aNodeArgs.join(",");
 	}
-	private onGoto(node: ParserNode) {
-		const aNodeArgs = this.fnParseArgs(node.args);
-		let sValue = aNodeArgs.shift();
 
-		sValue = CodeGeneratorToken.token2String("on") + sValue + CodeGeneratorToken.token2String("goto") + aNodeArgs.join(",");
-		return sValue;
-	}
 	private onSqGosub(node: ParserNode) {
-		const aNodeArgs = this.fnParseArgs(node.args),
-			sValue = CodeGeneratorToken.token2String("_onSq") + "(" + aNodeArgs[0] + ")" + CodeGeneratorToken.token2String("gosub") + aNodeArgs[1];
+		const sLeft = this.fnParseOneArg(node.left as ParserNode),
+			aNodeArgs = this.fnParseArgs(node.args),
+			sValue = CodeGeneratorToken.token2String("_onSq") + "(" + sLeft + ")" + CodeGeneratorToken.token2String("gosub") + aNodeArgs.join(",");
 
 		return sValue;
 	}
@@ -935,33 +941,8 @@ export class CodeGeneratorToken {
 		let sValue = aNodeArgs.length ? aNodeArgs[0] : "",
 			sName = CodeGeneratorToken.token2String(node.value.toLowerCase()); // we use value to get REM or '
 
-		/*
-		let sValue = aNodeArgs[0];
-
-		if (sValue !== undefined) {
-			sValue = sValue.substr(1, sValue.length - 2); // remove surrounding quotes
-		} else {
-			sValue = "";
-		}
-		const sToken = node.value.toLowerCase(); // use value; for "rem", "REM", "'"
-		let sName = CodeGeneratorToken.token2String(sToken);
-
-		if (sToken !== "'") { // not simple rem?
-			if (sValue !== "") { // argument?
-				sName += " ";
-			}
-		} else {
-			sName = this.sStatementSeparator + sName; // always prefix apostrophe with ":"
-		}
-
-		sValue = sName + sValue;
-		return sValue;
-		*/
-
 		if (node.value !== "'") { // for "rem"
-			//const oArg0 = node.args && node.args[0];
-
-			if (sValue !== "") { //&& oArg0 && !oArg0.ws) {
+			if (sValue !== "") {
 				sValue = " " + sValue; // add removed space
 			}
 		} else { // apostrophe
@@ -1008,19 +989,19 @@ export class CodeGeneratorToken {
 		data: this.data,
 		def: this.def,
 		"else": this.else,
-		ent: this.ent,
-		env: this.env,
+		ent: this.entEnv,
+		env: this.entEnv,
 		everyGosub: this.everyGosub,
 		fn: this.fn,
 		"for": this.for,
 		"if": this.if,
-		input: this.input,
-		lineInput: this.lineInput,
+		input: this.inputLineInput,
+		lineInput: this.inputLineInput,
 		list: this.list,
 		mid$Assign: this.mid$Assign,
 		onErrorGoto: this.onErrorGoto,
-		onGosub: this.onGosub,
-		onGoto: this.onGoto,
+		onGosub: this.onGotoGosub,
+		onGoto: this.onGotoGosub,
 		onSqGosub: this.onSqGosub,
 		print: this.print,
 		rem: this.rem,

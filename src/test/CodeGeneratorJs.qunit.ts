@@ -1,22 +1,17 @@
 // CodeGeneratorJs.qunit.ts - QUnit tests for CPCBasic CodeGeneratorJs
 //
 
-const bGenerateAllResults = false;
-
 import { Utils } from "../Utils";
 import { ICpcVmRsx } from "../Interfaces";
 import { BasicLexer } from "../BasicLexer";
 import { BasicParser } from "../BasicParser";
 import { CodeGeneratorJs } from "../CodeGeneratorJs";
-import { } from "qunit";
 import { Variables } from "../Variables";
-
-type TestsType = { [k in string]: string };
-
-type AllTestsType = { [k in string]: TestsType };
+import { TestHelper, TestsType, AllTestsType } from "./TestHelper";
+//import { } from "qunit";
 
 QUnit.module("CodeGeneratorJs: Tests", function () {
-	const mAllTests = {
+	const mAllTests: AllTestsType = {
 		numbers: {
 			"a=1": " v.a = o.vmAssign(\"a\", 1);",
 			"a=1.2": " v.a = o.vmAssign(\"a\", 1.2);",
@@ -587,7 +582,7 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 		return "0x" + parseInt(sBin.substr(2), 2).toString(16).toLowerCase();
 	}
 
-	function runTestsFor(assert: Assert | undefined, oTests: TestsType, aResults?: string[]) {
+	function runTestsFor(assert: Assert | undefined, _sCategory: string, oTests: TestsType, aResults?: string[]) {
 		const bAllowDirect = true,
 			oOptions = {
 				bQuiet: true
@@ -625,45 +620,7 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 		}
 	}
 
-	function generateTests(oAllTests: AllTestsType) {
-		for (const sCategory in oAllTests) {
-			if (oAllTests.hasOwnProperty(sCategory)) {
-				(function (sCat) { // eslint-disable-line no-loop-func
-					QUnit.test(sCat, function (assert: Assert) {
-						runTestsFor(assert, oAllTests[sCat]);
-					});
-				}(sCategory));
-			}
-		}
-	}
-
-	generateTests(mAllTests);
-
-	// generate result list (not used during the test, just for debugging)
-
-	function generateAllResults(oAllTests: AllTestsType) {
-		let sResult = "";
-
-		for (const sCategory in oAllTests) {
-			if (oAllTests.hasOwnProperty(sCategory)) {
-				const aResults: string[] = [],
-					bContainsSpace = sCategory.indexOf(" ") >= 0,
-					sMarker = bContainsSpace ? '"' : "";
-
-				sResult += sMarker + sCategory + sMarker + ": {\n";
-
-				runTestsFor(undefined, oAllTests[sCategory], aResults);
-				sResult += aResults.join(",\n");
-				sResult += "\n},\n";
-			}
-		}
-		Utils.console.log(sResult);
-		return sResult;
-	}
-
-	if (bGenerateAllResults) {
-		generateAllResults(mAllTests);
-	}
+	TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
 });
 
 // end

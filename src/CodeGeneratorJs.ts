@@ -1258,35 +1258,39 @@ export class CodeGeneratorJs {
 		return node.pv;
 	}
 	private onGosub(node: CodeNode) {
-		const aNodeArgs = this.fnParseArgs(node.args),
+		const sLeft = this.fnParseOneArg(node.left as CodeNode),
+			aNodeArgs = this.fnParseArgs(node.args),
 			sName = node.type,
 			sLabel = this.iLine + "g" + this.iGosubCount;
 
 		this.iGosubCount += 1;
-		for (let i = 1; i < aNodeArgs.length; i += 1) { // start with argument 1
+		for (let i = 0; i < aNodeArgs.length; i += 1) {
 			this.fnAddReferenceLabel(aNodeArgs[i], node.args[i]);
 		}
-		aNodeArgs.unshift('"' + sLabel + '"');
+		aNodeArgs.unshift('"' + sLabel + '"', sLeft);
 		node.pv = "o." + sName + "(" + aNodeArgs.join(", ") + '); break; \ncase "' + sLabel + '":';
 		return node.pv;
 	}
 	private onGoto(node: CodeNode) {
-		const aNodeArgs = this.fnParseArgs(node.args),
+		const sLeft = this.fnParseOneArg(node.left as CodeNode),
+			aNodeArgs = this.fnParseArgs(node.args),
 			sName = node.type,
 			sLabel = this.iLine + "s" + this.iStopCount;
 
 		this.iStopCount += 1;
-		for (let i = 1; i < aNodeArgs.length; i += 1) { // start with argument 1
+		for (let i = 0; i < aNodeArgs.length; i += 1) {
 			this.fnAddReferenceLabel(aNodeArgs[i], node.args[i]);
 		}
-		aNodeArgs.unshift('"' + sLabel + '"');
+		aNodeArgs.unshift('"' + sLabel + '"', sLeft);
 		node.pv = "o." + sName + "(" + aNodeArgs.join(", ") + "); break\ncase \"" + sLabel + "\":";
 		return node.pv;
 	}
 	private onSqGosub(node: CodeNode) {
-		const aNodeArgs = this.fnParseArgs(node.args);
+		const sLeft = this.fnParseOneArg(node.left as CodeNode),
+			aNodeArgs = this.fnParseArgs(node.args);
 
-		this.fnAddReferenceLabel(aNodeArgs[1], node.args[1]); // argument 1: line number
+		this.fnAddReferenceLabel(aNodeArgs[0], node.args[0]); // line number
+		aNodeArgs.unshift(sLeft);
 		node.pv = "o." + node.type + "(" + aNodeArgs.join(", ") + ")";
 		return node.pv;
 	}
@@ -1358,16 +1362,9 @@ export class CodeGeneratorJs {
 		return node.pv;
 	}
 	private rem(node: CodeNode) {
-		const aNodeArgs = this.fnParseArgs(node.args);
-		const sValue = aNodeArgs.length ? " " + aNodeArgs[0] : "";
+		const aNodeArgs = this.fnParseArgs(node.args),
+			sValue = aNodeArgs.length ? " " + aNodeArgs[0] : "";
 
-		/*
-		if (sValue !== undefined) {
-			sValue = " " + sValue.substr(1, sValue.length - 2); // remove surrounding quotes
-		} else {
-			sValue = "";
-		}
-		*/
 		node.pv = "//" + sValue + "\n";
 		return node.pv;
 	}

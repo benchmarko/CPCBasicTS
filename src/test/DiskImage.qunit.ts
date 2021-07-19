@@ -1,17 +1,12 @@
 // DiskImage.qunit.ts - QUnit tests for CPCBasic DiskImage
 //
 
-const bGenerateAllResults = false;
-
 import { Utils } from "../Utils";
 import { BasicTokenizer } from "../BasicTokenizer";
 import { AmsdosHeader, DiskImage } from "../DiskImage";
 import { ZipFile } from "../ZipFile"; // we need this just to reduce stored disk image size
-import {} from "qunit";
-
-type TestsType = { [k in string]: string };
-
-type AllTestsType = { [k in string]: TestsType };
+import { TestHelper, TestsType, AllTestsType } from "./TestHelper";
+//import {} from "qunit";
 
 QUnit.dump.maxDepth = 10;
 
@@ -95,7 +90,7 @@ QUnit.module("DiskImage: Tests", function () {
 		return aResult.join("");
 	}
 
-	function runTestsFor(assert: Assert | undefined, oTests: TestsType, aResults?: string[]) {
+	function runTestsFor(assert: Assert | undefined, _sCategory: string, oTests: TestsType, aResults?: string[]) {
 		for (const sKey in oTests) {
 			if (oTests.hasOwnProperty(sKey)) {
 				const aParts = sKey.split(",", 2),
@@ -131,46 +126,7 @@ QUnit.module("DiskImage: Tests", function () {
 		}
 	}
 
-	function generateTests(oAllTests: AllTestsType) {
-		for (const sCategory in oAllTests) {
-			if (oAllTests.hasOwnProperty(sCategory)) {
-				(function (sCat) { // eslint-disable-line no-loop-func
-					QUnit.test(sCat, function (assert: Assert) {
-						runTestsFor(assert, oAllTests[sCat]);
-					});
-				}(sCategory));
-			}
-		}
-	}
-
-	generateTests(mAllTests);
-
-
-	// generate result list (not used during the test, just for debugging)
-
-	function generateAllResults(oAllTests: AllTestsType) {
-		let sResult = "";
-
-		for (const sCategory in oAllTests) {
-			if (oAllTests.hasOwnProperty(sCategory)) {
-				const aResults: string[] = [],
-					bContainsSpace = sCategory.indexOf(" ") >= 0,
-					sMarker = bContainsSpace ? '"' : "";
-
-				sResult += sMarker + sCategory + sMarker + ": {\n";
-
-				runTestsFor(undefined, oAllTests[sCategory], aResults);
-				sResult += aResults.join(",\n");
-				sResult += "\n},\n";
-			}
-		}
-		Utils.console.log(sResult);
-		return sResult;
-	}
-
-	if (bGenerateAllResults) {
-		generateAllResults(mAllTests);
-	}
+	TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
 });
 
 // end
