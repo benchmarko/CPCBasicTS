@@ -1,6 +1,12 @@
 "use strict";
 // testParseExamples.qunit.ts - Test to load and parse all examples
 //
+// Examples:
+// qunit dist/test/testParseExamples.qunit.js
+// qunit dist/test/testParseExamples.qunit.js debug=1
+//
+// node dist/test/testParseExamples.qunit.js
+// npm test...
 Object.defineProperty(exports, "__esModule", { value: true });
 var https, // nodeJs
 fs, path, __dirname; // eslint-disable-line no-underscore-dangle
@@ -15,6 +21,7 @@ var Model_1 = require("../Model");
 var Variables_1 = require("../Variables");
 var DiskImage_1 = require("../DiskImage");
 var cpcconfig_1 = require("../cpcconfig");
+var TestHelper_1 = require("./TestHelper");
 // eslint-disable-next-line no-new-func
 var oGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(), // for old IE
 bNodeJsAvail = (function () {
@@ -485,28 +492,88 @@ function testStart() {
     cpcBasic.iDatabaseIndex = 0;
     testNextIndex();
 }
-function fnParseArgs(aArgs) {
-    var oSettings = {
-        debug: 0
-    };
-    var i = 0;
-    while (i < aArgs.length) {
-        var sName = aArgs[i];
-        i += 1;
-        if (sName in oSettings) {
-            oSettings[sName] = parseInt(aArgs[i], 10);
-            i += 1;
+/*
+// https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/node/process.d.ts
+// can be used for nodeJS
+function fnParseArgs(aArgs: string[], oConfig: ConfigType) {
+    for (let i = 0; i < aArgs.length; i += 1) {
+        const sNameValue = aArgs[i],
+            aNameValue = sNameValue.split("=", 2),
+            sName = aNameValue[0];
+
+        if (oConfig.hasOwnProperty(sName)) {
+            let sValue: string|number|boolean = aNameValue[1];
+
+            if (sValue !== undefined && oConfig.hasOwnProperty(sName)) {
+                switch (typeof oConfig[sName]) {
+                case "string":
+                    break;
+                case "boolean":
+                    sValue = (sValue === "true");
+                    break;
+                case "number":
+                    sValue = Number(sValue);
+                    break;
+                case "object":
+                    break;
+                default:
+                    break;
+                }
+            }
+            oConfig[sName] = sValue;
         }
     }
-    return oSettings;
+    return oConfig;
 }
+
+function fnParseUri(sUrlQuery: string, oConfig: ConfigType) {
+    const rPlus = /\+/g, // Regex for replacing addition symbol with a space
+        fnDecode = function (s: string) { return decodeURIComponent(s.replace(rPlus, " ")); },
+        rSearch = /([^&=]+)=?([^&]*)/g,
+        aArgs: string[] = [];
+
+    let aMatch: RegExpExecArray | null;
+
+    while ((aMatch = rSearch.exec(sUrlQuery)) !== null) {
+        const sName = fnDecode(aMatch[1]),
+            sValue = fnDecode(aMatch[2]);
+
+        if (sValue !== null && oConfig.hasOwnProperty(sName)) {
+            aArgs.push(sName + "=" + sValue);
+        }
+    }
+    fnParseArgs(aArgs, oConfig);
+}
+
+declare global {
+    interface Window {
+        QUnit: unknown
+    }
+
+    interface NodeJsProcess {
+        argv: string[]
+    }
+    let process: NodeJsProcess;
+}
+
+
+const oConfig: ConfigType = {
+    debug: 0
+};
+
 // https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/node/process.d.ts
 if (typeof process !== "undefined") { // nodeJs
-    var oSettings = fnParseArgs(process.argv.slice(2));
-    if (oSettings.debug) {
-        Utils_1.Utils.debug = oSettings.debug;
-    }
+    fnParseArgs(process.argv.slice(2), oConfig);
+} else { // browser
+    fnParseUri(window.location.search.substring(1), oConfig);
 }
+
+if (oConfig.debug) {
+    Utils.debug = oConfig.debug as number;
+    Utils.console.log("testParseExamples: Debug level:", oConfig.debug);
+}
+*/
+TestHelper_1.TestHelper.init();
 if (typeof oGlobalThis.QUnit !== "undefined") {
     Utils_1.Utils.console.log("Using QUnit");
     var QUnit_1 = oGlobalThis.QUnit;

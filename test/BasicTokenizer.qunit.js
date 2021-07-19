@@ -2,9 +2,10 @@
 // BasicTokenizer.qunit.ts - QUnit tests for CPCBasic BasicTokenizer
 //
 Object.defineProperty(exports, "__esModule", { value: true });
-var bGenerateAllResults = false;
-var Utils_1 = require("../Utils");
+//import { Utils } from "../Utils";
 var BasicTokenizer_1 = require("../BasicTokenizer");
+var TestHelper_1 = require("./TestHelper");
+//import {} from "qunit";
 QUnit.dump.maxDepth = 10;
 QUnit.module("BasicTokenizer:decode: Tests", function () {
     var mAllTests = {
@@ -42,7 +43,7 @@ QUnit.module("BasicTokenizer:decode: Tests", function () {
             return String.fromCharCode(Number("0x" + s));
         }).join("");
     }
-    function runTestsFor(assert, oTests, aResults) {
+    function runTestsFor(assert, _sCategory, oTests, aResults) {
         var oBasicTokenizer = new BasicTokenizer_1.BasicTokenizer();
         for (var sKey in oTests) {
             if (oTests.hasOwnProperty(sKey)) {
@@ -57,36 +58,7 @@ QUnit.module("BasicTokenizer:decode: Tests", function () {
             }
         }
     }
-    function generateTests(oAllTests) {
-        for (var sCategory in oAllTests) {
-            if (oAllTests.hasOwnProperty(sCategory)) {
-                (function (sCat) {
-                    QUnit.test(sCat, function (assert) {
-                        runTestsFor(assert, oAllTests[sCat]);
-                    });
-                }(sCategory));
-            }
-        }
-    }
-    generateTests(mAllTests);
-    // generate result list (not used during the test, just for debugging)
-    function generateAllResults(oAllTests) {
-        var sResult = "";
-        for (var sCategory in oAllTests) {
-            if (oAllTests.hasOwnProperty(sCategory)) {
-                var aResults = [], bContainsSpace = sCategory.indexOf(" ") >= 0, sMarker = bContainsSpace ? '"' : "";
-                sResult += sMarker + sCategory + sMarker + ": {\n";
-                runTestsFor(undefined, oAllTests[sCategory], aResults);
-                sResult += aResults.join(",\n");
-                sResult += "\n},\n";
-            }
-        }
-        Utils_1.Utils.console.log(sResult);
-        return sResult;
-    }
-    if (bGenerateAllResults) {
-        generateAllResults(mAllTests);
-    }
+    TestHelper_1.TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
 });
 // end
 //# sourceMappingURL=BasicTokenizer.qunit.js.map

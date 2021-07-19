@@ -2,9 +2,10 @@
 // ZipFile.qunit.ts - QUnit tests for CPCBasic ZipFile
 //
 Object.defineProperty(exports, "__esModule", { value: true });
-var bGenerateAllResults = false;
 var Utils_1 = require("../Utils");
 var ZipFile_1 = require("../ZipFile");
+var TestHelper_1 = require("./TestHelper");
+//import {} from "qunit";
 QUnit.dump.maxDepth = 10;
 QUnit.module("ZipFile: Tests", function () {
     // examples store.zip and deflate.zip taken from https://github.com/bower/decompress-zip/tree/master/test/assets/file-mode-pack
@@ -36,7 +37,7 @@ QUnit.module("ZipFile: Tests", function () {
         }
         return aResult.join(",");
     }
-    function runTestsFor(assert, oTests, aResults) {
+    function runTestsFor(assert, _sCategory, oTests, aResults) {
         for (var sKey in oTests) {
             if (oTests.hasOwnProperty(sKey)) {
                 var aParts = sKey.split(",", 2), sMeta = aParts[0], sData = Utils_1.Utils.atob(aParts[1]), // decode base64
@@ -58,36 +59,7 @@ QUnit.module("ZipFile: Tests", function () {
             }
         }
     }
-    function generateTests(oAllTests) {
-        for (var sCategory in oAllTests) {
-            if (oAllTests.hasOwnProperty(sCategory)) {
-                (function (sCat) {
-                    QUnit.test(sCat, function (assert) {
-                        runTestsFor(assert, oAllTests[sCat]);
-                    });
-                }(sCategory));
-            }
-        }
-    }
-    generateTests(mAllTests);
-    // generate result list (not used during the test, just for debugging)
-    function generateAllResults(oAllTests) {
-        var sResult = "";
-        for (var sCategory in oAllTests) {
-            if (oAllTests.hasOwnProperty(sCategory)) {
-                var aResults = [], bContainsSpace = sCategory.indexOf(" ") >= 0, sMarker = bContainsSpace ? '"' : "";
-                sResult += sMarker + sCategory + sMarker + ": {\n";
-                runTestsFor(undefined, oAllTests[sCategory], aResults);
-                sResult += aResults.join(",\n");
-                sResult += "\n},\n";
-            }
-        }
-        Utils_1.Utils.console.log(sResult);
-        return sResult;
-    }
-    if (bGenerateAllResults) {
-        generateAllResults(mAllTests);
-    }
+    TestHelper_1.TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
 });
 // end
 //# sourceMappingURL=ZipFile.qunit.js.map

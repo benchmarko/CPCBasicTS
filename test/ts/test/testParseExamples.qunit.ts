@@ -1,8 +1,10 @@
 // testParseExamples.qunit.ts - Test to load and parse all examples
 //
-
-// qunit testParseExamples.qunit.js
-// node  testParseExamples.qunit.js
+// Examples:
+// qunit dist/test/testParseExamples.qunit.js
+// qunit dist/test/testParseExamples.qunit.js debug=1
+//
+// node dist/test/testParseExamples.qunit.js
 // npm test...
 
 /*
@@ -35,10 +37,11 @@ import { BasicParser } from "../BasicParser";
 import { BasicTokenizer } from "../BasicTokenizer";
 import { CodeGeneratorJs } from "../CodeGeneratorJs";
 import { CodeGeneratorToken } from "../CodeGeneratorToken";
-import { Model, ConfigType, DatabaseEntry, DatabasesType, ExampleEntry } from "../Model";
+import { Model, DatabaseEntry, DatabasesType, ExampleEntry } from "../Model";
 import { Variables } from "../Variables";
 import { DiskImage } from "../DiskImage";
 import { cpcconfig } from "../cpcconfig";
+import { TestHelper } from "./TestHelper";
 
 type QUnitAssertType3 = { ok: (r: any, e: any, sMsg: string) => void, expect: (arg: any) => void, async: () => (() => void) };
 
@@ -665,22 +668,58 @@ function testStart() {
 	testNextIndex();
 }
 
-function fnParseArgs(aArgs: string[]) {
-	const oSettings: ConfigType = {
-		debug: 0
-	};
-	let i = 0;
 
-	while (i < aArgs.length) {
-		const sName = aArgs[i];
+/*
+// https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/node/process.d.ts
+// can be used for nodeJS
+function fnParseArgs(aArgs: string[], oConfig: ConfigType) {
+	for (let i = 0; i < aArgs.length; i += 1) {
+		const sNameValue = aArgs[i],
+			aNameValue = sNameValue.split("=", 2),
+			sName = aNameValue[0];
 
-		i += 1;
-		if (sName in oSettings) {
-			oSettings[sName] = parseInt(aArgs[i], 10);
-			i += 1;
+		if (oConfig.hasOwnProperty(sName)) {
+			let sValue: string|number|boolean = aNameValue[1];
+
+			if (sValue !== undefined && oConfig.hasOwnProperty(sName)) {
+				switch (typeof oConfig[sName]) {
+				case "string":
+					break;
+				case "boolean":
+					sValue = (sValue === "true");
+					break;
+				case "number":
+					sValue = Number(sValue);
+					break;
+				case "object":
+					break;
+				default:
+					break;
+				}
+			}
+			oConfig[sName] = sValue;
 		}
 	}
-	return oSettings;
+	return oConfig;
+}
+
+function fnParseUri(sUrlQuery: string, oConfig: ConfigType) {
+	const rPlus = /\+/g, // Regex for replacing addition symbol with a space
+		fnDecode = function (s: string) { return decodeURIComponent(s.replace(rPlus, " ")); },
+		rSearch = /([^&=]+)=?([^&]*)/g,
+		aArgs: string[] = [];
+
+	let aMatch: RegExpExecArray | null;
+
+	while ((aMatch = rSearch.exec(sUrlQuery)) !== null) {
+		const sName = fnDecode(aMatch[1]),
+			sValue = fnDecode(aMatch[2]);
+
+		if (sValue !== null && oConfig.hasOwnProperty(sName)) {
+			aArgs.push(sName + "=" + sValue);
+		}
+	}
+	fnParseArgs(aArgs, oConfig);
 }
 
 declare global {
@@ -695,15 +734,23 @@ declare global {
 }
 
 
+const oConfig: ConfigType = {
+	debug: 0
+};
+
 // https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/node/process.d.ts
-
 if (typeof process !== "undefined") { // nodeJs
-	const oSettings = fnParseArgs(process.argv.slice(2));
-
-	if (oSettings.debug) {
-		Utils.debug = oSettings.debug as number;
-	}
+	fnParseArgs(process.argv.slice(2), oConfig);
+} else { // browser
+	fnParseUri(window.location.search.substring(1), oConfig);
 }
+
+if (oConfig.debug) {
+	Utils.debug = oConfig.debug as number;
+	Utils.console.log("testParseExamples: Debug level:", oConfig.debug);
+}
+*/
+TestHelper.init();
 
 if (typeof oGlobalThis.QUnit !== "undefined") {
 	Utils.console.log("Using QUnit");

@@ -2,11 +2,12 @@
 // CodeGeneratorToken.qunit.ts - QUnit tests for CPCBasic CodeGeneratorToken
 //
 Object.defineProperty(exports, "__esModule", { value: true });
-var bGenerateAllResults = false;
-var Utils_1 = require("../Utils");
+//import { Utils } from "../Utils";
 var BasicLexer_1 = require("../BasicLexer");
 var BasicParser_1 = require("../BasicParser");
 var CodeGeneratorToken_1 = require("../CodeGeneratorToken");
+var TestHelper_1 = require("./TestHelper");
+//import {} from "qunit";
 QUnit.module("CodeGeneratorToken: Tests", function ( /* hooks */) {
     var mAllTests = {
         numbers: {
@@ -591,7 +592,7 @@ QUnit.module("CodeGeneratorToken: Tests", function ( /* hooks */) {
             return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0");
         }).join(",");
     }
-    function runTestsFor(assert, oTests, aResults) {
+    function runTestsFor(assert, _sCategory, oTests, aResults) {
         var oCodeGeneratorToken = new CodeGeneratorToken_1.CodeGeneratorToken({
             lexer: new BasicLexer_1.BasicLexer({
                 bKeepWhiteSpace: true
@@ -615,36 +616,7 @@ QUnit.module("CodeGeneratorToken: Tests", function ( /* hooks */) {
             }
         }
     }
-    function generateTests(oAllTests) {
-        for (var sCategory in oAllTests) {
-            if (oAllTests.hasOwnProperty(sCategory)) {
-                (function (sCat) {
-                    QUnit.test(sCat, function (assert) {
-                        runTestsFor(assert, oAllTests[sCat]);
-                    });
-                }(sCategory));
-            }
-        }
-    }
-    generateTests(mAllTests);
-    // generate result list (not used during the test, just for debugging)
-    function generateAllResults(oAllTests) {
-        var sResult = "";
-        for (var sCategory in oAllTests) {
-            if (oAllTests.hasOwnProperty(sCategory)) {
-                var aResults = [], bContainsSpace = sCategory.indexOf(" ") >= 0, sMarker = bContainsSpace ? '"' : "";
-                sResult += sMarker + sCategory + sMarker + ": {\n";
-                runTestsFor(undefined, oAllTests[sCategory], aResults);
-                sResult += aResults.join(",\n");
-                sResult += "\n},\n";
-            }
-        }
-        Utils_1.Utils.console.log(sResult);
-        return sResult;
-    }
-    if (bGenerateAllResults) {
-        generateAllResults(mAllTests);
-    }
+    TestHelper_1.TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
 });
 // end
 //# sourceMappingURL=CodeGeneratorToken.qunit.js.map

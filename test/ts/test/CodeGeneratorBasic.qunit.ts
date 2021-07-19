@@ -1,17 +1,12 @@
 // CodeGeneratorBasic.qunit.ts - QUnit tests for CPCBasic CodeGeneratorBasic
 //
 
-const bGenerateAllResults = false;
-
-import { Utils } from "../Utils";
+//import { Utils } from "../Utils";
 import { BasicLexer } from "../BasicLexer";
 import { BasicParser } from "../BasicParser";
 import { CodeGeneratorBasic } from "../CodeGeneratorBasic";
-import {} from "qunit";
-
-type TestsType = {[k in string]: string};
-
-type AllTestsType = {[k in string]: TestsType};
+import { TestHelper, TestsType, AllTestsType } from "./TestHelper";
+//import {} from "qunit";
 
 QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 	const mAllTests: AllTestsType = {
@@ -780,20 +775,6 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 
 
 	function runTestsFor(assert: Assert | undefined, sCategory: string, oTests: TestsType, aResults?: string[]) {
-		/*
-		const oCodeGeneratorBasic = new CodeGeneratorBasic({
-			lexer: new BasicLexer({
-				bKeepWhiteSpace: true
-			}),
-			parser: new BasicParser({
-				bQuiet: true,
-				bKeepBrackets: true,
-				bKeepColons: true,
-				bKeepDataComma: true
-			})
-		});
-		*/
-
 		oLexer.setOptions({
 			bKeepWhiteSpace: sCategory === "keepSpaces"
 		});
@@ -815,6 +796,9 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 		}
 	}
 
+	TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
+
+	/*
 	function generateTests(oAllTests: AllTestsType) {
 		for (const sCategory in oAllTests) {
 			if (oAllTests.hasOwnProperty(sCategory)) {
@@ -827,7 +811,7 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 		}
 	}
 
-	generateTests(mAllTests);
+	TestHelper.generateTests(mAllTests, runTestsFor);
 
 	// generate result list (not used during the test, just for debugging)
 
@@ -852,8 +836,9 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 	}
 
 	if (bGenerateAllResults) {
-		generateAllResults(mAllTests);
+		TestHelper.generateAllResults(mAllTests, runTestsFor);
 	}
+	*/
 });
 
 // end

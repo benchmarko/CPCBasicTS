@@ -1,12 +1,14 @@
 "use strict";
 // BasicFormatter.qunit.ts - QUnit tests for CPCBasic BasicFormatter
 //
+// qunit dist/test/BasicFormatter.qunit.js debug=1 generateAll=true
 Object.defineProperty(exports, "__esModule", { value: true });
-var bGenerateAllResults = false;
 var Utils_1 = require("../Utils");
 var BasicLexer_1 = require("../BasicLexer"); // we use BasicLexer here just for convenient input
 var BasicParser_1 = require("../BasicParser");
 var BasicFormatter_1 = require("../BasicFormatter");
+var TestHelper_1 = require("./TestHelper");
+//import {} from "qunit";
 QUnit.dump.maxDepth = 10;
 QUnit.module("BasicFormatter:renumber: Tests", function () {
     var mAllTests = {
@@ -39,7 +41,7 @@ QUnit.module("BasicFormatter:renumber: Tests", function () {
             "1 goto 2": "BasicFormatter: Line does not exist in 1 at pos 7-8: 2"
         }
     };
-    function runTestsFor(assert, oTests, aResults) {
+    function runTestsFor(assert, _sCategory, oTests, aResults) {
         var oBasicFormatter = new BasicFormatter_1.BasicFormatter({
             lexer: new BasicLexer_1.BasicLexer(),
             parser: new BasicParser_1.BasicParser({
@@ -64,36 +66,7 @@ QUnit.module("BasicFormatter:renumber: Tests", function () {
             }
         }
     }
-    function generateTests(oAllTests) {
-        for (var sCategory in oAllTests) {
-            if (oAllTests.hasOwnProperty(sCategory)) {
-                (function (sCat) {
-                    QUnit.test(sCat, function (assert) {
-                        runTestsFor(assert, oAllTests[sCat]);
-                    });
-                }(sCategory));
-            }
-        }
-    }
-    generateTests(mAllTests);
-    // generate result list (not used during the test, just for debugging)
-    function generateAllResults(oAllTests) {
-        var sResult = "";
-        for (var sCategory in oAllTests) {
-            if (oAllTests.hasOwnProperty(sCategory)) {
-                var aResults = [], bContainsSpace = sCategory.indexOf(" ") >= 0, sMarker = bContainsSpace ? '"' : "";
-                sResult += sMarker + sCategory + sMarker + ": {\n";
-                runTestsFor(undefined, oAllTests[sCategory], aResults);
-                sResult += aResults.join(",\n");
-                sResult += "\n},\n";
-            }
-        }
-        Utils_1.Utils.console.log(sResult);
-        return sResult;
-    }
-    if (bGenerateAllResults) {
-        generateAllResults(mAllTests);
-    }
+    TestHelper_1.TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
 });
 // end
 //# sourceMappingURL=BasicFormatter.qunit.js.map

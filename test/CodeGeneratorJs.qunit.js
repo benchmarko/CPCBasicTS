@@ -2,12 +2,13 @@
 // CodeGeneratorJs.qunit.ts - QUnit tests for CPCBasic CodeGeneratorJs
 //
 Object.defineProperty(exports, "__esModule", { value: true });
-var bGenerateAllResults = false;
 var Utils_1 = require("../Utils");
 var BasicLexer_1 = require("../BasicLexer");
 var BasicParser_1 = require("../BasicParser");
 var CodeGeneratorJs_1 = require("../CodeGeneratorJs");
 var Variables_1 = require("../Variables");
+var TestHelper_1 = require("./TestHelper");
+//import { } from "qunit";
 QUnit.module("CodeGeneratorJs: Tests", function () {
     var mAllTests = {
         numbers: {
@@ -578,7 +579,7 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
     function fnReplacer(sBin) {
         return "0x" + parseInt(sBin.substr(2), 2).toString(16).toLowerCase();
     }
-    function runTestsFor(assert, oTests, aResults) {
+    function runTestsFor(assert, _sCategory, oTests, aResults) {
         var bAllowDirect = true, oOptions = {
             bQuiet: true
         }, oCodeGeneratorJs = new CodeGeneratorJs_1.CodeGeneratorJs({
@@ -608,36 +609,7 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
             }
         }
     }
-    function generateTests(oAllTests) {
-        for (var sCategory in oAllTests) {
-            if (oAllTests.hasOwnProperty(sCategory)) {
-                (function (sCat) {
-                    QUnit.test(sCat, function (assert) {
-                        runTestsFor(assert, oAllTests[sCat]);
-                    });
-                }(sCategory));
-            }
-        }
-    }
-    generateTests(mAllTests);
-    // generate result list (not used during the test, just for debugging)
-    function generateAllResults(oAllTests) {
-        var sResult = "";
-        for (var sCategory in oAllTests) {
-            if (oAllTests.hasOwnProperty(sCategory)) {
-                var aResults = [], bContainsSpace = sCategory.indexOf(" ") >= 0, sMarker = bContainsSpace ? '"' : "";
-                sResult += sMarker + sCategory + sMarker + ": {\n";
-                runTestsFor(undefined, oAllTests[sCategory], aResults);
-                sResult += aResults.join(",\n");
-                sResult += "\n},\n";
-            }
-        }
-        Utils_1.Utils.console.log(sResult);
-        return sResult;
-    }
-    if (bGenerateAllResults) {
-        generateAllResults(mAllTests);
-    }
+    TestHelper_1.TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
 });
 // end
 //# sourceMappingURL=CodeGeneratorJs.qunit.js.map

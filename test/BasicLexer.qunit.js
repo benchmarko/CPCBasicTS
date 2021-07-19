@@ -2,9 +2,10 @@
 // BasicLexer.qunit.ts - QUnit tests for CPCBasic BasicLexer
 //
 Object.defineProperty(exports, "__esModule", { value: true });
-var bGenerateAllResults = false;
 var Utils_1 = require("../Utils");
 var BasicLexer_1 = require("../BasicLexer");
+var TestHelper_1 = require("./TestHelper");
+//import { } from "qunit";
 QUnit.dump.maxDepth = 10;
 QUnit.module("BasicLexer: Tests", function () {
     var mAllTests = {
@@ -576,7 +577,7 @@ QUnit.module("BasicLexer: Tests", function () {
     function fnReplacer(sBin) {
         return "0x" + parseInt(sBin.substr(2), 2).toString(16).toLowerCase();
     }
-    function runTestsFor(assert, oTests, aResults) {
+    function runTestsFor(assert, _sCategory, oTests, aResults) {
         var oOptions = {
             bQuiet: true
         }, oBasicLexer = new BasicLexer_1.BasicLexer(oOptions);
@@ -589,25 +590,6 @@ QUnit.module("BasicLexer: Tests", function () {
                 try {
                     oExpected = JSON.parse(sExpected);
                     aTokens = oBasicLexer.lex(sKey);
-                    /*
-                    // escape
-                    for (let i = 0; i < aTokens.length; i += 1) {
-                        if (aTokens[i].type === "string") { // eslint-disable-line max-depth
-                            aTokens[i].value = aTokens[i].value.replace(/\\/g, "\\\\"); // escape backslashes
-                            aTokens[i].value = Utils.escapeControlAsHex(aTokens[i].value);
-                        }
-                    }
-                    */
-                    /*
-                    // usually we can rely on JSON escape, but for some control characters it does not work
-                    // escape
-                    for (let i = 0; i < aTokens.length; i += 1) {
-                        if (aTokens[i].type === "string") { // eslint-disable-line max-depth
-                            //aTokens[i].value = aTokens[i].value.replace(/\\/g, "\\\\"); // escape backslashes
-                            aTokens[i].value = Utils.hexEscape(aTokens[i].value);
-                        }
-                    }
-                    */
                     sResult = JSON.stringify(aTokens);
                 }
                 catch (e) {
@@ -624,36 +606,7 @@ QUnit.module("BasicLexer: Tests", function () {
             }
         }
     }
-    function generateTests(oAllTests) {
-        for (var sCategory in oAllTests) {
-            if (oAllTests.hasOwnProperty(sCategory)) {
-                (function (sCat) {
-                    QUnit.test(sCat, function (assert) {
-                        runTestsFor(assert, oAllTests[sCat]);
-                    });
-                }(sCategory));
-            }
-        }
-    }
-    generateTests(mAllTests);
-    // generate result list (not used during the test, just for debugging)
-    function generateAllResults(oAllTests) {
-        var sResult = "";
-        for (var sCategory in oAllTests) {
-            if (oAllTests.hasOwnProperty(sCategory)) {
-                var aResults = [], bContainsSpace = sCategory.indexOf(" ") >= 0, sMarker = bContainsSpace ? '"' : "";
-                sResult += sMarker + sCategory + sMarker + ": {\n";
-                runTestsFor(undefined, oAllTests[sCategory], aResults);
-                sResult += aResults.join(",\n");
-                sResult += "\n},\n";
-            }
-        }
-        Utils_1.Utils.console.log(sResult);
-        return sResult;
-    }
-    if (bGenerateAllResults) {
-        generateAllResults(mAllTests);
-    }
+    TestHelper_1.TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
 });
 // end
 //# sourceMappingURL=BasicLexer.qunit.js.map

@@ -2,11 +2,12 @@
 // DiskImage.qunit.ts - QUnit tests for CPCBasic DiskImage
 //
 Object.defineProperty(exports, "__esModule", { value: true });
-var bGenerateAllResults = false;
 var Utils_1 = require("../Utils");
 var BasicTokenizer_1 = require("../BasicTokenizer");
 var DiskImage_1 = require("../DiskImage");
 var ZipFile_1 = require("../ZipFile"); // we need this just to reduce stored disk image size
+var TestHelper_1 = require("./TestHelper");
+//import {} from "qunit";
 QUnit.dump.maxDepth = 10;
 QUnit.module("DiskImage: Tests", function () {
     var mAllTests = {
@@ -70,7 +71,7 @@ QUnit.module("DiskImage: Tests", function () {
         }
         return aResult.join("");
     }
-    function runTestsFor(assert, oTests, aResults) {
+    function runTestsFor(assert, _sCategory, oTests, aResults) {
         for (var sKey in oTests) {
             if (oTests.hasOwnProperty(sKey)) {
                 var aParts = sKey.split(",", 2), sMeta = aParts[0], sCompressed = Utils_1.Utils.atob(aParts[1]), // decode base64
@@ -97,36 +98,7 @@ QUnit.module("DiskImage: Tests", function () {
             }
         }
     }
-    function generateTests(oAllTests) {
-        for (var sCategory in oAllTests) {
-            if (oAllTests.hasOwnProperty(sCategory)) {
-                (function (sCat) {
-                    QUnit.test(sCat, function (assert) {
-                        runTestsFor(assert, oAllTests[sCat]);
-                    });
-                }(sCategory));
-            }
-        }
-    }
-    generateTests(mAllTests);
-    // generate result list (not used during the test, just for debugging)
-    function generateAllResults(oAllTests) {
-        var sResult = "";
-        for (var sCategory in oAllTests) {
-            if (oAllTests.hasOwnProperty(sCategory)) {
-                var aResults = [], bContainsSpace = sCategory.indexOf(" ") >= 0, sMarker = bContainsSpace ? '"' : "";
-                sResult += sMarker + sCategory + sMarker + ": {\n";
-                runTestsFor(undefined, oAllTests[sCategory], aResults);
-                sResult += aResults.join(",\n");
-                sResult += "\n},\n";
-            }
-        }
-        Utils_1.Utils.console.log(sResult);
-        return sResult;
-    }
-    if (bGenerateAllResults) {
-        generateAllResults(mAllTests);
-    }
+    TestHelper_1.TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
 });
 // end
 //# sourceMappingURL=DiskImage.qunit.js.map

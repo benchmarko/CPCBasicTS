@@ -1042,28 +1042,29 @@ var CodeGeneratorJs = /** @class */ (function () {
         return node.pv;
     };
     CodeGeneratorJs.prototype.onGosub = function (node) {
-        var aNodeArgs = this.fnParseArgs(node.args), sName = node.type, sLabel = this.iLine + "g" + this.iGosubCount;
+        var sLeft = this.fnParseOneArg(node.left), aNodeArgs = this.fnParseArgs(node.args), sName = node.type, sLabel = this.iLine + "g" + this.iGosubCount;
         this.iGosubCount += 1;
-        for (var i = 1; i < aNodeArgs.length; i += 1) { // start with argument 1
+        for (var i = 0; i < aNodeArgs.length; i += 1) {
             this.fnAddReferenceLabel(aNodeArgs[i], node.args[i]);
         }
-        aNodeArgs.unshift('"' + sLabel + '"');
+        aNodeArgs.unshift('"' + sLabel + '"', sLeft);
         node.pv = "o." + sName + "(" + aNodeArgs.join(", ") + '); break; \ncase "' + sLabel + '":';
         return node.pv;
     };
     CodeGeneratorJs.prototype.onGoto = function (node) {
-        var aNodeArgs = this.fnParseArgs(node.args), sName = node.type, sLabel = this.iLine + "s" + this.iStopCount;
+        var sLeft = this.fnParseOneArg(node.left), aNodeArgs = this.fnParseArgs(node.args), sName = node.type, sLabel = this.iLine + "s" + this.iStopCount;
         this.iStopCount += 1;
-        for (var i = 1; i < aNodeArgs.length; i += 1) { // start with argument 1
+        for (var i = 0; i < aNodeArgs.length; i += 1) {
             this.fnAddReferenceLabel(aNodeArgs[i], node.args[i]);
         }
-        aNodeArgs.unshift('"' + sLabel + '"');
+        aNodeArgs.unshift('"' + sLabel + '"', sLeft);
         node.pv = "o." + sName + "(" + aNodeArgs.join(", ") + "); break\ncase \"" + sLabel + "\":";
         return node.pv;
     };
     CodeGeneratorJs.prototype.onSqGosub = function (node) {
-        var aNodeArgs = this.fnParseArgs(node.args);
-        this.fnAddReferenceLabel(aNodeArgs[1], node.args[1]); // argument 1: line number
+        var sLeft = this.fnParseOneArg(node.left), aNodeArgs = this.fnParseArgs(node.args);
+        this.fnAddReferenceLabel(aNodeArgs[0], node.args[0]); // line number
+        aNodeArgs.unshift(sLeft);
         node.pv = "o." + node.type + "(" + aNodeArgs.join(", ") + ")";
         return node.pv;
     };
@@ -1121,15 +1122,7 @@ var CodeGeneratorJs = /** @class */ (function () {
         return node.pv;
     };
     CodeGeneratorJs.prototype.rem = function (node) {
-        var aNodeArgs = this.fnParseArgs(node.args);
-        var sValue = aNodeArgs.length ? " " + aNodeArgs[0] : "";
-        /*
-        if (sValue !== undefined) {
-            sValue = " " + sValue.substr(1, sValue.length - 2); // remove surrounding quotes
-        } else {
-            sValue = "";
-        }
-        */
+        var aNodeArgs = this.fnParseArgs(node.args), sValue = aNodeArgs.length ? " " + aNodeArgs[0] : "";
         node.pv = "//" + sValue + "\n";
         return node.pv;
     };

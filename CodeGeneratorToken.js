@@ -36,19 +36,19 @@ var CodeGeneratorToken = /** @class */ (function () {
             data: this.data,
             def: this.def,
             "else": this.else,
-            ent: this.ent,
-            env: this.env,
+            ent: this.entEnv,
+            env: this.entEnv,
             everyGosub: this.everyGosub,
             fn: this.fn,
             "for": this.for,
             "if": this.if,
-            input: this.input,
-            lineInput: this.lineInput,
+            input: this.inputLineInput,
+            lineInput: this.inputLineInput,
             list: this.list,
             mid$Assign: this.mid$Assign,
             onErrorGoto: this.onErrorGoto,
-            onGosub: this.onGosub,
-            onGoto: this.onGoto,
+            onGosub: this.onGotoGosub,
+            onGoto: this.onGotoGosub,
             onSqGosub: this.onSqGosub,
             print: this.print,
             rem: this.rem,
@@ -345,7 +345,7 @@ var CodeGeneratorToken = /** @class */ (function () {
         }
         return sValue;
     };
-    CodeGeneratorToken.prototype.ent = function (node) {
+    CodeGeneratorToken.prototype.entEnv = function (node) {
         if (!node.args) {
             throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occure
         }
@@ -366,9 +366,6 @@ var CodeGeneratorToken = /** @class */ (function () {
         }
         var sValue = CodeGeneratorToken.token2String(node.type) + " " + aNodeArgs.join(",");
         return sValue;
-    };
-    CodeGeneratorToken.prototype.env = function (node) {
-        return this.ent(node);
     };
     CodeGeneratorToken.prototype.everyGosub = function (node) {
         var aNodeArgs = this.fnParseArgs(node.args);
@@ -400,6 +397,13 @@ var CodeGeneratorToken = /** @class */ (function () {
         }
         return sValue;
     };
+    CodeGeneratorToken.prototype.fnThenOrElsePart = function (oNodeBranch) {
+        var aNodeArgs = this.fnParseArgs(oNodeBranch); // args for "then" oe "else"
+        if (oNodeBranch.length && oNodeBranch[0].type === "goto" && oNodeBranch[0].len === 0) { // inserted goto?
+            aNodeArgs[0] = this.fnParseOneArg(oNodeBranch[0].args[0]); // take just line number
+        }
+        return this.combineArgsWithSeparator(aNodeArgs);
+    };
     CodeGeneratorToken.prototype["if"] = function (node) {
         if (!node.left) {
             throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occure
@@ -408,21 +412,30 @@ var CodeGeneratorToken = /** @class */ (function () {
             throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occure
         }
         var sValue = CodeGeneratorToken.token2String(node.type) + this.fnParseOneArg(node.left) + CodeGeneratorToken.token2String("then");
-        var oNodeBranch = node.args, aNodeArgs = this.fnParseArgs(oNodeBranch); // args for "then"
+        /*
+        const oNodeBranch = node.args,
+            aNodeArgs = this.fnParseArgs(oNodeBranch); // args for "then"
+
         if (oNodeBranch.length && oNodeBranch[0].type === "goto" && oNodeBranch[0].len === 0) { // inserted goto?
-            aNodeArgs[0] = this.fnParseOneArg(oNodeBranch[0].args[0]); // take just line number
+            aNodeArgs[0] = this.fnParseOneArg(oNodeBranch[0].args![0]); // take just line number
         }
         sValue += this.combineArgsWithSeparator(aNodeArgs);
+        */
+        sValue += this.fnThenOrElsePart(node.args); // "then" part
         if (node.args2) {
             if (!sValue.endsWith(this.sStatementSeparator)) {
                 sValue += this.sStatementSeparator; // ":" before "else"!
             }
-            sValue += CodeGeneratorToken.token2String("else");
-            var oNodeBranch2 = node.args2, aNodeArgs2 = this.fnParseArgs(oNodeBranch2); // args for "else"
+            sValue += CodeGeneratorToken.token2String("else") + this.fnThenOrElsePart(node.args2); // "else" part
+            /*
+            const oNodeBranch2 = node.args2,
+                aNodeArgs2 = this.fnParseArgs(oNodeBranch2); // args for "else"
+
             if (oNodeBranch2.length && oNodeBranch2[0].type === "goto" && oNodeBranch2[0].len === 0) { // inserted goto?
-                aNodeArgs2[0] = this.fnParseOneArg(oNodeBranch2[0].args[0]); // take just line number
+                aNodeArgs2[0] = this.fnParseOneArg(oNodeBranch2[0].args![0]); // take just line number
             }
             sValue += this.combineArgsWithSeparator(aNodeArgs2);
+            */
         }
         return sValue;
     };
@@ -430,7 +443,7 @@ var CodeGeneratorToken = /** @class */ (function () {
         var bHasStream = node.args && node.args.length && (node.args[0].type === "#") && node.args[0].right && (node.args[0].right.type !== "null");
         return bHasStream;
     };
-    CodeGeneratorToken.prototype.input = function (node) {
+    CodeGeneratorToken.prototype.inputLineInput = function (node) {
         var aNodeArgs = this.fnParseArgs(node.args), bHasStream = CodeGeneratorToken.fnHasStream(node);
         var sValue = CodeGeneratorToken.token2String(node.type), i = 0;
         if (bHasStream) { // stream?
@@ -443,9 +456,6 @@ var CodeGeneratorToken = /** @class */ (function () {
         aNodeArgs.splice(i, 4, aNodeArgs[i] + aNodeArgs[i + 1] + aNodeArgs[i + 2] + aNodeArgs[i + 3]); // combine 4 elements into one
         sValue += aNodeArgs.join(",");
         return sValue;
-    };
-    CodeGeneratorToken.prototype.lineInput = function (node) {
-        return this.input(node);
     };
     CodeGeneratorToken.prototype.list = function (node) {
         var aNodeArgs = this.fnParseArgs(node.args);
@@ -478,20 +488,12 @@ var CodeGeneratorToken = /** @class */ (function () {
         }
         return sValue;
     };
-    CodeGeneratorToken.prototype.onGosub = function (node) {
-        var aNodeArgs = this.fnParseArgs(node.args);
-        var sValue = aNodeArgs.shift();
-        sValue = CodeGeneratorToken.token2String("on") + sValue + CodeGeneratorToken.token2String("gosub") + aNodeArgs.join(",");
-        return sValue;
-    };
-    CodeGeneratorToken.prototype.onGoto = function (node) {
-        var aNodeArgs = this.fnParseArgs(node.args);
-        var sValue = aNodeArgs.shift();
-        sValue = CodeGeneratorToken.token2String("on") + sValue + CodeGeneratorToken.token2String("goto") + aNodeArgs.join(",");
-        return sValue;
+    CodeGeneratorToken.prototype.onGotoGosub = function (node) {
+        var sLeft = this.fnParseOneArg(node.left), aNodeArgs = this.fnParseArgs(node.args), sType2 = node.type === "onGoto" ? "goto" : "gosub";
+        return CodeGeneratorToken.token2String("on") + sLeft + CodeGeneratorToken.token2String(sType2) + aNodeArgs.join(",");
     };
     CodeGeneratorToken.prototype.onSqGosub = function (node) {
-        var aNodeArgs = this.fnParseArgs(node.args), sValue = CodeGeneratorToken.token2String("_onSq") + "(" + aNodeArgs[0] + ")" + CodeGeneratorToken.token2String("gosub") + aNodeArgs[1];
+        var sLeft = this.fnParseOneArg(node.left), aNodeArgs = this.fnParseArgs(node.args), sValue = CodeGeneratorToken.token2String("_onSq") + "(" + sLeft + ")" + CodeGeneratorToken.token2String("gosub") + aNodeArgs.join(",");
         return sValue;
     };
     CodeGeneratorToken.prototype.print = function (node) {
@@ -515,31 +517,8 @@ var CodeGeneratorToken = /** @class */ (function () {
     CodeGeneratorToken.prototype.rem = function (node) {
         var aNodeArgs = this.fnParseArgs(node.args);
         var sValue = aNodeArgs.length ? aNodeArgs[0] : "", sName = CodeGeneratorToken.token2String(node.value.toLowerCase()); // we use value to get REM or '
-        /*
-        let sValue = aNodeArgs[0];
-
-        if (sValue !== undefined) {
-            sValue = sValue.substr(1, sValue.length - 2); // remove surrounding quotes
-        } else {
-            sValue = "";
-        }
-        const sToken = node.value.toLowerCase(); // use value; for "rem", "REM", "'"
-        let sName = CodeGeneratorToken.token2String(sToken);
-
-        if (sToken !== "'") { // not simple rem?
-            if (sValue !== "") { // argument?
-                sName += " ";
-            }
-        } else {
-            sName = this.sStatementSeparator + sName; // always prefix apostrophe with ":"
-        }
-
-        sValue = sName + sValue;
-        return sValue;
-        */
         if (node.value !== "'") { // for "rem"
-            //const oArg0 = node.args && node.args[0];
-            if (sValue !== "") { //&& oArg0 && !oArg0.ws) {
+            if (sValue !== "") {
                 sValue = " " + sValue; // add removed space
             }
         }

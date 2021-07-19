@@ -1,15 +1,10 @@
 // BasicLexer.qunit.ts - QUnit tests for CPCBasic BasicLexer
 //
 
-const bGenerateAllResults = false;
-
 import { Utils } from "../Utils";
 import { BasicLexer, LexerToken } from "../BasicLexer";
-import { } from "qunit";
-
-type TestsType = { [k in string]: string };
-
-type AllTestsType = { [k in string]: TestsType };
+import { TestHelper, TestsType, AllTestsType } from "./TestHelper";
+//import { } from "qunit";
 
 QUnit.dump.maxDepth = 10;
 
@@ -585,7 +580,7 @@ QUnit.module("BasicLexer: Tests", function () {
 		return "0x" + parseInt(sBin.substr(2), 2).toString(16).toLowerCase();
 	}
 
-	function runTestsFor(assert: Assert | undefined, oTests: TestsType, aResults?: string[]) {
+	function runTestsFor(assert: Assert | undefined, _sCategory: string, oTests: TestsType, aResults?: string[]) {
 		const oOptions = {
 				bQuiet: true
 			},
@@ -607,27 +602,6 @@ QUnit.module("BasicLexer: Tests", function () {
 
 					aTokens = oBasicLexer.lex(sKey);
 
-					/*
-					// escape
-					for (let i = 0; i < aTokens.length; i += 1) {
-						if (aTokens[i].type === "string") { // eslint-disable-line max-depth
-							aTokens[i].value = aTokens[i].value.replace(/\\/g, "\\\\"); // escape backslashes
-							aTokens[i].value = Utils.escapeControlAsHex(aTokens[i].value);
-						}
-					}
-					*/
-
-					/*
-					// usually we can rely on JSON escape, but for some control characters it does not work
-					// escape
-					for (let i = 0; i < aTokens.length; i += 1) {
-						if (aTokens[i].type === "string") { // eslint-disable-line max-depth
-							//aTokens[i].value = aTokens[i].value.replace(/\\/g, "\\\\"); // escape backslashes
-							aTokens[i].value = Utils.hexEscape(aTokens[i].value);
-						}
-					}
-					*/
-
 					sResult = JSON.stringify(aTokens);
 				} catch (e) {
 					Utils.console.error(e);
@@ -646,46 +620,7 @@ QUnit.module("BasicLexer: Tests", function () {
 		}
 	}
 
-	function generateTests(oAllTests: AllTestsType) {
-		for (const sCategory in oAllTests) {
-			if (oAllTests.hasOwnProperty(sCategory)) {
-				(function (sCat) { // eslint-disable-line no-loop-func
-					QUnit.test(sCat, function (assert: Assert) {
-						runTestsFor(assert, oAllTests[sCat]);
-					});
-				}(sCategory));
-			}
-		}
-	}
-
-	generateTests(mAllTests);
-
-
-	// generate result list (not used during the test, just for debugging)
-
-	function generateAllResults(oAllTests: AllTestsType) {
-		let sResult = "";
-
-		for (const sCategory in oAllTests) {
-			if (oAllTests.hasOwnProperty(sCategory)) {
-				const aResults: string[] = [],
-					bContainsSpace = sCategory.indexOf(" ") >= 0,
-					sMarker = bContainsSpace ? '"' : "";
-
-				sResult += sMarker + sCategory + sMarker + ": {\n";
-
-				runTestsFor(undefined, oAllTests[sCategory], aResults);
-				sResult += aResults.join(",\n");
-				sResult += "\n},\n";
-			}
-		}
-		Utils.console.log(sResult);
-		return sResult;
-	}
-
-	if (bGenerateAllResults) {
-		generateAllResults(mAllTests);
-	}
+	TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
 });
 
 // end

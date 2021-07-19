@@ -1,17 +1,13 @@
 // BasicFormatter.qunit.ts - QUnit tests for CPCBasic BasicFormatter
 //
-
-const bGenerateAllResults = false;
+// qunit dist/test/BasicFormatter.qunit.js debug=1 generateAll=true
 
 import { Utils } from "../Utils";
 import { BasicLexer } from "../BasicLexer"; // we use BasicLexer here just for convenient input
 import { BasicParser } from "../BasicParser";
 import { BasicFormatter } from "../BasicFormatter";
-import {} from "qunit";
-
-type TestsType = {[k in string]: string};
-
-type AllTestsType = {[k in string]: TestsType};
+import { TestHelper, TestsType, AllTestsType } from "./TestHelper";
+//import {} from "qunit";
 
 QUnit.dump.maxDepth = 10;
 
@@ -47,7 +43,7 @@ QUnit.module("BasicFormatter:renumber: Tests", function () {
 		}
 	};
 
-	function runTestsFor(assert: Assert | undefined, oTests: TestsType, aResults?: string[]) {
+	function runTestsFor(assert: Assert | undefined, _sCategory: string, oTests: TestsType, aResults?: string[]) {
 		const oBasicFormatter = new BasicFormatter({
 				lexer: new BasicLexer(),
 				parser: new BasicParser({
@@ -82,45 +78,7 @@ QUnit.module("BasicFormatter:renumber: Tests", function () {
 		}
 	}
 
-	function generateTests(oAllTests: AllTestsType) {
-		for (const sCategory in oAllTests) {
-			if (oAllTests.hasOwnProperty(sCategory)) {
-				(function (sCat) { // eslint-disable-line no-loop-func
-					QUnit.test(sCat, function (assert: Assert) {
-						runTestsFor(assert, oAllTests[sCat]);
-					});
-				}(sCategory));
-			}
-		}
-	}
-
-	generateTests(mAllTests);
-
-	// generate result list (not used during the test, just for debugging)
-
-	function generateAllResults(oAllTests: AllTestsType) {
-		let sResult = "";
-
-		for (const sCategory in oAllTests) {
-			if (oAllTests.hasOwnProperty(sCategory)) {
-				const aResults: string[] = [],
-					bContainsSpace = sCategory.indexOf(" ") >= 0,
-					sMarker = bContainsSpace ? '"' : "";
-
-				sResult += sMarker + sCategory + sMarker + ": {\n";
-
-				runTestsFor(undefined, oAllTests[sCategory], aResults);
-				sResult += aResults.join(",\n");
-				sResult += "\n},\n";
-			}
-		}
-		Utils.console.log(sResult);
-		return sResult;
-	}
-
-	if (bGenerateAllResults) {
-		generateAllResults(mAllTests);
-	}
+	TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
 });
 
 // end

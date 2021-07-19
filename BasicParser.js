@@ -913,13 +913,6 @@ var BasicParser = /** @class */ (function () {
     BasicParser.prototype.fnLine = function () {
         var sName = this.fnCombineTwoTokensNoArgs("input"); // line => lineInput
         this.oPreviousToken.type = sName; // combined type
-        /*
-        const oValue = this.oPreviousToken;
-
-        oValue.type = "lineInput"; // change type line => lineInput
-        this.advance("input"); // ignore this token
-        this.oPreviousToken = oValue; // set to token "lineInput"
-        */
         return this.fnInput(); // continue with input
     };
     BasicParser.prototype.fnMid$ = function () {
@@ -941,43 +934,19 @@ var BasicParser = /** @class */ (function () {
         var sName;
         oValue.args = [];
         if (this.oToken.type === "break") {
-            //this.oToken = this.advance("break");
             sName = this.fnCombineTwoTokensNoArgs("break"); // onBreak
             this.oPreviousToken.type = sName;
             this.oToken = this.getToken();
             if (this.oToken.type === "gosub" || this.oToken.type === "cont" || this.oToken.type === "stop") {
                 this.fnCombineTwoTokens(this.oToken.type); // onBreakGosub, onBreakCont, onBreakStop
-                /*
-                if (this.oToken.type === "gosub") {
-                    this.fnCombineTwoTokens("gosub");
-                    //sName = this.fnCombineTwoTokensNoArgs("gosub"); // onBreakGosub
-                    //this.oPreviousToken.type = sName;
-                    //this.advance("gosub");
-                    //oValue.type = "onBreakGosub";
-                    //oValue.args = this.fnGetArgs(oValue.type);
-                } else if (this.oToken.type === "cont") {
-                    sName = this.fnCombineTwoTokensNoArgs("cont"); // onBreakCont
-                    this.oPreviousToken.type = sName;
-                    //this.advance("cont");
-                    //oValue.type = "onBreakCont";
-                } else if (this.oToken.type === "stop") {
-                    sName = this.fnCombineTwoTokensNoArgs("stop"); // onBreakStop
-                    this.oPreviousToken.type = sName;
-                    //this.advance("stop");
-                    //oValue.type = "onBreakStop";
-                */
             }
             else {
                 throw this.composeError(Error(), "Expected GOSUB, CONT or STOP", this.oToken.type, this.oToken.pos);
             }
         }
         else if (this.oToken.type === "error") { // on error goto
-            //this.oToken = this.advance("error");
-            sName = this.fnCombineTwoTokensNoArgs("error"); // onError
+            sName = this.fnCombineTwoTokensNoArgs("error"); // onError...
             this.oPreviousToken.type = sName;
-            //this.advance("goto");
-            //oValue.type = "onErrorGoto";
-            //oValue.args = this.fnGetArgs(oValue.type);
             this.fnCombineTwoTokens("goto"); // onErrorGoto
         }
         else if (this.oToken.type === "sq") { // on sq(n) gosub
@@ -990,21 +959,17 @@ var BasicParser = /** @class */ (function () {
             this.advance("gosub");
             oValue.type = "onSqGosub";
             oValue.args = this.fnGetArgs(oValue.type);
-            oValue.args.unshift(oLeft);
+            //oValue.args.unshift(oLeft);
+            oValue.left = oLeft;
         }
         else {
             var oLeft = this.expression(0);
-            if (this.oToken.type === "gosub") {
-                this.advance("gosub");
-                oValue.type = "onGosub";
+            if (this.oToken.type === "gosub" || this.oToken.type === "goto") {
+                this.advance(this.oToken.type);
+                oValue.type = "on" + Utils_1.Utils.stringCapitalize(this.oPreviousToken.type); // onGoto, onGosub
                 oValue.args = this.fnGetArgs(oValue.type);
-                oValue.args.unshift(oLeft);
-            }
-            else if (this.oToken.type === "goto") {
-                this.advance("goto");
-                oValue.type = "onGoto";
-                oValue.args = this.fnGetArgs(oValue.type);
-                oValue.args.unshift(oLeft);
+                //oValue.args.unshift(oLeft);
+                oValue.left = oLeft;
             }
             else {
                 throw this.composeError(Error(), "Expected GOTO or GOSUB", this.oToken.type, this.oToken.pos);

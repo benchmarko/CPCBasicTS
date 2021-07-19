@@ -2,11 +2,12 @@
 // CodeGeneratorBasic.qunit.ts - QUnit tests for CPCBasic CodeGeneratorBasic
 //
 Object.defineProperty(exports, "__esModule", { value: true });
-var bGenerateAllResults = false;
-var Utils_1 = require("../Utils");
+//import { Utils } from "../Utils";
 var BasicLexer_1 = require("../BasicLexer");
 var BasicParser_1 = require("../BasicParser");
 var CodeGeneratorBasic_1 = require("../CodeGeneratorBasic");
+var TestHelper_1 = require("./TestHelper");
+//import {} from "qunit";
 QUnit.module("CodeGeneratorBasic: Tests", function ( /* hooks */) {
     var mAllTests = {
         numbers: {
@@ -620,19 +621,6 @@ QUnit.module("CodeGeneratorBasic: Tests", function ( /* hooks */) {
         parser: oParser
     });
     function runTestsFor(assert, sCategory, oTests, aResults) {
-        /*
-        const oCodeGeneratorBasic = new CodeGeneratorBasic({
-            lexer: new BasicLexer({
-                bKeepWhiteSpace: true
-            }),
-            parser: new BasicParser({
-                bQuiet: true,
-                bKeepBrackets: true,
-                bKeepColons: true,
-                bKeepDataComma: true
-            })
-        });
-        */
         oLexer.setOptions({
             bKeepWhiteSpace: sCategory === "keepSpaces"
         });
@@ -648,36 +636,48 @@ QUnit.module("CodeGeneratorBasic: Tests", function ( /* hooks */) {
             }
         }
     }
-    function generateTests(oAllTests) {
-        for (var sCategory in oAllTests) {
+    TestHelper_1.TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
+    /*
+    function generateTests(oAllTests: AllTestsType) {
+        for (const sCategory in oAllTests) {
             if (oAllTests.hasOwnProperty(sCategory)) {
-                (function (sCat) {
-                    QUnit.test(sCat, function (assert) {
+                (function (sCat) { // eslint-disable-line no-loop-func
+                    QUnit.test(sCat, function (assert: Assert) {
                         runTestsFor(assert, sCat, oAllTests[sCat]);
                     });
                 }(sCategory));
             }
         }
     }
-    generateTests(mAllTests);
+
+    TestHelper.generateTests(mAllTests, runTestsFor);
+
     // generate result list (not used during the test, just for debugging)
-    function generateAllResults(oAllTests) {
-        var sResult = "";
-        for (var sCategory in oAllTests) {
+
+    function generateAllResults(oAllTests: AllTestsType) {
+        let sResult = "";
+
+        for (const sCategory in oAllTests) {
             if (oAllTests.hasOwnProperty(sCategory)) {
-                var aResults = [], bContainsSpace = sCategory.indexOf(" ") >= 0, sMarker = bContainsSpace ? '"' : "";
+                const aResults: string[] = [],
+                    bContainsSpace = sCategory.indexOf(" ") >= 0,
+                    sMarker = bContainsSpace ? '"' : "";
+
                 sResult += sMarker + sCategory + sMarker + ": {\n";
+
                 runTestsFor(undefined, sCategory, oAllTests[sCategory], aResults);
                 sResult += aResults.join(",\n");
                 sResult += "\n},\n";
             }
         }
-        Utils_1.Utils.console.log(sResult);
+        Utils.console.log(sResult);
         return sResult;
     }
+
     if (bGenerateAllResults) {
-        generateAllResults(mAllTests);
+        TestHelper.generateAllResults(mAllTests, runTestsFor);
     }
+    */
 });
 // end
 //# sourceMappingURL=CodeGeneratorBasic.qunit.js.map

@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="cpcbasic.css" />
-<title id="title">CPC BasicTS v0.0.27</title>
+<title id="title">CPC BasicTS v0.0.28</title>
 </head>
 
 <body id="pageBody">
@@ -27,51 +27,47 @@
 			<div>
 				<button id="parseButton" title="Check BASIC script (compile to JavaScript)">Check</button>
 
-				<fieldset class="flexBox clearLeft" id="convertAreaBox">
-					<legend>
-						<button id="convertButton" class="legendButton" title="Convert">Convert</button>
-					</legend>
-					<div id="convertArea" class="popover area flexColumn displayNone">
-						<div id="renumArea" class="area">
-							<div class="field">
-								<label id="renumNewLabel" for="renumNewInput" class="label" title="New Line">New</label>
-								<input id="renumNewInput" value="10" min="0" max="65535" size="6" type="number" title="New" placeholder="value">
-							</div>
-							<div class="field clearLeft">
-								<label id="renumStartLabel" for="renumStartInput" class="label" title="Start Line">Start</label>
-								<input id="renumStartInput" value="1" min="0" max="65535" size="6" type="number" title="Start" placeholder="value">
-							</div>
-							<div class="field clearLeft">
-								<label id="renumStepLabel" for="renumStepInput" class="label" title="Step">Step</label>
-								<input id="renumStepInput" value="10" min="0" max="65535" size="6" type="number" title="Step" placeholder="value">
-							</div>
-							<div class="field clearLeft">
-								<label id="renumKeepLabel" for="renumKeepInput" class="label" title="First line to keep">Keep</label>
-								<input id="renumKeepInput" value="65535" min="0" max="65535" size="6" type="number" title="Keep" placeholder="value">
-							</div>
-							<div class="clearLeft"> <!-- clearLeft needed for IE -->
-								<button id="renumButton" title="Renumber lines">Renum</button>
-							</div>
+				<button id="convertButton" class="legendButton" title="Convert">Convert</button>
+				<div id="convertArea" class="popover area flexColumn displayNone">
+					<div id="renumArea" class="area">
+						<div class="field">
+							<label id="renumNewLabel" for="renumNewInput" class="label" title="New Line">New</label>
+							<input id="renumNewInput" value="10" min="0" max="65535" size="6" type="number" title="New" placeholder="value">
 						</div>
-						<div id="prettyArea" class="area">
-							<div class="field">
-								<label id="prettyBracketsLabel" for="prettyBracketsInput" class="label" title="Keep Brackets">Brackets</label>
-								<input id="prettyBracketsInput" type="checkbox" title="Keep Brackets" checked>
-							</div>
-							<div class="field clearLeft">
-								<label id="prettySpaceLabel" for="prettySpaceInput" class="label" title="Keep Spaces">Spaces</label>
-								<input id="prettySpaceInput" type="checkbox" title="Keep Spaces">
-								<div class="clearLeft"> <!-- clearLeft needed for IE -->
-									<button id="prettyButton" title="Pretty print (experimental)">Pretty</button>
-								</div>
-							</div>
+						<div class="field clearLeft">
+							<label id="renumStartLabel" for="renumStartInput" class="label" title="Start Line">Start</label>
+							<input id="renumStartInput" value="1" min="0" max="65535" size="6" type="number" title="Start" placeholder="value">
 						</div>
-						<div id="stackArea" class="area">
-							<button id="undoButton" title="Undo changes" disabled>Undo</button>
-							<button id="redoButton" title="Redo changes" disabled>Redo</button>
+						<div class="field clearLeft">
+							<label id="renumStepLabel" for="renumStepInput" class="label" title="Step">Step</label>
+							<input id="renumStepInput" value="10" min="0" max="65535" size="6" type="number" title="Step" placeholder="value">
+						</div>
+						<div class="field clearLeft">
+							<label id="renumKeepLabel" for="renumKeepInput" class="label" title="First line to keep">Keep</label>
+							<input id="renumKeepInput" value="65535" min="0" max="65535" size="6" type="number" title="Keep" placeholder="value">
+						</div>
+						<div class="clearLeft"> <!-- clearLeft needed for IE -->
+							<button id="renumButton" title="Renumber lines">Renum</button>
 						</div>
 					</div>
-				</fieldset>
+					<div id="prettyArea" class="area">
+						<div class="field">
+							<label id="prettyBracketsLabel" for="prettyBracketsInput" class="label" title="Keep Brackets">Brackets</label>
+							<input id="prettyBracketsInput" type="checkbox" title="Keep Brackets" checked>
+						</div>
+						<div class="field clearLeft">
+							<label id="prettySpaceLabel" for="prettySpaceInput" class="label" title="Keep Spaces">Spaces</label>
+							<input id="prettySpaceInput" type="checkbox" title="Keep Spaces">
+							<div class="clearLeft"> <!-- clearLeft needed for IE -->
+								<button id="prettyButton" title="Pretty print (experimental)">Pretty</button>
+							</div>
+						</div>
+					</div>
+					<div id="stackArea" class="area">
+						<button id="undoButton" title="Undo changes" disabled>Undo</button>
+						<button id="redoButton" title="Redo changes" disabled>Redo</button>
+					</div>
+				</div>
 		
 				<button id="downloadButton" title="Download tokenized (experimental)">Download</a></button>
 		</div>

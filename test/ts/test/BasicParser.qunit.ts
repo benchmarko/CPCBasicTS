@@ -1,16 +1,11 @@
 // BasicParser.qunit.ts - QUnit tests for CPCBasic BasicParser
 //
 
-const bGenerateAllResults = false;
-
 import { Utils } from "../Utils";
 import { BasicLexer } from "../BasicLexer"; // we use BasicLexer here just for convenient input
 import { BasicParser, ParserNode } from "../BasicParser";
-import { } from "qunit";
-
-type TestsType = { [k in string]: string };
-
-type AllTestsType = { [k in string]: TestsType };
+import { TestHelper, TestsType, AllTestsType } from "./TestHelper";
+//import { } from "qunit";
 
 QUnit.dump.maxDepth = 10;
 
@@ -372,14 +367,14 @@ QUnit.module("BasicParser: Tests", function () {
 			"on break stop": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"onBreakStop","value":"on break stop","pos":0,"args":[]}]}]',
 			"10 on error goto 0": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onErrorGoto","value":"on error goto","pos":3,"args":[{"type":"linenumber","value":"0","pos":17}]}]}]',
 			"10 on error goto 10": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onErrorGoto","value":"on error goto","pos":3,"args":[{"type":"linenumber","value":"10","pos":17}]}]}]',
-			"10 on 1 gosub 10": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onGosub","value":"on","pos":3,"args":[{"type":"number","value":"1","pos":6},{"type":"linenumber","value":"10","pos":14}]}]}]',
-			"10 on x gosub 10,20\n20 rem": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onGosub","value":"on","pos":3,"args":[{"type":"identifier","value":"x","pos":6},{"type":"linenumber","value":"10","pos":14},{"type":"linenumber","value":"20","pos":17}]}]},{"type":"label","value":"20","pos":20,"args":[{"type":"rem","value":"rem","pos":23,"args":[]}]}]',
-			"10 on x+1 gosub 10,20,20\n20 rem": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onGosub","value":"on","pos":3,"args":[{"type":"+","value":"+","pos":7,"left":{"type":"identifier","value":"x","pos":6},"right":{"type":"number","value":"1","pos":8}},{"type":"linenumber","value":"10","pos":16},{"type":"linenumber","value":"20","pos":19},{"type":"linenumber","value":"20","pos":22}]}]},{"type":"label","value":"20","pos":25,"args":[{"type":"rem","value":"rem","pos":28,"args":[]}]}]',
-			"10 on 1 goto 10": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onGoto","value":"on","pos":3,"args":[{"type":"number","value":"1","pos":6},{"type":"linenumber","value":"10","pos":13}]}]}]',
-			"10 on x goto 10,20\n20 rem": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onGoto","value":"on","pos":3,"args":[{"type":"identifier","value":"x","pos":6},{"type":"linenumber","value":"10","pos":13},{"type":"linenumber","value":"20","pos":16}]}]},{"type":"label","value":"20","pos":19,"args":[{"type":"rem","value":"rem","pos":22,"args":[]}]}]',
-			"10 on x+1 goto 10,20,20\n20 rem": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onGoto","value":"on","pos":3,"args":[{"type":"+","value":"+","pos":7,"left":{"type":"identifier","value":"x","pos":6},"right":{"type":"number","value":"1","pos":8}},{"type":"linenumber","value":"10","pos":15},{"type":"linenumber","value":"20","pos":18},{"type":"linenumber","value":"20","pos":21}]}]},{"type":"label","value":"20","pos":24,"args":[{"type":"rem","value":"rem","pos":27,"args":[]}]}]',
-			"10 on sq(1) gosub 10": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onSqGosub","value":"on","pos":3,"args":[{"type":"number","value":"1","pos":9},{"type":"linenumber","value":"10","pos":18}]}]}]',
-			"10 on sq(channel) gosub 10": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onSqGosub","value":"on","pos":3,"args":[{"type":"identifier","value":"channel","pos":9},{"type":"linenumber","value":"10","pos":24}]}]}]',
+			"10 on 1 gosub 10": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onGosub","value":"on","pos":3,"args":[{"type":"linenumber","value":"10","pos":14}],"left":{"type":"number","value":"1","pos":6}}]}]',
+			"10 on x gosub 10,20\n20 rem": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onGosub","value":"on","pos":3,"args":[{"type":"linenumber","value":"10","pos":14},{"type":"linenumber","value":"20","pos":17}],"left":{"type":"identifier","value":"x","pos":6}}]},{"type":"label","value":"20","pos":20,"args":[{"type":"rem","value":"rem","pos":23,"args":[]}]}]',
+			"10 on x+1 gosub 10,20,20\n20 rem": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onGosub","value":"on","pos":3,"args":[{"type":"linenumber","value":"10","pos":16},{"type":"linenumber","value":"20","pos":19},{"type":"linenumber","value":"20","pos":22}],"left":{"type":"+","value":"+","pos":7,"left":{"type":"identifier","value":"x","pos":6},"right":{"type":"number","value":"1","pos":8}}}]},{"type":"label","value":"20","pos":25,"args":[{"type":"rem","value":"rem","pos":28,"args":[]}]}]',
+			"10 on 1 goto 10": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onGoto","value":"on","pos":3,"args":[{"type":"linenumber","value":"10","pos":13}],"left":{"type":"number","value":"1","pos":6}}]}]',
+			"10 on x goto 10,20\n20 rem": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onGoto","value":"on","pos":3,"args":[{"type":"linenumber","value":"10","pos":13},{"type":"linenumber","value":"20","pos":16}],"left":{"type":"identifier","value":"x","pos":6}}]},{"type":"label","value":"20","pos":19,"args":[{"type":"rem","value":"rem","pos":22,"args":[]}]}]',
+			"10 on x+1 goto 10,20,20\n20 rem": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onGoto","value":"on","pos":3,"args":[{"type":"linenumber","value":"10","pos":15},{"type":"linenumber","value":"20","pos":18},{"type":"linenumber","value":"20","pos":21}],"left":{"type":"+","value":"+","pos":7,"left":{"type":"identifier","value":"x","pos":6},"right":{"type":"number","value":"1","pos":8}}}]},{"type":"label","value":"20","pos":24,"args":[{"type":"rem","value":"rem","pos":27,"args":[]}]}]',
+			"10 on sq(1) gosub 10": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onSqGosub","value":"on","pos":3,"args":[{"type":"linenumber","value":"10","pos":18}],"left":{"type":"number","value":"1","pos":9}}]}]',
+			"10 on sq(channel) gosub 10": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onSqGosub","value":"on","pos":3,"args":[{"type":"linenumber","value":"10","pos":24}],"left":{"type":"identifier","value":"channel","pos":9}}]}]',
 			"openin \"file\"": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"openin","value":"openin","pos":0,"args":[{"type":"string","value":"file","pos":8}]}]}]',
 			"openin f$": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"openin","value":"openin","pos":0,"args":[{"type":"identifier","value":"f$","pos":7}]}]}]',
 			"openout \"file\"": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"openout","value":"openout","pos":0,"args":[{"type":"string","value":"file","pos":9}]}]}]',
@@ -586,7 +581,7 @@ QUnit.module("BasicParser: Tests", function () {
 		return "0x" + parseInt(sBin.substr(2), 2).toString(16).toLowerCase();
 	}
 
-	function runTestsFor(assert: Assert | undefined, oTests: TestsType, aResults?: string[]) {
+	function runTestsFor(assert: Assert | undefined, _sCategory: string, oTests: TestsType, aResults?: string[]) {
 		const bAllowDirect = true,
 			oOptions = {
 				bQuiet: true
@@ -630,46 +625,7 @@ QUnit.module("BasicParser: Tests", function () {
 		}
 	}
 
-	function generateTests(oAllTests: AllTestsType) {
-		for (const sCategory in oAllTests) {
-			if (oAllTests.hasOwnProperty(sCategory)) {
-				(function (sCat) { // eslint-disable-line no-loop-func
-					QUnit.test(sCat, function (assert: Assert) {
-						runTestsFor(assert, oAllTests[sCat]);
-					});
-				}(sCategory));
-			}
-		}
-	}
-
-	generateTests(mAllTests);
-
-
-	// generate result list (not used during the test, just for debugging)
-
-	function generateAllResults(oAllTests: AllTestsType) {
-		let sResult = "";
-
-		for (const sCategory in oAllTests) {
-			if (oAllTests.hasOwnProperty(sCategory)) {
-				const aResults: string[] = [],
-					bContainsSpace = sCategory.indexOf(" ") >= 0,
-					sMarker = bContainsSpace ? '"' : "";
-
-				sResult += sMarker + sCategory + sMarker + ": {\n";
-
-				runTestsFor(undefined, oAllTests[sCategory], aResults);
-				sResult += aResults.join(",\n");
-				sResult += "\n},\n";
-			}
-		}
-		Utils.console.log(sResult);
-		return sResult;
-	}
-
-	if (bGenerateAllResults) {
-		generateAllResults(mAllTests);
-	}
+	TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
 });
 
 // end

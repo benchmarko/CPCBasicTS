@@ -2,10 +2,11 @@
 // BasicParser.qunit.ts - QUnit tests for CPCBasic BasicParser
 //
 Object.defineProperty(exports, "__esModule", { value: true });
-var bGenerateAllResults = false;
 var Utils_1 = require("../Utils");
 var BasicLexer_1 = require("../BasicLexer"); // we use BasicLexer here just for convenient input
 var BasicParser_1 = require("../BasicParser");
+var TestHelper_1 = require("./TestHelper");
+//import { } from "qunit";
 QUnit.dump.maxDepth = 10;
 QUnit.module("BasicParser: Tests", function () {
     var mAllTests = {
@@ -365,14 +366,14 @@ QUnit.module("BasicParser: Tests", function () {
             "on break stop": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"onBreakStop","value":"on break stop","pos":0,"args":[]}]}]',
             "10 on error goto 0": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onErrorGoto","value":"on error goto","pos":3,"args":[{"type":"linenumber","value":"0","pos":17}]}]}]',
             "10 on error goto 10": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onErrorGoto","value":"on error goto","pos":3,"args":[{"type":"linenumber","value":"10","pos":17}]}]}]',
-            "10 on 1 gosub 10": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onGosub","value":"on","pos":3,"args":[{"type":"number","value":"1","pos":6},{"type":"linenumber","value":"10","pos":14}]}]}]',
-            "10 on x gosub 10,20\n20 rem": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onGosub","value":"on","pos":3,"args":[{"type":"identifier","value":"x","pos":6},{"type":"linenumber","value":"10","pos":14},{"type":"linenumber","value":"20","pos":17}]}]},{"type":"label","value":"20","pos":20,"args":[{"type":"rem","value":"rem","pos":23,"args":[]}]}]',
-            "10 on x+1 gosub 10,20,20\n20 rem": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onGosub","value":"on","pos":3,"args":[{"type":"+","value":"+","pos":7,"left":{"type":"identifier","value":"x","pos":6},"right":{"type":"number","value":"1","pos":8}},{"type":"linenumber","value":"10","pos":16},{"type":"linenumber","value":"20","pos":19},{"type":"linenumber","value":"20","pos":22}]}]},{"type":"label","value":"20","pos":25,"args":[{"type":"rem","value":"rem","pos":28,"args":[]}]}]',
-            "10 on 1 goto 10": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onGoto","value":"on","pos":3,"args":[{"type":"number","value":"1","pos":6},{"type":"linenumber","value":"10","pos":13}]}]}]',
-            "10 on x goto 10,20\n20 rem": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onGoto","value":"on","pos":3,"args":[{"type":"identifier","value":"x","pos":6},{"type":"linenumber","value":"10","pos":13},{"type":"linenumber","value":"20","pos":16}]}]},{"type":"label","value":"20","pos":19,"args":[{"type":"rem","value":"rem","pos":22,"args":[]}]}]',
-            "10 on x+1 goto 10,20,20\n20 rem": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onGoto","value":"on","pos":3,"args":[{"type":"+","value":"+","pos":7,"left":{"type":"identifier","value":"x","pos":6},"right":{"type":"number","value":"1","pos":8}},{"type":"linenumber","value":"10","pos":15},{"type":"linenumber","value":"20","pos":18},{"type":"linenumber","value":"20","pos":21}]}]},{"type":"label","value":"20","pos":24,"args":[{"type":"rem","value":"rem","pos":27,"args":[]}]}]',
-            "10 on sq(1) gosub 10": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onSqGosub","value":"on","pos":3,"args":[{"type":"number","value":"1","pos":9},{"type":"linenumber","value":"10","pos":18}]}]}]',
-            "10 on sq(channel) gosub 10": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onSqGosub","value":"on","pos":3,"args":[{"type":"identifier","value":"channel","pos":9},{"type":"linenumber","value":"10","pos":24}]}]}]',
+            "10 on 1 gosub 10": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onGosub","value":"on","pos":3,"args":[{"type":"linenumber","value":"10","pos":14}],"left":{"type":"number","value":"1","pos":6}}]}]',
+            "10 on x gosub 10,20\n20 rem": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onGosub","value":"on","pos":3,"args":[{"type":"linenumber","value":"10","pos":14},{"type":"linenumber","value":"20","pos":17}],"left":{"type":"identifier","value":"x","pos":6}}]},{"type":"label","value":"20","pos":20,"args":[{"type":"rem","value":"rem","pos":23,"args":[]}]}]',
+            "10 on x+1 gosub 10,20,20\n20 rem": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onGosub","value":"on","pos":3,"args":[{"type":"linenumber","value":"10","pos":16},{"type":"linenumber","value":"20","pos":19},{"type":"linenumber","value":"20","pos":22}],"left":{"type":"+","value":"+","pos":7,"left":{"type":"identifier","value":"x","pos":6},"right":{"type":"number","value":"1","pos":8}}}]},{"type":"label","value":"20","pos":25,"args":[{"type":"rem","value":"rem","pos":28,"args":[]}]}]',
+            "10 on 1 goto 10": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onGoto","value":"on","pos":3,"args":[{"type":"linenumber","value":"10","pos":13}],"left":{"type":"number","value":"1","pos":6}}]}]',
+            "10 on x goto 10,20\n20 rem": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onGoto","value":"on","pos":3,"args":[{"type":"linenumber","value":"10","pos":13},{"type":"linenumber","value":"20","pos":16}],"left":{"type":"identifier","value":"x","pos":6}}]},{"type":"label","value":"20","pos":19,"args":[{"type":"rem","value":"rem","pos":22,"args":[]}]}]',
+            "10 on x+1 goto 10,20,20\n20 rem": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onGoto","value":"on","pos":3,"args":[{"type":"linenumber","value":"10","pos":15},{"type":"linenumber","value":"20","pos":18},{"type":"linenumber","value":"20","pos":21}],"left":{"type":"+","value":"+","pos":7,"left":{"type":"identifier","value":"x","pos":6},"right":{"type":"number","value":"1","pos":8}}}]},{"type":"label","value":"20","pos":24,"args":[{"type":"rem","value":"rem","pos":27,"args":[]}]}]',
+            "10 on sq(1) gosub 10": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onSqGosub","value":"on","pos":3,"args":[{"type":"linenumber","value":"10","pos":18}],"left":{"type":"number","value":"1","pos":9}}]}]',
+            "10 on sq(channel) gosub 10": '[{"type":"label","value":"10","pos":0,"args":[{"type":"onSqGosub","value":"on","pos":3,"args":[{"type":"linenumber","value":"10","pos":24}],"left":{"type":"identifier","value":"channel","pos":9}}]}]',
             "openin \"file\"": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"openin","value":"openin","pos":0,"args":[{"type":"string","value":"file","pos":8}]}]}]',
             "openin f$": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"openin","value":"openin","pos":0,"args":[{"type":"identifier","value":"f$","pos":7}]}]}]',
             "openout \"file\"": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"openout","value":"openout","pos":0,"args":[{"type":"string","value":"file","pos":9}]}]}]',
@@ -577,7 +578,7 @@ QUnit.module("BasicParser: Tests", function () {
     function fnReplacer(sBin) {
         return "0x" + parseInt(sBin.substr(2), 2).toString(16).toLowerCase();
     }
-    function runTestsFor(assert, oTests, aResults) {
+    function runTestsFor(assert, _sCategory, oTests, aResults) {
         var bAllowDirect = true, oOptions = {
             bQuiet: true
         }, oBasicLexer = new BasicLexer_1.BasicLexer(oOptions), oBasicParser = new BasicParser_1.BasicParser(oOptions);
@@ -609,36 +610,7 @@ QUnit.module("BasicParser: Tests", function () {
             }
         }
     }
-    function generateTests(oAllTests) {
-        for (var sCategory in oAllTests) {
-            if (oAllTests.hasOwnProperty(sCategory)) {
-                (function (sCat) {
-                    QUnit.test(sCat, function (assert) {
-                        runTestsFor(assert, oAllTests[sCat]);
-                    });
-                }(sCategory));
-            }
-        }
-    }
-    generateTests(mAllTests);
-    // generate result list (not used during the test, just for debugging)
-    function generateAllResults(oAllTests) {
-        var sResult = "";
-        for (var sCategory in oAllTests) {
-            if (oAllTests.hasOwnProperty(sCategory)) {
-                var aResults = [], bContainsSpace = sCategory.indexOf(" ") >= 0, sMarker = bContainsSpace ? '"' : "";
-                sResult += sMarker + sCategory + sMarker + ": {\n";
-                runTestsFor(undefined, oAllTests[sCategory], aResults);
-                sResult += aResults.join(",\n");
-                sResult += "\n},\n";
-            }
-        }
-        Utils_1.Utils.console.log(sResult);
-        return sResult;
-    }
-    if (bGenerateAllResults) {
-        generateAllResults(mAllTests);
-    }
+    TestHelper_1.TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
 });
 // end
 //# sourceMappingURL=BasicParser.qunit.js.map
