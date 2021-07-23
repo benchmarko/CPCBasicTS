@@ -738,6 +738,7 @@ var Controller = /** @class */ (function () {
                     bKeepWhiteSpace: true
                 }),
                 parser: new BasicParser_1.BasicParser({
+                    bKeepTokens: true,
                     bKeepBrackets: true,
                     bKeepColons: true,
                     bKeepDataComma: true
@@ -770,6 +771,7 @@ var Controller = /** @class */ (function () {
             bKeepWhiteSpace: bKeepWhiteSpace
         });
         this.oCodeGeneratorBasic.getParser().setOptions({
+            bKeepTokens: true,
             bKeepBrackets: bKeepBrackets,
             bKeepColons: bKeepColons,
             bKeepDataComma: bKeepDataComma

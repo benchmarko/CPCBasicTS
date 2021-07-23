@@ -182,6 +182,7 @@ var cpcBasic = /** @class */ (function () {
     });
     cpcBasic.oConvertParser = new BasicParser_1.BasicParser({
         bQuiet: true,
+        bKeepTokens: true,
         bKeepBrackets: true,
         bKeepColons: true,
         bKeepDataComma: true

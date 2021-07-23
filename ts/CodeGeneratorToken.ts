@@ -767,6 +767,7 @@ export class CodeGeneratorToken {
 
 		return sValue;
 	}
+	/*
 	private "for"(node: ParserNode) {
 		const aNodeArgs = this.fnParseArgs(node.args),
 			sVarName = aNodeArgs[0],
@@ -780,13 +781,22 @@ export class CodeGeneratorToken {
 		}
 		return sValue;
 	}
+	*/
+	private "for"(node: ParserNode) {
+		const aNodeArgs = this.fnParseArgs(node.args);
+
+		return CodeGeneratorToken.token2String(node.type) + aNodeArgs.join("");
+	}
 
 	private fnThenOrElsePart(oNodeBranch: ParserNode[]) {
 		const aNodeArgs = this.fnParseArgs(oNodeBranch); // args for "then" oe "else"
 
+		/*
 		if (oNodeBranch.length && oNodeBranch[0].type === "goto" && oNodeBranch[0].len === 0) { // inserted goto?
 			aNodeArgs[0] = this.fnParseOneArg(oNodeBranch[0].args![0]); // take just line number
 		}
+		*/
+
 		return this.combineArgsWithSeparator(aNodeArgs);
 	}
 
@@ -900,9 +910,9 @@ export class CodeGeneratorToken {
 	private onGotoGosub(node: ParserNode) {
 		const sLeft = this.fnParseOneArg(node.left as ParserNode),
 			aNodeArgs = this.fnParseArgs(node.args),
-			sType2 = node.type === "onGoto" ? "goto" : "gosub";
+			sRight = this.fnParseOneArg(node.right as ParserNode); // "goto" or "gosub"
 
-		return CodeGeneratorToken.token2String("on") + sLeft + CodeGeneratorToken.token2String(sType2) + aNodeArgs.join(",");
+		return CodeGeneratorToken.token2String("on") + sLeft + sRight + aNodeArgs.join(",");
 	}
 
 	private onSqGosub(node: ParserNode) {
@@ -1101,8 +1111,8 @@ export class CodeGeneratorToken {
 					}
 				}
 				value += CodeGeneratorToken.token2String(mOperators[sType]) + value2;
-			} else { // unary operator
-				const oRight = node.right as ParserNode;
+			} else if (node.right) { // unary operator, e.g. not
+				const oRight = node.right;
 
 				value = this.parseNode(oRight);
 				let pr: number;
@@ -1120,6 +1130,10 @@ export class CodeGeneratorToken {
 				}
 
 				value = CodeGeneratorToken.token2String(mOperators[sType]) + value;
+			} else if (sType === "=") { // no operator, "=" in "for"
+				value = CodeGeneratorToken.token2String(sType);
+			} else { // should not occure
+				value = this.fnParseOther(node);
 			}
 		} else if (this.mParseFunctions[sType]) { // function with special handling?
 			value = this.mParseFunctions[sType].call(this, node);

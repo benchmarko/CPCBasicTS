@@ -25,6 +25,7 @@ var BasicParser = /** @class */ (function () {
     function BasicParser(options) {
         this.sLine = "0"; // for error messages
         this.bQuiet = false;
+        this.bKeepTokens = false;
         this.bKeepBrackets = false;
         this.bKeepColons = false;
         this.bKeepDataComma = false;
@@ -43,6 +44,7 @@ var BasicParser = /** @class */ (function () {
     }
     BasicParser.prototype.setOptions = function (options) {
         this.bQuiet = options.bQuiet || false;
+        this.bKeepTokens = options.bKeepTokens || false;
         this.bKeepBrackets = options.bKeepBrackets || false;
         this.bKeepColons = options.bKeepColons || false;
         this.bKeepDataComma = options.bKeepDataComma || false;
@@ -252,6 +254,11 @@ var BasicParser = /** @class */ (function () {
         };
         return oValue;
     };
+    /*
+    private static fnCreateDummyToken(sType: string, sValue: string) {
+        return this.fnCreateDummyArg(sType, sValue);
+    }
+    */
     BasicParser.prototype.fnCombineTwoTokensNoArgs = function (sToken2) {
         var oPreviousToken = this.oPreviousToken, sName = oPreviousToken.type + Utils_1.Utils.stringCapitalize(this.oToken.type); // e.g ."speedInk"
         oPreviousToken.value += (this.oToken.ws || " ") + this.oToken.value; // combine values of both
@@ -613,10 +620,12 @@ var BasicParser = /** @class */ (function () {
     };
     BasicParser.prototype.fnRsx = function () {
         var oValue = this.oPreviousToken;
+        var sType;
         if (this.oToken.type === ",") { // arguments starting with comma
             this.advance(",");
+            sType = "_rsx1"; // dummy token: expect at least 1 argument
         }
-        oValue.args = this.fnGetArgs(undefined);
+        oValue.args = this.fnGetArgs(sType); // get arguments
         return oValue;
     };
     BasicParser.prototype.fnAfterOrEvery = function () {
@@ -675,7 +684,7 @@ var BasicParser = /** @class */ (function () {
             oValue = this.fnCombineTwoTokens(sTokenType);
         }
         else {
-            oValue = this.fnCreateCmdCall(this.oPreviousToken.type); // "symbol"
+            oValue = this.fnCreateCmdCall(this.oPreviousToken.type); // "clear"
         }
         return oValue;
     };
@@ -778,16 +787,27 @@ var BasicParser = /** @class */ (function () {
         }
         oValue.args = [oName];
         this.advance("=");
+        if (this.bKeepTokens) {
+            oValue.args.push(this.oPreviousToken);
+        }
         oValue.args.push(this.expression(0));
         this.oToken = this.advance("to");
+        if (this.bKeepTokens) {
+            oValue.args.push(this.oPreviousToken);
+        }
         oValue.args.push(this.expression(0));
         if (this.oToken.type === "step") {
             this.advance("step");
+            if (this.bKeepTokens) {
+                oValue.args.push(this.oPreviousToken);
+            }
             oValue.args.push(this.expression(0));
         }
+        /*
         else {
             oValue.args.push(BasicParser.fnCreateDummyArg("null"));
         }
+        */
         return oValue;
     };
     BasicParser.prototype.fnGraphics = function () {
@@ -798,57 +818,52 @@ var BasicParser = /** @class */ (function () {
         var oValue = this.fnCombineTwoTokens(sTokenType);
         return oValue;
     };
+    BasicParser.prototype.fnCheckForUnreachableCode = function (aArgs) {
+        for (var i = 0; i < aArgs.length; i += 1) {
+            var oToken = aArgs[i];
+            if ((i === 0 && oToken.type === "linenumber") || oToken.type === "goto" || oToken.type === "stop") {
+                var iIndex = i + 1;
+                if (iIndex < aArgs.length && aArgs[iIndex].type !== "rem") {
+                    if (!this.bQuiet) {
+                        Utils_1.Utils.console.warn(this.composeError({}, "IF: Unreachable code after THEN or ELSE", oToken.type, oToken.pos).message);
+                    }
+                    break;
+                }
+            }
+        }
+    };
     BasicParser.prototype.fnIf = function () {
         var oValue = this.oPreviousToken;
+        var aNumberToken;
         oValue.left = this.expression(0);
-        var aArgs;
-        if (this.oToken.type === "goto") {
-            // skip "then"
-            aArgs = this.statements("else");
-        }
-        else {
+        if (this.oToken.type !== "goto") { // no "goto", expect "then" token...
             this.advance("then");
-            if (this.oToken.type === "number") {
-                var oValue2 = this.fnCreateCmdCall("goto"); // take "then" as "goto", checks also for line number
-                oValue2.len = 0; // mark it as inserted
-                var oToken2 = this.oToken;
-                aArgs = this.statements("else");
-                if (aArgs.length && aArgs[0].type !== "rem") {
-                    if (!this.bQuiet) {
-                        Utils_1.Utils.console.warn(this.composeError({}, "IF: Unreachable code after THEN", oToken2.type, oToken2.pos).message);
-                    }
-                }
-                aArgs.unshift(oValue2);
+            if (this.bKeepTokens) {
+                oValue.right = this.oPreviousToken;
             }
-            else {
-                aArgs = this.statements("else");
+            if (this.oToken.type === "number") {
+                aNumberToken = this.fnGetArgs("goto"); // take number parameter as line number
             }
         }
-        oValue.args = aArgs; // then statements
-        aArgs = undefined;
+        oValue.args = this.statements("else"); // get "then" statements until "else" or eol
+        if (aNumberToken) {
+            oValue.args.unshift(aNumberToken[0]);
+            aNumberToken = undefined;
+        }
+        this.fnCheckForUnreachableCode(oValue.args);
         if (this.oToken.type === "else") {
             this.oToken = this.advance("else");
+            if (this.bKeepTokens) {
+                //TODO HOWTO?
+            }
             if (this.oToken.type === "number") {
-                var oValue2 = this.fnCreateCmdCall("goto"); // take "then" as "goto", checks also for line number
-                oValue2.len = 0; // mark it as inserted
-                var oToken2 = this.oToken;
-                aArgs = this.statements("else");
-                if (aArgs.length) {
-                    if (!this.bQuiet) {
-                        Utils_1.Utils.console.warn(this.composeError({}, "IF: Unreachable code after ELSE", oToken2.type, oToken2.pos).message);
-                    }
-                }
-                aArgs.unshift(oValue2);
+                aNumberToken = this.fnGetArgs("goto"); // take number parameter as line number
             }
-            else if (this.oToken.type === "if") {
-                aArgs = [this.statement()];
+            oValue.args2 = this.oToken.type === "if" ? [this.statement()] : this.statements("else");
+            if (aNumberToken) {
+                oValue.args2.unshift(aNumberToken[0]);
             }
-            else {
-                aArgs = this.statements("else");
-            }
-        }
-        if (aArgs !== undefined) {
-            oValue.args2 = aArgs; // else statements
+            this.fnCheckForUnreachableCode(oValue.args2);
         }
         return oValue;
     };
@@ -962,10 +977,13 @@ var BasicParser = /** @class */ (function () {
             //oValue.args.unshift(oLeft);
             oValue.left = oLeft;
         }
-        else {
+        else { // on <expr>
             var oLeft = this.expression(0);
             if (this.oToken.type === "gosub" || this.oToken.type === "goto") {
                 this.advance(this.oToken.type);
+                if (this.bKeepTokens) {
+                    oValue.right = this.oPreviousToken;
+                }
                 oValue.type = "on" + Utils_1.Utils.stringCapitalize(this.oPreviousToken.type); // onGoto, onGosub
                 oValue.args = this.fnGetArgs(oValue.type);
                 //oValue.args.unshift(oLeft);
@@ -1385,7 +1403,8 @@ var BasicParser = /** @class */ (function () {
         xor: "o",
         xpos: "f",
         ypos: "f",
-        zone: "c n" // ZONE <integer expression>  / integer expression=1..255
+        zone: "c n",
+        _rsx1: "c a a*" // |<rsxName>[, <argument list>] dummy with at least one parameter
     };
     BasicParser.mCloseTokens = {
         ":": 1,

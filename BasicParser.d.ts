@@ -1,6 +1,7 @@
 import { LexerToken } from "./BasicLexer";
 interface BasicParserOptions {
     bQuiet?: boolean;
+    bKeepTokens?: boolean;
     bKeepBrackets?: boolean;
     bKeepColons?: boolean;
     bKeepDataComma?: boolean;
@@ -17,6 +18,7 @@ export interface ParserNode extends LexerToken {
 export declare class BasicParser {
     private sLine;
     private bQuiet;
+    private bKeepTokens;
     private bKeepBrackets;
     private bKeepColons;
     private bKeepDataComma;
@@ -78,6 +80,7 @@ export declare class BasicParser {
     private fnEntOrEnv;
     private fnFor;
     private fnGraphics;
+    private fnCheckForUnreachableCode;
     private fnIf;
     private fnInput;
     private fnKey;

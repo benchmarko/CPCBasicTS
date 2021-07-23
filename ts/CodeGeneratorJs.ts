@@ -959,15 +959,11 @@ export class CodeGeneratorJs {
 
 		const startNode = node.args[1],
 			endNode = node.args[2],
-			stepNode = node.args[3];
+			stepNode = node.args[3]; // optional
 
 		let startValue = aNodeArgs[1],
 			endValue = aNodeArgs[2],
-			stepValue = aNodeArgs[3];
-
-		if (stepNode.type === "null") { // value not available?
-			stepValue = "1";
-		}
+			stepValue = stepNode ? aNodeArgs[3] : "1"; // default step
 
 		// optimization for integer constants (check value and not type, because we also want to accept e.g. -<number>):
 		const bStartIsIntConst = CodeGeneratorJs.fnIsIntConst(startValue),
@@ -1001,7 +997,7 @@ export class CodeGeneratorJs {
 		let sStepName: string | undefined;
 
 		if (!bStepIsIntConst) {
-			if (stepNode.pt !== "I") {
+			if (stepNode && stepNode.pt !== "I") {
 				stepValue = "o.vmAssign(\"" + sVarType + "\", " + stepValue + ")";
 			}
 			sStepName = sVarName + "Step";
@@ -1065,6 +1061,15 @@ export class CodeGeneratorJs {
 		node.pv = 'o.gosub("' + sName + '", ' + sLine + '); break; \ncase "' + sName + '":';
 		return node.pv;
 	}
+
+	/*
+	private fnGoto1(sLine: string, node: CodeNode) {
+		this.fnAddReferenceLabel(sLine, node.args[0]);
+		node.pv = "o.goto(" + sLine + "); break";
+		return node.pv;
+	}
+	*/
+
 	private "goto"(node: CodeNode) {
 		const aNodeArgs = this.fnParseArgs(node.args),
 			sLine = aNodeArgs[0];
@@ -1076,6 +1081,19 @@ export class CodeGeneratorJs {
 		node.pv = "o.goto(" + sLine + "); break";
 		return node.pv;
 	}
+
+	private fnThenOrElsePart(aArgs: ParserNode[]) {
+		const aNodeArgs = this.fnParseArgs(aArgs);
+
+		if (aArgs[0].type === "linenumber") {
+			const sLine = aNodeArgs[0];
+
+			this.fnAddReferenceLabel(sLine, aArgs[0]);
+			aNodeArgs[0] = "o.goto(" + sLine + "); break"; // convert to "goto"
+		}
+		return aNodeArgs.join("; ");
+	}
+
 	private "if"(node: CodeNode) {
 		const sLabel = this.iLine + "i" + this.iIfCount;
 
@@ -1087,14 +1105,13 @@ export class CodeGeneratorJs {
 		let value = "if (" + this.fnParseOneArg(node.left) + ') { o.goto("' + sLabel + '"); break; } ';
 
 		if (node.args2) { // "else" statements?
-			const aNodeArgs2 = this.fnParseArgs(node.args2),
-				sPart2 = aNodeArgs2.join("; ");
+			const sPart2 = this.fnThenOrElsePart(node.args2);
 
 			value += "/* else */ " + sPart2 + "; ";
 		}
 		value += 'o.goto("' + sLabel + 'e"); break;';
-		const aNodeArgs = this.fnParseArgs(node.args), // "then" statements
-			sPart = aNodeArgs.join("; ");
+
+		const sPart = this.fnThenOrElsePart(node.args); // "then" statements
 
 		value += '\ncase "' + sLabel + '": ' + sPart + ";";
 		value += '\ncase "' + sLabel + 'e": ';

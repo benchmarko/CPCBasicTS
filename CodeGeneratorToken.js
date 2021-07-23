@@ -389,19 +389,32 @@ var CodeGeneratorToken = /** @class */ (function () {
         var sName2 = CodeGeneratorToken.token2String(node.type) + sSpace + sName, sValue = sName2 + sNodeArgs;
         return sValue;
     };
-    CodeGeneratorToken.prototype["for"] = function (node) {
-        var aNodeArgs = this.fnParseArgs(node.args), sVarName = aNodeArgs[0], startValue = aNodeArgs[1], endValue = aNodeArgs[2], stepValue = aNodeArgs[3];
-        var sValue = CodeGeneratorToken.token2String(node.type) + sVarName + CodeGeneratorToken.token2String("=") + startValue + CodeGeneratorToken.token2String("to") + endValue;
+    /*
+    private "for"(node: ParserNode) {
+        const aNodeArgs = this.fnParseArgs(node.args),
+            sVarName = aNodeArgs[0],
+            startValue = aNodeArgs[1],
+            endValue = aNodeArgs[2],
+            stepValue = aNodeArgs[3];
+        let sValue = CodeGeneratorToken.token2String(node.type) + sVarName + CodeGeneratorToken.token2String("=") + startValue + CodeGeneratorToken.token2String("to") + endValue;
+
         if (stepValue !== "") { // "null" is ""
             sValue += CodeGeneratorToken.token2String("step") + stepValue;
         }
         return sValue;
+    }
+    */
+    CodeGeneratorToken.prototype["for"] = function (node) {
+        var aNodeArgs = this.fnParseArgs(node.args);
+        return CodeGeneratorToken.token2String(node.type) + aNodeArgs.join("");
     };
     CodeGeneratorToken.prototype.fnThenOrElsePart = function (oNodeBranch) {
         var aNodeArgs = this.fnParseArgs(oNodeBranch); // args for "then" oe "else"
+        /*
         if (oNodeBranch.length && oNodeBranch[0].type === "goto" && oNodeBranch[0].len === 0) { // inserted goto?
-            aNodeArgs[0] = this.fnParseOneArg(oNodeBranch[0].args[0]); // take just line number
+            aNodeArgs[0] = this.fnParseOneArg(oNodeBranch[0].args![0]); // take just line number
         }
+        */
         return this.combineArgsWithSeparator(aNodeArgs);
     };
     CodeGeneratorToken.prototype["if"] = function (node) {
@@ -489,8 +502,8 @@ var CodeGeneratorToken = /** @class */ (function () {
         return sValue;
     };
     CodeGeneratorToken.prototype.onGotoGosub = function (node) {
-        var sLeft = this.fnParseOneArg(node.left), aNodeArgs = this.fnParseArgs(node.args), sType2 = node.type === "onGoto" ? "goto" : "gosub";
-        return CodeGeneratorToken.token2String("on") + sLeft + CodeGeneratorToken.token2String(sType2) + aNodeArgs.join(",");
+        var sLeft = this.fnParseOneArg(node.left), aNodeArgs = this.fnParseArgs(node.args), sRight = this.fnParseOneArg(node.right); // "goto" or "gosub"
+        return CodeGeneratorToken.token2String("on") + sLeft + sRight + aNodeArgs.join(",");
     };
     CodeGeneratorToken.prototype.onSqGosub = function (node) {
         var sLeft = this.fnParseOneArg(node.left), aNodeArgs = this.fnParseArgs(node.args), sValue = CodeGeneratorToken.token2String("_onSq") + "(" + sLeft + ")" + CodeGeneratorToken.token2String("gosub") + aNodeArgs.join(",");
@@ -615,7 +628,7 @@ var CodeGeneratorToken = /** @class */ (function () {
                 }
                 value += CodeGeneratorToken.token2String(mOperators[sType]) + value2;
             }
-            else { // unary operator
+            else if (node.right) { // unary operator, e.g. not
                 var oRight = node.right;
                 value = this.parseNode(oRight);
                 var pr = void 0;
@@ -630,6 +643,12 @@ var CodeGeneratorToken = /** @class */ (function () {
                     value = "(" + value + ")";
                 }
                 value = CodeGeneratorToken.token2String(mOperators[sType]) + value;
+            }
+            else if (sType === "=") { // no operator, "=" in "for"
+                value = CodeGeneratorToken.token2String(sType);
+            }
+            else { // should not occure
+                value = this.fnParseOther(node);
             }
         }
         else if (this.mParseFunctions[sType]) { // function with special handling?

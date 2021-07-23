@@ -902,6 +902,7 @@ export class Controller implements IController {
 					bKeepWhiteSpace: true
 				}),
 				parser: new BasicParser({
+					bKeepTokens: true,
 					bKeepBrackets: true,
 					bKeepColons: true,
 					bKeepDataComma: true
@@ -942,6 +943,7 @@ export class Controller implements IController {
 			bKeepWhiteSpace: bKeepWhiteSpace
 		});
 		this.oCodeGeneratorBasic.getParser().setOptions({
+			bKeepTokens: true,
 			bKeepBrackets: bKeepBrackets,
 			bKeepColons: bKeepColons,
 			bKeepDataComma: bKeepDataComma

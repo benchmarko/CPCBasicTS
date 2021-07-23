@@ -38,7 +38,7 @@ export declare class CodeGeneratorBasic {
     private data;
     private def;
     private "else";
-    private entEnv;
+    private entOrEnv;
     private fn;
     private "for";
     private fnThenOrElsePart;

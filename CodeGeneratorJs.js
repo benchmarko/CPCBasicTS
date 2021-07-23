@@ -807,11 +807,8 @@ var CodeGeneratorJs = /** @class */ (function () {
         if (!node.args) {
             throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occure
         }
-        var startNode = node.args[1], endNode = node.args[2], stepNode = node.args[3];
-        var startValue = aNodeArgs[1], endValue = aNodeArgs[2], stepValue = aNodeArgs[3];
-        if (stepNode.type === "null") { // value not available?
-            stepValue = "1";
-        }
+        var startNode = node.args[1], endNode = node.args[2], stepNode = node.args[3]; // optional
+        var startValue = aNodeArgs[1], endValue = aNodeArgs[2], stepValue = stepNode ? aNodeArgs[3] : "1"; // default step
         // optimization for integer constants (check value and not type, because we also want to accept e.g. -<number>):
         var bStartIsIntConst = CodeGeneratorJs.fnIsIntConst(startValue), bEndIsIntConst = CodeGeneratorJs.fnIsIntConst(endValue), bStepIsIntConst = CodeGeneratorJs.fnIsIntConst(stepValue), sVarType = this.fnDetermineStaticVarType(sVarName), sType = (sVarType.length > 1) ? sVarType.charAt(1) : "";
         if (sType === "$") {
@@ -833,7 +830,7 @@ var CodeGeneratorJs = /** @class */ (function () {
         }
         var sStepName;
         if (!bStepIsIntConst) {
-            if (stepNode.pt !== "I") {
+            if (stepNode && stepNode.pt !== "I") {
                 stepValue = "o.vmAssign(\"" + sVarType + "\", " + stepValue + ")";
             }
             sStepName = sVarName + "Step";
@@ -887,6 +884,13 @@ var CodeGeneratorJs = /** @class */ (function () {
         node.pv = 'o.gosub("' + sName + '", ' + sLine + '); break; \ncase "' + sName + '":';
         return node.pv;
     };
+    /*
+    private fnGoto1(sLine: string, node: CodeNode) {
+        this.fnAddReferenceLabel(sLine, node.args[0]);
+        node.pv = "o.goto(" + sLine + "); break";
+        return node.pv;
+    }
+    */
     CodeGeneratorJs.prototype["goto"] = function (node) {
         var aNodeArgs = this.fnParseArgs(node.args), sLine = aNodeArgs[0];
         if (!node.args) {
@@ -896,6 +900,15 @@ var CodeGeneratorJs = /** @class */ (function () {
         node.pv = "o.goto(" + sLine + "); break";
         return node.pv;
     };
+    CodeGeneratorJs.prototype.fnThenOrElsePart = function (aArgs) {
+        var aNodeArgs = this.fnParseArgs(aArgs);
+        if (aArgs[0].type === "linenumber") {
+            var sLine = aNodeArgs[0];
+            this.fnAddReferenceLabel(sLine, aArgs[0]);
+            aNodeArgs[0] = "o.goto(" + sLine + "); break"; // convert to "goto"
+        }
+        return aNodeArgs.join("; ");
+    };
     CodeGeneratorJs.prototype["if"] = function (node) {
         var sLabel = this.iLine + "i" + this.iIfCount;
         this.iIfCount += 1;
@@ -904,12 +917,11 @@ var CodeGeneratorJs = /** @class */ (function () {
         }
         var value = "if (" + this.fnParseOneArg(node.left) + ') { o.goto("' + sLabel + '"); break; } ';
         if (node.args2) { // "else" statements?
-            var aNodeArgs2 = this.fnParseArgs(node.args2), sPart2 = aNodeArgs2.join("; ");
+            var sPart2 = this.fnThenOrElsePart(node.args2);
             value += "/* else */ " + sPart2 + "; ";
         }
         value += 'o.goto("' + sLabel + 'e"); break;';
-        var aNodeArgs = this.fnParseArgs(node.args), // "then" statements
-        sPart = aNodeArgs.join("; ");
+        var sPart = this.fnThenOrElsePart(node.args); // "then" statements
         value += '\ncase "' + sLabel + '": ' + sPart + ";";
         value += '\ncase "' + sLabel + 'e": ';
         node.pv = value;

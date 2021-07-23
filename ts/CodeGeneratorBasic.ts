@@ -315,7 +315,7 @@ export class CodeGeneratorBasic {
 		// TODO: whitespaces?
 		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + sValue;
 	}
-	private entEnv(node: ParserNode) { // "ent" or "env"
+	private entOrEnv(node: ParserNode) { // "ent" or "env"
 		if (!node.args) {
 			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occure
 		}
@@ -356,6 +356,7 @@ export class CodeGeneratorBasic {
 
 		return CodeGeneratorBasic.fnWs(node) + sName2 + sNodeArgs;
 	}
+	/*
 	private "for"(node: ParserNode) {
 		const aNodeArgs = this.fnParseArgs(node.args),
 			sVarName = aNodeArgs[0],
@@ -369,13 +370,20 @@ export class CodeGeneratorBasic {
 		}
 		return CodeGeneratorBasic.fnWs(node) + sValue;
 	}
+	*/
+	private "for"(node: ParserNode) {
+		const aNodeArgs = this.fnParseArgs(node.args);
+
+		for (let i = 0; i < aNodeArgs.length; i += 1) {
+			if (i !== 1 && i !== 2) { // not for "=" and startValue
+				aNodeArgs[i] = CodeGeneratorBasic.fnSpace1(aNodeArgs[i]); // set minimal spaces in case we do not keep whitespace
+			}
+		}
+		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + aNodeArgs.join("");
+	}
 
 	private fnThenOrElsePart(oNodeBranch: ParserNode[]) {
 		const aNodeArgs = this.fnParseArgs(oNodeBranch); // args for "then" or "else"
-
-		if (oNodeBranch.length && oNodeBranch[0].type === "goto" && oNodeBranch[0].len === 0) { // inserted goto?
-			aNodeArgs[0] = this.fnParseOneArg(oNodeBranch[0].args![0]); // take just line number
-		}
 
 		return CodeGeneratorBasic.fnSpace1(CodeGeneratorBasic.combineArgsWithColon(aNodeArgs));
 	}
@@ -388,8 +396,11 @@ export class CodeGeneratorBasic {
 			throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occure
 		}
 
-		let sValue = node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(this.fnParseOneArg(node.left)) + " THEN";
+		let sValue = node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(this.fnParseOneArg(node.left));
 
+		if (node.right) { // "THEN"
+			sValue += CodeGeneratorBasic.fnSpace1(this.fnParseOneArg(node.right));
+		}
 		sValue += this.fnThenOrElsePart(node.args); // "then" part
 
 		if (node.args2) {
@@ -443,9 +454,9 @@ export class CodeGeneratorBasic {
 	private onGotoGosub(node: ParserNode) {
 		const sLeft = this.fnParseOneArg(node.left as ParserNode),
 			aNodeArgs = this.fnParseArgs(node.args),
-			sType2 = node.type === "onGoto" ? "GOTO" : "GOSUB";
+			sRight = this.fnParseOneArg(node.right as ParserNode); // "goto" or "gosub"
 
-		return CodeGeneratorBasic.fnWs(node) + "ON" + CodeGeneratorBasic.fnSpace1(sLeft) + " " + sType2 + CodeGeneratorBasic.fnSpace1(aNodeArgs.join(","));
+		return CodeGeneratorBasic.fnWs(node) + "ON" + CodeGeneratorBasic.fnSpace1(sLeft) + CodeGeneratorBasic.fnSpace1(sRight) + CodeGeneratorBasic.fnSpace1(aNodeArgs.join(","));
 	}
 	private onSqGosub(node: ParserNode) {
 		const sLeft = this.fnParseOneArg(node.left as ParserNode),
@@ -512,8 +523,8 @@ export class CodeGeneratorBasic {
 		data: this.data,
 		def: this.def,
 		"else": this.else,
-		ent: this.entEnv,
-		env: this.entEnv,
+		ent: this.entOrEnv,
+		env: this.entOrEnv,
 		everyGosub: this.afterEveryGosub,
 		fn: this.fn,
 		"for": this.for,
@@ -629,8 +640,8 @@ export class CodeGeneratorBasic {
 				}
 
 				value += sOperator + value2;
-			} else { // unary operator, e.g. not
-				const oRight = node.right as ParserNode;
+			} else if (node.right) { // unary operator, e.g. not
+				const oRight = node.right;
 
 				value = this.parseNode(oRight);
 				let pr: number;
@@ -655,6 +666,8 @@ export class CodeGeneratorBasic {
 					value = " " + value;
 				}
 				value = sOperator + value;
+			} else { // no operator, e.g. "=" in "for"
+				value = this.fnParseOther(node);
 			}
 		} else if (this.mParseFunctions[sType]) { // function with special handling?
 			value = this.mParseFunctions[sType].call(this, node);

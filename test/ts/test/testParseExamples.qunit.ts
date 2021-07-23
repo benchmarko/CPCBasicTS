@@ -155,6 +155,7 @@ class cpcBasic {
 
 	static oConvertParser = new BasicParser({ // TODO: use one BasicParser
 		bQuiet: true,
+		bKeepTokens: true,
 		bKeepBrackets: true,
 		bKeepColons: true,
 		bKeepDataComma: true

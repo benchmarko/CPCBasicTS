@@ -118,6 +118,7 @@ export declare class CodeGeneratorJs {
     private frame;
     private gosub;
     private "goto";
+    private fnThenOrElsePart;
     private "if";
     private input;
     private let;
