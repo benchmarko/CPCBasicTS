@@ -1,6 +1,6 @@
 {
   "name": "cpcbasicts",
-  "version": "0.0.28",
+  "version": "0.0.29",
   "description": "# CPCBasicTS - Run CPC BASIC in a Browser",
   "main": "cpcbasicts.js",
   "directories": {
