@@ -1,6 +1,7 @@
 export interface CustomError extends Error {
     value: string;
     pos: number;
+    len?: number;
     line?: number | string;
     hidden?: boolean;
     shortMessage?: string;
@@ -24,5 +25,5 @@ export declare class Utils {
     static localStorage: Storage;
     static atob: (arg0: string) => string;
     static btoa: (arg0: string) => string;
-    static composeError(name: string, oErrorObject: Error, message: string, value: string, pos: number, line?: string | number, hidden?: boolean): CustomError;
+    static composeError(name: string, oErrorObject: Error, message: string, value: string, pos: number, len?: number, line?: string | number, hidden?: boolean): CustomError;
 }

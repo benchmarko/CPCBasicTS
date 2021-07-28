@@ -1275,7 +1275,7 @@ var CpcVm = /** @class */ (function () {
             this.vmStop("error", 50);
         }
         Utils_1.Utils.console.log("BASIC error(" + iErr + "):", sErrorWithInfo + (bHidden ? " (hidden: " + bHidden + ")" : ""));
-        return Utils_1.Utils.composeError("CpcVm", oError, sError, sErrInfo, -1, sLine, bHidden);
+        return Utils_1.Utils.composeError("CpcVm", oError, sError, sErrInfo, -1, undefined, sLine, bHidden);
     };
     CpcVm.prototype.error = function (iErr, sErrInfo) {
         iErr = this.vmInRangeRound(iErr, 0, 255, "ERROR"); // could trigger another error

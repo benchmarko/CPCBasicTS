@@ -207,7 +207,7 @@ export class DiskImage {
 	}
 
 	private composeError(oError: Error, message: string, value: string, pos?: number) {
-		return Utils.composeError("DiskImage", oError, this.sDiskName + ": " + message, value, pos || 0);
+		return Utils.composeError("DiskImage", oError, this.sDiskName + ": " + message, value, pos || 0, undefined);
 	}
 
 	static testDiskIdent(sIdent: string): number {

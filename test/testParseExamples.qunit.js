@@ -346,8 +346,12 @@ function testParseExample(oExample) {
             }
             catch (e) {
                 oOutput.error = e;
+                Utils_1.Utils.console.error("Error in file", oExample.key);
                 Utils_1.Utils.console.error(e);
             }
+        }
+        else {
+            Utils_1.Utils.console.error("There was an error when parsing file", oExample.key);
         }
     }
     else {
@@ -356,6 +360,7 @@ function testParseExample(oExample) {
             text: "UNPARSED DATA FILE: " + oExample.key,
             error: undefined
         };
+        cpcBasic.iIgnoredExamples += 1;
     }
     if (Utils_1.Utils.debug > 0) {
         Utils_1.Utils.console.debug("testParseExample:", oExample.key, "inputLen:", sInput.length, "outputLen:", oOutput.text.length);
@@ -389,16 +394,22 @@ function testLoadExample(oExample) {
     if (cpcBasic.assert) {
         cpcBasic.fnExampleDone1 = cpcBasic.assert.async();
     }
-    if (bNodeJsAvail) {
-        if (isUrl(sFileOrUrl)) {
-            nodeReadUrl(sFileOrUrl, fnExampleLoaded);
+    try {
+        if (bNodeJsAvail) {
+            if (isUrl(sFileOrUrl)) {
+                nodeReadUrl(sFileOrUrl, fnExampleLoaded);
+            }
+            else {
+                nodeReadFile(sFileOrUrl, fnExampleLoaded);
+            }
         }
         else {
-            nodeReadFile(sFileOrUrl, fnExampleLoaded);
+            Utils_1.Utils.loadScript(sFileOrUrl, fnExampleLoadedUtils, fnExampleErrorUtils, sExample);
         }
     }
-    else {
-        Utils_1.Utils.loadScript(sFileOrUrl, fnExampleLoadedUtils, fnExampleErrorUtils, sExample);
+    catch (e) {
+        Utils_1.Utils.console.error("Error in file", sExample);
+        Utils_1.Utils.console.error(e);
     }
 }
 function testNextExample() {
@@ -482,98 +493,18 @@ function testNextIndex() {
         }
     }
     if (!bNextIndex) {
-        Utils_1.Utils.console.log("testParseExamples: Total examples:", cpcBasic.iTotalExamples);
+        Utils_1.Utils.console.log("testParseExamples: Total examples:", cpcBasic.iTotalExamples, "/ Ignored examples:", cpcBasic.iIgnoredExamples);
     }
 }
 function testStart() {
     Utils_1.Utils.console.log("testParseExamples: bNodeJs:", bNodeJsAvail, " Polyfills.iCount=", Polyfills_1.Polyfills.iCount);
     cpcBasic.initVmMock1();
     cpcBasic.iTotalExamples = 0;
+    cpcBasic.iIgnoredExamples = 0;
     cpcBasic.aDatabaseNames = cpcBasic.initDatabases();
     cpcBasic.iDatabaseIndex = 0;
     testNextIndex();
 }
-/*
-// https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/node/process.d.ts
-// can be used for nodeJS
-function fnParseArgs(aArgs: string[], oConfig: ConfigType) {
-    for (let i = 0; i < aArgs.length; i += 1) {
-        const sNameValue = aArgs[i],
-            aNameValue = sNameValue.split("=", 2),
-            sName = aNameValue[0];
-
-        if (oConfig.hasOwnProperty(sName)) {
-            let sValue: string|number|boolean = aNameValue[1];
-
-            if (sValue !== undefined && oConfig.hasOwnProperty(sName)) {
-                switch (typeof oConfig[sName]) {
-                case "string":
-                    break;
-                case "boolean":
-                    sValue = (sValue === "true");
-                    break;
-                case "number":
-                    sValue = Number(sValue);
-                    break;
-                case "object":
-                    break;
-                default:
-                    break;
-                }
-            }
-            oConfig[sName] = sValue;
-        }
-    }
-    return oConfig;
-}
-
-function fnParseUri(sUrlQuery: string, oConfig: ConfigType) {
-    const rPlus = /\+/g, // Regex for replacing addition symbol with a space
-        fnDecode = function (s: string) { return decodeURIComponent(s.replace(rPlus, " ")); },
-        rSearch = /([^&=]+)=?([^&]*)/g,
-        aArgs: string[] = [];
-
-    let aMatch: RegExpExecArray | null;
-
-    while ((aMatch = rSearch.exec(sUrlQuery)) !== null) {
-        const sName = fnDecode(aMatch[1]),
-            sValue = fnDecode(aMatch[2]);
-
-        if (sValue !== null && oConfig.hasOwnProperty(sName)) {
-            aArgs.push(sName + "=" + sValue);
-        }
-    }
-    fnParseArgs(aArgs, oConfig);
-}
-
-declare global {
-    interface Window {
-        QUnit: unknown
-    }
-
-    interface NodeJsProcess {
-        argv: string[]
-    }
-    let process: NodeJsProcess;
-}
-
-
-const oConfig: ConfigType = {
-    debug: 0
-};
-
-// https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/node/process.d.ts
-if (typeof process !== "undefined") { // nodeJs
-    fnParseArgs(process.argv.slice(2), oConfig);
-} else { // browser
-    fnParseUri(window.location.search.substring(1), oConfig);
-}
-
-if (oConfig.debug) {
-    Utils.debug = oConfig.debug as number;
-    Utils.console.log("testParseExamples: Debug level:", oConfig.debug);
-}
-*/
 TestHelper_1.TestHelper.init();
 if (typeof oGlobalThis.QUnit !== "undefined") {
     Utils_1.Utils.console.log("Using QUnit");

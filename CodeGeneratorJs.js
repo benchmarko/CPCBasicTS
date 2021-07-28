@@ -151,7 +151,7 @@ var CodeGeneratorJs = /** @class */ (function () {
         this.iWhileCount = 0; // stack needed
     };
     CodeGeneratorJs.prototype.composeError = function (oError, message, value, pos) {
-        return Utils_1.Utils.composeError("CodeGeneratorJs", oError, message, value, pos, this.iLine);
+        return Utils_1.Utils.composeError("CodeGeneratorJs", oError, message, value, pos, undefined, this.iLine);
     };
     CodeGeneratorJs.createJsKeywordRegex = function () {
         return new RegExp("^(" + CodeGeneratorJs.aJsKeywords.join("|") + ")$");

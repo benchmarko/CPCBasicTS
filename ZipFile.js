@@ -20,7 +20,7 @@ var ZipFile = /** @class */ (function () {
     };
     ZipFile.prototype.composeError = function (oError, message, value, pos) {
         message = this.sZipName + ": " + message; // put zipname in message
-        return Utils_1.Utils.composeError("ZipFile", oError, message, value, pos);
+        return Utils_1.Utils.composeError("ZipFile", oError, message, value, pos, undefined);
     };
     ZipFile.prototype.subArr = function (iBegin, iLength) {
         var aData = this.aData, iEnd = iBegin + iLength;

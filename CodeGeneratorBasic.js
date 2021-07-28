@@ -57,7 +57,7 @@ var CodeGeneratorBasic = /** @class */ (function () {
         return this.parser;
     };
     CodeGeneratorBasic.prototype.composeError = function (oError, message, value, pos) {
-        return Utils_1.Utils.composeError("CodeGeneratorBasic", oError, message, value, pos, this.iLine);
+        return Utils_1.Utils.composeError("CodeGeneratorBasic", oError, message, value, pos, undefined, this.iLine);
     };
     CodeGeneratorBasic.fnWs = function (node) {
         return node.ws || "";
@@ -251,21 +251,6 @@ var CodeGeneratorBasic = /** @class */ (function () {
         var sName2 = node.value.replace(/FN/i, "FN"); // + sSpace),
         return CodeGeneratorBasic.fnWs(node) + sName2 + sNodeArgs;
     };
-    /*
-    private "for"(node: ParserNode) {
-        const aNodeArgs = this.fnParseArgs(node.args),
-            sVarName = aNodeArgs[0],
-            startValue = aNodeArgs[1],
-            endValue = aNodeArgs[2],
-            stepValue = aNodeArgs[3];
-        let sValue = node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(sVarName) + "=" + startValue + " TO" + CodeGeneratorBasic.fnSpace1(endValue);
-
-        if (stepValue !== "") { // "null" is ""
-            sValue += " STEP" + CodeGeneratorBasic.fnSpace1(stepValue);
-        }
-        return CodeGeneratorBasic.fnWs(node) + sValue;
-    }
-    */
     CodeGeneratorBasic.prototype["for"] = function (node) {
         var aNodeArgs = this.fnParseArgs(node.args);
         for (var i = 0; i < aNodeArgs.length; i += 1) {

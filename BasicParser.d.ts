@@ -29,6 +29,7 @@ export declare class BasicParser {
     private oPreviousToken;
     private oToken;
     private aParseTree;
+    private aStatements;
     setOptions(options: BasicParserOptions): void;
     constructor(options?: BasicParserOptions);
     private static mParameterTypes;
@@ -58,6 +59,7 @@ export declare class BasicParser {
     private static fnIsSingleLetterIdentifier;
     private fnGetLetterRange;
     private fnCheckRemainingTypes;
+    private fnLastStatemetIsOnErrorGotoX;
     private fnGetArgs;
     private fnGetArgsSepByCommaSemi;
     private fnGetArgsInParenthesis;

@@ -14,7 +14,7 @@ var BasicFormatter = /** @class */ (function () {
         this.parser = options.parser;
     }
     BasicFormatter.prototype.composeError = function (oError, message, value, pos) {
-        return Utils_1.Utils.composeError("BasicFormatter", oError, message, value, pos, this.sLine);
+        return Utils_1.Utils.composeError("BasicFormatter", oError, message, value, pos, undefined, this.sLine);
     };
     // renumber
     BasicFormatter.prototype.fnCreateLineNumbersMap = function (aNodes) {

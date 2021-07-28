@@ -46,7 +46,7 @@ export class BasicLexer {
 	}
 
 	private composeError(oError: Error, message: string, value: string, pos: number) {
-		return Utils.composeError("BasicLexer", oError, message, value, pos, this.sLine);
+		return Utils.composeError("BasicLexer", oError, message, value, pos, undefined, this.sLine);
 	}
 
 	private static isComment(c: string) { // isApostrophe

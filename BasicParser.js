@@ -35,6 +35,7 @@ var BasicParser = /** @class */ (function () {
         this.bAllowDirect = false;
         this.iIndex = 0;
         this.aParseTree = [];
+        this.aStatements = []; // just to check last statement when generating error message
         if (options) {
             this.setOptions(options);
         }
@@ -49,8 +50,9 @@ var BasicParser = /** @class */ (function () {
         this.bKeepColons = options.bKeepColons || false;
         this.bKeepDataComma = options.bKeepDataComma || false;
     };
-    BasicParser.prototype.composeError = function (oError, message, value, pos) {
-        return Utils_1.Utils.composeError("BasicParser", oError, message, value, pos, this.sLine);
+    BasicParser.prototype.composeError = function (oError, message, value, pos, len) {
+        var iLen = value === "(end)" ? 0 : len;
+        return Utils_1.Utils.composeError("BasicParser", oError, message, value, pos, iLen, this.sLine);
     };
     // http://crockford.com/javascript/tdop/tdop.html (old: http://javascript.crockford.com/tdop/tdop.html)
     // http://crockford.com/javascript/tdop/parse.js
@@ -120,7 +122,7 @@ var BasicParser = /** @class */ (function () {
                 throw this.composeError(Error(), "Unexpected end of file", "", t.pos);
             }
             else {
-                throw this.composeError(Error(), "Unexpected token", t.type, t.pos);
+                throw this.composeError(Error(), "Unexpected token", t.value, t.pos);
             }
         }
         var left = s.nud.call(this, t); // process literals, variables, and prefix operators
@@ -139,7 +141,9 @@ var BasicParser = /** @class */ (function () {
     };
     BasicParser.prototype.assignment = function () {
         if (this.oToken.type !== "identifier") {
-            throw this.composeError(Error(), "Expected identifier", this.oToken.type, this.oToken.pos);
+            var sTypeFirstChar = "v";
+            throw this.composeError(Error(), "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], this.oToken.value, this.oToken.pos); // variable
+            //throw this.composeError(Error(), "Expected identifier", this.oToken.value, this.oToken.pos);
         }
         var oLeft = this.expression(90), // take it (can also be an array) and stop
         oValue = this.oToken;
@@ -169,6 +173,7 @@ var BasicParser = /** @class */ (function () {
     };
     BasicParser.prototype.statements = function (sStopType) {
         var aStatements = [];
+        this.aStatements = aStatements; // fast hack to access last statement for error messages
         var bColonExpected = false;
         while (this.oToken.type !== "(end)" && this.oToken.type !== "(eol)") {
             if (sStopType && this.oToken.type === sStopType) {
@@ -254,11 +259,6 @@ var BasicParser = /** @class */ (function () {
         };
         return oValue;
     };
-    /*
-    private static fnCreateDummyToken(sType: string, sValue: string) {
-        return this.fnCreateDummyArg(sType, sValue);
-    }
-    */
     BasicParser.prototype.fnCombineTwoTokensNoArgs = function (sToken2) {
         var oPreviousToken = this.oPreviousToken, sName = oPreviousToken.type + Utils_1.Utils.stringCapitalize(this.oToken.type); // e.g ."speedInk"
         oPreviousToken.value += (this.oToken.ws || " ") + this.oToken.value; // combine values of both
@@ -317,10 +317,9 @@ var BasicParser = /** @class */ (function () {
         }
         else if (oLeft) {
             oRange = oLeft; // single line number
-            oRange.type = "linenumber"; // change type: number => linenumber
         }
         else {
-            throw this.composeError(Error(), "Undefined range", this.oToken.type, this.oToken.pos);
+            throw this.composeError(Error(), "Undefined range", this.oToken.value, this.oToken.pos);
         }
         return oRange;
     };
@@ -353,6 +352,20 @@ var BasicParser = /** @class */ (function () {
                 throw this.composeError(Error(), "Expected " + sText + " for " + this.oPreviousToken.type, this.oToken.value, this.oToken.pos);
             }
         }
+    };
+    BasicParser.prototype.fnLastStatemetIsOnErrorGotoX = function () {
+        var aStatements = this.aStatements;
+        var bIsOnErrorGoto = false;
+        for (var i = aStatements.length - 1; i >= 0; i -= 1) {
+            var oLastStatement = aStatements[i];
+            if (oLastStatement.type !== ":") { // ignore colons (separator when bKeepTokens=true)
+                if (oLastStatement.type === "onErrorGoto" && oLastStatement.args && Number(oLastStatement.args[0].value) > 0) {
+                    bIsOnErrorGoto = true;
+                }
+                break;
+            }
+        }
+        return bIsOnErrorGoto;
     };
     BasicParser.prototype.fnGetArgs = function (sKeyword) {
         var aTypes;
@@ -432,10 +445,32 @@ var BasicParser = /** @class */ (function () {
                         oExpression = this.fnGetLineRange(sTypeFirstChar);
                     }
                 }
+                else if (sTypeFirstChar === "n") { // number
+                    oExpression = this.expression(0);
+                    if (oExpression.type === "string" || oExpression.type === "#") { // got a string or stream? (statical check)
+                        if (!this.fnLastStatemetIsOnErrorGotoX()) { // eslint-disable-line max-depth
+                            throw this.composeError(Error(), "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], oExpression.value, oExpression.pos);
+                        }
+                        else if (!this.bQuiet) {
+                            Utils_1.Utils.console.warn(this.composeError({}, "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], oExpression.value, oExpression.pos).message);
+                        }
+                    }
+                }
+                else if (sTypeFirstChar === "s") { // string
+                    oExpression = this.expression(0);
+                    if (oExpression.type === "number") { // got e.g. number? (statical check)
+                        if (!this.fnLastStatemetIsOnErrorGotoX()) { // eslint-disable-line max-depth
+                            throw this.composeError(Error(), "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], oExpression.value, oExpression.pos);
+                        }
+                        else if (!this.bQuiet) {
+                            Utils_1.Utils.console.warn(this.composeError({}, "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], oExpression.value, oExpression.pos).message);
+                        }
+                    }
+                }
                 else {
                     oExpression = this.expression(0);
                     if (oExpression.type === "#") { // got stream?
-                        throw this.composeError(Error(), "Unexpected stream", oExpression.value, oExpression.pos);
+                        throw this.composeError(Error(), "Unexpected stream", oExpression.value, oExpression.pos); // do we still need this?
                     }
                 }
                 if (this.oToken.type === sSeparator) {
@@ -803,11 +838,6 @@ var BasicParser = /** @class */ (function () {
             }
             oValue.args.push(this.expression(0));
         }
-        /*
-        else {
-            oValue.args.push(BasicParser.fnCreateDummyArg("null"));
-        }
-        */
         return oValue;
     };
     BasicParser.prototype.fnGraphics = function () {

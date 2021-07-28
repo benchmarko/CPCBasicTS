@@ -36,7 +36,7 @@ export class BasicFormatter {
 	}
 
 	private composeError(oError: Error, message: string, value: string, pos: number) {
-		return Utils.composeError("BasicFormatter", oError, message, value, pos, this.sLine);
+		return Utils.composeError("BasicFormatter", oError, message, value, pos, undefined, this.sLine);
 	}
 
 	// renumber

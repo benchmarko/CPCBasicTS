@@ -115,13 +115,14 @@ var Utils = /** @class */ (function () {
     Utils.stringTrimEnd = function (sStr) {
         return sStr.replace(/[\s\uFEFF\xA0]+$/, "");
     };
-    Utils.composeError = function (name, oErrorObject, message, value, pos, line, hidden) {
+    Utils.composeError = function (name, oErrorObject, message, value, pos, len, line, hidden) {
         var oCustomError = oErrorObject;
         oCustomError.name = name;
         oCustomError.message = message;
         oCustomError.value = value;
-        if (pos !== undefined) {
-            oCustomError.pos = pos;
+        oCustomError.pos = pos;
+        if (len !== undefined) {
+            oCustomError.len = len;
         }
         if (line !== undefined) {
             oCustomError.line = line;
@@ -129,9 +130,13 @@ var Utils = /** @class */ (function () {
         if (hidden !== undefined) {
             oCustomError.hidden = hidden;
         }
-        var iEndPos = (oCustomError.pos || 0) + ((oCustomError.value !== undefined) ? String(oCustomError.value).length : 0);
-        oCustomError.shortMessage = oCustomError.message + (oCustomError.line !== undefined ? " in " + oCustomError.line : " at pos " + (oCustomError.pos || 0) + "-" + iEndPos) + ": " + oCustomError.value;
-        oCustomError.message += (oCustomError.line !== undefined ? " in " + oCustomError.line : "") + " at pos " + (oCustomError.pos || 0) + "-" + iEndPos + ": " + oCustomError.value;
+        var iLen = oCustomError.len;
+        if (iLen === undefined && oCustomError.value !== undefined) {
+            iLen = String(oCustomError.value).length;
+        }
+        var iEndPos = oCustomError.pos + (iLen || 0);
+        oCustomError.shortMessage = oCustomError.message + (oCustomError.line !== undefined ? " in " + oCustomError.line : " at pos " + oCustomError.pos + "-" + iEndPos) + ": " + oCustomError.value;
+        oCustomError.message += (oCustomError.line !== undefined ? " in " + oCustomError.line : "") + " at pos " + oCustomError.pos + "-" + iEndPos + ": " + oCustomError.value;
         return oCustomError;
     };
     Utils.debug = 0;

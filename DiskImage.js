@@ -31,7 +31,7 @@ var DiskImage = /** @class */ (function () {
         this.oFormat = DiskImage.getInitialFormat();
     };
     DiskImage.prototype.composeError = function (oError, message, value, pos) {
-        return Utils_1.Utils.composeError("DiskImage", oError, this.sDiskName + ": " + message, value, pos || 0);
+        return Utils_1.Utils.composeError("DiskImage", oError, this.sDiskName + ": " + message, value, pos || 0, undefined);
     };
     DiskImage.testDiskIdent = function (sIdent) {
         var iDiskType = 0;

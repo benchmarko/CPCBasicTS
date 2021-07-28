@@ -71,6 +71,8 @@ export class BasicParser {
 	private oToken: ParserNode; // current token
 	private aParseTree: ParserNode[] = [];
 
+	private aStatements: ParserNode[] = []; // just to check last statement when generating error message
+
 	setOptions(options: BasicParserOptions): void {
 		this.bQuiet = options.bQuiet || false;
 		this.bKeepTokens = options.bKeepTokens || false;
@@ -307,8 +309,10 @@ export class BasicParser {
 		"'": 1
 	}
 
-	private composeError(oError: Error, message: string, value: string, pos: number) {
-		return Utils.composeError("BasicParser", oError, message, value, pos, this.sLine);
+	private composeError(oError: Error, message: string, value: string, pos: number, len?: number) {
+		const iLen = value === "(end)" ? 0 : len;
+
+		return Utils.composeError("BasicParser", oError, message, value, pos, iLen, this.sLine);
 	}
 
 
@@ -387,7 +391,7 @@ export class BasicParser {
 			if (t.type === "(end)") {
 				throw this.composeError(Error(), "Unexpected end of file", "", t.pos);
 			} else {
-				throw this.composeError(Error(), "Unexpected token", t.type, t.pos);
+				throw this.composeError(Error(), "Unexpected token", t.value, t.pos);
 			}
 		}
 
@@ -409,7 +413,10 @@ export class BasicParser {
 
 	private assignment() { // "=" as assignment, similar to let
 		if (this.oToken.type !== "identifier") {
-			throw this.composeError(Error(), "Expected identifier", this.oToken.type, this.oToken.pos);
+			const sTypeFirstChar = "v";
+
+			throw this.composeError(Error(), "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], this.oToken.value, this.oToken.pos); // variable
+			//throw this.composeError(Error(), "Expected identifier", this.oToken.value, this.oToken.pos);
 		}
 
 		const oLeft = this.expression(90), // take it (can also be an array) and stop
@@ -448,6 +455,7 @@ export class BasicParser {
 	private statements(sStopType: string) {
 		const aStatements: ParserNode[] = [];
 
+		this.aStatements = aStatements; // fast hack to access last statement for error messages
 		let bColonExpected = false;
 
 		while (this.oToken.type !== "(end)" && this.oToken.type !== "(eol)") {
@@ -548,12 +556,6 @@ export class BasicParser {
 		return oValue;
 	}
 
-	/*
-	private static fnCreateDummyToken(sType: string, sValue: string) {
-		return this.fnCreateDummyArg(sType, sValue);
-	}
-	*/
-
 	private fnCombineTwoTokensNoArgs(sToken2: string) {
 		const oPreviousToken = this.oPreviousToken,
 			sName = oPreviousToken.type + Utils.stringCapitalize(this.oToken.type); // e.g ."speedInk"
@@ -626,9 +628,8 @@ export class BasicParser {
 			oRange.right = oRight || BasicParser.fnCreateDummyArg("null"); // insert dummy for right (do not skip it)
 		} else if (oLeft) {
 			oRange = oLeft; // single line number
-			oRange.type = "linenumber"; // change type: number => linenumber
 		} else {
-			throw this.composeError(Error(), "Undefined range", this.oToken.type, this.oToken.pos);
+			throw this.composeError(Error(), "Undefined range", this.oToken.value, this.oToken.pos);
 		}
 
 		return oRange;
@@ -666,6 +667,23 @@ export class BasicParser {
 				throw this.composeError(Error(), "Expected " + sText + " for " + this.oPreviousToken.type, this.oToken.value, this.oToken.pos);
 			}
 		}
+	}
+
+	private fnLastStatemetIsOnErrorGotoX() {
+		const aStatements = this.aStatements;
+		let bIsOnErrorGoto = false;
+
+		for (let i = aStatements.length - 1; i >= 0; i -= 1) {
+			const oLastStatement = aStatements[i];
+
+			if (oLastStatement.type !== ":") { // ignore colons (separator when bKeepTokens=true)
+				if (oLastStatement.type === "onErrorGoto" && oLastStatement.args && Number(oLastStatement.args[0].value) > 0) {
+					bIsOnErrorGoto = true;
+				}
+				break;
+			}
+		}
+		return bIsOnErrorGoto;
 	}
 
 	private fnGetArgs(sKeyword?: string) { // eslint-disable-line complexity
@@ -743,12 +761,31 @@ export class BasicParser {
 					} else {
 						oExpression = this.fnGetLineRange(sTypeFirstChar);
 					}
+				} else if (sTypeFirstChar === "n") { // number
+					oExpression = this.expression(0);
+					if (oExpression.type === "string" || oExpression.type === "#") { // got a string or stream? (statical check)
+						if (!this.fnLastStatemetIsOnErrorGotoX()) { // eslint-disable-line max-depth
+							throw this.composeError(Error(), "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], oExpression.value, oExpression.pos);
+						} else if (!this.bQuiet) {
+							Utils.console.warn(this.composeError({} as Error, "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], oExpression.value, oExpression.pos).message);
+						}
+					}
+				} else if (sTypeFirstChar === "s") { // string
+					oExpression = this.expression(0);
+					if (oExpression.type === "number") { // got e.g. number? (statical check)
+						if (!this.fnLastStatemetIsOnErrorGotoX()) { // eslint-disable-line max-depth
+							throw this.composeError(Error(), "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], oExpression.value, oExpression.pos);
+						} else if (!this.bQuiet) {
+							Utils.console.warn(this.composeError({} as Error, "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], oExpression.value, oExpression.pos).message);
+						}
+					}
 				} else {
 					oExpression = this.expression(0);
 					if (oExpression.type === "#") { // got stream?
-						throw this.composeError(Error(), "Unexpected stream", oExpression.value, oExpression.pos);
+						throw this.composeError(Error(), "Unexpected stream", oExpression.value, oExpression.pos); // do we still need this?
 					}
 				}
+
 				if (this.oToken.type === sSeparator) {
 					this.advance(sSeparator);
 					bNeedMore = true;
@@ -1202,11 +1239,6 @@ export class BasicParser {
 			}
 			oValue.args.push(this.expression(0));
 		}
-		/*
-		else {
-			oValue.args.push(BasicParser.fnCreateDummyArg("null"));
-		}
-		*/
 		return oValue;
 	}
 

@@ -28,7 +28,7 @@ var BasicLexer = /** @class */ (function () {
         this.bKeepWhiteSpace = options.bKeepWhiteSpace || false;
     };
     BasicLexer.prototype.composeError = function (oError, message, value, pos) {
-        return Utils_1.Utils.composeError("BasicLexer", oError, message, value, pos, this.sLine);
+        return Utils_1.Utils.composeError("BasicLexer", oError, message, value, pos, undefined, this.sLine);
     };
     BasicLexer.isComment = function (c) {
         return (/[']/).test(c);

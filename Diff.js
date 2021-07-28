@@ -11,7 +11,7 @@ var Diff = /** @class */ (function () {
     }
     // Refer to http://www.xmailserver.org/diff2.pdf
     Diff.composeError = function (oError, message, value, pos) {
-        return Utils_1.Utils.composeError("Diff", oError, message, value, pos, 0);
+        return Utils_1.Utils.composeError("Diff", oError, message, value, pos, undefined, 0);
     };
     Diff.inRange = function (x, l, r) {
         return (l <= x && x <= r) || (r <= x && x <= l);
