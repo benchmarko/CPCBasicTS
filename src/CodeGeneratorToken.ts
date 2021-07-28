@@ -333,7 +333,7 @@ export class CodeGeneratorToken {
 	}
 
 	private composeError(oError: Error, message: string, value: string, pos: number) { // eslint-disable-line class-methods-use-this
-		return Utils.composeError("CodeGeneratorToken", oError, message, value, pos, this.iLine);
+		return Utils.composeError("CodeGeneratorToken", oError, message, value, pos, undefined, this.iLine);
 	}
 
 	private static convUInt8ToString(n: number) {
@@ -449,14 +449,6 @@ export class CodeGeneratorToken {
 		return sLeft + CodeGeneratorToken.token2String("-") + sRight;
 	}
 
-	/*
-	private static fnDecodeEscapeSequence(str: string) {
-		return str.replace(/\\x([0-9A-Fa-f]{2})/g, function () {
-			return String.fromCharCode(parseInt(arguments[1], 16));
-		});
-	}
-	*/
-
 	private fnParenthesisOpen(node: ParserNode) { // special construct to combine tokens (only used in BasicParser keep brackets mode)
 		let oValue = node.value;
 
@@ -470,15 +462,9 @@ export class CodeGeneratorToken {
 	}
 
 	private static string(node: ParserNode) {
-		//let sValue = Utils.hexUnescape(node.value);
-
-		//sValue = sValue.replace(/\\\\/g, "\\"); // unescape backslashes
 		return '"' + node.value + '"'; //TTT how to set unterminated string?
 	}
 	private static unquoted(node: ParserNode) {
-		//let sValue = Utils.hexUnescape(node.value);
-
-		//sValue = sValue.replace(/\\\\/g, "\\"); // unescape backslashes
 		return node.value;
 	}
 	private static fnNull() { // "null" means: no parameter specified
@@ -767,21 +753,7 @@ export class CodeGeneratorToken {
 
 		return sValue;
 	}
-	/*
-	private "for"(node: ParserNode) {
-		const aNodeArgs = this.fnParseArgs(node.args),
-			sVarName = aNodeArgs[0],
-			startValue = aNodeArgs[1],
-			endValue = aNodeArgs[2],
-			stepValue = aNodeArgs[3];
-		let sValue = CodeGeneratorToken.token2String(node.type) + sVarName + CodeGeneratorToken.token2String("=") + startValue + CodeGeneratorToken.token2String("to") + endValue;
 
-		if (stepValue !== "") { // "null" is ""
-			sValue += CodeGeneratorToken.token2String("step") + stepValue;
-		}
-		return sValue;
-	}
-	*/
 	private "for"(node: ParserNode) {
 		const aNodeArgs = this.fnParseArgs(node.args);
 
@@ -790,12 +762,6 @@ export class CodeGeneratorToken {
 
 	private fnThenOrElsePart(oNodeBranch: ParserNode[]) {
 		const aNodeArgs = this.fnParseArgs(oNodeBranch); // args for "then" oe "else"
-
-		/*
-		if (oNodeBranch.length && oNodeBranch[0].type === "goto" && oNodeBranch[0].len === 0) { // inserted goto?
-			aNodeArgs[0] = this.fnParseOneArg(oNodeBranch[0].args![0]); // take just line number
-		}
-		*/
 
 		return this.combineArgsWithSeparator(aNodeArgs);
 	}
@@ -810,16 +776,6 @@ export class CodeGeneratorToken {
 
 		let sValue = CodeGeneratorToken.token2String(node.type) + this.fnParseOneArg(node.left) + CodeGeneratorToken.token2String("then");
 
-		/*
-		const oNodeBranch = node.args,
-			aNodeArgs = this.fnParseArgs(oNodeBranch); // args for "then"
-
-		if (oNodeBranch.length && oNodeBranch[0].type === "goto" && oNodeBranch[0].len === 0) { // inserted goto?
-			aNodeArgs[0] = this.fnParseOneArg(oNodeBranch[0].args![0]); // take just line number
-		}
-		sValue += this.combineArgsWithSeparator(aNodeArgs);
-		*/
-
 		sValue += this.fnThenOrElsePart(node.args); // "then" part
 
 		if (node.args2) {
@@ -828,15 +784,6 @@ export class CodeGeneratorToken {
 			}
 
 			sValue += CodeGeneratorToken.token2String("else") + this.fnThenOrElsePart(node.args2); // "else" part
-			/*
-			const oNodeBranch2 = node.args2,
-				aNodeArgs2 = this.fnParseArgs(oNodeBranch2); // args for "else"
-
-			if (oNodeBranch2.length && oNodeBranch2[0].type === "goto" && oNodeBranch2[0].len === 0) { // inserted goto?
-				aNodeArgs2[0] = this.fnParseOneArg(oNodeBranch2[0].args![0]); // take just line number
-			}
-			sValue += this.combineArgsWithSeparator(aNodeArgs2);
-			*/
 		}
 		return sValue;
 	}

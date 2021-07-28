@@ -806,48 +806,6 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 	}
 
 	TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
-
-	/*
-	function generateTests(oAllTests: AllTestsType) {
-		for (const sCategory in oAllTests) {
-			if (oAllTests.hasOwnProperty(sCategory)) {
-				(function (sCat) { // eslint-disable-line no-loop-func
-					QUnit.test(sCat, function (assert: Assert) {
-						runTestsFor(assert, sCat, oAllTests[sCat]);
-					});
-				}(sCategory));
-			}
-		}
-	}
-
-	TestHelper.generateTests(mAllTests, runTestsFor);
-
-	// generate result list (not used during the test, just for debugging)
-
-	function generateAllResults(oAllTests: AllTestsType) {
-		let sResult = "";
-
-		for (const sCategory in oAllTests) {
-			if (oAllTests.hasOwnProperty(sCategory)) {
-				const aResults: string[] = [],
-					bContainsSpace = sCategory.indexOf(" ") >= 0,
-					sMarker = bContainsSpace ? '"' : "";
-
-				sResult += sMarker + sCategory + sMarker + ": {\n";
-
-				runTestsFor(undefined, sCategory, oAllTests[sCategory], aResults);
-				sResult += aResults.join(",\n");
-				sResult += "\n},\n";
-			}
-		}
-		Utils.console.log(sResult);
-		return sResult;
-	}
-
-	if (bGenerateAllResults) {
-		TestHelper.generateAllResults(mAllTests, runTestsFor);
-	}
-	*/
 });
 
 // end

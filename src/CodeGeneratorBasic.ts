@@ -105,7 +105,7 @@ export class CodeGeneratorBasic {
 	}
 
 	private composeError(oError: Error, message: string, value: string, pos: number) { // eslint-disable-line class-methods-use-this
-		return Utils.composeError("CodeGeneratorBasic", oError, message, value, pos, this.iLine);
+		return Utils.composeError("CodeGeneratorBasic", oError, message, value, pos, undefined, this.iLine);
 	}
 
 	private static fnWs(node: ParserNode) {
@@ -356,21 +356,6 @@ export class CodeGeneratorBasic {
 
 		return CodeGeneratorBasic.fnWs(node) + sName2 + sNodeArgs;
 	}
-	/*
-	private "for"(node: ParserNode) {
-		const aNodeArgs = this.fnParseArgs(node.args),
-			sVarName = aNodeArgs[0],
-			startValue = aNodeArgs[1],
-			endValue = aNodeArgs[2],
-			stepValue = aNodeArgs[3];
-		let sValue = node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(sVarName) + "=" + startValue + " TO" + CodeGeneratorBasic.fnSpace1(endValue);
-
-		if (stepValue !== "") { // "null" is ""
-			sValue += " STEP" + CodeGeneratorBasic.fnSpace1(stepValue);
-		}
-		return CodeGeneratorBasic.fnWs(node) + sValue;
-	}
-	*/
 	private "for"(node: ParserNode) {
 		const aNodeArgs = this.fnParseArgs(node.args);
 

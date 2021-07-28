@@ -1833,7 +1833,7 @@ export class CpcVm {
 			this.vmStop("error", 50);
 		}
 		Utils.console.log("BASIC error(" + iErr + "):", sErrorWithInfo + (bHidden ? " (hidden: " + bHidden + ")" : ""));
-		return Utils.composeError("CpcVm", oError, sError, sErrInfo, -1, sLine, bHidden);
+		return Utils.composeError("CpcVm", oError, sError, sErrInfo, -1, undefined, sLine, bHidden);
 	}
 
 	error(iErr: number, sErrInfo: string): void {

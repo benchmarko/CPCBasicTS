@@ -175,6 +175,7 @@ Several examples use CPCBasicTS mode 3, e.g. [Art](https://benchmarko.github.io/
 - Use *OPENIN* and *INPUT#9* to load data from a file in the current "directory" or from Browser local storage
 - If the program is complete (that means, no *MERGE* or *CHAIN MERGE* inside), line number destinations are checked for existence. For example, if the line number in *GOTO line* does not exist, the compilation fails.
 - The commands and functions are checked for number of arguments but not always for argument types.
+- There is some statically type checking which prevents a program from compiling, e.g. using a string where a number is espected: `ASC(0)` and the other way around: `chr$("A")`. If you want to run such a program, make sure you put an *ON ERROR GOTO x* with x>0 directly before the erroneous statement.
 
 ## BASIC Features
 
@@ -243,6 +244,8 @@ QUnit tests:
 - [ZipFile.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/ZipFile.qunit.html)
 - [testParseExamples.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/testParseExamples.qunit.html) (parse all examples)
 - [testsuite.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/testsuite.qunit.html) (run all tests)
+
+It is possible to use URL parameter *generateAll=true* to gererate the expected results in the console.
 
 IFrames test:
 

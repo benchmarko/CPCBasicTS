@@ -1531,35 +1531,6 @@ export class Controller implements IController {
 		return oOutput;
 	}
 
-	/*
-	fnPretty(): void {
-		const sInput = this.view.getAreaValue("inputText"),
-			oCodeGeneratorBasic = new CodeGeneratorBasic({
-				lexer: new BasicLexer({
-					bKeepWhiteSpace: true
-				}),
-				parser: new BasicParser({
-					bKeepBrackets: true
-				})
-			}),
-			oOutput = oCodeGeneratorBasic.generate(sInput);
-
-		if (oOutput.error) {
-			this.outputError(oOutput.error);
-		} else {
-			const sOutput = oOutput.text;
-
-			this.fnPutChangedInputOnStack();
-			this.setInputText(sOutput, true);
-			this.fnPutChangedInputOnStack();
-
-			const sDiff = Diff.testDiff(sInput.toUpperCase(), sOutput.toUpperCase()); // for testing
-
-			this.view.setAreaValue("outputText", sDiff);
-		}
-	}
-	*/
-
 	fnPretty(): void {
 		const sInput = this.view.getAreaValue("inputText"),
 			bKeepWhiteSpace = this.view.getInputChecked("prettySpaceInput"),

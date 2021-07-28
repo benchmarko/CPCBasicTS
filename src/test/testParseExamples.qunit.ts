@@ -124,6 +124,7 @@ class cpcBasic {
 	static assert: any;
 
 	static iTotalExamples: number;
+	static iIgnoredExamples: number;
 
 	static sBaseDir = "../"; // base test directory (relative to dist)
 	static sDataBaseDirOrUrl = "";
@@ -482,8 +483,11 @@ function testParseExample(oExample: ExampleEntry) {
 				sChecks += "(line " + cpcBasic.oVmMock.iLine + ")";
 			} catch (e) {
 				oOutput.error = e;
+				Utils.console.error("Error in file", oExample.key);
 				Utils.console.error(e);
 			}
+		} else {
+			Utils.console.error("There was an error when parsing file", oExample.key);
 		}
 	} else {
 		sChecks = "ignored";
@@ -491,6 +495,7 @@ function testParseExample(oExample: ExampleEntry) {
 			text: "UNPARSED DATA FILE: " + oExample.key,
 			error: undefined
 		};
+		cpcBasic.iIgnoredExamples += 1;
 	}
 
 	if (Utils.debug > 0) {
@@ -539,14 +544,19 @@ function testLoadExample(oExample: ExampleEntry) {
 		cpcBasic.fnExampleDone1 = cpcBasic.assert.async();
 	}
 
-	if (bNodeJsAvail) {
-		if (isUrl(sFileOrUrl)) {
-			nodeReadUrl(sFileOrUrl, fnExampleLoaded);
+	try {
+		if (bNodeJsAvail) {
+			if (isUrl(sFileOrUrl)) {
+				nodeReadUrl(sFileOrUrl, fnExampleLoaded);
+			} else {
+				nodeReadFile(sFileOrUrl, fnExampleLoaded);
+			}
 		} else {
-			nodeReadFile(sFileOrUrl, fnExampleLoaded);
+			Utils.loadScript(sFileOrUrl, fnExampleLoadedUtils, fnExampleErrorUtils, sExample);
 		}
-	} else {
-		Utils.loadScript(sFileOrUrl, fnExampleLoadedUtils, fnExampleErrorUtils, sExample);
+	} catch (e) {
+		Utils.console.error("Error in file", sExample);
+		Utils.console.error(e);
 	}
 }
 
@@ -655,7 +665,7 @@ function testNextIndex() {
 	}
 
 	if (!bNextIndex) {
-		Utils.console.log("testParseExamples: Total examples:", cpcBasic.iTotalExamples);
+		Utils.console.log("testParseExamples: Total examples:", cpcBasic.iTotalExamples, "/ Ignored examples:", cpcBasic.iIgnoredExamples);
 	}
 }
 
@@ -664,93 +674,12 @@ function testStart() {
 
 	cpcBasic.initVmMock1();
 	cpcBasic.iTotalExamples = 0;
+	cpcBasic.iIgnoredExamples = 0;
 	cpcBasic.aDatabaseNames = cpcBasic.initDatabases();
 	cpcBasic.iDatabaseIndex = 0;
 	testNextIndex();
 }
 
-
-/*
-// https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/node/process.d.ts
-// can be used for nodeJS
-function fnParseArgs(aArgs: string[], oConfig: ConfigType) {
-	for (let i = 0; i < aArgs.length; i += 1) {
-		const sNameValue = aArgs[i],
-			aNameValue = sNameValue.split("=", 2),
-			sName = aNameValue[0];
-
-		if (oConfig.hasOwnProperty(sName)) {
-			let sValue: string|number|boolean = aNameValue[1];
-
-			if (sValue !== undefined && oConfig.hasOwnProperty(sName)) {
-				switch (typeof oConfig[sName]) {
-				case "string":
-					break;
-				case "boolean":
-					sValue = (sValue === "true");
-					break;
-				case "number":
-					sValue = Number(sValue);
-					break;
-				case "object":
-					break;
-				default:
-					break;
-				}
-			}
-			oConfig[sName] = sValue;
-		}
-	}
-	return oConfig;
-}
-
-function fnParseUri(sUrlQuery: string, oConfig: ConfigType) {
-	const rPlus = /\+/g, // Regex for replacing addition symbol with a space
-		fnDecode = function (s: string) { return decodeURIComponent(s.replace(rPlus, " ")); },
-		rSearch = /([^&=]+)=?([^&]*)/g,
-		aArgs: string[] = [];
-
-	let aMatch: RegExpExecArray | null;
-
-	while ((aMatch = rSearch.exec(sUrlQuery)) !== null) {
-		const sName = fnDecode(aMatch[1]),
-			sValue = fnDecode(aMatch[2]);
-
-		if (sValue !== null && oConfig.hasOwnProperty(sName)) {
-			aArgs.push(sName + "=" + sValue);
-		}
-	}
-	fnParseArgs(aArgs, oConfig);
-}
-
-declare global {
-    interface Window {
-		QUnit: unknown
-	}
-
-	interface NodeJsProcess {
-		argv: string[]
-	}
-	let process: NodeJsProcess;
-}
-
-
-const oConfig: ConfigType = {
-	debug: 0
-};
-
-// https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/node/process.d.ts
-if (typeof process !== "undefined") { // nodeJs
-	fnParseArgs(process.argv.slice(2), oConfig);
-} else { // browser
-	fnParseUri(window.location.search.substring(1), oConfig);
-}
-
-if (oConfig.debug) {
-	Utils.debug = oConfig.debug as number;
-	Utils.console.log("testParseExamples: Debug level:", oConfig.debug);
-}
-*/
 TestHelper.init();
 
 if (typeof oGlobalThis.QUnit !== "undefined") {

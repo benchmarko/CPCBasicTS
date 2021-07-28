@@ -164,7 +164,7 @@ export class CodeGeneratorJs {
 	}
 
 	private composeError(oError: Error, message: string, value: string, pos: number) {
-		return Utils.composeError("CodeGeneratorJs", oError, message, value, pos, this.iLine);
+		return Utils.composeError("CodeGeneratorJs", oError, message, value, pos, undefined, this.iLine);
 	}
 
 	private static createJsKeywordRegex() {

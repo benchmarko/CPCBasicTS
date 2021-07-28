@@ -21,7 +21,7 @@ export class Diff {
 	// Refer to http://www.xmailserver.org/diff2.pdf
 
 	private static composeError(oError: Error, message: string, value: string, pos: number) {
-		return Utils.composeError("Diff", oError, message, value, pos, 0);
+		return Utils.composeError("Diff", oError, message, value, pos, undefined, 0);
 	}
 
 	private static inRange(x: number, l: number, r: number) {

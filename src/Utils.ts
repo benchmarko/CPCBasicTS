@@ -6,6 +6,7 @@
 export interface CustomError extends Error {
 	value: string
 	pos: number
+	len?: number,
 	line?: number | string
 	hidden?: boolean
 	shortMessage?: string
@@ -170,14 +171,15 @@ export class Utils { // eslint-disable-line vars-on-top
 		return typeof window !== "undefined" && window.btoa && window.btoa.bind ? window.btoa.bind(window) : null; // we need bind!
 	}()) as (arg0: string) => string;
 
-	static composeError(name: string, oErrorObject: Error, message: string, value: string, pos: number, line?: string | number, hidden?: boolean): CustomError {
+	static composeError(name: string, oErrorObject: Error, message: string, value: string, pos: number, len?: number, line?: string | number, hidden?: boolean): CustomError {
 		const oCustomError = oErrorObject as CustomError;
 
 		oCustomError.name = name;
 		oCustomError.message = message;
 		oCustomError.value = value;
-		if (pos !== undefined) {
-			oCustomError.pos = pos;
+		oCustomError.pos = pos;
+		if (len !== undefined) {
+			oCustomError.len = len;
 		}
 		if (line !== undefined) {
 			oCustomError.line = line;
@@ -186,10 +188,16 @@ export class Utils { // eslint-disable-line vars-on-top
 			oCustomError.hidden = hidden;
 		}
 
-		const iEndPos = (oCustomError.pos || 0) + ((oCustomError.value !== undefined) ? String(oCustomError.value).length : 0);
+		let iLen = oCustomError.len;
 
-		oCustomError.shortMessage = oCustomError.message + (oCustomError.line !== undefined ? " in " + oCustomError.line : " at pos " + (oCustomError.pos || 0) + "-" + iEndPos) + ": " + oCustomError.value;
-		oCustomError.message += (oCustomError.line !== undefined ? " in " + oCustomError.line : "") + " at pos " + (oCustomError.pos || 0) + "-" + iEndPos + ": " + oCustomError.value;
+		if (iLen === undefined && oCustomError.value !== undefined) {
+			iLen = String(oCustomError.value).length;
+		}
+
+		const iEndPos = oCustomError.pos + (iLen || 0);
+
+		oCustomError.shortMessage = oCustomError.message + (oCustomError.line !== undefined ? " in " + oCustomError.line : " at pos " + oCustomError.pos + "-" + iEndPos) + ": " + oCustomError.value;
+		oCustomError.message += (oCustomError.line !== undefined ? " in " + oCustomError.line : "") + " at pos " + oCustomError.pos + "-" + iEndPos + ": " + oCustomError.value;
 		return oCustomError;
 	}
 }
