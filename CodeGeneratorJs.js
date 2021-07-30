@@ -884,13 +884,6 @@ var CodeGeneratorJs = /** @class */ (function () {
         node.pv = 'o.gosub("' + sName + '", ' + sLine + '); break; \ncase "' + sName + '":';
         return node.pv;
     };
-    /*
-    private fnGoto1(sLine: string, node: CodeNode) {
-        this.fnAddReferenceLabel(sLine, node.args[0]);
-        node.pv = "o.goto(" + sLine + "); break";
-        return node.pv;
-    }
-    */
     CodeGeneratorJs.prototype["goto"] = function (node) {
         var aNodeArgs = this.fnParseArgs(node.args), sLine = aNodeArgs[0];
         if (!node.args) {
@@ -909,21 +902,39 @@ var CodeGeneratorJs = /** @class */ (function () {
         }
         return aNodeArgs.join("; ");
     };
+    CodeGeneratorJs.fnIsSimplePart = function (sPart) {
+        var sPartNoTrailingBreak = sPart.replace(/; break$/, ""), bSimplePart = !(/case|break/).test(sPartNoTrailingBreak);
+        return bSimplePart;
+    };
     CodeGeneratorJs.prototype["if"] = function (node) {
         var sLabel = this.iLine + "i" + this.iIfCount;
         this.iIfCount += 1;
         if (!node.left) {
             throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occure
         }
-        var value = "if (" + this.fnParseOneArg(node.left) + ') { o.goto("' + sLabel + '"); break; } ';
-        if (node.args2) { // "else" statements?
-            var sPart2 = this.fnThenOrElsePart(node.args2);
-            value += "/* else */ " + sPart2 + "; ";
+        var sExpression = this.fnParseOneArg(node.left);
+        if (sExpression.endsWith(" ? -1 : 0")) { // optimize simple expression
+            sExpression = sExpression.replace(/ \? -1 : 0$/, "");
         }
-        value += 'o.goto("' + sLabel + 'e"); break;';
-        var sPart = this.fnThenOrElsePart(node.args); // "then" statements
-        value += '\ncase "' + sLabel + '": ' + sPart + ";";
-        value += '\ncase "' + sLabel + 'e": ';
+        var sThenPart = this.fnThenOrElsePart(node.args), // "then" statements
+        bSimpleThen = CodeGeneratorJs.fnIsSimplePart(sThenPart), sElsePart = node.args2 ? this.fnThenOrElsePart(node.args2) : "", // "else" statements
+        bSimpleElse = node.args2 ? CodeGeneratorJs.fnIsSimplePart(sElsePart) : true;
+        var value = "if (" + sExpression + ") { ";
+        if (bSimpleThen && bSimpleElse) {
+            value += sThenPart + "; }";
+            if (sElsePart) {
+                value += " else { " + sElsePart + "; }";
+            }
+        }
+        else {
+            value += 'o.goto("' + sLabel + '"); break; } ';
+            if (sElsePart !== "") { // "else" statements?
+                value += "/* else */ " + sElsePart + "; ";
+            }
+            value += 'o.goto("' + sLabel + 'e"); break;';
+            value += '\ncase "' + sLabel + '": ' + sThenPart + ";";
+            value += '\ncase "' + sLabel + 'e": ';
+        }
         node.pv = value;
         return node.pv;
     };

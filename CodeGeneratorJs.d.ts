@@ -119,6 +119,7 @@ export declare class CodeGeneratorJs {
     private gosub;
     private "goto";
     private fnThenOrElsePart;
+    private static fnIsSimplePart;
     private "if";
     private input;
     private let;

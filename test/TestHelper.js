@@ -3,7 +3,6 @@
 //
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TestHelper = void 0;
-//const bGenerateAllResults = false;
 var Utils_1 = require("../Utils");
 //QUnit.dump.maxDepth = 10;
 var TestHelper = /** @class */ (function () {
@@ -63,30 +62,6 @@ var TestHelper = /** @class */ (function () {
         }
         TestHelper.fnParseArgs(aArgs, oConfig);
     };
-    /*
-    static runTestsFor(assert: Assert | undefined, sCategory: string, oTests: TestsType, aResults?: string[]) {
-        // fnPrepare
-
-        for (const sKey in oTests) {
-            if (oTests.hasOwnProperty(sKey)) {
-                const oOutput = oBasicFormatter.renumber(sKey, iNew, iOld, iStep, iKeep),
-                    sResult = oOutput.error ? String(oOutput.error) : oOutput.text;
-                let sExpected = oTests[sKey];
-
-                if (!Utils.bSupportsBinaryLiterals) {
-                    sExpected = sExpected.replace(/(0b[01]+)/g, fnReplacer); // for old IE
-                }
-                if (aResults) {
-                    aResults.push('"' + sKey.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '": "' + sResult.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '"');
-                }
-
-                if (assert) {
-                    assert.strictEqual(sResult, sExpected, sKey);
-                }
-            }
-        }
-    }
-    */
     TestHelper.generateTests = function (oAllTests, runTestsFor) {
         for (var sCategory in oAllTests) {
             if (oAllTests.hasOwnProperty(sCategory)) {
@@ -118,8 +93,6 @@ var TestHelper = /** @class */ (function () {
             TestHelper.generateAllResults(oAllTests, runTestsFor);
         }
     };
-    //static debug = 0;
-    //private static bGenerateAllResults = false;
     TestHelper.oConfig = {
         debug: 0,
         generateAll: false
@@ -127,83 +100,6 @@ var TestHelper = /** @class */ (function () {
     return TestHelper;
 }());
 exports.TestHelper = TestHelper;
-/*
-    function runTestsFor(assert: Assert | undefined, oTests: TestsType, aResults?: string[]) {
-        const oBasicFormatter = new BasicFormatter({
-                lexer: new BasicLexer(),
-                parser: new BasicParser({
-                    bQuiet: true
-                })
-            }),
-            fnReplacer = function (sBin: string) {
-                return "0x" + parseInt(sBin.substr(2), 2).toString(16).toLowerCase();
-            },
-            iNew = 10,
-            iOld = 1,
-            iStep = 10,
-            iKeep = 65535;
-
-        for (const sKey in oTests) {
-            if (oTests.hasOwnProperty(sKey)) {
-                const oOutput = oBasicFormatter.renumber(sKey, iNew, iOld, iStep, iKeep),
-                    sResult = oOutput.error ? String(oOutput.error) : oOutput.text;
-                let sExpected = oTests[sKey];
-
-                if (!Utils.bSupportsBinaryLiterals) {
-                    sExpected = sExpected.replace(/(0b[01]+)/g, fnReplacer); // for old IE
-                }
-                if (aResults) {
-                    aResults.push('"' + sKey.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '": "' + sResult.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '"');
-                }
-
-                if (assert) {
-                    assert.strictEqual(sResult, sExpected, sKey);
-                }
-            }
-        }
-    }
-
-    function generateTests(oAllTests: AllTestsType) {
-        for (const sCategory in oAllTests) {
-            if (oAllTests.hasOwnProperty(sCategory)) {
-                (function (sCat) { // eslint-disable-line no-loop-func
-                    QUnit.test(sCat, function (assert: Assert) {
-                        runTestsFor(assert, oAllTests[sCat]);
-                    });
-                }(sCategory));
-            }
-        }
-    }
-
-    generateTests(mAllTests);
-
-    // generate result list (not used during the test, just for debugging)
-
-    function generateAllResults(oAllTests: AllTestsType) {
-        let sResult = "";
-
-        for (const sCategory in oAllTests) {
-            if (oAllTests.hasOwnProperty(sCategory)) {
-                const aResults: string[] = [],
-                    bContainsSpace = sCategory.indexOf(" ") >= 0,
-                    sMarker = bContainsSpace ? '"' : "";
-
-                sResult += sMarker + sCategory + sMarker + ": {\n";
-
-                runTestsFor(undefined, oAllTests[sCategory], aResults);
-                sResult += aResults.join(",\n");
-                sResult += "\n},\n";
-            }
-        }
-        Utils.console.log(sResult);
-        return sResult;
-    }
-
-    if (bGenerateAllResults) {
-        generateAllResults(mAllTests);
-    }
-});
-*/
 TestHelper.init();
 // end
 //# sourceMappingURL=TestHelper.js.map
