@@ -7,11 +7,6 @@
 // node dist/test/testParseExamples.qunit.js
 // npm test...
 
-/*
-var fs, path, __dirname;
-*/
-
-
 interface NodeHttps {
 	get: (sUrl: string, fn: (res: any) => void) => any
 }
