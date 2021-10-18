@@ -6,7 +6,6 @@ import { BasicTokenizer } from "../BasicTokenizer";
 import { AmsdosHeader, DiskImage } from "../DiskImage";
 import { ZipFile } from "../ZipFile"; // we need this just to reduce stored disk image size
 import { TestHelper, TestsType, AllTestsType } from "./TestHelper";
-//import {} from "qunit";
 
 QUnit.dump.maxDepth = 10;
 

@@ -7,7 +7,6 @@ import { BasicLexer } from "../BasicLexer"; // we use BasicLexer here just for c
 import { BasicParser } from "../BasicParser";
 import { BasicFormatter } from "../BasicFormatter";
 import { TestHelper, TestsType, AllTestsType } from "./TestHelper";
-//import {} from "qunit";
 
 QUnit.dump.maxDepth = 10;
 

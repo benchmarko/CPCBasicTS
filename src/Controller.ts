@@ -23,7 +23,7 @@ import { InputStack } from "./InputStack";
 import { Keyboard } from "./Keyboard";
 import { VirtualKeyboard } from "./VirtualKeyboard";
 import { Model, DatabasesType } from "./Model";
-import { Sound } from "./Sound";
+import { Sound, SoundData } from "./Sound";
 import { Variables, VariableValue } from "./Variables";
 import { View, SelectOptionElement } from "./View";
 import { ZipFile } from "./ZipFile";
@@ -456,7 +456,9 @@ export class Controller implements IController {
 			const aSoundData = this.oVm.vmGetSoundData();
 
 			while (aSoundData.length && this.oSound.testCanQueue(aSoundData[0].iState)) {
-				this.oSound.sound(aSoundData.shift()!);
+				const oSoundData = aSoundData.shift() as SoundData;
+
+				this.oSound.sound(oSoundData);
 			}
 			if (!aSoundData.length) {
 				if (oStop.sReason === "waitSound") { // only for this reason
@@ -1396,14 +1398,19 @@ export class Controller implements IController {
 		this.invalidateScript();
 	}
 
-	private outputError(oError: CustomError, bNoSelection?: boolean) {
-		const iStream = 0,
+	private outputError(oError: Error, bNoSelection?: boolean) {
+		const iStream = 0;
+		let sShortError: string;
+
+		if (Utils.isCustomError(oError)) {
 			sShortError = oError.shortMessage || oError.message;
+			if (!bNoSelection) {
+				const iEndPos = (oError.pos || 0) + ((oError.value !== undefined) ? String(oError.value).length : 0);
 
-		if (!bNoSelection) {
-			const iEndPos = (oError.pos || 0) + ((oError.value !== undefined) ? String(oError.value).length : 0);
-
-			this.view.setAreaSelection("inputText", oError.pos || 0, iEndPos);
+				this.view.setAreaSelection("inputText", oError.pos || 0, iEndPos);
+			}
+		} else {
+			sShortError = oError.message;
 		}
 
 		const sEscapedShortError = sShortError.replace(/([\x00-\x1f])/g, "\x01$1"); // eslint-disable-line no-control-regex
@@ -1584,8 +1591,8 @@ export class Controller implements IController {
 			type: sType
 		});
 
-		if (window.navigator && window.navigator.msSaveOrOpenBlob) { // IE11 support
-			window.navigator.msSaveOrOpenBlob(blob, sFileName);
+		if (window.navigator && (window.navigator as any).msSaveOrOpenBlob) { // IE11 support
+			(window.navigator as any).msSaveOrOpenBlob(blob, sFileName);
 		} else {
 			Controller.fnDownloadBlob(blob, sFileName);
 		}
@@ -1607,20 +1614,23 @@ export class Controller implements IController {
 
 	private selectJsError(sScript: string, e: Error) {
 		const iLineNumber = (e as any).lineNumber, // only on FireFox
-			iColumnNumber = (e as any).columnNumber,
-			iErrLine = iLineNumber - 3; // for some reason line 0 is 3
-		let iPos = 0,
-			iLine = 0;
+			iColumnNumber = (e as any).columnNumber;
 
-		while (iPos < sScript.length && iLine < iErrLine) {
-			iPos = sScript.indexOf("\n", iPos) + 1;
-			iLine += 1;
+		if (iLineNumber || iColumnNumber) { // only available on Firefox
+			const iErrLine = iLineNumber - 3; // for some reason line 0 is 3
+			let iPos = 0,
+				iLine = 0;
+
+			while (iPos < sScript.length && iLine < iErrLine) {
+				iPos = sScript.indexOf("\n", iPos) + 1;
+				iLine += 1;
+			}
+			iPos += iColumnNumber;
+
+			Utils.console.warn("Info: JS Error occurred at line", iLineNumber, "column", iColumnNumber, "pos", iPos);
+
+			this.view.setAreaSelection("outputText", iPos, iPos + 1);
 		}
-		iPos += iColumnNumber;
-
-		Utils.console.warn("Info: JS Error occurred at line", iLineNumber, "column", iColumnNumber, "pos", iPos);
-
-		this.view.setAreaSelection("outputText", iPos, iPos + 1);
 	}
 
 	private fnRun(oParas?: VmStopParas) {
@@ -1643,11 +1653,11 @@ export class Controller implements IController {
 				this.fnScript = new Function("o", sScript); // eslint-disable-line no-new-func
 			} catch (e) {
 				Utils.console.error(e);
-				if (e.lineNumber || e.columnNumber) { // only available on Firefox
+				if (e instanceof Error) {
 					this.selectJsError(sScript, e);
+					(e as CustomError).shortMessage = "JS " + String(e);
+					this.outputError(e, true);
 				}
-				e.shortMessage = "JS " + String(e);
-				this.outputError(e, true);
 				this.fnScript = undefined;
 			}
 		} else {
@@ -1686,20 +1696,22 @@ export class Controller implements IController {
 		try {
 			fnScript(this.oVm);
 		} catch (e) {
-			if (e.name === "CpcVm") {
-				if (!e.hidden) {
-					Utils.console.warn(e);
-					this.outputError(e, true);
+			if (e instanceof Error) {
+				if (e.name === "CpcVm") {
+					if (!(e as CustomError).hidden) {
+						Utils.console.warn(e);
+						this.outputError(e, true);
+					} else {
+						Utils.console.log(e.message);
+					}
 				} else {
-					Utils.console.log(e.message);
+					Utils.console.error(e);
+					this.selectJsError(this.view.getAreaValue("outputText"), e as Error);
+					this.oVm.vmComposeError(e, 2, "JS " + String(e)); // generate Syntax Error, set also err and erl and set stop
+					this.outputError(e, true);
 				}
 			} else {
 				Utils.console.error(e);
-				if (e.lineNumber || e.columnNumber) { // only available on Firefox
-					this.selectJsError(this.view.getAreaValue("outputText"), e);
-				}
-				this.oVm.vmComposeError(e, 2, "JS " + String(e)); // generate Syntax Error, set also err and erl and set stop
-				this.outputError(e, true);
 			}
 		}
 	}
@@ -1779,7 +1791,9 @@ export class Controller implements IController {
 					this.fnScript = fnScript;
 				} catch (e) {
 					Utils.console.error(e);
-					this.outputError(e, true);
+					if (e instanceof Error) {
+						this.outputError(e, true);
+					}
 				}
 			}
 
@@ -2158,12 +2172,16 @@ export class Controller implements IController {
 							this.fnLoad2(sData, sFileName, "cpcBasic/binary", aImported); // recursive
 						} catch (e) {
 							Utils.console.error(e);
-							this.outputError(e, true);
+							if (e instanceof Error) { // eslint-disable-line max-depth
+								this.outputError(e, true);
+							}
 						}
 					}
 				} catch (e) {
 					Utils.console.error(e);
-					this.outputError(e, true);
+					if (e instanceof Error) {
+						this.outputError(e, true);
+					}
 				}
 				oHeader = undefined; // ignore dsk file
 			} else { // binary
@@ -2181,10 +2199,12 @@ export class Controller implements IController {
 				aImported.push(sName);
 			} catch (e) { // maybe quota exceeded
 				Utils.console.error(e);
-				if (e.name === "QuotaExceededError") {
-					e.shortMessage = sStorageName + ": Quota exceeded";
+				if (e instanceof Error) {
+					if (e.name === "QuotaExceededError") {
+						(e as CustomError).shortMessage = sStorageName + ": Quota exceeded";
+					}
+					this.outputError(e, true);
 				}
-				this.outputError(e, true);
 			}
 		}
 	}
@@ -2251,7 +2271,9 @@ export class Controller implements IController {
 					oZip = new ZipFile(new Uint8Array(data), sName); // rather aData
 				} catch (e) {
 					Utils.console.error(e);
-					that.outputError(e, true);
+					if (e instanceof Error) {
+						that.outputError(e, true);
+					}
 				}
 				if (oZip) {
 					const oZipDirectory = oZip.getZipDirectory(),
@@ -2265,7 +2287,9 @@ export class Controller implements IController {
 							sData2 = oZip.readData(sName2);
 						} catch (e) {
 							Utils.console.error(e);
-							that.outputError(e, true);
+							if (e instanceof Error) { // eslint-disable-line max-depth
+								that.outputError(e, true);
+							}
 						}
 
 						if (sData2) {

@@ -2,7 +2,6 @@
 //
 
 import { Utils } from "../Utils";
-//import {} from "qunit";
 
 export type TestsType = {[k in string]: string};
 

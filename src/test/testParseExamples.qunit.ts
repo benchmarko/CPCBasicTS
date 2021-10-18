@@ -477,9 +477,13 @@ function testParseExample(oExample: ExampleEntry) {
 				fnScript(cpcBasic.oVmMock);
 				sChecks += "(line " + cpcBasic.oVmMock.iLine + ")";
 			} catch (e) {
-				oOutput.error = e;
 				Utils.console.error("Error in file", oExample.key);
 				Utils.console.error(e);
+				if (Utils.isCustomError(e)) {
+					oOutput.error = e;
+				} else {
+					oOutput.error = e as any;
+				}
 			}
 		} else {
 			Utils.console.error("There was an error when parsing file", oExample.key);

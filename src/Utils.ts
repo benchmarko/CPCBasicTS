@@ -171,6 +171,10 @@ export class Utils { // eslint-disable-line vars-on-top
 		return typeof window !== "undefined" && window.btoa && window.btoa.bind ? window.btoa.bind(window) : null; // we need bind!
 	}()) as (arg0: string) => string;
 
+	static isCustomError(e: unknown): e is CustomError {
+		return (e as CustomError).pos !== undefined;
+	}
+
 	static composeError(name: string, oErrorObject: Error, message: string, value: string, pos: number, len?: number, line?: string | number, hidden?: boolean): CustomError {
 		const oCustomError = oErrorObject as CustomError;
 
