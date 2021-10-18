@@ -36,6 +36,35 @@ var BasicParser = /** @class */ (function () {
         this.iIndex = 0;
         this.aParseTree = [];
         this.aStatements = []; // just to check last statement when generating error message
+        /* eslint-disable no-invalid-this */
+        this.mSpecialStatements = {
+            "'": this.fnApostrophe,
+            "|": this.fnRsx,
+            after: this.fnAfterOrEvery,
+            chain: this.fnChain,
+            clear: this.fnClear,
+            data: this.fnData,
+            def: this.fnDef,
+            "else": this.fnElse,
+            ent: this.fnEntOrEnv,
+            env: this.fnEntOrEnv,
+            every: this.fnAfterOrEvery,
+            "for": this.fnFor,
+            graphics: this.fnGraphics,
+            "if": this.fnIf,
+            input: this.fnInput,
+            key: this.fnKey,
+            let: this.fnLet,
+            line: this.fnLine,
+            mid$: this.fnMid$,
+            on: this.fnOn,
+            print: this.fnPrint,
+            "?": this.fnQuestion,
+            resume: this.fnResume,
+            speed: this.fnSpeed,
+            symbol: this.fnSymbol,
+            window: this.fnWindow
+        };
         if (options) {
             this.setOptions(options);
         }
@@ -64,20 +93,13 @@ var BasicParser = /** @class */ (function () {
     BasicParser.prototype.getToken = function () {
         return this.oToken;
     };
-    BasicParser.prototype.symbol = function (id, nud, lbp, led) {
-        var oSymbol = this.oSymbols[id];
-        if (!oSymbol) {
+    BasicParser.prototype.symbol = function (id, nud) {
+        if (!this.oSymbols[id]) {
             this.oSymbols[id] = {};
-            oSymbol = this.oSymbols[id];
         }
+        var oSymbol = this.oSymbols[id];
         if (nud) {
             oSymbol.nud = nud;
-        }
-        if (lbp) {
-            oSymbol.lbp = lbp;
-        }
-        if (led) {
-            oSymbol.led = led;
         }
         return oSymbol;
     };
@@ -87,13 +109,18 @@ var BasicParser = /** @class */ (function () {
         if (id && oToken.type !== id) {
             throw this.composeError(Error(), "Expected " + id, (oToken.value === "") ? oToken.type : oToken.value, oToken.pos);
         }
+        // additional check...
         if (this.iIndex >= this.aTokens.length) {
-            Utils_1.Utils.console.warn("advance: end of file");
+            if (!this.bQuiet) {
+                Utils_1.Utils.console.warn(this.composeError({}, "advance: End of file", oToken.value, oToken.pos).message);
+            }
             if (this.aTokens.length && this.aTokens[this.aTokens.length - 1].type === "(end)") {
                 oToken = this.aTokens[this.aTokens.length - 1];
             }
             else {
-                Utils_1.Utils.console.warn("advance: No (end) token!");
+                if (!this.bQuiet) {
+                    Utils_1.Utils.console.warn(this.composeError({}, "advance: Expected (end) token", oToken.value, oToken.pos).message);
+                }
                 oToken = BasicParser.fnCreateDummyArg("(end)");
                 oToken.value = ""; // null
             }
@@ -143,7 +170,6 @@ var BasicParser = /** @class */ (function () {
         if (this.oToken.type !== "identifier") {
             var sTypeFirstChar = "v";
             throw this.composeError(Error(), "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], this.oToken.value, this.oToken.pos); // variable
-            //throw this.composeError(Error(), "Expected identifier", this.oToken.value, this.oToken.pos);
         }
         var oLeft = this.expression(90), // take it (can also be an array) and stop
         oValue = this.oToken;
@@ -215,40 +241,41 @@ var BasicParser = /** @class */ (function () {
         }
         return oValue;
     };
-    BasicParser.prototype.infix = function (id, lbp, rbp, led) {
+    BasicParser.prototype.generateLed = function (rbp) {
         var _this = this;
-        rbp = rbp || lbp;
-        var fnLed = led || (function (left) {
+        return function (left) {
             var oValue = _this.oPreviousToken;
             oValue.left = left;
             oValue.right = _this.expression(rbp);
             return oValue;
-        });
-        this.symbol(id, undefined, lbp, fnLed);
+        };
     };
-    BasicParser.prototype.infixr = function (id, lbp) {
+    BasicParser.prototype.generateNud = function (rbp) {
         var _this = this;
-        var fnLed = (function (left) {
-            var oValue = _this.oPreviousToken;
-            oValue.left = left;
-            oValue.right = _this.expression(lbp - 1);
-            return oValue;
-        });
-        this.symbol(id, undefined, lbp, fnLed);
-    };
-    BasicParser.prototype.prefix = function (id, rbp) {
-        var _this = this;
-        var fnNud = function () {
+        return function () {
             var oValue = _this.oPreviousToken;
             oValue.right = _this.expression(rbp);
             return oValue;
         };
-        this.symbol(id, fnNud);
     };
-    BasicParser.prototype.stmt = function (s, f) {
-        var x = this.symbol(s);
-        x.std = f;
-        return x;
+    BasicParser.prototype.infix = function (id, lbp, rbp, led) {
+        rbp = rbp || lbp;
+        var oSymbol = this.symbol(id);
+        oSymbol.lbp = lbp;
+        oSymbol.led = led || this.generateLed(rbp);
+    };
+    BasicParser.prototype.infixr = function (id, lbp) {
+        var oSymbol = this.symbol(id);
+        oSymbol.lbp = lbp;
+        oSymbol.led = this.generateLed(lbp - 1);
+    };
+    BasicParser.prototype.prefix = function (id, rbp) {
+        this.symbol(id, this.generateNud(rbp));
+    };
+    BasicParser.prototype.stmt = function (id, fn) {
+        var oSymbol = this.symbol(id);
+        oSymbol.std = fn;
+        return oSymbol;
     };
     BasicParser.fnCreateDummyArg = function (sType, sValue) {
         var oValue = {
@@ -267,7 +294,7 @@ var BasicParser = /** @class */ (function () {
         return sName;
     };
     BasicParser.prototype.fnCombineTwoTokens = function (sToken2) {
-        var sName = this.fnCombineTwoTokensNoArgs(sToken2), oValue = this.fnCreateCmdCall(sName);
+        var sName = this.fnCombineTwoTokensNoArgs(sToken2), oValue = this.fnCreateCmdCallForType(sName);
         return oValue;
     };
     BasicParser.prototype.fnGetOptionalStream = function () {
@@ -285,11 +312,12 @@ var BasicParser = /** @class */ (function () {
         if (oNode.type === "number") {
             oNode.type = "linenumber"; // change type: number => linenumber
         }
-        else {
-            throw this.composeError(Error(), "Expected number type", oNode.type, oNode.pos);
+        else { // should not occure...
+            var sTypeFirstChar = "l";
+            throw this.composeError(Error(), "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], oNode.type, oNode.pos);
         }
     };
-    BasicParser.prototype.fnGetLineRange = function (sTypeFirstChar) {
+    BasicParser.prototype.fnGetLineRange = function () {
         var oLeft;
         if (this.oToken.type === "number") {
             oLeft = this.oToken;
@@ -308,9 +336,7 @@ var BasicParser = /** @class */ (function () {
                 this.advance("number");
                 this.fnChangeNumber2LineNumber(oRight);
             }
-            if (!oLeft && !oRight) {
-                throw this.composeError(Error(), "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], this.oPreviousToken.value, this.oPreviousToken.pos);
-            }
+            // accept also "-" as full range
             oRange.type = "linerange"; // change "-" => "linerange"
             oRange.left = oLeft || BasicParser.fnCreateDummyArg("null"); // insert dummy for left
             oRange.right = oRight || BasicParser.fnCreateDummyArg("null"); // insert dummy for right (do not skip it)
@@ -375,8 +401,8 @@ var BasicParser = /** @class */ (function () {
                 aTypes = sKeyOpts.split(" ");
                 aTypes.shift(); // remove keyword type
             }
-            else {
-                Utils_1.Utils.console.warn("fnGetArgs: No options for keyword", sKeyword);
+            else { // programming error, should not occure
+                Utils_1.Utils.console.warn(this.composeError({}, "fnGetArgs: No options for keyword", sKeyword, this.oToken.pos).message);
             }
         }
         var aArgs = [], sSeparator = ",", mCloseTokens = BasicParser.mCloseTokens;
@@ -432,7 +458,7 @@ var BasicParser = /** @class */ (function () {
                 else if (sTypeFirstChar === "q") { // line number range
                     if (sType === "q0?") { // optional line number range
                         if (this.oToken.type === "number" || this.oToken.type === "-") { // eslint-disable-line max-depth
-                            oExpression = this.fnGetLineRange(sTypeFirstChar);
+                            oExpression = this.fnGetLineRange();
                         }
                         else {
                             oExpression = BasicParser.fnCreateDummyArg("null");
@@ -442,7 +468,7 @@ var BasicParser = /** @class */ (function () {
                         }
                     }
                     else {
-                        oExpression = this.fnGetLineRange(sTypeFirstChar);
+                        oExpression = this.fnGetLineRange();
                     }
                 }
                 else if (sTypeFirstChar === "n") { // number
@@ -541,13 +567,16 @@ var BasicParser = /** @class */ (function () {
         }
         return aArgs;
     };
-    BasicParser.prototype.fnCreateCmdCall = function (sType) {
+    BasicParser.prototype.fnCreateCmdCall = function () {
         var oValue = this.oPreviousToken;
-        if (sType) {
-            oValue.type = sType; // override
-        }
         oValue.args = this.fnGetArgs(oValue.type);
         return oValue;
+    };
+    BasicParser.prototype.fnCreateCmdCallForType = function (sType) {
+        if (sType) {
+            this.oPreviousToken.type = sType; // override
+        }
+        return this.fnCreateCmdCall();
     };
     BasicParser.prototype.fnCreateFuncCall = function () {
         var oValue = this.oPreviousToken;
@@ -571,12 +600,12 @@ var BasicParser = /** @class */ (function () {
     BasicParser.prototype.fnGenerateKeywordSymbols = function () {
         for (var sKey in BasicParser.mKeywords) {
             if (BasicParser.mKeywords.hasOwnProperty(sKey)) {
-                var sValue = BasicParser.mKeywords[sKey];
-                if (sValue.charAt(0) === "f") {
+                var sKeywordType = BasicParser.mKeywords[sKey].charAt(0);
+                if (sKeywordType === "f") {
                     this.symbol(sKey, this.fnCreateFuncCall);
                 }
-                else if (sValue.charAt(0) === "c") {
-                    this.stmt(sKey, this.fnCreateCmdCall);
+                else if (sKeywordType === "c") {
+                    this.stmt(sKey, this.mSpecialStatements[sKey] || this.fnCreateCmdCall);
                 }
             }
         }
@@ -651,7 +680,7 @@ var BasicParser = /** @class */ (function () {
         return oValue;
     };
     BasicParser.prototype.fnApostrophe = function () {
-        return this.fnCreateCmdCall("rem");
+        return this.fnCreateCmdCallForType("rem");
     };
     BasicParser.prototype.fnRsx = function () {
         var oValue = this.oPreviousToken;
@@ -665,7 +694,7 @@ var BasicParser = /** @class */ (function () {
     };
     BasicParser.prototype.fnAfterOrEvery = function () {
         var sType = this.oPreviousToken.type + "Gosub", // "afterGosub" or "everyGosub"
-        oValue = this.fnCreateCmdCall(sType); // interval and optional timer
+        oValue = this.fnCreateCmdCallForType(sType); // interval and optional timer
         if (!oValue.args) {
             throw this.composeError(Error(), "Programming error: Undefined args", this.oToken.type, this.oToken.pos); // should not occure
         }
@@ -680,7 +709,7 @@ var BasicParser = /** @class */ (function () {
     BasicParser.prototype.fnChain = function () {
         var oValue;
         if (this.oToken.type !== "merge") { // not chain merge?
-            oValue = this.fnCreateCmdCall(this.oPreviousToken.type); // chain
+            oValue = this.fnCreateCmdCall(); // chain
         }
         else { // chain merge with optional DELETE
             var sName = this.fnCombineTwoTokensNoArgs(this.oToken.type); // chainMerge
@@ -700,13 +729,15 @@ var BasicParser = /** @class */ (function () {
                 }
                 if (this.oToken.type === ",") {
                     this.advance(",");
-                    this.advance("delete");
                     if (!bNumberExpression) {
                         oValue2 = BasicParser.fnCreateDummyArg("null"); // insert dummy arg for line
                         oValue.args.push(oValue2);
                     }
-                    oValue2 = this.fnGetLineRange("q");
-                    oValue.args.push(oValue2);
+                    this.advance("delete");
+                    var aArgs = this.fnGetArgs(this.oPreviousToken.type); // args for "delete"
+                    for (var i = 0; i < aArgs.length; i += 1) {
+                        oValue.args.push(aArgs[i]); // copy arg
+                    }
                 }
             }
         }
@@ -719,7 +750,7 @@ var BasicParser = /** @class */ (function () {
             oValue = this.fnCombineTwoTokens(sTokenType);
         }
         else {
-            oValue = this.fnCreateCmdCall(this.oPreviousToken.type); // "clear"
+            oValue = this.fnCreateCmdCall(); // "clear"
         }
         return oValue;
     };
@@ -796,29 +827,28 @@ var BasicParser = /** @class */ (function () {
         var oValue = this.oPreviousToken;
         oValue.args = [];
         oValue.args.push(this.expression(0)); // should be number or variable
-        var iCount = 0;
         while (this.oToken.type === ",") {
             this.oToken = this.advance(",");
-            if (this.oToken.type === "=" && iCount % 3 === 0) { // special handling for parameter "number of steps"
+            if (this.oToken.type === "=" && (oValue.args.length - 1) % 3 === 0) { // special handling for parameter "number of steps"
                 this.advance("=");
                 var oExpression_1 = BasicParser.fnCreateDummyArg("null"); // insert null parameter
                 oValue.args.push(oExpression_1);
-                iCount += 1;
             }
             var oExpression = this.expression(0);
             oValue.args.push(oExpression);
-            iCount += 1;
         }
         return oValue;
     };
     BasicParser.prototype.fnFor = function () {
         var oValue = this.oPreviousToken;
         if (this.oToken.type !== "identifier") {
-            throw this.composeError(Error(), "Expected identifier", this.oToken.type, this.oToken.pos);
+            var sTypeFirstChar = "v";
+            throw this.composeError(Error(), "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], this.oToken.type, this.oToken.pos);
         }
         var oName = this.expression(90); // take simple identifier, nothing more
         if (oName.type !== "identifier") {
-            throw this.composeError(Error(), "Expected simple identifier", this.oToken.type, this.oToken.pos);
+            var sTypeFirstChar = "v";
+            throw this.composeError(Error(), "Expected simple " + BasicParser.mParameterTypes[sTypeFirstChar], this.oToken.type, this.oToken.pos);
         }
         oValue.args = [oName];
         this.advance("=");
@@ -930,7 +960,8 @@ var BasicParser = /** @class */ (function () {
         do { // we need loop for input
             var oValue2 = this.expression(90); // we expect "identifier", no fnxx
             if (oValue2.type !== "identifier") {
-                throw this.composeError(Error(), "Expected identifier", this.oPreviousToken.type, this.oPreviousToken.pos);
+                var sTypeFirstChar = "v";
+                throw this.composeError(Error(), "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], this.oPreviousToken.type, this.oPreviousToken.pos);
             }
             oValue.args.push(oValue2);
             if (oValue.type === "lineInput") {
@@ -946,7 +977,7 @@ var BasicParser = /** @class */ (function () {
             oValue = this.fnCombineTwoTokens(sTokenType);
         }
         else {
-            oValue = this.fnCreateCmdCall(this.oPreviousToken.type); // "key"
+            oValue = this.fnCreateCmdCall(); // "key"
         }
         return oValue;
     };
@@ -967,7 +998,8 @@ var BasicParser = /** @class */ (function () {
             throw this.composeError(Error(), "Programming error: Undefined args", this.oToken.type, this.oToken.pos); // should not occure
         }
         if (oValue.args[0].type !== "identifier") {
-            throw this.composeError(Error(), "Expected identifier", oValue.args[0].value, oValue.args[0].pos);
+            var sTypeFirstChar = "v";
+            throw this.composeError(Error(), "Expected " + BasicParser.mParameterTypes[sTypeFirstChar], oValue.args[0].value, oValue.args[0].pos);
         }
         this.advance("="); // equal as assignment
         var oRight = this.expression(0);
@@ -1004,7 +1036,6 @@ var BasicParser = /** @class */ (function () {
             this.advance("gosub");
             oValue.type = "onSqGosub";
             oValue.args = this.fnGetArgs(oValue.type);
-            //oValue.args.unshift(oLeft);
             oValue.left = oLeft;
         }
         else { // on <expr>
@@ -1016,7 +1047,6 @@ var BasicParser = /** @class */ (function () {
                 }
                 oValue.type = "on" + Utils_1.Utils.stringCapitalize(this.oPreviousToken.type); // onGoto, onGosub
                 oValue.args = this.fnGetArgs(oValue.type);
-                //oValue.args.unshift(oLeft);
                 oValue.left = oLeft;
             }
             else {
@@ -1082,7 +1112,7 @@ var BasicParser = /** @class */ (function () {
             oValue = this.fnCombineTwoTokens(sTokenType);
         }
         else {
-            oValue = this.fnCreateCmdCall(this.oPreviousToken.type);
+            oValue = this.fnCreateCmdCall();
         }
         return oValue;
     };
@@ -1101,7 +1131,7 @@ var BasicParser = /** @class */ (function () {
             oValue = this.fnCombineTwoTokens(sTokenType);
         }
         else {
-            oValue = this.fnCreateCmdCall(this.oPreviousToken.type); // "symbol"
+            oValue = this.fnCreateCmdCall(); // "symbol"
         }
         return oValue;
     };
@@ -1112,12 +1142,17 @@ var BasicParser = /** @class */ (function () {
             oValue = this.fnCombineTwoTokens(sTokenType);
         }
         else {
-            oValue = this.fnCreateCmdCall(this.oPreviousToken.type);
+            oValue = this.fnCreateCmdCall();
         }
         return oValue;
     };
     BasicParser.prototype.fnGenerateSymbols = function () {
         this.fnGenerateKeywordSymbols();
+        // special statements ...
+        this.stmt("'", this.mSpecialStatements["'"]);
+        this.stmt("|", this.mSpecialStatements["|"]); // rsx
+        this.stmt("mid$", this.mSpecialStatements.mid$); // mid$Assign (statement), combine with function
+        this.stmt("?", this.mSpecialStatements["?"]); // "?" is same as print
         this.symbol(":");
         this.symbol(";");
         this.symbol(",");
@@ -1126,11 +1161,9 @@ var BasicParser = /** @class */ (function () {
         this.symbol("]");
         // define additional statement parts
         this.symbol("break");
-        this.symbol("spc");
         this.symbol("step");
         this.symbol("swap");
         this.symbol("then");
-        this.symbol("tab");
         this.symbol("to");
         this.symbol("using");
         this.symbol("(eol)");
@@ -1160,14 +1193,14 @@ var BasicParser = /** @class */ (function () {
         this.symbol("(", this.fnParenthesis);
         this.prefix("@", 95); // address of
         this.infix("^", 90, 80);
-        this.prefix("+", 80);
-        this.prefix("-", 80);
+        this.prefix("+", 80); // + can be uses as prefix or infix
+        this.prefix("-", 80); // - can be uses as prefix or infix
         this.infix("*", 70);
         this.infix("/", 70);
         this.infix("\\", 60); // integer division
         this.infix("mod", 50);
-        this.infix("+", 40);
-        this.infix("-", 40);
+        this.infix("+", 40); // + can be uses as prefix or infix, so combine with prefix function
+        this.infix("-", 40); // - can be uses as prefix or infix, so combine with prefix function
         this.infixr("=", 30); // equal for comparison
         this.infixr("<>", 30);
         this.infixr("<", 30);
@@ -1180,33 +1213,6 @@ var BasicParser = /** @class */ (function () {
         this.infixr("xor", 20);
         this.prefix("#", 10); // priority ok?
         this.symbol("fn", this.fnFn); // separate fn
-        // statements ...
-        this.stmt("'", this.fnApostrophe);
-        this.stmt("|", this.fnRsx); // rsx
-        this.stmt("after", this.fnAfterOrEvery);
-        this.stmt("chain", this.fnChain);
-        this.stmt("clear", this.fnClear);
-        this.stmt("data", this.fnData);
-        this.stmt("def", this.fnDef);
-        this.stmt("else", this.fnElse); // simular to a comment, normally not used
-        this.stmt("ent", this.fnEntOrEnv);
-        this.stmt("env", this.fnEntOrEnv);
-        this.stmt("every", this.fnAfterOrEvery);
-        this.stmt("for", this.fnFor);
-        this.stmt("graphics", this.fnGraphics);
-        this.stmt("if", this.fnIf);
-        this.stmt("input", this.fnInput);
-        this.stmt("key", this.fnKey);
-        this.stmt("let", this.fnLet);
-        this.stmt("line", this.fnLine);
-        this.stmt("mid$", this.fnMid$); // mid$Assign
-        this.stmt("on", this.fnOn);
-        this.stmt("print", this.fnPrint);
-        this.stmt("?", this.fnQuestion); // "?" is same as print
-        this.stmt("resume", this.fnResume);
-        this.stmt("speed", this.fnSpeed);
-        this.stmt("symbol", this.fnSymbol);
-        this.stmt("window", this.fnWindow);
     };
     // http://crockford.com/javascript/tdop/tdop.html (old: http://javascript.crockford.com/tdop/tdop.html)
     // http://crockford.com/javascript/tdop/parse.js
@@ -1304,7 +1310,7 @@ var BasicParser = /** @class */ (function () {
         exp: "f n",
         fill: "c n",
         fix: "f n",
-        fn: "f",
+        fn: "x",
         "for": "c",
         frame: "c",
         fre: "f a",
@@ -1436,6 +1442,7 @@ var BasicParser = /** @class */ (function () {
         zone: "c n",
         _rsx1: "c a a*" // |<rsxName>[, <argument list>] dummy with at least one parameter
     };
+    /* eslint-enable no-invalid-this */
     BasicParser.mCloseTokens = {
         ":": 1,
         "(eol)": 1,

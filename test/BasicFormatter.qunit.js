@@ -8,7 +8,6 @@ var BasicLexer_1 = require("../BasicLexer"); // we use BasicLexer here just for 
 var BasicParser_1 = require("../BasicParser");
 var BasicFormatter_1 = require("../BasicFormatter");
 var TestHelper_1 = require("./TestHelper");
-//import {} from "qunit";
 QUnit.dump.maxDepth = 10;
 QUnit.module("BasicFormatter:renumber: Tests", function () {
     var mAllTests = {

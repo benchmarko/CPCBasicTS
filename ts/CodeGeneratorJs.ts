@@ -4,7 +4,7 @@
 //
 //
 
-import { Utils } from "./Utils";
+import { Utils, CustomError } from "./Utils";
 import { IOutput, ICpcVmRsx } from "./Interfaces";
 import { BasicLexer } from "./BasicLexer";
 import { BasicParser, ParserNode } from "./BasicParser";
@@ -427,7 +427,7 @@ export class CodeGeneratorJs {
 	private addressOf(node: CodeNode, _oLeft: CodeNode, oRight: CodeNode) { // "@" (unary operator)
 		node.pv = 'o.addressOf("' + oRight.pv + '")'; // address of
 		if (oRight.type !== "identifier") {
-			throw this.composeError(Error(), "Expected identifier", node.value, node.pos);
+			throw this.composeError(Error(), "Expected variable", node.value, node.pos);
 		}
 		node.pt = "I";
 		return node.pv;
@@ -643,10 +643,7 @@ export class CodeGeneratorJs {
 		return node.pv;
 	}
 	private static unquoted(node: CodeNode) { // comment or data line item, which can be interpreted as string or number
-		//const sValue = node.value.replace(/"/g, "\\\""); // escape "
-
 		node.pt = "$";
-		//node.pv = '"' + sValue + '"';
 		node.pv = node.value;
 		return node.pv;
 	}
@@ -847,7 +844,7 @@ export class CodeGeneratorJs {
 			const oNodeArg = node.args[i];
 
 			if (oNodeArg.type !== "identifier") {
-				throw this.composeError(Error(), "Expected identifier in DIM", node.type, node.pos);
+				throw this.composeError(Error(), "Expected variable in DIM", node.type, node.pos);
 			}
 			if (!oNodeArg.args) {
 				throw this.composeError(Error(), "Programming error: Undefined args", oNodeArg.type, oNodeArg.pos); // should not occure
@@ -1756,10 +1753,13 @@ export class CodeGeneratorJs {
 			}
 			oOut.text = sOutput;
 		} catch (e) {
-			oOut.error = e;
-			if ("pos" in e) {
-				Utils.console.warn(e); // our errors have "pos" defined => show as warning
+			if (Utils.isCustomError(e)) {
+				oOut.error = e;
+				if (!this.bQuiet) {
+					Utils.console.warn(e); // show our customError as warning
+				}
 			} else { // other errors
+				oOut.error = e as CustomError; // force set other error
 				Utils.console.error(e);
 			}
 		}

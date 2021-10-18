@@ -5,7 +5,6 @@ import { Utils } from "../Utils";
 import { BasicLexer } from "../BasicLexer"; // we use BasicLexer here just for convenient input
 import { BasicParser, ParserNode } from "../BasicParser";
 import { TestHelper, TestsType, AllTestsType } from "./TestHelper";
-//import { } from "qunit";
 
 QUnit.dump.maxDepth = 10;
 
@@ -21,6 +20,15 @@ QUnit.module("BasicParser: Tests", function () {
 			"a=&7FFF": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"assign","value":"=","pos":1,"left":{"type":"identifier","value":"a","pos":0},"right":{"type":"hexnumber","value":"&7FFF","pos":2}}]}]',
 			"a=&X10100111": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"assign","value":"=","pos":1,"left":{"type":"identifier","value":"a","pos":0},"right":{"type":"binnumber","value":"&X10100111","pos":2}}]}]',
 			"a=-&X111111111111111": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"assign","value":"=","pos":1,"left":{"type":"identifier","value":"a","pos":0},"right":{"type":"-","value":"-","pos":2,"right":{"type":"binnumber","value":"&X111111111111111","pos":3}}}]}]',
+			"a=255": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"assign","value":"=","pos":1,"left":{"type":"identifier","value":"a","pos":0},"right":{"type":"number","value":"255","pos":2}}]}]',
+			"a=-255": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"assign","value":"=","pos":1,"left":{"type":"identifier","value":"a","pos":0},"right":{"type":"-","value":"-","pos":2,"right":{"type":"number","value":"255","pos":3}}}]}]',
+			"a=256": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"assign","value":"=","pos":1,"left":{"type":"identifier","value":"a","pos":0},"right":{"type":"number","value":"256","pos":2}}]}]',
+			"a=-256": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"assign","value":"=","pos":1,"left":{"type":"identifier","value":"a","pos":0},"right":{"type":"-","value":"-","pos":2,"right":{"type":"number","value":"256","pos":3}}}]}]',
+			"a=32767": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"assign","value":"=","pos":1,"left":{"type":"identifier","value":"a","pos":0},"right":{"type":"number","value":"32767","pos":2}}]}]',
+			"a=-32767": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"assign","value":"=","pos":1,"left":{"type":"identifier","value":"a","pos":0},"right":{"type":"-","value":"-","pos":2,"right":{"type":"number","value":"32767","pos":3}}}]}]',
+			"a=32768": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"assign","value":"=","pos":1,"left":{"type":"identifier","value":"a","pos":0},"right":{"type":"number","value":"32768","pos":2}}]}]',
+			"a=-32768": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"assign","value":"=","pos":1,"left":{"type":"identifier","value":"a","pos":0},"right":{"type":"-","value":"-","pos":2,"right":{"type":"number","value":"32768","pos":3}}}]}]',
+			"a=1.2e+9": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"assign","value":"=","pos":1,"left":{"type":"identifier","value":"a","pos":0},"right":{"type":"number","value":"1200000000","pos":2,"orig":"1.2e+9"}}]}]',
 			"a ": '{"name":"BasicParser","message":"Expected = in direct at pos 2-2: (end)","value":"(end)","pos":2,"len":0,"line":"direct","shortMessage":"Expected = in direct: (end)"}',
 			"1 a=": '{"name":"BasicParser","message":"Unexpected end of file in 1 at pos 4-4: ","value":"","pos":4,"line":"1","shortMessage":"Unexpected end of file in 1: "}',
 			"1 5=7": '{"name":"BasicParser","message":"Bad expression statement in 1 at pos 2-3: 5","value":"5","pos":2,"line":"1","shortMessage":"Bad expression statement in 1: 5"}',
@@ -157,6 +165,7 @@ QUnit.module("BasicParser: Tests", function () {
 			"defstr a,b-c,v,x-y": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"defstr","value":"defstr","pos":0,"args":[{"type":"letter","value":"a","pos":7},{"type":"range","value":"-","pos":10,"left":{"type":"letter","value":"b","pos":9},"right":{"type":"letter","value":"c","pos":11}},{"type":"letter","value":"v","pos":13},{"type":"range","value":"-","pos":16,"left":{"type":"letter","value":"x","pos":15},"right":{"type":"letter","value":"y","pos":17}}]}]}]',
 			"deg ": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"deg","value":"deg","pos":0,"args":[]}]}]',
 			"delete": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"delete","value":"delete","pos":0,"args":[]}]}]',
+			"delete -": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"delete","value":"delete","pos":0,"args":[{"type":"linerange","value":"-","pos":7,"left":{"type":"null","value":"null","pos":0,"len":0},"right":{"type":"null","value":"null","pos":0,"len":0}}]}]}]',
 			"delete 10": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"delete","value":"delete","pos":0,"args":[{"type":"linenumber","value":"10","pos":7}]}]}]',
 			"delete 1-": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"delete","value":"delete","pos":0,"args":[{"type":"linerange","value":"-","pos":8,"left":{"type":"linenumber","value":"1","pos":7},"right":{"type":"null","value":"null","pos":0,"len":0}}]}]}]',
 			"delete -1": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"delete","value":"delete","pos":0,"args":[{"type":"linerange","value":"-","pos":7,"left":{"type":"null","value":"null","pos":0,"len":0},"right":{"type":"linenumber","value":"1","pos":8}}]}]}]',
@@ -311,6 +320,7 @@ QUnit.module("BasicParser: Tests", function () {
 			"line input#2,;\"para noCRLF\";a$": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"lineInput","value":"line input","pos":0,"args":[{"type":"#","value":"#","pos":10,"right":{"type":"number","value":"2","pos":11}},{"type":";","value":";","pos":13},{"type":"string","value":"para noCRLF","pos":15},{"type":";","value":";","pos":27},{"type":"identifier","value":"a$","pos":28}]}]}]',
 			"line input#stream,;\"string\";a$": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"lineInput","value":"line input","pos":0,"args":[{"type":"#","value":"#","pos":10,"right":{"type":"identifier","value":"stream","pos":11}},{"type":";","value":";","pos":18},{"type":"string","value":"string","pos":20},{"type":";","value":";","pos":27},{"type":"identifier","value":"a$","pos":28}]}]}]',
 			"list ": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"list","value":"list","pos":0,"args":[]}]}]',
+			"list -": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"list","value":"list","pos":0,"args":[{"type":"linerange","value":"-","pos":5,"left":{"type":"null","value":"null","pos":0,"len":0},"right":{"type":"null","value":"null","pos":0,"len":0}},{"type":"#","value":"#","pos":0,"len":0,"right":{"type":"null","value":"0","pos":0,"len":0}}]}]}]',
 			"list 10": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"list","value":"list","pos":0,"args":[{"type":"linenumber","value":"10","pos":5},{"type":"#","value":"#","pos":0,"len":0,"right":{"type":"null","value":"0","pos":0,"len":0}}]}]}]',
 			"list 1-": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"list","value":"list","pos":0,"args":[{"type":"linerange","value":"-","pos":6,"left":{"type":"linenumber","value":"1","pos":5},"right":{"type":"null","value":"null","pos":0,"len":0}},{"type":"#","value":"#","pos":0,"len":0,"right":{"type":"null","value":"0","pos":0,"len":0}}]}]}]',
 			"list -1": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"list","value":"list","pos":0,"args":[{"type":"linerange","value":"-","pos":5,"left":{"type":"null","value":"null","pos":0,"len":0},"right":{"type":"linenumber","value":"1","pos":6}},{"type":"#","value":"#","pos":0,"len":0,"right":{"type":"null","value":"0","pos":0,"len":0}}]}]}]',
@@ -593,8 +603,28 @@ QUnit.module("BasicParser: Tests", function () {
 			"|user,1": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"|","value":"|user","pos":0,"args":[{"type":"number","value":"1","pos":6}]}]}]',
 			"|mode,3": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"|","value":"|mode","pos":0,"args":[{"type":"number","value":"3","pos":6}]}]}]',
 			"|renum,1,2,3,4": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"|","value":"|renum","pos":0,"args":[{"type":"number","value":"1","pos":7},{"type":"number","value":"2","pos":9},{"type":"number","value":"3","pos":11},{"type":"number","value":"4","pos":13}]}]}]'
+		},
+		keepSpaces: {
+			" 1  chain   merge  \"f5\"": '[{"type":"label","value":"1","pos":1,"args":[{"type":"chainMerge","value":"chain merge","pos":4,"args":[{"type":"string","value":"f5","pos":20}]}]}]',
+			" 1  def   fn  a$ = \"abc\"": '[{"type":"label","value":"1","pos":1,"args":[{"type":"def","value":"def","pos":4,"left":{"type":"identifier","value":"fna$","pos":14,"bSpace":true},"args":[],"right":{"type":"string","value":"abc","pos":20}}]}]',
+			" 1  for   i   =   1   to  10   step  2": '[{"type":"label","value":"1","pos":1,"args":[{"type":"for","value":"for","pos":4,"args":[{"type":"identifier","value":"i","pos":10},{"type":"number","value":"1","pos":18},{"type":"number","value":"10","pos":26},{"type":"number","value":"2","pos":37}]}]}]',
+			" 1  if    a  =  1     then  1     else    goto  1": '[{"type":"label","value":"1","pos":1,"args":[{"type":"if","value":"if","pos":4,"left":{"type":"=","value":"=","pos":13,"left":{"type":"identifier","value":"a","pos":10},"right":{"type":"number","value":"1","pos":16}},"args":[{"type":"linenumber","value":"1","pos":28}],"args2":[{"type":"goto","value":"goto","pos":42,"args":[{"type":"linenumber","value":"1","pos":48}]}]}]}]',
+			" 1  line   input  a$": '[{"type":"label","value":"1","pos":1,"args":[{"type":"lineInput","value":"line input","pos":4,"args":[{"type":"#","value":"#","pos":0,"len":0,"right":{"type":"null","value":"0","pos":0,"len":0}},{"type":"null","value":"null","pos":0,"len":0},{"type":"null","value":"null","pos":0,"len":0},{"type":"null","value":"null","pos":0,"len":0},{"type":"identifier","value":"a$","pos":18}]}]}]',
+			" 1  on  break   cont": '[{"type":"label","value":"1","pos":1,"args":[{"type":"onBreakCont","value":"on break cont","pos":4,"args":[]}]}]',
+			" 1  on  break   gosub   1 ": '[{"type":"label","value":"1","pos":1,"args":[{"type":"onBreakGosub","value":"on break gosub","pos":4,"args":[{"type":"linenumber","value":"1","pos":24}]}]}]',
+			" 1  on  break   stop": '[{"type":"label","value":"1","pos":1,"args":[{"type":"onBreakStop","value":"on break stop","pos":4,"args":[]}]}]',
+			" 1  on  error   goto   1 ": '[{"type":"label","value":"1","pos":1,"args":[{"type":"onErrorGoto","value":"on error goto","pos":4,"args":[{"type":"linenumber","value":"1","pos":23}]}]}]',
+			" 1  on  x  gosub   1  ,  2\n2  rem": '[{"type":"label","value":"1","pos":1,"args":[{"type":"onGosub","value":"on","pos":4,"args":[{"type":"linenumber","value":"1","pos":19},{"type":"linenumber","value":"2","pos":25}],"left":{"type":"identifier","value":"x","pos":8}}]},{"type":"label","value":"2","pos":27,"args":[{"type":"rem","value":"rem","pos":30,"args":[]}]}]',
+			" 1  on  x  goto   1  ,  2\n2  rem": '[{"type":"label","value":"1","pos":1,"args":[{"type":"onGoto","value":"on","pos":4,"args":[{"type":"linenumber","value":"1","pos":18},{"type":"linenumber","value":"2","pos":24}],"left":{"type":"identifier","value":"x","pos":8}}]},{"type":"label","value":"2","pos":26,"args":[{"type":"rem","value":"rem","pos":29,"args":[]}]}]',
+			" 1   print   using    \"####\" ;  ri  ;": '[{"type":"label","value":"1","pos":1,"args":[{"type":"print","value":"print","pos":5,"args":[{"type":"#","value":"#","pos":0,"len":0,"right":{"type":"null","value":"0","pos":0,"len":0}},{"type":"using","value":"using","pos":13,"args":[{"type":"string","value":"####","pos":23},{"type":"identifier","value":"ri","pos":32}]},{"type":";","value":";","pos":36}]}]}]',
+			" 1  window   swap  1,0": '[{"type":"label","value":"1","pos":1,"args":[{"type":"windowSwap","value":"window swap","pos":4,"args":[{"type":"number","value":"1","pos":19},{"type":"number","value":"0","pos":21}]}]}]',
+			"a=1 else a=2": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"assign","value":"=","pos":1,"left":{"type":"identifier","value":"a","pos":0},"right":{"type":"number","value":"1","pos":2}},{"type":"else","value":"else","pos":4,"args":[{"type":"identifier","value":"a","pos":9},{"type":"=","value":"=","pos":10},{"type":"number","value":"2","pos":11}]}]}]',
+			"a=1 'comment": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"assign","value":"=","pos":1,"left":{"type":"identifier","value":"a","pos":0},"right":{"type":"number","value":"1","pos":2}},{"type":"rem","value":"\'","pos":4,"args":[{"type":"unquoted","value":"comment","pos":5}]}]}]',
+			"a=1 :'comment": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"assign","value":"=","pos":1,"left":{"type":"identifier","value":"a","pos":0},"right":{"type":"number","value":"1","pos":2}},{"type":"rem","value":"\'","pos":5,"args":[{"type":"unquoted","value":"comment","pos":6}]}]}]',
+			"::a=3-2-1: :": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"assign","value":"=","pos":3,"left":{"type":"identifier","value":"a","pos":2},"right":{"type":"-","value":"-","pos":7,"left":{"type":"-","value":"-","pos":5,"left":{"type":"number","value":"3","pos":4},"right":{"type":"number","value":"2","pos":6}},"right":{"type":"number","value":"1","pos":8}}}]}]',
+			" a =  ( b% >= c%  ) *     ( d <=e )  ": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"assign","value":"=","pos":3,"left":{"type":"identifier","value":"a","pos":1},"right":{"type":"*","value":"*","pos":20,"left":{"type":">=","value":">=","pos":11,"left":{"type":"identifier","value":"b%","pos":8},"right":{"type":"identifier","value":"c%","pos":14}},"right":{"type":"<=","value":"<=","pos":30,"left":{"type":"identifier","value":"d","pos":28},"right":{"type":"identifier","value":"e","pos":32}}}}]}]',
+			"a = (((3+2))*((3-7)))": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"assign","value":"=","pos":2,"left":{"type":"identifier","value":"a","pos":0},"right":{"type":"*","value":"*","pos":12,"left":{"type":"+","value":"+","pos":8,"left":{"type":"number","value":"3","pos":7},"right":{"type":"number","value":"2","pos":9}},"right":{"type":"-","value":"-","pos":16,"left":{"type":"number","value":"3","pos":15},"right":{"type":"number","value":"7","pos":17}}}}]}]'
 		}
-
 	};
 
 	function fnReplacer(sBin: string) {
@@ -621,19 +651,22 @@ QUnit.module("BasicParser: Tests", function () {
 				}
 
 				try {
-					oExpected = JSON.parse(sExpected); // test: { e: sExpected }
+					try {
+						oExpected = JSON.parse(sExpected); // test: { e: sExpected }
+					} catch (e) {
+						Utils.console.error(e);
+						oExpected = {}; // continue
+					}
 					const aTokens = oBasicLexer.lex(sKey);
 
 					aParseTree = oBasicParser.parse(aTokens, bAllowDirect);
 					sResult = JSON.stringify(aParseTree);
 				} catch (e) {
-					if (e.message !== oExpected.message) {
+					if ((e as Error).message !== oExpected.message) {
 						Utils.console.error(e); // only if unexpected
 					}
 					sResult = JSON.stringify(e);
 					aParseTree = JSON.parse(sResult); // get error without Error object
-					//aParseTree = JSON.parse(JSON.stringify(e)); // get error, but without Error object
-					//sResult = JSON.stringify(aParseTree);
 				}
 
 				if (aResults) {

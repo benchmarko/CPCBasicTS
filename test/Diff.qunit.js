@@ -5,7 +5,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var Utils_1 = require("../Utils");
 var Diff_1 = require("../Diff");
 var TestHelper_1 = require("./TestHelper");
-//import {} from "qunit";
 QUnit.dump.maxDepth = 10;
 QUnit.module("Diff: Tests", function () {
     // example  taken from https://github.com/Slava/diff.js/blob/master/demo/byline.html

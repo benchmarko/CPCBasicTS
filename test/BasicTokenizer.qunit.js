@@ -2,10 +2,8 @@
 // BasicTokenizer.qunit.ts - QUnit tests for CPCBasic BasicTokenizer
 //
 Object.defineProperty(exports, "__esModule", { value: true });
-//import { Utils } from "../Utils";
 var BasicTokenizer_1 = require("../BasicTokenizer");
 var TestHelper_1 = require("./TestHelper");
-//import {} from "qunit";
 QUnit.dump.maxDepth = 10;
 QUnit.module("BasicTokenizer:decode: Tests", function () {
     var mAllTests = {

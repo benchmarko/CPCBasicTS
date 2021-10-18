@@ -11,6 +11,9 @@ export interface IOutput {
     error?: CustomError
 }
 
+// Same as VariableValue in Variables.ts
+export type VariableValue = string | number | Function | [] | VariableValue[]; // eslint-disable-line @typescript-eslint/ban-types
+
 export interface IController {
     startParse: () => void
     startRenum: () => void
@@ -40,7 +43,8 @@ export interface IController {
     startUpdateCanvas: () => void
     stopUpdateCanvas: () => void
     virtualKeyboardCreate: () => void
-    getVariable: (sPar: string) => string | number | object // see VariableValue in Variables.ts
+    getVariable: (sPar: string) => VariableValue
+    // see VariableValue in Variables.ts
 
     undoStackElement: () => string
     redoStackElement: () => string

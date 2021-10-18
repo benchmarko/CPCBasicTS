@@ -5,7 +5,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var Utils_1 = require("../Utils");
 var ZipFile_1 = require("../ZipFile");
 var TestHelper_1 = require("./TestHelper");
-//import {} from "qunit";
 QUnit.dump.maxDepth = 10;
 QUnit.module("ZipFile: Tests", function () {
     // examples store.zip and deflate.zip taken from https://github.com/bower/decompress-zip/tree/master/test/assets/file-mode-pack

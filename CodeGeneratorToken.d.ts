@@ -2,10 +2,12 @@ import { BasicLexer } from "./BasicLexer";
 import { BasicParser, ParserNode } from "./BasicParser";
 import { IOutput } from "./Interfaces";
 interface CodeGeneratorTokenOptions {
+    bQuiet?: boolean;
     lexer: BasicLexer;
     parser: BasicParser;
 }
 export declare class CodeGeneratorToken {
+    private bQuiet;
     private lexer;
     private parser;
     private iLine;

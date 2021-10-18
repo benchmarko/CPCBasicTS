@@ -1,10 +1,8 @@
 // BasicTokenizer.qunit.ts - QUnit tests for CPCBasic BasicTokenizer
 //
 
-//import { Utils } from "../Utils";
 import { BasicTokenizer } from "../BasicTokenizer";
 import { TestHelper, TestsType, AllTestsType } from "./TestHelper";
-//import {} from "qunit";
 
 QUnit.dump.maxDepth = 10;
 

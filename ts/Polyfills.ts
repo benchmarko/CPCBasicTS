@@ -557,8 +557,8 @@ if (!window.JSON) { // simple polyfill for JSON.parse only
 
 if (!window.requestAnimationFrame) { // IE9, SliTaz tazweb browser
 	// https://wiki.selfhtml.org/wiki/JavaScript/Window/requestAnimationFrame
-	window.requestAnimationFrame = (window as any).mozRequestAnimationFrame || window.webkitRequestAnimationFrame || (window as any).msRequestAnimationFrame;
-	window.cancelAnimationFrame = (window as any).mozCancelAnimationFrame || window.webkitCancelAnimationFrame || (window as any).msCancelAnimationFrame;
+	window.requestAnimationFrame = (window as any).mozRequestAnimationFrame || (window as any).webkitRequestAnimationFrame || (window as any).msRequestAnimationFrame;
+	window.cancelAnimationFrame = (window as any).mozCancelAnimationFrame || (window as any).webkitCancelAnimationFrame || (window as any).msCancelAnimationFrame;
 	if (!window.requestAnimationFrame || !window.cancelAnimationFrame) {
 		(function () {
 			let lastTime = 0;

@@ -10,6 +10,7 @@ var Utils_1 = require("./Utils");
 var BasicParser_1 = require("./BasicParser"); // BasicParser just for keyword definitions
 var CodeGeneratorToken = /** @class */ (function () {
     function CodeGeneratorToken(options) {
+        this.bQuiet = false;
         this.iLine = 0; // current line (label)
         /* eslint-disable no-invalid-this */
         this.mParseFunctions = {
@@ -54,6 +55,7 @@ var CodeGeneratorToken = /** @class */ (function () {
             rem: this.rem,
             using: this.using
         };
+        this.bQuiet = options.bQuiet || false;
         this.lexer = options.lexer;
         this.parser = options.parser;
         this.sStatementSeparator = CodeGeneratorToken.token2String(":");
@@ -641,11 +643,14 @@ var CodeGeneratorToken = /** @class */ (function () {
             oOut.text = sOutput;
         }
         catch (e) {
-            oOut.error = e;
-            if ("pos" in e) {
-                Utils_1.Utils.console.warn(e); // our errors have "pos" defined => show as warning
+            if (Utils_1.Utils.isCustomError(e)) {
+                oOut.error = e;
+                if (!this.bQuiet) {
+                    Utils_1.Utils.console.warn(e); // show our customError as warning
+                }
             }
             else { // other errors
+                oOut.error = e; // force set other error
                 Utils_1.Utils.console.error(e);
             }
         }

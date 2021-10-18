@@ -19,7 +19,7 @@
       }
       oModule[sModule] = window.exports[sModule];
       if (!oModule[sModule]) {
-        console.error("ERROR: Module not loaded:", sModule); //TTT: Utils?
+        console.error("ERROR: Module not loaded:", sModule);
         throw new Error();
       }
       return oModule;

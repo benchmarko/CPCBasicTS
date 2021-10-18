@@ -36,6 +36,7 @@ export declare class BasicParser {
     static mKeywords: {
         [k in string]: string;
     };
+    private mSpecialStatements;
     private static mCloseTokens;
     private composeError;
     private getToken;
@@ -46,6 +47,8 @@ export declare class BasicParser {
     private statement;
     private statements;
     private line;
+    private generateLed;
+    private generateNud;
     private infix;
     private infixr;
     private prefix;
@@ -66,6 +69,7 @@ export declare class BasicParser {
     private static mBrackets;
     private fnGetArgsInParenthesesOrBrackets;
     private fnCreateCmdCall;
+    private fnCreateCmdCallForType;
     private fnCreateFuncCall;
     private fnGenerateKeywordSymbols;
     private fnIdentifier;

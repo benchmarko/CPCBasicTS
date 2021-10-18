@@ -7,7 +7,6 @@ var BasicTokenizer_1 = require("../BasicTokenizer");
 var DiskImage_1 = require("../DiskImage");
 var ZipFile_1 = require("../ZipFile"); // we need this just to reduce stored disk image size
 var TestHelper_1 = require("./TestHelper");
-//import {} from "qunit";
 QUnit.dump.maxDepth = 10;
 QUnit.module("DiskImage: Tests", function () {
     var mAllTests = {

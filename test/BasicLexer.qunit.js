@@ -5,7 +5,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var Utils_1 = require("../Utils");
 var BasicLexer_1 = require("../BasicLexer");
 var TestHelper_1 = require("./TestHelper");
-//import { } from "qunit";
 QUnit.dump.maxDepth = 10;
 QUnit.module("BasicLexer: Tests", function () {
     var mAllTests = {
@@ -18,7 +17,20 @@ QUnit.module("BasicLexer: Tests", function () {
             "a=-&A7": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"-","value":"-","pos":2},{"type":"hexnumber","value":"&A7","pos":3},{"type":"(end)","value":"","pos":6}]',
             "a=&7FFF": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"hexnumber","value":"&7FFF","pos":2},{"type":"(end)","value":"","pos":7}]',
             "a=&X10100111": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"binnumber","value":"&X10100111","pos":2},{"type":"(end)","value":"","pos":12}]',
-            "a=-&X111111111111111": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"-","value":"-","pos":2},{"type":"binnumber","value":"&X111111111111111","pos":3},{"type":"(end)","value":"","pos":20}]'
+            "a=-&X111111111111111": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"-","value":"-","pos":2},{"type":"binnumber","value":"&X111111111111111","pos":3},{"type":"(end)","value":"","pos":20}]',
+            "a=255": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"number","value":"255","pos":2},{"type":"(end)","value":"","pos":5}]',
+            "a=-255": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"-","value":"-","pos":2},{"type":"number","value":"255","pos":3},{"type":"(end)","value":"","pos":6}]',
+            "a=256": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"number","value":"256","pos":2},{"type":"(end)","value":"","pos":5}]',
+            "a=-256": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"-","value":"-","pos":2},{"type":"number","value":"256","pos":3},{"type":"(end)","value":"","pos":6}]',
+            "a=32767": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"number","value":"32767","pos":2},{"type":"(end)","value":"","pos":7}]',
+            "a=-32767": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"-","value":"-","pos":2},{"type":"number","value":"32767","pos":3},{"type":"(end)","value":"","pos":8}]',
+            "a=32768": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"number","value":"32768","pos":2},{"type":"(end)","value":"","pos":7}]',
+            "a=-32768": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"-","value":"-","pos":2},{"type":"number","value":"32768","pos":3},{"type":"(end)","value":"","pos":8}]',
+            "a=1.2e+9": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"number","value":"1200000000","pos":2,"orig":"1.2e+9"},{"type":"(end)","value":"","pos":8}]',
+            "a ": '[{"type":"identifier","value":"a","pos":0},{"type":"(end)","value":"","pos":2}]',
+            "1 a=": '[{"type":"number","value":"1","pos":0},{"type":"identifier","value":"a","pos":2},{"type":"=","value":"=","pos":3},{"type":"(end)","value":"","pos":4}]',
+            "1 5=7": '[{"type":"number","value":"1","pos":0},{"type":"number","value":"5","pos":2},{"type":"=","value":"=","pos":3},{"type":"number","value":"7","pos":4},{"type":"(end)","value":"","pos":5}]',
+            "1 let 5=7": '[{"type":"number","value":"1","pos":0},{"type":"identifier","value":"let","pos":2},{"type":"number","value":"5","pos":6},{"type":"=","value":"=","pos":7},{"type":"number","value":"7","pos":8},{"type":"(end)","value":"","pos":9}]'
         },
         strings: {
             "a$=\"a12\"": '[{"type":"identifier","value":"a$","pos":0},{"type":"=","value":"=","pos":2},{"type":"string","value":"a12","pos":4},{"type":"(end)","value":"","pos":8}]',
@@ -56,12 +68,19 @@ QUnit.module("BasicLexer: Tests", function () {
             "a=(b%>=c%)*(d<=e)": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"(","value":"(","pos":2},{"type":"identifier","value":"b%","pos":3},{"type":">=","value":">=","pos":5},{"type":"identifier","value":"c%","pos":7},{"type":")","value":")","pos":9},{"type":"*","value":"*","pos":10},{"type":"(","value":"(","pos":11},{"type":"identifier","value":"d","pos":12},{"type":"<=","value":"<=","pos":13},{"type":"identifier","value":"e","pos":15},{"type":")","value":")","pos":16},{"type":"(end)","value":"","pos":17}]'
         },
         special: {
-            "a$=\"string with\\nnewline\"": '[{"type":"identifier","value":"a$","pos":0},{"type":"=","value":"=","pos":2},{"type":"string","value":"string with\\\\nnewline","pos":4},{"type":"(end)","value":"","pos":25}]'
+            "1 ": '[{"type":"number","value":"1","pos":0},{"type":"(end)","value":"","pos":2}]',
+            "a$=\"string with\nnewline\"": '[{"type":"identifier","value":"a$","pos":0},{"type":"=","value":"=","pos":2},{"type":"string","value":"string with\\nnewline","pos":4},{"type":"(end)","value":"","pos":24}]',
+            "1 on error goto 0:a=asc(0)": '[{"type":"number","value":"1","pos":0},{"type":"identifier","value":"on","pos":2},{"type":"identifier","value":"error","pos":5},{"type":"identifier","value":"goto","pos":11},{"type":"number","value":"0","pos":16},{"type":":","value":":","pos":17},{"type":"identifier","value":"a","pos":18},{"type":"=","value":"=","pos":19},{"type":"identifier","value":"asc","pos":20},{"type":"(","value":"(","pos":23},{"type":"number","value":"0","pos":24},{"type":")","value":")","pos":25},{"type":"(end)","value":"","pos":26}]',
+            "1 on error goto 2:a=asc(0)\n2 rem": '[{"type":"number","value":"1","pos":0},{"type":"identifier","value":"on","pos":2},{"type":"identifier","value":"error","pos":5},{"type":"identifier","value":"goto","pos":11},{"type":"number","value":"2","pos":16},{"type":":","value":":","pos":17},{"type":"identifier","value":"a","pos":18},{"type":"=","value":"=","pos":19},{"type":"identifier","value":"asc","pos":20},{"type":"(","value":"(","pos":23},{"type":"number","value":"0","pos":24},{"type":")","value":")","pos":25},{"type":"(eol)","value":"","pos":26},{"type":"number","value":"2","pos":27},{"type":"identifier","value":"rem","pos":29},{"type":"(end)","value":"","pos":32}]',
+            "1 on error goto 0:?chr$(\"A\")": '[{"type":"number","value":"1","pos":0},{"type":"identifier","value":"on","pos":2},{"type":"identifier","value":"error","pos":5},{"type":"identifier","value":"goto","pos":11},{"type":"number","value":"0","pos":16},{"type":":","value":":","pos":17},{"type":"?","value":"?","pos":18},{"type":"identifier","value":"chr$","pos":19},{"type":"(","value":"(","pos":23},{"type":"string","value":"A","pos":25},{"type":")","value":")","pos":27},{"type":"(end)","value":"","pos":28}]',
+            "1 on error goto 2:?chr$(\"A\")\n2 rem": '[{"type":"number","value":"1","pos":0},{"type":"identifier","value":"on","pos":2},{"type":"identifier","value":"error","pos":5},{"type":"identifier","value":"goto","pos":11},{"type":"number","value":"2","pos":16},{"type":":","value":":","pos":17},{"type":"?","value":"?","pos":18},{"type":"identifier","value":"chr$","pos":19},{"type":"(","value":"(","pos":23},{"type":"string","value":"A","pos":25},{"type":")","value":")","pos":27},{"type":"(eol)","value":"","pos":28},{"type":"number","value":"2","pos":29},{"type":"identifier","value":"rem","pos":31},{"type":"(end)","value":"","pos":34}]'
         },
         "abs, after gosub, and, asc, atn, auto": {
             "a=abs(2.3)": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"identifier","value":"abs","pos":2},{"type":"(","value":"(","pos":5},{"type":"number","value":"2.3","pos":6},{"type":")","value":")","pos":9},{"type":"(end)","value":"","pos":10}]',
             "10 after 2 gosub 10": '[{"type":"number","value":"10","pos":0},{"type":"identifier","value":"after","pos":3},{"type":"number","value":"2","pos":9},{"type":"identifier","value":"gosub","pos":11},{"type":"number","value":"10","pos":17},{"type":"(end)","value":"","pos":19}]',
             "10 after 3,1 gosub 10": '[{"type":"number","value":"10","pos":0},{"type":"identifier","value":"after","pos":3},{"type":"number","value":"3","pos":9},{"type":",","value":",","pos":10},{"type":"number","value":"1","pos":11},{"type":"identifier","value":"gosub","pos":13},{"type":"number","value":"10","pos":19},{"type":"(end)","value":"","pos":21}]',
+            "1 after gosub 1": '[{"type":"number","value":"1","pos":0},{"type":"identifier","value":"after","pos":2},{"type":"identifier","value":"gosub","pos":8},{"type":"number","value":"1","pos":14},{"type":"(end)","value":"","pos":15}]',
+            "1 after 1,2,3 gosub 1": '[{"type":"number","value":"1","pos":0},{"type":"identifier","value":"after","pos":2},{"type":"number","value":"1","pos":8},{"type":",","value":",","pos":9},{"type":"number","value":"2","pos":10},{"type":",","value":",","pos":11},{"type":"number","value":"3","pos":12},{"type":"identifier","value":"gosub","pos":14},{"type":"number","value":"1","pos":20},{"type":"(end)","value":"","pos":21}]',
             "a=b and c": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"identifier","value":"b","pos":2},{"type":"identifier","value":"and","pos":4},{"type":"identifier","value":"c","pos":8},{"type":"(end)","value":"","pos":9}]',
             "a=asc(\"A\")": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"identifier","value":"asc","pos":2},{"type":"(","value":"(","pos":5},{"type":"string","value":"A","pos":7},{"type":")","value":")","pos":9},{"type":"(end)","value":"","pos":10}]',
             "a=atn(2.3)": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"identifier","value":"atn","pos":2},{"type":"(","value":"(","pos":5},{"type":"number","value":"2.3","pos":6},{"type":")","value":")","pos":9},{"type":"(end)","value":"","pos":10}]',
@@ -144,11 +163,14 @@ QUnit.module("BasicLexer: Tests", function () {
             "defstr a,b-c,v,x-y": '[{"type":"identifier","value":"defstr","pos":0},{"type":"identifier","value":"a","pos":7},{"type":",","value":",","pos":8},{"type":"identifier","value":"b","pos":9},{"type":"-","value":"-","pos":10},{"type":"identifier","value":"c","pos":11},{"type":",","value":",","pos":12},{"type":"identifier","value":"v","pos":13},{"type":",","value":",","pos":14},{"type":"identifier","value":"x","pos":15},{"type":"-","value":"-","pos":16},{"type":"identifier","value":"y","pos":17},{"type":"(end)","value":"","pos":18}]',
             "deg ": '[{"type":"identifier","value":"deg","pos":0},{"type":"(end)","value":"","pos":4}]',
             "delete": '[{"type":"identifier","value":"delete","pos":0},{"type":"(end)","value":"","pos":6}]',
+            "delete -": '[{"type":"identifier","value":"delete","pos":0},{"type":"-","value":"-","pos":7},{"type":"(end)","value":"","pos":8}]',
             "delete 10": '[{"type":"identifier","value":"delete","pos":0},{"type":"number","value":"10","pos":7},{"type":"(end)","value":"","pos":9}]',
             "delete 1-": '[{"type":"identifier","value":"delete","pos":0},{"type":"number","value":"1","pos":7},{"type":"-","value":"-","pos":8},{"type":"(end)","value":"","pos":9}]',
             "delete -1": '[{"type":"identifier","value":"delete","pos":0},{"type":"-","value":"-","pos":7},{"type":"number","value":"1","pos":8},{"type":"(end)","value":"","pos":9}]',
             "delete 1-2": '[{"type":"identifier","value":"delete","pos":0},{"type":"number","value":"1","pos":7},{"type":"-","value":"-","pos":8},{"type":"number","value":"2","pos":9},{"type":"(end)","value":"","pos":10}]',
-            "a=derr ": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"identifier","value":"derr","pos":2},{"type":"(end)","value":"","pos":7}]',
+            "delete 1+2": '[{"type":"identifier","value":"delete","pos":0},{"type":"number","value":"1","pos":7},{"type":"+","value":"+","pos":8},{"type":"number","value":"2","pos":9},{"type":"(end)","value":"","pos":10}]',
+            "delete a": '[{"type":"identifier","value":"delete","pos":0},{"type":"identifier","value":"a","pos":7},{"type":"(end)","value":"","pos":8}]',
+            "a=derr": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"identifier","value":"derr","pos":2},{"type":"(end)","value":"","pos":6}]',
             "di ": '[{"type":"identifier","value":"di","pos":0},{"type":"(end)","value":"","pos":3}]',
             "dim a(1)": '[{"type":"identifier","value":"dim","pos":0},{"type":"identifier","value":"a","pos":4},{"type":"(","value":"(","pos":5},{"type":"number","value":"1","pos":6},{"type":")","value":")","pos":7},{"type":"(end)","value":"","pos":8}]',
             "dim a!(1)": '[{"type":"identifier","value":"dim","pos":0},{"type":"identifier","value":"a!","pos":4},{"type":"(","value":"(","pos":6},{"type":"number","value":"1","pos":7},{"type":")","value":")","pos":8},{"type":"(end)","value":"","pos":9}]',
@@ -187,6 +209,7 @@ QUnit.module("BasicLexer: Tests", function () {
             "erase a": '[{"type":"identifier","value":"erase","pos":0},{"type":"identifier","value":"a","pos":6},{"type":"(end)","value":"","pos":7}]',
             "erase b$": '[{"type":"identifier","value":"erase","pos":0},{"type":"identifier","value":"b$","pos":6},{"type":"(end)","value":"","pos":8}]',
             "erase a,b$,c!,d%": '[{"type":"identifier","value":"erase","pos":0},{"type":"identifier","value":"a","pos":6},{"type":",","value":",","pos":7},{"type":"identifier","value":"b$","pos":8},{"type":",","value":",","pos":10},{"type":"identifier","value":"c!","pos":11},{"type":",","value":",","pos":13},{"type":"identifier","value":"d%","pos":14},{"type":"(end)","value":"","pos":16}]',
+            "1 erase 5": '[{"type":"number","value":"1","pos":0},{"type":"identifier","value":"erase","pos":2},{"type":"number","value":"5","pos":8},{"type":"(end)","value":"","pos":9}]',
             "a=erl": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"identifier","value":"erl","pos":2},{"type":"(end)","value":"","pos":5}]',
             "a=err": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"identifier","value":"err","pos":2},{"type":"(end)","value":"","pos":5}]',
             "error 7": '[{"type":"identifier","value":"error","pos":0},{"type":"number","value":"7","pos":6},{"type":"(end)","value":"","pos":7}]',
@@ -222,7 +245,9 @@ QUnit.module("BasicLexer: Tests", function () {
         },
         "gosub, goto, graphics paper, graphics pen": {
             "10 gosub 10": '[{"type":"number","value":"10","pos":0},{"type":"identifier","value":"gosub","pos":3},{"type":"number","value":"10","pos":9},{"type":"(end)","value":"","pos":11}]',
+            "1 gosub a": '[{"type":"number","value":"1","pos":0},{"type":"identifier","value":"gosub","pos":2},{"type":"identifier","value":"a","pos":8},{"type":"(end)","value":"","pos":9}]',
             "10 goto 10": '[{"type":"number","value":"10","pos":0},{"type":"identifier","value":"goto","pos":3},{"type":"number","value":"10","pos":8},{"type":"(end)","value":"","pos":10}]',
+            "1 goto a": '[{"type":"number","value":"1","pos":0},{"type":"identifier","value":"goto","pos":2},{"type":"identifier","value":"a","pos":7},{"type":"(end)","value":"","pos":8}]',
             "graphics paper 5": '[{"type":"identifier","value":"graphics","pos":0},{"type":"identifier","value":"paper","pos":9},{"type":"number","value":"5","pos":15},{"type":"(end)","value":"","pos":16}]',
             "graphics paper 2.3*a": '[{"type":"identifier","value":"graphics","pos":0},{"type":"identifier","value":"paper","pos":9},{"type":"number","value":"2.3","pos":15},{"type":"*","value":"*","pos":18},{"type":"identifier","value":"a","pos":19},{"type":"(end)","value":"","pos":20}]',
             "graphics pen 5": '[{"type":"identifier","value":"graphics","pos":0},{"type":"identifier","value":"pen","pos":9},{"type":"number","value":"5","pos":13},{"type":"(end)","value":"","pos":14}]',
@@ -293,6 +318,7 @@ QUnit.module("BasicLexer: Tests", function () {
             "line input#2,;\"para noCRLF\";a$": '[{"type":"identifier","value":"line","pos":0},{"type":"identifier","value":"input","pos":5},{"type":"#","value":"#","pos":10},{"type":"number","value":"2","pos":11},{"type":",","value":",","pos":12},{"type":";","value":";","pos":13},{"type":"string","value":"para noCRLF","pos":15},{"type":";","value":";","pos":27},{"type":"identifier","value":"a$","pos":28},{"type":"(end)","value":"","pos":30}]',
             "line input#stream,;\"string\";a$": '[{"type":"identifier","value":"line","pos":0},{"type":"identifier","value":"input","pos":5},{"type":"#","value":"#","pos":10},{"type":"identifier","value":"stream","pos":11},{"type":",","value":",","pos":17},{"type":";","value":";","pos":18},{"type":"string","value":"string","pos":20},{"type":";","value":";","pos":27},{"type":"identifier","value":"a$","pos":28},{"type":"(end)","value":"","pos":30}]',
             "list ": '[{"type":"identifier","value":"list","pos":0},{"type":"(end)","value":"","pos":5}]',
+            "list -": '[{"type":"identifier","value":"list","pos":0},{"type":"-","value":"-","pos":5},{"type":"(end)","value":"","pos":6}]',
             "list 10": '[{"type":"identifier","value":"list","pos":0},{"type":"number","value":"10","pos":5},{"type":"(end)","value":"","pos":7}]',
             "list 1-": '[{"type":"identifier","value":"list","pos":0},{"type":"number","value":"1","pos":5},{"type":"-","value":"-","pos":6},{"type":"(end)","value":"","pos":7}]',
             "list -1": '[{"type":"identifier","value":"list","pos":0},{"type":"-","value":"-","pos":5},{"type":"number","value":"1","pos":6},{"type":"(end)","value":"","pos":7}]',
@@ -539,6 +565,7 @@ QUnit.module("BasicLexer: Tests", function () {
             "window#stream,left,right,top,bottom": '[{"type":"identifier","value":"window","pos":0},{"type":"#","value":"#","pos":6},{"type":"identifier","value":"stream","pos":7},{"type":",","value":",","pos":13},{"type":"identifier","value":"left","pos":14},{"type":",","value":",","pos":18},{"type":"identifier","value":"right","pos":19},{"type":",","value":",","pos":24},{"type":"identifier","value":"top","pos":25},{"type":",","value":",","pos":28},{"type":"identifier","value":"bottom","pos":29},{"type":"(end)","value":"","pos":35}]',
             "window swap 1": '[{"type":"identifier","value":"window","pos":0},{"type":"identifier","value":"swap","pos":7},{"type":"number","value":"1","pos":12},{"type":"(end)","value":"","pos":13}]',
             "window swap 1,0": '[{"type":"identifier","value":"window","pos":0},{"type":"identifier","value":"swap","pos":7},{"type":"number","value":"1","pos":12},{"type":",","value":",","pos":13},{"type":"number","value":"0","pos":14},{"type":"(end)","value":"","pos":15}]',
+            "1 window swap #1": '[{"type":"number","value":"1","pos":0},{"type":"identifier","value":"window","pos":2},{"type":"identifier","value":"swap","pos":9},{"type":"#","value":"#","pos":14},{"type":"number","value":"1","pos":15},{"type":"(end)","value":"","pos":16}]',
             "write a$": '[{"type":"identifier","value":"write","pos":0},{"type":"identifier","value":"a$","pos":6},{"type":"(end)","value":"","pos":8}]',
             "write a$,b": '[{"type":"identifier","value":"write","pos":0},{"type":"identifier","value":"a$","pos":6},{"type":",","value":",","pos":8},{"type":"identifier","value":"b","pos":9},{"type":"(end)","value":"","pos":10}]',
             "write#9,a$,b": '[{"type":"identifier","value":"write","pos":0},{"type":"#","value":"#","pos":5},{"type":"number","value":"9","pos":6},{"type":",","value":",","pos":7},{"type":"identifier","value":"a$","pos":8},{"type":",","value":",","pos":10},{"type":"identifier","value":"b","pos":11},{"type":"(end)","value":"","pos":12}]'
@@ -564,6 +591,8 @@ QUnit.module("BasicLexer: Tests", function () {
             "|disc.in": '[{"type":"|","value":"|disc.in","pos":0},{"type":"(end)","value":"","pos":8}]',
             "|disc.out": '[{"type":"|","value":"|disc.out","pos":0},{"type":"(end)","value":"","pos":9}]',
             "|drive,0": '[{"type":"|","value":"|drive","pos":0},{"type":",","value":",","pos":6},{"type":"number","value":"0","pos":7},{"type":"(end)","value":"","pos":8}]',
+            "|drive,": '[{"type":"|","value":"|drive","pos":0},{"type":",","value":",","pos":6},{"type":"(end)","value":"","pos":7}]',
+            "1 |drive,#1": '[{"type":"number","value":"1","pos":0},{"type":"|","value":"|drive","pos":2},{"type":",","value":",","pos":8},{"type":"#","value":"#","pos":9},{"type":"number","value":"1","pos":10},{"type":"(end)","value":"","pos":11}]',
             "|era,\"file.bas\"": '[{"type":"|","value":"|era","pos":0},{"type":",","value":",","pos":4},{"type":"string","value":"file.bas","pos":6},{"type":"(end)","value":"","pos":15}]',
             "|ren,\"file1.bas\",\"file2.bas\"": '[{"type":"|","value":"|ren","pos":0},{"type":",","value":",","pos":4},{"type":"string","value":"file1.bas","pos":6},{"type":",","value":",","pos":16},{"type":"string","value":"file2.bas","pos":18},{"type":"(end)","value":"","pos":28}]',
             "|tape": '[{"type":"|","value":"|tape","pos":0},{"type":"(end)","value":"","pos":5}]',
@@ -572,6 +601,27 @@ QUnit.module("BasicLexer: Tests", function () {
             "|user,1": '[{"type":"|","value":"|user","pos":0},{"type":",","value":",","pos":5},{"type":"number","value":"1","pos":6},{"type":"(end)","value":"","pos":7}]',
             "|mode,3": '[{"type":"|","value":"|mode","pos":0},{"type":",","value":",","pos":5},{"type":"number","value":"3","pos":6},{"type":"(end)","value":"","pos":7}]',
             "|renum,1,2,3,4": '[{"type":"|","value":"|renum","pos":0},{"type":",","value":",","pos":6},{"type":"number","value":"1","pos":7},{"type":",","value":",","pos":8},{"type":"number","value":"2","pos":9},{"type":",","value":",","pos":10},{"type":"number","value":"3","pos":11},{"type":",","value":",","pos":12},{"type":"number","value":"4","pos":13},{"type":"(end)","value":"","pos":14}]'
+        },
+        keepSpaces: {
+            " 1  chain   merge  \"f5\"": '[{"type":"number","value":"1","pos":1},{"type":"identifier","value":"chain","pos":4},{"type":"identifier","value":"merge","pos":12},{"type":"string","value":"f5","pos":20},{"type":"(end)","value":"","pos":23}]',
+            " 1  def   fn  a$ = \"abc\"": '[{"type":"number","value":"1","pos":1},{"type":"identifier","value":"def","pos":4},{"type":"identifier","value":"fn","pos":10},{"type":"identifier","value":"a$","pos":14},{"type":"=","value":"=","pos":17},{"type":"string","value":"abc","pos":20},{"type":"(end)","value":"","pos":24}]',
+            " 1  for   i   =   1   to  10   step  2": '[{"type":"number","value":"1","pos":1},{"type":"identifier","value":"for","pos":4},{"type":"identifier","value":"i","pos":10},{"type":"=","value":"=","pos":14},{"type":"number","value":"1","pos":18},{"type":"identifier","value":"to","pos":22},{"type":"number","value":"10","pos":26},{"type":"identifier","value":"step","pos":31},{"type":"number","value":"2","pos":37},{"type":"(end)","value":"","pos":38}]',
+            " 1  if    a  =  1     then  1     else    goto  1": '[{"type":"number","value":"1","pos":1},{"type":"identifier","value":"if","pos":4},{"type":"identifier","value":"a","pos":10},{"type":"=","value":"=","pos":13},{"type":"number","value":"1","pos":16},{"type":"identifier","value":"then","pos":22},{"type":"number","value":"1","pos":28},{"type":"identifier","value":"else","pos":34},{"type":"identifier","value":"goto","pos":42},{"type":"number","value":"1","pos":48},{"type":"(end)","value":"","pos":49}]',
+            " 1  line   input  a$": '[{"type":"number","value":"1","pos":1},{"type":"identifier","value":"line","pos":4},{"type":"identifier","value":"input","pos":11},{"type":"identifier","value":"a$","pos":18},{"type":"(end)","value":"","pos":20}]',
+            " 1  on  break   cont": '[{"type":"number","value":"1","pos":1},{"type":"identifier","value":"on","pos":4},{"type":"identifier","value":"break","pos":8},{"type":"identifier","value":"cont","pos":16},{"type":"(end)","value":"","pos":20}]',
+            " 1  on  break   gosub   1 ": '[{"type":"number","value":"1","pos":1},{"type":"identifier","value":"on","pos":4},{"type":"identifier","value":"break","pos":8},{"type":"identifier","value":"gosub","pos":16},{"type":"number","value":"1","pos":24},{"type":"(end)","value":"","pos":26}]',
+            " 1  on  break   stop": '[{"type":"number","value":"1","pos":1},{"type":"identifier","value":"on","pos":4},{"type":"identifier","value":"break","pos":8},{"type":"identifier","value":"stop","pos":16},{"type":"(end)","value":"","pos":20}]',
+            " 1  on  error   goto   1 ": '[{"type":"number","value":"1","pos":1},{"type":"identifier","value":"on","pos":4},{"type":"identifier","value":"error","pos":8},{"type":"identifier","value":"goto","pos":16},{"type":"number","value":"1","pos":23},{"type":"(end)","value":"","pos":25}]',
+            " 1  on  x  gosub   1  ,  2\n2  rem": '[{"type":"number","value":"1","pos":1},{"type":"identifier","value":"on","pos":4},{"type":"identifier","value":"x","pos":8},{"type":"identifier","value":"gosub","pos":11},{"type":"number","value":"1","pos":19},{"type":",","value":",","pos":22},{"type":"number","value":"2","pos":25},{"type":"(eol)","value":"","pos":26},{"type":"number","value":"2","pos":27},{"type":"identifier","value":"rem","pos":30},{"type":"(end)","value":"","pos":33}]',
+            " 1  on  x  goto   1  ,  2\n2  rem": '[{"type":"number","value":"1","pos":1},{"type":"identifier","value":"on","pos":4},{"type":"identifier","value":"x","pos":8},{"type":"identifier","value":"goto","pos":11},{"type":"number","value":"1","pos":18},{"type":",","value":",","pos":21},{"type":"number","value":"2","pos":24},{"type":"(eol)","value":"","pos":25},{"type":"number","value":"2","pos":26},{"type":"identifier","value":"rem","pos":29},{"type":"(end)","value":"","pos":32}]',
+            " 1   print   using    \"####\" ;  ri  ;": '[{"type":"number","value":"1","pos":1},{"type":"identifier","value":"print","pos":5},{"type":"identifier","value":"using","pos":13},{"type":"string","value":"####","pos":23},{"type":";","value":";","pos":29},{"type":"identifier","value":"ri","pos":32},{"type":";","value":";","pos":36},{"type":"(end)","value":"","pos":37}]',
+            " 1  window   swap  1,0": '[{"type":"number","value":"1","pos":1},{"type":"identifier","value":"window","pos":4},{"type":"identifier","value":"swap","pos":13},{"type":"number","value":"1","pos":19},{"type":",","value":",","pos":20},{"type":"number","value":"0","pos":21},{"type":"(end)","value":"","pos":22}]',
+            "a=1 else a=2": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"number","value":"1","pos":2},{"type":"identifier","value":"else","pos":4},{"type":"identifier","value":"a","pos":9},{"type":"=","value":"=","pos":10},{"type":"number","value":"2","pos":11},{"type":"(end)","value":"","pos":12}]',
+            "a=1 'comment": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"number","value":"1","pos":2},{"type":"\'","value":"\'","pos":4},{"type":"unquoted","value":"comment","pos":5},{"type":"(end)","value":"","pos":12}]',
+            "a=1 :'comment": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"number","value":"1","pos":2},{"type":":","value":":","pos":4},{"type":"\'","value":"\'","pos":5},{"type":"unquoted","value":"comment","pos":6},{"type":"(end)","value":"","pos":13}]',
+            "::a=3-2-1: :": '[{"type":":","value":":","pos":0},{"type":":","value":":","pos":1},{"type":"identifier","value":"a","pos":2},{"type":"=","value":"=","pos":3},{"type":"number","value":"3","pos":4},{"type":"-","value":"-","pos":5},{"type":"number","value":"2","pos":6},{"type":"-","value":"-","pos":7},{"type":"number","value":"1","pos":8},{"type":":","value":":","pos":9},{"type":":","value":":","pos":11},{"type":"(end)","value":"","pos":12}]',
+            " a =  ( b% >= c%  ) *     ( d <=e )  ": '[{"type":"identifier","value":"a","pos":1},{"type":"=","value":"=","pos":3},{"type":"(","value":"(","pos":6},{"type":"identifier","value":"b%","pos":8},{"type":">=","value":">=","pos":11},{"type":"identifier","value":"c%","pos":14},{"type":")","value":")","pos":18},{"type":"*","value":"*","pos":20},{"type":"(","value":"(","pos":26},{"type":"identifier","value":"d","pos":28},{"type":"<=","value":"<=","pos":30},{"type":"identifier","value":"e","pos":32},{"type":")","value":")","pos":34},{"type":"(end)","value":"","pos":37}]',
+            "a = (((3+2))*((3-7)))": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":2},{"type":"(","value":"(","pos":4},{"type":"(","value":"(","pos":5},{"type":"(","value":"(","pos":6},{"type":"number","value":"3","pos":7},{"type":"+","value":"+","pos":8},{"type":"number","value":"2","pos":9},{"type":")","value":")","pos":10},{"type":")","value":")","pos":11},{"type":"*","value":"*","pos":12},{"type":"(","value":"(","pos":13},{"type":"(","value":"(","pos":14},{"type":"number","value":"3","pos":15},{"type":"-","value":"-","pos":16},{"type":"number","value":"7","pos":17},{"type":")","value":")","pos":18},{"type":")","value":")","pos":19},{"type":")","value":")","pos":20},{"type":"(end)","value":"","pos":21}]'
         }
     };
     function fnReplacer(sBin) {
@@ -588,14 +638,20 @@ QUnit.module("BasicLexer: Tests", function () {
                     sExpected = sExpected.replace(/(0b[01]+)/g, fnReplacer); // for old IE
                 }
                 try {
-                    oExpected = JSON.parse(sExpected);
+                    try {
+                        oExpected = JSON.parse(sExpected); // test: { e: sExpected }
+                    }
+                    catch (e) {
+                        Utils_1.Utils.console.error(e);
+                        oExpected = {}; // continue
+                    }
                     aTokens = oBasicLexer.lex(sKey);
                     sResult = JSON.stringify(aTokens);
                 }
                 catch (e) {
                     Utils_1.Utils.console.error(e);
-                    aTokens = e;
                     sResult = String(e);
+                    aTokens = sResult; // force to take it
                 }
                 if (aResults) {
                     aResults.push('"' + sKey.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + "\": '" + sResult.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/'/g, "\\'") + "'");

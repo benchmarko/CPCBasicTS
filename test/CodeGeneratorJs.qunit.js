@@ -8,7 +8,6 @@ var BasicParser_1 = require("../BasicParser");
 var CodeGeneratorJs_1 = require("../CodeGeneratorJs");
 var Variables_1 = require("../Variables");
 var TestHelper_1 = require("./TestHelper");
-//import { } from "qunit";
 QUnit.module("CodeGeneratorJs: Tests", function () {
     var mAllTests = {
         numbers: {
@@ -20,7 +19,20 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
             "a=-&A7": " v.a = o.vmAssign(\"a\", -(0xA7));",
             "a=&7FFF": " v.a = o.vmAssign(\"a\", 0x7FFF);",
             "a=&X10100111": " v.a = o.vmAssign(\"a\", 0b10100111);",
-            "a=-&X111111111111111": " v.a = o.vmAssign(\"a\", -0b111111111111111);"
+            "a=-&X111111111111111": " v.a = o.vmAssign(\"a\", -0b111111111111111);",
+            "a=255": " v.a = o.vmAssign(\"a\", 255);",
+            "a=-255": " v.a = o.vmAssign(\"a\", -255);",
+            "a=256": " v.a = o.vmAssign(\"a\", 256);",
+            "a=-256": " v.a = o.vmAssign(\"a\", -256);",
+            "a=32767": " v.a = o.vmAssign(\"a\", 32767);",
+            "a=-32767": " v.a = o.vmAssign(\"a\", -32767);",
+            "a=32768": " v.a = o.vmAssign(\"a\", 32768);",
+            "a=-32768": " v.a = o.vmAssign(\"a\", -32768);",
+            "a=1.2e+9": " v.a = o.vmAssign(\"a\", 1200000000);",
+            "a ": "BasicParser: Expected = in direct at pos 2-2: (end)",
+            "1 a=": "BasicParser: Unexpected end of file in 1 at pos 4-4: ",
+            "1 5=7": "BasicParser: Bad expression statement in 1 at pos 2-3: 5",
+            "1 let 5=7": "BasicParser: Expected variable in 1 at pos 6-7: 5"
         },
         strings: {
             "a$=\"a12\"": " v.a$ = \"a12\";",
@@ -58,12 +70,19 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
             "a=(b%>=c%)*(d<=e)": " v.a = o.vmAssign(\"a\", (v.bI >= v.cI ? -1 : 0) * (v.d <= v.e ? -1 : 0));"
         },
         special: {
-            "a$=\"string with\nnewline\"": " v.a$ = \"string with\\x0anewline\";"
+            "1 ": "",
+            "a$=\"string with\nnewline\"": " v.a$ = \"string with\\x0anewline\";",
+            "1 on error goto 0:a=asc(0)": "BasicParser: Expected string in 1 at pos 24-25: 0",
+            "1 on error goto 2:a=asc(0)\n2 rem": " o.onErrorGoto(2); v.a = o.vmAssign(\"a\", o.asc(0));\n //",
+            "1 on error goto 0:?chr$(\"A\")": "BasicParser: Expected number in 1 at pos 25-26: A",
+            "1 on error goto 2:?chr$(\"A\")\n2 rem": " o.onErrorGoto(2); o.print(0, o.chr$(\"A\"), \"\\r\\n\");\n //"
         },
         "abs, after gosub, and, asc, atn, auto": {
             "a=abs(2.3)": " v.a = o.vmAssign(\"a\", o.abs(2.3));",
             "10 after 2 gosub 10": " o.afterGosub(2, undefined, 10);",
             "10 after 3,1 gosub 10": " o.afterGosub(3, 1, 10);",
+            "1 after gosub 1": "BasicParser: Unexpected token in 1 at pos 8-13: gosub",
+            "1 after 1,2,3 gosub 1": "BasicParser: Expected end of arguments in 1 at pos 11-12: ,",
             "a=b and c": " v.a = o.vmAssign(\"a\", o.vmRound(v.b) & o.vmRound(v.c));",
             "a=asc(\"A\")": " v.a = o.vmAssign(\"a\", o.asc(\"A\"));",
             "a=atn(2.3)": " v.a = o.vmAssign(\"a\", o.atn(2.3));",
@@ -146,11 +165,14 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
             "defstr a,b-c,v,x-y": " o.defstr(\"a\"); o.defstr(\"b - c\"); o.defstr(\"v\"); o.defstr(\"x - y\");",
             "deg ": " o.deg();",
             "delete": " o.delete(1, 65535); break;",
+            "delete -": " o.delete(undefined, 65535); break;",
             "delete 10": " o.delete(10); break;",
             "delete 1-": " o.delete(1, 65535); break;",
             "delete -1": " o.delete(undefined, 1); break;",
             "delete 1-2": " o.delete(1, 2); break;",
-            "a=derr ": " v.a = o.vmAssign(\"a\", o.derr());",
+            "delete 1+2": "BasicParser: Expected : in direct at pos 8-9: +",
+            "delete a": "BasicParser: Undefined range in direct at pos 7-8: a",
+            "a=derr": " v.a = o.vmAssign(\"a\", o.derr());",
             "di ": " o.di();",
             "dim a(1)": " /* v.aA[1] = */ o.dim(\"aA\", 1);",
             "dim a!(1)": " /* v.aRA[1] = */ o.dim(\"aRA\", 1);",
@@ -189,6 +211,7 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
             "erase a": " o.erase(\"a\");",
             "erase b$": " o.erase(\"b$\");",
             "erase a,b$,c!,d%": " o.erase(\"a\", \"b$\", \"cR\", \"dI\");",
+            "1 erase 5": "BasicParser: Expected variable in 1 at pos 8-9: 5",
             "a=erl": " v.a = o.vmAssign(\"a\", o.erl());",
             "a=err": " v.a = o.vmAssign(\"a\", o.err());",
             "error 7": " o.error(7); break;",
@@ -224,7 +247,9 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
         },
         "gosub, goto, graphics paper, graphics pen": {
             "10 gosub 10": " o.gosub(\"10g0\", 10); break; \ncase \"10g0\":",
+            "1 gosub a": "BasicParser: Expected line number in 1 at pos 8-9: a",
             "10 goto 10": " o.goto(10); break;",
+            "1 goto a": "BasicParser: Expected line number in 1 at pos 7-8: a",
             "graphics paper 5": " o.graphicsPaper(5);",
             "graphics paper 2.3*a": " o.graphicsPaper(2.3 * v.a);",
             "graphics pen 5": " o.graphicsPen(5);",
@@ -239,10 +264,6 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
             "a=himem": " v.a = o.vmAssign(\"a\", o.himem());"
         },
         "if, ink, inkey, inkey$, inp, input, instr, int": {
-            "if a=1 then a=2": " if (v.a === 1) { v.a = o.vmAssign(\"a\", 2); }",
-            "if a=1 then a=2 else a=3": " if (v.a === 1) { v.a = o.vmAssign(\"a\", 2); } else { v.a = o.vmAssign(\"a\", 3); }",
-            "if a=1 then input a": " if (v.a === 1) { o.goto(\"NaNi0\"); break; } o.goto(\"NaNi0e\"); break;\ncase \"NaNi0\": o.goto(\"NaNs0\"); break;\ncase \"NaNs0\":o.input(0, undefined, \"? \", \"a\"); o.goto(\"NaNs1\"); break;\ncase \"NaNs1\":; v.a = o.vmGetNextInput();\ncase \"NaNi0e\": ;",
-            "if a=1 then print a else input a": " if (v.a === 1) { o.goto(\"NaNi0\"); break; } /* else */ o.goto(\"NaNs0\"); break;\ncase \"NaNs0\":o.input(0, undefined, \"? \", \"a\"); o.goto(\"NaNs1\"); break;\ncase \"NaNs1\":; v.a = o.vmGetNextInput(); o.goto(\"NaNi0e\"); break;\ncase \"NaNi0\": o.print(0, v.a, \"\\r\\n\");\ncase \"NaNi0e\": ;",
             "10 if a=1 then goto 10": " if (v.a === 1) { o.goto(10); break; }",
             "10 if a=1 then 10": " if (v.a === 1) { o.goto(10); break; }",
             "10 if a=1 goto 10": " if (v.a === 1) { o.goto(10); break; }",
@@ -299,6 +320,7 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
             "line input#2,;\"para noCRLF\";a$": " o.goto(\"NaNs0\"); break;\ncase \"NaNs0\":o.lineInput(2, \";\", \"para noCRLF? \", \"a$\"); o.goto(\"NaNs1\"); break;\ncase \"NaNs1\":; v.a$ = o.vmGetNextInput();",
             "line input#stream,;\"string\";a$": " o.goto(\"NaNs0\"); break;\ncase \"NaNs0\":o.lineInput(v.stream, \";\", \"string? \", \"a$\"); o.goto(\"NaNs1\"); break;\ncase \"NaNs1\":; v.a$ = o.vmGetNextInput();",
             "list ": " o.list(0); break;",
+            "list -": " o.list(0, undefined, 65535); break;",
             "list 10": " o.list(0, 10); break;",
             "list 1-": " o.list(0, 1, 65535); break;",
             "list -1": " o.list(0, undefined, 1); break;",
@@ -545,6 +567,7 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
             "window#stream,left,right,top,bottom": " o.window(v.stream, v.left, v.right, v.top, v.bottom);",
             "window swap 1": " o.windowSwap(1);",
             "window swap 1,0": " o.windowSwap(1, 0);",
+            "1 window swap #1": "BasicParser: Expected number in 1 at pos 14-15: #",
             "write a$": " o.write(0, v.a$);",
             "write a$,b": " o.write(0, v.a$, v.b);",
             "write#9,a$,b": " o.write(9, v.a$, v.b);"
@@ -570,6 +593,8 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
             "|disc.in": " o.rsx.disc_in(); o.goto(\"NaNs0\"); break;\ncase \"NaNs0\":",
             "|disc.out": " o.rsx.disc_out(); o.goto(\"NaNs0\"); break;\ncase \"NaNs0\":",
             "|drive,0": " o.rsx.drive(0); o.goto(\"NaNs0\"); break;\ncase \"NaNs0\":",
+            "|drive,": "BasicParser: Expected any parameter for , in direct at pos 7-7: ",
+            "1 |drive,#1": "BasicParser: Unexpected stream in 1 at pos 9-10: #",
             "|era,\"file.bas\"": " o.rsx.era(\"file.bas\"); o.goto(\"NaNs0\"); break;\ncase \"NaNs0\":",
             "|ren,\"file1.bas\",\"file2.bas\"": " o.rsx.ren(\"file1.bas\", \"file2.bas\"); o.goto(\"NaNs0\"); break;\ncase \"NaNs0\":",
             "|tape": " o.rsx.tape(); o.goto(\"NaNs0\"); break;\ncase \"NaNs0\":",
@@ -578,6 +603,27 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
             "|user,1": " o.rsx.user(1); o.goto(\"NaNs0\"); break;\ncase \"NaNs0\":",
             "|mode,3": " o.rsx.mode(3); o.goto(\"NaNs0\"); break;\ncase \"NaNs0\":",
             "|renum,1,2,3,4": " o.rsx.renum(1, 2, 3, 4); o.goto(\"NaNs0\"); break;\ncase \"NaNs0\":"
+        },
+        keepSpaces: {
+            " 1  chain   merge  \"f5\"": " o.chainMerge(\"f5\"); o.goto(\"1s0\"); break;\ncase \"1s0\":",
+            " 1  def   fn  a$ = \"abc\"": " v.fna$ = function () { return \"abc\"; };",
+            " 1  for   i   =   1   to  10   step  2": " /* for() */ o.vmAssertNumberType(\"i\"); v.i = 1; o.goto(\"1f0b\"); break;\ncase \"1f0\": v.i += 2;\ncase \"1f0b\": if (v.i > 10) { o.goto(\"1f0e\"); break; }",
+            " 1  if    a  =  1     then  1     else    goto  1": " if (v.a === 1) { o.goto(1); break; } else { o.goto(1); break; }",
+            " 1  line   input  a$": " o.goto(\"1s0\"); break;\ncase \"1s0\":o.lineInput(0, undefined, \"? \", \"a$\"); o.goto(\"1s1\"); break;\ncase \"1s1\":; v.a$ = o.vmGetNextInput();",
+            " 1  on  break   cont": " o.onBreakCont();",
+            " 1  on  break   gosub   1 ": " o.onBreakGosub(1);",
+            " 1  on  break   stop": " o.onBreakStop();",
+            " 1  on  error   goto   1 ": " o.onErrorGoto(1);",
+            " 1  on  x  gosub   1  ,  2\n2  rem": " o.onGosub(\"1g0\", v.x, 1, 2); break; \ncase \"1g0\":\n //",
+            " 1  on  x  goto   1  ,  2\n2  rem": " o.onGoto(\"1s0\", v.x, 1, 2); break\ncase \"1s0\":\n //",
+            " 1   print   using    \"####\" ;  ri  ;": " o.print(0, o.using(\"####\", v.ri));",
+            " 1  window   swap  1,0": " o.windowSwap(1, 0);",
+            "a=1 else a=2": " v.a = o.vmAssign(\"a\", 1); // else a = 2",
+            "a=1 'comment": " v.a = o.vmAssign(\"a\", 1); // comment",
+            "a=1 :'comment": " v.a = o.vmAssign(\"a\", 1); // comment",
+            "::a=3-2-1: :": " v.a = o.vmAssign(\"a\", (3 - 2) - 1);",
+            " a =  ( b% >= c%  ) *     ( d <=e )  ": " v.a = o.vmAssign(\"a\", (v.bI >= v.cI ? -1 : 0) * (v.d <= v.e ? -1 : 0));",
+            "a = (((3+2))*((3-7)))": " v.a = o.vmAssign(\"a\", (3 + 2) * (3 - 7));"
         }
     };
     function fnReplacer(sBin) {
@@ -587,6 +633,7 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
         var bAllowDirect = true, oOptions = {
             bQuiet: true
         }, oCodeGeneratorJs = new CodeGeneratorJs_1.CodeGeneratorJs({
+            bQuiet: true,
             lexer: new BasicLexer_1.BasicLexer(oOptions),
             parser: new BasicParser_1.BasicParser(oOptions),
             tron: false,

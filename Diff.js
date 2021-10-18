@@ -263,10 +263,7 @@ var Diff = /** @class */ (function () {
         }));
         var lcs = Diff.fnLCS(aA.slice(i, iN), aB.slice(j, iM), fnEquals);
         for (var k = 0; k < lcs.length; k += 1) {
-            var atom = lcs[k], 
-            //ni = customIndexOf.call(aA, atom, i, fnEquals),
-            //nj = customIndexOf.call(aB, atom, j, fnEquals);
-            ni = Diff.customIndexOf(aA, atom, i, fnEquals), nj = Diff.customIndexOf(aB, atom, j, fnEquals);
+            var atom = lcs[k], ni = Diff.customIndexOf(aA, atom, i, fnEquals), nj = Diff.customIndexOf(aB, atom, j, fnEquals);
             // XXX ES5 map
             // Delete unmatched atoms from A
             [].push.apply(aDiff, aA.slice(i, ni).map(function (sAtom2) {

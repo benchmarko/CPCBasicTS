@@ -383,7 +383,7 @@ var CodeGeneratorJs = /** @class */ (function () {
     CodeGeneratorJs.prototype.addressOf = function (node, _oLeft, oRight) {
         node.pv = 'o.addressOf("' + oRight.pv + '")'; // address of
         if (oRight.type !== "identifier") {
-            throw this.composeError(Error(), "Expected identifier", node.value, node.pos);
+            throw this.composeError(Error(), "Expected variable", node.value, node.pos);
         }
         node.pt = "I";
         return node.pv;
@@ -541,9 +541,7 @@ var CodeGeneratorJs = /** @class */ (function () {
         return node.pv;
     };
     CodeGeneratorJs.unquoted = function (node) {
-        //const sValue = node.value.replace(/"/g, "\\\""); // escape "
         node.pt = "$";
-        //node.pv = '"' + sValue + '"';
         node.pv = node.value;
         return node.pv;
     };
@@ -719,7 +717,7 @@ var CodeGeneratorJs = /** @class */ (function () {
         for (var i = 0; i < node.args.length; i += 1) {
             var oNodeArg = node.args[i];
             if (oNodeArg.type !== "identifier") {
-                throw this.composeError(Error(), "Expected identifier in DIM", node.type, node.pos);
+                throw this.composeError(Error(), "Expected variable in DIM", node.type, node.pos);
             }
             if (!oNodeArg.args) {
                 throw this.composeError(Error(), "Programming error: Undefined args", oNodeArg.type, oNodeArg.pos); // should not occure
@@ -1387,11 +1385,14 @@ var CodeGeneratorJs = /** @class */ (function () {
             oOut.text = sOutput;
         }
         catch (e) {
-            oOut.error = e;
-            if ("pos" in e) {
-                Utils_1.Utils.console.warn(e); // our errors have "pos" defined => show as warning
+            if (Utils_1.Utils.isCustomError(e)) {
+                oOut.error = e;
+                if (!this.bQuiet) {
+                    Utils_1.Utils.console.warn(e); // show our customError as warning
+                }
             }
             else { // other errors
+                oOut.error = e; // force set other error
                 Utils_1.Utils.console.error(e);
             }
         }

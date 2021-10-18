@@ -3,6 +3,7 @@ export interface IOutput {
     text: string;
     error?: CustomError;
 }
+export declare type VariableValue = string | number | Function | [] | VariableValue[];
 export interface IController {
     startParse: () => void;
     startRenum: () => void;
@@ -27,7 +28,7 @@ export interface IController {
     startUpdateCanvas: () => void;
     stopUpdateCanvas: () => void;
     virtualKeyboardCreate: () => void;
-    getVariable: (sPar: string) => string | number | object;
+    getVariable: (sPar: string) => VariableValue;
     undoStackElement: () => string;
     redoStackElement: () => string;
 }

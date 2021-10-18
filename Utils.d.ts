@@ -25,5 +25,6 @@ export declare class Utils {
     static localStorage: Storage;
     static atob: (arg0: string) => string;
     static btoa: (arg0: string) => string;
+    static isCustomError(e: unknown): e is CustomError;
     static composeError(name: string, oErrorObject: Error, message: string, value: string, pos: number, len?: number, line?: string | number, hidden?: boolean): CustomError;
 }

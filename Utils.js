@@ -115,6 +115,9 @@ var Utils = /** @class */ (function () {
     Utils.stringTrimEnd = function (sStr) {
         return sStr.replace(/[\s\uFEFF\xA0]+$/, "");
     };
+    Utils.isCustomError = function (e) {
+        return e.pos !== undefined;
+    };
     Utils.composeError = function (name, oErrorObject, message, value, pos, len, line, hidden) {
         var oCustomError = oErrorObject;
         oCustomError.name = name;

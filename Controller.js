@@ -363,7 +363,8 @@ var Controller = /** @class */ (function () {
         if (this.oSound.isActivatedByUser()) { // only if activated
             var aSoundData = this.oVm.vmGetSoundData();
             while (aSoundData.length && this.oSound.testCanQueue(aSoundData[0].iState)) {
-                this.oSound.sound(aSoundData.shift());
+                var oSoundData = aSoundData.shift();
+                this.oSound.sound(oSoundData);
             }
             if (!aSoundData.length) {
                 if (oStop.sReason === "waitSound") { // only for this reason
@@ -1149,10 +1150,17 @@ var Controller = /** @class */ (function () {
         this.invalidateScript();
     };
     Controller.prototype.outputError = function (oError, bNoSelection) {
-        var iStream = 0, sShortError = oError.shortMessage || oError.message;
-        if (!bNoSelection) {
-            var iEndPos = (oError.pos || 0) + ((oError.value !== undefined) ? String(oError.value).length : 0);
-            this.view.setAreaSelection("inputText", oError.pos || 0, iEndPos);
+        var iStream = 0;
+        var sShortError;
+        if (Utils_1.Utils.isCustomError(oError)) {
+            sShortError = oError.shortMessage || oError.message;
+            if (!bNoSelection) {
+                var iEndPos = (oError.pos || 0) + ((oError.value !== undefined) ? String(oError.value).length : 0);
+                this.view.setAreaSelection("inputText", oError.pos || 0, iEndPos);
+            }
+        }
+        else {
+            sShortError = oError.message;
         }
         var sEscapedShortError = sShortError.replace(/([\x00-\x1f])/g, "\x01$1"); // eslint-disable-line no-control-regex
         this.oVm.print(iStream, sEscapedShortError + "\r\n");
@@ -1302,15 +1310,18 @@ var Controller = /** @class */ (function () {
     };
     Controller.prototype.selectJsError = function (sScript, e) {
         var iLineNumber = e.lineNumber, // only on FireFox
-        iColumnNumber = e.columnNumber, iErrLine = iLineNumber - 3; // for some reason line 0 is 3
-        var iPos = 0, iLine = 0;
-        while (iPos < sScript.length && iLine < iErrLine) {
-            iPos = sScript.indexOf("\n", iPos) + 1;
-            iLine += 1;
+        iColumnNumber = e.columnNumber;
+        if (iLineNumber || iColumnNumber) { // only available on Firefox
+            var iErrLine = iLineNumber - 3; // for some reason line 0 is 3
+            var iPos = 0, iLine = 0;
+            while (iPos < sScript.length && iLine < iErrLine) {
+                iPos = sScript.indexOf("\n", iPos) + 1;
+                iLine += 1;
+            }
+            iPos += iColumnNumber;
+            Utils_1.Utils.console.warn("Info: JS Error occurred at line", iLineNumber, "column", iColumnNumber, "pos", iPos);
+            this.view.setAreaSelection("outputText", iPos, iPos + 1);
         }
-        iPos += iColumnNumber;
-        Utils_1.Utils.console.warn("Info: JS Error occurred at line", iLineNumber, "column", iColumnNumber, "pos", iPos);
-        this.view.setAreaSelection("outputText", iPos, iPos + 1);
     };
     Controller.prototype.fnRun = function (oParas) {
         var sScript = this.view.getAreaValue("outputText"), oVm = this.oVm;
@@ -1329,11 +1340,11 @@ var Controller = /** @class */ (function () {
             }
             catch (e) {
                 Utils_1.Utils.console.error(e);
-                if (e.lineNumber || e.columnNumber) { // only available on Firefox
+                if (e instanceof Error) {
                     this.selectJsError(sScript, e);
+                    e.shortMessage = "JS " + String(e);
+                    this.outputError(e, true);
                 }
-                e.shortMessage = "JS " + String(e);
-                this.outputError(e, true);
                 this.fnScript = undefined;
             }
         }
@@ -1369,22 +1380,25 @@ var Controller = /** @class */ (function () {
             fnScript(this.oVm);
         }
         catch (e) {
-            if (e.name === "CpcVm") {
-                if (!e.hidden) {
-                    Utils_1.Utils.console.warn(e);
-                    this.outputError(e, true);
+            if (e instanceof Error) {
+                if (e.name === "CpcVm") {
+                    if (!e.hidden) {
+                        Utils_1.Utils.console.warn(e);
+                        this.outputError(e, true);
+                    }
+                    else {
+                        Utils_1.Utils.console.log(e.message);
+                    }
                 }
                 else {
-                    Utils_1.Utils.console.log(e.message);
+                    Utils_1.Utils.console.error(e);
+                    this.selectJsError(this.view.getAreaValue("outputText"), e);
+                    this.oVm.vmComposeError(e, 2, "JS " + String(e)); // generate Syntax Error, set also err and erl and set stop
+                    this.outputError(e, true);
                 }
             }
             else {
                 Utils_1.Utils.console.error(e);
-                if (e.lineNumber || e.columnNumber) { // only available on Firefox
-                    this.selectJsError(this.view.getAreaValue("outputText"), e);
-                }
-                this.oVm.vmComposeError(e, 2, "JS " + String(e)); // generate Syntax Error, set also err and erl and set stop
-                this.outputError(e, true);
             }
         }
     };
@@ -1449,7 +1463,9 @@ var Controller = /** @class */ (function () {
                 }
                 catch (e) {
                     Utils_1.Utils.console.error(e);
-                    this.outputError(e, true);
+                    if (e instanceof Error) {
+                        this.outputError(e, true);
+                    }
                 }
             }
             if (!oOutput.error) {
@@ -1753,13 +1769,17 @@ var Controller = /** @class */ (function () {
                         }
                         catch (e) {
                             Utils_1.Utils.console.error(e);
-                            this.outputError(e, true);
+                            if (e instanceof Error) { // eslint-disable-line max-depth
+                                this.outputError(e, true);
+                            }
                         }
                     }
                 }
                 catch (e) {
                     Utils_1.Utils.console.error(e);
-                    this.outputError(e, true);
+                    if (e instanceof Error) {
+                        this.outputError(e, true);
+                    }
                 }
                 oHeader = undefined; // ignore dsk file
             }
@@ -1777,10 +1797,12 @@ var Controller = /** @class */ (function () {
             }
             catch (e) { // maybe quota exceeded
                 Utils_1.Utils.console.error(e);
-                if (e.name === "QuotaExceededError") {
-                    e.shortMessage = sStorageName + ": Quota exceeded";
+                if (e instanceof Error) {
+                    if (e.name === "QuotaExceededError") {
+                        e.shortMessage = sStorageName + ": Quota exceeded";
+                    }
+                    this.outputError(e, true);
                 }
-                this.outputError(e, true);
             }
         }
     };
@@ -1836,7 +1858,9 @@ var Controller = /** @class */ (function () {
                 }
                 catch (e) {
                     Utils_1.Utils.console.error(e);
-                    that.outputError(e, true);
+                    if (e instanceof Error) {
+                        that.outputError(e, true);
+                    }
                 }
                 if (oZip) {
                     var oZipDirectory = oZip.getZipDirectory(), aEntries = Object.keys(oZipDirectory);
@@ -1848,7 +1872,9 @@ var Controller = /** @class */ (function () {
                         }
                         catch (e) {
                             Utils_1.Utils.console.error(e);
-                            that.outputError(e, true);
+                            if (e instanceof Error) { // eslint-disable-line max-depth
+                                that.outputError(e, true);
+                            }
                         }
                         if (sData2) {
                             that.fnLoad2(sData2, sName2, sType, aImported);

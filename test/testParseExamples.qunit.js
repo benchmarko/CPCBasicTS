@@ -345,9 +345,14 @@ function testParseExample(oExample) {
                 sChecks += "(line " + cpcBasic.oVmMock.iLine + ")";
             }
             catch (e) {
-                oOutput.error = e;
                 Utils_1.Utils.console.error("Error in file", oExample.key);
                 Utils_1.Utils.console.error(e);
+                if (Utils_1.Utils.isCustomError(e)) {
+                    oOutput.error = e;
+                }
+                else {
+                    oOutput.error = e;
+                }
             }
         }
         else {

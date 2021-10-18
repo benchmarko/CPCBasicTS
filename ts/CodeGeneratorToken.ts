@@ -4,17 +4,19 @@
 //
 //
 
-import { Utils } from "./Utils";
+import { Utils, CustomError } from "./Utils";
 import { BasicLexer } from "./BasicLexer";
 import { BasicParser, ParserNode } from "./BasicParser"; // BasicParser just for keyword definitions
 import { IOutput } from "./Interfaces";
 
 interface CodeGeneratorTokenOptions {
+	bQuiet?: boolean
 	lexer: BasicLexer
 	parser: BasicParser
 }
 
 export class CodeGeneratorToken {
+	private bQuiet = false;
 	private lexer: BasicLexer;
 	private parser: BasicParser;
 	private iLine = 0; // current line (label)
@@ -22,6 +24,7 @@ export class CodeGeneratorToken {
 	private sStatementSeparator: string; // cannot be static when using token2String()
 
 	constructor(options: CodeGeneratorTokenOptions) {
+		this.bQuiet = options.bQuiet || false;
 		this.lexer = options.lexer;
 		this.parser = options.parser;
 
@@ -1127,10 +1130,13 @@ export class CodeGeneratorToken {
 
 			oOut.text = sOutput;
 		} catch (e) {
-			oOut.error = e;
-			if ("pos" in e) {
-				Utils.console.warn(e); // our errors have "pos" defined => show as warning
+			if (Utils.isCustomError(e)) {
+				oOut.error = e;
+				if (!this.bQuiet) {
+					Utils.console.warn(e); // show our customError as warning
+				}
 			} else { // other errors
+				oOut.error = e as CustomError; // force set other error
 				Utils.console.error(e);
 			}
 		}

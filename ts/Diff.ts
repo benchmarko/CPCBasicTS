@@ -323,8 +323,6 @@ export class Diff {
 
 		for (let k = 0; k < lcs.length; k += 1) {
 			const atom = lcs[k],
-				//ni = customIndexOf.call(aA, atom, i, fnEquals),
-				//nj = customIndexOf.call(aB, atom, j, fnEquals);
 				ni = Diff.customIndexOf(aA, atom, i, fnEquals),
 				nj = Diff.customIndexOf(aB, atom, j, fnEquals);
 

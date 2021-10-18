@@ -4,7 +4,6 @@
 import { Utils } from "../Utils";
 import { Diff } from "../Diff";
 import { TestHelper, TestsType, AllTestsType } from "./TestHelper";
-//import {} from "qunit";
 
 QUnit.dump.maxDepth = 10;
 

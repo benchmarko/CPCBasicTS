@@ -1,4 +1,4 @@
-export declare type VariableValue = string | number | object;
+export declare type VariableValue = string | number | Function | [] | VariableValue[];
 export declare type VariableMap = {
     [k in string]: VariableValue;
 };
