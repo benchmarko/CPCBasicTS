@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="cpcbasic.css" />
-<title id="title">CPC BasicTS v0.0.32</title>
+<title id="title">CPC BasicTS v0.0.33</title>
 </head>
 
 <body id="pageBody">
@@ -177,6 +177,7 @@
 	</fieldset>
 	<a id="screenshotLink"></a>
 <script>
+	/*
 	window.exports = {};
 	window.require = function(sModule) {
 		var oModule = {};
@@ -188,8 +189,25 @@
 			throw new Error();
 		}
 		return oModule;
-	}
+	};
+	window.define = function(names, func) {
+		var args = names.map(function (name) {
+			if (name === "require") {
+				return null;
+			} else if (name === "exports") {
+				return window.exports;
+			}
+			var module = require(name);
+
+			return module;
+		});
+
+		func.apply(this, args);
+	};
+	*/
 </script>
+<script src="browserLoader.js"></script>
+
 <script src="Utils.js"></script>
 <script src="Polyfills.js"></script>
 <script src="Interfaces.js"></script>

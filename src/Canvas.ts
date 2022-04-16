@@ -331,7 +331,7 @@ export class Canvas {
 	// http://creativejs.com/resources/requestanimationframe/ (set frame rate)
 	// https://stackoverflow.com/questions/19764018/controlling-fps-with-requestanimationframe
 	private updateCanvas() {
-		this.iAnimationTimeoutId = setTimeout(this.fnUpdateCanvas2Handler, 1000 / this.iFps);
+		this.iAnimationTimeoutId = window.setTimeout(this.fnUpdateCanvas2Handler, 1000 / this.iFps); // ts (node)
 	}
 
 	startUpdateCanvas(): void {

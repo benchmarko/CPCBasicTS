@@ -2,6 +2,51 @@
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 
+
+/*
+declare global {
+	function require(path: string): object; // eslint-disable-line @typescript-eslint/ban-types
+	//var define = function (names: string[], ...func: Function[]) {}; // eslint-disable-line @typescript-eslint/ban-types
+	//function define(names: string[], ...func: Function[]): void; // eslint-disable-line @typescript-eslint/ban-types
+	var define: any, // eslint-disable-line vars-on-top
+		exports: any;
+}
+
+if (typeof define !== "undefined") {
+	define = function (names: string[], func: (...args: any) => void) {
+		var args = names.map(function (name) {
+			if (name === "require") {
+				return null;
+			} else if (name === "exports") {
+				return exports;
+			}
+			var module = require(name); // eslint-disable-line vars-on-top, global-require, @typescript-eslint/no-var-requires
+
+			return module;
+		});
+
+		func.apply(args);
+	};
+}
+*/
+
+/*
+declare global {
+	function require(path: string): object; // eslint-disable-line @typescript-eslint/ban-types
+	function define(names: string[], func: (...args: any[]) => void): void;
+}
+
+if (typeof define === "undefined") {
+	require("./loader"); // eslint-disable-line global-require
+}
+*/
+
+/*
+if (typeof require !== "undefined") { // nodeJs
+	require("./loader"); // eslint-disable-line global-require
+}
+*/
+
 import { Utils } from "./Utils";
 
 export type ConfigEntryType = string | number | boolean;

@@ -67,6 +67,7 @@ function fnEval(sCode: string) {
 }
 
 function nodeReadUrl(sUrl: string, fnDataLoaded: (oError: Error | undefined, sData?: string) => void) {
+	//console.log("DEBUG: nodeReadUrl:", sUrl);
 	if (!https) {
 		fnEval('https = require("https");'); // to trick TypeScript
 	}
@@ -95,11 +96,30 @@ function nodeReadFile(sName: string, fnDataLoaded: (oError: Error | undefined, s
 	fs.readFile(sName, "utf8", fnDataLoaded);
 }
 
+
 function nodeGetAbsolutePath(sName: string) {
 	if (!path) {
+		// eslint-disable-next-line global-require, @typescript-eslint/no-var-requires
 		fnEval('path = require("path");'); // to trick TypeScript
 	}
-	const sAbsolutePath = path.resolve(__dirname, sName);
+
+	/*
+	const dirname = (path as any).resolve();
+
+	console.log("DEBUG: nodeGetAbsolutePath: sName", sName, "path:", path, "dirname:", dirname, "__dirname:", __dirname, "__filename:", __filename);
+	*/
+
+	// https://stackoverflow.com/questions/8817423/why-is-dirname-not-defined-in-node-repl
+
+	const dirname = __dirname || (path as any).dirname(__filename),
+		sAbsolutePath = path.resolve(dirname, sName);
+
+	//console.log("DEBUG: nodeGetAbsolutePath: sAbsolutePath", sAbsolutePath);
+
+	// https://stackoverflow.com/questions/46745014/alternative-for-dirname-in-node-js-when-using-es6-modules
+	// ...
+
+	//const sUrl = new URL(sName, import.meta.url);
 
 	return sAbsolutePath;
 }
@@ -338,6 +358,10 @@ class cpcBasic {
 	}
 }
 
+if (!oGlobalThis.cpcBasic) {
+	oGlobalThis.cpcBasic = cpcBasic;
+}
+
 
 // taken from Controller.js
 interface FileMeta {
@@ -544,6 +568,7 @@ function testLoadExample(oExample: ExampleEntry) {
 	}
 
 	try {
+		//console.log("DEBUG: testLoadExample: sFileOrUrl:", sFileOrUrl);
 		if (bNodeJsAvail) {
 			if (isUrl(sFileOrUrl)) {
 				nodeReadUrl(sFileOrUrl, fnExampleLoaded);

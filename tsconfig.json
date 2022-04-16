@@ -2,7 +2,7 @@
 //https://www.typescriptlang.org/tsconfig#strict
 {
   "compilerOptions": {
-    "module": "commonjs",
+    "module": "amd",
     "moduleResolution": "node",
     "newLine": "LF",
     "outDir": "./dist/",

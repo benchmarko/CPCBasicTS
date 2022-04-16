@@ -6,8 +6,13 @@
 import { Utils } from "./Utils";
 
 export var Polyfills = {
-	iCount: 0
+	iCount: 0,
 	// empty
+
+	log: function (sPart: string): void {
+		Utils.console.debug("Polyfill: " + sPart);
+		Polyfills.iCount += 1;
+	}
 };
 
 // IE: window.console is only available when Dev Tools are open
@@ -31,11 +36,11 @@ if (!Utils.console) {
 
 if (!Utils.console.debug) { // IE8 has no console.debug
 	Utils.console.debug = Utils.console.log;
-	Utils.console.debug("Polyfill: window.console.debug");
+	Polyfills.log("window.console.debug");
 }
 
 if ((typeof globalThis !== "undefined") && !globalThis.window) { // nodeJS
-	Utils.console.debug("Polyfill: window");
+	Polyfills.log("window");
 	(globalThis.window as any) = {};
 }
 
@@ -60,7 +65,7 @@ if (!Array.prototype.indexOf) { // IE8
 
 if (!Array.prototype.map) { // IE8
 	// based on: https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Global_Objects/Array/map
-	Utils.console.debug("Polyfill: Array.prototype.map");
+	Polyfills.log("Array.prototype.map");
 	Array.prototype.map = function (callback, thisArg) { // eslint-disable-line no-extend-native,func-names
 		const aValues = [],
 			oObject = Object(this),
@@ -85,7 +90,7 @@ if (!Array.prototype.map) { // IE8
 
 if (window.Element) {
 	if (!Element.prototype.addEventListener) { // IE8
-		Utils.console.debug("Polyfill: Element.prototype.addEventListener");
+		Polyfills.log("Element.prototype.addEventListener");
 		Element.prototype.addEventListener = function (sEvent: string, fnCallback: (e: Event) => void) {
 			sEvent = "on" + sEvent;
 			return (this as any).attachEvent(sEvent, fnCallback);
@@ -93,7 +98,7 @@ if (window.Element) {
 	}
 
 	if (!Element.prototype.removeEventListener) { // IE8
-		Utils.console.debug("Polyfill: Element.prototype.removeEventListener");
+		Polyfills.log("Element.prototype.removeEventListener");
 		Element.prototype.removeEventListener = function (sEvent: string, fnCallback: (e: Event) => void) {
 			sEvent = "on" + sEvent;
 			return (this as any).detachEvent(sEvent, fnCallback);
@@ -103,14 +108,14 @@ if (window.Element) {
 
 if (window.Event) {
 	if (!Event.prototype.preventDefault) { // IE8
-		Utils.console.debug("Polyfill: Event.prototype.preventDefault");
+		Polyfills.log("Polyfill: Event.prototype.preventDefault");
 		Event.prototype.preventDefault = function () {
 			// empty
 		};
 	}
 
 	if (!Event.prototype.stopPropagation) { // IE8
-		Utils.console.debug("Polyfill: Event.prototype.stopPropagation");
+		Polyfills.log("Event.prototype.stopPropagation");
 		Event.prototype.stopPropagation = function () {
 			// empty
 		};
@@ -118,7 +123,7 @@ if (window.Event) {
 }
 
 if (!Date.now) { // IE8
-	Utils.console.debug("Polyfill: Date.now");
+	Polyfills.log("Date.now");
 	Date.now = function () {
 		return new Date().getTime();
 	};
@@ -128,7 +133,7 @@ if (!Date.now) { // IE8
 if (window.document) {
 	if (!document.addEventListener) {
 		// or check: https://gist.github.com/fuzzyfox/6762206
-		Utils.console.debug("Polyfill: document.addEventListener, removeEventListener");
+		Polyfills.log("document.addEventListener, removeEventListener");
 		if ((document as any).attachEvent) {
 			(function () {
 				type EventListenerEntry = {
@@ -221,7 +226,7 @@ if (window.document) {
 if (!Function.prototype.bind) { // IE8
 	// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/bind
 	// Does not work with `new funcA.bind(thisArg, args)`
-	Utils.console.debug("Polyfill: Function.prototype.bind");
+	Polyfills.log("Function.prototype.bind");
 	(function () {
 		const ArrayPrototypeSlice = Array.prototype.slice; // since IE6
 
@@ -245,21 +250,21 @@ if (!Function.prototype.bind) { // IE8
 }
 
 if (!Math.sign) { // IE11
-	Utils.console.debug("Polyfill: Math.sign");
+	Polyfills.log("Math.sign");
 	Math.sign = function (x) {
 		return (Number(x > 0) - Number(x < 0)) || Number(x);
 	};
 }
 
 if (!Math.trunc) { // IE11
-	Utils.console.debug("Polyfill: Math.trunc");
+	Polyfills.log("Math.trunc");
 	Math.trunc = function (v) {
 		return v < 0 ? Math.ceil(v) : Math.floor(v);
 	};
 }
 
 if (!Object.assign) { // IE11
-	Utils.console.debug("Polyfill: Object.assign");
+	Polyfills.log("Object.assign");
 	Object.assign = function (oTarget: Record<string, unknown>) { // varargs // Object.assign is ES6, not in IE
 		const oTo = oTarget;
 
@@ -277,7 +282,7 @@ if (!Object.assign) { // IE11
 }
 
 if (!Object.keys) { // IE8
-	Utils.console.debug("Polyfill: Object.keys");
+	Polyfills.log("Object.keys");
 	// https://tokenposts.blogspot.com/2012/04/javascript-objectkeys-browser.html
 	Object.keys = function (o: object): string[] { // eslint-disable-line @typescript-eslint/ban-types
 		const k: string[] = [];
@@ -295,7 +300,7 @@ if (!Object.keys) { // IE8
 }
 
 if (!String.prototype.endsWith) {
-	Utils.console.debug("Polyfill: String.prototype.endsWith");
+	Polyfills.log("String.prototype.endsWith");
 	String.prototype.endsWith = function (sSearch: string, iPosition?: number) { // eslint-disable-line no-extend-native
 		if (iPosition === undefined) {
 			iPosition = this.length;
@@ -308,7 +313,7 @@ if (!String.prototype.endsWith) {
 }
 
 if (!String.prototype.includes) { // IE11
-	Utils.console.debug("Polyfill: String.prototype.includes");
+	Polyfills.log("String.prototype.includes");
 	String.prototype.includes = function (sSearch: string, iStart = 0) { // eslint-disable-line no-extend-native
 		let bRet: boolean;
 
@@ -322,7 +327,7 @@ if (!String.prototype.includes) { // IE11
 }
 
 if (!String.prototype.padStart) { // IE11
-	Utils.console.debug("Polyfill: String.prototype.padStart");
+	Polyfills.log("String.prototype.padStart");
 	String.prototype.padStart = function (iTargetLength: number, sPad?: string) { // eslint-disable-line no-extend-native
 		let sRet = String(this);
 
@@ -341,7 +346,7 @@ if (!String.prototype.padStart) { // IE11
 
 if (!String.prototype.padEnd) { // IE11
 	// based on: https://github.com/behnammodi/polyfill/blob/master/string.polyfill.js
-	Utils.console.debug("Polyfill: String.prototype.padEnd");
+	Polyfills.log("String.prototype.padEnd");
 	String.prototype.padEnd = function (iTargetLength: number, sPad?: string) { // eslint-disable-line no-extend-native
 		let sRet = String(this);
 
@@ -359,7 +364,7 @@ if (!String.prototype.padEnd) { // IE11
 }
 
 if (!String.prototype.repeat) { // IE11
-	Utils.console.debug("Polyfill: String.prototype.repeat");
+	Polyfills.log("String.prototype.repeat");
 	String.prototype.repeat = function (iCount: number) { // eslint-disable-line no-extend-native
 		const sStr = String(this);
 		let	sOut = "";
@@ -372,7 +377,7 @@ if (!String.prototype.repeat) { // IE11
 }
 
 if (!String.prototype.startsWith) {
-	Utils.console.debug("Polyfill: String.prototype.startsWith");
+	Polyfills.log("String.prototype.startsWith");
 	String.prototype.startsWith = function (sSearch, iPosition) { // eslint-disable-line no-extend-native
 		iPosition = iPosition || 0;
 		return this.indexOf(sSearch, iPosition) === iPosition;
@@ -380,7 +385,7 @@ if (!String.prototype.startsWith) {
 }
 
 if (!String.prototype.trim) { // IE8
-	Utils.console.debug("Polyfill: String.prototype.trim");
+	Polyfills.log("String.prototype.trim");
 	String.prototype.trim = function () { // eslint-disable-line no-extend-native
 		return this.replace(/^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g, "");
 	};
@@ -389,7 +394,7 @@ if (!String.prototype.trim) { // IE8
 // based on: https://github.com/mathiasbynens/base64/blob/master/base64.js
 // https://mths.be/base64 v0.1.0 by @mathias | MIT license
 if (!Utils.atob) { // IE9 (and node.js)
-	Utils.console.debug("Polyfill: window.atob, btoa");
+	Polyfills.log("window.atob, btoa");
 	(function () {
 		const sTable = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
 			reSpaceCharacters = /[\t\n\f\r ]/g; // http://whatwg.org/html/common-microsyntaxes.html#space-character
@@ -474,7 +479,7 @@ if (!Utils.atob) { // IE9 (and node.js)
 
 // For IE and Edge, localStorage is only available if page is hosted on web server, so we simulate it (do not use property "length" or method names as keys!)
 if (!Utils.localStorage) {
-	Utils.console.debug("Polyfill: window.localStorage");
+	Polyfills.log("window.localStorage");
 	(function () {
 		class Storage {
 			length = 0;
@@ -526,14 +531,14 @@ if (!Utils.localStorage) {
 }
 
 if (!window.ArrayBuffer) { // IE9
-	Utils.console.debug("Polyfill: window.ArrayBuffer");
+	Polyfills.log("window.ArrayBuffer");
 	window.ArrayBuffer = Array as any;
 }
 
 if (!window.AudioContext) { // ? not for IE
 	window.AudioContext = (window as any).webkitAudioContext || (window as any).mozAudioContext;
 	if (window.AudioContext) {
-		Utils.console.debug("Polyfill: window.AudioContext");
+		Polyfills.log("window.AudioContext");
 	} else {
 		Utils.console.warn("Polyfill: window.AudioContext: not ok!");
 	}
@@ -541,7 +546,7 @@ if (!window.AudioContext) { // ? not for IE
 
 if (!window.JSON) { // simple polyfill for JSON.parse only
 	// for a better implementation, see https://github.com/douglascrockford/JSON-js/blob/master/json2.js
-	Utils.console.debug("Polyfill: window.JSON.parse");
+	Polyfills.log("window.JSON.parse");
 	(window as any).JSON = {
 		parse: function (sText: string) {
 			const oJson = eval("(" + sText + ")"); // eslint-disable-line no-eval
@@ -563,7 +568,7 @@ if (!window.requestAnimationFrame) { // IE9, SliTaz tazweb browser
 		(function () {
 			let lastTime = 0;
 
-			Utils.console.debug("Polyfill: window.requestAnimationFrame, cancelAnimationFrame");
+			Polyfills.log("window.requestAnimationFrame, cancelAnimationFrame");
 			window.requestAnimationFrame = function (callback /* , element */) {
 				const currTime = new Date().getTime(),
 					timeToCall = Math.max(0, 16 - (currTime - lastTime)),
@@ -577,12 +582,12 @@ if (!window.requestAnimationFrame) { // IE9, SliTaz tazweb browser
 			};
 		}());
 	} else {
-		Utils.console.debug("Polyfill: window.requestAnimationFrame, cancelAnimationFrame: Using vendor specific method.");
+		Polyfills.log("window.requestAnimationFrame, cancelAnimationFrame: Using vendor specific method.");
 	}
 }
 
 if (!window.Uint8Array) { // IE9
-	Utils.console.debug("Polyfill: Uint8Array (fallback only)");
+	Polyfills.log("Uint8Array (fallback only)");
 	(window as any).Uint8Array = function (oArrayBuffer: ArrayBufferConstructor) {
 		return oArrayBuffer; // we just return the ArrayBuffer as fallback; enough for our needs
 	};
@@ -590,6 +595,6 @@ if (!window.Uint8Array) { // IE9
 	// A more complex solution would be: https://github.com/inexorabletash/polyfill/blob/master/typedarray.js
 }
 
-Utils.console.debug("Polyfill: end of Polyfills");
+Utils.console.debug("Polyfill: end of Polyfills: count=" + Polyfills.iCount);
 
 // end

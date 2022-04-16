@@ -1445,7 +1445,7 @@ export class CpcVm {
 		this.oCanvas.clearGraphicsWindow();
 	}
 
-	vmCloseinCallback(): void {
+	private vmCloseinCallback() {
 		const oInFile = this.oInFile;
 
 		CpcVm.vmResetFileHandling(oInFile);
@@ -1459,7 +1459,7 @@ export class CpcVm {
 		}
 	}
 
-	vmCloseoutCallback(): void {
+	private vmCloseoutCallback() {
 		const oOutFile = this.oOutFile;
 
 		CpcVm.vmResetFileHandling(oOutFile);
@@ -2253,7 +2253,7 @@ export class CpcVm {
 		});
 	}
 
-	vmLoadCallback(sInput: string, oMeta: FileMeta): boolean {
+	private vmLoadCallback(sInput: string, oMeta: FileMeta) {
 		const oInFile = this.oInFile;
 
 		let	bPutInMemory = false;
@@ -2527,7 +2527,7 @@ export class CpcVm {
 		oSqTimer.bRepeat = true; // means reloaded for sq
 	}
 
-	vmOpeninCallback(sInput: string | null): void {
+	private vmOpeninCallback(sInput: string | null) {
 		if (sInput !== null) {
 			sInput = sInput.replace(/\r\n/g, "\n"); // remove CR (maybe from ASCII file in "binary" form)
 			if (sInput.endsWith("\n")) {

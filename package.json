@@ -1,6 +1,6 @@
 {
   "name": "cpcbasicts",
-  "version": "0.0.32",
+  "version": "0.0.33",
   "description": "# CPCBasicTS - Run CPC BASIC in a Browser",
   "main": "cpcbasicts.js",
   "directories": {
@@ -8,6 +8,7 @@
   },
   "dependencies": {},
   "devDependencies": {
+    "@types/node": "^17.0.24",
     "@types/qunit": "^2.11.1",
     "@typescript-eslint/eslint-plugin": "^4.9.0",
     "@typescript-eslint/parser": "^4.9.0",
@@ -25,7 +26,7 @@
     "clean": "rm -rf dist/*",
     "cleancache": "rm -rf node_modules/.cache/gh-pages/",
     "build": "tsc && cp src/*.html src/*.css dist/ && mkdirp -p dist/ts && cp -r src/*.ts dist/ts/ && mkdirp -p dist/test/ts/test && cp -r src/test/*.ts dist/test/ts/test && cp src/test/*.html dist/test/",
-    "test": "qunit dist/test/*.qunit.js",
+    "test": "qunit --require ./dist/test/amdLoader.js dist/test/*.qunit.js",
     "deploy": "gh-pages -d dist",
     "lint": "eslint src --ext .ts"
   },
