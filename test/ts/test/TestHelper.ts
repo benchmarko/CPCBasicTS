@@ -15,10 +15,12 @@ declare global {
 		QUnit: unknown
 	}
 
+	/*
 	interface NodeJsProcess {
 		argv: string[]
 	}
 	let process: NodeJsProcess;
+	*/
 }
 
 

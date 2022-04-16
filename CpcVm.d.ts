@@ -234,9 +234,9 @@ export declare class CpcVm {
     clear(): void;
     clearInput(): void;
     clg(iGPaper?: number): void;
-    vmCloseinCallback(): void;
+    private vmCloseinCallback;
     closein(): void;
-    vmCloseoutCallback(): void;
+    private vmCloseoutCallback;
     closeout(): void;
     cls(iStream: number): void;
     commaTab(iStream: number): string;
@@ -305,7 +305,7 @@ export declare class CpcVm {
     vmLineInputCallback(): boolean;
     lineInput(iStream: number, sNoCRLF: string, sMsg: string, sVarType: string): void;
     list(iStream: number, iFirst?: number, iLast?: number): void;
-    vmLoadCallback(sInput: string, oMeta: FileMeta): boolean;
+    private vmLoadCallback;
     load(sName: string, iStart?: number): void;
     vmLocate(iStream: number, iPos: number, iVpos: number): void;
     locate(iStream: number, iPos: number, iVpos: number): void;
@@ -332,7 +332,7 @@ export declare class CpcVm {
     onGoto(retLabel: string, n: number, ...aArgs: number[]): void;
     private static fnChannel2ChannelIndex;
     onSqGosub(iChannel: number, iLine: number): void;
-    vmOpeninCallback(sInput: string | null): void;
+    private vmOpeninCallback;
     openin(sName: string): void;
     openout(sName: string): void;
     origin(xOff: number, yOff: number, xLeft?: number, xRight?: number, yTop?: number, yBottom?: number): void;

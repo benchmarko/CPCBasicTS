@@ -10,10 +10,6 @@ declare global {
     interface Window {
         QUnit: unknown;
     }
-    interface NodeJsProcess {
-        argv: string[];
-    }
-    let process: NodeJsProcess;
 }
 declare type ConfigEntryType = string | number | boolean;
 declare type ConfigType = {
