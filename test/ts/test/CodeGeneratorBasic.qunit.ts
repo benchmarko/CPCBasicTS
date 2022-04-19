@@ -7,7 +7,7 @@ import { CodeGeneratorBasic } from "../CodeGeneratorBasic";
 import { TestHelper, TestsType, AllTestsType } from "./TestHelper";
 
 QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
-	const mAllTests: AllTestsType = { // eslint-disable-line vars-on-top
+	const allTests: AllTestsType = { // eslint-disable-line vars-on-top
 		numbers: {
 			"a=1": "a=1",
 			"a=1.2": "a=1.2",
@@ -633,50 +633,50 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 		// "else a=7": "ELSE a = 7", // TODO: whitespace
 		// "a=1 else a=2": "a=1:ELSE a = 2", //TTT
 
-		oLexer = new BasicLexer({
-			bQuiet: true,
-			bKeepWhiteSpace: false
+		lexer = new BasicLexer({
+			quiet: true,
+			keepWhiteSpace: false
 		}),
 
-		oParser = new BasicParser({
-			bQuiet: true,
-			bKeepTokens: true,
-			bKeepBrackets: true,
-			bKeepColons: true,
-			bKeepDataComma: true
+		parser = new BasicParser({
+			quiet: true,
+			keepTokens: true,
+			keepBrackets: true,
+			keepColons: true,
+			keepDataComma: true
 		}),
 
-		oCodeGeneratorBasic = new CodeGeneratorBasic({
-			bQuiet: true,
-			lexer: oLexer,
-			parser: oParser
+		codeGeneratorBasic = new CodeGeneratorBasic({
+			quiet: true,
+			lexer: lexer,
+			parser: parser
 		});
 
 
-	function runTestsFor(assert: Assert | undefined, sCategory: string, oTests: TestsType, aResults?: string[]) {
-		oLexer.setOptions({
-			bQuiet: true,
-			bKeepWhiteSpace: sCategory === "keepSpaces"
+	function runTestsFor(assert: Assert | undefined, category: string, tests: TestsType, results?: string[]) {
+		lexer.setOptions({
+			quiet: true,
+			keepWhiteSpace: category === "keepSpaces"
 		});
 
-		for (const sKey in oTests) {
-			if (oTests.hasOwnProperty(sKey)) {
-				const sExpected = oTests[sKey],
-					oOutput = oCodeGeneratorBasic.generate(sKey, true),
-					sResult = oOutput.error ? String(oOutput.error) : oOutput.text;
+		for (const key in tests) {
+			if (tests.hasOwnProperty(key)) {
+				const expected = tests[key],
+					output = codeGeneratorBasic.generate(key, true),
+					result = output.error ? String(output.error) : output.text;
 
-				if (aResults) {
-					aResults.push('"' + sKey.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '": "' + sResult.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '"');
+				if (results) {
+					results.push('"' + key.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '": "' + result.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '"');
 				}
 
 				if (assert) {
-					assert.strictEqual(sResult, sExpected, sKey);
+					assert.strictEqual(result, expected, key);
 				}
 			}
 		}
 	}
 
-	TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
+	TestHelper.generateAndRunAllTests(allTests, runTestsFor);
 });
 
 // end

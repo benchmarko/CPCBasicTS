@@ -8,7 +8,7 @@ interface BasicFormatterOptions {
 export declare class BasicFormatter {
     private lexer;
     private parser;
-    private sLine;
+    private line;
     constructor(options: BasicFormatterOptions);
     private composeError;
     private fnCreateLineNumbersMap;
@@ -18,6 +18,6 @@ export declare class BasicFormatter {
     private static fnSortNumbers;
     private static fnApplyChanges;
     private fnRenumber;
-    renumber(sInput: string, iNew: number, iOld: number, iStep: number, iKeep: number): IOutput;
+    renumber(input: string, newLine: number, oldLine: number, step: number, keep: number): IOutput;
 }
 export {};

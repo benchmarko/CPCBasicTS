@@ -10,18 +10,18 @@ import { TestHelper, TestsType, AllTestsType } from "./TestHelper";
 QUnit.dump.maxDepth = 10;
 
 QUnit.module("DiskImage: Tests", function () {
-	const mAllTests: AllTestsType = { // eslint-disable-line vars-on-top
+	const allTests: AllTestsType = { // eslint-disable-line vars-on-top
 		dataEmpty: {
 			"CPCBasic;B;0;245;;base64,UEsDBBQAAAAIAMiAj1IH4jtleQAAAAAUAAANAAAAZGF0YUVtcHR5LmRza/MNU9BVcA5wdvUNVXDJLM7WdcvMSeXlAjM989LyeblSgMxMIEsBDDQYGYQZhhEIKUpMhvkUJsbE6feUgeEgE4R3CEofhtJHoPRRKH0MSh+H0ieg9EkoPbjB01EwCkbBKBgFo2AUjIJRMApGwSgYBaNgFIyCUTCsAQBQSwECFAAUAAAACADIgI9SB+I7ZXkAAAAAFAAADQAAAAAAAAAAACAAAAAAAAAAZGF0YUVtcHR5LmRza1BLBQYAAAAAAQABADsAAACkAAAAAAA=":
 			""
 		},
 		data: { // compressed part of disk image file; Controller.exportAsBase64("cpcdata.zip.xxx")
 			"CPCBasic;B;0;609;;base64,UEsDBBQAAAAIAOyBdVI5vxGB6QEAAAAnAAALAAAAY3BjZGF0YS5kc2vzDVPQVXAOcHb1DVVwySzO1nXLzEnl5QIzPfPS8nm5UoDMTCBLAQw0GBmEGYYRCClKTIb5FCbGxOn3lIHhIBOEdwhKH4bSR6D0USh9DEofh9InoPRJKD3IATDunRyD4x0dg52BPEYMR0PlQ4AEkMfEjEM+ACrPgkPeycnTDyTPiib9dBSMglEwCkbBKBgFdAeGBgoBQZ5+IQpKoIo6sTgzWYmXS+r/f1Dd/P8/7WlC7hsFo2AU0A6gte8hoID4Th5Q3RlmQQYuhv1IJQhQXIrIQoQCrVShCYXPKBgFwxmg9d+BgJHU/H+SeZfO81eXxWXXn55jkeuxl+86iwsz91XngnvFVWealc5PPX+5n+nD/CnZ0ts/M6+YX86/50Wf8wLT6nNrPsufpEDriyB710mTOa5kXfb9cePAzHedATZrQrRNYvTfCIZevvllj5CP1ePpjAo6vzoivaL/zP5otMSmv6PVbF90sbmX7QfuGfwnk9QzCYXPcAfo41/A2AePfzFCx78YoeNfjNDxL0bo+BcjdPyLETr+xQgd/2KEjn8xDpHxL0LhMwqGN0AbnwQCULI9wMCBN9UgAFDdD2ZY60XKSUVF5T/DfxIKMQq0jpZ/o2AUjIJRMApGwSgYBaNgFIyCUTAKRgGRAABQSwECFAAUAAAACADsgXVSOb8RgekBAAAAJwAACwAAAAAAAAAAACAAAAAAAAAAY3BjZGF0YS5kc2tQSwUGAAAAAAEAAQA5AAAAEgIAAAAA":
-			'CPCBAS_A.ASC={"sType":"A","iStart":0,"iLength":21} 10 PRINT "CPCBasic"\r\nCPCBAS_T.BAS={"iUser":0,"sName":"CPCBAS_T","sExt":"BAS","iType":0,"iStart":368,"iPseudoLen":19,"iEntry":0,"iLength":19,"sType":"T"} 10 PRINT "CPCBasic"\nCPCBAS_P.BAS={"iUser":0,"sName":"CPCBAS_P","sExt":"BAS","iType":1,"iStart":368,"iPseudoLen":19,"iEntry":0,"iLength":19,"sType":"P"} 10 PRINT "CPCBasic"\nCPCBAS_B.BIN={"iUser":0,"sName":"CPCBAS_B","sExt":"BIN","iType":2,"iStart":49152,"iPseudoLen":8,"iEntry":0,"iLength":8,"sType":"B"} CPCBasic'
+			'CPCBAS_A.ASC={"typeString":"A","start":0,"length":21} 10 PRINT "CPCBasic"\r\nCPCBAS_T.BAS={"user":0,"name":"CPCBAS_T","ext":"BAS","typeNumber":0,"start":368,"pseudoLen":19,"entry":0,"length":19,"typeString":"T"} 10 PRINT "CPCBasic"\nCPCBAS_P.BAS={"user":0,"name":"CPCBAS_P","ext":"BAS","typeNumber":1,"start":368,"pseudoLen":19,"entry":0,"length":19,"typeString":"P"} 10 PRINT "CPCBasic"\nCPCBAS_B.BIN={"user":0,"name":"CPCBAS_B","ext":"BIN","typeNumber":2,"start":49152,"pseudoLen":8,"entry":0,"length":8,"typeString":"B"} CPCBasic'
 		},
 		system: {
 			"CPCBasic;B;0;429;;base64,UEsDBBQAAAAIANWJdVLsLMeMNwEAAAA6AAAKAAAAY3Bjc3lzLmRza+3bQUvCYBzH8ed5PDXYIbp5Gp66CPUS5tTaQZGcXUOsYBQV+QJ7A70NX8d6pj8h1mFCCWt8Pwf/zzaFucMmX3ByG/WjZJaMJotomK+f+uP8+SEMtsv05fE1DO79MveraOvcmjPTItn7crX/pvt97mS6MSZ2u62BZqI51BxpjjWvNK81U81m2wAAAAAAAKDVqv3Lml3/supfVv3Lqn9Z9S+r/mXVv6z6l1X/svQvAAAAAAAANEC1f5XRquxfTv3LqX859S+n/uXUv5z6l1P/cupf7p/0L5PMkkE8v4vjeeK37I+T1vHMv/gt16kcrru+AACgeS4votlNOs2iXvmgX67zVS8MukVRPtuL4viz7vwAHE/l9/3O2+F/8vHv++ycmsB8fLuD+P3dA28iv/jon8y66wMAbfUFUEsBAhQAFAAAAAgA1Yl1Uuwsx4w3AQAAADoAAAoAAAAAAAAAAAAgAAAAAAAAAGNwY3N5cy5kc2tQSwUGAAAAAAEAAQA4AAAAXwEAAAAA":
-			'CPCBAS_A.ASC={"sType":"A","iStart":0,"iLength":21} 10 PRINT "CPCBasic"\r\nCPCBAS_T.BAS={"iUser":0,"sName":"CPCBAS_T","sExt":"BAS","iType":0,"iStart":368,"iPseudoLen":19,"iEntry":0,"iLength":19,"sType":"T"} 10 PRINT "CPCBasic"\n'
+			'CPCBAS_A.ASC={"typeString":"A","start":0,"length":21} 10 PRINT "CPCBasic"\r\nCPCBAS_T.BAS={"user":0,"name":"CPCBAS_T","ext":"BAS","typeNumber":0,"start":368,"pseudoLen":19,"entry":0,"length":19,"typeString":"T"} 10 PRINT "CPCBasic"\n'
 		},
 		noDskIdent: {
 			"CPCBasic;B;0;247;;base64,UEsDBBQAAAAIAEKCj1KUjyNHeQAAAAAUAAAOAAAAbm9Ec2tJZGVudC5kc2uLiFDQVXAOcHb1DVVwySzO1nXLzEnl5QIzPfPS8nm5UoDMTCBLAQw0GBmEGYYRCClKTIb5FCbGxOn3lIHhIBOEdwhKH4bSR6D0USh9DEofh9InoPRJKD24wdNRMApGwSgYBaNgFIyCUTAKRsEoGAWjYBSMglEwrAEAUEsBAhQAFAAAAAgAQoKPUpSPI0d5AAAAABQAAA4AAAAAAAAAAAAgAAAAAAAAAG5vRHNrSWRlbnQuZHNrUEsFBgAAAAABAAEAPAAAAKUAAAAAAA==":
@@ -37,95 +37,95 @@ QUnit.module("DiskImage: Tests", function () {
 		}
 	};
 
-	function fnString2ArrayBuf(sData: string) {
-		const aBuf = new ArrayBuffer(sData.length),
-			aView = new Uint8Array(aBuf);
+	function fnString2ArrayBuf(data: string) {
+		const buf = new ArrayBuffer(data.length),
+			view = new Uint8Array(buf);
 
-		for (let i = 0; i < sData.length; i += 1) {
-			aView[i] = sData.charCodeAt(i);
+		for (let i = 0; i < data.length; i += 1) {
+			view[i] = data.charCodeAt(i);
 		}
-		return aBuf;
+		return buf;
 	}
 
-	function createMinimalAmsdosHeader(sType: string, iStart: number, iLength: number) {
-		const oHeader = {
-			sType: sType,
-			iStart: iStart,
-			iLength: iLength
+	function createMinimalAmsdosHeader(type: string, start: number, length: number) {
+		const header = {
+			typeString: type,
+			start: start,
+			length: length
 		} as AmsdosHeader;
 
-		return oHeader;
+		return header;
 	}
 
-	function fnExtractDiskImage(oDisk: DiskImage) {
-		const aResult: string[] = [],
-			oDir = oDisk.readDirectory(),
-			aEntries = Object.keys(oDir);
+	function fnExtractDiskImage(disk: DiskImage) {
+		const result: string[] = [],
+			dir = disk.readDirectory(),
+			entries = Object.keys(dir);
 
-		for (let i = 0; i < aEntries.length; i += 1) {
-			const sName = aEntries[i];
-			let sData = oDisk.readFile(oDir[sName]);
+		for (let i = 0; i < entries.length; i += 1) {
+			const name = entries[i];
+			let data = disk.readFile(dir[name]);
 
-			if (sData) {
-				let oHeader = DiskImage.parseAmsdosHeader(sData);
+			if (data) {
+				let headerEntry = DiskImage.parseAmsdosHeader(data);
 
-				if (oHeader) {
-					sData = sData.substr(0x80); // remove header
-					if (oHeader.sType === "P") { // protected BASIC?
-						sData = DiskImage.unOrProtectData(sData);
-						sData = new BasicTokenizer().decode(sData);
-					} else if (oHeader.sType === "T") { // tokenized BASIC?
-						sData = new BasicTokenizer().decode(sData);
+				if (headerEntry) {
+					data = data.substr(0x80); // remove header
+					if (headerEntry.typeString === "P") { // protected BASIC?
+						data = DiskImage.unOrProtectData(data);
+						data = new BasicTokenizer().decode(data);
+					} else if (headerEntry.typeString === "T") { // tokenized BASIC?
+						data = new BasicTokenizer().decode(data);
 					}
 				} else {
-					oHeader = createMinimalAmsdosHeader("A", 0, sData.length);
+					headerEntry = createMinimalAmsdosHeader("A", 0, data.length);
 				}
 
-				const sHeader = JSON.stringify(oHeader);
+				const headerString = JSON.stringify(headerEntry);
 
-				aResult.push(sName + "=" + sHeader + " " + sData);
+				result.push(name + "=" + headerString + " " + data);
 			}
 		}
-		return aResult.join("");
+		return result.join("");
 	}
 
-	function runTestsFor(assert: Assert | undefined, _sCategory: string, oTests: TestsType, aResults?: string[]) {
-		for (const sKey in oTests) {
-			if (oTests.hasOwnProperty(sKey)) {
-				const aParts = sKey.split(",", 2),
-					sMeta = aParts[0],
-					sCompressed = Utils.atob(aParts[1]), // decode base64
-					oZip = new ZipFile(new Uint8Array(fnString2ArrayBuf(sCompressed)), "name"),
-					sFirstFileInZip = Object.keys(oZip.getZipDirectory())[0],
-					sUncompressed = oZip.readData(sFirstFileInZip),
-					oDisk = new DiskImage({
-						sData: sUncompressed,
-						sDiskName: "name"
+	function runTestsFor(assert: Assert | undefined, _sCategory: string, tests: TestsType, results?: string[]) {
+		for (const key in tests) {
+			if (tests.hasOwnProperty(key)) {
+				const parts = key.split(",", 2),
+					meta = parts[0],
+					compressed = Utils.atob(parts[1]), // decode base64
+					zip = new ZipFile(new Uint8Array(fnString2ArrayBuf(compressed)), "name"),
+					firstFileInZip = Object.keys(zip.getZipDirectory())[0],
+					uncompressed = zip.readData(firstFileInZip),
+					disk = new DiskImage({
+						data: uncompressed,
+						diskName: "name"
 					}),
-					sExpected = oTests[sKey];
-				let sResult: string;
+					expected = tests[key];
+				let result: string;
 
 				try {
-					sResult = fnExtractDiskImage(oDisk);
+					result = fnExtractDiskImage(disk);
 				} catch (e) {
-					sResult = String(e);
-					if (sResult !== sExpected) { // output in console only if error not expected
+					result = String(e);
+					if (result !== expected) { // output in console only if error not expected
 						Utils.console.error(e);
 					}
 				}
 
-				if (aResults) {
-					aResults.push('"' + sKey.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + "\": '" + sResult.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/'/g, "\\'") + "'");
+				if (results) {
+					results.push('"' + key.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + "\": '" + result.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/'/g, "\\'") + "'");
 				}
 
 				if (assert) {
-					assert.strictEqual(sResult, sExpected, sMeta);
+					assert.strictEqual(result, expected, meta);
 				}
 			}
 		}
 	}
 
-	TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
+	TestHelper.generateAndRunAllTests(allTests, runTestsFor);
 });
 
 // end

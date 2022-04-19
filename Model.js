@@ -12,11 +12,11 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.databases = {};
             this.examples = {}; // loaded examples per database
         }
-        Model.prototype.getProperty = function (sProperty) {
-            return this.config[sProperty];
+        Model.prototype.getProperty = function (property) {
+            return this.config[property];
         };
-        Model.prototype.setProperty = function (sProperty, value) {
-            this.config[sProperty] = value;
+        Model.prototype.setProperty = function (property, value) {
+            this.config[property] = value;
         };
         Model.prototype.getAllProperties = function () {
             return this.config;
@@ -25,22 +25,22 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return this.initialConfig;
         };
         Model.prototype.getChangedProperties = function () {
-            var oCurrent = this.config, oInitial = this.initialConfig, oChanged = {};
-            for (var sName in oCurrent) {
-                if (oCurrent.hasOwnProperty(sName)) {
-                    if (oCurrent[sName] !== oInitial[sName]) {
-                        oChanged[sName] = oCurrent[sName];
+            var current = this.config, initial = this.initialConfig, changed = {};
+            for (var name_1 in current) {
+                if (current.hasOwnProperty(name_1)) {
+                    if (current[name_1] !== initial[name_1]) {
+                        changed[name_1] = current[name_1];
                     }
                 }
             }
-            return oChanged;
+            return changed;
         };
-        Model.prototype.addDatabases = function (oDb) {
-            for (var sPar in oDb) {
-                if (oDb.hasOwnProperty(sPar)) {
-                    var oEntry = oDb[sPar];
-                    this.databases[sPar] = oEntry;
-                    this.examples[sPar] = {};
+        Model.prototype.addDatabases = function (db) {
+            for (var par in db) {
+                if (db.hasOwnProperty(par)) {
+                    var entry = db[par];
+                    this.databases[par] = entry;
+                    this.examples[par] = {};
                 }
             }
         };
@@ -48,32 +48,32 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return this.databases;
         };
         Model.prototype.getDatabase = function () {
-            var sDatabase = this.getProperty("database");
-            return this.databases[sDatabase];
+            var database = this.getProperty("database");
+            return this.databases[database];
         };
         Model.prototype.getAllExamples = function () {
-            var sDatabase = this.getProperty("database");
-            return this.examples[sDatabase];
+            var database = this.getProperty("database");
+            return this.examples[database];
         };
-        Model.prototype.getExample = function (sKey) {
-            var sDatabase = this.getProperty("database");
-            return this.examples[sDatabase][sKey];
+        Model.prototype.getExample = function (key) {
+            var database = this.getProperty("database");
+            return this.examples[database][key];
         };
-        Model.prototype.setExample = function (oExample) {
-            var sDatabase = this.getProperty("database"), sKey = oExample.key;
-            if (!this.examples[sDatabase][sKey]) {
+        Model.prototype.setExample = function (example) {
+            var database = this.getProperty("database"), key = example.key;
+            if (!this.examples[database][key]) {
                 if (Utils_1.Utils.debug > 1) {
-                    Utils_1.Utils.console.debug("setExample: creating new example:", sKey);
+                    Utils_1.Utils.console.debug("setExample: creating new example:", key);
                 }
             }
-            this.examples[sDatabase][sKey] = oExample;
+            this.examples[database][key] = example;
         };
-        Model.prototype.removeExample = function (sKey) {
-            var sDatabase = this.getProperty("database");
-            if (!this.examples[sDatabase][sKey]) {
-                Utils_1.Utils.console.warn("removeExample: example does not exist: " + sKey);
+        Model.prototype.removeExample = function (key) {
+            var database = this.getProperty("database");
+            if (!this.examples[database][key]) {
+                Utils_1.Utils.console.warn("removeExample: example does not exist: " + key);
             }
-            delete this.examples[sDatabase][sKey];
+            delete this.examples[database][key];
         };
         return Model;
     }());

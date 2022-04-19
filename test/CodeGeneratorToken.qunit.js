@@ -4,7 +4,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     QUnit.module("CodeGeneratorToken: Tests", function ( /* hooks */) {
-        var mAllTests = {
+        var allTests = {
             numbers: {
                 "a=1": "0D,00,00,E1,EF,0F",
                 "a=1.2": "0D,00,00,E1,EF,1F,9A,99,99,19,81",
@@ -632,39 +632,39 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
         // "a=1:b=2": "0D,00,00,E1,EF,0F,01,0D,00,00,E2,EF,10",
         // "data \" \",//": "8C,20,22,20,22,2C,2F,2F",
         // "a=1 :'comment": "0D,00,00,E1,EF,0F,01,01,C0,63,6F,6D,6D,65,6E,74",
-        function fnBin2Hex(sBin) {
-            return sBin.split("").map(function (s) {
+        function fnBin2Hex(bin) {
+            return bin.split("").map(function (s) {
                 return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0");
             }).join(",");
         }
-        function runTestsFor(assert, _sCategory, oTests, aResults) {
-            var oCodeGeneratorToken = new CodeGeneratorToken_1.CodeGeneratorToken({
-                bQuiet: true,
+        function runTestsFor(assert, _sCategory, tests, results) {
+            var codeGeneratorToken = new CodeGeneratorToken_1.CodeGeneratorToken({
+                quiet: true,
                 lexer: new BasicLexer_1.BasicLexer({
-                    bQuiet: true,
-                    bKeepWhiteSpace: true
+                    quiet: true,
+                    keepWhiteSpace: true
                 }),
                 parser: new BasicParser_1.BasicParser({
-                    bQuiet: true,
-                    bKeepTokens: true,
-                    bKeepBrackets: true,
-                    bKeepColons: true,
-                    bKeepDataComma: true
+                    quiet: true,
+                    keepTokens: true,
+                    keepBrackets: true,
+                    keepColons: true,
+                    keepDataComma: true
                 })
             });
-            for (var sKey in oTests) {
-                if (oTests.hasOwnProperty(sKey)) {
-                    var sExpected = oTests[sKey], oOutput = oCodeGeneratorToken.generate(sKey, true), sResult = oOutput.error ? String(oOutput.error) : fnBin2Hex(oOutput.text);
-                    if (aResults) {
-                        aResults.push('"' + sKey.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '": "' + sResult.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '"');
+            for (var key in tests) {
+                if (tests.hasOwnProperty(key)) {
+                    var expected = tests[key], output = codeGeneratorToken.generate(key, true), result = output.error ? String(output.error) : fnBin2Hex(output.text);
+                    if (results) {
+                        results.push('"' + key.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '": "' + result.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '"');
                     }
                     if (assert) {
-                        assert.strictEqual(sResult, sExpected, sKey);
+                        assert.strictEqual(result, expected, key);
                     }
                 }
             }
         }
-        TestHelper_1.TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
+        TestHelper_1.TestHelper.generateAndRunAllTests(allTests, runTestsFor);
     });
 });
 // end

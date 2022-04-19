@@ -1,43 +1,11 @@
 // browserLoader.ts - Loader for the browser
 // (c) Marco Vieth, 2022
 
-// var exports: any, require: any, define: any;
-
-/* xxxglobals exports */
-/* xxxglobals globalThis */
-
-/* xxxglobals global */
-
-/*
-declare interface global {
-	exports: {[k in string]: object}; // eslint-disable-line @typescript-eslint/ban-types
-	require: (path: string) => object; // eslint-disable-line @typescript-eslint/ban-types,
-	define: unknown;
-}
-*/
-
 interface Window { // eslint-disable-line @typescript-eslint/no-unused-vars
 	exports: {[k in string]: object}; // eslint-disable-line @typescript-eslint/ban-types
 	require: any; //(path: string) => object; // eslint-disable-line @typescript-eslint/ban-types,
 	define: unknown;
 }
-
-/*
-declare global {
-	let require: (path: string) => object; // eslint-disable-line @typescript-eslint/ban-types,
-}
-*/
-
-// var require: (path: string) => object; // eslint-disable-line @typescript-eslint/ban-types,
-
-/*
-if ((typeof globalThis !== "undefined") && !globalThis.window) { // nodeJS
-	//Utils.console.debug("Polyfill: window");
-	//(globalThis.window as any) = {};
-}
-*/
-// const myGlobal = (globalThis || window) as any;
-
 
 if (!window.exports) {
 	window.exports = {};

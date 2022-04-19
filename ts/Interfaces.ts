@@ -28,7 +28,7 @@ export interface IController {
 
     fnPretty: () => void
     fnDownload: () => void
-    setInputText: (sInput: string, bKeepStack?: boolean) => void
+    setInputText: (input: string, keepStack?: boolean) => void
     setExampleSelectOptions: () => void
     invalidateScript: () => void
     setSoundActive: () => void
@@ -43,7 +43,7 @@ export interface IController {
     startUpdateCanvas: () => void
     stopUpdateCanvas: () => void
     virtualKeyboardCreate: () => void
-    getVariable: (sPar: string) => VariableValue
+    getVariable: (par: string) => VariableValue
     // see VariableValue in Variables.ts
 
     undoStackElement: () => string
@@ -51,7 +51,7 @@ export interface IController {
  }
 
 export interface ICpcVmRsx {
-    rsxIsAvailable: (sName: string) => boolean
+    rsxIsAvailable: (name: string) => boolean
 }
 
 //

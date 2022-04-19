@@ -4,7 +4,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     QUnit.module("CodeGeneratorJs: Tests", function () {
-        var mAllTests = {
+        var allTests = {
             numbers: {
                 "a=1": " v.a = o.vmAssign(\"a\", 1);",
                 "a=1.2": " v.a = o.vmAssign(\"a\", 1.2);",
@@ -621,41 +621,41 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
                 "a = (((3+2))*((3-7)))": " v.a = o.vmAssign(\"a\", (3 + 2) * (3 - 7));"
             }
         };
-        function fnReplacer(sBin) {
-            return "0x" + parseInt(sBin.substr(2), 2).toString(16).toLowerCase();
+        function fnReplacer(bin) {
+            return "0x" + parseInt(bin.substr(2), 2).toString(16).toLowerCase();
         }
-        function runTestsFor(assert, _sCategory, oTests, aResults) {
-            var bAllowDirect = true, oOptions = {
-                bQuiet: true
-            }, oCodeGeneratorJs = new CodeGeneratorJs_1.CodeGeneratorJs({
-                bQuiet: true,
-                lexer: new BasicLexer_1.BasicLexer(oOptions),
-                parser: new BasicParser_1.BasicParser(oOptions),
+        function runTestsFor(assert, _sCategory, tests, results) {
+            var allowDirect = true, options = {
+                quiet: true
+            }, codeGeneratorJs = new CodeGeneratorJs_1.CodeGeneratorJs({
+                quiet: true,
+                lexer: new BasicLexer_1.BasicLexer(options),
+                parser: new BasicParser_1.BasicParser(options),
                 tron: false,
                 rsx: {
-                    rsxIsAvailable: function (sRsx) {
-                        return (/^a|b|basic|cpm|dir|disc|disc\.in|disc\.out|drive|era|ren|tape|tape\.in|tape\.out|user|mode|renum$/).test(sRsx);
+                    rsxIsAvailable: function (rsx) {
+                        return (/^a|b|basic|cpm|dir|disc|disc\.in|disc\.out|drive|era|ren|tape|tape\.in|tape\.out|user|mode|renum$/).test(rsx);
                     }
                 },
-                bNoCodeFrame: true
+                noCodeFrame: true
             });
-            for (var sKey in oTests) {
-                if (oTests.hasOwnProperty(sKey)) {
-                    var oVariables = new Variables_1.Variables(), oOutput = oCodeGeneratorJs.generate(sKey, oVariables, bAllowDirect), sResult = oOutput.error ? String(oOutput.error) : oOutput.text;
-                    var sExpected = oTests[sKey];
-                    if (!Utils_1.Utils.bSupportsBinaryLiterals) {
-                        sExpected = sExpected.replace(/(0b[01]+)/g, fnReplacer); // for old IE
+            for (var key in tests) {
+                if (tests.hasOwnProperty(key)) {
+                    var variables = new Variables_1.Variables(), output = codeGeneratorJs.generate(key, variables, allowDirect), result = output.error ? String(output.error) : output.text;
+                    var expected = tests[key];
+                    if (!Utils_1.Utils.supportsBinaryLiterals) {
+                        expected = expected.replace(/(0b[01]+)/g, fnReplacer); // for old IE
                     }
-                    if (aResults) {
-                        aResults.push('"' + sKey.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '": "' + sResult.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '"');
+                    if (results) {
+                        results.push('"' + key.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '": "' + result.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '"');
                     }
                     if (assert) {
-                        assert.strictEqual(sResult, sExpected, sKey);
+                        assert.strictEqual(result, expected, key);
                     }
                 }
             }
         }
-        TestHelper_1.TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
+        TestHelper_1.TestHelper.generateAndRunAllTests(allTests, runTestsFor);
     });
 });
 // end

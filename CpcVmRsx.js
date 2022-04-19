@@ -7,132 +7,132 @@ define(["require", "exports", "./Utils", "./CpcVm"], function (require, exports,
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CpcVmRsx = void 0;
     var CpcVmRsx = /** @class */ (function () {
-        function CpcVmRsx(oVm) {
-            this.oVm = oVm;
+        function CpcVmRsx(vm) {
+            this.vm = vm;
         }
-        CpcVmRsx.prototype.rsxIsAvailable = function (sName) {
-            return sName in this;
+        CpcVmRsx.prototype.rsxIsAvailable = function (name) {
+            return name in this;
         };
-        CpcVmRsx.prototype.rsxExec = function (sName) {
-            var aArgs = [];
+        CpcVmRsx.prototype.rsxExec = function (name) {
+            var args = [];
             for (var _i = 1; _i < arguments.length; _i++) {
-                aArgs[_i - 1] = arguments[_i];
+                args[_i - 1] = arguments[_i];
             }
-            if (this.rsxIsAvailable(sName)) {
-                this[sName].apply(this, aArgs);
+            if (this.rsxIsAvailable(name)) {
+                this[name].apply(this, args);
             }
             else {
-                throw this.oVm.vmComposeError(Error(), 28, "|" + sName); // Unknown command
+                throw this.vm.vmComposeError(Error(), 28, "|" + name); // Unknown command
             }
         };
         CpcVmRsx.prototype.a = function () {
-            this.oVm.vmNotImplemented("|A");
+            this.vm.vmNotImplemented("|A");
         };
         CpcVmRsx.prototype.b = function () {
-            this.oVm.vmNotImplemented("|B");
+            this.vm.vmNotImplemented("|B");
         };
         CpcVmRsx.prototype.basic = function () {
             Utils_1.Utils.console.log("basic: |BASIC");
-            this.oVm.vmStop("reset", 90);
+            this.vm.vmStop("reset", 90);
         };
         CpcVmRsx.prototype.cpm = function () {
-            this.oVm.vmNotImplemented("|CPM");
+            this.vm.vmNotImplemented("|CPM");
         };
-        CpcVmRsx.prototype.fnGetVariableByAddress = function (iIndex) {
-            return this.oVm.oVariables.getVariableByIndex(iIndex) || "";
+        CpcVmRsx.prototype.fnGetVariableByAddress = function (index) {
+            return this.vm.variables.getVariableByIndex(index) || "";
         };
         CpcVmRsx.prototype.fnGetParameterAsString = function (stringOrAddress) {
-            var sString = ""; // for undefined
+            var string = ""; // for undefined
             if (typeof stringOrAddress === "number") { // assuming addressOf
-                sString = String(this.fnGetVariableByAddress(stringOrAddress));
+                string = String(this.fnGetVariableByAddress(stringOrAddress));
             }
             else if (typeof stringOrAddress === "string") {
-                sString = stringOrAddress;
+                string = stringOrAddress;
             }
-            return sString;
+            return string;
         };
         CpcVmRsx.prototype.dir = function (fileMask) {
-            var iStream = 0;
-            var sFileMask = this.fnGetParameterAsString(fileMask);
-            if (sFileMask) {
-                sFileMask = this.oVm.vmAdaptFilename(sFileMask, "|DIR");
+            var stream = 0;
+            var fileMaskString = this.fnGetParameterAsString(fileMask);
+            if (fileMaskString) {
+                fileMaskString = this.vm.vmAdaptFilename(fileMaskString, "|DIR");
             }
-            var oFileParas = {
-                iStream: iStream,
-                sCommand: "|dir",
-                sFileMask: sFileMask,
-                iLine: this.oVm.iLine
+            var fileParas = {
+                stream: stream,
+                command: "|dir",
+                fileMask: fileMaskString,
+                line: this.vm.line
             };
-            this.oVm.vmStop("fileDir", 45, false, oFileParas);
+            this.vm.vmStop("fileDir", 45, false, fileParas);
         };
         CpcVmRsx.prototype.disc = function () {
-            this.oVm.vmNotImplemented("|DISC");
+            this.vm.vmNotImplemented("|DISC");
         };
         CpcVmRsx.prototype.disc_in = function () {
-            this.oVm.vmNotImplemented("|DISC.IN");
+            this.vm.vmNotImplemented("|DISC.IN");
         };
         CpcVmRsx.prototype.disc_out = function () {
-            this.oVm.vmNotImplemented("|DISC.OUT");
+            this.vm.vmNotImplemented("|DISC.OUT");
         };
         CpcVmRsx.prototype.drive = function () {
-            this.oVm.vmNotImplemented("|DRIVE");
+            this.vm.vmNotImplemented("|DRIVE");
         };
         CpcVmRsx.prototype.era = function (fileMask) {
-            var iStream = 0;
-            var sFileMask = this.fnGetParameterAsString(fileMask);
-            sFileMask = this.oVm.vmAdaptFilename(sFileMask, "|ERA");
-            var oFileParas = {
-                iStream: iStream,
-                sCommand: "|era",
-                sFileMask: sFileMask,
-                iLine: this.oVm.iLine
+            var stream = 0;
+            var fileMaskString = this.fnGetParameterAsString(fileMask);
+            fileMaskString = this.vm.vmAdaptFilename(fileMaskString, "|ERA");
+            var fileParas = {
+                stream: stream,
+                command: "|era",
+                fileMask: fileMaskString,
+                line: this.vm.line
             };
-            this.oVm.vmStop("fileEra", 45, false, oFileParas);
+            this.vm.vmStop("fileEra", 45, false, fileParas);
         };
         CpcVmRsx.prototype.ren = function (newName, oldName) {
-            var iStream = 0;
-            var sNew = this.fnGetParameterAsString(newName), sOld = this.fnGetParameterAsString(oldName);
-            sNew = this.oVm.vmAdaptFilename(sNew, "|REN");
-            sOld = this.oVm.vmAdaptFilename(sOld, "|REN");
-            var oFileParas = {
-                iStream: iStream,
-                sCommand: "|ren",
-                sFileMask: "",
-                sNew: sNew,
-                sOld: sOld,
-                iLine: this.oVm.iLine
+            var stream = 0;
+            var newName2 = this.fnGetParameterAsString(newName), oldName2 = this.fnGetParameterAsString(oldName);
+            newName2 = this.vm.vmAdaptFilename(newName2, "|REN");
+            oldName2 = this.vm.vmAdaptFilename(oldName2, "|REN");
+            var fileParas = {
+                stream: stream,
+                command: "|ren",
+                fileMask: "",
+                newName: newName2,
+                oldName: oldName2,
+                line: this.vm.line
             };
-            this.oVm.vmStop("fileRen", 45, false, oFileParas);
+            this.vm.vmStop("fileRen", 45, false, fileParas);
         };
         CpcVmRsx.prototype.tape = function () {
-            this.oVm.vmNotImplemented("|TAPE");
+            this.vm.vmNotImplemented("|TAPE");
         };
         CpcVmRsx.prototype.tape_in = function () {
-            this.oVm.vmNotImplemented("|TAPE.IN");
+            this.vm.vmNotImplemented("|TAPE.IN");
         };
         CpcVmRsx.prototype.tape_out = function () {
-            this.oVm.vmNotImplemented("|TAPE.OUT");
+            this.vm.vmNotImplemented("|TAPE.OUT");
         };
         CpcVmRsx.prototype.user = function () {
-            this.oVm.vmNotImplemented("|USER");
+            this.vm.vmNotImplemented("|USER");
         };
-        CpcVmRsx.prototype.mode = function (iMode) {
-            iMode = this.oVm.vmInRangeRound(iMode, 0, 3, "|MODE");
-            this.oVm.iMode = iMode;
-            var oWinData = CpcVm_1.CpcVm.mWinData[this.oVm.iMode];
-            Utils_1.Utils.console.log("rsxMode: (test)", iMode);
-            for (var i = 0; i < CpcVm_1.CpcVm.iStreamCount - 2; i += 1) { // for window streams
-                var oWin = this.oVm.aWindow[i];
-                Object.assign(oWin, oWinData);
+        CpcVmRsx.prototype.mode = function (mode) {
+            mode = this.vm.vmInRangeRound(mode, 0, 3, "|MODE");
+            this.vm.modeValue = mode;
+            var winData = CpcVm_1.CpcVm.winData[this.vm.modeValue];
+            Utils_1.Utils.console.log("rsxMode: (test)", mode);
+            for (var i = 0; i < CpcVm_1.CpcVm.streamCount - 2; i += 1) { // for window streams
+                var win = this.vm.windowDataList[i];
+                Object.assign(win, winData);
             }
-            this.oVm.oCanvas.changeMode(iMode); // or setMode?
+            this.vm.canvas.changeMode(mode); // or setMode?
         };
         CpcVmRsx.prototype.renum = function () {
-            var aArgs = [];
+            var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
-                aArgs[_i] = arguments[_i];
+                args[_i] = arguments[_i];
             }
-            this.oVm.renum.apply(aArgs);
+            this.vm.renum.apply(args);
         };
         return CpcVmRsx;
     }());

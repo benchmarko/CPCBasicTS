@@ -1,49 +1,49 @@
 export interface CpcKeyExpansionsOptions {
-    iCpcKey: number;
-    iRepeat: number;
-    iNormal?: number;
-    iShift?: number;
-    iCtrl?: number;
+    cpcKey: number;
+    repeat: number;
+    normal?: number;
+    shift?: number;
+    ctrl?: number;
 }
-export declare type PressReleaseCpcKey = (iCpcKey: number, sPressedKey: string, sKey: string, bShiftKey: boolean, bCtrlKey: boolean) => void;
+export declare type PressReleaseCpcKey = (cpcKey: number, pressedKey: string, key: string, shiftKey: boolean, ctrlKey: boolean) => void;
 interface KeyboardOptions {
-    fnOnEscapeHandler?: (sKey: string, sPressedKey: string) => void;
+    fnOnEscapeHandler?: (key: string, pressedKey: string) => void;
     fnOnKeyDown?: () => void;
 }
 export declare class Keyboard {
     private options;
     private fnOnKeyDown?;
-    private aKeyBuffer;
-    private aExpansionTokens;
-    private oCpcKeyExpansions;
-    private bActive;
-    private oKey2CpcKey;
-    private bCodeStringsRemoved;
-    private oPressedKeys;
+    private keyBuffer;
+    private expansionTokens;
+    private cpcKeyExpansions;
+    private active;
+    private key2CpcKey;
+    private codeStringsRemoved;
+    private pressedKeys;
     constructor(options: KeyboardOptions);
-    private static mKey2CpcKey;
-    private static mSpecialKeys;
-    private static aJoyKeyCodes;
+    private static key2CpcKey;
+    private static specialKeys;
+    private static joyKeyCodes;
     reset(): void;
     clearInput(): void;
     resetExpansionTokens(): void;
     resetCpcKeysExpansions(): void;
     getKeyDownHandler(): (() => void) | undefined;
     setKeyDownHandler(fnOnKeyDown?: () => void): void;
-    setActive(bActive: boolean): void;
+    setActive(active: boolean): void;
     private removeCodeStringsFromKeymap;
-    fnPressCpcKey(iCpcKey: number, sPressedKey: string, sKey: string, bShiftKey: boolean, bCtrlKey: boolean): void;
-    fnReleaseCpcKey(iCpcKey: number, sPressedKey: string, sKey: string, bShiftKey: boolean, bCtrlKey: boolean): void;
+    fnPressCpcKey(cpcKeyCode: number, pressedKey: string, key: string, shiftKey: boolean, ctrlKey: boolean): void;
+    fnReleaseCpcKey(cpcKeyCode: number, pressedKey: string, key: string, shiftKey: boolean, ctrlKey: boolean): void;
     private static keyIdentifier2Char;
     private fnKeyboardKeydown;
     private fnKeyboardKeyup;
     getKeyFromBuffer(): string;
-    putKeyInBuffer(sKey: string): void;
-    putKeysInBuffer(sInput: string): void;
-    getKeyState(iCpcKey: number): number;
-    getJoyState(iJoy: number): number;
-    setExpansionToken(iToken: number, sString: string): void;
-    setCpcKeyExpansion(oOptions: CpcKeyExpansionsOptions): void;
+    putKeyInBuffer(key: string): void;
+    putKeysInBuffer(input: string): void;
+    getKeyState(cpcKeyCode: number): number;
+    getJoyState(joy: number): number;
+    setExpansionToken(token: number, string: string): void;
+    setCpcKeyExpansion(options: CpcKeyExpansionsOptions): void;
     private onCpcAreaKeydown;
     private oncpcAreaKeyup;
 }

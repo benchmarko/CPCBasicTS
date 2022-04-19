@@ -16,7 +16,7 @@ export interface IController {
     startEnter: () => void;
     fnPretty: () => void;
     fnDownload: () => void;
-    setInputText: (sInput: string, bKeepStack?: boolean) => void;
+    setInputText: (input: string, keepStack?: boolean) => void;
     setExampleSelectOptions: () => void;
     invalidateScript: () => void;
     setSoundActive: () => void;
@@ -28,10 +28,10 @@ export interface IController {
     startUpdateCanvas: () => void;
     stopUpdateCanvas: () => void;
     virtualKeyboardCreate: () => void;
-    getVariable: (sPar: string) => VariableValue;
+    getVariable: (par: string) => VariableValue;
     undoStackElement: () => string;
     redoStackElement: () => string;
 }
 export interface ICpcVmRsx {
-    rsxIsAvailable: (sName: string) => boolean;
+    rsxIsAvailable: (name: string) => boolean;
 }

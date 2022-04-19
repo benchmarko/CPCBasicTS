@@ -5,7 +5,7 @@ define(["require", "exports", "../BasicTokenizer", "./TestHelper"], function (re
     Object.defineProperty(exports, "__esModule", { value: true });
     QUnit.dump.maxDepth = 10;
     QUnit.module("BasicTokenizer:decode: Tests", function () {
-        var mAllTests = {
+        var allTests = {
             numbers: {
                 "0D,00,00,E1,EF,0F": "a=1",
                 "0D,00,00,E1,EF,1F,99,99,99,19,81": "a=1.2"
@@ -35,27 +35,27 @@ define(["require", "exports", "../BasicTokenizer", "./TestHelper"], function (re
             }
             */
         };
-        function fnHex2Bin(sHex) {
-            return sHex.split(",").map(function (s) {
+        function fnHex2Bin(hex) {
+            return hex.split(",").map(function (s) {
                 return String.fromCharCode(Number("0x" + s));
             }).join("");
         }
-        function runTestsFor(assert, _sCategory, oTests, aResults) {
-            var oBasicTokenizer = new BasicTokenizer_1.BasicTokenizer();
-            for (var sKey in oTests) {
-                if (oTests.hasOwnProperty(sKey)) {
-                    var sExpected = oTests[sKey], bWithLines = (sKey.charAt(0) === "L"), sInput = fnHex2Bin(bWithLines ? sKey.substr(2) : sKey), // old: Utils.atob(sKey)
-                    sResult = bWithLines ? oBasicTokenizer.decode(sInput) : oBasicTokenizer.decodeLineFragment(sInput, 0, sInput.length), sFirstLine = sExpected.substr(0, sExpected.indexOf("\n")) || sExpected;
-                    if (aResults) {
-                        aResults.push('"' + sKey.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '": "' + sResult.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '"');
+        function runTestsFor(assert, _sCategory, tests, results) {
+            var basicTokenizer = new BasicTokenizer_1.BasicTokenizer();
+            for (var key in tests) {
+                if (tests.hasOwnProperty(key)) {
+                    var expected = tests[key], withLines = (key.charAt(0) === "L"), input = fnHex2Bin(withLines ? key.substr(2) : key), // old: Utils.atob(key)
+                    result = withLines ? basicTokenizer.decode(input) : basicTokenizer.decodeLineFragment(input, 0, input.length), firstLine = expected.substr(0, expected.indexOf("\n")) || expected;
+                    if (results) {
+                        results.push('"' + key.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '": "' + result.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '"');
                     }
                     if (assert) {
-                        assert.strictEqual(sResult, sExpected, sFirstLine);
+                        assert.strictEqual(result, expected, firstLine);
                     }
                 }
             }
         }
-        TestHelper_1.TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
+        TestHelper_1.TestHelper.generateAndRunAllTests(allTests, runTestsFor);
     });
 });
 // end

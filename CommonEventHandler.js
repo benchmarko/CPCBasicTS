@@ -6,10 +6,10 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CommonEventHandler = void 0;
     var CommonEventHandler = /** @class */ (function () {
-        function CommonEventHandler(oModel, oView, oController) {
+        function CommonEventHandler(model, view, controller) {
             this.fnUserAction = undefined;
             /* eslint-disable no-invalid-this */
-            this.mHandlers = {
+            this.handlers = {
                 onSpecialButtonClick: this.onSpecialButtonClick,
                 onInputButtonClick: this.onInputButtonClick,
                 onInp2ButtonClick: this.onInp2ButtonClick,
@@ -51,15 +51,15 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 onCpcCanvasClick: this.onCpcCanvasClick,
                 onWindowClick: this.onWindowClick
             };
-            this.model = oModel;
-            this.view = oView;
-            this.controller = oController;
+            this.model = model;
+            this.view = view;
+            this.controller = controller;
         }
-        CommonEventHandler.prototype.toogleHidden = function (sId, sProp, sDisplay) {
-            var bVisible = !this.model.getProperty(sProp);
-            this.model.setProperty(sProp, bVisible);
-            this.view.setHidden(sId, !bVisible, sDisplay);
-            return bVisible;
+        CommonEventHandler.prototype.toogleHidden = function (id, prop, display) {
+            var visible = !this.model.getProperty(prop);
+            this.model.setProperty(prop, visible);
+            this.view.setHidden(id, !visible, display);
+            return visible;
         };
         CommonEventHandler.prototype.fnSetUserAction = function (fnAction) {
             this.fnUserAction = fnAction;
@@ -124,17 +124,17 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         CommonEventHandler.prototype.onPrettyButtonClick = function () {
             this.controller.fnPretty();
         };
-        CommonEventHandler.prototype.fnUpdateAreaText = function (sInput) {
-            this.controller.setInputText(sInput, true);
+        CommonEventHandler.prototype.fnUpdateAreaText = function (input) {
+            this.controller.setInputText(input, true);
             this.view.setAreaValue("outputText", "");
         };
         CommonEventHandler.prototype.onUndoButtonClick = function () {
-            var sInput = this.controller.undoStackElement();
-            this.fnUpdateAreaText(sInput);
+            var input = this.controller.undoStackElement();
+            this.fnUpdateAreaText(input);
         };
         CommonEventHandler.prototype.onRedoButtonClick = function () {
-            var sInput = this.controller.redoStackElement();
-            this.fnUpdateAreaText(sInput);
+            var input = this.controller.redoStackElement();
+            this.fnUpdateAreaText(input);
         };
         CommonEventHandler.prototype.onDownloadButtonClick = function () {
             this.controller.fnDownload();
@@ -166,20 +166,20 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.controller.invalidateScript();
         };
         CommonEventHandler.encodeUriParam = function (params) {
-            var aParts = [];
-            for (var sKey in params) {
-                if (params.hasOwnProperty(sKey)) {
-                    var sValue = params[sKey];
-                    aParts[aParts.length] = encodeURIComponent(sKey) + "=" + encodeURIComponent((sValue === null) ? "" : sValue);
+            var parts = [];
+            for (var key in params) {
+                if (params.hasOwnProperty(key)) {
+                    var value = params[key];
+                    parts[parts.length] = encodeURIComponent(key) + "=" + encodeURIComponent((value === null) ? "" : value);
                 }
             }
-            return aParts.join("&");
+            return parts.join("&");
         };
         CommonEventHandler.prototype.onReloadButtonClick = function () {
-            var oChanged = this.model.getChangedProperties();
-            var sParas = CommonEventHandler.encodeUriParam(oChanged);
-            sParas = sParas.replace(/%2[Ff]/g, "/"); // unescape %2F -> /
-            window.location.search = "?" + sParas;
+            var changed = this.model.getChangedProperties();
+            var paras = CommonEventHandler.encodeUriParam(changed);
+            paras = paras.replace(/%2[Ff]/g, "/"); // unescape %2F -> /
+            window.location.search = "?" + paras;
         };
         CommonEventHandler.prototype.onDatabaseSelectChange = function () {
             this.controller.onDatabaseSelectChange();
@@ -188,22 +188,22 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.controller.onExampleSelectChange();
         };
         CommonEventHandler.prototype.onVarSelectChange = function () {
-            var sPar = this.view.getSelectValue("varSelect"), value = this.controller.getVariable(sPar), sValue = (value !== undefined) ? String(value) : "";
-            this.view.setAreaValue("varText", sValue);
+            var par = this.view.getSelectValue("varSelect"), value = this.controller.getVariable(par), valueString = (value !== undefined) ? String(value) : "";
+            this.view.setAreaValue("varText", valueString);
         };
         CommonEventHandler.prototype.onKbdLayoutSelectChange = function () {
-            var sValue = this.view.getSelectValue("kbdLayoutSelect");
-            this.model.setProperty("kbdLayout", sValue);
+            var value = this.view.getSelectValue("kbdLayoutSelect");
+            this.model.setProperty("kbdLayout", value);
             this.view.setSelectTitleFromSelectedOption("kbdLayoutSelect");
-            this.view.setHidden("kbdAlpha", sValue === "num");
-            this.view.setHidden("kbdNum", sValue === "alpha");
+            this.view.setHidden("kbdAlpha", value === "num");
+            this.view.setHidden("kbdNum", value === "alpha");
         };
         CommonEventHandler.prototype.onVarTextChange = function () {
             this.controller.changeVariable();
         };
         CommonEventHandler.prototype.onScreenshotButtonClick = function () {
-            var sExample = this.view.getSelectValue("exampleSelect"), image = this.controller.startScreenshot(), link = View_1.View.getElementById1("screenshotLink"), sName = sExample + ".png";
-            link.setAttribute("download", sName);
+            var example = this.view.getSelectValue("exampleSelect"), image = this.controller.startScreenshot(), link = View_1.View.getElementById1("screenshotLink"), name = example + ".png";
+            link.setAttribute("download", name);
             link.setAttribute("href", image);
             link.click();
         };
@@ -222,31 +222,31 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         };
         /* eslint-enable no-invalid-this */
         CommonEventHandler.prototype.handleEvent = function (event) {
-            var oTarget = event.target, sId = (oTarget) ? oTarget.getAttribute("id") : String(oTarget), sType = event.type; // click or change
+            var target = event.target, id = (target) ? target.getAttribute("id") : String(target), type = event.type; // click or change
             if (this.fnUserAction) {
-                this.fnUserAction(event, sId);
+                this.fnUserAction(event, id);
             }
-            if (sId) {
-                if (!oTarget.disabled) { // check needed for IE which also fires for disabled buttons
-                    var sHandler = "on" + Utils_1.Utils.stringCapitalize(sId) + Utils_1.Utils.stringCapitalize(sType);
+            if (id) {
+                if (!target.disabled) { // check needed for IE which also fires for disabled buttons
+                    var handler = "on" + Utils_1.Utils.stringCapitalize(id) + Utils_1.Utils.stringCapitalize(type);
                     if (Utils_1.Utils.debug) {
-                        Utils_1.Utils.console.debug("fnCommonEventHandler: sHandler=" + sHandler);
+                        Utils_1.Utils.console.debug("fnCommonEventHandler: handler=" + handler);
                     }
-                    if (sHandler in this.mHandlers) {
-                        this.mHandlers[sHandler].call(this, event);
+                    if (handler in this.handlers) {
+                        this.handlers[handler].call(this, event);
                     }
-                    else if (!sHandler.endsWith("SelectClick") && !sHandler.endsWith("InputClick")) { // do not print all messages
-                        Utils_1.Utils.console.log("Event handler not found:", sHandler);
+                    else if (!handler.endsWith("SelectClick") && !handler.endsWith("InputClick")) { // do not print all messages
+                        Utils_1.Utils.console.log("Event handler not found:", handler);
                     }
                 }
             }
-            else if (oTarget.getAttribute("data-key") === null) { // not for keyboard buttons
+            else if (target.getAttribute("data-key") === null) { // not for keyboard buttons
                 if (Utils_1.Utils.debug) {
-                    Utils_1.Utils.console.debug("Event handler for", sType, "unknown target:", oTarget.tagName, oTarget.id);
+                    Utils_1.Utils.console.debug("Event handler for", type, "unknown target:", target.tagName, target.id);
                 }
             }
-            if (sType === "click") { // special
-                if (sId !== "cpcCanvas") {
+            if (type === "click") { // special
+                if (id !== "cpcCanvas") {
                     this.onWindowClick(event);
                 }
             }

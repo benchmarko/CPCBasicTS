@@ -2,51 +2,6 @@
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 
-
-/*
-declare global {
-	function require(path: string): object; // eslint-disable-line @typescript-eslint/ban-types
-	//var define = function (names: string[], ...func: Function[]) {}; // eslint-disable-line @typescript-eslint/ban-types
-	//function define(names: string[], ...func: Function[]): void; // eslint-disable-line @typescript-eslint/ban-types
-	var define: any, // eslint-disable-line vars-on-top
-		exports: any;
-}
-
-if (typeof define !== "undefined") {
-	define = function (names: string[], func: (...args: any) => void) {
-		var args = names.map(function (name) {
-			if (name === "require") {
-				return null;
-			} else if (name === "exports") {
-				return exports;
-			}
-			var module = require(name); // eslint-disable-line vars-on-top, global-require, @typescript-eslint/no-var-requires
-
-			return module;
-		});
-
-		func.apply(args);
-	};
-}
-*/
-
-/*
-declare global {
-	function require(path: string): object; // eslint-disable-line @typescript-eslint/ban-types
-	function define(names: string[], func: (...args: any[]) => void): void;
-}
-
-if (typeof define === "undefined") {
-	require("./loader"); // eslint-disable-line global-require
-}
-*/
-
-/*
-if (typeof require !== "undefined") { // nodeJs
-	require("./loader"); // eslint-disable-line global-require
-}
-*/
-
 import { Utils } from "./Utils";
 
 export type ConfigEntryType = string | number | boolean;
@@ -86,11 +41,11 @@ export class Model {
 		this.examples = {}; // loaded examples per database
 	}
 
-	getProperty<T extends ConfigEntryType>(sProperty: string): T {
-		return this.config[sProperty] as T;
+	getProperty<T extends ConfigEntryType>(property: string): T {
+		return this.config[property] as T;
 	}
-	setProperty<T extends ConfigEntryType>(sProperty: string, value: T): void {
-		this.config[sProperty] = value;
+	setProperty<T extends ConfigEntryType>(property: string, value: T): void {
+		this.config[property] = value;
 	}
 	getAllProperties(): ConfigType {
 		return this.config;
@@ -100,27 +55,27 @@ export class Model {
 	}
 
 	getChangedProperties(): ConfigType {
-		const oCurrent = this.config,
-			oInitial = this.initialConfig,
-			oChanged: ConfigType = {};
+		const current = this.config,
+			initial = this.initialConfig,
+			changed: ConfigType = {};
 
-		for (const sName in oCurrent) {
-			if (oCurrent.hasOwnProperty(sName)) {
-				if (oCurrent[sName] !== oInitial[sName]) {
-					oChanged[sName] = oCurrent[sName];
+		for (const name in current) {
+			if (current.hasOwnProperty(name)) {
+				if (current[name] !== initial[name]) {
+					changed[name] = current[name];
 				}
 			}
 		}
-		return oChanged;
+		return changed;
 	}
 
-	addDatabases(oDb: DatabasesType): void {
-		for (const sPar in oDb) {
-			if (oDb.hasOwnProperty(sPar)) {
-				const oEntry = oDb[sPar];
+	addDatabases(db: DatabasesType): void {
+		for (const par in db) {
+			if (db.hasOwnProperty(par)) {
+				const entry = db[par];
 
-				this.databases[sPar] = oEntry;
-				this.examples[sPar] = {};
+				this.databases[par] = entry;
+				this.examples[par] = {};
 			}
 		}
 	}
@@ -128,38 +83,38 @@ export class Model {
 		return this.databases;
 	}
 	getDatabase(): DatabaseEntry {
-		const sDatabase = this.getProperty<string>("database");
+		const database = this.getProperty<string>("database");
 
-		return this.databases[sDatabase];
+		return this.databases[database];
 	}
 
 	getAllExamples(): {	[x: string]: ExampleEntry; } {
-		const sDatabase = this.getProperty<string>("database");
+		const database = this.getProperty<string>("database");
 
-		return this.examples[sDatabase];
+		return this.examples[database];
 	}
-	getExample(sKey: string): ExampleEntry {
-		const sDatabase = this.getProperty<string>("database");
+	getExample(key: string): ExampleEntry {
+		const database = this.getProperty<string>("database");
 
-		return this.examples[sDatabase][sKey];
+		return this.examples[database][key];
 	}
-	setExample(oExample: ExampleEntry): void {
-		const sDatabase = this.getProperty<string>("database"),
-			sKey = oExample.key;
+	setExample(example: ExampleEntry): void {
+		const database = this.getProperty<string>("database"),
+			key = example.key;
 
-		if (!this.examples[sDatabase][sKey]) {
+		if (!this.examples[database][key]) {
 			if (Utils.debug > 1) {
-				Utils.console.debug("setExample: creating new example:", sKey);
+				Utils.console.debug("setExample: creating new example:", key);
 			}
 		}
-		this.examples[sDatabase][sKey] = oExample;
+		this.examples[database][key] = example;
 	}
-	removeExample(sKey: string): void {
-		const sDatabase = this.getProperty<string>("database");
+	removeExample(key: string): void {
+		const database = this.getProperty<string>("database");
 
-		if (!this.examples[sDatabase][sKey]) {
-			Utils.console.warn("removeExample: example does not exist: " + sKey);
+		if (!this.examples[database][key]) {
+			Utils.console.warn("removeExample: example does not exist: " + key);
 		}
-		delete this.examples[sDatabase][sKey];
+		delete this.examples[database][key];
 	}
 }

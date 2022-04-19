@@ -1,10 +1,10 @@
 import { ICpcVmRsx } from "./Interfaces";
 import { CpcVm } from "./CpcVm";
 export declare class CpcVmRsx implements ICpcVmRsx {
-    private oVm;
-    constructor(oVm: CpcVm);
-    rsxIsAvailable(sName: string): boolean;
-    rsxExec(sName: string, ...aArgs: (string | number)[]): void;
+    private vm;
+    constructor(vm: CpcVm);
+    rsxIsAvailable(name: string): boolean;
+    rsxExec(name: string, ...args: (string | number)[]): void;
     a(): void;
     b(): void;
     basic(): void;
@@ -22,6 +22,6 @@ export declare class CpcVmRsx implements ICpcVmRsx {
     tape_in(): void;
     tape_out(): void;
     user(): void;
-    mode(iMode: number): void;
-    renum(...aArgs: number[]): void;
+    mode(mode: number): void;
+    renum(...args: number[]): void;
 }

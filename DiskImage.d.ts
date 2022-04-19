@@ -1,46 +1,46 @@
 export interface DiskImageOptions {
-    sDiskName: string;
-    sData: string;
+    diskName: string;
+    data: string;
 }
 interface ExtentEntry {
-    iUser: number;
-    sName: string;
-    sExt: string;
-    iExtent: number;
-    iLastRecBytes: number;
-    iExtentHi: number;
-    iRecords: number;
-    aBlocks: number[];
-    bReadOnly: boolean;
-    bSystem: boolean;
-    bBackup: boolean;
+    user: number;
+    name: string;
+    ext: string;
+    extent: number;
+    lastRecBytes: number;
+    extentHi: number;
+    records: number;
+    blocks: number[];
+    readOnly: boolean;
+    system: boolean;
+    backup: boolean;
 }
 export interface AmsdosHeader {
-    iUser: number;
-    sName: string;
-    sExt: string;
-    iType: number;
-    iStart: number;
-    iPseudoLen: number;
-    iEntry: number;
-    iLength: number;
-    sType: string;
+    user: number;
+    name: string;
+    ext: string;
+    typeNumber: number;
+    start: number;
+    pseudoLen: number;
+    entry: number;
+    length: number;
+    typeString: string;
 }
 declare type DirectoryListType = {
     [k in string]: ExtentEntry[];
 };
 export declare class DiskImage {
-    private sDiskName;
-    private sData;
-    private oDiskInfo;
-    private oFormat;
-    constructor(oConfig: DiskImageOptions);
-    private static mFormatDescriptors;
+    private diskName;
+    private data;
+    private diskInfo;
+    private format;
+    constructor(config: DiskImageOptions);
+    private static formatDescriptors;
     private static getInitialDiskInfo;
     private static getInitialFormat;
     reset(): void;
     private composeError;
-    static testDiskIdent(sIdent: string): number;
+    static testDiskIdent(ident: string): number;
     private readUtf;
     private readUInt8;
     private readUInt16;
@@ -61,14 +61,14 @@ export declare class DiskImage {
     readDirectory(): DirectoryListType;
     private nextSector;
     private readBlock;
-    readFile(aFileExtents: ExtentEntry[]): string;
-    private static mProtectTable;
-    static unOrProtectData(sData: string): string;
+    readFile(fileExtents: ExtentEntry[]): string;
+    private static protectTable;
+    static unOrProtectData(data: string): string;
     private static computeChecksum;
-    static parseAmsdosHeader(sData: string): AmsdosHeader | undefined;
+    static parseAmsdosHeader(data: string): AmsdosHeader | undefined;
     private static uInt8ToString;
     private static uInt16ToString;
     private static uInt24ToString;
-    static combineAmsdosHeader(oHeader: AmsdosHeader): string;
+    static combineAmsdosHeader(header: AmsdosHeader): string;
 }
 export {};

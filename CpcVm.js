@@ -8,282 +8,282 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
     exports.CpcVm = void 0;
     var CpcVm = /** @class */ (function () {
         function CpcVm(options) {
-            this.iInkeyTimeMs = 0; // next time of frame fly (if >0, next time when inkey$ can be checked without inserting "waitFrame")
-            this.aGosubStack = []; // stack of line numbers for gosub/return
-            this.iData = 0; // current index
-            this.oDataLineIndex = {
+            this.inkeyTimeMs = 0; // next time of frame fly (if >0, next time when inkey$ can be checked without inserting "waitFrame")
+            this.gosubStack = []; // stack of line numbers for gosub/return
+            this.dataIndex = 0; // current index
+            this.dataLineIndex = {
                 0: 0 // for line 0: index 0
             };
-            this.iCrtcReg = 0;
-            this.sPrintControlBuf = "";
-            this.iStartTime = 0;
+            this.crtcReg = 0;
+            this.printControlBuf = "";
+            this.startTime = 0;
             this.lastRnd = 0; // last random number
-            this.iNextFrameTime = 0;
-            this.iStopCount = 0;
-            this.iLine = 0;
-            this.iStartLine = 0;
-            this.iErrorGotoLine = 0;
-            this.iErrorResumeLine = 0;
-            this.iBreakGosubLine = 0;
-            this.iBreakResumeLine = 0;
-            this.sOut = "";
-            this.iErr = 0; // last error code
-            this.iErl = 0; // line of last error
-            this.bDeg = false; // degree or radians
-            this.bTron = false; // trace flag
-            this.iTronLine = 0; // last trace line
-            this.iRamSelect = 0;
-            this.iScreenPage = 3; // 16K screen page, 3=0xc000..0xffff
-            this.iMinCharHimem = CpcVm.iMaxHimem;
-            this.iMaxCharHimem = CpcVm.iMaxHimem;
-            this.iHimem = CpcVm.iMaxHimem;
-            this.iMinCustomChar = 256;
-            this.iTimerPriority = -1; // priority of running task: -1=low (min priority to start new timers)
-            this.iZone = 13; // print tab zone value
-            this.iMode = -1;
+            this.nextFrameTime = 0;
+            this.stopCount = 0;
+            this.line = 0;
+            this.startLine = 0;
+            this.errorGotoLine = 0;
+            this.errorResumeLine = 0;
+            this.breakGosubLine = 0;
+            this.breakResumeLine = 0;
+            this.outBuffer = "";
+            this.errorCode = 0; // last error code (Err)
+            this.errorLine = 0; // line of last error (Erl)
+            this.degFlag = false; // degree or radians
+            this.tronFlag1 = false; // trace flag
+            this.tronLine = 0; // last trace line
+            this.ramSelect = 0;
+            this.screenPage = 3; // 16K screen page, 3=0xc000..0xffff
+            this.minCharHimem = CpcVm.maxHimem;
+            this.maxCharHimem = CpcVm.maxHimem;
+            this.himemValue = CpcVm.maxHimem;
+            this.minCustomChar = 256;
+            this.timerPriority = -1; // priority of running task: -1=low (min priority to start new timers)
+            this.zoneValue = 13; // print tab zone value
+            this.modeValue = -1;
             this.fnOpeninHandler = this.vmOpeninCallback.bind(this);
             this.fnCloseinHandler = this.vmCloseinCallback.bind(this);
             this.fnCloseoutHandler = this.vmCloseoutCallback.bind(this);
             this.fnLoadHandler = this.vmLoadCallback.bind(this);
             this.fnRunHandler = this.vmRunCallback.bind(this);
-            this.oCanvas = options.canvas;
-            this.oKeyboard = options.keyboard;
-            this.oSound = options.sound;
-            this.oVariables = options.variables;
+            this.canvas = options.canvas;
+            this.keyboard = options.keyboard;
+            this.soundClass = options.sound;
+            this.variables = options.variables;
             this.tronFlag = options.tron;
-            this.oRandom = new Random_1.Random();
-            this.oStop = {
-                sReason: "",
-                iPriority: 0,
-                oParas: {}
+            this.random = new Random_1.Random();
+            this.stopEntry = {
+                reason: "",
+                priority: 0,
+                paras: {}
             };
-            this.aInputValues = []; // values to input into script
-            this.oInFile = {
-                bOpen: false,
-                sCommand: "",
-                sName: "",
-                iLine: 0,
-                iStart: 0,
-                aFileData: [],
+            this.inputValues = []; // values to input into script
+            this.inFile = {
+                open: false,
+                command: "",
+                name: "",
+                line: 0,
+                start: 0,
+                fileData: [],
                 fnFileCallback: undefined,
-                iFirst: 0,
-                iLast: 0,
-                sMemorizedExample: ""
+                first: 0,
+                last: 0,
+                memorizedExample: ""
             };
-            this.oOutFile = {
-                bOpen: false,
-                sCommand: "",
-                sName: "",
-                iLine: 0,
-                iStart: 0,
-                aFileData: [],
+            this.outFile = {
+                open: false,
+                command: "",
+                name: "",
+                line: 0,
+                start: 0,
+                fileData: [],
                 fnFileCallback: undefined,
-                iStream: 0,
-                sType: "",
-                iLength: 0,
-                iEntry: 0
+                stream: 0,
+                typeString: "",
+                length: 0,
+                entry: 0
             }; // file handling
-            // "bOpen": File open flag
-            // "sCommand": Command that started the file open (in: chain, chainMerge, load, merge, openin, run; out: save, openput)
-            // "sName": File name
-            // "sType": File type: A, B, P, T
-            // "iStart": start address of data
-            // "iLength": length of data
-            // "iEntry": entry address (save)
-            // "iLine": ?
-            // "aFileData": File contents for (LINE) INPUT #9; PRINT #9, WRITE #9
+            // "open": File open flag
+            // "command": Command that started the file open (in: chain, chainMerge, load, merge, openin, run; out: save, openput)
+            // "name": File name
+            // "type": File type: A, B, P, T
+            // "start": start address of data
+            // "length": length of data
+            // "entry": entry address (save)
+            // "line": ?
+            // "fileData": File contents for (LINE) INPUT #9; PRINT #9, WRITE #9
             // "fnFileCallback": Callback for stop reason "fileLoad", "fileSave"
-            // "iLine": run line (CHAIN, CHAIN MERGE)
-            // "iFirst": first line to delete (CHAIN MERGE)
-            // "iLast": last line to delete (CHAIN MERGE)
-            this.aGosubStack = []; // stack of line numbers for gosub/return
-            this.aMem = []; // for peek, poke
-            this.aData = []; // array for BASIC data lines (continuous)
-            this.aWindow = []; // window data for window 0..7,8,9
-            for (var i = 0; i < CpcVm.iStreamCount; i += 1) {
-                this.aWindow[i] = {};
+            // "line": run line (CHAIN, CHAIN MERGE)
+            // "first": first line to delete (CHAIN MERGE)
+            // "last": last line to delete (CHAIN MERGE)
+            this.gosubStack = []; // stack of line numbers for gosub/return
+            this.mem = []; // for peek, poke
+            this.dataList = []; // array for BASIC data lines (continuous)
+            this.windowDataList = []; // window data for window 0..7,8,9
+            for (var i = 0; i < CpcVm.streamCount; i += 1) {
+                this.windowDataList[i] = {};
             }
-            this.aTimer = []; // BASIC timer 0..3 (3 has highest priority)
-            for (var i = 0; i < CpcVm.iTimerCount; i += 1) {
-                this.aTimer[i] = {};
+            this.timerList = []; // BASIC timer 0..3 (3 has highest priority)
+            for (var i = 0; i < CpcVm.timerCount; i += 1) {
+                this.timerList[i] = {};
             }
-            this.aSoundData = [];
-            this.aSqTimer = []; // Sound queue timer 0..2
-            for (var i = 0; i < CpcVm.iSqTimerCount; i += 1) {
-                this.aSqTimer[i] = {};
+            this.soundData = [];
+            this.sqTimer = []; // Sound queue timer 0..2
+            for (var i = 0; i < CpcVm.sqTimerCount; i += 1) {
+                this.sqTimer[i] = {};
             }
-            this.aCrtcData = [];
+            this.crtcData = [];
         }
-        CpcVm.prototype.vmSetRsxClass = function (oRsx) {
-            this.rsx = oRsx; // this.rsx just used in the script
+        CpcVm.prototype.vmSetRsxClass = function (rsx) {
+            this.rsx = rsx; // this.rsx just used in the script
         };
         CpcVm.prototype.vmReset = function () {
-            this.iStartTime = Date.now();
-            this.oRandom.init();
+            this.startTime = Date.now();
+            this.random.init();
             this.lastRnd = 0;
-            this.iNextFrameTime = Date.now() + CpcVm.iFrameTimeMs; // next time of frame fly
-            this.iStopCount = 0;
-            this.iLine = 0; // current line number (or label)
-            this.iStartLine = 0; // line to start
-            this.iErrorGotoLine = 0;
-            this.iErrorResumeLine = 0;
-            this.iBreakGosubLine = 0;
-            this.iBreakResumeLine = 0;
-            this.aInputValues.length = 0;
-            CpcVm.vmResetFileHandling(this.oInFile);
-            CpcVm.vmResetFileHandling(this.oOutFile);
+            this.nextFrameTime = Date.now() + CpcVm.frameTimeMs; // next time of frame fly
+            this.stopCount = 0;
+            this.line = 0; // current line number (or label)
+            this.startLine = 0; // line to start
+            this.errorGotoLine = 0;
+            this.errorResumeLine = 0;
+            this.breakGosubLine = 0;
+            this.breakResumeLine = 0;
+            this.inputValues.length = 0;
+            CpcVm.vmResetFileHandling(this.inFile);
+            CpcVm.vmResetFileHandling(this.outFile);
             this.vmResetControlBuffer();
-            this.sOut = ""; // console output
+            this.outBuffer = ""; // console output
             this.vmStop("", 0, true);
             this.vmResetData();
-            this.iErr = 0; // last error code
-            this.iErl = 0; // line of last error
-            this.aGosubStack.length = 0;
-            this.bDeg = false; // degree or radians
-            this.bTron = this.tronFlag || false; // trace flag
-            this.iTronLine = 0; // last trace line
-            this.aMem.length = 0; // clear memory (for PEEK, POKE)
-            this.iRamSelect = 0; // for banking with 16K banks in the range 0x4000-0x7fff (0=default; 1...=additional)
-            this.iScreenPage = 3; // 16K screen page, 3=0xc000..0xffff
-            this.iCrtcReg = 0;
-            this.aCrtcData.length = 0;
-            this.iMinCharHimem = CpcVm.iMaxHimem;
-            this.iMaxCharHimem = CpcVm.iMaxHimem;
-            this.iHimem = CpcVm.iMaxHimem;
-            this.iMinCustomChar = 256;
-            this.symbolAfter(240); // set also iMinCustomChar
+            this.errorCode = 0; // last error code
+            this.errorLine = 0; // line of last error
+            this.gosubStack.length = 0;
+            this.degFlag = false; // degree or radians
+            this.tronFlag1 = this.tronFlag || false; // trace flag
+            this.tronLine = 0; // last trace line
+            this.mem.length = 0; // clear memory (for PEEK, POKE)
+            this.ramSelect = 0; // for banking with 16K banks in the range 0x4000-0x7fff (0=default; 1...=additional)
+            this.screenPage = 3; // 16K screen page, 3=0xc000..0xffff
+            this.crtcReg = 0;
+            this.crtcData.length = 0;
+            this.minCharHimem = CpcVm.maxHimem;
+            this.maxCharHimem = CpcVm.maxHimem;
+            this.himemValue = CpcVm.maxHimem;
+            this.minCustomChar = 256;
+            this.symbolAfter(240); // set also minCustomChar
             this.vmResetTimers();
-            this.iTimerPriority = -1; // priority of running task: -1=low (min priority to start new timers)
-            this.iZone = 13; // print tab zone value
+            this.timerPriority = -1; // priority of running task: -1=low (min priority to start new timers)
+            this.zoneValue = 13; // print tab zone value
             this.defreal("a-z"); // init vartypes
-            this.iMode = -1;
+            this.modeValue = -1;
             this.vmResetWindowData(true); // reset all, including pen and paper
             this.width(132); // set default printer width
             this.mode(1); // including vmResetWindowData() without pen and paper
-            this.oCanvas.reset();
-            this.oKeyboard.reset();
-            this.oSound.reset();
-            this.aSoundData.length = 0;
-            this.iInkeyTimeMs = 0; // if >0, next time when inkey$ can be checked without inserting "waitFrame"
+            this.canvas.reset();
+            this.keyboard.reset();
+            this.soundClass.reset();
+            this.soundData.length = 0;
+            this.inkeyTimeMs = 0; // if >0, next time when inkey$ can be checked without inserting "waitFrame"
         };
         CpcVm.prototype.vmResetTimers = function () {
-            var oData = {
-                iLine: 0,
-                bRepeat: false,
-                iIntervalMs: 0,
-                bActive: false,
-                iNextTimeMs: 0,
-                bHandlerRunning: false,
-                iStackIndexReturn: 0,
-                iSavedPriority: 0 // priority befora calling the handler
-            }, aTimer = this.aTimer, aSqTimer = this.aSqTimer;
-            for (var i = 0; i < CpcVm.iTimerCount; i += 1) {
-                Object.assign(aTimer[i], oData);
+            var data = {
+                line: 0,
+                repeat: false,
+                intervalMs: 0,
+                active: false,
+                nextTimeMs: 0,
+                handlerRunning: false,
+                stackIndexReturn: 0,
+                savedPriority: 0 // priority befora calling the handler
+            }, timer = this.timerList, sqTimer = this.sqTimer;
+            for (var i = 0; i < CpcVm.timerCount; i += 1) {
+                Object.assign(timer[i], data);
             }
             // sound queue timer
-            for (var i = 0; i < CpcVm.iSqTimerCount; i += 1) {
-                Object.assign(aSqTimer[i], oData);
+            for (var i = 0; i < CpcVm.sqTimerCount; i += 1) {
+                Object.assign(sqTimer[i], data);
             }
         };
-        CpcVm.prototype.vmResetWindowData = function (bResetPenPaper) {
-            var oWinData = CpcVm.mWinData[this.iMode], oData = {
-                iPos: 0,
-                iVpos: 0,
-                bTextEnabled: true,
-                bTag: false,
-                bTransparent: false,
-                bCursorOn: false,
-                bCursorEnabled: true // user switch
-            }, oPenPaperData = {
-                iPen: 1,
-                iPaper: 0
-            }, oPrintData = {
-                iPos: 0,
-                iVpos: 0,
-                iRight: 132 // override
-            }, oCassetteData = {
-                iPos: 0,
-                iVpos: 0,
-                iRight: 255 // override
+        CpcVm.prototype.vmResetWindowData = function (resetPenPaper) {
+            var winData = CpcVm.winData[this.modeValue], data = {
+                pos: 0,
+                vpos: 0,
+                textEnabled: true,
+                tag: false,
+                transparent: false,
+                cursorOn: false,
+                cursorEnabled: true // user switch
+            }, penPaperData = {
+                pen: 1,
+                paper: 0
+            }, printData = {
+                pos: 0,
+                vpos: 0,
+                right: 132 // override
+            }, cassetteData = {
+                pos: 0,
+                vpos: 0,
+                right: 255 // override
             };
-            var oWin;
-            if (bResetPenPaper) {
-                Object.assign(oData, oPenPaperData);
+            var win;
+            if (resetPenPaper) {
+                Object.assign(data, penPaperData);
             }
-            for (var i = 0; i < this.aWindow.length - 2; i += 1) { // for window streams
-                oWin = this.aWindow[i];
-                Object.assign(oWin, oWinData, oData);
+            for (var i = 0; i < this.windowDataList.length - 2; i += 1) { // for window streams
+                win = this.windowDataList[i];
+                Object.assign(win, winData, data);
             }
-            oWin = this.aWindow[8]; // printer
-            Object.assign(oWin, oWinData, oPrintData);
-            oWin = this.aWindow[9]; // cassette
-            Object.assign(oWin, oWinData, oCassetteData);
+            win = this.windowDataList[8]; // printer
+            Object.assign(win, winData, printData);
+            win = this.windowDataList[9]; // cassette
+            Object.assign(win, winData, cassetteData);
         };
         CpcVm.prototype.vmResetControlBuffer = function () {
-            this.sPrintControlBuf = ""; // collected control characters for PRINT
+            this.printControlBuf = ""; // collected control characters for PRINT
         };
-        CpcVm.vmResetFileHandling = function (oFile) {
-            oFile.bOpen = false;
-            oFile.sCommand = ""; // to be sure
+        CpcVm.vmResetFileHandling = function (file) {
+            file.open = false;
+            file.command = ""; // to be sure
         };
         CpcVm.prototype.vmResetData = function () {
-            this.aData.length = 0; // array for BASIC data lines (continuous)
-            this.iData = 0; // current index
-            this.oDataLineIndex = {
+            this.dataList.length = 0; // array for BASIC data lines (continuous)
+            this.dataIndex = 0; // current index
+            this.dataLineIndex = {
                 0: 0 // for line 0: index 0
             };
         };
         CpcVm.prototype.vmResetInks = function () {
-            this.oCanvas.setDefaultInks();
-            this.oCanvas.setSpeedInk(10, 10);
+            this.canvas.setDefaultInks();
+            this.canvas.setSpeedInk(10, 10);
         };
         CpcVm.prototype.vmReset4Run = function () {
-            var iStream = 0;
+            var stream = 0;
             this.vmResetInks();
             this.clearInput();
             this.closein();
             this.closeout();
-            this.cursor(iStream, 0);
+            this.cursor(stream, 0);
         };
         CpcVm.prototype.vmGetAllVariables = function () {
-            return this.oVariables.getAllVariables();
+            return this.variables.getAllVariables();
         };
-        CpcVm.prototype.vmSetStartLine = function (iLine) {
-            this.iStartLine = iLine;
+        CpcVm.prototype.vmSetStartLine = function (line) {
+            this.startLine = line;
         };
         CpcVm.prototype.vmOnBreakContSet = function () {
-            return this.iBreakGosubLine < 0; // on break cont
+            return this.breakGosubLine < 0; // on break cont
         };
         CpcVm.prototype.vmOnBreakHandlerActive = function () {
-            return this.iBreakResumeLine;
+            return this.breakResumeLine;
         };
         CpcVm.prototype.vmEscape = function () {
-            var bStop = true;
-            if (this.iBreakGosubLine > 0) { // on break gosub n
-                if (!this.iBreakResumeLine) { // do not nest break gosub
-                    this.iBreakResumeLine = Number(this.iLine);
-                    this.gosub(this.iLine, this.iBreakGosubLine);
+            var stop = true;
+            if (this.breakGosubLine > 0) { // on break gosub n
+                if (!this.breakResumeLine) { // do not nest break gosub
+                    this.breakResumeLine = Number(this.line);
+                    this.gosub(this.line, this.breakGosubLine);
                 }
-                bStop = false;
+                stop = false;
             }
-            else if (this.iBreakGosubLine < 0) { // on break cont
-                bStop = false;
+            else if (this.breakGosubLine < 0) { // on break cont
+                stop = false;
             } // else: on break stop
-            return bStop;
+            return stop;
         };
-        CpcVm.prototype.vmAssertNumber = function (n, sErr) {
+        CpcVm.prototype.vmAssertNumber = function (n, err) {
             if (typeof n !== "number") {
-                throw this.vmComposeError(Error(), 13, sErr + " " + n); // Type mismatch
+                throw this.vmComposeError(Error(), 13, err + " " + n); // Type mismatch
             }
         };
-        CpcVm.prototype.vmAssertString = function (s, sErr) {
+        CpcVm.prototype.vmAssertString = function (s, err) {
             if (typeof s !== "string") {
-                throw this.vmComposeError(Error(), 13, sErr + " " + s); // Type mismatch
+                throw this.vmComposeError(Error(), 13, err + " " + s); // Type mismatch
             }
         };
         // round number (-2^31..2^31) to integer; throw error if no number
-        CpcVm.prototype.vmRound = function (n, sErr) {
-            this.vmAssertNumber(n, sErr || "?");
+        CpcVm.prototype.vmRound = function (n, err) {
+            this.vmAssertNumber(n, err || "?");
             return (n >= 0) ? (n + 0.5) | 0 : (n - 0.5) | 0; // eslint-disable-line no-bitwise
         };
         /*
@@ -294,85 +294,85 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             return ((n * 1e12 + nAdd) | 0) / 1e12; // eslint-disable-line no-bitwise
         }
         */
-        CpcVm.prototype.vmInRangeRound = function (n, iMin, iMax, sErr) {
-            n = this.vmRound(n, sErr);
-            if (n < iMin || n > iMax) {
-                Utils_1.Utils.console.warn("vmInRangeRound: number not in range:", iMin + "<=" + n + "<=" + iMax);
-                throw this.vmComposeError(Error(), n < -32768 || n > 32767 ? 6 : 5, sErr + " " + n); // 6=Overflow, 5=Improper argument
+        CpcVm.prototype.vmInRangeRound = function (n, min, max, err) {
+            n = this.vmRound(n, err);
+            if (n < min || n > max) {
+                Utils_1.Utils.console.warn("vmInRangeRound: number not in range:", min + "<=" + n + "<=" + max);
+                throw this.vmComposeError(Error(), n < -32768 || n > 32767 ? 6 : 5, err + " " + n); // 6=Overflow, 5=Improper argument
             }
             return n;
         };
-        CpcVm.prototype.vmDetermineVarType = function (sVarType) {
-            var sType = (sVarType.length > 1) ? sVarType.charAt(1) : this.oVariables.getVarType(sVarType.charAt(0));
-            return sType;
+        CpcVm.prototype.vmDetermineVarType = function (varType) {
+            var type = (varType.length > 1) ? varType.charAt(1) : this.variables.getVarType(varType.charAt(0));
+            return type;
         };
-        CpcVm.prototype.vmAssertNumberType = function (sVarType) {
-            var sType = this.vmDetermineVarType(sVarType);
-            if (sType !== "I" && sType !== "R") { // not integer or real?
-                throw this.vmComposeError(Error(), 13, "type " + sType); // "Type mismatch"
+        CpcVm.prototype.vmAssertNumberType = function (varType) {
+            var type = this.vmDetermineVarType(varType);
+            if (type !== "I" && type !== "R") { // not integer or real?
+                throw this.vmComposeError(Error(), 13, "type " + type); // "Type mismatch"
             }
         };
-        // format a value for assignment to a variable with type determined from sVarType
-        CpcVm.prototype.vmAssign = function (sVarType, value) {
-            var sType = this.vmDetermineVarType(sVarType);
-            if (sType === "R") { // real
+        // format a value for assignment to a variable with type determined from varType
+        CpcVm.prototype.vmAssign = function (varType, value) {
+            var type = this.vmDetermineVarType(varType);
+            if (type === "R") { // real
                 this.vmAssertNumber(value, "=");
             }
-            else if (sType === "I") { // integer
+            else if (type === "I") { // integer
                 value = this.vmRound(value, "="); // round number to integer
             }
-            else if (sType === "$") { // string
+            else if (type === "$") { // string
                 if (typeof value !== "string") {
                     Utils_1.Utils.console.warn("vmAssign: expected string but got:", value);
-                    throw this.vmComposeError(Error(), 13, "type " + sType + "=" + value); // "Type mismatch"
+                    throw this.vmComposeError(Error(), 13, "type " + type + "=" + value); // "Type mismatch"
                 }
             }
             return value;
         };
-        CpcVm.prototype.vmGotoLine = function (line, sMsg) {
+        CpcVm.prototype.vmGotoLine = function (line, msg) {
             if (Utils_1.Utils.debug > 5) {
                 if (typeof line === "number" || Utils_1.Utils.debug > 7) { // non-number labels only in higher debug levels
-                    Utils_1.Utils.console.debug("dvmGotoLine:", sMsg + ": " + line);
+                    Utils_1.Utils.console.debug("dvmGotoLine:", msg + ": " + line);
                 }
             }
-            this.iLine = line;
+            this.line = line;
         };
         CpcVm.prototype.fnCheckSqTimer = function () {
-            var bTimerExpired = false;
-            if (this.iTimerPriority < 2) {
-                for (var i = 0; i < CpcVm.iSqTimerCount; i += 1) {
-                    var oTimer = this.aSqTimer[i];
-                    // use oSound.sq(i) and not this.sq(i) since that would reset onSq timer
-                    if (oTimer.bActive && !oTimer.bHandlerRunning && (this.oSound.sq(i) & 0x07)) { // eslint-disable-line no-bitwise
-                        this.gosub(this.iLine, oTimer.iLine);
-                        oTimer.bHandlerRunning = true;
-                        oTimer.iStackIndexReturn = this.aGosubStack.length;
-                        oTimer.bRepeat = false; // one shot
-                        bTimerExpired = true;
+            var timerExpired = false;
+            if (this.timerPriority < 2) {
+                for (var i = 0; i < CpcVm.sqTimerCount; i += 1) {
+                    var timer = this.sqTimer[i];
+                    // use sound.sq(i) and not this.sq(i) since that would reset onSq timer
+                    if (timer.active && !timer.handlerRunning && (this.soundClass.sq(i) & 0x07)) { // eslint-disable-line no-bitwise
+                        this.gosub(this.line, timer.line);
+                        timer.handlerRunning = true;
+                        timer.stackIndexReturn = this.gosubStack.length;
+                        timer.repeat = false; // one shot
+                        timerExpired = true;
                         break; // found expired timer
                     }
                 }
             }
-            return bTimerExpired;
+            return timerExpired;
         };
-        CpcVm.prototype.vmCheckTimer = function (iTime) {
-            var bTimerExpired = false;
-            for (var i = CpcVm.iTimerCount - 1; i > this.iTimerPriority; i -= 1) { // check timers starting with highest priority first
-                var oTimer = this.aTimer[i];
-                if (oTimer.bActive && !oTimer.bHandlerRunning && iTime > oTimer.iNextTimeMs) { // timer expired?
-                    this.gosub(this.iLine, oTimer.iLine);
-                    oTimer.bHandlerRunning = true;
-                    oTimer.iStackIndexReturn = this.aGosubStack.length;
-                    oTimer.iSavedPriority = this.iTimerPriority;
-                    this.iTimerPriority = i;
-                    if (!oTimer.bRepeat) { // not repeating
-                        oTimer.bActive = false;
+        CpcVm.prototype.vmCheckTimer = function (time) {
+            var timerExpired = false;
+            for (var i = CpcVm.timerCount - 1; i > this.timerPriority; i -= 1) { // check timers starting with highest priority first
+                var timer = this.timerList[i];
+                if (timer.active && !timer.handlerRunning && time > timer.nextTimeMs) { // timer expired?
+                    this.gosub(this.line, timer.line);
+                    timer.handlerRunning = true;
+                    timer.stackIndexReturn = this.gosubStack.length;
+                    timer.savedPriority = this.timerPriority;
+                    this.timerPriority = i;
+                    if (!timer.repeat) { // not repeating
+                        timer.active = false;
                     }
                     else {
-                        var iDelta = iTime - oTimer.iNextTimeMs;
-                        oTimer.iNextTimeMs += oTimer.iIntervalMs * Math.ceil(iDelta / oTimer.iIntervalMs);
+                        var delta = time - timer.nextTimeMs;
+                        timer.nextTimeMs += timer.intervalMs * Math.ceil(delta / timer.intervalMs);
                     }
-                    bTimerExpired = true;
+                    timerExpired = true;
                     break; // found expired timer
                 }
                 else if (i === 2) { // for priority 2 we check the sq timers which also have priority 2
@@ -381,290 +381,290 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                     }
                 }
             }
-            return bTimerExpired;
+            return timerExpired;
         };
         CpcVm.prototype.vmCheckTimerHandlers = function () {
-            for (var i = CpcVm.iTimerCount - 1; i >= 0; i -= 1) {
-                var oTimer = this.aTimer[i];
-                if (oTimer.bHandlerRunning) {
-                    if (oTimer.iStackIndexReturn > this.aGosubStack.length) {
-                        oTimer.bHandlerRunning = false;
-                        this.iTimerPriority = oTimer.iSavedPriority; // restore priority
-                        oTimer.iStackIndexReturn = 0;
+            for (var i = CpcVm.timerCount - 1; i >= 0; i -= 1) {
+                var timer = this.timerList[i];
+                if (timer.handlerRunning) {
+                    if (timer.stackIndexReturn > this.gosubStack.length) {
+                        timer.handlerRunning = false;
+                        this.timerPriority = timer.savedPriority; // restore priority
+                        timer.stackIndexReturn = 0;
                     }
                 }
             }
         };
         CpcVm.prototype.vmCheckSqTimerHandlers = function () {
-            var bTimerReloaded = false;
-            for (var i = CpcVm.iSqTimerCount - 1; i >= 0; i -= 1) {
-                var oTimer = this.aSqTimer[i];
-                if (oTimer.bHandlerRunning) {
-                    if (oTimer.iStackIndexReturn > this.aGosubStack.length) {
-                        oTimer.bHandlerRunning = false;
-                        this.iTimerPriority = oTimer.iSavedPriority; // restore priority
-                        oTimer.iStackIndexReturn = 0;
-                        if (!oTimer.bRepeat) { // not reloaded
-                            oTimer.bActive = false;
+            var timerReloaded = false;
+            for (var i = CpcVm.sqTimerCount - 1; i >= 0; i -= 1) {
+                var timer = this.sqTimer[i];
+                if (timer.handlerRunning) {
+                    if (timer.stackIndexReturn > this.gosubStack.length) {
+                        timer.handlerRunning = false;
+                        this.timerPriority = timer.savedPriority; // restore priority
+                        timer.stackIndexReturn = 0;
+                        if (!timer.repeat) { // not reloaded
+                            timer.active = false;
                         }
                         else {
-                            bTimerReloaded = true;
+                            timerReloaded = true;
                         }
                     }
                 }
             }
-            return bTimerReloaded;
+            return timerReloaded;
         };
-        CpcVm.prototype.vmCheckNextFrame = function (iTime) {
-            if (iTime >= this.iNextFrameTime) { // next time of frame fly
-                var iDelta = iTime - this.iNextFrameTime;
-                if (iDelta > CpcVm.iFrameTimeMs) {
-                    this.iNextFrameTime += CpcVm.iFrameTimeMs * Math.ceil(iDelta / CpcVm.iFrameTimeMs);
+        CpcVm.prototype.vmCheckNextFrame = function (time) {
+            if (time >= this.nextFrameTime) { // next time of frame fly
+                var delta = time - this.nextFrameTime;
+                if (delta > CpcVm.frameTimeMs) {
+                    this.nextFrameTime += CpcVm.frameTimeMs * Math.ceil(delta / CpcVm.frameTimeMs);
                 }
                 else {
-                    this.iNextFrameTime += CpcVm.iFrameTimeMs;
+                    this.nextFrameTime += CpcVm.frameTimeMs;
                 }
-                this.oCanvas.updateSpeedInk();
-                this.vmCheckTimer(iTime); // check BASIC timers and sound queue
-                this.oSound.scheduler(); // on a real CPC it is 100 Hz, we use 50 Hz
+                this.canvas.updateSpeedInk();
+                this.vmCheckTimer(time); // check BASIC timers and sound queue
+                this.soundClass.scheduler(); // on a real CPC it is 100 Hz, we use 50 Hz
             }
         };
-        CpcVm.prototype.vmGetTimeUntilFrame = function (iTime) {
-            iTime = iTime || Date.now();
-            var iTimeUntilFrame = this.iNextFrameTime - iTime;
-            return iTimeUntilFrame;
+        CpcVm.prototype.vmGetTimeUntilFrame = function (time) {
+            time = time || Date.now();
+            var timeUntilFrame = this.nextFrameTime - time;
+            return timeUntilFrame;
         };
         CpcVm.prototype.vmLoopCondition = function () {
-            var iTime = Date.now();
-            if (iTime >= this.iNextFrameTime) {
-                this.vmCheckNextFrame(iTime);
-                this.iStopCount += 1;
-                if (this.iStopCount >= 5) { // do not stop too often because of just timer resason because setTimeout is expensive
-                    this.iStopCount = 0;
+            var time = Date.now();
+            if (time >= this.nextFrameTime) {
+                this.vmCheckNextFrame(time);
+                this.stopCount += 1;
+                if (this.stopCount >= 5) { // do not stop too often because of just timer resason because setTimeout is expensive
+                    this.stopCount = 0;
                     this.vmStop("timer", 20);
                 }
             }
-            return this.oStop.sReason === "";
+            return this.stopEntry.reason === "";
         };
-        CpcVm.prototype.vmInitUntypedVariables = function (sVarChar) {
-            var aNames = this.oVariables.getAllVariableNames();
-            for (var i = 0; i < aNames.length; i += 1) {
-                var sName = aNames[i];
-                if (sName.charAt(0) === sVarChar) {
-                    if (sName.indexOf("$") === -1 && sName.indexOf("%") === -1 && sName.indexOf("!") === -1) { // no explicit type?
-                        this.oVariables.initVariable(sName);
+        CpcVm.prototype.vmInitUntypedVariables = function (varChar) {
+            var names = this.variables.getAllVariableNames();
+            for (var i = 0; i < names.length; i += 1) {
+                var name_1 = names[i];
+                if (name_1.charAt(0) === varChar) {
+                    if (name_1.indexOf("$") === -1 && name_1.indexOf("%") === -1 && name_1.indexOf("!") === -1) { // no explicit type?
+                        this.variables.initVariable(name_1);
                     }
                 }
             }
         };
-        CpcVm.prototype.vmDefineVarTypes = function (sType, sNameOrRange, sErr) {
-            this.vmAssertString(sNameOrRange, sErr);
-            var iFirst, iLast;
-            if (sNameOrRange.indexOf("-") >= 0) {
-                var aRange = sNameOrRange.split("-", 2);
-                iFirst = aRange[0].trim().toLowerCase().charCodeAt(0);
-                iLast = aRange[1].trim().toLowerCase().charCodeAt(0);
+        CpcVm.prototype.vmDefineVarTypes = function (type, nameOrRange, err) {
+            this.vmAssertString(nameOrRange, err);
+            var first, last;
+            if (nameOrRange.indexOf("-") >= 0) {
+                var range = nameOrRange.split("-", 2);
+                first = range[0].trim().toLowerCase().charCodeAt(0);
+                last = range[1].trim().toLowerCase().charCodeAt(0);
             }
             else {
-                iFirst = sNameOrRange.trim().toLowerCase().charCodeAt(0);
-                iLast = iFirst;
+                first = nameOrRange.trim().toLowerCase().charCodeAt(0);
+                last = first;
             }
-            for (var i = iFirst; i <= iLast; i += 1) {
-                var sVarChar = String.fromCharCode(i);
-                if (this.oVariables.getVarType(sVarChar) !== sType) { // type changed?
-                    this.oVariables.setVarType(sVarChar, sType);
-                    // initialize all untyped variables starting with sVarChar!
-                    this.vmInitUntypedVariables(sVarChar);
+            for (var i = first; i <= last; i += 1) {
+                var varChar = String.fromCharCode(i);
+                if (this.variables.getVarType(varChar) !== type) { // type changed?
+                    this.variables.setVarType(varChar, type);
+                    // initialize all untyped variables starting with varChar!
+                    this.vmInitUntypedVariables(varChar);
                 }
             }
         };
-        CpcVm.prototype.vmStop = function (sReason, iPriority, bForce, oParas) {
-            var iDefaultPriority = CpcVm.mStopPriority[sReason];
-            if (iDefaultPriority === undefined) {
-                Utils_1.Utils.console.warn("Programming error: vmStop: Unknown reason:", sReason);
+        CpcVm.prototype.vmStop = function (reason, priority, force, paras) {
+            var defaultPriority = CpcVm.stopPriority[reason];
+            if (defaultPriority === undefined) {
+                Utils_1.Utils.console.warn("Programming error: vmStop: Unknown reason:", reason);
             }
-            iPriority = iPriority || 0;
-            if (iPriority !== 0) {
-                iPriority = iDefaultPriority;
+            priority = priority || 0;
+            if (priority !== 0) {
+                priority = defaultPriority;
             }
-            if (bForce || iPriority >= this.oStop.iPriority) {
-                this.oStop.iPriority = iPriority;
-                this.oStop.sReason = sReason;
-                this.oStop.oParas = oParas || CpcVm.oEmptyParas;
+            if (force || priority >= this.stopEntry.priority) {
+                this.stopEntry.priority = priority;
+                this.stopEntry.reason = reason;
+                this.stopEntry.paras = paras || CpcVm.emptyParas;
             }
         };
-        CpcVm.prototype.vmNotImplemented = function (sName) {
-            Utils_1.Utils.console.warn("Not implemented:", sName);
+        CpcVm.prototype.vmNotImplemented = function (name) {
+            Utils_1.Utils.console.warn("Not implemented:", name);
         };
         // not complete
-        CpcVm.prototype.vmUsingFormat1 = function (sFormat, arg) {
-            var sPadChar = " ", re1 = /^\\ *\\$/;
-            var sStr;
+        CpcVm.prototype.vmUsingFormat1 = function (format, arg) {
+            var padChar = " ", re1 = /^\\ *\\$/;
+            var str;
             if (typeof arg === "string") {
-                if (sFormat === "&") {
-                    sStr = arg;
+                if (format === "&") {
+                    str = arg;
                 }
-                else if (sFormat === "!") {
-                    sStr = arg.charAt(0);
+                else if (format === "!") {
+                    str = arg.charAt(0);
                 }
-                else if (re1.test(sFormat)) { // "\...\"
-                    sStr = arg.substr(0, sFormat.length);
-                    var iPadLen = sFormat.length - arg.length, sPad = (iPadLen > 0) ? sPadChar.repeat(iPadLen) : "";
-                    sStr = arg + sPad; // string left aligned
+                else if (re1.test(format)) { // "\...\"
+                    str = arg.substr(0, format.length);
+                    var padLen = format.length - arg.length, pad = (padLen > 0) ? padChar.repeat(padLen) : "";
+                    str = arg + pad; // string left aligned
                 }
                 else { // no string format
-                    throw this.vmComposeError(Error(), 13, "USING format " + sFormat); // "Type mismatch"
+                    throw this.vmComposeError(Error(), 13, "USING format " + format); // "Type mismatch"
                 }
             }
             else { // number (not fully implemented)
-                if (sFormat === "&" || sFormat === "!" || re1.test(sFormat)) { // string format for number?
-                    throw this.vmComposeError(Error(), 13, "USING format " + sFormat); // "Type mismatch"
+                if (format === "&" || format === "!" || re1.test(format)) { // string format for number?
+                    throw this.vmComposeError(Error(), 13, "USING format " + format); // "Type mismatch"
                 }
-                if (sFormat.indexOf(".") < 0) { // no decimal point?
-                    sStr = arg.toFixed(0);
+                if (format.indexOf(".") < 0) { // no decimal point?
+                    str = arg.toFixed(0);
                 }
                 else { // assume ###.##
-                    var aFormat = sFormat.split(".", 2), iDecimals = aFormat[1].length;
+                    var formatParts = format.split(".", 2), decimals = formatParts[1].length;
                     // To avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
-                    arg = Number(Math.round(Number(arg + "e" + iDecimals)) + "e-" + iDecimals);
-                    sStr = arg.toFixed(iDecimals);
+                    arg = Number(Math.round(Number(arg + "e" + decimals)) + "e-" + decimals);
+                    str = arg.toFixed(decimals);
                 }
-                if (sFormat.indexOf(",") >= 0) { // contains comma => insert thousands separator
-                    sStr = Utils_1.Utils.numberWithCommas(sStr);
+                if (format.indexOf(",") >= 0) { // contains comma => insert thousands separator
+                    str = Utils_1.Utils.numberWithCommas(str);
                 }
-                var iPadLen = sFormat.length - sStr.length, sPad = (iPadLen > 0) ? sPadChar.repeat(iPadLen) : "";
-                sStr = sPad + sStr;
-                if (sStr.length > sFormat.length) {
-                    sStr = "%" + sStr; // mark too long
+                var padLen = format.length - str.length, pad = (padLen > 0) ? padChar.repeat(padLen) : "";
+                str = pad + str;
+                if (str.length > format.length) {
+                    str = "%" + str; // mark too long
                 }
             }
-            return sStr;
+            return str;
         };
         CpcVm.prototype.vmGetStopObject = function () {
-            return this.oStop;
+            return this.stopEntry;
         };
         CpcVm.prototype.vmGetInFileObject = function () {
-            return this.oInFile;
+            return this.inFile;
         };
         CpcVm.prototype.vmGetOutFileObject = function () {
-            return this.oOutFile;
+            return this.outFile;
         };
-        CpcVm.prototype.vmAdaptFilename = function (sName, sErr) {
-            this.vmAssertString(sName, sErr);
-            sName = sName.replace(/ /g, ""); // remove spaces
-            if (sName.indexOf("!") === 0) {
-                sName = sName.substr(1); // remove preceding "!"
+        CpcVm.prototype.vmAdaptFilename = function (name, err) {
+            this.vmAssertString(name, err);
+            name = name.replace(/ /g, ""); // remove spaces
+            if (name.indexOf("!") === 0) {
+                name = name.substr(1); // remove preceding "!"
             }
-            var iIndex = sName.indexOf(":");
-            if (iIndex >= 0) {
-                sName = sName.substr(iIndex + 1); // remove user and drive letter including ":"
+            var index = name.indexOf(":");
+            if (index >= 0) {
+                name = name.substr(index + 1); // remove user and drive letter including ":"
             }
-            sName = sName.toLowerCase();
-            if (!sName) {
-                throw this.vmComposeError(Error(), 32, "Bad filename: " + sName);
+            name = name.toLowerCase();
+            if (!name) {
+                throw this.vmComposeError(Error(), 32, "Bad filename: " + name);
             }
-            return sName;
+            return name;
         };
         CpcVm.prototype.vmGetSoundData = function () {
-            return this.aSoundData;
+            return this.soundData;
         };
-        CpcVm.prototype.vmTrace = function (iLine) {
-            var iStream = 0;
-            this.iTronLine = iLine;
-            if (this.bTron) {
-                this.print(iStream, "[" + iLine + "]");
+        CpcVm.prototype.vmTrace = function (line) {
+            var stream = 0;
+            this.tronLine = line;
+            if (this.tronFlag1) {
+                this.print(stream, "[" + line + "]");
             }
         };
-        CpcVm.prototype.vmDrawMovePlot = function (sType, iGPen, iGColMode) {
-            if (iGPen !== undefined) {
-                iGPen = this.vmInRangeRound(iGPen, 0, 15, sType);
-                this.oCanvas.setGPen(iGPen);
+        CpcVm.prototype.vmDrawMovePlot = function (type, gPen, gColMode) {
+            if (gPen !== undefined) {
+                gPen = this.vmInRangeRound(gPen, 0, 15, type);
+                this.canvas.setGPen(gPen);
             }
-            if (iGColMode !== undefined) {
-                iGColMode = this.vmInRangeRound(iGColMode, 0, 3, sType);
-                this.oCanvas.setGColMode(iGColMode);
+            if (gColMode !== undefined) {
+                gColMode = this.vmInRangeRound(gColMode, 0, 3, type);
+                this.canvas.setGColMode(gColMode);
             }
         };
-        CpcVm.prototype.vmAfterEveryGosub = function (sType, iInterval, iTimer, iLine) {
-            iInterval = this.vmInRangeRound(iInterval, 0, 32767, sType); // more would be overflow
-            iTimer = this.vmInRangeRound(iTimer || 0, 0, 3, sType);
-            var oTimer = this.aTimer[iTimer];
-            if (iInterval) {
-                var iIntervalMs = iInterval * CpcVm.iFrameTimeMs; // convert to ms
-                oTimer.iIntervalMs = iIntervalMs;
-                oTimer.iLine = iLine;
-                oTimer.bRepeat = (sType === "EVERY");
-                oTimer.bActive = true;
-                oTimer.iNextTimeMs = Date.now() + iIntervalMs;
+        CpcVm.prototype.vmAfterEveryGosub = function (type, interval, timer, line) {
+            interval = this.vmInRangeRound(interval, 0, 32767, type); // more would be overflow
+            timer = this.vmInRangeRound(timer || 0, 0, 3, type);
+            var timerEntry = this.timerList[timer];
+            if (interval) {
+                var intervalMs = interval * CpcVm.frameTimeMs; // convert to ms
+                timerEntry.intervalMs = intervalMs;
+                timerEntry.line = line;
+                timerEntry.repeat = (type === "EVERY");
+                timerEntry.active = true;
+                timerEntry.nextTimeMs = Date.now() + intervalMs;
             }
             else { // interval 0 => switch running timer off
-                oTimer.bActive = false;
+                timerEntry.active = false;
             }
         };
-        CpcVm.prototype.vmCopyFromScreen = function (iSource, iDest) {
+        CpcVm.prototype.vmCopyFromScreen = function (source, dest) {
             for (var i = 0; i < 0x4000; i += 1) {
-                var iByte = this.oCanvas.getByte(iSource + i); // get byte from screen memory
-                if (iByte === null) { // byte not visible on screen?
-                    iByte = this.aMem[iSource + i] || 0; // get it from our memory
+                var byte = this.canvas.getByte(source + i); // get byte from screen memory
+                if (byte === null) { // byte not visible on screen?
+                    byte = this.mem[source + i] || 0; // get it from our memory
                 }
-                this.aMem[iDest + i] = iByte;
+                this.mem[dest + i] = byte;
             }
         };
-        CpcVm.prototype.vmCopyToScreen = function (iSource, iDest) {
+        CpcVm.prototype.vmCopyToScreen = function (source, dest) {
             for (var i = 0; i < 0x4000; i += 1) {
-                var iByte = this.aMem[iSource + i] || 0; // get it from our memory
-                this.oCanvas.setByte(iDest + i, iByte);
+                var byte = this.mem[source + i] || 0; // get it from our memory
+                this.canvas.setByte(dest + i, byte);
             }
         };
-        CpcVm.prototype.vmSetScreenBase = function (iByte) {
-            iByte = this.vmInRangeRound(iByte, 0, 255, "screenBase");
-            var iPage = iByte >> 6, // eslint-disable-line no-bitwise
-            iOldPage = this.iScreenPage;
-            if (iPage !== iOldPage) {
-                var iAddr = iOldPage << 14; // eslint-disable-line no-bitwise
-                this.vmCopyFromScreen(iAddr, iAddr);
-                this.iScreenPage = iPage;
-                iAddr = iPage << 14; // eslint-disable-line no-bitwise
-                this.vmCopyToScreen(iAddr, iAddr);
+        CpcVm.prototype.vmSetScreenBase = function (byte) {
+            byte = this.vmInRangeRound(byte, 0, 255, "screenBase");
+            var page = byte >> 6, // eslint-disable-line no-bitwise
+            oldPage = this.screenPage;
+            if (page !== oldPage) {
+                var addr = oldPage << 14; // eslint-disable-line no-bitwise
+                this.vmCopyFromScreen(addr, addr);
+                this.screenPage = page;
+                addr = page << 14; // eslint-disable-line no-bitwise
+                this.vmCopyToScreen(addr, addr);
             }
         };
-        CpcVm.prototype.vmSetScreenOffset = function (iOffset) {
-            this.oCanvas.setScreenOffset(iOffset);
+        CpcVm.prototype.vmSetScreenOffset = function (offset) {
+            this.canvas.setScreenOffset(offset);
         };
         // could be also set vmSetScreenViewBase? thisiScreenViewPage?  We always draw on visible canvas?
-        CpcVm.prototype.vmSetTransparentMode = function (iStream, iTransparent) {
-            var oWin = this.aWindow[iStream];
-            oWin.bTransparent = Boolean(iTransparent);
+        CpcVm.prototype.vmSetTransparentMode = function (stream, transparent) {
+            var win = this.windowDataList[stream];
+            win.transparent = Boolean(transparent);
         };
         // --
         CpcVm.prototype.abs = function (n) {
             this.vmAssertNumber(n, "ABS");
             return Math.abs(n);
         };
-        CpcVm.prototype.addressOf = function (sVar) {
+        CpcVm.prototype.addressOf = function (variable) {
             // not really implemented
-            sVar = sVar.replace("v.", "");
-            sVar = sVar.replace("[", "(");
-            var iPos = sVar.indexOf("("); // array variable with indices?
-            if (iPos >= 0) {
-                sVar = sVar.substr(0, iPos); // remove indices
+            variable = variable.replace("v.", "");
+            variable = variable.replace("[", "(");
+            var pos = variable.indexOf("("); // array variable with indices?
+            if (pos >= 0) {
+                variable = variable.substr(0, pos); // remove indices
             }
-            iPos = this.oVariables.getVariableIndex(sVar);
-            if (iPos < 0) {
-                throw this.vmComposeError(Error(), 5, "@" + sVar); // Improper argument
+            pos = this.variables.getVariableIndex(variable);
+            if (pos < 0) {
+                throw this.vmComposeError(Error(), 5, "@" + variable); // Improper argument
             }
-            return iPos;
+            return pos;
         };
-        CpcVm.prototype.afterGosub = function (iInterval, iTimer, iLine) {
-            this.vmAfterEveryGosub("AFTER", iInterval, iTimer, iLine);
+        CpcVm.prototype.afterGosub = function (interval, timer, line) {
+            this.vmAfterEveryGosub("AFTER", interval, timer, line);
         };
-        CpcVm.vmGetCpcCharCode = function (iCode) {
-            if (iCode > 255) { // map some UTF-8 character codes
-                if (CpcVm.mUtf8ToCpc[iCode]) {
-                    iCode = CpcVm.mUtf8ToCpc[iCode];
+        CpcVm.vmGetCpcCharCode = function (code) {
+            if (code > 255) { // map some UTF-8 character codes
+                if (CpcVm.utf8ToCpc[code]) {
+                    code = CpcVm.utf8ToCpc[code];
                 }
             }
-            return iCode;
+            return code;
         };
         CpcVm.prototype.asc = function (s) {
             this.vmAssertString(s, "ASC");
@@ -675,66 +675,66 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         };
         CpcVm.prototype.atn = function (n) {
             this.vmAssertNumber(n, "ATN");
-            return Math.atan((this.bDeg) ? Utils_1.Utils.toRadians(n) : n);
+            return Math.atan((this.degFlag) ? Utils_1.Utils.toRadians(n) : n);
         };
         CpcVm.prototype.auto = function () {
             this.vmNotImplemented("AUTO");
         };
-        CpcVm.prototype.bin$ = function (n, iPad) {
+        CpcVm.prototype.bin$ = function (n, pad) {
             n = this.vmInRangeRound(n, -32768, 65535, "BIN$");
-            iPad = this.vmInRangeRound(iPad || 0, 0, 16, "BIN$");
-            return n.toString(2).padStart(iPad || 16, "0");
+            pad = this.vmInRangeRound(pad || 0, 0, 16, "BIN$");
+            return n.toString(2).padStart(pad || 16, "0");
         };
-        CpcVm.prototype.border = function (iInk1, iInk2) {
-            iInk1 = this.vmInRangeRound(iInk1, 0, 31, "BORDER");
-            if (iInk2 === undefined) {
-                iInk2 = iInk1;
+        CpcVm.prototype.border = function (ink1, ink2) {
+            ink1 = this.vmInRangeRound(ink1, 0, 31, "BORDER");
+            if (ink2 === undefined) {
+                ink2 = ink1;
             }
             else {
-                iInk2 = this.vmInRangeRound(iInk2, 0, 31, "BORDER");
+                ink2 = this.vmInRangeRound(ink2, 0, 31, "BORDER");
             }
-            this.oCanvas.setBorder(iInk1, iInk2);
+            this.canvas.setBorder(ink1, ink2);
         };
         // break
-        CpcVm.prototype.vmMcSetMode = function (iMode) {
-            iMode = this.vmInRangeRound(iMode, 0, 3, "MCSetMode");
-            var iAddr = this.iScreenPage << 14, // eslint-disable-line no-bitwise
-            iCanvasMode = this.oCanvas.getMode();
-            if (iMode !== iCanvasMode) {
+        CpcVm.prototype.vmMcSetMode = function (mode) {
+            mode = this.vmInRangeRound(mode, 0, 3, "MCSetMode");
+            var addr = this.screenPage << 14, // eslint-disable-line no-bitwise
+            canvasMode = this.canvas.getMode();
+            if (mode !== canvasMode) {
                 // keep screen bytes, just interpret in other mode
-                this.vmCopyFromScreen(iAddr, iAddr); // read bytes from screen memory into memory
-                this.oCanvas.changeMode(iMode); // change mode and interpretation of bytes
-                this.vmCopyToScreen(iAddr, iAddr); // write bytes back to screen memory
-                this.oCanvas.changeMode(iCanvasMode); // keep moe
+                this.vmCopyFromScreen(addr, addr); // read bytes from screen memory into memory
+                this.canvas.changeMode(mode); // change mode and interpretation of bytes
+                this.vmCopyToScreen(addr, addr); // write bytes back to screen memory
+                this.canvas.changeMode(canvasMode); // keep moe
                 // TODO: new content should still be written in old mode but interpreted in new mode
             }
         };
-        CpcVm.prototype.vmTxtInverse = function (iStream) {
-            var oWin = this.aWindow[iStream], iTmp = oWin.iPen;
-            this.pen(iStream, oWin.iPaper);
-            this.paper(iStream, iTmp);
+        CpcVm.prototype.vmTxtInverse = function (stream) {
+            var win = this.windowDataList[stream], tmp = win.pen;
+            this.pen(stream, win.paper);
+            this.paper(stream, tmp);
         };
-        CpcVm.prototype.vmPutKeyInBuffer = function (sKey) {
-            this.oKeyboard.putKeyInBuffer(sKey);
-            var oKeyDownHandler = this.oKeyboard.getKeyDownHandler();
-            if (oKeyDownHandler) {
-                oKeyDownHandler();
+        CpcVm.prototype.vmPutKeyInBuffer = function (key) {
+            this.keyboard.putKeyInBuffer(key);
+            var keyDownHandler = this.keyboard.getKeyDownHandler();
+            if (keyDownHandler) {
+                keyDownHandler();
             }
         };
-        CpcVm.prototype.call = function (iAddr) {
+        CpcVm.prototype.call = function (addr) {
             // varargs (adr + parameters)
-            iAddr = this.vmInRangeRound(iAddr, -32768, 65535, "CALL");
-            if (iAddr < 0) { // 2nd complement of 16 bit address?
-                iAddr += 65536;
+            addr = this.vmInRangeRound(addr, -32768, 65535, "CALL");
+            if (addr < 0) { // 2nd complement of 16 bit address?
+                addr += 65536;
             }
-            switch (iAddr) {
+            switch (addr) {
                 case 0xbb00: // KM Initialize (ROM &19E0)
-                    this.oKeyboard.resetCpcKeysExpansions();
+                    this.keyboard.resetCpcKeysExpansions();
                     this.call(0xbb03); // KM Reset
                     break;
                 case 0xbb03: // KM Reset (ROM &1AE1)
                     this.clearInput();
-                    this.oKeyboard.resetExpansionTokens();
+                    this.keyboard.resetExpansionTokens();
                     // TODO: reset also speed key
                     break;
                 case 0xbb06: // KM Wait Char (ROM &1A3C)
@@ -752,7 +752,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                     }
                     break;
                 case 0xbb4e: // TXT Initialize (ROM &1078)
-                    this.oCanvas.resetCustomChars();
+                    this.canvas.resetCustomChars();
                     this.vmResetWindowData(true); // reset windows, including pen and paper
                     // and TXT Reset...
                     this.vmResetControlBuffer();
@@ -802,7 +802,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                     this.vmSetTransparentMode(0, arguments.length - 1);
                     break;
                 case 0xbbdb: // GRA Clear Window (ROM &17C5)
-                    this.oCanvas.clearGraphicsWindow();
+                    this.canvas.clearGraphicsWindow();
                     break;
                 case 0xbbde: // GRA Set Pen (ROM &17F6), depending on number of args
                     // we can only set graphics pen depending on number of args (pen 0=no arg, pen 1=one arg)
@@ -812,13 +812,13 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                     this.graphicsPaper((arguments.length - 1) % 16);
                     break;
                 case 0xbbfc: // GRA WR Char (ROM &1945), depending on number of args
-                    this.oCanvas.printGChar(arguments.length - 1);
+                    this.canvas.printGChar(arguments.length - 1);
                     break;
                 case 0xbbff: // SCR Initialize (ROM &0AA0)
                     this.vmSetScreenBase(0xc0);
-                    this.iMode = 1;
-                    this.oCanvas.setMode(this.iMode); // does not clear canvas
-                    this.oCanvas.clearFullWindow(); // (SCR Mode Clear)
+                    this.modeValue = 1;
+                    this.canvas.setMode(this.modeValue); // does not clear canvas
+                    this.canvas.clearFullWindow(); // (SCR Mode Clear)
                     // and SCR Reset:
                     this.vmResetInks();
                     break;
@@ -833,13 +833,13 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                     this.mode((arguments.length - 1) % 4); // 3 is valid also on CPC
                     break;
                 case 0xbca7: // SOUND Reset (ROM &1E68)
-                    this.oSound.reset();
+                    this.soundClass.reset();
                     break;
                 case 0xbcb6: // SOUND Hold (ROM &1ECB)
-                    Utils_1.Utils.console.log("TODO: CALL", iAddr);
+                    Utils_1.Utils.console.log("TODO: CALL", addr);
                     break;
                 case 0xbcb9: // SOUND Continue (ROM &1EE6)
-                    Utils_1.Utils.console.log("TODO: CALL", iAddr);
+                    Utils_1.Utils.console.log("TODO: CALL", addr);
                     break;
                 case 0xbd19: // MC Wait Flyback (ROM &07BA)
                     this.frame();
@@ -851,10 +851,10 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                     this.clearInput();
                     break;
                 case 0xbd49: // GRA Set First (ROM ?; CPC 664/6128), depending on number of args
-                    this.oCanvas.setMaskFirst((arguments.length - 1) % 2);
+                    this.canvas.setMaskFirst((arguments.length - 1) % 2);
                     break;
                 case 0xbd4c: // GRA Set Mask (ROM ?; CPC 664/6128), depending on number of args
-                    this.oCanvas.setMask(arguments.length - 1);
+                    this.canvas.setMask(arguments.length - 1);
                     break;
                 case 0xbd52: // GRA Fill (ROM ?; CPC 664/6128), depending on number of args
                     this.fill((arguments.length - 1) % 16);
@@ -865,42 +865,42 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                     break;
                 default:
                     if (Utils_1.Utils.debug > 0) {
-                        Utils_1.Utils.console.debug("Ignored: CALL", iAddr);
+                        Utils_1.Utils.console.debug("Ignored: CALL", addr);
                     }
                     break;
             }
         };
         CpcVm.prototype.cat = function () {
-            var iStream = 0, oFileParas = {
-                sCommand: "cat",
-                iStream: iStream,
-                sFileMask: "",
-                iLine: this.iLine // unused
+            var stream = 0, fileParas = {
+                command: "cat",
+                stream: stream,
+                fileMask: "",
+                line: this.line // unused
             };
-            this.vmStop("fileCat", 45, false, oFileParas);
+            this.vmStop("fileCat", 45, false, fileParas);
         };
-        CpcVm.prototype.chain = function (sName, iLine) {
-            var oInFile = this.oInFile;
-            sName = this.vmAdaptFilename(sName, "CHAIN");
+        CpcVm.prototype.chain = function (name, line) {
+            var inFile = this.inFile;
+            name = this.vmAdaptFilename(name, "CHAIN");
             this.closein();
-            oInFile.bOpen = true;
-            oInFile.sCommand = "chain";
-            oInFile.sName = sName;
-            oInFile.iLine = iLine || 0;
-            oInFile.fnFileCallback = this.fnCloseinHandler;
+            inFile.open = true;
+            inFile.command = "chain";
+            inFile.name = name;
+            inFile.line = line || 0;
+            inFile.fnFileCallback = this.fnCloseinHandler;
             this.vmStop("fileLoad", 90);
         };
-        CpcVm.prototype.chainMerge = function (sName, iLine, iFirst, iLast) {
-            var oInFile = this.oInFile;
-            sName = this.vmAdaptFilename(sName, "CHAIN MERGE");
+        CpcVm.prototype.chainMerge = function (name, line, first, last) {
+            var inFile = this.inFile;
+            name = this.vmAdaptFilename(name, "CHAIN MERGE");
             this.closein();
-            oInFile.bOpen = true;
-            oInFile.sCommand = "chainMerge";
-            oInFile.sName = sName;
-            oInFile.iLine = iLine || 0;
-            oInFile.iFirst = iFirst || 0;
-            oInFile.iLast = iLast || 0;
-            oInFile.fnFileCallback = this.fnCloseinHandler;
+            inFile.open = true;
+            inFile.command = "chainMerge";
+            inFile.name = name;
+            inFile.line = line || 0;
+            inFile.first = first || 0;
+            inFile.last = last || 0;
+            inFile.fnFileCallback = this.fnCloseinHandler;
             this.vmStop("fileLoad", 90);
         };
         CpcVm.prototype.chr$ = function (n) {
@@ -914,382 +914,382 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.vmResetTimers();
             this.ei();
             this.vmSetStartLine(0);
-            this.iErr = 0;
-            this.iBreakGosubLine = 0;
-            this.iBreakResumeLine = 0;
-            this.iErrorGotoLine = 0;
-            this.iErrorResumeLine = 0;
-            this.aGosubStack.length = 0;
-            this.oVariables.initAllVariables();
+            this.errorCode = 0;
+            this.breakGosubLine = 0;
+            this.breakResumeLine = 0;
+            this.errorGotoLine = 0;
+            this.errorResumeLine = 0;
+            this.gosubStack.length = 0;
+            this.variables.initAllVariables();
             this.defreal("a-z");
             this.restore(); // restore data line index
             this.rad();
-            this.oSound.resetQueue();
-            this.aSoundData.length = 0;
+            this.soundClass.resetQueue();
+            this.soundData.length = 0;
             this.closein();
             this.closeout();
         };
         CpcVm.prototype.clearInput = function () {
-            this.oKeyboard.clearInput();
+            this.keyboard.clearInput();
         };
-        CpcVm.prototype.clg = function (iGPaper) {
-            if (iGPaper !== undefined) {
-                iGPaper = this.vmInRangeRound(iGPaper, 0, 15, "CLG");
-                this.oCanvas.setGPaper(iGPaper);
+        CpcVm.prototype.clg = function (gPaper) {
+            if (gPaper !== undefined) {
+                gPaper = this.vmInRangeRound(gPaper, 0, 15, "CLG");
+                this.canvas.setGPaper(gPaper);
             }
-            this.oCanvas.clearGraphicsWindow();
+            this.canvas.clearGraphicsWindow();
         };
         CpcVm.prototype.vmCloseinCallback = function () {
-            var oInFile = this.oInFile;
-            CpcVm.vmResetFileHandling(oInFile);
+            var inFile = this.inFile;
+            CpcVm.vmResetFileHandling(inFile);
         };
         CpcVm.prototype.closein = function () {
-            var oInFile = this.oInFile;
-            if (oInFile.bOpen) {
+            var inFile = this.inFile;
+            if (inFile.open) {
                 this.vmCloseinCallback(); // not really used as a callback here
             }
         };
         CpcVm.prototype.vmCloseoutCallback = function () {
-            var oOutFile = this.oOutFile;
-            CpcVm.vmResetFileHandling(oOutFile);
+            var outFile = this.outFile;
+            CpcVm.vmResetFileHandling(outFile);
         };
         CpcVm.prototype.closeout = function () {
-            var oOutFile = this.oOutFile;
-            if (oOutFile.bOpen) {
-                if (oOutFile.sCommand !== "openout") {
-                    Utils_1.Utils.console.warn("closeout: command=", oOutFile.sCommand); // should not occur
+            var outFile = this.outFile;
+            if (outFile.open) {
+                if (outFile.command !== "openout") {
+                    Utils_1.Utils.console.warn("closeout: command=", outFile.command); // should not occur
                 }
-                if (!oOutFile.aFileData.length) { // openout without data?
+                if (!outFile.fileData.length) { // openout without data?
                     this.vmCloseoutCallback(); // close directly
                 }
                 else { // data to save
-                    oOutFile.sCommand = "closeout";
-                    oOutFile.fnFileCallback = this.fnCloseoutHandler;
+                    outFile.command = "closeout";
+                    outFile.fnFileCallback = this.fnCloseoutHandler;
                     this.vmStop("fileSave", 90); // must stop directly after closeout
                 }
             }
         };
         // also called for chr$(12), call &bb6c
-        CpcVm.prototype.cls = function (iStream) {
-            iStream = this.vmInRangeRound(iStream, 0, 7, "CLS");
-            var oWin = this.aWindow[iStream];
-            this.vmDrawUndrawCursor(iStream); // why, if we clear anyway?
-            this.oCanvas.clearTextWindow(oWin.iLeft, oWin.iRight, oWin.iTop, oWin.iBottom, oWin.iPaper); // cls window
-            oWin.iPos = 0;
-            oWin.iVpos = 0;
-            if (!iStream) {
-                this.sOut = ""; // clear also console, if stream===0
+        CpcVm.prototype.cls = function (stream) {
+            stream = this.vmInRangeRound(stream, 0, 7, "CLS");
+            var win = this.windowDataList[stream];
+            this.vmDrawUndrawCursor(stream); // why, if we clear anyway?
+            this.canvas.clearTextWindow(win.left, win.right, win.top, win.bottom, win.paper); // cls window
+            win.pos = 0;
+            win.vpos = 0;
+            if (!stream) {
+                this.outBuffer = ""; // clear also console, if stream===0
             }
         };
-        CpcVm.prototype.commaTab = function (iStream) {
-            iStream = this.vmInRangeRound(iStream, 0, 9, "commaTab");
-            this.vmMoveCursor2AllowedPos(iStream);
-            var iZone = this.iZone, oWin = this.aWindow[iStream];
-            var iCount = iZone - (oWin.iPos % iZone);
-            if (oWin.iPos) { // <>0: not begin of line
-                if (oWin.iPos + iCount + iZone > (oWin.iRight + 1 - oWin.iLeft)) {
-                    oWin.iPos += iCount + iZone;
-                    this.vmMoveCursor2AllowedPos(iStream);
-                    iCount = 0;
+        CpcVm.prototype.commaTab = function (stream) {
+            stream = this.vmInRangeRound(stream, 0, 9, "commaTab");
+            this.vmMoveCursor2AllowedPos(stream);
+            var zone = this.zoneValue, win = this.windowDataList[stream];
+            var count = zone - (win.pos % zone);
+            if (win.pos) { // <>0: not begin of line
+                if (win.pos + count + zone > (win.right + 1 - win.left)) {
+                    win.pos += count + zone;
+                    this.vmMoveCursor2AllowedPos(stream);
+                    count = 0;
                 }
             }
-            return " ".repeat(iCount);
+            return " ".repeat(count);
         };
         CpcVm.prototype.cont = function () {
-            if (!this.iStartLine) {
+            if (!this.startLine) {
                 throw this.vmComposeError(Error(), 17, "CONT"); // cannot continue
             }
-            this.vmGotoLine(this.iStartLine, "CONT");
-            this.iStartLine = 0;
+            this.vmGotoLine(this.startLine, "CONT");
+            this.startLine = 0;
         };
-        CpcVm.prototype.copychr$ = function (iStream) {
-            iStream = this.vmInRangeRound(iStream, 0, 7, "COPYCHR$");
-            this.vmMoveCursor2AllowedPos(iStream);
-            this.vmDrawUndrawCursor(iStream); // undraw
-            var oWin = this.aWindow[iStream], iChar = this.oCanvas.readChar(oWin.iPos + oWin.iLeft, oWin.iVpos + oWin.iTop, oWin.iPen, oWin.iPaper), sChar = (iChar >= 0) ? String.fromCharCode(iChar) : "";
-            this.vmDrawUndrawCursor(iStream); // draw
-            return sChar;
+        CpcVm.prototype.copychr$ = function (stream) {
+            stream = this.vmInRangeRound(stream, 0, 7, "COPYCHR$");
+            this.vmMoveCursor2AllowedPos(stream);
+            this.vmDrawUndrawCursor(stream); // undraw
+            var win = this.windowDataList[stream], charCode = this.canvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper), char = (charCode >= 0) ? String.fromCharCode(charCode) : "";
+            this.vmDrawUndrawCursor(stream); // draw
+            return char;
         };
         CpcVm.prototype.cos = function (n) {
             this.vmAssertNumber(n, "COS");
-            return Math.cos((this.bDeg) ? Utils_1.Utils.toRadians(n) : n);
+            return Math.cos((this.degFlag) ? Utils_1.Utils.toRadians(n) : n);
         };
         CpcVm.prototype.creal = function (n) {
             this.vmAssertNumber(n, "CREAL");
             return n;
         };
-        CpcVm.prototype.vmPlaceRemoveCursor = function (iStream) {
-            var oWin = this.aWindow[iStream];
-            this.vmMoveCursor2AllowedPos(iStream);
-            this.oCanvas.drawCursor(oWin.iPos + oWin.iLeft, oWin.iVpos + oWin.iTop, oWin.iPen, oWin.iPaper);
+        CpcVm.prototype.vmPlaceRemoveCursor = function (stream) {
+            var win = this.windowDataList[stream];
+            this.vmMoveCursor2AllowedPos(stream);
+            this.canvas.drawCursor(win.pos + win.left, win.vpos + win.top, win.pen, win.paper);
         };
-        CpcVm.prototype.vmDrawUndrawCursor = function (iStream) {
-            var oWin = this.aWindow[iStream];
-            if (oWin.bCursorOn && oWin.bCursorEnabled) {
-                this.vmPlaceRemoveCursor(iStream);
+        CpcVm.prototype.vmDrawUndrawCursor = function (stream) {
+            var win = this.windowDataList[stream];
+            if (win.cursorOn && win.cursorEnabled) {
+                this.vmPlaceRemoveCursor(stream);
             }
         };
-        CpcVm.prototype.cursor = function (iStream, iCursorOn, iCursorEnabled) {
-            iStream = this.vmInRangeRound(iStream, 0, 7, "CURSOR");
-            var oWin = this.aWindow[iStream];
-            if (iCursorOn !== undefined) { // system
-                iCursorOn = this.vmInRangeRound(iCursorOn, 0, 1, "CURSOR");
-                this.vmDrawUndrawCursor(iStream); // undraw
-                oWin.bCursorOn = Boolean(iCursorOn);
-                this.vmDrawUndrawCursor(iStream); // draw
+        CpcVm.prototype.cursor = function (stream, cursorOn, cursorEnabled) {
+            stream = this.vmInRangeRound(stream, 0, 7, "CURSOR");
+            var win = this.windowDataList[stream];
+            if (cursorOn !== undefined) { // system
+                cursorOn = this.vmInRangeRound(cursorOn, 0, 1, "CURSOR");
+                this.vmDrawUndrawCursor(stream); // undraw
+                win.cursorOn = Boolean(cursorOn);
+                this.vmDrawUndrawCursor(stream); // draw
             }
-            if (iCursorEnabled !== undefined) { // user
-                iCursorEnabled = this.vmInRangeRound(iCursorEnabled, 0, 1, "CURSOR");
-                this.vmDrawUndrawCursor(iStream); // undraw
-                oWin.bCursorEnabled = Boolean(iCursorEnabled);
-                this.vmDrawUndrawCursor(iStream); // draw
+            if (cursorEnabled !== undefined) { // user
+                cursorEnabled = this.vmInRangeRound(cursorEnabled, 0, 1, "CURSOR");
+                this.vmDrawUndrawCursor(stream); // undraw
+                win.cursorEnabled = Boolean(cursorEnabled);
+                this.vmDrawUndrawCursor(stream); // draw
             }
         };
-        CpcVm.prototype.data = function (iLine) {
-            var aArgs = [];
+        CpcVm.prototype.data = function (line) {
+            var args = [];
             for (var _i = 1; _i < arguments.length; _i++) {
-                aArgs[_i - 1] = arguments[_i];
+                args[_i - 1] = arguments[_i];
             }
-            if (!this.oDataLineIndex[iLine]) {
-                this.oDataLineIndex[iLine] = this.aData.length; // set current index for the line
+            if (!this.dataLineIndex[line]) {
+                this.dataLineIndex[line] = this.dataList.length; // set current index for the line
             }
             // append data
-            for (var i = 0; i < aArgs.length; i += 1) {
-                this.aData.push(aArgs[i]);
+            for (var i = 0; i < args.length; i += 1) {
+                this.dataList.push(args[i]);
             }
         };
-        CpcVm.prototype.dec$ = function (n, sFrmt) {
+        CpcVm.prototype.dec$ = function (n, frmt) {
             this.vmAssertNumber(n, "DEC$");
-            this.vmAssertString(sFrmt, "DEC$");
-            return this.vmUsingFormat1(sFrmt, n);
+            this.vmAssertString(frmt, "DEC$");
+            return this.vmUsingFormat1(frmt, n);
         };
         // def fn
-        CpcVm.prototype.defint = function (sNameOrRange) {
-            this.vmDefineVarTypes("I", sNameOrRange, "DEFINT");
+        CpcVm.prototype.defint = function (nameOrRange) {
+            this.vmDefineVarTypes("I", nameOrRange, "DEFINT");
         };
-        CpcVm.prototype.defreal = function (sNameOrRange) {
-            this.vmDefineVarTypes("R", sNameOrRange, "DEFREAL");
+        CpcVm.prototype.defreal = function (nameOrRange) {
+            this.vmDefineVarTypes("R", nameOrRange, "DEFREAL");
         };
-        CpcVm.prototype.defstr = function (sNameOrRange) {
-            this.vmDefineVarTypes("$", sNameOrRange, "DEFSTR");
+        CpcVm.prototype.defstr = function (nameOrRange) {
+            this.vmDefineVarTypes("$", nameOrRange, "DEFSTR");
         };
         CpcVm.prototype.deg = function () {
-            this.bDeg = true;
+            this.degFlag = true;
         };
-        CpcVm.prototype["delete"] = function (iFirst, iLast) {
-            if (iFirst === undefined) {
-                iFirst = 1;
-                if (iLast === undefined) { // no first and last parameter?
-                    iLast = 65535;
+        CpcVm.prototype["delete"] = function (first, last) {
+            if (first === undefined) {
+                first = 1;
+                if (last === undefined) { // no first and last parameter?
+                    last = 65535;
                 }
             }
             else {
-                iFirst = this.vmInRangeRound(iFirst, 1, 65535, "DELETE");
-                if (iLast === undefined) { // just one parameter?
-                    iLast = iFirst;
+                first = this.vmInRangeRound(first, 1, 65535, "DELETE");
+                if (last === undefined) { // just one parameter?
+                    last = first;
                 }
                 else { // range
-                    iLast = this.vmInRangeRound(iLast, 1, 65535, "DELETE");
+                    last = this.vmInRangeRound(last, 1, 65535, "DELETE");
                 }
             }
             this.vmStop("deleteLines", 85, false, {
-                sCommand: "DELETE",
-                iStream: 0,
-                iFirst: iFirst,
-                iLast: iLast,
-                iLine: this.iLine // unused
+                command: "DELETE",
+                stream: 0,
+                first: first,
+                last: last,
+                line: this.line // unused
             });
         };
         CpcVm.prototype.derr = function () {
             return 0; // "[Not implemented yet: derr]"
         };
         CpcVm.prototype.di = function () {
-            this.iTimerPriority = 3; // increase priority
+            this.timerPriority = 3; // increase priority
         };
-        CpcVm.prototype.dim = function (sVarName) {
-            var aDimensions = [];
+        CpcVm.prototype.dim = function (varName) {
+            var dimensions = [];
             for (var i = 1; i < arguments.length; i += 1) {
-                var iSize = this.vmInRangeRound(arguments[i], 0, 32767, "DIM") + 1; // for basic we have sizes +1
-                aDimensions.push(iSize);
+                var size = this.vmInRangeRound(arguments[i], 0, 32767, "DIM") + 1; // for basic we have sizes +1
+                dimensions.push(size);
             }
-            this.oVariables.dimVariable(sVarName, aDimensions);
+            this.variables.dimVariable(varName, dimensions);
         };
-        CpcVm.prototype.draw = function (x, y, iGPen, iGColMode) {
+        CpcVm.prototype.draw = function (x, y, gPen, gColMode) {
             x = this.vmInRangeRound(x, -32768, 32767, "DRAW");
             y = this.vmInRangeRound(y, -32768, 32767, "DRAW");
-            this.vmDrawMovePlot("DRAW", iGPen, iGColMode);
-            this.oCanvas.draw(x, y);
+            this.vmDrawMovePlot("DRAW", gPen, gColMode);
+            this.canvas.draw(x, y);
         };
-        CpcVm.prototype.drawr = function (x, y, iGPen, iGColMode) {
+        CpcVm.prototype.drawr = function (x, y, gPen, gColMode) {
             x = this.vmInRangeRound(x, -32768, 32767, "DRAWR");
             y = this.vmInRangeRound(y, -32768, 32767, "DRAWR");
-            this.vmDrawMovePlot("DRAWR", iGPen, iGColMode);
-            this.oCanvas.drawr(x, y);
+            this.vmDrawMovePlot("DRAWR", gPen, gColMode);
+            this.canvas.drawr(x, y);
         };
-        CpcVm.prototype.edit = function (iLine) {
-            var oLineParas = {
-                sCommand: "edit",
-                iStream: 0,
-                iFirst: iLine,
-                iLast: 0,
-                iLine: this.iLine // unused
+        CpcVm.prototype.edit = function (line) {
+            var lineParas = {
+                command: "edit",
+                stream: 0,
+                first: line,
+                last: 0,
+                line: this.line // unused
             };
-            this.vmStop("editLine", 85, false, oLineParas);
+            this.vmStop("editLine", 85, false, lineParas);
         };
         CpcVm.prototype.ei = function () {
-            this.iTimerPriority = -1; // decrease priority
+            this.timerPriority = -1; // decrease priority
         };
-        CpcVm.prototype.end = function (sLabel) {
-            this.stop(sLabel);
+        CpcVm.prototype.end = function (label) {
+            this.stop(label);
         };
-        CpcVm.prototype.ent = function (iToneEnv) {
-            var aArgs = [];
+        CpcVm.prototype.ent = function (toneEnv) {
+            var args = [];
             for (var _i = 1; _i < arguments.length; _i++) {
-                aArgs[_i - 1] = arguments[_i];
+                args[_i - 1] = arguments[_i];
             }
-            var aEnvData = [];
-            var oArg, bRepeat = false;
-            iToneEnv = this.vmInRangeRound(iToneEnv, -15, 15, "ENT");
-            if (iToneEnv < 0) {
-                iToneEnv = -iToneEnv;
-                bRepeat = true;
+            var envData = [];
+            var arg, repeat = false;
+            toneEnv = this.vmInRangeRound(toneEnv, -15, 15, "ENT");
+            if (toneEnv < 0) {
+                toneEnv = -toneEnv;
+                repeat = true;
             }
-            if (iToneEnv) { // not 0
-                for (var i = 0; i < aArgs.length; i += 3) { // starting with 1: 3 parameters per section
-                    if (aArgs[i] !== undefined) {
-                        oArg = {
-                            steps: this.vmInRangeRound(aArgs[i], 0, 239, "ENT"),
-                            diff: this.vmInRangeRound(aArgs[i + 1], -128, 127, "ENT"),
-                            time: this.vmInRangeRound(aArgs[i + 2], 0, 255, "ENT"),
-                            repeat: bRepeat
+            if (toneEnv) { // not 0
+                for (var i = 0; i < args.length; i += 3) { // starting with 1: 3 parameters per section
+                    if (args[i] !== undefined) {
+                        arg = {
+                            steps: this.vmInRangeRound(args[i], 0, 239, "ENT"),
+                            diff: this.vmInRangeRound(args[i + 1], -128, 127, "ENT"),
+                            time: this.vmInRangeRound(args[i + 2], 0, 255, "ENT"),
+                            repeat: repeat
                         };
                     }
                     else { // special handling
-                        oArg = {
-                            period: this.vmInRangeRound(aArgs[i + 1], 0, 4095, "ENT"),
-                            time: this.vmInRangeRound(aArgs[i + 2], 0, 255, "ENT") // time: 0..255 (0=256)
+                        arg = {
+                            period: this.vmInRangeRound(args[i + 1], 0, 4095, "ENT"),
+                            time: this.vmInRangeRound(args[i + 2], 0, 255, "ENT") // time: 0..255 (0=256)
                         };
                     }
-                    aEnvData.push(oArg);
+                    envData.push(arg);
                 }
-                this.oSound.setToneEnv(iToneEnv, aEnvData);
+                this.soundClass.setToneEnv(toneEnv, envData);
             }
             else { // 0
-                Utils_1.Utils.console.warn("ENT: iToneEnv", iToneEnv);
-                throw this.vmComposeError(Error(), 5, "ENT " + iToneEnv); // Improper argument
+                Utils_1.Utils.console.warn("ENT: toneEnv", toneEnv);
+                throw this.vmComposeError(Error(), 5, "ENT " + toneEnv); // Improper argument
             }
         };
-        CpcVm.prototype.env = function (iVolEnv) {
-            var aArgs = [];
+        CpcVm.prototype.env = function (volEnv) {
+            var args = [];
             for (var _i = 1; _i < arguments.length; _i++) {
-                aArgs[_i - 1] = arguments[_i];
+                args[_i - 1] = arguments[_i];
             }
-            var aEnvData = [];
-            var oArg;
-            iVolEnv = this.vmInRangeRound(iVolEnv, 1, 15, "ENV");
-            for (var i = 0; i < aArgs.length; i += 3) { // starting with 1: 3 parameters per section
-                if (aArgs[i] !== undefined) {
-                    oArg = {
-                        steps: this.vmInRangeRound(aArgs[i], 0, 127, "ENV"),
+            var envData = [];
+            var arg;
+            volEnv = this.vmInRangeRound(volEnv, 1, 15, "ENV");
+            for (var i = 0; i < args.length; i += 3) { // starting with 1: 3 parameters per section
+                if (args[i] !== undefined) {
+                    arg = {
+                        steps: this.vmInRangeRound(args[i], 0, 127, "ENV"),
                         /* eslint-disable no-bitwise */
-                        diff: this.vmInRangeRound(aArgs[i + 1], -128, 127, "ENV") & 0x0f,
+                        diff: this.vmInRangeRound(args[i + 1], -128, 127, "ENV") & 0x0f,
                         /* eslint-enable no-bitwise */
-                        time: this.vmInRangeRound(aArgs[i + 2], 0, 255, "ENV") // time per step: 0..255 (0=256)
+                        time: this.vmInRangeRound(args[i + 2], 0, 255, "ENV") // time per step: 0..255 (0=256)
                     };
-                    if (!oArg.time) { // (0=256)
-                        oArg.time = 256;
+                    if (!arg.time) { // (0=256)
+                        arg.time = 256;
                     }
                 }
                 else { // special handling for register parameters
-                    oArg = {
-                        register: this.vmInRangeRound(aArgs[i + 1], 0, 15, "ENV"),
-                        period: this.vmInRangeRound(aArgs[i + 2], -32768, 65535, "ENV")
+                    arg = {
+                        register: this.vmInRangeRound(args[i + 1], 0, 15, "ENV"),
+                        period: this.vmInRangeRound(args[i + 2], -32768, 65535, "ENV")
                     };
                 }
-                aEnvData.push(oArg);
+                envData.push(arg);
             }
-            this.oSound.setVolEnv(iVolEnv, aEnvData);
+            this.soundClass.setVolEnv(volEnv, envData);
         };
         CpcVm.prototype.eof = function () {
-            var oInFile = this.oInFile;
-            var iEof = -1;
-            if (oInFile.bOpen && oInFile.aFileData.length) {
-                iEof = 0;
+            var inFile = this.inFile;
+            var eof = -1;
+            if (inFile.open && inFile.fileData.length) {
+                eof = 0;
             }
-            return iEof;
+            return eof;
         };
-        CpcVm.prototype.vmFindArrayVariable = function (sName) {
-            sName += "A";
-            if (this.oVariables.variableExist(sName)) { // one dim array variable?
-                return sName;
+        CpcVm.prototype.vmFindArrayVariable = function (name) {
+            name += "A";
+            if (this.variables.variableExist(name)) { // one dim array variable?
+                return name;
             }
             // find multi-dim array variable
-            var fnArrayVarFilter = function (sVar) {
-                return (sVar.indexOf(sName) === 0) ? sVar : null; // find array varA
+            var fnArrayVarFilter = function (variable) {
+                return (variable.indexOf(name) === 0) ? variable : null; // find array varA
             };
-            var aNames = this.oVariables.getAllVariableNames();
-            aNames = aNames.filter(fnArrayVarFilter); // find array varA... with any number of indices
-            return aNames[0]; // we should find exactly one
+            var names = this.variables.getAllVariableNames();
+            names = names.filter(fnArrayVarFilter); // find array varA... with any number of indices
+            return names[0]; // we should find exactly one
         };
         CpcVm.prototype.erase = function () {
-            var aArgs = [];
+            var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
-                aArgs[_i] = arguments[_i];
+                args[_i] = arguments[_i];
             }
-            for (var i = 0; i < aArgs.length; i += 1) {
-                var sName = this.vmFindArrayVariable(aArgs[i]);
-                if (sName) {
-                    this.oVariables.initVariable(sName);
+            for (var i = 0; i < args.length; i += 1) {
+                var name_2 = this.vmFindArrayVariable(args[i]);
+                if (name_2) {
+                    this.variables.initVariable(name_2);
                 }
                 else {
-                    Utils_1.Utils.console.warn("Array variable not found:", aArgs[i]);
-                    throw this.vmComposeError(Error(), 5, "ERASE " + aArgs[i]); // Improper argument
+                    Utils_1.Utils.console.warn("Array variable not found:", args[i]);
+                    throw this.vmComposeError(Error(), 5, "ERASE " + args[i]); // Improper argument
                 }
             }
         };
         CpcVm.prototype.erl = function () {
-            var iErl = parseInt(String(this.iErl), 10); // in cpcBasic we have an error label here, so return number only
-            return iErl || 0;
+            var errorLine = parseInt(String(this.errorLine), 10); // in cpcBasic we have an error label here, so return number only
+            return errorLine || 0;
         };
         CpcVm.prototype.err = function () {
-            return this.iErr;
+            return this.errorCode;
         };
-        CpcVm.prototype.vmComposeError = function (oError, iErr, sErrInfo) {
-            var aErrors = CpcVm.aErrors, sError = aErrors[iErr] || aErrors[aErrors.length - 1]; // maybe Unknown error
-            this.iErr = iErr;
-            this.iErl = this.iLine;
-            var sLine = this.iErl;
-            if (this.iTronLine) {
-                sLine += " (trace: " + this.iTronLine + ")";
+        CpcVm.prototype.vmComposeError = function (error, err, errInfo) {
+            var errors = CpcVm.errors, errorString = errors[err] || errors[errors.length - 1]; // maybe Unknown error
+            this.errorCode = err;
+            this.errorLine = this.line;
+            var line = this.errorLine;
+            if (this.tronLine) {
+                line += " (trace: " + this.tronLine + ")";
             }
-            var sErrorWithInfo = sError + " in " + sLine + (sErrInfo ? (": " + sErrInfo) : "");
-            var bHidden = false; // hide errors wich are catched
-            if (this.iErrorGotoLine && !this.iErrorResumeLine) {
-                this.iErrorResumeLine = Number(this.iErl);
-                this.vmGotoLine(this.iErrorGotoLine, "onError");
+            var errorWithInfo = errorString + " in " + line + (errInfo ? (": " + errInfo) : "");
+            var hidden = false; // hide errors wich are catched
+            if (this.errorGotoLine && !this.errorResumeLine) {
+                this.errorResumeLine = Number(this.errorLine);
+                this.vmGotoLine(this.errorGotoLine, "onError");
                 this.vmStop("onError", 50);
-                bHidden = true;
+                hidden = true;
             }
             else {
                 this.vmStop("error", 50);
             }
-            Utils_1.Utils.console.log("BASIC error(" + iErr + "):", sErrorWithInfo + (bHidden ? " (hidden: " + bHidden + ")" : ""));
-            return Utils_1.Utils.composeError("CpcVm", oError, sError, sErrInfo, -1, undefined, sLine, bHidden);
+            Utils_1.Utils.console.log("BASIC error(" + err + "):", errorWithInfo + (hidden ? " (hidden: " + hidden + ")" : ""));
+            return Utils_1.Utils.composeError("CpcVm", error, errorString, errInfo, -1, undefined, line, hidden);
         };
-        CpcVm.prototype.error = function (iErr, sErrInfo) {
-            iErr = this.vmInRangeRound(iErr, 0, 255, "ERROR"); // could trigger another error
-            throw this.vmComposeError(Error(), iErr, sErrInfo);
+        CpcVm.prototype.error = function (err, errInfo) {
+            err = this.vmInRangeRound(err, 0, 255, "ERROR"); // could trigger another error
+            throw this.vmComposeError(Error(), err, errInfo);
         };
-        CpcVm.prototype.everyGosub = function (iInterval, iTimer, iLine) {
-            this.vmAfterEveryGosub("EVERY", iInterval, iTimer, iLine);
+        CpcVm.prototype.everyGosub = function (interval, timer, line) {
+            this.vmAfterEveryGosub("EVERY", interval, timer, line);
         };
         CpcVm.prototype.exp = function (n) {
             this.vmAssertNumber(n, "EXP");
             return Math.exp(n);
         };
-        CpcVm.prototype.fill = function (iGPen) {
-            iGPen = this.vmInRangeRound(iGPen, 0, 15, "FILL");
-            this.oCanvas.fill(iGPen);
+        CpcVm.prototype.fill = function (gPen) {
+            gPen = this.vmInRangeRound(gPen, 0, 15, "FILL");
+            this.canvas.fill(gPen);
         };
         CpcVm.prototype.fix = function (n) {
             this.vmAssertNumber(n, "FIX");
@@ -1299,224 +1299,224 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.vmStop("waitFrame", 40);
         };
         CpcVm.prototype.fre = function ( /* arg */) {
-            return this.iHimem; // example, e.g. 42245;
+            return this.himemValue; // example, e.g. 42245;
         };
         CpcVm.prototype.gosub = function (retLabel, n) {
             this.vmGotoLine(n, "gosub (ret=" + retLabel + ")");
-            this.aGosubStack.push(retLabel);
+            this.gosubStack.push(retLabel);
         };
         CpcVm.prototype["goto"] = function (n) {
             this.vmGotoLine(n, "goto");
         };
-        CpcVm.prototype.graphicsPaper = function (iGPaper) {
-            iGPaper = this.vmInRangeRound(iGPaper, 0, 15, "GRAPHICS PAPER");
-            this.oCanvas.setGPaper(iGPaper);
+        CpcVm.prototype.graphicsPaper = function (gPaper) {
+            gPaper = this.vmInRangeRound(gPaper, 0, 15, "GRAPHICS PAPER");
+            this.canvas.setGPaper(gPaper);
         };
-        CpcVm.prototype.graphicsPen = function (iGPen, iTransparentMode) {
-            if (iGPen !== undefined) {
-                iGPen = this.vmInRangeRound(iGPen, 0, 15, "GRAPHICS PEN");
-                this.oCanvas.setGPen(iGPen);
+        CpcVm.prototype.graphicsPen = function (gPen, transparentMode) {
+            if (gPen !== undefined) {
+                gPen = this.vmInRangeRound(gPen, 0, 15, "GRAPHICS PEN");
+                this.canvas.setGPen(gPen);
             }
-            if (iTransparentMode !== undefined) {
-                iTransparentMode = this.vmInRangeRound(iTransparentMode, 0, 1, "GRAPHICS PEN");
-                this.oCanvas.setGTransparentMode(Boolean(iTransparentMode));
+            if (transparentMode !== undefined) {
+                transparentMode = this.vmInRangeRound(transparentMode, 0, 1, "GRAPHICS PEN");
+                this.canvas.setGTransparentMode(Boolean(transparentMode));
             }
         };
-        CpcVm.prototype.hex$ = function (n, iPad) {
+        CpcVm.prototype.hex$ = function (n, pad) {
             n = this.vmInRangeRound(n, -32768, 65535, "HEX$");
-            iPad = this.vmInRangeRound(iPad || 0, 0, 16, "HEX$");
-            return n.toString(16).toUpperCase().padStart(iPad, "0");
+            pad = this.vmInRangeRound(pad || 0, 0, 16, "HEX$");
+            return n.toString(16).toUpperCase().padStart(pad, "0");
         };
         CpcVm.prototype.himem = function () {
-            return this.iHimem;
+            return this.himemValue;
         };
-        CpcVm.prototype.ink = function (iPen, iInk1, iInk2) {
-            iPen = this.vmInRangeRound(iPen, 0, 15, "INK");
-            iInk1 = this.vmInRangeRound(iInk1, 0, 31, "INK");
-            if (iInk2 === undefined) {
-                iInk2 = iInk1;
+        CpcVm.prototype.ink = function (pen, ink1, ink2) {
+            pen = this.vmInRangeRound(pen, 0, 15, "INK");
+            ink1 = this.vmInRangeRound(ink1, 0, 31, "INK");
+            if (ink2 === undefined) {
+                ink2 = ink1;
             }
             else {
-                iInk2 = this.vmInRangeRound(iInk2, 0, 31, "INK");
+                ink2 = this.vmInRangeRound(ink2, 0, 31, "INK");
             }
-            this.oCanvas.setInk(iPen, iInk1, iInk2);
+            this.canvas.setInk(pen, ink1, ink2);
         };
-        CpcVm.prototype.inkey = function (iKey) {
-            iKey = this.vmInRangeRound(iKey, 0, 79, "INKEY");
-            return this.oKeyboard.getKeyState(iKey);
+        CpcVm.prototype.inkey = function (key) {
+            key = this.vmInRangeRound(key, 0, 79, "INKEY");
+            return this.keyboard.getKeyState(key);
         };
         CpcVm.prototype.inkey$ = function () {
-            var sKey = this.oKeyboard.getKeyFromBuffer();
+            var key = this.keyboard.getKeyFromBuffer();
             // do some slowdown, if checked too early again without key press
-            if (sKey !== "") { // some key pressed?
-                this.iInkeyTimeMs = 0;
+            if (key !== "") { // some key pressed?
+                this.inkeyTimeMs = 0;
             }
             else { // no key
-                var iNow = Date.now();
-                if (this.iInkeyTimeMs && iNow < this.iInkeyTimeMs) { // last inkey without key was in range of frame fly?
+                var now = Date.now();
+                if (this.inkeyTimeMs && now < this.inkeyTimeMs) { // last inkey without key was in range of frame fly?
                     this.frame(); // then insert a frame fly
                 }
-                this.iInkeyTimeMs = iNow + CpcVm.iFrameTimeMs; // next time of frame fly
+                this.inkeyTimeMs = now + CpcVm.frameTimeMs; // next time of frame fly
             }
-            return sKey;
+            return key;
         };
-        CpcVm.prototype.inp = function (iPort) {
-            var iByte = 255; // we return always the same
-            iPort = this.vmInRangeRound(iPort, -32768, 65535, "INP");
-            if (iPort < 0) { // 2nd complement of 16 bit address?
-                iPort += 65536;
+        CpcVm.prototype.inp = function (port) {
+            var byte = 255; // we return always the same
+            port = this.vmInRangeRound(port, -32768, 65535, "INP");
+            if (port < 0) { // 2nd complement of 16 bit address?
+                port += 65536;
             }
-            return iByte;
+            return byte;
         };
-        CpcVm.prototype.vmSetInputValues = function (aInputValues) {
-            this.aInputValues = aInputValues;
+        CpcVm.prototype.vmSetInputValues = function (inputValues) {
+            this.inputValues = inputValues;
         };
         CpcVm.prototype.vmGetNextInput = function () {
-            var aInputValues = this.aInputValues, value = aInputValues.shift();
+            var inputValues = this.inputValues, value = inputValues.shift();
             return value;
         };
         CpcVm.prototype.vmInputCallback = function () {
-            var oInput = this.vmGetStopObject().oParas, iStream = oInput.iStream, sInput = oInput.sInput, aInputValues = sInput.split(","), aConvertedInputValues = [], aTypes = oInput.aTypes;
-            var bInputOk = true;
-            Utils_1.Utils.console.log("vmInputCallback:", sInput);
-            if (aTypes && (aInputValues.length === aTypes.length)) {
-                for (var i = 0; i < aTypes.length; i += 1) {
-                    var sVarType = aTypes[i], sType = this.vmDetermineVarType(sVarType), sValue = aInputValues[i];
-                    if (sType !== "$") { // not a string?
-                        var iValue = CpcVm.vmVal(sValue); // convert to number (also binary, hex), empty string gets 0
-                        if (isNaN(iValue)) {
-                            bInputOk = false;
+            var inputParas = this.vmGetStopObject().paras, stream = inputParas.stream, input = inputParas.input, inputValues = input.split(","), convertedInputValues = [], types = inputParas.types;
+            var inputOk = true;
+            Utils_1.Utils.console.log("vmInputCallback:", input);
+            if (types && (inputValues.length === types.length)) {
+                for (var i = 0; i < types.length; i += 1) {
+                    var varType = types[i], type = this.vmDetermineVarType(varType), value = inputValues[i];
+                    if (type !== "$") { // not a string?
+                        var valueNumber = CpcVm.vmVal(value); // convert to number (also binary, hex), empty string gets 0
+                        if (isNaN(valueNumber)) {
+                            inputOk = false;
                         }
-                        aConvertedInputValues.push(iValue);
+                        convertedInputValues.push(valueNumber);
                     }
                     else {
-                        aConvertedInputValues.push(sValue);
+                        convertedInputValues.push(value);
                     }
                 }
             }
             else {
-                bInputOk = false;
+                inputOk = false;
             }
-            this.cursor(iStream, 0);
-            if (!bInputOk) {
-                this.print(iStream, "?Redo from start\r\n");
-                oInput.sInput = "";
-                this.print(iStream, oInput.sMessage);
-                this.cursor(iStream, 1);
+            this.cursor(stream, 0);
+            if (!inputOk) {
+                this.print(stream, "?Redo from start\r\n");
+                inputParas.input = "";
+                this.print(stream, inputParas.message);
+                this.cursor(stream, 1);
             }
             else {
-                this.vmSetInputValues(aConvertedInputValues);
+                this.vmSetInputValues(convertedInputValues);
             }
-            return bInputOk;
+            return inputOk;
         };
-        CpcVm.prototype.fnFileInputGetString = function (aFileData) {
-            var sLine = aFileData[0].replace(/^\s+/, ""), // remove preceding whitespace
-            sValue;
-            if (sLine.charAt(0) === '"') { // quoted string?
-                var iIndex = sLine.indexOf('"', 1); // closing quotes in this line?
-                if (iIndex >= 0) {
-                    sValue = sLine.substr(1, iIndex - 1); // take string without quotes
-                    sLine = sLine.substr(iIndex + 1);
-                    sLine = sLine.replace(/^\s*,/, ""); // multiple args => remove next comma
+        CpcVm.prototype.fnFileInputGetString = function (fileData) {
+            var line = fileData[0].replace(/^\s+/, ""), // remove preceding whitespace
+            value;
+            if (line.charAt(0) === '"') { // quoted string?
+                var index = line.indexOf('"', 1); // closing quotes in this line?
+                if (index >= 0) {
+                    value = line.substr(1, index - 1); // take string without quotes
+                    line = line.substr(index + 1);
+                    line = line.replace(/^\s*,/, ""); // multiple args => remove next comma
                 }
-                else if (aFileData.length > 1) { // no closing quotes in this line => try to combine with next line
-                    aFileData.shift(); // remove line
-                    sLine += "\n" + aFileData[0]; // combine lines
+                else if (fileData.length > 1) { // no closing quotes in this line => try to combine with next line
+                    fileData.shift(); // remove line
+                    line += "\n" + fileData[0]; // combine lines
                 }
                 else {
-                    throw this.vmComposeError(Error(), 13, "INPUT #9: no closing quotes: " + sLine);
+                    throw this.vmComposeError(Error(), 13, "INPUT #9: no closing quotes: " + line);
                 }
             }
             else { // unquoted string
-                var iIndex = sLine.indexOf(","); // multiple args?
-                if (iIndex >= 0) {
-                    sValue = sLine.substr(0, iIndex); // take arg
-                    sLine = sLine.substr(iIndex + 1);
+                var index = line.indexOf(","); // multiple args?
+                if (index >= 0) {
+                    value = line.substr(0, index); // take arg
+                    line = line.substr(index + 1);
                 }
                 else {
-                    sValue = sLine; // take line
-                    sLine = "";
+                    value = line; // take line
+                    line = "";
                 }
             }
-            aFileData[0] = sLine;
-            return sValue;
+            fileData[0] = line;
+            return value;
         };
-        CpcVm.prototype.fnFileInputGetNumber = function (aFileData) {
-            var sLine = aFileData[0].replace(/^\s+/, ""), // remove preceding whitespace
-            iIndex = sLine.indexOf(","), // multiple args?
-            sValue;
-            if (iIndex >= 0) {
-                sValue = sLine.substr(0, iIndex); // take arg
-                sLine = sLine.substr(iIndex + 1);
+        CpcVm.prototype.fnFileInputGetNumber = function (fileData) {
+            var line = fileData[0].replace(/^\s+/, ""), // remove preceding whitespace
+            index = line.indexOf(","), // multiple args?
+            value;
+            if (index >= 0) {
+                value = line.substr(0, index); // take arg
+                line = line.substr(index + 1);
             }
             else {
-                iIndex = sLine.indexOf(" "); // space?
-                if (iIndex >= 0) {
-                    sValue = sLine.substr(0, iIndex); // take item until space
-                    sLine = sLine.substr(iIndex);
-                    sLine = sLine.replace(/^\s*/, ""); // remove spaces after number
+                index = line.indexOf(" "); // space?
+                if (index >= 0) {
+                    value = line.substr(0, index); // take item until space
+                    line = line.substr(index);
+                    line = line.replace(/^\s*/, ""); // remove spaces after number
                 }
                 else {
-                    sValue = sLine; // take line
-                    sLine = "";
+                    value = line; // take line
+                    line = "";
                 }
             }
-            var nValue = CpcVm.vmVal(sValue); // convert to number (also binary, hex)
+            var nValue = CpcVm.vmVal(value); // convert to number (also binary, hex)
             if (isNaN(nValue)) { // eslint-disable-line max-depth
-                throw this.vmComposeError(Error(), 13, "INPUT #9 " + nValue + ": " + sValue); // Type mismatch
+                throw this.vmComposeError(Error(), 13, "INPUT #9 " + nValue + ": " + value); // Type mismatch
             }
-            aFileData[0] = sLine;
+            fileData[0] = line;
             return nValue;
         };
-        CpcVm.prototype.vmInputNextFileItem = function (sType) {
-            var aFileData = this.oInFile.aFileData;
+        CpcVm.prototype.vmInputNextFileItem = function (type) {
+            var fileData = this.inFile.fileData;
             var value;
-            while (aFileData.length && value === undefined) {
-                if (sType === "$") {
-                    value = this.fnFileInputGetString(aFileData);
+            while (fileData.length && value === undefined) {
+                if (type === "$") {
+                    value = this.fnFileInputGetString(fileData);
                 }
                 else { // number type
-                    value = this.fnFileInputGetNumber(aFileData);
+                    value = this.fnFileInputGetNumber(fileData);
                 }
-                if (!aFileData[0].length) {
-                    aFileData.shift(); // remove empty line
+                if (!fileData[0].length) {
+                    fileData.shift(); // remove empty line
                 }
             }
             return value;
         };
-        CpcVm.prototype.vmInputFromFile = function (aTypes) {
-            var aInputValues = [];
-            for (var i = 0; i < aTypes.length; i += 1) {
-                var sVarType = aTypes[i], sType = this.vmDetermineVarType(sVarType), value = this.vmInputNextFileItem(sType);
-                aInputValues[i] = this.vmAssign(sVarType, value);
+        CpcVm.prototype.vmInputFromFile = function (types) {
+            var inputValues = [];
+            for (var i = 0; i < types.length; i += 1) {
+                var varType = types[i], type = this.vmDetermineVarType(varType), value = this.vmInputNextFileItem(type);
+                inputValues[i] = this.vmAssign(varType, value);
             }
-            this.vmSetInputValues(aInputValues);
+            this.vmSetInputValues(inputValues);
         };
-        CpcVm.prototype.input = function (iStream, sNoCRLF, sMsg) {
-            iStream = this.vmInRangeRound(iStream, 0, 9, "INPUT");
-            if (iStream < 8) {
-                this.print(iStream, sMsg);
+        CpcVm.prototype.input = function (stream, noCRLF, msg) {
+            stream = this.vmInRangeRound(stream, 0, 9, "INPUT");
+            if (stream < 8) {
+                this.print(stream, msg);
                 this.vmStop("waitInput", 45, false, {
-                    sCommand: "input",
-                    iStream: iStream,
-                    sMessage: sMsg,
-                    sNoCRLF: sNoCRLF,
+                    command: "input",
+                    stream: stream,
+                    message: msg,
+                    noCRLF: noCRLF,
                     fnInputCallback: this.vmInputCallback.bind(this),
-                    aTypes: Array.prototype.slice.call(arguments, 3),
-                    sInput: "",
-                    iLine: this.iLine // to repeat in case of break
+                    types: Array.prototype.slice.call(arguments, 3),
+                    input: "",
+                    line: this.line // to repeat in case of break
                 });
-                this.cursor(iStream, 1);
+                this.cursor(stream, 1);
             }
-            else if (iStream === 8) {
+            else if (stream === 8) {
                 this.vmSetInputValues(["I am the printer!"]);
             }
-            else if (iStream === 9) {
-                if (!this.oInFile.bOpen) {
-                    throw this.vmComposeError(Error(), 31, "INPUT #" + iStream); // File not open
+            else if (stream === 9) {
+                if (!this.inFile.open) {
+                    throw this.vmComposeError(Error(), 31, "INPUT #" + stream); // File not open
                 }
                 else if (this.eof()) {
-                    throw this.vmComposeError(Error(), 24, "INPUT #" + iStream); // EOF met
+                    throw this.vmComposeError(Error(), 24, "INPUT #" + stream); // EOF met
                 }
                 this.vmInputFromFile(Array.prototype.slice.call(arguments, 3)); // remaining arguments
             }
@@ -1534,33 +1534,33 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.vmAssertNumber(n, "INT");
             return Math.floor(n);
         };
-        CpcVm.prototype.joy = function (iJoy) {
-            iJoy = this.vmInRangeRound(iJoy, 0, 1, "JOY");
-            return this.oKeyboard.getJoyState(iJoy);
+        CpcVm.prototype.joy = function (joy) {
+            joy = this.vmInRangeRound(joy, 0, 1, "JOY");
+            return this.keyboard.getJoyState(joy);
         };
-        CpcVm.prototype.key = function (iToken, s) {
-            iToken = this.vmRound(iToken, "KEY");
-            if (iToken >= 128 && iToken <= 159) {
-                iToken -= 128;
+        CpcVm.prototype.key = function (token, s) {
+            token = this.vmRound(token, "KEY");
+            if (token >= 128 && token <= 159) {
+                token -= 128;
             }
-            iToken = this.vmInRangeRound(iToken, 0, 31, "KEY"); // round again, but we want the check
+            token = this.vmInRangeRound(token, 0, 31, "KEY"); // round again, but we want the check
             this.vmAssertString(s, "KEY");
-            this.oKeyboard.setExpansionToken(iToken, s);
+            this.keyboard.setExpansionToken(token, s);
         };
-        CpcVm.prototype.keyDef = function (iCpcKey, iRepeat, iNormal, iShift, iCtrl) {
-            var oOptions = {
-                iCpcKey: this.vmInRangeRound(iCpcKey, 0, 79, "KEY DEF"),
-                iRepeat: this.vmInRangeRound(iRepeat, 0, 1, "KEY DEF"),
-                iNormal: (iNormal !== undefined) ? this.vmInRangeRound(iNormal, 0, 255, "KEY DEF") : undefined,
-                iShift: (iShift !== undefined) ? this.vmInRangeRound(iShift, 0, 255, "KEY DEF") : undefined,
-                iCtrl: (iCtrl !== undefined) ? this.vmInRangeRound(iCtrl, 0, 255, "KEY DEF") : undefined
+        CpcVm.prototype.keyDef = function (cpcKey, repeat, normal, shift, ctrl) {
+            var options = {
+                cpcKey: this.vmInRangeRound(cpcKey, 0, 79, "KEY DEF"),
+                repeat: this.vmInRangeRound(repeat, 0, 1, "KEY DEF"),
+                normal: (normal !== undefined) ? this.vmInRangeRound(normal, 0, 255, "KEY DEF") : undefined,
+                shift: (shift !== undefined) ? this.vmInRangeRound(shift, 0, 255, "KEY DEF") : undefined,
+                ctrl: (ctrl !== undefined) ? this.vmInRangeRound(ctrl, 0, 255, "KEY DEF") : undefined
             };
-            this.oKeyboard.setCpcKeyExpansion(oOptions);
+            this.keyboard.setCpcKeyExpansion(options);
         };
-        CpcVm.prototype.left$ = function (s, iLen) {
+        CpcVm.prototype.left$ = function (s, len) {
             this.vmAssertString(s, "LEFT$");
-            iLen = this.vmInRangeRound(iLen, 0, 255, "LEFT$");
-            return s.substr(0, iLen);
+            len = this.vmInRangeRound(len, 0, 255, "LEFT$");
+            return s.substr(0, len);
         };
         CpcVm.prototype.len = function (s) {
             this.vmAssertString(s, "LEN");
@@ -1568,127 +1568,127 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         };
         // let
         CpcVm.prototype.vmLineInputCallback = function () {
-            var oInput = this.vmGetStopObject().oParas, sInput = oInput.sInput;
-            Utils_1.Utils.console.log("vmLineInputCallback:", sInput);
-            this.vmSetInputValues([sInput]);
-            this.cursor(oInput.iStream, 0);
+            var inputParas = this.vmGetStopObject().paras, input = inputParas.input;
+            Utils_1.Utils.console.log("vmLineInputCallback:", input);
+            this.vmSetInputValues([input]);
+            this.cursor(inputParas.stream, 0);
             return true;
         };
-        CpcVm.prototype.lineInput = function (iStream, sNoCRLF, sMsg, sVarType) {
-            iStream = this.vmInRangeRound(iStream, 0, 9, "LINE INPUT");
-            if (iStream < 8) {
-                this.print(iStream, sMsg);
-                var sType = this.vmDetermineVarType(sVarType);
-                if (sType !== "$") { // not string?
-                    this.print(iStream, "\r\n");
-                    throw this.vmComposeError(Error(), 13, "LINE INPUT " + sType); // Type mismatch
+        CpcVm.prototype.lineInput = function (stream, noCRLF, msg, varType) {
+            stream = this.vmInRangeRound(stream, 0, 9, "LINE INPUT");
+            if (stream < 8) {
+                this.print(stream, msg);
+                var type = this.vmDetermineVarType(varType);
+                if (type !== "$") { // not string?
+                    this.print(stream, "\r\n");
+                    throw this.vmComposeError(Error(), 13, "LINE INPUT " + type); // Type mismatch
                 }
-                this.cursor(iStream, 1);
+                this.cursor(stream, 1);
                 this.vmStop("waitInput", 45, false, {
-                    sCommand: "lineinput",
-                    iStream: iStream,
-                    sMessage: sMsg,
-                    sNoCRLF: sNoCRLF,
+                    command: "lineinput",
+                    stream: stream,
+                    message: msg,
+                    noCRLF: noCRLF,
                     fnInputCallback: this.vmLineInputCallback.bind(this),
-                    sInput: "",
-                    iLine: this.iLine // to repeat in case of break
+                    input: "",
+                    line: this.line // to repeat in case of break
                 });
             }
-            else if (iStream === 8) {
+            else if (stream === 8) {
                 this.vmSetInputValues(["I am the printer!"]);
             }
-            else if (iStream === 9) {
-                if (!this.oInFile.bOpen) {
-                    throw this.vmComposeError(Error(), 31, "LINE INPUT #" + iStream); // File not open
+            else if (stream === 9) {
+                if (!this.inFile.open) {
+                    throw this.vmComposeError(Error(), 31, "LINE INPUT #" + stream); // File not open
                 }
                 else if (this.eof()) {
-                    throw this.vmComposeError(Error(), 24, "LINE INPUT #" + iStream); // EOF met
+                    throw this.vmComposeError(Error(), 24, "LINE INPUT #" + stream); // EOF met
                 }
-                this.vmSetInputValues(this.oInFile.aFileData.splice(0, arguments.length - 3)); // always 1 element
+                this.vmSetInputValues(this.inFile.fileData.splice(0, arguments.length - 3)); // always 1 element
             }
         };
-        CpcVm.prototype.list = function (iStream, iFirst, iLast) {
-            iStream = this.vmInRangeRound(iStream, 0, 9, "LIST");
-            if (iFirst === undefined) {
-                iFirst = 1;
-                if (iLast === undefined) { // no first and last parameter?
-                    iLast = 65535;
+        CpcVm.prototype.list = function (stream, first, last) {
+            stream = this.vmInRangeRound(stream, 0, 9, "LIST");
+            if (first === undefined) {
+                first = 1;
+                if (last === undefined) { // no first and last parameter?
+                    last = 65535;
                 }
             }
             else {
-                iFirst = this.vmInRangeRound(iFirst, 1, 65535, "LIST");
-                if (iLast === undefined) { // just one parameter?
-                    iLast = iFirst;
+                first = this.vmInRangeRound(first, 1, 65535, "LIST");
+                if (last === undefined) { // just one parameter?
+                    last = first;
                 }
                 else { // range
-                    iLast = this.vmInRangeRound(iLast, 1, 65535, "LIST");
+                    last = this.vmInRangeRound(last, 1, 65535, "LIST");
                 }
             }
-            if (iStream === 9) {
-                if (!this.oOutFile.bOpen) { // catch here
-                    throw this.vmComposeError(Error(), 31, "LIST #" + iStream); // File not open
+            if (stream === 9) {
+                if (!this.outFile.open) { // catch here
+                    throw this.vmComposeError(Error(), 31, "LIST #" + stream); // File not open
                 }
             }
             this.vmStop("list", 90, false, {
-                sCommand: "list",
-                iStream: iStream,
-                iFirst: iFirst,
-                iLast: iLast,
-                iLine: this.iLine // unused
+                command: "list",
+                stream: stream,
+                first: first,
+                last: last,
+                line: this.line // unused
             });
         };
-        CpcVm.prototype.vmLoadCallback = function (sInput, oMeta) {
-            var oInFile = this.oInFile;
-            var bPutInMemory = false;
-            if (sInput !== null && oMeta) {
-                if (oMeta.sType === "B" || oInFile.iStart !== undefined) { // only for binary files or when a load address is specified (feature)
-                    var iStart = oInFile.iStart !== undefined ? oInFile.iStart : Number(oMeta.iStart);
-                    var iLength = Number(oMeta.iLength); // we do not really need the length from metadata
-                    if (isNaN(iLength)) {
-                        iLength = sInput.length; // only valid after atob()
+        CpcVm.prototype.vmLoadCallback = function (input, meta) {
+            var inFile = this.inFile;
+            var putInMemory = false;
+            if (input !== null && meta) {
+                if (meta.typeString === "B" || inFile.start !== undefined) { // only for binary files or when a load address is specified (feature)
+                    var start = inFile.start !== undefined ? inFile.start : Number(meta.start);
+                    var length_1 = Number(meta.length); // we do not really need the length from metadata
+                    if (isNaN(length_1)) {
+                        length_1 = input.length; // only valid after atob()
                     }
                     if (Utils_1.Utils.debug > 1) {
-                        Utils_1.Utils.console.debug("vmLoadCallback:", oInFile.sName + ": putting data in memory", iStart, "-", iStart + iLength);
+                        Utils_1.Utils.console.debug("vmLoadCallback:", inFile.name + ": putting data in memory", start, "-", start + length_1);
                     }
-                    for (var i = 0; i < iLength; i += 1) {
-                        var iByte = sInput.charCodeAt(i);
-                        this.poke((iStart + i) & 0xffff, iByte); // eslint-disable-line no-bitwise
+                    for (var i = 0; i < length_1; i += 1) {
+                        var byte = input.charCodeAt(i);
+                        this.poke((start + i) & 0xffff, byte); // eslint-disable-line no-bitwise
                     }
-                    bPutInMemory = true;
+                    putInMemory = true;
                 }
             }
             this.closein();
-            return bPutInMemory;
+            return putInMemory;
         };
-        CpcVm.prototype.load = function (sName, iStart) {
-            var oInFile = this.oInFile;
-            sName = this.vmAdaptFilename(sName, "LOAD");
-            if (iStart !== undefined) {
-                iStart = this.vmInRangeRound(iStart, -32768, 65535, "LOAD");
-                if (iStart < 0) { // 2nd complement of 16 bit address
-                    iStart += 65536;
+        CpcVm.prototype.load = function (name, start) {
+            var inFile = this.inFile;
+            name = this.vmAdaptFilename(name, "LOAD");
+            if (start !== undefined) {
+                start = this.vmInRangeRound(start, -32768, 65535, "LOAD");
+                if (start < 0) { // 2nd complement of 16 bit address
+                    start += 65536;
                 }
             }
             this.closein();
-            oInFile.bOpen = true;
-            oInFile.sCommand = "load";
-            oInFile.sName = sName;
-            oInFile.iStart = iStart;
-            oInFile.fnFileCallback = this.fnLoadHandler;
+            inFile.open = true;
+            inFile.command = "load";
+            inFile.name = name;
+            inFile.start = start;
+            inFile.fnFileCallback = this.fnLoadHandler;
             this.vmStop("fileLoad", 90);
         };
-        CpcVm.prototype.vmLocate = function (iStream, iPos, iVpos) {
-            var oWin = this.aWindow[iStream];
-            oWin.iPos = iPos - 1;
-            oWin.iVpos = iVpos - 1;
+        CpcVm.prototype.vmLocate = function (stream, pos, vpos) {
+            var win = this.windowDataList[stream];
+            win.pos = pos - 1;
+            win.vpos = vpos - 1;
         };
-        CpcVm.prototype.locate = function (iStream, iPos, iVpos) {
-            iStream = this.vmInRangeRound(iStream, 0, 7, "LOCATE");
-            iPos = this.vmInRangeRound(iPos, 1, 255, "LOCATE");
-            iVpos = this.vmInRangeRound(iVpos, 1, 255, "LOCATE");
-            this.vmDrawUndrawCursor(iStream); // undraw
-            this.vmLocate(iStream, iPos, iVpos);
-            this.vmDrawUndrawCursor(iStream); // draw
+        CpcVm.prototype.locate = function (stream, pos, vpos) {
+            stream = this.vmInRangeRound(stream, 0, 7, "LOCATE");
+            pos = this.vmInRangeRound(pos, 1, 255, "LOCATE");
+            vpos = this.vmInRangeRound(vpos, 1, 255, "LOCATE");
+            this.vmDrawUndrawCursor(stream); // undraw
+            this.vmLocate(stream, pos, vpos);
+            this.vmDrawUndrawCursor(stream); // draw
         };
         CpcVm.prototype.log = function (n) {
             this.vmAssertNumber(n, "LOG");
@@ -1698,899 +1698,899 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.vmAssertNumber(n, "LOG10");
             return Math.log10(n);
         };
-        CpcVm.fnLowerCase = function (sMatch) {
-            return sMatch.toLowerCase();
+        CpcVm.fnLowerCase = function (match) {
+            return match.toLowerCase();
         };
         CpcVm.prototype.lower$ = function (s) {
             this.vmAssertString(s, "LOWER$");
             s = s.replace(/[A-Z]/g, CpcVm.fnLowerCase); // replace only characters A-Z
             return s;
         };
-        CpcVm.prototype.mask = function (iMask, iFirst) {
-            if (iMask !== undefined) {
-                iMask = this.vmInRangeRound(iMask, 0, 255, "MASK");
-                this.oCanvas.setMask(iMask);
+        CpcVm.prototype.mask = function (mask, first) {
+            if (mask !== undefined) {
+                mask = this.vmInRangeRound(mask, 0, 255, "MASK");
+                this.canvas.setMask(mask);
             }
-            if (iFirst !== undefined) {
-                iFirst = this.vmInRangeRound(iFirst, 0, 1, "MASK");
-                this.oCanvas.setMaskFirst(iFirst);
+            if (first !== undefined) {
+                first = this.vmInRangeRound(first, 0, 1, "MASK");
+                this.canvas.setMaskFirst(first);
             }
         };
         CpcVm.prototype.max = function () {
-            var aArgs = [];
+            var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
-                aArgs[_i] = arguments[_i];
+                args[_i] = arguments[_i];
             }
-            for (var i = 0; i < aArgs.length; i += 1) {
-                this.vmAssertNumber(aArgs[i], "MAX");
+            for (var i = 0; i < args.length; i += 1) {
+                this.vmAssertNumber(args[i], "MAX");
             }
-            return Math.max.apply(null, aArgs);
+            return Math.max.apply(null, args);
         };
         CpcVm.prototype.memory = function (n) {
             n = this.vmInRangeRound(n, -32768, 65535, "MEMORY");
-            if (n < CpcVm.iMinHimem || n > this.iMinCharHimem) {
+            if (n < CpcVm.minHimem || n > this.minCharHimem) {
                 throw this.vmComposeError(Error(), 7, "MEMORY " + n); // Memory full
             }
-            this.iHimem = n;
+            this.himemValue = n;
         };
-        CpcVm.prototype.merge = function (sName) {
-            var oInFile = this.oInFile;
-            sName = this.vmAdaptFilename(sName, "MERGE");
+        CpcVm.prototype.merge = function (name) {
+            var inFile = this.inFile;
+            name = this.vmAdaptFilename(name, "MERGE");
             this.closein();
-            oInFile.bOpen = true;
-            oInFile.sCommand = "merge";
-            oInFile.sName = sName;
-            oInFile.fnFileCallback = this.fnCloseinHandler;
+            inFile.open = true;
+            inFile.command = "merge";
+            inFile.name = name;
+            inFile.fnFileCallback = this.fnCloseinHandler;
             this.vmStop("fileLoad", 90);
         };
-        CpcVm.prototype.mid$ = function (s, iStart, iLen) {
+        CpcVm.prototype.mid$ = function (s, start, len) {
             this.vmAssertString(s, "MID$");
-            iStart = this.vmInRangeRound(iStart, 1, 255, "MID$");
-            if (iLen !== undefined) {
-                iLen = this.vmInRangeRound(iLen, 0, 255, "MID$");
+            start = this.vmInRangeRound(start, 1, 255, "MID$");
+            if (len !== undefined) {
+                len = this.vmInRangeRound(len, 0, 255, "MID$");
             }
-            return s.substr(iStart - 1, iLen);
+            return s.substr(start - 1, len);
         };
-        CpcVm.prototype.mid$Assign = function (s, iStart, iLen, sNew) {
+        CpcVm.prototype.mid$Assign = function (s, start, len, newString) {
             this.vmAssertString(s, "MID$");
-            this.vmAssertString(sNew, "MID$");
-            iStart = this.vmInRangeRound(iStart, 1, 255, "MID$") - 1;
-            iLen = (iLen !== undefined) ? this.vmInRangeRound(iLen, 0, 255, "MID$") : sNew.length;
-            if (iLen > sNew.length) {
-                iLen = sNew.length;
+            this.vmAssertString(newString, "MID$");
+            start = this.vmInRangeRound(start, 1, 255, "MID$") - 1;
+            len = (len !== undefined) ? this.vmInRangeRound(len, 0, 255, "MID$") : newString.length;
+            if (len > newString.length) {
+                len = newString.length;
             }
-            if (iLen > s.length - iStart) {
-                iLen = s.length - iStart;
+            if (len > s.length - start) {
+                len = s.length - start;
             }
-            s = s.substr(0, iStart) + sNew.substr(0, iLen) + s.substr(iStart + iLen);
+            s = s.substr(0, start) + newString.substr(0, len) + s.substr(start + len);
             return s;
         };
         CpcVm.prototype.min = function () {
-            var aArgs = [];
+            var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
-                aArgs[_i] = arguments[_i];
+                args[_i] = arguments[_i];
             }
-            for (var i = 0; i < aArgs.length; i += 1) {
-                this.vmAssertNumber(aArgs[i], "MIN");
+            for (var i = 0; i < args.length; i += 1) {
+                this.vmAssertNumber(args[i], "MIN");
             }
-            return Math.min.apply(null, aArgs);
+            return Math.min.apply(null, args);
         };
         // mod
-        CpcVm.prototype.mode = function (iMode) {
-            iMode = this.vmInRangeRound(iMode, 0, 3, "MODE");
-            this.iMode = iMode;
+        CpcVm.prototype.mode = function (mode) {
+            mode = this.vmInRangeRound(mode, 0, 3, "MODE");
+            this.modeValue = mode;
             this.vmResetWindowData(false); // do not reset pen and paper
-            this.sOut = ""; // clear console
-            this.oCanvas.setMode(iMode); // does not clear canvas
-            this.oCanvas.clearFullWindow(); // always with paper 0 (SCR MODE CLEAR)
+            this.outBuffer = ""; // clear console
+            this.canvas.setMode(mode); // does not clear canvas
+            this.canvas.clearFullWindow(); // always with paper 0 (SCR MODE CLEAR)
         };
-        CpcVm.prototype.move = function (x, y, iGPen, iGColMode) {
+        CpcVm.prototype.move = function (x, y, gPen, gColMode) {
             x = this.vmInRangeRound(x, -32768, 32767, "MOVE");
             y = this.vmInRangeRound(y, -32768, 32767, "MOVE");
-            this.vmDrawMovePlot("MOVE", iGPen, iGColMode);
-            this.oCanvas.move(x, y);
+            this.vmDrawMovePlot("MOVE", gPen, gColMode);
+            this.canvas.move(x, y);
         };
-        CpcVm.prototype.mover = function (x, y, iGPen, iGColMode) {
+        CpcVm.prototype.mover = function (x, y, gPen, gColMode) {
             x = this.vmInRangeRound(x, -32768, 32767, "MOVER");
             y = this.vmInRangeRound(y, -32768, 32767, "MOVER");
-            this.vmDrawMovePlot("MOVER", iGPen, iGColMode);
-            this.oCanvas.mover(x, y);
+            this.vmDrawMovePlot("MOVER", gPen, gColMode);
+            this.canvas.mover(x, y);
         };
         CpcVm.prototype["new"] = function () {
             this.clear();
-            var oLineParas = {
-                sCommand: "new",
-                iStream: 0,
-                iFirst: 0,
-                iLast: 0,
-                iLine: this.iLine // unused
+            var lineParas = {
+                command: "new",
+                stream: 0,
+                first: 0,
+                last: 0,
+                line: this.line // unused
             };
-            this.vmStop("new", 90, false, oLineParas);
+            this.vmStop("new", 90, false, lineParas);
         };
         CpcVm.prototype.onBreakCont = function () {
-            this.iBreakGosubLine = -1;
-            this.iBreakResumeLine = 0;
+            this.breakGosubLine = -1;
+            this.breakResumeLine = 0;
         };
-        CpcVm.prototype.onBreakGosub = function (iLine) {
-            this.iBreakGosubLine = iLine;
-            this.iBreakResumeLine = 0;
+        CpcVm.prototype.onBreakGosub = function (line) {
+            this.breakGosubLine = line;
+            this.breakResumeLine = 0;
         };
         CpcVm.prototype.onBreakStop = function () {
-            this.iBreakGosubLine = 0;
-            this.iBreakResumeLine = 0;
+            this.breakGosubLine = 0;
+            this.breakResumeLine = 0;
         };
-        CpcVm.prototype.onErrorGoto = function (iLine) {
-            this.iErrorGotoLine = iLine;
-            if (!iLine && this.iErrorResumeLine) { // line=0 but an error to resume?
-                throw this.vmComposeError(Error(), this.iErr, "ON ERROR GOTO without RESUME from " + this.iErl);
+        CpcVm.prototype.onErrorGoto = function (line) {
+            this.errorGotoLine = line;
+            if (!line && this.errorResumeLine) { // line=0 but an error to resume?
+                throw this.vmComposeError(Error(), this.errorCode, "ON ERROR GOTO without RESUME from " + this.errorLine);
             }
         };
         CpcVm.prototype.onGosub = function (retLabel, n) {
-            var aArgs = [];
+            var args = [];
             for (var _i = 2; _i < arguments.length; _i++) {
-                aArgs[_i - 2] = arguments[_i];
+                args[_i - 2] = arguments[_i];
             }
             n = this.vmInRangeRound(n, 0, 255, "ON GOSUB");
-            var iLine;
-            if (!n || n > aArgs.length) { // out of range? => continue with line after onGosub
+            var line;
+            if (!n || n > args.length) { // out of range? => continue with line after onGosub
                 if (Utils_1.Utils.debug > 0) {
-                    Utils_1.Utils.console.debug("onGosub: out of range: n=" + n + " in " + this.iLine);
+                    Utils_1.Utils.console.debug("onGosub: out of range: n=" + n + " in " + this.line);
                 }
-                iLine = retLabel;
+                line = retLabel;
             }
             else {
-                iLine = aArgs[n - 1]; // n=1...
-                this.aGosubStack.push(retLabel);
+                line = args[n - 1]; // n=1...
+                this.gosubStack.push(retLabel);
             }
-            this.vmGotoLine(iLine, "onGosub (n=" + n + ", ret=" + retLabel + ", iLine=" + iLine + ")");
+            this.vmGotoLine(line, "onGosub (n=" + n + ", ret=" + retLabel + ", line=" + line + ")");
         };
         CpcVm.prototype.onGoto = function (retLabel, n) {
-            var aArgs = [];
+            var args = [];
             for (var _i = 2; _i < arguments.length; _i++) {
-                aArgs[_i - 2] = arguments[_i];
+                args[_i - 2] = arguments[_i];
             }
             n = this.vmInRangeRound(n, 0, 255, "ON GOTO");
-            var iLine;
-            if (!n || n > aArgs.length) { // out of range? => continue with line after onGoto
+            var line;
+            if (!n || n > args.length) { // out of range? => continue with line after onGoto
                 if (Utils_1.Utils.debug > 0) {
-                    Utils_1.Utils.console.debug("onGoto: out of range: n=" + n + " in " + this.iLine);
+                    Utils_1.Utils.console.debug("onGoto: out of range: n=" + n + " in " + this.line);
                 }
-                iLine = retLabel;
+                line = retLabel;
             }
             else {
-                iLine = aArgs[n - 1];
+                line = args[n - 1];
             }
-            this.vmGotoLine(iLine, "onGoto (n=" + n + ", ret=" + retLabel + ", iLine=" + iLine + ")");
+            this.vmGotoLine(line, "onGoto (n=" + n + ", ret=" + retLabel + ", line=" + line + ")");
         };
-        CpcVm.fnChannel2ChannelIndex = function (iChannel) {
-            if (iChannel === 4) {
-                iChannel = 2;
+        CpcVm.fnChannel2ChannelIndex = function (channel) {
+            if (channel === 4) {
+                channel = 2;
             }
             else {
-                iChannel -= 1;
+                channel -= 1;
             }
-            return iChannel;
+            return channel;
         };
-        CpcVm.prototype.onSqGosub = function (iChannel, iLine) {
-            iChannel = this.vmInRangeRound(iChannel, 1, 4, "ON SQ GOSUB");
-            if (iChannel === 3) {
-                throw this.vmComposeError(Error(), 5, "ON SQ GOSUB " + iChannel); // Improper argument
+        CpcVm.prototype.onSqGosub = function (channel, line) {
+            channel = this.vmInRangeRound(channel, 1, 4, "ON SQ GOSUB");
+            if (channel === 3) {
+                throw this.vmComposeError(Error(), 5, "ON SQ GOSUB " + channel); // Improper argument
             }
-            iChannel = CpcVm.fnChannel2ChannelIndex(iChannel);
-            var oSqTimer = this.aSqTimer[iChannel];
-            oSqTimer.iLine = iLine;
-            oSqTimer.bActive = true;
-            oSqTimer.bRepeat = true; // means reloaded for sq
+            channel = CpcVm.fnChannel2ChannelIndex(channel);
+            var sqTimer = this.sqTimer[channel];
+            sqTimer.line = line;
+            sqTimer.active = true;
+            sqTimer.repeat = true; // means reloaded for sq
         };
-        CpcVm.prototype.vmOpeninCallback = function (sInput) {
-            if (sInput !== null) {
-                sInput = sInput.replace(/\r\n/g, "\n"); // remove CR (maybe from ASCII file in "binary" form)
-                if (sInput.endsWith("\n")) {
-                    sInput = sInput.substr(0, sInput.length - 1); // remove last "\n" (TTT: also for data files?)
+        CpcVm.prototype.vmOpeninCallback = function (input) {
+            if (input !== null) {
+                input = input.replace(/\r\n/g, "\n"); // remove CR (maybe from ASCII file in "binary" form)
+                if (input.endsWith("\n")) {
+                    input = input.substr(0, input.length - 1); // remove last "\n" (TTT: also for data files?)
                 }
-                var oInFile = this.oInFile;
-                oInFile.aFileData = sInput.split("\n");
+                var inFile = this.inFile;
+                inFile.fileData = input.split("\n");
             }
             else {
                 this.closein();
             }
         };
-        CpcVm.prototype.openin = function (sName) {
-            sName = this.vmAdaptFilename(sName, "OPENIN");
-            var oInFile = this.oInFile;
-            if (!oInFile.bOpen) {
-                if (sName) {
-                    oInFile.bOpen = true;
-                    oInFile.sCommand = "openin";
-                    oInFile.sName = sName;
-                    oInFile.fnFileCallback = this.fnOpeninHandler;
+        CpcVm.prototype.openin = function (name) {
+            name = this.vmAdaptFilename(name, "OPENIN");
+            var inFile = this.inFile;
+            if (!inFile.open) {
+                if (name) {
+                    inFile.open = true;
+                    inFile.command = "openin";
+                    inFile.name = name;
+                    inFile.fnFileCallback = this.fnOpeninHandler;
                     this.vmStop("fileLoad", 90);
                 }
             }
             else {
-                throw this.vmComposeError(Error(), 27, "OPENIN " + oInFile.sName); // file already open
+                throw this.vmComposeError(Error(), 27, "OPENIN " + inFile.name); // file already open
             }
         };
-        CpcVm.prototype.openout = function (sName) {
-            var oOutFile = this.oOutFile;
-            if (oOutFile.bOpen) {
-                throw this.vmComposeError(Error(), 27, "OPENOUT " + oOutFile.sName); // file already open
+        CpcVm.prototype.openout = function (name) {
+            var outFile = this.outFile;
+            if (outFile.open) {
+                throw this.vmComposeError(Error(), 27, "OPENOUT " + outFile.name); // file already open
             }
-            sName = this.vmAdaptFilename(sName, "OPENOUT");
-            oOutFile.bOpen = true;
-            oOutFile.sCommand = "openout";
-            oOutFile.sName = sName;
-            oOutFile.aFileData = []; // no data yet
-            oOutFile.sType = "A"; // ASCII
+            name = this.vmAdaptFilename(name, "OPENOUT");
+            outFile.open = true;
+            outFile.command = "openout";
+            outFile.name = name;
+            outFile.fileData = []; // no data yet
+            outFile.typeString = "A"; // ASCII
         };
         // or
         CpcVm.prototype.origin = function (xOff, yOff, xLeft, xRight, yTop, yBottom) {
             xOff = this.vmInRangeRound(xOff, -32768, 32767, "ORIGIN");
             yOff = this.vmInRangeRound(yOff, -32768, 32767, "ORIGIN");
-            this.oCanvas.setOrigin(xOff, yOff);
+            this.canvas.setOrigin(xOff, yOff);
             if (xLeft !== undefined) {
                 xLeft = this.vmInRangeRound(xLeft, -32768, 32767, "ORIGIN");
                 xRight = this.vmInRangeRound(xRight, -32768, 32767, "ORIGIN");
                 yTop = this.vmInRangeRound(yTop, -32768, 32767, "ORIGIN");
                 yBottom = this.vmInRangeRound(yBottom, -32768, 32767, "ORIGIN");
-                this.oCanvas.setGWindow(xLeft, xRight, yTop, yBottom);
+                this.canvas.setGWindow(xLeft, xRight, yTop, yBottom);
             }
         };
-        CpcVm.prototype.vmSetRamSelect = function (iBank) {
+        CpcVm.prototype.vmSetRamSelect = function (bank) {
             // we support RAM select for banks 0,4... (so not for 1 to 3)
-            if (!iBank) {
-                this.iRamSelect = 0;
+            if (!bank) {
+                this.ramSelect = 0;
             }
-            else if (iBank >= 4) {
-                this.iRamSelect = iBank - 3; // bank 4 gets position 1
-            }
-        };
-        CpcVm.prototype.vmSetCrtcData = function (iByte) {
-            var iCrtcReg = this.iCrtcReg, aCrtcData = this.aCrtcData;
-            aCrtcData[iCrtcReg] = iByte;
-            if (iCrtcReg === 12 || iCrtcReg === 13) { // screen offset changed
-                var iOffset = (((aCrtcData[12] || 0) & 0x03) << 9) | ((aCrtcData[13] || 0) << 1); // eslint-disable-line no-bitwise
-                this.vmSetScreenOffset(iOffset);
+            else if (bank >= 4) {
+                this.ramSelect = bank - 3; // bank 4 gets position 1
             }
         };
-        CpcVm.prototype.out = function (iPort, iByte) {
-            iPort = this.vmInRangeRound(iPort, -32768, 65535, "OUT");
-            if (iPort < 0) { // 2nd complement of 16 bit address?
-                iPort += 65536;
+        CpcVm.prototype.vmSetCrtcData = function (byte) {
+            var crtcReg = this.crtcReg, crtcData = this.crtcData;
+            crtcData[crtcReg] = byte;
+            if (crtcReg === 12 || crtcReg === 13) { // screen offset changed
+                var offset = (((crtcData[12] || 0) & 0x03) << 9) | ((crtcData[13] || 0) << 1); // eslint-disable-line no-bitwise
+                this.vmSetScreenOffset(offset);
             }
-            iByte = this.vmInRangeRound(iByte, 0, 255, "OUT");
-            var iPortHigh = iPort >> 8; // eslint-disable-line no-bitwise
-            if (iPortHigh === 0x7f) { // 7Fxx = RAM select
-                this.vmSetRamSelect(iByte - 0xc0);
+        };
+        CpcVm.prototype.out = function (port, byte) {
+            port = this.vmInRangeRound(port, -32768, 65535, "OUT");
+            if (port < 0) { // 2nd complement of 16 bit address?
+                port += 65536;
             }
-            else if (iPortHigh === 0xbc) { // limited support for CRTC 12, 13
-                this.iCrtcReg = iByte % 14;
+            byte = this.vmInRangeRound(byte, 0, 255, "OUT");
+            var portHigh = port >> 8; // eslint-disable-line no-bitwise
+            if (portHigh === 0x7f) { // 7Fxx = RAM select
+                this.vmSetRamSelect(byte - 0xc0);
             }
-            else if (iPortHigh === 0xbd) {
-                this.vmSetCrtcData(iByte);
-                this.aCrtcData[this.iCrtcReg] = iByte;
+            else if (portHigh === 0xbc) { // limited support for CRTC 12, 13
+                this.crtcReg = byte % 14;
+            }
+            else if (portHigh === 0xbd) {
+                this.vmSetCrtcData(byte);
+                this.crtcData[this.crtcReg] = byte;
             }
             else if (Utils_1.Utils.debug > 0) {
-                Utils_1.Utils.console.debug("OUT", Number(iPort).toString(16), iByte, ": unknown port");
+                Utils_1.Utils.console.debug("OUT", Number(port).toString(16), byte, ": unknown port");
             }
         };
-        CpcVm.prototype.paper = function (iStream, iPaper) {
-            iStream = this.vmInRangeRound(iStream, 0, 7, "PAPER");
-            iPaper = this.vmInRangeRound(iPaper, 0, 15, "PAPER");
-            var oWin = this.aWindow[iStream];
-            oWin.iPaper = iPaper;
+        CpcVm.prototype.paper = function (stream, paper) {
+            stream = this.vmInRangeRound(stream, 0, 7, "PAPER");
+            paper = this.vmInRangeRound(paper, 0, 15, "PAPER");
+            var win = this.windowDataList[stream];
+            win.paper = paper;
         };
-        CpcVm.prototype.vmGetCharDataByte = function (iAddr) {
-            var iDataPos = (iAddr - 1 - this.iMinCharHimem) % 8, iChar = this.iMinCustomChar + (iAddr - 1 - iDataPos - this.iMinCharHimem) / 8, aCharData = this.oCanvas.getCharData(iChar);
-            return aCharData[iDataPos];
+        CpcVm.prototype.vmGetCharDataByte = function (addr) {
+            var dataPos = (addr - 1 - this.minCharHimem) % 8, char = this.minCustomChar + (addr - 1 - dataPos - this.minCharHimem) / 8, charData = this.canvas.getCharData(char);
+            return charData[dataPos];
         };
-        CpcVm.prototype.vmSetCharDataByte = function (iAddr, iByte) {
-            var iDataPos = (iAddr - 1 - this.iMinCharHimem) % 8, iChar = this.iMinCustomChar + (iAddr - 1 - iDataPos - this.iMinCharHimem) / 8, aCharData = Object.assign({}, this.oCanvas.getCharData(iChar)); // we need a copy to not modify original data
-            aCharData[iDataPos] = iByte; // change one byte
-            this.oCanvas.setCustomChar(iChar, aCharData);
+        CpcVm.prototype.vmSetCharDataByte = function (addr, byte) {
+            var dataPos = (addr - 1 - this.minCharHimem) % 8, char = this.minCustomChar + (addr - 1 - dataPos - this.minCharHimem) / 8, charData = Object.assign({}, this.canvas.getCharData(char)); // we need a copy to not modify original data
+            charData[dataPos] = byte; // change one byte
+            this.canvas.setCustomChar(char, charData);
         };
-        CpcVm.prototype.peek = function (iAddr) {
-            iAddr = this.vmInRangeRound(iAddr, -32768, 65535, "PEEK");
-            if (iAddr < 0) { // 2nd complement of 16 bit address
-                iAddr += 65536;
+        CpcVm.prototype.peek = function (addr) {
+            addr = this.vmInRangeRound(addr, -32768, 65535, "PEEK");
+            if (addr < 0) { // 2nd complement of 16 bit address
+                addr += 65536;
             }
             // check two higher bits of 16 bit address to get 16K page
-            var iPage = iAddr >> 14; // eslint-disable-line no-bitwise
-            var iByte;
-            if (iPage === this.iScreenPage) { // screen memory page?
-                iByte = this.oCanvas.getByte(iAddr); // get byte from screen memory
-                if (iByte === null) { // byte not visible on screen?
-                    iByte = this.aMem[iAddr] || 0; // get it from our memory
+            var page = addr >> 14; // eslint-disable-line no-bitwise
+            var byte;
+            if (page === this.screenPage) { // screen memory page?
+                byte = this.canvas.getByte(addr); // get byte from screen memory
+                if (byte === null) { // byte not visible on screen?
+                    byte = this.mem[addr] || 0; // get it from our memory
                 }
             }
-            else if (iPage === 1 && this.iRamSelect) { // memory mapped RAM with page 1=0x4000..0x7fff?
-                iAddr = (this.iRamSelect - 1) * 0x4000 + 0x10000 + iAddr;
-                iByte = this.aMem[iAddr] || 0;
+            else if (page === 1 && this.ramSelect) { // memory mapped RAM with page 1=0x4000..0x7fff?
+                addr = (this.ramSelect - 1) * 0x4000 + 0x10000 + addr;
+                byte = this.mem[addr] || 0;
             }
-            else if (iAddr > this.iMinCharHimem && iAddr <= this.iMaxCharHimem) { // character map?
-                iByte = this.vmGetCharDataByte(iAddr);
+            else if (addr > this.minCharHimem && addr <= this.maxCharHimem) { // character map?
+                byte = this.vmGetCharDataByte(addr);
             }
             else {
-                iByte = this.aMem[iAddr] || 0;
+                byte = this.mem[addr] || 0;
             }
-            return iByte;
+            return byte;
         };
-        CpcVm.prototype.pen = function (iStream, iPen, iTransparent) {
-            iStream = this.vmInRangeRound(iStream, 0, 7, "PEN");
-            if (iPen !== undefined) {
-                var oWin = this.aWindow[iStream];
-                iPen = this.vmInRangeRound(iPen, 0, 15, "PEN");
-                oWin.iPen = iPen;
+        CpcVm.prototype.pen = function (stream, pen, transparent) {
+            stream = this.vmInRangeRound(stream, 0, 7, "PEN");
+            if (pen !== undefined) {
+                var win = this.windowDataList[stream];
+                pen = this.vmInRangeRound(pen, 0, 15, "PEN");
+                win.pen = pen;
             }
-            if (iTransparent !== undefined) {
-                iTransparent = this.vmInRangeRound(iTransparent, 0, 1, "PEN");
-                this.vmSetTransparentMode(iStream, iTransparent);
+            if (transparent !== undefined) {
+                transparent = this.vmInRangeRound(transparent, 0, 1, "PEN");
+                this.vmSetTransparentMode(stream, transparent);
             }
         };
         CpcVm.prototype.pi = function () {
             return Math.PI; // or less precise: 3.14159265
         };
-        CpcVm.prototype.plot = function (x, y, iGPen, iGColMode) {
+        CpcVm.prototype.plot = function (x, y, gPen, gColMode) {
             x = this.vmInRangeRound(x, -32768, 32767, "PLOT");
             y = this.vmInRangeRound(y, -32768, 32767, "PLOT");
-            this.vmDrawMovePlot("PLOT", iGPen, iGColMode);
-            this.oCanvas.plot(x, y);
+            this.vmDrawMovePlot("PLOT", gPen, gColMode);
+            this.canvas.plot(x, y);
         };
-        CpcVm.prototype.plotr = function (x, y, iGPen, iGColMode) {
+        CpcVm.prototype.plotr = function (x, y, gPen, gColMode) {
             x = this.vmInRangeRound(x, -32768, 32767, "PLOTR");
             y = this.vmInRangeRound(y, -32768, 32767, "PLOTR");
-            this.vmDrawMovePlot("PLOTR", iGPen, iGColMode);
-            this.oCanvas.plotr(x, y);
+            this.vmDrawMovePlot("PLOTR", gPen, gColMode);
+            this.canvas.plotr(x, y);
         };
-        CpcVm.prototype.poke = function (iAddr, iByte) {
-            iAddr = this.vmInRangeRound(iAddr, -32768, 65535, "POKE address");
-            if (iAddr < 0) { // 2nd complement of 16 bit address?
-                iAddr += 65536;
+        CpcVm.prototype.poke = function (addr, byte) {
+            addr = this.vmInRangeRound(addr, -32768, 65535, "POKE address");
+            if (addr < 0) { // 2nd complement of 16 bit address?
+                addr += 65536;
             }
-            iByte = this.vmInRangeRound(iByte, 0, 255, "POKE byte");
+            byte = this.vmInRangeRound(byte, 0, 255, "POKE byte");
             // check two higher bits of 16 bit address to get 16K page
-            var iPage = iAddr >> 14; // eslint-disable-line no-bitwise
-            if (iPage === 1 && this.iRamSelect) { // memory mapped RAM with page 1=0x4000..0x7fff?
-                iAddr = (this.iRamSelect - 1) * 0x4000 + 0x10000 + iAddr;
+            var page = addr >> 14; // eslint-disable-line no-bitwise
+            if (page === 1 && this.ramSelect) { // memory mapped RAM with page 1=0x4000..0x7fff?
+                addr = (this.ramSelect - 1) * 0x4000 + 0x10000 + addr;
             }
-            else if (iPage === this.iScreenPage) { // screen memory page?
-                this.oCanvas.setByte(iAddr, iByte); // write byte also to screen memory
+            else if (page === this.screenPage) { // screen memory page?
+                this.canvas.setByte(addr, byte); // write byte also to screen memory
             }
-            else if (iAddr > this.iMinCharHimem && iAddr <= this.iMaxCharHimem) { // character map?
-                this.vmSetCharDataByte(iAddr, iByte);
+            else if (addr > this.minCharHimem && addr <= this.maxCharHimem) { // character map?
+                this.vmSetCharDataByte(addr, byte);
             }
-            this.aMem[iAddr] = iByte;
+            this.mem[addr] = byte;
         };
-        CpcVm.prototype.pos = function (iStream) {
-            iStream = this.vmInRangeRound(iStream, 0, 9, "POS");
-            var iPos;
-            if (iStream < 8) {
-                iPos = this.vmGetAllowedPosOrVpos(iStream, false) + 1; // get allowed pos
+        CpcVm.prototype.pos = function (stream) {
+            stream = this.vmInRangeRound(stream, 0, 9, "POS");
+            var pos;
+            if (stream < 8) {
+                pos = this.vmGetAllowedPosOrVpos(stream, false) + 1; // get allowed pos
             }
-            else if (iStream === 8) { // printer position
-                iPos = 1; // TODO
+            else if (stream === 8) { // printer position
+                pos = 1; // TODO
             }
             else { // stream 9: number of characters written since last CR (\r)
-                iPos = 1; // TODO
+                pos = 1; // TODO
             }
-            return iPos;
+            return pos;
         };
-        CpcVm.prototype.vmGetAllowedPosOrVpos = function (iStream, bVpos) {
-            var oWin = this.aWindow[iStream], iLeft = oWin.iLeft, iRight = oWin.iRight, iTop = oWin.iTop, iBottom = oWin.iBottom;
-            var x = oWin.iPos, y = oWin.iVpos;
-            if (x > (iRight - iLeft)) {
+        CpcVm.prototype.vmGetAllowedPosOrVpos = function (stream, vpos) {
+            var win = this.windowDataList[stream], left = win.left, right = win.right, top = win.top, bottom = win.bottom;
+            var x = win.pos, y = win.vpos;
+            if (x > (right - left)) {
                 y += 1;
                 x = 0;
             }
             if (x < 0) {
                 y -= 1;
-                x = iRight - iLeft;
+                x = right - left;
             }
-            if (!bVpos) {
+            if (!vpos) {
                 return x;
             }
             if (y < 0) {
                 y = 0;
             }
-            if (y > (iBottom - iTop)) {
-                y = iBottom - iTop;
+            if (y > (bottom - top)) {
+                y = bottom - top;
             }
             return y;
         };
-        CpcVm.prototype.vmMoveCursor2AllowedPos = function (iStream) {
-            var oWin = this.aWindow[iStream], iLeft = oWin.iLeft, iRight = oWin.iRight, iTop = oWin.iTop, iBottom = oWin.iBottom;
-            var x = oWin.iPos, y = oWin.iVpos;
-            if (x > (iRight - iLeft)) {
+        CpcVm.prototype.vmMoveCursor2AllowedPos = function (stream) {
+            var win = this.windowDataList[stream], left = win.left, right = win.right, top = win.top, bottom = win.bottom;
+            var x = win.pos, y = win.vpos;
+            if (x > (right - left)) {
                 y += 1;
                 x = 0;
-                this.sOut += "\n";
+                this.outBuffer += "\n";
             }
             if (x < 0) {
                 y -= 1;
-                x = iRight - iLeft;
+                x = right - left;
             }
             if (y < 0) {
                 y = 0;
-                if (iStream < 8) {
-                    this.oCanvas.windowScrollDown(iLeft, iRight, iTop, iBottom, oWin.iPaper);
+                if (stream < 8) {
+                    this.canvas.windowScrollDown(left, right, top, bottom, win.paper);
                 }
             }
-            if (y > (iBottom - iTop)) {
-                y = iBottom - iTop;
-                if (iStream < 8) {
-                    this.oCanvas.windowScrollUp(iLeft, iRight, iTop, iBottom, oWin.iPaper);
+            if (y > (bottom - top)) {
+                y = bottom - top;
+                if (stream < 8) {
+                    this.canvas.windowScrollUp(left, right, top, bottom, win.paper);
                 }
             }
-            oWin.iPos = x;
-            oWin.iVpos = y;
+            win.pos = x;
+            win.vpos = y;
         };
-        CpcVm.prototype.vmPrintChars = function (iStream, sStr) {
-            var oWin = this.aWindow[iStream];
-            if (!oWin.bTextEnabled) {
+        CpcVm.prototype.vmPrintChars = function (stream, str) {
+            var win = this.windowDataList[stream];
+            if (!win.textEnabled) {
                 if (Utils_1.Utils.debug > 0) {
-                    Utils_1.Utils.console.debug("vmPrintChars: text output disabled:", sStr);
+                    Utils_1.Utils.console.debug("vmPrintChars: text output disabled:", str);
                 }
                 return;
             }
             // put cursor in next line if string does not fit in line any more
-            this.vmMoveCursor2AllowedPos(iStream);
-            if (oWin.iPos && (oWin.iPos + sStr.length > (oWin.iRight + 1 - oWin.iLeft))) {
-                oWin.iPos = 0;
-                oWin.iVpos += 1; // "\r\n", newline if string does not fit in line
+            this.vmMoveCursor2AllowedPos(stream);
+            if (win.pos && (win.pos + str.length > (win.right + 1 - win.left))) {
+                win.pos = 0;
+                win.vpos += 1; // "\r\n", newline if string does not fit in line
             }
-            for (var i = 0; i < sStr.length; i += 1) {
-                var iChar = CpcVm.vmGetCpcCharCode(sStr.charCodeAt(i));
-                this.vmMoveCursor2AllowedPos(iStream);
-                this.oCanvas.printChar(iChar, oWin.iPos + oWin.iLeft, oWin.iVpos + oWin.iTop, oWin.iPen, oWin.iPaper, oWin.bTransparent);
-                oWin.iPos += 1;
+            for (var i = 0; i < str.length; i += 1) {
+                var char = CpcVm.vmGetCpcCharCode(str.charCodeAt(i));
+                this.vmMoveCursor2AllowedPos(stream);
+                this.canvas.printChar(char, win.pos + win.left, win.vpos + win.top, win.pen, win.paper, win.transparent);
+                win.pos += 1;
             }
         };
-        CpcVm.prototype.vmControlSymbol = function (sPara) {
-            var aPara = [];
-            for (var i = 0; i < sPara.length; i += 1) {
-                aPara.push(sPara.charCodeAt(i));
+        CpcVm.prototype.vmControlSymbol = function (para) {
+            var paraList = [];
+            for (var i = 0; i < para.length; i += 1) {
+                paraList.push(para.charCodeAt(i));
             }
-            var iChar = aPara[0];
-            if (iChar >= this.iMinCustomChar) {
-                this.symbol.apply(this, aPara);
+            var char = paraList[0];
+            if (char >= this.minCustomChar) {
+                this.symbol.apply(this, paraList);
             }
             else {
-                Utils_1.Utils.console.log("vmControlSymbol: define SYMBOL ignored:", iChar);
+                Utils_1.Utils.console.log("vmControlSymbol: define SYMBOL ignored:", char);
             }
         };
-        CpcVm.prototype.vmControlWindow = function (sPara, iStream) {
-            var aPara = [];
-            // args in sPara: iLeft, iRight, iTop, iBottom (all -1 !)
-            for (var i = 0; i < sPara.length; i += 1) {
-                var iValue = sPara.charCodeAt(i) + 1; // control ranges start with 0!
-                iValue %= 256;
-                if (!iValue) {
-                    iValue = 1; // avoid error
+        CpcVm.prototype.vmControlWindow = function (para, stream) {
+            var paraList = [];
+            // args in para: left, right, top, bottom (all -1 !)
+            for (var i = 0; i < para.length; i += 1) {
+                var value = para.charCodeAt(i) + 1; // control ranges start with 0!
+                value %= 256;
+                if (!value) {
+                    value = 1; // avoid error
                 }
-                aPara.push(iValue);
+                paraList.push(value);
             }
-            this.window(iStream, aPara[0], aPara[1], aPara[2], aPara[3]);
+            this.window(stream, paraList[0], paraList[1], paraList[2], paraList[3]);
         };
-        CpcVm.prototype.vmHandleControlCode = function (iCode, sPara, iStream) {
-            var oWin = this.aWindow[iStream], sOut = ""; // no controls for text window
-            switch (iCode) {
+        CpcVm.prototype.vmHandleControlCode = function (code, para, stream) {
+            var win = this.windowDataList[stream], out = ""; // no controls for text window
+            switch (code) {
                 case 0x00: // NUL, ignore
                     break;
                 case 0x01: // SOH 0-255
-                    this.vmPrintChars(iStream, sPara);
+                    this.vmPrintChars(stream, para);
                     break;
                 case 0x02: // STX
-                    oWin.bCursorEnabled = false; // cursor disable (user)
+                    win.cursorEnabled = false; // cursor disable (user)
                     break;
                 case 0x03: // ETX
-                    oWin.bCursorEnabled = true; // cursor enable (user)
+                    win.cursorEnabled = true; // cursor enable (user)
                     break;
                 case 0x04: // EOT 0-3 (on CPC: 0-2, 3 is ignored; really mod 4)
-                    this.mode(sPara.charCodeAt(0) & 0x03); // eslint-disable-line no-bitwise
+                    this.mode(para.charCodeAt(0) & 0x03); // eslint-disable-line no-bitwise
                     break;
                 case 0x05: // ENQ
-                    this.vmPrintGraphChars(sPara);
+                    this.vmPrintGraphChars(para);
                     break;
                 case 0x06: // ACK
-                    oWin.bCursorEnabled = true;
-                    oWin.bTextEnabled = true;
+                    win.cursorEnabled = true;
+                    win.textEnabled = true;
                     break;
                 case 0x07: // BEL
                     this.sound(135, 90, 20, 12, 0, 0, 0);
                     break;
                 case 0x08: // BS
-                    this.vmMoveCursor2AllowedPos(iStream);
-                    oWin.iPos -= 1;
+                    this.vmMoveCursor2AllowedPos(stream);
+                    win.pos -= 1;
                     break;
                 case 0x09: // TAB
-                    this.vmMoveCursor2AllowedPos(iStream);
-                    oWin.iPos += 1;
+                    this.vmMoveCursor2AllowedPos(stream);
+                    win.pos += 1;
                     break;
                 case 0x0a: // LF
-                    this.vmMoveCursor2AllowedPos(iStream);
-                    oWin.iVpos += 1;
+                    this.vmMoveCursor2AllowedPos(stream);
+                    win.vpos += 1;
                     break;
                 case 0x0b: // VT
-                    this.vmMoveCursor2AllowedPos(iStream);
-                    oWin.iVpos -= 1;
+                    this.vmMoveCursor2AllowedPos(stream);
+                    win.vpos -= 1;
                     break;
                 case 0x0c: // FF
-                    this.cls(iStream);
+                    this.cls(stream);
                     break;
                 case 0x0d: // CR
-                    this.vmMoveCursor2AllowedPos(iStream);
-                    oWin.iPos = 0;
+                    this.vmMoveCursor2AllowedPos(stream);
+                    win.pos = 0;
                     break;
                 case 0x0e: // SO
-                    this.paper(iStream, sPara.charCodeAt(0) & 0x0f); // eslint-disable-line no-bitwise
+                    this.paper(stream, para.charCodeAt(0) & 0x0f); // eslint-disable-line no-bitwise
                     break;
                 case 0x0f: // SI
-                    this.pen(iStream, sPara.charCodeAt(0) & 0x0f); // eslint-disable-line no-bitwise
+                    this.pen(stream, para.charCodeAt(0) & 0x0f); // eslint-disable-line no-bitwise
                     break;
                 case 0x10: // DLE
-                    this.vmMoveCursor2AllowedPos(iStream);
-                    this.oCanvas.fillTextBox(oWin.iLeft + oWin.iPos, oWin.iTop + oWin.iVpos, 1, 1, oWin.iPaper); // clear character under cursor
+                    this.vmMoveCursor2AllowedPos(stream);
+                    this.canvas.fillTextBox(win.left + win.pos, win.top + win.vpos, 1, 1, win.paper); // clear character under cursor
                     break;
                 case 0x11: // DC1
-                    this.vmMoveCursor2AllowedPos(iStream);
-                    this.oCanvas.fillTextBox(oWin.iLeft, oWin.iTop + oWin.iVpos, oWin.iPos + 1, 1, oWin.iPaper); // clear line up to cursor
+                    this.vmMoveCursor2AllowedPos(stream);
+                    this.canvas.fillTextBox(win.left, win.top + win.vpos, win.pos + 1, 1, win.paper); // clear line up to cursor
                     break;
                 case 0x12: // DC2
-                    this.vmMoveCursor2AllowedPos(iStream);
-                    this.oCanvas.fillTextBox(oWin.iLeft + oWin.iPos, oWin.iTop + oWin.iVpos, oWin.iRight - oWin.iLeft + 1 - oWin.iPos, 1, oWin.iPaper); // clear line from cursor
+                    this.vmMoveCursor2AllowedPos(stream);
+                    this.canvas.fillTextBox(win.left + win.pos, win.top + win.vpos, win.right - win.left + 1 - win.pos, 1, win.paper); // clear line from cursor
                     break;
                 case 0x13: // DC3
-                    this.vmMoveCursor2AllowedPos(iStream);
-                    this.oCanvas.fillTextBox(oWin.iLeft, oWin.iTop, oWin.iRight - oWin.iLeft + 1, oWin.iTop - oWin.iVpos, oWin.iPaper); // clear window up to cursor line -1
-                    this.oCanvas.fillTextBox(oWin.iLeft, oWin.iTop + oWin.iVpos, oWin.iPos + 1, 1, oWin.iPaper); // clear line up to cursor (DC1)
+                    this.vmMoveCursor2AllowedPos(stream);
+                    this.canvas.fillTextBox(win.left, win.top, win.right - win.left + 1, win.top - win.vpos, win.paper); // clear window up to cursor line -1
+                    this.canvas.fillTextBox(win.left, win.top + win.vpos, win.pos + 1, 1, win.paper); // clear line up to cursor (DC1)
                     break;
                 case 0x14: // DC4
-                    this.vmMoveCursor2AllowedPos(iStream);
-                    this.oCanvas.fillTextBox(oWin.iLeft + oWin.iPos, oWin.iTop + oWin.iVpos, oWin.iRight - oWin.iLeft + 1 - oWin.iPos, 1, oWin.iPaper); // clear line from cursor (DC2)
-                    this.oCanvas.fillTextBox(oWin.iLeft, oWin.iTop + oWin.iVpos + 1, oWin.iRight - oWin.iLeft + 1, oWin.iBottom - oWin.iTop - oWin.iVpos, oWin.iPaper); // clear window from cursor line +1
+                    this.vmMoveCursor2AllowedPos(stream);
+                    this.canvas.fillTextBox(win.left + win.pos, win.top + win.vpos, win.right - win.left + 1 - win.pos, 1, win.paper); // clear line from cursor (DC2)
+                    this.canvas.fillTextBox(win.left, win.top + win.vpos + 1, win.right - win.left + 1, win.bottom - win.top - win.vpos, win.paper); // clear window from cursor line +1
                     break;
                 case 0x15: // NAK
-                    oWin.bCursorEnabled = false;
-                    oWin.bTextEnabled = false;
+                    win.cursorEnabled = false;
+                    win.textEnabled = false;
                     break;
                 case 0x16: // SYN
                     // parameter: only bit 0 relevant (ROM: &14E3)
-                    this.vmSetTransparentMode(iStream, sPara.charCodeAt(0) & 0x01); // eslint-disable-line no-bitwise
+                    this.vmSetTransparentMode(stream, para.charCodeAt(0) & 0x01); // eslint-disable-line no-bitwise
                     break;
                 case 0x17: // ETB
-                    this.oCanvas.setGColMode(sPara.charCodeAt(0) % 4);
+                    this.canvas.setGColMode(para.charCodeAt(0) % 4);
                     break;
                 case 0x18: // CAN
-                    this.vmTxtInverse(iStream);
+                    this.vmTxtInverse(stream);
                     break;
                 case 0x19: // EM
-                    this.vmControlSymbol(sPara);
+                    this.vmControlSymbol(para);
                     break;
                 case 0x1a: // SUB
-                    this.vmControlWindow(sPara, iStream);
+                    this.vmControlWindow(para, stream);
                     break;
                 case 0x1b: // ESC, ignored
                     break;
                 case 0x1c: // FS
-                    this.ink(sPara.charCodeAt(0) & 0x0f, sPara.charCodeAt(1) & 0x1f, sPara.charCodeAt(2) & 0x1f); // eslint-disable-line no-bitwise
+                    this.ink(para.charCodeAt(0) & 0x0f, para.charCodeAt(1) & 0x1f, para.charCodeAt(2) & 0x1f); // eslint-disable-line no-bitwise
                     break;
                 case 0x1d: // GS
-                    this.border(sPara.charCodeAt(0) & 0x1f, sPara.charCodeAt(1) & 0x1f); // eslint-disable-line no-bitwise
+                    this.border(para.charCodeAt(0) & 0x1f, para.charCodeAt(1) & 0x1f); // eslint-disable-line no-bitwise
                     break;
                 case 0x1e: // RS
-                    oWin.iPos = 0;
-                    oWin.iVpos = 0;
+                    win.pos = 0;
+                    win.vpos = 0;
                     break;
                 case 0x1f: // US
-                    this.vmLocate(iStream, sPara.charCodeAt(0), sPara.charCodeAt(1));
+                    this.vmLocate(stream, para.charCodeAt(0), para.charCodeAt(1));
                     break;
                 default:
-                    Utils_1.Utils.console.warn("vmHandleControlCode: Unknown control code:", iCode);
+                    Utils_1.Utils.console.warn("vmHandleControlCode: Unknown control code:", code);
                     break;
             }
-            return sOut;
+            return out;
         };
-        CpcVm.prototype.vmPrintCharsOrControls = function (iStream, sStr) {
-            var sBuf = "", sOut = "", i = 0;
-            while (i < sStr.length) {
-                var iCode = sStr.charCodeAt(i);
+        CpcVm.prototype.vmPrintCharsOrControls = function (stream, str) {
+            var buf = "", out = "", i = 0;
+            while (i < str.length) {
+                var code = str.charCodeAt(i);
                 i += 1;
-                if (iCode <= 0x1f) { // control code?
-                    if (sOut !== "") {
-                        this.vmPrintChars(iStream, sOut); // print chars collected so far
-                        sOut = "";
+                if (code <= 0x1f) { // control code?
+                    if (out !== "") {
+                        this.vmPrintChars(stream, out); // print chars collected so far
+                        out = "";
                     }
-                    var iParaCount = CpcVm.aControlCodeParameterCount[iCode];
-                    if (i + iParaCount <= sStr.length) {
-                        sOut += this.vmHandleControlCode(iCode, sStr.substr(i, iParaCount), iStream);
-                        i += iParaCount;
+                    var paraCount = CpcVm.controlCodeParameterCount[code];
+                    if (i + paraCount <= str.length) {
+                        out += this.vmHandleControlCode(code, str.substr(i, paraCount), stream);
+                        i += paraCount;
                     }
                     else {
-                        sBuf = sStr.substr(i - 1); // not enough parameters, put code in buffer and wait for more
-                        i = sStr.length;
+                        buf = str.substr(i - 1); // not enough parameters, put code in buffer and wait for more
+                        i = str.length;
                     }
                 }
                 else {
-                    sOut += String.fromCharCode(iCode);
+                    out += String.fromCharCode(code);
                 }
             }
-            if (sOut !== "") {
-                this.vmPrintChars(iStream, sOut); // print chars collected so far
-                sOut = "";
+            if (out !== "") {
+                this.vmPrintChars(stream, out); // print chars collected so far
+                out = "";
             }
-            return sBuf;
+            return buf;
         };
-        CpcVm.prototype.vmPrintGraphChars = function (sStr) {
-            for (var i = 0; i < sStr.length; i += 1) {
-                var iChar = CpcVm.vmGetCpcCharCode(sStr.charCodeAt(i));
-                this.oCanvas.printGChar(iChar);
+        CpcVm.prototype.vmPrintGraphChars = function (str) {
+            for (var i = 0; i < str.length; i += 1) {
+                var char = CpcVm.vmGetCpcCharCode(str.charCodeAt(i));
+                this.canvas.printGChar(char);
             }
         };
-        CpcVm.prototype.print = function (iStream) {
-            var aArgs = [];
+        CpcVm.prototype.print = function (stream) {
+            var args = [];
             for (var _i = 1; _i < arguments.length; _i++) {
-                aArgs[_i - 1] = arguments[_i];
+                args[_i - 1] = arguments[_i];
             }
-            iStream = this.vmInRangeRound(iStream, 0, 9, "PRINT");
-            var oWin = this.aWindow[iStream];
-            if (iStream < 8) {
-                if (!oWin.bTag) {
-                    this.vmDrawUndrawCursor(iStream); // undraw
+            stream = this.vmInRangeRound(stream, 0, 9, "PRINT");
+            var win = this.windowDataList[stream];
+            if (stream < 8) {
+                if (!win.tag) {
+                    this.vmDrawUndrawCursor(stream); // undraw
                 }
             }
-            else if (iStream === 8) {
-                this.vmNotImplemented("PRINT # " + iStream);
+            else if (stream === 8) {
+                this.vmNotImplemented("PRINT # " + stream);
             }
-            else if (iStream === 9) {
-                if (!this.oOutFile.bOpen) {
-                    throw this.vmComposeError(Error(), 31, "PRINT #" + iStream); // File not open
+            else if (stream === 9) {
+                if (!this.outFile.open) {
+                    throw this.vmComposeError(Error(), 31, "PRINT #" + stream); // File not open
                 }
-                this.oOutFile.iStream = iStream;
+                this.outFile.stream = stream;
             }
-            var sBuf = this.sPrintControlBuf;
-            for (var i = 0; i < aArgs.length; i += 1) {
-                var arg = aArgs[i];
-                var sStr = void 0;
+            var buf = this.printControlBuf;
+            for (var i = 0; i < args.length; i += 1) {
+                var arg = args[i];
+                var str = void 0;
                 if (typeof arg === "object") { // delayed call for spc(), tab(), commaTab() with side effect (position)
-                    var aSpecialArgs = arg.args;
+                    var specialArgs = arg.args;
                     switch (arg.type) {
                         case "commaTab":
-                            sStr = this.commaTab(iStream);
+                            str = this.commaTab(stream);
                             break;
                         case "spc":
-                            sStr = this.spc(iStream, aSpecialArgs[0]);
+                            str = this.spc(stream, specialArgs[0]);
                             break;
                         case "tab":
-                            sStr = this.tab(iStream, aSpecialArgs[0]);
+                            str = this.tab(stream, specialArgs[0]);
                             break;
                         default:
                             throw this.vmComposeError(Error(), 5, "PRINT " + arg.type); // Improper argument
                     }
                 }
                 else if (typeof arg === "number") {
-                    sStr = ((arg >= 0) ? " " : "") + String(arg) + " ";
+                    str = ((arg >= 0) ? " " : "") + String(arg) + " ";
                 }
                 else { // e.g. string
-                    sStr = String(arg);
+                    str = String(arg);
                 }
-                if (iStream < 8) {
-                    if (oWin.bTag) {
-                        this.vmPrintGraphChars(sStr);
+                if (stream < 8) {
+                    if (win.tag) {
+                        this.vmPrintGraphChars(str);
                     }
                     else {
-                        if (sBuf.length) {
-                            sStr = sBuf + sStr;
+                        if (buf.length) {
+                            str = buf + str;
                         }
-                        sBuf = this.vmPrintCharsOrControls(iStream, sStr);
+                        buf = this.vmPrintCharsOrControls(stream, str);
                     }
-                    this.sOut += sStr; // console
+                    this.outBuffer += str; // console
                 }
-                else { // iStream === 9
-                    oWin.iPos += sStr.length;
-                    if (sStr === "\r\n") { // for now we replace CRLF by LF
-                        sStr = "\n";
-                        oWin.iPos = 0;
+                else { // stream === 9
+                    win.pos += str.length;
+                    if (str === "\r\n") { // for now we replace CRLF by LF
+                        str = "\n";
+                        win.pos = 0;
                     }
-                    if (oWin.iPos >= oWin.iRight) {
-                        sStr = "\n" + sStr; // e.g. after tab(256)
-                        oWin.iPos = 0;
+                    if (win.pos >= win.right) {
+                        str = "\n" + str; // e.g. after tab(256)
+                        win.pos = 0;
                     }
-                    sBuf += sStr;
-                }
-            }
-            if (iStream < 8) {
-                if (!oWin.bTag) {
-                    this.vmDrawUndrawCursor(iStream); // draw cursor
-                    this.sPrintControlBuf = sBuf; // maybe some parameters missing
+                    buf += str;
                 }
             }
-            else if (iStream === 9) {
-                this.oOutFile.aFileData.push(sBuf);
+            if (stream < 8) {
+                if (!win.tag) {
+                    this.vmDrawUndrawCursor(stream); // draw cursor
+                    this.printControlBuf = buf; // maybe some parameters missing
+                }
+            }
+            else if (stream === 9) {
+                this.outFile.fileData.push(buf);
             }
         };
         CpcVm.prototype.rad = function () {
-            this.bDeg = false;
+            this.degFlag = false;
         };
         // https://en.wikipedia.org/wiki/Jenkins_hash_function
         CpcVm.vmHashCode = function (s) {
-            var iHash = 0;
+            var hash = 0;
             /* eslint-disable no-bitwise */
             for (var i = 0; i < s.length; i += 1) {
-                iHash += s.charCodeAt(i);
-                iHash += iHash << 10;
-                iHash ^= iHash >> 6;
+                hash += s.charCodeAt(i);
+                hash += hash << 10;
+                hash ^= hash >> 6;
             }
-            iHash += iHash << 3;
-            iHash ^= iHash >> 11;
-            iHash += iHash << 15;
+            hash += hash << 3;
+            hash ^= hash >> 11;
+            hash += hash << 15;
             /* eslint-enable no-bitwise */
-            return iHash;
+            return hash;
         };
         CpcVm.prototype.vmRandomizeCallback = function () {
-            var oInput = this.vmGetStopObject().oParas, sInput = oInput.sInput, value = CpcVm.vmVal(sInput); // convert to number (also binary, hex)
-            var bInputOk = true;
-            Utils_1.Utils.console.log("vmRandomizeCallback:", sInput);
+            var inputParas = this.vmGetStopObject().paras, input = inputParas.input, value = CpcVm.vmVal(input); // convert to number (also binary, hex)
+            var inputOk = true;
+            Utils_1.Utils.console.log("vmRandomizeCallback:", input);
             if (isNaN(value)) {
-                bInputOk = false;
-                oInput.sInput = "";
-                this.print(oInput.iStream, oInput.sMessage);
+                inputOk = false;
+                inputParas.input = "";
+                this.print(inputParas.stream, inputParas.message);
             }
             else {
                 this.vmSetInputValues([value]);
             }
-            return bInputOk;
+            return inputOk;
         };
         CpcVm.prototype.randomize = function (n) {
-            var iRndInit = 0x89656c07, // an arbitrary 32 bit number <> 0 (this one is used by the CPC)
-            iStream = 0;
+            var rndInit = 0x89656c07, // an arbitrary 32 bit number <> 0 (this one is used by the CPC)
+            stream = 0;
             if (n === undefined) { // no arguments? input...
-                var sMsg = "Random number seed ? ";
-                this.print(iStream, sMsg);
-                var oInputParas = {
-                    sCommand: "randomize",
-                    iStream: iStream,
-                    sMessage: sMsg,
+                var msg = "Random number seed ? ";
+                this.print(stream, msg);
+                var inputParas = {
+                    command: "randomize",
+                    stream: stream,
+                    message: msg,
                     fnInputCallback: this.vmRandomizeCallback.bind(this),
-                    sInput: "",
-                    iLine: this.iLine // to repeat in case of break
+                    input: "",
+                    line: this.line // to repeat in case of break
                 };
-                this.vmStop("waitInput", 45, false, oInputParas);
+                this.vmStop("waitInput", 45, false, inputParas);
             }
             else { // n can also be floating point, so compute a hash value of n
                 this.vmAssertNumber(n, "RANDOMIZE");
                 n = CpcVm.vmHashCode(String(n));
                 if (n === 0) {
-                    n = iRndInit;
+                    n = rndInit;
                 }
                 if (Utils_1.Utils.debug > 0) {
                     Utils_1.Utils.console.debug("randomize:", n);
                 }
-                this.oRandom.init(n);
+                this.random.init(n);
             }
         };
-        CpcVm.prototype.read = function (sVarType) {
-            var sType = this.vmDetermineVarType(sVarType);
+        CpcVm.prototype.read = function (varType) {
+            var type = this.vmDetermineVarType(varType);
             var item;
-            if (this.iData < this.aData.length) {
-                var dataItem = this.aData[this.iData];
-                this.iData += 1;
+            if (this.dataIndex < this.dataList.length) {
+                var dataItem = this.dataList[this.dataIndex];
+                this.dataIndex += 1;
                 if (dataItem === undefined) { // empty arg?
-                    item = sType === "$" ? "" : 0; // set arg depending on expected type
+                    item = type === "$" ? "" : 0; // set arg depending on expected type
                 }
-                else if (sType !== "$") { // not string expected? => convert to number (also binary, hex)
+                else if (type !== "$") { // not string expected? => convert to number (also binary, hex)
                     // Note : Using a number variable to read a string would cause a syntax error on a real CPC. We cannot detect it since we get always strings.
                     item = this.val(String(dataItem));
                 }
                 else {
                     item = dataItem;
                 }
-                item = this.vmAssign(sVarType, item); // maybe rounding for type I
+                item = this.vmAssign(varType, item); // maybe rounding for type I
             }
             else {
                 throw this.vmComposeError(Error(), 4, "READ"); // DATA exhausted
             }
             return item;
         };
-        CpcVm.prototype.release = function (iChannelMask) {
-            iChannelMask = this.vmInRangeRound(iChannelMask, 0, 7, "RELEASE");
-            this.oSound.release(iChannelMask);
+        CpcVm.prototype.release = function (channelMask) {
+            channelMask = this.vmInRangeRound(channelMask, 0, 7, "RELEASE");
+            this.soundClass.release(channelMask);
         };
         // rem
-        CpcVm.prototype.remain = function (iTimer) {
-            iTimer = this.vmInRangeRound(iTimer, 0, 3, "REMAIN");
-            var oTimer = this.aTimer[iTimer];
-            var iRemain = 0;
-            if (oTimer.bActive) {
-                iRemain = oTimer.iNextTimeMs - Date.now();
-                iRemain /= CpcVm.iFrameTimeMs;
-                oTimer.bActive = false; // switch off timer
+        CpcVm.prototype.remain = function (timerNumber) {
+            timerNumber = this.vmInRangeRound(timerNumber, 0, 3, "REMAIN");
+            var timerEntry = this.timerList[timerNumber];
+            var remain = 0;
+            if (timerEntry.active) {
+                remain = timerEntry.nextTimeMs - Date.now();
+                remain /= CpcVm.frameTimeMs;
+                timerEntry.active = false; // switch off timer
             }
-            return iRemain;
+            return remain;
         };
-        CpcVm.prototype.renum = function (iNew, iOld, iStep, iKeep) {
-            if (iNew === void 0) { iNew = 10; }
-            if (iOld === void 0) { iOld = 1; }
-            if (iStep === void 0) { iStep = 10; }
-            if (iKeep === void 0) { iKeep = 65535; }
-            iNew = this.vmInRangeRound(iNew, 1, 65535, "RENUM");
-            iOld = this.vmInRangeRound(iOld, 1, 65535, "RENUM");
-            iStep = this.vmInRangeRound(iStep, 1, 65535, "RENUM");
-            iKeep = this.vmInRangeRound(iKeep, 1, 65535, "RENUM");
-            var oLineRenumParas = {
-                sCommand: "renum",
-                iStream: 0,
-                iLine: this.iLine,
-                iNew: iNew,
-                iOld: iOld,
-                iStep: iStep,
-                iKeep: iKeep // keep lines
+        CpcVm.prototype.renum = function (newLine, oldLine, step, keep) {
+            if (newLine === void 0) { newLine = 10; }
+            if (oldLine === void 0) { oldLine = 1; }
+            if (step === void 0) { step = 10; }
+            if (keep === void 0) { keep = 65535; }
+            newLine = this.vmInRangeRound(newLine, 1, 65535, "RENUM");
+            oldLine = this.vmInRangeRound(oldLine, 1, 65535, "RENUM");
+            step = this.vmInRangeRound(step, 1, 65535, "RENUM");
+            keep = this.vmInRangeRound(keep, 1, 65535, "RENUM");
+            var lineRenumParas = {
+                command: "renum",
+                stream: 0,
+                line: this.line,
+                newLine: newLine,
+                oldLine: oldLine,
+                step: step,
+                keep: keep // keep lines
             };
-            this.vmStop("renumLines", 85, false, oLineRenumParas);
+            this.vmStop("renumLines", 85, false, lineRenumParas);
         };
-        CpcVm.prototype.restore = function (iLine) {
-            iLine = iLine || 0;
-            var oDataLineIndex = this.oDataLineIndex;
-            // sLine = String(iLine);
-            if (iLine in oDataLineIndex) {
-                this.iData = oDataLineIndex[iLine];
+        CpcVm.prototype.restore = function (line) {
+            line = line || 0;
+            var dataLineIndex = this.dataLineIndex;
+            // line = String(line);
+            if (line in dataLineIndex) {
+                this.dataIndex = dataLineIndex[line];
             }
             else {
-                Utils_1.Utils.console.log("restore: search for dataLine >", iLine);
-                for (var sDataLine in oDataLineIndex) { // linear search a data line > line
-                    if (oDataLineIndex.hasOwnProperty(sDataLine)) {
-                        if (Number(sDataLine) >= iLine) {
-                            oDataLineIndex[iLine] = oDataLineIndex[sDataLine]; // set data index also for iLine
+                Utils_1.Utils.console.log("restore: search for dataLine >", line);
+                for (var dataLine in dataLineIndex) { // linear search a data line > line
+                    if (dataLineIndex.hasOwnProperty(dataLine)) {
+                        if (Number(dataLine) >= line) {
+                            dataLineIndex[line] = dataLineIndex[dataLine]; // set data index also for line
                             break;
                         }
                     }
                 }
-                if (iLine in oDataLineIndex) { // now found a data line?
-                    this.iData = oDataLineIndex[iLine];
+                if (line in dataLineIndex) { // now found a data line?
+                    this.dataIndex = dataLineIndex[line];
                 }
                 else {
-                    Utils_1.Utils.console.warn("restore", iLine + ": No DATA found starting at line");
-                    this.iData = this.aData.length;
+                    Utils_1.Utils.console.warn("restore", line + ": No DATA found starting at line");
+                    this.dataIndex = this.dataList.length;
                 }
             }
         };
-        CpcVm.prototype.resume = function (iLine) {
-            if (this.iErrorGotoLine) {
-                if (iLine === undefined) {
-                    iLine = this.iErrorResumeLine;
+        CpcVm.prototype.resume = function (line) {
+            if (this.errorGotoLine) {
+                if (line === undefined) {
+                    line = this.errorResumeLine;
                 }
-                this.vmGotoLine(iLine, "resume");
-                this.iErrorResumeLine = 0;
+                this.vmGotoLine(line, "resume");
+                this.errorResumeLine = 0;
             }
             else {
-                throw this.vmComposeError(Error(), 20, String(iLine)); // Unexpected RESUME
+                throw this.vmComposeError(Error(), 20, String(line)); // Unexpected RESUME
             }
         };
         CpcVm.prototype.resumeNext = function () {
-            if (!this.iErrorGotoLine) {
+            if (!this.errorGotoLine) {
                 throw this.vmComposeError(Error(), 20, "RESUME NEXT"); // Unexpected RESUME
             }
             this.vmNotImplemented("RESUME NEXT");
         };
         CpcVm.prototype["return"] = function () {
-            var iLine = this.aGosubStack.pop();
-            if (iLine === undefined) {
+            var line = this.gosubStack.pop();
+            if (line === undefined) {
                 throw this.vmComposeError(Error(), 3, ""); // Unexpected Return [in <line>]
             }
             else {
-                this.vmGotoLine(iLine, "return");
+                this.vmGotoLine(line, "return");
             }
-            if (iLine === this.iBreakResumeLine) { // end of break handler?
-                this.iBreakResumeLine = 0; // can start another one
+            if (line === this.breakResumeLine) { // end of break handler?
+                this.breakResumeLine = 0; // can start another one
             }
             this.vmCheckTimerHandlers(); // if we are at end of a BASIC timer handler, delete handler flag
             if (this.vmCheckSqTimerHandlers()) { // same for sq timers, timer reloaded?
                 this.fnCheckSqTimer(); // next one early
             }
         };
-        CpcVm.prototype.right$ = function (s, iLen) {
+        CpcVm.prototype.right$ = function (s, len) {
             this.vmAssertString(s, "RIGHT$");
-            iLen = this.vmInRangeRound(iLen, 0, 255, "RIGHT$");
-            return s.slice(-iLen);
+            len = this.vmInRangeRound(len, 0, 255, "RIGHT$");
+            return s.slice(-len);
         };
         CpcVm.prototype.rnd = function (n) {
             if (n !== undefined) {
@@ -2598,108 +2598,108 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             }
             var x;
             if (n < 0) {
-                x = this.lastRnd || this.oRandom.random();
+                x = this.lastRnd || this.random.random();
             }
             else if (n === 0) {
-                x = this.lastRnd || this.oRandom.random();
+                x = this.lastRnd || this.random.random();
             }
             else { // >0 or undefined
-                x = this.oRandom.random();
+                x = this.random.random();
                 this.lastRnd = x;
             }
             return x;
         };
-        CpcVm.prototype.round = function (n, iDecimals) {
+        CpcVm.prototype.round = function (n, decimals) {
             this.vmAssertNumber(n, "ROUND");
-            iDecimals = this.vmInRangeRound(iDecimals || 0, -39, 39, "ROUND");
+            decimals = this.vmInRangeRound(decimals || 0, -39, 39, "ROUND");
             // To avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
-            return Number(Math.round(Number(n + "e" + iDecimals)) + "e" + ((iDecimals >= 0) ? "-" + iDecimals : "+" + -iDecimals));
+            return Number(Math.round(Number(n + "e" + decimals)) + "e" + ((decimals >= 0) ? "-" + decimals : "+" + -decimals));
         };
-        CpcVm.prototype.vmRunCallback = function (sInput, oMeta) {
-            var oInFile = this.oInFile, bPutInMemory = sInput !== null && oMeta && (oMeta.sType === "B" || oInFile.iStart !== undefined);
+        CpcVm.prototype.vmRunCallback = function (input, meta) {
+            var inFile = this.inFile, putInMemory = input !== null && meta && (meta.typeString === "B" || inFile.start !== undefined);
             // TODO: we could put it in memory as we do it for LOAD
-            if (sInput !== null) {
-                var oLineParas = {
-                    sCommand: "run",
-                    iStream: 0,
-                    iFirst: oInFile.iLine,
-                    iLast: 0,
-                    iLine: this.iLine
+            if (input !== null) {
+                var lineParas = {
+                    command: "run",
+                    stream: 0,
+                    first: inFile.line,
+                    last: 0,
+                    line: this.line
                 };
-                this.vmStop("run", 95, false, oLineParas);
+                this.vmStop("run", 95, false, lineParas);
             }
             this.closein();
-            return bPutInMemory;
+            return putInMemory;
         };
         CpcVm.prototype.run = function (numOrString) {
-            var oInFile = this.oInFile;
+            var inFile = this.inFile;
             if (typeof numOrString === "string") { // filename?
-                var sName = this.vmAdaptFilename(numOrString, "RUN");
+                var name_3 = this.vmAdaptFilename(numOrString, "RUN");
                 this.closein();
-                oInFile.bOpen = true;
-                oInFile.sCommand = "run";
-                oInFile.sName = sName;
-                oInFile.fnFileCallback = this.fnRunHandler;
+                inFile.open = true;
+                inFile.command = "run";
+                inFile.name = name_3;
+                inFile.fnFileCallback = this.fnRunHandler;
                 this.vmStop("fileLoad", 90);
             }
             else { // line number or no argument = undefined
-                var oLineParas = {
-                    sCommand: "run",
-                    iStream: 0,
-                    iFirst: numOrString || 0,
-                    iLast: 0,
-                    iLine: this.iLine
+                var lineParas = {
+                    command: "run",
+                    stream: 0,
+                    first: numOrString || 0,
+                    last: 0,
+                    line: this.line
                 };
-                this.vmStop("run", 95, false, oLineParas);
+                this.vmStop("run", 95, false, lineParas);
             }
         };
-        CpcVm.prototype.save = function (sName, sType, iStart, iLength, iEntry) {
-            var oOutFile = this.oOutFile;
-            sName = this.vmAdaptFilename(sName, "SAVE");
-            if (!sType) {
-                sType = "T"; // default is tokenized BASIC
+        CpcVm.prototype.save = function (name, type, start, length, entry) {
+            var outFile = this.outFile;
+            name = this.vmAdaptFilename(name, "SAVE");
+            if (!type) {
+                type = "T"; // default is tokenized BASIC
             }
             else {
-                sType = String(sType).toUpperCase();
+                type = String(type).toUpperCase();
             }
-            var aFileData = [];
-            if (sType === "B") { // binary
-                iStart = this.vmInRangeRound(iStart, -32768, 65535, "SAVE");
-                if (iStart < 0) { // 2nd complement of 16 bit address
-                    iStart += 65536;
+            var fileData = [];
+            if (type === "B") { // binary
+                start = this.vmInRangeRound(start, -32768, 65535, "SAVE");
+                if (start < 0) { // 2nd complement of 16 bit address
+                    start += 65536;
                 }
-                iLength = this.vmInRangeRound(iLength, -32768, 65535, "SAVE");
-                if (iLength < 0) {
-                    iLength += 65536;
+                length = this.vmInRangeRound(length, -32768, 65535, "SAVE");
+                if (length < 0) {
+                    length += 65536;
                 }
-                if (iEntry !== undefined) {
-                    iEntry = this.vmInRangeRound(iEntry, -32768, 65535, "SAVE");
-                    if (iEntry < 0) {
-                        iEntry += 65536;
+                if (entry !== undefined) {
+                    entry = this.vmInRangeRound(entry, -32768, 65535, "SAVE");
+                    if (entry < 0) {
+                        entry += 65536;
                     }
                 }
-                for (var i = 0; i < iLength; i += 1) {
-                    var iAddress = (iStart + i) & 0xffff; // eslint-disable-line no-bitwise
-                    aFileData[i] = String.fromCharCode(this.peek(iAddress));
+                for (var i = 0; i < length; i += 1) {
+                    var address = (start + i) & 0xffff; // eslint-disable-line no-bitwise
+                    fileData[i] = String.fromCharCode(this.peek(address));
                 }
             }
-            else if ((sType === "A" || sType === "T" || sType === "P") && iStart === undefined) {
+            else if ((type === "A" || type === "T" || type === "P") && start === undefined) {
                 // ASCII or tokenized BASIC or protected BASIC, and no load address specified
-                iStart = 368; // BASIC start
+                start = 368; // BASIC start
                 // need file data from controller (text box)
             }
             else {
-                throw this.vmComposeError(Error(), 2, "SAVE " + sType); // Syntax Error
+                throw this.vmComposeError(Error(), 2, "SAVE " + type); // Syntax Error
             }
-            oOutFile.bOpen = true;
-            oOutFile.sCommand = "save";
-            oOutFile.sName = sName;
-            oOutFile.sType = sType;
-            oOutFile.iStart = iStart;
-            oOutFile.iLength = iLength || 0;
-            oOutFile.iEntry = iEntry || 0;
-            oOutFile.aFileData = aFileData;
-            oOutFile.fnFileCallback = this.fnCloseoutHandler; // we use closeout handler to reset out file handling
+            outFile.open = true;
+            outFile.command = "save";
+            outFile.name = name;
+            outFile.typeString = type;
+            outFile.start = start;
+            outFile.length = length || 0;
+            outFile.entry = entry || 0;
+            outFile.fileData = fileData;
+            outFile.fnFileCallback = this.fnCloseoutHandler; // we use closeout handler to reset out file handling
             this.vmStop("fileSave", 90); // must stop directly after save
         };
         CpcVm.prototype.sgn = function (n) {
@@ -2708,30 +2708,30 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         };
         CpcVm.prototype.sin = function (n) {
             this.vmAssertNumber(n, "SIN");
-            return Math.sin((this.bDeg) ? Utils_1.Utils.toRadians(n) : n);
+            return Math.sin((this.degFlag) ? Utils_1.Utils.toRadians(n) : n);
         };
-        CpcVm.prototype.sound = function (iState, iPeriod, iDuration, iVolume, iVolEnv, iToneEnv, iNoise) {
-            iState = this.vmInRangeRound(iState, 1, 255, "SOUND");
-            iPeriod = this.vmInRangeRound(iPeriod, 0, 4095, "SOUND ,");
-            var oSoundData = {
-                iState: iState,
-                iPeriod: iPeriod,
-                iDuration: (iDuration !== undefined) ? this.vmInRangeRound(iDuration, -32768, 32767, "SOUND ,,") : 20,
-                iVolume: (iVolume !== undefined) ? this.vmInRangeRound(iVolume, 0, 15, "SOUND ,,,") : 12,
-                iVolEnv: (iVolEnv !== undefined) ? this.vmInRangeRound(iVolEnv, 0, 15, "SOUND ,,,,") : 0,
-                iToneEnv: (iToneEnv !== undefined) ? this.vmInRangeRound(iToneEnv, 0, 15, "SOUND ,,,,,") : 0,
-                iNoise: (iNoise !== undefined) ? this.vmInRangeRound(iNoise, 0, 31, "SOUND ,,,,,,") : 0
+        CpcVm.prototype.sound = function (state, period, duration, volume, volEnv, toneEnv, noise) {
+            state = this.vmInRangeRound(state, 1, 255, "SOUND");
+            period = this.vmInRangeRound(period, 0, 4095, "SOUND ,");
+            var soundData = {
+                state: state,
+                period: period,
+                duration: (duration !== undefined) ? this.vmInRangeRound(duration, -32768, 32767, "SOUND ,,") : 20,
+                volume: (volume !== undefined) ? this.vmInRangeRound(volume, 0, 15, "SOUND ,,,") : 12,
+                volEnv: (volEnv !== undefined) ? this.vmInRangeRound(volEnv, 0, 15, "SOUND ,,,,") : 0,
+                toneEnv: (toneEnv !== undefined) ? this.vmInRangeRound(toneEnv, 0, 15, "SOUND ,,,,,") : 0,
+                noise: (noise !== undefined) ? this.vmInRangeRound(noise, 0, 31, "SOUND ,,,,,,") : 0
             };
-            if (this.oSound.testCanQueue(iState)) {
-                this.oSound.sound(oSoundData);
+            if (this.soundClass.testCanQueue(state)) {
+                this.soundClass.sound(soundData);
             }
             else {
-                this.aSoundData.push(oSoundData);
+                this.soundData.push(soundData);
                 this.vmStop("waitSound", 43);
                 for (var i = 0; i < 3; i += 1) {
-                    if (iState & (1 << i)) { // eslint-disable-line no-bitwise
-                        var oSqTimer = this.aSqTimer[i];
-                        oSqTimer.bActive = false; // set onSq timer to inactive
+                    if (state & (1 << i)) { // eslint-disable-line no-bitwise
+                        var sqTimer = this.sqTimer[i];
+                        sqTimer.active = false; // set onSq timer to inactive
                     }
                 }
             }
@@ -2740,65 +2740,65 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             n = this.vmInRangeRound(n, 0, 255, "SPACE$");
             return " ".repeat(n);
         };
-        CpcVm.prototype.spc = function (iStream, n) {
-            iStream = this.vmInRangeRound(iStream, 0, 9, "SPC");
+        CpcVm.prototype.spc = function (stream, n) {
+            stream = this.vmInRangeRound(stream, 0, 9, "SPC");
             n = this.vmInRangeRound(n, -32768, 32767, "SPC");
-            var sStr = "";
+            var str = "";
             if (n >= 0) {
-                var oWin = this.aWindow[iStream], iWidth = oWin.iRight - oWin.iLeft + 1;
-                if (iWidth) {
-                    n %= iWidth;
+                var win = this.windowDataList[stream], width = win.right - win.left + 1;
+                if (width) {
+                    n %= width;
                 }
-                sStr = " ".repeat(n);
+                str = " ".repeat(n);
             }
             else {
                 Utils_1.Utils.console.log("SPC: negative number ignored:", n);
             }
-            return sStr;
+            return str;
         };
-        CpcVm.prototype.speedInk = function (iTime1, iTime2) {
-            iTime1 = this.vmInRangeRound(iTime1, 1, 255, "SPEED INK");
-            iTime2 = this.vmInRangeRound(iTime2, 1, 255, "SPEED INK");
-            this.oCanvas.setSpeedInk(iTime1, iTime2);
+        CpcVm.prototype.speedInk = function (time1, time2) {
+            time1 = this.vmInRangeRound(time1, 1, 255, "SPEED INK");
+            time2 = this.vmInRangeRound(time2, 1, 255, "SPEED INK");
+            this.canvas.setSpeedInk(time1, time2);
         };
-        CpcVm.prototype.speedKey = function (iDelay, iRepeat) {
-            iDelay = this.vmInRangeRound(iDelay, 1, 255, "SPEED KEY");
-            iRepeat = this.vmInRangeRound(iRepeat, 1, 255, "SPEED KEY");
-            this.vmNotImplemented("SPEED KEY " + iDelay + " " + iRepeat);
+        CpcVm.prototype.speedKey = function (delay, repeat) {
+            delay = this.vmInRangeRound(delay, 1, 255, "SPEED KEY");
+            repeat = this.vmInRangeRound(repeat, 1, 255, "SPEED KEY");
+            this.vmNotImplemented("SPEED KEY " + delay + " " + repeat);
         };
         CpcVm.prototype.speedWrite = function (n) {
             n = this.vmInRangeRound(n, 0, 1, "SPEED WRITE");
             this.vmNotImplemented("SPEED WRITE " + n);
         };
-        CpcVm.prototype.sq = function (iChannel) {
-            iChannel = this.vmInRangeRound(iChannel, 1, 4, "SQ");
-            if (iChannel === 3) {
-                throw this.vmComposeError(Error(), 5, "ON SQ GOSUB " + iChannel); // Improper argument
+        CpcVm.prototype.sq = function (channel) {
+            channel = this.vmInRangeRound(channel, 1, 4, "SQ");
+            if (channel === 3) {
+                throw this.vmComposeError(Error(), 5, "ON SQ GOSUB " + channel); // Improper argument
             }
-            iChannel = CpcVm.fnChannel2ChannelIndex(iChannel);
-            var iSq = this.oSound.sq(iChannel), oSqTimer = this.aSqTimer[iChannel];
+            channel = CpcVm.fnChannel2ChannelIndex(channel);
+            var sq = this.soundClass.sq(channel), sqTimer = this.sqTimer[channel];
             // no space in queue and handler active?
-            if (!(iSq & 0x07) && oSqTimer.bActive) { // eslint-disable-line no-bitwise
-                oSqTimer.bActive = false; // set onSq timer to inactive
+            if (!(sq & 0x07) && sqTimer.active) { // eslint-disable-line no-bitwise
+                sqTimer.active = false; // set onSq timer to inactive
             }
-            return iSq;
+            return sq;
         };
         CpcVm.prototype.sqr = function (n) {
             this.vmAssertNumber(n, "SQR");
             return Math.sqrt(n);
         };
         // step
-        CpcVm.prototype.stop = function (sLabel) {
-            this.vmGotoLine(sLabel, "stop");
+        CpcVm.prototype.stop = function (label) {
+            this.vmGotoLine(label, "stop");
             this.vmStop("stop", 60);
         };
         CpcVm.prototype.str$ = function (n) {
             this.vmAssertNumber(n, "STR$");
-            var sStr = ((n >= 0) ? " " : "") + String(n);
-            return sStr;
+            var str = ((n >= 0) ? " " : "") + String(n);
+            return str;
         };
-        CpcVm.prototype.string$ = function (iLen, chr) {
-            iLen = this.vmInRangeRound(iLen, 0, 255, "STRING$");
+        CpcVm.prototype.string$ = function (len, chr) {
+            len = this.vmInRangeRound(len, 0, 255, "STRING$");
             if (typeof chr === "number") {
                 chr = this.vmInRangeRound(chr, 0, 255, "STRING$");
                 chr = String.fromCharCode(chr); // chr$
@@ -2806,102 +2806,102 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             else { // string
                 chr = chr.charAt(0); // only one char
             }
-            return chr.repeat(iLen);
+            return chr.repeat(len);
         };
         // swap (window swap)
-        CpcVm.prototype.symbol = function (iChar) {
-            var aArgs = [];
+        CpcVm.prototype.symbol = function (char) {
+            var args = [];
             for (var _i = 1; _i < arguments.length; _i++) {
-                aArgs[_i - 1] = arguments[_i];
+                args[_i - 1] = arguments[_i];
             }
-            var aCharData = [];
-            iChar = this.vmInRangeRound(iChar, this.iMinCustomChar, 255, "SYMBOL");
-            for (var i = 0; i < aArgs.length; i += 1) { // start with 1, get available args
-                var iBitMask = this.vmInRangeRound(aArgs[i], 0, 255, "SYMBOL");
-                aCharData.push(iBitMask);
+            var charData = [];
+            char = this.vmInRangeRound(char, this.minCustomChar, 255, "SYMBOL");
+            for (var i = 0; i < args.length; i += 1) { // start with 1, get available args
+                var bitMask = this.vmInRangeRound(args[i], 0, 255, "SYMBOL");
+                charData.push(bitMask);
             }
             // Note: If there are less than 8 rows, the others are assumed as 0 (actually empty)
-            this.oCanvas.setCustomChar(iChar, aCharData);
+            this.canvas.setCustomChar(char, charData);
         };
-        CpcVm.prototype.symbolAfter = function (iChar) {
-            iChar = this.vmInRangeRound(iChar, 0, 256, "SYMBOL AFTER");
-            if (this.iMinCustomChar < 256) { // symbol after <256 set?
-                if (this.iMinCharHimem !== this.iHimem) { // himem changed?
-                    throw this.vmComposeError(Error(), 5, "SYMBOL AFTER " + iChar); // Improper argument
+        CpcVm.prototype.symbolAfter = function (char) {
+            char = this.vmInRangeRound(char, 0, 256, "SYMBOL AFTER");
+            if (this.minCustomChar < 256) { // symbol after <256 set?
+                if (this.minCharHimem !== this.himemValue) { // himem changed?
+                    throw this.vmComposeError(Error(), 5, "SYMBOL AFTER " + char); // Improper argument
                 }
             }
             else {
-                this.iMaxCharHimem = this.iHimem; // no characters defined => use current himem
+                this.maxCharHimem = this.himemValue; // no characters defined => use current himem
             }
-            var iMinCharHimem = this.iMaxCharHimem - (256 - iChar) * 8;
-            if (iMinCharHimem < CpcVm.iMinHimem) {
-                throw this.vmComposeError(Error(), 7, "SYMBOL AFTER " + iMinCharHimem); // Memory full
+            var minCharHimem = this.maxCharHimem - (256 - char) * 8;
+            if (minCharHimem < CpcVm.minHimem) {
+                throw this.vmComposeError(Error(), 7, "SYMBOL AFTER " + minCharHimem); // Memory full
             }
-            this.iHimem = iMinCharHimem;
-            this.oCanvas.resetCustomChars();
-            if (iChar === 256) { // maybe move up again
-                iMinCharHimem = CpcVm.iMaxHimem;
-                this.iMaxCharHimem = iMinCharHimem;
+            this.himemValue = minCharHimem;
+            this.canvas.resetCustomChars();
+            if (char === 256) { // maybe move up again
+                minCharHimem = CpcVm.maxHimem;
+                this.maxCharHimem = minCharHimem;
             }
             // TODO: Copy char data to screen memory, if screen starts at 0x4000 and chardata is in that range (and ram 0 is selected)
-            this.iMinCustomChar = iChar;
-            this.iMinCharHimem = iMinCharHimem;
+            this.minCustomChar = char;
+            this.minCharHimem = minCharHimem;
         };
-        CpcVm.prototype.tab = function (iStream, n) {
-            iStream = this.vmInRangeRound(iStream, 0, 9, "TAB");
+        CpcVm.prototype.tab = function (stream, n) {
+            stream = this.vmInRangeRound(stream, 0, 9, "TAB");
             n = this.vmInRangeRound(n, -32768, 32767, "TAB");
-            var oWin = this.aWindow[iStream], iWidth = oWin.iRight - oWin.iLeft + 1;
-            var sStr = "";
+            var win = this.windowDataList[stream], width = win.right - win.left + 1;
+            var str = "";
             if (n > 0) {
                 n -= 1;
-                if (iWidth) {
-                    n %= iWidth;
+                if (width) {
+                    n %= width;
                 }
-                var iCount = n - oWin.iPos;
-                if (iCount < 0) { // does it fit until tab position?
-                    oWin.iPos = oWin.iRight + 1;
-                    this.vmMoveCursor2AllowedPos(iStream);
-                    iCount = n; // set tab in next line
+                var count = n - win.pos;
+                if (count < 0) { // does it fit until tab position?
+                    win.pos = win.right + 1;
+                    this.vmMoveCursor2AllowedPos(stream);
+                    count = n; // set tab in next line
                 }
-                sStr = " ".repeat(iCount);
+                str = " ".repeat(count);
             }
             else {
                 Utils_1.Utils.console.log("TAB: no tab for value", n);
             }
-            return sStr;
+            return str;
         };
-        CpcVm.prototype.tag = function (iStream) {
-            iStream = this.vmInRangeRound(iStream, 0, 7, "TAG");
-            var oWin = this.aWindow[iStream];
-            oWin.bTag = true;
+        CpcVm.prototype.tag = function (stream) {
+            stream = this.vmInRangeRound(stream, 0, 7, "TAG");
+            var win = this.windowDataList[stream];
+            win.tag = true;
         };
-        CpcVm.prototype.tagoff = function (iStream) {
-            iStream = this.vmInRangeRound(iStream, 0, 7, "TAGOFF");
-            var oWin = this.aWindow[iStream];
-            oWin.bTag = false;
+        CpcVm.prototype.tagoff = function (stream) {
+            stream = this.vmInRangeRound(stream, 0, 7, "TAGOFF");
+            var win = this.windowDataList[stream];
+            win.tag = false;
         };
         CpcVm.prototype.tan = function (n) {
             this.vmAssertNumber(n, "TAN");
-            return Math.tan((this.bDeg) ? Utils_1.Utils.toRadians(n) : n);
+            return Math.tan((this.degFlag) ? Utils_1.Utils.toRadians(n) : n);
         };
         CpcVm.prototype.test = function (x, y) {
             x = this.vmInRangeRound(x, -32768, 32767, "TEST");
             y = this.vmInRangeRound(y, -32768, 32767, "TEST");
-            return this.oCanvas.test(x, y);
+            return this.canvas.test(x, y);
         };
         CpcVm.prototype.testr = function (x, y) {
             x = this.vmInRangeRound(x, -32768, 32767, "TESTR");
             y = this.vmInRangeRound(y, -32768, 32767, "TESTR");
-            return this.oCanvas.testr(x, y);
+            return this.canvas.testr(x, y);
         };
         CpcVm.prototype.time = function () {
-            return ((Date.now() - this.iStartTime) * 300 / 1000) | 0; // eslint-disable-line no-bitwise
+            return ((Date.now() - this.startTime) * 300 / 1000) | 0; // eslint-disable-line no-bitwise
         };
         CpcVm.prototype.troff = function () {
-            this.bTron = false;
+            this.tronFlag1 = false;
         };
         CpcVm.prototype.tron = function () {
-            this.bTron = true;
+            this.tronFlag1 = true;
         };
         CpcVm.prototype.unt = function (n) {
             n = this.vmInRangeRound(n, -32768, 65535, "UNT");
@@ -2910,221 +2910,221 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             }
             return n;
         };
-        CpcVm.fnUpperCase = function (sMatch) {
-            return sMatch.toUpperCase();
+        CpcVm.fnUpperCase = function (match) {
+            return match.toUpperCase();
         };
         CpcVm.prototype.upper$ = function (s) {
             this.vmAssertString(s, "UPPER$");
             s = s.replace(/[a-z]/g, CpcVm.fnUpperCase); // replace only characters a-z
             return s;
         };
-        CpcVm.prototype.using = function (sFormat) {
-            var aArgs = [];
+        CpcVm.prototype.using = function (format) {
+            var args = [];
             for (var _i = 1; _i < arguments.length; _i++) {
-                aArgs[_i - 1] = arguments[_i];
+                args[_i - 1] = arguments[_i];
             }
-            var reFormat = /(!|&|\\ *\\|(?:\*\*|\$\$|\*\*\$)?\+?(?:#|,)+\.?#*(?:\^\^\^\^)?[+-]?)/g, aFormat = [];
-            this.vmAssertString(sFormat, "USING");
-            // We simulate sFormat.split(reFormat) here since it does not work with IE8
-            var iIndex = 0, oMatch;
-            while ((oMatch = reFormat.exec(sFormat)) !== null) {
-                aFormat.push(sFormat.substring(iIndex, oMatch.index)); // non-format characters at the beginning
-                aFormat.push(oMatch[0]);
-                iIndex = oMatch.index + oMatch[0].length;
+            var reFormat = /(!|&|\\ *\\|(?:\*\*|\$\$|\*\*\$)?\+?(?:#|,)+\.?#*(?:\^\^\^\^)?[+-]?)/g, formatList = [];
+            this.vmAssertString(format, "USING");
+            // We simulate format.split(reFormat) here since it does not work with IE8
+            var index = 0, match;
+            while ((match = reFormat.exec(format)) !== null) {
+                formatList.push(format.substring(index, match.index)); // non-format characters at the beginning
+                formatList.push(match[0]);
+                index = match.index + match[0].length;
             }
-            if (iIndex < sFormat.length) { // non-format characters at the end
-                aFormat.push(sFormat.substr(iIndex));
+            if (index < format.length) { // non-format characters at the end
+                formatList.push(format.substr(index));
             }
-            if (aFormat.length < 2) {
-                Utils_1.Utils.console.warn("USING: empty or invalid format:", sFormat);
-                throw this.vmComposeError(Error(), 5, "USING format " + sFormat); // Improper argument
+            if (formatList.length < 2) {
+                Utils_1.Utils.console.warn("USING: empty or invalid format:", format);
+                throw this.vmComposeError(Error(), 5, "USING format " + format); // Improper argument
             }
-            var iFormat = 0, s = "";
-            for (var i = 0; i < aArgs.length; i += 1) { // start with 1
-                iFormat %= aFormat.length;
-                if (iFormat === 0) {
-                    s += aFormat[iFormat]; // non-format characters at the beginning of the format string
-                    iFormat += 1;
+            var formatIndex = 0, s = "";
+            for (var i = 0; i < args.length; i += 1) { // start with 1
+                formatIndex %= formatList.length;
+                if (formatIndex === 0) {
+                    s += formatList[formatIndex]; // non-format characters at the beginning of the format string
+                    formatIndex += 1;
                 }
-                if (iFormat < aFormat.length) {
-                    var arg = aArgs[i];
-                    s += this.vmUsingFormat1(aFormat[iFormat], arg); // format characters
-                    iFormat += 1;
+                if (formatIndex < formatList.length) {
+                    var arg = args[i];
+                    s += this.vmUsingFormat1(formatList[formatIndex], arg); // format characters
+                    formatIndex += 1;
                 }
-                if (iFormat < aFormat.length) {
-                    s += aFormat[iFormat]; // following non-format characters
-                    iFormat += 1;
+                if (formatIndex < formatList.length) {
+                    s += formatList[formatIndex]; // following non-format characters
+                    formatIndex += 1;
                 }
             }
             return s;
         };
         CpcVm.vmVal = function (s) {
-            var iNum = 0;
+            var num = 0;
             s = s.trim().toLowerCase();
             if (s.startsWith("&x")) { // binary &x
                 s = s.slice(2);
-                iNum = parseInt(s, 2);
+                num = parseInt(s, 2);
             }
             else if (s.startsWith("&h")) { // hex &h
                 s = s.slice(2);
-                iNum = parseInt(s, 16);
+                num = parseInt(s, 16);
             }
             else if (s.startsWith("&")) { // hex &
                 s = s.slice(1);
-                iNum = parseInt(s, 16);
+                num = parseInt(s, 16);
             }
             else if (s !== "") { // not empty string?
-                iNum = parseFloat(s);
+                num = parseFloat(s);
             }
-            return iNum;
+            return num;
         };
         CpcVm.prototype.val = function (s) {
             this.vmAssertString(s, "VAL");
-            var iNum = CpcVm.vmVal(s);
-            if (isNaN(iNum)) {
-                iNum = 0;
+            var num = CpcVm.vmVal(s);
+            if (isNaN(num)) {
+                num = 0;
             }
-            return iNum;
+            return num;
         };
-        CpcVm.prototype.vpos = function (iStream) {
-            iStream = this.vmInRangeRound(iStream, 0, 7, "VPOS");
-            var iVpos = this.vmGetAllowedPosOrVpos(iStream, true) + 1; // get allowed vpos
-            return iVpos;
+        CpcVm.prototype.vpos = function (stream) {
+            stream = this.vmInRangeRound(stream, 0, 7, "VPOS");
+            var vpos = this.vmGetAllowedPosOrVpos(stream, true) + 1; // get allowed vpos
+            return vpos;
         };
-        CpcVm.prototype.wait = function (iPort, iMask, iInv) {
-            iPort = this.vmInRangeRound(iPort, -32768, 65535, "WAIT");
-            if (iPort < 0) { // 2nd complement of 16 bit address
-                iPort += 65536;
+        CpcVm.prototype.wait = function (port, mask, inv) {
+            port = this.vmInRangeRound(port, -32768, 65535, "WAIT");
+            if (port < 0) { // 2nd complement of 16 bit address
+                port += 65536;
             }
-            iMask = this.vmInRangeRound(iMask, 0, 255, "WAIT");
-            if (iInv !== undefined) {
-                iInv = this.vmInRangeRound(iInv, 0, 255, "WAIT");
+            mask = this.vmInRangeRound(mask, 0, 255, "WAIT");
+            if (inv !== undefined) {
+                inv = this.vmInRangeRound(inv, 0, 255, "WAIT");
             }
-            if ((iPort & 0xff00) === 0xf500) { // eslint-disable-line no-bitwise
-                if (iMask === 1) {
+            if ((port & 0xff00) === 0xf500) { // eslint-disable-line no-bitwise
+                if (mask === 1) {
                     this.frame();
                 }
             }
-            else if (iPort === 0) {
+            else if (port === 0) {
                 debugger; // Testing
             }
         };
         // wend
         // while
-        CpcVm.prototype.width = function (iWidth) {
-            iWidth = this.vmInRangeRound(iWidth, 1, 255, "WIDTH");
-            var oWin = this.aWindow[8];
-            oWin.iRight = oWin.iLeft + iWidth;
+        CpcVm.prototype.width = function (width) {
+            width = this.vmInRangeRound(width, 1, 255, "WIDTH");
+            var win = this.windowDataList[8];
+            win.right = win.left + width;
         };
-        CpcVm.prototype.window = function (iStream, iLeft, iRight, iTop, iBottom) {
-            iStream = this.vmInRangeRound(iStream, 0, 7, "WINDOW");
-            iLeft = this.vmInRangeRound(iLeft, 1, 255, "WINDOW");
-            iRight = this.vmInRangeRound(iRight, 1, 255, "WINDOW");
-            iTop = this.vmInRangeRound(iTop, 1, 255, "WINDOW");
-            iBottom = this.vmInRangeRound(iBottom, 1, 255, "WINDOW");
-            var oWin = this.aWindow[iStream];
-            oWin.iLeft = Math.min(iLeft, iRight) - 1;
-            oWin.iRight = Math.max(iLeft, iRight) - 1;
-            oWin.iTop = Math.min(iTop, iBottom) - 1;
-            oWin.iBottom = Math.max(iTop, iBottom) - 1;
-            oWin.iPos = 0;
-            oWin.iVpos = 0;
+        CpcVm.prototype.window = function (stream, left, right, top, bottom) {
+            stream = this.vmInRangeRound(stream, 0, 7, "WINDOW");
+            left = this.vmInRangeRound(left, 1, 255, "WINDOW");
+            right = this.vmInRangeRound(right, 1, 255, "WINDOW");
+            top = this.vmInRangeRound(top, 1, 255, "WINDOW");
+            bottom = this.vmInRangeRound(bottom, 1, 255, "WINDOW");
+            var win = this.windowDataList[stream];
+            win.left = Math.min(left, right) - 1;
+            win.right = Math.max(left, right) - 1;
+            win.top = Math.min(top, bottom) - 1;
+            win.bottom = Math.max(top, bottom) - 1;
+            win.pos = 0;
+            win.vpos = 0;
         };
-        CpcVm.prototype.windowSwap = function (iStream1, iStream2) {
-            iStream1 = this.vmInRangeRound(iStream1, 0, 7, "WINDOW SWAP");
-            iStream2 = this.vmInRangeRound(iStream2 || 0, 0, 7, "WINDOW SWAP");
-            var oTemp = this.aWindow[iStream1];
-            this.aWindow[iStream1] = this.aWindow[iStream2];
-            this.aWindow[iStream2] = oTemp;
+        CpcVm.prototype.windowSwap = function (stream1, stream2) {
+            stream1 = this.vmInRangeRound(stream1, 0, 7, "WINDOW SWAP");
+            stream2 = this.vmInRangeRound(stream2 || 0, 0, 7, "WINDOW SWAP");
+            var temp = this.windowDataList[stream1];
+            this.windowDataList[stream1] = this.windowDataList[stream2];
+            this.windowDataList[stream2] = temp;
         };
-        CpcVm.prototype.write = function (iStream) {
-            var aArgs = [];
+        CpcVm.prototype.write = function (stream) {
+            var args = [];
             for (var _i = 1; _i < arguments.length; _i++) {
-                aArgs[_i - 1] = arguments[_i];
+                args[_i - 1] = arguments[_i];
             }
-            iStream = this.vmInRangeRound(iStream, 0, 9, "WRITE");
-            var aWriteArgs = [];
-            var sStr;
-            for (var i = 0; i < aArgs.length; i += 1) {
-                var arg = aArgs[i];
+            stream = this.vmInRangeRound(stream, 0, 9, "WRITE");
+            var writeArgs = [];
+            var str;
+            for (var i = 0; i < args.length; i += 1) {
+                var arg = args[i];
                 if (typeof arg === "number") {
-                    sStr = String(arg);
+                    str = String(arg);
                 }
                 else {
-                    sStr = '"' + String(arg) + '"';
+                    str = '"' + String(arg) + '"';
                 }
-                aWriteArgs.push(sStr);
+                writeArgs.push(str);
             }
-            sStr = aWriteArgs.join(",");
-            if (iStream < 8) {
-                var oWin = this.aWindow[iStream];
-                if (oWin.bTag) {
-                    this.vmPrintGraphChars(sStr + "\r\n");
+            str = writeArgs.join(",");
+            if (stream < 8) {
+                var win = this.windowDataList[stream];
+                if (win.tag) {
+                    this.vmPrintGraphChars(str + "\r\n");
                 }
                 else {
-                    this.vmDrawUndrawCursor(iStream); // undraw
-                    this.vmPrintChars(iStream, sStr);
-                    this.vmPrintCharsOrControls(iStream, "\r\n");
-                    this.vmDrawUndrawCursor(iStream); // draw
+                    this.vmDrawUndrawCursor(stream); // undraw
+                    this.vmPrintChars(stream, str);
+                    this.vmPrintCharsOrControls(stream, "\r\n");
+                    this.vmDrawUndrawCursor(stream); // draw
                 }
-                this.sOut += sStr + "\n"; // console
+                this.outBuffer += str + "\n"; // console
             }
-            else if (iStream === 8) {
-                this.vmNotImplemented("WRITE #" + iStream);
+            else if (stream === 8) {
+                this.vmNotImplemented("WRITE #" + stream);
             }
-            else if (iStream === 9) {
-                this.oOutFile.iStream = iStream;
-                if (!this.oOutFile.bOpen) {
-                    throw this.vmComposeError(Error(), 31, "WRITE #" + iStream); // File not open
+            else if (stream === 9) {
+                this.outFile.stream = stream;
+                if (!this.outFile.open) {
+                    throw this.vmComposeError(Error(), 31, "WRITE #" + stream); // File not open
                 }
-                this.oOutFile.aFileData.push(sStr + "\n"); // real CPC would use CRLF, we use LF
+                this.outFile.fileData.push(str + "\n"); // real CPC would use CRLF, we use LF
                 // currently we print data also to console...
             }
         };
         CpcVm.prototype.xpos = function () {
-            return this.oCanvas.getXpos();
+            return this.canvas.getXpos();
         };
         CpcVm.prototype.ypos = function () {
-            return this.oCanvas.getYpos();
+            return this.canvas.getYpos();
         };
         CpcVm.prototype.zone = function (n) {
             n = this.vmInRangeRound(n, 1, 255, "ZONE");
-            this.iZone = n;
+            this.zoneValue = n;
         };
-        CpcVm.iFrameTimeMs = 1000 / 50; // 50 Hz => 20 ms
-        CpcVm.iTimerCount = 4; // number of timers
-        CpcVm.iSqTimerCount = 3; // sound queue timers
-        CpcVm.iStreamCount = 10; // 0..7 window, 8 printer, 9 cassette
-        CpcVm.iMinHimem = 370;
-        CpcVm.iMaxHimem = 42747; // high memory limit (42747 after symbol after 256)
-        CpcVm.oEmptyParas = {};
-        CpcVm.mWinData = [
+        CpcVm.frameTimeMs = 1000 / 50; // 50 Hz => 20 ms
+        CpcVm.timerCount = 4; // number of timers
+        CpcVm.sqTimerCount = 3; // sound queue timers
+        CpcVm.streamCount = 10; // 0..7 window, 8 printer, 9 cassette
+        CpcVm.minHimem = 370;
+        CpcVm.maxHimem = 42747; // high memory limit (42747 after symbol after 256)
+        CpcVm.emptyParas = {};
+        CpcVm.winData = [
             {
-                iLeft: 0,
-                iRight: 19,
-                iTop: 0,
-                iBottom: 24
+                left: 0,
+                right: 19,
+                top: 0,
+                bottom: 24
             },
             {
-                iLeft: 0,
-                iRight: 39,
-                iTop: 0,
-                iBottom: 24
+                left: 0,
+                right: 39,
+                top: 0,
+                bottom: 24
             },
             {
-                iLeft: 0,
-                iRight: 79,
-                iTop: 0,
-                iBottom: 24
+                left: 0,
+                right: 79,
+                top: 0,
+                bottom: 24
             },
             {
-                iLeft: 0,
-                iRight: 79,
-                iTop: 0,
-                iBottom: 49
+                left: 0,
+                right: 79,
+                top: 0,
+                bottom: 49
             }
         ];
-        CpcVm.mUtf8ToCpc = {
+        CpcVm.utf8ToCpc = {
             8364: 128,
             8218: 130,
             402: 131,
@@ -3153,7 +3153,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             382: 158,
             376: 159
         };
-        CpcVm.aControlCodeParameterCount = [
+        CpcVm.controlCodeParameterCount = [
             0,
             1,
             0,
@@ -3187,7 +3187,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             0,
             2 //  0x1f
         ];
-        CpcVm.aErrors = [
+        CpcVm.errors = [
             "Improper argument",
             "Unexpected NEXT",
             "Syntax Error",
@@ -3223,7 +3223,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             "Broken",
             "Unknown error" // 33...
         ];
-        CpcVm.mStopPriority = {
+        CpcVm.stopPriority = {
             "": 0,
             direct: 0,
             timer: 20,

@@ -11,53 +11,53 @@ define(["require", "exports"], function (require, exports) {
         }
         Utils.fnLoadScriptOrStyle = function (script, fnSuccess, fnError) {
             // inspired by https://github.com/requirejs/requirejs/blob/master/require.js
-            var iIEtimeoutCount = 3;
+            var ieTimeoutCount = 3; // IE timeout count
             var onScriptLoad = function (event) {
-                var sType = event.type, // "load" or "error"
-                node = (event.currentTarget || event.srcElement), sFullUrl = node.src || node.href, // src for script, href for link
-                sKey = node.getAttribute("data-key");
+                var type = event.type, // "load" or "error"
+                node = (event.currentTarget || event.srcElement), fullUrl = node.src || node.href, // src for script, href for link
+                key = node.getAttribute("data-key");
                 if (Utils.debug > 1) {
-                    Utils.console.debug("onScriptLoad:", sType, sFullUrl, sKey);
+                    Utils.console.debug("onScriptLoad:", type, fullUrl, key);
                 }
                 node.removeEventListener("load", onScriptLoad, false);
                 node.removeEventListener("error", onScriptLoad, false);
-                if (sType === "load") {
-                    fnSuccess(sFullUrl, sKey);
+                if (type === "load") {
+                    fnSuccess(fullUrl, key);
                 }
                 else {
-                    fnError(sFullUrl, sKey);
+                    fnError(fullUrl, key);
                 }
             }, onScriptReadyStateChange = function (event) {
-                var node = (event ? (event.currentTarget || event.srcElement) : script), sFullUrl = node.src || node.href, // src for script, href for link
-                sKey = node.getAttribute("data-key"), node2 = node;
+                var node = (event ? (event.currentTarget || event.srcElement) : script), fullUrl = node.src || node.href, // src for script, href for link
+                key = node.getAttribute("data-key"), node2 = node;
                 if (node2.detachEvent) {
                     node2.detachEvent("onreadystatechange", onScriptReadyStateChange);
                 }
                 if (Utils.debug > 1) {
-                    Utils.console.debug("onScriptReadyStateChange: " + sFullUrl);
+                    Utils.console.debug("onScriptReadyStateChange: " + fullUrl);
                 }
                 // check also: https://stackoverflow.com/questions/1929742/can-script-readystate-be-trusted-to-detect-the-end-of-dynamic-script-loading
                 if (node2.readyState !== "loaded" && node2.readyState !== "complete") {
-                    if (node2.readyState === "loading" && iIEtimeoutCount) {
-                        iIEtimeoutCount -= 1;
-                        var iTimeout = 200; // some delay
-                        Utils.console.error("onScriptReadyStateChange: Still loading: " + sFullUrl + " Waiting " + iTimeout + "ms (count=" + iIEtimeoutCount + ")");
+                    if (node2.readyState === "loading" && ieTimeoutCount) {
+                        ieTimeoutCount -= 1;
+                        var timeout = 200; // some delay
+                        Utils.console.error("onScriptReadyStateChange: Still loading: " + fullUrl + " Waiting " + timeout + "ms (count=" + ieTimeoutCount + ")");
                         setTimeout(function () {
                             onScriptReadyStateChange(undefined); // check again
-                        }, iTimeout);
+                        }, timeout);
                     }
                     else {
-                        // iIEtimeoutCount = 3;
-                        Utils.console.error("onScriptReadyStateChange: Cannot load file " + sFullUrl + " readystate=" + node2.readyState);
-                        fnError(sFullUrl, sKey);
+                        // ieTimeoutCount = 3;
+                        Utils.console.error("onScriptReadyStateChange: Cannot load file " + fullUrl + " readystate=" + node2.readyState);
+                        fnError(fullUrl, key);
                     }
                 }
                 else {
-                    fnSuccess(sFullUrl, sKey);
+                    fnSuccess(fullUrl, key);
                 }
             };
             if (script.readyState) { // old IE8
-                iIEtimeoutCount = 3;
+                ieTimeoutCount = 3;
                 script.attachEvent("onreadystatechange", onScriptReadyStateChange);
             }
             else { // Others
@@ -66,18 +66,18 @@ define(["require", "exports"], function (require, exports) {
             }
             document.getElementsByTagName("head")[0].appendChild(script);
         };
-        Utils.loadScript = function (sUrl, fnSuccess, fnError, sKey) {
+        Utils.loadScript = function (url, fnSuccess, fnError, key) {
             var script = document.createElement("script");
             script.type = "text/javascript";
             script.charset = "utf-8";
             script.async = true;
-            script.src = sUrl;
-            script.setAttribute("data-key", sKey);
+            script.src = url;
+            script.setAttribute("data-key", key);
             this.fnLoadScriptOrStyle(script, fnSuccess, fnError);
         };
         Utils.hexEscape = function (str) {
-            return str.replace(/[\x00-\x1f]/g, function (sChar) {
-                return "\\x" + ("00" + sChar.charCodeAt(0).toString(16)).slice(-2);
+            return str.replace(/[\x00-\x1f]/g, function (char) {
+                return "\\x" + ("00" + char.charCodeAt(0).toString(16)).slice(-2);
             });
         };
         Utils.hexUnescape = function (str) {
@@ -94,9 +94,9 @@ define(["require", "exports"], function (require, exports) {
         };
         Utils.numberWithCommas = function (x) {
             // https://stackoverflow.com/questions/2901102/how-to-print-a-number-with-commas-as-thousands-separators-in-javascript
-            var aParts = String(x).split(".");
-            aParts[0] = aParts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-            return aParts.join(".");
+            var parts = String(x).split(".");
+            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            return parts.join(".");
         };
         Utils.toRadians = function (deg) {
             return deg * Math.PI / 180;
@@ -104,51 +104,51 @@ define(["require", "exports"], function (require, exports) {
         Utils.toDegrees = function (rad) {
             return rad * 180 / Math.PI;
         };
-        Utils.testIsSupported = function (sTestExpression) {
+        Utils.testIsSupported = function (testExpression) {
             try {
-                Function(sTestExpression); // eslint-disable-line no-new-func
+                Function(testExpression); // eslint-disable-line no-new-func
             }
             catch (e) {
                 return false;
             }
             return true;
         };
-        Utils.stringTrimEnd = function (sStr) {
-            return sStr.replace(/[\s\uFEFF\xA0]+$/, "");
+        Utils.stringTrimEnd = function (str) {
+            return str.replace(/[\s\uFEFF\xA0]+$/, "");
         };
         Utils.isCustomError = function (e) {
             return e.pos !== undefined;
         };
-        Utils.composeError = function (name, oErrorObject, message, value, pos, len, line, hidden) {
-            var oCustomError = oErrorObject;
-            oCustomError.name = name;
-            oCustomError.message = message;
-            oCustomError.value = value;
-            oCustomError.pos = pos;
+        Utils.composeError = function (name, errorObject, message, value, pos, len, line, hidden) {
+            var customError = errorObject;
+            customError.name = name;
+            customError.message = message;
+            customError.value = value;
+            customError.pos = pos;
             if (len !== undefined) {
-                oCustomError.len = len;
+                customError.len = len;
             }
             if (line !== undefined) {
-                oCustomError.line = line;
+                customError.line = line;
             }
             if (hidden !== undefined) {
-                oCustomError.hidden = hidden;
+                customError.hidden = hidden;
             }
-            var iLen = oCustomError.len;
-            if (iLen === undefined && oCustomError.value !== undefined) {
-                iLen = String(oCustomError.value).length;
+            var errorLen = customError.len;
+            if (errorLen === undefined && customError.value !== undefined) {
+                errorLen = String(customError.value).length;
             }
-            var iEndPos = oCustomError.pos + (iLen || 0);
-            oCustomError.shortMessage = oCustomError.message + (oCustomError.line !== undefined ? " in " + oCustomError.line : " at pos " + oCustomError.pos + "-" + iEndPos) + ": " + oCustomError.value;
-            oCustomError.message += (oCustomError.line !== undefined ? " in " + oCustomError.line : "") + " at pos " + oCustomError.pos + "-" + iEndPos + ": " + oCustomError.value;
-            return oCustomError;
+            var endPos = customError.pos + (errorLen || 0);
+            customError.shortMessage = customError.message + (customError.line !== undefined ? " in " + customError.line : " at pos " + customError.pos + "-" + endPos) + ": " + customError.value;
+            customError.message += (customError.line !== undefined ? " in " + customError.line : "") + " at pos " + customError.pos + "-" + endPos + ": " + customError.value;
+            return customError;
         };
         Utils.debug = 0;
         Utils.console = (function () {
             return typeof window !== "undefined" ? window.console : globalThis.console; // browser or node.js
         }());
-        Utils.bSupportsBinaryLiterals = Utils.testIsSupported("0b01"); // does the browser support binary literals?
-        Utils.bSupportReservedNames = Utils.testIsSupported("({}).return()"); // does the browser support reserved names (delete, new, return) in dot notation? (not old IE8; "goto" is ok)
+        Utils.supportsBinaryLiterals = Utils.testIsSupported("0b01"); // does the browser support binary literals?
+        Utils.supportReservedNames = Utils.testIsSupported("({}).return()"); // does the browser support reserved names (delete, new, return) in dot notation? (not old IE8; "goto" is ok)
         Utils.localStorage = (function () {
             var rc;
             if (typeof window !== "undefined") {

@@ -1,6 +1,6 @@
 interface BasicLexerOptions {
-    bQuiet?: boolean;
-    bKeepWhiteSpace?: boolean;
+    quiet?: boolean;
+    keepWhiteSpace?: boolean;
 }
 export interface LexerToken {
     type: string;
@@ -10,14 +10,14 @@ export interface LexerToken {
     ws?: string;
 }
 export declare class BasicLexer {
-    private bQuiet;
-    private bKeepWhiteSpace;
-    private sLine;
-    private bTakeNumberAsLine;
-    private sInput;
-    private iIndex;
-    private aTokens;
-    private sWhiteSpace;
+    private quiet;
+    private keepWhiteSpace;
+    private line;
+    private takeNumberAsLine;
+    private input;
+    private index;
+    private tokens;
+    private whiteSpace;
     setOptions(options: BasicLexerOptions): void;
     constructor(options?: BasicLexerOptions);
     private composeError;
@@ -54,6 +54,6 @@ export declare class BasicLexer {
     private fnParseCompleteLineForData;
     private fnParseIdentifier;
     private fnTryContinueString;
-    lex(sInput: string): LexerToken[];
+    lex(input: string): LexerToken[];
 }
 export {};

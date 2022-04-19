@@ -25,18 +25,18 @@ export declare class Model {
     private databases;
     private examples;
     constructor(config: ConfigType);
-    getProperty<T extends ConfigEntryType>(sProperty: string): T;
-    setProperty<T extends ConfigEntryType>(sProperty: string, value: T): void;
+    getProperty<T extends ConfigEntryType>(property: string): T;
+    setProperty<T extends ConfigEntryType>(property: string, value: T): void;
     getAllProperties(): ConfigType;
     getAllInitialProperties(): ConfigType;
     getChangedProperties(): ConfigType;
-    addDatabases(oDb: DatabasesType): void;
+    addDatabases(db: DatabasesType): void;
     getAllDatabases(): DatabasesType;
     getDatabase(): DatabaseEntry;
     getAllExamples(): {
         [x: string]: ExampleEntry;
     };
-    getExample(sKey: string): ExampleEntry;
-    setExample(oExample: ExampleEntry): void;
-    removeExample(sKey: string): void;
+    getExample(key: string): ExampleEntry;
+    setExample(example: ExampleEntry): void;
+    removeExample(key: string): void;
 }

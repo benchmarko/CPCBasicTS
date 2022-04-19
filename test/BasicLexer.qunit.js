@@ -5,7 +5,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "./TestHelper"], func
     Object.defineProperty(exports, "__esModule", { value: true });
     QUnit.dump.maxDepth = 10;
     QUnit.module("BasicLexer: Tests", function () {
-        var mAllTests = {
+        var allTests = {
             numbers: {
                 "a=1": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"number","value":"1","pos":2},{"type":"(end)","value":"","pos":3}]',
                 "a=1.2": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"number","value":"1.2","pos":2},{"type":"(end)","value":"","pos":5}]',
@@ -622,45 +622,45 @@ define(["require", "exports", "../Utils", "../BasicLexer", "./TestHelper"], func
                 "a = (((3+2))*((3-7)))": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":2},{"type":"(","value":"(","pos":4},{"type":"(","value":"(","pos":5},{"type":"(","value":"(","pos":6},{"type":"number","value":"3","pos":7},{"type":"+","value":"+","pos":8},{"type":"number","value":"2","pos":9},{"type":")","value":")","pos":10},{"type":")","value":")","pos":11},{"type":"*","value":"*","pos":12},{"type":"(","value":"(","pos":13},{"type":"(","value":"(","pos":14},{"type":"number","value":"3","pos":15},{"type":"-","value":"-","pos":16},{"type":"number","value":"7","pos":17},{"type":")","value":")","pos":18},{"type":")","value":")","pos":19},{"type":")","value":")","pos":20},{"type":"(end)","value":"","pos":21}]'
             }
         };
-        function fnReplacer(sBin) {
-            return "0x" + parseInt(sBin.substr(2), 2).toString(16).toLowerCase();
+        function fnReplacer(bin) {
+            return "0x" + parseInt(bin.substr(2), 2).toString(16).toLowerCase();
         }
-        function runTestsFor(assert, _sCategory, oTests, aResults) {
-            var oOptions = {
-                bQuiet: true
-            }, oBasicLexer = new BasicLexer_1.BasicLexer(oOptions);
-            for (var sKey in oTests) {
-                if (oTests.hasOwnProperty(sKey)) {
-                    var sExpected = oTests[sKey], oExpected = void 0, aTokens = void 0, sResult = void 0;
-                    if (!Utils_1.Utils.bSupportsBinaryLiterals) {
-                        sExpected = sExpected.replace(/(0b[01]+)/g, fnReplacer); // for old IE
+        function runTestsFor(assert, _sCategory, tests, results) {
+            var options = {
+                quiet: true
+            }, basicLexer = new BasicLexer_1.BasicLexer(options);
+            for (var key in tests) {
+                if (tests.hasOwnProperty(key)) {
+                    var expectedString = tests[key], expectedEntry = void 0, tokens = void 0, result = void 0;
+                    if (!Utils_1.Utils.supportsBinaryLiterals) {
+                        expectedString = expectedString.replace(/(0b[01]+)/g, fnReplacer); // for old IE
                     }
                     try {
                         try {
-                            oExpected = JSON.parse(sExpected); // test: { e: sExpected }
+                            expectedEntry = JSON.parse(expectedString); // test: { e: expected }
                         }
                         catch (e) {
                             Utils_1.Utils.console.error(e);
-                            oExpected = {}; // continue
+                            expectedEntry = {}; // continue
                         }
-                        aTokens = oBasicLexer.lex(sKey);
-                        sResult = JSON.stringify(aTokens);
+                        tokens = basicLexer.lex(key);
+                        result = JSON.stringify(tokens);
                     }
                     catch (e) {
                         Utils_1.Utils.console.error(e);
-                        sResult = String(e);
-                        aTokens = sResult; // force to take it
+                        result = String(e);
+                        tokens = result; // force to take it
                     }
-                    if (aResults) {
-                        aResults.push('"' + sKey.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + "\": '" + sResult.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/'/g, "\\'") + "'");
+                    if (results) {
+                        results.push('"' + key.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + "\": '" + result.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/'/g, "\\'") + "'");
                     }
                     if (assert) {
-                        assert.deepEqual(aTokens, oExpected, sKey);
+                        assert.deepEqual(tokens, expectedEntry, key);
                     }
                 }
             }
         }
-        TestHelper_1.TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
+        TestHelper_1.TestHelper.generateAndRunAllTests(allTests, runTestsFor);
     });
 });
 // end

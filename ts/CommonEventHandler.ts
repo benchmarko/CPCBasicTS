@@ -12,23 +12,23 @@ export class CommonEventHandler implements EventListenerObject {
 	private view: View;
 	private controller: IController;
 
-	private fnUserAction: ((event: Event, sId: string) => void) | undefined = undefined;
+	private fnUserAction: ((event: Event, id: string) => void) | undefined = undefined;
 
-	constructor(oModel: Model, oView: View, oController: IController) {
-		this.model = oModel;
-		this.view = oView;
-		this.controller = oController;
+	constructor(model: Model, view: View, controller: IController) {
+		this.model = model;
+		this.view = view;
+		this.controller = controller;
 	}
 
-	private toogleHidden(sId: string, sProp: string, sDisplay?: string) {
-		const bVisible = !this.model.getProperty<boolean>(sProp);
+	private toogleHidden(id: string, prop: string, display?: string) {
+		const visible = !this.model.getProperty<boolean>(prop);
 
-		this.model.setProperty(sProp, bVisible);
-		this.view.setHidden(sId, !bVisible, sDisplay);
-		return bVisible;
+		this.model.setProperty(prop, visible);
+		this.view.setHidden(id, !visible, display);
+		return visible;
 	}
 
-	fnSetUserAction(fnAction: ((event: Event, sId: string) => void) | undefined): void {
+	fnSetUserAction(fnAction: ((event: Event, id: string) => void) | undefined): void {
 		this.fnUserAction = fnAction;
 	}
 
@@ -105,21 +105,21 @@ export class CommonEventHandler implements EventListenerObject {
 		this.controller.fnPretty();
 	}
 
-	private fnUpdateAreaText(sInput: string) {
-		this.controller.setInputText(sInput, true);
+	private fnUpdateAreaText(input: string) {
+		this.controller.setInputText(input, true);
 		this.view.setAreaValue("outputText", "");
 	}
 
 	private onUndoButtonClick() {
-		const sInput = this.controller.undoStackElement();
+		const input = this.controller.undoStackElement();
 
-		this.fnUpdateAreaText(sInput);
+		this.fnUpdateAreaText(input);
 	}
 
 	private onRedoButtonClick() {
-		const sInput = this.controller.redoStackElement();
+		const input = this.controller.redoStackElement();
 
-		this.fnUpdateAreaText(sInput);
+		this.fnUpdateAreaText(input);
 	}
 
 	private onDownloadButtonClick() {
@@ -161,24 +161,24 @@ export class CommonEventHandler implements EventListenerObject {
 	}
 
 	private static encodeUriParam(params: ConfigType) {
-		const aParts = [];
+		const parts = [];
 
-		for (const sKey in params) {
-			if (params.hasOwnProperty(sKey)) {
-				const sValue = params[sKey];
+		for (const key in params) {
+			if (params.hasOwnProperty(key)) {
+				const value = params[key];
 
-				aParts[aParts.length] = encodeURIComponent(sKey) + "=" + encodeURIComponent((sValue === null) ? "" : sValue);
+				parts[parts.length] = encodeURIComponent(key) + "=" + encodeURIComponent((value === null) ? "" : value);
 			}
 		}
-		return aParts.join("&");
+		return parts.join("&");
 	}
 
 	private onReloadButtonClick() {
-		const oChanged = this.model.getChangedProperties();
-		let sParas = CommonEventHandler.encodeUriParam(oChanged);
+		const changed = this.model.getChangedProperties();
+		let paras = CommonEventHandler.encodeUriParam(changed);
 
-		sParas = sParas.replace(/%2[Ff]/g, "/"); // unescape %2F -> /
-		window.location.search = "?" + sParas;
+		paras = paras.replace(/%2[Ff]/g, "/"); // unescape %2F -> /
+		window.location.search = "?" + paras;
 	}
 
 	onDatabaseSelectChange(): void {
@@ -190,21 +190,21 @@ export class CommonEventHandler implements EventListenerObject {
 	}
 
 	onVarSelectChange(): void {
-		const sPar = this.view.getSelectValue("varSelect"),
-			value = this.controller.getVariable(sPar),
-			sValue = (value !== undefined) ? String(value) : "";
+		const par = this.view.getSelectValue("varSelect"),
+			value = this.controller.getVariable(par),
+			valueString = (value !== undefined) ? String(value) : "";
 
-		this.view.setAreaValue("varText", sValue);
+		this.view.setAreaValue("varText", valueString);
 	}
 
 	onKbdLayoutSelectChange(): void {
-		const sValue = this.view.getSelectValue("kbdLayoutSelect");
+		const value = this.view.getSelectValue("kbdLayoutSelect");
 
-		this.model.setProperty("kbdLayout", sValue);
+		this.model.setProperty("kbdLayout", value);
 		this.view.setSelectTitleFromSelectedOption("kbdLayoutSelect");
 
-		this.view.setHidden("kbdAlpha", sValue === "num");
-		this.view.setHidden("kbdNum", sValue === "alpha");
+		this.view.setHidden("kbdAlpha", value === "num");
+		this.view.setHidden("kbdNum", value === "alpha");
 	}
 
 	private onVarTextChange() {
@@ -212,12 +212,12 @@ export class CommonEventHandler implements EventListenerObject {
 	}
 
 	private onScreenshotButtonClick() {
-		var sExample = this.view.getSelectValue("exampleSelect"),
+		var example = this.view.getSelectValue("exampleSelect"),
 			image = this.controller.startScreenshot(),
 			link = View.getElementById1("screenshotLink"),
-			sName = sExample + ".png";
+			name = example + ".png";
 
-		link.setAttribute("download", sName);
+		link.setAttribute("download", name);
 		link.setAttribute("href", image);
 		link.click();
 	}
@@ -240,7 +240,7 @@ export class CommonEventHandler implements EventListenerObject {
 	}
 
 	/* eslint-disable no-invalid-this */
-	private mHandlers: { [k: string]: (e: Event | MouseEvent) => void } = {
+	private handlers: { [k: string]: (e: Event | MouseEvent) => void } = {
 		onSpecialButtonClick: this.onSpecialButtonClick,
 		onInputButtonClick: this.onInputButtonClick,
 		onInp2ButtonClick: this.onInp2ButtonClick,
@@ -286,36 +286,36 @@ export class CommonEventHandler implements EventListenerObject {
 
 
 	handleEvent(event: Event): void {
-		const oTarget = event.target as HTMLButtonElement,
-			sId = (oTarget) ? oTarget.getAttribute("id") as string : String(oTarget),
-			sType = event.type; // click or change
+		const target = event.target as HTMLButtonElement,
+			id = (target) ? target.getAttribute("id") as string : String(target),
+			type = event.type; // click or change
 
 		if (this.fnUserAction) {
-			this.fnUserAction(event, sId);
+			this.fnUserAction(event, id);
 		}
 
-		if (sId) {
-			if (!oTarget.disabled) { // check needed for IE which also fires for disabled buttons
-				const sHandler = "on" + Utils.stringCapitalize(sId) + Utils.stringCapitalize(sType);
+		if (id) {
+			if (!target.disabled) { // check needed for IE which also fires for disabled buttons
+				const handler = "on" + Utils.stringCapitalize(id) + Utils.stringCapitalize(type);
 
 				if (Utils.debug) {
-					Utils.console.debug("fnCommonEventHandler: sHandler=" + sHandler);
+					Utils.console.debug("fnCommonEventHandler: handler=" + handler);
 				}
 
-				if (sHandler in this.mHandlers) {
-					this.mHandlers[sHandler].call(this, event);
-				} else if (!sHandler.endsWith("SelectClick") && !sHandler.endsWith("InputClick")) { // do not print all messages
-					Utils.console.log("Event handler not found:", sHandler);
+				if (handler in this.handlers) {
+					this.handlers[handler].call(this, event);
+				} else if (!handler.endsWith("SelectClick") && !handler.endsWith("InputClick")) { // do not print all messages
+					Utils.console.log("Event handler not found:", handler);
 				}
 			}
-		} else if (oTarget.getAttribute("data-key") === null) { // not for keyboard buttons
+		} else if (target.getAttribute("data-key") === null) { // not for keyboard buttons
 			if (Utils.debug) {
-				Utils.console.debug("Event handler for", sType, "unknown target:", oTarget.tagName, oTarget.id);
+				Utils.console.debug("Event handler for", type, "unknown target:", target.tagName, target.id);
 			}
 		}
 
-		if (sType === "click") { // special
-			if (sId !== "cpcCanvas") {
+		if (type === "click") { // special
+			if (id !== "cpcCanvas") {
 				this.onWindowClick(event);
 			}
 		}

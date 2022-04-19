@@ -11,7 +11,7 @@ import { TestHelper, TestsType, AllTestsType } from "./TestHelper";
 QUnit.dump.maxDepth = 10;
 
 QUnit.module("BasicFormatter:renumber: Tests", function () {
-	const mAllTests: AllTestsType = { // eslint-disable-line vars-on-top
+	const allTests: AllTestsType = { // eslint-disable-line vars-on-top
 		DELETE: {
 			"1 DELETE": "10 DELETE",
 			"1 DELETE 1": "10 DELETE 10",
@@ -42,42 +42,42 @@ QUnit.module("BasicFormatter:renumber: Tests", function () {
 		}
 	};
 
-	function runTestsFor(assert: Assert | undefined, _sCategory: string, oTests: TestsType, aResults?: string[]) {
-		const oBasicFormatter = new BasicFormatter({
+	function runTestsFor(assert: Assert | undefined, _sCategory: string, tests: TestsType, results?: string[]) {
+		const basicFormatter = new BasicFormatter({
 				lexer: new BasicLexer(),
 				parser: new BasicParser({
-					bQuiet: true
+					quiet: true
 				})
 			}),
-			fnReplacer = function (sBin: string) {
-				return "0x" + parseInt(sBin.substr(2), 2).toString(16).toLowerCase();
+			fnReplacer = function (bin: string) {
+				return "0x" + parseInt(bin.substr(2), 2).toString(16).toLowerCase();
 			},
-			iNew = 10,
-			iOld = 1,
-			iStep = 10,
-			iKeep = 65535;
+			newLine = 10,
+			oldLine = 1,
+			step = 10,
+			keep = 65535;
 
-		for (const sKey in oTests) {
-			if (oTests.hasOwnProperty(sKey)) {
-				const oOutput = oBasicFormatter.renumber(sKey, iNew, iOld, iStep, iKeep),
-					sResult = oOutput.error ? String(oOutput.error) : oOutput.text;
-				let sExpected = oTests[sKey];
+		for (const key in tests) {
+			if (tests.hasOwnProperty(key)) {
+				const output = basicFormatter.renumber(key, newLine, oldLine, step, keep),
+					result = output.error ? String(output.error) : output.text;
+				let expected = tests[key];
 
-				if (!Utils.bSupportsBinaryLiterals) {
-					sExpected = sExpected.replace(/(0b[01]+)/g, fnReplacer); // for old IE
+				if (!Utils.supportsBinaryLiterals) {
+					expected = expected.replace(/(0b[01]+)/g, fnReplacer); // for old IE
 				}
-				if (aResults) {
-					aResults.push('"' + sKey.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '": "' + sResult.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '"');
+				if (results) {
+					results.push('"' + key.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '": "' + result.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '"');
 				}
 
 				if (assert) {
-					assert.strictEqual(sResult, sExpected, sKey);
+					assert.strictEqual(result, expected, key);
 				}
 			}
 		}
 	}
 
-	TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
+	TestHelper.generateAndRunAllTests(allTests, runTestsFor);
 });
 
 // end

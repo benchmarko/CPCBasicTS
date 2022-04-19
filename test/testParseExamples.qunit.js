@@ -12,209 +12,199 @@ define(["require", "exports", "../Utils", "../Polyfills", "../BasicLexer", "../B
     var https, // nodeJs
     fs, path, __dirname; // eslint-disable-line no-underscore-dangle
     // eslint-disable-next-line no-new-func
-    var oGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(), // for old IE
-    bNodeJsAvail = (function () {
-        var bNodeJs = false;
+    var myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(), // for old IE
+    nodeJsAvail = (function () {
+        var nodeJs = false;
         // https://www.npmjs.com/package/detect-node
         // Only Node.JS has a process variable that is of [[Class]] process
         try {
-            if (Object.prototype.toString.call(oGlobalThis.process) === "[object process]") {
-                bNodeJs = true;
+            if (Object.prototype.toString.call(myGlobalThis.process) === "[object process]") {
+                nodeJs = true;
             }
         }
         catch (e) {
             // empty
         }
-        return bNodeJs;
+        return nodeJs;
     }());
     function isUrl(s) {
         return s.startsWith("http"); // http or https
     }
-    function fnEval(sCode) {
-        return eval(sCode); // eslint-disable-line no-eval
+    function fnEval(code) {
+        return eval(code); // eslint-disable-line no-eval
     }
-    function nodeReadUrl(sUrl, fnDataLoaded) {
-        //console.log("DEBUG: nodeReadUrl:", sUrl);
+    function nodeReadUrl(url, fnDataLoaded) {
         if (!https) {
             fnEval('https = require("https");'); // to trick TypeScript
         }
-        https.get(sUrl, function (resp) {
-            var sData = "";
+        https.get(url, function (resp) {
+            var data = "";
             // A chunk of data has been received.
-            resp.on("data", function (sChunk) {
-                sData += sChunk;
+            resp.on("data", function (chunk) {
+                data += chunk;
             });
             // The whole response has been received. Print out the result.
             resp.on("end", function () {
-                fnDataLoaded(undefined, sData);
+                fnDataLoaded(undefined, data);
             });
         }).on("error", function (err) {
             Utils_1.Utils.console.log("Error: " + err.message);
             fnDataLoaded(err);
         });
     }
-    function nodeReadFile(sName, fnDataLoaded) {
+    function nodeReadFile(name, fnDataLoaded) {
         if (!fs) {
             fnEval('fs = require("fs");'); // to trick TypeScript
         }
-        fs.readFile(sName, "utf8", fnDataLoaded);
+        fs.readFile(name, "utf8", fnDataLoaded);
     }
-    function nodeGetAbsolutePath(sName) {
+    function nodeGetAbsolutePath(name) {
         if (!path) {
             // eslint-disable-next-line global-require, @typescript-eslint/no-var-requires
             fnEval('path = require("path");'); // to trick TypeScript
         }
-        /*
-        const dirname = (path as any).resolve();
-    
-        console.log("DEBUG: nodeGetAbsolutePath: sName", sName, "path:", path, "dirname:", dirname, "__dirname:", __dirname, "__filename:", __filename);
-        */
         // https://stackoverflow.com/questions/8817423/why-is-dirname-not-defined-in-node-repl
-        var dirname = __dirname || path.dirname(__filename), sAbsolutePath = path.resolve(dirname, sName);
-        //console.log("DEBUG: nodeGetAbsolutePath: sAbsolutePath", sAbsolutePath);
-        // https://stackoverflow.com/questions/46745014/alternative-for-dirname-in-node-js-when-using-es6-modules
-        // ...
-        //const sUrl = new URL(sName, import.meta.url);
-        return sAbsolutePath;
+        var dirname = __dirname || path.dirname(__filename), absolutePath = path.resolve(dirname, name);
+        return absolutePath;
     }
     function createModel() {
-        var oStartConfig = {};
-        Object.assign(oStartConfig, cpcconfig_1.cpcconfig || {}); // merge external config from cpcconfig.js
-        var oModel = new Model_1.Model(oStartConfig);
-        return oModel;
+        var startConfig = {};
+        Object.assign(startConfig, cpcconfig_1.cpcconfig || {}); // merge external config from cpcconfig.js
+        var model = new Model_1.Model(startConfig);
+        return model;
     }
     var cpcBasic = /** @class */ (function () {
         function cpcBasic() {
         }
         cpcBasic.initVmMock1 = function () {
-            var oVmMock = cpcBasic.oVmMock, mKeywords = BasicParser_1.BasicParser.mKeywords;
-            var _loop_1 = function (sKey) {
-                if (mKeywords.hasOwnProperty(sKey)) {
-                    if (!oVmMock[sKey]) {
-                        oVmMock[sKey] = function () {
-                            return sKey;
+            var vmMock = cpcBasic.vmMock, keywords = BasicParser_1.BasicParser.keywords;
+            var _loop_1 = function (key) {
+                if (keywords.hasOwnProperty(key)) {
+                    if (!vmMock[key]) {
+                        vmMock[key] = function () {
+                            return key;
                         };
                     }
                 }
             };
-            for (var sKey in mKeywords) {
-                _loop_1(sKey);
+            for (var key in keywords) {
+                _loop_1(key);
             }
-            var oRsx = oVmMock.rsx, sRsxKeys = "a|b|basic|cpm|dir|disc|disc.in|disc.out|drive|era|ren|tape|tape.in|tape.out|user|mode|renum", aRsxKeys = sRsxKeys.split("|");
+            var rsx = vmMock.rsx, rsxKeysString = "a|b|basic|cpm|dir|disc|disc.in|disc.out|drive|era|ren|tape|tape.in|tape.out|user|mode|renum", rsxKeysList = rsxKeysString.split("|");
             var _loop_2 = function (i) {
-                var sKey = aRsxKeys[i];
-                if (!oRsx[sKey]) {
-                    oRsx[sKey] = function () {
-                        return sKey;
+                var key = rsxKeysList[i];
+                if (!rsx[key]) {
+                    rsx[key] = function () {
+                        return key;
                     };
                 }
             };
-            for (var i = 0; i < aRsxKeys.length; i += 1) {
+            for (var i = 0; i < rsxKeysList.length; i += 1) {
                 _loop_2(i);
             }
         };
         cpcBasic.initDatabases = function () {
-            var oModel = cpcBasic.model, oDatabases = {}, aDatabaseDirs = oModel.getProperty("databaseDirs").split(","), aDatabaseNames = [];
-            for (var i = 0; i < aDatabaseDirs.length; i += 1) {
-                var sDatabaseDir = aDatabaseDirs[i], aParts = sDatabaseDir.split("/"), sName = aParts[aParts.length - 1];
-                oDatabases[sName] = {
-                    text: sName,
-                    title: sDatabaseDir,
-                    src: sDatabaseDir
+            var model = cpcBasic.model, databases = {}, databaseDirs = model.getProperty("databaseDirs").split(","), databaseNames = [];
+            for (var i = 0; i < databaseDirs.length; i += 1) {
+                var databaseDir = databaseDirs[i], parts = databaseDir.split("/"), name_1 = parts[parts.length - 1];
+                databases[name_1] = {
+                    text: name_1,
+                    title: databaseDir,
+                    src: databaseDir
                 };
-                aDatabaseNames.push(sName);
+                databaseNames.push(name_1);
             }
-            cpcBasic.model.addDatabases(oDatabases);
-            return aDatabaseNames;
+            cpcBasic.model.addDatabases(databases);
+            return databaseNames;
         };
-        cpcBasic.addIndex2 = function (sDir, sInput) {
-            sInput = sInput.trim();
-            var aIndex = JSON.parse(sInput);
-            for (var i = 0; i < aIndex.length; i += 1) {
-                aIndex[i].dir = sDir;
-                cpcBasic.model.setExample(aIndex[i]);
+        cpcBasic.addIndex2 = function (dir, input) {
+            input = input.trim();
+            var index = JSON.parse(input);
+            for (var i = 0; i < index.length; i += 1) {
+                index[i].dir = dir;
+                cpcBasic.model.setExample(index[i]);
             }
         };
         // Also called from example files xxxxx.js
-        cpcBasic.addItem2 = function (sKey, sInput) {
-            if (!sKey) { // maybe ""
-                sKey = cpcBasic.model.getProperty("example");
+        cpcBasic.addItem2 = function (key, input) {
+            if (!key) { // maybe ""
+                key = cpcBasic.model.getProperty("example");
             }
-            sInput = sInput.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
+            input = input.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
             // beware of data files ending with newlines! (do not use trimEnd)
-            var oExample = cpcBasic.model.getExample(sKey);
-            oExample.key = sKey; // maybe changed
-            oExample.script = sInput;
-            oExample.loaded = true;
-            return sKey;
+            var example = cpcBasic.model.getExample(key);
+            example.key = key; // maybe changed
+            example.script = input;
+            example.loaded = true;
+            return key;
         };
         cpcBasic.fnHereDoc = function (fn) {
             return String(fn).
                 replace(/^[^/]+\/\*\S*/, "").
                 replace(/\*\/[^/]+$/, "");
         };
-        cpcBasic.addIndex = function (sDir, input) {
+        cpcBasic.addIndex = function (dir, input) {
             if (typeof input !== "string") {
                 input = this.fnHereDoc(input);
             }
-            return this.addIndex2(sDir, input);
+            return this.addIndex2(dir, input);
         };
-        cpcBasic.addItem = function (sKey, input) {
+        cpcBasic.addItem = function (key, input) {
             if (typeof input !== "string") {
                 input = this.fnHereDoc(input);
             }
-            return this.addItem2(sKey, input);
+            return this.addItem2(key, input);
         };
-        cpcBasic.sBaseDir = "../"; // base test directory (relative to dist)
-        cpcBasic.sDataBaseDirOrUrl = "";
+        cpcBasic.baseDir = "../"; // base test directory (relative to dist)
+        cpcBasic.dataBaseDirOrUrl = "";
         cpcBasic.model = createModel();
-        cpcBasic.oRsx = {
-            rsxIsAvailable: function (sRsx) {
-                return (/^a|b|basic|cpm|dir|disc|disc\.in|disc\.out|drive|era|ren|tape|tape\.in|tape\.out|user|mode|renum$/).test(sRsx);
+        cpcBasic.rsx = {
+            rsxIsAvailable: function (rsx) {
+                return (/^a|b|basic|cpm|dir|disc|disc\.in|disc\.out|drive|era|ren|tape|tape\.in|tape\.out|user|mode|renum$/).test(rsx);
             }
             // will be programmatically extended by methods...
         };
-        cpcBasic.oLexer = new BasicLexer_1.BasicLexer({
-            bQuiet: true,
-            bKeepWhiteSpace: true
+        cpcBasic.lexer = new BasicLexer_1.BasicLexer({
+            quiet: true,
+            keepWhiteSpace: true
         });
-        cpcBasic.oParser = new BasicParser_1.BasicParser({
-            bQuiet: true
+        cpcBasic.parser = new BasicParser_1.BasicParser({
+            quiet: true
         });
-        cpcBasic.oConvertParser = new BasicParser_1.BasicParser({
-            bQuiet: true,
-            bKeepTokens: true,
-            bKeepBrackets: true,
-            bKeepColons: true,
-            bKeepDataComma: true
+        cpcBasic.convertParser = new BasicParser_1.BasicParser({
+            quiet: true,
+            keepTokens: true,
+            keepBrackets: true,
+            keepColons: true,
+            keepDataComma: true
         });
-        cpcBasic.oCodeGeneratorJs = new CodeGeneratorJs_1.CodeGeneratorJs({
-            lexer: cpcBasic.oLexer,
-            parser: cpcBasic.oParser,
+        cpcBasic.codeGeneratorJs = new CodeGeneratorJs_1.CodeGeneratorJs({
+            lexer: cpcBasic.lexer,
+            parser: cpcBasic.parser,
             tron: false,
-            rsx: cpcBasic.oRsx
+            rsx: cpcBasic.rsx
         });
-        cpcBasic.oCodeGeneratorToken = new CodeGeneratorToken_1.CodeGeneratorToken({
-            lexer: cpcBasic.oLexer,
-            parser: cpcBasic.oConvertParser
+        cpcBasic.codeGeneratorToken = new CodeGeneratorToken_1.CodeGeneratorToken({
+            lexer: cpcBasic.lexer,
+            parser: cpcBasic.convertParser
         });
-        cpcBasic.oVmMock = {
-            rsx: cpcBasic.oRsx,
-            iLine: "",
-            oTestVariables1: new Variables_1.Variables(),
-            iTestStepCounter1: 0,
-            iMaxSteps: 10,
+        cpcBasic.vmMock = {
+            rsx: cpcBasic.rsx,
+            line: "",
+            testVariables1: new Variables_1.Variables(),
+            testStepCounter1: 0,
+            maxSteps: 10,
             initTest1: function () {
-                cpcBasic.oVmMock.iTestStepCounter1 = cpcBasic.oVmMock.iMaxSteps;
-                cpcBasic.oVmMock.iLine = 0; // or "start";
-                cpcBasic.oVmMock.oTestVariables1.initAllVariables();
+                cpcBasic.vmMock.testStepCounter1 = cpcBasic.vmMock.maxSteps;
+                cpcBasic.vmMock.line = 0; // or "start";
+                cpcBasic.vmMock.testVariables1.initAllVariables();
             },
             vmGetAllVariables: function () {
-                return cpcBasic.oVmMock.oTestVariables1.getAllVariables();
+                return cpcBasic.vmMock.testVariables1.getAllVariables();
             },
             vmLoopCondition: function () {
-                cpcBasic.oVmMock.iTestStepCounter1 -= 1;
-                return cpcBasic.oVmMock.iTestStepCounter1 > 0;
+                cpcBasic.vmMock.testStepCounter1 -= 1;
+                return cpcBasic.vmMock.testStepCounter1 > 0;
             },
             vmRound: function (n) {
                 return (n >= 0) ? (n + 0.5) | 0 : (n - 0.5) | 0; // eslint-disable-line no-bitwise
@@ -225,300 +215,299 @@ define(["require", "exports", "../Utils", "../Polyfills", "../BasicLexer", "../B
             vmAssertNumberType: function () {
                 // empty
             },
-            dim: function (sVarName) {
-                var aDimensions = [];
+            dim: function (varName) {
+                var dimensions = [];
                 for (var i = 1; i < arguments.length; i += 1) {
-                    var iSize = this.vmRound(arguments[i]) + 1; // for basic we have sizes +1
-                    aDimensions.push(iSize);
+                    var size = this.vmRound(arguments[i]) + 1; // for basic we have sizes +1
+                    dimensions.push(size);
                 }
-                cpcBasic.oVmMock.oTestVariables1.dimVariable(sVarName, aDimensions);
+                cpcBasic.vmMock.testVariables1.dimVariable(varName, dimensions);
             },
             vmGetNextInput: function () {
                 return 0;
             },
-            vmStop: function (sReason) {
-                if (sReason === "end") {
-                    cpcBasic.oVmMock.iTestStepCounter1 = 0;
+            vmStop: function (reason) {
+                if (reason === "end") {
+                    cpcBasic.vmMock.testStepCounter1 = 0;
                 }
             },
             "goto": function (line) {
-                cpcBasic.oVmMock.iLine = line;
+                cpcBasic.vmMock.line = line;
             },
             gosub: function (retLabel /* , line: string | number */) {
-                cpcBasic.oVmMock.iLine = retLabel; // we could use retLabel or line
+                cpcBasic.vmMock.line = retLabel; // we could use retLabel or line
             }
             // will be programmatically extended by methods...
         };
-        cpcBasic.oBasicTokenizer = new BasicTokenizer_1.BasicTokenizer(); // for loading tokenized examples
+        cpcBasic.basicTokenizer = new BasicTokenizer_1.BasicTokenizer(); // for loading tokenized examples
         return cpcBasic;
     }());
-    if (!oGlobalThis.cpcBasic) {
-        oGlobalThis.cpcBasic = cpcBasic;
+    if (!myGlobalThis.cpcBasic) {
+        myGlobalThis.cpcBasic = cpcBasic;
     }
-    function splitMeta(sInput) {
-        var sMetaIdent = "CPCBasic";
-        var oMeta;
-        if (sInput.indexOf(sMetaIdent) === 0) { // starts with metaIdent?
-            var iIndex = sInput.indexOf(","); // metadata separator
-            if (iIndex >= 0) {
-                var sMeta = sInput.substr(0, iIndex);
-                sInput = sInput.substr(iIndex + 1);
-                var aMeta = sMeta.split(";");
-                oMeta = {
-                    sType: aMeta[1],
-                    iStart: Number(aMeta[2]),
-                    iLength: Number(aMeta[3]),
-                    iEntry: Number(aMeta[4]),
-                    sEncoding: aMeta[5]
+    function splitMeta(input) {
+        var metaIdent = "CPCBasic";
+        var fileMeta;
+        if (input.indexOf(metaIdent) === 0) { // starts with metaIdent?
+            var index = input.indexOf(","); // metadata separator
+            if (index >= 0) {
+                var metaString = input.substr(0, index);
+                input = input.substr(index + 1);
+                var meta = metaString.split(";");
+                fileMeta = {
+                    type: meta[1],
+                    start: Number(meta[2]),
+                    length: Number(meta[3]),
+                    entry: Number(meta[4]),
+                    encoding: meta[5]
                 };
             }
         }
-        var oMetaAndData = {
-            oMeta: oMeta || {},
-            sData: sInput
+        var metaAndData = {
+            meta: fileMeta || {},
+            data: input
         };
-        return oMetaAndData;
+        return metaAndData;
     }
-    function asmGena3Convert(sInput) {
-        throw new Error("asmGena3Convert: not implemented for test: " + sInput);
-        return sInput;
+    function asmGena3Convert(input) {
+        throw new Error("asmGena3Convert: not implemented for test: " + input);
+        return input;
     }
     // taken from Controller.js
-    function testCheckMeta(sInput) {
-        var oData = splitMeta(sInput || "");
-        sInput = oData.sData; // maybe changed
-        if (oData.oMeta.sEncoding === "base64") {
-            sInput = Utils_1.Utils.atob(sInput); // decode base64
+    function testCheckMeta(input) {
+        var data = splitMeta(input || "");
+        input = data.data; // maybe changed
+        if (data.meta.encoding === "base64") {
+            input = Utils_1.Utils.atob(input); // decode base64
         }
-        var sType = oData.oMeta.sType;
-        if (sType === "T") { // tokenized basic?
-            sInput = cpcBasic.oBasicTokenizer.decode(sInput);
+        var type = data.meta.type;
+        if (type === "T") { // tokenized basic?
+            input = cpcBasic.basicTokenizer.decode(input);
         }
-        else if (sType === "P") { // protected BASIC?
-            sInput = DiskImage_1.DiskImage.unOrProtectData(sInput); // TODO
-            sInput = cpcBasic.oBasicTokenizer.decode(sInput);
+        else if (type === "P") { // protected BASIC?
+            input = DiskImage_1.DiskImage.unOrProtectData(input); // TODO
+            input = cpcBasic.basicTokenizer.decode(input);
         }
-        else if (sType === "B") { // binary?
+        else if (type === "B") { // binary?
         }
-        else if (sType === "A") { // ASCII?
+        else if (type === "A") { // ASCII?
             // remove EOF character(s) (0x1a) from the end of file
-            sInput = sInput.replace(/\x1a+$/, ""); // eslint-disable-line no-control-regex
+            input = input.replace(/\x1a+$/, ""); // eslint-disable-line no-control-regex
         }
-        else if (sType === "G") { // Hisoft Devpac GENA3 Z80 Assember
-            sInput = asmGena3Convert(sInput); // TODO
+        else if (type === "G") { // Hisoft Devpac GENA3 Z80 Assember
+            input = asmGena3Convert(input); // TODO
         }
-        return sInput;
+        return input;
     }
-    function testParseExample(oExample) {
-        var oCodeGeneratorJs = cpcBasic.oCodeGeneratorJs, oCodeGeneratorToken = cpcBasic.oCodeGeneratorToken, oBasicTokenizer = cpcBasic.oBasicTokenizer, sScript = oExample.script || "", sInput = testCheckMeta(sScript);
-        var sChecks = "", oOutput, fnScript; // eslint-disable-line @typescript-eslint/ban-types
-        if (oExample.meta !== "D") { // skip data files
-            sChecks = "Js";
-            var oVariables = cpcBasic.oVmMock.oTestVariables1;
+    function testParseExample(example) {
+        var codeGeneratorJs = cpcBasic.codeGeneratorJs, codeGeneratorToken = cpcBasic.codeGeneratorToken, basicTokenizer = cpcBasic.basicTokenizer, script = example.script || "", input = testCheckMeta(script);
+        var checks = "", output, fnScript; // eslint-disable-line @typescript-eslint/ban-types
+        if (example.meta !== "D") { // skip data files
+            checks = "Js";
+            var variables = cpcBasic.vmMock.testVariables1;
             // test lexer, parser and JS code generator
-            oVariables.removeAllVariables();
-            oOutput = oCodeGeneratorJs.generate(sInput, oVariables);
-            if (!oOutput.error) {
-                var sJsScript = oOutput.text;
+            variables.removeAllVariables();
+            output = codeGeneratorJs.generate(input, variables);
+            if (!output.error) {
+                var jsScript = output.text;
                 try {
                     // test generate function
-                    sChecks += ",Fn";
-                    fnScript = new Function("o", sJsScript); // eslint-disable-line no-new-func
+                    checks += ",Fn";
+                    fnScript = new Function("o", jsScript); // eslint-disable-line no-new-func
                     // test execute function (running script for fixed number of steps)
-                    sChecks += ",exec";
-                    cpcBasic.oVmMock.initTest1();
-                    fnScript(cpcBasic.oVmMock);
-                    sChecks += "(line " + cpcBasic.oVmMock.iLine + ")";
+                    checks += ",exec";
+                    cpcBasic.vmMock.initTest1();
+                    fnScript(cpcBasic.vmMock);
+                    checks += "(line " + cpcBasic.vmMock.line + ")";
                     // test tokenizer
-                    sChecks += ",token";
-                    var oTokens = oCodeGeneratorToken.generate(sInput);
-                    sChecks += "(" + oTokens.text.length + ")";
+                    checks += ",token";
+                    var tokens = codeGeneratorToken.generate(input);
+                    checks += "(" + tokens.text.length + ")";
                     // test de-tokenizer
-                    sChecks += ",deToken";
-                    var sDecoded = oBasicTokenizer.decode(oTokens.text);
-                    sChecks += "(" + sDecoded.length + ")";
-                    sChecks += ",Js2";
-                    oVariables.removeAllVariables();
-                    var oOutput2 = oCodeGeneratorJs.generate(sDecoded, oVariables);
-                    sChecks += ",Fn2";
-                    fnScript = new Function("o", oOutput2.text); // eslint-disable-line no-new-func
+                    checks += ",deToken";
+                    var decoded = basicTokenizer.decode(tokens.text);
+                    checks += "(" + decoded.length + ")";
+                    checks += ",Js2";
+                    variables.removeAllVariables();
+                    var output2 = codeGeneratorJs.generate(decoded, variables);
+                    checks += ",Fn2";
+                    fnScript = new Function("o", output2.text); // eslint-disable-line no-new-func
                     // test execute function (running script for fixed number of steps)
-                    sChecks += ",exec2";
-                    cpcBasic.oVmMock.initTest1();
-                    fnScript(cpcBasic.oVmMock);
-                    sChecks += "(line " + cpcBasic.oVmMock.iLine + ")";
+                    checks += ",exec2";
+                    cpcBasic.vmMock.initTest1();
+                    fnScript(cpcBasic.vmMock);
+                    checks += "(line " + cpcBasic.vmMock.line + ")";
                 }
                 catch (e) {
-                    Utils_1.Utils.console.error("Error in file", oExample.key);
+                    Utils_1.Utils.console.error("Error in file", example.key);
                     Utils_1.Utils.console.error(e);
                     if (Utils_1.Utils.isCustomError(e)) {
-                        oOutput.error = e;
+                        output.error = e;
                     }
                     else {
-                        oOutput.error = e;
+                        output.error = e;
                     }
                 }
             }
             else {
-                Utils_1.Utils.console.error("There was an error when parsing file", oExample.key);
+                Utils_1.Utils.console.error("There was an error when parsing file", example.key);
             }
         }
         else {
-            sChecks = "ignored";
-            oOutput = {
-                text: "UNPARSED DATA FILE: " + oExample.key,
+            checks = "ignored";
+            output = {
+                text: "UNPARSED DATA FILE: " + example.key,
                 error: undefined
             };
-            cpcBasic.iIgnoredExamples += 1;
+            cpcBasic.ignoredExamples += 1;
         }
         if (Utils_1.Utils.debug > 0) {
-            Utils_1.Utils.console.debug("testParseExample:", oExample.key, "inputLen:", sInput.length, "outputLen:", oOutput.text.length);
+            Utils_1.Utils.console.debug("testParseExample:", example.key, "inputLen:", input.length, "outputLen:", output.text.length);
         }
         if (cpcBasic.assert) {
-            cpcBasic.assert.ok(!oOutput.error, oExample.key + ": " + sChecks);
+            cpcBasic.assert.ok(!output.error, example.key + ": " + checks);
         }
-        return oOutput;
+        return output;
     }
-    function fnExampleLoaded(oError, sCode) {
-        if (oError) {
-            throw oError;
+    function fnExampleLoaded(error, code) {
+        if (error) {
+            throw error;
         }
         cpcBasic.fnExampleDone1();
-        if (sCode) {
-            fnEval(sCode); // load example (for nodeJs)
+        if (code) {
+            fnEval(code); // load example (for nodeJs)
         }
-        var sKey = cpcBasic.model.getProperty("example"), oExample = cpcBasic.model.getExample(sKey), oOutput = testParseExample(oExample);
-        if (!oOutput.error) {
+        var key = cpcBasic.model.getProperty("example"), example = cpcBasic.model.getExample(key), output = testParseExample(example);
+        if (!output.error) {
             testNextExample(); // eslint-disable-line no-use-before-define
         }
     }
-    function fnExampleLoadedUtils( /* sUrl */) {
+    function fnExampleLoadedUtils( /* url */) {
         return fnExampleLoaded(undefined, "");
     }
-    function fnExampleErrorUtils(sUrl) {
-        return fnExampleLoaded(new Error("fnExampleErrorUtils: " + sUrl), "");
+    function fnExampleErrorUtils(url) {
+        return fnExampleLoaded(new Error("fnExampleErrorUtils: " + url), "");
     }
-    function testLoadExample(oExample) {
-        var sExample = oExample.key, sFileOrUrl = cpcBasic.sDataBaseDirOrUrl + "/" + sExample + ".js";
+    function testLoadExample(exampleEntry) {
+        var example = exampleEntry.key, fileOrUrl = cpcBasic.dataBaseDirOrUrl + "/" + example + ".js";
         if (cpcBasic.assert) {
             cpcBasic.fnExampleDone1 = cpcBasic.assert.async();
         }
         try {
-            //console.log("DEBUG: testLoadExample: sFileOrUrl:", sFileOrUrl);
-            if (bNodeJsAvail) {
-                if (isUrl(sFileOrUrl)) {
-                    nodeReadUrl(sFileOrUrl, fnExampleLoaded);
+            if (nodeJsAvail) {
+                if (isUrl(fileOrUrl)) {
+                    nodeReadUrl(fileOrUrl, fnExampleLoaded);
                 }
                 else {
-                    nodeReadFile(sFileOrUrl, fnExampleLoaded);
+                    nodeReadFile(fileOrUrl, fnExampleLoaded);
                 }
             }
             else {
-                Utils_1.Utils.loadScript(sFileOrUrl, fnExampleLoadedUtils, fnExampleErrorUtils, sExample);
+                Utils_1.Utils.loadScript(fileOrUrl, fnExampleLoadedUtils, fnExampleErrorUtils, example);
             }
         }
         catch (e) {
-            Utils_1.Utils.console.error("Error in file", sExample);
+            Utils_1.Utils.console.error("Error in file", example);
             Utils_1.Utils.console.error(e);
         }
     }
     function testNextExample() {
-        var aTestExamples = cpcBasic.aTestExamples, iTestIndex = cpcBasic.iTestIndex;
-        if (iTestIndex < aTestExamples.length) {
-            var sKey = aTestExamples[iTestIndex];
-            cpcBasic.iTestIndex += 1;
-            cpcBasic.model.setProperty("example", sKey);
-            var oExample = cpcBasic.model.getExample(sKey);
-            testLoadExample(oExample);
+        var testExamples = cpcBasic.testExamples, testIndex = cpcBasic.testIndex;
+        if (testIndex < testExamples.length) {
+            var key = testExamples[testIndex];
+            cpcBasic.testIndex += 1;
+            cpcBasic.model.setProperty("example", key);
+            var example = cpcBasic.model.getExample(key);
+            testLoadExample(example);
         }
         else { // another database?
             testNextIndex(); // eslint-disable-line no-use-before-define
         }
     }
-    function fnIndexLoaded(oError, sCode) {
-        if (oError) {
-            throw oError;
+    function fnIndexLoaded(error, code) {
+        if (error) {
+            throw error;
         }
         cpcBasic.fnIndexDone1();
-        if (sCode) {
-            fnEval(sCode); // load index (for nodeJs)
+        if (code) {
+            fnEval(code); // load index (for nodeJs)
         }
-        var oAllExamples = cpcBasic.model.getAllExamples();
-        cpcBasic.aTestExamples = Object.keys(oAllExamples);
-        cpcBasic.iTestIndex = 0;
-        cpcBasic.iTotalExamples += cpcBasic.aTestExamples.length;
+        var allExamples = cpcBasic.model.getAllExamples();
+        cpcBasic.testExamples = Object.keys(allExamples);
+        cpcBasic.testIndex = 0;
+        cpcBasic.totalExamples += cpcBasic.testExamples.length;
         if (cpcBasic.assert) {
-            cpcBasic.assert.expect(cpcBasic.iTotalExamples);
+            cpcBasic.assert.expect(cpcBasic.totalExamples);
         }
         testNextExample();
     }
-    function fnIndexLoadedUtils( /* sUrl */) {
+    function fnIndexLoadedUtils( /* url */) {
         return fnIndexLoaded(undefined, "");
     }
-    function fnIndexErrorUtils(sUrl) {
-        return fnIndexLoaded(new Error("fnIndexErrorUtils: " + sUrl));
+    function fnIndexErrorUtils(url) {
+        return fnIndexLoaded(new Error("fnIndexErrorUtils: " + url));
     }
-    function testLoadIndex(oExampeDb) {
-        var sDir = oExampeDb.src;
-        if (!isUrl(sDir)) {
-            sDir = cpcBasic.sBaseDir + sDir;
+    function testLoadIndex(exampeDb) {
+        var dir = exampeDb.src;
+        if (!isUrl(dir)) {
+            dir = cpcBasic.baseDir + dir;
         }
         if (cpcBasic.assert) {
             cpcBasic.fnIndexDone1 = cpcBasic.assert.async();
         }
-        if (bNodeJsAvail) {
-            if (!isUrl(sDir)) {
+        if (nodeJsAvail) {
+            if (!isUrl(dir)) {
                 if (Utils_1.Utils.debug > 0) {
-                    Utils_1.Utils.console.debug("testParseExamples: __dirname=", __dirname, " sDir=", sDir);
+                    Utils_1.Utils.console.debug("testParseExamples: __dirname=", __dirname, " dir=", dir);
                 }
-                sDir = nodeGetAbsolutePath(sDir); // convert to absolute path to get it working also for "npm test" and not only for node
+                dir = nodeGetAbsolutePath(dir); // convert to absolute path to get it working also for "npm test" and not only for node
             }
         }
-        cpcBasic.sDataBaseDirOrUrl = sDir;
-        var sFileOrUrl = cpcBasic.sDataBaseDirOrUrl + "/0index.js"; // "./examples/0index.js";
-        Utils_1.Utils.console.log("testParseExamples: Using Database index:", sFileOrUrl);
-        if (bNodeJsAvail) {
-            if (isUrl(sDir)) {
-                nodeReadUrl(sFileOrUrl, fnIndexLoaded);
+        cpcBasic.dataBaseDirOrUrl = dir;
+        var fileOrUrl = cpcBasic.dataBaseDirOrUrl + "/0index.js"; // "./examples/0index.js";
+        Utils_1.Utils.console.log("testParseExamples: Using Database index:", fileOrUrl);
+        if (nodeJsAvail) {
+            if (isUrl(dir)) {
+                nodeReadUrl(fileOrUrl, fnIndexLoaded);
             }
             else {
-                nodeReadFile(sFileOrUrl, fnIndexLoaded);
+                nodeReadFile(fileOrUrl, fnIndexLoaded);
             }
         }
         else {
-            Utils_1.Utils.loadScript(sFileOrUrl, fnIndexLoadedUtils, fnIndexErrorUtils, oExampeDb.text);
+            Utils_1.Utils.loadScript(fileOrUrl, fnIndexLoadedUtils, fnIndexErrorUtils, exampeDb.text);
         }
     }
     function testNextIndex() {
-        var aDatabaseNames = cpcBasic.aDatabaseNames, iDatabaseIndex = cpcBasic.iDatabaseIndex;
-        var bNextIndex = false;
-        if (iDatabaseIndex < aDatabaseNames.length) {
-            var sKey = aDatabaseNames[iDatabaseIndex]; // e.g. "examples";
-            if (sKey !== "storage") { // ignore "storage"
-                cpcBasic.iDatabaseIndex += 1;
-                cpcBasic.model.setProperty("database", sKey);
-                var oExampeDb = cpcBasic.model.getDatabase();
-                bNextIndex = true;
-                testLoadIndex(oExampeDb);
+        var databaseNames = cpcBasic.databaseNames, databaseIndex = cpcBasic.databaseIndex;
+        var nextIndex = false;
+        if (databaseIndex < databaseNames.length) {
+            var key = databaseNames[databaseIndex]; // e.g. "examples";
+            if (key !== "storage") { // ignore "storage"
+                cpcBasic.databaseIndex += 1;
+                cpcBasic.model.setProperty("database", key);
+                var exampeDb = cpcBasic.model.getDatabase();
+                nextIndex = true;
+                testLoadIndex(exampeDb);
             }
         }
-        if (!bNextIndex) {
-            Utils_1.Utils.console.log("testParseExamples: Total examples:", cpcBasic.iTotalExamples, "/ Ignored examples:", cpcBasic.iIgnoredExamples);
+        if (!nextIndex) {
+            Utils_1.Utils.console.log("testParseExamples: Total examples:", cpcBasic.totalExamples, "/ Ignored examples:", cpcBasic.ignoredExamples);
         }
     }
     function testStart() {
-        Utils_1.Utils.console.log("testParseExamples: bNodeJs:", bNodeJsAvail, " Polyfills.iCount=", Polyfills_1.Polyfills.iCount);
+        Utils_1.Utils.console.log("testParseExamples: nodeJs:", nodeJsAvail, " Polyfills.count=", Polyfills_1.Polyfills.count);
         cpcBasic.initVmMock1();
-        cpcBasic.iTotalExamples = 0;
-        cpcBasic.iIgnoredExamples = 0;
-        cpcBasic.aDatabaseNames = cpcBasic.initDatabases();
-        cpcBasic.iDatabaseIndex = 0;
+        cpcBasic.totalExamples = 0;
+        cpcBasic.ignoredExamples = 0;
+        cpcBasic.databaseNames = cpcBasic.initDatabases();
+        cpcBasic.databaseIndex = 0;
         testNextIndex();
     }
     TestHelper_1.TestHelper.init();
-    if (typeof oGlobalThis.QUnit !== "undefined") {
+    if (typeof myGlobalThis.QUnit !== "undefined") {
         Utils_1.Utils.console.log("Using QUnit");
-        var QUnit_1 = oGlobalThis.QUnit;
+        var QUnit_1 = myGlobalThis.QUnit;
         QUnit_1.config.testTimeout = 5 * 1000;
         QUnit_1.module("testParseExamples: Tests", function ( /* hooks */) {
             QUnit_1.test("testParseExamples", function (assert) {

@@ -1,10 +1,10 @@
 export declare class InputStack {
-    private aInput;
-    private iStackPosition;
+    private input;
+    private stackPosition;
     reset(): void;
     getInput(): string;
     clearRedo(): void;
-    save(sInput: string): void;
+    save(input: string): void;
     canUndoKeepOne(): boolean;
     undo(): string;
     canRedo(): boolean;

@@ -7,40 +7,40 @@ define(["require", "exports"], function (require, exports) {
     exports.InputStack = void 0;
     var InputStack = /** @class */ (function () {
         function InputStack() {
-            this.aInput = [];
-            this.iStackPosition = -1;
+            this.input = [];
+            this.stackPosition = -1;
         }
         /*
         constructor() {
         }
         */
         InputStack.prototype.reset = function () {
-            this.aInput.length = 0;
-            this.iStackPosition = -1;
+            this.input.length = 0;
+            this.stackPosition = -1;
         };
         InputStack.prototype.getInput = function () {
-            return this.aInput[this.iStackPosition];
+            return this.input[this.stackPosition];
         };
         InputStack.prototype.clearRedo = function () {
-            this.aInput = this.aInput.slice(0, this.iStackPosition + 1);
+            this.input = this.input.slice(0, this.stackPosition + 1);
         };
-        InputStack.prototype.save = function (sInput) {
+        InputStack.prototype.save = function (input) {
             this.clearRedo();
-            this.aInput.push(sInput);
-            this.iStackPosition += 1;
+            this.input.push(input);
+            this.stackPosition += 1;
         };
         InputStack.prototype.canUndoKeepOne = function () {
-            return this.iStackPosition > 0;
+            return this.stackPosition > 0;
         };
         InputStack.prototype.undo = function () {
-            this.iStackPosition -= 1;
+            this.stackPosition -= 1;
             return this.getInput();
         };
         InputStack.prototype.canRedo = function () {
-            return this.iStackPosition < this.aInput.length - 1;
+            return this.stackPosition < this.input.length - 1;
         };
         InputStack.prototype.redo = function () {
-            this.iStackPosition += 1;
+            this.stackPosition += 1;
             return this.getInput();
         };
         return InputStack;

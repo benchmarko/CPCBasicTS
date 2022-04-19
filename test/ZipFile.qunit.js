@@ -6,7 +6,7 @@ define(["require", "exports", "../Utils", "../ZipFile", "./TestHelper"], functio
     QUnit.dump.maxDepth = 10;
     QUnit.module("ZipFile: Tests", function () {
         // examples store.zip and deflate.zip taken from https://github.com/bower/decompress-zip/tree/master/test/assets/file-mode-pack
-        var mAllTests = {
+        var allTests = {
             store: {
                 "CPCBasic;B;0;404;;base64,UEsDBAoAAAAAAGyFJkYAAAAAAAAAAAAAAAAFAAAAZGlyMS9QSwMECgAAAAAAbIUmRgAAAAAAAAAAAAAAAAUAAABkaXIyL1BLAwQUAAgAAABshSZGAAAAAAAAAAAAAAAABQAAAGZpbGUxYWJjUEsHCMJBJDUDAAAAAwAAAFBLAwQUAAgAAABshSZGAAAAAAAAAAAAAAAABQAAAGZpbGUyeHl6UEsHCGe6jusDAAAAAwAAAFBLAQItAwoAAAAAAGyFJkYAAAAAAAAAAAAAAAAFAAAAAAAAAAAAEADtAQAAAABkaXIxL1BLAQItAwoAAAAAAGyFJkYAAAAAAAAAAAAAAAAFAAAAAAAAAAAAEADJASMAAABkaXIyL1BLAQItAxQACAAAAGyFJkbCQSQ1AwAAAAMAAAAFAAAAAAAAAAAAIADtgUYAAABmaWxlMVBLAQItAxQACAAAAGyFJkZnuo7rAwAAAAMAAAAFAAAAAAAAAAAAIADJgXwAAABmaWxlMlBLBQYAAAAABAAEAMwAAACyAAAAAAA=": "file1=abc,file2=xyz"
             },
@@ -14,49 +14,49 @@ define(["require", "exports", "../Utils", "../ZipFile", "./TestHelper"], functio
                 "CPCBasic;B;0;408;;base64,UEsDBAoAAAAAAGyFJkYAAAAAAAAAAAAAAAAFAAAAZGlyMS9QSwMECgAAAAAAbIUmRgAAAAAAAAAAAAAAAAUAAABkaXIyL1BLAwQUAAgACABshSZGAAAAAAAAAAAAAAAABQAAAGZpbGUxS0xKBgBQSwcIwkEkNQUAAAADAAAAUEsDBBQACAAIAGyFJkYAAAAAAAAAAAAAAAAFAAAAZmlsZTKrqKwCAFBLBwhnuo7rBQAAAAMAAABQSwECLQMKAAAAAABshSZGAAAAAAAAAAAAAAAABQAAAAAAAAAAABAA7QEAAAAAZGlyMS9QSwECLQMKAAAAAABshSZGAAAAAAAAAAAAAAAABQAAAAAAAAAAABAAyQEjAAAAZGlyMi9QSwECLQMUAAgACABshSZGwkEkNQUAAAADAAAABQAAAAAAAAAAACAA7YFGAAAAZmlsZTFQSwECLQMUAAgACABshSZGZ7qO6wUAAAADAAAABQAAAAAAAAAAACAAyYF+AAAAZmlsZTJQSwUGAAAAAAQABADMAAAAtgAAAAAA": "file1=abc,file2=xyz"
             }
         };
-        function fnString2ArrayBuf(sData) {
-            var aBuf = new ArrayBuffer(sData.length), aView = new Uint8Array(aBuf);
-            for (var i = 0; i < sData.length; i += 1) {
-                aView[i] = sData.charCodeAt(i);
+        function fnString2ArrayBuf(data) {
+            var buf = new ArrayBuffer(data.length), view = new Uint8Array(buf);
+            for (var i = 0; i < data.length; i += 1) {
+                view[i] = data.charCodeAt(i);
             }
-            return aBuf;
+            return buf;
         }
-        function fnExtractZipFiles(oZip) {
-            var aResult = [];
-            if (oZip) {
-                var oZipDirectory = oZip.getZipDirectory(), aEntries = Object.keys(oZipDirectory);
-                for (var i = 0; i < aEntries.length; i += 1) {
-                    var sName = aEntries[i], sData = oZip.readData(sName);
-                    if (sData) {
-                        aResult.push(sName + "=" + sData);
+        function fnExtractZipFiles(zip) {
+            var result = [];
+            if (zip) {
+                var zipDirectory = zip.getZipDirectory(), entries = Object.keys(zipDirectory);
+                for (var i = 0; i < entries.length; i += 1) {
+                    var name_1 = entries[i], data = zip.readData(name_1);
+                    if (data) {
+                        result.push(name_1 + "=" + data);
                     }
                 }
             }
-            return aResult.join(",");
+            return result.join(",");
         }
-        function runTestsFor(assert, _sCategory, oTests, aResults) {
-            for (var sKey in oTests) {
-                if (oTests.hasOwnProperty(sKey)) {
-                    var aParts = sKey.split(",", 2), sMeta = aParts[0], sData = Utils_1.Utils.atob(aParts[1]), // decode base64
-                    oZip = new ZipFile_1.ZipFile(new Uint8Array(fnString2ArrayBuf(sData)), "name"), sExpected = oTests[sKey];
-                    var sResult = void 0;
+        function runTestsFor(assert, _sCategory, tests, results) {
+            for (var key in tests) {
+                if (tests.hasOwnProperty(key)) {
+                    var parts = key.split(",", 2), meta = parts[0], data = Utils_1.Utils.atob(parts[1]), // decode base64
+                    zip = new ZipFile_1.ZipFile(new Uint8Array(fnString2ArrayBuf(data)), "name"), expected = tests[key];
+                    var result = void 0;
                     try {
-                        sResult = fnExtractZipFiles(oZip);
+                        result = fnExtractZipFiles(zip);
                     }
                     catch (e) {
                         Utils_1.Utils.console.error(e);
-                        sResult = String(e);
+                        result = String(e);
                     }
-                    if (aResults) {
-                        aResults.push('"' + sKey + '": "' + sResult + '"');
+                    if (results) {
+                        results.push('"' + key + '": "' + result + '"');
                     }
                     if (assert) {
-                        assert.strictEqual(sResult, sExpected, sMeta);
+                        assert.strictEqual(result, expected, meta);
                     }
                 }
             }
         }
-        TestHelper_1.TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
+        TestHelper_1.TestHelper.generateAndRunAllTests(allTests, runTestsFor);
     });
 });
 // end

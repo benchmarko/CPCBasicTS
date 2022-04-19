@@ -5,28 +5,28 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Polyfills = void 0;
     exports.Polyfills = {
-        iCount: 0,
+        count: 0,
         // empty
-        log: function (sPart) {
-            Utils_1.Utils.console.debug("Polyfill: " + sPart);
-            exports.Polyfills.iCount += 1;
+        log: function (part) {
+            Utils_1.Utils.console.debug("Polyfill: " + part);
+            exports.Polyfills.count += 1;
         }
     };
     // IE: window.console is only available when Dev Tools are open
     if (!Utils_1.Utils.console) {
-        var oUtilsConsole_1 = {
+        var utilsConsole_1 = {
             cpcBasicLog: "LOG:\n",
             log: function () {
-                if (oUtilsConsole_1.cpcBasicLog) {
-                    oUtilsConsole_1.cpcBasicLog += Array.prototype.slice.call(arguments).join(" ") + "\n";
+                if (utilsConsole_1.cpcBasicLog) {
+                    utilsConsole_1.cpcBasicLog += Array.prototype.slice.call(arguments).join(" ") + "\n";
                 }
             }
         };
-        oUtilsConsole_1.info = oUtilsConsole_1.log;
-        oUtilsConsole_1.warn = oUtilsConsole_1.log;
-        oUtilsConsole_1.error = oUtilsConsole_1.log;
-        oUtilsConsole_1.debug = oUtilsConsole_1.log;
-        Utils_1.Utils.console = oUtilsConsole_1;
+        utilsConsole_1.info = utilsConsole_1.log;
+        utilsConsole_1.warn = utilsConsole_1.log;
+        utilsConsole_1.error = utilsConsole_1.log;
+        utilsConsole_1.debug = utilsConsole_1.log;
+        Utils_1.Utils.console = utilsConsole_1;
     }
     if (!Utils_1.Utils.console.debug) { // IE8 has no console.debug
         Utils_1.Utils.console.debug = Utils_1.Utils.console.log;
@@ -37,16 +37,16 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         globalThis.window = {};
     }
     if (!Array.prototype.indexOf) { // IE8
-        Array.prototype.indexOf = function (searchElement, iFrom) {
-            var iLen = this.length >>> 0; // eslint-disable-line no-bitwise
-            iFrom = Number(iFrom) || 0;
-            iFrom = (iFrom < 0) ? Math.ceil(iFrom) : Math.floor(iFrom);
-            if (iFrom < 0) {
-                iFrom += iLen;
+        Array.prototype.indexOf = function (searchElement, from) {
+            var len = this.length >>> 0; // eslint-disable-line no-bitwise
+            from = Number(from) || 0;
+            from = (from < 0) ? Math.ceil(from) : Math.floor(from);
+            if (from < 0) {
+                from += len;
             }
-            for (; iFrom < iLen; iFrom += 1) {
-                if (iFrom in this && this[iFrom] === searchElement) {
-                    return iFrom;
+            for (; from < len; from += 1) {
+                if (from in this && this[from] === searchElement) {
+                    return from;
                 }
             }
             return -1;
@@ -56,33 +56,33 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         // based on: https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Global_Objects/Array/map
         exports.Polyfills.log("Array.prototype.map");
         Array.prototype.map = function (callback, thisArg) {
-            var aValues = [], oObject = Object(this), len = oObject.length;
+            var values = [], object = Object(this), len = object.length;
             var T;
             if (arguments.length > 1) {
                 T = thisArg;
             }
             for (var i = 0; i < len; i += 1) {
-                if (i in oObject) {
-                    var kValue = oObject[i], mappedValue = callback.call(T, kValue, i, oObject);
-                    aValues[i] = mappedValue;
+                if (i in object) {
+                    var kValue = object[i], mappedValue = callback.call(T, kValue, i, object);
+                    values[i] = mappedValue;
                 }
             }
-            return aValues;
+            return values;
         };
     }
     if (window.Element) {
         if (!Element.prototype.addEventListener) { // IE8
             exports.Polyfills.log("Element.prototype.addEventListener");
-            Element.prototype.addEventListener = function (sEvent, fnCallback) {
-                sEvent = "on" + sEvent;
-                return this.attachEvent(sEvent, fnCallback);
+            Element.prototype.addEventListener = function (event, fnCallback) {
+                event = "on" + event;
+                return this.attachEvent(event, fnCallback);
             };
         }
         if (!Element.prototype.removeEventListener) { // IE8
             exports.Polyfills.log("Element.prototype.removeEventListener");
-            Element.prototype.removeEventListener = function (sEvent, fnCallback) {
-                sEvent = "on" + sEvent;
-                return this.detachEvent(sEvent, fnCallback);
+            Element.prototype.removeEventListener = function (event, fnCallback) {
+                event = "on" + event;
+                return this.detachEvent(event, fnCallback);
             };
         }
     }
@@ -112,20 +112,20 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             exports.Polyfills.log("document.addEventListener, removeEventListener");
             if (document.attachEvent) {
                 (function () {
-                    var aEventListeners = [];
-                    document.addEventListener = function (sEvent, fnHandler) {
+                    var eventListeners = [];
+                    document.addEventListener = function (eventString, fnHandler) {
                         var fnFindCaret = function (event) {
                             var documentSelection = document.selection; // IE only
                             if (documentSelection) {
                                 var eventTarget = event.target;
                                 eventTarget.focus();
-                                var oRange = documentSelection.createRange(), oRange2 = oRange.duplicate();
-                                if (oRange2.moveToElementTxt) { // not on IE8
-                                    oRange2.moveToElementTxt(event.target);
+                                var range = documentSelection.createRange(), range2 = range.duplicate();
+                                if (range2.moveToElementTxt) { // not on IE8
+                                    range2.moveToElementTxt(event.target);
                                 }
-                                oRange2.setEndPoint("EndToEnd", oRange);
-                                eventTarget.selectionStart = oRange2.text.length - oRange.text.length;
-                                eventTarget.selectionEnd = eventTarget.selectionStart + oRange.text.length;
+                                range2.setEndPoint("EndToEnd", range);
+                                eventTarget.selectionStart = range2.text.length - range.text.length;
+                                eventTarget.selectionEnd = eventTarget.selectionStart + range.text.length;
                             }
                         }, fnOnEvent = function (event) {
                             event = event || window.event;
@@ -137,35 +137,35 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                             return false;
                         };
                         // The change event is not bubbled and fired on document for old IE8. So attach it to every select tag
-                        if (sEvent === "change") {
-                            var aElements = document.getElementsByTagName("select");
-                            for (var i = 0; i < aElements.length; i += 1) {
-                                aElements[i].attachEvent("on" + sEvent, fnOnEvent);
-                                aEventListeners.push({
+                        if (eventString === "change") {
+                            var elements = document.getElementsByTagName("select");
+                            for (var i = 0; i < elements.length; i += 1) {
+                                elements[i].attachEvent("on" + eventString, fnOnEvent);
+                                eventListeners.push({
                                     object: this,
-                                    sEvent: sEvent,
+                                    eventString: eventString,
                                     fnHandler: fnHandler,
                                     fnOnEvent: fnOnEvent
                                 });
                             }
                         }
                         else { // e.g. "Click"
-                            document.attachEvent("on" + sEvent, fnOnEvent);
-                            aEventListeners.push({
+                            document.attachEvent("on" + eventString, fnOnEvent);
+                            eventListeners.push({
                                 object: this,
-                                sEvent: sEvent,
+                                eventString: eventString,
                                 fnHandler: fnHandler,
                                 fnOnEvent: fnOnEvent
                             });
                         }
                     };
-                    document.removeEventListener = function (sEvent, fnHandler) {
+                    document.removeEventListener = function (event, fnHandler) {
                         var counter = 0;
-                        while (counter < aEventListeners.length) {
-                            var oEventListener = aEventListeners[counter];
-                            if (oEventListener.object === this && oEventListener.sEvent === sEvent && oEventListener.fnHandler === fnHandler) {
-                                this.detachEvent("on" + sEvent, oEventListener.fnOnEvent);
-                                aEventListeners.splice(counter, 1);
+                        while (counter < eventListeners.length) {
+                            var eventListener = eventListeners[counter];
+                            if (eventListener.object === this && eventListener.eventString === event && eventListener.fnHandler === fnHandler) {
+                                this.detachEvent("on" + event, eventListener.fnOnEvent);
+                                eventListeners.splice(counter, 1);
                                 break;
                             }
                             counter += 1;
@@ -217,17 +217,17 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     }
     if (!Object.assign) { // IE11
         exports.Polyfills.log("Object.assign");
-        Object.assign = function (oTarget) {
-            var oTo = oTarget;
+        Object.assign = function (target) {
+            var to = target;
             for (var i = 1; i < arguments.length; i += 1) {
-                var oNextSource = arguments[i];
-                for (var sNextKey in oNextSource) {
-                    if (oNextSource.hasOwnProperty(sNextKey)) {
-                        oTo[sNextKey] = oNextSource[sNextKey];
+                var nextSource = arguments[i];
+                for (var nextKey in nextSource) {
+                    if (nextSource.hasOwnProperty(nextKey)) {
+                        to[nextKey] = nextSource[nextKey];
                     }
                 }
             }
-            return oTo;
+            return to;
         };
     }
     if (!Object.keys) { // IE8
@@ -248,78 +248,78 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     }
     if (!String.prototype.endsWith) {
         exports.Polyfills.log("String.prototype.endsWith");
-        String.prototype.endsWith = function (sSearch, iPosition) {
-            if (iPosition === undefined) {
-                iPosition = this.length;
+        String.prototype.endsWith = function (search, position) {
+            if (position === undefined) {
+                position = this.length;
             }
-            iPosition -= sSearch.length;
-            var iLastIndex = this.indexOf(sSearch, iPosition);
-            return iLastIndex !== -1 && iLastIndex === iPosition;
+            position -= search.length;
+            var lastIndex = this.indexOf(search, position);
+            return lastIndex !== -1 && lastIndex === position;
         };
     }
     if (!String.prototype.includes) { // IE11
         exports.Polyfills.log("String.prototype.includes");
-        String.prototype.includes = function (sSearch, iStart) {
-            if (iStart === void 0) { iStart = 0; }
-            var bRet;
-            if (iStart + sSearch.length > this.length) {
-                bRet = false;
+        String.prototype.includes = function (search, start) {
+            if (start === void 0) { start = 0; }
+            var ret;
+            if (start + search.length > this.length) {
+                ret = false;
             }
             else {
-                bRet = this.indexOf(sSearch, iStart) !== -1;
+                ret = this.indexOf(search, start) !== -1;
             }
-            return bRet;
+            return ret;
         };
     }
     if (!String.prototype.padStart) { // IE11
         exports.Polyfills.log("String.prototype.padStart");
-        String.prototype.padStart = function (iTargetLength, sPad) {
-            var sRet = String(this);
-            iTargetLength >>= 0; // eslint-disable-line no-bitwise
-            if (this.length < iTargetLength) {
-                sPad = String(typeof sPad !== "undefined" ? sPad : " ");
-                iTargetLength -= this.length;
-                if (iTargetLength > sPad.length) {
-                    sPad += sPad.repeat(iTargetLength / sPad.length);
+        String.prototype.padStart = function (targetLength, pad) {
+            var ret = String(this);
+            targetLength >>= 0; // eslint-disable-line no-bitwise
+            if (this.length < targetLength) {
+                pad = String(typeof pad !== "undefined" ? pad : " ");
+                targetLength -= this.length;
+                if (targetLength > pad.length) {
+                    pad += pad.repeat(targetLength / pad.length);
                 }
-                sRet = sPad.slice(0, iTargetLength) + sRet;
+                ret = pad.slice(0, targetLength) + ret;
             }
-            return sRet;
+            return ret;
         };
     }
     if (!String.prototype.padEnd) { // IE11
         // based on: https://github.com/behnammodi/polyfill/blob/master/string.polyfill.js
         exports.Polyfills.log("String.prototype.padEnd");
-        String.prototype.padEnd = function (iTargetLength, sPad) {
-            var sRet = String(this);
-            iTargetLength >>= 0; // eslint-disable-line no-bitwise
-            if (this.length < iTargetLength) {
-                sPad = String(typeof sPad !== "undefined" ? sPad : " ");
-                iTargetLength -= this.length;
-                if (iTargetLength > sPad.length) {
-                    sPad += sPad.repeat(iTargetLength / sPad.length);
+        String.prototype.padEnd = function (targetLength, pad) {
+            var ret = String(this);
+            targetLength >>= 0; // eslint-disable-line no-bitwise
+            if (this.length < targetLength) {
+                pad = String(typeof pad !== "undefined" ? pad : " ");
+                targetLength -= this.length;
+                if (targetLength > pad.length) {
+                    pad += pad.repeat(targetLength / pad.length);
                 }
-                sRet += sPad.slice(0, iTargetLength); // this line differs from padStart
+                ret += pad.slice(0, targetLength); // this line differs from padStart
             }
-            return sRet;
+            return ret;
         };
     }
     if (!String.prototype.repeat) { // IE11
         exports.Polyfills.log("String.prototype.repeat");
-        String.prototype.repeat = function (iCount) {
-            var sStr = String(this);
-            var sOut = "";
-            for (var i = 0; i < iCount; i += 1) {
-                sOut += sStr;
+        String.prototype.repeat = function (count) {
+            var str = String(this);
+            var out = "";
+            for (var i = 0; i < count; i += 1) {
+                out += str;
             }
-            return sOut;
+            return out;
         };
     }
     if (!String.prototype.startsWith) {
         exports.Polyfills.log("String.prototype.startsWith");
-        String.prototype.startsWith = function (sSearch, iPosition) {
-            iPosition = iPosition || 0;
-            return this.indexOf(sSearch, iPosition) === iPosition;
+        String.prototype.startsWith = function (search, position) {
+            position = position || 0;
+            return this.indexOf(search, position) === position;
         };
     }
     if (!String.prototype.trim) { // IE8
@@ -333,21 +333,21 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     if (!Utils_1.Utils.atob) { // IE9 (and node.js)
         exports.Polyfills.log("window.atob, btoa");
         (function () {
-            var sTable = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/", reSpaceCharacters = /[\t\n\f\r ]/g; // http://whatwg.org/html/common-microsyntaxes.html#space-character
+            var table = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/", reSpaceCharacters = /[\t\n\f\r ]/g; // http://whatwg.org/html/common-microsyntaxes.html#space-character
             /* eslint-disable no-bitwise */
-            Utils_1.Utils.atob = function (sInput) {
-                sInput = String(sInput).replace(reSpaceCharacters, "");
-                var length = sInput.length;
+            Utils_1.Utils.atob = function (input) {
+                input = String(input).replace(reSpaceCharacters, "");
+                var length = input.length;
                 if (length % 4 === 0) {
-                    sInput = sInput.replace(/[=]=?$/, ""); // additional brackets to maks eslint happy
-                    length = sInput.length;
+                    input = input.replace(/[=]=?$/, ""); // additional brackets to maks eslint happy
+                    length = input.length;
                 }
-                if (length % 4 === 1 || (/[^+a-zA-Z0-9/]/).test(sInput)) { // http://whatwg.org/C#alphanumeric-ascii-characters
+                if (length % 4 === 1 || (/[^+a-zA-Z0-9/]/).test(input)) { // http://whatwg.org/C#alphanumeric-ascii-characters
                     throw new TypeError("Polyfills:atob: Invalid character: the string to be decoded is not correctly encoded.");
                 }
                 var bitCounter = 0, output = "", position = 0, bitStorage = 0;
                 while (position < length) {
-                    var buffer = sTable.indexOf(sInput.charAt(position));
+                    var buffer = table.indexOf(input.charAt(position));
                     bitStorage = bitCounter % 4 ? bitStorage * 64 + buffer : buffer;
                     bitCounter += 1;
                     if ((bitCounter - 1) % 4) { // Unless this is the first of a group of 4 characters...
@@ -374,17 +374,17 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     position += 1;
                     var buffer = a + b + c;
                     // Turn the 24 bits into four chunks of 6 bits each, and append the matching character for each of them to the output
-                    output += sTable.charAt(buffer >> 18 & 0x3F) + sTable.charAt(buffer >> 12 & 0x3F) + sTable.charAt(buffer >> 6 & 0x3F) + sTable.charAt(buffer & 0x3F);
+                    output += table.charAt(buffer >> 18 & 0x3F) + table.charAt(buffer >> 12 & 0x3F) + table.charAt(buffer >> 6 & 0x3F) + table.charAt(buffer & 0x3F);
                 }
                 if (padding === 2) {
                     var a = input.charCodeAt(position) << 8;
                     position += 1;
                     var b = input.charCodeAt(position), buffer = a + b;
-                    output += sTable.charAt(buffer >> 10) + sTable.charAt((buffer >> 4) & 0x3F) + sTable.charAt((buffer << 2) & 0x3F) + "=";
+                    output += table.charAt(buffer >> 10) + table.charAt((buffer >> 4) & 0x3F) + table.charAt((buffer << 2) & 0x3F) + "=";
                 }
                 else if (padding === 1) {
                     var buffer = input.charCodeAt(position);
-                    output += sTable.charAt(buffer >> 2) + sTable.charAt((buffer << 4) & 0x3F) + "==";
+                    output += table.charAt(buffer >> 2) + table.charAt((buffer << 4) & 0x3F) + "==";
                 }
                 return output;
             };
@@ -419,18 +419,18 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     }
                     return null;
                 };
-                Storage.prototype.getItem = function (sKey) {
-                    return this.hasOwnProperty(sKey) ? this[sKey] : null;
+                Storage.prototype.getItem = function (key) {
+                    return this.hasOwnProperty(key) ? this[key] : null;
                 };
-                Storage.prototype.setItem = function (sKey, value) {
-                    if (this.getItem(sKey) === null) {
+                Storage.prototype.setItem = function (key, value) {
+                    if (this.getItem(key) === null) {
                         this.length += 1;
                     }
-                    this[sKey] = String(value);
+                    this[key] = String(value);
                 };
-                Storage.prototype.removeItem = function (sKey) {
-                    if (this.getItem(sKey) !== null) {
-                        delete this[sKey];
+                Storage.prototype.removeItem = function (key) {
+                    if (this.getItem(key) !== null) {
+                        delete this[key];
                         this.length -= 1;
                     }
                 };
@@ -456,9 +456,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         // for a better implementation, see https://github.com/douglascrockford/JSON-js/blob/master/json2.js
         exports.Polyfills.log("window.JSON.parse");
         window.JSON = {
-            parse: function (sText) {
-                var oJson = eval("(" + sText + ")"); // eslint-disable-line no-eval
-                return oJson;
+            parse: function (text) {
+                var json = eval("(" + text + ")"); // eslint-disable-line no-eval
+                return json;
             },
             stringify: function (o) {
                 Utils_1.Utils.console.error("Not implemented: window.JSON.stringify");
@@ -490,13 +490,13 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     }
     if (!window.Uint8Array) { // IE9
         exports.Polyfills.log("Uint8Array (fallback only)");
-        window.Uint8Array = function (oArrayBuffer) {
-            return oArrayBuffer; // we just return the ArrayBuffer as fallback; enough for our needs
+        window.Uint8Array = function (arrayBuffer) {
+            return arrayBuffer; // we just return the ArrayBuffer as fallback; enough for our needs
         };
         window.Uint8Array.BYTES_PER_ELEMENT = 1;
         // A more complex solution would be: https://github.com/inexorabletash/polyfill/blob/master/typedarray.js
     }
-    Utils_1.Utils.console.debug("Polyfill: end of Polyfills: count=" + exports.Polyfills.iCount);
+    Utils_1.Utils.console.debug("Polyfill: end of Polyfills: count=" + exports.Polyfills.count);
 });
 // end
 //# sourceMappingURL=Polyfills.js.map

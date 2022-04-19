@@ -1,9 +1,9 @@
 export declare class BasicTokenizer {
-    private iPos;
-    private iLine;
-    private iLineEnd;
-    private sInput;
-    private oDebug;
+    private pos;
+    private line;
+    private lineEnd;
+    private input;
+    private debug;
     private fnNum8Dec;
     private fnNum16Dec;
     private fnNum32Dec;
@@ -22,13 +22,13 @@ export declare class BasicTokenizer {
     private fnApostrophe;
     private fnRem;
     private fnQuotedString;
-    private mTokens;
-    private mTokensFF;
+    private tokens;
+    private tokensFF;
     private debugPrintInfo;
     private debugCollectInfo;
     private fnParseLineFragment;
     private fnParseNextLine;
     private fnParseProgram;
-    decodeLineFragment(sProgram: string, iOffset: number, iLength: number): string;
-    decode(sProgram: string): string;
+    decodeLineFragment(program: string, offset: number, length: number): string;
+    decode(program: string): string;
 }

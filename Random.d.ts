@@ -1,6 +1,6 @@
 export declare class Random {
     private x;
-    constructor(nSeed?: number);
-    init(nSeed?: number): void;
+    constructor(seed?: number);
+    init(seed?: number): void;
     random(): number;
 }

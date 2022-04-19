@@ -10,156 +10,156 @@ type VariableTypeMap = { [k in string]: string };
 
 
 export class Variables {
-	private oVariables: VariableMap;
-	private oVarTypes: VariableTypeMap; // default variable types for variables starting with letters a-z
+	private variables: VariableMap;
+	private varTypes: VariableTypeMap; // default variable types for variables starting with letters a-z
 
 	constructor() {
-		this.oVariables = {};
-		this.oVarTypes = {}; // default variable types for variables starting with letters a-z
+		this.variables = {};
+		this.varTypes = {}; // default variable types for variables starting with letters a-z
 	}
 
 	removeAllVariables(): void {
-		const oVariables = this.oVariables;
+		const variables = this.variables;
 
-		for (const sName in oVariables) { // eslint-disable-line guard-for-in
-			delete oVariables[sName];
+		for (const name in variables) { // eslint-disable-line guard-for-in
+			delete variables[name];
 		}
 	}
 
 	getAllVariables(): VariableMap {
-		return this.oVariables;
+		return this.variables;
 	}
 
-	private createNDimArray(aDims: number[], initVal: string | number) { // eslint-disable-line class-methods-use-this
-		const fnCreateRec = function (iIndex: number) {
-				const iLen = aDims[iIndex],
-					aArr: VariableValue[] = new Array(iLen);
+	private createNDimArray(dims: number[], initVal: string | number) { // eslint-disable-line class-methods-use-this
+		const fnCreateRec = function (index: number) {
+				const len = dims[index],
+					arr: VariableValue[] = new Array(len);
 
-				iIndex += 1;
-				if (iIndex < aDims.length) { // more dimensions?
-					for (let i = 0; i < iLen; i += 1) {
-						aArr[i] = fnCreateRec(iIndex); // recursive call
+				index += 1;
+				if (index < dims.length) { // more dimensions?
+					for (let i = 0; i < len; i += 1) {
+						arr[i] = fnCreateRec(index); // recursive call
 					}
 				} else { // one dimension
-					for (let i = 0; i < iLen; i += 1) {
-						aArr[i] = initVal;
+					for (let i = 0; i < len; i += 1) {
+						arr[i] = initVal;
 					}
 				}
-				return aArr;
+				return arr;
 			},
-			aRet = fnCreateRec(0);
+			ret = fnCreateRec(0);
 
-		return aRet;
+		return ret;
 	}
 
 	// determine static varType (first letter + optional fixed vartype) from a variable name
 	// format: (v.)<sname>(I|R|$)([...]([...])) with optional parts in ()
-	determineStaticVarType(sName: string): string { // eslint-disable-line class-methods-use-this
-		if (sName.indexOf("v.") === 0) { // preceding variable object?
-			sName = sName.substr(2); // remove preceding "v."
+	determineStaticVarType(name: string): string { // eslint-disable-line class-methods-use-this
+		if (name.indexOf("v.") === 0) { // preceding variable object?
+			name = name.substr(2); // remove preceding "v."
 		}
 
-		let sNameType = sName.charAt(0); // take first character to determine variable type later
+		let nameType = name.charAt(0); // take first character to determine variable type later
 
-		if (sNameType === "_") { // ignore underscore (do not clash with keywords)
-			sNameType = sName.charAt(1);
+		if (nameType === "_") { // ignore underscore (do not clash with keywords)
+			nameType = name.charAt(1);
 		}
 
 		// explicit type specified?
-		if (sName.indexOf("I") >= 0) {
-			sNameType += "I";
-		} else if (sName.indexOf("R") >= 0) {
-			sNameType += "R";
-		} else if (sName.indexOf("$") >= 0) {
-			sNameType += "$";
+		if (name.indexOf("I") >= 0) {
+			nameType += "I";
+		} else if (name.indexOf("R") >= 0) {
+			nameType += "R";
+		} else if (name.indexOf("$") >= 0) {
+			nameType += "$";
 		}
-		return sNameType;
+		return nameType;
 	}
 
-	private getVarDefault(sVarName: string, aDimensions?: number[]) { // optional aDimensions
-		let bIsString = sVarName.includes("$");
+	private getVarDefault(varName: string, dimensions?: number[]) { // optional dimensions
+		let isString = varName.includes("$");
 
-		if (!bIsString) { // check dynamic varType...
-			let sFirst = sVarName.charAt(0);
+		if (!isString) { // check dynamic varType...
+			let first = varName.charAt(0);
 
-			if (sFirst === "_") { // ignore underscore (do not clash with keywords)
-				sFirst = sFirst.charAt(1);
+			if (first === "_") { // ignore underscore (do not clash with keywords)
+				first = first.charAt(1);
 			}
-			bIsString = (this.getVarType(sFirst) === "$");
+			isString = (this.getVarType(first) === "$");
 		}
 
-		let value: VariableValue = bIsString ? "" : 0,
-			iArrayIndices = sVarName.split("A").length - 1;
+		let value: VariableValue = isString ? "" : 0,
+			arrayIndices = varName.split("A").length - 1;
 
-		if (iArrayIndices) {
-			if (!aDimensions) {
-				aDimensions = [];
-				if (iArrayIndices > 3) { // on CPC up to 3 dimensions 0..10 without dim
-					iArrayIndices = 3;
+		if (arrayIndices) {
+			if (!dimensions) {
+				dimensions = [];
+				if (arrayIndices > 3) { // on CPC up to 3 dimensions 0..10 without dim
+					arrayIndices = 3;
 				}
-				for (let i = 0; i < iArrayIndices; i += 1) {
-					aDimensions.push(11);
+				for (let i = 0; i < arrayIndices; i += 1) {
+					dimensions.push(11);
 				}
 			}
-			const aValue = this.createNDimArray(aDimensions, value);
+			const valueArray = this.createNDimArray(dimensions, value);
 
-			value = aValue;
+			value = valueArray;
 		}
 		return value;
 	}
 
-	initVariable(sName: string): void {
-		this.oVariables[sName] = this.getVarDefault(sName, undefined);
+	initVariable(name: string): void {
+		this.variables[name] = this.getVarDefault(name, undefined);
 	}
 
-	dimVariable(sName: string, aDimensions: number[]): void {
-		this.oVariables[sName] = this.getVarDefault(sName, aDimensions);
+	dimVariable(name: string, dimensions: number[]): void {
+		this.variables[name] = this.getVarDefault(name, dimensions);
 	}
 
 	getAllVariableNames(): string[] {
-		return Object.keys(this.oVariables);
+		return Object.keys(this.variables);
 	}
 
-	getVariableIndex(sName: string): number {
-		const aVarNames = this.getAllVariableNames(),
-			iPos = aVarNames.indexOf(sName);
+	getVariableIndex(name: string): number {
+		const varNames = this.getAllVariableNames(),
+			pos = varNames.indexOf(name);
 
-		return iPos;
+		return pos;
 	}
 
 	initAllVariables(): void {
-		const aVariables = this.getAllVariableNames();
+		const variables = this.getAllVariableNames();
 
-		for (let i = 0; i < aVariables.length; i += 1) {
-			this.initVariable(aVariables[i]);
+		for (let i = 0; i < variables.length; i += 1) {
+			this.initVariable(variables[i]);
 		}
 	}
 
-	getVariable(sName: string): VariableValue {
-		return this.oVariables[sName];
+	getVariable(name: string): VariableValue {
+		return this.variables[name];
 	}
 
-	setVariable(sName: string, value: VariableValue): void {
-		this.oVariables[sName] = value;
+	setVariable(name: string, value: VariableValue): void {
+		this.variables[name] = value;
 	}
 
-	getVariableByIndex(iIndex: number): VariableValue { // needed for RSX: @var
-		const aVariables = this.getAllVariableNames(),
-			sName = aVariables[iIndex];
+	getVariableByIndex(index: number): VariableValue { // needed for RSX: @var
+		const variables = this.getAllVariableNames(),
+			name = variables[index];
 
-		return this.oVariables[sName];
+		return this.variables[name];
 	}
 
-	variableExist(sName: string): boolean {
-		return sName in this.oVariables;
+	variableExist(name: string): boolean {
+		return name in this.variables;
 	}
 
 
-	getVarType(sVarChar: string): string {
-		return this.oVarTypes[sVarChar];
+	getVarType(varChar: string): string {
+		return this.varTypes[varChar];
 	}
 
-	setVarType(sVarChar: string, sType: string): void {
-		this.oVarTypes[sVarChar] = sType;
+	setVarType(varChar: string, type: string): void {
+		this.varTypes[varChar] = type;
 	}
 }

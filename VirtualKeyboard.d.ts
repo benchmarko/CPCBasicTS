@@ -6,15 +6,15 @@ interface VirtualKeyboardOptions {
 export declare class VirtualKeyboard {
     private fnPressCpcKey;
     private fnReleaseCpcKey;
-    private sPointerOutEvent?;
+    private pointerOutEvent?;
     private fnVirtualKeyout?;
-    private bShiftLock;
-    private bNumLock;
+    private shiftLock;
+    private numLock;
     constructor(options: VirtualKeyboardOptions);
-    private static aCpcKey2Key;
-    private static aVirtualVirtualKeyboardAlpha;
-    private static aVirtualVirtualKeyboardNum;
-    private oDrag;
+    private static cpcKey2Key;
+    private static virtualVirtualKeyboardAlpha;
+    private static virtualVirtualKeyboardNum;
+    private dragInfo;
     private fnAttachPointerEvents;
     reset(): void;
     private mapNumLockCpcKey;

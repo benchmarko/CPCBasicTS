@@ -5,22 +5,22 @@ export interface SelectOptionElement {
     selected: boolean;
 }
 export declare class View {
-    static getElementById1(sId: string): HTMLElement;
-    getHidden(sId: string): boolean;
-    setHidden(sId: string, bHidden: boolean, sDisplay?: string): this;
-    setDisabled(sId: string, bDisabled: boolean): this;
-    toggleClass(sId: string, sClassName: string): void;
-    getAreaValue(sId: string): string;
-    setAreaValue(sId: string, sValue: string): this;
-    getInputValue(sId: string): string;
-    setInputValue(sId: string, sValue: string): this;
-    getInputChecked(sId: string): boolean;
-    setSelectOptions(sId: string, aOptions: SelectOptionElement[]): this;
-    getSelectValue(sId: string): string;
-    setSelectValue(sId: string, sValue: string): this;
-    setSelectTitleFromSelectedOption(sId: string): this;
-    setAreaScrollTop(sId: string, iScrollTop?: number): this;
+    static getElementById1(id: string): HTMLElement;
+    getHidden(id: string): boolean;
+    setHidden(id: string, hidden: boolean, display?: string): this;
+    setDisabled(id: string, disabled: boolean): this;
+    toggleClass(id: string, className: string): void;
+    getAreaValue(id: string): string;
+    setAreaValue(id: string, value: string): this;
+    getInputValue(id: string): string;
+    setInputValue(id: string, value: string): this;
+    getInputChecked(id: string): boolean;
+    setSelectOptions(id: string, options: SelectOptionElement[]): this;
+    getSelectValue(id: string): string;
+    setSelectValue(id: string, value: string): this;
+    setSelectTitleFromSelectedOption(id: string): this;
+    setAreaScrollTop(id: string, scrollTop?: number): this;
     private setSelectionRange;
-    setAreaSelection(sId: string, iPos: number, iEndPos: number): this;
-    attachEventHandler(sType: string, eventHandler: EventListenerOrEventListenerObject): this;
+    setAreaSelection(id: string, pos: number, endPos: number): this;
+    attachEventHandler(type: string, eventHandler: EventListenerOrEventListenerObject): this;
 }

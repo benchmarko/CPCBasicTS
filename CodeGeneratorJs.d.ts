@@ -7,8 +7,8 @@ interface CodeGeneratorJsOptions {
     parser: BasicParser;
     rsx: ICpcVmRsx;
     tron: boolean;
-    bQuiet?: boolean;
-    bNoCodeFrame?: boolean;
+    quiet?: boolean;
+    noCodeFrame?: boolean;
 }
 interface CodeNode extends ParserNode {
     left?: CodeNode;
@@ -22,23 +22,23 @@ export declare class CodeGeneratorJs {
     private parser;
     private tron;
     private rsx;
-    private bQuiet;
-    private bNoCodeFrame;
-    private iLine;
+    private quiet;
+    private noCodeFrame;
+    private line;
     private reJsKeywords;
-    private oStack;
-    private aData;
-    private oLabels;
-    private bMergeFound;
-    private iGosubCount;
-    private iIfCount;
-    private iStopCount;
-    private iForCount;
-    private iWhileCount;
-    private oVariables;
-    private oDefScopeArgs?;
+    private stack;
+    private dataList;
+    private labels;
+    private mergeFound;
+    private gosubCount;
+    private ifCount;
+    private stopCount;
+    private forCount;
+    private whileCount;
+    private variables;
+    private defScopeArgs?;
     constructor(options: CodeGeneratorJsOptions);
-    private static aJsKeywords;
+    private static jsKeywords;
     private reset;
     private resetCountsPerLine;
     private composeError;
@@ -72,7 +72,7 @@ export declare class CodeGeneratorJs {
     private notEqual;
     private addressOf;
     private static stream;
-    private mOperators;
+    private operators;
     private fnParseDefIntRealStr;
     private fnParseErase;
     private fnAddReferenceLabel;
@@ -152,7 +152,7 @@ export declare class CodeGeneratorJs {
     private tab;
     private wend;
     private "while";
-    mParseFunctions: {
+    parseFunctions: {
         [k in string]: (node: CodeNode) => string;
     };
     private fnParseOther;
@@ -162,6 +162,6 @@ export declare class CodeGeneratorJs {
     private evaluate;
     private static combineData;
     debugGetLabelsCount(): number;
-    generate(sInput: string, oVariables: Variables, bAllowDirect?: boolean): IOutput;
+    generate(input: string, variables: Variables, allowDirect?: boolean): IOutput;
 }
 export {};

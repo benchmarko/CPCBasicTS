@@ -20,8 +20,8 @@ type OverlapReturnType = [
 export class Diff {
 	// Refer to http://www.xmailserver.org/diff2.pdf
 
-	private static composeError(oError: Error, message: string, value: string, pos: number) {
-		return Utils.composeError("Diff", oError, message, value, pos, undefined, 0);
+	private static composeError(error: Error, message: string, value: string, pos: number) {
+		return Utils.composeError("Diff", error, message, value, pos, undefined, 0);
 	}
 
 	private static inRange(x: number, l: number, r: number) {
@@ -33,9 +33,9 @@ export class Diff {
 	}
 
 	// Accepts custom comparator
-	private static customIndexOf(aArr: string[], item: string, start: number, fnEquals: (a: string, b: string) => boolean) {
-		for (let i2 = start; i2 < aArr.length; i2 += 1) {
-			if (fnEquals(item, aArr[i2])) {
+	private static customIndexOf(arr: string[], item: string, start: number, fnEquals: (a: string, b: string) => boolean) {
+		for (let i2 = start; i2 < arr.length; i2 += 1) {
+			if (fnEquals(item, arr[i2])) {
 				return i2;
 			}
 		}
@@ -101,25 +101,25 @@ export class Diff {
 			findMidSnake = function (startA: number, endA: number, startB: number, endB: number) { // eslint-disable-line complexity
 				const iN = endA - startA + 1,
 					iM = endB - startB + 1,
-					iMax = iN + iM,
-					iDelta = iN - iM,
-					iHhalfMaxCeil = (iMax + 1) / 2 | 0, // eslint-disable-line no-bitwise
+					max = iN + iM,
+					delta = iN - iM,
+					hhalfMaxCeil = (max + 1) / 2 | 0, // eslint-disable-line no-bitwise
 					// Maps -Max .. 0 .. +Max, diagonal index to endpoints for furthest reaching D-path on current iteration.
 					oV: {[k: number]: number} = {},
 					// Same but for reversed paths.
 					oU: {[k: number]: number} = {};
-				let	aOverlap: number[][] | undefined,
+				let	overlap: number[][] | undefined,
 					iD: number;
 
 				// Special case for the base case, D = 0, k = 0, x = y = 0
 				oV[1] = 0;
 				// Special case for the base case reversed, D = 0, k = 0, x = N, y = M
-				oU[iDelta - 1] = iN;
+				oU[delta - 1] = iN;
 
 				// Iterate over each possible length of edit script
-				for (iD = 0; iD <= iHhalfMaxCeil; iD += 1) {
+				for (iD = 0; iD <= hhalfMaxCeil; iD += 1) {
 					// Iterate over each diagonal
-					for (let k = -iD; k <= iD && !aOverlap; k += 2) {
+					for (let k = -iD; k <= iD && !overlap; k += 2) {
 						let x: number;
 
 						// Positions in sequences A and B of furthest going D-path on diagonal k.
@@ -156,11 +156,11 @@ export class Diff {
 						oV[k] = x;
 
 						// Check feasibility, Delta is checked for being odd.
-						if ((iDelta & 1) === 1 && Diff.inRange(k, iDelta - (iD - 1), iDelta + (iD - 1))) { // eslint-disable-line no-bitwise
+						if ((delta & 1) === 1 && Diff.inRange(k, delta - (iD - 1), delta + (iD - 1))) { // eslint-disable-line no-bitwise
 							// Forward D-path can overlap with reversed D-1-path
 							if (oV[k] >= oU[k]) {
 								// Found an overlap, the middle snake, convert X-components to dots
-								aOverlap = [
+								overlap = [
 									xx,
 									x
 								].map(toPoint, k); // XXX ES5
@@ -170,14 +170,14 @@ export class Diff {
 
 					let SES: number | undefined;
 
-					if (aOverlap) {
+					if (overlap) {
 						SES = iD * 2 - 1;
 					}
 
 					// Iterate over each diagonal for reversed case
-					for (let k = -iD; k <= iD && !aOverlap; k += 2) {
+					for (let k = -iD; k <= iD && !overlap; k += 2) {
 						// The real diagonal we are looking for is k + Delta
-						const K = k + iDelta;
+						const K = k + delta;
 						let x: number;
 
 						if (k === iD || (k !== -iD && oU[K - 1] < oU[K + 1])) {
@@ -200,9 +200,9 @@ export class Diff {
 						}
 						oU[K] = x;
 
-						if (iDelta % 2 === 0 && Diff.inRange(K, -iD, iD)) {
+						if (delta % 2 === 0 && Diff.inRange(K, -iD, iD)) {
 							if (oU[K] <= oV[K]) {
-								aOverlap = [
+								overlap = [
 									x,
 									xx
 								].map(toPoint, K); // XXX ES5
@@ -210,20 +210,20 @@ export class Diff {
 						}
 					}
 
-					if (aOverlap) {
+					if (overlap) {
 						SES = SES || iD * 2;
 						// Remember we had offset of each sequence?
 						for (let i = 0; i < 2; i += 1) {
 							for (let j = 0; j < 2; j += 1) {
-								aOverlap[i][j] += [
+								overlap[i][j] += [
 									startA,
 									startB
 								][j] - i;
 							}
 						}
-						return aOverlap.concat([
+						return overlap.concat([
 							SES,
-							(iMax - SES) / 2
+							(max - SES) / 2
 						]) as OverlapReturnType;
 					}
 				}
@@ -272,29 +272,8 @@ export class Diff {
 	//   - atom: the atom found in either A or B
 	// Applying operations from diff sequence you should be able to transform A to B
 	private static diff(aA: string[], aB: string[]) {
-		const aDiff: AtomEntryType[] = [],
+		const diff: AtomEntryType[] = [],
 			fnEquals = Diff.fnEquals;
-		/*
-			// Accepts custom comparator
-			customIndexOf = function (item: string, start: number, fnEquals2: (a: string, b: string) => boolean) {
-				const aArr = this;
-
-				for (let i2 = start; i2 < aArr.length; i2 += 1) {
-					if (fnEquals2(item, aArr[i2])) {
-						return i2;
-					}
-				}
-				return -1;
-			};
-
-		// We just compare atoms with default equals operator by default
-		if (fnEquals === undefined) {
-			fnEquals = function (a: string, b: string) {
-				return a === b;
-			};
-		}
-		*/
-
 		let	i = 0,
 			j = 0,
 			iN = aA.length,
@@ -312,10 +291,10 @@ export class Diff {
 			iK += 1;
 		}
 
-		([] as AtomEntryType[]).push.apply(aDiff, aA.slice(0, i).map(function (sAtom2) {
+		([] as AtomEntryType[]).push.apply(diff, aA.slice(0, i).map(function (atom2) {
 			return {
 				operation: "none",
-				atom: sAtom2
+				atom: atom2
 			};
 		}));
 
@@ -328,23 +307,23 @@ export class Diff {
 
 			// XXX ES5 map
 			// Delete unmatched atoms from A
-			([] as AtomEntryType[]).push.apply(aDiff, aA.slice(i, ni).map(function (sAtom2) {
+			([] as AtomEntryType[]).push.apply(diff, aA.slice(i, ni).map(function (atom2) {
 				return {
 					operation: "delete",
-					atom: sAtom2
+					atom: atom2
 				};
 			}));
 
 			// Add unmatched atoms from B
-			([] as AtomEntryType[]).push.apply(aDiff, aB.slice(j, nj).map(function (sAtom2) {
+			([] as AtomEntryType[]).push.apply(diff, aB.slice(j, nj).map(function (atom2) {
 				return {
 					operation: "add",
-					atom: sAtom2
+					atom: atom2
 				};
 			}));
 
 			// Add the atom found in both sequences
-			aDiff.push({
+			diff.push({
 				operation: "none",
 				atom: atom
 			});
@@ -355,46 +334,46 @@ export class Diff {
 
 		// Don't forget about the rest
 
-		([] as AtomEntryType[]).push.apply(aDiff, aA.slice(i, iN).map(function (atom2) {
+		([] as AtomEntryType[]).push.apply(diff, aA.slice(i, iN).map(function (atom2) {
 			return {
 				operation: "delete",
 				atom: atom2
 			};
 		}));
 
-		([] as AtomEntryType[]).push.apply(aDiff, aB.slice(j, iM).map(function (atom2) {
+		([] as AtomEntryType[]).push.apply(diff, aB.slice(j, iM).map(function (atom2) {
 			return {
 				operation: "add",
 				atom: atom2
 			};
 		}));
 
-		([] as AtomEntryType[]).push.apply(aDiff, aA.slice(iN, iN + iK).map(function (atom2) {
+		([] as AtomEntryType[]).push.apply(diff, aA.slice(iN, iN + iK).map(function (atom2) {
 			return {
 				operation: "none",
 				atom: atom2
 			};
 		}));
 
-		return aDiff;
+		return diff;
 	}
 
-	static testDiff(sText1: string, sText2: string): string {
-		const aText1 = sText1.split("\n"),
-			aText2 = sText2.split("\n");
+	static testDiff(text1: string, text2: string): string {
+		const textParts1 = text1.split("\n"),
+			textParts2 = text2.split("\n");
 
-		let sDiff = Diff.diff(aText1, aText2).map(function (o) {
-			let sResult = "";
+		let diff = Diff.diff(textParts1, textParts2).map(function (o) {
+			let result = "";
 
 			if (o.operation === "add") {
-				sResult = "+ " + o.atom;
+				result = "+ " + o.atom;
 			} else if (o.operation === "delete") {
-				sResult = "- " + o.atom;
+				result = "- " + o.atom;
 			} // else "none"
-			return sResult;
+			return result;
 		}).join("\n");
 
-		sDiff = sDiff.replace(/\n\n+/g, "\n");
-		return sDiff;
+		diff = diff.replace(/\n\n+/g, "\n");
+		return diff;
 	}
 }

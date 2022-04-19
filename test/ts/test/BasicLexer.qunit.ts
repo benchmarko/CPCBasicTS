@@ -8,7 +8,7 @@ import { TestHelper, TestsType, AllTestsType } from "./TestHelper";
 QUnit.dump.maxDepth = 10;
 
 QUnit.module("BasicLexer: Tests", function () {
-	const mAllTests: AllTestsType = { // eslint-disable-line vars-on-top
+	const allTests: AllTestsType = { // eslint-disable-line vars-on-top
 		numbers: {
 			"a=1": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"number","value":"1","pos":2},{"type":"(end)","value":"","pos":3}]',
 			"a=1.2": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"number","value":"1.2","pos":2},{"type":"(end)","value":"","pos":5}]',
@@ -626,56 +626,56 @@ QUnit.module("BasicLexer: Tests", function () {
 		}
 	};
 
-	function fnReplacer(sBin: string) {
-		return "0x" + parseInt(sBin.substr(2), 2).toString(16).toLowerCase();
+	function fnReplacer(bin: string) {
+		return "0x" + parseInt(bin.substr(2), 2).toString(16).toLowerCase();
 	}
 
-	function runTestsFor(assert: Assert | undefined, _sCategory: string, oTests: TestsType, aResults?: string[]) {
-		const oOptions = {
-				bQuiet: true
+	function runTestsFor(assert: Assert | undefined, _sCategory: string, tests: TestsType, results?: string[]) {
+		const options = {
+				quiet: true
 			},
-			oBasicLexer = new BasicLexer(oOptions);
+			basicLexer = new BasicLexer(options);
 
-		for (const sKey in oTests) {
-			if (oTests.hasOwnProperty(sKey)) {
-				let sExpected = oTests[sKey],
-					oExpected,
-					aTokens: LexerToken[],
-					sResult: string;
+		for (const key in tests) {
+			if (tests.hasOwnProperty(key)) {
+				let expectedString = tests[key],
+					expectedEntry,
+					tokens: LexerToken[],
+					result: string;
 
-				if (!Utils.bSupportsBinaryLiterals) {
-					sExpected = sExpected.replace(/(0b[01]+)/g, fnReplacer); // for old IE
+				if (!Utils.supportsBinaryLiterals) {
+					expectedString = expectedString.replace(/(0b[01]+)/g, fnReplacer); // for old IE
 				}
 
 				try {
 					try {
-						oExpected = JSON.parse(sExpected); // test: { e: sExpected }
+						expectedEntry = JSON.parse(expectedString); // test: { e: expected }
 					} catch (e) {
 						Utils.console.error(e);
-						oExpected = {}; // continue
+						expectedEntry = {}; // continue
 					}
 
-					aTokens = oBasicLexer.lex(sKey);
+					tokens = basicLexer.lex(key);
 
-					sResult = JSON.stringify(aTokens);
+					result = JSON.stringify(tokens);
 				} catch (e) {
 					Utils.console.error(e);
-					sResult = String(e);
-					aTokens = sResult as any; // force to take it
+					result = String(e);
+					tokens = result as any; // force to take it
 				}
 
-				if (aResults) {
-					aResults.push('"' + sKey.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + "\": '" + sResult.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/'/g, "\\'") + "'");
+				if (results) {
+					results.push('"' + key.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + "\": '" + result.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/'/g, "\\'") + "'");
 				}
 
 				if (assert) {
-					assert.deepEqual(aTokens, oExpected, sKey);
+					assert.deepEqual(tokens, expectedEntry, key);
 				}
 			}
 		}
 	}
 
-	TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
+	TestHelper.generateAndRunAllTests(allTests, runTestsFor);
 });
 
 // end

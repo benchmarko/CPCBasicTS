@@ -12,19 +12,19 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     exports.BasicTokenizer = void 0;
     var BasicTokenizer = /** @class */ (function () {
         function BasicTokenizer() {
-            this.iPos = 0;
-            this.iLine = 0;
+            this.pos = 0;
+            this.line = 0;
             // will also be set in decode
-            this.iLineEnd = 0;
-            this.sInput = "";
-            this.oDebug = {
-                iStartPos: 0,
-                iLine: 0,
-                sInfo: ""
+            this.lineEnd = 0;
+            this.input = "";
+            this.debug = {
+                startPos: 0,
+                line: 0,
+                info: ""
             };
             // on sq?
             /* eslint-disable no-invalid-this */
-            this.mTokens = {
+            this.tokens = {
                 0x00: "",
                 0x01: ":",
                 0x02: this.fnIntVar,
@@ -191,7 +191,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 // 0xff: (prefix for additional keywords)
             };
             /* eslint-enable no-invalid-this */
-            this.mTokensFF = {
+            this.tokensFF = {
                 // Functions with one argument
                 0x00: "ABS",
                 0x01: "ASC",
@@ -253,9 +253,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             };
         }
         BasicTokenizer.prototype.fnNum8Dec = function () {
-            var iNum = this.sInput.charCodeAt(this.iPos);
-            this.iPos += 1;
-            return iNum;
+            var num = this.input.charCodeAt(this.pos);
+            this.pos += 1;
+            return num;
         };
         BasicTokenizer.prototype.fnNum16Dec = function () {
             return this.fnNum8Dec() + this.fnNum8Dec() * 256;
@@ -303,37 +303,37 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         // Check also: https://mfukar.github.io/2015/10/29/amstrad-fp.html
         // Example PI: b=[0xa2,0xda,0x0f,0x49,0x82]; e=b[4]-128; m=(b[3] >= 128 ? -1 : +1) * (0x80000000 + ((b[3] & 0x7f) <<24) + (b[2] << 16) + (b[1] <<8) + b[0]); z=m*Math.pow(2,e-32);console.log(m,e,z)
         BasicTokenizer.prototype.fnNumFp = function () {
-            var iValue = this.fnNum32Dec(); // signed integer
-            var iExponent = this.fnNum8Dec(), sOut;
-            if (!iExponent) { // exponent zero? => 0
-                sOut = "0";
+            var value = this.fnNum32Dec(); // signed integer
+            var exponent = this.fnNum8Dec(), out;
+            if (!exponent) { // exponent zero? => 0
+                out = "0";
             }
             else { // beware: JavaScript has no unsigned int except for ">>> 0"
-                var mantissa = iValue >= 0 ? iValue + 0x80000000 : iValue;
-                iExponent -= 0x81; // 2-complement: 2^-127 .. 2^128
-                var iNum = mantissa * Math.pow(2, iExponent - 31);
-                sOut = iNum.toPrecision(9); // some rounding, formatting
-                if (sOut.indexOf("e") >= 0) {
-                    sOut = sOut.replace(/\.?0*e/, "E"); // exponential uppercase, no zeros
-                    sOut = sOut.replace(/(E[+-])(\d)$/, "$10$2"); // exponent 1 digit to 2 digits
+                var mantissa = value >= 0 ? value + 0x80000000 : value;
+                exponent -= 0x81; // 2-complement: 2^-127 .. 2^128
+                var num = mantissa * Math.pow(2, exponent - 31);
+                out = num.toPrecision(9); // some rounding, formatting
+                if (out.indexOf("e") >= 0) {
+                    out = out.replace(/\.?0*e/, "E"); // exponential uppercase, no zeros
+                    out = out.replace(/(E[+-])(\d)$/, "$10$2"); // exponent 1 digit to 2 digits
                 }
-                else if (sOut.indexOf(".") >= 0) { // decimal number?
-                    sOut = sOut.replace(/\.?0*$/, ""); // remove trailing dot and/or zeros
+                else if (out.indexOf(".") >= 0) { // decimal number?
+                    out = out.replace(/\.?0*$/, ""); // remove trailing dot and/or zeros
                 }
             }
-            return sOut;
+            return out;
         };
         BasicTokenizer.prototype.fnGetBit7TerminatedString = function () {
-            var sData = this.sInput;
-            var iPos = this.iPos;
-            while (sData.charCodeAt(iPos) <= 0x7f && iPos < this.iLineEnd) { // last character b7=1 (>= 0x80)
-                iPos += 1;
+            var data = this.input;
+            var pos = this.pos;
+            while (data.charCodeAt(pos) <= 0x7f && pos < this.lineEnd) { // last character b7=1 (>= 0x80)
+                pos += 1;
             }
-            var sOut = sData.substring(this.iPos, iPos) + String.fromCharCode(sData.charCodeAt(iPos) & 0x7f); // eslint-disable-line no-bitwise
-            if (iPos < this.iLineEnd) { // maybe corrupted if used in DATA line
-                this.iPos = iPos + 1;
+            var out = data.substring(this.pos, pos) + String.fromCharCode(data.charCodeAt(pos) & 0x7f); // eslint-disable-line no-bitwise
+            if (pos < this.lineEnd) { // maybe corrupted if used in DATA line
+                this.pos = pos + 1;
             }
-            return sOut;
+            return out;
         };
         BasicTokenizer.prototype.fnVar = function () {
             this.fnNum16Dec(); // ignore offset (offset to memory location of variable)
@@ -353,9 +353,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return "|" + this.fnGetBit7TerminatedString();
         };
         BasicTokenizer.prototype.fnStringUntilEol = function () {
-            var sOut = this.sInput.substring(this.iPos, this.iLineEnd - 1); // take remaining line
-            this.iPos = this.iLineEnd;
-            return sOut;
+            var out = this.input.substring(this.pos, this.lineEnd - 1); // take remaining line
+            this.pos = this.lineEnd;
+            return out;
         };
         BasicTokenizer.prototype.fnApostrophe = function () {
             return "'" + this.fnStringUntilEol();
@@ -364,134 +364,134 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return "REM" + this.fnStringUntilEol();
         };
         BasicTokenizer.prototype.fnQuotedString = function () {
-            var iClosingQuotes = this.sInput.indexOf('"', this.iPos);
-            var sOut = "";
-            if (iClosingQuotes < 0 || iClosingQuotes >= this.iLineEnd) { // unclosed quoted string (quotes not found or not in this line)
-                sOut = this.fnStringUntilEol(); // take remaining line
+            var closingQuotes = this.input.indexOf('"', this.pos);
+            var out = "";
+            if (closingQuotes < 0 || closingQuotes >= this.lineEnd) { // unclosed quoted string (quotes not found or not in this line)
+                out = this.fnStringUntilEol(); // take remaining line
             }
             else {
-                sOut = this.sInput.substring(this.iPos, iClosingQuotes + 1);
-                this.iPos = iClosingQuotes + 1; // after quotes
+                out = this.input.substring(this.pos, closingQuotes + 1);
+                this.pos = closingQuotes + 1; // after quotes
             }
-            sOut = '"' + sOut;
-            if (sOut.indexOf("\r") >= 0) {
-                Utils_1.Utils.console.log("BasicTokenizer line", this.iLine, ": string contains CR, replaced by CHR$(13)");
-                sOut = sOut.replace(/\r/g, '"+chr$(13)+"');
+            out = '"' + out;
+            if (out.indexOf("\r") >= 0) {
+                Utils_1.Utils.console.log("BasicTokenizer line", this.line, ": string contains CR, replaced by CHR$(13)");
+                out = out.replace(/\r/g, '"+chr$(13)+"');
             }
-            if ((/\n\d/).test(sOut)) {
-                Utils_1.Utils.console.log("BasicTokenizer line", this.iLine, ": string contains LF<digit>, replaced by CHR$(10)<digit>");
-                sOut = sOut.replace(/\n(\d)/g, '"+chr$(10)+"$1');
+            if ((/\n\d/).test(out)) {
+                Utils_1.Utils.console.log("BasicTokenizer line", this.line, ": string contains LF<digit>, replaced by CHR$(10)<digit>");
+                out = out.replace(/\n(\d)/g, '"+chr$(10)+"$1');
             }
-            return sOut;
+            return out;
         };
         BasicTokenizer.prototype.debugPrintInfo = function () {
-            var oDebug = this.oDebug;
-            Utils_1.Utils.console.debug("BasicTokenizer Details:\n", oDebug.sInfo);
-            oDebug.iLine = 0;
-            oDebug.sInfo = "";
+            var debug = this.debug;
+            Utils_1.Utils.console.debug("BasicTokenizer Details:\n", debug.info);
+            debug.line = 0;
+            debug.info = "";
         };
-        BasicTokenizer.prototype.debugCollectInfo = function (sTokenLine) {
-            var oDebug = this.oDebug, sHex = this.sInput.substring(oDebug.iStartPos, this.iPos).split("").map(function (s) {
+        BasicTokenizer.prototype.debugCollectInfo = function (tokenLine) {
+            var debug = this.debug, hex = this.input.substring(debug.startPos, this.pos).split("").map(function (s) {
                 return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0");
             }).join(",");
-            if (this.iLine !== oDebug.iLine) {
-                if (oDebug.sInfo) {
-                    oDebug.sInfo += "\n";
+            if (this.line !== debug.line) {
+                if (debug.info) {
+                    debug.info += "\n";
                 }
-                oDebug.iLine = this.iLine;
-                oDebug.sInfo += oDebug.iLine + ": ";
+                debug.line = this.line;
+                debug.info += debug.line + ": ";
             }
-            oDebug.sInfo += " [" + sHex + "] " + sTokenLine;
+            debug.info += " [" + hex + "] " + tokenLine;
         };
         BasicTokenizer.prototype.fnParseLineFragment = function () {
-            var sInput = this.sInput;
-            var sOut = "", bSpace = false;
-            while (this.iPos < this.iLineEnd) {
-                this.oDebug.iStartPos = this.iPos;
-                var bOldSpace = bSpace;
-                var iToken = this.fnNum8Dec();
-                if (iToken === 0x01) { // statement seperator ":"?
-                    if (this.iPos < sInput.length) {
-                        var iNextToken = sInput.charCodeAt(this.iPos); // test next token
-                        if (iNextToken === 0x97 || iNextToken === 0xc0) { // ELSE or rem '?
-                            iToken = iNextToken; // ignore ':'
-                            this.iPos += 1;
+            var input = this.input;
+            var out = "", space = false;
+            while (this.pos < this.lineEnd) {
+                this.debug.startPos = this.pos;
+                var oldSpace = space;
+                var token = this.fnNum8Dec();
+                if (token === 0x01) { // statement seperator ":"?
+                    if (this.pos < input.length) {
+                        var nextToken = input.charCodeAt(this.pos); // test next token
+                        if (nextToken === 0x97 || nextToken === 0xc0) { // ELSE or rem '?
+                            token = nextToken; // ignore ':'
+                            this.pos += 1;
                         }
                     }
                 }
-                bSpace = ((iToken >= 0x02 && iToken <= 0x1f) || (iToken === 0x7c)); // constant 0..9; variable, or RSX?
-                var token = void 0;
-                if (iToken === 0xff) { // extended token?
-                    iToken = this.fnNum8Dec(); // get it
-                    token = this.mTokensFF[iToken];
+                space = ((token >= 0x02 && token <= 0x1f) || (token === 0x7c)); // constant 0..9; variable, or RSX?
+                var tokenValue = void 0;
+                if (token === 0xff) { // extended token?
+                    token = this.fnNum8Dec(); // get it
+                    tokenValue = this.tokensFF[token];
                 }
                 else {
-                    token = this.mTokens[iToken];
+                    tokenValue = this.tokens[token];
                 }
                 var tstr = void 0;
-                if (token !== undefined) {
-                    if (typeof token === "function") {
-                        tstr = token.call(this);
+                if (tokenValue !== undefined) {
+                    if (typeof tokenValue === "function") {
+                        tstr = tokenValue.call(this);
                     }
                     else { // string
-                        tstr = token;
+                        tstr = tokenValue;
                     }
-                    if ((/[a-zA-Z0-9.]$/).test(tstr) && iToken !== 0xe4) { // last character char, number, dot? (not for token "FN")
-                        bSpace = true; // maybe need space next time...
+                    if ((/[a-zA-Z0-9.]$/).test(tstr) && token !== 0xe4) { // last character char, number, dot? (not for token "FN")
+                        space = true; // maybe need space next time...
                     }
                 }
                 else { // normal ASCII
-                    tstr = String.fromCharCode(iToken);
+                    tstr = String.fromCharCode(token);
                 }
-                if (bOldSpace) {
-                    if ((/^[a-zA-Z0-9$%!]/).test(tstr) || (iToken >= 0x02 && iToken <= 0x1f)) {
+                if (oldSpace) {
+                    if ((/^[a-zA-Z0-9$%!]/).test(tstr) || (token >= 0x02 && token <= 0x1f)) {
                         tstr = " " + tstr;
                     }
                 }
-                sOut += tstr;
+                out += tstr;
                 if (Utils_1.Utils.debug > 2) {
                     this.debugCollectInfo(tstr);
                 }
             }
-            return sOut;
+            return out;
         };
         BasicTokenizer.prototype.fnParseNextLine = function () {
-            var iLineLength = this.fnNum16Dec();
-            if (!iLineLength) {
+            var lineLength = this.fnNum16Dec();
+            if (!lineLength) {
                 return undefined; // nothing more
             }
-            this.iLine = this.fnNum16Dec();
-            this.iLineEnd = this.iPos - 4 + iLineLength;
-            return this.iLine + " " + this.fnParseLineFragment();
+            this.line = this.fnNum16Dec();
+            this.lineEnd = this.pos - 4 + lineLength;
+            return this.line + " " + this.fnParseLineFragment();
         };
         BasicTokenizer.prototype.fnParseProgram = function () {
-            var sOut = "", sLine;
-            while ((sLine = this.fnParseNextLine()) !== undefined) {
-                sOut += sLine + "\n";
+            var out = "", line;
+            while ((line = this.fnParseNextLine()) !== undefined) {
+                out += line + "\n";
                 // CPC uses "\r\n" line breaks, JavaScript uses "\n", textArea cannot contain "\r"
             }
-            return sOut;
+            return out;
         };
-        BasicTokenizer.prototype.decodeLineFragment = function (sProgram, iOffset, iLength) {
-            this.sInput = sProgram;
-            this.iPos = iOffset;
-            this.iLine = 0;
-            this.iLineEnd = this.iPos + iLength;
-            var sOut = this.fnParseLineFragment();
+        BasicTokenizer.prototype.decodeLineFragment = function (program, offset, length) {
+            this.input = program;
+            this.pos = offset;
+            this.line = 0;
+            this.lineEnd = this.pos + length;
+            var out = this.fnParseLineFragment();
             if (Utils_1.Utils.debug > 2) {
                 this.debugPrintInfo();
             }
-            return sOut;
+            return out;
         };
-        BasicTokenizer.prototype.decode = function (sProgram) {
-            this.sInput = sProgram;
-            this.iPos = 0;
-            this.iLine = 0;
-            var sOut = this.fnParseProgram();
+        BasicTokenizer.prototype.decode = function (program) {
+            this.input = program;
+            this.pos = 0;
+            this.line = 0;
+            var out = this.fnParseProgram();
             if (Utils_1.Utils.debug > 2) {
                 this.debugPrintInfo();
             }
-            return sOut;
+            return out;
         };
         return BasicTokenizer;
     }());

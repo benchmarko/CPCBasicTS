@@ -10,11 +10,11 @@ define(["require", "exports"], function (require, exports) {
     // Raj Jain: The Art of Computer Systems Performance Analysis, John Wiley & Sons, 1991, page 442-444
     //
     var Random = /** @class */ (function () {
-        function Random(nSeed) {
-            this.init(nSeed);
+        function Random(seed) {
+            this.init(seed);
         }
-        Random.prototype.init = function (nSeed) {
-            this.x = nSeed || 1; // do not use 0
+        Random.prototype.init = function (seed) {
+            this.x = seed || 1; // do not use 0
         };
         Random.prototype.random = function () {
             var m = 2147483647, // prime number 2^31-1; modulus, do not change!

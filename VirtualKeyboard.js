@@ -8,10 +8,10 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
     exports.VirtualKeyboard = void 0;
     var VirtualKeyboard = /** @class */ (function () {
         function VirtualKeyboard(options) {
-            this.bShiftLock = false;
-            this.bNumLock = false;
+            this.shiftLock = false;
+            this.numLock = false;
             /* eslint-enable array-element-newline */
-            this.oDrag = {
+            this.dragInfo = {
                 dragItem: undefined,
                 active: false,
                 xOffset: 0,
@@ -23,30 +23,30 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             };
             this.fnPressCpcKey = options.fnPressCpcKey;
             this.fnReleaseCpcKey = options.fnReleaseCpcKey;
-            var oEventNames = this.fnAttachPointerEvents("kbdArea", this.onVirtualVirtualKeyboardKeydown.bind(this), undefined, this.onVirtualVirtualKeyboardKeyup.bind(this));
-            if (oEventNames.out) {
-                this.sPointerOutEvent = oEventNames.out;
+            var eventNames = this.fnAttachPointerEvents("kbdArea", this.onVirtualVirtualKeyboardKeydown.bind(this), undefined, this.onVirtualVirtualKeyboardKeyup.bind(this));
+            if (eventNames.out) {
+                this.pointerOutEvent = eventNames.out;
                 this.fnVirtualKeyout = this.onVirtualVirtualKeyboardKeyout.bind(this);
             }
             this.dragInit("pageBody", "kbdAreaBox");
             this.virtualKeyboardCreate();
         }
-        VirtualKeyboard.prototype.fnAttachPointerEvents = function (sId, fnDown, fnMove, fnUp) {
-            var area = View_1.View.getElementById1(sId), oPointerEventNames = {
+        VirtualKeyboard.prototype.fnAttachPointerEvents = function (id, fnDown, fnMove, fnUp) {
+            var area = View_1.View.getElementById1(id), pointerEventNames = {
                 down: "pointerdown",
                 move: "pointermove",
                 up: "pointerup",
                 cancel: "pointercancel",
                 out: "pointerout",
                 type: "pointer"
-            }, oTouchEventNames = {
+            }, touchEventNames = {
                 down: "touchstart",
                 move: "touchmove",
                 up: "touchend",
                 cancel: "touchcancel",
                 out: "",
                 type: "touch"
-            }, oMouseEventNames = {
+            }, mouseEventNames = {
                 down: "mousedown",
                 move: "mousemove",
                 up: "mouseup",
@@ -54,150 +54,150 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 out: "mouseout",
                 type: "mouse"
             };
-            var oEventNames;
+            var eventNames;
             if (window.PointerEvent) {
-                oEventNames = oPointerEventNames;
+                eventNames = pointerEventNames;
             }
             else if ("ontouchstart" in window || navigator.maxTouchPoints) {
-                oEventNames = oTouchEventNames;
+                eventNames = touchEventNames;
             }
             else {
-                oEventNames = oMouseEventNames;
+                eventNames = mouseEventNames;
             }
             if (Utils_1.Utils.debug > 0) {
-                Utils_1.Utils.console.log("fnAttachPointerEvents: Using", oEventNames.type, "events");
+                Utils_1.Utils.console.log("fnAttachPointerEvents: Using", eventNames.type, "events");
             }
             if (fnDown) {
-                area.addEventListener(oEventNames.down, fnDown, false); // +clicked for pointer, touch?
+                area.addEventListener(eventNames.down, fnDown, false); // +clicked for pointer, touch?
             }
             if (fnMove) {
-                area.addEventListener(oEventNames.move, fnMove, false);
+                area.addEventListener(eventNames.move, fnMove, false);
             }
             if (fnUp) {
-                area.addEventListener(oEventNames.up, fnUp, false);
-                if (oEventNames.cancel) {
-                    area.addEventListener(oEventNames.cancel, fnUp, false);
+                area.addEventListener(eventNames.up, fnUp, false);
+                if (eventNames.cancel) {
+                    area.addEventListener(eventNames.cancel, fnUp, false);
                 }
             }
-            return oEventNames;
+            return eventNames;
         };
         VirtualKeyboard.prototype.reset = function () {
             this.virtualKeyboardAdaptKeys(false, false);
         };
-        VirtualKeyboard.prototype.mapNumLockCpcKey = function (iCpcKey) {
-            var oKey = VirtualKeyboard.aCpcKey2Key[iCpcKey];
-            if (oKey.numLockCpcKey) {
-                iCpcKey = oKey.numLockCpcKey;
+        VirtualKeyboard.prototype.mapNumLockCpcKey = function (cpcKey) {
+            var key = VirtualKeyboard.cpcKey2Key[cpcKey];
+            if (key.numLockCpcKey) {
+                cpcKey = key.numLockCpcKey;
             }
-            return iCpcKey;
+            return cpcKey;
         };
-        VirtualKeyboard.prototype.fnVirtualGetAscii = function (iCpcKey, bShiftKey, bNumLock) {
-            var oKey = VirtualKeyboard.aCpcKey2Key[iCpcKey];
-            var sKey, sText, sTitle;
-            if (bNumLock && oKey.keyNumLock) {
-                sKey = oKey.keyNumLock;
-                sText = oKey.textNumLock || sKey;
-                sTitle = oKey.titleNumLock || sText;
+        VirtualKeyboard.prototype.fnVirtualGetAscii = function (cpcKey, shiftKey, numLock) {
+            var keyEntry = VirtualKeyboard.cpcKey2Key[cpcKey];
+            var key, text, title;
+            if (numLock && keyEntry.keyNumLock) {
+                key = keyEntry.keyNumLock;
+                text = keyEntry.textNumLock || key;
+                title = keyEntry.titleNumLock || text;
             }
-            else if (bShiftKey && oKey.keyShift) {
-                sKey = oKey.keyShift;
-                sText = oKey.textShift || sKey;
-                sTitle = oKey.titleShift || sText;
+            else if (shiftKey && keyEntry.keyShift) {
+                key = keyEntry.keyShift;
+                text = keyEntry.textShift || key;
+                title = keyEntry.titleShift || text;
             }
             else {
-                sKey = oKey.key;
-                sText = oKey.text || sKey;
-                sTitle = oKey.title || sText;
+                key = keyEntry.key;
+                text = keyEntry.text || key;
+                title = keyEntry.title || text;
             }
-            var oAscii = {
-                key: sKey,
-                text: sText,
-                title: sTitle
+            var ascii = {
+                key: key,
+                text: text,
+                title: title
             };
-            return oAscii;
+            return ascii;
         };
-        VirtualKeyboard.prototype.createButtonRow = function (sId, aOptions) {
-            var place = View_1.View.getElementById1(sId);
+        VirtualKeyboard.prototype.createButtonRow = function (id, options) {
+            var place = View_1.View.getElementById1(id);
             if (place.insertAdjacentElement) {
                 var buttonList = document.createElement("div");
                 buttonList.className = "displayFlex";
-                for (var i = 0; i < aOptions.length; i += 1) {
-                    var oItem = aOptions[i], button = document.createElement("button");
-                    button.innerText = oItem.text;
-                    button.setAttribute("title", oItem.title);
-                    button.className = oItem.className;
-                    button.setAttribute("data-key", String(oItem.key));
+                for (var i = 0; i < options.length; i += 1) {
+                    var item = options[i], button = document.createElement("button");
+                    button.innerText = item.text;
+                    button.setAttribute("title", item.title);
+                    button.className = item.className;
+                    button.setAttribute("data-key", String(item.key));
                     buttonList.insertAdjacentElement("beforeend", button);
                 }
                 place.insertAdjacentElement("beforeend", buttonList);
             }
             else { // Polyfill for old browsers
-                var sHtml = "<div class=displayFlex>\n";
-                for (var i = 0; i < aOptions.length; i += 1) {
-                    var oItem = aOptions[i];
-                    sHtml += '<button title="' + oItem.title + '" class="' + oItem.className + '" data-key="' + oItem.key + '">' + oItem.text + "</button>\n";
+                var html = "<div class=displayFlex>\n";
+                for (var i = 0; i < options.length; i += 1) {
+                    var item = options[i];
+                    html += '<button title="' + item.title + '" class="' + item.className + '" data-key="' + item.key + '">' + item.text + "</button>\n";
                 }
-                sHtml += "</div>";
-                place.innerHTML += sHtml;
+                html += "</div>";
+                place.innerHTML += html;
             }
             return this;
         };
-        VirtualKeyboard.prototype.virtualKeyboardCreatePart = function (sId, aVirtualVirtualKeyboard) {
-            var oKeyArea = View_1.View.getElementById1(sId), bShiftLock = this.bShiftLock, bNumLock = this.bNumLock, aCpcKey2Key = VirtualKeyboard.aCpcKey2Key, aButtons = oKeyArea.getElementsByTagName("button");
-            if (!aButtons.length) { // not yet created?
-                for (var iRow = 0; iRow < aVirtualVirtualKeyboard.length; iRow += 1) {
-                    var aRow = aVirtualVirtualKeyboard[iRow], aOptions = [];
-                    for (var iCol = 0; iCol < aRow.length; iCol += 1) {
-                        var oCpcKey = void 0;
-                        if (typeof aRow[iCol] === "number") {
-                            oCpcKey = {
-                                key: aRow[iCol]
+        VirtualKeyboard.prototype.virtualKeyboardCreatePart = function (id, virtualVirtualKeyboard) {
+            var keyArea = View_1.View.getElementById1(id), shiftLock = this.shiftLock, numLock = this.numLock, cpcKey2Key = VirtualKeyboard.cpcKey2Key, buttons = keyArea.getElementsByTagName("button");
+            if (!buttons.length) { // not yet created?
+                for (var row = 0; row < virtualVirtualKeyboard.length; row += 1) {
+                    var rowList = virtualVirtualKeyboard[row], optionsList = [];
+                    for (var col = 0; col < rowList.length; col += 1) {
+                        var cpcKeyEntry = void 0;
+                        if (typeof rowList[col] === "number") {
+                            cpcKeyEntry = {
+                                key: rowList[col]
                             };
                         }
                         else { // object
-                            oCpcKey = aRow[iCol];
+                            cpcKeyEntry = rowList[col];
                         }
-                        var iCpcKey = bNumLock ? this.mapNumLockCpcKey(oCpcKey.key) : oCpcKey.key, oKey = aCpcKey2Key[oCpcKey.key], oAscii = this.fnVirtualGetAscii(iCpcKey, bShiftLock, bNumLock), sClassName = "kbdButton" + (oCpcKey.style || oKey.style || "") + ((iCol === aRow.length - 1) ? " kbdNoRightMargin" : ""), oOptions = {
-                            key: iCpcKey,
-                            text: oAscii.text,
-                            title: oAscii.title,
-                            className: sClassName
+                        var cpcKey = numLock ? this.mapNumLockCpcKey(cpcKeyEntry.key) : cpcKeyEntry.key, keyEntry = cpcKey2Key[cpcKeyEntry.key], ascii = this.fnVirtualGetAscii(cpcKey, shiftLock, numLock), className = "kbdButton" + (cpcKeyEntry.style || keyEntry.style || "") + ((col === rowList.length - 1) ? " kbdNoRightMargin" : ""), options = {
+                            key: cpcKey,
+                            text: ascii.text,
+                            title: ascii.title,
+                            className: className
                         };
-                        aOptions.push(oOptions);
+                        optionsList.push(options);
                     }
-                    this.createButtonRow(sId, aOptions);
+                    this.createButtonRow(id, optionsList);
                 }
             }
         };
         VirtualKeyboard.prototype.virtualKeyboardCreate = function () {
-            this.virtualKeyboardCreatePart("kbdAlpha", VirtualKeyboard.aVirtualVirtualKeyboardAlpha);
-            this.virtualKeyboardCreatePart("kbdNum", VirtualKeyboard.aVirtualVirtualKeyboardNum);
+            this.virtualKeyboardCreatePart("kbdAlpha", VirtualKeyboard.virtualVirtualKeyboardAlpha);
+            this.virtualKeyboardCreatePart("kbdNum", VirtualKeyboard.virtualVirtualKeyboardNum);
         };
-        VirtualKeyboard.prototype.virtualKeyboardAdaptKeys = function (bShiftLock, bNumLock) {
-            var oKeyArea = View_1.View.getElementById1("kbdArea"), aButtons = oKeyArea.getElementsByTagName("button"); // or: oKeyArea.childNodes and filter
-            for (var i = 0; i < aButtons.length; i += 1) {
-                var oButton = aButtons[i];
-                var iCpcKey = Number(oButton.getAttribute("data-key"));
-                if (bNumLock) {
-                    iCpcKey = this.mapNumLockCpcKey(iCpcKey);
+        VirtualKeyboard.prototype.virtualKeyboardAdaptKeys = function (shiftLock, numLock) {
+            var keyArea = View_1.View.getElementById1("kbdArea"), buttons = keyArea.getElementsByTagName("button"); // or: keyArea.childNodes and filter
+            for (var i = 0; i < buttons.length; i += 1) {
+                var button = buttons[i];
+                var cpcKey = Number(button.getAttribute("data-key"));
+                if (numLock) {
+                    cpcKey = this.mapNumLockCpcKey(cpcKey);
                 }
-                var oAscii = this.fnVirtualGetAscii(iCpcKey, bShiftLock, bNumLock);
-                if (oAscii.key !== oButton.innerText) {
-                    oButton.innerText = oAscii.text;
-                    oButton.title = oAscii.title;
+                var ascii = this.fnVirtualGetAscii(cpcKey, shiftLock, numLock);
+                if (ascii.key !== button.innerText) {
+                    button.innerText = ascii.text;
+                    button.title = ascii.title;
                 }
             }
         };
-        VirtualKeyboard.prototype.fnVirtualGetPressedKey = function (iCpcKey) {
-            var oKey = VirtualKeyboard.aCpcKey2Key[iCpcKey];
-            var sPressedKey = "";
-            if (oKey) {
-                sPressedKey = oKey.keys;
-                if (sPressedKey.indexOf(",") >= 0) { // maybe more
-                    sPressedKey = sPressedKey.substring(0, sPressedKey.indexOf(",")); // take the first
+        VirtualKeyboard.prototype.fnVirtualGetPressedKey = function (cpcKey) {
+            var key = VirtualKeyboard.cpcKey2Key[cpcKey];
+            var pressedKey = "";
+            if (key) {
+                pressedKey = key.keys;
+                if (pressedKey.indexOf(",") >= 0) { // maybe more
+                    pressedKey = pressedKey.substring(0, pressedKey.indexOf(",")); // take the first
                 }
             }
-            return sPressedKey;
+            return pressedKey;
         };
         VirtualKeyboard.prototype.fnGetEventTarget = function (event) {
             var node = event.target || event.srcElement; // target, not currentTarget
@@ -207,51 +207,51 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             return node;
         };
         VirtualKeyboard.prototype.onVirtualVirtualKeyboardKeydown = function (event) {
-            var node = this.fnGetEventTarget(event), oHtmlElement = node, sCpcKey = oHtmlElement.getAttribute("data-key");
+            var node = this.fnGetEventTarget(event), htmlElement = node, cpcKey = htmlElement.getAttribute("data-key");
             if (Utils_1.Utils.debug > 1) {
-                Utils_1.Utils.console.debug("onVirtualVirtualKeyboardKeydown: event", String(event), "type:", event.type, "title:", oHtmlElement.title, "cpcKey:", sCpcKey);
+                Utils_1.Utils.console.debug("onVirtualVirtualKeyboardKeydown: event", String(event), "type:", event.type, "title:", htmlElement.title, "cpcKey:", cpcKey);
             }
-            if (sCpcKey !== null) {
-                var iCpcKey = Number(sCpcKey);
-                if (this.bNumLock) {
-                    iCpcKey = this.mapNumLockCpcKey(iCpcKey);
+            if (cpcKey !== null) {
+                var cpcKeyCode = Number(cpcKey);
+                if (this.numLock) {
+                    cpcKeyCode = this.mapNumLockCpcKey(cpcKeyCode);
                 }
-                var sPressedKey = this.fnVirtualGetPressedKey(iCpcKey), oPointerEvent = event, oAscii = this.fnVirtualGetAscii(iCpcKey, this.bShiftLock || oPointerEvent.shiftKey, this.bNumLock);
-                this.fnPressCpcKey(iCpcKey, sPressedKey, oAscii.key, oPointerEvent.shiftKey, oPointerEvent.ctrlKey);
+                var pressedKey = this.fnVirtualGetPressedKey(cpcKeyCode), pointerEvent = event, ascii = this.fnVirtualGetAscii(cpcKeyCode, this.shiftLock || pointerEvent.shiftKey, this.numLock);
+                this.fnPressCpcKey(cpcKeyCode, pressedKey, ascii.key, pointerEvent.shiftKey, pointerEvent.ctrlKey);
             }
-            if (this.sPointerOutEvent && this.fnVirtualKeyout) {
-                node.addEventListener(this.sPointerOutEvent, this.fnVirtualKeyout, false);
+            if (this.pointerOutEvent && this.fnVirtualKeyout) {
+                node.addEventListener(this.pointerOutEvent, this.fnVirtualKeyout, false);
             }
             event.preventDefault();
             return false;
         };
         VirtualKeyboard.prototype.fnVirtualVirtualKeyboardKeyupOrKeyout = function (event) {
-            var node = this.fnGetEventTarget(event), sCpcKey = node.getAttribute("data-key");
-            if (sCpcKey !== null) {
-                var iCpcKey = Number(sCpcKey);
-                if (this.bNumLock) {
-                    iCpcKey = this.mapNumLockCpcKey(iCpcKey);
+            var node = this.fnGetEventTarget(event), cpcKey = node.getAttribute("data-key");
+            if (cpcKey !== null) {
+                var cpcKeyCode = Number(cpcKey);
+                if (this.numLock) {
+                    cpcKeyCode = this.mapNumLockCpcKey(cpcKeyCode);
                 }
-                var sPressedKey = this.fnVirtualGetPressedKey(iCpcKey), oPointerEvent = event, oAscii = this.fnVirtualGetAscii(iCpcKey, this.bShiftLock || oPointerEvent.shiftKey, this.bNumLock);
-                this.fnReleaseCpcKey(iCpcKey, sPressedKey, oAscii.key, oPointerEvent.shiftKey, oPointerEvent.ctrlKey);
-                if (iCpcKey === 70) { // Caps Lock?
-                    this.bShiftLock = !this.bShiftLock;
-                    this.virtualKeyboardAdaptKeys(this.bShiftLock, this.bNumLock);
+                var pressedKey = this.fnVirtualGetPressedKey(cpcKeyCode), pointerEvent = event, ascii = this.fnVirtualGetAscii(cpcKeyCode, this.shiftLock || pointerEvent.shiftKey, this.numLock);
+                this.fnReleaseCpcKey(cpcKeyCode, pressedKey, ascii.key, pointerEvent.shiftKey, pointerEvent.ctrlKey);
+                if (cpcKeyCode === 70) { // Caps Lock?
+                    this.shiftLock = !this.shiftLock;
+                    this.virtualKeyboardAdaptKeys(this.shiftLock, this.numLock);
                 }
-                else if (iCpcKey === 90) { // Num lock
-                    this.bNumLock = !this.bNumLock;
-                    this.virtualKeyboardAdaptKeys(this.bShiftLock, this.bNumLock);
+                else if (cpcKeyCode === 90) { // Num lock
+                    this.numLock = !this.numLock;
+                    this.virtualKeyboardAdaptKeys(this.shiftLock, this.numLock);
                 }
             }
         };
         VirtualKeyboard.prototype.onVirtualVirtualKeyboardKeyup = function (event) {
-            var node = this.fnGetEventTarget(event), oHtmlElement = node;
+            var node = this.fnGetEventTarget(event), htmlElement = node;
             if (Utils_1.Utils.debug > 1) {
-                Utils_1.Utils.console.debug("onVirtualVirtualKeyboardKeyup: event", String(event), "type:", event.type, "title:", oHtmlElement.title, "cpcKey:", oHtmlElement.getAttribute("data-key"));
+                Utils_1.Utils.console.debug("onVirtualVirtualKeyboardKeyup: event", String(event), "type:", event.type, "title:", htmlElement.title, "cpcKey:", htmlElement.getAttribute("data-key"));
             }
             this.fnVirtualVirtualKeyboardKeyupOrKeyout(event);
-            if (this.sPointerOutEvent && this.fnVirtualKeyout) {
-                node.removeEventListener(this.sPointerOutEvent, this.fnVirtualKeyout); // do not need out event any more
+            if (this.pointerOutEvent && this.fnVirtualKeyout) {
+                node.removeEventListener(this.pointerOutEvent, this.fnVirtualKeyout); // do not need out event any more
             }
             event.preventDefault();
             return false;
@@ -262,68 +262,68 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 Utils_1.Utils.console.debug("onVirtualVirtualKeyboardKeyout: event=", event);
             }
             this.fnVirtualVirtualKeyboardKeyupOrKeyout(event);
-            if (this.sPointerOutEvent && this.fnVirtualKeyout) {
-                node.removeEventListener(this.sPointerOutEvent, this.fnVirtualKeyout);
+            if (this.pointerOutEvent && this.fnVirtualKeyout) {
+                node.removeEventListener(this.pointerOutEvent, this.fnVirtualKeyout);
             }
             event.preventDefault();
             return false;
         };
         // based on https://www.kirupa.com/html5/drag.htm
-        VirtualKeyboard.prototype.dragInit = function (sContainerId, sItemId) {
-            var oDrag = this.oDrag;
-            oDrag.dragItem = View_1.View.getElementById1(sItemId);
-            oDrag.active = false;
-            oDrag.xOffset = 0;
-            oDrag.yOffset = 0;
-            this.fnAttachPointerEvents(sContainerId, this.dragStart.bind(this), this.drag.bind(this), this.dragEnd.bind(this));
+        VirtualKeyboard.prototype.dragInit = function (containerId, itemId) {
+            var drag = this.dragInfo;
+            drag.dragItem = View_1.View.getElementById1(itemId);
+            drag.active = false;
+            drag.xOffset = 0;
+            drag.yOffset = 0;
+            this.fnAttachPointerEvents(containerId, this.dragStart.bind(this), this.drag.bind(this), this.dragEnd.bind(this));
         };
         VirtualKeyboard.prototype.dragStart = function (event) {
-            var node = this.fnGetEventTarget(event), parent2 = node.parentElement ? node.parentElement.parentElement : null, oDrag = this.oDrag;
-            if (node === oDrag.dragItem || parent2 === oDrag.dragItem) {
+            var node = this.fnGetEventTarget(event), parent2 = node.parentElement ? node.parentElement.parentElement : null, drag = this.dragInfo;
+            if (node === drag.dragItem || parent2 === drag.dragItem) {
                 if (event.type === "touchstart") {
-                    var oTouchEvent = event;
-                    oDrag.initialX = oTouchEvent.touches[0].clientX - oDrag.xOffset;
-                    oDrag.initialY = oTouchEvent.touches[0].clientY - oDrag.yOffset;
+                    var touchEvent = event;
+                    drag.initialX = touchEvent.touches[0].clientX - drag.xOffset;
+                    drag.initialY = touchEvent.touches[0].clientY - drag.yOffset;
                 }
                 else {
-                    var oDragEvent = event;
-                    oDrag.initialX = oDragEvent.clientX - oDrag.xOffset;
-                    oDrag.initialY = oDragEvent.clientY - oDrag.yOffset;
+                    var dragEvent = event;
+                    drag.initialX = dragEvent.clientX - drag.xOffset;
+                    drag.initialY = dragEvent.clientY - drag.yOffset;
                 }
-                oDrag.active = true;
+                drag.active = true;
             }
         };
         VirtualKeyboard.prototype.dragEnd = function ( /* event */) {
-            var oDrag = this.oDrag;
-            oDrag.initialX = oDrag.currentX;
-            oDrag.initialY = oDrag.currentY;
-            oDrag.active = false;
+            var drag = this.dragInfo;
+            drag.initialX = drag.currentX;
+            drag.initialY = drag.currentY;
+            drag.active = false;
         };
         VirtualKeyboard.prototype.setTranslate = function (xPos, yPos, el) {
             el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)";
         };
         VirtualKeyboard.prototype.drag = function (event) {
-            var oDrag = this.oDrag;
-            if (oDrag.active) {
+            var drag = this.dragInfo;
+            if (drag.active) {
                 event.preventDefault();
                 if (event.type === "touchmove") {
-                    var oTouchEvent = event;
-                    oDrag.currentX = oTouchEvent.touches[0].clientX - oDrag.initialX;
-                    oDrag.currentY = oTouchEvent.touches[0].clientY - oDrag.initialY;
+                    var touchEvent = event;
+                    drag.currentX = touchEvent.touches[0].clientX - drag.initialX;
+                    drag.currentY = touchEvent.touches[0].clientY - drag.initialY;
                 }
                 else {
-                    var oDragEvent = event;
-                    oDrag.currentX = oDragEvent.clientX - oDrag.initialX;
-                    oDrag.currentY = oDragEvent.clientY - oDrag.initialY;
+                    var dragEvent = event;
+                    drag.currentX = dragEvent.clientX - drag.initialX;
+                    drag.currentY = dragEvent.clientY - drag.initialY;
                 }
-                oDrag.xOffset = oDrag.currentX;
-                oDrag.yOffset = oDrag.currentY;
-                if (oDrag.dragItem) {
-                    this.setTranslate(oDrag.currentX, oDrag.currentY, oDrag.dragItem);
+                drag.xOffset = drag.currentX;
+                drag.yOffset = drag.currentY;
+                if (drag.dragItem) {
+                    this.setTranslate(drag.currentX, drag.currentY, drag.dragItem);
                 }
             }
         };
-        VirtualKeyboard.aCpcKey2Key = [
+        VirtualKeyboard.cpcKey2Key = [
             {
                 keys: "38ArrowUp",
                 key: "ArrowUp",
@@ -831,7 +831,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             // "226IntlBackslash", "122F11", "123F12", "44PrintScreen", "145ScrollLock", "19Pause", "45Insert", "36Home", "33PageUp", "35End", "34PageDown", "111NumpadDivide", "106NumpadMultiply", "109NumpadSubtract", "107NumpadAdd"
         ];
         /* eslint-disable array-element-newline */
-        VirtualKeyboard.aVirtualVirtualKeyboardAlpha = [
+        VirtualKeyboard.virtualVirtualKeyboardAlpha = [
             [66, 64, 65, 57, 56, 49, 48, 41, 40, 33, 32, 25, 24, 16, 79],
             [68, 67, 59, 58, 50, 51, 43, 42, 35, 34, 27, 26, 17, 18],
             [70, 69, 60, 61, 53, 52, 44, 45, 37, 36, 29, 28, 19, 90],
@@ -844,7 +844,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             ],
             [23, 9, 47, 6]
         ];
-        VirtualKeyboard.aVirtualVirtualKeyboardNum = [
+        VirtualKeyboard.virtualVirtualKeyboardNum = [
             [10, 11, 3],
             [20, 12, 4],
             [13, 14, 5],

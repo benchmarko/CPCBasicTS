@@ -2,21 +2,21 @@ import { BasicLexer } from "./BasicLexer";
 import { BasicParser, ParserNode } from "./BasicParser";
 import { IOutput } from "./Interfaces";
 interface CodeGeneratorBasicOptions {
-    bQuiet?: boolean;
+    quiet?: boolean;
     lexer: BasicLexer;
     parser: BasicParser;
 }
 export declare class CodeGeneratorBasic {
-    private bQuiet;
+    private quiet;
     private lexer;
     private parser;
-    private iLine;
+    private line;
     constructor(options: CodeGeneratorBasicOptions);
     getLexer(): BasicLexer;
     getParser(): BasicParser;
-    private static mCombinedKeywords;
-    private static mOperators;
-    private static mOperatorPrecedence;
+    private static combinedKeywords;
+    private static operators;
+    private static operatorPrecedence;
     private composeError;
     private static fnWs;
     private static fnSpace1;
@@ -54,12 +54,12 @@ export declare class CodeGeneratorBasic {
     private print;
     private rem;
     private using;
-    mParseFunctions: {
+    parseFunctions: {
         [k: string]: (node: ParserNode) => string;
     };
     private fnParseOther;
     private parseNode;
     private evaluate;
-    generate(sInput: string, bAllowDirect?: boolean): IOutput;
+    generate(input: string, allowDirect?: boolean): IOutput;
 }
 export {};

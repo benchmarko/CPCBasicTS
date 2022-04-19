@@ -5,5 +5,5 @@ export declare class Diff {
     private static customIndexOf;
     private static fnLCS;
     private static diff;
-    static testDiff(sText1: string, sText2: string): string;
+    static testDiff(text1: string, text2: string): string;
 }

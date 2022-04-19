@@ -6,7 +6,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
     Object.defineProperty(exports, "__esModule", { value: true });
     QUnit.dump.maxDepth = 10;
     QUnit.module("BasicFormatter:renumber: Tests", function () {
-        var mAllTests = {
+        var allTests = {
             DELETE: {
                 "1 DELETE": "10 DELETE",
                 "1 DELETE 1": "10 DELETE 10",
@@ -36,32 +36,32 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
                 "1 goto 2": "BasicFormatter: Line does not exist in 1 at pos 7-8: 2"
             }
         };
-        function runTestsFor(assert, _sCategory, oTests, aResults) {
-            var oBasicFormatter = new BasicFormatter_1.BasicFormatter({
+        function runTestsFor(assert, _sCategory, tests, results) {
+            var basicFormatter = new BasicFormatter_1.BasicFormatter({
                 lexer: new BasicLexer_1.BasicLexer(),
                 parser: new BasicParser_1.BasicParser({
-                    bQuiet: true
+                    quiet: true
                 })
-            }), fnReplacer = function (sBin) {
-                return "0x" + parseInt(sBin.substr(2), 2).toString(16).toLowerCase();
-            }, iNew = 10, iOld = 1, iStep = 10, iKeep = 65535;
-            for (var sKey in oTests) {
-                if (oTests.hasOwnProperty(sKey)) {
-                    var oOutput = oBasicFormatter.renumber(sKey, iNew, iOld, iStep, iKeep), sResult = oOutput.error ? String(oOutput.error) : oOutput.text;
-                    var sExpected = oTests[sKey];
-                    if (!Utils_1.Utils.bSupportsBinaryLiterals) {
-                        sExpected = sExpected.replace(/(0b[01]+)/g, fnReplacer); // for old IE
+            }), fnReplacer = function (bin) {
+                return "0x" + parseInt(bin.substr(2), 2).toString(16).toLowerCase();
+            }, newLine = 10, oldLine = 1, step = 10, keep = 65535;
+            for (var key in tests) {
+                if (tests.hasOwnProperty(key)) {
+                    var output = basicFormatter.renumber(key, newLine, oldLine, step, keep), result = output.error ? String(output.error) : output.text;
+                    var expected = tests[key];
+                    if (!Utils_1.Utils.supportsBinaryLiterals) {
+                        expected = expected.replace(/(0b[01]+)/g, fnReplacer); // for old IE
                     }
-                    if (aResults) {
-                        aResults.push('"' + sKey.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '": "' + sResult.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '"');
+                    if (results) {
+                        results.push('"' + key.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '": "' + result.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '"');
                     }
                     if (assert) {
-                        assert.strictEqual(sResult, sExpected, sKey);
+                        assert.strictEqual(result, expected, key);
                     }
                 }
             }
         }
-        TestHelper_1.TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
+        TestHelper_1.TestHelper.generateAndRunAllTests(allTests, runTestsFor);
     });
 });
 // end

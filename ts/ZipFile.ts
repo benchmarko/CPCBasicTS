@@ -16,315 +16,315 @@ type CodeType = {
 };
 
 interface CentralDirFileHeader {
-	iSignature: number
-	iVersion: number // version needed to extract (minimum)
-	iFlag: number // General purpose bit flag
-	iCompressionMethod: number // compression method
-	iModificationTime: number // File last modification time (DOS time)
-	iCrc: number // CRC-32 of uncompressed data
-	iCompressedSize: number // compressed size
-	iSize: number // Uncompressed size
-	iFileNameLength: number // file name length
-	iExtraFieldLength: number // extra field length
-	iFileCommentLength: number // file comment length
-	iLocalOffset:number // relative offset of local file header
-	sName: string
-	bIsDirectory: boolean
-	aExtra: Uint8Array
-	sComment: string
-	iTimestamp: number
-	iDataStart: number
+	signature: number
+	version: number // version needed to extract (minimum)
+	flag: number // General purpose bit flag
+	compressionMethod: number // compression method
+	modificationTime: number // File last modification time (DOS time)
+	crc: number // CRC-32 of uncompressed data
+	compressedSize: number // compressed size
+	size: number // Uncompressed size
+	fileNameLength: number // file name length
+	extraFieldLength: number // extra field length
+	fileCommentLength: number // file comment length
+	localOffset:number // relative offset of local file header
+	name: string
+	isDirectory: boolean
+	extra: Uint8Array
+	comment: string
+	timestamp: number
+	dataStart: number
 }
 
 type ZipDirectoryType = {[k in string]: CentralDirFileHeader}
 
 interface EndOfCentralDir {
-	iSignature: number
-	iEntries: number // total number of central directory records
-	iCdfhOffset: number // offset of start of central directory, relative to start of archive
-	iCdSize: number // size of central directory (just for information)
+	signature: number
+	entries: number // total number of central directory records
+	cdfhOffset: number // offset of start of central directory, relative to start of archive
+	cdSize: number // size of central directory (just for information)
 }
 
 
 export class ZipFile {
-	private aData: Uint8Array;
-	private sZipName: string; // for error messages
-	private oEntryTable: ZipDirectoryType;
+	private data: Uint8Array;
+	private zipName: string; // for error messages
+	private entryTable: ZipDirectoryType;
 
-	constructor(aData: Uint8Array, sZipName: string) {
-		this.aData = aData;
-		this.sZipName = sZipName; // for error messages
-		this.oEntryTable = this.readZipDirectory();
+	constructor(data: Uint8Array, zipName: string) {
+		this.data = data;
+		this.zipName = zipName; // for error messages
+		this.entryTable = this.readZipDirectory();
 	}
 
 	getZipDirectory(): ZipDirectoryType {
-		return this.oEntryTable;
+		return this.entryTable;
 	}
 
-	private composeError(oError: Error, message: string, value: string, pos: number) {
-		message = this.sZipName + ": " + message; // put zipname in message
-		return Utils.composeError("ZipFile", oError, message, value, pos, undefined);
+	private composeError(error: Error, message: string, value: string, pos: number) {
+		message = this.zipName + ": " + message; // put zipname in message
+		return Utils.composeError("ZipFile", error, message, value, pos, undefined);
 	}
 
-	private subArr(iBegin: number, iLength: number) {
-		const aData = this.aData,
-			iEnd = iBegin + iLength;
+	private subArr(begin: number, length: number) {
+		const data = this.data,
+			end = begin + length;
 
-		return aData.slice ? aData.slice(iBegin, iEnd) : aData.subarray(iBegin, iEnd); // array.slice on Uint8Array not for IE11
+		return data.slice ? data.slice(begin, end) : data.subarray(begin, end); // array.slice on Uint8Array not for IE11
 	}
 
-	private readUTF(iOffset: number, iLen: number) {
-		const iCallSize = 25000; // use call window to avoid "maximum call stack error" for e.g. size 336461
-		let sOut = "";
+	private readUTF(offset: number, len: number) {
+		const callSize = 25000; // use call window to avoid "maximum call stack error" for e.g. size 336461
+		let out = "";
 
-		while (iLen) {
-			const iChunkLen = Math.min(iLen, iCallSize),
-				aNums = this.subArr(iOffset, iChunkLen) as unknown as number[];
+		while (len) {
+			const chunkLen = Math.min(len, callSize),
+				nums = this.subArr(offset, chunkLen) as unknown as number[];
 
-			sOut += String.fromCharCode.apply(null, aNums); // on Chrome this is faster than single character processing
-			iOffset += iChunkLen;
-			iLen -= iChunkLen;
+			out += String.fromCharCode.apply(null, nums); // on Chrome this is faster than single character processing
+			offset += chunkLen;
+			len -= chunkLen;
 		}
-		return sOut;
+		return out;
 	}
 
 	private readUInt(i: number) {
-		const aData = this.aData;
+		const data = this.data;
 
-		return (aData[i + 3] << 24) | (aData[i + 2] << 16) | (aData[i + 1] << 8) | aData[i]; // eslint-disable-line no-bitwise
+		return (data[i + 3] << 24) | (data[i + 2] << 16) | (data[i + 1] << 8) | data[i]; // eslint-disable-line no-bitwise
 	}
 
 	private readUShort(i: number) {
-		const aData = this.aData;
+		const data = this.data;
 
-		return ((aData[i + 1]) << 8) | aData[i]; // eslint-disable-line no-bitwise
+		return ((data[i + 1]) << 8) | data[i]; // eslint-disable-line no-bitwise
 	}
 
-	private readEocd(iEocdPos: number) { // read End of central directory
-		const oEocd: EndOfCentralDir = {
-			iSignature: this.readUInt(iEocdPos),
-			iEntries: this.readUShort(iEocdPos + 10), // total number of central directory records
-			iCdfhOffset: this.readUInt(iEocdPos + 16), // offset of start of central directory, relative to start of archive
-			iCdSize: this.readUInt(iEocdPos + 20) // size of central directory (just for information)
+	private readEocd(eocdPos: number) { // read End of central directory
+		const eocd: EndOfCentralDir = {
+			signature: this.readUInt(eocdPos),
+			entries: this.readUShort(eocdPos + 10), // total number of central directory records
+			cdfhOffset: this.readUInt(eocdPos + 16), // offset of start of central directory, relative to start of archive
+			cdSize: this.readUInt(eocdPos + 20) // size of central directory (just for information)
 		};
 
-		return oEocd;
+		return eocd;
 	}
 
-	private readCdfh(iPos: number) { // read Central directory file header
-		const oCdfh: CentralDirFileHeader = {
-			iSignature: this.readUInt(iPos),
-			iVersion: this.readUShort(iPos + 6), // version needed to extract (minimum)
-			iFlag: this.readUShort(iPos + 8), // General purpose bit flag
-			iCompressionMethod: this.readUShort(iPos + 10), // compression method
-			iModificationTime: this.readUShort(iPos + 12), // File last modification time (DOS time)
-			iCrc: this.readUInt(iPos + 16), // CRC-32 of uncompressed data
-			iCompressedSize: this.readUInt(iPos + 20), // compressed size
-			iSize: this.readUInt(iPos + 24), // Uncompressed size
-			iFileNameLength: this.readUShort(iPos + 28), // file name length
-			iExtraFieldLength: this.readUShort(iPos + 30), // extra field length
-			iFileCommentLength: this.readUShort(iPos + 32), // file comment length
-			iLocalOffset: this.readUInt(iPos + 42), // relative offset of local file header
+	private readCdfh(pos: number) { // read Central directory file header
+		const cdfh: CentralDirFileHeader = {
+			signature: this.readUInt(pos),
+			version: this.readUShort(pos + 6), // version needed to extract (minimum)
+			flag: this.readUShort(pos + 8), // General purpose bit flag
+			compressionMethod: this.readUShort(pos + 10), // compression method
+			modificationTime: this.readUShort(pos + 12), // File last modification time (DOS time)
+			crc: this.readUInt(pos + 16), // CRC-32 of uncompressed data
+			compressedSize: this.readUInt(pos + 20), // compressed size
+			size: this.readUInt(pos + 24), // Uncompressed size
+			fileNameLength: this.readUShort(pos + 28), // file name length
+			extraFieldLength: this.readUShort(pos + 30), // extra field length
+			fileCommentLength: this.readUShort(pos + 32), // file comment length
+			localOffset: this.readUInt(pos + 42), // relative offset of local file header
 
 			// set later...
-			sName: "",
-			bIsDirectory: false,
-			aExtra: [] as unknown as Uint8Array,
-			sComment: "",
-			iTimestamp: 0,
-			iDataStart: 0
+			name: "",
+			isDirectory: false,
+			extra: [] as unknown as Uint8Array,
+			comment: "",
+			timestamp: 0,
+			dataStart: 0
 		};
 
-		return oCdfh;
+		return cdfh;
 	}
 
 	private readZipDirectory() {
-		const iEocdLen = 22, // End of central directory (EOCD)
-			iMaxEocdCommentLen = 0xffff,
-			iEocdSignature = 0x06054B50, // EOCD signature: "PK\x05\x06"
-			iCdfhSignature = 0x02014B50, // Central directory file header signature: PK\x01\x02"
-			iCdfhLen = 46, // Central directory file header length
-			iLfhSignature = 0x04034b50, // Local file header signature
-			iLfhLen = 30, // Local file header length
-			aData = this.aData,
-			oEntryTable: ZipDirectoryType = {};
+		const eocdLen = 22, // End of central directory (EOCD)
+			maxEocdCommentLen = 0xffff,
+			eocdSignature = 0x06054B50, // EOCD signature: "PK\x05\x06"
+			cdfhSignature = 0x02014B50, // Central directory file header signature: PK\x01\x02"
+			cdfhLen = 46, // Central directory file header length
+			lfhSignature = 0x04034b50, // Local file header signature
+			lfhLen = 30, // Local file header length
+			data = this.data,
+			entryTable: ZipDirectoryType = {};
 
 		// find End of central directory (EOCD) record
-		let i = aData.length - iEocdLen + 1, // +1 because of loop
-			oEocd: EndOfCentralDir | undefined;
+		let i = data.length - eocdLen + 1, // +1 because of loop
+			eocd: EndOfCentralDir | undefined;
 
-		const n = Math.max(0, i - iMaxEocdCommentLen);
+		const n = Math.max(0, i - maxEocdCommentLen);
 
 		while (i >= n) {
 			i -= 1;
-			if (this.readUInt(i) === iEocdSignature) {
-				oEocd = this.readEocd(i);
-				if (this.readUInt(oEocd.iCdfhOffset) === iCdfhSignature) {
+			if (this.readUInt(i) === eocdSignature) {
+				eocd = this.readEocd(i);
+				if (this.readUInt(eocd.cdfhOffset) === cdfhSignature) {
 					break; // looks good, so we assume that we have found the EOCD
 				}
 			}
 		}
-		if (!oEocd) {
+		if (!eocd) {
 			throw this.composeError(Error(), "Zip: File ended abruptly: EOCD not found", "", (i >= 0) ? i : 0);
 		}
 
-		const iEntries = oEocd.iEntries;
-		let iOffset = oEocd.iCdfhOffset;
+		const entries = eocd.entries;
+		let offset = eocd.cdfhOffset;
 
-		for (i = 0; i < iEntries; i += 1) {
-			const oCdfh = this.readCdfh(iOffset);
+		for (i = 0; i < entries; i += 1) {
+			const cdfh = this.readCdfh(offset);
 
-			if (oCdfh.iSignature !== iCdfhSignature) {
-				throw this.composeError(Error(), "Zip: Bad CDFH signature", "", iOffset);
+			if (cdfh.signature !== cdfhSignature) {
+				throw this.composeError(Error(), "Zip: Bad CDFH signature", "", offset);
 			}
-			if (!oCdfh.iFileNameLength) {
-				throw this.composeError(Error(), "Zip Entry name missing", "", iOffset);
+			if (!cdfh.fileNameLength) {
+				throw this.composeError(Error(), "Zip Entry name missing", "", offset);
 			}
-			iOffset += iCdfhLen;
+			offset += cdfhLen;
 
-			oCdfh.sName = this.readUTF(iOffset, oCdfh.iFileNameLength);
-			iOffset += oCdfh.iFileNameLength;
-			oCdfh.bIsDirectory = oCdfh.sName.charAt(oCdfh.sName.length - 1) === "/";
+			cdfh.name = this.readUTF(offset, cdfh.fileNameLength);
+			offset += cdfh.fileNameLength;
+			cdfh.isDirectory = cdfh.name.charAt(cdfh.name.length - 1) === "/";
 
-			oCdfh.aExtra = this.subArr(iOffset, oCdfh.iExtraFieldLength);
-			iOffset += oCdfh.iExtraFieldLength;
+			cdfh.extra = this.subArr(offset, cdfh.extraFieldLength);
+			offset += cdfh.extraFieldLength;
 
-			oCdfh.sComment = this.readUTF(iOffset, oCdfh.iFileCommentLength);
-			iOffset += oCdfh.iFileCommentLength;
+			cdfh.comment = this.readUTF(offset, cdfh.fileCommentLength);
+			offset += cdfh.fileCommentLength;
 
-			if ((oCdfh.iFlag & 1) === 1) { // eslint-disable-line no-bitwise
+			if ((cdfh.flag & 1) === 1) { // eslint-disable-line no-bitwise
 				throw this.composeError(Error(), "Zip encrypted entries not supported", "", i);
 			}
 
-			const iDostime = oCdfh.iModificationTime;
+			const dostime = cdfh.modificationTime;
 
 			// year, month, day, hour, minute, second
-			oCdfh.iTimestamp = new Date(((iDostime >> 25) & 0x7F) + 1980, ((iDostime >> 21) & 0x0F) - 1, (iDostime >> 16) & 0x1F, (iDostime >> 11) & 0x1F, (iDostime >> 5) & 0x3F, (iDostime & 0x1F) << 1).getTime(); // eslint-disable-line no-bitwise
+			cdfh.timestamp = new Date(((dostime >> 25) & 0x7F) + 1980, ((dostime >> 21) & 0x0F) - 1, (dostime >> 16) & 0x1F, (dostime >> 11) & 0x1F, (dostime >> 5) & 0x3F, (dostime & 0x1F) << 1).getTime(); // eslint-disable-line no-bitwise
 
 			// local file header... much more info
-			if (this.readUInt(oCdfh.iLocalOffset) !== iLfhSignature) {
-				Utils.console.error("Zip: readZipDirectory: LFH signature not found at offset", oCdfh.iLocalOffset);
+			if (this.readUInt(cdfh.localOffset) !== lfhSignature) {
+				Utils.console.error("Zip: readZipDirectory: LFH signature not found at offset", cdfh.localOffset);
 			}
 
-			const iLfhExtrafieldLength = this.readUShort(oCdfh.iLocalOffset + 28); // extra field length
+			const lfhExtrafieldLength = this.readUShort(cdfh.localOffset + 28); // extra field length
 
-			oCdfh.iDataStart = oCdfh.iLocalOffset + iLfhLen + oCdfh.sName.length + iLfhExtrafieldLength;
+			cdfh.dataStart = cdfh.localOffset + lfhLen + cdfh.name.length + lfhExtrafieldLength;
 
-			oEntryTable[oCdfh.sName] = oCdfh;
+			entryTable[cdfh.name] = cdfh;
 		}
-		return oEntryTable;
+		return entryTable;
 	}
 
-	private static fnInflateConstruct(oCodes: CodeType, aLens2: number[], n: number) {
+	private static fnInflateConstruct(codes: CodeType, lens2: number[], n: number) {
 		let i: number;
 
 		for (i = 0; i <= 0xF; i += 1) {
-			oCodes.count[i] = 0;
+			codes.count[i] = 0;
 		}
 
 		for (i = 0; i < n; i += 1) {
-			oCodes.count[aLens2[i]] += 1;
+			codes.count[lens2[i]] += 1;
 		}
 
-		if (oCodes.count[0] === n) {
+		if (codes.count[0] === n) {
 			return 0;
 		}
 
-		let iLeft = 1;
+		let left = 1;
 
 		for (i = 1; i <= 0xF; i += 1) {
-			if ((iLeft = (iLeft << 1) - oCodes.count[i]) < 0) { // eslint-disable-line no-bitwise
-				return iLeft;
+			if ((left = (left << 1) - codes.count[i]) < 0) { // eslint-disable-line no-bitwise
+				return left;
 			}
 		}
 
-		const aOffs = [
+		const offs = [
 			undefined,
 			0
 		];
 
 		for (i = 1; i < 0xF; i += 1) {
-			aOffs[i + 1] = aOffs[i]! + oCodes.count[i];
+			offs[i + 1] = offs[i]! + codes.count[i];
 		}
 
 		for (i = 0; i < n; i += 1) {
-			if (aLens2[i] !== 0) {
-				oCodes.symbol[aOffs[aLens2[i]] as number] = i; // TTT
-				(aOffs[aLens2[i]] as number) += 1; // TTT
+			if (lens2[i] !== 0) {
+				codes.symbol[offs[lens2[i]] as number] = i; // TTT
+				(offs[lens2[i]] as number) += 1; // TTT
 			}
 		}
-		return iLeft;
+		return left;
 	}
 
-	private static fnConstructFixedHuffman(aLens: number[], oLenCode: CodeType, oDistCode: CodeType) { //TTT untested?
-		let iSymbol: number;
+	private static fnConstructFixedHuffman(lens: number[], lenCode: CodeType, distCode: CodeType) { //TTT untested?
+		let symbol: number;
 
-		for (iSymbol = 0; iSymbol < 0x90; iSymbol += 1) {
-			aLens[iSymbol] = 8;
+		for (symbol = 0; symbol < 0x90; symbol += 1) {
+			lens[symbol] = 8;
 		}
-		for (; iSymbol < 0x100; iSymbol += 1) {
-			aLens[iSymbol] = 9;
+		for (; symbol < 0x100; symbol += 1) {
+			lens[symbol] = 9;
 		}
-		for (; iSymbol < 0x118; iSymbol += 1) {
-			aLens[iSymbol] = 7;
+		for (; symbol < 0x118; symbol += 1) {
+			lens[symbol] = 7;
 		}
-		for (; iSymbol < 0x120; iSymbol += 1) {
-			aLens[iSymbol] = 8;
+		for (; symbol < 0x120; symbol += 1) {
+			lens[symbol] = 8;
 		}
-		ZipFile.fnInflateConstruct(oLenCode, aLens, 0x120);
-		for (iSymbol = 0; iSymbol < 0x1E; iSymbol += 1) {
-			aLens[iSymbol] = 5;
+		ZipFile.fnInflateConstruct(lenCode, lens, 0x120);
+		for (symbol = 0; symbol < 0x1E; symbol += 1) {
+			lens[symbol] = 5;
 		}
-		ZipFile.fnInflateConstruct(oDistCode, aLens, 0x1E);
+		ZipFile.fnInflateConstruct(distCode, lens, 0x1E);
 	}
 
-	private inflate(iOffset: number, iCompressedSize: number, iFinalSize: number) {
+	private inflate(offset: number, compressedSize: number, finalSize: number) {
 		/* eslint-disable array-element-newline */
-		const aStartLens = [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258],
-			aLExt = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0],
-			aDists = [1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577],
-			aDExt = [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13],
-			aDynamicTableOrder = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15],
+		const startLens = [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258],
+			lExt = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0],
+			dists = [1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577],
+			dExt = [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13],
+			dynamicTableOrder = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15],
 			/* eslint-enable array-element-newline */
 			that = this, // eslint-disable-line @typescript-eslint/no-this-alias
-			aData = this.aData,
-			iBufEnd = iOffset + iCompressedSize,
-			aOutBuf = new Uint8Array(iFinalSize);
-		let	iInCnt = iOffset, // read position
-			iOutCnt = 0, // bytes written to outbuf
-			iBitCnt = 0, // helper to keep track of where we are in #bits
-			iBitBuf = 0,
-			oDistCode: CodeType,
-			oLenCode: CodeType,
-			aLens: number[];
+			data = this.data,
+			bufEnd = offset + compressedSize,
+			outBuf = new Uint8Array(finalSize);
+		let	inCnt = offset, // read position
+			outCnt = 0, // bytes written to outbuf
+			bitCnt = 0, // helper to keep track of where we are in #bits
+			bitBuf = 0,
+			distCode: CodeType,
+			lenCode: CodeType,
+			lens: number[];
 
-		const fnBits = function (iNeed: number) {
-				let iOut = iBitBuf;
+		const fnBits = function (need: number) {
+				let out = bitBuf;
 
-				while (iBitCnt < iNeed) {
-					if (iInCnt === iBufEnd) {
-						throw that.composeError(Error(), "Zip: inflate: Data overflow", that.sZipName, -1);
+				while (bitCnt < need) {
+					if (inCnt === bufEnd) {
+						throw that.composeError(Error(), "Zip: inflate: Data overflow", that.zipName, -1);
 					}
-					iOut |= aData[iInCnt] << iBitCnt; // eslint-disable-line no-bitwise
-					iInCnt += 1;
-					iBitCnt += 8;
+					out |= data[inCnt] << bitCnt; // eslint-disable-line no-bitwise
+					inCnt += 1;
+					bitCnt += 8;
 				}
-				iBitBuf = iOut >> iNeed; // eslint-disable-line no-bitwise
-				iBitCnt -= iNeed;
-				return iOut & ((1 << iNeed) - 1); // eslint-disable-line no-bitwise
+				bitBuf = out >> need; // eslint-disable-line no-bitwise
+				bitCnt -= need;
+				return out & ((1 << need) - 1); // eslint-disable-line no-bitwise
 			},
 
-			fnDecode = function (oCodes: CodeType) {
+			fnDecode = function (codes: CodeType) {
 				let code = 0,
 					first = 0,
 					i = 0;
 
 				for (let j = 1; j <= 0xF; j += 1) {
 					code |= fnBits(1); // eslint-disable-line no-bitwise
-					const count = oCodes.count[j];
+					const count = codes.count[j];
 
 					if (code < first + count) {
-						return oCodes.symbol[i + (code - first)];
+						return codes.symbol[i + (code - first)];
 					}
 					i += count;
 					first += count;
@@ -335,151 +335,151 @@ export class ZipFile {
 			},
 
 			fnInflateStored = function () {
-				iBitBuf = 0;
-				iBitCnt = 0;
-				if (iInCnt + 4 > iBufEnd) {
-					throw that.composeError(Error(), "Zip: inflate: Data overflow", "", iInCnt);
+				bitBuf = 0;
+				bitCnt = 0;
+				if (inCnt + 4 > bufEnd) {
+					throw that.composeError(Error(), "Zip: inflate: Data overflow", "", inCnt);
 				}
 
-				let iLen = that.readUShort(iInCnt);
+				let len = that.readUShort(inCnt);
 
-				iInCnt += 2;
+				inCnt += 2;
 
-				if (aData[iInCnt] !== (~iLen & 0xFF) || aData[iInCnt + 1] !== ((~iLen >> 8) & 0xFF)) { // eslint-disable-line no-bitwise
-					throw that.composeError(Error(), "Zip: inflate: Bad length", "", iInCnt);
+				if (data[inCnt] !== (~len & 0xFF) || data[inCnt + 1] !== ((~len >> 8) & 0xFF)) { // eslint-disable-line no-bitwise
+					throw that.composeError(Error(), "Zip: inflate: Bad length", "", inCnt);
 				}
-				iInCnt += 2;
+				inCnt += 2;
 
-				if (iInCnt + iLen > iBufEnd) {
-					throw that.composeError(Error(), "Zip: inflate: Data overflow", "", iInCnt);
+				if (inCnt + len > bufEnd) {
+					throw that.composeError(Error(), "Zip: inflate: Data overflow", "", inCnt);
 				}
 
 				// Compatibility: Instead of: outbuf.push.apply(outbuf, outbuf.slice(incnt, incnt + len)); outcnt += len; incnt += len;
-				while (iLen) {
-					aOutBuf[iOutCnt] = aData[iInCnt];
-					iOutCnt += 1;
-					iInCnt += 1;
-					iLen -= 1;
+				while (len) {
+					outBuf[outCnt] = data[inCnt];
+					outCnt += 1;
+					inCnt += 1;
+					len -= 1;
 				}
 			},
 
 			fnConstructDynamicHuffman = function () {
-				const iNLen = fnBits(5) + 257,
-					iNDist = fnBits(5) + 1,
-					iNCode = fnBits(4) + 4;
+				const nLen = fnBits(5) + 257,
+					nDist = fnBits(5) + 1,
+					nCode = fnBits(4) + 4;
 
-				if (iNLen > 0x11E || iNDist > 0x1E) {
+				if (nLen > 0x11E || nDist > 0x1E) {
 					throw that.composeError(Error(), "Zip: inflate: length/distance code overflow", "", 0);
 				}
 				let i: number;
 
-				for (i = 0; i < iNCode; i += 1) {
-					aLens[aDynamicTableOrder[i]] = fnBits(3);
+				for (i = 0; i < nCode; i += 1) {
+					lens[dynamicTableOrder[i]] = fnBits(3);
 				}
 				for (; i < 19; i += 1) {
-					aLens[aDynamicTableOrder[i]] = 0;
+					lens[dynamicTableOrder[i]] = 0;
 				}
-				if (ZipFile.fnInflateConstruct(oLenCode, aLens, 19) !== 0) {
+				if (ZipFile.fnInflateConstruct(lenCode, lens, 19) !== 0) {
 					throw that.composeError(Error(), "Zip: inflate: length codes incomplete", "", 0);
 				}
 
-				for (i = 0; i < iNLen + iNDist;) {
-					let iSymbol = fnDecode(oLenCode) as number; // TTT
+				for (i = 0; i < nLen + nDist;) {
+					let symbol = fnDecode(lenCode) as number; // TTT
 
 					/* eslint-disable max-depth */
-					if (iSymbol < 16) {
-						aLens[i] = iSymbol;
+					if (symbol < 16) {
+						lens[i] = symbol;
 						i += 1;
 					} else {
-						let iLen = 0;
+						let len = 0;
 
-						if (iSymbol === 16) {
+						if (symbol === 16) {
 							if (i === 0) {
 								throw that.composeError(Error(), "Zip: inflate: repeat lengths with no first length", "", 0);
 							}
-							iLen = aLens[i - 1];
-							iSymbol = 3 + fnBits(2);
-						} else if (iSymbol === 17) {
-							iSymbol = 3 + fnBits(3);
+							len = lens[i - 1];
+							symbol = 3 + fnBits(2);
+						} else if (symbol === 17) {
+							symbol = 3 + fnBits(3);
 						} else {
-							iSymbol = 11 + fnBits(7);
+							symbol = 11 + fnBits(7);
 						}
 
-						if (i + iSymbol > iNLen + iNDist) {
+						if (i + symbol > nLen + nDist) {
 							throw that.composeError(Error(), "Zip: inflate: more lengths than specified", "", 0);
 						}
-						while (iSymbol) {
-							aLens[i] = iLen;
-							iSymbol -= 1;
+						while (symbol) {
+							lens[i] = len;
+							symbol -= 1;
 							i += 1;
 						}
 					}
 					/* eslint-enable max-depth */
 				}
-				const iErr1 = ZipFile.fnInflateConstruct(oLenCode, aLens, iNLen),
-					iErr2 = ZipFile.fnInflateConstruct(oDistCode, aLens.slice(iNLen), iNDist);
+				const err1 = ZipFile.fnInflateConstruct(lenCode, lens, nLen),
+					err2 = ZipFile.fnInflateConstruct(distCode, lens.slice(nLen), nDist);
 
-				if ((iErr1 < 0 || (iErr1 > 0 && iNLen - oLenCode.count[0] !== 1))
-				|| (iErr2 < 0 || (iErr2 > 0 && iNDist - oDistCode.count[0] !== 1))) {
+				if ((err1 < 0 || (err1 > 0 && nLen - lenCode.count[0] !== 1))
+				|| (err2 < 0 || (err2 > 0 && nDist - distCode.count[0] !== 1))) {
 					throw that.composeError(Error(), "Zip: inflate: bad literal or length codes", "", 0);
 				}
 			},
 
 			fnInflateHuffmann = function () {
-				let iSymbol: number;
+				let symbol: number;
 
 				do { // decode deflated data
-					iSymbol = fnDecode(oLenCode) as number; // TTT
-					if (iSymbol < 256) {
-						aOutBuf[iOutCnt] = iSymbol;
-						iOutCnt += 1;
+					symbol = fnDecode(lenCode) as number; // TTT
+					if (symbol < 256) {
+						outBuf[outCnt] = symbol;
+						outCnt += 1;
 					}
-					if (iSymbol > 256) {
-						iSymbol -= 257;
-						if (iSymbol > 28) {
+					if (symbol > 256) {
+						symbol -= 257;
+						if (symbol > 28) {
 							throw that.composeError(Error(), "Zip: inflate: Invalid length/distance", "", 0);
 						}
-						let iLen = aStartLens[iSymbol] + fnBits(aLExt[iSymbol]);
+						let len = startLens[symbol] + fnBits(lExt[symbol]);
 
-						iSymbol = fnDecode(oDistCode) as number; // TTT
-						const iDist = aDists[iSymbol] + fnBits(aDExt[iSymbol]);
+						symbol = fnDecode(distCode) as number; // TTT
+						const dist = dists[symbol] + fnBits(dExt[symbol]);
 
-						if (iDist > iOutCnt) {
+						if (dist > outCnt) {
 							throw that.composeError(Error(), "Zip: inflate: distance out of range", "", 0);
 						}
 						// instead of outbuf.slice, we use...
-						while (iLen) {
-							aOutBuf[iOutCnt] = aOutBuf[iOutCnt - iDist];
-							iLen -= 1;
-							iOutCnt += 1;
+						while (len) {
+							outBuf[outCnt] = outBuf[outCnt - dist];
+							len -= 1;
+							outCnt += 1;
 						}
 					}
-				} while (iSymbol !== 256);
+				} while (symbol !== 256);
 			};
 
-		let iLast: number;
+		let last: number;
 
 		do { // The actual inflation
-			iLast = fnBits(1);
-			const iType = fnBits(2);
+			last = fnBits(1);
+			const type = fnBits(2);
 
-			switch (iType) {
+			switch (type) {
 			case 0: // STORED
 				fnInflateStored();
 				break;
 			case 1:
 			case 2: // fixed (=1) or dynamic (=2) huffman
-				oLenCode = {
+				lenCode = {
 					count: [],
 					symbol: []
 				};
-				oDistCode = {
+				distCode = {
 					count: [],
 					symbol: []
 				};
-				aLens = [];
-				if (iType === 1) { // construct fixed huffman tables
-					ZipFile.fnConstructFixedHuffman(aLens, oLenCode, oDistCode);
+				lens = [];
+				if (type === 1) { // construct fixed huffman tables
+					ZipFile.fnConstructFixedHuffman(lens, lenCode, distCode);
 				} else { // construct dynamic huffman tables
 					fnConstructDynamicHuffman();
 				}
@@ -488,36 +488,36 @@ export class ZipFile {
 
 				break;
 			default:
-				throw this.composeError(Error(), "Zip: inflate: unsupported compression type" + iType, "", 0);
+				throw this.composeError(Error(), "Zip: inflate: unsupported compression type" + type, "", 0);
 			}
-		} while (!iLast);
-		return aOutBuf;
+		} while (!last);
+		return outBuf;
 	}
 
-	readData(sName: string): string {
-		const oCdfh = this.oEntryTable[sName];
+	readData(name: string): string {
+		const cdfh = this.entryTable[name];
 
-		if (!oCdfh) {
-			throw this.composeError(Error(), "Zip: readData: file does not exist:" + sName, "", 0);
+		if (!cdfh) {
+			throw this.composeError(Error(), "Zip: readData: file does not exist:" + name, "", 0);
 		}
 
-		let sDataUTF8 = "";
+		let dataUTF8 = "";
 
-		if (oCdfh.iCompressionMethod === 0) { // stored
-			sDataUTF8 = this.readUTF(oCdfh.iDataStart, oCdfh.iSize);
-		} else if (oCdfh.iCompressionMethod === 8) { // deflated
-			const aFileData = this.inflate(oCdfh.iDataStart, oCdfh.iCompressedSize, oCdfh.iSize),
-				aSavedData = this.aData;
+		if (cdfh.compressionMethod === 0) { // stored
+			dataUTF8 = this.readUTF(cdfh.dataStart, cdfh.size);
+		} else if (cdfh.compressionMethod === 8) { // deflated
+			const fileData = this.inflate(cdfh.dataStart, cdfh.compressedSize, cdfh.size),
+				savedData = this.data;
 
-			this.aData = aFileData; // we need to switch this.aData
-			sDataUTF8 = this.readUTF(0, aFileData.length);
-			this.aData = aSavedData; // restore
+			this.data = fileData; // we need to switch this.data
+			dataUTF8 = this.readUTF(0, fileData.length);
+			this.data = savedData; // restore
 		} else {
-			throw this.composeError(Error(), "Zip: readData: compression method not supported:" + oCdfh.iCompressionMethod, "", 0);
+			throw this.composeError(Error(), "Zip: readData: compression method not supported:" + cdfh.compressionMethod, "", 0);
 		}
-		if (sDataUTF8.length !== oCdfh.iSize) { // assert
+		if (dataUTF8.length !== cdfh.size) { // assert
 			Utils.console.error("Zip: readData: different length 2!");
 		}
-		return sDataUTF8;
+		return dataUTF8;
 	}
 }

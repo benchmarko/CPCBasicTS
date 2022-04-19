@@ -1,19 +1,6 @@
 "use strict";
 // browserLoader.ts - Loader for the browser
 // (c) Marco Vieth, 2022
-/*
-declare global {
-    let require: (path: string) => object; // eslint-disable-line @typescript-eslint/ban-types,
-}
-*/
-// var require: (path: string) => object; // eslint-disable-line @typescript-eslint/ban-types,
-/*
-if ((typeof globalThis !== "undefined") && !globalThis.window) { // nodeJS
-    //Utils.console.debug("Polyfill: window");
-    //(globalThis.window as any) = {};
-}
-*/
-// const myGlobal = (globalThis || window) as any;
 if (!window.exports) {
     window.exports = {};
 }

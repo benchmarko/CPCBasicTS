@@ -1,31 +1,31 @@
 interface CentralDirFileHeader {
-    iSignature: number;
-    iVersion: number;
-    iFlag: number;
-    iCompressionMethod: number;
-    iModificationTime: number;
-    iCrc: number;
-    iCompressedSize: number;
-    iSize: number;
-    iFileNameLength: number;
-    iExtraFieldLength: number;
-    iFileCommentLength: number;
-    iLocalOffset: number;
-    sName: string;
-    bIsDirectory: boolean;
-    aExtra: Uint8Array;
-    sComment: string;
-    iTimestamp: number;
-    iDataStart: number;
+    signature: number;
+    version: number;
+    flag: number;
+    compressionMethod: number;
+    modificationTime: number;
+    crc: number;
+    compressedSize: number;
+    size: number;
+    fileNameLength: number;
+    extraFieldLength: number;
+    fileCommentLength: number;
+    localOffset: number;
+    name: string;
+    isDirectory: boolean;
+    extra: Uint8Array;
+    comment: string;
+    timestamp: number;
+    dataStart: number;
 }
 declare type ZipDirectoryType = {
     [k in string]: CentralDirFileHeader;
 };
 export declare class ZipFile {
-    private aData;
-    private sZipName;
-    private oEntryTable;
-    constructor(aData: Uint8Array, sZipName: string);
+    private data;
+    private zipName;
+    private entryTable;
+    constructor(data: Uint8Array, zipName: string);
     getZipDirectory(): ZipDirectoryType;
     private composeError;
     private subArr;
@@ -38,6 +38,6 @@ export declare class ZipFile {
     private static fnInflateConstruct;
     private static fnConstructFixedHuffman;
     private inflate;
-    readData(sName: string): string;
+    readData(name: string): string;
 }
 export {};

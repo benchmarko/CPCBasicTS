@@ -13,33 +13,33 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
                 replace(/^[^/]+\/\*\S*/, "").
                 replace(/\*\/[^/]+$/, "");
         };
-        cpcBasic.addIndex = function (sDir, input) {
+        cpcBasic.addIndex = function (dir, input) {
             if (typeof input !== "string") {
                 input = this.fnHereDoc(input);
             }
-            return cpcBasic.controller.addIndex(sDir, input);
+            return cpcBasic.controller.addIndex(dir, input);
         };
-        cpcBasic.addItem = function (sKey, input) {
-            var sInput = (typeof input !== "string") ? this.fnHereDoc(input) : input;
-            return cpcBasic.controller.addItem(sKey, sInput);
+        cpcBasic.addItem = function (key, input) {
+            var inputString = (typeof input !== "string") ? this.fnHereDoc(input) : input;
+            return cpcBasic.controller.addItem(key, inputString);
         };
         // https://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
-        cpcBasic.fnParseUri = function (sUrlQuery, oConfig) {
+        cpcBasic.fnParseUri = function (urlQuery, config) {
             var rPlus = /\+/g, // Regex for replacing addition symbol with a space
             rSearch = /([^&=]+)=?([^&]*)/g, fnDecode = function (s) { return decodeURIComponent(s.replace(rPlus, " ")); };
-            var aMatch;
-            while ((aMatch = rSearch.exec(sUrlQuery)) !== null) {
-                var sName = fnDecode(aMatch[1]);
-                var sValue = fnDecode(aMatch[2]);
-                if (sValue !== null && oConfig.hasOwnProperty(sName)) {
-                    switch (typeof oConfig[sName]) {
+            var match;
+            while ((match = rSearch.exec(urlQuery)) !== null) {
+                var name_1 = fnDecode(match[1]);
+                var value = fnDecode(match[2]);
+                if (value !== null && config.hasOwnProperty(name_1)) {
+                    switch (typeof config[name_1]) {
                         case "string":
                             break;
                         case "boolean":
-                            sValue = (sValue === "true");
+                            value = (value === "true");
                             break;
                         case "number":
-                            sValue = Number(sValue);
+                            value = Number(value);
                             break;
                         case "object":
                             break;
@@ -47,40 +47,40 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
                             break;
                     }
                 }
-                oConfig[sName] = sValue;
+                config[name_1] = value;
             }
         };
-        cpcBasic.createDebugUtilsConsole = function (sCpcBasicLog) {
-            var oCurrentConsole = Utils_1.Utils.console, oConsole = {
+        cpcBasic.createDebugUtilsConsole = function (cpcBasicLog) {
+            var currentConsole = Utils_1.Utils.console, console = {
                 consoleLog: {
-                    value: sCpcBasicLog || "" // already something collected?
+                    value: cpcBasicLog || "" // already something collected?
                 },
-                console: oCurrentConsole,
+                console: currentConsole,
                 fnMapObjectProperties: function (arg) {
                     if (typeof arg === "object") {
-                        var aRes = [];
-                        for (var sKey in arg) { // eslint-disable-line guard-for-in
-                            // if (arg.hasOwnProperty(sKey)) {
-                            var value = arg[sKey];
+                        var res = [];
+                        for (var key in arg) { // eslint-disable-line guard-for-in
+                            // if (arg.hasOwnProperty(key)) {
+                            var value = arg[key];
                             if (typeof value !== "object" && typeof value !== "function") {
-                                aRes.push(sKey + ": " + value);
+                                res.push(key + ": " + value);
                             }
                         }
-                        arg = String(arg) + "{" + aRes.join(", ") + "}";
+                        arg = String(arg) + "{" + res.join(", ") + "}";
                     }
                     return arg;
                 },
-                rawLog: function (fnMethod, sLevel, aArgs) {
-                    if (sLevel) {
-                        aArgs.unshift(sLevel);
+                rawLog: function (fnMethod, level, args) {
+                    if (level) {
+                        args.unshift(level);
                     }
                     if (fnMethod) {
                         if (fnMethod.apply) {
-                            fnMethod.apply(console, aArgs);
+                            fnMethod.apply(console, args);
                         }
                     }
                     if (this.consoleLog) {
-                        this.consoleLog.value += aArgs.map(this.fnMapObjectProperties).join(" ") + ((sLevel !== null) ? "\n" : "");
+                        this.consoleLog.value += args.map(this.fnMapObjectProperties).join(" ") + ((level !== null) ? "\n" : "");
                     }
                 },
                 log: function () {
@@ -98,32 +98,32 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
                 error: function () {
                     this.rawLog(this.console && this.console.error, "ERROR:", Array.prototype.slice.call(arguments));
                 },
-                changeLog: function (oLog) {
+                changeLog: function (log) {
                     var oldLog = this.consoleLog;
-                    this.consoleLog = oLog;
-                    if (oldLog && oldLog.value && oLog) { // some log entires collected?
-                        oLog.value += oldLog.value; // take collected log entries
+                    this.consoleLog = log;
+                    if (oldLog && oldLog.value && log) { // some log entires collected?
+                        log.value += oldLog.value; // take collected log entries
                     }
                 }
             };
-            return oConsole;
+            return console;
         };
         cpcBasic.fnDoStart = function () {
-            var oStartConfig = cpcBasic.config, oExternalConfig = cpcconfig_1.cpcconfig || {}; // external config from cpcconfig.js
-            Object.assign(oStartConfig, oExternalConfig);
-            cpcBasic.model = new Model_1.Model(oStartConfig);
-            var sUrlQuery = window.location.search.substring(1);
-            cpcBasic.fnParseUri(sUrlQuery, oStartConfig); // modify config with URL parameters
+            var startConfig = cpcBasic.config, externalConfig = cpcconfig_1.cpcconfig || {}; // external config from cpcconfig.js
+            Object.assign(startConfig, externalConfig);
+            cpcBasic.model = new Model_1.Model(startConfig);
+            var urlQuery = window.location.search.substring(1);
+            cpcBasic.fnParseUri(urlQuery, startConfig); // modify config with URL parameters
             cpcBasic.view = new View_1.View();
-            var iDebug = Number(cpcBasic.model.getProperty("debug"));
-            Utils_1.Utils.debug = iDebug;
-            var UtilsConsole = Utils_1.Utils.console, sCpcBasicLog = "";
+            var debug = Number(cpcBasic.model.getProperty("debug"));
+            Utils_1.Utils.debug = debug;
+            var UtilsConsole = Utils_1.Utils.console, cpcBasicLog = "";
             if (UtilsConsole.cpcBasicLog) {
-                sCpcBasicLog = UtilsConsole.cpcBasicLog;
+                cpcBasicLog = UtilsConsole.cpcBasicLog;
                 UtilsConsole.cpcBasicLog = undefined; // do not log any more to dummy console
             }
             if (Utils_1.Utils.debug > 1 && cpcBasic.model.getProperty("showConsole")) { // console log window?
-                UtilsConsole = cpcBasic.createDebugUtilsConsole(sCpcBasicLog);
+                UtilsConsole = cpcBasic.createDebugUtilsConsole(cpcBasicLog);
                 Utils_1.Utils.console = UtilsConsole;
                 Utils_1.Utils.console.log("CPCBasic log started at", Utils_1.Utils.dateFormat(new Date()));
                 UtilsConsole.changeLog(View_1.View.getElementById1("consoleText"));

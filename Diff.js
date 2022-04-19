@@ -10,8 +10,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         function Diff() {
         }
         // Refer to http://www.xmailserver.org/diff2.pdf
-        Diff.composeError = function (oError, message, value, pos) {
-            return Utils_1.Utils.composeError("Diff", oError, message, value, pos, undefined, 0);
+        Diff.composeError = function (error, message, value, pos) {
+            return Utils_1.Utils.composeError("Diff", error, message, value, pos, undefined, 0);
         };
         Diff.inRange = function (x, l, r) {
             return (l <= x && x <= r) || (r <= x && x <= l);
@@ -20,9 +20,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return a === b;
         };
         // Accepts custom comparator
-        Diff.customIndexOf = function (aArr, item, start, fnEquals) {
-            for (var i2 = start; i2 < aArr.length; i2 += 1) {
-                if (fnEquals(item, aArr[i2])) {
+        Diff.customIndexOf = function (arr, item, start, fnEquals) {
+            for (var i2 = start; i2 < arr.length; i2 += 1) {
+                if (fnEquals(item, arr[i2])) {
                     return i2;
                 }
             }
@@ -83,20 +83,20 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             //                    D,     - optimal edit distance
             //                    LCS ]  - length of LCS
             findMidSnake = function (startA, endA, startB, endB) {
-                var iN = endA - startA + 1, iM = endB - startB + 1, iMax = iN + iM, iDelta = iN - iM, iHhalfMaxCeil = (iMax + 1) / 2 | 0, // eslint-disable-line no-bitwise
+                var iN = endA - startA + 1, iM = endB - startB + 1, max = iN + iM, delta = iN - iM, hhalfMaxCeil = (max + 1) / 2 | 0, // eslint-disable-line no-bitwise
                 // Maps -Max .. 0 .. +Max, diagonal index to endpoints for furthest reaching D-path on current iteration.
                 oV = {}, 
                 // Same but for reversed paths.
                 oU = {};
-                var aOverlap, iD;
+                var overlap, iD;
                 // Special case for the base case, D = 0, k = 0, x = y = 0
                 oV[1] = 0;
                 // Special case for the base case reversed, D = 0, k = 0, x = N, y = M
-                oU[iDelta - 1] = iN;
+                oU[delta - 1] = iN;
                 // Iterate over each possible length of edit script
-                for (iD = 0; iD <= iHhalfMaxCeil; iD += 1) {
+                for (iD = 0; iD <= hhalfMaxCeil; iD += 1) {
                     // Iterate over each diagonal
-                    for (var k = -iD; k <= iD && !aOverlap; k += 2) {
+                    for (var k = -iD; k <= iD && !overlap; k += 2) {
                         var x = void 0;
                         // Positions in sequences A and B of furthest going D-path on diagonal k.
                         // Choose from each diagonal we extend
@@ -127,11 +127,11 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                         // diagonals of different iteration.
                         oV[k] = x;
                         // Check feasibility, Delta is checked for being odd.
-                        if ((iDelta & 1) === 1 && Diff.inRange(k, iDelta - (iD - 1), iDelta + (iD - 1))) { // eslint-disable-line no-bitwise
+                        if ((delta & 1) === 1 && Diff.inRange(k, delta - (iD - 1), delta + (iD - 1))) { // eslint-disable-line no-bitwise
                             // Forward D-path can overlap with reversed D-1-path
                             if (oV[k] >= oU[k]) {
                                 // Found an overlap, the middle snake, convert X-components to dots
-                                aOverlap = [
+                                overlap = [
                                     xx,
                                     x
                                 ].map(toPoint, k); // XXX ES5
@@ -139,13 +139,13 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                         }
                     }
                     var SES = void 0;
-                    if (aOverlap) {
+                    if (overlap) {
                         SES = iD * 2 - 1;
                     }
                     // Iterate over each diagonal for reversed case
-                    for (var k = -iD; k <= iD && !aOverlap; k += 2) {
+                    for (var k = -iD; k <= iD && !overlap; k += 2) {
                         // The real diagonal we are looking for is k + Delta
-                        var K = k + iDelta;
+                        var K = k + delta;
                         var x = void 0;
                         if (k === iD || (k !== -iD && oU[K - 1] < oU[K + 1])) {
                             x = oU[K - 1];
@@ -163,29 +163,29 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                             y -= 1;
                         }
                         oU[K] = x;
-                        if (iDelta % 2 === 0 && Diff.inRange(K, -iD, iD)) {
+                        if (delta % 2 === 0 && Diff.inRange(K, -iD, iD)) {
                             if (oU[K] <= oV[K]) {
-                                aOverlap = [
+                                overlap = [
                                     x,
                                     xx
                                 ].map(toPoint, K); // XXX ES5
                             }
                         }
                     }
-                    if (aOverlap) {
+                    if (overlap) {
                         SES = SES || iD * 2;
                         // Remember we had offset of each sequence?
                         for (var i = 0; i < 2; i += 1) {
                             for (var j = 0; j < 2; j += 1) {
-                                aOverlap[i][j] += [
+                                overlap[i][j] += [
                                     startA,
                                     startB
                                 ][j] - i;
                             }
                         }
-                        return aOverlap.concat([
+                        return overlap.concat([
                             SES,
-                            (iMax - SES) / 2
+                            (max - SES) / 2
                         ]);
                     }
                 }
@@ -224,27 +224,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         //   - atom: the atom found in either A or B
         // Applying operations from diff sequence you should be able to transform A to B
         Diff.diff = function (aA, aB) {
-            var aDiff = [], fnEquals = Diff.fnEquals;
-            /*
-                // Accepts custom comparator
-                customIndexOf = function (item: string, start: number, fnEquals2: (a: string, b: string) => boolean) {
-                    const aArr = this;
-    
-                    for (let i2 = start; i2 < aArr.length; i2 += 1) {
-                        if (fnEquals2(item, aArr[i2])) {
-                            return i2;
-                        }
-                    }
-                    return -1;
-                };
-    
-            // We just compare atoms with default equals operator by default
-            if (fnEquals === undefined) {
-                fnEquals = function (a: string, b: string) {
-                    return a === b;
-                };
-            }
-            */
+            var diff = [], fnEquals = Diff.fnEquals;
             var i = 0, j = 0, iN = aA.length, iM = aB.length, iK = 0;
             while (i < iN && j < iM && fnEquals(aA[i], aB[j])) {
                 i += 1;
@@ -255,10 +235,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 iM -= 1;
                 iK += 1;
             }
-            [].push.apply(aDiff, aA.slice(0, i).map(function (sAtom2) {
+            [].push.apply(diff, aA.slice(0, i).map(function (atom2) {
                 return {
                     operation: "none",
-                    atom: sAtom2
+                    atom: atom2
                 };
             }));
             var lcs = Diff.fnLCS(aA.slice(i, iN), aB.slice(j, iM), fnEquals);
@@ -266,21 +246,21 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 var atom = lcs[k], ni = Diff.customIndexOf(aA, atom, i, fnEquals), nj = Diff.customIndexOf(aB, atom, j, fnEquals);
                 // XXX ES5 map
                 // Delete unmatched atoms from A
-                [].push.apply(aDiff, aA.slice(i, ni).map(function (sAtom2) {
+                [].push.apply(diff, aA.slice(i, ni).map(function (atom2) {
                     return {
                         operation: "delete",
-                        atom: sAtom2
+                        atom: atom2
                     };
                 }));
                 // Add unmatched atoms from B
-                [].push.apply(aDiff, aB.slice(j, nj).map(function (sAtom2) {
+                [].push.apply(diff, aB.slice(j, nj).map(function (atom2) {
                     return {
                         operation: "add",
-                        atom: sAtom2
+                        atom: atom2
                     };
                 }));
                 // Add the atom found in both sequences
-                aDiff.push({
+                diff.push({
                     operation: "none",
                     atom: atom
                 });
@@ -288,40 +268,40 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 j = nj + 1;
             }
             // Don't forget about the rest
-            [].push.apply(aDiff, aA.slice(i, iN).map(function (atom2) {
+            [].push.apply(diff, aA.slice(i, iN).map(function (atom2) {
                 return {
                     operation: "delete",
                     atom: atom2
                 };
             }));
-            [].push.apply(aDiff, aB.slice(j, iM).map(function (atom2) {
+            [].push.apply(diff, aB.slice(j, iM).map(function (atom2) {
                 return {
                     operation: "add",
                     atom: atom2
                 };
             }));
-            [].push.apply(aDiff, aA.slice(iN, iN + iK).map(function (atom2) {
+            [].push.apply(diff, aA.slice(iN, iN + iK).map(function (atom2) {
                 return {
                     operation: "none",
                     atom: atom2
                 };
             }));
-            return aDiff;
+            return diff;
         };
-        Diff.testDiff = function (sText1, sText2) {
-            var aText1 = sText1.split("\n"), aText2 = sText2.split("\n");
-            var sDiff = Diff.diff(aText1, aText2).map(function (o) {
-                var sResult = "";
+        Diff.testDiff = function (text1, text2) {
+            var textParts1 = text1.split("\n"), textParts2 = text2.split("\n");
+            var diff = Diff.diff(textParts1, textParts2).map(function (o) {
+                var result = "";
                 if (o.operation === "add") {
-                    sResult = "+ " + o.atom;
+                    result = "+ " + o.atom;
                 }
                 else if (o.operation === "delete") {
-                    sResult = "- " + o.atom;
+                    result = "- " + o.atom;
                 } // else "none"
-                return sResult;
+                return result;
             }).join("\n");
-            sDiff = sDiff.replace(/\n\n+/g, "\n");
-            return sDiff;
+            diff = diff.replace(/\n\n+/g, "\n");
+            return diff;
         };
         return Diff;
     }());

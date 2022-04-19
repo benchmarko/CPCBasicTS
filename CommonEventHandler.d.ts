@@ -6,9 +6,9 @@ export declare class CommonEventHandler implements EventListenerObject {
     private view;
     private controller;
     private fnUserAction;
-    constructor(oModel: Model, oView: View, oController: IController);
+    constructor(model: Model, view: View, controller: IController);
     private toogleHidden;
-    fnSetUserAction(fnAction: ((event: Event, sId: string) => void) | undefined): void;
+    fnSetUserAction(fnAction: ((event: Event, id: string) => void) | undefined): void;
     private onSpecialButtonClick;
     private onInputButtonClick;
     private onInp2ButtonClick;
@@ -48,6 +48,6 @@ export declare class CommonEventHandler implements EventListenerObject {
     private onSoundButtonClick;
     onCpcCanvasClick(event: Event): void;
     onWindowClick(event: Event): void;
-    private mHandlers;
+    private handlers;
     handleEvent(event: Event): void;
 }

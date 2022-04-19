@@ -3,23 +3,23 @@ export declare type VariableMap = {
     [k in string]: VariableValue;
 };
 export declare class Variables {
-    private oVariables;
-    private oVarTypes;
+    private variables;
+    private varTypes;
     constructor();
     removeAllVariables(): void;
     getAllVariables(): VariableMap;
     private createNDimArray;
-    determineStaticVarType(sName: string): string;
+    determineStaticVarType(name: string): string;
     private getVarDefault;
-    initVariable(sName: string): void;
-    dimVariable(sName: string, aDimensions: number[]): void;
+    initVariable(name: string): void;
+    dimVariable(name: string, dimensions: number[]): void;
     getAllVariableNames(): string[];
-    getVariableIndex(sName: string): number;
+    getVariableIndex(name: string): number;
     initAllVariables(): void;
-    getVariable(sName: string): VariableValue;
-    setVariable(sName: string, value: VariableValue): void;
-    getVariableByIndex(iIndex: number): VariableValue;
-    variableExist(sName: string): boolean;
-    getVarType(sVarChar: string): string;
-    setVarType(sVarChar: string, sType: string): void;
+    getVariable(name: string): VariableValue;
+    setVariable(name: string, value: VariableValue): void;
+    getVariableByIndex(index: number): VariableValue;
+    variableExist(name: string): boolean;
+    getVarType(varChar: string): string;
+    setVarType(varChar: string, type: string): void;
 }

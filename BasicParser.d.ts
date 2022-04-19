@@ -1,10 +1,10 @@
 import { LexerToken } from "./BasicLexer";
 interface BasicParserOptions {
-    bQuiet?: boolean;
-    bKeepTokens?: boolean;
-    bKeepBrackets?: boolean;
-    bKeepColons?: boolean;
-    bKeepDataComma?: boolean;
+    quiet?: boolean;
+    keepTokens?: boolean;
+    keepBrackets?: boolean;
+    keepColons?: boolean;
+    keepDataComma?: boolean;
 }
 export interface ParserNode extends LexerToken {
     left?: ParserNode;
@@ -12,32 +12,32 @@ export interface ParserNode extends LexerToken {
     args?: ParserNode[];
     args2?: ParserNode[];
     len?: number;
-    bSpace?: boolean;
-    bParenthesis?: boolean;
+    space?: boolean;
+    parenthesis?: boolean;
 }
 export declare class BasicParser {
-    private sLine;
-    private bQuiet;
-    private bKeepTokens;
-    private bKeepBrackets;
-    private bKeepColons;
-    private bKeepDataComma;
-    private oSymbols;
-    private aTokens;
-    private bAllowDirect;
-    private iIndex;
-    private oPreviousToken;
-    private oToken;
-    private aParseTree;
-    private aStatements;
+    private line;
+    private quiet;
+    private keepTokens;
+    private keepBrackets;
+    private keepColons;
+    private keepDataComma;
+    private symbols;
+    private tokens;
+    private allowDirect;
+    private index;
+    private previousToken;
+    private token;
+    private parseTree;
+    private statementList;
     setOptions(options: BasicParserOptions): void;
     constructor(options?: BasicParserOptions);
-    private static mParameterTypes;
-    static mKeywords: {
+    private static parameterTypes;
+    static keywords: {
         [k in string]: string;
     };
-    private mSpecialStatements;
-    private static mCloseTokens;
+    private specialStatements;
+    private static closeTokens;
     private composeError;
     private getToken;
     private symbol;
@@ -46,7 +46,7 @@ export declare class BasicParser {
     private assignment;
     private statement;
     private statements;
-    private line;
+    private basicLine;
     private generateLed;
     private generateNud;
     private infix;
@@ -66,7 +66,7 @@ export declare class BasicParser {
     private fnGetArgs;
     private fnGetArgsSepByCommaSemi;
     private fnGetArgsInParenthesis;
-    private static mBrackets;
+    private static brackets;
     private fnGetArgsInParenthesesOrBrackets;
     private fnCreateCmdCall;
     private fnCreateCmdCallForType;
@@ -101,6 +101,6 @@ export declare class BasicParser {
     private fnSymbol;
     private fnWindow;
     private fnGenerateSymbols;
-    parse(aTokens: LexerToken[], bAllowDirect?: boolean): ParserNode[];
+    parse(tokens: LexerToken[], allowDirect?: boolean): ParserNode[];
 }
 export {};

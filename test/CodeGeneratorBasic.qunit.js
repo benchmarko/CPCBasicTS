@@ -4,7 +4,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     QUnit.module("CodeGeneratorBasic: Tests", function ( /* hooks */) {
-        var mAllTests = {
+        var allTests = {
             numbers: {
                 "a=1": "a=1",
                 "a=1.2": "a=1.2",
@@ -628,38 +628,38 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
         // "data &a3,4,abc,": "DATA &a3,4,abc,", // &a3 is not converted
         // "else a=7": "ELSE a = 7", // TODO: whitespace
         // "a=1 else a=2": "a=1:ELSE a = 2", //TTT
-        oLexer = new BasicLexer_1.BasicLexer({
-            bQuiet: true,
-            bKeepWhiteSpace: false
-        }), oParser = new BasicParser_1.BasicParser({
-            bQuiet: true,
-            bKeepTokens: true,
-            bKeepBrackets: true,
-            bKeepColons: true,
-            bKeepDataComma: true
-        }), oCodeGeneratorBasic = new CodeGeneratorBasic_1.CodeGeneratorBasic({
-            bQuiet: true,
-            lexer: oLexer,
-            parser: oParser
+        lexer = new BasicLexer_1.BasicLexer({
+            quiet: true,
+            keepWhiteSpace: false
+        }), parser = new BasicParser_1.BasicParser({
+            quiet: true,
+            keepTokens: true,
+            keepBrackets: true,
+            keepColons: true,
+            keepDataComma: true
+        }), codeGeneratorBasic = new CodeGeneratorBasic_1.CodeGeneratorBasic({
+            quiet: true,
+            lexer: lexer,
+            parser: parser
         });
-        function runTestsFor(assert, sCategory, oTests, aResults) {
-            oLexer.setOptions({
-                bQuiet: true,
-                bKeepWhiteSpace: sCategory === "keepSpaces"
+        function runTestsFor(assert, category, tests, results) {
+            lexer.setOptions({
+                quiet: true,
+                keepWhiteSpace: category === "keepSpaces"
             });
-            for (var sKey in oTests) {
-                if (oTests.hasOwnProperty(sKey)) {
-                    var sExpected = oTests[sKey], oOutput = oCodeGeneratorBasic.generate(sKey, true), sResult = oOutput.error ? String(oOutput.error) : oOutput.text;
-                    if (aResults) {
-                        aResults.push('"' + sKey.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '": "' + sResult.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '"');
+            for (var key in tests) {
+                if (tests.hasOwnProperty(key)) {
+                    var expected = tests[key], output = codeGeneratorBasic.generate(key, true), result = output.error ? String(output.error) : output.text;
+                    if (results) {
+                        results.push('"' + key.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '": "' + result.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '"');
                     }
                     if (assert) {
-                        assert.strictEqual(sResult, sExpected, sKey);
+                        assert.strictEqual(result, expected, key);
                     }
                 }
             }
         }
-        TestHelper_1.TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
+        TestHelper_1.TestHelper.generateAndRunAllTests(allTests, runTestsFor);
     });
 });
 // end

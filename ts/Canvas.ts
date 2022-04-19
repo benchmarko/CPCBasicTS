@@ -14,80 +14,80 @@ type CharsetType = CharType[];
 
 
 export interface CanvasOptions {
-	aCharset: CharsetType
+	charset: CharsetType
 	onClickKey?: (arg0: string) => void
 }
 
 interface ModeData {
-	iPens: number // number of pens
-	iPixelWidth: number // pixel width
-	iPixelHeight: number // pixel height
+	pens: number // number of pens
+	pixelWidth: number // pixel width
+	pixelHeight: number // pixel height
 }
 
 export class Canvas {
 	private fnUpdateCanvasHandler: () => void;
 	private fnUpdateCanvas2Handler: () => void;
 
-	private iFps = 15; // FPS for canvas update
+	private fps = 15; // FPS for canvas update
 
 	private cpcAreaBox: HTMLElement;
 	private textText: HTMLTextAreaElement;
 
-	private aCharset: CharsetType;
-	private oCustomCharset: {[k: number]: CharType} = {};
+	private charset: CharsetType;
+	private customCharset: {[k: number]: CharType} = {};
 
 	private onClickKey?: (arg0: string) => void;
 
-	private iGColMode = 0; // 0=normal, 1=xor, 2=and, 3=or
+	private gColMode = 0; // 0=normal, 1=xor, 2=and, 3=or
 
-	private iMask = 255;
-	private iMaskBit = 128;
-	private iMaskFirst = 1;
+	private mask = 255;
+	private maskBit = 128;
+	private maskFirst = 1;
 
-	private iOffset = 0; // screen offset
+	private offset = 0; // screen offset
 
 	private canvas: HTMLCanvasElement;
 
-	private iWidth: number;
-	private iHeight: number;
-	private iBorderWidth = 4;
+	private width: number;
+	private height: number;
+	private borderWidth = 4;
 
 	private dataset8: Uint8Array;
 
-	private bNeedUpdate = false;
-	private bNeedTextUpdate = false;
+	private needUpdate = false;
+	private needTextUpdate = false;
 
-	private aColorValues: number[][];
+	private colorValues: number[][];
 
-	private aCurrentInks: number[][] = [];
-	private aSpeedInk: number[] = [];
-	private iInkSet = 0;
+	private currentInks: number[][] = [];
+	private speedInk: number[] = [];
+	private inkSet = 0;
 
-	private aPen2ColorMap: number[][] = [];
+	private pen2ColorMap: number[][] = [];
 
-	private iAnimationTimeoutId?: number;
-	private iAnimationFrame?: number;
+	private animationTimeoutId?: number;
+	private animationFrame?: number;
 
 	private ctx: CanvasRenderingContext2D;
 	private imageData: ImageData;
 
 	private fnCopy2Canvas?: () => void;
-	private bLittleEndian = true;
-	private aPen2Color32?: Uint32Array;
-	private aData32?: Uint32Array;
-	private bUse32BitCopy = true; // determined later
+	private littleEndian = true;
+	private pen2Color32?: Uint32Array;
+	private data32?: Uint32Array;
+	private use32BitCopy = true; // determined later
 
-	private iGPen = 0;
-	private iGPaper = 0;
+	private gPen = 0;
+	private gPaper = 0;
 
-	private iSpeedInkCount = 0; // usually 10
+	private speedInkCount = 0; // usually 10
 
-	private aTextBuffer: number[][] = []; // textbuffer characters at row,column
+	private textBuffer: number[][] = []; // textbuffer characters at row,column
 
-	private bHasFocus = false; // canvas has focus
+	private hasFocus = false; // canvas has focus
 
-	private iMode = 0;
-	private oModeData = Canvas.aModeData[0];
+	private mode = 0;
+	private modeData = Canvas.modeData[0];
 
 	private xPos = 0;
 	private yPos = 0;
@@ -99,13 +99,13 @@ export class Canvas {
 	private yTop = 399;
 	private yBottom = 0;
 
-	private bGTransparent = false;
+	private gTransparent = false;
 
 	constructor(options: CanvasOptions) {
 		this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
 		this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
 
-		this.aCharset = options.aCharset;
+		this.charset = options.charset;
 		this.onClickKey = options.onClickKey;
 
 		this.cpcAreaBox = View.getElementById1("cpcAreaBox");
@@ -120,39 +120,39 @@ export class Canvas {
 			Utils.console.error("Error: canvas is not visible!");
 		}
 
-		const iWidth = canvas.width,
-			iHeight = canvas.height;
+		const width = canvas.width,
+			height = canvas.height;
 
-		this.iWidth = iWidth;
-		this.iHeight = iHeight;
-		canvas.style.borderWidth = this.iBorderWidth + "px";
+		this.width = width;
+		this.height = height;
+		canvas.style.borderWidth = this.borderWidth + "px";
 		canvas.style.borderStyle = "solid";
 
-		this.dataset8 = new Uint8Array(new ArrayBuffer(iWidth * iHeight)); // array with pen values
+		this.dataset8 = new Uint8Array(new ArrayBuffer(width * height)); // array with pen values
 
-		this.aColorValues = Canvas.extractAllColorValues(Canvas.aColors);
+		this.colorValues = Canvas.extractAllColorValues(Canvas.colors);
 
-		this.iAnimationTimeoutId = undefined;
-		this.iAnimationFrame = undefined;
+		this.animationTimeoutId = undefined;
+		this.animationFrame = undefined;
 
 		if (this.canvas.getContext) { // not available on e.g. IE8
 			this.ctx = this.canvas.getContext("2d") as CanvasRenderingContext2D;
 
-			this.imageData = this.ctx.getImageData(0, 0, iWidth, iHeight);
+			this.imageData = this.ctx.getImageData(0, 0, width, height);
 
 			if (typeof Uint32Array !== "undefined" && this.imageData.data.buffer) {	// imageData.data.buffer not available on IE10
-				this.bLittleEndian = Canvas.isLittleEndian();
-				this.aPen2Color32 = new Uint32Array(new ArrayBuffer(Canvas.aModeData[3].iPens * 4));
-				this.aData32 = new Uint32Array(this.imageData.data.buffer);
-				this.bUse32BitCopy = true;
-				Utils.console.log("Canvas: using optimized copy2Canvas32bit, littleEndian:", this.bLittleEndian);
+				this.littleEndian = Canvas.isLittleEndian();
+				this.pen2Color32 = new Uint32Array(new ArrayBuffer(Canvas.modeData[3].pens * 4));
+				this.data32 = new Uint32Array(this.imageData.data.buffer);
+				this.use32BitCopy = true;
+				Utils.console.log("Canvas: using optimized copy2Canvas32bit, littleEndian:", this.littleEndian);
 			} else {
 				this.setAlpha(255);
-				this.bUse32BitCopy = false;
+				this.use32BitCopy = false;
 				Utils.console.log("Canvas: using copy2Canvas8bit");
 			}
 
-			this.applyCopy2CanvasFunction(this.iOffset);
+			this.applyCopy2CanvasFunction(this.offset);
 		} else {
 			Utils.console.warn("Error: canvas.getContext is not supported.");
 			this.ctx = {} as CanvasRenderingContext2D; // not available
@@ -162,7 +162,7 @@ export class Canvas {
 	}
 
 	// http://www.cpcwiki.eu/index.php/CPC_Palette
-	private static aColors = [
+	private static colors = [
 		"#000000", //  0 Black
 		"#000080", //  1 Blue
 		"#0000FF", //  2 Bright Blue
@@ -198,36 +198,36 @@ export class Canvas {
 	];
 
 	// mode 0: pen 0-15,16=border; inks for pen 14,15 are alternating: "1,24", "16,11"
-	private static aDefaultInks = [
+	private static defaultInks = [
 		[1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1], // eslint-disable-line array-element-newline
 		[1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 24, 11, 1] // eslint-disable-line array-element-newline
 	];
 
-	private static aModeData: ModeData[] = [
+	private static modeData: ModeData[] = [
 		{ // mode 0
-			iPens: 16, // number of pens
-			iPixelWidth: 4, // pixel width
-			iPixelHeight: 2 // pixel height
+			pens: 16, // number of pens
+			pixelWidth: 4, // pixel width
+			pixelHeight: 2 // pixel height
 		},
 		{ // mode 1
-			iPens: 4,
-			iPixelWidth: 2,
-			iPixelHeight: 2
+			pens: 4,
+			pixelWidth: 2,
+			pixelHeight: 2
 		},
 		{ // mode 2
-			iPens: 2,
-			iPixelWidth: 1,
-			iPixelHeight: 2
+			pens: 2,
+			pixelWidth: 1,
+			pixelHeight: 2
 		},
 		{ // mode 3
-			iPens: 16, // mode 3 not available on a real CPC
-			iPixelWidth: 1,
-			iPixelHeight: 1
+			pens: 16, // mode 3 not available on a real CPC
+			pixelWidth: 1,
+			pixelHeight: 1
 		}
 	];
 
 	// CPC Unicode map for text mode (https://www.unicode.org/L2/L2019/19025-terminals-prop.pdf AMSCPC.TXT) incomplete
-	private static sCpc2Unicode =
+	private static cpc2Unicode =
 		"................................ !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]\u2195_`abcdefghijklmnopqrstuvwxyz{|}~\u2591"
 		+ "\u00A0\u2598\u259D\u2580\u2596\u258C\u259E\u259B\u2597\u259A\u2590\u259C\u2584\u2599\u259F\u2588\u00B7\u2575\u2576\u2514\u2577\u2502\u250C"
 		+ "\u251C\u2574\u2518\u2500\u2534\u2510\u2524\u252C\u253C\u005E\u00B4\u00A8\u00A3\u00A9\u00B6\u00A7\u2018\u00BC\u00BD\u00BE\u00B1\u00F7\u00AC"
@@ -242,13 +242,13 @@ export class Canvas {
 		this.setNeedTextUpdate();
 
 		this.changeMode(1);
-		this.iInkSet = 0;
+		this.inkSet = 0;
 		this.setDefaultInks();
 
-		this.aSpeedInk[0] = 10;
-		this.aSpeedInk[1] = 10;
-		this.iSpeedInkCount = this.aSpeedInk[this.iInkSet];
-		this.canvas.style.borderColor = Canvas.aColors[this.aCurrentInks[this.iInkSet][16]];
+		this.speedInk[0] = 10;
+		this.speedInk[1] = 10;
+		this.speedInkCount = this.speedInk[this.inkSet];
+		this.canvas.style.borderColor = Canvas.colors[this.currentInks[this.inkSet][16]];
 
 		this.setGPen(1);
 		this.setGPaper(0);
@@ -258,11 +258,11 @@ export class Canvas {
 	}
 
 	resetCustomChars(): void {
-		this.oCustomCharset = {}; // symbol
+		this.customCharset = {}; // symbol
 	}
 
 	private resetTextBuffer() {
-		this.aTextBuffer.length = 0;
+		this.textBuffer.length = 0;
 	}
 
 	private static isLittleEndian() {
@@ -275,45 +275,45 @@ export class Canvas {
 		return (c[0] === 0xef);
 	}
 
-	private static extractColorValues(sColor: string): number[] { // from "#rrggbb"
+	private static extractColorValues(color: string): number[] { // from "#rrggbb"
 		return [
-			parseInt(sColor.substring(1, 3), 16),
-			parseInt(sColor.substring(3, 5), 16),
-			parseInt(sColor.substring(5, 7), 16)
+			parseInt(color.substring(1, 3), 16),
+			parseInt(color.substring(3, 5), 16),
+			parseInt(color.substring(5, 7), 16)
 		];
 	}
 
-	private static extractAllColorValues(aColors: string[]): number[][] {
-		const aColorValues: number[][] = [];
+	private static extractAllColorValues(colors: string[]): number[][] {
+		const colorValues: number[][] = [];
 
-		for (let i = 0; i < aColors.length; i += 1) {
-			aColorValues[i] = Canvas.extractColorValues(aColors[i]);
+		for (let i = 0; i < colors.length; i += 1) {
+			colorValues[i] = Canvas.extractColorValues(colors[i]);
 		}
 
-		return aColorValues;
+		return colorValues;
 	}
 
-	private setAlpha(iAlpha: number) {
+	private setAlpha(alpha: number) {
 		const buf8 = this.imageData.data,
-			iLength = this.dataset8.length; // or: this.iWidth * this.iHeight
+			length = this.dataset8.length; // or: this.width * this.height
 
-		for (let i = 0; i < iLength; i += 1) {
-			buf8[i * 4 + 3] = iAlpha; // alpha
+		for (let i = 0; i < length; i += 1) {
+			buf8[i * 4 + 3] = alpha; // alpha
 		}
 	}
 
 	private setNeedUpdate() {
-		this.bNeedUpdate = true;
+		this.needUpdate = true;
 	}
 
 	private setNeedTextUpdate() {
-		this.bNeedTextUpdate = true;
+		this.needTextUpdate = true;
 	}
 
 	private updateCanvas2() {
-		this.iAnimationFrame = requestAnimationFrame(this.fnUpdateCanvasHandler);
-		if (this.bNeedUpdate) { // could be improved: update only updateRect
-			this.bNeedUpdate = false;
+		this.animationFrame = requestAnimationFrame(this.fnUpdateCanvasHandler);
+		if (this.needUpdate) { // could be improved: update only updateRect
+			this.needUpdate = false;
 			// we always do a full updateCanvas...
 			if (this.fnCopy2Canvas) { // not available on e.g. IE8
 				this.fnCopy2Canvas();
@@ -321,8 +321,8 @@ export class Canvas {
 		}
 
 		if (this.textText.offsetParent) { // text area visible?
-			if (this.bNeedTextUpdate) {
-				this.bNeedTextUpdate = false;
+			if (this.needTextUpdate) {
+				this.needTextUpdate = false;
 				this.updateTextWindow();
 			}
 		}
@@ -331,37 +331,37 @@ export class Canvas {
 	// http://creativejs.com/resources/requestanimationframe/ (set frame rate)
 	// https://stackoverflow.com/questions/19764018/controlling-fps-with-requestanimationframe
 	private updateCanvas() {
-		this.iAnimationTimeoutId = window.setTimeout(this.fnUpdateCanvas2Handler, 1000 / this.iFps); // ts (node)
+		this.animationTimeoutId = window.setTimeout(this.fnUpdateCanvas2Handler, 1000 / this.fps); // ts (node)
 	}
 
 	startUpdateCanvas(): void {
-		if (this.iAnimationFrame === undefined && this.canvas.offsetParent !== null) { // animation off and canvas visible in DOM?
+		if (this.animationFrame === undefined && this.canvas.offsetParent !== null) { // animation off and canvas visible in DOM?
 			this.updateCanvas();
 		}
 	}
 
 	stopUpdateCanvas(): void {
-		if (this.iAnimationFrame !== undefined) {
-			cancelAnimationFrame(this.iAnimationFrame);
-			clearTimeout(this.iAnimationTimeoutId);
-			this.iAnimationFrame = undefined;
-			this.iAnimationTimeoutId = undefined;
+		if (this.animationFrame !== undefined) {
+			cancelAnimationFrame(this.animationFrame);
+			clearTimeout(this.animationTimeoutId);
+			this.animationFrame = undefined;
+			this.animationTimeoutId = undefined;
 		}
 	}
 
 	private copy2Canvas8bit() {
 		const buf8 = this.imageData.data, // use Uint8ClampedArray from canvas
 			dataset8 = this.dataset8,
-			iLength = dataset8.length, // or: this.iWidth * this.iHeight
-			aPen2ColorMap = this.aPen2ColorMap;
+			length = dataset8.length, // or: this.width * this.height
+			pen2ColorMap = this.pen2ColorMap;
 
-		for (let i = 0; i < iLength; i += 1) {
-			const aColor = aPen2ColorMap[dataset8[i]],
+		for (let i = 0; i < length; i += 1) {
+			const color = pen2ColorMap[dataset8[i]],
 				j = i * 4;
 
-			buf8[j] = aColor[0]; // r
-			buf8[j + 1] = aColor[1]; // g
-			buf8[j + 2] = aColor[2]; // b
+			buf8[j] = color[0]; // r
+			buf8[j + 1] = color[1]; // g
+			buf8[j + 2] = color[2]; // b
 			// alpha already set to 255
 		}
 		this.ctx.putImageData(this.imageData, 0, 0);
@@ -369,11 +369,11 @@ export class Canvas {
 
 	private copy2Canvas32bit() {
 		const dataset8 = this.dataset8,
-			aData32 = this.aData32 as Uint32Array,
-			aPen2Color32 = this.aPen2Color32 as Uint32Array;
+			data32 = this.data32 as Uint32Array,
+			pen2Color32 = this.pen2Color32 as Uint32Array;
 
-		for (let i = 0; i < aData32.length; i += 1) {
-			aData32[i] = aPen2Color32[dataset8[i]];
+		for (let i = 0; i < data32.length; i += 1) {
+			data32[i] = pen2Color32[dataset8[i]];
 		}
 
 		this.ctx.putImageData(this.imageData, 0, 0);
@@ -381,127 +381,127 @@ export class Canvas {
 
 	private copy2Canvas32bitWithOffset() {
 		const dataset8 = this.dataset8,
-			aData32 = this.aData32 as Uint32Array,
-			aPen2Color32 = this.aPen2Color32 as Uint32Array,
-			iOffset = this.iOffset;
+			data32 = this.data32 as Uint32Array,
+			pen2Color32 = this.pen2Color32 as Uint32Array,
+			offset = this.offset;
 
-		for (let i = 0; i < aData32.length - iOffset; i += 1) {
-			aData32[i + iOffset] = aPen2Color32[dataset8[i]];
+		for (let i = 0; i < data32.length - offset; i += 1) {
+			data32[i + offset] = pen2Color32[dataset8[i]];
 		}
 
-		for (let i = aData32.length - iOffset; i < aData32.length; i += 1) {
-			aData32[i + iOffset - aData32.length] = aPen2Color32[dataset8[i]];
+		for (let i = data32.length - offset; i < data32.length; i += 1) {
+			data32[i + offset - data32.length] = pen2Color32[dataset8[i]];
 		}
 
 		this.ctx.putImageData(this.imageData, 0, 0);
 	}
 
-	private applyCopy2CanvasFunction(iOffset: number) {
-		if (this.bUse32BitCopy) {
-			this.fnCopy2Canvas = iOffset ? this.copy2Canvas32bitWithOffset : this.copy2Canvas32bit;
+	private applyCopy2CanvasFunction(offset: number) {
+		if (this.use32BitCopy) {
+			this.fnCopy2Canvas = offset ? this.copy2Canvas32bitWithOffset : this.copy2Canvas32bit;
 		} else {
-			this.fnCopy2Canvas = iOffset ? this.copy2Canvas8bit : this.copy2Canvas8bit; // TODO: for older browsers
+			this.fnCopy2Canvas = offset ? this.copy2Canvas8bit : this.copy2Canvas8bit; // TODO: for older browsers
 		}
 	}
 
-	setScreenOffset(iOffset: number): void {
-		if (iOffset) {
+	setScreenOffset(offset: number): void {
+		if (offset) {
 			// TODO
-			iOffset = (iOffset % 80) * 8 + ((iOffset / 80) | 0) * 80 * 16 * 8; // eslint-disable-line no-bitwise
-			iOffset = 640 * 400 - iOffset;
+			offset = (offset % 80) * 8 + ((offset / 80) | 0) * 80 * 16 * 8; // eslint-disable-line no-bitwise
+			offset = 640 * 400 - offset;
 		}
 
-		if (iOffset !== this.iOffset) {
-			this.iOffset = iOffset;
-			this.applyCopy2CanvasFunction(iOffset);
+		if (offset !== this.offset) {
+			this.offset = offset;
+			this.applyCopy2CanvasFunction(offset);
 
 			this.setNeedUpdate();
 		}
 	}
 
 	private updateTextWindow() {
-		const aTextBuffer = this.aTextBuffer,
-			sCpc2Unicode = Canvas.sCpc2Unicode;
-		let sOut = "";
+		const textBuffer = this.textBuffer,
+			cpc2Unicode = Canvas.cpc2Unicode;
+		let out = "";
 
-		for (let y = 0; y < aTextBuffer.length; y += 1) {
-			const aTextBufferRow = aTextBuffer[y];
+		for (let y = 0; y < textBuffer.length; y += 1) {
+			const textBufferRow = textBuffer[y];
 
-			if (aTextBufferRow) {
-				for (let x = 0; x < aTextBufferRow.length; x += 1) {
-					sOut += sCpc2Unicode[aTextBufferRow[x] || 32];
+			if (textBufferRow) {
+				for (let x = 0; x < textBufferRow.length; x += 1) {
+					out += cpc2Unicode[textBufferRow[x] || 32];
 				}
 			}
-			sOut += "\n";
+			out += "\n";
 		}
-		this.textText.value = sOut;
+		this.textText.value = out;
 	}
 
 	private updateColorMap() {
-		const aColorValues = this.aColorValues,
-			aCurrentInksInSet = this.aCurrentInks[this.iInkSet],
-			aPen2ColorMap = this.aPen2ColorMap,
-			aPen2Color32 = this.aPen2Color32;
+		const colorValues = this.colorValues,
+			currentInksInSet = this.currentInks[this.inkSet],
+			pen2ColorMap = this.pen2ColorMap,
+			pen2Color32 = this.pen2Color32;
 
 		for (let i = 0; i < 16; i += 1) {
-			aPen2ColorMap[i] = aColorValues[aCurrentInksInSet[i]];
+			pen2ColorMap[i] = colorValues[currentInksInSet[i]];
 		}
 
-		if (aPen2Color32) {
+		if (pen2Color32) {
 			for (let i = 0; i < 16; i += 1) {
-				const aColor = aPen2ColorMap[i];
+				const color = pen2ColorMap[i];
 
-				if (this.bLittleEndian) {
-					aPen2Color32[i] = aColor[0] + aColor[1] * 256 + aColor[2] * 65536 + 255 * 65536 * 256;
+				if (this.littleEndian) {
+					pen2Color32[i] = color[0] + color[1] * 256 + color[2] * 65536 + 255 * 65536 * 256;
 				} else {
-					aPen2Color32[i] = aColor[2] + aColor[1] * 256 + aColor[0] * 65536 + 255 * 65536 * 256; // for big endian (untested)
+					pen2Color32[i] = color[2] + color[1] * 256 + color[0] * 65536 + 255 * 65536 * 256; // for big endian (untested)
 				}
 			}
 		}
 	}
 
 	updateSpeedInk(): void {
-		const iPens = this.oModeData.iPens;
+		const pens = this.modeData.pens;
 
-		this.iSpeedInkCount -= 1;
-		if (this.iSpeedInkCount <= 0) {
-			const iCurrentInkSet = this.iInkSet,
-				iNewInkSet = iCurrentInkSet ^ 1; // eslint-disable-line no-bitwise
+		this.speedInkCount -= 1;
+		if (this.speedInkCount <= 0) {
+			const currentInkSet = this.inkSet,
+				newInkSet = currentInkSet ^ 1; // eslint-disable-line no-bitwise
 
-			this.iInkSet = iNewInkSet;
-			this.iSpeedInkCount = this.aSpeedInk[iNewInkSet];
+			this.inkSet = newInkSet;
+			this.speedInkCount = this.speedInk[newInkSet];
 
 			// check for blinking inks which pens are visible in the current mode
-			for (let i = 0; i < iPens; i += 1) {
-				if (this.aCurrentInks[iNewInkSet][i] !== this.aCurrentInks[iCurrentInkSet][i]) {
+			for (let i = 0; i < pens; i += 1) {
+				if (this.currentInks[newInkSet][i] !== this.currentInks[currentInkSet][i]) {
 					this.updateColorMap(); // need ink update
-					this.bNeedUpdate = true; // we also need update
+					this.needUpdate = true; // we also need update
 					break;
 				}
 			}
 
 			// check border ink
-			if (this.aCurrentInks[iNewInkSet][16] !== this.aCurrentInks[iCurrentInkSet][16]) {
-				this.canvas.style.borderColor = Canvas.aColors[this.aCurrentInks[iNewInkSet][16]];
+			if (this.currentInks[newInkSet][16] !== this.currentInks[currentInkSet][16]) {
+				this.canvas.style.borderColor = Canvas.colors[this.currentInks[newInkSet][16]];
 			}
 		}
 	}
 
-	setCustomChar(iChar: number, aCharData: CharType): void {
-		this.oCustomCharset[iChar] = aCharData;
+	setCustomChar(char: number, charData: CharType): void {
+		this.customCharset[char] = charData;
 	}
 
-	getCharData(iChar: number): CharType {
-		const aCharData = this.oCustomCharset[iChar] || this.aCharset[iChar];
+	getCharData(char: number): CharType {
+		const charData = this.customCharset[char] || this.charset[char];
 
-		return aCharData;
+		return charData;
 	}
 
 	setDefaultInks(): void {
-		this.aCurrentInks[0] = Canvas.aDefaultInks[0].slice(); // copy ink set 0 array
-		this.aCurrentInks[1] = Canvas.aDefaultInks[1].slice(); // copy ink set 1 array
+		this.currentInks[0] = Canvas.defaultInks[0].slice(); // copy ink set 0 array
+		this.currentInks[1] = Canvas.defaultInks[1].slice(); // copy ink set 1 array
 		this.updateColorMap();
-		this.setGPen(this.iGPen);
+		this.setGPen(this.gPen);
 	}
 
 	private setFocusOnCanvas() {
@@ -509,58 +509,58 @@ export class Canvas {
 		if (this.canvas) {
 			this.canvas.focus();
 		}
-		this.bHasFocus = true;
+		this.hasFocus = true;
 	}
 
 	private getMousePos(event: MouseEvent) {
-		const oRect = this.canvas.getBoundingClientRect(),
-			oPos = {
-				x: event.clientX - this.iBorderWidth - oRect.left,
-				y: event.clientY - this.iBorderWidth - oRect.top
+		const rect = this.canvas.getBoundingClientRect(),
+			pos = {
+				x: event.clientX - this.borderWidth - rect.left,
+				y: event.clientY - this.borderWidth - rect.top
 			};
 
-		return oPos;
+		return pos;
 	}
 
 	private canvasClickAction2(event: MouseEvent) {
-		const oPos = this.getMousePos(event),
-			iCharWidth = this.oModeData.iPixelWidth * 8,
-			iCharHeight = this.oModeData.iPixelHeight * 8;
-		let x = oPos.x,
-			y = oPos.y;
+		const pos = this.getMousePos(event),
+			charWidth = this.modeData.pixelWidth * 8,
+			charHeight = this.modeData.pixelHeight * 8;
+		let x = pos.x,
+			y = pos.y;
 
 		/* eslint-disable no-bitwise */
 		x |= 0; // force integer
 		y |= 0;
 
-		const xTxt = (x / iCharWidth) | 0,
-			yTxt = (y / iCharHeight) | 0;
+		const xTxt = (x / charWidth) | 0,
+			yTxt = (y / charHeight) | 0;
 		/* eslint-enable no-bitwise */
 
-		let iChar = this.getCharFromTextBuffer(xTxt, yTxt); // is there a character an the click position?
+		let char = this.getCharFromTextBuffer(xTxt, yTxt); // is there a character an the click position?
 
-		if (iChar === undefined && event.detail === 2) { // no char but mouse double click?
-			iChar = 13; // use CR
+		if (char === undefined && event.detail === 2) { // no char but mouse double click?
+			char = 13; // use CR
 		}
 
-		if (iChar !== undefined && this.onClickKey) { // call click handler (put char in keyboard input buffer)
-			this.onClickKey(String.fromCharCode(iChar));
+		if (char !== undefined && this.onClickKey) { // call click handler (put char in keyboard input buffer)
+			this.onClickKey(String.fromCharCode(char));
 		}
 
 		// for graphics coordinates, adapt origin
 		x -= this.xOrig;
-		y = this.iHeight - 1 - (y + this.yOrig);
+		y = this.height - 1 - (y + this.yOrig);
 
 		if (this.xPos === 1000 && this.yPos === 1000) { // only activate move if pos is 1000, 1000
 			this.move(x, y);
 		}
 		if (Utils.debug > 0) {
-			Utils.console.debug("onCpcCanvasClick: x-xOrig", x, "y-yOrig", y, "iChar", iChar, "char", (iChar !== undefined ? String.fromCharCode(iChar) : "?"), "detail", event.detail);
+			Utils.console.debug("onCpcCanvasClick: x-xOrig", x, "y-yOrig", y, "char", char, "char", (char !== undefined ? String.fromCharCode(char) : "?"), "detail", event.detail);
 		}
 	}
 
 	onCpcCanvasClick(event: MouseEvent): void {
-		if (!this.bHasFocus) {
+		if (!this.hasFocus) {
 			this.setFocusOnCanvas();
 		} else {
 			this.canvasClickAction2(event);
@@ -569,8 +569,8 @@ export class Canvas {
 	}
 
 	onWindowClick(_event: Event): void {
-		if (this.bHasFocus) {
-			this.bHasFocus = false;
+		if (this.hasFocus) {
+			this.hasFocus = false;
 			this.cpcAreaBox.style.background = "";
 		}
 	}
@@ -583,143 +583,143 @@ export class Canvas {
 		return this.yPos;
 	}
 
-	private fillMyRect(x: number, y: number, iWidth: number, iHeight: number, iPen: number) {
-		const iCanvasWidth = this.iWidth,
+	private fillMyRect(x: number, y: number, width: number, height: number, pen: number) {
+		const canvasWidth = this.width,
 			dataset8 = this.dataset8;
 
-		for (let row = 0; row < iHeight; row += 1) {
-			for (let col = 0; col < iWidth; col += 1) {
-				const idx = (x + col) + (y + row) * iCanvasWidth;
+		for (let row = 0; row < height; row += 1) {
+			for (let col = 0; col < width; col += 1) {
+				const idx = (x + col) + (y + row) * canvasWidth;
 
-				dataset8[idx] = iPen;
+				dataset8[idx] = pen;
 			}
 		}
 	}
 
-	fillTextBox(iLeft: number, iTop: number, iWidth: number, iHeight: number, iPen: number): void {
-		const iCharWidth = this.oModeData.iPixelWidth * 8,
-			iCharHeight = this.oModeData.iPixelHeight * 8;
+	fillTextBox(left: number, top: number, width: number, height: number, pen: number): void {
+		const charWidth = this.modeData.pixelWidth * 8,
+			charHeight = this.modeData.pixelHeight * 8;
 
-		this.fillMyRect(iLeft * iCharWidth, iTop * iCharHeight, iWidth * iCharWidth, iHeight * iCharHeight, iPen);
-		this.clearTextBufferBox(iLeft, iTop, iWidth, iHeight);
+		this.fillMyRect(left * charWidth, top * charHeight, width * charWidth, height * charHeight, pen);
+		this.clearTextBufferBox(left, top, width, height);
 		this.setNeedUpdate();
 	}
 
-	private moveMyRectUp(x: number, y: number, iWidth: number, iHeight: number, x2: number, y2: number) { // for scrolling up (overlap)
-		const iCanvasWidth = this.iWidth,
+	private moveMyRectUp(x: number, y: number, width: number, height: number, x2: number, y2: number) { // for scrolling up (overlap)
+		const canvasWidth = this.width,
 			dataset8 = this.dataset8;
 
-		for (let row = 0; row < iHeight; row += 1) {
-			const idx1 = x + (y + row) * iCanvasWidth,
-				idx2 = x2 + (y2 + row) * iCanvasWidth;
+		for (let row = 0; row < height; row += 1) {
+			const idx1 = x + (y + row) * canvasWidth,
+				idx2 = x2 + (y2 + row) * canvasWidth;
 
-			for (let col = 0; col < iWidth; col += 1) {
+			for (let col = 0; col < width; col += 1) {
 				dataset8[idx2 + col] = dataset8[idx1 + col];
 			}
 		}
 	}
 
-	private moveMyRectDown(x: number, y: number, iWidth: number, iHeight: number, x2: number, y2: number) { // for scrolling down (overlap)
-		const iCanvasWidth = this.iWidth,
+	private moveMyRectDown(x: number, y: number, width: number, height: number, x2: number, y2: number) { // for scrolling down (overlap)
+		const canvasWidth = this.width,
 			dataset8 = this.dataset8;
 
-		for (let row = iHeight - 1; row >= 0; row -= 1) {
-			const idx1 = x + (y + row) * iCanvasWidth,
-				idx2 = x2 + (y2 + row) * iCanvasWidth;
+		for (let row = height - 1; row >= 0; row -= 1) {
+			const idx1 = x + (y + row) * canvasWidth,
+				idx2 = x2 + (y2 + row) * canvasWidth;
 
-			for (let col = 0; col < iWidth; col += 1) {
+			for (let col = 0; col < width; col += 1) {
 				dataset8[idx2 + col] = dataset8[idx1 + col];
 			}
 		}
 	}
 
-	private invertChar(x: number, y: number, iPen: number, iPaper: number) {
-		const iPixelWidth = this.oModeData.iPixelWidth,
-			iPixelHeight = this.oModeData.iPixelHeight,
-			iPenXorPaper = iPen ^ iPaper, // eslint-disable-line no-bitwise
-			iGColMode = 0;
+	private invertChar(x: number, y: number, pen: number, paper: number) {
+		const pixelWidth = this.modeData.pixelWidth,
+			pixelHeight = this.modeData.pixelHeight,
+			penXorPaper = pen ^ paper, // eslint-disable-line no-bitwise
+			gColMode = 0;
 
 		for (let row = 0; row < 8; row += 1) {
 			for (let col = 0; col < 8; col += 1) {
-				let iTestPen = this.testSubPixel(x + col * iPixelWidth, y + row * iPixelHeight);
+				let testPen = this.testSubPixel(x + col * pixelWidth, y + row * pixelHeight);
 
-				iTestPen ^= iPenXorPaper; // eslint-disable-line no-bitwise
-				this.setSubPixels(x + col * iPixelWidth, y + row * iPixelHeight, iTestPen, iGColMode);
+				testPen ^= penXorPaper; // eslint-disable-line no-bitwise
+				this.setSubPixels(x + col * pixelWidth, y + row * pixelHeight, testPen, gColMode);
 			}
 		}
 	}
 
-	private setChar(iChar: number, x: number, y: number, iPen: number, iPaper: number, bTransparent: boolean, iGColMode: number, bTextAtGraphics: boolean) {
-		const aCharData = this.oCustomCharset[iChar] || this.aCharset[iChar],
-			iPixelWidth = this.oModeData.iPixelWidth,
-			iPixelHeight = this.oModeData.iPixelHeight;
+	private setChar(char: number, x: number, y: number, pen: number, paper: number, transparent: boolean, gColMode: number, textAtGraphics: boolean) {
+		const charData = this.customCharset[char] || this.charset[char],
+			pixelWidth = this.modeData.pixelWidth,
+			pixelHeight = this.modeData.pixelHeight;
 
 		for (let row = 0; row < 8; row += 1) {
 			for (let col = 0; col < 8; col += 1) {
-				const iCharData = aCharData[row],
-					iBit = iCharData & (0x80 >> col); // eslint-disable-line no-bitwise
+				const charValue = charData[row],
+					bit = charValue & (0x80 >> col); // eslint-disable-line no-bitwise
 
-				if (!(bTransparent && !iBit)) { // do not set background pixel in transparent mode
-					const iPenOrPaper = (iBit) ? iPen : iPaper;
+				if (!(transparent && !bit)) { // do not set background pixel in transparent mode
+					const penOrPaper = (bit) ? pen : paper;
 
-					if (bTextAtGraphics) {
-						this.setPixel(x + col * iPixelWidth, y - row * iPixelHeight, iPenOrPaper, iGColMode);
+					if (textAtGraphics) {
+						this.setPixel(x + col * pixelWidth, y - row * pixelHeight, penOrPaper, gColMode);
 					} else { // text mode
-						this.setSubPixels(x + col * iPixelWidth, y + row * iPixelHeight, iPenOrPaper, iGColMode); // iColMode always 0 in text mode
+						this.setSubPixels(x + col * pixelWidth, y + row * pixelHeight, penOrPaper, gColMode); // colMode always 0 in text mode
 					}
 				}
 			}
 		}
 	}
 
-	private readCharData(x: number, y: number, iExpectedPen: number) {
-		const aCharData: CharType = [],
-			iPixelWidth = this.oModeData.iPixelWidth,
-			iPixelHeight = this.oModeData.iPixelHeight;
+	private readCharData(x: number, y: number, expectedPen: number) {
+		const charData: CharType = [],
+			pixelWidth = this.modeData.pixelWidth,
+			pixelHeight = this.modeData.pixelHeight;
 
 		for (let row = 0; row < 8; row += 1) {
-			let iCharData = 0;
+			let charValue = 0;
 
 			for (let col = 0; col < 8; col += 1) {
-				const iPen = this.testSubPixel(x + col * iPixelWidth, y + row * iPixelHeight);
+				const pen = this.testSubPixel(x + col * pixelWidth, y + row * pixelHeight);
 
-				if (iPen === iExpectedPen) {
-					iCharData |= (0x80 >> col); // eslint-disable-line no-bitwise
+				if (pen === expectedPen) {
+					charValue |= (0x80 >> col); // eslint-disable-line no-bitwise
 				}
 			}
-			aCharData[row] = iCharData;
+			charData[row] = charValue;
 		}
-		return aCharData;
+		return charData;
 	}
 
-	private setSubPixels(x: number, y: number, iGPen: number, iGColMode: number) {
-		const iPixelWidth = this.oModeData.iPixelWidth,
-			iPixelHeight = this.oModeData.iPixelHeight,
-			iWidth = this.iWidth;
+	private setSubPixels(x: number, y: number, gPen: number, gColMode: number) {
+		const pixelWidth = this.modeData.pixelWidth,
+			pixelHeight = this.modeData.pixelHeight,
+			width = this.width;
 
 		/* eslint-disable no-bitwise */
-		x &= ~(iPixelWidth - 1); // match CPC pixel
-		y &= ~(iPixelHeight - 1);
+		x &= ~(pixelWidth - 1); // match CPC pixel
+		y &= ~(pixelHeight - 1);
 
-		for (let row = 0; row < iPixelHeight; row += 1) {
-			let i = x + iWidth * (y + row);
+		for (let row = 0; row < pixelHeight; row += 1) {
+			let i = x + width * (y + row);
 
-			for (let col = 0; col < iPixelWidth; col += 1) {
-				switch (iGColMode) {
+			for (let col = 0; col < pixelWidth; col += 1) {
+				switch (gColMode) {
 				case 0: // normal
-					this.dataset8[i] = iGPen;
+					this.dataset8[i] = gPen;
 					break;
 				case 1: // xor
-					this.dataset8[i] ^= iGPen;
+					this.dataset8[i] ^= gPen;
 					break;
 				case 2: // and
-					this.dataset8[i] &= iGPen;
+					this.dataset8[i] &= gPen;
 					break;
 				case 3: // or
-					this.dataset8[i] |= iGPen;
+					this.dataset8[i] |= gPen;
 					break;
 				default:
-					Utils.console.warn("setSubPixels: Unknown colMode:", iGColMode);
+					Utils.console.warn("setSubPixels: Unknown colMode:", gColMode);
 					break;
 				}
 				i += 1;
@@ -728,119 +728,119 @@ export class Canvas {
 		/* eslint-enable no-bitwise */
 	}
 
-	private setPixel(x: number, y: number, iGPen: number, iGColMode: number) {
+	private setPixel(x: number, y: number, gPen: number, gColMode: number) {
 		x += this.xOrig;
-		y = this.iHeight - 1 - (y + this.yOrig);
-		if (x < this.xLeft || x > this.xRight || y < (this.iHeight - 1 - this.yTop) || y > (this.iHeight - 1 - this.yBottom)) {
+		y = this.height - 1 - (y + this.yOrig);
+		if (x < this.xLeft || x > this.xRight || y < (this.height - 1 - this.yTop) || y > (this.height - 1 - this.yBottom)) {
 			return; // not in graphics window
 		}
-		this.setSubPixels(x, y, iGPen, iGColMode);
+		this.setSubPixels(x, y, gPen, gColMode);
 	}
 
-	private setPixelOriginIncluded(x: number, y: number, iGPen: number, iGColMode: number) {
-		if (x < this.xLeft || x > this.xRight || y < (this.iHeight - 1 - this.yTop) || y > (this.iHeight - 1 - this.yBottom)) {
+	private setPixelOriginIncluded(x: number, y: number, gPen: number, gColMode: number) {
+		if (x < this.xLeft || x > this.xRight || y < (this.height - 1 - this.yTop) || y > (this.height - 1 - this.yBottom)) {
 			return; // not in graphics window
 		}
-		this.setSubPixels(x, y, iGPen, iGColMode);
+		this.setSubPixels(x, y, gPen, gColMode);
 	}
 
 	private testSubPixel(x: number, y: number) {
-		const i = x + this.iWidth * y,
-			iPen = this.dataset8[i];
+		const i = x + this.width * y,
+			pen = this.dataset8[i];
 
-		return iPen;
+		return pen;
 	}
 
 	private testPixel(x: number, y: number) {
 		x += this.xOrig;
-		y = this.iHeight - 1 - (y + this.yOrig);
-		if (x < this.xLeft || x > this.xRight || y < (this.iHeight - 1 - this.yTop) || y > (this.iHeight - 1 - this.yBottom)) {
-			return this.iGPaper; // not in graphics window => return graphics paper
+		y = this.height - 1 - (y + this.yOrig);
+		if (x < this.xLeft || x > this.xRight || y < (this.height - 1 - this.yTop) || y > (this.height - 1 - this.yBottom)) {
+			return this.gPaper; // not in graphics window => return graphics paper
 		}
 
-		const i = x + this.iWidth * y,
-			iPen = this.dataset8[i];
+		const i = x + this.width * y,
+			pen = this.dataset8[i];
 
-		return iPen;
+		return pen;
 	}
 
-	getByte(iAddr: number): number | null {
+	getByte(addr: number): number | null {
 		/* eslint-disable no-bitwise */
-		const iMode = this.iMode,
-			iPixelWidth = this.oModeData.iPixelWidth,
-			iPixelHeight = this.oModeData.iPixelHeight,
-			x = ((iAddr & 0x7ff) % 80) * 8,
-			y = (((iAddr & 0x3800) / 0x800) + (((iAddr & 0x7ff) / 80) | 0) * 8) * iPixelHeight;
+		const mode = this.mode,
+			pixelWidth = this.modeData.pixelWidth,
+			pixelHeight = this.modeData.pixelHeight,
+			x = ((addr & 0x7ff) % 80) * 8,
+			y = (((addr & 0x3800) / 0x800) + (((addr & 0x7ff) / 80) | 0) * 8) * pixelHeight;
 
-		let	iByte = null, // null=cannot read
-			iGPen: number;
+		let	byte = null, // null=cannot read
+			gPen: number;
 
-		if (y < this.iHeight) { // only if in visible range
-			if (iMode === 0) {
-				iGPen = this.dataset8[x + this.iWidth * y];
-				iByte = ((iGPen >> 2) & 0x02) | ((iGPen << 3) & 0x20) | ((iGPen << 2) & 0x08) | ((iGPen << 7) & 0x80); // b1,b5,b3,b7 (left pixel)
+		if (y < this.height) { // only if in visible range
+			if (mode === 0) {
+				gPen = this.dataset8[x + this.width * y];
+				byte = ((gPen >> 2) & 0x02) | ((gPen << 3) & 0x20) | ((gPen << 2) & 0x08) | ((gPen << 7) & 0x80); // b1,b5,b3,b7 (left pixel)
 
-				iGPen = this.dataset8[x + iPixelWidth + this.iWidth * y];
-				iByte |= ((iGPen >> 3) & 0x01) | ((iGPen << 2) & 0x10) | ((iGPen << 1) & 0x04) | ((iGPen << 6) & 0x40); // b0,b4,b2,b6 (right pixel)
-			} else if (iMode === 1) {
-				iByte = 0;
-				iGPen = this.dataset8[x + this.iWidth * y];
-				iByte |= ((iGPen & 0x02) << 2) | ((iGPen & 0x01) << 7); // b3,b7 (left pixel 1)
-				iGPen = this.dataset8[x + iPixelWidth + this.iWidth * y];
-				iByte |= ((iGPen & 0x02) << 1) | ((iGPen & 0x01) << 6); // b2,b6 (pixel 2)
-				iGPen = this.dataset8[x + iPixelWidth * 2 + this.iWidth * y];
-				iByte |= ((iGPen & 0x02) << 0) | ((iGPen & 0x01) << 5); // b1,b5 (pixel 3)
-				iGPen = this.dataset8[x + iPixelWidth * 3 + this.iWidth * y];
-				iByte |= ((iGPen & 0x02) >> 1) | ((iGPen & 0x01) << 4); // b0,b4 (right pixel 4)
-			} else if (iMode === 2) {
-				iByte = 0;
+				gPen = this.dataset8[x + pixelWidth + this.width * y];
+				byte |= ((gPen >> 3) & 0x01) | ((gPen << 2) & 0x10) | ((gPen << 1) & 0x04) | ((gPen << 6) & 0x40); // b0,b4,b2,b6 (right pixel)
+			} else if (mode === 1) {
+				byte = 0;
+				gPen = this.dataset8[x + this.width * y];
+				byte |= ((gPen & 0x02) << 2) | ((gPen & 0x01) << 7); // b3,b7 (left pixel 1)
+				gPen = this.dataset8[x + pixelWidth + this.width * y];
+				byte |= ((gPen & 0x02) << 1) | ((gPen & 0x01) << 6); // b2,b6 (pixel 2)
+				gPen = this.dataset8[x + pixelWidth * 2 + this.width * y];
+				byte |= ((gPen & 0x02) << 0) | ((gPen & 0x01) << 5); // b1,b5 (pixel 3)
+				gPen = this.dataset8[x + pixelWidth * 3 + this.width * y];
+				byte |= ((gPen & 0x02) >> 1) | ((gPen & 0x01) << 4); // b0,b4 (right pixel 4)
+			} else if (mode === 2) {
+				byte = 0;
 				for (let i = 0; i <= 7; i += 1) {
-					iGPen = this.dataset8[x + i + this.iWidth * y];
-					iByte |= (iGPen & 0x01) << (7 - i);
+					gPen = this.dataset8[x + i + this.width * y];
+					byte |= (gPen & 0x01) << (7 - i);
 				}
-			} else { // iMode === 3
+			} else { // mode === 3
 			}
 		}
 		/* eslint-enable no-bitwise */
 
-		return iByte;
+		return byte;
 	}
 
-	setByte(iAddr: number, iByte: number): void {
+	setByte(addr: number, byte: number): void {
 		/* eslint-disable no-bitwise */
-		const iMode = this.iMode,
-			iPixelWidth = this.oModeData.iPixelWidth,
-			iPixelHeight = this.oModeData.iPixelHeight,
-			x = ((iAddr & 0x7ff) % 80) * 8,
-			y = (((iAddr & 0x3800) / 0x800) + (((iAddr & 0x7ff) / 80) | 0) * 8) * iPixelHeight,
-			iGColMode = 0; // always 0
+		const mode = this.mode,
+			pixelWidth = this.modeData.pixelWidth,
+			pixelHeight = this.modeData.pixelHeight,
+			x = ((addr & 0x7ff) % 80) * 8,
+			y = (((addr & 0x3800) / 0x800) + (((addr & 0x7ff) / 80) | 0) * 8) * pixelHeight,
+			gColMode = 0; // always 0
 
-		let iGPen: number;
+		let gPen: number;
 
-		if (y < this.iHeight) { // only if in visible range
-			if (iMode === 0) {
-				iGPen = ((iByte << 2) & 0x08) | ((iByte >> 3) & 0x04) | ((iByte >> 2) & 0x02) | ((iByte >> 7) & 0x01); // b1,b5,b3,b7 (left pixel)
-				this.setSubPixels(x, y, iGPen, iGColMode);
-				iGPen = ((iByte << 3) & 0x08) | ((iByte >> 2) & 0x04) | ((iByte >> 1) & 0x02) | ((iByte >> 6) & 0x01); // b0,b4,b2,b6 (right pixel)
-				this.setSubPixels(x + iPixelWidth, y, iGPen, iGColMode);
+		if (y < this.height) { // only if in visible range
+			if (mode === 0) {
+				gPen = ((byte << 2) & 0x08) | ((byte >> 3) & 0x04) | ((byte >> 2) & 0x02) | ((byte >> 7) & 0x01); // b1,b5,b3,b7 (left pixel)
+				this.setSubPixels(x, y, gPen, gColMode);
+				gPen = ((byte << 3) & 0x08) | ((byte >> 2) & 0x04) | ((byte >> 1) & 0x02) | ((byte >> 6) & 0x01); // b0,b4,b2,b6 (right pixel)
+				this.setSubPixels(x + pixelWidth, y, gPen, gColMode);
 				this.setNeedUpdate();
-			} else if (iMode === 1) {
-				iGPen = ((iByte >> 2) & 0x02) | ((iByte >> 7) & 0x01); // b3,b7 (left pixel 1)
-				this.setSubPixels(x, y, iGPen, iGColMode);
-				iGPen = ((iByte >> 1) & 0x02) | ((iByte >> 6) & 0x01); // b2,b6 (pixel 2)
-				this.setSubPixels(x + iPixelWidth, y, iGPen, iGColMode);
-				iGPen = ((iByte >> 0) & 0x02) | ((iByte >> 5) & 0x01); // b1,b5 (pixel 3)
-				this.setSubPixels(x + iPixelWidth * 2, y, iGPen, iGColMode);
-				iGPen = ((iByte << 1) & 0x02) | ((iByte >> 4) & 0x01); // b0,b4 (right pixel 4)
-				this.setSubPixels(x + iPixelWidth * 3, y, iGPen, iGColMode);
+			} else if (mode === 1) {
+				gPen = ((byte >> 2) & 0x02) | ((byte >> 7) & 0x01); // b3,b7 (left pixel 1)
+				this.setSubPixels(x, y, gPen, gColMode);
+				gPen = ((byte >> 1) & 0x02) | ((byte >> 6) & 0x01); // b2,b6 (pixel 2)
+				this.setSubPixels(x + pixelWidth, y, gPen, gColMode);
+				gPen = ((byte >> 0) & 0x02) | ((byte >> 5) & 0x01); // b1,b5 (pixel 3)
+				this.setSubPixels(x + pixelWidth * 2, y, gPen, gColMode);
+				gPen = ((byte << 1) & 0x02) | ((byte >> 4) & 0x01); // b0,b4 (right pixel 4)
+				this.setSubPixels(x + pixelWidth * 3, y, gPen, gColMode);
 				this.setNeedUpdate();
-			} else if (iMode === 2) {
+			} else if (mode === 2) {
 				for (let i = 0; i <= 7; i += 1) {
-					iGPen = (iByte >> (7 - i)) & 0x01;
-					this.setSubPixels(x + i * iPixelWidth, y, iGPen, iGColMode);
+					gPen = (byte >> (7 - i)) & 0x01;
+					this.setSubPixels(x + i * pixelWidth, y, gPen, gColMode);
 				}
 				this.setNeedUpdate();
-			} else { // iMode === 3 (not supported)
+			} else { // mode === 3 (not supported)
 			}
 		}
 		/* eslint-enable no-bitwise */
@@ -848,41 +848,41 @@ export class Canvas {
 
 	// https://de.wikipedia.org/wiki/Bresenham-Algorithmus
 	private drawBresenhamLine(xstart: number, ystart: number, xend: number, yend: number) {
-		const iPixelWidth = this.oModeData.iPixelWidth,
-			iPixelHeight = this.oModeData.iPixelHeight,
-			iGPen = this.iGPen,
-			iGPaper = this.iGPaper,
-			iMask = this.iMask,
-			iMaskFirst = this.iMaskFirst,
-			iGColMode = this.iGColMode,
-			bTransparent = this.bGTransparent;
-		let iMaskBit = this.iMaskBit;
+		const pixelWidth = this.modeData.pixelWidth,
+			pixelHeight = this.modeData.pixelHeight,
+			gPen = this.gPen,
+			gPaper = this.gPaper,
+			mask = this.mask,
+			maskFirst = this.maskFirst,
+			gColMode = this.gColMode,
+			transparent = this.gTransparent;
+		let maskBit = this.maskBit;
 
 		// we have to add origin before modifying coordinates to match CPC pixel
 		xstart += this.xOrig;
-		ystart = this.iHeight - 1 - (ystart + this.yOrig);
+		ystart = this.height - 1 - (ystart + this.yOrig);
 		xend += this.xOrig;
-		yend = this.iHeight - 1 - (yend + this.yOrig);
+		yend = this.height - 1 - (yend + this.yOrig);
 
 		/* eslint-disable no-bitwise */
 		if (xend >= xstart) { // line from left to right
-			xend |= (iPixelWidth - 1); // match CPC pixel
+			xend |= (pixelWidth - 1); // match CPC pixel
 		} else { // line from right to left
-			xstart |= (iPixelWidth - 1);
+			xstart |= (pixelWidth - 1);
 		}
 
 		if (yend >= ystart) { // line from bottom to top
-			yend |= (iPixelHeight - 1);
+			yend |= (pixelHeight - 1);
 		} else { // line from top to bottom
-			ystart |= (iPixelHeight - 1);
+			ystart |= (pixelHeight - 1);
 		}
 
-		let dx = ((xend - xstart) / iPixelWidth) | 0,
-			dy = ((yend - ystart) / iPixelHeight) | 0;
+		let dx = ((xend - xstart) / pixelWidth) | 0,
+			dy = ((yend - ystart) / pixelHeight) | 0;
 		/* eslint-enable no-bitwise */
 
-		const incx = Math.sign(dx) * iPixelWidth,
-			incy = Math.sign(dy) * iPixelHeight;
+		const incx = Math.sign(dx) * pixelWidth,
+			incy = Math.sign(dy) * pixelHeight;
 
 		if (dx < 0) {
 			dx = -dx;
@@ -913,14 +913,14 @@ export class Canvas {
 			y = ystart,
 			err = deltafastdirection >> 1; // eslint-disable-line no-bitwise
 
-		if (iMaskFirst) { // draw first pixel?
-			const iBit = iMask & iMaskBit; // eslint-disable-line no-bitwise
+		if (maskFirst) { // draw first pixel?
+			const bit = mask & maskBit; // eslint-disable-line no-bitwise
 
-			if (!(bTransparent && !iBit)) { // do not set background pixel in transparent mode
-				this.setPixelOriginIncluded(x, y, iBit ? iGPen : iGPaper, iGColMode); // we expect integers
+			if (!(transparent && !bit)) { // do not set background pixel in transparent mode
+				this.setPixelOriginIncluded(x, y, bit ? gPen : gPaper, gColMode); // we expect integers
 			}
 			// rotate bitpos right
-			iMaskBit = (iMaskBit >> 1) | ((iMaskBit << 7) & 0xff); // eslint-disable-line no-bitwise
+			maskBit = (maskBit >> 1) | ((maskBit << 7) & 0xff); // eslint-disable-line no-bitwise
 		}
 
 		for (let t = 0; t < deltafastdirection; t += 1) {
@@ -934,15 +934,15 @@ export class Canvas {
 				y += pdy;
 			}
 
-			const iBit = iMask & iMaskBit; // eslint-disable-line no-bitwise
+			const bit = mask & maskBit; // eslint-disable-line no-bitwise
 
-			if (!(bTransparent && !iBit)) { // do not set background pixel in transparent mode
-				this.setPixelOriginIncluded(x, y, iBit ? iGPen : iGPaper, iGColMode); // we expect integers
+			if (!(transparent && !bit)) { // do not set background pixel in transparent mode
+				this.setPixelOriginIncluded(x, y, bit ? gPen : gPaper, gColMode); // we expect integers
 			}
 			// rotate bitpos right
-			iMaskBit = (iMaskBit >> 1) | ((iMaskBit << 7) & 0xff); // eslint-disable-line no-bitwise
+			maskBit = (maskBit >> 1) | ((maskBit << 7) & 0xff); // eslint-disable-line no-bitwise
 		}
-		this.iMaskBit = iMaskBit;
+		this.maskBit = maskBit;
 	}
 
 	draw(x: number, y: number): void {
@@ -973,7 +973,7 @@ export class Canvas {
 
 	plot(x: number, y: number): void {
 		this.move(x, y);
-		this.setPixel(x, y, this.iGPen, this.iGColMode); // must be integer
+		this.setPixel(x, y, this.gPen, this.gColMode); // must be integer
 		this.setNeedUpdate();
 	}
 
@@ -994,298 +994,298 @@ export class Canvas {
 		return this.test(x, y);
 	}
 
-	setInk(iPen: number, iInk1: number, iInk2: number): boolean {
-		let bNeedInkUpdate = false;
+	setInk(pen: number, ink1: number, ink2: number): boolean {
+		let needInkUpdate = false;
 
-		if (this.aCurrentInks[0][iPen] !== iInk1) {
-			this.aCurrentInks[0][iPen] = iInk1;
-			bNeedInkUpdate = true;
+		if (this.currentInks[0][pen] !== ink1) {
+			this.currentInks[0][pen] = ink1;
+			needInkUpdate = true;
 		}
-		if (this.aCurrentInks[1][iPen] !== iInk2) {
-			this.aCurrentInks[1][iPen] = iInk2;
-			bNeedInkUpdate = true;
+		if (this.currentInks[1][pen] !== ink2) {
+			this.currentInks[1][pen] = ink2;
+			needInkUpdate = true;
 		}
-		if (bNeedInkUpdate) {
+		if (needInkUpdate) {
 			this.updateColorMap();
 			this.setNeedUpdate(); // we need to notify that an update is needed
 		}
-		return bNeedInkUpdate;
+		return needInkUpdate;
 	}
 
-	setBorder(iInk1: number, iInk2: number): void {
-		const bNeedInkUpdate = this.setInk(16, iInk1, iInk2);
+	setBorder(ink1: number, ink2: number): void {
+		const needInkUpdate = this.setInk(16, ink1, ink2);
 
-		if (bNeedInkUpdate) {
-			this.canvas.style.borderColor = Canvas.aColors[this.aCurrentInks[this.iInkSet][16]];
+		if (needInkUpdate) {
+			this.canvas.style.borderColor = Canvas.colors[this.currentInks[this.inkSet][16]];
 		}
 	}
 
-	setGPen(iGPen: number): void {
-		iGPen %= this.oModeData.iPens; // limit pens
-		this.iGPen = iGPen;
+	setGPen(gPen: number): void {
+		gPen %= this.modeData.pens; // limit pens
+		this.gPen = gPen;
 	}
 
-	setGPaper(iGPaper: number): void {
-		iGPaper %= this.oModeData.iPens; // limit pens
-		this.iGPaper = iGPaper;
+	setGPaper(gPaper: number): void {
+		gPaper %= this.modeData.pens; // limit pens
+		this.gPaper = gPaper;
 	}
 
-	setGTransparentMode(bTransparent: boolean): void {
-		this.bGTransparent = bTransparent;
+	setGTransparentMode(transparent: boolean): void {
+		this.gTransparent = transparent;
 	}
 
-	printGChar(iChar: number): void {
-		const iCharWidth = this.oModeData.iPixelWidth * 8;
+	printGChar(char: number): void {
+		const charWidth = this.modeData.pixelWidth * 8;
 
-		if (iChar >= this.aCharset.length) {
-			Utils.console.warn("printGChar: Ignoring char with code", iChar);
+		if (char >= this.charset.length) {
+			Utils.console.warn("printGChar: Ignoring char with code", char);
 			return;
 		}
 
-		this.setChar(iChar, this.xPos, this.yPos, this.iGPen, this.iGPaper, this.bGTransparent, this.iGColMode, true);
-		this.xPos += iCharWidth;
+		this.setChar(char, this.xPos, this.yPos, this.gPen, this.gPaper, this.gTransparent, this.gColMode, true);
+		this.xPos += charWidth;
 		this.setNeedUpdate();
 	}
 
-	private clearTextBufferBox(iLeft: number, iTop: number, iWidth: number, iHeight: number) {
-		const aTextBuffer = this.aTextBuffer;
+	private clearTextBufferBox(left: number, top: number, width: number, height: number) {
+		const textBuffer = this.textBuffer;
 
-		for (let y = iTop; y < iTop + iHeight; y += 1) {
-			const aTextBufferRow = aTextBuffer[y];
+		for (let y = top; y < top + height; y += 1) {
+			const textBufferRow = textBuffer[y];
 
-			if (aTextBufferRow) {
-				for (let x = iLeft; x < iLeft + iWidth; x += 1) {
-					delete aTextBufferRow[x];
+			if (textBufferRow) {
+				for (let x = left; x < left + width; x += 1) {
+					delete textBufferRow[x];
 				}
 			}
 		}
 		this.setNeedTextUpdate();
 	}
 
-	private copyTextBufferBoxUp(iLeft: number, iTop: number, iWidth: number, iHeight: number, iLeft2: number, iTop2: number) {
-		const aTextBuffer = this.aTextBuffer;
+	private copyTextBufferBoxUp(left: number, top: number, width: number, height: number, left2: number, top2: number) {
+		const textBuffer = this.textBuffer;
 
-		for (let y = 0; y < iHeight; y += 1) {
-			const aTextBufferRow1 = aTextBuffer[iTop + y];
+		for (let y = 0; y < height; y += 1) {
+			const textBufferRow1 = textBuffer[top + y];
 
-			if (aTextBufferRow1) {
-				let aTextBufferRow2 = aTextBuffer[iTop2 + y];
+			if (textBufferRow1) {
+				let textBufferRow2 = textBuffer[top2 + y];
 
-				if (!aTextBufferRow2) {
-					aTextBufferRow2 = [];
-					aTextBuffer[iTop2 + y] = aTextBufferRow2;
+				if (!textBufferRow2) {
+					textBufferRow2 = [];
+					textBuffer[top2 + y] = textBufferRow2;
 				}
-				for (let x = 0; x < iWidth; x += 1) {
-					aTextBufferRow2[iLeft2 + x] = aTextBufferRow1[iLeft + x];
-				}
-			}
-		}
-		this.setNeedTextUpdate();
-	}
-
-	private copyTextBufferBoxDown(iLeft: number, iTop: number, iWidth: number, iHeight: number, iLeft2: number, iTop2: number) {
-		const aTextBuffer = this.aTextBuffer;
-
-		for (let y = iHeight - 1; y >= 0; y -= 1) {
-			const aTextBufferRow1 = aTextBuffer[iTop + y];
-
-			if (aTextBufferRow1) {
-				let aTextBufferRow2 = aTextBuffer[iTop2 + y];
-
-				if (!aTextBufferRow2) {
-					aTextBufferRow2 = [];
-					aTextBuffer[iTop2 + y] = aTextBufferRow2;
-				}
-				for (let x = 0; x < iWidth; x += 1) {
-					aTextBufferRow2[iLeft2 + x] = aTextBufferRow1[iLeft + x];
+				for (let x = 0; x < width; x += 1) {
+					textBufferRow2[left2 + x] = textBufferRow1[left + x];
 				}
 			}
 		}
 		this.setNeedTextUpdate();
 	}
 
-	private putCharInTextBuffer(iChar: number, x: number, y: number) {
-		const aTextBuffer = this.aTextBuffer;
+	private copyTextBufferBoxDown(left: number, top: number, width: number, height: number, left2: number, top2: number) {
+		const textBuffer = this.textBuffer;
 
-		if (!aTextBuffer[y]) {
-			aTextBuffer[y] = [];
+		for (let y = height - 1; y >= 0; y -= 1) {
+			const textBufferRow1 = textBuffer[top + y];
+
+			if (textBufferRow1) {
+				let textBufferRow2 = textBuffer[top2 + y];
+
+				if (!textBufferRow2) {
+					textBufferRow2 = [];
+					textBuffer[top2 + y] = textBufferRow2;
+				}
+				for (let x = 0; x < width; x += 1) {
+					textBufferRow2[left2 + x] = textBufferRow1[left + x];
+				}
+			}
 		}
-		this.aTextBuffer[y][x] = iChar;
+		this.setNeedTextUpdate();
+	}
+
+	private putCharInTextBuffer(char: number, x: number, y: number) {
+		const textBuffer = this.textBuffer;
+
+		if (!textBuffer[y]) {
+			textBuffer[y] = [];
+		}
+		this.textBuffer[y][x] = char;
 		this.setNeedTextUpdate();
 	}
 
 	private getCharFromTextBuffer(x: number, y: number) {
-		const aTextBuffer = this.aTextBuffer;
+		const textBuffer = this.textBuffer;
 
-		let iChar: number | undefined;
+		let char: number | undefined;
 
-		if (aTextBuffer[y]) {
-			iChar = this.aTextBuffer[y][x]; // can be undefined, if not set
+		if (textBuffer[y]) {
+			char = this.textBuffer[y][x]; // can be undefined, if not set
 		}
-		return iChar;
+		return char;
 	}
 
-	printChar(iChar: number, x: number, y: number, iPen: number, iPaper: number, bTransparent: boolean): void {
-		const iCharWidth = this.oModeData.iPixelWidth * 8,
-			iCharHeight = this.oModeData.iPixelHeight * 8,
-			iPens = this.oModeData.iPens;
+	printChar(char: number, x: number, y: number, pen: number, paper: number, transparent: boolean): void {
+		const charWidth = this.modeData.pixelWidth * 8,
+			charHeight = this.modeData.pixelHeight * 8,
+			pens = this.modeData.pens;
 
-		this.putCharInTextBuffer(iChar, x, y);
+		this.putCharInTextBuffer(char, x, y);
 
-		if (iChar >= this.aCharset.length) {
-			Utils.console.warn("printChar: Ignoring char with code", iChar);
+		if (char >= this.charset.length) {
+			Utils.console.warn("printChar: Ignoring char with code", char);
 			return;
 		}
 
-		iPen %= iPens;
-		iPaper %= iPens; // also pens
+		pen %= pens;
+		paper %= pens; // also pens
 
-		this.setChar(iChar, x * iCharWidth, y * iCharHeight, iPen, iPaper, bTransparent, 0, false);
+		this.setChar(char, x * charWidth, y * charHeight, pen, paper, transparent, 0, false);
 		this.setNeedUpdate();
 	}
 
-	drawCursor(x: number, y: number, iPen: number, iPaper: number): void {
-		const iCharWidth = this.oModeData.iPixelWidth * 8,
-			iCharHeight = this.oModeData.iPixelHeight * 8,
-			iPens = this.oModeData.iPens;
+	drawCursor(x: number, y: number, pen: number, paper: number): void {
+		const charWidth = this.modeData.pixelWidth * 8,
+			charHeight = this.modeData.pixelHeight * 8,
+			pens = this.modeData.pens;
 
-		iPen %= iPens;
-		iPaper %= iPens; // also pens
+		pen %= pens;
+		paper %= pens; // also pens
 
-		this.invertChar(x * iCharWidth, y * iCharHeight, iPen, iPaper);
+		this.invertChar(x * charWidth, y * charHeight, pen, paper);
 		this.setNeedUpdate();
 	}
 
-	private findMatchingChar(aCharData: CharType) {
-		const aCharset = this.aCharset;
-		let	iChar = -1; // not detected
+	private findMatchingChar(charData: CharType) {
+		const charset = this.charset;
+		let	char = -1; // not detected
 
-		for (let i = 0; i < aCharset.length; i += 1) {
-			const aCharData2 = this.oCustomCharset[i] || aCharset[i];
-			let bMatch = true;
+		for (let i = 0; i < charset.length; i += 1) {
+			const charData2 = this.customCharset[i] || charset[i];
+			let match = true;
 
 			for (let j = 0; j < 8; j += 1) {
-				if (aCharData[j] !== aCharData2[j]) {
-					bMatch = false;
+				if (charData[j] !== charData2[j]) {
+					match = false;
 					break;
 				}
 			}
-			if (bMatch) {
-				iChar = i;
+			if (match) {
+				char = i;
 				break;
 			}
 		}
-		return iChar;
+		return char;
 	}
 
-	readChar(x: number, y: number, iPen: number, iPaper: number): number {
-		const iCharWidth = this.oModeData.iPixelWidth * 8,
-			iCharHeight = this.oModeData.iPixelHeight * 8,
-			iPens = this.oModeData.iPens;
+	readChar(x: number, y: number, pen: number, paper: number): number {
+		const charWidth = this.modeData.pixelWidth * 8,
+			charHeight = this.modeData.pixelHeight * 8,
+			pens = this.modeData.pens;
 
-		iPen %= iPens;
-		iPaper %= iPens; // also pens
+		pen %= pens;
+		paper %= pens; // also pens
 
-		x *= iCharWidth;
-		y *= iCharHeight;
+		x *= charWidth;
+		y *= charHeight;
 
-		let aCharData = this.readCharData(x, y, iPen),
-			iChar = this.findMatchingChar(aCharData);
+		let charData = this.readCharData(x, y, pen),
+			char = this.findMatchingChar(charData);
 
-		if (iChar < 0 || iChar === 32) { // no match? => check inverse with paper, char=32?
-			aCharData = this.readCharData(x, y, iPaper);
-			for (let i = 0; i < aCharData.length; i += 1) {
-				aCharData[i] ^= 0xff; // eslint-disable-line no-bitwise
+		if (char < 0 || char === 32) { // no match? => check inverse with paper, char=32?
+			charData = this.readCharData(x, y, paper);
+			for (let i = 0; i < charData.length; i += 1) {
+				charData[i] ^= 0xff; // eslint-disable-line no-bitwise
 			}
-			let iChar2 = this.findMatchingChar(aCharData);
+			let char2 = this.findMatchingChar(charData);
 
-			if (iChar2 >= 0) {
-				if (iChar2 === 143) { // invers of space?
-					iChar2 = 32; // use space
+			if (char2 >= 0) {
+				if (char2 === 143) { // invers of space?
+					char2 = 32; // use space
 				}
-				iChar = iChar2;
+				char = char2;
 			}
 		}
-		return iChar;
+		return char;
 	}
 
 	// fill: idea from: https://simpledevcode.wordpress.com/2015/12/29/flood-fill-algorithm-using-c-net/
 	private fnIsNotInWindow(x: number, y: number) {
-		return (x < this.xLeft || x > this.xRight || y < (this.iHeight - 1 - this.yTop) || y > (this.iHeight - 1 - this.yBottom));
+		return (x < this.xLeft || x > this.xRight || y < (this.height - 1 - this.yTop) || y > (this.height - 1 - this.yBottom));
 	}
 
-	fill(iFillPen: number): void {
-		const iGPen = this.iGPen,
-			iPixelWidth = this.oModeData.iPixelWidth,
-			iPixelHeight = this.oModeData.iPixelHeight,
-			aPixels: ({x: number, y: number})[] = [],
+	fill(fillPen: number): void {
+		const gPen = this.gPen,
+			pixelWidth = this.modeData.pixelWidth,
+			pixelHeight = this.modeData.pixelHeight,
+			pixels: ({x: number, y: number})[] = [],
 			fnIsStopPen = function (p: number) {
-				return p === iFillPen || p === iGPen;
+				return p === fillPen || p === gPen;
 			};
 		let xPos = this.xPos,
 			yPos = this.yPos;
 
-		iFillPen %= this.oModeData.iPens; // limit pens
+		fillPen %= this.modeData.pens; // limit pens
 
 		// apply origin
 		xPos += this.xOrig;
-		yPos = this.iHeight - 1 - (yPos + this.yOrig);
+		yPos = this.height - 1 - (yPos + this.yOrig);
 
 		if (this.fnIsNotInWindow(xPos, yPos)) {
 			return;
 		}
 
-		aPixels.push({
+		pixels.push({
 			x: xPos,
 			y: yPos
 		});
 
-		while (aPixels.length) {
-			const oPixel = aPixels.pop() as {x: number, y: number};
+		while (pixels.length) {
+			const pixel = pixels.pop() as {x: number, y: number};
 
-			let y1 = oPixel.y,
-				p1 = this.testSubPixel(oPixel.x, y1);
+			let y1 = pixel.y,
+				p1 = this.testSubPixel(pixel.x, y1);
 
-			while (y1 >= (this.iHeight - 1 - this.yTop) && !fnIsStopPen(p1)) {
-				y1 -= iPixelHeight;
-				p1 = this.testSubPixel(oPixel.x, y1);
+			while (y1 >= (this.height - 1 - this.yTop) && !fnIsStopPen(p1)) {
+				y1 -= pixelHeight;
+				p1 = this.testSubPixel(pixel.x, y1);
 			}
-			y1 += iPixelHeight;
+			y1 += pixelHeight;
 
-			let bSpanLeft = false,
-				bSpanRight = false;
+			let spanLeft = false,
+				spanRight = false;
 
-			p1 = this.testSubPixel(oPixel.x, y1);
-			while (y1 <= (this.iHeight - 1 - this.yBottom) && !fnIsStopPen(p1)) {
-				this.setSubPixels(oPixel.x, y1, iFillPen, 0);
+			p1 = this.testSubPixel(pixel.x, y1);
+			while (y1 <= (this.height - 1 - this.yBottom) && !fnIsStopPen(p1)) {
+				this.setSubPixels(pixel.x, y1, fillPen, 0);
 
-				let x1 = oPixel.x - iPixelWidth;
+				let x1 = pixel.x - pixelWidth;
 				const p2 = this.testSubPixel(x1, y1);
 
-				if (!bSpanLeft && x1 >= this.xLeft && !fnIsStopPen(p2)) {
-					aPixels.push({
+				if (!spanLeft && x1 >= this.xLeft && !fnIsStopPen(p2)) {
+					pixels.push({
 						x: x1,
 						y: y1
 					});
-					bSpanLeft = true;
-				} else if (bSpanLeft && ((x1 < this.xLeft) || fnIsStopPen(p2))) {
-					bSpanLeft = false;
+					spanLeft = true;
+				} else if (spanLeft && ((x1 < this.xLeft) || fnIsStopPen(p2))) {
+					spanLeft = false;
 				}
 
-				x1 = oPixel.x + iPixelWidth;
+				x1 = pixel.x + pixelWidth;
 				const p3 = this.testSubPixel(x1, y1);
 
-				if (!bSpanRight && x1 <= this.xRight && !fnIsStopPen(p3)) {
-					aPixels.push({
+				if (!spanRight && x1 <= this.xRight && !fnIsStopPen(p3)) {
+					pixels.push({
 						x: x1,
 						y: y1
 					});
-					bSpanRight = true;
-				} else if (bSpanRight && ((x1 > this.xRight) || fnIsStopPen(p3))) {
-					bSpanRight = false;
+					spanRight = true;
+				} else if (spanRight && ((x1 > this.xRight) || fnIsStopPen(p3))) {
+					spanRight = false;
 				}
-				y1 += iPixelHeight;
-				p1 = this.testSubPixel(oPixel.x, y1);
+				y1 += pixelHeight;
+				p1 = this.testSubPixel(pixel.x, y1);
 			}
 		}
 		this.setNeedUpdate();
@@ -1301,9 +1301,9 @@ export class Canvas {
 	}
 
 	setOrigin(xOrig: number, yOrig: number): void {
-		const iPixelWidth = this.oModeData.iPixelWidth;
+		const pixelWidth = this.modeData.pixelWidth;
 
-		xOrig &= ~(iPixelWidth - 1); // eslint-disable-line no-bitwise
+		xOrig &= ~(pixelWidth - 1); // eslint-disable-line no-bitwise
 
 		this.xOrig = xOrig; // must be integer
 		this.yOrig = yOrig;
@@ -1311,13 +1311,13 @@ export class Canvas {
 	}
 
 	setGWindow(xLeft: number, xRight: number, yTop: number, yBottom: number): void {
-		const iPixelWidth = 8, // force byte boundaries: always 8 x/byte
-			iPixelHeight = this.oModeData.iPixelHeight; // usually 2, anly for mode 3 we have 1
+		const pixelWidth = 8, // force byte boundaries: always 8 x/byte
+			pixelHeight = this.modeData.pixelHeight; // usually 2, anly for mode 3 we have 1
 
-		xLeft = Canvas.fnPutInRange(xLeft, 0, this.iWidth - 1);
-		xRight = Canvas.fnPutInRange(xRight, 0, this.iWidth - 1);
-		yTop = Canvas.fnPutInRange(yTop, 0, this.iHeight - 1);
-		yBottom = Canvas.fnPutInRange(yBottom, 0, this.iHeight - 1);
+		xLeft = Canvas.fnPutInRange(xLeft, 0, this.width - 1);
+		xRight = Canvas.fnPutInRange(xRight, 0, this.width - 1);
+		yTop = Canvas.fnPutInRange(yTop, 0, this.height - 1);
+		yBottom = Canvas.fnPutInRange(yBottom, 0, this.height - 1);
 
 		// exchange coordinates, if needed (left>right or top<bottom)
 		if (xRight < xLeft) {
@@ -1337,11 +1337,11 @@ export class Canvas {
 		// ORIGIN 0,0,13,563,399,0 gets origin 0,0,8,567,399 mod2+1,mod2
 
 		/* eslint-disable no-bitwise */
-		xLeft &= ~(iPixelWidth - 1);
-		xRight |= (iPixelWidth - 1);
+		xLeft &= ~(pixelWidth - 1);
+		xRight |= (pixelWidth - 1);
 
-		yTop |= (iPixelHeight - 1); // we know: top is larger than bottom
-		yBottom &= ~(iPixelHeight - 1);
+		yTop |= (pixelHeight - 1); // we know: top is larger than bottom
+		yBottom &= ~(pixelHeight - 1);
 		/* eslint-enable no-bitwise */
 
 		this.xLeft = xLeft;
@@ -1350,31 +1350,31 @@ export class Canvas {
 		this.yBottom = yBottom;
 	}
 
-	setGColMode(iGColMode: number): void {
-		if (iGColMode !== this.iGColMode) {
-			this.iGColMode = iGColMode;
+	setGColMode(gColMode: number): void {
+		if (gColMode !== this.gColMode) {
+			this.gColMode = gColMode;
 		}
 	}
 
-	clearTextWindow(iLeft: number, iRight: number, iTop: number, iBottom: number, iPaper: number): void { // clear current text window
-		const iWidth = iRight + 1 - iLeft,
-			iHeight = iBottom + 1 - iTop,
-			iPens = this.oModeData.iPens;
+	clearTextWindow(left: number, right: number, top: number, bottom: number, paper: number): void { // clear current text window
+		const width = right + 1 - left,
+			height = bottom + 1 - top,
+			pens = this.modeData.pens;
 
-		iPaper %= iPens; // limit papers
-		this.fillTextBox(iLeft, iTop, iWidth, iHeight, iPaper);
+		paper %= pens; // limit papers
+		this.fillTextBox(left, top, width, height, paper);
 	}
 
 	clearGraphicsWindow(): void { // clear graphics window with graphics paper
-		this.fillMyRect(this.xLeft, this.iHeight - 1 - this.yTop, this.xRight + 1 - this.xLeft, this.yTop + 1 - this.yBottom, this.iGPaper); // +1 or not?
+		this.fillMyRect(this.xLeft, this.height - 1 - this.yTop, this.xRight + 1 - this.xLeft, this.yTop + 1 - this.yBottom, this.gPaper); // +1 or not?
 		this.move(0, 0);
 		this.setNeedUpdate();
 	}
 
 	clearFullWindow(): void { // clear full window with paper 0 (SCR MODE CLEAR)
-		const iPaper = 0;
+		const paper = 0;
 
-		this.fillMyRect(0, 0, this.iWidth, this.iHeight, iPaper);
+		this.fillMyRect(0, 0, this.width, this.height, paper);
 
 		this.resetTextBuffer();
 		this.setNeedTextUpdate();
@@ -1382,73 +1382,73 @@ export class Canvas {
 		this.setNeedUpdate();
 	}
 
-	windowScrollUp(iLeft: number, iRight: number, iTop: number, iBottom: number, iPen: number): void {
-		const iCharWidth = this.oModeData.iPixelWidth * 8,
-			iCharHeight = this.oModeData.iPixelHeight * 8,
-			iWidth = iRight + 1 - iLeft,
-			iHeight = iBottom + 1 - iTop;
+	windowScrollUp(left: number, right: number, top: number, bottom: number, pen: number): void {
+		const charWidth = this.modeData.pixelWidth * 8,
+			charHeight = this.modeData.pixelHeight * 8,
+			width = right + 1 - left,
+			height = bottom + 1 - top;
 
-		if (iHeight > 1) { // scroll part
-			this.moveMyRectUp(iLeft * iCharWidth, (iTop + 1) * iCharHeight, iWidth * iCharWidth, (iHeight - 1) * iCharHeight, iLeft * iCharWidth, iTop * iCharHeight);
+		if (height > 1) { // scroll part
+			this.moveMyRectUp(left * charWidth, (top + 1) * charHeight, width * charWidth, (height - 1) * charHeight, left * charWidth, top * charHeight);
 
 			// adapt also text buffer
-			this.copyTextBufferBoxUp(iLeft, iTop + 1, iWidth, iHeight - 1, iLeft, iTop);
+			this.copyTextBufferBoxUp(left, top + 1, width, height - 1, left, top);
 		}
-		this.fillTextBox(iLeft, iBottom, iWidth, 1, iPen);
+		this.fillTextBox(left, bottom, width, 1, pen);
 		this.setNeedUpdate();
 	}
 
-	windowScrollDown(iLeft: number, iRight: number, iTop: number, iBottom: number, iPen: number): void {
-		const iCharWidth = this.oModeData.iPixelWidth * 8,
-			iCharHeight = this.oModeData.iPixelHeight * 8,
-			iWidth = iRight + 1 - iLeft,
-			iHeight = iBottom + 1 - iTop;
+	windowScrollDown(left: number, right: number, top: number, bottom: number, pen: number): void {
+		const charWidth = this.modeData.pixelWidth * 8,
+			charHeight = this.modeData.pixelHeight * 8,
+			width = right + 1 - left,
+			height = bottom + 1 - top;
 
-		if (iHeight > 1) { // scroll part
-			this.moveMyRectDown(iLeft * iCharWidth, iTop * iCharHeight, iWidth * iCharWidth, (iHeight - 1) * iCharHeight, iLeft * iCharWidth, (iTop + 1) * iCharHeight);
+		if (height > 1) { // scroll part
+			this.moveMyRectDown(left * charWidth, top * charHeight, width * charWidth, (height - 1) * charHeight, left * charWidth, (top + 1) * charHeight);
 
 			// adapt also text buffer
-			this.copyTextBufferBoxDown(iLeft, iTop, iWidth, iHeight - 1, iLeft, iTop + 1);
+			this.copyTextBufferBoxDown(left, top, width, height - 1, left, top + 1);
 		}
-		this.fillTextBox(iLeft, iTop, iWidth, 1, iPen);
+		this.fillTextBox(left, top, width, 1, pen);
 		this.setNeedUpdate();
 	}
 
-	setSpeedInk(iTime1: number, iTime2: number): void { // default: 10,10
-		this.aSpeedInk[0] = iTime1;
-		this.aSpeedInk[1] = iTime2;
+	setSpeedInk(time1: number, time2: number): void { // default: 10,10
+		this.speedInk[0] = time1;
+		this.speedInk[1] = time2;
 	}
 
-	setMask(iMask: number): void { // set line mask
-		this.iMask = iMask;
-		this.iMaskBit = 128;
+	setMask(mask: number): void { // set line mask
+		this.mask = mask;
+		this.maskBit = 128;
 	}
 
-	setMaskFirst(iMaskFirst: number): void { // set first dot for line mask
-		this.iMaskFirst = iMaskFirst;
+	setMaskFirst(maskFirst: number): void { // set first dot for line mask
+		this.maskFirst = maskFirst;
 	}
 
 	getMode(): number {
-		return this.iMode;
+		return this.mode;
 	}
 
-	changeMode(iMode: number): void {
-		const oModeData = Canvas.aModeData[iMode];
+	changeMode(mode: number): void {
+		const modeData = Canvas.modeData[mode];
 
-		this.iMode = iMode;
-		this.oModeData = oModeData;
+		this.mode = mode;
+		this.modeData = modeData;
 	}
 
-	setMode(iMode: number): void { // set mode without clear screen
+	setMode(mode: number): void { // set mode without clear screen
 		this.setScreenOffset(0);
-		this.changeMode(iMode);
+		this.changeMode(mode);
 		this.setOrigin(0, 0);
-		this.setGWindow(0, this.iWidth - 1, this.iHeight - 1, 0);
+		this.setGWindow(0, this.width - 1, this.height - 1, 0);
 		this.setGColMode(0);
 		this.setMask(255);
 		this.setMaskFirst(1);
-		this.setGPen(this.iGPen); // keep, but maybe different for other mode
-		this.setGPaper(this.iGPaper); // keep, maybe different for other mode
+		this.setGPen(this.gPen); // keep, but maybe different for other mode
+		this.setGPaper(this.gPaper); // keep, maybe different for other mode
 		this.setGTransparentMode(false);
 	}
 

@@ -4,40 +4,40 @@ define(["require", "exports", "../Utils"], function (require, exports, Utils_1) 
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.TestHelper = void 0;
-    //QUnit.dump.maxDepth = 10;
+    // QUnit.dump.maxDepth = 10;
     var TestHelper = /** @class */ (function () {
         function TestHelper() {
         }
         TestHelper.init = function () {
-            var oConfig = TestHelper.oConfig;
+            var config = TestHelper.config;
             // https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/node/process.d.ts
             if (typeof process !== "undefined") { // nodeJs
-                TestHelper.fnParseArgs(process.argv.slice(2), oConfig);
+                TestHelper.fnParseArgs(process.argv.slice(2), config);
             }
             else { // browser
-                TestHelper.fnParseUri(window.location.search.substring(1), oConfig);
+                TestHelper.fnParseUri(window.location.search.substring(1), config);
             }
-            if (oConfig.debug) {
-                Utils_1.Utils.debug = oConfig.debug;
-                Utils_1.Utils.console.log("testParseExamples: Debug level:", oConfig.debug);
+            if (config.debug) {
+                Utils_1.Utils.debug = config.debug;
+                Utils_1.Utils.console.log("testParseExamples: Debug level:", config.debug);
             }
         };
         // https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/node/process.d.ts
         // can be used for nodeJS
-        TestHelper.fnParseArgs = function (aArgs, oConfig) {
-            for (var i = 0; i < aArgs.length; i += 1) {
-                var sNameValue = aArgs[i], aNameValue = sNameValue.split("=", 2), sName = aNameValue[0];
-                if (oConfig.hasOwnProperty(sName)) {
-                    var sValue = aNameValue[1];
-                    if (sValue !== undefined && oConfig.hasOwnProperty(sName)) {
-                        switch (typeof oConfig[sName]) {
+        TestHelper.fnParseArgs = function (args, config) {
+            for (var i = 0; i < args.length; i += 1) {
+                var nameValue = args[i], nameValueList = nameValue.split("=", 2), name_1 = nameValueList[0];
+                if (config.hasOwnProperty(name_1)) {
+                    var value = nameValueList[1];
+                    if (value !== undefined && config.hasOwnProperty(name_1)) {
+                        switch (typeof config[name_1]) {
                             case "string":
                                 break;
                             case "boolean":
-                                sValue = (sValue === "true");
+                                value = (value === "true");
                                 break;
                             case "number":
-                                sValue = Number(sValue);
+                                value = Number(value);
                                 break;
                             case "object":
                                 break;
@@ -45,55 +45,55 @@ define(["require", "exports", "../Utils"], function (require, exports, Utils_1) 
                                 break;
                         }
                     }
-                    oConfig[sName] = sValue;
+                    config[name_1] = value;
                 }
             }
-            return oConfig;
+            return config;
         };
-        TestHelper.fnParseUri = function (sUrlQuery, oConfig) {
+        TestHelper.fnParseUri = function (urlQuery, config) {
             var rPlus = /\+/g, // Regex for replacing addition symbol with a space
-            fnDecode = function (s) { return decodeURIComponent(s.replace(rPlus, " ")); }, rSearch = /([^&=]+)=?([^&]*)/g, aArgs = [];
-            var aMatch;
-            while ((aMatch = rSearch.exec(sUrlQuery)) !== null) {
-                var sName = fnDecode(aMatch[1]), sValue = fnDecode(aMatch[2]);
-                if (sValue !== null && oConfig.hasOwnProperty(sName)) {
-                    aArgs.push(sName + "=" + sValue);
+            fnDecode = function (s) { return decodeURIComponent(s.replace(rPlus, " ")); }, rSearch = /([^&=]+)=?([^&]*)/g, args = [];
+            var match;
+            while ((match = rSearch.exec(urlQuery)) !== null) {
+                var name_2 = fnDecode(match[1]), value = fnDecode(match[2]);
+                if (value !== null && config.hasOwnProperty(name_2)) {
+                    args.push(name_2 + "=" + value);
                 }
             }
-            TestHelper.fnParseArgs(aArgs, oConfig);
+            TestHelper.fnParseArgs(args, config);
         };
-        TestHelper.generateTests = function (oAllTests, runTestsFor) {
-            for (var sCategory in oAllTests) {
-                if (oAllTests.hasOwnProperty(sCategory)) {
-                    (function (sCat) {
-                        QUnit.test(sCat, function (assert) {
-                            runTestsFor(assert, sCat, oAllTests[sCat]);
+        TestHelper.generateTests = function (allTests, runTestsFor) {
+            for (var category in allTests) {
+                if (allTests.hasOwnProperty(category)) {
+                    (function (cat) {
+                        QUnit.test(cat, function (assert) {
+                            runTestsFor(assert, cat, allTests[cat]);
                         });
-                    }(sCategory));
+                    }(category));
                 }
             }
         };
-        TestHelper.generateAllResults = function (oAllTests, runTestsFor) {
-            var sResult = "";
-            for (var sCategory in oAllTests) {
-                if (oAllTests.hasOwnProperty(sCategory)) {
-                    var aResults = [], bContainsSpace = sCategory.indexOf(" ") >= 0, sMarker = bContainsSpace ? '"' : "";
-                    sResult += sMarker + sCategory + sMarker + ": {\n";
-                    runTestsFor(undefined, sCategory, oAllTests[sCategory], aResults);
-                    sResult += aResults.join(",\n");
-                    sResult += "\n},\n";
+        TestHelper.generateAllResults = function (allTests, runTestsFor) {
+            var result = "";
+            for (var category in allTests) {
+                if (allTests.hasOwnProperty(category)) {
+                    var results = [], containsSpace = category.indexOf(" ") >= 0, marker = containsSpace ? '"' : "";
+                    result += marker + category + marker + ": {\n";
+                    runTestsFor(undefined, category, allTests[category], results);
+                    result += results.join(",\n");
+                    result += "\n},\n";
                 }
             }
-            Utils_1.Utils.console.log(sResult);
-            return sResult;
+            Utils_1.Utils.console.log(result);
+            return result;
         };
-        TestHelper.generateAndRunAllTests = function (oAllTests, runTestsFor) {
-            TestHelper.generateTests(oAllTests, runTestsFor);
-            if (TestHelper.oConfig.generateAll) {
-                TestHelper.generateAllResults(oAllTests, runTestsFor);
+        TestHelper.generateAndRunAllTests = function (allTests, runTestsFor) {
+            TestHelper.generateTests(allTests, runTestsFor);
+            if (TestHelper.config.generateAll) {
+                TestHelper.generateAllResults(allTests, runTestsFor);
             }
         };
-        TestHelper.oConfig = {
+        TestHelper.config = {
             debug: 0,
             generateAll: false
         };

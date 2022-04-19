@@ -1,11 +1,11 @@
 export interface SoundData {
-    iState: number;
-    iPeriod: number;
-    iDuration: number;
-    iVolume: number;
-    iVolEnv: number;
-    iToneEnv: number;
-    iNoise: number;
+    state: number;
+    period: number;
+    duration: number;
+    volume: number;
+    volEnv: number;
+    toneEnv: number;
+    noise: number;
 }
 export interface ToneEnvData1 {
     steps: number;
@@ -29,17 +29,17 @@ export interface VolEnvData2 {
 }
 export declare type VolEnvData = VolEnvData1 | VolEnvData2;
 export declare class Sound {
-    private bIsSoundOn;
-    private bIsActivatedByUser;
+    private isSoundOn;
+    private isActivatedByUserFlag;
     private context?;
-    private oMergerNode?;
-    private aGainNodes;
-    private aOscillators;
-    private aQueues;
+    private mergerNode?;
+    private gainNodes;
+    private oscillators;
+    private queues;
     private fScheduleAheadTime;
-    private aVolEnv;
-    private aToneEnv;
-    private aDebugLog?;
+    private volEnv;
+    private toneEnv;
+    private debugLogList?;
     constructor();
     reset(): void;
     private stopOscillator;
@@ -50,13 +50,13 @@ export declare class Sound {
     private applyVolEnv;
     private applyToneEnv;
     private scheduleNote;
-    testCanQueue(iState: number): boolean;
-    sound(oSoundData: SoundData): void;
-    setVolEnv(iVolEnv: number, aVolEnvData: VolEnvData[]): void;
-    setToneEnv(iToneEnv: number, aToneEnvData: ToneEnvData[]): void;
+    testCanQueue(state: number): boolean;
+    sound(soundData: SoundData): void;
+    setVolEnv(volEnv: number, volEnvData: VolEnvData[]): void;
+    setToneEnv(toneEnv: number, toneEnvData: ToneEnvData[]): void;
     private updateQueueStatus;
     scheduler(): void;
-    release(iReleaseMask: number): void;
+    release(releaseMask: number): void;
     sq(n: number): number;
     setActivatedByUser(): void;
     isActivatedByUser(): boolean;
