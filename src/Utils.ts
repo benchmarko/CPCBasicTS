@@ -19,31 +19,31 @@ export class Utils { // eslint-disable-line vars-on-top
 		return typeof window !== "undefined" ? window.console : globalThis.console; // browser or node.js
 	}());
 
-	private static fnLoadScriptOrStyle(script: HTMLScriptElement | HTMLLinkElement, fnSuccess: (sUrl: string, sKey: string) => void, fnError: (sUrl: string, sKey: string) => void) {
+	private static fnLoadScriptOrStyle(script: HTMLScriptElement | HTMLLinkElement, fnSuccess: (url: string, key: string) => void, fnError: (url: string, key: string) => void) {
 		// inspired by https://github.com/requirejs/requirejs/blob/master/require.js
-		let iIEtimeoutCount = 3;
+		let ieTimeoutCount = 3; // IE timeout count
 		const onScriptLoad = function (event: Event) {
-				const sType = event.type, // "load" or "error"
+				const type = event.type, // "load" or "error"
 					node = (event.currentTarget || event.srcElement) as HTMLScriptElement | HTMLLinkElement,
-					sFullUrl = (node as HTMLScriptElement).src || (node as HTMLLinkElement).href, // src for script, href for link
-					sKey = node.getAttribute("data-key") as string;
+					fullUrl = (node as HTMLScriptElement).src || (node as HTMLLinkElement).href, // src for script, href for link
+					key = node.getAttribute("data-key") as string;
 
 				if (Utils.debug > 1) {
-					Utils.console.debug("onScriptLoad:", sType, sFullUrl, sKey);
+					Utils.console.debug("onScriptLoad:", type, fullUrl, key);
 				}
 				node.removeEventListener("load", onScriptLoad, false);
 				node.removeEventListener("error", onScriptLoad, false);
 
-				if (sType === "load") {
-					fnSuccess(sFullUrl, sKey);
+				if (type === "load") {
+					fnSuccess(fullUrl, key);
 				} else {
-					fnError(sFullUrl, sKey);
+					fnError(fullUrl, key);
 				}
 			},
 			onScriptReadyStateChange = function (event?: Event) { // for old IE8
 				const node = (event ? (event.currentTarget || event.srcElement) : script) as HTMLScriptElement | HTMLLinkElement,
-					sFullUrl = (node as HTMLScriptElement).src || (node as HTMLLinkElement).href, // src for script, href for link
-					sKey = node.getAttribute("data-key") as string,
+					fullUrl = (node as HTMLScriptElement).src || (node as HTMLLinkElement).href, // src for script, href for link
+					key = node.getAttribute("data-key") as string,
 					node2 = node as any;
 
 				if (node2.detachEvent) {
@@ -51,30 +51,30 @@ export class Utils { // eslint-disable-line vars-on-top
 				}
 
 				if (Utils.debug > 1) {
-					Utils.console.debug("onScriptReadyStateChange: " + sFullUrl);
+					Utils.console.debug("onScriptReadyStateChange: " + fullUrl);
 				}
 				// check also: https://stackoverflow.com/questions/1929742/can-script-readystate-be-trusted-to-detect-the-end-of-dynamic-script-loading
 				if (node2.readyState !== "loaded" && node2.readyState !== "complete") {
-					if (node2.readyState === "loading" && iIEtimeoutCount) {
-						iIEtimeoutCount -= 1;
-						const iTimeout = 200; // some delay
+					if (node2.readyState === "loading" && ieTimeoutCount) {
+						ieTimeoutCount -= 1;
+						const timeout = 200; // some delay
 
-						Utils.console.error("onScriptReadyStateChange: Still loading: " + sFullUrl + " Waiting " + iTimeout + "ms (count=" + iIEtimeoutCount + ")");
+						Utils.console.error("onScriptReadyStateChange: Still loading: " + fullUrl + " Waiting " + timeout + "ms (count=" + ieTimeoutCount + ")");
 						setTimeout(function () {
 							onScriptReadyStateChange(undefined); // check again
-						}, iTimeout);
+						}, timeout);
 					} else {
-						// iIEtimeoutCount = 3;
-						Utils.console.error("onScriptReadyStateChange: Cannot load file " + sFullUrl + " readystate=" + node2.readyState);
-						fnError(sFullUrl, sKey);
+						// ieTimeoutCount = 3;
+						Utils.console.error("onScriptReadyStateChange: Cannot load file " + fullUrl + " readystate=" + node2.readyState);
+						fnError(fullUrl, key);
 					}
 				} else {
-					fnSuccess(sFullUrl, sKey);
+					fnSuccess(fullUrl, key);
 				}
 			};
 
 		if ((script as any).readyState) { // old IE8
-			iIEtimeoutCount = 3;
+			ieTimeoutCount = 3;
 			(script as any).attachEvent("onreadystatechange", onScriptReadyStateChange);
 		} else { // Others
 			script.addEventListener("load", onScriptLoad, false);
@@ -83,22 +83,22 @@ export class Utils { // eslint-disable-line vars-on-top
 		document.getElementsByTagName("head")[0].appendChild(script);
 	}
 
-	static loadScript(sUrl: string, fnSuccess: (sUrl2: string, sKey: string) => void, fnError: (sUrl2: string, sKey: string) => void, sKey: string): void {
+	static loadScript(url: string, fnSuccess: (url2: string, key: string) => void, fnError: (url2: string, key: string) => void, key: string): void {
 		const script = document.createElement("script");
 
 		script.type = "text/javascript";
 		script.charset = "utf-8";
 		script.async = true;
-		script.src = sUrl;
+		script.src = url;
 
-		script.setAttribute("data-key", sKey);
+		script.setAttribute("data-key", key);
 
 		this.fnLoadScriptOrStyle(script, fnSuccess, fnError);
 	}
 
 	static hexEscape(str: string): string { // as hex
-		return str.replace(/[\x00-\x1f]/g, function (sChar: string) { // eslint-disable-line no-control-regex
-			return "\\x" + ("00" + sChar.charCodeAt(0).toString(16)).slice(-2);
+		return str.replace(/[\x00-\x1f]/g, function (char: string) { // eslint-disable-line no-control-regex
+			return "\\x" + ("00" + char.charCodeAt(0).toString(16)).slice(-2);
 		});
 	}
 
@@ -119,10 +119,10 @@ export class Utils { // eslint-disable-line vars-on-top
 
 	static numberWithCommas(x: number | string): string {
 		// https://stackoverflow.com/questions/2901102/how-to-print-a-number-with-commas-as-thousands-separators-in-javascript
-		const aParts = String(x).split(".");
+		const parts = String(x).split(".");
 
-		aParts[0] = aParts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-		return aParts.join(".");
+		parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+		return parts.join(".");
 	}
 
 	static toRadians(deg: number): number {
@@ -133,21 +133,21 @@ export class Utils { // eslint-disable-line vars-on-top
 		return rad * 180 / Math.PI;
 	}
 
-	private static testIsSupported(sTestExpression: string) { // does the browser support something?
+	private static testIsSupported(testExpression: string) { // does the browser support something?
 		try {
-			Function(sTestExpression); // eslint-disable-line no-new-func
+			Function(testExpression); // eslint-disable-line no-new-func
 		} catch (e) {
 			return false;
 		}
 		return true;
 	}
 
-	static bSupportsBinaryLiterals = Utils.testIsSupported("0b01"); // does the browser support binary literals?
+	static supportsBinaryLiterals = Utils.testIsSupported("0b01"); // does the browser support binary literals?
 
-	static bSupportReservedNames = Utils.testIsSupported("({}).return()"); // does the browser support reserved names (delete, new, return) in dot notation? (not old IE8; "goto" is ok)
+	static supportReservedNames = Utils.testIsSupported("({}).return()"); // does the browser support reserved names (delete, new, return) in dot notation? (not old IE8; "goto" is ok)
 
-	static stringTrimEnd(sStr: string): string {
-		return sStr.replace(/[\s\uFEFF\xA0]+$/, "");
+	static stringTrimEnd(str: string): string {
+		return str.replace(/[\s\uFEFF\xA0]+$/, "");
 	}
 
 	static localStorage = (function () {
@@ -175,33 +175,33 @@ export class Utils { // eslint-disable-line vars-on-top
 		return (e as CustomError).pos !== undefined;
 	}
 
-	static composeError(name: string, oErrorObject: Error, message: string, value: string, pos: number, len?: number, line?: string | number, hidden?: boolean): CustomError {
-		const oCustomError = oErrorObject as CustomError;
+	static composeError(name: string, errorObject: Error, message: string, value: string, pos: number, len?: number, line?: string | number, hidden?: boolean): CustomError {
+		const customError = errorObject as CustomError;
 
-		oCustomError.name = name;
-		oCustomError.message = message;
-		oCustomError.value = value;
-		oCustomError.pos = pos;
+		customError.name = name;
+		customError.message = message;
+		customError.value = value;
+		customError.pos = pos;
 		if (len !== undefined) {
-			oCustomError.len = len;
+			customError.len = len;
 		}
 		if (line !== undefined) {
-			oCustomError.line = line;
+			customError.line = line;
 		}
 		if (hidden !== undefined) {
-			oCustomError.hidden = hidden;
+			customError.hidden = hidden;
 		}
 
-		let iLen = oCustomError.len;
+		let errorLen = customError.len;
 
-		if (iLen === undefined && oCustomError.value !== undefined) {
-			iLen = String(oCustomError.value).length;
+		if (errorLen === undefined && customError.value !== undefined) {
+			errorLen = String(customError.value).length;
 		}
 
-		const iEndPos = oCustomError.pos + (iLen || 0);
+		const endPos = customError.pos + (errorLen || 0);
 
-		oCustomError.shortMessage = oCustomError.message + (oCustomError.line !== undefined ? " in " + oCustomError.line : " at pos " + oCustomError.pos + "-" + iEndPos) + ": " + oCustomError.value;
-		oCustomError.message += (oCustomError.line !== undefined ? " in " + oCustomError.line : "") + " at pos " + oCustomError.pos + "-" + iEndPos + ": " + oCustomError.value;
-		return oCustomError;
+		customError.shortMessage = customError.message + (customError.line !== undefined ? " in " + customError.line : " at pos " + customError.pos + "-" + endPos) + ": " + customError.value;
+		customError.message += (customError.line !== undefined ? " in " + customError.line : "") + " at pos " + customError.pos + "-" + endPos + ": " + customError.value;
+		return customError;
 	}
 }

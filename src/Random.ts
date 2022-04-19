@@ -9,12 +9,12 @@
 export class Random {
 	private x!: number;
 
-	constructor(nSeed?: number) {
-		this.init(nSeed);
+	constructor(seed?: number) {
+		this.init(seed);
 	}
 
-	init(nSeed?: number): void {
-		this.x = nSeed || 1; // do not use 0
+	init(seed?: number): void {
+		this.x = seed || 1; // do not use 0
 	}
 
 	random(): number {

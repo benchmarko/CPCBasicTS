@@ -7,7 +7,7 @@ import { CodeGeneratorToken } from "../CodeGeneratorToken";
 import { TestHelper, TestsType, AllTestsType } from "./TestHelper";
 
 QUnit.module("CodeGeneratorToken: Tests", function (/* hooks */) {
-	const mAllTests: AllTestsType = {
+	const allTests: AllTestsType = {
 		numbers: {
 			"a=1": "0D,00,00,E1,EF,0F",
 			"a=1.2": "0D,00,00,E1,EF,1F,9A,99,99,19,81",
@@ -638,46 +638,46 @@ QUnit.module("CodeGeneratorToken: Tests", function (/* hooks */) {
 	// "data \" \",//": "8C,20,22,20,22,2C,2F,2F",
 	// "a=1 :'comment": "0D,00,00,E1,EF,0F,01,01,C0,63,6F,6D,6D,65,6E,74",
 
-	function fnBin2Hex(sBin: string) {
-		return sBin.split("").map(function (s) {
+	function fnBin2Hex(bin: string) {
+		return bin.split("").map(function (s) {
 			return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0");
 		}).join(",");
 	}
 
-	function runTestsFor(assert: Assert | undefined, _sCategory: string, oTests: TestsType, aResults?: string[]) {
-		const oCodeGeneratorToken = new CodeGeneratorToken({
-			bQuiet: true,
+	function runTestsFor(assert: Assert | undefined, _sCategory: string, tests: TestsType, results?: string[]) {
+		const codeGeneratorToken = new CodeGeneratorToken({
+			quiet: true,
 			lexer: new BasicLexer({
-				bQuiet: true,
-				bKeepWhiteSpace: true
+				quiet: true,
+				keepWhiteSpace: true
 			}),
 			parser: new BasicParser({
-				bQuiet: true,
-				bKeepTokens: true,
-				bKeepBrackets: true,
-				bKeepColons: true,
-				bKeepDataComma: true
+				quiet: true,
+				keepTokens: true,
+				keepBrackets: true,
+				keepColons: true,
+				keepDataComma: true
 			})
 		});
 
-		for (const sKey in oTests) {
-			if (oTests.hasOwnProperty(sKey)) {
-				const sExpected = oTests[sKey],
-					oOutput = oCodeGeneratorToken.generate(sKey, true),
-					sResult = oOutput.error ? String(oOutput.error) : fnBin2Hex(oOutput.text);
+		for (const key in tests) {
+			if (tests.hasOwnProperty(key)) {
+				const expected = tests[key],
+					output = codeGeneratorToken.generate(key, true),
+					result = output.error ? String(output.error) : fnBin2Hex(output.text);
 
-				if (aResults) {
-					aResults.push('"' + sKey.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '": "' + sResult.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '"');
+				if (results) {
+					results.push('"' + key.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '": "' + result.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '"');
 				}
 
 				if (assert) {
-					assert.strictEqual(sResult, sExpected, sKey);
+					assert.strictEqual(result, expected, key);
 				}
 			}
 		}
 	}
 
-	TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
+	TestHelper.generateAndRunAllTests(allTests, runTestsFor);
 });
 
 // end

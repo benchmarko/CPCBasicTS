@@ -9,7 +9,7 @@ QUnit.dump.maxDepth = 10;
 
 QUnit.module("ZipFile: Tests", function () {
 	// examples store.zip and deflate.zip taken from https://github.com/bower/decompress-zip/tree/master/test/assets/file-mode-pack
-	const mAllTests: AllTestsType = { // eslint-disable-line vars-on-top
+	const allTests: AllTestsType = { // eslint-disable-line vars-on-top
 		store: {
 			"CPCBasic;B;0;404;;base64,UEsDBAoAAAAAAGyFJkYAAAAAAAAAAAAAAAAFAAAAZGlyMS9QSwMECgAAAAAAbIUmRgAAAAAAAAAAAAAAAAUAAABkaXIyL1BLAwQUAAgAAABshSZGAAAAAAAAAAAAAAAABQAAAGZpbGUxYWJjUEsHCMJBJDUDAAAAAwAAAFBLAwQUAAgAAABshSZGAAAAAAAAAAAAAAAABQAAAGZpbGUyeHl6UEsHCGe6jusDAAAAAwAAAFBLAQItAwoAAAAAAGyFJkYAAAAAAAAAAAAAAAAFAAAAAAAAAAAAEADtAQAAAABkaXIxL1BLAQItAwoAAAAAAGyFJkYAAAAAAAAAAAAAAAAFAAAAAAAAAAAAEADJASMAAABkaXIyL1BLAQItAxQACAAAAGyFJkbCQSQ1AwAAAAMAAAAFAAAAAAAAAAAAIADtgUYAAABmaWxlMVBLAQItAxQACAAAAGyFJkZnuo7rAwAAAAMAAAAFAAAAAAAAAAAAIADJgXwAAABmaWxlMlBLBQYAAAAABAAEAMwAAACyAAAAAAA=": "file1=abc,file2=xyz"
 		},
@@ -18,64 +18,64 @@ QUnit.module("ZipFile: Tests", function () {
 		}
 	};
 
-	function fnString2ArrayBuf(sData: string) {
-		const aBuf = new ArrayBuffer(sData.length),
-			aView = new Uint8Array(aBuf);
+	function fnString2ArrayBuf(data: string) {
+		const buf = new ArrayBuffer(data.length),
+			view = new Uint8Array(buf);
 
-		for (let i = 0; i < sData.length; i += 1) {
-			aView[i] = sData.charCodeAt(i);
+		for (let i = 0; i < data.length; i += 1) {
+			view[i] = data.charCodeAt(i);
 		}
-		return aBuf;
+		return buf;
 	}
 
-	function fnExtractZipFiles(oZip: ZipFile) {
-		const aResult: string[] = [];
+	function fnExtractZipFiles(zip: ZipFile) {
+		const result: string[] = [];
 
-		if (oZip) {
-			const oZipDirectory = oZip.getZipDirectory(),
-				aEntries = Object.keys(oZipDirectory);
+		if (zip) {
+			const zipDirectory = zip.getZipDirectory(),
+				entries = Object.keys(zipDirectory);
 
-			for (let i = 0; i < aEntries.length; i += 1) {
-				const sName = aEntries[i],
-					sData = oZip.readData(sName);
+			for (let i = 0; i < entries.length; i += 1) {
+				const name = entries[i],
+					data = zip.readData(name);
 
-				if (sData) {
-					aResult.push(sName + "=" + sData);
+				if (data) {
+					result.push(name + "=" + data);
 				}
 			}
 		}
-		return aResult.join(",");
+		return result.join(",");
 	}
 
-	function runTestsFor(assert: Assert | undefined, _sCategory: string, oTests: TestsType, aResults?: string[]) {
-		for (const sKey in oTests) {
-			if (oTests.hasOwnProperty(sKey)) {
-				const aParts = sKey.split(",", 2),
-					sMeta = aParts[0],
-					sData = Utils.atob(aParts[1]), // decode base64
-					oZip = new ZipFile(new Uint8Array(fnString2ArrayBuf(sData)), "name"),
-					sExpected = oTests[sKey];
-				let sResult: string;
+	function runTestsFor(assert: Assert | undefined, _sCategory: string, tests: TestsType, results?: string[]) {
+		for (const key in tests) {
+			if (tests.hasOwnProperty(key)) {
+				const parts = key.split(",", 2),
+					meta = parts[0],
+					data = Utils.atob(parts[1]), // decode base64
+					zip = new ZipFile(new Uint8Array(fnString2ArrayBuf(data)), "name"),
+					expected = tests[key];
+				let result: string;
 
 				try {
-					sResult = fnExtractZipFiles(oZip);
+					result = fnExtractZipFiles(zip);
 				} catch (e) {
 					Utils.console.error(e);
-					sResult = String(e);
+					result = String(e);
 				}
 
-				if (aResults) {
-					aResults.push('"' + sKey + '": "' + sResult + '"');
+				if (results) {
+					results.push('"' + key + '": "' + result + '"');
 				}
 
 				if (assert) {
-					assert.strictEqual(sResult, sExpected, sMeta);
+					assert.strictEqual(result, expected, meta);
 				}
 			}
 		}
 	}
 
-	TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
+	TestHelper.generateAndRunAllTests(allTests, runTestsFor);
 });
 
 // end

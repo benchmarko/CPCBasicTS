@@ -18,156 +18,156 @@ export class View {
 	}
 	*/
 
-	static getElementById1(sId: string): HTMLElement {
-		const element = document.getElementById(sId);
+	static getElementById1(id: string): HTMLElement {
+		const element = document.getElementById(id);
 
 		if (!element) {
-			throw new Error("Unknown " + sId);
+			throw new Error("Unknown " + id);
 		}
 		return element;
 	}
 
-	getHidden(sId: string): boolean { // eslint-disable-line class-methods-use-this
-		const element = View.getElementById1(sId);
+	getHidden(id: string): boolean { // eslint-disable-line class-methods-use-this
+		const element = View.getElementById1(id);
 
 		return element.className.indexOf("displayNone") >= 0;
 	}
-	setHidden(sId: string, bHidden: boolean, sDisplay?: string): this { // eslint-disable-line class-methods-use-this
-		// optional sDisplay: block or flex
-		const element = View.getElementById1(sId),
-			sDisplayVisible = "display" + Utils.stringCapitalize(sDisplay || "block");
+	setHidden(id: string, hidden: boolean, display?: string): this { // eslint-disable-line class-methods-use-this
+		// optional display: block or flex
+		const element = View.getElementById1(id),
+			displayVisible = "display" + Utils.stringCapitalize(display || "block");
 
-		if (bHidden) {
+		if (hidden) {
 			if (element.className.indexOf("displayNone") < 0) {
-				this.toggleClass(sId, "displayNone");
+				this.toggleClass(id, "displayNone");
 			}
-			if (element.className.indexOf(sDisplayVisible) >= 0) {
-				this.toggleClass(sId, sDisplayVisible);
+			if (element.className.indexOf(displayVisible) >= 0) {
+				this.toggleClass(id, displayVisible);
 			}
 		} else {
 			if (element.className.indexOf("displayNone") >= 0) {
-				this.toggleClass(sId, "displayNone");
+				this.toggleClass(id, "displayNone");
 			}
-			if (element.className.indexOf(sDisplayVisible) < 0) {
-				this.toggleClass(sId, sDisplayVisible);
+			if (element.className.indexOf(displayVisible) < 0) {
+				this.toggleClass(id, displayVisible);
 			}
 		}
 
 		return this;
 	}
 
-	setDisabled(sId: string, bDisabled: boolean): this {
-		const element = View.getElementById1(sId) as HTMLButtonElement;
+	setDisabled(id: string, disabled: boolean): this {
+		const element = View.getElementById1(id) as HTMLButtonElement;
 
-		element.disabled = bDisabled;
+		element.disabled = disabled;
 		return this;
 	}
 
-	toggleClass(sId: string, sClassName: string): void { // eslint-disable-line class-methods-use-this
-		const element = View.getElementById1(sId);
-		let sClasses = element.className;
-		const iNameIndex = sClasses.indexOf(sClassName);
+	toggleClass(id: string, className: string): void { // eslint-disable-line class-methods-use-this
+		const element = View.getElementById1(id);
+		let classes = element.className;
+		const nameIndex = classes.indexOf(className);
 
-		if (iNameIndex === -1) {
-			sClasses = sClasses.trim() + " " + sClassName;
+		if (nameIndex === -1) {
+			classes = classes.trim() + " " + className;
 		} else {
-			sClasses = sClasses.substr(0, iNameIndex) + sClasses.substr(iNameIndex + sClassName.length + 1).trim();
+			classes = classes.substr(0, nameIndex) + classes.substr(nameIndex + className.length + 1).trim();
 		}
-		element.className = sClasses;
+		element.className = classes;
 	}
 
-	getAreaValue(sId: string): string { // eslint-disable-line class-methods-use-this
-		const element = View.getElementById1(sId) as HTMLTextAreaElement;
+	getAreaValue(id: string): string { // eslint-disable-line class-methods-use-this
+		const element = View.getElementById1(id) as HTMLTextAreaElement;
 
 		return element.value;
 	}
-	setAreaValue(sId: string, sValue: string): this {
-		const element = View.getElementById1(sId) as HTMLTextAreaElement;
+	setAreaValue(id: string, value: string): this {
+		const element = View.getElementById1(id) as HTMLTextAreaElement;
 
-		element.value = sValue;
+		element.value = value;
 		return this;
 	}
 
-	getInputValue(sId: string): string { // eslint-disable-line class-methods-use-this
-		const element = View.getElementById1(sId) as HTMLInputElement;
+	getInputValue(id: string): string { // eslint-disable-line class-methods-use-this
+		const element = View.getElementById1(id) as HTMLInputElement;
 
 		return element.value;
 	}
-	setInputValue(sId: string, sValue: string): this {
-		const element = View.getElementById1(sId) as HTMLInputElement;
+	setInputValue(id: string, value: string): this {
+		const element = View.getElementById1(id) as HTMLInputElement;
 
-		element.value = sValue;
+		element.value = value;
 		return this;
 	}
 
-	getInputChecked(sId: string): boolean { // eslint-disable-line class-methods-use-this
-		const element = View.getElementById1(sId) as HTMLInputElement;
+	getInputChecked(id: string): boolean { // eslint-disable-line class-methods-use-this
+		const element = View.getElementById1(id) as HTMLInputElement;
 
 		return element.checked;
 	}
 
-	setSelectOptions(sId: string, aOptions: SelectOptionElement[]): this {
-		const element = View.getElementById1(sId) as HTMLSelectElement;
+	setSelectOptions(id: string, options: SelectOptionElement[]): this {
+		const element = View.getElementById1(id) as HTMLSelectElement;
 
-		for (let i = 0; i < aOptions.length; i += 1) {
-			const oItem = aOptions[i];
+		for (let i = 0; i < options.length; i += 1) {
+			const item = options[i];
 			let option: HTMLOptionElement;
 
 			if (i >= element.length) {
 				option = document.createElement("option");
-				option.value = oItem.value;
-				option.text = oItem.text;
-				option.title = oItem.title;
-				option.selected = oItem.selected; // multi-select
+				option.value = item.value;
+				option.text = item.text;
+				option.title = item.title;
+				option.selected = item.selected; // multi-select
 				element.add(option, null); // null needed for old FF 3.x
 			} else {
 				option = element.options[i];
-				if (option.value !== oItem.value) {
-					option.value = oItem.value;
+				if (option.value !== item.value) {
+					option.value = item.value;
 				}
-				if (option.text !== oItem.text) {
+				if (option.text !== item.text) {
 					if (Utils.debug > 3) {
-						Utils.console.debug("setSelectOptions: " + sId + ": text changed for index " + i + ": " + oItem.text);
+						Utils.console.debug("setSelectOptions: " + id + ": text changed for index " + i + ": " + item.text);
 					}
-					option.text = oItem.text;
-					option.title = oItem.title;
+					option.text = item.text;
+					option.title = item.title;
 				}
-				option.selected = oItem.selected; // multi-select
+				option.selected = item.selected; // multi-select
 			}
 		}
 		// remove additional select options
-		element.options.length = aOptions.length;
+		element.options.length = options.length;
 		return this;
 	}
-	getSelectValue(sId: string): string { // eslint-disable-line class-methods-use-this
-		const element = View.getElementById1(sId) as HTMLSelectElement;
+	getSelectValue(id: string): string { // eslint-disable-line class-methods-use-this
+		const element = View.getElementById1(id) as HTMLSelectElement;
 
 		return element.value;
 	}
-	setSelectValue(sId: string, sValue: string): this {
-		const element = View.getElementById1(sId) as HTMLSelectElement;
+	setSelectValue(id: string, value: string): this {
+		const element = View.getElementById1(id) as HTMLSelectElement;
 
-		if (sValue) {
-			element.value = sValue;
+		if (value) {
+			element.value = value;
 		}
 		return this;
 	}
-	setSelectTitleFromSelectedOption(sId: string): this {
-		const element = View.getElementById1(sId) as HTMLSelectElement,
-			iSelectedIndex = element.selectedIndex,
-			sTitle = (iSelectedIndex >= 0) ? element.options[iSelectedIndex].title : "";
+	setSelectTitleFromSelectedOption(id: string): this {
+		const element = View.getElementById1(id) as HTMLSelectElement,
+			selectedIndex = element.selectedIndex,
+			title = (selectedIndex >= 0) ? element.options[selectedIndex].title : "";
 
-		element.title = sTitle;
+		element.title = title;
 		return this;
 	}
 
-	setAreaScrollTop(sId: string, iScrollTop?: number): this { // eslint-disable-line class-methods-use-this
-		const element = View.getElementById1(sId) as HTMLTextAreaElement;
+	setAreaScrollTop(id: string, scrollTop?: number): this { // eslint-disable-line class-methods-use-this
+		const element = View.getElementById1(id) as HTMLTextAreaElement;
 
-		if (iScrollTop === undefined) {
-			iScrollTop = element.scrollHeight;
+		if (scrollTop === undefined) {
+			scrollTop = element.scrollHeight;
 		}
-		element.scrollTop = iScrollTop;
+		element.scrollTop = scrollTop;
 		return this;
 	}
 
@@ -196,27 +196,27 @@ export class View {
 		return this;
 	}
 
-	setAreaSelection(sId: string, iPos: number, iEndPos: number): this {
-		const element = View.getElementById1(sId) as HTMLTextAreaElement;
+	setAreaSelection(id: string, pos: number, endPos: number): this {
+		const element = View.getElementById1(id) as HTMLTextAreaElement;
 
 		if (element.selectionStart !== undefined) {
 			if (element.setSelectionRange !== undefined) {
 				element.focus(); // not needed for scrolling but we want to see the selected text
-				this.setSelectionRange(element, iPos, iEndPos);
+				this.setSelectionRange(element, pos, endPos);
 			} else {
 				element.focus();
-				element.selectionStart = iPos;
-				element.selectionEnd = iEndPos;
+				element.selectionStart = pos;
+				element.selectionEnd = endPos;
 			}
 		}
 		return this;
 	}
 
-	attachEventHandler(sType: string, eventHandler: EventListenerOrEventListenerObject): this {
+	attachEventHandler(type: string, eventHandler: EventListenerOrEventListenerObject): this {
 		if (Utils.debug) {
-			Utils.console.debug("attachEventHandler: type=" + sType + ", eventHandler=" + ((eventHandler !== undefined) ? "[?]" : null));
+			Utils.console.debug("attachEventHandler: type=" + type + ", eventHandler=" + ((eventHandler !== undefined) ? "[?]" : null));
 		}
-		document.addEventListener(sType, eventHandler, false);
+		document.addEventListener(type, eventHandler, false);
 		return this;
 	}
 }

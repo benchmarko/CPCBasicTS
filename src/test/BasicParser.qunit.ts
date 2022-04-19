@@ -9,7 +9,7 @@ import { TestHelper, TestsType, AllTestsType } from "./TestHelper";
 QUnit.dump.maxDepth = 10;
 
 QUnit.module("BasicParser: Tests", function () {
-	const mAllTests: AllTestsType = { // eslint-disable-line vars-on-top
+	const allTests: AllTestsType = { // eslint-disable-line vars-on-top
 		numbers: {
 			"a=1": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"assign","value":"=","pos":1,"left":{"type":"identifier","value":"a","pos":0},"right":{"type":"number","value":"1","pos":2}}]}]',
 			"a=1.2": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"assign","value":"=","pos":1,"left":{"type":"identifier","value":"a","pos":0},"right":{"type":"number","value":"1.2","pos":2}}]}]',
@@ -147,10 +147,10 @@ QUnit.module("BasicParser: Tests", function () {
 			"def fnclk(a)=a*10": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"def","value":"def","pos":0,"left":{"type":"identifier","value":"fnclk","pos":4},"args":[{"type":"identifier","value":"a","pos":10}],"right":{"type":"*","value":"*","pos":14,"left":{"type":"identifier","value":"a","pos":13},"right":{"type":"number","value":"10","pos":15}}}]}]',
 			"def fnclk(a,b)=a*10+b": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"def","value":"def","pos":0,"left":{"type":"identifier","value":"fnclk","pos":4},"args":[{"type":"identifier","value":"a","pos":10},{"type":"identifier","value":"b","pos":12}],"right":{"type":"+","value":"+","pos":19,"left":{"type":"*","value":"*","pos":16,"left":{"type":"identifier","value":"a","pos":15},"right":{"type":"number","value":"10","pos":17}},"right":{"type":"identifier","value":"b","pos":20}}}]}]',
 			"def fnclk$(a$,b$)=a$+b$": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"def","value":"def","pos":0,"left":{"type":"identifier","value":"fnclk$","pos":4},"args":[{"type":"identifier","value":"a$","pos":11},{"type":"identifier","value":"b$","pos":14}],"right":{"type":"+","value":"+","pos":20,"left":{"type":"identifier","value":"a$","pos":18},"right":{"type":"identifier","value":"b$","pos":21}}}]}]',
-			"def fn clk=10": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"def","value":"def","pos":0,"left":{"type":"identifier","value":"fnclk","pos":7,"bSpace":true},"args":[],"right":{"type":"number","value":"10","pos":11}}]}]',
-			"def fn clk(a)=a*10": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"def","value":"def","pos":0,"left":{"type":"identifier","value":"fnclk","pos":7,"bSpace":true},"args":[{"type":"identifier","value":"a","pos":11}],"right":{"type":"*","value":"*","pos":15,"left":{"type":"identifier","value":"a","pos":14},"right":{"type":"number","value":"10","pos":16}}}]}]',
-			"def fn clk(a,b)=a*10+b": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"def","value":"def","pos":0,"left":{"type":"identifier","value":"fnclk","pos":7,"bSpace":true},"args":[{"type":"identifier","value":"a","pos":11},{"type":"identifier","value":"b","pos":13}],"right":{"type":"+","value":"+","pos":20,"left":{"type":"*","value":"*","pos":17,"left":{"type":"identifier","value":"a","pos":16},"right":{"type":"number","value":"10","pos":18}},"right":{"type":"identifier","value":"b","pos":21}}}]}]',
-			"def fn clk$(a$,b$)=a$+b$": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"def","value":"def","pos":0,"left":{"type":"identifier","value":"fnclk$","pos":7,"bSpace":true},"args":[{"type":"identifier","value":"a$","pos":12},{"type":"identifier","value":"b$","pos":15}],"right":{"type":"+","value":"+","pos":21,"left":{"type":"identifier","value":"a$","pos":19},"right":{"type":"identifier","value":"b$","pos":22}}}]}]',
+			"def fn clk=10": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"def","value":"def","pos":0,"left":{"type":"identifier","value":"fnclk","pos":7,"space":true},"args":[],"right":{"type":"number","value":"10","pos":11}}]}]',
+			"def fn clk(a)=a*10": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"def","value":"def","pos":0,"left":{"type":"identifier","value":"fnclk","pos":7,"space":true},"args":[{"type":"identifier","value":"a","pos":11}],"right":{"type":"*","value":"*","pos":15,"left":{"type":"identifier","value":"a","pos":14},"right":{"type":"number","value":"10","pos":16}}}]}]',
+			"def fn clk(a,b)=a*10+b": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"def","value":"def","pos":0,"left":{"type":"identifier","value":"fnclk","pos":7,"space":true},"args":[{"type":"identifier","value":"a","pos":11},{"type":"identifier","value":"b","pos":13}],"right":{"type":"+","value":"+","pos":20,"left":{"type":"*","value":"*","pos":17,"left":{"type":"identifier","value":"a","pos":16},"right":{"type":"number","value":"10","pos":18}},"right":{"type":"identifier","value":"b","pos":21}}}]}]',
+			"def fn clk$(a$,b$)=a$+b$": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"def","value":"def","pos":0,"left":{"type":"identifier","value":"fnclk$","pos":7,"space":true},"args":[{"type":"identifier","value":"a$","pos":12},{"type":"identifier","value":"b$","pos":15}],"right":{"type":"+","value":"+","pos":21,"left":{"type":"identifier","value":"a$","pos":19},"right":{"type":"identifier","value":"b$","pos":22}}}]}]',
 			"defint a": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"defint","value":"defint","pos":0,"args":[{"type":"letter","value":"a","pos":7}]}]}]',
 			"defint a-t": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"defint","value":"defint","pos":0,"args":[{"type":"range","value":"-","pos":8,"left":{"type":"letter","value":"a","pos":7},"right":{"type":"letter","value":"t","pos":9}}]}]}]',
 			"defint a,b,c": '[{"type":"label","value":"direct","pos":0,"len":0,"args":[{"type":"defint","value":"defint","pos":0,"args":[{"type":"letter","value":"a","pos":7},{"type":"letter","value":"b","pos":9},{"type":"letter","value":"c","pos":11}]}]}]',
@@ -606,7 +606,7 @@ QUnit.module("BasicParser: Tests", function () {
 		},
 		keepSpaces: {
 			" 1  chain   merge  \"f5\"": '[{"type":"label","value":"1","pos":1,"args":[{"type":"chainMerge","value":"chain merge","pos":4,"args":[{"type":"string","value":"f5","pos":20}]}]}]',
-			" 1  def   fn  a$ = \"abc\"": '[{"type":"label","value":"1","pos":1,"args":[{"type":"def","value":"def","pos":4,"left":{"type":"identifier","value":"fna$","pos":14,"bSpace":true},"args":[],"right":{"type":"string","value":"abc","pos":20}}]}]',
+			" 1  def   fn  a$ = \"abc\"": '[{"type":"label","value":"1","pos":1,"args":[{"type":"def","value":"def","pos":4,"left":{"type":"identifier","value":"fna$","pos":14,"space":true},"args":[],"right":{"type":"string","value":"abc","pos":20}}]}]',
 			" 1  for   i   =   1   to  10   step  2": '[{"type":"label","value":"1","pos":1,"args":[{"type":"for","value":"for","pos":4,"args":[{"type":"identifier","value":"i","pos":10},{"type":"number","value":"1","pos":18},{"type":"number","value":"10","pos":26},{"type":"number","value":"2","pos":37}]}]}]',
 			" 1  if    a  =  1     then  1     else    goto  1": '[{"type":"label","value":"1","pos":1,"args":[{"type":"if","value":"if","pos":4,"left":{"type":"=","value":"=","pos":13,"left":{"type":"identifier","value":"a","pos":10},"right":{"type":"number","value":"1","pos":16}},"args":[{"type":"linenumber","value":"1","pos":28}],"args2":[{"type":"goto","value":"goto","pos":42,"args":[{"type":"linenumber","value":"1","pos":48}]}]}]}]',
 			" 1  line   input  a$": '[{"type":"label","value":"1","pos":1,"args":[{"type":"lineInput","value":"line input","pos":4,"args":[{"type":"#","value":"#","pos":0,"len":0,"right":{"type":"null","value":"0","pos":0,"len":0}},{"type":"null","value":"null","pos":0,"len":0},{"type":"null","value":"null","pos":0,"len":0},{"type":"null","value":"null","pos":0,"len":0},{"type":"identifier","value":"a$","pos":18}]}]}]',
@@ -627,62 +627,62 @@ QUnit.module("BasicParser: Tests", function () {
 		}
 	};
 
-	function fnReplacer(sBin: string) {
-		return "0x" + parseInt(sBin.substr(2), 2).toString(16).toLowerCase();
+	function fnReplacer(bin: string) {
+		return "0x" + parseInt(bin.substr(2), 2).toString(16).toLowerCase();
 	}
 
-	function runTestsFor(assert: Assert | undefined, _sCategory: string, oTests: TestsType, aResults?: string[]) {
-		const bAllowDirect = true,
-			oOptions = {
-				bQuiet: true
+	function runTestsFor(assert: Assert | undefined, _sCategory: string, tests: TestsType, results?: string[]) {
+		const allowDirect = true,
+			options = {
+				quiet: true
 			},
-			oBasicLexer = new BasicLexer(oOptions),
-			oBasicParser = new BasicParser(oOptions);
+			basicLexer = new BasicLexer(options),
+			basicParser = new BasicParser(options);
 
-		for (const sKey in oTests) {
-			if (oTests.hasOwnProperty(sKey)) {
-				let sExpected = oTests[sKey],
-					oExpected,
-					aParseTree: ParserNode[],
-					sResult: string;
+		for (const key in tests) {
+			if (tests.hasOwnProperty(key)) {
+				let expectedString = tests[key],
+					expectedEntry,
+					parseTree: ParserNode[],
+					result: string;
 
-				if (!Utils.bSupportsBinaryLiterals) {
-					sExpected = sExpected.replace(/(0b[01]+)/g, fnReplacer); // for old IE
+				if (!Utils.supportsBinaryLiterals) {
+					expectedString = expectedString.replace(/(0b[01]+)/g, fnReplacer); // for old IE
 				}
 
 				try {
 					try {
-						oExpected = JSON.parse(sExpected); // test: { e: sExpected }
+						expectedEntry = JSON.parse(expectedString); // test: { e: expected }
 					} catch (e) {
 						Utils.console.error(e);
-						oExpected = {}; // continue
+						expectedEntry = {}; // continue
 					}
-					const aTokens = oBasicLexer.lex(sKey);
+					const tokens = basicLexer.lex(key);
 
-					aParseTree = oBasicParser.parse(aTokens, bAllowDirect);
-					sResult = JSON.stringify(aParseTree);
+					parseTree = basicParser.parse(tokens, allowDirect);
+					result = JSON.stringify(parseTree);
 				} catch (e) {
-					if ((e as Error).message !== oExpected.message) {
+					if ((e as Error).message !== expectedEntry.message) {
 						Utils.console.error(e); // only if unexpected
 					}
-					sResult = JSON.stringify(e);
-					aParseTree = JSON.parse(sResult); // get error without Error object
+					result = JSON.stringify(e);
+					parseTree = JSON.parse(result); // get error without Error object
 				}
 
-				if (aResults) {
+				if (results) {
 					// escape " in key, ' in value
-					aResults.push('"' + sKey.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + "\": '" + sResult.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/'/g, "\\'") + "'");
+					results.push('"' + key.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + "\": '" + result.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/'/g, "\\'") + "'");
 				}
 
 				if (assert) {
-					assert.deepEqual(aParseTree, oExpected, sKey);
-					// or: sJson = JSON.stringify(aParseTree); //assert.strictEqual(sJson, sExpected);
+					assert.deepEqual(parseTree, expectedEntry, key);
+					// or: json = JSON.stringify(parseTree); //assert.strictEqual(json, expected);
 				}
 			}
 		}
 	}
 
-	TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
+	TestHelper.generateAndRunAllTests(allTests, runTestsFor);
 });
 
 // end

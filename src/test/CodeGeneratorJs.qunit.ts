@@ -10,7 +10,7 @@ import { Variables } from "../Variables";
 import { TestHelper, TestsType, AllTestsType } from "./TestHelper";
 
 QUnit.module("CodeGeneratorJs: Tests", function () {
-	const mAllTests: AllTestsType = { // eslint-disable-line vars-on-top
+	const allTests: AllTestsType = { // eslint-disable-line vars-on-top
 		numbers: {
 			"a=1": " v.a = o.vmAssign(\"a\", 1);",
 			"a=1.2": " v.a = o.vmAssign(\"a\", 1.2);",
@@ -628,50 +628,50 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 		}
 	};
 
-	function fnReplacer(sBin: string) {
-		return "0x" + parseInt(sBin.substr(2), 2).toString(16).toLowerCase();
+	function fnReplacer(bin: string) {
+		return "0x" + parseInt(bin.substr(2), 2).toString(16).toLowerCase();
 	}
 
-	function runTestsFor(assert: Assert | undefined, _sCategory: string, oTests: TestsType, aResults?: string[]) {
-		const bAllowDirect = true,
-			oOptions = {
-				bQuiet: true
+	function runTestsFor(assert: Assert | undefined, _sCategory: string, tests: TestsType, results?: string[]) {
+		const allowDirect = true,
+			options = {
+				quiet: true
 			},
-			oCodeGeneratorJs = new CodeGeneratorJs({
-				bQuiet: true,
-				lexer: new BasicLexer(oOptions),
-				parser: new BasicParser(oOptions),
+			codeGeneratorJs = new CodeGeneratorJs({
+				quiet: true,
+				lexer: new BasicLexer(options),
+				parser: new BasicParser(options),
 				tron: false,
 				rsx: {
-					rsxIsAvailable: function (sRsx: string) { // not needed to suppress warnings when using bQuiet
-						return (/^a|b|basic|cpm|dir|disc|disc\.in|disc\.out|drive|era|ren|tape|tape\.in|tape\.out|user|mode|renum$/).test(sRsx);
+					rsxIsAvailable: function (rsx: string) { // not needed to suppress warnings when using quiet
+						return (/^a|b|basic|cpm|dir|disc|disc\.in|disc\.out|drive|era|ren|tape|tape\.in|tape\.out|user|mode|renum$/).test(rsx);
 					}
 				} as ICpcVmRsx,
-				bNoCodeFrame: true
+				noCodeFrame: true
 			});
 
-		for (const sKey in oTests) {
-			if (oTests.hasOwnProperty(sKey)) {
-				const oVariables = new Variables(),
-					oOutput = oCodeGeneratorJs.generate(sKey, oVariables, bAllowDirect),
-					sResult = oOutput.error ? String(oOutput.error) : oOutput.text;
-				let sExpected = oTests[sKey];
+		for (const key in tests) {
+			if (tests.hasOwnProperty(key)) {
+				const variables = new Variables(),
+					output = codeGeneratorJs.generate(key, variables, allowDirect),
+					result = output.error ? String(output.error) : output.text;
+				let expected = tests[key];
 
-				if (!Utils.bSupportsBinaryLiterals) {
-					sExpected = sExpected.replace(/(0b[01]+)/g, fnReplacer); // for old IE
+				if (!Utils.supportsBinaryLiterals) {
+					expected = expected.replace(/(0b[01]+)/g, fnReplacer); // for old IE
 				}
-				if (aResults) {
-					aResults.push('"' + sKey.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '": "' + sResult.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '"');
+				if (results) {
+					results.push('"' + key.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '": "' + result.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '"');
 				}
 
 				if (assert) {
-					assert.strictEqual(sResult, sExpected, sKey);
+					assert.strictEqual(result, expected, key);
 				}
 			}
 		}
 	}
 
-	TestHelper.generateAndRunAllTests(mAllTests, runTestsFor);
+	TestHelper.generateAndRunAllTests(allTests, runTestsFor);
 });
 
 // end

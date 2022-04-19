@@ -10,8 +10,8 @@
 import { Utils } from "./Utils";
 
 interface BasicLexerOptions {
-	bQuiet?: boolean
-	bKeepWhiteSpace?: boolean
+	quiet?: boolean
+	keepWhiteSpace?: boolean
 }
 
 export interface LexerToken {
@@ -23,20 +23,20 @@ export interface LexerToken {
 }
 
 export class BasicLexer {
-	private bQuiet = false;
-	private bKeepWhiteSpace = false;
+	private quiet = false;
+	private keepWhiteSpace = false;
 
-	private sLine = "0"; // for error messages
-	private bTakeNumberAsLine = true; // first number in a line is assumed to be a line number
+	private line = "0"; // for error messages
+	private takeNumberAsLine = true; // first number in a line is assumed to be a line number
 
-	private sInput = "";
-	private iIndex = 0;
-	private aTokens: LexerToken[] = [];
-	private sWhiteSpace = ""; // collected whitespace
+	private input = "";
+	private index = 0;
+	private tokens: LexerToken[] = [];
+	private whiteSpace = ""; // collected whitespace
 
 	setOptions(options: BasicLexerOptions): void {
-		this.bQuiet = options.bQuiet || false;
-		this.bKeepWhiteSpace = options.bKeepWhiteSpace || false;
+		this.quiet = options.quiet || false;
+		this.keepWhiteSpace = options.keepWhiteSpace || false;
 	}
 
 	constructor(options?: BasicLexerOptions) {
@@ -45,8 +45,8 @@ export class BasicLexer {
 		}
 	}
 
-	private composeError(oError: Error, message: string, value: string, pos: number) {
-		return Utils.composeError("BasicLexer", oError, message, value, pos, undefined, this.sLine);
+	private composeError(error: Error, message: string, value: string, pos: number) {
+		return Utils.composeError("BasicLexer", error, message, value, pos, undefined, this.line);
 	}
 
 	private static isComment(c: string) { // isApostrophe
@@ -116,335 +116,335 @@ export class BasicLexer {
 		return c !== "" && (/[^:,\r\n]/).test(c);
 	}
 
-	private testChar(iAdd: number) {
-		return this.sInput.charAt(this.iIndex + iAdd);
+	private testChar(add: number) {
+		return this.input.charAt(this.index + add);
 	}
 
 	private getChar() {
-		return this.sInput.charAt(this.iIndex);
+		return this.input.charAt(this.index);
 	}
 
 	private advance() {
-		this.iIndex += 1;
+		this.index += 1;
 		return this.getChar();
 	}
-	private advanceWhile(sChar: string, fn: (arg0: string) => boolean) {
-		let sToken2 = "";
+	private advanceWhile(char: string, fn: (arg0: string) => boolean) {
+		let token2 = "";
 
 		do {
-			sToken2 += sChar;
-			sChar = this.advance();
-		} while (fn(sChar));
-		return sToken2;
+			token2 += char;
+			char = this.advance();
+		} while (fn(char));
+		return token2;
 	}
 
-	private debugCheckValue(type: string, value: string, iPos: number, sOrig?: string) {
-		const sOrigValue = sOrig || value,
-			sPart = this.sInput.substr(iPos, sOrigValue.length);
+	private debugCheckValue(type: string, value: string, pos: number, orig?: string) {
+		const origValue = orig || value,
+			part = this.input.substr(pos, origValue.length);
 
-		if (sPart !== sOrigValue) {
-			Utils.console.debug("BasicLexer:debugCheckValue:", type, sPart, "<>", sOrigValue, "at pos", iPos);
+		if (part !== origValue) {
+			Utils.console.debug("BasicLexer:debugCheckValue:", type, part, "<>", origValue, "at pos", pos);
 		}
 	}
 
-	private addToken(type: string, value: string, iPos: number, sOrig?: string) { // optional original value
-		const oNode: LexerToken = {
+	private addToken(type: string, value: string, pos: number, orig?: string) { // optional original value
+		const node: LexerToken = {
 			type: type,
 			value: value,
-			pos: iPos
+			pos: pos
 		};
 
-		if (sOrig !== undefined) {
-			if (sOrig !== value) {
-				oNode.orig = sOrig;
+		if (orig !== undefined) {
+			if (orig !== value) {
+				node.orig = orig;
 			}
 		}
-		if (this.sWhiteSpace !== "") {
-			oNode.ws = this.sWhiteSpace;
-			this.sWhiteSpace = "";
+		if (this.whiteSpace !== "") {
+			node.ws = this.whiteSpace;
+			this.whiteSpace = "";
 		}
 
 		if (Utils.debug > 1) {
-			this.debugCheckValue(type, value, iPos, oNode.orig); // check position of added value
+			this.debugCheckValue(type, value, pos, node.orig); // check position of added value
 		}
 
-		this.aTokens.push(oNode);
+		this.tokens.push(node);
 	}
 
-	private fnParseNumber(sChar: string, iStartPos: number, bStartsWithDot: boolean) { // special handling for number
-		let sToken = "";
+	private fnParseNumber(char: string, startPos: number, startsWithDot: boolean) { // special handling for number
+		let token = "";
 
-		if (bStartsWithDot) {
-			sToken += sChar;
-			sChar = this.advance();
+		if (startsWithDot) {
+			token += char;
+			char = this.advance();
 		}
-		sToken += this.advanceWhile(sChar, BasicLexer.isDigit); // TODO: isDigitOrSpace: numbers may contain spaces!
-		sChar = this.getChar();
-		if (sChar === "." && !bStartsWithDot) {
-			sToken += sChar;
-			sChar = this.advance();
-			if (BasicLexer.isDigit(sChar)) { // digits after dot?
-				sToken += this.advanceWhile(sChar, BasicLexer.isDigit);
-				sChar = this.getChar();
+		token += this.advanceWhile(char, BasicLexer.isDigit); // TODO: isDigitOrSpace: numbers may contain spaces!
+		char = this.getChar();
+		if (char === "." && !startsWithDot) {
+			token += char;
+			char = this.advance();
+			if (BasicLexer.isDigit(char)) { // digits after dot?
+				token += this.advanceWhile(char, BasicLexer.isDigit);
+				char = this.getChar();
 			}
 		}
-		if (sChar === "e" || sChar === "E") { // we also try to check: [eE][+-]?\d+; because "E" could be ERR, ELSE,...
-			const sChar1 = this.testChar(1),
-				sChar2 = this.testChar(2);
+		if (char === "e" || char === "E") { // we also try to check: [eE][+-]?\d+; because "E" could be ERR, ELSE,...
+			const char1 = this.testChar(1),
+				char2 = this.testChar(2);
 
-			if (BasicLexer.isDigit(sChar1) || (BasicLexer.isSign(sChar1) && BasicLexer.isDigit(sChar2))) { // so it is a number
-				sToken += sChar; // take "E"
-				sChar = this.advance();
-				if (BasicLexer.isSign(sChar)) {
-					sToken += sChar; // take sign "+" or "-"
-					sChar = this.advance();
+			if (BasicLexer.isDigit(char1) || (BasicLexer.isSign(char1) && BasicLexer.isDigit(char2))) { // so it is a number
+				token += char; // take "E"
+				char = this.advance();
+				if (BasicLexer.isSign(char)) {
+					token += char; // take sign "+" or "-"
+					char = this.advance();
 				}
-				if (BasicLexer.isDigit(sChar)) {
-					sToken += this.advanceWhile(sChar, BasicLexer.isDigit);
-					sChar = this.getChar();
+				if (BasicLexer.isDigit(char)) {
+					token += this.advanceWhile(char, BasicLexer.isDigit);
+					char = this.getChar();
 				}
 			}
 		}
-		sToken = sToken.trim(); // remove trailing spaces
-		if (!isFinite(Number(sToken))) { // Infnity?
-			throw this.composeError(Error(), "Number is too large or too small", sToken, iStartPos); // for a 64-bit double
+		token = token.trim(); // remove trailing spaces
+		if (!isFinite(Number(token))) { // Infnity?
+			throw this.composeError(Error(), "Number is too large or too small", token, startPos); // for a 64-bit double
 		}
-		const iNumber = parseFloat(sToken);
+		const number = parseFloat(token);
 
-		this.addToken("number", String(iNumber), iStartPos, sToken); // store number as string
-		if (this.bTakeNumberAsLine) {
-			this.bTakeNumberAsLine = false;
-			this.sLine = String(iNumber); // save just for error message
+		this.addToken("number", String(number), startPos, token); // store number as string
+		if (this.takeNumberAsLine) {
+			this.takeNumberAsLine = false;
+			this.line = String(number); // save just for error message
 		}
 	}
-	private fnParseCompleteLineForRemOrApostrophe(sChar: string, iStartPos: number) { // special handling for line comment
-		if (BasicLexer.isNotNewLine(sChar)) {
-			const sToken = this.advanceWhile(sChar, BasicLexer.isNotNewLine);
+	private fnParseCompleteLineForRemOrApostrophe(char: string, startPos: number) { // special handling for line comment
+		if (BasicLexer.isNotNewLine(char)) {
+			const token = this.advanceWhile(char, BasicLexer.isNotNewLine);
 
-			sChar = this.getChar();
-			this.addToken("unquoted", sToken, iStartPos);
+			char = this.getChar();
+			this.addToken("unquoted", token, startPos);
 		}
-		return sChar;
+		return char;
 	}
-	private fnParseCompleteLineForData(sChar: string, iStartPos: number) { // special handling because strings in data lines need not be quoted
+	private fnParseCompleteLineForData(char: string, startPos: number) { // special handling because strings in data lines need not be quoted
 		const reSpacesAtEnd = new RegExp(/\s+$/);
-		let iPos: number,
-			sToken: string;
+		let pos: number,
+			token: string;
 
-		while (BasicLexer.isNotNewLine(sChar)) {
-			if (BasicLexer.isWhiteSpace(sChar)) {
-				sToken = this.advanceWhile(sChar, BasicLexer.isWhiteSpace);
+		while (BasicLexer.isNotNewLine(char)) {
+			if (BasicLexer.isWhiteSpace(char)) {
+				token = this.advanceWhile(char, BasicLexer.isWhiteSpace);
 
-				sChar = this.getChar();
-				if (this.bKeepWhiteSpace) {
-					this.sWhiteSpace = sToken;
+				char = this.getChar();
+				if (this.keepWhiteSpace) {
+					this.whiteSpace = token;
 				}
 			}
-			if (BasicLexer.isNewLine(sChar)) { // now newline?
+			if (BasicLexer.isNewLine(char)) { // now newline?
 				break;
 			}
 
-			iPos = this.iIndex;
-			if (BasicLexer.isQuotes(sChar)) {
-				sChar = "";
-				sToken = this.advanceWhile(sChar, BasicLexer.isNotQuotes);
+			pos = this.index;
+			if (BasicLexer.isQuotes(char)) {
+				char = "";
+				token = this.advanceWhile(char, BasicLexer.isNotQuotes);
 
-				sChar = this.getChar();
-				if (!BasicLexer.isQuotes(sChar)) {
-					if (!this.bQuiet) {
-						Utils.console.log(this.composeError({} as Error, "Unterminated string", sToken, iStartPos + 1).message);
+				char = this.getChar();
+				if (!BasicLexer.isQuotes(char)) {
+					if (!this.quiet) {
+						Utils.console.log(this.composeError({} as Error, "Unterminated string", token, startPos + 1).message);
 					}
 				}
-				this.addToken("string", sToken, iPos + 1); // this is a quoted string (but we cannot detect it during runtime)
-				if (sChar === '"') { // not for newline
-					sChar = this.advance();
+				this.addToken("string", token, pos + 1); // this is a quoted string (but we cannot detect it during runtime)
+				if (char === '"') { // not for newline
+					char = this.advance();
 				}
-			} else if (sChar === ",") { // empty argument?
+			} else if (char === ",") { // empty argument?
 				// parser can insert dummy token
 			} else {
-				sToken = this.advanceWhile(sChar, BasicLexer.isUnquotedData);
+				token = this.advanceWhile(char, BasicLexer.isUnquotedData);
 
-				sChar = this.getChar();
+				char = this.getChar();
 
-				const aMatch = reSpacesAtEnd.exec(sToken),
-					sEndingSpaces = (aMatch && aMatch[0]) || "";
+				const match = reSpacesAtEnd.exec(token),
+					endingSpaces = (match && match[0]) || "";
 
-				sToken = sToken.trim(); // remove whitespace before and after; do we need this?
-				this.addToken("unquoted", sToken, iPos); // could be interpreted as string or number during runtime
-				if (this.bKeepWhiteSpace) {
-					this.sWhiteSpace = sEndingSpaces;
+				token = token.trim(); // remove whitespace before and after; do we need this?
+				this.addToken("unquoted", token, pos); // could be interpreted as string or number during runtime
+				if (this.keepWhiteSpace) {
+					this.whiteSpace = endingSpaces;
 				}
 			}
 
-			if (BasicLexer.isWhiteSpace(sChar)) {
-				sToken = this.advanceWhile(sChar, BasicLexer.isWhiteSpace);
+			if (BasicLexer.isWhiteSpace(char)) {
+				token = this.advanceWhile(char, BasicLexer.isWhiteSpace);
 
-				sChar = this.getChar();
-				if (this.bKeepWhiteSpace) {
-					this.sWhiteSpace = sToken;
+				char = this.getChar();
+				if (this.keepWhiteSpace) {
+					this.whiteSpace = token;
 				}
 			}
 
-			if (sChar !== ",") {
+			if (char !== ",") {
 				break;
 			}
-			iPos = this.iIndex;
-			this.addToken(sChar, sChar, iPos); // ","
-			sChar = this.advance();
+			pos = this.index;
+			this.addToken(char, char, pos); // ","
+			char = this.advance();
 
-			if (sChar === "\r") { // IE8 has "/r/n" newlines
-				sChar = this.advance();
+			if (char === "\r") { // IE8 has "/r/n" newlines
+				char = this.advance();
 			}
 		}
 	}
-	private fnParseIdentifier(sChar: string, iStartPos: number) {
-		let sToken = sChar;
+	private fnParseIdentifier(char: string, startPos: number) {
+		let token = char;
 
-		sChar = this.advance();
-		if (BasicLexer.isIdentifierMiddle(sChar)) {
-			sToken += this.advanceWhile(sChar, BasicLexer.isIdentifierMiddle);
-			sChar = this.getChar();
+		char = this.advance();
+		if (BasicLexer.isIdentifierMiddle(char)) {
+			token += this.advanceWhile(char, BasicLexer.isIdentifierMiddle);
+			char = this.getChar();
 		}
-		if (BasicLexer.isIdentifierEnd(sChar)) {
-			sToken += sChar;
-			sChar = this.advance();
+		if (BasicLexer.isIdentifierEnd(char)) {
+			token += char;
+			char = this.advance();
 		}
-		this.addToken("identifier", sToken, iStartPos);
-		sToken = sToken.toLowerCase();
+		this.addToken("identifier", token, startPos);
+		token = token.toLowerCase();
 
-		if (sToken === "rem") { // special handling for line comment
-			iStartPos += sToken.length;
-			if (sChar === " ") { // ignore first space
-				if (this.bKeepWhiteSpace) {
-					this.sWhiteSpace = sChar;
+		if (token === "rem") { // special handling for line comment
+			startPos += token.length;
+			if (char === " ") { // ignore first space
+				if (this.keepWhiteSpace) {
+					this.whiteSpace = char;
 				}
-				sChar = this.advance();
-				iStartPos += 1;
+				char = this.advance();
+				startPos += 1;
 			}
-			this.fnParseCompleteLineForRemOrApostrophe(sChar, iStartPos);
+			this.fnParseCompleteLineForRemOrApostrophe(char, startPos);
 			this.getChar();
-		} else if (sToken === "data") { // special handling because strings in data lines need not to be quoted
-			this.fnParseCompleteLineForData(sChar, iStartPos);
-			sChar = this.getChar();
+		} else if (token === "data") { // special handling because strings in data lines need not to be quoted
+			this.fnParseCompleteLineForData(char, startPos);
+			char = this.getChar();
 		}
 	}
 
-	private fnTryContinueString(sChar: string) { // There could be a LF in a string but no CR. In CPCBasic we use LF only as EOL, so we cannot detect the difference.
-		let sOut = "";
+	private fnTryContinueString(char: string) { // There could be a LF in a string but no CR. In CPCBasic we use LF only as EOL, so we cannot detect the difference.
+		let out = "";
 
-		while (BasicLexer.isNewLine(sChar)) {
-			const sChar1 = this.testChar(1);
+		while (BasicLexer.isNewLine(char)) {
+			const char1 = this.testChar(1);
 
-			if (sChar1 !== "" && (sChar1 < "0" || sChar1 > "9")) { // heuristic: next char not a digit => continue with the string
-				sOut += this.advanceWhile(sChar, BasicLexer.isNotQuotes);
-				sChar = this.getChar();
+			if (char1 !== "" && (char1 < "0" || char1 > "9")) { // heuristic: next char not a digit => continue with the string
+				out += this.advanceWhile(char, BasicLexer.isNotQuotes);
+				char = this.getChar();
 			} else {
 				break;
 			}
 		}
-		return sOut;
+		return out;
 	}
 
 
-	lex(sInput: string): LexerToken[] { // eslint-disable-line complexity
-		let iStartPos: number,
-			sChar: string,
-			sToken: string;
+	lex(input: string): LexerToken[] { // eslint-disable-line complexity
+		let startPos: number,
+			char: string,
+			token: string;
 
-		this.sInput = sInput;
-		this.iIndex = 0;
+		this.input = input;
+		this.index = 0;
 
-		this.sLine = "0"; // for error messages
-		this.bTakeNumberAsLine = true;
-		this.sWhiteSpace = "";
+		this.line = "0"; // for error messages
+		this.takeNumberAsLine = true;
+		this.whiteSpace = "";
 
-		this.aTokens.length = 0;
+		this.tokens.length = 0;
 
-		while (this.iIndex < sInput.length) {
-			iStartPos = this.iIndex;
-			sChar = this.getChar();
-			if (BasicLexer.isWhiteSpace(sChar)) {
-				sToken = this.advanceWhile(sChar, BasicLexer.isWhiteSpace);
-				sChar = this.getChar();
-				if (this.bKeepWhiteSpace) {
-					this.sWhiteSpace = sToken;
+		while (this.index < input.length) {
+			startPos = this.index;
+			char = this.getChar();
+			if (BasicLexer.isWhiteSpace(char)) {
+				token = this.advanceWhile(char, BasicLexer.isWhiteSpace);
+				char = this.getChar();
+				if (this.keepWhiteSpace) {
+					this.whiteSpace = token;
 				}
-			} else if (BasicLexer.isNewLine(sChar)) {
-				this.addToken("(eol)", "", iStartPos);
-				sChar = this.advance();
-				this.bTakeNumberAsLine = true;
-			} else if (BasicLexer.isComment(sChar)) {
-				this.addToken(sChar, sChar, iStartPos);
-				sChar = this.advance();
-				this.fnParseCompleteLineForRemOrApostrophe(sChar, iStartPos + 1);
-			} else if (BasicLexer.isOperator(sChar)) {
-				this.addToken(sChar, sChar, iStartPos);
-				sChar = this.advance();
-			} else if (BasicLexer.isDigit(sChar)) {
-				this.fnParseNumber(sChar, iStartPos, false);
-			} else if (BasicLexer.isDot(sChar)) { // number starting with dot
-				this.fnParseNumber(sChar, iStartPos, true);
-			} else if (BasicLexer.isHexOrBin(sChar)) {
-				sToken = sChar;
-				sChar = this.advance();
-				if (sChar.toLowerCase() === "x") { // binary?
-					sToken += this.advanceWhile(sChar, BasicLexer.isBin2);
-					sChar = this.getChar();
-					this.addToken("binnumber", sToken, iStartPos);
+			} else if (BasicLexer.isNewLine(char)) {
+				this.addToken("(eol)", "", startPos);
+				char = this.advance();
+				this.takeNumberAsLine = true;
+			} else if (BasicLexer.isComment(char)) {
+				this.addToken(char, char, startPos);
+				char = this.advance();
+				this.fnParseCompleteLineForRemOrApostrophe(char, startPos + 1);
+			} else if (BasicLexer.isOperator(char)) {
+				this.addToken(char, char, startPos);
+				char = this.advance();
+			} else if (BasicLexer.isDigit(char)) {
+				this.fnParseNumber(char, startPos, false);
+			} else if (BasicLexer.isDot(char)) { // number starting with dot
+				this.fnParseNumber(char, startPos, true);
+			} else if (BasicLexer.isHexOrBin(char)) {
+				token = char;
+				char = this.advance();
+				if (char.toLowerCase() === "x") { // binary?
+					token += this.advanceWhile(char, BasicLexer.isBin2);
+					char = this.getChar();
+					this.addToken("binnumber", token, startPos);
 				} else { // hex
-					if (sChar.toLowerCase() === "h") { // optional h
-						sToken += sChar;
-						sChar = this.advance();
+					if (char.toLowerCase() === "h") { // optional h
+						token += char;
+						char = this.advance();
 					}
-					if (BasicLexer.isHex2(sChar)) {
-						sToken += this.advanceWhile(sChar, BasicLexer.isHex2);
-						sChar = this.getChar();
-						this.addToken("hexnumber", sToken, iStartPos);
+					if (BasicLexer.isHex2(char)) {
+						token += this.advanceWhile(char, BasicLexer.isHex2);
+						char = this.getChar();
+						this.addToken("hexnumber", token, startPos);
 					} else {
-						throw this.composeError(Error(), "Expected number", sToken, iStartPos);
+						throw this.composeError(Error(), "Expected number", token, startPos);
 					}
 				}
-			} else if (BasicLexer.isQuotes(sChar)) {
-				sChar = "";
+			} else if (BasicLexer.isQuotes(char)) {
+				char = "";
 
-				sToken = this.advanceWhile(sChar, BasicLexer.isNotQuotes);
-				sChar = this.getChar();
-				if (!BasicLexer.isQuotes(sChar)) {
-					if (!this.bQuiet) {
-						Utils.console.log(this.composeError({} as Error, "Unterminated string", sToken, iStartPos + 1).message);
+				token = this.advanceWhile(char, BasicLexer.isNotQuotes);
+				char = this.getChar();
+				if (!BasicLexer.isQuotes(char)) {
+					if (!this.quiet) {
+						Utils.console.log(this.composeError({} as Error, "Unterminated string", token, startPos + 1).message);
 					}
-					sToken += this.fnTryContinueString(sChar); // heuristic to detect an LF in the string
-					sChar = this.getChar();
+					token += this.fnTryContinueString(char); // heuristic to detect an LF in the string
+					char = this.getChar();
 				}
-				this.addToken("string", sToken, iStartPos + 1);
-				if (sChar === '"') { // not for newline
-					sChar = this.advance();
+				this.addToken("string", token, startPos + 1);
+				if (char === '"') { // not for newline
+					char = this.advance();
 				}
-			} else if (BasicLexer.isIdentifierStart(sChar)) {
-				this.fnParseIdentifier(sChar, iStartPos);
-			} else if (BasicLexer.isAddress(sChar)) {
-				this.addToken(sChar, sChar, iStartPos);
-				sChar = this.advance();
-			} else if (BasicLexer.isRsx(sChar)) {
-				sToken = sChar;
-				sChar = this.advance();
-				if (BasicLexer.isIdentifierMiddle(sChar)) {
-					sToken += this.advanceWhile(sChar, BasicLexer.isIdentifierMiddle);
-					sChar = this.getChar();
-					this.addToken("|", sToken, iStartPos);
+			} else if (BasicLexer.isIdentifierStart(char)) {
+				this.fnParseIdentifier(char, startPos);
+			} else if (BasicLexer.isAddress(char)) {
+				this.addToken(char, char, startPos);
+				char = this.advance();
+			} else if (BasicLexer.isRsx(char)) {
+				token = char;
+				char = this.advance();
+				if (BasicLexer.isIdentifierMiddle(char)) {
+					token += this.advanceWhile(char, BasicLexer.isIdentifierMiddle);
+					char = this.getChar();
+					this.addToken("|", token, startPos);
 				}
-			} else if (BasicLexer.isStream(sChar)) { // stream can be an expression
-				this.addToken(sChar, sChar, iStartPos);
-				sChar = this.advance();
-			} else if (BasicLexer.isComparison(sChar)) {
-				sToken = this.advanceWhile(sChar, BasicLexer.isComparison2);
-				this.addToken(sToken, sToken, iStartPos); // like operator
-				sChar = this.getChar();
+			} else if (BasicLexer.isStream(char)) { // stream can be an expression
+				this.addToken(char, char, startPos);
+				char = this.advance();
+			} else if (BasicLexer.isComparison(char)) {
+				token = this.advanceWhile(char, BasicLexer.isComparison2);
+				this.addToken(token, token, startPos); // like operator
+				char = this.getChar();
 			} else {
-				throw this.composeError(Error(), "Unrecognized token", sChar, iStartPos);
+				throw this.composeError(Error(), "Unrecognized token", char, startPos);
 			}
 		}
-		this.addToken("(end)", "", this.iIndex);
-		return this.aTokens;
+		this.addToken("(end)", "", this.index);
+		return this.tokens;
 	}
 }
