@@ -207,7 +207,7 @@ export class DiskImage {
 	}
 
 	private composeError(error: Error, message: string, value: string, pos?: number) {
-		return Utils.composeError("DiskImage", error, this.diskName + ": " + message, value, pos || 0, undefined);
+		return Utils.composeError("DiskImage", error, this.diskName + ": " + message, value, pos || 0);
 	}
 
 	static testDiskIdent(ident: string): number {
@@ -564,9 +564,7 @@ export class DiskImage {
 			this.readDirectoryExtents(extents, sectorInfo.dataPos, sectorInfo.dataPos + sectorInfo.sectorSize);
 		}
 
-		const dir = DiskImage.prepareDirectoryList(extents, format.fill);
-
-		return dir;
+		return DiskImage.prepareDirectoryList(extents, format.fill);
 	}
 
 	private nextSector(pos: SectorPos) {

@@ -62,7 +62,7 @@ export class BasicLexer {
 		return (/[<>=]/).test(c);
 	}
 	private static isDigit(c: string) {
-		return (/[0-9]/).test(c);
+		return (/\d/).test(c);
 	}
 	private static isDot(c: string) {
 		return (/[.]/).test(c);
@@ -201,7 +201,6 @@ export class BasicLexer {
 				}
 				if (BasicLexer.isDigit(char)) {
 					token += this.advanceWhile(char, BasicLexer.isDigit);
-					char = this.getChar();
 				}
 			}
 		}
@@ -325,7 +324,6 @@ export class BasicLexer {
 			this.getChar();
 		} else if (token === "data") { // special handling because strings in data lines need not to be quoted
 			this.fnParseCompleteLineForData(char, startPos);
-			char = this.getChar();
 		}
 	}
 
@@ -377,7 +375,7 @@ export class BasicLexer {
 				this.addToken(char, char, startPos);
 				char = this.advance();
 				this.fnParseCompleteLineForRemOrApostrophe(char, startPos + 1);
-			} else if (BasicLexer.isOperator(char)) {
+			} else if (BasicLexer.isOperator(char) || BasicLexer.isAddress(char) || BasicLexer.isStream(char)) {
 				this.addToken(char, char, startPos);
 				char = this.advance();
 			} else if (BasicLexer.isDigit(char)) {
@@ -422,9 +420,6 @@ export class BasicLexer {
 				}
 			} else if (BasicLexer.isIdentifierStart(char)) {
 				this.fnParseIdentifier(char, startPos);
-			} else if (BasicLexer.isAddress(char)) {
-				this.addToken(char, char, startPos);
-				char = this.advance();
 			} else if (BasicLexer.isRsx(char)) {
 				token = char;
 				char = this.advance();
@@ -433,9 +428,6 @@ export class BasicLexer {
 					char = this.getChar();
 					this.addToken("|", token, startPos);
 				}
-			} else if (BasicLexer.isStream(char)) { // stream can be an expression
-				this.addToken(char, char, startPos);
-				char = this.advance();
 			} else if (BasicLexer.isComparison(char)) {
 				token = this.advanceWhile(char, BasicLexer.isComparison2);
 				this.addToken(token, token, startPos); // like operator

@@ -139,7 +139,7 @@ export class CodeGeneratorBasic {
 		const nodeArgs: string[] = []; // do not modify node.args here (could be a parameter of defined function)
 
 		if (!args) {
-			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
 		}
 
 		for (let i = 0; i < args.length; i += 1) {
@@ -195,7 +195,7 @@ export class CodeGeneratorBasic {
 	private assign(node: ParserNode) {
 		// see also "let"
 		if (!node.left || !node.right) {
-			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
 		}
 		if (node.left.type !== "identifier") {
 			throw this.composeError(Error(), "Unexpected assing type", node.type, node.pos); // should not occur
@@ -283,7 +283,7 @@ export class CodeGeneratorBasic {
 	}
 	private def(node: ParserNode) {
 		if (!node.left || !node.right) {
-			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
 		}
 
 		const name = this.fnParseOneArg(node.left),
@@ -302,7 +302,7 @@ export class CodeGeneratorBasic {
 	}
 	private "else"(node: ParserNode) { // similar to a comment, with unchecked tokens
 		if (!node.args) {
-			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
 		}
 
 		const args = node.args;
@@ -320,7 +320,7 @@ export class CodeGeneratorBasic {
 	}
 	private entOrEnv(node: ParserNode) { // "ent" or "env"
 		if (!node.args) {
-			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
 		}
 
 		const args = node.args,
@@ -345,7 +345,7 @@ export class CodeGeneratorBasic {
 
 	private fn(node: ParserNode) {
 		if (!node.left) {
-			throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occur
 		}
 
 		const nodeArgs = this.fnParseArgs(node.args);
@@ -378,10 +378,10 @@ export class CodeGeneratorBasic {
 
 	private "if"(node: ParserNode) {
 		if (!node.left) {
-			throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occur
 		}
 		if (!node.args) {
-			throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occur
 		}
 
 		let value = node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(this.fnParseOneArg(node.left));
@@ -431,7 +431,7 @@ export class CodeGeneratorBasic {
 	}
 	private mid$Assign(node: ParserNode) {
 		if (!node.right) {
-			throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occur
 		}
 
 		const nodeArgs = this.fnParseArgs(node.args),

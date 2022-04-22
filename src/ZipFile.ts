@@ -63,7 +63,7 @@ export class ZipFile {
 
 	private composeError(error: Error, message: string, value: string, pos: number) {
 		message = this.zipName + ": " + message; // put zipname in message
-		return Utils.composeError("ZipFile", error, message, value, pos, undefined);
+		return Utils.composeError("ZipFile", error, message, value, pos);
 	}
 
 	private subArr(begin: number, length: number) {

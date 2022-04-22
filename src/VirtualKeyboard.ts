@@ -697,13 +697,11 @@ export class VirtualKeyboard {
 			title = keyEntry.title || text;
 		}
 
-		const ascii = {
+		return {
 			key: key,
 			text: text,
 			title: title
 		};
-
-		return ascii;
 	}
 
 	private createButtonRow(id: string, options: VirtualButtonRowOptions[]) {

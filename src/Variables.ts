@@ -109,7 +109,7 @@ export class Variables {
 	}
 
 	initVariable(name: string): void {
-		this.variables[name] = this.getVarDefault(name, undefined);
+		this.variables[name] = this.getVarDefault(name);
 	}
 
 	dimVariable(name: string, dimensions: number[]): void {

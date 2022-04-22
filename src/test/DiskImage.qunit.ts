@@ -48,13 +48,11 @@ QUnit.module("DiskImage: Tests", function () {
 	}
 
 	function createMinimalAmsdosHeader(type: string, start: number, length: number) {
-		const header = {
+		return {
 			typeString: type,
 			start: start,
 			length: length
 		} as AmsdosHeader;
-
-		return header;
 	}
 
 	function fnExtractDiskImage(disk: DiskImage) {

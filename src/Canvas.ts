@@ -492,9 +492,7 @@ export class Canvas {
 	}
 
 	getCharData(char: number): CharType {
-		const charData = this.customCharset[char] || this.charset[char];
-
-		return charData;
+		return this.customCharset[char] || this.charset[char];
 	}
 
 	setDefaultInks(): void {

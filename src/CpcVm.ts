@@ -6,7 +6,7 @@
 import { Utils, CustomError } from "./Utils";
 import { Keyboard, CpcKeyExpansionsOptions } from "./Keyboard";
 import { Random } from "./Random";
-import { Sound, SoundData, ToneEnvData, ToneEnvData1, ToneEnvData2, VolEnvData, VolEnvData1, VolEnvData2 } from "./Sound";
+import { Sound, SoundData, ToneEnvData, VolEnvData } from "./Sound";
 import { Canvas } from "./Canvas";
 import { Variables, VariableMap } from "./Variables";
 import { ICpcVmRsx } from "./Interfaces";
@@ -594,22 +594,16 @@ export class CpcVm {
 				vpos: 0,
 				right: 255 // override
 			};
-		let	win: WindowData;
 
 		if (resetPenPaper) {
 			Object.assign(data, penPaperData);
 		}
 
 		for (let i = 0; i < this.windowDataList.length - 2; i += 1) { // for window streams
-			win = this.windowDataList[i];
-			Object.assign(win, winData, data);
+			Object.assign(this.windowDataList[i], winData, data);
 		}
-
-		win = this.windowDataList[8]; // printer
-		Object.assign(win, winData, printData);
-
-		win = this.windowDataList[9]; // cassette
-		Object.assign(win, winData, cassetteData);
+		Object.assign(this.windowDataList[8], winData, printData); // printer
+		Object.assign(this.windowDataList[9], winData, cassetteData); // cassette
 	}
 
 	vmResetControlBuffer(): void {
@@ -712,10 +706,16 @@ export class CpcVm {
 		return n;
 	}
 
-	vmDetermineVarType(varType: string): string { // also used in controller
-		const type = (varType.length > 1) ? varType.charAt(1) : this.variables.getVarType(varType.charAt(0));
+	private vmRound2Complement(n: number | undefined, err?: string) {
+		n = this.vmInRangeRound(n, -32768, 65535, err);
+		if (n < 0) {
+			n += 65536;
+		}
+		return n;
+	}
 
-		return type;
+	vmDetermineVarType(varType: string): string { // also used in controller
+		return (varType.length > 1) ? varType.charAt(1) : this.variables.getVarType(varType.charAt(0));
 	}
 
 	vmAssertNumberType(varType: string): void {
@@ -856,9 +856,7 @@ export class CpcVm {
 
 	vmGetTimeUntilFrame(time?: number): number {
 		time = time || Date.now();
-		const timeUntilFrame = this.nextFrameTime - time;
-
-		return timeUntilFrame;
+		return this.nextFrameTime - time;
 	}
 
 	vmLoopCondition(): boolean {
@@ -892,7 +890,8 @@ export class CpcVm {
 	private vmDefineVarTypes(type: string, nameOrRange: string, err: string) {
 		this.vmAssertString(nameOrRange, err);
 
-		let first: number, last: number;
+		let first: number,
+			last: number;
 
 		if (nameOrRange.indexOf("-") >= 0) {
 			const range = nameOrRange.split("-", 2);
@@ -903,6 +902,7 @@ export class CpcVm {
 			first = nameOrRange.trim().toLowerCase().charCodeAt(0);
 			last = first;
 		}
+
 		for (let i = first; i <= last; i += 1) {
 			const varChar = String.fromCharCode(i);
 
@@ -936,53 +936,63 @@ export class CpcVm {
 		Utils.console.warn("Not implemented:", name);
 	}
 
-	// not complete
-	private vmUsingFormat1(format: string, arg: string | number) {
+	private vmUsingStringFormat(format: string, arg: string) {
 		const padChar = " ",
 			re1 = /^\\ *\\$/;
 		let str: string;
 
-		if (typeof arg === "string") {
-			if (format === "&") {
-				str = arg;
-			} else if (format === "!") {
-				str = arg.charAt(0);
-			} else if (re1.test(format)) { // "\...\"
-				str = arg.substr(0, format.length);
-				const padLen = format.length - arg.length,
-					pad = (padLen > 0) ? padChar.repeat(padLen) : "";
-
-				str = arg + pad; // string left aligned
-			} else { // no string format
-				throw this.vmComposeError(Error(), 13, "USING format " + format); // "Type mismatch"
-			}
-		} else { // number (not fully implemented)
-			if (format === "&" || format === "!" || re1.test(format)) { // string format for number?
-				throw this.vmComposeError(Error(), 13, "USING format " + format); // "Type mismatch"
-			}
-			if (format.indexOf(".") < 0) { // no decimal point?
-				str = arg.toFixed(0);
-			} else { // assume ###.##
-				const formatParts = format.split(".", 2),
-					decimals = formatParts[1].length;
-
-				// To avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
-				arg = Number(Math.round(Number(arg + "e" + decimals)) + "e-" + decimals);
-				str = arg.toFixed(decimals);
-			}
-			if (format.indexOf(",") >= 0) { // contains comma => insert thousands separator
-				str = Utils.numberWithCommas(str);
-			}
-
-			const padLen = format.length - str.length,
+		if (format === "&") {
+			str = arg;
+		} else if (format === "!") {
+			str = arg.charAt(0);
+		} else if (re1.test(format)) { // "\...\"
+			//str = arg.substr(0, format.length);
+			const padLen = format.length - arg.length,
 				pad = (padLen > 0) ? padChar.repeat(padLen) : "";
 
-			str = pad + str;
-			if (str.length > format.length) {
-				str = "%" + str; // mark too long
-			}
+			str = arg + pad; // string left aligned
+		} else { // no string format
+			throw this.vmComposeError(Error(), 13, "USING format " + format); // "Type mismatch"
 		}
 		return str;
+	}
+
+	// not fully implemented
+	private vmUsingNumberFormat(format: string, arg: number) {
+		const padChar = " ",
+			re1 = /^\\ *\\$/;
+		let str: string;
+
+		if (format === "&" || format === "!" || re1.test(format)) { // string format for number?
+			throw this.vmComposeError(Error(), 13, "USING format " + format); // "Type mismatch"
+		}
+		if (format.indexOf(".") < 0) { // no decimal point?
+			str = arg.toFixed(0);
+		} else { // assume ###.##
+			const formatParts = format.split(".", 2),
+				decimals = formatParts[1].length;
+
+			// To avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
+			arg = Number(Math.round(Number(arg + "e" + decimals)) + "e-" + decimals);
+			str = arg.toFixed(decimals);
+		}
+		if (format.indexOf(",") >= 0) { // contains comma => insert thousands separator
+			str = Utils.numberWithCommas(str);
+		}
+
+		const padLen = format.length - str.length,
+			pad = (padLen > 0) ? padChar.repeat(padLen) : "";
+
+		str = pad + str;
+		if (str.length > format.length) {
+			str = "%" + str; // mark too long
+		}
+
+		return str;
+	}
+
+	private vmUsingFormat(format: string, arg: string | number) {
+		return typeof arg === "string" ? this.vmUsingStringFormat(format, arg) : this.vmUsingNumberFormat(format, arg);
 	}
 
 	vmGetStopObject(): VmStopEntry {
@@ -1102,9 +1112,7 @@ export class CpcVm {
 	// could be also set vmSetScreenViewBase? thisiScreenViewPage?  We always draw on visible canvas?
 
 	private vmSetTransparentMode(stream: number, transparent: number) {
-		const win = this.windowDataList[stream];
-
-		win.transparent = Boolean(transparent);
+		this.windowDataList[stream].transparent = Boolean(transparent);
 	}
 
 	// --
@@ -1183,25 +1191,26 @@ export class CpcVm {
 	private vmMcSetMode(mode: number) {
 		mode = this.vmInRangeRound(mode, 0, 3, "MCSetMode");
 
-		const addr = this.screenPage << 14, // eslint-disable-line no-bitwise
-			canvasMode = this.canvas.getMode();
+		const canvasMode = this.canvas.getMode();
 
 		if (mode !== canvasMode) {
+			const addr = this.screenPage << 14; // eslint-disable-line no-bitwise
+
 			// keep screen bytes, just interpret in other mode
 			this.vmCopyFromScreen(addr, addr); // read bytes from screen memory into memory
 			this.canvas.changeMode(mode); // change mode and interpretation of bytes
 			this.vmCopyToScreen(addr, addr); // write bytes back to screen memory
-			this.canvas.changeMode(canvasMode); // keep moe
+			this.canvas.changeMode(canvasMode); // keep mode
 			// TODO: new content should still be written in old mode but interpreted in new mode
 		}
 	}
 
 	private vmTxtInverse(stream: number) { // stream must be checked
 		const win = this.windowDataList[stream],
-			tmp = win.pen;
+			tmpPen = win.pen;
 
 		this.pen(stream, win.paper);
-		this.paper(stream, tmp);
+		this.paper(stream, tmpPen);
 	}
 
 	private vmPutKeyInBuffer(key: string) {
@@ -1216,10 +1225,7 @@ export class CpcVm {
 
 	call(addr: number): void { // eslint-disable-line complexity
 		// varargs (adr + parameters)
-		addr = this.vmInRangeRound(addr, -32768, 65535, "CALL");
-		if (addr < 0) { // 2nd complement of 16 bit address?
-			addr += 65536;
-		}
+		addr = this.vmRound2Complement(addr, "CALL");
 		switch (addr) {
 		case 0xbb00: // KM Initialize (ROM &19E0)
 			this.keyboard.resetCpcKeysExpansions();
@@ -1595,7 +1601,7 @@ export class CpcVm {
 	dec$(n: number, frmt: string): string {
 		this.vmAssertNumber(n, "DEC$");
 		this.vmAssertString(frmt, "DEC$");
-		return this.vmUsingFormat1(frmt, n);
+		return this.vmUsingFormat(frmt, n);
 	}
 
 	// def fn
@@ -1694,12 +1700,11 @@ export class CpcVm {
 	}
 
 	ent(toneEnv: number, ...args: number[]): void { // varargs
-		const envData: ToneEnvData[] = [];
+		toneEnv = this.vmInRangeRound(toneEnv, -15, 15, "ENT");
 
+		const envData: ToneEnvData[] = [];
 		let	arg: ToneEnvData,
 			repeat = false;
-
-		toneEnv = this.vmInRangeRound(toneEnv, -15, 15, "ENT");
 
 		if (toneEnv < 0) {
 			toneEnv = -toneEnv;
@@ -1714,12 +1719,12 @@ export class CpcVm {
 						diff: this.vmInRangeRound(args[i + 1], -128, 127, "ENT"), // size (period change) of steps: -128..+127
 						time: this.vmInRangeRound(args[i + 2], 0, 255, "ENT"), // time per step: 0..255 (0=256)
 						repeat: repeat
-					} as ToneEnvData1;
+					}; // as ToneEnvData1
 				} else { // special handling
 					arg = {
 						period: this.vmInRangeRound(args[i + 1], 0, 4095, "ENT"), // absolute period
 						time: this.vmInRangeRound(args[i + 2], 0, 255, "ENT") // time: 0..255 (0=256)
-					} as ToneEnvData2;
+					}; // as ToneEnvData2
 				}
 				envData.push(arg);
 			}
@@ -1731,10 +1736,10 @@ export class CpcVm {
 	}
 
 	env(volEnv: number, ...args: number[]): void { // varargs
+		volEnv = this.vmInRangeRound(volEnv, 1, 15, "ENV");
+
 		const envData: VolEnvData[] = [];
 		let arg: VolEnvData;
-
-		volEnv = this.vmInRangeRound(volEnv, 1, 15, "ENV");
 
 		for (let i = 0; i < args.length; i += 3) { // starting with 1: 3 parameters per section
 			if (args[i] !== undefined) {
@@ -1744,7 +1749,7 @@ export class CpcVm {
 					diff: this.vmInRangeRound(args[i + 1], -128, 127, "ENV") & 0x0f, // size (volume) of steps: moved to range 0..15
 					/* eslint-enable no-bitwise */
 					time: this.vmInRangeRound(args[i + 2], 0, 255, "ENV") // time per step: 0..255 (0=256)
-				} as VolEnvData1;
+				}; // as VolEnvData1
 				if (!arg.time) { // (0=256)
 					arg.time = 256;
 				}
@@ -1752,7 +1757,7 @@ export class CpcVm {
 				arg = {
 					register: this.vmInRangeRound(args[i + 1], 0, 15, "ENV"), // register: 0..15
 					period: this.vmInRangeRound(args[i + 2], -32768, 65535, "ENV")
-				} as VolEnvData2;
+				}; // as VolEnvData2
 			}
 			envData.push(arg);
 		}
@@ -1938,12 +1943,14 @@ export class CpcVm {
 	}
 
 	inp(port: number): number {
-		const byte = 255; // we return always the same
+		port = this.vmRound2Complement(port, "INP"); // 2nd complement of 16 bit address
 
-		port = this.vmInRangeRound(port, -32768, 65535, "INP");
-		if (port < 0) { // 2nd complement of 16 bit address?
-			port += 65536;
-		}
+		// eslint-disable-next-line no-bitwise
+		let byte = (port & 0xff);
+
+		// eslint-disable-next-line no-bitwise
+		byte |= 0xff; // we return always the same 0xff
+
 		return byte;
 	}
 
@@ -2286,10 +2293,7 @@ export class CpcVm {
 
 		name = this.vmAdaptFilename(name, "LOAD");
 		if (start !== undefined) {
-			start = this.vmInRangeRound(start, -32768, 65535, "LOAD");
-			if (start < 0) { // 2nd complement of 16 bit address
-				start += 65536;
-			}
+			start = this.vmRound2Complement(start, "LOAD");
 		}
 		this.closein();
 		inFile.open = true;
@@ -2613,10 +2617,7 @@ export class CpcVm {
 	}
 
 	out(port: number, byte: number): void {
-		port = this.vmInRangeRound(port, -32768, 65535, "OUT");
-		if (port < 0) { // 2nd complement of 16 bit address?
-			port += 65536;
-		}
+		port = this.vmRound2Complement(port, "OUT");
 		byte = this.vmInRangeRound(byte, 0, 255, "OUT");
 
 		const portHigh = port >> 8; // eslint-disable-line no-bitwise
@@ -2660,10 +2661,7 @@ export class CpcVm {
 	}
 
 	peek(addr: number): number {
-		addr = this.vmInRangeRound(addr, -32768, 65535, "PEEK");
-		if (addr < 0) { // 2nd complement of 16 bit address
-			addr += 65536;
-		}
+		addr = this.vmRound2Complement(addr, "PEEK");
 		// check two higher bits of 16 bit address to get 16K page
 		const page = addr >> 14; // eslint-disable-line no-bitwise
 		let byte: number | null;
@@ -2718,10 +2716,7 @@ export class CpcVm {
 	}
 
 	poke(addr: number, byte: number): void {
-		addr = this.vmInRangeRound(addr, -32768, 65535, "POKE address");
-		if (addr < 0) { // 2nd complement of 16 bit address?
-			addr += 65536;
-		}
+		addr = this.vmRound2Complement(addr, "POKE address");
 		byte = this.vmInRangeRound(byte, 0, 255, "POKE byte");
 
 		// check two higher bits of 16 bit address to get 16K page
@@ -3028,9 +3023,9 @@ export class CpcVm {
 				out += String.fromCharCode(code);
 			}
 		}
+
 		if (out !== "") {
 			this.vmPrintChars(stream, out); // print chars collected so far
-			out = "";
 		}
 		return buf;
 	}
@@ -3407,21 +3402,11 @@ export class CpcVm {
 		const fileData: string[] = [];
 
 		if (type === "B") { // binary
-			start = this.vmInRangeRound(start, -32768, 65535, "SAVE");
-			if (start < 0) { // 2nd complement of 16 bit address
-				start += 65536;
-			}
-
-			length = this.vmInRangeRound(length, -32768, 65535, "SAVE");
-			if (length < 0) {
-				length += 65536;
-			}
+			start = this.vmRound2Complement(start, "SAVE");
+			length = this.vmRound2Complement(length, "SAVE");
 
 			if (entry !== undefined) {
-				entry = this.vmInRangeRound(entry, -32768, 65535, "SAVE");
-				if (entry < 0) {
-					entry += 65536;
-				}
+				entry = this.vmRound2Complement(entry, "SAVE");
 			}
 			for (let i = 0; i < length; i += 1) {
 				const address = (start + i) & 0xffff; // eslint-disable-line no-bitwise
@@ -3562,9 +3547,7 @@ export class CpcVm {
 
 	str$(n: number): string { // number (also hex or binary)
 		this.vmAssertNumber(n, "STR$");
-		const str = ((n >= 0) ? " " : "") + String(n);
-
-		return str;
+		return ((n >= 0) ? " " : "") + String(n);
 	}
 
 	string$(len: number, chr: number | string): string {
@@ -3580,10 +3563,10 @@ export class CpcVm {
 
 	// swap (window swap)
 
-	symbol(char: number, ...args: number[]): void { // varargs  (char, rows 1..8)
+	symbol(char: number, ...args: number[]): void { // varargs (char, rows 1..8)
+		char = this.vmInRangeRound(char, this.minCustomChar, 255, "SYMBOL");
 		const charData: number[] = [];
 
-		char = this.vmInRangeRound(char, this.minCustomChar, 255, "SYMBOL");
 		for (let i = 0; i < args.length; i += 1) { // start with 1, get available args
 			const bitMask = this.vmInRangeRound(args[i], 0, 255, "SYMBOL");
 
@@ -3625,12 +3608,13 @@ export class CpcVm {
 		stream = this.vmInRangeRound(stream, 0, 9, "TAB");
 		n = this.vmInRangeRound(n, -32768, 32767, "TAB");
 
-		const win = this.windowDataList[stream],
-			width = win.right - win.left + 1;
 		let	str = "";
 
 		if (n > 0) {
 			n -= 1;
+			const win = this.windowDataList[stream],
+				width = win.right - win.left + 1;
+
 			if (width) {
 				n %= width;
 			}
@@ -3694,7 +3678,7 @@ export class CpcVm {
 
 	unt(n: number): number {
 		n = this.vmInRangeRound(n, -32768, 65535, "UNT");
-		if (n > 32767) {
+		if (n > 32767) { // undo 2th complement
 			n -= 65536;
 		}
 		return n;
@@ -3706,9 +3690,7 @@ export class CpcVm {
 
 	upper$(s: string): string {
 		this.vmAssertString(s, "UPPER$");
-
-		s = s.replace(/[a-z]/g, CpcVm.fnUpperCase); // replace only characters a-z
-		return s;
+		return s.replace(/[a-z]/g, CpcVm.fnUpperCase); // replace only characters a-z
 	}
 
 	using(format: string, ...args: (string | number)[]): string { // varargs
@@ -3747,7 +3729,7 @@ export class CpcVm {
 			if (formatIndex < formatList.length) {
 				const arg = args[i];
 
-				s += this.vmUsingFormat1(formatList[formatIndex], arg); // format characters
+				s += this.vmUsingFormat(formatList[formatIndex], arg); // format characters
 				formatIndex += 1;
 			}
 			if (formatIndex < formatList.length) {
@@ -3789,27 +3771,19 @@ export class CpcVm {
 
 	vpos(stream: number): number {
 		stream = this.vmInRangeRound(stream, 0, 7, "VPOS");
-
-		const vpos = this.vmGetAllowedPosOrVpos(stream, true) + 1; // get allowed vpos
-
-		return vpos;
+		return this.vmGetAllowedPosOrVpos(stream, true) + 1;
 	}
 
 	wait(port: number, mask: number, inv?: number): void { // optional inv
-		port = this.vmInRangeRound(port, -32768, 65535, "WAIT");
-		if (port < 0) { // 2nd complement of 16 bit address
-			port += 65536;
-		}
+		port = this.vmRound2Complement(port, "WAIT");
 		mask = this.vmInRangeRound(mask, 0, 255, "WAIT");
 		if (inv !== undefined) {
-			inv = this.vmInRangeRound(inv, 0, 255, "WAIT");
+			/* inv = */ this.vmInRangeRound(inv, 0, 255, "WAIT");
 		}
 		if ((port & 0xff00) === 0xf500) { // eslint-disable-line no-bitwise
 			if (mask === 1) {
 				this.frame();
 			}
-		} else if (port === 0) {
-			debugger; // Testing
 		}
 	}
 
@@ -3905,7 +3879,6 @@ export class CpcVm {
 	}
 
 	zone(n: number): void {
-		n = this.vmInRangeRound(n, 1, 255, "ZONE");
-		this.zoneValue = n;
+		this.zoneValue = this.vmInRangeRound(n, 1, 255, "ZONE");
 	}
 }
