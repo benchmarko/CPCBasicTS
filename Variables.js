@@ -85,7 +85,7 @@ define(["require", "exports"], function (require, exports) {
             return value;
         };
         Variables.prototype.initVariable = function (name) {
-            this.variables[name] = this.getVarDefault(name, undefined);
+            this.variables[name] = this.getVarDefault(name);
         };
         Variables.prototype.dimVariable = function (name, dimensions) {
             this.variables[name] = this.getVarDefault(name, dimensions);

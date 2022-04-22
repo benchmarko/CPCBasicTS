@@ -233,7 +233,7 @@ export class CodeGeneratorJs {
 		const nodeArgs: string[] = []; // do not modify node.args here (could be a parameter of defined function)
 
 		if (!args) {
-			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
 		}
 
 		for (let i = 0; i < args.length; i += 1) {
@@ -247,7 +247,7 @@ export class CodeGeneratorJs {
 	}
 
 	private static fnIsIntConst(a: string) {
-		const reIntConst = /^[+-]?([0-9]+|0x[0-9a-f]+|0b[0-1]+)$/; // regex for integer, hex, binary constant
+		const reIntConst = /^[+-]?(\d+|0x[0-9a-f]+|0b[0-1]+)$/; // regex for integer, hex, binary constant
 
 		return reIntConst.test(a);
 	}
@@ -277,7 +277,7 @@ export class CodeGeneratorJs {
 
 	// operators
 
-	private plus(node: CodeNode, left: CodeNode, right: CodeNode) { // "+" (binary or unary)
+	private plus(node: CodeNode, left: CodeNode | undefined, right: CodeNode) { // "+" (binary or unary)
 		if (left === undefined) { // unary plus? => skip it
 			node.pv = right.pv;
 			const type = right.pt;
@@ -294,7 +294,7 @@ export class CodeGeneratorJs {
 		return node.pv;
 	}
 
-	private minus(node: CodeNode, left: CodeNode, right: CodeNode) { // "-" (binary or unary)
+	private minus(node: CodeNode, left: CodeNode | undefined, right: CodeNode) { // "-" (binary or unary)
 		if (left === undefined) { // unary minus?
 			const value = right.pv,
 				type = right.pt;
@@ -369,7 +369,7 @@ export class CodeGeneratorJs {
 		return node.pv;
 	}
 
-	private static not(node: CodeNode, _oLeft: CodeNode, right: CodeNode) { // (unary operator)
+	private static not(node: CodeNode, _oLeft: CodeNode | undefined, right: CodeNode) { // (unary operator)
 		node.pv = "~(" + CodeGeneratorJs.fnGetRoundString(right) + ")"; // a can be an expression
 		node.pt = "I";
 		return node.pv;
@@ -424,7 +424,7 @@ export class CodeGeneratorJs {
 		return node.pv;
 	}
 
-	private addressOf(node: CodeNode, _oLeft: CodeNode, right: CodeNode) { // "@" (unary operator)
+	private addressOf(node: CodeNode, _oLeft: CodeNode | undefined, right: CodeNode) { // "@" (unary operator)
 		node.pv = 'o.addressOf("' + right.pv + '")'; // address of
 		if (right.type !== "identifier") {
 			throw this.composeError(Error(), "Expected variable", node.value, node.pos);
@@ -433,7 +433,7 @@ export class CodeGeneratorJs {
 		return node.pv;
 	}
 
-	private static stream(node: CodeNode, _oLeft: CodeNode, right: CodeNode) { // (unary operator)
+	private static stream(node: CodeNode, _oLeft: CodeNode | undefined, right: CodeNode) { // (unary operator)
 		// "#" stream as prefix operator
 		node.pv = right.pv;
 		node.pt = "I";
@@ -442,7 +442,7 @@ export class CodeGeneratorJs {
 
 
 	/* eslint-disable no-invalid-this */
-	private operators: { [k in string]: (node: CodeNode, left: CodeNode, right: CodeNode) => string } = { // to call methods, use operators[].call(this,...)
+	private allOperators: { [k in string]: (node: CodeNode, left: CodeNode, right: CodeNode) => string } = { // to call methods, use allOperators[].call(this,...)
 		"+": this.plus,
 		"-": this.minus,
 		"*": this.mult,
@@ -460,6 +460,14 @@ export class CodeGeneratorJs {
 		"<=": this.lessEqual,
 		"=": this.equal,
 		"<>": this.notEqual,
+		"@": this.addressOf,
+		"#": CodeGeneratorJs.stream
+	};
+
+	private unaryOperators: { [k in string]: (node: CodeNode, left: undefined, right: CodeNode) => string } = { // to call methods, use unaryOperators[].call(this,...)
+		"+": this.plus,
+		"-": this.minus,
+		not: CodeGeneratorJs.not,
 		"@": this.addressOf,
 		"#": CodeGeneratorJs.stream
 	};
@@ -548,7 +556,7 @@ export class CodeGeneratorJs {
 		return node.pv;
 	}
 	private static number(node: CodeNode) {
-		node.pt = (/^[0-9]+$/).test(node.value) ? "I" : "R";
+		node.pt = (/^\d+$/).test(node.value) ? "I" : "R";
 		node.pv = node.value; // keep string
 		return node.pv;
 	}
@@ -602,7 +610,7 @@ export class CodeGeneratorJs {
 	}
 	private range(node: CodeNode) { // for defint, defreal, defstr
 		if (!node.left || !node.right) {
-			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
 		}
 		const left = this.fnParseOneArg(node.left),
 			right = this.fnParseOneArg(node.right);
@@ -615,7 +623,7 @@ export class CodeGeneratorJs {
 	}
 	private linerange(node: CodeNode) { // for delete, list
 		if (!node.left || !node.right) {
-			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
 		}
 		const left = this.fnParseOneArg(node.left),
 			right = this.fnParseOneArg(node.right),
@@ -655,7 +663,7 @@ export class CodeGeneratorJs {
 		// see also "let"
 
 		if (!node.left || !node.right) {
-			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
 		}
 		let name: string;
 
@@ -737,16 +745,17 @@ export class CodeGeneratorJs {
 
 	// special keyword functions
 
-	private afterGosub(node: CodeNode) {
+	private afterEveryGosub(node: CodeNode) {
 		const nodeArgs = this.fnParseArgs(node.args);
 
 		if (!node.args) {
-			throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occur
 		}
 		this.fnAddReferenceLabel(nodeArgs[2], node.args[2]); // argument 2 = line number
 		node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + ")";
 		return node.pv;
 	}
+	/*
 	private call(node: CodeNode) {
 		node.pv = this.fnCommandWithGoto(node);
 		return node.pv;
@@ -755,11 +764,13 @@ export class CodeGeneratorJs {
 		node.pv = this.fnCommandWithGoto(node);
 		return node.pv;
 	}
-	private chainMerge(node: CodeNode) {
+	*/
+	private chainMergeOrMerge(node: CodeNode) {
 		this.mergeFound = true;
 		node.pv = this.fnCommandWithGoto(node);
 		return node.pv;
 	}
+	/*
 	private clear(node: CodeNode) { // will also do e.g. closeout
 		node.pv = this.fnCommandWithGoto(node);
 		return node.pv;
@@ -768,6 +779,7 @@ export class CodeGeneratorJs {
 		node.pv = this.fnCommandWithGoto(node);
 		return node.pv;
 	}
+	*/
 	private static cont(node: CodeNode) {
 		node.pv = "o." + node.type + "(); break;"; // append break
 		return node.pv;
@@ -788,7 +800,7 @@ export class CodeGeneratorJs {
 	}
 	private def(node: CodeNode) { // somehow special because we need to get plain variables
 		if (!node.left || !node.right) {
-			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
 		}
 
 		const name = this.fnParseOneArg(node.left);
@@ -837,7 +849,7 @@ export class CodeGeneratorJs {
 		const args: string[] = [];
 
 		if (!node.args) {
-			throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occur
 		}
 
 		for (let i = 0; i < node.args.length; i += 1) {
@@ -847,7 +859,7 @@ export class CodeGeneratorJs {
 				throw this.composeError(Error(), "Expected variable in DIM", node.type, node.pos);
 			}
 			if (!nodeArg.args) {
-				throw this.composeError(Error(), "Programming error: Undefined args", nodeArg.type, nodeArg.pos); // should not occure
+				throw this.composeError(Error(), "Programming error: Undefined args", nodeArg.type, nodeArg.pos); // should not occur
 			}
 			const nodeArgs = this.fnParseArgRange(nodeArg.args, 1, nodeArg.args.length - 2), // we skip open and close bracket
 				fullExpression = this.fnParseOneArg(nodeArg);
@@ -882,7 +894,7 @@ export class CodeGeneratorJs {
 	}
 	private "else"(node: CodeNode) { // similar to a comment, with unchecked tokens
 		if (!node.args) {
-			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
 		}
 		let	value = node.type;
 
@@ -915,20 +927,21 @@ export class CodeGeneratorJs {
 		node.pv = "o.error(" + nodeArgs[0] + "); break";
 		return node.pv;
 	}
+	/*
 	private everyGosub(node: CodeNode) {
 		const nodeArgs = this.fnParseArgs(node.args);
 
 		if (!node.args) {
-			throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occur
 		}
-
 		this.fnAddReferenceLabel(nodeArgs[2], node.args[2]); // argument 2 = line number
 		node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + ")";
 		return node.pv;
 	}
+	*/
 	private fn(node: CodeNode) {
 		if (!node.left) {
-			throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occur
 		}
 
 		const nodeArgs = this.fnParseArgs(node.args),
@@ -951,7 +964,7 @@ export class CodeGeneratorJs {
 		this.forCount += 1;
 
 		if (!node.args) {
-			throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occur
 		}
 
 		const startNode = node.args[1],
@@ -1041,10 +1054,12 @@ export class CodeGeneratorJs {
 		return node.pv;
 	}
 
+	/*
 	private frame(node: CodeNode) {
 		node.pv = this.fnCommandWithGoto(node);
 		return node.pv;
 	}
+	*/
 	private gosub(node: CodeNode) {
 		const nodeArgs = this.fnParseArgs(node.args),
 			line = nodeArgs[0],
@@ -1052,7 +1067,7 @@ export class CodeGeneratorJs {
 
 		this.gosubCount += 1;
 		if (!node.args) {
-			throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occur
 		}
 		this.fnAddReferenceLabel(line, node.args[0]);
 		node.pv = 'o.gosub("' + name + '", ' + line + '); break; \ncase "' + name + '":';
@@ -1064,7 +1079,7 @@ export class CodeGeneratorJs {
 			line = nodeArgs[0];
 
 		if (!node.args) {
-			throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occur
 		}
 		this.fnAddReferenceLabel(line, node.args[0]);
 		node.pv = "o.goto(" + line + "); break";
@@ -1096,7 +1111,7 @@ export class CodeGeneratorJs {
 		this.ifCount += 1;
 
 		if (!node.left) {
-			throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occur
 		}
 		let expression = this.fnParseOneArg(node.left);
 
@@ -1130,7 +1145,7 @@ export class CodeGeneratorJs {
 		return node.pv;
 	}
 
-	private input(node: CodeNode) { // input or lineInput
+	private inputOrlineInput(node: CodeNode) { // input or lineInput
 		const nodeArgs = this.fnParseArgs(node.args),
 			varTypes = [];
 		let label = this.line + "s" + this.stopCount;
@@ -1138,7 +1153,7 @@ export class CodeGeneratorJs {
 		this.stopCount += 1;
 
 		if (nodeArgs.length < 4) {
-			throw this.composeError(Error(), "Programming error: Not enough parameters", node.type, node.pos); // should not occure
+			throw this.composeError(Error(), "Programming error: Not enough parameters", node.type, node.pos); // should not occur
 		}
 
 		const stream = nodeArgs[0];
@@ -1150,7 +1165,7 @@ export class CodeGeneratorJs {
 		let msg = nodeArgs[2];
 
 		if (!node.args) {
-			throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occur
 		}
 		if (node.args[2].type === "null") { // message type
 			msg = '""';
@@ -1180,19 +1195,21 @@ export class CodeGeneratorJs {
 	}
 	private let(node: CodeNode) {
 		if (!node.right) {
-			throw this.composeError(Error(), "Programming error: Undefined right", node.type, node.pos); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined right", node.type, node.pos); // should not occur
 		}
 		node.pv = this.assign(node.right);
 		return node.pv;
 	}
+	/*
 	private lineInput(node: CodeNode) {
-		return this.input(node); // similar to input but with one arg of type string only
+		return this.inputOrlineInput(node); // similar to input but with one arg of type string only
 	}
+	*/
 	private list(node: CodeNode) {
 		const nodeArgs = this.fnParseArgs(node.args); // or: fnCommandWithGoto
 
 		if (!node.args) {
-			throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occur
 		}
 		if (!node.args.length || node.args[node.args.length - 1].type === "#") { // last parameter stream? or no parameters?
 			const stream = nodeArgs.pop() || "0";
@@ -1203,15 +1220,16 @@ export class CodeGeneratorJs {
 		node.pv = "o.list(" + nodeArgs.join(", ") + "); break;";
 		return node.pv;
 	}
+	/*
 	private load(node: CodeNode) {
-		node.pv = this.fnCommandWithGoto(node);
-		return node.pv;
+		return this.fnCommandWithGoto(node);
 	}
 	private merge(node: CodeNode) {
 		this.mergeFound = true;
 		node.pv = this.fnCommandWithGoto(node);
 		return node.pv;
 	}
+	*/
 	private mid$Assign(node: CodeNode) {
 		const nodeArgs = this.fnParseArgs(node.args);
 
@@ -1220,7 +1238,7 @@ export class CodeGeneratorJs {
 		}
 
 		if (!node.right) {
-			throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occur
 		}
 		const right = this.fnParseOneArg(node.right);
 
@@ -1323,9 +1341,11 @@ export class CodeGeneratorJs {
 		node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + ")";
 		return node.pv;
 	}
+	/*
 	private openin(node: CodeNode) {
 		return this.fnCommandWithGoto(node);
 	}
+	*/
 
 	private print(node: CodeNode) {
 		const args = node.args,
@@ -1397,10 +1417,12 @@ export class CodeGeneratorJs {
 		node.pv = "//" + value + "\n";
 		return node.pv;
 	}
+	/*
 	private renum(node: CodeNode) {
 		node.pv = this.fnCommandWithGoto(node);
 		return node.pv;
 	}
+	*/
 	private restore(node: CodeNode) {
 		const nodeArgs = this.fnParseArgs(node.args);
 
@@ -1458,10 +1480,12 @@ export class CodeGeneratorJs {
 		node.pv = this.fnCommandWithGoto(node, nodeArgs);
 		return node.pv;
 	}
+	/*
 	private sound(node: CodeNode) {
 		node.pv = this.fnCommandWithGoto(node); // maybe queue is full, so insert break
 		return node.pv;
 	}
+	*/
 	private spc(node: CodeNode) {
 		const nodeArgs = this.fnParseArgs(node.args);
 
@@ -1519,12 +1543,12 @@ export class CodeGeneratorJs {
 		assign: this.assign,
 		label: this.label,
 		// special keyword functions
-		afterGosub: this.afterGosub,
-		call: this.call,
-		chain: this.chain,
-		chainMerge: this.chainMerge,
-		clear: this.clear,
-		closeout: this.closeout,
+		afterGosub: this.afterEveryGosub,
+		call: this.fnCommandWithGoto,
+		chain: this.fnCommandWithGoto,
+		chainMerge: this.chainMergeOrMerge,
+		clear: this.fnCommandWithGoto, // will also do e.g. closeout
+		closeout: this.fnCommandWithGoto,
 		cont: CodeGeneratorJs.cont,
 		data: this.data,
 		def: this.def,
@@ -1538,19 +1562,19 @@ export class CodeGeneratorJs {
 		end: this.end,
 		erase: this.erase,
 		error: this.error,
-		everyGosub: this.everyGosub,
+		everyGosub: this.afterEveryGosub,
 		fn: this.fn,
 		"for": this.for,
-		frame: this.frame,
+		frame: this.fnCommandWithGoto,
 		gosub: this.gosub,
 		"goto": this.goto,
 		"if": this.if,
-		input: this.input,
+		input: this.inputOrlineInput,
 		let: this.let,
-		lineInput: this.lineInput,
+		lineInput: this.inputOrlineInput,
 		list: this.list,
-		load: this.load,
-		merge: this.merge,
+		load: this.fnCommandWithGoto,
+		merge: this.chainMergeOrMerge,
 		mid$Assign: this.mid$Assign,
 		"new": CodeGeneratorJs.new,
 		next: this.next,
@@ -1559,18 +1583,18 @@ export class CodeGeneratorJs {
 		onGosub: this.onGosub,
 		onGoto: this.onGoto,
 		onSqGosub: this.onSqGosub,
-		openin: this.openin,
+		openin: this.fnCommandWithGoto,
 		print: this.print,
 		randomize: this.randomize,
 		read: this.read,
 		rem: this.rem,
-		renum: this.renum,
+		renum: this.fnCommandWithGoto,
 		restore: this.restore,
 		resume: this.resume,
 		"return": CodeGeneratorJs.return,
 		run: this.run,
 		save: this.save,
-		sound: this.sound,
+		sound: this.fnCommandWithGoto, // maybe queue is full, so insert break
 		spc: this.spc,
 		stop: this.stop,
 		tab: this.tab,
@@ -1578,7 +1602,6 @@ export class CodeGeneratorJs {
 		"while": this.while
 	}
 	/* eslint-enable no-invalid-this */
-
 
 	private fnParseOther(node: CodeNode) {
 		const nodeArgs = this.fnParseArgs(node.args),
@@ -1597,13 +1620,12 @@ export class CodeGeneratorJs {
 		return node.pv;
 	}
 
-
 	private parseNode(node: CodeNode) {
 		if (Utils.debug > 3) {
 			Utils.console.debug("evaluate: parseNode node=%o type=" + node.type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
 		}
 
-		const operators = this.operators;
+		const operators = this.allOperators;
 
 		let value: string;
 
@@ -1616,7 +1638,7 @@ export class CodeGeneratorJs {
 				}
 
 				if (!node.right) {
-					throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occure
+					throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occur
 				}
 				let value2 = this.parseNode(node.right);
 
@@ -1627,10 +1649,10 @@ export class CodeGeneratorJs {
 				value = operators[node.type].call(this, node, node.left, node.right);
 			} else {
 				if (!node.right) {
-					throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occure
+					throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occur
 				}
-				value = this.parseNode(node.right);
-				value = operators[node.type].call(this, node, node.left! as CodeNode, node.right); // unary operator: we just use node.right
+				this.parseNode(node.right);
+				value = this.unaryOperators[node.type].call(this, node, undefined, node.right); // unary operator: we just use node.right
 			}
 		} else if (this.parseFunctions[node.type]) { // function with special handling?
 			value = this.parseFunctions[node.type].call(this, node);
@@ -1641,11 +1663,10 @@ export class CodeGeneratorJs {
 		return value;
 	}
 
-	private static fnCommentUnusedCases(output2: string, labels: LabelsType) {
-		output2 = output2.replace(/^case (\d+):/gm, function (all: string, line: string) {
+	private static fnCommentUnusedCases(output: string, labels: LabelsType) {
+		return output.replace(/^case (\d+):/gm, function (all: string, line: string) {
 			return (labels[line]) ? all : "/* " + all + " */";
 		});
-		return output2;
 	}
 
 	private fnCreateLabelsMap(parseTree: ParserNode[], labels: LabelsType) {

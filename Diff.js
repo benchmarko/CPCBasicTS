@@ -189,7 +189,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                         ]);
                     }
                 }
-                throw Diff.composeError(Error(), "Programming error in findMidSnake", "", 0); // should not occure
+                throw Diff.composeError(Error(), "Programming error in findMidSnake", "", 0); // should not occur
             }, lcsAtoms = [], lcs = function (startA, endA, startB, endB) {
                 var N = endA - startA + 1, M = endB - startB + 1;
                 if (N > 0 && M > 0) {

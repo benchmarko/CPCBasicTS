@@ -280,8 +280,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.customCharset[char] = charData;
         };
         Canvas.prototype.getCharData = function (char) {
-            var charData = this.customCharset[char] || this.charset[char];
-            return charData;
+            return this.customCharset[char] || this.charset[char];
         };
         Canvas.prototype.setDefaultInks = function () {
             this.currentInks[0] = Canvas.defaultInks[0].slice(); // copy ink set 0 array

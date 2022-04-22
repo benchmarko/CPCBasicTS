@@ -549,9 +549,7 @@ if (!window.JSON) { // simple polyfill for JSON.parse only
 	Polyfills.log("window.JSON.parse");
 	(window as any).JSON = {
 		parse: function (text: string) {
-			const json = eval("(" + text + ")"); // eslint-disable-line no-eval
-
-			return json;
+			return eval("(" + text + ")"); // eslint-disable-line no-eval
 		},
 		stringify: function (o: Object) { // eslint-disable-line @typescript-eslint/ban-types
 			Utils.console.error("Not implemented: window.JSON.stringify");

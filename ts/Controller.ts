@@ -377,6 +377,10 @@ export class Controller implements IController {
 		}
 	}
 
+	private removeKeyBoardHandler() {
+		this.keyboard.setKeyDownHandler();
+	}
+
 	setInputText(input: string, keepStack?: boolean): void {
 		this.view.setAreaValue("inputText", input);
 		if (!keepStack) {
@@ -396,7 +400,7 @@ export class Controller implements IController {
 
 		if (key !== "") {
 			this.vm.cursor(stream, 0);
-			this.keyboard.setKeyDownHandler(undefined);
+			this.removeKeyBoardHandler();
 			this.startContinue();
 		}
 	}
@@ -425,7 +429,7 @@ export class Controller implements IController {
 				line: this.vm.line
 			});
 		} else { // second escape
-			this.keyboard.setKeyDownHandler(undefined);
+			this.removeKeyBoardHandler();
 			this.vm.cursor(stream, 0);
 
 			const savedStop = this.getStopObject();
@@ -475,7 +479,7 @@ export class Controller implements IController {
 		if (key !== "") { // do we have a key from the buffer already?
 			Utils.console.log("Wait for key:", key);
 			this.vm.vmStop("", 0, true);
-			this.keyboard.setKeyDownHandler(undefined);
+			this.removeKeyBoardHandler();
 		} else {
 			this.fnWaitSound(); // sound and blinking events
 			this.keyboard.setKeyDownHandler(this.fnWaitKeyHandler); // wait until keypress handler (for call &bb18)
@@ -601,7 +605,7 @@ export class Controller implements IController {
 				inputOk = true;
 			}
 			if (inputOk) {
-				this.keyboard.setKeyDownHandler(undefined);
+				this.removeKeyBoardHandler();
 				if (stop.reason === "waitInput") { // only for this reason
 					this.vm.vmStop("", 0, true); // no more wait
 				} else {
@@ -672,9 +676,7 @@ export class Controller implements IController {
 			}
 		}
 
-		const resultString = result.join("\n");
-
-		return resultString;
+		return result.join("\n");
 	}
 
 	// get line range from a script with sorted line numbers
@@ -700,9 +702,7 @@ export class Controller implements IController {
 		mask = mask.replace(/\?/g, ".");
 		mask = mask.replace(/\*/g, ".*");
 
-		const regExp = new RegExp("^" + mask + "$");
-
-		return regExp;
+		return new RegExp("^" + mask + "$");
 	}
 
 	private fnGetExampleDirectoryEntries(mask?: string) { // optional mask
@@ -1220,15 +1220,13 @@ export class Controller implements IController {
 	}
 
 	private static joinMeta(meta: FileMeta) {
-		const metaString = [
+		return [
 			Controller.metaIdent,
 			meta.typeString,
 			meta.start,
 			meta.length,
 			meta.entry
 		].join(";");
-
-		return metaString;
 	}
 
 	private static splitMeta(input: string) {
@@ -1674,7 +1672,7 @@ export class Controller implements IController {
 			vm.outBuffer = this.view.getAreaValue("resultText");
 			vm.vmStop("", 0, true);
 			vm.vmGotoLine(0); // to load DATA lines
-			this.vm.vmSetStartLine(line as number); // clear resets also startline
+			this.vm.vmSetStartLine(line); // clear resets also startline
 
 			this.view.setDisabled("runButton", true);
 			this.view.setDisabled("stopButton", false);
@@ -1707,7 +1705,7 @@ export class Controller implements IController {
 					}
 				} else {
 					Utils.console.error(e);
-					this.selectJsError(this.view.getAreaValue("outputText"), e as Error);
+					this.selectJsError(this.view.getAreaValue("outputText"), e);
 					this.vm.vmComposeError(e, 2, "JS " + String(e)); // generate Syntax Error, set also err and erl and set stop
 					this.outputError(e, true);
 				}
@@ -1917,7 +1915,7 @@ export class Controller implements IController {
 
 
 	startParse(): void {
-		this.keyboard.setKeyDownHandler(undefined);
+		this.removeKeyBoardHandler();
 		this.vm.vmStop("parse", 95);
 		this.startMainLoop();
 	}
@@ -1945,14 +1943,14 @@ export class Controller implements IController {
 	startRun(): void {
 		this.setStopObject(this.noStop);
 
-		this.keyboard.setKeyDownHandler(undefined);
+		this.removeKeyBoardHandler();
 		this.vm.vmStop("run", 95);
 		this.startMainLoop();
 	}
 
 	startParseRun(): void {
 		this.setStopObject(this.noStop);
-		this.keyboard.setKeyDownHandler(undefined);
+		this.removeKeyBoardHandler();
 		this.vm.vmStop("parseRun", 95);
 		this.startMainLoop();
 	}
@@ -1962,7 +1960,7 @@ export class Controller implements IController {
 			stop = vm.vmGetStopObject();
 
 		this.setStopObject(stop);
-		this.keyboard.setKeyDownHandler(undefined);
+		this.removeKeyBoardHandler();
 		this.vm.vmStop("break", 80);
 		this.startMainLoop();
 	}
@@ -1977,7 +1975,7 @@ export class Controller implements IController {
 		this.view.setDisabled("continueButton", true);
 		if (stop.reason === "break" || stop.reason === "escape" || stop.reason === "stop" || stop.reason === "direct") {
 			if (savedStop.paras && !(savedStop.paras as VmInputParas).fnInputCallback) { // no keyboard callback? make sure no handler is set (especially for direct->continue)
-				this.keyboard.setKeyDownHandler(undefined);
+				this.removeKeyBoardHandler();
 			}
 			if (stop.reason === "direct" || stop.reason === "escape") {
 				this.vm.cursor(stop.paras.stream, 0); // switch it off (for continue button)
@@ -1990,7 +1988,7 @@ export class Controller implements IController {
 
 	startReset(): void {
 		this.setStopObject(this.noStop);
-		this.keyboard.setKeyDownHandler(undefined);
+		this.removeKeyBoardHandler();
 		this.vm.vmStop("reset", 99);
 		this.startMainLoop();
 	}
@@ -2103,13 +2101,11 @@ export class Controller implements IController {
 	}
 
 	private static createMinimalAmsdosHeader(type: string,	start: number,	length: number) {
-		const header = {
+		return {
 			typeString: type,
 			start: start,
 			length: length
 		} as AmsdosHeader;
-
-		return header;
 	}
 
 

@@ -184,6 +184,7 @@ export declare class CpcVm {
     private vmAssertString;
     vmRound(n: number | undefined, err?: string): number;
     vmInRangeRound(n: number | undefined, min: number, max: number, err?: string): number;
+    private vmRound2Complement;
     vmDetermineVarType(varType: string): string;
     vmAssertNumberType(varType: string): void;
     vmAssign(varType: string, value: string | number): (string | number);
@@ -199,7 +200,9 @@ export declare class CpcVm {
     private vmDefineVarTypes;
     vmStop(reason: string, priority: number, force?: boolean, paras?: VmStopParas): void;
     vmNotImplemented(name: string): void;
-    private vmUsingFormat1;
+    private vmUsingStringFormat;
+    private vmUsingNumberFormat;
+    private vmUsingFormat;
     vmGetStopObject(): VmStopEntry;
     vmGetInFileObject(): InFile;
     vmGetOutFileObject(): OutFile;

@@ -33,12 +33,11 @@ define(["require", "exports", "../Utils", "../BasicTokenizer", "../DiskImage", "
             return buf;
         }
         function createMinimalAmsdosHeader(type, start, length) {
-            var header = {
+            return {
                 typeString: type,
                 start: start,
                 length: length
             };
-            return header;
         }
         function fnExtractDiskImage(disk) {
             var result = [], dir = disk.readDirectory(), entries = Object.keys(dir);

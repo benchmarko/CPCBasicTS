@@ -37,12 +37,15 @@ export declare class BasicParser {
         [k in string]: string;
     };
     private specialStatements;
-    private static closeTokens;
+    private static closeTokensForLine;
+    private static closeTokensForLineAndElse;
+    private static closeTokensForArgs;
     private composeError;
     private getToken;
     private symbol;
     private advance;
     private expression;
+    private fnCheckExpressionType;
     private assignment;
     private statement;
     private statements;
@@ -63,6 +66,7 @@ export declare class BasicParser {
     private fnGetLetterRange;
     private fnCheckRemainingTypes;
     private fnLastStatemetIsOnErrorGotoX;
+    private fnGetExpressionForType;
     private fnGetArgs;
     private fnGetArgsSepByCommaSemi;
     private fnGetArgsInParenthesis;
@@ -100,6 +104,7 @@ export declare class BasicParser {
     private fnSpeed;
     private fnSymbol;
     private fnWindow;
+    private static fnNode;
     private fnGenerateSymbols;
     parse(tokens: LexerToken[], allowDirect?: boolean): ParserNode[];
 }

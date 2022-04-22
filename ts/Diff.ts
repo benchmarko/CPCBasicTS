@@ -227,7 +227,7 @@ export class Diff {
 						]) as OverlapReturnType;
 					}
 				}
-				throw Diff.composeError(Error(), "Programming error in findMidSnake", "", 0); // should not occure
+				throw Diff.composeError(Error(), "Programming error in findMidSnake", "", 0); // should not occur
 			},
 
 			lcsAtoms: string[] = [],

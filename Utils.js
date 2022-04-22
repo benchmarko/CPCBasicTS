@@ -43,7 +43,7 @@ define(["require", "exports"], function (require, exports) {
                         var timeout = 200; // some delay
                         Utils.console.error("onScriptReadyStateChange: Still loading: " + fullUrl + " Waiting " + timeout + "ms (count=" + ieTimeoutCount + ")");
                         setTimeout(function () {
-                            onScriptReadyStateChange(undefined); // check again
+                            onScriptReadyStateChange(); // check again
                         }, timeout);
                     }
                     else {

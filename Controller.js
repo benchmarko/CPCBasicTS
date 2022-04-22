@@ -274,6 +274,9 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.model.setProperty("database", database); // restore database
             }
         };
+        Controller.prototype.removeKeyBoardHandler = function () {
+            this.keyboard.setKeyDownHandler();
+        };
         Controller.prototype.setInputText = function (input, keepStack) {
             this.view.setAreaValue("inputText", input);
             if (!keepStack) {
@@ -290,7 +293,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             var stream = 0, key = this.keyboard.getKeyFromBuffer();
             if (key !== "") {
                 this.vm.cursor(stream, 0);
-                this.keyboard.setKeyDownHandler(undefined);
+                this.removeKeyBoardHandler();
                 this.startContinue();
             }
         };
@@ -318,7 +321,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 });
             }
             else { // second escape
-                this.keyboard.setKeyDownHandler(undefined);
+                this.removeKeyBoardHandler();
                 this.vm.cursor(stream, 0);
                 var savedStop = this.getStopObject();
                 if (savedStop.reason === "waitInput") { // sepcial handling: set line to repeat input
@@ -358,7 +361,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             if (key !== "") { // do we have a key from the buffer already?
                 Utils_1.Utils.console.log("Wait for key:", key);
                 this.vm.vmStop("", 0, true);
-                this.keyboard.setKeyDownHandler(undefined);
+                this.removeKeyBoardHandler();
             }
             else {
                 this.fnWaitSound(); // sound and blinking events
@@ -484,7 +487,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     inputOk = true;
                 }
                 if (inputOk) {
-                    this.keyboard.setKeyDownHandler(undefined);
+                    this.removeKeyBoardHandler();
                     if (stop.reason === "waitInput") { // only for this reason
                         this.vm.vmStop("", 0, true); // no more wait
                     }
@@ -545,8 +548,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     result.pop(); // remove additional newline
                 }
             }
-            var resultString = result.join("\n");
-            return resultString;
+            return result.join("\n");
         };
         // get line range from a script with sorted line numbers
         Controller.fnGetLinesInRange = function (script, firstLine, lastLine) {
@@ -566,8 +568,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             mask = mask.replace(/([.+^$[\]\\(){}|-])/g, "\\$1");
             mask = mask.replace(/\?/g, ".");
             mask = mask.replace(/\*/g, ".*");
-            var regExp = new RegExp("^" + mask + "$");
-            return regExp;
+            return new RegExp("^" + mask + "$");
         };
         Controller.prototype.fnGetExampleDirectoryEntries = function (mask) {
             var dir = [], allExamples = this.model.getAllExamples();
@@ -987,14 +988,13 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.nextLoopTimeOut = this.vm.vmGetTimeUntilFrame(); // wait until next frame
         };
         Controller.joinMeta = function (meta) {
-            var metaString = [
+            return [
                 Controller.metaIdent,
                 meta.typeString,
                 meta.start,
                 meta.length,
                 meta.entry
             ].join(";");
-            return metaString;
         };
         Controller.splitMeta = function (input) {
             var fileMeta;
@@ -1541,7 +1541,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             return this.savedStop;
         };
         Controller.prototype.startParse = function () {
-            this.keyboard.setKeyDownHandler(undefined);
+            this.removeKeyBoardHandler();
             this.vm.vmStop("parse", 95);
             this.startMainLoop();
         };
@@ -1564,20 +1564,20 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         };
         Controller.prototype.startRun = function () {
             this.setStopObject(this.noStop);
-            this.keyboard.setKeyDownHandler(undefined);
+            this.removeKeyBoardHandler();
             this.vm.vmStop("run", 95);
             this.startMainLoop();
         };
         Controller.prototype.startParseRun = function () {
             this.setStopObject(this.noStop);
-            this.keyboard.setKeyDownHandler(undefined);
+            this.removeKeyBoardHandler();
             this.vm.vmStop("parseRun", 95);
             this.startMainLoop();
         };
         Controller.prototype.startBreak = function () {
             var vm = this.vm, stop = vm.vmGetStopObject();
             this.setStopObject(stop);
-            this.keyboard.setKeyDownHandler(undefined);
+            this.removeKeyBoardHandler();
             this.vm.vmStop("break", 80);
             this.startMainLoop();
         };
@@ -1588,7 +1588,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.view.setDisabled("continueButton", true);
             if (stop.reason === "break" || stop.reason === "escape" || stop.reason === "stop" || stop.reason === "direct") {
                 if (savedStop.paras && !savedStop.paras.fnInputCallback) { // no keyboard callback? make sure no handler is set (especially for direct->continue)
-                    this.keyboard.setKeyDownHandler(undefined);
+                    this.removeKeyBoardHandler();
                 }
                 if (stop.reason === "direct" || stop.reason === "escape") {
                     this.vm.cursor(stop.paras.stream, 0); // switch it off (for continue button)
@@ -1600,7 +1600,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         };
         Controller.prototype.startReset = function () {
             this.setStopObject(this.noStop);
-            this.keyboard.setKeyDownHandler(undefined);
+            this.removeKeyBoardHandler();
             this.vm.vmStop("reset", 99);
             this.startMainLoop();
         };
@@ -1691,12 +1691,11 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             soundButton.innerText = text;
         };
         Controller.createMinimalAmsdosHeader = function (type, start, length) {
-            var header = {
+            return {
                 typeString: type,
                 start: start,
                 length: length
             };
-            return header;
         };
         Controller.prototype.fnEndOfImport = function (imported) {
             var stream = 0, vm = this.vm;

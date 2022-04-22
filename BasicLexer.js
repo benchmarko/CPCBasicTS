@@ -42,7 +42,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return (/[<>=]/).test(c);
         };
         BasicLexer.isDigit = function (c) {
-            return (/[0-9]/).test(c);
+            return (/\d/).test(c);
         };
         BasicLexer.isDot = function (c) {
             return (/[.]/).test(c);
@@ -166,7 +166,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     }
                     if (BasicLexer.isDigit(char)) {
                         token += this.advanceWhile(char, BasicLexer.isDigit);
-                        char = this.getChar();
                     }
                 }
             }
@@ -276,7 +275,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             else if (token === "data") { // special handling because strings in data lines need not to be quoted
                 this.fnParseCompleteLineForData(char, startPos);
-                char = this.getChar();
             }
         };
         BasicLexer.prototype.fnTryContinueString = function (char) {
@@ -321,7 +319,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     char = this.advance();
                     this.fnParseCompleteLineForRemOrApostrophe(char, startPos + 1);
                 }
-                else if (BasicLexer.isOperator(char)) {
+                else if (BasicLexer.isOperator(char) || BasicLexer.isAddress(char) || BasicLexer.isStream(char)) {
                     this.addToken(char, char, startPos);
                     char = this.advance();
                 }
@@ -373,10 +371,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 else if (BasicLexer.isIdentifierStart(char)) {
                     this.fnParseIdentifier(char, startPos);
                 }
-                else if (BasicLexer.isAddress(char)) {
-                    this.addToken(char, char, startPos);
-                    char = this.advance();
-                }
                 else if (BasicLexer.isRsx(char)) {
                     token = char;
                     char = this.advance();
@@ -385,10 +379,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                         char = this.getChar();
                         this.addToken("|", token, startPos);
                     }
-                }
-                else if (BasicLexer.isStream(char)) { // stream can be an expression
-                    this.addToken(char, char, startPos);
-                    char = this.advance();
                 }
                 else if (BasicLexer.isComparison(char)) {
                     token = this.advanceWhile(char, BasicLexer.isComparison2);

@@ -28,7 +28,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.format = DiskImage.getInitialFormat();
         };
         DiskImage.prototype.composeError = function (error, message, value, pos) {
-            return Utils_1.Utils.composeError("DiskImage", error, this.diskName + ": " + message, value, pos || 0, undefined);
+            return Utils_1.Utils.composeError("DiskImage", error, this.diskName + ": " + message, value, pos || 0);
         };
         DiskImage.testDiskIdent = function (ident) {
             var diskType = 0;
@@ -287,8 +287,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 var sectorInfo = this.seekSector(sectorIndex);
                 this.readDirectoryExtents(extents, sectorInfo.dataPos, sectorInfo.dataPos + sectorInfo.sectorSize);
             }
-            var dir = DiskImage.prepareDirectoryList(extents, format.fill);
-            return dir;
+            return DiskImage.prepareDirectoryList(extents, format.fill);
         };
         DiskImage.prototype.nextSector = function (pos) {
             var format = this.format;

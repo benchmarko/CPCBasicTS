@@ -61,7 +61,7 @@ export class Utils { // eslint-disable-line vars-on-top
 
 						Utils.console.error("onScriptReadyStateChange: Still loading: " + fullUrl + " Waiting " + timeout + "ms (count=" + ieTimeoutCount + ")");
 						setTimeout(function () {
-							onScriptReadyStateChange(undefined); // check again
+							onScriptReadyStateChange(); // check again
 						}, timeout);
 					} else {
 						// ieTimeoutCount = 3;

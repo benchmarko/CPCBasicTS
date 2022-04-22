@@ -457,8 +457,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         exports.Polyfills.log("window.JSON.parse");
         window.JSON = {
             parse: function (text) {
-                var json = eval("(" + text + ")"); // eslint-disable-line no-eval
-                return json;
+                return eval("(" + text + ")"); // eslint-disable-line no-eval
             },
             stringify: function (o) {
                 Utils_1.Utils.console.error("Not implemented: window.JSON.stringify");

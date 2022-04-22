@@ -41,6 +41,7 @@ export declare class Controller implements IController {
     setExampleSelectOptions(): void;
     private setVarSelectOptions;
     private updateStorageDatabase;
+    private removeKeyBoardHandler;
     setInputText(input: string, keepStack?: boolean): void;
     invalidateScript(): void;
     private fnWaitForContinue;

@@ -206,18 +206,14 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                 vpos: 0,
                 right: 255 // override
             };
-            var win;
             if (resetPenPaper) {
                 Object.assign(data, penPaperData);
             }
             for (var i = 0; i < this.windowDataList.length - 2; i += 1) { // for window streams
-                win = this.windowDataList[i];
-                Object.assign(win, winData, data);
+                Object.assign(this.windowDataList[i], winData, data);
             }
-            win = this.windowDataList[8]; // printer
-            Object.assign(win, winData, printData);
-            win = this.windowDataList[9]; // cassette
-            Object.assign(win, winData, cassetteData);
+            Object.assign(this.windowDataList[8], winData, printData); // printer
+            Object.assign(this.windowDataList[9], winData, cassetteData); // cassette
         };
         CpcVm.prototype.vmResetControlBuffer = function () {
             this.printControlBuf = ""; // collected control characters for PRINT
@@ -302,9 +298,15 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             }
             return n;
         };
+        CpcVm.prototype.vmRound2Complement = function (n, err) {
+            n = this.vmInRangeRound(n, -32768, 65535, err);
+            if (n < 0) {
+                n += 65536;
+            }
+            return n;
+        };
         CpcVm.prototype.vmDetermineVarType = function (varType) {
-            var type = (varType.length > 1) ? varType.charAt(1) : this.variables.getVarType(varType.charAt(0));
-            return type;
+            return (varType.length > 1) ? varType.charAt(1) : this.variables.getVarType(varType.charAt(0));
         };
         CpcVm.prototype.vmAssertNumberType = function (varType) {
             var type = this.vmDetermineVarType(varType);
@@ -431,8 +433,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         };
         CpcVm.prototype.vmGetTimeUntilFrame = function (time) {
             time = time || Date.now();
-            var timeUntilFrame = this.nextFrameTime - time;
-            return timeUntilFrame;
+            return this.nextFrameTime - time;
         };
         CpcVm.prototype.vmLoopCondition = function () {
             var time = Date.now();
@@ -496,49 +497,53 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         CpcVm.prototype.vmNotImplemented = function (name) {
             Utils_1.Utils.console.warn("Not implemented:", name);
         };
-        // not complete
-        CpcVm.prototype.vmUsingFormat1 = function (format, arg) {
+        CpcVm.prototype.vmUsingStringFormat = function (format, arg) {
             var padChar = " ", re1 = /^\\ *\\$/;
             var str;
-            if (typeof arg === "string") {
-                if (format === "&") {
-                    str = arg;
-                }
-                else if (format === "!") {
-                    str = arg.charAt(0);
-                }
-                else if (re1.test(format)) { // "\...\"
-                    str = arg.substr(0, format.length);
-                    var padLen = format.length - arg.length, pad = (padLen > 0) ? padChar.repeat(padLen) : "";
-                    str = arg + pad; // string left aligned
-                }
-                else { // no string format
-                    throw this.vmComposeError(Error(), 13, "USING format " + format); // "Type mismatch"
-                }
+            if (format === "&") {
+                str = arg;
             }
-            else { // number (not fully implemented)
-                if (format === "&" || format === "!" || re1.test(format)) { // string format for number?
-                    throw this.vmComposeError(Error(), 13, "USING format " + format); // "Type mismatch"
-                }
-                if (format.indexOf(".") < 0) { // no decimal point?
-                    str = arg.toFixed(0);
-                }
-                else { // assume ###.##
-                    var formatParts = format.split(".", 2), decimals = formatParts[1].length;
-                    // To avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
-                    arg = Number(Math.round(Number(arg + "e" + decimals)) + "e-" + decimals);
-                    str = arg.toFixed(decimals);
-                }
-                if (format.indexOf(",") >= 0) { // contains comma => insert thousands separator
-                    str = Utils_1.Utils.numberWithCommas(str);
-                }
-                var padLen = format.length - str.length, pad = (padLen > 0) ? padChar.repeat(padLen) : "";
-                str = pad + str;
-                if (str.length > format.length) {
-                    str = "%" + str; // mark too long
-                }
+            else if (format === "!") {
+                str = arg.charAt(0);
+            }
+            else if (re1.test(format)) { // "\...\"
+                //str = arg.substr(0, format.length);
+                var padLen = format.length - arg.length, pad = (padLen > 0) ? padChar.repeat(padLen) : "";
+                str = arg + pad; // string left aligned
+            }
+            else { // no string format
+                throw this.vmComposeError(Error(), 13, "USING format " + format); // "Type mismatch"
             }
             return str;
+        };
+        // not fully implemented
+        CpcVm.prototype.vmUsingNumberFormat = function (format, arg) {
+            var padChar = " ", re1 = /^\\ *\\$/;
+            var str;
+            if (format === "&" || format === "!" || re1.test(format)) { // string format for number?
+                throw this.vmComposeError(Error(), 13, "USING format " + format); // "Type mismatch"
+            }
+            if (format.indexOf(".") < 0) { // no decimal point?
+                str = arg.toFixed(0);
+            }
+            else { // assume ###.##
+                var formatParts = format.split(".", 2), decimals = formatParts[1].length;
+                // To avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
+                arg = Number(Math.round(Number(arg + "e" + decimals)) + "e-" + decimals);
+                str = arg.toFixed(decimals);
+            }
+            if (format.indexOf(",") >= 0) { // contains comma => insert thousands separator
+                str = Utils_1.Utils.numberWithCommas(str);
+            }
+            var padLen = format.length - str.length, pad = (padLen > 0) ? padChar.repeat(padLen) : "";
+            str = pad + str;
+            if (str.length > format.length) {
+                str = "%" + str; // mark too long
+            }
+            return str;
+        };
+        CpcVm.prototype.vmUsingFormat = function (format, arg) {
+            return typeof arg === "string" ? this.vmUsingStringFormat(format, arg) : this.vmUsingNumberFormat(format, arg);
         };
         CpcVm.prototype.vmGetStopObject = function () {
             return this.stopEntry;
@@ -633,8 +638,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         };
         // could be also set vmSetScreenViewBase? thisiScreenViewPage?  We always draw on visible canvas?
         CpcVm.prototype.vmSetTransparentMode = function (stream, transparent) {
-            var win = this.windowDataList[stream];
-            win.transparent = Boolean(transparent);
+            this.windowDataList[stream].transparent = Boolean(transparent);
         };
         // --
         CpcVm.prototype.abs = function (n) {
@@ -698,21 +702,21 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         // break
         CpcVm.prototype.vmMcSetMode = function (mode) {
             mode = this.vmInRangeRound(mode, 0, 3, "MCSetMode");
-            var addr = this.screenPage << 14, // eslint-disable-line no-bitwise
-            canvasMode = this.canvas.getMode();
+            var canvasMode = this.canvas.getMode();
             if (mode !== canvasMode) {
+                var addr = this.screenPage << 14; // eslint-disable-line no-bitwise
                 // keep screen bytes, just interpret in other mode
                 this.vmCopyFromScreen(addr, addr); // read bytes from screen memory into memory
                 this.canvas.changeMode(mode); // change mode and interpretation of bytes
                 this.vmCopyToScreen(addr, addr); // write bytes back to screen memory
-                this.canvas.changeMode(canvasMode); // keep moe
+                this.canvas.changeMode(canvasMode); // keep mode
                 // TODO: new content should still be written in old mode but interpreted in new mode
             }
         };
         CpcVm.prototype.vmTxtInverse = function (stream) {
-            var win = this.windowDataList[stream], tmp = win.pen;
+            var win = this.windowDataList[stream], tmpPen = win.pen;
             this.pen(stream, win.paper);
-            this.paper(stream, tmp);
+            this.paper(stream, tmpPen);
         };
         CpcVm.prototype.vmPutKeyInBuffer = function (key) {
             this.keyboard.putKeyInBuffer(key);
@@ -723,10 +727,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         };
         CpcVm.prototype.call = function (addr) {
             // varargs (adr + parameters)
-            addr = this.vmInRangeRound(addr, -32768, 65535, "CALL");
-            if (addr < 0) { // 2nd complement of 16 bit address?
-                addr += 65536;
-            }
+            addr = this.vmRound2Complement(addr, "CALL");
             switch (addr) {
                 case 0xbb00: // KM Initialize (ROM &19E0)
                     this.keyboard.resetCpcKeysExpansions();
@@ -1061,7 +1062,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         CpcVm.prototype.dec$ = function (n, frmt) {
             this.vmAssertNumber(n, "DEC$");
             this.vmAssertString(frmt, "DEC$");
-            return this.vmUsingFormat1(frmt, n);
+            return this.vmUsingFormat(frmt, n);
         };
         // def fn
         CpcVm.prototype.defint = function (nameOrRange) {
@@ -1147,9 +1148,9 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             for (var _i = 1; _i < arguments.length; _i++) {
                 args[_i - 1] = arguments[_i];
             }
+            toneEnv = this.vmInRangeRound(toneEnv, -15, 15, "ENT");
             var envData = [];
             var arg, repeat = false;
-            toneEnv = this.vmInRangeRound(toneEnv, -15, 15, "ENT");
             if (toneEnv < 0) {
                 toneEnv = -toneEnv;
                 repeat = true;
@@ -1162,13 +1163,13 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                             diff: this.vmInRangeRound(args[i + 1], -128, 127, "ENT"),
                             time: this.vmInRangeRound(args[i + 2], 0, 255, "ENT"),
                             repeat: repeat
-                        };
+                        }; // as ToneEnvData1
                     }
                     else { // special handling
                         arg = {
                             period: this.vmInRangeRound(args[i + 1], 0, 4095, "ENT"),
                             time: this.vmInRangeRound(args[i + 2], 0, 255, "ENT") // time: 0..255 (0=256)
-                        };
+                        }; // as ToneEnvData2
                     }
                     envData.push(arg);
                 }
@@ -1184,9 +1185,9 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             for (var _i = 1; _i < arguments.length; _i++) {
                 args[_i - 1] = arguments[_i];
             }
+            volEnv = this.vmInRangeRound(volEnv, 1, 15, "ENV");
             var envData = [];
             var arg;
-            volEnv = this.vmInRangeRound(volEnv, 1, 15, "ENV");
             for (var i = 0; i < args.length; i += 3) { // starting with 1: 3 parameters per section
                 if (args[i] !== undefined) {
                     arg = {
@@ -1195,7 +1196,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                         diff: this.vmInRangeRound(args[i + 1], -128, 127, "ENV") & 0x0f,
                         /* eslint-enable no-bitwise */
                         time: this.vmInRangeRound(args[i + 2], 0, 255, "ENV") // time per step: 0..255 (0=256)
-                    };
+                    }; // as VolEnvData1
                     if (!arg.time) { // (0=256)
                         arg.time = 256;
                     }
@@ -1204,7 +1205,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                     arg = {
                         register: this.vmInRangeRound(args[i + 1], 0, 15, "ENV"),
                         period: this.vmInRangeRound(args[i + 2], -32768, 65535, "ENV")
-                    };
+                    }; // as VolEnvData2
                 }
                 envData.push(arg);
             }
@@ -1361,11 +1362,11 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             return key;
         };
         CpcVm.prototype.inp = function (port) {
-            var byte = 255; // we return always the same
-            port = this.vmInRangeRound(port, -32768, 65535, "INP");
-            if (port < 0) { // 2nd complement of 16 bit address?
-                port += 65536;
-            }
+            port = this.vmRound2Complement(port, "INP"); // 2nd complement of 16 bit address
+            // eslint-disable-next-line no-bitwise
+            var byte = (port & 0xff);
+            // eslint-disable-next-line no-bitwise
+            byte |= 0xff; // we return always the same 0xff
             return byte;
         };
         CpcVm.prototype.vmSetInputValues = function (inputValues) {
@@ -1664,10 +1665,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             var inFile = this.inFile;
             name = this.vmAdaptFilename(name, "LOAD");
             if (start !== undefined) {
-                start = this.vmInRangeRound(start, -32768, 65535, "LOAD");
-                if (start < 0) { // 2nd complement of 16 bit address
-                    start += 65536;
-                }
+                start = this.vmRound2Complement(start, "LOAD");
             }
             this.closein();
             inFile.open = true;
@@ -1954,10 +1952,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             }
         };
         CpcVm.prototype.out = function (port, byte) {
-            port = this.vmInRangeRound(port, -32768, 65535, "OUT");
-            if (port < 0) { // 2nd complement of 16 bit address?
-                port += 65536;
-            }
+            port = this.vmRound2Complement(port, "OUT");
             byte = this.vmInRangeRound(byte, 0, 255, "OUT");
             var portHigh = port >> 8; // eslint-disable-line no-bitwise
             if (portHigh === 0x7f) { // 7Fxx = RAM select
@@ -1990,10 +1985,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.canvas.setCustomChar(char, charData);
         };
         CpcVm.prototype.peek = function (addr) {
-            addr = this.vmInRangeRound(addr, -32768, 65535, "PEEK");
-            if (addr < 0) { // 2nd complement of 16 bit address
-                addr += 65536;
-            }
+            addr = this.vmRound2Complement(addr, "PEEK");
             // check two higher bits of 16 bit address to get 16K page
             var page = addr >> 14; // eslint-disable-line no-bitwise
             var byte;
@@ -2043,10 +2035,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.canvas.plotr(x, y);
         };
         CpcVm.prototype.poke = function (addr, byte) {
-            addr = this.vmInRangeRound(addr, -32768, 65535, "POKE address");
-            if (addr < 0) { // 2nd complement of 16 bit address?
-                addr += 65536;
-            }
+            addr = this.vmRound2Complement(addr, "POKE address");
             byte = this.vmInRangeRound(byte, 0, 255, "POKE byte");
             // check two higher bits of 16 bit address to get 16K page
             var page = addr >> 14; // eslint-disable-line no-bitwise
@@ -2316,7 +2305,6 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             }
             if (out !== "") {
                 this.vmPrintChars(stream, out); // print chars collected so far
-                out = "";
             }
             return buf;
         };
@@ -2664,19 +2652,10 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             }
             var fileData = [];
             if (type === "B") { // binary
-                start = this.vmInRangeRound(start, -32768, 65535, "SAVE");
-                if (start < 0) { // 2nd complement of 16 bit address
-                    start += 65536;
-                }
-                length = this.vmInRangeRound(length, -32768, 65535, "SAVE");
-                if (length < 0) {
-                    length += 65536;
-                }
+                start = this.vmRound2Complement(start, "SAVE");
+                length = this.vmRound2Complement(length, "SAVE");
                 if (entry !== undefined) {
-                    entry = this.vmInRangeRound(entry, -32768, 65535, "SAVE");
-                    if (entry < 0) {
-                        entry += 65536;
-                    }
+                    entry = this.vmRound2Complement(entry, "SAVE");
                 }
                 for (var i = 0; i < length; i += 1) {
                     var address = (start + i) & 0xffff; // eslint-disable-line no-bitwise
@@ -2794,8 +2773,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         };
         CpcVm.prototype.str$ = function (n) {
             this.vmAssertNumber(n, "STR$");
-            var str = ((n >= 0) ? " " : "") + String(n);
-            return str;
+            return ((n >= 0) ? " " : "") + String(n);
         };
         CpcVm.prototype.string$ = function (len, chr) {
             len = this.vmInRangeRound(len, 0, 255, "STRING$");
@@ -2814,8 +2792,8 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             for (var _i = 1; _i < arguments.length; _i++) {
                 args[_i - 1] = arguments[_i];
             }
-            var charData = [];
             char = this.vmInRangeRound(char, this.minCustomChar, 255, "SYMBOL");
+            var charData = [];
             for (var i = 0; i < args.length; i += 1) { // start with 1, get available args
                 var bitMask = this.vmInRangeRound(args[i], 0, 255, "SYMBOL");
                 charData.push(bitMask);
@@ -2850,10 +2828,10 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         CpcVm.prototype.tab = function (stream, n) {
             stream = this.vmInRangeRound(stream, 0, 9, "TAB");
             n = this.vmInRangeRound(n, -32768, 32767, "TAB");
-            var win = this.windowDataList[stream], width = win.right - win.left + 1;
             var str = "";
             if (n > 0) {
                 n -= 1;
+                var win = this.windowDataList[stream], width = win.right - win.left + 1;
                 if (width) {
                     n %= width;
                 }
@@ -2905,7 +2883,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         };
         CpcVm.prototype.unt = function (n) {
             n = this.vmInRangeRound(n, -32768, 65535, "UNT");
-            if (n > 32767) {
+            if (n > 32767) { // undo 2th complement
                 n -= 65536;
             }
             return n;
@@ -2915,8 +2893,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         };
         CpcVm.prototype.upper$ = function (s) {
             this.vmAssertString(s, "UPPER$");
-            s = s.replace(/[a-z]/g, CpcVm.fnUpperCase); // replace only characters a-z
-            return s;
+            return s.replace(/[a-z]/g, CpcVm.fnUpperCase); // replace only characters a-z
         };
         CpcVm.prototype.using = function (format) {
             var args = [];
@@ -2948,7 +2925,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                 }
                 if (formatIndex < formatList.length) {
                     var arg = args[i];
-                    s += this.vmUsingFormat1(formatList[formatIndex], arg); // format characters
+                    s += this.vmUsingFormat(formatList[formatIndex], arg); // format characters
                     formatIndex += 1;
                 }
                 if (formatIndex < formatList.length) {
@@ -2988,25 +2965,18 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         };
         CpcVm.prototype.vpos = function (stream) {
             stream = this.vmInRangeRound(stream, 0, 7, "VPOS");
-            var vpos = this.vmGetAllowedPosOrVpos(stream, true) + 1; // get allowed vpos
-            return vpos;
+            return this.vmGetAllowedPosOrVpos(stream, true) + 1;
         };
         CpcVm.prototype.wait = function (port, mask, inv) {
-            port = this.vmInRangeRound(port, -32768, 65535, "WAIT");
-            if (port < 0) { // 2nd complement of 16 bit address
-                port += 65536;
-            }
+            port = this.vmRound2Complement(port, "WAIT");
             mask = this.vmInRangeRound(mask, 0, 255, "WAIT");
             if (inv !== undefined) {
-                inv = this.vmInRangeRound(inv, 0, 255, "WAIT");
+                /* inv = */ this.vmInRangeRound(inv, 0, 255, "WAIT");
             }
             if ((port & 0xff00) === 0xf500) { // eslint-disable-line no-bitwise
                 if (mask === 1) {
                     this.frame();
                 }
-            }
-            else if (port === 0) {
-                debugger; // Testing
             }
         };
         // wend
@@ -3088,8 +3058,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             return this.canvas.getYpos();
         };
         CpcVm.prototype.zone = function (n) {
-            n = this.vmInRangeRound(n, 1, 255, "ZONE");
-            this.zoneValue = n;
+            this.zoneValue = this.vmInRangeRound(n, 1, 255, "ZONE");
         };
         CpcVm.frameTimeMs = 1000 / 50; // 50 Hz => 20 ms
         CpcVm.timerCount = 4; // number of timers

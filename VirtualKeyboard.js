@@ -109,12 +109,11 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 text = keyEntry.text || key;
                 title = keyEntry.title || text;
             }
-            var ascii = {
+            return {
                 key: key,
                 text: text,
                 title: title
             };
-            return ascii;
         };
         VirtualKeyboard.prototype.createButtonRow = function (id, options) {
             var place = View_1.View.getElementById1(id);

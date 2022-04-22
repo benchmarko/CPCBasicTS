@@ -81,7 +81,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
         CodeGeneratorBasic.prototype.fnParseArgs = function (args) {
             var nodeArgs = []; // do not modify node.args here (could be a parameter of defined function)
             if (!args) {
-                throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occure
+                throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
             }
             for (var i = 0; i < args.length; i += 1) {
                 var value = this.fnParseOneArg(args[i]);
@@ -125,7 +125,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
         CodeGeneratorBasic.prototype.assign = function (node) {
             // see also "let"
             if (!node.left || !node.right) {
-                throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occure
+                throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
             }
             if (node.left.type !== "identifier") {
                 throw this.composeError(Error(), "Unexpected assing type", node.type, node.pos); // should not occur
@@ -193,7 +193,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
         };
         CodeGeneratorBasic.prototype.def = function (node) {
             if (!node.left || !node.right) {
-                throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occure
+                throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
             }
             var name = this.fnParseOneArg(node.left), space = node.left.space ? " " : "", // fast hack
             nodeArgs = this.fnParseArgs(node.args), expression = this.fnParseOneArg(node.right);
@@ -206,7 +206,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
         };
         CodeGeneratorBasic.prototype["else"] = function (node) {
             if (!node.args) {
-                throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occure
+                throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
             }
             var args = node.args;
             var value = "";
@@ -221,7 +221,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
         };
         CodeGeneratorBasic.prototype.entOrEnv = function (node) {
             if (!node.args) {
-                throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occure
+                throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
             }
             var args = node.args, nodeArgs = [];
             var equal = false;
@@ -242,7 +242,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
         };
         CodeGeneratorBasic.prototype.fn = function (node) {
             if (!node.left) {
-                throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occure
+                throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occur
             }
             var nodeArgs = this.fnParseArgs(node.args);
             var nodeArgsString = nodeArgs.join(",");
@@ -267,10 +267,10 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
         };
         CodeGeneratorBasic.prototype["if"] = function (node) {
             if (!node.left) {
-                throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occure
+                throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occur
             }
             if (!node.args) {
-                throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occure
+                throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occur
             }
             var value = node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(this.fnParseOneArg(node.left));
             if (node.right) { // "THEN"
@@ -306,7 +306,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
         };
         CodeGeneratorBasic.prototype.mid$Assign = function (node) {
             if (!node.right) {
-                throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occure
+                throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occur
             }
             var nodeArgs = this.fnParseArgs(node.args), typeUc = CodeGeneratorBasic.getUcKeyword(node);
             return CodeGeneratorBasic.fnWs(node) + typeUc + "(" + nodeArgs.join(",") + ")=" + this.fnParseOneArg(node.right);

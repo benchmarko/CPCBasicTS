@@ -17,7 +17,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         ZipFile.prototype.composeError = function (error, message, value, pos) {
             message = this.zipName + ": " + message; // put zipname in message
-            return Utils_1.Utils.composeError("ZipFile", error, message, value, pos, undefined);
+            return Utils_1.Utils.composeError("ZipFile", error, message, value, pos);
         };
         ZipFile.prototype.subArr = function (begin, length) {
             var data = this.data, end = begin + length;

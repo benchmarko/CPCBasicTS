@@ -381,9 +381,7 @@ export class CodeGeneratorToken {
 			// (use charAt(0) because of apostrophe with separator prefix)
 			separator = this.statementSeparator;
 		}
-		const value = nodeArgs.join(separator);
-
-		return value;
+		return nodeArgs.join(separator);
 	}
 
 
@@ -401,7 +399,7 @@ export class CodeGeneratorToken {
 		const nodeArgs: string[] = []; // do not modify node.args here (could be a parameter of defined function)
 
 		if (!args) {
-			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
 		}
 
 		for (let i = 0; i < args.length; i += 1) {
@@ -434,7 +432,7 @@ export class CodeGeneratorToken {
 
 	private range(node: ParserNode) { // for defint, defreal, defstr
 		if (!node.left || !node.right) {
-			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
 		}
 		const left = this.fnParseOneArg(node.left),
 			right = this.fnParseOneArg(node.right);
@@ -444,7 +442,7 @@ export class CodeGeneratorToken {
 
 	private linerange(node: ParserNode) { // for delete, list
 		if (!node.left || !node.right) {
-			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
 		}
 		const left = this.fnParseOneArg(node.left),
 			right = this.fnParseOneArg(node.right);
@@ -476,14 +474,12 @@ export class CodeGeneratorToken {
 	private assign(node: ParserNode) {
 		// see also "let"
 		if (!node.left || !node.right) {
-			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
 		}
 		if (node.left.type !== "identifier") {
 			throw this.composeError(Error(), "Unexpected assing type", node.type, node.pos); // should not occur
 		}
-		const value = this.fnParseOneArg(node.left) + CodeGeneratorToken.token2String("=") + this.fnParseOneArg(node.right);
-
-		return value;
+		return this.fnParseOneArg(node.left) + CodeGeneratorToken.token2String("=") + this.fnParseOneArg(node.right);
 	}
 
 	private static floatToByteString(number: number) {
@@ -501,9 +497,7 @@ export class CodeGeneratorToken {
 			exponent += 0x80;
 		}
 
-		const bytes = CodeGeneratorToken.convInt32ToString(sign + mantissa) + CodeGeneratorToken.convUInt8ToString(exponent);
-
-		return bytes;
+		return CodeGeneratorToken.convInt32ToString(sign + mantissa) + CodeGeneratorToken.convUInt8ToString(exponent);
 	}
 
 	private static number(node: ParserNode) {
@@ -652,7 +646,7 @@ export class CodeGeneratorToken {
 	}
 	private def(node: ParserNode) {
 		if (!node.left || !node.right) {
-			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
 		}
 
 		const withFn = node.left.value,
@@ -662,7 +656,7 @@ export class CodeGeneratorToken {
 
 		const name = this.fnParseOneArg(node.left);
 
-		(node.left as ParserNode).value = withFn; // fast hack: restore
+		node.left.value = withFn; // fast hack: restore
 
 		const space = node.left.space ? " " : "", // fast hack
 			nodeArgs = this.fnParseArgs(node.args),
@@ -673,13 +667,11 @@ export class CodeGeneratorToken {
 			nodeArgsString = "(" + nodeArgsString + ")";
 		}
 
-		const value = CodeGeneratorToken.token2String(node.type) + " " + CodeGeneratorToken.token2String("fn") + space + name + nodeArgsString + CodeGeneratorToken.token2String("=") + expression;
-
-		return value;
+		return CodeGeneratorToken.token2String(node.type) + " " + CodeGeneratorToken.token2String("fn") + space + name + nodeArgsString + CodeGeneratorToken.token2String("=") + expression;
 	}
 	private "else"(node: ParserNode) { // similar to a comment, with (un?)checked tokens
 		if (!node.args) {
-			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
 		}
 
 		let value = CodeGeneratorToken.token2String(":") + CodeGeneratorToken.token2String(node.type); // always prefix with ":"
@@ -702,7 +694,7 @@ export class CodeGeneratorToken {
 	}
 	private entEnv(node: ParserNode) { // "ent" or "env"
 		if (!node.args) {
-			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
 		}
 
 		const args = node.args,
@@ -722,9 +714,7 @@ export class CodeGeneratorToken {
 				equal = true;
 			}
 		}
-		const value = CodeGeneratorToken.token2String(node.type) + " " + nodeArgs.join(",");
-
-		return value;
+		return CodeGeneratorToken.token2String(node.type) + " " + nodeArgs.join(",");
 	}
 
 	private everyGosub(node: ParserNode) {
@@ -739,7 +729,7 @@ export class CodeGeneratorToken {
 	}
 	private fn(node: ParserNode) {
 		if (!node.left) {
-			throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occur
 		}
 
 		const nodeArgs = this.fnParseArgs(node.args),
@@ -751,10 +741,9 @@ export class CodeGeneratorToken {
 			nodeArgsString = "(" + nodeArgsString + ")";
 		}
 
-		const name2 = CodeGeneratorToken.token2String(node.type) + space + name,
-			value = name2 + nodeArgsString;
+		const name2 = CodeGeneratorToken.token2String(node.type) + space + name;
 
-		return value;
+		return name2 + nodeArgsString;
 	}
 
 	private "for"(node: ParserNode) {
@@ -771,10 +760,10 @@ export class CodeGeneratorToken {
 
 	private "if"(node: ParserNode) {
 		if (!node.left) {
-			throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occur
 		}
 		if (!node.args) {
-			throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occure
+			throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occur
 		}
 
 		let value = CodeGeneratorToken.token2String(node.type) + this.fnParseOneArg(node.left) + CodeGeneratorToken.token2String("then");
@@ -793,9 +782,7 @@ export class CodeGeneratorToken {
 
 
 	private static fnHasStream(node: ParserNode) {
-		const hasStream = node.args && node.args.length && (node.args[0].type === "#") && node.args[0].right && (node.args[0].right.type !== "null");
-
-		return hasStream;
+		return node.args && node.args.length && (node.args[0].type === "#") && node.args[0].right && (node.args[0].right.type !== "null");
 	}
 
 	private inputLineInput(node: ParserNode) { // input or line input
@@ -828,21 +815,19 @@ export class CodeGeneratorToken {
 			nodeArgs.pop(); // remove
 		}
 
-		let value = nodeArgs.join(",");
-		const name = CodeGeneratorToken.token2String(node.type);
+		const name = CodeGeneratorToken.token2String(node.type),
+			value = nodeArgs.join(",");
 
-		value = name + value;
-		return value;
+		return name + value;
 	}
 	private mid$Assign(node: ParserNode) {
 		if (!node.right) {
-			throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occure TTT
+			throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occur TTT
 		}
 
-		const nodeArgs = this.fnParseArgs(node.args),
-			value = CodeGeneratorToken.token2String(node.type) + "(" + nodeArgs.join(",") + ")" + CodeGeneratorToken.token2String("=") + this.fnParseOneArg(node.right);
+		const nodeArgs = this.fnParseArgs(node.args);
 
-		return value;
+		return CodeGeneratorToken.token2String(node.type) + "(" + nodeArgs.join(",") + ")" + CodeGeneratorToken.token2String("=") + this.fnParseOneArg(node.right);
 	}
 	private onErrorGoto(node: ParserNode) {
 		const nodeArgs = this.fnParseArgs(node.args);
@@ -867,13 +852,12 @@ export class CodeGeneratorToken {
 
 	private onSqGosub(node: ParserNode) {
 		const left = this.fnParseOneArg(node.left as ParserNode),
-			nodeArgs = this.fnParseArgs(node.args),
-			value = CodeGeneratorToken.token2String("_onSq") + "(" + left + ")" + CodeGeneratorToken.token2String("gosub") + nodeArgs.join(",");
+			nodeArgs = this.fnParseArgs(node.args);
 
-		return value;
+		return CodeGeneratorToken.token2String("_onSq") + "(" + left + ")" + CodeGeneratorToken.token2String("gosub") + nodeArgs.join(",");
 	}
 	private print(node: ParserNode) {
-		const regExp = new RegExp("[a-zA-Z0-9.]"),
+		const regExp = /[a-zA-Z0-9.]/,
 			nodeArgs = this.fnParseArgs(node.args),
 			hasStream = CodeGeneratorToken.fnHasStream(node),
 			token = node.value.toLowerCase(); // we use value to get PRINT or ?
@@ -919,9 +903,9 @@ export class CodeGeneratorToken {
 		if (template && template.charAt(0) !== '"') { // not a string => space required
 			template = " " + template;
 		}
-		const value = CodeGeneratorToken.token2String(node.type) + template + ";" + nodeArgs.join(","); // separator between args could be "," or ";", we use ","
 
-		return value;
+		// separator between args could be "," or ";", we use ","
+		return CodeGeneratorToken.token2String(node.type) + template + ";" + nodeArgs.join(",");
 	}
 
 	/* eslint-disable no-invalid-this */
@@ -1082,7 +1066,7 @@ export class CodeGeneratorToken {
 				value = CodeGeneratorToken.token2String(operators[type]) + value;
 			} else if (type === "=") { // no operator, "=" in "for"
 				value = CodeGeneratorToken.token2String(type);
-			} else { // should not occure
+			} else { // should not occur
 				value = this.fnParseOther(node);
 			}
 		} else if (this.parseFunctions[type]) { // function with special handling?
