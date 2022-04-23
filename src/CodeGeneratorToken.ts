@@ -17,8 +17,8 @@ interface CodeGeneratorTokenOptions {
 
 export class CodeGeneratorToken {
 	private quiet = false;
-	private lexer: BasicLexer;
-	private parser: BasicParser;
+	private readonly lexer: BasicLexer;
+	private readonly parser: BasicParser;
 	private line = 0; // current line (label)
 
 	private statementSeparator: string; // cannot be static when using token2String()
@@ -31,7 +31,7 @@ export class CodeGeneratorToken {
 		this.statementSeparator = CodeGeneratorToken.token2String(":");
 	}
 
-	private static operators: { [k: string]: string } = {
+	private static readonly operators: Record<string, string> = {
 		"+": "+",
 		"-": "-",
 		"*": "*",
@@ -53,7 +53,7 @@ export class CodeGeneratorToken {
 		"#": "#"
 	}
 
-	private static operatorPrecedence: { [k: string]: number } = {
+	private static readonly operatorPrecedence: Record<string, number> = {
 		"@": 95, // prefix
 		"^": 90,
 
@@ -83,7 +83,7 @@ export class CodeGeneratorToken {
 		"#": 10 // priority?
 	}
 
-	private static tokens: { [k: string]: number } = {
+	private static readonly tokens: Record<string, number> = {
 		_eol: 0x00, // marker for "end of tokenised line"
 		":": 0x01, // ":" statement seperator
 		_intVar: 0x02, // integer variable definition (defined with "%" suffix)  "(A-Z)+%"
@@ -272,7 +272,7 @@ export class CodeGeneratorToken {
 		// 0xff: (prefix for additional keywords)
 	}
 
-	private static tokensFF: { [k: string]: number } = {
+	private static readonly tokensFF: Record<string, number> = {
 		// Functions with one argument
 		abs: 0x00,
 		asc: 0x01,
@@ -909,7 +909,7 @@ export class CodeGeneratorToken {
 	}
 
 	/* eslint-disable no-invalid-this */
-	parseFunctions: { [k: string]: (node: ParserNode) => string } = { // to call methods, use parseFunctions[].call(this,...)
+	private readonly parseFunctions: Record<string, (node: ParserNode) => string> = { // to call methods, use parseFunctions[].call(this,...)
 		args: this.fnArgs,
 		"(": this.fnParenthesisOpen,
 		";": CodeGeneratorToken.semicolon,

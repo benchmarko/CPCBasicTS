@@ -17,8 +17,8 @@ interface CodeGeneratorBasicOptions {
 
 export class CodeGeneratorBasic {
 	private quiet = false;
-	private lexer: BasicLexer;
-	private parser: BasicParser;
+	private readonly lexer: BasicLexer;
+	private readonly parser: BasicParser;
 	private line = 0; // current line (label)
 
 	constructor(options: CodeGeneratorBasicOptions) {
@@ -35,7 +35,7 @@ export class CodeGeneratorBasic {
 		return this.parser;
 	}
 
-	private static combinedKeywords: { [k: string]: string } = {
+	private static readonly combinedKeywords: Record<string, string> = {
 		chainMerge: "CHAIN MERGE",
 		clearInput: "CLEAR INPUT",
 		graphicsPaper: "GRAPHICS PAPER",
@@ -55,7 +55,7 @@ export class CodeGeneratorBasic {
 		windowSwap: "WINDOW SWAP"
 	}
 
-	private static operators: { [k: string]: string } = {
+	private static readonly operators: Record<string, string> = {
 		"+": "+",
 		"-": "-",
 		"*": "*",
@@ -77,7 +77,7 @@ export class CodeGeneratorBasic {
 		"#": "#"
 	}
 
-	private static operatorPrecedence: { [k: string]: number } = {
+	private static readonly operatorPrecedence: Record<string, number> = {
 		"@": 95, // prefix
 		"^": 90,
 
@@ -489,7 +489,7 @@ export class CodeGeneratorBasic {
 	}
 
 	/* eslint-disable no-invalid-this */
-	parseFunctions: { [k: string]: (node: ParserNode) => string } = { // to call methods, use parseFunctions[].call(this,...)
+	private readonly parseFunctions: Record<string, (node: ParserNode) => string> = { // to call methods, use parseFunctions[].call(this,...)
 		"(": this.fnParenthesisOpen,
 		string: CodeGeneratorBasic.string,
 		unquoted: CodeGeneratorBasic.unquoted,
@@ -669,14 +669,14 @@ export class CodeGeneratorBasic {
 			if (Utils.debug > 2) {
 				Utils.console.debug("evaluate: parseTree i=%d, node=%o", i, parseTree[i]);
 			}
-			const node = this.parseNode(parseTree[i]);
+			const line = this.parseNode(parseTree[i]);
 
-			if ((node !== undefined) && (node !== "")) {
-				if (node !== null) {
+			if ((line !== undefined) && (line !== "")) {
+				if (line !== null) {
 					if (output.length === 0) {
-						output = node;
+						output = line;
 					} else {
-						output += "\n" + node;
+						output += "\n" + line;
 					}
 				} else {
 					output = ""; // cls (clear output when node is set to null)

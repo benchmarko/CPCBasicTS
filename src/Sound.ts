@@ -55,13 +55,13 @@ export class Sound {
 	private isActivatedByUserFlag = false;
 	private context?: AudioContext;
 	private mergerNode?: ChannelMergerNode;
-	private gainNodes: GainNode[] = [];
-	private oscillators: (OscillatorNode | undefined)[] = []; // 3 oscillators left, middle, right
-	private queues: Queue[] = []; // node queues and info for the three channels
+	private readonly gainNodes: GainNode[] = [];
+	private readonly oscillators: (OscillatorNode | undefined)[] = []; // 3 oscillators left, middle, right
+	private readonly queues: Queue[] = []; // node queues and info for the three channels
 	private fScheduleAheadTime = 0.1; // 100 ms
-	private volEnv: VolEnvData[][] = [];
-	private toneEnv: ToneEnvData[][] = [];
-	private debugLogList?: [number, string][];
+	private readonly volEnv: VolEnvData[][] = [];
+	private readonly toneEnv: ToneEnvData[][] = [];
+	private readonly debugLogList?: [number, string][];
 
 	constructor() {
 		for (let i = 0; i < 3; i += 1) {

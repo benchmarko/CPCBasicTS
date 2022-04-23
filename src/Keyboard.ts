@@ -20,15 +20,15 @@ interface KeyboardOptions {
 	fnOnKeyDown?: () => void
 }
 
-type KeyExpansionsType = { [k in string]: number }; // numbers as keys are stored as string anyway, so use string
+type KeyExpansionsType = Record<string, number>; // numbers as keys are stored as string anyway, so use string
 
-type KeyExpansionsRepeatType = { [k in string]: number }; // numbers as keys are stored as string anyway, so use string
+type KeyExpansionsRepeatType = Record<string, number>; // numbers as keys are stored as string anyway, so use string
 
-type Key2CpcKeyType = { [k in string]: number };
+type Key2CpcKeyType = Record<string, number>;
 
-type PressedBrowseKeysType = { [k in string]: boolean };
+type PressedBrowseKeysType = Record<string, boolean>;
 
-type PressedKeysType = { [k in string]: {keys: PressedBrowseKeysType, shift: boolean, ctrl: boolean } };
+type PressedKeysType = Record<string, {keys: PressedBrowseKeysType, shift: boolean, ctrl: boolean}>;
 interface CpcKeyExpansions {
 	normal: KeyExpansionsType
 	shift: KeyExpansionsType
@@ -37,12 +37,12 @@ interface CpcKeyExpansions {
 }
 
 export class Keyboard {
-	private options: KeyboardOptions;
+	private readonly options: KeyboardOptions;
 
 	private fnOnKeyDown?: () => void;
-	private keyBuffer: string[] = []; // buffered pressed keys
-	private expansionTokens: string[] = []; // strings for expansion tokens 0..31 (in reality: 128..159)
-	private cpcKeyExpansions: CpcKeyExpansions; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
+	private readonly keyBuffer: string[] = []; // buffered pressed keys
+	private readonly expansionTokens: string[] = []; // strings for expansion tokens 0..31 (in reality: 128..159)
+	private readonly cpcKeyExpansions: CpcKeyExpansions; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
 
 	private active = false; // flag if keyboard is active/focused, set from outside
 
@@ -71,7 +71,7 @@ export class Keyboard {
 	}
 
 	// use this:
-	private static key2CpcKey = {
+	private static readonly key2CpcKey = {
 		"38ArrowUp": 0,
 		"39ArrowRight": 1,
 		"40ArrowDown": 2,
@@ -195,7 +195,7 @@ export class Keyboard {
 		"107NumpadAdd": 89
 	};
 
-	private static specialKeys: {[k in string]: string} = {
+	private static readonly specialKeys: Record<string, string> = {
 		Alt: String.fromCharCode(224), // Copy
 
 		ArrowUp: String.fromCharCode(240),
@@ -238,7 +238,7 @@ export class Keyboard {
 	};
 
 	/* eslint-disable array-element-newline */
-	private static joyKeyCodes = [
+	private static readonly joyKeyCodes = [
 		[72, 73, 74, 75, 76, 77],
 		[48, 49, 50, 51, 52, 53]
 	];
@@ -428,7 +428,7 @@ export class Keyboard {
 
 	private static keyIdentifier2Char(event: KeyboardEvent) {
 		// SliTaz web browser has not key but keyIdentifier
-		const identifier = (event as any).keyIdentifier,
+		const identifier = (event as any).keyIdentifier, // eslint-disable-line @typescript-eslint/no-explicit-any
 			shiftKey = event.shiftKey;
 		let char = "";
 

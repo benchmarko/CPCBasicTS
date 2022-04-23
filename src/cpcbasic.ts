@@ -10,7 +10,7 @@ import { Model, ConfigType, ConfigEntryType } from "./Model";
 import { View } from "./View";
 
 class cpcBasic { // eslint-disable-line vars-on-top
-	private static config: ConfigType = {
+	private static readonly config: ConfigType = {
 		bench: 0, // debug: number of parse bench loops
 		debug: 0,
 		databaseDirs: "examples", // example base directories (comma separated)
@@ -89,68 +89,68 @@ class cpcBasic { // eslint-disable-line vars-on-top
 		}
 	}
 
+	private static fnMapObjectProperties(arg: any) {
+		if (typeof arg === "object") {
+			const res = [];
+
+			for (const key in arg) { // eslint-disable-line guard-for-in
+				// if (arg.hasOwnProperty(key)) {
+				const value = arg[key];
+
+				if (typeof value !== "object" && typeof value !== "function") {
+					res.push(key + ": " + value);
+				}
+			}
+			arg = String(arg) + "{" + res.join(", ") + "}";
+		}
+		return arg;
+	}
+
 	private static createDebugUtilsConsole(cpcBasicLog: string) {
-		const currentConsole = Utils.console,
-			console = {
-				consoleLog: {
-					value: cpcBasicLog || "" // already something collected?
-				},
-				console: currentConsole,
-				fnMapObjectProperties: function (arg: any) {
-					if (typeof arg === "object") {
-						const res = [];
+		const currentConsole = Utils.console;
 
-						for (const key in arg) { // eslint-disable-line guard-for-in
-							// if (arg.hasOwnProperty(key)) {
-							const value = arg[key];
-
-							if (typeof value !== "object" && typeof value !== "function") {
-								res.push(key + ": " + value);
-							}
-						}
-						arg = String(arg) + "{" + res.join(", ") + "}";
-					}
-					return arg;
-				},
-				rawLog: function (fnMethod: (args: any) => void, level: string, args: any) {
-					if (level) {
-						args.unshift(level);
-					}
-					if (fnMethod) {
-						if (fnMethod.apply) {
-							fnMethod.apply(console, args);
-						}
-					}
-					if (this.consoleLog) {
-						this.consoleLog.value += args.map(this.fnMapObjectProperties).join(" ") + ((level !== null) ? "\n" : "");
-					}
-				},
-				log: function () {
-					this.rawLog(this.console && this.console.log, "", Array.prototype.slice.call(arguments));
-				},
-				debug: function () {
-					this.rawLog(this.console && this.console.debug, "DEBUG:", Array.prototype.slice.call(arguments));
-				},
-				info: function () {
-					this.rawLog(this.console && this.console.info, "INFO:", Array.prototype.slice.call(arguments));
-				},
-				warn: function () {
-					this.rawLog(this.console && this.console.warn, "WARN:", Array.prototype.slice.call(arguments));
-				},
-				error: function () {
-					this.rawLog(this.console && this.console.error, "ERROR:", Array.prototype.slice.call(arguments));
-				},
-				changeLog: function (log: any) {
-					const oldLog = this.consoleLog;
-
-					this.consoleLog = log;
-					if (oldLog && oldLog.value && log) { // some log entires collected?
-						log.value += oldLog.value; // take collected log entries
+		return {
+			consoleLog: {
+				value: cpcBasicLog || "" // already something collected?
+			},
+			console: currentConsole,
+			rawLog: function (fnMethod: (args: any) => void, level: string, args: any) {
+				if (level) {
+					args.unshift(level);
+				}
+				if (fnMethod) {
+					if (fnMethod.apply) {
+						fnMethod.apply(console, args);
 					}
 				}
-			};
+				if (this.consoleLog) {
+					this.consoleLog.value += args.map(cpcBasic.fnMapObjectProperties).join(" ") + ((level !== null) ? "\n" : "");
+				}
+			},
+			log: function () {
+				this.rawLog(this.console && this.console.log, "", Array.prototype.slice.call(arguments));
+			},
+			debug: function () {
+				this.rawLog(this.console && this.console.debug, "DEBUG:", Array.prototype.slice.call(arguments));
+			},
+			info: function () {
+				this.rawLog(this.console && this.console.info, "INFO:", Array.prototype.slice.call(arguments));
+			},
+			warn: function () {
+				this.rawLog(this.console && this.console.warn, "WARN:", Array.prototype.slice.call(arguments));
+			},
+			error: function () {
+				this.rawLog(this.console && this.console.error, "ERROR:", Array.prototype.slice.call(arguments));
+			},
+			changeLog: function (log: any) {
+				const oldLog = this.consoleLog;
 
-		return console;
+				this.consoleLog = log;
+				if (oldLog && oldLog.value && log) { // some log entires collected?
+					log.value += oldLog.value; // take collected log entries
+				}
+			}
+		};
 	}
 
 	private static fnDoStart() {

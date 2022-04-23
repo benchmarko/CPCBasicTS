@@ -45,5 +45,4 @@ module.constructor.prototype._compile = function (content: any, filename: string
 			return req(injection);
 		}
 	}));
-
 };

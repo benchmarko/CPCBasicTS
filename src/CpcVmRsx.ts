@@ -8,7 +8,7 @@ import { ICpcVmRsx } from "./Interfaces";
 import { CpcVm, VmFileParas } from "./CpcVm";
 
 export class CpcVmRsx implements ICpcVmRsx {
-	private vm: CpcVm;
+	private readonly vm: CpcVm;
 
 	constructor(vm: CpcVm) {
 		this.vm = vm;
@@ -146,18 +146,7 @@ export class CpcVmRsx implements ICpcVmRsx {
 
 	mode(mode: number): void {
 		mode = this.vm.vmInRangeRound(mode, 0, 3, "|MODE");
-		this.vm.modeValue = mode;
-
-		const winData = CpcVm.winData[this.vm.modeValue];
-
-		Utils.console.log("rsxMode: (test)", mode);
-
-		for (let i = 0; i < CpcVm.streamCount - 2; i += 1) { // for window streams
-			const win = this.vm.windowDataList[i];
-
-			Object.assign(win, winData);
-		}
-		this.vm.canvas.changeMode(mode); // or setMode?
+		this.vm.vmChangeMode(mode);
 	}
 
 	renum(...args: number[]): void { // optional args: new number, old number, step, keep line (only for |renum)

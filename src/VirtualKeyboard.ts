@@ -40,11 +40,11 @@ interface VirtualButtonRowOptions {
 }
 
 export class VirtualKeyboard {
-	private fnPressCpcKey: PressReleaseCpcKey;
-	private fnReleaseCpcKey: PressReleaseCpcKey;
+	private readonly fnPressCpcKey: PressReleaseCpcKey;
+	private readonly fnReleaseCpcKey: PressReleaseCpcKey;
 
-	private pointerOutEvent?: string;
-	private fnVirtualKeyout?: EventListener;
+	private readonly pointerOutEvent?: string;
+	private readonly fnVirtualKeyout?: EventListener;
 
 	private shiftLock = false;
 	private numLock = false;
@@ -65,7 +65,7 @@ export class VirtualKeyboard {
 		this.virtualKeyboardCreate();
 	}
 
-	private static cpcKey2Key: CpcKey2Key[] = [
+	private static readonly cpcKey2Key: CpcKey2Key[] = [
 		{
 			keys: "38ArrowUp", // 0: cursor up
 			key: "ArrowUp",
@@ -574,7 +574,7 @@ export class VirtualKeyboard {
 	];
 
 	/* eslint-disable array-element-newline */
-	private static virtualVirtualKeyboardAlpha: VirtualVirtualKeyboardLayoutType2[][] = [
+	private static readonly virtualVirtualKeyboardAlpha: VirtualVirtualKeyboardLayoutType2[][] = [
 		[66, 64, 65, 57, 56, 49, 48, 41, 40, 33, 32, 25, 24, 16, 79],
 		[68, 67, 59, 58, 50, 51, 43, 42, 35, 34, 27, 26, 17, 18],
 		[70, 69, 60, 61, 53, 52, 44, 45, 37, 36, 29, 28, 19, 90], // 90=virtual numpad button
@@ -588,7 +588,7 @@ export class VirtualKeyboard {
 		[23, 9, 47, 6]
 	];
 
-	private static virtualVirtualKeyboardNum: VirtualVirtualKeyboardLayoutType2[][] = [ // numpad
+	private static readonly virtualVirtualKeyboardNum: VirtualVirtualKeyboardLayoutType2[][] = [ // numpad
 		[10, 11, 3],
 		[20, 12, 4],
 		[13, 14, 5],
@@ -597,7 +597,7 @@ export class VirtualKeyboard {
 	];
 	/* eslint-enable array-element-newline */
 
-	private dragInfo = {
+	private readonly dragInfo = {
 		dragItem: undefined as (HTMLElement | undefined),
 		active: false,
 		xOffset: 0,
@@ -608,41 +608,43 @@ export class VirtualKeyboard {
 		currentY: 0
 	};
 
-	private fnAttachPointerEvents(id: string, fnDown?: EventListener, fnMove?: EventListener, fnUp?: EventListener) { // eslint-disable-line class-methods-use-this
-		const area = View.getElementById1(id),
-			pointerEventNames = {
-				down: "pointerdown",
-				move: "pointermove",
-				up: "pointerup",
-				cancel: "pointercancel",
-				out: "pointerout",
-				type: "pointer"
-			},
-			touchEventNames = {
-				down: "touchstart",
-				move: "touchmove",
-				up: "touchend",
-				cancel: "touchcancel",
-				out: "", // n.a.
-				type: "touch"
-			},
-			mouseEventNames = {
-				down: "mousedown",
-				move: "mousemove",
-				up: "mouseup",
-				cancel: "", // n.a.
-				out: "mouseout",
-				type: "mouse"
-			};
+	private static readonly pointerEventNames = {
+		down: "pointerdown",
+		move: "pointermove",
+		up: "pointerup",
+		cancel: "pointercancel",
+		out: "pointerout",
+		type: "pointer"
+	};
 
-		let eventNames: typeof pointerEventNames;
+	private static readonly touchEventNames = {
+		down: "touchstart",
+		move: "touchmove",
+		up: "touchend",
+		cancel: "touchcancel",
+		out: "", // n.a.
+		type: "touch"
+	};
+
+	private static readonly mouseEventNames = {
+		down: "mousedown",
+		move: "mousemove",
+		up: "mouseup",
+		cancel: "", // n.a.
+		out: "mouseout",
+		type: "mouse"
+	};
+
+	private fnAttachPointerEvents(id: string, fnDown?: EventListener, fnMove?: EventListener, fnUp?: EventListener) { // eslint-disable-line class-methods-use-this
+		const area = View.getElementById1(id);
+		let eventNames: typeof VirtualKeyboard.pointerEventNames;
 
 		if (window.PointerEvent) {
-			eventNames = pointerEventNames;
+			eventNames = VirtualKeyboard.pointerEventNames;
 		} else if ("ontouchstart" in window || navigator.maxTouchPoints) {
-			eventNames = touchEventNames;
+			eventNames = VirtualKeyboard.touchEventNames;
 		} else {
-			eventNames = mouseEventNames;
+			eventNames = VirtualKeyboard.mouseEventNames;
 		}
 
 		if (Utils.debug > 0) {
@@ -824,13 +826,16 @@ export class VirtualKeyboard {
 		return node;
 	}
 
+	private fnGetEventTargetAs<T extends HTMLElement>(event: Event) { // eslint-disable-line class-methods-use-this
+		return this.fnGetEventTarget(event) as T;
+	}
+
 	private onVirtualVirtualKeyboardKeydown(event: Event) {
-		const node = this.fnGetEventTarget(event),
-			htmlElement = node as HTMLElement,
-			cpcKey = htmlElement.getAttribute("data-key");
+		const node = this.fnGetEventTargetAs<HTMLElement>(event),
+			cpcKey = node.getAttribute("data-key");
 
 		if (Utils.debug > 1) {
-			Utils.console.debug("onVirtualVirtualKeyboardKeydown: event", String(event), "type:", event.type, "title:", htmlElement.title, "cpcKey:", cpcKey);
+			Utils.console.debug("onVirtualVirtualKeyboardKeydown: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", cpcKey);
 		}
 
 		if (cpcKey !== null) {
@@ -855,7 +860,7 @@ export class VirtualKeyboard {
 	}
 
 	private fnVirtualVirtualKeyboardKeyupOrKeyout(event: Event) {
-		const node = this.fnGetEventTarget(event) as HTMLElement,
+		const node = this.fnGetEventTargetAs<HTMLElement>(event),
 			cpcKey = node.getAttribute("data-key");
 
 		if (cpcKey !== null) {
@@ -881,11 +886,10 @@ export class VirtualKeyboard {
 	}
 
 	private onVirtualVirtualKeyboardKeyup(event: Event) {
-		const node = this.fnGetEventTarget(event),
-			htmlElement = node as HTMLElement;
+		const node = this.fnGetEventTargetAs<HTMLElement>(event);
 
 		if (Utils.debug > 1) {
-			Utils.console.debug("onVirtualVirtualKeyboardKeyup: event", String(event), "type:", event.type, "title:", htmlElement.title, "cpcKey:", htmlElement.getAttribute("data-key"));
+			Utils.console.debug("onVirtualVirtualKeyboardKeyup: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", node.getAttribute("data-key"));
 		}
 
 		this.fnVirtualVirtualKeyboardKeyupOrKeyout(event);
@@ -898,7 +902,7 @@ export class VirtualKeyboard {
 	}
 
 	private onVirtualVirtualKeyboardKeyout(event: Event) {
-		const node = this.fnGetEventTarget(event);
+		const node = this.fnGetEventTargetAs<HTMLElement>(event);
 
 		if (Utils.debug > 1) {
 			Utils.console.debug("onVirtualVirtualKeyboardKeyout: event=", event);
@@ -924,11 +928,11 @@ export class VirtualKeyboard {
 	}
 
 	private dragStart(event: Event) {
-		const node = this.fnGetEventTarget(event) as HTMLElement,
-			parent2 = node.parentElement ? node.parentElement.parentElement : null,
+		const node = this.fnGetEventTargetAs<HTMLElement>(event),
+			parent = node.parentElement ? node.parentElement.parentElement : null,
 			drag = this.dragInfo;
 
-		if (node === drag.dragItem || parent2 === drag.dragItem) {
+		if (node === drag.dragItem || parent === drag.dragItem) {
 			if (event.type === "touchstart") {
 				const touchEvent = event as TouchEvent;
 

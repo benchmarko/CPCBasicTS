@@ -8,9 +8,9 @@ import { Model, ConfigType } from "./Model";
 import { View } from "./View";
 
 export class CommonEventHandler implements EventListenerObject {
-	private model: Model;
-	private view: View;
-	private controller: IController;
+	private readonly model: Model;
+	private readonly view: View;
+	private readonly controller: IController;
 
 	private fnUserAction: ((event: Event, id: string) => void) | undefined = undefined;
 
@@ -69,11 +69,7 @@ export class CommonEventHandler implements EventListenerObject {
 	}
 
 	private onConvertButtonClick() {
-		if (this.toogleHidden("convertArea", "showConvert", "flex")) {
-			// todo
-		} else {
-			// todo
-		}
+		this.toogleHidden("convertArea", "showConvert", "flex");
 	}
 
 	private onKbdButtonClick() {
@@ -240,7 +236,7 @@ export class CommonEventHandler implements EventListenerObject {
 	}
 
 	/* eslint-disable no-invalid-this */
-	private handlers: { [k: string]: (e: Event | MouseEvent) => void } = {
+	private readonly handlers: Record<string, (e: Event | MouseEvent) => void> = {
 		onSpecialButtonClick: this.onSpecialButtonClick,
 		onInputButtonClick: this.onInputButtonClick,
 		onInp2ButtonClick: this.onInp2ButtonClick,

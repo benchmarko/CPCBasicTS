@@ -138,12 +138,12 @@ class cpcBasic {
 	static testIndex: number; // example index for current database
 	static fnExampleDone1: () => void;
 
-	static rsx = {
+	static rsx: ICpcVmRsx = {
 		rsxIsAvailable: function (rsx: string): boolean { // not needed to suppress warnings when using quiet
 			return (/^a|b|basic|cpm|dir|disc|disc\.in|disc\.out|drive|era|ren|tape|tape\.in|tape\.out|user|mode|renum$/).test(rsx);
 		}
 		// will be programmatically extended by methods...
-	} as ICpcVmRsx;
+	};
 
 	static lexer = new BasicLexer({
 		quiet: true,
@@ -154,7 +154,7 @@ class cpcBasic {
 		quiet: true
 	});
 
-	static convertParser = new BasicParser({ // TODO: use one BasicParser
+	static convertParser = new BasicParser({
 		quiet: true,
 		keepTokens: true,
 		keepBrackets: true,
@@ -694,7 +694,7 @@ if (typeof myGlobalThis.QUnit !== "undefined") {
 	Utils.console.log("Using QUnit");
 	const QUnit = myGlobalThis.QUnit;
 
-	QUnit.config.testTimeout = 5 * 1000;
+	QUnit.config.testTimeout = 8 * 1000;
 	QUnit.module("testParseExamples: Tests", function (/* hooks */) {
 		QUnit.test("testParseExamples", function (assert: QUnitAssertType3) {
 			cpcBasic.assert = assert;

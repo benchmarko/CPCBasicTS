@@ -13,11 +13,6 @@ export interface SelectOptionElement { // similar to HtmlOptionElement
 }
 
 export class View {
-	/*
-	constructor() {
-	}
-	*/
-
 	static getElementById1(id: string): HTMLElement {
 		const element = document.getElementById(id);
 
@@ -25,6 +20,10 @@ export class View {
 			throw new Error("Unknown " + id);
 		}
 		return element;
+	}
+
+	private static getElementByIdAs<T extends HTMLButtonElement| HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(id: string) {
+		return View.getElementById1(id) as T;
 	}
 
 	getHidden(id: string): boolean { // eslint-disable-line class-methods-use-this
@@ -57,7 +56,7 @@ export class View {
 	}
 
 	setDisabled(id: string, disabled: boolean): this {
-		const element = View.getElementById1(id) as HTMLButtonElement;
+		const element = View.getElementByIdAs<HTMLButtonElement>(id);
 
 		element.disabled = disabled;
 		return this;
@@ -77,37 +76,37 @@ export class View {
 	}
 
 	getAreaValue(id: string): string { // eslint-disable-line class-methods-use-this
-		const element = View.getElementById1(id) as HTMLTextAreaElement;
+		const element = View.getElementByIdAs<HTMLTextAreaElement>(id);
 
 		return element.value;
 	}
 	setAreaValue(id: string, value: string): this {
-		const element = View.getElementById1(id) as HTMLTextAreaElement;
+		const element = View.getElementByIdAs<HTMLTextAreaElement>(id);
 
 		element.value = value;
 		return this;
 	}
 
 	getInputValue(id: string): string { // eslint-disable-line class-methods-use-this
-		const element = View.getElementById1(id) as HTMLInputElement;
+		const element = View.getElementByIdAs<HTMLInputElement>(id);
 
 		return element.value;
 	}
 	setInputValue(id: string, value: string): this {
-		const element = View.getElementById1(id) as HTMLInputElement;
+		const element = View.getElementByIdAs<HTMLInputElement>(id);
 
 		element.value = value;
 		return this;
 	}
 
 	getInputChecked(id: string): boolean { // eslint-disable-line class-methods-use-this
-		const element = View.getElementById1(id) as HTMLInputElement;
+		const element = View.getElementByIdAs<HTMLInputElement>(id);
 
 		return element.checked;
 	}
 
 	setSelectOptions(id: string, options: SelectOptionElement[]): this {
-		const element = View.getElementById1(id) as HTMLSelectElement;
+		const element = View.getElementByIdAs<HTMLSelectElement>(id);
 
 		for (let i = 0; i < options.length; i += 1) {
 			const item = options[i];
@@ -140,12 +139,12 @@ export class View {
 		return this;
 	}
 	getSelectValue(id: string): string { // eslint-disable-line class-methods-use-this
-		const element = View.getElementById1(id) as HTMLSelectElement;
+		const element = View.getElementByIdAs<HTMLSelectElement>(id);
 
 		return element.value;
 	}
 	setSelectValue(id: string, value: string): this {
-		const element = View.getElementById1(id) as HTMLSelectElement;
+		const element = View.getElementByIdAs<HTMLSelectElement>(id);
 
 		if (value) {
 			element.value = value;
@@ -153,7 +152,7 @@ export class View {
 		return this;
 	}
 	setSelectTitleFromSelectedOption(id: string): this {
-		const element = View.getElementById1(id) as HTMLSelectElement,
+		const element = View.getElementByIdAs<HTMLSelectElement>(id),
 			selectedIndex = element.selectedIndex,
 			title = (selectedIndex >= 0) ? element.options[selectedIndex].title : "";
 
@@ -162,7 +161,7 @@ export class View {
 	}
 
 	setAreaScrollTop(id: string, scrollTop?: number): this { // eslint-disable-line class-methods-use-this
-		const element = View.getElementById1(id) as HTMLTextAreaElement;
+		const element = View.getElementByIdAs<HTMLTextAreaElement>(id);
 
 		if (scrollTop === undefined) {
 			scrollTop = element.scrollHeight;
@@ -197,7 +196,7 @@ export class View {
 	}
 
 	setAreaSelection(id: string, pos: number, endPos: number): this {
-		const element = View.getElementById1(id) as HTMLTextAreaElement;
+		const element = View.getElementByIdAs<HTMLTextAreaElement>(id);
 
 		if (element.selectionStart !== undefined) {
 			if (element.setSelectionRange !== undefined) {

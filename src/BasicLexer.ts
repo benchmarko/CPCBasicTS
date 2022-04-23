@@ -31,7 +31,7 @@ export class BasicLexer {
 
 	private input = "";
 	private index = 0;
-	private tokens: LexerToken[] = [];
+	private readonly tokens: LexerToken[] = [];
 	private whiteSpace = ""; // collected whitespace
 
 	setOptions(options: BasicLexerOptions): void {

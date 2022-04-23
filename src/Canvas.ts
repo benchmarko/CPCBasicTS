@@ -25,18 +25,18 @@ interface ModeData {
 }
 
 export class Canvas {
-	private fnUpdateCanvasHandler: () => void;
-	private fnUpdateCanvas2Handler: () => void;
+	private readonly fnUpdateCanvasHandler: () => void;
+	private readonly fnUpdateCanvas2Handler: () => void;
 
 	private fps = 15; // FPS for canvas update
 
-	private cpcAreaBox: HTMLElement;
-	private textText: HTMLTextAreaElement;
+	private readonly cpcAreaBox: HTMLElement;
+	private readonly textText: HTMLTextAreaElement;
 
-	private charset: CharsetType;
-	private customCharset: {[k: number]: CharType} = {};
+	private readonly charset: CharsetType;
+	private customCharset: Record<number, CharType> = {};
 
-	private onClickKey?: (arg0: string) => void;
+	private readonly onClickKey?: (arg0: string) => void;
 
 	private gColMode = 0; // 0=normal, 1=xor, 2=and, 3=or
 
@@ -46,30 +46,30 @@ export class Canvas {
 
 	private offset = 0; // screen offset
 
-	private canvas: HTMLCanvasElement;
+	private readonly canvas: HTMLCanvasElement;
 
 	private width: number;
 	private height: number;
 	private borderWidth = 4;
 
-	private dataset8: Uint8Array;
+	private readonly dataset8: Uint8Array;
 
 	private needUpdate = false;
 	private needTextUpdate = false;
 
-	private colorValues: number[][];
+	private readonly colorValues: number[][];
 
-	private currentInks: number[][] = [];
-	private speedInk: number[] = [];
+	private readonly currentInks: number[][] = [];
+	private readonly speedInk: number[] = [];
 	private inkSet = 0;
 
-	private pen2ColorMap: number[][] = [];
+	private readonly pen2ColorMap: number[][] = [];
 
 	private animationTimeoutId?: number;
 	private animationFrame?: number;
 
-	private ctx: CanvasRenderingContext2D;
-	private imageData: ImageData;
+	private readonly ctx: CanvasRenderingContext2D;
+	private readonly imageData: ImageData;
 
 	private fnCopy2Canvas?: () => void;
 	private littleEndian = true;
@@ -82,7 +82,7 @@ export class Canvas {
 
 	private speedInkCount = 0; // usually 10
 
-	private textBuffer: number[][] = []; // textbuffer characters at row,column
+	private readonly textBuffer: number[][] = []; // textbuffer characters at row,column
 
 	private hasFocus = false; // canvas has focus
 
@@ -162,7 +162,7 @@ export class Canvas {
 	}
 
 	// http://www.cpcwiki.eu/index.php/CPC_Palette
-	private static colors = [
+	private static readonly colors = [
 		"#000000", //  0 Black
 		"#000080", //  1 Blue
 		"#0000FF", //  2 Bright Blue
@@ -198,12 +198,12 @@ export class Canvas {
 	];
 
 	// mode 0: pen 0-15,16=border; inks for pen 14,15 are alternating: "1,24", "16,11"
-	private static defaultInks = [
+	private static readonly defaultInks = [
 		[1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1], // eslint-disable-line array-element-newline
 		[1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 24, 11, 1] // eslint-disable-line array-element-newline
 	];
 
-	private static modeData: ModeData[] = [
+	private static readonly modeData: ModeData[] = [
 		{ // mode 0
 			pens: 16, // number of pens
 			pixelWidth: 4, // pixel width
@@ -227,7 +227,7 @@ export class Canvas {
 	];
 
 	// CPC Unicode map for text mode (https://www.unicode.org/L2/L2019/19025-terminals-prop.pdf AMSCPC.TXT) incomplete
-	private static cpc2Unicode =
+	private static readonly cpc2Unicode =
 		"................................ !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]\u2195_`abcdefghijklmnopqrstuvwxyz{|}~\u2591"
 		+ "\u00A0\u2598\u259D\u2580\u2596\u258C\u259E\u259B\u2597\u259A\u2590\u259C\u2584\u2599\u259F\u2588\u00B7\u2575\u2576\u2514\u2577\u2502\u250C"
 		+ "\u251C\u2574\u2518\u2500\u2534\u2510\u2524\u252C\u253C\u005E\u00B4\u00A8\u00A3\u00A9\u00B6\u00A7\u2018\u00BC\u00BD\u00BE\u00B1\u00F7\u00AC"
