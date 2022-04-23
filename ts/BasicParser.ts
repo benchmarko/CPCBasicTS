@@ -59,7 +59,7 @@ export class BasicParser {
 	private keepColons = false;
 	private keepDataComma = false;
 
-	private symbols: { [k in string]: SymbolType } = {};
+	private readonly symbols: Record<string, SymbolType> = {};
 
 	// set also during parse
 	private tokens: LexerToken[] = [];
@@ -68,7 +68,7 @@ export class BasicParser {
 	private index = 0;
 	private previousToken: ParserNode;
 	private token: ParserNode; // current token
-	private parseTree: ParserNode[] = [];
+	private readonly parseTree: ParserNode[] = [];
 
 	private statementList: ParserNode[] = []; // just to check last statement when generating error message
 
@@ -91,7 +91,7 @@ export class BasicParser {
 		this.token = this.previousToken;
 	}
 
-	private static parameterTypes: { [k in string]: string } = {
+	private static readonly parameterTypes: Record<string, string> = {
 		c: "command",
 		f: "function",
 		o: "operator",
@@ -109,7 +109,7 @@ export class BasicParser {
 
 	// first letter: c=command, f=function, o=operator, x=additional keyword for command
 	// following are arguments: n=number, s=string, l=line number (checked), v=variable (checked), r=letter or range, a=any, n0?=optional parameter with default null, #=stream, #0?=optional stream with default 0; suffix ?=optional (optionals must be last); last *=any number of arguments may follow
-	static keywords: { [k in string]: string } = {
+	static readonly keywords: Record<string, string> = {
 		abs: "f n", // ABS(<numeric expression>)
 		after: "c", // => afterGosub
 		afterGosub: "c n n?", // AFTER <timer delay>[,<timer number>] GOSUB <line number> / (special, cannot check optional first n, and line number)
@@ -301,7 +301,7 @@ export class BasicParser {
 	}
 
 	/* eslint-disable no-invalid-this */
-	private specialStatements: { [k: string]: () => ParserNode } = { // to call methods, use specialStatements[].call(this,...)
+	private readonly specialStatements: Record<string, () => ParserNode> = { // to call methods, use specialStatements[].call(this,...)
 		"'": this.fnApostrophe,
 		"|": this.fnRsx, // rsx
 		after: this.fnAfterOrEvery,
@@ -332,19 +332,19 @@ export class BasicParser {
 	/* eslint-enable no-invalid-this */
 
 
-	private static closeTokensForLine: { [k in string]: number } = {
+	private static readonly closeTokensForLine: Record<string, number> = {
 		"(eol)": 1,
 		"(end)": 1
 	}
 
-	private static closeTokensForLineAndElse: { [k in string]: number } = {
+	private static readonly closeTokensForLineAndElse: Record<string, number> = {
 		"(eol)": 1,
 		"(end)": 1,
 		"else": 1
 	}
 
 
-	private static closeTokensForArgs: { [k in string]: number } = {
+	private static readonly closeTokensForArgs: Record<string, number> = {
 		":": 1,
 		"(eol)": 1,
 		"(end)": 1,
@@ -427,13 +427,7 @@ export class BasicParser {
 
 		this.advance(t.type);
 		if (!s.nud) {
-			/*
-			if (t.type === "(end)") {
-				throw this.composeError(Error(), "Unexpected end of file", "", t.pos);
-			} else {
-			*/
 			throw this.composeError(Error(), "Unexpected token", t.value, t.pos);
-			//}
 		}
 
 		let left = s.nud.call(this, t); // process literals, variables, and prefix operators
@@ -494,7 +488,7 @@ export class BasicParser {
 		return value;
 	}
 
-	private statements(closeTokens: { [k in string]: number }) {
+	private statements(closeTokens: Record<string, number>) {
 		const statementList: ParserNode[] = [];
 
 		this.statementList = statementList; // fast hack to access last statement for error messages
@@ -860,7 +854,7 @@ export class BasicParser {
 		return args;
 	}
 
-	private static brackets: { [k in string]: string } = {
+	private static brackets: Record<string, string> = {
 		"(": ")",
 		"[": "]"
 	};

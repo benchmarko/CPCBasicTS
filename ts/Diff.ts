@@ -105,9 +105,9 @@ export class Diff {
 					delta = iN - iM,
 					hhalfMaxCeil = (max + 1) / 2 | 0, // eslint-disable-line no-bitwise
 					// Maps -Max .. 0 .. +Max, diagonal index to endpoints for furthest reaching D-path on current iteration.
-					oV: {[k: number]: number} = {},
+					oV: Record<number, number> = {},
 					// Same but for reversed paths.
-					oU: {[k: number]: number} = {};
+					oU: Record<number, number> = {};
 				let	overlap: number[][] | undefined,
 					iD: number;
 

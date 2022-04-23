@@ -2,7 +2,6 @@
 //
 
 import { Utils } from "../Utils";
-import { ICpcVmRsx } from "../Interfaces";
 import { BasicLexer } from "../BasicLexer";
 import { BasicParser } from "../BasicParser";
 import { CodeGeneratorJs } from "../CodeGeneratorJs";
@@ -650,7 +649,7 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 					rsxIsAvailable: function (rsx: string) { // not needed to suppress warnings when using quiet
 						return (/^a|b|basic|cpm|dir|disc|disc\.in|disc\.out|drive|era|ren|tape|tape\.in|tape\.out|user|mode|renum$/).test(rsx);
 					}
-				} as ICpcVmRsx,
+				}, // ICpcVmRsx
 				noCodeFrame: true
 			});
 

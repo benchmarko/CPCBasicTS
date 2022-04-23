@@ -1,5 +1,5 @@
 import { BasicLexer } from "./BasicLexer";
-import { BasicParser, ParserNode } from "./BasicParser";
+import { BasicParser } from "./BasicParser";
 import { IOutput } from "./Interfaces";
 interface CodeGeneratorTokenOptions {
     quiet?: boolean;
@@ -8,15 +8,15 @@ interface CodeGeneratorTokenOptions {
 }
 export declare class CodeGeneratorToken {
     private quiet;
-    private lexer;
-    private parser;
+    private readonly lexer;
+    private readonly parser;
     private line;
     private statementSeparator;
     constructor(options: CodeGeneratorTokenOptions);
-    private static operators;
-    private static operatorPrecedence;
-    private static tokens;
-    private static tokensFF;
+    private static readonly operators;
+    private static readonly operatorPrecedence;
+    private static readonly tokens;
+    private static readonly tokensFF;
     private composeError;
     private static convUInt8ToString;
     private static convUInt16ToString;
@@ -66,9 +66,7 @@ export declare class CodeGeneratorToken {
     private print;
     private rem;
     private using;
-    parseFunctions: {
-        [k: string]: (node: ParserNode) => string;
-    };
+    private readonly parseFunctions;
     private fnParseOther;
     private parseNode;
     private evaluate;

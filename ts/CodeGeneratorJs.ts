@@ -36,17 +36,17 @@ type StackType = {
 type LabelsType = Record<string, number>;
 
 export class CodeGeneratorJs {
-	private lexer: BasicLexer;
-	private parser: BasicParser;
+	private readonly lexer: BasicLexer;
+	private readonly parser: BasicParser;
 	private tron: boolean; // trace on flag: emit trace instauctions for every line
-	private rsx: ICpcVmRsx;
+	private readonly rsx: ICpcVmRsx;
 	private quiet: boolean; // quiet mode: suppress most warnings
-	private noCodeFrame: boolean // suppress generation of a code frame
+	private readonly noCodeFrame: boolean // suppress generation of a code frame
 
 	private line = 0; // current line (label)
-	private reJsKeywords: RegExp;
+	private readonly reJsKeywords: RegExp;
 
-	private stack: StackType = {
+	private readonly stack: StackType = {
 		forLabel: [],
 		forVarName: [],
 		whileLabel: []
@@ -60,7 +60,7 @@ export class CodeGeneratorJs {
 
 	private referencedLabelsCount: Record<string, number> = {};
 
-	private dataList: string[] = []; // collected data from data lines
+	private readonly dataList: string[] = []; // collected data from data lines
 
 	private mergeFound = false; // if we find chain or chain merge, the program is not complete and we cannot check for existing line numbers during compile time (or do a renumber)
 
@@ -80,7 +80,7 @@ export class CodeGeneratorJs {
 	}
 
 	// ECMA 3 JS Keywords which must be avoided in dot notation for properties when using IE8
-	private static jsKeywords = [
+	private static readonly jsKeywords = [
 		"do",
 		"if",
 		"in",
@@ -421,7 +421,7 @@ export class CodeGeneratorJs {
 
 
 	/* eslint-disable no-invalid-this */
-	private allOperators: { [k in string]: (node: CodeNode, left: CodeNode, right: CodeNode) => void } = { // to call methods, use allOperators[].call(this,...)
+	private allOperators: Record<string, (node: CodeNode, left: CodeNode, right: CodeNode) => void> = { // to call methods, use allOperators[].call(this,...)
 		"+": this.plus,
 		"-": this.minus,
 		"*": this.mult,
@@ -443,7 +443,7 @@ export class CodeGeneratorJs {
 		"#": CodeGeneratorJs.stream
 	};
 
-	private unaryOperators: { [k in string]: (node: CodeNode, left: undefined, right: CodeNode) => void } = { // to call methods, use unaryOperators[].call(this,...)
+	private unaryOperators: Record<string, (node: CodeNode, left: undefined, right: CodeNode) => void> = { // to call methods, use unaryOperators[].call(this,...)
 		"+": this.plus,
 		"-": this.minus,
 		not: CodeGeneratorJs.not,
@@ -1323,7 +1323,7 @@ export class CodeGeneratorJs {
 	}
 
 	/* eslint-disable no-invalid-this */
-	parseFunctions: { [k in string]: (node: CodeNode) => void } = { // to call methods, use parseFunctions[].call(this,...)
+	private readonly parseFunctions: Record<string, (node: CodeNode) => void> = { // to call methods, use parseFunctions[].call(this,...)
 		";": CodeGeneratorJs.commaOrSemicolon, // ";" for input, line input
 		",": CodeGeneratorJs.commaOrSemicolon, // "," for input, line input
 		"|": this.vertical,
@@ -1503,14 +1503,14 @@ export class CodeGeneratorJs {
 			if (Utils.debug > 2) {
 				Utils.console.debug("evaluate: parseTree i=%d, node=%o", i, parseTree[i]);
 			}
-			const node = this.fnParseOneArg(parseTree[i]);
+			const line = this.fnParseOneArg(parseTree[i]);
 
-			if ((node !== undefined) && (node !== "")) {
-				if (node !== null) {
+			if ((line !== undefined) && (line !== "")) {
+				if (line !== null) {
 					if (output.length === 0) {
-						output = node;
+						output = line;
 					} else {
-						output += "\n" + node;
+						output += "\n" + line;
 					}
 				} else {
 					output = ""; // cls (clear output when node is set to null)

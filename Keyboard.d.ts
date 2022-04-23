@@ -11,19 +11,19 @@ interface KeyboardOptions {
     fnOnKeyDown?: () => void;
 }
 export declare class Keyboard {
-    private options;
+    private readonly options;
     private fnOnKeyDown?;
-    private keyBuffer;
-    private expansionTokens;
-    private cpcKeyExpansions;
+    private readonly keyBuffer;
+    private readonly expansionTokens;
+    private readonly cpcKeyExpansions;
     private active;
     private key2CpcKey;
     private codeStringsRemoved;
     private pressedKeys;
     constructor(options: KeyboardOptions);
-    private static key2CpcKey;
-    private static specialKeys;
-    private static joyKeyCodes;
+    private static readonly key2CpcKey;
+    private static readonly specialKeys;
+    private static readonly joyKeyCodes;
     reset(): void;
     clearInput(): void;
     resetExpansionTokens(): void;

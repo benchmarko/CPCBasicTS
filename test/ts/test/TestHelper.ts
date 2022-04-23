@@ -3,9 +3,9 @@
 
 import { Utils } from "../Utils";
 
-export type TestsType = {[k in string]: string};
+export type TestsType = Record<string, string>;
 
-export type AllTestsType = {[k in string]: TestsType};
+export type AllTestsType = Record<string, TestsType>;
 
 export type runTestsForType = (assert: Assert | undefined, category: string, tests: TestsType, results?: string[]) => void;
 declare global {
@@ -17,7 +17,7 @@ declare global {
 
 type ConfigEntryType = string | number | boolean; // also in Model
 
-type ConfigType = { [k in string]: ConfigEntryType };
+type ConfigType = Record<string, ConfigEntryType>;
 
 // QUnit.dump.maxDepth = 10;
 

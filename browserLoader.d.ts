@@ -1,7 +1,5 @@
 interface Window {
-    exports: {
-        [k in string]: object;
-    };
-    require: any;
+    exports: Record<string, object>;
+    require: (id: string) => any;
     define: unknown;
 }

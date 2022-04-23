@@ -1,7 +1,7 @@
 import { ICpcVmRsx } from "./Interfaces";
 import { CpcVm } from "./CpcVm";
 export declare class CpcVmRsx implements ICpcVmRsx {
-    private vm;
+    private readonly vm;
     constructor(vm: CpcVm);
     rsxIsAvailable(name: string): boolean;
     rsxExec(name: string, ...args: (string | number)[]): void;

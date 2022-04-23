@@ -2,7 +2,7 @@
 // (c) Marco Vieth, 2020
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define(["require", "exports", "./Utils", "./CpcVm"], function (require, exports, Utils_1, CpcVm_1) {
+define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CpcVmRsx = void 0;
@@ -118,14 +118,7 @@ define(["require", "exports", "./Utils", "./CpcVm"], function (require, exports,
         };
         CpcVmRsx.prototype.mode = function (mode) {
             mode = this.vm.vmInRangeRound(mode, 0, 3, "|MODE");
-            this.vm.modeValue = mode;
-            var winData = CpcVm_1.CpcVm.winData[this.vm.modeValue];
-            Utils_1.Utils.console.log("rsxMode: (test)", mode);
-            for (var i = 0; i < CpcVm_1.CpcVm.streamCount - 2; i += 1) { // for window streams
-                var win = this.vm.windowDataList[i];
-                Object.assign(win, winData);
-            }
-            this.vm.canvas.changeMode(mode); // or setMode?
+            this.vm.vmChangeMode(mode);
         };
         CpcVmRsx.prototype.renum = function () {
             var args = [];

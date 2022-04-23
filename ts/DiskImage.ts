@@ -27,7 +27,7 @@ interface SectorInfo {
 	dataPos: number
 }
 
-type SectorNum2IndexMap = { [k in number]: number };
+type SectorNum2IndexMap = Record<number, number>;
 
 interface TrackInfo {
 	ident: string
@@ -90,7 +90,7 @@ interface FormatDescriptor {
 	parentRef?: string // reference to parent format definition
 }
 
-type PartialFormatDescriptorMap = {[k in string]: Partial<FormatDescriptor>};
+type PartialFormatDescriptorMap = Record<string, Partial<FormatDescriptor>>;
 
 export interface AmsdosHeader {
 	user: number
@@ -104,7 +104,7 @@ export interface AmsdosHeader {
 	typeString: string
 }
 
-type DirectoryListType = {[k in string]: ExtentEntry[]};
+type DirectoryListType = Record<string, ExtentEntry[]>;
 
 interface SectorPos {
 	track: number
@@ -127,7 +127,7 @@ export class DiskImage {
 		this.format = DiskImage.getInitialFormat();
 	}
 
-	private static formatDescriptors: PartialFormatDescriptorMap = {
+	private static readonly formatDescriptors: PartialFormatDescriptorMap = {
 		data: {
 			tracks: 40, // number of tracks (1-85)
 			heads: 1, // number of heads/sides (1-2)
@@ -678,7 +678,7 @@ export class DiskImage {
 	}
 
 	static parseAmsdosHeader(data: string): AmsdosHeader | undefined {
-		const typeMap: { [k in number]: string } = {
+		const typeMap: Record<number, string> = {
 			0: "T", // tokenized BASIC (T=not official)
 			1: "P", // protected BASIC (also tokenized)
 			2: "B", // Binary
@@ -740,7 +740,7 @@ export class DiskImage {
 	}
 
 	static combineAmsdosHeader(header: AmsdosHeader): string {
-		const typeMap: { [k in string]: number } = {
+		const typeMap: Record<string, number> = {
 			T: 0, // tokenized BASIC (T=not official)
 			P: 1, // protected BASIC
 			B: 2, // Binary

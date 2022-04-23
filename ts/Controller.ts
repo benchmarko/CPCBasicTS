@@ -34,14 +34,14 @@ interface FileMetaAndData {
 }
 
 export class Controller implements IController {
-	private fnRunLoopHandler: () => void;
-	private fnWaitKeyHandler: () => void;
-	private fnWaitInputHandler: () => void;
-	private fnOnEscapeHandler: () => void;
-	private fnDirectInputHandler: () => boolean;
-	private fnPutKeyInBufferHandler: (key: string) => void;
+	private readonly fnRunLoopHandler: () => void;
+	private readonly fnWaitKeyHandler: () => void;
+	private readonly fnWaitInputHandler: () => void;
+	private readonly fnOnEscapeHandler: () => void;
+	private readonly fnDirectInputHandler: () => boolean;
+	private readonly fnPutKeyInBufferHandler: (key: string) => void;
 
-	private static metaIdent = "CPCBasic";
+	private static readonly metaIdent = "CPCBasic";
 
 	private fnScript?: Function = undefined; // eslint-disable-line @typescript-eslint/ban-types
 
@@ -56,25 +56,25 @@ export class Controller implements IController {
 	private basicTokenizer?: BasicTokenizer; // to decode tokenized BASIC
 	private codeGeneratorToken?: CodeGeneratorToken; // to encode tokenized BASIC
 	private codeGeneratorBasic?: CodeGeneratorBasic; // for pretty print
-	private model: Model;
-	private view: View;
-	private commonEventHandler: CommonEventHandler;
+	private readonly model: Model;
+	private readonly view: View;
+	private readonly commonEventHandler: CommonEventHandler;
 
-	private codeGeneratorJs: CodeGeneratorJs;
+	private readonly codeGeneratorJs: CodeGeneratorJs;
 
-	private canvas: Canvas;
+	private readonly canvas: Canvas;
 
-	private inputStack = new InputStack();
+	private readonly inputStack = new InputStack();
 
-	private keyboard: Keyboard;
+	private readonly keyboard: Keyboard;
 	private virtualKeyboard?: VirtualKeyboard;
-	private sound = new Sound();
+	private readonly sound = new Sound();
 
-	private vm: CpcVm;
-	private rsx: CpcVmRsx;
+	private readonly vm: CpcVm;
+	private readonly rsx: CpcVmRsx;
 
-	private noStop: VmStopEntry;
-	private savedStop: VmStopEntry; // backup of stop object
+	private readonly noStop: VmStopEntry;
+	private readonly savedStop: VmStopEntry; // backup of stop object
 
 	constructor(model: Model, view: View) {
 		this.fnRunLoopHandler = this.fnRunLoop.bind(this);
@@ -2492,9 +2492,8 @@ export class Controller implements IController {
 		this.keyboard.setActive(false);
 	}
 
-
 	/* eslint-disable no-invalid-this */
-	private handlers: { [k: string]: (paras: any) => void } = { // { [k: string]: (e: Event) => void }
+	private readonly handlers: Record<string, (paras: any) => void> = { // TTT VmStopParas | VmFileParas
 		timer: this.fnTimer,
 		waitKey: this.fnWaitKey,
 		waitFrame: this.fnWaitFrame,

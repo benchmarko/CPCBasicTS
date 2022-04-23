@@ -6,7 +6,7 @@ import { Utils } from "./Utils";
 
 export type ConfigEntryType = string | number | boolean;
 
-export type ConfigType = { [k in string]: ConfigEntryType };
+export type ConfigType = Record<string, ConfigEntryType>;
 
 export interface DatabaseEntry {
 	text: string
@@ -24,9 +24,9 @@ export interface ExampleEntry {
 	loaded?: boolean
 }
 
-export type DatabasesType = { [k in string]: DatabaseEntry };
+export type DatabasesType = Record<string, DatabaseEntry>;
 
-type ExamplesType = { [k in string]: { [l in string]: ExampleEntry }};
+type ExamplesType = Record<string, Record<string, ExampleEntry>>;
 
 export class Model {
 	private config: ConfigType;

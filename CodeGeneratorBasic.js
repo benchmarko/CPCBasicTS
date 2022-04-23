@@ -466,14 +466,14 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
                 if (Utils_1.Utils.debug > 2) {
                     Utils_1.Utils.console.debug("evaluate: parseTree i=%d, node=%o", i, parseTree[i]);
                 }
-                var node = this.parseNode(parseTree[i]);
-                if ((node !== undefined) && (node !== "")) {
-                    if (node !== null) {
+                var line = this.parseNode(parseTree[i]);
+                if ((line !== undefined) && (line !== "")) {
+                    if (line !== null) {
                         if (output.length === 0) {
-                            output = node;
+                            output = line;
                         }
                         else {
-                            output += "\n" + node;
+                            output += "\n" + line;
                         }
                     }
                     else {

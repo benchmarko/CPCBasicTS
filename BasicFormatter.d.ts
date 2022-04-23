@@ -6,8 +6,8 @@ interface BasicFormatterOptions {
     parser: BasicParser;
 }
 export declare class BasicFormatter {
-    private lexer;
-    private parser;
+    private readonly lexer;
+    private readonly parser;
     private line;
     constructor(options: BasicFormatterOptions);
     private composeError;

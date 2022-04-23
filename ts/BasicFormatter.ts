@@ -21,13 +21,13 @@ interface LineEntry {
 	newLine?: number
 }
 
-type LinesType = { [k in string]: LineEntry };
+type LinesType = Record<string, LineEntry>;
 
-type ChangesType = { [k in number]: LineEntry};
+type ChangesType = Record<number, LineEntry>;
 
 export class BasicFormatter {
-	private lexer: BasicLexer;
-	private parser: BasicParser;
+	private readonly lexer: BasicLexer;
+	private readonly parser: BasicParser;
 	private line = ""; // current line (label) for error messages
 
 	constructor(options: BasicFormatterOptions) {

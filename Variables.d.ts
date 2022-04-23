@@ -1,7 +1,5 @@
 export declare type VariableValue = string | number | Function | [] | VariableValue[];
-export declare type VariableMap = {
-    [k in string]: VariableValue;
-};
+export declare type VariableMap = Record<string, VariableValue>;
 export declare class Variables {
     private variables;
     private varTypes;

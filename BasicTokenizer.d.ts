@@ -3,7 +3,7 @@ export declare class BasicTokenizer {
     private line;
     private lineEnd;
     private input;
-    private debug;
+    private readonly debug;
     private fnNum8Dec;
     private fnNum16Dec;
     private fnNum32Dec;
@@ -22,8 +22,8 @@ export declare class BasicTokenizer {
     private fnApostrophe;
     private fnRem;
     private fnQuotedString;
-    private tokens;
-    private tokensFF;
+    private readonly tokens;
+    private readonly tokensFF;
     private debugPrintInfo;
     private debugCollectInfo;
     private fnParseLineFragment;

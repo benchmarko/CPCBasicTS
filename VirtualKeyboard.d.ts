@@ -4,17 +4,20 @@ interface VirtualKeyboardOptions {
     fnReleaseCpcKey: PressReleaseCpcKey;
 }
 export declare class VirtualKeyboard {
-    private fnPressCpcKey;
-    private fnReleaseCpcKey;
-    private pointerOutEvent?;
-    private fnVirtualKeyout?;
+    private readonly fnPressCpcKey;
+    private readonly fnReleaseCpcKey;
+    private readonly pointerOutEvent?;
+    private readonly fnVirtualKeyout?;
     private shiftLock;
     private numLock;
     constructor(options: VirtualKeyboardOptions);
-    private static cpcKey2Key;
-    private static virtualVirtualKeyboardAlpha;
-    private static virtualVirtualKeyboardNum;
-    private dragInfo;
+    private static readonly cpcKey2Key;
+    private static readonly virtualVirtualKeyboardAlpha;
+    private static readonly virtualVirtualKeyboardNum;
+    private readonly dragInfo;
+    private static readonly pointerEventNames;
+    private static readonly touchEventNames;
+    private static readonly mouseEventNames;
     private fnAttachPointerEvents;
     reset(): void;
     private mapNumLockCpcKey;
@@ -25,6 +28,7 @@ export declare class VirtualKeyboard {
     private virtualKeyboardAdaptKeys;
     private fnVirtualGetPressedKey;
     private fnGetEventTarget;
+    private fnGetEventTargetAs;
     private onVirtualVirtualKeyboardKeydown;
     private fnVirtualVirtualKeyboardKeyupOrKeyout;
     private onVirtualVirtualKeyboardKeyup;

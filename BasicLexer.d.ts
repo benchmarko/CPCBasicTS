@@ -16,7 +16,7 @@ export declare class BasicLexer {
     private takeNumberAsLine;
     private input;
     private index;
-    private tokens;
+    private readonly tokens;
     private whiteSpace;
     setOptions(options: BasicLexerOptions): void;
     constructor(options?: BasicLexerOptions);

@@ -1,10 +1,6 @@
 /// <reference types="qunit" />
-export declare type TestsType = {
-    [k in string]: string;
-};
-export declare type AllTestsType = {
-    [k in string]: TestsType;
-};
+export declare type TestsType = Record<string, string>;
+export declare type AllTestsType = Record<string, TestsType>;
 export declare type runTestsForType = (assert: Assert | undefined, category: string, tests: TestsType, results?: string[]) => void;
 declare global {
     interface Window {
@@ -12,9 +8,7 @@ declare global {
     }
 }
 declare type ConfigEntryType = string | number | boolean;
-declare type ConfigType = {
-    [k in string]: ConfigEntryType;
-};
+declare type ConfigType = Record<string, ConfigEntryType>;
 export declare class TestHelper {
     static config: ConfigType;
     static init(): void;

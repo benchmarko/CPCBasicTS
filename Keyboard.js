@@ -184,7 +184,8 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         };
         Keyboard.keyIdentifier2Char = function (event) {
             // SliTaz web browser has not key but keyIdentifier
-            var identifier = event.keyIdentifier, shiftKey = event.shiftKey;
+            var identifier = event.keyIdentifier, // eslint-disable-line @typescript-eslint/no-explicit-any
+            shiftKey = event.shiftKey;
             var char = "";
             if ((/^U\+/i).test(identifier || "")) { // unicode string?
                 char = String.fromCharCode(parseInt(identifier.substr(2), 16));

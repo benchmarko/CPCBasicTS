@@ -17,7 +17,7 @@ export class BasicTokenizer {
 	private lineEnd = 0;
 	private input = "";
 
-	private debug = {
+	private readonly debug = {
 		startPos: 0,
 		line: 0,
 		info: ""
@@ -185,7 +185,7 @@ export class BasicTokenizer {
 	// on sq?
 
 	/* eslint-disable no-invalid-this */
-	private tokens: { [k: string]: string | (() => string) } = {
+	private readonly tokens: Record<string, string | (() => string)> = {
 		0x00: "", // marker for "end of tokenised line"
 		0x01: ":", // ":" statement seperator
 		0x02: this.fnIntVar, // integer variable definition (defined with "%" suffix)
@@ -353,7 +353,7 @@ export class BasicTokenizer {
 	};
 	/* eslint-enable no-invalid-this */
 
-	private tokensFF: { [k: number]: string } = {
+	private readonly tokensFF: Record<number, string> = {
 		// Functions with one argument
 		0x00: "ABS",
 		0x01: "ASC",

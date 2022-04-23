@@ -94,12 +94,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             }
         };
         CommonEventHandler.prototype.onConvertButtonClick = function () {
-            if (this.toogleHidden("convertArea", "showConvert", "flex")) {
-                // todo
-            }
-            else {
-                // todo
-            }
+            this.toogleHidden("convertArea", "showConvert", "flex");
         };
         CommonEventHandler.prototype.onKbdButtonClick = function () {
             if (this.toogleHidden("kbdArea", "showKbd", "flex")) {

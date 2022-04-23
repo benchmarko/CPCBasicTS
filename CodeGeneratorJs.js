@@ -1159,14 +1159,14 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 if (Utils_1.Utils.debug > 2) {
                     Utils_1.Utils.console.debug("evaluate: parseTree i=%d, node=%o", i, parseTree[i]);
                 }
-                var node = this.fnParseOneArg(parseTree[i]);
-                if ((node !== undefined) && (node !== "")) {
-                    if (node !== null) {
+                var line = this.fnParseOneArg(parseTree[i]);
+                if ((line !== undefined) && (line !== "")) {
+                    if (line !== null) {
                         if (output.length === 0) {
-                            output = node;
+                            output = line;
                         }
                         else {
-                            output += "\n" + node;
+                            output += "\n" + line;
                         }
                     }
                     else {

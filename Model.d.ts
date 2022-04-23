@@ -1,7 +1,5 @@
 export declare type ConfigEntryType = string | number | boolean;
-export declare type ConfigType = {
-    [k in string]: ConfigEntryType;
-};
+export declare type ConfigType = Record<string, ConfigEntryType>;
 export interface DatabaseEntry {
     text: string;
     title: string;
@@ -16,9 +14,7 @@ export interface ExampleEntry {
     script?: string;
     loaded?: boolean;
 }
-export declare type DatabasesType = {
-    [k in string]: DatabaseEntry;
-};
+export declare type DatabasesType = Record<string, DatabaseEntry>;
 export declare class Model {
     private config;
     private initialConfig;

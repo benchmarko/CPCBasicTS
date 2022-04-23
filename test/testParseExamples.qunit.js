@@ -508,7 +508,7 @@ define(["require", "exports", "../Utils", "../Polyfills", "../BasicLexer", "../B
     if (typeof myGlobalThis.QUnit !== "undefined") {
         Utils_1.Utils.console.log("Using QUnit");
         var QUnit_1 = myGlobalThis.QUnit;
-        QUnit_1.config.testTimeout = 5 * 1000;
+        QUnit_1.config.testTimeout = 8 * 1000;
         QUnit_1.module("testParseExamples: Tests", function ( /* hooks */) {
             QUnit_1.test("testParseExamples", function (assert) {
                 cpcBasic.assert = assert;

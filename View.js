@@ -9,16 +9,15 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     var View = /** @class */ (function () {
         function View() {
         }
-        /*
-        constructor() {
-        }
-        */
         View.getElementById1 = function (id) {
             var element = document.getElementById(id);
             if (!element) {
                 throw new Error("Unknown " + id);
             }
             return element;
+        };
+        View.getElementByIdAs = function (id) {
+            return View.getElementById1(id);
         };
         View.prototype.getHidden = function (id) {
             var element = View.getElementById1(id);
@@ -46,7 +45,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return this;
         };
         View.prototype.setDisabled = function (id, disabled) {
-            var element = View.getElementById1(id);
+            var element = View.getElementByIdAs(id);
             element.disabled = disabled;
             return this;
         };
@@ -63,29 +62,29 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             element.className = classes;
         };
         View.prototype.getAreaValue = function (id) {
-            var element = View.getElementById1(id);
+            var element = View.getElementByIdAs(id);
             return element.value;
         };
         View.prototype.setAreaValue = function (id, value) {
-            var element = View.getElementById1(id);
+            var element = View.getElementByIdAs(id);
             element.value = value;
             return this;
         };
         View.prototype.getInputValue = function (id) {
-            var element = View.getElementById1(id);
+            var element = View.getElementByIdAs(id);
             return element.value;
         };
         View.prototype.setInputValue = function (id, value) {
-            var element = View.getElementById1(id);
+            var element = View.getElementByIdAs(id);
             element.value = value;
             return this;
         };
         View.prototype.getInputChecked = function (id) {
-            var element = View.getElementById1(id);
+            var element = View.getElementByIdAs(id);
             return element.checked;
         };
         View.prototype.setSelectOptions = function (id, options) {
-            var element = View.getElementById1(id);
+            var element = View.getElementByIdAs(id);
             for (var i = 0; i < options.length; i += 1) {
                 var item = options[i];
                 var option = void 0;
@@ -117,23 +116,23 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return this;
         };
         View.prototype.getSelectValue = function (id) {
-            var element = View.getElementById1(id);
+            var element = View.getElementByIdAs(id);
             return element.value;
         };
         View.prototype.setSelectValue = function (id, value) {
-            var element = View.getElementById1(id);
+            var element = View.getElementByIdAs(id);
             if (value) {
                 element.value = value;
             }
             return this;
         };
         View.prototype.setSelectTitleFromSelectedOption = function (id) {
-            var element = View.getElementById1(id), selectedIndex = element.selectedIndex, title = (selectedIndex >= 0) ? element.options[selectedIndex].title : "";
+            var element = View.getElementByIdAs(id), selectedIndex = element.selectedIndex, title = (selectedIndex >= 0) ? element.options[selectedIndex].title : "";
             element.title = title;
             return this;
         };
         View.prototype.setAreaScrollTop = function (id, scrollTop) {
-            var element = View.getElementById1(id);
+            var element = View.getElementByIdAs(id);
             if (scrollTop === undefined) {
                 scrollTop = element.scrollHeight;
             }
@@ -162,7 +161,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return this;
         };
         View.prototype.setAreaSelection = function (id, pos, endPos) {
-            var element = View.getElementById1(id);
+            var element = View.getElementByIdAs(id);
             if (element.selectionStart !== undefined) {
                 if (element.setSelectionRange !== undefined) {
                     element.focus(); // not needed for scrolling but we want to see the selected text

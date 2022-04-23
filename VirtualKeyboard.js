@@ -32,37 +32,16 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.virtualKeyboardCreate();
         }
         VirtualKeyboard.prototype.fnAttachPointerEvents = function (id, fnDown, fnMove, fnUp) {
-            var area = View_1.View.getElementById1(id), pointerEventNames = {
-                down: "pointerdown",
-                move: "pointermove",
-                up: "pointerup",
-                cancel: "pointercancel",
-                out: "pointerout",
-                type: "pointer"
-            }, touchEventNames = {
-                down: "touchstart",
-                move: "touchmove",
-                up: "touchend",
-                cancel: "touchcancel",
-                out: "",
-                type: "touch"
-            }, mouseEventNames = {
-                down: "mousedown",
-                move: "mousemove",
-                up: "mouseup",
-                cancel: "",
-                out: "mouseout",
-                type: "mouse"
-            };
+            var area = View_1.View.getElementById1(id);
             var eventNames;
             if (window.PointerEvent) {
-                eventNames = pointerEventNames;
+                eventNames = VirtualKeyboard.pointerEventNames;
             }
             else if ("ontouchstart" in window || navigator.maxTouchPoints) {
-                eventNames = touchEventNames;
+                eventNames = VirtualKeyboard.touchEventNames;
             }
             else {
-                eventNames = mouseEventNames;
+                eventNames = VirtualKeyboard.mouseEventNames;
             }
             if (Utils_1.Utils.debug > 0) {
                 Utils_1.Utils.console.log("fnAttachPointerEvents: Using", eventNames.type, "events");
@@ -205,10 +184,13 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             }
             return node;
         };
+        VirtualKeyboard.prototype.fnGetEventTargetAs = function (event) {
+            return this.fnGetEventTarget(event);
+        };
         VirtualKeyboard.prototype.onVirtualVirtualKeyboardKeydown = function (event) {
-            var node = this.fnGetEventTarget(event), htmlElement = node, cpcKey = htmlElement.getAttribute("data-key");
+            var node = this.fnGetEventTargetAs(event), cpcKey = node.getAttribute("data-key");
             if (Utils_1.Utils.debug > 1) {
-                Utils_1.Utils.console.debug("onVirtualVirtualKeyboardKeydown: event", String(event), "type:", event.type, "title:", htmlElement.title, "cpcKey:", cpcKey);
+                Utils_1.Utils.console.debug("onVirtualVirtualKeyboardKeydown: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", cpcKey);
             }
             if (cpcKey !== null) {
                 var cpcKeyCode = Number(cpcKey);
@@ -225,7 +207,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             return false;
         };
         VirtualKeyboard.prototype.fnVirtualVirtualKeyboardKeyupOrKeyout = function (event) {
-            var node = this.fnGetEventTarget(event), cpcKey = node.getAttribute("data-key");
+            var node = this.fnGetEventTargetAs(event), cpcKey = node.getAttribute("data-key");
             if (cpcKey !== null) {
                 var cpcKeyCode = Number(cpcKey);
                 if (this.numLock) {
@@ -244,9 +226,9 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             }
         };
         VirtualKeyboard.prototype.onVirtualVirtualKeyboardKeyup = function (event) {
-            var node = this.fnGetEventTarget(event), htmlElement = node;
+            var node = this.fnGetEventTargetAs(event);
             if (Utils_1.Utils.debug > 1) {
-                Utils_1.Utils.console.debug("onVirtualVirtualKeyboardKeyup: event", String(event), "type:", event.type, "title:", htmlElement.title, "cpcKey:", htmlElement.getAttribute("data-key"));
+                Utils_1.Utils.console.debug("onVirtualVirtualKeyboardKeyup: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", node.getAttribute("data-key"));
             }
             this.fnVirtualVirtualKeyboardKeyupOrKeyout(event);
             if (this.pointerOutEvent && this.fnVirtualKeyout) {
@@ -256,7 +238,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             return false;
         };
         VirtualKeyboard.prototype.onVirtualVirtualKeyboardKeyout = function (event) {
-            var node = this.fnGetEventTarget(event);
+            var node = this.fnGetEventTargetAs(event);
             if (Utils_1.Utils.debug > 1) {
                 Utils_1.Utils.console.debug("onVirtualVirtualKeyboardKeyout: event=", event);
             }
@@ -277,8 +259,8 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.fnAttachPointerEvents(containerId, this.dragStart.bind(this), this.drag.bind(this), this.dragEnd.bind(this));
         };
         VirtualKeyboard.prototype.dragStart = function (event) {
-            var node = this.fnGetEventTarget(event), parent2 = node.parentElement ? node.parentElement.parentElement : null, drag = this.dragInfo;
-            if (node === drag.dragItem || parent2 === drag.dragItem) {
+            var node = this.fnGetEventTargetAs(event), parent = node.parentElement ? node.parentElement.parentElement : null, drag = this.dragInfo;
+            if (node === drag.dragItem || parent === drag.dragItem) {
                 if (event.type === "touchstart") {
                     var touchEvent = event;
                     drag.initialX = touchEvent.touches[0].clientX - drag.xOffset;
@@ -850,6 +832,30 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             [15, 0, 7],
             [8, 2, 1]
         ];
+        VirtualKeyboard.pointerEventNames = {
+            down: "pointerdown",
+            move: "pointermove",
+            up: "pointerup",
+            cancel: "pointercancel",
+            out: "pointerout",
+            type: "pointer"
+        };
+        VirtualKeyboard.touchEventNames = {
+            down: "touchstart",
+            move: "touchmove",
+            up: "touchend",
+            cancel: "touchcancel",
+            out: "",
+            type: "touch"
+        };
+        VirtualKeyboard.mouseEventNames = {
+            down: "mousedown",
+            move: "mousemove",
+            up: "mouseup",
+            cancel: "",
+            out: "mouseout",
+            type: "mouse"
+        };
         return VirtualKeyboard;
     }());
     exports.VirtualKeyboard = VirtualKeyboard;

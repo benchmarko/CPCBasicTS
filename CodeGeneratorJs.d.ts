@@ -1,6 +1,6 @@
 import { IOutput, ICpcVmRsx } from "./Interfaces";
 import { BasicLexer } from "./BasicLexer";
-import { BasicParser, ParserNode } from "./BasicParser";
+import { BasicParser } from "./BasicParser";
 import { Variables } from "./Variables";
 interface CodeGeneratorJsOptions {
     lexer: BasicLexer;
@@ -10,35 +10,28 @@ interface CodeGeneratorJsOptions {
     quiet?: boolean;
     noCodeFrame?: boolean;
 }
-interface CodeNode extends ParserNode {
-    left?: CodeNode;
-    right?: CodeNode;
-    args: CodeNode[];
-    pt: string;
-    pv: string;
-}
 export declare class CodeGeneratorJs {
-    private lexer;
-    private parser;
+    private readonly lexer;
+    private readonly parser;
     private tron;
-    private rsx;
+    private readonly rsx;
     private quiet;
-    private noCodeFrame;
+    private readonly noCodeFrame;
     private line;
-    private reJsKeywords;
-    private stack;
+    private readonly reJsKeywords;
+    private readonly stack;
     private gosubCount;
     private ifCount;
     private stopCount;
     private forCount;
     private whileCount;
     private referencedLabelsCount;
-    private dataList;
+    private readonly dataList;
     private mergeFound;
     private variables;
     private defScopeArgs?;
     constructor(options: CodeGeneratorJsOptions);
-    private static jsKeywords;
+    private static readonly jsKeywords;
     private reset;
     private resetCountsPerLine;
     private composeError;
@@ -136,9 +129,7 @@ export declare class CodeGeneratorJs {
     private tab;
     private wend;
     private "while";
-    parseFunctions: {
-        [k in string]: (node: CodeNode) => void;
-    };
+    private readonly parseFunctions;
     private fnParseOther;
     private parseNode;
     private static fnCommentUnusedCases;

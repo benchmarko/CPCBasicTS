@@ -6,6 +6,7 @@ export interface SelectOptionElement {
 }
 export declare class View {
     static getElementById1(id: string): HTMLElement;
+    private static getElementByIdAs;
     getHidden(id: string): boolean;
     setHidden(id: string, hidden: boolean, display?: string): this;
     setDisabled(id: string, disabled: boolean): this;

@@ -1,5 +1,5 @@
 import { BasicLexer } from "./BasicLexer";
-import { BasicParser, ParserNode } from "./BasicParser";
+import { BasicParser } from "./BasicParser";
 import { IOutput } from "./Interfaces";
 interface CodeGeneratorBasicOptions {
     quiet?: boolean;
@@ -8,15 +8,15 @@ interface CodeGeneratorBasicOptions {
 }
 export declare class CodeGeneratorBasic {
     private quiet;
-    private lexer;
-    private parser;
+    private readonly lexer;
+    private readonly parser;
     private line;
     constructor(options: CodeGeneratorBasicOptions);
     getLexer(): BasicLexer;
     getParser(): BasicParser;
-    private static combinedKeywords;
-    private static operators;
-    private static operatorPrecedence;
+    private static readonly combinedKeywords;
+    private static readonly operators;
+    private static readonly operatorPrecedence;
     private composeError;
     private static fnWs;
     private static fnSpace1;
@@ -54,9 +54,7 @@ export declare class CodeGeneratorBasic {
     private print;
     private rem;
     private using;
-    parseFunctions: {
-        [k: string]: (node: ParserNode) => string;
-    };
+    private readonly parseFunctions;
     private fnParseOther;
     private parseNode;
     private evaluate;

@@ -26,16 +26,14 @@ export interface AmsdosHeader {
     length: number;
     typeString: string;
 }
-declare type DirectoryListType = {
-    [k in string]: ExtentEntry[];
-};
+declare type DirectoryListType = Record<string, ExtentEntry[]>;
 export declare class DiskImage {
     private diskName;
     private data;
     private diskInfo;
     private format;
     constructor(config: DiskImageOptions);
-    private static formatDescriptors;
+    private static readonly formatDescriptors;
     private static getInitialDiskInfo;
     private static getInitialFormat;
     reset(): void;

@@ -38,23 +38,6 @@ interface OutFile extends FileBase {
     length: number;
     entry: number;
 }
-interface WindowDimensions {
-    left: number;
-    right: number;
-    top: number;
-    bottom: number;
-}
-interface WindowData extends WindowDimensions {
-    pos: number;
-    vpos: number;
-    textEnabled: boolean;
-    tag: boolean;
-    transparent: boolean;
-    cursorOn: boolean;
-    cursorEnabled: boolean;
-    pen: number;
-    paper: number;
-}
 export interface VmBaseParas {
     command: string;
     stream: number;
@@ -94,32 +77,32 @@ declare type PrintObjectType = {
 };
 declare type DataEntryType = (string | undefined);
 export declare class CpcVm {
-    private fnOpeninHandler;
-    private fnCloseinHandler;
-    private fnCloseoutHandler;
+    private readonly fnOpeninHandler;
+    private readonly fnCloseinHandler;
+    private readonly fnCloseoutHandler;
     fnLoadHandler: (input: string, meta: FileMeta) => boolean;
-    private fnRunHandler;
-    canvas: Canvas;
-    private keyboard;
-    private soundClass;
-    variables: Variables;
+    private readonly fnRunHandler;
+    private readonly canvas;
+    private readonly keyboard;
+    private readonly soundClass;
+    readonly variables: Variables;
     private tronFlag;
-    private random;
-    private stopEntry;
+    private readonly random;
+    private readonly stopEntry;
     private inputValues;
-    private inFile;
-    private outFile;
+    private readonly inFile;
+    private readonly outFile;
     private inkeyTimeMs;
-    private gosubStack;
-    private mem;
-    private dataList;
+    private readonly gosubStack;
+    private readonly mem;
+    private readonly dataList;
     private dataIndex;
     private dataLineIndex;
-    windowDataList: WindowData[];
-    private timerList;
-    private sqTimer;
-    private soundData;
-    private crtcData;
+    private readonly windowDataList;
+    private readonly timerList;
+    private readonly sqTimer;
+    private readonly soundData;
+    private readonly crtcData;
     private crtcReg;
     private printControlBuf;
     private startTime;
@@ -148,23 +131,18 @@ export declare class CpcVm {
     private zoneValue;
     modeValue: number;
     rsx?: ICpcVmRsx;
-    private static frameTimeMs;
-    private static timerCount;
-    private static sqTimerCount;
-    static streamCount: number;
-    private static minHimem;
-    private static maxHimem;
-    private static emptyParas;
-    static winData: {
-        left: number;
-        right: number;
-        top: number;
-        bottom: number;
-    }[];
-    private static utf8ToCpc;
-    private static controlCodeParameterCount;
-    private static errors;
-    private static stopPriority;
+    private static readonly frameTimeMs;
+    private static readonly timerCount;
+    private static readonly sqTimerCount;
+    private static readonly streamCount;
+    private static readonly minHimem;
+    private static readonly maxHimem;
+    private static readonly emptyParas;
+    private static readonly winData;
+    private static readonly utf8ToCpc;
+    private static readonly controlCodeParameterCount;
+    private static readonly errors;
+    private static readonly stopPriority;
     constructor(options: CpcVmOptions);
     vmSetRsxClass(rsx: ICpcVmRsx): void;
     vmReset(): void;
@@ -323,6 +301,7 @@ export declare class CpcVm {
     mid$(s: string, start: number, len?: number): string;
     mid$Assign(s: string, start: number, len: number | undefined, newString: string): string;
     min(...args: number[]): number;
+    vmChangeMode(mode: number): void;
     mode(mode: number): void;
     move(x: number, y: number, gPen?: number, gColMode?: number): void;
     mover(x: number, y: number, gPen?: number, gColMode?: number): void;

@@ -1774,6 +1774,17 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             return Math.min.apply(null, args);
         };
         // mod
+        // changing the mode without clearing the screen (called by rsx |MODE)
+        CpcVm.prototype.vmChangeMode = function (mode) {
+            this.modeValue = mode;
+            var winData = CpcVm.winData[this.modeValue];
+            Utils_1.Utils.console.log("rsxMode: (test)", mode);
+            for (var i = 0; i < CpcVm.streamCount - 2; i += 1) { // for window streams
+                var win = this.windowDataList[i];
+                Object.assign(win, winData);
+            }
+            this.canvas.changeMode(mode);
+        };
         CpcVm.prototype.mode = function (mode) {
             mode = this.vmInRangeRound(mode, 0, 3, "MODE");
             this.modeValue = mode;
@@ -2050,17 +2061,35 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             }
             this.mem[addr] = byte;
         };
+        /*
+        private static vmGetPosFromFileData(fileData: string[]) {
+            const allFileData =	fileData.join(""),
+                lastLfPos = allFileData.lastIndexOf("\n"),
+                lastCrPos = allFileData.lastIndexOf("\r"),
+                lastLfOrCrPos = Math.max(lastLfPos, lastCrPos);
+    
+            return lastLfOrCrPos >= 0 ? allFileData.length - lastLfOrCrPos : allFileData.length;
+        }
+    
+        private static vmGetPosFromFileData(fileData: string[]) {
+            const allFileData =	fileData.join(""),
+                lastCrPos = allFileData.lastIndexOf("\r");
+    
+            return lastCrPos >= 0 ? allFileData.length - lastCrPos : allFileData.length;
+        }
+        */
         CpcVm.prototype.pos = function (stream) {
             stream = this.vmInRangeRound(stream, 0, 9, "POS");
             var pos;
             if (stream < 8) {
                 pos = this.vmGetAllowedPosOrVpos(stream, false) + 1; // get allowed pos
             }
-            else if (stream === 8) { // printer position
+            else if (stream === 8) { // printer position (starting with 1)
                 pos = 1; // TODO
             }
-            else { // stream 9: number of characters written since last CR (\r)
-                pos = 1; // TODO
+            else { // stream 9: number of characters written since last CR (\r), \n in CpcEmu, starting with one)
+                var win = this.windowDataList[stream];
+                pos = win.pos + 1;
             }
             return pos;
         };
@@ -2374,7 +2403,14 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                     this.outBuffer += str; // console
                 }
                 else { // stream === 9
-                    win.pos += str.length;
+                    var lastCrPos = buf.lastIndexOf("\r");
+                    if (lastCrPos >= 0) {
+                        win.pos = str.length - lastCrPos; // number of characters written since last CR (\r)
+                    }
+                    else {
+                        win.pos += str.length;
+                    }
+                    //TTT really replace?
                     if (str === "\r\n") { // for now we replace CRLF by LF
                         str = "\n";
                         win.pos = 0;

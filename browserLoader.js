@@ -1,6 +1,4 @@
 "use strict";
-// browserLoader.ts - Loader for the browser
-// (c) Marco Vieth, 2022
 if (!window.exports) {
     window.exports = {};
 }
@@ -18,6 +16,7 @@ if (!window.require) {
 }
 if (!window.define) {
     window.define = function (names, func) {
+        // const module = document.currentScript && (document.currentScript as HTMLScriptElement).src,
         var args = names.map(function (name) {
             if (name === "require") {
                 return null;
@@ -25,8 +24,7 @@ if (!window.define) {
             else if (name === "exports") {
                 return window.exports;
             }
-            var module = window.require(name);
-            return module;
+            return window.require(name);
         });
         func.apply(this, args);
     };

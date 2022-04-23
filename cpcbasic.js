@@ -50,26 +50,27 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
                 config[name_1] = value;
             }
         };
+        cpcBasic.fnMapObjectProperties = function (arg) {
+            if (typeof arg === "object") {
+                var res = [];
+                for (var key in arg) { // eslint-disable-line guard-for-in
+                    // if (arg.hasOwnProperty(key)) {
+                    var value = arg[key];
+                    if (typeof value !== "object" && typeof value !== "function") {
+                        res.push(key + ": " + value);
+                    }
+                }
+                arg = String(arg) + "{" + res.join(", ") + "}";
+            }
+            return arg;
+        };
         cpcBasic.createDebugUtilsConsole = function (cpcBasicLog) {
-            var currentConsole = Utils_1.Utils.console, console = {
+            var currentConsole = Utils_1.Utils.console;
+            return {
                 consoleLog: {
                     value: cpcBasicLog || "" // already something collected?
                 },
                 console: currentConsole,
-                fnMapObjectProperties: function (arg) {
-                    if (typeof arg === "object") {
-                        var res = [];
-                        for (var key in arg) { // eslint-disable-line guard-for-in
-                            // if (arg.hasOwnProperty(key)) {
-                            var value = arg[key];
-                            if (typeof value !== "object" && typeof value !== "function") {
-                                res.push(key + ": " + value);
-                            }
-                        }
-                        arg = String(arg) + "{" + res.join(", ") + "}";
-                    }
-                    return arg;
-                },
                 rawLog: function (fnMethod, level, args) {
                     if (level) {
                         args.unshift(level);
@@ -80,7 +81,7 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
                         }
                     }
                     if (this.consoleLog) {
-                        this.consoleLog.value += args.map(this.fnMapObjectProperties).join(" ") + ((level !== null) ? "\n" : "");
+                        this.consoleLog.value += args.map(cpcBasic.fnMapObjectProperties).join(" ") + ((level !== null) ? "\n" : "");
                     }
                 },
                 log: function () {
@@ -106,7 +107,6 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
                     }
                 }
             };
-            return console;
         };
         cpcBasic.fnDoStart = function () {
             var startConfig = cpcBasic.config, externalConfig = cpcconfig_1.cpcconfig || {}; // external config from cpcconfig.js

@@ -125,46 +125,46 @@ type PrintObjectType = {type: string, args: (string | number)[]};
 
 type DataEntryType = (string | undefined);
 export class CpcVm {
-	private fnOpeninHandler: FileBase["fnFileCallback"]; // = undefined;
-	private fnCloseinHandler: () => void;
-	private fnCloseoutHandler: () => void;
+	private readonly fnOpeninHandler: FileBase["fnFileCallback"]; // = undefined;
+	private readonly fnCloseinHandler: () => void;
+	private readonly fnCloseoutHandler: () => void;
 	fnLoadHandler: (input: string, meta: FileMeta) => boolean;
-	private fnRunHandler: (input: string, meta: FileMeta) => boolean;
+	private readonly fnRunHandler: (input: string, meta: FileMeta) => boolean;
 
-	canvas: Canvas;
-	private keyboard: Keyboard;
-	private soundClass: Sound;
-	variables: Variables;
+	private readonly canvas: Canvas;
+	private readonly keyboard: Keyboard;
+	private readonly soundClass: Sound;
+	readonly variables: Variables;
 	private tronFlag: boolean;
 
-	private random: Random;
+	private readonly random: Random;
 
-	private stopEntry: VmStopEntry;
+	private readonly stopEntry: VmStopEntry;
 
 	private inputValues: (string | number)[]; // values to input into script
-	private inFile: InFile; // file handling
-	private outFile: OutFile; // file handling
+	private readonly inFile: InFile; // file handling
+	private readonly outFile: OutFile; // file handling
 
 	private inkeyTimeMs = 0; // next time of frame fly (if >0, next time when inkey$ can be checked without inserting "waitFrame")
 
-	private gosubStack: (number | string)[] = []; // stack of line numbers for gosub/return
+	private readonly gosubStack: (number | string)[] = []; // stack of line numbers for gosub/return
 
-	private mem: number[]; // for peek, poke
+	private readonly mem: number[]; // for peek, poke
 
-	private dataList: DataEntryType[]; // array for BASIC data lines (continuous)
+	private readonly dataList: DataEntryType[]; // array for BASIC data lines (continuous)
 	private dataIndex = 0; // current index
-	private dataLineIndex: {[k in number]: number} = { // line number index for the data line buffer
+	private dataLineIndex: Record<number, number> = { // line number index for the data line buffer
 		0: 0 // for line 0: index 0
 	};
 
-	windowDataList: WindowData[]; // window data for window 0..7,8,9
+	private readonly windowDataList: WindowData[]; // window data for window 0..7,8,9
 
-	private timerList: TimerEntry[]; // BASIC timer 0..3 (3 has highest priority)
-	private sqTimer: TimerEntry[]; // Sound queue timer 0..2
+	private readonly timerList: TimerEntry[]; // BASIC timer 0..3 (3 has highest priority)
+	private readonly sqTimer: TimerEntry[]; // Sound queue timer 0..2
 
-	private soundData: SoundData[];
+	private readonly soundData: SoundData[];
 
-	private crtcData: number[];
+	private readonly crtcData: number[];
 	private crtcReg = 0;
 
 	private printControlBuf = "";
@@ -208,18 +208,18 @@ export class CpcVm {
 
 	modeValue = -1;
 
-	rsx?: ICpcVmRsx;
+	rsx?: ICpcVmRsx; // called from scripts
 
-	private static frameTimeMs = 1000 / 50; // 50 Hz => 20 ms
-	private static timerCount = 4; // number of timers
-	private static sqTimerCount = 3; // sound queue timers
-	static streamCount = 10; // 0..7 window, 8 printer, 9 cassette
-	private static minHimem = 370;
-	private static maxHimem = 42747; // high memory limit (42747 after symbol after 256)
+	private static readonly frameTimeMs = 1000 / 50; // 50 Hz => 20 ms
+	private static readonly timerCount = 4; // number of timers
+	private static readonly sqTimerCount = 3; // sound queue timers
+	private static readonly streamCount = 10; // 0..7 window, 8 printer, 9 cassette
+	private static readonly minHimem = 370;
+	private static readonly maxHimem = 42747; // high memory limit (42747 after symbol after 256)
 
-	private static emptyParas = {};
+	private static readonly emptyParas = {};
 
-	static winData = [ // window data for mode mode 0,1,2,3 (we are counting from 0 here)
+	private static readonly winData = [ // window data for mode mode 0,1,2,3 (we are counting from 0 here)
 		{
 			left: 0,
 			right: 19,
@@ -246,7 +246,7 @@ export class CpcVm {
 		}
 	];
 
-	private static utf8ToCpc: { [k in number]: number } = { // needed for UTF-8 character data in openin / input#9
+	private static readonly utf8ToCpc: Record<number, number> = { // needed for UTF-8 character data in openin / input#9
 		8364: 128,
 		8218: 130,
 		402: 131,
@@ -276,7 +276,7 @@ export class CpcVm {
 		376: 159
 	};
 
-	private static controlCodeParameterCount = [
+	private static readonly controlCodeParameterCount = [
 		0, // 0x00
 		1, // 0x01
 		0, // 0x02
@@ -311,7 +311,7 @@ export class CpcVm {
 		2 //  0x1f
 	];
 
-	private static errors = [ // BASIC error numbers
+	private static readonly errors = [ // BASIC error numbers
 		"Improper argument", // 0
 		"Unexpected NEXT", // 1
 		"Syntax Error", // 2
@@ -348,7 +348,7 @@ export class CpcVm {
 		"Unknown error" // 33...
 	];
 
-	private static stopPriority: {[k in string]: number} = {
+	private static readonly stopPriority: Record<string, number> = {
 		"": 0, // nothing
 		direct: 0, // direct input mode
 		timer: 20, // timer expired
@@ -2415,6 +2415,22 @@ export class CpcVm {
 
 	// mod
 
+	// changing the mode without clearing the screen (called by rsx |MODE)
+	vmChangeMode(mode: number): void {
+		this.modeValue = mode;
+
+		const winData = CpcVm.winData[this.modeValue];
+
+		Utils.console.log("rsxMode: (test)", mode);
+
+		for (let i = 0; i < CpcVm.streamCount - 2; i += 1) { // for window streams
+			const win = this.windowDataList[i];
+
+			Object.assign(win, winData);
+		}
+		this.canvas.changeMode(mode);
+	}
+
 	mode(mode: number): void {
 		mode = this.vmInRangeRound(mode, 0, 3, "MODE");
 		this.modeValue = mode;
@@ -2732,6 +2748,24 @@ export class CpcVm {
 		this.mem[addr] = byte;
 	}
 
+	/*
+	private static vmGetPosFromFileData(fileData: string[]) {
+		const allFileData =	fileData.join(""),
+			lastLfPos = allFileData.lastIndexOf("\n"),
+			lastCrPos = allFileData.lastIndexOf("\r"),
+			lastLfOrCrPos = Math.max(lastLfPos, lastCrPos);
+
+		return lastLfOrCrPos >= 0 ? allFileData.length - lastLfOrCrPos : allFileData.length;
+	}
+
+	private static vmGetPosFromFileData(fileData: string[]) {
+		const allFileData =	fileData.join(""),
+			lastCrPos = allFileData.lastIndexOf("\r");
+
+		return lastCrPos >= 0 ? allFileData.length - lastCrPos : allFileData.length;
+	}
+	*/
+
 	pos(stream: number): number {
 		stream = this.vmInRangeRound(stream, 0, 9, "POS");
 
@@ -2739,10 +2773,12 @@ export class CpcVm {
 
 		if (stream < 8) {
 			pos = this.vmGetAllowedPosOrVpos(stream, false) + 1; // get allowed pos
-		} else if (stream === 8) { // printer position
+		} else if (stream === 8) { // printer position (starting with 1)
 			pos = 1; // TODO
-		} else { // stream 9: number of characters written since last CR (\r)
-			pos = 1; // TODO
+		} else { // stream 9: number of characters written since last CR (\r), \n in CpcEmu, starting with one)
+			const win = this.windowDataList[stream];
+
+			pos = win.pos + 1;
 		}
 		return pos;
 	}
@@ -3094,7 +3130,15 @@ export class CpcVm {
 				}
 				this.outBuffer += str; // console
 			} else { // stream === 9
-				win.pos += str.length;
+				const lastCrPos = buf.lastIndexOf("\r");
+
+				if (lastCrPos >= 0) {
+					win.pos = str.length - lastCrPos; // number of characters written since last CR (\r)
+				} else {
+					win.pos += str.length;
+				}
+
+				//TTT really replace?
 				if (str === "\r\n") { // for now we replace CRLF by LF
 					str = "\n";
 					win.pos = 0;

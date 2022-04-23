@@ -4,10 +4,9 @@
 
 export type VariableValue = string | number | Function | [] | VariableValue[]; // eslint-disable-line @typescript-eslint/ban-types
 
-export type VariableMap = { [k in string]: VariableValue };
+export type VariableMap = Record<string, VariableValue>;
 
-type VariableTypeMap = { [k in string]: string };
-
+type VariableTypeMap = Record<string, string>;
 
 export class Variables {
 	private variables: VariableMap;

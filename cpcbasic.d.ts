@@ -1,5 +1,5 @@
 declare class cpcBasic {
-    private static config;
+    private static readonly config;
     private static model;
     private static view;
     private static controller;
@@ -7,6 +7,7 @@ declare class cpcBasic {
     static addIndex(dir: string, input: string | (() => void)): void;
     static addItem(key: string, input: string | (() => void)): string;
     private static fnParseUri;
+    private static fnMapObjectProperties;
     private static createDebugUtilsConsole;
     private static fnDoStart;
     static fnOnLoad(): void;

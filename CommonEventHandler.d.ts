@@ -2,9 +2,9 @@ import { IController } from "./Interfaces";
 import { Model } from "./Model";
 import { View } from "./View";
 export declare class CommonEventHandler implements EventListenerObject {
-    private model;
-    private view;
-    private controller;
+    private readonly model;
+    private readonly view;
+    private readonly controller;
     private fnUserAction;
     constructor(model: Model, view: View, controller: IController);
     private toogleHidden;
@@ -48,6 +48,6 @@ export declare class CommonEventHandler implements EventListenerObject {
     private onSoundButtonClick;
     onCpcCanvasClick(event: Event): void;
     onWindowClick(event: Event): void;
-    private handlers;
+    private readonly handlers;
     handleEvent(event: Event): void;
 }

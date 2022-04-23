@@ -122,13 +122,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             this.advance(t.type);
             if (!s.nud) {
-                /*
-                if (t.type === "(end)") {
-                    throw this.composeError(Error(), "Unexpected end of file", "", t.pos);
-                } else {
-                */
                 throw this.composeError(Error(), "Unexpected token", t.value, t.pos);
-                //}
             }
             var left = s.nud.call(this, t); // process literals, variables, and prefix operators
             t = this.token;
