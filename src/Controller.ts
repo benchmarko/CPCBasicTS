@@ -622,26 +622,17 @@ export class Controller implements IController {
 		}
 	}
 
-	//TODO
-	private parseLineNumber(line: string) { // eslint-disable-line class-methods-use-this
+	private static parseLineNumber(line: string) {
 		const lineNumber = parseInt(line, 10);
 
 		if (lineNumber < 0 || lineNumber > 65535) {
-			/*
-			throw this.composeError(Error(), "Line number overflow", line, -1);
-			this.outputError(this.vm.vmComposeError(Error(), 6, String(line)), true);
-			line = -1; //TTT
-			const error = this.vm.vmComposeError(Error(), 6, String(line));
-
-			this.vm.vmStop("", 0, true); // clear error, onError
-			this.outputError(error, true);
-			*/
+			// we must not throw an error
 		}
 		return lineNumber;
 	}
 
 	// merge two scripts with sorted line numbers, lines from script2 overwrite lines from script1
-	private mergeScripts(script1: string, script2: string) {
+	private static mergeScripts(script1: string, script2: string) {
 		const lines1 = Utils.stringTrimEnd(script1).split("\n"),
 			lines2 = Utils.stringTrimEnd(script2).split("\n");
 		let result = [],
@@ -649,8 +640,8 @@ export class Controller implements IController {
 			lineNumber2: number | undefined;
 
 		while (lines1.length && lines2.length) {
-			lineNumber1 = lineNumber1 || this.parseLineNumber(lines1[0]);
-			lineNumber2 = lineNumber2 || this.parseLineNumber(lines2[0]);
+			lineNumber1 = lineNumber1 || Controller.parseLineNumber(lines1[0]);
+			lineNumber2 = lineNumber2 || Controller.parseLineNumber(lines2[0]);
 
 			if (lineNumber1 < lineNumber2) { // use line from script1
 				result.push(lines1.shift());
@@ -1016,7 +1007,7 @@ export class Controller implements IController {
 		case "openin":
 			break;
 		case "chainMerge":
-			input = this.mergeScripts(this.view.getAreaValue("inputText"), input);
+			input = Controller.mergeScripts(this.view.getAreaValue("inputText"), input);
 			this.setInputText(input);
 			this.view.setAreaValue("resultText", "");
 			startLine = inFile.line || 0;
@@ -1032,7 +1023,7 @@ export class Controller implements IController {
 			}
 			break;
 		case "merge":
-			input = this.mergeScripts(this.view.getAreaValue("inputText"), input);
+			input = Controller.mergeScripts(this.view.getAreaValue("inputText"), input);
 			this.setInputText(input);
 			this.view.setAreaValue("resultText", "");
 			this.invalidateScript();
@@ -1342,7 +1333,7 @@ export class Controller implements IController {
 			if (!error) {
 				let input = lines.join("\n");
 
-				input = this.mergeScripts(inputText, input); // delete input lines
+				input = Controller.mergeScripts(inputText, input); // delete input lines
 				this.setInputText(input);
 			}
 		}
@@ -1448,7 +1439,7 @@ export class Controller implements IController {
 			inputText = this.view.getAreaValue("inputText");
 		let input = inputParas.input;
 
-		input = this.mergeScripts(inputText, input);
+		input = Controller.mergeScripts(inputText, input);
 		this.setInputText(input);
 		this.vm.vmSetStartLine(0);
 		this.vm.vmGotoLine(0); // to be sure
@@ -1730,7 +1721,7 @@ export class Controller implements IController {
 				if (Utils.debug > 0) {
 					Utils.console.debug("fnDirectInput: insert line=" + input);
 				}
-				input = this.mergeScripts(inputText, input);
+				input = Controller.mergeScripts(inputText, input);
 				this.setInputText(input, true);
 
 				this.vm.vmSetStartLine(0);

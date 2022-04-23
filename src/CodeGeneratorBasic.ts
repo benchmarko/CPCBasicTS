@@ -130,9 +130,7 @@ export class CodeGeneratorBasic {
 	}
 
 	private fnParseOneArg(arg: ParserNode) {
-		const value = this.parseNode(arg);
-
-		return value;
+		return this.parseNode(arg);
 	}
 
 	private fnParseArgs(args: ParserNode[] | undefined) {
@@ -200,9 +198,7 @@ export class CodeGeneratorBasic {
 		if (node.left.type !== "identifier") {
 			throw this.composeError(Error(), "Unexpected assing type", node.type, node.pos); // should not occur
 		}
-		const value = this.fnParseOneArg(node.left) + CodeGeneratorBasic.fnWs(node) + node.value + this.fnParseOneArg(node.right);
-
-		return value;
+		return this.fnParseOneArg(node.left) + CodeGeneratorBasic.fnWs(node) + node.value + this.fnParseOneArg(node.right);
 	}
 	private static decBinHexNumber(node: ParserNode) {
 		return CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase(); // number: maybe "e" inside; binnumber: maybe "&x"
