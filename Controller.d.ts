@@ -49,8 +49,8 @@ export declare class Controller implements IController {
     private fnWaitSound;
     private fnWaitKey;
     private fnWaitInput;
-    private parseLineNumber;
-    private mergeScripts;
+    private static parseLineNumber;
+    private static mergeScripts;
     private static fnGetLinesInRange;
     private static fnPrepareMaskRegExp;
     private fnGetExampleDirectoryEntries;

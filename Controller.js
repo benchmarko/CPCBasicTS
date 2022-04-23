@@ -503,29 +503,20 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.keyboard.setKeyDownHandler(this.fnWaitInputHandler); // make sure it is set
             }
         };
-        //TODO
-        Controller.prototype.parseLineNumber = function (line) {
+        Controller.parseLineNumber = function (line) {
             var lineNumber = parseInt(line, 10);
             if (lineNumber < 0 || lineNumber > 65535) {
-                /*
-                throw this.composeError(Error(), "Line number overflow", line, -1);
-                this.outputError(this.vm.vmComposeError(Error(), 6, String(line)), true);
-                line = -1; //TTT
-                const error = this.vm.vmComposeError(Error(), 6, String(line));
-    
-                this.vm.vmStop("", 0, true); // clear error, onError
-                this.outputError(error, true);
-                */
+                // we must not throw an error
             }
             return lineNumber;
         };
         // merge two scripts with sorted line numbers, lines from script2 overwrite lines from script1
-        Controller.prototype.mergeScripts = function (script1, script2) {
+        Controller.mergeScripts = function (script1, script2) {
             var lines1 = Utils_1.Utils.stringTrimEnd(script1).split("\n"), lines2 = Utils_1.Utils.stringTrimEnd(script2).split("\n");
             var result = [], lineNumber1, lineNumber2;
             while (lines1.length && lines2.length) {
-                lineNumber1 = lineNumber1 || this.parseLineNumber(lines1[0]);
-                lineNumber2 = lineNumber2 || this.parseLineNumber(lines2[0]);
+                lineNumber1 = lineNumber1 || Controller.parseLineNumber(lines1[0]);
+                lineNumber2 = lineNumber2 || Controller.parseLineNumber(lines2[0]);
                 if (lineNumber1 < lineNumber2) { // use line from script1
                     result.push(lines1.shift());
                     lineNumber1 = 0;
@@ -812,7 +803,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 case "openin":
                     break;
                 case "chainMerge":
-                    input = this.mergeScripts(this.view.getAreaValue("inputText"), input);
+                    input = Controller.mergeScripts(this.view.getAreaValue("inputText"), input);
                     this.setInputText(input);
                     this.view.setAreaValue("resultText", "");
                     startLine = inFile.line || 0;
@@ -828,7 +819,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     }
                     break;
                 case "merge":
-                    input = this.mergeScripts(this.view.getAreaValue("inputText"), input);
+                    input = Controller.mergeScripts(this.view.getAreaValue("inputText"), input);
                     this.setInputText(input);
                     this.view.setAreaValue("resultText", "");
                     this.invalidateScript();
@@ -1089,7 +1080,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 }
                 if (!error) {
                     var input = lines.join("\n");
-                    input = this.mergeScripts(inputText, input); // delete input lines
+                    input = Controller.mergeScripts(inputText, input); // delete input lines
                     this.setInputText(input);
                 }
             }
@@ -1169,7 +1160,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         Controller.prototype.fnEditLineCallback = function () {
             var inputParas = this.vm.vmGetStopObject().paras, inputText = this.view.getAreaValue("inputText");
             var input = inputParas.input;
-            input = this.mergeScripts(inputText, input);
+            input = Controller.mergeScripts(inputText, input);
             this.setInputText(input);
             this.vm.vmSetStartLine(0);
             this.vm.vmGotoLine(0); // to be sure
@@ -1393,7 +1384,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     if (Utils_1.Utils.debug > 0) {
                         Utils_1.Utils.console.debug("fnDirectInput: insert line=" + input);
                     }
-                    input = this.mergeScripts(inputText, input);
+                    input = Controller.mergeScripts(inputText, input);
                     this.setInputText(input, true);
                     this.vm.vmSetStartLine(0);
                     this.vm.vmGotoLine(0); // to be sure

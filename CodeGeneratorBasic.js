@@ -75,8 +75,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             return typeUc;
         };
         CodeGeneratorBasic.prototype.fnParseOneArg = function (arg) {
-            var value = this.parseNode(arg);
-            return value;
+            return this.parseNode(arg);
         };
         CodeGeneratorBasic.prototype.fnParseArgs = function (args) {
             var nodeArgs = []; // do not modify node.args here (could be a parameter of defined function)
@@ -130,8 +129,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             if (node.left.type !== "identifier") {
                 throw this.composeError(Error(), "Unexpected assing type", node.type, node.pos); // should not occur
             }
-            var value = this.fnParseOneArg(node.left) + CodeGeneratorBasic.fnWs(node) + node.value + this.fnParseOneArg(node.right);
-            return value;
+            return this.fnParseOneArg(node.left) + CodeGeneratorBasic.fnWs(node) + node.value + this.fnParseOneArg(node.right);
         };
         CodeGeneratorBasic.decBinHexNumber = function (node) {
             return CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase(); // number: maybe "e" inside; binnumber: maybe "&x"
