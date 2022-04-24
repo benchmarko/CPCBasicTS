@@ -1,1 +1,1 @@
-{"version":3,"file":"cpcconfig.js","sourceRoot":"ts/","sources":["cpcconfig.ts"],"names":[],"mappings":"AAAA,sDAAsD;;;;;IAEzC,QAAA,SAAS,GAAG;QACxB,qGAAqG;QACrG,YAAY,EAAE,qHAAqH;KACnI,CAAC"}
+{"version":3,"file":"cpcconfig.js","sourceRoot":"ts/","sources":["cpcconfig.ts"],"names":[],"mappings":"AAAA,sDAAsD;;;;;IAEzC,QAAA,SAAS,GAAG;QACxB,oGAAoG;QACpG,YAAY,EAAE,oHAAoH;KAClI,CAAC"}
