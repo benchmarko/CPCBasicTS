@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    //"rootDir": ".",
+    "composite": true,
+    "module": "amd",
+    "moduleResolution": "node",
+    "newLine": "LF",
+    "outDir": "./dist",
+    "target": "es5",
+    "sourceMap": true,
+    "sourceRoot": "ts",
+    "declaration": true,
+     "jsx": "preserve",
+    "lib": [
+      "es2017",
+      "dom"
+    ],
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "src": ["src"],
+      "test": ["src/test"]
+    }
+  }
+}

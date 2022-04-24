@@ -1,31 +1,9 @@
-//https://www.typescriptlang.org/tsconfig
-//https://www.typescriptlang.org/tsconfig#strict
 {
-  "compilerOptions": {
-    "module": "amd",
-    "moduleResolution": "node",
-    "newLine": "LF",
-    "outDir": "./dist/",
-    "target": "es5",
-    "sourceMap": true,
-    "sourceRoot": "ts",
-    "declaration": true,
-    "jsx": "preserve",
-    "lib": [
-      "es2017",
-      "dom"
-    ],
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true
-  },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    ".git",
-    "node_modules"
-  ]
+  "files": [],
+  "include": [],
+  "references": [
+    { "path": "./src" },
+    { "path": "./src/loader" },
+    { "path": "./src/test" }
+ ]
 }

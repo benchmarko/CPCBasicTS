@@ -1,6 +1,6 @@
 {
   "name": "cpcbasicts",
-  "version": "0.0.37",
+  "version": "0.0.38",
   "description": "# CPCBasicTS - Run CPC BASIC in a Browser",
   "main": "cpcbasicts.js",
   "directories": {
@@ -25,8 +25,12 @@
     "start": "echo TODO",
     "clean": "rm -rf dist/*",
     "cleancache": "rm -rf node_modules/.cache/gh-pages/",
-    "build": "tsc && cp src/*.html src/*.css dist/ && mkdirp -p dist/ts && cp -r src/*.ts dist/ts/ && mkdirp -p dist/test/ts/test && cp -r src/test/*.ts dist/test/ts/test && cp src/test/*.html dist/test/",
-    "test": "qunit --require ./dist/test/amdLoader.js dist/test/*.qunit.js",
+    "copy": "cp src/*.html src/*.css LICENSE favicon.ico dist/ && mkdirp -p dist/ts && cp -r src/*.ts dist/ts/ && mkdirp -p dist/loader/ts && cp -r src/loader/*.ts dist/loader/ts && mkdirp -p dist/test/ts && cp -r src/test/*.ts dist/test/ts && cp src/test/*.html dist/test/ && mkdirp -p dist/examplesTS && cp -r examplesTS/* dist/examplesTS",
+    "build:singleXXX": "tsc --build tsconfig-single.json && npm run copy",
+    "build:oneXXX": "tsc --build tsconfig-one.json && npm run copy",
+    "build:old1XXX": "tsc && tsc --outFile dist/amdLoader.js src/amdLoader.ts && npm run copy",
+    "build": "tsc --build && npm run copy",
+    "test": "qunit --require ./dist/loader/amdLoader.js dist/test/*.qunit.js",
     "deploy": "gh-pages -d dist",
     "lint": "eslint src --ext .ts"
   },

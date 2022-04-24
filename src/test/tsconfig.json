@@ -1,0 +1,13 @@
+// src/test/tsconfig.json
+{
+  "extends": "../../tsconfig-base.json",
+  "compilerOptions": {
+    "outDir": "../../dist/test",
+  },
+  "include": [
+    "./*"
+  ],
+  "references": [
+    { "path": "../" }
+  ]
+}
