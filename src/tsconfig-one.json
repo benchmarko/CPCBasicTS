@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outFile": "../dist/cpcbasicts.js",
+    "declarationDir": null
+  }
+}

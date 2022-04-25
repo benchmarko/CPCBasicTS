@@ -1,7 +1,5 @@
 # CPCBasicTS Unchained - Run CPC BASIC in a Browser
 
-(Clone of [CPCBasic](https://github.com/benchmarko/CPCBasic/) 0.9.20, converted to TypeScript.)
-
 CPCBasicTS lets you run CPC BASIC programs in a browser. The supported BASIC style is known as Amstrad CPC 6128 Locomotive BASIC 1.1.
 BASIC programs are compiled to JavaScript which can be run in the browser. A library provides the functionality of the commands that are not directly available in JavaScript.
 
@@ -11,9 +9,7 @@ CPCBasicTS Links:
 [Source code](https://github.com/benchmarko/CPCBasicTS/),
 [HTML Readme](https://github.com/benchmarko/CPCBasicTS/#readme),
 
-[For reference: CPCBasic Links:
-[CPCBasic Demo](https://benchmarko.github.io/CPCBasic/index.html?example=cpcbasic),
-[CPCBasic Source Code](https://github.com/benchmarko/CPCBasic/)]
+CPCBasicTS is a new version of [CPCBasic](https://github.com/benchmarko/CPCBasic/) 0.9.20, converted to TypeScript, with some enhancements.
 
 ## Features
 
@@ -34,7 +30,7 @@ CPCBasicTS Links:
 
 More examples are in the sample library [CPCBasicApps](https://github.com/benchmarko/CPCBasicApps/#readme). They are included in CPCBasicTS as *apps*, example: [10print](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=demo/10print).
 
-## Why CPCBasicTS
+## Why CPCBasic
 
 There are several great CPC emulators which emulate a complete CPC with exact timing and allow demos to run, pushing CPC hardware to its limits.
 
@@ -45,20 +41,23 @@ With CPC Basic we do not get that accuracy. But if we compile it to JavaScript, 
 - Just open index.html in a browser.
   The user interface shows several windows, which can be reduced and expanded by pressing the **green** buttons.
 - The *Input* window is used to input and modify the BASIC code.
-  - Use the *first selection field* to select the example library: CPCBasic *examples* or CPCBasicApps *apps*.
+  - Use the *first selection field* to select the example library: CPCBasic *examples*,
+  CPCBasicApps *apps*, *examplesTS* or *storage*.
   - Use the *second selection field* to select a sample program. It will reset the CPC, and run the program.
+  - The **Reload** button reloads the page with the current settings. (Please note that changes to the BASIC program are not saved!)
   - The **Help** button opens the readme file in a browser.
-  - The **Reload** button reloads the page with the current settings. (Please note that changes to the BASIC program are not saved.)
   - The **Check** button checks the syntax of the program. It compiles the program to JavaScript.
-  - The **Renum** button renumbers the line numbers starting with 10 and increasing by 10 (see also *RENUM*)
-  - The **Pretty** button performs a pretty print on the input (currently it has a fixed style)
+  - The **Convert** button opens a popover with functuons to renumber lines or pretty print the source.
+    - The **Renum** button renumbers the lines (see also *RENUM*)
+    - The **Pretty** button performs a pretty print on the input.
+    - The **Undo** button reverts the last renum or pretty print
+    - The **Redo** button activates the last renum or pretty print
   - The **Download** button downloads the program in tokenized BASIC format with AMSDOS header. In can be imported via Drag&Drop in CPCBasicTS later. It can also used directly with the emulator *CPCEMU* in *|TAPE* mode or put in a DSK image to load with any other CPC emulator.
-  - The **Undo** button reverts the last renum or pretty print
-  - The **Redo** button activates the last renum or pretty print
 - The *CPC* window shows the output on a CPC screen.
-  - If you change the BASIC program, press the **Run** button to compile the BASIC program to JavaScript and run it.
-  - If the focus is on the CPC screen, keystrokes will be detected by a running program. (An alternative way of input is the *virtual keyboard* below.)
-  - The **Break** button halts the simulation. You can continue with the **Continue** button.
+  - The **Run** button compiles the BASIC program to JavaScript and runs it. Press it after changing the input source.
+    - If the focus is on the CPC screen, keystrokes will be detected by a running program. (An alternative way of input is the *virtual keyboard* below.)
+  - The **Break** button halts the program.
+  - The **Continue** button continues the program.
     This is an unconditional break. Pressing the ESC key once also halts the program, if not masked with *ON BREAK CONT*
   - The **Reset** button resets the CPC.
   - The **Screenshot** button creates a screenshot of the current CPC screen.
@@ -66,6 +65,7 @@ With CPC Basic we do not get that accuracy. But if we compile it to JavaScript, 
     - If you use the *Reload* button with sound activated, the sound needs to be activated again. Just do a user action, e.g. click somewhere. This is a browser limitation.
 - The *Text View* window shows the text which is written in text mode.
 - The *Keyboard* window shows a virtual keyboard which can be also used with touch devices. You can test the functionality with the test program [keyboard](https://benchmarko.github.io/CPCBasicTS/?example=test/keyboard&showKbd=true).
+- The *Keyboard Layout* window allows you to change the layout of the keyboard.
 - The *Input* window is an alternative way to send input to the CPC.
 - The *Console* window shows the textual output. This is useful for copying and pasting the output. It is cleared when the CPC screen is cleared (*MODE* or *CLS*).
 - The *Variables* window allows you to see the variables used by the program.
@@ -231,6 +231,7 @@ Did you know?
 
 QUnit tests:
 
+- [index.html](https://benchmarko.github.io/CPCBasicTS/test/index.html)
 - [BasicFormatter.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/BasicFormatter.qunit.html)
 - [BasicLexer.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/BasicLexer.qunit.html)
 - [BasicParser.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/BasicParser.qunit.html)
@@ -295,4 +296,4 @@ IFrames test:
 
 - [Locomotive Software](https://www.cpcwiki.eu/index.php/Locomotive_Software) - The developer of CPCs BASIC and operating system
 
-### **mv, 07/2021**
+### **mv, 04/2022**

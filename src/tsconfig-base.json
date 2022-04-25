@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+      "module": "amd",
+      "pretty": true,
+      "lib": [
+        "es2017",
+        "dom"
+      ],
+      "target": "es5",
+      "moduleResolution": "node",
+      //"rootDir": ".",
+
+      "declaration": true,
+      "declarationMap": true,
+      "sourceMap": true,
+      "composite": true,
+      "noEmitOnError": true,
+
+      "strictNullChecks": true,
+      "noImplicitAny": true,
+      "noImplicitThis": true,
+      "strictPropertyInitialization": true,
+      "noUnusedLocals": true,
+      "noUnusedParameters": true,
+
+      "skipLibCheck": true,
+
+      "alwaysStrict": true,
+      "preserveConstEnums": true,
+      "newLine": "lf",
+
+      "types": []
+  }
+}

@@ -669,7 +669,12 @@ QUnit.module("BasicParser: Tests", function () {
 					if ((e as Error).message !== expectedEntry.message) {
 						Utils.console.error(e); // only if unexpected
 					}
-					result = JSON.stringify(e);
+					// on IE we have additional properties description, number, stack in the object, so we use a positive list...
+					// eslint-disable-next-line object-property-newline, object-curly-newline
+					const copiedError = (({ len, line, message, name, pos, shortMessage, value }) => ({ len, line, message, name, pos, shortMessage, value }))(e);
+					// (https://stackoverflow.com/questions/17781472/how-to-get-a-subset-of-a-javascript-objects-properties)
+
+					result = JSON.stringify(copiedError);
 					parseTree = JSON.parse(result); // get error without Error object
 				}
 

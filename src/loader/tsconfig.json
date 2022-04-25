@@ -1,10 +1,10 @@
-// src/test/tsconfig.json
 {
-  "extends": "../../tsconfig-base.json",
+  "extends": "../tsconfig-base.json",
   "compilerOptions": {
-    "outDir": "../../dist/loader"
+    "outDir": "../../dist/loader",
+    "types": ["node"]
   },
   "include": [
-    "./*"
+    "./*.ts"
   ]
 }
