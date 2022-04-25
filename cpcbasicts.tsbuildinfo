@@ -1,0 +1,55 @@
+{
+  "bundle": {
+    "commonSourceDirectory": "../src",
+    "sourceFiles": [
+      "../src/Utils.ts",
+      "../src/Polyfills.ts",
+      "../src/Interfaces.ts",
+      "../src/cpcCharset.ts",
+      "../src/BasicLexer.ts",
+      "../src/BasicParser.ts",
+      "../src/BasicFormatter.ts",
+      "../src/BasicTokenizer.ts",
+      "../src/CodeGeneratorBasic.ts",
+      "../src/Variables.ts",
+      "../src/CodeGeneratorJs.ts",
+      "../src/CodeGeneratorToken.ts",
+      "../src/Diff.ts",
+      "../src/DiskImage.ts",
+      "../src/InputStack.ts",
+      "../src/View.ts",
+      "../src/Keyboard.ts",
+      "../src/VirtualKeyboard.ts",
+      "../src/Canvas.ts",
+      "../src/Model.ts",
+      "../src/CommonEventHandler.ts",
+      "../src/Random.ts",
+      "../src/Sound.ts",
+      "../src/ZipFile.ts",
+      "../src/CpcVm.ts",
+      "../src/CpcVmRsx.ts",
+      "../src/Controller.ts",
+      "../src/cpcconfig.ts",
+      "../src/cpcbasic.ts"
+    ],
+    "js": {
+      "sections": [
+        {
+          "pos": 0,
+          "end": 743577,
+          "kind": "text"
+        }
+      ]
+    },
+    "dts": {
+      "sections": [
+        {
+          "pos": 0,
+          "end": 62808,
+          "kind": "text"
+        }
+      ]
+    }
+  },
+  "version": "4.1.2"
+}

@@ -1,0 +1,64 @@
+import { BasicLexer } from "./BasicLexer";
+import { BasicParser } from "./BasicParser";
+import { IOutput } from "./Interfaces";
+interface CodeGeneratorBasicOptions {
+    quiet?: boolean;
+    lexer: BasicLexer;
+    parser: BasicParser;
+}
+export declare class CodeGeneratorBasic {
+    private quiet;
+    private readonly lexer;
+    private readonly parser;
+    private line;
+    constructor(options: CodeGeneratorBasicOptions);
+    getLexer(): BasicLexer;
+    getParser(): BasicParser;
+    private static readonly combinedKeywords;
+    private static readonly operators;
+    private static readonly operatorPrecedence;
+    private composeError;
+    private static fnWs;
+    private static fnSpace1;
+    private static getUcKeyword;
+    private fnParseOneArg;
+    private fnParseArgs;
+    private static fnColonsAvailable;
+    private static combineArgsWithColon;
+    private fnParenthesisOpen;
+    private static string;
+    private static unquoted;
+    private static fnNull;
+    private assign;
+    private static decBinHexNumber;
+    private identifier;
+    private static linenumber;
+    private label;
+    private vertical;
+    private afterEveryGosub;
+    private chainMerge;
+    private data;
+    private def;
+    private "else";
+    private entOrEnv;
+    private fn;
+    private "for";
+    private fnThenOrElsePart;
+    private "if";
+    private static fnHasStream;
+    private inputLineInput;
+    private list;
+    private mid$Assign;
+    private onGotoGosub;
+    private onSqGosub;
+    private print;
+    private rem;
+    private using;
+    private readonly parseFunctions;
+    private fnParseOther;
+    private parseNode;
+    private evaluate;
+    generate(input: string, allowDirect?: boolean): IOutput;
+}
+export {};
+//# sourceMappingURL=CodeGeneratorBasic.d.ts.map

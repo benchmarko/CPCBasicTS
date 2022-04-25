@@ -655,7 +655,14 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "./
                         if (e.message !== expectedEntry.message) {
                             Utils_1.Utils.console.error(e); // only if unexpected
                         }
-                        result = JSON.stringify(e);
+                        // on IE we have additional properties description, number, stack in the object, so we use a positive list...
+                        // eslint-disable-next-line object-property-newline, object-curly-newline
+                        var copiedError = (function (_a) {
+                            var len = _a.len, line = _a.line, message = _a.message, name = _a.name, pos = _a.pos, shortMessage = _a.shortMessage, value = _a.value;
+                            return ({ len: len, line: line, message: message, name: name, pos: pos, shortMessage: shortMessage, value: value });
+                        })(e);
+                        // (https://stackoverflow.com/questions/17781472/how-to-get-a-subset-of-a-javascript-objects-properties)
+                        result = JSON.stringify(copiedError);
                         parseTree = JSON.parse(result); // get error without Error object
                     }
                     if (results) {

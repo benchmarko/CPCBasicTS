@@ -198,13 +198,8 @@
       },
       "../../src/loader/amdLoader.ts": {
         "version": "fd67133c05486c076251f65ca2160dee75d8be5b37f94697b8f034cff16b022e",
-        "signature": "617568871de88d3481ad80f5f5292550b5ce8151a435add7a4072daf4543aa0d",
+        "signature": "f9fd792bd18f92f20858832614de54af9d1d9475f13791eed117e7bba87fd282",
         "affectsGlobalScope": true
-      },
-      "../../node_modules/@types/json-schema/index.d.ts": {
-        "version": "b2be568d8ce95fcb26eebd04c035d94825655fdf689bf67d799f5ff8cbbb1024",
-        "signature": "b2be568d8ce95fcb26eebd04c035d94825655fdf689bf67d799f5ff8cbbb1024",
-        "affectsGlobalScope": false
       },
       "../../node_modules/@types/node/assert.d.ts": {
         "version": "0cba3a5d7b81356222594442753cf90dd2892e5ccfe1d262aaca6896ba6c1380",
@@ -460,49 +455,39 @@
         "version": "9cafe917bf667f1027b2bb62e2de454ecd2119c80873ad76fc41d941089753b8",
         "signature": "9cafe917bf667f1027b2bb62e2de454ecd2119c80873ad76fc41d941089753b8",
         "affectsGlobalScope": false
-      },
-      "../../node_modules/@types/qunit/index.d.ts": {
-        "version": "eebdfe5ea6340c80c93ea79b34a461ffbb64f91a8a69896ba1a67ab0fc8f4d70",
-        "signature": "eebdfe5ea6340c80c93ea79b34a461ffbb64f91a8a69896ba1a67ab0fc8f4d70",
-        "affectsGlobalScope": true
       }
     },
     "options": {
-      "baseUrl": "../..",
-      "composite": true,
       "module": 2,
-      "moduleResolution": 2,
-      "newLine": 1,
-      "outDir": "./",
-      "target": 1,
-      "sourceMap": true,
-      "sourceRoot": "ts",
-      "declaration": true,
-      "jsx": 1,
+      "pretty": true,
       "lib": [
         "lib.es2017.d.ts",
         "lib.dom.d.ts"
       ],
-      "strict": true,
+      "target": 1,
+      "moduleResolution": 2,
+      "declaration": true,
+      "declarationMap": true,
+      "sourceMap": true,
+      "composite": true,
+      "noEmitOnError": true,
+      "strictNullChecks": true,
+      "noImplicitAny": true,
+      "noImplicitThis": true,
+      "strictPropertyInitialization": true,
       "noUnusedLocals": true,
       "noUnusedParameters": true,
-      "noImplicitReturns": true,
-      "noFallthroughCasesInSwitch": true,
-      "paths": {
-        "src": [
-          "src"
-        ],
-        "test": [
-          "src/test"
-        ]
-      },
-      "pathsBasePath": "/home/runner/work/CPCBasicTS/CPCBasicTS",
+      "skipLibCheck": true,
+      "alwaysStrict": true,
+      "preserveConstEnums": true,
+      "newLine": 1,
+      "types": [
+        "node"
+      ],
+      "outDir": "./",
       "configFilePath": "../../src/loader/tsconfig.json"
     },
     "referencedMap": {
-      "../../node_modules/@types/json-schema/index.d.ts": [
-        "../../node_modules/@types/node/util.d.ts"
-      ],
       "../../node_modules/@types/node/assert.d.ts": [
         "../../node_modules/@types/node/assert.d.ts",
         "../../node_modules/@types/node/util.d.ts"
@@ -829,9 +814,6 @@
         "../../node_modules/@types/node/stream.d.ts",
         "../../node_modules/@types/node/util.d.ts",
         "../../node_modules/@types/node/zlib.d.ts"
-      ],
-      "../../node_modules/@types/qunit/index.d.ts": [
-        "../../node_modules/@types/node/util.d.ts"
       ],
       "../../node_modules/typescript/lib/lib.dom.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
@@ -955,9 +937,6 @@
       ]
     },
     "exportedModulesMap": {
-      "../../node_modules/@types/json-schema/index.d.ts": [
-        "../../node_modules/@types/node/util.d.ts"
-      ],
       "../../node_modules/@types/node/assert.d.ts": [
         "../../node_modules/@types/node/assert.d.ts",
         "../../node_modules/@types/node/util.d.ts"
@@ -1285,9 +1264,6 @@
         "../../node_modules/@types/node/util.d.ts",
         "../../node_modules/@types/node/zlib.d.ts"
       ],
-      "../../node_modules/@types/qunit/index.d.ts": [
-        "../../node_modules/@types/node/util.d.ts"
-      ],
       "../../node_modules/typescript/lib/lib.dom.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
@@ -1407,7 +1383,6 @@
       ]
     },
     "semanticDiagnosticsPerFile": [
-      "../../node_modules/@types/json-schema/index.d.ts",
       "../../node_modules/@types/node/assert.d.ts",
       "../../node_modules/@types/node/assert/strict.d.ts",
       "../../node_modules/@types/node/async_hooks.d.ts",
@@ -1459,7 +1434,6 @@
       "../../node_modules/@types/node/wasi.d.ts",
       "../../node_modules/@types/node/worker_threads.d.ts",
       "../../node_modules/@types/node/zlib.d.ts",
-      "../../node_modules/@types/qunit/index.d.ts",
       "../../node_modules/typescript/lib/lib.dom.d.ts",
       "../../node_modules/typescript/lib/lib.es2015.collection.d.ts",
       "../../node_modules/typescript/lib/lib.es2015.core.d.ts",

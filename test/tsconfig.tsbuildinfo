@@ -196,124 +196,124 @@
         "signature": "89bf2b7a601b73ea4311eda9c41f86a58994fec1bee3b87c4a14d68d9adcdcbd",
         "affectsGlobalScope": true
       },
-      "../Utils.d.ts": {
-        "version": "e2e6e4db377fa8fa7e7963c1fb695a892d0bb65735c597d93b065e80d56d500d",
-        "signature": "e2e6e4db377fa8fa7e7963c1fb695a892d0bb65735c597d93b065e80d56d500d",
+      "../types/Utils.d.ts": {
+        "version": "3588aefd4e336d50c08f45a90441f5b68b7eac20e7fc54f1300f71d0d305de95",
+        "signature": "3588aefd4e336d50c08f45a90441f5b68b7eac20e7fc54f1300f71d0d305de95",
         "affectsGlobalScope": false
       },
-      "../BasicLexer.d.ts": {
-        "version": "582964c105e41a8d34a71cf05c84a356e3d61860e00d5fe8b6795256fbe6a687",
-        "signature": "582964c105e41a8d34a71cf05c84a356e3d61860e00d5fe8b6795256fbe6a687",
+      "../types/BasicLexer.d.ts": {
+        "version": "013fa8384a6412f767ad701b7b33a8f6a88521584190a619693bad43efa39cc3",
+        "signature": "013fa8384a6412f767ad701b7b33a8f6a88521584190a619693bad43efa39cc3",
         "affectsGlobalScope": false
       },
-      "../BasicParser.d.ts": {
-        "version": "65feefce2aa022646f0dabab2e94a574b92ab9e5e448dff0bac0f0c10a807298",
-        "signature": "65feefce2aa022646f0dabab2e94a574b92ab9e5e448dff0bac0f0c10a807298",
+      "../types/BasicParser.d.ts": {
+        "version": "e51475c5deb62c40da41891f272041f11c54002a4b11f5bce97b552a4cfc6751",
+        "signature": "e51475c5deb62c40da41891f272041f11c54002a4b11f5bce97b552a4cfc6751",
         "affectsGlobalScope": false
       },
-      "../Interfaces.d.ts": {
-        "version": "32241b2b8c019efde111e481decc34864c09bf10b2434232eb5e0c712254246a",
-        "signature": "32241b2b8c019efde111e481decc34864c09bf10b2434232eb5e0c712254246a",
+      "../types/Interfaces.d.ts": {
+        "version": "d54b89fb4a246a31d65c98f3278eeef3eacfbd3a800995d8be228e3c62d6bd60",
+        "signature": "d54b89fb4a246a31d65c98f3278eeef3eacfbd3a800995d8be228e3c62d6bd60",
         "affectsGlobalScope": false
       },
-      "../BasicFormatter.d.ts": {
-        "version": "a46b301660269f60b0d5f7fd268508c72a5fc369c60d8a0eb45e694307fc0cdf",
-        "signature": "a46b301660269f60b0d5f7fd268508c72a5fc369c60d8a0eb45e694307fc0cdf",
+      "../types/BasicFormatter.d.ts": {
+        "version": "2888598a866bb8b30284ded52441f53073f164bffdc8c1248822fdad240e774f",
+        "signature": "2888598a866bb8b30284ded52441f53073f164bffdc8c1248822fdad240e774f",
         "affectsGlobalScope": false
       },
       "../../src/test/TestHelper.ts": {
         "version": "45801515cbe8053e1ba73beb4f6ad635ce5dff2eddde68862857e620d6f09de4",
-        "signature": "4aeaf3ac97c1ae74ff354dc120150c24418de0622cd7358da0ae43901bd6b4bf",
+        "signature": "013b3b10e1a10590a40f9abea02e8e6fad5242d90fcc7b8d7794c7f5b1b083f0",
         "affectsGlobalScope": true
       },
       "../../src/test/BasicFormatter.qunit.ts": {
         "version": "cf94d4521a3375461aaeecc933c47d449fdff7f2db79575d747d8c50f5a66003",
-        "signature": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+        "signature": "e3b2ce05a475b280eb97f3ac12672c08a4cdbbcb23600a102e15e3676e7f75b1",
         "affectsGlobalScope": false
       },
       "../../src/test/BasicLexer.qunit.ts": {
         "version": "f2160ee163a5e163b3e29667b81b5328be7952b071f5c5c4110efa8ccc7c92ad",
-        "signature": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+        "signature": "b17c93cb3e63049d669693008e0e6b2b06d687b4b143a81d3596ba721c1b8106",
         "affectsGlobalScope": false
       },
       "../../src/test/BasicParser.qunit.ts": {
-        "version": "5c44ee13b5ece841463ca938959a79a30140b5402089730724f3a253cc35550f",
-        "signature": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+        "version": "5a4611838f4f7d7c972c742b96910840821a50c74971016bea0d415fa4b64dbd",
+        "signature": "843bf6e9f957d73795c999ed71051e90df1a57a9a9bb7d7308bc28f3c8540da6",
         "affectsGlobalScope": false
       },
-      "../BasicTokenizer.d.ts": {
-        "version": "9c5c21d1e858f44dabd4d0a9e31e823d22dcd77b74396ba34d3769629c86403d",
-        "signature": "9c5c21d1e858f44dabd4d0a9e31e823d22dcd77b74396ba34d3769629c86403d",
+      "../types/BasicTokenizer.d.ts": {
+        "version": "adf12de69dc0eb6071774d7d6fe9583bae4f7f8c537b6c733f96ec94ec373309",
+        "signature": "adf12de69dc0eb6071774d7d6fe9583bae4f7f8c537b6c733f96ec94ec373309",
         "affectsGlobalScope": false
       },
       "../../src/test/BasicTokenizer.qunit.ts": {
         "version": "689286642fdf320f429ba5a2966af8024ea31a39c451d37362b9b1e9428108dc",
-        "signature": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+        "signature": "6f97d3738810536c119b7328d5092ea35cd8fc7fbd5a77a52461a1825daa8a1f",
         "affectsGlobalScope": false
       },
-      "../CodeGeneratorBasic.d.ts": {
-        "version": "737fce5520097f48be031cba5d346e8f0cccfcc69e51977f2661cdbd9328a598",
-        "signature": "737fce5520097f48be031cba5d346e8f0cccfcc69e51977f2661cdbd9328a598",
+      "../types/CodeGeneratorBasic.d.ts": {
+        "version": "5f52be924a25c41c29794376673441e93475645e43e6830e79d8c1a2854d2029",
+        "signature": "5f52be924a25c41c29794376673441e93475645e43e6830e79d8c1a2854d2029",
         "affectsGlobalScope": false
       },
       "../../src/test/CodeGeneratorBasic.qunit.ts": {
         "version": "95ab94ac28e3f2e85e5e818289d37827c56a5d0e97926daf193a689bbcfd61a0",
-        "signature": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+        "signature": "693279c73db0e095654343c2bf5142ff2f642264e842ddf910e57c8ae77c053e",
         "affectsGlobalScope": false
       },
-      "../Variables.d.ts": {
-        "version": "9454b5e6b3db627395472218b1131ac15dc3e8190f6863d2d36a8e3df3d6f361",
-        "signature": "9454b5e6b3db627395472218b1131ac15dc3e8190f6863d2d36a8e3df3d6f361",
+      "../types/Variables.d.ts": {
+        "version": "c187db6bc0a63dc6545e1fef3cb2194b28c6f68fe7625bed6f9511a766a75b11",
+        "signature": "c187db6bc0a63dc6545e1fef3cb2194b28c6f68fe7625bed6f9511a766a75b11",
         "affectsGlobalScope": false
       },
-      "../CodeGeneratorJs.d.ts": {
-        "version": "b5862463602e1cd691afd2c77220be79e58d91187a0ad893831e5e2529b42e24",
-        "signature": "b5862463602e1cd691afd2c77220be79e58d91187a0ad893831e5e2529b42e24",
+      "../types/CodeGeneratorJs.d.ts": {
+        "version": "b83f2efb4eb7b1b957383554088225bb13f922698105b9b3fd87983d16293120",
+        "signature": "b83f2efb4eb7b1b957383554088225bb13f922698105b9b3fd87983d16293120",
         "affectsGlobalScope": false
       },
       "../../src/test/CodeGeneratorJs.qunit.ts": {
         "version": "2a0a3388cd7731a56169b7e872668c89dd9cbd64289b247bcbd2734fcd83ef7f",
-        "signature": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+        "signature": "0de15ad5d19532aef4039ea7ca938a9a1b4dd3d7a6e3d2b02e1c4de965d5e58b",
         "affectsGlobalScope": false
       },
-      "../CodeGeneratorToken.d.ts": {
-        "version": "ef27dbaeee6b5026d50ea2ab540bcf83464a859b611f9bb062389b751ac351b7",
-        "signature": "ef27dbaeee6b5026d50ea2ab540bcf83464a859b611f9bb062389b751ac351b7",
+      "../types/CodeGeneratorToken.d.ts": {
+        "version": "5dbdabdccfd99827b3287596ef1930529e3e813b34c0c78e303ade4721057552",
+        "signature": "5dbdabdccfd99827b3287596ef1930529e3e813b34c0c78e303ade4721057552",
         "affectsGlobalScope": false
       },
       "../../src/test/CodeGeneratorToken.qunit.ts": {
         "version": "838848d5007b2bcdd2cc175eddc59bb6460d5b5a9f5f4ebdfbd4ef03d49a7361",
-        "signature": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+        "signature": "8910c6561fc9c4b7958260275388e6838815c862a2b555aed803450187c117f0",
         "affectsGlobalScope": false
       },
-      "../Diff.d.ts": {
-        "version": "9eb4d5aa1892a05c90a2ac96bc5cf6cf7eb2d1ca1fd448d56728c908d3d42e47",
-        "signature": "9eb4d5aa1892a05c90a2ac96bc5cf6cf7eb2d1ca1fd448d56728c908d3d42e47",
+      "../types/Diff.d.ts": {
+        "version": "f3366438a6c6de6c5f4450c978871a5e262b5e6a54c335b58d0874b500e717f8",
+        "signature": "f3366438a6c6de6c5f4450c978871a5e262b5e6a54c335b58d0874b500e717f8",
         "affectsGlobalScope": false
       },
       "../../src/test/Diff.qunit.ts": {
         "version": "59fd688a37445049fec17336ea23c7860df3a87498524be1c0fd82f408143c13",
-        "signature": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+        "signature": "722aa477c487dcd76535225bb48e1731f12e566229ae40625a714de1ded66a92",
         "affectsGlobalScope": false
       },
-      "../DiskImage.d.ts": {
-        "version": "1f531e71d45fad17cf2a3beb16b829ef0cc6e838ed3f343de895738b3c410c58",
-        "signature": "1f531e71d45fad17cf2a3beb16b829ef0cc6e838ed3f343de895738b3c410c58",
+      "../types/DiskImage.d.ts": {
+        "version": "d525cd4072f7c15ef8fae6a9f5800fa3217e34da7fb3912c42222f8c4b7c6af7",
+        "signature": "d525cd4072f7c15ef8fae6a9f5800fa3217e34da7fb3912c42222f8c4b7c6af7",
         "affectsGlobalScope": false
       },
-      "../ZipFile.d.ts": {
-        "version": "1ab9b511cb97b894f78bff780abd78059bcbe680fe631a8965a74dd9b5879e27",
-        "signature": "1ab9b511cb97b894f78bff780abd78059bcbe680fe631a8965a74dd9b5879e27",
+      "../types/ZipFile.d.ts": {
+        "version": "471f73c526324d9a7b52a23e3bc0fed4100a2df9385a6212f79fe800e6b0806b",
+        "signature": "471f73c526324d9a7b52a23e3bc0fed4100a2df9385a6212f79fe800e6b0806b",
         "affectsGlobalScope": false
       },
       "../../src/test/DiskImage.qunit.ts": {
         "version": "4b8484961391f31d9e026e29c2800db939f3240b84735388ad713f321ae09b26",
-        "signature": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+        "signature": "9837ff80ab00f3e3756f223ac5029808618caf0c45b0d9b3bf474f99acf0162f",
         "affectsGlobalScope": false
       },
-      "../Model.d.ts": {
-        "version": "37b5253106d94a25a618e2ff013ff3d6608928d501da28f33757981b6dcb1092",
-        "signature": "37b5253106d94a25a618e2ff013ff3d6608928d501da28f33757981b6dcb1092",
+      "../types/Model.d.ts": {
+        "version": "5d1a51326d576d406b4dd44c0bcbb3343beab188d3723995bf5fbd2dc55f02d1",
+        "signature": "5d1a51326d576d406b4dd44c0bcbb3343beab188d3723995bf5fbd2dc55f02d1",
         "affectsGlobalScope": false
       },
       "../../node_modules/@types/qunit/index.d.ts": {
@@ -323,32 +323,27 @@
       },
       "../../src/test/Model.qunit.ts": {
         "version": "afcd500423c195d4bcc947df0b9acecbe5ebacce313995e181ee9df119f288f3",
-        "signature": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+        "signature": "8c39af1feb0ec5e836fc8b39e7a7d4e817bfc4baaabf27e1ea045bd817bf897f",
         "affectsGlobalScope": false
       },
       "../../src/test/ZipFile.qunit.ts": {
         "version": "590bc5856461594e9de25e34f169a3fd366592046be1c9c0a60c68fc8aa1dcea",
-        "signature": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+        "signature": "d2d77fd9c8633c9e98026624d7b2379576e54872c6eec55a13f38028e9ee9d75",
         "affectsGlobalScope": false
       },
-      "../Polyfills.d.ts": {
-        "version": "9558b765746c7c03f16808c523af077b413f29f9ea147037f6fb4f3b1fec684a",
-        "signature": "9558b765746c7c03f16808c523af077b413f29f9ea147037f6fb4f3b1fec684a",
+      "../types/Polyfills.d.ts": {
+        "version": "434f8e1a3d6345321375a28ad9cb95477e2ac0e50903a986b92fd7c78926a16e",
+        "signature": "434f8e1a3d6345321375a28ad9cb95477e2ac0e50903a986b92fd7c78926a16e",
         "affectsGlobalScope": false
       },
-      "../cpcconfig.d.ts": {
-        "version": "b45fad697ad33ffca380f67692c67a3b2bccfa3547540cb3af5da90cfd5ed043",
-        "signature": "b45fad697ad33ffca380f67692c67a3b2bccfa3547540cb3af5da90cfd5ed043",
+      "../types/cpcconfig.d.ts": {
+        "version": "2b89f66b639052952a7b5bfe6b59d338a5d3e5fc6b778b2841583ed37c1195bf",
+        "signature": "2b89f66b639052952a7b5bfe6b59d338a5d3e5fc6b778b2841583ed37c1195bf",
         "affectsGlobalScope": false
       },
       "../../src/test/testParseExamples.qunit.ts": {
         "version": "dc180f0582d71d64aff456aa8f8cbba9629b58a1d7c2efc0b73f74c80c4f67c6",
-        "signature": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
-        "affectsGlobalScope": false
-      },
-      "../../node_modules/@types/json-schema/index.d.ts": {
-        "version": "b2be568d8ce95fcb26eebd04c035d94825655fdf689bf67d799f5ff8cbbb1024",
-        "signature": "b2be568d8ce95fcb26eebd04c035d94825655fdf689bf67d799f5ff8cbbb1024",
+        "signature": "be126d32a8a1c3d7b2c62d6c06a6ea2f8b8df11624fdd84827beb6d86bbbb352",
         "affectsGlobalScope": false
       },
       "../../node_modules/@types/node/assert.d.ts": {
@@ -608,102 +603,97 @@
       }
     },
     "options": {
-      "baseUrl": "../..",
-      "composite": true,
       "module": 2,
-      "moduleResolution": 2,
-      "newLine": 1,
-      "outDir": "./",
-      "target": 1,
-      "sourceMap": true,
-      "sourceRoot": "ts",
-      "declaration": true,
-      "jsx": 1,
+      "pretty": true,
       "lib": [
         "lib.es2017.d.ts",
         "lib.dom.d.ts"
       ],
-      "strict": true,
+      "target": 1,
+      "moduleResolution": 2,
+      "declaration": true,
+      "declarationMap": true,
+      "sourceMap": true,
+      "composite": true,
+      "noEmitOnError": true,
+      "strictNullChecks": true,
+      "noImplicitAny": true,
+      "noImplicitThis": true,
+      "strictPropertyInitialization": true,
       "noUnusedLocals": true,
       "noUnusedParameters": true,
-      "noImplicitReturns": true,
-      "noFallthroughCasesInSwitch": true,
-      "paths": {
-        "src": [
-          "src"
-        ],
-        "test": [
-          "src/test"
-        ]
-      },
-      "pathsBasePath": "/home/runner/work/CPCBasicTS/CPCBasicTS",
+      "skipLibCheck": true,
+      "alwaysStrict": true,
+      "preserveConstEnums": true,
+      "newLine": 1,
+      "types": [
+        "node"
+      ],
+      "outDir": "./",
       "configFilePath": "../../src/test/tsconfig.json"
     },
     "referencedMap": {
-      "../BasicFormatter.d.ts": [
+      "../types/BasicFormatter.d.ts": [
         "../../node_modules/@types/node/util.d.ts",
-        "../BasicLexer.d.ts",
-        "../BasicParser.d.ts",
-        "../Interfaces.d.ts"
+        "../types/BasicLexer.d.ts",
+        "../types/BasicParser.d.ts",
+        "../types/Interfaces.d.ts"
       ],
-      "../BasicLexer.d.ts": [
+      "../types/BasicLexer.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
-      "../BasicParser.d.ts": [
+      "../types/BasicParser.d.ts": [
         "../../node_modules/@types/node/util.d.ts",
-        "../BasicLexer.d.ts"
+        "../types/BasicLexer.d.ts"
       ],
-      "../BasicTokenizer.d.ts": [
+      "../types/BasicTokenizer.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
-      "../CodeGeneratorBasic.d.ts": [
+      "../types/CodeGeneratorBasic.d.ts": [
         "../../node_modules/@types/node/util.d.ts",
-        "../BasicLexer.d.ts",
-        "../BasicParser.d.ts",
-        "../Interfaces.d.ts"
+        "../types/BasicLexer.d.ts",
+        "../types/BasicParser.d.ts",
+        "../types/Interfaces.d.ts"
       ],
-      "../CodeGeneratorJs.d.ts": [
+      "../types/CodeGeneratorJs.d.ts": [
         "../../node_modules/@types/node/util.d.ts",
-        "../BasicLexer.d.ts",
-        "../BasicParser.d.ts",
-        "../Interfaces.d.ts",
-        "../Variables.d.ts"
+        "../types/BasicLexer.d.ts",
+        "../types/BasicParser.d.ts",
+        "../types/Interfaces.d.ts",
+        "../types/Variables.d.ts"
       ],
-      "../CodeGeneratorToken.d.ts": [
+      "../types/CodeGeneratorToken.d.ts": [
         "../../node_modules/@types/node/util.d.ts",
-        "../BasicLexer.d.ts",
-        "../BasicParser.d.ts",
-        "../Interfaces.d.ts"
+        "../types/BasicLexer.d.ts",
+        "../types/BasicParser.d.ts",
+        "../types/Interfaces.d.ts"
       ],
-      "../Diff.d.ts": [
+      "../types/Diff.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
-      "../DiskImage.d.ts": [
+      "../types/DiskImage.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
-      "../Interfaces.d.ts": [
+      "../types/Interfaces.d.ts": [
         "../../node_modules/@types/node/util.d.ts",
-        "../Utils.d.ts"
+        "../types/Utils.d.ts"
       ],
-      "../Model.d.ts": [
+      "../types/Model.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
-      "../Polyfills.d.ts": [
+      "../types/Polyfills.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
-      "../Utils.d.ts": [
+      "../types/Utils.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
-      "../Variables.d.ts": [
+      "../types/Variables.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
-      "../ZipFile.d.ts": [
+      "../types/ZipFile.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
-      "../cpcconfig.d.ts": [
-        "../../node_modules/@types/node/util.d.ts"
-      ],
-      "../../node_modules/@types/json-schema/index.d.ts": [
+      "../types/cpcconfig.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
       "../../node_modules/@types/node/assert.d.ts": [
@@ -1156,163 +1146,160 @@
       "../../src/test/BasicFormatter.qunit.ts": [
         "../../node_modules/@types/node/util.d.ts",
         "../../src/test/TestHelper.ts",
-        "../BasicFormatter.d.ts",
-        "../BasicLexer.d.ts",
-        "../BasicParser.d.ts",
-        "../Utils.d.ts"
+        "../types/BasicFormatter.d.ts",
+        "../types/BasicLexer.d.ts",
+        "../types/BasicParser.d.ts",
+        "../types/Utils.d.ts"
       ],
       "../../src/test/BasicLexer.qunit.ts": [
         "../../node_modules/@types/node/util.d.ts",
         "../../src/test/TestHelper.ts",
-        "../BasicLexer.d.ts",
-        "../Utils.d.ts"
+        "../types/BasicLexer.d.ts",
+        "../types/Utils.d.ts"
       ],
       "../../src/test/BasicParser.qunit.ts": [
         "../../node_modules/@types/node/util.d.ts",
         "../../src/test/TestHelper.ts",
-        "../BasicLexer.d.ts",
-        "../BasicParser.d.ts",
-        "../Utils.d.ts"
+        "../types/BasicLexer.d.ts",
+        "../types/BasicParser.d.ts",
+        "../types/Utils.d.ts"
       ],
       "../../src/test/BasicTokenizer.qunit.ts": [
         "../../node_modules/@types/node/util.d.ts",
         "../../src/test/TestHelper.ts",
-        "../BasicTokenizer.d.ts"
+        "../types/BasicTokenizer.d.ts"
       ],
       "../../src/test/CodeGeneratorBasic.qunit.ts": [
         "../../node_modules/@types/node/util.d.ts",
         "../../src/test/TestHelper.ts",
-        "../BasicLexer.d.ts",
-        "../BasicParser.d.ts",
-        "../CodeGeneratorBasic.d.ts"
+        "../types/BasicLexer.d.ts",
+        "../types/BasicParser.d.ts",
+        "../types/CodeGeneratorBasic.d.ts"
       ],
       "../../src/test/CodeGeneratorJs.qunit.ts": [
         "../../node_modules/@types/node/util.d.ts",
         "../../src/test/TestHelper.ts",
-        "../BasicLexer.d.ts",
-        "../BasicParser.d.ts",
-        "../CodeGeneratorJs.d.ts",
-        "../Utils.d.ts",
-        "../Variables.d.ts"
+        "../types/BasicLexer.d.ts",
+        "../types/BasicParser.d.ts",
+        "../types/CodeGeneratorJs.d.ts",
+        "../types/Utils.d.ts",
+        "../types/Variables.d.ts"
       ],
       "../../src/test/CodeGeneratorToken.qunit.ts": [
         "../../node_modules/@types/node/util.d.ts",
         "../../src/test/TestHelper.ts",
-        "../BasicLexer.d.ts",
-        "../BasicParser.d.ts",
-        "../CodeGeneratorToken.d.ts"
+        "../types/BasicLexer.d.ts",
+        "../types/BasicParser.d.ts",
+        "../types/CodeGeneratorToken.d.ts"
       ],
       "../../src/test/Diff.qunit.ts": [
         "../../node_modules/@types/node/util.d.ts",
         "../../src/test/TestHelper.ts",
-        "../Diff.d.ts",
-        "../Utils.d.ts"
+        "../types/Diff.d.ts",
+        "../types/Utils.d.ts"
       ],
       "../../src/test/DiskImage.qunit.ts": [
         "../../node_modules/@types/node/util.d.ts",
         "../../src/test/TestHelper.ts",
-        "../BasicTokenizer.d.ts",
-        "../DiskImage.d.ts",
-        "../Utils.d.ts",
-        "../ZipFile.d.ts"
+        "../types/BasicTokenizer.d.ts",
+        "../types/DiskImage.d.ts",
+        "../types/Utils.d.ts",
+        "../types/ZipFile.d.ts"
       ],
       "../../src/test/Model.qunit.ts": [
         "../../node_modules/@types/node/util.d.ts",
         "../../node_modules/@types/qunit/index.d.ts",
-        "../Model.d.ts"
+        "../types/Model.d.ts"
       ],
       "../../src/test/TestHelper.ts": [
         "../../node_modules/@types/node/util.d.ts",
-        "../Utils.d.ts"
+        "../types/Utils.d.ts"
       ],
       "../../src/test/ZipFile.qunit.ts": [
         "../../node_modules/@types/node/util.d.ts",
         "../../src/test/TestHelper.ts",
-        "../Utils.d.ts",
-        "../ZipFile.d.ts"
+        "../types/Utils.d.ts",
+        "../types/ZipFile.d.ts"
       ],
       "../../src/test/testParseExamples.qunit.ts": [
         "../../node_modules/@types/node/util.d.ts",
         "../../src/test/TestHelper.ts",
-        "../BasicLexer.d.ts",
-        "../BasicParser.d.ts",
-        "../BasicTokenizer.d.ts",
-        "../CodeGeneratorJs.d.ts",
-        "../CodeGeneratorToken.d.ts",
-        "../DiskImage.d.ts",
-        "../Interfaces.d.ts",
-        "../Model.d.ts",
-        "../Polyfills.d.ts",
-        "../Utils.d.ts",
-        "../Variables.d.ts",
-        "../cpcconfig.d.ts"
+        "../types/BasicLexer.d.ts",
+        "../types/BasicParser.d.ts",
+        "../types/BasicTokenizer.d.ts",
+        "../types/CodeGeneratorJs.d.ts",
+        "../types/CodeGeneratorToken.d.ts",
+        "../types/DiskImage.d.ts",
+        "../types/Interfaces.d.ts",
+        "../types/Model.d.ts",
+        "../types/Polyfills.d.ts",
+        "../types/Utils.d.ts",
+        "../types/Variables.d.ts",
+        "../types/cpcconfig.d.ts"
       ]
     },
     "exportedModulesMap": {
-      "../BasicFormatter.d.ts": [
+      "../types/BasicFormatter.d.ts": [
         "../../node_modules/@types/node/util.d.ts",
-        "../BasicLexer.d.ts",
-        "../BasicParser.d.ts",
-        "../Interfaces.d.ts"
+        "../types/BasicLexer.d.ts",
+        "../types/BasicParser.d.ts",
+        "../types/Interfaces.d.ts"
       ],
-      "../BasicLexer.d.ts": [
+      "../types/BasicLexer.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
-      "../BasicParser.d.ts": [
+      "../types/BasicParser.d.ts": [
         "../../node_modules/@types/node/util.d.ts",
-        "../BasicLexer.d.ts"
+        "../types/BasicLexer.d.ts"
       ],
-      "../BasicTokenizer.d.ts": [
+      "../types/BasicTokenizer.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
-      "../CodeGeneratorBasic.d.ts": [
+      "../types/CodeGeneratorBasic.d.ts": [
         "../../node_modules/@types/node/util.d.ts",
-        "../BasicLexer.d.ts",
-        "../BasicParser.d.ts",
-        "../Interfaces.d.ts"
+        "../types/BasicLexer.d.ts",
+        "../types/BasicParser.d.ts",
+        "../types/Interfaces.d.ts"
       ],
-      "../CodeGeneratorJs.d.ts": [
+      "../types/CodeGeneratorJs.d.ts": [
         "../../node_modules/@types/node/util.d.ts",
-        "../BasicLexer.d.ts",
-        "../BasicParser.d.ts",
-        "../Interfaces.d.ts",
-        "../Variables.d.ts"
+        "../types/BasicLexer.d.ts",
+        "../types/BasicParser.d.ts",
+        "../types/Interfaces.d.ts",
+        "../types/Variables.d.ts"
       ],
-      "../CodeGeneratorToken.d.ts": [
+      "../types/CodeGeneratorToken.d.ts": [
         "../../node_modules/@types/node/util.d.ts",
-        "../BasicLexer.d.ts",
-        "../BasicParser.d.ts",
-        "../Interfaces.d.ts"
+        "../types/BasicLexer.d.ts",
+        "../types/BasicParser.d.ts",
+        "../types/Interfaces.d.ts"
       ],
-      "../Diff.d.ts": [
+      "../types/Diff.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
-      "../DiskImage.d.ts": [
+      "../types/DiskImage.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
-      "../Interfaces.d.ts": [
+      "../types/Interfaces.d.ts": [
         "../../node_modules/@types/node/util.d.ts",
-        "../Utils.d.ts"
+        "../types/Utils.d.ts"
       ],
-      "../Model.d.ts": [
+      "../types/Model.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
-      "../Polyfills.d.ts": [
+      "../types/Polyfills.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
-      "../Utils.d.ts": [
+      "../types/Utils.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
-      "../Variables.d.ts": [
+      "../types/Variables.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
-      "../ZipFile.d.ts": [
+      "../types/ZipFile.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
-      "../cpcconfig.d.ts": [
-        "../../node_modules/@types/node/util.d.ts"
-      ],
-      "../../node_modules/@types/json-schema/index.d.ts": [
+      "../types/cpcconfig.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
       "../../node_modules/@types/node/assert.d.ts": [
@@ -1764,23 +1751,22 @@
       ]
     },
     "semanticDiagnosticsPerFile": [
-      "../BasicFormatter.d.ts",
-      "../BasicLexer.d.ts",
-      "../BasicParser.d.ts",
-      "../BasicTokenizer.d.ts",
-      "../CodeGeneratorBasic.d.ts",
-      "../CodeGeneratorJs.d.ts",
-      "../CodeGeneratorToken.d.ts",
-      "../Diff.d.ts",
-      "../DiskImage.d.ts",
-      "../Interfaces.d.ts",
-      "../Model.d.ts",
-      "../Polyfills.d.ts",
-      "../Utils.d.ts",
-      "../Variables.d.ts",
-      "../ZipFile.d.ts",
-      "../cpcconfig.d.ts",
-      "../../node_modules/@types/json-schema/index.d.ts",
+      "../types/BasicFormatter.d.ts",
+      "../types/BasicLexer.d.ts",
+      "../types/BasicParser.d.ts",
+      "../types/BasicTokenizer.d.ts",
+      "../types/CodeGeneratorBasic.d.ts",
+      "../types/CodeGeneratorJs.d.ts",
+      "../types/CodeGeneratorToken.d.ts",
+      "../types/Diff.d.ts",
+      "../types/DiskImage.d.ts",
+      "../types/Interfaces.d.ts",
+      "../types/Model.d.ts",
+      "../types/Polyfills.d.ts",
+      "../types/Utils.d.ts",
+      "../types/Variables.d.ts",
+      "../types/ZipFile.d.ts",
+      "../types/cpcconfig.d.ts",
       "../../node_modules/@types/node/assert.d.ts",
       "../../node_modules/@types/node/assert/strict.d.ts",
       "../../node_modules/@types/node/async_hooks.d.ts",

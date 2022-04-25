@@ -1,4 +1,3 @@
-/// <reference types="qunit" />
 export declare type TestsType = Record<string, string>;
 export declare type AllTestsType = Record<string, TestsType>;
 export declare type runTestsForType = (assert: Assert | undefined, category: string, tests: TestsType, results?: string[]) => void;
@@ -19,3 +18,4 @@ export declare class TestHelper {
     static generateAndRunAllTests(allTests: AllTestsType, runTestsFor: runTestsForType): void;
 }
 export {};
+//# sourceMappingURL=TestHelper.d.ts.map
