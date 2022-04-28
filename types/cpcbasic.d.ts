@@ -6,6 +6,7 @@ declare class cpcBasic {
     private static fnHereDoc;
     static addIndex(dir: string, input: string | (() => void)): void;
     static addItem(key: string, input: string | (() => void)): string;
+    private static fnParseArgs;
     private static fnParseUri;
     private static fnMapObjectProperties;
     private static createDebugUtilsConsole;

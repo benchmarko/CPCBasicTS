@@ -14,7 +14,7 @@ export interface SelectOptionElement { // similar to HtmlOptionElement
 
 export class View {
 	static getElementById1(id: string): HTMLElement {
-		const element = document.getElementById(id);
+		const element = window.document.getElementById(id);
 
 		if (!element) {
 			throw new Error("Unknown " + id);
@@ -113,7 +113,7 @@ export class View {
 			let option: HTMLOptionElement;
 
 			if (i >= element.length) {
-				option = document.createElement("option");
+				option = window.document.createElement("option");
 				option.value = item.value;
 				option.text = item.text;
 				option.title = item.title;
@@ -215,7 +215,7 @@ export class View {
 		if (Utils.debug) {
 			Utils.console.debug("attachEventHandler: type=" + type + ", eventHandler=" + ((eventHandler !== undefined) ? "[?]" : null));
 		}
-		document.addEventListener(type, eventHandler, false);
+		window.document.addEventListener(type, eventHandler, false);
 		return this;
 	}
 }

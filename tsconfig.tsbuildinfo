@@ -107,7 +107,7 @@
         "affectsGlobalScope": false
       },
       "../src/Polyfills.ts": {
-        "version": "049f571ed627f74d38ab45dd2fa69ee978ba86c8b1bd07324452a23ab50461b8",
+        "version": "99ecc94246df27743fce805cbfa2543b25d7b96ff997cfb87597820b1d4e3bb8",
         "signature": "434f8e1a3d6345321375a28ad9cb95477e2ac0e50903a986b92fd7c78926a16e",
         "affectsGlobalScope": false
       },
@@ -177,7 +177,7 @@
         "affectsGlobalScope": false
       },
       "../src/View.ts": {
-        "version": "ca856a600d4bf47e5bbfc070d83009ad439bf46f62b59a78404f11566907c6ef",
+        "version": "fd8d351106c921a29fade0267eaf8671037cde7e68c0df2ccfa33ceb1e344e14",
         "signature": "db9353f6dc7755db002a668dce2b345a22f7daaee26205acd0f908b8cf79efbf",
         "affectsGlobalScope": false
       },
@@ -242,8 +242,8 @@
         "affectsGlobalScope": false
       },
       "../src/cpcbasic.ts": {
-        "version": "4e3bb1bde1d3242f43a2b016acadd294e4d5856d6f119a783f8cedb9cc64405d",
-        "signature": "efd2b3bfbfce59cc971e56d1121c69d281336a7a835c225a193145f7314332f8",
+        "version": "c82615fd566f50720c84ede725c2061db1ff241caef702caf5422985f8c001c6",
+        "signature": "614222967880a5bce309d6990002938467a964d9a82a6d81c522b90e8b5e60d8",
         "affectsGlobalScope": true
       }
     },

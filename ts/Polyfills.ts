@@ -41,7 +41,7 @@ if (!Utils.console.debug) { // IE8 has no console.debug
 
 if ((typeof globalThis !== "undefined") && !globalThis.window) { // nodeJS
 	Polyfills.log("window");
-	(globalThis.window as any) = {};
+	(globalThis.window as any) = globalThis;
 }
 
 if (!Array.prototype.indexOf) { // IE8

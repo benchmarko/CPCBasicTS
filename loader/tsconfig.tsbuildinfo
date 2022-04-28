@@ -197,7 +197,7 @@
         "affectsGlobalScope": true
       },
       "../../src/loader/amdLoader.ts": {
-        "version": "fd67133c05486c076251f65ca2160dee75d8be5b37f94697b8f034cff16b022e",
+        "version": "fcd9638450c65e95de83743569355177de6ce4f976583097e97532fa04422799",
         "signature": "f9fd792bd18f92f20858832614de54af9d1d9475f13791eed117e7bba87fd282",
         "affectsGlobalScope": true
       },

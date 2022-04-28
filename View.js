@@ -10,7 +10,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         function View() {
         }
         View.getElementById1 = function (id) {
-            var element = document.getElementById(id);
+            var element = window.document.getElementById(id);
             if (!element) {
                 throw new Error("Unknown " + id);
             }
@@ -89,7 +89,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 var item = options[i];
                 var option = void 0;
                 if (i >= element.length) {
-                    option = document.createElement("option");
+                    option = window.document.createElement("option");
                     option.value = item.value;
                     option.text = item.text;
                     option.title = item.title;
@@ -179,7 +179,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (Utils_1.Utils.debug) {
                 Utils_1.Utils.console.debug("attachEventHandler: type=" + type + ", eventHandler=" + ((eventHandler !== undefined) ? "[?]" : null));
             }
-            document.addEventListener(type, eventHandler, false);
+            window.document.addEventListener(type, eventHandler, false);
             return this;
         };
         return View;

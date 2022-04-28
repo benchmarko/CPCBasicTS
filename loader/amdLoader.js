@@ -24,23 +24,22 @@ function amd4Node() {
         var _a = (typeof arg1 !== "string") ? [arg1, arg2] : [arg2, arg3], deps = _a[0], func = _a[1], 
         // const [id, deps, func] = (typeof arg1 !== "string") ? ["", arg1, arg2 as MyDefineFunctionType] : [arg1, arg2 as string[], arg3 as MyDefineFunctionType],
         currentModule = moduleStack[moduleStack.length - 1], mod = currentModule || module.parent || require.main, req = function (module, relativeId) {
-            //console.log("DEBUG: req: module=", module, "relativeId=", relativeId, "arg1=", arg1);
+            if (module.exports[relativeId]) { // already loaded, maybe from define in same file?
+                return module.exports;
+            }
             var fileName = Module._resolveFilename(relativeId, module); // eslint-disable-line no-underscore-dangle
             if (Array.isArray(fileName)) {
                 fileName = fileName[0];
             }
             return require(fileName); // eslint-disable-line global-require
         }.bind(this, mod);
-        //console.log("DEBUG: define: arg1=", arg1, "deps=", deps);
         func.apply(mod.exports, deps.map(function (injection) {
             switch (injection) {
                 // check for CommonJS injection variables
                 case "require": return req;
                 case "exports": return mod.exports;
                 case "module": return mod;
-                default:
-                    // a module dependency
-                    return req(injection);
+                default: return req(injection); // a module dependency
             }
         }));
     };
@@ -93,7 +92,7 @@ function amd4browser() {
 }
 if ((typeof globalThis !== "undefined") && !globalThis.window) { // we assume nodeJS
     //Polyfills.log("window");
-    globalThis.window = {};
+    //(globalThis.window as any) = {};
     amd4Node();
 }
 else {

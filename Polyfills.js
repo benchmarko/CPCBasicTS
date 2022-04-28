@@ -34,7 +34,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     }
     if ((typeof globalThis !== "undefined") && !globalThis.window) { // nodeJS
         exports.Polyfills.log("window");
-        globalThis.window = {};
+        globalThis.window = globalThis;
     }
     if (!Array.prototype.indexOf) { // IE8
         Array.prototype.indexOf = function (searchElement, from) {
