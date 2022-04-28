@@ -58,6 +58,7 @@ class cpcBasic { // eslint-disable-line vars-on-top
 	}
 
 	// https://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
+	/*
 	private static fnParseUri(urlQuery: string, config: ConfigType) {
 		const rPlus = /\+/g, // Regex for replacing addition symbol with a space
 			rSearch = /([^&=]+)=?([^&]*)/g,
@@ -87,6 +88,58 @@ class cpcBasic { // eslint-disable-line vars-on-top
 			}
 			config[name] = value;
 		}
+	}
+	*/
+
+	// can be used for nodeJS
+	private static fnParseArgs(args: string[], config: ConfigType) {
+		for (let i = 0; i < args.length; i += 1) {
+			const nameValue = args[i],
+				nameValueList = nameValue.split("=", 2),
+				name = nameValueList[0];
+
+			if (config.hasOwnProperty(name)) {
+				let value: ConfigEntryType = nameValueList[1]; // string|number|boolean
+
+				if (value !== undefined && config.hasOwnProperty(name)) {
+					switch (typeof config[name]) {
+					case "string":
+						break;
+					case "boolean":
+						value = (value === "true");
+						break;
+					case "number":
+						value = Number(value);
+						break;
+					case "object":
+						break;
+					default:
+						break;
+					}
+				}
+				config[name] = value;
+			}
+		}
+		return config;
+	}
+
+	private static fnParseUri(urlQuery: string, config: ConfigType) {
+		const rPlus = /\+/g, // Regex for replacing addition symbol with a space
+			fnDecode = function (s: string) { return decodeURIComponent(s.replace(rPlus, " ")); },
+			rSearch = /([^&=]+)=?([^&]*)/g,
+			args: string[] = [];
+
+		let match: RegExpExecArray | null;
+
+		while ((match = rSearch.exec(urlQuery)) !== null) {
+			const name = fnDecode(match[1]),
+				value = fnDecode(match[2]);
+
+			if (value !== null && config.hasOwnProperty(name)) {
+				args.push(name + "=" + value);
+			}
+		}
+		cpcBasic.fnParseArgs(args, config);
 	}
 
 	private static fnMapObjectProperties(arg: any) {
@@ -161,9 +214,20 @@ class cpcBasic { // eslint-disable-line vars-on-top
 
 		cpcBasic.model = new Model(startConfig);
 
-		const urlQuery = window.location.search.substring(1);
+		/*
+		const urlQuery = window.location ? window.location.search.substring(1) : ""; // check window.location for node
 
 		cpcBasic.fnParseUri(urlQuery, startConfig); // modify config with URL parameters
+		*/
+
+		// eslint-disable-next-line no-new-func
+		const myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(); // for old IE
+
+		if (!myGlobalThis.process) { // browser nodeJs
+			cpcBasic.fnParseUri(window.location.search.substring(1), startConfig);
+		} else { // nodeJs
+			cpcBasic.fnParseArgs(myGlobalThis.process.argv.slice(2), startConfig);
+		}
 
 		cpcBasic.view = new View();
 
@@ -204,3 +268,235 @@ window.cpcBasic = cpcBasic;
 window.onload = () => {
 	cpcBasic.fnOnLoad();
 };
+
+// nodeJsAvail: when launching via node...
+// eslint-disable-next-line no-new-func
+const myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(), // for old IE
+	nodeJsAvail = (function () {
+		let nodeJs = false;
+
+		// https://www.npmjs.com/package/detect-node
+		// Only Node.JS has a process variable that is of [[Class]] process
+		try {
+			if (Object.prototype.toString.call(myGlobalThis.process) === "[object process]") {
+				nodeJs = true;
+			}
+		} catch (e) {
+			// empty
+		}
+		return nodeJs;
+	}());
+
+if (nodeJsAvail) {
+	// examples:
+	// npm run build:one
+	// node --require ./dist/loader/amdLoader.js dist/cpcbasicts.js sound=false
+	// node --require ./dist/loader/amdLoader.js dist/cpcbasicts.js sound=false debug=0 example=math/euler showCpc=false
+	interface NodeHttps {
+		get: (url: string, fn: (res: any) => void) => any
+	}
+
+	interface NodeFs {
+		readFile: (name: string, encoding: string, fn: (res: any) => void) => any
+	}
+
+	/*
+	interface NodePath {
+		resolve: (dir: string, name: string) => string
+	}
+	*/
+
+	(function () { // mock4nodeJS
+		let https: NodeHttps, // nodeJs
+			fs: NodeFs,
+			module: any;
+			//path: any,
+			//__dirname: string, // eslint-disable-line no-underscore-dangle
+			//__filename: string; // eslint-disable-line no-underscore-dangle
+
+		const domElements: Record<string, any> = {},
+			myCreateElement = function (id: string) {
+				domElements[id] = {
+					className: "",
+					style: {
+						borderwidth: "",
+						borderStyle: ""
+					},
+					addEventListener: () => {}, // eslint-disable-line no-empty-function, @typescript-eslint/no-empty-function
+					options: [],
+					get length() {
+						return domElements[id].options.length;
+					}
+				};
+				return domElements[id];
+			};
+
+		Object.assign(window, {
+			console: console,
+			/*
+			location: {
+				search: ""
+			},
+			*/
+			document: {
+				addEventListener: () => {}, // eslint-disable-line no-empty-function, @typescript-eslint/no-empty-function
+				getElementById: (id: string) => domElements[id] || myCreateElement(id),
+				createElement: (type: string) => {
+					if (type === "option") {
+						return {};
+					}
+					Utils.console.error("createElement: unknown type", type);
+					return {};
+				}
+			},
+			AudioContext: () => { throw new Error("AudioContext not supported"); }
+		});
+
+		// eslint-disable-next-line no-eval
+		const nodeExports = eval("exports"),
+			view = nodeExports.View,
+			setSelectOptionsOrig = view.prototype.setSelectOptions;
+
+		view.prototype.setSelectOptions = (id: string, options: any[]) => {
+			const element = domElements[id] || myCreateElement(id);
+
+			if (!element.options.add) {
+				// element.options = [];
+				element.add = (option: any) => {
+					// eslint-disable-next-line no-invalid-this
+					element.options.push(option);
+					if (element.options.length === 1 || option.selected) {
+						element.value = element.options[element.options.length - 1].value;
+					}
+				};
+				//element.length = () => element.options.length;
+			}
+
+			/*
+			let element = domElements[id];
+			//Utils.console.debug("setSelectOptions: id=", id, "options=", options);
+			if (typeof element as any !== "Array") {
+				element = [];
+				element.options = element;
+				element.add = (option: any) => {
+					// eslint-disable-next-line no-invalid-this
+					element.push(option);
+					if (element.length === 1) {
+						element.value = element[0].value;
+					}
+				};
+			}
+			*/
+			return setSelectOptionsOrig(id, options);
+		};
+
+		const setAreaValueOrig = view.prototype.setAreaValue;
+
+		view.prototype.setAreaValue = (id: string, value: string) => {
+			//const element = view.getElementById1(id);
+
+			if (id === "resultText") {
+				if (value) {
+					Utils.console.log(value);
+				}
+			}
+			return setAreaValueOrig(id, value);
+		};
+
+		// https://nodejs.dev/learn/accept-input-from-the-command-line-in-nodejs
+		// readline?
+		const controller = nodeExports.Controller;
+			//startWithDirectInputOrig = controller.prototype.startWithDirectInput;
+
+		controller.prototype.startWithDirectInput = () => {
+			Utils.console.log("We are ready.");
+		};
+
+		//
+
+		function isUrl(s: string) {
+			return s.startsWith("http"); // http or https
+		}
+
+		function fnEval(code: string) {
+			return eval(code); // eslint-disable-line no-eval
+		}
+
+		function nodeReadUrl(url: string, fnDataLoaded: (error: Error | undefined, data?: string) => void) {
+			if (!https) {
+				fnEval('https = require("https");'); // to trick TypeScript
+			}
+			https.get(url, (resp) => {
+				let data = "";
+
+				// A chunk of data has been received.
+				resp.on("data", (chunk: string) => {
+					data += chunk;
+				});
+
+				// The whole response has been received. Print out the result.
+				resp.on("end", () => {
+					fnDataLoaded(undefined, data);
+				});
+			}).on("error", (err: Error) => {
+				Utils.console.log("Error: " + err.message);
+				fnDataLoaded(err);
+			});
+		}
+
+		// chekc: https://stackoverflow.com/questions/14391690/how-to-capture-no-file-for-fs-readfilesync
+		// do not throw error inside callback
+
+		/*
+		function nodeGetAbsolutePath(name: string) {
+			if (!path) {
+				// eslint-disable-next-line global-require, @typescript-eslint/no-var-requires
+				fnEval('path = require("path");'); // to trick TypeScript
+			}
+
+			// https://stackoverflow.com/questions/8817423/why-is-dirname-not-defined-in-node-repl
+			const dirname = __dirname || (path as any).dirname(__filename),
+				absolutePath = path.resolve(dirname, name);
+
+			return absolutePath;
+		}
+		*/
+
+		function nodeReadFile(name: string, fnDataLoaded: (error: Error | undefined, data?: string) => void) {
+			if (!fs) {
+				fnEval('fs = require("fs");'); // to trick TypeScript
+			}
+
+			if (!module) {
+				fnEval('module = require("module");'); // to trick TypeScript
+			}
+
+			/*
+			const baseDir = "../", // base test directory (relative to dist)
+				name2 = nodeGetAbsolutePath(baseDir + name);
+			*/
+			const name2 = module.path + "/" + name;
+
+			fs.readFile(name2, "utf8", fnDataLoaded);
+		}
+
+		const utils = nodeExports.Utils;
+
+		utils.loadScript = (fileOrUrl: string, fnSuccess: ((url2: string, key: string) => void), _fnError: ((url2: string, key: string) => void), key: string) => {
+			const fnLoaded = (_error: Error | undefined, data?: string) => {
+				if (data) {
+					fnEval(data); // load js (for nodeJs)
+				}
+				fnSuccess(fileOrUrl, key);
+			};
+
+			if (isUrl(fileOrUrl)) {
+				nodeReadUrl(fileOrUrl, fnLoaded);
+			} else {
+				nodeReadFile(fileOrUrl, fnLoaded);
+			}
+		};
+	}());
+	cpcBasic.fnOnLoad();
+	Utils.console.log("End of program.");
+}

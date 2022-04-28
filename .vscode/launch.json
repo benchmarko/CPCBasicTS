@@ -1,0 +1,34 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    //
+    // https://stackoverflow.com/questions/29968919/how-to-start-nodejs-with-custom-params-from-vscode
+    // "--require=${workspaceFolder}\\dist\\loader\\amdLoader.js" or  "--require=.\\dist\\loader\\amdLoader.js"
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "pwa-node",
+            "request": "launch",
+            "name": "Launch Program",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program_XXX": "${workspaceFolder}\\src\\loader\\amd1.js",
+            "program": "${workspaceFolder}\\dist\\cpcbasicts.js",
+            "runtimeArgs": [
+                "--require=.\\dist\\loader\\amdLoader.js"
+            ],
+            "args": [
+                "sound=false",
+                "debug=0",
+                "showCpc=false",
+                //"example=test/testpage",
+                "example=math/euler"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/**//**/*.js"
+            ]
+        }
+    ]
+}
