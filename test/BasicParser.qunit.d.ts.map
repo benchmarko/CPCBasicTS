@@ -1,1 +1,1 @@
-{"version":3,"file":"BasicParser.qunit.d.ts","sourceRoot":"","sources":["../../src/test/BasicParser.qunit.ts"],"names":[],"mappings":""}
+{"version":3,"file":"BasicParser.qunit.d.ts","sourceRoot":"../src/test/","sources":["BasicParser.qunit.ts"],"names":[],"mappings":""}

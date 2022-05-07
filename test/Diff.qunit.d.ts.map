@@ -1,1 +1,1 @@
-{"version":3,"file":"Diff.qunit.d.ts","sourceRoot":"","sources":["../../src/test/Diff.qunit.ts"],"names":[],"mappings":""}
+{"version":3,"file":"Diff.qunit.d.ts","sourceRoot":"../src/test/","sources":["Diff.qunit.ts"],"names":[],"mappings":""}

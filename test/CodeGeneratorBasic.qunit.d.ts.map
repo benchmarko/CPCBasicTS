@@ -1,1 +1,1 @@
-{"version":3,"file":"CodeGeneratorBasic.qunit.d.ts","sourceRoot":"","sources":["../../src/test/CodeGeneratorBasic.qunit.ts"],"names":[],"mappings":""}
+{"version":3,"file":"CodeGeneratorBasic.qunit.d.ts","sourceRoot":"../src/test/","sources":["CodeGeneratorBasic.qunit.ts"],"names":[],"mappings":""}

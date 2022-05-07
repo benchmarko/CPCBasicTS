@@ -1,1 +1,1 @@
-{"version":3,"file":"Model.qunit.d.ts","sourceRoot":"","sources":["../../src/test/Model.qunit.ts"],"names":[],"mappings":""}
+{"version":3,"file":"Model.qunit.d.ts","sourceRoot":"../src/test/","sources":["Model.qunit.ts"],"names":[],"mappings":""}

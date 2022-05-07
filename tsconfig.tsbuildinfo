@@ -631,7 +631,7 @@
       ],
       "outDir": "./",
       "declarationDir": "./types",
-      "rootDir": "../src",
+      "sourceRoot": "./src",
       "configFilePath": "../src/tsconfig.json"
     },
     "referencedMap": {

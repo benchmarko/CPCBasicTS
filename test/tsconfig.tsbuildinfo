@@ -630,6 +630,7 @@
         "node"
       ],
       "outDir": "./",
+      "sourceRoot": "../src/test",
       "configFilePath": "../../src/test/tsconfig.json"
     },
     "referencedMap": {
