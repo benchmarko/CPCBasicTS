@@ -1,3 +1,86 @@
+"use strict";
+// amdLoader.ts - AMD Loader for the browser or nodeJS
+// (c) Marco Vieth, 2022
+//
+// Simulates nodeJS exports, require, define in the browser.
+// Does not support default exports, (maybe possible with document.currentScript.src, but not for IE; or when compiled to one file)
+//
+function amd4Node() {
+    var Module = require("module"); // eslint-disable-line global-require, @typescript-eslint/no-var-requires
+    var moduleStack = [], defaultCompile = module.constructor.prototype._compile; // eslint-disable-line no-underscore-dangle
+    // eslint-disable-next-line no-underscore-dangle
+    module.constructor.prototype._compile = function (content, filename) {
+        moduleStack.push(this);
+        try {
+            return defaultCompile.call(this, content, filename);
+        }
+        finally {
+            moduleStack.pop();
+        }
+    };
+    global.define = function (arg1, arg2, arg3) {
+        // if arg1 is no id, we have an anonymous module
+        // eslint-disable-next-line array-element-newline
+        var _a = (typeof arg1 !== "string") ? [arg1, arg2] : [arg2, arg3], deps = _a[0], func = _a[1], 
+        // const [id, deps, func] = (typeof arg1 !== "string") ? ["", arg1, arg2 as MyDefineFunctionType] : [arg1, arg2 as string[], arg3 as MyDefineFunctionType],
+        currentModule = moduleStack[moduleStack.length - 1], mod = currentModule || module.parent || require.main, req = function (module, relativeId) {
+            if (module.exports[relativeId]) { // already loaded, maybe from define in same file?
+                return module.exports;
+            }
+            var fileName = Module._resolveFilename(relativeId, module); // eslint-disable-line no-underscore-dangle
+            if (Array.isArray(fileName)) {
+                fileName = fileName[0];
+            }
+            return require(fileName); // eslint-disable-line global-require
+        }.bind(this, mod);
+        func.apply(mod.exports, deps.map(function (injection) {
+            switch (injection) {
+                // check for CommonJS injection variables
+                case "require": return req;
+                case "exports": return mod.exports;
+                case "module": return mod;
+                default: return req(injection); // a module dependency
+            }
+        }));
+    };
+}
+function amd4browser() {
+    if (!window.exports) {
+        window.exports = {};
+    }
+    if (!window.require) {
+        window.require = function (name) {
+            name = name.replace(/^.*[\\/]/, "");
+            if (!window.exports[name]) {
+                console.error("ERROR: Module not loaded:", name);
+                throw new Error();
+            }
+            return window.exports;
+        };
+    }
+    if (!window.define) {
+        window.define = function (arg1, arg2, arg3) {
+            // if arg1 is no id, we have an anonymous module
+            var _a = (typeof arg1 !== "string") ? [arg1, arg2] : [arg2, arg3], deps = _a[0], func = _a[1], // eslint-disable-line array-element-newline
+            args = deps.map(function (name) {
+                if (name === "require") {
+                    return null;
+                }
+                else if (name === "exports") {
+                    return window.exports;
+                }
+                return window.require(name);
+            });
+            func.apply(this, args);
+        };
+    }
+}
+if ((typeof globalThis !== "undefined") && !globalThis.window) { // we assume nodeJS
+    amd4Node();
+}
+else {
+    amd4browser();
+}
 // Utils.ts - Utililities for CPCBasic
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
@@ -16460,39 +16543,6 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             var inputString = (typeof input !== "string") ? this.fnHereDoc(input) : input;
             return cpcBasic.controller.addItem(key, inputString);
         };
-        // https://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
-        /*
-        private static fnParseUri(urlQuery: string, config: ConfigType) {
-            const rPlus = /\+/g, // Regex for replacing addition symbol with a space
-                rSearch = /([^&=]+)=?([^&]*)/g,
-                fnDecode = function (s: string) { return decodeURIComponent(s.replace(rPlus, " ")); };
-    
-            let match: RegExpExecArray | null;
-    
-            while ((match = rSearch.exec(urlQuery)) !== null) {
-                const name = fnDecode(match[1]);
-                let value: ConfigEntryType = fnDecode(match[2]);
-    
-                if (value !== null && config.hasOwnProperty(name)) {
-                    switch (typeof config[name]) {
-                    case "string":
-                        break;
-                    case "boolean":
-                        value = (value === "true");
-                        break;
-                    case "number":
-                        value = Number(value);
-                        break;
-                    case "object":
-                        break;
-                    default:
-                        break;
-                    }
-                }
-                config[name] = value;
-            }
-        }
-        */
         // can be used for nodeJS
         cpcBasic.fnParseArgs = function (args, config) {
             for (var i = 0; i < args.length; i += 1) {
@@ -16520,6 +16570,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             }
             return config;
         };
+        // https://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
         cpcBasic.fnParseUri = function (urlQuery, config) {
             var rPlus = /\+/g, // Regex for replacing addition symbol with a space
             fnDecode = function (s) { return decodeURIComponent(s.replace(rPlus, " ")); }, rSearch = /([^&=]+)=?([^&]*)/g, args = [];
@@ -16594,14 +16645,9 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             var startConfig = cpcBasic.config, externalConfig = cpcconfig_1.cpcconfig || {}; // external config from cpcconfig.js
             Object.assign(startConfig, externalConfig);
             cpcBasic.model = new Model_1.Model(startConfig);
-            /*
-            const urlQuery = window.location ? window.location.search.substring(1) : ""; // check window.location for node
-    
-            cpcBasic.fnParseUri(urlQuery, startConfig); // modify config with URL parameters
-            */
             // eslint-disable-next-line no-new-func
             var myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(); // for old IE
-            if (!myGlobalThis.process) { // browser nodeJs
+            if (!myGlobalThis.process) { // browser
                 cpcBasic.fnParseUri(window.location.search.substring(1), startConfig);
             }
             else { // nodeJs
@@ -16674,17 +16720,9 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
         return nodeJs;
     }());
     if (nodeJsAvail) {
-        /*
-        interface NodePath {
-            resolve: (dir: string, name: string) => string
-        }
-        */
         (function () {
             var https, // nodeJs
             fs, module;
-            //path: any,
-            //__dirname: string, // eslint-disable-line no-underscore-dangle
-            //__filename: string; // eslint-disable-line no-underscore-dangle
             var domElements = {}, myCreateElement = function (id) {
                 domElements[id] = {
                     className: "",
@@ -16702,11 +16740,6 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             };
             Object.assign(window, {
                 console: console,
-                /*
-                location: {
-                    search: ""
-                },
-                */
                 document: {
                     addEventListener: function () { },
                     getElementById: function (id) { return domElements[id] || myCreateElement(id); },
@@ -16733,28 +16766,11 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
                             element.value = element.options[element.options.length - 1].value;
                         }
                     };
-                    //element.length = () => element.options.length;
                 }
-                /*
-                let element = domElements[id];
-                //Utils.console.debug("setSelectOptions: id=", id, "options=", options);
-                if (typeof element as any !== "Array") {
-                    element = [];
-                    element.options = element;
-                    element.add = (option: any) => {
-                        // eslint-disable-next-line no-invalid-this
-                        element.push(option);
-                        if (element.length === 1) {
-                            element.value = element[0].value;
-                        }
-                    };
-                }
-                */
                 return setSelectOptionsOrig(id, options);
             };
             var setAreaValueOrig = view.prototype.setAreaValue;
             view.prototype.setAreaValue = function (id, value) {
-                //const element = view.getElementById1(id);
                 if (id === "resultText") {
                     if (value) {
                         Utils_22.Utils.console.log(value);
@@ -16765,7 +16781,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             // https://nodejs.dev/learn/accept-input-from-the-command-line-in-nodejs
             // readline?
             var controller = nodeExports.Controller;
-            //startWithDirectInputOrig = controller.prototype.startWithDirectInput;
+            // startWithDirectInputOrig = controller.prototype.startWithDirectInput;
             controller.prototype.startWithDirectInput = function () {
                 Utils_22.Utils.console.log("We are ready.");
             };
@@ -16795,22 +16811,6 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
                     fnDataLoaded(err);
                 });
             }
-            // chekc: https://stackoverflow.com/questions/14391690/how-to-capture-no-file-for-fs-readfilesync
-            // do not throw error inside callback
-            /*
-            function nodeGetAbsolutePath(name: string) {
-                if (!path) {
-                    // eslint-disable-next-line global-require, @typescript-eslint/no-var-requires
-                    fnEval('path = require("path");'); // to trick TypeScript
-                }
-    
-                // https://stackoverflow.com/questions/8817423/why-is-dirname-not-defined-in-node-repl
-                const dirname = __dirname || (path as any).dirname(__filename),
-                    absolutePath = path.resolve(dirname, name);
-    
-                return absolutePath;
-            }
-            */
             function nodeReadFile(name, fnDataLoaded) {
                 if (!fs) {
                     fnEval('fs = require("fs");'); // to trick TypeScript
@@ -16818,10 +16818,6 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
                 if (!module) {
                     fnEval('module = require("module");'); // to trick TypeScript
                 }
-                /*
-                const baseDir = "../", // base test directory (relative to dist)
-                    name2 = nodeGetAbsolutePath(baseDir + name);
-                */
                 var name2 = module.path + "/" + name;
                 fs.readFile(name2, "utf8", fnDataLoaded);
             }

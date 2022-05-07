@@ -23,39 +23,6 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
             var inputString = (typeof input !== "string") ? this.fnHereDoc(input) : input;
             return cpcBasic.controller.addItem(key, inputString);
         };
-        // https://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
-        /*
-        private static fnParseUri(urlQuery: string, config: ConfigType) {
-            const rPlus = /\+/g, // Regex for replacing addition symbol with a space
-                rSearch = /([^&=]+)=?([^&]*)/g,
-                fnDecode = function (s: string) { return decodeURIComponent(s.replace(rPlus, " ")); };
-    
-            let match: RegExpExecArray | null;
-    
-            while ((match = rSearch.exec(urlQuery)) !== null) {
-                const name = fnDecode(match[1]);
-                let value: ConfigEntryType = fnDecode(match[2]);
-    
-                if (value !== null && config.hasOwnProperty(name)) {
-                    switch (typeof config[name]) {
-                    case "string":
-                        break;
-                    case "boolean":
-                        value = (value === "true");
-                        break;
-                    case "number":
-                        value = Number(value);
-                        break;
-                    case "object":
-                        break;
-                    default:
-                        break;
-                    }
-                }
-                config[name] = value;
-            }
-        }
-        */
         // can be used for nodeJS
         cpcBasic.fnParseArgs = function (args, config) {
             for (var i = 0; i < args.length; i += 1) {
@@ -83,6 +50,7 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
             }
             return config;
         };
+        // https://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
         cpcBasic.fnParseUri = function (urlQuery, config) {
             var rPlus = /\+/g, // Regex for replacing addition symbol with a space
             fnDecode = function (s) { return decodeURIComponent(s.replace(rPlus, " ")); }, rSearch = /([^&=]+)=?([^&]*)/g, args = [];
@@ -157,14 +125,9 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
             var startConfig = cpcBasic.config, externalConfig = cpcconfig_1.cpcconfig || {}; // external config from cpcconfig.js
             Object.assign(startConfig, externalConfig);
             cpcBasic.model = new Model_1.Model(startConfig);
-            /*
-            const urlQuery = window.location ? window.location.search.substring(1) : ""; // check window.location for node
-    
-            cpcBasic.fnParseUri(urlQuery, startConfig); // modify config with URL parameters
-            */
             // eslint-disable-next-line no-new-func
             var myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(); // for old IE
-            if (!myGlobalThis.process) { // browser nodeJs
+            if (!myGlobalThis.process) { // browser
                 cpcBasic.fnParseUri(window.location.search.substring(1), startConfig);
             }
             else { // nodeJs
@@ -237,17 +200,9 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
         return nodeJs;
     }());
     if (nodeJsAvail) {
-        /*
-        interface NodePath {
-            resolve: (dir: string, name: string) => string
-        }
-        */
         (function () {
             var https, // nodeJs
             fs, module;
-            //path: any,
-            //__dirname: string, // eslint-disable-line no-underscore-dangle
-            //__filename: string; // eslint-disable-line no-underscore-dangle
             var domElements = {}, myCreateElement = function (id) {
                 domElements[id] = {
                     className: "",
@@ -265,11 +220,6 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
             };
             Object.assign(window, {
                 console: console,
-                /*
-                location: {
-                    search: ""
-                },
-                */
                 document: {
                     addEventListener: function () { },
                     getElementById: function (id) { return domElements[id] || myCreateElement(id); },
@@ -296,28 +246,11 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
                             element.value = element.options[element.options.length - 1].value;
                         }
                     };
-                    //element.length = () => element.options.length;
                 }
-                /*
-                let element = domElements[id];
-                //Utils.console.debug("setSelectOptions: id=", id, "options=", options);
-                if (typeof element as any !== "Array") {
-                    element = [];
-                    element.options = element;
-                    element.add = (option: any) => {
-                        // eslint-disable-next-line no-invalid-this
-                        element.push(option);
-                        if (element.length === 1) {
-                            element.value = element[0].value;
-                        }
-                    };
-                }
-                */
                 return setSelectOptionsOrig(id, options);
             };
             var setAreaValueOrig = view.prototype.setAreaValue;
             view.prototype.setAreaValue = function (id, value) {
-                //const element = view.getElementById1(id);
                 if (id === "resultText") {
                     if (value) {
                         Utils_1.Utils.console.log(value);
@@ -328,7 +261,7 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
             // https://nodejs.dev/learn/accept-input-from-the-command-line-in-nodejs
             // readline?
             var controller = nodeExports.Controller;
-            //startWithDirectInputOrig = controller.prototype.startWithDirectInput;
+            // startWithDirectInputOrig = controller.prototype.startWithDirectInput;
             controller.prototype.startWithDirectInput = function () {
                 Utils_1.Utils.console.log("We are ready.");
             };
@@ -358,22 +291,6 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
                     fnDataLoaded(err);
                 });
             }
-            // chekc: https://stackoverflow.com/questions/14391690/how-to-capture-no-file-for-fs-readfilesync
-            // do not throw error inside callback
-            /*
-            function nodeGetAbsolutePath(name: string) {
-                if (!path) {
-                    // eslint-disable-next-line global-require, @typescript-eslint/no-var-requires
-                    fnEval('path = require("path");'); // to trick TypeScript
-                }
-    
-                // https://stackoverflow.com/questions/8817423/why-is-dirname-not-defined-in-node-repl
-                const dirname = __dirname || (path as any).dirname(__filename),
-                    absolutePath = path.resolve(dirname, name);
-    
-                return absolutePath;
-            }
-            */
             function nodeReadFile(name, fnDataLoaded) {
                 if (!fs) {
                     fnEval('fs = require("fs");'); // to trick TypeScript
@@ -381,10 +298,6 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
                 if (!module) {
                     fnEval('module = require("module");'); // to trick TypeScript
                 }
-                /*
-                const baseDir = "../", // base test directory (relative to dist)
-                    name2 = nodeGetAbsolutePath(baseDir + name);
-                */
                 var name2 = module.path + "/" + name;
                 fs.readFile(name2, "utf8", fnDataLoaded);
             }

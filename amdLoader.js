@@ -45,36 +45,23 @@ function amd4Node() {
     };
 }
 function amd4browser() {
-    /*
-    interface Window { // eslint-disable-line @typescript-eslint/no-unused-vars
-        exports: Record<string, object>; // eslint-disable-line @typescript-eslint/ban-types
-        require: (id: string) => any;
-        define: unknown;
-    }
-    */
-    //const moduleStack: any[] = [];
     if (!window.exports) {
         window.exports = {};
     }
     if (!window.require) {
         window.require = function (name) {
-            //console.log("DEBUG: req: name=", name);
-            //const module: Record<string, object> = {}; // eslint-disable-line @typescript-eslint/ban-types
             name = name.replace(/^.*[\\/]/, "");
-            //module[name] = window.exports[name];
-            //if (!module[name]) { //TTT
             if (!window.exports[name]) {
                 console.error("ERROR: Module not loaded:", name);
                 throw new Error();
             }
-            return window.exports; //[name];
+            return window.exports;
         };
     }
     if (!window.define) {
         window.define = function (arg1, arg2, arg3) {
             // if arg1 is no id, we have an anonymous module
             var _a = (typeof arg1 !== "string") ? [arg1, arg2] : [arg2, arg3], deps = _a[0], func = _a[1], // eslint-disable-line array-element-newline
-            // const [id, deps, func] = (typeof arg1 !== "string") ? ["", arg1, arg2 as MyDefineFunctionType] : [arg1, arg2 as string[], arg3 as MyDefineFunctionType],
             args = deps.map(function (name) {
                 if (name === "require") {
                     return null;
@@ -84,15 +71,11 @@ function amd4browser() {
                 }
                 return window.require(name);
             });
-            //console.log("DEBUG: define: arg1=", arg1, "deps=", deps);
-            // (const id2 = document.currentScript && (document.currentScript as HTMLScriptElement).src)
             func.apply(this, args);
         };
     }
 }
 if ((typeof globalThis !== "undefined") && !globalThis.window) { // we assume nodeJS
-    //Polyfills.log("window");
-    //(globalThis.window as any) = {};
     amd4Node();
 }
 else {

@@ -2,6 +2,7 @@
   "bundle": {
     "commonSourceDirectory": "../src",
     "sourceFiles": [
+      "../src/amdLoader.ts",
       "../src/Utils.ts",
       "../src/Polyfills.ts",
       "../src/Interfaces.ts",
@@ -36,16 +37,41 @@
       "sections": [
         {
           "pos": 0,
-          "end": 754128,
+          "end": 13,
+          "kind": "prologue",
+          "data": "use strict"
+        },
+        {
+          "pos": 14,
+          "end": 754005,
           "kind": "text"
         }
-      ]
+      ],
+      "sources": {
+        "prologues": [
+          {
+            "file": 0,
+            "text": "",
+            "directives": [
+              {
+                "pos": -1,
+                "end": -1,
+                "expression": {
+                  "pos": -1,
+                  "end": -1,
+                  "text": "use strict"
+                }
+              }
+            ]
+          }
+        ]
+      }
     },
     "dts": {
       "sections": [
         {
           "pos": 0,
-          "end": 62844,
+          "end": 62977,
           "kind": "text"
         }
       ]
