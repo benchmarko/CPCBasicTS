@@ -4,7 +4,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     //
     // https://stackoverflow.com/questions/29968919/how-to-start-nodejs-with-custom-params-from-vscode
-    // "--require=${workspaceFolder}\\dist\\loader\\amdLoader.js" or  "--require=.\\dist\\loader\\amdLoader.js"
+    // "--require=${workspaceFolder}\\dist\\amdLoader.js" or  "--require=.\\dist\\amdLoader.js"
     "version": "0.2.0",
     "configurations": [
         {
@@ -14,11 +14,11 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program_XXX": "${workspaceFolder}\\src\\loader\\amd1.js",
+            //"program_XXX": "${workspaceFolder}\\src\\loader\\amd1.js",
             "program": "${workspaceFolder}\\dist\\cpcbasicts.js",
-            "runtimeArgs": [
-                "--require=.\\dist\\loader\\amdLoader.js"
-            ],
+            //"runtimeArgs": [
+            //    "--require=.\\dist\\amdLoader.js"
+            //],
             "args": [
                 "sound=false",
                 "debug=0",

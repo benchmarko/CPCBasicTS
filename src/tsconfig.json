@@ -3,36 +3,10 @@
   "compilerOptions": {
     "outDir": "../dist",
     "declarationDir": "../dist/types",
+    "types": ["node"],
+    "rootDir": "."
   },
-  "files": [
-    "Utils.ts",
-    "Polyfills.ts",
-    "Interfaces.ts",
-    "cpcCharset.ts",
-    "BasicFormatter.ts",
-    "BasicLexer.ts",
-    "BasicParser.ts",
-    "BasicTokenizer.ts",
-    "CodeGeneratorBasic.ts",
-    "CodeGeneratorJs.ts",
-    "CodeGeneratorToken.ts",
-    "Diff.ts",
-    "DiskImage.ts",
-    "InputStack.ts",
-    "View.ts",
-    "Keyboard.ts",
-    "VirtualKeyboard.ts",
-    "Canvas.ts",
-    "Model.ts",
-    "Variables.ts",
-    "CommonEventHandler.ts",
-    "Random.ts",
-    "Sound.ts",
-    "ZipFile.ts",
-    "CpcVm.ts",
-    "CpcVmRsx.ts",
-    "Controller.ts",
-    "cpcconfig.ts",
-    "cpcbasic.ts"
+  "include": [
+    "./*.ts"
   ]
 }

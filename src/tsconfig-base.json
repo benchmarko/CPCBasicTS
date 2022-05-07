@@ -8,7 +8,6 @@
       ],
       "target": "es5",
       "moduleResolution": "node",
-      //"rootDir": ".",
 
       "declaration": true,
       "declarationMap": true,

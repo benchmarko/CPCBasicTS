@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig-one.json",
+  "compilerOptions": {
+    "target": "es6",
+    "outFile": "../dist/cpcbasicts_es6.js",
+    "types": ["node"]
+  }
+}

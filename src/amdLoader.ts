@@ -60,33 +60,18 @@ function amd4Node() {
 }
 
 function amd4browser() {
-	/*
-	interface Window { // eslint-disable-line @typescript-eslint/no-unused-vars
-		exports: Record<string, object>; // eslint-disable-line @typescript-eslint/ban-types
-		require: (id: string) => any;
-		define: unknown;
-	}
-	*/
-
-	//const moduleStack: any[] = [];
-
 	if (!window.exports) {
 		window.exports = {};
 	}
 
 	if (!window.require) {
 		(window as any).require = function (name: string) {
-			//console.log("DEBUG: req: name=", name);
-			//const module: Record<string, object> = {}; // eslint-disable-line @typescript-eslint/ban-types
-
 			name = name.replace(/^.*[\\/]/, "");
-			//module[name] = window.exports[name];
-			//if (!module[name]) { //TTT
 			if (!window.exports[name]) {
 				console.error("ERROR: Module not loaded:", name);
 				throw new Error();
 			}
-			return window.exports; //[name];
+			return window.exports;
 		};
 	}
 
@@ -94,7 +79,6 @@ function amd4browser() {
 		(window as any).define = function (arg1: string | string[], arg2: string[] | MyDefineFunctionType, arg3?: MyDefineFunctionType) {
 			// if arg1 is no id, we have an anonymous module
 			const [deps, func] = (typeof arg1 !== "string") ? [arg1, arg2 as MyDefineFunctionType] : [arg2 as string[], arg3 as MyDefineFunctionType], // eslint-disable-line array-element-newline
-				// const [id, deps, func] = (typeof arg1 !== "string") ? ["", arg1, arg2 as MyDefineFunctionType] : [arg1, arg2 as string[], arg3 as MyDefineFunctionType],
 				args = deps.map(function (name) {
 					if (name === "require") {
 						return null;
@@ -104,17 +88,12 @@ function amd4browser() {
 					return window.require(name);
 				});
 
-			//console.log("DEBUG: define: arg1=", arg1, "deps=", deps);
-
-			// (const id2 = document.currentScript && (document.currentScript as HTMLScriptElement).src)
 			func.apply(this, args);
 		};
 	}
 }
 
 if ((typeof globalThis !== "undefined") && !globalThis.window) { // we assume nodeJS
-	//Polyfills.log("window");
-	//(globalThis.window as any) = {};
 	amd4Node();
 } else {
 	amd4browser();
