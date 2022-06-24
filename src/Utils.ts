@@ -198,10 +198,16 @@ export class Utils { // eslint-disable-line vars-on-top
 			errorLen = String(customError.value).length;
 		}
 
-		const endPos = customError.pos + (errorLen || 0);
+		const endPos = customError.pos + (errorLen || 0),
+			lineMsg = (customError.line !== undefined ? " in " + customError.line : ""),
+			posMsg = " at pos " + (pos !== endPos ? customError.pos + "-" + endPos : customError.pos);
 
-		customError.shortMessage = customError.message + (customError.line !== undefined ? " in " + customError.line : " at pos " + customError.pos + "-" + endPos) + ": " + customError.value;
-		customError.message += (customError.line !== undefined ? " in " + customError.line : "") + " at pos " + customError.pos + "-" + endPos + ": " + customError.value;
+		//customError.shortMessage = customError.message + (customError.line !== undefined ? " in " + customError.line : " at pos " + customError.pos + "-" + endPos) + ": " + customError.value;
+		//customError.message +=                           (customError.line !== undefined ? " in " + customError.line : "") + " at pos " + customError.pos + "-" + endPos + ": " + customError.value;
+
+		customError.shortMessage = customError.message + (lineMsg || posMsg) + ": " + customError.value;
+		customError.message += lineMsg + posMsg + ": " + customError.value;
+
 		return customError;
 	}
 }

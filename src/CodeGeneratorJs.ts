@@ -624,7 +624,7 @@ export class CodeGeneratorJs {
 		node.pt = "$";
 		node.pv = '"' + value + '"';
 	}
-	private static unquoted(node: CodeNode) { // comment or data line item, which can be interpreted as string or number
+	private static unquoted(node: CodeNode) { // comment or data line item (which can be interpreted as string or number)
 		node.pt = "$";
 		node.pv = node.value;
 	}
@@ -735,7 +735,7 @@ export class CodeGeneratorJs {
 
 		for (let i = 0; i < node.args.length; i += 1) {
 			if (node.args[i].type === "unquoted") {
-				nodeArgs[i] = '"' + nodeArgs[i].replace(/"/g, "\\\"") + '"'; // escape quotes, put in quotes
+				nodeArgs[i] = '"' + nodeArgs[i].replace(/\\/g, "\\\\").replace(/"/g, "\\\"") + '"'; // escape backslashes and quotes, put in quotes
 			}
 		}
 
