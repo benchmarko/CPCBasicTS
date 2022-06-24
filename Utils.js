@@ -138,9 +138,11 @@ define(["require", "exports"], function (require, exports) {
             if (errorLen === undefined && customError.value !== undefined) {
                 errorLen = String(customError.value).length;
             }
-            var endPos = customError.pos + (errorLen || 0);
-            customError.shortMessage = customError.message + (customError.line !== undefined ? " in " + customError.line : " at pos " + customError.pos + "-" + endPos) + ": " + customError.value;
-            customError.message += (customError.line !== undefined ? " in " + customError.line : "") + " at pos " + customError.pos + "-" + endPos + ": " + customError.value;
+            var endPos = customError.pos + (errorLen || 0), lineMsg = (customError.line !== undefined ? " in " + customError.line : ""), posMsg = " at pos " + (pos !== endPos ? customError.pos + "-" + endPos : customError.pos);
+            //customError.shortMessage = customError.message + (customError.line !== undefined ? " in " + customError.line : " at pos " + customError.pos + "-" + endPos) + ": " + customError.value;
+            //customError.message +=                           (customError.line !== undefined ? " in " + customError.line : "") + " at pos " + customError.pos + "-" + endPos + ": " + customError.value;
+            customError.shortMessage = customError.message + (lineMsg || posMsg) + ": " + customError.value;
+            customError.message += lineMsg + posMsg + ": " + customError.value;
             return customError;
         };
         Utils.debug = 0;

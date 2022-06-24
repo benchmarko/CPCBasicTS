@@ -325,6 +325,7 @@ export class BasicParser {
 		print: this.fnPrint,
 		"?": this.fnQuestion, // ? is same as print
 		resume: this.fnResume,
+		run: this.fnRun,
 		speed: this.fnSpeed,
 		symbol: this.fnSymbol,
 		window: this.fnWindow
@@ -1520,6 +1521,19 @@ export class BasicParser {
 		const tokenType = this.token.type;
 
 		return tokenType === "next" ? this.fnCombineTwoTokens(tokenType) : this.fnCreateCmdCall(); // "resume next" or "resume"
+	}
+
+	private fnRun() {
+		const tokenType = this.token.type;
+		let node: ParserNode;
+
+		if (tokenType === "number") {
+			node = this.previousToken;
+			node.args = this.fnGetArgs("goto"); // we get linenumber arg as for goto
+		} else {
+			node = this.fnCreateCmdCall();
+		}
+		return node;
 	}
 
 	private fnSpeed() {

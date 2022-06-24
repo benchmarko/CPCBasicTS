@@ -99,6 +99,7 @@ export declare class BasicParser {
     private fnPrint;
     private fnQuestion;
     private fnResume;
+    private fnRun;
     private fnSpeed;
     private fnSymbol;
     private fnWindow;

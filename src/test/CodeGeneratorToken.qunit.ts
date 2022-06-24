@@ -27,14 +27,15 @@ QUnit.module("CodeGeneratorToken: Tests", function (/* hooks */) {
 			"a=32768": "0D,00,00,E1,EF,1F,00,00,00,00,8F",
 			"a=-32768": "0D,00,00,E1,EF,F5,1F,00,00,00,00,8F",
 			"a=1.2e+9": "0D,00,00,E1,EF,1F,00,18,0D,0F,9F",
-			"a ": "BasicParser: Expected = in direct at pos 2-2: (end)",
-			"1 a=": "BasicParser: Unexpected end of file in 1 at pos 4-4: ",
+			"a ": "BasicParser: Expected = in direct at pos 2: (end)",
+			"1 a=": "BasicParser: Unexpected end of file in 1 at pos 4: ",
 			"1 5=7": "BasicParser: Bad expression statement in 1 at pos 2-3: 5",
 			"1 let 5=7": "BasicParser: Expected variable in 1 at pos 6-7: 5"
 		},
 		strings: {
 			"a$=\"a12\"": "03,00,00,E1,EF,22,61,31,32,22",
-			"a$=+\"7.1\"": "03,00,00,E1,EF,F4,22,37,2E,31,22"
+			"a$=+\"7.1\"": "03,00,00,E1,EF,F4,22,37,2E,31,22",
+			"a$=\"\\\"": "03,00,00,E1,EF,22,5C,22"
 		},
 		variables: {
 			"a!=1.4": "04,00,00,E1,EF,1F,33,33,33,33,81",
@@ -88,7 +89,8 @@ QUnit.module("CodeGeneratorToken: Tests", function (/* hooks */) {
 			"a=b and c": "0D,00,00,E1,EF,0D,00,00,E2,FA,0D,00,00,E3",
 			"a=asc(\"A\")": "0D,00,00,E1,EF,FF,01,28,22,41,22,29",
 			"a=atn(2.3)": "0D,00,00,E1,EF,FF,02,28,1F,33,33,33,13,82,29",
-			"auto ": "81"
+			"auto ": "81",
+			"auto 100": "81,20,19,64"
 		},
 		"bin$, border": {
 			"a$=bin$(3)": "03,00,00,E1,EF,FF,71,28,11,29",
@@ -138,6 +140,7 @@ QUnit.module("CodeGeneratorToken: Tests", function (/* hooks */) {
 		"data, dec$, def fn, defint, defreal, defstr, deg, delete, derr, di, dim, draw, drawr": {
 			"data ": "8C",
 			"data ,": "8C,2C",
+			"data \\": "8C,20,5C",
 			"data 1,2,3": "8C,20,31,2C,32,2C,33",
 			"data \"item1\",\" item2\",\"item3 \"": "8C,20,22,69,74,65,6D,31,22,2C,22,20,69,74,65,6D,32,22,2C,22,69,74,65,6D,33,20,22",
 			"data item1,item2,item3": "8C,20,69,74,65,6D,31,2C,69,74,65,6D,32,2C,69,74,65,6D,33",
@@ -465,8 +468,10 @@ QUnit.module("CodeGeneratorToken: Tests", function (/* hooks */) {
 			"release n+1": "C4,20,0D,00,00,EE,F4,0F",
 			"rem ": "C5",
 			"rem comment until EOL": "C5,20,63,6F,6D,6D,65,6E,74,20,75,6E,74,69,6C,20,45,4F,4C",
+			"rem \\": "C5,20,5C",
 			"'": "01,C0",
 			"'comment until EOL": "01,C0,63,6F,6D,6D,65,6E,74,20,75,6E,74,69,6C,20,45,4F,4C",
+			"'\\": "01,C0,5C",
 			"a=1 'comment": "0D,00,00,E1,EF,0F,01,C0,63,6F,6D,6D,65,6E,74",
 			"a=remain(0)": "0D,00,00,E1,EF,FF,13,28,0E,29",
 			"a=remain(ti)": "0D,00,00,E1,EF,FF,13,28,0D,00,00,74,E9,29",
@@ -487,7 +492,7 @@ QUnit.module("CodeGeneratorToken: Tests", function (/* hooks */) {
 			"a=round(2.335)": "0D,00,00,E1,EF,FF,7A,28,1F,D7,A3,70,15,82,29",
 			"a=round(2.335,2)": "0D,00,00,E1,EF,FF,7A,28,1F,D7,A3,70,15,82,2C,10,29",
 			"run ": "CA",
-			"10 run 10": "09,00,0A,00,CA,20,19,0A,00,00,00",
+			"10 run 10": "0A,00,0A,00,CA,20,1E,0A,00,00,00,00",
 			"run \"file\"": "CA,20,22,66,69,6C,65,22",
 			"run f$": "CA,20,03,00,00,E6"
 		},
@@ -595,7 +600,7 @@ QUnit.module("CodeGeneratorToken: Tests", function (/* hooks */) {
 			"|disc.in": "7C,00,44,49,53,43,2E,49,CE",
 			"|disc.out": "7C,00,44,49,53,43,2E,4F,55,D4",
 			"|drive,0": "7C,00,44,52,49,56,C5,2C,0E",
-			"|drive,": "BasicParser: Expected any parameter for , in direct at pos 7-7: ",
+			"|drive,": "BasicParser: Expected any parameter for , in direct at pos 7: ",
 			"1 |drive,#1": "BasicParser: Unexpected stream in 1 at pos 9-10: #",
 			"|era,\"file.bas\"": "7C,00,45,52,C1,2C,22,66,69,6C,65,2E,62,61,73,22",
 			"|ren,\"file1.bas\",\"file2.bas\"": "7C,00,52,45,CE,2C,22,66,69,6C,65,31,2E,62,61,73,22,2C,22,66,69,6C,65,32,2E,62,61,73,22",

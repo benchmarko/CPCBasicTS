@@ -221,9 +221,11 @@ define("Utils", ["require", "exports"], function (require, exports) {
             if (errorLen === undefined && customError.value !== undefined) {
                 errorLen = String(customError.value).length;
             }
-            var endPos = customError.pos + (errorLen || 0);
-            customError.shortMessage = customError.message + (customError.line !== undefined ? " in " + customError.line : " at pos " + customError.pos + "-" + endPos) + ": " + customError.value;
-            customError.message += (customError.line !== undefined ? " in " + customError.line : "") + " at pos " + customError.pos + "-" + endPos + ": " + customError.value;
+            var endPos = customError.pos + (errorLen || 0), lineMsg = (customError.line !== undefined ? " in " + customError.line : ""), posMsg = " at pos " + (pos !== endPos ? customError.pos + "-" + endPos : customError.pos);
+            //customError.shortMessage = customError.message + (customError.line !== undefined ? " in " + customError.line : " at pos " + customError.pos + "-" + endPos) + ": " + customError.value;
+            //customError.message +=                           (customError.line !== undefined ? " in " + customError.line : "") + " at pos " + customError.pos + "-" + endPos + ": " + customError.value;
+            customError.shortMessage = customError.message + (lineMsg || posMsg) + ": " + customError.value;
+            customError.message += lineMsg + posMsg + ": " + customError.value;
             return customError;
         };
         Utils.debug = 0;
@@ -1479,6 +1481,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 print: this.fnPrint,
                 "?": this.fnQuestion,
                 resume: this.fnResume,
+                run: this.fnRun,
                 speed: this.fnSpeed,
                 symbol: this.fnSymbol,
                 window: this.fnWindow
@@ -2461,6 +2464,18 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
         BasicParser.prototype.fnResume = function () {
             var tokenType = this.token.type;
             return tokenType === "next" ? this.fnCombineTwoTokens(tokenType) : this.fnCreateCmdCall(); // "resume next" or "resume"
+        };
+        BasicParser.prototype.fnRun = function () {
+            var tokenType = this.token.type;
+            var node;
+            if (tokenType === "number") {
+                node = this.previousToken;
+                node.args = this.fnGetArgs("goto"); // we get linenumber arg as for goto
+            }
+            else {
+                node = this.fnCreateCmdCall();
+            }
+            return node;
         };
         BasicParser.prototype.fnSpeed = function () {
             var tokenType = this.token.type;
@@ -4760,7 +4775,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             var nodeArgs = this.fnParseArgs(node.args);
             for (var i = 0; i < node.args.length; i += 1) {
                 if (node.args[i].type === "unquoted") {
-                    nodeArgs[i] = '"' + nodeArgs[i].replace(/"/g, "\\\"") + '"'; // escape quotes, put in quotes
+                    nodeArgs[i] = '"' + nodeArgs[i].replace(/\\/g, "\\\\").replace(/"/g, "\\\"") + '"'; // escape backslashes and quotes, put in quotes
                 }
             }
             nodeArgs.unshift(String(this.line)); // prepend line number
@@ -6725,7 +6740,8 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             this.format = DiskImage.getInitialFormat();
         };
         DiskImage.prototype.composeError = function (error, message, value, pos) {
-            return Utils_10.Utils.composeError("DiskImage", error, this.diskName + ": " + message, value, pos || 0);
+            var len = 0;
+            return Utils_10.Utils.composeError("DiskImage", error, this.diskName + ": " + message, value, pos || 0, len);
         };
         DiskImage.testDiskIdent = function (ident) {
             var diskType = 0;
@@ -6830,6 +6846,11 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                 this.readDiskInfo(0);
             }
             var trackInfoPos = diskInfo.trackPos[track * diskInfo.heads + head];
+            if (trackInfoPos === undefined) {
+                throw this.composeError(new Error(), "Track not found", String(track));
+                //Utils.console.warn("Trying to read last track", String(diskInfo.tracks - 1));
+                //trackInfoPos = diskInfo.trackPos[(diskInfo.tracks - 1) * diskInfo.heads + head]; // try to seek last track
+            }
             this.readTrackInfo(trackInfoPos);
         };
         DiskImage.prototype.sectorNum2Index = function (sector) {
@@ -6995,8 +7016,14 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             }
         };
         DiskImage.prototype.readBlock = function (block) {
-            var blockSectors = 2, pos = this.convertBlock2Sector(block);
+            var diskInfo = this.diskInfo, blockSectors = 2, pos = this.convertBlock2Sector(block);
             var out = "";
+            if (pos.track >= diskInfo.tracks) {
+                Utils_10.Utils.console.error(this.composeError({}, "Block " + block + ": Track out of range", String(pos.track)));
+            }
+            if (pos.head >= diskInfo.heads) {
+                Utils_10.Utils.console.error(this.composeError({}, "Block " + block + ": Head out of range", String(pos.track)));
+            }
             for (var i = 0; i < blockSectors; i += 1) {
                 this.seekTrack(pos.track, pos.head);
                 out += this.readSector(pos.sector);

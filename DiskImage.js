@@ -28,7 +28,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.format = DiskImage.getInitialFormat();
         };
         DiskImage.prototype.composeError = function (error, message, value, pos) {
-            return Utils_1.Utils.composeError("DiskImage", error, this.diskName + ": " + message, value, pos || 0);
+            var len = 0;
+            return Utils_1.Utils.composeError("DiskImage", error, this.diskName + ": " + message, value, pos || 0, len);
         };
         DiskImage.testDiskIdent = function (ident) {
             var diskType = 0;
@@ -133,6 +134,11 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 this.readDiskInfo(0);
             }
             var trackInfoPos = diskInfo.trackPos[track * diskInfo.heads + head];
+            if (trackInfoPos === undefined) {
+                throw this.composeError(new Error(), "Track not found", String(track));
+                //Utils.console.warn("Trying to read last track", String(diskInfo.tracks - 1));
+                //trackInfoPos = diskInfo.trackPos[(diskInfo.tracks - 1) * diskInfo.heads + head]; // try to seek last track
+            }
             this.readTrackInfo(trackInfoPos);
         };
         DiskImage.prototype.sectorNum2Index = function (sector) {
@@ -298,8 +304,14 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
         };
         DiskImage.prototype.readBlock = function (block) {
-            var blockSectors = 2, pos = this.convertBlock2Sector(block);
+            var diskInfo = this.diskInfo, blockSectors = 2, pos = this.convertBlock2Sector(block);
             var out = "";
+            if (pos.track >= diskInfo.tracks) {
+                Utils_1.Utils.console.error(this.composeError({}, "Block " + block + ": Track out of range", String(pos.track)));
+            }
+            if (pos.head >= diskInfo.heads) {
+                Utils_1.Utils.console.error(this.composeError({}, "Block " + block + ": Head out of range", String(pos.track)));
+            }
             for (var i = 0; i < blockSectors; i += 1) {
                 this.seekTrack(pos.track, pos.head);
                 out += this.readSector(pos.sector);

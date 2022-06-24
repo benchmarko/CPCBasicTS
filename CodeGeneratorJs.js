@@ -611,7 +611,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var nodeArgs = this.fnParseArgs(node.args);
             for (var i = 0; i < node.args.length; i += 1) {
                 if (node.args[i].type === "unquoted") {
-                    nodeArgs[i] = '"' + nodeArgs[i].replace(/"/g, "\\\"") + '"'; // escape quotes, put in quotes
+                    nodeArgs[i] = '"' + nodeArgs[i].replace(/\\/g, "\\\\").replace(/"/g, "\\\"") + '"'; // escape backslashes and quotes, put in quotes
                 }
             }
             nodeArgs.unshift(String(this.line)); // prepend line number

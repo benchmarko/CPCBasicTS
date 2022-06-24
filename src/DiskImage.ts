@@ -207,7 +207,9 @@ export class DiskImage {
 	}
 
 	private composeError(error: Error, message: string, value: string, pos?: number) {
-		return Utils.composeError("DiskImage", error, this.diskName + ": " + message, value, pos || 0);
+		const len = 0;
+
+		return Utils.composeError("DiskImage", error, this.diskName + ": " + message, value, pos || 0, len);
 	}
 
 	static testDiskIdent(ident: string): number {
@@ -354,6 +356,12 @@ export class DiskImage {
 		}
 
 		const trackInfoPos = diskInfo.trackPos[track * diskInfo.heads + head];
+
+		if (trackInfoPos === undefined) {
+			throw this.composeError(new Error(), "Track not found", String(track));
+			//Utils.console.warn("Trying to read last track", String(diskInfo.tracks - 1));
+			//trackInfoPos = diskInfo.trackPos[(diskInfo.tracks - 1) * diskInfo.heads + head]; // try to seek last track
+		}
 
 		this.readTrackInfo(trackInfoPos);
 	}
@@ -578,9 +586,17 @@ export class DiskImage {
 	}
 
 	private readBlock(block: number) {
-		const blockSectors = 2,
+		const diskInfo = this.diskInfo,
+			blockSectors = 2,
 			pos = this.convertBlock2Sector(block);
 		let	out = "";
+
+		if (pos.track >= diskInfo.tracks) {
+			Utils.console.error(this.composeError({} as Error, "Block " + block + ": Track out of range", String(pos.track)));
+		}
+		if (pos.head >= diskInfo.heads) {
+			Utils.console.error(this.composeError({} as Error, "Block " + block + ": Head out of range", String(pos.track)));
+		}
 
 		for (let i = 0; i < blockSectors; i += 1) {
 			this.seekTrack(pos.track, pos.head);

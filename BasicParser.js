@@ -48,6 +48,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 print: this.fnPrint,
                 "?": this.fnQuestion,
                 resume: this.fnResume,
+                run: this.fnRun,
                 speed: this.fnSpeed,
                 symbol: this.fnSymbol,
                 window: this.fnWindow
@@ -1030,6 +1031,18 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         BasicParser.prototype.fnResume = function () {
             var tokenType = this.token.type;
             return tokenType === "next" ? this.fnCombineTwoTokens(tokenType) : this.fnCreateCmdCall(); // "resume next" or "resume"
+        };
+        BasicParser.prototype.fnRun = function () {
+            var tokenType = this.token.type;
+            var node;
+            if (tokenType === "number") {
+                node = this.previousToken;
+                node.args = this.fnGetArgs("goto"); // we get linenumber arg as for goto
+            }
+            else {
+                node = this.fnCreateCmdCall();
+            }
+            return node;
         };
         BasicParser.prototype.fnSpeed = function () {
             var tokenType = this.token.type;

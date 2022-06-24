@@ -197,7 +197,7 @@
         "affectsGlobalScope": true
       },
       "../src/Utils.ts": {
-        "version": "934bb7e5b1347be0f88d5cd337ff271c665d005431e028ec3280b610689a0dbd",
+        "version": "37bfdd33cb8f15536d3c722c28cdc7388295c8a5ed3c74c2441531cc4a48a401",
         "signature": "3588aefd4e336d50c08f45a90441f5b68b7eac20e7fc54f1300f71d0d305de95",
         "affectsGlobalScope": false
       },
@@ -207,8 +207,8 @@
         "affectsGlobalScope": false
       },
       "../src/BasicParser.ts": {
-        "version": "2d579c4d8ba8fe2d125c649f64ad2e2e1242c3465a8ffcfa656a4fd5418bd6c8",
-        "signature": "e51475c5deb62c40da41891f272041f11c54002a4b11f5bce97b552a4cfc6751",
+        "version": "d8ac641d99f80d6d4e64d2e7a342fa6a12c8636931f9ae44846f62d3b7221487",
+        "signature": "044531e8bd3b5ea64436a24f80576df7189d45071feb9189c2d0df28696dc037",
         "affectsGlobalScope": false
       },
       "../src/Interfaces.ts": {
@@ -247,7 +247,7 @@
         "affectsGlobalScope": false
       },
       "../src/CodeGeneratorJs.ts": {
-        "version": "2bdddd6c037ae7086031f1e089965db6b4a031daea05087f9d6d45136697aee1",
+        "version": "cadb1efe9f40224f4f94717e9ac41e7c2e675ad73a137f1c39ddc252937276c3",
         "signature": "b83f2efb4eb7b1b957383554088225bb13f922698105b9b3fd87983d16293120",
         "affectsGlobalScope": false
       },
@@ -302,7 +302,7 @@
         "affectsGlobalScope": false
       },
       "../src/DiskImage.ts": {
-        "version": "eff823d9a6fcb74bb762ae6b397e14548e3f60bbcc369066185eaf0d30ccd5ec",
+        "version": "a3e7e516064db1f160b1def0e1b70debc6598f168f206c4b92587797e5415d2d",
         "signature": "d525cd4072f7c15ef8fae6a9f5800fa3217e34da7fb3912c42222f8c4b7c6af7",
         "affectsGlobalScope": false
       },

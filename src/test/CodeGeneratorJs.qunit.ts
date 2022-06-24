@@ -29,14 +29,15 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			"a=32768": " v.a = o.vmAssign(\"a\", 32768);",
 			"a=-32768": " v.a = o.vmAssign(\"a\", -32768);",
 			"a=1.2e+9": " v.a = o.vmAssign(\"a\", 1200000000);",
-			"a ": "BasicParser: Expected = in direct at pos 2-2: (end)",
-			"1 a=": "BasicParser: Unexpected end of file in 1 at pos 4-4: ",
+			"a ": "BasicParser: Expected = in direct at pos 2: (end)",
+			"1 a=": "BasicParser: Unexpected end of file in 1 at pos 4: ",
 			"1 5=7": "BasicParser: Bad expression statement in 1 at pos 2-3: 5",
 			"1 let 5=7": "BasicParser: Expected variable in 1 at pos 6-7: 5"
 		},
 		strings: {
 			"a$=\"a12\"": " v.a$ = \"a12\";",
-			"a$=+\"7.1\"": " v.a$ = \"7.1\";"
+			"a$=+\"7.1\"": " v.a$ = \"7.1\";",
+			"a$=\"\\\"": " v.a$ = \"\\\\\";"
 		},
 		variables: {
 			"a!=1.4": " v.aR = 1.4;",
@@ -90,7 +91,8 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			"a=b and c": " v.a = o.vmAssign(\"a\", o.vmRound(v.b) & o.vmRound(v.c));",
 			"a=asc(\"A\")": " v.a = o.vmAssign(\"a\", o.asc(\"A\"));",
 			"a=atn(2.3)": " v.a = o.vmAssign(\"a\", o.atn(2.3));",
-			"auto ": " o.auto();"
+			"auto ": " o.auto();",
+			"auto 100": " o.auto(100);"
 		},
 		"bin$, border": {
 			"a$=bin$(3)": " v.a$ = o.bin$(3);",
@@ -140,6 +142,7 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 		"data, dec$, def fn, defint, defreal, defstr, deg, delete, derr, di, dim, draw, drawr": {
 			"data ": "o.data(NaN, \"\");\n /* data */;",
 			"data ,": "o.data(NaN, undefined, undefined);\n /* data */;",
+			"data \\": "o.data(NaN, \"\\\\\");\n /* data */;",
 			"data 1,2,3": "o.data(NaN, \"1\", \"2\", \"3\");\n /* data */;",
 			"data \"item1\",\" item2\",\"item3 \"": "o.data(NaN, \"item1\", \" item2\", \"item3 \");\n /* data */;",
 			"data item1,item2,item3": "o.data(NaN, \"item1\", \"item2\", \"item3\");\n /* data */;",
@@ -467,8 +470,10 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			"release n+1": " o.release(v.n + 1);",
 			"rem ": " //",
 			"rem comment until EOL": " // comment until EOL",
+			"rem \\": " // \\",
 			"'": " //",
 			"'comment until EOL": " // comment until EOL",
+			"'\\": " // \\",
 			"a=1 'comment": " v.a = o.vmAssign(\"a\", 1); // comment",
 			"a=remain(0)": " v.a = o.vmAssign(\"a\", o.remain(0));",
 			"a=remain(ti)": " v.a = o.vmAssign(\"a\", o.remain(v.ti));",
@@ -597,7 +602,7 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			"|disc.in": " o.rsx.disc_in(); o.goto(\"NaNs0\"); break;\ncase \"NaNs0\":",
 			"|disc.out": " o.rsx.disc_out(); o.goto(\"NaNs0\"); break;\ncase \"NaNs0\":",
 			"|drive,0": " o.rsx.drive(0); o.goto(\"NaNs0\"); break;\ncase \"NaNs0\":",
-			"|drive,": "BasicParser: Expected any parameter for , in direct at pos 7-7: ",
+			"|drive,": "BasicParser: Expected any parameter for , in direct at pos 7: ",
 			"1 |drive,#1": "BasicParser: Unexpected stream in 1 at pos 9-10: #",
 			"|era,\"file.bas\"": " o.rsx.era(\"file.bas\"); o.goto(\"NaNs0\"); break;\ncase \"NaNs0\":",
 			"|ren,\"file1.bas\",\"file2.bas\"": " o.rsx.ren(\"file1.bas\", \"file2.bas\"); o.goto(\"NaNs0\"); break;\ncase \"NaNs0\":",

@@ -32,7 +32,8 @@ define(["require", "exports", "../Utils", "../BasicLexer", "./TestHelper"], func
             },
             strings: {
                 "a$=\"a12\"": '[{"type":"identifier","value":"a$","pos":0},{"type":"=","value":"=","pos":2},{"type":"string","value":"a12","pos":4},{"type":"(end)","value":"","pos":8}]',
-                "a$=+\"7.1\"": '[{"type":"identifier","value":"a$","pos":0},{"type":"=","value":"=","pos":2},{"type":"+","value":"+","pos":3},{"type":"string","value":"7.1","pos":5},{"type":"(end)","value":"","pos":9}]'
+                "a$=+\"7.1\"": '[{"type":"identifier","value":"a$","pos":0},{"type":"=","value":"=","pos":2},{"type":"+","value":"+","pos":3},{"type":"string","value":"7.1","pos":5},{"type":"(end)","value":"","pos":9}]',
+                "a$=\"\\\"": '[{"type":"identifier","value":"a$","pos":0},{"type":"=","value":"=","pos":2},{"type":"string","value":"\\\\","pos":4},{"type":"(end)","value":"","pos":6}]'
             },
             variables: {
                 "a!=1.4": '[{"type":"identifier","value":"a!","pos":0},{"type":"=","value":"=","pos":2},{"type":"number","value":"1.4","pos":3},{"type":"(end)","value":"","pos":6}]',
@@ -86,7 +87,8 @@ define(["require", "exports", "../Utils", "../BasicLexer", "./TestHelper"], func
                 "a=b and c": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"identifier","value":"b","pos":2},{"type":"identifier","value":"and","pos":4},{"type":"identifier","value":"c","pos":8},{"type":"(end)","value":"","pos":9}]',
                 "a=asc(\"A\")": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"identifier","value":"asc","pos":2},{"type":"(","value":"(","pos":5},{"type":"string","value":"A","pos":7},{"type":")","value":")","pos":9},{"type":"(end)","value":"","pos":10}]',
                 "a=atn(2.3)": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"identifier","value":"atn","pos":2},{"type":"(","value":"(","pos":5},{"type":"number","value":"2.3","pos":6},{"type":")","value":")","pos":9},{"type":"(end)","value":"","pos":10}]',
-                "auto ": '[{"type":"identifier","value":"auto","pos":0},{"type":"(end)","value":"","pos":5}]'
+                "auto ": '[{"type":"identifier","value":"auto","pos":0},{"type":"(end)","value":"","pos":5}]',
+                "auto 100": '[{"type":"identifier","value":"auto","pos":0},{"type":"number","value":"100","pos":5},{"type":"(end)","value":"","pos":8}]'
             },
             "bin$, border": {
                 "a$=bin$(3)": '[{"type":"identifier","value":"a$","pos":0},{"type":"=","value":"=","pos":2},{"type":"identifier","value":"bin$","pos":3},{"type":"(","value":"(","pos":7},{"type":"number","value":"3","pos":8},{"type":")","value":")","pos":9},{"type":"(end)","value":"","pos":10}]',
@@ -136,6 +138,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "./TestHelper"], func
             "data, dec$, def fn, defint, defreal, defstr, deg, delete, derr, di, dim, draw, drawr": {
                 "data ": '[{"type":"identifier","value":"data","pos":0},{"type":"unquoted","value":"","pos":5},{"type":"(end)","value":"","pos":6}]',
                 "data ,": '[{"type":"identifier","value":"data","pos":0},{"type":",","value":",","pos":5},{"type":"(end)","value":"","pos":6}]',
+                "data \\": '[{"type":"identifier","value":"data","pos":0},{"type":"unquoted","value":"\\\\","pos":5},{"type":"(end)","value":"","pos":6}]',
                 "data 1,2,3": '[{"type":"identifier","value":"data","pos":0},{"type":"unquoted","value":"1","pos":5},{"type":",","value":",","pos":6},{"type":"unquoted","value":"2","pos":7},{"type":",","value":",","pos":8},{"type":"unquoted","value":"3","pos":9},{"type":"(end)","value":"","pos":10}]',
                 "data \"item1\",\" item2\",\"item3 \"": '[{"type":"identifier","value":"data","pos":0},{"type":"string","value":"item1","pos":6},{"type":",","value":",","pos":12},{"type":"string","value":" item2","pos":14},{"type":",","value":",","pos":21},{"type":"string","value":"item3 ","pos":23},{"type":"(end)","value":"","pos":30}]',
                 "data item1,item2,item3": '[{"type":"identifier","value":"data","pos":0},{"type":"unquoted","value":"item1","pos":5},{"type":",","value":",","pos":10},{"type":"unquoted","value":"item2","pos":11},{"type":",","value":",","pos":16},{"type":"unquoted","value":"item3","pos":17},{"type":"(end)","value":"","pos":22}]',
@@ -463,8 +466,10 @@ define(["require", "exports", "../Utils", "../BasicLexer", "./TestHelper"], func
                 "release n+1": '[{"type":"identifier","value":"release","pos":0},{"type":"identifier","value":"n","pos":8},{"type":"+","value":"+","pos":9},{"type":"number","value":"1","pos":10},{"type":"(end)","value":"","pos":11}]',
                 "rem ": '[{"type":"identifier","value":"rem","pos":0},{"type":"(end)","value":"","pos":4}]',
                 "rem comment until EOL": '[{"type":"identifier","value":"rem","pos":0},{"type":"unquoted","value":"comment until EOL","pos":4},{"type":"(end)","value":"","pos":21}]',
+                "rem \\": '[{"type":"identifier","value":"rem","pos":0},{"type":"unquoted","value":"\\\\","pos":4},{"type":"(end)","value":"","pos":5}]',
                 "'": '[{"type":"\'","value":"\'","pos":0},{"type":"(end)","value":"","pos":1}]',
                 "'comment until EOL": '[{"type":"\'","value":"\'","pos":0},{"type":"unquoted","value":"comment until EOL","pos":1},{"type":"(end)","value":"","pos":18}]',
+                "'\\": '[{"type":"\'","value":"\'","pos":0},{"type":"unquoted","value":"\\\\","pos":1},{"type":"(end)","value":"","pos":2}]',
                 "a=1 'comment": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"number","value":"1","pos":2},{"type":"\'","value":"\'","pos":4},{"type":"unquoted","value":"comment","pos":5},{"type":"(end)","value":"","pos":12}]',
                 "a=remain(0)": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"identifier","value":"remain","pos":2},{"type":"(","value":"(","pos":8},{"type":"number","value":"0","pos":9},{"type":")","value":")","pos":10},{"type":"(end)","value":"","pos":11}]',
                 "a=remain(ti)": '[{"type":"identifier","value":"a","pos":0},{"type":"=","value":"=","pos":1},{"type":"identifier","value":"remain","pos":2},{"type":"(","value":"(","pos":8},{"type":"identifier","value":"ti","pos":9},{"type":")","value":")","pos":11},{"type":"(end)","value":"","pos":12}]',

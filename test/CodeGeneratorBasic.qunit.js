@@ -24,14 +24,15 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
                 "a=32768": "a=32768",
                 "a=-32768": "a=-32768",
                 "a=1.2e+9": "a=1200000000",
-                "a ": "BasicParser: Expected = in direct at pos 2-2: (end)",
-                "1 a=": "BasicParser: Unexpected end of file in 1 at pos 4-4: ",
+                "a ": "BasicParser: Expected = in direct at pos 2: (end)",
+                "1 a=": "BasicParser: Unexpected end of file in 1 at pos 4: ",
                 "1 5=7": "BasicParser: Bad expression statement in 1 at pos 2-3: 5",
                 "1 let 5=7": "BasicParser: Expected variable in 1 at pos 6-7: 5"
             },
             strings: {
                 "a$=\"a12\"": "a$=\"a12\"",
-                "a$=+\"7.1\"": "a$=+\"7.1\""
+                "a$=+\"7.1\"": "a$=+\"7.1\"",
+                "a$=\"\\\"": "a$=\"\\\""
             },
             variables: {
                 "a!=1.4": "a!=1.4",
@@ -85,7 +86,8 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
                 "a=b and c": "a=b AND c",
                 "a=asc(\"A\")": "a=ASC(\"A\")",
                 "a=atn(2.3)": "a=ATN(2.3)",
-                "auto ": "AUTO"
+                "auto ": "AUTO",
+                "auto 100": "AUTO 100"
             },
             "bin$, border": {
                 "a$=bin$(3)": "a$=BIN$(3)",
@@ -135,6 +137,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "data, dec$, def fn, defint, defreal, defstr, deg, delete, derr, di, dim, draw, drawr": {
                 "data ": "DATA",
                 "data ,": "DATA ,",
+                "data \\": "DATA \\",
                 "data 1,2,3": "DATA 1,2,3",
                 "data \"item1\",\" item2\",\"item3 \"": "DATA \"item1\",\" item2\",\"item3 \"",
                 "data item1,item2,item3": "DATA item1,item2,item3",
@@ -462,8 +465,10 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
                 "release n+1": "RELEASE n+1",
                 "rem ": "REM",
                 "rem comment until EOL": "REM comment until EOL",
+                "rem \\": "REM \\",
                 "'": "'",
                 "'comment until EOL": "'comment until EOL",
+                "'\\": "'\\",
                 "a=1 'comment": "a=1:'comment",
                 "a=remain(0)": "a=REMAIN(0)",
                 "a=remain(ti)": "a=REMAIN(ti)",
@@ -592,7 +597,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
                 "|disc.in": "|DISC.IN",
                 "|disc.out": "|DISC.OUT",
                 "|drive,0": "|DRIVE,0",
-                "|drive,": "BasicParser: Expected any parameter for , in direct at pos 7-7: ",
+                "|drive,": "BasicParser: Expected any parameter for , in direct at pos 7: ",
                 "1 |drive,#1": "BasicParser: Unexpected stream in 1 at pos 9-10: #",
                 "|era,\"file.bas\"": "|ERA,\"file.bas\"",
                 "|ren,\"file1.bas\",\"file2.bas\"": "|REN,\"file1.bas\",\"file2.bas\"",
