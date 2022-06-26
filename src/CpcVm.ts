@@ -149,6 +149,8 @@ export class CpcVm {
 
 	private readonly gosubStack: (number | string)[] = []; // stack of line numbers for gosub/return
 
+	private readonly maxGosubStackLength = 83; // maximum nesting of GOSUB on a real CPC
+
 	private readonly mem: number[]; // for peek, poke
 
 	private readonly dataList: DataEntryType[]; // array for BASIC data lines (continuous)
@@ -1874,6 +1876,9 @@ export class CpcVm {
 	}
 
 	gosub(retLabel: string | number, n: number): void {
+		if (this.gosubStack.length >= this.maxGosubStackLength) { // limit stack size (not necessary in JS, but...)
+			throw this.vmComposeError(Error(), 7, "GOSUB " + n); // Memory full
+		}
 		this.vmGotoLine(n, "gosub (ret=" + retLabel + ")");
 		this.gosubStack.push(retLabel);
 	}
@@ -2503,6 +2508,9 @@ export class CpcVm {
 			line = retLabel;
 		} else {
 			line = args[n - 1]; // n=1...
+			if (this.gosubStack.length >= this.maxGosubStackLength) { // limit stack size (not necessary in JS, but...)
+				throw this.vmComposeError(Error(), 7, "ON GOSUB " + n); // Memory full
+			}
 			this.gosubStack.push(retLabel);
 		}
 		this.vmGotoLine(line, "onGosub (n=" + n + ", ret=" + retLabel + ", line=" + line + ")");

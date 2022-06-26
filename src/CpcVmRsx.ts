@@ -150,6 +150,6 @@ export class CpcVmRsx implements ICpcVmRsx {
 	}
 
 	renum(...args: number[]): void { // optional args: new number, old number, step, keep line (only for |renum)
-		this.vm.renum.apply(args);
+		this.vm.renum.apply(this.vm, args); // execute in vm context
 	}
 }
