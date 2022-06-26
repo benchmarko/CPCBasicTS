@@ -287,12 +287,12 @@
         "affectsGlobalScope": false
       },
       "../src/CpcVm.ts": {
-        "version": "92d9d3240d4fc5f16d7bc16cd2104dc18b73e405414b2707eea6c394092efdca",
-        "signature": "d09095bff61073959300b99f416690b9e8cc208a3b32eec48b69665286b4252d",
+        "version": "77b6a728a741c1cfee14478f5cd9a4bc13926c30472e25ed32a824b39ee964d8",
+        "signature": "a08901d6895089e231297e633eb12c0b49b32a2acceb751233a4738ecf89128a",
         "affectsGlobalScope": false
       },
       "../src/CpcVmRsx.ts": {
-        "version": "d738c4573dde1ca5aca2a50b630f7d757fae02e983d5ad22ae1eb6a1069cd3d5",
+        "version": "6125e1b883a7b081cf01c968cd1f071d0a4048be5c402ce8a9302045b307aefe",
         "signature": "1f26a57cd06fa075fc2499928382ba12fecef245c655ef59ff860f0f9124b141",
         "affectsGlobalScope": false
       },

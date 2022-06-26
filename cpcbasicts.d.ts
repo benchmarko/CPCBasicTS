@@ -1305,6 +1305,7 @@ declare module "CpcVm" {
         private readonly outFile;
         private inkeyTimeMs;
         private readonly gosubStack;
+        private readonly maxGosubStackLength;
         private readonly mem;
         private readonly dataList;
         private dataIndex;

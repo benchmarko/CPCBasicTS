@@ -10,6 +10,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         function CpcVm(options) {
             this.inkeyTimeMs = 0; // next time of frame fly (if >0, next time when inkey$ can be checked without inserting "waitFrame")
             this.gosubStack = []; // stack of line numbers for gosub/return
+            this.maxGosubStackLength = 83; // maximum nesting of GOSUB on a real CPC
             this.dataIndex = 0; // current index
             this.dataLineIndex = {
                 0: 0 // for line 0: index 0
@@ -1303,6 +1304,9 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             return this.himemValue; // example, e.g. 42245;
         };
         CpcVm.prototype.gosub = function (retLabel, n) {
+            if (this.gosubStack.length >= this.maxGosubStackLength) { // limit stack size (not necessary in JS, but...)
+                throw this.vmComposeError(Error(), 7, "GOSUB " + n); // Memory full
+            }
             this.vmGotoLine(n, "gosub (ret=" + retLabel + ")");
             this.gosubStack.push(retLabel);
         };
@@ -1849,6 +1853,9 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             }
             else {
                 line = args[n - 1]; // n=1...
+                if (this.gosubStack.length >= this.maxGosubStackLength) { // limit stack size (not necessary in JS, but...)
+                    throw this.vmComposeError(Error(), 7, "ON GOSUB " + n); // Memory full
+                }
                 this.gosubStack.push(retLabel);
             }
             this.vmGotoLine(line, "onGosub (n=" + n + ", ret=" + retLabel + ", line=" + line + ")");

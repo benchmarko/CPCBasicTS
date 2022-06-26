@@ -125,7 +125,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             for (var _i = 0; _i < arguments.length; _i++) {
                 args[_i] = arguments[_i];
             }
-            this.vm.renum.apply(args);
+            this.vm.renum.apply(this.vm, args); // execute in vm context
         };
         return CpcVmRsx;
     }());
