@@ -11,12 +11,13 @@ import { Canvas } from "./Canvas";
 import { Variables, VariableMap } from "./Variables";
 import { ICpcVmRsx } from "./Interfaces";
 
-interface CpcVmOptions {
+export interface CpcVmOptions {
 	canvas: Canvas
 	keyboard: Keyboard
 	sound: Sound
 	variables: Variables
-	tron: boolean
+	tron: boolean,
+	quiet?: boolean
 }
 
 export interface FileMeta {
@@ -125,6 +126,7 @@ type PrintObjectType = {type: string, args: (string | number)[]};
 
 type DataEntryType = (string | undefined);
 export class CpcVm {
+	private quiet = false;
 	private readonly fnOpeninHandler: FileBase["fnFileCallback"]; // = undefined;
 	private readonly fnCloseinHandler: () => void;
 	private readonly fnCloseoutHandler: () => void;
@@ -393,6 +395,7 @@ export class CpcVm {
 		this.soundClass = options.sound;
 		this.variables = options.variables;
 		this.tronFlag = options.tron;
+		this.quiet = options.quiet || false;
 
 		this.random = new Random();
 
@@ -699,7 +702,7 @@ export class CpcVm {
 	}
 	*/
 
-	vmInRangeRound(n: number | undefined, min: number, max: number, err?: string): number {
+	vmInRangeRound(n: number | undefined, min: number, max: number, err: string): number {
 		n = this.vmRound(n, err);
 		if (n < min || n > max) {
 			Utils.console.warn("vmInRangeRound: number not in range:", min + "<=" + n + "<=" + max);
@@ -708,7 +711,7 @@ export class CpcVm {
 		return n;
 	}
 
-	private vmRound2Complement(n: number | undefined, err?: string) {
+	private vmRound2Complement(n: number | undefined, err: string) {
 		n = this.vmInRangeRound(n, -32768, 65535, err);
 		if (n < 0) {
 			n += 65536;
@@ -1165,7 +1168,8 @@ export class CpcVm {
 
 	atn(n: number): number {
 		this.vmAssertNumber(n, "ATN");
-		return Math.atan((this.degFlag) ? Utils.toRadians(n) : n);
+		n = Math.atan(n);
+		return this.degFlag ? Utils.toDegrees(n) : n;
 	}
 
 	auto(): void {
@@ -1175,7 +1179,10 @@ export class CpcVm {
 	bin$(n: number, pad?: number): string {
 		n = this.vmInRangeRound(n, -32768, 65535, "BIN$");
 		pad = this.vmInRangeRound(pad || 0, 0, 16, "BIN$");
-		return n.toString(2).padStart(pad || 16, "0");
+		if (n < 0) {
+			n += 65536;
+		}
+		return pad ? n.toString(2).padStart(pad, "0") : n.toString(2);
 	}
 
 	border(ink1: number, ink2?: number): void { // ink2 optional
@@ -1418,7 +1425,7 @@ export class CpcVm {
 	}
 
 	cint(n: number): number {
-		return this.vmInRangeRound(n, -32768, 32767);
+		return this.vmInRangeRound(n, -32768, 32767, "CINT");
 	}
 
 	clear(): void {
@@ -1839,8 +1846,10 @@ export class CpcVm {
 		} else {
 			this.vmStop("error", 50);
 		}
-		Utils.console.log("BASIC error(" + err + "):", errorWithInfo + (hidden ? " (hidden: " + hidden + ")" : ""));
-		return Utils.composeError("CpcVm", error, errorString, errInfo, -1, undefined, line, hidden);
+		if (!this.quiet) {
+			Utils.console.log("BASIC error(" + err + "):", errorWithInfo + (hidden ? " (hidden: " + hidden + ")" : ""));
+		}
+		return Utils.composeError("CpcVm", error, errorString, errInfo, undefined, undefined, line, hidden);
 	}
 
 	error(err: number, errInfo: string): void {

@@ -175,13 +175,17 @@ export class Utils { // eslint-disable-line vars-on-top
 		return (e as CustomError).pos !== undefined;
 	}
 
-	static composeError(name: string, errorObject: Error, message: string, value: string, pos: number, len?: number, line?: string | number, hidden?: boolean): CustomError {
+	static composeError(name: string, errorObject: Error, message: string, value: string, pos?: number, len?: number, line?: string | number, hidden?: boolean): CustomError {
 		const customError = errorObject as CustomError;
 
 		customError.name = name;
 		customError.message = message;
 		customError.value = value;
-		customError.pos = pos;
+		//customError.pos = pos || 0;
+
+		if (pos !== undefined) {
+			customError.pos = pos;
+		}
 		if (len !== undefined) {
 			customError.len = len;
 		}
@@ -198,9 +202,9 @@ export class Utils { // eslint-disable-line vars-on-top
 			errorLen = String(customError.value).length;
 		}
 
-		const endPos = customError.pos + (errorLen || 0),
+		const endPos = (customError.pos || 0) + (errorLen || 0),
 			lineMsg = (customError.line !== undefined ? " in " + customError.line : ""),
-			posMsg = " at pos " + (pos !== endPos ? customError.pos + "-" + endPos : customError.pos);
+			posMsg = pos !== undefined ? (" at pos " + (pos !== endPos ? customError.pos + "-" + endPos : customError.pos)) : "";
 
 		//customError.shortMessage = customError.message + (customError.line !== undefined ? " in " + customError.line : " at pos " + customError.pos + "-" + endPos) + ": " + customError.value;
 		//customError.message +=                           (customError.line !== undefined ? " in " + customError.line : "") + " at pos " + customError.pos + "-" + endPos + ": " + customError.value;
