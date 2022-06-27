@@ -30,7 +30,7 @@ declare module "Utils" {
         static atob: (arg0: string) => string;
         static btoa: (arg0: string) => string;
         static isCustomError(e: unknown): e is CustomError;
-        static composeError(name: string, errorObject: Error, message: string, value: string, pos: number, len?: number, line?: string | number, hidden?: boolean): CustomError;
+        static composeError(name: string, errorObject: Error, message: string, value: string, pos?: number, len?: number, line?: string | number, hidden?: boolean): CustomError;
     }
 }
 declare module "Polyfills" {
@@ -633,6 +633,7 @@ declare module "Diff" {
 }
 declare module "DiskImage" {
     export interface DiskImageOptions {
+        quiet?: boolean;
         diskName: string;
         data: string;
     }
@@ -662,11 +663,12 @@ declare module "DiskImage" {
     }
     type DirectoryListType = Record<string, ExtentEntry[]>;
     export class DiskImage {
+        private quiet;
         private diskName;
         private data;
         private diskInfo;
         private format;
-        constructor(config: DiskImageOptions);
+        constructor(options: DiskImageOptions);
         private static readonly formatDescriptors;
         private static getInitialDiskInfo;
         private static getInitialFormat;
@@ -1215,12 +1217,13 @@ declare module "CpcVm" {
     import { Canvas } from "Canvas";
     import { Variables, VariableMap } from "Variables";
     import { ICpcVmRsx } from "Interfaces";
-    interface CpcVmOptions {
+    export interface CpcVmOptions {
         canvas: Canvas;
         keyboard: Keyboard;
         sound: Sound;
         variables: Variables;
         tron: boolean;
+        quiet?: boolean;
     }
     export interface FileMeta {
         typeString: string;
@@ -1288,6 +1291,7 @@ declare module "CpcVm" {
     };
     type DataEntryType = (string | undefined);
     export class CpcVm {
+        private quiet;
         private readonly fnOpeninHandler;
         private readonly fnCloseinHandler;
         private readonly fnCloseoutHandler;
@@ -1373,7 +1377,7 @@ declare module "CpcVm" {
         private vmAssertNumber;
         private vmAssertString;
         vmRound(n: number | undefined, err?: string): number;
-        vmInRangeRound(n: number | undefined, min: number, max: number, err?: string): number;
+        vmInRangeRound(n: number | undefined, min: number, max: number, err: string): number;
         private vmRound2Complement;
         vmDetermineVarType(varType: string): string;
         vmAssertNumberType(varType: string): void;

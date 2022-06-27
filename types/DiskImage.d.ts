@@ -1,4 +1,5 @@
 export interface DiskImageOptions {
+    quiet?: boolean;
     diskName: string;
     data: string;
 }
@@ -28,11 +29,12 @@ export interface AmsdosHeader {
 }
 declare type DirectoryListType = Record<string, ExtentEntry[]>;
 export declare class DiskImage {
+    private quiet;
     private diskName;
     private data;
     private diskInfo;
     private format;
-    constructor(config: DiskImageOptions);
+    constructor(options: DiskImageOptions);
     private static readonly formatDescriptors;
     private static getInitialDiskInfo;
     private static getInitialFormat;

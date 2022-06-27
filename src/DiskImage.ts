@@ -10,6 +10,7 @@ import { Utils } from "./Utils";
 
 
 export interface DiskImageOptions {
+	quiet?: boolean,
 	diskName: string,
 	data: string
 }
@@ -113,14 +114,16 @@ interface SectorPos {
 }
 
 export class DiskImage {
+	private quiet = false;
 	private diskName: string;
 	private data: string;
 	private diskInfo: DiskInfo;
 	private format: FormatDescriptor;
 
-	constructor(config: DiskImageOptions) {
-		this.diskName = config.diskName;
-		this.data = config.data;
+	constructor(options: DiskImageOptions) {
+		this.diskName = options.diskName;
+		this.data = options.data;
+		this.quiet = options.quiet || false;
 
 		// reset
 		this.diskInfo = DiskImage.getInitialDiskInfo();
@@ -262,7 +265,9 @@ export class DiskImage {
 
 		if (diskInfo.ident.substr(34 - 11, 9) !== "Disk-Info") { // some tools use "Disk-Info  " instead of "Disk-Info\r\n", so compare without "\r\n"
 			// "Disk-Info" string is optional
-			Utils.console.warn(this.composeError({} as Error, "Disk ident not found", diskInfo.ident.substr(34 - 11, 9), pos + 34 - 11).message);
+			if (!this.quiet) {
+				Utils.console.warn(this.composeError({} as Error, "Disk ident not found", diskInfo.ident.substr(34 - 11, 9), pos + 34 - 11).message);
+			}
 		}
 
 		diskInfo.creator = this.readUtf(pos + 34, 14);
@@ -297,7 +302,9 @@ export class DiskImage {
 		trackInfo.ident = this.readUtf(pos, 12);
 		if (trackInfo.ident.substr(0, 10) !== "Track-Info") { // some tools use "Track-Info  " instead of "Track-Info\r\n", so compare without "\r\n"
 			// "Track-Info" string is optional
-			Utils.console.warn(this.composeError({} as Error, "Track ident not found", trackInfo.ident.substr(0, 10), pos).message);
+			if (!this.quiet) {
+				Utils.console.warn(this.composeError({} as Error, "Track ident not found", trackInfo.ident.substr(0, 10), pos).message);
+			}
 		}
 		// 4 unused bytes
 		trackInfo.track = this.readUInt8(pos + 16);

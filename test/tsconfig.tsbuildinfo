@@ -197,8 +197,8 @@
         "affectsGlobalScope": true
       },
       "../types/Utils.d.ts": {
-        "version": "3588aefd4e336d50c08f45a90441f5b68b7eac20e7fc54f1300f71d0d305de95",
-        "signature": "3588aefd4e336d50c08f45a90441f5b68b7eac20e7fc54f1300f71d0d305de95",
+        "version": "a4a70e2652569538565b670a91fd3aa09e965c4f2041dcab02dfee09ea992839",
+        "signature": "a4a70e2652569538565b670a91fd3aa09e965c4f2041dcab02dfee09ea992839",
         "affectsGlobalScope": false
       },
       "../types/BasicLexer.d.ts": {
@@ -286,6 +286,31 @@
         "signature": "8910c6561fc9c4b7958260275388e6838815c862a2b555aed803450187c117f0",
         "affectsGlobalScope": false
       },
+      "../types/Keyboard.d.ts": {
+        "version": "ea1f2bc7bd84030bc531c7b13b52a28d7c58bd48b70bd844e21dfef9704e84ac",
+        "signature": "ea1f2bc7bd84030bc531c7b13b52a28d7c58bd48b70bd844e21dfef9704e84ac",
+        "affectsGlobalScope": false
+      },
+      "../types/Sound.d.ts": {
+        "version": "ab3d944d2a86279f07160e7bcb14328c18b11d3d08db0b9b04008fd6f7650220",
+        "signature": "ab3d944d2a86279f07160e7bcb14328c18b11d3d08db0b9b04008fd6f7650220",
+        "affectsGlobalScope": false
+      },
+      "../types/Canvas.d.ts": {
+        "version": "1ca22e5ba44fdbf5fc5bfc2c3a3e05cfd6fe24fff7590b60e92892417f7db78b",
+        "signature": "1ca22e5ba44fdbf5fc5bfc2c3a3e05cfd6fe24fff7590b60e92892417f7db78b",
+        "affectsGlobalScope": false
+      },
+      "../types/CpcVm.d.ts": {
+        "version": "fef0c5ac1236fcd6c3162b14b18991810c8a3fc790c642a36457df6ae5d97ba7",
+        "signature": "fef0c5ac1236fcd6c3162b14b18991810c8a3fc790c642a36457df6ae5d97ba7",
+        "affectsGlobalScope": false
+      },
+      "../../src/test/CpcVm.qunit.ts": {
+        "version": "3b33a94402f00e59206a8e50e358b49aa4b29cdcaa0df4ee789533c1a3a03c18",
+        "signature": "268e688401d8911f1ecd97206559b40640dd907d6c9af91531c6ef2706aeec5e",
+        "affectsGlobalScope": false
+      },
       "../types/Diff.d.ts": {
         "version": "f3366438a6c6de6c5f4450c978871a5e262b5e6a54c335b58d0874b500e717f8",
         "signature": "f3366438a6c6de6c5f4450c978871a5e262b5e6a54c335b58d0874b500e717f8",
@@ -297,8 +322,8 @@
         "affectsGlobalScope": false
       },
       "../types/DiskImage.d.ts": {
-        "version": "d525cd4072f7c15ef8fae6a9f5800fa3217e34da7fb3912c42222f8c4b7c6af7",
-        "signature": "d525cd4072f7c15ef8fae6a9f5800fa3217e34da7fb3912c42222f8c4b7c6af7",
+        "version": "8dec5c6c4644de7918ec2783c8d5649680b337618cfe748b595da0539b58b831",
+        "signature": "8dec5c6c4644de7918ec2783c8d5649680b337618cfe748b595da0539b58b831",
         "affectsGlobalScope": false
       },
       "../types/ZipFile.d.ts": {
@@ -307,7 +332,7 @@
         "affectsGlobalScope": false
       },
       "../../src/test/DiskImage.qunit.ts": {
-        "version": "e4c918ef92d140a22ce8b8a7f0cc2122009c6a157436c1801266addbe24237cc",
+        "version": "86688d863b4e94808671abcf64d7764468507b3d87831b16e3a85c2cd81a70df",
         "signature": "9837ff80ab00f3e3756f223ac5029808618caf0c45b0d9b3bf474f99acf0162f",
         "affectsGlobalScope": false
       },
@@ -650,6 +675,9 @@
       "../types/BasicTokenizer.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
+      "../types/Canvas.d.ts": [
+        "../../node_modules/@types/node/util.d.ts"
+      ],
       "../types/CodeGeneratorBasic.d.ts": [
         "../../node_modules/@types/node/util.d.ts",
         "../types/BasicLexer.d.ts",
@@ -669,6 +697,15 @@
         "../types/BasicParser.d.ts",
         "../types/Interfaces.d.ts"
       ],
+      "../types/CpcVm.d.ts": [
+        "../../node_modules/@types/node/util.d.ts",
+        "../types/Canvas.d.ts",
+        "../types/Interfaces.d.ts",
+        "../types/Keyboard.d.ts",
+        "../types/Sound.d.ts",
+        "../types/Utils.d.ts",
+        "../types/Variables.d.ts"
+      ],
       "../types/Diff.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
@@ -679,10 +716,16 @@
         "../../node_modules/@types/node/util.d.ts",
         "../types/Utils.d.ts"
       ],
+      "../types/Keyboard.d.ts": [
+        "../../node_modules/@types/node/util.d.ts"
+      ],
       "../types/Model.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
       "../types/Polyfills.d.ts": [
+        "../../node_modules/@types/node/util.d.ts"
+      ],
+      "../types/Sound.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
       "../types/Utils.d.ts": [
@@ -1193,6 +1236,16 @@
         "../types/BasicParser.d.ts",
         "../types/CodeGeneratorToken.d.ts"
       ],
+      "../../src/test/CpcVm.qunit.ts": [
+        "../../node_modules/@types/node/util.d.ts",
+        "../../src/test/TestHelper.ts",
+        "../types/Canvas.d.ts",
+        "../types/CpcVm.d.ts",
+        "../types/Keyboard.d.ts",
+        "../types/Sound.d.ts",
+        "../types/Utils.d.ts",
+        "../types/Variables.d.ts"
+      ],
       "../../src/test/Diff.qunit.ts": [
         "../../node_modules/@types/node/util.d.ts",
         "../../src/test/TestHelper.ts",
@@ -1256,6 +1309,9 @@
       "../types/BasicTokenizer.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
+      "../types/Canvas.d.ts": [
+        "../../node_modules/@types/node/util.d.ts"
+      ],
       "../types/CodeGeneratorBasic.d.ts": [
         "../../node_modules/@types/node/util.d.ts",
         "../types/BasicLexer.d.ts",
@@ -1275,6 +1331,15 @@
         "../types/BasicParser.d.ts",
         "../types/Interfaces.d.ts"
       ],
+      "../types/CpcVm.d.ts": [
+        "../../node_modules/@types/node/util.d.ts",
+        "../types/Canvas.d.ts",
+        "../types/Interfaces.d.ts",
+        "../types/Keyboard.d.ts",
+        "../types/Sound.d.ts",
+        "../types/Utils.d.ts",
+        "../types/Variables.d.ts"
+      ],
       "../types/Diff.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
@@ -1285,10 +1350,16 @@
         "../../node_modules/@types/node/util.d.ts",
         "../types/Utils.d.ts"
       ],
+      "../types/Keyboard.d.ts": [
+        "../../node_modules/@types/node/util.d.ts"
+      ],
       "../types/Model.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
       "../types/Polyfills.d.ts": [
+        "../../node_modules/@types/node/util.d.ts"
+      ],
+      "../types/Sound.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
       "../types/Utils.d.ts": [
@@ -1756,14 +1827,18 @@
       "../types/BasicLexer.d.ts",
       "../types/BasicParser.d.ts",
       "../types/BasicTokenizer.d.ts",
+      "../types/Canvas.d.ts",
       "../types/CodeGeneratorBasic.d.ts",
       "../types/CodeGeneratorJs.d.ts",
       "../types/CodeGeneratorToken.d.ts",
+      "../types/CpcVm.d.ts",
       "../types/Diff.d.ts",
       "../types/DiskImage.d.ts",
       "../types/Interfaces.d.ts",
+      "../types/Keyboard.d.ts",
       "../types/Model.d.ts",
       "../types/Polyfills.d.ts",
+      "../types/Sound.d.ts",
       "../types/Utils.d.ts",
       "../types/Variables.d.ts",
       "../types/ZipFile.d.ts",
@@ -1866,6 +1941,7 @@
       "../../src/test/CodeGeneratorBasic.qunit.ts",
       "../../src/test/CodeGeneratorJs.qunit.ts",
       "../../src/test/CodeGeneratorToken.qunit.ts",
+      "../../src/test/CpcVm.qunit.ts",
       "../../src/test/Diff.qunit.ts",
       "../../src/test/DiskImage.qunit.ts",
       "../../src/test/Model.qunit.ts",

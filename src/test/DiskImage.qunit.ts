@@ -98,7 +98,8 @@ QUnit.module("DiskImage: Tests", function () {
 					uncompressed = zip.readData(firstFileInZip),
 					disk = new DiskImage({
 						data: uncompressed,
-						diskName: "name"
+						diskName: "name",
+						quiet: true
 					}),
 					expected = tests[key];
 				let result: string;

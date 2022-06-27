@@ -207,7 +207,10 @@ define("Utils", ["require", "exports"], function (require, exports) {
             customError.name = name;
             customError.message = message;
             customError.value = value;
-            customError.pos = pos;
+            //customError.pos = pos || 0;
+            if (pos !== undefined) {
+                customError.pos = pos;
+            }
             if (len !== undefined) {
                 customError.len = len;
             }
@@ -221,7 +224,7 @@ define("Utils", ["require", "exports"], function (require, exports) {
             if (errorLen === undefined && customError.value !== undefined) {
                 errorLen = String(customError.value).length;
             }
-            var endPos = customError.pos + (errorLen || 0), lineMsg = (customError.line !== undefined ? " in " + customError.line : ""), posMsg = " at pos " + (pos !== endPos ? customError.pos + "-" + endPos : customError.pos);
+            var endPos = (customError.pos || 0) + (errorLen || 0), lineMsg = (customError.line !== undefined ? " in " + customError.line : ""), posMsg = pos !== undefined ? (" at pos " + (pos !== endPos ? customError.pos + "-" + endPos : customError.pos)) : "";
             //customError.shortMessage = customError.message + (customError.line !== undefined ? " in " + customError.line : " at pos " + customError.pos + "-" + endPos) + ": " + customError.value;
             //customError.message +=                           (customError.line !== undefined ? " in " + customError.line : "") + " at pos " + customError.pos + "-" + endPos + ": " + customError.value;
             customError.shortMessage = customError.message + (lineMsg || posMsg) + ": " + customError.value;
@@ -6718,9 +6721,11 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.DiskImage = void 0;
     var DiskImage = /** @class */ (function () {
-        function DiskImage(config) {
-            this.diskName = config.diskName;
-            this.data = config.data;
+        function DiskImage(options) {
+            this.quiet = false;
+            this.diskName = options.diskName;
+            this.data = options.data;
+            this.quiet = options.quiet || false;
             // reset
             this.diskInfo = DiskImage.getInitialDiskInfo();
             this.format = DiskImage.getInitialFormat();
@@ -6780,7 +6785,9 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             diskInfo.ident = ident + this.readUtf(pos + 8, 34 - 8); // read remaining ident
             if (diskInfo.ident.substr(34 - 11, 9) !== "Disk-Info") { // some tools use "Disk-Info  " instead of "Disk-Info\r\n", so compare without "\r\n"
                 // "Disk-Info" string is optional
-                Utils_10.Utils.console.warn(this.composeError({}, "Disk ident not found", diskInfo.ident.substr(34 - 11, 9), pos + 34 - 11).message);
+                if (!this.quiet) {
+                    Utils_10.Utils.console.warn(this.composeError({}, "Disk ident not found", diskInfo.ident.substr(34 - 11, 9), pos + 34 - 11).message);
+                }
             }
             diskInfo.creator = this.readUtf(pos + 34, 14);
             diskInfo.tracks = this.readUInt8(pos + 48);
@@ -6804,7 +6811,9 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             trackInfo.ident = this.readUtf(pos, 12);
             if (trackInfo.ident.substr(0, 10) !== "Track-Info") { // some tools use "Track-Info  " instead of "Track-Info\r\n", so compare without "\r\n"
                 // "Track-Info" string is optional
-                Utils_10.Utils.console.warn(this.composeError({}, "Track ident not found", trackInfo.ident.substr(0, 10), pos).message);
+                if (!this.quiet) {
+                    Utils_10.Utils.console.warn(this.composeError({}, "Track ident not found", trackInfo.ident.substr(0, 10), pos).message);
+                }
             }
             // 4 unused bytes
             trackInfo.track = this.readUInt8(pos + 16);
@@ -11120,6 +11129,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
     exports.CpcVm = void 0;
     var CpcVm = /** @class */ (function () {
         function CpcVm(options) {
+            this.quiet = false;
             this.inkeyTimeMs = 0; // next time of frame fly (if >0, next time when inkey$ can be checked without inserting "waitFrame")
             this.gosubStack = []; // stack of line numbers for gosub/return
             this.maxGosubStackLength = 83; // maximum nesting of GOSUB on a real CPC
@@ -11164,6 +11174,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.soundClass = options.sound;
             this.variables = options.variables;
             this.tronFlag = options.tron;
+            this.quiet = options.quiet || false;
             this.random = new Random_1.Random();
             this.stopEntry = {
                 reason: "",
@@ -11792,7 +11803,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         };
         CpcVm.prototype.atn = function (n) {
             this.vmAssertNumber(n, "ATN");
-            return Math.atan((this.degFlag) ? Utils_19.Utils.toRadians(n) : n);
+            n = Math.atan(n);
+            return this.degFlag ? Utils_19.Utils.toDegrees(n) : n;
         };
         CpcVm.prototype.auto = function () {
             this.vmNotImplemented("AUTO");
@@ -11800,7 +11812,10 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.bin$ = function (n, pad) {
             n = this.vmInRangeRound(n, -32768, 65535, "BIN$");
             pad = this.vmInRangeRound(pad || 0, 0, 16, "BIN$");
-            return n.toString(2).padStart(pad || 16, "0");
+            if (n < 0) {
+                n += 65536;
+            }
+            return pad ? n.toString(2).padStart(pad, "0") : n.toString(2);
         };
         CpcVm.prototype.border = function (ink1, ink2) {
             ink1 = this.vmInRangeRound(ink1, 0, 31, "BORDER");
@@ -12022,7 +12037,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             return String.fromCharCode(n);
         };
         CpcVm.prototype.cint = function (n) {
-            return this.vmInRangeRound(n, -32768, 32767);
+            return this.vmInRangeRound(n, -32768, 32767, "CINT");
         };
         CpcVm.prototype.clear = function () {
             this.vmResetTimers();
@@ -12387,8 +12402,10 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             else {
                 this.vmStop("error", 50);
             }
-            Utils_19.Utils.console.log("BASIC error(" + err + "):", errorWithInfo + (hidden ? " (hidden: " + hidden + ")" : ""));
-            return Utils_19.Utils.composeError("CpcVm", error, errorString, errInfo, -1, undefined, line, hidden);
+            if (!this.quiet) {
+                Utils_19.Utils.console.log("BASIC error(" + err + "):", errorWithInfo + (hidden ? " (hidden: " + hidden + ")" : ""));
+            }
+            return Utils_19.Utils.composeError("CpcVm", error, errorString, errInfo, undefined, undefined, line, hidden);
         };
         CpcVm.prototype.error = function (err, errInfo) {
             err = this.vmInRangeRound(err, 0, 255, "ERROR"); // could trigger another error

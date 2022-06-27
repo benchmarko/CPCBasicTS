@@ -8,6 +8,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
     exports.CpcVm = void 0;
     var CpcVm = /** @class */ (function () {
         function CpcVm(options) {
+            this.quiet = false;
             this.inkeyTimeMs = 0; // next time of frame fly (if >0, next time when inkey$ can be checked without inserting "waitFrame")
             this.gosubStack = []; // stack of line numbers for gosub/return
             this.maxGosubStackLength = 83; // maximum nesting of GOSUB on a real CPC
@@ -52,6 +53,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.soundClass = options.sound;
             this.variables = options.variables;
             this.tronFlag = options.tron;
+            this.quiet = options.quiet || false;
             this.random = new Random_1.Random();
             this.stopEntry = {
                 reason: "",
@@ -680,7 +682,8 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         };
         CpcVm.prototype.atn = function (n) {
             this.vmAssertNumber(n, "ATN");
-            return Math.atan((this.degFlag) ? Utils_1.Utils.toRadians(n) : n);
+            n = Math.atan(n);
+            return this.degFlag ? Utils_1.Utils.toDegrees(n) : n;
         };
         CpcVm.prototype.auto = function () {
             this.vmNotImplemented("AUTO");
@@ -688,7 +691,10 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         CpcVm.prototype.bin$ = function (n, pad) {
             n = this.vmInRangeRound(n, -32768, 65535, "BIN$");
             pad = this.vmInRangeRound(pad || 0, 0, 16, "BIN$");
-            return n.toString(2).padStart(pad || 16, "0");
+            if (n < 0) {
+                n += 65536;
+            }
+            return pad ? n.toString(2).padStart(pad, "0") : n.toString(2);
         };
         CpcVm.prototype.border = function (ink1, ink2) {
             ink1 = this.vmInRangeRound(ink1, 0, 31, "BORDER");
@@ -910,7 +916,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             return String.fromCharCode(n);
         };
         CpcVm.prototype.cint = function (n) {
-            return this.vmInRangeRound(n, -32768, 32767);
+            return this.vmInRangeRound(n, -32768, 32767, "CINT");
         };
         CpcVm.prototype.clear = function () {
             this.vmResetTimers();
@@ -1275,8 +1281,10 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             else {
                 this.vmStop("error", 50);
             }
-            Utils_1.Utils.console.log("BASIC error(" + err + "):", errorWithInfo + (hidden ? " (hidden: " + hidden + ")" : ""));
-            return Utils_1.Utils.composeError("CpcVm", error, errorString, errInfo, -1, undefined, line, hidden);
+            if (!this.quiet) {
+                Utils_1.Utils.console.log("BASIC error(" + err + "):", errorWithInfo + (hidden ? " (hidden: " + hidden + ")" : ""));
+            }
+            return Utils_1.Utils.composeError("CpcVm", error, errorString, errInfo, undefined, undefined, line, hidden);
         };
         CpcVm.prototype.error = function (err, errInfo) {
             err = this.vmInRangeRound(err, 0, 255, "ERROR"); // could trigger another error

@@ -197,8 +197,8 @@
         "affectsGlobalScope": true
       },
       "../src/Utils.ts": {
-        "version": "37bfdd33cb8f15536d3c722c28cdc7388295c8a5ed3c74c2441531cc4a48a401",
-        "signature": "3588aefd4e336d50c08f45a90441f5b68b7eac20e7fc54f1300f71d0d305de95",
+        "version": "77fd82b05c8f371b17c08d3ae799b3494cf5315b3b191a798370b0b14ef2a6e7",
+        "signature": "a4a70e2652569538565b670a91fd3aa09e965c4f2041dcab02dfee09ea992839",
         "affectsGlobalScope": false
       },
       "../src/BasicLexer.ts": {
@@ -287,8 +287,8 @@
         "affectsGlobalScope": false
       },
       "../src/CpcVm.ts": {
-        "version": "77b6a728a741c1cfee14478f5cd9a4bc13926c30472e25ed32a824b39ee964d8",
-        "signature": "a08901d6895089e231297e633eb12c0b49b32a2acceb751233a4738ecf89128a",
+        "version": "ca0ce4dfcd4f2f19f106f678a4576c6cf1ac027fb4a17e9440b5aa0e87aab444",
+        "signature": "fef0c5ac1236fcd6c3162b14b18991810c8a3fc790c642a36457df6ae5d97ba7",
         "affectsGlobalScope": false
       },
       "../src/CpcVmRsx.ts": {
@@ -302,8 +302,8 @@
         "affectsGlobalScope": false
       },
       "../src/DiskImage.ts": {
-        "version": "a3e7e516064db1f160b1def0e1b70debc6598f168f206c4b92587797e5415d2d",
-        "signature": "d525cd4072f7c15ef8fae6a9f5800fa3217e34da7fb3912c42222f8c4b7c6af7",
+        "version": "11c0eb641a4239753bc53500f63c171d8334b5004bf825b146da08b53a4e4ccf",
+        "signature": "8dec5c6c4644de7918ec2783c8d5649680b337618cfe748b595da0539b58b831",
         "affectsGlobalScope": false
       },
       "../src/InputStack.ts": {

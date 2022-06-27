@@ -6,9 +6,11 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.DiskImage = void 0;
     var DiskImage = /** @class */ (function () {
-        function DiskImage(config) {
-            this.diskName = config.diskName;
-            this.data = config.data;
+        function DiskImage(options) {
+            this.quiet = false;
+            this.diskName = options.diskName;
+            this.data = options.data;
+            this.quiet = options.quiet || false;
             // reset
             this.diskInfo = DiskImage.getInitialDiskInfo();
             this.format = DiskImage.getInitialFormat();
@@ -68,7 +70,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             diskInfo.ident = ident + this.readUtf(pos + 8, 34 - 8); // read remaining ident
             if (diskInfo.ident.substr(34 - 11, 9) !== "Disk-Info") { // some tools use "Disk-Info  " instead of "Disk-Info\r\n", so compare without "\r\n"
                 // "Disk-Info" string is optional
-                Utils_1.Utils.console.warn(this.composeError({}, "Disk ident not found", diskInfo.ident.substr(34 - 11, 9), pos + 34 - 11).message);
+                if (!this.quiet) {
+                    Utils_1.Utils.console.warn(this.composeError({}, "Disk ident not found", diskInfo.ident.substr(34 - 11, 9), pos + 34 - 11).message);
+                }
             }
             diskInfo.creator = this.readUtf(pos + 34, 14);
             diskInfo.tracks = this.readUInt8(pos + 48);
@@ -92,7 +96,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             trackInfo.ident = this.readUtf(pos, 12);
             if (trackInfo.ident.substr(0, 10) !== "Track-Info") { // some tools use "Track-Info  " instead of "Track-Info\r\n", so compare without "\r\n"
                 // "Track-Info" string is optional
-                Utils_1.Utils.console.warn(this.composeError({}, "Track ident not found", trackInfo.ident.substr(0, 10), pos).message);
+                if (!this.quiet) {
+                    Utils_1.Utils.console.warn(this.composeError({}, "Track ident not found", trackInfo.ident.substr(0, 10), pos).message);
+                }
             }
             // 4 unused bytes
             trackInfo.track = this.readUInt8(pos + 16);

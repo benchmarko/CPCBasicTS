@@ -4,12 +4,13 @@ import { Sound, SoundData } from "./Sound";
 import { Canvas } from "./Canvas";
 import { Variables, VariableMap } from "./Variables";
 import { ICpcVmRsx } from "./Interfaces";
-interface CpcVmOptions {
+export interface CpcVmOptions {
     canvas: Canvas;
     keyboard: Keyboard;
     sound: Sound;
     variables: Variables;
     tron: boolean;
+    quiet?: boolean;
 }
 export interface FileMeta {
     typeString: string;
@@ -77,6 +78,7 @@ declare type PrintObjectType = {
 };
 declare type DataEntryType = (string | undefined);
 export declare class CpcVm {
+    private quiet;
     private readonly fnOpeninHandler;
     private readonly fnCloseinHandler;
     private readonly fnCloseoutHandler;
@@ -162,7 +164,7 @@ export declare class CpcVm {
     private vmAssertNumber;
     private vmAssertString;
     vmRound(n: number | undefined, err?: string): number;
-    vmInRangeRound(n: number | undefined, min: number, max: number, err?: string): number;
+    vmInRangeRound(n: number | undefined, min: number, max: number, err: string): number;
     private vmRound2Complement;
     vmDetermineVarType(varType: string): string;
     vmAssertNumberType(varType: string): void;
