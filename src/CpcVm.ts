@@ -210,7 +210,7 @@ export class CpcVm {
 
 	private zoneValue = 13; // print tab zone value
 
-	modeValue = -1;
+	private modeValue = -1;
 
 	rsx?: ICpcVmRsx; // called from scripts
 
@@ -611,6 +611,32 @@ export class CpcVm {
 		Object.assign(this.windowDataList[9], winData, cassetteData); // cassette
 	}
 
+	/*
+	vmTestGetWindowData(stream: number): WindowData {
+		return this.windowDataList[stream];
+	}
+
+	vmTestGetTimerEntry(timer: number): TimerEntry {
+		return this.timerList[timer];
+	}
+	*/
+
+	/*
+	private testPrivateProperties: Record<string, any> = {
+		windowDataList0: this.windowDataList
+	}
+	*/
+
+	/*
+	vmTestGetProperty(name: string): any {
+		return (this as any)[name];
+	}
+
+	vmTestSetProperty(name: string, value: any): any {
+		(this as any)[name] = value;
+	}
+	*/
+
 	vmResetControlBuffer(): void {
 		this.printControlBuf = ""; // collected control characters for PRINT
 	}
@@ -705,7 +731,9 @@ export class CpcVm {
 	vmInRangeRound(n: number | undefined, min: number, max: number, err: string): number {
 		n = this.vmRound(n, err);
 		if (n < min || n > max) {
-			Utils.console.warn("vmInRangeRound: number not in range:", min + "<=" + n + "<=" + max);
+			if (!this.quiet) {
+				Utils.console.warn("vmInRangeRound: number not in range:", min + "<=" + n + "<=" + max);
+			}
 			throw this.vmComposeError(Error(), n < -32768 || n > 32767 ? 6 : 5, err + " " + n); // 6=Overflow, 5=Improper argument
 		}
 		return n;
@@ -1232,9 +1260,17 @@ export class CpcVm {
 		}
 	}
 
-	call(addr: number): void { // eslint-disable-line complexity
+	call(addr: number, ...args: (string|number)[]): void { // eslint-disable-line complexity
 		// varargs (adr + parameters)
 		addr = this.vmRound2Complement(addr, "CALL");
+		if (args.length > 32) { // more that 32 arguments?
+			throw this.vmComposeError(Error(), 2, "CALL "); // Syntax Error
+		}
+		for (let i = 0; i < args.length; i += 1) {
+			if (typeof args[i] === "number") {
+				args[i] = this.vmRound2Complement(args[i] as number, "CALL"); //TTT
+			}
+		}
 		switch (addr) {
 		case 0xbb00: // KM Initialize (ROM &19E0)
 			this.keyboard.resetCpcKeysExpansions();
@@ -1610,7 +1646,8 @@ export class CpcVm {
 	dec$(n: number, frmt: string): string {
 		this.vmAssertNumber(n, "DEC$");
 		this.vmAssertString(frmt, "DEC$");
-		return this.vmUsingFormat(frmt, n);
+		//return this.vmUsingFormat(frmt, n);
+		return this.vmUsingNumberFormat(frmt, n);
 	}
 
 	// def fn
@@ -1634,9 +1671,7 @@ export class CpcVm {
 	"delete"(first?: number, last?: number): void {
 		if (first === undefined) {
 			first = 1;
-			if (last === undefined) { // no first and last parameter?
-				last = 65535;
-			}
+			last = last === undefined ? 65535 : this.vmInRangeRound(last, 1, 65535, "DELETE");
 		} else {
 			first = this.vmInRangeRound(first, 1, 65535, "DELETE");
 			if (last === undefined) { // just one parameter?
@@ -2435,7 +2470,9 @@ export class CpcVm {
 
 		const winData = CpcVm.winData[this.modeValue];
 
+		/*
 		Utils.console.log("rsxMode: (test)", mode);
+		*/
 
 		for (let i = 0; i < CpcVm.streamCount - 2; i += 1) { // for window streams
 			const win = this.windowDataList[i];
@@ -3942,4 +3979,21 @@ export class CpcVm {
 	zone(n: number): void {
 		this.zoneValue = this.vmInRangeRound(n, 1, 255, "ZONE");
 	}
+
+	// access some private stuff for testing
+
+	private vmTestGetTimerList(): TimerEntry[] {
+		return this.timerList;
+	}
+
+	private vmTestGetWindowDataList(): WindowData[] {
+		return this.windowDataList;
+	}
+
+	/* eslint-disable no-invalid-this */
+	readonly vmInternal = {
+		getTimerList: this.vmTestGetTimerList,
+		getWindowDataList: this.vmTestGetWindowDataList
+	}
+	/* eslint-enable no-invalid-this */
 }

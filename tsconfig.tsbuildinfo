@@ -287,8 +287,8 @@
         "affectsGlobalScope": false
       },
       "../src/CpcVm.ts": {
-        "version": "ca0ce4dfcd4f2f19f106f678a4576c6cf1ac027fb4a17e9440b5aa0e87aab444",
-        "signature": "fef0c5ac1236fcd6c3162b14b18991810c8a3fc790c642a36457df6ae5d97ba7",
+        "version": "c7a15b4750bcdfbc0d723b62c83e876d8457ec73e935288de92e18e503e372c9",
+        "signature": "5365dcefaba0562faa9b085e3516c518504c227d060a7f6c325691c480d5ee8c",
         "affectsGlobalScope": false
       },
       "../src/CpcVmRsx.ts": {

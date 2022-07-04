@@ -302,12 +302,12 @@
         "affectsGlobalScope": false
       },
       "../types/CpcVm.d.ts": {
-        "version": "fef0c5ac1236fcd6c3162b14b18991810c8a3fc790c642a36457df6ae5d97ba7",
-        "signature": "fef0c5ac1236fcd6c3162b14b18991810c8a3fc790c642a36457df6ae5d97ba7",
+        "version": "5365dcefaba0562faa9b085e3516c518504c227d060a7f6c325691c480d5ee8c",
+        "signature": "5365dcefaba0562faa9b085e3516c518504c227d060a7f6c325691c480d5ee8c",
         "affectsGlobalScope": false
       },
       "../../src/test/CpcVm.qunit.ts": {
-        "version": "3b33a94402f00e59206a8e50e358b49aa4b29cdcaa0df4ee789533c1a3a03c18",
+        "version": "6d72a5da8ac8e677380f7d6f38e57b3decff6a9fa459ff94a07e569fcd2f350b",
         "signature": "268e688401d8911f1ecd97206559b40640dd907d6c9af91531c6ef2706aeec5e",
         "affectsGlobalScope": false
       },

@@ -43,6 +43,11 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.timerPriority = -1; // priority of running task: -1=low (min priority to start new timers)
             this.zoneValue = 13; // print tab zone value
             this.modeValue = -1;
+            /* eslint-disable no-invalid-this */
+            this.vmInternal = {
+                getTimerList: this.vmTestGetTimerList,
+                getWindowDataList: this.vmTestGetWindowDataList
+            };
             this.fnOpeninHandler = this.vmOpeninCallback.bind(this);
             this.fnCloseinHandler = this.vmCloseinCallback.bind(this);
             this.fnCloseoutHandler = this.vmCloseoutCallback.bind(this);
@@ -218,6 +223,29 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             Object.assign(this.windowDataList[8], winData, printData); // printer
             Object.assign(this.windowDataList[9], winData, cassetteData); // cassette
         };
+        /*
+        vmTestGetWindowData(stream: number): WindowData {
+            return this.windowDataList[stream];
+        }
+    
+        vmTestGetTimerEntry(timer: number): TimerEntry {
+            return this.timerList[timer];
+        }
+        */
+        /*
+        private testPrivateProperties: Record<string, any> = {
+            windowDataList0: this.windowDataList
+        }
+        */
+        /*
+        vmTestGetProperty(name: string): any {
+            return (this as any)[name];
+        }
+    
+        vmTestSetProperty(name: string, value: any): any {
+            (this as any)[name] = value;
+        }
+        */
         CpcVm.prototype.vmResetControlBuffer = function () {
             this.printControlBuf = ""; // collected control characters for PRINT
         };
@@ -296,7 +324,9 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         CpcVm.prototype.vmInRangeRound = function (n, min, max, err) {
             n = this.vmRound(n, err);
             if (n < min || n > max) {
-                Utils_1.Utils.console.warn("vmInRangeRound: number not in range:", min + "<=" + n + "<=" + max);
+                if (!this.quiet) {
+                    Utils_1.Utils.console.warn("vmInRangeRound: number not in range:", min + "<=" + n + "<=" + max);
+                }
                 throw this.vmComposeError(Error(), n < -32768 || n > 32767 ? 6 : 5, err + " " + n); // 6=Overflow, 5=Improper argument
             }
             return n;
@@ -733,8 +763,20 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             }
         };
         CpcVm.prototype.call = function (addr) {
+            var args = [];
+            for (var _i = 1; _i < arguments.length; _i++) {
+                args[_i - 1] = arguments[_i];
+            }
             // varargs (adr + parameters)
             addr = this.vmRound2Complement(addr, "CALL");
+            if (args.length > 32) { // more that 32 arguments?
+                throw this.vmComposeError(Error(), 2, "CALL "); // Syntax Error
+            }
+            for (var i = 0; i < args.length; i += 1) {
+                if (typeof args[i] === "number") {
+                    args[i] = this.vmRound2Complement(args[i], "CALL"); //TTT
+                }
+            }
             switch (addr) {
                 case 0xbb00: // KM Initialize (ROM &19E0)
                     this.keyboard.resetCpcKeysExpansions();
@@ -1069,7 +1111,8 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         CpcVm.prototype.dec$ = function (n, frmt) {
             this.vmAssertNumber(n, "DEC$");
             this.vmAssertString(frmt, "DEC$");
-            return this.vmUsingFormat(frmt, n);
+            //return this.vmUsingFormat(frmt, n);
+            return this.vmUsingNumberFormat(frmt, n);
         };
         // def fn
         CpcVm.prototype.defint = function (nameOrRange) {
@@ -1087,9 +1130,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         CpcVm.prototype["delete"] = function (first, last) {
             if (first === undefined) {
                 first = 1;
-                if (last === undefined) { // no first and last parameter?
-                    last = 65535;
-                }
+                last = last === undefined ? 65535 : this.vmInRangeRound(last, 1, 65535, "DELETE");
             }
             else {
                 first = this.vmInRangeRound(first, 1, 65535, "DELETE");
@@ -1790,7 +1831,9 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         CpcVm.prototype.vmChangeMode = function (mode) {
             this.modeValue = mode;
             var winData = CpcVm.winData[this.modeValue];
-            Utils_1.Utils.console.log("rsxMode: (test)", mode);
+            /*
+            Utils.console.log("rsxMode: (test)", mode);
+            */
             for (var i = 0; i < CpcVm.streamCount - 2; i += 1) { // for window streams
                 var win = this.windowDataList[i];
                 Object.assign(win, winData);
@@ -3110,6 +3153,13 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         };
         CpcVm.prototype.zone = function (n) {
             this.zoneValue = this.vmInRangeRound(n, 1, 255, "ZONE");
+        };
+        // access some private stuff for testing
+        CpcVm.prototype.vmTestGetTimerList = function () {
+            return this.timerList;
+        };
+        CpcVm.prototype.vmTestGetWindowDataList = function () {
+            return this.windowDataList;
         };
         CpcVm.frameTimeMs = 1000 / 50; // 50 Hz => 20 ms
         CpcVm.timerCount = 4; // number of timers

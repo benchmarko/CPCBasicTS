@@ -39,6 +39,33 @@ interface OutFile extends FileBase {
     length: number;
     entry: number;
 }
+interface WindowDimensions {
+    left: number;
+    right: number;
+    top: number;
+    bottom: number;
+}
+interface WindowData extends WindowDimensions {
+    pos: number;
+    vpos: number;
+    textEnabled: boolean;
+    tag: boolean;
+    transparent: boolean;
+    cursorOn: boolean;
+    cursorEnabled: boolean;
+    pen: number;
+    paper: number;
+}
+interface TimerEntry {
+    active: boolean;
+    line: number;
+    repeat: boolean;
+    intervalMs: number;
+    nextTimeMs: number;
+    handlerRunning: boolean;
+    stackIndexReturn: number;
+    savedPriority: number;
+}
 export interface VmBaseParas {
     command: string;
     stream: number;
@@ -132,7 +159,7 @@ export declare class CpcVm {
     private minCustomChar;
     private timerPriority;
     private zoneValue;
-    modeValue: number;
+    private modeValue;
     rsx?: ICpcVmRsx;
     private static readonly frameTimeMs;
     private static readonly timerCount;
@@ -209,7 +236,7 @@ export declare class CpcVm {
     private vmMcSetMode;
     private vmTxtInverse;
     private vmPutKeyInBuffer;
-    call(addr: number): void;
+    call(addr: number, ...args: (string | number)[]): void;
     cat(): void;
     chain(name: string, line?: number): void;
     chainMerge(name: string, line?: number, first?: number, last?: number): void;
@@ -400,6 +427,12 @@ export declare class CpcVm {
     xpos(): number;
     ypos(): number;
     zone(n: number): void;
+    private vmTestGetTimerList;
+    private vmTestGetWindowDataList;
+    readonly vmInternal: {
+        getTimerList: () => TimerEntry[];
+        getWindowDataList: () => WindowData[];
+    };
 }
 export {};
 //# sourceMappingURL=CpcVm.d.ts.map
