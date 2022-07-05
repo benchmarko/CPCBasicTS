@@ -1500,7 +1500,7 @@ declare module "CpcVm" {
         fill(gPen: number): void;
         fix(n: number): number;
         frame(): void;
-        fre(): number;
+        fre(arg: number | string): number;
         gosub(retLabel: string | number, n: number): void;
         "goto"(n: string): void;
         graphicsPaper(gPaper: number): void;

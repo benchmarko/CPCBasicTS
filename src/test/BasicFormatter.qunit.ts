@@ -17,11 +17,11 @@ QUnit.module("BasicFormatter:renumber: Tests", function () {
 			"1 auto 100": "10 auto 100"
 		},
 		"chain, chain merge": {
-			"1 chain\"f2\",1": "10 chain\"f2\",1",
-			"1 chain\"f3\",1+3": "10 chain\"f3\",1+3",
-			"1 chain merge \"f2\",1": "10 chain merge \"f2\",1",
-			"1 chain merge \"f3\",1+3": "10 chain merge \"f3\",1+3",
-			"1 chain merge \"f4\",1+3,delete 100-200\n100 rem\n200 rem": "10 chain merge \"f4\",1+3,delete 20-30\n20 rem\n30 rem"
+			'1 chain"f2",1': '10 chain"f2",1',
+			'1 chain"f3",1+3': '10 chain"f3",1+3',
+			'1 chain merge "f2",1': '10 chain merge "f2",1',
+			'1 chain merge "f3",1+3': '10 chain merge "f3",1+3',
+			'1 chain merge "f4",1+3,delete 100-200\n100 rem\n200 rem': '10 chain merge "f4",1+3,delete 20-30\n20 rem\n30 rem'
 		},
 		"delete": {
 			"1 delete": "10 delete",
@@ -58,7 +58,7 @@ QUnit.module("BasicFormatter:renumber: Tests", function () {
 		},
 		"on break ..., on error goto, on gosub, on goto, on sq gosub": {
 			"1 on break gosub 1": "10 on break gosub 10",
-			"1 on error goto 0": "10 on error goto 0", // do not rename "on error goto 0" line
+			"1 on error goto 0": "10 on error goto 0",
 			"1 on error goto 2\n2 rem": "10 on error goto 20\n20 rem",
 			"1 on 1 gosub 1": "10 on 1 gosub 10",
 			"1 on x gosub 1,2\n2 rem": "10 on x gosub 10,20\n20 rem",
@@ -112,7 +112,8 @@ QUnit.module("BasicFormatter:renumber: Tests", function () {
 					expected = expected.replace(/(0b[01]+)/g, fnReplacer); // for old IE
 				}
 				if (results) {
-					results.push('"' + key.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '": "' + result.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '"');
+					//results.push('"' + key.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '": "' + result.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '"');
+					results.push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
 				}
 
 				if (assert) {

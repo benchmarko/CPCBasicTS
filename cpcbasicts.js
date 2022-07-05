@@ -12470,7 +12470,10 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.frame = function () {
             this.vmStop("waitFrame", 40);
         };
-        CpcVm.prototype.fre = function ( /* arg */) {
+        CpcVm.prototype.fre = function (arg) {
+            if (typeof arg !== "number" && typeof arg !== "string") {
+                throw this.vmComposeError(Error(), 2, "FRE"); // Syntax Error
+            }
             return this.himemValue; // example, e.g. 42245;
         };
         CpcVm.prototype.gosub = function (retLabel, n) {

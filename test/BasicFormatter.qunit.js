@@ -12,11 +12,11 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
                 "1 auto 100": "10 auto 100"
             },
             "chain, chain merge": {
-                "1 chain\"f2\",1": "10 chain\"f2\",1",
-                "1 chain\"f3\",1+3": "10 chain\"f3\",1+3",
-                "1 chain merge \"f2\",1": "10 chain merge \"f2\",1",
-                "1 chain merge \"f3\",1+3": "10 chain merge \"f3\",1+3",
-                "1 chain merge \"f4\",1+3,delete 100-200\n100 rem\n200 rem": "10 chain merge \"f4\",1+3,delete 20-30\n20 rem\n30 rem"
+                '1 chain"f2",1': '10 chain"f2",1',
+                '1 chain"f3",1+3': '10 chain"f3",1+3',
+                '1 chain merge "f2",1': '10 chain merge "f2",1',
+                '1 chain merge "f3",1+3': '10 chain merge "f3",1+3',
+                '1 chain merge "f4",1+3,delete 100-200\n100 rem\n200 rem': '10 chain merge "f4",1+3,delete 20-30\n20 rem\n30 rem'
             },
             "delete": {
                 "1 delete": "10 delete",
@@ -98,7 +98,8 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
                         expected = expected.replace(/(0b[01]+)/g, fnReplacer); // for old IE
                     }
                     if (results) {
-                        results.push('"' + key.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '": "' + result.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '"');
+                        //results.push('"' + key.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '": "' + result.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '"');
+                        results.push(TestHelper_1.TestHelper.stringInQuotes(key) + ": " + TestHelper_1.TestHelper.stringInQuotes(result));
                     }
                     if (assert) {
                         assert.strictEqual(result, expected, key);

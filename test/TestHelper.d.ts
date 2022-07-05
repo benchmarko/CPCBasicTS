@@ -14,6 +14,9 @@ export declare class TestHelper {
     private static fnParseArgs;
     private static fnParseUri;
     private static generateTests;
+    static stringInQuotes(s: string): string;
+    private static readonly jsKeywords;
+    private static createJsKeywordRegex;
     private static generateAllResults;
     static generateAndRunAllTests(allTests: AllTestsType, runTestsFor: runTestsForType): void;
 }

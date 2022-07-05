@@ -222,22 +222,22 @@
         "affectsGlobalScope": false
       },
       "../../src/test/TestHelper.ts": {
-        "version": "45801515cbe8053e1ba73beb4f6ad635ce5dff2eddde68862857e620d6f09de4",
-        "signature": "013b3b10e1a10590a40f9abea02e8e6fad5242d90fcc7b8d7794c7f5b1b083f0",
+        "version": "1dce5391fc92636b117656e8a4eeaeac7a51ab00d7c9cdc6722c973dce42d3ea",
+        "signature": "a50b2d0fd1267dbdabf8416b80552eae3cc9335d98889b7c32bf5832dd1a38b1",
         "affectsGlobalScope": true
       },
       "../../src/test/BasicFormatter.qunit.ts": {
-        "version": "8b0639c0d0d5ad6f304bab65fb85a4a4572727b425d462114ee124eb15794b92",
+        "version": "0a2e290023263e30723956b4a97228743aa9ab5246da4fe986209a3427959023",
         "signature": "e3b2ce05a475b280eb97f3ac12672c08a4cdbbcb23600a102e15e3676e7f75b1",
         "affectsGlobalScope": false
       },
       "../../src/test/BasicLexer.qunit.ts": {
-        "version": "4a8d27b4904e22f3bda230b48e6287f1c34f40931c3fe1c850915a463d2b2454",
+        "version": "835dd22cd821c9b4c5cedf42fe41147b98055bbf1b717d238898111054e76089",
         "signature": "b17c93cb3e63049d669693008e0e6b2b06d687b4b143a81d3596ba721c1b8106",
         "affectsGlobalScope": false
       },
       "../../src/test/BasicParser.qunit.ts": {
-        "version": "8e4b1e759175f25e80badb5871e9c5090c1114dd5861aa27e9ac824f5690e080",
+        "version": "f67c1b5bc4c80f0145485e3d0caa05c5ffc893e7285c8bcc267cfd7f3bb7a031",
         "signature": "843bf6e9f957d73795c999ed71051e90df1a57a9a9bb7d7308bc28f3c8540da6",
         "affectsGlobalScope": false
       },
@@ -247,7 +247,7 @@
         "affectsGlobalScope": false
       },
       "../../src/test/BasicTokenizer.qunit.ts": {
-        "version": "689286642fdf320f429ba5a2966af8024ea31a39c451d37362b9b1e9428108dc",
+        "version": "3d582358cf0f6f1f96aabc1dfbbc9a8b647a83774bf985a3f4cf24899171a0f4",
         "signature": "6f97d3738810536c119b7328d5092ea35cd8fc7fbd5a77a52461a1825daa8a1f",
         "affectsGlobalScope": false
       },
@@ -257,7 +257,7 @@
         "affectsGlobalScope": false
       },
       "../../src/test/CodeGeneratorBasic.qunit.ts": {
-        "version": "68c6726def68743fe12928e70ef49d248889a5e81d95d03ed9b32590027fb825",
+        "version": "d85f2589db812baca2732fc88446b9aa7390f1ebd0e1b06a636e617cd129033f",
         "signature": "693279c73db0e095654343c2bf5142ff2f642264e842ddf910e57c8ae77c053e",
         "affectsGlobalScope": false
       },
@@ -272,7 +272,7 @@
         "affectsGlobalScope": false
       },
       "../../src/test/CodeGeneratorJs.qunit.ts": {
-        "version": "9b04cc8b00394884b17247abdbfd9fcad3f2ea887eb9601907c9c2ba7fb45299",
+        "version": "c71b096d6a7c4de3df0a50541a0e529efe516c11a248b7327b6cbaf6f64f8dac",
         "signature": "0de15ad5d19532aef4039ea7ca938a9a1b4dd3d7a6e3d2b02e1c4de965d5e58b",
         "affectsGlobalScope": false
       },
@@ -282,7 +282,7 @@
         "affectsGlobalScope": false
       },
       "../../src/test/CodeGeneratorToken.qunit.ts": {
-        "version": "baffc822ab4c95b943ad8f24562f652b3d4cd64a0dde2cf6da5ff2f8f229d40f",
+        "version": "a4064be36f2fcc171d8afe062be2023f52cdf794ff491b079f07c112e8ab61fa",
         "signature": "8910c6561fc9c4b7958260275388e6838815c862a2b555aed803450187c117f0",
         "affectsGlobalScope": false
       },
@@ -302,12 +302,12 @@
         "affectsGlobalScope": false
       },
       "../types/CpcVm.d.ts": {
-        "version": "5365dcefaba0562faa9b085e3516c518504c227d060a7f6c325691c480d5ee8c",
-        "signature": "5365dcefaba0562faa9b085e3516c518504c227d060a7f6c325691c480d5ee8c",
+        "version": "ff3bd8918c4d99c8aa516894bcd4ba932c18812dc007a4de652cfa58059d25bd",
+        "signature": "ff3bd8918c4d99c8aa516894bcd4ba932c18812dc007a4de652cfa58059d25bd",
         "affectsGlobalScope": false
       },
       "../../src/test/CpcVm.qunit.ts": {
-        "version": "6d72a5da8ac8e677380f7d6f38e57b3decff6a9fa459ff94a07e569fcd2f350b",
+        "version": "fbd2026c50dfb36e7a9e420b4ed5bd8e1a47b0e2ab888f36563da1a0a267de94",
         "signature": "268e688401d8911f1ecd97206559b40640dd907d6c9af91531c6ef2706aeec5e",
         "affectsGlobalScope": false
       },
@@ -332,7 +332,7 @@
         "affectsGlobalScope": false
       },
       "../../src/test/DiskImage.qunit.ts": {
-        "version": "86688d863b4e94808671abcf64d7764468507b3d87831b16e3a85c2cd81a70df",
+        "version": "8aa8f3ad2c53cfc1d97dd6001f91cbc6e9f343f8ead366fb7db171be7b2b2e03",
         "signature": "9837ff80ab00f3e3756f223ac5029808618caf0c45b0d9b3bf474f99acf0162f",
         "affectsGlobalScope": false
       },
@@ -352,7 +352,7 @@
         "affectsGlobalScope": false
       },
       "../../src/test/ZipFile.qunit.ts": {
-        "version": "590bc5856461594e9de25e34f169a3fd366592046be1c9c0a60c68fc8aa1dcea",
+        "version": "539ccb6decff33cf2e78337659ccc8cd5affdea8ca1d8764c776706284b49ff0",
         "signature": "d2d77fd9c8633c9e98026624d7b2379576e54872c6eec55a13f38028e9ee9d75",
         "affectsGlobalScope": false
       },
