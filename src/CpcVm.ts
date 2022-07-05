@@ -1915,7 +1915,10 @@ export class CpcVm {
 		this.vmStop("waitFrame", 40);
 	}
 
-	fre(/* arg */): number { // arg is number or string
+	fre(arg: number | string): number { // arg is number or string
+		if (typeof arg !== "number" && typeof arg !== "string") {
+			throw this.vmComposeError(Error(), 2, "FRE"); // Syntax Error
+		}
 		return this.himemValue; // example, e.g. 42245;
 	}
 
