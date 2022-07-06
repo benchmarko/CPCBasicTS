@@ -634,39 +634,47 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.drawBresenhamLine(xStart, yStart, this.xPos, this.yPos);
             this.setNeedUpdate();
         };
-        Canvas.prototype.drawr = function (x, y) {
+        /*
+        drawr(x: number, y: number): void {
             x += this.xPos;
             y += this.yPos;
             this.draw(x, y);
-        };
+        }
+        */
         Canvas.prototype.move = function (x, y) {
             this.xPos = x; // must be integer
             this.yPos = y;
         };
-        Canvas.prototype.mover = function (x, y) {
+        /*
+        mover(x: number, y: number): void {
             x += this.xPos;
             y += this.yPos;
             this.move(x, y);
-        };
+        }
+        */
         Canvas.prototype.plot = function (x, y) {
             this.move(x, y);
             this.setPixel(x, y, this.gPen, this.gColMode); // must be integer
             this.setNeedUpdate();
         };
-        Canvas.prototype.plotr = function (x, y) {
+        /*
+        plotr(x: number, y: number): void {
             x += this.xPos;
             y += this.yPos;
             this.plot(x, y);
-        };
+        }
+        */
         Canvas.prototype.test = function (x, y) {
             this.move(x, y);
             return this.testPixel(this.xPos, this.yPos); // use rounded values
         };
-        Canvas.prototype.testr = function (x, y) {
+        /*
+        testr(x: number, y: number): number {
             x += this.xPos;
             y += this.yPos;
             return this.test(x, y);
-        };
+        }
+        */
         Canvas.prototype.setInk = function (pen, ink1, ink2) {
             var needInkUpdate = false;
             if (this.currentInks[0][pen] !== ink1) {

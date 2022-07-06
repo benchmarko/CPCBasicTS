@@ -952,22 +952,26 @@ export class Canvas {
 		this.setNeedUpdate();
 	}
 
+	/*
 	drawr(x: number, y: number): void {
 		x += this.xPos;
 		y += this.yPos;
 		this.draw(x, y);
 	}
+	*/
 
 	move(x: number, y: number): void {
 		this.xPos = x; // must be integer
 		this.yPos = y;
 	}
 
+	/*
 	mover(x: number, y: number): void {
 		x += this.xPos;
 		y += this.yPos;
 		this.move(x, y);
 	}
+	*/
 
 	plot(x: number, y: number): void {
 		this.move(x, y);
@@ -975,22 +979,26 @@ export class Canvas {
 		this.setNeedUpdate();
 	}
 
+	/*
 	plotr(x: number, y: number): void {
 		x += this.xPos;
 		y += this.yPos;
 		this.plot(x, y);
 	}
+	*/
 
 	test(x: number, y: number): number {
 		this.move(x, y);
 		return this.testPixel(this.xPos, this.yPos); // use rounded values
 	}
 
+	/*
 	testr(x: number, y: number): number {
 		x += this.xPos;
 		y += this.yPos;
 		return this.test(x, y);
 	}
+	*/
 
 	setInk(pen: number, ink1: number, ink2: number): boolean {
 		let needInkUpdate = false;

@@ -665,7 +665,6 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
                 if (tests.hasOwnProperty(key)) {
                     var expected = tests[key], output = codeGeneratorToken.generate(key, true), result = output.error ? String(output.error) : fnBin2Hex(output.text);
                     if (results) {
-                        //results.push('"' + key.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '": "' + result.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '"');
                         results.push(TestHelper_1.TestHelper.stringInQuotes(key) + ": " + TestHelper_1.TestHelper.stringInQuotes(result));
                     }
                     if (assert) {

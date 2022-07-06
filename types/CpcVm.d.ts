@@ -298,7 +298,7 @@ export declare class CpcVm {
     inkey(key: number): number;
     inkey$(): string;
     inp(port: number): number;
-    vmSetInputValues(inputValues: (string | number)[]): void;
+    private vmSetInputValues;
     vmGetNextInput(): string | number | undefined;
     vmInputCallback(): boolean;
     private fnFileInputGetString;
@@ -318,7 +318,7 @@ export declare class CpcVm {
     list(stream: number, first?: number, last?: number): void;
     private vmLoadCallback;
     load(name: string, start?: number): void;
-    vmLocate(stream: number, pos: number, vpos: number): void;
+    private vmLocate;
     locate(stream: number, pos: number, vpos: number): void;
     log(n: number): number;
     log10(n: number): number;

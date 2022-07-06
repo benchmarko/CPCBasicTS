@@ -66,7 +66,6 @@ QUnit.module("ZipFile: Tests", function () {
 				}
 
 				if (results) {
-					//results.push('"' + key + '": "' + result + '"');
 					results.push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
 				}
 

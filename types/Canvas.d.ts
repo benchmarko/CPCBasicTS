@@ -107,13 +107,9 @@ export declare class Canvas {
     setByte(addr: number, byte: number): void;
     private drawBresenhamLine;
     draw(x: number, y: number): void;
-    drawr(x: number, y: number): void;
     move(x: number, y: number): void;
-    mover(x: number, y: number): void;
     plot(x: number, y: number): void;
-    plotr(x: number, y: number): void;
     test(x: number, y: number): number;
-    testr(x: number, y: number): number;
     setInk(pen: number, ink1: number, ink2: number): boolean;
     setBorder(ink1: number, ink2: number): void;
     setGPen(gPen: number): void;

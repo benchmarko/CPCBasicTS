@@ -78,13 +78,6 @@ define(["require", "exports", "../Utils"], function (require, exports, Utils_1) 
             s = s.replace(/[\x00-\x09\x0b\x0c\x0e-\x1f\x80-\xff]/g, function (char) {
                 return "\\x" + ("00" + char.charCodeAt(0).toString(16)).slice(-2);
             });
-            /*
-            if (s.indexOf('"') >= 0 && s.indexOf("'") < 0) { // we have " but no ' in the string
-                return "'" + s + "'";
-            } else if (s.indexOf("'") >= 0 && s.indexOf('"') < 0) { // we have ' but no " in the string
-                return '"' + s + '"';
-            }
-            */
             var count1 = s.split('"').length - 1, count2 = s.split("'").length - 1;
             if (count1 > count2) { // more " than ' in the string
                 return "'" + s.replace(/'/g, "\\'") + "'";
@@ -100,8 +93,6 @@ define(["require", "exports", "../Utils"], function (require, exports, Utils_1) 
             for (var category in allTests) {
                 if (allTests.hasOwnProperty(category)) {
                     var results = [], containsSpace = category.indexOf(" ") >= 0, isJsKeyword = reJsKeywords.test(category);
-                    //marker = containsSpace ? '"' : "";
-                    //result += marker + category + marker + ": {\n";
                     result += containsSpace || isJsKeyword ? TestHelper.stringInQuotes(category) : category;
                     result += ": {\n";
                     runTestsFor(undefined, category, allTests[category], results);

@@ -142,8 +142,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var trackInfoPos = diskInfo.trackPos[track * diskInfo.heads + head];
             if (trackInfoPos === undefined) {
                 throw this.composeError(new Error(), "Track not found", String(track));
-                //Utils.console.warn("Trying to read last track", String(diskInfo.tracks - 1));
-                //trackInfoPos = diskInfo.trackPos[(diskInfo.tracks - 1) * diskInfo.heads + head]; // try to seek last track
             }
             this.readTrackInfo(trackInfoPos);
         };

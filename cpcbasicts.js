@@ -207,7 +207,6 @@ define("Utils", ["require", "exports"], function (require, exports) {
             customError.name = name;
             customError.message = message;
             customError.value = value;
-            //customError.pos = pos || 0;
             if (pos !== undefined) {
                 customError.pos = pos;
             }
@@ -225,8 +224,6 @@ define("Utils", ["require", "exports"], function (require, exports) {
                 errorLen = String(customError.value).length;
             }
             var endPos = (customError.pos || 0) + (errorLen || 0), lineMsg = (customError.line !== undefined ? " in " + customError.line : ""), posMsg = pos !== undefined ? (" at pos " + (pos !== endPos ? customError.pos + "-" + endPos : customError.pos)) : "";
-            //customError.shortMessage = customError.message + (customError.line !== undefined ? " in " + customError.line : " at pos " + customError.pos + "-" + endPos) + ": " + customError.value;
-            //customError.message +=                           (customError.line !== undefined ? " in " + customError.line : "") + " at pos " + customError.pos + "-" + endPos + ": " + customError.value;
             customError.shortMessage = customError.message + (lineMsg || posMsg) + ": " + customError.value;
             customError.message += lineMsg + posMsg + ": " + customError.value;
             return customError;
@@ -6857,8 +6854,6 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             var trackInfoPos = diskInfo.trackPos[track * diskInfo.heads + head];
             if (trackInfoPos === undefined) {
                 throw this.composeError(new Error(), "Track not found", String(track));
-                //Utils.console.warn("Trying to read last track", String(diskInfo.tracks - 1));
-                //trackInfoPos = diskInfo.trackPos[(diskInfo.tracks - 1) * diskInfo.heads + head]; // try to seek last track
             }
             this.readTrackInfo(trackInfoPos);
         };
@@ -9507,39 +9502,47 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.drawBresenhamLine(xStart, yStart, this.xPos, this.yPos);
             this.setNeedUpdate();
         };
-        Canvas.prototype.drawr = function (x, y) {
+        /*
+        drawr(x: number, y: number): void {
             x += this.xPos;
             y += this.yPos;
             this.draw(x, y);
-        };
+        }
+        */
         Canvas.prototype.move = function (x, y) {
             this.xPos = x; // must be integer
             this.yPos = y;
         };
-        Canvas.prototype.mover = function (x, y) {
+        /*
+        mover(x: number, y: number): void {
             x += this.xPos;
             y += this.yPos;
             this.move(x, y);
-        };
+        }
+        */
         Canvas.prototype.plot = function (x, y) {
             this.move(x, y);
             this.setPixel(x, y, this.gPen, this.gColMode); // must be integer
             this.setNeedUpdate();
         };
-        Canvas.prototype.plotr = function (x, y) {
+        /*
+        plotr(x: number, y: number): void {
             x += this.xPos;
             y += this.yPos;
             this.plot(x, y);
-        };
+        }
+        */
         Canvas.prototype.test = function (x, y) {
             this.move(x, y);
             return this.testPixel(this.xPos, this.yPos); // use rounded values
         };
-        Canvas.prototype.testr = function (x, y) {
+        /*
+        testr(x: number, y: number): number {
             x += this.xPos;
             y += this.yPos;
             return this.test(x, y);
-        };
+        }
+        */
         Canvas.prototype.setInk = function (pen, ink1, ink2) {
             var needInkUpdate = false;
             if (this.currentInks[0][pen] !== ink1) {
@@ -11344,29 +11347,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             Object.assign(this.windowDataList[8], winData, printData); // printer
             Object.assign(this.windowDataList[9], winData, cassetteData); // cassette
         };
-        /*
-        vmTestGetWindowData(stream: number): WindowData {
-            return this.windowDataList[stream];
-        }
-    
-        vmTestGetTimerEntry(timer: number): TimerEntry {
-            return this.timerList[timer];
-        }
-        */
-        /*
-        private testPrivateProperties: Record<string, any> = {
-            windowDataList0: this.windowDataList
-        }
-        */
-        /*
-        vmTestGetProperty(name: string): any {
-            return (this as any)[name];
-        }
-    
-        vmTestSetProperty(name: string, value: any): any {
-            (this as any)[name] = value;
-        }
-        */
         CpcVm.prototype.vmResetControlBuffer = function () {
             this.printControlBuf = ""; // collected control characters for PRINT
         };
@@ -11661,7 +11641,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 str = arg.charAt(0);
             }
             else if (re1.test(format)) { // "\...\"
-                //str = arg.substr(0, format.length);
                 var padLen = format.length - arg.length, pad = (padLen > 0) ? padChar.repeat(padLen) : "";
                 str = arg + pad; // string left aligned
             }
@@ -11840,12 +11819,9 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.vmNotImplemented("AUTO");
         };
         CpcVm.prototype.bin$ = function (n, pad) {
-            n = this.vmInRangeRound(n, -32768, 65535, "BIN$");
+            n = this.vmRound2Complement(n, "BIN$");
             pad = this.vmInRangeRound(pad || 0, 0, 16, "BIN$");
-            if (n < 0) {
-                n += 65536;
-            }
-            return pad ? n.toString(2).padStart(pad, "0") : n.toString(2);
+            return n.toString(2).padStart(pad, "0");
         };
         CpcVm.prototype.border = function (ink1, ink2) {
             ink1 = this.vmInRangeRound(ink1, 0, 31, "BORDER");
@@ -11895,7 +11871,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             }
             for (var i = 0; i < args.length; i += 1) {
                 if (typeof args[i] === "number") {
-                    args[i] = this.vmRound2Complement(args[i], "CALL"); //TTT
+                    args[i] = this.vmRound2Complement(args[i], "CALL"); // even if the args itself are not used here
                 }
             }
             switch (addr) {
@@ -12232,7 +12208,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.dec$ = function (n, frmt) {
             this.vmAssertNumber(n, "DEC$");
             this.vmAssertString(frmt, "DEC$");
-            //return this.vmUsingFormat(frmt, n);
             return this.vmUsingNumberFormat(frmt, n);
         };
         // def fn
@@ -12291,10 +12266,10 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.canvas.draw(x, y);
         };
         CpcVm.prototype.drawr = function (x, y, gPen, gColMode) {
-            x = this.vmInRangeRound(x, -32768, 32767, "DRAWR");
-            y = this.vmInRangeRound(y, -32768, 32767, "DRAWR");
+            x = this.vmInRangeRound(x, -32768, 32767, "DRAWR") + this.canvas.getXpos();
+            y = this.vmInRangeRound(y, -32768, 32767, "DRAWR") + this.canvas.getYpos();
             this.vmDrawMovePlot("DRAWR", gPen, gColMode);
-            this.canvas.drawr(x, y);
+            this.canvas.draw(x, y);
         };
         CpcVm.prototype.edit = function (line) {
             var lineParas = {
@@ -12491,17 +12466,23 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.canvas.setGPaper(gPaper);
         };
         CpcVm.prototype.graphicsPen = function (gPen, transparentMode) {
+            var count = 0;
             if (gPen !== undefined) {
                 gPen = this.vmInRangeRound(gPen, 0, 15, "GRAPHICS PEN");
                 this.canvas.setGPen(gPen);
+                count += 1;
             }
             if (transparentMode !== undefined) {
                 transparentMode = this.vmInRangeRound(transparentMode, 0, 1, "GRAPHICS PEN");
                 this.canvas.setGTransparentMode(Boolean(transparentMode));
+                count += 1;
+            }
+            if (!count) {
+                throw this.vmComposeError(Error(), 22, "GRAPHICS PEN"); // Operand missing
             }
         };
         CpcVm.prototype.hex$ = function (n, pad) {
-            n = this.vmInRangeRound(n, -32768, 65535, "HEX$");
+            n = this.vmRound2Complement(n, "HEX$");
             pad = this.vmInRangeRound(pad || 0, 0, 16, "HEX$");
             return n.toString(16).toUpperCase().padStart(pad, "0");
         };
@@ -12902,7 +12883,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             return Math.max.apply(null, args);
         };
         CpcVm.prototype.memory = function (n) {
-            n = this.vmInRangeRound(n, -32768, 65535, "MEMORY");
+            n = this.vmRound2Complement(n, "MEMORY");
             if (n < CpcVm.minHimem || n > this.minCharHimem) {
                 throw this.vmComposeError(Error(), 7, "MEMORY " + n); // Memory full
             }
@@ -12955,9 +12936,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.vmChangeMode = function (mode) {
             this.modeValue = mode;
             var winData = CpcVm.winData[this.modeValue];
-            /*
-            Utils.console.log("rsxMode: (test)", mode);
-            */
             for (var i = 0; i < CpcVm.streamCount - 2; i += 1) { // for window streams
                 var win = this.windowDataList[i];
                 Object.assign(win, winData);
@@ -12979,10 +12957,10 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.canvas.move(x, y);
         };
         CpcVm.prototype.mover = function (x, y, gPen, gColMode) {
-            x = this.vmInRangeRound(x, -32768, 32767, "MOVER");
-            y = this.vmInRangeRound(y, -32768, 32767, "MOVER");
+            x = this.vmInRangeRound(x, -32768, 32767, "MOVER") + this.canvas.getXpos();
+            y = this.vmInRangeRound(y, -32768, 32767, "MOVER") + this.canvas.getYpos();
             this.vmDrawMovePlot("MOVER", gPen, gColMode);
-            this.canvas.mover(x, y);
+            this.canvas.move(x, y);
         };
         CpcVm.prototype["new"] = function () {
             this.clear();
@@ -13222,10 +13200,10 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.canvas.plot(x, y);
         };
         CpcVm.prototype.plotr = function (x, y, gPen, gColMode) {
-            x = this.vmInRangeRound(x, -32768, 32767, "PLOTR");
-            y = this.vmInRangeRound(y, -32768, 32767, "PLOTR");
+            x = this.vmInRangeRound(x, -32768, 32767, "PLOTR") + this.canvas.getXpos();
+            y = this.vmInRangeRound(y, -32768, 32767, "PLOTR") + this.canvas.getYpos();
             this.vmDrawMovePlot("PLOTR", gPen, gColMode);
-            this.canvas.plotr(x, y);
+            this.canvas.plot(x, y);
         };
         CpcVm.prototype.poke = function (addr, byte) {
             addr = this.vmRound2Complement(addr, "POKE address");
@@ -13243,23 +13221,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             }
             this.mem[addr] = byte;
         };
-        /*
-        private static vmGetPosFromFileData(fileData: string[]) {
-            const allFileData =	fileData.join(""),
-                lastLfPos = allFileData.lastIndexOf("\n"),
-                lastCrPos = allFileData.lastIndexOf("\r"),
-                lastLfOrCrPos = Math.max(lastLfPos, lastCrPos);
-    
-            return lastLfOrCrPos >= 0 ? allFileData.length - lastLfOrCrPos : allFileData.length;
-        }
-    
-        private static vmGetPosFromFileData(fileData: string[]) {
-            const allFileData =	fileData.join(""),
-                lastCrPos = allFileData.lastIndexOf("\r");
-    
-            return lastCrPos >= 0 ? allFileData.length - lastCrPos : allFileData.length;
-        }
-        */
         CpcVm.prototype.pos = function (stream) {
             stream = this.vmInRangeRound(stream, 0, 9, "POS");
             var pos;
@@ -13592,7 +13553,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                     else {
                         win.pos += str.length;
                     }
-                    //TTT really replace?
                     if (str === "\r\n") { // for now we replace CRLF by LF
                         str = "\n";
                         win.pos = 0;
@@ -14086,9 +14046,9 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             return this.canvas.test(x, y);
         };
         CpcVm.prototype.testr = function (x, y) {
-            x = this.vmInRangeRound(x, -32768, 32767, "TESTR");
-            y = this.vmInRangeRound(y, -32768, 32767, "TESTR");
-            return this.canvas.testr(x, y);
+            x = this.vmInRangeRound(x, -32768, 32767, "TESTR") + this.canvas.getXpos();
+            y = this.vmInRangeRound(y, -32768, 32767, "TESTR") + this.canvas.getYpos();
+            return this.canvas.test(x, y);
         };
         CpcVm.prototype.time = function () {
             return ((Date.now() - this.startTime) * 300 / 1000) | 0; // eslint-disable-line no-bitwise

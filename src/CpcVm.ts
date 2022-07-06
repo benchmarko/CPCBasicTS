@@ -611,32 +611,6 @@ export class CpcVm {
 		Object.assign(this.windowDataList[9], winData, cassetteData); // cassette
 	}
 
-	/*
-	vmTestGetWindowData(stream: number): WindowData {
-		return this.windowDataList[stream];
-	}
-
-	vmTestGetTimerEntry(timer: number): TimerEntry {
-		return this.timerList[timer];
-	}
-	*/
-
-	/*
-	private testPrivateProperties: Record<string, any> = {
-		windowDataList0: this.windowDataList
-	}
-	*/
-
-	/*
-	vmTestGetProperty(name: string): any {
-		return (this as any)[name];
-	}
-
-	vmTestSetProperty(name: string, value: any): any {
-		(this as any)[name] = value;
-	}
-	*/
-
 	vmResetControlBuffer(): void {
 		this.printControlBuf = ""; // collected control characters for PRINT
 	}
@@ -979,7 +953,6 @@ export class CpcVm {
 		} else if (format === "!") {
 			str = arg.charAt(0);
 		} else if (re1.test(format)) { // "\...\"
-			//str = arg.substr(0, format.length);
 			const padLen = format.length - arg.length,
 				pad = (padLen > 0) ? padChar.repeat(padLen) : "";
 
@@ -1205,12 +1178,9 @@ export class CpcVm {
 	}
 
 	bin$(n: number, pad?: number): string {
-		n = this.vmInRangeRound(n, -32768, 65535, "BIN$");
+		n = this.vmRound2Complement(n, "BIN$");
 		pad = this.vmInRangeRound(pad || 0, 0, 16, "BIN$");
-		if (n < 0) {
-			n += 65536;
-		}
-		return pad ? n.toString(2).padStart(pad, "0") : n.toString(2);
+		return n.toString(2).padStart(pad, "0");
 	}
 
 	border(ink1: number, ink2?: number): void { // ink2 optional
@@ -1268,7 +1238,7 @@ export class CpcVm {
 		}
 		for (let i = 0; i < args.length; i += 1) {
 			if (typeof args[i] === "number") {
-				args[i] = this.vmRound2Complement(args[i] as number, "CALL"); //TTT
+				args[i] = this.vmRound2Complement(args[i] as number, "CALL"); // even if the args itself are not used here
 			}
 		}
 		switch (addr) {
@@ -1646,7 +1616,6 @@ export class CpcVm {
 	dec$(n: number, frmt: string): string {
 		this.vmAssertNumber(n, "DEC$");
 		this.vmAssertString(frmt, "DEC$");
-		//return this.vmUsingFormat(frmt, n);
 		return this.vmUsingNumberFormat(frmt, n);
 	}
 
@@ -1717,10 +1686,10 @@ export class CpcVm {
 	}
 
 	drawr(x: number, y: number, gPen?: number, gColMode?: number): void {
-		x = this.vmInRangeRound(x, -32768, 32767, "DRAWR");
-		y = this.vmInRangeRound(y, -32768, 32767, "DRAWR");
+		x = this.vmInRangeRound(x, -32768, 32767, "DRAWR") + this.canvas.getXpos();
+		y = this.vmInRangeRound(y, -32768, 32767, "DRAWR") + this.canvas.getYpos();
 		this.vmDrawMovePlot("DRAWR", gPen, gColMode);
-		this.canvas.drawr(x, y);
+		this.canvas.draw(x, y);
 	}
 
 	edit(line: number): void {
@@ -1940,19 +1909,27 @@ export class CpcVm {
 	}
 
 	graphicsPen(gPen?: number, transparentMode?: number): void {
+		let count = 0;
+
 		if (gPen !== undefined) {
 			gPen = this.vmInRangeRound(gPen, 0, 15, "GRAPHICS PEN");
 			this.canvas.setGPen(gPen);
+			count += 1;
 		}
 
 		if (transparentMode !== undefined) {
 			transparentMode = this.vmInRangeRound(transparentMode, 0, 1, "GRAPHICS PEN");
 			this.canvas.setGTransparentMode(Boolean(transparentMode));
+			count += 1;
+		}
+
+		if (!count) {
+			throw this.vmComposeError(Error(), 22, "GRAPHICS PEN"); // Operand missing
 		}
 	}
 
 	hex$(n: number, pad?: number): string {
-		n = this.vmInRangeRound(n, -32768, 65535, "HEX$");
+		n = this.vmRound2Complement(n, "HEX$");
 		pad = this.vmInRangeRound(pad || 0, 0, 16, "HEX$");
 		return n.toString(16).toUpperCase().padStart(pad, "0");
 	}
@@ -2006,7 +1983,7 @@ export class CpcVm {
 		return byte;
 	}
 
-	vmSetInputValues(inputValues: (string | number)[]): void {
+	private vmSetInputValues(inputValues: (string | number)[]): void {
 		this.inputValues = inputValues;
 	}
 
@@ -2356,7 +2333,7 @@ export class CpcVm {
 		this.vmStop("fileLoad", 90);
 	}
 
-	vmLocate(stream: number, pos: number, vpos: number): void {
+	private vmLocate(stream: number, pos: number, vpos: number): void {
 		const win = this.windowDataList[stream];
 
 		win.pos = pos - 1;
@@ -2414,7 +2391,7 @@ export class CpcVm {
 	}
 
 	memory(n: number): void {
-		n = this.vmInRangeRound(n, -32768, 65535, "MEMORY");
+		n = this.vmRound2Complement(n, "MEMORY");
 
 		if (n < CpcVm.minHimem || n > this.minCharHimem) {
 			throw this.vmComposeError(Error(), 7, "MEMORY " + n); // Memory full
@@ -2473,10 +2450,6 @@ export class CpcVm {
 
 		const winData = CpcVm.winData[this.modeValue];
 
-		/*
-		Utils.console.log("rsxMode: (test)", mode);
-		*/
-
 		for (let i = 0; i < CpcVm.streamCount - 2; i += 1) { // for window streams
 			const win = this.windowDataList[i];
 
@@ -2503,10 +2476,10 @@ export class CpcVm {
 	}
 
 	mover(x: number, y: number, gPen?: number, gColMode?: number): void {
-		x = this.vmInRangeRound(x, -32768, 32767, "MOVER");
-		y = this.vmInRangeRound(y, -32768, 32767, "MOVER");
+		x = this.vmInRangeRound(x, -32768, 32767, "MOVER") + this.canvas.getXpos();
+		y = this.vmInRangeRound(y, -32768, 32767, "MOVER") + this.canvas.getYpos();
 		this.vmDrawMovePlot("MOVER", gPen, gColMode);
-		this.canvas.mover(x, y);
+		this.canvas.move(x, y);
 	}
 
 	"new"(): void {
@@ -2782,10 +2755,10 @@ export class CpcVm {
 	}
 
 	plotr(x: number, y: number, gPen?: number, gColMode?: number): void {
-		x = this.vmInRangeRound(x, -32768, 32767, "PLOTR");
-		y = this.vmInRangeRound(y, -32768, 32767, "PLOTR");
+		x = this.vmInRangeRound(x, -32768, 32767, "PLOTR") + this.canvas.getXpos();
+		y = this.vmInRangeRound(y, -32768, 32767, "PLOTR") + this.canvas.getYpos();
 		this.vmDrawMovePlot("PLOTR", gPen, gColMode);
-		this.canvas.plotr(x, y);
+		this.canvas.plot(x, y);
 	}
 
 	poke(addr: number, byte: number): void {
@@ -2804,24 +2777,6 @@ export class CpcVm {
 		}
 		this.mem[addr] = byte;
 	}
-
-	/*
-	private static vmGetPosFromFileData(fileData: string[]) {
-		const allFileData =	fileData.join(""),
-			lastLfPos = allFileData.lastIndexOf("\n"),
-			lastCrPos = allFileData.lastIndexOf("\r"),
-			lastLfOrCrPos = Math.max(lastLfPos, lastCrPos);
-
-		return lastLfOrCrPos >= 0 ? allFileData.length - lastLfOrCrPos : allFileData.length;
-	}
-
-	private static vmGetPosFromFileData(fileData: string[]) {
-		const allFileData =	fileData.join(""),
-			lastCrPos = allFileData.lastIndexOf("\r");
-
-		return lastCrPos >= 0 ? allFileData.length - lastCrPos : allFileData.length;
-	}
-	*/
 
 	pos(stream: number): number {
 		stream = this.vmInRangeRound(stream, 0, 9, "POS");
@@ -3195,7 +3150,6 @@ export class CpcVm {
 					win.pos += str.length;
 				}
 
-				//TTT really replace?
 				if (str === "\r\n") { // for now we replace CRLF by LF
 					str = "\n";
 					win.pos = 0;
@@ -3760,9 +3714,9 @@ export class CpcVm {
 	}
 
 	testr(x: number, y: number): number {
-		x = this.vmInRangeRound(x, -32768, 32767, "TESTR");
-		y = this.vmInRangeRound(y, -32768, 32767, "TESTR");
-		return this.canvas.testr(x, y);
+		x = this.vmInRangeRound(x, -32768, 32767, "TESTR") + this.canvas.getXpos();
+		y = this.vmInRangeRound(y, -32768, 32767, "TESTR") + this.canvas.getYpos();
+		return this.canvas.test(x, y);
 	}
 
 	time(): number {

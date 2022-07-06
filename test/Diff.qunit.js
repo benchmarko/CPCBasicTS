@@ -24,7 +24,7 @@ define(["require", "exports", "../Utils", "../Diff", "./TestHelper"], function (
                         result = String(e);
                     }
                     if (results) {
-                        results.push('"' + key + '": "' + result + '"');
+                        results.push(TestHelper_1.TestHelper.stringInQuotes(key) + ": " + TestHelper_1.TestHelper.stringInQuotes(result));
                     }
                     if (assert) {
                         assert.strictEqual(result, expected, "test1");

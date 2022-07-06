@@ -197,7 +197,7 @@
         "affectsGlobalScope": true
       },
       "../src/Utils.ts": {
-        "version": "77fd82b05c8f371b17c08d3ae799b3494cf5315b3b191a798370b0b14ef2a6e7",
+        "version": "134602a7dad6da606a613d94c5285466ca1d0c8f444575c01bb67a58137cd760",
         "signature": "a4a70e2652569538565b670a91fd3aa09e965c4f2041dcab02dfee09ea992839",
         "affectsGlobalScope": false
       },
@@ -232,8 +232,8 @@
         "affectsGlobalScope": false
       },
       "../src/Canvas.ts": {
-        "version": "46074dca58be5eccf97ac1944dc4e6f7173f8b5873c4cc4d80c987c45486448e",
-        "signature": "1ca22e5ba44fdbf5fc5bfc2c3a3e05cfd6fe24fff7590b60e92892417f7db78b",
+        "version": "1393b33edb02b2419b7b28821b3e1fa2e8c8cad5bfac5c21687e2a870f32ba34",
+        "signature": "e8d601012fbecc6bc94b854dd8a8f3b6558dc2c0b90705148a79eedb90b1ee4e",
         "affectsGlobalScope": false
       },
       "../src/CodeGeneratorBasic.ts": {
@@ -287,8 +287,8 @@
         "affectsGlobalScope": false
       },
       "../src/CpcVm.ts": {
-        "version": "9ee3d67370bc98794d2a8834f8c2d23bf0c1ed94bdb4794de7a78aab602774d3",
-        "signature": "ff3bd8918c4d99c8aa516894bcd4ba932c18812dc007a4de652cfa58059d25bd",
+        "version": "660d078949853ed83e8aa90b0ca999e60c636ce80bed25df4eedea802eeb0729",
+        "signature": "1c9bad880243ba9346ce8379bf5938cfc64e1d1f0825d4c3433e6c2f99a1175c",
         "affectsGlobalScope": false
       },
       "../src/CpcVmRsx.ts": {
@@ -302,7 +302,7 @@
         "affectsGlobalScope": false
       },
       "../src/DiskImage.ts": {
-        "version": "11c0eb641a4239753bc53500f63c171d8334b5004bf825b146da08b53a4e4ccf",
+        "version": "4946e47b464b60685978c21a3744f31086e19c630c6c61c7c8abfff8c5be982f",
         "signature": "8dec5c6c4644de7918ec2783c8d5649680b337618cfe748b595da0539b58b831",
         "affectsGlobalScope": false
       },

@@ -671,8 +671,6 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "./
                         parseTree = JSON.parse(result); // get error without Error object
                     }
                     if (results) {
-                        // escape " in key, ' in value
-                        //results.push('"' + key.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + "\": '" + result.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/'/g, "\\'") + "'");
                         results.push(TestHelper_1.TestHelper.stringInQuotes(key) + ": " + TestHelper_1.TestHelper.stringInQuotes(result));
                     }
                     if (assert) {

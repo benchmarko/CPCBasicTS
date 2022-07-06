@@ -661,7 +661,6 @@ define(["require", "exports", "../Utils", "../BasicLexer", "./TestHelper"], func
                         tokens = result; // force to take it
                     }
                     if (results) {
-                        //results.push('"' + key.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + "\": '" + result.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/'/g, "\\'") + "'");
                         results.push(TestHelper_1.TestHelper.stringInQuotes(key) + ": " + TestHelper_1.TestHelper.stringInQuotes(result));
                     }
                     if (assert) {

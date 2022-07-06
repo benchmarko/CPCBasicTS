@@ -49,7 +49,6 @@ define(["require", "exports", "../Utils", "../ZipFile", "./TestHelper"], functio
                         result = String(e);
                     }
                     if (results) {
-                        //results.push('"' + key + '": "' + result + '"');
                         results.push(TestHelper_1.TestHelper.stringInQuotes(key) + ": " + TestHelper_1.TestHelper.stringInQuotes(result));
                     }
                     if (assert) {

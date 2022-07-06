@@ -69,12 +69,12 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             },
             call: {
                 "0 ": "",
-                "0xbb00": "resetCpcKeysExpansions: -- clearInput: -- resetExpansionTokens:",
-                "0xbb03": "clearInput: -- resetExpansionTokens:",
+                "0xbb00": "resetCpcKeysExpansions: , clearInput: , resetExpansionTokens:",
+                "0xbb03": "clearInput: , resetExpansionTokens:",
                 "0xbb06": "getKeyFromBuffer:",
-                "0xbb0c": "putKeyInBuffer:\x00 -- getKeyDownHandler:",
-                "0xbb0c,1,1,1,1,1,1,1,1,1": "putKeyInBuffer:\x09 -- getKeyDownHandler:",
-                "0xbb0c,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32": "putKeyInBuffer:  -- getKeyDownHandler:",
+                "0xbb0c": "putKeyInBuffer:\x00 , getKeyDownHandler:",
+                "0xbb0c,1,1,1,1,1,1,1,1,1": "putKeyInBuffer:\x09 , getKeyDownHandler:",
+                "0xbb0c,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32": "putKeyInBuffer:  , getKeyDownHandler:",
                 "0xbb0c,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33": 'CpcVm: Syntax Error in 0: CALL  -- {"reason":"error","priority":50,"paras":{}}',
                 "0xffff": "",
                 "-32767": "",
@@ -135,8 +135,8 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             },
             clg: {
                 "": "clearGraphicsWindow:",
-                "0 ": "setBorder:0 -- clearGraphicsWindow:",
-                "15.4 ": "setBorder:15 -- clearGraphicsWindow:",
+                "0 ": "setGPaper:0 , clearGraphicsWindow:",
+                "15.4 ": "setGPaper:15 , clearGraphicsWindow:",
                 '""': 'CpcVm: Type mismatch in 0: CLG  -- {"reason":"error","priority":50,"paras":{}}',
                 "-0.6": 'CpcVm: Improper argument in 0: CLG -1 -- {"reason":"error","priority":50,"paras":{}}',
                 "16 ": 'CpcVm: Improper argument in 0: CLG 16 -- {"reason":"error","priority":50,"paras":{}}'
@@ -190,7 +190,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 "7 ": "",
                 "0,1": "drawCursor:2,3,1,0",
                 "0,,1": "",
-                "0,1,1": "drawCursor:2,3,1,0 -- drawCursor:2,3,1,0 -- drawCursor:2,3,1,0",
+                "0,1,1": "drawCursor:2,3,1,0 , drawCursor:2,3,1,0 , drawCursor:2,3,1,0",
                 "-1": 'CpcVm: Improper argument in 0: CURSOR -1 -- {"reason":"error","priority":50,"paras":{}}',
                 "8 ": 'CpcVm: Improper argument in 0: CURSOR 8 -- {"reason":"error","priority":50,"paras":{}}',
                 "0,-1": 'CpcVm: Improper argument in 0: CURSOR -1 -- {"reason":"error","priority":50,"paras":{}}',
@@ -255,18 +255,54 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             derr: {
                 "": "0"
             },
-            // di
-            // dim
-            // draw
-            // drawr
+            draw: {
+                "0,0": "draw:0,0",
+                "-32768,0": "draw:-32768,0",
+                "32767,0": "draw:32767,0",
+                "0,-32768": "draw:0,-32768",
+                "0,32767.2": "draw:0,32767",
+                "10,20,0": "setGPen:0 , draw:10,20",
+                "10,20,0,0": "setGPen:0 , setGColMode:0 , draw:10,20",
+                "10,20,,0": "setGColMode:0 , draw:10,20",
+                "10,20,15,3": "setGPen:15 , setGColMode:3 , draw:10,20",
+                "": 'CpcVm: Type mismatch in 0: DRAW undefined -- {"reason":"error","priority":50,"paras":{}}',
+                '""': 'CpcVm: Type mismatch in 0: DRAW  -- {"reason":"error","priority":50,"paras":{}}',
+                "32768,0": 'CpcVm: Overflow in 0: DRAW 32768 -- {"reason":"error","priority":50,"paras":{}}',
+                "-32769,0": 'CpcVm: Overflow in 0: DRAW -32769 -- {"reason":"error","priority":50,"paras":{}}',
+                "0,32768": 'CpcVm: Overflow in 0: DRAW 32768 -- {"reason":"error","priority":50,"paras":{}}',
+                "0,-32769": 'CpcVm: Overflow in 0: DRAW -32769 -- {"reason":"error","priority":50,"paras":{}}',
+                ",0": 'CpcVm: Type mismatch in 0: DRAW undefined -- {"reason":"error","priority":50,"paras":{}}',
+                "10,20,-1": 'CpcVm: Improper argument in 0: DRAW -1 -- {"reason":"error","priority":50,"paras":{}}',
+                "10,20,16": 'CpcVm: Improper argument in 0: DRAW 16 -- {"reason":"error","priority":50,"paras":{}}',
+                "10,20,0,-1": 'setGPen:0 -- CpcVm: Improper argument in 0: DRAW -1 -- {"reason":"error","priority":50,"paras":{}}',
+                "10,20,0,4": 'setGPen:0 -- CpcVm: Improper argument in 0: DRAW 4 -- {"reason":"error","priority":50,"paras":{}}'
+            },
+            drawr: {
+                "0,0": "getXpos: , getYpos: , draw:10,20",
+                "-32768,0": "getXpos: , getYpos: , draw:-32758,20",
+                "32767,0": "getXpos: , getYpos: , draw:32777,20",
+                "0,-32768": "getXpos: , getYpos: , draw:10,-32748",
+                "0,32767.2": "getXpos: , getYpos: , draw:10,32787",
+                "10,20,0": "getXpos: , getYpos: , setGPen:0 , draw:20,40",
+                "10,20,0,0": "getXpos: , getYpos: , setGPen:0 , setGColMode:0 , draw:20,40",
+                "10,20,,0": "getXpos: , getYpos: , setGColMode:0 , draw:20,40",
+                "10,20,15,3": "getXpos: , getYpos: , setGPen:15 , setGColMode:3 , draw:20,40",
+                "": 'CpcVm: Type mismatch in 0: DRAWR undefined -- {"reason":"error","priority":50,"paras":{}}',
+                '""': 'CpcVm: Type mismatch in 0: DRAWR  -- {"reason":"error","priority":50,"paras":{}}',
+                "32768,0": 'CpcVm: Overflow in 0: DRAWR 32768 -- {"reason":"error","priority":50,"paras":{}}',
+                "-32769,0": 'CpcVm: Overflow in 0: DRAWR -32769 -- {"reason":"error","priority":50,"paras":{}}',
+                "0,32768": 'getXpos: -- CpcVm: Overflow in 0: DRAWR 32768 -- {"reason":"error","priority":50,"paras":{}}',
+                "0,-32769": 'getXpos: -- CpcVm: Overflow in 0: DRAWR -32769 -- {"reason":"error","priority":50,"paras":{}}',
+                ",0": 'CpcVm: Type mismatch in 0: DRAWR undefined -- {"reason":"error","priority":50,"paras":{}}',
+                "10,20,-1": 'getXpos: , getYpos: -- CpcVm: Improper argument in 0: DRAWR -1 -- {"reason":"error","priority":50,"paras":{}}',
+                "10,20,16": 'getXpos: , getYpos: -- CpcVm: Improper argument in 0: DRAWR 16 -- {"reason":"error","priority":50,"paras":{}}',
+                "10,20,0,-1": 'getXpos: , getYpos: , setGPen:0 -- CpcVm: Improper argument in 0: DRAWR -1 -- {"reason":"error","priority":50,"paras":{}}',
+                "10,20,0,4": 'getXpos: , getYpos: , setGPen:0 -- CpcVm: Improper argument in 0: DRAWR 4 -- {"reason":"error","priority":50,"paras":{}}'
+            },
             edit: {
                 "": '{"reason":"editLine","priority":85,"paras":{"command":"edit","stream":0,"last":0,"line":0}}',
                 "123 ": '{"reason":"editLine","priority":85,"paras":{"command":"edit","stream":0,"first":123,"last":0,"line":0}}'
             },
-            // ei
-            // end
-            // ent
-            // env
             eof: {
                 '"_testCase1"': "-1",
                 '"_testCase2"': '-1 -- {"open":true,"command":"","name":"","line":0,"start":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
@@ -316,6 +352,85 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 '"_testCase1"': 'CpcVm: Syntax Error in 0: FRE -- {"reason":"error","priority":50,"paras":{}}',
                 '"_testCase2"': 'CpcVm: Syntax Error in 0: FRE -- {"reason":"error","priority":50,"paras":{}}'
             },
+            graphicsPaper: {
+                "0 ": "setGPaper:0",
+                "15.4 ": "setGPaper:15",
+                "": 'CpcVm: Type mismatch in 0: GRAPHICS PAPER undefined -- {"reason":"error","priority":50,"paras":{}}',
+                '""': 'CpcVm: Type mismatch in 0: GRAPHICS PAPER  -- {"reason":"error","priority":50,"paras":{}}',
+                "-0.6": 'CpcVm: Improper argument in 0: GRAPHICS PAPER -1 -- {"reason":"error","priority":50,"paras":{}}',
+                "16 ": 'CpcVm: Improper argument in 0: GRAPHICS PAPER 16 -- {"reason":"error","priority":50,"paras":{}}'
+            },
+            graphicsPen: {
+                "0 ": "setGPen:0",
+                "15.4 ": "setGPen:15",
+                "0,0": "setGPen:0 , setGTransparentMode:false",
+                "0,1": "setGPen:0 , setGTransparentMode:true",
+                ",1": "setGTransparentMode:true",
+                "": 'CpcVm: Operand missing in 0: GRAPHICS PEN -- {"reason":"error","priority":50,"paras":{}}',
+                ",": 'CpcVm: Operand missing in 0: GRAPHICS PEN -- {"reason":"error","priority":50,"paras":{}}',
+                '""': 'CpcVm: Type mismatch in 0: GRAPHICS PEN  -- {"reason":"error","priority":50,"paras":{}}',
+                "-0.6": 'CpcVm: Improper argument in 0: GRAPHICS PEN -1 -- {"reason":"error","priority":50,"paras":{}}',
+                "16 ": 'CpcVm: Improper argument in 0: GRAPHICS PEN 16 -- {"reason":"error","priority":50,"paras":{}}'
+            },
+            hex$: {
+                "0 ": "0",
+                "255 ": "FF",
+                "255,10": "00000000FF",
+                "170,6": "0000AA",
+                "32767,16": "0000000000007FFF",
+                "65535 ": "FFFF",
+                "-1": "FFFF",
+                "-32768": "8000",
+                "": 'CpcVm: Type mismatch in 0: HEX$ undefined -- {"reason":"error","priority":50,"paras":{}}',
+                '""': 'CpcVm: Type mismatch in 0: HEX$  -- {"reason":"error","priority":50,"paras":{}}',
+                "65536 ": 'CpcVm: Overflow in 0: HEX$ 65536 -- {"reason":"error","priority":50,"paras":{}}',
+                "65535,17": 'CpcVm: Improper argument in 0: HEX$ 17 -- {"reason":"error","priority":50,"paras":{}}',
+                "-32769": 'CpcVm: Overflow in 0: HEX$ -32769 -- {"reason":"error","priority":50,"paras":{}}'
+            },
+            himem: {
+                '"_testCase1"': "42747",
+                '"_testCase2"': "370"
+            },
+            ink: {
+                "0,1 ": "setInk:0,1,1",
+                "15.4,1 ": "setInk:15,1,1",
+                "1,0": "setInk:1,0,0",
+                "1,31": "setInk:1,31,31",
+                "0,1,2": "setInk:0,1,2",
+                "0,1,0": "setInk:0,1,0",
+                "0,31,31": "setInk:0,31,31",
+                "": 'CpcVm: Type mismatch in 0: INK undefined -- {"reason":"error","priority":50,"paras":{}}',
+                '""': 'CpcVm: Type mismatch in 0: INK  -- {"reason":"error","priority":50,"paras":{}}',
+                "-1,0": 'CpcVm: Improper argument in 0: INK -1 -- {"reason":"error","priority":50,"paras":{}}',
+                "16,0": 'CpcVm: Improper argument in 0: INK 16 -- {"reason":"error","priority":50,"paras":{}}',
+                "0,-1": 'CpcVm: Improper argument in 0: INK -1 -- {"reason":"error","priority":50,"paras":{}}',
+                "0,32": 'CpcVm: Improper argument in 0: INK 32 -- {"reason":"error","priority":50,"paras":{}}',
+                "0,0,-1": 'CpcVm: Improper argument in 0: INK -1 -- {"reason":"error","priority":50,"paras":{}}',
+                "0,0,32": 'CpcVm: Improper argument in 0: INK 32 -- {"reason":"error","priority":50,"paras":{}}'
+            },
+            inkey: {
+                "0 ": "getKeyState:0 -- -1",
+                "79.2 ": "getKeyState:79 -- 13",
+                "": 'CpcVm: Type mismatch in 0: INKEY undefined -- {"reason":"error","priority":50,"paras":{}}',
+                '""': 'CpcVm: Type mismatch in 0: INKEY  -- {"reason":"error","priority":50,"paras":{}}',
+                "-1": 'CpcVm: Improper argument in 0: INKEY -1 -- {"reason":"error","priority":50,"paras":{}}',
+                "80 ": 'CpcVm: Improper argument in 0: INKEY 80 -- {"reason":"error","priority":50,"paras":{}}'
+            },
+            inkey$: {
+                "": "getKeyFromBuffer: -- A"
+            },
+            inp: {
+                "0 ": "255",
+                "255 ": "255",
+                "32767.2 ": "255",
+                "65535 ": "255",
+                "-1": "255",
+                "-32768": "255",
+                "": 'CpcVm: Type mismatch in 0: INP undefined -- {"reason":"error","priority":50,"paras":{}}',
+                '""': 'CpcVm: Type mismatch in 0: INP  -- {"reason":"error","priority":50,"paras":{}}',
+                "65536 ": 'CpcVm: Overflow in 0: INP 65536 -- {"reason":"error","priority":50,"paras":{}}',
+                "-32769": 'CpcVm: Overflow in 0: INP -32769 -- {"reason":"error","priority":50,"paras":{}}'
+            },
             "int": {
                 "0 ": "0",
                 "1 ": "1",
@@ -325,15 +440,115 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 '"0"': 'CpcVm: Type mismatch in 0: INT 0 -- {"reason":"error","priority":50,"paras":{}}'
             },
             joy: {
-                "0 ": "4",
-                "1 ": "5",
+                "0 ": "getJoyState:0 -- 4",
+                "1 ": "getJoyState:1 -- 5",
                 "": 'CpcVm: Type mismatch in 0: JOY undefined -- {"reason":"error","priority":50,"paras":{}}',
                 '""': 'CpcVm: Type mismatch in 0: JOY  -- {"reason":"error","priority":50,"paras":{}}',
                 "-1": 'CpcVm: Improper argument in 0: JOY -1 -- {"reason":"error","priority":50,"paras":{}}',
                 "2 ": 'CpcVm: Improper argument in 0: JOY 2 -- {"reason":"error","priority":50,"paras":{}}'
             },
+            memory: {
+                "0 ": 'CpcVm: Memory full in 0: MEMORY 0 -- {"reason":"error","priority":50,"paras":{}}',
+                "370 ": "370",
+                "32767.2 ": "32767",
+                "-32768": "32768",
+                "65535 ": 'CpcVm: Memory full in 0: MEMORY 65535 -- {"reason":"error","priority":50,"paras":{}}',
+                "-1": 'CpcVm: Memory full in 0: MEMORY 65535 -- {"reason":"error","priority":50,"paras":{}}',
+                "": 'CpcVm: Type mismatch in 0: MEMORY undefined -- {"reason":"error","priority":50,"paras":{}}',
+                '""': 'CpcVm: Type mismatch in 0: MEMORY  -- {"reason":"error","priority":50,"paras":{}}',
+                "65536 ": 'CpcVm: Overflow in 0: MEMORY 65536 -- {"reason":"error","priority":50,"paras":{}}',
+                "-32769": 'CpcVm: Overflow in 0: MEMORY -32769 -- {"reason":"error","priority":50,"paras":{}}'
+            },
+            move: {
+                "0,0": "move:0,0",
+                "-32768,0": "move:-32768,0",
+                "32767,0": "move:32767,0",
+                "0,-32768": "move:0,-32768",
+                "0,32767.2": "move:0,32767",
+                "10,20,0": "setGPen:0 , move:10,20",
+                "10,20,0,0": "setGPen:0 , setGColMode:0 , move:10,20",
+                "10,20,,0": "setGColMode:0 , move:10,20",
+                "10,20,15,3": "setGPen:15 , setGColMode:3 , move:10,20",
+                "": 'CpcVm: Type mismatch in 0: MOVE undefined -- {"reason":"error","priority":50,"paras":{}}',
+                '""': 'CpcVm: Type mismatch in 0: MOVE  -- {"reason":"error","priority":50,"paras":{}}',
+                "32768,0": 'CpcVm: Overflow in 0: MOVE 32768 -- {"reason":"error","priority":50,"paras":{}}',
+                "-32769,0": 'CpcVm: Overflow in 0: MOVE -32769 -- {"reason":"error","priority":50,"paras":{}}',
+                "0,32768": 'CpcVm: Overflow in 0: MOVE 32768 -- {"reason":"error","priority":50,"paras":{}}',
+                "0,-32769": 'CpcVm: Overflow in 0: MOVE -32769 -- {"reason":"error","priority":50,"paras":{}}',
+                ",0": 'CpcVm: Type mismatch in 0: MOVE undefined -- {"reason":"error","priority":50,"paras":{}}',
+                "10,20,-1": 'CpcVm: Improper argument in 0: MOVE -1 -- {"reason":"error","priority":50,"paras":{}}',
+                "10,20,16": 'CpcVm: Improper argument in 0: MOVE 16 -- {"reason":"error","priority":50,"paras":{}}',
+                "10,20,0,-1": 'setGPen:0 -- CpcVm: Improper argument in 0: MOVE -1 -- {"reason":"error","priority":50,"paras":{}}',
+                "10,20,0,4": 'setGPen:0 -- CpcVm: Improper argument in 0: MOVE 4 -- {"reason":"error","priority":50,"paras":{}}'
+            },
+            mover: {
+                "0,0": "getXpos: , getYpos: , move:10,20",
+                "-32768,0": "getXpos: , getYpos: , move:-32758,20",
+                "32767,0": "getXpos: , getYpos: , move:32777,20",
+                "0,-32768": "getXpos: , getYpos: , move:10,-32748",
+                "0,32767.2": "getXpos: , getYpos: , move:10,32787",
+                "10,20,0": "getXpos: , getYpos: , setGPen:0 , move:20,40",
+                "10,20,0,0": "getXpos: , getYpos: , setGPen:0 , setGColMode:0 , move:20,40",
+                "10,20,,0": "getXpos: , getYpos: , setGColMode:0 , move:20,40",
+                "10,20,15,3": "getXpos: , getYpos: , setGPen:15 , setGColMode:3 , move:20,40",
+                "": 'CpcVm: Type mismatch in 0: MOVER undefined -- {"reason":"error","priority":50,"paras":{}}',
+                '""': 'CpcVm: Type mismatch in 0: MOVER  -- {"reason":"error","priority":50,"paras":{}}',
+                "32768,0": 'CpcVm: Overflow in 0: MOVER 32768 -- {"reason":"error","priority":50,"paras":{}}',
+                "-32769,0": 'CpcVm: Overflow in 0: MOVER -32769 -- {"reason":"error","priority":50,"paras":{}}',
+                "0,32768": 'getXpos: -- CpcVm: Overflow in 0: MOVER 32768 -- {"reason":"error","priority":50,"paras":{}}',
+                "0,-32769": 'getXpos: -- CpcVm: Overflow in 0: MOVER -32769 -- {"reason":"error","priority":50,"paras":{}}',
+                ",0": 'CpcVm: Type mismatch in 0: MOVER undefined -- {"reason":"error","priority":50,"paras":{}}',
+                "10,20,-1": 'getXpos: , getYpos: -- CpcVm: Improper argument in 0: MOVER -1 -- {"reason":"error","priority":50,"paras":{}}',
+                "10,20,16": 'getXpos: , getYpos: -- CpcVm: Improper argument in 0: MOVER 16 -- {"reason":"error","priority":50,"paras":{}}',
+                "10,20,0,-1": 'getXpos: , getYpos: , setGPen:0 -- CpcVm: Improper argument in 0: MOVER -1 -- {"reason":"error","priority":50,"paras":{}}',
+                "10,20,0,4": 'getXpos: , getYpos: , setGPen:0 -- CpcVm: Improper argument in 0: MOVER 4 -- {"reason":"error","priority":50,"paras":{}}'
+            },
             "new": {
-                "": '{"reason":"new","priority":90,"paras":{"command":"new","stream":0,"first":0,"last":0,"line":0}}'
+                "": 'resetQueue: -- {"reason":"new","priority":90,"paras":{"command":"new","stream":0,"first":0,"last":0,"line":0}}'
+            },
+            plot: {
+                "0,0": "plot:0,0",
+                "-32768,0": "plot:-32768,0",
+                "32767,0": "plot:32767,0",
+                "0,-32768": "plot:0,-32768",
+                "0,32767.2": "plot:0,32767",
+                "10,20,0": "setGPen:0 , plot:10,20",
+                "10,20,0,0": "setGPen:0 , setGColMode:0 , plot:10,20",
+                "10,20,,0": "setGColMode:0 , plot:10,20",
+                "10,20,15,3": "setGPen:15 , setGColMode:3 , plot:10,20",
+                "": 'CpcVm: Type mismatch in 0: PLOT undefined -- {"reason":"error","priority":50,"paras":{}}',
+                '""': 'CpcVm: Type mismatch in 0: PLOT  -- {"reason":"error","priority":50,"paras":{}}',
+                "32768,0": 'CpcVm: Overflow in 0: PLOT 32768 -- {"reason":"error","priority":50,"paras":{}}',
+                "-32769,0": 'CpcVm: Overflow in 0: PLOT -32769 -- {"reason":"error","priority":50,"paras":{}}',
+                "0,32768": 'CpcVm: Overflow in 0: PLOT 32768 -- {"reason":"error","priority":50,"paras":{}}',
+                "0,-32769": 'CpcVm: Overflow in 0: PLOT -32769 -- {"reason":"error","priority":50,"paras":{}}',
+                ",0": 'CpcVm: Type mismatch in 0: PLOT undefined -- {"reason":"error","priority":50,"paras":{}}',
+                "10,20,-1": 'CpcVm: Improper argument in 0: PLOT -1 -- {"reason":"error","priority":50,"paras":{}}',
+                "10,20,16": 'CpcVm: Improper argument in 0: PLOT 16 -- {"reason":"error","priority":50,"paras":{}}',
+                "10,20,0,-1": 'setGPen:0 -- CpcVm: Improper argument in 0: PLOT -1 -- {"reason":"error","priority":50,"paras":{}}',
+                "10,20,0,4": 'setGPen:0 -- CpcVm: Improper argument in 0: PLOT 4 -- {"reason":"error","priority":50,"paras":{}}'
+            },
+            plotr: {
+                "0,0": "getXpos: , getYpos: , plot:10,20",
+                "-32768,0": "getXpos: , getYpos: , plot:-32758,20",
+                "32767,0": "getXpos: , getYpos: , plot:32777,20",
+                "0,-32768": "getXpos: , getYpos: , plot:10,-32748",
+                "0,32767.2": "getXpos: , getYpos: , plot:10,32787",
+                "10,20,0": "getXpos: , getYpos: , setGPen:0 , plot:20,40",
+                "10,20,0,0": "getXpos: , getYpos: , setGPen:0 , setGColMode:0 , plot:20,40",
+                "10,20,,0": "getXpos: , getYpos: , setGColMode:0 , plot:20,40",
+                "10,20,15,3": "getXpos: , getYpos: , setGPen:15 , setGColMode:3 , plot:20,40",
+                "": 'CpcVm: Type mismatch in 0: PLOTR undefined -- {"reason":"error","priority":50,"paras":{}}',
+                '""': 'CpcVm: Type mismatch in 0: PLOTR  -- {"reason":"error","priority":50,"paras":{}}',
+                "32768,0": 'CpcVm: Overflow in 0: PLOTR 32768 -- {"reason":"error","priority":50,"paras":{}}',
+                "-32769,0": 'CpcVm: Overflow in 0: PLOTR -32769 -- {"reason":"error","priority":50,"paras":{}}',
+                "0,32768": 'getXpos: -- CpcVm: Overflow in 0: PLOTR 32768 -- {"reason":"error","priority":50,"paras":{}}',
+                "0,-32769": 'getXpos: -- CpcVm: Overflow in 0: PLOTR -32769 -- {"reason":"error","priority":50,"paras":{}}',
+                ",0": 'CpcVm: Type mismatch in 0: PLOTR undefined -- {"reason":"error","priority":50,"paras":{}}',
+                "10,20,-1": 'getXpos: , getYpos: -- CpcVm: Improper argument in 0: PLOTR -1 -- {"reason":"error","priority":50,"paras":{}}',
+                "10,20,16": 'getXpos: , getYpos: -- CpcVm: Improper argument in 0: PLOTR 16 -- {"reason":"error","priority":50,"paras":{}}',
+                "10,20,0,-1": 'getXpos: , getYpos: , setGPen:0 -- CpcVm: Improper argument in 0: PLOTR -1 -- {"reason":"error","priority":50,"paras":{}}',
+                "10,20,0,4": 'getXpos: , getYpos: , setGPen:0 -- CpcVm: Improper argument in 0: PLOTR 4 -- {"reason":"error","priority":50,"paras":{}}'
             },
             renum: {
                 "": '{"reason":"renumLines","priority":85,"paras":{"command":"renum","stream":0,"line":0,"newLine":10,"oldLine":1,"step":10,"keep":65535}}',
@@ -348,6 +563,46 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             tanDeg: {
                 "0 ": "0",
                 "45 ": "0.9999999999999999"
+            },
+            test: {
+                "0,0": "test:0,0 -- 0",
+                "-32768,0": "test:-32768,0 -- 0",
+                "32767,0": "test:32767,0 -- 15",
+                "0,-32768": "test:0,-32768 -- 0",
+                "0,32767": "test:0,32767 -- 0",
+                "": 'CpcVm: Type mismatch in 0: TEST undefined -- {"reason":"error","priority":50,"paras":{}}',
+                '""': 'CpcVm: Type mismatch in 0: TEST  -- {"reason":"error","priority":50,"paras":{}}',
+                "32768,0": 'CpcVm: Overflow in 0: TEST 32768 -- {"reason":"error","priority":50,"paras":{}}',
+                "-32769,0": 'CpcVm: Overflow in 0: TEST -32769 -- {"reason":"error","priority":50,"paras":{}}',
+                "0,32768": 'CpcVm: Overflow in 0: TEST 32768 -- {"reason":"error","priority":50,"paras":{}}',
+                "0,-32769": 'CpcVm: Overflow in 0: TEST -32769 -- {"reason":"error","priority":50,"paras":{}}',
+                ",0": 'CpcVm: Type mismatch in 0: TEST undefined -- {"reason":"error","priority":50,"paras":{}}'
+            },
+            testr: {
+                "0,0": "getXpos: , getYpos: , test:10,20 -- 10",
+                "-32768,0": "getXpos: , getYpos: , test:-32758,20 -- -6",
+                "32767,0": "getXpos: , getYpos: , test:32777,20 -- 9",
+                "0,-32768": "getXpos: , getYpos: , test:10,-32748 -- 10",
+                "0,32767": "getXpos: , getYpos: , test:10,32787 -- 10",
+                "": 'CpcVm: Type mismatch in 0: TESTR undefined -- {"reason":"error","priority":50,"paras":{}}',
+                '""': 'CpcVm: Type mismatch in 0: TESTR  -- {"reason":"error","priority":50,"paras":{}}',
+                "32768,0": 'CpcVm: Overflow in 0: TESTR 32768 -- {"reason":"error","priority":50,"paras":{}}',
+                "-32769,0": 'CpcVm: Overflow in 0: TESTR -32769 -- {"reason":"error","priority":50,"paras":{}}',
+                "0,32768": 'getXpos: -- CpcVm: Overflow in 0: TESTR 32768 -- {"reason":"error","priority":50,"paras":{}}',
+                "0,-32769": 'getXpos: -- CpcVm: Overflow in 0: TESTR -32769 -- {"reason":"error","priority":50,"paras":{}}',
+                ",0": 'CpcVm: Type mismatch in 0: TESTR undefined -- {"reason":"error","priority":50,"paras":{}}'
+            },
+            unt: {
+                "0 ": "0",
+                "255 ": "255",
+                "32767.2 ": "32767",
+                "65535 ": "-1",
+                "-1": "-1",
+                "-32768": "-32768",
+                "": 'CpcVm: Type mismatch in 0: UNT undefined -- {"reason":"error","priority":50,"paras":{}}',
+                '""': 'CpcVm: Type mismatch in 0: UNT  -- {"reason":"error","priority":50,"paras":{}}',
+                "65536 ": 'CpcVm: Overflow in 0: UNT 65536 -- {"reason":"error","priority":50,"paras":{}}',
+                "-32769": 'CpcVm: Overflow in 0: UNT -32769 -- {"reason":"error","priority":50,"paras":{}}'
             }
         }, lastTestFunctions = [], varTypesMap = {}, variablesMap = {}, mockCanvas = {
             changeMode: function () {
@@ -377,6 +632,22 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                     clearTextWindow: args
                 });
             },
+            draw: function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i] = arguments[_i];
+                }
+                lastTestFunctions.push({
+                    draw: args
+                });
+            },
+            /*
+            drawr: function (...args) {
+                lastTestFunctions.push({
+                    drawr: args
+                });
+            },
+            */
             drawCursor: function () {
                 var args = [];
                 for (var _i = 0; _i < arguments.length; _i++) {
@@ -395,6 +666,58 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                     fill: args
                 });
             },
+            getXpos: function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i] = arguments[_i];
+                }
+                lastTestFunctions.push({
+                    getXpos: args
+                });
+                return 10;
+            },
+            getYpos: function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i] = arguments[_i];
+                }
+                lastTestFunctions.push({
+                    getYpos: args
+                });
+                return 20;
+            },
+            move: function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i] = arguments[_i];
+                }
+                lastTestFunctions.push({
+                    move: args
+                });
+            },
+            /*
+            mover: function (...args) {
+                lastTestFunctions.push({
+                    mover: args
+                });
+            },
+            */
+            plot: function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i] = arguments[_i];
+                }
+                lastTestFunctions.push({
+                    plot: args
+                });
+            },
+            /*
+            plotr: function (...args) {
+                lastTestFunctions.push({
+                    plotr: args
+                });
+            },
+            */
             readChar: function () {
                 var args = [];
                 for (var _i = 0; _i < arguments.length; _i++) {
@@ -414,15 +737,70 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                     setBorder: args
                 });
             },
+            setGColMode: function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i] = arguments[_i];
+                }
+                lastTestFunctions.push({
+                    setGColMode: args
+                });
+            },
             setGPaper: function () {
                 var args = [];
                 for (var _i = 0; _i < arguments.length; _i++) {
                     args[_i] = arguments[_i];
                 }
                 lastTestFunctions.push({
-                    setBorder: args
+                    setGPaper: args
                 });
+            },
+            setGPen: function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i] = arguments[_i];
+                }
+                lastTestFunctions.push({
+                    setGPen: args
+                });
+            },
+            setGTransparentMode: function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i] = arguments[_i];
+                }
+                lastTestFunctions.push({
+                    setGTransparentMode: args.map(function (arg) { return String(arg); })
+                });
+            },
+            setInk: function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i] = arguments[_i];
+                }
+                lastTestFunctions.push({
+                    setInk: args
+                });
+                return Boolean(args[0]); // example
+            },
+            test: function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i] = arguments[_i];
+                }
+                lastTestFunctions.push({
+                    test: args
+                });
+                return Number(args[0]) % 16; // example
             }
+            /*
+            testr: function (...args) {
+                lastTestFunctions.push({
+                    testr: args
+                });
+                return Number(args[0]) % 16; // example
+            }
+            */
         }, mockKeyboard = {
             clearInput: function () {
                 var args = [];
@@ -461,6 +839,16 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                     getKeyFromBuffer: args
                 });
                 return "A";
+            },
+            getKeyState: function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i] = arguments[_i];
+                }
+                lastTestFunctions.push({
+                    getKeyState: args
+                });
+                return args[0] === 79 ? 13 : -1; // example
             },
             putKeyInBuffer: function () {
                 var args = [];
@@ -530,7 +918,14 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             lastTestFunctions.length = 0;
         }
         function combineLastTestFunctions() {
-            return lastTestFunctions.map(function (lastTestFunction) { return Object.keys(lastTestFunction)[0] + ":" + Object.values(lastTestFunction)[0]; }).join(" -- ");
+            return lastTestFunctions.map(function (lastTestFunction) { return Object.keys(lastTestFunction)[0] + ":" + Object.values(lastTestFunction)[0]; }).join(" , ") || undefined;
+        }
+        function getValidStream(cpcVm, input) {
+            var stream = cpcVm.vmRound(input);
+            if (stream < 0 || stream > 7) {
+                stream = 0;
+            }
+            return stream;
         }
         var allTestFunctions = {
             abs: function (cpcVm, input) {
@@ -557,34 +952,24 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 return cpcVm.bin$.apply(cpcVm, input);
             },
             border: function (cpcVm, input) {
-                clearLastTestFunctions();
                 cpcVm.border.apply(cpcVm, input);
-                return combineLastTestFunctions();
+                //return combineLastTestFunctions();
             },
             call: function (cpcVm, input) {
-                var stopObject0 = JSON.stringify(cpcVm.vmGetStopObject());
-                clearLastTestFunctions();
                 cpcVm.call.apply(cpcVm, input);
-                var stopObject1 = JSON.stringify(cpcVm.vmGetStopObject()), results = [combineLastTestFunctions()];
-                if (stopObject0 !== stopObject1) {
-                    results.push(stopObject1);
-                }
-                return results.join(" -- ");
+                //combineLastTestFunctions();
             },
             cat: function (cpcVm, input) {
                 cpcVm.cat.apply(cpcVm, input);
                 // stopObject changed
-                //return JSON.stringify(cpcVm.vmGetStopObject());
             },
             chain: function (cpcVm, input) {
                 cpcVm.chain.apply(cpcVm, input);
                 // stopObject and fileObject changed
-                //return JSON.stringify(cpcVm.vmGetStopObject()) + " -- " + JSON.stringify(cpcVm.vmGetInFileObject());
             },
             chainMerge: function (cpcVm, input) {
                 cpcVm.chainMerge.apply(cpcVm, input);
                 // stopObject and fileObject changed
-                //return JSON.stringify(cpcVm.vmGetStopObject()) + " -- " + JSON.stringify(cpcVm.vmGetInFileObject());
             },
             chr$: function (cpcVm, input) {
                 return cpcVm.chr$.apply(cpcVm, input);
@@ -593,14 +978,12 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 return String(cpcVm.cint.apply(cpcVm, input));
             },
             clearInput: function (cpcVm, input) {
-                clearLastTestFunctions();
                 cpcVm.clearInput.apply(cpcVm, input);
-                return combineLastTestFunctions();
+                //return combineLastTestFunctions();
             },
             clg: function (cpcVm, input) {
-                clearLastTestFunctions();
                 cpcVm.clg.apply(cpcVm, input);
-                return combineLastTestFunctions();
+                //return combineLastTestFunctions();
             },
             closein: function (cpcVm, input) {
                 var inFile = cpcVm.vmGetInFileObject();
@@ -609,7 +992,6 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 inFile.name = "name1";
                 cpcVm.closein.apply(cpcVm, input);
                 // fileObject changed
-                //return JSON.stringify(inFile);
             },
             closeout: function (cpcVm, input) {
                 var outFile = cpcVm.vmGetOutFileObject(), testCase = input.shift();
@@ -632,32 +1014,27 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                         break;
                 }
                 cpcVm.closeout.apply(cpcVm, input);
-                /*
-                const stopObject0 = JSON.stringify(cpcVm.vmGetStopObject());
-    
-                cpcVm.closeout.apply(cpcVm, input);
-    
-                const stopObject1 = JSON.stringify(cpcVm.vmGetStopObject()),
-                    results = [JSON.stringify(outFile)];
-    
-                if (stopObject0 !== stopObject1) {
-                    results.push(stopObject1);
-                }
-                return results.join(" -- ");
-                */
                 // stopObject and fileObject for some tests changed
             },
             cls: function (cpcVm, input) {
+                var stream = getValidStream(cpcVm, Number(input));
                 cpcVm.vmChangeMode(1);
                 cpcVm.vmResetWindowData(true); // prepare
-                var stream = cpcVm.vmRound(Number(input)), win = cpcVm.vmInternal.getWindowDataList.call(cpcVm)[stream];
+                cpcVm.locate(stream, 2 + 1, 3 + 1);
+                /*
+                const stream = cpcVm.vmRound(Number(input)),
+                    win = cpcVm.vmInternal.getWindowDataList.call(cpcVm)[stream];
+    
                 if (win) {
                     win.pos = 2;
                     win.vpos = 3;
                 }
-                clearLastTestFunctions();
+                */
+                clearLastTestFunctions(); // test only cls
                 cpcVm.cls.apply(cpcVm, input);
-                return combineLastTestFunctions() + " -- " + JSON.stringify(win);
+                var win = cpcVm.vmInternal.getWindowDataList.call(cpcVm)[stream];
+                return JSON.stringify(win);
+                //combineLastTestFunctions()
             },
             cont: function (cpcVm, input) {
                 var testCase = input.shift();
@@ -677,16 +1054,21 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 // stopObject changed
             },
             copychr$: function (cpcVm, input) {
+                var stream = getValidStream(cpcVm, Number(input));
                 cpcVm.vmChangeMode(1);
                 cpcVm.vmResetWindowData(true); // prepare
-                var stream = cpcVm.vmRound(Number(input)), win = cpcVm.vmInternal.getWindowDataList.call(cpcVm)[stream];
+                cpcVm.locate(stream, 2 + 1, 3 + 1);
+                /*
+                const stream = cpcVm.vmRound(Number(input)),
+                    win = cpcVm.vmInternal.getWindowDataList.call(cpcVm)[stream];
+    
                 if (win) {
                     win.pos = 2;
                     win.vpos = 3;
                 }
-                clearLastTestFunctions();
-                var char = cpcVm.copychr$.apply(cpcVm, input);
-                return combineLastTestFunctions() + " -- " + char;
+                */
+                clearLastTestFunctions(); // test only copychr$
+                return cpcVm.copychr$.apply(cpcVm, input);
             },
             cos: function (cpcVm, input) {
                 cpcVm.rad();
@@ -700,16 +1082,22 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 return String(cpcVm.creal.apply(cpcVm, input));
             },
             cursor: function (cpcVm, input) {
+                var stream = getValidStream(cpcVm, Number(input));
                 cpcVm.vmChangeMode(1);
                 cpcVm.vmResetWindowData(true); // prepare
-                var stream = cpcVm.vmRound(Number(input)), win = cpcVm.vmInternal.getWindowDataList.call(cpcVm)[stream];
+                cpcVm.locate(stream, 2 + 1, 3 + 1);
+                /*
+                const stream = cpcVm.vmRound(Number(input)),
+                    win = cpcVm.vmInternal.getWindowDataList.call(cpcVm)[stream];
+    
                 if (win) {
                     win.pos = 2;
                     win.vpos = 3;
                 }
+                */
                 clearLastTestFunctions();
                 cpcVm.cursor.apply(cpcVm, input);
-                return combineLastTestFunctions();
+                //return combineLastTestFunctions();
             },
             dec$: function (cpcVm, input) {
                 return String(cpcVm.dec$.apply(cpcVm, input));
@@ -731,16 +1119,20 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             },
             "delete": function (cpcVm, input) {
                 cpcVm.delete.apply(cpcVm, input);
-                //return JSON.stringify(cpcVm.vmGetStopObject());
                 // stopObject changed
             },
             derr: function (cpcVm, input) {
                 return String(cpcVm.derr.apply(cpcVm, input));
             },
+            draw: function (cpcVm, input) {
+                cpcVm.draw.apply(cpcVm, input);
+            },
+            drawr: function (cpcVm, input) {
+                cpcVm.drawr.apply(cpcVm, input);
+            },
             edit: function (cpcVm, input) {
                 cpcVm.edit.apply(cpcVm, input);
                 // stopObject changed
-                //return JSON.stringify(cpcVm.vmGetStopObject());
             },
             eof: function (cpcVm, input) {
                 var inFile = cpcVm.vmGetInFileObject(), testCase = input.shift();
@@ -777,9 +1169,8 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 return JSON.stringify(timerEntry);
             },
             fill: function (cpcVm, input) {
-                clearLastTestFunctions();
                 cpcVm.fill.apply(cpcVm, input);
-                return combineLastTestFunctions();
+                //return combineLastTestFunctions();
             },
             fix: function (cpcVm, input) {
                 return String(cpcVm.fix.apply(cpcVm, input));
@@ -788,7 +1179,6 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 // cpcVm.vmStop("", 0, true); // not needed
                 cpcVm.frame.apply(cpcVm, input);
                 // stopObject changed
-                //return JSON.stringify(cpcVm.vmGetStopObject());
             },
             fre: function (cpcVm, input) {
                 var testCase = input.shift();
@@ -804,20 +1194,72 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 }
                 return String(cpcVm.fre.apply(cpcVm, input));
             },
+            graphicsPaper: function (cpcVm, input) {
+                cpcVm.graphicsPaper.apply(cpcVm, input);
+                //return combineLastTestFunctions();
+            },
+            graphicsPen: function (cpcVm, input) {
+                cpcVm.graphicsPen.apply(cpcVm, input);
+                //return combineLastTestFunctions();
+            },
+            hex$: function (cpcVm, input) {
+                return cpcVm.hex$.apply(cpcVm, input);
+            },
+            himem: function (cpcVm, input) {
+                var testCase = input.shift();
+                switch (testCase) {
+                    case "_testCase1":
+                        break;
+                    case "_testCase2":
+                        cpcVm.memory(370);
+                        break;
+                    default:
+                        Utils_1.Utils.console.error("Unknown testCase:", testCase);
+                        break;
+                }
+                return String(cpcVm.himem.apply(cpcVm, input));
+            },
+            ink: function (cpcVm, input) {
+                cpcVm.ink.apply(cpcVm, input);
+                //return combineLastTestFunctions();
+            },
+            inkey: function (cpcVm, input) {
+                return String(cpcVm.inkey.apply(cpcVm, input));
+            },
+            inkey$: function (cpcVm, input) {
+                return cpcVm.inkey$.apply(cpcVm, input);
+            },
+            inp: function (cpcVm, input) {
+                return String(cpcVm.inp.apply(cpcVm, input));
+            },
             "int": function (cpcVm, input) {
                 return String(cpcVm.int.apply(cpcVm, input));
             },
             joy: function (cpcVm, input) {
                 return String(cpcVm.joy.apply(cpcVm, input));
             },
+            memory: function (cpcVm, input) {
+                cpcVm.memory.apply(cpcVm, input);
+                return String(cpcVm.himem());
+            },
+            move: function (cpcVm, input) {
+                cpcVm.move.apply(cpcVm, input);
+            },
+            mover: function (cpcVm, input) {
+                cpcVm.mover.apply(cpcVm, input);
+            },
             "new": function (cpcVm, input) {
                 cpcVm.new.apply(cpcVm, input);
-                //return JSON.stringify(cpcVm.vmGetStopObject());
                 // stopObject changed
+            },
+            plot: function (cpcVm, input) {
+                cpcVm.plot.apply(cpcVm, input);
+            },
+            plotr: function (cpcVm, input) {
+                cpcVm.plotr.apply(cpcVm, input);
             },
             renum: function (cpcVm, input) {
                 cpcVm.renum.apply(cpcVm, input);
-                //return JSON.stringify(cpcVm.vmGetStopObject());
                 // stopObject changed
             },
             tan: function (cpcVm, input) {
@@ -827,6 +1269,15 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             tanDeg: function (cpcVm, input) {
                 cpcVm.deg();
                 return String(cpcVm.tan.apply(cpcVm, input));
+            },
+            test: function (cpcVm, input) {
+                return String(cpcVm.test.apply(cpcVm, input));
+            },
+            testr: function (cpcVm, input) {
+                return String(cpcVm.testr.apply(cpcVm, input));
+            },
+            unt: function (cpcVm, input) {
+                return String(cpcVm.unt.apply(cpcVm, input));
             }
         };
         function adaptParameters(a) {
@@ -844,15 +1295,6 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             }
             return b;
         }
-        /*
-        function escapeRegExp(s: string) {
-            return s.replace(/[.^$*+?()[{|\\]/g, "\\$&");
-        }
-    
-        function replaceBackslashNewlineQuotes(s: string) {
-            return s.replace(/[\\\n"]/g, "$&");
-        }
-        */
         function getVmState(cpcVm) {
             var vmState = {
                 stopObject: JSON.stringify(cpcVm.vmGetStopObject()),
@@ -862,7 +1304,10 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             return vmState;
         }
         function combineResult(result, vmState0, vmState1) {
-            var combinedResult = [];
+            var combinedTestFunctions = combineLastTestFunctions(), combinedResult = [];
+            if (combinedTestFunctions !== undefined) {
+                combinedResult.push(combinedTestFunctions);
+            }
             if (result !== undefined) {
                 combinedResult.push(result);
             }
@@ -891,6 +1336,9 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                     var vmState0 = getVmState(cpcVm), input = key === "" ? [] : adaptParameters(key.split(",")), expected = tests[key];
                     var result = void 0;
                     try {
+                        if (!testFunction) {
+                            throw new Error("Undefined testFunction: " + sCategory);
+                        }
                         result = testFunction(cpcVm, input);
                         result = combineResult(result, vmState0, getVmState(cpcVm));
                     }
@@ -902,7 +1350,6 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                         }
                     }
                     if (results) {
-                        //results.push('"' + key.replace(/[\\\n"]/g, "$&") + '": "' + result.replace(/[\\\n']/g, "$&") + '"'); // escape " in key, ' in value
                         results.push(TestHelper_1.TestHelper.stringInQuotes(key) + ": " + TestHelper_1.TestHelper.stringInQuotes(result));
                     }
                     if (assert) {
