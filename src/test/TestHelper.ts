@@ -113,13 +113,6 @@ export class TestHelper { // eslint-disable-line vars-on-top
 			return "\\x" + ("00" + char.charCodeAt(0).toString(16)).slice(-2);
 		});
 
-		/*
-		if (s.indexOf('"') >= 0 && s.indexOf("'") < 0) { // we have " but no ' in the string
-			return "'" + s + "'";
-		} else if (s.indexOf("'") >= 0 && s.indexOf('"') < 0) { // we have ' but no " in the string
-			return '"' + s + '"';
-		}
-		*/
 		const count1 = s.split('"').length - 1,
 			count2 = s.split("'").length - 1;
 
@@ -206,8 +199,6 @@ export class TestHelper { // eslint-disable-line vars-on-top
 					containsSpace = category.indexOf(" ") >= 0,
 					isJsKeyword = reJsKeywords.test(category);
 
-				//marker = containsSpace ? '"' : "";
-				//result += marker + category + marker + ": {\n";
 				result += containsSpace || isJsKeyword ? TestHelper.stringInQuotes(category) : category;
 				result += ": {\n";
 

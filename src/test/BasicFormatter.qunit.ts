@@ -112,7 +112,6 @@ QUnit.module("BasicFormatter:renumber: Tests", function () {
 					expected = expected.replace(/(0b[01]+)/g, fnReplacer); // for old IE
 				}
 				if (results) {
-					//results.push('"' + key.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '": "' + result.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + '"');
 					results.push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
 				}
 

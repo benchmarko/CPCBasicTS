@@ -684,8 +684,6 @@ QUnit.module("BasicParser: Tests", function () {
 				}
 
 				if (results) {
-					// escape " in key, ' in value
-					//results.push('"' + key.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/"/g, '\\"') + "\": '" + result.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/'/g, "\\'") + "'");
 					results.push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
 				}
 

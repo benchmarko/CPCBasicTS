@@ -181,7 +181,6 @@ export class Utils { // eslint-disable-line vars-on-top
 		customError.name = name;
 		customError.message = message;
 		customError.value = value;
-		//customError.pos = pos || 0;
 
 		if (pos !== undefined) {
 			customError.pos = pos;
@@ -205,9 +204,6 @@ export class Utils { // eslint-disable-line vars-on-top
 		const endPos = (customError.pos || 0) + (errorLen || 0),
 			lineMsg = (customError.line !== undefined ? " in " + customError.line : ""),
 			posMsg = pos !== undefined ? (" at pos " + (pos !== endPos ? customError.pos + "-" + endPos : customError.pos)) : "";
-
-		//customError.shortMessage = customError.message + (customError.line !== undefined ? " in " + customError.line : " at pos " + customError.pos + "-" + endPos) + ": " + customError.value;
-		//customError.message +=                           (customError.line !== undefined ? " in " + customError.line : "") + " at pos " + customError.pos + "-" + endPos + ": " + customError.value;
 
 		customError.shortMessage = customError.message + (lineMsg || posMsg) + ": " + customError.value;
 		customError.message += lineMsg + posMsg + ": " + customError.value;

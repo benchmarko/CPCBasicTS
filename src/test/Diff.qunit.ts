@@ -33,7 +33,7 @@ QUnit.module("Diff: Tests", function () {
 				}
 
 				if (results) {
-					results.push('"' + key + '": "' + result + '"');
+					results.push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
 				}
 
 				if (assert) {
