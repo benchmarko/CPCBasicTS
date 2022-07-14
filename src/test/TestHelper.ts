@@ -109,7 +109,7 @@ export class TestHelper { // eslint-disable-line vars-on-top
 	static stringInQuotes(s: string): string {
 		s = s.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/\r/g, "\\r");
 		// keep \n, \r
-		s = s.replace(/[\x00-\x09\x0b\x0c\x0e-\x1f\x80-\xff]/g, function (char: string) { // eslint-disable-line no-control-regex
+		s = s.replace(/[\x00-\x09\x0b\x0c\x0e-\x1f\x7f-\xff]/g, function (char: string) { // eslint-disable-line no-control-regex
 			return "\\x" + ("00" + char.charCodeAt(0).toString(16)).slice(-2);
 		});
 
