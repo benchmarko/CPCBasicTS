@@ -259,14 +259,14 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             return this.breakGosubLine < 0; // on break cont
         };
         CpcVm.prototype.vmOnBreakHandlerActive = function () {
-            return this.breakResumeLine;
+            return Boolean(this.breakResumeLine);
         };
         CpcVm.prototype.vmEscape = function () {
             var stop = true;
             if (this.breakGosubLine > 0) { // on break gosub n
                 if (!this.breakResumeLine) { // do not nest break gosub
                     this.breakResumeLine = Number(this.line);
-                    this.gosub(this.line, this.breakGosubLine);
+                    this.vmGosub(this.line, this.breakGosubLine);
                 }
                 stop = false;
             }
@@ -284,6 +284,16 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             if (typeof s !== "string") {
                 throw this.vmComposeError(Error(), 13, err + " " + s); // Type mismatch
             }
+        };
+        CpcVm.prototype.vmAssertInRange = function (n, min, max, err) {
+            this.vmAssertNumber(n, err);
+            if (n < min || n > max) {
+                if (!this.quiet) {
+                    Utils_1.Utils.console.warn("vmAssertInRange: number not in range:", min + "<=" + n + "<=" + max);
+                }
+                throw this.vmComposeError(Error(), 5, err + " " + n); // 5=Improper argument
+            }
+            return n;
         };
         // round number (-2^31..2^31) to integer; throw error if no number
         CpcVm.prototype.vmRound = function (n, err) {
@@ -356,7 +366,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                     var timer = this.sqTimer[i];
                     // use sound.sq(i) and not this.sq(i) since that would reset onSq timer
                     if (timer.active && !timer.handlerRunning && (this.soundClass.sq(i) & 0x07)) { // eslint-disable-line no-bitwise
-                        this.gosub(this.line, timer.line);
+                        this.vmGosub(this.line, timer.line);
                         timer.handlerRunning = true;
                         timer.stackIndexReturn = this.gosubStack.length;
                         timer.repeat = false; // one shot
@@ -372,7 +382,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             for (var i = CpcVm.timerCount - 1; i > this.timerPriority; i -= 1) { // check timers starting with highest priority first
                 var timer = this.timerList[i];
                 if (timer.active && !timer.handlerRunning && time > timer.nextTimeMs) { // timer expired?
-                    this.gosub(this.line, timer.line);
+                    this.vmGosub(this.line, timer.line);
                     timer.handlerRunning = true;
                     timer.stackIndexReturn = this.gosubStack.length;
                     timer.savedPriority = this.timerPriority;
@@ -450,7 +460,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             if (time >= this.nextFrameTime) {
                 this.vmCheckNextFrame(time);
                 this.stopCount += 1;
-                if (this.stopCount >= 5) { // do not stop too often because of just timer resason because setTimeout is expensive
+                if (this.stopCount >= 5) { // do not stop too often because of just timer reason because setTimeout is expensive
                     this.stopCount = 0;
                     this.vmStop("timer", 20);
                 }
@@ -602,12 +612,13 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         CpcVm.prototype.vmAfterEveryGosub = function (type, interval, timer, line) {
             interval = this.vmInRangeRound(interval, 0, 32767, type); // more would be overflow
             timer = this.vmInRangeRound(timer || 0, 0, 3, type);
+            line = this.vmAssertInRange(line, 1, 65535, type + " GOSUB");
             var timerEntry = this.timerList[timer];
             if (interval) {
                 var intervalMs = interval * CpcVm.frameTimeMs; // convert to ms
                 timerEntry.intervalMs = intervalMs;
                 timerEntry.line = line;
-                timerEntry.repeat = (type === "EVERY");
+                timerEntry.repeat = type === "EVERY";
                 timerEntry.active = true;
                 timerEntry.nextTimeMs = Date.now() + intervalMs;
             }
@@ -906,10 +917,10 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             var inFile = this.inFile;
             name = this.vmAdaptFilename(name, "CHAIN");
             this.closein();
+            inFile.line = line === undefined ? 0 : this.vmInRangeRound(line, 0, 65535, "CHAIN"); // here we do rounding of line number
             inFile.open = true;
             inFile.command = "chain";
             inFile.name = name;
-            inFile.line = line || 0;
             inFile.fnFileCallback = this.fnCloseinHandler;
             this.vmStop("fileLoad", 90);
         };
@@ -917,12 +928,12 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             var inFile = this.inFile;
             name = this.vmAdaptFilename(name, "CHAIN MERGE");
             this.closein();
+            inFile.line = line === undefined ? 0 : this.vmInRangeRound(line, 0, 65535, "CHAIN MERGE"); // here we do rounding of line number;
+            inFile.first = first === undefined ? 0 : this.vmAssertInRange(first, 1, 65535, "CHAIN MERGE");
+            inFile.last = last === undefined ? 0 : this.vmAssertInRange(last, 1, 65535, "CHAIN MERGE");
             inFile.open = true;
             inFile.command = "chainMerge";
             inFile.name = name;
-            inFile.line = line || 0;
-            inFile.first = first || 0;
-            inFile.last = last || 0;
             inFile.fnFileCallback = this.fnCloseinHandler;
             this.vmStop("fileLoad", 90);
         };
@@ -1073,6 +1084,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             for (var _i = 1; _i < arguments.length; _i++) {
                 args[_i - 1] = arguments[_i];
             }
+            this.vmAssertInRange(line, 1, 65535, "DATA");
             if (!this.dataLineIndex[line]) {
                 this.dataLineIndex[line] = this.dataList.length; // set current index for the line
             }
@@ -1129,6 +1141,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         };
         CpcVm.prototype.dim = function (varName) {
             var dimensions = [];
+            this.vmAssertString(varName, "DIM");
             for (var i = 1; i < arguments.length; i += 1) {
                 var size = this.vmInRangeRound(arguments[i], 0, 32767, "DIM") + 1; // for basic we have sizes +1
                 dimensions.push(size);
@@ -1327,14 +1340,19 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             }
             return this.himemValue; // example, e.g. 42245;
         };
-        CpcVm.prototype.gosub = function (retLabel, n) {
-            if (this.gosubStack.length >= this.maxGosubStackLength) { // limit stack size (not necessary in JS, but...)
-                throw this.vmComposeError(Error(), 7, "GOSUB " + n); // Memory full
-            }
+        CpcVm.prototype.vmGosub = function (retLabel, n) {
             this.vmGotoLine(n, "gosub (ret=" + retLabel + ")");
             this.gosubStack.push(retLabel);
         };
+        CpcVm.prototype.gosub = function (retLabel, n) {
+            this.vmAssertInRange(n, 1, 65535, "GOSUB");
+            if (this.gosubStack.length >= this.maxGosubStackLength) { // limit stack size (not necessary in JS, but...)
+                throw this.vmComposeError(Error(), 7, "GOSUB " + n); // Memory full
+            }
+            this.vmGosub(retLabel, n);
+        };
         CpcVm.prototype["goto"] = function (n) {
+            //this.vmAssertInRange(Number(n), 1, 65535, "GOSUB"); //TTT
             this.vmGotoLine(n, "goto");
         };
         CpcVm.prototype.graphicsPaper = function (gPaper) {
@@ -1342,19 +1360,16 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.canvas.setGPaper(gPaper);
         };
         CpcVm.prototype.graphicsPen = function (gPen, transparentMode) {
-            var count = 0;
+            if (gPen === undefined && transparentMode === undefined) {
+                throw this.vmComposeError(Error(), 22, "GRAPHICS PEN"); // Operand missing
+            }
             if (gPen !== undefined) {
                 gPen = this.vmInRangeRound(gPen, 0, 15, "GRAPHICS PEN");
                 this.canvas.setGPen(gPen);
-                count += 1;
             }
             if (transparentMode !== undefined) {
                 transparentMode = this.vmInRangeRound(transparentMode, 0, 1, "GRAPHICS PEN");
                 this.canvas.setGTransparentMode(Boolean(transparentMode));
-                count += 1;
-            }
-            if (!count) {
-                throw this.vmComposeError(Error(), 22, "GRAPHICS PEN"); // Operand missing
             }
         };
         CpcVm.prototype.hex$ = function (n, pad) {
@@ -1563,7 +1578,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             }
             p1 = this.vmInRangeRound(p1, 1, 255, "INSTR"); // p1=startpos
             this.vmAssertString(p3, "INSTR");
-            return p2.indexOf(p3, p1) + 1; // p2=string, p3=search string
+            return p2.indexOf(p3, p1 - 1) + 1; // p2=string, p3=search string
         };
         CpcVm.prototype["int"] = function (n) {
             this.vmAssertNumber(n, "INT");
@@ -1724,10 +1739,31 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         };
         CpcVm.prototype.log = function (n) {
             this.vmAssertNumber(n, "LOG");
+            if (n <= 0) {
+                throw this.vmComposeError(Error(), 6, "LOG " + n);
+            }
             return Math.log(n);
         };
         CpcVm.prototype.log10 = function (n) {
             this.vmAssertNumber(n, "LOG10");
+            if (n <= 0) {
+                /*
+                if (this.errorGotoLine && !this.errorResumeLine) { // print error, do not stop
+                    throw this.vmComposeError(Error(), 6, "LOG10 " + n); // will be catched by onerror
+                } else {
+                    const savedPriority = this.stopEntry.priority;
+    
+                    this.stopEntry.priority = 99;
+                    const err = this.vmComposeError(Error(), 6, "LOG10 " + n);
+    
+                    this.stopEntry.priority = savedPriority;
+    
+                    this.print(0, String(err.shortMessage));
+                }
+                return n;
+                */
+                throw this.vmComposeError(Error(), 6, "LOG10 " + n);
+            }
             return Math.log10(n);
         };
         CpcVm.fnLowerCase = function (match) {
@@ -1739,6 +1775,9 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             return s;
         };
         CpcVm.prototype.mask = function (mask, first) {
+            if (mask === undefined && first === undefined) {
+                throw this.vmComposeError(Error(), 22, "MASK"); // Operand missing
+            }
             if (mask !== undefined) {
                 mask = this.vmInRangeRound(mask, 0, 255, "MASK");
                 this.canvas.setMask(mask);
@@ -1752,6 +1791,15 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
                 args[_i] = arguments[_i];
+            }
+            if (!args.length) {
+                throw this.vmComposeError(Error(), 22, "MAX"); // Operand missing
+            }
+            else if (args.length === 1) { // if just one argument, return it, even if it is a string
+                if (typeof args[0] !== "number" && !this.quiet) {
+                    Utils_1.Utils.console.warn("MAX: Not a number:", args[0]);
+                }
+                return args[0];
             }
             for (var i = 0; i < args.length; i += 1) {
                 this.vmAssertNumber(args[i], "MAX");
@@ -1801,6 +1849,15 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
                 args[_i] = arguments[_i];
+            }
+            if (!args.length) {
+                throw this.vmComposeError(Error(), 22, "MIN"); // Operand missing
+            }
+            else if (args.length === 1) { // if just one argument, return it, even if it is a string
+                if (typeof args[0] !== "number" && !this.quiet) {
+                    Utils_1.Utils.console.warn("MIN: Not a number:", args[0]);
+                }
+                return args[0];
             }
             for (var i = 0; i < args.length; i += 1) {
                 this.vmAssertNumber(args[i], "MIN");
@@ -1854,7 +1911,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.breakResumeLine = 0;
         };
         CpcVm.prototype.onBreakGosub = function (line) {
-            this.breakGosubLine = line;
+            this.breakGosubLine = this.vmAssertInRange(line, 1, 65535, "ON BREAK GOSUB");
             this.breakResumeLine = 0;
         };
         CpcVm.prototype.onBreakStop = function () {
@@ -1862,7 +1919,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.breakResumeLine = 0;
         };
         CpcVm.prototype.onErrorGoto = function (line) {
-            this.errorGotoLine = line;
+            this.errorGotoLine = this.vmAssertInRange(line, 0, 65535, "ON ERROR GOTO");
             if (!line && this.errorResumeLine) { // line=0 but an error to resume?
                 throw this.vmComposeError(Error(), this.errorCode, "ON ERROR GOTO without RESUME from " + this.errorLine);
             }
@@ -1881,7 +1938,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                 line = retLabel;
             }
             else {
-                line = args[n - 1]; // n=1...
+                line = this.vmAssertInRange(args[n - 1], 1, 65535, "ON GOSUB"); // n=1...
                 if (this.gosubStack.length >= this.maxGosubStackLength) { // limit stack size (not necessary in JS, but...)
                     throw this.vmComposeError(Error(), 7, "ON GOSUB " + n); // Memory full
                 }
@@ -1903,7 +1960,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                 line = retLabel;
             }
             else {
-                line = args[n - 1];
+                line = this.vmAssertInRange(args[n - 1], 1, 65535, "ON GOTO");
             }
             this.vmGotoLine(line, "onGoto (n=" + n + ", ret=" + retLabel + ", line=" + line + ")");
         };
@@ -1923,7 +1980,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             }
             channel = CpcVm.fnChannel2ChannelIndex(channel);
             var sqTimer = this.sqTimer[channel];
-            sqTimer.line = line;
+            sqTimer.line = this.vmAssertInRange(line, 1, 65535, "ON SQ GOSUB");
             sqTimer.active = true;
             sqTimer.repeat = true; // means reloaded for sq
         };

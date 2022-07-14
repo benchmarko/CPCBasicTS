@@ -171,6 +171,15 @@ export class Controller implements IController {
 		}
 
 		this.initDropZone();
+
+		/*
+		const input = this.model.getProperty<string>("input");
+
+		if (input !== "") {
+			this.view.setAreaValue("inp2Text", input);
+			this.startEnter();
+		}
+		*/
 	}
 
 	private initDatabases() {
@@ -505,7 +514,7 @@ export class Controller implements IController {
 			switch (key) {
 			case "": // no key?
 				break;
-			case "\r": // cr (\x0c)
+			case "\r": // cr (\x0d)
 				break;
 			case "\x10": // DLE (clear character under cursor)
 				key = "\x07"; // currently ignore (BEL)
@@ -1654,10 +1663,6 @@ export class Controller implements IController {
 			vm.clear(); // we do a clear as well here
 		}
 		vm.vmReset4Run();
-		if (!this.inputSet) {
-			this.inputSet = true;
-			this.keyboard.putKeysInBuffer(this.model.getProperty<string>("input"));
-		}
 
 		if (this.fnScript) {
 			vm.outBuffer = this.view.getAreaValue("resultText");
@@ -1669,6 +1674,22 @@ export class Controller implements IController {
 			this.view.setDisabled("stopButton", false);
 			this.view.setDisabled("continueButton", true);
 		}
+
+		if (!this.inputSet) {
+			this.inputSet = true;
+			const input = this.model.getProperty<string>("input");
+
+			if (input !== "") {
+				this.view.setAreaValue("inp2Text", input);
+				const that = this,
+					timeout = 1;
+
+				setTimeout(function () {
+					that.startEnter();
+				}, timeout);
+			}
+		}
+
 		if (Utils.debug > 1) {
 			Utils.console.debug("End of fnRun");
 		}
@@ -2001,7 +2022,7 @@ export class Controller implements IController {
 	startEnter(): void {
 		let input = this.view.getAreaValue("inp2Text");
 
-		input = input.replace("\n", "\r"); // LF => CR
+		input = input.replace(/\n/g, "\r"); // LF => CR
 		if (!input.endsWith("\r")) {
 			input += "\r";
 		}

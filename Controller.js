@@ -120,6 +120,14 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.canvas.startUpdateCanvas();
             }
             this.initDropZone();
+            /*
+            const input = this.model.getProperty<string>("input");
+    
+            if (input !== "") {
+                this.view.setAreaValue("inp2Text", input);
+                this.startEnter();
+            }
+            */
         }
         Controller.prototype.initDatabases = function () {
             var model = this.model, databases = {}, databaseDirs = model.getProperty("databaseDirs").split(",");
@@ -382,7 +390,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 switch (key) {
                     case "": // no key?
                         break;
-                    case "\r": // cr (\x0c)
+                    case "\r": // cr (\x0d)
                         break;
                     case "\x10": // DLE (clear character under cursor)
                         key = "\x07"; // currently ignore (BEL)
@@ -1322,10 +1330,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 vm.clear(); // we do a clear as well here
             }
             vm.vmReset4Run();
-            if (!this.inputSet) {
-                this.inputSet = true;
-                this.keyboard.putKeysInBuffer(this.model.getProperty("input"));
-            }
             if (this.fnScript) {
                 vm.outBuffer = this.view.getAreaValue("resultText");
                 vm.vmStop("", 0, true);
@@ -1334,6 +1338,17 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.view.setDisabled("runButton", true);
                 this.view.setDisabled("stopButton", false);
                 this.view.setDisabled("continueButton", true);
+            }
+            if (!this.inputSet) {
+                this.inputSet = true;
+                var input = this.model.getProperty("input");
+                if (input !== "") {
+                    this.view.setAreaValue("inp2Text", input);
+                    var that_1 = this, timeout = 1;
+                    setTimeout(function () {
+                        that_1.startEnter();
+                    }, timeout);
+                }
             }
             if (Utils_1.Utils.debug > 1) {
                 Utils_1.Utils.console.debug("End of fnRun");
@@ -1607,7 +1622,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         };
         Controller.prototype.startEnter = function () {
             var input = this.view.getAreaValue("inp2Text");
-            input = input.replace("\n", "\r"); // LF => CR
+            input = input.replace(/\n/g, "\r"); // LF => CR
             if (!input.endsWith("\r")) {
                 input += "\r";
             }

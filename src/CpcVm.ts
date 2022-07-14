@@ -655,8 +655,8 @@ export class CpcVm {
 		return this.breakGosubLine < 0; // on break cont
 	}
 
-	vmOnBreakHandlerActive(): number {
-		return this.breakResumeLine;
+	vmOnBreakHandlerActive(): boolean {
+		return Boolean(this.breakResumeLine);
 	}
 
 	vmEscape(): boolean {
@@ -665,7 +665,7 @@ export class CpcVm {
 		if (this.breakGosubLine > 0) { // on break gosub n
 			if (!this.breakResumeLine) { // do not nest break gosub
 				this.breakResumeLine = Number(this.line);
-				this.gosub(this.line, this.breakGosubLine);
+				this.vmGosub(this.line, this.breakGosubLine);
 			}
 			stop = false;
 		} else if (this.breakGosubLine < 0) { // on break cont
@@ -686,6 +686,18 @@ export class CpcVm {
 			throw this.vmComposeError(Error(), 13, err + " " + s); // Type mismatch
 		}
 	}
+
+	private vmAssertInRange(n: number | undefined, min: number, max: number, err: string) {
+		this.vmAssertNumber(n, err);
+		if (n as number < min || n as number > max) {
+			if (!this.quiet) {
+				Utils.console.warn("vmAssertInRange: number not in range:", min + "<=" + n + "<=" + max);
+			}
+			throw this.vmComposeError(Error(), 5, err + " " + n); // 5=Improper argument
+		}
+		return n as number;
+	}
+
 
 	// round number (-2^31..2^31) to integer; throw error if no number
 	vmRound(n: number | undefined, err?: string): number { // optional err
@@ -768,7 +780,7 @@ export class CpcVm {
 
 				// use sound.sq(i) and not this.sq(i) since that would reset onSq timer
 				if (timer.active && !timer.handlerRunning && (this.soundClass.sq(i) & 0x07)) { // eslint-disable-line no-bitwise
-					this.gosub(this.line, timer.line);
+					this.vmGosub(this.line, timer.line);
 					timer.handlerRunning = true;
 					timer.stackIndexReturn = this.gosubStack.length;
 					timer.repeat = false; // one shot
@@ -787,7 +799,7 @@ export class CpcVm {
 			const timer = this.timerList[i];
 
 			if (timer.active && !timer.handlerRunning && time > timer.nextTimeMs) { // timer expired?
-				this.gosub(this.line, timer.line);
+				this.vmGosub(this.line, timer.line);
 				timer.handlerRunning = true;
 				timer.stackIndexReturn = this.gosubStack.length;
 				timer.savedPriority = this.timerPriority;
@@ -872,7 +884,7 @@ export class CpcVm {
 		if (time >= this.nextFrameTime) {
 			this.vmCheckNextFrame(time);
 			this.stopCount += 1;
-			if (this.stopCount >= 5) { // do not stop too often because of just timer resason because setTimeout is expensive
+			if (this.stopCount >= 5) { // do not stop too often because of just timer reason because setTimeout is expensive
 				this.stopCount = 0;
 				this.vmStop("timer", 20);
 			}
@@ -1060,6 +1072,7 @@ export class CpcVm {
 	private vmAfterEveryGosub(type: string, interval: number, timer: number, line: number) { // timer may be null
 		interval = this.vmInRangeRound(interval, 0, 32767, type); // more would be overflow
 		timer = this.vmInRangeRound(timer || 0, 0, 3, type);
+		line = this.vmAssertInRange(line, 1, 65535, type + " GOSUB");
 		const timerEntry = this.timerList[timer];
 
 		if (interval) {
@@ -1067,7 +1080,7 @@ export class CpcVm {
 
 			timerEntry.intervalMs = intervalMs;
 			timerEntry.line = line;
-			timerEntry.repeat = (type === "EVERY");
+			timerEntry.repeat = type === "EVERY";
 			timerEntry.active = true;
 			timerEntry.nextTimeMs = Date.now() + intervalMs;
 		} else { // interval 0 => switch running timer off
@@ -1402,10 +1415,10 @@ export class CpcVm {
 
 		name = this.vmAdaptFilename(name, "CHAIN");
 		this.closein();
+		inFile.line = line === undefined ? 0 : this.vmInRangeRound(line, 0, 65535, "CHAIN"); // here we do rounding of line number
 		inFile.open = true;
 		inFile.command = "chain";
 		inFile.name = name;
-		inFile.line = line || 0;
 		inFile.fnFileCallback = this.fnCloseinHandler;
 		this.vmStop("fileLoad", 90);
 	}
@@ -1415,12 +1428,12 @@ export class CpcVm {
 
 		name = this.vmAdaptFilename(name, "CHAIN MERGE");
 		this.closein();
+		inFile.line = line === undefined ? 0 : this.vmInRangeRound(line, 0, 65535, "CHAIN MERGE"); // here we do rounding of line number;
+		inFile.first = first === undefined ? 0 : this.vmAssertInRange(first, 1, 65535, "CHAIN MERGE");
+		inFile.last = last === undefined ? 0 : this.vmAssertInRange(last, 1, 65535, "CHAIN MERGE");
 		inFile.open = true;
 		inFile.command = "chainMerge";
 		inFile.name = name;
-		inFile.line = line || 0;
-		inFile.first = first || 0;
-		inFile.last = last || 0;
 		inFile.fnFileCallback = this.fnCloseinHandler;
 		this.vmStop("fileLoad", 90);
 	}
@@ -1604,6 +1617,7 @@ export class CpcVm {
 	}
 
 	data(line: number, ...args: DataEntryType[]): void { // varargs
+		this.vmAssertInRange(line, 1, 65535, "DATA");
 		if (!this.dataLineIndex[line]) {
 			this.dataLineIndex[line] = this.dataList.length; // set current index for the line
 		}
@@ -1670,6 +1684,7 @@ export class CpcVm {
 	dim(varName: string): void { // varargs
 		const dimensions = [];
 
+		this.vmAssertString(varName, "DIM");
 		for (let i = 1; i < arguments.length; i += 1) {
 			const size = this.vmInRangeRound(arguments[i], 0, 32767, "DIM") + 1; // for basic we have sizes +1
 
@@ -1891,15 +1906,21 @@ export class CpcVm {
 		return this.himemValue; // example, e.g. 42245;
 	}
 
-	gosub(retLabel: string | number, n: number): void {
-		if (this.gosubStack.length >= this.maxGosubStackLength) { // limit stack size (not necessary in JS, but...)
-			throw this.vmComposeError(Error(), 7, "GOSUB " + n); // Memory full
-		}
+	private vmGosub(retLabel: string | number, n: number) {
 		this.vmGotoLine(n, "gosub (ret=" + retLabel + ")");
 		this.gosubStack.push(retLabel);
 	}
 
+	gosub(retLabel: string | number, n: number): void {
+		this.vmAssertInRange(n, 1, 65535, "GOSUB");
+		if (this.gosubStack.length >= this.maxGosubStackLength) { // limit stack size (not necessary in JS, but...)
+			throw this.vmComposeError(Error(), 7, "GOSUB " + n); // Memory full
+		}
+		this.vmGosub(retLabel, n);
+	}
+
 	"goto"(n: string): void {
+		//this.vmAssertInRange(Number(n), 1, 65535, "GOSUB"); //TTT
 		this.vmGotoLine(n, "goto");
 	}
 
@@ -1909,22 +1930,18 @@ export class CpcVm {
 	}
 
 	graphicsPen(gPen?: number, transparentMode?: number): void {
-		let count = 0;
+		if (gPen === undefined && transparentMode === undefined) {
+			throw this.vmComposeError(Error(), 22, "GRAPHICS PEN"); // Operand missing
+		}
 
 		if (gPen !== undefined) {
 			gPen = this.vmInRangeRound(gPen, 0, 15, "GRAPHICS PEN");
 			this.canvas.setGPen(gPen);
-			count += 1;
 		}
 
 		if (transparentMode !== undefined) {
 			transparentMode = this.vmInRangeRound(transparentMode, 0, 1, "GRAPHICS PEN");
 			this.canvas.setGTransparentMode(Boolean(transparentMode));
-			count += 1;
-		}
-
-		if (!count) {
-			throw this.vmComposeError(Error(), 22, "GRAPHICS PEN"); // Operand missing
 		}
 	}
 
@@ -2166,7 +2183,7 @@ export class CpcVm {
 		}
 		p1 = this.vmInRangeRound(p1, 1, 255, "INSTR"); // p1=startpos
 		this.vmAssertString(p3 as string, "INSTR");
-		return p2.indexOf(p3 as string, p1) + 1; // p2=string, p3=search string
+		return p2.indexOf(p3 as string, p1 - 1) + 1; // p2=string, p3=search string
 	}
 
 	"int"(n: number): number {
@@ -2352,11 +2369,32 @@ export class CpcVm {
 
 	log(n: number): number {
 		this.vmAssertNumber(n, "LOG");
+		if (n <= 0) {
+			throw this.vmComposeError(Error(), 6, "LOG " + n);
+		}
 		return Math.log(n);
 	}
 
 	log10(n: number): number {
 		this.vmAssertNumber(n, "LOG10");
+		if (n <= 0) {
+			/*
+			if (this.errorGotoLine && !this.errorResumeLine) { // print error, do not stop
+				throw this.vmComposeError(Error(), 6, "LOG10 " + n); // will be catched by onerror
+			} else {
+				const savedPriority = this.stopEntry.priority;
+
+				this.stopEntry.priority = 99;
+				const err = this.vmComposeError(Error(), 6, "LOG10 " + n);
+
+				this.stopEntry.priority = savedPriority;
+
+				this.print(0, String(err.shortMessage));
+			}
+			return n;
+			*/
+			throw this.vmComposeError(Error(), 6, "LOG10 " + n);
+		}
 		return Math.log10(n);
 	}
 
@@ -2372,6 +2410,10 @@ export class CpcVm {
 	}
 
 	mask(mask: number | undefined, first?: number): void { // one of mask, first is optional
+		if (mask === undefined && first === undefined) {
+			throw this.vmComposeError(Error(), 22, "MASK"); // Operand missing
+		}
+
 		if (mask !== undefined) {
 			mask = this.vmInRangeRound(mask, 0, 255, "MASK");
 			this.canvas.setMask(mask);
@@ -2383,7 +2425,16 @@ export class CpcVm {
 		}
 	}
 
-	max(...args: number[]): number {
+	max(...args: number[]): number | string {
+		if (!args.length) {
+			throw this.vmComposeError(Error(), 22, "MAX"); // Operand missing
+		} else if (args.length === 1) { // if just one argument, return it, even if it is a string
+			if (typeof args[0] !== "number" && !this.quiet) {
+				Utils.console.warn("MAX: Not a number:", args[0]);
+			}
+			return args[0];
+		}
+
 		for (let i = 0; i < args.length; i += 1) {
 			this.vmAssertNumber(args[i], "MAX");
 		}
@@ -2435,7 +2486,16 @@ export class CpcVm {
 		return s;
 	}
 
-	min(...args: number[]): number {
+	min(...args: number[]): number | string {
+		if (!args.length) {
+			throw this.vmComposeError(Error(), 22, "MIN"); // Operand missing
+		} else if (args.length === 1) { // if just one argument, return it, even if it is a string
+			if (typeof args[0] !== "number" && !this.quiet) {
+				Utils.console.warn("MIN: Not a number:", args[0]);
+			}
+			return args[0];
+		}
+
 		for (let i = 0; i < args.length; i += 1) {
 			this.vmAssertNumber(args[i], "MIN");
 		}
@@ -2502,7 +2562,7 @@ export class CpcVm {
 	}
 
 	onBreakGosub(line: number): void {
-		this.breakGosubLine = line;
+		this.breakGosubLine = this.vmAssertInRange(line, 1, 65535, "ON BREAK GOSUB");
 		this.breakResumeLine = 0;
 	}
 
@@ -2512,7 +2572,7 @@ export class CpcVm {
 	}
 
 	onErrorGoto(line: number): void {
-		this.errorGotoLine = line;
+		this.errorGotoLine = this.vmAssertInRange(line, 0, 65535, "ON ERROR GOTO");
 		if (!line && this.errorResumeLine) { // line=0 but an error to resume?
 			throw this.vmComposeError(Error(), this.errorCode, "ON ERROR GOTO without RESUME from " + this.errorLine);
 		}
@@ -2529,7 +2589,7 @@ export class CpcVm {
 			}
 			line = retLabel;
 		} else {
-			line = args[n - 1]; // n=1...
+			line = this.vmAssertInRange(args[n - 1], 1, 65535, "ON GOSUB"); // n=1...
 			if (this.gosubStack.length >= this.maxGosubStackLength) { // limit stack size (not necessary in JS, but...)
 				throw this.vmComposeError(Error(), 7, "ON GOSUB " + n); // Memory full
 			}
@@ -2549,7 +2609,7 @@ export class CpcVm {
 			}
 			line = retLabel;
 		} else {
-			line = args[n - 1];
+			line = this.vmAssertInRange(args[n - 1], 1, 65535, "ON GOTO");
 		}
 		this.vmGotoLine(line, "onGoto (n=" + n + ", ret=" + retLabel + ", line=" + line + ")");
 	}
@@ -2572,7 +2632,7 @@ export class CpcVm {
 
 		const sqTimer = this.sqTimer[channel];
 
-		sqTimer.line = line;
+		sqTimer.line = this.vmAssertInRange(line, 1, 65535, "ON SQ GOSUB");
 		sqTimer.active = true;
 		sqTimer.repeat = true; // means reloaded for sq
 	}

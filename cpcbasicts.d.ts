@@ -1395,10 +1395,11 @@ declare module "CpcVm" {
         vmGetAllVariables(): VariableMap;
         vmSetStartLine(line: number): void;
         vmOnBreakContSet(): boolean;
-        vmOnBreakHandlerActive(): number;
+        vmOnBreakHandlerActive(): boolean;
         vmEscape(): boolean;
         private vmAssertNumber;
         private vmAssertString;
+        private vmAssertInRange;
         vmRound(n: number | undefined, err?: string): number;
         vmInRangeRound(n: number | undefined, min: number, max: number, err: string): number;
         private vmRound2Complement;
@@ -1497,6 +1498,7 @@ declare module "CpcVm" {
         fix(n: number): number;
         frame(): void;
         fre(arg: number | string): number;
+        private vmGosub;
         gosub(retLabel: string | number, n: number): void;
         "goto"(n: string): void;
         graphicsPaper(gPaper: number): void;
@@ -1534,12 +1536,12 @@ declare module "CpcVm" {
         private static fnLowerCase;
         lower$(s: string): string;
         mask(mask: number | undefined, first?: number): void;
-        max(...args: number[]): number;
+        max(...args: number[]): number | string;
         memory(n: number): void;
         merge(name: string): void;
         mid$(s: string, start: number, len?: number): string;
         mid$Assign(s: string, start: number, len: number | undefined, newString: string): string;
-        min(...args: number[]): number;
+        min(...args: number[]): number | string;
         vmChangeMode(mode: number): void;
         mode(mode: number): void;
         move(x: number, y: number, gPen?: number, gColMode?: number): void;

@@ -222,7 +222,7 @@
         "affectsGlobalScope": false
       },
       "../../src/test/TestHelper.ts": {
-        "version": "f7dce354bc779f59c9d724526d371b9a29a39207985060550ba6f85f63c65948",
+        "version": "973260c3bd3e85875bc759e03139943ccb347f15739d78ce8416bc9f07cc6495",
         "signature": "a50b2d0fd1267dbdabf8416b80552eae3cc9335d98889b7c32bf5832dd1a38b1",
         "affectsGlobalScope": true
       },
@@ -302,12 +302,12 @@
         "affectsGlobalScope": false
       },
       "../types/CpcVm.d.ts": {
-        "version": "1c9bad880243ba9346ce8379bf5938cfc64e1d1f0825d4c3433e6c2f99a1175c",
-        "signature": "1c9bad880243ba9346ce8379bf5938cfc64e1d1f0825d4c3433e6c2f99a1175c",
+        "version": "810b43e5e7dd2dab861a8d114f1c73fa9dd3bb58e311dd3068bb5c0434f25382",
+        "signature": "810b43e5e7dd2dab861a8d114f1c73fa9dd3bb58e311dd3068bb5c0434f25382",
         "affectsGlobalScope": false
       },
       "../../src/test/CpcVm.qunit.ts": {
-        "version": "4298e5f995eca44f72a7d0b504534b5059855f23c9b2b6210229608ee2485dcc",
+        "version": "66b01eacbb6451711b6e8b87189a7cb9b893930d1364d3201b0c9d7dab1b161d",
         "signature": "268e688401d8911f1ecd97206559b40640dd907d6c9af91531c6ef2706aeec5e",
         "affectsGlobalScope": false
       },

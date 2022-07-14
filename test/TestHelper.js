@@ -75,7 +75,7 @@ define(["require", "exports", "../Utils"], function (require, exports, Utils_1) 
         TestHelper.stringInQuotes = function (s) {
             s = s.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/\r/g, "\\r");
             // keep \n, \r
-            s = s.replace(/[\x00-\x09\x0b\x0c\x0e-\x1f\x80-\xff]/g, function (char) {
+            s = s.replace(/[\x00-\x09\x0b\x0c\x0e-\x1f\x7f-\xff]/g, function (char) {
                 return "\\x" + ("00" + char.charCodeAt(0).toString(16)).slice(-2);
             });
             var count1 = s.split('"').length - 1, count2 = s.split("'").length - 1;
