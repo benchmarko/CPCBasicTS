@@ -22,7 +22,7 @@ QUnit.module("Model: Properties", function (hooks: NestedHooks) {
 	});
 
 	QUnit.test("properties", function (this: any, assert: Assert) {
-		const model = this.model; // eslint-disable-line no-invalid-this
+		const model: Model = this.model; // eslint-disable-line no-invalid-this
 
 		let allProperties = model.getAllInitialProperties();
 
