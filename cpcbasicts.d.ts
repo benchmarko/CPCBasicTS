@@ -1218,7 +1218,7 @@ declare module "CpcVm" {
         keyboard: Keyboard;
         sound: Sound;
         variables: Variables;
-        tron: boolean;
+        tron?: boolean;
         quiet?: boolean;
     }
     export interface FileMeta {
@@ -1402,6 +1402,7 @@ declare module "CpcVm" {
         private vmAssertInRange;
         vmRound(n: number | undefined, err?: string): number;
         vmInRangeRound(n: number | undefined, min: number, max: number, err: string): number;
+        private vmLineInRange;
         private vmRound2Complement;
         vmDetermineVarType(varType: string): string;
         vmAssertNumberType(varType: string): void;
@@ -1440,7 +1441,7 @@ declare module "CpcVm" {
         private static vmGetCpcCharCode;
         asc(s: string): number;
         atn(n: number): number;
-        auto(): void;
+        auto(line?: number, increment?: number): void;
         bin$(n: number, pad?: number): string;
         border(ink1: number, ink2?: number): void;
         private vmMcSetMode;
@@ -1460,7 +1461,7 @@ declare module "CpcVm" {
         private vmCloseoutCallback;
         closeout(): void;
         cls(stream: number): void;
-        commaTab(stream: number): string;
+        private commaTab;
         cont(): void;
         copychr$(stream: number): string;
         cos(n: number): number;
@@ -1477,7 +1478,7 @@ declare module "CpcVm" {
         "delete"(first?: number, last?: number): void;
         derr(): number;
         di(): void;
-        dim(varName: string): void;
+        dim(varName: string, ...args: number[]): void;
         draw(x: number, y: number, gPen?: number, gColMode?: number): void;
         drawr(x: number, y: number, gPen?: number, gColMode?: number): void;
         edit(line: number): void;
@@ -1516,7 +1517,7 @@ declare module "CpcVm" {
         private fnFileInputGetNumber;
         private vmInputNextFileItem;
         vmInputFromFile(types: string[]): void;
-        input(stream: number, noCRLF: string, msg: string): void;
+        input(stream: number, noCRLF: string, msg: string, ...args: string[]): void;
         instr(p1: string | number, p2: string, p3?: string): number;
         "int"(n: number): number;
         joy(joy: number): number;
@@ -1590,11 +1591,11 @@ declare module "CpcVm" {
         remain(timerNumber: number): number;
         renum(newLine?: number, oldLine?: number, step?: number, keep?: number): void;
         restore(line?: number): void;
-        resume(line: number): void;
+        resume(line?: number): void;
         resumeNext(): void;
         "return"(): void;
         right$(s: string, len: number): string;
-        rnd(n: number): number;
+        rnd(n?: number): number;
         round(n: number, decimals?: number): number;
         private vmRunCallback;
         run(numOrString?: number | string): void;
@@ -1603,7 +1604,7 @@ declare module "CpcVm" {
         sin(n: number): number;
         sound(state: number, period: number, duration?: number, volume?: number, volEnv?: number, toneEnv?: number, noise?: number): void;
         space$(n: number): string;
-        spc(stream: number, n: number): string;
+        private spc;
         speedInk(time1: number, time2: number): void;
         speedKey(delay: number, repeat: number): void;
         speedWrite(n: number): void;
@@ -1614,7 +1615,7 @@ declare module "CpcVm" {
         string$(len: number, chr: number | string): string;
         symbol(char: number, ...args: number[]): void;
         symbolAfter(char: number): void;
-        tab(stream: number, n: number): string;
+        private tab;
         tag(stream: number): void;
         tagoff(stream: number): void;
         tan(n: number): number;
@@ -1643,6 +1644,9 @@ declare module "CpcVm" {
         readonly vmInternal: {
             getTimerList: () => TimerEntry[];
             getWindowDataList: () => WindowData[];
+            commaTab: (stream: number) => string;
+            spc: (stream: number, n: number) => string;
+            tab: (stream: number, n: number) => string;
         };
     }
 }

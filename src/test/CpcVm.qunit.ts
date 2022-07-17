@@ -2,7 +2,7 @@
 //
 
 import { Utils } from "../Utils";
-import { CpcVm, CpcVmOptions } from "../CpcVm";
+import { CpcVm, CpcVmOptions, VmInputParas, FileMeta } from "../CpcVm";
 import { Canvas } from "../Canvas";
 import { Keyboard } from "../Keyboard";
 import { Sound } from "../Sound";
@@ -10,6 +10,371 @@ import { Variables } from "../Variables";
 import { TestHelper, TestsType, AllTestsType } from "./TestHelper";
 
 type TestFunctionInputType = string | number | undefined;
+
+const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [],
+	varTypesMap: Record<string, string> = {},
+	variablesMap: Record<string, string | number> = {},
+	mockCanvas = {
+		changeMode: function (...args) {
+			lastTestFunctions.push({
+				changeMode: args
+			});
+		},
+		clearFullWindow: function (...args) {
+			lastTestFunctions.push({
+				clearFullWindow: args
+			});
+		},
+		clearGraphicsWindow: function (...args) {
+			lastTestFunctions.push({
+				clearGraphicsWindow: args
+			});
+		},
+		clearTextWindow: function (...args) {
+			lastTestFunctions.push({
+				clearTextWindow: args
+			});
+		},
+		draw: function (...args) {
+			lastTestFunctions.push({
+				draw: args
+			});
+		},
+		drawCursor: function (...args) {
+			lastTestFunctions.push({
+				drawCursor: args
+			});
+		},
+		fill: function (...args) {
+			lastTestFunctions.push({
+				fill: args
+			});
+		},
+		fillTextBox: function (...args) {
+			lastTestFunctions.push({
+				fillTextBox: args
+			});
+		},
+		getCharData: function (...args) {
+			lastTestFunctions.push({
+				getCharData: args
+			});
+			return [0x18, 0x3c, 0x66, 0x66, 0x7e, 0x66, 0x66, 0x00]; // eslint-disable-line array-element-newline
+		},
+		getByte: function (...args) {
+			const addr = args[0];
+
+			// test output only for 2 bytes starting with 0x0000, 0x4000, 0x8000, 0xc000
+			if ((addr & 0xc001) === addr) { // eslint-disable-line no-bitwise
+				lastTestFunctions.push({
+					getByte: args
+				});
+			}
+			return addr & 0xff; // eslint-disable-line no-bitwise
+		},
+		getMode: function (...args) {
+			lastTestFunctions.push({
+				getMode: args
+			});
+			return 1;
+		},
+		getXpos: function (...args) {
+			lastTestFunctions.push({
+				getXpos: args
+			});
+			return 10;
+		},
+		getYpos: function (...args) {
+			lastTestFunctions.push({
+				getYpos: args
+			});
+			return 20;
+		},
+		move: function (...args) {
+			lastTestFunctions.push({
+				move: args
+			});
+		},
+		plot: function (...args) {
+			lastTestFunctions.push({
+				plot: args
+			});
+		},
+		printChar: function (...args) {
+			lastTestFunctions.push({
+				printChar: args.map((arg) => String(arg))
+			});
+		},
+		printGChar: function (...args) {
+			lastTestFunctions.push({
+				printGChar: args
+			});
+		},
+		readChar: function (...args) {
+			lastTestFunctions.push({
+				readChar: args
+			});
+			return 65;
+		},
+		reset: function (...args) {
+			lastTestFunctions.push({
+				reset: args
+			});
+		},
+		resetCustomChars: function (...args) {
+			lastTestFunctions.push({
+				resetCustomChars: args
+			});
+		},
+		setBorder: function (...args) {
+			lastTestFunctions.push({
+				setBorder: args
+			});
+		},
+		setByte: function (...args) {
+			const addr = args[0];
+
+			// test output only for 2 bytes starting with 0x0000, 0x4000, 0x8000, 0xc000
+			if ((addr & 0xc001) === addr) { // eslint-disable-line no-bitwise
+				lastTestFunctions.push({
+					setByte: args
+				});
+			}
+		},
+		setCustomChar: function (...args) {
+			args[1] = args[1].join(",") as any;
+			lastTestFunctions.push({
+				setCustomChar: args as any
+			});
+		},
+		setDefaultInks: function (...args) {
+			lastTestFunctions.push({
+				setDefaultInks: args
+			});
+		},
+		setGColMode: function (...args) {
+			lastTestFunctions.push({
+				setGColMode: args
+			});
+		},
+		setGPaper: function (...args) {
+			lastTestFunctions.push({
+				setGPaper: args
+			});
+		},
+		setGPen: function (...args) {
+			lastTestFunctions.push({
+				setGPen: args
+			});
+		},
+		setGTransparentMode: function (...args) {
+			lastTestFunctions.push({
+				setGTransparentMode: args.map((arg) => String(arg))
+			});
+		},
+		setGWindow: function (...args) {
+			lastTestFunctions.push({
+				setGWindow: args
+			});
+		},
+		setInk: function (...args) {
+			lastTestFunctions.push({
+				setInk: args
+			});
+			return Boolean(args[0]); // example
+		},
+		setMask: function (...args) {
+			lastTestFunctions.push({
+				setMask: args
+			});
+		},
+		setMaskFirst: function (...args) {
+			lastTestFunctions.push({
+				setMaskFirst: args
+			});
+		},
+		setMode: function (...args) {
+			lastTestFunctions.push({
+				setMode: args
+			});
+		},
+		setOrigin: function (...args) {
+			lastTestFunctions.push({
+				setOrigin: args
+			});
+		},
+		setSpeedInk: function (...args) {
+			lastTestFunctions.push({
+				setSpeedInk: args
+			});
+		},
+		test: function (...args) {
+			lastTestFunctions.push({
+				test: args
+			});
+			return Number(args[0]) % 16; // example
+		},
+		updateSpeedInk: function (...args) {
+			lastTestFunctions.push({
+				updateSpeedInk: args
+			});
+		},
+		windowScrollDown: function (...args) {
+			lastTestFunctions.push({
+				windowScrollDown: args
+			});
+		}
+	} as Canvas,
+	mockKeyboard = {
+		clearInput: function (...args) {
+			lastTestFunctions.push({
+				clearInput: args
+			});
+		},
+		getJoyState: function (...args) {
+			lastTestFunctions.push({
+				getJoyState: args
+			});
+			return 4 + Number(args); // example
+		},
+		getKeyDownHandler: function (...args) {
+			lastTestFunctions.push({
+				getKeyDownHandler: args
+			});
+		},
+		getKeyFromBuffer: function (...args) {
+			lastTestFunctions.push({
+				getKeyFromBuffer: args
+			});
+			return "A";
+		},
+		getKeyState: function (...args) {
+			lastTestFunctions.push({
+				getKeyState: args
+			});
+			return args[0] === 79 ? 13 : -1; // example
+		},
+		putKeyInBuffer: function (...args) {
+			lastTestFunctions.push({
+				putKeyInBuffer: args
+			});
+		},
+		reset: function (...args) {
+			lastTestFunctions.push({
+				reset: args
+			});
+		},
+		resetCpcKeysExpansions: function (...args) {
+			lastTestFunctions.push({
+				resetCpcKeysExpansions: args
+			});
+		},
+		resetExpansionTokens: function (...args) {
+			lastTestFunctions.push({
+				resetExpansionTokens: args
+			});
+		},
+		setCpcKeyExpansion: function (...args) {
+			args = args.map((arg) => JSON.stringify(arg)) as any;
+			lastTestFunctions.push({
+				setCpcKeyExpansion: args as any
+			});
+		},
+		setExpansionToken: function (...args) {
+			lastTestFunctions.push({
+				setExpansionToken: args
+			});
+		}
+	} as Keyboard,
+	mockSound = {
+		release: function (...args) {
+			lastTestFunctions.push({
+				release: args
+			});
+		},
+		reset: function (...args) {
+			lastTestFunctions.push({
+				reset: args
+			});
+		},
+		resetQueue: function (...args) {
+			lastTestFunctions.push({
+				resetQueue: args
+			});
+		},
+		scheduler: function (...args) {
+			lastTestFunctions.push({
+				scheduler: args
+			});
+		},
+		setToneEnv: function (...args) {
+			if (args.length >= 2) {
+				args[1] = JSON.stringify(args[1]) as any;
+			}
+			lastTestFunctions.push({
+				setToneEnv: args as any
+			});
+		},
+		setVolEnv: function (...args) {
+			if (args.length >= 2) {
+				args[1] = JSON.stringify(args[1]) as any;
+			}
+			lastTestFunctions.push({
+				setVolEnv: args as any
+			});
+		},
+		sound: function (...args) {
+			args = args.map((arg) => JSON.stringify(arg)) as any;
+			lastTestFunctions.push({
+				sound: args as any
+			});
+		},
+		sq: function (...args) {
+			lastTestFunctions.push({
+				sq: args as any
+			});
+			return 3;
+		},
+		testCanQueue: function (...args) {
+			lastTestFunctions.push({
+				testCanQueue: args as any
+			});
+			return Boolean(args[0] & ~0x02); // eslint-disable-line no-bitwise
+		}
+	} as Sound,
+	mockVariables = {
+		dimVariable: function (...args) {
+			lastTestFunctions.push({
+				dimVariable: args as any
+			});
+		},
+		getVariableIndex: function (name: string) {
+			return this.getAllVariableNames().indexOf(name);
+		},
+		getVarType: function (varChar: string) {
+			return varTypesMap[varChar];
+		},
+		setVarType: function (varChar: string, type: string) {
+			varTypesMap[varChar] = type;
+		},
+		initVariable: function (varName: string) {
+			variablesMap[varName] = this.getVarType(varName.charAt(0)) === "$" ? "" : 0;
+		},
+		initAllVariables: function () {
+			const variables = this.getAllVariableNames();
+
+			for (let i = 0; i < variables.length; i += 1) {
+				this.initVariable(variables[i]);
+			}
+		},
+		getAllVariableNames(): string[] {
+			return Object.keys(variablesMap);
+		},
+		variableExist(name: string): boolean {
+			return name in variablesMap;
+		}
+	} as Variables;
+
 
 // https://www.cpcwiki.eu/index.php/Locomotive_BASIC
 
@@ -23,6 +388,10 @@ QUnit.module("CpcVm: Tests", function () {
 			"123.45 ": "123.45",
 			"": 'CpcVm: Type mismatch in 0: ABS undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			'""': 'CpcVm: Type mismatch in 0: ABS  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		addressOf: {
+			"": 'CpcVm: Type mismatch in 0: @ undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Improper argument in 0: @ -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
 		afterGosub: {
 			"0,0,123": '{"_key":"timer0","active":false}',
@@ -40,7 +409,8 @@ QUnit.module("CpcVm: Tests", function () {
 			"10,3.9,123": 'CpcVm: Improper argument in 0: AFTER 4 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			"0,0,0": 'CpcVm: Improper argument in 0: AFTER GOSUB 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			"1,0,0": 'CpcVm: Improper argument in 0: AFTER GOSUB 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-			"0,0,65536": 'CpcVm: Improper argument in 0: AFTER GOSUB 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+			"0,0,65536": 'CpcVm: Improper argument in 0: AFTER GOSUB 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,0,10.4": 'CpcVm: Line too long in 0: AFTER GOSUB 10.4 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
 		asc: {
 			'"A"': "65",
@@ -56,6 +426,22 @@ QUnit.module("CpcVm: Tests", function () {
 		atnDeg: {
 			"0 ": "0",
 			"1 ": "45"
+		},
+		auto: {
+			"": "",
+			"20 ": "",
+			"123,100": "",
+			"1,1": "",
+			",1": "",
+			"65535,65535": "",
+			'""': 'CpcVm: Type mismatch in 0: AUTO  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-1": 'CpcVm: Improper argument in 0: AUTO -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0 ": 'CpcVm: Improper argument in 0: AUTO 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"65536 ": 'CpcVm: Improper argument in 0: AUTO 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"1,0": 'CpcVm: Improper argument in 0: AUTO 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"1,65536": 'CpcVm: Improper argument in 0: AUTO 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"10.4 ": 'CpcVm: Line too long in 0: AUTO 10.4 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"1,10.4": 'CpcVm: Line too long in 0: AUTO 10.4 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
 		bin$: {
 			"0 ": "0",
@@ -137,25 +523,26 @@ QUnit.module("CpcVm: Tests", function () {
 			"0xbbff": "setMode:1 , clearFullWindow: , setDefaultInks: , setSpeedInk:10,10",
 			"0xbc02": "setDefaultInks: , setSpeedInk:10,10",
 			"0xbc06": 'CpcVm: Type mismatch in 0: screenBase undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-			"0xbc06,0x40": "getByte:49152 , setByte:16384,0",
-			"0xbc06,0xc0": "getByte:16384 , setByte:49152,13",
+			"0xbc06,0x40": "getByte:49152 , getByte:49153 , setByte:16384,0 , setByte:16385,0",
+			"0xbc06,0xc0": "getByte:16384 , getByte:16385 , setByte:49152,0 , setByte:49153,1",
 			"0xbc07": 'CpcVm: Type mismatch in 0: screenBase undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-			"0xbc07,0x40": "getByte:49152 , setByte:16384,13",
-			"0xbc07,0xc0": "getByte:16384 , setByte:49152,13",
+			"0xbc07,0x40": "getByte:49152 , getByte:49153 , setByte:16384,0 , setByte:16385,1",
+			"0xbc07,0xc0": "getByte:16384 , getByte:16385 , setByte:49152,0 , setByte:49153,1",
 			"0xbc0e": 'setMode:0 , clearFullWindow: -- {"_key":"win0","right":19} -- {"_key":"win1","right":19} -- {"_key":"win2","right":19} -- {"_key":"win3","right":19} -- {"_key":"win4","right":19} -- {"_key":"win5","right":19} -- {"_key":"win6","right":19} -- {"_key":"win7","right":19}',
 			"0xbc0e,1": "setMode:1 , clearFullWindow:",
 			"0xbc0e,1,2": 'setMode:2 , clearFullWindow: -- {"_key":"win0","right":79} -- {"_key":"win1","right":79} -- {"_key":"win2","right":79} -- {"_key":"win3","right":79} -- {"_key":"win4","right":79} -- {"_key":"win5","right":79} -- {"_key":"win6","right":79} -- {"_key":"win7","right":79}',
 			"0xbc0e,1,2,3": 'setMode:3 , clearFullWindow: -- {"_key":"win0","right":79,"bottom":49} -- {"_key":"win1","right":79,"bottom":49} -- {"_key":"win2","right":79,"bottom":49} -- {"_key":"win3","right":79,"bottom":49} -- {"_key":"win4","right":79,"bottom":49} -- {"_key":"win5","right":79,"bottom":49} -- {"_key":"win6","right":79,"bottom":49} -- {"_key":"win7","right":79,"bottom":49} -- {"_key":"win8","bottom":49} -- {"_key":"win9","bottom":49}',
 			"0xbc0e,1,2,3,4": 'setMode:0 , clearFullWindow: -- {"_key":"win0","right":19} -- {"_key":"win1","right":19} -- {"_key":"win2","right":19} -- {"_key":"win3","right":19} -- {"_key":"win4","right":19} -- {"_key":"win5","right":19} -- {"_key":"win6","right":19} -- {"_key":"win7","right":19}',
-			"0xbcac": "",
+			"0xbca7": "reset:",
 			"0xbcbc": "",
+			"0xbcb6": "",
 			"0xbcb9": "",
 			"0xbd19": '{"_key":"stop","reason":"waitFrame","priority":40,"paras":{}}',
-			"0xbd1c": "getMode: , getByte:49152 , changeMode:0 , setByte:49152,13 , changeMode:1",
+			"0xbd1c": "getMode: , getByte:49152 , getByte:49153 , changeMode:0 , setByte:49152,0 , setByte:49153,1 , changeMode:1",
 			"0xbd1c,1": "getMode:",
-			"0xbd1c,1,2": "getMode: , getByte:49152 , changeMode:2 , setByte:49152,13 , changeMode:1",
-			"0xbd1c,1,2,3": "getMode: , getByte:49152 , changeMode:3 , setByte:49152,13 , changeMode:1",
-			"0xbd1c,1,2,3,4": "getMode: , getByte:49152 , changeMode:0 , setByte:49152,13 , changeMode:1",
+			"0xbd1c,1,2": "getMode: , getByte:49152 , getByte:49153 , changeMode:2 , setByte:49152,0 , setByte:49153,1 , changeMode:1",
+			"0xbd1c,1,2,3": "getMode: , getByte:49152 , getByte:49153 , changeMode:3 , setByte:49152,0 , setByte:49153,1 , changeMode:1",
+			"0xbd1c,1,2,3,4": "getMode: , getByte:49152 , getByte:49153 , changeMode:0 , setByte:49152,0 , setByte:49153,1 , changeMode:1",
 			"0xbd3d": "clearInput:",
 			"0xbd49": "setMaskFirst:0",
 			"0xbd49,1": "setMaskFirst:1",
@@ -267,7 +654,18 @@ QUnit.module("CpcVm: Tests", function () {
 			"6.7 ": "clearTextWindow:0,39,0,24,0",
 			"": 'CpcVm: Type mismatch in 0: CLS undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			'""': 'CpcVm: Type mismatch in 0: CLS  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-1 ": 'CpcVm: Improper argument in 0: CLS -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			"8 ": 'CpcVm: Improper argument in 0: CLS 8 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		commaTab: {
+			"0 ": "             ",
+			"7.4 ": "             ",
+			"8 ": "             ",
+			"9 ": "             ",
+			"": 'CpcVm: Type mismatch in 0: commaTab undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: commaTab  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-1 ": 'CpcVm: Improper argument in 0: commaTab -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"10 ": 'CpcVm: Improper argument in 0: commaTab 10 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
 		cont: {
 			'"_testCase1"': "",
@@ -289,7 +687,10 @@ QUnit.module("CpcVm: Tests", function () {
 		},
 		cosDeg: {
 			"0 ": "1",
+			//"120 ": "0.5",
 			"180 ": "-1"
+			//"240 ": "0.5",
+			//"-120": "0.5"
 		},
 		creal: {
 			"0 ": "0",
@@ -321,7 +722,8 @@ QUnit.module("CpcVm: Tests", function () {
 			"": 'CpcVm: Type mismatch in 0: DATA undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			'"",': 'CpcVm: Type mismatch in 0: DATA  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			"0 ": 'CpcVm: Improper argument in 0: DATA 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-			"65536 ": 'CpcVm: Improper argument in 0: DATA 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+			"65536 ": 'CpcVm: Improper argument in 0: DATA 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"10.4 ": 'CpcVm: Line too long in 0: DATA 10.4 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
 		dec$: {
 			'3,"###.##"': "  3.00",
@@ -445,14 +847,14 @@ QUnit.module("CpcVm: Tests", function () {
 			'""': '{"_key":"stop","reason":"stop","priority":60,"paras":{}}'
 		},
 		ent: {
-			"1 ": "setToneEnv:1,",
-			"-1 ": "setToneEnv:1,",
-			"15 ": "setToneEnv:15,",
-			"-15 ": "setToneEnv:15,",
-			"1,2,3,10": "setToneEnv:1,[object Object]",
-			"1,0,-128,0,239,127,255": "setToneEnv:1,[object Object],[object Object]",
-			"1,undefined,0,0": "setToneEnv:1,[object Object]",
-			"1,,0,0,,4095,255": "setToneEnv:1,[object Object],[object Object]",
+			"1 ": "setToneEnv:1,[]",
+			"-1 ": "setToneEnv:1,[]",
+			"15 ": "setToneEnv:15,[]",
+			"-15 ": "setToneEnv:15,[]",
+			"1,2,3,10": 'setToneEnv:1,[{"steps":2,"diff":3,"time":10,"repeat":false}]',
+			"1,0,-128,0,239,127,255": 'setToneEnv:1,[{"steps":0,"diff":-128,"time":0,"repeat":false},{"steps":239,"diff":127,"time":255,"repeat":false}]',
+			"1,undefined,0,0": 'setToneEnv:1,[{"steps":0,"diff":0,"time":0,"repeat":false}]',
+			"1,,0,0,,4095,255": 'setToneEnv:1,[{"period":0,"time":0},{"period":4095,"time":255}]',
 			"": 'CpcVm: Type mismatch in 0: ENT undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			'""': 'CpcVm: Type mismatch in 0: ENT  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			"0 ": 'CpcVm: Improper argument in 0: ENT 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
@@ -471,12 +873,12 @@ QUnit.module("CpcVm: Tests", function () {
 			"1,,0,256": 'CpcVm: Improper argument in 0: ENT 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
 		env: {
-			"1 ": "setVolEnv:1,",
-			"15 ": "setVolEnv:15,",
-			"1,2,3,10": "setVolEnv:1,[object Object]",
-			"1,0,-128,0,127,127,255": "setVolEnv:1,[object Object],[object Object]",
-			"1,undefined,0,0": "setVolEnv:1,[object Object]",
-			"1,,0,-32768,,15,65535": "setVolEnv:1,[object Object],[object Object]",
+			"1 ": "setVolEnv:1,[]",
+			"15 ": "setVolEnv:15,[]",
+			"1,2,3,10": 'setVolEnv:1,[{"steps":2,"diff":3,"time":10}]',
+			"1,0,-128,0,127,127,255": 'setVolEnv:1,[{"steps":0,"diff":0,"time":256},{"steps":127,"diff":15,"time":255}]',
+			"1,undefined,0,0": 'setVolEnv:1,[{"steps":0,"diff":0,"time":256}]',
+			"1,,0,-32768,,15,65535": 'setVolEnv:1,[{"register":0,"period":-32768},{"register":15,"period":65535}]',
 			"": 'CpcVm: Type mismatch in 0: ENV undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			'""': 'CpcVm: Type mismatch in 0: ENV  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			"0 ": 'CpcVm: Improper argument in 0: ENV 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
@@ -500,7 +902,9 @@ QUnit.module("CpcVm: Tests", function () {
 			'"_testCase3"': '0 -- {"_key":"inFile","open":true,"command":"","name":"","line":0,"start":0,"fileData":["A"],"first":0,"last":0,"memorizedExample":""}'
 		},
 		erase: {
-			"": ""
+			'"ab"': 'CpcVm: Improper argument in 0: ERASE ab -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"": 'CpcVm: Syntax Error in 0: ERASE -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Improper argument in 0: ERASE  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
 		erl: {
 			"": "123"
@@ -564,7 +968,8 @@ QUnit.module("CpcVm: Tests", function () {
 			"10,3.9,123": 'CpcVm: Improper argument in 0: EVERY 4 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			"0,0,0": 'CpcVm: Improper argument in 0: EVERY GOSUB 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			"1,0,0": 'CpcVm: Improper argument in 0: EVERY GOSUB 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-			"0,0,65536": 'CpcVm: Improper argument in 0: EVERY GOSUB 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+			"0,0,65536": 'CpcVm: Improper argument in 0: EVERY GOSUB 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,0,10.4 ": 'CpcVm: Line too long in 0: EVERY GOSUB 10.4 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
 		exp: {
 			"0 ": "1",
@@ -601,10 +1006,11 @@ QUnit.module("CpcVm: Tests", function () {
 			'"10s1", 123': "123",
 			"10,1": "1",
 			"10,65535": "65535",
-			"": 'CpcVm: Type mismatch in 65535: GOSUB undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-			'""': 'CpcVm: Type mismatch in 65535: GOSUB undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-			'"s1",0': 'CpcVm: Improper argument in 65535: GOSUB 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-			'"s1",65536': 'CpcVm: Improper argument in 65535: GOSUB 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+			"": 'CpcVm: Type mismatch in 0: GOSUB undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: GOSUB undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'"s1",0': 'CpcVm: Improper argument in 0: GOSUB 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'"s1",65536': 'CpcVm: Improper argument in 0: GOSUB 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'"s1",10.4': 'CpcVm: Line too long in 0: GOSUB 10.4 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
 		"goto": {
 			"123 ": "123",
@@ -693,12 +1099,13 @@ QUnit.module("CpcVm: Tests", function () {
 			"-32769": 'CpcVm: Overflow in 0: INP -32769 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
 		input: {
-			"0 ": 'printChar:117,0,0,1,0,false , printChar:110,1,0,1,0,false , printChar:100,2,0,1,0,false , printChar:101,3,0,1,0,false , printChar:102,4,0,1,0,false , printChar:105,5,0,1,0,false , printChar:110,6,0,1,0,false , printChar:101,7,0,1,0,false , printChar:100,8,0,1,0,false , drawCursor:9,0,1,0 -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":0,"types":[],"input":"","line":0}} -- {"_key":"win0","pos":9,"cursorOn":true}',
-			"7 ": 'printChar:117,0,0,1,0,false , printChar:110,1,0,1,0,false , printChar:100,2,0,1,0,false , printChar:101,3,0,1,0,false , printChar:102,4,0,1,0,false , printChar:105,5,0,1,0,false , printChar:110,6,0,1,0,false , printChar:101,7,0,1,0,false , printChar:100,8,0,1,0,false , drawCursor:9,0,1,0 -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":7,"types":[],"input":"","line":0}} -- {"_key":"win7","pos":9,"cursorOn":true}',
-			"8 ": "",
-			'0,undefined,"msg","a$"': 'printChar:109,0,0,1,0,false , printChar:115,1,0,1,0,false , printChar:103,2,0,1,0,false , drawCursor:3,0,1,0 -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":0,"message":"msg","noCRLF":null,"types":["a$"],"input":"","line":0}} -- {"_key":"win0","pos":3,"cursorOn":true}',
-			'0,";","msg","a$"': 'printChar:109,0,0,1,0,false , printChar:115,1,0,1,0,false , printChar:103,2,0,1,0,false , drawCursor:3,0,1,0 -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":0,"message":"msg","noCRLF":";","types":["a$"],"input":"","line":0}} -- {"_key":"win0","pos":3,"cursorOn":true}',
-			'0,";","msg","a$","b"': 'printChar:109,0,0,1,0,false , printChar:115,1,0,1,0,false , printChar:103,2,0,1,0,false , drawCursor:3,0,1,0 -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":0,"message":"msg","noCRLF":";","types":["a$","b"],"input":"","line":0}} -- {"_key":"win0","pos":3,"cursorOn":true}',
+			"0 ": 'printChar:117,0,0,1,0,false , printChar:110,1,0,1,0,false , printChar:100,2,0,1,0,false , printChar:101,3,0,1,0,false , printChar:102,4,0,1,0,false , printChar:105,5,0,1,0,false , printChar:110,6,0,1,0,false , printChar:101,7,0,1,0,false , printChar:100,8,0,1,0,false , drawCursor:9,0,1,0 , drawCursor:9,0,1,0 , drawCursor:9,0,1,0 --  -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":0,"types":[],"input":"","line":0}} -- {"_key":"win0","pos":9,"cursorOn":true}',
+			"7 ": 'printChar:117,0,0,1,0,false , printChar:110,1,0,1,0,false , printChar:100,2,0,1,0,false , printChar:101,3,0,1,0,false , printChar:102,4,0,1,0,false , printChar:105,5,0,1,0,false , printChar:110,6,0,1,0,false , printChar:101,7,0,1,0,false , printChar:100,8,0,1,0,false , drawCursor:9,0,1,0 , drawCursor:9,0,1,0 , drawCursor:9,0,1,0 --  -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":7,"types":[],"input":"","line":0}} -- {"_key":"win7","pos":9,"cursorOn":true}',
+			"8 ": "I am the printer!",
+			'0,undefined,"msg","a$"': 'printChar:109,0,0,1,0,false , printChar:115,1,0,1,0,false , printChar:103,2,0,1,0,false , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 --  -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":0,"message":"msg","noCRLF":null,"types":["a$"],"input":"","line":0}} -- {"_key":"win0","pos":3,"cursorOn":true}',
+			'0,";","msg","a$"': 'printChar:109,0,0,1,0,false , printChar:115,1,0,1,0,false , printChar:103,2,0,1,0,false , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 --  -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":0,"message":"msg","noCRLF":";","types":["a$"],"input":"","line":0}} -- {"_key":"win0","pos":3,"cursorOn":true}',
+			'0,";","msg","a$","b"': 'printChar:109,0,0,1,0,false , printChar:115,1,0,1,0,false , printChar:103,2,0,1,0,false , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 --  -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":0,"message":"msg","noCRLF":";","types":["a$","b"],"input":"","line":0}} -- {"_key":"win0","pos":3,"cursorOn":true}',
+			'9,"","msg","a$","b$","c"': 'abc def 7 -- {"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"openin","name":"file1","line":0,"start":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
 			"": 'CpcVm: Type mismatch in 0: INPUT undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			'""': 'CpcVm: Type mismatch in 0: INPUT  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			"-1": 'CpcVm: Improper argument in 0: INPUT -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
@@ -750,17 +1157,17 @@ QUnit.module("CpcVm: Tests", function () {
 			'""': 'CpcVm: Type mismatch in 0: KEY  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
 		keyDef: {
-			"0,0": "setCpcKeyExpansion:[object Object]",
-			"79.2,0": "setCpcKeyExpansion:[object Object]",
-			"0,1": "setCpcKeyExpansion:[object Object]",
-			"0,1,0": "setCpcKeyExpansion:[object Object]",
-			"0,1,255": "setCpcKeyExpansion:[object Object]",
-			"0,1,0,0": "setCpcKeyExpansion:[object Object]",
-			"0,1,0,255": "setCpcKeyExpansion:[object Object]",
-			"0,1,0,0,0": "setCpcKeyExpansion:[object Object]",
-			"0,1,0,0,255": "setCpcKeyExpansion:[object Object]",
-			"0,1,,0": "setCpcKeyExpansion:[object Object]",
-			"0,1,,,0": "setCpcKeyExpansion:[object Object]",
+			"0,0": 'setCpcKeyExpansion:{"cpcKey":0,"repeat":0}',
+			"79.2,0": 'setCpcKeyExpansion:{"cpcKey":79,"repeat":0}',
+			"0,1": 'setCpcKeyExpansion:{"cpcKey":0,"repeat":1}',
+			"0,1,0": 'setCpcKeyExpansion:{"cpcKey":0,"repeat":1,"normal":0}',
+			"0,1,255": 'setCpcKeyExpansion:{"cpcKey":0,"repeat":1,"normal":255}',
+			"0,1,0,0": 'setCpcKeyExpansion:{"cpcKey":0,"repeat":1,"normal":0,"shift":0}',
+			"0,1,0,255": 'setCpcKeyExpansion:{"cpcKey":0,"repeat":1,"normal":0,"shift":255}',
+			"0,1,0,0,0": 'setCpcKeyExpansion:{"cpcKey":0,"repeat":1,"normal":0,"shift":0,"ctrl":0}',
+			"0,1,0,0,255": 'setCpcKeyExpansion:{"cpcKey":0,"repeat":1,"normal":0,"shift":0,"ctrl":255}',
+			"0,1,,0": 'setCpcKeyExpansion:{"cpcKey":0,"repeat":1,"shift":0}',
+			"0,1,,,0": 'setCpcKeyExpansion:{"cpcKey":0,"repeat":1,"ctrl":0}',
 			"": 'CpcVm: Type mismatch in 0: KEY DEF undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			'""': 'CpcVm: Type mismatch in 0: KEY DEF  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			"0 ": 'CpcVm: Type mismatch in 0: KEY DEF undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
@@ -776,7 +1183,10 @@ QUnit.module("CpcVm: Tests", function () {
 			"0,1,0,0,256": 'CpcVm: Improper argument in 0: KEY DEF 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
 		left$: {
+			'"abc",0': "",
 			'"abc",1': "a",
+			'"abc",2': "ab",
+			'"abc",4': "abc",
 			"": 'CpcVm: Type mismatch in 0: LEFT$ undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			'""': 'CpcVm: Type mismatch in 0: LEFT$ undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			'"abc",-1': 'CpcVm: Improper argument in 0: LEFT$ -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
@@ -791,16 +1201,17 @@ QUnit.module("CpcVm: Tests", function () {
 			"0 ": 'CpcVm: Type mismatch in 0: LEN 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
 		lineInput: {
-			'0,undefined,"msg","a$"': 'printChar:109,0,0,1,0,false , printChar:115,1,0,1,0,false , printChar:103,2,0,1,0,false , drawCursor:3,0,1,0 -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":0,"message":"msg","noCRLF":null,"input":"","line":0}} -- {"_key":"win0","pos":3,"cursorOn":true}',
-			'7,undefined,"msg","a$"': 'printChar:109,0,0,1,0,false , printChar:115,1,0,1,0,false , printChar:103,2,0,1,0,false , drawCursor:3,0,1,0 -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":7,"message":"msg","noCRLF":null,"input":"","line":0}} -- {"_key":"win7","pos":3,"cursorOn":true}',
-			"8 ": "",
-			'0,";","msg","a$"': 'printChar:109,0,0,1,0,false , printChar:115,1,0,1,0,false , printChar:103,2,0,1,0,false , drawCursor:3,0,1,0 -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":0,"message":"msg","noCRLF":";","input":"","line":0}} -- {"_key":"win0","pos":3,"cursorOn":true}',
-			'0,";","msg","a$","b"': 'printChar:109,0,0,1,0,false , printChar:115,1,0,1,0,false , printChar:103,2,0,1,0,false , drawCursor:3,0,1,0 -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":0,"message":"msg","noCRLF":";","input":"","line":0}} -- {"_key":"win0","pos":3,"cursorOn":true}',
+			'0,undefined,"? ","a$"': 'printChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":0,"message":"? ","noCRLF":null,"input":"abc1,7,e","line":0}} -- {"_key":"win0","pos":2}',
+			'7,undefined,"? ","a$"': 'printChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":7,"message":"? ","noCRLF":null,"input":"abc1,7,e","line":0}} -- {"_key":"win7","pos":2}',
+			'6.4,";","? ","a$"': 'printChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":6,"message":"? ","noCRLF":";","input":"abc1,7,e","line":0}} -- {"_key":"win6","pos":2}',
+			"8 ": "I am the printer!",
+			'0,";","? ","a$"': 'printChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":0,"message":"? ","noCRLF":";","input":"abc1,7,e","line":0}} -- {"_key":"win0","pos":2}',
+			'0,";","? ","a$","b"': 'printChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":0,"message":"? ","noCRLF":";","input":"abc1,7,e","line":0}} -- {"_key":"win0","pos":2}',
 			"": 'CpcVm: Type mismatch in 0: LINE INPUT undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			'""': 'CpcVm: Type mismatch in 0: LINE INPUT  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-			'-1,undefined,"msg","a$"': 'CpcVm: Improper argument in 0: LINE INPUT -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-			'10 ,undefined,"msg","a$"': 'CpcVm: Improper argument in 0: LINE INPUT 10 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-			'9,undefined,"msg","a$"': 'CpcVm: File not open in 0: LINE INPUT #9 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+			'-1,undefined,"? ","a$"': 'CpcVm: Improper argument in 0: LINE INPUT -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'10 ,undefined,"? ","a$"': 'CpcVm: Improper argument in 0: LINE INPUT 10 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'9,undefined,"? ","a$"': 'CpcVm: File not open in 0: LINE INPUT #9 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
 		list: {
 			"0 ": '{"_key":"stop","reason":"list","priority":90,"paras":{"command":"list","stream":0,"first":1,"last":65535,"line":0}}',
@@ -821,10 +1232,10 @@ QUnit.module("CpcVm: Tests", function () {
 			"0,1,65536": 'CpcVm: Overflow in 0: LIST 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
 		load: {
-			'"file1"': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"load","name":"file1","line":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
-			'"file1",123': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"load","name":"file1","line":0,"start":123,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
-			'"file1",-32768': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"load","name":"file1","line":0,"start":32768,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
-			'"file1",65535': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"load","name":"file1","line":0,"start":65535,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
+			'"file1"': '{"open":true,"command":"load","name":"file1","line":0,"fileData":[],"first":0,"last":0,"memorizedExample":""} -- {"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":false,"command":"","name":"file1","line":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
+			'"file1",123': '{"open":true,"command":"load","name":"file1","line":0,"start":123,"fileData":[],"first":0,"last":0,"memorizedExample":""} -- {"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":false,"command":"","name":"file1","line":0,"start":123,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
+			'"file1",-32768': '{"open":true,"command":"load","name":"file1","line":0,"start":32768,"fileData":[],"first":0,"last":0,"memorizedExample":""} -- {"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":false,"command":"","name":"file1","line":0,"start":32768,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
+			'"file1",65535': '{"open":true,"command":"load","name":"file1","line":0,"start":65535,"fileData":[],"first":0,"last":0,"memorizedExample":""} -- {"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":false,"command":"","name":"file1","line":0,"start":65535,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
 			"": 'CpcVm: Type mismatch in 0: LOAD undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			'""': 'CpcVm: Broken in 0: Bad filename:  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			"7 ": 'CpcVm: Type mismatch in 0: LOAD 7 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
@@ -1020,9 +1431,9 @@ QUnit.module("CpcVm: Tests", function () {
 			"": 'CpcVm: Type mismatch in 123: ON BREAK GOSUB undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			'""': 'CpcVm: Type mismatch in 123: ON BREAK GOSUB  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			"0 ": 'CpcVm: Improper argument in 123: ON BREAK GOSUB 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-			"1.4 ": "false, onBreakContSet:false, onBreakHandlerActive:true",
 			"-1 ": 'CpcVm: Improper argument in 123: ON BREAK GOSUB -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-			"65536 ": 'CpcVm: Improper argument in 123: ON BREAK GOSUB 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+			"65536 ": 'CpcVm: Improper argument in 123: ON BREAK GOSUB 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"10.4 ": 'CpcVm: Line too long in 123: ON BREAK GOSUB 10.4 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
 		onBreakStop: {
 			"": "true, onBreakContSet:false, onBreakHandlerActive:false"
@@ -1032,9 +1443,10 @@ QUnit.module("CpcVm: Tests", function () {
 			"1 ": "",
 			"65535 ": "",
 			"": 'CpcVm: Type mismatch in 0: ON ERROR GOTO undefined -- {"_key":"stop","reason":"onError","priority":50,"paras":{}}',
-			'""': 'CpcVm: Type mismatch in 65535: ON ERROR GOTO  -- {"_key":"stop","reason":"onError","priority":50,"paras":{}}',
-			"-1 ": 'CpcVm: Improper argument in 65535: ON ERROR GOTO -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-			"65536 ": 'CpcVm: Improper argument in 65535: ON ERROR GOTO 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+			'""': 'CpcVm: Type mismatch in 0: ON ERROR GOTO  -- {"_key":"stop","reason":"onError","priority":50,"paras":{}}',
+			"-1 ": 'CpcVm: Improper argument in 0: ON ERROR GOTO -1 -- {"_key":"stop","reason":"onError","priority":50,"paras":{}}',
+			"65536 ": 'CpcVm: Improper argument in 0: ON ERROR GOTO 65536 -- {"_key":"stop","reason":"onError","priority":50,"paras":{}}',
+			"10.4 ": 'CpcVm: Line too long in 0: ON ERROR GOTO 10.4 -- {"_key":"stop","reason":"onError","priority":50,"paras":{}}'
 		},
 		onGosub: {
 			'"10s1",1,123': "123",
@@ -1042,10 +1454,11 @@ QUnit.module("CpcVm: Tests", function () {
 			'"10s1",0,123,234': "10s1",
 			'"10s1",3,123,234': "10s1",
 			'"10s1",255,123,234': "10s1",
-			"": 'CpcVm: Type mismatch in 10s1: ON GOSUB undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-			'""': 'CpcVm: Type mismatch in 10s1: ON GOSUB undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-			'"10s1",-1,123': 'CpcVm: Improper argument in 10s1: ON GOSUB -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-			'"10s1",256,123': 'CpcVm: Improper argument in 10s1: ON GOSUB 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+			"": 'CpcVm: Type mismatch in 0: ON GOSUB undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: ON GOSUB undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'"10s1",-1,123': 'CpcVm: Improper argument in 0: ON GOSUB -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'"10s1",256,123': 'CpcVm: Improper argument in 0: ON GOSUB 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'"10s1",1,10.4': 'CpcVm: Line too long in 0: ON GOSUB 10.4 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
 		onGoto: {
 			'"10s1",1,123': "123",
@@ -1053,10 +1466,11 @@ QUnit.module("CpcVm: Tests", function () {
 			'"10s1",0,123,234': "10s1",
 			'"10s1",3,123,234': "10s1",
 			'"10s1",255,123,234': "10s1",
-			"": 'CpcVm: Type mismatch in 10s1: ON GOTO undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-			'""': 'CpcVm: Type mismatch in 10s1: ON GOTO undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-			'"10s1",-1,123': 'CpcVm: Improper argument in 10s1: ON GOTO -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-			'"10s1",256,123': 'CpcVm: Improper argument in 10s1: ON GOTO 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+			"": 'CpcVm: Type mismatch in 0: ON GOTO undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: ON GOTO undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'"10s1",-1,123': 'CpcVm: Improper argument in 0: ON GOTO -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'"10s1",256,123': 'CpcVm: Improper argument in 0: ON GOTO 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'"10s1",1,10.4': 'CpcVm: Line too long in 0: ON GOTO 10.4 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
 		onSqGosub: {
 			"1,123": "",
@@ -1070,10 +1484,11 @@ QUnit.module("CpcVm: Tests", function () {
 			"3,123": 'CpcVm: Improper argument in 0: ON SQ GOSUB 3 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			"5,123": 'CpcVm: Improper argument in 0: ON SQ GOSUB 5 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			"1,0": 'CpcVm: Improper argument in 0: ON SQ GOSUB 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-			"1,65536": 'CpcVm: Improper argument in 0: ON SQ GOSUB 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+			"1,65536": 'CpcVm: Improper argument in 0: ON SQ GOSUB 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"1,10.4": 'CpcVm: Line too long in 0: ON SQ GOSUB 10.4 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
 		openin: {
-			'"file1"': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"openin","name":"file1","line":0,"start":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
+			'"file1"': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"openin","name":"file1","line":0,"start":0,"fileData":["10,a\\b20,b"],"first":0,"last":0,"memorizedExample":""}',
 			"": 'CpcVm: Type mismatch in 0: OPENIN undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			'""': 'CpcVm: Broken in 0: Bad filename:  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
@@ -1081,6 +1496,84 @@ QUnit.module("CpcVm: Tests", function () {
 			'"file1"': '{"_key":"outFile","open":true,"command":"openout","name":"file1","line":0,"start":0,"fileData":[],"stream":0,"typeString":"A","length":0,"entry":0}',
 			"": 'CpcVm: Type mismatch in 0: OPENOUT undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			'""': 'CpcVm: Broken in 0: Bad filename:  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		origin: {
+			"1,2": "setOrigin:1,2",
+			"1,2,7,13,6,15": "setOrigin:1,2 , setGWindow:7,13,6,15",
+			"1,2,13,7,15,6": "setOrigin:1,2 , setGWindow:13,7,15,6",
+			"-32768,-32768,-32768,-32768,-32768,-32768": "setOrigin:-32768,-32768 , setGWindow:-32768,-32768,-32768,-32768",
+			"32767,-32767,32767,32767,32767,32767": "setOrigin:32767,-32767 , setGWindow:32767,32767,32767,32767",
+			"": 'CpcVm: Type mismatch in 0: ORIGIN undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: ORIGIN  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-32769,0": 'CpcVm: Overflow in 0: ORIGIN -32769 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"32768,0": 'CpcVm: Overflow in 0: ORIGIN 32768 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,-32769": 'CpcVm: Overflow in 0: ORIGIN -32769 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,32768": 'CpcVm: Overflow in 0: ORIGIN 32768 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,0,-32769": 'setOrigin:0,0 -- CpcVm: Overflow in 0: ORIGIN -32769 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,0,32768": 'setOrigin:0,0 -- CpcVm: Overflow in 0: ORIGIN 32768 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,0,0,0,0,-32769": 'setOrigin:0,0 -- CpcVm: Overflow in 0: ORIGIN -32769 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,0,0,0,0,32768": 'setOrigin:0,0 -- CpcVm: Overflow in 0: ORIGIN 32768 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		out: {
+			"11,12": "",
+			"-32768,0": "",
+			"65535,255": "",
+			"0x7f00,0xc0": "",
+			"0x7f00,0xc4": "",
+			"0x7f00,0xc5": "",
+			"0x7f00,0xc6": "",
+			"0x7f00,0xc7": "",
+			"0xbc00,0x12": "",
+			"0xbd00,0x01": "",
+			"": 'CpcVm: Type mismatch in 0: OUT undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: OUT  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-32769,0": 'CpcVm: Overflow in 0: OUT -32769 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"65536,0": 'CpcVm: Overflow in 0: OUT 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,-1": 'CpcVm: Improper argument in 0: OUT -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,256": 'CpcVm: Improper argument in 0: OUT 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		paper: {
+			"1,2": '{"_key":"win1","paper":2}',
+			"0,0": "",
+			"7,15": '{"_key":"win7","paper":15}',
+			"": 'CpcVm: Type mismatch in 0: PAPER undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: PAPER  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-1,0": 'CpcVm: Improper argument in 0: PAPER -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"8,0": 'CpcVm: Improper argument in 0: PAPER 8 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,-1": 'CpcVm: Improper argument in 0: PAPER -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,16.4": 'CpcVm: Improper argument in 0: PAPER 16 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		peek: {
+			"0 ": "0",
+			"0x4000": "0",
+			"0xc001": "getByte:49153 -- 1",
+			"42732 ": "getCharData:254 -- 24",
+			"42733 ": "getCharData:254 -- 60",
+			"-32768": "0",
+			"65535 ": "255",
+			"": 'CpcVm: Type mismatch in 0: PEEK undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: PEEK  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-32769": 'CpcVm: Overflow in 0: PEEK -32769 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"65536 ": 'CpcVm: Overflow in 0: PEEK 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		pen: {
+			"1,2": '{"_key":"win1","pen":2}',
+			"0,0": '{"_key":"win0","pen":0}',
+			"7,15": '{"_key":"win7","pen":15}',
+			"1,2,0": '{"_key":"win1","pen":2}',
+			"1,2,1": '{"_key":"win1","transparent":true,"pen":2}',
+			"2,,1": '{"_key":"win2","transparent":true}',
+			"": 'CpcVm: Type mismatch in 0: PEN undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: PEN  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-1,0": 'CpcVm: Improper argument in 0: PEN -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"8,0": 'CpcVm: Improper argument in 0: PEN 8 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,-1": 'CpcVm: Improper argument in 0: PEN -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,16.4": 'CpcVm: Improper argument in 0: PEN 16 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,0,-1": 'CpcVm: Improper argument in 0: PEN -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}} -- {"_key":"win0","pen":0}',
+			"0,0,2": 'CpcVm: Improper argument in 0: PEN 2 -- {"_key":"stop","reason":"error","priority":50,"paras":{}} -- {"_key":"win0","pen":0}'
+		},
+		pi: {
+			"": "3.141592653589793"
 		},
 		plot: {
 			"0,0": "plot:0,0",
@@ -1126,15 +1619,450 @@ QUnit.module("CpcVm: Tests", function () {
 			"10,20,0,-1": 'getXpos: , getYpos: , setGPen:0 -- CpcVm: Improper argument in 0: PLOTR -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			"10,20,0,4": 'getXpos: , getYpos: , setGPen:0 -- CpcVm: Improper argument in 0: PLOTR 4 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
+		poke: {
+			"0,0": "",
+			"0x4000,1": "",
+			"0xc000,1": "setByte:49152,1",
+			"42732,20.2": "getCharData:254 , setCustomChar:254,20,60,102,102,126,102,102,0",
+			"42733,30.5": "getCharData:254 , setCustomChar:254,24,31,102,102,126,102,102,0",
+			"-32768,0": "",
+			"65535,255": "",
+			"": 'CpcVm: Type mismatch in 0: POKE address undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: POKE address  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-32769,0": 'CpcVm: Overflow in 0: POKE address -32769 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"65536,0": 'CpcVm: Overflow in 0: POKE address 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,-1": 'CpcVm: Improper argument in 0: POKE byte -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,256": 'CpcVm: Improper argument in 0: POKE byte 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		pos: {
+			"0 ": "1",
+			"7 ": "1",
+			"8 ": "1",
+			"9 ": "1",
+			"": 'CpcVm: Type mismatch in 0: POS undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: POS  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-1": 'CpcVm: Improper argument in 0: POS -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"10.2 ": 'CpcVm: Improper argument in 0: POS 10 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		print: {
+			"0 ": "",
+			"7 ": "",
+			"8 ": "",
+			"9 ": 'CpcVm: File not open in 0: PRINT #9 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,1": 'printChar:32,0,0,1,0,false , printChar:49,1,0,1,0,false , printChar:32,2,0,1,0,false -- {"_key":"win0","pos":3}',
+			"0,12.345": 'printChar:32,0,0,1,0,false , printChar:49,1,0,1,0,false , printChar:50,2,0,1,0,false , printChar:46,3,0,1,0,false , printChar:51,4,0,1,0,false , printChar:52,5,0,1,0,false , printChar:53,6,0,1,0,false , printChar:32,7,0,1,0,false -- {"_key":"win0","pos":8}',
+			"0,-12.345": 'printChar:45,0,0,1,0,false , printChar:49,1,0,1,0,false , printChar:50,2,0,1,0,false , printChar:46,3,0,1,0,false , printChar:51,4,0,1,0,false , printChar:52,5,0,1,0,false , printChar:53,6,0,1,0,false , printChar:32,7,0,1,0,false -- {"_key":"win0","pos":8}',
+			'0,"-12.345"': 'printChar:45,0,0,1,0,false , printChar:49,1,0,1,0,false , printChar:50,2,0,1,0,false , printChar:46,3,0,1,0,false , printChar:51,4,0,1,0,false , printChar:52,5,0,1,0,false , printChar:53,6,0,1,0,false -- {"_key":"win0","pos":7}',
+			'0,"abc"': 'printChar:97,0,0,1,0,false , printChar:98,1,0,1,0,false , printChar:99,2,0,1,0,false -- {"_key":"win0","pos":3}',
+			'0,"a","bc",7.2,"d"': 'printChar:97,0,0,1,0,false , printChar:98,1,0,1,0,false , printChar:99,2,0,1,0,false , printChar:32,3,0,1,0,false , printChar:55,4,0,1,0,false , printChar:46,5,0,1,0,false , printChar:50,6,0,1,0,false , printChar:32,7,0,1,0,false , printChar:100,8,0,1,0,false -- {"_key":"win0","pos":9}',
+			"0,0x00": 'printChar:32,0,0,1,0,false , printChar:48,1,0,1,0,false , printChar:32,2,0,1,0,false -- {"_key":"win0","pos":3}',
+			'0,"\x00"': "",
+			'0,"\x01\x08"': 'printChar:8,0,0,1,0,false -- {"_key":"win0","pos":1}',
+			'0,"\x02"': '{"_key":"win0","cursorEnabled":false}',
+			'0,"\x03"': "",
+			'0,"\x04\x02"': 'setMode:2 , clearFullWindow: -- {"_key":"win0","right":79} -- {"_key":"win1","right":79} -- {"_key":"win2","right":79} -- {"_key":"win3","right":79} -- {"_key":"win4","right":79} -- {"_key":"win5","right":79} -- {"_key":"win6","right":79} -- {"_key":"win7","right":79}',
+			'0,"\x05\x08"': "printGChar:8",
+			'0,"\x06"': "",
+			'0,"\x07"': 'testCanQueue:135 , sound:{"state":135,"period":90,"duration":20,"volume":12,"volEnv":0,"toneEnv":0,"noise":0}',
+			'0,"\x08"': '{"_key":"win0","pos":-1}',
+			'0,"\x09"': '{"_key":"win0","pos":1}',
+			'0,"\n"': '{"_key":"win0","vpos":1}',
+			'0,"\x0b"': '{"_key":"win0","vpos":-1}',
+			'0,"\x0c"': "clearTextWindow:0,39,0,24,0",
+			'0,"\r"': "",
+			'0,"\x0e\x04"': '{"_key":"win0","paper":4}',
+			'0,"\x0f\x04"': '{"_key":"win0","pen":4}',
+			'0,"\x10"': "fillTextBox:0,0,1,1,0",
+			'0,"\x11"': "fillTextBox:0,0,1,1,0",
+			'0,"\x12"': "fillTextBox:0,0,40,1,0",
+			'0,"\x13"': "fillTextBox:0,0,40,0,0 , fillTextBox:0,0,1,1,0",
+			'0,"\x14"': "fillTextBox:0,0,40,1,0 , fillTextBox:0,1,40,24,0",
+			'0,"\x15"': '{"_key":"win0","textEnabled":false,"cursorEnabled":false}',
+			'0,"\x16\x00"': "",
+			'0,"\x16\x01"': '{"_key":"win0","transparent":true}',
+			'0,"\x16\x02"': "",
+			'0,"\x17\x00"': "setGColMode:0",
+			'0,"\x17\x01"': "setGColMode:1",
+			'0,"\x17\x02"': "setGColMode:2",
+			'0,"\x17\x03"': "setGColMode:3",
+			'0,"\x17\x04"': "setGColMode:0",
+			'0,"\x18"': '{"_key":"win0","pen":0,"paper":1}',
+			'0,"\x19\xfe\x01\x02\x03\x04\x05\x06\x07\x08"': "",
+			'0,"\x1a\x01\x08\x02\x09"': '{"_key":"win0","left":1,"right":8,"top":2,"bottom":9}',
+			'0,"\x1b"': "",
+			'0,"\x1c\x01\x02\x03"': "setInk:1,2,3",
+			'0,"\x1d\x01\x02"': "setBorder:1,2",
+			'0,"\x1e"': "",
+			'0,"\x1f\x02\x03"': '{"_key":"win0","pos":1,"vpos":2}',
+			'7,"\x1f\x02\x03"': '{"_key":"win7","pos":1,"vpos":2}',
+			'6,"\x1f","\x08","\x09"': '{"_key":"win6","pos":7,"vpos":8}',
+			'0," "': 'printChar:32,0,0,1,0,false -- {"_key":"win0","pos":1}',
+			"": 'CpcVm: Type mismatch in 0: PRINT undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: PRINT  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-1 ": 'CpcVm: Improper argument in 0: PRINT -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"10 ": 'CpcVm: Improper argument in 0: PRINT 10 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		rad: {
+			"": ""
+		},
+		randomize: {
+			"10 ": "undefined",
+			"-17.5": "undefined",
+			"0x89656c07": "undefined",
+			"0 ": "undefined",
+			"": 'printChar:82,0,0,1,0,false , printChar:97,1,0,1,0,false , printChar:110,2,0,1,0,false , printChar:100,3,0,1,0,false , printChar:111,4,0,1,0,false , printChar:109,5,0,1,0,false , printChar:32,6,0,1,0,false , printChar:110,7,0,1,0,false , printChar:117,8,0,1,0,false , printChar:109,9,0,1,0,false , printChar:98,10,0,1,0,false , printChar:101,11,0,1,0,false , printChar:114,12,0,1,0,false , printChar:32,13,0,1,0,false , printChar:115,14,0,1,0,false , printChar:101,15,0,1,0,false , printChar:101,16,0,1,0,false , printChar:100,17,0,1,0,false , printChar:32,18,0,1,0,false , printChar:63,19,0,1,0,false , printChar:32,20,0,1,0,false -- 12.76 -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"randomize","stream":0,"message":"Random number seed ? ","input":"12.76","line":0}} -- {"_key":"win0","pos":21}',
+			'""': 'CpcVm: Type mismatch in 0: RANDOMIZE  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		read: {
+			'"a"': 'CpcVm: DATA exhausted in 0: READ -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'"a$"': 'CpcVm: DATA exhausted in 0: READ -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"": 'CpcVm: Type mismatch in 0: READ undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: DATA exhausted in 0: READ -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"7 ": 'CpcVm: Type mismatch in 0: READ 7 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		release: {
+			"0 ": "release:0",
+			"1 ": "release:1",
+			"7.4 ": "release:7",
+			"": 'CpcVm: Type mismatch in 0: RELEASE undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: RELEASE  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-1 ": 'CpcVm: Improper argument in 0: RELEASE -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"8 ": 'CpcVm: Improper argument in 0: RELEASE 8 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		remain: {
+			"0 ": "0",
+			"1 ": "0",
+			"2 ": "0",
+			"3.4 ": "0",
+			"": 'CpcVm: Type mismatch in 0: REMAIN undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: REMAIN  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-1 ": 'CpcVm: Improper argument in 0: REMAIN -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"4 ": 'CpcVm: Improper argument in 0: REMAIN 4 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
 		renum: {
 			"": '{"_key":"stop","reason":"renumLines","priority":85,"paras":{"command":"renum","stream":0,"line":0,"newLine":10,"oldLine":1,"step":10,"keep":65535}}',
 			"10 ": '{"_key":"stop","reason":"renumLines","priority":85,"paras":{"command":"renum","stream":0,"line":0,"newLine":10,"oldLine":1,"step":10,"keep":65535}}',
 			"100,90,15,9000": '{"_key":"stop","reason":"renumLines","priority":85,"paras":{"command":"renum","stream":0,"line":0,"newLine":100,"oldLine":90,"step":15,"keep":9000}}',
-			'""': 'CpcVm: Type mismatch in 0: RENUM  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+			"1,1,1,1": '{"_key":"stop","reason":"renumLines","priority":85,"paras":{"command":"renum","stream":0,"line":0,"newLine":1,"oldLine":1,"step":1,"keep":1}}',
+			"65535,65535,65535,65535": '{"_key":"stop","reason":"renumLines","priority":85,"paras":{"command":"renum","stream":0,"line":0,"newLine":65535,"oldLine":65535,"step":65535,"keep":65535}}',
+			'""': 'CpcVm: Type mismatch in 0: RENUM  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-1": 'CpcVm: Improper argument in 0: RENUM -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0 ": 'CpcVm: Improper argument in 0: RENUM 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"65536 ": 'CpcVm: Overflow in 0: RENUM 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"1,0": 'CpcVm: Improper argument in 0: RENUM 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"1,65536": 'CpcVm: Overflow in 0: RENUM 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"1,1,0": 'CpcVm: Improper argument in 0: RENUM 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"1,1,65536": 'CpcVm: Overflow in 0: RENUM 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"1,1,1,0": 'CpcVm: Improper argument in 0: RENUM 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"1,1,1,65536": 'CpcVm: Overflow in 0: RENUM 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		restore: {
+			"123 ": "",
+			"1 ": "",
+			"65535 ": "",
+			"": "",
+			'""': 'CpcVm: Type mismatch in 0: RESTORE  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-1 ": 'CpcVm: Improper argument in 0: RESTORE -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0 ": 'CpcVm: Improper argument in 0: RESTORE 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"65536 ": 'CpcVm: Improper argument in 0: RESTORE 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"10.4 ": 'CpcVm: Line too long in 0: RESTORE 10.4 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'"a"': 'CpcVm: Type mismatch in 0: RESTORE a -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		resume: {
+			"123 ": 'CpcVm: Unexpected RESUME in 0: 123 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"1 ": 'CpcVm: Unexpected RESUME in 0: 1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"65535 ": 'CpcVm: Unexpected RESUME in 0: 65535 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"": 'CpcVm: Unexpected RESUME in 0: undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Unexpected RESUME in 0:  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-1 ": 'CpcVm: Unexpected RESUME in 0: -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"65536 ": 'CpcVm: Unexpected RESUME in 0: 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"10.4 ": 'CpcVm: Unexpected RESUME in 0: 10.4 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'"a"': 'CpcVm: Unexpected RESUME in 0: a -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		resumeNext: {
+			"": 'CpcVm: Unexpected RESUME in 0: RESUME NEXT -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Unexpected RESUME in 0: RESUME NEXT -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		"return": {
+			"": 'CpcVm: Unexpected RETURN in 0:  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Unexpected RETURN in 0:  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		right$: {
+			'"abc",0': "abc",
+			'"abc",1': "c",
+			'"abc",2': "bc",
+			'"abc",4': "abc",
+			"": 'CpcVm: Type mismatch in 0: RIGHT$ undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: RIGHT$ undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'"abc",-1': 'CpcVm: Improper argument in 0: RIGHT$ -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'"abc",256': 'CpcVm: Improper argument in 0: RIGHT$ 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,1": 'CpcVm: Type mismatch in 0: RIGHT$ 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		rnd: {
+			"-1 ": "0.000007826369259425611",
+			"0 ": "0.13153778814316625",
+			"2 ": "0.13153778814316625",
+			"": "0.7556053221950332",
+			'""': 'CpcVm: Type mismatch in 0: RND  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		round: {
+			"2.49 ": "2",
+			"2.50": "3",
+			"0 ": "0",
+			"-2.49": "-2",
+			"-2.50": "-2",
+			"13 ": "13",
+			"2.49,1": "2.5",
+			"8.575,2": "8.58",
+			"2.49,-39": "0",
+			"2.49,39": "2.49",
+			"1234.5678,-2": "1200",
+			"": 'CpcVm: Type mismatch in 0: ROUND undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: ROUND  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,-40": 'CpcVm: Improper argument in 0: ROUND -40 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,40": 'CpcVm: Improper argument in 0: ROUND 40 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		run: {
+			"123 ": '{"reason":"run","priority":95,"paras":{"command":"run","stream":0,"first":123,"last":0,"line":0}} -- {"_key":"stop","reason":"run","priority":95,"paras":{"command":"run","stream":0,"first":123,"last":0,"line":0}}',
+			'"file1"': '{"reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"stop","reason":"run","priority":95,"paras":{"command":"run","stream":0,"first":0,"last":0,"line":0}} -- {"_key":"inFile","open":false,"command":"","name":"file1","line":0,"start":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
+			"": '{"reason":"run","priority":95,"paras":{"command":"run","stream":0,"first":0,"last":0,"line":0}} -- {"_key":"stop","reason":"run","priority":95,"paras":{"command":"run","stream":0,"first":0,"last":0,"line":0}}',
+			'""': 'CpcVm: Broken in 0: Bad filename:  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"10.4 ": 'CpcVm: Line too long in 0: RUN 10.4 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		save: {
+			'"file1"': '{"_key":"stop","reason":"fileSave","priority":90,"paras":{}} -- {"_key":"outFile","open":true,"command":"save","name":"file1","line":0,"start":368,"fileData":[],"stream":0,"typeString":"T","length":0,"entry":0}',
+			'"file2","T"': '{"_key":"stop","reason":"fileSave","priority":90,"paras":{}} -- {"_key":"outFile","open":true,"command":"save","name":"file2","line":0,"start":368,"fileData":[],"stream":0,"typeString":"T","length":0,"entry":0}',
+			'"file3","P"': '{"_key":"stop","reason":"fileSave","priority":90,"paras":{}} -- {"_key":"outFile","open":true,"command":"save","name":"file3","line":0,"start":368,"fileData":[],"stream":0,"typeString":"P","length":0,"entry":0}',
+			'"file4","B"': 'CpcVm: Type mismatch in 0: SAVE undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'"file5","B",0xc000': 'CpcVm: Type mismatch in 0: SAVE undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'"file5","B",0xc000,0x0003': 'getByte:49152 , getByte:49153 -- {"_key":"stop","reason":"fileSave","priority":90,"paras":{}} -- {"_key":"outFile","open":true,"command":"save","name":"file5","line":0,"start":49152,"fileData":["\\u0000","\\u0001","\\u0002"],"stream":0,"typeString":"B","length":3,"entry":0}',
+			'"file5","B",0xc000,0x0003,0xc002': 'getByte:49152 , getByte:49153 -- {"_key":"stop","reason":"fileSave","priority":90,"paras":{}} -- {"_key":"outFile","open":true,"command":"save","name":"file5","line":0,"start":49152,"fileData":["\\u0000","\\u0001","\\u0002"],"stream":0,"typeString":"B","length":3,"entry":49154}',
+			"": 'CpcVm: Type mismatch in 0: SAVE undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Broken in 0: Bad filename:  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		sgn: {
+			"10.2 ": "1",
+			"0 ": "0",
+			"-10.2": "-1",
+			"": 'CpcVm: Type mismatch in 0: SGN undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: SGN  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		sin: {
+			"0 ": "0",
+			"": 'CpcVm: Type mismatch in 0: SIN undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: SIN  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		sinDeg: {
+			"0 ": "0",
+			"30 ": "0.49999999999999994",
+			"-30 ": "-0.49999999999999994",
+			"": 'CpcVm: Type mismatch in 0: SIN undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: SIN  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		sound: {
+			"1,10": 'testCanQueue:1 , sound:{"state":1,"period":10,"duration":20,"volume":12,"volEnv":0,"toneEnv":0,"noise":0}',
+			"1,10,100,10,2,3,5": 'testCanQueue:1 , sound:{"state":1,"period":10,"duration":100,"volume":10,"volEnv":2,"toneEnv":3,"noise":5}',
+			"1,0,-32768,0,0,0,0": 'testCanQueue:1 , sound:{"state":1,"period":0,"duration":-32768,"volume":0,"volEnv":0,"toneEnv":0,"noise":0}',
+			"255,4095,32767,15,15,15,31": 'testCanQueue:255 , sound:{"state":255,"period":4095,"duration":32767,"volume":15,"volEnv":15,"toneEnv":15,"noise":31}',
+			"2,4095,32767,15,15,15,31": 'testCanQueue:2 -- {"_key":"stop","reason":"waitSound","priority":43,"paras":{}}',
+			"": 'CpcVm: Type mismatch in 0: SOUND undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: SOUND  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,10": 'CpcVm: Improper argument in 0: SOUND 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"256,10": 'CpcVm: Improper argument in 0: SOUND 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"1,-1": 'CpcVm: Improper argument in 0: SOUND , -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"1,4096": 'CpcVm: Improper argument in 0: SOUND , 4096 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"1,1,-1": 'testCanQueue:1 , sound:{"state":1,"period":1,"duration":-1,"volume":12,"volEnv":0,"toneEnv":0,"noise":0}',
+			"1,1,16": 'testCanQueue:1 , sound:{"state":1,"period":1,"duration":16,"volume":12,"volEnv":0,"toneEnv":0,"noise":0}',
+			"1,1,1,-1": 'CpcVm: Improper argument in 0: SOUND ,,, -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"1,1,1,16": 'CpcVm: Improper argument in 0: SOUND ,,, 16 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"1,1,1,1,-1": 'CpcVm: Improper argument in 0: SOUND ,,,, -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"1,1,1,1,16": 'CpcVm: Improper argument in 0: SOUND ,,,, 16 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"1,1,1,1,1,-1": 'CpcVm: Improper argument in 0: SOUND ,,,,, -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"1,1,1,1,1,32": 'CpcVm: Improper argument in 0: SOUND ,,,,, 32 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		space$: {
+			"0 ": "",
+			"1 ": " ",
+			"3 ": "   ",
+			"255 ": "                                                                                                                                                                                                                                                               ",
+			"": 'CpcVm: Type mismatch in 0: SPACE$ undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: SPACE$  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-1 ": 'CpcVm: Improper argument in 0: SPACE$ -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"256 ": 'CpcVm: Improper argument in 0: SPACE$ 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		spc: {
+			"0,1": " ",
+			"0,8": "        ",
+			"0,0": "",
+			"1,41": " ",
+			"0,-2": "",
+			"0,-32768": "",
+			"9,32767": "                                                                                                                                                                                                                                                               ",
+			"": 'CpcVm: Type mismatch in 0: SPC undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: SPC  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-1,1": 'CpcVm: Improper argument in 0: SPC -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"10,1": 'CpcVm: Improper argument in 0: SPC 10 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,-32769": 'CpcVm: Overflow in 0: SPC -32769 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,32768": 'CpcVm: Overflow in 0: SPC 32768 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		speedInk: {
+			"10,10": "setSpeedInk:10,10",
+			"1,1": "setSpeedInk:1,1",
+			"255,255": "setSpeedInk:255,255",
+			"": 'CpcVm: Type mismatch in 0: SPEED INK undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: SPEED INK  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,1": 'CpcVm: Improper argument in 0: SPEED INK 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"256,1": 'CpcVm: Improper argument in 0: SPEED INK 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"1,0": 'CpcVm: Improper argument in 0: SPEED INK 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"1,256": 'CpcVm: Improper argument in 0: SPEED INK 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		speedKey: {
+			"10,10": "",
+			"1,1": "",
+			"255,255": "",
+			"": 'CpcVm: Type mismatch in 0: SPEED KEY undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: SPEED KEY  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,1": 'CpcVm: Improper argument in 0: SPEED KEY 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"256,1": 'CpcVm: Improper argument in 0: SPEED KEY 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"1,0": 'CpcVm: Improper argument in 0: SPEED KEY 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"1,256": 'CpcVm: Improper argument in 0: SPEED KEY 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		speedWrite: {
+			"0 ": "",
+			"1 ": "",
+			"": 'CpcVm: Type mismatch in 0: SPEED WRITE undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: SPEED WRITE  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-1 ": 'CpcVm: Improper argument in 0: SPEED WRITE -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"2 ": 'CpcVm: Improper argument in 0: SPEED WRITE 2 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		sq: {
+			"1 ": "sq:0 -- 3",
+			"2 ": "sq:1 -- 3",
+			"4 ": "sq:2 -- 3",
+			"": 'CpcVm: Type mismatch in 0: SQ undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: SQ  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0 ": 'CpcVm: Improper argument in 0: SQ 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"3 ": 'CpcVm: Improper argument in 0: SQ 3 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"5 ": 'CpcVm: Improper argument in 0: SQ 5 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		sqr: {
+			"0 ": "0",
+			"4 ": "2",
+			"18.49 ": "4.3",
+			"64 ": "8",
+			"": 'CpcVm: Type mismatch in 0: SQR undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: SQR  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-1": 'CpcVm: Improper argument in 0: SQR -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		stop: {
+			"": '{"_key":"stop","reason":"stop","priority":60,"paras":{}}',
+			"123s1": '{"_key":"stop","reason":"stop","priority":60,"paras":{}}',
+			'""': '{"_key":"stop","reason":"stop","priority":60,"paras":{}}'
+		},
+		str$: {
+			"0 ": " 0",
+			"1.2 ": " 1.2",
+			"-1.3 ": "-1.3",
+			"": 'CpcVm: Type mismatch in 0: STR$ undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: STR$  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		string$: {
+			'3,"a"': "aaa",
+			'3,"abc"': "aaa",
+			'0,"abc"': "",
+			"3,97": "aaa",
+			"0,0": "",
+			"2,255": "\xff\xff",
+			"255,51": "333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333",
+			'0,""': "",
+			"": 'CpcVm: Type mismatch in 0: STRING$ undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: STRING$  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,": 'CpcVm: Type mismatch in 0: STRING$ undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-1,0": 'CpcVm: Improper argument in 0: STRING$ -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"256,0": 'CpcVm: Improper argument in 0: STRING$ 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,-1": 'CpcVm: Improper argument in 0: STRING$ -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,256": 'CpcVm: Improper argument in 0: STRING$ 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		symbol: {
+			"254,1,2,3,4,5,6,7,8": "resetCustomChars: , setCustomChar:254,1,2,3,4,5,6,7,8",
+			"254,1": "resetCustomChars: , setCustomChar:254,1",
+			"254,1,2": "resetCustomChars: , setCustomChar:254,1,2",
+			"254,1,2,3": "resetCustomChars: , setCustomChar:254,1,2,3",
+			"254,1,2,3,4": "resetCustomChars: , setCustomChar:254,1,2,3,4",
+			"254,1,2,3,4,5": "resetCustomChars: , setCustomChar:254,1,2,3,4,5",
+			"254,1,2,3,4,5,6": "resetCustomChars: , setCustomChar:254,1,2,3,4,5,6",
+			"254,1,2,3,4,5,6,7": "resetCustomChars: , setCustomChar:254,1,2,3,4,5,6,7",
+			"254 ": "resetCustomChars: , setCustomChar:254,",
+			"254,1.4,2.3,3.4,4.2,5.0,6.3,7.3,7.5": "resetCustomChars: , setCustomChar:254,1,2,3,4,5,6,7,8",
+			"254,0,0,0,0,0,0,0,0": "resetCustomChars: , setCustomChar:254,0,0,0,0,0,0,0,0",
+			"255,255,255,255,255,255,255,255,255": "resetCustomChars: , setCustomChar:255,255,255,255,255,255,255,255,255",
+			"0 ": 'resetCustomChars: -- CpcVm: Improper argument in 0: SYMBOL 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"255 ": "resetCustomChars: , setCustomChar:255,",
+			"": 'resetCustomChars: -- CpcVm: Type mismatch in 0: SYMBOL undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'resetCustomChars: -- CpcVm: Type mismatch in 0: SYMBOL  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-1 ": 'resetCustomChars: -- CpcVm: Improper argument in 0: SYMBOL -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"256 ": 'resetCustomChars: -- CpcVm: Improper argument in 0: SYMBOL 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"255,-1": 'resetCustomChars: -- CpcVm: Improper argument in 0: SYMBOL -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"255,256": 'resetCustomChars: -- CpcVm: Improper argument in 0: SYMBOL 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"255,0,-1": 'resetCustomChars: -- CpcVm: Improper argument in 0: SYMBOL -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"255,0,256": 'resetCustomChars: -- CpcVm: Improper argument in 0: SYMBOL 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"255,0,0,-1": 'resetCustomChars: -- CpcVm: Improper argument in 0: SYMBOL -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"255,0,0,256": 'resetCustomChars: -- CpcVm: Improper argument in 0: SYMBOL 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"255,0,0,0,-1": 'resetCustomChars: -- CpcVm: Improper argument in 0: SYMBOL -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"255,0,0,0,256": 'resetCustomChars: -- CpcVm: Improper argument in 0: SYMBOL 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"255,0,0,0,0,-1": 'resetCustomChars: -- CpcVm: Improper argument in 0: SYMBOL -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"255,0,0,0,0,256": 'resetCustomChars: -- CpcVm: Improper argument in 0: SYMBOL 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"255,0,0,0,0,0,-1": 'resetCustomChars: -- CpcVm: Improper argument in 0: SYMBOL -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"255,0,0,0,0,0,256": 'resetCustomChars: -- CpcVm: Improper argument in 0: SYMBOL 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"255,0,0,0,0,0,0,-1": 'resetCustomChars: -- CpcVm: Improper argument in 0: SYMBOL -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"255,0,0,0,0,0,0,256": 'resetCustomChars: -- CpcVm: Improper argument in 0: SYMBOL 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"255,0,0,0,0,0,0,0,-1": 'resetCustomChars: -- CpcVm: Improper argument in 0: SYMBOL -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"255,0,0,0,0,0,0,0,256": 'resetCustomChars: -- CpcVm: Improper argument in 0: SYMBOL 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		symbolAfter: {
+			"254 ": "resetCustomChars:",
+			"0 ": "resetCustomChars:",
+			"256 ": "resetCustomChars:",
+			"": 'CpcVm: Type mismatch in 0: SYMBOL AFTER undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: SYMBOL AFTER  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-1": 'CpcVm: Improper argument in 0: SYMBOL AFTER -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"257 ": 'CpcVm: Improper argument in 0: SYMBOL AFTER 257 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		tab: {
+			"0,2": " ",
+			"7,5": "    ",
+			"8,5": "    ",
+			"9,5": "    ",
+			"7,-32768": "",
+			"7,32767": "      ",
+			"": 'CpcVm: Type mismatch in 0: TAB undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: TAB  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-1,0": 'CpcVm: Improper argument in 0: TAB -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"10,0": 'CpcVm: Improper argument in 0: TAB 10 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,-32769": 'CpcVm: Overflow in 0: TAB -32769 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,32768": 'CpcVm: Overflow in 0: TAB 32768 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		tag: {
+			"0 ": '{"_key":"win0","tag":true}',
+			"7 ": '{"_key":"win7","tag":true}',
+			"": 'CpcVm: Type mismatch in 0: TAG undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: TAG  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-1": 'CpcVm: Improper argument in 0: TAG -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"8 ": 'CpcVm: Improper argument in 0: TAG 8 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		tagoff: {
+			"0 ": "",
+			"7 ": "",
+			"": 'CpcVm: Type mismatch in 0: TAGOFF undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: TAGOFF  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-1": 'CpcVm: Improper argument in 0: TAGOFF -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"8 ": 'CpcVm: Improper argument in 0: TAGOFF 8 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
 		tan: {
 			"0 ": "0",
-			"0.7853981633974483 ": "0.9999999999999999"
+			"0.7853981633974483 ": "0.9999999999999999",
+			"": 'CpcVm: Type mismatch in 0: TAN undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: TAN  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
 		tanDeg: {
 			"0 ": "0",
@@ -1168,6 +2096,15 @@ QUnit.module("CpcVm: Tests", function () {
 			"0,-32769": 'getXpos: -- CpcVm: Overflow in 0: TESTR -32769 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			",0": 'CpcVm: Type mismatch in 0: TESTR undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
+		time: {
+			"": "3"
+		},
+		troff: {
+			"": ""
+		},
+		tron: {
+			"": ""
+		},
 		unt: {
 			"0 ": "0",
 			"255 ": "255",
@@ -1187,284 +2124,153 @@ QUnit.module("CpcVm: Tests", function () {
 			'" !"#$%&\'()*+ -./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff"': " !\"#$%&'()*+ -./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`ABCDEFGHIJKLMNOPQRSTUVWXYZ{|}~\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff",
 			"": 'CpcVm: Type mismatch in 0: UPPER$ undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			"0 ": 'CpcVm: Type mismatch in 0: UPPER$ 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		using: {
+			'"##.##",0': " 0.00",
+			'"##.##",-1.2': "-1.20",
+			'"##.##",1.005': " 1.01",
+			'"##.##",8.575': " 8.58",
+			'"#.##",15.355': "%15.36",
+			//'"[#,###,###]",1234567,123,12345678': "[1,234,567][      123][%12,345,678]", // TODO
+			'"\\   \\","n1","n2"," xx3"': "n1   n2    xx3 ",
+			'"!","a1","b2"': "ab",
+			'"&","a1","b2"': "a1b2",
+			"": 'CpcVm: Type mismatch in 0: USING undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Improper argument in 0: USING format  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"3 ": 'CpcVm: Type mismatch in 0: USING 3 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		val: {
+			'"4"': "4",
+			'"4r"': "4",
+			'"4.78"': "4.78",
+			'" -4.78 "': "-4.78",
+			'"a"': "0",
+			'"&xa"': "0",
+			'"&a0"': "160",
+			'"&ha0"': "160",
+			"": 'CpcVm: Type mismatch in 0: VAL undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': "0",
+			"2 ": 'CpcVm: Type mismatch in 0: VAL 2 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		vpos: {
+			"0 ": "1",
+			"7 ": "1",
+			"": 'CpcVm: Type mismatch in 0: VPOS undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: VPOS  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-1": 'CpcVm: Improper argument in 0: VPOS -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"8.2 ": 'CpcVm: Improper argument in 0: VPOS 8 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		wait: {
+			"0,0": "",
+			"0xff00,1": "",
+			"0,0,0": "",
+			"-32768,0,0": "",
+			"65535,255,255": "",
+			"": 'CpcVm: Type mismatch in 0: WAIT undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: WAIT  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-32769,0": 'CpcVm: Overflow in 0: WAIT -32769 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"65536,0": 'CpcVm: Overflow in 0: WAIT 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,-1": 'CpcVm: Improper argument in 0: WAIT -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,256": 'CpcVm: Improper argument in 0: WAIT 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,0,-1": 'CpcVm: Improper argument in 0: WAIT -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,0,256": 'CpcVm: Improper argument in 0: WAIT 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		width: {
+			"1 ": '{"_key":"win8","right":1}',
+			"80.2 ": '{"_key":"win8","right":80}',
+			"255 ": '{"_key":"win8","right":255}',
+			"": 'CpcVm: Type mismatch in 0: WIDTH undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: WIDTH  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0 ": 'CpcVm: Improper argument in 0: WIDTH 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-1 ": 'CpcVm: Improper argument in 0: WIDTH -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"256 ": 'CpcVm: Improper argument in 0: WIDTH 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		window: {
+			"0,2,4,3,5": '{"_key":"win0","left":1,"right":3,"top":2,"bottom":4}',
+			"0,1.4,1.4,1.4,1.2": '{"_key":"win0","right":0,"bottom":0}',
+			"7,255.2,255,255,255": '{"_key":"win7","left":254,"right":254,"top":254,"bottom":254}',
+			"": 'CpcVm: Type mismatch in 0: WINDOW undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: WINDOW  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-1,1,1,1,1": 'CpcVm: Improper argument in 0: WINDOW -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"8.2,1,1,1,1 ": 'CpcVm: Improper argument in 0: WINDOW 8 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,0,1,1,1": 'CpcVm: Improper argument in 0: WINDOW 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,256,1,1,1": 'CpcVm: Improper argument in 0: WINDOW 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,1,0,1,1": 'CpcVm: Improper argument in 0: WINDOW 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,1,256,1,1": 'CpcVm: Improper argument in 0: WINDOW 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,1,1,0,1": 'CpcVm: Improper argument in 0: WINDOW 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,1,1,256,1": 'CpcVm: Improper argument in 0: WINDOW 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,1,1,1,0": 'CpcVm: Improper argument in 0: WINDOW 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,1,1,1,256": 'CpcVm: Improper argument in 0: WINDOW 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		windowSwap: {
+			"0,2": "",
+			"3 ": "",
+			"1.4,7": "",
+			"0,0": "",
+			"7,7": "",
+			"": 'CpcVm: Type mismatch in 0: WINDOW SWAP undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: WINDOW SWAP  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-1": 'CpcVm: Improper argument in 0: WINDOW SWAP -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"8 ": 'CpcVm: Improper argument in 0: WINDOW SWAP 8 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,-1": 'CpcVm: Improper argument in 0: WINDOW SWAP -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0,8": 'CpcVm: Improper argument in 0: WINDOW SWAP 8 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		write: {
+			"0 ": '{"_key":"win0","vpos":1}',
+			"0,6": 'printChar:54,0,0,1,0,false -- {"_key":"win0","vpos":1}',
+			"0,6.234": 'printChar:54,0,0,1,0,false , printChar:46,1,0,1,0,false , printChar:50,2,0,1,0,false , printChar:51,3,0,1,0,false , printChar:52,4,0,1,0,false -- {"_key":"win0","vpos":1}',
+			'0,""': 'printChar:34,0,0,1,0,false , printChar:34,1,0,1,0,false -- {"_key":"win0","vpos":1}',
+			'0,"ab"': 'printChar:34,0,0,1,0,false , printChar:97,1,0,1,0,false , printChar:98,2,0,1,0,false , printChar:34,3,0,1,0,false -- {"_key":"win0","vpos":1}',
+			'0,"a","b"': 'printChar:34,0,0,1,0,false , printChar:97,1,0,1,0,false , printChar:34,2,0,1,0,false , printChar:44,3,0,1,0,false , printChar:34,4,0,1,0,false , printChar:98,5,0,1,0,false , printChar:34,6,0,1,0,false -- {"_key":"win0","vpos":1}',
+			"7 ": '{"_key":"win7","vpos":1}',
+			"8 ": "",
+			"9 ": 'CpcVm: File not open in 0: WRITE #9 -- {"_key":"stop","reason":"error","priority":50,"paras":{}} -- {"_key":"outFile","open":false,"command":"","name":"","line":0,"start":0,"fileData":[],"stream":9,"typeString":"","length":0,"entry":0}',
+			"": 'CpcVm: Type mismatch in 0: WRITE undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: WRITE  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-1": 'CpcVm: Improper argument in 0: WRITE -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"10 ": 'CpcVm: Improper argument in 0: WRITE 10 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		xpos: {
+			"": "getXpos: -- 10"
+		},
+		ypos: {
+			"": "getYpos: -- 20"
+		},
+		zone: {
+			"1 ": "",
+			"255.4 ": "",
+			"": 'CpcVm: Type mismatch in 0: ZONE undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: ZONE  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"0 ": 'CpcVm: Improper argument in 0: ZONE 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"256 ": 'CpcVm: Improper argument in 0: ZONE 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		vmAssertNumberType: {
+			'"aI"': "",
+			'"aR"': "",
+			'"a$"': 'CpcVm: Type mismatch in 0: type $ -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'"a"': "",
+			'"s"': 'CpcVm: Type mismatch in 0: type $ -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		vmAssign: {
+			'"aR",2.5': "2.5",
+			'"aI",2.5': "3",
+			'"a",2.5': "2.5",
+			'"i",2.5': "3",
+			'"a$","2.5"': "2.5",
+			'"s","2.5"': "2.5",
+			'"a$",2.5': 'CpcVm: Type mismatch in 0: type $=2.5 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'"a","2.5"': 'CpcVm: Type mismatch in 0: = 2.5 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		},
+		vmLoopCondition: {
+			"": "updateSpeedInk: , scheduler: -- true"
+		},
+		vmReset: {
+			"": 'resetCustomChars: , setMode:1 , clearFullWindow: , reset: , reset: , reset: -- {"_key":"timer0","line":0,"repeat":false,"intervalMs":0,"active":false,"handlerRunning":false,"stackIndexReturn":0,"savedPriority":0} -- {"_key":"timer1","line":0,"repeat":false,"intervalMs":0,"active":false,"handlerRunning":false,"stackIndexReturn":0,"savedPriority":0} -- {"_key":"timer2","line":0,"repeat":false,"intervalMs":0,"active":false,"handlerRunning":false,"stackIndexReturn":0,"savedPriority":0} -- {"_key":"timer3","line":0,"repeat":false,"intervalMs":0,"active":false,"handlerRunning":false,"stackIndexReturn":0,"savedPriority":0}'
+		},
+		vmTrace: {
+			"12 ": 'printChar:91,0,0,1,0,false , printChar:49,1,0,1,0,false , printChar:50,2,0,1,0,false , printChar:93,3,0,1,0,false -- {"_key":"win0","pos":4}'
 		}
-	},
-
-		lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [],
-		varTypesMap: Record<string, string> = {},
-		variablesMap: Record<string, string | number> = {},
-		mockCanvas = {
-			changeMode: function (...args) {
-				lastTestFunctions.push({
-					changeMode: args
-				});
-			},
-			clearFullWindow: function (...args) {
-				lastTestFunctions.push({
-					clearFullWindow: args
-				});
-			},
-			clearGraphicsWindow: function (...args) {
-				lastTestFunctions.push({
-					clearGraphicsWindow: args
-				});
-			},
-			clearTextWindow: function (...args) {
-				lastTestFunctions.push({
-					clearTextWindow: args
-				});
-			},
-			draw: function (...args) {
-				lastTestFunctions.push({
-					draw: args
-				});
-			},
-			drawCursor: function (...args) {
-				lastTestFunctions.push({
-					drawCursor: args
-				});
-			},
-			fill: function (...args) {
-				lastTestFunctions.push({
-					fill: args
-				});
-			},
-			getByte: function (...args) {
-				const addr = args[0];
-
-				// test output only for 0x0000, 0x4000, 0x8000, 0xc000
-				if ((addr & 0xc000) === addr) { // eslint-disable-line no-bitwise
-					lastTestFunctions.push({
-						getByte: args
-					});
-				}
-				return 13;
-			},
-			getMode: function (...args) {
-				lastTestFunctions.push({
-					getMode: args
-				});
-				return 1;
-			},
-			getXpos: function (...args) {
-				lastTestFunctions.push({
-					getXpos: args
-				});
-				return 10;
-			},
-			getYpos: function (...args) {
-				lastTestFunctions.push({
-					getYpos: args
-				});
-				return 20;
-			},
-			move: function (...args) {
-				lastTestFunctions.push({
-					move: args
-				});
-			},
-			plot: function (...args) {
-				lastTestFunctions.push({
-					plot: args
-				});
-			},
-			printChar: function (...args) {
-				lastTestFunctions.push({
-					printChar: args.map((arg) => String(arg))
-				});
-			},
-			printGChar: function (...args) {
-				lastTestFunctions.push({
-					printGChar: args
-				});
-			},
-			readChar: function (...args) {
-				lastTestFunctions.push({
-					readChar: args
-				});
-				return 65;
-			},
-			resetCustomChars: function (...args) {
-				lastTestFunctions.push({
-					resetCustomChars: args
-				});
-			},
-			setBorder: function (...args) {
-				lastTestFunctions.push({
-					setBorder: args
-				});
-			},
-			setByte: function (...args) {
-				const addr = args[0];
-
-				// test output only for 0x0000, 0x4000, 0x8000, 0xc000
-				if ((addr & 0xc000) === addr) { // eslint-disable-line no-bitwise
-					lastTestFunctions.push({
-						setByte: args
-					});
-				}
-			},
-			setDefaultInks: function (...args) {
-				lastTestFunctions.push({
-					setDefaultInks: args
-				});
-			},
-			setGColMode: function (...args) {
-				lastTestFunctions.push({
-					setGColMode: args
-				});
-			},
-			setGPaper: function (...args) {
-				lastTestFunctions.push({
-					setGPaper: args
-				});
-			},
-			setGPen: function (...args) {
-				lastTestFunctions.push({
-					setGPen: args
-				});
-			},
-			setGTransparentMode: function (...args) {
-				lastTestFunctions.push({
-					setGTransparentMode: args.map((arg) => String(arg))
-				});
-			},
-			setInk: function (...args) {
-				lastTestFunctions.push({
-					setInk: args
-				});
-				return Boolean(args[0]); // example
-			},
-			setMask: function (...args) {
-				lastTestFunctions.push({
-					setMask: args
-				});
-			},
-			setMaskFirst: function (...args) {
-				lastTestFunctions.push({
-					setMaskFirst: args
-				});
-			},
-			setMode: function (...args) {
-				lastTestFunctions.push({
-					setMode: args
-				});
-			},
-			setSpeedInk: function (...args) {
-				lastTestFunctions.push({
-					setSpeedInk: args
-				});
-			},
-			test: function (...args) {
-				lastTestFunctions.push({
-					test: args
-				});
-				return Number(args[0]) % 16; // example
-			},
-			windowScrollDown: function (...args) {
-				lastTestFunctions.push({
-					windowScrollDown: args
-				});
-			}
-		} as Canvas,
-		mockKeyboard = {
-			clearInput: function (...args) {
-				lastTestFunctions.push({
-					clearInput: args
-				});
-			},
-			getJoyState: function (...args) {
-				lastTestFunctions.push({
-					getJoyState: args
-				});
-				return 4 + Number(args); // example
-			},
-			getKeyDownHandler: function (...args) {
-				lastTestFunctions.push({
-					getKeyDownHandler: args
-				});
-			},
-			getKeyFromBuffer: function (...args) {
-				lastTestFunctions.push({
-					getKeyFromBuffer: args
-				});
-				return "A";
-			},
-			getKeyState: function (...args) {
-				lastTestFunctions.push({
-					getKeyState: args
-				});
-				return args[0] === 79 ? 13 : -1; // example
-			},
-			putKeyInBuffer: function (...args) {
-				lastTestFunctions.push({
-					putKeyInBuffer: args
-				});
-			},
-			resetCpcKeysExpansions: function (...args) {
-				lastTestFunctions.push({
-					resetCpcKeysExpansions: args
-				});
-			},
-			resetExpansionTokens: function (...args) {
-				lastTestFunctions.push({
-					resetExpansionTokens: args
-				});
-			},
-			setCpcKeyExpansion: function (...args) {
-				lastTestFunctions.push({
-					setCpcKeyExpansion: args as any //TTT
-				});
-			},
-			setExpansionToken: function (...args) {
-				lastTestFunctions.push({
-					setExpansionToken: args
-				});
-			}
-		} as Keyboard,
-		mockSound = {
-			resetQueue: function (...args) {
-				lastTestFunctions.push({
-					resetQueue: args
-				});
-			},
-			setToneEnv: function (...args) {
-				lastTestFunctions.push({
-					setToneEnv: args as any
-				});
-			},
-			setVolEnv: function (...args) {
-				lastTestFunctions.push({
-					setVolEnv: args as any
-				});
-			}
-		} as Sound,
-		mockVariables = {
-			dimVariable: function (...args) {
-				lastTestFunctions.push({
-					dimVariable: args as any
-				});
-			},
-			getVarType: function (varChar: string) {
-				return varTypesMap[varChar];
-			},
-			setVarType: function (varChar: string, type: string) {
-				varTypesMap[varChar] = type;
-			},
-			initVariable: function (varName: string) {
-				variablesMap[varName] = this.getVarType(varName.charAt(0)) === "$" ? "" : 0;
-			},
-			initAllVariables: function () {
-				const variables = this.getAllVariableNames();
-
-				for (let i = 0; i < variables.length; i += 1) {
-					this.initVariable(variables[i]);
-				}
-			},
-			getAllVariableNames(): string[] {
-				return Object.keys(variablesMap);
-			}
-		} as Variables;
+	};
 
 	function deleteObjectContents(obj: Record<string, any>) {
 		for (const prop in obj) {
@@ -1496,6 +2302,9 @@ QUnit.module("CpcVm: Tests", function () {
 		abs: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			return String(cpcVm.abs.apply(cpcVm, input));
 		},
+		addressOf: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			return String(cpcVm.addressOf.apply(cpcVm, input));
+		},
 		afterGosub: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.afterGosub.apply(cpcVm, input);
 
@@ -1517,6 +2326,9 @@ QUnit.module("CpcVm: Tests", function () {
 		atnDeg: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.deg();
 			return String(cpcVm.atn.apply(cpcVm, input));
+		},
+		auto: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			return cpcVm.auto.apply(cpcVm, input);
 		},
 		bin$: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			return cpcVm.bin$.apply(cpcVm, input);
@@ -1597,6 +2409,9 @@ QUnit.module("CpcVm: Tests", function () {
 
 			return JSON.stringify(win);
 			*/
+		},
+		commaTab: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			return String(cpcVm.vmInternal.commaTab.apply(cpcVm, input));
 		},
 		cont: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			const testCase = input.shift();
@@ -1723,6 +2538,8 @@ QUnit.module("CpcVm: Tests", function () {
 			return String(cpcVm.eof.apply(cpcVm, input));
 		},
 		erase: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.dim("abA", 5); // TODO: set also variable
+			clearLastTestFunctions();
 			cpcVm.erase.apply(cpcVm, input);
 		},
 		erl: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
@@ -1825,7 +2642,46 @@ QUnit.module("CpcVm: Tests", function () {
 			return String(cpcVm.inp.apply(cpcVm, input));
 		},
 		input: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			if (input.length && input[0] === 9) {
+				if (input.length >= 2) { // test case with arguments?
+					cpcVm.openin("file1");
+					const inFile = cpcVm.vmGetInFileObject(),
+						input2 = "abc\ndef\n7";
+
+					if (inFile.fnFileCallback) {
+						inFile.fnFileCallback(input2);
+					}
+					clearLastTestFunctions();
+				}
+			}
+
 			cpcVm.input.apply(cpcVm, input);
+
+			const stop = cpcVm.vmGetStopObject();
+
+			if (stop.reason === "waitInput" && stop.paras.command === "input") {
+				const inputParas = stop.paras as VmInputParas;
+
+				inputParas.input = "abc1,7,e";
+
+				const mockPrint = cpcVm.print;
+
+				cpcVm.print = () => undefined;
+
+				inputParas.fnInputCallback();
+				cpcVm.print = mockPrint;
+			}
+			const collectInput = [];
+			let nextInput;
+
+			do {
+				nextInput = cpcVm.vmGetNextInput();
+
+				if (nextInput !== undefined) {
+					collectInput.push(nextInput);
+				}
+			} while (nextInput !== undefined);
+			return collectInput.join(" ");
 		},
 		instr: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			return String(cpcVm.instr.apply(cpcVm, input));
@@ -1850,12 +2706,38 @@ QUnit.module("CpcVm: Tests", function () {
 		},
 		lineInput: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.lineInput.apply(cpcVm, input);
+
+			const stop = cpcVm.vmGetStopObject();
+
+			if (stop.reason === "waitInput" && stop.paras.command === "lineinput") {
+				const inputParas = stop.paras as VmInputParas;
+
+				inputParas.input = "abc1,7,e";
+				inputParas.fnInputCallback();
+			}
+			return String(cpcVm.vmGetNextInput());
 		},
 		list: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.list.apply(cpcVm, input);
 		},
 		load: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.load.apply(cpcVm, input);
+
+			const stop = cpcVm.vmGetStopObject(),
+				inFile = cpcVm.vmGetInFileObject(),
+				inFileString = JSON.stringify(inFile);
+
+			if (stop.reason === "fileLoad" && inFile.command === "load") {
+				const input2 = "\x31\x32",
+					meta: FileMeta = {
+						typeString: "B"
+					};
+
+				if (inFile.fnFileCallback) {
+					inFile.fnFileCallback(input2, meta);
+				}
+			}
+			return inFileString;
 		},
 		locate: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			const stream = getValidStream(cpcVm, Number(input));
@@ -1935,9 +2817,41 @@ QUnit.module("CpcVm: Tests", function () {
 		},
 		openin: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.openin.apply(cpcVm, input);
+
+			const stop = cpcVm.vmGetStopObject(),
+				inFile = cpcVm.vmGetInFileObject();
+
+			if (stop.reason === "fileLoad" && inFile.command === "openin") {
+				const input2 = "10,a\b20,b\n";
+
+				if (inFile.fnFileCallback) {
+					inFile.fnFileCallback(input2);
+				}
+			}
 		},
 		openout: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.openout.apply(cpcVm, input);
+		},
+		origin: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.origin.apply(cpcVm, input);
+		},
+		out: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.out.apply(cpcVm, input);
+		},
+		paper: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.paper.apply(cpcVm, input);
+		},
+		peek: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.symbolAfter(254);
+			clearLastTestFunctions();
+
+			return String(cpcVm.peek.apply(cpcVm, input));
+		},
+		pen: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.pen.apply(cpcVm, input);
+		},
+		pi: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			return String(cpcVm.pi.apply(cpcVm, input));
 		},
 		plot: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.plot.apply(cpcVm, input);
@@ -1945,8 +2859,157 @@ QUnit.module("CpcVm: Tests", function () {
 		plotr: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.plotr.apply(cpcVm, input);
 		},
+		poke: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.symbolAfter(254);
+			clearLastTestFunctions();
+
+			cpcVm.poke.apply(cpcVm, input);
+		},
+		pos: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			return String(cpcVm.pos.apply(cpcVm, input));
+		},
+		print: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.print.apply(cpcVm, input);
+		},
+		rad: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.rad.apply(cpcVm, input);
+		},
+		randomize: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.randomize.apply(cpcVm, input);
+
+			const stop = cpcVm.vmGetStopObject();
+
+			if (stop.reason === "waitInput" && stop.paras.command === "randomize") {
+				const inputParas = stop.paras as VmInputParas;
+
+				inputParas.input = "12.76";
+
+				const mockPrint = cpcVm.print;
+
+				cpcVm.print = () => undefined;
+
+				inputParas.fnInputCallback();
+				cpcVm.print = mockPrint;
+			}
+			return String(cpcVm.vmGetNextInput());
+		},
+		read: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			return String(cpcVm.read.apply(cpcVm, input));
+		},
+		release: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.release.apply(cpcVm, input);
+		},
+		remain: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			return String(cpcVm.remain.apply(cpcVm, input));
+		},
 		renum: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.renum.apply(cpcVm, input);
+		},
+		restore: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.restore.apply(cpcVm, input);
+		},
+		resume: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.resume.apply(cpcVm, input);
+		},
+		resumeNext: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.resumeNext.apply(cpcVm, input);
+		},
+		"return": function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.return.apply(cpcVm, input);
+		},
+		right$: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			return String(cpcVm.right$.apply(cpcVm, input));
+		},
+		rnd: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			return String(cpcVm.rnd.apply(cpcVm, input));
+		},
+		round: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			return String(cpcVm.round.apply(cpcVm, input));
+		},
+		run: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.run.apply(cpcVm, input);
+
+			const stop = cpcVm.vmGetStopObject(),
+				inFile = cpcVm.vmGetInFileObject(),
+				stopString = JSON.stringify(stop);
+
+			if (stop.reason === "fileLoad" && inFile.command === "run") {
+				const input2 = "10 print 12.76",
+					meta: FileMeta = {
+						typeString: "A"
+					};
+
+				if (!inFile.fnFileCallback) {
+					Utils.console.error("run: fnFileCallback undefined");
+				} else {
+					inFile.fnFileCallback(input2, meta);
+				}
+			}
+			return stopString;
+		},
+		save: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.save.apply(cpcVm, input);
+		},
+		sgn: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			return String(cpcVm.sgn.apply(cpcVm, input));
+		},
+		sin: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.rad();
+			return String(cpcVm.sin.apply(cpcVm, input));
+		},
+		sinDeg: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.deg();
+			return String(cpcVm.sin.apply(cpcVm, input));
+		},
+		sound: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.sound.apply(cpcVm, input);
+		},
+		space$: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			return String(cpcVm.space$.apply(cpcVm, input));
+		},
+		spc: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			return String(cpcVm.vmInternal.spc.apply(cpcVm, input));
+		},
+		speedInk: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.speedInk.apply(cpcVm, input);
+		},
+		speedKey: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.speedKey.apply(cpcVm, input);
+		},
+		speedWrite: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.speedWrite.apply(cpcVm, input);
+		},
+		sq: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			return String(cpcVm.sq.apply(cpcVm, input));
+		},
+		sqr: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			return String(cpcVm.sqr.apply(cpcVm, input));
+		},
+		stop: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.stop.apply(cpcVm, input);
+		},
+		str$: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			return String(cpcVm.str$.apply(cpcVm, input));
+		},
+		string$: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			return String(cpcVm.string$.apply(cpcVm, input));
+		},
+		symbol: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.symbolAfter(254); // prepare
+
+			cpcVm.symbol.apply(cpcVm, input);
+		},
+		symbolAfter: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.symbolAfter.apply(cpcVm, input);
+		},
+		tab: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			return String(cpcVm.vmInternal.tab.apply(cpcVm, input));
+		},
+		tag: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.tag.apply(cpcVm, input);
+		},
+		tagoff: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.tagoff.apply(cpcVm, input);
 		},
 		tan: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.rad();
@@ -1962,11 +3025,79 @@ QUnit.module("CpcVm: Tests", function () {
 		testr: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			return String(cpcVm.testr.apply(cpcVm, input));
 		},
+		time: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			let time = cpcVm.time.apply(cpcVm, input);
+
+			time = 3; //TODO
+			return String(time);
+		},
+		troff: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.troff.apply(cpcVm, input);
+		},
+		tron: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.tron.apply(cpcVm, input);
+		},
 		unt: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			return String(cpcVm.unt.apply(cpcVm, input));
 		},
 		upper$: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			return cpcVm.upper$.apply(cpcVm, input);
+			return String(cpcVm.upper$.apply(cpcVm, input));
+		},
+		using: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			return String(cpcVm.using.apply(cpcVm, input));
+		},
+		val: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			return String(cpcVm.val.apply(cpcVm, input));
+		},
+		vpos: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			return String(cpcVm.vpos.apply(cpcVm, input));
+		},
+		wait: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.wait.apply(cpcVm, input);
+		},
+		width: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.width.apply(cpcVm, input);
+		},
+		window: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.window.apply(cpcVm, input);
+		},
+		windowSwap: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.windowSwap.apply(cpcVm, input);
+		},
+		write: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.write.apply(cpcVm, input);
+		},
+		xpos: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			return String(cpcVm.xpos.apply(cpcVm, input));
+		},
+		ypos: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			return String(cpcVm.ypos.apply(cpcVm, input));
+		},
+		zone: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.zone.apply(cpcVm, input);
+		},
+		vmAssertNumberType: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.defstr("s");
+			cpcVm.vmAssertNumberType.apply(cpcVm, input);
+		},
+		vmAssign: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.defint("i");
+			cpcVm.defstr("s");
+			return String(cpcVm.vmAssign.apply(cpcVm, input));
+		},
+		vmLoopCondition: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			return String(cpcVm.vmLoopCondition.apply(cpcVm, input));
+		},
+		vmReset: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.vmReset.apply(cpcVm, input);
+		},
+		vmTrace: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
+			cpcVm.vmGotoLine(123);
+			cpcVm.tron();
+
+			cpcVm.vmTrace.apply(cpcVm, input);
+
+			cpcVm.troff();
 		}
 	};
 
@@ -2002,7 +3133,7 @@ QUnit.module("CpcVm: Tests", function () {
 					_key: key
 				}, winDataList[i]);
 
-			vmState[key] = winData; //JSON.stringify(winData);
+			vmState[key] = winData;
 		}
 
 		for (let i = 0; i < timerList.length; i += 1) {
@@ -2013,8 +3144,7 @@ QUnit.module("CpcVm: Tests", function () {
 
 			timerData.nextTimeMs = undefined; // remove varying property
 
-			//vmState["timerData" + i] = JSON.stringify(timerList[i]);
-			vmState[key] = timerData; //JSON.stringify(timerData);
+			vmState[key] = timerData;
 		}
 
 		return vmState;
@@ -2039,12 +3169,14 @@ QUnit.module("CpcVm: Tests", function () {
 						stateObj1 = vmState1[state] as Record<string, any>; // as Record<string, string>;
 
 					for (const key in stateObj1) {
-						if (stateObj1.hasOwnProperty(key)) { // eslint-disable-line max-depth
+						/* eslint-disable max-depth */
+						if (stateObj1.hasOwnProperty(key)) {
 							if (key !== "_key" && stateObj1[key] === stateObj0[key]) {
 								stateObj0[key] = undefined; // same value
 								stateObj1[key] = undefined; // same value
 							}
 						}
+						/* eslint-enable max-depth */
 					}
 					vmState0[state] = JSON.stringify(stateObj0);
 					vmState1[state] = JSON.stringify(stateObj1);
@@ -2063,7 +3195,6 @@ QUnit.module("CpcVm: Tests", function () {
 			keyboard: mockKeyboard,
 			sound: mockSound,
 			variables: mockVariables,
-			tron: false,
 			quiet: true
 		},
 			cpcVm = new CpcVm(config),
@@ -2076,6 +3207,7 @@ QUnit.module("CpcVm: Tests", function () {
 				cpcVm.vmResetWindowData(true); // prepare
 				cpcVm.closein();
 				cpcVm.closeout();
+				cpcVm.vmGotoLine(0);
 
 				clearLastTestFunctions();
 				cpcVm.vmStop("", 0, true);
@@ -2111,6 +3243,60 @@ QUnit.module("CpcVm: Tests", function () {
 	}
 
 	TestHelper.generateAndRunAllTests(allTests, runTestsFor);
+});
+
+QUnit.module("CpcVm: vm functions", function (hooks: NestedHooks) {
+	hooks.beforeEach(function (this: any) {
+		const that = this, // eslint-disable-line no-invalid-this, @typescript-eslint/no-this-alias
+			config: CpcVmOptions = {
+				canvas: mockCanvas,
+				keyboard: mockKeyboard,
+				sound: mockSound,
+				variables: mockVariables,
+				quiet: true
+			};
+
+		that.cpcVm = new CpcVm(config);
+	});
+
+	QUnit.test("init without options", function (assert: Assert) {
+		const minimalCanvas = {
+			reset: () => undefined
+		} as Canvas,
+			minimalKeyboard = {
+				reset: () => undefined
+			} as Keyboard,
+			minimalSound = {
+				reset: () => undefined
+			} as Sound,
+			minimalVariables = {} as Variables,
+			cpcVm = new CpcVm({
+				canvas: minimalCanvas,
+				keyboard: minimalKeyboard,
+				sound: minimalSound,
+				variables: minimalVariables
+			});
+
+		assert.ok(cpcVm, "defined");
+	});
+
+	QUnit.test("vmReset", function (this: any, assert: Assert) {
+		const cpcVm: CpcVm = this.cpcVm; // eslint-disable-line no-invalid-this
+
+		cpcVm.vmReset();
+		assert.ok(cpcVm, "defined");
+	});
+
+	/*
+	QUnit.test("vmTrace", function (this: any, assert: Assert) {
+		const cpcVm: CpcVm = this.cpcVm; // eslint-disable-line no-invalid-this
+
+		cpcVm.vmGotoLine(123);
+		cpcVm.tron();
+
+		assert.ok(cpcVm.vmTrace(10), "defined");
+	});
+	*/
 });
 
 // end
