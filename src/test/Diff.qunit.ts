@@ -19,7 +19,7 @@ QUnit.module("Diff: Tests", function () {
 	function runTestsFor(assert: Assert | undefined, _sCategory: string, tests: TestsType, results?: string[]) {
 		for (const key in tests) {
 			if (tests.hasOwnProperty(key)) {
-				const parts = key.split("#", 2),
+				const parts = Utils.split2(key, "#"),
 					text1 = parts[0],
 					text2 = parts[1],
 					expected = tests[key];

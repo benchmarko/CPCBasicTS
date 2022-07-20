@@ -31,7 +31,7 @@ class cpcBasic { // eslint-disable-line vars-on-top
 		showConsole: false,
 		showConvert: false,
 		sound: true,
-		tron: false // trace on
+		trace: false // trace code
 	};
 
 	private static model: Model;
@@ -61,7 +61,7 @@ class cpcBasic { // eslint-disable-line vars-on-top
 	private static fnParseArgs(args: string[], config: ConfigType) {
 		for (let i = 0; i < args.length; i += 1) {
 			const nameValue = args[i],
-				nameValueList = nameValue.split("=", 2),
+				nameValueList = Utils.split2(nameValue, "="),
 				name = nameValueList[0];
 
 			if (config.hasOwnProperty(name)) {

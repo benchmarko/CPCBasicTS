@@ -41,6 +41,10 @@ export class BasicFormatter {
 
 	// renumber
 
+	private static fnIsDirect(label: string) {
+		return label === "";
+	}
+
 	private fnCreateLineNumbersMap(nodes: ParserNode[]) { // create line numbers map
 		const lines: LinesType = {}; // line numbers
 		let lastLine = -1;
@@ -50,17 +54,20 @@ export class BasicFormatter {
 
 			if (node.type === "label") {
 				const lineString = node.value,
+					isDirect = BasicFormatter.fnIsDirect(lineString),
 					line = Number(lineString);
 
 				this.line = lineString;
 				if (lineString in lines) {
 					throw this.composeError(Error(), "Duplicate line number", lineString, node.pos);
 				}
-				if (line <= lastLine) {
-					throw this.composeError(Error(), "Line number not increasing", lineString, node.pos);
-				}
-				if (line < 1 || line > 65535) {
-					throw this.composeError(Error(), "Line number overflow", lineString, node.pos);
+				if (!isDirect) {
+					if (line <= lastLine) {
+						throw this.composeError(Error(), "Line number not increasing", lineString, node.pos);
+					}
+					if (line < 1 || line > 65535) {
+						throw this.composeError(Error(), "Line number overflow", lineString, node.pos);
+					}
 				}
 				lines[lineString] = {
 					value: lineString,
@@ -116,15 +123,28 @@ export class BasicFormatter {
 		}
 	}
 
+	/*
+	private static fnSortbyPosition(a: LineEntry, b: LineEntry) {
+		return a.pos - b.pos;
+	}
+	*/
+
 	private fnRenumberLines(lines: LinesType, refs: LineEntry[], newLine: number, oldLine: number, step: number, keep: number) {
 		const changes: ChangesType = {},
 			keys = Object.keys(lines);
 
+		function fnSortbyPosition(a: string, b: string) {
+			return lines[a].pos - lines[b].pos;
+		}
+
+		keys.sort(fnSortbyPosition);
+
 		for (let i = 0; i < keys.length; i += 1) {
 			const lineEntry = lines[keys[i]],
+				isDirect = BasicFormatter.fnIsDirect(lineEntry.value),
 				line = Number(lineEntry.value);
 
-			if (line >= oldLine && line < keep) {
+			if (isDirect || (line >= oldLine && line < keep)) {
 				if (newLine > 65535) {
 					throw this.composeError(Error(), "Line number overflow", lineEntry.value, lineEntry.pos);
 				}

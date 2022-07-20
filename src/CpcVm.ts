@@ -16,7 +16,7 @@ export interface CpcVmOptions {
 	keyboard: Keyboard
 	sound: Sound
 	variables: Variables
-	tron?: boolean,
+	//tron?: boolean,
 	quiet?: boolean
 }
 
@@ -58,8 +58,8 @@ interface WindowDimensions {
 }
 
 interface WindowData extends WindowDimensions {
-	pos: number // current text position in line
-	vpos: number
+	pos: number // current (hotizontal) text position on screen
+	vpos: number // current vertical text position on screen
 	textEnabled: boolean // text enabled
 	tag: boolean // tag=text at graphics
 	transparent: boolean // transparent mode
@@ -122,6 +122,12 @@ export interface VmStopEntry {
 	paras: VmStopParas
 }
 
+interface TraceInfo {
+	line: string,
+	pos: number,
+	len: number
+}
+
 type PrintObjectType = {type: string, args: (string | number)[]};
 
 type DataEntryType = (string | undefined);
@@ -137,7 +143,7 @@ export class CpcVm {
 	private readonly keyboard: Keyboard;
 	private readonly soundClass: Sound;
 	readonly variables: Variables;
-	private tronFlag: boolean;
+	//private tronFlag: boolean;
 
 	private readonly random: Random;
 
@@ -195,7 +201,9 @@ export class CpcVm {
 	private degFlag = false; // degree or radians
 
 	private tronFlag1 = false; // trace flag
-	private tronLine = 0; // last trace line
+	//private tronLine = 0; // last trace line
+
+	private traceInfo = {} as TraceInfo;
 
 	private ramSelect = 0;
 
@@ -394,7 +402,7 @@ export class CpcVm {
 		this.keyboard = options.keyboard;
 		this.soundClass = options.sound;
 		this.variables = options.variables;
-		this.tronFlag = Boolean(options.tron);
+		//this.tronFlag = Boolean(options.tron);
 		this.quiet = Boolean(options.quiet);
 
 		this.random = new Random();
@@ -511,8 +519,10 @@ export class CpcVm {
 		this.gosubStack.length = 0;
 		this.degFlag = false; // degree or radians
 
-		this.tronFlag1 = this.tronFlag || false; // trace flag
-		this.tronLine = 0; // last trace line
+		this.tronFlag1 = false; //this.tronFlag || false; // trace flag
+		this.traceInfo.line = ""; // last trace line
+		this.traceInfo.pos = 0;
+		this.traceInfo.len = 0;
 
 		this.mem.length = 0; // clear memory (for PEEK, POKE)
 		this.ramSelect = 0; // for banking with 16K banks in the range 0x4000-0x7fff (0=default; 1...=additional)
@@ -933,7 +943,7 @@ export class CpcVm {
 			last: number;
 
 		if (nameOrRange.indexOf("-") >= 0) {
-			const range = nameOrRange.split("-", 2);
+			const range = Utils.split2(nameOrRange, "-");
 
 			first = range[0].trim().toLowerCase().charCodeAt(0);
 			last = range[1].trim().toLowerCase().charCodeAt(0);
@@ -1071,11 +1081,13 @@ export class CpcVm {
 		return this.soundData;
 	}
 
-	vmTrace(line: number): void {
+	vmTrace(line: number | string, pos: number, len: number): void {
 		const stream = 0;
 
-		this.tronLine = line;
-		if (this.tronFlag1) {
+		this.traceInfo.line = String(line);
+		this.traceInfo.pos = pos;
+		this.traceInfo.len = len;
+		if (this.tronFlag1 && !isNaN(Number(line))) {
 			this.print(stream, "[" + line + "]");
 		}
 	}
@@ -1887,8 +1899,9 @@ export class CpcVm {
 
 		let line = this.errorLine;
 
-		if (this.tronLine) {
-			line += " (trace: " + this.tronLine + ")";
+		if (this.traceInfo.line) {
+			//line += " (trace: " + this.traceInfo.line + "," + this.traceInfo.pos + "," + this.traceInfo.len + ")";
+			line += " (trace: " + this.traceInfo.line + ")";
 		}
 
 		const errorWithInfo = errorString + " in " + line + (errInfo ? (": " + errInfo) : "");
@@ -1905,7 +1918,7 @@ export class CpcVm {
 		if (!this.quiet) {
 			Utils.console.log("BASIC error(" + err + "):", errorWithInfo + (hidden ? " (hidden: " + hidden + ")" : ""));
 		}
-		return Utils.composeError("CpcVm", error, errorString, errInfo, undefined, undefined, line, hidden);
+		return Utils.composeError("CpcVm", error, errorString, errInfo, this.traceInfo.pos || undefined, this.traceInfo.len || undefined, line, hidden);
 	}
 
 	error(err: number, errInfo: string): void {

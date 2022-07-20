@@ -171,7 +171,7 @@ Several examples use CPCBasicTS mode 3, e.g. [Art](https://benchmarko.github.io/
     `t!=TIME+300*5:WHILE TIME<t! AND INKEY$="":WEND :?"Done."`
     You may check that the CPU load stays low.
     - This is not true for the *INKEY* function. Use *CALL &BD19* again. An example on how to wait 5 seconds or the SPACE key: `t!=TIME+300*5:WHILE TIME<t! AND INKEY(47)<0:CALL &BD19:WEND :?"Done."`
-- Use URL parameter "tron=true" to activate line tracing mode with *TRON* and *TROFF*
+- If there is *TRON* in the source code, the resulting JavaScript is compiled with trace information. This will provide source code positioning also for runtime errors. Even if you deactivate trace logging in basic with *TROFF*. Trace information can also be enabled with the URL parameter "trace=true".
 - Use *OPENIN* and *INPUT#9* to load data from a file in the current "directory" or from Browser local storage
 - If the program is complete (that means, no *MERGE* or *CHAIN MERGE* inside), line number destinations are checked for existence. For example, if the line number in *GOTO line* does not exist, the compilation fails.
 - The commands and functions are checked for number of arguments but not always for argument types.

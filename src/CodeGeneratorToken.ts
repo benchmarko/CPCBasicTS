@@ -581,7 +581,7 @@ export class CodeGeneratorToken {
 			nodeArgs = this.fnParseArgs(node.args);
 		let value = this.combineArgsWithSeparator(nodeArgs);
 
-		if (node.value !== "direct") {
+		if (node.value !== "") { // direct
 			value = CodeGeneratorToken.convUInt16ToString(line) + value + CodeGeneratorToken.token2String("_eol");
 			const len = value.length + 2;
 
@@ -1101,7 +1101,7 @@ export class CodeGeneratorToken {
 		return output;
 	}
 
-	generate(input: string, allowDirect?: boolean): IOutput {
+	generate(input: string, _allowDirect?: boolean): IOutput {
 		const out: IOutput = {
 			text: ""
 		};
@@ -1109,7 +1109,7 @@ export class CodeGeneratorToken {
 		this.line = 0;
 		try {
 			const tokens = this.lexer.lex(input),
-				parseTree = this.parser.parse(tokens, allowDirect),
+				parseTree = this.parser.parse(tokens),
 				output = this.evaluate(parseTree);
 
 			out.text = output;
