@@ -51,7 +51,7 @@ QUnit.module("ZipFile: Tests", function () {
 	function runTestsFor(assert: Assert | undefined, _sCategory: string, tests: TestsType, results?: string[]) {
 		for (const key in tests) {
 			if (tests.hasOwnProperty(key)) {
-				const parts = key.split(",", 2),
+				const parts = Utils.split2(key, ","),
 					meta = parts[0],
 					data = Utils.atob(parts[1]), // decode base64
 					zip = new ZipFile(new Uint8Array(fnString2ArrayBuf(data)), "name"),

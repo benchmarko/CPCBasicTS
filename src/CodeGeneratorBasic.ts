@@ -226,7 +226,7 @@ export class CodeGeneratorBasic {
 
 		let value = CodeGeneratorBasic.combineArgsWithColon(nodeArgs);
 
-		if (node.value !== "direct") {
+		if (node.value !== "") { // direct
 			value = node.value + CodeGeneratorBasic.fnSpace1(value);
 		}
 		return CodeGeneratorBasic.fnWs(node) + value;
@@ -686,7 +686,7 @@ export class CodeGeneratorBasic {
 		return output;
 	}
 
-	generate(input: string, allowDirect?: boolean): IOutput {
+	generate(input: string, _allowDirect?: boolean): IOutput {
 		const out: IOutput = {
 			text: ""
 		};
@@ -694,7 +694,7 @@ export class CodeGeneratorBasic {
 		this.line = 0;
 		try {
 			const tokens = this.lexer.lex(input),
-				parseTree = this.parser.parse(tokens, allowDirect),
+				parseTree = this.parser.parse(tokens),
 				output = this.evaluate(parseTree);
 
 			out.text = output;

@@ -202,6 +202,10 @@ define("Utils", ["require", "exports"], function (require, exports) {
         Utils.isCustomError = function (e) {
             return e.pos !== undefined;
         };
+        Utils.split2 = function (str, char) {
+            var index = str.indexOf(char);
+            return index >= 0 ? [str.slice(0, index), str.slice(index + 1)] : [str]; // eslint-disable-line array-element-newline
+        };
         Utils.composeError = function (name, errorObject, message, value, pos, len, line, hidden) {
             var customError = errorObject;
             customError.name = name;
@@ -1452,7 +1456,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             this.symbols = {};
             // set also during parse
             this.tokens = [];
-            this.allowDirect = false;
+            //private allowDirect = false;
             this.index = 0;
             this.parseTree = [];
             this.statementList = []; // just to check last statement when generating error message
@@ -1628,14 +1632,20 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
         };
         BasicParser.prototype.basicLine = function () {
             var node;
-            if (this.token.type !== "number" && this.allowDirect) {
-                this.allowDirect = false; // allow only once
-                node = BasicParser.fnCreateDummyArg("label");
-                node.value = "direct"; // insert "direct" label
+            if (this.token.type !== "number") { //&& this.allowDirect) {
+                //this.allowDirect = false; // allow only once
+                node = BasicParser.fnCreateDummyArg("label", "");
+                //node.value = "direct"; // insert "direct" label
+                node.pos = this.token.pos;
             }
             else {
                 this.advance("number");
                 node = this.previousToken; // number token
+                /*
+                if (node.orig && node.orig !== node.value) {
+                    throw this.composeError(Error(), "Expected integer number", node.value, node.pos);
+                }
+                */ //TODO
                 node.type = "label"; // number => label
             }
             this.line = node.value; // set line number for error messages
@@ -2556,9 +2566,10 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
         // Operator: With left binding power (lbp) and operational function.
         // Manipulates tokens to its left (e.g: +)? => left denotative function led(), otherwise null denotative function nud()), (e.g. unary -)
         // identifiers, numbers: also nud.
-        BasicParser.prototype.parse = function (tokens, allowDirect) {
+        BasicParser.prototype.parse = function (tokens) {
             this.tokens = tokens;
-            this.allowDirect = allowDirect || false;
+            //this.allowDirect = allowDirect || false;
+            //Utils.console.debug("TTT: parse: allowDirect=", allowDirect);
             // line
             this.line = "0"; // for error messages
             this.index = 0;
@@ -2823,22 +2834,27 @@ define("BasicFormatter", ["require", "exports", "Utils"], function (require, exp
             return Utils_4.Utils.composeError("BasicFormatter", error, message, value, pos, undefined, this.line);
         };
         // renumber
+        BasicFormatter.fnIsDirect = function (label) {
+            return label === "";
+        };
         BasicFormatter.prototype.fnCreateLineNumbersMap = function (nodes) {
             var lines = {}; // line numbers
             var lastLine = -1;
             for (var i = 0; i < nodes.length; i += 1) {
                 var node = nodes[i];
                 if (node.type === "label") {
-                    var lineString = node.value, line = Number(lineString);
+                    var lineString = node.value, isDirect = BasicFormatter.fnIsDirect(lineString), line = Number(lineString);
                     this.line = lineString;
                     if (lineString in lines) {
                         throw this.composeError(Error(), "Duplicate line number", lineString, node.pos);
                     }
-                    if (line <= lastLine) {
-                        throw this.composeError(Error(), "Line number not increasing", lineString, node.pos);
-                    }
-                    if (line < 1 || line > 65535) {
-                        throw this.composeError(Error(), "Line number overflow", lineString, node.pos);
+                    if (!isDirect) {
+                        if (line <= lastLine) {
+                            throw this.composeError(Error(), "Line number not increasing", lineString, node.pos);
+                        }
+                        if (line < 1 || line > 65535) {
+                            throw this.composeError(Error(), "Line number overflow", lineString, node.pos);
+                        }
                     }
                     lines[lineString] = {
                         value: lineString,
@@ -2892,11 +2908,20 @@ define("BasicFormatter", ["require", "exports", "Utils"], function (require, exp
                 }
             }
         };
+        /*
+        private static fnSortbyPosition(a: LineEntry, b: LineEntry) {
+            return a.pos - b.pos;
+        }
+        */
         BasicFormatter.prototype.fnRenumberLines = function (lines, refs, newLine, oldLine, step, keep) {
             var changes = {}, keys = Object.keys(lines);
+            function fnSortbyPosition(a, b) {
+                return lines[a].pos - lines[b].pos;
+            }
+            keys.sort(fnSortbyPosition);
             for (var i = 0; i < keys.length; i += 1) {
-                var lineEntry = lines[keys[i]], line = Number(lineEntry.value);
-                if (line >= oldLine && line < keep) {
+                var lineEntry = lines[keys[i]], isDirect = BasicFormatter.fnIsDirect(lineEntry.value), line = Number(lineEntry.value);
+                if (isDirect || (line >= oldLine && line < keep)) {
                     if (newLine > 65535) {
                         throw this.composeError(Error(), "Line number overflow", lineEntry.value, lineEntry.pos);
                     }
@@ -3610,7 +3635,7 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             this.line = Number(node.value); // set line before parsing args
             var nodeArgs = this.fnParseArgs(node.args);
             var value = CodeGeneratorBasic.combineArgsWithColon(nodeArgs);
-            if (node.value !== "direct") {
+            if (node.value !== "") { // direct
                 value = node.value + CodeGeneratorBasic.fnSpace1(value);
             }
             return CodeGeneratorBasic.fnWs(node) + value;
@@ -3944,13 +3969,13 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             }
             return output;
         };
-        CodeGeneratorBasic.prototype.generate = function (input, allowDirect) {
+        CodeGeneratorBasic.prototype.generate = function (input, _allowDirect) {
             var out = {
                 text: ""
             };
             this.line = 0;
             try {
-                var tokens = this.lexer.lex(input), parseTree = this.parser.parse(tokens, allowDirect), output = this.evaluate(parseTree);
+                var tokens = this.lexer.lex(input), parseTree = this.parser.parse(tokens), output = this.evaluate(parseTree);
                 out.text = output;
             }
             catch (e) {
@@ -4173,7 +4198,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
     exports.CodeGeneratorJs = void 0;
     var CodeGeneratorJs = /** @class */ (function () {
         function CodeGeneratorJs(options) {
-            this.line = 0; // current line (label)
+            this.line = "0"; // current line (label)
             this.stack = {
                 forLabel: [],
                 forVarName: [],
@@ -4186,7 +4211,9 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             this.whileCount = 0; // stack needed
             this.referencedLabelsCount = {};
             this.dataList = []; // collected data from data lines
-            this.mergeFound = false; // if we find chain or chain merge, the program is not complete and we cannot check for existing line numbers during compile time (or do a renumber)
+            this.countMap = {};
+            //private mergeFound = false; // if we find chain or chain merge, the program is not complete and we cannot check for existing line numbers during compile time (or do a renumber)
+            //private tronFound = false; // trace on flag: emit trace instructions for every line
             // for evaluate:
             this.variables = {}; // will be set later
             /* eslint-disable no-invalid-this */
@@ -4292,12 +4319,14 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 spc: this.spc,
                 stop: this.stopOrEnd,
                 tab: this.tab,
+                tron: this.tron,
                 wend: this.wend,
                 "while": this.while
             };
             this.lexer = options.lexer;
             this.parser = options.parser;
-            this.tron = options.tron;
+            //TTT this.tronFound = options.tron;
+            this.trace = Boolean(options.trace);
             this.rsx = options.rsx;
             this.quiet = options.quiet || false;
             this.noCodeFrame = options.noCodeFrame || false;
@@ -4308,11 +4337,13 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             stack.forLabel.length = 0;
             stack.forVarName.length = 0;
             stack.whileLabel.length = 0;
-            this.line = 0; // current line (label)
+            this.line = "0"; // current line (label)
             this.resetCountsPerLine();
             this.dataList.length = 0;
             this.referencedLabelsCount = {}; // labels or line numbers
-            this.mergeFound = false; // if we find chain or chain merge, the program is not complete and we cannot check for existing line numbers during compile time (or do a renumber)
+            //this.mergeFound = false; // if we find chain or chain merge, the program is not complete and we cannot check for existing line numbers during compile time (or do a renumber)
+            //this.tronFound = false;
+            this.countMap = {};
         };
         CodeGeneratorJs.prototype.resetCountsPerLine = function () {
             this.gosubCount = 0;
@@ -4559,7 +4590,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 if (Utils_7.Utils.debug > 1) {
                     Utils_7.Utils.console.debug("fnAddReferenceLabel: line does not (yet) exist:", label);
                 }
-                if (!this.mergeFound) {
+                if (!this.countMap.merge && !this.countMap.chainMerge) {
                     throw this.composeError(Error(), "Line does not exist", label, node.pos);
                 }
             }
@@ -4718,15 +4749,13 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
         };
         CodeGeneratorJs.prototype.label = function (node) {
             var label = node.value;
-            this.line = Number(label); // set line before parsing args
+            this.line = label; // set line before parsing args
             this.resetCountsPerLine(); // we want to have "stable" counts, even if other lines change, e.g. direct
-            var value = "", direct = false;
-            if (isNaN(Number(label))) {
-                if (label === "direct") { // special handling
-                    direct = true;
-                    value = "o.goto(\"directEnd\"); break;\n";
-                }
-                label = '"' + label + '"'; // for "direct"
+            var isDirect = label === "";
+            var value = "";
+            if (isDirect) { // special handling for direct
+                value = "o.goto(\"directEnd\"); break;\n";
+                label = '"direct"';
             }
             if (!this.noCodeFrame) {
                 value += "case " + label + ":";
@@ -4734,12 +4763,18 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             else {
                 value = "";
             }
-            var nodeArgs = this.fnParseArgs(node.args);
+            var nodeArgs = this.fnParseArgs(node.args), tronFound = this.trace || this.countMap.tron;
+            /*
             if (this.tron) {
                 value += " o.vmTrace(\"" + this.line + "\");";
             }
+            */
             for (var i = 0; i < nodeArgs.length; i += 1) {
                 var value2 = nodeArgs[i];
+                if (tronFound) {
+                    var traceLabel = this.line + ((i > 0) ? "t" + i : ""), pos = node.args[i].pos, len = node.args[i].len || node.args[i].value.length || 0;
+                    value += " o.vmTrace(\"" + traceLabel + "\", " + pos + ", " + len + ");";
+                }
                 if (value2 !== "") {
                     if (!(/[}:;\n]$/).test(value2)) { // does not end with } : ; \n
                         value2 += ";";
@@ -4750,7 +4785,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                     value += " " + value2;
                 }
             }
-            if (direct && !this.noCodeFrame) {
+            if (isDirect && !this.noCodeFrame) {
                 value += "\n o.goto(\"end\"); break;\ncase \"directEnd\":"; // put in next line because of possible "rem"
             }
             node.pv = value;
@@ -4765,7 +4800,11 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + ")";
         };
         CodeGeneratorJs.prototype.chainMergeOrMerge = function (node) {
-            this.mergeFound = true;
+            //this.mergeFound = true;
+            node.pv = this.fnCommandWithGoto(node);
+        };
+        CodeGeneratorJs.prototype.tron = function (node) {
+            //this.tronFound = true;
             node.pv = this.fnCommandWithGoto(node);
         };
         CodeGeneratorJs.cont = function (node) {
@@ -5287,37 +5326,64 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 return (labels[line]) ? all : "/* " + all + " */";
             });
         };
-        CodeGeneratorJs.prototype.fnCreateLabelsMap = function (parseTree, labels) {
+        CodeGeneratorJs.prototype.fnCreateLabelsMap = function (parseTree, labels, allowDirect) {
             var lastLine = -1;
             for (var i = 0; i < parseTree.length; i += 1) {
                 var node = parseTree[i];
                 if (node.type === "label") {
-                    var lineString = node.value;
-                    if (lineString in labels) {
-                        throw this.composeError(Error(), "Duplicate line number", lineString, node.pos);
+                    var label = node.value, isDirect = label === "";
+                    if (label in labels) {
+                        throw this.composeError(Error(), "Duplicate line number", label, node.pos);
                     }
-                    var lineNumber = Number(lineString);
-                    if (!isNaN(lineNumber)) { // not for "direct"
+                    var lineNumber = Number(label);
+                    if (!isDirect) {
+                        if ((lineNumber | 0) !== lineNumber) { // eslint-disable-line no-bitwise
+                            throw this.composeError(Error(), "Expected integer line number", label, node.pos);
+                        }
                         if (lineNumber <= lastLine) {
-                            throw this.composeError(Error(), "Line number not increasing", lineString, node.pos);
+                            throw this.composeError(Error(), "Expected increasing line number", label, node.pos);
                         }
                         if (lineNumber < 1 || lineNumber > 65535) {
-                            throw this.composeError(Error(), "Line number overflow", lineString, node.pos);
+                            throw this.composeError(Error(), "Line number overflow", label, node.pos);
                         }
                         lastLine = lineNumber;
                     }
-                    labels[lineString] = 0; // init call count
+                    else if (!allowDirect) {
+                        throw this.composeError(Error(), "Direct command found", label, node.pos);
+                    }
+                    labels[label] = 0; // init call count
+                }
+            }
+        };
+        CodeGeneratorJs.prototype.fnPrecheckTree = function (nodes, countMap) {
+            for (var i = 0; i < nodes.length; i += 1) {
+                var node = nodes[i];
+                countMap[node.type] = (countMap[node.type] || 0) + 1;
+                /*
+                if (node.left) {
+                    this.fnPrecheckTree(node.left, lines, refs);
+                }
+                if (node.right) {
+                    this.fnPrecheckTree(node.right, lines, refs);
+                }
+                */
+                if (node.args) {
+                    this.fnPrecheckTree(node.args, countMap); // recursive
+                }
+                if (node.args2) { // for "ELSE"
+                    this.fnPrecheckTree(node.args2, countMap); // recursive
                 }
             }
         };
         //
         // evaluate
         //
-        CodeGeneratorJs.prototype.evaluate = function (parseTree, variables) {
+        CodeGeneratorJs.prototype.evaluate = function (parseTree, variables, allowDirect) {
             this.variables = variables;
             this.defScopeArgs = undefined;
             // create labels map
-            this.fnCreateLabelsMap(parseTree, this.referencedLabelsCount);
+            this.fnCreateLabelsMap(parseTree, this.referencedLabelsCount, allowDirect);
+            this.fnPrecheckTree(parseTree, this.countMap);
             var output = "";
             for (var i = 0; i < parseTree.length; i += 1) {
                 if (Utils_7.Utils.debug > 2) {
@@ -5339,7 +5405,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 }
             }
             // optimize: comment lines which are not referenced
-            if (!this.mergeFound) {
+            if (!this.countMap.merge && !this.countMap.chainMerge) { //(!this.mergeFound) {
                 output = CodeGeneratorJs.fnCommentUnusedCases(output, this.referencedLabelsCount);
             }
             return output;
@@ -5360,8 +5426,8 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             };
             this.reset();
             try {
-                var tokens = this.lexer.lex(input), parseTree = this.parser.parse(tokens, allowDirect);
-                var output = this.evaluate(parseTree, variables);
+                var tokens = this.lexer.lex(input), parseTree = this.parser.parse(tokens);
+                var output = this.evaluate(parseTree, variables, Boolean(allowDirect));
                 if (!this.noCodeFrame) {
                     output = '"use strict"\n'
                         + "var v=o.vmGetAllVariables();\n"
@@ -5707,7 +5773,7 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
             this.line = Number(node.value); // set line before parsing args
             var line = this.line, nodeArgs = this.fnParseArgs(node.args);
             var value = this.combineArgsWithSeparator(nodeArgs);
-            if (node.value !== "direct") {
+            if (node.value !== "") { // direct
                 value = CodeGeneratorToken.convUInt16ToString(line) + value + CodeGeneratorToken.token2String("_eol");
                 var len = value.length + 2;
                 value = CodeGeneratorToken.convUInt16ToString(len) + value;
@@ -6082,13 +6148,13 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
             }
             return output;
         };
-        CodeGeneratorToken.prototype.generate = function (input, allowDirect) {
+        CodeGeneratorToken.prototype.generate = function (input, _allowDirect) {
             var out = {
                 text: ""
             };
             this.line = 0;
             try {
-                var tokens = this.lexer.lex(input), parseTree = this.parser.parse(tokens, allowDirect), output = this.evaluate(parseTree);
+                var tokens = this.lexer.lex(input), parseTree = this.parser.parse(tokens), output = this.evaluate(parseTree);
                 out.text = output;
             }
             catch (e) {
@@ -11129,7 +11195,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.errorLine = 0; // line of last error (Erl)
             this.degFlag = false; // degree or radians
             this.tronFlag1 = false; // trace flag
-            this.tronLine = 0; // last trace line
+            //private tronLine = 0; // last trace line
+            this.traceInfo = {};
             this.ramSelect = 0;
             this.screenPage = 3; // 16K screen page, 3=0xc000..0xffff
             this.minCharHimem = CpcVm.maxHimem;
@@ -11156,7 +11223,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.keyboard = options.keyboard;
             this.soundClass = options.sound;
             this.variables = options.variables;
-            this.tronFlag = Boolean(options.tron);
+            //this.tronFlag = Boolean(options.tron);
             this.quiet = Boolean(options.quiet);
             this.random = new Random_1.Random();
             this.stopEntry = {
@@ -11247,8 +11314,10 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.errorLine = 0; // line of last error
             this.gosubStack.length = 0;
             this.degFlag = false; // degree or radians
-            this.tronFlag1 = this.tronFlag || false; // trace flag
-            this.tronLine = 0; // last trace line
+            this.tronFlag1 = false; //this.tronFlag || false; // trace flag
+            this.traceInfo.line = ""; // last trace line
+            this.traceInfo.pos = 0;
+            this.traceInfo.len = 0;
             this.mem.length = 0; // clear memory (for PEEK, POKE)
             this.ramSelect = 0; // for banking with 16K banks in the range 0x4000-0x7fff (0=default; 1...=additional)
             this.screenPage = 3; // 16K screen page, 3=0xc000..0xffff
@@ -11596,7 +11665,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.vmAssertString(nameOrRange, err);
             var first, last;
             if (nameOrRange.indexOf("-") >= 0) {
-                var range = nameOrRange.split("-", 2);
+                var range = Utils_19.Utils.split2(nameOrRange, "-");
                 first = range[0].trim().toLowerCase().charCodeAt(0);
                 last = range[1].trim().toLowerCase().charCodeAt(0);
             }
@@ -11708,10 +11777,12 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.vmGetSoundData = function () {
             return this.soundData;
         };
-        CpcVm.prototype.vmTrace = function (line) {
+        CpcVm.prototype.vmTrace = function (line, pos, len) {
             var stream = 0;
-            this.tronLine = line;
-            if (this.tronFlag1) {
+            this.traceInfo.line = String(line);
+            this.traceInfo.pos = pos;
+            this.traceInfo.len = len;
+            if (this.tronFlag1 && !isNaN(Number(line))) {
                 this.print(stream, "[" + line + "]");
             }
         };
@@ -12426,8 +12497,9 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.errorCode = err;
             this.errorLine = this.line;
             var line = this.errorLine;
-            if (this.tronLine) {
-                line += " (trace: " + this.tronLine + ")";
+            if (this.traceInfo.line) {
+                //line += " (trace: " + this.traceInfo.line + "," + this.traceInfo.pos + "," + this.traceInfo.len + ")";
+                line += " (trace: " + this.traceInfo.line + ")";
             }
             var errorWithInfo = errorString + " in " + line + (errInfo ? (": " + errInfo) : "");
             var hidden = false; // hide errors wich are catched
@@ -12443,7 +12515,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             if (!this.quiet) {
                 Utils_19.Utils.console.log("BASIC error(" + err + "):", errorWithInfo + (hidden ? " (hidden: " + hidden + ")" : ""));
             }
-            return Utils_19.Utils.composeError("CpcVm", error, errorString, errInfo, undefined, undefined, line, hidden);
+            return Utils_19.Utils.composeError("CpcVm", error, errorString, errInfo, this.traceInfo.pos || undefined, this.traceInfo.len || undefined, line, hidden);
         };
         CpcVm.prototype.error = function (err, errInfo) {
             err = this.vmInRangeRound(err, 0, 255, "ERROR"); // could trigger another error
@@ -14739,8 +14811,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 canvas: this.canvas,
                 keyboard: this.keyboard,
                 sound: this.sound,
-                variables: this.variables,
-                tron: model.getProperty("tron")
+                variables: this.variables
+                //tron: model.getProperty<boolean>("tron")
             });
             this.vm.vmReset();
             this.rsx = new CpcVmRsx_1.CpcVmRsx(this.vm);
@@ -14761,7 +14833,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.codeGeneratorJs = new CodeGeneratorJs_1.CodeGeneratorJs({
                 lexer: new BasicLexer_1.BasicLexer(),
                 parser: new BasicParser_3.BasicParser(),
-                tron: this.model.getProperty("tron"),
+                trace: model.getProperty("trace"),
                 rsx: this.rsx // just to check the names
             });
             this.initDatabases();
@@ -15785,8 +15857,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             if (Utils_21.Utils.isCustomError(error)) {
                 shortError = error.shortMessage || error.message;
                 if (!noSelection) {
-                    var endPos = (error.pos || 0) + ((error.value !== undefined) ? String(error.value).length : 0);
-                    this.view.setAreaSelection("inputText", error.pos || 0, endPos);
+                    var startPos = error.pos || 0, len = error.len || ((error.value !== undefined) ? String(error.value).length : 0), endPos = startPos + len;
+                    this.view.setAreaSelection("inputText", error.pos, endPos);
                 }
             }
             else {
@@ -16021,7 +16093,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     if (e.name === "CpcVm") {
                         if (!e.hidden) {
                             Utils_21.Utils.console.warn(e);
-                            this.outputError(e, true);
+                            //this.outputError(e, true);
+                            this.outputError(e, !e.pos);
                         }
                         else {
                             Utils_21.Utils.console.log(e.message);
@@ -16064,7 +16137,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 var codeGeneratorJs = this.codeGeneratorJs;
                 var output = void 0, outputString = void 0;
                 if (inputText && (/^\d+($| )/).test(inputText)) { // do we have a program starting with a line number?
-                    output = codeGeneratorJs.generate(input + "\n" + inputText, this.variables, true); // compile both; allow direct command
+                    //output = codeGeneratorJs.generate(input + "\n" + inputText, this.variables, true); // compile both; allow direct command
+                    output = codeGeneratorJs.generate(inputText + "\n" + input, this.variables, true); // compile both; allow direct command
                     if (output.error) {
                         var error = output.error;
                         if (error.pos >= input.length + 1) { // error not in direct?
@@ -16731,7 +16805,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
         // can be used for nodeJS
         cpcBasic.fnParseArgs = function (args, config) {
             for (var i = 0; i < args.length; i += 1) {
-                var nameValue = args[i], nameValueList = nameValue.split("=", 2), name_15 = nameValueList[0];
+                var nameValue = args[i], nameValueList = Utils_22.Utils.split2(nameValue, "="), name_15 = nameValueList[0];
                 if (config.hasOwnProperty(name_15)) {
                     var value = nameValueList[1]; // string|number|boolean
                     if (value !== undefined && config.hasOwnProperty(name_15)) {
@@ -16879,7 +16953,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             showConsole: false,
             showConvert: false,
             sound: true,
-            tron: false // trace on
+            trace: false // trace code
         };
         return cpcBasic;
     }());

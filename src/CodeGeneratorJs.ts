@@ -14,7 +14,7 @@ interface CodeGeneratorJsOptions {
 	lexer: BasicLexer
 	parser: BasicParser
 	rsx: ICpcVmRsx
-	tron: boolean
+	trace?: boolean
 	quiet?: boolean
 	noCodeFrame?: boolean
 }
@@ -38,12 +38,12 @@ type LabelsType = Record<string, number>;
 export class CodeGeneratorJs {
 	private readonly lexer: BasicLexer;
 	private readonly parser: BasicParser;
-	private tron: boolean; // trace on flag: emit trace instauctions for every line
 	private readonly rsx: ICpcVmRsx;
+	private trace: boolean;
 	private quiet: boolean; // quiet mode: suppress most warnings
 	private readonly noCodeFrame: boolean // suppress generation of a code frame
 
-	private line = 0; // current line (label)
+	private line = "0"; // current line (label)
 	private readonly reJsKeywords: RegExp;
 
 	private readonly stack: StackType = {
@@ -62,7 +62,9 @@ export class CodeGeneratorJs {
 
 	private readonly dataList: string[] = []; // collected data from data lines
 
-	private mergeFound = false; // if we find chain or chain merge, the program is not complete and we cannot check for existing line numbers during compile time (or do a renumber)
+	private countMap: Record<string, number> = {};
+	//private mergeFound = false; // if we find chain or chain merge, the program is not complete and we cannot check for existing line numbers during compile time (or do a renumber)
+	//private tronFound = false; // trace on flag: emit trace instructions for every line
 
 	// for evaluate:
 	private variables: Variables = {} as Variables; // will be set later
@@ -71,7 +73,8 @@ export class CodeGeneratorJs {
 	constructor(options: CodeGeneratorJsOptions) {
 		this.lexer = options.lexer;
 		this.parser = options.parser;
-		this.tron = options.tron;
+		//TTT this.tronFound = options.tron;
+		this.trace = Boolean(options.trace);
 		this.rsx = options.rsx;
 		this.quiet = options.quiet || false;
 		this.noCodeFrame = options.noCodeFrame || false;
@@ -149,14 +152,16 @@ export class CodeGeneratorJs {
 		stack.forVarName.length = 0;
 		stack.whileLabel.length = 0;
 
-		this.line = 0; // current line (label)
+		this.line = "0"; // current line (label)
 
 		this.resetCountsPerLine();
 
 		this.dataList.length = 0;
 
 		this.referencedLabelsCount = {}; // labels or line numbers
-		this.mergeFound = false; // if we find chain or chain merge, the program is not complete and we cannot check for existing line numbers during compile time (or do a renumber)
+		//this.mergeFound = false; // if we find chain or chain merge, the program is not complete and we cannot check for existing line numbers during compile time (or do a renumber)
+		//this.tronFound = false;
+		this.countMap = {};
 	}
 
 	private resetCountsPerLine() {
@@ -471,7 +476,7 @@ export class CodeGeneratorJs {
 			if (Utils.debug > 1) {
 				Utils.console.debug("fnAddReferenceLabel: line does not (yet) exist:", label);
 			}
-			if (!this.mergeFound) {
+			if (!this.countMap.merge && !this.countMap.chainMerge) {
 				throw this.composeError(Error(), "Line does not exist", label, node.pos);
 			}
 		}
@@ -667,18 +672,15 @@ export class CodeGeneratorJs {
 	private label(node: CodeNode) {
 		let label = node.value;
 
-		this.line = Number(label); // set line before parsing args
+		this.line = label; // set line before parsing args
 		this.resetCountsPerLine(); // we want to have "stable" counts, even if other lines change, e.g. direct
 
-		let value = "",
-			direct = false;
+		const isDirect = label === "";
+		let value = "";
 
-		if (isNaN(Number(label))) {
-			if (label === "direct") { // special handling
-				direct = true;
-				value = "o.goto(\"directEnd\"); break;\n";
-			}
-			label = '"' + label + '"'; // for "direct"
+		if (isDirect) { // special handling for direct
+			value = "o.goto(\"directEnd\"); break;\n";
+			label = '"direct"';
 		}
 
 		if (!this.noCodeFrame) {
@@ -687,13 +689,25 @@ export class CodeGeneratorJs {
 			value = "";
 		}
 
-		const nodeArgs = this.fnParseArgs(node.args);
+		const nodeArgs = this.fnParseArgs(node.args),
+			tronFound = this.trace || this.countMap.tron;
 
+		/*
 		if (this.tron) {
 			value += " o.vmTrace(\"" + this.line + "\");";
 		}
+		*/
+
 		for (let i = 0; i < nodeArgs.length; i += 1) {
 			let value2 = nodeArgs[i];
+
+			if (tronFound) {
+				const traceLabel = this.line + ((i > 0) ? "t" + i : ""),
+					pos = node.args[i].pos,
+					len = node.args[i].len || node.args[i].value.length || 0;
+
+				value += " o.vmTrace(\"" + traceLabel + "\", " + pos + ", " + len + ");";
+			}
 
 			if (value2 !== "") {
 				if (!(/[}:;\n]$/).test(value2)) { // does not end with } : ; \n
@@ -705,7 +719,7 @@ export class CodeGeneratorJs {
 			}
 		}
 
-		if (direct && !this.noCodeFrame) {
+		if (isDirect && !this.noCodeFrame) {
 			value += "\n o.goto(\"end\"); break;\ncase \"directEnd\":"; // put in next line because of possible "rem"
 		}
 
@@ -723,8 +737,12 @@ export class CodeGeneratorJs {
 		this.fnAddReferenceLabel(nodeArgs[2], node.args[2]); // argument 2 = line number
 		node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + ")";
 	}
-	private chainMergeOrMerge(node: CodeNode) {
-		this.mergeFound = true;
+	private chainMergeOrMerge(node: CodeNode) { //TODO
+		//this.mergeFound = true;
+		node.pv = this.fnCommandWithGoto(node);
+	}
+	private tron(node: CodeNode) { //TODO
+		//this.tronFound = true;
 		node.pv = this.fnCommandWithGoto(node);
 	}
 	private static cont(node: CodeNode) {
@@ -1396,6 +1414,7 @@ export class CodeGeneratorJs {
 		spc: this.spc,
 		stop: this.stopOrEnd,
 		tab: this.tab,
+		tron: this.tron,
 		wend: this.wend,
 		"while": this.while
 	}
@@ -1458,30 +1477,59 @@ export class CodeGeneratorJs {
 		});
 	}
 
-	private fnCreateLabelsMap(parseTree: ParserNode[], labels: LabelsType) {
+	private fnCreateLabelsMap(parseTree: ParserNode[], labels: LabelsType, allowDirect: boolean) {
 		let lastLine = -1;
 
 		for (let i = 0; i < parseTree.length; i += 1) {
 			const node = parseTree[i];
 
 			if (node.type === "label") {
-				const lineString = node.value;
+				const label = node.value,
+					isDirect = label === "";
 
-				if (lineString in labels) {
-					throw this.composeError(Error(), "Duplicate line number", lineString, node.pos);
+				if (label in labels) {
+					throw this.composeError(Error(), "Duplicate line number", label, node.pos);
 				}
-				const lineNumber = Number(lineString);
+				const lineNumber = Number(label);
 
-				if (!isNaN(lineNumber)) { // not for "direct"
+				if (!isDirect) {
+					if ((lineNumber | 0) !== lineNumber) { // eslint-disable-line no-bitwise
+						throw this.composeError(Error(), "Expected integer line number", label, node.pos);
+					}
 					if (lineNumber <= lastLine) {
-						throw this.composeError(Error(), "Line number not increasing", lineString, node.pos);
+						throw this.composeError(Error(), "Expected increasing line number", label, node.pos);
 					}
 					if (lineNumber < 1 || lineNumber > 65535) {
-						throw this.composeError(Error(), "Line number overflow", lineString, node.pos);
+						throw this.composeError(Error(), "Line number overflow", label, node.pos);
 					}
 					lastLine = lineNumber;
+				} else if (!allowDirect) {
+					throw this.composeError(Error(), "Direct command found", label, node.pos);
 				}
-				labels[lineString] = 0; // init call count
+				labels[label] = 0; // init call count
+			}
+		}
+	}
+
+	private fnPrecheckTree(nodes: ParserNode[], countMap: Record<string, number>) {
+		for (let i = 0; i < nodes.length; i += 1) {
+			const node = nodes[i];
+
+			countMap[node.type] = (countMap[node.type] || 0) + 1;
+
+			/*
+			if (node.left) {
+				this.fnPrecheckTree(node.left, lines, refs);
+			}
+			if (node.right) {
+				this.fnPrecheckTree(node.right, lines, refs);
+			}
+			*/
+			if (node.args) {
+				this.fnPrecheckTree(node.args, countMap); // recursive
+			}
+			if (node.args2) { // for "ELSE"
+				this.fnPrecheckTree(node.args2, countMap); // recursive
 			}
 		}
 	}
@@ -1489,13 +1537,14 @@ export class CodeGeneratorJs {
 	//
 	// evaluate
 	//
-	private evaluate(parseTree: ParserNode[], variables: Variables) {
+	private evaluate(parseTree: ParserNode[], variables: Variables, allowDirect: boolean) {
 		this.variables = variables;
 
 		this.defScopeArgs = undefined;
 
 		// create labels map
-		this.fnCreateLabelsMap(parseTree, this.referencedLabelsCount);
+		this.fnCreateLabelsMap(parseTree, this.referencedLabelsCount, allowDirect);
+		this.fnPrecheckTree(parseTree, this.countMap);
 
 		let output = "";
 
@@ -1519,7 +1568,7 @@ export class CodeGeneratorJs {
 		}
 
 		// optimize: comment lines which are not referenced
-		if (!this.mergeFound) {
+		if (!this.countMap.merge && !this.countMap.chainMerge) { //(!this.mergeFound) {
 			output = CodeGeneratorJs.fnCommentUnusedCases(output, this.referencedLabelsCount);
 		}
 		return output;
@@ -1546,8 +1595,8 @@ export class CodeGeneratorJs {
 		this.reset();
 		try {
 			const tokens = this.lexer.lex(input),
-				parseTree = this.parser.parse(tokens, allowDirect);
-			let	output = this.evaluate(parseTree, variables);
+				parseTree = this.parser.parse(tokens);
+			let	output = this.evaluate(parseTree, variables, Boolean(allowDirect));
 
 			if (!this.noCodeFrame) {
 				output = '"use strict"\n'

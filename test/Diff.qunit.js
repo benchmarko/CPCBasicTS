@@ -14,7 +14,7 @@ define(["require", "exports", "../Utils", "../Diff", "./TestHelper"], function (
         function runTestsFor(assert, _sCategory, tests, results) {
             for (var key in tests) {
                 if (tests.hasOwnProperty(key)) {
-                    var parts = key.split("#", 2), text1 = parts[0], text2 = parts[1], expected = tests[key];
+                    var parts = Utils_1.Utils.split2(key, "#"), text1 = parts[0], text2 = parts[1], expected = tests[key];
                     var result = void 0;
                     try {
                         result = Diff_1.Diff.testDiff(text1, text2);

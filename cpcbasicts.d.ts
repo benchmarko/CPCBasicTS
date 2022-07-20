@@ -30,6 +30,7 @@ declare module "Utils" {
         static atob: (arg0: string) => string;
         static btoa: (arg0: string) => string;
         static isCustomError(e: unknown): e is CustomError;
+        static split2(str: string, char: string): string[];
         static composeError(name: string, errorObject: Error, message: string, value: string, pos?: number, len?: number, line?: string | number, hidden?: boolean): CustomError;
     }
 }
@@ -168,7 +169,6 @@ declare module "BasicParser" {
         private keepDataComma;
         private readonly symbols;
         private tokens;
-        private allowDirect;
         private index;
         private previousToken;
         private token;
@@ -249,7 +249,7 @@ declare module "BasicParser" {
         private fnWindow;
         private static fnNode;
         private fnGenerateSymbols;
-        parse(tokens: LexerToken[], allowDirect?: boolean): ParserNode[];
+        parse(tokens: LexerToken[]): ParserNode[];
     }
 }
 declare module "BasicFormatter" {
@@ -266,6 +266,7 @@ declare module "BasicFormatter" {
         private line;
         constructor(options: BasicFormatterOptions);
         private composeError;
+        private static fnIsDirect;
         private fnCreateLineNumbersMap;
         private fnAddSingleReference;
         private fnAddReferences;
@@ -373,7 +374,7 @@ declare module "CodeGeneratorBasic" {
         private fnParseOther;
         private parseNode;
         private evaluate;
-        generate(input: string, allowDirect?: boolean): IOutput;
+        generate(input: string, _allowDirect?: boolean): IOutput;
     }
 }
 declare module "Variables" {
@@ -410,15 +411,15 @@ declare module "CodeGeneratorJs" {
         lexer: BasicLexer;
         parser: BasicParser;
         rsx: ICpcVmRsx;
-        tron: boolean;
+        trace?: boolean;
         quiet?: boolean;
         noCodeFrame?: boolean;
     }
     export class CodeGeneratorJs {
         private readonly lexer;
         private readonly parser;
-        private tron;
         private readonly rsx;
+        private trace;
         private quiet;
         private readonly noCodeFrame;
         private line;
@@ -431,7 +432,7 @@ declare module "CodeGeneratorJs" {
         private whileCount;
         private referencedLabelsCount;
         private readonly dataList;
-        private mergeFound;
+        private countMap;
         private variables;
         private defScopeArgs?;
         constructor(options: CodeGeneratorJsOptions);
@@ -495,6 +496,7 @@ declare module "CodeGeneratorJs" {
         private label;
         private afterEveryGosub;
         private chainMergeOrMerge;
+        private tron;
         private static cont;
         private data;
         private def;
@@ -538,6 +540,7 @@ declare module "CodeGeneratorJs" {
         private parseNode;
         private static fnCommentUnusedCases;
         private fnCreateLabelsMap;
+        private fnPrecheckTree;
         private evaluate;
         private static combineData;
         debugGetLabelsCount(): number;
@@ -617,7 +620,7 @@ declare module "CodeGeneratorToken" {
         private fnParseOther;
         private parseNode;
         private evaluate;
-        generate(input: string, allowDirect?: boolean): IOutput;
+        generate(input: string, _allowDirect?: boolean): IOutput;
     }
 }
 declare module "Diff" {
@@ -1218,7 +1221,6 @@ declare module "CpcVm" {
         keyboard: Keyboard;
         sound: Sound;
         variables: Variables;
-        tron?: boolean;
         quiet?: boolean;
     }
     export interface FileMeta {
@@ -1324,7 +1326,6 @@ declare module "CpcVm" {
         private readonly keyboard;
         private readonly soundClass;
         readonly variables: Variables;
-        private tronFlag;
         private readonly random;
         private readonly stopEntry;
         private inputValues;
@@ -1359,7 +1360,7 @@ declare module "CpcVm" {
         private errorLine;
         private degFlag;
         private tronFlag1;
-        private tronLine;
+        private traceInfo;
         private ramSelect;
         private screenPage;
         private minCharHimem;
@@ -1427,7 +1428,7 @@ declare module "CpcVm" {
         vmGetOutFileObject(): OutFile;
         vmAdaptFilename(name: string, err: string): string;
         vmGetSoundData(): SoundData[];
-        vmTrace(line: number): void;
+        vmTrace(line: number | string, pos: number, len: number): void;
         private vmDrawMovePlot;
         private vmAfterEveryGosub;
         private vmCopyFromScreen;

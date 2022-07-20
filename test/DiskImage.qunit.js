@@ -71,7 +71,7 @@ define(["require", "exports", "../Utils", "../BasicTokenizer", "../DiskImage", "
         function runTestsFor(assert, _sCategory, tests, results) {
             for (var key in tests) {
                 if (tests.hasOwnProperty(key)) {
-                    var parts = key.split(",", 2), meta = parts[0], compressed = Utils_1.Utils.atob(parts[1]), // decode base64
+                    var parts = Utils_1.Utils.split2(key, ","), meta = parts[0], compressed = Utils_1.Utils.atob(parts[1]), // decode base64
                     zip = new ZipFile_1.ZipFile(new Uint8Array(fnString2ArrayBuf(compressed)), "name"), firstFileInZip = Object.keys(zip.getZipDirectory())[0], uncompressed = zip.readData(firstFileInZip), disk = new DiskImage_1.DiskImage({
                         data: uncompressed,
                         diskName: "name",

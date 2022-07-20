@@ -249,7 +249,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             this.line = Number(node.value); // set line before parsing args
             var line = this.line, nodeArgs = this.fnParseArgs(node.args);
             var value = this.combineArgsWithSeparator(nodeArgs);
-            if (node.value !== "direct") {
+            if (node.value !== "") { // direct
                 value = CodeGeneratorToken.convUInt16ToString(line) + value + CodeGeneratorToken.token2String("_eol");
                 var len = value.length + 2;
                 value = CodeGeneratorToken.convUInt16ToString(len) + value;
@@ -624,13 +624,13 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             }
             return output;
         };
-        CodeGeneratorToken.prototype.generate = function (input, allowDirect) {
+        CodeGeneratorToken.prototype.generate = function (input, _allowDirect) {
             var out = {
                 text: ""
             };
             this.line = 0;
             try {
-                var tokens = this.lexer.lex(input), parseTree = this.parser.parse(tokens, allowDirect), output = this.evaluate(parseTree);
+                var tokens = this.lexer.lex(input), parseTree = this.parser.parse(tokens), output = this.evaluate(parseTree);
                 out.text = output;
             }
             catch (e) {

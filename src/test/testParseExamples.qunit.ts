@@ -165,7 +165,7 @@ class cpcBasic {
 	static codeGeneratorJs = new CodeGeneratorJs({
 		lexer: cpcBasic.lexer,
 		parser: cpcBasic.parser,
-		tron: false,
+		trace: false,
 		rsx: cpcBasic.rsx
 	})
 

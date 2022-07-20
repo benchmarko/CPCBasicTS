@@ -38,7 +38,7 @@ define(["require", "exports", "../Utils", "../ZipFile", "./TestHelper"], functio
         function runTestsFor(assert, _sCategory, tests, results) {
             for (var key in tests) {
                 if (tests.hasOwnProperty(key)) {
-                    var parts = key.split(",", 2), meta = parts[0], data = Utils_1.Utils.atob(parts[1]), // decode base64
+                    var parts = Utils_1.Utils.split2(key, ","), meta = parts[0], data = Utils_1.Utils.atob(parts[1]), // decode base64
                     zip = new ZipFile_1.ZipFile(new Uint8Array(fnString2ArrayBuf(data)), "name"), expected = tests[key];
                     var result = void 0;
                     try {

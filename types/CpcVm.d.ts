@@ -9,7 +9,6 @@ export interface CpcVmOptions {
     keyboard: Keyboard;
     sound: Sound;
     variables: Variables;
-    tron?: boolean;
     quiet?: boolean;
 }
 export interface FileMeta {
@@ -115,7 +114,6 @@ export declare class CpcVm {
     private readonly keyboard;
     private readonly soundClass;
     readonly variables: Variables;
-    private tronFlag;
     private readonly random;
     private readonly stopEntry;
     private inputValues;
@@ -150,7 +148,7 @@ export declare class CpcVm {
     private errorLine;
     private degFlag;
     private tronFlag1;
-    private tronLine;
+    private traceInfo;
     private ramSelect;
     private screenPage;
     private minCharHimem;
@@ -218,7 +216,7 @@ export declare class CpcVm {
     vmGetOutFileObject(): OutFile;
     vmAdaptFilename(name: string, err: string): string;
     vmGetSoundData(): SoundData[];
-    vmTrace(line: number): void;
+    vmTrace(line: number | string, pos: number, len: number): void;
     private vmDrawMovePlot;
     private vmAfterEveryGosub;
     private vmCopyFromScreen;

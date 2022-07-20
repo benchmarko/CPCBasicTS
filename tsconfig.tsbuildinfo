@@ -197,8 +197,8 @@
         "affectsGlobalScope": true
       },
       "../src/Utils.ts": {
-        "version": "134602a7dad6da606a613d94c5285466ca1d0c8f444575c01bb67a58137cd760",
-        "signature": "a4a70e2652569538565b670a91fd3aa09e965c4f2041dcab02dfee09ea992839",
+        "version": "faffede6c7703a9aa464f36a77f9d1922cb0dcf16344feca19c44172500ef25d",
+        "signature": "fdcb3ef998b8ae691866b4f2da043debabd2d8b603e1865aabdbba82ca047f52",
         "affectsGlobalScope": false
       },
       "../src/BasicLexer.ts": {
@@ -207,8 +207,8 @@
         "affectsGlobalScope": false
       },
       "../src/BasicParser.ts": {
-        "version": "d8ac641d99f80d6d4e64d2e7a342fa6a12c8636931f9ae44846f62d3b7221487",
-        "signature": "044531e8bd3b5ea64436a24f80576df7189d45071feb9189c2d0df28696dc037",
+        "version": "fd6a07a38189fc1d09fc8e1886734e511fb9422e3f7f741ec3b2878593f0e149",
+        "signature": "cb78bcc63b89835733a771764cce36473c4b8a260cfc85fadea396cbcb6e8a98",
         "affectsGlobalScope": false
       },
       "../src/Interfaces.ts": {
@@ -217,8 +217,8 @@
         "affectsGlobalScope": false
       },
       "../src/BasicFormatter.ts": {
-        "version": "14ffd4de2c8b7a760817d5aa0e6842876cd81b73200f4e35713e58f6d8c0617f",
-        "signature": "2888598a866bb8b30284ded52441f53073f164bffdc8c1248822fdad240e774f",
+        "version": "9aa453013cea0c2b16561d6f04ddfb6d6ea1119a9bbf95f9038a5fc58cdcaea1",
+        "signature": "118d33a80a7b979e3ae1f9764e6dcce17bd677c4321cee1fe830968984394b6c",
         "affectsGlobalScope": false
       },
       "../src/BasicTokenizer.ts": {
@@ -237,8 +237,8 @@
         "affectsGlobalScope": false
       },
       "../src/CodeGeneratorBasic.ts": {
-        "version": "499e0de128e980f16bedf2798bbcbb10a22deaddab674ce6c36e305d2e575346",
-        "signature": "5f52be924a25c41c29794376673441e93475645e43e6830e79d8c1a2854d2029",
+        "version": "c471e5995582d81540c6e988cef4107015f009827dde3c4bb7a73c05ffae936c",
+        "signature": "86e083f5646383750e3938ddc2651096275423a998b82be141543f2eadd6c476",
         "affectsGlobalScope": false
       },
       "../src/Variables.ts": {
@@ -247,13 +247,13 @@
         "affectsGlobalScope": false
       },
       "../src/CodeGeneratorJs.ts": {
-        "version": "cadb1efe9f40224f4f94717e9ac41e7c2e675ad73a137f1c39ddc252937276c3",
-        "signature": "b83f2efb4eb7b1b957383554088225bb13f922698105b9b3fd87983d16293120",
+        "version": "f85564ebc51249ed1671ca9e06013957f32d9706501a94dba355d31f2e95ade8",
+        "signature": "c2f00b4bbf298079029cb1a9828ff3c1e949387376db50fa76adfd811bcfeb7c",
         "affectsGlobalScope": false
       },
       "../src/CodeGeneratorToken.ts": {
-        "version": "5421468dcf4265607d6ac9c9ba93780bebbd66971158ac1c6d075587e0bfe959",
-        "signature": "5dbdabdccfd99827b3287596ef1930529e3e813b34c0c78e303ade4721057552",
+        "version": "7018e6f02ab669baa1b712d0c4eb432288deb2cedba032d3e0faa2dd3e166705",
+        "signature": "2e8aa584c9364791403b42fd84645920745ff1018e41b0798af79fbfef810536",
         "affectsGlobalScope": false
       },
       "../src/Model.ts": {
@@ -287,8 +287,8 @@
         "affectsGlobalScope": false
       },
       "../src/CpcVm.ts": {
-        "version": "b3852cd0ddac1d4e104fb8d850f703cc3e8f9c59baa364ddb2f20c1b627a46b1",
-        "signature": "dce25c8e40b9d1b214b70a7ff8bd21664539db19b374e2e014d61ad5a71ffe8b",
+        "version": "ca08834644ef7e35ba7f2079bf1d19c6f12a560f5bddd2dd8e6103900abb4054",
+        "signature": "f430b4d515c09bb50bf399e8d8ab1a8490b69590d463220275dadad28f8dae22",
         "affectsGlobalScope": false
       },
       "../src/CpcVmRsx.ts": {
@@ -322,7 +322,7 @@
         "affectsGlobalScope": false
       },
       "../src/Controller.ts": {
-        "version": "3476020b98582d498d1ef6d69b97efff1e1fb773a688d952776193c6dca43c50",
+        "version": "9bf33367160d7bfae52b22524bb427c6219eed95cbaec0c909319fe86c62b486",
         "signature": "ba7cb5e5db3df6f96683437d6b97fbcf511730039d6999d6530bf4591f310267",
         "affectsGlobalScope": false
       },
@@ -342,7 +342,7 @@
         "affectsGlobalScope": false
       },
       "../src/cpcbasic.ts": {
-        "version": "f8c172210306bec984e3e1efcc80d523d513947ce064a15148d81efc3beef098",
+        "version": "df8714b56d081b1e8c2e630ed5e3d7e51aca1d5779f1a347b61eb9fcc328c263",
         "signature": "614222967880a5bce309d6990002938467a964d9a82a6d81c522b90e8b5e60d8",
         "affectsGlobalScope": true
       },

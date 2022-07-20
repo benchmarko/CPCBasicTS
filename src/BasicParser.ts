@@ -63,7 +63,7 @@ export class BasicParser {
 
 	// set also during parse
 	private tokens: LexerToken[] = [];
-	private allowDirect = false;
+	//private allowDirect = false;
 
 	private index = 0;
 	private previousToken: ParserNode;
@@ -515,13 +515,19 @@ export class BasicParser {
 	private basicLine() {
 		let node: ParserNode;
 
-		if (this.token.type !== "number" && this.allowDirect) {
-			this.allowDirect = false; // allow only once
-			node = BasicParser.fnCreateDummyArg("label");
-			node.value = "direct"; // insert "direct" label
+		if (this.token.type !== "number") { //&& this.allowDirect) {
+			//this.allowDirect = false; // allow only once
+			node = BasicParser.fnCreateDummyArg("label", "");
+			//node.value = "direct"; // insert "direct" label
+			node.pos = this.token.pos;
 		} else {
 			this.advance("number");
 			node = this.previousToken; // number token
+			/*
+			if (node.orig && node.orig !== node.value) {
+				throw this.composeError(Error(), "Expected integer number", node.value, node.pos);
+			}
+			*/ //TODO
 			node.type = "label"; // number => label
 		}
 		this.line = node.value; // set line number for error messages
@@ -1650,9 +1656,10 @@ export class BasicParser {
 	// Operator: With left binding power (lbp) and operational function.
 	// Manipulates tokens to its left (e.g: +)? => left denotative function led(), otherwise null denotative function nud()), (e.g. unary -)
 	// identifiers, numbers: also nud.
-	parse(tokens: LexerToken[], allowDirect?: boolean): ParserNode[] {
+	parse(tokens: LexerToken[]): ParserNode[] {
 		this.tokens = tokens;
-		this.allowDirect = allowDirect || false;
+		//this.allowDirect = allowDirect || false;
+		//Utils.console.debug("TTT: parse: allowDirect=", allowDirect);
 
 		// line
 		this.line = "0"; // for error messages

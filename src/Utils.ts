@@ -175,6 +175,12 @@ export class Utils { // eslint-disable-line vars-on-top
 		return (e as CustomError).pos !== undefined;
 	}
 
+	static split2(str: string, char: string): string[] {
+		const index = str.indexOf(char);
+
+		return index >= 0 ? [str.slice(0, index), str.slice(index + 1)] : [str]; // eslint-disable-line array-element-newline
+	}
+
 	static composeError(name: string, errorObject: Error, message: string, value: string, pos?: number, len?: number, line?: string | number, hidden?: boolean): CustomError {
 		const customError = errorObject as CustomError;
 

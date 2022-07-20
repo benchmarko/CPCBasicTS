@@ -11,6 +11,7 @@ export declare class BasicFormatter {
     private line;
     constructor(options: BasicFormatterOptions);
     private composeError;
+    private static fnIsDirect;
     private fnCreateLineNumbersMap;
     private fnAddSingleReference;
     private fnAddReferences;

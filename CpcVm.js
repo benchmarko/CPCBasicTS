@@ -33,7 +33,8 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.errorLine = 0; // line of last error (Erl)
             this.degFlag = false; // degree or radians
             this.tronFlag1 = false; // trace flag
-            this.tronLine = 0; // last trace line
+            //private tronLine = 0; // last trace line
+            this.traceInfo = {};
             this.ramSelect = 0;
             this.screenPage = 3; // 16K screen page, 3=0xc000..0xffff
             this.minCharHimem = CpcVm.maxHimem;
@@ -60,7 +61,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.keyboard = options.keyboard;
             this.soundClass = options.sound;
             this.variables = options.variables;
-            this.tronFlag = Boolean(options.tron);
+            //this.tronFlag = Boolean(options.tron);
             this.quiet = Boolean(options.quiet);
             this.random = new Random_1.Random();
             this.stopEntry = {
@@ -151,8 +152,10 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.errorLine = 0; // line of last error
             this.gosubStack.length = 0;
             this.degFlag = false; // degree or radians
-            this.tronFlag1 = this.tronFlag || false; // trace flag
-            this.tronLine = 0; // last trace line
+            this.tronFlag1 = false; //this.tronFlag || false; // trace flag
+            this.traceInfo.line = ""; // last trace line
+            this.traceInfo.pos = 0;
+            this.traceInfo.len = 0;
             this.mem.length = 0; // clear memory (for PEEK, POKE)
             this.ramSelect = 0; // for banking with 16K banks in the range 0x4000-0x7fff (0=default; 1...=additional)
             this.screenPage = 3; // 16K screen page, 3=0xc000..0xffff
@@ -500,7 +503,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.vmAssertString(nameOrRange, err);
             var first, last;
             if (nameOrRange.indexOf("-") >= 0) {
-                var range = nameOrRange.split("-", 2);
+                var range = Utils_1.Utils.split2(nameOrRange, "-");
                 first = range[0].trim().toLowerCase().charCodeAt(0);
                 last = range[1].trim().toLowerCase().charCodeAt(0);
             }
@@ -612,10 +615,12 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         CpcVm.prototype.vmGetSoundData = function () {
             return this.soundData;
         };
-        CpcVm.prototype.vmTrace = function (line) {
+        CpcVm.prototype.vmTrace = function (line, pos, len) {
             var stream = 0;
-            this.tronLine = line;
-            if (this.tronFlag1) {
+            this.traceInfo.line = String(line);
+            this.traceInfo.pos = pos;
+            this.traceInfo.len = len;
+            if (this.tronFlag1 && !isNaN(Number(line))) {
                 this.print(stream, "[" + line + "]");
             }
         };
@@ -1330,8 +1335,9 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.errorCode = err;
             this.errorLine = this.line;
             var line = this.errorLine;
-            if (this.tronLine) {
-                line += " (trace: " + this.tronLine + ")";
+            if (this.traceInfo.line) {
+                //line += " (trace: " + this.traceInfo.line + "," + this.traceInfo.pos + "," + this.traceInfo.len + ")";
+                line += " (trace: " + this.traceInfo.line + ")";
             }
             var errorWithInfo = errorString + " in " + line + (errInfo ? (": " + errInfo) : "");
             var hidden = false; // hide errors wich are catched
@@ -1347,7 +1353,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             if (!this.quiet) {
                 Utils_1.Utils.console.log("BASIC error(" + err + "):", errorWithInfo + (hidden ? " (hidden: " + hidden + ")" : ""));
             }
-            return Utils_1.Utils.composeError("CpcVm", error, errorString, errInfo, undefined, undefined, line, hidden);
+            return Utils_1.Utils.composeError("CpcVm", error, errorString, errInfo, this.traceInfo.pos || undefined, this.traceInfo.len || undefined, line, hidden);
         };
         CpcVm.prototype.error = function (err, errInfo) {
             err = this.vmInRangeRound(err, 0, 255, "ERROR"); // could trigger another error

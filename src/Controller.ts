@@ -133,8 +133,8 @@ export class Controller implements IController {
 			canvas: this.canvas,
 			keyboard: this.keyboard,
 			sound: this.sound,
-			variables: this.variables,
-			tron: model.getProperty<boolean>("tron")
+			variables: this.variables
+			//tron: model.getProperty<boolean>("tron")
 		});
 		this.vm.vmReset();
 
@@ -158,7 +158,7 @@ export class Controller implements IController {
 		this.codeGeneratorJs = new CodeGeneratorJs({
 			lexer: new BasicLexer(),
 			parser: new BasicParser(),
-			tron: this.model.getProperty<boolean>("tron"),
+			trace: model.getProperty<boolean>("trace"), //this.model.getProperty<boolean>("tron"),
 			rsx: this.rsx // just to check the names
 		});
 
@@ -1404,9 +1404,11 @@ export class Controller implements IController {
 		if (Utils.isCustomError(error)) {
 			shortError = error.shortMessage || error.message;
 			if (!noSelection) {
-				const endPos = (error.pos || 0) + ((error.value !== undefined) ? String(error.value).length : 0);
+				const startPos = error.pos || 0,
+					len = error.len || ((error.value !== undefined) ? String(error.value).length : 0),
+					endPos = startPos + len;
 
-				this.view.setAreaSelection("inputText", error.pos || 0, endPos);
+				this.view.setAreaSelection("inputText", error.pos, endPos);
 			}
 		} else {
 			shortError = error.message;
@@ -1711,7 +1713,8 @@ export class Controller implements IController {
 				if (e.name === "CpcVm") {
 					if (!(e as CustomError).hidden) {
 						Utils.console.warn(e);
-						this.outputError(e, true);
+						//this.outputError(e, true);
+						this.outputError(e, !(e as CustomError).pos);
 					} else {
 						Utils.console.log(e.message);
 					}
@@ -1761,7 +1764,8 @@ export class Controller implements IController {
 				outputString: string;
 
 			if (inputText && (/^\d+($| )/).test(inputText)) { // do we have a program starting with a line number?
-				output = codeGeneratorJs.generate(input + "\n" + inputText, this.variables, true); // compile both; allow direct command
+				//output = codeGeneratorJs.generate(input + "\n" + inputText, this.variables, true); // compile both; allow direct command
+				output = codeGeneratorJs.generate(inputText + "\n" + input, this.variables, true); // compile both; allow direct command
 				if (output.error) {
 					const error = output.error;
 

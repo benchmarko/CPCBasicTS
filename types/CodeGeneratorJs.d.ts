@@ -6,15 +6,15 @@ interface CodeGeneratorJsOptions {
     lexer: BasicLexer;
     parser: BasicParser;
     rsx: ICpcVmRsx;
-    tron: boolean;
+    trace?: boolean;
     quiet?: boolean;
     noCodeFrame?: boolean;
 }
 export declare class CodeGeneratorJs {
     private readonly lexer;
     private readonly parser;
-    private tron;
     private readonly rsx;
+    private trace;
     private quiet;
     private readonly noCodeFrame;
     private line;
@@ -27,7 +27,7 @@ export declare class CodeGeneratorJs {
     private whileCount;
     private referencedLabelsCount;
     private readonly dataList;
-    private mergeFound;
+    private countMap;
     private variables;
     private defScopeArgs?;
     constructor(options: CodeGeneratorJsOptions);
@@ -91,6 +91,7 @@ export declare class CodeGeneratorJs {
     private label;
     private afterEveryGosub;
     private chainMergeOrMerge;
+    private tron;
     private static cont;
     private data;
     private def;
@@ -134,6 +135,7 @@ export declare class CodeGeneratorJs {
     private parseNode;
     private static fnCommentUnusedCases;
     private fnCreateLabelsMap;
+    private fnPrecheckTree;
     private evaluate;
     private static combineData;
     debugGetLabelsCount(): number;

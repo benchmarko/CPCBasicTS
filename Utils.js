@@ -119,6 +119,10 @@ define(["require", "exports"], function (require, exports) {
         Utils.isCustomError = function (e) {
             return e.pos !== undefined;
         };
+        Utils.split2 = function (str, char) {
+            var index = str.indexOf(char);
+            return index >= 0 ? [str.slice(0, index), str.slice(index + 1)] : [str]; // eslint-disable-line array-element-newline
+        };
         Utils.composeError = function (name, errorObject, message, value, pos, len, line, hidden) {
             var customError = errorObject;
             customError.name = name;

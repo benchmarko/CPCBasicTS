@@ -26,7 +26,7 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
         // can be used for nodeJS
         cpcBasic.fnParseArgs = function (args, config) {
             for (var i = 0; i < args.length; i += 1) {
-                var nameValue = args[i], nameValueList = nameValue.split("=", 2), name_1 = nameValueList[0];
+                var nameValue = args[i], nameValueList = Utils_1.Utils.split2(nameValue, "="), name_1 = nameValueList[0];
                 if (config.hasOwnProperty(name_1)) {
                     var value = nameValueList[1]; // string|number|boolean
                     if (value !== undefined && config.hasOwnProperty(name_1)) {
@@ -174,7 +174,7 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
             showConsole: false,
             showConvert: false,
             sound: true,
-            tron: false // trace on
+            trace: false // trace code
         };
         return cpcBasic;
     }());

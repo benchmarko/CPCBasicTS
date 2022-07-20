@@ -25,7 +25,7 @@ define(["require", "exports", "../Utils"], function (require, exports, Utils_1) 
         // can be used for nodeJS
         TestHelper.fnParseArgs = function (args, config) {
             for (var i = 0; i < args.length; i += 1) {
-                var nameValue = args[i], nameValueList = nameValue.split("=", 2), name_1 = nameValueList[0];
+                var nameValue = args[i], nameValueList = Utils_1.Utils.split2(nameValue, "="), name_1 = nameValueList[0];
                 if (config.hasOwnProperty(name_1)) {
                     var value = nameValueList[1];
                     if (value !== undefined && config.hasOwnProperty(name_1)) {

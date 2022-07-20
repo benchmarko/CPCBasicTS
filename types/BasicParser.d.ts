@@ -24,7 +24,6 @@ export declare class BasicParser {
     private keepDataComma;
     private readonly symbols;
     private tokens;
-    private allowDirect;
     private index;
     private previousToken;
     private token;
@@ -105,7 +104,7 @@ export declare class BasicParser {
     private fnWindow;
     private static fnNode;
     private fnGenerateSymbols;
-    parse(tokens: LexerToken[], allowDirect?: boolean): ParserNode[];
+    parse(tokens: LexerToken[]): ParserNode[];
 }
 export {};
 //# sourceMappingURL=BasicParser.d.ts.map

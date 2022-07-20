@@ -87,8 +87,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 canvas: this.canvas,
                 keyboard: this.keyboard,
                 sound: this.sound,
-                variables: this.variables,
-                tron: model.getProperty("tron")
+                variables: this.variables
+                //tron: model.getProperty<boolean>("tron")
             });
             this.vm.vmReset();
             this.rsx = new CpcVmRsx_1.CpcVmRsx(this.vm);
@@ -109,7 +109,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.codeGeneratorJs = new CodeGeneratorJs_1.CodeGeneratorJs({
                 lexer: new BasicLexer_1.BasicLexer(),
                 parser: new BasicParser_1.BasicParser(),
-                tron: this.model.getProperty("tron"),
+                trace: model.getProperty("trace"),
                 rsx: this.rsx // just to check the names
             });
             this.initDatabases();
@@ -1133,8 +1133,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             if (Utils_1.Utils.isCustomError(error)) {
                 shortError = error.shortMessage || error.message;
                 if (!noSelection) {
-                    var endPos = (error.pos || 0) + ((error.value !== undefined) ? String(error.value).length : 0);
-                    this.view.setAreaSelection("inputText", error.pos || 0, endPos);
+                    var startPos = error.pos || 0, len = error.len || ((error.value !== undefined) ? String(error.value).length : 0), endPos = startPos + len;
+                    this.view.setAreaSelection("inputText", error.pos, endPos);
                 }
             }
             else {
@@ -1369,7 +1369,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     if (e.name === "CpcVm") {
                         if (!e.hidden) {
                             Utils_1.Utils.console.warn(e);
-                            this.outputError(e, true);
+                            //this.outputError(e, true);
+                            this.outputError(e, !e.pos);
                         }
                         else {
                             Utils_1.Utils.console.log(e.message);
@@ -1412,7 +1413,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 var codeGeneratorJs = this.codeGeneratorJs;
                 var output = void 0, outputString = void 0;
                 if (inputText && (/^\d+($| )/).test(inputText)) { // do we have a program starting with a line number?
-                    output = codeGeneratorJs.generate(input + "\n" + inputText, this.variables, true); // compile both; allow direct command
+                    //output = codeGeneratorJs.generate(input + "\n" + inputText, this.variables, true); // compile both; allow direct command
+                    output = codeGeneratorJs.generate(inputText + "\n" + input, this.variables, true); // compile both; allow direct command
                     if (output.error) {
                         var error = output.error;
                         if (error.pos >= input.length + 1) { // error not in direct?

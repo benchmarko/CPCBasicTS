@@ -17,22 +17,27 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return Utils_1.Utils.composeError("BasicFormatter", error, message, value, pos, undefined, this.line);
         };
         // renumber
+        BasicFormatter.fnIsDirect = function (label) {
+            return label === "";
+        };
         BasicFormatter.prototype.fnCreateLineNumbersMap = function (nodes) {
             var lines = {}; // line numbers
             var lastLine = -1;
             for (var i = 0; i < nodes.length; i += 1) {
                 var node = nodes[i];
                 if (node.type === "label") {
-                    var lineString = node.value, line = Number(lineString);
+                    var lineString = node.value, isDirect = BasicFormatter.fnIsDirect(lineString), line = Number(lineString);
                     this.line = lineString;
                     if (lineString in lines) {
                         throw this.composeError(Error(), "Duplicate line number", lineString, node.pos);
                     }
-                    if (line <= lastLine) {
-                        throw this.composeError(Error(), "Line number not increasing", lineString, node.pos);
-                    }
-                    if (line < 1 || line > 65535) {
-                        throw this.composeError(Error(), "Line number overflow", lineString, node.pos);
+                    if (!isDirect) {
+                        if (line <= lastLine) {
+                            throw this.composeError(Error(), "Line number not increasing", lineString, node.pos);
+                        }
+                        if (line < 1 || line > 65535) {
+                            throw this.composeError(Error(), "Line number overflow", lineString, node.pos);
+                        }
                     }
                     lines[lineString] = {
                         value: lineString,
@@ -86,11 +91,20 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 }
             }
         };
+        /*
+        private static fnSortbyPosition(a: LineEntry, b: LineEntry) {
+            return a.pos - b.pos;
+        }
+        */
         BasicFormatter.prototype.fnRenumberLines = function (lines, refs, newLine, oldLine, step, keep) {
             var changes = {}, keys = Object.keys(lines);
+            function fnSortbyPosition(a, b) {
+                return lines[a].pos - lines[b].pos;
+            }
+            keys.sort(fnSortbyPosition);
             for (var i = 0; i < keys.length; i += 1) {
-                var lineEntry = lines[keys[i]], line = Number(lineEntry.value);
-                if (line >= oldLine && line < keep) {
+                var lineEntry = lines[keys[i]], isDirect = BasicFormatter.fnIsDirect(lineEntry.value), line = Number(lineEntry.value);
+                if (isDirect || (line >= oldLine && line < keep)) {
                     if (newLine > 65535) {
                         throw this.composeError(Error(), "Line number overflow", lineEntry.value, lineEntry.pos);
                     }

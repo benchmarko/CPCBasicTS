@@ -181,7 +181,7 @@ define(["require", "exports", "../Utils", "../Polyfills", "../BasicLexer", "../B
         cpcBasic.codeGeneratorJs = new CodeGeneratorJs_1.CodeGeneratorJs({
             lexer: cpcBasic.lexer,
             parser: cpcBasic.parser,
-            tron: false,
+            trace: false,
             rsx: cpcBasic.rsx
         });
         cpcBasic.codeGeneratorToken = new CodeGeneratorToken_1.CodeGeneratorToken({

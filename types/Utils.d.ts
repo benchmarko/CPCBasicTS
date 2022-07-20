@@ -26,6 +26,7 @@ export declare class Utils {
     static atob: (arg0: string) => string;
     static btoa: (arg0: string) => string;
     static isCustomError(e: unknown): e is CustomError;
+    static split2(str: string, char: string): string[];
     static composeError(name: string, errorObject: Error, message: string, value: string, pos?: number, len?: number, line?: string | number, hidden?: boolean): CustomError;
 }
 //# sourceMappingURL=Utils.d.ts.map
