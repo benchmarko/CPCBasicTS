@@ -281,7 +281,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var out = "";
             while (BasicLexer.isNewLine(char)) {
                 var char1 = this.testChar(1);
-                if (char1 !== "" && (char1 < "0" || char1 > "9")) { // heuristic: next char not a digit => continue with the string
+                if (char1 !== "" && (char1 < "0" || char1 > "9")) { // heuristic: next char not a digit => continue with the (multiline) string
                     out += this.advanceWhile(char, BasicLexer.isNotQuotes);
                     char = this.getChar();
                 }

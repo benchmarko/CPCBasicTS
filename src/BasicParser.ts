@@ -63,7 +63,6 @@ export class BasicParser {
 
 	// set also during parse
 	private tokens: LexerToken[] = [];
-	//private allowDirect = false;
 
 	private index = 0;
 	private previousToken: ParserNode;
@@ -438,7 +437,8 @@ export class BasicParser {
 		while (rbp < (s.lbp || 0)) { // as long as the right binding power is less than the left binding power of the next token...
 			this.advance(t.type);
 			if (!s.led) {
-				throw this.composeError(Error(), "Unexpected token", t.type, t.pos); //TTT how to get this error?
+				throw this.composeError(Error(), "Unexpected token", t.type, t.pos);
+				// TODO: How to get this error?
 			}
 			left = s.led.call(this, left); // ...the led method is invoked on the following token (infix and suffix operators), can be recursive
 			t = this.token;
@@ -515,19 +515,12 @@ export class BasicParser {
 	private basicLine() {
 		let node: ParserNode;
 
-		if (this.token.type !== "number") { //&& this.allowDirect) {
-			//this.allowDirect = false; // allow only once
+		if (this.token.type !== "number") {
 			node = BasicParser.fnCreateDummyArg("label", "");
-			//node.value = "direct"; // insert "direct" label
 			node.pos = this.token.pos;
 		} else {
 			this.advance("number");
 			node = this.previousToken; // number token
-			/*
-			if (node.orig && node.orig !== node.value) {
-				throw this.composeError(Error(), "Expected integer number", node.value, node.pos);
-			}
-			*/ //TODO
 			node.type = "label"; // number => label
 		}
 		this.line = node.value; // set line number for error messages
@@ -1309,7 +1302,7 @@ export class BasicParser {
 		if (this.token.type === "else") {
 			this.token = this.advance("else");
 			if (this.keepTokens) {
-				//TODO HOWTO?
+				// TODO HOWTO?
 			}
 
 			if (this.token.type === "number") {
@@ -1396,13 +1389,6 @@ export class BasicParser {
 		if (!node.args) {
 			throw this.composeError(Error(), "Programming error: Undefined args", this.token.type, this.token.pos); // should not occur
 		}
-		/*
-		if (value.args[0].type !== "identifier") {
-			const typeFirstChar = "v";
-
-			throw this.composeError(Error(), "Expected " + BasicParser.parameterTypes[typeFirstChar], value.args[0].value, value.args[0].pos);
-		}
-		*/
 		this.fnCheckExpressionType(node.args[0], "identifier", "v");
 
 		this.advance("="); // equal as assignment
@@ -1658,9 +1644,6 @@ export class BasicParser {
 	// identifiers, numbers: also nud.
 	parse(tokens: LexerToken[]): ParserNode[] {
 		this.tokens = tokens;
-		//this.allowDirect = allowDirect || false;
-		//Utils.console.debug("TTT: parse: allowDirect=", allowDirect);
-
 		// line
 		this.line = "0"; // for error messages
 		this.index = 0;

@@ -267,8 +267,8 @@
         "affectsGlobalScope": false
       },
       "../types/CodeGeneratorJs.d.ts": {
-        "version": "c2f00b4bbf298079029cb1a9828ff3c1e949387376db50fa76adfd811bcfeb7c",
-        "signature": "c2f00b4bbf298079029cb1a9828ff3c1e949387376db50fa76adfd811bcfeb7c",
+        "version": "579434835dcdcf83d55107ade778167daec9244a7d0111ef1c235cd3349df1c9",
+        "signature": "579434835dcdcf83d55107ade778167daec9244a7d0111ef1c235cd3349df1c9",
         "affectsGlobalScope": false
       },
       "../../src/test/CodeGeneratorJs.qunit.ts": {
@@ -307,7 +307,7 @@
         "affectsGlobalScope": false
       },
       "../../src/test/CpcVm.qunit.ts": {
-        "version": "6ef301b60df16138c92c9145cf547dd2b8a1e40e63c9e1bda47486090c3bc923",
+        "version": "9c854859c08c4f594d3072bc9da137f1f7f4559632261b2cb335cc3903a66864",
         "signature": "268e688401d8911f1ecd97206559b40640dd907d6c9af91531c6ef2706aeec5e",
         "affectsGlobalScope": false
       },

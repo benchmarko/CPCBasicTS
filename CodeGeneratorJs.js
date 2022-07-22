@@ -23,8 +23,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.referencedLabelsCount = {};
             this.dataList = []; // collected data from data lines
             this.countMap = {};
-            //private mergeFound = false; // if we find chain or chain merge, the program is not complete and we cannot check for existing line numbers during compile time (or do a renumber)
-            //private tronFound = false; // trace on flag: emit trace instructions for every line
             // for evaluate:
             this.variables = {}; // will be set later
             /* eslint-disable no-invalid-this */
@@ -78,7 +76,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 afterGosub: this.afterEveryGosub,
                 call: this.fnCommandWithGoto,
                 chain: this.fnCommandWithGoto,
-                chainMerge: this.chainMergeOrMerge,
+                chainMerge: this.fnCommandWithGoto,
                 clear: this.fnCommandWithGoto,
                 closeout: this.fnCommandWithGoto,
                 cont: CodeGeneratorJs.cont,
@@ -106,7 +104,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 lineInput: this.inputOrlineInput,
                 list: this.list,
                 load: this.fnCommandWithGoto,
-                merge: this.chainMergeOrMerge,
+                merge: this.fnCommandWithGoto,
                 mid$Assign: this.mid$Assign,
                 "new": CodeGeneratorJs.new,
                 next: this.next,
@@ -130,13 +128,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 spc: this.spc,
                 stop: this.stopOrEnd,
                 tab: this.tab,
-                tron: this.tron,
+                tron: this.fnCommandWithGoto,
                 wend: this.wend,
                 "while": this.while
             };
             this.lexer = options.lexer;
             this.parser = options.parser;
-            //TTT this.tronFound = options.tron;
             this.trace = Boolean(options.trace);
             this.rsx = options.rsx;
             this.quiet = options.quiet || false;
@@ -152,8 +149,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.resetCountsPerLine();
             this.dataList.length = 0;
             this.referencedLabelsCount = {}; // labels or line numbers
-            //this.mergeFound = false; // if we find chain or chain merge, the program is not complete and we cannot check for existing line numbers during compile time (or do a renumber)
-            //this.tronFound = false;
             this.countMap = {};
         };
         CodeGeneratorJs.prototype.resetCountsPerLine = function () {
@@ -575,11 +570,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 value = "";
             }
             var nodeArgs = this.fnParseArgs(node.args), tronFound = this.trace || this.countMap.tron;
-            /*
-            if (this.tron) {
-                value += " o.vmTrace(\"" + this.line + "\");";
-            }
-            */
             for (var i = 0; i < nodeArgs.length; i += 1) {
                 var value2 = nodeArgs[i];
                 if (tronFound) {
@@ -609,14 +599,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             this.fnAddReferenceLabel(nodeArgs[2], node.args[2]); // argument 2 = line number
             node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + ")";
-        };
-        CodeGeneratorJs.prototype.chainMergeOrMerge = function (node) {
-            //this.mergeFound = true;
-            node.pv = this.fnCommandWithGoto(node);
-        };
-        CodeGeneratorJs.prototype.tron = function (node) {
-            //this.tronFound = true;
-            node.pv = this.fnCommandWithGoto(node);
         };
         CodeGeneratorJs.cont = function (node) {
             node.pv = "o." + node.type + "(); break;"; // append break
@@ -893,7 +875,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             this.assign(node.right);
             node.pv = node.right.pv;
-            node.pt = node.right.pt; //TTT need this?
+            node.pt = node.right.pt; // TODO: Do we need this?
         };
         CodeGeneratorJs.prototype.list = function (node) {
             var nodeArgs = this.fnParseArgs(node.args); // or: fnCommandWithGoto
@@ -1216,7 +1198,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 }
             }
             // optimize: comment lines which are not referenced
-            if (!this.countMap.merge && !this.countMap.chainMerge) { //(!this.mergeFound) {
+            if (!this.countMap.merge && !this.countMap.chainMerge) {
                 output = CodeGeneratorJs.fnCommentUnusedCases(output, this.referencedLabelsCount);
             }
             return output;

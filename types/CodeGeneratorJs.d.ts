@@ -90,8 +90,6 @@ export declare class CodeGeneratorJs {
     private assign;
     private label;
     private afterEveryGosub;
-    private chainMergeOrMerge;
-    private tron;
     private static cont;
     private data;
     private def;

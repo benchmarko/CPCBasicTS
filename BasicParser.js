@@ -19,7 +19,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.symbols = {};
             // set also during parse
             this.tokens = [];
-            //private allowDirect = false;
             this.index = 0;
             this.parseTree = [];
             this.statementList = []; // just to check last statement when generating error message
@@ -131,7 +130,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             while (rbp < (s.lbp || 0)) { // as long as the right binding power is less than the left binding power of the next token...
                 this.advance(t.type);
                 if (!s.led) {
-                    throw this.composeError(Error(), "Unexpected token", t.type, t.pos); //TTT how to get this error?
+                    throw this.composeError(Error(), "Unexpected token", t.type, t.pos);
+                    // TODO: How to get this error?
                 }
                 left = s.led.call(this, left); // ...the led method is invoked on the following token (infix and suffix operators), can be recursive
                 t = this.token;
@@ -195,20 +195,13 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         BasicParser.prototype.basicLine = function () {
             var node;
-            if (this.token.type !== "number") { //&& this.allowDirect) {
-                //this.allowDirect = false; // allow only once
+            if (this.token.type !== "number") {
                 node = BasicParser.fnCreateDummyArg("label", "");
-                //node.value = "direct"; // insert "direct" label
                 node.pos = this.token.pos;
             }
             else {
                 this.advance("number");
                 node = this.previousToken; // number token
-                /*
-                if (node.orig && node.orig !== node.value) {
-                    throw this.composeError(Error(), "Expected integer number", node.value, node.pos);
-                }
-                */ //TODO
                 node.type = "label"; // number => label
             }
             this.line = node.value; // set line number for error messages
@@ -850,7 +843,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (this.token.type === "else") {
                 this.token = this.advance("else");
                 if (this.keepTokens) {
-                    //TODO HOWTO?
+                    // TODO HOWTO?
                 }
                 if (this.token.type === "number") {
                     numberToken = this.fnGetArgs("goto"); // take number parameter as line number
@@ -922,13 +915,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (!node.args) {
                 throw this.composeError(Error(), "Programming error: Undefined args", this.token.type, this.token.pos); // should not occur
             }
-            /*
-            if (value.args[0].type !== "identifier") {
-                const typeFirstChar = "v";
-    
-                throw this.composeError(Error(), "Expected " + BasicParser.parameterTypes[typeFirstChar], value.args[0].value, value.args[0].pos);
-            }
-            */
             this.fnCheckExpressionType(node.args[0], "identifier", "v");
             this.advance("="); // equal as assignment
             var right = this.expression(0);
@@ -1131,8 +1117,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         // identifiers, numbers: also nud.
         BasicParser.prototype.parse = function (tokens) {
             this.tokens = tokens;
-            //this.allowDirect = allowDirect || false;
-            //Utils.console.debug("TTT: parse: allowDirect=", allowDirect);
             // line
             this.line = "0"; // for error messages
             this.index = 0;

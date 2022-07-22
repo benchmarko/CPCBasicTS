@@ -7,14 +7,20 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.BasicFormatter = void 0;
+    /*
+    interface LineResult {
+        lines: LineEntry[],
+        error?: CustomError
+    }
+    */
     var BasicFormatter = /** @class */ (function () {
         function BasicFormatter(options) {
             this.line = ""; // current line (label) for error messages
             this.lexer = options.lexer;
             this.parser = options.parser;
         }
-        BasicFormatter.prototype.composeError = function (error, message, value, pos) {
-            return Utils_1.Utils.composeError("BasicFormatter", error, message, value, pos, undefined, this.line);
+        BasicFormatter.prototype.composeError = function (error, message, value, pos, len) {
+            return Utils_1.Utils.composeError("BasicFormatter", error, message, value, pos, len, this.line);
         };
         // renumber
         BasicFormatter.fnIsDirect = function (label) {
@@ -29,14 +35,14 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     var lineString = node.value, isDirect = BasicFormatter.fnIsDirect(lineString), line = Number(lineString);
                     this.line = lineString;
                     if (lineString in lines) {
-                        throw this.composeError(Error(), "Duplicate line number", lineString, node.pos);
+                        throw this.composeError(Error(), "Duplicate line number", lineString, node.pos, node.len);
                     }
                     if (!isDirect) {
                         if (line <= lastLine) {
-                            throw this.composeError(Error(), "Line number not increasing", lineString, node.pos);
+                            throw this.composeError(Error(), "Line number not increasing", lineString, node.pos, node.len);
                         }
                         if (line < 1 || line > 65535) {
-                            throw this.composeError(Error(), "Line number overflow", lineString, node.pos);
+                            throw this.composeError(Error(), "Line number overflow", lineString, node.pos, node.len);
                         }
                     }
                     lines[lineString] = {

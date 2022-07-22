@@ -1320,7 +1320,7 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
             var out = "";
             while (BasicLexer.isNewLine(char)) {
                 var char1 = this.testChar(1);
-                if (char1 !== "" && (char1 < "0" || char1 > "9")) { // heuristic: next char not a digit => continue with the string
+                if (char1 !== "" && (char1 < "0" || char1 > "9")) { // heuristic: next char not a digit => continue with the (multiline) string
                     out += this.advanceWhile(char, BasicLexer.isNotQuotes);
                     char = this.getChar();
                 }
@@ -1456,7 +1456,6 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             this.symbols = {};
             // set also during parse
             this.tokens = [];
-            //private allowDirect = false;
             this.index = 0;
             this.parseTree = [];
             this.statementList = []; // just to check last statement when generating error message
@@ -1568,7 +1567,8 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             while (rbp < (s.lbp || 0)) { // as long as the right binding power is less than the left binding power of the next token...
                 this.advance(t.type);
                 if (!s.led) {
-                    throw this.composeError(Error(), "Unexpected token", t.type, t.pos); //TTT how to get this error?
+                    throw this.composeError(Error(), "Unexpected token", t.type, t.pos);
+                    // TODO: How to get this error?
                 }
                 left = s.led.call(this, left); // ...the led method is invoked on the following token (infix and suffix operators), can be recursive
                 t = this.token;
@@ -1632,20 +1632,13 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
         };
         BasicParser.prototype.basicLine = function () {
             var node;
-            if (this.token.type !== "number") { //&& this.allowDirect) {
-                //this.allowDirect = false; // allow only once
+            if (this.token.type !== "number") {
                 node = BasicParser.fnCreateDummyArg("label", "");
-                //node.value = "direct"; // insert "direct" label
                 node.pos = this.token.pos;
             }
             else {
                 this.advance("number");
                 node = this.previousToken; // number token
-                /*
-                if (node.orig && node.orig !== node.value) {
-                    throw this.composeError(Error(), "Expected integer number", node.value, node.pos);
-                }
-                */ //TODO
                 node.type = "label"; // number => label
             }
             this.line = node.value; // set line number for error messages
@@ -2287,7 +2280,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             if (this.token.type === "else") {
                 this.token = this.advance("else");
                 if (this.keepTokens) {
-                    //TODO HOWTO?
+                    // TODO HOWTO?
                 }
                 if (this.token.type === "number") {
                     numberToken = this.fnGetArgs("goto"); // take number parameter as line number
@@ -2359,13 +2352,6 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             if (!node.args) {
                 throw this.composeError(Error(), "Programming error: Undefined args", this.token.type, this.token.pos); // should not occur
             }
-            /*
-            if (value.args[0].type !== "identifier") {
-                const typeFirstChar = "v";
-    
-                throw this.composeError(Error(), "Expected " + BasicParser.parameterTypes[typeFirstChar], value.args[0].value, value.args[0].pos);
-            }
-            */
             this.fnCheckExpressionType(node.args[0], "identifier", "v");
             this.advance("="); // equal as assignment
             var right = this.expression(0);
@@ -2568,8 +2554,6 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
         // identifiers, numbers: also nud.
         BasicParser.prototype.parse = function (tokens) {
             this.tokens = tokens;
-            //this.allowDirect = allowDirect || false;
-            //Utils.console.debug("TTT: parse: allowDirect=", allowDirect);
             // line
             this.line = "0"; // for error messages
             this.index = 0;
@@ -2824,14 +2808,20 @@ define("BasicFormatter", ["require", "exports", "Utils"], function (require, exp
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.BasicFormatter = void 0;
+    /*
+    interface LineResult {
+        lines: LineEntry[],
+        error?: CustomError
+    }
+    */
     var BasicFormatter = /** @class */ (function () {
         function BasicFormatter(options) {
             this.line = ""; // current line (label) for error messages
             this.lexer = options.lexer;
             this.parser = options.parser;
         }
-        BasicFormatter.prototype.composeError = function (error, message, value, pos) {
-            return Utils_4.Utils.composeError("BasicFormatter", error, message, value, pos, undefined, this.line);
+        BasicFormatter.prototype.composeError = function (error, message, value, pos, len) {
+            return Utils_4.Utils.composeError("BasicFormatter", error, message, value, pos, len, this.line);
         };
         // renumber
         BasicFormatter.fnIsDirect = function (label) {
@@ -2846,14 +2836,14 @@ define("BasicFormatter", ["require", "exports", "Utils"], function (require, exp
                     var lineString = node.value, isDirect = BasicFormatter.fnIsDirect(lineString), line = Number(lineString);
                     this.line = lineString;
                     if (lineString in lines) {
-                        throw this.composeError(Error(), "Duplicate line number", lineString, node.pos);
+                        throw this.composeError(Error(), "Duplicate line number", lineString, node.pos, node.len);
                     }
                     if (!isDirect) {
                         if (line <= lastLine) {
-                            throw this.composeError(Error(), "Line number not increasing", lineString, node.pos);
+                            throw this.composeError(Error(), "Line number not increasing", lineString, node.pos, node.len);
                         }
                         if (line < 1 || line > 65535) {
-                            throw this.composeError(Error(), "Line number overflow", lineString, node.pos);
+                            throw this.composeError(Error(), "Line number overflow", lineString, node.pos, node.len);
                         }
                     }
                     lines[lineString] = {
@@ -4212,8 +4202,6 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             this.referencedLabelsCount = {};
             this.dataList = []; // collected data from data lines
             this.countMap = {};
-            //private mergeFound = false; // if we find chain or chain merge, the program is not complete and we cannot check for existing line numbers during compile time (or do a renumber)
-            //private tronFound = false; // trace on flag: emit trace instructions for every line
             // for evaluate:
             this.variables = {}; // will be set later
             /* eslint-disable no-invalid-this */
@@ -4267,7 +4255,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 afterGosub: this.afterEveryGosub,
                 call: this.fnCommandWithGoto,
                 chain: this.fnCommandWithGoto,
-                chainMerge: this.chainMergeOrMerge,
+                chainMerge: this.fnCommandWithGoto,
                 clear: this.fnCommandWithGoto,
                 closeout: this.fnCommandWithGoto,
                 cont: CodeGeneratorJs.cont,
@@ -4295,7 +4283,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 lineInput: this.inputOrlineInput,
                 list: this.list,
                 load: this.fnCommandWithGoto,
-                merge: this.chainMergeOrMerge,
+                merge: this.fnCommandWithGoto,
                 mid$Assign: this.mid$Assign,
                 "new": CodeGeneratorJs.new,
                 next: this.next,
@@ -4319,13 +4307,12 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 spc: this.spc,
                 stop: this.stopOrEnd,
                 tab: this.tab,
-                tron: this.tron,
+                tron: this.fnCommandWithGoto,
                 wend: this.wend,
                 "while": this.while
             };
             this.lexer = options.lexer;
             this.parser = options.parser;
-            //TTT this.tronFound = options.tron;
             this.trace = Boolean(options.trace);
             this.rsx = options.rsx;
             this.quiet = options.quiet || false;
@@ -4341,8 +4328,6 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             this.resetCountsPerLine();
             this.dataList.length = 0;
             this.referencedLabelsCount = {}; // labels or line numbers
-            //this.mergeFound = false; // if we find chain or chain merge, the program is not complete and we cannot check for existing line numbers during compile time (or do a renumber)
-            //this.tronFound = false;
             this.countMap = {};
         };
         CodeGeneratorJs.prototype.resetCountsPerLine = function () {
@@ -4764,11 +4749,6 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 value = "";
             }
             var nodeArgs = this.fnParseArgs(node.args), tronFound = this.trace || this.countMap.tron;
-            /*
-            if (this.tron) {
-                value += " o.vmTrace(\"" + this.line + "\");";
-            }
-            */
             for (var i = 0; i < nodeArgs.length; i += 1) {
                 var value2 = nodeArgs[i];
                 if (tronFound) {
@@ -4798,14 +4778,6 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             }
             this.fnAddReferenceLabel(nodeArgs[2], node.args[2]); // argument 2 = line number
             node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + ")";
-        };
-        CodeGeneratorJs.prototype.chainMergeOrMerge = function (node) {
-            //this.mergeFound = true;
-            node.pv = this.fnCommandWithGoto(node);
-        };
-        CodeGeneratorJs.prototype.tron = function (node) {
-            //this.tronFound = true;
-            node.pv = this.fnCommandWithGoto(node);
         };
         CodeGeneratorJs.cont = function (node) {
             node.pv = "o." + node.type + "(); break;"; // append break
@@ -5082,7 +5054,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             }
             this.assign(node.right);
             node.pv = node.right.pv;
-            node.pt = node.right.pt; //TTT need this?
+            node.pt = node.right.pt; // TODO: Do we need this?
         };
         CodeGeneratorJs.prototype.list = function (node) {
             var nodeArgs = this.fnParseArgs(node.args); // or: fnCommandWithGoto
@@ -5405,7 +5377,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 }
             }
             // optimize: comment lines which are not referenced
-            if (!this.countMap.merge && !this.countMap.chainMerge) { //(!this.mergeFound) {
+            if (!this.countMap.merge && !this.countMap.chainMerge) {
                 output = CodeGeneratorJs.fnCommentUnusedCases(output, this.referencedLabelsCount);
             }
             return output;
@@ -11195,7 +11167,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.errorLine = 0; // line of last error (Erl)
             this.degFlag = false; // degree or radians
             this.tronFlag1 = false; // trace flag
-            //private tronLine = 0; // last trace line
             this.traceInfo = {};
             this.ramSelect = 0;
             this.screenPage = 3; // 16K screen page, 3=0xc000..0xffff
@@ -11223,7 +11194,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.keyboard = options.keyboard;
             this.soundClass = options.sound;
             this.variables = options.variables;
-            //this.tronFlag = Boolean(options.tron);
             this.quiet = Boolean(options.quiet);
             this.random = new Random_1.Random();
             this.stopEntry = {
@@ -11314,7 +11284,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.errorLine = 0; // line of last error
             this.gosubStack.length = 0;
             this.degFlag = false; // degree or radians
-            this.tronFlag1 = false; //this.tronFlag || false; // trace flag
+            this.tronFlag1 = false;
             this.traceInfo.line = ""; // last trace line
             this.traceInfo.pos = 0;
             this.traceInfo.len = 0;
@@ -12051,7 +12021,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                     break;
                 case 0xbc06: // SCR SET BASE (&BC08, ROM &0B45); We use &BC06 to load reg A from reg E (not for CPC 664!)
                 case 0xbc07: // Works on all CPC 464/664/6128
-                    this.vmSetScreenBase(args[0]); //TTT
+                    this.vmSetScreenBase(args[0]);
                     break;
                 case 0xbc0e: // SCR SET MODE (ROM &0ACE), depending on number of args
                     this.mode(args.length % 4); // 3 is valid also on CPC
@@ -12498,7 +12468,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.errorLine = this.line;
             var line = this.errorLine;
             if (this.traceInfo.line) {
-                //line += " (trace: " + this.traceInfo.line + "," + this.traceInfo.pos + "," + this.traceInfo.len + ")";
                 line += " (trace: " + this.traceInfo.line + ")";
             }
             var errorWithInfo = errorString + " in " + line + (errInfo ? (": " + errInfo) : "");
@@ -12557,7 +12526,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.vmGosub(retLabel, n);
         };
         CpcVm.prototype["goto"] = function (n) {
-            //this.vmLineInRange(Number(n), "GOTO"); //TTT
+            // TODO: do we want: this.vmLineInRange(Number(n), "GOTO");
             this.vmGotoLine(n, "goto");
         };
         CpcVm.prototype.graphicsPaper = function (gPaper) {
@@ -12763,7 +12732,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                     message: msg,
                     noCRLF: noCRLF,
                     fnInputCallback: this.vmInputCallback.bind(this),
-                    //types: Array.prototype.slice.call(arguments, 3), // remaining arguments
                     types: args,
                     input: "",
                     line: this.line // to repeat in case of break
@@ -12780,7 +12748,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 else if (this.eof()) {
                     throw this.vmComposeError(Error(), 24, "INPUT #" + stream); // EOF met
                 }
-                //this.vmInputFromFile(Array.prototype.slice.call(arguments, 3)); // remaining arguments
                 this.vmInputFromFile(args); // remaining arguments
             }
         };
@@ -12963,21 +12930,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.log10 = function (n) {
             this.vmAssertNumber(n, "LOG10");
             if (n <= 0) {
-                /*
-                if (this.errorGotoLine && !this.errorResumeLine) { // print error, do not stop
-                    throw this.vmComposeError(Error(), 6, "LOG10 " + n); // will be catched by onerror
-                } else {
-                    const savedPriority = this.stopEntry.priority;
-    
-                    this.stopEntry.priority = 99;
-                    const err = this.vmComposeError(Error(), 6, "LOG10 " + n);
-    
-                    this.stopEntry.priority = savedPriority;
-    
-                    this.print(0, String(err.shortMessage));
-                }
-                return n;
-                */
                 throw this.vmComposeError(Error(), 6, "LOG10 " + n);
             }
             return Math.log10(n);
@@ -13301,7 +13253,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         };
         CpcVm.prototype.vmSetCharDataByte = function (addr, byte) {
             var dataPos = (addr - 1 - this.minCharHimem) % 8, char = this.minCustomChar + (addr - 1 - dataPos - this.minCharHimem) / 8, charData = this.canvas.getCharData(char), charDataCopy = charData.slice(); // we need a copy to not modify original data
-            //charData = Object.assign({}, this.canvas.getCharData(char)); // we need a copy to not modify original data
             charDataCopy[dataPos] = byte; // change one byte
             this.canvas.setCustomChar(char, charDataCopy);
         };
@@ -14812,7 +14763,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 keyboard: this.keyboard,
                 sound: this.sound,
                 variables: this.variables
-                //tron: model.getProperty<boolean>("tron")
             });
             this.vm.vmReset();
             this.rsx = new CpcVmRsx_1.CpcVmRsx(this.vm);
@@ -14844,14 +14794,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.canvas.startUpdateCanvas();
             }
             this.initDropZone();
-            /*
-            const input = this.model.getProperty<string>("input");
-    
-            if (input !== "") {
-                this.view.setAreaValue("inp2Text", input);
-                this.startEnter();
-            }
-            */
         }
         Controller.prototype.initDatabases = function () {
             var model = this.model, databases = {}, databaseDirs = model.getProperty("databaseDirs").split(",");
@@ -15242,9 +15184,25 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
             return lineNumber;
         };
+        Controller.splitLines = function (input) {
+            // get numbers starting at the beginning of a line (allows some simple multi line strings)
+            var lineParts = input.split(/^(\s*\d+)/m), lines = [];
+            if (lineParts[0] === "") {
+                lineParts.shift(); // remove first empty item
+            }
+            for (var i = 0; i < lineParts.length; i += 2) {
+                var number = lineParts[i];
+                var content = lineParts[i + 1];
+                if (content.endsWith("\n")) {
+                    content = content.substr(0, content.length - 1);
+                }
+                lines.push(number + content);
+            }
+            return lines;
+        };
         // merge two scripts with sorted line numbers, lines from script2 overwrite lines from script1
         Controller.mergeScripts = function (script1, script2) {
-            var lines1 = Utils_21.Utils.stringTrimEnd(script1).split("\n"), lines2 = Utils_21.Utils.stringTrimEnd(script2).split("\n");
+            var lines1 = Controller.splitLines(Utils_21.Utils.stringTrimEnd(script1)), lines2 = Controller.splitLines(Utils_21.Utils.stringTrimEnd(script2));
             var result = [], lineNumber1, lineNumber2;
             while (lines1.length && lines2.length) {
                 lineNumber1 = lineNumber1 || Controller.parseLineNumber(lines1[0]);
@@ -15275,7 +15233,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         };
         // get line range from a script with sorted line numbers
         Controller.fnGetLinesInRange = function (script, firstLine, lastLine) {
-            var lines = script ? script.split("\n") : [];
+            var lines = script ? Controller.splitLines(script) : [];
             while (lines.length && parseInt(lines[0], 10) < firstLine) {
                 lines.shift();
             }
@@ -15702,7 +15660,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     this.loadFileContinue(input);
                 }
                 else { // load from example
-                    this.loadExample( /* name */); //TTT
+                    this.loadExample( /* name */);
                 }
             }
             else {
@@ -15839,6 +15797,78 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.vm.vmGotoLine(0); // reset current line
             this.vm.vmStop("end", 0, true);
         };
+        /*
+        private fnList_test1(paras: VmLineParas) {
+            const vm = this.vm,
+                stream = paras.stream,
+                input = this.view.getAreaValue("inputText");
+    
+            if (!this.basicFormatter) {
+                this.basicFormatter = new BasicFormatter({
+                    lexer: new BasicLexer(),
+                    parser: new BasicParser()
+                });
+            }
+    
+            const output = this.basicFormatter.getLinesInRange(input, paras.first, paras.last);
+    
+            if (output.error) {
+                Utils.console.warn(output.error);
+                this.outputError(output.error);
+            } else {
+                this.fnPutChangedInputOnStack();
+                let text = output.text;
+    
+                if (stream !== 9) {
+                    const regExp = new RegExp(/([\x00-\x1f])/g); // eslint-disable-line no-control-regex
+    
+                    text = text.split("\n").map(function (str) {
+                        return str.replace(regExp, "\x01$1");
+                    }).join("\r\n");
+                }
+                this.vm.print(stream, text, text.endsWith("\n") ? "" : "\r\n");
+            }
+            this.vm.vmGotoLine(0); // reset current line
+            vm.vmStop("end", 0, true);
+        }
+    
+        private fnListWithParseTes1(paras: VmLineParas) {
+            const vm = this.vm,
+                stream = paras.stream,
+                input = this.view.getAreaValue("inputText");
+    
+            if (!this.basicFormatter) {
+                this.basicFormatter = new BasicFormatter({
+                    lexer: new BasicLexer(),
+                    parser: new BasicParser()
+                });
+            }
+    
+            const output = this.basicFormatter.getLinesInRange(input, paras.first, paras.last);
+    
+            if (output.error) {
+                Utils.console.warn(output.error);
+                this.outputError(output.error);
+            } else {
+                this.fnPutChangedInputOnStack();
+                const lines = output.lines;
+                let text = lines.map(function (entry) {
+                    return input.substr(entry.pos, entry.lineLen);
+                }).join("");
+    
+                if (stream !== 9) {
+                    const regExp = new RegExp(/([\x00-\x1f])/g); // eslint-disable-line no-control-regex
+    
+                    text = text.split("\n").map(function (str) {
+                        return str.replace(regExp, "\x01$1");
+                    }).join("\r\n");
+                }
+                this.vm.print(stream, text, text.endsWith("\n") ? "" : "\r\n");
+            }
+            this.vm.vmGotoLine(0); // reset current line
+            vm.vmStop("end", 0, true);
+        }
+        */
         Controller.prototype.fnReset = function () {
             var vm = this.vm;
             this.variables.removeAllVariables();
@@ -16093,7 +16123,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     if (e.name === "CpcVm") {
                         if (!e.hidden) {
                             Utils_21.Utils.console.warn(e);
-                            //this.outputError(e, true);
                             this.outputError(e, !e.pos);
                         }
                         else {
@@ -16137,16 +16166,17 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 var codeGeneratorJs = this.codeGeneratorJs;
                 var output = void 0, outputString = void 0;
                 if (inputText && (/^\d+($| )/).test(inputText)) { // do we have a program starting with a line number?
-                    //output = codeGeneratorJs.generate(input + "\n" + inputText, this.variables, true); // compile both; allow direct command
-                    output = codeGeneratorJs.generate(inputText + "\n" + input, this.variables, true); // compile both; allow direct command
+                    var separator = inputText.endsWith("\n") ? "" : "\n";
+                    output = codeGeneratorJs.generate(inputText + separator + input, this.variables, true); // compile both; allow direct command
                     if (output.error) {
                         var error = output.error;
-                        if (error.pos >= input.length + 1) { // error not in direct?
-                            error.pos -= (input.length + 1);
+                        if (error.pos < inputText.length + 1) { // error not in direct?
                             error.message = "[prg] " + error.message;
+                            /*
                             if (error.shortMessage) { // eslint-disable-line max-depth
                                 error.shortMessage = "[prg] " + error.shortMessage;
                             }
+                            */
                             outputString = this.outputError(error, true);
                             output = undefined;
                         }
@@ -16624,7 +16654,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             dropZone.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
             dropZone.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
             var canvasElement = this.canvas.getCanvas();
-            canvasElement.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false); //TTT fast hack
+            canvasElement.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
             canvasElement.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
             View_5.View.getElementById1("fileInput").addEventListener("change", this.fnHandleFileSelect.bind(this), false);
         };

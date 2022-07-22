@@ -50,6 +50,7 @@ export declare class Controller implements IController {
     private fnWaitKey;
     private fnWaitInput;
     private static parseLineNumber;
+    private static splitLines;
     private static mergeScripts;
     private static fnGetLinesInRange;
     private static fnPrepareMaskRegExp;

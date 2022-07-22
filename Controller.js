@@ -88,7 +88,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 keyboard: this.keyboard,
                 sound: this.sound,
                 variables: this.variables
-                //tron: model.getProperty<boolean>("tron")
             });
             this.vm.vmReset();
             this.rsx = new CpcVmRsx_1.CpcVmRsx(this.vm);
@@ -120,14 +119,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.canvas.startUpdateCanvas();
             }
             this.initDropZone();
-            /*
-            const input = this.model.getProperty<string>("input");
-    
-            if (input !== "") {
-                this.view.setAreaValue("inp2Text", input);
-                this.startEnter();
-            }
-            */
         }
         Controller.prototype.initDatabases = function () {
             var model = this.model, databases = {}, databaseDirs = model.getProperty("databaseDirs").split(",");
@@ -518,9 +509,25 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             return lineNumber;
         };
+        Controller.splitLines = function (input) {
+            // get numbers starting at the beginning of a line (allows some simple multi line strings)
+            var lineParts = input.split(/^(\s*\d+)/m), lines = [];
+            if (lineParts[0] === "") {
+                lineParts.shift(); // remove first empty item
+            }
+            for (var i = 0; i < lineParts.length; i += 2) {
+                var number = lineParts[i];
+                var content = lineParts[i + 1];
+                if (content.endsWith("\n")) {
+                    content = content.substr(0, content.length - 1);
+                }
+                lines.push(number + content);
+            }
+            return lines;
+        };
         // merge two scripts with sorted line numbers, lines from script2 overwrite lines from script1
         Controller.mergeScripts = function (script1, script2) {
-            var lines1 = Utils_1.Utils.stringTrimEnd(script1).split("\n"), lines2 = Utils_1.Utils.stringTrimEnd(script2).split("\n");
+            var lines1 = Controller.splitLines(Utils_1.Utils.stringTrimEnd(script1)), lines2 = Controller.splitLines(Utils_1.Utils.stringTrimEnd(script2));
             var result = [], lineNumber1, lineNumber2;
             while (lines1.length && lines2.length) {
                 lineNumber1 = lineNumber1 || Controller.parseLineNumber(lines1[0]);
@@ -551,7 +558,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         };
         // get line range from a script with sorted line numbers
         Controller.fnGetLinesInRange = function (script, firstLine, lastLine) {
-            var lines = script ? script.split("\n") : [];
+            var lines = script ? Controller.splitLines(script) : [];
             while (lines.length && parseInt(lines[0], 10) < firstLine) {
                 lines.shift();
             }
@@ -978,7 +985,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     this.loadFileContinue(input);
                 }
                 else { // load from example
-                    this.loadExample( /* name */); //TTT
+                    this.loadExample( /* name */);
                 }
             }
             else {
@@ -1115,6 +1122,78 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.vm.vmGotoLine(0); // reset current line
             this.vm.vmStop("end", 0, true);
         };
+        /*
+        private fnList_test1(paras: VmLineParas) {
+            const vm = this.vm,
+                stream = paras.stream,
+                input = this.view.getAreaValue("inputText");
+    
+            if (!this.basicFormatter) {
+                this.basicFormatter = new BasicFormatter({
+                    lexer: new BasicLexer(),
+                    parser: new BasicParser()
+                });
+            }
+    
+            const output = this.basicFormatter.getLinesInRange(input, paras.first, paras.last);
+    
+            if (output.error) {
+                Utils.console.warn(output.error);
+                this.outputError(output.error);
+            } else {
+                this.fnPutChangedInputOnStack();
+                let text = output.text;
+    
+                if (stream !== 9) {
+                    const regExp = new RegExp(/([\x00-\x1f])/g); // eslint-disable-line no-control-regex
+    
+                    text = text.split("\n").map(function (str) {
+                        return str.replace(regExp, "\x01$1");
+                    }).join("\r\n");
+                }
+                this.vm.print(stream, text, text.endsWith("\n") ? "" : "\r\n");
+            }
+            this.vm.vmGotoLine(0); // reset current line
+            vm.vmStop("end", 0, true);
+        }
+    
+        private fnListWithParseTes1(paras: VmLineParas) {
+            const vm = this.vm,
+                stream = paras.stream,
+                input = this.view.getAreaValue("inputText");
+    
+            if (!this.basicFormatter) {
+                this.basicFormatter = new BasicFormatter({
+                    lexer: new BasicLexer(),
+                    parser: new BasicParser()
+                });
+            }
+    
+            const output = this.basicFormatter.getLinesInRange(input, paras.first, paras.last);
+    
+            if (output.error) {
+                Utils.console.warn(output.error);
+                this.outputError(output.error);
+            } else {
+                this.fnPutChangedInputOnStack();
+                const lines = output.lines;
+                let text = lines.map(function (entry) {
+                    return input.substr(entry.pos, entry.lineLen);
+                }).join("");
+    
+                if (stream !== 9) {
+                    const regExp = new RegExp(/([\x00-\x1f])/g); // eslint-disable-line no-control-regex
+    
+                    text = text.split("\n").map(function (str) {
+                        return str.replace(regExp, "\x01$1");
+                    }).join("\r\n");
+                }
+                this.vm.print(stream, text, text.endsWith("\n") ? "" : "\r\n");
+            }
+            this.vm.vmGotoLine(0); // reset current line
+            vm.vmStop("end", 0, true);
+        }
+        */
         Controller.prototype.fnReset = function () {
             var vm = this.vm;
             this.variables.removeAllVariables();
@@ -1369,7 +1448,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     if (e.name === "CpcVm") {
                         if (!e.hidden) {
                             Utils_1.Utils.console.warn(e);
-                            //this.outputError(e, true);
                             this.outputError(e, !e.pos);
                         }
                         else {
@@ -1413,16 +1491,17 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 var codeGeneratorJs = this.codeGeneratorJs;
                 var output = void 0, outputString = void 0;
                 if (inputText && (/^\d+($| )/).test(inputText)) { // do we have a program starting with a line number?
-                    //output = codeGeneratorJs.generate(input + "\n" + inputText, this.variables, true); // compile both; allow direct command
-                    output = codeGeneratorJs.generate(inputText + "\n" + input, this.variables, true); // compile both; allow direct command
+                    var separator = inputText.endsWith("\n") ? "" : "\n";
+                    output = codeGeneratorJs.generate(inputText + separator + input, this.variables, true); // compile both; allow direct command
                     if (output.error) {
                         var error = output.error;
-                        if (error.pos >= input.length + 1) { // error not in direct?
-                            error.pos -= (input.length + 1);
+                        if (error.pos < inputText.length + 1) { // error not in direct?
                             error.message = "[prg] " + error.message;
+                            /*
                             if (error.shortMessage) { // eslint-disable-line max-depth
                                 error.shortMessage = "[prg] " + error.shortMessage;
                             }
+                            */
                             outputString = this.outputError(error, true);
                             output = undefined;
                         }
@@ -1900,7 +1979,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             dropZone.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
             dropZone.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
             var canvasElement = this.canvas.getCanvas();
-            canvasElement.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false); //TTT fast hack
+            canvasElement.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
             canvasElement.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
             View_1.View.getElementById1("fileInput").addEventListener("change", this.fnHandleFileSelect.bind(this), false);
         };

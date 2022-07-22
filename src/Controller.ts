@@ -134,7 +134,6 @@ export class Controller implements IController {
 			keyboard: this.keyboard,
 			sound: this.sound,
 			variables: this.variables
-			//tron: model.getProperty<boolean>("tron")
 		});
 		this.vm.vmReset();
 
@@ -158,7 +157,7 @@ export class Controller implements IController {
 		this.codeGeneratorJs = new CodeGeneratorJs({
 			lexer: new BasicLexer(),
 			parser: new BasicParser(),
-			trace: model.getProperty<boolean>("trace"), //this.model.getProperty<boolean>("tron"),
+			trace: model.getProperty<boolean>("trace"),
 			rsx: this.rsx // just to check the names
 		});
 
@@ -171,15 +170,6 @@ export class Controller implements IController {
 		}
 
 		this.initDropZone();
-
-		/*
-		const input = this.model.getProperty<string>("input");
-
-		if (input !== "") {
-			this.view.setAreaValue("inp2Text", input);
-			this.startEnter();
-		}
-		*/
 	}
 
 	private initDatabases() {
@@ -640,10 +630,32 @@ export class Controller implements IController {
 		return lineNumber;
 	}
 
+	private static splitLines(input: string) {
+		// get numbers starting at the beginning of a line (allows some simple multi line strings)
+		const lineParts = input.split(/^(\s*\d+)/m),
+			lines = [];
+
+		if (lineParts[0] === "") {
+			lineParts.shift(); // remove first empty item
+		}
+
+		for (let i = 0; i < lineParts.length; i += 2) {
+			const number = lineParts[i];
+			let content = lineParts[i + 1];
+
+			if (content.endsWith("\n")) {
+				content = content.substr(0, content.length - 1);
+			}
+			lines.push(number + content);
+		}
+
+		return lines;
+	}
+
 	// merge two scripts with sorted line numbers, lines from script2 overwrite lines from script1
 	private static mergeScripts(script1: string, script2: string) {
-		const lines1 = Utils.stringTrimEnd(script1).split("\n"),
-			lines2 = Utils.stringTrimEnd(script2).split("\n");
+		const lines1 = Controller.splitLines(Utils.stringTrimEnd(script1)),
+			lines2 = Controller.splitLines(Utils.stringTrimEnd(script2));
 		let result = [],
 			lineNumber1: number | undefined,
 			lineNumber2: number | undefined;
@@ -681,7 +693,7 @@ export class Controller implements IController {
 
 	// get line range from a script with sorted line numbers
 	private static fnGetLinesInRange(script: string, firstLine: number, lastLine: number) {
-		const lines = script ? script.split("\n") : [];
+		const lines = script ? Controller.splitLines(script) : [];
 
 		while (lines.length && parseInt(lines[0], 10) < firstLine) {
 			lines.shift();
@@ -1211,7 +1223,7 @@ export class Controller implements IController {
 				this.vm.vmStop("", 0, true);
 				this.loadFileContinue(input);
 			} else { // load from example
-				this.loadExample(/* name */); //TTT
+				this.loadExample(/* name */);
 			}
 		} else {
 			Utils.console.error("fnFileLoad:", inFile.name, "File not open!"); // hopefully isName is defined
@@ -1380,6 +1392,79 @@ export class Controller implements IController {
 		this.vm.vmGotoLine(0); // reset current line
 		this.vm.vmStop("end", 0, true);
 	}
+
+	/*
+	private fnList_test1(paras: VmLineParas) {
+		const vm = this.vm,
+			stream = paras.stream,
+			input = this.view.getAreaValue("inputText");
+
+		if (!this.basicFormatter) {
+			this.basicFormatter = new BasicFormatter({
+				lexer: new BasicLexer(),
+				parser: new BasicParser()
+			});
+		}
+
+		const output = this.basicFormatter.getLinesInRange(input, paras.first, paras.last);
+
+		if (output.error) {
+			Utils.console.warn(output.error);
+			this.outputError(output.error);
+		} else {
+			this.fnPutChangedInputOnStack();
+			let text = output.text;
+
+			if (stream !== 9) {
+				const regExp = new RegExp(/([\x00-\x1f])/g); // eslint-disable-line no-control-regex
+
+				text = text.split("\n").map(function (str) {
+					return str.replace(regExp, "\x01$1");
+				}).join("\r\n");
+			}
+			this.vm.print(stream, text, text.endsWith("\n") ? "" : "\r\n");
+		}
+		this.vm.vmGotoLine(0); // reset current line
+		vm.vmStop("end", 0, true);
+	}
+
+	private fnListWithParseTes1(paras: VmLineParas) {
+		const vm = this.vm,
+			stream = paras.stream,
+			input = this.view.getAreaValue("inputText");
+
+		if (!this.basicFormatter) {
+			this.basicFormatter = new BasicFormatter({
+				lexer: new BasicLexer(),
+				parser: new BasicParser()
+			});
+		}
+
+		const output = this.basicFormatter.getLinesInRange(input, paras.first, paras.last);
+
+		if (output.error) {
+			Utils.console.warn(output.error);
+			this.outputError(output.error);
+		} else {
+			this.fnPutChangedInputOnStack();
+			const lines = output.lines;
+			let text = lines.map(function (entry) {
+				return input.substr(entry.pos, entry.lineLen);
+			}).join("");
+
+			if (stream !== 9) {
+				const regExp = new RegExp(/([\x00-\x1f])/g); // eslint-disable-line no-control-regex
+
+				text = text.split("\n").map(function (str) {
+					return str.replace(regExp, "\x01$1");
+				}).join("\r\n");
+			}
+			this.vm.print(stream, text, text.endsWith("\n") ? "" : "\r\n");
+		}
+		this.vm.vmGotoLine(0); // reset current line
+		vm.vmStop("end", 0, true);
+	}
+	*/
 
 	private fnReset() {
 		const vm = this.vm;
@@ -1713,7 +1798,6 @@ export class Controller implements IController {
 				if (e.name === "CpcVm") {
 					if (!(e as CustomError).hidden) {
 						Utils.console.warn(e);
-						//this.outputError(e, true);
 						this.outputError(e, !(e as CustomError).pos);
 					} else {
 						Utils.console.log(e.message);
@@ -1764,17 +1848,19 @@ export class Controller implements IController {
 				outputString: string;
 
 			if (inputText && (/^\d+($| )/).test(inputText)) { // do we have a program starting with a line number?
-				//output = codeGeneratorJs.generate(input + "\n" + inputText, this.variables, true); // compile both; allow direct command
-				output = codeGeneratorJs.generate(inputText + "\n" + input, this.variables, true); // compile both; allow direct command
+				const separator = inputText.endsWith("\n") ? "" : "\n";
+
+				output = codeGeneratorJs.generate(inputText + separator + input, this.variables, true); // compile both; allow direct command
 				if (output.error) {
 					const error = output.error;
 
-					if (error.pos >= input.length + 1) { // error not in direct?
-						error.pos -= (input.length + 1);
+					if (error.pos < inputText.length + 1) { // error not in direct?
 						error.message = "[prg] " + error.message;
+						/*
 						if (error.shortMessage) { // eslint-disable-line max-depth
 							error.shortMessage = "[prg] " + error.shortMessage;
 						}
+						*/
 						outputString = this.outputError(error, true);
 						output = undefined;
 					}
@@ -2348,7 +2434,7 @@ export class Controller implements IController {
 
 		const canvasElement = this.canvas.getCanvas();
 
-		canvasElement.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false); //TTT fast hack
+		canvasElement.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
 		canvasElement.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
 
 		View.getElementById1("fileInput").addEventListener("change", this.fnHandleFileSelect.bind(this), false);
@@ -2518,7 +2604,7 @@ export class Controller implements IController {
 	}
 
 	/* eslint-disable no-invalid-this */
-	private readonly handlers: Record<string, (paras: any) => void> = { // TTT VmStopParas | VmFileParas
+	private readonly handlers: Record<string, (paras: VmStopParas | VmFileParas) => void> = {
 		timer: this.fnTimer,
 		waitKey: this.fnWaitKey,
 		waitFrame: this.fnWaitFrame,

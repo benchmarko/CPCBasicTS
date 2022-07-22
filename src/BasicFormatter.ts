@@ -18,12 +18,20 @@ interface LineEntry {
 	value: string,
 	pos: number,
 	len: number,
+	lineLen?: number,
 	newLine?: number
 }
 
 type LinesType = Record<string, LineEntry>;
 
 type ChangesType = Record<number, LineEntry>;
+
+/*
+interface LineResult {
+	lines: LineEntry[],
+	error?: CustomError
+}
+*/
 
 export class BasicFormatter {
 	private readonly lexer: BasicLexer;
@@ -35,8 +43,8 @@ export class BasicFormatter {
 		this.parser = options.parser;
 	}
 
-	private composeError(error: Error, message: string, value: string, pos: number) {
-		return Utils.composeError("BasicFormatter", error, message, value, pos, undefined, this.line);
+	private composeError(error: Error, message: string, value: string, pos: number, len?: number) {
+		return Utils.composeError("BasicFormatter", error, message, value, pos, len, this.line);
 	}
 
 	// renumber
@@ -59,14 +67,14 @@ export class BasicFormatter {
 
 				this.line = lineString;
 				if (lineString in lines) {
-					throw this.composeError(Error(), "Duplicate line number", lineString, node.pos);
+					throw this.composeError(Error(), "Duplicate line number", lineString, node.pos, node.len);
 				}
 				if (!isDirect) {
 					if (line <= lastLine) {
-						throw this.composeError(Error(), "Line number not increasing", lineString, node.pos);
+						throw this.composeError(Error(), "Line number not increasing", lineString, node.pos, node.len);
 					}
 					if (line < 1 || line > 65535) {
-						throw this.composeError(Error(), "Line number overflow", lineString, node.pos);
+						throw this.composeError(Error(), "Line number overflow", lineString, node.pos, node.len);
 					}
 				}
 				lines[lineString] = {
@@ -221,4 +229,58 @@ export class BasicFormatter {
 		}
 		return out;
 	}
+
+	/*
+	private fnLinesInRange(input: string, parseTree: ParserNode[], firstLine: number, lastLine: number) {
+		const lines = this.fnCreateLineNumbersMap(parseTree),
+			keys = Object.keys(lines),
+			result: LineEntry[] = [];
+
+		function fnSortbyPosition(a: string, b: string) {
+			return lines[a].pos - lines[b].pos;
+		}
+
+		keys.sort(fnSortbyPosition);
+
+		for (let i = 0; i < keys.length; i += 1) {
+			const lineEntry = lines[keys[i]],
+				isDirect = BasicFormatter.fnIsDirect(lineEntry.value),
+				line = Number(lineEntry.value);
+
+			if (isDirect || (line >= firstLine && line <= lastLine)) {
+				const nextLinePos = i < keys.length - 1 ? lines[keys[i + 1]].pos : input.length;
+
+				lineEntry.lineLen = nextLinePos - lineEntry.pos;
+				result.push(lineEntry);
+			}
+		}
+		return result;
+	}
+
+	getLinesInRange(input: string, firstLine: number, lastLine: number): LineResult {
+		const out: LineResult = {
+			lines: []
+		};
+
+		this.line = ""; // current line (label)
+		try {
+			const tokens = this.lexer.lex(input),
+				parseTree = this.parser.parse(tokens),
+				lines = this.fnLinesInRange(input, parseTree, firstLine, lastLine);
+
+			out.lines = lines;
+			// out.text = lines.map(function (entry) {
+			//	 return input.substr(entry.pos, entry.lineLen);
+			// }).join("");
+		} catch (e) {
+			if (Utils.isCustomError(e)) {
+				out.error = e;
+			} else { // other errors
+				out.error = e as CustomError; // force set other error
+				Utils.console.error(e);
+			}
+		}
+		return out;
+	}
+	*/
 }

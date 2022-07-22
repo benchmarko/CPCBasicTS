@@ -2516,13 +2516,6 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             },
             afterGosub: function (cpcVm, input) {
                 cpcVm.afterGosub.apply(cpcVm, input);
-                /*
-                const timer = Number(cpcVm.vmRound(Number(input[1]))),
-                    timerEntry = cpcVm.vmInternal.getTimerList.call(cpcVm)[timer];
-    
-                (timerEntry as any).nextTimeMs = undefined;
-                return JSON.stringify(timerEntry);
-                */
             },
             asc: function (cpcVm, input) {
                 return String(cpcVm.asc.apply(cpcVm, input));
@@ -2598,20 +2591,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 cpcVm.closeout.apply(cpcVm, input);
             },
             cls: function (cpcVm, input) {
-                /*
-                const stream = getValidStream(cpcVm, Number(input));
-    
-                cpcVm.vmChangeMode(1);
-                cpcVm.vmResetWindowData(true); // prepare
-                cpcVm.locate(stream, 2 + 1, 3 + 1);
-                clearLastTestFunctions(); // test only cls
-                */
                 cpcVm.cls.apply(cpcVm, input);
-                /*
-                const win = cpcVm.vmInternal.getWindowDataList.call(cpcVm)[stream];
-    
-                return JSON.stringify(win);
-                */
             },
             commaTab: function (cpcVm, input) {
                 return String(cpcVm.vmInternal.commaTab.apply(cpcVm, input));
@@ -2634,10 +2614,6 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             },
             copychr$: function (cpcVm, input) {
                 var stream = getValidStream(cpcVm, Number(input));
-                /*
-                cpcVm.vmChangeMode(1);
-                cpcVm.vmResetWindowData(true); // prepare
-                */
                 cpcVm.locate(stream, 2 + 1, 3 + 1);
                 clearLastTestFunctions(); // test only copychr$
                 return cpcVm.copychr$.apply(cpcVm, input);
@@ -2655,10 +2631,6 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             },
             cursor: function (cpcVm, input) {
                 var stream = getValidStream(cpcVm, Number(input));
-                /*
-                cpcVm.vmChangeMode(1);
-                cpcVm.vmResetWindowData(true); // prepare
-                */
                 cpcVm.locate(stream, 2 + 1, 3 + 1);
                 clearLastTestFunctions();
                 cpcVm.cursor.apply(cpcVm, input);
@@ -2755,13 +2727,6 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             },
             everyGosub: function (cpcVm, input) {
                 cpcVm.everyGosub.apply(cpcVm, input);
-                /*
-                const timer = Number(cpcVm.vmRound(Number(input[1]))),
-                    timerEntry = cpcVm.vmInternal.getTimerList.call(cpcVm)[timer];
-    
-                (timerEntry as any).nextTimeMs = undefined; // remove random entry
-                return JSON.stringify(timerEntry);
-                */
             },
             exp: function (cpcVm, input) {
                 return String(cpcVm.exp.apply(cpcVm, input));
@@ -3179,7 +3144,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             },
             time: function (cpcVm, input) {
                 var time = cpcVm.time.apply(cpcVm, input);
-                time = 3; //TODO
+                time = 3;
                 return String(time);
             },
             troff: function (cpcVm, input) {
@@ -3329,7 +3294,6 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             }, cpcVm = new CpcVm_1.CpcVm(config), testFunction = allTestFunctions[sCategory];
             for (var key in tests) {
                 if (tests.hasOwnProperty(key)) {
-                    //TTT
                     cpcVm.vmChangeMode(1);
                     cpcVm.vmResetWindowData(true); // prepare
                     cpcVm.closein();

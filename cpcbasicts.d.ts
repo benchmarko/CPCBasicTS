@@ -495,8 +495,6 @@ declare module "CodeGeneratorJs" {
         private assign;
         private label;
         private afterEveryGosub;
-        private chainMergeOrMerge;
-        private tron;
         private static cont;
         private data;
         private def;
@@ -1733,6 +1731,7 @@ declare module "Controller" {
         private fnWaitKey;
         private fnWaitInput;
         private static parseLineNumber;
+        private static splitLines;
         private static mergeScripts;
         private static fnGetLinesInRange;
         private static fnPrepareMaskRegExp;

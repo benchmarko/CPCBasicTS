@@ -2307,14 +2307,6 @@ QUnit.module("CpcVm: Tests", function () {
 		},
 		afterGosub: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.afterGosub.apply(cpcVm, input);
-
-			/*
-			const timer = Number(cpcVm.vmRound(Number(input[1]))),
-				timerEntry = cpcVm.vmInternal.getTimerList.call(cpcVm)[timer];
-
-			(timerEntry as any).nextTimeMs = undefined;
-			return JSON.stringify(timerEntry);
-			*/
 		},
 		asc: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			return String(cpcVm.asc.apply(cpcVm, input));
@@ -2393,22 +2385,7 @@ QUnit.module("CpcVm: Tests", function () {
 			cpcVm.closeout.apply(cpcVm, input);
 		},
 		cls: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			/*
-			const stream = getValidStream(cpcVm, Number(input));
-
-			cpcVm.vmChangeMode(1);
-			cpcVm.vmResetWindowData(true); // prepare
-			cpcVm.locate(stream, 2 + 1, 3 + 1);
-			clearLastTestFunctions(); // test only cls
-			*/
-
 			cpcVm.cls.apply(cpcVm, input);
-
-			/*
-			const win = cpcVm.vmInternal.getWindowDataList.call(cpcVm)[stream];
-
-			return JSON.stringify(win);
-			*/
 		},
 		commaTab: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			return String(cpcVm.vmInternal.commaTab.apply(cpcVm, input));
@@ -2433,10 +2410,6 @@ QUnit.module("CpcVm: Tests", function () {
 		copychr$: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			const stream = getValidStream(cpcVm, Number(input));
 
-			/*
-			cpcVm.vmChangeMode(1);
-			cpcVm.vmResetWindowData(true); // prepare
-			*/
 			cpcVm.locate(stream, 2 + 1, 3 + 1);
 			clearLastTestFunctions(); // test only copychr$
 			return cpcVm.copychr$.apply(cpcVm, input);
@@ -2455,10 +2428,6 @@ QUnit.module("CpcVm: Tests", function () {
 		cursor: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			const stream = getValidStream(cpcVm, Number(input));
 
-			/*
-			cpcVm.vmChangeMode(1);
-			cpcVm.vmResetWindowData(true); // prepare
-			*/
 			cpcVm.locate(stream, 2 + 1, 3 + 1);
 			clearLastTestFunctions();
 			cpcVm.cursor.apply(cpcVm, input);
@@ -2560,14 +2529,6 @@ QUnit.module("CpcVm: Tests", function () {
 		},
 		everyGosub: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.everyGosub.apply(cpcVm, input);
-
-			/*
-			const timer = Number(cpcVm.vmRound(Number(input[1]))),
-				timerEntry = cpcVm.vmInternal.getTimerList.call(cpcVm)[timer];
-
-			(timerEntry as any).nextTimeMs = undefined; // remove random entry
-			return JSON.stringify(timerEntry);
-			*/
 		},
 		exp: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			return String(cpcVm.exp.apply(cpcVm, input));
@@ -2788,16 +2749,16 @@ QUnit.module("CpcVm: Tests", function () {
 		"new": function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.new.apply(cpcVm, input);
 		},
-		onBreakCont: function (cpcVm: CpcVm, input: TestFunctionInputType[]) { //TODO
+		onBreakCont: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.onBreakCont.apply(cpcVm, input);
 			return String(cpcVm.vmEscape()) + ", onBreakContSet:" + String(cpcVm.vmOnBreakContSet()) + ", onBreakHandlerActive:" + String(cpcVm.vmOnBreakHandlerActive());
 		},
-		onBreakGosub: function (cpcVm: CpcVm, input: TestFunctionInputType[]) { //TODO
+		onBreakGosub: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.vmGotoLine("123");
 			cpcVm.onBreakGosub.apply(cpcVm, input);
 			return String(cpcVm.vmEscape()) + ", onBreakContSet:" + String(cpcVm.vmOnBreakContSet()) + ", onBreakHandlerActive:" + String(cpcVm.vmOnBreakHandlerActive());
 		},
-		onBreakStop: function (cpcVm: CpcVm, input: TestFunctionInputType[]) { //TODO
+		onBreakStop: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			cpcVm.onBreakStop.apply(cpcVm, input);
 			return String(cpcVm.vmEscape()) + ", onBreakContSet:" + String(cpcVm.vmOnBreakContSet()) + ", onBreakHandlerActive:" + String(cpcVm.vmOnBreakHandlerActive());
 		},
@@ -3028,7 +2989,7 @@ QUnit.module("CpcVm: Tests", function () {
 		time: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
 			let time = cpcVm.time.apply(cpcVm, input);
 
-			time = 3; //TODO
+			time = 3;
 			return String(time);
 		},
 		troff: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
@@ -3202,7 +3163,6 @@ QUnit.module("CpcVm: Tests", function () {
 
 		for (const key in tests) {
 			if (tests.hasOwnProperty(key)) {
-				//TTT
 				cpcVm.vmChangeMode(1);
 				cpcVm.vmResetWindowData(true); // prepare
 				cpcVm.closein();
