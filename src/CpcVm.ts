@@ -16,7 +16,6 @@ export interface CpcVmOptions {
 	keyboard: Keyboard
 	sound: Sound
 	variables: Variables
-	//tron?: boolean,
 	quiet?: boolean
 }
 
@@ -143,7 +142,6 @@ export class CpcVm {
 	private readonly keyboard: Keyboard;
 	private readonly soundClass: Sound;
 	readonly variables: Variables;
-	//private tronFlag: boolean;
 
 	private readonly random: Random;
 
@@ -201,7 +199,6 @@ export class CpcVm {
 	private degFlag = false; // degree or radians
 
 	private tronFlag1 = false; // trace flag
-	//private tronLine = 0; // last trace line
 
 	private traceInfo = {} as TraceInfo;
 
@@ -402,7 +399,6 @@ export class CpcVm {
 		this.keyboard = options.keyboard;
 		this.soundClass = options.sound;
 		this.variables = options.variables;
-		//this.tronFlag = Boolean(options.tron);
 		this.quiet = Boolean(options.quiet);
 
 		this.random = new Random();
@@ -519,7 +515,7 @@ export class CpcVm {
 		this.gosubStack.length = 0;
 		this.degFlag = false; // degree or radians
 
-		this.tronFlag1 = false; //this.tronFlag || false; // trace flag
+		this.tronFlag1 = false;
 		this.traceInfo.line = ""; // last trace line
 		this.traceInfo.pos = 0;
 		this.traceInfo.len = 0;
@@ -1393,7 +1389,7 @@ export class CpcVm {
 			break;
 		case 0xbc06: // SCR SET BASE (&BC08, ROM &0B45); We use &BC06 to load reg A from reg E (not for CPC 664!)
 		case 0xbc07: // Works on all CPC 464/664/6128
-			this.vmSetScreenBase(args[0] as number); //TTT
+			this.vmSetScreenBase(args[0] as number);
 			break;
 		case 0xbc0e: // SCR SET MODE (ROM &0ACE), depending on number of args
 			this.mode(args.length % 4); // 3 is valid also on CPC
@@ -1900,7 +1896,6 @@ export class CpcVm {
 		let line = this.errorLine;
 
 		if (this.traceInfo.line) {
-			//line += " (trace: " + this.traceInfo.line + "," + this.traceInfo.pos + "," + this.traceInfo.len + ")";
 			line += " (trace: " + this.traceInfo.line + ")";
 		}
 
@@ -1970,7 +1965,7 @@ export class CpcVm {
 	}
 
 	"goto"(n: string): void {
-		//this.vmLineInRange(Number(n), "GOTO"); //TTT
+		// TODO: do we want: this.vmLineInRange(Number(n), "GOTO");
 		this.vmGotoLine(n, "goto");
 	}
 
@@ -2211,7 +2206,6 @@ export class CpcVm {
 				message: msg,
 				noCRLF: noCRLF,
 				fnInputCallback: this.vmInputCallback.bind(this),
-				//types: Array.prototype.slice.call(arguments, 3), // remaining arguments
 				types: args,
 				input: "",
 				line: this.line // to repeat in case of break
@@ -2225,7 +2219,6 @@ export class CpcVm {
 			} else if (this.eof()) {
 				throw this.vmComposeError(Error(), 24, "INPUT #" + stream); // EOF met
 			}
-			//this.vmInputFromFile(Array.prototype.slice.call(arguments, 3)); // remaining arguments
 			this.vmInputFromFile(args); // remaining arguments
 		}
 	}
@@ -2435,21 +2428,6 @@ export class CpcVm {
 	log10(n: number): number {
 		this.vmAssertNumber(n, "LOG10");
 		if (n <= 0) {
-			/*
-			if (this.errorGotoLine && !this.errorResumeLine) { // print error, do not stop
-				throw this.vmComposeError(Error(), 6, "LOG10 " + n); // will be catched by onerror
-			} else {
-				const savedPriority = this.stopEntry.priority;
-
-				this.stopEntry.priority = 99;
-				const err = this.vmComposeError(Error(), 6, "LOG10 " + n);
-
-				this.stopEntry.priority = savedPriority;
-
-				this.print(0, String(err.shortMessage));
-			}
-			return n;
-			*/
 			throw this.vmComposeError(Error(), 6, "LOG10 " + n);
 		}
 		return Math.log10(n);
@@ -2819,7 +2797,6 @@ export class CpcVm {
 			char = this.minCustomChar + (addr - 1 - dataPos - this.minCharHimem) / 8,
 			charData = this.canvas.getCharData(char),
 			charDataCopy = charData.slice(); // we need a copy to not modify original data
-			//charData = Object.assign({}, this.canvas.getCharData(char)); // we need a copy to not modify original data
 
 		charDataCopy[dataPos] = byte; // change one byte
 		this.canvas.setCustomChar(char, charDataCopy);
