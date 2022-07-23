@@ -538,7 +538,7 @@ export class CpcVm {
 
 		this.zoneValue = 13; // print tab zone value
 
-		this.defreal("a-z"); // init vartypes
+		this.defreal("a", "z"); // init vartypes
 
 		this.modeValue = -1;
 		this.vmResetWindowData(true); // reset all, including pen and paper
@@ -687,7 +687,7 @@ export class CpcVm {
 		}
 	}
 
-	private vmAssertString(s: string, err: string): void {
+	private vmAssertString(s: string, err: string) {
 		if (typeof s !== "string") {
 			throw this.vmComposeError(Error(), 13, err + " " + s); // Type mismatch
 		}
@@ -755,6 +755,17 @@ export class CpcVm {
 			n += 65536;
 		}
 		return n;
+	}
+
+	private vmGetLetterCode(s: string, err: string) {
+		this.vmAssertString(s, err);
+
+		// const reLetter = RegExp("^[A-Za-z]$");
+		s = s.toLowerCase();
+		if (s.length !== 1 || s < "a" || s > "z") { // single letter?
+			throw this.vmComposeError(Error(), 2, err + " " + s); // Syntax Error
+		}
+		return s.charCodeAt(0);
 	}
 
 	vmDetermineVarType(varType: string): string { // also used in controller
@@ -932,23 +943,11 @@ export class CpcVm {
 		}
 	}
 
-	private vmDefineVarTypes(type: string, nameOrRange: string, err: string) {
-		this.vmAssertString(nameOrRange, err);
+	private vmDefineVarTypes(type: string, err: string, first: string, last?: string) {
+		const firstNum = this.vmGetLetterCode(first, err),
+			lastNum = last ? this.vmGetLetterCode(last, err) : firstNum;
 
-		let first: number,
-			last: number;
-
-		if (nameOrRange.indexOf("-") >= 0) {
-			const range = Utils.split2(nameOrRange, "-");
-
-			first = range[0].trim().toLowerCase().charCodeAt(0);
-			last = range[1].trim().toLowerCase().charCodeAt(0);
-		} else {
-			first = nameOrRange.trim().toLowerCase().charCodeAt(0);
-			last = first;
-		}
-
-		for (let i = first; i <= last; i += 1) {
+		for (let i = firstNum; i <= lastNum; i += 1) {
 			const varChar = String.fromCharCode(i);
 
 			if (this.variables.getVarType(varChar) !== type) { // type changed?
@@ -1493,7 +1492,7 @@ export class CpcVm {
 		this.errorResumeLine = 0;
 		this.gosubStack.length = 0;
 		this.variables.initAllVariables();
-		this.defreal("a-z");
+		this.defreal("a", "z");
 		this.restore(); // restore data line index
 		this.rad();
 		this.soundClass.resetQueue();
@@ -1672,16 +1671,16 @@ export class CpcVm {
 
 	// def fn
 
-	defint(nameOrRange: string): void {
-		this.vmDefineVarTypes("I", nameOrRange, "DEFINT");
+	defint(first: string, last?: string): void {
+		this.vmDefineVarTypes("I", "DEFINT", first, last);
 	}
 
-	defreal(nameOrRange: string): void {
-		this.vmDefineVarTypes("R", nameOrRange, "DEFREAL");
+	defreal(first: string, last?: string): void {
+		this.vmDefineVarTypes("R", "DEFREAL", first, last);
 	}
 
-	defstr(nameOrRange: string): void {
-		this.vmDefineVarTypes("$", nameOrRange, "DEFSTR");
+	defstr(first: string, last?: string): void {
+		this.vmDefineVarTypes("$", "DEFSTR", first, last);
 	}
 
 	deg(): void {
@@ -3451,6 +3450,11 @@ export class CpcVm {
 		if (!this.errorGotoLine) {
 			throw this.vmComposeError(Error(), 20, "RESUME NEXT"); // Unexpected RESUME
 		}
+		// TODO: need to find the instruction after the erroneous one!
+		const line = this.errorResumeLine;
+
+		this.vmGotoLine(line, "resumeNext");
+		this.errorResumeLine = 0;
 		this.vmNotImplemented("RESUME NEXT");
 	}
 
@@ -3484,7 +3488,7 @@ export class CpcVm {
 
 		let x: number;
 
-		if (n === undefined || n === 0) {
+		if (n === undefined || n > 0) {
 			x = this.random.random();
 			this.lastRnd = x;
 		} else if (n < 0) {

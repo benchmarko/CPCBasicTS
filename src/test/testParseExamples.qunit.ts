@@ -209,6 +209,10 @@ class cpcBasic {
 			// empty
 		},
 
+		vmTrace: function () {
+			// empty
+		},
+
 		dim(varName: string): void { // varargs
 			const dimensions = [];
 

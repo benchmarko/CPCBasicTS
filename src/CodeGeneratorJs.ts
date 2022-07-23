@@ -44,6 +44,7 @@ export class CodeGeneratorJs {
 	private readonly noCodeFrame: boolean // suppress generation of a code frame
 
 	private line = "0"; // current line (label)
+	private traceActive = false;
 	private readonly reJsKeywords: RegExp;
 
 	private readonly stack: StackType = {
@@ -595,7 +596,7 @@ export class CodeGeneratorJs {
 		if (left > right) {
 			throw this.composeError(Error(), "Decreasing range", node.value, node.pos);
 		}
-		node.pv = left + " - " + right;
+		node.pv = left + '", "' + right;
 	}
 	private linerange(node: CodeNode) { // for delete, list
 		if (!node.left || !node.right) {
@@ -684,13 +685,12 @@ export class CodeGeneratorJs {
 			value = "";
 		}
 
-		const nodeArgs = this.fnParseArgs(node.args),
-			tronFound = this.trace || this.countMap.tron;
+		const nodeArgs = this.fnParseArgs(node.args);
 
 		for (let i = 0; i < nodeArgs.length; i += 1) {
 			let value2 = nodeArgs[i];
 
-			if (tronFound) {
+			if (this.traceActive) {
 				const traceLabel = this.line + ((i > 0) ? "t" + i : ""),
 					pos = node.args[i].pos,
 					len = node.args[i].len || node.args[i].value.length || 0;
@@ -1388,6 +1388,7 @@ export class CodeGeneratorJs {
 		renum: this.fnCommandWithGoto,
 		restore: this.onBreakGosubOrRestore,
 		resume: this.gotoOrResume,
+		resumeNext: this.gotoOrResume,
 		"return": CodeGeneratorJs.return,
 		run: this.run,
 		save: this.save,
@@ -1498,6 +1499,10 @@ export class CodeGeneratorJs {
 
 			countMap[node.type] = (countMap[node.type] || 0) + 1;
 
+			if (node.type === "resume" && !(node.args && node.args.length)) {
+				this.traceActive = true;
+			}
+
 			/*
 			if (node.left) {
 				this.fnPrecheckTree(node.left, lines, refs);
@@ -1525,7 +1530,11 @@ export class CodeGeneratorJs {
 
 		// create labels map
 		this.fnCreateLabelsMap(parseTree, this.referencedLabelsCount, allowDirect);
-		this.fnPrecheckTree(parseTree, this.countMap);
+
+		this.traceActive = false;
+		this.fnPrecheckTree(parseTree, this.countMap); // also set trace active for resume without parameter
+
+		this.traceActive = this.traceActive || this.trace || Boolean(this.countMap.tron) || Boolean(this.countMap.resumeNext); // we also switch on tracing for tron, resumeNext or resume without parameter
 
 		let output = "";
 
