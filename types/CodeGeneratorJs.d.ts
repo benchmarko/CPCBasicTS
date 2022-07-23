@@ -18,6 +18,7 @@ export declare class CodeGeneratorJs {
     private quiet;
     private readonly noCodeFrame;
     private line;
+    private traceActive;
     private readonly reJsKeywords;
     private readonly stack;
     private gosubCount;

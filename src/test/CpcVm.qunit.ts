@@ -734,36 +734,39 @@ QUnit.module("CpcVm: Tests", function () {
 		},
 		defint: {
 			'"a"': '{"a":"I"}',
-			'"b-d"': '{"b":"I","c":"I","d":"I"}',
-			'"B-D"': '{"b":"I","c":"I","d":"I"}',
-			'"x - z"': '{"x":"I","y":"I","z":"I"}',
-			'"aa"': '{"a":"I"}',
+			'"b","d"': '{"b":"I","c":"I","d":"I"}',
+			'"B","D"': '{"b":"I","c":"I","d":"I"}',
+			'"x","z"': '{"x":"I","y":"I","z":"I"}',
 			"": 'CpcVm: Type mismatch in 0: DEFINT undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-			'""': "{}",
-			'"b-"': "{}",
-			"1 ": 'CpcVm: Type mismatch in 0: DEFINT 1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+			'""': 'CpcVm: Syntax Error in 0: DEFINT  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'"aa"': 'CpcVm: Syntax Error in 0: DEFINT aa -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'"b-"': 'CpcVm: Syntax Error in 0: DEFINT b- -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"1 ": 'CpcVm: Type mismatch in 0: DEFINT 1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'"a", 2': 'CpcVm: Type mismatch in 0: DEFINT 2 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
 		defreal: {
 			'"a"': '{"a":"R"}',
-			'"b-d"': '{"b":"R","c":"R","d":"R"}',
-			'"B-D"': '{"b":"R","c":"R","d":"R"}',
-			'"x - z"': '{"x":"R","y":"R","z":"R"}',
-			'"aa"': '{"a":"R"}',
+			'"b","d"': '{"b":"R","c":"R","d":"R"}',
+			'"B","D"': '{"b":"R","c":"R","d":"R"}',
+			'"x","z"': '{"x":"R","y":"R","z":"R"}',
 			"": 'CpcVm: Type mismatch in 0: DEFREAL undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-			'""': "{}",
-			'"b-"': "{}",
-			"1 ": 'CpcVm: Type mismatch in 0: DEFREAL 1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+			'""': 'CpcVm: Syntax Error in 0: DEFREAL  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'"aa"': 'CpcVm: Syntax Error in 0: DEFREAL aa -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'"b-"': 'CpcVm: Syntax Error in 0: DEFREAL b- -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"1 ": 'CpcVm: Type mismatch in 0: DEFREAL 1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'"a", 2': 'CpcVm: Type mismatch in 0: DEFREAL 2 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
 		defstr: {
 			'"a"': '{"a":"$"}',
-			'"b-d"': '{"b":"$","c":"$","d":"$"}',
-			'"B-D"': '{"b":"$","c":"$","d":"$"}',
-			'"x - z"': '{"x":"$","y":"$","z":"$"}',
-			'"aa"': '{"a":"$"}',
-			'"b-"': "{}",
-			'""': "{}",
+			'"b","d"': '{"b":"$","c":"$","d":"$"}',
+			'"B","D"': '{"b":"$","c":"$","d":"$"}',
+			'"x","z"': '{"x":"$","y":"$","z":"$"}',
 			"": 'CpcVm: Type mismatch in 0: DEFSTR undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-			"1 ": 'CpcVm: Type mismatch in 0: DEFSTR 1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+			'""': 'CpcVm: Syntax Error in 0: DEFSTR  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'"aa"': 'CpcVm: Syntax Error in 0: DEFSTR aa -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'"b-"': 'CpcVm: Syntax Error in 0: DEFSTR b- -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"1 ": 'CpcVm: Type mismatch in 0: DEFSTR 1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'"a", 2': 'CpcVm: Type mismatch in 0: DEFSTR 2 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
 		"delete": {
 			"": '{"_key":"stop","reason":"deleteLines","priority":85,"paras":{"command":"DELETE","stream":0,"first":1,"last":65535,"line":0}}',
@@ -1801,8 +1804,8 @@ QUnit.module("CpcVm: Tests", function () {
 		rnd: {
 			"-1 ": "0.000007826369259425611",
 			"0 ": "0.13153778814316625",
-			"2 ": "0.13153778814316625",
-			"": "0.7556053221950332",
+			"2 ": "0.7556053221950332",
+			"": "0.4586501319234493",
 			'""': 'CpcVm: Type mismatch in 0: RND  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
 		round: {

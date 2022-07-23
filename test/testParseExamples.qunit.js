@@ -215,6 +215,9 @@ define(["require", "exports", "../Utils", "../Polyfills", "../BasicLexer", "../B
             vmAssertNumberType: function () {
                 // empty
             },
+            vmTrace: function () {
+                // empty
+            },
             dim: function (varName) {
                 var dimensions = [];
                 for (var i = 1; i < arguments.length; i += 1) {

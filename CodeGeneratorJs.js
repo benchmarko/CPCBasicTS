@@ -10,6 +10,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     var CodeGeneratorJs = /** @class */ (function () {
         function CodeGeneratorJs(options) {
             this.line = "0"; // current line (label)
+            this.traceActive = false;
             this.stack = {
                 forLabel: [],
                 forVarName: [],
@@ -121,6 +122,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 renum: this.fnCommandWithGoto,
                 restore: this.onBreakGosubOrRestore,
                 resume: this.gotoOrResume,
+                resumeNext: this.gotoOrResume,
                 "return": CodeGeneratorJs.return,
                 run: this.run,
                 save: this.save,
@@ -495,7 +497,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (left > right) {
                 throw this.composeError(Error(), "Decreasing range", node.value, node.pos);
             }
-            node.pv = left + " - " + right;
+            node.pv = left + '", "' + right;
         };
         CodeGeneratorJs.prototype.linerange = function (node) {
             if (!node.left || !node.right) {
@@ -569,10 +571,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             else {
                 value = "";
             }
-            var nodeArgs = this.fnParseArgs(node.args), tronFound = this.trace || this.countMap.tron;
+            var nodeArgs = this.fnParseArgs(node.args);
             for (var i = 0; i < nodeArgs.length; i += 1) {
                 var value2 = nodeArgs[i];
-                if (tronFound) {
+                if (this.traceActive) {
                     var traceLabel = this.line + ((i > 0) ? "t" + i : ""), pos = node.args[i].pos, len = node.args[i].len || node.args[i].value.length || 0;
                     value += " o.vmTrace(\"" + traceLabel + "\", " + pos + ", " + len + ");";
                 }
@@ -1152,6 +1154,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             for (var i = 0; i < nodes.length; i += 1) {
                 var node = nodes[i];
                 countMap[node.type] = (countMap[node.type] || 0) + 1;
+                if (node.type === "resume" && !(node.args && node.args.length)) {
+                    this.traceActive = true;
+                }
                 /*
                 if (node.left) {
                     this.fnPrecheckTree(node.left, lines, refs);
@@ -1176,7 +1181,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.defScopeArgs = undefined;
             // create labels map
             this.fnCreateLabelsMap(parseTree, this.referencedLabelsCount, allowDirect);
-            this.fnPrecheckTree(parseTree, this.countMap);
+            this.traceActive = false;
+            this.fnPrecheckTree(parseTree, this.countMap); // also set trace active for resume without parameter
+            this.traceActive = this.traceActive || this.trace || Boolean(this.countMap.tron) || Boolean(this.countMap.resumeNext); // we also switch on tracing for tron, resumeNext or resume without parameter
             var output = "";
             for (var i = 0; i < parseTree.length; i += 1) {
                 if (Utils_1.Utils.debug > 2) {

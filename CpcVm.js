@@ -167,7 +167,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.vmResetTimers();
             this.timerPriority = -1; // priority of running task: -1=low (min priority to start new timers)
             this.zoneValue = 13; // print tab zone value
-            this.defreal("a-z"); // init vartypes
+            this.defreal("a", "z"); // init vartypes
             this.modeValue = -1;
             this.vmResetWindowData(true); // reset all, including pen and paper
             this.width(132); // set default printer width
@@ -342,6 +342,15 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             }
             return n;
         };
+        CpcVm.prototype.vmGetLetterCode = function (s, err) {
+            this.vmAssertString(s, err);
+            // const reLetter = RegExp("^[A-Za-z]$");
+            s = s.toLowerCase();
+            if (s.length !== 1 || s < "a" || s > "z") { // single letter?
+                throw this.vmComposeError(Error(), 2, err + " " + s); // Syntax Error
+            }
+            return s.charCodeAt(0);
+        };
         CpcVm.prototype.vmDetermineVarType = function (varType) {
             return (varType.length > 1) ? varType.charAt(1) : this.variables.getVarType(varType.charAt(0));
         };
@@ -497,19 +506,9 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                 }
             }
         };
-        CpcVm.prototype.vmDefineVarTypes = function (type, nameOrRange, err) {
-            this.vmAssertString(nameOrRange, err);
-            var first, last;
-            if (nameOrRange.indexOf("-") >= 0) {
-                var range = Utils_1.Utils.split2(nameOrRange, "-");
-                first = range[0].trim().toLowerCase().charCodeAt(0);
-                last = range[1].trim().toLowerCase().charCodeAt(0);
-            }
-            else {
-                first = nameOrRange.trim().toLowerCase().charCodeAt(0);
-                last = first;
-            }
-            for (var i = first; i <= last; i += 1) {
+        CpcVm.prototype.vmDefineVarTypes = function (type, err, first, last) {
+            var firstNum = this.vmGetLetterCode(first, err), lastNum = last ? this.vmGetLetterCode(last, err) : firstNum;
+            for (var i = firstNum; i <= lastNum; i += 1) {
                 var varChar = String.fromCharCode(i);
                 if (this.variables.getVarType(varChar) !== type) { // type changed?
                     this.variables.setVarType(varChar, type);
@@ -981,7 +980,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.errorResumeLine = 0;
             this.gosubStack.length = 0;
             this.variables.initAllVariables();
-            this.defreal("a-z");
+            this.defreal("a", "z");
             this.restore(); // restore data line index
             this.rad();
             this.soundClass.resetQueue();
@@ -1127,14 +1126,14 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             return this.vmUsingNumberFormat(frmt, n);
         };
         // def fn
-        CpcVm.prototype.defint = function (nameOrRange) {
-            this.vmDefineVarTypes("I", nameOrRange, "DEFINT");
+        CpcVm.prototype.defint = function (first, last) {
+            this.vmDefineVarTypes("I", "DEFINT", first, last);
         };
-        CpcVm.prototype.defreal = function (nameOrRange) {
-            this.vmDefineVarTypes("R", nameOrRange, "DEFREAL");
+        CpcVm.prototype.defreal = function (first, last) {
+            this.vmDefineVarTypes("R", "DEFREAL", first, last);
         };
-        CpcVm.prototype.defstr = function (nameOrRange) {
-            this.vmDefineVarTypes("$", nameOrRange, "DEFSTR");
+        CpcVm.prototype.defstr = function (first, last) {
+            this.vmDefineVarTypes("$", "DEFSTR", first, last);
         };
         CpcVm.prototype.deg = function () {
             this.degFlag = true;
@@ -2712,6 +2711,10 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             if (!this.errorGotoLine) {
                 throw this.vmComposeError(Error(), 20, "RESUME NEXT"); // Unexpected RESUME
             }
+            // TODO: need to find the instruction after the erroneous one!
+            var line = this.errorResumeLine;
+            this.vmGotoLine(line, "resumeNext");
+            this.errorResumeLine = 0;
             this.vmNotImplemented("RESUME NEXT");
         };
         CpcVm.prototype["return"] = function () {
@@ -2740,7 +2743,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                 this.vmAssertNumber(n, "RND");
             }
             var x;
-            if (n === undefined || n === 0) {
+            if (n === undefined || n > 0) {
                 x = this.random.random();
                 this.lastRnd = x;
             }

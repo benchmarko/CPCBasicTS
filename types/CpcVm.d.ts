@@ -193,6 +193,7 @@ export declare class CpcVm {
     vmInRangeRound(n: number | undefined, min: number, max: number, err: string): number;
     private vmLineInRange;
     private vmRound2Complement;
+    private vmGetLetterCode;
     vmDetermineVarType(varType: string): string;
     vmAssertNumberType(varType: string): void;
     vmAssign(varType: string, value: string | number): (string | number);
@@ -260,9 +261,9 @@ export declare class CpcVm {
     cursor(stream: number, cursorOn?: number, cursorEnabled?: number): void;
     data(line: number, ...args: DataEntryType[]): void;
     dec$(n: number, frmt: string): string;
-    defint(nameOrRange: string): void;
-    defreal(nameOrRange: string): void;
-    defstr(nameOrRange: string): void;
+    defint(first: string, last?: string): void;
+    defreal(first: string, last?: string): void;
+    defstr(first: string, last?: string): void;
     deg(): void;
     "delete"(first?: number, last?: number): void;
     derr(): number;
