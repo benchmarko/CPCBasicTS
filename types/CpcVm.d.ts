@@ -126,6 +126,8 @@ export declare class CpcVm {
     private readonly dataList;
     private dataIndex;
     private dataLineIndex;
+    private readonly labelList;
+    private sourceMap;
     private readonly windowDataList;
     private readonly timerList;
     private readonly sqTimer;
@@ -148,7 +150,7 @@ export declare class CpcVm {
     private errorLine;
     private degFlag;
     private tronFlag1;
-    private traceInfo;
+    private traceLabel;
     private ramSelect;
     private screenPage;
     private minCharHimem;
@@ -183,6 +185,7 @@ export declare class CpcVm {
     vmReset4Run(): void;
     vmGetAllVariables(): VariableMap;
     vmSetStartLine(line: number): void;
+    vmSetLabels(labels: string[]): void;
     vmOnBreakContSet(): boolean;
     vmOnBreakHandlerActive(): boolean;
     vmEscape(): boolean;
@@ -217,7 +220,8 @@ export declare class CpcVm {
     vmGetOutFileObject(): OutFile;
     vmAdaptFilename(name: string, err: string): string;
     vmGetSoundData(): SoundData[];
-    vmTrace(line: number | string, pos: number, len: number): void;
+    vmSetSourceMap(sourceMap: Record<string, number[]>): void;
+    vmTrace(line: number | string): void;
     private vmDrawMovePlot;
     private vmAfterEveryGosub;
     private vmCopyFromScreen;

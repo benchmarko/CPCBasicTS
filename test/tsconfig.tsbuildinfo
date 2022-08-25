@@ -267,12 +267,12 @@
         "affectsGlobalScope": false
       },
       "../types/CodeGeneratorJs.d.ts": {
-        "version": "984153d63cf8fcf5d231744ef5d9c93d92b8ffaeca2466d43f2275dbf3355bd8",
-        "signature": "984153d63cf8fcf5d231744ef5d9c93d92b8ffaeca2466d43f2275dbf3355bd8",
+        "version": "8f4fe2c26143340a692884c664bf25e138a218348c967b28e59ef8f8345b4489",
+        "signature": "8f4fe2c26143340a692884c664bf25e138a218348c967b28e59ef8f8345b4489",
         "affectsGlobalScope": false
       },
       "../../src/test/CodeGeneratorJs.qunit.ts": {
-        "version": "ae35b4b80cf6047e59e8081bfd0cd14e683197872436a13bdd0e1775982c600e",
+        "version": "b3659c1b19e8bd7f0d3813d7f18cb62f1dfa5dc10036dd9def9f9875324879bc",
         "signature": "0de15ad5d19532aef4039ea7ca938a9a1b4dd3d7a6e3d2b02e1c4de965d5e58b",
         "affectsGlobalScope": false
       },
@@ -302,8 +302,8 @@
         "affectsGlobalScope": false
       },
       "../types/CpcVm.d.ts": {
-        "version": "5cf3f852bae0da24c04bc6d8ae08128dd25dd06ac286add84f941a3f55a546fd",
-        "signature": "5cf3f852bae0da24c04bc6d8ae08128dd25dd06ac286add84f941a3f55a546fd",
+        "version": "c8f10db9156f422f480549584e410e2a8c990d665d6976903d68a14fd39043cd",
+        "signature": "c8f10db9156f422f480549584e410e2a8c990d665d6976903d68a14fd39043cd",
         "affectsGlobalScope": false
       },
       "../../src/test/CpcVm.qunit.ts": {
@@ -367,7 +367,7 @@
         "affectsGlobalScope": false
       },
       "../../src/test/testParseExamples.qunit.ts": {
-        "version": "997ce44b67adbd46688e2919b4c35e729620229237b2a5536b71412ea2cbc69e",
+        "version": "0ed44125805468db9328e6f3b9ec410a11dce9ab59f926eb77e21664df8c4289",
         "signature": "be126d32a8a1c3d7b2c62d6c06a6ea2f8b8df11624fdd84827beb6d86bbbb352",
         "affectsGlobalScope": false
       },

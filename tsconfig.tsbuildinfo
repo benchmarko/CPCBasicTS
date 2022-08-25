@@ -247,8 +247,8 @@
         "affectsGlobalScope": false
       },
       "../src/CodeGeneratorJs.ts": {
-        "version": "be279b2443e50f34be13381ec659c4e2e07e879cbd547e6c444238af174b79c0",
-        "signature": "984153d63cf8fcf5d231744ef5d9c93d92b8ffaeca2466d43f2275dbf3355bd8",
+        "version": "96531460bc361d46f93cfcb1f9d2c0b438d23a4d7afc2c14b7ac808e2ee431c0",
+        "signature": "8f4fe2c26143340a692884c664bf25e138a218348c967b28e59ef8f8345b4489",
         "affectsGlobalScope": false
       },
       "../src/CodeGeneratorToken.ts": {
@@ -287,8 +287,8 @@
         "affectsGlobalScope": false
       },
       "../src/CpcVm.ts": {
-        "version": "95ae3274550a4476a25d95ec9ae87288213291d625365145947c2f98c74623c5",
-        "signature": "5cf3f852bae0da24c04bc6d8ae08128dd25dd06ac286add84f941a3f55a546fd",
+        "version": "78cfdd0c8fff2f6efe2ed5589eb7669b15443dfa6fb4e3cd5a15a3e4b5ac4203",
+        "signature": "c8f10db9156f422f480549584e410e2a8c990d665d6976903d68a14fd39043cd",
         "affectsGlobalScope": false
       },
       "../src/CpcVmRsx.ts": {
@@ -322,7 +322,7 @@
         "affectsGlobalScope": false
       },
       "../src/Controller.ts": {
-        "version": "7485747c9ea0b63a4385b4e95de0134674276489e0eec521e28a881c04edccc1",
+        "version": "addcf71014ea1ac662f89529a9a4e0366db421d1f17e0a5560a365365e151539",
         "signature": "755f760e1d9c09c9cd28c3bf0ed9939a9cb5d9fd8833aeaeb4b7f3c3ff63aa1c",
         "affectsGlobalScope": false
       },

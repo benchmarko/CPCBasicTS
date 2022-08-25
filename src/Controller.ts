@@ -1611,6 +1611,7 @@ export class Controller implements IController {
 			outputString = this.outputError(output.error);
 		} else {
 			outputString = output.text;
+			this.vm.vmSetSourceMap(this.codeGeneratorJs.getSourceMap());
 		}
 
 		if (outputString && outputString.length > 0) {
@@ -1890,6 +1891,7 @@ export class Controller implements IController {
 					const fnScript = new Function("o", outputString); // eslint-disable-line no-new-func
 
 					this.fnScript = fnScript;
+					this.vm.vmSetSourceMap(codeGeneratorJs.getSourceMap());
 				} catch (e) {
 					Utils.console.error(e);
 					if (e instanceof Error) {

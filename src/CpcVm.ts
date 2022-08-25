@@ -121,11 +121,13 @@ export interface VmStopEntry {
 	paras: VmStopParas
 }
 
+/*
 interface TraceInfo {
-	line: string,
-	pos: number,
-	len: number
+	line: string
+	//pos: number,
+	//len: number
 }
+*/
 
 type PrintObjectType = {type: string, args: (string | number)[]};
 
@@ -165,6 +167,9 @@ export class CpcVm {
 		0: 0 // for line 0: index 0
 	};
 
+	private readonly labelList: (string|number)[]; // for resume next
+	private sourceMap: Record<string, number[]> = {};
+
 	private readonly windowDataList: WindowData[]; // window data for window 0..7,8,9
 
 	private readonly timerList: TimerEntry[]; // BASIC timer 0..3 (3 has highest priority)
@@ -200,7 +205,8 @@ export class CpcVm {
 
 	private tronFlag1 = false; // trace flag
 
-	private traceInfo = {} as TraceInfo;
+	private traceLabel = "";
+	//private traceInfo = {} as TraceInfo;
 
 	private ramSelect = 0;
 
@@ -457,6 +463,8 @@ export class CpcVm {
 
 		this.dataList = []; // array for BASIC data lines (continuous)
 
+		this.labelList = [];
+
 		this.windowDataList = []; // window data for window 0..7,8,9
 		for (let i = 0; i < CpcVm.streamCount; i += 1) {
 			this.windowDataList[i] = {} as WindowData;
@@ -516,9 +524,10 @@ export class CpcVm {
 		this.degFlag = false; // degree or radians
 
 		this.tronFlag1 = false;
-		this.traceInfo.line = ""; // last trace line
-		this.traceInfo.pos = 0;
-		this.traceInfo.len = 0;
+		this.traceLabel = "";
+		//this.traceInfo.line = ""; // last trace line
+		//this.traceInfo.pos = 0;
+		//this.traceInfo.len = 0;
 
 		this.mem.length = 0; // clear memory (for PEEK, POKE)
 		this.ramSelect = 0; // for banking with 16K banks in the range 0x4000-0x7fff (0=default; 1...=additional)
@@ -647,6 +656,8 @@ export class CpcVm {
 		this.closein();
 		this.closeout();
 		this.cursor(stream, 0);
+		this.traceLabel = ""; // last trace line
+		this.labelList.length = 0; //TTT
 	}
 
 	vmGetAllVariables(): VariableMap { // also called from JS script
@@ -655,6 +666,11 @@ export class CpcVm {
 
 	vmSetStartLine(line: number): void {
 		this.startLine = line;
+	}
+
+	vmSetLabels(labels: string[]): void {
+		this.labelList.length = 0;
+		Object.assign(this.labelList, labels);
 	}
 
 	vmOnBreakContSet(): boolean {
@@ -1076,12 +1092,28 @@ export class CpcVm {
 		return this.soundData;
 	}
 
+	vmSetSourceMap(sourceMap: Record<string, number[]>): void {
+		this.sourceMap = sourceMap;
+	}
+
+	/*
 	vmTrace(line: number | string, pos: number, len: number): void {
 		const stream = 0;
 
 		this.traceInfo.line = String(line);
 		this.traceInfo.pos = pos;
 		this.traceInfo.len = len;
+		if (this.tronFlag1 && !isNaN(Number(line))) {
+			this.print(stream, "[" + line + "]");
+		}
+	}
+	*/
+	vmTrace(line: number | string): void {
+		const stream = 0;
+
+		this.traceLabel = String(line);
+		//this.traceInfo.pos = pos;
+		//this.traceInfo.len = len;
 		if (this.tronFlag1 && !isNaN(Number(line))) {
 			this.print(stream, "[" + line + "]");
 		}
@@ -1894,8 +1926,8 @@ export class CpcVm {
 
 		let line = this.errorLine;
 
-		if (this.traceInfo.line) {
-			line += " (trace: " + this.traceInfo.line + ")";
+		if (this.traceLabel) {
+			line += " (trace: " + this.traceLabel + ")";
 		}
 
 		const errorWithInfo = errorString + " in " + line + (errInfo ? (": " + errInfo) : "");
@@ -1912,7 +1944,13 @@ export class CpcVm {
 		if (!this.quiet) {
 			Utils.console.log("BASIC error(" + err + "):", errorWithInfo + (hidden ? " (hidden: " + hidden + ")" : ""));
 		}
-		return Utils.composeError("CpcVm", error, errorString, errInfo, this.traceInfo.pos || undefined, this.traceInfo.len || undefined, line, hidden);
+		//return Utils.composeError("CpcVm", error, errorString, errInfo, this.traceInfo.pos || undefined, this.traceInfo.len || undefined, line, hidden);
+		const traceLine = this.traceLabel || this.line,
+			sourceMapEntry = this.sourceMap[traceLine],
+			pos = sourceMapEntry && sourceMapEntry[0],
+			len = sourceMapEntry && sourceMapEntry[1];
+
+		return Utils.composeError("CpcVm", error, errorString, errInfo, pos, len, line, hidden);
 	}
 
 	error(err: number, errInfo: string): void {
@@ -3447,15 +3485,23 @@ export class CpcVm {
 	}
 
 	resumeNext(): void {
-		if (!this.errorGotoLine) {
+		if (!this.errorGotoLine || !this.errorResumeLine) {
 			throw this.vmComposeError(Error(), 20, "RESUME NEXT"); // Unexpected RESUME
 		}
 		// TODO: need to find the instruction after the erroneous one!
-		const line = this.errorResumeLine;
+		const resumeLineIndex = this.labelList.indexOf(this.errorResumeLine);
+
+		if (resumeLineIndex < 0) {
+			Utils.console.error("resumeNext: line not found: " + this.errorResumeLine); //TTT
+			this.errorResumeLine = 0;
+			return;
+		}
+
+		const line = this.labelList[resumeLineIndex + 1]; // get next line
 
 		this.vmGotoLine(line, "resumeNext");
 		this.errorResumeLine = 0;
-		this.vmNotImplemented("RESUME NEXT");
+		//this.vmNotImplemented("RESUME NEXT");
 	}
 
 	"return"(): void {

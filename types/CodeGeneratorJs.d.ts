@@ -28,6 +28,8 @@ export declare class CodeGeneratorJs {
     private whileCount;
     private referencedLabelsCount;
     private readonly dataList;
+    private readonly labelList;
+    private sourceMap;
     private countMap;
     private variables;
     private defScopeArgs?;
@@ -137,6 +139,8 @@ export declare class CodeGeneratorJs {
     private fnPrecheckTree;
     private evaluate;
     private static combineData;
+    private static combineLabels;
+    getSourceMap(): Record<string, number[]>;
     debugGetLabelsCount(): number;
     generate(input: string, variables: Variables, allowDirect?: boolean): IOutput;
 }

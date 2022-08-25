@@ -16,6 +16,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.dataLineIndex = {
                 0: 0 // for line 0: index 0
             };
+            this.sourceMap = {};
             this.crtcReg = 0;
             this.printControlBuf = "";
             this.startTime = 0;
@@ -33,7 +34,8 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.errorLine = 0; // line of last error (Erl)
             this.degFlag = false; // degree or radians
             this.tronFlag1 = false; // trace flag
-            this.traceInfo = {};
+            this.traceLabel = "";
+            //private traceInfo = {} as TraceInfo;
             this.ramSelect = 0;
             this.screenPage = 3; // 16K screen page, 3=0xc000..0xffff
             this.minCharHimem = CpcVm.maxHimem;
@@ -109,6 +111,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.gosubStack = []; // stack of line numbers for gosub/return
             this.mem = []; // for peek, poke
             this.dataList = []; // array for BASIC data lines (continuous)
+            this.labelList = [];
             this.windowDataList = []; // window data for window 0..7,8,9
             for (var i = 0; i < CpcVm.streamCount; i += 1) {
                 this.windowDataList[i] = {};
@@ -151,9 +154,10 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.gosubStack.length = 0;
             this.degFlag = false; // degree or radians
             this.tronFlag1 = false;
-            this.traceInfo.line = ""; // last trace line
-            this.traceInfo.pos = 0;
-            this.traceInfo.len = 0;
+            this.traceLabel = "";
+            //this.traceInfo.line = ""; // last trace line
+            //this.traceInfo.pos = 0;
+            //this.traceInfo.len = 0;
             this.mem.length = 0; // clear memory (for PEEK, POKE)
             this.ramSelect = 0; // for banking with 16K banks in the range 0x4000-0x7fff (0=default; 1...=additional)
             this.screenPage = 3; // 16K screen page, 3=0xc000..0xffff
@@ -252,12 +256,18 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.closein();
             this.closeout();
             this.cursor(stream, 0);
+            this.traceLabel = ""; // last trace line
+            this.labelList.length = 0; //TTT
         };
         CpcVm.prototype.vmGetAllVariables = function () {
             return this.variables.getAllVariables();
         };
         CpcVm.prototype.vmSetStartLine = function (line) {
             this.startLine = line;
+        };
+        CpcVm.prototype.vmSetLabels = function (labels) {
+            this.labelList.length = 0;
+            Object.assign(this.labelList, labels);
         };
         CpcVm.prototype.vmOnBreakContSet = function () {
             return this.breakGosubLine < 0; // on break cont
@@ -612,11 +622,26 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         CpcVm.prototype.vmGetSoundData = function () {
             return this.soundData;
         };
-        CpcVm.prototype.vmTrace = function (line, pos, len) {
-            var stream = 0;
+        CpcVm.prototype.vmSetSourceMap = function (sourceMap) {
+            this.sourceMap = sourceMap;
+        };
+        /*
+        vmTrace(line: number | string, pos: number, len: number): void {
+            const stream = 0;
+    
             this.traceInfo.line = String(line);
             this.traceInfo.pos = pos;
             this.traceInfo.len = len;
+            if (this.tronFlag1 && !isNaN(Number(line))) {
+                this.print(stream, "[" + line + "]");
+            }
+        }
+        */
+        CpcVm.prototype.vmTrace = function (line) {
+            var stream = 0;
+            this.traceLabel = String(line);
+            //this.traceInfo.pos = pos;
+            //this.traceInfo.len = len;
             if (this.tronFlag1 && !isNaN(Number(line))) {
                 this.print(stream, "[" + line + "]");
             }
@@ -1332,8 +1357,8 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.errorCode = err;
             this.errorLine = this.line;
             var line = this.errorLine;
-            if (this.traceInfo.line) {
-                line += " (trace: " + this.traceInfo.line + ")";
+            if (this.traceLabel) {
+                line += " (trace: " + this.traceLabel + ")";
             }
             var errorWithInfo = errorString + " in " + line + (errInfo ? (": " + errInfo) : "");
             var hidden = false; // hide errors wich are catched
@@ -1349,7 +1374,9 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             if (!this.quiet) {
                 Utils_1.Utils.console.log("BASIC error(" + err + "):", errorWithInfo + (hidden ? " (hidden: " + hidden + ")" : ""));
             }
-            return Utils_1.Utils.composeError("CpcVm", error, errorString, errInfo, this.traceInfo.pos || undefined, this.traceInfo.len || undefined, line, hidden);
+            //return Utils.composeError("CpcVm", error, errorString, errInfo, this.traceInfo.pos || undefined, this.traceInfo.len || undefined, line, hidden);
+            var traceLine = this.traceLabel || this.line, sourceMapEntry = this.sourceMap[traceLine], pos = sourceMapEntry && sourceMapEntry[0], len = sourceMapEntry && sourceMapEntry[1];
+            return Utils_1.Utils.composeError("CpcVm", error, errorString, errInfo, pos, len, line, hidden);
         };
         CpcVm.prototype.error = function (err, errInfo) {
             err = this.vmInRangeRound(err, 0, 255, "ERROR"); // could trigger another error
@@ -2708,14 +2735,20 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             }
         };
         CpcVm.prototype.resumeNext = function () {
-            if (!this.errorGotoLine) {
+            if (!this.errorGotoLine || !this.errorResumeLine) {
                 throw this.vmComposeError(Error(), 20, "RESUME NEXT"); // Unexpected RESUME
             }
             // TODO: need to find the instruction after the erroneous one!
-            var line = this.errorResumeLine;
+            var resumeLineIndex = this.labelList.indexOf(this.errorResumeLine);
+            if (resumeLineIndex < 0) {
+                Utils_1.Utils.console.error("resumeNext: line not found: " + this.errorResumeLine); //TTT
+                this.errorResumeLine = 0;
+                return;
+            }
+            var line = this.labelList[resumeLineIndex + 1]; // get next line
             this.vmGotoLine(line, "resumeNext");
             this.errorResumeLine = 0;
-            this.vmNotImplemented("RESUME NEXT");
+            //this.vmNotImplemented("RESUME NEXT");
         };
         CpcVm.prototype["return"] = function () {
             var line = this.gosubStack.pop();

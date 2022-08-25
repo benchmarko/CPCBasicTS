@@ -4202,6 +4202,8 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             this.whileCount = 0; // stack needed
             this.referencedLabelsCount = {};
             this.dataList = []; // collected data from data lines
+            this.labelList = []; // all labels
+            this.sourceMap = {};
             this.countMap = {};
             // for evaluate:
             this.variables = {}; // will be set later
@@ -4328,7 +4330,9 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             stack.whileLabel.length = 0;
             this.line = "0"; // current line (label)
             this.resetCountsPerLine();
+            this.labelList.length = 0;
             this.dataList.length = 0;
+            this.sourceMap = {};
             this.referencedLabelsCount = {}; // labels or line numbers
             this.countMap = {};
         };
@@ -4737,6 +4741,9 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
         CodeGeneratorJs.prototype.label = function (node) {
             var label = node.value;
             this.line = label; // set line before parsing args
+            if (this.countMap.resumeNext) {
+                this.labelList.push(label); // only needed to support resume next
+            }
             this.resetCountsPerLine(); // we want to have "stable" counts, even if other lines change, e.g. direct
             var isDirect = label === "";
             var value = "";
@@ -4746,6 +4753,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             }
             if (!this.noCodeFrame) {
                 value += "case " + label + ":";
+                value += " o.line = " + label + ";";
             }
             else {
                 value = "";
@@ -4755,7 +4763,12 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 var value2 = nodeArgs[i];
                 if (this.traceActive) {
                     var traceLabel = this.line + ((i > 0) ? "t" + i : ""), pos = node.args[i].pos, len = node.args[i].len || node.args[i].value.length || 0;
-                    value += " o.vmTrace(\"" + traceLabel + "\", " + pos + ", " + len + ");";
+                    //value += " o.vmTrace(\"" + traceLabel + "\", " + pos + ", " + len + ");";
+                    value += " o.vmTrace(\"" + traceLabel + "\");";
+                    this.sourceMap[traceLabel] = [
+                        pos,
+                        len
+                    ];
                 }
                 if (value2 !== "") {
                     if (!(/[}:;\n]$/).test(value2)) { // does not end with } : ; \n
@@ -4977,12 +4990,25 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             }
             node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + "); break"; // with break
         };
-        CodeGeneratorJs.prototype.fnThenOrElsePart = function (args) {
+        CodeGeneratorJs.prototype.fnThenOrElsePart = function (args, tracePrefix) {
             var nodeArgs = this.fnParseArgs(args);
             if (args[0].type === "linenumber") {
                 var line = nodeArgs[0];
                 this.fnAddReferenceLabel(line, args[0]);
                 nodeArgs[0] = "o.goto(" + line + "); break"; // convert to "goto"
+            }
+            if (this.traceActive) {
+                // TODO see also "label":
+                for (var i = 0; i < nodeArgs.length; i += 1) {
+                    //let value2 = nodeArgs[i];
+                    //const traceLabel = this.line + ((i > 0) ? "t" + i : ""),
+                    var traceLabel = tracePrefix + ((i > 0) ? "t" + i : ""), pos = args[i].pos, len = args[i].len || args[i].value.length || 0;
+                    nodeArgs[i] = "o.vmTrace(\"" + traceLabel + "\"); " + nodeArgs[i];
+                    this.sourceMap[traceLabel] = [
+                        pos,
+                        len
+                    ];
+                }
             }
             return nodeArgs.join("; ");
         };
@@ -4998,8 +5024,9 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             if (expression.endsWith(" ? -1 : 0")) { // optimize simple expression
                 expression = expression.replace(/ \? -1 : 0$/, "");
             }
-            var thenPart = this.fnThenOrElsePart(node.args), // "then" statements
-            simpleThen = CodeGeneratorJs.fnIsSimplePart(thenPart), elsePart = node.args2 ? this.fnThenOrElsePart(node.args2) : "", // "else" statements
+            var label = this.fnGetIfLabel(), // need it also for tracing nested if
+            thenPart = this.fnThenOrElsePart(node.args, label + "T"), // "then" statements
+            simpleThen = CodeGeneratorJs.fnIsSimplePart(thenPart), elsePart = node.args2 ? this.fnThenOrElsePart(node.args2, label + "E") : "", // "else" statements
             simpleElse = node.args2 ? CodeGeneratorJs.fnIsSimplePart(elsePart) : true;
             var value = "if (" + expression + ") { ";
             if (simpleThen && simpleElse) {
@@ -5009,7 +5036,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 }
             }
             else {
-                var label = this.fnGetIfLabel();
+                //const label = this.fnGetIfLabel();
                 value += 'o.goto("' + label + '"); break; } ';
                 if (elsePart !== "") { // "else" statements?
                     value += "/* else */ " + elsePart + "; ";
@@ -5334,7 +5361,9 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 var node = nodes[i];
                 countMap[node.type] = (countMap[node.type] || 0) + 1;
                 if (node.type === "resume" && !(node.args && node.args.length)) {
-                    this.traceActive = true;
+                    //this.traceActive = true;
+                    var resumeNoArgs = "resumeNoArgsCount";
+                    countMap[resumeNoArgs] = (countMap[resumeNoArgs] || 0) + 1;
                 }
                 /*
                 if (node.left) {
@@ -5360,9 +5389,9 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             this.defScopeArgs = undefined;
             // create labels map
             this.fnCreateLabelsMap(parseTree, this.referencedLabelsCount, allowDirect);
-            this.traceActive = false;
-            this.fnPrecheckTree(parseTree, this.countMap); // also set trace active for resume without parameter
-            this.traceActive = this.traceActive || this.trace || Boolean(this.countMap.tron) || Boolean(this.countMap.resumeNext); // we also switch on tracing for tron, resumeNext or resume without parameter
+            //this.traceActive = false;
+            this.fnPrecheckTree(parseTree, this.countMap); // also set "_resumeNoArgs" for resume without args
+            this.traceActive = this.trace || Boolean(this.countMap.tron) || Boolean(this.countMap.resumeNext) || Boolean(this.countMap.resumeNoArgsCount); // we also switch on tracing for tron, resumeNext or resume without parameter
             var output = "";
             for (var i = 0; i < parseTree.length; i += 1) {
                 if (Utils_7.Utils.debug > 2) {
@@ -5384,17 +5413,19 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 }
             }
             // optimize: comment lines which are not referenced
-            if (!this.countMap.merge && !this.countMap.chainMerge) {
+            if (!this.countMap.merge && !this.countMap.chainMerge && !this.countMap.resumeNext && !this.countMap.resumeNoArgsCount) {
                 output = CodeGeneratorJs.fnCommentUnusedCases(output, this.referencedLabelsCount);
             }
             return output;
         };
         CodeGeneratorJs.combineData = function (data) {
-            var dataString = data.join(";\n");
-            if (dataString.length) {
-                dataString += ";\n";
-            }
-            return dataString;
+            return data.length ? data.join(";\n") + ";\n" : "";
+        };
+        CodeGeneratorJs.combineLabels = function (data) {
+            return data.length ? "o.vmSetLabels([" + data.join(",") + "]);\n" : "";
+        };
+        CodeGeneratorJs.prototype.getSourceMap = function () {
+            return this.sourceMap;
         };
         CodeGeneratorJs.prototype.debugGetLabelsCount = function () {
             return Object.keys(this.referencedLabelsCount).length;
@@ -5407,17 +5438,19 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             try {
                 var tokens = this.lexer.lex(input), parseTree = this.parser.parse(tokens);
                 var output = this.evaluate(parseTree, variables, Boolean(allowDirect));
+                var combinedData = CodeGeneratorJs.combineData(this.dataList), combinedLabels = CodeGeneratorJs.combineLabels(this.labelList);
                 if (!this.noCodeFrame) {
                     output = '"use strict"\n'
                         + "var v=o.vmGetAllVariables();\n"
                         + "while (o.vmLoopCondition()) {\nswitch (o.line) {\ncase 0:\n"
-                        + CodeGeneratorJs.combineData(this.dataList)
+                        + combinedData
+                        + combinedLabels
                         + " o.goto(o.startLine ? o.startLine : \"start\"); break;\ncase \"start\":\n"
                         + output
                         + "\ncase \"end\": o.vmStop(\"end\", 90); break;\ndefault: o.error(8); o.goto(\"end\"); break;\n}}\n";
                 }
                 else {
-                    output = CodeGeneratorJs.combineData(this.dataList) + output;
+                    output = combinedData + output;
                 }
                 out.text = output;
             }
@@ -11157,6 +11190,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.dataLineIndex = {
                 0: 0 // for line 0: index 0
             };
+            this.sourceMap = {};
             this.crtcReg = 0;
             this.printControlBuf = "";
             this.startTime = 0;
@@ -11174,7 +11208,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.errorLine = 0; // line of last error (Erl)
             this.degFlag = false; // degree or radians
             this.tronFlag1 = false; // trace flag
-            this.traceInfo = {};
+            this.traceLabel = "";
+            //private traceInfo = {} as TraceInfo;
             this.ramSelect = 0;
             this.screenPage = 3; // 16K screen page, 3=0xc000..0xffff
             this.minCharHimem = CpcVm.maxHimem;
@@ -11250,6 +11285,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.gosubStack = []; // stack of line numbers for gosub/return
             this.mem = []; // for peek, poke
             this.dataList = []; // array for BASIC data lines (continuous)
+            this.labelList = [];
             this.windowDataList = []; // window data for window 0..7,8,9
             for (var i = 0; i < CpcVm.streamCount; i += 1) {
                 this.windowDataList[i] = {};
@@ -11292,9 +11328,10 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.gosubStack.length = 0;
             this.degFlag = false; // degree or radians
             this.tronFlag1 = false;
-            this.traceInfo.line = ""; // last trace line
-            this.traceInfo.pos = 0;
-            this.traceInfo.len = 0;
+            this.traceLabel = "";
+            //this.traceInfo.line = ""; // last trace line
+            //this.traceInfo.pos = 0;
+            //this.traceInfo.len = 0;
             this.mem.length = 0; // clear memory (for PEEK, POKE)
             this.ramSelect = 0; // for banking with 16K banks in the range 0x4000-0x7fff (0=default; 1...=additional)
             this.screenPage = 3; // 16K screen page, 3=0xc000..0xffff
@@ -11393,12 +11430,18 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.closein();
             this.closeout();
             this.cursor(stream, 0);
+            this.traceLabel = ""; // last trace line
+            this.labelList.length = 0; //TTT
         };
         CpcVm.prototype.vmGetAllVariables = function () {
             return this.variables.getAllVariables();
         };
         CpcVm.prototype.vmSetStartLine = function (line) {
             this.startLine = line;
+        };
+        CpcVm.prototype.vmSetLabels = function (labels) {
+            this.labelList.length = 0;
+            Object.assign(this.labelList, labels);
         };
         CpcVm.prototype.vmOnBreakContSet = function () {
             return this.breakGosubLine < 0; // on break cont
@@ -11753,11 +11796,26 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.vmGetSoundData = function () {
             return this.soundData;
         };
-        CpcVm.prototype.vmTrace = function (line, pos, len) {
-            var stream = 0;
+        CpcVm.prototype.vmSetSourceMap = function (sourceMap) {
+            this.sourceMap = sourceMap;
+        };
+        /*
+        vmTrace(line: number | string, pos: number, len: number): void {
+            const stream = 0;
+    
             this.traceInfo.line = String(line);
             this.traceInfo.pos = pos;
             this.traceInfo.len = len;
+            if (this.tronFlag1 && !isNaN(Number(line))) {
+                this.print(stream, "[" + line + "]");
+            }
+        }
+        */
+        CpcVm.prototype.vmTrace = function (line) {
+            var stream = 0;
+            this.traceLabel = String(line);
+            //this.traceInfo.pos = pos;
+            //this.traceInfo.len = len;
             if (this.tronFlag1 && !isNaN(Number(line))) {
                 this.print(stream, "[" + line + "]");
             }
@@ -12473,8 +12531,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.errorCode = err;
             this.errorLine = this.line;
             var line = this.errorLine;
-            if (this.traceInfo.line) {
-                line += " (trace: " + this.traceInfo.line + ")";
+            if (this.traceLabel) {
+                line += " (trace: " + this.traceLabel + ")";
             }
             var errorWithInfo = errorString + " in " + line + (errInfo ? (": " + errInfo) : "");
             var hidden = false; // hide errors wich are catched
@@ -12490,7 +12548,9 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             if (!this.quiet) {
                 Utils_19.Utils.console.log("BASIC error(" + err + "):", errorWithInfo + (hidden ? " (hidden: " + hidden + ")" : ""));
             }
-            return Utils_19.Utils.composeError("CpcVm", error, errorString, errInfo, this.traceInfo.pos || undefined, this.traceInfo.len || undefined, line, hidden);
+            //return Utils.composeError("CpcVm", error, errorString, errInfo, this.traceInfo.pos || undefined, this.traceInfo.len || undefined, line, hidden);
+            var traceLine = this.traceLabel || this.line, sourceMapEntry = this.sourceMap[traceLine], pos = sourceMapEntry && sourceMapEntry[0], len = sourceMapEntry && sourceMapEntry[1];
+            return Utils_19.Utils.composeError("CpcVm", error, errorString, errInfo, pos, len, line, hidden);
         };
         CpcVm.prototype.error = function (err, errInfo) {
             err = this.vmInRangeRound(err, 0, 255, "ERROR"); // could trigger another error
@@ -13849,14 +13909,20 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             }
         };
         CpcVm.prototype.resumeNext = function () {
-            if (!this.errorGotoLine) {
+            if (!this.errorGotoLine || !this.errorResumeLine) {
                 throw this.vmComposeError(Error(), 20, "RESUME NEXT"); // Unexpected RESUME
             }
             // TODO: need to find the instruction after the erroneous one!
-            var line = this.errorResumeLine;
+            var resumeLineIndex = this.labelList.indexOf(this.errorResumeLine);
+            if (resumeLineIndex < 0) {
+                Utils_19.Utils.console.error("resumeNext: line not found: " + this.errorResumeLine); //TTT
+                this.errorResumeLine = 0;
+                return;
+            }
+            var line = this.labelList[resumeLineIndex + 1]; // get next line
             this.vmGotoLine(line, "resumeNext");
             this.errorResumeLine = 0;
-            this.vmNotImplemented("RESUME NEXT");
+            //this.vmNotImplemented("RESUME NEXT");
         };
         CpcVm.prototype["return"] = function () {
             var line = this.gosubStack.pop();
@@ -15993,6 +16059,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
             else {
                 outputString = output.text;
+                this.vm.vmSetSourceMap(this.codeGeneratorJs.getSourceMap());
             }
             if (outputString && outputString.length > 0) {
                 outputString += "\n";
@@ -16211,6 +16278,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     try {
                         var fnScript = new Function("o", outputString); // eslint-disable-line no-new-func
                         this.fnScript = fnScript;
+                        this.vm.vmSetSourceMap(codeGeneratorJs.getSourceMap());
                     }
                     catch (e) {
                         Utils_21.Utils.console.error(e);

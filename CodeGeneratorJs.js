@@ -23,6 +23,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.whileCount = 0; // stack needed
             this.referencedLabelsCount = {};
             this.dataList = []; // collected data from data lines
+            this.labelList = []; // all labels
+            this.sourceMap = {};
             this.countMap = {};
             // for evaluate:
             this.variables = {}; // will be set later
@@ -149,7 +151,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             stack.whileLabel.length = 0;
             this.line = "0"; // current line (label)
             this.resetCountsPerLine();
+            this.labelList.length = 0;
             this.dataList.length = 0;
+            this.sourceMap = {};
             this.referencedLabelsCount = {}; // labels or line numbers
             this.countMap = {};
         };
@@ -558,6 +562,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         CodeGeneratorJs.prototype.label = function (node) {
             var label = node.value;
             this.line = label; // set line before parsing args
+            if (this.countMap.resumeNext) {
+                this.labelList.push(label); // only needed to support resume next
+            }
             this.resetCountsPerLine(); // we want to have "stable" counts, even if other lines change, e.g. direct
             var isDirect = label === "";
             var value = "";
@@ -567,6 +574,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             if (!this.noCodeFrame) {
                 value += "case " + label + ":";
+                value += " o.line = " + label + ";";
             }
             else {
                 value = "";
@@ -576,7 +584,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 var value2 = nodeArgs[i];
                 if (this.traceActive) {
                     var traceLabel = this.line + ((i > 0) ? "t" + i : ""), pos = node.args[i].pos, len = node.args[i].len || node.args[i].value.length || 0;
-                    value += " o.vmTrace(\"" + traceLabel + "\", " + pos + ", " + len + ");";
+                    //value += " o.vmTrace(\"" + traceLabel + "\", " + pos + ", " + len + ");";
+                    value += " o.vmTrace(\"" + traceLabel + "\");";
+                    this.sourceMap[traceLabel] = [
+                        pos,
+                        len
+                    ];
                 }
                 if (value2 !== "") {
                     if (!(/[}:;\n]$/).test(value2)) { // does not end with } : ; \n
@@ -798,12 +811,25 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + "); break"; // with break
         };
-        CodeGeneratorJs.prototype.fnThenOrElsePart = function (args) {
+        CodeGeneratorJs.prototype.fnThenOrElsePart = function (args, tracePrefix) {
             var nodeArgs = this.fnParseArgs(args);
             if (args[0].type === "linenumber") {
                 var line = nodeArgs[0];
                 this.fnAddReferenceLabel(line, args[0]);
                 nodeArgs[0] = "o.goto(" + line + "); break"; // convert to "goto"
+            }
+            if (this.traceActive) {
+                // TODO see also "label":
+                for (var i = 0; i < nodeArgs.length; i += 1) {
+                    //let value2 = nodeArgs[i];
+                    //const traceLabel = this.line + ((i > 0) ? "t" + i : ""),
+                    var traceLabel = tracePrefix + ((i > 0) ? "t" + i : ""), pos = args[i].pos, len = args[i].len || args[i].value.length || 0;
+                    nodeArgs[i] = "o.vmTrace(\"" + traceLabel + "\"); " + nodeArgs[i];
+                    this.sourceMap[traceLabel] = [
+                        pos,
+                        len
+                    ];
+                }
             }
             return nodeArgs.join("; ");
         };
@@ -819,8 +845,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (expression.endsWith(" ? -1 : 0")) { // optimize simple expression
                 expression = expression.replace(/ \? -1 : 0$/, "");
             }
-            var thenPart = this.fnThenOrElsePart(node.args), // "then" statements
-            simpleThen = CodeGeneratorJs.fnIsSimplePart(thenPart), elsePart = node.args2 ? this.fnThenOrElsePart(node.args2) : "", // "else" statements
+            var label = this.fnGetIfLabel(), // need it also for tracing nested if
+            thenPart = this.fnThenOrElsePart(node.args, label + "T"), // "then" statements
+            simpleThen = CodeGeneratorJs.fnIsSimplePart(thenPart), elsePart = node.args2 ? this.fnThenOrElsePart(node.args2, label + "E") : "", // "else" statements
             simpleElse = node.args2 ? CodeGeneratorJs.fnIsSimplePart(elsePart) : true;
             var value = "if (" + expression + ") { ";
             if (simpleThen && simpleElse) {
@@ -830,7 +857,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 }
             }
             else {
-                var label = this.fnGetIfLabel();
+                //const label = this.fnGetIfLabel();
                 value += 'o.goto("' + label + '"); break; } ';
                 if (elsePart !== "") { // "else" statements?
                     value += "/* else */ " + elsePart + "; ";
@@ -1155,7 +1182,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 var node = nodes[i];
                 countMap[node.type] = (countMap[node.type] || 0) + 1;
                 if (node.type === "resume" && !(node.args && node.args.length)) {
-                    this.traceActive = true;
+                    //this.traceActive = true;
+                    var resumeNoArgs = "resumeNoArgsCount";
+                    countMap[resumeNoArgs] = (countMap[resumeNoArgs] || 0) + 1;
                 }
                 /*
                 if (node.left) {
@@ -1181,9 +1210,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.defScopeArgs = undefined;
             // create labels map
             this.fnCreateLabelsMap(parseTree, this.referencedLabelsCount, allowDirect);
-            this.traceActive = false;
-            this.fnPrecheckTree(parseTree, this.countMap); // also set trace active for resume without parameter
-            this.traceActive = this.traceActive || this.trace || Boolean(this.countMap.tron) || Boolean(this.countMap.resumeNext); // we also switch on tracing for tron, resumeNext or resume without parameter
+            //this.traceActive = false;
+            this.fnPrecheckTree(parseTree, this.countMap); // also set "_resumeNoArgs" for resume without args
+            this.traceActive = this.trace || Boolean(this.countMap.tron) || Boolean(this.countMap.resumeNext) || Boolean(this.countMap.resumeNoArgsCount); // we also switch on tracing for tron, resumeNext or resume without parameter
             var output = "";
             for (var i = 0; i < parseTree.length; i += 1) {
                 if (Utils_1.Utils.debug > 2) {
@@ -1205,17 +1234,19 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 }
             }
             // optimize: comment lines which are not referenced
-            if (!this.countMap.merge && !this.countMap.chainMerge) {
+            if (!this.countMap.merge && !this.countMap.chainMerge && !this.countMap.resumeNext && !this.countMap.resumeNoArgsCount) {
                 output = CodeGeneratorJs.fnCommentUnusedCases(output, this.referencedLabelsCount);
             }
             return output;
         };
         CodeGeneratorJs.combineData = function (data) {
-            var dataString = data.join(";\n");
-            if (dataString.length) {
-                dataString += ";\n";
-            }
-            return dataString;
+            return data.length ? data.join(";\n") + ";\n" : "";
+        };
+        CodeGeneratorJs.combineLabels = function (data) {
+            return data.length ? "o.vmSetLabels([" + data.join(",") + "]);\n" : "";
+        };
+        CodeGeneratorJs.prototype.getSourceMap = function () {
+            return this.sourceMap;
         };
         CodeGeneratorJs.prototype.debugGetLabelsCount = function () {
             return Object.keys(this.referencedLabelsCount).length;
@@ -1228,17 +1259,19 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             try {
                 var tokens = this.lexer.lex(input), parseTree = this.parser.parse(tokens);
                 var output = this.evaluate(parseTree, variables, Boolean(allowDirect));
+                var combinedData = CodeGeneratorJs.combineData(this.dataList), combinedLabels = CodeGeneratorJs.combineLabels(this.labelList);
                 if (!this.noCodeFrame) {
                     output = '"use strict"\n'
                         + "var v=o.vmGetAllVariables();\n"
                         + "while (o.vmLoopCondition()) {\nswitch (o.line) {\ncase 0:\n"
-                        + CodeGeneratorJs.combineData(this.dataList)
+                        + combinedData
+                        + combinedLabels
                         + " o.goto(o.startLine ? o.startLine : \"start\"); break;\ncase \"start\":\n"
                         + output
                         + "\ncase \"end\": o.vmStop(\"end\", 90); break;\ndefault: o.error(8); o.goto(\"end\"); break;\n}}\n";
                 }
                 else {
-                    output = CodeGeneratorJs.combineData(this.dataList) + output;
+                    output = combinedData + output;
                 }
                 out.text = output;
             }

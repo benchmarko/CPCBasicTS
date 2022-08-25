@@ -433,6 +433,8 @@ declare module "CodeGeneratorJs" {
         private whileCount;
         private referencedLabelsCount;
         private readonly dataList;
+        private readonly labelList;
+        private sourceMap;
         private countMap;
         private variables;
         private defScopeArgs?;
@@ -542,6 +544,8 @@ declare module "CodeGeneratorJs" {
         private fnPrecheckTree;
         private evaluate;
         private static combineData;
+        private static combineLabels;
+        getSourceMap(): Record<string, number[]>;
         debugGetLabelsCount(): number;
         generate(input: string, variables: Variables, allowDirect?: boolean): IOutput;
     }
@@ -1337,6 +1341,8 @@ declare module "CpcVm" {
         private readonly dataList;
         private dataIndex;
         private dataLineIndex;
+        private readonly labelList;
+        private sourceMap;
         private readonly windowDataList;
         private readonly timerList;
         private readonly sqTimer;
@@ -1359,7 +1365,7 @@ declare module "CpcVm" {
         private errorLine;
         private degFlag;
         private tronFlag1;
-        private traceInfo;
+        private traceLabel;
         private ramSelect;
         private screenPage;
         private minCharHimem;
@@ -1394,6 +1400,7 @@ declare module "CpcVm" {
         vmReset4Run(): void;
         vmGetAllVariables(): VariableMap;
         vmSetStartLine(line: number): void;
+        vmSetLabels(labels: string[]): void;
         vmOnBreakContSet(): boolean;
         vmOnBreakHandlerActive(): boolean;
         vmEscape(): boolean;
@@ -1428,7 +1435,8 @@ declare module "CpcVm" {
         vmGetOutFileObject(): OutFile;
         vmAdaptFilename(name: string, err: string): string;
         vmGetSoundData(): SoundData[];
-        vmTrace(line: number | string, pos: number, len: number): void;
+        vmSetSourceMap(sourceMap: Record<string, number[]>): void;
+        vmTrace(line: number | string): void;
         private vmDrawMovePlot;
         private vmAfterEveryGosub;
         private vmCopyFromScreen;

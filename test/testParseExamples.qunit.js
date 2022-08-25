@@ -218,6 +218,9 @@ define(["require", "exports", "../Utils", "../Polyfills", "../BasicLexer", "../B
             vmTrace: function () {
                 // empty
             },
+            vmSetLabels: function () {
+                // empty
+            },
             dim: function (varName) {
                 var dimensions = [];
                 for (var i = 1; i < arguments.length; i += 1) {

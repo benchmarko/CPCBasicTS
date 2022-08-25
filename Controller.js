@@ -1308,6 +1308,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             else {
                 outputString = output.text;
+                this.vm.vmSetSourceMap(this.codeGeneratorJs.getSourceMap());
             }
             if (outputString && outputString.length > 0) {
                 outputString += "\n";
@@ -1526,6 +1527,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     try {
                         var fnScript = new Function("o", outputString); // eslint-disable-line no-new-func
                         this.fnScript = fnScript;
+                        this.vm.vmSetSourceMap(codeGeneratorJs.getSourceMap());
                     }
                     catch (e) {
                         Utils_1.Utils.console.error(e);

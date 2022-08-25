@@ -478,9 +478,9 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
                 "renum 100,50,2": ' o.renum(100, 50, 2); o.goto("s0"); break;\ncase "s0":',
                 "restore ": " o.restore();",
                 "10 restore 10": " o.restore(10);",
-                "resume ": ' o.vmTrace("", 0, 6); o.resume(); break;',
+                "resume ": ' o.vmTrace(""); o.resume(); break;',
                 "10 resume 10": " o.resume(10); break;",
-                "resume next": ' o.vmTrace("", 0, 11); o.resumeNext(); break;',
+                "resume next": ' o.vmTrace(""); o.resumeNext(); break;',
                 "return ": " o.return(); break;",
                 "a$=right$(b$,n)": " v.a$ = o.right$(v.b$, v.n);",
                 "a=rnd": ' v.a = o.vmAssign("a", o.rnd());',
@@ -547,7 +547,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
                 "a=testr(xm,ym)": ' v.a = o.vmAssign("a", o.testr(v.xm, v.ym));',
                 "t!=time": " v.tR = o.time();",
                 "troff ": " o.troff();",
-                "tron ": ' o.vmTrace("", 0, 4); o.tron(); o.goto("s0"); break;\ncase "s0":'
+                "tron ": ' o.vmTrace(""); o.tron(); o.goto("s0"); break;\ncase "s0":'
             },
             "unt, upper$": {
                 "a=unt(&ff66)": ' v.a = o.vmAssign("a", o.unt(0xff66));',
