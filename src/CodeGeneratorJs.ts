@@ -63,6 +63,10 @@ export class CodeGeneratorJs {
 
 	private readonly dataList: string[] = []; // collected data from data lines
 
+	private readonly labelList: string[] = []; // all labels
+
+	private sourceMap: Record<string, number[]> = {};
+
 	private countMap: Record<string, number> = {};
 
 	// for evaluate:
@@ -154,7 +158,10 @@ export class CodeGeneratorJs {
 
 		this.resetCountsPerLine();
 
+		this.labelList.length = 0;
 		this.dataList.length = 0;
+
+		this.sourceMap = {};
 
 		this.referencedLabelsCount = {}; // labels or line numbers
 		this.countMap = {};
@@ -669,6 +676,9 @@ export class CodeGeneratorJs {
 		let label = node.value;
 
 		this.line = label; // set line before parsing args
+		if (this.countMap.resumeNext) {
+			this.labelList.push(label); // only needed to support resume next
+		}
 		this.resetCountsPerLine(); // we want to have "stable" counts, even if other lines change, e.g. direct
 
 		const isDirect = label === "";
@@ -681,6 +691,7 @@ export class CodeGeneratorJs {
 
 		if (!this.noCodeFrame) {
 			value += "case " + label + ":";
+			value += " o.line = " + label + ";";
 		} else {
 			value = "";
 		}
@@ -695,7 +706,12 @@ export class CodeGeneratorJs {
 					pos = node.args[i].pos,
 					len = node.args[i].len || node.args[i].value.length || 0;
 
-				value += " o.vmTrace(\"" + traceLabel + "\", " + pos + ", " + len + ");";
+				//value += " o.vmTrace(\"" + traceLabel + "\", " + pos + ", " + len + ");";
+				value += " o.vmTrace(\"" + traceLabel + "\");";
+				this.sourceMap[traceLabel] = [
+					pos,
+					len
+				];
 			}
 
 			if (value2 !== "") {
@@ -982,7 +998,7 @@ export class CodeGeneratorJs {
 		node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + "); break"; // with break
 	}
 
-	private fnThenOrElsePart(args: ParserNode[]) {
+	private fnThenOrElsePart(args: ParserNode[], tracePrefix: string) {
 		const nodeArgs = this.fnParseArgs(args);
 
 		if (args[0].type === "linenumber") {
@@ -991,6 +1007,25 @@ export class CodeGeneratorJs {
 			this.fnAddReferenceLabel(line, args[0]);
 			nodeArgs[0] = "o.goto(" + line + "); break"; // convert to "goto"
 		}
+
+		if (this.traceActive) {
+			// TODO see also "label":
+			for (let i = 0; i < nodeArgs.length; i += 1) {
+				//let value2 = nodeArgs[i];
+
+				//const traceLabel = this.line + ((i > 0) ? "t" + i : ""),
+				const traceLabel = tracePrefix + ((i > 0) ? "t" + i : ""),
+					pos = args[i].pos,
+					len = args[i].len || args[i].value.length || 0;
+
+				nodeArgs[i] = "o.vmTrace(\"" + traceLabel + "\"); " + nodeArgs[i];
+				this.sourceMap[traceLabel] = [
+					pos,
+					len
+				];
+			}
+		}
+
 		return nodeArgs.join("; ");
 	}
 
@@ -1011,9 +1046,10 @@ export class CodeGeneratorJs {
 			expression = expression.replace(/ \? -1 : 0$/, "");
 		}
 
-		const thenPart = this.fnThenOrElsePart(node.args), // "then" statements
+		const label = this.fnGetIfLabel(), // need it also for tracing nested if
+			thenPart = this.fnThenOrElsePart(node.args, label + "T"), // "then" statements
 			simpleThen = CodeGeneratorJs.fnIsSimplePart(thenPart),
-			elsePart = node.args2 ? this.fnThenOrElsePart(node.args2) : "", // "else" statements
+			elsePart = node.args2 ? this.fnThenOrElsePart(node.args2, label + "E") : "", // "else" statements
 			simpleElse = node.args2 ? CodeGeneratorJs.fnIsSimplePart(elsePart) : true;
 		let value = "if (" + expression + ") { ";
 
@@ -1023,7 +1059,7 @@ export class CodeGeneratorJs {
 				value += " else { " + elsePart + "; }";
 			}
 		} else {
-			const label = this.fnGetIfLabel();
+			//const label = this.fnGetIfLabel();
 
 			value += 'o.goto("' + label + '"); break; } ';
 
@@ -1500,7 +1536,10 @@ export class CodeGeneratorJs {
 			countMap[node.type] = (countMap[node.type] || 0) + 1;
 
 			if (node.type === "resume" && !(node.args && node.args.length)) {
-				this.traceActive = true;
+				//this.traceActive = true;
+				const resumeNoArgs = "resumeNoArgsCount";
+
+				countMap[resumeNoArgs] = (countMap[resumeNoArgs] || 0) + 1;
 			}
 
 			/*
@@ -1531,10 +1570,10 @@ export class CodeGeneratorJs {
 		// create labels map
 		this.fnCreateLabelsMap(parseTree, this.referencedLabelsCount, allowDirect);
 
-		this.traceActive = false;
-		this.fnPrecheckTree(parseTree, this.countMap); // also set trace active for resume without parameter
+		//this.traceActive = false;
+		this.fnPrecheckTree(parseTree, this.countMap); // also set "_resumeNoArgs" for resume without args
 
-		this.traceActive = this.traceActive || this.trace || Boolean(this.countMap.tron) || Boolean(this.countMap.resumeNext); // we also switch on tracing for tron, resumeNext or resume without parameter
+		this.traceActive = this.trace || Boolean(this.countMap.tron) || Boolean(this.countMap.resumeNext) || Boolean(this.countMap.resumeNoArgsCount); // we also switch on tracing for tron, resumeNext or resume without parameter
 
 		let output = "";
 
@@ -1558,19 +1597,22 @@ export class CodeGeneratorJs {
 		}
 
 		// optimize: comment lines which are not referenced
-		if (!this.countMap.merge && !this.countMap.chainMerge) {
+		if (!this.countMap.merge && !this.countMap.chainMerge && !this.countMap.resumeNext && !this.countMap.resumeNoArgsCount) {
 			output = CodeGeneratorJs.fnCommentUnusedCases(output, this.referencedLabelsCount);
 		}
 		return output;
 	}
 
 	private static combineData(data: string[]) {
-		let dataString = data.join(";\n");
+		return data.length ? data.join(";\n") + ";\n" : "";
+	}
 
-		if (dataString.length) {
-			dataString += ";\n";
-		}
-		return dataString;
+	private static combineLabels(data: string[]) {
+		return data.length ? "o.vmSetLabels([" + data.join(",") + "]);\n" : "";
+	}
+
+	getSourceMap(): Record<string, number[]> {
+		return this.sourceMap;
 	}
 
 	debugGetLabelsCount(): number {
@@ -1588,16 +1630,20 @@ export class CodeGeneratorJs {
 				parseTree = this.parser.parse(tokens);
 			let	output = this.evaluate(parseTree, variables, Boolean(allowDirect));
 
+			const combinedData = CodeGeneratorJs.combineData(this.dataList),
+				combinedLabels = CodeGeneratorJs.combineLabels(this.labelList);
+
 			if (!this.noCodeFrame) {
 				output = '"use strict"\n'
 					+ "var v=o.vmGetAllVariables();\n"
 					+ "while (o.vmLoopCondition()) {\nswitch (o.line) {\ncase 0:\n"
-					+ CodeGeneratorJs.combineData(this.dataList)
+					+ combinedData
+					+ combinedLabels
 					+ " o.goto(o.startLine ? o.startLine : \"start\"); break;\ncase \"start\":\n"
 					+ output
 					+ "\ncase \"end\": o.vmStop(\"end\", 90); break;\ndefault: o.error(8); o.goto(\"end\"); break;\n}}\n";
 			} else {
-				output = CodeGeneratorJs.combineData(this.dataList) + output;
+				output = combinedData + output;
 			}
 			out.text = output;
 		} catch (e) {

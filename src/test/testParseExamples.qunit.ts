@@ -213,6 +213,10 @@ class cpcBasic {
 			// empty
 		},
 
+		vmSetLabels: function () {
+			// empty
+		},
+
 		dim(varName: string): void { // varargs
 			const dimensions = [];
 
