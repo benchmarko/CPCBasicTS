@@ -52,7 +52,7 @@ interface SymbolType {
 }
 
 export class BasicParser {
-	private line = "0"; // for error messages
+	private label = "0"; // for error messages
 	private quiet = false;
 	private keepTokens = false;
 	private keepBrackets = false;
@@ -106,7 +106,7 @@ export class BasicParser {
 		"#": "stream"
 	}
 
-	// first letter: c=command, f=function, o=operator, x=additional keyword for command
+	// first letter: c=command, f=function, p=part of command, o=operator, x=misc
 	// following are arguments: n=number, s=string, l=line number (checked), v=variable (checked), r=letter or range, a=any, n0?=optional parameter with default null, #=stream, #0?=optional stream with default 0; suffix ?=optional (optionals must be last); last *=any number of arguments may follow
 	static readonly keywords: Record<string, string> = {
 		abs: "f n", // ABS(<numeric expression>)
@@ -118,7 +118,7 @@ export class BasicParser {
 		auto: "c n0? n0?", // AUTO [<line number>][,<increment>]
 		bin$: "f n n?", // BIN$(<unsigned integer expression>[,<integer expression>])
 		border: "c n n?", // BORDER <color>[,<color>]
-		"break": "x", // see: ON BREAK...
+		"break": "p", // see: ON BREAK...
 		call: "c n *", // CALL <address expression>[,<list of: parameter>]
 		cat: "c", // CAT
 		chain: "c s n?", // CHAIN <filename>[,<line number expression>]  or: => chainMerge
@@ -261,11 +261,11 @@ export class BasicParser {
 		speedWrite: "c n", // SPEED WRITE <integer expression>  / (integer expression=0..1)
 		sq: "f n", // SQ(<channel>)  / (channel=1,2 or 4)
 		sqr: "f n", // SQR(<numeric expression>)
-		step: "x", // STEP <size> / see: FOR
+		step: "p", // STEP <size> / see: FOR
 		stop: "c", // STOP
 		str$: "f n", // STR$(<numeric expression>)
 		string$: "f n a", // STRING$(<length>,<character specificier>) / character specificier=string character or number 0..255
-		swap: "x n n?", // => windowSwap
+		swap: "p n n?", // => windowSwap
 		symbol: "c n n *", // SYMBOL <character number>,<list of: rows>   or => symbolAfter  / character number=0..255, list of 1..8 rows=0..255
 		symbolAfter: "c n", // SYMBOL AFTER <integer expression>  / integer expression=0..256 (special)
 		tab: "f n", // TAB(<integer expression)  / see: PRINT TAB
@@ -274,14 +274,14 @@ export class BasicParser {
 		tan: "f n", // TAN(<numeric expression>)
 		test: "f n n", // TEST(<x coordinate>,<y coordinate>)
 		testr: "f n n", // TESTR(<x offset>,<y offset>)
-		then: "x", // THEN <option part>  / see: IF
+		then: "p", // THEN <option part>  / see: IF
 		time: "f", // TIME
-		to: "x", // TO <end>  / see: FOR
+		to: "p", // TO <end>  / see: FOR
 		troff: "c", // TROFF
 		tron: "c", // TRON
 		unt: "f n", // UNT(<address expression>)
 		upper$: "f s", // UPPER$(<string expression>)
-		using: "x", // USING <format template>[<separator expression>]  / see: PRINT
+		using: "p", // USING <format template>[<separator expression>]  / see: PRINT
 		val: "f s", // VAL (<string expression>)
 		vpos: "f #", // VPOS(#<stream expression>)
 		wait: "c n n n?", // WAIT <port number>,<mask>[,<inversion>]
@@ -301,33 +301,33 @@ export class BasicParser {
 
 	/* eslint-disable no-invalid-this */
 	private readonly specialStatements: Record<string, () => ParserNode> = { // to call methods, use specialStatements[].call(this,...)
-		"'": this.fnApostrophe,
-		"|": this.fnRsx, // rsx
-		after: this.fnAfterOrEvery,
-		chain: this.fnChain,
-		clear: this.fnClear,
-		data: this.fnData,
-		def: this.fnDef,
-		"else": this.fnElse, // simular to a comment, normally not used
-		ent: this.fnEntOrEnv,
-		env: this.fnEntOrEnv,
-		every: this.fnAfterOrEvery,
-		"for": this.fnFor,
-		graphics: this.fnGraphics,
-		"if": this.fnIf,
-		input: this.fnInput,
-		key: this.fnKey,
-		let: this.fnLet,
-		line: this.fnLine,
-		mid$: this.fnMid$, // mid$Assign
-		on: this.fnOn,
-		print: this.fnPrint,
-		"?": this.fnQuestion, // ? is same as print
-		resume: this.fnResume,
-		run: this.fnRun,
-		speed: this.fnSpeed,
-		symbol: this.fnSymbol,
-		window: this.fnWindow
+		"'": this.apostrophe,
+		"|": this.rsx, // rsx
+		after: this.afterEveryGosub,
+		chain: this.chain,
+		clear: this.clear,
+		data: this.data,
+		def: this.def,
+		"else": this.else, // simular to a comment, normally not used
+		ent: this.entOrEnv,
+		env: this.entOrEnv,
+		every: this.afterEveryGosub,
+		"for": this.for,
+		graphics: this.graphics,
+		"if": this.if,
+		input: this.input,
+		key: this.key,
+		let: this.let,
+		line: this.line,
+		mid$: this.mid$Assign, // mid$Assign
+		on: this.on,
+		print: this.print,
+		"?": this.question, // ? is same as print
+		resume: this.resume,
+		run: this.run,
+		speed: this.speed,
+		symbol: this.symbol,
+		window: this.window
 	};
 	/* eslint-enable no-invalid-this */
 
@@ -356,7 +356,7 @@ export class BasicParser {
 	private composeError(error: Error, message: string, value: string, pos: number, len?: number) {
 		len = value === "(end)" ? 0 : len;
 
-		return Utils.composeError("BasicParser", error, message, value, pos, len, this.line);
+		return Utils.composeError("BasicParser", error, message, value, pos, len, this.label);
 	}
 
 
@@ -369,18 +369,6 @@ export class BasicParser {
 	// identifiers, numbers: also nud.
 	private getToken() {
 		return this.token;
-	}
-
-	private symbol(id: string, nud?: ParseExpressionFunction) {
-		if (!this.symbols[id]) {
-			this.symbols[id] = {};
-		}
-		const symbol = this.symbols[id];
-
-		if (nud) {
-			symbol.nud = nud;
-		}
-		return symbol;
 	}
 
 	private advance(id: string) {
@@ -430,7 +418,8 @@ export class BasicParser {
 			throw this.composeError(Error(), "Unexpected token", t.value, t.pos);
 		}
 
-		let left = s.nud.call(this, t); // process literals, variables, and prefix operators
+		//let left = s.nud.call(this, t); // process literals, variables, and prefix operators
+		let left = s.nud(t); // process literals, variables, and prefix operators
 
 		t = this.token;
 		s = this.symbols[t.type];
@@ -440,7 +429,8 @@ export class BasicParser {
 				throw this.composeError(Error(), "Unexpected token", t.type, t.pos);
 				// TODO: How to get this error?
 			}
-			left = s.led.call(this, left); // ...the led method is invoked on the following token (infix and suffix operators), can be recursive
+			//left = s.led.call(this, left); // ...the led method is invoked on the following token (infix and suffix operators), can be recursive
+			left = s.led(left); // ...the led method is invoked on the following token (infix and suffix operators), can be recursive
 			t = this.token;
 			s = this.symbols[t.type];
 		}
@@ -472,7 +462,8 @@ export class BasicParser {
 
 		if (s.std) { // statement?
 			this.advance(t.type);
-			return s.std.call(this);
+			//return s.std.call(this);
+			return s.std();
 		}
 
 		let value: ParserNode;
@@ -523,7 +514,7 @@ export class BasicParser {
 			node = this.previousToken; // number token
 			node.type = "label"; // number => label
 		}
-		this.line = node.value; // set line number for error messages
+		this.label = node.value; // set line number for error messages
 		node.args = this.statements(BasicParser.closeTokensForLine);
 
 		if (this.token.type === "(eol)") {
@@ -531,52 +522,6 @@ export class BasicParser {
 		}
 		return node;
 	}
-
-	private generateLed(rbp: number) {
-		return (left: ParserNode) => {
-			const node = this.previousToken;
-
-			node.left = left;
-			node.right = this.expression(rbp);
-			return node;
-		};
-	}
-
-	private generateNud(rbp: number) {
-		return () => {
-			const node = this.previousToken;
-
-			node.right = this.expression(rbp);
-			return node;
-		};
-	}
-
-	private infix(id: string, lbp: number, rbp?: number, led?: ParseExpressionFunction) {
-		rbp = rbp || lbp;
-		const symbol = this.symbol(id);
-
-		symbol.lbp = lbp;
-		symbol.led = led || this.generateLed(rbp);
-	}
-
-	private infixr(id: string, lbp: number) {
-		const symbol = this.symbol(id);
-
-		symbol.lbp = lbp;
-		symbol.led = this.generateLed(lbp - 1);
-	}
-
-	private prefix(id: string, rbp: number) {
-		this.symbol(id, this.generateNud(rbp));
-	}
-
-	private stmt(id: string, fn: ParseStatmentFunction) {
-		const symbol = this.symbol(id);
-
-		symbol.std = fn;
-		return symbol;
-	}
-
 
 	private static fnCreateDummyArg(type: string, value?: string): ParserNode {
 		return {
@@ -933,24 +878,11 @@ export class BasicParser {
 		return node;
 	}
 
-	private fnGenerateKeywordSymbols() {
-		for (const key in BasicParser.keywords) {
-			if (BasicParser.keywords.hasOwnProperty(key)) {
-				const keywordType = BasicParser.keywords[key].charAt(0);
-
-				if (keywordType === "f") {
-					this.symbol(key, this.fnCreateFuncCall);
-				} else if (keywordType === "c") {
-					this.stmt(key, this.specialStatements[key] || this.fnCreateCmdCall);
-				}
-			}
-		}
-	}
-
 	// ...
 
-	private fnIdentifier(node: ParserNode) {
-		const nameValue = node.value,
+	private fnIdentifier() {
+		const node = this.previousToken,
+			nameValue = node.value,
 			startsWithFn = nameValue.toLowerCase().startsWith("fn");
 
 		if (startsWithFn) {
@@ -973,8 +905,6 @@ export class BasicParser {
 		}
 
 		if (this.token.type === "(" || this.token.type === "[") {
-			node = this.previousToken;
-
 			if (startsWithFn) {
 				node.args = this.fnGetArgsInParenthesis();
 				node.type = "fn"; // FNxxx in e.g. print
@@ -1022,11 +952,11 @@ export class BasicParser {
 		return node;
 	}
 
-	private fnApostrophe() { // "'" apostrophe comment => rem
+	private apostrophe() { // "'" apostrophe comment => rem
 		return this.fnCreateCmdCallForType("rem");
 	}
 
-	private fnRsx() { // rsx: "|"
+	private rsx() { // rsx: "|"
 		const node = this.previousToken;
 		let type = "_any1"; // expect any number of arguments
 
@@ -1038,7 +968,7 @@ export class BasicParser {
 		return node;
 	}
 
-	private fnAfterOrEvery() {
+	private afterEveryGosub() {
 		const node = this.fnCreateCmdCallForType(this.previousToken.type + "Gosub"); // "afterGosub" or "everyGosub", interval and optional timer
 
 		if (!node.args) {
@@ -1054,7 +984,7 @@ export class BasicParser {
 		return node;
 	}
 
-	private fnChain() {
+	private chain() {
 		let node: ParserNode;
 
 		if (this.token.type !== "merge") { // not chain merge?
@@ -1101,13 +1031,13 @@ export class BasicParser {
 		return node;
 	}
 
-	private fnClear() {
+	private clear() {
 		const tokenType = this.token.type;
 
 		return tokenType === "input" ? this.fnCombineTwoTokens(tokenType) : this.fnCreateCmdCall(); // "clear input" or "clear"
 	}
 
-	private fnData() {
+	private data() {
 		const node = this.previousToken;
 		let parameterFound = false;
 
@@ -1144,7 +1074,7 @@ export class BasicParser {
 		return node;
 	}
 
-	private fnDef() {
+	private def() {
 		const node = this.previousToken; // def
 		let	value2 = this.token, // fn or fn<identifier>
 			fn: ParserNode | undefined;
@@ -1172,7 +1102,7 @@ export class BasicParser {
 		return node;
 	}
 
-	private fnElse() { // similar to a comment, normally not used
+	private "else"() { // similar to a comment, normally not used
 		const node = this.previousToken;
 
 		node.args = [];
@@ -1194,7 +1124,7 @@ export class BasicParser {
 		return node;
 	}
 
-	private fnEntOrEnv() {
+	private entOrEnv() {
 		const node = this.previousToken;
 
 		node.args = [];
@@ -1215,7 +1145,7 @@ export class BasicParser {
 		return node;
 	}
 
-	private fnFor() {
+	private "for"() {
 		const node = this.previousToken;
 
 		this.fnCheckExpressionType(this.token, "identifier", "v");
@@ -1248,7 +1178,7 @@ export class BasicParser {
 		return node;
 	}
 
-	private fnGraphics() {
+	private graphics() {
 		const tokenType = this.token.type;
 
 		if (tokenType !== "pen" && tokenType !== "paper") {
@@ -1276,7 +1206,7 @@ export class BasicParser {
 		}
 	}
 
-	private fnIf() {
+	private "if"() {
 		const node = this.previousToken;
 		let numberToken: ParserNode[] | undefined;
 
@@ -1318,7 +1248,7 @@ export class BasicParser {
 		return node;
 	}
 
-	private fnInput() { // input or line input
+	private input() { // input or line input
 		const node = this.previousToken;
 
 		node.args = [];
@@ -1364,25 +1294,25 @@ export class BasicParser {
 		return node;
 	}
 
-	private fnKey() {
+	private key() {
 		const tokenType = this.token.type;
 
 		return tokenType === "def" ? this.fnCombineTwoTokens(tokenType) : this.fnCreateCmdCall(); // "key def" or "key"
 	}
 
-	private fnLet() {
+	private let() {
 		const node = this.previousToken;
 
 		node.right = this.assignment();
 		return node;
 	}
 
-	private fnLine() {
+	private line() {
 		this.previousToken.type = this.fnCombineTwoTokensNoArgs("input"); // combine "line" => "lineInput"
-		return this.fnInput(); // continue with input
+		return this.input(); // continue with input
 	}
 
-	private fnMid$() { // mid$Assign
+	private mid$Assign() { // mid$Assign
 		this.previousToken.type = "mid$Assign"; // change type mid$ => mid$Assign
 		const node = this.fnCreateFuncCall();
 
@@ -1399,7 +1329,7 @@ export class BasicParser {
 		return node;
 	}
 
-	private fnOn() {
+	private on() {
 		const node = this.previousToken;
 		let left: ParserNode;
 
@@ -1450,7 +1380,7 @@ export class BasicParser {
 		return node;
 	}
 
-	private fnPrint() {
+	private print() {
 		const node = this.previousToken,
 			closeTokens = BasicParser.closeTokensForArgs,
 			stream = this.fnGetOptionalStream();
@@ -1488,7 +1418,7 @@ export class BasicParser {
 					node.args.push(node2);
 					node2 = this.previousToken; // keep it for print
 				}
-			} else if (BasicParser.keywords[this.token.type] && (BasicParser.keywords[this.token.type].charAt(0) === "c" || BasicParser.keywords[this.token.type].charAt(0) === "x")) { // stop also at keyword which is c=command or x=command addition
+			} else if (BasicParser.keywords[this.token.type] && (BasicParser.keywords[this.token.type].charAt(0) === "c" || BasicParser.keywords[this.token.type].charAt(0) === "p")) { // stop also at keyword which is c=command or p=part of command
 				break;
 				//TTT: node2 not set?
 			} else if (this.token.type === ";" || this.token.type === ",") { // separator ";" or comma tab separator ","
@@ -1502,20 +1432,20 @@ export class BasicParser {
 		return node;
 	}
 
-	private fnQuestion() { // "?"
-		const node = this.fnPrint();
+	private question() { // "?"
+		const node = this.print();
 
 		node.type = "print";
 		return node;
 	}
 
-	private fnResume() {
+	private resume() {
 		const tokenType = this.token.type;
 
 		return tokenType === "next" ? this.fnCombineTwoTokens(tokenType) : this.fnCreateCmdCall(); // "resume next" or "resume"
 	}
 
-	private fnRun() {
+	private run() {
 		const tokenType = this.token.type;
 		let node: ParserNode;
 
@@ -1528,7 +1458,7 @@ export class BasicParser {
 		return node;
 	}
 
-	private fnSpeed() {
+	private speed() {
 		const tokenType = this.token.type;
 
 		if (tokenType !== "ink" && tokenType !== "key" && tokenType !== "write") {
@@ -1538,13 +1468,13 @@ export class BasicParser {
 		return this.fnCombineTwoTokens(tokenType);
 	}
 
-	private fnSymbol() {
+	private symbol() {
 		const tokenType = this.token.type;
 
 		return tokenType === "after" ? this.fnCombineTwoTokens(tokenType) : this.fnCreateCmdCall(); // "symbol after" or "symbol"
 	}
 
-	private fnWindow() {
+	private window() {
 		const tokenType = this.token.type;
 
 		return tokenType === "swap" ? this.fnCombineTwoTokens(tokenType) : this.fnCreateCmdCall(); // "window swap" or "window"
@@ -1554,84 +1484,177 @@ export class BasicParser {
 		return node;
 	}
 
+	private createSymbol(id: string) {
+		if (!this.symbols[id]) { // some symbols are extended, e.g. symbols for both infix and prefix
+			this.symbols[id] = {}; // create symbol
+		}
+		return this.symbols[id];
+	}
+
+	private createNudSymbol(id: string, nud: ParseExpressionFunction) {
+		const symbol = this.createSymbol(id);
+
+		symbol.nud = nud;
+		return symbol;
+	}
+
+	/*
+	private generateLed(rbp: number) {
+		return (left: ParserNode) => {
+			const node = this.previousToken;
+
+			node.left = left;
+			node.right = this.expression(rbp);
+			return node;
+		};
+	}
+
+	private generateNud(rbp: number) {
+		return () => {
+			const node = this.previousToken;
+
+			node.right = this.expression(rbp);
+			return node;
+		};
+	}
+	*/
+
+	private fnInfixLed(left: ParserNode, rbp: number) {
+		const node = this.previousToken;
+
+		node.left = left;
+		node.right = this.expression(rbp);
+		return node;
+	}
+
+	private createInfix(id: string, lbp: number, rbp?: number) {
+		const symbol = this.createSymbol(id);
+
+		symbol.lbp = lbp;
+		symbol.led = (left) => this.fnInfixLed(left, rbp || lbp);
+	}
+
+	private createInfixr(id: string, lbp: number) {
+		const symbol = this.createSymbol(id);
+
+		symbol.lbp = lbp;
+		symbol.led = (left) => this.fnInfixLed(left, lbp - 1);
+	}
+
+	private fnPrefixNud(rbp: number) {
+		const node = this.previousToken;
+
+		node.right = this.expression(rbp);
+		return node;
+	}
+
+	private createPrefix(id: string, rbp: number) {
+		this.createNudSymbol(id, () => this.fnPrefixNud(rbp));
+	}
+
+	private createStatement(id: string, fn: ParseStatmentFunction) {
+		const symbol = this.createSymbol(id);
+
+		symbol.std = () => fn.call(this);
+		return symbol;
+	}
+
+	private fnGenerateKeywordSymbols() {
+		for (const key in BasicParser.keywords) {
+			if (BasicParser.keywords.hasOwnProperty(key)) {
+				const keywordType = BasicParser.keywords[key].charAt(0);
+
+				if (keywordType === "f") {
+					this.createNudSymbol(key, () => this.fnCreateFuncCall());
+				} else if (keywordType === "c") {
+					this.createStatement(key, this.specialStatements[key] || this.fnCreateCmdCall);
+				} else if (keywordType === "p") { // additional parts of command
+					this.createSymbol(key);
+				}
+			}
+		}
+	}
+
 	private fnGenerateSymbols() {
 		this.fnGenerateKeywordSymbols();
 
 		// special statements ...
-		this.stmt("'", this.specialStatements["'"]);
-		this.stmt("|", this.specialStatements["|"]); // rsx
-		this.stmt("mid$", this.specialStatements.mid$); // mid$Assign (statement), combine with function
-		this.stmt("?", this.specialStatements["?"]); // "?" is same as print
+		this.createStatement("'", this.specialStatements["'"]);
+		this.createStatement("|", this.specialStatements["|"]); // rsx
+		this.createStatement("mid$", this.specialStatements.mid$); // mid$Assign (statement), combine with function
+		this.createStatement("?", this.specialStatements["?"]); // "?" is same as print
 
-
-		this.symbol(":");
-		this.symbol(";");
-		this.symbol(",");
-		this.symbol(")");
-		this.symbol("[");
-		this.symbol("]");
+		this.createSymbol(":");
+		this.createSymbol(";");
+		this.createSymbol(",");
+		this.createSymbol(")");
+		this.createSymbol("[");
+		this.createSymbol("]");
 
 		// define additional statement parts
+		/*
 		this.symbol("break");
 		this.symbol("step");
 		this.symbol("swap");
 		this.symbol("then");
 		this.symbol("to");
 		this.symbol("using");
+		*/
 
-		this.symbol("(eol)");
-		this.symbol("(end)");
+		this.createSymbol("(eol)");
+		this.createSymbol("(end)");
 
-		this.symbol("number", BasicParser.fnNode);
+		this.createNudSymbol("number", BasicParser.fnNode);
 
-		this.symbol("binnumber", BasicParser.fnNode);
+		this.createNudSymbol("binnumber", BasicParser.fnNode);
 
-		this.symbol("hexnumber", BasicParser.fnNode);
+		this.createNudSymbol("hexnumber", BasicParser.fnNode);
 
-		this.symbol("linenumber", BasicParser.fnNode);
+		this.createNudSymbol("linenumber", BasicParser.fnNode);
 
-		this.symbol("string", BasicParser.fnNode);
+		this.createNudSymbol("string", BasicParser.fnNode);
 
-		this.symbol("unquoted", BasicParser.fnNode);
+		this.createNudSymbol("unquoted", BasicParser.fnNode);
 
-		this.symbol("ws", BasicParser.fnNode); // optional whitespace
+		this.createNudSymbol("ws", BasicParser.fnNode); // optional whitespace
 
-		this.symbol("identifier", this.fnIdentifier);
+		this.createNudSymbol("identifier", () => this.fnIdentifier());
 
-		this.symbol("(", this.fnParenthesis);
+		this.createNudSymbol("(", () => this.fnParenthesis());
 
-		this.prefix("@", 95); // address of
+		this.createNudSymbol("fn", () => this.fnFn()); // separate fn
 
-		this.infix("^", 90, 80);
 
-		this.prefix("+", 80); // + can be uses as prefix or infix
-		this.prefix("-", 80); // - can be uses as prefix or infix
+		this.createPrefix("@", 95); // address of
 
-		this.infix("*", 70);
-		this.infix("/", 70);
+		this.createInfix("^", 90, 80);
 
-		this.infix("\\", 60); // integer division
+		this.createPrefix("+", 80); // + can be uses as prefix or infix
+		this.createPrefix("-", 80); // - can be uses as prefix or infix
 
-		this.infix("mod", 50);
+		this.createInfix("*", 70);
+		this.createInfix("/", 70);
 
-		this.infix("+", 40); // + can be uses as prefix or infix, so combine with prefix function
-		this.infix("-", 40); // - can be uses as prefix or infix, so combine with prefix function
+		this.createInfix("\\", 60); // integer division
 
-		this.infixr("=", 30); // equal for comparison
-		this.infixr("<>", 30);
-		this.infixr("<", 30);
-		this.infixr("<=", 30);
-		this.infixr(">", 30);
-		this.infixr(">=", 30);
+		this.createInfix("mod", 50);
 
-		this.prefix("not", 23);
-		this.infixr("and", 22);
-		this.infixr("or", 21);
-		this.infixr("xor", 20);
+		this.createInfix("+", 40); // + can be uses as prefix or infix, so combine with prefix function
+		this.createInfix("-", 40); // - can be uses as prefix or infix, so combine with prefix function
 
-		this.prefix("#", 10); // priority ok?
+		this.createInfixr("=", 30); // equal for comparison
+		this.createInfixr("<>", 30);
+		this.createInfixr("<", 30);
+		this.createInfixr("<=", 30);
+		this.createInfixr(">", 30);
+		this.createInfixr(">=", 30);
 
-		this.symbol("fn", this.fnFn); // separate fn
+		this.createPrefix("not", 23);
+		this.createInfixr("and", 22);
+		this.createInfixr("or", 21);
+		this.createInfixr("xor", 20);
+
+		this.createPrefix("#", 10); // priority ok?
 	}
 
 
@@ -1645,7 +1668,7 @@ export class BasicParser {
 	parse(tokens: LexerToken[]): ParserNode[] {
 		this.tokens = tokens;
 		// line
-		this.line = "0"; // for error messages
+		this.label = "0"; // for error messages
 		this.index = 0;
 
 		this.token = {} as ParserNode;

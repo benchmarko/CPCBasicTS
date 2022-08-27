@@ -1447,7 +1447,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
     exports.BasicParser = void 0;
     var BasicParser = /** @class */ (function () {
         function BasicParser(options) {
-            this.line = "0"; // for error messages
+            this.label = "0"; // for error messages
             this.quiet = false;
             this.keepTokens = false;
             this.keepBrackets = false;
@@ -1461,33 +1461,33 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             this.statementList = []; // just to check last statement when generating error message
             /* eslint-disable no-invalid-this */
             this.specialStatements = {
-                "'": this.fnApostrophe,
-                "|": this.fnRsx,
-                after: this.fnAfterOrEvery,
-                chain: this.fnChain,
-                clear: this.fnClear,
-                data: this.fnData,
-                def: this.fnDef,
-                "else": this.fnElse,
-                ent: this.fnEntOrEnv,
-                env: this.fnEntOrEnv,
-                every: this.fnAfterOrEvery,
-                "for": this.fnFor,
-                graphics: this.fnGraphics,
-                "if": this.fnIf,
-                input: this.fnInput,
-                key: this.fnKey,
-                let: this.fnLet,
-                line: this.fnLine,
-                mid$: this.fnMid$,
-                on: this.fnOn,
-                print: this.fnPrint,
-                "?": this.fnQuestion,
-                resume: this.fnResume,
-                run: this.fnRun,
-                speed: this.fnSpeed,
-                symbol: this.fnSymbol,
-                window: this.fnWindow
+                "'": this.apostrophe,
+                "|": this.rsx,
+                after: this.afterEveryGosub,
+                chain: this.chain,
+                clear: this.clear,
+                data: this.data,
+                def: this.def,
+                "else": this.else,
+                ent: this.entOrEnv,
+                env: this.entOrEnv,
+                every: this.afterEveryGosub,
+                "for": this.for,
+                graphics: this.graphics,
+                "if": this.if,
+                input: this.input,
+                key: this.key,
+                let: this.let,
+                line: this.line,
+                mid$: this.mid$Assign,
+                on: this.on,
+                print: this.print,
+                "?": this.question,
+                resume: this.resume,
+                run: this.run,
+                speed: this.speed,
+                symbol: this.symbol,
+                window: this.window
             };
             if (options) {
                 this.setOptions(options);
@@ -1505,7 +1505,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
         };
         BasicParser.prototype.composeError = function (error, message, value, pos, len) {
             len = value === "(end)" ? 0 : len;
-            return Utils_3.Utils.composeError("BasicParser", error, message, value, pos, len, this.line);
+            return Utils_3.Utils.composeError("BasicParser", error, message, value, pos, len, this.label);
         };
         // http://crockford.com/javascript/tdop/tdop.html (old: http://javascript.crockford.com/tdop/tdop.html)
         // http://crockford.com/javascript/tdop/parse.js
@@ -1516,16 +1516,6 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
         // identifiers, numbers: also nud.
         BasicParser.prototype.getToken = function () {
             return this.token;
-        };
-        BasicParser.prototype.symbol = function (id, nud) {
-            if (!this.symbols[id]) {
-                this.symbols[id] = {};
-            }
-            var symbol = this.symbols[id];
-            if (nud) {
-                symbol.nud = nud;
-            }
-            return symbol;
         };
         BasicParser.prototype.advance = function (id) {
             var token = this.token;
@@ -1561,7 +1551,8 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             if (!s.nud) {
                 throw this.composeError(Error(), "Unexpected token", t.value, t.pos);
             }
-            var left = s.nud.call(this, t); // process literals, variables, and prefix operators
+            //let left = s.nud.call(this, t); // process literals, variables, and prefix operators
+            var left = s.nud(t); // process literals, variables, and prefix operators
             t = this.token;
             s = this.symbols[t.type];
             while (rbp < (s.lbp || 0)) { // as long as the right binding power is less than the left binding power of the next token...
@@ -1570,7 +1561,8 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                     throw this.composeError(Error(), "Unexpected token", t.type, t.pos);
                     // TODO: How to get this error?
                 }
-                left = s.led.call(this, left); // ...the led method is invoked on the following token (infix and suffix operators), can be recursive
+                //left = s.led.call(this, left); // ...the led method is invoked on the following token (infix and suffix operators), can be recursive
+                left = s.led(left); // ...the led method is invoked on the following token (infix and suffix operators), can be recursive
                 t = this.token;
                 s = this.symbols[t.type];
             }
@@ -1595,7 +1587,8 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             var t = this.token, s = this.symbols[t.type];
             if (s.std) { // statement?
                 this.advance(t.type);
-                return s.std.call(this);
+                //return s.std.call(this);
+                return s.std();
             }
             var value;
             if (t.type === "identifier") {
@@ -1641,48 +1634,12 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 node = this.previousToken; // number token
                 node.type = "label"; // number => label
             }
-            this.line = node.value; // set line number for error messages
+            this.label = node.value; // set line number for error messages
             node.args = this.statements(BasicParser.closeTokensForLine);
             if (this.token.type === "(eol)") {
                 this.advance("(eol)");
             }
             return node;
-        };
-        BasicParser.prototype.generateLed = function (rbp) {
-            var _this = this;
-            return function (left) {
-                var node = _this.previousToken;
-                node.left = left;
-                node.right = _this.expression(rbp);
-                return node;
-            };
-        };
-        BasicParser.prototype.generateNud = function (rbp) {
-            var _this = this;
-            return function () {
-                var node = _this.previousToken;
-                node.right = _this.expression(rbp);
-                return node;
-            };
-        };
-        BasicParser.prototype.infix = function (id, lbp, rbp, led) {
-            rbp = rbp || lbp;
-            var symbol = this.symbol(id);
-            symbol.lbp = lbp;
-            symbol.led = led || this.generateLed(rbp);
-        };
-        BasicParser.prototype.infixr = function (id, lbp) {
-            var symbol = this.symbol(id);
-            symbol.lbp = lbp;
-            symbol.led = this.generateLed(lbp - 1);
-        };
-        BasicParser.prototype.prefix = function (id, rbp) {
-            this.symbol(id, this.generateNud(rbp));
-        };
-        BasicParser.prototype.stmt = function (id, fn) {
-            var symbol = this.symbol(id);
-            symbol.std = fn;
-            return symbol;
         };
         BasicParser.fnCreateDummyArg = function (type, value) {
             return {
@@ -1985,22 +1942,9 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             }
             return node;
         };
-        BasicParser.prototype.fnGenerateKeywordSymbols = function () {
-            for (var key in BasicParser.keywords) {
-                if (BasicParser.keywords.hasOwnProperty(key)) {
-                    var keywordType = BasicParser.keywords[key].charAt(0);
-                    if (keywordType === "f") {
-                        this.symbol(key, this.fnCreateFuncCall);
-                    }
-                    else if (keywordType === "c") {
-                        this.stmt(key, this.specialStatements[key] || this.fnCreateCmdCall);
-                    }
-                }
-            }
-        };
         // ...
-        BasicParser.prototype.fnIdentifier = function (node) {
-            var nameValue = node.value, startsWithFn = nameValue.toLowerCase().startsWith("fn");
+        BasicParser.prototype.fnIdentifier = function () {
+            var node = this.previousToken, nameValue = node.value, startsWithFn = nameValue.toLowerCase().startsWith("fn");
             if (startsWithFn) {
                 if (this.token.type !== "(") { // Fnxxx name without ()
                     var fnNode = {
@@ -2018,7 +1962,6 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 }
             }
             if (this.token.type === "(" || this.token.type === "[") {
-                node = this.previousToken;
                 if (startsWithFn) {
                     node.args = this.fnGetArgsInParenthesis();
                     node.type = "fn"; // FNxxx in e.g. print
@@ -2061,10 +2004,10 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             node.args = this.token.type === "(" ? this.fnGetArgsInParenthesis() : []; // FN xxx name with ()?
             return node;
         };
-        BasicParser.prototype.fnApostrophe = function () {
+        BasicParser.prototype.apostrophe = function () {
             return this.fnCreateCmdCallForType("rem");
         };
-        BasicParser.prototype.fnRsx = function () {
+        BasicParser.prototype.rsx = function () {
             var node = this.previousToken;
             var type = "_any1"; // expect any number of arguments
             if (this.token.type === ",") { // arguments starting with comma
@@ -2074,7 +2017,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             node.args = this.fnGetArgs(type); // get arguments
             return node;
         };
-        BasicParser.prototype.fnAfterOrEvery = function () {
+        BasicParser.prototype.afterEveryGosub = function () {
             var node = this.fnCreateCmdCallForType(this.previousToken.type + "Gosub"); // "afterGosub" or "everyGosub", interval and optional timer
             if (!node.args) {
                 throw this.composeError(Error(), "Programming error: Undefined args", this.token.type, this.token.pos); // should not occur
@@ -2087,7 +2030,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             node.args.push(line[0]);
             return node;
         };
-        BasicParser.prototype.fnChain = function () {
+        BasicParser.prototype.chain = function () {
             var node;
             if (this.token.type !== "merge") { // not chain merge?
                 node = this.fnCreateCmdCall(); // chain
@@ -2124,11 +2067,11 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             }
             return node;
         };
-        BasicParser.prototype.fnClear = function () {
+        BasicParser.prototype.clear = function () {
             var tokenType = this.token.type;
             return tokenType === "input" ? this.fnCombineTwoTokens(tokenType) : this.fnCreateCmdCall(); // "clear input" or "clear"
         };
-        BasicParser.prototype.fnData = function () {
+        BasicParser.prototype.data = function () {
             var node = this.previousToken;
             var parameterFound = false;
             node.args = [];
@@ -2159,7 +2102,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             }
             return node;
         };
-        BasicParser.prototype.fnDef = function () {
+        BasicParser.prototype.def = function () {
             var node = this.previousToken; // def
             var value2 = this.token, // fn or fn<identifier>
             fn;
@@ -2181,7 +2124,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             node.right = this.expression(0);
             return node;
         };
-        BasicParser.prototype.fnElse = function () {
+        BasicParser.prototype["else"] = function () {
             var node = this.previousToken;
             node.args = [];
             if (!this.quiet) {
@@ -2197,7 +2140,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             }
             return node;
         };
-        BasicParser.prototype.fnEntOrEnv = function () {
+        BasicParser.prototype.entOrEnv = function () {
             var node = this.previousToken;
             node.args = [];
             node.args.push(this.expression(0)); // should be number or variable
@@ -2212,7 +2155,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             }
             return node;
         };
-        BasicParser.prototype.fnFor = function () {
+        BasicParser.prototype["for"] = function () {
             var node = this.previousToken;
             this.fnCheckExpressionType(this.token, "identifier", "v");
             var name = this.expression(90); // take simple identifier, nothing more
@@ -2237,7 +2180,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             }
             return node;
         };
-        BasicParser.prototype.fnGraphics = function () {
+        BasicParser.prototype.graphics = function () {
             var tokenType = this.token.type;
             if (tokenType !== "pen" && tokenType !== "paper") {
                 throw this.composeError(Error(), "Expected PEN or PAPER", tokenType, this.token.pos);
@@ -2258,7 +2201,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 }
             }
         };
-        BasicParser.prototype.fnIf = function () {
+        BasicParser.prototype["if"] = function () {
             var node = this.previousToken;
             var numberToken;
             node.left = this.expression(0);
@@ -2293,7 +2236,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             }
             return node;
         };
-        BasicParser.prototype.fnInput = function () {
+        BasicParser.prototype.input = function () {
             var node = this.previousToken;
             node.args = [];
             var stream = this.fnGetOptionalStream();
@@ -2333,20 +2276,20 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             } while ((this.token.type === ",") && this.advance(","));
             return node;
         };
-        BasicParser.prototype.fnKey = function () {
+        BasicParser.prototype.key = function () {
             var tokenType = this.token.type;
             return tokenType === "def" ? this.fnCombineTwoTokens(tokenType) : this.fnCreateCmdCall(); // "key def" or "key"
         };
-        BasicParser.prototype.fnLet = function () {
+        BasicParser.prototype.let = function () {
             var node = this.previousToken;
             node.right = this.assignment();
             return node;
         };
-        BasicParser.prototype.fnLine = function () {
+        BasicParser.prototype.line = function () {
             this.previousToken.type = this.fnCombineTwoTokensNoArgs("input"); // combine "line" => "lineInput"
-            return this.fnInput(); // continue with input
+            return this.input(); // continue with input
         };
-        BasicParser.prototype.fnMid$ = function () {
+        BasicParser.prototype.mid$Assign = function () {
             this.previousToken.type = "mid$Assign"; // change type mid$ => mid$Assign
             var node = this.fnCreateFuncCall();
             if (!node.args) {
@@ -2358,7 +2301,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             node.right = right;
             return node;
         };
-        BasicParser.prototype.fnOn = function () {
+        BasicParser.prototype.on = function () {
             var node = this.previousToken;
             var left;
             node.args = [];
@@ -2407,7 +2350,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             }
             return node;
         };
-        BasicParser.prototype.fnPrint = function () {
+        BasicParser.prototype.print = function () {
             var node = this.previousToken, closeTokens = BasicParser.closeTokensForArgs, stream = this.fnGetOptionalStream();
             node.args = [];
             node.args.push(stream);
@@ -2437,7 +2380,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                         node2 = this.previousToken; // keep it for print
                     }
                 }
-                else if (BasicParser.keywords[this.token.type] && (BasicParser.keywords[this.token.type].charAt(0) === "c" || BasicParser.keywords[this.token.type].charAt(0) === "x")) { // stop also at keyword which is c=command or x=command addition
+                else if (BasicParser.keywords[this.token.type] && (BasicParser.keywords[this.token.type].charAt(0) === "c" || BasicParser.keywords[this.token.type].charAt(0) === "p")) { // stop also at keyword which is c=command or p=part of command
                     break;
                     //TTT: node2 not set?
                 }
@@ -2452,16 +2395,16 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             }
             return node;
         };
-        BasicParser.prototype.fnQuestion = function () {
-            var node = this.fnPrint();
+        BasicParser.prototype.question = function () {
+            var node = this.print();
             node.type = "print";
             return node;
         };
-        BasicParser.prototype.fnResume = function () {
+        BasicParser.prototype.resume = function () {
             var tokenType = this.token.type;
             return tokenType === "next" ? this.fnCombineTwoTokens(tokenType) : this.fnCreateCmdCall(); // "resume next" or "resume"
         };
-        BasicParser.prototype.fnRun = function () {
+        BasicParser.prototype.run = function () {
             var tokenType = this.token.type;
             var node;
             if (tokenType === "number") {
@@ -2473,77 +2416,161 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             }
             return node;
         };
-        BasicParser.prototype.fnSpeed = function () {
+        BasicParser.prototype.speed = function () {
             var tokenType = this.token.type;
             if (tokenType !== "ink" && tokenType !== "key" && tokenType !== "write") {
                 throw this.composeError(Error(), "Expected INK, KEY or WRITE", tokenType, this.token.pos);
             }
             return this.fnCombineTwoTokens(tokenType);
         };
-        BasicParser.prototype.fnSymbol = function () {
+        BasicParser.prototype.symbol = function () {
             var tokenType = this.token.type;
             return tokenType === "after" ? this.fnCombineTwoTokens(tokenType) : this.fnCreateCmdCall(); // "symbol after" or "symbol"
         };
-        BasicParser.prototype.fnWindow = function () {
+        BasicParser.prototype.window = function () {
             var tokenType = this.token.type;
             return tokenType === "swap" ? this.fnCombineTwoTokens(tokenType) : this.fnCreateCmdCall(); // "window swap" or "window"
         };
         BasicParser.fnNode = function (node) {
             return node;
         };
+        BasicParser.prototype.createSymbol = function (id) {
+            if (!this.symbols[id]) { // some symbols are extended, e.g. symbols for both infix and prefix
+                this.symbols[id] = {}; // create symbol
+            }
+            return this.symbols[id];
+        };
+        BasicParser.prototype.createNudSymbol = function (id, nud) {
+            var symbol = this.createSymbol(id);
+            symbol.nud = nud;
+            return symbol;
+        };
+        /*
+        private generateLed(rbp: number) {
+            return (left: ParserNode) => {
+                const node = this.previousToken;
+    
+                node.left = left;
+                node.right = this.expression(rbp);
+                return node;
+            };
+        }
+    
+        private generateNud(rbp: number) {
+            return () => {
+                const node = this.previousToken;
+    
+                node.right = this.expression(rbp);
+                return node;
+            };
+        }
+        */
+        BasicParser.prototype.fnInfixLed = function (left, rbp) {
+            var node = this.previousToken;
+            node.left = left;
+            node.right = this.expression(rbp);
+            return node;
+        };
+        BasicParser.prototype.createInfix = function (id, lbp, rbp) {
+            var _this = this;
+            var symbol = this.createSymbol(id);
+            symbol.lbp = lbp;
+            symbol.led = function (left) { return _this.fnInfixLed(left, rbp || lbp); };
+        };
+        BasicParser.prototype.createInfixr = function (id, lbp) {
+            var _this = this;
+            var symbol = this.createSymbol(id);
+            symbol.lbp = lbp;
+            symbol.led = function (left) { return _this.fnInfixLed(left, lbp - 1); };
+        };
+        BasicParser.prototype.fnPrefixNud = function (rbp) {
+            var node = this.previousToken;
+            node.right = this.expression(rbp);
+            return node;
+        };
+        BasicParser.prototype.createPrefix = function (id, rbp) {
+            var _this = this;
+            this.createNudSymbol(id, function () { return _this.fnPrefixNud(rbp); });
+        };
+        BasicParser.prototype.createStatement = function (id, fn) {
+            var _this = this;
+            var symbol = this.createSymbol(id);
+            symbol.std = function () { return fn.call(_this); };
+            return symbol;
+        };
+        BasicParser.prototype.fnGenerateKeywordSymbols = function () {
+            var _this = this;
+            for (var key in BasicParser.keywords) {
+                if (BasicParser.keywords.hasOwnProperty(key)) {
+                    var keywordType = BasicParser.keywords[key].charAt(0);
+                    if (keywordType === "f") {
+                        this.createNudSymbol(key, function () { return _this.fnCreateFuncCall(); });
+                    }
+                    else if (keywordType === "c") {
+                        this.createStatement(key, this.specialStatements[key] || this.fnCreateCmdCall);
+                    }
+                    else if (keywordType === "p") { // additional parts of command
+                        this.createSymbol(key);
+                    }
+                }
+            }
+        };
         BasicParser.prototype.fnGenerateSymbols = function () {
+            var _this = this;
             this.fnGenerateKeywordSymbols();
             // special statements ...
-            this.stmt("'", this.specialStatements["'"]);
-            this.stmt("|", this.specialStatements["|"]); // rsx
-            this.stmt("mid$", this.specialStatements.mid$); // mid$Assign (statement), combine with function
-            this.stmt("?", this.specialStatements["?"]); // "?" is same as print
-            this.symbol(":");
-            this.symbol(";");
-            this.symbol(",");
-            this.symbol(")");
-            this.symbol("[");
-            this.symbol("]");
+            this.createStatement("'", this.specialStatements["'"]);
+            this.createStatement("|", this.specialStatements["|"]); // rsx
+            this.createStatement("mid$", this.specialStatements.mid$); // mid$Assign (statement), combine with function
+            this.createStatement("?", this.specialStatements["?"]); // "?" is same as print
+            this.createSymbol(":");
+            this.createSymbol(";");
+            this.createSymbol(",");
+            this.createSymbol(")");
+            this.createSymbol("[");
+            this.createSymbol("]");
             // define additional statement parts
+            /*
             this.symbol("break");
             this.symbol("step");
             this.symbol("swap");
             this.symbol("then");
             this.symbol("to");
             this.symbol("using");
-            this.symbol("(eol)");
-            this.symbol("(end)");
-            this.symbol("number", BasicParser.fnNode);
-            this.symbol("binnumber", BasicParser.fnNode);
-            this.symbol("hexnumber", BasicParser.fnNode);
-            this.symbol("linenumber", BasicParser.fnNode);
-            this.symbol("string", BasicParser.fnNode);
-            this.symbol("unquoted", BasicParser.fnNode);
-            this.symbol("ws", BasicParser.fnNode); // optional whitespace
-            this.symbol("identifier", this.fnIdentifier);
-            this.symbol("(", this.fnParenthesis);
-            this.prefix("@", 95); // address of
-            this.infix("^", 90, 80);
-            this.prefix("+", 80); // + can be uses as prefix or infix
-            this.prefix("-", 80); // - can be uses as prefix or infix
-            this.infix("*", 70);
-            this.infix("/", 70);
-            this.infix("\\", 60); // integer division
-            this.infix("mod", 50);
-            this.infix("+", 40); // + can be uses as prefix or infix, so combine with prefix function
-            this.infix("-", 40); // - can be uses as prefix or infix, so combine with prefix function
-            this.infixr("=", 30); // equal for comparison
-            this.infixr("<>", 30);
-            this.infixr("<", 30);
-            this.infixr("<=", 30);
-            this.infixr(">", 30);
-            this.infixr(">=", 30);
-            this.prefix("not", 23);
-            this.infixr("and", 22);
-            this.infixr("or", 21);
-            this.infixr("xor", 20);
-            this.prefix("#", 10); // priority ok?
-            this.symbol("fn", this.fnFn); // separate fn
+            */
+            this.createSymbol("(eol)");
+            this.createSymbol("(end)");
+            this.createNudSymbol("number", BasicParser.fnNode);
+            this.createNudSymbol("binnumber", BasicParser.fnNode);
+            this.createNudSymbol("hexnumber", BasicParser.fnNode);
+            this.createNudSymbol("linenumber", BasicParser.fnNode);
+            this.createNudSymbol("string", BasicParser.fnNode);
+            this.createNudSymbol("unquoted", BasicParser.fnNode);
+            this.createNudSymbol("ws", BasicParser.fnNode); // optional whitespace
+            this.createNudSymbol("identifier", function () { return _this.fnIdentifier(); });
+            this.createNudSymbol("(", function () { return _this.fnParenthesis(); });
+            this.createNudSymbol("fn", function () { return _this.fnFn(); }); // separate fn
+            this.createPrefix("@", 95); // address of
+            this.createInfix("^", 90, 80);
+            this.createPrefix("+", 80); // + can be uses as prefix or infix
+            this.createPrefix("-", 80); // - can be uses as prefix or infix
+            this.createInfix("*", 70);
+            this.createInfix("/", 70);
+            this.createInfix("\\", 60); // integer division
+            this.createInfix("mod", 50);
+            this.createInfix("+", 40); // + can be uses as prefix or infix, so combine with prefix function
+            this.createInfix("-", 40); // - can be uses as prefix or infix, so combine with prefix function
+            this.createInfixr("=", 30); // equal for comparison
+            this.createInfixr("<>", 30);
+            this.createInfixr("<", 30);
+            this.createInfixr("<=", 30);
+            this.createInfixr(">", 30);
+            this.createInfixr(">=", 30);
+            this.createPrefix("not", 23);
+            this.createInfixr("and", 22);
+            this.createInfixr("or", 21);
+            this.createInfixr("xor", 20);
+            this.createPrefix("#", 10); // priority ok?
         };
         // http://crockford.com/javascript/tdop/tdop.html (old: http://javascript.crockford.com/tdop/tdop.html)
         // http://crockford.com/javascript/tdop/parse.js
@@ -2555,7 +2582,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
         BasicParser.prototype.parse = function (tokens) {
             this.tokens = tokens;
             // line
-            this.line = "0"; // for error messages
+            this.label = "0"; // for error messages
             this.index = 0;
             this.token = {};
             this.previousToken = this.token; // just to avoid warning
@@ -2581,7 +2608,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             "n0?": "optional parameter with default null",
             "#": "stream"
         };
-        // first letter: c=command, f=function, o=operator, x=additional keyword for command
+        // first letter: c=command, f=function, p=part of command, o=operator, x=misc
         // following are arguments: n=number, s=string, l=line number (checked), v=variable (checked), r=letter or range, a=any, n0?=optional parameter with default null, #=stream, #0?=optional stream with default 0; suffix ?=optional (optionals must be last); last *=any number of arguments may follow
         BasicParser.keywords = {
             abs: "f n",
@@ -2593,7 +2620,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             auto: "c n0? n0?",
             bin$: "f n n?",
             border: "c n n?",
-            "break": "x",
+            "break": "p",
             call: "c n *",
             cat: "c",
             chain: "c s n?",
@@ -2736,11 +2763,11 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             speedWrite: "c n",
             sq: "f n",
             sqr: "f n",
-            step: "x",
+            step: "p",
             stop: "c",
             str$: "f n",
             string$: "f n a",
-            swap: "x n n?",
+            swap: "p n n?",
             symbol: "c n n *",
             symbolAfter: "c n",
             tab: "f n",
@@ -2749,14 +2776,14 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             tan: "f n",
             test: "f n n",
             testr: "f n n",
-            then: "x",
+            then: "p",
             time: "f",
-            to: "x",
+            to: "p",
             troff: "c",
             tron: "c",
             unt: "f n",
             upper$: "f s",
-            using: "x",
+            using: "p",
             val: "f s",
             vpos: "f #",
             wait: "c n n n?",
@@ -3603,7 +3630,7 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
                 throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
             }
             if (node.left.type !== "identifier") {
-                throw this.composeError(Error(), "Unexpected assing type", node.type, node.pos); // should not occur
+                throw this.composeError(Error(), "Unexpected assign type", node.type, node.pos); // should not occur
             }
             return this.fnParseOneArg(node.left) + CodeGeneratorBasic.fnWs(node) + node.value + this.fnParseOneArg(node.right);
         };
@@ -3612,7 +3639,7 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
         };
         CodeGeneratorBasic.prototype.identifier = function (node) {
             var value = CodeGeneratorBasic.fnWs(node) + node.value; // keep case, maybe mixed
-            if (node.args) { // args including brackets
+            if (node.args) { // args including brackets or parenthesis
                 var nodeArgs = this.fnParseArgs(node.args), bracketOpen = nodeArgs.shift(), bracketClose = nodeArgs.pop();
                 value += bracketOpen + nodeArgs.join(",") + bracketClose;
             }
@@ -4658,16 +4685,24 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
         };
         CodeGeneratorJs.prototype.identifier = function (node) {
             var nodeArgs = node.args ? this.fnParseArgRange(node.args, 1, node.args.length - 2) : [], // array: we skip open and close bracket
-            name = this.fnAdaptVariableName(node.value, nodeArgs.length), // here we use node.value
+            name = this.fnAdaptVariableName(node.value, nodeArgs.length); // here we use node.value;
+            var indices = "";
+            /*
             value = name + nodeArgs.map(function (val) {
                 return "[" + val + "]";
             }).join("");
+            */
+            for (var i = 0; i < nodeArgs.length; i += 1) { // array indices
+                var arg = node.args[i + 1], // +1 because of opening braket
+                index = arg.pt !== "I" ? ("o.vmRound(" + nodeArgs[i] + ")") : nodeArgs[i];
+                // can we use fnGetRoundString()?
+                indices += "[" + index + "]";
+            }
             var varType = this.fnDetermineStaticVarType(name);
             if (varType.length > 1) {
-                varType = varType.charAt(1);
-                node.pt = varType;
+                node.pt = varType.charAt(1);
             }
-            node.pv = value;
+            node.pv = name + indices;
         };
         CodeGeneratorJs.letterOrLinenumber = function (node) {
             node.pv = node.value;
@@ -4713,30 +4748,34 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             if (!node.left || !node.right) {
                 throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
             }
-            var name;
-            if (node.left.type === "identifier") {
-                name = this.fnParseOneArg(node.left);
+            if (node.left.type !== "identifier") {
+                throw this.composeError(Error(), "Unexpected assign type", node.type, node.pos); // should not occur
             }
-            else {
-                throw this.composeError(Error(), "Unexpected assing type", node.type, node.pos); // should not occur
-            }
-            var assingValue = this.fnParseOneArg(node.right);
+            var name = this.fnParseOneArg(node.left), assignValue = this.fnParseOneArg(node.right);
             this.fnPropagateStaticTypes(node, node.left, node.right, "II RR IR RI $$");
             var varType = this.fnDetermineStaticVarType(name);
             var value;
             if (node.pt) {
                 if (node.left.pt === "I" && node.right.pt === "R") { // special handing for IR: rounding needed
-                    value = "o.vmRound(" + assingValue + ")";
+                    value = "o.vmRound(" + assignValue + ")";
                     node.pt = "I"; // "R" => "I"
                 }
                 else {
-                    value = assingValue;
+                    value = assignValue;
                 }
             }
             else {
-                value = "o.vmAssign(\"" + varType + "\", " + assingValue + ")";
+                value = "o.vmAssign(\"" + varType + "\", " + assignValue + ")";
             }
             node.pv = name + " = " + value;
+        };
+        CodeGeneratorJs.prototype.generateTraceLabel = function (node, tracePrefix, i) {
+            var traceLabel = tracePrefix + ((i > 0) ? "t" + i : ""), pos = node.pos, len = node.len || node.value.length || 0;
+            this.sourceMap[traceLabel] = [
+                pos,
+                len
+            ];
+            return traceLabel;
         };
         CodeGeneratorJs.prototype.label = function (node) {
             var label = node.value;
@@ -4762,13 +4801,8 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             for (var i = 0; i < nodeArgs.length; i += 1) {
                 var value2 = nodeArgs[i];
                 if (this.traceActive) {
-                    var traceLabel = this.line + ((i > 0) ? "t" + i : ""), pos = node.args[i].pos, len = node.args[i].len || node.args[i].value.length || 0;
-                    //value += " o.vmTrace(\"" + traceLabel + "\", " + pos + ", " + len + ");";
+                    var traceLabel = this.generateTraceLabel(node.args[i], this.line, i);
                     value += " o.vmTrace(\"" + traceLabel + "\");";
-                    this.sourceMap[traceLabel] = [
-                        pos,
-                        len
-                    ];
                 }
                 if (value2 !== "") {
                     if (!(/[}:;\n]$/).test(value2)) { // does not end with } : ; \n
@@ -4998,16 +5032,9 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 nodeArgs[0] = "o.goto(" + line + "); break"; // convert to "goto"
             }
             if (this.traceActive) {
-                // TODO see also "label":
                 for (var i = 0; i < nodeArgs.length; i += 1) {
-                    //let value2 = nodeArgs[i];
-                    //const traceLabel = this.line + ((i > 0) ? "t" + i : ""),
-                    var traceLabel = tracePrefix + ((i > 0) ? "t" + i : ""), pos = args[i].pos, len = args[i].len || args[i].value.length || 0;
+                    var traceLabel = this.generateTraceLabel(args[i], tracePrefix, i);
                     nodeArgs[i] = "o.vmTrace(\"" + traceLabel + "\"); " + nodeArgs[i];
-                    this.sourceMap[traceLabel] = [
-                        pos,
-                        len
-                    ];
                 }
             }
             return nodeArgs.join("; ");
@@ -5036,7 +5063,6 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 }
             }
             else {
-                //const label = this.fnGetIfLabel();
                 value += 'o.goto("' + label + '"); break; } ';
                 if (elsePart !== "") { // "else" statements?
                     value += "/* else */ " + elsePart + "; ";
@@ -5361,18 +5387,9 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 var node = nodes[i];
                 countMap[node.type] = (countMap[node.type] || 0) + 1;
                 if (node.type === "resume" && !(node.args && node.args.length)) {
-                    //this.traceActive = true;
                     var resumeNoArgs = "resumeNoArgsCount";
                     countMap[resumeNoArgs] = (countMap[resumeNoArgs] || 0) + 1;
                 }
-                /*
-                if (node.left) {
-                    this.fnPrecheckTree(node.left, lines, refs);
-                }
-                if (node.right) {
-                    this.fnPrecheckTree(node.right, lines, refs);
-                }
-                */
                 if (node.args) {
                     this.fnPrecheckTree(node.args, countMap); // recursive
                 }
@@ -5389,7 +5406,6 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             this.defScopeArgs = undefined;
             // create labels map
             this.fnCreateLabelsMap(parseTree, this.referencedLabelsCount, allowDirect);
-            //this.traceActive = false;
             this.fnPrecheckTree(parseTree, this.countMap); // also set "_resumeNoArgs" for resume without args
             this.traceActive = this.trace || Boolean(this.countMap.tron) || Boolean(this.countMap.resumeNext) || Boolean(this.countMap.resumeNoArgsCount); // we also switch on tracing for tron, resumeNext or resume without parameter
             var output = "";
@@ -5701,7 +5717,7 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
                 throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
             }
             if (node.left.type !== "identifier") {
-                throw this.composeError(Error(), "Unexpected assing type", node.type, node.pos); // should not occur
+                throw this.composeError(Error(), "Unexpected assign type", node.type, node.pos); // should not occur
             }
             return this.fnParseOneArg(node.left) + CodeGeneratorToken.token2String("=") + this.fnParseOneArg(node.right);
         };
@@ -11209,7 +11225,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.degFlag = false; // degree or radians
             this.tronFlag1 = false; // trace flag
             this.traceLabel = "";
-            //private traceInfo = {} as TraceInfo;
             this.ramSelect = 0;
             this.screenPage = 3; // 16K screen page, 3=0xc000..0xffff
             this.minCharHimem = CpcVm.maxHimem;
@@ -11329,9 +11344,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.degFlag = false; // degree or radians
             this.tronFlag1 = false;
             this.traceLabel = "";
-            //this.traceInfo.line = ""; // last trace line
-            //this.traceInfo.pos = 0;
-            //this.traceInfo.len = 0;
             this.mem.length = 0; // clear memory (for PEEK, POKE)
             this.ramSelect = 0; // for banking with 16K banks in the range 0x4000-0x7fff (0=default; 1...=additional)
             this.screenPage = 3; // 16K screen page, 3=0xc000..0xffff
@@ -11431,7 +11443,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.closeout();
             this.cursor(stream, 0);
             this.traceLabel = ""; // last trace line
-            this.labelList.length = 0; //TTT
+            this.labelList.length = 0;
         };
         CpcVm.prototype.vmGetAllVariables = function () {
             return this.variables.getAllVariables();
@@ -11799,23 +11811,9 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.vmSetSourceMap = function (sourceMap) {
             this.sourceMap = sourceMap;
         };
-        /*
-        vmTrace(line: number | string, pos: number, len: number): void {
-            const stream = 0;
-    
-            this.traceInfo.line = String(line);
-            this.traceInfo.pos = pos;
-            this.traceInfo.len = len;
-            if (this.tronFlag1 && !isNaN(Number(line))) {
-                this.print(stream, "[" + line + "]");
-            }
-        }
-        */
         CpcVm.prototype.vmTrace = function (line) {
             var stream = 0;
             this.traceLabel = String(line);
-            //this.traceInfo.pos = pos;
-            //this.traceInfo.len = len;
             if (this.tronFlag1 && !isNaN(Number(line))) {
                 this.print(stream, "[" + line + "]");
             }
@@ -12378,6 +12376,45 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             }
             this.variables.dimVariable(varName, dimensions);
         };
+        CpcVm.prototype.vmGetVariable = function (varName) {
+            var args = [];
+            for (var _i = 1; _i < arguments.length; _i++) {
+                args[_i - 1] = arguments[_i];
+            }
+            var value = this.variables.getVariable(varName);
+            for (var i = 0; i < args.length; i += 1) {
+                if (Array.isArray(value)) {
+                    var index = this.vmInRangeRound(args[i], 0, value.length - 1, "vmGet"); // TODO: in case of error: Subscript out of range; or: vmAssertInRange?
+                    value = value[index];
+                }
+                else {
+                    throw this.vmComposeError(Error(), 9, String(value)); // Subscript out of range
+                }
+            }
+            return value;
+        };
+        CpcVm.prototype.vmSetVariable = function (varName, valueToSet) {
+            var args = [];
+            for (var _i = 2; _i < arguments.length; _i++) {
+                args[_i - 2] = arguments[_i];
+            }
+            var value = this.variables.getVariable(varName);
+            for (var i = 0; i < args.length; i += 1) {
+                if (Array.isArray(value)) {
+                    var index = this.vmInRangeRound(args[i], 0, value.length - 1, "vmGet"); // TODO: in case of error: Subscript out of range; or: vmAssertInRange?
+                    if (i < args.length - 1) {
+                        value = value[index];
+                    }
+                    else {
+                        value[index] = valueToSet;
+                    }
+                }
+                else {
+                    throw this.vmComposeError(Error(), 9, String(value)); // Subscript out of range
+                }
+            }
+            return value;
+        };
         CpcVm.prototype.draw = function (x, y, gPen, gColMode) {
             x = this.vmInRangeRound(x, -32768, 32767, "DRAW");
             y = this.vmInRangeRound(y, -32768, 32767, "DRAW");
@@ -12548,7 +12585,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             if (!this.quiet) {
                 Utils_19.Utils.console.log("BASIC error(" + err + "):", errorWithInfo + (hidden ? " (hidden: " + hidden + ")" : ""));
             }
-            //return Utils.composeError("CpcVm", error, errorString, errInfo, this.traceInfo.pos || undefined, this.traceInfo.len || undefined, line, hidden);
             var traceLine = this.traceLabel || this.line, sourceMapEntry = this.sourceMap[traceLine], pos = sourceMapEntry && sourceMapEntry[0], len = sourceMapEntry && sourceMapEntry[1];
             return Utils_19.Utils.composeError("CpcVm", error, errorString, errInfo, pos, len, line, hidden);
         };
@@ -13665,9 +13701,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                     this.vmDrawUndrawCursor(stream); // undraw
                 }
             }
-            else if (stream === 8) {
-                this.vmNotImplemented("PRINT # " + stream);
-            }
             else if (stream === 9) {
                 if (!this.outFile.open) {
                     throw this.vmComposeError(Error(), 31, "PRINT #" + stream); // File not open
@@ -13711,6 +13744,9 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                         buf = this.vmPrintCharsOrControls(stream, str);
                     }
                     this.outBuffer += str; // console
+                }
+                else if (stream === 8) { // printer?
+                    this.outBuffer += str; // put also in console
                 }
                 else { // stream === 9
                     var lastCrPos = buf.lastIndexOf("\r");
@@ -13912,17 +13948,15 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             if (!this.errorGotoLine || !this.errorResumeLine) {
                 throw this.vmComposeError(Error(), 20, "RESUME NEXT"); // Unexpected RESUME
             }
-            // TODO: need to find the instruction after the erroneous one!
             var resumeLineIndex = this.labelList.indexOf(this.errorResumeLine);
             if (resumeLineIndex < 0) {
-                Utils_19.Utils.console.error("resumeNext: line not found: " + this.errorResumeLine); //TTT
+                Utils_19.Utils.console.error("resumeNext: line not found: " + this.errorResumeLine);
                 this.errorResumeLine = 0;
                 return;
             }
             var line = this.labelList[resumeLineIndex + 1]; // get next line
             this.vmGotoLine(line, "resumeNext");
             this.errorResumeLine = 0;
-            //this.vmNotImplemented("RESUME NEXT");
         };
         CpcVm.prototype["return"] = function () {
             var line = this.gosubStack.pop();
@@ -14422,8 +14456,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 }
                 this.outBuffer += str + "\n"; // console
             }
-            else if (stream === 8) {
-                this.vmNotImplemented("WRITE #" + stream);
+            else if (stream === 8) { // printer?
+                this.outBuffer += str + "\n"; // console
             }
             else if (stream === 9) {
                 this.outFile.stream = stream;

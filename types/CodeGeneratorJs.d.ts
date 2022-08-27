@@ -91,6 +91,7 @@ export declare class CodeGeneratorJs {
     private static unquoted;
     private static fnNull;
     private assign;
+    private generateTraceLabel;
     private label;
     private afterEveryGosub;
     private static cont;

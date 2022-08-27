@@ -165,7 +165,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
                 throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
             }
             if (node.left.type !== "identifier") {
-                throw this.composeError(Error(), "Unexpected assing type", node.type, node.pos); // should not occur
+                throw this.composeError(Error(), "Unexpected assign type", node.type, node.pos); // should not occur
             }
             return this.fnParseOneArg(node.left) + CodeGeneratorToken.token2String("=") + this.fnParseOneArg(node.right);
         };

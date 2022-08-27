@@ -207,8 +207,8 @@
         "affectsGlobalScope": false
       },
       "../src/BasicParser.ts": {
-        "version": "f32ac361b04a248755a610e209a2ddeab096c79235de1acc6a6223f3677e92c7",
-        "signature": "cb78bcc63b89835733a771764cce36473c4b8a260cfc85fadea396cbcb6e8a98",
+        "version": "748454dc4eadf0336a4538d865b9a8a9e3881946d6cf339392aa824ea528f035",
+        "signature": "1916906280eed857549c01816fc55c976bfa516f5c395f4c1ee9bfd4082e8ec6",
         "affectsGlobalScope": false
       },
       "../src/Interfaces.ts": {
@@ -237,7 +237,7 @@
         "affectsGlobalScope": false
       },
       "../src/CodeGeneratorBasic.ts": {
-        "version": "c471e5995582d81540c6e988cef4107015f009827dde3c4bb7a73c05ffae936c",
+        "version": "1e0c95d798c229afd147823c4c2a5cd0752120921ad591739ed82306887884c1",
         "signature": "86e083f5646383750e3938ddc2651096275423a998b82be141543f2eadd6c476",
         "affectsGlobalScope": false
       },
@@ -247,12 +247,12 @@
         "affectsGlobalScope": false
       },
       "../src/CodeGeneratorJs.ts": {
-        "version": "96531460bc361d46f93cfcb1f9d2c0b438d23a4d7afc2c14b7ac808e2ee431c0",
-        "signature": "8f4fe2c26143340a692884c664bf25e138a218348c967b28e59ef8f8345b4489",
+        "version": "23e919506a3fa77b883ad7f404343f35360f023101769e422738778a404a6f24",
+        "signature": "3b7b51848d492dec5003192f869e8c275fecfaa785c32a7e0d5777bf1a9f344a",
         "affectsGlobalScope": false
       },
       "../src/CodeGeneratorToken.ts": {
-        "version": "7018e6f02ab669baa1b712d0c4eb432288deb2cedba032d3e0faa2dd3e166705",
+        "version": "a51293f0146c4ec1a989195fa271269bcd1bc07309d048a4de747f1b4630db46",
         "signature": "2e8aa584c9364791403b42fd84645920745ff1018e41b0798af79fbfef810536",
         "affectsGlobalScope": false
       },
@@ -287,8 +287,8 @@
         "affectsGlobalScope": false
       },
       "../src/CpcVm.ts": {
-        "version": "78cfdd0c8fff2f6efe2ed5589eb7669b15443dfa6fb4e3cd5a15a3e4b5ac4203",
-        "signature": "c8f10db9156f422f480549584e410e2a8c990d665d6976903d68a14fd39043cd",
+        "version": "a1276eaecde76ed5aeeb960c183d67e56ba0714f79294359f273dc5f23a51f9d",
+        "signature": "2019c70cc7b93283f1d5f27cf95e2faa9ffd8bd8a82a03f0c77ad38a419aecd4",
         "affectsGlobalScope": false
       },
       "../src/CpcVmRsx.ts": {

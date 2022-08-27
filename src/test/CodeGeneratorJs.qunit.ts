@@ -54,7 +54,10 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			'a$[2]="1.4"': ' v.a$A[2] = "1.4";',
 			"a(9)=b(1,2)": ' v.aA[9] = o.vmAssign("a", v.bAA[1][2]);',
 			"a[9]=b[1,2]": ' v.aA[9] = o.vmAssign("a", v.bAA[1][2]);',
-			"a(10,10,10)=b(10,9)": ' v.aAAA[10][10][10] = o.vmAssign("a", v.bAA[10][9]);'
+			"a(10,10,10)=b(10,9)": ' v.aAAA[10][10][10] = o.vmAssign("a", v.bAA[10][9]);',
+			"a!(1.4)=b!(1.5,2.4,1)": " v.aRA[o.vmRound(1.4)] = v.bRAAA[o.vmRound(1.5)][o.vmRound(2.4)][1];",
+			"a!(b+1)=b!(a,a%*2,a%+1.5)": " v.aRA[o.vmRound(v.b + 1)] = v.bRAAA[o.vmRound(v.a)][v.aI * 2][o.vmRound(v.aI + 1.5)];",
+			"a!(b+1)=b!(int(a),a%*2,a%-1+&d)": " v.aRA[o.vmRound(v.b + 1)] = v.bRAAA[o.int(v.a)][v.aI * 2][(v.aI - 1) + 0xd];"
 		},
 		expressions: {
 			"a=1+2+3": ' v.a = o.vmAssign("a", (1 + 2) + 3);',
@@ -186,7 +189,7 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			"dim a%(1)": ' /* v.aIA[1] = */ o.dim("aIA", 1);',
 			"dim a$(1)": ' /* v.a$A[1] = */ o.dim("a$A", 1);',
 			"dim a(2,13)": ' /* v.aAA[2][13] = */ o.dim("aAA", 2, 13);',
-			"dim a(2,13+7),b$[3],c![2*a,7]": ' /* v.aAA[2][13 + 7] = */ o.dim("aAA", 2, 13 + 7); /* v.b$A[3] = */ o.dim("b$A", 3); /* v.cRAA[2 * v.a][7] = */ o.dim("cRAA", 2 * v.a, 7);',
+			"dim a(2,13+7),b$[3],c![2*a,7]": ' /* v.aAA[2][13 + 7] = */ o.dim("aAA", 2, 13 + 7); /* v.b$A[3] = */ o.dim("b$A", 3); /* v.cRAA[o.vmRound(2 * v.a)][7] = */ o.dim("cRAA", 2 * v.a, 7);',
 			"dim a[2,13)": ' /* v.aAA[2][13] = */ o.dim("aAA", 2, 13);',
 			"draw 10,20": " o.draw(10, 20);",
 			"draw -10,-20,7": " o.draw(-10, -20, 7);",
@@ -525,6 +528,7 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			"speed key a,b": " o.speedKey(v.a, v.b);",
 			"speed write 1": " o.speedWrite(1);",
 			"speed write a-1": " o.speedWrite(v.a - 1);",
+			"1 speed mode 2": "BasicParser: Expected INK, KEY or WRITE in 1 at pos 8-12: mode",
 			"a=sq(1)": ' v.a = o.vmAssign("a", o.sq(1));',
 			"a=sq(channel)": ' v.a = o.vmAssign("a", o.sq(v.channel));',
 			"a=sqr(9)": ' v.a = o.vmAssign("a", o.sqr(9));',

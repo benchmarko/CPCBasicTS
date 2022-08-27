@@ -575,20 +575,30 @@ export class CodeGeneratorJs {
 		node.pt = "I";
 		node.pv = "0x" + ((value.length) ? value : "0"); // &->0x
 	}
-	private identifier(node: CodeNode) { // identifier or identifier with array
+	private identifier(node: CodeNode) { // identifier or identifier with array indices
 		const nodeArgs = node.args ? this.fnParseArgRange(node.args, 1, node.args.length - 2) : [], // array: we skip open and close bracket
-			name = this.fnAdaptVariableName(node.value, nodeArgs.length), // here we use node.value
-			value = name + nodeArgs.map(function (val) {
-				return "[" + val + "]";
-			}).join("");
+			name = this.fnAdaptVariableName(node.value, nodeArgs.length); // here we use node.value;
+		let indices = "";
 
-		let varType = this.fnDetermineStaticVarType(name);
+		/*
+		value = name + nodeArgs.map(function (val) {
+			return "[" + val + "]";
+		}).join("");
+		*/
+		for (let i = 0; i < nodeArgs.length; i += 1) { // array indices
+			const arg = node.args[i + 1], // +1 because of opening braket
+				index = arg.pt !== "I" ? ("o.vmRound(" + nodeArgs[i] + ")") : nodeArgs[i];
+				// can we use fnGetRoundString()?
+
+			indices += "[" + index + "]";
+		}
+
+		const varType = this.fnDetermineStaticVarType(name);
 
 		if (varType.length > 1) {
-			varType = varType.charAt(1);
-			node.pt = varType;
+			node.pt = varType.charAt(1);
 		}
-		node.pv = value;
+		node.pv = name + indices;
 	}
 	private static letterOrLinenumber(node: CodeNode) {
 		node.pv = node.value;
@@ -645,15 +655,13 @@ export class CodeGeneratorJs {
 		if (!node.left || !node.right) {
 			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
 		}
-		let name: string;
 
-		if (node.left.type === "identifier") {
-			name = this.fnParseOneArg(node.left);
-		} else {
-			throw this.composeError(Error(), "Unexpected assing type", node.type, node.pos); // should not occur
+		if (node.left.type !== "identifier") {
+			throw this.composeError(Error(), "Unexpected assign type", node.type, node.pos); // should not occur
 		}
 
-		const assingValue = this.fnParseOneArg(node.right);
+		const name = this.fnParseOneArg(node.left),
+			assignValue = this.fnParseOneArg(node.right);
 
 		this.fnPropagateStaticTypes(node, node.left, node.right, "II RR IR RI $$");
 		const varType = this.fnDetermineStaticVarType(name);
@@ -662,16 +670,29 @@ export class CodeGeneratorJs {
 
 		if (node.pt) {
 			if (node.left.pt === "I" && node.right.pt === "R") { // special handing for IR: rounding needed
-				value = "o.vmRound(" + assingValue + ")";
+				value = "o.vmRound(" + assignValue + ")";
 				node.pt = "I"; // "R" => "I"
 			} else {
-				value = assingValue;
+				value = assignValue;
 			}
 		} else {
-			value = "o.vmAssign(\"" + varType + "\", " + assingValue + ")";
+			value = "o.vmAssign(\"" + varType + "\", " + assignValue + ")";
 		}
 		node.pv = name + " = " + value;
 	}
+
+	private generateTraceLabel(node: ParserNode, tracePrefix: string, i: number) {
+		const traceLabel = tracePrefix + ((i > 0) ? "t" + i : ""),
+			pos = node.pos,
+			len = node.len || node.value.length || 0;
+
+		this.sourceMap[traceLabel] = [
+			pos,
+			len
+		];
+		return traceLabel;
+	}
+
 	private label(node: CodeNode) {
 		let label = node.value;
 
@@ -702,16 +723,9 @@ export class CodeGeneratorJs {
 			let value2 = nodeArgs[i];
 
 			if (this.traceActive) {
-				const traceLabel = this.line + ((i > 0) ? "t" + i : ""),
-					pos = node.args[i].pos,
-					len = node.args[i].len || node.args[i].value.length || 0;
+				const traceLabel = this.generateTraceLabel(node.args[i], this.line, i);
 
-				//value += " o.vmTrace(\"" + traceLabel + "\", " + pos + ", " + len + ");";
 				value += " o.vmTrace(\"" + traceLabel + "\");";
-				this.sourceMap[traceLabel] = [
-					pos,
-					len
-				];
 			}
 
 			if (value2 !== "") {
@@ -1009,20 +1023,10 @@ export class CodeGeneratorJs {
 		}
 
 		if (this.traceActive) {
-			// TODO see also "label":
 			for (let i = 0; i < nodeArgs.length; i += 1) {
-				//let value2 = nodeArgs[i];
-
-				//const traceLabel = this.line + ((i > 0) ? "t" + i : ""),
-				const traceLabel = tracePrefix + ((i > 0) ? "t" + i : ""),
-					pos = args[i].pos,
-					len = args[i].len || args[i].value.length || 0;
+				const traceLabel = this.generateTraceLabel(args[i], tracePrefix, i);
 
 				nodeArgs[i] = "o.vmTrace(\"" + traceLabel + "\"); " + nodeArgs[i];
-				this.sourceMap[traceLabel] = [
-					pos,
-					len
-				];
 			}
 		}
 
@@ -1059,8 +1063,6 @@ export class CodeGeneratorJs {
 				value += " else { " + elsePart + "; }";
 			}
 		} else {
-			//const label = this.fnGetIfLabel();
-
 			value += 'o.goto("' + label + '"); break; } ';
 
 			if (elsePart !== "") { // "else" statements?
@@ -1536,20 +1538,11 @@ export class CodeGeneratorJs {
 			countMap[node.type] = (countMap[node.type] || 0) + 1;
 
 			if (node.type === "resume" && !(node.args && node.args.length)) {
-				//this.traceActive = true;
 				const resumeNoArgs = "resumeNoArgsCount";
 
 				countMap[resumeNoArgs] = (countMap[resumeNoArgs] || 0) + 1;
 			}
 
-			/*
-			if (node.left) {
-				this.fnPrecheckTree(node.left, lines, refs);
-			}
-			if (node.right) {
-				this.fnPrecheckTree(node.right, lines, refs);
-			}
-			*/
 			if (node.args) {
 				this.fnPrecheckTree(node.args, countMap); // recursive
 			}
@@ -1570,7 +1563,6 @@ export class CodeGeneratorJs {
 		// create labels map
 		this.fnCreateLabelsMap(parseTree, this.referencedLabelsCount, allowDirect);
 
-		//this.traceActive = false;
 		this.fnPrecheckTree(parseTree, this.countMap); // also set "_resumeNoArgs" for resume without args
 
 		this.traceActive = this.trace || Boolean(this.countMap.tron) || Boolean(this.countMap.resumeNext) || Boolean(this.countMap.resumeNoArgsCount); // we also switch on tracing for tron, resumeNext or resume without parameter

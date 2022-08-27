@@ -207,8 +207,8 @@
         "affectsGlobalScope": false
       },
       "../types/BasicParser.d.ts": {
-        "version": "cb78bcc63b89835733a771764cce36473c4b8a260cfc85fadea396cbcb6e8a98",
-        "signature": "cb78bcc63b89835733a771764cce36473c4b8a260cfc85fadea396cbcb6e8a98",
+        "version": "1916906280eed857549c01816fc55c976bfa516f5c395f4c1ee9bfd4082e8ec6",
+        "signature": "1916906280eed857549c01816fc55c976bfa516f5c395f4c1ee9bfd4082e8ec6",
         "affectsGlobalScope": false
       },
       "../types/Interfaces.d.ts": {
@@ -267,12 +267,12 @@
         "affectsGlobalScope": false
       },
       "../types/CodeGeneratorJs.d.ts": {
-        "version": "8f4fe2c26143340a692884c664bf25e138a218348c967b28e59ef8f8345b4489",
-        "signature": "8f4fe2c26143340a692884c664bf25e138a218348c967b28e59ef8f8345b4489",
+        "version": "3b7b51848d492dec5003192f869e8c275fecfaa785c32a7e0d5777bf1a9f344a",
+        "signature": "3b7b51848d492dec5003192f869e8c275fecfaa785c32a7e0d5777bf1a9f344a",
         "affectsGlobalScope": false
       },
       "../../src/test/CodeGeneratorJs.qunit.ts": {
-        "version": "b3659c1b19e8bd7f0d3813d7f18cb62f1dfa5dc10036dd9def9f9875324879bc",
+        "version": "194e1f1a1d6f049cdc25e3eb7f15a5ecba580936e5f06b2cf6b8a8d5a47de5d6",
         "signature": "0de15ad5d19532aef4039ea7ca938a9a1b4dd3d7a6e3d2b02e1c4de965d5e58b",
         "affectsGlobalScope": false
       },
@@ -302,8 +302,8 @@
         "affectsGlobalScope": false
       },
       "../types/CpcVm.d.ts": {
-        "version": "c8f10db9156f422f480549584e410e2a8c990d665d6976903d68a14fd39043cd",
-        "signature": "c8f10db9156f422f480549584e410e2a8c990d665d6976903d68a14fd39043cd",
+        "version": "2019c70cc7b93283f1d5f27cf95e2faa9ffd8bd8a82a03f0c77ad38a419aecd4",
+        "signature": "2019c70cc7b93283f1d5f27cf95e2faa9ffd8bd8a82a03f0c77ad38a419aecd4",
         "affectsGlobalScope": false
       },
       "../../src/test/CpcVm.qunit.ts": {

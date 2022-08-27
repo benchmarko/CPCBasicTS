@@ -8,7 +8,7 @@ import { Keyboard, CpcKeyExpansionsOptions } from "./Keyboard";
 import { Random } from "./Random";
 import { Sound, SoundData, ToneEnvData, VolEnvData } from "./Sound";
 import { Canvas } from "./Canvas";
-import { Variables, VariableMap } from "./Variables";
+import { Variables, VariableMap, VariableValue } from "./Variables";
 import { ICpcVmRsx } from "./Interfaces";
 
 export interface CpcVmOptions {
@@ -206,7 +206,6 @@ export class CpcVm {
 	private tronFlag1 = false; // trace flag
 
 	private traceLabel = "";
-	//private traceInfo = {} as TraceInfo;
 
 	private ramSelect = 0;
 
@@ -525,9 +524,6 @@ export class CpcVm {
 
 		this.tronFlag1 = false;
 		this.traceLabel = "";
-		//this.traceInfo.line = ""; // last trace line
-		//this.traceInfo.pos = 0;
-		//this.traceInfo.len = 0;
 
 		this.mem.length = 0; // clear memory (for PEEK, POKE)
 		this.ramSelect = 0; // for banking with 16K banks in the range 0x4000-0x7fff (0=default; 1...=additional)
@@ -657,7 +653,7 @@ export class CpcVm {
 		this.closeout();
 		this.cursor(stream, 0);
 		this.traceLabel = ""; // last trace line
-		this.labelList.length = 0; //TTT
+		this.labelList.length = 0;
 	}
 
 	vmGetAllVariables(): VariableMap { // also called from JS script
@@ -1096,24 +1092,10 @@ export class CpcVm {
 		this.sourceMap = sourceMap;
 	}
 
-	/*
-	vmTrace(line: number | string, pos: number, len: number): void {
-		const stream = 0;
-
-		this.traceInfo.line = String(line);
-		this.traceInfo.pos = pos;
-		this.traceInfo.len = len;
-		if (this.tronFlag1 && !isNaN(Number(line))) {
-			this.print(stream, "[" + line + "]");
-		}
-	}
-	*/
 	vmTrace(line: number | string): void {
 		const stream = 0;
 
 		this.traceLabel = String(line);
-		//this.traceInfo.pos = pos;
-		//this.traceInfo.len = len;
 		if (this.tronFlag1 && !isNaN(Number(line))) {
 			this.print(stream, "[" + line + "]");
 		}
@@ -1761,6 +1743,41 @@ export class CpcVm {
 		this.variables.dimVariable(varName, dimensions);
 	}
 
+	vmGetVariable(varName: string, ...args: number[]): VariableValue { // TODO
+		let value = this.variables.getVariable(varName);
+
+		for (let i = 0; i < args.length; i += 1) {
+			if (Array.isArray(value)) {
+				const index = this.vmInRangeRound(args[i], 0, value.length - 1, "vmGet"); // TODO: in case of error: Subscript out of range; or: vmAssertInRange?
+
+				value = value[index];
+			} else {
+				throw this.vmComposeError(Error(), 9, String(value)); // Subscript out of range
+			}
+		}
+		return value;
+	}
+
+	vmSetVariable(varName: string, valueToSet: number | string, ...args: number[]): VariableValue { // TODO
+		let value = this.variables.getVariable(varName);
+
+		for (let i = 0; i < args.length; i += 1) {
+			if (Array.isArray(value)) {
+				const index = this.vmInRangeRound(args[i], 0, value.length - 1, "vmGet"); // TODO: in case of error: Subscript out of range; or: vmAssertInRange?
+
+				if (i < args.length - 1) {
+					value = value[index];
+				} else {
+					value[index] = valueToSet;
+				}
+			} else {
+				throw this.vmComposeError(Error(), 9, String(value)); // Subscript out of range
+			}
+		}
+
+		return value;
+	}
+
 	draw(x: number, y: number, gPen?: number, gColMode?: number): void {
 		x = this.vmInRangeRound(x, -32768, 32767, "DRAW");
 		y = this.vmInRangeRound(y, -32768, 32767, "DRAW");
@@ -1944,7 +1961,6 @@ export class CpcVm {
 		if (!this.quiet) {
 			Utils.console.log("BASIC error(" + err + "):", errorWithInfo + (hidden ? " (hidden: " + hidden + ")" : ""));
 		}
-		//return Utils.composeError("CpcVm", error, errorString, errInfo, this.traceInfo.pos || undefined, this.traceInfo.len || undefined, line, hidden);
 		const traceLine = this.traceLabel || this.line,
 			sourceMapEntry = this.sourceMap[traceLine],
 			pos = sourceMapEntry && sourceMapEntry[0],
@@ -3227,8 +3243,6 @@ export class CpcVm {
 			if (!win.tag) {
 				this.vmDrawUndrawCursor(stream); // undraw
 			}
-		} else if (stream === 8) {
-			this.vmNotImplemented("PRINT # " + stream);
 		} else if (stream === 9) {
 			if (!this.outFile.open) {
 				throw this.vmComposeError(Error(), 31, "PRINT #" + stream); // File not open
@@ -3274,6 +3288,8 @@ export class CpcVm {
 					buf = this.vmPrintCharsOrControls(stream, str);
 				}
 				this.outBuffer += str; // console
+			} else if (stream === 8) { // printer?
+				this.outBuffer += str; // put also in console
 			} else { // stream === 9
 				const lastCrPos = buf.lastIndexOf("\r");
 
@@ -3488,11 +3504,10 @@ export class CpcVm {
 		if (!this.errorGotoLine || !this.errorResumeLine) {
 			throw this.vmComposeError(Error(), 20, "RESUME NEXT"); // Unexpected RESUME
 		}
-		// TODO: need to find the instruction after the erroneous one!
 		const resumeLineIndex = this.labelList.indexOf(this.errorResumeLine);
 
 		if (resumeLineIndex < 0) {
-			Utils.console.error("resumeNext: line not found: " + this.errorResumeLine); //TTT
+			Utils.console.error("resumeNext: line not found: " + this.errorResumeLine);
 			this.errorResumeLine = 0;
 			return;
 		}
@@ -3501,7 +3516,6 @@ export class CpcVm {
 
 		this.vmGotoLine(line, "resumeNext");
 		this.errorResumeLine = 0;
-		//this.vmNotImplemented("RESUME NEXT");
 	}
 
 	"return"(): void {
@@ -4087,8 +4101,8 @@ export class CpcVm {
 				this.vmDrawUndrawCursor(stream); // draw
 			}
 			this.outBuffer += str + "\n"; // console
-		} else if (stream === 8) {
-			this.vmNotImplemented("WRITE #" + stream);
+		} else if (stream === 8) { // printer?
+			this.outBuffer += str + "\n"; // console
 		} else if (stream === 9) {
 			this.outFile.stream = stream;
 			if (!this.outFile.open) {

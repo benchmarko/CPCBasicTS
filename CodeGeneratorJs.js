@@ -479,16 +479,24 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         CodeGeneratorJs.prototype.identifier = function (node) {
             var nodeArgs = node.args ? this.fnParseArgRange(node.args, 1, node.args.length - 2) : [], // array: we skip open and close bracket
-            name = this.fnAdaptVariableName(node.value, nodeArgs.length), // here we use node.value
+            name = this.fnAdaptVariableName(node.value, nodeArgs.length); // here we use node.value;
+            var indices = "";
+            /*
             value = name + nodeArgs.map(function (val) {
                 return "[" + val + "]";
             }).join("");
+            */
+            for (var i = 0; i < nodeArgs.length; i += 1) { // array indices
+                var arg = node.args[i + 1], // +1 because of opening braket
+                index = arg.pt !== "I" ? ("o.vmRound(" + nodeArgs[i] + ")") : nodeArgs[i];
+                // can we use fnGetRoundString()?
+                indices += "[" + index + "]";
+            }
             var varType = this.fnDetermineStaticVarType(name);
             if (varType.length > 1) {
-                varType = varType.charAt(1);
-                node.pt = varType;
+                node.pt = varType.charAt(1);
             }
-            node.pv = value;
+            node.pv = name + indices;
         };
         CodeGeneratorJs.letterOrLinenumber = function (node) {
             node.pv = node.value;
@@ -534,30 +542,34 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (!node.left || !node.right) {
                 throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
             }
-            var name;
-            if (node.left.type === "identifier") {
-                name = this.fnParseOneArg(node.left);
+            if (node.left.type !== "identifier") {
+                throw this.composeError(Error(), "Unexpected assign type", node.type, node.pos); // should not occur
             }
-            else {
-                throw this.composeError(Error(), "Unexpected assing type", node.type, node.pos); // should not occur
-            }
-            var assingValue = this.fnParseOneArg(node.right);
+            var name = this.fnParseOneArg(node.left), assignValue = this.fnParseOneArg(node.right);
             this.fnPropagateStaticTypes(node, node.left, node.right, "II RR IR RI $$");
             var varType = this.fnDetermineStaticVarType(name);
             var value;
             if (node.pt) {
                 if (node.left.pt === "I" && node.right.pt === "R") { // special handing for IR: rounding needed
-                    value = "o.vmRound(" + assingValue + ")";
+                    value = "o.vmRound(" + assignValue + ")";
                     node.pt = "I"; // "R" => "I"
                 }
                 else {
-                    value = assingValue;
+                    value = assignValue;
                 }
             }
             else {
-                value = "o.vmAssign(\"" + varType + "\", " + assingValue + ")";
+                value = "o.vmAssign(\"" + varType + "\", " + assignValue + ")";
             }
             node.pv = name + " = " + value;
+        };
+        CodeGeneratorJs.prototype.generateTraceLabel = function (node, tracePrefix, i) {
+            var traceLabel = tracePrefix + ((i > 0) ? "t" + i : ""), pos = node.pos, len = node.len || node.value.length || 0;
+            this.sourceMap[traceLabel] = [
+                pos,
+                len
+            ];
+            return traceLabel;
         };
         CodeGeneratorJs.prototype.label = function (node) {
             var label = node.value;
@@ -583,13 +595,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             for (var i = 0; i < nodeArgs.length; i += 1) {
                 var value2 = nodeArgs[i];
                 if (this.traceActive) {
-                    var traceLabel = this.line + ((i > 0) ? "t" + i : ""), pos = node.args[i].pos, len = node.args[i].len || node.args[i].value.length || 0;
-                    //value += " o.vmTrace(\"" + traceLabel + "\", " + pos + ", " + len + ");";
+                    var traceLabel = this.generateTraceLabel(node.args[i], this.line, i);
                     value += " o.vmTrace(\"" + traceLabel + "\");";
-                    this.sourceMap[traceLabel] = [
-                        pos,
-                        len
-                    ];
                 }
                 if (value2 !== "") {
                     if (!(/[}:;\n]$/).test(value2)) { // does not end with } : ; \n
@@ -819,16 +826,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 nodeArgs[0] = "o.goto(" + line + "); break"; // convert to "goto"
             }
             if (this.traceActive) {
-                // TODO see also "label":
                 for (var i = 0; i < nodeArgs.length; i += 1) {
-                    //let value2 = nodeArgs[i];
-                    //const traceLabel = this.line + ((i > 0) ? "t" + i : ""),
-                    var traceLabel = tracePrefix + ((i > 0) ? "t" + i : ""), pos = args[i].pos, len = args[i].len || args[i].value.length || 0;
+                    var traceLabel = this.generateTraceLabel(args[i], tracePrefix, i);
                     nodeArgs[i] = "o.vmTrace(\"" + traceLabel + "\"); " + nodeArgs[i];
-                    this.sourceMap[traceLabel] = [
-                        pos,
-                        len
-                    ];
                 }
             }
             return nodeArgs.join("; ");
@@ -857,7 +857,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 }
             }
             else {
-                //const label = this.fnGetIfLabel();
                 value += 'o.goto("' + label + '"); break; } ';
                 if (elsePart !== "") { // "else" statements?
                     value += "/* else */ " + elsePart + "; ";
@@ -1182,18 +1181,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 var node = nodes[i];
                 countMap[node.type] = (countMap[node.type] || 0) + 1;
                 if (node.type === "resume" && !(node.args && node.args.length)) {
-                    //this.traceActive = true;
                     var resumeNoArgs = "resumeNoArgsCount";
                     countMap[resumeNoArgs] = (countMap[resumeNoArgs] || 0) + 1;
                 }
-                /*
-                if (node.left) {
-                    this.fnPrecheckTree(node.left, lines, refs);
-                }
-                if (node.right) {
-                    this.fnPrecheckTree(node.right, lines, refs);
-                }
-                */
                 if (node.args) {
                     this.fnPrecheckTree(node.args, countMap); // recursive
                 }
@@ -1210,7 +1200,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.defScopeArgs = undefined;
             // create labels map
             this.fnCreateLabelsMap(parseTree, this.referencedLabelsCount, allowDirect);
-            //this.traceActive = false;
             this.fnPrecheckTree(parseTree, this.countMap); // also set "_resumeNoArgs" for resume without args
             this.traceActive = this.trace || Boolean(this.countMap.tron) || Boolean(this.countMap.resumeNext) || Boolean(this.countMap.resumeNoArgsCount); // we also switch on tracing for tron, resumeNext or resume without parameter
             var output = "";

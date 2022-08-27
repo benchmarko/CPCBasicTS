@@ -127,7 +127,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
                 throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
             }
             if (node.left.type !== "identifier") {
-                throw this.composeError(Error(), "Unexpected assing type", node.type, node.pos); // should not occur
+                throw this.composeError(Error(), "Unexpected assign type", node.type, node.pos); // should not occur
             }
             return this.fnParseOneArg(node.left) + CodeGeneratorBasic.fnWs(node) + node.value + this.fnParseOneArg(node.right);
         };
@@ -136,7 +136,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
         };
         CodeGeneratorBasic.prototype.identifier = function (node) {
             var value = CodeGeneratorBasic.fnWs(node) + node.value; // keep case, maybe mixed
-            if (node.args) { // args including brackets
+            if (node.args) { // args including brackets or parenthesis
                 var nodeArgs = this.fnParseArgs(node.args), bracketOpen = nodeArgs.shift(), bracketClose = nodeArgs.pop();
                 value += bracketOpen + nodeArgs.join(",") + bracketClose;
             }

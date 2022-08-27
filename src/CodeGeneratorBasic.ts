@@ -196,7 +196,7 @@ export class CodeGeneratorBasic {
 			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
 		}
 		if (node.left.type !== "identifier") {
-			throw this.composeError(Error(), "Unexpected assing type", node.type, node.pos); // should not occur
+			throw this.composeError(Error(), "Unexpected assign type", node.type, node.pos); // should not occur
 		}
 		return this.fnParseOneArg(node.left) + CodeGeneratorBasic.fnWs(node) + node.value + this.fnParseOneArg(node.right);
 	}
@@ -206,7 +206,7 @@ export class CodeGeneratorBasic {
 	private identifier(node: ParserNode) { // identifier or identifier with array
 		let value = CodeGeneratorBasic.fnWs(node) + node.value; // keep case, maybe mixed
 
-		if (node.args) { // args including brackets
+		if (node.args) { // args including brackets or parenthesis
 			const nodeArgs = this.fnParseArgs(node.args),
 				bracketOpen = nodeArgs.shift(),
 				bracketClose = nodeArgs.pop();

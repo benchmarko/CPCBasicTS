@@ -35,7 +35,6 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.degFlag = false; // degree or radians
             this.tronFlag1 = false; // trace flag
             this.traceLabel = "";
-            //private traceInfo = {} as TraceInfo;
             this.ramSelect = 0;
             this.screenPage = 3; // 16K screen page, 3=0xc000..0xffff
             this.minCharHimem = CpcVm.maxHimem;
@@ -155,9 +154,6 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.degFlag = false; // degree or radians
             this.tronFlag1 = false;
             this.traceLabel = "";
-            //this.traceInfo.line = ""; // last trace line
-            //this.traceInfo.pos = 0;
-            //this.traceInfo.len = 0;
             this.mem.length = 0; // clear memory (for PEEK, POKE)
             this.ramSelect = 0; // for banking with 16K banks in the range 0x4000-0x7fff (0=default; 1...=additional)
             this.screenPage = 3; // 16K screen page, 3=0xc000..0xffff
@@ -257,7 +253,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.closeout();
             this.cursor(stream, 0);
             this.traceLabel = ""; // last trace line
-            this.labelList.length = 0; //TTT
+            this.labelList.length = 0;
         };
         CpcVm.prototype.vmGetAllVariables = function () {
             return this.variables.getAllVariables();
@@ -625,23 +621,9 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         CpcVm.prototype.vmSetSourceMap = function (sourceMap) {
             this.sourceMap = sourceMap;
         };
-        /*
-        vmTrace(line: number | string, pos: number, len: number): void {
-            const stream = 0;
-    
-            this.traceInfo.line = String(line);
-            this.traceInfo.pos = pos;
-            this.traceInfo.len = len;
-            if (this.tronFlag1 && !isNaN(Number(line))) {
-                this.print(stream, "[" + line + "]");
-            }
-        }
-        */
         CpcVm.prototype.vmTrace = function (line) {
             var stream = 0;
             this.traceLabel = String(line);
-            //this.traceInfo.pos = pos;
-            //this.traceInfo.len = len;
             if (this.tronFlag1 && !isNaN(Number(line))) {
                 this.print(stream, "[" + line + "]");
             }
@@ -1204,6 +1186,45 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             }
             this.variables.dimVariable(varName, dimensions);
         };
+        CpcVm.prototype.vmGetVariable = function (varName) {
+            var args = [];
+            for (var _i = 1; _i < arguments.length; _i++) {
+                args[_i - 1] = arguments[_i];
+            }
+            var value = this.variables.getVariable(varName);
+            for (var i = 0; i < args.length; i += 1) {
+                if (Array.isArray(value)) {
+                    var index = this.vmInRangeRound(args[i], 0, value.length - 1, "vmGet"); // TODO: in case of error: Subscript out of range; or: vmAssertInRange?
+                    value = value[index];
+                }
+                else {
+                    throw this.vmComposeError(Error(), 9, String(value)); // Subscript out of range
+                }
+            }
+            return value;
+        };
+        CpcVm.prototype.vmSetVariable = function (varName, valueToSet) {
+            var args = [];
+            for (var _i = 2; _i < arguments.length; _i++) {
+                args[_i - 2] = arguments[_i];
+            }
+            var value = this.variables.getVariable(varName);
+            for (var i = 0; i < args.length; i += 1) {
+                if (Array.isArray(value)) {
+                    var index = this.vmInRangeRound(args[i], 0, value.length - 1, "vmGet"); // TODO: in case of error: Subscript out of range; or: vmAssertInRange?
+                    if (i < args.length - 1) {
+                        value = value[index];
+                    }
+                    else {
+                        value[index] = valueToSet;
+                    }
+                }
+                else {
+                    throw this.vmComposeError(Error(), 9, String(value)); // Subscript out of range
+                }
+            }
+            return value;
+        };
         CpcVm.prototype.draw = function (x, y, gPen, gColMode) {
             x = this.vmInRangeRound(x, -32768, 32767, "DRAW");
             y = this.vmInRangeRound(y, -32768, 32767, "DRAW");
@@ -1374,7 +1395,6 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             if (!this.quiet) {
                 Utils_1.Utils.console.log("BASIC error(" + err + "):", errorWithInfo + (hidden ? " (hidden: " + hidden + ")" : ""));
             }
-            //return Utils.composeError("CpcVm", error, errorString, errInfo, this.traceInfo.pos || undefined, this.traceInfo.len || undefined, line, hidden);
             var traceLine = this.traceLabel || this.line, sourceMapEntry = this.sourceMap[traceLine], pos = sourceMapEntry && sourceMapEntry[0], len = sourceMapEntry && sourceMapEntry[1];
             return Utils_1.Utils.composeError("CpcVm", error, errorString, errInfo, pos, len, line, hidden);
         };
@@ -2491,9 +2511,6 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                     this.vmDrawUndrawCursor(stream); // undraw
                 }
             }
-            else if (stream === 8) {
-                this.vmNotImplemented("PRINT # " + stream);
-            }
             else if (stream === 9) {
                 if (!this.outFile.open) {
                     throw this.vmComposeError(Error(), 31, "PRINT #" + stream); // File not open
@@ -2537,6 +2554,9 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                         buf = this.vmPrintCharsOrControls(stream, str);
                     }
                     this.outBuffer += str; // console
+                }
+                else if (stream === 8) { // printer?
+                    this.outBuffer += str; // put also in console
                 }
                 else { // stream === 9
                     var lastCrPos = buf.lastIndexOf("\r");
@@ -2738,17 +2758,15 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             if (!this.errorGotoLine || !this.errorResumeLine) {
                 throw this.vmComposeError(Error(), 20, "RESUME NEXT"); // Unexpected RESUME
             }
-            // TODO: need to find the instruction after the erroneous one!
             var resumeLineIndex = this.labelList.indexOf(this.errorResumeLine);
             if (resumeLineIndex < 0) {
-                Utils_1.Utils.console.error("resumeNext: line not found: " + this.errorResumeLine); //TTT
+                Utils_1.Utils.console.error("resumeNext: line not found: " + this.errorResumeLine);
                 this.errorResumeLine = 0;
                 return;
             }
             var line = this.labelList[resumeLineIndex + 1]; // get next line
             this.vmGotoLine(line, "resumeNext");
             this.errorResumeLine = 0;
-            //this.vmNotImplemented("RESUME NEXT");
         };
         CpcVm.prototype["return"] = function () {
             var line = this.gosubStack.pop();
@@ -3248,8 +3266,8 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                 }
                 this.outBuffer += str + "\n"; // console
             }
-            else if (stream === 8) {
-                this.vmNotImplemented("WRITE #" + stream);
+            else if (stream === 8) { // printer?
+                this.outBuffer += str + "\n"; // console
             }
             else if (stream === 9) {
                 this.outFile.stream = stream;
