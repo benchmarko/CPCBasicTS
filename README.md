@@ -1,7 +1,7 @@
 # CPCBasicTS Unchained - Run CPC BASIC in a Browser
 
 CPCBasicTS lets you run CPC BASIC programs in a browser. The supported BASIC style is known as Amstrad CPC 6128 Locomotive BASIC 1.1.
-BASIC programs are compiled to JavaScript which can be run in the browser. A library provides the functionality of the commands that are not directly available in JavaScript.
+BASIC programs are compiled to JavaScript so that it can be run in the browser. A library provides the functionality of the commands that are not directly available in JavaScript.
 
 CPCBasicTS Links:
 [CPCBasicTS Demo](https://benchmarko.github.io/CPCBasicTS/?example=cpcbasic),
@@ -9,17 +9,17 @@ CPCBasicTS Links:
 [Source code](https://github.com/benchmarko/CPCBasicTS/),
 [HTML Readme](https://github.com/benchmarko/CPCBasicTS/#readme),
 
-CPCBasicTS is a new version of [CPCBasic](https://github.com/benchmarko/CPCBasic/) 0.9.20, converted to TypeScript, with some enhancements.
+CPCBasicTS is based on the JavaScript version [CPCBasic](https://github.com/benchmarko/CPCBasic/) 0.9.20, converted to TypeScript and further enhanced. New features are developed for CPCBasicTS.
 
 ## Features
 
-- Run old an new BASIC programs in a browser
-- "Wrap factor" Speed: Frame Fly and other events in real-time, calculations as fast as possible
-- CPC Basic Unchained: Less restrictions, extended by new features, breaking out of the CPC box
-- BASIC compiler and not just interpreter
-- Lots of memory, no memory full
-- Runs locally without a server (even on mobile devices, but without input)
-- HTML5 / JavaScript without external libraries
+- Run CPC BASIC programs in a browser
+- Warp speed: Calculations are as fast as possible. Only frame fly and other events are in real-time
+- CPC Basic Unchained: Breaking out of the CPC box, out of the CPC BASIC ROM. Less restrictions, extended by new features
+- A BASIC compiler and not just an interpreter
+- Lots of memory
+- Runs locally without installation and without a server, even on mobile devices
+- HTML5 / TypeScript / JavaScript without external libraries
 
 [![A sample with cpcbasic](https://benchmarko.github.io/CPCBasic/img/cpcbasic.gif)](https://benchmarko.github.io/CPCBasicTS/?example=cpcbasic)]
 
@@ -28,7 +28,7 @@ CPCBasicTS is a new version of [CPCBasic](https://github.com/benchmarko/CPCBasic
 [![Labyrinth](https://benchmarko.github.io/CPCBasic/img/labyrinth.png)](https://benchmarko.github.io/CPCBasicTS/?example=labyrinth)]
 [![Landscape](https://benchmarko.github.io/CPCBasic/img/landscape.png)](https://benchmarko.github.io/CPCBasicTS/?example=landscape)]
 
-More examples are in the sample library [CPCBasicApps](https://github.com/benchmarko/CPCBasicApps/#readme). They are included in CPCBasicTS as *apps*, example: [10print](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=demo/10print).
+More examples are in the sample library [CPCBasicApps](https://github.com/benchmarko/CPCBasicApps/#readme). They are included in CPCBasicTS as *apps*. Example: [10print](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=demo/10print).
 
 ## Why CPCBasic
 
@@ -40,54 +40,35 @@ With CPC Basic we do not get that accuracy. But if we compile it to JavaScript, 
 
 - Just open index.html in a browser.
   The user interface shows several windows, which can be reduced and expanded by pressing the **green** buttons.
-- The *Input* window is used to input and modify the BASIC code.
+- The *Input* window is used to input and modify the BASIC program.
   - Use the *first selection field* to select the example library: CPCBasic *examples*,
   CPCBasicApps *apps*, *examplesTS* or *storage*.
-  - Use the *second selection field* to select a sample program. It will reset the CPC, and run the program.
-  - The **Reload** button reloads the page with the current settings. (Please note that changes to the BASIC program are not saved!)
-  - The **Help** button opens the readme file in a browser.
+  - Use the *second selection field* to select a sample program. It will reset the CPC and run the program.
+  - The **Reload** button reloads the page with the current settings put in URL parameters. (Please note that modifications of the BASIC program are not saved!)
+  - The **Help** button opens the readme in the browser.
   - The **Check** button checks the syntax of the program. It compiles the program to JavaScript.
-  - The **Convert** button opens a popover with functuons to renumber lines or pretty print the source.
+  - The **Convert** button opens a popover with functuons to renumber lines or pretty print the  program.
     - The **Renum** button renumbers the lines (see also *RENUM*)
     - The **Pretty** button performs a pretty print on the input.
-    - The **Undo** button reverts the last renum or pretty print
-    - The **Redo** button activates the last renum or pretty print
-  - The **Download** button downloads the program in tokenized BASIC format with AMSDOS header. In can be imported via Drag&Drop in CPCBasicTS later. It can also used directly with the emulator *CPCEMU* in *|TAPE* mode or put in a DSK image to load with any other CPC emulator.
+    - The **Undo** button reverts the last renum or pretty print.
+    - The **Redo** button activates the last renum or pretty print.
+  - The **Download** button downloads the program in tokenized BASIC format with AMSDOS header. It can be imported via Drag&Drop later. It can also be used directly with the *CPCEMU* emulator in *|TAPE* mode, or put in a DSK image to load with any other CPC emulator.
 - The *CPC* window shows the output on a CPC screen.
-  - The **Run** button compiles the BASIC program to JavaScript and runs it. Press it after changing the input source.
-    - If the focus is on the CPC screen, keystrokes will be detected by a running program. (An alternative way of input is the *virtual keyboard* below.)
-  - The **Break** button halts the program.
-  - The **Continue** button continues the program.
-    This is an unconditional break. Pressing the ESC key once also halts the program, if not masked with *ON BREAK CONT*
+  - The **Run** button compiles the BASIC program to JavaScript and runs it (simular to *RUN*).
+    - If the focus is on the CPC screen, keystrokes will be detected by a running program or also in direct mode. An alternative way of input is the *virtual keyboard* below.
+  - The **Break** button halts the program. This is an unconditional break. Pressing the ESC key once also halts the program, if not masked with *ON BREAK CONT*.
+  - The **Continue** button continues the program (simular to *CONT*).
   - The **Reset** button resets the CPC.
   - The **Screenshot** button creates a screenshot of the current CPC screen.
   - The **Sound** button activates or deactivates sound.
-    - If you use the *Reload* button with sound activated, the sound needs to be activated again. Just do a user action, e.g. click somewhere. This is a browser limitation.
+    - If you start the app or use the *Reload* button with the sound enabled, the sound needs to be activated by a user action, e.g. a click anywhere. This is a browser limitation.
 - The *Text View* window shows the text which is written in text mode.
 - The *Keyboard* window shows a virtual keyboard which can be also used with touch devices. You can test the functionality with the test program [keyboard](https://benchmarko.github.io/CPCBasicTS/?example=test/keyboard&showKbd=true).
 - The *Keyboard Layout* window allows you to change the layout of the keyboard.
 - The *Input* window is an alternative way to send input to the CPC.
 - The *Console* window shows the textual output. This is useful for copying and pasting the output. It is cleared when the CPC screen is cleared (*MODE* or *CLS*).
-- The *Variables* window allows you to see the variables used by the program.
+- The *Variables* window allows you to see the variables used by the program. Simple variables can also be modified.
 - In the *JavaScript* window you will see the compiled JavaScript code. It can be changed and then executed with the **Run** button in this window. So it is possible to program the simulated CPC directly with JavaScript.
-
-## Restrictions
-
-- CPCBasicTS is still in progress and not complete or accurate. The goal is that most BASIC programs run without change.
-- It is BASIC only and can not execute Z80 machine code
-- Unimplemented commands are ignored: *AUTO*, *PRINT #8*, *RESUME* (partly), *SPEED KEY/WRITE*, *WIDTH*, *WRITE #8*, some AMDSOS commands.
-- Sound: More hardware volume envelopes
-- Multi-line strings containing LF (\n)
-- No complete check of the BASIC program
-- Incomplete type checking
-- Variables typed with *DEFINT*, *DEFREAL* or *DEFSTR* are different from those with type extension:
-  `defint a: a=1: a%=2: ?a,a%`
-- Array access: Array indices are not rounded, and there is no range check.
-- *ON ERROR GOTO* and *RESUME* without line number do not fully work because this would require to single step every instruction.
-- Resulting JavaScript looks ugly because there is no *GOTO* in JavaScript.
-  Control structures need to be converted to *GOTO* because for some commands and events it is necessary to jump out of a block.
-- Interpreted CPC BASIC may contain lines of arbitrary content if they are not executed, e.g. comments without marking them as comments. The CPCBasicTS compiler does not allow this.
-- Maybe something more...
 
 ## Extensions and Features
 
@@ -104,17 +85,65 @@ With CPC Basic we do not get that accuracy. But if we compile it to JavaScript, 
   Example: [Mouse Painting](https://benchmarko.github.io/CPCBasicTS/?example=test/mousepa)
 - *MODE 3*: High resolution mode with real 640x400 pixels, 16 colors and 8x8 pixels per character.
   This is different to the unofficial and not very useful Gate Array mode 3 on a real CPC: [CPC live: Graphics](http://cpctech.cpc-live.com/docs/graphics.html).
-Several examples use CPCBasicTS mode 3, e.g. [Art](https://benchmarko.github.io/CPCBasicTS/?example=art), [Landscape](https://benchmarko.github.io/CPCBasicTS/?example=landscape), [Rectangles](https://benchmarko.github.io/CPCBasicTS/?example=test/rectangles).
-- *|MODE,n*: Change mode without *CLS*, including mode 3 (experimental)
+Several examples use CPCBasicTS mode 3 when available, e.g. [Art](https://benchmarko.github.io/CPCBasicTS/?example=art), [Landscape](https://benchmarko.github.io/CPCBasicTS/?example=landscape), [Rectangles](https://benchmarko.github.io/CPCBasicTS/?example=test/rectangles).
+- *|MODE,n*: Change mode without *CLS*, including mode 3.
 - *|RENUM,...*: similar to *RENUM* but with a 4th parameter to keep line numbers starting with this line
-- Computations with numbers are not limited to 16 bit
+- Integer computations are not limited to 16 bit but use 32 bit.
 - *PEEK & POKE* features:
   - Access screen memory in screen base address range, e.g. &C000-&FFFF or &4000-&7FFF
   - Access character map data starting at *HIMEM*+1 after *SYMBOL AFTER* n with n<256
 
+## Restrictions
+
+- CPCBasicTS is still in progress and not complete or accurate. The goal is that most BASIC programs run without change.
+- It is BASIC only and can not execute Z80 machine code
+- Unimplemented commands are ignored: *AUTO*, *PRINT #8*, *SPEED KEY/WRITE*, *WIDTH*, *WRITE #8*, some AMDSOS commands.
+- Sound: Not all hardware volume envelopes are implemented
+- For multi-line strings containing LF (\n) there is a heuristic
+- No complete check of the BASIC program
+- Incomplete type checking
+- Variables typed with *DEFINT*, *DEFREAL* or *DEFSTR* are different from those with type extension:
+  `defint a: a=1: a%=2: ?a,a%`
+- Array access: There is no range check for array indices.
+- *RESUME* without a line number and *RESUME NEXT* activate trace mode without trace output. They do not fully work when the command with the error is not the only command in the line.
+- The resulting JavaScript may look strange because there is no *GOTO* in JavaScript.
+Furthermore, control structures like *FOR*, *WHILE* and *IF* need to be converted into a *GOTO* like structure because for some commands and events it is necessary to jump out of a block.
+- Interpreted CPC BASIC may contain lines of arbitrary content if they are not executed, e.g. comments without marking them as comments. The CPCBasicTS compiler does not allow this.
+- Maybe something more...
+
+## Programming hints
+
+- CPCBasicTS is BASIC with Warp speed. However, do not use busy waiting. Put in commands like *FRAME* or *CALL &BD19*.
+  - An example of inserting a one second delay: `t!=TIME+300:WHILE TIME<t!:CALL &BD19:WEND` .
+  - There is a special feature when using the *INKEY$* function: if it does not return keys more than once during a frame, an implicit *FRAME* (or *CALL &BD19*) is called.
+    - An example to wait for 5 seconds or a keypress (you may check that the CPU load stays low):
+    `t!=TIME+300*5:WHILE TIME<t! AND INKEY$="":WEND`
+    - This is not true for the *INKEY* function. Use *CALL &BD19* to avoid busy waiting. An example to wait 5 seconds or the SPACE key: `t!=TIME+300*5:WHILE TIME<t! AND INKEY(47)<0:CALL &BD19:WEND`
+- If there is *TRON* in the source code, the resulting JavaScript is compiled with trace information. This will provide source code positioning also for runtime errors, even if you deactivate trace output in basic with *TROFF*. Trace information can also be enabled with the URL parameter "trace=true".
+- Use *OPENIN* and *INPUT#9* to load data from a file in the current "directory" or from Browser local storage
+- If the program is complete (that means, no *MERGE* or *CHAIN MERGE* inside), line number destinations are checked for existence. For example, if the line number in *GOTO line* does not exist, the compilation fails.
+- The commands and functions are checked for correct number of arguments and mostly also for correct argument types.
+- There are some static type checks which prevent a program from being compiled, e.g. when using a string when a number is espected: `ASC(0)`. Or when using a number when a string is expected: `chr$("A")`. If you want to run such a program, make sure you put an *ON ERROR GOTO line* with line>0 just before the erroneous statement.
+
+## BASIC Features
+
+Did you know?
+
+- Comparison operators can be used in assignment, e.g. equal and not equal: `a=0: t=(a=0): f=(a<>0): ?t;f` returns -1 and 0 for true and false
+- Instead of the comparison operators <= or >= you could also write =< or =>.  When tokenized, it is converted to the "standard" format.
+- *ENV*: Special syntax with "=" to define hardware volume envelopes, e.g. `ENV num,=reg,period`. Same for *ENT*, e.g. `ENT num,=period,ti`
+- Arrays can be indexed by parentheses or by brackets, but also with mixed style, e.g. `a(3]=6: ?a[3)` returns 6.
+- When you use float parameters where integer parameters are expected they are automatically rounded, e.g. `MODE 1.5` sets MDOE 2. This works also for array indices, e.g.
+`a(3.2)=3:a(3.5)=4:?a(3.4);a(4.4)` returns 3 and 4.
+- Variables typed with DEFINT, DEFREAL or DEFSTR are aliases for those with a type extension, e.g. `DEFINT a: a=1: a%=2: ?a;a%` returns 2 and 2 (currently not for CPCBasic).
+- Tokenized BASIC contains a lot of spaces which can be squeezed out and visualized by colons and the end of the line. Put this code fragment at the end of the program and run it: `a=&170:WHILE PEEK(a)<>0:e=a+PEEK(a):FOR i=a TO e-2:POKE a,PEEK(i):a=a+ABS(PEEK(i)<>&20):NEXT:FOR i=a TO e-2:POKE i,&01:NEXT:a=e:?:WEND` . This simple version expects lines not longer than 255 characters or tokens and will also modify strings and comments (currently not for CPCBasic).
+- *ELSE* as command without preceding *IF* is similar to a comment
+
 ## Supported CALLs and OUTs
 
 ### CALLs
+
+A list of *CALL*s which are supported. Other *CALL*s are ignored.
 
 - *CALL &BB00*: KM Initialize (KM Reset and reset also CPC key extensions)
 - *CALL &BB03*: KM Reset (clear input and reset expansion tokens)
@@ -159,62 +188,34 @@ Several examples use CPCBasicTS mode 3, e.g. [Art](https://benchmarko.github.io/
 ### OUTs
 
 - *OUT &7Fxx,nn*: Select RAM bank in range &4000-&7FFF; &C0=default; &C4-&FF=additional banks
-- *WAIT &F5xx,1*: Wait for Frame Fly (same as *CALL &BD19*, *FRAME*)
-
-## Programming hints
-
-- CPCBasicTS is BASIC with "wrap factor". However, do not use busy waiting. Put in *FRAME* or *CALL &BD19* commands.
-  - An example on how to insert a delay of one second:
-  `t!=TIME+300:WHILE TIME<t!:CALL &BD19:WEND`
-  - There is a special feature when using the *INKEY$* function: If it returns no key more than once during a frame, a *FRAME* or *CALL &BD19* is implicitely called.
-    - An example on how to wait for 5 seconds or a keypress:
-    `t!=TIME+300*5:WHILE TIME<t! AND INKEY$="":WEND :?"Done."`
-    You may check that the CPU load stays low.
-    - This is not true for the *INKEY* function. Use *CALL &BD19* again. An example on how to wait 5 seconds or the SPACE key: `t!=TIME+300*5:WHILE TIME<t! AND INKEY(47)<0:CALL &BD19:WEND :?"Done."`
-- If there is *TRON* in the source code, the resulting JavaScript is compiled with trace information. This will provide source code positioning also for runtime errors. Even if you deactivate trace logging in basic with *TROFF*. Trace information can also be enabled with the URL parameter "trace=true".
-- Use *OPENIN* and *INPUT#9* to load data from a file in the current "directory" or from Browser local storage
-- If the program is complete (that means, no *MERGE* or *CHAIN MERGE* inside), line number destinations are checked for existence. For example, if the line number in *GOTO line* does not exist, the compilation fails.
-- The commands and functions are checked for number of arguments but not always for argument types.
-- There is some statically type checking which prevents a program from compiling, e.g. using a string where a number is espected: `ASC(0)` and the other way around: `chr$("A")`. If you want to run such a program, make sure you put an *ON ERROR GOTO x* with x>0 directly before the erroneous statement.
-
-## BASIC Features
-
-Did you know?
-
-- Comparison with equal in assignment, e.g. `a=0: t=(a=0): f=(a<>0): ?t;f` returns -1 and 0 for true and false
-- *ENV*: Special syntax with "=" to define hardware volume envelopes, e.g. `ENV num,=reg,period`. Same for *ENT*, e.g. `ENT num,=period,ti`
-- Mixed parentheses and brackets in arrays, e.g. `a(3]=6: ?a[3)` returns 6.
-- Instead of <= or >= you could also write =< or =>. During tokenization it is converted to the "standard" format.
-- When you use float parameters where integer parameters are expected the are automatically rounded. This works also for array indices, e.g.
-`a(3.2)=3:a(3.5)=4:?a(3.4);a(4.4)` returns 3 and 4.
-- Variables typed with DEFINT, DEFREAL or DEFSTR are aliases for those with type extension, e.g. `defint a: a=1: a%=2: ?a;a%` returns 2 and 2.
-- Tokenized BASIC contains a lot of spaces which can be squeezed out and visualized by colons and the end of the line: `a=&170:WHILE PEEK(a)<>0:e=a+PEEK(a):FOR i=a TO e-2:POKE a,PEEK(i):a=a+ABS(PEEK(i)<>&20):NEXT:FOR i=a TO e-2:POKE i,&01:NEXT:a=e:?:WEND` . This simple version expects lines not longer than 255 tokens and also modified strings and comments. Put it at the end of a program and run it.
-- *ELSE* as command...
+- *WAIT &F5xx,1*: Wait for Frame Fly (similar to *CALL &BD19* or *FRAME*)
 
 ## Debugging
 
-- Use the URL parameter *tron=true* to compile with BASIC line number trace. The trace can be switched on and off in BASIC with *TRON* and *TROFF*. A side effect of "trace on" in CPCBasicTS is that the correct line number is reported in case of an error.
-- For debugging in a desktop browser, you will usually use the Browser Development Tools (F12).
-- You can also use a *Console log* window which is usually hidden. You can activate it with the URL parameters *showConsole=true* and *debug=2*. Example:
+- Use the URL parameter *tron=true* to compile with trace functionality and print out the executed BASIC line numbers. The trace can be switched on and off in BASIC with *TRON* and *TROFF*. When the trace functionality is activated, correct line numbers are reported in case of runtime errors.
+- For debugging in a desktop browser, you typically use the Browser Development Tools (F12).
+- You can also use a *Console log* window, which is usually hidden. Enable it with the URL parameters *showConsole=true&debug=2*. Example:
  [CPCBasicTS Debug](https://benchmarko.github.io/CPCBasicTS/?showConsole=true&debug=2).
- This is especially useful on mobile devices. Clear its content manually, if needed.
-- There is also an experimental parameter *bench=n* to time the *parsing step* n times.
+ This is especially useful on mobile devices. If necessary, delete the content manually.
+- There is also an experimental parameter *bench=n* to time the "parsing step" n times.
   An example with a large BASIC program:
-[sultans2 parsing](https://benchmarko.github.io/CPCBasicTS/?bench=5&database=apps&example=games/sultan2) (Check the console in the browser developer tools).
+[sultans2 parsing](https://benchmarko.github.io/CPCBasicTS/?bench=5&database=apps&example=games/sultan2) (check the console output in the browser developer tools).
 
 ## URL parameters
+
+These URL parameters are also put in the URL when you press the *Reload* button and the setting is not the default.
 
 - bench=0 (only for debugging: number of parse bench loops)
 - debug=0 (debug level)
 - databaseDirs=examples (example base directories, comma separated)
-- database=examples
-- example=cpcbasic
+- database=examples (selected database)
+- example=cpcbasic (selected sample program)
 - exampleIndex=0index.js (example index file in every entry of exampleDirs)
-- input= (keyboard input when starting the app, use %0D for return)
+- input= (keyboard input when starting the app, use %0D as return charcter)
 - kbdLayout=alphanum (virtual keyboard layout: alphanum, alpha, num)
 - showInput=true
 - showInp2=false
-- showCpc=true
+- showCpc=true (show the CPC window)
 - showKbd=false
 - showKbdLayout=false
 - showOutput=false
@@ -222,8 +223,8 @@ Did you know?
 - showText=false
 - showVariable=false
 - showConsole=false
-- sound=true
-- tron=false (if set to true, allows to use *TRON*, *TROFF*)
+- sound=true (sound enabled or disabled)
+- tron=false (see *TRON*, *TROFF*)
 
 (Some URL parameters are experimental and may change.)
 
@@ -231,22 +232,23 @@ Did you know?
 
 QUnit tests:
 
-- [index.html](https://benchmarko.github.io/CPCBasicTS/test/index.html)
-- [BasicFormatter.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/BasicFormatter.qunit.html)
-- [BasicLexer.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/BasicLexer.qunit.html)
-- [BasicParser.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/BasicParser.qunit.html)
-- [BasicTokenizer.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/BasicTokenizer.qunit.html)
-- [CodeGeneratorBasic.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/CodeGeneratorBasic.qunit.html)
-- [CodeGeneratorJs.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/CodeGeneratorJs.qunit.html)
-- [CodeGeneratorToken.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/CodeGeneratorToken.qunit.html)
-- [Diff.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/Diff.qunit.html)
-- [DiskImage.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/DiskImage.qunit.html)
-- [Model.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/Model.qunit.html)
-- [ZipFile.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/ZipFile.qunit.html)
-- [testParseExamples.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/testParseExamples.qunit.html) (parse all examples)
-- [testsuite.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/testsuite.qunit.html) (run all tests)
+- [index.html](https://benchmarko.github.io/CPCBasicTS/test/index.html) (test overview page)
+  - [BasicFormatter.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/BasicFormatter.qunit.html)
+  - [BasicLexer.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/BasicLexer.qunit.html)
+  - [BasicParser.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/BasicParser.qunit.html)
+  - [BasicTokenizer.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/BasicTokenizer.qunit.html)
+  - [CodeGeneratorBasic.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/CodeGeneratorBasic.qunit.html)
+  - [CodeGeneratorJs.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/CodeGeneratorJs.qunit.html)
+  - [CodeGeneratorToken.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/CodeGeneratorToken.qunit.html)
+  - [CpcVm.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/CpcVm.qunit.html)
+  - [Diff.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/Diff.qunit.html)
+  - [DiskImage.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/DiskImage.qunit.html)
+  - [Model.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/Model.qunit.html)
+  - [ZipFile.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/ZipFile.qunit.html)
+  - [testParseExamples.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/testParseExamples.qunit.html) (parse all examples)
+  - [testsuite.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/testsuite.qunit.html) (run all tests)
 
-It is possible to use URL parameter *generateAll=true* to gererate the expected results in the console.
+It is possible to use URL parameter *generateAll=true* to gererate an output of the expected results in the console.
 
 IFrames test:
 
@@ -254,14 +256,17 @@ IFrames test:
 
 ## Possible Future Enhancements
 
-- Create buttons for the keys that the BASIC program checks (useful for e.g. mobile devices)
-- Save and restore snapshot of variables, including system variables
-- RSX extension libraries / plugins programmed in JavaScript
-- Can we detect busy loops and insert *FRAME* automatically?
-- Shall we support hardware scrolling with *OUT* or is it already a hardware emulation feature?
-- Extension: More colors, e.g. 256
+- Fullscreen mode of the CPC window
+- Overcome restrictions with array access or variable aliases
+- Save and restore snapshot of variables, including system state variables
+- Can we detect busy loops and insert *FRAME* automatically? Or invent some "real time" mode? Or use a speed control to change the speed?
+- RSX extension libraries / plugins programmed in TypeScript/JavaScript
 - Optimizations of the resulting JavaScript code
 - Further checks during compile time
+- Support some simple Z80 assembler programs
+- Shall we support hardware scrolling with *OUT* or is it already a hardware emulation feature?
+- Create buttons for the keys that the BASIC program checks (useful for e.g. mobile devices)
+- Extension: More colors, e.g. 256
 - Smooth character map from 8x8 to 8x16
 
 ## Links
@@ -296,4 +301,4 @@ IFrames test:
 
 - [Locomotive Software](https://www.cpcwiki.eu/index.php/Locomotive_Software) - The developer of CPCs BASIC and operating system
 
-### **mv, 04/2022**
+### **mv, 08/2022**
