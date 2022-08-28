@@ -9,7 +9,7 @@ import { BasicFormatter } from "./BasicFormatter";
 import { BasicLexer } from "./BasicLexer";
 import { BasicParser } from "./BasicParser";
 import { BasicTokenizer } from "./BasicTokenizer";
-import { Canvas, TextCanvas } from "./Canvas";
+import { Canvas } from "./Canvas";
 import { CodeGeneratorBasic } from "./CodeGeneratorBasic";
 import { CodeGeneratorJs } from "./CodeGeneratorJs";
 import { CodeGeneratorToken } from "./CodeGeneratorToken";
@@ -21,6 +21,7 @@ import { Diff } from "./Diff";
 import { DiskImage, AmsdosHeader } from "./DiskImage";
 import { InputStack } from "./InputStack";
 import { Keyboard } from "./Keyboard";
+import { TextCanvas } from "./TextCanvas";
 import { VirtualKeyboard } from "./VirtualKeyboard";
 import { Model, DatabasesType } from "./Model";
 import { Sound, SoundData } from "./Sound";
@@ -1403,79 +1404,6 @@ export class Controller implements IController {
 		this.vm.vmStop("end", 0, true);
 	}
 
-	/*
-	private fnList_test1(paras: VmLineParas) {
-		const vm = this.vm,
-			stream = paras.stream,
-			input = this.view.getAreaValue("inputText");
-
-		if (!this.basicFormatter) {
-			this.basicFormatter = new BasicFormatter({
-				lexer: new BasicLexer(),
-				parser: new BasicParser()
-			});
-		}
-
-		const output = this.basicFormatter.getLinesInRange(input, paras.first, paras.last);
-
-		if (output.error) {
-			Utils.console.warn(output.error);
-			this.outputError(output.error);
-		} else {
-			this.fnPutChangedInputOnStack();
-			let text = output.text;
-
-			if (stream !== 9) {
-				const regExp = new RegExp(/([\x00-\x1f])/g); // eslint-disable-line no-control-regex
-
-				text = text.split("\n").map(function (str) {
-					return str.replace(regExp, "\x01$1");
-				}).join("\r\n");
-			}
-			this.vm.print(stream, text, text.endsWith("\n") ? "" : "\r\n");
-		}
-		this.vm.vmGotoLine(0); // reset current line
-		vm.vmStop("end", 0, true);
-	}
-
-	private fnListWithParseTes1(paras: VmLineParas) {
-		const vm = this.vm,
-			stream = paras.stream,
-			input = this.view.getAreaValue("inputText");
-
-		if (!this.basicFormatter) {
-			this.basicFormatter = new BasicFormatter({
-				lexer: new BasicLexer(),
-				parser: new BasicParser()
-			});
-		}
-
-		const output = this.basicFormatter.getLinesInRange(input, paras.first, paras.last);
-
-		if (output.error) {
-			Utils.console.warn(output.error);
-			this.outputError(output.error);
-		} else {
-			this.fnPutChangedInputOnStack();
-			const lines = output.lines;
-			let text = lines.map(function (entry) {
-				return input.substr(entry.pos, entry.lineLen);
-			}).join("");
-
-			if (stream !== 9) {
-				const regExp = new RegExp(/([\x00-\x1f])/g); // eslint-disable-line no-control-regex
-
-				text = text.split("\n").map(function (str) {
-					return str.replace(regExp, "\x01$1");
-				}).join("\r\n");
-			}
-			this.vm.print(stream, text, text.endsWith("\n") ? "" : "\r\n");
-		}
-		this.vm.vmGotoLine(0); // reset current line
-		vm.vmStop("end", 0, true);
-	}
-	*/
-
 	private fnReset() {
 		const vm = this.vm;
 
@@ -1695,7 +1623,6 @@ export class Controller implements IController {
 		}
 	}
 
-
 	fnDownload(): void {
 		const input = this.view.getAreaValue("inputText"),
 			tokens = this.encodeTokenizedBasic(input);
@@ -1867,11 +1794,6 @@ export class Controller implements IController {
 
 					if (error.pos < inputText.length + 1) { // error not in direct?
 						error.message = "[prg] " + error.message;
-						/*
-						if (error.shortMessage) { // eslint-disable-line max-depth
-							error.shortMessage = "[prg] " + error.shortMessage;
-						}
-						*/
 						outputString = this.outputError(error, true);
 						output = undefined;
 					}

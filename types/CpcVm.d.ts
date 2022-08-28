@@ -1,8 +1,9 @@
 import { CustomError } from "./Utils";
 import { Keyboard } from "./Keyboard";
 import { Sound, SoundData } from "./Sound";
-import { Canvas, TextCanvas } from "./Canvas";
-import { Variables, VariableMap, VariableValue } from "./Variables";
+import { Canvas } from "./Canvas";
+import { TextCanvas } from "./TextCanvas";
+import { Variables, VariableMap } from "./Variables";
 import { ICpcVmRsx } from "./Interfaces";
 export interface CpcVmOptions {
     canvas: Canvas;
@@ -275,8 +276,6 @@ export declare class CpcVm {
     derr(): number;
     di(): void;
     dim(varName: string, ...args: number[]): void;
-    vmGetVariable(varName: string, ...args: number[]): VariableValue;
-    vmSetVariable(varName: string, valueToSet: number | string, ...args: number[]): VariableValue;
     draw(x: number, y: number, gPen?: number, gColMode?: number): void;
     drawr(x: number, y: number, gPen?: number, gColMode?: number): void;
     edit(line: number): void;

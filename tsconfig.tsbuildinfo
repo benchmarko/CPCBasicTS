@@ -207,7 +207,7 @@
         "affectsGlobalScope": false
       },
       "../src/BasicParser.ts": {
-        "version": "748454dc4eadf0336a4538d865b9a8a9e3881946d6cf339392aa824ea528f035",
+        "version": "68138b10fb6fa8413f22ef0cb8c41293bc3dd8d49eae14253579c7cb1fd2cc4b",
         "signature": "1916906280eed857549c01816fc55c976bfa516f5c395f4c1ee9bfd4082e8ec6",
         "affectsGlobalScope": false
       },
@@ -217,7 +217,7 @@
         "affectsGlobalScope": false
       },
       "../src/BasicFormatter.ts": {
-        "version": "be17fc37648b35bc0d7d27e55741d507facdb989d5a88e6ee3e34628159a2109",
+        "version": "c0f53aefa19c4d2eddbf871d3f600c7acd52c3ebc5be1869f420c30555afe83d",
         "signature": "118d33a80a7b979e3ae1f9764e6dcce17bd677c4321cee1fe830968984394b6c",
         "affectsGlobalScope": false
       },
@@ -232,8 +232,8 @@
         "affectsGlobalScope": false
       },
       "../src/Canvas.ts": {
-        "version": "188d9b5963edbf31cd581a1353a1be917062508a1ac6467fe52504184580c59c",
-        "signature": "481bde8fe7d703cfd06667442967bcb6b3f02213dde312f1b892f076f6366a16",
+        "version": "4283eca0618198d84cbffdd74b1e9c38013515e16809514c100fc503644858fd",
+        "signature": "77d05778dddd433f91bcd86013d7ca30715fe6484776ca086bbd7948985095e8",
         "affectsGlobalScope": false
       },
       "../src/CodeGeneratorBasic.ts": {
@@ -242,12 +242,12 @@
         "affectsGlobalScope": false
       },
       "../src/Variables.ts": {
-        "version": "f7f483d7efb99bcef02a1832775878415727c79520b63bf2d27fa81bb5f80d99",
+        "version": "ccd55320e902a9837a2bb29e22cdf9a36d68e405511a32e9b2d69bb1d6b24bea",
         "signature": "c187db6bc0a63dc6545e1fef3cb2194b28c6f68fe7625bed6f9511a766a75b11",
         "affectsGlobalScope": false
       },
       "../src/CodeGeneratorJs.ts": {
-        "version": "23e919506a3fa77b883ad7f404343f35360f023101769e422738778a404a6f24",
+        "version": "ee61c72dd3942af065a0d9d6c47fe57298a9fe84d12d43e94c6b878ad1748ef8",
         "signature": "3b7b51848d492dec5003192f869e8c275fecfaa785c32a7e0d5777bf1a9f344a",
         "affectsGlobalScope": false
       },
@@ -262,7 +262,7 @@
         "affectsGlobalScope": false
       },
       "../src/CommonEventHandler.ts": {
-        "version": "ce4b63cc3360a43b3eb7fd302efd296287ca5ceda811803f79ee3648660f2c86",
+        "version": "809f50146d8f415b1ba6325dc08a7b33c8244c05bc6243b0eb9df7ded454f272",
         "signature": "506f2c4f6d30bf14f7981a10a302d3394e4588ab8378abd207585f3d0c4db270",
         "affectsGlobalScope": false
       },
@@ -286,9 +286,14 @@
         "signature": "ab3d944d2a86279f07160e7bcb14328c18b11d3d08db0b9b04008fd6f7650220",
         "affectsGlobalScope": false
       },
+      "../src/TextCanvas.ts": {
+        "version": "353dbcd508810734305b5711e86f4a159858faeced34caa02a0862da9c367804",
+        "signature": "ee2b09730867aef01209056ba45c79c8ce5f60a50ee9faadc2284f7e9a7c09eb",
+        "affectsGlobalScope": false
+      },
       "../src/CpcVm.ts": {
-        "version": "350ec320ba26928924941751c92e27f2ecd3ef69f38312c8d0c3f01fe333b68a",
-        "signature": "aad5d6960d13a819d4033511e803f44b15b956692264cbed3ef4d65b00719a6f",
+        "version": "944a5270faae2bc3ea351c9b8fe301d5a21bea4824ed33c30e767137dad68579",
+        "signature": "1e993cad624719789344bd61da9bfbe3ca01804992f7f5ba5ecb8d31a3556ae3",
         "affectsGlobalScope": false
       },
       "../src/CpcVmRsx.ts": {
@@ -307,7 +312,7 @@
         "affectsGlobalScope": false
       },
       "../src/InputStack.ts": {
-        "version": "76c35ecf45f54c1dd9c408a2dc8fc2f8712b7b6faf69b22745e4516b35585069",
+        "version": "74d84027f3bec51c45bf7274e8653ec3849ca1d27bb6c475f4aae765771f8291",
         "signature": "8950e5351e8bcf0a000439b6446f9f3b9c28359f61d90d24e2e40cf36641bace",
         "affectsGlobalScope": false
       },
@@ -322,7 +327,7 @@
         "affectsGlobalScope": false
       },
       "../src/Controller.ts": {
-        "version": "81122c23ffc3615f2829db4e1bc66cdb5c38d5bca49a2514b8f5789dbfff45a1",
+        "version": "9a9a3d39b538dc7ee0f6899ebc4243cd5c88a028cede125aff04ffab663683ae",
         "signature": "b715f79c66cd802d5f5c432c6e09f193f3148ab452e2a8343ab267ed5890e6fc",
         "affectsGlobalScope": false
       },
@@ -1153,6 +1158,7 @@
         "../src/Keyboard.ts",
         "../src/Model.ts",
         "../src/Sound.ts",
+        "../src/TextCanvas.ts",
         "../src/Utils.ts",
         "../src/Variables.ts",
         "../src/View.ts",
@@ -1167,6 +1173,7 @@
         "../src/Keyboard.ts",
         "../src/Random.ts",
         "../src/Sound.ts",
+        "../src/TextCanvas.ts",
         "../src/Utils.ts",
         "../src/Variables.ts"
       ],
@@ -1210,6 +1217,11 @@
       "../src/Sound.ts": [
         "../node_modules/@types/node/util.d.ts",
         "../src/Utils.ts"
+      ],
+      "../src/TextCanvas.ts": [
+        "../node_modules/@types/node/util.d.ts",
+        "../src/Utils.ts",
+        "../src/View.ts"
       ],
       "../src/Utils.ts": [
         "../node_modules/@types/node/util.d.ts"
@@ -1734,6 +1746,7 @@
         "../src/Interfaces.ts",
         "../src/Keyboard.ts",
         "../src/Sound.ts",
+        "../src/TextCanvas.ts",
         "../src/Utils.ts",
         "../src/Variables.ts"
       ],
@@ -1860,6 +1873,7 @@
       "../src/Polyfills.ts",
       "../src/Random.ts",
       "../src/Sound.ts",
+      "../src/TextCanvas.ts",
       "../src/Utils.ts",
       "../src/Variables.ts",
       "../src/View.ts",

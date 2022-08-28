@@ -22,6 +22,7 @@
       "../src/Keyboard.ts",
       "../src/VirtualKeyboard.ts",
       "../src/Canvas.ts",
+      "../src/TextCanvas.ts",
       "../src/Model.ts",
       "../src/CommonEventHandler.ts",
       "../src/Random.ts",
@@ -43,7 +44,7 @@
         },
         {
           "pos": 14,
-          "end": 790179,
+          "end": 778964,
           "kind": "text"
         }
       ],
@@ -71,7 +72,7 @@
       "sections": [
         {
           "pos": 0,
-          "end": 66729,
+          "end": 66602,
           "kind": "text"
         }
       ]

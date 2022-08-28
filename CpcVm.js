@@ -1079,7 +1079,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.vmMoveCursor2AllowedPos(stream);
             this.vmDrawUndrawCursor(stream); // undraw
             var win = this.windowDataList[stream], charCode = this.canvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper), 
-            //TODO charCode2 = this.textCanvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper),
+            // TODO charCode2 = this.textCanvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper),
             char = (charCode >= 0) ? String.fromCharCode(charCode) : "";
             this.vmDrawUndrawCursor(stream); // draw
             return char;
@@ -1192,45 +1192,43 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             }
             this.variables.dimVariable(varName, dimensions);
         };
-        CpcVm.prototype.vmGetVariable = function (varName) {
-            var args = [];
-            for (var _i = 1; _i < arguments.length; _i++) {
-                args[_i - 1] = arguments[_i];
-            }
-            var value = this.variables.getVariable(varName);
-            for (var i = 0; i < args.length; i += 1) {
+        /*
+        // TODO, if we want to check array access
+        vmGetVariable(varName: string, ...args: number[]): VariableValue { // TODO
+            let value = this.variables.getVariable(varName);
+    
+            for (let i = 0; i < args.length; i += 1) {
                 if (Array.isArray(value)) {
-                    var index = this.vmInRangeRound(args[i], 0, value.length - 1, "vmGet"); // TODO: in case of error: Subscript out of range; or: vmAssertInRange?
+                    const index = this.vmInRangeRound(args[i], 0, value.length - 1, "vmGet"); // TODO: in case of error: Subscript out of range; or: vmAssertInRange?
+    
                     value = value[index];
-                }
-                else {
+                } else {
                     throw this.vmComposeError(Error(), 9, String(value)); // Subscript out of range
                 }
             }
             return value;
-        };
-        CpcVm.prototype.vmSetVariable = function (varName, valueToSet) {
-            var args = [];
-            for (var _i = 2; _i < arguments.length; _i++) {
-                args[_i - 2] = arguments[_i];
-            }
-            var value = this.variables.getVariable(varName);
-            for (var i = 0; i < args.length; i += 1) {
+        }
+    
+        vmSetVariable(varName: string, valueToSet: number | string, ...args: number[]): VariableValue { // TODO
+            let value = this.variables.getVariable(varName);
+    
+            for (let i = 0; i < args.length; i += 1) {
                 if (Array.isArray(value)) {
-                    var index = this.vmInRangeRound(args[i], 0, value.length - 1, "vmGet"); // TODO: in case of error: Subscript out of range; or: vmAssertInRange?
+                    const index = this.vmInRangeRound(args[i], 0, value.length - 1, "vmGet"); // TODO: in case of error: Subscript out of range; or: vmAssertInRange?
+    
                     if (i < args.length - 1) {
                         value = value[index];
-                    }
-                    else {
+                    } else {
                         value[index] = valueToSet;
                     }
-                }
-                else {
+                } else {
                     throw this.vmComposeError(Error(), 9, String(value)); // Subscript out of range
                 }
             }
+    
             return value;
-        };
+        }
+        */
         CpcVm.prototype.draw = function (x, y, gPen, gColMode) {
             x = this.vmInRangeRound(x, -32768, 32767, "DRAW");
             y = this.vmInRangeRound(y, -32768, 32767, "DRAW");
@@ -2830,11 +2828,6 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             if (decimals >= 0 && decimals > maxDecimals) {
                 decimals = maxDecimals;
             }
-            /*
-            } else if (decimals < 0 && decimals < -maxDecimals) {
-                decimals = -maxDecimals;
-            }
-            */
             // To avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
             return Number(Math.round(Number(n + "e" + decimals)) + "e" + ((decimals >= 0) ? "-" + decimals : "+" + -decimals));
         };

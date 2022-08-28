@@ -481,11 +481,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var nodeArgs = node.args ? this.fnParseArgRange(node.args, 1, node.args.length - 2) : [], // array: we skip open and close bracket
             name = this.fnAdaptVariableName(node.value, nodeArgs.length); // here we use node.value;
             var indices = "";
-            /*
-            value = name + nodeArgs.map(function (val) {
-                return "[" + val + "]";
-            }).join("");
-            */
             for (var i = 0; i < nodeArgs.length; i += 1) { // array indices
                 var arg = node.args[i + 1], // +1 because of opening braket
                 index = arg.pt !== "I" ? ("o.vmRound(" + nodeArgs[i] + ")") : nodeArgs[i];

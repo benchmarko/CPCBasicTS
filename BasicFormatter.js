@@ -7,12 +7,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.BasicFormatter = void 0;
-    /*
-    interface LineResult {
-        lines: LineEntry[],
-        error?: CustomError
-    }
-    */
     var BasicFormatter = /** @class */ (function () {
         function BasicFormatter(options) {
             this.line = ""; // current line (label) for error messages
@@ -97,11 +91,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 }
             }
         };
-        /*
-        private static fnSortbyPosition(a: LineEntry, b: LineEntry) {
-            return a.pos - b.pos;
-        }
-        */
         BasicFormatter.prototype.fnRenumberLines = function (lines, refs, newLine, oldLine, step, keep) {
             var changes = {}, keys = Object.keys(lines);
             function fnSortbyPosition(a, b) {

@@ -2,7 +2,7 @@
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./BasicParser", "./BasicTokenizer", "./Canvas", "./CodeGeneratorBasic", "./CodeGeneratorJs", "./CodeGeneratorToken", "./CommonEventHandler", "./cpcCharset", "./CpcVm", "./CpcVmRsx", "./Diff", "./DiskImage", "./InputStack", "./Keyboard", "./VirtualKeyboard", "./Sound", "./Variables", "./View", "./ZipFile"], function (require, exports, Utils_1, BasicFormatter_1, BasicLexer_1, BasicParser_1, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, CpcVmRsx_1, Diff_1, DiskImage_1, InputStack_1, Keyboard_1, VirtualKeyboard_1, Sound_1, Variables_1, View_1, ZipFile_1) {
+define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./BasicParser", "./BasicTokenizer", "./Canvas", "./CodeGeneratorBasic", "./CodeGeneratorJs", "./CodeGeneratorToken", "./CommonEventHandler", "./cpcCharset", "./CpcVm", "./CpcVmRsx", "./Diff", "./DiskImage", "./InputStack", "./Keyboard", "./TextCanvas", "./VirtualKeyboard", "./Sound", "./Variables", "./View", "./ZipFile"], function (require, exports, Utils_1, BasicFormatter_1, BasicLexer_1, BasicParser_1, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, CpcVmRsx_1, Diff_1, DiskImage_1, InputStack_1, Keyboard_1, TextCanvas_1, VirtualKeyboard_1, Sound_1, Variables_1, View_1, ZipFile_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Controller = void 0;
@@ -60,7 +60,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             view.setHidden("inp2Area", !model.getProperty("showInp2"));
             view.setHidden("outputArea", !model.getProperty("showOutput"));
             view.setHidden("resultArea", !model.getProperty("showResult"));
-            this.textCanvas = new Canvas_1.TextCanvas({
+            this.textCanvas = new TextCanvas_1.TextCanvas({
                 onClickKey: this.fnPutKeyInBufferHandler
             });
             view.setHidden("textArea", !model.getProperty("showText"));
@@ -1129,78 +1129,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.vm.vmGotoLine(0); // reset current line
             this.vm.vmStop("end", 0, true);
         };
-        /*
-        private fnList_test1(paras: VmLineParas) {
-            const vm = this.vm,
-                stream = paras.stream,
-                input = this.view.getAreaValue("inputText");
-    
-            if (!this.basicFormatter) {
-                this.basicFormatter = new BasicFormatter({
-                    lexer: new BasicLexer(),
-                    parser: new BasicParser()
-                });
-            }
-    
-            const output = this.basicFormatter.getLinesInRange(input, paras.first, paras.last);
-    
-            if (output.error) {
-                Utils.console.warn(output.error);
-                this.outputError(output.error);
-            } else {
-                this.fnPutChangedInputOnStack();
-                let text = output.text;
-    
-                if (stream !== 9) {
-                    const regExp = new RegExp(/([\x00-\x1f])/g); // eslint-disable-line no-control-regex
-    
-                    text = text.split("\n").map(function (str) {
-                        return str.replace(regExp, "\x01$1");
-                    }).join("\r\n");
-                }
-                this.vm.print(stream, text, text.endsWith("\n") ? "" : "\r\n");
-            }
-            this.vm.vmGotoLine(0); // reset current line
-            vm.vmStop("end", 0, true);
-        }
-    
-        private fnListWithParseTes1(paras: VmLineParas) {
-            const vm = this.vm,
-                stream = paras.stream,
-                input = this.view.getAreaValue("inputText");
-    
-            if (!this.basicFormatter) {
-                this.basicFormatter = new BasicFormatter({
-                    lexer: new BasicLexer(),
-                    parser: new BasicParser()
-                });
-            }
-    
-            const output = this.basicFormatter.getLinesInRange(input, paras.first, paras.last);
-    
-            if (output.error) {
-                Utils.console.warn(output.error);
-                this.outputError(output.error);
-            } else {
-                this.fnPutChangedInputOnStack();
-                const lines = output.lines;
-                let text = lines.map(function (entry) {
-                    return input.substr(entry.pos, entry.lineLen);
-                }).join("");
-    
-                if (stream !== 9) {
-                    const regExp = new RegExp(/([\x00-\x1f])/g); // eslint-disable-line no-control-regex
-    
-                    text = text.split("\n").map(function (str) {
-                        return str.replace(regExp, "\x01$1");
-                    }).join("\r\n");
-                }
-                this.vm.print(stream, text, text.endsWith("\n") ? "" : "\r\n");
-            }
-            this.vm.vmGotoLine(0); // reset current line
-            vm.vmStop("end", 0, true);
-        }
-        */
         Controller.prototype.fnReset = function () {
             var vm = this.vm;
             this.variables.removeAllVariables();
@@ -1505,11 +1433,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                         var error = output.error;
                         if (error.pos < inputText.length + 1) { // error not in direct?
                             error.message = "[prg] " + error.message;
-                            /*
-                            if (error.shortMessage) { // eslint-disable-line max-depth
-                                error.shortMessage = "[prg] " + error.shortMessage;
-                            }
-                            */
                             outputString = this.outputError(error, true);
                             output = undefined;
                         }

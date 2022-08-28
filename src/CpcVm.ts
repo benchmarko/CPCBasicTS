@@ -7,8 +7,9 @@ import { Utils, CustomError } from "./Utils";
 import { Keyboard, CpcKeyExpansionsOptions } from "./Keyboard";
 import { Random } from "./Random";
 import { Sound, SoundData, ToneEnvData, VolEnvData } from "./Sound";
-import { Canvas, TextCanvas } from "./Canvas";
-import { Variables, VariableMap, VariableValue } from "./Variables";
+import { Canvas } from "./Canvas";
+import { TextCanvas } from "./TextCanvas";
+import { Variables, VariableMap } from "./Variables";
 import { ICpcVmRsx } from "./Interfaces";
 
 export interface CpcVmOptions {
@@ -121,14 +122,6 @@ export interface VmStopEntry {
 	priority: number // stop priority (higher number means higher priority which can overwrite lower priority)
 	paras: VmStopParas
 }
-
-/*
-interface TraceInfo {
-	line: string
-	//pos: number,
-	//len: number
-}
-*/
 
 type PrintObjectType = {type: string, args: (string | number)[]};
 
@@ -1623,7 +1616,7 @@ export class CpcVm {
 		this.vmDrawUndrawCursor(stream); // undraw
 		const win = this.windowDataList[stream],
 			charCode = this.canvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper),
-			//TODO charCode2 = this.textCanvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper),
+			// TODO charCode2 = this.textCanvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper),
 			char = (charCode >= 0) ? String.fromCharCode(charCode) : "";
 
 		this.vmDrawUndrawCursor(stream); // draw
@@ -1750,6 +1743,8 @@ export class CpcVm {
 		this.variables.dimVariable(varName, dimensions);
 	}
 
+	/*
+	// TODO, if we want to check array access
 	vmGetVariable(varName: string, ...args: number[]): VariableValue { // TODO
 		let value = this.variables.getVariable(varName);
 
@@ -1784,6 +1779,7 @@ export class CpcVm {
 
 		return value;
 	}
+	*/
 
 	draw(x: number, y: number, gPen?: number, gColMode?: number): void {
 		x = this.vmInRangeRound(x, -32768, 32767, "DRAW");
@@ -3586,11 +3582,6 @@ export class CpcVm {
 		if (decimals >= 0 && decimals > maxDecimals) {
 			decimals = maxDecimals;
 		}
-		/*
-		} else if (decimals < 0 && decimals < -maxDecimals) {
-			decimals = -maxDecimals;
-		}
-		*/
 		// To avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
 		return Number(Math.round(Number(n + "e" + decimals)) + "e" + ((decimals >= 0) ? "-" + decimals : "+" + -decimals));
 	}

@@ -167,8 +167,8 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         // eslint-disable-next-line class-methods-use-this
         CommonEventHandler.prototype.onCopyTextButtonClick = function () {
             var textText = document.getElementById("textText");
-            //const copyText = View.getElementByIdAs<HTMLTextAreaElement>("textText");
-            //TODO: use View.setAreaSelection...
+            // const copyText = View.getElementByIdAs<HTMLTextAreaElement>("textText");
+            // TODO: use View.setAreaSelection...
             textText.select();
             textText.setSelectionRange(0, 99999); // for mobile devices
             window.navigator.clipboard.writeText(textText.value);

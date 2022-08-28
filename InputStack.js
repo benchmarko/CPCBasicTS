@@ -10,10 +10,6 @@ define(["require", "exports"], function (require, exports) {
             this.input = [];
             this.stackPosition = -1;
         }
-        /*
-        constructor() {
-        }
-        */
         InputStack.prototype.reset = function () {
             this.input.length = 0;
             this.stackPosition = -1;

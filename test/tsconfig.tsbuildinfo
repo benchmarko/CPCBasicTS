@@ -297,17 +297,22 @@
         "affectsGlobalScope": false
       },
       "../types/Canvas.d.ts": {
-        "version": "481bde8fe7d703cfd06667442967bcb6b3f02213dde312f1b892f076f6366a16",
-        "signature": "481bde8fe7d703cfd06667442967bcb6b3f02213dde312f1b892f076f6366a16",
+        "version": "77d05778dddd433f91bcd86013d7ca30715fe6484776ca086bbd7948985095e8",
+        "signature": "77d05778dddd433f91bcd86013d7ca30715fe6484776ca086bbd7948985095e8",
+        "affectsGlobalScope": false
+      },
+      "../types/TextCanvas.d.ts": {
+        "version": "ee2b09730867aef01209056ba45c79c8ce5f60a50ee9faadc2284f7e9a7c09eb",
+        "signature": "ee2b09730867aef01209056ba45c79c8ce5f60a50ee9faadc2284f7e9a7c09eb",
         "affectsGlobalScope": false
       },
       "../types/CpcVm.d.ts": {
-        "version": "aad5d6960d13a819d4033511e803f44b15b956692264cbed3ef4d65b00719a6f",
-        "signature": "aad5d6960d13a819d4033511e803f44b15b956692264cbed3ef4d65b00719a6f",
+        "version": "1e993cad624719789344bd61da9bfbe3ca01804992f7f5ba5ecb8d31a3556ae3",
+        "signature": "1e993cad624719789344bd61da9bfbe3ca01804992f7f5ba5ecb8d31a3556ae3",
         "affectsGlobalScope": false
       },
       "../../src/test/CpcVm.qunit.ts": {
-        "version": "8a458b6dc7803899c5d842c710aeab39163fa1235821426b9cc4bfa212b9d2d0",
+        "version": "55808bbd5110e0232833091cb3f03e0f582ffb2f42615f175b41a7d1d01f90a3",
         "signature": "268e688401d8911f1ecd97206559b40640dd907d6c9af91531c6ef2706aeec5e",
         "affectsGlobalScope": false
       },
@@ -703,6 +708,7 @@
         "../types/Interfaces.d.ts",
         "../types/Keyboard.d.ts",
         "../types/Sound.d.ts",
+        "../types/TextCanvas.d.ts",
         "../types/Utils.d.ts",
         "../types/Variables.d.ts"
       ],
@@ -726,6 +732,9 @@
         "../../node_modules/@types/node/util.d.ts"
       ],
       "../types/Sound.d.ts": [
+        "../../node_modules/@types/node/util.d.ts"
+      ],
+      "../types/TextCanvas.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
       "../types/Utils.d.ts": [
@@ -1243,6 +1252,7 @@
         "../types/CpcVm.d.ts",
         "../types/Keyboard.d.ts",
         "../types/Sound.d.ts",
+        "../types/TextCanvas.d.ts",
         "../types/Utils.d.ts",
         "../types/Variables.d.ts"
       ],
@@ -1337,6 +1347,7 @@
         "../types/Interfaces.d.ts",
         "../types/Keyboard.d.ts",
         "../types/Sound.d.ts",
+        "../types/TextCanvas.d.ts",
         "../types/Utils.d.ts",
         "../types/Variables.d.ts"
       ],
@@ -1360,6 +1371,9 @@
         "../../node_modules/@types/node/util.d.ts"
       ],
       "../types/Sound.d.ts": [
+        "../../node_modules/@types/node/util.d.ts"
+      ],
+      "../types/TextCanvas.d.ts": [
         "../../node_modules/@types/node/util.d.ts"
       ],
       "../types/Utils.d.ts": [
@@ -1839,6 +1853,7 @@
       "../types/Model.d.ts",
       "../types/Polyfills.d.ts",
       "../types/Sound.d.ts",
+      "../types/TextCanvas.d.ts",
       "../types/Utils.d.ts",
       "../types/Variables.d.ts",
       "../types/ZipFile.d.ts",

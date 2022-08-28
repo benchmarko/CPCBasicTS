@@ -1551,7 +1551,6 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             if (!s.nud) {
                 throw this.composeError(Error(), "Unexpected token", t.value, t.pos);
             }
-            //let left = s.nud.call(this, t); // process literals, variables, and prefix operators
             var left = s.nud(t); // process literals, variables, and prefix operators
             t = this.token;
             s = this.symbols[t.type];
@@ -1561,7 +1560,6 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                     throw this.composeError(Error(), "Unexpected token", t.type, t.pos);
                     // TODO: How to get this error?
                 }
-                //left = s.led.call(this, left); // ...the led method is invoked on the following token (infix and suffix operators), can be recursive
                 left = s.led(left); // ...the led method is invoked on the following token (infix and suffix operators), can be recursive
                 t = this.token;
                 s = this.symbols[t.type];
@@ -1587,7 +1585,6 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             var t = this.token, s = this.symbols[t.type];
             if (s.std) { // statement?
                 this.advance(t.type);
-                //return s.std.call(this);
                 return s.std();
             }
             var value;
@@ -2445,26 +2442,6 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             symbol.nud = nud;
             return symbol;
         };
-        /*
-        private generateLed(rbp: number) {
-            return (left: ParserNode) => {
-                const node = this.previousToken;
-    
-                node.left = left;
-                node.right = this.expression(rbp);
-                return node;
-            };
-        }
-    
-        private generateNud(rbp: number) {
-            return () => {
-                const node = this.previousToken;
-    
-                node.right = this.expression(rbp);
-                return node;
-            };
-        }
-        */
         BasicParser.prototype.fnInfixLed = function (left, rbp) {
             var node = this.previousToken;
             node.left = left;
@@ -2529,15 +2506,6 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             this.createSymbol(")");
             this.createSymbol("[");
             this.createSymbol("]");
-            // define additional statement parts
-            /*
-            this.symbol("break");
-            this.symbol("step");
-            this.symbol("swap");
-            this.symbol("then");
-            this.symbol("to");
-            this.symbol("using");
-            */
             this.createSymbol("(eol)");
             this.createSymbol("(end)");
             this.createNudSymbol("number", BasicParser.fnNode);
@@ -2835,12 +2803,6 @@ define("BasicFormatter", ["require", "exports", "Utils"], function (require, exp
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.BasicFormatter = void 0;
-    /*
-    interface LineResult {
-        lines: LineEntry[],
-        error?: CustomError
-    }
-    */
     var BasicFormatter = /** @class */ (function () {
         function BasicFormatter(options) {
             this.line = ""; // current line (label) for error messages
@@ -2925,11 +2887,6 @@ define("BasicFormatter", ["require", "exports", "Utils"], function (require, exp
                 }
             }
         };
-        /*
-        private static fnSortbyPosition(a: LineEntry, b: LineEntry) {
-            return a.pos - b.pos;
-        }
-        */
         BasicFormatter.prototype.fnRenumberLines = function (lines, refs, newLine, oldLine, step, keep) {
             var changes = {}, keys = Object.keys(lines);
             function fnSortbyPosition(a, b) {
@@ -4125,22 +4082,7 @@ define("Variables", ["require", "exports"], function (require, exports) {
             if (nameType === "_") { // ignore underscore (do not clash with keywords)
                 nameType = name.charAt(1);
             }
-            /*
-            if (name.indexOf("A") >= 0) { // array?
-                name = name.substring(0, name.indexOf("A") - 1); // remove
-            }
-            */
             var arrayPos = name.indexOf("A"), typePos = arrayPos >= 0 ? arrayPos - 1 : name.length - 1, typeChar = name.charAt(typePos); // check last character before array
-            /*
-            // explicit type specified?
-            if (name.indexOf("I") >= 0) {
-                nameType += "I";
-            } else if (name.indexOf("R") >= 0) {
-                nameType += "R";
-            } else if (name.indexOf("$") >= 0) {
-                nameType += "$";
-            }
-            */
             if (typeChar === "I" || typeChar === "R" || typeChar === "$") { // explicit type specified?
                 nameType += typeChar;
             }
@@ -4696,11 +4638,6 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             var nodeArgs = node.args ? this.fnParseArgRange(node.args, 1, node.args.length - 2) : [], // array: we skip open and close bracket
             name = this.fnAdaptVariableName(node.value, nodeArgs.length); // here we use node.value;
             var indices = "";
-            /*
-            value = name + nodeArgs.map(function (val) {
-                return "[" + val + "]";
-            }).join("");
-            */
             for (var i = 0; i < nodeArgs.length; i += 1) { // array indices
                 var arg = node.args[i + 1], // +1 because of opening braket
                 index = arg.pt !== "I" ? ("o.vmRound(" + nodeArgs[i] + ")") : nodeArgs[i];
@@ -7356,10 +7293,6 @@ define("InputStack", ["require", "exports"], function (require, exports) {
             this.input = [];
             this.stackPosition = -1;
         }
-        /*
-        constructor() {
-        }
-        */
         InputStack.prototype.reset = function () {
             this.input.length = 0;
             this.stackPosition = -1;
@@ -8980,7 +8913,7 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
 define("Canvas", ["require", "exports", "Utils", "View"], function (require, exports, Utils_14, View_3) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.TextCanvas = exports.Canvas = void 0;
+    exports.Canvas = void 0;
     var Canvas = /** @class */ (function () {
         function Canvas(options) {
             this.fps = 15; // FPS for canvas update
@@ -9001,7 +8934,6 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.gPen = 0;
             this.gPaper = 0;
             this.speedInkCount = 0; // usually 10
-            //private readonly textBuffer: number[][] = []; // textbuffer characters at row,column
             this.hasFocus = false; // canvas has focus
             this.mode = 0;
             this.modeData = Canvas.modeData[0];
@@ -9019,7 +8951,6 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.charset = options.charset;
             this.onClickKey = options.onClickKey;
             this.cpcAreaBox = View_3.View.getElementById1("cpcAreaBox");
-            //this.textText = View.getElementById1("textText") as HTMLTextAreaElement; // View.setAreaValue()
             var canvas = View_3.View.getElementById1("cpcCanvas");
             this.canvas = canvas;
             // make sure canvas is not hidden (allows to get width, height, set style)
@@ -9059,20 +8990,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             }
             this.reset();
         }
-        /*
-        // CPC Unicode map for text mode (https://www.unicode.org/L2/L2019/19025-terminals-prop.pdf AMSCPC.TXT) incomplete
-        private static readonly cpc2Unicode =
-            "................................ !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]\u2195_`abcdefghijklmnopqrstuvwxyz{|}~\u2591"
-            + "\u00A0\u2598\u259D\u2580\u2596\u258C\u259E\u259B\u2597\u259A\u2590\u259C\u2584\u2599\u259F\u2588\u00B7\u2575\u2576\u2514\u2577\u2502\u250C"
-            + "\u251C\u2574\u2518\u2500\u2534\u2510\u2524\u252C\u253C\u005E\u00B4\u00A8\u00A3\u00A9\u00B6\u00A7\u2018\u00BC\u00BD\u00BE\u00B1\u00F7\u00AC"
-            + "\u00BF\u00A1\u03B1\u03B2\u03B3\u03B4\u03B5\u03B8\u03BB\u03BC\u03C0\u03C3\u03C6\u03C8\u03C7\u03C9\u03A3\u03A9\u1FBA0\u1FBA1\u1FBA3\u1FBA2\u1FBA7"
-            + "\u1FBA5\u1FBA6\u1FBA4\u1FBA8\u1FBA9\u1FBAE\u2573\u2571\u2572\u1FB95\u2592\u23BA\u23B9\u23BD\u23B8\u25E4\u25E5\u25E2\u25E3\u1FB8E\u1FB8D\u1FB8F"
-            + "\u1FB8C\u1FB9C\u1FB9D\u1FB9E\u1FB9F\u263A\u2639\u2663\u2666\u2665\u2660\u25CB\u25CF\u25A1\u25A0\u2642\u2640\u2669\u266A\u263C\uFFBDB\u2B61\u2B63"
-            + "\u2B60\u2B62\u25B2\u25BC\u25B6\u25C0\u1FBC6\u1FBC5\u1FBC7\u1FBC8\uFFBDC\uFFBDD\u2B65\u2B64";
-        */
         Canvas.prototype.reset = function () {
-            //this.resetTextBuffer();
-            //this.setNeedTextUpdate();
             this.changeMode(1);
             this.inkSet = 0;
             this.setDefaultInks();
@@ -9089,11 +9007,6 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         Canvas.prototype.resetCustomChars = function () {
             this.customCharset = {}; // symbol
         };
-        /*
-        private resetTextBuffer() {
-            this.textBuffer.length = 0;
-        }
-        */
         Canvas.isLittleEndian = function () {
             // https://gist.github.com/TooTallNate/4750953
             var b = new ArrayBuffer(4), a = new Uint32Array(b), c = new Uint8Array(b);
@@ -9123,11 +9036,6 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         Canvas.prototype.setNeedUpdate = function () {
             this.needUpdate = true;
         };
-        /*
-        private setNeedTextUpdate() {
-            this.needTextUpdate = true;
-        }
-        */
         Canvas.prototype.updateCanvas2 = function () {
             this.animationFrame = requestAnimationFrame(this.fnUpdateCanvasHandler);
             if (this.needUpdate) { // could be improved: update only updateRect
@@ -9137,14 +9045,6 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
                     this.fnCopy2Canvas();
                 }
             }
-            /*
-            if (this.textText.offsetParent) { // text area visible?
-                if (this.needTextUpdate) {
-                    this.needTextUpdate = false;
-                    this.updateTextWindow();
-                }
-            }
-            */
         };
         // http://creativejs.com/resources/requestanimationframe/ (set frame rate)
         // https://stackoverflow.com/questions/19764018/controlling-fps-with-requestanimationframe
@@ -9214,25 +9114,6 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
                 this.setNeedUpdate();
             }
         };
-        /*
-        private updateTextWindow() {
-            const textBuffer = this.textBuffer,
-                cpc2Unicode = Canvas.cpc2Unicode;
-            let out = "";
-    
-            for (let y = 0; y < textBuffer.length; y += 1) {
-                const textBufferRow = textBuffer[y];
-    
-                if (textBufferRow) {
-                    for (let x = 0; x < textBufferRow.length; x += 1) {
-                        out += cpc2Unicode[textBufferRow[x] || 32];
-                    }
-                }
-                out += "\n";
-            }
-            this.textText.value = out;
-        }
-        */
         Canvas.prototype.updateColorMap = function () {
             var colorValues = this.colorValues, currentInksInSet = this.currentInks[this.inkSet], pen2ColorMap = this.pen2ColorMap, pen2Color32 = this.pen2Color32;
             for (var i = 0; i < 16; i += 1) {
@@ -9305,8 +9186,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             y |= 0;
             var xTxt = (x / charWidth) | 0, yTxt = (y / charHeight) | 0;
             /* eslint-enable no-bitwise */
-            //let char = this.getCharFromTextBuffer(xTxt, yTxt); // is there a character at the click position?
-            var char = this.readChar(xTxt, yTxt, 1, 0); //TTT pen 1, paper 0
+            var char = this.readChar(xTxt, yTxt, 1, 0); // TODO: currently we use pen 1, paper 0
             if (char < 0 && event.detail === 2) { // no char but mouse double click?
                 char = 13; // use CR
             }
@@ -9356,7 +9236,6 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         Canvas.prototype.fillTextBox = function (left, top, width, height, pen) {
             var charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8;
             this.fillMyRect(left * charWidth, top * charHeight, width * charWidth, height * charHeight, pen);
-            //this.clearTextBufferBox(left, top, width, height);
             this.setNeedUpdate();
         };
         Canvas.prototype.moveMyRectUp = function (x, y, width, height, x2, y2) {
@@ -9686,88 +9565,8 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.xPos += charWidth;
             this.setNeedUpdate();
         };
-        /*
-        private clearTextBufferBox(left: number, top: number, width: number, height: number) {
-            const textBuffer = this.textBuffer;
-    
-            for (let y = top; y < top + height; y += 1) {
-                const textBufferRow = textBuffer[y];
-    
-                if (textBufferRow) {
-                    for (let x = left; x < left + width; x += 1) {
-                        delete textBufferRow[x];
-                    }
-                }
-            }
-            this.setNeedTextUpdate();
-        }
-    
-        private copyTextBufferBoxUp(left: number, top: number, width: number, height: number, left2: number, top2: number) {
-            const textBuffer = this.textBuffer;
-    
-            for (let y = 0; y < height; y += 1) {
-                const textBufferRow1 = textBuffer[top + y];
-    
-                if (textBufferRow1) {
-                    let textBufferRow2 = textBuffer[top2 + y];
-    
-                    if (!textBufferRow2) {
-                        textBufferRow2 = [];
-                        textBuffer[top2 + y] = textBufferRow2;
-                    }
-                    for (let x = 0; x < width; x += 1) {
-                        textBufferRow2[left2 + x] = textBufferRow1[left + x];
-                    }
-                }
-            }
-            this.setNeedTextUpdate();
-        }
-    
-        private copyTextBufferBoxDown(left: number, top: number, width: number, height: number, left2: number, top2: number) {
-            const textBuffer = this.textBuffer;
-    
-            for (let y = height - 1; y >= 0; y -= 1) {
-                const textBufferRow1 = textBuffer[top + y];
-    
-                if (textBufferRow1) {
-                    let textBufferRow2 = textBuffer[top2 + y];
-    
-                    if (!textBufferRow2) {
-                        textBufferRow2 = [];
-                        textBuffer[top2 + y] = textBufferRow2;
-                    }
-                    for (let x = 0; x < width; x += 1) {
-                        textBufferRow2[left2 + x] = textBufferRow1[left + x];
-                    }
-                }
-            }
-            this.setNeedTextUpdate();
-        }
-    
-        private putCharInTextBuffer(char: number, x: number, y: number) {
-            const textBuffer = this.textBuffer;
-    
-            if (!textBuffer[y]) {
-                textBuffer[y] = [];
-            }
-            this.textBuffer[y][x] = char;
-            this.setNeedTextUpdate();
-        }
-    
-        private getCharFromTextBuffer(x: number, y: number) {
-            const textBuffer = this.textBuffer;
-    
-            let char: number | undefined;
-    
-            if (textBuffer[y]) {
-                char = this.textBuffer[y][x]; // can be undefined, if not set
-            }
-            return char;
-        }
-        */
         Canvas.prototype.printChar = function (char, x, y, pen, paper, transparent) {
             var charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8, pens = this.modeData.pens;
-            //this.putCharInTextBuffer(char, x, y);
             if (char >= this.charset.length) {
                 Utils_14.Utils.console.warn("printChar: Ignoring char with code", char);
                 return;
@@ -9952,16 +9751,12 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         Canvas.prototype.clearFullWindow = function () {
             var paper = 0;
             this.fillMyRect(0, 0, this.width, this.height, paper);
-            //this.resetTextBuffer();
-            //this.setNeedTextUpdate();
             this.setNeedUpdate();
         };
         Canvas.prototype.windowScrollUp = function (left, right, top, bottom, pen) {
             var charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8, width = right + 1 - left, height = bottom + 1 - top;
             if (height > 1) { // scroll part
                 this.moveMyRectUp(left * charWidth, (top + 1) * charHeight, width * charWidth, (height - 1) * charHeight, left * charWidth, top * charHeight);
-                // adapt also text buffer
-                //this.copyTextBufferBoxUp(left, top + 1, width, height - 1, left, top);
             }
             this.fillTextBox(left, bottom, width, 1, pen);
             this.setNeedUpdate();
@@ -9970,8 +9765,6 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             var charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8, width = right + 1 - left, height = bottom + 1 - top;
             if (height > 1) { // scroll part
                 this.moveMyRectDown(left * charWidth, top * charHeight, width * charWidth, (height - 1) * charHeight, left * charWidth, (top + 1) * charHeight);
-                // adapt also text buffer
-                //this.copyTextBufferBoxDown(left, top, width, height - 1, left, top + 1);
             }
             this.fillTextBox(left, top, width, 1, pen);
             this.setNeedUpdate();
@@ -10078,6 +9871,15 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         return Canvas;
     }());
     exports.Canvas = Canvas;
+});
+// TextCanvas.ts - Text "Canvas"
+// (c) Marco Vieth, 2022
+// https://benchmarko.github.io/CPCBasicTS/
+//
+define("TextCanvas", ["require", "exports", "Utils", "View"], function (require, exports, Utils_15, View_4) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.TextCanvas = void 0;
     var TextCanvas = /** @class */ (function () {
         function TextCanvas(options) {
             this.fps = 15; // FPS for canvas update
@@ -10087,7 +9889,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.fnUpdateTextCanvasHandler = this.updateTextCanvas.bind(this);
             this.fnUpdateTextCanvas2Handler = this.updateTextCanvas2.bind(this);
             this.onClickKey = options.onClickKey;
-            this.textText = View_3.View.getElementById1("textText"); // View.setAreaValue()
+            this.textText = View_4.View.getElementById1("textText"); // View.setAreaValue()
             this.animationTimeoutId = undefined;
             this.animationFrame = undefined;
             this.reset();
@@ -10151,10 +9953,9 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             }
             this.hasFocus = true;
         };
-        //TTT
         // eslint-disable-next-line class-methods-use-this
         TextCanvas.prototype.getMousePos = function (event) {
-            var borderWidth = 1, //TTT 4;
+            var borderWidth = 1, // TODO
             rect = this.textText.getBoundingClientRect(), pos = {
                 x: event.clientX - borderWidth - rect.left,
                 y: event.clientY - borderWidth - rect.top
@@ -10162,17 +9963,13 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             return pos;
         };
         TextCanvas.prototype.canvasClickAction2 = function (event) {
-            var target = event.target, style = window.getComputedStyle(target, null).getPropertyValue("font-size"), fontSize = parseFloat(style), pos = this.getMousePos(event), charWidth = (fontSize + 1.4) / 2, charHeight = fontSize + 2.25, //TTT
+            var target = event.target, style = window.getComputedStyle(target, null).getPropertyValue("font-size"), fontSize = parseFloat(style), pos = this.getMousePos(event), charWidth = (fontSize + 1.4) / 2, charHeight = fontSize + 2.25, // TODO
             x = pos.x, y = pos.y, 
             /* eslint-disable no-bitwise */
             xTxt = (x / charWidth) | 0, yTxt = (y / charHeight) | 0;
             /* eslint-enable no-bitwise */
-            /* eslint-disable no-bitwise */
-            //x |= 0; // force integer
-            //y |= 0;
-            /* eslint-enable no-bitwise */
-            if (Utils_14.Utils.debug > 0) { //TTT
-                Utils_14.Utils.console.debug("canvasClickAction2: x=" + x + ", y=" + y + ", xTxt=" + xTxt + ", yTxt=" + yTxt);
+            if (Utils_15.Utils.debug > 0) { //TTT
+                Utils_15.Utils.console.debug("canvasClickAction2: x=" + x + ", y=" + y + ", xTxt=" + xTxt + ", yTxt=" + yTxt);
             }
             var char = this.getCharFromTextBuffer(xTxt, yTxt); // is there a character an the click position?
             if (char === undefined && event.detail === 2) { // no char but mouse double click?
@@ -10321,7 +10118,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
 // Model.ts - Model (MVC)
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
-define("Model", ["require", "exports", "Utils"], function (require, exports, Utils_15) {
+define("Model", ["require", "exports", "Utils"], function (require, exports, Utils_16) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Model = void 0;
@@ -10382,8 +10179,8 @@ define("Model", ["require", "exports", "Utils"], function (require, exports, Uti
         Model.prototype.setExample = function (example) {
             var database = this.getProperty("database"), key = example.key;
             if (!this.examples[database][key]) {
-                if (Utils_15.Utils.debug > 1) {
-                    Utils_15.Utils.console.debug("setExample: creating new example:", key);
+                if (Utils_16.Utils.debug > 1) {
+                    Utils_16.Utils.console.debug("setExample: creating new example:", key);
                 }
             }
             this.examples[database][key] = example;
@@ -10391,7 +10188,7 @@ define("Model", ["require", "exports", "Utils"], function (require, exports, Uti
         Model.prototype.removeExample = function (key) {
             var database = this.getProperty("database");
             if (!this.examples[database][key]) {
-                Utils_15.Utils.console.warn("removeExample: example does not exist: " + key);
+                Utils_16.Utils.console.warn("removeExample: example does not exist: " + key);
             }
             delete this.examples[database][key];
         };
@@ -10402,7 +10199,7 @@ define("Model", ["require", "exports", "Utils"], function (require, exports, Uti
 // CommonEventHandler.ts - Common event handler for browser events
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
-define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (require, exports, Utils_16, View_4) {
+define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (require, exports, Utils_17, View_5) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CommonEventHandler = void 0;
@@ -10568,8 +10365,8 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
         // eslint-disable-next-line class-methods-use-this
         CommonEventHandler.prototype.onCopyTextButtonClick = function () {
             var textText = document.getElementById("textText");
-            //const copyText = View.getElementByIdAs<HTMLTextAreaElement>("textText");
-            //TODO: use View.setAreaSelection...
+            // const copyText = View.getElementByIdAs<HTMLTextAreaElement>("textText");
+            // TODO: use View.setAreaSelection...
             textText.select();
             textText.setSelectionRange(0, 99999); // for mobile devices
             window.navigator.clipboard.writeText(textText.value);
@@ -10614,7 +10411,7 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             this.controller.changeVariable();
         };
         CommonEventHandler.prototype.onScreenshotButtonClick = function () {
-            var example = this.view.getSelectValue("exampleSelect"), image = this.controller.startScreenshot(), link = View_4.View.getElementById1("screenshotLink"), name = example + ".png";
+            var example = this.view.getSelectValue("exampleSelect"), image = this.controller.startScreenshot(), link = View_5.View.getElementById1("screenshotLink"), name = example + ".png";
             link.setAttribute("download", name);
             link.setAttribute("href", image);
             link.click();
@@ -10643,21 +10440,21 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             }
             if (id) {
                 if (!target.disabled) { // check needed for IE which also fires for disabled buttons
-                    var handler = "on" + Utils_16.Utils.stringCapitalize(id) + Utils_16.Utils.stringCapitalize(type);
-                    if (Utils_16.Utils.debug) {
-                        Utils_16.Utils.console.debug("fnCommonEventHandler: handler=" + handler);
+                    var handler = "on" + Utils_17.Utils.stringCapitalize(id) + Utils_17.Utils.stringCapitalize(type);
+                    if (Utils_17.Utils.debug) {
+                        Utils_17.Utils.console.debug("fnCommonEventHandler: handler=" + handler);
                     }
                     if (handler in this.handlers) {
                         this.handlers[handler].call(this, event);
                     }
                     else if (!handler.endsWith("SelectClick") && !handler.endsWith("InputClick")) { // do not print all messages
-                        Utils_16.Utils.console.log("Event handler not found:", handler);
+                        Utils_17.Utils.console.log("Event handler not found:", handler);
                     }
                 }
             }
             else if (target.getAttribute("data-key") === null) { // not for keyboard buttons
-                if (Utils_16.Utils.debug) {
-                    Utils_16.Utils.console.debug("Event handler for", type, "unknown target:", target.tagName, target.id);
+                if (Utils_17.Utils.debug) {
+                    Utils_17.Utils.console.debug("Event handler for", type, "unknown target:", target.tagName, target.id);
                 }
             }
             if (type === "click") { // special
@@ -10710,7 +10507,7 @@ define("Random", ["require", "exports"], function (require, exports) {
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("Sound", ["require", "exports", "Utils"], function (require, exports, Utils_17) {
+define("Sound", ["require", "exports", "Utils"], function (require, exports, Utils_18) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Sound = void 0;
@@ -10732,7 +10529,7 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
                     rendevousMask: 0
                 };
             }
-            if (Utils_17.Utils.debug > 1) {
+            if (Utils_18.Utils.debug > 1) {
                 this.debugLogList = []; // access: cpcBasic.controller.sound.debugLog
             }
         }
@@ -10905,7 +10702,7 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
             var maxVolume = 15, i100ms2sec = 100, // time duration unit: 1/100 sec=10 ms, convert to sec
             ctx = this.context, toneEnv = soundData.toneEnv;
             var volEnv = soundData.volEnv, volEnvRepeat = 1;
-            if (Utils_17.Utils.debug > 1) {
+            if (Utils_18.Utils.debug > 1) {
                 this.debugLog("scheduleNote: " + oscillator + " " + fTime);
             }
             var oscillatorNode = ctx.createOscillator();
@@ -10913,7 +10710,7 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
             oscillatorNode.frequency.value = (soundData.period >= 3) ? 62500 / soundData.period : 0;
             oscillatorNode.connect(this.gainNodes[oscillator]);
             if (fTime < ctx.currentTime) {
-                Utils_17.Utils.console.log("TTT: scheduleNote:", fTime, "<", ctx.currentTime);
+                Utils_18.Utils.console.log("TTT: scheduleNote:", fTime, "<", ctx.currentTime);
             }
             var volume = soundData.volume, gain = this.gainNodes[oscillator].gain, fVolume = volume / maxVolume;
             gain.setValueAtTime(fVolume * fVolume, fTime); // start volume
@@ -10971,7 +10768,7 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
                         this.stopOscillator(i);
                     }
                     queue.soundData.push(soundData); // just a reference
-                    if (Utils_17.Utils.debug > 1) {
+                    if (Utils_18.Utils.debug > 1) {
                         this.debugLog("sound: " + i + " " + state + ":" + queue.soundData.length);
                     }
                     this.updateQueueStatus(i, queue);
@@ -11045,7 +10842,7 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
             if (!queues.length) {
                 return;
             }
-            if (Utils_17.Utils.debug > 1) {
+            if (Utils_18.Utils.debug > 1) {
                 this.debugLog("release: " + releaseMask);
             }
             for (var i = 0; i < 3; i += 1) {
@@ -11087,7 +10884,7 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
                 var mergerNode = this.mergerNode, context = this.context;
                 mergerNode.connect(context.destination);
                 this.isSoundOn = true;
-                Utils_17.Utils.console.log("soundOn: Sound switched on");
+                Utils_18.Utils.console.log("soundOn: Sound switched on");
             }
         };
         Sound.prototype.soundOff = function () {
@@ -11095,7 +10892,7 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
                 var mergerNode = this.mergerNode, context = this.context;
                 mergerNode.disconnect(context.destination);
                 this.isSoundOn = false;
-                Utils_17.Utils.console.log("soundOff: Sound switched off");
+                Utils_18.Utils.console.log("soundOff: Sound switched off");
             }
         };
         return Sound;
@@ -11106,7 +10903,7 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("ZipFile", ["require", "exports", "Utils"], function (require, exports, Utils_18) {
+define("ZipFile", ["require", "exports", "Utils"], function (require, exports, Utils_19) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.ZipFile = void 0;
@@ -11121,7 +10918,7 @@ define("ZipFile", ["require", "exports", "Utils"], function (require, exports, U
         };
         ZipFile.prototype.composeError = function (error, message, value, pos) {
             message = this.zipName + ": " + message; // put zipname in message
-            return Utils_18.Utils.composeError("ZipFile", error, message, value, pos);
+            return Utils_19.Utils.composeError("ZipFile", error, message, value, pos);
         };
         ZipFile.prototype.subArr = function (begin, length) {
             var data = this.data, end = begin + length;
@@ -11229,7 +11026,7 @@ define("ZipFile", ["require", "exports", "Utils"], function (require, exports, U
                 cdfh.timestamp = new Date(((dostime >> 25) & 0x7F) + 1980, ((dostime >> 21) & 0x0F) - 1, (dostime >> 16) & 0x1F, (dostime >> 11) & 0x1F, (dostime >> 5) & 0x3F, (dostime & 0x1F) << 1).getTime(); // eslint-disable-line no-bitwise
                 // local file header... much more info
                 if (this.readUInt(cdfh.localOffset) !== lfhSignature) {
-                    Utils_18.Utils.console.error("Zip: readZipDirectory: LFH signature not found at offset", cdfh.localOffset);
+                    Utils_19.Utils.console.error("Zip: readZipDirectory: LFH signature not found at offset", cdfh.localOffset);
                 }
                 var lfhExtrafieldLength = this.readUShort(cdfh.localOffset + 28); // extra field length
                 cdfh.dataStart = cdfh.localOffset + lfhLen + cdfh.name.length + lfhExtrafieldLength;
@@ -11481,7 +11278,7 @@ define("ZipFile", ["require", "exports", "Utils"], function (require, exports, U
                 throw this.composeError(Error(), "Zip: readData: compression method not supported:" + cdfh.compressionMethod, "", 0);
             }
             if (dataUTF8.length !== cdfh.size) { // assert
-                Utils_18.Utils.console.error("Zip: readData: different length 2!");
+                Utils_19.Utils.console.error("Zip: readData: different length 2!");
             }
             return dataUTF8;
         };
@@ -11493,7 +11290,7 @@ define("ZipFile", ["require", "exports", "Utils"], function (require, exports, U
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, exports, Utils_19, Random_1) {
+define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, exports, Utils_20, Random_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CpcVm = void 0;
@@ -11792,7 +11589,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.vmAssertNumber(n, err);
             if (n < min || n > max) {
                 if (!this.quiet) {
-                    Utils_19.Utils.console.warn("vmAssertInRange: number not in range:", min + "<=" + n + "<=" + max);
+                    Utils_20.Utils.console.warn("vmAssertInRange: number not in range:", min + "<=" + n + "<=" + max);
                 }
                 throw this.vmComposeError(Error(), 5, err + " " + n); // 5=Improper argument
             }
@@ -11815,7 +11612,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             n = this.vmRound(n, err);
             if (n < min || n > max) {
                 if (!this.quiet) {
-                    Utils_19.Utils.console.warn("vmInRangeRound: number not in range:", min + "<=" + n + "<=" + max);
+                    Utils_20.Utils.console.warn("vmInRangeRound: number not in range:", min + "<=" + n + "<=" + max);
                 }
                 throw this.vmComposeError(Error(), n < -32768 || n > 32767 ? 6 : 5, err + " " + n); // 6=Overflow, 5=Improper argument
             }
@@ -11828,7 +11625,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             }
             if (n < min || n > max) {
                 if (!this.quiet) {
-                    Utils_19.Utils.console.warn("vmLineInRange: number not in range:", min + "<=" + n + "<=" + max);
+                    Utils_20.Utils.console.warn("vmLineInRange: number not in range:", min + "<=" + n + "<=" + max);
                 }
                 throw this.vmComposeError(Error(), 5, err + " " + n); // 5=Improper argument
             }
@@ -11871,7 +11668,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             else if (type === "$") { // string
                 if (typeof value !== "string") {
                     if (!this.quiet) {
-                        Utils_19.Utils.console.warn("vmAssign: expected string but got:", value);
+                        Utils_20.Utils.console.warn("vmAssign: expected string but got:", value);
                     }
                     throw this.vmComposeError(Error(), 13, "type " + type + "=" + value); // "Type mismatch"
                 }
@@ -11879,9 +11676,9 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             return value;
         };
         CpcVm.prototype.vmGotoLine = function (line, msg) {
-            if (Utils_19.Utils.debug > 5) {
-                if (typeof line === "number" || Utils_19.Utils.debug > 7) { // non-number labels only in higher debug levels
-                    Utils_19.Utils.console.debug("dvmGotoLine:", msg + ": " + line);
+            if (Utils_20.Utils.debug > 5) {
+                if (typeof line === "number" || Utils_20.Utils.debug > 7) { // non-number labels only in higher debug levels
+                    Utils_20.Utils.console.debug("dvmGotoLine:", msg + ": " + line);
                 }
             }
             this.line = line;
@@ -12019,7 +11816,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.vmStop = function (reason, priority, force, paras) {
             var defaultPriority = CpcVm.stopPriority[reason];
             if (defaultPriority === undefined) {
-                Utils_19.Utils.console.warn("Programming error: vmStop: Unknown reason:", reason);
+                Utils_20.Utils.console.warn("Programming error: vmStop: Unknown reason:", reason);
             }
             priority = priority || 0;
             if (priority !== 0) {
@@ -12033,7 +11830,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         };
         CpcVm.prototype.vmNotImplemented = function (name) {
             if (!this.quiet) {
-                Utils_19.Utils.console.warn("Not implemented:", name);
+                Utils_20.Utils.console.warn("Not implemented:", name);
             }
         };
         CpcVm.prototype.vmUsingStringFormat = function (format, arg) {
@@ -12071,7 +11868,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 str = arg.toFixed(decimals);
             }
             if (format.indexOf(",") >= 0) { // contains comma => insert thousands separator
-                str = Utils_19.Utils.numberWithCommas(str);
+                str = Utils_20.Utils.numberWithCommas(str);
             }
             var padLen = format.length - str.length, pad = (padLen > 0) ? padChar.repeat(padLen) : "";
             str = pad + str;
@@ -12223,7 +12020,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.atn = function (n) {
             this.vmAssertNumber(n, "ATN");
             n = Math.atan(n);
-            return this.degFlag ? Utils_19.Utils.toDegrees(n) : n;
+            return this.degFlag ? Utils_20.Utils.toDegrees(n) : n;
         };
         CpcVm.prototype.auto = function (line, increment) {
             line = line === undefined ? 10 : this.vmLineInRange(line, "AUTO");
@@ -12424,8 +12221,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                     this.vmSetRamSelect(args.length);
                     break;
                 default:
-                    if (Utils_19.Utils.debug > 0) {
-                        Utils_19.Utils.console.debug("Ignored: CALL", addr, args);
+                    if (Utils_20.Utils.debug > 0) {
+                        Utils_20.Utils.console.debug("Ignored: CALL", addr, args);
                     }
                     break;
             }
@@ -12518,7 +12315,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             if (outFile.open) {
                 if (outFile.command !== "openout") {
                     if (!this.quiet) {
-                        Utils_19.Utils.console.warn("closeout: command=", outFile.command); // should not occur
+                        Utils_20.Utils.console.warn("closeout: command=", outFile.command); // should not occur
                     }
                 }
                 if (!outFile.fileData.length) { // openout without data?
@@ -12570,14 +12367,14 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.vmMoveCursor2AllowedPos(stream);
             this.vmDrawUndrawCursor(stream); // undraw
             var win = this.windowDataList[stream], charCode = this.canvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper), 
-            //TODO charCode2 = this.textCanvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper),
+            // TODO charCode2 = this.textCanvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper),
             char = (charCode >= 0) ? String.fromCharCode(charCode) : "";
             this.vmDrawUndrawCursor(stream); // draw
             return char;
         };
         CpcVm.prototype.cos = function (n) {
             this.vmAssertNumber(n, "COS");
-            return Math.cos((this.degFlag) ? Utils_19.Utils.toRadians(n) : n);
+            return Math.cos((this.degFlag) ? Utils_20.Utils.toRadians(n) : n);
         };
         CpcVm.prototype.creal = function (n) {
             this.vmAssertNumber(n, "CREAL");
@@ -12683,45 +12480,43 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             }
             this.variables.dimVariable(varName, dimensions);
         };
-        CpcVm.prototype.vmGetVariable = function (varName) {
-            var args = [];
-            for (var _i = 1; _i < arguments.length; _i++) {
-                args[_i - 1] = arguments[_i];
-            }
-            var value = this.variables.getVariable(varName);
-            for (var i = 0; i < args.length; i += 1) {
+        /*
+        // TODO, if we want to check array access
+        vmGetVariable(varName: string, ...args: number[]): VariableValue { // TODO
+            let value = this.variables.getVariable(varName);
+    
+            for (let i = 0; i < args.length; i += 1) {
                 if (Array.isArray(value)) {
-                    var index = this.vmInRangeRound(args[i], 0, value.length - 1, "vmGet"); // TODO: in case of error: Subscript out of range; or: vmAssertInRange?
+                    const index = this.vmInRangeRound(args[i], 0, value.length - 1, "vmGet"); // TODO: in case of error: Subscript out of range; or: vmAssertInRange?
+    
                     value = value[index];
-                }
-                else {
+                } else {
                     throw this.vmComposeError(Error(), 9, String(value)); // Subscript out of range
                 }
             }
             return value;
-        };
-        CpcVm.prototype.vmSetVariable = function (varName, valueToSet) {
-            var args = [];
-            for (var _i = 2; _i < arguments.length; _i++) {
-                args[_i - 2] = arguments[_i];
-            }
-            var value = this.variables.getVariable(varName);
-            for (var i = 0; i < args.length; i += 1) {
+        }
+    
+        vmSetVariable(varName: string, valueToSet: number | string, ...args: number[]): VariableValue { // TODO
+            let value = this.variables.getVariable(varName);
+    
+            for (let i = 0; i < args.length; i += 1) {
                 if (Array.isArray(value)) {
-                    var index = this.vmInRangeRound(args[i], 0, value.length - 1, "vmGet"); // TODO: in case of error: Subscript out of range; or: vmAssertInRange?
+                    const index = this.vmInRangeRound(args[i], 0, value.length - 1, "vmGet"); // TODO: in case of error: Subscript out of range; or: vmAssertInRange?
+    
                     if (i < args.length - 1) {
                         value = value[index];
-                    }
-                    else {
+                    } else {
                         value[index] = valueToSet;
                     }
-                }
-                else {
+                } else {
                     throw this.vmComposeError(Error(), 9, String(value)); // Subscript out of range
                 }
             }
+    
             return value;
-        };
+        }
+        */
         CpcVm.prototype.draw = function (x, y, gPen, gColMode) {
             x = this.vmInRangeRound(x, -32768, 32767, "DRAW");
             y = this.vmInRangeRound(y, -32768, 32767, "DRAW");
@@ -12784,7 +12579,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             }
             else { // 0
                 if (!this.quiet) {
-                    Utils_19.Utils.console.warn("ENT: toneEnv", toneEnv);
+                    Utils_20.Utils.console.warn("ENT: toneEnv", toneEnv);
                 }
                 throw this.vmComposeError(Error(), 5, "ENT " + toneEnv); // Improper argument
             }
@@ -12857,7 +12652,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 }
                 else {
                     if (!this.quiet) {
-                        Utils_19.Utils.console.warn("erase: Array variable not found:", args[i]);
+                        Utils_20.Utils.console.warn("erase: Array variable not found:", args[i]);
                     }
                     throw this.vmComposeError(Error(), 5, "ERASE " + args[i]); // Improper argument
                 }
@@ -12890,10 +12685,10 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 this.vmStop("error", 50);
             }
             if (!this.quiet) {
-                Utils_19.Utils.console.log("BASIC error(" + err + "):", errorWithInfo + (hidden ? " (hidden: " + hidden + ")" : ""));
+                Utils_20.Utils.console.log("BASIC error(" + err + "):", errorWithInfo + (hidden ? " (hidden: " + hidden + ")" : ""));
             }
             var traceLine = this.traceLabel || this.line, sourceMapEntry = this.sourceMap[traceLine], pos = sourceMapEntry && sourceMapEntry[0], len = sourceMapEntry && sourceMapEntry[1];
-            return Utils_19.Utils.composeError("CpcVm", error, errorString, errInfo, pos, len, line, hidden);
+            return Utils_20.Utils.composeError("CpcVm", error, errorString, errInfo, pos, len, line, hidden);
         };
         CpcVm.prototype.error = function (err, errInfo) {
             err = this.vmInRangeRound(err, 0, 255, "ERROR"); // could trigger another error
@@ -13011,8 +12806,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.vmInputCallback = function () {
             var inputParas = this.vmGetStopObject().paras, stream = inputParas.stream, input = inputParas.input, inputValues = input.split(","), convertedInputValues = [], types = inputParas.types;
             var inputOk = true;
-            if (Utils_19.Utils.debug > 0) {
-                Utils_19.Utils.console.debug("vmInputCallback:", input);
+            if (Utils_20.Utils.debug > 0) {
+                Utils_20.Utils.console.debug("vmInputCallback:", input);
             }
             if (types && (inputValues.length === types.length)) {
                 for (var i = 0; i < types.length; i += 1) {
@@ -13208,8 +13003,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         // let
         CpcVm.prototype.vmLineInputCallback = function () {
             var inputParas = this.vmGetStopObject().paras, input = inputParas.input;
-            if (Utils_19.Utils.debug > 0) {
-                Utils_19.Utils.console.debug("vmLineInputCallback:", input);
+            if (Utils_20.Utils.debug > 0) {
+                Utils_20.Utils.console.debug("vmLineInputCallback:", input);
             }
             this.vmSetInputValues([input]);
             this.cursor(inputParas.stream, 0);
@@ -13289,8 +13084,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                     if (isNaN(length_1)) {
                         length_1 = input.length; // only valid after atob()
                     }
-                    if (Utils_19.Utils.debug > 1) {
-                        Utils_19.Utils.console.debug("vmLoadCallback:", inFile.name + ": putting data in memory", start, "-", start + length_1);
+                    if (Utils_20.Utils.debug > 1) {
+                        Utils_20.Utils.console.debug("vmLoadCallback:", inFile.name + ": putting data in memory", start, "-", start + length_1);
                     }
                     for (var i = 0; i < length_1; i += 1) {
                         var byte = input.charCodeAt(i);
@@ -13374,7 +13169,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             }
             else if (args.length === 1) { // if just one argument, return it, even if it is a string
                 if (typeof args[0] !== "number" && !this.quiet) {
-                    Utils_19.Utils.console.warn("MAX: Not a number:", args[0]);
+                    Utils_20.Utils.console.warn("MAX: Not a number:", args[0]);
                 }
                 return args[0];
             }
@@ -13432,7 +13227,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             }
             else if (args.length === 1) { // if just one argument, return it, even if it is a string
                 if (typeof args[0] !== "number" && !this.quiet) {
-                    Utils_19.Utils.console.warn("MIN: Not a number:", args[0]);
+                    Utils_20.Utils.console.warn("MIN: Not a number:", args[0]);
                 }
                 return args[0];
             }
@@ -13510,8 +13305,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             n = this.vmInRangeRound(n, 0, 255, "ON GOSUB");
             var line;
             if (!n || n > args.length) { // out of range? => continue with line after onGosub
-                if (Utils_19.Utils.debug > 0) {
-                    Utils_19.Utils.console.debug("onGosub: out of range: n=" + n + " in " + this.line);
+                if (Utils_20.Utils.debug > 0) {
+                    Utils_20.Utils.console.debug("onGosub: out of range: n=" + n + " in " + this.line);
                 }
                 line = retLabel;
             }
@@ -13532,8 +13327,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             n = this.vmInRangeRound(n, 0, 255, "ON GOTO");
             var line;
             if (!n || n > args.length) { // out of range? => continue with line after onGoto
-                if (Utils_19.Utils.debug > 0) {
-                    Utils_19.Utils.console.debug("onGoto: out of range: n=" + n + " in " + this.line);
+                if (Utils_20.Utils.debug > 0) {
+                    Utils_20.Utils.console.debug("onGoto: out of range: n=" + n + " in " + this.line);
                 }
                 line = retLabel;
             }
@@ -13647,8 +13442,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 this.vmSetCrtcData(byte);
                 this.crtcData[this.crtcReg] = byte;
             }
-            else if (Utils_19.Utils.debug > 0) {
-                Utils_19.Utils.console.debug("OUT", Number(port).toString(16), byte, ": unknown port");
+            else if (Utils_20.Utils.debug > 0) {
+                Utils_20.Utils.console.debug("OUT", Number(port).toString(16), byte, ": unknown port");
             }
         };
         CpcVm.prototype.paper = function (stream, paper) {
@@ -13801,8 +13596,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.vmPrintChars = function (stream, str) {
             var win = this.windowDataList[stream];
             if (!win.textEnabled) {
-                if (Utils_19.Utils.debug > 0) {
-                    Utils_19.Utils.console.debug("vmPrintChars: text output disabled:", str);
+                if (Utils_20.Utils.debug > 0) {
+                    Utils_20.Utils.console.debug("vmPrintChars: text output disabled:", str);
                 }
                 return;
             }
@@ -13829,8 +13624,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             if (char >= this.minCustomChar) {
                 this.symbol.apply(this, paraList);
             }
-            else if (Utils_19.Utils.debug > 0) {
-                Utils_19.Utils.console.debug("vmControlSymbol: define SYMBOL ignored:", char);
+            else if (Utils_20.Utils.debug > 0) {
+                Utils_20.Utils.console.debug("vmControlSymbol: define SYMBOL ignored:", char);
             }
         };
         CpcVm.prototype.vmControlWindow = function (para, stream) {
@@ -13967,7 +13762,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                     this.vmLocate(stream, para.charCodeAt(0), para.charCodeAt(1));
                     break;
                 default:
-                    Utils_19.Utils.console.warn("vmHandleControlCode: Unknown control code:", code);
+                    Utils_20.Utils.console.warn("vmHandleControlCode: Unknown control code:", code);
                     break;
             }
             return out;
@@ -14116,8 +13911,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.vmRandomizeCallback = function () {
             var inputParas = this.vmGetStopObject().paras, input = inputParas.input, value = CpcVm.vmVal(input); // convert to number (also binary, hex)
             var inputOk = true;
-            if (Utils_19.Utils.debug > 0) {
-                Utils_19.Utils.console.debug("vmRandomizeCallback:", input);
+            if (Utils_20.Utils.debug > 0) {
+                Utils_20.Utils.console.debug("vmRandomizeCallback:", input);
             }
             if (isNaN(value)) {
                 inputOk = false;
@@ -14151,8 +13946,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 if (n === 0) {
                     n = rndInit;
                 }
-                if (Utils_19.Utils.debug > 0) {
-                    Utils_19.Utils.console.debug("randomize:", n);
+                if (Utils_20.Utils.debug > 0) {
+                    Utils_20.Utils.console.debug("randomize:", n);
                 }
                 this.random.init(n);
             }
@@ -14225,8 +14020,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 this.dataIndex = dataLineIndex[line];
             }
             else {
-                if (Utils_19.Utils.debug > 0) {
-                    Utils_19.Utils.console.debug("restore: search for dataLine >", line);
+                if (Utils_20.Utils.debug > 0) {
+                    Utils_20.Utils.console.debug("restore: search for dataLine >", line);
                 }
                 for (var dataLine in dataLineIndex) { // linear search a data line > line
                     if (dataLineIndex.hasOwnProperty(dataLine)) {
@@ -14240,8 +14035,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                     this.dataIndex = dataLineIndex[line];
                 }
                 else {
-                    if (Utils_19.Utils.debug > 0) {
-                        Utils_19.Utils.console.debug("restore", line + ": No DATA found starting at line");
+                    if (Utils_20.Utils.debug > 0) {
+                        Utils_20.Utils.console.debug("restore", line + ": No DATA found starting at line");
                     }
                     this.dataIndex = this.dataList.length;
                 }
@@ -14268,7 +14063,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             }
             var resumeLineIndex = this.labelList.indexOf(this.errorResumeLine);
             if (resumeLineIndex < 0) {
-                Utils_19.Utils.console.error("resumeNext: line not found: " + this.errorResumeLine);
+                Utils_20.Utils.console.error("resumeNext: line not found: " + this.errorResumeLine);
                 this.errorResumeLine = 0;
                 return;
             }
@@ -14321,11 +14116,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             if (decimals >= 0 && decimals > maxDecimals) {
                 decimals = maxDecimals;
             }
-            /*
-            } else if (decimals < 0 && decimals < -maxDecimals) {
-                decimals = -maxDecimals;
-            }
-            */
             // To avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
             return Number(Math.round(Number(n + "e" + decimals)) + "e" + ((decimals >= 0) ? "-" + decimals : "+" + -decimals));
         };
@@ -14416,7 +14206,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         };
         CpcVm.prototype.sin = function (n) {
             this.vmAssertNumber(n, "SIN");
-            return Math.sin((this.degFlag) ? Utils_19.Utils.toRadians(n) : n);
+            return Math.sin((this.degFlag) ? Utils_20.Utils.toRadians(n) : n);
         };
         CpcVm.prototype.sound = function (state, period, duration, volume, volEnv, toneEnv, noise) {
             state = this.vmInRangeRound(state, 1, 255, "SOUND");
@@ -14460,7 +14250,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 str = " ".repeat(n);
             }
             else if (!this.quiet) {
-                Utils_19.Utils.console.log("SPC: negative number ignored:", n);
+                Utils_20.Utils.console.log("SPC: negative number ignored:", n);
             }
             return str;
         };
@@ -14577,7 +14367,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 str = " ".repeat(count);
             }
             else if (!this.quiet) {
-                Utils_19.Utils.console.log("TAB: no tab for value", n);
+                Utils_20.Utils.console.log("TAB: no tab for value", n);
             }
             return str;
         };
@@ -14593,7 +14383,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         };
         CpcVm.prototype.tan = function (n) {
             this.vmAssertNumber(n, "TAN");
-            return Math.tan((this.degFlag) ? Utils_19.Utils.toRadians(n) : n);
+            return Math.tan((this.degFlag) ? Utils_20.Utils.toRadians(n) : n);
         };
         CpcVm.prototype.test = function (x, y) {
             x = this.vmInRangeRound(x, -32768, 32767, "TEST");
@@ -14647,7 +14437,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             }
             if (formatList.length < 2) {
                 if (!this.quiet) {
-                    Utils_19.Utils.console.warn("USING: empty or invalid format:", format);
+                    Utils_20.Utils.console.warn("USING: empty or invalid format:", format);
                 }
                 throw this.vmComposeError(Error(), 5, "USING format " + format); // Improper argument
             }
@@ -14972,7 +14762,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
 // (c) Marco Vieth, 2020
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("CpcVmRsx", ["require", "exports", "Utils"], function (require, exports, Utils_20) {
+define("CpcVmRsx", ["require", "exports", "Utils"], function (require, exports, Utils_21) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CpcVmRsx = void 0;
@@ -15002,7 +14792,7 @@ define("CpcVmRsx", ["require", "exports", "Utils"], function (require, exports, 
             this.vm.vmNotImplemented("|B");
         };
         CpcVmRsx.prototype.basic = function () {
-            Utils_20.Utils.console.log("basic: |BASIC");
+            Utils_21.Utils.console.log("basic: |BASIC");
             this.vm.vmStop("reset", 90);
         };
         CpcVmRsx.prototype.cpm = function () {
@@ -15105,7 +14895,7 @@ define("CpcVmRsx", ["require", "exports", "Utils"], function (require, exports, 
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLexer", "BasicParser", "BasicTokenizer", "Canvas", "CodeGeneratorBasic", "CodeGeneratorJs", "CodeGeneratorToken", "CommonEventHandler", "cpcCharset", "CpcVm", "CpcVmRsx", "Diff", "DiskImage", "InputStack", "Keyboard", "VirtualKeyboard", "Sound", "Variables", "View", "ZipFile"], function (require, exports, Utils_21, BasicFormatter_1, BasicLexer_1, BasicParser_3, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, CpcVmRsx_1, Diff_1, DiskImage_1, InputStack_1, Keyboard_1, VirtualKeyboard_1, Sound_1, Variables_1, View_5, ZipFile_1) {
+define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLexer", "BasicParser", "BasicTokenizer", "Canvas", "CodeGeneratorBasic", "CodeGeneratorJs", "CodeGeneratorToken", "CommonEventHandler", "cpcCharset", "CpcVm", "CpcVmRsx", "Diff", "DiskImage", "InputStack", "Keyboard", "TextCanvas", "VirtualKeyboard", "Sound", "Variables", "View", "ZipFile"], function (require, exports, Utils_22, BasicFormatter_1, BasicLexer_1, BasicParser_3, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, CpcVmRsx_1, Diff_1, DiskImage_1, InputStack_1, Keyboard_1, TextCanvas_1, VirtualKeyboard_1, Sound_1, Variables_1, View_6, ZipFile_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Controller = void 0;
@@ -15163,7 +14953,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             view.setHidden("inp2Area", !model.getProperty("showInp2"));
             view.setHidden("outputArea", !model.getProperty("showOutput"));
             view.setHidden("resultArea", !model.getProperty("showResult"));
-            this.textCanvas = new Canvas_1.TextCanvas({
+            this.textCanvas = new TextCanvas_1.TextCanvas({
                 onClickKey: this.fnPutKeyInBufferHandler
             });
             view.setHidden("textArea", !model.getProperty("showText"));
@@ -15270,7 +15060,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             example.key = key; // maybe changed
             example.script = input;
             example.loaded = true;
-            Utils_21.Utils.console.log("addItem:", key);
+            Utils_22.Utils.console.log("addItem:", key);
             return key;
         };
         Controller.prototype.setDatabaseSelectOptions = function () {
@@ -15344,7 +15134,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.view.setSelectOptions(select, items);
         };
         Controller.prototype.updateStorageDatabase = function (action, key) {
-            var database = this.model.getProperty("database"), storage = Utils_21.Utils.localStorage;
+            var database = this.model.getProperty("database"), storage = Utils_22.Utils.localStorage;
             if (database !== "storage") {
                 this.model.setProperty("database", "storage"); // switch to storage database
             }
@@ -15373,7 +15163,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     }
                 }
                 else {
-                    Utils_21.Utils.console.error("updateStorageDatabase: unknown action", action);
+                    Utils_22.Utils.console.error("updateStorageDatabase: unknown action", action);
                 }
             }
             if (database === "storage") {
@@ -15468,7 +15258,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.fnWaitKey = function () {
             var key = this.keyboard.getKeyFromBuffer();
             if (key !== "") { // do we have a key from the buffer already?
-                Utils_21.Utils.console.log("Wait for key:", key);
+                Utils_22.Utils.console.log("Wait for key:", key);
                 this.vm.vmStop("", 0, true);
                 this.removeKeyBoardHandler();
             }
@@ -15585,7 +15375,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             inputParas.input = input;
             var inputOk = false;
             if (key === "\r") {
-                Utils_21.Utils.console.log("fnWaitInput:", input, "reason", stop.reason);
+                Utils_22.Utils.console.log("fnWaitInput:", input, "reason", stop.reason);
                 if (!inputParas.noCRLF) {
                     this.vm.print(stream, "\r\n");
                 }
@@ -15637,7 +15427,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         };
         // merge two scripts with sorted line numbers, lines from script2 overwrite lines from script1
         Controller.mergeScripts = function (script1, script2) {
-            var lines1 = Controller.splitLines(Utils_21.Utils.stringTrimEnd(script1)), lines2 = Controller.splitLines(Utils_21.Utils.stringTrimEnd(script2));
+            var lines1 = Controller.splitLines(Utils_22.Utils.stringTrimEnd(script1)), lines2 = Controller.splitLines(Utils_22.Utils.stringTrimEnd(script2));
             var result = [], lineNumber1, lineNumber2;
             while (lines1.length && lines2.length) {
                 lineNumber1 = lineNumber1 || Controller.parseLineNumber(lines1[0]);
@@ -15703,7 +15493,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             return dir;
         };
         Controller.fnGetStorageDirectoryEntries = function (mask) {
-            var storage = Utils_21.Utils.localStorage, dir = [];
+            var storage = Utils_22.Utils.localStorage, dir = [];
             var regExp;
             if (mask) {
                 regExp = Controller.fnPrepareMaskRegExp(mask);
@@ -15759,7 +15549,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.vm.vmStop("", 0, true);
         };
         Controller.prototype.fnFileEra = function (paras) {
-            var stream = paras.stream, storage = Utils_21.Utils.localStorage, fileMask = Controller.fnLocalStorageName(paras.fileMask), dir = Controller.fnGetStorageDirectoryEntries(fileMask);
+            var stream = paras.stream, storage = Utils_22.Utils.localStorage, fileMask = Controller.fnLocalStorageName(paras.fileMask), dir = Controller.fnGetStorageDirectoryEntries(fileMask);
             if (!dir.length) {
                 this.vm.print(stream, fileMask + " not found\r\n");
             }
@@ -15768,19 +15558,19 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 if (storage.getItem(name_12) !== null) {
                     storage.removeItem(name_12);
                     this.updateStorageDatabase("remove", name_12);
-                    if (Utils_21.Utils.debug > 0) {
-                        Utils_21.Utils.console.debug("fnEraseFile: name=" + name_12 + ": removed from localStorage");
+                    if (Utils_22.Utils.debug > 0) {
+                        Utils_22.Utils.console.debug("fnEraseFile: name=" + name_12 + ": removed from localStorage");
                     }
                 }
                 else {
                     this.vm.print(stream, name_12 + " not found\r\n");
-                    Utils_21.Utils.console.warn("fnEraseFile: file not found in localStorage:", name_12);
+                    Utils_22.Utils.console.warn("fnEraseFile: file not found in localStorage:", name_12);
                 }
             }
             this.vm.vmStop("", 0, true);
         };
         Controller.prototype.fnFileRen = function (paras) {
-            var stream = paras.stream, storage = Utils_21.Utils.localStorage, newName = Controller.fnLocalStorageName(paras.newName), oldName = Controller.fnLocalStorageName(paras.oldName), item = storage.getItem(oldName);
+            var stream = paras.stream, storage = Utils_22.Utils.localStorage, newName = Controller.fnLocalStorageName(paras.newName), oldName = Controller.fnLocalStorageName(paras.oldName), item = storage.getItem(oldName);
             if (item !== null) {
                 if (!storage.getItem(newName)) {
                     storage.setItem(newName, item);
@@ -15846,12 +15636,12 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             if (output.error) {
                 this.outputError(output.error);
             }
-            else if (Utils_21.Utils.debug > 1) {
+            else if (Utils_22.Utils.debug > 1) {
                 var outputText = output.text, hex = outputText.split("").map(function (s) { return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0"); }).join(","), decoded = this.decodeTokenizedBasic(outputText), diff = Diff_1.Diff.testDiff(input.toUpperCase(), decoded.toUpperCase()); // for testing
-                Utils_21.Utils.console.debug("TokenizerInput (" + name + "):\n", input);
-                Utils_21.Utils.console.debug("TokenizerHex (" + name + "):\n", hex);
-                Utils_21.Utils.console.debug("TokenizerDecoded (" + name + "):\n", decoded);
-                Utils_21.Utils.console.debug("TokenizerDiff (" + name + "):\n", diff);
+                Utils_22.Utils.console.debug("TokenizerInput (" + name + "):\n", input);
+                Utils_22.Utils.console.debug("TokenizerHex (" + name + "):\n", hex);
+                Utils_22.Utils.console.debug("TokenizerDecoded (" + name + "):\n", decoded);
+                Utils_22.Utils.console.debug("TokenizerDiff (" + name + "):\n", diff);
             }
             return output.text;
         };
@@ -15886,7 +15676,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 data = Controller.splitMeta(input);
                 input = data.data; // maybe changed
                 if (data.meta.encoding === "base64") {
-                    input = Utils_21.Utils.atob(input); // decode base64
+                    input = Utils_22.Utils.atob(input); // decode base64
                 }
                 var type = data.meta.typeString;
                 if (type === "T") { // tokenized basic?
@@ -15911,11 +15701,11 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     putInMemory = inFile.fnFileCallback(input, data && data.meta);
                 }
                 catch (e) {
-                    Utils_21.Utils.console.warn(e);
+                    Utils_22.Utils.console.warn(e);
                 }
             }
             if (input === undefined) {
-                Utils_21.Utils.console.error("loadFileContinue: File " + inFile.name + ": input undefined!");
+                Utils_22.Utils.console.error("loadFileContinue: File " + inFile.name + ": input undefined!");
                 this.vm.vmStop("stop", 60, true);
                 this.startMainLoop();
                 return;
@@ -15970,7 +15760,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     }
                     break;
                 default:
-                    Utils_21.Utils.console.error("loadExample: Unknown command:", command);
+                    Utils_22.Utils.console.error("loadExample: Unknown command:", command);
                     break;
             }
             this.vm.vmSetStartLine(startLine);
@@ -15980,18 +15770,18 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             var that = this, inFile = this.vm.vmGetInFileObject();
             var example, url, fnExampleLoaded = function (_sFullUrl, key, suppressLog) {
                 if (key !== example) {
-                    Utils_21.Utils.console.warn("fnExampleLoaded: Unexpected", key, "<>", example);
+                    Utils_22.Utils.console.warn("fnExampleLoaded: Unexpected", key, "<>", example);
                 }
                 var exampleEntry = that.model.getExample(example);
                 if (!suppressLog) {
-                    Utils_21.Utils.console.log("Example", url, exampleEntry.meta || "", "loaded");
+                    Utils_22.Utils.console.log("Example", url, exampleEntry.meta || "", "loaded");
                 }
                 var input = exampleEntry.script;
                 that.model.setProperty("example", inFile.memorizedExample);
                 that.vm.vmStop("", 0, true);
                 that.loadFileContinue(input);
             }, fnExampleError = function () {
-                Utils_21.Utils.console.log("Example", url, "error");
+                Utils_22.Utils.console.log("Example", url, "error");
                 that.model.setProperty("example", inFile.memorizedExample);
                 that.vm.vmStop("", 0, true);
                 var error = that.vm.vmComposeError(Error(), 32, example + " not found"); // TODO: set also derr=146 (xx not found)
@@ -16018,8 +15808,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 }
             }
             example = name;
-            if (Utils_21.Utils.debug > 0) {
-                Utils_21.Utils.console.debug("loadExample: name=" + name + " (current=" + key + ")");
+            if (Utils_22.Utils.debug > 0) {
+                Utils_22.Utils.console.debug("loadExample: name=" + name + " (current=" + key + ")");
             }
             var exampleEntry = this.model.getExample(example); // already loaded
             if (exampleEntry && exampleEntry.loaded) {
@@ -16030,12 +15820,12 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.model.setProperty("example", example);
                 var databaseDir = this.model.getDatabase().src;
                 url = databaseDir + "/" + example + ".js";
-                Utils_21.Utils.loadScript(url, fnExampleLoaded, fnExampleError, example);
+                Utils_22.Utils.loadScript(url, fnExampleLoaded, fnExampleError, example);
             }
             else { // keep original example in this error case
                 url = example;
                 if (example !== "") { // only if not empty
-                    Utils_21.Utils.console.warn("loadExample: Unknown file:", example);
+                    Utils_22.Utils.console.warn("loadExample: Unknown file:", example);
                     fnExampleError();
                 }
                 else {
@@ -16053,7 +15843,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             return name;
         };
         Controller.tryLoadingFromLocalStorage = function (name) {
-            var storage = Utils_21.Utils.localStorage;
+            var storage = Utils_22.Utils.localStorage;
             var input = null;
             if (name.indexOf(".") >= 0) { // extension specified?
                 input = storage.getItem(name);
@@ -16083,13 +15873,13 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     this.vm.vmStop("fileLoad", 90); // restore
                 }
                 var name_13 = inFile.name;
-                if (Utils_21.Utils.debug > 1) {
-                    Utils_21.Utils.console.debug("fnFileLoad:", inFile.command, name_13, "details:", inFile);
+                if (Utils_22.Utils.debug > 1) {
+                    Utils_22.Utils.console.debug("fnFileLoad:", inFile.command, name_13, "details:", inFile);
                 }
                 var input = Controller.tryLoadingFromLocalStorage(name_13);
                 if (input !== null) {
-                    if (Utils_21.Utils.debug > 0) {
-                        Utils_21.Utils.console.debug("fnFileLoad:", inFile.command, name_13, "from localStorage");
+                    if (Utils_22.Utils.debug > 0) {
+                        Utils_22.Utils.console.debug("fnFileLoad:", inFile.command, name_13, "from localStorage");
                     }
                     this.vm.vmStop("", 0, true);
                     this.loadFileContinue(input);
@@ -16099,7 +15889,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 }
             }
             else {
-                Utils_21.Utils.console.error("fnFileLoad:", inFile.name, "File not open!"); // hopefully isName is defined
+                Utils_22.Utils.console.error("fnFileLoad:", inFile.name, "File not open!"); // hopefully isName is defined
             }
             this.nextLoopTimeOut = this.vm.vmGetTimeUntilFrame(); // wait until next frame
         };
@@ -16141,7 +15931,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             return metaAndData;
         };
         Controller.prototype.fnFileSave = function () {
-            var outFile = this.vm.vmGetOutFileObject(), storage = Utils_21.Utils.localStorage;
+            var outFile = this.vm.vmGetOutFileObject(), storage = Utils_22.Utils.localStorage;
             var defaultExtension = "";
             if (outFile.open) {
                 var type = outFile.typeString, name_14 = outFile.name;
@@ -16169,15 +15959,15 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     }
                     outFile.length = fileData.length; // set length
                 }
-                if (Utils_21.Utils.debug > 0) {
-                    Utils_21.Utils.console.debug("fnFileSave: name=" + name_14 + ": put into localStorage");
+                if (Utils_22.Utils.debug > 0) {
+                    Utils_22.Utils.console.debug("fnFileSave: name=" + name_14 + ": put into localStorage");
                 }
                 if (outFile.fnFileCallback) {
                     try {
                         outFile.fnFileCallback(fileData); // close file
                     }
                     catch (e) {
-                        Utils_21.Utils.console.warn(e);
+                        Utils_22.Utils.console.warn(e);
                     }
                 }
                 var meta = Controller.joinMeta(outFile);
@@ -16186,7 +15976,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 CpcVm_1.CpcVm.vmResetFileHandling(outFile); // make sure it is closed
             }
             else {
-                Utils_21.Utils.console.error("fnFileSave: file not open!");
+                Utils_22.Utils.console.error("fnFileSave: file not open!");
             }
             this.vm.vmStop("", 0, true); // continue
         };
@@ -16232,78 +16022,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.vm.vmGotoLine(0); // reset current line
             this.vm.vmStop("end", 0, true);
         };
-        /*
-        private fnList_test1(paras: VmLineParas) {
-            const vm = this.vm,
-                stream = paras.stream,
-                input = this.view.getAreaValue("inputText");
-    
-            if (!this.basicFormatter) {
-                this.basicFormatter = new BasicFormatter({
-                    lexer: new BasicLexer(),
-                    parser: new BasicParser()
-                });
-            }
-    
-            const output = this.basicFormatter.getLinesInRange(input, paras.first, paras.last);
-    
-            if (output.error) {
-                Utils.console.warn(output.error);
-                this.outputError(output.error);
-            } else {
-                this.fnPutChangedInputOnStack();
-                let text = output.text;
-    
-                if (stream !== 9) {
-                    const regExp = new RegExp(/([\x00-\x1f])/g); // eslint-disable-line no-control-regex
-    
-                    text = text.split("\n").map(function (str) {
-                        return str.replace(regExp, "\x01$1");
-                    }).join("\r\n");
-                }
-                this.vm.print(stream, text, text.endsWith("\n") ? "" : "\r\n");
-            }
-            this.vm.vmGotoLine(0); // reset current line
-            vm.vmStop("end", 0, true);
-        }
-    
-        private fnListWithParseTes1(paras: VmLineParas) {
-            const vm = this.vm,
-                stream = paras.stream,
-                input = this.view.getAreaValue("inputText");
-    
-            if (!this.basicFormatter) {
-                this.basicFormatter = new BasicFormatter({
-                    lexer: new BasicLexer(),
-                    parser: new BasicParser()
-                });
-            }
-    
-            const output = this.basicFormatter.getLinesInRange(input, paras.first, paras.last);
-    
-            if (output.error) {
-                Utils.console.warn(output.error);
-                this.outputError(output.error);
-            } else {
-                this.fnPutChangedInputOnStack();
-                const lines = output.lines;
-                let text = lines.map(function (entry) {
-                    return input.substr(entry.pos, entry.lineLen);
-                }).join("");
-    
-                if (stream !== 9) {
-                    const regExp = new RegExp(/([\x00-\x1f])/g); // eslint-disable-line no-control-regex
-    
-                    text = text.split("\n").map(function (str) {
-                        return str.replace(regExp, "\x01$1");
-                    }).join("\r\n");
-                }
-                this.vm.print(stream, text, text.endsWith("\n") ? "" : "\r\n");
-            }
-            this.vm.vmGotoLine(0); // reset current line
-            vm.vmStop("end", 0, true);
-        }
-        */
         Controller.prototype.fnReset = function () {
             var vm = this.vm;
             this.variables.removeAllVariables();
@@ -16319,7 +16037,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.outputError = function (error, noSelection) {
             var stream = 0;
             var shortError;
-            if (Utils_21.Utils.isCustomError(error)) {
+            if (Utils_22.Utils.isCustomError(error)) {
                 shortError = error.shortMessage || error.message;
                 if (!noSelection) {
                     var startPos = error.pos || 0, len = error.len || ((error.value !== undefined) ? String(error.value).length : 0), endPos = startPos + len;
@@ -16343,7 +16061,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
             var output = this.basicFormatter.renumber(input, paras.newLine, paras.oldLine, paras.step, paras.keep);
             if (output.error) {
-                Utils_21.Utils.console.warn(output.error);
+                Utils_22.Utils.console.warn(output.error);
                 this.outputError(output.error);
             }
             else {
@@ -16395,7 +16113,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 var time = Date.now();
                 output = this.codeGeneratorJs.generate(input, this.variables);
                 time = Date.now() - time;
-                Utils_21.Utils.console.debug("bench size", input.length, "labels", this.codeGeneratorJs.debugGetLabelsCount(), "loop", i, ":", time, "ms");
+                Utils_22.Utils.console.debug("bench size", input.length, "labels", this.codeGeneratorJs.debugGetLabelsCount(), "loop", i, ":", time, "ms");
                 if (output.error) {
                     break;
                 }
@@ -16487,7 +16205,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     line += 1;
                 }
                 pos += columnNumber;
-                Utils_21.Utils.console.warn("Info: JS Error occurred at line", lineNumber, "column", columnNumber, "pos", pos);
+                Utils_22.Utils.console.warn("Info: JS Error occurred at line", lineNumber, "column", columnNumber, "pos", pos);
                 this.view.setAreaSelection("outputText", pos, pos + 1);
             }
         };
@@ -16507,7 +16225,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     this.fnScript = new Function("o", script); // eslint-disable-line no-new-func
                 }
                 catch (e) {
-                    Utils_21.Utils.console.error(e);
+                    Utils_22.Utils.console.error(e);
                     if (e instanceof Error) {
                         this.selectJsError(script, e);
                         e.shortMessage = "JS " + String(e);
@@ -16540,8 +16258,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     }, timeout);
                 }
             }
-            if (Utils_21.Utils.debug > 1) {
-                Utils_21.Utils.console.debug("End of fnRun");
+            if (Utils_22.Utils.debug > 1) {
+                Utils_22.Utils.console.debug("End of fnRun");
             }
         };
         Controller.prototype.fnParseRun = function () {
@@ -16558,22 +16276,22 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 if (e instanceof Error) {
                     if (e.name === "CpcVm") {
                         if (!e.hidden) {
-                            Utils_21.Utils.console.warn(e);
+                            Utils_22.Utils.console.warn(e);
                             this.outputError(e, !e.pos);
                         }
                         else {
-                            Utils_21.Utils.console.log(e.message);
+                            Utils_22.Utils.console.log(e.message);
                         }
                     }
                     else {
-                        Utils_21.Utils.console.error(e);
+                        Utils_22.Utils.console.error(e);
                         this.selectJsError(this.view.getAreaValue("outputText"), e);
                         this.vm.vmComposeError(e, 2, "JS " + String(e)); // generate Syntax Error, set also err and erl and set stop
                         this.outputError(e, true);
                     }
                 }
                 else {
-                    Utils_21.Utils.console.error(e);
+                    Utils_22.Utils.console.error(e);
                 }
             }
         };
@@ -16586,8 +16304,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.vm.cursor(stream, 0);
                 var inputText = this.view.getAreaValue("inputText");
                 if ((/^\d+($| )/).test(input)) { // start with number?
-                    if (Utils_21.Utils.debug > 0) {
-                        Utils_21.Utils.console.debug("fnDirectInput: insert line=" + input);
+                    if (Utils_22.Utils.debug > 0) {
+                        Utils_22.Utils.console.debug("fnDirectInput: insert line=" + input);
                     }
                     input = Controller.mergeScripts(inputText, input);
                     this.setInputText(input, true);
@@ -16598,7 +16316,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     this.updateResultText();
                     return false; // continue direct input
                 }
-                Utils_21.Utils.console.log("fnDirectInput: execute:", input);
+                Utils_22.Utils.console.log("fnDirectInput: execute:", input);
                 var codeGeneratorJs = this.codeGeneratorJs;
                 var output = void 0, outputString = void 0;
                 if (inputText && (/^\d+($| )/).test(inputText)) { // do we have a program starting with a line number?
@@ -16608,11 +16326,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                         var error = output.error;
                         if (error.pos < inputText.length + 1) { // error not in direct?
                             error.message = "[prg] " + error.message;
-                            /*
-                            if (error.shortMessage) { // eslint-disable-line max-depth
-                                error.shortMessage = "[prg] " + error.shortMessage;
-                            }
-                            */
                             outputString = this.outputError(error, true);
                             output = undefined;
                         }
@@ -16640,7 +16353,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                         this.vm.vmSetSourceMap(codeGeneratorJs.getSourceMap());
                     }
                     catch (e) {
-                        Utils_21.Utils.console.error(e);
+                        Utils_22.Utils.console.error(e);
                         if (e instanceof Error) {
                             this.outputError(e, true);
                         }
@@ -16716,7 +16429,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.handlers[stop.reason].call(this, stop.paras);
             }
             else {
-                Utils_21.Utils.console.warn("runLoop: Unknown run mode:", stop.reason);
+                Utils_22.Utils.console.warn("runLoop: Unknown run mode:", stop.reason);
                 this.vm.vmStop("error", 50);
             }
             if (stop.reason && stop.reason !== "waitSound" && stop.reason !== "waitKey" && stop.reason !== "waitInput") {
@@ -16857,17 +16570,17 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 try {
                     var value2 = this.vm.vmAssign(varType, value);
                     variables.setVariable(par, value2);
-                    Utils_21.Utils.console.log("Variable", par, "changed:", variables.getVariable(par), "=>", value);
+                    Utils_22.Utils.console.log("Variable", par, "changed:", variables.getVariable(par), "=>", value);
                 }
                 catch (e) {
-                    Utils_21.Utils.console.warn(e);
+                    Utils_22.Utils.console.warn(e);
                 }
             }
             this.setVarSelectOptions("varSelect", variables);
             this.commonEventHandler.onVarSelectChange(); // title change?
         };
         Controller.prototype.setSoundActive = function () {
-            var sound = this.sound, soundButton = View_5.View.getElementById1("soundButton"), active = this.model.getProperty("sound");
+            var sound = this.sound, soundButton = View_6.View.getElementById1("soundButton"), active = this.model.getProperty("sound");
             var text;
             if (active) {
                 try {
@@ -16875,7 +16588,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     text = (sound.isActivatedByUser()) ? "Sound is on" : "Sound on (waiting)";
                 }
                 catch (e) {
-                    Utils_21.Utils.console.warn("soundOn:", e);
+                    Utils_22.Utils.console.warn("soundOn:", e);
                     text = "Sound unavailable";
                 }
             }
@@ -16921,7 +16634,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                         var info1 = data.substr(0, index);
                         data = data.substr(index + 1); // remove meta prefix
                         if (info1.indexOf("base64") >= 0) {
-                            data = Utils_21.Utils.atob(data); // decode base64
+                            data = Utils_22.Utils.atob(data); // decode base64
                         }
                     }
                 }
@@ -16945,7 +16658,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                                 this.fnLoad2(data, fileName, "cpcBasic/binary", imported); // recursive
                             }
                             catch (e) {
-                                Utils_21.Utils.console.error(e);
+                                Utils_22.Utils.console.error(e);
                                 if (e instanceof Error) { // eslint-disable-line max-depth
                                     this.outputError(e, true);
                                 }
@@ -16953,7 +16666,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                         }
                     }
                     catch (e) {
-                        Utils_21.Utils.console.error(e);
+                        Utils_22.Utils.console.error(e);
                         if (e instanceof Error) {
                             this.outputError(e, true);
                         }
@@ -16967,13 +16680,13 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             if (header) {
                 var meta = Controller.joinMeta(header);
                 try {
-                    Utils_21.Utils.localStorage.setItem(storageName, meta + "," + data);
+                    Utils_22.Utils.localStorage.setItem(storageName, meta + "," + data);
                     this.updateStorageDatabase("set", storageName);
-                    Utils_21.Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
+                    Utils_22.Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
                     imported.push(name);
                 }
                 catch (e) { // maybe quota exceeded
-                    Utils_21.Utils.console.error(e);
+                    Utils_22.Utils.console.error(e);
                     if (e instanceof Error) {
                         if (e.name === "QuotaExceededError") {
                             e.shortMessage = storageName + ": Quota exceeded";
@@ -16995,7 +16708,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     fileIndex += 1;
                     var lastModified = file.lastModified, lastModifiedDate = lastModified ? new Date(lastModified) : file.lastModifiedDate, // lastModifiedDate deprecated, but for old IE
                     text = file.name + " " + (file.type || "n/a") + " " + file.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
-                    Utils_21.Utils.console.log(text);
+                    Utils_22.Utils.console.log(text);
                     if (file.type === "text/plain") {
                         reader.readAsText(file);
                     }
@@ -17022,7 +16735,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     }
                 }
                 if (msg) {
-                    Utils_21.Utils.console.warn(msg);
+                    Utils_22.Utils.console.warn(msg);
                 }
                 fnReadNextFile();
             }
@@ -17034,7 +16747,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                         zip = new ZipFile_1.ZipFile(new Uint8Array(data), name); // rather data
                     }
                     catch (e) {
-                        Utils_21.Utils.console.error(e);
+                        Utils_22.Utils.console.error(e);
                         if (e instanceof Error) {
                             that.outputError(e, true);
                         }
@@ -17048,7 +16761,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                                 data2 = zip.readData(name2);
                             }
                             catch (e) {
-                                Utils_21.Utils.console.error(e);
+                                Utils_22.Utils.console.error(e);
                                 if (e instanceof Error) { // eslint-disable-line max-depth
                                     that.outputError(e, true);
                                 }
@@ -17063,7 +16776,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     that.fnLoad2(data, name, type, imported);
                 }
                 else {
-                    Utils_21.Utils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);
+                    Utils_22.Utils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);
                 }
                 fnReadNextFile();
             }
@@ -17076,7 +16789,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 fnReadNextFile();
             }
             else {
-                Utils_21.Utils.console.warn("FileReader API not supported.");
+                Utils_22.Utils.console.warn("FileReader API not supported.");
             }
         };
         Controller.fnHandleDragOver = function (evt) {
@@ -17087,13 +16800,13 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
         };
         Controller.prototype.initDropZone = function () {
-            var dropZone = View_5.View.getElementById1("dropZone");
+            var dropZone = View_6.View.getElementById1("dropZone");
             dropZone.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
             dropZone.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
             var canvasElement = this.canvas.getCanvas();
             canvasElement.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
             canvasElement.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
-            View_5.View.getElementById1("fileInput").addEventListener("change", this.fnHandleFileSelect.bind(this), false);
+            View_6.View.getElementById1("fileInput").addEventListener("change", this.fnHandleFileSelect.bind(this), false);
         };
         Controller.prototype.fnUpdateUndoRedoButtons = function () {
             this.view.setDisabled("undoButton", !this.inputStack.canUndoKeepOne());
@@ -17146,19 +16859,19 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.view.setSelectTitleFromSelectedOption("databaseSelect");
             var database = this.model.getDatabase(), that = this, fnDatabaseLoaded = function () {
                 database.loaded = true;
-                Utils_21.Utils.console.log("fnDatabaseLoaded: database loaded: " + databaseName + ": " + url);
+                Utils_22.Utils.console.log("fnDatabaseLoaded: database loaded: " + databaseName + ": " + url);
                 that.setExampleSelectOptions();
                 that.onExampleSelectChange();
             }, fnDatabaseError = function () {
                 database.loaded = false;
-                Utils_21.Utils.console.error("fnDatabaseError: database error: " + databaseName + ": " + url);
+                Utils_22.Utils.console.error("fnDatabaseError: database error: " + databaseName + ": " + url);
                 that.setExampleSelectOptions();
                 that.onExampleSelectChange();
                 that.setInputText("");
                 that.view.setAreaValue("resultText", "Cannot load database: " + databaseName);
             };
             if (!database) {
-                Utils_21.Utils.console.error("onDatabaseSelectChange: database not available:", databaseName);
+                Utils_22.Utils.console.error("onDatabaseSelectChange: database not available:", databaseName);
                 return;
             }
             if (database.text === "storage") { // sepcial handling: browser localStorage
@@ -17173,7 +16886,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.setInputText("#loading database " + databaseName + "...");
                 var exampleIndex = this.model.getProperty("exampleIndex");
                 url = database.src + "/" + exampleIndex;
-                Utils_21.Utils.loadScript(url, fnDatabaseLoaded, fnDatabaseError, databaseName);
+                Utils_22.Utils.loadScript(url, fnDatabaseLoaded, fnDatabaseError, databaseName);
             }
         };
         Controller.prototype.onExampleSelectChange = function () {
@@ -17203,22 +16916,22 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         };
         // currently not used. Can be called manually: cpcBasic.controller.exportAsBase64(file);
         Controller.exportAsBase64 = function (storageName) {
-            var storage = Utils_21.Utils.localStorage;
+            var storage = Utils_22.Utils.localStorage;
             var data = storage.getItem(storageName), out = "";
             if (data !== null) {
                 var index = data.indexOf(","); // metadata separator
                 if (index >= 0) {
                     var meta = data.substr(0, index);
                     data = data.substr(index + 1);
-                    data = Utils_21.Utils.btoa(data);
+                    data = Utils_22.Utils.btoa(data);
                     out = meta + ";base64," + data;
                 }
                 else { // hmm, no meta info
-                    data = Utils_21.Utils.btoa(data);
+                    data = Utils_22.Utils.btoa(data);
                     out = "base64," + data;
                 }
             }
-            Utils_21.Utils.console.log(out);
+            Utils_22.Utils.console.log(out);
             return out;
         };
         Controller.prototype.onCpcCanvasClick = function (event) {
@@ -17261,7 +16974,7 @@ define("cpcconfig", ["require", "exports"], function (require, exports) {
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "Model", "View"], function (require, exports, Utils_22, Controller_1, cpcconfig_1, Model_1, View_6) {
+define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "Model", "View"], function (require, exports, Utils_23, Controller_1, cpcconfig_1, Model_1, View_7) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var cpcBasic = /** @class */ (function () {
@@ -17285,7 +16998,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
         // can be used for nodeJS
         cpcBasic.fnParseArgs = function (args, config) {
             for (var i = 0; i < args.length; i += 1) {
-                var nameValue = args[i], nameValueList = Utils_22.Utils.split2(nameValue, "="), name_15 = nameValueList[0];
+                var nameValue = args[i], nameValueList = Utils_23.Utils.split2(nameValue, "="), name_15 = nameValueList[0];
                 if (config.hasOwnProperty(name_15)) {
                     var value = nameValueList[1]; // string|number|boolean
                     if (value !== undefined && config.hasOwnProperty(name_15)) {
@@ -17337,7 +17050,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             return arg;
         };
         cpcBasic.createDebugUtilsConsole = function (cpcBasicLog) {
-            var currentConsole = Utils_22.Utils.console;
+            var currentConsole = Utils_23.Utils.console;
             return {
                 consoleLog: {
                     value: cpcBasicLog || "" // already something collected?
@@ -17392,24 +17105,24 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             else { // nodeJs
                 cpcBasic.fnParseArgs(myGlobalThis.process.argv.slice(2), startConfig);
             }
-            cpcBasic.view = new View_6.View();
+            cpcBasic.view = new View_7.View();
             var debug = Number(cpcBasic.model.getProperty("debug"));
-            Utils_22.Utils.debug = debug;
-            var UtilsConsole = Utils_22.Utils.console, cpcBasicLog = "";
+            Utils_23.Utils.debug = debug;
+            var UtilsConsole = Utils_23.Utils.console, cpcBasicLog = "";
             if (UtilsConsole.cpcBasicLog) {
                 cpcBasicLog = UtilsConsole.cpcBasicLog;
                 UtilsConsole.cpcBasicLog = undefined; // do not log any more to dummy console
             }
-            if (Utils_22.Utils.debug > 1 && cpcBasic.model.getProperty("showConsole")) { // console log window?
+            if (Utils_23.Utils.debug > 1 && cpcBasic.model.getProperty("showConsole")) { // console log window?
                 UtilsConsole = cpcBasic.createDebugUtilsConsole(cpcBasicLog);
-                Utils_22.Utils.console = UtilsConsole;
-                Utils_22.Utils.console.log("CPCBasic log started at", Utils_22.Utils.dateFormat(new Date()));
-                UtilsConsole.changeLog(View_6.View.getElementById1("consoleText"));
+                Utils_23.Utils.console = UtilsConsole;
+                Utils_23.Utils.console.log("CPCBasic log started at", Utils_23.Utils.dateFormat(new Date()));
+                UtilsConsole.changeLog(View_7.View.getElementById1("consoleText"));
             }
             cpcBasic.controller = new Controller_1.Controller(cpcBasic.model, cpcBasic.view);
         };
         cpcBasic.fnOnLoad = function () {
-            Utils_22.Utils.console.log("CPCBasic started at", Utils_22.Utils.dateFormat(new Date()));
+            Utils_23.Utils.console.log("CPCBasic started at", Utils_23.Utils.dateFormat(new Date()));
             cpcBasic.fnDoStart();
         };
         cpcBasic.config = {
@@ -17486,7 +17199,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
                         if (type === "option") {
                             return {};
                         }
-                        Utils_22.Utils.console.error("createElement: unknown type", type);
+                        Utils_23.Utils.console.error("createElement: unknown type", type);
                         return {};
                     }
                 },
@@ -17512,7 +17225,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             view.prototype.setAreaValue = function (id, value) {
                 if (id === "resultText") {
                     if (value) {
-                        Utils_22.Utils.console.log(value);
+                        Utils_23.Utils.console.log(value);
                     }
                 }
                 return setAreaValueOrig(id, value);
@@ -17522,7 +17235,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             var controller = nodeExports.Controller;
             // startWithDirectInputOrig = controller.prototype.startWithDirectInput;
             controller.prototype.startWithDirectInput = function () {
-                Utils_22.Utils.console.log("We are ready.");
+                Utils_23.Utils.console.log("We are ready.");
             };
             //
             function isUrl(s) {
@@ -17546,7 +17259,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
                         fnDataLoaded(undefined, data);
                     });
                 }).on("error", function (err) {
-                    Utils_22.Utils.console.log("Error: " + err.message);
+                    Utils_23.Utils.console.log("Error: " + err.message);
                     fnDataLoaded(err);
                 });
             }
@@ -17577,7 +17290,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             };
         }());
         cpcBasic.fnOnLoad();
-        Utils_22.Utils.console.log("End of program.");
+        Utils_23.Utils.console.log("End of program.");
     }
 });
 //# sourceMappingURL=cpcbasicts.js.map

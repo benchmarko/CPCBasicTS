@@ -114,7 +114,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (!s.nud) {
                 throw this.composeError(Error(), "Unexpected token", t.value, t.pos);
             }
-            //let left = s.nud.call(this, t); // process literals, variables, and prefix operators
             var left = s.nud(t); // process literals, variables, and prefix operators
             t = this.token;
             s = this.symbols[t.type];
@@ -124,7 +123,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     throw this.composeError(Error(), "Unexpected token", t.type, t.pos);
                     // TODO: How to get this error?
                 }
-                //left = s.led.call(this, left); // ...the led method is invoked on the following token (infix and suffix operators), can be recursive
                 left = s.led(left); // ...the led method is invoked on the following token (infix and suffix operators), can be recursive
                 t = this.token;
                 s = this.symbols[t.type];
@@ -150,7 +148,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var t = this.token, s = this.symbols[t.type];
             if (s.std) { // statement?
                 this.advance(t.type);
-                //return s.std.call(this);
                 return s.std();
             }
             var value;
@@ -1008,26 +1005,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             symbol.nud = nud;
             return symbol;
         };
-        /*
-        private generateLed(rbp: number) {
-            return (left: ParserNode) => {
-                const node = this.previousToken;
-    
-                node.left = left;
-                node.right = this.expression(rbp);
-                return node;
-            };
-        }
-    
-        private generateNud(rbp: number) {
-            return () => {
-                const node = this.previousToken;
-    
-                node.right = this.expression(rbp);
-                return node;
-            };
-        }
-        */
         BasicParser.prototype.fnInfixLed = function (left, rbp) {
             var node = this.previousToken;
             node.left = left;
@@ -1092,15 +1069,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.createSymbol(")");
             this.createSymbol("[");
             this.createSymbol("]");
-            // define additional statement parts
-            /*
-            this.symbol("break");
-            this.symbol("step");
-            this.symbol("swap");
-            this.symbol("then");
-            this.symbol("to");
-            this.symbol("using");
-            */
             this.createSymbol("(eol)");
             this.createSymbol("(end)");
             this.createNudSymbol("number", BasicParser.fnNode);

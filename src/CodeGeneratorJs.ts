@@ -580,11 +580,6 @@ export class CodeGeneratorJs {
 			name = this.fnAdaptVariableName(node.value, nodeArgs.length); // here we use node.value;
 		let indices = "";
 
-		/*
-		value = name + nodeArgs.map(function (val) {
-			return "[" + val + "]";
-		}).join("");
-		*/
 		for (let i = 0; i < nodeArgs.length; i += 1) { // array indices
 			const arg = node.args[i + 1], // +1 because of opening braket
 				index = arg.pt !== "I" ? ("o.vmRound(" + nodeArgs[i] + ")") : nodeArgs[i];

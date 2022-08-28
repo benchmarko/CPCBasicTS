@@ -6,11 +6,6 @@ export class InputStack {
 	private input: string[] = [];
 	private stackPosition = -1;
 
-	/*
-	constructor() {
-	}
-	*/
-
 	reset(): void {
 		this.input.length = 0;
 		this.stackPosition = -1;
