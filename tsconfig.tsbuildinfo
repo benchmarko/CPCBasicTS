@@ -212,8 +212,8 @@
         "affectsGlobalScope": false
       },
       "../src/Interfaces.ts": {
-        "version": "78949c1d64b542ad44741cf9234261570f55cbfeb2283075c7ce7305870393f1",
-        "signature": "d54b89fb4a246a31d65c98f3278eeef3eacfbd3a800995d8be228e3c62d6bd60",
+        "version": "25751aff6a7e1f90254c6e2b8b1993c8d575dbeabd93df4778c059d3aa8fd7f1",
+        "signature": "bea8c0386f20f92188f6f33fa5c0b07a49e18126a6257e3e3c4a5de5424dd832",
         "affectsGlobalScope": false
       },
       "../src/BasicFormatter.ts": {
@@ -232,8 +232,8 @@
         "affectsGlobalScope": false
       },
       "../src/Canvas.ts": {
-        "version": "c00282b3809257cc474290b4d861b2d1167e8a2e5130f49f20b2eb6090836030",
-        "signature": "e8d601012fbecc6bc94b854dd8a8f3b6558dc2c0b90705148a79eedb90b1ee4e",
+        "version": "188d9b5963edbf31cd581a1353a1be917062508a1ac6467fe52504184580c59c",
+        "signature": "481bde8fe7d703cfd06667442967bcb6b3f02213dde312f1b892f076f6366a16",
         "affectsGlobalScope": false
       },
       "../src/CodeGeneratorBasic.ts": {
@@ -242,7 +242,7 @@
         "affectsGlobalScope": false
       },
       "../src/Variables.ts": {
-        "version": "2a6a22f5f0913aada216778efae38dacd480634880ce1a249f99cdef50aea83f",
+        "version": "f7f483d7efb99bcef02a1832775878415727c79520b63bf2d27fa81bb5f80d99",
         "signature": "c187db6bc0a63dc6545e1fef3cb2194b28c6f68fe7625bed6f9511a766a75b11",
         "affectsGlobalScope": false
       },
@@ -262,8 +262,8 @@
         "affectsGlobalScope": false
       },
       "../src/CommonEventHandler.ts": {
-        "version": "49920965bcf042723029a20849ddc89deff7bb579c5afc497cedffaf0c119100",
-        "signature": "5d427366d5a42924dcf052ee97d6563659ffbbdad60d67e0e0a053a618c432d3",
+        "version": "ce4b63cc3360a43b3eb7fd302efd296287ca5ceda811803f79ee3648660f2c86",
+        "signature": "506f2c4f6d30bf14f7981a10a302d3394e4588ab8378abd207585f3d0c4db270",
         "affectsGlobalScope": false
       },
       "../src/cpcCharset.ts": {
@@ -272,7 +272,7 @@
         "affectsGlobalScope": false
       },
       "../src/Keyboard.ts": {
-        "version": "ed6273267c7c852e067ebec5f0b2d25011874ae7595f4842292064c427e1b5ee",
+        "version": "a242890be7f46b66f54e7663716de483b37220fcfd5ea0712b6bb7c7cb155054",
         "signature": "ea1f2bc7bd84030bc531c7b13b52a28d7c58bd48b70bd844e21dfef9704e84ac",
         "affectsGlobalScope": false
       },
@@ -287,8 +287,8 @@
         "affectsGlobalScope": false
       },
       "../src/CpcVm.ts": {
-        "version": "a1276eaecde76ed5aeeb960c183d67e56ba0714f79294359f273dc5f23a51f9d",
-        "signature": "2019c70cc7b93283f1d5f27cf95e2faa9ffd8bd8a82a03f0c77ad38a419aecd4",
+        "version": "350ec320ba26928924941751c92e27f2ecd3ef69f38312c8d0c3f01fe333b68a",
+        "signature": "aad5d6960d13a819d4033511e803f44b15b956692264cbed3ef4d65b00719a6f",
         "affectsGlobalScope": false
       },
       "../src/CpcVmRsx.ts": {
@@ -322,8 +322,8 @@
         "affectsGlobalScope": false
       },
       "../src/Controller.ts": {
-        "version": "addcf71014ea1ac662f89529a9a4e0366db421d1f17e0a5560a365365e151539",
-        "signature": "755f760e1d9c09c9cd28c3bf0ed9939a9cb5d9fd8833aeaeb4b7f3c3ff63aa1c",
+        "version": "81122c23ffc3615f2829db4e1bc66cdb5c38d5bca49a2514b8f5789dbfff45a1",
+        "signature": "b715f79c66cd802d5f5c432c6e09f193f3148ab452e2a8343ab267ed5890e6fc",
         "affectsGlobalScope": false
       },
       "../src/Polyfills.ts": {

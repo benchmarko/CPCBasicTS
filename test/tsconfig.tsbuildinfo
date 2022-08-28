@@ -212,8 +212,8 @@
         "affectsGlobalScope": false
       },
       "../types/Interfaces.d.ts": {
-        "version": "d54b89fb4a246a31d65c98f3278eeef3eacfbd3a800995d8be228e3c62d6bd60",
-        "signature": "d54b89fb4a246a31d65c98f3278eeef3eacfbd3a800995d8be228e3c62d6bd60",
+        "version": "bea8c0386f20f92188f6f33fa5c0b07a49e18126a6257e3e3c4a5de5424dd832",
+        "signature": "bea8c0386f20f92188f6f33fa5c0b07a49e18126a6257e3e3c4a5de5424dd832",
         "affectsGlobalScope": false
       },
       "../types/BasicFormatter.d.ts": {
@@ -272,7 +272,7 @@
         "affectsGlobalScope": false
       },
       "../../src/test/CodeGeneratorJs.qunit.ts": {
-        "version": "194e1f1a1d6f049cdc25e3eb7f15a5ecba580936e5f06b2cf6b8a8d5a47de5d6",
+        "version": "244eeb4e0add009352d30afc6ae5a5197eb64f1529076bba41d76211d4ed4b84",
         "signature": "0de15ad5d19532aef4039ea7ca938a9a1b4dd3d7a6e3d2b02e1c4de965d5e58b",
         "affectsGlobalScope": false
       },
@@ -297,17 +297,17 @@
         "affectsGlobalScope": false
       },
       "../types/Canvas.d.ts": {
-        "version": "e8d601012fbecc6bc94b854dd8a8f3b6558dc2c0b90705148a79eedb90b1ee4e",
-        "signature": "e8d601012fbecc6bc94b854dd8a8f3b6558dc2c0b90705148a79eedb90b1ee4e",
+        "version": "481bde8fe7d703cfd06667442967bcb6b3f02213dde312f1b892f076f6366a16",
+        "signature": "481bde8fe7d703cfd06667442967bcb6b3f02213dde312f1b892f076f6366a16",
         "affectsGlobalScope": false
       },
       "../types/CpcVm.d.ts": {
-        "version": "2019c70cc7b93283f1d5f27cf95e2faa9ffd8bd8a82a03f0c77ad38a419aecd4",
-        "signature": "2019c70cc7b93283f1d5f27cf95e2faa9ffd8bd8a82a03f0c77ad38a419aecd4",
+        "version": "aad5d6960d13a819d4033511e803f44b15b956692264cbed3ef4d65b00719a6f",
+        "signature": "aad5d6960d13a819d4033511e803f44b15b956692264cbed3ef4d65b00719a6f",
         "affectsGlobalScope": false
       },
       "../../src/test/CpcVm.qunit.ts": {
-        "version": "a28c3c8b829b74e98ba50f172932c8d9a2ea9b0b3a4d81e89c0936b934be7f20",
+        "version": "8a458b6dc7803899c5d842c710aeab39163fa1235821426b9cc4bfa212b9d2d0",
         "signature": "268e688401d8911f1ecd97206559b40640dd907d6c9af91531c6ef2706aeec5e",
         "affectsGlobalScope": false
       },

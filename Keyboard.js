@@ -25,6 +25,9 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             var cpcArea = View_1.View.getElementById1("cpcArea");
             cpcArea.addEventListener("keydown", this.onCpcAreaKeydown.bind(this), false);
             cpcArea.addEventListener("keyup", this.oncpcAreaKeyup.bind(this), false);
+            var textArea = View_1.View.getElementById1("textArea");
+            textArea.addEventListener("keydown", this.onCpcAreaKeydown.bind(this), false);
+            textArea.addEventListener("keyup", this.oncpcAreaKeyup.bind(this), false);
         }
         /* eslint-enable array-element-newline */
         Keyboard.prototype.reset = function () {

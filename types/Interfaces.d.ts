@@ -25,8 +25,11 @@ export interface IController {
     onDatabaseSelectChange: () => void;
     onCpcCanvasClick: (event: MouseEvent) => void;
     onWindowClick: (event: Event) => void;
+    onTextTextClick: (event: MouseEvent) => void;
     startUpdateCanvas: () => void;
     stopUpdateCanvas: () => void;
+    startUpdateTextCanvas: () => void;
+    stopUpdateTextCanvas: () => void;
     virtualKeyboardCreate: () => void;
     getVariable: (par: string) => VariableValue;
     undoStackElement: () => string;

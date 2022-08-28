@@ -52,7 +52,7 @@ export class Variables {
 	}
 
 	// determine static varType (first letter + optional fixed vartype) from a variable name
-	// format: (v.)<sname>(I|R|$)([...]([...])) with optional parts in ()
+	// format: (v.)(_)<sname>(I|R|$)(A*[...]([...])) with optional parts in ()
 	determineStaticVarType(name: string): string { // eslint-disable-line class-methods-use-this
 		if (name.indexOf("v.") === 0) { // preceding variable object?
 			name = name.substr(2); // remove preceding "v."
@@ -64,6 +64,16 @@ export class Variables {
 			nameType = name.charAt(1);
 		}
 
+		/*
+		if (name.indexOf("A") >= 0) { // array?
+			name = name.substring(0, name.indexOf("A") - 1); // remove
+		}
+		*/
+		const arrayPos = name.indexOf("A"),
+			typePos = arrayPos >= 0 ? arrayPos - 1 : name.length - 1,
+			typeChar = name.charAt(typePos); // check last character before array
+
+		/*
 		// explicit type specified?
 		if (name.indexOf("I") >= 0) {
 			nameType += "I";
@@ -72,6 +82,12 @@ export class Variables {
 		} else if (name.indexOf("$") >= 0) {
 			nameType += "$";
 		}
+		*/
+
+		if (typeChar === "I" || typeChar === "R" || typeChar === "$") { // explicit type specified?
+			nameType += typeChar;
+		}
+
 		return nameType;
 	}
 

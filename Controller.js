@@ -60,6 +60,9 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             view.setHidden("inp2Area", !model.getProperty("showInp2"));
             view.setHidden("outputArea", !model.getProperty("showOutput"));
             view.setHidden("resultArea", !model.getProperty("showResult"));
+            this.textCanvas = new Canvas_1.TextCanvas({
+                onClickKey: this.fnPutKeyInBufferHandler
+            });
             view.setHidden("textArea", !model.getProperty("showText"));
             view.setHidden("variableArea", !model.getProperty("showVariable"));
             view.setHidden("kbdArea", !model.getProperty("showKbd"), "flex");
@@ -85,6 +88,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             view.setSelectValue("exampleSelect", example);
             this.vm = new CpcVm_1.CpcVm({
                 canvas: this.canvas,
+                textCanvas: this.textCanvas,
                 keyboard: this.keyboard,
                 sound: this.sound,
                 variables: this.variables
@@ -117,6 +121,9 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             if (model.getProperty("showCpc")) {
                 this.canvas.startUpdateCanvas();
+            }
+            if (model.getProperty("showText")) {
+                this.textCanvas.startUpdateCanvas();
             }
             this.initDropZone();
         }
@@ -2003,8 +2010,14 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         Controller.prototype.startUpdateCanvas = function () {
             this.canvas.startUpdateCanvas();
         };
+        Controller.prototype.startUpdateTextCanvas = function () {
+            this.textCanvas.startUpdateCanvas();
+        };
         Controller.prototype.stopUpdateCanvas = function () {
             this.canvas.stopUpdateCanvas();
+        };
+        Controller.prototype.stopUpdateTextCanvas = function () {
+            this.textCanvas.stopUpdateCanvas();
         };
         Controller.prototype.virtualKeyboardCreate = function () {
             if (!this.virtualKeyboard) {
@@ -2107,11 +2120,18 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         };
         Controller.prototype.onCpcCanvasClick = function (event) {
             this.canvas.onCpcCanvasClick(event);
+            this.textCanvas.onWindowClick(event);
             this.keyboard.setActive(true);
         };
         Controller.prototype.onWindowClick = function (event) {
             this.canvas.onWindowClick(event);
+            this.textCanvas.onWindowClick(event);
             this.keyboard.setActive(false);
+        };
+        Controller.prototype.onTextTextClick = function (event) {
+            this.textCanvas.onTextCanvasClick(event);
+            this.canvas.onWindowClick(event);
+            this.keyboard.setActive(true);
         };
         Controller.metaIdent = "CPCBasic";
         Controller.defaultExtensions = [

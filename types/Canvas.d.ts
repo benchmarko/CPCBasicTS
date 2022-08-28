@@ -9,7 +9,6 @@ export declare class Canvas {
     private readonly fnUpdateCanvas2Handler;
     private fps;
     private readonly cpcAreaBox;
-    private readonly textText;
     private readonly charset;
     private customCharset;
     private readonly onClickKey?;
@@ -24,7 +23,6 @@ export declare class Canvas {
     private borderWidth;
     private readonly dataset8;
     private needUpdate;
-    private needTextUpdate;
     private readonly colorValues;
     private readonly currentInks;
     private readonly speedInk;
@@ -42,7 +40,6 @@ export declare class Canvas {
     private gPen;
     private gPaper;
     private speedInkCount;
-    private readonly textBuffer;
     private hasFocus;
     private mode;
     private modeData;
@@ -59,16 +56,13 @@ export declare class Canvas {
     private static readonly colors;
     private static readonly defaultInks;
     private static readonly modeData;
-    private static readonly cpc2Unicode;
     reset(): void;
     resetCustomChars(): void;
-    private resetTextBuffer;
     private static isLittleEndian;
     private static extractColorValues;
     private static extractAllColorValues;
     private setAlpha;
     private setNeedUpdate;
-    private setNeedTextUpdate;
     private updateCanvas2;
     private updateCanvas;
     startUpdateCanvas(): void;
@@ -78,7 +72,6 @@ export declare class Canvas {
     private copy2Canvas32bitWithOffset;
     private applyCopy2CanvasFunction;
     setScreenOffset(offset: number): void;
-    private updateTextWindow;
     private updateColorMap;
     updateSpeedInk(): void;
     setCustomChar(char: number, charData: CharType): void;
@@ -116,11 +109,6 @@ export declare class Canvas {
     setGPaper(gPaper: number): void;
     setGTransparentMode(transparent: boolean): void;
     printGChar(char: number): void;
-    private clearTextBufferBox;
-    private copyTextBufferBoxUp;
-    private copyTextBufferBoxDown;
-    private putCharInTextBuffer;
-    private getCharFromTextBuffer;
     printChar(char: number, x: number, y: number, pen: number, paper: number, transparent: boolean): void;
     drawCursor(x: number, y: number, pen: number, paper: number): void;
     private findMatchingChar;
@@ -144,6 +132,48 @@ export declare class Canvas {
     setMode(mode: number): void;
     startScreenshot(): string;
     getCanvas(): HTMLCanvasElement;
+}
+export interface TextCanvasOptions {
+    onClickKey?: (arg0: string) => void;
+}
+export declare class TextCanvas {
+    private readonly fnUpdateTextCanvasHandler;
+    private readonly fnUpdateTextCanvas2Handler;
+    private fps;
+    private animationTimeoutId?;
+    private animationFrame?;
+    private readonly textText;
+    private needTextUpdate;
+    private readonly textBuffer;
+    private hasFocus;
+    private readonly onClickKey?;
+    constructor(options: TextCanvasOptions);
+    private static readonly cpc2Unicode;
+    reset(): void;
+    private resetTextBuffer;
+    private setNeedTextUpdate;
+    private updateTextCanvas2;
+    private updateTextCanvas;
+    startUpdateCanvas(): void;
+    stopUpdateCanvas(): void;
+    private updateTextWindow;
+    private setFocusOnCanvas;
+    private getMousePos;
+    private canvasClickAction2;
+    onTextCanvasClick(event: MouseEvent): void;
+    onWindowClick(_event: Event): void;
+    fillTextBox(left: number, top: number, width: number, height: number, _pen?: number): void;
+    private clearTextBufferBox;
+    private copyTextBufferBoxUp;
+    private copyTextBufferBoxDown;
+    private putCharInTextBuffer;
+    private getCharFromTextBuffer;
+    printChar(char: number, x: number, y: number, _pen: number, _paper: number, _transparent: boolean): void;
+    readChar(x: number, y: number, _pen: number, _paper: number): number;
+    clearTextWindow(left: number, right: number, top: number, bottom: number, _paper: number): void;
+    clearFullWindow(): void;
+    windowScrollUp(left: number, right: number, top: number, bottom: number, _pen: number): void;
+    windowScrollDown(left: number, right: number, top: number, bottom: number, _pen: number): void;
 }
 export {};
 //# sourceMappingURL=Canvas.d.ts.map

@@ -363,7 +363,105 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 windowScrollDown: args
             });
         }
-    }, mockKeyboard = {
+    }, mockTextCanvas = {
+        clearFullWindow: function () {
+            var _args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                _args[_i] = arguments[_i];
+            }
+            //
+        },
+        clearTextWindow: function () {
+            var _args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                _args[_i] = arguments[_i];
+            }
+            //
+        },
+        fillTextBox: function () {
+            var _args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                _args[_i] = arguments[_i];
+            }
+            //
+        },
+        printChar: function () {
+            var _args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                _args[_i] = arguments[_i];
+            }
+            //
+        },
+        readChar: function () {
+            var _args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                _args[_i] = arguments[_i];
+            }
+            //
+        },
+        reset: function () {
+            var _args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                _args[_i] = arguments[_i];
+            }
+            //
+        },
+        windowScrollUp: function () {
+            var _args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                _args[_i] = arguments[_i];
+            }
+            //
+        },
+        windowScrollDown: function () {
+            var _args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                _args[_i] = arguments[_i];
+            }
+            //
+        }
+    }, 
+    /*
+    mockTextCanvas = {
+        clearFullWindow: function (...args) {
+            lastTestFunctions.push({
+                clearFullWindow: args
+            });
+        },
+        clearTextWindow: function (...args) {
+            lastTestFunctions.push({
+                clearTextWindow: args
+            });
+        },
+        fillTextBox: function (...args) {
+            lastTestFunctions.push({
+                fillTextBox: args
+            });
+        },
+        printChar: function (...args) {
+            lastTestFunctions.push({
+                printChar: args.map((arg) => String(arg))
+            });
+        },
+        readChar: function (...args) {
+            lastTestFunctions.push({
+                readChar: args
+            });
+            return 65;
+        },
+        reset: function (...args) {
+            lastTestFunctions.push({
+                reset: args
+            });
+        },
+        windowScrollDown: function (...args) {
+            lastTestFunctions.push({
+                windowScrollDown: args
+            });
+        }
+    } as TextCanvas,
+    */
+    mockKeyboard = {
         clearInput: function () {
             var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
@@ -3290,6 +3388,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
         function runTestsFor(assert, sCategory, tests, results) {
             var config = {
                 canvas: mockCanvas,
+                textCanvas: mockTextCanvas,
                 keyboard: mockKeyboard,
                 sound: mockSound,
                 variables: mockVariables,
@@ -3336,6 +3435,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             var that = this, // eslint-disable-line no-invalid-this, @typescript-eslint/no-this-alias
             config = {
                 canvas: mockCanvas,
+                textCanvas: mockTextCanvas,
                 keyboard: mockKeyboard,
                 sound: mockSound,
                 variables: mockVariables,
@@ -3346,12 +3446,15 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
         QUnit.test("init without options", function (assert) {
             var minimalCanvas = {
                 reset: function () { return undefined; }
+            }, minimalTextCanvas = {
+                reset: function () { return undefined; }
             }, minimalKeyboard = {
                 reset: function () { return undefined; }
             }, minimalSound = {
                 reset: function () { return undefined; }
             }, minimalVariables = {}, cpcVm = new CpcVm_1.CpcVm({
                 canvas: minimalCanvas,
+                textCanvas: minimalTextCanvas,
                 keyboard: minimalKeyboard,
                 sound: minimalSound,
                 variables: minimalVariables

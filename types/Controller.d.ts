@@ -24,6 +24,7 @@ export declare class Controller implements IController {
     private readonly commonEventHandler;
     private readonly codeGeneratorJs;
     private readonly canvas;
+    private readonly textCanvas;
     private readonly inputStack;
     private readonly keyboard;
     private virtualKeyboard?;
@@ -128,7 +129,9 @@ export declare class Controller implements IController {
     private fnInitUndoRedoButtons;
     private fnPutChangedInputOnStack;
     startUpdateCanvas(): void;
+    startUpdateTextCanvas(): void;
     stopUpdateCanvas(): void;
+    stopUpdateTextCanvas(): void;
     virtualKeyboardCreate(): void;
     getVariable(par: string): VariableValue;
     undoStackElement(): string;
@@ -138,6 +141,7 @@ export declare class Controller implements IController {
     static exportAsBase64(storageName: string): string;
     onCpcCanvasClick(event: MouseEvent): void;
     onWindowClick(event: Event): void;
+    onTextTextClick(event: MouseEvent): void;
     private readonly handlers;
 }
 //# sourceMappingURL=Controller.d.ts.map

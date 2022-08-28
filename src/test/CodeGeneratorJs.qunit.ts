@@ -57,7 +57,9 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			"a(10,10,10)=b(10,9)": ' v.aAAA[10][10][10] = o.vmAssign("a", v.bAA[10][9]);',
 			"a!(1.4)=b!(1.5,2.4,1)": " v.aRA[o.vmRound(1.4)] = v.bRAAA[o.vmRound(1.5)][o.vmRound(2.4)][1];",
 			"a!(b+1)=b!(a,a%*2,a%+1.5)": " v.aRA[o.vmRound(v.b + 1)] = v.bRAAA[o.vmRound(v.a)][v.aI * 2][o.vmRound(v.aI + 1.5)];",
-			"a!(b+1)=b!(int(a),a%*2,a%-1+&d)": " v.aRA[o.vmRound(v.b + 1)] = v.bRAAA[o.int(v.a)][v.aI * 2][(v.aI - 1) + 0xd];"
+			"a!(b+1)=b!(int(a),a%*2,a%-1+&d)": " v.aRA[o.vmRound(v.b + 1)] = v.bRAAA[o.int(v.a)][v.aI * 2][(v.aI - 1) + 0xd];",
+			"1 a$=a%": "CodeGeneratorJs: Type error in 1 at pos 4-5: =",
+			"1 a$=a!": "CodeGeneratorJs: Type error in 1 at pos 4-5: ="
 		},
 		expressions: {
 			"a=1+2+3": ' v.a = o.vmAssign("a", (1 + 2) + 3);',
@@ -77,6 +79,13 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			"a=(1>0)*(0<1)": ' v.a = o.vmAssign("a", (1 > 0 ? -1 : 0) * (0 < 1 ? -1 : 0));',
 			"a=(b%>=c%)*(d<=e)": ' v.a = o.vmAssign("a", (v.bI >= v.cI ? -1 : 0) * (v.d <= v.e ? -1 : 0));'
 		},
+		"Line numbers": {
+			"0 cls": "CodeGeneratorJs: Line number overflow in 0 at pos 0-1: 0",
+			"65535 cls": " o.cls(0);",
+			"65536 cls": "CodeGeneratorJs: Line number overflow in 0 at pos 0-5: 65536",
+			"1.2 cls": "CodeGeneratorJs: Expected integer line number in 0 at pos 0-3: 1.2",
+			"2 cls\n1 cls": "CodeGeneratorJs: Expected increasing line number in 0 at pos 6-7: 1"
+		},
 		special: {
 			"1 ": "",
 			'a$="string with\nnewline"': ' v.a$ = "string with\\x0anewline";',
@@ -92,6 +101,7 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			"1 after gosub 1": "BasicParser: Unexpected token in 1 at pos 8-13: gosub",
 			"1 after 1,2,3 gosub 1": "BasicParser: Expected end of arguments in 1 at pos 11-12: ,",
 			"a=b and c": ' v.a = o.vmAssign("a", o.vmRound(v.b) & o.vmRound(v.c));',
+			"a!=asc(b!) and c%": " v.aR = o.asc(v.bR) & v.cI;",
 			'a=asc("A")': ' v.a = o.vmAssign("a", o.asc("A"));',
 			"a=atn(2.3)": ' v.a = o.vmAssign("a", o.atn(2.3));',
 			"auto ": " o.auto();",
@@ -165,14 +175,18 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			"defint a-t": ' o.defint("a", "t");',
 			"defint a,b,c": ' o.defint("a"); o.defint("b"); o.defint("c");',
 			"defint a,b-c,v,x-y": ' o.defint("a"); o.defint("b", "c"); o.defint("v"); o.defint("x", "y");',
+			"1 defint z-a": "CodeGeneratorJs: Decreasing range in 1 at pos 10-11: -",
 			"defreal a": ' o.defreal("a");',
 			"defreal a-t": ' o.defreal("a", "t");',
 			"defreal a,b,c": ' o.defreal("a"); o.defreal("b"); o.defreal("c");',
 			"defreal a,b-c,v,x-y": ' o.defreal("a"); o.defreal("b", "c"); o.defreal("v"); o.defreal("x", "y");',
+			"1 defreal z-a": "CodeGeneratorJs: Decreasing range in 1 at pos 11-12: -",
 			"defstr a": ' o.defstr("a");',
 			"defstr a-t": ' o.defstr("a", "t");',
 			"defstr a,b,c": ' o.defstr("a"); o.defstr("b"); o.defstr("c");',
 			"defstr a,b-c,v,x-y": ' o.defstr("a"); o.defstr("b", "c"); o.defstr("v"); o.defstr("x", "y");',
+			"1 defstr z-a": "CodeGeneratorJs: Decreasing range in 1 at pos 10-11: -",
+			'defstr f:f(x)="w"': ' o.defstr("f"); v.fA[o.vmRound(v.x)] = o.vmAssign("f", "w");',
 			"deg ": " o.deg();",
 			"delete": " o.delete(1, 65535); break;",
 			"delete -": " o.delete(undefined, 65535); break;",
@@ -180,6 +194,7 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			"delete 1-": " o.delete(1, 65535); break;",
 			"delete -1": " o.delete(undefined, 1); break;",
 			"delete 1-2": " o.delete(1, 2); break;",
+			"1 delete 2-1": "CodeGeneratorJs: Decreasing line range in 1 at pos 10-11: -",
 			"1 delete 1+2": "BasicParser: Expected : in 1 at pos 10-11: +",
 			"1 delete a": "BasicParser: Undefined range in 1 at pos 9-10: a",
 			"a=derr": ' v.a = o.vmAssign("a", o.derr());',

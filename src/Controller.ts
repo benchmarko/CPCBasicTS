@@ -9,7 +9,7 @@ import { BasicFormatter } from "./BasicFormatter";
 import { BasicLexer } from "./BasicLexer";
 import { BasicParser } from "./BasicParser";
 import { BasicTokenizer } from "./BasicTokenizer";
-import { Canvas } from "./Canvas";
+import { Canvas, TextCanvas } from "./Canvas";
 import { CodeGeneratorBasic } from "./CodeGeneratorBasic";
 import { CodeGeneratorJs } from "./CodeGeneratorJs";
 import { CodeGeneratorToken } from "./CodeGeneratorToken";
@@ -63,6 +63,7 @@ export class Controller implements IController {
 	private readonly codeGeneratorJs: CodeGeneratorJs;
 
 	private readonly canvas: Canvas;
+	private readonly textCanvas: TextCanvas;
 
 	private readonly inputStack = new InputStack();
 
@@ -96,7 +97,12 @@ export class Controller implements IController {
 		view.setHidden("inp2Area", !model.getProperty<boolean>("showInp2"));
 		view.setHidden("outputArea", !model.getProperty<boolean>("showOutput"));
 		view.setHidden("resultArea", !model.getProperty<boolean>("showResult"));
+
+		this.textCanvas = new TextCanvas({
+			onClickKey: this.fnPutKeyInBufferHandler
+		});
 		view.setHidden("textArea", !model.getProperty<boolean>("showText"));
+
 		view.setHidden("variableArea", !model.getProperty<boolean>("showVariable"));
 		view.setHidden("kbdArea", !model.getProperty<boolean>("showKbd"), "flex");
 		view.setHidden("kbdLayoutArea", !model.getProperty<boolean>("showKbdLayout"));
@@ -131,6 +137,7 @@ export class Controller implements IController {
 
 		this.vm = new CpcVm({
 			canvas: this.canvas,
+			textCanvas: this.textCanvas,
 			keyboard: this.keyboard,
 			sound: this.sound,
 			variables: this.variables
@@ -167,6 +174,9 @@ export class Controller implements IController {
 		}
 		if (model.getProperty<boolean>("showCpc")) {
 			this.canvas.startUpdateCanvas();
+		}
+		if (model.getProperty<boolean>("showText")) {
+			this.textCanvas.startUpdateCanvas();
 		}
 
 		this.initDropZone();
@@ -2466,8 +2476,16 @@ export class Controller implements IController {
 		this.canvas.startUpdateCanvas();
 	}
 
+	startUpdateTextCanvas(): void {
+		this.textCanvas.startUpdateCanvas();
+	}
+
 	stopUpdateCanvas(): void {
 		this.canvas.stopUpdateCanvas();
+	}
+
+	stopUpdateTextCanvas(): void {
+		this.textCanvas.stopUpdateCanvas();
 	}
 
 	virtualKeyboardCreate(): void {
@@ -2597,12 +2615,20 @@ export class Controller implements IController {
 
 	onCpcCanvasClick(event: MouseEvent): void {
 		this.canvas.onCpcCanvasClick(event);
+		this.textCanvas.onWindowClick(event);
 		this.keyboard.setActive(true);
 	}
 
 	onWindowClick(event: Event): void {
 		this.canvas.onWindowClick(event);
+		this.textCanvas.onWindowClick(event);
 		this.keyboard.setActive(false);
+	}
+
+	onTextTextClick(event: MouseEvent): void {
+		this.textCanvas.onTextCanvasClick(event);
+		this.canvas.onWindowClick(event);
+		this.keyboard.setActive(true);
 	}
 
 	/* eslint-disable no-invalid-this */

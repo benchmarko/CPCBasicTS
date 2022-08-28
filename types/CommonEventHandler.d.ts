@@ -35,6 +35,7 @@ export declare class CommonEventHandler implements EventListenerObject {
     private onParseRunButtonClick;
     private static onHelpButtonClick;
     private static onNothing;
+    private onCopyTextButtonClick;
     private onOutputTextChange;
     private static encodeUriParam;
     private onReloadButtonClick;
@@ -48,6 +49,7 @@ export declare class CommonEventHandler implements EventListenerObject {
     private onSoundButtonClick;
     onCpcCanvasClick(event: Event): void;
     onWindowClick(event: Event): void;
+    onTextTextClick(event: Event): void;
     private readonly handlers;
     handleEvent(event: Event): void;
 }

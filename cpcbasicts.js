@@ -4116,7 +4116,7 @@ define("Variables", ["require", "exports"], function (require, exports) {
             return ret;
         };
         // determine static varType (first letter + optional fixed vartype) from a variable name
-        // format: (v.)<sname>(I|R|$)([...]([...])) with optional parts in ()
+        // format: (v.)(_)<sname>(I|R|$)(A*[...]([...])) with optional parts in ()
         Variables.prototype.determineStaticVarType = function (name) {
             if (name.indexOf("v.") === 0) { // preceding variable object?
                 name = name.substr(2); // remove preceding "v."
@@ -4125,15 +4125,24 @@ define("Variables", ["require", "exports"], function (require, exports) {
             if (nameType === "_") { // ignore underscore (do not clash with keywords)
                 nameType = name.charAt(1);
             }
+            /*
+            if (name.indexOf("A") >= 0) { // array?
+                name = name.substring(0, name.indexOf("A") - 1); // remove
+            }
+            */
+            var arrayPos = name.indexOf("A"), typePos = arrayPos >= 0 ? arrayPos - 1 : name.length - 1, typeChar = name.charAt(typePos); // check last character before array
+            /*
             // explicit type specified?
             if (name.indexOf("I") >= 0) {
                 nameType += "I";
-            }
-            else if (name.indexOf("R") >= 0) {
+            } else if (name.indexOf("R") >= 0) {
                 nameType += "R";
-            }
-            else if (name.indexOf("$") >= 0) {
+            } else if (name.indexOf("$") >= 0) {
                 nameType += "$";
+            }
+            */
+            if (typeChar === "I" || typeChar === "R" || typeChar === "$") { // explicit type specified?
+                nameType += typeChar;
             }
             return nameType;
         };
@@ -7599,6 +7608,9 @@ define("Keyboard", ["require", "exports", "Utils", "View"], function (require, e
             var cpcArea = View_1.View.getElementById1("cpcArea");
             cpcArea.addEventListener("keydown", this.onCpcAreaKeydown.bind(this), false);
             cpcArea.addEventListener("keyup", this.oncpcAreaKeyup.bind(this), false);
+            var textArea = View_1.View.getElementById1("textArea");
+            textArea.addEventListener("keydown", this.onCpcAreaKeydown.bind(this), false);
+            textArea.addEventListener("keyup", this.oncpcAreaKeyup.bind(this), false);
         }
         /* eslint-enable array-element-newline */
         Keyboard.prototype.reset = function () {
@@ -8968,7 +8980,7 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
 define("Canvas", ["require", "exports", "Utils", "View"], function (require, exports, Utils_14, View_3) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.Canvas = void 0;
+    exports.TextCanvas = exports.Canvas = void 0;
     var Canvas = /** @class */ (function () {
         function Canvas(options) {
             this.fps = 15; // FPS for canvas update
@@ -8980,7 +8992,6 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.offset = 0; // screen offset
             this.borderWidth = 4;
             this.needUpdate = false;
-            this.needTextUpdate = false;
             this.currentInks = [];
             this.speedInk = [];
             this.inkSet = 0;
@@ -8990,7 +9001,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.gPen = 0;
             this.gPaper = 0;
             this.speedInkCount = 0; // usually 10
-            this.textBuffer = []; // textbuffer characters at row,column
+            //private readonly textBuffer: number[][] = []; // textbuffer characters at row,column
             this.hasFocus = false; // canvas has focus
             this.mode = 0;
             this.modeData = Canvas.modeData[0];
@@ -9008,7 +9019,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.charset = options.charset;
             this.onClickKey = options.onClickKey;
             this.cpcAreaBox = View_3.View.getElementById1("cpcAreaBox");
-            this.textText = View_3.View.getElementById1("textText"); // View.setAreaValue()
+            //this.textText = View.getElementById1("textText") as HTMLTextAreaElement; // View.setAreaValue()
             var canvas = View_3.View.getElementById1("cpcCanvas");
             this.canvas = canvas;
             // make sure canvas is not hidden (allows to get width, height, set style)
@@ -9048,9 +9059,20 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             }
             this.reset();
         }
+        /*
+        // CPC Unicode map for text mode (https://www.unicode.org/L2/L2019/19025-terminals-prop.pdf AMSCPC.TXT) incomplete
+        private static readonly cpc2Unicode =
+            "................................ !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]\u2195_`abcdefghijklmnopqrstuvwxyz{|}~\u2591"
+            + "\u00A0\u2598\u259D\u2580\u2596\u258C\u259E\u259B\u2597\u259A\u2590\u259C\u2584\u2599\u259F\u2588\u00B7\u2575\u2576\u2514\u2577\u2502\u250C"
+            + "\u251C\u2574\u2518\u2500\u2534\u2510\u2524\u252C\u253C\u005E\u00B4\u00A8\u00A3\u00A9\u00B6\u00A7\u2018\u00BC\u00BD\u00BE\u00B1\u00F7\u00AC"
+            + "\u00BF\u00A1\u03B1\u03B2\u03B3\u03B4\u03B5\u03B8\u03BB\u03BC\u03C0\u03C3\u03C6\u03C8\u03C7\u03C9\u03A3\u03A9\u1FBA0\u1FBA1\u1FBA3\u1FBA2\u1FBA7"
+            + "\u1FBA5\u1FBA6\u1FBA4\u1FBA8\u1FBA9\u1FBAE\u2573\u2571\u2572\u1FB95\u2592\u23BA\u23B9\u23BD\u23B8\u25E4\u25E5\u25E2\u25E3\u1FB8E\u1FB8D\u1FB8F"
+            + "\u1FB8C\u1FB9C\u1FB9D\u1FB9E\u1FB9F\u263A\u2639\u2663\u2666\u2665\u2660\u25CB\u25CF\u25A1\u25A0\u2642\u2640\u2669\u266A\u263C\uFFBDB\u2B61\u2B63"
+            + "\u2B60\u2B62\u25B2\u25BC\u25B6\u25C0\u1FBC6\u1FBC5\u1FBC7\u1FBC8\uFFBDC\uFFBDD\u2B65\u2B64";
+        */
         Canvas.prototype.reset = function () {
-            this.resetTextBuffer();
-            this.setNeedTextUpdate();
+            //this.resetTextBuffer();
+            //this.setNeedTextUpdate();
             this.changeMode(1);
             this.inkSet = 0;
             this.setDefaultInks();
@@ -9067,9 +9089,11 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         Canvas.prototype.resetCustomChars = function () {
             this.customCharset = {}; // symbol
         };
-        Canvas.prototype.resetTextBuffer = function () {
+        /*
+        private resetTextBuffer() {
             this.textBuffer.length = 0;
-        };
+        }
+        */
         Canvas.isLittleEndian = function () {
             // https://gist.github.com/TooTallNate/4750953
             var b = new ArrayBuffer(4), a = new Uint32Array(b), c = new Uint8Array(b);
@@ -9099,9 +9123,11 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         Canvas.prototype.setNeedUpdate = function () {
             this.needUpdate = true;
         };
-        Canvas.prototype.setNeedTextUpdate = function () {
+        /*
+        private setNeedTextUpdate() {
             this.needTextUpdate = true;
-        };
+        }
+        */
         Canvas.prototype.updateCanvas2 = function () {
             this.animationFrame = requestAnimationFrame(this.fnUpdateCanvasHandler);
             if (this.needUpdate) { // could be improved: update only updateRect
@@ -9111,12 +9137,14 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
                     this.fnCopy2Canvas();
                 }
             }
+            /*
             if (this.textText.offsetParent) { // text area visible?
                 if (this.needTextUpdate) {
                     this.needTextUpdate = false;
                     this.updateTextWindow();
                 }
             }
+            */
         };
         // http://creativejs.com/resources/requestanimationframe/ (set frame rate)
         // https://stackoverflow.com/questions/19764018/controlling-fps-with-requestanimationframe
@@ -9186,20 +9214,25 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
                 this.setNeedUpdate();
             }
         };
-        Canvas.prototype.updateTextWindow = function () {
-            var textBuffer = this.textBuffer, cpc2Unicode = Canvas.cpc2Unicode;
-            var out = "";
-            for (var y = 0; y < textBuffer.length; y += 1) {
-                var textBufferRow = textBuffer[y];
+        /*
+        private updateTextWindow() {
+            const textBuffer = this.textBuffer,
+                cpc2Unicode = Canvas.cpc2Unicode;
+            let out = "";
+    
+            for (let y = 0; y < textBuffer.length; y += 1) {
+                const textBufferRow = textBuffer[y];
+    
                 if (textBufferRow) {
-                    for (var x = 0; x < textBufferRow.length; x += 1) {
+                    for (let x = 0; x < textBufferRow.length; x += 1) {
                         out += cpc2Unicode[textBufferRow[x] || 32];
                     }
                 }
                 out += "\n";
             }
             this.textText.value = out;
-        };
+        }
+        */
         Canvas.prototype.updateColorMap = function () {
             var colorValues = this.colorValues, currentInksInSet = this.currentInks[this.inkSet], pen2ColorMap = this.pen2ColorMap, pen2Color32 = this.pen2Color32;
             for (var i = 0; i < 16; i += 1) {
@@ -9272,11 +9305,12 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             y |= 0;
             var xTxt = (x / charWidth) | 0, yTxt = (y / charHeight) | 0;
             /* eslint-enable no-bitwise */
-            var char = this.getCharFromTextBuffer(xTxt, yTxt); // is there a character an the click position?
-            if (char === undefined && event.detail === 2) { // no char but mouse double click?
+            //let char = this.getCharFromTextBuffer(xTxt, yTxt); // is there a character at the click position?
+            var char = this.readChar(xTxt, yTxt, 1, 0); //TTT pen 1, paper 0
+            if (char < 0 && event.detail === 2) { // no char but mouse double click?
                 char = 13; // use CR
             }
-            if (char !== undefined && this.onClickKey) { // call click handler (put char in keyboard input buffer)
+            if (char >= 0 && this.onClickKey) { // call click handler (put char in keyboard input buffer)
                 this.onClickKey(String.fromCharCode(char));
             }
             // for graphics coordinates, adapt origin
@@ -9322,7 +9356,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         Canvas.prototype.fillTextBox = function (left, top, width, height, pen) {
             var charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8;
             this.fillMyRect(left * charWidth, top * charHeight, width * charWidth, height * charHeight, pen);
-            this.clearTextBufferBox(left, top, width, height);
+            //this.clearTextBufferBox(left, top, width, height);
             this.setNeedUpdate();
         };
         Canvas.prototype.moveMyRectUp = function (x, y, width, height, x2, y2) {
@@ -9652,71 +9686,88 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.xPos += charWidth;
             this.setNeedUpdate();
         };
-        Canvas.prototype.clearTextBufferBox = function (left, top, width, height) {
-            var textBuffer = this.textBuffer;
-            for (var y = top; y < top + height; y += 1) {
-                var textBufferRow = textBuffer[y];
+        /*
+        private clearTextBufferBox(left: number, top: number, width: number, height: number) {
+            const textBuffer = this.textBuffer;
+    
+            for (let y = top; y < top + height; y += 1) {
+                const textBufferRow = textBuffer[y];
+    
                 if (textBufferRow) {
-                    for (var x = left; x < left + width; x += 1) {
+                    for (let x = left; x < left + width; x += 1) {
                         delete textBufferRow[x];
                     }
                 }
             }
             this.setNeedTextUpdate();
-        };
-        Canvas.prototype.copyTextBufferBoxUp = function (left, top, width, height, left2, top2) {
-            var textBuffer = this.textBuffer;
-            for (var y = 0; y < height; y += 1) {
-                var textBufferRow1 = textBuffer[top + y];
+        }
+    
+        private copyTextBufferBoxUp(left: number, top: number, width: number, height: number, left2: number, top2: number) {
+            const textBuffer = this.textBuffer;
+    
+            for (let y = 0; y < height; y += 1) {
+                const textBufferRow1 = textBuffer[top + y];
+    
                 if (textBufferRow1) {
-                    var textBufferRow2 = textBuffer[top2 + y];
+                    let textBufferRow2 = textBuffer[top2 + y];
+    
                     if (!textBufferRow2) {
                         textBufferRow2 = [];
                         textBuffer[top2 + y] = textBufferRow2;
                     }
-                    for (var x = 0; x < width; x += 1) {
+                    for (let x = 0; x < width; x += 1) {
                         textBufferRow2[left2 + x] = textBufferRow1[left + x];
                     }
                 }
             }
             this.setNeedTextUpdate();
-        };
-        Canvas.prototype.copyTextBufferBoxDown = function (left, top, width, height, left2, top2) {
-            var textBuffer = this.textBuffer;
-            for (var y = height - 1; y >= 0; y -= 1) {
-                var textBufferRow1 = textBuffer[top + y];
+        }
+    
+        private copyTextBufferBoxDown(left: number, top: number, width: number, height: number, left2: number, top2: number) {
+            const textBuffer = this.textBuffer;
+    
+            for (let y = height - 1; y >= 0; y -= 1) {
+                const textBufferRow1 = textBuffer[top + y];
+    
                 if (textBufferRow1) {
-                    var textBufferRow2 = textBuffer[top2 + y];
+                    let textBufferRow2 = textBuffer[top2 + y];
+    
                     if (!textBufferRow2) {
                         textBufferRow2 = [];
                         textBuffer[top2 + y] = textBufferRow2;
                     }
-                    for (var x = 0; x < width; x += 1) {
+                    for (let x = 0; x < width; x += 1) {
                         textBufferRow2[left2 + x] = textBufferRow1[left + x];
                     }
                 }
             }
             this.setNeedTextUpdate();
-        };
-        Canvas.prototype.putCharInTextBuffer = function (char, x, y) {
-            var textBuffer = this.textBuffer;
+        }
+    
+        private putCharInTextBuffer(char: number, x: number, y: number) {
+            const textBuffer = this.textBuffer;
+    
             if (!textBuffer[y]) {
                 textBuffer[y] = [];
             }
             this.textBuffer[y][x] = char;
             this.setNeedTextUpdate();
-        };
-        Canvas.prototype.getCharFromTextBuffer = function (x, y) {
-            var textBuffer = this.textBuffer;
-            var char;
+        }
+    
+        private getCharFromTextBuffer(x: number, y: number) {
+            const textBuffer = this.textBuffer;
+    
+            let char: number | undefined;
+    
             if (textBuffer[y]) {
                 char = this.textBuffer[y][x]; // can be undefined, if not set
             }
             return char;
-        };
+        }
+        */
         Canvas.prototype.printChar = function (char, x, y, pen, paper, transparent) {
             var charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8, pens = this.modeData.pens;
-            this.putCharInTextBuffer(char, x, y);
+            //this.putCharInTextBuffer(char, x, y);
             if (char >= this.charset.length) {
                 Utils_14.Utils.console.warn("printChar: Ignoring char with code", char);
                 return;
@@ -9901,8 +9952,8 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         Canvas.prototype.clearFullWindow = function () {
             var paper = 0;
             this.fillMyRect(0, 0, this.width, this.height, paper);
-            this.resetTextBuffer();
-            this.setNeedTextUpdate();
+            //this.resetTextBuffer();
+            //this.setNeedTextUpdate();
             this.setNeedUpdate();
         };
         Canvas.prototype.windowScrollUp = function (left, right, top, bottom, pen) {
@@ -9910,7 +9961,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             if (height > 1) { // scroll part
                 this.moveMyRectUp(left * charWidth, (top + 1) * charHeight, width * charWidth, (height - 1) * charHeight, left * charWidth, top * charHeight);
                 // adapt also text buffer
-                this.copyTextBufferBoxUp(left, top + 1, width, height - 1, left, top);
+                //this.copyTextBufferBoxUp(left, top + 1, width, height - 1, left, top);
             }
             this.fillTextBox(left, bottom, width, 1, pen);
             this.setNeedUpdate();
@@ -9920,7 +9971,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             if (height > 1) { // scroll part
                 this.moveMyRectDown(left * charWidth, top * charHeight, width * charWidth, (height - 1) * charHeight, left * charWidth, (top + 1) * charHeight);
                 // adapt also text buffer
-                this.copyTextBufferBoxDown(left, top, width, height - 1, left, top + 1);
+                //this.copyTextBufferBoxDown(left, top, width, height - 1, left, top + 1);
             }
             this.fillTextBox(left, top, width, 1, pen);
             this.setNeedUpdate();
@@ -10024,17 +10075,248 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
                 pixelHeight: 1
             }
         ];
+        return Canvas;
+    }());
+    exports.Canvas = Canvas;
+    var TextCanvas = /** @class */ (function () {
+        function TextCanvas(options) {
+            this.fps = 15; // FPS for canvas update
+            this.needTextUpdate = false;
+            this.textBuffer = []; // textbuffer characters at row,column
+            this.hasFocus = false; // canvas has focus
+            this.fnUpdateTextCanvasHandler = this.updateTextCanvas.bind(this);
+            this.fnUpdateTextCanvas2Handler = this.updateTextCanvas2.bind(this);
+            this.onClickKey = options.onClickKey;
+            this.textText = View_3.View.getElementById1("textText"); // View.setAreaValue()
+            this.animationTimeoutId = undefined;
+            this.animationFrame = undefined;
+            this.reset();
+        }
+        TextCanvas.prototype.reset = function () {
+            this.resetTextBuffer();
+            this.setNeedTextUpdate();
+        };
+        TextCanvas.prototype.resetTextBuffer = function () {
+            this.textBuffer.length = 0;
+        };
+        TextCanvas.prototype.setNeedTextUpdate = function () {
+            this.needTextUpdate = true;
+        };
+        TextCanvas.prototype.updateTextCanvas2 = function () {
+            this.animationFrame = requestAnimationFrame(this.fnUpdateTextCanvasHandler);
+            if (this.textText.offsetParent) { // text area visible?
+                if (this.needTextUpdate) {
+                    this.needTextUpdate = false;
+                    this.updateTextWindow();
+                }
+            }
+        };
+        TextCanvas.prototype.updateTextCanvas = function () {
+            this.animationTimeoutId = window.setTimeout(this.fnUpdateTextCanvas2Handler, 1000 / this.fps); // ts (node)
+        };
+        TextCanvas.prototype.startUpdateCanvas = function () {
+            if (this.animationFrame === undefined && this.textText.offsetParent !== null) { // animation off and canvas visible in DOM?
+                this.updateTextCanvas();
+            }
+        };
+        TextCanvas.prototype.stopUpdateCanvas = function () {
+            if (this.animationFrame !== undefined) {
+                cancelAnimationFrame(this.animationFrame);
+                clearTimeout(this.animationTimeoutId);
+                this.animationFrame = undefined;
+                this.animationTimeoutId = undefined;
+            }
+        };
+        TextCanvas.prototype.updateTextWindow = function () {
+            var textBuffer = this.textBuffer, cpc2Unicode = TextCanvas.cpc2Unicode;
+            var out = "";
+            for (var y = 0; y < textBuffer.length; y += 1) {
+                var textBufferRow = textBuffer[y];
+                if (textBufferRow) {
+                    for (var x = 0; x < textBufferRow.length; x += 1) {
+                        out += cpc2Unicode[textBufferRow[x] || 32];
+                    }
+                }
+                out += "\n";
+            }
+            this.textText.value = out;
+        };
+        TextCanvas.prototype.setFocusOnCanvas = function () {
+            var parentNode = this.textText.parentNode;
+            if (parentNode) {
+                parentNode.style.background = "#463c3c";
+            }
+            if (this.textText) {
+                this.textText.focus();
+            }
+            this.hasFocus = true;
+        };
+        //TTT
+        // eslint-disable-next-line class-methods-use-this
+        TextCanvas.prototype.getMousePos = function (event) {
+            var borderWidth = 1, //TTT 4;
+            rect = this.textText.getBoundingClientRect(), pos = {
+                x: event.clientX - borderWidth - rect.left,
+                y: event.clientY - borderWidth - rect.top
+            };
+            return pos;
+        };
+        TextCanvas.prototype.canvasClickAction2 = function (event) {
+            var target = event.target, style = window.getComputedStyle(target, null).getPropertyValue("font-size"), fontSize = parseFloat(style), pos = this.getMousePos(event), charWidth = (fontSize + 1.4) / 2, charHeight = fontSize + 2.25, //TTT
+            x = pos.x, y = pos.y, 
+            /* eslint-disable no-bitwise */
+            xTxt = (x / charWidth) | 0, yTxt = (y / charHeight) | 0;
+            /* eslint-enable no-bitwise */
+            /* eslint-disable no-bitwise */
+            //x |= 0; // force integer
+            //y |= 0;
+            /* eslint-enable no-bitwise */
+            if (Utils_14.Utils.debug > 0) { //TTT
+                Utils_14.Utils.console.debug("canvasClickAction2: x=" + x + ", y=" + y + ", xTxt=" + xTxt + ", yTxt=" + yTxt);
+            }
+            var char = this.getCharFromTextBuffer(xTxt, yTxt); // is there a character an the click position?
+            if (char === undefined && event.detail === 2) { // no char but mouse double click?
+                char = 13; // use CR
+            }
+            if (char !== undefined && this.onClickKey) { // call click handler (put char in keyboard input buffer)
+                this.onClickKey(String.fromCharCode(char));
+            }
+        };
+        TextCanvas.prototype.onTextCanvasClick = function (event) {
+            if (!this.hasFocus) {
+                this.setFocusOnCanvas();
+            }
+            else {
+                this.canvasClickAction2(event);
+            }
+            event.stopPropagation();
+        };
+        TextCanvas.prototype.onWindowClick = function (_event) {
+            if (this.hasFocus) {
+                this.hasFocus = false;
+                var parentNode = this.textText.parentNode;
+                if (parentNode) {
+                    parentNode.style.background = "";
+                }
+            }
+        };
+        TextCanvas.prototype.fillTextBox = function (left, top, width, height, _pen) {
+            this.clearTextBufferBox(left, top, width, height);
+        };
+        TextCanvas.prototype.clearTextBufferBox = function (left, top, width, height) {
+            var textBuffer = this.textBuffer;
+            for (var y = top; y < top + height; y += 1) {
+                var textBufferRow = textBuffer[y];
+                if (textBufferRow) {
+                    for (var x = left; x < left + width; x += 1) {
+                        delete textBufferRow[x];
+                    }
+                }
+            }
+            this.setNeedTextUpdate();
+        };
+        TextCanvas.prototype.copyTextBufferBoxUp = function (left, top, width, height, left2, top2) {
+            var textBuffer = this.textBuffer;
+            for (var y = 0; y < height; y += 1) {
+                var sourceRow = textBuffer[top + y];
+                var destinationRow = textBuffer[top2 + y];
+                if (sourceRow) {
+                    // could be optimized, if complete rows
+                    if (!destinationRow) {
+                        destinationRow = [];
+                        textBuffer[top2 + y] = destinationRow;
+                    }
+                    for (var x = 0; x < width; x += 1) {
+                        destinationRow[left2 + x] = sourceRow[left + x];
+                    }
+                }
+                else if (destinationRow) {
+                    delete textBuffer[top2 + y]; // no sourceRow => clear destinationRow
+                }
+            }
+            this.setNeedTextUpdate();
+        };
+        TextCanvas.prototype.copyTextBufferBoxDown = function (left, top, width, height, left2, top2) {
+            var textBuffer = this.textBuffer;
+            for (var y = height - 1; y >= 0; y -= 1) {
+                var sourceRow = textBuffer[top + y];
+                var destinationRow = textBuffer[top2 + y];
+                if (sourceRow) {
+                    if (!destinationRow) {
+                        destinationRow = [];
+                        textBuffer[top2 + y] = destinationRow;
+                    }
+                    for (var x = 0; x < width; x += 1) {
+                        destinationRow[left2 + x] = sourceRow[left + x];
+                    }
+                }
+                else if (destinationRow) {
+                    delete textBuffer[top2 + y]; // no sourceRow => clear destinationRow
+                }
+            }
+            this.setNeedTextUpdate();
+        };
+        TextCanvas.prototype.putCharInTextBuffer = function (char, x, y) {
+            var textBuffer = this.textBuffer;
+            if (!textBuffer[y]) {
+                textBuffer[y] = [];
+            }
+            this.textBuffer[y][x] = char;
+            this.setNeedTextUpdate();
+        };
+        TextCanvas.prototype.getCharFromTextBuffer = function (x, y) {
+            var textBuffer = this.textBuffer;
+            var char;
+            if (textBuffer[y]) {
+                char = this.textBuffer[y][x]; // can be undefined, if not set
+            }
+            return char;
+        };
+        TextCanvas.prototype.printChar = function (char, x, y, _pen, _paper, _transparent) {
+            this.putCharInTextBuffer(char, x, y);
+        };
+        TextCanvas.prototype.readChar = function (x, y, _pen, _paper) {
+            var char = this.getCharFromTextBuffer(x, y); // TODO
+            if (char === undefined) {
+                char = -1; // not detected
+            }
+            return char;
+        };
+        TextCanvas.prototype.clearTextWindow = function (left, right, top, bottom, _paper) {
+            var width = right + 1 - left, height = bottom + 1 - top;
+            this.fillTextBox(left, top, width, height);
+        };
+        TextCanvas.prototype.clearFullWindow = function () {
+            this.resetTextBuffer();
+            this.setNeedTextUpdate();
+        };
+        TextCanvas.prototype.windowScrollUp = function (left, right, top, bottom, _pen) {
+            var width = right + 1 - left, height = bottom + 1 - top;
+            if (height > 1) { // scroll part
+                // adapt also text buffer
+                this.copyTextBufferBoxUp(left, top + 1, width, height - 1, left, top);
+            }
+            this.fillTextBox(left, bottom, width, 1);
+        };
+        TextCanvas.prototype.windowScrollDown = function (left, right, top, bottom, _pen) {
+            var width = right + 1 - left, height = bottom + 1 - top;
+            if (height > 1) { // scroll part
+                // adapt also text buffer
+                this.copyTextBufferBoxDown(left, top, width, height - 1, left, top + 1);
+            }
+            this.fillTextBox(left, top, width, 1);
+        };
         // CPC Unicode map for text mode (https://www.unicode.org/L2/L2019/19025-terminals-prop.pdf AMSCPC.TXT) incomplete
-        Canvas.cpc2Unicode = "................................ !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]\u2195_`abcdefghijklmnopqrstuvwxyz{|}~\u2591"
+        TextCanvas.cpc2Unicode = "................................ !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]\u2195_`abcdefghijklmnopqrstuvwxyz{|}~\u2591"
             + "\u00A0\u2598\u259D\u2580\u2596\u258C\u259E\u259B\u2597\u259A\u2590\u259C\u2584\u2599\u259F\u2588\u00B7\u2575\u2576\u2514\u2577\u2502\u250C"
             + "\u251C\u2574\u2518\u2500\u2534\u2510\u2524\u252C\u253C\u005E\u00B4\u00A8\u00A3\u00A9\u00B6\u00A7\u2018\u00BC\u00BD\u00BE\u00B1\u00F7\u00AC"
             + "\u00BF\u00A1\u03B1\u03B2\u03B3\u03B4\u03B5\u03B8\u03BB\u03BC\u03C0\u03C3\u03C6\u03C8\u03C7\u03C9\u03A3\u03A9\u1FBA0\u1FBA1\u1FBA3\u1FBA2\u1FBA7"
             + "\u1FBA5\u1FBA6\u1FBA4\u1FBA8\u1FBA9\u1FBAE\u2573\u2571\u2572\u1FB95\u2592\u23BA\u23B9\u23BD\u23B8\u25E4\u25E5\u25E2\u25E3\u1FB8E\u1FB8D\u1FB8F"
             + "\u1FB8C\u1FB9C\u1FB9D\u1FB9E\u1FB9F\u263A\u2639\u2663\u2666\u2665\u2660\u25CB\u25CF\u25A1\u25A0\u2642\u2640\u2669\u266A\u263C\uFFBDB\u2B61\u2B63"
             + "\u2B60\u2B62\u25B2\u25BC\u25B6\u25C0\u1FBC6\u1FBC5\u1FBC7\u1FBC8\uFFBDC\uFFBDD\u2B65\u2B64";
-        return Canvas;
+        return TextCanvas;
     }());
-    exports.Canvas = Canvas;
+    exports.TextCanvas = TextCanvas;
 });
 // Model.ts - Model (MVC)
 // (c) Marco Vieth, 2019
@@ -10168,7 +10450,9 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                 onEnterButtonClick: this.onEnterButtonClick,
                 onSoundButtonClick: this.onSoundButtonClick,
                 onCpcCanvasClick: this.onCpcCanvasClick,
-                onWindowClick: this.onWindowClick
+                onWindowClick: this.onWindowClick,
+                onTextTextClick: this.onTextTextClick,
+                onCopyTextButtonClick: this.onCopyTextButtonClick
             };
             this.model = model;
             this.view = view;
@@ -10199,7 +10483,12 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             this.toogleHidden("resultArea", "showResult");
         };
         CommonEventHandler.prototype.onTextButtonClick = function () {
-            this.toogleHidden("textArea", "showText");
+            if (this.toogleHidden("textArea", "showText")) {
+                this.controller.startUpdateTextCanvas();
+            }
+            else {
+                this.controller.stopUpdateTextCanvas();
+            }
         };
         CommonEventHandler.prototype.onVariableButtonClick = function () {
             this.toogleHidden("variableArea", "showVariable");
@@ -10276,6 +10565,15 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
         CommonEventHandler.onNothing = function () {
             // nothing
         };
+        // eslint-disable-next-line class-methods-use-this
+        CommonEventHandler.prototype.onCopyTextButtonClick = function () {
+            var textText = document.getElementById("textText");
+            //const copyText = View.getElementByIdAs<HTMLTextAreaElement>("textText");
+            //TODO: use View.setAreaSelection...
+            textText.select();
+            textText.setSelectionRange(0, 99999); // for mobile devices
+            window.navigator.clipboard.writeText(textText.value);
+        };
         CommonEventHandler.prototype.onOutputTextChange = function () {
             this.controller.invalidateScript();
         };
@@ -10334,6 +10632,9 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
         CommonEventHandler.prototype.onWindowClick = function (event) {
             this.controller.onWindowClick(event);
         };
+        CommonEventHandler.prototype.onTextTextClick = function (event) {
+            this.controller.onTextTextClick(event);
+        };
         /* eslint-enable no-invalid-this */
         CommonEventHandler.prototype.handleEvent = function (event) {
             var target = event.target, id = (target) ? target.getAttribute("id") : String(target), type = event.type; // click or change
@@ -10360,7 +10661,7 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                 }
             }
             if (type === "click") { // special
-                if (id !== "cpcCanvas") {
+                if (id !== "cpcCanvas" && id !== "textText") {
                     this.onWindowClick(event);
                 }
             }
@@ -11248,6 +11549,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.fnLoadHandler = this.vmLoadCallback.bind(this);
             this.fnRunHandler = this.vmRunCallback.bind(this);
             this.canvas = options.canvas;
+            this.textCanvas = options.textCanvas;
             this.keyboard = options.keyboard;
             this.soundClass = options.sound;
             this.variables = options.variables;
@@ -11363,6 +11665,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.width(132); // set default printer width
             this.mode(1); // including vmResetWindowData() without pen and paper
             this.canvas.reset();
+            this.textCanvas.reset();
             this.keyboard.reset();
             this.soundClass.reset();
             this.soundData.length = 0;
@@ -12075,6 +12378,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                     this.modeValue = 1;
                     this.canvas.setMode(this.modeValue); // does not clear canvas
                     this.canvas.clearFullWindow(); // (SCR Mode Clear)
+                    this.textCanvas.clearFullWindow();
                     // and SCR Reset:
                     this.vmResetInks();
                     break;
@@ -12233,6 +12537,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             var win = this.windowDataList[stream];
             this.vmDrawUndrawCursor(stream); // why, if we clear anyway?
             this.canvas.clearTextWindow(win.left, win.right, win.top, win.bottom, win.paper); // cls window
+            this.textCanvas.clearTextWindow(win.left, win.right, win.top, win.bottom, win.paper);
             win.pos = 0;
             win.vpos = 0;
             if (!stream) {
@@ -12264,7 +12569,9 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             stream = this.vmInRangeRound(stream, 0, 7, "COPYCHR$");
             this.vmMoveCursor2AllowedPos(stream);
             this.vmDrawUndrawCursor(stream); // undraw
-            var win = this.windowDataList[stream], charCode = this.canvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper), char = (charCode >= 0) ? String.fromCharCode(charCode) : "";
+            var win = this.windowDataList[stream], charCode = this.canvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper), 
+            //TODO charCode2 = this.textCanvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper),
+            char = (charCode >= 0) ? String.fromCharCode(charCode) : "";
             this.vmDrawUndrawCursor(stream); // draw
             return char;
         };
@@ -13152,6 +13459,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.outBuffer = ""; // clear console
             this.canvas.setMode(mode); // does not clear canvas
             this.canvas.clearFullWindow(); // always with paper 0 (SCR MODE CLEAR)
+            this.textCanvas.clearFullWindow();
         };
         CpcVm.prototype.move = function (x, y, gPen, gColMode) {
             x = this.vmInRangeRound(x, -32768, 32767, "MOVE");
@@ -13477,12 +13785,14 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 y = 0;
                 if (stream < 8) {
                     this.canvas.windowScrollDown(left, right, top, bottom, win.paper);
+                    this.textCanvas.windowScrollDown(left, right, top, bottom, win.paper);
                 }
             }
             if (y > (bottom - top)) {
                 y = bottom - top;
                 if (stream < 8) {
                     this.canvas.windowScrollUp(left, right, top, bottom, win.paper);
+                    this.textCanvas.windowScrollUp(left, right, top, bottom, win.paper);
                 }
             }
             win.pos = x;
@@ -13506,6 +13816,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 var char = CpcVm.vmGetCpcCharCode(str.charCodeAt(i));
                 this.vmMoveCursor2AllowedPos(stream);
                 this.canvas.printChar(char, win.pos + win.left, win.vpos + win.top, win.pen, win.paper, win.transparent);
+                this.textCanvas.printChar(char, win.pos + win.left, win.vpos + win.top, win.pen, win.paper, win.transparent);
                 win.pos += 1;
             }
         };
@@ -13594,24 +13905,31 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 case 0x10: // DLE
                     this.vmMoveCursor2AllowedPos(stream);
                     this.canvas.fillTextBox(win.left + win.pos, win.top + win.vpos, 1, 1, win.paper); // clear character under cursor
+                    this.textCanvas.fillTextBox(win.left + win.pos, win.top + win.vpos, 1, 1); // clear character under cursor
                     break;
                 case 0x11: // DC1
                     this.vmMoveCursor2AllowedPos(stream);
                     this.canvas.fillTextBox(win.left, win.top + win.vpos, win.pos + 1, 1, win.paper); // clear line up to cursor
+                    this.textCanvas.fillTextBox(win.left, win.top + win.vpos, win.pos + 1, 1, win.paper); // clear line up to cursor
                     break;
                 case 0x12: // DC2
                     this.vmMoveCursor2AllowedPos(stream);
                     this.canvas.fillTextBox(win.left + win.pos, win.top + win.vpos, win.right - win.left + 1 - win.pos, 1, win.paper); // clear line from cursor
+                    this.textCanvas.fillTextBox(win.left + win.pos, win.top + win.vpos, win.right - win.left + 1 - win.pos, 1, win.paper); // clear line from cursor
                     break;
                 case 0x13: // DC3
                     this.vmMoveCursor2AllowedPos(stream);
                     this.canvas.fillTextBox(win.left, win.top, win.right - win.left + 1, win.top - win.vpos, win.paper); // clear window up to cursor line -1
                     this.canvas.fillTextBox(win.left, win.top + win.vpos, win.pos + 1, 1, win.paper); // clear line up to cursor (DC1)
+                    this.textCanvas.fillTextBox(win.left, win.top, win.right - win.left + 1, win.top - win.vpos, win.paper); // clear window up to cursor line -1
+                    this.textCanvas.fillTextBox(win.left, win.top + win.vpos, win.pos + 1, 1, win.paper); // clear line up to cursor (DC1)
                     break;
                 case 0x14: // DC4
                     this.vmMoveCursor2AllowedPos(stream);
                     this.canvas.fillTextBox(win.left + win.pos, win.top + win.vpos, win.right - win.left + 1 - win.pos, 1, win.paper); // clear line from cursor (DC2)
                     this.canvas.fillTextBox(win.left, win.top + win.vpos + 1, win.right - win.left + 1, win.bottom - win.top - win.vpos, win.paper); // clear window from cursor line +1
+                    this.textCanvas.fillTextBox(win.left + win.pos, win.top + win.vpos, win.right - win.left + 1 - win.pos, 1, win.paper); // clear line from cursor (DC2)
+                    this.textCanvas.fillTextBox(win.left, win.top + win.vpos + 1, win.right - win.left + 1, win.bottom - win.top - win.vpos, win.paper); // clear window from cursor line +1
                     break;
                 case 0x15: // NAK
                     win.cursorEnabled = false;
@@ -14845,6 +15163,9 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             view.setHidden("inp2Area", !model.getProperty("showInp2"));
             view.setHidden("outputArea", !model.getProperty("showOutput"));
             view.setHidden("resultArea", !model.getProperty("showResult"));
+            this.textCanvas = new Canvas_1.TextCanvas({
+                onClickKey: this.fnPutKeyInBufferHandler
+            });
             view.setHidden("textArea", !model.getProperty("showText"));
             view.setHidden("variableArea", !model.getProperty("showVariable"));
             view.setHidden("kbdArea", !model.getProperty("showKbd"), "flex");
@@ -14870,6 +15191,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             view.setSelectValue("exampleSelect", example);
             this.vm = new CpcVm_1.CpcVm({
                 canvas: this.canvas,
+                textCanvas: this.textCanvas,
                 keyboard: this.keyboard,
                 sound: this.sound,
                 variables: this.variables
@@ -14902,6 +15224,9 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
             if (model.getProperty("showCpc")) {
                 this.canvas.startUpdateCanvas();
+            }
+            if (model.getProperty("showText")) {
+                this.textCanvas.startUpdateCanvas();
             }
             this.initDropZone();
         }
@@ -16788,8 +17113,14 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.startUpdateCanvas = function () {
             this.canvas.startUpdateCanvas();
         };
+        Controller.prototype.startUpdateTextCanvas = function () {
+            this.textCanvas.startUpdateCanvas();
+        };
         Controller.prototype.stopUpdateCanvas = function () {
             this.canvas.stopUpdateCanvas();
+        };
+        Controller.prototype.stopUpdateTextCanvas = function () {
+            this.textCanvas.stopUpdateCanvas();
         };
         Controller.prototype.virtualKeyboardCreate = function () {
             if (!this.virtualKeyboard) {
@@ -16892,11 +17223,18 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         };
         Controller.prototype.onCpcCanvasClick = function (event) {
             this.canvas.onCpcCanvasClick(event);
+            this.textCanvas.onWindowClick(event);
             this.keyboard.setActive(true);
         };
         Controller.prototype.onWindowClick = function (event) {
             this.canvas.onWindowClick(event);
+            this.textCanvas.onWindowClick(event);
             this.keyboard.setActive(false);
+        };
+        Controller.prototype.onTextTextClick = function (event) {
+            this.textCanvas.onTextCanvasClick(event);
+            this.canvas.onWindowClick(event);
+            this.keyboard.setActive(true);
         };
         Controller.metaIdent = "CPCBasic";
         Controller.defaultExtensions = [

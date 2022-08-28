@@ -1,11 +1,12 @@
 import { CustomError } from "./Utils";
 import { Keyboard } from "./Keyboard";
 import { Sound, SoundData } from "./Sound";
-import { Canvas } from "./Canvas";
+import { Canvas, TextCanvas } from "./Canvas";
 import { Variables, VariableMap, VariableValue } from "./Variables";
 import { ICpcVmRsx } from "./Interfaces";
 export interface CpcVmOptions {
     canvas: Canvas;
+    textCanvas: TextCanvas;
     keyboard: Keyboard;
     sound: Sound;
     variables: Variables;
@@ -111,6 +112,7 @@ export declare class CpcVm {
     fnLoadHandler: (input: string, meta: FileMeta) => boolean;
     private readonly fnRunHandler;
     private readonly canvas;
+    private readonly textCanvas;
     private readonly keyboard;
     private readonly soundClass;
     readonly variables: Variables;

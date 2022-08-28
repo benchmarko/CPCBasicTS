@@ -49,7 +49,9 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 onEnterButtonClick: this.onEnterButtonClick,
                 onSoundButtonClick: this.onSoundButtonClick,
                 onCpcCanvasClick: this.onCpcCanvasClick,
-                onWindowClick: this.onWindowClick
+                onWindowClick: this.onWindowClick,
+                onTextTextClick: this.onTextTextClick,
+                onCopyTextButtonClick: this.onCopyTextButtonClick
             };
             this.model = model;
             this.view = view;
@@ -80,7 +82,12 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.toogleHidden("resultArea", "showResult");
         };
         CommonEventHandler.prototype.onTextButtonClick = function () {
-            this.toogleHidden("textArea", "showText");
+            if (this.toogleHidden("textArea", "showText")) {
+                this.controller.startUpdateTextCanvas();
+            }
+            else {
+                this.controller.stopUpdateTextCanvas();
+            }
         };
         CommonEventHandler.prototype.onVariableButtonClick = function () {
             this.toogleHidden("variableArea", "showVariable");
@@ -157,6 +164,15 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         CommonEventHandler.onNothing = function () {
             // nothing
         };
+        // eslint-disable-next-line class-methods-use-this
+        CommonEventHandler.prototype.onCopyTextButtonClick = function () {
+            var textText = document.getElementById("textText");
+            //const copyText = View.getElementByIdAs<HTMLTextAreaElement>("textText");
+            //TODO: use View.setAreaSelection...
+            textText.select();
+            textText.setSelectionRange(0, 99999); // for mobile devices
+            window.navigator.clipboard.writeText(textText.value);
+        };
         CommonEventHandler.prototype.onOutputTextChange = function () {
             this.controller.invalidateScript();
         };
@@ -215,6 +231,9 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         CommonEventHandler.prototype.onWindowClick = function (event) {
             this.controller.onWindowClick(event);
         };
+        CommonEventHandler.prototype.onTextTextClick = function (event) {
+            this.controller.onTextTextClick(event);
+        };
         /* eslint-enable no-invalid-this */
         CommonEventHandler.prototype.handleEvent = function (event) {
             var target = event.target, id = (target) ? target.getAttribute("id") : String(target), type = event.type; // click or change
@@ -241,7 +260,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 }
             }
             if (type === "click") { // special
-                if (id !== "cpcCanvas") {
+                if (id !== "cpcCanvas" && id !== "textText") {
                     this.onWindowClick(event);
                 }
             }

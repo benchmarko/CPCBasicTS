@@ -68,6 +68,11 @@ export class Keyboard {
 
 		cpcArea.addEventListener("keydown", this.onCpcAreaKeydown.bind(this), false);
 		cpcArea.addEventListener("keyup", this.oncpcAreaKeyup.bind(this), false);
+
+		const textArea = View.getElementById1("textArea");
+
+		textArea.addEventListener("keydown", this.onCpcAreaKeydown.bind(this), false);
+		textArea.addEventListener("keyup", this.oncpcAreaKeyup.bind(this), false);
 	}
 
 	// use this:
