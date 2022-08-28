@@ -3,7 +3,7 @@
 
 import { Utils } from "../Utils";
 import { CpcVm, CpcVmOptions, VmInputParas, FileMeta } from "../CpcVm";
-import { Canvas } from "../Canvas";
+import { Canvas, TextCanvas } from "../Canvas";
 import { Keyboard } from "../Keyboard";
 import { Sound } from "../Sound";
 import { Variables } from "../Variables";
@@ -225,6 +225,72 @@ const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [],
 			});
 		}
 	} as Canvas,
+	mockTextCanvas = { // not checked
+		clearFullWindow: function (..._args) {
+			//
+		},
+		clearTextWindow: function (..._args) {
+			//
+		},
+		fillTextBox: function (..._args) {
+			//
+		},
+		printChar: function (..._args) {
+			//
+		},
+		readChar: function (..._args) {
+			//
+		},
+		reset: function (..._args) {
+			//
+		},
+		windowScrollUp (..._args) {
+			//
+		},
+		windowScrollDown (..._args) {
+			//
+		}
+	} as TextCanvas,
+	/*
+	mockTextCanvas = {
+		clearFullWindow: function (...args) {
+			lastTestFunctions.push({
+				clearFullWindow: args
+			});
+		},
+		clearTextWindow: function (...args) {
+			lastTestFunctions.push({
+				clearTextWindow: args
+			});
+		},
+		fillTextBox: function (...args) {
+			lastTestFunctions.push({
+				fillTextBox: args
+			});
+		},
+		printChar: function (...args) {
+			lastTestFunctions.push({
+				printChar: args.map((arg) => String(arg))
+			});
+		},
+		readChar: function (...args) {
+			lastTestFunctions.push({
+				readChar: args
+			});
+			return 65;
+		},
+		reset: function (...args) {
+			lastTestFunctions.push({
+				reset: args
+			});
+		},
+		windowScrollDown: function (...args) {
+			lastTestFunctions.push({
+				windowScrollDown: args
+			});
+		}
+	} as TextCanvas,
+	*/
 	mockKeyboard = {
 		clearInput: function (...args) {
 			lastTestFunctions.push({
@@ -3156,6 +3222,7 @@ QUnit.module("CpcVm: Tests", function () {
 	function runTestsFor(assert: Assert | undefined, sCategory: string, tests: TestsType, results?: string[]) {
 		const config: CpcVmOptions = {
 			canvas: mockCanvas,
+			textCanvas: mockTextCanvas,
 			keyboard: mockKeyboard,
 			sound: mockSound,
 			variables: mockVariables,
@@ -3213,6 +3280,7 @@ QUnit.module("CpcVm: vm functions", function (hooks: NestedHooks) {
 		const that = this, // eslint-disable-line no-invalid-this, @typescript-eslint/no-this-alias
 			config: CpcVmOptions = {
 				canvas: mockCanvas,
+				textCanvas: mockTextCanvas,
 				keyboard: mockKeyboard,
 				sound: mockSound,
 				variables: mockVariables,
@@ -3226,6 +3294,9 @@ QUnit.module("CpcVm: vm functions", function (hooks: NestedHooks) {
 		const minimalCanvas = {
 			reset: () => undefined
 		} as Canvas,
+			minimalTextCanvas = {
+				reset: () => undefined
+			} as TextCanvas,
 			minimalKeyboard = {
 				reset: () => undefined
 			} as Keyboard,
@@ -3235,6 +3306,7 @@ QUnit.module("CpcVm: vm functions", function (hooks: NestedHooks) {
 			minimalVariables = {} as Variables,
 			cpcVm = new CpcVm({
 				canvas: minimalCanvas,
+				textCanvas: minimalTextCanvas,
 				keyboard: minimalKeyboard,
 				sound: minimalSound,
 				variables: minimalVariables

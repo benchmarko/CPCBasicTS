@@ -39,9 +39,12 @@ export interface IController {
 
     onCpcCanvasClick: (event: MouseEvent) => void
     onWindowClick: (event: Event) => void
+    onTextTextClick: (event: MouseEvent) => void
 
     startUpdateCanvas: () => void
     stopUpdateCanvas: () => void
+    startUpdateTextCanvas: () => void
+    stopUpdateTextCanvas: () => void
     virtualKeyboardCreate: () => void
     getVariable: (par: string) => VariableValue
     // see VariableValue in Variables.ts

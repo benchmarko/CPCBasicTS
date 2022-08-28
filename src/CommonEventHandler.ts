@@ -53,7 +53,11 @@ export class CommonEventHandler implements EventListenerObject {
 	}
 
 	private onTextButtonClick() {
-		this.toogleHidden("textArea", "showText");
+		if (this.toogleHidden("textArea", "showText")) {
+			this.controller.startUpdateTextCanvas();
+		} else {
+			this.controller.stopUpdateTextCanvas();
+		}
 	}
 
 	private onVariableButtonClick() {
@@ -152,6 +156,19 @@ export class CommonEventHandler implements EventListenerObject {
 		// nothing
 	}
 
+	// eslint-disable-next-line class-methods-use-this
+	private onCopyTextButtonClick() {
+		const textText = document.getElementById("textText") as HTMLTextAreaElement;
+
+		//const copyText = View.getElementByIdAs<HTMLTextAreaElement>("textText");
+		//TODO: use View.setAreaSelection...
+
+		textText.select();
+		textText.setSelectionRange(0, 99999); // for mobile devices
+
+		window.navigator.clipboard.writeText(textText.value);
+	}
+
 	private onOutputTextChange() {
 		this.controller.invalidateScript();
 	}
@@ -235,6 +252,10 @@ export class CommonEventHandler implements EventListenerObject {
 		this.controller.onWindowClick(event);
 	}
 
+	onTextTextClick(event: Event): void {
+		this.controller.onTextTextClick(event as MouseEvent);
+	}
+
 	/* eslint-disable no-invalid-this */
 	private readonly handlers: Record<string, (e: Event | MouseEvent) => void> = {
 		onSpecialButtonClick: this.onSpecialButtonClick,
@@ -276,7 +297,9 @@ export class CommonEventHandler implements EventListenerObject {
 		onEnterButtonClick: this.onEnterButtonClick,
 		onSoundButtonClick: this.onSoundButtonClick,
 		onCpcCanvasClick: this.onCpcCanvasClick,
-		onWindowClick: this.onWindowClick
+		onWindowClick: this.onWindowClick,
+		onTextTextClick: this.onTextTextClick,
+		onCopyTextButtonClick: this.onCopyTextButtonClick
 	};
 	/* eslint-enable no-invalid-this */
 
@@ -311,7 +334,7 @@ export class CommonEventHandler implements EventListenerObject {
 		}
 
 		if (type === "click") { // special
-			if (id !== "cpcCanvas") {
+			if (id !== "cpcCanvas" && id !== "textText") {
 				this.onWindowClick(event);
 			}
 		}
