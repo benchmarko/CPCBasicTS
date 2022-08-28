@@ -160,8 +160,8 @@ export class CommonEventHandler implements EventListenerObject {
 	private onCopyTextButtonClick() {
 		const textText = document.getElementById("textText") as HTMLTextAreaElement;
 
-		//const copyText = View.getElementByIdAs<HTMLTextAreaElement>("textText");
-		//TODO: use View.setAreaSelection...
+		// const copyText = View.getElementByIdAs<HTMLTextAreaElement>("textText");
+		// TODO: use View.setAreaSelection...
 
 		textText.select();
 		textText.setSelectionRange(0, 99999); // for mobile devices

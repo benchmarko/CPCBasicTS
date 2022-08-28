@@ -3,9 +3,10 @@
 
 import { Utils } from "../Utils";
 import { CpcVm, CpcVmOptions, VmInputParas, FileMeta } from "../CpcVm";
-import { Canvas, TextCanvas } from "../Canvas";
+import { Canvas } from "../Canvas";
 import { Keyboard } from "../Keyboard";
 import { Sound } from "../Sound";
+import { TextCanvas } from "../TextCanvas";
 import { Variables } from "../Variables";
 import { TestHelper, TestsType, AllTestsType } from "./TestHelper";
 
@@ -244,10 +245,10 @@ const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [],
 		reset: function (..._args) {
 			//
 		},
-		windowScrollUp (..._args) {
+		windowScrollUp: function (..._args) {
 			//
 		},
-		windowScrollDown (..._args) {
+		windowScrollDown: function (..._args) {
 			//
 		}
 	} as TextCanvas,

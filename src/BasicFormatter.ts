@@ -26,13 +26,6 @@ type LinesType = Record<string, LineEntry>;
 
 type ChangesType = Record<number, LineEntry>;
 
-/*
-interface LineResult {
-	lines: LineEntry[],
-	error?: CustomError
-}
-*/
-
 export class BasicFormatter {
 	private readonly lexer: BasicLexer;
 	private readonly parser: BasicParser;
@@ -131,12 +124,6 @@ export class BasicFormatter {
 		}
 	}
 
-	/*
-	private static fnSortbyPosition(a: LineEntry, b: LineEntry) {
-		return a.pos - b.pos;
-	}
-	*/
-
 	private fnRenumberLines(lines: LinesType, refs: LineEntry[], newLine: number, oldLine: number, step: number, keep: number) {
 		const changes: ChangesType = {},
 			keys = Object.keys(lines);
@@ -229,58 +216,4 @@ export class BasicFormatter {
 		}
 		return out;
 	}
-
-	/*
-	private fnLinesInRange(input: string, parseTree: ParserNode[], firstLine: number, lastLine: number) {
-		const lines = this.fnCreateLineNumbersMap(parseTree),
-			keys = Object.keys(lines),
-			result: LineEntry[] = [];
-
-		function fnSortbyPosition(a: string, b: string) {
-			return lines[a].pos - lines[b].pos;
-		}
-
-		keys.sort(fnSortbyPosition);
-
-		for (let i = 0; i < keys.length; i += 1) {
-			const lineEntry = lines[keys[i]],
-				isDirect = BasicFormatter.fnIsDirect(lineEntry.value),
-				line = Number(lineEntry.value);
-
-			if (isDirect || (line >= firstLine && line <= lastLine)) {
-				const nextLinePos = i < keys.length - 1 ? lines[keys[i + 1]].pos : input.length;
-
-				lineEntry.lineLen = nextLinePos - lineEntry.pos;
-				result.push(lineEntry);
-			}
-		}
-		return result;
-	}
-
-	getLinesInRange(input: string, firstLine: number, lastLine: number): LineResult {
-		const out: LineResult = {
-			lines: []
-		};
-
-		this.line = ""; // current line (label)
-		try {
-			const tokens = this.lexer.lex(input),
-				parseTree = this.parser.parse(tokens),
-				lines = this.fnLinesInRange(input, parseTree, firstLine, lastLine);
-
-			out.lines = lines;
-			// out.text = lines.map(function (entry) {
-			//	 return input.substr(entry.pos, entry.lineLen);
-			// }).join("");
-		} catch (e) {
-			if (Utils.isCustomError(e)) {
-				out.error = e;
-			} else { // other errors
-				out.error = e as CustomError; // force set other error
-				Utils.console.error(e);
-			}
-		}
-		return out;
-	}
-	*/
 }

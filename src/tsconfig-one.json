@@ -26,6 +26,7 @@
     "Keyboard.ts",
     "VirtualKeyboard.ts",
     "Canvas.ts",
+    "TextCanvas.ts",
     "Model.ts",
     "Variables.ts",
     "CommonEventHandler.ts",

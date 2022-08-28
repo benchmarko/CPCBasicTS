@@ -64,25 +64,9 @@ export class Variables {
 			nameType = name.charAt(1);
 		}
 
-		/*
-		if (name.indexOf("A") >= 0) { // array?
-			name = name.substring(0, name.indexOf("A") - 1); // remove
-		}
-		*/
 		const arrayPos = name.indexOf("A"),
 			typePos = arrayPos >= 0 ? arrayPos - 1 : name.length - 1,
 			typeChar = name.charAt(typePos); // check last character before array
-
-		/*
-		// explicit type specified?
-		if (name.indexOf("I") >= 0) {
-			nameType += "I";
-		} else if (name.indexOf("R") >= 0) {
-			nameType += "R";
-		} else if (name.indexOf("$") >= 0) {
-			nameType += "$";
-		}
-		*/
 
 		if (typeChar === "I" || typeChar === "R" || typeChar === "$") { // explicit type specified?
 			nameType += typeChar;
