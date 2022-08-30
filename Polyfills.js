@@ -203,6 +203,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             };
         }());
     }
+    if (!Math.log10) { // IE11
+        exports.Polyfills.log("Math.log10");
+        Math.log10 = function (x) {
+            return Math.log(x) * Math.LOG10E;
+        };
+    }
     if (!Math.sign) { // IE11
         exports.Polyfills.log("Math.sign");
         Math.sign = function (x) {

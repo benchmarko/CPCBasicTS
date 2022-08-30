@@ -465,6 +465,12 @@ define("Polyfills", ["require", "exports", "Utils"], function (require, exports,
             };
         }());
     }
+    if (!Math.log10) { // IE11
+        exports.Polyfills.log("Math.log10");
+        Math.log10 = function (x) {
+            return Math.log(x) * Math.LOG10E;
+        };
+    }
     if (!Math.sign) { // IE11
         exports.Polyfills.log("Math.sign");
         Math.sign = function (x) {
@@ -1052,9 +1058,9 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
             this.quiet = false;
             this.keepWhiteSpace = false;
             this.line = "0"; // for error messages
-            this.takeNumberAsLine = true; // first number in a line is assumed to be a line number
-            this.input = "";
-            this.index = 0;
+            this.takeNumberAsLinenumber = true; // first number in a line is assumed to be a line number
+            this.input = ""; // input to analyze
+            this.index = 0; // position in input
             this.tokens = [];
             this.whiteSpace = ""; // collected whitespace
             if (options) {
@@ -1068,11 +1074,8 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
         BasicLexer.prototype.composeError = function (error, message, value, pos) {
             return Utils_2.Utils.composeError("BasicLexer", error, message, value, pos, undefined, this.line);
         };
-        BasicLexer.isComment = function (c) {
-            return (/[']/).test(c);
-        };
-        BasicLexer.isOperator = function (c) {
-            return (/[+\-*/^=()[\],;:?\\]/).test(c);
+        BasicLexer.isOperatorOrStreamOrAddress = function (c) {
+            return (/[+\-*/^=()[\],;:?\\@#]/).test(c);
         };
         BasicLexer.isComparison = function (c) {
             return (/[<>]/).test(c);
@@ -1083,14 +1086,8 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
         BasicLexer.isDigit = function (c) {
             return (/\d/).test(c);
         };
-        BasicLexer.isDot = function (c) {
-            return (/[.]/).test(c);
-        };
         BasicLexer.isSign = function (c) {
             return (/[+-]/).test(c);
-        };
-        BasicLexer.isHexOrBin = function (c) {
-            return (/[&]/).test(c);
         };
         BasicLexer.isBin2 = function (c) {
             return (/[01]/).test(c);
@@ -1101,14 +1098,8 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
         BasicLexer.isWhiteSpace = function (c) {
             return (/[ \r]/).test(c);
         };
-        BasicLexer.isNewLine = function (c) {
-            return (/[\n]/).test(c);
-        };
-        BasicLexer.isQuotes = function (c) {
-            return (/["]/).test(c);
-        };
         BasicLexer.isNotQuotes = function (c) {
-            return c !== "" && !BasicLexer.isQuotes(c) && !BasicLexer.isNewLine(c); // quoted string must be in one line!
+            return c !== "" && c !== '"' && c !== "\n"; // quoted string must be in one line!
         };
         BasicLexer.isIdentifierStart = function (c) {
             return c !== "" && (/[A-Za-z]/).test(c); // cannot use complete [A-Za-z]+[\w]*[$%!]?
@@ -1118,15 +1109,6 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
         };
         BasicLexer.isIdentifierEnd = function (c) {
             return c !== "" && (/[$%!]/).test(c);
-        };
-        BasicLexer.isStream = function (c) {
-            return (/[#]/).test(c);
-        };
-        BasicLexer.isAddress = function (c) {
-            return (/[@]/).test(c);
-        };
-        BasicLexer.isRsx = function (c) {
-            return (/[|]/).test(c);
         };
         BasicLexer.isNotNewLine = function (c) {
             return c !== "" && c !== "\n";
@@ -1145,12 +1127,12 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
             return this.getChar();
         };
         BasicLexer.prototype.advanceWhile = function (char, fn) {
-            var token2 = "";
+            var token = "";
             do {
-                token2 += char;
+                token += char;
                 char = this.advance();
             } while (fn(char));
-            return token2;
+            return token;
         };
         BasicLexer.prototype.debugCheckValue = function (type, value, pos, orig) {
             var origValue = orig || value, part = this.input.substr(pos, origValue.length);
@@ -1214,8 +1196,8 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
             }
             var number = parseFloat(token);
             this.addToken("number", String(number), startPos, token); // store number as string
-            if (this.takeNumberAsLine) {
-                this.takeNumberAsLine = false;
+            if (this.takeNumberAsLinenumber) {
+                this.takeNumberAsLinenumber = false;
                 this.line = String(number); // save just for error message
             }
         };
@@ -1238,15 +1220,15 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
                         this.whiteSpace = token;
                     }
                 }
-                if (BasicLexer.isNewLine(char)) { // now newline?
+                if (char === "\n") { // now newline?
                     break;
                 }
                 pos = this.index;
-                if (BasicLexer.isQuotes(char)) {
+                if (char === '"') {
                     char = "";
                     token = this.advanceWhile(char, BasicLexer.isNotQuotes);
                     char = this.getChar();
-                    if (!BasicLexer.isQuotes(char)) {
+                    if (char !== '"') {
                         if (!this.quiet) {
                             Utils_2.Utils.console.log(this.composeError({}, "Unterminated string", token, startPos + 1).message);
                         }
@@ -1318,7 +1300,7 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
         };
         BasicLexer.prototype.fnTryContinueString = function (char) {
             var out = "";
-            while (BasicLexer.isNewLine(char)) {
+            while (char === "\n") {
                 var char1 = this.testChar(1);
                 if (char1 !== "" && (char1 < "0" || char1 > "9")) { // heuristic: next char not a digit => continue with the (multiline) string
                     out += this.advanceWhile(char, BasicLexer.isNotQuotes);
@@ -1330,103 +1312,106 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
             }
             return out;
         };
+        BasicLexer.prototype.processNextCharacter = function (startPos) {
+            var char = this.getChar(), token;
+            if (BasicLexer.isWhiteSpace(char)) {
+                token = this.advanceWhile(char, BasicLexer.isWhiteSpace);
+                char = this.getChar();
+                if (this.keepWhiteSpace) {
+                    this.whiteSpace = token;
+                }
+            }
+            else if (char === "\n") {
+                this.addToken("(eol)", "", startPos);
+                char = this.advance();
+                this.takeNumberAsLinenumber = true;
+            }
+            else if (char === "'") { // apostrophe, comment
+                this.addToken(char, char, startPos);
+                char = this.advance();
+                this.fnParseCompleteLineForRemOrApostrophe(char, startPos + 1);
+            }
+            else if (BasicLexer.isOperatorOrStreamOrAddress(char)) {
+                this.addToken(char, char, startPos);
+                char = this.advance();
+            }
+            else if (BasicLexer.isDigit(char)) {
+                this.fnParseNumber(char, startPos, false);
+            }
+            else if (char === ".") { // number starting with dot?
+                this.fnParseNumber(char, startPos, true);
+            }
+            else if (char === "&") { // isHexOrBin: bin: &X, hex: & or &H
+                token = char;
+                char = this.advance();
+                if (char.toLowerCase() === "x") { // binary?
+                    token += this.advanceWhile(char, BasicLexer.isBin2);
+                    char = this.getChar();
+                    this.addToken("binnumber", token, startPos);
+                }
+                else { // hex
+                    if (char.toLowerCase() === "h") { // optional h
+                        token += char;
+                        char = this.advance();
+                    }
+                    if (BasicLexer.isHex2(char)) {
+                        token += this.advanceWhile(char, BasicLexer.isHex2);
+                        char = this.getChar();
+                        this.addToken("hexnumber", token, startPos);
+                    }
+                    else {
+                        throw this.composeError(Error(), "Expected number", token, startPos);
+                    }
+                }
+            }
+            else if (char === '"') {
+                char = "";
+                token = this.advanceWhile(char, BasicLexer.isNotQuotes);
+                char = this.getChar();
+                if (char !== '"') {
+                    if (!this.quiet) {
+                        Utils_2.Utils.console.log(this.composeError({}, "Unterminated string", token, startPos + 1).message);
+                    }
+                    token += this.fnTryContinueString(char); // heuristic to detect an LF in the string
+                    char = this.getChar();
+                }
+                this.addToken("string", token, startPos + 1);
+                if (char === '"') { // not for newline
+                    char = this.advance();
+                }
+            }
+            else if (BasicLexer.isIdentifierStart(char)) {
+                this.fnParseIdentifier(char, startPos);
+            }
+            else if (char === "|") { // isRsx
+                token = char;
+                char = this.advance();
+                if (BasicLexer.isIdentifierMiddle(char)) {
+                    token += this.advanceWhile(char, BasicLexer.isIdentifierMiddle);
+                    char = this.getChar();
+                    this.addToken("|", token, startPos);
+                }
+            }
+            else if (BasicLexer.isComparison(char)) {
+                token = this.advanceWhile(char, BasicLexer.isComparison2);
+                this.addToken(token, token, startPos); // like operator
+                char = this.getChar();
+            }
+            else {
+                throw this.composeError(Error(), "Unrecognized token", char, startPos);
+            }
+        };
         BasicLexer.prototype.lex = function (input) {
-            var startPos, char, token;
+            var startPos;
             this.input = input;
             this.index = 0;
             this.line = "0"; // for error messages
-            this.takeNumberAsLine = true;
+            this.takeNumberAsLinenumber = true;
             this.whiteSpace = "";
             this.tokens.length = 0;
             while (this.index < input.length) {
                 startPos = this.index;
-                char = this.getChar();
-                if (BasicLexer.isWhiteSpace(char)) {
-                    token = this.advanceWhile(char, BasicLexer.isWhiteSpace);
-                    char = this.getChar();
-                    if (this.keepWhiteSpace) {
-                        this.whiteSpace = token;
-                    }
-                }
-                else if (BasicLexer.isNewLine(char)) {
-                    this.addToken("(eol)", "", startPos);
-                    char = this.advance();
-                    this.takeNumberAsLine = true;
-                }
-                else if (BasicLexer.isComment(char)) {
-                    this.addToken(char, char, startPos);
-                    char = this.advance();
-                    this.fnParseCompleteLineForRemOrApostrophe(char, startPos + 1);
-                }
-                else if (BasicLexer.isOperator(char) || BasicLexer.isAddress(char) || BasicLexer.isStream(char)) {
-                    this.addToken(char, char, startPos);
-                    char = this.advance();
-                }
-                else if (BasicLexer.isDigit(char)) {
-                    this.fnParseNumber(char, startPos, false);
-                }
-                else if (BasicLexer.isDot(char)) { // number starting with dot
-                    this.fnParseNumber(char, startPos, true);
-                }
-                else if (BasicLexer.isHexOrBin(char)) {
-                    token = char;
-                    char = this.advance();
-                    if (char.toLowerCase() === "x") { // binary?
-                        token += this.advanceWhile(char, BasicLexer.isBin2);
-                        char = this.getChar();
-                        this.addToken("binnumber", token, startPos);
-                    }
-                    else { // hex
-                        if (char.toLowerCase() === "h") { // optional h
-                            token += char;
-                            char = this.advance();
-                        }
-                        if (BasicLexer.isHex2(char)) {
-                            token += this.advanceWhile(char, BasicLexer.isHex2);
-                            char = this.getChar();
-                            this.addToken("hexnumber", token, startPos);
-                        }
-                        else {
-                            throw this.composeError(Error(), "Expected number", token, startPos);
-                        }
-                    }
-                }
-                else if (BasicLexer.isQuotes(char)) {
-                    char = "";
-                    token = this.advanceWhile(char, BasicLexer.isNotQuotes);
-                    char = this.getChar();
-                    if (!BasicLexer.isQuotes(char)) {
-                        if (!this.quiet) {
-                            Utils_2.Utils.console.log(this.composeError({}, "Unterminated string", token, startPos + 1).message);
-                        }
-                        token += this.fnTryContinueString(char); // heuristic to detect an LF in the string
-                        char = this.getChar();
-                    }
-                    this.addToken("string", token, startPos + 1);
-                    if (char === '"') { // not for newline
-                        char = this.advance();
-                    }
-                }
-                else if (BasicLexer.isIdentifierStart(char)) {
-                    this.fnParseIdentifier(char, startPos);
-                }
-                else if (BasicLexer.isRsx(char)) {
-                    token = char;
-                    char = this.advance();
-                    if (BasicLexer.isIdentifierMiddle(char)) {
-                        token += this.advanceWhile(char, BasicLexer.isIdentifierMiddle);
-                        char = this.getChar();
-                        this.addToken("|", token, startPos);
-                    }
-                }
-                else if (BasicLexer.isComparison(char)) {
-                    token = this.advanceWhile(char, BasicLexer.isComparison2);
-                    this.addToken(token, token, startPos); // like operator
-                    char = this.getChar();
-                }
-                else {
-                    throw this.composeError(Error(), "Unrecognized token", char, startPos);
-                }
+                this.processNextCharacter(startPos);
             }
             this.addToken("(end)", "", this.index);
             return this.tokens;
@@ -4631,8 +4616,13 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             if (value.charAt(0).toLowerCase() === "h") { // optional h
                 value = value.slice(1); // remove
             }
+            var n = parseInt(value || "0", 16);
+            if (n > 32767) { // undo 2th complement
+                n -= 65536;
+            }
             node.pt = "I";
-            node.pv = "0x" + ((value.length) ? value : "0"); // &->0x
+            //node.pv = "0x" + ((value.length) ? value : "0"); // &->0x
+            node.pv = String(n);
         };
         CodeGeneratorJs.prototype.identifier = function (node) {
             var nodeArgs = node.args ? this.fnParseArgRange(node.args, 1, node.args.length - 2) : [], // array: we skip open and close bracket
@@ -5676,6 +5666,9 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
                 }
                 exponent = Math.ceil(Math.log(number) / Math.log(2));
                 mantissa = Math.round(number / Math.pow(2, exponent - 32)) & ~0x80000000; // eslint-disable-line no-bitwise
+                if (mantissa === 0) {
+                    exponent += 1; //TTT is this correct?
+                }
                 exponent += 0x80;
             }
             return CodeGeneratorToken.convInt32ToString(sign + mantissa) + CodeGeneratorToken.convUInt8ToString(exponent);
@@ -14470,10 +14463,16 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             else if (s.startsWith("&h")) { // hex &h
                 s = s.slice(2);
                 num = parseInt(s, 16);
+                if (num > 32767) { // undo 2th complement
+                    num -= 65536;
+                }
             }
             else if (s.startsWith("&")) { // hex &
                 s = s.slice(1);
                 num = parseInt(s, 16);
+                if (num > 32767) { // undo 2th complement
+                    num -= 65536;
+                }
             }
             else if (s !== "") { // not empty string?
                 num = parseFloat(s);

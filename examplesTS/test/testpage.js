@@ -32,6 +32,7 @@ cpcBasic.addItem("", function () { /*
 300 a%=&A7:IF a%<>167 THEN ERROR 33
 310 a%=-&A7:IF a%<>-167 THEN ERROR 33
 320 a%=&7FFF:IF a%<>32767 THEN ERROR 33
+322 a=&A000:IF a<>-24576 THEN ERROR 33
 330 PRINT"bin number: &x"
 340 a=&X10100111:IF a<>167 THEN ERROR 33
 350 a%=&X10100111:IF a%<>167 THEN ERROR 33
@@ -147,6 +148,9 @@ cpcBasic.addItem("", function () { /*
 1320 READ a%:IF a%<>&A7 THEN ERROR 33
 1330 READ a%:IF a%<>&A7 THEN ERROR 33
 1340 READ a%:IF a%<>&A7 THEN ERROR 33
+1342 DATA &A000, &A000
+1343 READ a%:IF a%<>-24576 OR a%<>&A000 THEN ERROR 33
+1344 READ a$:IF a$<>"&A000" THEN ERROR 33
 1350 PRINT"DATA with empty parameters"
 1360 b$="":RESTORE 1460
 1370 FOR i=1 TO 16:READ a$:b$=b$+a$:NEXT
@@ -266,6 +270,13 @@ cpcBasic.addItem("", function () { /*
 2510 PRINT"INSTR"
 2520 a=INSTR("Amstrad", "m"):IF a<>2 THEN ERROR 33
 2530 a=INSTR("Amstrad", "sr"):IF a<>0 THEN ERROR 33
+2532 a=INSTR(6,"amstrad", "a"):IF a<>6 THEN ERROR 33
+2534 PRINT "MEMORY"
+2535 h=HIMEM
+2536 MEMORY &A000:IF HIMEM<>40960 THEN ERROR 33
+2537 MEMORY -24576:IF HIMEM<>40960 THEN ERROR 33
+2538 MEMORY 40960:IF HIMEM<>40960 THEN ERROR 33
+2539 MEMORY h
 2540 PRINT"MID$"
 2550 a$="abcd":b$=mid$(a$,2):IF b$<>"bcd" THEN ERROR 33
 2560 a$="abcd":b$=mid$(a$,2,2):IF b$<>"bc" THEN ERROR 33
@@ -293,6 +304,8 @@ cpcBasic.addItem("", function () { /*
 2780 PRINT"PRINT in FOR loop"
 2790 FOR i=1 TO 5:PRINT i;:NEXT i:PRINT"#";
 2800 GOSUB 9010:IF a$<>" 1  2  3  4  5 #" THEN ERROR 33
+2802 FOR i=&FFFC to &3:PRINT i;:NEXT:PRINT"#";
+2803 GOSUB 9010:IF a$<>"-4 -3 -2 -1  0  1  2  3 #" THEN ERROR 33
 2810 PRINT"PRINT in GOTO loop"
 2820 a=1
 2830 PRINT a;: a=a+1: IF a <= 5 THEN GOTO 2830 ELSE PRINT "#";
@@ -526,6 +539,8 @@ cpcBasic.addItem("", function () { /*
 5070 a=VAL(""):IF a<>0 THEN ERROR 33
 5080 a=VAL("4r"):IF a<>4 THEN ERROR 33
 5090 a=VAL("&ff"):IF a<>&FF THEN ERROR 33
+5095 a=VAL("&A000"):IF a<>-24576 or a<>&A000 or a<>&hA000 THEN ERROR 33
+5096 a=VAL("&ha000"):IF a<>-24576 or a<>&a000 or a<>&ha000 THEN ERROR 33
 5100 '
 5110 GOSUB 9040
 5120 '

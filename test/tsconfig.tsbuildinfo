@@ -202,8 +202,8 @@
         "affectsGlobalScope": false
       },
       "../types/BasicLexer.d.ts": {
-        "version": "013fa8384a6412f767ad701b7b33a8f6a88521584190a619693bad43efa39cc3",
-        "signature": "013fa8384a6412f767ad701b7b33a8f6a88521584190a619693bad43efa39cc3",
+        "version": "ff183e8c779e3ca4e71aaab2cc40c341c714015812dd12856e64c471f87b677e",
+        "signature": "ff183e8c779e3ca4e71aaab2cc40c341c714015812dd12856e64c471f87b677e",
         "affectsGlobalScope": false
       },
       "../types/BasicParser.d.ts": {
@@ -247,7 +247,7 @@
         "affectsGlobalScope": false
       },
       "../../src/test/BasicTokenizer.qunit.ts": {
-        "version": "d7e49f3c57fef223edcfda923d44591a39d47131c87a1adbd5706334af8e377c",
+        "version": "51c5e8f25ee3a2d5b3a935dd046c802af70c8f784ce9cfc5b81d1752d283fdb1",
         "signature": "6f97d3738810536c119b7328d5092ea35cd8fc7fbd5a77a52461a1825daa8a1f",
         "affectsGlobalScope": false
       },
@@ -272,7 +272,7 @@
         "affectsGlobalScope": false
       },
       "../../src/test/CodeGeneratorJs.qunit.ts": {
-        "version": "244eeb4e0add009352d30afc6ae5a5197eb64f1529076bba41d76211d4ed4b84",
+        "version": "3acf8b3e0a6c27547cb031880e981085685b8d8128a2d1e06c17a1b896ac75c1",
         "signature": "0de15ad5d19532aef4039ea7ca938a9a1b4dd3d7a6e3d2b02e1c4de965d5e58b",
         "affectsGlobalScope": false
       },
@@ -282,7 +282,7 @@
         "affectsGlobalScope": false
       },
       "../../src/test/CodeGeneratorToken.qunit.ts": {
-        "version": "43633c6e4829f5b9af49db24ab1f3157fa24fc10dc3abe6ecb1f66ceeeb7f4f3",
+        "version": "56ed808942ae2f47e97438bed16ab13290325611c824b22dfb864f75ee6ecb58",
         "signature": "8910c6561fc9c4b7958260275388e6838815c862a2b555aed803450187c117f0",
         "affectsGlobalScope": false
       },

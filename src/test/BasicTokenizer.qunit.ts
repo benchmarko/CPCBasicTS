@@ -12,7 +12,10 @@ QUnit.module("BasicTokenizer:decode: Tests", function () {
 	const allTests: AllTestsType = { // eslint-disable-line vars-on-top
 		numbers: {
 			"0D,00,00,E1,EF,0F": "a=1",
-			"0D,00,00,E1,EF,1F,99,99,99,19,81": "a=1.2"
+			"0D,00,00,E1,EF,1F,99,99,99,19,81": "a=1.2",
+			"0D,00,00,E1,EF,1F,00,00,00,00,90": "a=32768",
+			"0D,00,00,E1,EF,F5,1F,00,00,00,00,90": "a=-32768",
+			"0D,00,00,E1,EF,1F,00,00,00,00,91": "a=65536"
 		},
 		def: {
 			"8D,20,E4,0D,00,00,63,6C,EB,28,0D,00,00,E1,29,EF,0D,00,00,E1,F6,19,0A": "DEF FNclk(a)=a*10",

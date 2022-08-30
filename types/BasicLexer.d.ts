@@ -13,7 +13,7 @@ export declare class BasicLexer {
     private quiet;
     private keepWhiteSpace;
     private line;
-    private takeNumberAsLine;
+    private takeNumberAsLinenumber;
     private input;
     private index;
     private readonly tokens;
@@ -21,26 +21,18 @@ export declare class BasicLexer {
     setOptions(options: BasicLexerOptions): void;
     constructor(options?: BasicLexerOptions);
     private composeError;
-    private static isComment;
-    private static isOperator;
+    private static isOperatorOrStreamOrAddress;
     private static isComparison;
     private static isComparison2;
     private static isDigit;
-    private static isDot;
     private static isSign;
-    private static isHexOrBin;
     private static isBin2;
     private static isHex2;
     private static isWhiteSpace;
-    private static isNewLine;
-    private static isQuotes;
     private static isNotQuotes;
     private static isIdentifierStart;
     private static isIdentifierMiddle;
     private static isIdentifierEnd;
-    private static isStream;
-    private static isAddress;
-    private static isRsx;
     private static isNotNewLine;
     private static isUnquotedData;
     private testChar;
@@ -54,6 +46,7 @@ export declare class BasicLexer {
     private fnParseCompleteLineForData;
     private fnParseIdentifier;
     private fnTryContinueString;
+    private processNextCharacter;
     lex(input: string): LexerToken[];
 }
 export {};

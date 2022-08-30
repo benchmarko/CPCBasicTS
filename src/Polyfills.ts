@@ -249,6 +249,13 @@ if (!Function.prototype.bind) { // IE8
 	}());
 }
 
+if (!Math.log10) { // IE11
+	Polyfills.log("Math.log10");
+	Math.log10 = function (x) {
+		return Math.log(x) * Math.LOG10E;
+	};
+}
+
 if (!Math.sign) { // IE11
 	Polyfills.log("Math.sign");
 	Math.sign = function (x) {
