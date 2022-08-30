@@ -4002,9 +4002,15 @@ export class CpcVm {
 		} else if (s.startsWith("&h")) { // hex &h
 			s = s.slice(2);
 			num = parseInt(s, 16);
+			if (num > 32767) { // undo 2th complement
+				num -= 65536;
+			}
 		} else if (s.startsWith("&")) { // hex &
 			s = s.slice(1);
 			num = parseInt(s, 16);
+			if (num > 32767) { // undo 2th complement
+				num -= 65536;
+			}
 		} else if (s !== "") { // not empty string?
 			num = parseFloat(s);
 		}

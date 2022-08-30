@@ -27,10 +27,10 @@ export class BasicLexer {
 	private keepWhiteSpace = false;
 
 	private line = "0"; // for error messages
-	private takeNumberAsLine = true; // first number in a line is assumed to be a line number
+	private takeNumberAsLinenumber = true; // first number in a line is assumed to be a line number
 
-	private input = "";
-	private index = 0;
+	private input = ""; // input to analyze
+	private index = 0; // position in input
 	private readonly tokens: LexerToken[] = [];
 	private whiteSpace = ""; // collected whitespace
 
@@ -49,11 +49,8 @@ export class BasicLexer {
 		return Utils.composeError("BasicLexer", error, message, value, pos, undefined, this.line);
 	}
 
-	private static isComment(c: string) { // isApostrophe
-		return (/[']/).test(c);
-	}
-	private static isOperator(c: string) {
-		return (/[+\-*/^=()[\],;:?\\]/).test(c);
+	private static isOperatorOrStreamOrAddress(c: string) {
+		return (/[+\-*/^=()[\],;:?\\@#]/).test(c);
 	}
 	private static isComparison(c: string) {
 		return (/[<>]/).test(c);
@@ -64,14 +61,8 @@ export class BasicLexer {
 	private static isDigit(c: string) {
 		return (/\d/).test(c);
 	}
-	private static isDot(c: string) {
-		return (/[.]/).test(c);
-	}
 	private static isSign(c: string) {
 		return (/[+-]/).test(c);
-	}
-	private static isHexOrBin(c: string) { // bin: &X, hex: & or &H
-		return (/[&]/).test(c);
 	}
 	private static isBin2(c: string) {
 		return (/[01]/).test(c);
@@ -82,14 +73,8 @@ export class BasicLexer {
 	private static isWhiteSpace(c: string) {
 		return (/[ \r]/).test(c);
 	}
-	private static isNewLine(c: string) {
-		return (/[\n]/).test(c);
-	}
-	private static isQuotes(c: string) {
-		return (/["]/).test(c);
-	}
 	private static isNotQuotes(c: string) {
-		return c !== "" && !BasicLexer.isQuotes(c) && !BasicLexer.isNewLine(c); // quoted string must be in one line!
+		return c !== "" && c !== '"' && c !== "\n"; // quoted string must be in one line!
 	}
 	private static isIdentifierStart(c: string) {
 		return c !== "" && (/[A-Za-z]/).test(c); // cannot use complete [A-Za-z]+[\w]*[$%!]?
@@ -99,15 +84,6 @@ export class BasicLexer {
 	}
 	private static isIdentifierEnd(c: string) {
 		return c !== "" && (/[$%!]/).test(c);
-	}
-	private static isStream(c: string) {
-		return (/[#]/).test(c);
-	}
-	private static isAddress(c: string) {
-		return (/[@]/).test(c);
-	}
-	private static isRsx(c: string) {
-		return (/[|]/).test(c);
 	}
 	private static isNotNewLine(c: string) {
 		return c !== "" && c !== "\n";
@@ -129,13 +105,13 @@ export class BasicLexer {
 		return this.getChar();
 	}
 	private advanceWhile(char: string, fn: (arg0: string) => boolean) {
-		let token2 = "";
+		let token = "";
 
 		do {
-			token2 += char;
+			token += char;
 			char = this.advance();
 		} while (fn(char));
-		return token2;
+		return token;
 	}
 
 	private debugCheckValue(type: string, value: string, pos: number, orig?: string) {
@@ -211,8 +187,8 @@ export class BasicLexer {
 		const number = parseFloat(token);
 
 		this.addToken("number", String(number), startPos, token); // store number as string
-		if (this.takeNumberAsLine) {
-			this.takeNumberAsLine = false;
+		if (this.takeNumberAsLinenumber) {
+			this.takeNumberAsLinenumber = false;
 			this.line = String(number); // save just for error message
 		}
 	}
@@ -239,17 +215,17 @@ export class BasicLexer {
 					this.whiteSpace = token;
 				}
 			}
-			if (BasicLexer.isNewLine(char)) { // now newline?
+			if (char === "\n") { // now newline?
 				break;
 			}
 
 			pos = this.index;
-			if (BasicLexer.isQuotes(char)) {
+			if (char === '"') {
 				char = "";
 				token = this.advanceWhile(char, BasicLexer.isNotQuotes);
 
 				char = this.getChar();
-				if (!BasicLexer.isQuotes(char)) {
+				if (char !== '"') {
 					if (!this.quiet) {
 						Utils.console.log(this.composeError({} as Error, "Unterminated string", token, startPos + 1).message);
 					}
@@ -330,7 +306,7 @@ export class BasicLexer {
 	private fnTryContinueString(char: string) { // There could be a LF in a string but no CR. In CPCBasic we use LF only as EOL, so we cannot detect the difference.
 		let out = "";
 
-		while (BasicLexer.isNewLine(char)) {
+		while (char === "\n") {
 			const char1 = this.testChar(1);
 
 			if (char1 !== "" && (char1 < "0" || char1 > "9")) { // heuristic: next char not a digit => continue with the (multiline) string
@@ -343,98 +319,101 @@ export class BasicLexer {
 		return out;
 	}
 
-
-	lex(input: string): LexerToken[] { // eslint-disable-line complexity
-		let startPos: number,
-			char: string,
+	private processNextCharacter(startPos: number) {
+		let char = this.getChar(),
 			token: string;
+
+		if (BasicLexer.isWhiteSpace(char)) {
+			token = this.advanceWhile(char, BasicLexer.isWhiteSpace);
+			char = this.getChar();
+			if (this.keepWhiteSpace) {
+				this.whiteSpace = token;
+			}
+		} else if (char === "\n") {
+			this.addToken("(eol)", "", startPos);
+			char = this.advance();
+			this.takeNumberAsLinenumber = true;
+		} else if (char === "'") { // apostrophe, comment
+			this.addToken(char, char, startPos);
+			char = this.advance();
+			this.fnParseCompleteLineForRemOrApostrophe(char, startPos + 1);
+		} else if (BasicLexer.isOperatorOrStreamOrAddress(char)) {
+			this.addToken(char, char, startPos);
+			char = this.advance();
+		} else if (BasicLexer.isDigit(char)) {
+			this.fnParseNumber(char, startPos, false);
+		} else if (char === ".") { // number starting with dot?
+			this.fnParseNumber(char, startPos, true);
+		} else if (char === "&") { // isHexOrBin: bin: &X, hex: & or &H
+			token = char;
+			char = this.advance();
+			if (char.toLowerCase() === "x") { // binary?
+				token += this.advanceWhile(char, BasicLexer.isBin2);
+				char = this.getChar();
+				this.addToken("binnumber", token, startPos);
+			} else { // hex
+				if (char.toLowerCase() === "h") { // optional h
+					token += char;
+					char = this.advance();
+				}
+				if (BasicLexer.isHex2(char)) {
+					token += this.advanceWhile(char, BasicLexer.isHex2);
+					char = this.getChar();
+					this.addToken("hexnumber", token, startPos);
+				} else {
+					throw this.composeError(Error(), "Expected number", token, startPos);
+				}
+			}
+		} else if (char === '"') {
+			char = "";
+
+			token = this.advanceWhile(char, BasicLexer.isNotQuotes);
+			char = this.getChar();
+			if (char !== '"') {
+				if (!this.quiet) {
+					Utils.console.log(this.composeError({} as Error, "Unterminated string", token, startPos + 1).message);
+				}
+				token += this.fnTryContinueString(char); // heuristic to detect an LF in the string
+				char = this.getChar();
+			}
+			this.addToken("string", token, startPos + 1);
+			if (char === '"') { // not for newline
+				char = this.advance();
+			}
+		} else if (BasicLexer.isIdentifierStart(char)) {
+			this.fnParseIdentifier(char, startPos);
+		} else if (char === "|") { // isRsx
+			token = char;
+			char = this.advance();
+			if (BasicLexer.isIdentifierMiddle(char)) {
+				token += this.advanceWhile(char, BasicLexer.isIdentifierMiddle);
+				char = this.getChar();
+				this.addToken("|", token, startPos);
+			}
+		} else if (BasicLexer.isComparison(char)) {
+			token = this.advanceWhile(char, BasicLexer.isComparison2);
+			this.addToken(token, token, startPos); // like operator
+			char = this.getChar();
+		} else {
+			throw this.composeError(Error(), "Unrecognized token", char, startPos);
+		}
+	}
+
+	lex(input: string): LexerToken[] {
+		let startPos: number;
 
 		this.input = input;
 		this.index = 0;
 
 		this.line = "0"; // for error messages
-		this.takeNumberAsLine = true;
+		this.takeNumberAsLinenumber = true;
 		this.whiteSpace = "";
 
 		this.tokens.length = 0;
 
 		while (this.index < input.length) {
 			startPos = this.index;
-			char = this.getChar();
-			if (BasicLexer.isWhiteSpace(char)) {
-				token = this.advanceWhile(char, BasicLexer.isWhiteSpace);
-				char = this.getChar();
-				if (this.keepWhiteSpace) {
-					this.whiteSpace = token;
-				}
-			} else if (BasicLexer.isNewLine(char)) {
-				this.addToken("(eol)", "", startPos);
-				char = this.advance();
-				this.takeNumberAsLine = true;
-			} else if (BasicLexer.isComment(char)) {
-				this.addToken(char, char, startPos);
-				char = this.advance();
-				this.fnParseCompleteLineForRemOrApostrophe(char, startPos + 1);
-			} else if (BasicLexer.isOperator(char) || BasicLexer.isAddress(char) || BasicLexer.isStream(char)) {
-				this.addToken(char, char, startPos);
-				char = this.advance();
-			} else if (BasicLexer.isDigit(char)) {
-				this.fnParseNumber(char, startPos, false);
-			} else if (BasicLexer.isDot(char)) { // number starting with dot
-				this.fnParseNumber(char, startPos, true);
-			} else if (BasicLexer.isHexOrBin(char)) {
-				token = char;
-				char = this.advance();
-				if (char.toLowerCase() === "x") { // binary?
-					token += this.advanceWhile(char, BasicLexer.isBin2);
-					char = this.getChar();
-					this.addToken("binnumber", token, startPos);
-				} else { // hex
-					if (char.toLowerCase() === "h") { // optional h
-						token += char;
-						char = this.advance();
-					}
-					if (BasicLexer.isHex2(char)) {
-						token += this.advanceWhile(char, BasicLexer.isHex2);
-						char = this.getChar();
-						this.addToken("hexnumber", token, startPos);
-					} else {
-						throw this.composeError(Error(), "Expected number", token, startPos);
-					}
-				}
-			} else if (BasicLexer.isQuotes(char)) {
-				char = "";
-
-				token = this.advanceWhile(char, BasicLexer.isNotQuotes);
-				char = this.getChar();
-				if (!BasicLexer.isQuotes(char)) {
-					if (!this.quiet) {
-						Utils.console.log(this.composeError({} as Error, "Unterminated string", token, startPos + 1).message);
-					}
-					token += this.fnTryContinueString(char); // heuristic to detect an LF in the string
-					char = this.getChar();
-				}
-				this.addToken("string", token, startPos + 1);
-				if (char === '"') { // not for newline
-					char = this.advance();
-				}
-			} else if (BasicLexer.isIdentifierStart(char)) {
-				this.fnParseIdentifier(char, startPos);
-			} else if (BasicLexer.isRsx(char)) {
-				token = char;
-				char = this.advance();
-				if (BasicLexer.isIdentifierMiddle(char)) {
-					token += this.advanceWhile(char, BasicLexer.isIdentifierMiddle);
-					char = this.getChar();
-					this.addToken("|", token, startPos);
-				}
-			} else if (BasicLexer.isComparison(char)) {
-				token = this.advanceWhile(char, BasicLexer.isComparison2);
-				this.addToken(token, token, startPos); // like operator
-				char = this.getChar();
-			} else {
-				throw this.composeError(Error(), "Unrecognized token", char, startPos);
-			}
+			this.processNextCharacter(startPos);
 		}
 		this.addToken("(end)", "", this.index);
 		return this.tokens;

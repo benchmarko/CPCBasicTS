@@ -17,6 +17,7 @@ CPCBasicTS is based on the JavaScript version [CPCBasic](https://github.com/benc
 - Warp speed: Calculations are as fast as possible. Only frame fly and other events are in real-time
 - CPC Basic Unchained: Breaking out of the CPC box, out of the CPC BASIC ROM. Less restrictions, extended by new features
 - A BASIC compiler and not just an interpreter
+- Import programs via drag&drop, tokenized BASIC and ASCII, also from DSK/ZIP files
 - Lots of memory
 - Runs locally without installation and without a server, even on mobile devices
 - HTML5 / TypeScript / JavaScript without external libraries

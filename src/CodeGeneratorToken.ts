@@ -494,6 +494,9 @@ export class CodeGeneratorToken {
 			}
 			exponent = Math.ceil(Math.log(number) / Math.log(2));
 			mantissa = Math.round(number / Math.pow(2, exponent - 32)) & ~0x80000000; // eslint-disable-line no-bitwise
+			if (mantissa === 0) {
+				exponent += 1; //TTT is this correct?
+			}
 			exponent += 0x80;
 		}
 
