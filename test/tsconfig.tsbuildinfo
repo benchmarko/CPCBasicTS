@@ -237,7 +237,7 @@
         "affectsGlobalScope": false
       },
       "../../src/test/BasicParser.qunit.ts": {
-        "version": "5e8d2035985a78c8e39c398570449aff9bf04dc7e0a437c03d08f63f86eaa237",
+        "version": "a2ebee4b3a6b5a72c1473c170b09a5ca2e36781609b91b732653bd7024c0a1c7",
         "signature": "843bf6e9f957d73795c999ed71051e90df1a57a9a9bb7d7308bc28f3c8540da6",
         "affectsGlobalScope": false
       },
@@ -272,7 +272,7 @@
         "affectsGlobalScope": false
       },
       "../../src/test/CodeGeneratorJs.qunit.ts": {
-        "version": "3acf8b3e0a6c27547cb031880e981085685b8d8128a2d1e06c17a1b896ac75c1",
+        "version": "95b94027e0a74d6fbd08ab77db65e1f9164ff85c752936dd96fc62f0854953aa",
         "signature": "0de15ad5d19532aef4039ea7ca938a9a1b4dd3d7a6e3d2b02e1c4de965d5e58b",
         "affectsGlobalScope": false
       },

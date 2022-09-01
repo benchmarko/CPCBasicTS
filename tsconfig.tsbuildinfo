@@ -207,7 +207,7 @@
         "affectsGlobalScope": false
       },
       "../src/BasicParser.ts": {
-        "version": "68138b10fb6fa8413f22ef0cb8c41293bc3dd8d49eae14253579c7cb1fd2cc4b",
+        "version": "70f60ace543feb1bf6864c388e933b417fdf6216452489c9974da1ea5e6eeed1",
         "signature": "1916906280eed857549c01816fc55c976bfa516f5c395f4c1ee9bfd4082e8ec6",
         "affectsGlobalScope": false
       },

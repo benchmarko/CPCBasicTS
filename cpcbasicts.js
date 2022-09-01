@@ -2513,12 +2513,12 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             this.createInfix("mod", 50);
             this.createInfix("+", 40); // + can be uses as prefix or infix, so combine with prefix function
             this.createInfix("-", 40); // - can be uses as prefix or infix, so combine with prefix function
-            this.createInfixr("=", 30); // equal for comparison
-            this.createInfixr("<>", 30);
-            this.createInfixr("<", 30);
-            this.createInfixr("<=", 30);
-            this.createInfixr(">", 30);
-            this.createInfixr(">=", 30);
+            this.createInfix("=", 30); // equal for comparison, left associative
+            this.createInfix("<>", 30);
+            this.createInfix("<", 30);
+            this.createInfix("<=", 30);
+            this.createInfix(">", 30);
+            this.createInfix(">=", 30);
             this.createPrefix("not", 23);
             this.createInfixr("and", 22);
             this.createInfixr("or", 21);
