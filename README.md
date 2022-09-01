@@ -22,12 +22,12 @@ CPCBasicTS is based on the JavaScript version [CPCBasic](https://github.com/benc
 - Runs locally without installation and without a server, even on mobile devices
 - HTML5 / TypeScript / JavaScript without external libraries
 
-[![A sample with cpcbasic](https://benchmarko.github.io/CPCBasic/img/cpcbasic.gif)](https://benchmarko.github.io/CPCBasicTS/?example=cpcbasic)]
+[![A sample with cpcbasic](https://benchmarko.github.io/CPCBasic/img/cpcbasic.gif)](https://benchmarko.github.io/CPCBasicTS/?example=cpcbasic)
 
-[![Art](https://benchmarko.github.io/CPCBasic/img/art.png)](https://benchmarko.github.io/CPCBasicTS/?example=art)]
-[![Graphics](https://benchmarko.github.io/CPCBasic/img/graphics.png)](https://benchmarko.github.io/CPCBasicTS/?example=demo/graphics)]
-[![Labyrinth](https://benchmarko.github.io/CPCBasic/img/labyrinth.png)](https://benchmarko.github.io/CPCBasicTS/?example=labyrinth)]
-[![Landscape](https://benchmarko.github.io/CPCBasic/img/landscape.png)](https://benchmarko.github.io/CPCBasicTS/?example=landscape)]
+[![Art](https://benchmarko.github.io/CPCBasic/img/art.png)](https://benchmarko.github.io/CPCBasicTS/?example=art)
+[![Graphics](https://benchmarko.github.io/CPCBasic/img/graphics.png)](https://benchmarko.github.io/CPCBasicTS/?example=demo/graphics)
+[![Labyrinth](https://benchmarko.github.io/CPCBasic/img/labyrinth.png)](https://benchmarko.github.io/CPCBasicTS/?example=labyrinth)
+[![Landscape](https://benchmarko.github.io/CPCBasic/img/landscape.png)](https://benchmarko.github.io/CPCBasicTS/?example=landscape)
 
 More examples are in the sample library [CPCBasicApps](https://github.com/benchmarko/CPCBasicApps/#readme). They are included in CPCBasicTS as *apps*. Example: [10print](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=demo/10print).
 
@@ -134,8 +134,8 @@ Did you know?
 - Instead of the comparison operators <= or >= you could also write =< or =>.  When tokenized, it is converted to the "standard" format.
 - *ENV*: Special syntax with "=" to define hardware volume envelopes, e.g. `ENV num,=reg,period`. Same for *ENT*, e.g. `ENT num,=period,ti`
 - Arrays can be indexed by parentheses or by brackets, but also with mixed style, e.g. `a(3]=6: ?a[3)` returns 6.
-- When you use float parameters where integer parameters are expected they are automatically rounded, e.g. `MODE 1.5` sets MDOE 2. This works also for array indices, e.g.
-`a(3.2)=3:a(3.5)=4:?a(3.4);a(4.4)` returns 3 and 4.
+- When you use float parameters where integer parameters are expected they are automatically rounded, e.g. `MODE 1.5` sets MODE 2. This works also for array indices, e.g.
+`a(3.2)=3:a(3.5)=4:?a(2.5);a(4.4)` returns 3 and 4.
 - Variables typed with DEFINT, DEFREAL or DEFSTR are aliases for those with a type extension, e.g. `DEFINT a: a=1: a%=2: ?a;a%` returns 2 and 2 (currently not for CPCBasic).
 - Tokenized BASIC contains a lot of spaces which can be squeezed out and visualized by colons and the end of the line. Put this code fragment at the end of the program and run it: `a=&170:WHILE PEEK(a)<>0:e=a+PEEK(a):FOR i=a TO e-2:POKE a,PEEK(i):a=a+ABS(PEEK(i)<>&20):NEXT:FOR i=a TO e-2:POKE i,&01:NEXT:a=e:?:WEND` . This simple version expects lines not longer than 255 characters or tokens and will also modify strings and comments (currently not for CPCBasic).
 - *ELSE* as command without preceding *IF* is similar to a comment

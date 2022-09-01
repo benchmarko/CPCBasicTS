@@ -77,7 +77,9 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			"a=+++++++++---9": ' v.a = o.vmAssign("a", -9);',
 			"a=(1=0)": ' v.a = o.vmAssign("a", 1 === 0 ? -1 : 0);',
 			"a=(1>0)*(0<1)": ' v.a = o.vmAssign("a", (1 > 0 ? -1 : 0) * (0 < 1 ? -1 : 0));',
-			"a=(b%>=c%)*(d<=e)": ' v.a = o.vmAssign("a", (v.bI >= v.cI ? -1 : 0) * (v.d <= v.e ? -1 : 0));'
+			"a=(b%>=c%)*(d<=e)": ' v.a = o.vmAssign("a", (v.bI >= v.cI ? -1 : 0) * (v.d <= v.e ? -1 : 0));',
+			"a=1=1=-1": ' v.a = o.vmAssign("a", (1 === 1 ? -1 : 0) === -1 ? -1 : 0);',
+			"a=1>=1>1": " v.a = o.vmAssign(\"a\", (1 >= 1 ? -1 : 0) > 1 ? -1 : 0);"
 		},
 		"Line numbers": {
 			"0 cls": "CodeGeneratorJs: Line number overflow in 0 at pos 0-1: 0",

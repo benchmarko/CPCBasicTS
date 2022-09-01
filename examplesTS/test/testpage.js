@@ -74,6 +74,7 @@ cpcBasic.addItem("", function () { /*
 710 a=+++++++++---9:IF a<>-9 THEN ERROR 33
 720 a=(1=0):IF a<>0 THEN ERROR 33
 730 a=(1>0)*(0<1):IF a<>1 THEN ERROR 33
+732 a=1=1=-1:IF a<>-1 THEN ERROR 33
 740 GOSUB 9040
 750 '
 760 PRINT"ABS(positive number)"
