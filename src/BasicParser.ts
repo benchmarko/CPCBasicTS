@@ -650,6 +650,35 @@ export class BasicParser {
 		return isOnErrorGoto;
 	}
 
+	private fnMaskedExpressionError(expression: ParserNode, typeFirstChar: string) {
+		if (!this.fnLastStatemetIsOnErrorGotoX()) {
+			throw this.composeError(Error(), "Expected " + BasicParser.parameterTypes[typeFirstChar], expression.value, expression.pos);
+		} else if (!this.quiet) {
+			Utils.console.warn(this.composeError({} as Error, "Expected " + BasicParser.parameterTypes[typeFirstChar], expression.value, expression.pos).message);
+		}
+	}
+
+	private fnCheckStaticTypeNotNumber(expression: ParserNode, typeFirstChar: string) {
+		const type = expression.type,
+			isStringFunction = (BasicParser.keywords[type] || "").startsWith("f") && type.endsWith("$"),
+			isStringIdentifier = type === "identifier" && expression.value.endsWith("$");
+
+		if (type === "string" || type === "#" || isStringFunction || isStringIdentifier) { // got a string or a stream? (statical check)
+			this.fnMaskedExpressionError(expression, typeFirstChar);
+		}
+	}
+
+	private fnCheckStaticTypeNotString(expression: ParserNode, typeFirstChar: string) {
+		const type = expression.type,
+			isNumericFunction = (BasicParser.keywords[type] || "").startsWith("f") && !type.endsWith("$"),
+			isNumericIdentifier = type === "identifier" && (expression.value.endsWith("%") || expression.value.endsWith("!")),
+			isComparison = type === "=" || type.startsWith("<") || type.startsWith(">"); // =, <, >, <=, >=
+
+		if (type === "number" || type === "#" || isNumericFunction || isNumericIdentifier || isComparison) { // got e.g. number or a stream? (statical check)
+			this.fnMaskedExpressionError(expression, typeFirstChar);
+		}
+	}
+
 	private fnGetExpressionForType(args: ParserNode[], type: string, types: string[]) { // eslint-disable-line complexity
 		const typeFirstChar = type.charAt(0),
 			separator = ",";
@@ -700,24 +729,12 @@ export class BasicParser {
 				expression = BasicParser.fnCreateDummyArg("null");
 			} else {
 				expression = this.expression(0);
-				if (expression.type === "string" || expression.type === "#") { // got a string or stream? (statical check)
-					if (!this.fnLastStatemetIsOnErrorGotoX()) {
-						throw this.composeError(Error(), "Expected " + BasicParser.parameterTypes[typeFirstChar], expression.value, expression.pos);
-					} else if (!this.quiet) {
-						Utils.console.warn(this.composeError({} as Error, "Expected " + BasicParser.parameterTypes[typeFirstChar], expression.value, expression.pos).message);
-					}
-				}
+				this.fnCheckStaticTypeNotNumber(expression, typeFirstChar);
 			}
 			break;
 		case "s": // string
 			expression = this.expression(0);
-			if (expression.type === "number") { // got e.g. number? (statical check)
-				if (!this.fnLastStatemetIsOnErrorGotoX()) {
-					throw this.composeError(Error(), "Expected " + BasicParser.parameterTypes[typeFirstChar], expression.value, expression.pos);
-				} else if (!this.quiet) {
-					Utils.console.warn(this.composeError({} as Error, "Expected " + BasicParser.parameterTypes[typeFirstChar], expression.value, expression.pos).message);
-				}
-			}
+			this.fnCheckStaticTypeNotString(expression, typeFirstChar);
 			break;
 		default:
 			expression = this.expression(0);

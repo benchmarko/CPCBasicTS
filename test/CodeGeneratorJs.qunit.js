@@ -89,7 +89,9 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
                 "1 on error goto 0:a=asc(0)": "BasicParser: Expected string in 1 at pos 24-25: 0",
                 "1 on error goto 2:a=asc(0)\n2 rem": ' o.onErrorGoto(2); v.a = o.vmAssign("a", o.asc(0));\n //',
                 '1 on error goto 0:?chr$("A")': "BasicParser: Expected number in 1 at pos 25-26: A",
-                '1 on error goto 2:?chr$("A")\n2 rem': ' o.onErrorGoto(2); o.print(0, o.chr$("A"), "\\r\\n");\n //'
+                '1 on error goto 2:?chr$("A")\n2 rem': ' o.onErrorGoto(2); o.print(0, o.chr$("A"), "\\r\\n");\n //',
+                '1 on error goto 0:a$=dec$(b$,"\\    \\")\n2 rem': "BasicParser: Expected number in 1 at pos 26-28: b$",
+                '1 on error goto 2:a$=dec$(b$,"\\    \\")\n2 rem': ' o.onErrorGoto(2); v.a$ = o.dec$(v.b$, "\\\\    \\\\");\n //'
             },
             "abs, after gosub, and, asc, atn, auto": {
                 "a=abs(2.3)": ' v.a = o.vmAssign("a", o.abs(2.3));',
@@ -98,7 +100,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
                 "1 after gosub 1": "BasicParser: Unexpected token in 1 at pos 8-13: gosub",
                 "1 after 1,2,3 gosub 1": "BasicParser: Expected end of arguments in 1 at pos 11-12: ,",
                 "a=b and c": ' v.a = o.vmAssign("a", o.vmRound(v.b) & o.vmRound(v.c));',
-                "a!=asc(b!) and c%": " v.aR = o.asc(v.bR) & v.cI;",
+                "a!=asc(b$) and c%": " v.aR = o.asc(v.b$) & v.cI;",
                 'a=asc("A")': ' v.a = o.vmAssign("a", o.asc("A"));',
                 "a=atn(2.3)": ' v.a = o.vmAssign("a", o.atn(2.3));',
                 "auto ": " o.auto();",
@@ -158,8 +160,8 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
                 "data item1,item2,item3": 'o.data(, "item1", "item2", "item3");\n /* data */;',
                 "data &a3,4,abc,": 'o.data(, "&a3", "4", "abc", undefined);\n /* data */;',
                 'data " ",!"#$%&\'()*+,","': 'o.data(, " ", "!\\"#$%&\'()*+", ",");\n /* data */;',
+                'data "string in data with\nnewline"': 'o.data(, "string in data with\\x0anewline");\n /* data */;',
                 'a$=dec$(3,"##.##")': ' v.a$ = o.dec$(3, "##.##");',
-                'a$=dec$(a$,"\\    \\")': ' v.a$ = o.dec$(v.a$, "\\\\    \\\\");',
                 "def fnclk=10": ' v.fnclk = function () { return o.vmAssign("f", 10); };',
                 "def fnclk(a)=a*10": ' v.fnclk = function (a) { return o.vmAssign("f", a * 10); };',
                 "def fnclk(a,b)=a*10+b": ' v.fnclk = function (a, b) { return o.vmAssign("f", (a * 10) + b); };',

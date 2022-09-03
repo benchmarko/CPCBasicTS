@@ -76,7 +76,9 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
                 "1 on error goto 0:a=asc(0)": "BasicParser: Expected string in 1 at pos 24-25: 0",
                 "1 on error goto 2:a=asc(0)\n2 rem": "16,00,01,00,B2,9C,A0,1E,02,00,01,0D,00,00,E1,EF,FF,01,28,0E,29,00,06,00,02,00,C5,00,00,00",
                 '1 on error goto 0:?chr$("A")': "BasicParser: Expected number in 1 at pos 25-26: A",
-                '1 on error goto 2:?chr$("A")\n2 rem': "14,00,01,00,B2,9C,A0,1E,02,00,01,BF,FF,03,28,22,41,22,29,00,06,00,02,00,C5,00,00,00"
+                '1 on error goto 2:?chr$("A")\n2 rem': "14,00,01,00,B2,9C,A0,1E,02,00,01,BF,FF,03,28,22,41,22,29,00,06,00,02,00,C5,00,00,00",
+                '1 on error goto 0:a$=dec$(b$,"\\    \\")\n2 rem': "BasicParser: Expected number in 1 at pos 26-28: b$",
+                '1 on error goto 2:a$=dec$(b$,"\\    \\")\n2 rem': "22,00,01,00,B2,9C,A0,1E,02,00,01,03,00,00,E1,EF,FF,72,28,03,00,00,E2,2C,22,5C,20,20,20,20,5C,22,29,00,06,00,02,00,C5,00,00,00"
             },
             "abs, after gosub, and, asc, atn, auto": {
                 "a=abs(2.3)": "0D,00,00,E1,EF,FF,00,28,1F,33,33,33,13,82,29",
@@ -85,6 +87,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
                 "1 after gosub 1": "BasicParser: Unexpected token in 1 at pos 8-13: gosub",
                 "1 after 1,2,3 gosub 1": "BasicParser: Expected end of arguments in 1 at pos 11-12: ,",
                 "a=b and c": "0D,00,00,E1,EF,0D,00,00,E2,FA,0D,00,00,E3",
+                "a!=asc(b$) and c%": "04,00,00,E1,EF,FF,01,28,03,00,00,E2,29,FA,02,00,00,E3",
                 'a=asc("A")': "0D,00,00,E1,EF,FF,01,28,22,41,22,29",
                 "a=atn(2.3)": "0D,00,00,E1,EF,FF,02,28,1F,33,33,33,13,82,29",
                 "auto ": "81",
@@ -144,8 +147,8 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
                 "data item1,item2,item3": "8C,20,69,74,65,6D,31,2C,69,74,65,6D,32,2C,69,74,65,6D,33",
                 "data &a3,4,abc,": "8C,20,26,61,33,2C,34,2C,61,62,63,2C",
                 'data " ",!"#$%&\'()*+,","': "8C,20,22,20,22,2C,21,22,23,24,25,26,27,28,29,2A,2B,2C,22,2C,22",
+                'data "string in data with\nnewline"': "8C,20,22,73,74,72,69,6E,67,20,69,6E,20,64,61,74,61,20,77,69,74,68,0A,6E,65,77,6C,69,6E,65,22",
                 'a$=dec$(3,"##.##")': "03,00,00,E1,EF,FF,72,28,11,2C,22,23,23,2E,23,23,22,29",
-                'a$=dec$(a$,"\\    \\")': "03,00,00,E1,EF,FF,72,28,03,00,00,E1,2C,22,5C,20,20,20,20,5C,22,29",
                 "def fnclk=10": "8D,20,E4,0D,00,00,63,6C,EB,EF,19,0A",
                 "def fnclk(a)=a*10": "8D,20,E4,0D,00,00,63,6C,EB,28,0D,00,00,E1,29,EF,0D,00,00,E1,F6,19,0A",
                 "def fnclk(a,b)=a*10+b": "8D,20,E4,0D,00,00,63,6C,EB,28,0D,00,00,E1,2C,0D,00,00,E2,29,EF,0D,00,00,E1,F6,19,0A,F4,0D,00,00,E2",

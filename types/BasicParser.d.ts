@@ -56,6 +56,9 @@ export declare class BasicParser {
     private fnGetLetterRange;
     private fnCheckRemainingTypes;
     private fnLastStatemetIsOnErrorGotoX;
+    private fnMaskedExpressionError;
+    private fnCheckStaticTypeNotNumber;
+    private fnCheckStaticTypeNotString;
     private fnGetExpressionForType;
     private fnGetArgs;
     private fnGetArgsSepByCommaSemi;

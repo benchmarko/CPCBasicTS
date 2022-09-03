@@ -78,7 +78,9 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 			"1 on error goto 0:a=asc(0)": "BasicParser: Expected string in 1 at pos 24-25: 0",
 			"1 on error goto 2:a=asc(0)\n2 rem": "1 ON ERROR GOTO 2:a=ASC(0)\n2 REM",
 			'1 on error goto 0:?chr$("A")': "BasicParser: Expected number in 1 at pos 25-26: A",
-			'1 on error goto 2:?chr$("A")\n2 rem': '1 ON ERROR GOTO 2:?CHR$("A")\n2 REM'
+			'1 on error goto 2:?chr$("A")\n2 rem': '1 ON ERROR GOTO 2:?CHR$("A")\n2 REM',
+			'1 on error goto 0:a$=dec$(b$,"\\    \\")\n2 rem': "BasicParser: Expected number in 1 at pos 26-28: b$",
+			'1 on error goto 2:a$=dec$(b$,"\\    \\")\n2 rem': '1 ON ERROR GOTO 2:a$=DEC$(b$,"\\    \\")\n2 REM'
 		},
 		"abs, after gosub, and, asc, atn, auto": {
 			"a=abs(2.3)": "a=ABS(2.3)",
@@ -88,6 +90,7 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 			"1 after 1,2,3 gosub 1": "BasicParser: Expected end of arguments in 1 at pos 11-12: ,",
 			"a=b and c": "a=b AND c",
 			'a=asc("A")': 'a=ASC("A")',
+			"a!=asc(b$) and c%": "a!=ASC(b$) AND c%",
 			"a=atn(2.3)": "a=ATN(2.3)",
 			"auto ": "AUTO",
 			"auto 100": "AUTO 100"
@@ -146,8 +149,8 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 			"data item1,item2,item3": "DATA item1,item2,item3",
 			"data &a3,4,abc,": "DATA &a3,4,abc,",
 			'data " ",!"#$%&\'()*+,","': 'DATA " ",!"#$%&\'()*+,","',
+			'data "string in data with\nnewline"': 'DATA "string in data with\nnewline"',
 			'a$=dec$(3,"##.##")': 'a$=DEC$(3,"##.##")',
-			'a$=dec$(a$,"\\    \\")': 'a$=DEC$(a$,"\\    \\")',
 			"def fnclk=10": "DEF FNclk=10",
 			"def fnclk(a)=a*10": "DEF FNclk(a)=a*10",
 			"def fnclk(a,b)=a*10+b": "DEF FNclk(a,b)=a*10+b",

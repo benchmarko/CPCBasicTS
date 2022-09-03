@@ -1033,6 +1033,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             data: {
                 "10 ": "",
                 '10,"d1",3,"d2"': "",
+                '1,"string in data with\nnewline"': "",
                 "": 'CpcVm: Type mismatch in 0: DATA undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 '"",': 'CpcVm: Type mismatch in 0: DATA  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 "0 ": 'CpcVm: Improper argument in 0: DATA 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',

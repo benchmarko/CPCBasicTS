@@ -114,8 +114,8 @@ declare module "BasicLexer" {
         private static isComparison2;
         private static isDigit;
         private static isSign;
-        private static isBin2;
-        private static isHex2;
+        private static isBin;
+        private static isHex;
         private static isWhiteSpace;
         private static isNotQuotes;
         private static isIdentifierStart;
@@ -129,11 +129,17 @@ declare module "BasicLexer" {
         private advanceWhile;
         private debugCheckValue;
         private addToken;
+        private fnParseExponentialNumber;
         private fnParseNumber;
         private fnParseCompleteLineForRemOrApostrophe;
+        private fnParseWhiteSpace;
+        private fnParseUnquoted;
         private fnParseCompleteLineForData;
         private fnParseIdentifier;
+        private fnParseHexOrBin;
         private fnTryContinueString;
+        private fnParseString;
+        private fnParseRsx;
         private processNextCharacter;
         lex(input: string): LexerToken[];
     }
@@ -197,6 +203,9 @@ declare module "BasicParser" {
         private fnGetLetterRange;
         private fnCheckRemainingTypes;
         private fnLastStatemetIsOnErrorGotoX;
+        private fnMaskedExpressionError;
+        private fnCheckStaticTypeNotNumber;
+        private fnCheckStaticTypeNotString;
         private fnGetExpressionForType;
         private fnGetArgs;
         private fnGetArgsSepByCommaSemi;
