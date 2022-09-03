@@ -64,10 +64,10 @@ export class BasicLexer {
 	private static isSign(c: string) {
 		return (/[+-]/).test(c);
 	}
-	private static isBin2(c: string) {
+	private static isBin(c: string) {
 		return (/[01]/).test(c);
 	}
-	private static isHex2(c: string) {
+	private static isHex(c: string) {
 		return (/[0-9A-Fa-f]/).test(c);
 	}
 	private static isWhiteSpace(c: string) {
@@ -147,11 +147,31 @@ export class BasicLexer {
 		this.tokens.push(node);
 	}
 
+	private fnParseExponentialNumber(char: string) {
+		// we also try to check: [eE][+-]?\d+; because "E" could be ERR, ELSE,...
+		let token = "";
+		const char1 = this.testChar(1),
+			char2 = this.testChar(2);
+
+		if (BasicLexer.isDigit(char1) || (BasicLexer.isSign(char1) && BasicLexer.isDigit(char2))) { // so it is a number
+			token += char; // take "E"
+			char = this.advance();
+			if (BasicLexer.isSign(char)) {
+				token += char; // take sign "+" or "-"
+				char = this.advance();
+			}
+			if (BasicLexer.isDigit(char)) {
+				token += this.advanceWhile(char, BasicLexer.isDigit);
+			}
+		}
+		return token;
+	}
+
 	private fnParseNumber(char: string, startPos: number, startsWithDot: boolean) { // special handling for number
 		let token = "";
 
 		if (startsWithDot) {
-			token += char;
+			token = char;
 			char = this.advance();
 		}
 		token += this.advanceWhile(char, BasicLexer.isDigit); // TODO: isDigitOrSpace: numbers may contain spaces!
@@ -165,20 +185,7 @@ export class BasicLexer {
 			}
 		}
 		if (char === "e" || char === "E") { // we also try to check: [eE][+-]?\d+; because "E" could be ERR, ELSE,...
-			const char1 = this.testChar(1),
-				char2 = this.testChar(2);
-
-			if (BasicLexer.isDigit(char1) || (BasicLexer.isSign(char1) && BasicLexer.isDigit(char2))) { // so it is a number
-				token += char; // take "E"
-				char = this.advance();
-				if (BasicLexer.isSign(char)) {
-					token += char; // take sign "+" or "-"
-					char = this.advance();
-				}
-				if (BasicLexer.isDigit(char)) {
-					token += this.advanceWhile(char, BasicLexer.isDigit);
-				}
-			}
+			token += this.fnParseExponentialNumber(char);
 		}
 		token = token.trim(); // remove trailing spaces
 		if (!isFinite(Number(token))) { // Infnity?
@@ -201,19 +208,35 @@ export class BasicLexer {
 		}
 		return char;
 	}
-	private fnParseCompleteLineForData(char: string, startPos: number) { // special handling because strings in data lines need not be quoted
+
+	private fnParseWhiteSpace(char: string) {
+		const token = this.advanceWhile(char, BasicLexer.isWhiteSpace);
+
+		if (this.keepWhiteSpace) {
+			this.whiteSpace = token;
+		}
+	}
+
+	private fnParseUnquoted(char: string, pos: number) {
 		const reSpacesAtEnd = new RegExp(/\s+$/);
-		let pos: number,
-			token: string;
+		let token = this.advanceWhile(char, BasicLexer.isUnquotedData);
+		const match = reSpacesAtEnd.exec(token),
+			endingSpaces = (match && match[0]) || "";
+
+		token = token.trim(); // remove whitespace before and after; do we need this?
+		this.addToken("unquoted", token, pos); // could be interpreted as string or number during runtime
+		if (this.keepWhiteSpace) {
+			this.whiteSpace = endingSpaces;
+		}
+	}
+
+	private fnParseCompleteLineForData(char: string) { // special handling because strings in data lines need not be quoted
+		let pos: number;
 
 		while (BasicLexer.isNotNewLine(char)) {
 			if (BasicLexer.isWhiteSpace(char)) {
-				token = this.advanceWhile(char, BasicLexer.isWhiteSpace);
-
+				this.fnParseWhiteSpace(char);
 				char = this.getChar();
-				if (this.keepWhiteSpace) {
-					this.whiteSpace = token;
-				}
 			}
 			if (char === "\n") { // now newline?
 				break;
@@ -221,43 +244,18 @@ export class BasicLexer {
 
 			pos = this.index;
 			if (char === '"') {
-				char = "";
-				token = this.advanceWhile(char, BasicLexer.isNotQuotes);
-
+				this.fnParseString(pos);
 				char = this.getChar();
-				if (char !== '"') {
-					if (!this.quiet) {
-						Utils.console.log(this.composeError({} as Error, "Unterminated string", token, startPos + 1).message);
-					}
-				}
-				this.addToken("string", token, pos + 1); // this is a quoted string (but we cannot detect it during runtime)
-				if (char === '"') { // not for newline
-					char = this.advance();
-				}
 			} else if (char === ",") { // empty argument?
 				// parser can insert dummy token
 			} else {
-				token = this.advanceWhile(char, BasicLexer.isUnquotedData);
-
+				this.fnParseUnquoted(char, pos);
 				char = this.getChar();
-
-				const match = reSpacesAtEnd.exec(token),
-					endingSpaces = (match && match[0]) || "";
-
-				token = token.trim(); // remove whitespace before and after; do we need this?
-				this.addToken("unquoted", token, pos); // could be interpreted as string or number during runtime
-				if (this.keepWhiteSpace) {
-					this.whiteSpace = endingSpaces;
-				}
 			}
 
 			if (BasicLexer.isWhiteSpace(char)) {
-				token = this.advanceWhile(char, BasicLexer.isWhiteSpace);
-
+				this.fnParseWhiteSpace(char);
 				char = this.getChar();
-				if (this.keepWhiteSpace) {
-					this.whiteSpace = token;
-				}
 			}
 
 			if (char !== ",") {
@@ -297,9 +295,29 @@ export class BasicLexer {
 				startPos += 1;
 			}
 			this.fnParseCompleteLineForRemOrApostrophe(char, startPos);
-			this.getChar();
 		} else if (token === "data") { // special handling because strings in data lines need not to be quoted
-			this.fnParseCompleteLineForData(char, startPos);
+			this.fnParseCompleteLineForData(char);
+		}
+	}
+
+	private fnParseHexOrBin(char: string, startPos: number) {
+		let token = char;
+
+		char = this.advance();
+		if (char.toLowerCase() === "x") { // binary?
+			token += this.advanceWhile(char, BasicLexer.isBin);
+			this.addToken("binnumber", token, startPos);
+		} else { // hex
+			if (char.toLowerCase() === "h") { // optional h
+				token += char;
+				char = this.advance();
+			}
+			if (BasicLexer.isHex(char)) {
+				token += this.advanceWhile(char, BasicLexer.isHex);
+				this.addToken("hexnumber", token, startPos);
+			} else {
+				throw this.composeError(Error(), "Expected number", token, startPos);
+			}
 		}
 	}
 
@@ -319,81 +337,66 @@ export class BasicLexer {
 		return out;
 	}
 
+	private fnParseString(startPos: number) {
+		let char = "",
+			token = this.advanceWhile(char, BasicLexer.isNotQuotes);
+
+		char = this.getChar();
+		if (char !== '"') {
+			if (!this.quiet) {
+				Utils.console.log(this.composeError({} as Error, "Unterminated string", token, startPos + 1).message);
+			}
+			token += this.fnTryContinueString(char); // heuristic to detect an LF in the string
+			char = this.getChar();
+		}
+		this.addToken("string", token, startPos + 1);
+		if (char === '"') { // not for newline
+			this.advance();
+		}
+	}
+
+	private fnParseRsx(char: string, startPos: number) {
+		let token = char;
+
+		char = this.advance();
+		if (BasicLexer.isIdentifierMiddle(char)) {
+			token += this.advanceWhile(char, BasicLexer.isIdentifierMiddle);
+			this.addToken("|", token, startPos);
+		}
+	}
+
 	private processNextCharacter(startPos: number) {
 		let char = this.getChar(),
 			token: string;
 
 		if (BasicLexer.isWhiteSpace(char)) {
-			token = this.advanceWhile(char, BasicLexer.isWhiteSpace);
-			char = this.getChar();
-			if (this.keepWhiteSpace) {
-				this.whiteSpace = token;
-			}
+			this.fnParseWhiteSpace(char);
 		} else if (char === "\n") {
 			this.addToken("(eol)", "", startPos);
-			char = this.advance();
+			this.advance();
 			this.takeNumberAsLinenumber = true;
-		} else if (char === "'") { // apostrophe, comment
+		} else if (char === "'") { // apostrophe (comment)
 			this.addToken(char, char, startPos);
 			char = this.advance();
 			this.fnParseCompleteLineForRemOrApostrophe(char, startPos + 1);
 		} else if (BasicLexer.isOperatorOrStreamOrAddress(char)) {
 			this.addToken(char, char, startPos);
-			char = this.advance();
-		} else if (BasicLexer.isDigit(char)) {
+			this.advance();
+		} else if (BasicLexer.isDigit(char)) { // number starting with a digit?
 			this.fnParseNumber(char, startPos, false);
-		} else if (char === ".") { // number starting with dot?
+		} else if (char === ".") { // number starting with a dot?
 			this.fnParseNumber(char, startPos, true);
 		} else if (char === "&") { // isHexOrBin: bin: &X, hex: & or &H
-			token = char;
-			char = this.advance();
-			if (char.toLowerCase() === "x") { // binary?
-				token += this.advanceWhile(char, BasicLexer.isBin2);
-				char = this.getChar();
-				this.addToken("binnumber", token, startPos);
-			} else { // hex
-				if (char.toLowerCase() === "h") { // optional h
-					token += char;
-					char = this.advance();
-				}
-				if (BasicLexer.isHex2(char)) {
-					token += this.advanceWhile(char, BasicLexer.isHex2);
-					char = this.getChar();
-					this.addToken("hexnumber", token, startPos);
-				} else {
-					throw this.composeError(Error(), "Expected number", token, startPos);
-				}
-			}
+			this.fnParseHexOrBin(char, startPos);
 		} else if (char === '"') {
-			char = "";
-
-			token = this.advanceWhile(char, BasicLexer.isNotQuotes);
-			char = this.getChar();
-			if (char !== '"') {
-				if (!this.quiet) {
-					Utils.console.log(this.composeError({} as Error, "Unterminated string", token, startPos + 1).message);
-				}
-				token += this.fnTryContinueString(char); // heuristic to detect an LF in the string
-				char = this.getChar();
-			}
-			this.addToken("string", token, startPos + 1);
-			if (char === '"') { // not for newline
-				char = this.advance();
-			}
+			this.fnParseString(startPos);
 		} else if (BasicLexer.isIdentifierStart(char)) {
 			this.fnParseIdentifier(char, startPos);
 		} else if (char === "|") { // isRsx
-			token = char;
-			char = this.advance();
-			if (BasicLexer.isIdentifierMiddle(char)) {
-				token += this.advanceWhile(char, BasicLexer.isIdentifierMiddle);
-				char = this.getChar();
-				this.addToken("|", token, startPos);
-			}
+			this.fnParseRsx(char, startPos);
 		} else if (BasicLexer.isComparison(char)) {
 			token = this.advanceWhile(char, BasicLexer.isComparison2);
 			this.addToken(token, token, startPos); // like operator
-			char = this.getChar();
 		} else {
 			throw this.composeError(Error(), "Unrecognized token", char, startPos);
 		}
