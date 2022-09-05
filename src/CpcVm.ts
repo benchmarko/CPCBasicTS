@@ -760,7 +760,7 @@ export class CpcVm {
 
 	private vmRound2Complement(n: number | undefined, err: string) {
 		n = this.vmInRangeRound(n, -32768, 65535, err);
-		if (n < 0) {
+		if (n < 0) { // undo two's complement
 			n += 65536;
 		}
 		return n;
@@ -2090,7 +2090,7 @@ export class CpcVm {
 	}
 
 	inp(port: number): number {
-		port = this.vmRound2Complement(port, "INP"); // 2nd complement of 16 bit address
+		port = this.vmRound2Complement(port, "INP"); // two's complement of 16 bit address
 
 		// eslint-disable-next-line no-bitwise
 		let byte = (port & 0xff);
@@ -3928,7 +3928,7 @@ export class CpcVm {
 
 	unt(n: number): number {
 		n = this.vmInRangeRound(n, -32768, 65535, "UNT");
-		if (n > 32767) { // undo 2th complement
+		if (n > 32767) { // two's complement
 			n -= 65536;
 		}
 		return n;
@@ -4002,13 +4002,13 @@ export class CpcVm {
 		} else if (s.startsWith("&h")) { // hex &h
 			s = s.slice(2);
 			num = parseInt(s, 16);
-			if (num > 32767) { // undo 2th complement
+			if (num > 32767) { // two's complement
 				num -= 65536;
 			}
 		} else if (s.startsWith("&")) { // hex &
 			s = s.slice(1);
 			num = parseInt(s, 16);
-			if (num > 32767) { // undo 2th complement
+			if (num > 32767) { // two's complement
 				num -= 65536;
 			}
 		} else if (s !== "") { // not empty string?
