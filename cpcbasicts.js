@@ -4620,13 +4620,17 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             if (value.charAt(0).toLowerCase() === "h") { // optional h
                 value = value.slice(1); // remove
             }
-            var n = parseInt(value || "0", 16);
-            if (n > 32767) { // undo 2th complement
-                n -= 65536;
+            value || (value = "0");
+            var n = parseInt(value, 16);
+            if (n > 32767) { //	two's complement
+                n = 65536 - n;
+                value = "-0x" + n.toString(16);
+            }
+            else {
+                value = "0x" + value;
             }
             node.pt = "I";
-            //node.pv = "0x" + ((value.length) ? value : "0"); // &->0x
-            node.pv = String(n);
+            node.pv = value;
         };
         CodeGeneratorJs.prototype.identifier = function (node) {
             var nodeArgs = node.args ? this.fnParseArgRange(node.args, 1, node.args.length - 2) : [], // array: we skip open and close bracket
@@ -11630,7 +11634,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         };
         CpcVm.prototype.vmRound2Complement = function (n, err) {
             n = this.vmInRangeRound(n, -32768, 65535, err);
-            if (n < 0) {
+            if (n < 0) { // undo two's complement
                 n += 65536;
             }
             return n;
@@ -12786,7 +12790,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             return key;
         };
         CpcVm.prototype.inp = function (port) {
-            port = this.vmRound2Complement(port, "INP"); // 2nd complement of 16 bit address
+            port = this.vmRound2Complement(port, "INP"); // two's complement of 16 bit address
             // eslint-disable-next-line no-bitwise
             var byte = (port & 0xff);
             // eslint-disable-next-line no-bitwise
@@ -14403,7 +14407,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         };
         CpcVm.prototype.unt = function (n) {
             n = this.vmInRangeRound(n, -32768, 65535, "UNT");
-            if (n > 32767) { // undo 2th complement
+            if (n > 32767) { // two's complement
                 n -= 65536;
             }
             return n;
@@ -14467,14 +14471,14 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             else if (s.startsWith("&h")) { // hex &h
                 s = s.slice(2);
                 num = parseInt(s, 16);
-                if (num > 32767) { // undo 2th complement
+                if (num > 32767) { // two's complement
                     num -= 65536;
                 }
             }
             else if (s.startsWith("&")) { // hex &
                 s = s.slice(1);
                 num = parseInt(s, 16);
-                if (num > 32767) { // undo 2th complement
+                if (num > 32767) { // two's complement
                     num -= 65536;
                 }
             }

@@ -571,16 +571,19 @@ export class CodeGeneratorJs {
 		if (value.charAt(0).toLowerCase() === "h") { // optional h
 			value = value.slice(1); // remove
 		}
+		value ||= "0";
 
-		let n = parseInt(value || "0", 16);
+		let n = parseInt(value, 16);
 
-		if (n > 32767) { // undo 2th complement
-			n -= 65536;
+		if (n > 32767) { //	two's complement
+			n = 65536 - n;
+			value = "-0x" + n.toString(16);
+		} else {
+			value = "0x" + value;
 		}
 
 		node.pt = "I";
-		//node.pv = "0x" + ((value.length) ? value : "0"); // &->0x
-		node.pv = String(n);
+		node.pv = value;
 	}
 	private identifier(node: CodeNode) { // identifier or identifier with array indices
 		const nodeArgs = node.args ? this.fnParseArgRange(node.args, 1, node.args.length - 2) : [], // array: we skip open and close bracket

@@ -345,7 +345,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         };
         CpcVm.prototype.vmRound2Complement = function (n, err) {
             n = this.vmInRangeRound(n, -32768, 65535, err);
-            if (n < 0) {
+            if (n < 0) { // undo two's complement
                 n += 65536;
             }
             return n;
@@ -1501,7 +1501,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             return key;
         };
         CpcVm.prototype.inp = function (port) {
-            port = this.vmRound2Complement(port, "INP"); // 2nd complement of 16 bit address
+            port = this.vmRound2Complement(port, "INP"); // two's complement of 16 bit address
             // eslint-disable-next-line no-bitwise
             var byte = (port & 0xff);
             // eslint-disable-next-line no-bitwise
@@ -3118,7 +3118,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         };
         CpcVm.prototype.unt = function (n) {
             n = this.vmInRangeRound(n, -32768, 65535, "UNT");
-            if (n > 32767) { // undo 2th complement
+            if (n > 32767) { // two's complement
                 n -= 65536;
             }
             return n;
@@ -3182,14 +3182,14 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             else if (s.startsWith("&h")) { // hex &h
                 s = s.slice(2);
                 num = parseInt(s, 16);
-                if (num > 32767) { // undo 2th complement
+                if (num > 32767) { // two's complement
                     num -= 65536;
                 }
             }
             else if (s.startsWith("&")) { // hex &
                 s = s.slice(1);
                 num = parseInt(s, 16);
-                if (num > 32767) { // undo 2th complement
+                if (num > 32767) { // two's complement
                     num -= 65536;
                 }
             }
