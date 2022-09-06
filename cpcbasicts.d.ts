@@ -1886,6 +1886,7 @@ declare module "cpcconfig" {
     };
 }
 declare module "cpcbasic" {
+    import { ConfigType } from "Model";
     class cpcBasic {
         private static readonly config;
         private static model;
@@ -1904,6 +1905,7 @@ declare module "cpcbasic" {
     global {
         interface Window {
             cpcBasic: cpcBasic;
+            cpcConfig: ConfigType;
         }
     }
 }

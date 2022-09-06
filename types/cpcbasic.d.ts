@@ -1,3 +1,4 @@
+import { ConfigType } from "./Model";
 declare class cpcBasic {
     private static readonly config;
     private static model;
@@ -16,6 +17,7 @@ declare class cpcBasic {
 declare global {
     interface Window {
         cpcBasic: cpcBasic;
+        cpcConfig: ConfigType;
     }
 }
 export {};

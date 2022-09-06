@@ -4,8 +4,9 @@ define(["require", "exports"], function (require, exports) {
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.cpcconfig = void 0;
     exports.cpcconfig = {
-        //databaseDirs: "../../CPCBasic/examples,../../CPCBasicApps/apps,./examplesTS,storage" // local test
-        databaseDirs: "https://benchmarko.github.io/CPCBasic/examples,https://benchmarko.github.io/CPCBasicApps/apps,./examplesTS,storage"
+        databaseDirs: "./examples,https://benchmarko.github.io/CPCBasicApps/apps,storage"
+        //databaseDirs: "./examples,../../CPCBasicApps/apps,storage" // local test
+        //databaseDirs: "../apps,storage"
     };
 });
 //# sourceMappingURL=cpcconfig.js.map

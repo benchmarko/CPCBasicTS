@@ -175,9 +175,9 @@ class cpcBasic { // eslint-disable-line vars-on-top
 
 	private static fnDoStart() {
 		const startConfig = cpcBasic.config,
-			externalConfig = cpcconfig || {}; // external config from cpcconfig.js
+			winCpcConfig = window.cpcConfig || {};
 
-		Object.assign(startConfig, externalConfig);
+		Object.assign(startConfig, cpcconfig, winCpcConfig);
 
 		cpcBasic.model = new Model(startConfig);
 
@@ -221,7 +221,10 @@ class cpcBasic { // eslint-disable-line vars-on-top
 }
 
 declare global {
-    interface Window { cpcBasic: cpcBasic; }
+    interface Window {
+		cpcBasic: cpcBasic;
+		cpcConfig: ConfigType;
+	}
 }
 
 window.cpcBasic = cpcBasic;

@@ -3,8 +3,16 @@
 
 "use strict";
 
-cpcBasic.addIndex("./examplesTS", function () { /*
+cpcBasic.addIndex("./examples", function () { /*
 [
+	{
+		"key": "1st",
+		"title": "First Program (empty)"
+	},
+	{
+    	"key": "cpcbasic",
+		"title": "CPC Basic TS"
+	},
     {
 		"key": "test/testpage",
 		"title": "Test Page TS"

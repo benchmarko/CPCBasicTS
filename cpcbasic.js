@@ -122,8 +122,8 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
             };
         };
         cpcBasic.fnDoStart = function () {
-            var startConfig = cpcBasic.config, externalConfig = cpcconfig_1.cpcconfig || {}; // external config from cpcconfig.js
-            Object.assign(startConfig, externalConfig);
+            var startConfig = cpcBasic.config, winCpcConfig = window.cpcConfig || {};
+            Object.assign(startConfig, cpcconfig_1.cpcconfig, winCpcConfig);
             cpcBasic.model = new Model_1.Model(startConfig);
             // eslint-disable-next-line no-new-func
             var myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(); // for old IE

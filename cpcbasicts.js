@@ -2658,12 +2658,12 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             log10: "f n",
             lower$: "f s",
             mask: "c n0? n?",
-            max: "f n *",
+            max: "f a *",
             memory: "c n",
             merge: "c s",
             mid$: "f s n n?",
             mid$Assign: "f s n n?",
-            min: "f n *",
+            min: "f a *",
             mod: "o",
             mode: "c n",
             move: "c n n n0? n?",
@@ -5250,11 +5250,22 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             if (CodeGeneratorJs.fnIsInString(" asc cint derr eof erl err fix fre inkey inp instr int joy len memory peek pos remain sgn sq test testr unt vpos xpos ypos ", typeWithSpaces)) {
                 node.pt = "I";
             }
-            else if (CodeGeneratorJs.fnIsInString(" abs atn cos creal exp log log10 max min pi rnd round sin sqr tan time val ", typeWithSpaces)) {
+            else if (CodeGeneratorJs.fnIsInString(" abs atn cos creal exp log log10 pi rnd round sin sqr tan time val ", typeWithSpaces)) {
                 node.pt = "R";
             }
             else if (CodeGeneratorJs.fnIsInString(" bin$ chr$ copychr$ dec$ hex$ inkey$ left$ lower$ mid$ right$ space$ str$ string$ upper$ ", typeWithSpaces)) {
                 node.pt = "$";
+            }
+            // Note: min and max usually return a number, but for a single string argument also the string!
+            if (node.type === "min" || node.type === "max") {
+                if (node.args.length === 1) {
+                    if (node.args[0].type === "$") {
+                        node.pt = "$";
+                    }
+                }
+                else if (node.args.length > 1) {
+                    node.pt = "R";
+                }
             }
         };
         CodeGeneratorJs.prototype.parseNode = function (node) {
@@ -16973,8 +16984,9 @@ define("cpcconfig", ["require", "exports"], function (require, exports) {
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.cpcconfig = void 0;
     exports.cpcconfig = {
-        //databaseDirs: "../../CPCBasic/examples,../../CPCBasicApps/apps,./examplesTS,storage" // local test
-        databaseDirs: "https://benchmarko.github.io/CPCBasic/examples,https://benchmarko.github.io/CPCBasicApps/apps,./examplesTS,storage"
+        databaseDirs: "./examples,https://benchmarko.github.io/CPCBasicApps/apps,storage"
+        //databaseDirs: "./examples,../../CPCBasicApps/apps,storage" // local test
+        //databaseDirs: "../apps,storage"
     };
 });
 // cpcbasic.ts - CPCBasic for the Browser
@@ -17101,8 +17113,8 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             };
         };
         cpcBasic.fnDoStart = function () {
-            var startConfig = cpcBasic.config, externalConfig = cpcconfig_1.cpcconfig || {}; // external config from cpcconfig.js
-            Object.assign(startConfig, externalConfig);
+            var startConfig = cpcBasic.config, winCpcConfig = window.cpcConfig || {};
+            Object.assign(startConfig, cpcconfig_1.cpcconfig, winCpcConfig);
             cpcBasic.model = new Model_1.Model(startConfig);
             // eslint-disable-next-line no-new-func
             var myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(); // for old IE
