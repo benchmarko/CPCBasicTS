@@ -5,7 +5,7 @@ BASIC programs are compiled to JavaScript so that it can be run in the browser. 
 
 CPCBasicTS Links:
 [CPCBasicTS Demo](https://benchmarko.github.io/CPCBasicTS/?example=cpcbasic),
-[Colors CPC Demo](https://benchmarko.github.io/CPCBasicTS/?example=demo/colors),
+[Colors CPC Demo](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=test/colors),
 [Source code](https://github.com/benchmarko/CPCBasicTS/),
 [HTML Readme](https://github.com/benchmarko/CPCBasicTS/#readme),
 
@@ -22,14 +22,14 @@ CPCBasicTS is based on the JavaScript version [CPCBasic](https://github.com/benc
 - Runs locally without installation and without a server, even on mobile devices
 - HTML5 / TypeScript / JavaScript without external libraries
 
-[![A sample with cpcbasic](https://benchmarko.github.io/CPCBasic/img/cpcbasic.gif)](https://benchmarko.github.io/CPCBasicTS/?example=cpcbasic)
+[![A sample with cpcbasic](https://benchmarko.github.io/CPCBasicTS/img/cpcbasic.gif)](https://benchmarko.github.io/CPCBasicTS/?example=cpcbasic)
 
-[![Art](https://benchmarko.github.io/CPCBasic/img/art.png)](https://benchmarko.github.io/CPCBasicTS/?example=art)
-[![Graphics](https://benchmarko.github.io/CPCBasic/img/graphics.png)](https://benchmarko.github.io/CPCBasicTS/?example=demo/graphics)
-[![Labyrinth](https://benchmarko.github.io/CPCBasic/img/labyrinth.png)](https://benchmarko.github.io/CPCBasicTS/?example=labyrinth)
-[![Landscape](https://benchmarko.github.io/CPCBasic/img/landscape.png)](https://benchmarko.github.io/CPCBasicTS/?example=landscape)
+[![Art](https://benchmarko.github.io/CPCBasicTS/img/art.png)](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=test/art)
+[![Graphics](https://benchmarko.github.io/CPCBasicTS/img/graphics.png)](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=test/graphics)
+[![Labyrinth](https://benchmarko.github.io/CPCBasicTS/img/labyrinth.png)](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=labyrinth)
+[![Landscape](https://benchmarko.github.io/CPCBasicTS/img/landscape.png)](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=landscape)
 
-More examples are in the sample library [CPCBasicApps](https://github.com/benchmarko/CPCBasicApps/#readme). They are included in CPCBasicTS as *apps*. Example: [10print](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=demo/10print).
+More examples are in the sample library [CPCBasicApps](https://benchmarko.github.io/CPCBasicApps/), [CPCBasicApps source](https://github.com/benchmarko/CPCBasicApps/#readme). They are included in CPCBasicTS as *apps*. Example: [10print](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=demo/10print).
 
 ## Why CPCBasic
 
@@ -64,7 +64,7 @@ With CPC Basic we do not get that accuracy. But if we compile it to JavaScript, 
   - The **Sound** button activates or deactivates sound.
     - If you start the app or use the *Reload* button with the sound enabled, the sound needs to be activated by a user action, e.g. a click anywhere. This is a browser limitation.
 - The *Text View* window shows the text which is written in text mode.
-- The *Keyboard* window shows a virtual keyboard which can be also used with touch devices. You can test the functionality with the test program [keyboard](https://benchmarko.github.io/CPCBasicTS/?example=test/keyboard&showKbd=true).
+- The *Keyboard* window shows a virtual keyboard which can be also used with touch devices. You can test the functionality with the test program [keyboard](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=test/keyboard&showKbd=true).
 - The *Keyboard Layout* window allows you to change the layout of the keyboard.
 - The *Input* window is an alternative way to send input to the CPC.
 - The *Console* window shows the textual output. This is useful for copying and pasting the output. It is cleared when the CPC screen is cleared (*MODE* or *CLS*).
@@ -83,10 +83,10 @@ With CPC Basic we do not get that accuracy. But if we compile it to JavaScript, 
   The next *INKEY$* will return it. This could be useful to select options presented on the screen.
   Another feature: After a MOVE 1000,1000, a mouse click does a *MOVE* at the click position.
   This can be detected by a BASIC program.
-  Example: [Mouse Painting](https://benchmarko.github.io/CPCBasicTS/?example=test/mousepa)
+  Example: [Mouse Painting](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=test/mousepa)
 - *MODE 3*: High resolution mode with real 640x400 pixels, 16 colors and 8x8 pixels per character.
   This is different to the unofficial and not very useful Gate Array mode 3 on a real CPC: [CPC live: Graphics](http://cpctech.cpc-live.com/docs/graphics.html).
-Several examples use CPCBasicTS mode 3 when available, e.g. [Art](https://benchmarko.github.io/CPCBasicTS/?example=art), [Landscape](https://benchmarko.github.io/CPCBasicTS/?example=landscape), [Rectangles](https://benchmarko.github.io/CPCBasicTS/?example=test/rectangles).
+Several examples use CPCBasicTS mode 3 when available, e.g. [Art](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=test/art), [Landscape](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=test/landscape), [Rectangles](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=test/rectangles).
 - *|MODE,n*: Change mode without *CLS*, including mode 3.
 - *|RENUM,...*: similar to *RENUM* but with a 4th parameter to keep line numbers starting with this line
 - Integer computations are not limited to 16 bit but use 32 bit.
@@ -137,6 +137,7 @@ Did you know?
 - When you use float parameters where integer parameters are expected they are automatically rounded, e.g. `MODE 1.5` sets MODE 2. This works also for array indices, e.g.
 `a(3.2)=3:a(3.5)=4:?a(2.5);a(4.4)` returns 3 and 4.
 - Variables typed with DEFINT, DEFREAL or DEFSTR are aliases for those with a type extension, e.g. `DEFINT a: a=1: a%=2: ?a;a%` returns 2 and 2 (currently not for CPCBasic).
+- *MIN* and *MAX* do not only accept numbers as arguments but also a single string argument which they will return, e.g. `MIN("ab");MAX("cd")` return "ab" and "cd".
 - Tokenized BASIC contains a lot of spaces which can be squeezed out and visualized by colons and the end of the line. Put this code fragment at the end of the program and run it: `a=&170:WHILE PEEK(a)<>0:e=a+PEEK(a):FOR i=a TO e-2:POKE a,PEEK(i):a=a+ABS(PEEK(i)<>&20):NEXT:FOR i=a TO e-2:POKE i,&01:NEXT:a=e:?:WEND` . This simple version expects lines not longer than 255 characters or tokens and will also modify strings and comments (currently not for CPCBasic).
 - *ELSE* as command without preceding *IF* is similar to a comment
 

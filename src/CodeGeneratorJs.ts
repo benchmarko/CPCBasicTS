@@ -1453,10 +1453,21 @@ export class CodeGeneratorJs {
 
 		if (CodeGeneratorJs.fnIsInString(" asc cint derr eof erl err fix fre inkey inp instr int joy len memory peek pos remain sgn sq test testr unt vpos xpos ypos ", typeWithSpaces)) {
 			node.pt = "I";
-		} else if (CodeGeneratorJs.fnIsInString(" abs atn cos creal exp log log10 max min pi rnd round sin sqr tan time val ", typeWithSpaces)) {
+		} else if (CodeGeneratorJs.fnIsInString(" abs atn cos creal exp log log10 pi rnd round sin sqr tan time val ", typeWithSpaces)) {
 			node.pt = "R";
 		} else if (CodeGeneratorJs.fnIsInString(" bin$ chr$ copychr$ dec$ hex$ inkey$ left$ lower$ mid$ right$ space$ str$ string$ upper$ ", typeWithSpaces)) {
 			node.pt = "$";
+		}
+
+		// Note: min and max usually return a number, but for a single string argument also the string!
+		if (node.type === "min" || node.type === "max") {
+			if (node.args.length === 1) {
+				if (node.args[0].type === "$") {
+					node.pt = "$";
+				}
+			} else if (node.args.length > 1) {
+				node.pt = "R";
+			}
 		}
 	}
 

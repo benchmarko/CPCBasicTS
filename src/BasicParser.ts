@@ -199,12 +199,12 @@ export class BasicParser {
 		log10: "f n", // LOG10(<numeric expression>)
 		lower$: "f s", // LOWER$(<string expression>)
 		mask: "c n0? n?", // MASK [<integer expression>][,<first point setting>]  / (either of the parameters may be omitted, but not both)
-		max: "f n *", // MAX(<list of: numeric expression>)
+		max: "f a *", // MAX(<list of: numeric expression> | <one number of string>)
 		memory: "c n", // MEMORY <address expression>
 		merge: "c s", // MERGE <filename>
 		mid$: "f s n n?", // MID$(<string expression>,<start position>[,<sub-string length>])  / (start position=1..255, sub-string length=0..255)
 		mid$Assign: "f s n n?", // MID$(<string variable>,<insertion point>[,<new string length>])=<new string expression>  / (mid$ as assign)
-		min: "f n *", // MIN(<list of: numeric expression>)
+		min: "f a *", // MIN(<list of: numeric expression> | <one number of string>)
 		mod: "o", // <argument> MOD <argument>
 		mode: "c n", // MODE <integer expression>
 		move: "c n n n0? n?", // MOVE <x coordinate>,<y coordinate>[,[<ink>][,<ink mode>]]
