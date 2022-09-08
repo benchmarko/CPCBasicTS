@@ -19,6 +19,9 @@ define(["require", "exports"], function (require, exports) {
         Variables.prototype.getAllVariables = function () {
             return this.variables;
         };
+        Variables.prototype.getAllVarTypes = function () {
+            return this.varTypes;
+        };
         Variables.prototype.createNDimArray = function (dims, initVal) {
             var fnCreateRec = function (index) {
                 var len = dims[index], arr = new Array(len);
@@ -38,16 +41,25 @@ define(["require", "exports"], function (require, exports) {
             return ret;
         };
         // determine static varType (first letter + optional fixed vartype) from a variable name
-        // format: (v.)(_)<sname>(I|R|$)(A*[...]([...])) with optional parts in ()
+        //TODO remove comment format: (v.)(_)<sname>(I|R|$)(A*[...]([...])) with optional parts in ()
+        // format: (v.|v["])(_)<sname>(A*)(I|R|$)([...]([...])) with optional parts in ()
         Variables.prototype.determineStaticVarType = function (name) {
             if (name.indexOf("v.") === 0) { // preceding variable object?
                 name = name.substr(2); // remove preceding "v."
+            }
+            if (name.indexOf('v["') === 0) { // preceding variable object?
+                name = name.substr(3); // remove preceding 'v["'
             }
             var nameType = name.charAt(0); // take first character to determine variable type later
             if (nameType === "_") { // ignore underscore (do not clash with keywords)
                 nameType = name.charAt(1);
             }
-            var arrayPos = name.indexOf("A"), typePos = arrayPos >= 0 ? arrayPos - 1 : name.length - 1, typeChar = name.charAt(typePos); // check last character before array
+            var bracketPos = name.indexOf("["), typePos = bracketPos >= 0 ? bracketPos - 1 : name.length - 1, typeChar = name.charAt(typePos); // check character before array bracket
+            /*
+            const arrayPos = name.indexOf("A"), //name.indexOf("A"),
+                typePos = arrayPos >= 0 ? arrayPos - 1 : name.length - 1,
+                typeChar = name.charAt(typePos); // check last character before array
+            */
             if (typeChar === "I" || typeChar === "R" || typeChar === "$") { // explicit type specified?
                 nameType += typeChar;
             }

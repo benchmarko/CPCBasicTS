@@ -386,12 +386,15 @@ declare module "CodeGeneratorBasic" {
 declare module "Variables" {
     export type VariableValue = string | number | Function | [] | VariableValue[];
     export type VariableMap = Record<string, VariableValue>;
+    export type VarTypes = "I" | "R" | "$";
+    export type VariableTypeMap = Record<string, VarTypes>;
     export class Variables {
         private variables;
         private varTypes;
         constructor();
         removeAllVariables(): void;
         getAllVariables(): VariableMap;
+        getAllVarTypes(): VariableTypeMap;
         private createNDimArray;
         determineStaticVarType(name: string): string;
         private getVarDefault;
@@ -404,8 +407,8 @@ declare module "Variables" {
         setVariable(name: string, value: VariableValue): void;
         getVariableByIndex(index: number): VariableValue;
         variableExist(name: string): boolean;
-        getVarType(varChar: string): string;
-        setVarType(varChar: string, type: string): void;
+        getVarType(varChar: string): VarTypes;
+        setVarType(varChar: string, type: VarTypes): void;
     }
 }
 declare module "CodeGeneratorJs" {
@@ -451,11 +454,14 @@ declare module "CodeGeneratorJs" {
         private composeError;
         private static createJsKeywordRegex;
         private fnDeclareVariable;
+        private static varTypeMap;
         private fnAdaptVariableName;
         private fnParseOneArg;
         private fnParseArgRange;
         private fnParseArgs;
         private fnDetermineStaticVarType;
+        private static fnExtractVarName;
+        private static fnGetNameTypeExpression;
         private static fnIsIntConst;
         private static fnGetRoundString;
         private static fnIsInString;
@@ -1259,7 +1265,7 @@ declare module "CpcVm" {
     import { Sound, SoundData } from "Sound";
     import { Canvas } from "Canvas";
     import { TextCanvas } from "TextCanvas";
-    import { Variables, VariableMap } from "Variables";
+    import { Variables, VariableMap, VariableTypeMap } from "Variables";
     import { ICpcVmRsx } from "Interfaces";
     export interface CpcVmOptions {
         canvas: Canvas;
@@ -1443,6 +1449,7 @@ declare module "CpcVm" {
         private vmResetInks;
         vmReset4Run(): void;
         vmGetAllVariables(): VariableMap;
+        vmGetAllVarTypes(): VariableTypeMap;
         vmSetStartLine(line: number): void;
         vmSetLabels(labels: string[]): void;
         vmOnBreakContSet(): boolean;
@@ -1467,7 +1474,6 @@ declare module "CpcVm" {
         private vmCheckNextFrame;
         vmGetTimeUntilFrame(time?: number): number;
         vmLoopCondition(): boolean;
-        private vmInitUntypedVariables;
         private vmDefineVarTypes;
         vmStop(reason: string, priority: number, force?: boolean, paras?: VmStopParas): void;
         vmNotImplemented(name: string): void;

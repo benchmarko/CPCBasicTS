@@ -9,7 +9,7 @@ import { Random } from "./Random";
 import { Sound, SoundData, ToneEnvData, VolEnvData } from "./Sound";
 import { Canvas } from "./Canvas";
 import { TextCanvas } from "./TextCanvas";
-import { Variables, VariableMap } from "./Variables";
+import { Variables, VariableMap, VarTypes, VariableTypeMap } from "./Variables";
 import { ICpcVmRsx } from "./Interfaces";
 
 export interface CpcVmOptions {
@@ -657,6 +657,10 @@ export class CpcVm {
 		return this.variables.getAllVariables();
 	}
 
+	vmGetAllVarTypes(): VariableTypeMap { // also called from JS script
+		return this.variables.getAllVarTypes();
+	}
+
 	vmSetStartLine(line: number): void {
 		this.startLine = line;
 	}
@@ -938,6 +942,7 @@ export class CpcVm {
 		return this.stopEntry.reason === "";
 	}
 
+	/*
 	private vmInitUntypedVariables(varChar: string) {
 		const names = this.variables.getAllVariableNames();
 
@@ -945,14 +950,18 @@ export class CpcVm {
 			const name = names[i];
 
 			if (name.charAt(0) === varChar) {
-				if (name.indexOf("$") === -1 && name.indexOf("%") === -1 && name.indexOf("!") === -1) { // no explicit type?
+				const lastChar = name.charAt(name.length - 1);
+
+				//if (name.indexOf("I") === -1 && name.indexOf("R") === -1 && name.indexOf("$") === -1) { // no explicit type?
+				if (lastChar !== "I" && lastChar !== "R" && lastChar !== "$") { // no explicit type?
 					this.variables.initVariable(name);
 				}
 			}
 		}
 	}
+	*/
 
-	private vmDefineVarTypes(type: string, err: string, first: string, last?: string) {
+	private vmDefineVarTypes(type: VarTypes, err: string, first: string, last?: string) {
 		const firstNum = this.vmGetLetterCode(first, err),
 			lastNum = last ? this.vmGetLetterCode(last, err) : firstNum;
 
@@ -962,7 +971,7 @@ export class CpcVm {
 			if (this.variables.getVarType(varChar) !== type) { // type changed?
 				this.variables.setVarType(varChar, type);
 				// initialize all untyped variables starting with varChar!
-				this.vmInitUntypedVariables(varChar);
+				//this.vmInitUntypedVariables(varChar);
 			}
 		}
 	}
@@ -1184,6 +1193,7 @@ export class CpcVm {
 	addressOf(variable: string): number { // addressOf operator
 		// not really implemented
 		this.vmAssertString(variable, "@");
+		/*
 		variable = variable.replace("v.", "");
 		variable = variable.replace("[", "(");
 
@@ -1192,6 +1202,7 @@ export class CpcVm {
 		if (pos >= 0) {
 			variable = variable.substr(0, pos); // remove indices
 		}
+		*/
 
 		const varIndex = this.variables.getVariableIndex(variable);
 

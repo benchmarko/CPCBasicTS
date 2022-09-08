@@ -291,19 +291,27 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
                     fnDataLoaded(err);
                 });
             }
+            var modulePath;
             function nodeReadFile(name, fnDataLoaded) {
                 if (!fs) {
                     fnEval('fs = require("fs");'); // to trick TypeScript
                 }
                 if (!module) {
                     fnEval('module = require("module");'); // to trick TypeScript
+                    modulePath = module.path || "";
+                    if (!modulePath) {
+                        Utils_1.Utils.console.warn("nodeReadFile: Cannot determine module path");
+                    }
                 }
-                var name2 = module.path + "/" + name;
+                var name2 = modulePath ? modulePath + "/" + name : name;
                 fs.readFile(name2, "utf8", fnDataLoaded);
             }
             var utils = nodeExports.Utils;
             utils.loadScript = function (fileOrUrl, fnSuccess, _fnError, key) {
-                var fnLoaded = function (_error, data) {
+                var fnLoaded = function (error, data) {
+                    if (error) {
+                        Utils_1.Utils.console.error("file error: ", error);
+                    }
                     if (data) {
                         fnEval(data); // load js (for nodeJs)
                     }

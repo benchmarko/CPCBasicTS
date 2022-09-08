@@ -1,11 +1,14 @@
 export declare type VariableValue = string | number | Function | [] | VariableValue[];
 export declare type VariableMap = Record<string, VariableValue>;
+export declare type VarTypes = "I" | "R" | "$";
+export declare type VariableTypeMap = Record<string, VarTypes>;
 export declare class Variables {
     private variables;
     private varTypes;
     constructor();
     removeAllVariables(): void;
     getAllVariables(): VariableMap;
+    getAllVarTypes(): VariableTypeMap;
     private createNDimArray;
     determineStaticVarType(name: string): string;
     private getVarDefault;
@@ -18,7 +21,7 @@ export declare class Variables {
     setVariable(name: string, value: VariableValue): void;
     getVariableByIndex(index: number): VariableValue;
     variableExist(name: string): boolean;
-    getVarType(varChar: string): string;
-    setVarType(varChar: string, type: string): void;
+    getVarType(varChar: string): VarTypes;
+    setVarType(varChar: string, type: VarTypes): void;
 }
 //# sourceMappingURL=Variables.d.ts.map

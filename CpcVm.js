@@ -260,6 +260,9 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         CpcVm.prototype.vmGetAllVariables = function () {
             return this.variables.getAllVariables();
         };
+        CpcVm.prototype.vmGetAllVarTypes = function () {
+            return this.variables.getAllVarTypes();
+        };
         CpcVm.prototype.vmSetStartLine = function (line) {
             this.startLine = line;
         };
@@ -503,17 +506,24 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             }
             return this.stopEntry.reason === "";
         };
-        CpcVm.prototype.vmInitUntypedVariables = function (varChar) {
-            var names = this.variables.getAllVariableNames();
-            for (var i = 0; i < names.length; i += 1) {
-                var name_1 = names[i];
-                if (name_1.charAt(0) === varChar) {
-                    if (name_1.indexOf("$") === -1 && name_1.indexOf("%") === -1 && name_1.indexOf("!") === -1) { // no explicit type?
-                        this.variables.initVariable(name_1);
+        /*
+        private vmInitUntypedVariables(varChar: string) {
+            const names = this.variables.getAllVariableNames();
+    
+            for (let i = 0; i < names.length; i += 1) {
+                const name = names[i];
+    
+                if (name.charAt(0) === varChar) {
+                    const lastChar = name.charAt(name.length - 1);
+    
+                    //if (name.indexOf("I") === -1 && name.indexOf("R") === -1 && name.indexOf("$") === -1) { // no explicit type?
+                    if (lastChar !== "I" && lastChar !== "R" && lastChar !== "$") { // no explicit type?
+                        this.variables.initVariable(name);
                     }
                 }
             }
-        };
+        }
+        */
         CpcVm.prototype.vmDefineVarTypes = function (type, err, first, last) {
             var firstNum = this.vmGetLetterCode(first, err), lastNum = last ? this.vmGetLetterCode(last, err) : firstNum;
             for (var i = firstNum; i <= lastNum; i += 1) {
@@ -521,7 +531,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                 if (this.variables.getVarType(varChar) !== type) { // type changed?
                     this.variables.setVarType(varChar, type);
                     // initialize all untyped variables starting with varChar!
-                    this.vmInitUntypedVariables(varChar);
+                    //this.vmInitUntypedVariables(varChar);
                 }
             }
         };
@@ -699,12 +709,16 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         CpcVm.prototype.addressOf = function (variable) {
             // not really implemented
             this.vmAssertString(variable, "@");
+            /*
             variable = variable.replace("v.", "");
             variable = variable.replace("[", "(");
-            var pos = variable.indexOf("("); // array variable with indices?
+    
+            const pos = variable.indexOf("("); // array variable with indices?
+    
             if (pos >= 0) {
                 variable = variable.substr(0, pos); // remove indices
             }
+            */
             var varIndex = this.variables.getVariableIndex(variable);
             if (varIndex < 0) {
                 throw this.vmComposeError(Error(), 5, "@" + variable); // Improper argument
@@ -1358,9 +1372,9 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             }
             for (var i = 0; i < args.length; i += 1) {
                 this.vmAssertString(args[i], "ERASE");
-                var name_2 = this.vmFindArrayVariable(args[i]);
-                if (name_2) {
-                    this.variables.initVariable(name_2);
+                var name_1 = this.vmFindArrayVariable(args[i]);
+                if (name_1) {
+                    this.variables.initVariable(name_1);
                 }
                 else {
                     if (!this.quiet) {
@@ -2850,11 +2864,11 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         CpcVm.prototype.run = function (numOrString) {
             var inFile = this.inFile;
             if (typeof numOrString === "string") { // filename?
-                var name_3 = this.vmAdaptFilename(numOrString, "RUN");
+                var name_2 = this.vmAdaptFilename(numOrString, "RUN");
                 this.closein();
                 inFile.open = true;
                 inFile.command = "run";
-                inFile.name = name_3;
+                inFile.name = name_2;
                 inFile.fnFileCallback = this.fnRunHandler;
                 this.vmStop("fileLoad", 90);
             }

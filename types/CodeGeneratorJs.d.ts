@@ -40,11 +40,14 @@ export declare class CodeGeneratorJs {
     private composeError;
     private static createJsKeywordRegex;
     private fnDeclareVariable;
+    private static varTypeMap;
     private fnAdaptVariableName;
     private fnParseOneArg;
     private fnParseArgRange;
     private fnParseArgs;
     private fnDetermineStaticVarType;
+    private static fnExtractVarName;
+    private static fnGetNameTypeExpression;
     private static fnIsIntConst;
     private static fnGetRoundString;
     private static fnIsInString;

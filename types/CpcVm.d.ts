@@ -3,7 +3,7 @@ import { Keyboard } from "./Keyboard";
 import { Sound, SoundData } from "./Sound";
 import { Canvas } from "./Canvas";
 import { TextCanvas } from "./TextCanvas";
-import { Variables, VariableMap } from "./Variables";
+import { Variables, VariableMap, VariableTypeMap } from "./Variables";
 import { ICpcVmRsx } from "./Interfaces";
 export interface CpcVmOptions {
     canvas: Canvas;
@@ -187,6 +187,7 @@ export declare class CpcVm {
     private vmResetInks;
     vmReset4Run(): void;
     vmGetAllVariables(): VariableMap;
+    vmGetAllVarTypes(): VariableTypeMap;
     vmSetStartLine(line: number): void;
     vmSetLabels(labels: string[]): void;
     vmOnBreakContSet(): boolean;
@@ -211,7 +212,6 @@ export declare class CpcVm {
     private vmCheckNextFrame;
     vmGetTimeUntilFrame(time?: number): number;
     vmLoopCondition(): boolean;
-    private vmInitUntypedVariables;
     private vmDefineVarTypes;
     vmStop(reason: string, priority: number, force?: boolean, paras?: VmStopParas): void;
     vmNotImplemented(name: string): void;

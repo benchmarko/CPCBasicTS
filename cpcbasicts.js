@@ -4043,6 +4043,9 @@ define("Variables", ["require", "exports"], function (require, exports) {
         Variables.prototype.getAllVariables = function () {
             return this.variables;
         };
+        Variables.prototype.getAllVarTypes = function () {
+            return this.varTypes;
+        };
         Variables.prototype.createNDimArray = function (dims, initVal) {
             var fnCreateRec = function (index) {
                 var len = dims[index], arr = new Array(len);
@@ -4062,16 +4065,25 @@ define("Variables", ["require", "exports"], function (require, exports) {
             return ret;
         };
         // determine static varType (first letter + optional fixed vartype) from a variable name
-        // format: (v.)(_)<sname>(I|R|$)(A*[...]([...])) with optional parts in ()
+        //TODO remove comment format: (v.)(_)<sname>(I|R|$)(A*[...]([...])) with optional parts in ()
+        // format: (v.|v["])(_)<sname>(A*)(I|R|$)([...]([...])) with optional parts in ()
         Variables.prototype.determineStaticVarType = function (name) {
             if (name.indexOf("v.") === 0) { // preceding variable object?
                 name = name.substr(2); // remove preceding "v."
+            }
+            if (name.indexOf('v["') === 0) { // preceding variable object?
+                name = name.substr(3); // remove preceding 'v["'
             }
             var nameType = name.charAt(0); // take first character to determine variable type later
             if (nameType === "_") { // ignore underscore (do not clash with keywords)
                 nameType = name.charAt(1);
             }
-            var arrayPos = name.indexOf("A"), typePos = arrayPos >= 0 ? arrayPos - 1 : name.length - 1, typeChar = name.charAt(typePos); // check last character before array
+            var bracketPos = name.indexOf("["), typePos = bracketPos >= 0 ? bracketPos - 1 : name.length - 1, typeChar = name.charAt(typePos); // check character before array bracket
+            /*
+            const arrayPos = name.indexOf("A"), //name.indexOf("A"),
+                typePos = arrayPos >= 0 ? arrayPos - 1 : name.length - 1,
+                typeChar = name.charAt(typePos); // check last character before array
+            */
             if (typeChar === "I" || typeChar === "R" || typeChar === "$") { // explicit type specified?
                 nameType += typeChar;
             }
@@ -4321,7 +4333,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 this.variables.initVariable(name);
             }
         };
-        CodeGeneratorJs.prototype.fnAdaptVariableName = function (name, arrayIndices) {
+        CodeGeneratorJs.prototype.fnAdaptVariableName = function (node, name, arrayIndices) {
             var defScopeArgs = this.defScopeArgs;
             name = name.toLowerCase().replace(/\./g, "_");
             if (defScopeArgs || !Utils_7.Utils.supportReservedNames) { // avoid keywords as def fn parameters; and for IE8 avoid keywords in dot notation
@@ -4329,31 +4341,62 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                     name = "_" + name; // prepend underscore
                 }
             }
+            /*
             if (name.endsWith("!")) { // real number?
                 name = name.slice(0, -1) + "R"; // "!" => "R"
-            }
-            else if (name.endsWith("%")) { // integer number?
+            } else if (name.endsWith("%")) { // integer number?
                 name = name.slice(0, -1) + "I";
             }
-            if (arrayIndices) {
-                name += "A".repeat(arrayIndices);
+            */
+            var mappedTypeChar = CodeGeneratorJs.varTypeMap[name.charAt(name.length - 1)] || ""; // map last char
+            if (mappedTypeChar) {
+                name = name.slice(0, -1); // remove type char
+                node.pt = name.charAt(name.length - 1); // set also type; TODO currently not used
             }
+            if (arrayIndices) {
+                name += "A".repeat(arrayIndices); //TODO: one "A" should be enough
+            }
+            name += mappedTypeChar; // put type at the end
+            var needDeclare = false;
             if (defScopeArgs) {
-                if (name === "o") { // we must not use format parameter "o" since this is our vm object
-                    name = "no"; // change variable name to something we cannot set in BASIC
+                if (name === "o" || name === "t" || name === "v") { // we must not use formal parameter "o", "t", "v", since we use them already
+                    name = "N" + name; // change variable name to something we cannot set in BASIC
                 }
                 if (!defScopeArgs.collectDone) { // in collection mode?
                     defScopeArgs[name] = true; // declare DEF scope variable
                 }
                 else if (!(name in defScopeArgs)) {
+                    needDeclare = true;
+                    /*
                     // variable
-                    this.fnDeclareVariable(name);
-                    name = "v." + name; // access with "v."
+                    if (mappedTypeChar) {
+                        this.fnDeclareVariable(name);
+                        name = "v." + name; // access with "v."
+                    } else {
+                        // we do not know which one we will need, so declare for all types
+                        this.fnDeclareVariable(name + "I");
+                        this.fnDeclareVariable(name + "R");
+                        this.fnDeclareVariable(name + "S");
+                        name = 'v["' + name + '" + t.' + name.charAt(0) + "]";
+                    }
+                    */
                 }
             }
             else {
-                this.fnDeclareVariable(name);
-                name = "v." + name; // access with "v."
+                needDeclare = true;
+            }
+            if (needDeclare) {
+                if (mappedTypeChar) {
+                    this.fnDeclareVariable(name);
+                    name = "v." + name; // access with "v."
+                }
+                else {
+                    // we do not know which one we will need, so declare for all types
+                    this.fnDeclareVariable(name + "I");
+                    this.fnDeclareVariable(name + "R");
+                    this.fnDeclareVariable(name + "$");
+                    name = 'v["' + name + '" + t.' + name.charAt(0) + "]";
+                }
             }
             return name;
         };
@@ -4376,6 +4419,48 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
         };
         CodeGeneratorJs.prototype.fnDetermineStaticVarType = function (name) {
             return this.variables.determineStaticVarType(name);
+        };
+        CodeGeneratorJs.fnExtractVarName = function (name) {
+            if (name.indexOf("v.") === 0) { // variable object?
+                name = name.substr(2); // remove preceding "v."
+                var bracketIndex = name.indexOf("[");
+                if (bracketIndex >= 0) {
+                    name = name.substr(0, bracketIndex);
+                }
+            }
+            if (name.indexOf('v["') === 0) { // variable object in brackets?
+                name = name.substr(3); // remove preceding 'v["'
+                var quotesIndex = name.indexOf('"');
+                name = name.substr(0, quotesIndex);
+            }
+            return name;
+        };
+        /*
+        private static fnRemoveVarStr(name: string) {
+            if (name.indexOf("v.") === 0) { // variable object?
+                name = name.substr(2); // remove preceding "v."
+            }
+            if (name.indexOf('v["') === 0) { // variable object in brackets?
+                name = name.substr(3); // remove preceding 'v["'
+            }
+            return name;
+        }
+        */
+        CodeGeneratorJs.fnGetNameTypeExpression = function (name) {
+            if (name.indexOf("v.") === 0) { // variable object with dot?
+                name = name.substr(2); // remove preceding "v."
+                var bracketIndex = name.indexOf("[");
+                if (bracketIndex >= 0) {
+                    name = name.substr(0, bracketIndex);
+                }
+                name = '"' + name + '"';
+            }
+            if (name.indexOf("v[") === 0) { // variable object with brackets?
+                name = name.substr(2); // remove preceding "v["
+                var closeBracketIndex = name.indexOf("]");
+                name = name.substr(0, closeBracketIndex);
+            }
+            return name;
         };
         CodeGeneratorJs.fnIsIntConst = function (a) {
             var reIntConst = /^[+-]?(\d+|0x[0-9a-f]+|0b[0-1]+)$/; // regex for integer, hex, binary constant
@@ -4520,10 +4605,27 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             node.pt = "I";
         };
         CodeGeneratorJs.prototype.addressOf = function (node, _oLeft, right) {
-            node.pv = 'o.addressOf("' + right.pv + '")'; // address of
             if (right.type !== "identifier") {
                 throw this.composeError(Error(), "Expected variable", node.value, node.pos);
             }
+            var name = CodeGeneratorJs.fnGetNameTypeExpression(right.pv);
+            //const name = CodeGeneratorJs.fnRemoveVarStr(right.pv);
+            /*
+            let name = right.pv;
+    
+            if (name.indexOf("v.") === 0) { // variable object with dot?
+                name = name.substr(2); // remove preceding "v."
+                name = '"' + name + '"';
+            }
+            if (name.indexOf("v[") === 0) { // variable object with brackets?
+                name = name.substr(2); // remove preceding "v["
+                const closeIndex = name.indexOf("]");
+    
+                name = name.substr(0, closeIndex);
+            }
+            */
+            // we want a name, for arrays with "A"'s but without array indices
+            node.pv = "o.addressOf(" + name + ")"; // address of
             node.pt = "I";
         };
         CodeGeneratorJs.stream = function (node, _oLeft, right) {
@@ -4634,7 +4736,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
         };
         CodeGeneratorJs.prototype.identifier = function (node) {
             var nodeArgs = node.args ? this.fnParseArgRange(node.args, 1, node.args.length - 2) : [], // array: we skip open and close bracket
-            name = this.fnAdaptVariableName(node.value, nodeArgs.length); // here we use node.value;
+            name = this.fnAdaptVariableName(node, node.value, nodeArgs.length); // here we use node.value;
             var indices = "";
             for (var i = 0; i < nodeArgs.length; i += 1) { // array indices
                 var arg = node.args[i + 1], // +1 because of opening braket
@@ -4828,12 +4930,20 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                     throw this.composeError(Error(), "Programming error: Undefined args", nodeArg.type, nodeArg.pos); // should not occur
                 }
                 var nodeArgs = this.fnParseArgRange(nodeArg.args, 1, nodeArg.args.length - 2), // we skip open and close bracket
-                fullExpression = this.fnParseOneArg(nodeArg);
-                var name_3 = fullExpression;
-                name_3 = name_3.substr(2); // remove preceding "v."
-                var index = name_3.indexOf("["); // we should always have it
-                name_3 = name_3.substr(0, index);
-                args.push("/* " + fullExpression + " = */ o.dim(\"" + name_3 + "\", " + nodeArgs.join(", ") + ")");
+                fullExpression = this.fnParseOneArg(nodeArg), name_3 = CodeGeneratorJs.fnGetNameTypeExpression(fullExpression);
+                //varType = this.fnDetermineStaticVarType(fullExpression);
+                //name = CodeGeneratorJs.fnExtractVarName(fullExpression);
+                //name = nodeArg.value + "A".repeat(nodeArgs.length);
+                /*
+                let name = fullExpression;
+    
+                name = name.substr(2); // remove preceding "v."
+                const index = name.indexOf("["); // we should always have it
+    
+                name = name.substr(0, index);
+                */
+                nodeArgs.unshift(name_3); // put as first arg
+                args.push("/* " + fullExpression + " = */ o.dim(" + nodeArgs.join(", ") + ")");
             }
             node.pv = args.join("; ");
         };
@@ -4909,18 +5019,36 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 if (endNode.pt !== "I") {
                     endValue = "o.vmAssign(\"" + varType + "\", " + endValue + ")";
                 }
+                /*
                 endName = varName + "End";
-                var value2 = endName.substr(2); // remove preceding "v."
-                this.fnDeclareVariable(value2); // declare also end variable
+                const value2 = endName.substr(2); // remove preceding "v."
+                */
+                /*
+                endName = node.args[0].value + "End"; // variable name
+                this.fnDeclareVariable(endName); // declare also end variable
+                endName = "v." + endName;
+                */
+                endName = CodeGeneratorJs.fnExtractVarName(varName) + "End";
+                this.fnDeclareVariable(endName); // declare also end variable
+                endName = "v." + endName;
             }
             var stepName;
             if (!stepIsIntConst) {
                 if (stepNode && stepNode.pt !== "I") {
                     stepValue = "o.vmAssign(\"" + varType + "\", " + stepValue + ")";
                 }
+                /*
                 stepName = varName + "Step";
-                var value2 = stepName.substr(2); // remove preceding "v."
-                this.fnDeclareVariable(value2); // declare also step variable
+                const value2 = stepName.substr(2); // remove preceding "v."
+                */
+                /*
+                stepName = node.args[0].value + "Step"; // variable name
+                this.fnDeclareVariable(stepName); // declare also step variable
+                stepName = "v." + stepName;
+                */
+                stepName = CodeGeneratorJs.fnExtractVarName(varName) + "Step";
+                this.fnDeclareVariable(stepName); // declare also step variable
+                stepName = "v." + stepName;
             }
             var value = "/* for() */";
             if (type !== "I") {
@@ -5413,6 +5541,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 if (!this.noCodeFrame) {
                     output = '"use strict"\n'
                         + "var v=o.vmGetAllVariables();\n"
+                        + "var t=o.vmGetAllVarTypes();\n"
                         + "while (o.vmLoopCondition()) {\nswitch (o.line) {\ncase 0:\n"
                         + combinedData
                         + combinedLabels
@@ -5501,6 +5630,11 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             "instanceof",
             "synchronized"
         ];
+        CodeGeneratorJs.varTypeMap = {
+            "!": "R",
+            "%": "I",
+            $: "$" // or "S"?
+        };
         return CodeGeneratorJs;
     }());
     exports.CodeGeneratorJs = CodeGeneratorJs;
@@ -11560,6 +11694,9 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.vmGetAllVariables = function () {
             return this.variables.getAllVariables();
         };
+        CpcVm.prototype.vmGetAllVarTypes = function () {
+            return this.variables.getAllVarTypes();
+        };
         CpcVm.prototype.vmSetStartLine = function (line) {
             this.startLine = line;
         };
@@ -11803,17 +11940,24 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             }
             return this.stopEntry.reason === "";
         };
-        CpcVm.prototype.vmInitUntypedVariables = function (varChar) {
-            var names = this.variables.getAllVariableNames();
-            for (var i = 0; i < names.length; i += 1) {
-                var name_8 = names[i];
-                if (name_8.charAt(0) === varChar) {
-                    if (name_8.indexOf("$") === -1 && name_8.indexOf("%") === -1 && name_8.indexOf("!") === -1) { // no explicit type?
-                        this.variables.initVariable(name_8);
+        /*
+        private vmInitUntypedVariables(varChar: string) {
+            const names = this.variables.getAllVariableNames();
+    
+            for (let i = 0; i < names.length; i += 1) {
+                const name = names[i];
+    
+                if (name.charAt(0) === varChar) {
+                    const lastChar = name.charAt(name.length - 1);
+    
+                    //if (name.indexOf("I") === -1 && name.indexOf("R") === -1 && name.indexOf("$") === -1) { // no explicit type?
+                    if (lastChar !== "I" && lastChar !== "R" && lastChar !== "$") { // no explicit type?
+                        this.variables.initVariable(name);
                     }
                 }
             }
-        };
+        }
+        */
         CpcVm.prototype.vmDefineVarTypes = function (type, err, first, last) {
             var firstNum = this.vmGetLetterCode(first, err), lastNum = last ? this.vmGetLetterCode(last, err) : firstNum;
             for (var i = firstNum; i <= lastNum; i += 1) {
@@ -11821,7 +11965,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 if (this.variables.getVarType(varChar) !== type) { // type changed?
                     this.variables.setVarType(varChar, type);
                     // initialize all untyped variables starting with varChar!
-                    this.vmInitUntypedVariables(varChar);
+                    //this.vmInitUntypedVariables(varChar);
                 }
             }
         };
@@ -11999,12 +12143,16 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.addressOf = function (variable) {
             // not really implemented
             this.vmAssertString(variable, "@");
+            /*
             variable = variable.replace("v.", "");
             variable = variable.replace("[", "(");
-            var pos = variable.indexOf("("); // array variable with indices?
+    
+            const pos = variable.indexOf("("); // array variable with indices?
+    
             if (pos >= 0) {
                 variable = variable.substr(0, pos); // remove indices
             }
+            */
             var varIndex = this.variables.getVariableIndex(variable);
             if (varIndex < 0) {
                 throw this.vmComposeError(Error(), 5, "@" + variable); // Improper argument
@@ -12658,9 +12806,9 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             }
             for (var i = 0; i < args.length; i += 1) {
                 this.vmAssertString(args[i], "ERASE");
-                var name_9 = this.vmFindArrayVariable(args[i]);
-                if (name_9) {
-                    this.variables.initVariable(name_9);
+                var name_8 = this.vmFindArrayVariable(args[i]);
+                if (name_8) {
+                    this.variables.initVariable(name_8);
                 }
                 else {
                     if (!this.quiet) {
@@ -14150,11 +14298,11 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.run = function (numOrString) {
             var inFile = this.inFile;
             if (typeof numOrString === "string") { // filename?
-                var name_10 = this.vmAdaptFilename(numOrString, "RUN");
+                var name_9 = this.vmAdaptFilename(numOrString, "RUN");
                 this.closein();
                 inFile.open = true;
                 inFile.command = "run";
-                inFile.name = name_10;
+                inFile.name = name_9;
                 inFile.fnFileCallback = this.fnRunHandler;
                 this.vmStop("fileLoad", 90);
             }
@@ -15041,9 +15189,9 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.initDatabases = function () {
             var model = this.model, databases = {}, databaseDirs = model.getProperty("databaseDirs").split(",");
             for (var i = 0; i < databaseDirs.length; i += 1) {
-                var databaseDir = databaseDirs[i], parts = databaseDir.split("/"), name_11 = parts[parts.length - 1];
-                databases[name_11] = {
-                    text: name_11,
+                var databaseDir = databaseDirs[i], parts = databaseDir.split("/"), name_10 = parts[parts.length - 1];
+                databases[name_10] = {
+                    text: name_10,
                     title: databaseDir,
                     src: databaseDir
                 };
@@ -15572,17 +15720,17 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.vm.print(stream, fileMask + " not found\r\n");
             }
             for (var i = 0; i < dir.length; i += 1) {
-                var name_12 = dir[i];
-                if (storage.getItem(name_12) !== null) {
-                    storage.removeItem(name_12);
-                    this.updateStorageDatabase("remove", name_12);
+                var name_11 = dir[i];
+                if (storage.getItem(name_11) !== null) {
+                    storage.removeItem(name_11);
+                    this.updateStorageDatabase("remove", name_11);
                     if (Utils_22.Utils.debug > 0) {
-                        Utils_22.Utils.console.debug("fnEraseFile: name=" + name_12 + ": removed from localStorage");
+                        Utils_22.Utils.console.debug("fnEraseFile: name=" + name_11 + ": removed from localStorage");
                     }
                 }
                 else {
-                    this.vm.print(stream, name_12 + " not found\r\n");
-                    Utils_22.Utils.console.warn("fnEraseFile: file not found in localStorage:", name_12);
+                    this.vm.print(stream, name_11 + " not found\r\n");
+                    Utils_22.Utils.console.warn("fnEraseFile: file not found in localStorage:", name_11);
                 }
             }
             this.vm.vmStop("", 0, true);
@@ -15890,14 +16038,14 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     });
                     this.vm.vmStop("fileLoad", 90); // restore
                 }
-                var name_13 = inFile.name;
+                var name_12 = inFile.name;
                 if (Utils_22.Utils.debug > 1) {
-                    Utils_22.Utils.console.debug("fnFileLoad:", inFile.command, name_13, "details:", inFile);
+                    Utils_22.Utils.console.debug("fnFileLoad:", inFile.command, name_12, "details:", inFile);
                 }
-                var input = Controller.tryLoadingFromLocalStorage(name_13);
+                var input = Controller.tryLoadingFromLocalStorage(name_12);
                 if (input !== null) {
                     if (Utils_22.Utils.debug > 0) {
-                        Utils_22.Utils.console.debug("fnFileLoad:", inFile.command, name_13, "from localStorage");
+                        Utils_22.Utils.console.debug("fnFileLoad:", inFile.command, name_12, "from localStorage");
                     }
                     this.vm.vmStop("", 0, true);
                     this.loadFileContinue(input);
@@ -15952,14 +16100,14 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             var outFile = this.vm.vmGetOutFileObject(), storage = Utils_22.Utils.localStorage;
             var defaultExtension = "";
             if (outFile.open) {
-                var type = outFile.typeString, name_14 = outFile.name;
+                var type = outFile.typeString, name_13 = outFile.name;
                 if (type === "P" || type === "T") {
                     defaultExtension = "bas";
                 }
                 else if (type === "B") {
                     defaultExtension = "bin";
                 }
-                var storageName = Controller.fnLocalStorageName(name_14, defaultExtension);
+                var storageName = Controller.fnLocalStorageName(name_13, defaultExtension);
                 var fileData = void 0;
                 if (outFile.fileData.length || (type === "B") || (outFile.command === "openout")) { // type A(for openout) or B
                     fileData = outFile.fileData.join("");
@@ -15978,7 +16126,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     outFile.length = fileData.length; // set length
                 }
                 if (Utils_22.Utils.debug > 0) {
-                    Utils_22.Utils.console.debug("fnFileSave: name=" + name_14 + ": put into localStorage");
+                    Utils_22.Utils.console.debug("fnFileSave: name=" + name_13 + ": put into localStorage");
                 }
                 if (outFile.fnFileCallback) {
                     try {
@@ -17017,11 +17165,11 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
         // can be used for nodeJS
         cpcBasic.fnParseArgs = function (args, config) {
             for (var i = 0; i < args.length; i += 1) {
-                var nameValue = args[i], nameValueList = Utils_23.Utils.split2(nameValue, "="), name_15 = nameValueList[0];
-                if (config.hasOwnProperty(name_15)) {
+                var nameValue = args[i], nameValueList = Utils_23.Utils.split2(nameValue, "="), name_14 = nameValueList[0];
+                if (config.hasOwnProperty(name_14)) {
                     var value = nameValueList[1]; // string|number|boolean
-                    if (value !== undefined && config.hasOwnProperty(name_15)) {
-                        switch (typeof config[name_15]) {
+                    if (value !== undefined && config.hasOwnProperty(name_14)) {
+                        switch (typeof config[name_14]) {
                             case "string":
                                 break;
                             case "boolean":
@@ -17036,7 +17184,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
                                 break;
                         }
                     }
-                    config[name_15] = value;
+                    config[name_14] = value;
                 }
             }
             return config;
@@ -17047,9 +17195,9 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             fnDecode = function (s) { return decodeURIComponent(s.replace(rPlus, " ")); }, rSearch = /([^&=]+)=?([^&]*)/g, args = [];
             var match;
             while ((match = rSearch.exec(urlQuery)) !== null) {
-                var name_16 = fnDecode(match[1]), value = fnDecode(match[2]);
-                if (value !== null && config.hasOwnProperty(name_16)) {
-                    args.push(name_16 + "=" + value);
+                var name_15 = fnDecode(match[1]), value = fnDecode(match[2]);
+                if (value !== null && config.hasOwnProperty(name_15)) {
+                    args.push(name_15 + "=" + value);
                 }
             }
             cpcBasic.fnParseArgs(args, config);
@@ -17282,19 +17430,27 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
                     fnDataLoaded(err);
                 });
             }
+            var modulePath;
             function nodeReadFile(name, fnDataLoaded) {
                 if (!fs) {
                     fnEval('fs = require("fs");'); // to trick TypeScript
                 }
                 if (!module) {
                     fnEval('module = require("module");'); // to trick TypeScript
+                    modulePath = module.path || "";
+                    if (!modulePath) {
+                        Utils_23.Utils.console.warn("nodeReadFile: Cannot determine module path");
+                    }
                 }
-                var name2 = module.path + "/" + name;
+                var name2 = modulePath ? modulePath + "/" + name : name;
                 fs.readFile(name2, "utf8", fnDataLoaded);
             }
             var utils = nodeExports.Utils;
             utils.loadScript = function (fileOrUrl, fnSuccess, _fnError, key) {
-                var fnLoaded = function (_error, data) {
+                var fnLoaded = function (error, data) {
+                    if (error) {
+                        Utils_23.Utils.console.error("file error: ", error);
+                    }
                     if (data) {
                         fnEval(data); // load js (for nodeJs)
                     }

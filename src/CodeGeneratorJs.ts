@@ -190,7 +190,13 @@ export class CodeGeneratorJs {
 		}
 	}
 
-	private fnAdaptVariableName(name: string, arrayIndices: number) {
+	private static varTypeMap: Record<string, string> = {
+		"!": "R",
+		"%": "I",
+		$: "$" // or "S"?
+	};
+
+	private fnAdaptVariableName(node: CodeNode, name: string, arrayIndices: number) {
 		const defScopeArgs = this.defScopeArgs;
 
 		name = name.toLowerCase().replace(/\./g, "_");
@@ -201,29 +207,69 @@ export class CodeGeneratorJs {
 			}
 		}
 
+		/*
 		if (name.endsWith("!")) { // real number?
 			name = name.slice(0, -1) + "R"; // "!" => "R"
 		} else if (name.endsWith("%")) { // integer number?
 			name = name.slice(0, -1) + "I";
 		}
-		if (arrayIndices) {
-			name += "A".repeat(arrayIndices);
+		*/
+
+		const mappedTypeChar = CodeGeneratorJs.varTypeMap[name.charAt(name.length - 1)] || ""; // map last char
+
+		if (mappedTypeChar) {
+			name = name.slice(0, -1); // remove type char
+			node.pt = name.charAt(name.length - 1); // set also type; TODO currently not used
 		}
+
+		if (arrayIndices) {
+			name += "A".repeat(arrayIndices); //TODO: one "A" should be enough
+		}
+
+		name += mappedTypeChar; // put type at the end
+
+		let needDeclare = false;
+
 		if (defScopeArgs) {
-			if (name === "o") { // we must not use format parameter "o" since this is our vm object
-				name = "no"; // change variable name to something we cannot set in BASIC
+			if (name === "o" || name === "t" || name === "v") { // we must not use formal parameter "o", "t", "v", since we use them already
+				name = "N" + name; // change variable name to something we cannot set in BASIC
 			}
+
 			if (!defScopeArgs.collectDone) { // in collection mode?
 				defScopeArgs[name] = true; // declare DEF scope variable
 			} else if (!(name in defScopeArgs)) {
+				needDeclare = true;
+				/*
 				// variable
-				this.fnDeclareVariable(name);
-				name = "v." + name; // access with "v."
+				if (mappedTypeChar) {
+					this.fnDeclareVariable(name);
+					name = "v." + name; // access with "v."
+				} else {
+					// we do not know which one we will need, so declare for all types
+					this.fnDeclareVariable(name + "I");
+					this.fnDeclareVariable(name + "R");
+					this.fnDeclareVariable(name + "S");
+					name = 'v["' + name + '" + t.' + name.charAt(0) + "]";
+				}
+				*/
 			}
 		} else {
-			this.fnDeclareVariable(name);
-			name = "v." + name; // access with "v."
+			needDeclare = true;
 		}
+
+		if (needDeclare) {
+			if (mappedTypeChar) {
+				this.fnDeclareVariable(name);
+				name = "v." + name; // access with "v."
+			} else {
+				// we do not know which one we will need, so declare for all types
+				this.fnDeclareVariable(name + "I");
+				this.fnDeclareVariable(name + "R");
+				this.fnDeclareVariable(name + "$");
+				name = 'v["' + name + '" + t.' + name.charAt(0) + "]";
+			}
+		}
+
 		return name;
 	}
 
@@ -250,6 +296,57 @@ export class CodeGeneratorJs {
 
 	private fnDetermineStaticVarType(name: string) {
 		return this.variables.determineStaticVarType(name);
+	}
+
+	private static fnExtractVarName(name: string) {
+		if (name.indexOf("v.") === 0) { // variable object?
+			name = name.substr(2); // remove preceding "v."
+			const bracketIndex = name.indexOf("[");
+
+			if (bracketIndex >= 0) {
+				name = name.substr(0, bracketIndex);
+			}
+		}
+		if (name.indexOf('v["') === 0) { // variable object in brackets?
+			name = name.substr(3); // remove preceding 'v["'
+			const quotesIndex = name.indexOf('"');
+
+			name = name.substr(0, quotesIndex);
+		}
+		return name;
+	}
+
+	/*
+	private static fnRemoveVarStr(name: string) {
+		if (name.indexOf("v.") === 0) { // variable object?
+			name = name.substr(2); // remove preceding "v."
+		}
+		if (name.indexOf('v["') === 0) { // variable object in brackets?
+			name = name.substr(3); // remove preceding 'v["'
+		}
+		return name;
+	}
+	*/
+
+	private static fnGetNameTypeExpression(name: string) {
+		if (name.indexOf("v.") === 0) { // variable object with dot?
+			name = name.substr(2); // remove preceding "v."
+
+			const bracketIndex = name.indexOf("[");
+
+			if (bracketIndex >= 0) {
+				name = name.substr(0, bracketIndex);
+			}
+
+			name = '"' + name + '"';
+		}
+		if (name.indexOf("v[") === 0) { // variable object with brackets?
+			name = name.substr(2); // remove preceding "v["
+			const closeBracketIndex = name.indexOf("]");
+
+			name = name.substr(0, closeBracketIndex);
+		}
+		return name;
 	}
 
 	private static fnIsIntConst(a: string) {
@@ -414,10 +511,30 @@ export class CodeGeneratorJs {
 	}
 
 	private addressOf(node: CodeNode, _oLeft: CodeNode | undefined, right: CodeNode) { // "@" (unary operator)
-		node.pv = 'o.addressOf("' + right.pv + '")'; // address of
 		if (right.type !== "identifier") {
 			throw this.composeError(Error(), "Expected variable", node.value, node.pos);
 		}
+		const name = CodeGeneratorJs.fnGetNameTypeExpression(right.pv);
+
+		//const name = CodeGeneratorJs.fnRemoveVarStr(right.pv);
+		/*
+		let name = right.pv;
+
+		if (name.indexOf("v.") === 0) { // variable object with dot?
+			name = name.substr(2); // remove preceding "v."
+			name = '"' + name + '"';
+		}
+		if (name.indexOf("v[") === 0) { // variable object with brackets?
+			name = name.substr(2); // remove preceding "v["
+			const closeIndex = name.indexOf("]");
+
+			name = name.substr(0, closeIndex);
+		}
+		*/
+
+		// we want a name, for arrays with "A"'s but without array indices
+
+		node.pv = "o.addressOf(" + name + ")"; // address of
 		node.pt = "I";
 	}
 
@@ -587,7 +704,7 @@ export class CodeGeneratorJs {
 	}
 	private identifier(node: CodeNode) { // identifier or identifier with array indices
 		const nodeArgs = node.args ? this.fnParseArgRange(node.args, 1, node.args.length - 2) : [], // array: we skip open and close bracket
-			name = this.fnAdaptVariableName(node.value, nodeArgs.length); // here we use node.value;
+			name = this.fnAdaptVariableName(node, node.value, nodeArgs.length); // here we use node.value;
 		let indices = "";
 
 		for (let i = 0; i < nodeArgs.length; i += 1) { // array indices
@@ -828,14 +945,24 @@ export class CodeGeneratorJs {
 				throw this.composeError(Error(), "Programming error: Undefined args", nodeArg.type, nodeArg.pos); // should not occur
 			}
 			const nodeArgs = this.fnParseArgRange(nodeArg.args, 1, nodeArg.args.length - 2), // we skip open and close bracket
-				fullExpression = this.fnParseOneArg(nodeArg);
+				fullExpression = this.fnParseOneArg(nodeArg),
+				name = CodeGeneratorJs.fnGetNameTypeExpression(fullExpression);
+				//varType = this.fnDetermineStaticVarType(fullExpression);
+				//name = CodeGeneratorJs.fnExtractVarName(fullExpression);
+				//name = nodeArg.value + "A".repeat(nodeArgs.length);
+
+			/*
 			let name = fullExpression;
 
 			name = name.substr(2); // remove preceding "v."
 			const index = name.indexOf("["); // we should always have it
 
 			name = name.substr(0, index);
-			args.push("/* " + fullExpression + " = */ o.dim(\"" + name + "\", " + nodeArgs.join(", ") + ")");
+			*/
+
+			nodeArgs.unshift(name); // put as first arg
+
+			args.push("/* " + fullExpression + " = */ o.dim(" + nodeArgs.join(", ") + ")");
 		}
 
 		node.pv = args.join("; ");
@@ -943,10 +1070,19 @@ export class CodeGeneratorJs {
 			if (endNode.pt !== "I") {
 				endValue = "o.vmAssign(\"" + varType + "\", " + endValue + ")";
 			}
+			/*
 			endName = varName + "End";
 			const value2 = endName.substr(2); // remove preceding "v."
+			*/
+			/*
+			endName = node.args[0].value + "End"; // variable name
+			this.fnDeclareVariable(endName); // declare also end variable
+			endName = "v." + endName;
+			*/
 
-			this.fnDeclareVariable(value2); // declare also end variable
+			endName = CodeGeneratorJs.fnExtractVarName(varName) + "End";
+			this.fnDeclareVariable(endName); // declare also end variable
+			endName = "v." + endName;
 		}
 
 		let stepName: string | undefined;
@@ -955,10 +1091,19 @@ export class CodeGeneratorJs {
 			if (stepNode && stepNode.pt !== "I") {
 				stepValue = "o.vmAssign(\"" + varType + "\", " + stepValue + ")";
 			}
+			/*
 			stepName = varName + "Step";
 			const value2 = stepName.substr(2); // remove preceding "v."
+			*/
+			/*
+			stepName = node.args[0].value + "Step"; // variable name
+			this.fnDeclareVariable(stepName); // declare also step variable
+			stepName = "v." + stepName;
+			*/
 
-			this.fnDeclareVariable(value2); // declare also step variable
+			stepName = CodeGeneratorJs.fnExtractVarName(varName) + "Step";
+			this.fnDeclareVariable(stepName); // declare also step variable
+			stepName = "v." + stepName;
 		}
 
 		let value = "/* for() */";
@@ -1644,6 +1789,7 @@ export class CodeGeneratorJs {
 			if (!this.noCodeFrame) {
 				output = '"use strict"\n'
 					+ "var v=o.vmGetAllVariables();\n"
+					+ "var t=o.vmGetAllVarTypes();\n"
 					+ "while (o.vmLoopCondition()) {\nswitch (o.line) {\ncase 0:\n"
 					+ combinedData
 					+ combinedLabels
