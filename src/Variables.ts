@@ -6,7 +6,9 @@ export type VariableValue = string | number | Function | [] | VariableValue[]; /
 
 export type VariableMap = Record<string, VariableValue>;
 
-type VariableTypeMap = Record<string, string>;
+export type VarTypes = "I"|"R"|"$"; // or string
+
+export type VariableTypeMap = Record<string, VarTypes>;
 
 export class Variables {
 	private variables: VariableMap;
@@ -27,6 +29,10 @@ export class Variables {
 
 	getAllVariables(): VariableMap {
 		return this.variables;
+	}
+
+	getAllVarTypes(): VariableTypeMap {
+		return this.varTypes;
 	}
 
 	private createNDimArray(dims: number[], initVal: string | number) { // eslint-disable-line class-methods-use-this
@@ -52,10 +58,14 @@ export class Variables {
 	}
 
 	// determine static varType (first letter + optional fixed vartype) from a variable name
-	// format: (v.)(_)<sname>(I|R|$)(A*[...]([...])) with optional parts in ()
+	//TODO remove comment format: (v.)(_)<sname>(I|R|$)(A*[...]([...])) with optional parts in ()
+	// format: (v.|v["])(_)<sname>(A*)(I|R|$)([...]([...])) with optional parts in ()
 	determineStaticVarType(name: string): string { // eslint-disable-line class-methods-use-this
 		if (name.indexOf("v.") === 0) { // preceding variable object?
 			name = name.substr(2); // remove preceding "v."
+		}
+		if (name.indexOf('v["') === 0) { // preceding variable object?
+			name = name.substr(3); // remove preceding 'v["'
 		}
 
 		let nameType = name.charAt(0); // take first character to determine variable type later
@@ -64,9 +74,15 @@ export class Variables {
 			nameType = name.charAt(1);
 		}
 
-		const arrayPos = name.indexOf("A"),
+		const bracketPos = name.indexOf("["),
+			typePos = bracketPos >= 0 ? bracketPos - 1 : name.length - 1,
+			typeChar = name.charAt(typePos); // check character before array bracket
+
+		/*
+		const arrayPos = name.indexOf("A"), //name.indexOf("A"),
 			typePos = arrayPos >= 0 ? arrayPos - 1 : name.length - 1,
 			typeChar = name.charAt(typePos); // check last character before array
+		*/
 
 		if (typeChar === "I" || typeChar === "R" || typeChar === "$") { // explicit type specified?
 			nameType += typeChar;
@@ -154,11 +170,11 @@ export class Variables {
 	}
 
 
-	getVarType(varChar: string): string {
+	getVarType(varChar: string): VarTypes {
 		return this.varTypes[varChar];
 	}
 
-	setVarType(varChar: string, type: string): void {
+	setVarType(varChar: string, type: VarTypes): void {
 		this.varTypes[varChar] = type;
 	}
 }

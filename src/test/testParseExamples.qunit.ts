@@ -187,10 +187,19 @@ class cpcBasic {
 			cpcBasic.vmMock.testStepCounter1 = cpcBasic.vmMock.maxSteps;
 			cpcBasic.vmMock.line = 0; // or "start";
 			cpcBasic.vmMock.testVariables1.initAllVariables();
+
+			for (let i = "a".charCodeAt(0); i <= "z".charCodeAt(0); i += 1) {
+				const varChar = String.fromCharCode(i);
+
+				cpcBasic.vmMock.testVariables1.setVarType(varChar, "R");
+			}
 		},
 
 		vmGetAllVariables: function () {
 			return cpcBasic.vmMock.testVariables1.getAllVariables();
+		},
+		vmGetAllVarTypes: function () {
+			return cpcBasic.vmMock.testVariables1.getAllVarTypes();
 		},
 		vmLoopCondition: function () {
 			cpcBasic.vmMock.testStepCounter1 -= 1;

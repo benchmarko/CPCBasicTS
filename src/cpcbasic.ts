@@ -375,6 +375,8 @@ if (nodeJsAvail) {
 			});
 		}
 
+		let modulePath: string;
+
 		function nodeReadFile(name: string, fnDataLoaded: (error: Error | undefined, data?: string) => void) {
 			if (!fs) {
 				fnEval('fs = require("fs");'); // to trick TypeScript
@@ -382,9 +384,15 @@ if (nodeJsAvail) {
 
 			if (!module) {
 				fnEval('module = require("module");'); // to trick TypeScript
+
+				modulePath = module.path || "";
+
+				if (!modulePath) {
+					Utils.console.warn("nodeReadFile: Cannot determine module path");
+				}
 			}
 
-			const name2 = module.path + "/" + name;
+			const name2 = modulePath ? modulePath + "/" + name : name;
 
 			fs.readFile(name2, "utf8", fnDataLoaded);
 		}
@@ -392,7 +400,10 @@ if (nodeJsAvail) {
 		const utils = nodeExports.Utils;
 
 		utils.loadScript = (fileOrUrl: string, fnSuccess: ((url2: string, key: string) => void), _fnError: ((url2: string, key: string) => void), key: string) => {
-			const fnLoaded = (_error: Error | undefined, data?: string) => {
+			const fnLoaded = (error: Error | undefined, data?: string) => {
+				if (error) {
+					Utils.console.error("file error: ", error);
+				}
 				if (data) {
 					fnEval(data); // load js (for nodeJs)
 				}
