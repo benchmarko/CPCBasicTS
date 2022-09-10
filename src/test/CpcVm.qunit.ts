@@ -3221,7 +3221,7 @@ QUnit.module("CpcVm: Tests", function () {
 		return combinedResult.join(" -- ");
 	}
 
-	function runTestsFor(assert: Assert | undefined, sCategory: string, tests: TestsType, results?: string[]) {
+	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: string[]) {
 		const config: CpcVmOptions = {
 			canvas: mockCanvas,
 			textCanvas: mockTextCanvas,
@@ -3231,7 +3231,7 @@ QUnit.module("CpcVm: Tests", function () {
 			quiet: true
 		},
 			cpcVm = new CpcVm(config),
-			testFunction = allTestFunctions[sCategory];
+			testFunction = allTestFunctions[category];
 
 		for (const key in tests) {
 			if (tests.hasOwnProperty(key)) {
@@ -3251,7 +3251,7 @@ QUnit.module("CpcVm: Tests", function () {
 
 				try {
 					if (!testFunction) {
-						throw new Error("Undefined testFunction: " + sCategory);
+						throw new Error("Undefined testFunction: " + category);
 					}
 					result = testFunction(cpcVm, input);
 					result = combineResult(result, vmState0, getVmState(cpcVm));
@@ -3277,22 +3277,23 @@ QUnit.module("CpcVm: Tests", function () {
 	TestHelper.generateAndRunAllTests(allTests, runTestsFor);
 });
 
-QUnit.module("CpcVm: vm functions", function (hooks: NestedHooks) {
-	hooks.beforeEach(function (this: any) {
-		const that = this, // eslint-disable-line no-invalid-this, @typescript-eslint/no-this-alias
-			config: CpcVmOptions = {
-				canvas: mockCanvas,
-				textCanvas: mockTextCanvas,
-				keyboard: mockKeyboard,
-				sound: mockSound,
-				variables: mockVariables,
-				quiet: true
-			};
+QUnit.module("CpcVm: vm functions", function (hooks) {
+	const that = {} as { cpcVm: CpcVm }; // eslint-disable-line consistent-this
+
+	hooks.beforeEach(function () {
+		const config: CpcVmOptions = {
+			canvas: mockCanvas,
+			textCanvas: mockTextCanvas,
+			keyboard: mockKeyboard,
+			sound: mockSound,
+			variables: mockVariables,
+			quiet: true
+		};
 
 		that.cpcVm = new CpcVm(config);
 	});
 
-	QUnit.test("init without options", function (assert: Assert) {
+	QUnit.test("init without options", function (assert) {
 		const minimalCanvas = {
 			reset: () => undefined
 		} as Canvas,
@@ -3317,16 +3318,16 @@ QUnit.module("CpcVm: vm functions", function (hooks: NestedHooks) {
 		assert.ok(cpcVm, "defined");
 	});
 
-	QUnit.test("vmReset", function (this: any, assert: Assert) {
-		const cpcVm: CpcVm = this.cpcVm; // eslint-disable-line no-invalid-this
+	QUnit.test("vmReset", function (assert) {
+		const cpcVm = that.cpcVm;
 
 		cpcVm.vmReset();
 		assert.ok(cpcVm, "defined");
 	});
 
 	/*
-	QUnit.test("vmTrace", function (this: any, assert: Assert) {
-		const cpcVm: CpcVm = this.cpcVm; // eslint-disable-line no-invalid-this
+	QUnit.test("vmTrace", function (assert) {
+		const cpcVm = that.cpcVm;
 
 		cpcVm.vmGotoLine(123);
 		cpcVm.tron();

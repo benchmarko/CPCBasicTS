@@ -665,7 +665,7 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 		});
 
 
-	function runTestsFor(assert: Assert | undefined, category: string, tests: TestsType, results?: string[]) {
+	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: string[]) {
 		lexer.setOptions({
 			quiet: true,
 			keepWhiteSpace: category === "keepSpaces"

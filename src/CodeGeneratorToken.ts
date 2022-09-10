@@ -463,7 +463,7 @@ export class CodeGeneratorToken {
 	}
 
 	private static string(node: ParserNode) {
-		return '"' + node.value + '"'; //TTT how to set unterminated string?
+		return '"' + node.value + '"'; // TODO: how to set unterminated string?
 	}
 	private static unquoted(node: ParserNode) {
 		return node.value;
@@ -495,7 +495,7 @@ export class CodeGeneratorToken {
 			exponent = Math.ceil(Math.log(number) / Math.log(2));
 			mantissa = Math.round(number / Math.pow(2, exponent - 32)) & ~0x80000000; // eslint-disable-line no-bitwise
 			if (mantissa === 0) {
-				exponent += 1; //TTT is this correct?
+				exponent += 1;
 			}
 			exponent += 0x80;
 		}
@@ -1104,7 +1104,7 @@ export class CodeGeneratorToken {
 		return output;
 	}
 
-	generate(input: string, _allowDirect?: boolean): IOutput {
+	generate(input: string): IOutput {
 		const out: IOutput = {
 			text: ""
 		};

@@ -15,7 +15,7 @@ import { CodeGeneratorJs } from "./CodeGeneratorJs";
 import { CodeGeneratorToken } from "./CodeGeneratorToken";
 import { CommonEventHandler } from "./CommonEventHandler";
 import { cpcCharset } from "./cpcCharset";
-import { CpcVm, FileMeta, VmStopEntry, VmStopParas, VmFileParas, VmInputParas, VmLineParas, VmLineRenumParas } from "./CpcVm";
+import { CpcVm, FileMeta, VmStopEntry, VmFileParas, VmInputParas, VmLineParas, VmLineRenumParas, VmBaseParas } from "./CpcVm";
 import { CpcVmRsx } from "./CpcVmRsx";
 import { Diff } from "./Diff";
 import { DiskImage, AmsdosHeader } from "./DiskImage";
@@ -835,7 +835,7 @@ export class Controller implements IController {
 	private fnFileEra(paras: VmFileParas): void {
 		const stream = paras.stream,
 			storage = Utils.localStorage,
-			fileMask = Controller.fnLocalStorageName(paras.fileMask),
+			fileMask = Controller.fnLocalStorageName(paras.fileMask || ""),
 			dir = Controller.fnGetStorageDirectoryEntries(fileMask);
 
 		if (!dir.length) {
@@ -1347,7 +1347,7 @@ export class Controller implements IController {
 
 	private fnDeleteLines(paras: VmLineParas) {
 		const inputText = this.view.getAreaValue("inputText"),
-			lines = Controller.fnGetLinesInRange(inputText, paras.first, paras.last);
+			lines = Controller.fnGetLinesInRange(inputText, paras.first || 0, paras.last || 65535);
 		let	error: CustomError | undefined;
 
 		if (lines.length) {
@@ -1388,7 +1388,7 @@ export class Controller implements IController {
 	private fnList(paras: VmLineParas) {
 		const input = this.view.getAreaValue("inputText"),
 			stream = paras.stream,
-			lines = Controller.fnGetLinesInRange(input, paras.first, paras.last),
+			lines = Controller.fnGetLinesInRange(input, paras.first || 0, paras.last || 65535),
 			regExp = new RegExp(/([\x00-\x1f])/g); // eslint-disable-line no-control-regex
 
 		for (let i = 0; i < lines.length; i += 1) {
@@ -1454,7 +1454,7 @@ export class Controller implements IController {
 			});
 		}
 
-		const output = this.basicFormatter.renumber(input, paras.newLine, paras.oldLine, paras.step, paras.keep);
+		const output = this.basicFormatter.renumber(input, paras.newLine || 10, paras.oldLine || 1, paras.step || 10, paras.keep || 65535);
 
 		if (output.error) {
 			Utils.console.warn(output.error);
@@ -1486,7 +1486,7 @@ export class Controller implements IController {
 	private fnEditLine(paras: VmLineParas) {
 		const input = this.view.getAreaValue("inputText"),
 			stream = paras.stream,
-			lineNumber = paras.first,
+			lineNumber = paras.first || 0,
 			lines = Controller.fnGetLinesInRange(input, lineNumber, lineNumber);
 
 		if (lines.length) {
@@ -1657,10 +1657,10 @@ export class Controller implements IController {
 		}
 	}
 
-	private fnRun(paras?: VmStopParas) {
+	private fnRun(paras?: VmLineParas) {
 		const script = this.view.getAreaValue("outputText"),
 			vm = this.vm;
-		let line = paras && (paras as VmLineParas).first || 0;
+		let line = paras && paras.first || 0;
 
 		line = line || 0;
 		if (line === 0) {
@@ -2554,7 +2554,7 @@ export class Controller implements IController {
 	}
 
 	/* eslint-disable no-invalid-this */
-	private readonly handlers: Record<string, (paras: VmStopParas | VmFileParas) => void> = {
+	private readonly handlers: Record<string, (paras: VmBaseParas) => void> = {
 		timer: this.fnTimer,
 		waitKey: this.fnWaitKey,
 		waitFrame: this.fnWaitFrame,

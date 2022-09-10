@@ -26,8 +26,8 @@ CPCBasicTS is based on the JavaScript version [CPCBasic](https://github.com/benc
 
 [![Art](https://benchmarko.github.io/CPCBasicTS/img/art.png)](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=test/art)
 [![Graphics](https://benchmarko.github.io/CPCBasicTS/img/graphics.png)](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=test/graphics)
-[![Labyrinth](https://benchmarko.github.io/CPCBasicTS/img/labyrinth.png)](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=labyrinth)
-[![Landscape](https://benchmarko.github.io/CPCBasicTS/img/landscape.png)](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=landscape)
+[![Labyrinth](https://benchmarko.github.io/CPCBasicTS/img/labyrinth.png)](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=test/labyrinth)
+[![Landscape](https://benchmarko.github.io/CPCBasicTS/img/landscape.png)](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=test/landscape)
 
 More examples are in the sample library [CPCBasicApps](https://benchmarko.github.io/CPCBasicApps/), [CPCBasicApps source](https://github.com/benchmarko/CPCBasicApps/#readme). They are included in CPCBasicTS as *apps*. Example: [10print](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=demo/10print).
 
@@ -93,24 +93,30 @@ Several examples use CPCBasicTS mode 3 when available, e.g. [Art](https://benchm
 - *PEEK & POKE* features:
   - Access screen memory in screen base address range, e.g. &C000-&FFFF or &4000-&7FFF
   - Access character map data starting at *HIMEM*+1 after *SYMBOL AFTER* n with n<256
+- Runs also on the command line with nodeJS:
+  - Remote URL: `node ./cpcbasicts.js sound=false debug=0 databaseDirs=https://benchmarko.github.io/CPCBasicApps/apps database=apps example=math/euler showCpc=false`
+  - Or with local examples: `node ./cpcbasicts.js sound=false debug=0 databaseDirs=./examples example=test/testpage showCpc=false` (The test page does not fully work.)
 
 ## Restrictions
 
-- CPCBasicTS is still in progress and not complete or accurate. The goal is that most BASIC programs run without change.
-- It is BASIC only and can not execute Z80 machine code
-- Unimplemented commands are ignored: *AUTO*, *PRINT #8*, *SPEED KEY/WRITE*, *WIDTH*, *WRITE #8*, some AMDSOS commands.
-- Sound: Not all hardware volume envelopes are implemented
-- For multi-line strings containing LF (\n) there is a heuristic
-- No complete check of the BASIC program
-- Incomplete type checking
-- Variables typed with *DEFINT*, *DEFREAL* or *DEFSTR* are different from those with type extension:
-  `defint a: a=1: a%=2: ?a,a%`
-- Array access: There is no range check for array indices.
-- *RESUME* without a line number and *RESUME NEXT* activate trace mode without trace output. They do not fully work when the command with the error is not the only command in the line.
+- Simulation is not always complete:
+  - It is BASIC only and can not execute Z80 machine code
+  - Sound: *ENV*: Not all hardware volume envelopes are implemented
+  - Unimplemented commands are ignored: *AUTO*, *PRINT #8*, *SPEED KEY/WRITE*, *WIDTH*, *WRITE #8*, some AMDSOS commands.
+- Simulation is not always accurate:
+  - Programs run much faster than the original CPC. But The goal is that most BASIC programs run without change. Otherwise it is possible to insert delays.
+  - Error messages are sometimes different and usually more precise
+  - Array access: There is no range checking for array indices.
+  - Floating point results may be different because they are calculated with higher precision.
+  - Random numbers are different because they are generate by another random number generator.
+  - For multi-line strings containing LF (\n), there is the heuristic that they are only detected if the following line starts with a number.
+  - Interpreted CPC BASIC may contain lines of arbitrary content if they are not executed, e.g. comments without marking them as comments. The CPCBasicTS compiler does not allow this.
+  - *FOR* loop: A untyped loop variable is changed even if you switch to anoter type in the loop with *DEFINT*, *DEFREAL* or *DEFSTR*.
+    `FOR i=1 TO 3: ?i: DEFINT i: i=4: NEXT` returns 1.
+  - *RESUME* without a line number and *RESUME NEXT* activate trace mode without trace output. They do not fully work when the command with the error is not the only command in the line.
 - The resulting JavaScript may look strange because there is no *GOTO* in JavaScript.
-Furthermore, control structures like *FOR*, *WHILE* and *IF* need to be converted into a *GOTO* like structure because for some commands and events it is necessary to jump out of a block.
-- Interpreted CPC BASIC may contain lines of arbitrary content if they are not executed, e.g. comments without marking them as comments. The CPCBasicTS compiler does not allow this.
-- Maybe something more...
+  Furthermore, control structures like *FOR*, *WHILE* and *IF* need to be converted into a *GOTO* like structure because for some commands and events it is necessary to jump out of a block.
+  - Maybe something more...
 
 ## Programming hints
 
@@ -130,13 +136,13 @@ Furthermore, control structures like *FOR*, *WHILE* and *IF* need to be converte
 
 Did you know?
 
-- Comparison operators can be used in assignment, e.g. equal and not equal: `a=0: t=(a=0): f=(a<>0): ?t;f` returns -1 and 0 for true and false
-- Instead of the comparison operators <= or >= you could also write =< or =>.  When tokenized, it is converted to the "standard" format.
+- Comparison operators can be used in assignment, e.g. equal and not equal: `a=0: t=(a=0): f=(a<>0): ?t;f` returns -1 and 0 for true and false.
+- Instead of the comparison operators <= or >= you could also write =< or =>.  When tokenized, it is converted to the "standard" format (currently not for CPCBasic).
 - *ENV*: Special syntax with "=" to define hardware volume envelopes, e.g. `ENV num,=reg,period`. Same for *ENT*, e.g. `ENT num,=period,ti`
 - Arrays can be indexed by parentheses or by brackets, but also with mixed style, e.g. `a(3]=6: ?a[3)` returns 6.
 - When you use float parameters where integer parameters are expected they are automatically rounded, e.g. `MODE 1.5` sets MODE 2. This works also for array indices, e.g.
 `a(3.2)=3:a(3.5)=4:?a(2.5);a(4.4)` returns 3 and 4.
-- Variables typed with DEFINT, DEFREAL or DEFSTR are aliases for those with a type extension, e.g. `DEFINT a: a=1: a%=2: ?a;a%` returns 2 and 2 (currently not for CPCBasic).
+- Variables typed with DEFINT, DEFREAL or DEFSTR are aliases for those with a type extension, e.g. `DEFINT a: a=1: a%=2: ?a;a%` returns 2 and 2.
 - *MIN* and *MAX* do not only accept numbers as arguments but also a single string argument which they will return, e.g. `MIN("ab");MAX("cd")` return "ab" and "cd".
 - Tokenized BASIC contains a lot of spaces which can be squeezed out and visualized by colons and the end of the line. Put this code fragment at the end of the program and run it: `a=&170:WHILE PEEK(a)<>0:e=a+PEEK(a):FOR i=a TO e-2:POKE a,PEEK(i):a=a+ABS(PEEK(i)<>&20):NEXT:FOR i=a TO e-2:POKE i,&01:NEXT:a=e:?:WEND` . This simple version expects lines not longer than 255 characters or tokens and will also modify strings and comments (currently not for CPCBasic).
 - *ELSE* as command without preceding *IF* is similar to a comment
@@ -246,6 +252,7 @@ QUnit tests:
   - [Diff.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/Diff.qunit.html)
   - [DiskImage.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/DiskImage.qunit.html)
   - [Model.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/Model.qunit.html)
+  - [Variables.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/Variables.qunit.html)
   - [ZipFile.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/ZipFile.qunit.html)
   - [testParseExamples.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/testParseExamples.qunit.html) (parse all examples)
   - [testsuite.qunit.html](https://benchmarko.github.io/CPCBasicTS/test/testsuite.qunit.html) (run all tests)
@@ -259,11 +266,11 @@ IFrames test:
 ## Possible Future Enhancements
 
 - Fullscreen mode of the CPC window
-- Overcome restrictions with array access or variable aliases
+- Array index check
 - Save and restore snapshot of variables, including system state variables
 - Can we detect busy loops and insert *FRAME* automatically? Or invent some "real time" mode? Or use a speed control to change the speed?
 - RSX extension libraries / plugins programmed in TypeScript/JavaScript
-- Optimizations of the resulting JavaScript code
+- Further optimizations of the resulting JavaScript code
 - Further checks during compile time
 - Support some simple Z80 assembler programs
 - Shall we support hardware scrolling with *OUT* or is it already a hardware emulation feature?

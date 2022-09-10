@@ -90,26 +90,26 @@ export interface VmBaseParas {
 }
 
 export interface VmLineParas extends VmBaseParas { // delete lines, list lines, edit line, run line
-	first: number
-	last: number
+	first?: number // (req)
+	last?: number // (req)
 }
 
 export interface VmLineRenumParas extends VmBaseParas { // renum lines
-	newLine: number
-	oldLine: number
-	step: number
-	keep: number
+	newLine?: number // (req)
+	oldLine?: number // (req)
+	step?: number // (req)
+	keep?: number // (req)
 }
 
 export interface VmFileParas extends VmBaseParas {
-	fileMask: string // CAT, |DIR, |ERA
+	fileMask?: string // (req) CAT, |DIR, |ERA
 	newName?: string // |REN
 	oldName?: string // |REN
 }
 
 export interface VmInputParas extends VmBaseParas {
-	input: string
-	message: string
+	input: string // (req)
+	message: string // (req)
 	noCRLF?: string
 	types?: string[]
 	fnInputCallback: () => boolean
@@ -942,25 +942,6 @@ export class CpcVm {
 		return this.stopEntry.reason === "";
 	}
 
-	/*
-	private vmInitUntypedVariables(varChar: string) {
-		const names = this.variables.getAllVariableNames();
-
-		for (let i = 0; i < names.length; i += 1) {
-			const name = names[i];
-
-			if (name.charAt(0) === varChar) {
-				const lastChar = name.charAt(name.length - 1);
-
-				//if (name.indexOf("I") === -1 && name.indexOf("R") === -1 && name.indexOf("$") === -1) { // no explicit type?
-				if (lastChar !== "I" && lastChar !== "R" && lastChar !== "$") { // no explicit type?
-					this.variables.initVariable(name);
-				}
-			}
-		}
-	}
-	*/
-
 	private vmDefineVarTypes(type: VarTypes, err: string, first: string, last?: string) {
 		const firstNum = this.vmGetLetterCode(first, err),
 			lastNum = last ? this.vmGetLetterCode(last, err) : firstNum;
@@ -968,11 +949,7 @@ export class CpcVm {
 		for (let i = firstNum; i <= lastNum; i += 1) {
 			const varChar = String.fromCharCode(i);
 
-			if (this.variables.getVarType(varChar) !== type) { // type changed?
-				this.variables.setVarType(varChar, type);
-				// initialize all untyped variables starting with varChar!
-				//this.vmInitUntypedVariables(varChar);
-			}
+			this.variables.setVarType(varChar, type);
 		}
 	}
 
@@ -1193,16 +1170,6 @@ export class CpcVm {
 	addressOf(variable: string): number { // addressOf operator
 		// not really implemented
 		this.vmAssertString(variable, "@");
-		/*
-		variable = variable.replace("v.", "");
-		variable = variable.replace("[", "(");
-
-		const pos = variable.indexOf("("); // array variable with indices?
-
-		if (pos >= 0) {
-			variable = variable.substr(0, pos); // remove indices
-		}
-		*/
 
 		const varIndex = this.variables.getVariableIndex(variable);
 

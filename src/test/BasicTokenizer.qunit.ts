@@ -39,7 +39,7 @@ QUnit.module("BasicTokenizer:decode: Tests", function () {
 		}).join("");
 	}
 
-	function runTestsFor(assert: Assert | undefined, _sCategory: string, tests: TestsType, results?: string[]) {
+	function runTestsFor(_category: string, tests: TestsType, assert?: Assert, results?: string[]) {
 		const basicTokenizer = new BasicTokenizer();
 
 		for (const key in tests) {

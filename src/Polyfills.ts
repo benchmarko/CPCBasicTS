@@ -45,6 +45,7 @@ if ((typeof globalThis !== "undefined") && !globalThis.window) { // nodeJS
 }
 
 if (!Array.prototype.indexOf) { // IE8
+	Polyfills.log("Array.prototype.indexOf");
 	Array.prototype.indexOf = function (searchElement, from?: number) { // eslint-disable-line no-extend-native
 		const len = this.length >>> 0; // eslint-disable-line no-bitwise
 
@@ -60,6 +61,25 @@ if (!Array.prototype.indexOf) { // IE8
 			}
 		}
 		return -1;
+	};
+}
+
+if (!Array.prototype.fill) { // IE11
+	// based on: https://github.com/1000ch/array-fill/blob/master/index.js
+	Polyfills.log("Array.prototype.fill");
+	Array.prototype.fill = function (value: any, start?: number, end?: number) { // eslint-disable-line no-extend-native
+		const length = this.length;
+
+		start = start || 0;
+		end = end === undefined ? length : (end || 0);
+
+		let i = start < 0 ? Math.max(length + start, 0) : Math.min(start, length);
+		const l = end < 0 ? Math.max(length + end, 0) : Math.min(end, length);
+
+		for (; i < l; i += 1) {
+			this[i] = value;
+		}
+		return this;
 	};
 }
 
@@ -290,7 +310,7 @@ if (!Object.assign) { // IE11
 
 if (!Object.keys) { // IE8
 	Polyfills.log("Object.keys");
-	// https://tokenposts.blogspot.com/2012/04/javascript-objectkeys-browser.html
+	// based on: https://tokenposts.blogspot.com/2012/04/javascript-objectkeys-browser.html
 	Object.keys = function (o: object): string[] { // eslint-disable-line @typescript-eslint/ban-types
 		const k: string[] = [];
 
@@ -303,6 +323,16 @@ if (!Object.keys) { // IE8
 			}
 		}
 		return k;
+	};
+}
+
+if (!Object.values) { // IE11
+	Polyfills.log("Object.values");
+	// based on: https://github.com/KhaledElAnsari/Object.values/blob/master/index.js
+	Object.values = function (o: object): any[] { // eslint-disable-line @typescript-eslint/ban-types
+		return Object.keys(o).map(function (key) {
+			return (o as Record<string, any>)[key];
+		});
 	};
 }
 

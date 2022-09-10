@@ -87,7 +87,7 @@ QUnit.module("BasicFormatter:renumber: Tests", function () {
 		}
 	};
 
-	function runTestsFor(assert: Assert | undefined, _sCategory: string, tests: TestsType, results?: string[]) {
+	function runTestsFor(_category: string, tests: TestsType, assert?: Assert, results?: string[]) {
 		const basicFormatter = new BasicFormatter({
 				lexer: new BasicLexer(),
 				parser: new BasicParser({
