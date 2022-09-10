@@ -3,19 +3,7 @@
 define(["require", "exports", "../Variables", "./TestHelper"], function (require, exports, Variables_1, TestHelper_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    /*
-    type TestObject = {
-        variables: Variables
-    }
-    */
     QUnit.module("Variables", function ( /* hooks */) {
-        //const that = {} as TestObject; // eslint-disable-line consistent-this
-        /*
-        hooks.beforeEach(function () {
-            // eslint-disable-next-line no-invalid-this
-            that.variables = new Variables();
-        });
-        */
         QUnit.test("create class", function (assert) {
             var variables = new Variables_1.Variables();
             assert.ok(variables, "defined");
@@ -75,11 +63,6 @@ define(["require", "exports", "../Variables", "./TestHelper"], function (require
             assert.propEqual(allVars, {}, 'removeAll; previous getAll:"');
             assert.propEqual(variables.getAllVariables(), {}, 'removeAll; getAll:"');
         });
-        /*
-        function createListWithZeros(count: number) {
-            return "0".repeat(count).split("").map((s) => Number(s));
-        }
-        */
         function createListOfItems(item, length) {
             var list = [];
             for (var i = 0; i < length; i += 1) {
@@ -90,7 +73,6 @@ define(["require", "exports", "../Variables", "./TestHelper"], function (require
         function createListOfListWithZeros(count, count2) {
             var listList = [];
             for (var i = 0; i < count; i += 1) {
-                //listList.push(createListWithZeros(count2));
                 listList.push(createListOfItems(0, count2));
             }
             return listList;
@@ -98,7 +80,7 @@ define(["require", "exports", "../Variables", "./TestHelper"], function (require
         QUnit.test("array variables", function (assert) {
             var variables = new Variables_1.Variables();
             assert.propEqual(variables.getAllVariables(), {}, "getAll:");
-            var zeros11 = createListOfItems(0, 11); //createListWithZeros(11);
+            var zeros11 = createListOfItems(0, 11);
             variables.initVariable("a1A");
             assert.propEqual(variables.getVariable("a1A"), zeros11, "init a1A; get a1A: 0,0... (11)"); // eslint-disable-line array-element-newline
             variables.initVariable("sA$");

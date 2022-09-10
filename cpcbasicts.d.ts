@@ -1083,6 +1083,12 @@ declare module "Model" {
         removeExample(key: string): void;
     }
 }
+declare module "NodeAdapt" {
+    export class NodeAdapt {
+        static isNodeAvailable(): boolean;
+        static doAdapt(): void;
+    }
+}
 declare module "CommonEventHandler" {
     import { IController } from "Interfaces";
     import { Model } from "Model";
