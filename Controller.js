@@ -656,7 +656,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.vm.vmStop("", 0, true);
         };
         Controller.prototype.fnFileEra = function (paras) {
-            var stream = paras.stream, storage = Utils_1.Utils.localStorage, fileMask = Controller.fnLocalStorageName(paras.fileMask), dir = Controller.fnGetStorageDirectoryEntries(fileMask);
+            var stream = paras.stream, storage = Utils_1.Utils.localStorage, fileMask = Controller.fnLocalStorageName(paras.fileMask || ""), dir = Controller.fnGetStorageDirectoryEntries(fileMask);
             if (!dir.length) {
                 this.vm.print(stream, fileMask + " not found\r\n");
             }
@@ -1088,7 +1088,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.vm.vmStop("", 0, true); // continue
         };
         Controller.prototype.fnDeleteLines = function (paras) {
-            var inputText = this.view.getAreaValue("inputText"), lines = Controller.fnGetLinesInRange(inputText, paras.first, paras.last);
+            var inputText = this.view.getAreaValue("inputText"), lines = Controller.fnGetLinesInRange(inputText, paras.first || 0, paras.last || 65535);
             var error;
             if (lines.length) {
                 for (var i = 0; i < lines.length; i += 1) {
@@ -1118,7 +1118,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.invalidateScript();
         };
         Controller.prototype.fnList = function (paras) {
-            var input = this.view.getAreaValue("inputText"), stream = paras.stream, lines = Controller.fnGetLinesInRange(input, paras.first, paras.last), regExp = new RegExp(/([\x00-\x1f])/g); // eslint-disable-line no-control-regex
+            var input = this.view.getAreaValue("inputText"), stream = paras.stream, lines = Controller.fnGetLinesInRange(input, paras.first || 0, paras.last || 65535), regExp = new RegExp(/([\x00-\x1f])/g); // eslint-disable-line no-control-regex
             for (var i = 0; i < lines.length; i += 1) {
                 var line = lines[i];
                 if (stream !== 9) {
@@ -1166,7 +1166,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     parser: new BasicParser_1.BasicParser()
                 });
             }
-            var output = this.basicFormatter.renumber(input, paras.newLine, paras.oldLine, paras.step, paras.keep);
+            var output = this.basicFormatter.renumber(input, paras.newLine || 10, paras.oldLine || 1, paras.step || 10, paras.keep || 65535);
             if (output.error) {
                 Utils_1.Utils.console.warn(output.error);
                 this.outputError(output.error);
@@ -1192,7 +1192,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             return true;
         };
         Controller.prototype.fnEditLine = function (paras) {
-            var input = this.view.getAreaValue("inputText"), stream = paras.stream, lineNumber = paras.first, lines = Controller.fnGetLinesInRange(input, lineNumber, lineNumber);
+            var input = this.view.getAreaValue("inputText"), stream = paras.stream, lineNumber = paras.first || 0, lines = Controller.fnGetLinesInRange(input, lineNumber, lineNumber);
             if (lines.length) {
                 var lineString = lines[0];
                 this.vm.print(stream, lineString);

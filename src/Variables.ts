@@ -58,7 +58,6 @@ export class Variables {
 	}
 
 	// determine static varType (first letter + optional fixed vartype) from a variable name
-	//TODO remove comment format: (v.)(_)<sname>(I|R|$)(A*[...]([...])) with optional parts in ()
 	// format: (v.|v["])(_)<sname>(A*)(I|R|$)([...]([...])) with optional parts in ()
 	determineStaticVarType(name: string): string { // eslint-disable-line class-methods-use-this
 		if (name.indexOf("v.") === 0) { // preceding variable object?
@@ -77,12 +76,6 @@ export class Variables {
 		const bracketPos = name.indexOf("["),
 			typePos = bracketPos >= 0 ? bracketPos - 1 : name.length - 1,
 			typeChar = name.charAt(typePos); // check character before array bracket
-
-		/*
-		const arrayPos = name.indexOf("A"), //name.indexOf("A"),
-			typePos = arrayPos >= 0 ? arrayPos - 1 : name.length - 1,
-			typeChar = name.charAt(typePos); // check last character before array
-		*/
 
 		if (typeChar === "I" || typeChar === "R" || typeChar === "$") { // explicit type specified?
 			nameType += typeChar;

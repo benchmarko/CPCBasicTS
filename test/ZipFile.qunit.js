@@ -35,7 +35,7 @@ define(["require", "exports", "../Utils", "../ZipFile", "./TestHelper"], functio
             }
             return result.join(",");
         }
-        function runTestsFor(assert, _sCategory, tests, results) {
+        function runTestsFor(_category, tests, assert, results) {
             for (var key in tests) {
                 if (tests.hasOwnProperty(key)) {
                     var parts = Utils_1.Utils.split2(key, ","), meta = parts[0], data = Utils_1.Utils.atob(parts[1]), // decode base64

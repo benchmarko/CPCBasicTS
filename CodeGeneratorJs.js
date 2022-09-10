@@ -183,20 +183,13 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     name = "_" + name; // prepend underscore
                 }
             }
-            /*
-            if (name.endsWith("!")) { // real number?
-                name = name.slice(0, -1) + "R"; // "!" => "R"
-            } else if (name.endsWith("%")) { // integer number?
-                name = name.slice(0, -1) + "I";
-            }
-            */
             var mappedTypeChar = CodeGeneratorJs.varTypeMap[name.charAt(name.length - 1)] || ""; // map last char
             if (mappedTypeChar) {
                 name = name.slice(0, -1); // remove type char
                 node.pt = name.charAt(name.length - 1); // set also type; TODO currently not used
             }
             if (arrayIndices) {
-                name += "A".repeat(arrayIndices); //TODO: one "A" should be enough
+                name += "A".repeat(arrayIndices); // TODO: one "A" should be enough
             }
             name += mappedTypeChar; // put type at the end
             var needDeclare = false;
@@ -209,19 +202,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 }
                 else if (!(name in defScopeArgs)) {
                     needDeclare = true;
-                    /*
-                    // variable
-                    if (mappedTypeChar) {
-                        this.fnDeclareVariable(name);
-                        name = "v." + name; // access with "v."
-                    } else {
-                        // we do not know which one we will need, so declare for all types
-                        this.fnDeclareVariable(name + "I");
-                        this.fnDeclareVariable(name + "R");
-                        this.fnDeclareVariable(name + "S");
-                        name = 'v["' + name + '" + t.' + name.charAt(0) + "]";
-                    }
-                    */
                 }
             }
             else {
@@ -277,17 +257,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             return name;
         };
-        /*
-        private static fnRemoveVarStr(name: string) {
-            if (name.indexOf("v.") === 0) { // variable object?
-                name = name.substr(2); // remove preceding "v."
-            }
-            if (name.indexOf('v["') === 0) { // variable object in brackets?
-                name = name.substr(3); // remove preceding 'v["'
-            }
-            return name;
-        }
-        */
         CodeGeneratorJs.fnGetNameTypeExpression = function (name) {
             if (name.indexOf("v.") === 0) { // variable object with dot?
                 name = name.substr(2); // remove preceding "v."
@@ -450,23 +419,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (right.type !== "identifier") {
                 throw this.composeError(Error(), "Expected variable", node.value, node.pos);
             }
-            var name = CodeGeneratorJs.fnGetNameTypeExpression(right.pv);
-            //const name = CodeGeneratorJs.fnRemoveVarStr(right.pv);
-            /*
-            let name = right.pv;
-    
-            if (name.indexOf("v.") === 0) { // variable object with dot?
-                name = name.substr(2); // remove preceding "v."
-                name = '"' + name + '"';
-            }
-            if (name.indexOf("v[") === 0) { // variable object with brackets?
-                name = name.substr(2); // remove preceding "v["
-                const closeIndex = name.indexOf("]");
-    
-                name = name.substr(0, closeIndex);
-            }
-            */
             // we want a name, for arrays with "A"'s but without array indices
+            var name = CodeGeneratorJs.fnGetNameTypeExpression(right.pv);
             node.pv = "o.addressOf(" + name + ")"; // address of
             node.pt = "I";
         };
@@ -773,17 +727,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 }
                 var nodeArgs = this.fnParseArgRange(nodeArg.args, 1, nodeArg.args.length - 2), // we skip open and close bracket
                 fullExpression = this.fnParseOneArg(nodeArg), name_1 = CodeGeneratorJs.fnGetNameTypeExpression(fullExpression);
-                //varType = this.fnDetermineStaticVarType(fullExpression);
-                //name = CodeGeneratorJs.fnExtractVarName(fullExpression);
-                //name = nodeArg.value + "A".repeat(nodeArgs.length);
-                /*
-                let name = fullExpression;
-    
-                name = name.substr(2); // remove preceding "v."
-                const index = name.indexOf("["); // we should always have it
-    
-                name = name.substr(0, index);
-                */
                 nodeArgs.unshift(name_1); // put as first arg
                 args.push("/* " + fullExpression + " = */ o.dim(" + nodeArgs.join(", ") + ")");
             }
@@ -837,6 +780,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             node.pv = name + "(" + nodeArgs.join(", ") + ")";
         };
+        // TODO: complexity
+        // eslint-disable-next-line complexity
         CodeGeneratorJs.prototype["for"] = function (node) {
             var nodeArgs = this.fnParseArgs(node.args), varName = nodeArgs[0], label = this.fnGetForLabel();
             this.stack.forLabel.push(label);
@@ -861,33 +806,18 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 if (endNode.pt !== "I") {
                     endValue = "o.vmAssign(\"" + varType + "\", " + endValue + ")";
                 }
-                /*
-                endName = varName + "End";
-                const value2 = endName.substr(2); // remove preceding "v."
-                */
-                /*
-                endName = node.args[0].value + "End"; // variable name
-                this.fnDeclareVariable(endName); // declare also end variable
-                endName = "v." + endName;
-                */
                 endName = CodeGeneratorJs.fnExtractVarName(varName) + "End";
                 this.fnDeclareVariable(endName); // declare also end variable
                 endName = "v." + endName;
+            }
+            if (varName.indexOf("v[") === 0) { // untyped?
+                // TODO
             }
             var stepName;
             if (!stepIsIntConst) {
                 if (stepNode && stepNode.pt !== "I") {
                     stepValue = "o.vmAssign(\"" + varType + "\", " + stepValue + ")";
                 }
-                /*
-                stepName = varName + "Step";
-                const value2 = stepName.substr(2); // remove preceding "v."
-                */
-                /*
-                stepName = node.args[0].value + "Step"; // variable name
-                this.fnDeclareVariable(stepName); // declare also step variable
-                stepName = "v." + stepName;
-                */
                 stepName = CodeGeneratorJs.fnExtractVarName(varName) + "Step";
                 this.fnDeclareVariable(stepName); // declare also step variable
                 stepName = "v." + stepName;

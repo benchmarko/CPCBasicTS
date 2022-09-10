@@ -654,7 +654,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             lexer: lexer,
             parser: parser
         });
-        function runTestsFor(assert, category, tests, results) {
+        function runTestsFor(category, tests, assert, results) {
             lexer.setOptions({
                 quiet: true,
                 keepWhiteSpace: category === "keepSpaces"

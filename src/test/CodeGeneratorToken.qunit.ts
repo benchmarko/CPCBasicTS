@@ -656,7 +656,7 @@ QUnit.module("CodeGeneratorToken: Tests", function (/* hooks */) {
 		}).join(",");
 	}
 
-	function runTestsFor(assert: Assert | undefined, _sCategory: string, tests: TestsType, results?: string[]) {
+	function runTestsFor(_category: string, tests: TestsType, assert?: Assert, results?: string[]) {
 		const codeGeneratorToken = new CodeGeneratorToken({
 			quiet: true,
 			lexer: new BasicLexer({
@@ -675,7 +675,7 @@ QUnit.module("CodeGeneratorToken: Tests", function (/* hooks */) {
 		for (const key in tests) {
 			if (tests.hasOwnProperty(key)) {
 				const expected = tests[key],
-					output = codeGeneratorToken.generate(key, true),
+					output = codeGeneratorToken.generate(key),
 					result = output.error ? String(output.error) : fnBin2Hex(output.text);
 
 				if (results) {

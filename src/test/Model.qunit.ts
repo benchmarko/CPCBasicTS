@@ -2,27 +2,28 @@
 //
 
 import { Model } from "../Model";
-import {} from "qunit";
+import { } from "qunit";
 
-QUnit.module("Model: Properties", function (hooks: NestedHooks) {
-	hooks.beforeEach(function (this: any) {
-		const that = this, // eslint-disable-line no-invalid-this, @typescript-eslint/no-this-alias
-			config = {
-				p1: "v1"
-			};
+QUnit.module("Model: Properties", function (hooks) {
+	const that = {} as { model: Model }; // eslint-disable-line consistent-this
+
+	hooks.beforeEach(function () {
+		const config = {
+			p1: "v1"
+		};
 
 		that.model = new Model(config);
 		that.model.setProperty("p2", "v2");
 	});
 
-	QUnit.test("init without options", function (assert: Assert) {
+	QUnit.test("init without options", function (assert) {
 		const model = new Model({});
 
 		assert.ok(model, "defined");
 	});
 
-	QUnit.test("properties", function (this: any, assert: Assert) {
-		const model: Model = this.model; // eslint-disable-line no-invalid-this
+	QUnit.test("properties", function (assert) {
+		const model = that.model;
 
 		let allProperties = model.getAllInitialProperties();
 
@@ -52,12 +53,12 @@ QUnit.module("Model: Properties", function (hooks: NestedHooks) {
 });
 
 
-QUnit.module("Model: Databases", function (hooks: NestedHooks) {
+QUnit.module("Model: Databases", function (hooks) {
 	hooks.beforeEach(function () {
 		// empty
 	});
 
-	QUnit.test("databases", function (assert: Assert) {
+	QUnit.test("databases", function (assert) {
 		const model = new Model({}),
 			exampleDatabases = {
 				db1: {
@@ -94,10 +95,13 @@ QUnit.module("Model: Databases", function (hooks: NestedHooks) {
 });
 
 
-QUnit.module("Model: Examples", function (hooks: NestedHooks) {
-	hooks.beforeEach(function (this: any) {
-		const that = this, // eslint-disable-line no-invalid-this, @typescript-eslint/no-this-alias
-			exampleDatabases = {
+QUnit.module("Model: Examples", function (hooks) {
+	const that = {} as { model: Model }; // eslint-disable-line consistent-this
+
+	hooks.beforeEach(function () {
+		that.model = new Model({});
+
+		const exampleDatabases = {
 				db1: {
 					text: "db1Text",
 					title: "db1Title",
@@ -120,18 +124,16 @@ QUnit.module("Model: Examples", function (hooks: NestedHooks) {
 				title: "ex2",
 				type: "",
 				meta: ""
-			},
-			model = new Model({});
+			};
 
-		model.addDatabases(exampleDatabases);
-		model.setProperty("database", "db1");
-		model.setExample(example1);
-		model.setExample(example2);
-		that.model = model;
+		that.model.addDatabases(exampleDatabases);
+		that.model.setProperty("database", "db1");
+		that.model.setExample(example1);
+		that.model.setExample(example2);
 	});
 
-	QUnit.test("examples", function (this: any, assert: Assert) {
-		const model = this.model; // eslint-disable-line no-invalid-this
+	QUnit.test("examples", function (assert) {
+		const model = that.model;
 
 		assert.strictEqual(model.getExample("ex1").key, "ex1", "ex1");
 		assert.strictEqual(model.getExample("ex2").key, "ex2", "ex2");

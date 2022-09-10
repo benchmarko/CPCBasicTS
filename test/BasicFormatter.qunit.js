@@ -81,7 +81,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
                 "1 goto 2": "BasicFormatter: Line does not exist in 1 at pos 7-8: 2"
             }
         };
-        function runTestsFor(assert, _sCategory, tests, results) {
+        function runTestsFor(_category, tests, assert, results) {
             var basicFormatter = new BasicFormatter_1.BasicFormatter({
                 lexer: new BasicLexer_1.BasicLexer(),
                 parser: new BasicParser_1.BasicParser({

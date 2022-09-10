@@ -299,6 +299,7 @@ define("Polyfills", ["require", "exports", "Utils"], function (require, exports,
         globalThis.window = globalThis;
     }
     if (!Array.prototype.indexOf) { // IE8
+        exports.Polyfills.log("Array.prototype.indexOf");
         Array.prototype.indexOf = function (searchElement, from) {
             var len = this.length >>> 0; // eslint-disable-line no-bitwise
             from = Number(from) || 0;
@@ -312,6 +313,21 @@ define("Polyfills", ["require", "exports", "Utils"], function (require, exports,
                 }
             }
             return -1;
+        };
+    }
+    if (!Array.prototype.fill) { // IE11
+        // based on: https://github.com/1000ch/array-fill/blob/master/index.js
+        exports.Polyfills.log("Array.prototype.fill");
+        Array.prototype.fill = function (value, start, end) {
+            var length = this.length;
+            start = start || 0;
+            end = end === undefined ? length : (end || 0);
+            var i = start < 0 ? Math.max(length + start, 0) : Math.min(start, length);
+            var l = end < 0 ? Math.max(length + end, 0) : Math.min(end, length);
+            for (; i < l; i += 1) {
+                this[i] = value;
+            }
+            return this;
         };
     }
     if (!Array.prototype.map) { // IE8
@@ -500,7 +516,7 @@ define("Polyfills", ["require", "exports", "Utils"], function (require, exports,
     }
     if (!Object.keys) { // IE8
         exports.Polyfills.log("Object.keys");
-        // https://tokenposts.blogspot.com/2012/04/javascript-objectkeys-browser.html
+        // based on: https://tokenposts.blogspot.com/2012/04/javascript-objectkeys-browser.html
         Object.keys = function (o) {
             var k = [];
             if (o !== Object(o)) {
@@ -512,6 +528,15 @@ define("Polyfills", ["require", "exports", "Utils"], function (require, exports,
                 }
             }
             return k;
+        };
+    }
+    if (!Object.values) { // IE11
+        exports.Polyfills.log("Object.values");
+        // based on: https://github.com/KhaledElAnsari/Object.values/blob/master/index.js
+        Object.values = function (o) {
+            return Object.keys(o).map(function (key) {
+                return o[key];
+            });
         };
     }
     if (!String.prototype.endsWith) {
@@ -4065,7 +4090,6 @@ define("Variables", ["require", "exports"], function (require, exports) {
             return ret;
         };
         // determine static varType (first letter + optional fixed vartype) from a variable name
-        //TODO remove comment format: (v.)(_)<sname>(I|R|$)(A*[...]([...])) with optional parts in ()
         // format: (v.|v["])(_)<sname>(A*)(I|R|$)([...]([...])) with optional parts in ()
         Variables.prototype.determineStaticVarType = function (name) {
             if (name.indexOf("v.") === 0) { // preceding variable object?
@@ -4079,11 +4103,6 @@ define("Variables", ["require", "exports"], function (require, exports) {
                 nameType = name.charAt(1);
             }
             var bracketPos = name.indexOf("["), typePos = bracketPos >= 0 ? bracketPos - 1 : name.length - 1, typeChar = name.charAt(typePos); // check character before array bracket
-            /*
-            const arrayPos = name.indexOf("A"), //name.indexOf("A"),
-                typePos = arrayPos >= 0 ? arrayPos - 1 : name.length - 1,
-                typeChar = name.charAt(typePos); // check last character before array
-            */
             if (typeChar === "I" || typeChar === "R" || typeChar === "$") { // explicit type specified?
                 nameType += typeChar;
             }
@@ -4341,20 +4360,13 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                     name = "_" + name; // prepend underscore
                 }
             }
-            /*
-            if (name.endsWith("!")) { // real number?
-                name = name.slice(0, -1) + "R"; // "!" => "R"
-            } else if (name.endsWith("%")) { // integer number?
-                name = name.slice(0, -1) + "I";
-            }
-            */
             var mappedTypeChar = CodeGeneratorJs.varTypeMap[name.charAt(name.length - 1)] || ""; // map last char
             if (mappedTypeChar) {
                 name = name.slice(0, -1); // remove type char
                 node.pt = name.charAt(name.length - 1); // set also type; TODO currently not used
             }
             if (arrayIndices) {
-                name += "A".repeat(arrayIndices); //TODO: one "A" should be enough
+                name += "A".repeat(arrayIndices); // TODO: one "A" should be enough
             }
             name += mappedTypeChar; // put type at the end
             var needDeclare = false;
@@ -4367,19 +4379,6 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 }
                 else if (!(name in defScopeArgs)) {
                     needDeclare = true;
-                    /*
-                    // variable
-                    if (mappedTypeChar) {
-                        this.fnDeclareVariable(name);
-                        name = "v." + name; // access with "v."
-                    } else {
-                        // we do not know which one we will need, so declare for all types
-                        this.fnDeclareVariable(name + "I");
-                        this.fnDeclareVariable(name + "R");
-                        this.fnDeclareVariable(name + "S");
-                        name = 'v["' + name + '" + t.' + name.charAt(0) + "]";
-                    }
-                    */
                 }
             }
             else {
@@ -4435,17 +4434,6 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             }
             return name;
         };
-        /*
-        private static fnRemoveVarStr(name: string) {
-            if (name.indexOf("v.") === 0) { // variable object?
-                name = name.substr(2); // remove preceding "v."
-            }
-            if (name.indexOf('v["') === 0) { // variable object in brackets?
-                name = name.substr(3); // remove preceding 'v["'
-            }
-            return name;
-        }
-        */
         CodeGeneratorJs.fnGetNameTypeExpression = function (name) {
             if (name.indexOf("v.") === 0) { // variable object with dot?
                 name = name.substr(2); // remove preceding "v."
@@ -4608,23 +4596,8 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             if (right.type !== "identifier") {
                 throw this.composeError(Error(), "Expected variable", node.value, node.pos);
             }
-            var name = CodeGeneratorJs.fnGetNameTypeExpression(right.pv);
-            //const name = CodeGeneratorJs.fnRemoveVarStr(right.pv);
-            /*
-            let name = right.pv;
-    
-            if (name.indexOf("v.") === 0) { // variable object with dot?
-                name = name.substr(2); // remove preceding "v."
-                name = '"' + name + '"';
-            }
-            if (name.indexOf("v[") === 0) { // variable object with brackets?
-                name = name.substr(2); // remove preceding "v["
-                const closeIndex = name.indexOf("]");
-    
-                name = name.substr(0, closeIndex);
-            }
-            */
             // we want a name, for arrays with "A"'s but without array indices
+            var name = CodeGeneratorJs.fnGetNameTypeExpression(right.pv);
             node.pv = "o.addressOf(" + name + ")"; // address of
             node.pt = "I";
         };
@@ -4931,17 +4904,6 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 }
                 var nodeArgs = this.fnParseArgRange(nodeArg.args, 1, nodeArg.args.length - 2), // we skip open and close bracket
                 fullExpression = this.fnParseOneArg(nodeArg), name_3 = CodeGeneratorJs.fnGetNameTypeExpression(fullExpression);
-                //varType = this.fnDetermineStaticVarType(fullExpression);
-                //name = CodeGeneratorJs.fnExtractVarName(fullExpression);
-                //name = nodeArg.value + "A".repeat(nodeArgs.length);
-                /*
-                let name = fullExpression;
-    
-                name = name.substr(2); // remove preceding "v."
-                const index = name.indexOf("["); // we should always have it
-    
-                name = name.substr(0, index);
-                */
                 nodeArgs.unshift(name_3); // put as first arg
                 args.push("/* " + fullExpression + " = */ o.dim(" + nodeArgs.join(", ") + ")");
             }
@@ -4995,6 +4957,8 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             }
             node.pv = name + "(" + nodeArgs.join(", ") + ")";
         };
+        // TODO: complexity
+        // eslint-disable-next-line complexity
         CodeGeneratorJs.prototype["for"] = function (node) {
             var nodeArgs = this.fnParseArgs(node.args), varName = nodeArgs[0], label = this.fnGetForLabel();
             this.stack.forLabel.push(label);
@@ -5019,33 +4983,18 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 if (endNode.pt !== "I") {
                     endValue = "o.vmAssign(\"" + varType + "\", " + endValue + ")";
                 }
-                /*
-                endName = varName + "End";
-                const value2 = endName.substr(2); // remove preceding "v."
-                */
-                /*
-                endName = node.args[0].value + "End"; // variable name
-                this.fnDeclareVariable(endName); // declare also end variable
-                endName = "v." + endName;
-                */
                 endName = CodeGeneratorJs.fnExtractVarName(varName) + "End";
                 this.fnDeclareVariable(endName); // declare also end variable
                 endName = "v." + endName;
+            }
+            if (varName.indexOf("v[") === 0) { // untyped?
+                // TODO
             }
             var stepName;
             if (!stepIsIntConst) {
                 if (stepNode && stepNode.pt !== "I") {
                     stepValue = "o.vmAssign(\"" + varType + "\", " + stepValue + ")";
                 }
-                /*
-                stepName = varName + "Step";
-                const value2 = stepName.substr(2); // remove preceding "v."
-                */
-                /*
-                stepName = node.args[0].value + "Step"; // variable name
-                this.fnDeclareVariable(stepName); // declare also step variable
-                stepName = "v." + stepName;
-                */
                 stepName = CodeGeneratorJs.fnExtractVarName(varName) + "Step";
                 this.fnDeclareVariable(stepName); // declare also step variable
                 stepName = "v." + stepName;
@@ -5792,7 +5741,7 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
             return value;
         };
         CodeGeneratorToken.string = function (node) {
-            return '"' + node.value + '"'; //TTT how to set unterminated string?
+            return '"' + node.value + '"'; // TODO: how to set unterminated string?
         };
         CodeGeneratorToken.unquoted = function (node) {
             return node.value;
@@ -5820,7 +5769,7 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
                 exponent = Math.ceil(Math.log(number) / Math.log(2));
                 mantissa = Math.round(number / Math.pow(2, exponent - 32)) & ~0x80000000; // eslint-disable-line no-bitwise
                 if (mantissa === 0) {
-                    exponent += 1; //TTT is this correct?
+                    exponent += 1;
                 }
                 exponent += 0x80;
             }
@@ -6268,7 +6217,7 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
             }
             return output;
         };
-        CodeGeneratorToken.prototype.generate = function (input, _allowDirect) {
+        CodeGeneratorToken.prototype.generate = function (input) {
             var out = {
                 text: ""
             };
@@ -11940,33 +11889,11 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             }
             return this.stopEntry.reason === "";
         };
-        /*
-        private vmInitUntypedVariables(varChar: string) {
-            const names = this.variables.getAllVariableNames();
-    
-            for (let i = 0; i < names.length; i += 1) {
-                const name = names[i];
-    
-                if (name.charAt(0) === varChar) {
-                    const lastChar = name.charAt(name.length - 1);
-    
-                    //if (name.indexOf("I") === -1 && name.indexOf("R") === -1 && name.indexOf("$") === -1) { // no explicit type?
-                    if (lastChar !== "I" && lastChar !== "R" && lastChar !== "$") { // no explicit type?
-                        this.variables.initVariable(name);
-                    }
-                }
-            }
-        }
-        */
         CpcVm.prototype.vmDefineVarTypes = function (type, err, first, last) {
             var firstNum = this.vmGetLetterCode(first, err), lastNum = last ? this.vmGetLetterCode(last, err) : firstNum;
             for (var i = firstNum; i <= lastNum; i += 1) {
                 var varChar = String.fromCharCode(i);
-                if (this.variables.getVarType(varChar) !== type) { // type changed?
-                    this.variables.setVarType(varChar, type);
-                    // initialize all untyped variables starting with varChar!
-                    //this.vmInitUntypedVariables(varChar);
-                }
+                this.variables.setVarType(varChar, type);
             }
         };
         CpcVm.prototype.vmStop = function (reason, priority, force, paras) {
@@ -12143,16 +12070,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.addressOf = function (variable) {
             // not really implemented
             this.vmAssertString(variable, "@");
-            /*
-            variable = variable.replace("v.", "");
-            variable = variable.replace("[", "(");
-    
-            const pos = variable.indexOf("("); // array variable with indices?
-    
-            if (pos >= 0) {
-                variable = variable.substr(0, pos); // remove indices
-            }
-            */
             var varIndex = this.variables.getVariableIndex(variable);
             if (varIndex < 0) {
                 throw this.vmComposeError(Error(), 5, "@" + variable); // Improper argument
@@ -15715,7 +15632,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.vm.vmStop("", 0, true);
         };
         Controller.prototype.fnFileEra = function (paras) {
-            var stream = paras.stream, storage = Utils_22.Utils.localStorage, fileMask = Controller.fnLocalStorageName(paras.fileMask), dir = Controller.fnGetStorageDirectoryEntries(fileMask);
+            var stream = paras.stream, storage = Utils_22.Utils.localStorage, fileMask = Controller.fnLocalStorageName(paras.fileMask || ""), dir = Controller.fnGetStorageDirectoryEntries(fileMask);
             if (!dir.length) {
                 this.vm.print(stream, fileMask + " not found\r\n");
             }
@@ -16147,7 +16064,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.vm.vmStop("", 0, true); // continue
         };
         Controller.prototype.fnDeleteLines = function (paras) {
-            var inputText = this.view.getAreaValue("inputText"), lines = Controller.fnGetLinesInRange(inputText, paras.first, paras.last);
+            var inputText = this.view.getAreaValue("inputText"), lines = Controller.fnGetLinesInRange(inputText, paras.first || 0, paras.last || 65535);
             var error;
             if (lines.length) {
                 for (var i = 0; i < lines.length; i += 1) {
@@ -16177,7 +16094,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.invalidateScript();
         };
         Controller.prototype.fnList = function (paras) {
-            var input = this.view.getAreaValue("inputText"), stream = paras.stream, lines = Controller.fnGetLinesInRange(input, paras.first, paras.last), regExp = new RegExp(/([\x00-\x1f])/g); // eslint-disable-line no-control-regex
+            var input = this.view.getAreaValue("inputText"), stream = paras.stream, lines = Controller.fnGetLinesInRange(input, paras.first || 0, paras.last || 65535), regExp = new RegExp(/([\x00-\x1f])/g); // eslint-disable-line no-control-regex
             for (var i = 0; i < lines.length; i += 1) {
                 var line = lines[i];
                 if (stream !== 9) {
@@ -16225,7 +16142,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     parser: new BasicParser_3.BasicParser()
                 });
             }
-            var output = this.basicFormatter.renumber(input, paras.newLine, paras.oldLine, paras.step, paras.keep);
+            var output = this.basicFormatter.renumber(input, paras.newLine || 10, paras.oldLine || 1, paras.step || 10, paras.keep || 65535);
             if (output.error) {
                 Utils_22.Utils.console.warn(output.error);
                 this.outputError(output.error);
@@ -16251,7 +16168,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             return true;
         };
         Controller.prototype.fnEditLine = function (paras) {
-            var input = this.view.getAreaValue("inputText"), stream = paras.stream, lineNumber = paras.first, lines = Controller.fnGetLinesInRange(input, lineNumber, lineNumber);
+            var input = this.view.getAreaValue("inputText"), stream = paras.stream, lineNumber = paras.first || 0, lines = Controller.fnGetLinesInRange(input, lineNumber, lineNumber);
             if (lines.length) {
                 var lineString = lines[0];
                 this.vm.print(stream, lineString);

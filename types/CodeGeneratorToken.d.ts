@@ -70,7 +70,7 @@ export declare class CodeGeneratorToken {
     private fnParseOther;
     private parseNode;
     private evaluate;
-    generate(input: string, _allowDirect?: boolean): IOutput;
+    generate(input: string): IOutput;
 }
 export {};
 //# sourceMappingURL=CodeGeneratorToken.d.ts.map

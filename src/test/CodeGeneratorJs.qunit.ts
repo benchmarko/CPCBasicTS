@@ -673,7 +673,7 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 		return "0x" + parseInt(bin.substr(2), 2).toString(16).toLowerCase();
 	}
 
-	function runTestsFor(assert: Assert | undefined, _sCategory: string, tests: TestsType, results?: string[]) {
+	function runTestsFor(_category: string, tests: TestsType, assert?: Assert, results?: string[]) {
 		const allowDirect = true,
 			options = {
 				quiet: true

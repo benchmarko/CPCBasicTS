@@ -62,14 +62,23 @@ define(["require", "exports", "../Utils"], function (require, exports, Utils_1) 
             TestHelper.fnParseArgs(args, config);
         };
         TestHelper.generateTests = function (allTests, runTestsFor) {
-            for (var category in allTests) {
+            var _loop_1 = function (category) {
                 if (allTests.hasOwnProperty(category)) {
-                    (function (cat) {
-                        QUnit.test(cat, function (assert) {
-                            runTestsFor(assert, cat, allTests[cat]);
+                    /*
+                    (function (cat) { // eslint-disable-line no-loop-func
+                        QUnit.test(cat, function (assert: Assert) {
+                            runTestsFor(cat, allTests[cat], assert);
                         });
                     }(category));
+                    */
+                    //const category = category;
+                    QUnit.test(category, function (assert) {
+                        runTestsFor(category, allTests[category], assert);
+                    });
                 }
+            };
+            for (var category in allTests) {
+                _loop_1(category);
             }
         };
         TestHelper.stringInQuotes = function (s) {
@@ -95,7 +104,7 @@ define(["require", "exports", "../Utils"], function (require, exports, Utils_1) 
                     var results = [], containsSpace = category.indexOf(" ") >= 0, isJsKeyword = reJsKeywords.test(category);
                     result += containsSpace || isJsKeyword ? TestHelper.stringInQuotes(category) : category;
                     result += ": {\n";
-                    runTestsFor(undefined, category, allTests[category], results);
+                    runTestsFor(category, allTests[category], undefined, results);
                     result += results.join(",\n");
                     result += "\n},\n";
                 }

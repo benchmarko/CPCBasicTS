@@ -4,9 +4,9 @@ define(["require", "exports", "../Model"], function (require, exports, Model_1) 
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     QUnit.module("Model: Properties", function (hooks) {
+        var that = {}; // eslint-disable-line consistent-this
         hooks.beforeEach(function () {
-            var that = this, // eslint-disable-line no-invalid-this, @typescript-eslint/no-this-alias
-            config = {
+            var config = {
                 p1: "v1"
             };
             that.model = new Model_1.Model(config);
@@ -17,7 +17,7 @@ define(["require", "exports", "../Model"], function (require, exports, Model_1) 
             assert.ok(model, "defined");
         });
         QUnit.test("properties", function (assert) {
-            var model = this.model; // eslint-disable-line no-invalid-this
+            var model = that.model;
             var allProperties = model.getAllInitialProperties();
             assert.strictEqual(Object.keys(allProperties).join(" "), "p1", "all initial properties: p1");
             assert.strictEqual(model.getProperty("p1"), "v1", "p1=v1");
@@ -66,9 +66,10 @@ define(["require", "exports", "../Model"], function (require, exports, Model_1) 
         });
     });
     QUnit.module("Model: Examples", function (hooks) {
+        var that = {}; // eslint-disable-line consistent-this
         hooks.beforeEach(function () {
-            var that = this, // eslint-disable-line no-invalid-this, @typescript-eslint/no-this-alias
-            exampleDatabases = {
+            that.model = new Model_1.Model({});
+            var exampleDatabases = {
                 db1: {
                     text: "db1Text",
                     title: "db1Title",
@@ -89,15 +90,14 @@ define(["require", "exports", "../Model"], function (require, exports, Model_1) 
                 title: "ex2",
                 type: "",
                 meta: ""
-            }, model = new Model_1.Model({});
-            model.addDatabases(exampleDatabases);
-            model.setProperty("database", "db1");
-            model.setExample(example1);
-            model.setExample(example2);
-            that.model = model;
+            };
+            that.model.addDatabases(exampleDatabases);
+            that.model.setProperty("database", "db1");
+            that.model.setExample(example1);
+            that.model.setExample(example2);
         });
         QUnit.test("examples", function (assert) {
-            var model = this.model; // eslint-disable-line no-invalid-this
+            var model = that.model;
             assert.strictEqual(model.getExample("ex1").key, "ex1", "ex1");
             assert.strictEqual(model.getExample("ex2").key, "ex2", "ex2");
             assert.strictEqual(Object.keys(model.getAllExamples()).join(), "ex1,ex2", "two examples: ex1,ex2");

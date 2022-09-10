@@ -650,7 +650,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
                 return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0");
             }).join(",");
         }
-        function runTestsFor(assert, _sCategory, tests, results) {
+        function runTestsFor(_category, tests, assert, results) {
             var codeGeneratorToken = new CodeGeneratorToken_1.CodeGeneratorToken({
                 quiet: true,
                 lexer: new BasicLexer_1.BasicLexer({
@@ -667,7 +667,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             });
             for (var key in tests) {
                 if (tests.hasOwnProperty(key)) {
-                    var expected = tests[key], output = codeGeneratorToken.generate(key, true), result = output.error ? String(output.error) : fnBin2Hex(output.text);
+                    var expected = tests[key], output = codeGeneratorToken.generate(key), result = output.error ? String(output.error) : fnBin2Hex(output.text);
                     if (results) {
                         results.push(TestHelper_1.TestHelper.stringInQuotes(key) + ": " + TestHelper_1.TestHelper.stringInQuotes(result));
                     }

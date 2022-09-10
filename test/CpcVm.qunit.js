@@ -3386,7 +3386,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             }
             return combinedResult.join(" -- ");
         }
-        function runTestsFor(assert, sCategory, tests, results) {
+        function runTestsFor(category, tests, assert, results) {
             var config = {
                 canvas: mockCanvas,
                 textCanvas: mockTextCanvas,
@@ -3394,7 +3394,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 sound: mockSound,
                 variables: mockVariables,
                 quiet: true
-            }, cpcVm = new CpcVm_1.CpcVm(config), testFunction = allTestFunctions[sCategory];
+            }, cpcVm = new CpcVm_1.CpcVm(config), testFunction = allTestFunctions[category];
             for (var key in tests) {
                 if (tests.hasOwnProperty(key)) {
                     cpcVm.vmChangeMode(1);
@@ -3408,7 +3408,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                     var result = void 0;
                     try {
                         if (!testFunction) {
-                            throw new Error("Undefined testFunction: " + sCategory);
+                            throw new Error("Undefined testFunction: " + category);
                         }
                         result = testFunction(cpcVm, input);
                         result = combineResult(result, vmState0, getVmState(cpcVm));
@@ -3432,9 +3432,9 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
         TestHelper_1.TestHelper.generateAndRunAllTests(allTests, runTestsFor);
     });
     QUnit.module("CpcVm: vm functions", function (hooks) {
+        var that = {}; // eslint-disable-line consistent-this
         hooks.beforeEach(function () {
-            var that = this, // eslint-disable-line no-invalid-this, @typescript-eslint/no-this-alias
-            config = {
+            var config = {
                 canvas: mockCanvas,
                 textCanvas: mockTextCanvas,
                 keyboard: mockKeyboard,
@@ -3463,13 +3463,13 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             assert.ok(cpcVm, "defined");
         });
         QUnit.test("vmReset", function (assert) {
-            var cpcVm = this.cpcVm; // eslint-disable-line no-invalid-this
+            var cpcVm = that.cpcVm;
             cpcVm.vmReset();
             assert.ok(cpcVm, "defined");
         });
         /*
-        QUnit.test("vmTrace", function (this: any, assert: Assert) {
-            const cpcVm: CpcVm = this.cpcVm; // eslint-disable-line no-invalid-this
+        QUnit.test("vmTrace", function (assert) {
+            const cpcVm = that.cpcVm;
     
             cpcVm.vmGotoLine(123);
             cpcVm.tron();

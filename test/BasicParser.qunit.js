@@ -643,7 +643,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "./
         function fnReplacer(bin) {
             return "0x" + parseInt(bin.substr(2), 2).toString(16).toLowerCase();
         }
-        function runTestsFor(assert, _sCategory, tests, results) {
+        function runTestsFor(_category, tests, assert, results) {
             var options = {
                 quiet: true
             }, basicLexer = new BasicLexer_1.BasicLexer(options), basicParser = new BasicParser_1.BasicParser(options);

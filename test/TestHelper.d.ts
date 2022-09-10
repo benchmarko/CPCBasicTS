@@ -1,6 +1,6 @@
 export declare type TestsType = Record<string, string>;
 export declare type AllTestsType = Record<string, TestsType>;
-export declare type runTestsForType = (assert: Assert | undefined, category: string, tests: TestsType, results?: string[]) => void;
+export declare type runTestsForType = (category: string, tests: TestsType, assert?: Assert, results?: string[]) => void;
 declare global {
     interface Window {
         QUnit: unknown;

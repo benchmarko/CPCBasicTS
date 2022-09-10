@@ -506,33 +506,11 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             }
             return this.stopEntry.reason === "";
         };
-        /*
-        private vmInitUntypedVariables(varChar: string) {
-            const names = this.variables.getAllVariableNames();
-    
-            for (let i = 0; i < names.length; i += 1) {
-                const name = names[i];
-    
-                if (name.charAt(0) === varChar) {
-                    const lastChar = name.charAt(name.length - 1);
-    
-                    //if (name.indexOf("I") === -1 && name.indexOf("R") === -1 && name.indexOf("$") === -1) { // no explicit type?
-                    if (lastChar !== "I" && lastChar !== "R" && lastChar !== "$") { // no explicit type?
-                        this.variables.initVariable(name);
-                    }
-                }
-            }
-        }
-        */
         CpcVm.prototype.vmDefineVarTypes = function (type, err, first, last) {
             var firstNum = this.vmGetLetterCode(first, err), lastNum = last ? this.vmGetLetterCode(last, err) : firstNum;
             for (var i = firstNum; i <= lastNum; i += 1) {
                 var varChar = String.fromCharCode(i);
-                if (this.variables.getVarType(varChar) !== type) { // type changed?
-                    this.variables.setVarType(varChar, type);
-                    // initialize all untyped variables starting with varChar!
-                    //this.vmInitUntypedVariables(varChar);
-                }
+                this.variables.setVarType(varChar, type);
             }
         };
         CpcVm.prototype.vmStop = function (reason, priority, force, paras) {
@@ -709,16 +687,6 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         CpcVm.prototype.addressOf = function (variable) {
             // not really implemented
             this.vmAssertString(variable, "@");
-            /*
-            variable = variable.replace("v.", "");
-            variable = variable.replace("[", "(");
-    
-            const pos = variable.indexOf("("); // array variable with indices?
-    
-            if (pos >= 0) {
-                variable = variable.substr(0, pos); // remove indices
-            }
-            */
             var varIndex = this.variables.getVariableIndex(variable);
             if (varIndex < 0) {
                 throw this.vmComposeError(Error(), 5, "@" + variable); // Improper argument

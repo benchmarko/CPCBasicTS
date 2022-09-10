@@ -37,6 +37,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         globalThis.window = globalThis;
     }
     if (!Array.prototype.indexOf) { // IE8
+        exports.Polyfills.log("Array.prototype.indexOf");
         Array.prototype.indexOf = function (searchElement, from) {
             var len = this.length >>> 0; // eslint-disable-line no-bitwise
             from = Number(from) || 0;
@@ -50,6 +51,21 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 }
             }
             return -1;
+        };
+    }
+    if (!Array.prototype.fill) { // IE11
+        // based on: https://github.com/1000ch/array-fill/blob/master/index.js
+        exports.Polyfills.log("Array.prototype.fill");
+        Array.prototype.fill = function (value, start, end) {
+            var length = this.length;
+            start = start || 0;
+            end = end === undefined ? length : (end || 0);
+            var i = start < 0 ? Math.max(length + start, 0) : Math.min(start, length);
+            var l = end < 0 ? Math.max(length + end, 0) : Math.min(end, length);
+            for (; i < l; i += 1) {
+                this[i] = value;
+            }
+            return this;
         };
     }
     if (!Array.prototype.map) { // IE8
@@ -238,7 +254,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     }
     if (!Object.keys) { // IE8
         exports.Polyfills.log("Object.keys");
-        // https://tokenposts.blogspot.com/2012/04/javascript-objectkeys-browser.html
+        // based on: https://tokenposts.blogspot.com/2012/04/javascript-objectkeys-browser.html
         Object.keys = function (o) {
             var k = [];
             if (o !== Object(o)) {
@@ -250,6 +266,15 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 }
             }
             return k;
+        };
+    }
+    if (!Object.values) { // IE11
+        exports.Polyfills.log("Object.values");
+        // based on: https://github.com/KhaledElAnsari/Object.values/blob/master/index.js
+        Object.values = function (o) {
+            return Object.keys(o).map(function (key) {
+                return o[key];
+            });
         };
     }
     if (!String.prototype.endsWith) {

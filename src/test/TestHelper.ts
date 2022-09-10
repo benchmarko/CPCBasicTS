@@ -7,7 +7,7 @@ export type TestsType = Record<string, string>;
 
 export type AllTestsType = Record<string, TestsType>;
 
-export type runTestsForType = (assert: Assert | undefined, category: string, tests: TestsType, results?: string[]) => void;
+export type runTestsForType = (category: string, tests: TestsType, assert?: Assert, results?: string[]) => void;
 declare global {
     interface Window {
 		QUnit: unknown
@@ -97,11 +97,18 @@ export class TestHelper { // eslint-disable-line vars-on-top
 	private static generateTests(allTests: AllTestsType, runTestsFor: runTestsForType) {
 		for (const category in allTests) {
 			if (allTests.hasOwnProperty(category)) {
+				/*
 				(function (cat) { // eslint-disable-line no-loop-func
 					QUnit.test(cat, function (assert: Assert) {
-						runTestsFor(assert, cat, allTests[cat]);
+						runTestsFor(cat, allTests[cat], assert);
 					});
 				}(category));
+				*/
+				//const category = category;
+
+				QUnit.test(category, function (assert) {
+					runTestsFor(category, allTests[category], assert);
+				});
 			}
 		}
 	}
@@ -202,7 +209,7 @@ export class TestHelper { // eslint-disable-line vars-on-top
 				result += containsSpace || isJsKeyword ? TestHelper.stringInQuotes(category) : category;
 				result += ": {\n";
 
-				runTestsFor(undefined, category, allTests[category], results);
+				runTestsFor(category, allTests[category], undefined, results);
 				result += results.join(",\n");
 				result += "\n},\n";
 			}

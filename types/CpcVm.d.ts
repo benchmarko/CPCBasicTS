@@ -73,17 +73,17 @@ export interface VmBaseParas {
     line: string | number;
 }
 export interface VmLineParas extends VmBaseParas {
-    first: number;
-    last: number;
+    first?: number;
+    last?: number;
 }
 export interface VmLineRenumParas extends VmBaseParas {
-    newLine: number;
-    oldLine: number;
-    step: number;
-    keep: number;
+    newLine?: number;
+    oldLine?: number;
+    step?: number;
+    keep?: number;
 }
 export interface VmFileParas extends VmBaseParas {
-    fileMask: string;
+    fileMask?: string;
     newName?: string;
     oldName?: string;
 }

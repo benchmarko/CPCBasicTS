@@ -34,7 +34,7 @@ define(["require", "exports", "../BasicTokenizer", "./TestHelper"], function (re
                 return String.fromCharCode(Number("0x" + s));
             }).join("");
         }
-        function runTestsFor(assert, _sCategory, tests, results) {
+        function runTestsFor(_category, tests, assert, results) {
             var basicTokenizer = new BasicTokenizer_1.BasicTokenizer();
             for (var key in tests) {
                 if (tests.hasOwnProperty(key)) {

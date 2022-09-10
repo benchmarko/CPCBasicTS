@@ -666,7 +666,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
         function fnReplacer(bin) {
             return "0x" + parseInt(bin.substr(2), 2).toString(16).toLowerCase();
         }
-        function runTestsFor(assert, _sCategory, tests, results) {
+        function runTestsFor(_category, tests, assert, results) {
             var allowDirect = true, options = {
                 quiet: true
             }, codeGeneratorJs = new CodeGeneratorJs_1.CodeGeneratorJs({
