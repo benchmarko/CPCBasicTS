@@ -59,7 +59,7 @@ interface WindowDimensions {
 }
 
 interface WindowData extends WindowDimensions {
-	pos: number // current (hotizontal) text position on screen
+	pos: number // current (horizontal) text position on screen
 	vpos: number // current vertical text position on screen
 	textEnabled: boolean // text enabled
 	tag: boolean // tag=text at graphics

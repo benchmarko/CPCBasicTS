@@ -27,6 +27,14 @@ export class Variables {
 		}
 	}
 
+	removeAllVarTypes(): void {
+		const varTypes = this.varTypes;
+
+		for (const name in varTypes) { // eslint-disable-line guard-for-in
+			delete varTypes[name];
+		}
+	}
+
 	getAllVariables(): VariableMap {
 		return this.variables;
 	}

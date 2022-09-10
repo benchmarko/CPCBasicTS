@@ -8,7 +8,7 @@ import { Utils, CustomError } from "./Utils";
 import { IOutput, ICpcVmRsx } from "./Interfaces";
 import { BasicLexer } from "./BasicLexer";
 import { BasicParser, ParserNode } from "./BasicParser";
-import { Variables } from "./Variables";
+import { Variables, VarTypes } from "./Variables";
 
 interface CodeGeneratorJsOptions {
 	lexer: BasicLexer
@@ -201,6 +201,8 @@ export class CodeGeneratorJs {
 
 		name = name.toLowerCase().replace(/\./g, "_");
 
+		const firstChar = name.charAt(0);
+
 		if (defScopeArgs || !Utils.supportReservedNames) { // avoid keywords as def fn parameters; and for IE8 avoid keywords in dot notation
 			if (this.reJsKeywords.test(name)) { // IE8: avoid keywords in dot notation
 				name = "_" + name; // prepend underscore
@@ -237,11 +239,16 @@ export class CodeGeneratorJs {
 		}
 
 		if (needDeclare) {
-			if (mappedTypeChar) {
+			if (mappedTypeChar) { // we have an explicit type
+				this.fnDeclareVariable(name);
+				name = "v." + name; // access with "v."
+			} else if (!this.variables.getVarType(firstChar)) {
+				// the first char of the variable name is not defined via DEFINT or DEFSTR in the program
+				name += "R"; // then we know that the type is real
 				this.fnDeclareVariable(name);
 				name = "v." + name; // access with "v."
 			} else {
-				// we do not know which one we will need, so declare for all types
+				// we do not know which type we will need, so declare for all types
 				this.fnDeclareVariable(name + "I");
 				this.fnDeclareVariable(name + "R");
 				this.fnDeclareVariable(name + "$");
@@ -672,15 +679,18 @@ export class CodeGeneratorJs {
 		}
 		node.pv = name + indices;
 	}
-	private static letterOrLinenumber(node: CodeNode) {
+	private static letter(node: CodeNode) {
+		node.pv = node.value.toLowerCase();
+	}
+	private static linenumber(node: CodeNode) {
 		node.pv = node.value;
 	}
 	private range(node: CodeNode) { // for defint, defreal, defstr
 		if (!node.left || !node.right) {
 			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
 		}
-		const left = this.fnParseOneArg(node.left),
-			right = this.fnParseOneArg(node.right);
+		const left = this.fnParseOneArg(node.left).toLowerCase(),
+			right = this.fnParseOneArg(node.right).toLowerCase();
 
 		if (left > right) {
 			throw this.composeError(Error(), "Decreasing range", node.value, node.pos);
@@ -1442,9 +1452,9 @@ export class CodeGeneratorJs {
 		number: CodeGeneratorJs.number,
 		binnumber: CodeGeneratorJs.binnumber,
 		hexnumber: CodeGeneratorJs.hexnumber,
-		linenumber: CodeGeneratorJs.letterOrLinenumber,
+		linenumber: CodeGeneratorJs.linenumber,
 		identifier: this.identifier,
-		letter: CodeGeneratorJs.letterOrLinenumber, // for defint, defreal, defstr
+		letter: CodeGeneratorJs.letter, // for defint, defreal, defstr
 		range: this.range,
 		linerange: this.linerange,
 		string: CodeGeneratorJs.string,
@@ -1617,11 +1627,63 @@ export class CodeGeneratorJs {
 		}
 	}
 
+	private fnSetVarTypeRange(type: VarTypes, first: string, last: string) { // see also vmDefineVarTypes in CpcVm
+		const firstNum = first.charCodeAt(0),
+			lastNum = last.charCodeAt(0);
+
+		for (let i = firstNum; i <= lastNum; i += 1) {
+			const varChar = String.fromCharCode(i);
+
+			this.variables.setVarType(varChar, type);
+		}
+	}
+
+	private fnPrecheckDefintDefstr(node: ParserNode) { // similar to fnParseDefIntRealStr
+		if (node.args) {
+			const type = node.type === "defint" ? "I" : "$";
+
+			for (let i = 0; i < node.args.length; i += 1) {
+				const arg = node.args[i];
+
+				if (arg.type === "letter") {
+					this.variables.setVarType(arg.value.toLowerCase(), type);
+				} else { // assuming range
+					if (!arg.left || !arg.right) {
+						throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
+					}
+					this.fnSetVarTypeRange(type, arg.left.value.toLowerCase(), arg.right.value.toLowerCase());
+				}
+			}
+		}
+	}
+
+	/*
+	const nodeArgs = this.fnParseArgs(node.args);
+s
+	for (let i = 0; i < nodeArgs.length; i += 1) {
+		const arg = nodeArgs[i],
+			first = arg.charAt(0),
+			last = arg.length > 1 ? arg.charAt(arg.length - 1)
+
+		if (first) {
+
+		}
+
+		nodeArgs[i] = "o." + node.type + '("' + arg + '")';
+	}
+	*/
+
 	private fnPrecheckTree(nodes: ParserNode[], countMap: Record<string, number>) {
 		for (let i = 0; i < nodes.length; i += 1) {
 			const node = nodes[i];
 
 			countMap[node.type] = (countMap[node.type] || 0) + 1;
+
+			if (node.type === "defint" || node.type === "defstr") {
+				if (node.args) {
+					this.fnPrecheckDefintDefstr(node);
+				}
+			}
 
 			if (node.type === "resume" && !(node.args && node.args.length)) {
 				const resumeNoArgs = "resumeNoArgsCount";
@@ -1649,7 +1711,9 @@ export class CodeGeneratorJs {
 		// create labels map
 		this.fnCreateLabelsMap(parseTree, this.referencedLabelsCount, allowDirect);
 
-		this.fnPrecheckTree(parseTree, this.countMap); // also set "_resumeNoArgs" for resume without args
+		variables.removeAllVariables();
+		variables.removeAllVarTypes();
+		this.fnPrecheckTree(parseTree, this.countMap); // also sets "resumeNoArgsCount" for resume without args
 
 		this.traceActive = this.trace || Boolean(this.countMap.tron) || Boolean(this.countMap.resumeNext) || Boolean(this.countMap.resumeNoArgsCount); // we also switch on tracing for tron, resumeNext or resume without parameter
 
