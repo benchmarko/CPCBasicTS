@@ -7,6 +7,7 @@ export declare class Variables {
     private varTypes;
     constructor();
     removeAllVariables(): void;
+    removeAllVarTypes(): void;
     getAllVariables(): VariableMap;
     getAllVarTypes(): VariableTypeMap;
     private createNDimArray;

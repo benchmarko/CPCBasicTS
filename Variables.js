@@ -16,6 +16,12 @@ define(["require", "exports"], function (require, exports) {
                 delete variables[name_1];
             }
         };
+        Variables.prototype.removeAllVarTypes = function () {
+            var varTypes = this.varTypes;
+            for (var name_2 in varTypes) { // eslint-disable-line guard-for-in
+                delete varTypes[name_2];
+            }
+        };
         Variables.prototype.getAllVariables = function () {
             return this.variables;
         };

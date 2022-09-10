@@ -393,6 +393,7 @@ declare module "Variables" {
         private varTypes;
         constructor();
         removeAllVariables(): void;
+        removeAllVarTypes(): void;
         getAllVariables(): VariableMap;
         getAllVarTypes(): VariableTypeMap;
         private createNDimArray;
@@ -501,7 +502,8 @@ declare module "CodeGeneratorJs" {
         private static binnumber;
         private static hexnumber;
         private identifier;
-        private static letterOrLinenumber;
+        private static letter;
+        private static linenumber;
         private range;
         private linerange;
         private static string;
@@ -554,6 +556,8 @@ declare module "CodeGeneratorJs" {
         private parseNode;
         private static fnCommentUnusedCases;
         private fnCreateLabelsMap;
+        private fnSetVarTypeRange;
+        private fnPrecheckDefintDefstr;
         private fnPrecheckTree;
         private evaluate;
         private static combineData;

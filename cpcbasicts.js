@@ -4065,6 +4065,12 @@ define("Variables", ["require", "exports"], function (require, exports) {
                 delete variables[name_2];
             }
         };
+        Variables.prototype.removeAllVarTypes = function () {
+            var varTypes = this.varTypes;
+            for (var name_3 in varTypes) { // eslint-disable-line guard-for-in
+                delete varTypes[name_3];
+            }
+        };
         Variables.prototype.getAllVariables = function () {
             return this.variables;
         };
@@ -4242,9 +4248,9 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 number: CodeGeneratorJs.number,
                 binnumber: CodeGeneratorJs.binnumber,
                 hexnumber: CodeGeneratorJs.hexnumber,
-                linenumber: CodeGeneratorJs.letterOrLinenumber,
+                linenumber: CodeGeneratorJs.linenumber,
                 identifier: this.identifier,
-                letter: CodeGeneratorJs.letterOrLinenumber,
+                letter: CodeGeneratorJs.letter,
                 range: this.range,
                 linerange: this.linerange,
                 string: CodeGeneratorJs.string,
@@ -4355,6 +4361,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
         CodeGeneratorJs.prototype.fnAdaptVariableName = function (node, name, arrayIndices) {
             var defScopeArgs = this.defScopeArgs;
             name = name.toLowerCase().replace(/\./g, "_");
+            var firstChar = name.charAt(0);
             if (defScopeArgs || !Utils_7.Utils.supportReservedNames) { // avoid keywords as def fn parameters; and for IE8 avoid keywords in dot notation
                 if (this.reJsKeywords.test(name)) { // IE8: avoid keywords in dot notation
                     name = "_" + name; // prepend underscore
@@ -4385,12 +4392,18 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 needDeclare = true;
             }
             if (needDeclare) {
-                if (mappedTypeChar) {
+                if (mappedTypeChar) { // we have an explicit type
+                    this.fnDeclareVariable(name);
+                    name = "v." + name; // access with "v."
+                }
+                else if (!this.variables.getVarType(firstChar)) {
+                    // the first char of the variable name is not defined via DEFINT or DEFSTR in the program
+                    name += "R"; // then we know that the type is real
                     this.fnDeclareVariable(name);
                     name = "v." + name; // access with "v."
                 }
                 else {
-                    // we do not know which one we will need, so declare for all types
+                    // we do not know which type we will need, so declare for all types
                     this.fnDeclareVariable(name + "I");
                     this.fnDeclareVariable(name + "R");
                     this.fnDeclareVariable(name + "$");
@@ -4723,14 +4736,17 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             }
             node.pv = name + indices;
         };
-        CodeGeneratorJs.letterOrLinenumber = function (node) {
+        CodeGeneratorJs.letter = function (node) {
+            node.pv = node.value.toLowerCase();
+        };
+        CodeGeneratorJs.linenumber = function (node) {
             node.pv = node.value;
         };
         CodeGeneratorJs.prototype.range = function (node) {
             if (!node.left || !node.right) {
                 throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
             }
-            var left = this.fnParseOneArg(node.left), right = this.fnParseOneArg(node.right);
+            var left = this.fnParseOneArg(node.left).toLowerCase(), right = this.fnParseOneArg(node.right).toLowerCase();
             if (left > right) {
                 throw this.composeError(Error(), "Decreasing range", node.value, node.pos);
             }
@@ -4903,8 +4919,8 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                     throw this.composeError(Error(), "Programming error: Undefined args", nodeArg.type, nodeArg.pos); // should not occur
                 }
                 var nodeArgs = this.fnParseArgRange(nodeArg.args, 1, nodeArg.args.length - 2), // we skip open and close bracket
-                fullExpression = this.fnParseOneArg(nodeArg), name_3 = CodeGeneratorJs.fnGetNameTypeExpression(fullExpression);
-                nodeArgs.unshift(name_3); // put as first arg
+                fullExpression = this.fnParseOneArg(nodeArg), name_4 = CodeGeneratorJs.fnGetNameTypeExpression(fullExpression);
+                nodeArgs.unshift(name_4); // put as first arg
                 args.push("/* " + fullExpression + " = */ o.dim(" + nodeArgs.join(", ") + ")");
             }
             node.pv = args.join("; ");
@@ -5258,8 +5274,8 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
         CodeGeneratorJs.prototype.read = function (node) {
             var nodeArgs = this.fnParseArgs(node.args);
             for (var i = 0; i < nodeArgs.length; i += 1) {
-                var name_4 = nodeArgs[i], varType = this.fnDetermineStaticVarType(name_4);
-                nodeArgs[i] = name_4 + " = o." + node.type + "(\"" + varType + "\")";
+                var name_5 = nodeArgs[i], varType = this.fnDetermineStaticVarType(name_5);
+                nodeArgs[i] = name_5 + " = o." + node.type + "(\"" + varType + "\")";
             }
             node.pv = nodeArgs.join("; ");
         };
@@ -5414,10 +5430,54 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 }
             }
         };
+        CodeGeneratorJs.prototype.fnSetVarTypeRange = function (type, first, last) {
+            var firstNum = first.charCodeAt(0), lastNum = last.charCodeAt(0);
+            for (var i = firstNum; i <= lastNum; i += 1) {
+                var varChar = String.fromCharCode(i);
+                this.variables.setVarType(varChar, type);
+            }
+        };
+        CodeGeneratorJs.prototype.fnPrecheckDefintDefstr = function (node) {
+            if (node.args) {
+                var type = node.type === "defint" ? "I" : "$";
+                for (var i = 0; i < node.args.length; i += 1) {
+                    var arg = node.args[i];
+                    if (arg.type === "letter") {
+                        this.variables.setVarType(arg.value.toLowerCase(), type);
+                    }
+                    else { // assuming range
+                        if (!arg.left || !arg.right) {
+                            throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
+                        }
+                        this.fnSetVarTypeRange(type, arg.left.value.toLowerCase(), arg.right.value.toLowerCase());
+                    }
+                }
+            }
+        };
+        /*
+        const nodeArgs = this.fnParseArgs(node.args);
+    s
+        for (let i = 0; i < nodeArgs.length; i += 1) {
+            const arg = nodeArgs[i],
+                first = arg.charAt(0),
+                last = arg.length > 1 ? arg.charAt(arg.length - 1)
+    
+            if (first) {
+    
+            }
+    
+            nodeArgs[i] = "o." + node.type + '("' + arg + '")';
+        }
+        */
         CodeGeneratorJs.prototype.fnPrecheckTree = function (nodes, countMap) {
             for (var i = 0; i < nodes.length; i += 1) {
                 var node = nodes[i];
                 countMap[node.type] = (countMap[node.type] || 0) + 1;
+                if (node.type === "defint" || node.type === "defstr") {
+                    if (node.args) {
+                        this.fnPrecheckDefintDefstr(node);
+                    }
+                }
                 if (node.type === "resume" && !(node.args && node.args.length)) {
                     var resumeNoArgs = "resumeNoArgsCount";
                     countMap[resumeNoArgs] = (countMap[resumeNoArgs] || 0) + 1;
@@ -5438,7 +5498,9 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             this.defScopeArgs = undefined;
             // create labels map
             this.fnCreateLabelsMap(parseTree, this.referencedLabelsCount, allowDirect);
-            this.fnPrecheckTree(parseTree, this.countMap); // also set "_resumeNoArgs" for resume without args
+            variables.removeAllVariables();
+            variables.removeAllVarTypes();
+            this.fnPrecheckTree(parseTree, this.countMap); // also sets "resumeNoArgsCount" for resume without args
             this.traceActive = this.trace || Boolean(this.countMap.tron) || Boolean(this.countMap.resumeNext) || Boolean(this.countMap.resumeNoArgsCount); // we also switch on tracing for tron, resumeNext or resume without parameter
             var output = "";
             for (var i = 0; i < parseTree.length; i += 1) {
@@ -7098,9 +7160,9 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
         };
         // do not know if we need to sort the extents per file, but...
         DiskImage.sortFileExtents = function (dir) {
-            for (var name_5 in dir) {
-                if (dir.hasOwnProperty(name_5)) {
-                    var fileExtents = dir[name_5];
+            for (var name_6 in dir) {
+                if (dir.hasOwnProperty(name_6)) {
+                    var fileExtents = dir[name_6];
                     fileExtents.sort(DiskImage.fnSortByExtentNumber);
                 }
             }
@@ -7110,13 +7172,13 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             for (var i = 0; i < extents.length; i += 1) {
                 var extent = extents[i];
                 if (fill === null || extent.user !== fill) {
-                    var name_6 = extent.name + "." + extent.ext; // and extent.user?
+                    var name_7 = extent.name + "." + extent.ext; // and extent.user?
                     // (do not convert filename here (to display messages in filenames))
-                    if (!reFilePattern || reFilePattern.test(name_6)) {
-                        if (!(name_6 in dir)) {
-                            dir[name_6] = [];
+                    if (!reFilePattern || reFilePattern.test(name_7)) {
+                        if (!(name_7 in dir)) {
+                            dir[name_7] = [];
                         }
-                        dir[name_6].push(extent);
+                        dir[name_7].push(extent);
                     }
                 }
             }
@@ -10238,10 +10300,10 @@ define("Model", ["require", "exports", "Utils"], function (require, exports, Uti
         };
         Model.prototype.getChangedProperties = function () {
             var current = this.config, initial = this.initialConfig, changed = {};
-            for (var name_7 in current) {
-                if (current.hasOwnProperty(name_7)) {
-                    if (current[name_7] !== initial[name_7]) {
-                        changed[name_7] = current[name_7];
+            for (var name_8 in current) {
+                if (current.hasOwnProperty(name_8)) {
+                    if (current[name_8] !== initial[name_8]) {
+                        changed[name_8] = current[name_8];
                     }
                 }
             }
@@ -12879,9 +12941,9 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             }
             for (var i = 0; i < args.length; i += 1) {
                 this.vmAssertString(args[i], "ERASE");
-                var name_8 = this.vmFindArrayVariable(args[i]);
-                if (name_8) {
-                    this.variables.initVariable(name_8);
+                var name_9 = this.vmFindArrayVariable(args[i]);
+                if (name_9) {
+                    this.variables.initVariable(name_9);
                 }
                 else {
                     if (!this.quiet) {
@@ -14371,11 +14433,11 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.run = function (numOrString) {
             var inFile = this.inFile;
             if (typeof numOrString === "string") { // filename?
-                var name_9 = this.vmAdaptFilename(numOrString, "RUN");
+                var name_10 = this.vmAdaptFilename(numOrString, "RUN");
                 this.closein();
                 inFile.open = true;
                 inFile.command = "run";
-                inFile.name = name_9;
+                inFile.name = name_10;
                 inFile.fnFileCallback = this.fnRunHandler;
                 this.vmStop("fileLoad", 90);
             }
@@ -15262,9 +15324,9 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.initDatabases = function () {
             var model = this.model, databases = {}, databaseDirs = model.getProperty("databaseDirs").split(",");
             for (var i = 0; i < databaseDirs.length; i += 1) {
-                var databaseDir = databaseDirs[i], parts = databaseDir.split("/"), name_10 = parts[parts.length - 1];
-                databases[name_10] = {
-                    text: name_10,
+                var databaseDir = databaseDirs[i], parts = databaseDir.split("/"), name_11 = parts[parts.length - 1];
+                databases[name_11] = {
+                    text: name_11,
                     title: databaseDir,
                     src: databaseDir
                 };
@@ -15793,17 +15855,17 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.vm.print(stream, fileMask + " not found\r\n");
             }
             for (var i = 0; i < dir.length; i += 1) {
-                var name_11 = dir[i];
-                if (storage.getItem(name_11) !== null) {
-                    storage.removeItem(name_11);
-                    this.updateStorageDatabase("remove", name_11);
+                var name_12 = dir[i];
+                if (storage.getItem(name_12) !== null) {
+                    storage.removeItem(name_12);
+                    this.updateStorageDatabase("remove", name_12);
                     if (Utils_23.Utils.debug > 0) {
-                        Utils_23.Utils.console.debug("fnEraseFile: name=" + name_11 + ": removed from localStorage");
+                        Utils_23.Utils.console.debug("fnEraseFile: name=" + name_12 + ": removed from localStorage");
                     }
                 }
                 else {
-                    this.vm.print(stream, name_11 + " not found\r\n");
-                    Utils_23.Utils.console.warn("fnEraseFile: file not found in localStorage:", name_11);
+                    this.vm.print(stream, name_12 + " not found\r\n");
+                    Utils_23.Utils.console.warn("fnEraseFile: file not found in localStorage:", name_12);
                 }
             }
             this.vm.vmStop("", 0, true);
@@ -16111,14 +16173,14 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     });
                     this.vm.vmStop("fileLoad", 90); // restore
                 }
-                var name_12 = inFile.name;
+                var name_13 = inFile.name;
                 if (Utils_23.Utils.debug > 1) {
-                    Utils_23.Utils.console.debug("fnFileLoad:", inFile.command, name_12, "details:", inFile);
+                    Utils_23.Utils.console.debug("fnFileLoad:", inFile.command, name_13, "details:", inFile);
                 }
-                var input = Controller.tryLoadingFromLocalStorage(name_12);
+                var input = Controller.tryLoadingFromLocalStorage(name_13);
                 if (input !== null) {
                     if (Utils_23.Utils.debug > 0) {
-                        Utils_23.Utils.console.debug("fnFileLoad:", inFile.command, name_12, "from localStorage");
+                        Utils_23.Utils.console.debug("fnFileLoad:", inFile.command, name_13, "from localStorage");
                     }
                     this.vm.vmStop("", 0, true);
                     this.loadFileContinue(input);
@@ -16173,14 +16235,14 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             var outFile = this.vm.vmGetOutFileObject(), storage = Utils_23.Utils.localStorage;
             var defaultExtension = "";
             if (outFile.open) {
-                var type = outFile.typeString, name_13 = outFile.name;
+                var type = outFile.typeString, name_14 = outFile.name;
                 if (type === "P" || type === "T") {
                     defaultExtension = "bas";
                 }
                 else if (type === "B") {
                     defaultExtension = "bin";
                 }
-                var storageName = Controller.fnLocalStorageName(name_13, defaultExtension);
+                var storageName = Controller.fnLocalStorageName(name_14, defaultExtension);
                 var fileData = void 0;
                 if (outFile.fileData.length || (type === "B") || (outFile.command === "openout")) { // type A(for openout) or B
                     fileData = outFile.fileData.join("");
@@ -16199,7 +16261,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     outFile.length = fileData.length; // set length
                 }
                 if (Utils_23.Utils.debug > 0) {
-                    Utils_23.Utils.console.debug("fnFileSave: name=" + name_13 + ": put into localStorage");
+                    Utils_23.Utils.console.debug("fnFileSave: name=" + name_14 + ": put into localStorage");
                 }
                 if (outFile.fnFileCallback) {
                     try {
@@ -17238,11 +17300,11 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
         // can be used for nodeJS
         cpcBasic.fnParseArgs = function (args, config) {
             for (var i = 0; i < args.length; i += 1) {
-                var nameValue = args[i], nameValueList = Utils_24.Utils.split2(nameValue, "="), name_14 = nameValueList[0];
-                if (config.hasOwnProperty(name_14)) {
+                var nameValue = args[i], nameValueList = Utils_24.Utils.split2(nameValue, "="), name_15 = nameValueList[0];
+                if (config.hasOwnProperty(name_15)) {
                     var value = nameValueList[1]; // string|number|boolean
-                    if (value !== undefined && config.hasOwnProperty(name_14)) {
-                        switch (typeof config[name_14]) {
+                    if (value !== undefined && config.hasOwnProperty(name_15)) {
+                        switch (typeof config[name_15]) {
                             case "string":
                                 break;
                             case "boolean":
@@ -17257,7 +17319,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
                                 break;
                         }
                     }
-                    config[name_14] = value;
+                    config[name_15] = value;
                 }
             }
             return config;
@@ -17268,9 +17330,9 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             fnDecode = function (s) { return decodeURIComponent(s.replace(rPlus, " ")); }, rSearch = /([^&=]+)=?([^&]*)/g, args = [];
             var match;
             while ((match = rSearch.exec(urlQuery)) !== null) {
-                var name_15 = fnDecode(match[1]), value = fnDecode(match[2]);
-                if (value !== null && config.hasOwnProperty(name_15)) {
-                    args.push(name_15 + "=" + value);
+                var name_16 = fnDecode(match[1]), value = fnDecode(match[2]);
+                if (value !== null && config.hasOwnProperty(name_16)) {
+                    args.push(name_16 + "=" + value);
                 }
             }
             cpcBasic.fnParseArgs(args, config);

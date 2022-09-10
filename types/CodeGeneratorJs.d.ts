@@ -87,7 +87,8 @@ export declare class CodeGeneratorJs {
     private static binnumber;
     private static hexnumber;
     private identifier;
-    private static letterOrLinenumber;
+    private static letter;
+    private static linenumber;
     private range;
     private linerange;
     private static string;
@@ -140,6 +141,8 @@ export declare class CodeGeneratorJs {
     private parseNode;
     private static fnCommentUnusedCases;
     private fnCreateLabelsMap;
+    private fnSetVarTypeRange;
+    private fnPrecheckDefintDefstr;
     private fnPrecheckTree;
     private evaluate;
     private static combineData;
