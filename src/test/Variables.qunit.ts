@@ -2,25 +2,9 @@
 //
 
 import { Variables } from "../Variables";
-//import {} from "qunit";
 import { TestHelper, TestsType, AllTestsType } from "./TestHelper";
 
-/*
-type TestObject = {
-	variables: Variables
-}
-*/
-
 QUnit.module("Variables", function (/* hooks */) {
-	//const that = {} as TestObject; // eslint-disable-line consistent-this
-
-	/*
-	hooks.beforeEach(function () {
-		// eslint-disable-next-line no-invalid-this
-		that.variables = new Variables();
-	});
-	*/
-
 	QUnit.test("create class", function (assert) {
 		const variables = new Variables();
 
@@ -103,12 +87,6 @@ QUnit.module("Variables", function (/* hooks */) {
 		assert.propEqual(variables.getAllVariables(), {}, 'removeAll; getAll:"');
 	});
 
-	/*
-	function createListWithZeros(count: number) {
-		return "0".repeat(count).split("").map((s) => Number(s));
-	}
-	*/
-
 	function createListOfItems<T>(item: T, length: number) {
 		const list: T[] = [];
 
@@ -122,7 +100,6 @@ QUnit.module("Variables", function (/* hooks */) {
 		const listList = [];
 
 		for (let i = 0; i < count; i += 1) {
-			//listList.push(createListWithZeros(count2));
 			listList.push(createListOfItems<number>(0, count2));
 		}
 		return listList;
@@ -133,7 +110,7 @@ QUnit.module("Variables", function (/* hooks */) {
 
 		assert.propEqual(variables.getAllVariables(), {}, "getAll:");
 
-		const zeros11 = createListOfItems<number>(0, 11); //createListWithZeros(11);
+		const zeros11 = createListOfItems<number>(0, 11);
 
 		variables.initVariable("a1A");
 		assert.propEqual(variables.getVariable("a1A"), zeros11, "init a1A; get a1A: 0,0... (11)"); // eslint-disable-line array-element-newline

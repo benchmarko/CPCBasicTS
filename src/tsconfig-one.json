@@ -28,6 +28,7 @@
     "Canvas.ts",
     "TextCanvas.ts",
     "Model.ts",
+    "NodeAdapt.ts",
     "Variables.ts",
     "CommonEventHandler.ts",
     "Random.ts",

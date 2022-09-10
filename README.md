@@ -94,8 +94,8 @@ Several examples use CPCBasicTS mode 3 when available, e.g. [Art](https://benchm
   - Access screen memory in screen base address range, e.g. &C000-&FFFF or &4000-&7FFF
   - Access character map data starting at *HIMEM*+1 after *SYMBOL AFTER* n with n<256
 - Runs also on the command line with nodeJS:
-  - Remote URL: `node ./cpcbasicts.js sound=false debug=0 databaseDirs=https://benchmarko.github.io/CPCBasicApps/apps database=apps example=math/euler showCpc=false`
-  - Or with local examples: `node ./cpcbasicts.js sound=false debug=0 databaseDirs=./examples example=test/testpage showCpc=false` (The test page does not fully work.)
+  - Remote URL: `node ./cpcbasicts.js sound=false showCpc=false debug=0 databaseDirs=https://benchmarko.github.io/CPCBasicApps/apps database=apps example=math/euler`
+  - Or with local examples: `node ./cpcbasicts.js sound=false showCpc=false debug=0 databaseDirs=./examples example=test/testpage` (The test page does not fully work.)
 
 ## Restrictions
 
