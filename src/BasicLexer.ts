@@ -23,7 +23,7 @@ export interface LexerToken {
 }
 
 export class BasicLexer {
-	private quiet = false;
+	//private quiet = false;
 	private keepWhiteSpace = false;
 
 	private line = "0"; // for error messages
@@ -35,7 +35,7 @@ export class BasicLexer {
 	private whiteSpace = ""; // collected whitespace
 
 	setOptions(options: BasicLexerOptions): void {
-		this.quiet = options.quiet || false;
+		//this.quiet = options.quiet || false;
 		this.keepWhiteSpace = options.keepWhiteSpace || false;
 	}
 
@@ -343,8 +343,8 @@ export class BasicLexer {
 
 		char = this.getChar();
 		if (char !== '"') {
-			if (!this.quiet) {
-				Utils.console.log(this.composeError({} as Error, "Unterminated string", token, startPos + 1).message);
+			if (Utils.debug) {
+				Utils.console.debug(this.composeError({} as Error, "Unterminated string", token, startPos + 1).message);
 			}
 			token += this.fnTryContinueString(char); // heuristic to detect an LF in the string
 			char = this.getChar();

@@ -2655,7 +2655,7 @@ export class CpcVm {
 		let line: string | number;
 
 		if (!n || n > args.length) { // out of range? => continue with line after onGosub
-			if (Utils.debug > 0) {
+			if (Utils.debug > 1) {
 				Utils.console.debug("onGosub: out of range: n=" + n + " in " + this.line);
 			}
 			line = retLabel;
@@ -2675,7 +2675,7 @@ export class CpcVm {
 		let line: string | number;
 
 		if (!n || n > args.length) { // out of range? => continue with line after onGoto
-			if (Utils.debug > 0) {
+			if (Utils.debug > 1) {
 				Utils.console.debug("onGoto: out of range: n=" + n + " in " + this.line);
 			}
 			line = retLabel;
@@ -3379,7 +3379,7 @@ export class CpcVm {
 			if (n === 0) {
 				n = rndInit;
 			}
-			if (Utils.debug > 0) {
+			if (Utils.debug > 1) {
 				Utils.console.debug("randomize:", n);
 			}
 			this.random.init(n);
