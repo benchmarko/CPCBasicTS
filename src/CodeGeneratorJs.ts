@@ -8,7 +8,7 @@ import { Utils, CustomError } from "./Utils";
 import { IOutput, ICpcVmRsx } from "./Interfaces";
 import { BasicLexer } from "./BasicLexer";
 import { BasicParser, ParserNode } from "./BasicParser";
-import { Variables, VarTypes } from "./Variables";
+import { Variables, VariableTypeMap, VarTypes } from "./Variables";
 
 interface CodeGeneratorJsOptions {
 	lexer: BasicLexer
@@ -72,6 +72,7 @@ export class CodeGeneratorJs {
 	// for evaluate:
 	private variables: Variables = {} as Variables; // will be set later
 	private defScopeArgs?: Record<string, boolean>;
+	private defintDefstrTypes: VariableTypeMap = {};
 
 	constructor(options: CodeGeneratorJsOptions) {
 		this.lexer = options.lexer;
@@ -242,7 +243,7 @@ export class CodeGeneratorJs {
 			if (mappedTypeChar) { // we have an explicit type
 				this.fnDeclareVariable(name);
 				name = "v." + name; // access with "v."
-			} else if (!this.variables.getVarType(firstChar)) {
+			} else if (!this.defintDefstrTypes[firstChar]) {
 				// the first char of the variable name is not defined via DEFINT or DEFSTR in the program
 				name += "R"; // then we know that the type is real
 				this.fnDeclareVariable(name);
@@ -1627,14 +1628,22 @@ export class CodeGeneratorJs {
 		}
 	}
 
-	private fnSetVarTypeRange(type: VarTypes, first: string, last: string) { // see also vmDefineVarTypes in CpcVm
+	private removeAllDefVarTypes() {
+		const varTypes = this.defintDefstrTypes;
+
+		for (const name in varTypes) { // eslint-disable-line guard-for-in
+			delete varTypes[name];
+		}
+	}
+
+	private fnSetDefVarTypeRange(type: VarTypes, first: string, last: string) { // see also vmDefineVarTypes in CpcVm
 		const firstNum = first.charCodeAt(0),
 			lastNum = last.charCodeAt(0);
 
 		for (let i = firstNum; i <= lastNum; i += 1) {
 			const varChar = String.fromCharCode(i);
 
-			this.variables.setVarType(varChar, type);
+			this.defintDefstrTypes[varChar] = type;
 		}
 	}
 
@@ -1646,32 +1655,16 @@ export class CodeGeneratorJs {
 				const arg = node.args[i];
 
 				if (arg.type === "letter") {
-					this.variables.setVarType(arg.value.toLowerCase(), type);
+					this.defintDefstrTypes[arg.value.toLowerCase()] = type;
 				} else { // assuming range
 					if (!arg.left || !arg.right) {
 						throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
 					}
-					this.fnSetVarTypeRange(type, arg.left.value.toLowerCase(), arg.right.value.toLowerCase());
+					this.fnSetDefVarTypeRange(type, arg.left.value.toLowerCase(), arg.right.value.toLowerCase());
 				}
 			}
 		}
 	}
-
-	/*
-	const nodeArgs = this.fnParseArgs(node.args);
-s
-	for (let i = 0; i < nodeArgs.length; i += 1) {
-		const arg = nodeArgs[i],
-			first = arg.charAt(0),
-			last = arg.length > 1 ? arg.charAt(arg.length - 1)
-
-		if (first) {
-
-		}
-
-		nodeArgs[i] = "o." + node.type + '("' + arg + '")';
-	}
-	*/
 
 	private fnPrecheckTree(nodes: ParserNode[], countMap: Record<string, number>) {
 		for (let i = 0; i < nodes.length; i += 1) {
@@ -1711,8 +1704,7 @@ s
 		// create labels map
 		this.fnCreateLabelsMap(parseTree, this.referencedLabelsCount, allowDirect);
 
-		variables.removeAllVariables();
-		variables.removeAllVarTypes();
+		this.removeAllDefVarTypes();
 		this.fnPrecheckTree(parseTree, this.countMap); // also sets "resumeNoArgsCount" for resume without args
 
 		this.traceActive = this.trace || Boolean(this.countMap.tron) || Boolean(this.countMap.resumeNext) || Boolean(this.countMap.resumeNoArgsCount); // we also switch on tracing for tron, resumeNext or resume without parameter
