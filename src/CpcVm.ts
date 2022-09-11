@@ -417,7 +417,7 @@ export class CpcVm {
 			command: "",
 			name: "",
 			line: 0,
-			start: 0,
+			start: undefined,
 			fileData: [],
 			fnFileCallback: undefined,
 			first: 0,
@@ -626,6 +626,7 @@ export class CpcVm {
 	static vmResetFileHandling(file: FileBase): void {
 		file.open = false;
 		file.command = ""; // to be sure
+		file.start = undefined; // to be sure
 	}
 
 	vmResetData(): void {
@@ -2654,7 +2655,7 @@ export class CpcVm {
 		let line: string | number;
 
 		if (!n || n > args.length) { // out of range? => continue with line after onGosub
-			if (Utils.debug > 0) {
+			if (Utils.debug > 1) {
 				Utils.console.debug("onGosub: out of range: n=" + n + " in " + this.line);
 			}
 			line = retLabel;
@@ -2674,7 +2675,7 @@ export class CpcVm {
 		let line: string | number;
 
 		if (!n || n > args.length) { // out of range? => continue with line after onGoto
-			if (Utils.debug > 0) {
+			if (Utils.debug > 1) {
 				Utils.console.debug("onGoto: out of range: n=" + n + " in " + this.line);
 			}
 			line = retLabel;
@@ -2751,7 +2752,8 @@ export class CpcVm {
 		outFile.open = true;
 		outFile.command = "openout";
 		outFile.name = name;
-		outFile.fileData = []; // no data yet
+		//outFile.fileData = []; // no data yet
+		outFile.fileData.length = 0; // no data yet
 		outFile.typeString = "A"; // ASCII
 	}
 
@@ -3377,7 +3379,7 @@ export class CpcVm {
 			if (n === 0) {
 				n = rndInit;
 			}
-			if (Utils.debug > 0) {
+			if (Utils.debug > 1) {
 				Utils.console.debug("randomize:", n);
 			}
 			this.random.init(n);
@@ -3595,6 +3597,7 @@ export class CpcVm {
 			inFile.open = true;
 			inFile.command = "run";
 			inFile.name = name;
+			inFile.start = undefined;
 			inFile.fnFileCallback = this.fnRunHandler;
 			this.vmStop("fileLoad", 90);
 		} else { // line number or no argument = undefined
@@ -3623,7 +3626,10 @@ export class CpcVm {
 			type = String(type).toUpperCase();
 		}
 
-		const fileData: string[] = [];
+		//const fileData: string[] = [];
+		const fileData = outFile.fileData;
+
+		fileData.length = 0;
 
 		if (type === "B") { // binary
 			start = this.vmRound2Complement(start, "SAVE");
@@ -3654,7 +3660,7 @@ export class CpcVm {
 		outFile.length = length || 0;
 		outFile.entry = entry || 0;
 
-		outFile.fileData = fileData;
+		//outFile.fileData = fileData;
 		outFile.fnFileCallback = this.fnCloseoutHandler; // we use closeout handler to reset out file handling
 
 		this.vmStop("fileSave", 90); // must stop directly after save

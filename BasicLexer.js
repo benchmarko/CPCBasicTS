@@ -10,7 +10,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     exports.BasicLexer = void 0;
     var BasicLexer = /** @class */ (function () {
         function BasicLexer(options) {
-            this.quiet = false;
+            //private quiet = false;
             this.keepWhiteSpace = false;
             this.line = "0"; // for error messages
             this.takeNumberAsLinenumber = true; // first number in a line is assumed to be a line number
@@ -23,7 +23,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
         }
         BasicLexer.prototype.setOptions = function (options) {
-            this.quiet = options.quiet || false;
+            //this.quiet = options.quiet || false;
             this.keepWhiteSpace = options.keepWhiteSpace || false;
         };
         BasicLexer.prototype.composeError = function (error, message, value, pos) {
@@ -290,8 +290,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var char = "", token = this.advanceWhile(char, BasicLexer.isNotQuotes);
             char = this.getChar();
             if (char !== '"') {
-                if (!this.quiet) {
-                    Utils_1.Utils.console.log(this.composeError({}, "Unterminated string", token, startPos + 1).message);
+                if (Utils_1.Utils.debug) {
+                    Utils_1.Utils.console.debug(this.composeError({}, "Unterminated string", token, startPos + 1).message);
                 }
                 token += this.fnTryContinueString(char); // heuristic to detect an LF in the string
                 char = this.getChar();

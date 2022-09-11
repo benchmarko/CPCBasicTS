@@ -28,6 +28,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.countMap = {};
             // for evaluate:
             this.variables = {}; // will be set later
+            this.defintDefstrTypes = {};
             /* eslint-disable no-invalid-this */
             this.allOperators = {
                 "+": this.plus,
@@ -213,7 +214,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     this.fnDeclareVariable(name);
                     name = "v." + name; // access with "v."
                 }
-                else if (!this.variables.getVarType(firstChar)) {
+                else if (!this.defintDefstrTypes[firstChar]) {
                     // the first char of the variable name is not defined via DEFINT or DEFSTR in the program
                     name += "R"; // then we know that the type is real
                     this.fnDeclareVariable(name);
@@ -1247,11 +1248,17 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 }
             }
         };
-        CodeGeneratorJs.prototype.fnSetVarTypeRange = function (type, first, last) {
+        CodeGeneratorJs.prototype.removeAllDefVarTypes = function () {
+            var varTypes = this.defintDefstrTypes;
+            for (var name_3 in varTypes) { // eslint-disable-line guard-for-in
+                delete varTypes[name_3];
+            }
+        };
+        CodeGeneratorJs.prototype.fnSetDefVarTypeRange = function (type, first, last) {
             var firstNum = first.charCodeAt(0), lastNum = last.charCodeAt(0);
             for (var i = firstNum; i <= lastNum; i += 1) {
                 var varChar = String.fromCharCode(i);
-                this.variables.setVarType(varChar, type);
+                this.defintDefstrTypes[varChar] = type;
             }
         };
         CodeGeneratorJs.prototype.fnPrecheckDefintDefstr = function (node) {
@@ -1260,32 +1267,17 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 for (var i = 0; i < node.args.length; i += 1) {
                     var arg = node.args[i];
                     if (arg.type === "letter") {
-                        this.variables.setVarType(arg.value.toLowerCase(), type);
+                        this.defintDefstrTypes[arg.value.toLowerCase()] = type;
                     }
                     else { // assuming range
                         if (!arg.left || !arg.right) {
                             throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
                         }
-                        this.fnSetVarTypeRange(type, arg.left.value.toLowerCase(), arg.right.value.toLowerCase());
+                        this.fnSetDefVarTypeRange(type, arg.left.value.toLowerCase(), arg.right.value.toLowerCase());
                     }
                 }
             }
         };
-        /*
-        const nodeArgs = this.fnParseArgs(node.args);
-    s
-        for (let i = 0; i < nodeArgs.length; i += 1) {
-            const arg = nodeArgs[i],
-                first = arg.charAt(0),
-                last = arg.length > 1 ? arg.charAt(arg.length - 1)
-    
-            if (first) {
-    
-            }
-    
-            nodeArgs[i] = "o." + node.type + '("' + arg + '")';
-        }
-        */
         CodeGeneratorJs.prototype.fnPrecheckTree = function (nodes, countMap) {
             for (var i = 0; i < nodes.length; i += 1) {
                 var node = nodes[i];
@@ -1315,8 +1307,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.defScopeArgs = undefined;
             // create labels map
             this.fnCreateLabelsMap(parseTree, this.referencedLabelsCount, allowDirect);
-            variables.removeAllVariables();
-            variables.removeAllVarTypes();
+            this.removeAllDefVarTypes();
             this.fnPrecheckTree(parseTree, this.countMap); // also sets "resumeNoArgsCount" for resume without args
             this.traceActive = this.trace || Boolean(this.countMap.tron) || Boolean(this.countMap.resumeNext) || Boolean(this.countMap.resumeNoArgsCount); // we also switch on tracing for tron, resumeNext or resume without parameter
             var output = "";

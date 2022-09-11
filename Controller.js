@@ -1069,6 +1069,9 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 if (Utils_1.Utils.debug > 0) {
                     Utils_1.Utils.console.debug("fnFileSave: name=" + name_4 + ": put into localStorage");
                 }
+                var meta = Controller.joinMeta(outFile);
+                storage.setItem(storageName, meta + "," + fileData);
+                this.updateStorageDatabase("set", storageName);
                 if (outFile.fnFileCallback) {
                     try {
                         outFile.fnFileCallback(fileData); // close file
@@ -1077,9 +1080,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                         Utils_1.Utils.console.warn(e);
                     }
                 }
-                var meta = Controller.joinMeta(outFile);
-                storage.setItem(storageName, meta + "," + fileData);
-                this.updateStorageDatabase("set", storageName);
                 CpcVm_1.CpcVm.vmResetFileHandling(outFile); // make sure it is closed
             }
             else {

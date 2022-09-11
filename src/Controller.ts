@@ -1326,6 +1326,11 @@ export class Controller implements IController {
 				Utils.console.debug("fnFileSave: name=" + name + ": put into localStorage");
 			}
 
+			const meta = Controller.joinMeta(outFile);
+
+			storage.setItem(storageName, meta + "," + fileData);
+			this.updateStorageDatabase("set", storageName);
+
 			if (outFile.fnFileCallback) {
 				try {
 					outFile.fnFileCallback(fileData); // close file
@@ -1333,11 +1338,6 @@ export class Controller implements IController {
 					Utils.console.warn(e);
 				}
 			}
-
-			const meta = Controller.joinMeta(outFile);
-
-			storage.setItem(storageName, meta + "," + fileData);
-			this.updateStorageDatabase("set", storageName);
 			CpcVm.vmResetFileHandling(outFile); // make sure it is closed
 		} else {
 			Utils.console.error("fnFileSave: file not open!");

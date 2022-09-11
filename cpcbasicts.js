@@ -1080,7 +1080,7 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
     exports.BasicLexer = void 0;
     var BasicLexer = /** @class */ (function () {
         function BasicLexer(options) {
-            this.quiet = false;
+            //private quiet = false;
             this.keepWhiteSpace = false;
             this.line = "0"; // for error messages
             this.takeNumberAsLinenumber = true; // first number in a line is assumed to be a line number
@@ -1093,7 +1093,7 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
             }
         }
         BasicLexer.prototype.setOptions = function (options) {
-            this.quiet = options.quiet || false;
+            //this.quiet = options.quiet || false;
             this.keepWhiteSpace = options.keepWhiteSpace || false;
         };
         BasicLexer.prototype.composeError = function (error, message, value, pos) {
@@ -1360,8 +1360,8 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
             var char = "", token = this.advanceWhile(char, BasicLexer.isNotQuotes);
             char = this.getChar();
             if (char !== '"') {
-                if (!this.quiet) {
-                    Utils_2.Utils.console.log(this.composeError({}, "Unterminated string", token, startPos + 1).message);
+                if (Utils_2.Utils.debug) {
+                    Utils_2.Utils.console.debug(this.composeError({}, "Unterminated string", token, startPos + 1).message);
                 }
                 token += this.fnTryContinueString(char); // heuristic to detect an LF in the string
                 char = this.getChar();
@@ -4065,12 +4065,15 @@ define("Variables", ["require", "exports"], function (require, exports) {
                 delete variables[name_2];
             }
         };
-        Variables.prototype.removeAllVarTypes = function () {
-            var varTypes = this.varTypes;
-            for (var name_3 in varTypes) { // eslint-disable-line guard-for-in
-                delete varTypes[name_3];
+        /*
+        removeAllVarTypes(): void {
+            const varTypes = this.varTypes;
+    
+            for (const name in varTypes) { // eslint-disable-line guard-for-in
+                delete varTypes[name];
             }
-        };
+        }
+        */
         Variables.prototype.getAllVariables = function () {
             return this.variables;
         };
@@ -4211,6 +4214,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             this.countMap = {};
             // for evaluate:
             this.variables = {}; // will be set later
+            this.defintDefstrTypes = {};
             /* eslint-disable no-invalid-this */
             this.allOperators = {
                 "+": this.plus,
@@ -4396,7 +4400,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                     this.fnDeclareVariable(name);
                     name = "v." + name; // access with "v."
                 }
-                else if (!this.variables.getVarType(firstChar)) {
+                else if (!this.defintDefstrTypes[firstChar]) {
                     // the first char of the variable name is not defined via DEFINT or DEFSTR in the program
                     name += "R"; // then we know that the type is real
                     this.fnDeclareVariable(name);
@@ -4919,8 +4923,8 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                     throw this.composeError(Error(), "Programming error: Undefined args", nodeArg.type, nodeArg.pos); // should not occur
                 }
                 var nodeArgs = this.fnParseArgRange(nodeArg.args, 1, nodeArg.args.length - 2), // we skip open and close bracket
-                fullExpression = this.fnParseOneArg(nodeArg), name_4 = CodeGeneratorJs.fnGetNameTypeExpression(fullExpression);
-                nodeArgs.unshift(name_4); // put as first arg
+                fullExpression = this.fnParseOneArg(nodeArg), name_3 = CodeGeneratorJs.fnGetNameTypeExpression(fullExpression);
+                nodeArgs.unshift(name_3); // put as first arg
                 args.push("/* " + fullExpression + " = */ o.dim(" + nodeArgs.join(", ") + ")");
             }
             node.pv = args.join("; ");
@@ -5274,8 +5278,8 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
         CodeGeneratorJs.prototype.read = function (node) {
             var nodeArgs = this.fnParseArgs(node.args);
             for (var i = 0; i < nodeArgs.length; i += 1) {
-                var name_5 = nodeArgs[i], varType = this.fnDetermineStaticVarType(name_5);
-                nodeArgs[i] = name_5 + " = o." + node.type + "(\"" + varType + "\")";
+                var name_4 = nodeArgs[i], varType = this.fnDetermineStaticVarType(name_4);
+                nodeArgs[i] = name_4 + " = o." + node.type + "(\"" + varType + "\")";
             }
             node.pv = nodeArgs.join("; ");
         };
@@ -5430,11 +5434,17 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 }
             }
         };
-        CodeGeneratorJs.prototype.fnSetVarTypeRange = function (type, first, last) {
+        CodeGeneratorJs.prototype.removeAllDefVarTypes = function () {
+            var varTypes = this.defintDefstrTypes;
+            for (var name_5 in varTypes) { // eslint-disable-line guard-for-in
+                delete varTypes[name_5];
+            }
+        };
+        CodeGeneratorJs.prototype.fnSetDefVarTypeRange = function (type, first, last) {
             var firstNum = first.charCodeAt(0), lastNum = last.charCodeAt(0);
             for (var i = firstNum; i <= lastNum; i += 1) {
                 var varChar = String.fromCharCode(i);
-                this.variables.setVarType(varChar, type);
+                this.defintDefstrTypes[varChar] = type;
             }
         };
         CodeGeneratorJs.prototype.fnPrecheckDefintDefstr = function (node) {
@@ -5443,32 +5453,17 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 for (var i = 0; i < node.args.length; i += 1) {
                     var arg = node.args[i];
                     if (arg.type === "letter") {
-                        this.variables.setVarType(arg.value.toLowerCase(), type);
+                        this.defintDefstrTypes[arg.value.toLowerCase()] = type;
                     }
                     else { // assuming range
                         if (!arg.left || !arg.right) {
                             throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
                         }
-                        this.fnSetVarTypeRange(type, arg.left.value.toLowerCase(), arg.right.value.toLowerCase());
+                        this.fnSetDefVarTypeRange(type, arg.left.value.toLowerCase(), arg.right.value.toLowerCase());
                     }
                 }
             }
         };
-        /*
-        const nodeArgs = this.fnParseArgs(node.args);
-    s
-        for (let i = 0; i < nodeArgs.length; i += 1) {
-            const arg = nodeArgs[i],
-                first = arg.charAt(0),
-                last = arg.length > 1 ? arg.charAt(arg.length - 1)
-    
-            if (first) {
-    
-            }
-    
-            nodeArgs[i] = "o." + node.type + '("' + arg + '")';
-        }
-        */
         CodeGeneratorJs.prototype.fnPrecheckTree = function (nodes, countMap) {
             for (var i = 0; i < nodes.length; i += 1) {
                 var node = nodes[i];
@@ -5498,8 +5493,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             this.defScopeArgs = undefined;
             // create labels map
             this.fnCreateLabelsMap(parseTree, this.referencedLabelsCount, allowDirect);
-            variables.removeAllVariables();
-            variables.removeAllVarTypes();
+            this.removeAllDefVarTypes();
             this.fnPrecheckTree(parseTree, this.countMap); // also sets "resumeNoArgsCount" for resume without args
             this.traceActive = this.trace || Boolean(this.countMap.tron) || Boolean(this.countMap.resumeNext) || Boolean(this.countMap.resumeNoArgsCount); // we also switch on tracing for tron, resumeNext or resume without parameter
             var output = "";
@@ -11676,7 +11670,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 command: "",
                 name: "",
                 line: 0,
-                start: 0,
+                start: undefined,
                 fileData: [],
                 fnFileCallback: undefined,
                 first: 0,
@@ -11836,6 +11830,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.vmResetFileHandling = function (file) {
             file.open = false;
             file.command = ""; // to be sure
+            file.start = undefined; // to be sure
         };
         CpcVm.prototype.vmResetData = function () {
             this.dataList.length = 0; // array for BASIC data lines (continuous)
@@ -13600,7 +13595,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             n = this.vmInRangeRound(n, 0, 255, "ON GOSUB");
             var line;
             if (!n || n > args.length) { // out of range? => continue with line after onGosub
-                if (Utils_21.Utils.debug > 0) {
+                if (Utils_21.Utils.debug > 1) {
                     Utils_21.Utils.console.debug("onGosub: out of range: n=" + n + " in " + this.line);
                 }
                 line = retLabel;
@@ -13622,7 +13617,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             n = this.vmInRangeRound(n, 0, 255, "ON GOTO");
             var line;
             if (!n || n > args.length) { // out of range? => continue with line after onGoto
-                if (Utils_21.Utils.debug > 0) {
+                if (Utils_21.Utils.debug > 1) {
                     Utils_21.Utils.console.debug("onGoto: out of range: n=" + n + " in " + this.line);
                 }
                 line = retLabel;
@@ -13690,7 +13685,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             outFile.open = true;
             outFile.command = "openout";
             outFile.name = name;
-            outFile.fileData = []; // no data yet
+            //outFile.fileData = []; // no data yet
+            outFile.fileData.length = 0; // no data yet
             outFile.typeString = "A"; // ASCII
         };
         // or
@@ -14241,7 +14237,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 if (n === 0) {
                     n = rndInit;
                 }
-                if (Utils_21.Utils.debug > 0) {
+                if (Utils_21.Utils.debug > 1) {
                     Utils_21.Utils.console.debug("randomize:", n);
                 }
                 this.random.init(n);
@@ -14438,6 +14434,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 inFile.open = true;
                 inFile.command = "run";
                 inFile.name = name_10;
+                inFile.start = undefined;
                 inFile.fnFileCallback = this.fnRunHandler;
                 this.vmStop("fileLoad", 90);
             }
@@ -14464,7 +14461,9 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             else {
                 type = String(type).toUpperCase();
             }
-            var fileData = [];
+            //const fileData: string[] = [];
+            var fileData = outFile.fileData;
+            fileData.length = 0;
             if (type === "B") { // binary
                 start = this.vmRound2Complement(start, "SAVE");
                 length = this.vmRound2Complement(length, "SAVE");
@@ -14491,7 +14490,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             outFile.start = start;
             outFile.length = length || 0;
             outFile.entry = entry || 0;
-            outFile.fileData = fileData;
+            //outFile.fileData = fileData;
             outFile.fnFileCallback = this.fnCloseoutHandler; // we use closeout handler to reset out file handling
             this.vmStop("fileSave", 90); // must stop directly after save
         };
@@ -16263,6 +16262,9 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 if (Utils_23.Utils.debug > 0) {
                     Utils_23.Utils.console.debug("fnFileSave: name=" + name_14 + ": put into localStorage");
                 }
+                var meta = Controller.joinMeta(outFile);
+                storage.setItem(storageName, meta + "," + fileData);
+                this.updateStorageDatabase("set", storageName);
                 if (outFile.fnFileCallback) {
                     try {
                         outFile.fnFileCallback(fileData); // close file
@@ -16271,9 +16273,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                         Utils_23.Utils.console.warn(e);
                     }
                 }
-                var meta = Controller.joinMeta(outFile);
-                storage.setItem(storageName, meta + "," + fileData);
-                this.updateStorageDatabase("set", storageName);
                 CpcVm_1.CpcVm.vmResetFileHandling(outFile); // make sure it is closed
             }
             else {

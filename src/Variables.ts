@@ -27,6 +27,7 @@ export class Variables {
 		}
 	}
 
+	/*
 	removeAllVarTypes(): void {
 		const varTypes = this.varTypes;
 
@@ -34,6 +35,7 @@ export class Variables {
 			delete varTypes[name];
 		}
 	}
+	*/
 
 	getAllVariables(): VariableMap {
 		return this.variables;

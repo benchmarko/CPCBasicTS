@@ -75,7 +75,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                 command: "",
                 name: "",
                 line: 0,
-                start: 0,
+                start: undefined,
                 fileData: [],
                 fnFileCallback: undefined,
                 first: 0,
@@ -235,6 +235,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         CpcVm.vmResetFileHandling = function (file) {
             file.open = false;
             file.command = ""; // to be sure
+            file.start = undefined; // to be sure
         };
         CpcVm.prototype.vmResetData = function () {
             this.dataList.length = 0; // array for BASIC data lines (continuous)
@@ -1999,7 +2000,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             n = this.vmInRangeRound(n, 0, 255, "ON GOSUB");
             var line;
             if (!n || n > args.length) { // out of range? => continue with line after onGosub
-                if (Utils_1.Utils.debug > 0) {
+                if (Utils_1.Utils.debug > 1) {
                     Utils_1.Utils.console.debug("onGosub: out of range: n=" + n + " in " + this.line);
                 }
                 line = retLabel;
@@ -2021,7 +2022,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             n = this.vmInRangeRound(n, 0, 255, "ON GOTO");
             var line;
             if (!n || n > args.length) { // out of range? => continue with line after onGoto
-                if (Utils_1.Utils.debug > 0) {
+                if (Utils_1.Utils.debug > 1) {
                     Utils_1.Utils.console.debug("onGoto: out of range: n=" + n + " in " + this.line);
                 }
                 line = retLabel;
@@ -2089,7 +2090,8 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             outFile.open = true;
             outFile.command = "openout";
             outFile.name = name;
-            outFile.fileData = []; // no data yet
+            //outFile.fileData = []; // no data yet
+            outFile.fileData.length = 0; // no data yet
             outFile.typeString = "A"; // ASCII
         };
         // or
@@ -2640,7 +2642,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                 if (n === 0) {
                     n = rndInit;
                 }
-                if (Utils_1.Utils.debug > 0) {
+                if (Utils_1.Utils.debug > 1) {
                     Utils_1.Utils.console.debug("randomize:", n);
                 }
                 this.random.init(n);
@@ -2837,6 +2839,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                 inFile.open = true;
                 inFile.command = "run";
                 inFile.name = name_2;
+                inFile.start = undefined;
                 inFile.fnFileCallback = this.fnRunHandler;
                 this.vmStop("fileLoad", 90);
             }
@@ -2863,7 +2866,9 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             else {
                 type = String(type).toUpperCase();
             }
-            var fileData = [];
+            //const fileData: string[] = [];
+            var fileData = outFile.fileData;
+            fileData.length = 0;
             if (type === "B") { // binary
                 start = this.vmRound2Complement(start, "SAVE");
                 length = this.vmRound2Complement(length, "SAVE");
@@ -2890,7 +2895,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             outFile.start = start;
             outFile.length = length || 0;
             outFile.entry = entry || 0;
-            outFile.fileData = fileData;
+            //outFile.fileData = fileData;
             outFile.fnFileCallback = this.fnCloseoutHandler; // we use closeout handler to reset out file handling
             this.vmStop("fileSave", 90); // must stop directly after save
         };

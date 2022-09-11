@@ -10,7 +10,6 @@ export interface LexerToken {
     ws?: string;
 }
 export declare class BasicLexer {
-    private quiet;
     private keepWhiteSpace;
     private line;
     private takeNumberAsLinenumber;

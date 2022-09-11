@@ -693,6 +693,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
     };
     // https://www.cpcwiki.eu/index.php/Locomotive_BASIC
     QUnit.module("CpcVm: Tests", function () {
+        // TODO: using: '"[#,###,###]",1234567,123,12345678': "[1,234,567][      123][%12,345,678]", // TODO
         var allTests = {
             abs: {
                 "-1 ": "1",
@@ -894,10 +895,10 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 "": '{"_key":"stop","reason":"fileCat","priority":45,"paras":{"command":"cat","stream":0,"fileMask":"","line":0}}'
             },
             chain: {
-                '"file1"': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"chain","name":"file1","line":0,"start":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
-                '"file1",123': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"chain","name":"file1","line":123,"start":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
-                '"file1",0': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"chain","name":"file1","line":0,"start":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
-                '"file1",65535': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"chain","name":"file1","line":65535,"start":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
+                '"file1"': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"chain","name":"file1","line":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
+                '"file1",123': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"chain","name":"file1","line":123,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
+                '"file1",0': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"chain","name":"file1","line":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
+                '"file1",65535': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"chain","name":"file1","line":65535,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
                 "": 'CpcVm: Type mismatch in 0: CHAIN undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 '""': 'CpcVm: Broken in 0: Bad filename:  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 "7 ": 'CpcVm: Type mismatch in 0: CHAIN 7 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
@@ -905,20 +906,20 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 '"file1",65536': 'CpcVm: Overflow in 0: CHAIN 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
             },
             chainMerge: {
-                '"file1"': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"chainMerge","name":"file1","line":0,"start":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
-                '"file1",123': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"chainMerge","name":"file1","line":123,"start":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
-                '"file1",0': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"chainMerge","name":"file1","line":0,"start":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
-                '"file1",123,10': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"chainMerge","name":"file1","line":123,"start":0,"fileData":[],"first":10,"last":0,"memorizedExample":""}',
-                '"file1",123,10,20': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"chainMerge","name":"file1","line":123,"start":0,"fileData":[],"first":10,"last":20,"memorizedExample":""}',
-                '"file1",123,,20': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"chainMerge","name":"file1","line":123,"start":0,"fileData":[],"first":0,"last":20,"memorizedExample":""}',
+                '"file1"': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"chainMerge","name":"file1","line":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
+                '"file1",123': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"chainMerge","name":"file1","line":123,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
+                '"file1",0': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"chainMerge","name":"file1","line":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
+                '"file1",123,10': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"chainMerge","name":"file1","line":123,"fileData":[],"first":10,"last":0,"memorizedExample":""}',
+                '"file1",123,10,20': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"chainMerge","name":"file1","line":123,"fileData":[],"first":10,"last":20,"memorizedExample":""}',
+                '"file1",123,,20': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"chainMerge","name":"file1","line":123,"fileData":[],"first":0,"last":20,"memorizedExample":""}',
                 "": 'CpcVm: Type mismatch in 0: CHAIN MERGE undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 '""': 'CpcVm: Broken in 0: Bad filename:  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 "7 ": 'CpcVm: Type mismatch in 0: CHAIN MERGE 7 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 '"file1",-1': 'CpcVm: Improper argument in 0: CHAIN MERGE -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 '"file1",65536': 'CpcVm: Overflow in 0: CHAIN MERGE 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-                '"file1",0,-1': 'CpcVm: Improper argument in 0: CHAIN MERGE -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}} -- {"_key":"inFile","open":false,"command":"","name":"file1","line":0,"start":0,"fileData":[],"first":0,"last":20,"memorizedExample":""}',
+                '"file1",0,-1': 'CpcVm: Improper argument in 0: CHAIN MERGE -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}} -- {"_key":"inFile","open":false,"command":"","name":"file1","line":0,"fileData":[],"first":0,"last":20,"memorizedExample":""}',
                 '"file1",0,65536': 'CpcVm: Improper argument in 0: CHAIN MERGE 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-                '"file1",0,1,-1': 'CpcVm: Improper argument in 0: CHAIN MERGE -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}} -- {"_key":"inFile","open":false,"command":"","name":"file1","line":0,"start":0,"fileData":[],"first":1,"last":20,"memorizedExample":""}',
+                '"file1",0,1,-1': 'CpcVm: Improper argument in 0: CHAIN MERGE -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}} -- {"_key":"inFile","open":false,"command":"","name":"file1","line":0,"fileData":[],"first":1,"last":20,"memorizedExample":""}',
                 '"file1",0,1,65536': 'CpcVm: Improper argument in 0: CHAIN MERGE 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
             },
             chr$: {
@@ -956,12 +957,12 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 "16 ": 'CpcVm: Improper argument in 0: CLG 16 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
             },
             closein: {
-                "": '{"_key":"inFile","open":false,"command":"","name":"name1","line":0,"start":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}'
+                "": '{"_key":"inFile","open":false,"command":"","name":"name1","line":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}'
             },
             closeout: {
                 '"_testCase1"': "",
-                '"_testCase2"': '{"_key":"outFile","open":false,"command":"","name":"name1","line":0,"start":0,"fileData":[],"stream":0,"typeString":"","length":0,"entry":0}',
-                '"_testCase3"': '{"_key":"stop","reason":"fileSave","priority":90,"paras":{}} -- {"_key":"outFile","open":true,"command":"closeout","name":"name1","line":0,"start":0,"fileData":["A"],"stream":0,"typeString":"","length":0,"entry":0}'
+                '"_testCase2"': '{"_key":"outFile","open":false,"command":"","name":"name1","line":0,"fileData":[],"stream":0,"typeString":"","length":0,"entry":0}',
+                '"_testCase3"': '{"_key":"stop","reason":"fileSave","priority":90,"paras":{}} -- {"_key":"outFile","open":true,"command":"closeout","name":"name1","line":0,"fileData":["A"],"stream":0,"typeString":"","length":0,"entry":0}'
             },
             cls: {
                 "0 ": "clearTextWindow:0,39,0,24,0",
@@ -1001,10 +1002,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             },
             cosDeg: {
                 "0 ": "1",
-                //"120 ": "0.5",
                 "180 ": "-1"
-                //"240 ": "0.5",
-                //"-120": "0.5"
             },
             creal: {
                 "0 ": "0",
@@ -1216,8 +1214,8 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             },
             eof: {
                 '"_testCase1"': "-1",
-                '"_testCase2"': '-1 -- {"_key":"inFile","open":true,"command":"","name":"","line":0,"start":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
-                '"_testCase3"': '0 -- {"_key":"inFile","open":true,"command":"","name":"","line":0,"start":0,"fileData":["A"],"first":0,"last":0,"memorizedExample":""}'
+                '"_testCase2"': '-1 -- {"_key":"inFile","open":true,"command":"","name":"","line":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
+                '"_testCase3"': '0 -- {"_key":"inFile","open":true,"command":"","name":"","line":0,"fileData":["A"],"first":0,"last":0,"memorizedExample":""}'
             },
             erase: {
                 '"ab"': 'CpcVm: Improper argument in 0: ERASE ab -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
@@ -1423,7 +1421,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 '0,undefined,"msg","a$"': 'printChar:109,0,0,1,0,false , printChar:115,1,0,1,0,false , printChar:103,2,0,1,0,false , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 --  -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":0,"message":"msg","noCRLF":null,"types":["a$"],"input":"","line":0}} -- {"_key":"win0","pos":3,"cursorOn":true}',
                 '0,";","msg","a$"': 'printChar:109,0,0,1,0,false , printChar:115,1,0,1,0,false , printChar:103,2,0,1,0,false , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 --  -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":0,"message":"msg","noCRLF":";","types":["a$"],"input":"","line":0}} -- {"_key":"win0","pos":3,"cursorOn":true}',
                 '0,";","msg","a$","b"': 'printChar:109,0,0,1,0,false , printChar:115,1,0,1,0,false , printChar:103,2,0,1,0,false , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 --  -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":0,"message":"msg","noCRLF":";","types":["a$","b"],"input":"","line":0}} -- {"_key":"win0","pos":3,"cursorOn":true}',
-                '9,"","msg","a$","b$","c"': 'abc def 7 -- {"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"openin","name":"file1","line":0,"start":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
+                '9,"","msg","a$","b$","c"': 'abc def 7 -- {"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"openin","name":"file1","line":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
                 "": 'CpcVm: Type mismatch in 0: INPUT undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 '""': 'CpcVm: Type mismatch in 0: INPUT  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 "-1": 'CpcVm: Improper argument in 0: INPUT -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
@@ -1551,9 +1549,9 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             },
             load: {
                 '"file1"': '{"open":true,"command":"load","name":"file1","line":0,"fileData":[],"first":0,"last":0,"memorizedExample":""} -- {"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":false,"command":"","name":"file1","line":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
-                '"file1",123': '{"open":true,"command":"load","name":"file1","line":0,"start":123,"fileData":[],"first":0,"last":0,"memorizedExample":""} -- {"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":false,"command":"","name":"file1","line":0,"start":123,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
-                '"file1",-32768': '{"open":true,"command":"load","name":"file1","line":0,"start":32768,"fileData":[],"first":0,"last":0,"memorizedExample":""} -- {"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":false,"command":"","name":"file1","line":0,"start":32768,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
-                '"file1",65535': '{"open":true,"command":"load","name":"file1","line":0,"start":65535,"fileData":[],"first":0,"last":0,"memorizedExample":""} -- {"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":false,"command":"","name":"file1","line":0,"start":65535,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
+                '"file1",123': '{"open":true,"command":"load","name":"file1","line":0,"start":123,"fileData":[],"first":0,"last":0,"memorizedExample":""} -- {"_key":"stop","reason":"fileLoad","priority":90,"paras":{}}',
+                '"file1",-32768': '{"open":true,"command":"load","name":"file1","line":0,"start":32768,"fileData":[],"first":0,"last":0,"memorizedExample":""} -- {"_key":"stop","reason":"fileLoad","priority":90,"paras":{}}',
+                '"file1",65535': '{"open":true,"command":"load","name":"file1","line":0,"start":65535,"fileData":[],"first":0,"last":0,"memorizedExample":""} -- {"_key":"stop","reason":"fileLoad","priority":90,"paras":{}}',
                 "": 'CpcVm: Type mismatch in 0: LOAD undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 '""': 'CpcVm: Broken in 0: Bad filename:  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 "7 ": 'CpcVm: Type mismatch in 0: LOAD 7 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
@@ -1635,7 +1633,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 "-32769": 'CpcVm: Overflow in 0: MEMORY -32769 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
             },
             merge: {
-                '"file1"': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"merge","name":"file1","line":0,"start":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
+                '"file1"': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"merge","name":"file1","line":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
                 "": 'CpcVm: Type mismatch in 0: MERGE undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 '""': 'CpcVm: Broken in 0: Bad filename:  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 "7 ": 'CpcVm: Type mismatch in 0: MERGE 7 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
@@ -1806,7 +1804,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 "1,10.4": 'CpcVm: Line too long in 0: ON SQ GOSUB 10.4 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
             },
             openin: {
-                '"file1"': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"openin","name":"file1","line":0,"start":0,"fileData":["10,a\\b20,b"],"first":0,"last":0,"memorizedExample":""}',
+                '"file1"': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"openin","name":"file1","line":0,"fileData":["10,a\\b20,b"],"first":0,"last":0,"memorizedExample":""}',
                 "": 'CpcVm: Type mismatch in 0: OPENIN undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 '""': 'CpcVm: Broken in 0: Bad filename:  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
             },
@@ -2142,7 +2140,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             },
             run: {
                 "123 ": '{"reason":"run","priority":95,"paras":{"command":"run","stream":0,"first":123,"last":0,"line":0}} -- {"_key":"stop","reason":"run","priority":95,"paras":{"command":"run","stream":0,"first":123,"last":0,"line":0}}',
-                '"file1"': '{"reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"stop","reason":"run","priority":95,"paras":{"command":"run","stream":0,"first":0,"last":0,"line":0}} -- {"_key":"inFile","open":false,"command":"","name":"file1","line":0,"start":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
+                '"file1"': '{"reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"stop","reason":"run","priority":95,"paras":{"command":"run","stream":0,"first":0,"last":0,"line":0}} -- {"_key":"inFile","open":false,"command":"","name":"file1","line":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
                 "": '{"reason":"run","priority":95,"paras":{"command":"run","stream":0,"first":0,"last":0,"line":0}} -- {"_key":"stop","reason":"run","priority":95,"paras":{"command":"run","stream":0,"first":0,"last":0,"line":0}}',
                 '""': 'CpcVm: Broken in 0: Bad filename:  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 "10.4 ": 'CpcVm: Line too long in 0: RUN 10.4 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
@@ -2449,7 +2447,6 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 '"##.##",1.005': " 1.01",
                 '"##.##",8.575': " 8.58",
                 '"#.##",15.355': "%15.36",
-                //'"[#,###,###]",1234567,123,12345678': "[1,234,567][      123][%12,345,678]", // TODO
                 '"\\   \\","n1","n2"," xx3"': "n1   n2    xx3 ",
                 '"!","a1","b2"': "ab",
                 '"&","a1","b2"': "a1b2",
@@ -2583,7 +2580,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 "": "updateSpeedInk: , scheduler: -- true"
             },
             vmReset: {
-                "": 'resetCustomChars: , setMode:1 , clearFullWindow: , reset: , reset: , reset: -- {"_key":"timer0","line":0,"repeat":false,"intervalMs":0,"active":false,"handlerRunning":false,"stackIndexReturn":0,"savedPriority":0} -- {"_key":"timer1","line":0,"repeat":false,"intervalMs":0,"active":false,"handlerRunning":false,"stackIndexReturn":0,"savedPriority":0} -- {"_key":"timer2","line":0,"repeat":false,"intervalMs":0,"active":false,"handlerRunning":false,"stackIndexReturn":0,"savedPriority":0} -- {"_key":"timer3","line":0,"repeat":false,"intervalMs":0,"active":false,"handlerRunning":false,"stackIndexReturn":0,"savedPriority":0}'
+                "": 'resetCustomChars: , setMode:1 , clearFullWindow: , reset: , reset: , reset: -- {"_key":"outFile","open":false,"command":"","name":"","line":0,"fileData":[],"stream":0,"typeString":"","length":0,"entry":0} -- {"_key":"timer0","line":0,"repeat":false,"intervalMs":0,"active":false,"handlerRunning":false,"stackIndexReturn":0,"savedPriority":0} -- {"_key":"timer1","line":0,"repeat":false,"intervalMs":0,"active":false,"handlerRunning":false,"stackIndexReturn":0,"savedPriority":0} -- {"_key":"timer2","line":0,"repeat":false,"intervalMs":0,"active":false,"handlerRunning":false,"stackIndexReturn":0,"savedPriority":0} -- {"_key":"timer3","line":0,"repeat":false,"intervalMs":0,"active":false,"handlerRunning":false,"stackIndexReturn":0,"savedPriority":0}'
             },
             vmTrace: {
                 "12 ": 'printChar:91,0,0,1,0,false , printChar:49,1,0,1,0,false , printChar:50,2,0,1,0,false , printChar:93,3,0,1,0,false -- {"_key":"win0","pos":4}'

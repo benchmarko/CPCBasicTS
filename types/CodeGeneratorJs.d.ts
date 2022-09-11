@@ -33,6 +33,7 @@ export declare class CodeGeneratorJs {
     private countMap;
     private variables;
     private defScopeArgs?;
+    private defintDefstrTypes;
     constructor(options: CodeGeneratorJsOptions);
     private static readonly jsKeywords;
     private reset;
@@ -141,7 +142,8 @@ export declare class CodeGeneratorJs {
     private parseNode;
     private static fnCommentUnusedCases;
     private fnCreateLabelsMap;
-    private fnSetVarTypeRange;
+    private removeAllDefVarTypes;
+    private fnSetDefVarTypeRange;
     private fnPrecheckDefintDefstr;
     private fnPrecheckTree;
     private evaluate;

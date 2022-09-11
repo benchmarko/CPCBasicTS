@@ -98,7 +98,6 @@ declare module "BasicLexer" {
         ws?: string;
     }
     export class BasicLexer {
-        private quiet;
         private keepWhiteSpace;
         private line;
         private takeNumberAsLinenumber;
@@ -393,7 +392,6 @@ declare module "Variables" {
         private varTypes;
         constructor();
         removeAllVariables(): void;
-        removeAllVarTypes(): void;
         getAllVariables(): VariableMap;
         getAllVarTypes(): VariableTypeMap;
         private createNDimArray;
@@ -448,6 +446,7 @@ declare module "CodeGeneratorJs" {
         private countMap;
         private variables;
         private defScopeArgs?;
+        private defintDefstrTypes;
         constructor(options: CodeGeneratorJsOptions);
         private static readonly jsKeywords;
         private reset;
@@ -556,7 +555,8 @@ declare module "CodeGeneratorJs" {
         private parseNode;
         private static fnCommentUnusedCases;
         private fnCreateLabelsMap;
-        private fnSetVarTypeRange;
+        private removeAllDefVarTypes;
+        private fnSetDefVarTypeRange;
         private fnPrecheckDefintDefstr;
         private fnPrecheckTree;
         private evaluate;
