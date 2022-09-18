@@ -113,11 +113,10 @@ export class Sound {
 	}
 
 	private stopOscillator(n: number) {
-		const oscillators = this.oscillators;
+		const oscillators = this.oscillators,
+			oscillatorNode = oscillators[n];
 
-		if (oscillators[n]) {
-			const oscillatorNode = oscillators[n] as OscillatorNode;
-
+		if (oscillatorNode) {
 			oscillatorNode.frequency.value = 0;
 			oscillatorNode.stop();
 			oscillatorNode.disconnect();
@@ -153,7 +152,6 @@ export class Sound {
 				2,
 				1
 			],
-			//context = new window.AudioContext(), // may produce exception if not available
 			context = new this.AudioContextConstructor(), // may produce exception if not available
 			mergerNode = context.createChannelMerger(6); // create mergerNode with 6 inputs; we are using the first 3 for left, right, center
 
@@ -177,7 +175,7 @@ export class Sound {
 
 		// fill the buffer with noise
 		for (let i = 0; i < bufferSize; i += 1) {
-			data[i] = Math.random() * 2 - 1;
+			data[i] = Math.random() * 2 - 1; // -1..1
 		}
 
 		noiseNode.buffer = buffer;

@@ -2056,37 +2056,46 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             return node;
         };
         BasicParser.prototype.chain = function () {
-            var node;
+            var node = this.previousToken;
+            if (this.token.type === "merge") { // chain merge?
+                var name_1 = this.fnCombineTwoTokensNoArgs(this.token.type); // chainMerge
+                //node = this.previousToken;
+                node.type = name_1;
+            }
+            node.args = [];
+            /*
             if (this.token.type !== "merge") { // not chain merge?
                 node = this.fnCreateCmdCall(); // chain
-            }
-            else { // chain merge with optional DELETE
-                var name_1 = this.fnCombineTwoTokensNoArgs(this.token.type); // chainMerge
+            */
+            // chain, chain merge with optional DELETE
+            /*
+                const name = this.fnCombineTwoTokensNoArgs(this.token.type); // chainMerge
+    
                 node = this.previousToken;
-                node.type = name_1;
+                node.type = name;
                 node.args = [];
-                var value2 = this.expression(0); // filename
-                node.args.push(value2);
-                this.token = this.getToken();
+                */
+            var value2 = this.expression(0); // filename
+            node.args.push(value2);
+            this.token = this.getToken();
+            if (this.token.type === ",") {
+                this.token = this.advance(",");
+                var numberExpression = false; // line number (expression) found
+                if (this.token.type !== "," && this.token.type !== "(eol)" && this.token.type !== "(eof)") {
+                    value2 = this.expression(0); // line number or expression
+                    node.args.push(value2);
+                    numberExpression = true;
+                }
                 if (this.token.type === ",") {
-                    this.token = this.advance(",");
-                    var numberExpression = false; // line number (expression) found
-                    if (this.token.type !== "," && this.token.type !== "(eol)" && this.token.type !== "(eof)") {
-                        value2 = this.expression(0); // line number or expression
+                    this.advance(",");
+                    if (!numberExpression) {
+                        value2 = BasicParser.fnCreateDummyArg("null"); // insert dummy arg for line
                         node.args.push(value2);
-                        numberExpression = true;
                     }
-                    if (this.token.type === ",") {
-                        this.advance(",");
-                        if (!numberExpression) {
-                            value2 = BasicParser.fnCreateDummyArg("null"); // insert dummy arg for line
-                            node.args.push(value2);
-                        }
-                        this.advance("delete");
-                        var args = this.fnGetArgs(this.previousToken.type); // args for "delete"
-                        for (var i = 0; i < args.length; i += 1) {
-                            node.args.push(args[i]); // copy arg
-                        }
+                    this.advance("delete");
+                    var args = this.fnGetArgs(this.previousToken.type); // args for "delete"
+                    for (var i = 0; i < args.length; i += 1) {
+                        node.args.push(args[i]); // copy arg
                     }
                 }
             }
@@ -2619,7 +2628,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             "break": "p",
             call: "c n *",
             cat: "c",
-            chain: "c s n?",
+            chain: "c s n? *",
             chainMerge: "c s n? *",
             chr$: "f n",
             cint: "f n",
@@ -3514,7 +3523,8 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
                 label: this.label,
                 "|": this.vertical,
                 afterGosub: this.afterEveryGosub,
-                chainMerge: this.chainMerge,
+                chain: this.chainOrChainMerge,
+                chainMerge: this.chainOrChainMerge,
                 data: this.data,
                 def: this.def,
                 "else": this.else,
@@ -3660,7 +3670,7 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             value += " GOSUB" + CodeGeneratorBasic.fnSpace1(nodeArgs[2]);
             return CodeGeneratorBasic.fnWs(node) + value;
         };
-        CodeGeneratorBasic.prototype.chainMerge = function (node) {
+        CodeGeneratorBasic.prototype.chainOrChainMerge = function (node) {
             var nodeArgs = this.fnParseArgs(node.args), typeUc = CodeGeneratorBasic.getUcKeyword(node);
             if (nodeArgs.length === 3) {
                 nodeArgs[2] = "DELETE" + CodeGeneratorBasic.fnSpace1(nodeArgs[2]);
@@ -10428,7 +10438,6 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
                         return {};
                     }
                 },
-                //AudioContext: () => { throw new Error("AudioContext not supported"); }
                 AudioContext: audioContext
             });
             // eslint-disable-next-line no-eval
@@ -10524,7 +10533,6 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
     }());
     exports.NodeAdapt = NodeAdapt;
 });
-//Utils.console.debug("Polyfill: end of Polyfills: count=" + Polyfills.count);
 // end
 // CommonEventHandler.ts - Common event handler for browser events
 // (c) Marco Vieth, 2019
@@ -10884,9 +10892,8 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
             }
         };
         Sound.prototype.stopOscillator = function (n) {
-            var oscillators = this.oscillators;
-            if (oscillators[n]) {
-                var oscillatorNode = oscillators[n];
+            var oscillators = this.oscillators, oscillatorNode = oscillators[n];
+            if (oscillatorNode) {
                 oscillatorNode.frequency.value = 0;
                 oscillatorNode.stop();
                 oscillatorNode.disconnect();
@@ -10916,9 +10923,7 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
                 0,
                 2,
                 1
-            ], 
-            //context = new window.AudioContext(), // may produce exception if not available
-            context = new this.AudioContextConstructor(), // may produce exception if not available
+            ], context = new this.AudioContextConstructor(), // may produce exception if not available
             mergerNode = context.createChannelMerger(6); // create mergerNode with 6 inputs; we are using the first 3 for left, right, center
             this.context = context;
             this.mergerNode = mergerNode;
@@ -10935,7 +10940,7 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
             noiseNode = ctx.createBufferSource(); // create a buffer source for noise data
             // fill the buffer with noise
             for (var i = 0; i < bufferSize; i += 1) {
-                data[i] = Math.random() * 2 - 1;
+                data[i] = Math.random() * 2 - 1; // -1..1
             }
             noiseNode.buffer = buffer;
             if (noise > 1) {
@@ -12558,11 +12563,13 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             };
             this.vmStop("fileCat", 45, false, fileParas);
         };
-        CpcVm.prototype.chain = function (name, line) {
+        CpcVm.prototype.chain = function (name, line, first, last) {
             var inFile = this.inFile;
             name = this.vmAdaptFilename(name, "CHAIN");
             this.closein();
             inFile.line = line === undefined ? 0 : this.vmInRangeRound(line, 0, 65535, "CHAIN"); // here we do rounding of line number
+            inFile.first = first === undefined ? 0 : this.vmAssertInRange(first, 1, 65535, "CHAIN"); // first and last are not needed
+            inFile.last = last === undefined ? 0 : this.vmAssertInRange(last, 1, 65535, "CHAIN");
             inFile.open = true;
             inFile.command = "chain";
             inFile.name = name;
@@ -13717,7 +13724,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             outFile.open = true;
             outFile.command = "openout";
             outFile.name = name;
-            //outFile.fileData = []; // no data yet
             outFile.fileData.length = 0; // no data yet
             outFile.typeString = "A"; // ASCII
         };
@@ -14125,6 +14131,11 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 this.canvas.printGChar(char);
             }
         };
+        CpcVm.vmToExponential = function (num) {
+            return num.toExponential().toUpperCase().replace(/(\d+)$/, function (x) {
+                return x.length >= 2 ? x : x.padStart(2, "0"); // format with 2 exponential digits
+            });
+        };
         CpcVm.prototype.print = function (stream) {
             var args = [];
             for (var _i = 1; _i < arguments.length; _i++) {
@@ -14164,7 +14175,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                     }
                 }
                 else if (typeof arg === "number") {
-                    str = ((arg >= 0) ? " " : "") + String(arg) + " ";
+                    str = ((arg >= 0) ? " " : "") + (arg < 1e9 ? String(arg) : CpcVm.vmToExponential(arg)) + " ";
                 }
                 else { // e.g. string
                     str = String(arg);
@@ -14493,7 +14504,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             else {
                 type = String(type).toUpperCase();
             }
-            //const fileData: string[] = [];
             var fileData = outFile.fileData;
             fileData.length = 0;
             if (type === "B") { // binary
@@ -14522,7 +14532,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             outFile.start = start;
             outFile.length = length || 0;
             outFile.entry = entry || 0;
-            //outFile.fileData = fileData;
             outFile.fnFileCallback = this.fnCloseoutHandler; // we use closeout handler to reset out file handling
             this.vmStop("fileSave", 90); // must stop directly after save
         };
@@ -14875,7 +14884,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             for (var i = 0; i < args.length; i += 1) {
                 var arg = args[i];
                 if (typeof arg === "number") {
-                    str = String(arg);
+                    str = arg < 1e9 ? String(arg) : CpcVm.vmToExponential(arg);
                 }
                 else {
                     str = '"' + String(arg) + '"';

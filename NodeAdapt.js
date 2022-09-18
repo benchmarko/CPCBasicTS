@@ -65,7 +65,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                         return {};
                     }
                 },
-                //AudioContext: () => { throw new Error("AudioContext not supported"); }
                 AudioContext: audioContext
             });
             // eslint-disable-next-line no-eval
@@ -161,6 +160,5 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     }());
     exports.NodeAdapt = NodeAdapt;
 });
-//Utils.console.debug("Polyfill: end of Polyfills: count=" + Polyfills.count);
 // end
 //# sourceMappingURL=NodeAdapt.js.map

@@ -246,7 +246,7 @@ export declare class CpcVm {
     private vmPutKeyInBuffer;
     call(addr: number, ...args: (string | number)[]): void;
     cat(): void;
-    chain(name: string, line?: number): void;
+    chain(name: string, line?: number, first?: number, last?: number): void;
     chainMerge(name: string, line?: number, first?: number, last?: number): void;
     chr$(n: number): string;
     cint(n: number): number;
@@ -378,6 +378,7 @@ export declare class CpcVm {
     private vmHandleControlCode;
     private vmPrintCharsOrControls;
     private vmPrintGraphChars;
+    private static vmToExponential;
     print(stream: number, ...args: (string | number | PrintObjectType)[]): void;
     rad(): void;
     private static vmHashCode;

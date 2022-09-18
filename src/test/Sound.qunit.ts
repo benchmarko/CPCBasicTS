@@ -2,7 +2,7 @@
 //
 
 import { Utils } from "../Utils";
-import { Sound, SoundData } from "../Sound";
+import { Sound, SoundData, ToneEnvData, VolEnvData } from "../Sound";
 import { TestHelper, TestsType, AllTestsType } from "./TestHelper";
 
 type TestFunctionInputType = string | number | undefined; // | object | Function;
@@ -35,17 +35,18 @@ function combineResult(result: string) {
 /* eslint-disable class-methods-use-this *//* eslint-disable class-methods-use-this */
 class AudioContextMock {
 	currentTime: number;
+	sampleRate = 24000; // 48000;
 
 	constructor() {
 		this.currentTime = 0;
 	}
 
-	createChannelMerger(...args: any[] /*_numberOfInputs?: number */) {
+	createChannelMerger(...args: any[]) {
 		lastTestFunctions.push({
 			createChannelMerger: args
 		});
 		return {
-			connect: function (...args2 /* destinationNode: AudioNode, output?: number, input?: number */) {
+			connect: function (...args2) {
 				lastTestFunctions.push({
 					"channelMerger:connect": args2 as any
 				});
@@ -57,7 +58,7 @@ class AudioContextMock {
 				});
 			},
 			toString: function () {
-				return "[obj: channelMerger]";
+				return "[obj channelMerger]";
 			}
 		} as ChannelMergerNode;
 	}
@@ -67,40 +68,43 @@ class AudioContextMock {
 			createGain: []
 		});
 		return {
-			connect: function (...args /* destinationNode: AudioNode, output?: number, input?: number */) {
+			connect: function (...args) {
 				lastTestFunctions.push({
 					"gain:connect": args as any
 				});
 				//return this;
 			},
 			gain: {
-				setValueAtTime: function (...args /* value: number, _startTime: number */) {
+				setValueAtTime: function (...args) {
 					lastTestFunctions.push({
 						"gain:gain.setValueAtTime": args as any
 					});
 				},
-				linearRampToValueAtTime: function (...args /* value: number, endTime: number */) {
+				linearRampToValueAtTime: function (...args) {
 					lastTestFunctions.push({
 						"gain:gain.linearRampToValueAtTime": args
 					});
 				}
 			} as AudioParam,
 			toString: function () {
-				return "[obj: gain]";
+				return "[obj gain]";
 			}
 		} as GainNode;
 	}
 
-	createBuffer(...args: any[] /* numberOfChannels: number, length: number, sampleRate: number */) {
+	createBuffer(...args: number[]) { // numberOfChannels: number, length: number, sampleRate: number
 		lastTestFunctions.push({
 			createBuffer: args
 		});
+		const length = args[1],
+			buffer = new Float32Array(length);
+
 		return {
 			getChannelData: function (...args2 /* channel: number */) {
 				lastTestFunctions.push({
 					"createBuffer:getChannelData": args2
 				});
-				return new Float32Array(); //TTT
+				return buffer; //new Float32Array(); // TODO
 			}
 		} as AudioBuffer;
 	}
@@ -110,15 +114,21 @@ class AudioContextMock {
 			createBufferSource: []
 		});
 		return {
-			start: function (...args /* when?: number, offset?: number, duration?: number */) {
+			start: function (...args) {
 				lastTestFunctions.push({
 					"bufferSource:start": args
 				});
 			},
-			stop: function (...args /* when?: number */) {
+			stop: function (...args) {
 				lastTestFunctions.push({
 					"bufferSource:stop": args
 				});
+			},
+			connect: function (...args) {
+				lastTestFunctions.push({
+					"bufferSource.connect": args as any
+				});
+				return this as AudioNode;
 			}
 		} as AudioBufferSourceNode;
 	}
@@ -127,7 +137,14 @@ class AudioContextMock {
 		lastTestFunctions.push({
 			createBiquadFilter: []
 		});
-		return {} as BiquadFilterNode;
+		return {
+			frequency: {
+				value: 0
+			},
+			toString: function () {
+				return "[obj BiquadFilterNode]";
+			}
+		} as BiquadFilterNode;
 	}
 
 	createOscillator() {
@@ -137,14 +154,14 @@ class AudioContextMock {
 		return {
 			frequency: {
 				value: 0,
-				setValueAtTime: function (...args /* value: number, startTime: number */) {
+				setValueAtTime: function (...args) {
 					lastTestFunctions.push({
 						"oscillator.frequency.setValueAtTime": args
 					});
 				}
 			},
 			//type: "",
-			connect: function (...args /* destinationNode: AudioNode, _output?: number, _input?: number */) {
+			connect: function (...args) {
 				lastTestFunctions.push({
 					"oscillator.connect": args as any
 				});
@@ -157,6 +174,11 @@ class AudioContextMock {
 			stop: function (...args) {
 				lastTestFunctions.push({
 					"oscillator.stop": args
+				});
+			},
+			disconnect: function (...args) {
+				lastTestFunctions.push({
+					"oscillator.disconnect": args as any
 				});
 			}
 		} as OscillatorNode;
@@ -235,10 +257,18 @@ QUnit.module("Sound: Tests1", function (hooks) {
 QUnit.module("Sound: Tests", function () {
 	const allTests: AllTestsType = { // eslint-disable-line vars-on-top
 		sound: {
-			"1,100,3": "createOscillator: , oscillator.connect:[obj: gain] , gain:gain.setValueAtTime:NaN,0 , oscillator.start:0 , oscillator.stop:0.03 -- undefined"
+			"1,100,3,12": "createOscillator: , oscillator.connect:[obj gain] , gain:gain.setValueAtTime:0.6400000000000001,0 , oscillator.start:0 , oscillator.stop:0.03 -- undefined",
+			"1,100,20,10,0,0,5": "oscillator.stop: , oscillator.disconnect: , createOscillator: , oscillator.connect:[obj gain] , gain:gain.setValueAtTime:0.4444444444444444,0 , oscillator.start:0 , oscillator.stop:0.2 , createBuffer:1,4800,24000 , createBuffer:getChannelData:0 , createBufferSource: , createBiquadFilter: , bufferSource.connect:[obj BiquadFilterNode] , bufferSource.connect:[obj gain] , bufferSource:start:0 , bufferSource:stop:0.2 -- undefined",
+			"135,90,20,12,0,0,0": "oscillator.stop: , oscillator.disconnect: , createOscillator: , oscillator.connect:[obj gain] , gain:gain.setValueAtTime:0.6400000000000001,0 , oscillator.start:0 , oscillator.stop:0.2 , createOscillator: , oscillator.connect:[obj gain] , gain:gain.setValueAtTime:0.6400000000000001,0 , oscillator.start:0 , oscillator.stop:0.2 , createOscillator: , oscillator.connect:[obj gain] , gain:gain.setValueAtTime:0.6400000000000001,0 , oscillator.start:0 , oscillator.stop:0.2 -- undefined"
+		},
+		setToneEnv: {
+			"1,3,2,2": "undefined"
+		},
+		setVolEnv: {
+			"1,3,2,2": "undefined"
 		}
 	},
-		allTestFunctions: Record<string, (sound: Sound, input: TestFunctionInputType[]) => any> = {
+		allTestFunctions: Record<string, (...args: any) => any> = {
 			sound: function (sound: Sound, input: TestFunctionInputType[]) {
 				const soundData = {
 					state: input[0],
@@ -251,7 +281,53 @@ QUnit.module("Sound: Tests", function () {
 				} as SoundData;
 
 				return String(sound.sound(soundData));
-				//return String(sound.sound.apply(sound, input));
+			},
+			setToneEnv: function (sound: Sound, input: TestFunctionInputType[]) {
+				const toneEnv = input[0] as number,
+					toneEnvList: ToneEnvData[] = [];
+
+				for (let i = 1; i < input.length - 1; i += 3) {
+					let toneEnvData: ToneEnvData;
+
+					if (input[i] !== "=") {
+						toneEnvData = {
+							steps: input[i] as number,
+							diff: input[i + 1] as number,
+							time: input[i + 2] as number,
+							repeat: (input[i + 2] as number) < 0
+						};
+					} else {
+						toneEnvData = {
+							period: input[i + 1] as number,
+							time: input[i + 2] as number
+						};
+					}
+					toneEnvList.push(toneEnvData);
+				}
+				return String(sound.setToneEnv(toneEnv, toneEnvList));
+			},
+			setVolEnv: function (sound: Sound, input: TestFunctionInputType[]) {
+				const volEnv = input[0] as number,
+					volEnvList: VolEnvData[] = [];
+
+				for (let i = 1; i < input.length - 1; i += 3) {
+					let volEnvData: VolEnvData;
+
+					if (input[i] !== "=") {
+						volEnvData = {
+							steps: input[i] as number,
+							diff: input[i + 1] as number,
+							time: input[i + 2] as number
+						};
+					} else {
+						volEnvData = {
+							register: input[i + 1] as number,
+							period: input[i + 2] as number
+						};
+					}
+					volEnvList.push(volEnvData);
+				}
+				return String(sound.setVolEnv(volEnv, volEnvList));
 			}
 		};
 

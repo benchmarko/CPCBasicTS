@@ -121,7 +121,7 @@ export class BasicParser {
 		"break": "p", // see: ON BREAK...
 		call: "c n *", // CALL <address expression>[,<list of: parameter>]
 		cat: "c", // CAT
-		chain: "c s n?", // CHAIN <filename>[,<line number expression>]  or: => chainMerge
+		chain: "c s n? *", // CHAIN <filename>[,<line number expression>][,DELETE <line number range>]  (accepts also delete syntax) or: => chainMerge
 		chainMerge: "c s n? *", // CHAIN MERGE <filename>[,<line number expression>][,DELETE <line number range>] / (special)
 		chr$: "f n", // CHR$(<integer expression>)
 		cint: "f n", // CINT(<numeric expression>)
@@ -1008,46 +1008,58 @@ export class BasicParser {
 	}
 
 	private chain() {
-		let node: ParserNode;
+		const node = this.previousToken;
 
+		if (this.token.type === "merge") { // chain merge?
+			const name = this.fnCombineTwoTokensNoArgs(this.token.type); // chainMerge
+
+			//node = this.previousToken;
+			node.type = name;
+		}
+		node.args = [];
+
+		/*
 		if (this.token.type !== "merge") { // not chain merge?
 			node = this.fnCreateCmdCall(); // chain
-		} else { // chain merge with optional DELETE
+		*/
+
+		// chain, chain merge with optional DELETE
+		/*
 			const name = this.fnCombineTwoTokensNoArgs(this.token.type); // chainMerge
 
 			node = this.previousToken;
 			node.type = name;
 			node.args = [];
-			let value2 = this.expression(0); // filename
+			*/
+		let value2 = this.expression(0); // filename
 
-			node.args.push(value2);
+		node.args.push(value2);
 
-			this.token = this.getToken();
+		this.token = this.getToken();
+		if (this.token.type === ",") {
+			this.token = this.advance(",");
+
+			let numberExpression = false; // line number (expression) found
+
+			if (this.token.type !== "," && this.token.type !== "(eol)" && this.token.type !== "(eof)") {
+				value2 = this.expression(0); // line number or expression
+				node.args.push(value2);
+				numberExpression = true;
+			}
+
 			if (this.token.type === ",") {
-				this.token = this.advance(",");
+				this.advance(",");
 
-				let numberExpression = false; // line number (expression) found
-
-				if (this.token.type !== "," && this.token.type !== "(eol)" && this.token.type !== "(eof)") {
-					value2 = this.expression(0); // line number or expression
+				if (!numberExpression) {
+					value2 = BasicParser.fnCreateDummyArg("null"); // insert dummy arg for line
 					node.args.push(value2);
-					numberExpression = true;
 				}
 
-				if (this.token.type === ",") {
-					this.advance(",");
+				this.advance("delete");
+				const args = this.fnGetArgs(this.previousToken.type); // args for "delete"
 
-					if (!numberExpression) {
-						value2 = BasicParser.fnCreateDummyArg("null"); // insert dummy arg for line
-						node.args.push(value2);
-					}
-
-					this.advance("delete");
-					const args = this.fnGetArgs(this.previousToken.type); // args for "delete"
-
-					for (let i = 0; i < args.length; i += 1) {
-						node.args.push(args[i]); // copy arg
-					}
+				for (let i = 0; i < args.length; i += 1) {
+					node.args.push(args[i]); // copy arg
 				}
 			}
 		}

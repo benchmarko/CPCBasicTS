@@ -931,11 +931,13 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             };
             this.vmStop("fileCat", 45, false, fileParas);
         };
-        CpcVm.prototype.chain = function (name, line) {
+        CpcVm.prototype.chain = function (name, line, first, last) {
             var inFile = this.inFile;
             name = this.vmAdaptFilename(name, "CHAIN");
             this.closein();
             inFile.line = line === undefined ? 0 : this.vmInRangeRound(line, 0, 65535, "CHAIN"); // here we do rounding of line number
+            inFile.first = first === undefined ? 0 : this.vmAssertInRange(first, 1, 65535, "CHAIN"); // first and last are not needed
+            inFile.last = last === undefined ? 0 : this.vmAssertInRange(last, 1, 65535, "CHAIN");
             inFile.open = true;
             inFile.command = "chain";
             inFile.name = name;
@@ -2090,7 +2092,6 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             outFile.open = true;
             outFile.command = "openout";
             outFile.name = name;
-            //outFile.fileData = []; // no data yet
             outFile.fileData.length = 0; // no data yet
             outFile.typeString = "A"; // ASCII
         };
@@ -2498,6 +2499,11 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                 this.canvas.printGChar(char);
             }
         };
+        CpcVm.vmToExponential = function (num) {
+            return num.toExponential().toUpperCase().replace(/(\d+)$/, function (x) {
+                return x.length >= 2 ? x : x.padStart(2, "0"); // format with 2 exponential digits
+            });
+        };
         CpcVm.prototype.print = function (stream) {
             var args = [];
             for (var _i = 1; _i < arguments.length; _i++) {
@@ -2537,7 +2543,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                     }
                 }
                 else if (typeof arg === "number") {
-                    str = ((arg >= 0) ? " " : "") + String(arg) + " ";
+                    str = ((arg >= 0) ? " " : "") + (arg < 1e9 ? String(arg) : CpcVm.vmToExponential(arg)) + " ";
                 }
                 else { // e.g. string
                     str = String(arg);
@@ -2866,7 +2872,6 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             else {
                 type = String(type).toUpperCase();
             }
-            //const fileData: string[] = [];
             var fileData = outFile.fileData;
             fileData.length = 0;
             if (type === "B") { // binary
@@ -2895,7 +2900,6 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             outFile.start = start;
             outFile.length = length || 0;
             outFile.entry = entry || 0;
-            //outFile.fileData = fileData;
             outFile.fnFileCallback = this.fnCloseoutHandler; // we use closeout handler to reset out file handling
             this.vmStop("fileSave", 90); // must stop directly after save
         };
@@ -3248,7 +3252,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             for (var i = 0; i < args.length; i += 1) {
                 var arg = args[i];
                 if (typeof arg === "number") {
-                    str = String(arg);
+                    str = arg < 1e9 ? String(arg) : CpcVm.vmToExponential(arg);
                 }
                 else {
                     str = '"' + String(arg) + '"';

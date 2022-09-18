@@ -26,7 +26,8 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
                 label: this.label,
                 "|": this.vertical,
                 afterGosub: this.afterEveryGosub,
-                chainMerge: this.chainMerge,
+                chain: this.chainOrChainMerge,
+                chainMerge: this.chainOrChainMerge,
                 data: this.data,
                 def: this.def,
                 "else": this.else,
@@ -172,7 +173,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             value += " GOSUB" + CodeGeneratorBasic.fnSpace1(nodeArgs[2]);
             return CodeGeneratorBasic.fnWs(node) + value;
         };
-        CodeGeneratorBasic.prototype.chainMerge = function (node) {
+        CodeGeneratorBasic.prototype.chainOrChainMerge = function (node) {
             var nodeArgs = this.fnParseArgs(node.args), typeUc = CodeGeneratorBasic.getUcKeyword(node);
             if (nodeArgs.length === 3) {
                 nodeArgs[2] = "DELETE" + CodeGeneratorBasic.fnSpace1(nodeArgs[2]);

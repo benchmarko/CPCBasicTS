@@ -1435,12 +1435,14 @@ export class CpcVm {
 		this.vmStop("fileCat", 45, false, fileParas);
 	}
 
-	chain(name: string, line?: number): void { // optional line
+	chain(name: string, line?: number, first?: number, last?: number): void { // optional line, first, last
 		const inFile = this.inFile;
 
 		name = this.vmAdaptFilename(name, "CHAIN");
 		this.closein();
 		inFile.line = line === undefined ? 0 : this.vmInRangeRound(line, 0, 65535, "CHAIN"); // here we do rounding of line number
+		inFile.first = first === undefined ? 0 : this.vmAssertInRange(first, 1, 65535, "CHAIN"); // first and last are not needed
+		inFile.last = last === undefined ? 0 : this.vmAssertInRange(last, 1, 65535, "CHAIN");
 		inFile.open = true;
 		inFile.command = "chain";
 		inFile.name = name;
@@ -2752,7 +2754,6 @@ export class CpcVm {
 		outFile.open = true;
 		outFile.command = "openout";
 		outFile.name = name;
-		//outFile.fileData = []; // no data yet
 		outFile.fileData.length = 0; // no data yet
 		outFile.typeString = "A"; // ASCII
 	}
@@ -3229,6 +3230,12 @@ export class CpcVm {
 		}
 	}
 
+	private static vmToExponential(num: number) {
+		return num.toExponential().toUpperCase().replace(/(\d+)$/, function (x) {
+			return x.length >= 2 ? x : x.padStart(2, "0"); // format with 2 exponential digits
+		});
+	}
+
 	print(stream: number, ...args: (string | number | PrintObjectType)[]): void { // eslint-disable-line complexity
 		stream = this.vmInRangeRound(stream, 0, 9, "PRINT");
 		const win = this.windowDataList[stream];
@@ -3267,7 +3274,7 @@ export class CpcVm {
 					throw this.vmComposeError(Error(), 5, "PRINT " + arg.type); // Improper argument
 				}
 			} else if (typeof arg === "number") {
-				str = ((arg >= 0) ? " " : "") + String(arg) + " ";
+				str = ((arg >= 0) ? " " : "") + (arg < 1e9 ? String(arg) : CpcVm.vmToExponential(arg)) + " ";
 			} else { // e.g. string
 				str = String(arg);
 			}
@@ -3626,7 +3633,6 @@ export class CpcVm {
 			type = String(type).toUpperCase();
 		}
 
-		//const fileData: string[] = [];
 		const fileData = outFile.fileData;
 
 		fileData.length = 0;
@@ -3659,8 +3665,6 @@ export class CpcVm {
 		outFile.start = start;
 		outFile.length = length || 0;
 		outFile.entry = entry || 0;
-
-		//outFile.fileData = fileData;
 		outFile.fnFileCallback = this.fnCloseoutHandler; // we use closeout handler to reset out file handling
 
 		this.vmStop("fileSave", 90); // must stop directly after save
@@ -4080,7 +4084,7 @@ export class CpcVm {
 			const arg = args[i];
 
 			if (typeof arg === "number") {
-				str = String(arg);
+				str = arg < 1e9 ? String(arg) : CpcVm.vmToExponential(arg);
 			} else {
 				str = '"' + String(arg) + '"';
 			}

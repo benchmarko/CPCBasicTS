@@ -23,21 +23,22 @@ define(["require", "exports", "../Utils", "../Sound", "./TestHelper"], function 
     /* eslint-disable class-methods-use-this */ /* eslint-disable class-methods-use-this */
     var AudioContextMock = /** @class */ (function () {
         function AudioContextMock() {
+            this.sampleRate = 24000; // 48000;
             this.currentTime = 0;
         }
         AudioContextMock.prototype.createChannelMerger = function () {
-            var args = []; /*_numberOfInputs?: number */
-            for (var _i = 0 /*_numberOfInputs?: number */; _i < arguments.length /*_numberOfInputs?: number */; _i++ /*_numberOfInputs?: number */) {
-                args[_i] = arguments[_i]; /*_numberOfInputs?: number */
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
             }
             lastTestFunctions.push({
                 createChannelMerger: args
             });
             return {
                 connect: function () {
-                    var args2 = []; /* destinationNode: AudioNode, output?: number, input?: number */
-                    for (var _i = 0 /* destinationNode: AudioNode, output?: number, input?: number */; _i < arguments.length /* destinationNode: AudioNode, output?: number, input?: number */; _i++ /* destinationNode: AudioNode, output?: number, input?: number */) {
-                        args2[_i] = arguments[_i]; /* destinationNode: AudioNode, output?: number, input?: number */
+                    var args2 = [];
+                    for (var _i = 0; _i < arguments.length; _i++) {
+                        args2[_i] = arguments[_i];
                     }
                     lastTestFunctions.push({
                         "channelMerger:connect": args2
@@ -54,7 +55,7 @@ define(["require", "exports", "../Utils", "../Sound", "./TestHelper"], function 
                     });
                 },
                 toString: function () {
-                    return "[obj: channelMerger]";
+                    return "[obj channelMerger]";
                 }
             };
         };
@@ -64,9 +65,9 @@ define(["require", "exports", "../Utils", "../Sound", "./TestHelper"], function 
             });
             return {
                 connect: function () {
-                    var args = []; /* destinationNode: AudioNode, output?: number, input?: number */
-                    for (var _i = 0 /* destinationNode: AudioNode, output?: number, input?: number */; _i < arguments.length /* destinationNode: AudioNode, output?: number, input?: number */; _i++ /* destinationNode: AudioNode, output?: number, input?: number */) {
-                        args[_i] = arguments[_i]; /* destinationNode: AudioNode, output?: number, input?: number */
+                    var args = [];
+                    for (var _i = 0; _i < arguments.length; _i++) {
+                        args[_i] = arguments[_i];
                     }
                     lastTestFunctions.push({
                         "gain:connect": args
@@ -75,18 +76,18 @@ define(["require", "exports", "../Utils", "../Sound", "./TestHelper"], function 
                 },
                 gain: {
                     setValueAtTime: function () {
-                        var args = []; /* value: number, _startTime: number */
-                        for (var _i = 0 /* value: number, _startTime: number */; _i < arguments.length /* value: number, _startTime: number */; _i++ /* value: number, _startTime: number */) {
-                            args[_i] = arguments[_i]; /* value: number, _startTime: number */
+                        var args = [];
+                        for (var _i = 0; _i < arguments.length; _i++) {
+                            args[_i] = arguments[_i];
                         }
                         lastTestFunctions.push({
                             "gain:gain.setValueAtTime": args
                         });
                     },
                     linearRampToValueAtTime: function () {
-                        var args = []; /* value: number, endTime: number */
-                        for (var _i = 0 /* value: number, endTime: number */; _i < arguments.length /* value: number, endTime: number */; _i++ /* value: number, endTime: number */) {
-                            args[_i] = arguments[_i]; /* value: number, endTime: number */
+                        var args = [];
+                        for (var _i = 0; _i < arguments.length; _i++) {
+                            args[_i] = arguments[_i];
                         }
                         lastTestFunctions.push({
                             "gain:gain.linearRampToValueAtTime": args
@@ -94,18 +95,19 @@ define(["require", "exports", "../Utils", "../Sound", "./TestHelper"], function 
                     }
                 },
                 toString: function () {
-                    return "[obj: gain]";
+                    return "[obj gain]";
                 }
             };
         };
         AudioContextMock.prototype.createBuffer = function () {
-            var args = []; /* numberOfChannels: number, length: number, sampleRate: number */
-            for (var _i = 0 /* numberOfChannels: number, length: number, sampleRate: number */; _i < arguments.length /* numberOfChannels: number, length: number, sampleRate: number */; _i++ /* numberOfChannels: number, length: number, sampleRate: number */) {
-                args[_i] = arguments[_i]; /* numberOfChannels: number, length: number, sampleRate: number */
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
             }
             lastTestFunctions.push({
                 createBuffer: args
             });
+            var length = args[1], buffer = new Float32Array(length);
             return {
                 getChannelData: function () {
                     var args2 = []; /* channel: number */
@@ -115,7 +117,7 @@ define(["require", "exports", "../Utils", "../Sound", "./TestHelper"], function 
                     lastTestFunctions.push({
                         "createBuffer:getChannelData": args2
                     });
-                    return new Float32Array(); //TTT
+                    return buffer; //new Float32Array(); // TODO
                 }
             };
         };
@@ -125,22 +127,32 @@ define(["require", "exports", "../Utils", "../Sound", "./TestHelper"], function 
             });
             return {
                 start: function () {
-                    var args = []; /* when?: number, offset?: number, duration?: number */
-                    for (var _i = 0 /* when?: number, offset?: number, duration?: number */; _i < arguments.length /* when?: number, offset?: number, duration?: number */; _i++ /* when?: number, offset?: number, duration?: number */) {
-                        args[_i] = arguments[_i]; /* when?: number, offset?: number, duration?: number */
+                    var args = [];
+                    for (var _i = 0; _i < arguments.length; _i++) {
+                        args[_i] = arguments[_i];
                     }
                     lastTestFunctions.push({
                         "bufferSource:start": args
                     });
                 },
                 stop: function () {
-                    var args = []; /* when?: number */
-                    for (var _i = 0 /* when?: number */; _i < arguments.length /* when?: number */; _i++ /* when?: number */) {
-                        args[_i] = arguments[_i]; /* when?: number */
+                    var args = [];
+                    for (var _i = 0; _i < arguments.length; _i++) {
+                        args[_i] = arguments[_i];
                     }
                     lastTestFunctions.push({
                         "bufferSource:stop": args
                     });
+                },
+                connect: function () {
+                    var args = [];
+                    for (var _i = 0; _i < arguments.length; _i++) {
+                        args[_i] = arguments[_i];
+                    }
+                    lastTestFunctions.push({
+                        "bufferSource.connect": args
+                    });
+                    return this;
                 }
             };
         };
@@ -148,7 +160,14 @@ define(["require", "exports", "../Utils", "../Sound", "./TestHelper"], function 
             lastTestFunctions.push({
                 createBiquadFilter: []
             });
-            return {};
+            return {
+                frequency: {
+                    value: 0
+                },
+                toString: function () {
+                    return "[obj BiquadFilterNode]";
+                }
+            };
         };
         AudioContextMock.prototype.createOscillator = function () {
             lastTestFunctions.push({
@@ -158,9 +177,9 @@ define(["require", "exports", "../Utils", "../Sound", "./TestHelper"], function 
                 frequency: {
                     value: 0,
                     setValueAtTime: function () {
-                        var args = []; /* value: number, startTime: number */
-                        for (var _i = 0 /* value: number, startTime: number */; _i < arguments.length /* value: number, startTime: number */; _i++ /* value: number, startTime: number */) {
-                            args[_i] = arguments[_i]; /* value: number, startTime: number */
+                        var args = [];
+                        for (var _i = 0; _i < arguments.length; _i++) {
+                            args[_i] = arguments[_i];
                         }
                         lastTestFunctions.push({
                             "oscillator.frequency.setValueAtTime": args
@@ -169,9 +188,9 @@ define(["require", "exports", "../Utils", "../Sound", "./TestHelper"], function 
                 },
                 //type: "",
                 connect: function () {
-                    var args = []; /* destinationNode: AudioNode, _output?: number, _input?: number */
-                    for (var _i = 0 /* destinationNode: AudioNode, _output?: number, _input?: number */; _i < arguments.length /* destinationNode: AudioNode, _output?: number, _input?: number */; _i++ /* destinationNode: AudioNode, _output?: number, _input?: number */) {
-                        args[_i] = arguments[_i]; /* destinationNode: AudioNode, _output?: number, _input?: number */
+                    var args = [];
+                    for (var _i = 0; _i < arguments.length; _i++) {
+                        args[_i] = arguments[_i];
                     }
                     lastTestFunctions.push({
                         "oscillator.connect": args
@@ -193,6 +212,15 @@ define(["require", "exports", "../Utils", "../Sound", "./TestHelper"], function 
                     }
                     lastTestFunctions.push({
                         "oscillator.stop": args
+                    });
+                },
+                disconnect: function () {
+                    var args = [];
+                    for (var _i = 0; _i < arguments.length; _i++) {
+                        args[_i] = arguments[_i];
+                    }
+                    lastTestFunctions.push({
+                        "oscillator.disconnect": args
                     });
                 }
             };
@@ -259,7 +287,15 @@ define(["require", "exports", "../Utils", "../Sound", "./TestHelper"], function 
     QUnit.module("Sound: Tests", function () {
         var allTests = {
             sound: {
-                "1,100,3": "createOscillator: , oscillator.connect:[obj: gain] , gain:gain.setValueAtTime:NaN,0 , oscillator.start:0 , oscillator.stop:0.03 -- undefined"
+                "1,100,3,12": "createOscillator: , oscillator.connect:[obj gain] , gain:gain.setValueAtTime:0.6400000000000001,0 , oscillator.start:0 , oscillator.stop:0.03 -- undefined",
+                "1,100,20,10,0,0,5": "oscillator.stop: , oscillator.disconnect: , createOscillator: , oscillator.connect:[obj gain] , gain:gain.setValueAtTime:0.4444444444444444,0 , oscillator.start:0 , oscillator.stop:0.2 , createBuffer:1,4800,24000 , createBuffer:getChannelData:0 , createBufferSource: , createBiquadFilter: , bufferSource.connect:[obj BiquadFilterNode] , bufferSource.connect:[obj gain] , bufferSource:start:0 , bufferSource:stop:0.2 -- undefined",
+                "135,90,20,12,0,0,0": "oscillator.stop: , oscillator.disconnect: , createOscillator: , oscillator.connect:[obj gain] , gain:gain.setValueAtTime:0.6400000000000001,0 , oscillator.start:0 , oscillator.stop:0.2 , createOscillator: , oscillator.connect:[obj gain] , gain:gain.setValueAtTime:0.6400000000000001,0 , oscillator.start:0 , oscillator.stop:0.2 , createOscillator: , oscillator.connect:[obj gain] , gain:gain.setValueAtTime:0.6400000000000001,0 , oscillator.start:0 , oscillator.stop:0.2 -- undefined"
+            },
+            setToneEnv: {
+                "1,3,2,2": "undefined"
+            },
+            setVolEnv: {
+                "1,3,2,2": "undefined"
             }
         }, allTestFunctions = {
             sound: function (sound, input) {
@@ -273,7 +309,49 @@ define(["require", "exports", "../Utils", "../Sound", "./TestHelper"], function 
                     noise: input[6]
                 };
                 return String(sound.sound(soundData));
-                //return String(sound.sound.apply(sound, input));
+            },
+            setToneEnv: function (sound, input) {
+                var toneEnv = input[0], toneEnvList = [];
+                for (var i = 1; i < input.length - 1; i += 3) {
+                    var toneEnvData = void 0;
+                    if (input[i] !== "=") {
+                        toneEnvData = {
+                            steps: input[i],
+                            diff: input[i + 1],
+                            time: input[i + 2],
+                            repeat: input[i + 2] < 0
+                        };
+                    }
+                    else {
+                        toneEnvData = {
+                            period: input[i + 1],
+                            time: input[i + 2]
+                        };
+                    }
+                    toneEnvList.push(toneEnvData);
+                }
+                return String(sound.setToneEnv(toneEnv, toneEnvList));
+            },
+            setVolEnv: function (sound, input) {
+                var volEnv = input[0], volEnvList = [];
+                for (var i = 1; i < input.length - 1; i += 3) {
+                    var volEnvData = void 0;
+                    if (input[i] !== "=") {
+                        volEnvData = {
+                            steps: input[i],
+                            diff: input[i + 1],
+                            time: input[i + 2]
+                        };
+                    }
+                    else {
+                        volEnvData = {
+                            register: input[i + 1],
+                            period: input[i + 2]
+                        };
+                    }
+                    volEnvList.push(volEnvData);
+                }
+                return String(sound.setVolEnv(volEnv, volEnvList));
             }
         };
         function adaptParameters(a) {

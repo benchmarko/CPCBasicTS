@@ -49,9 +49,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
         };
         Sound.prototype.stopOscillator = function (n) {
-            var oscillators = this.oscillators;
-            if (oscillators[n]) {
-                var oscillatorNode = oscillators[n];
+            var oscillators = this.oscillators, oscillatorNode = oscillators[n];
+            if (oscillatorNode) {
                 oscillatorNode.frequency.value = 0;
                 oscillatorNode.stop();
                 oscillatorNode.disconnect();
@@ -81,9 +80,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 0,
                 2,
                 1
-            ], 
-            //context = new window.AudioContext(), // may produce exception if not available
-            context = new this.AudioContextConstructor(), // may produce exception if not available
+            ], context = new this.AudioContextConstructor(), // may produce exception if not available
             mergerNode = context.createChannelMerger(6); // create mergerNode with 6 inputs; we are using the first 3 for left, right, center
             this.context = context;
             this.mergerNode = mergerNode;
@@ -100,7 +97,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             noiseNode = ctx.createBufferSource(); // create a buffer source for noise data
             // fill the buffer with noise
             for (var i = 0; i < bufferSize; i += 1) {
-                data[i] = Math.random() * 2 - 1;
+                data[i] = Math.random() * 2 - 1; // -1..1
             }
             noiseNode.buffer = buffer;
             if (noise > 1) {

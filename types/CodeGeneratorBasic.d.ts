@@ -36,7 +36,7 @@ export declare class CodeGeneratorBasic {
     private label;
     private vertical;
     private afterEveryGosub;
-    private chainMerge;
+    private chainOrChainMerge;
     private data;
     private def;
     private "else";

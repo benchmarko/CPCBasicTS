@@ -84,7 +84,6 @@ export class NodeAdapt {
 					return {};
 				}
 			},
-			//AudioContext: () => { throw new Error("AudioContext not supported"); }
 			AudioContext: audioContext
 		});
 
@@ -200,6 +199,4 @@ export class NodeAdapt {
 		};
 	}
 }
-
-//Utils.console.debug("Polyfill: end of Polyfills: count=" + Polyfills.count);
 // end

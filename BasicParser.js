@@ -605,37 +605,46 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return node;
         };
         BasicParser.prototype.chain = function () {
-            var node;
+            var node = this.previousToken;
+            if (this.token.type === "merge") { // chain merge?
+                var name_1 = this.fnCombineTwoTokensNoArgs(this.token.type); // chainMerge
+                //node = this.previousToken;
+                node.type = name_1;
+            }
+            node.args = [];
+            /*
             if (this.token.type !== "merge") { // not chain merge?
                 node = this.fnCreateCmdCall(); // chain
-            }
-            else { // chain merge with optional DELETE
-                var name_1 = this.fnCombineTwoTokensNoArgs(this.token.type); // chainMerge
+            */
+            // chain, chain merge with optional DELETE
+            /*
+                const name = this.fnCombineTwoTokensNoArgs(this.token.type); // chainMerge
+    
                 node = this.previousToken;
-                node.type = name_1;
+                node.type = name;
                 node.args = [];
-                var value2 = this.expression(0); // filename
-                node.args.push(value2);
-                this.token = this.getToken();
+                */
+            var value2 = this.expression(0); // filename
+            node.args.push(value2);
+            this.token = this.getToken();
+            if (this.token.type === ",") {
+                this.token = this.advance(",");
+                var numberExpression = false; // line number (expression) found
+                if (this.token.type !== "," && this.token.type !== "(eol)" && this.token.type !== "(eof)") {
+                    value2 = this.expression(0); // line number or expression
+                    node.args.push(value2);
+                    numberExpression = true;
+                }
                 if (this.token.type === ",") {
-                    this.token = this.advance(",");
-                    var numberExpression = false; // line number (expression) found
-                    if (this.token.type !== "," && this.token.type !== "(eol)" && this.token.type !== "(eof)") {
-                        value2 = this.expression(0); // line number or expression
+                    this.advance(",");
+                    if (!numberExpression) {
+                        value2 = BasicParser.fnCreateDummyArg("null"); // insert dummy arg for line
                         node.args.push(value2);
-                        numberExpression = true;
                     }
-                    if (this.token.type === ",") {
-                        this.advance(",");
-                        if (!numberExpression) {
-                            value2 = BasicParser.fnCreateDummyArg("null"); // insert dummy arg for line
-                            node.args.push(value2);
-                        }
-                        this.advance("delete");
-                        var args = this.fnGetArgs(this.previousToken.type); // args for "delete"
-                        for (var i = 0; i < args.length; i += 1) {
-                            node.args.push(args[i]); // copy arg
-                        }
+                    this.advance("delete");
+                    var args = this.fnGetArgs(this.previousToken.type); // args for "delete"
+                    for (var i = 0; i < args.length; i += 1) {
+                        node.args.push(args[i]); // copy arg
                     }
                 }
             }
@@ -1168,7 +1177,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             "break": "p",
             call: "c n *",
             cat: "c",
-            chain: "c s n?",
+            chain: "c s n? *",
             chainMerge: "c s n? *",
             chr$: "f n",
             cint: "f n",
