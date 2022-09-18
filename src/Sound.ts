@@ -42,6 +42,12 @@ export interface VolEnvData2 {
 
 export type VolEnvData = VolEnvData1 | VolEnvData2;
 
+type AudioContextConstructorType = typeof window.AudioContext;
+
+interface SoundOptions {
+	AudioContextConstructor: AudioContextConstructorType
+}
+
 interface Queue {
 	soundData: SoundData[],
 	fNextNoteTime: number,
@@ -49,8 +55,8 @@ interface Queue {
 	rendevousMask: number
 }
 
-
 export class Sound {
+	private AudioContextConstructor: AudioContextConstructorType;
 	private isSoundOn = false;
 	private isActivatedByUserFlag = false;
 	private context?: AudioContext;
@@ -63,7 +69,9 @@ export class Sound {
 	private readonly toneEnv: ToneEnvData[][] = [];
 	private readonly debugLogList?: [number, string][];
 
-	constructor() {
+	constructor(options: SoundOptions) {
+		this.AudioContextConstructor = options.AudioContextConstructor;
+
 		for (let i = 0; i < 3; i += 1) {
 			this.queues[i] = {
 				soundData: [],
@@ -145,7 +153,8 @@ export class Sound {
 				2,
 				1
 			],
-			context = new window.AudioContext(), // may produce exception if not available
+			//context = new window.AudioContext(), // may produce exception if not available
+			context = new this.AudioContextConstructor(), // may produce exception if not available
 			mergerNode = context.createChannelMerger(6); // create mergerNode with 6 inputs; we are using the first 3 for left, right, center
 
 		this.context = context;
@@ -312,7 +321,9 @@ export class Sound {
 
 		oscillatorNode.connect(this.gainNodes[oscillator]);
 		if (fTime < ctx.currentTime) {
-			Utils.console.log("TTT: scheduleNote:", fTime, "<", ctx.currentTime);
+			if (Utils.debug) {
+				Utils.console.debug("Test: sound: scheduleNote:", fTime, "<", ctx.currentTime);
+			}
 		}
 
 		const volume = soundData.volume,
@@ -395,7 +406,7 @@ export class Sound {
 				this.updateQueueStatus(i, queue);
 			}
 		}
-		this.scheduler(); // schedule early to allow SQ busy check immiediately (can channels go out of sync by this?)
+		this.scheduler(); // schedule early to allow SQ busy check immediately (can channels go out of sync by this?)
 	}
 
 	setVolEnv(volEnv: number, volEnvData: VolEnvData[]): void {
@@ -535,7 +546,9 @@ export class Sound {
 
 			mergerNode.connect(context.destination);
 			this.isSoundOn = true;
-			Utils.console.log("soundOn: Sound switched on");
+			if (Utils.debug) {
+				Utils.console.debug("soundOn: Sound switched on");
+			}
 		}
 	}
 
@@ -546,7 +559,9 @@ export class Sound {
 
 			mergerNode.disconnect(context.destination);
 			this.isSoundOn = false;
-			Utils.console.log("soundOff: Sound switched off");
+			if (Utils.debug) {
+				Utils.console.debug("soundOff: Sound switched off");
+			}
 		}
 	}
 }

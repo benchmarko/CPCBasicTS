@@ -695,7 +695,7 @@ function testNextIndex() {
 }
 
 function testStart() {
-	Utils.console.log("testParseExamples: nodeJs:", nodeJsAvail, " Polyfills.count=", Polyfills.count);
+	Utils.console.log("testParseExamples: nodeJs:", nodeJsAvail, " Polyfills.getList().length:", Polyfills.getList().length);
 
 	cpcBasic.initVmMock1();
 	cpcBasic.totalExamples = 0;

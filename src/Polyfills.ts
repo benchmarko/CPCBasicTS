@@ -6,12 +6,15 @@
 import { Utils } from "./Utils";
 
 export var Polyfills = {
-	count: 0,
-	// empty
-
+	list: [] as string[],
+	getList: function (): string[] {
+		//return Polyfills.count;
+		return Polyfills.list;
+	},
 	log: function (part: string): void {
-		Utils.console.debug("Polyfill: " + part);
-		Polyfills.count += 1;
+		Polyfills.list.push(part);
+		//Utils.console.debug("Polyfill: " + part);
+		//Polyfills.count += 1;
 	}
 };
 
@@ -577,7 +580,8 @@ if (!window.AudioContext) { // ? not for IE
 	if (window.AudioContext) {
 		Polyfills.log("window.AudioContext");
 	} else {
-		Utils.console.warn("Polyfill: window.AudioContext: not ok!");
+		//Utils.console.warn("Polyfill: window.AudioContext: not ok!");
+		Polyfills.log("window.AudioContext not ok!");
 	}
 }
 
@@ -630,6 +634,7 @@ if (!window.Uint8Array) { // IE9
 	// A more complex solution would be: https://github.com/inexorabletash/polyfill/blob/master/typedarray.js
 }
 
-Utils.console.debug("Polyfill: end of Polyfills: count=" + Polyfills.count);
+//Utils.console.debug("Polyfill: end of Polyfills: count=" + Polyfills.count);
+Utils.console.debug("Polyfills: (" + Polyfills.getList().length + ") " + Polyfills.getList().join("; "));
 
 // end

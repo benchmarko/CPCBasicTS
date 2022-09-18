@@ -70,7 +70,9 @@ export class Controller implements IController {
 
 	private readonly keyboard: Keyboard;
 	private virtualKeyboard?: VirtualKeyboard;
-	private readonly sound = new Sound();
+	private readonly sound = new Sound({
+		AudioContextConstructor: window.AudioContext
+	});
 
 	private readonly vm: CpcVm;
 	private readonly rsx: CpcVmRsx;

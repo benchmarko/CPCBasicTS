@@ -107,7 +107,7 @@ export class BasicParser {
 	}
 
 	// first letter: c=command, f=function, p=part of command, o=operator, x=misc
-	// following are arguments: n=number, s=string, l=line number (checked), v=variable (checked), r=letter or range, a=any, n0?=optional parameter with default null, #=stream, #0?=optional stream with default 0; suffix ?=optional (optionals must be last); last *=any number of arguments may follow
+	// following are arguments: n=number, s=string, l=line number (checked), v=variable (checked), q=line number range, r=letter or range, a=any, n0?=optional parameter with default null, #=stream, #0?=optional stream with default 0; suffix ?=optional (optionals must be last); last *=any number of arguments may follow
 	static readonly keywords: Record<string, string> = {
 		abs: "f n", // ABS(<numeric expression>)
 		after: "c", // => afterGosub
@@ -127,7 +127,7 @@ export class BasicParser {
 		cint: "f n", // CINT(<numeric expression>)
 		clear: "c", // CLEAR  or: => clearInput
 		clearInput: "c", // CLEAR INPUT
-		clg: "c n?", // CLG[<ink>]
+		clg: "c n?", // CLG [<ink>]
 		closein: "c", // CLOSEIN
 		closeout: "c", // CLOSEOUT
 		cls: "c #0?", // CLS[#<stream expression>]
@@ -143,7 +143,7 @@ export class BasicParser {
 		defreal: "c r r*", // DEFREAL <list of: letter range>
 		defstr: "c r r*", // DEFSTR <list of: letter range>
 		deg: "c", // DEG
-		"delete": "c q?", // DELETE [<line number range>] / (not checked from this)
+		"delete": "c q0?", // DELETE [<line number range>]
 		derr: "f", // DERR
 		di: "c", // DI
 		dim: "c v *", // DIM <list of: subscripted variable>
@@ -787,6 +787,15 @@ export class BasicParser {
 				args.push(expression);
 			}
 		}
+
+		if (this.previousToken.type === "," && keyword !== "delete" && keyword !== "list") { // for line numbe range in delete, list it is ok
+			if (!this.fnLastStatemetIsOnErrorGotoX()) {
+				throw this.composeError(Error(), "Operand missing", this.previousToken.type, this.previousToken.pos);
+			} else if (!this.quiet) {
+				Utils.console.warn(this.composeError({} as Error, "Operand missing", this.previousToken.type, this.previousToken.pos));
+			}
+		}
+
 		return args;
 	}
 

@@ -38,7 +38,8 @@ export class NodeAdapt {
 	static doAdapt(): void {
 		let https: NodeHttps, // nodeJs
 			fs: NodeFs,
-			module: any;
+			module: any,
+			audioContext: any;
 
 		const domElements: Record<string, any> = {},
 			myCreateElement = function (id: string) {
@@ -57,6 +58,19 @@ export class NodeAdapt {
 				return domElements[id];
 			};
 
+		function fnEval(code: string) {
+			return eval(code); // eslint-disable-line no-eval
+		}
+
+		if (!audioContext) {
+			// fnEval('audioContext = require("web-audio-api").AudioContext;'); // has no createChannelMerger()
+			if (!audioContext) {
+				audioContext = () => {
+					throw new Error("AudioContext not supported");
+				};
+			}
+		}
+
 		Object.assign(window, {
 			console: console,
 			document: {
@@ -70,7 +84,8 @@ export class NodeAdapt {
 					return {};
 				}
 			},
-			AudioContext: () => { throw new Error("AudioContext not supported"); }
+			//AudioContext: () => { throw new Error("AudioContext not supported"); }
+			AudioContext: audioContext
 		});
 
 		// eslint-disable-next-line no-eval
@@ -118,10 +133,6 @@ export class NodeAdapt {
 
 		function isUrl(s: string) {
 			return s.startsWith("http"); // http or https
-		}
-
-		function fnEval(code: string) {
-			return eval(code); // eslint-disable-line no-eval
 		}
 
 		function nodeReadUrl(url: string, fnDataLoaded: (error: Error | undefined, data?: string) => void) {
