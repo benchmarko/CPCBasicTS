@@ -252,7 +252,7 @@ export class CodeGeneratorBasic {
 		value += " GOSUB" + CodeGeneratorBasic.fnSpace1(nodeArgs[2]);
 		return CodeGeneratorBasic.fnWs(node) + value;
 	}
-	private chainMerge(node: ParserNode) {
+	private chainOrChainMerge(node: ParserNode) {
 		const nodeArgs = this.fnParseArgs(node.args),
 			typeUc = CodeGeneratorBasic.getUcKeyword(node);
 
@@ -503,7 +503,8 @@ export class CodeGeneratorBasic {
 		label: this.label,
 		"|": this.vertical,
 		afterGosub: this.afterEveryGosub,
-		chainMerge: this.chainMerge,
+		chain: this.chainOrChainMerge,
+		chainMerge: this.chainOrChainMerge,
 		data: this.data,
 		def: this.def,
 		"else": this.else,

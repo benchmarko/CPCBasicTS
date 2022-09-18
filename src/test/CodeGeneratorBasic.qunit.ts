@@ -133,6 +133,8 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 			'chain"f1"': 'CHAIN "f1"',
 			'chain"f2" , 10': 'CHAIN "f2",10',
 			'chain"f3" , 10+3': 'CHAIN "f3",10+3',
+			'chain "f4" , 10+3, delete 100-200': 'CHAIN "f4",10+3,DELETE 100-200',
+			'chain "f5" , , delete 100-200': 'CHAIN "f5",,DELETE 100-200',
 			'chain merge "f1"': 'CHAIN MERGE "f1"',
 			'chain merge "f2" , 10': 'CHAIN MERGE "f2",10',
 			'chain merge "f3" , 10+3': 'CHAIN MERGE "f3",10+3',

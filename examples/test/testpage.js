@@ -27,6 +27,7 @@ cpcBasic.addItem("", function () { /*
 250 a=2:IF a<>2 THEN ERROR 33
 260 a=10000:IF a<>10000 THEN ERROR 33
 270 a=0.0001:IF a<>0.0001 THEN ERROR 33
+272 a=1e9-1:IF a<>1e9-1 OR a<>999999999 THEN ERROR 33
 280 PRINT"hex number: &, &h"
 290 a=&A7:IF a<>167 THEN ERROR 33
 300 a%=&A7:IF a%<>167 THEN ERROR 33
@@ -411,6 +412,8 @@ cpcBasic.addItem("", function () { /*
 3710 GOSUB 9040
 3720 '
 3730 PRINT"PRINT special exponential number expressions"
+3732 PRINT 1e9-1;1e9;:PRINT"#";
+3733 GOSUB 9010:IF a$<>" 999999999  1E+09 #" THEN ERROR 33
 3740 PRINT 1 e++4;:PRINT"#";
 3750 GOSUB 9010:IF a$<>" 1  4 #" THEN ERROR 33
 3760 PRINT 1 e+-4;:PRINT"#";
@@ -584,7 +587,13 @@ cpcBasic.addItem("", function () { /*
 5440 a=VAL("&ff"):IF a<>&FF THEN ERROR 33
 5450 a=VAL("&A000"):IF a<>-24576 or a<>&A000 or a<>&hA000 THEN ERROR 33
 5460 a=VAL("&ha000"):IF a<>-24576 or a<>&a000 or a<>&ha000 THEN ERROR 33
-5470 '
+5461 '
+5462 PRINT "WRITE"
+5466 WRITE 1e9-1,1e9,"1e9","#"
+5467 GOSUB 9010:IF a$<>"999999999,1E+09,"+chr$(34)+"1e9"+chr$(34)+","+chr$(34)+"#" THEN ERROR 33
+5468 'TODO: WRITE 1e9-1;1e9;"1e9","#"
+5469 'GOSUB 9010:IF a$<>"999999999,1E+09,"+chr$(34)+"1e9"+chr$(34)+","+chr$(34)+"#" THEN ERROR 33
+5476 '
 5480 GOSUB 9040
 5490 '
 5500 PRINT "stairs"
