@@ -36,7 +36,8 @@ declare module "Utils" {
 }
 declare module "Polyfills" {
     export var Polyfills: {
-        count: number;
+        list: string[];
+        getList: () => string[];
         log: (part: string) => void;
     };
 }
@@ -1189,7 +1190,12 @@ declare module "Sound" {
         period: number;
     }
     export type VolEnvData = VolEnvData1 | VolEnvData2;
+    type AudioContextConstructorType = typeof window.AudioContext;
+    interface SoundOptions {
+        AudioContextConstructor: AudioContextConstructorType;
+    }
     export class Sound {
+        private AudioContextConstructor;
         private isSoundOn;
         private isActivatedByUserFlag;
         private context?;
@@ -1201,7 +1207,7 @@ declare module "Sound" {
         private readonly volEnv;
         private readonly toneEnv;
         private readonly debugLogList?;
-        constructor();
+        constructor(options: SoundOptions);
         reset(): void;
         private stopOscillator;
         private debugLog;

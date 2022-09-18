@@ -1044,7 +1044,7 @@ export class CodeGeneratorJs {
 
 		let value = "/* for() */";
 
-		if (type !== "I") {
+		if (type !== "I" && type !== "R") {
 			value += " o.vmAssertNumberType(\"" + varType + "\");"; // do a type check: assert number type
 		}
 

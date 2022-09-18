@@ -267,11 +267,15 @@ define("Polyfills", ["require", "exports", "Utils"], function (require, exports,
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Polyfills = void 0;
     exports.Polyfills = {
-        count: 0,
-        // empty
+        list: [],
+        getList: function () {
+            //return Polyfills.count;
+            return exports.Polyfills.list;
+        },
         log: function (part) {
-            Utils_1.Utils.console.debug("Polyfill: " + part);
-            exports.Polyfills.count += 1;
+            exports.Polyfills.list.push(part);
+            //Utils.console.debug("Polyfill: " + part);
+            //Polyfills.count += 1;
         }
     };
     // IE: window.console is only available when Dev Tools are open
@@ -742,7 +746,8 @@ define("Polyfills", ["require", "exports", "Utils"], function (require, exports,
             exports.Polyfills.log("window.AudioContext");
         }
         else {
-            Utils_1.Utils.console.warn("Polyfill: window.AudioContext: not ok!");
+            //Utils.console.warn("Polyfill: window.AudioContext: not ok!");
+            exports.Polyfills.log("window.AudioContext not ok!");
         }
     }
     if (!window.JSON) { // simple polyfill for JSON.parse only
@@ -788,7 +793,8 @@ define("Polyfills", ["require", "exports", "Utils"], function (require, exports,
         window.Uint8Array.BYTES_PER_ELEMENT = 1;
         // A more complex solution would be: https://github.com/inexorabletash/polyfill/blob/master/typedarray.js
     }
-    Utils_1.Utils.console.debug("Polyfill: end of Polyfills: count=" + exports.Polyfills.count);
+    //Utils.console.debug("Polyfill: end of Polyfills: count=" + Polyfills.count);
+    Utils_1.Utils.console.debug("Polyfills: (" + exports.Polyfills.getList().length + ") " + exports.Polyfills.getList().join("; "));
 });
 // end
 // Interfaces.ts - Interfaces
@@ -1874,6 +1880,14 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                     args.push(expression);
                 }
             }
+            if (this.previousToken.type === "," && keyword !== "delete" && keyword !== "list") { // for line numbe range in delete, list it is ok
+                if (!this.fnLastStatemetIsOnErrorGotoX()) {
+                    throw this.composeError(Error(), "Operand missing", this.previousToken.type, this.previousToken.pos);
+                }
+                else if (!this.quiet) {
+                    Utils_3.Utils.console.warn(this.composeError({}, "Operand missing", this.previousToken.type, this.previousToken.pos));
+                }
+            }
             return args;
         };
         BasicParser.prototype.fnGetArgsSepByCommaSemi = function () {
@@ -2591,7 +2605,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             "#": "stream"
         };
         // first letter: c=command, f=function, p=part of command, o=operator, x=misc
-        // following are arguments: n=number, s=string, l=line number (checked), v=variable (checked), r=letter or range, a=any, n0?=optional parameter with default null, #=stream, #0?=optional stream with default 0; suffix ?=optional (optionals must be last); last *=any number of arguments may follow
+        // following are arguments: n=number, s=string, l=line number (checked), v=variable (checked), q=line number range, r=letter or range, a=any, n0?=optional parameter with default null, #=stream, #0?=optional stream with default 0; suffix ?=optional (optionals must be last); last *=any number of arguments may follow
         BasicParser.keywords = {
             abs: "f n",
             after: "c",
@@ -2627,7 +2641,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             defreal: "c r r*",
             defstr: "c r r*",
             deg: "c",
-            "delete": "c q?",
+            "delete": "c q0?",
             derr: "f",
             di: "c",
             dim: "c v *",
@@ -5020,7 +5034,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 stepName = "v." + stepName;
             }
             var value = "/* for() */";
-            if (type !== "I") {
+            if (type !== "I" && type !== "R") {
                 value += " o.vmAssertNumberType(\"" + varType + "\");"; // do a type check: assert number type
             }
             value += " " + varName + " = " + startValue + ";";
@@ -10374,7 +10388,7 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
         };
         NodeAdapt.doAdapt = function () {
             var https, // nodeJs
-            fs, module;
+            fs, module, audioContext;
             var domElements = {}, myCreateElement = function (id) {
                 domElements[id] = {
                     className: "",
@@ -10390,6 +10404,17 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
                 };
                 return domElements[id];
             };
+            function fnEval(code) {
+                return eval(code); // eslint-disable-line no-eval
+            }
+            if (!audioContext) {
+                // fnEval('audioContext = require("web-audio-api").AudioContext;'); // has no createChannelMerger()
+                if (!audioContext) {
+                    audioContext = function () {
+                        throw new Error("AudioContext not supported");
+                    };
+                }
+            }
             Object.assign(window, {
                 console: console,
                 document: {
@@ -10403,7 +10428,8 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
                         return {};
                     }
                 },
-                AudioContext: function () { throw new Error("AudioContext not supported"); }
+                //AudioContext: () => { throw new Error("AudioContext not supported"); }
+                AudioContext: audioContext
             });
             // eslint-disable-next-line no-eval
             var nodeExports = eval("exports"), view = nodeExports.View, setSelectOptionsOrig = view.prototype.setSelectOptions;
@@ -10440,9 +10466,6 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
             //
             function isUrl(s) {
                 return s.startsWith("http"); // http or https
-            }
-            function fnEval(code) {
-                return eval(code); // eslint-disable-line no-eval
             }
             function nodeReadUrl(url, fnDataLoaded) {
                 if (!https) {
@@ -10819,7 +10842,7 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Sound = void 0;
     var Sound = /** @class */ (function () {
-        function Sound() {
+        function Sound(options) {
             this.isSoundOn = false;
             this.isActivatedByUserFlag = false;
             this.gainNodes = [];
@@ -10828,6 +10851,7 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
             this.fScheduleAheadTime = 0.1; // 100 ms
             this.volEnv = [];
             this.toneEnv = [];
+            this.AudioContextConstructor = options.AudioContextConstructor;
             for (var i = 0; i < 3; i += 1) {
                 this.queues[i] = {
                     soundData: [],
@@ -10892,7 +10916,9 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
                 0,
                 2,
                 1
-            ], context = new window.AudioContext(), // may produce exception if not available
+            ], 
+            //context = new window.AudioContext(), // may produce exception if not available
+            context = new this.AudioContextConstructor(), // may produce exception if not available
             mergerNode = context.createChannelMerger(6); // create mergerNode with 6 inputs; we are using the first 3 for left, right, center
             this.context = context;
             this.mergerNode = mergerNode;
@@ -11017,7 +11043,9 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
             oscillatorNode.frequency.value = (soundData.period >= 3) ? 62500 / soundData.period : 0;
             oscillatorNode.connect(this.gainNodes[oscillator]);
             if (fTime < ctx.currentTime) {
-                Utils_19.Utils.console.log("TTT: scheduleNote:", fTime, "<", ctx.currentTime);
+                if (Utils_19.Utils.debug) {
+                    Utils_19.Utils.console.debug("Test: sound: scheduleNote:", fTime, "<", ctx.currentTime);
+                }
             }
             var volume = soundData.volume, gain = this.gainNodes[oscillator].gain, fVolume = volume / maxVolume;
             gain.setValueAtTime(fVolume * fVolume, fTime); // start volume
@@ -11081,7 +11109,7 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
                     this.updateQueueStatus(i, queue);
                 }
             }
-            this.scheduler(); // schedule early to allow SQ busy check immiediately (can channels go out of sync by this?)
+            this.scheduler(); // schedule early to allow SQ busy check immediately (can channels go out of sync by this?)
         };
         Sound.prototype.setVolEnv = function (volEnv, volEnvData) {
             this.volEnv[volEnv] = volEnvData;
@@ -11191,7 +11219,9 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
                 var mergerNode = this.mergerNode, context = this.context;
                 mergerNode.connect(context.destination);
                 this.isSoundOn = true;
-                Utils_19.Utils.console.log("soundOn: Sound switched on");
+                if (Utils_19.Utils.debug) {
+                    Utils_19.Utils.console.debug("soundOn: Sound switched on");
+                }
             }
         };
         Sound.prototype.soundOff = function () {
@@ -11199,7 +11229,9 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
                 var mergerNode = this.mergerNode, context = this.context;
                 mergerNode.disconnect(context.destination);
                 this.isSoundOn = false;
-                Utils_19.Utils.console.log("soundOff: Sound switched off");
+                if (Utils_19.Utils.debug) {
+                    Utils_19.Utils.console.debug("soundOff: Sound switched off");
+                }
             }
         };
         return Sound;
@@ -15207,7 +15239,9 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.inputSet = false;
             this.variables = new Variables_1.Variables();
             this.inputStack = new InputStack_1.InputStack();
-            this.sound = new Sound_1.Sound();
+            this.sound = new Sound_1.Sound({
+                AudioContextConstructor: window.AudioContext
+            });
             /* eslint-disable no-invalid-this */
             this.handlers = {
                 timer: this.fnTimer,

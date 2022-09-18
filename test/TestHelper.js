@@ -64,14 +64,6 @@ define(["require", "exports", "../Utils"], function (require, exports, Utils_1) 
         TestHelper.generateTests = function (allTests, runTestsFor) {
             var _loop_1 = function (category) {
                 if (allTests.hasOwnProperty(category)) {
-                    /*
-                    (function (cat) { // eslint-disable-line no-loop-func
-                        QUnit.test(cat, function (assert: Assert) {
-                            runTestsFor(cat, allTests[cat], assert);
-                        });
-                    }(category));
-                    */
-                    //const category = category;
                     QUnit.test(category, function (assert) {
                         runTestsFor(category, allTests[category], assert);
                     });
@@ -96,6 +88,16 @@ define(["require", "exports", "../Utils"], function (require, exports, Utils_1) 
         TestHelper.createJsKeywordRegex = function () {
             return new RegExp("^(" + TestHelper.jsKeywords.join("|") + ")$");
         };
+        TestHelper.listKeys = function (_category, tests, _assert, results) {
+            for (var key in tests) {
+                if (tests.hasOwnProperty(key)) {
+                    var result = "";
+                    if (results) {
+                        results.push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+                    }
+                }
+            }
+        };
         TestHelper.generateAllResults = function (allTests, runTestsFor) {
             var reJsKeywords = TestHelper.createJsKeywordRegex();
             var result = "";
@@ -117,10 +119,14 @@ define(["require", "exports", "../Utils"], function (require, exports, Utils_1) 
             if (TestHelper.config.generateAll) {
                 TestHelper.generateAllResults(allTests, runTestsFor);
             }
+            if (TestHelper.config.generateKeys) {
+                TestHelper.generateAllResults(allTests, TestHelper.listKeys);
+            }
         };
         TestHelper.config = {
             debug: 0,
-            generateAll: false
+            generateAll: false,
+            generateKeys: false
         };
         // ECMA 3 JS Keywords which must be avoided in dot notation for properties when using IE8
         TestHelper.jsKeywords = [

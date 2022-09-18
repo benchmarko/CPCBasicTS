@@ -14,7 +14,9 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.inputSet = false;
             this.variables = new Variables_1.Variables();
             this.inputStack = new InputStack_1.InputStack();
-            this.sound = new Sound_1.Sound();
+            this.sound = new Sound_1.Sound({
+                AudioContextConstructor: window.AudioContext
+            });
             /* eslint-disable no-invalid-this */
             this.handlers = {
                 timer: this.fnTimer,

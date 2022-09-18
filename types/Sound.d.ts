@@ -28,7 +28,12 @@ export interface VolEnvData2 {
     period: number;
 }
 export declare type VolEnvData = VolEnvData1 | VolEnvData2;
+declare type AudioContextConstructorType = typeof window.AudioContext;
+interface SoundOptions {
+    AudioContextConstructor: AudioContextConstructorType;
+}
 export declare class Sound {
+    private AudioContextConstructor;
     private isSoundOn;
     private isActivatedByUserFlag;
     private context?;
@@ -40,7 +45,7 @@ export declare class Sound {
     private readonly volEnv;
     private readonly toneEnv;
     private readonly debugLogList?;
-    constructor();
+    constructor(options: SoundOptions);
     reset(): void;
     private stopOscillator;
     private debugLog;
@@ -63,4 +68,5 @@ export declare class Sound {
     soundOn(): void;
     soundOff(): void;
 }
+export {};
 //# sourceMappingURL=Sound.d.ts.map

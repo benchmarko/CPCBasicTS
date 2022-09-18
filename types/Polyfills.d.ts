@@ -1,5 +1,6 @@
 export declare var Polyfills: {
-    count: number;
+    list: string[];
+    getList: () => string[];
     log: (part: string) => void;
 };
 //# sourceMappingURL=Polyfills.d.ts.map

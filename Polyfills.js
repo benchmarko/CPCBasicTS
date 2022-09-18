@@ -5,11 +5,15 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Polyfills = void 0;
     exports.Polyfills = {
-        count: 0,
-        // empty
+        list: [],
+        getList: function () {
+            //return Polyfills.count;
+            return exports.Polyfills.list;
+        },
         log: function (part) {
-            Utils_1.Utils.console.debug("Polyfill: " + part);
-            exports.Polyfills.count += 1;
+            exports.Polyfills.list.push(part);
+            //Utils.console.debug("Polyfill: " + part);
+            //Polyfills.count += 1;
         }
     };
     // IE: window.console is only available when Dev Tools are open
@@ -480,7 +484,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             exports.Polyfills.log("window.AudioContext");
         }
         else {
-            Utils_1.Utils.console.warn("Polyfill: window.AudioContext: not ok!");
+            //Utils.console.warn("Polyfill: window.AudioContext: not ok!");
+            exports.Polyfills.log("window.AudioContext not ok!");
         }
     }
     if (!window.JSON) { // simple polyfill for JSON.parse only
@@ -526,7 +531,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         window.Uint8Array.BYTES_PER_ELEMENT = 1;
         // A more complex solution would be: https://github.com/inexorabletash/polyfill/blob/master/typedarray.js
     }
-    Utils_1.Utils.console.debug("Polyfill: end of Polyfills: count=" + exports.Polyfills.count);
+    //Utils.console.debug("Polyfill: end of Polyfills: count=" + Polyfills.count);
+    Utils_1.Utils.console.debug("Polyfills: (" + exports.Polyfills.getList().length + ") " + exports.Polyfills.getList().join("; "));
 });
 // end
 //# sourceMappingURL=Polyfills.js.map

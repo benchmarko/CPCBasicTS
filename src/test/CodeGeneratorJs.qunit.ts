@@ -34,6 +34,7 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			"a=-32767": " v.aR = -32767;",
 			"a=32768": " v.aR = 32768;",
 			"a=-32768": " v.aR = -32768;",
+			"a=65536": " v.aR = 65536;",
 			"a=1.2e+9": " v.aR = 1200000000;",
 			"a ": "BasicParser: Expected = in  at pos 2: (end)",
 			"1 a=": "BasicParser: Unexpected end of file in 1 at pos 4: ",
@@ -102,8 +103,10 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			"1 on error goto 2:a=asc(0)\n2 rem": " o.onErrorGoto(2); v.aR = o.asc(0);\n //",
 			'1 on error goto 0:?chr$("A")': "BasicParser: Expected number in 1 at pos 25-26: A",
 			'1 on error goto 2:?chr$("A")\n2 rem': ' o.onErrorGoto(2); o.print(0, o.chr$("A"), "\\r\\n");\n //',
-			'1 on error goto 0:a$=dec$(b$,"\\    \\")\n2 rem': "BasicParser: Expected number in 1 at pos 26-28: b$",
-			'1 on error goto 2:a$=dec$(b$,"\\    \\")\n2 rem': ' o.onErrorGoto(2); v.a$ = o.dec$(v.b$, "\\\\    \\\\");\n //'
+			'1 on error goto 0:a$=dec$(b$,"\\    \\")': "BasicParser: Expected number in 1 at pos 26-28: b$",
+			'1 on error goto 2:a$=dec$(b$,"\\    \\")\n2 rem': ' o.onErrorGoto(2); v.a$ = o.dec$(v.b$, "\\\\    \\\\");\n //',
+			"1 on error goto 0:mask ,": "BasicParser: Operand missing in 1 at pos 23-24: ,",
+			"1 on error goto 2:mask ,\n2 rem": " o.onErrorGoto(2); o.mask(undefined);\n //"
 		},
 		"abs, after gosub, and, asc, atn, auto": {
 			"a=abs(2.3)": " v.aR = o.abs(2.3);",
@@ -112,8 +115,8 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			"1 after gosub 1": "BasicParser: Unexpected token in 1 at pos 8-13: gosub",
 			"1 after 1,2,3 gosub 1": "BasicParser: Expected end of arguments in 1 at pos 11-12: ,",
 			"a=b and c": " v.aR = o.vmRound(v.bR) & o.vmRound(v.cR);",
-			"a!=asc(b$) and c%": " v.aR = o.asc(v.b$) & v.cI;",
 			'a=asc("A")': ' v.aR = o.asc("A");',
+			"a!=asc(b$) and c%": " v.aR = o.asc(v.b$) & v.cI;",
 			"a=atn(2.3)": " v.aR = o.atn(2.3);",
 			"auto ": " o.auto();",
 			"auto 100": " o.auto(100);"
@@ -216,13 +219,15 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			"deg ": " o.deg();",
 			"delete": " o.delete(1, 65535); break;",
 			"delete -": " o.delete(undefined, 65535); break;",
+			"delete ,": " o.delete(undefined); break;",
+			"delete -,": " o.delete(undefined, 65535); break;",
 			"delete 10": " o.delete(10); break;",
 			"delete 1-": " o.delete(1, 65535); break;",
 			"delete -1": " o.delete(undefined, 1); break;",
 			"delete 1-2": " o.delete(1, 2); break;",
 			"1 delete 2-1": "CodeGeneratorJs: Decreasing line range in 1 at pos 10-11: -",
 			"1 delete 1+2": "BasicParser: Expected : in 1 at pos 10-11: +",
-			"1 delete a": "BasicParser: Undefined range in 1 at pos 9-10: a",
+			"1 delete a": "BasicParser: Expected : in 1 at pos 9-10: a",
 			"a=derr": " v.aR = o.derr();",
 			"di ": " o.di();",
 			"dim a(1)": ' /* v.aAR[1] = */ o.dim("aAR", 1);',
@@ -283,13 +288,13 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			"x=fn clk(a)": " v.xR = v.fnclkR(v.aR);",
 			"x=fn clk(a,b)": " v.xR = v.fnclkR(v.aR, v.bR);",
 			"x$=fn clk$(a$,b$)": " v.x$ = v.fnclk$(v.a$, v.b$);",
-			"for a=1 to 10": ' /* for() */ o.vmAssertNumberType("aR"); v.aR = 1; o.goto("f0b"); break;\ncase "f0": v.aR += 1;\ncase "f0b": if (v.aR > 10) { o.goto("f0e"); break; }',
+			"for a=1 to 10": ' /* for() */ v.aR = 1; o.goto("f0b"); break;\ncase "f0": v.aR += 1;\ncase "f0b": if (v.aR > 10) { o.goto("f0e"); break; }',
 			"for a%=1.5 to 9.5": ' /* for() */ v.aI = o.vmAssign("aI", 1.5); v.aIEnd = o.vmAssign("aI", 9.5); o.goto("f0b"); break;\ncase "f0": v.aI += 1;\ncase "f0b": if (v.aI > v.aIEnd) { o.goto("f0e"); break; }',
-			"for a!=1.5 to 9.5": ' /* for() */ o.vmAssertNumberType("aR"); v.aR = o.vmAssign("aR", 1.5); v.aREnd = o.vmAssign("aR", 9.5); o.goto("f0b"); break;\ncase "f0": v.aR += 1;\ncase "f0b": if (v.aR > v.aREnd) { o.goto("f0e"); break; }',
-			"for a=1 to 10 step 3": ' /* for() */ o.vmAssertNumberType("aR"); v.aR = 1; o.goto("f0b"); break;\ncase "f0": v.aR += 3;\ncase "f0b": if (v.aR > 10) { o.goto("f0e"); break; }',
-			"for a=5+b to -4 step -2.3": ' /* for() */ o.vmAssertNumberType("aR"); v.aR = o.vmAssign("aR", 5 + v.bR); v.aRStep = o.vmAssign("aR", -2.3); o.goto("f0b"); break;\ncase "f0": v.aR += v.aRStep;\ncase "f0b": if (v.aRStep > 0 && v.aR > -4 || v.aRStep < 0 && v.aR < -4) { o.goto("f0e"); break; }',
-			"for a=b to c step d": ' /* for() */ o.vmAssertNumberType("aR"); v.aR = o.vmAssign("aR", v.bR); v.aREnd = o.vmAssign("aR", v.cR); v.aRStep = o.vmAssign("aR", v.dR); o.goto("f0b"); break;\ncase "f0": v.aR += v.aRStep;\ncase "f0b": if (v.aRStep > 0 && v.aR > v.aREnd || v.aRStep < 0 && v.aR < v.aREnd) { o.goto("f0e"); break; }',
-			"for a=b% to c%": ' /* for() */ o.vmAssertNumberType("aR"); v.aR = v.bI; v.aREnd = v.cI; o.goto("f0b"); break;\ncase "f0": v.aR += 1;\ncase "f0b": if (v.aR > v.aREnd) { o.goto("f0e"); break; }',
+			"for a!=1.5 to 9.5": ' /* for() */ v.aR = o.vmAssign("aR", 1.5); v.aREnd = o.vmAssign("aR", 9.5); o.goto("f0b"); break;\ncase "f0": v.aR += 1;\ncase "f0b": if (v.aR > v.aREnd) { o.goto("f0e"); break; }',
+			"for a=1 to 10 step 3": ' /* for() */ v.aR = 1; o.goto("f0b"); break;\ncase "f0": v.aR += 3;\ncase "f0b": if (v.aR > 10) { o.goto("f0e"); break; }',
+			"for a=5+b to -4 step -2.3": ' /* for() */ v.aR = o.vmAssign("aR", 5 + v.bR); v.aRStep = o.vmAssign("aR", -2.3); o.goto("f0b"); break;\ncase "f0": v.aR += v.aRStep;\ncase "f0b": if (v.aRStep > 0 && v.aR > -4 || v.aRStep < 0 && v.aR < -4) { o.goto("f0e"); break; }',
+			"for a=b to c step d": ' /* for() */ v.aR = o.vmAssign("aR", v.bR); v.aREnd = o.vmAssign("aR", v.cR); v.aRStep = o.vmAssign("aR", v.dR); o.goto("f0b"); break;\ncase "f0": v.aR += v.aRStep;\ncase "f0b": if (v.aRStep > 0 && v.aR > v.aREnd || v.aRStep < 0 && v.aR < v.aREnd) { o.goto("f0e"); break; }',
+			"for a=b% to c%": ' /* for() */ v.aR = v.bI; v.aREnd = v.cI; o.goto("f0b"); break;\ncase "f0": v.aR += 1;\ncase "f0b": if (v.aR > v.aREnd) { o.goto("f0e"); break; }',
 			"defint a:for abc=1 to 10 step 3:next abc": ' o.defint("a"); /* for() */ o.vmAssertNumberType("a"); v["abc" + t.a] = 1; o.goto("f0b"); break;\ncase "f0": v["abc" + t.a] += 3;\ncase "f0b": if (v["abc" + t.a] > 10) { o.goto("f0e"); break; } /* next("v["abc" + t.a]") */ o.goto("f0"); break;\ncase "f0e":',
 			"defstr a:for abc=1 to 10 step 3:next abc": ' o.defstr("a"); /* for() */ o.vmAssertNumberType("a"); v["abc" + t.a] = 1; o.goto("f0b"); break;\ncase "f0": v["abc" + t.a] += 3;\ncase "f0b": if (v["abc" + t.a] > 10) { o.goto("f0e"); break; } /* next("v["abc" + t.a]") */ o.goto("f0"); break;\ncase "f0e":',
 			"for a=b to c step s:defint a-b:a=0:defreal a:next": ' /* for() */ o.vmAssertNumberType("a"); v["a" + t.a] = o.vmAssign("a", v["b" + t.b]); v.aEnd = o.vmAssign("a", v.cR); v.aStep = o.vmAssign("a", v.sR); o.goto("f0b"); break;\ncase "f0": v["a" + t.a] += v.aStep;\ncase "f0b": if (v.aStep > 0 && v["a" + t.a] > v.aEnd || v.aStep < 0 && v["a" + t.a] < v.aEnd) { o.goto("f0e"); break; } o.defint("a", "b"); v["a" + t.a] = o.vmAssign("a", 0); o.defreal("a"); /* next("") */ o.goto("f0"); break;\ncase "f0e":',
@@ -375,6 +380,8 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			'line input#stream,;"string";a$': ' o.goto("s0"); break;\ncase "s0":o.lineInput(v.streamR, ";", "string? ", "a$"); o.goto("s1"); break;\ncase "s1":; v.a$ = o.vmGetNextInput();',
 			"list ": " o.list(0); break;",
 			"list -": " o.list(0, undefined, 65535); break;",
+			"list ,": " o.list(0, undefined); break;",
+			"list -,": " o.list(0, undefined, 65535); break;",
 			"list 10": " o.list(0, 10); break;",
 			"list 1-": " o.list(0, 1, 65535); break;",
 			"list -1": " o.list(0, undefined, 1); break;",
@@ -385,6 +392,7 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			"list 1-,#3": " o.list(3, 1, 65535); break;",
 			"list -1,#3": " o.list(3, undefined, 1); break;",
 			"list 1-2,#3": " o.list(3, 1, 2); break;",
+			"list a": "BasicParser: Expected end of arguments in  at pos 0-4: list",
 			'load "file"': ' o.load("file"); o.goto("s0"); break;\ncase "s0":',
 			'load "file.scr",&c000': ' o.load("file.scr", -0x4000); o.goto("s0"); break;\ncase "s0":',
 			"load f$,adr": ' o.load(v.f$, v.adrR); o.goto("s0"); break;\ncase "s0":',
@@ -439,9 +447,9 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 		},
 		"new, next, not": {
 			"new ": " o.new();",
-			"for a=1 to 2: next ": ' /* for() */ o.vmAssertNumberType("aR"); v.aR = 1; o.goto("f0b"); break;\ncase "f0": v.aR += 1;\ncase "f0b": if (v.aR > 2) { o.goto("f0e"); break; } /* next("") */ o.goto("f0"); break;\ncase "f0e":',
-			"for i=1 to 2: next i": ' /* for() */ o.vmAssertNumberType("iR"); v.iR = 1; o.goto("f0b"); break;\ncase "f0": v.iR += 1;\ncase "f0b": if (v.iR > 2) { o.goto("f0e"); break; } /* next("v.iR") */ o.goto("f0"); break;\ncase "f0e":',
-			"for j=1 to 2:for i=3 to 4: next i,j": ' /* for() */ o.vmAssertNumberType("jR"); v.jR = 1; o.goto("f0b"); break;\ncase "f0": v.jR += 1;\ncase "f0b": if (v.jR > 2) { o.goto("f0e"); break; } /* for() */ o.vmAssertNumberType("iR"); v.iR = 3; o.goto("f1b"); break;\ncase "f1": v.iR += 1;\ncase "f1b": if (v.iR > 4) { o.goto("f1e"); break; } /* next("v.iR") */ o.goto("f1"); break;\ncase "f1e":; /* next("v.jR") */ o.goto("f0"); break;\ncase "f0e":',
+			"for a=1 to 2: next ": ' /* for() */ v.aR = 1; o.goto("f0b"); break;\ncase "f0": v.aR += 1;\ncase "f0b": if (v.aR > 2) { o.goto("f0e"); break; } /* next("") */ o.goto("f0"); break;\ncase "f0e":',
+			"for i=1 to 2: next i": ' /* for() */ v.iR = 1; o.goto("f0b"); break;\ncase "f0": v.iR += 1;\ncase "f0b": if (v.iR > 2) { o.goto("f0e"); break; } /* next("v.iR") */ o.goto("f0"); break;\ncase "f0e":',
+			"for j=1 to 2:for i=3 to 4: next i,j": ' /* for() */ v.jR = 1; o.goto("f0b"); break;\ncase "f0": v.jR += 1;\ncase "f0b": if (v.jR > 2) { o.goto("f0e"); break; } /* for() */ v.iR = 3; o.goto("f1b"); break;\ncase "f1": v.iR += 1;\ncase "f1b": if (v.iR > 4) { o.goto("f1e"); break; } /* next("v.iR") */ o.goto("f1"); break;\ncase "f1e":; /* next("v.jR") */ o.goto("f0"); break;\ncase "f0e":',
 			"a=not 2": " v.aR = ~(2);",
 			"a=not -b": " v.aR = ~(o.vmRound(-(v.bR)));"
 		},
@@ -668,7 +676,7 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 		keepSpaces: {
 			' 1  chain   merge  "f5"': ' o.chainMerge("f5"); o.goto("1s0"); break;\ncase "1s0":',
 			' 1  def   fn  a$ = "abc"': ' v.fna$ = function () { return "abc"; };',
-			" 1  for   i   =   1   to  10   step  2": ' /* for() */ o.vmAssertNumberType("iR"); v.iR = 1; o.goto("1f0b"); break;\ncase "1f0": v.iR += 2;\ncase "1f0b": if (v.iR > 10) { o.goto("1f0e"); break; }',
+			" 1  for   i   =   1   to  10   step  2": ' /* for() */ v.iR = 1; o.goto("1f0b"); break;\ncase "1f0": v.iR += 2;\ncase "1f0b": if (v.iR > 10) { o.goto("1f0e"); break; }',
 			" 1  if    a  =  1     then  1     else    goto  1": " if (v.aR === 1) { o.goto(1); break; } else { o.goto(1); break; }",
 			" 1  line   input  a$": ' o.goto("1s0"); break;\ncase "1s0":o.lineInput(0, undefined, "? ", "a$"); o.goto("1s1"); break;\ncase "1s1":; v.a$ = o.vmGetNextInput();',
 			" 1  on  break   cont": " o.onBreakCont();",
@@ -685,6 +693,9 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			"::a=3-2-1: :": " v.aR = (3 - 2) - 1;",
 			" a =  ( b% >= c%  ) *     ( d <=e )  ": " v.aR = (v.bI >= v.cI ? -1 : 0) * (v.dR <= v.eR ? -1 : 0);",
 			"a = (((3+2))*((3-7)))": " v.aR = (3 + 2) * (3 - 7);"
+		},
+		PRG: {
+			'100 \'Das Raetsel\n110 \'21.5.1988 Kopf um Kopf\n120 \'ab*c=de  de+fg=hi   [dabei sind a-i verschiedene Ziffern 1-9!!]\n130 MODE 1:PRINT"Please wait ...  ( ca. 1 min 34 sec )"\n140 CLEAR:DEFINT a-y\n150 \'\n155 z=TIME\n160 FOR a=1 TO 9:FOR b=1 TO 9:FOR c=1 TO 9:FOR f=1 TO 9:FOR g=1 TO 9\n170 de=(a*10+b)*c:IF de>99 THEN 320\n180 hi=de+(f*10+g):IF hi>99 THEN 320\n190 d=INT(de/10):e=de MOD 10:h=INT(hi/10):i=hi MOD 10\n200 IF a=b OR a=c OR a=d OR a=e OR a=f OR a=g OR a=h OR a=i THEN 320\n210 IF b=c OR b=d OR b=e OR b=f OR b=g OR b=h OR b=i THEN 320\n220 IF c=d OR c=e OR c=f OR c=g OR c=h OR c=i THEN 320\n230 IF d=e OR d=f OR d=g OR d=h OR d=i THEN 320\n240 IF e=f OR e=g OR e=h OR e=i THEN 320\n250 IF f=g OR f=h OR f=i THEN 320\n260 IF g=h OR g=i THEN 320\n270 IF h=i THEN 320\n280 IF i=0 THEN 320\n285 z=TIME-z\n290 CLS:PRINT"Die Loesung:":PRINT\n300 PRINT a*10+b"*"c"="de" / "de"+"f*10+g"="hi\n310 PRINT z,z/300:STOP\n320 NEXT g,f,c,b,a\n': ' // Das Raetsel\n // 21.5.1988 Kopf um Kopf\n // ab*c=de  de+fg=hi   [dabei sind a-i verschiedene Ziffern 1-9!!]\n o.mode(1); o.print(0, "Please wait ...  ( ca. 1 min 34 sec )", "\\r\\n");\n o.clear(); o.goto("140s0"); break;\ncase "140s0": o.defint("a", "y");\n //\n v.zR = o.time();\n /* for() */ o.vmAssertNumberType("a"); v["a" + t.a] = 1; o.goto("160f0b"); break;\ncase "160f0": v["a" + t.a] += 1;\ncase "160f0b": if (v["a" + t.a] > 9) { o.goto("160f0e"); break; } /* for() */ o.vmAssertNumberType("b"); v["b" + t.b] = 1; o.goto("160f1b"); break;\ncase "160f1": v["b" + t.b] += 1;\ncase "160f1b": if (v["b" + t.b] > 9) { o.goto("160f1e"); break; } /* for() */ o.vmAssertNumberType("c"); v["c" + t.c] = 1; o.goto("160f2b"); break;\ncase "160f2": v["c" + t.c] += 1;\ncase "160f2b": if (v["c" + t.c] > 9) { o.goto("160f2e"); break; } /* for() */ o.vmAssertNumberType("f"); v["f" + t.f] = 1; o.goto("160f3b"); break;\ncase "160f3": v["f" + t.f] += 1;\ncase "160f3b": if (v["f" + t.f] > 9) { o.goto("160f3e"); break; } /* for() */ o.vmAssertNumberType("g"); v["g" + t.g] = 1; o.goto("160f4b"); break;\ncase "160f4": v["g" + t.g] += 1;\ncase "160f4b": if (v["g" + t.g] > 9) { o.goto("160f4e"); break; }\n v["de" + t.d] = o.vmAssign("d", ((v["a" + t.a] * 10) + v["b" + t.b]) * v["c" + t.c]); if (v["de" + t.d] > 99) { o.goto(320); break; }\n v["hi" + t.h] = o.vmAssign("h", v["de" + t.d] + ((v["f" + t.f] * 10) + v["g" + t.g])); if (v["hi" + t.h] > 99) { o.goto(320); break; }\n v["d" + t.d] = o.vmAssign("d", o.int(v["de" + t.d] / 10)); v["e" + t.e] = o.vmAssign("e", o.vmRound(v["de" + t.d]) % 10); v["h" + t.h] = o.vmAssign("h", o.int(v["hi" + t.h] / 10)); v["i" + t.i] = o.vmAssign("i", o.vmRound(v["hi" + t.h]) % 10);\n if ((v["a" + t.a] === v["b" + t.b] ? -1 : 0) | ((v["a" + t.a] === v["c" + t.c] ? -1 : 0) | ((v["a" + t.a] === v["d" + t.d] ? -1 : 0) | ((v["a" + t.a] === v["e" + t.e] ? -1 : 0) | ((v["a" + t.a] === v["f" + t.f] ? -1 : 0) | ((v["a" + t.a] === v["g" + t.g] ? -1 : 0) | ((v["a" + t.a] === v["h" + t.h] ? -1 : 0) | (v["a" + t.a] === v["i" + t.i] ? -1 : 0)))))))) { o.goto(320); break; }\n if ((v["b" + t.b] === v["c" + t.c] ? -1 : 0) | ((v["b" + t.b] === v["d" + t.d] ? -1 : 0) | ((v["b" + t.b] === v["e" + t.e] ? -1 : 0) | ((v["b" + t.b] === v["f" + t.f] ? -1 : 0) | ((v["b" + t.b] === v["g" + t.g] ? -1 : 0) | ((v["b" + t.b] === v["h" + t.h] ? -1 : 0) | (v["b" + t.b] === v["i" + t.i] ? -1 : 0))))))) { o.goto(320); break; }\n if ((v["c" + t.c] === v["d" + t.d] ? -1 : 0) | ((v["c" + t.c] === v["e" + t.e] ? -1 : 0) | ((v["c" + t.c] === v["f" + t.f] ? -1 : 0) | ((v["c" + t.c] === v["g" + t.g] ? -1 : 0) | ((v["c" + t.c] === v["h" + t.h] ? -1 : 0) | (v["c" + t.c] === v["i" + t.i] ? -1 : 0)))))) { o.goto(320); break; }\n if ((v["d" + t.d] === v["e" + t.e] ? -1 : 0) | ((v["d" + t.d] === v["f" + t.f] ? -1 : 0) | ((v["d" + t.d] === v["g" + t.g] ? -1 : 0) | ((v["d" + t.d] === v["h" + t.h] ? -1 : 0) | (v["d" + t.d] === v["i" + t.i] ? -1 : 0))))) { o.goto(320); break; }\n if ((v["e" + t.e] === v["f" + t.f] ? -1 : 0) | ((v["e" + t.e] === v["g" + t.g] ? -1 : 0) | ((v["e" + t.e] === v["h" + t.h] ? -1 : 0) | (v["e" + t.e] === v["i" + t.i] ? -1 : 0)))) { o.goto(320); break; }\n if ((v["f" + t.f] === v["g" + t.g] ? -1 : 0) | ((v["f" + t.f] === v["h" + t.h] ? -1 : 0) | (v["f" + t.f] === v["i" + t.i] ? -1 : 0))) { o.goto(320); break; }\n if ((v["g" + t.g] === v["h" + t.h] ? -1 : 0) | (v["g" + t.g] === v["i" + t.i] ? -1 : 0)) { o.goto(320); break; }\n if (v["h" + t.h] === v["i" + t.i]) { o.goto(320); break; }\n if (v["i" + t.i] === 0) { o.goto(320); break; }\n v.zR = o.time() - v.zR;\n o.cls(0); o.print(0, "Die Loesung:", "\\r\\n"); o.print(0, "\\r\\n");\n o.print(0, (v["a" + t.a] * 10) + v["b" + t.b], "*", v["c" + t.c], "=", v["de" + t.d], " / ", v["de" + t.d], "+", (v["f" + t.f] * 10) + v["g" + t.g], "=", v["hi" + t.h], "\\r\\n");\n o.print(0, v.zR, {type: "commaTab", args: []}, v.zR / 300, "\\r\\n"); o.stop("310s0"); break;\ncase "310s0":\n /* next("v["g" + t.g]") */ o.goto("160f4"); break;\ncase "160f4e":; /* next("v["f" + t.f]") */ o.goto("160f3"); break;\ncase "160f3e":; /* next("v["c" + t.c]") */ o.goto("160f2"); break;\ncase "160f2e":; /* next("v["b" + t.b]") */ o.goto("160f1"); break;\ncase "160f1e":; /* next("v["a" + t.a]") */ o.goto("160f0"); break;\ncase "160f0e":'
 		}
 	};
 

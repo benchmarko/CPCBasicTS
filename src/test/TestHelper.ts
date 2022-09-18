@@ -24,7 +24,8 @@ type ConfigType = Record<string, ConfigEntryType>;
 export class TestHelper { // eslint-disable-line vars-on-top
 	static config: ConfigType = {
 		debug: 0,
-		generateAll: false
+		generateAll: false,
+		generateKeys: false
 	};
 
 	static init(): void {
@@ -97,16 +98,7 @@ export class TestHelper { // eslint-disable-line vars-on-top
 	private static generateTests(allTests: AllTestsType, runTestsFor: runTestsForType) {
 		for (const category in allTests) {
 			if (allTests.hasOwnProperty(category)) {
-				/*
-				(function (cat) { // eslint-disable-line no-loop-func
-					QUnit.test(cat, function (assert: Assert) {
-						runTestsFor(cat, allTests[cat], assert);
-					});
-				}(category));
-				*/
-				//const category = category;
-
-				QUnit.test(category, function (assert) {
+				QUnit.test(category, function (assert) { // category must be a local variable
 					runTestsFor(category, allTests[category], assert);
 				});
 			}
@@ -196,6 +188,18 @@ export class TestHelper { // eslint-disable-line vars-on-top
 		return new RegExp("^(" + TestHelper.jsKeywords.join("|") + ")$");
 	}
 
+	private static listKeys(_category: string, tests: TestsType, _assert?: Assert, results?: string[]) {
+		for (const key in tests) {
+			if (tests.hasOwnProperty(key)) {
+				const result = "";
+
+				if (results) {
+					results.push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+				}
+			}
+		}
+	}
+
 	private static generateAllResults(allTests: AllTestsType, runTestsFor: runTestsForType) {
 		const reJsKeywords = TestHelper.createJsKeywordRegex();
 		let result = "";
@@ -223,6 +227,9 @@ export class TestHelper { // eslint-disable-line vars-on-top
 
 		if (TestHelper.config.generateAll) {
 			TestHelper.generateAllResults(allTests, runTestsFor);
+		}
+		if (TestHelper.config.generateKeys) {
+			TestHelper.generateAllResults(allTests, TestHelper.listKeys);
 		}
 	}
 }

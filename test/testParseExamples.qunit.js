@@ -509,7 +509,7 @@ define(["require", "exports", "../Utils", "../Polyfills", "../BasicLexer", "../B
         }
     }
     function testStart() {
-        Utils_1.Utils.console.log("testParseExamples: nodeJs:", nodeJsAvail, " Polyfills.count=", Polyfills_1.Polyfills.count);
+        Utils_1.Utils.console.log("testParseExamples: nodeJs:", nodeJsAvail, " Polyfills.getList().length:", Polyfills_1.Polyfills.getList().length);
         cpcBasic.initVmMock1();
         cpcBasic.totalExamples = 0;
         cpcBasic.ignoredExamples = 0;

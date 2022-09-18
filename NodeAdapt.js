@@ -25,7 +25,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         NodeAdapt.doAdapt = function () {
             var https, // nodeJs
-            fs, module;
+            fs, module, audioContext;
             var domElements = {}, myCreateElement = function (id) {
                 domElements[id] = {
                     className: "",
@@ -41,6 +41,17 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 };
                 return domElements[id];
             };
+            function fnEval(code) {
+                return eval(code); // eslint-disable-line no-eval
+            }
+            if (!audioContext) {
+                // fnEval('audioContext = require("web-audio-api").AudioContext;'); // has no createChannelMerger()
+                if (!audioContext) {
+                    audioContext = function () {
+                        throw new Error("AudioContext not supported");
+                    };
+                }
+            }
             Object.assign(window, {
                 console: console,
                 document: {
@@ -54,7 +65,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                         return {};
                     }
                 },
-                AudioContext: function () { throw new Error("AudioContext not supported"); }
+                //AudioContext: () => { throw new Error("AudioContext not supported"); }
+                AudioContext: audioContext
             });
             // eslint-disable-next-line no-eval
             var nodeExports = eval("exports"), view = nodeExports.View, setSelectOptionsOrig = view.prototype.setSelectOptions;
@@ -91,9 +103,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             //
             function isUrl(s) {
                 return s.startsWith("http"); // http or https
-            }
-            function fnEval(code) {
-                return eval(code); // eslint-disable-line no-eval
             }
             function nodeReadUrl(url, fnDataLoaded) {
                 if (!https) {

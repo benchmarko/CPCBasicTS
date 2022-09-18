@@ -7,7 +7,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Sound = void 0;
     var Sound = /** @class */ (function () {
-        function Sound() {
+        function Sound(options) {
             this.isSoundOn = false;
             this.isActivatedByUserFlag = false;
             this.gainNodes = [];
@@ -16,6 +16,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.fScheduleAheadTime = 0.1; // 100 ms
             this.volEnv = [];
             this.toneEnv = [];
+            this.AudioContextConstructor = options.AudioContextConstructor;
             for (var i = 0; i < 3; i += 1) {
                 this.queues[i] = {
                     soundData: [],
@@ -80,7 +81,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 0,
                 2,
                 1
-            ], context = new window.AudioContext(), // may produce exception if not available
+            ], 
+            //context = new window.AudioContext(), // may produce exception if not available
+            context = new this.AudioContextConstructor(), // may produce exception if not available
             mergerNode = context.createChannelMerger(6); // create mergerNode with 6 inputs; we are using the first 3 for left, right, center
             this.context = context;
             this.mergerNode = mergerNode;
@@ -205,7 +208,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             oscillatorNode.frequency.value = (soundData.period >= 3) ? 62500 / soundData.period : 0;
             oscillatorNode.connect(this.gainNodes[oscillator]);
             if (fTime < ctx.currentTime) {
-                Utils_1.Utils.console.log("TTT: scheduleNote:", fTime, "<", ctx.currentTime);
+                if (Utils_1.Utils.debug) {
+                    Utils_1.Utils.console.debug("Test: sound: scheduleNote:", fTime, "<", ctx.currentTime);
+                }
             }
             var volume = soundData.volume, gain = this.gainNodes[oscillator].gain, fVolume = volume / maxVolume;
             gain.setValueAtTime(fVolume * fVolume, fTime); // start volume
@@ -269,7 +274,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     this.updateQueueStatus(i, queue);
                 }
             }
-            this.scheduler(); // schedule early to allow SQ busy check immiediately (can channels go out of sync by this?)
+            this.scheduler(); // schedule early to allow SQ busy check immediately (can channels go out of sync by this?)
         };
         Sound.prototype.setVolEnv = function (volEnv, volEnvData) {
             this.volEnv[volEnv] = volEnvData;
@@ -379,7 +384,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 var mergerNode = this.mergerNode, context = this.context;
                 mergerNode.connect(context.destination);
                 this.isSoundOn = true;
-                Utils_1.Utils.console.log("soundOn: Sound switched on");
+                if (Utils_1.Utils.debug) {
+                    Utils_1.Utils.console.debug("soundOn: Sound switched on");
+                }
             }
         };
         Sound.prototype.soundOff = function () {
@@ -387,7 +394,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 var mergerNode = this.mergerNode, context = this.context;
                 mergerNode.disconnect(context.destination);
                 this.isSoundOn = false;
-                Utils_1.Utils.console.log("soundOff: Sound switched off");
+                if (Utils_1.Utils.debug) {
+                    Utils_1.Utils.console.debug("soundOff: Sound switched off");
+                }
             }
         };
         return Sound;

@@ -429,6 +429,14 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     args.push(expression);
                 }
             }
+            if (this.previousToken.type === "," && keyword !== "delete" && keyword !== "list") { // for line numbe range in delete, list it is ok
+                if (!this.fnLastStatemetIsOnErrorGotoX()) {
+                    throw this.composeError(Error(), "Operand missing", this.previousToken.type, this.previousToken.pos);
+                }
+                else if (!this.quiet) {
+                    Utils_1.Utils.console.warn(this.composeError({}, "Operand missing", this.previousToken.type, this.previousToken.pos));
+                }
+            }
             return args;
         };
         BasicParser.prototype.fnGetArgsSepByCommaSemi = function () {
@@ -1146,7 +1154,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             "#": "stream"
         };
         // first letter: c=command, f=function, p=part of command, o=operator, x=misc
-        // following are arguments: n=number, s=string, l=line number (checked), v=variable (checked), r=letter or range, a=any, n0?=optional parameter with default null, #=stream, #0?=optional stream with default 0; suffix ?=optional (optionals must be last); last *=any number of arguments may follow
+        // following are arguments: n=number, s=string, l=line number (checked), v=variable (checked), q=line number range, r=letter or range, a=any, n0?=optional parameter with default null, #=stream, #0?=optional stream with default 0; suffix ?=optional (optionals must be last); last *=any number of arguments may follow
         BasicParser.keywords = {
             abs: "f n",
             after: "c",
@@ -1182,7 +1190,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             defreal: "c r r*",
             defstr: "c r r*",
             deg: "c",
-            "delete": "c q?",
+            "delete": "c q0?",
             derr: "f",
             di: "c",
             dim: "c v *",

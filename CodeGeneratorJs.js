@@ -834,7 +834,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 stepName = "v." + stepName;
             }
             var value = "/* for() */";
-            if (type !== "I") {
+            if (type !== "I" && type !== "R") {
                 value += " o.vmAssertNumberType(\"" + varType + "\");"; // do a type check: assert number type
             }
             value += " " + varName + " = " + startValue + ";";
