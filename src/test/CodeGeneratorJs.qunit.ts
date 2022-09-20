@@ -19,13 +19,15 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			"a=&A7": " v.aR = 0xA7;",
 			"a=-&A7": " v.aR = -(0xA7);",
 			"a=&7FFF": " v.aR = 0x7FFF;",
+			"a=&h0": " v.aR = 0x0;",
 			"a=&H7FFF": " v.aR = 0x7FFF;",
 			"a=&8000": " v.aR = -0x8000;",
-			"a=&FFFF": " v.aR = -0x1;",
+			"a=&FFff": " v.aR = -0x1;",
 			"a=&E123": " v.aR = -0x1edd;",
 			"a=&HE123": " v.aR = -0x1edd;",
+			"a=&X0": " v.aR = 0b0;",
 			"a=&X10100111": " v.aR = 0b10100111;",
-			"a=-&X111111111111111": " v.aR = -0b111111111111111;",
+			"a=-&x111111111111111": " v.aR = -0b111111111111111;",
 			"a=255": " v.aR = 255;",
 			"a=-255": " v.aR = -255;",
 			"a=256": " v.aR = 256;",
@@ -35,8 +37,12 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			"a=32768": " v.aR = 32768;",
 			"a=-32768": " v.aR = -32768;",
 			"a=65536": " v.aR = 65536;",
-			"a=1.2e+9": " v.aR = 1200000000;",
-			"a ": "BasicParser: Expected = in  at pos 2: (end)",
+			"a=1.2e+9": " v.aR = 1.2e+9;",
+			"a=&": "BasicLexer: Expected hex number at pos 2-3: &",
+			"a=&h": "BasicLexer: Expected hex number at pos 2-4: &h",
+			"a=&x": "BasicLexer: Expected binary number at pos 2-4: &x",
+			"a=&x2": "BasicLexer: Expected binary number at pos 2-4: &x",
+			"a ": "BasicParser: Expected = at pos 2: (end)",
 			"1 a=": "BasicParser: Unexpected end of file in 1 at pos 4: ",
 			"1 5=7": "BasicParser: Bad expression statement in 1 at pos 2-3: 5",
 			"1 let 5=7": "BasicParser: Expected variable in 1 at pos 6-7: 5"
@@ -106,7 +112,9 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			'1 on error goto 0:a$=dec$(b$,"\\    \\")': "BasicParser: Expected number in 1 at pos 26-28: b$",
 			'1 on error goto 2:a$=dec$(b$,"\\    \\")\n2 rem': ' o.onErrorGoto(2); v.a$ = o.dec$(v.b$, "\\\\    \\\\");\n //',
 			"1 on error goto 0:mask ,": "BasicParser: Operand missing in 1 at pos 23-24: ,",
-			"1 on error goto 2:mask ,\n2 rem": " o.onErrorGoto(2); o.mask(undefined);\n //"
+			"1 on error goto 2:mask ,\n2 rem": " o.onErrorGoto(2); o.mask(undefined);\n //",
+			"|": ' o.rsx.rsxExec(""); o.goto("s0"); break;\ncase "s0":',
+			"!": "BasicLexer: Unrecognized token at pos 0-1: !"
 		},
 		"abs, after gosub, and, asc, atn, auto": {
 			"a=abs(2.3)": " v.aR = o.abs(2.3);",
@@ -394,7 +402,7 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			"list 1-,#3": " o.list(3, 1, 65535); break;",
 			"list -1,#3": " o.list(3, undefined, 1); break;",
 			"list 1-2,#3": " o.list(3, 1, 2); break;",
-			"list a": "BasicParser: Expected end of arguments in  at pos 0-4: list",
+			"list a": "BasicParser: Expected end of arguments at pos 0-4: list",
 			'load "file"': ' o.load("file"); o.goto("s0"); break;\ncase "s0":',
 			'load "file.scr",&c000': ' o.load("file.scr", -0x4000); o.goto("s0"); break;\ncase "s0":',
 			"load f$,adr": ' o.load(v.f$, v.adrR); o.goto("s0"); break;\ncase "s0":',
@@ -506,9 +514,15 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			"a=pos(#0)": " v.aR = o.pos(0);",
 			"a=pos(#stream)": " v.aR = o.pos(v.streamR);",
 			"print ": ' o.print(0, "\\r\\n");',
+			"print ,": ' o.print(0, {type: "commaTab", args: []});',
+			"print ;": " o.print(0);",
+			"print #2": ' o.print(2, "\\r\\n");',
+			"print #2,": ' o.print(2, "\\r\\n");',
 			'print "string"': ' o.print(0, "string", "\\r\\n");',
 			"print 999999999;": " o.print(0, 999999999);",
-			"print 1e9;": " o.print(0, 1000000000);",
+			"print 1e9;": " o.print(0, 1e9);",
+			"print 2.5e10;": " o.print(0, 2.5e10);",
+			"print 1.234567846;": " o.print(0, 1.234567846);",
 			"print a$": ' o.print(0, v.a$, "\\r\\n");',
 			"print a$,b": ' o.print(0, v.a$, {type: "commaTab", args: []}, v.bR, "\\r\\n");',
 			"print#2,a$,b": ' o.print(2, v.a$, {type: "commaTab", args: []}, v.bR, "\\r\\n");',
@@ -641,11 +655,20 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			"window swap 1": " o.windowSwap(1);",
 			"window swap 1,0": " o.windowSwap(1, 0);",
 			"1 window swap #1": "BasicParser: Expected number in 1 at pos 14-15: #",
+			"write ": " o.write(0);",
+			"write #2": " o.write(2);",
+			"write #2,": " o.write(2);",
+			'write "string"': ' o.write(0, "string");',
 			"write 999999999": " o.write(0, 999999999);",
-			"write 1e9": " o.write(0, 1000000000);",
+			"write 1e9": " o.write(0, 1e9);",
+			"write 2.5e10": " o.write(0, 2.5e10);",
+			"write 1.234567846": " o.write(0, 1.234567846);",
 			"write a$": " o.write(0, v.a$);",
 			"write a$,b": " o.write(0, v.a$, v.bR);",
-			"write#9,a$,b": " o.write(9, v.a$, v.bR);"
+			"write#2,a$,b": " o.write(2, v.a$, v.bR);",
+			"write#2,a$;b": " o.write(2, v.a$, v.bR);",
+			"write ,": "BasicParser: Unexpected token at pos 6-7: ,",
+			"write ;": "BasicParser: Unexpected token at pos 6-7: ;"
 		},
 		"xor, xpos": {
 			"a=&x1001 xor &x0110": " v.aR = 0b1001 ^ 0b0110;",
@@ -705,13 +728,6 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 		}
 	};
 
-	//TODO:
-	/*
-		"print 999999999": " o.print(0, 999999999);",
-		"print 1e9": " o.print(0, 1000000000);",
-		"write 999999999": " o.write(0, 999999999);",
-		"write 1e9": " o.write(0, 1000000000);",
-	*/
 
 	function fnReplacer(bin: string) {
 		return "0x" + parseInt(bin.substr(2), 2).toString(16).toLowerCase();

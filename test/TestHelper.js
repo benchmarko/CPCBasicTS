@@ -104,11 +104,13 @@ define(["require", "exports", "../Utils"], function (require, exports, Utils_1) 
             for (var category in allTests) {
                 if (allTests.hasOwnProperty(category)) {
                     var results = [], containsSpace = category.indexOf(" ") >= 0, isJsKeyword = reJsKeywords.test(category);
-                    result += containsSpace || isJsKeyword ? TestHelper.stringInQuotes(category) : category;
-                    result += ": {\n";
                     runTestsFor(category, allTests[category], undefined, results);
-                    result += results.join(",\n");
-                    result += "\n},\n";
+                    if (results.length) {
+                        result += containsSpace || isJsKeyword ? TestHelper.stringInQuotes(category) : category;
+                        result += ": {\n";
+                        result += results.join(",\n");
+                        result += "\n},\n";
+                    }
                 }
             }
             Utils_1.Utils.console.log(result);

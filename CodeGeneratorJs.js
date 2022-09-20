@@ -64,6 +64,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 ",": CodeGeneratorJs.commaOrSemicolon,
                 "|": this.vertical,
                 number: CodeGeneratorJs.number,
+                expnumber: CodeGeneratorJs.expnumber,
                 binnumber: CodeGeneratorJs.binnumber,
                 hexnumber: CodeGeneratorJs.hexnumber,
                 linenumber: CodeGeneratorJs.linenumber,
@@ -508,6 +509,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         CodeGeneratorJs.number = function (node) {
             node.pt = (/^\d+$/).test(node.value) ? "I" : "R";
+            node.pv = node.value;
+        };
+        CodeGeneratorJs.expnumber = function (node) {
+            node.pt = "R";
             node.pv = node.value;
         };
         CodeGeneratorJs.binnumber = function (node) {

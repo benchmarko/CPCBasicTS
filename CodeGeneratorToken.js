@@ -25,6 +25,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
                 "null": CodeGeneratorToken.fnNull,
                 assign: this.assign,
                 number: CodeGeneratorToken.number,
+                expnumber: CodeGeneratorToken.number,
                 binnumber: CodeGeneratorToken.binnumber,
                 hexnumber: CodeGeneratorToken.hexnumber,
                 identifier: this.identifier,

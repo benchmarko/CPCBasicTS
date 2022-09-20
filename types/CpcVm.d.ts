@@ -378,7 +378,6 @@ export declare class CpcVm {
     private vmHandleControlCode;
     private vmPrintCharsOrControls;
     private vmPrintGraphChars;
-    private static vmToExponential;
     print(stream: number, ...args: (string | number | PrintObjectType)[]): void;
     rad(): void;
     private static vmHashCode;

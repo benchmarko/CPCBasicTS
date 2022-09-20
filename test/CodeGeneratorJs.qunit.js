@@ -14,13 +14,15 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
                 "a=&A7": " v.aR = 0xA7;",
                 "a=-&A7": " v.aR = -(0xA7);",
                 "a=&7FFF": " v.aR = 0x7FFF;",
+                "a=&h0": " v.aR = 0x0;",
                 "a=&H7FFF": " v.aR = 0x7FFF;",
                 "a=&8000": " v.aR = -0x8000;",
-                "a=&FFFF": " v.aR = -0x1;",
+                "a=&FFff": " v.aR = -0x1;",
                 "a=&E123": " v.aR = -0x1edd;",
                 "a=&HE123": " v.aR = -0x1edd;",
+                "a=&X0": " v.aR = 0b0;",
                 "a=&X10100111": " v.aR = 0b10100111;",
-                "a=-&X111111111111111": " v.aR = -0b111111111111111;",
+                "a=-&x111111111111111": " v.aR = -0b111111111111111;",
                 "a=255": " v.aR = 255;",
                 "a=-255": " v.aR = -255;",
                 "a=256": " v.aR = 256;",
@@ -30,8 +32,12 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
                 "a=32768": " v.aR = 32768;",
                 "a=-32768": " v.aR = -32768;",
                 "a=65536": " v.aR = 65536;",
-                "a=1.2e+9": " v.aR = 1200000000;",
-                "a ": "BasicParser: Expected = in  at pos 2: (end)",
+                "a=1.2e+9": " v.aR = 1.2e+9;",
+                "a=&": "BasicLexer: Expected hex number at pos 2-3: &",
+                "a=&h": "BasicLexer: Expected hex number at pos 2-4: &h",
+                "a=&x": "BasicLexer: Expected binary number at pos 2-4: &x",
+                "a=&x2": "BasicLexer: Expected binary number at pos 2-4: &x",
+                "a ": "BasicParser: Expected = at pos 2: (end)",
                 "1 a=": "BasicParser: Unexpected end of file in 1 at pos 4: ",
                 "1 5=7": "BasicParser: Bad expression statement in 1 at pos 2-3: 5",
                 "1 let 5=7": "BasicParser: Expected variable in 1 at pos 6-7: 5"
@@ -101,7 +107,9 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
                 '1 on error goto 0:a$=dec$(b$,"\\    \\")': "BasicParser: Expected number in 1 at pos 26-28: b$",
                 '1 on error goto 2:a$=dec$(b$,"\\    \\")\n2 rem': ' o.onErrorGoto(2); v.a$ = o.dec$(v.b$, "\\\\    \\\\");\n //',
                 "1 on error goto 0:mask ,": "BasicParser: Operand missing in 1 at pos 23-24: ,",
-                "1 on error goto 2:mask ,\n2 rem": " o.onErrorGoto(2); o.mask(undefined);\n //"
+                "1 on error goto 2:mask ,\n2 rem": " o.onErrorGoto(2); o.mask(undefined);\n //",
+                "|": ' o.rsx.rsxExec(""); o.goto("s0"); break;\ncase "s0":',
+                "!": "BasicLexer: Unrecognized token at pos 0-1: !"
             },
             "abs, after gosub, and, asc, atn, auto": {
                 "a=abs(2.3)": " v.aR = o.abs(2.3);",
@@ -389,7 +397,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
                 "list 1-,#3": " o.list(3, 1, 65535); break;",
                 "list -1,#3": " o.list(3, undefined, 1); break;",
                 "list 1-2,#3": " o.list(3, 1, 2); break;",
-                "list a": "BasicParser: Expected end of arguments in  at pos 0-4: list",
+                "list a": "BasicParser: Expected end of arguments at pos 0-4: list",
                 'load "file"': ' o.load("file"); o.goto("s0"); break;\ncase "s0":',
                 'load "file.scr",&c000': ' o.load("file.scr", -0x4000); o.goto("s0"); break;\ncase "s0":',
                 "load f$,adr": ' o.load(v.f$, v.adrR); o.goto("s0"); break;\ncase "s0":',
@@ -501,9 +509,15 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
                 "a=pos(#0)": " v.aR = o.pos(0);",
                 "a=pos(#stream)": " v.aR = o.pos(v.streamR);",
                 "print ": ' o.print(0, "\\r\\n");',
+                "print ,": ' o.print(0, {type: "commaTab", args: []});',
+                "print ;": " o.print(0);",
+                "print #2": ' o.print(2, "\\r\\n");',
+                "print #2,": ' o.print(2, "\\r\\n");',
                 'print "string"': ' o.print(0, "string", "\\r\\n");',
                 "print 999999999;": " o.print(0, 999999999);",
-                "print 1e9;": " o.print(0, 1000000000);",
+                "print 1e9;": " o.print(0, 1e9);",
+                "print 2.5e10;": " o.print(0, 2.5e10);",
+                "print 1.234567846;": " o.print(0, 1.234567846);",
                 "print a$": ' o.print(0, v.a$, "\\r\\n");',
                 "print a$,b": ' o.print(0, v.a$, {type: "commaTab", args: []}, v.bR, "\\r\\n");',
                 "print#2,a$,b": ' o.print(2, v.a$, {type: "commaTab", args: []}, v.bR, "\\r\\n");',
@@ -636,11 +650,20 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
                 "window swap 1": " o.windowSwap(1);",
                 "window swap 1,0": " o.windowSwap(1, 0);",
                 "1 window swap #1": "BasicParser: Expected number in 1 at pos 14-15: #",
+                "write ": " o.write(0);",
+                "write #2": " o.write(2);",
+                "write #2,": " o.write(2);",
+                'write "string"': ' o.write(0, "string");',
                 "write 999999999": " o.write(0, 999999999);",
-                "write 1e9": " o.write(0, 1000000000);",
+                "write 1e9": " o.write(0, 1e9);",
+                "write 2.5e10": " o.write(0, 2.5e10);",
+                "write 1.234567846": " o.write(0, 1.234567846);",
                 "write a$": " o.write(0, v.a$);",
                 "write a$,b": " o.write(0, v.a$, v.bR);",
-                "write#9,a$,b": " o.write(9, v.a$, v.bR);"
+                "write#2,a$,b": " o.write(2, v.a$, v.bR);",
+                "write#2,a$;b": " o.write(2, v.a$, v.bR);",
+                "write ,": "BasicParser: Unexpected token at pos 6-7: ,",
+                "write ;": "BasicParser: Unexpected token at pos 6-7: ;"
             },
             "xor, xpos": {
                 "a=&x1001 xor &x0110": " v.aR = 0b1001 ^ 0b0110;",
@@ -699,13 +722,6 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
                 '100 \'Das Raetsel\n110 \'21.5.1988 Kopf um Kopf\n120 \'ab*c=de  de+fg=hi   [dabei sind a-i verschiedene Ziffern 1-9!!]\n130 MODE 1:PRINT"Please wait ...  ( ca. 1 min 34 sec )"\n140 CLEAR:DEFINT a-y\n150 \'\n155 z=TIME\n160 FOR a=1 TO 9:FOR b=1 TO 9:FOR c=1 TO 9:FOR f=1 TO 9:FOR g=1 TO 9\n170 de=(a*10+b)*c:IF de>99 THEN 320\n180 hi=de+(f*10+g):IF hi>99 THEN 320\n190 d=INT(de/10):e=de MOD 10:h=INT(hi/10):i=hi MOD 10\n200 IF a=b OR a=c OR a=d OR a=e OR a=f OR a=g OR a=h OR a=i THEN 320\n210 IF b=c OR b=d OR b=e OR b=f OR b=g OR b=h OR b=i THEN 320\n220 IF c=d OR c=e OR c=f OR c=g OR c=h OR c=i THEN 320\n230 IF d=e OR d=f OR d=g OR d=h OR d=i THEN 320\n240 IF e=f OR e=g OR e=h OR e=i THEN 320\n250 IF f=g OR f=h OR f=i THEN 320\n260 IF g=h OR g=i THEN 320\n270 IF h=i THEN 320\n280 IF i=0 THEN 320\n285 z=TIME-z\n290 CLS:PRINT"Die Loesung:":PRINT\n300 PRINT a*10+b"*"c"="de" / "de"+"f*10+g"="hi\n310 PRINT z,z/300:STOP\n320 NEXT g,f,c,b,a\n': ' // Das Raetsel\n // 21.5.1988 Kopf um Kopf\n // ab*c=de  de+fg=hi   [dabei sind a-i verschiedene Ziffern 1-9!!]\n o.mode(1); o.print(0, "Please wait ...  ( ca. 1 min 34 sec )", "\\r\\n");\n o.clear(); o.goto("140s0"); break;\ncase "140s0": o.defint("a", "y");\n //\n v.zR = o.time();\n /* for() */ o.vmAssertNumberType("a"); v["a" + t.a] = 1; o.goto("160f0b"); break;\ncase "160f0": v["a" + t.a] += 1;\ncase "160f0b": if (v["a" + t.a] > 9) { o.goto("160f0e"); break; } /* for() */ o.vmAssertNumberType("b"); v["b" + t.b] = 1; o.goto("160f1b"); break;\ncase "160f1": v["b" + t.b] += 1;\ncase "160f1b": if (v["b" + t.b] > 9) { o.goto("160f1e"); break; } /* for() */ o.vmAssertNumberType("c"); v["c" + t.c] = 1; o.goto("160f2b"); break;\ncase "160f2": v["c" + t.c] += 1;\ncase "160f2b": if (v["c" + t.c] > 9) { o.goto("160f2e"); break; } /* for() */ o.vmAssertNumberType("f"); v["f" + t.f] = 1; o.goto("160f3b"); break;\ncase "160f3": v["f" + t.f] += 1;\ncase "160f3b": if (v["f" + t.f] > 9) { o.goto("160f3e"); break; } /* for() */ o.vmAssertNumberType("g"); v["g" + t.g] = 1; o.goto("160f4b"); break;\ncase "160f4": v["g" + t.g] += 1;\ncase "160f4b": if (v["g" + t.g] > 9) { o.goto("160f4e"); break; }\n v["de" + t.d] = o.vmAssign("d", ((v["a" + t.a] * 10) + v["b" + t.b]) * v["c" + t.c]); if (v["de" + t.d] > 99) { o.goto(320); break; }\n v["hi" + t.h] = o.vmAssign("h", v["de" + t.d] + ((v["f" + t.f] * 10) + v["g" + t.g])); if (v["hi" + t.h] > 99) { o.goto(320); break; }\n v["d" + t.d] = o.vmAssign("d", o.int(v["de" + t.d] / 10)); v["e" + t.e] = o.vmAssign("e", o.vmRound(v["de" + t.d]) % 10); v["h" + t.h] = o.vmAssign("h", o.int(v["hi" + t.h] / 10)); v["i" + t.i] = o.vmAssign("i", o.vmRound(v["hi" + t.h]) % 10);\n if ((v["a" + t.a] === v["b" + t.b] ? -1 : 0) | ((v["a" + t.a] === v["c" + t.c] ? -1 : 0) | ((v["a" + t.a] === v["d" + t.d] ? -1 : 0) | ((v["a" + t.a] === v["e" + t.e] ? -1 : 0) | ((v["a" + t.a] === v["f" + t.f] ? -1 : 0) | ((v["a" + t.a] === v["g" + t.g] ? -1 : 0) | ((v["a" + t.a] === v["h" + t.h] ? -1 : 0) | (v["a" + t.a] === v["i" + t.i] ? -1 : 0)))))))) { o.goto(320); break; }\n if ((v["b" + t.b] === v["c" + t.c] ? -1 : 0) | ((v["b" + t.b] === v["d" + t.d] ? -1 : 0) | ((v["b" + t.b] === v["e" + t.e] ? -1 : 0) | ((v["b" + t.b] === v["f" + t.f] ? -1 : 0) | ((v["b" + t.b] === v["g" + t.g] ? -1 : 0) | ((v["b" + t.b] === v["h" + t.h] ? -1 : 0) | (v["b" + t.b] === v["i" + t.i] ? -1 : 0))))))) { o.goto(320); break; }\n if ((v["c" + t.c] === v["d" + t.d] ? -1 : 0) | ((v["c" + t.c] === v["e" + t.e] ? -1 : 0) | ((v["c" + t.c] === v["f" + t.f] ? -1 : 0) | ((v["c" + t.c] === v["g" + t.g] ? -1 : 0) | ((v["c" + t.c] === v["h" + t.h] ? -1 : 0) | (v["c" + t.c] === v["i" + t.i] ? -1 : 0)))))) { o.goto(320); break; }\n if ((v["d" + t.d] === v["e" + t.e] ? -1 : 0) | ((v["d" + t.d] === v["f" + t.f] ? -1 : 0) | ((v["d" + t.d] === v["g" + t.g] ? -1 : 0) | ((v["d" + t.d] === v["h" + t.h] ? -1 : 0) | (v["d" + t.d] === v["i" + t.i] ? -1 : 0))))) { o.goto(320); break; }\n if ((v["e" + t.e] === v["f" + t.f] ? -1 : 0) | ((v["e" + t.e] === v["g" + t.g] ? -1 : 0) | ((v["e" + t.e] === v["h" + t.h] ? -1 : 0) | (v["e" + t.e] === v["i" + t.i] ? -1 : 0)))) { o.goto(320); break; }\n if ((v["f" + t.f] === v["g" + t.g] ? -1 : 0) | ((v["f" + t.f] === v["h" + t.h] ? -1 : 0) | (v["f" + t.f] === v["i" + t.i] ? -1 : 0))) { o.goto(320); break; }\n if ((v["g" + t.g] === v["h" + t.h] ? -1 : 0) | (v["g" + t.g] === v["i" + t.i] ? -1 : 0)) { o.goto(320); break; }\n if (v["h" + t.h] === v["i" + t.i]) { o.goto(320); break; }\n if (v["i" + t.i] === 0) { o.goto(320); break; }\n v.zR = o.time() - v.zR;\n o.cls(0); o.print(0, "Die Loesung:", "\\r\\n"); o.print(0, "\\r\\n");\n o.print(0, (v["a" + t.a] * 10) + v["b" + t.b], "*", v["c" + t.c], "=", v["de" + t.d], " / ", v["de" + t.d], "+", (v["f" + t.f] * 10) + v["g" + t.g], "=", v["hi" + t.h], "\\r\\n");\n o.print(0, v.zR, {type: "commaTab", args: []}, v.zR / 300, "\\r\\n"); o.stop("310s0"); break;\ncase "310s0":\n /* next("v["g" + t.g]") */ o.goto("160f4"); break;\ncase "160f4e":; /* next("v["f" + t.f]") */ o.goto("160f3"); break;\ncase "160f3e":; /* next("v["c" + t.c]") */ o.goto("160f2"); break;\ncase "160f2e":; /* next("v["b" + t.b]") */ o.goto("160f1"); break;\ncase "160f1e":; /* next("v["a" + t.a]") */ o.goto("160f0"); break;\ncase "160f0e":'
             }
         };
-        //TODO:
-        /*
-            "print 999999999": " o.print(0, 999999999);",
-            "print 1e9": " o.print(0, 1000000000);",
-            "write 999999999": " o.write(0, 999999999);",
-            "write 1e9": " o.write(0, 1000000000);",
-        */
         function fnReplacer(bin) {
             return "0x" + parseInt(bin.substr(2), 2).toString(16).toLowerCase();
         }

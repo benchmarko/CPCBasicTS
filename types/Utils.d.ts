@@ -18,6 +18,7 @@ export declare class Utils {
     static numberWithCommas(x: number | string): string;
     static toRadians(deg: number): number;
     static toDegrees(rad: number): number;
+    static toPrecision9(num: number): string;
     private static testIsSupported;
     static supportsBinaryLiterals: boolean;
     static supportReservedNames: boolean;

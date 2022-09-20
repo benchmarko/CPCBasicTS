@@ -312,14 +312,16 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 var mantissa = value >= 0 ? value + 0x80000000 : value;
                 exponent -= 0x81; // 2-complement: 2^-127 .. 2^128
                 var num = mantissa * Math.pow(2, exponent - 31);
+                out = Utils_1.Utils.toPrecision9(num);
+                /*
                 out = num.toPrecision(9); // some rounding, formatting
                 if (out.indexOf("e") >= 0) {
                     out = out.replace(/\.?0*e/, "E"); // exponential uppercase, no zeros
-                    out = out.replace(/(E[+-])(\d)$/, "$10$2"); // exponent 1 digit to 2 digits
-                }
-                else if (out.indexOf(".") >= 0) { // decimal number?
+                    out = out.replace(/(E[+-])(\d)$/, "$10$2"); // exponent 1 digit to 2 digits (or this: replace(/(\D)(\d)$/, "$10$2") )
+                } else if (out.indexOf(".") >= 0) { // decimal number?
                     out = out.replace(/\.?0*$/, ""); // remove trailing dot and/or zeros
                 }
+                */
             }
             return out;
         };

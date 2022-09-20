@@ -97,6 +97,7 @@ export declare class BasicParser {
     private speed;
     private symbol;
     private window;
+    private write;
     private static fnNode;
     private createSymbol;
     private createNudSymbol;

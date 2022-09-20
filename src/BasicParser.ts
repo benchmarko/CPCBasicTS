@@ -290,7 +290,7 @@ export class BasicParser {
 		width: "c n", // WIDTH <integer expression>
 		window: "c #0? n n n n", // WINDOW[#<stream expression>,]<left>,<right>,<top>,<bottom>  / or: => windowSwap
 		windowSwap: "c n n?", // WINDOW SWAP <stream expression>[,<stream expression>]  / (special: with numbers, not streams)
-		write: "c #0? *", // WRITE [#<stream expression>,][<write list>]  / (not checked from this)
+		write: "c #0? *", // WRITE [#<stream expression>,][<write list>]
 		xor: "o", // <argument> XOR <argument>
 		xpos: "f", // XPOS
 		ypos: "f", // YPOS
@@ -327,7 +327,8 @@ export class BasicParser {
 		run: this.run,
 		speed: this.speed,
 		symbol: this.symbol,
-		window: this.window
+		window: this.window,
+		write: this.write
 	};
 	/* eslint-enable no-invalid-this */
 
@@ -355,8 +356,7 @@ export class BasicParser {
 
 	private composeError(error: Error, message: string, value: string, pos: number, len?: number) {
 		len = value === "(end)" ? 0 : len;
-
-		return Utils.composeError("BasicParser", error, message, value, pos, len, this.label);
+		return Utils.composeError("BasicParser", error, message, value, pos, len, this.label || undefined);
 	}
 
 
@@ -674,7 +674,7 @@ export class BasicParser {
 			isNumericIdentifier = type === "identifier" && (expression.value.endsWith("%") || expression.value.endsWith("!")),
 			isComparison = type === "=" || type.startsWith("<") || type.startsWith(">"); // =, <, >, <=, >=
 
-		if (type === "number" || type === "#" || isNumericFunction || isNumericIdentifier || isComparison) { // got e.g. number or a stream? (statical check)
+		if (type === "number" || type === "binnumber" || type === "hexnumber" || type === "expnumber" || type === "#" || isNumericFunction || isNumericIdentifier || isComparison) { // got e.g. number or a stream? (statical check)
 			this.fnMaskedExpressionError(expression, typeFirstChar);
 		}
 	}
@@ -1013,24 +1013,11 @@ export class BasicParser {
 		if (this.token.type === "merge") { // chain merge?
 			const name = this.fnCombineTwoTokensNoArgs(this.token.type); // chainMerge
 
-			//node = this.previousToken;
 			node.type = name;
 		}
 		node.args = [];
 
-		/*
-		if (this.token.type !== "merge") { // not chain merge?
-			node = this.fnCreateCmdCall(); // chain
-		*/
-
 		// chain, chain merge with optional DELETE
-		/*
-			const name = this.fnCombineTwoTokensNoArgs(this.token.type); // chainMerge
-
-			node = this.previousToken;
-			node.type = name;
-			node.args = [];
-			*/
 		let value2 = this.expression(0); // filename
 
 		node.args.push(value2);
@@ -1423,17 +1410,26 @@ export class BasicParser {
 		node.args = [];
 		node.args.push(stream);
 
+		/*
 		let commaAfterStream = false;
 
 		if (stream.len !== 0) { // not an inserted stream?
 			commaAfterStream = true;
 		}
+		*/
+		if (stream.len !== 0) { // not an inserted stream?
+			if (!closeTokens[this.token.type]) {
+				this.advance(",");
+			}
+		}
 
 		while (!closeTokens[this.token.type]) {
+			/*
 			if (commaAfterStream) {
 				this.advance(",");
 				commaAfterStream = false;
 			}
+			*/
 
 			let node2;
 
@@ -1514,6 +1510,33 @@ export class BasicParser {
 
 		return tokenType === "swap" ? this.fnCombineTwoTokens(tokenType) : this.fnCreateCmdCall(); // "window swap" or "window"
 	}
+
+	private write() {
+		const node = this.previousToken,
+			closeTokens = BasicParser.closeTokensForArgs,
+			stream = this.fnGetOptionalStream();
+
+		if (stream.len !== 0) { // not an inserted stream?
+			if (!closeTokens[this.token.type]) {
+				this.advance(",");
+			}
+		}
+
+		node.args = this.fnGetArgsSepByCommaSemi();
+		node.args.unshift(stream);
+
+
+		if ((this.previousToken.type === "," && node.args.length > 1) || this.previousToken.type === ";") {
+			if (!this.fnLastStatemetIsOnErrorGotoX()) {
+				throw this.composeError(Error(), "Operand missing", this.previousToken.type, this.previousToken.pos);
+			} else if (!this.quiet) {
+				Utils.console.warn(this.composeError({} as Error, "Operand missing", this.previousToken.type, this.previousToken.pos));
+			}
+		}
+		return node;
+	}
+
+	// ---
 
 	private static fnNode(node: ParserNode) {
 		return node;
@@ -1611,6 +1634,8 @@ export class BasicParser {
 		this.createNudSymbol("number", BasicParser.fnNode);
 
 		this.createNudSymbol("binnumber", BasicParser.fnNode);
+
+		this.createNudSymbol("expnumber", BasicParser.fnNode);
 
 		this.createNudSymbol("hexnumber", BasicParser.fnNode);
 

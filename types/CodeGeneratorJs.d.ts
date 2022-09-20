@@ -85,6 +85,7 @@ export declare class CodeGeneratorJs {
     private static commaOrSemicolon;
     private vertical;
     private static number;
+    private static expnumber;
     private static binnumber;
     private static hexnumber;
     private identifier;

@@ -30,7 +30,9 @@ export declare class CodeGeneratorBasic {
     private static unquoted;
     private static fnNull;
     private assign;
-    private static decBinHexNumber;
+    private static number;
+    private static expnumber;
+    private static binHexNumber;
     private identifier;
     private static linenumber;
     private label;

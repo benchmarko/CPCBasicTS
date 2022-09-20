@@ -50,7 +50,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 run: this.run,
                 speed: this.speed,
                 symbol: this.symbol,
-                window: this.window
+                window: this.window,
+                write: this.write
             };
             if (options) {
                 this.setOptions(options);
@@ -68,7 +69,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         BasicParser.prototype.composeError = function (error, message, value, pos, len) {
             len = value === "(end)" ? 0 : len;
-            return Utils_1.Utils.composeError("BasicParser", error, message, value, pos, len, this.label);
+            return Utils_1.Utils.composeError("BasicParser", error, message, value, pos, len, this.label || undefined);
         };
         // http://crockford.com/javascript/tdop/tdop.html (old: http://javascript.crockford.com/tdop/tdop.html)
         // http://crockford.com/javascript/tdop/parse.js
@@ -324,7 +325,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         BasicParser.prototype.fnCheckStaticTypeNotString = function (expression, typeFirstChar) {
             var type = expression.type, isNumericFunction = (BasicParser.keywords[type] || "").startsWith("f") && !type.endsWith("$"), isNumericIdentifier = type === "identifier" && (expression.value.endsWith("%") || expression.value.endsWith("!")), isComparison = type === "=" || type.startsWith("<") || type.startsWith(">"); // =, <, >, <=, >=
-            if (type === "number" || type === "#" || isNumericFunction || isNumericIdentifier || isComparison) { // got e.g. number or a stream? (statical check)
+            if (type === "number" || type === "binnumber" || type === "hexnumber" || type === "expnumber" || type === "#" || isNumericFunction || isNumericIdentifier || isComparison) { // got e.g. number or a stream? (statical check)
                 this.fnMaskedExpressionError(expression, typeFirstChar);
             }
         };
@@ -608,22 +609,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var node = this.previousToken;
             if (this.token.type === "merge") { // chain merge?
                 var name_1 = this.fnCombineTwoTokensNoArgs(this.token.type); // chainMerge
-                //node = this.previousToken;
                 node.type = name_1;
             }
             node.args = [];
-            /*
-            if (this.token.type !== "merge") { // not chain merge?
-                node = this.fnCreateCmdCall(); // chain
-            */
             // chain, chain merge with optional DELETE
-            /*
-                const name = this.fnCombineTwoTokensNoArgs(this.token.type); // chainMerge
-    
-                node = this.previousToken;
-                node.type = name;
-                node.args = [];
-                */
             var value2 = this.expression(0); // filename
             node.args.push(value2);
             this.token = this.getToken();
@@ -937,15 +926,25 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var node = this.previousToken, closeTokens = BasicParser.closeTokensForArgs, stream = this.fnGetOptionalStream();
             node.args = [];
             node.args.push(stream);
-            var commaAfterStream = false;
+            /*
+            let commaAfterStream = false;
+    
             if (stream.len !== 0) { // not an inserted stream?
                 commaAfterStream = true;
             }
+            */
+            if (stream.len !== 0) { // not an inserted stream?
+                if (!closeTokens[this.token.type]) {
+                    this.advance(",");
+                }
+            }
             while (!closeTokens[this.token.type]) {
+                /*
                 if (commaAfterStream) {
                     this.advance(",");
                     commaAfterStream = false;
                 }
+                */
                 var node2 = void 0;
                 if (this.token.type === "spc" || this.token.type === "tab") {
                     this.advance(this.token.type);
@@ -1014,6 +1013,26 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var tokenType = this.token.type;
             return tokenType === "swap" ? this.fnCombineTwoTokens(tokenType) : this.fnCreateCmdCall(); // "window swap" or "window"
         };
+        BasicParser.prototype.write = function () {
+            var node = this.previousToken, closeTokens = BasicParser.closeTokensForArgs, stream = this.fnGetOptionalStream();
+            if (stream.len !== 0) { // not an inserted stream?
+                if (!closeTokens[this.token.type]) {
+                    this.advance(",");
+                }
+            }
+            node.args = this.fnGetArgsSepByCommaSemi();
+            node.args.unshift(stream);
+            if ((this.previousToken.type === "," && node.args.length > 1) || this.previousToken.type === ";") {
+                if (!this.fnLastStatemetIsOnErrorGotoX()) {
+                    throw this.composeError(Error(), "Operand missing", this.previousToken.type, this.previousToken.pos);
+                }
+                else if (!this.quiet) {
+                    Utils_1.Utils.console.warn(this.composeError({}, "Operand missing", this.previousToken.type, this.previousToken.pos));
+                }
+            }
+            return node;
+        };
+        // ---
         BasicParser.fnNode = function (node) {
             return node;
         };
@@ -1096,6 +1115,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.createSymbol("(end)");
             this.createNudSymbol("number", BasicParser.fnNode);
             this.createNudSymbol("binnumber", BasicParser.fnNode);
+            this.createNudSymbol("expnumber", BasicParser.fnNode);
             this.createNudSymbol("hexnumber", BasicParser.fnNode);
             this.createNudSymbol("linenumber", BasicParser.fnNode);
             this.createNudSymbol("string", BasicParser.fnNode);

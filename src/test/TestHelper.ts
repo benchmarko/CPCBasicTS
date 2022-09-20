@@ -210,12 +210,13 @@ export class TestHelper { // eslint-disable-line vars-on-top
 					containsSpace = category.indexOf(" ") >= 0,
 					isJsKeyword = reJsKeywords.test(category);
 
-				result += containsSpace || isJsKeyword ? TestHelper.stringInQuotes(category) : category;
-				result += ": {\n";
-
 				runTestsFor(category, allTests[category], undefined, results);
-				result += results.join(",\n");
-				result += "\n},\n";
+				if (results.length) {
+					result += containsSpace || isJsKeyword ? TestHelper.stringInQuotes(category) : category;
+					result += ": {\n";
+					result += results.join(",\n");
+					result += "\n},\n";
+				}
 			}
 		}
 		Utils.console.log(result);

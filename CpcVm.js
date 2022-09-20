@@ -2173,7 +2173,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                 addr = (this.ramSelect - 1) * 0x4000 + 0x10000 + addr;
                 byte = this.mem[addr] || 0;
             }
-            else if (addr > this.minCharHimem && addr <= this.maxCharHimem) { // character map?
+            else if (addr > this.minCharHimem && addr <= this.maxCharHimem) { // character map; TODO: can also be in memory mapped area
                 byte = this.vmGetCharDataByte(addr);
             }
             else {
@@ -2219,7 +2219,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             else if (page === this.screenPage) { // screen memory page?
                 this.canvas.setByte(addr, byte); // write byte also to screen memory
             }
-            else if (addr > this.minCharHimem && addr <= this.maxCharHimem) { // character map?
+            else if (addr > this.minCharHimem && addr <= this.maxCharHimem) { // character map; TODO: can also be in memory mapped area
                 this.vmSetCharDataByte(addr, byte);
             }
             this.mem[addr] = byte;
@@ -2499,11 +2499,23 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                 this.canvas.printGChar(char);
             }
         };
-        CpcVm.vmToExponential = function (num) {
+        /*
+        private static vmToExponential(num: number) {
             return num.toExponential().toUpperCase().replace(/(\d+)$/, function (x) {
                 return x.length >= 2 ? x : x.padStart(2, "0"); // format with 2 exponential digits
             });
-        };
+        }
+    
+        private static vmToPrecision9(num: number) {
+            const numStr = num.toPrecision(9), // some rounding, formatting
+                [decimal, exponent] = numStr.split("e"), // eslint-disable-line array-element-newline
+                result = String(Number(decimal)) + (exponent !== undefined ? ("E" + exponent.replace(/(\D)(\d)$/, "$10$2")) : "");
+    
+            // Number(): strip trailing decimal point and/or zeros (replace(/\.?0*$/, ""))
+            // exponent 1 digit to 2 digits
+            return result;
+        }
+        */
         CpcVm.prototype.print = function (stream) {
             var args = [];
             for (var _i = 1; _i < arguments.length; _i++) {
@@ -2543,7 +2555,8 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                     }
                 }
                 else if (typeof arg === "number") {
-                    str = ((arg >= 0) ? " " : "") + (arg < 1e9 ? String(arg) : CpcVm.vmToExponential(arg)) + " ";
+                    //str = ((arg >= 0) ? " " : "") + (arg < 1e9 ? String(arg) : CpcVm.vmToExponential(arg)) + " ";
+                    str = ((arg >= 0) ? " " : "") + Utils_1.Utils.toPrecision9(arg) + " ";
                 }
                 else { // e.g. string
                     str = String(arg);
@@ -3252,7 +3265,8 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             for (var i = 0; i < args.length; i += 1) {
                 var arg = args[i];
                 if (typeof arg === "number") {
-                    str = arg < 1e9 ? String(arg) : CpcVm.vmToExponential(arg);
+                    //str = arg < 1e9 ? String(arg) : CpcVm.vmToExponential(arg);
+                    str = Utils_1.Utils.toPrecision9(arg);
                 }
                 else {
                     str = '"' + String(arg) + '"';

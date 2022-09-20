@@ -10,9 +10,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     exports.BasicLexer = void 0;
     var BasicLexer = /** @class */ (function () {
         function BasicLexer(options) {
-            //private quiet = false;
             this.keepWhiteSpace = false;
-            this.line = "0"; // for error messages
+            this.line = ""; // for error messages
             this.takeNumberAsLinenumber = true; // first number in a line is assumed to be a line number
             this.input = ""; // input to analyze
             this.index = 0; // position in input
@@ -23,11 +22,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
         }
         BasicLexer.prototype.setOptions = function (options) {
-            //this.quiet = options.quiet || false;
             this.keepWhiteSpace = options.keepWhiteSpace || false;
         };
-        BasicLexer.prototype.composeError = function (error, message, value, pos) {
-            return Utils_1.Utils.composeError("BasicLexer", error, message, value, pos, undefined, this.line);
+        BasicLexer.prototype.composeError = function (error, message, value, pos, len) {
+            return Utils_1.Utils.composeError("BasicLexer", error, message, value, pos, len, this.line || undefined);
         };
         BasicLexer.isOperatorOrStreamOrAddress = function (c) {
             return (/[+\-*/^=()[\],;:?\\@#]/).test(c);
@@ -148,15 +146,17 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     char = this.getChar();
                 }
             }
+            var expNumberPart = "";
             if (char === "e" || char === "E") { // we also try to check: [eE][+-]?\d+; because "E" could be ERR, ELSE,...
-                token += this.fnParseExponentialNumber(char);
+                expNumberPart = this.fnParseExponentialNumber(char);
+                token += expNumberPart;
             }
             token = token.trim(); // remove trailing spaces
             if (!isFinite(Number(token))) { // Infnity?
                 throw this.composeError(Error(), "Number is too large or too small", token, startPos); // for a 64-bit double
             }
-            var number = parseFloat(token);
-            this.addToken("number", String(number), startPos, token); // store number as string
+            var number = expNumberPart ? token : parseFloat(token);
+            this.addToken(expNumberPart ? "expnumber" : "number", String(number), startPos, token); // store number as string
             if (this.takeNumberAsLinenumber) {
                 this.takeNumberAsLinenumber = false;
                 this.line = String(number); // save just for error message
@@ -255,8 +255,15 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var token = char;
             char = this.advance();
             if (char.toLowerCase() === "x") { // binary?
-                token += this.advanceWhile(char, BasicLexer.isBin);
-                this.addToken("binnumber", token, startPos);
+                token += char;
+                char = this.advance();
+                if (BasicLexer.isBin(char)) {
+                    token += this.advanceWhile(char, BasicLexer.isBin);
+                    this.addToken("binnumber", token, startPos);
+                }
+                else {
+                    throw this.composeError(Error(), "Expected binary number", token, startPos);
+                }
             }
             else { // hex
                 if (char.toLowerCase() === "h") { // optional h
@@ -268,7 +275,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     this.addToken("hexnumber", token, startPos);
                 }
                 else {
-                    throw this.composeError(Error(), "Expected number", token, startPos);
+                    throw this.composeError(Error(), "Expected hex number", token, startPos);
                 }
             }
         };
@@ -306,8 +313,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             char = this.advance();
             if (BasicLexer.isIdentifierMiddle(char)) {
                 token += this.advanceWhile(char, BasicLexer.isIdentifierMiddle);
-                this.addToken("|", token, startPos);
             }
+            this.addToken("|", token, startPos);
         };
         BasicLexer.prototype.processNextCharacter = function (startPos) {
             var char = this.getChar(), token;
@@ -358,7 +365,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var startPos;
             this.input = input;
             this.index = 0;
-            this.line = "0"; // for error messages
+            this.line = ""; // for error messages
             this.takeNumberAsLinenumber = true;
             this.whiteSpace = "";
             this.tokens.length = 0;

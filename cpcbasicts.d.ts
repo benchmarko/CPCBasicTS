@@ -22,6 +22,7 @@ declare module "Utils" {
         static numberWithCommas(x: number | string): string;
         static toRadians(deg: number): number;
         static toDegrees(rad: number): number;
+        static toPrecision9(num: number): string;
         private static testIsSupported;
         static supportsBinaryLiterals: boolean;
         static supportReservedNames: boolean;
@@ -244,6 +245,7 @@ declare module "BasicParser" {
         private speed;
         private symbol;
         private window;
+        private write;
         private static fnNode;
         private createSymbol;
         private createNudSymbol;
@@ -352,7 +354,9 @@ declare module "CodeGeneratorBasic" {
         private static unquoted;
         private static fnNull;
         private assign;
-        private static decBinHexNumber;
+        private static number;
+        private static expnumber;
+        private static binHexNumber;
         private identifier;
         private static linenumber;
         private label;
@@ -499,6 +503,7 @@ declare module "CodeGeneratorJs" {
         private static commaOrSemicolon;
         private vertical;
         private static number;
+        private static expnumber;
         private static binnumber;
         private static hexnumber;
         private identifier;
@@ -1656,7 +1661,6 @@ declare module "CpcVm" {
         private vmHandleControlCode;
         private vmPrintCharsOrControls;
         private vmPrintGraphChars;
-        private static vmToExponential;
         print(stream: number, ...args: (string | number | PrintObjectType)[]): void;
         rad(): void;
         private static vmHashCode;

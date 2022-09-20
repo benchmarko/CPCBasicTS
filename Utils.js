@@ -104,6 +104,14 @@ define(["require", "exports"], function (require, exports) {
         Utils.toDegrees = function (rad) {
             return rad * 180 / Math.PI;
         };
+        Utils.toPrecision9 = function (num) {
+            var numStr = num.toPrecision(9), // some rounding, formatting
+            _a = numStr.split("e"), decimal = _a[0], exponent = _a[1], // eslint-disable-line array-element-newline
+            result = String(Number(decimal)) + (exponent !== undefined ? ("E" + exponent.replace(/(\D)(\d)$/, "$10$2")) : "");
+            // Number(): strip trailing decimal point and/or zeros (replace(/\.?0*$/, ""))
+            // exponent 1 digit to 2 digits
+            return result;
+        };
         Utils.testIsSupported = function (testExpression) {
             try {
                 Function(testExpression); // eslint-disable-line no-new-func

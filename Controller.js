@@ -1212,7 +1212,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             else {
                 var error = this.vm.vmComposeError(Error(), 8, String(lineNumber)); // "Line does not exist"
-                this.vm.print(stream, String(error) + "\r\n");
+                //this.vm.print(stream, error.shortMessage + "\r\n");
+                this.outputError(error);
                 this.vm.vmStop("stop", 60, true);
             }
         };

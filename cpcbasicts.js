@@ -187,6 +187,14 @@ define("Utils", ["require", "exports"], function (require, exports) {
         Utils.toDegrees = function (rad) {
             return rad * 180 / Math.PI;
         };
+        Utils.toPrecision9 = function (num) {
+            var numStr = num.toPrecision(9), // some rounding, formatting
+            _a = numStr.split("e"), decimal = _a[0], exponent = _a[1], // eslint-disable-line array-element-newline
+            result = String(Number(decimal)) + (exponent !== undefined ? ("E" + exponent.replace(/(\D)(\d)$/, "$10$2")) : "");
+            // Number(): strip trailing decimal point and/or zeros (replace(/\.?0*$/, ""))
+            // exponent 1 digit to 2 digits
+            return result;
+        };
         Utils.testIsSupported = function (testExpression) {
             try {
                 Function(testExpression); // eslint-disable-line no-new-func
@@ -1086,9 +1094,8 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
     exports.BasicLexer = void 0;
     var BasicLexer = /** @class */ (function () {
         function BasicLexer(options) {
-            //private quiet = false;
             this.keepWhiteSpace = false;
-            this.line = "0"; // for error messages
+            this.line = ""; // for error messages
             this.takeNumberAsLinenumber = true; // first number in a line is assumed to be a line number
             this.input = ""; // input to analyze
             this.index = 0; // position in input
@@ -1099,11 +1106,10 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
             }
         }
         BasicLexer.prototype.setOptions = function (options) {
-            //this.quiet = options.quiet || false;
             this.keepWhiteSpace = options.keepWhiteSpace || false;
         };
-        BasicLexer.prototype.composeError = function (error, message, value, pos) {
-            return Utils_2.Utils.composeError("BasicLexer", error, message, value, pos, undefined, this.line);
+        BasicLexer.prototype.composeError = function (error, message, value, pos, len) {
+            return Utils_2.Utils.composeError("BasicLexer", error, message, value, pos, len, this.line || undefined);
         };
         BasicLexer.isOperatorOrStreamOrAddress = function (c) {
             return (/[+\-*/^=()[\],;:?\\@#]/).test(c);
@@ -1224,15 +1230,17 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
                     char = this.getChar();
                 }
             }
+            var expNumberPart = "";
             if (char === "e" || char === "E") { // we also try to check: [eE][+-]?\d+; because "E" could be ERR, ELSE,...
-                token += this.fnParseExponentialNumber(char);
+                expNumberPart = this.fnParseExponentialNumber(char);
+                token += expNumberPart;
             }
             token = token.trim(); // remove trailing spaces
             if (!isFinite(Number(token))) { // Infnity?
                 throw this.composeError(Error(), "Number is too large or too small", token, startPos); // for a 64-bit double
             }
-            var number = parseFloat(token);
-            this.addToken("number", String(number), startPos, token); // store number as string
+            var number = expNumberPart ? token : parseFloat(token);
+            this.addToken(expNumberPart ? "expnumber" : "number", String(number), startPos, token); // store number as string
             if (this.takeNumberAsLinenumber) {
                 this.takeNumberAsLinenumber = false;
                 this.line = String(number); // save just for error message
@@ -1331,8 +1339,15 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
             var token = char;
             char = this.advance();
             if (char.toLowerCase() === "x") { // binary?
-                token += this.advanceWhile(char, BasicLexer.isBin);
-                this.addToken("binnumber", token, startPos);
+                token += char;
+                char = this.advance();
+                if (BasicLexer.isBin(char)) {
+                    token += this.advanceWhile(char, BasicLexer.isBin);
+                    this.addToken("binnumber", token, startPos);
+                }
+                else {
+                    throw this.composeError(Error(), "Expected binary number", token, startPos);
+                }
             }
             else { // hex
                 if (char.toLowerCase() === "h") { // optional h
@@ -1344,7 +1359,7 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
                     this.addToken("hexnumber", token, startPos);
                 }
                 else {
-                    throw this.composeError(Error(), "Expected number", token, startPos);
+                    throw this.composeError(Error(), "Expected hex number", token, startPos);
                 }
             }
         };
@@ -1382,8 +1397,8 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
             char = this.advance();
             if (BasicLexer.isIdentifierMiddle(char)) {
                 token += this.advanceWhile(char, BasicLexer.isIdentifierMiddle);
-                this.addToken("|", token, startPos);
             }
+            this.addToken("|", token, startPos);
         };
         BasicLexer.prototype.processNextCharacter = function (startPos) {
             var char = this.getChar(), token;
@@ -1434,7 +1449,7 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
             var startPos;
             this.input = input;
             this.index = 0;
-            this.line = "0"; // for error messages
+            this.line = ""; // for error messages
             this.takeNumberAsLinenumber = true;
             this.whiteSpace = "";
             this.tokens.length = 0;
@@ -1501,7 +1516,8 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 run: this.run,
                 speed: this.speed,
                 symbol: this.symbol,
-                window: this.window
+                window: this.window,
+                write: this.write
             };
             if (options) {
                 this.setOptions(options);
@@ -1519,7 +1535,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
         };
         BasicParser.prototype.composeError = function (error, message, value, pos, len) {
             len = value === "(end)" ? 0 : len;
-            return Utils_3.Utils.composeError("BasicParser", error, message, value, pos, len, this.label);
+            return Utils_3.Utils.composeError("BasicParser", error, message, value, pos, len, this.label || undefined);
         };
         // http://crockford.com/javascript/tdop/tdop.html (old: http://javascript.crockford.com/tdop/tdop.html)
         // http://crockford.com/javascript/tdop/parse.js
@@ -1775,7 +1791,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
         };
         BasicParser.prototype.fnCheckStaticTypeNotString = function (expression, typeFirstChar) {
             var type = expression.type, isNumericFunction = (BasicParser.keywords[type] || "").startsWith("f") && !type.endsWith("$"), isNumericIdentifier = type === "identifier" && (expression.value.endsWith("%") || expression.value.endsWith("!")), isComparison = type === "=" || type.startsWith("<") || type.startsWith(">"); // =, <, >, <=, >=
-            if (type === "number" || type === "#" || isNumericFunction || isNumericIdentifier || isComparison) { // got e.g. number or a stream? (statical check)
+            if (type === "number" || type === "binnumber" || type === "hexnumber" || type === "expnumber" || type === "#" || isNumericFunction || isNumericIdentifier || isComparison) { // got e.g. number or a stream? (statical check)
                 this.fnMaskedExpressionError(expression, typeFirstChar);
             }
         };
@@ -2059,22 +2075,10 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             var node = this.previousToken;
             if (this.token.type === "merge") { // chain merge?
                 var name_1 = this.fnCombineTwoTokensNoArgs(this.token.type); // chainMerge
-                //node = this.previousToken;
                 node.type = name_1;
             }
             node.args = [];
-            /*
-            if (this.token.type !== "merge") { // not chain merge?
-                node = this.fnCreateCmdCall(); // chain
-            */
             // chain, chain merge with optional DELETE
-            /*
-                const name = this.fnCombineTwoTokensNoArgs(this.token.type); // chainMerge
-    
-                node = this.previousToken;
-                node.type = name;
-                node.args = [];
-                */
             var value2 = this.expression(0); // filename
             node.args.push(value2);
             this.token = this.getToken();
@@ -2388,15 +2392,25 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             var node = this.previousToken, closeTokens = BasicParser.closeTokensForArgs, stream = this.fnGetOptionalStream();
             node.args = [];
             node.args.push(stream);
-            var commaAfterStream = false;
+            /*
+            let commaAfterStream = false;
+    
             if (stream.len !== 0) { // not an inserted stream?
                 commaAfterStream = true;
             }
+            */
+            if (stream.len !== 0) { // not an inserted stream?
+                if (!closeTokens[this.token.type]) {
+                    this.advance(",");
+                }
+            }
             while (!closeTokens[this.token.type]) {
+                /*
                 if (commaAfterStream) {
                     this.advance(",");
                     commaAfterStream = false;
                 }
+                */
                 var node2 = void 0;
                 if (this.token.type === "spc" || this.token.type === "tab") {
                     this.advance(this.token.type);
@@ -2465,6 +2479,26 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             var tokenType = this.token.type;
             return tokenType === "swap" ? this.fnCombineTwoTokens(tokenType) : this.fnCreateCmdCall(); // "window swap" or "window"
         };
+        BasicParser.prototype.write = function () {
+            var node = this.previousToken, closeTokens = BasicParser.closeTokensForArgs, stream = this.fnGetOptionalStream();
+            if (stream.len !== 0) { // not an inserted stream?
+                if (!closeTokens[this.token.type]) {
+                    this.advance(",");
+                }
+            }
+            node.args = this.fnGetArgsSepByCommaSemi();
+            node.args.unshift(stream);
+            if ((this.previousToken.type === "," && node.args.length > 1) || this.previousToken.type === ";") {
+                if (!this.fnLastStatemetIsOnErrorGotoX()) {
+                    throw this.composeError(Error(), "Operand missing", this.previousToken.type, this.previousToken.pos);
+                }
+                else if (!this.quiet) {
+                    Utils_3.Utils.console.warn(this.composeError({}, "Operand missing", this.previousToken.type, this.previousToken.pos));
+                }
+            }
+            return node;
+        };
+        // ---
         BasicParser.fnNode = function (node) {
             return node;
         };
@@ -2547,6 +2581,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             this.createSymbol("(end)");
             this.createNudSymbol("number", BasicParser.fnNode);
             this.createNudSymbol("binnumber", BasicParser.fnNode);
+            this.createNudSymbol("expnumber", BasicParser.fnNode);
             this.createNudSymbol("hexnumber", BasicParser.fnNode);
             this.createNudSymbol("linenumber", BasicParser.fnNode);
             this.createNudSymbol("string", BasicParser.fnNode);
@@ -3310,14 +3345,16 @@ define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exp
                 var mantissa = value >= 0 ? value + 0x80000000 : value;
                 exponent -= 0x81; // 2-complement: 2^-127 .. 2^128
                 var num = mantissa * Math.pow(2, exponent - 31);
+                out = Utils_5.Utils.toPrecision9(num);
+                /*
                 out = num.toPrecision(9); // some rounding, formatting
                 if (out.indexOf("e") >= 0) {
                     out = out.replace(/\.?0*e/, "E"); // exponential uppercase, no zeros
-                    out = out.replace(/(E[+-])(\d)$/, "$10$2"); // exponent 1 digit to 2 digits
-                }
-                else if (out.indexOf(".") >= 0) { // decimal number?
+                    out = out.replace(/(E[+-])(\d)$/, "$10$2"); // exponent 1 digit to 2 digits (or this: replace(/(\D)(\d)$/, "$10$2") )
+                } else if (out.indexOf(".") >= 0) { // decimal number?
                     out = out.replace(/\.?0*$/, ""); // remove trailing dot and/or zeros
                 }
+                */
             }
             return out;
         };
@@ -3515,9 +3552,10 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
                 unquoted: CodeGeneratorBasic.unquoted,
                 "null": CodeGeneratorBasic.fnNull,
                 assign: this.assign,
-                number: CodeGeneratorBasic.decBinHexNumber,
-                binnumber: CodeGeneratorBasic.decBinHexNumber,
-                hexnumber: CodeGeneratorBasic.decBinHexNumber,
+                number: CodeGeneratorBasic.number,
+                expnumber: CodeGeneratorBasic.expnumber,
+                binnumber: CodeGeneratorBasic.binHexNumber,
+                hexnumber: CodeGeneratorBasic.binHexNumber,
                 identifier: this.identifier,
                 linenumber: CodeGeneratorBasic.linenumber,
                 label: this.label,
@@ -3629,8 +3667,16 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             }
             return this.fnParseOneArg(node.left) + CodeGeneratorBasic.fnWs(node) + node.value + this.fnParseOneArg(node.right);
         };
-        CodeGeneratorBasic.decBinHexNumber = function (node) {
-            return CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase(); // number: maybe "e" inside; binnumber: maybe "&x"
+        CodeGeneratorBasic.number = function (node) {
+            return CodeGeneratorBasic.fnWs(node) + node.value;
+        };
+        CodeGeneratorBasic.expnumber = function (node) {
+            return CodeGeneratorBasic.fnWs(node) + Number(node.value).toExponential().toUpperCase().replace(/(\d+)$/, function (x) {
+                return x.length >= 2 ? x : x.padStart(2, "0"); // format with 2 exponential digits
+            });
+        };
+        CodeGeneratorBasic.binHexNumber = function (node) {
+            return CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase(); // binnumber: maybe "&x", hexnumber: mayby "&h"
         };
         CodeGeneratorBasic.prototype.identifier = function (node) {
             var value = CodeGeneratorBasic.fnWs(node) + node.value; // keep case, maybe mixed
@@ -4274,6 +4320,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 ",": CodeGeneratorJs.commaOrSemicolon,
                 "|": this.vertical,
                 number: CodeGeneratorJs.number,
+                expnumber: CodeGeneratorJs.expnumber,
                 binnumber: CodeGeneratorJs.binnumber,
                 hexnumber: CodeGeneratorJs.hexnumber,
                 linenumber: CodeGeneratorJs.linenumber,
@@ -4718,6 +4765,10 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
         };
         CodeGeneratorJs.number = function (node) {
             node.pt = (/^\d+$/).test(node.value) ? "I" : "R";
+            node.pv = node.value;
+        };
+        CodeGeneratorJs.expnumber = function (node) {
+            node.pt = "R";
             node.pv = node.value;
         };
         CodeGeneratorJs.binnumber = function (node) {
@@ -5695,6 +5746,7 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
                 "null": CodeGeneratorToken.fnNull,
                 assign: this.assign,
                 number: CodeGeneratorToken.number,
+                expnumber: CodeGeneratorToken.number,
                 binnumber: CodeGeneratorToken.binnumber,
                 hexnumber: CodeGeneratorToken.hexnumber,
                 identifier: this.identifier,
@@ -13805,7 +13857,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 addr = (this.ramSelect - 1) * 0x4000 + 0x10000 + addr;
                 byte = this.mem[addr] || 0;
             }
-            else if (addr > this.minCharHimem && addr <= this.maxCharHimem) { // character map?
+            else if (addr > this.minCharHimem && addr <= this.maxCharHimem) { // character map; TODO: can also be in memory mapped area
                 byte = this.vmGetCharDataByte(addr);
             }
             else {
@@ -13851,7 +13903,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             else if (page === this.screenPage) { // screen memory page?
                 this.canvas.setByte(addr, byte); // write byte also to screen memory
             }
-            else if (addr > this.minCharHimem && addr <= this.maxCharHimem) { // character map?
+            else if (addr > this.minCharHimem && addr <= this.maxCharHimem) { // character map; TODO: can also be in memory mapped area
                 this.vmSetCharDataByte(addr, byte);
             }
             this.mem[addr] = byte;
@@ -14131,11 +14183,23 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 this.canvas.printGChar(char);
             }
         };
-        CpcVm.vmToExponential = function (num) {
+        /*
+        private static vmToExponential(num: number) {
             return num.toExponential().toUpperCase().replace(/(\d+)$/, function (x) {
                 return x.length >= 2 ? x : x.padStart(2, "0"); // format with 2 exponential digits
             });
-        };
+        }
+    
+        private static vmToPrecision9(num: number) {
+            const numStr = num.toPrecision(9), // some rounding, formatting
+                [decimal, exponent] = numStr.split("e"), // eslint-disable-line array-element-newline
+                result = String(Number(decimal)) + (exponent !== undefined ? ("E" + exponent.replace(/(\D)(\d)$/, "$10$2")) : "");
+    
+            // Number(): strip trailing decimal point and/or zeros (replace(/\.?0*$/, ""))
+            // exponent 1 digit to 2 digits
+            return result;
+        }
+        */
         CpcVm.prototype.print = function (stream) {
             var args = [];
             for (var _i = 1; _i < arguments.length; _i++) {
@@ -14175,7 +14239,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                     }
                 }
                 else if (typeof arg === "number") {
-                    str = ((arg >= 0) ? " " : "") + (arg < 1e9 ? String(arg) : CpcVm.vmToExponential(arg)) + " ";
+                    //str = ((arg >= 0) ? " " : "") + (arg < 1e9 ? String(arg) : CpcVm.vmToExponential(arg)) + " ";
+                    str = ((arg >= 0) ? " " : "") + Utils_21.Utils.toPrecision9(arg) + " ";
                 }
                 else { // e.g. string
                     str = String(arg);
@@ -14884,7 +14949,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             for (var i = 0; i < args.length; i += 1) {
                 var arg = args[i];
                 if (typeof arg === "number") {
-                    str = arg < 1e9 ? String(arg) : CpcVm.vmToExponential(arg);
+                    //str = arg < 1e9 ? String(arg) : CpcVm.vmToExponential(arg);
+                    str = Utils_21.Utils.toPrecision9(arg);
                 }
                 else {
                     str = '"' + String(arg) + '"';
@@ -16446,7 +16512,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
             else {
                 var error = this.vm.vmComposeError(Error(), 8, String(lineNumber)); // "Line does not exist"
-                this.vm.print(stream, String(error) + "\r\n");
+                //this.vm.print(stream, error.shortMessage + "\r\n");
+                this.outputError(error);
                 this.vm.vmStop("stop", 60, true);
             }
         };

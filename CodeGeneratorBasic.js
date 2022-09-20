@@ -18,9 +18,10 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
                 unquoted: CodeGeneratorBasic.unquoted,
                 "null": CodeGeneratorBasic.fnNull,
                 assign: this.assign,
-                number: CodeGeneratorBasic.decBinHexNumber,
-                binnumber: CodeGeneratorBasic.decBinHexNumber,
-                hexnumber: CodeGeneratorBasic.decBinHexNumber,
+                number: CodeGeneratorBasic.number,
+                expnumber: CodeGeneratorBasic.expnumber,
+                binnumber: CodeGeneratorBasic.binHexNumber,
+                hexnumber: CodeGeneratorBasic.binHexNumber,
                 identifier: this.identifier,
                 linenumber: CodeGeneratorBasic.linenumber,
                 label: this.label,
@@ -132,8 +133,16 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             }
             return this.fnParseOneArg(node.left) + CodeGeneratorBasic.fnWs(node) + node.value + this.fnParseOneArg(node.right);
         };
-        CodeGeneratorBasic.decBinHexNumber = function (node) {
-            return CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase(); // number: maybe "e" inside; binnumber: maybe "&x"
+        CodeGeneratorBasic.number = function (node) {
+            return CodeGeneratorBasic.fnWs(node) + node.value;
+        };
+        CodeGeneratorBasic.expnumber = function (node) {
+            return CodeGeneratorBasic.fnWs(node) + Number(node.value).toExponential().toUpperCase().replace(/(\d+)$/, function (x) {
+                return x.length >= 2 ? x : x.padStart(2, "0"); // format with 2 exponential digits
+            });
+        };
+        CodeGeneratorBasic.binHexNumber = function (node) {
+            return CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase(); // binnumber: maybe "&x", hexnumber: mayby "&h"
         };
         CodeGeneratorBasic.prototype.identifier = function (node) {
             var value = CodeGeneratorBasic.fnWs(node) + node.value; // keep case, maybe mixed
