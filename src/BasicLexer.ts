@@ -10,7 +10,7 @@
 import { Utils } from "./Utils";
 
 interface BasicLexerOptions {
-	quiet?: boolean
+	quiet?: boolean // no function
 	keepWhiteSpace?: boolean
 }
 
@@ -23,10 +23,9 @@ export interface LexerToken {
 }
 
 export class BasicLexer {
-	//private quiet = false;
 	private keepWhiteSpace = false;
 
-	private line = "0"; // for error messages
+	private line = ""; // for error messages
 	private takeNumberAsLinenumber = true; // first number in a line is assumed to be a line number
 
 	private input = ""; // input to analyze
@@ -35,7 +34,6 @@ export class BasicLexer {
 	private whiteSpace = ""; // collected whitespace
 
 	setOptions(options: BasicLexerOptions): void {
-		//this.quiet = options.quiet || false;
 		this.keepWhiteSpace = options.keepWhiteSpace || false;
 	}
 
@@ -45,8 +43,8 @@ export class BasicLexer {
 		}
 	}
 
-	private composeError(error: Error, message: string, value: string, pos: number) {
-		return Utils.composeError("BasicLexer", error, message, value, pos, undefined, this.line);
+	private composeError(error: Error, message: string, value: string, pos: number, len?: number) {
+		return Utils.composeError("BasicLexer", error, message, value, pos, len, this.line || undefined);
 	}
 
 	private static isOperatorOrStreamOrAddress(c: string) {
@@ -184,16 +182,20 @@ export class BasicLexer {
 				char = this.getChar();
 			}
 		}
+		let expNumberPart = "";
+
 		if (char === "e" || char === "E") { // we also try to check: [eE][+-]?\d+; because "E" could be ERR, ELSE,...
-			token += this.fnParseExponentialNumber(char);
+			expNumberPart = this.fnParseExponentialNumber(char);
+			token += expNumberPart;
 		}
 		token = token.trim(); // remove trailing spaces
 		if (!isFinite(Number(token))) { // Infnity?
 			throw this.composeError(Error(), "Number is too large or too small", token, startPos); // for a 64-bit double
 		}
-		const number = parseFloat(token);
 
-		this.addToken("number", String(number), startPos, token); // store number as string
+		const number = expNumberPart ? token : parseFloat(token);
+
+		this.addToken(expNumberPart ? "expnumber" : "number", String(number), startPos, token); // store number as string
 		if (this.takeNumberAsLinenumber) {
 			this.takeNumberAsLinenumber = false;
 			this.line = String(number); // save just for error message
@@ -305,8 +307,14 @@ export class BasicLexer {
 
 		char = this.advance();
 		if (char.toLowerCase() === "x") { // binary?
-			token += this.advanceWhile(char, BasicLexer.isBin);
-			this.addToken("binnumber", token, startPos);
+			token += char;
+			char = this.advance();
+			if (BasicLexer.isBin(char)) {
+				token += this.advanceWhile(char, BasicLexer.isBin);
+				this.addToken("binnumber", token, startPos);
+			} else {
+				throw this.composeError(Error(), "Expected binary number", token, startPos);
+			}
 		} else { // hex
 			if (char.toLowerCase() === "h") { // optional h
 				token += char;
@@ -316,7 +324,7 @@ export class BasicLexer {
 				token += this.advanceWhile(char, BasicLexer.isHex);
 				this.addToken("hexnumber", token, startPos);
 			} else {
-				throw this.composeError(Error(), "Expected number", token, startPos);
+				throw this.composeError(Error(), "Expected hex number", token, startPos);
 			}
 		}
 	}
@@ -361,8 +369,8 @@ export class BasicLexer {
 		char = this.advance();
 		if (BasicLexer.isIdentifierMiddle(char)) {
 			token += this.advanceWhile(char, BasicLexer.isIdentifierMiddle);
-			this.addToken("|", token, startPos);
 		}
+		this.addToken("|", token, startPos);
 	}
 
 	private processNextCharacter(startPos: number) {
@@ -408,7 +416,7 @@ export class BasicLexer {
 		this.input = input;
 		this.index = 0;
 
-		this.line = "0"; // for error messages
+		this.line = ""; // for error messages
 		this.takeNumberAsLinenumber = true;
 		this.whiteSpace = "";
 

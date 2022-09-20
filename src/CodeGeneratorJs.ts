@@ -629,6 +629,12 @@ export class CodeGeneratorJs {
 		node.pt = (/^\d+$/).test(node.value) ? "I" : "R";
 		node.pv = node.value;
 	}
+
+	private static expnumber(node: CodeNode) {
+		node.pt = "R";
+		node.pv = node.value;
+	}
+
 	private static binnumber(node: CodeNode) {
 		let value = node.value.slice(2); // remove &x
 
@@ -1451,6 +1457,7 @@ export class CodeGeneratorJs {
 		",": CodeGeneratorJs.commaOrSemicolon, // "," for input, line input
 		"|": this.vertical,
 		number: CodeGeneratorJs.number,
+		expnumber: CodeGeneratorJs.expnumber,
 		binnumber: CodeGeneratorJs.binnumber,
 		hexnumber: CodeGeneratorJs.hexnumber,
 		linenumber: CodeGeneratorJs.linenumber,

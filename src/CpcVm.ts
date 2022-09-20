@@ -2854,7 +2854,7 @@ export class CpcVm {
 		} else if (page === 1 && this.ramSelect) { // memory mapped RAM with page 1=0x4000..0x7fff?
 			addr = (this.ramSelect - 1) * 0x4000 + 0x10000 + addr;
 			byte = this.mem[addr] || 0;
-		} else if (addr > this.minCharHimem && addr <= this.maxCharHimem) { // character map?
+		} else if (addr > this.minCharHimem && addr <= this.maxCharHimem) { // character map; TODO: can also be in memory mapped area
 			byte = this.vmGetCharDataByte(addr);
 		} else {
 			byte = this.mem[addr] || 0;
@@ -2906,7 +2906,7 @@ export class CpcVm {
 			addr = (this.ramSelect - 1) * 0x4000 + 0x10000 + addr;
 		} else if (page === this.screenPage) { // screen memory page?
 			this.canvas.setByte(addr, byte); // write byte also to screen memory
-		} else if (addr > this.minCharHimem && addr <= this.maxCharHimem) { // character map?
+		} else if (addr > this.minCharHimem && addr <= this.maxCharHimem) { // character map; TODO: can also be in memory mapped area
 			this.vmSetCharDataByte(addr, byte);
 		}
 		this.mem[addr] = byte;
@@ -3230,11 +3230,23 @@ export class CpcVm {
 		}
 	}
 
+	/*
 	private static vmToExponential(num: number) {
 		return num.toExponential().toUpperCase().replace(/(\d+)$/, function (x) {
 			return x.length >= 2 ? x : x.padStart(2, "0"); // format with 2 exponential digits
 		});
 	}
+
+	private static vmToPrecision9(num: number) {
+		const numStr = num.toPrecision(9), // some rounding, formatting
+			[decimal, exponent] = numStr.split("e"), // eslint-disable-line array-element-newline
+			result = String(Number(decimal)) + (exponent !== undefined ? ("E" + exponent.replace(/(\D)(\d)$/, "$10$2")) : "");
+
+		// Number(): strip trailing decimal point and/or zeros (replace(/\.?0*$/, ""))
+		// exponent 1 digit to 2 digits
+		return result;
+	}
+	*/
 
 	print(stream: number, ...args: (string | number | PrintObjectType)[]): void { // eslint-disable-line complexity
 		stream = this.vmInRangeRound(stream, 0, 9, "PRINT");
@@ -3274,7 +3286,8 @@ export class CpcVm {
 					throw this.vmComposeError(Error(), 5, "PRINT " + arg.type); // Improper argument
 				}
 			} else if (typeof arg === "number") {
-				str = ((arg >= 0) ? " " : "") + (arg < 1e9 ? String(arg) : CpcVm.vmToExponential(arg)) + " ";
+				//str = ((arg >= 0) ? " " : "") + (arg < 1e9 ? String(arg) : CpcVm.vmToExponential(arg)) + " ";
+				str = ((arg >= 0) ? " " : "") + Utils.toPrecision9(arg) + " ";
 			} else { // e.g. string
 				str = String(arg);
 			}
@@ -4084,7 +4097,8 @@ export class CpcVm {
 			const arg = args[i];
 
 			if (typeof arg === "number") {
-				str = arg < 1e9 ? String(arg) : CpcVm.vmToExponential(arg);
+				//str = arg < 1e9 ? String(arg) : CpcVm.vmToExponential(arg);
+				str = Utils.toPrecision9(arg);
 			} else {
 				str = '"' + String(arg) + '"';
 			}

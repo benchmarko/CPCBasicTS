@@ -200,8 +200,17 @@ export class CodeGeneratorBasic {
 		}
 		return this.fnParseOneArg(node.left) + CodeGeneratorBasic.fnWs(node) + node.value + this.fnParseOneArg(node.right);
 	}
-	private static decBinHexNumber(node: ParserNode) {
-		return CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase(); // number: maybe "e" inside; binnumber: maybe "&x"
+
+	private static number(node: ParserNode) {
+		return CodeGeneratorBasic.fnWs(node) + node.value;
+	}
+	private static expnumber(node: ParserNode) {
+		return CodeGeneratorBasic.fnWs(node) + Number(node.value).toExponential().toUpperCase().replace(/(\d+)$/, function (x) {
+			return x.length >= 2 ? x : x.padStart(2, "0"); // format with 2 exponential digits
+		});
+	}
+	private static binHexNumber(node: ParserNode) {
+		return CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase(); // binnumber: maybe "&x", hexnumber: mayby "&h"
 	}
 	private identifier(node: ParserNode) { // identifier or identifier with array
 		let value = CodeGeneratorBasic.fnWs(node) + node.value; // keep case, maybe mixed
@@ -495,9 +504,10 @@ export class CodeGeneratorBasic {
 		unquoted: CodeGeneratorBasic.unquoted,
 		"null": CodeGeneratorBasic.fnNull,
 		assign: this.assign,
-		number: CodeGeneratorBasic.decBinHexNumber,
-		binnumber: CodeGeneratorBasic.decBinHexNumber,
-		hexnumber: CodeGeneratorBasic.decBinHexNumber,
+		number: CodeGeneratorBasic.number,
+		expnumber: CodeGeneratorBasic.expnumber,
+		binnumber: CodeGeneratorBasic.binHexNumber,
+		hexnumber: CodeGeneratorBasic.binHexNumber,
 		identifier: this.identifier,
 		linenumber: CodeGeneratorBasic.linenumber,
 		label: this.label,

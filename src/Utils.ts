@@ -133,6 +133,16 @@ export class Utils { // eslint-disable-line vars-on-top
 		return rad * 180 / Math.PI;
 	}
 
+	static toPrecision9(num: number): string {
+		const numStr = num.toPrecision(9), // some rounding, formatting
+			[decimal, exponent] = numStr.split("e"), // eslint-disable-line array-element-newline
+			result = String(Number(decimal)) + (exponent !== undefined ? ("E" + exponent.replace(/(\D)(\d)$/, "$10$2")) : "");
+
+		// Number(): strip trailing decimal point and/or zeros (replace(/\.?0*$/, ""))
+		// exponent 1 digit to 2 digits
+		return result;
+	}
+
 	private static testIsSupported(testExpression: string) { // does the browser support something?
 		try {
 			Function(testExpression); // eslint-disable-line no-new-func

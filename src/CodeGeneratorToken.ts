@@ -925,6 +925,7 @@ export class CodeGeneratorToken {
 		"null": CodeGeneratorToken.fnNull,
 		assign: this.assign,
 		number: CodeGeneratorToken.number,
+		expnumber: CodeGeneratorToken.number, // same handling as for number
 		binnumber: CodeGeneratorToken.binnumber,
 		hexnumber: CodeGeneratorToken.hexnumber,
 		identifier: this.identifier,
