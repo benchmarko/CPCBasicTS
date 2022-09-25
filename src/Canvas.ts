@@ -529,7 +529,7 @@ export class Canvas {
 		return this.yPos;
 	}
 
-	private fillMyRect(x: number, y: number, width: number, height: number, pen: number) {
+	private fillMyRect(x: number, y: number, width: number, height: number, paper: number) {
 		const canvasWidth = this.width,
 			dataset8 = this.dataset8;
 
@@ -537,16 +537,17 @@ export class Canvas {
 			for (let col = 0; col < width; col += 1) {
 				const idx = (x + col) + (y + row) * canvasWidth;
 
-				dataset8[idx] = pen;
+				dataset8[idx] = paper;
 			}
 		}
 	}
 
-	fillTextBox(left: number, top: number, width: number, height: number, pen: number): void {
+	fillTextBox(left: number, top: number, width: number, height: number, paper: number): void {
 		const charWidth = this.modeData.pixelWidth * 8,
 			charHeight = this.modeData.pixelHeight * 8;
 
-		this.fillMyRect(left * charWidth, top * charHeight, width * charWidth, height * charHeight, pen);
+		paper %= this.modeData.pens; // limit papers
+		this.fillMyRect(left * charWidth, top * charHeight, width * charWidth, height * charHeight, paper);
 		this.setNeedUpdate();
 	}
 
@@ -674,6 +675,12 @@ export class Canvas {
 	}
 
 	private setPixel(x: number, y: number, gPen: number, gColMode: number) {
+		// some rounding needed before applying origin:
+		/* eslint-disable no-bitwise */
+		x = x >= 0 ? x & ~(this.modeData.pixelWidth - 1) : -(-x & ~(this.modeData.pixelWidth - 1));
+		y = y >= 0 ? y & ~(this.modeData.pixelHeight - 1) : -(-y & ~(this.modeData.pixelHeight - 1));
+		/* eslint-enable no-bitwise */
+
 		x += this.xOrig;
 		y = this.height - 1 - (y + this.yOrig);
 		if (x < this.xLeft || x > this.xRight || y < (this.height - 1 - this.yTop) || y > (this.height - 1 - this.yBottom)) {
@@ -697,6 +704,12 @@ export class Canvas {
 	}
 
 	private testPixel(x: number, y: number) {
+		// some rounding needed before applying origin:
+		/* eslint-disable no-bitwise */
+		x = x >= 0 ? x & ~(this.modeData.pixelWidth - 1) : -(-x & ~(this.modeData.pixelWidth - 1));
+		y = y >= 0 ? y & ~(this.modeData.pixelHeight - 1) : -(-y & ~(this.modeData.pixelHeight - 1));
+		/* eslint-enable no-bitwise */
+
 		x += this.xOrig;
 		y = this.height - 1 - (y + this.yOrig);
 		if (x < this.xLeft || x > this.xRight || y < (this.height - 1 - this.yTop) || y > (this.height - 1 - this.yBottom)) {
@@ -890,12 +903,29 @@ export class Canvas {
 		this.maskBit = maskBit;
 	}
 
+	/*
+	private static cpcRoundingTowardsZeroX(x: number, pixelWidth: number) {
+		x = x < 0 && x >= -pixelWidth + 1 ? 0 : x;
+		return x;
+	}
+
+	private static cpcRoundingTowardsZeroY(y: number, pixelHeight: number) {
+		y = y < 0 && y >= -pixelHeight + 1 ? 0 : y;
+		return y;
+	}
+	*/
+
 	draw(x: number, y: number): void {
+		//const xStart = Canvas.cpcRoundingTowardsZeroX(this.xPos, this.modeData.pixelWidth),
+		//	yStart = Canvas.cpcRoundingTowardsZeroY(this.yPos, this.modeData.pixelHeight);
 		const xStart = this.xPos,
 			yStart = this.yPos;
 
-		this.move(x, y); // destination, round values
-		this.drawBresenhamLine(xStart, yStart, this.xPos, this.yPos);
+		this.move(x, y); // destination
+
+		//x = Canvas.cpcRoundingTowardsZeroX(x, this.modeData.pixelWidth);
+		//y = Canvas.cpcRoundingTowardsZeroY(y, this.modeData.pixelHeight);
+		this.drawBresenhamLine(xStart, yStart, x, y);
 		this.setNeedUpdate();
 	}
 
@@ -906,12 +936,18 @@ export class Canvas {
 
 	plot(x: number, y: number): void {
 		this.move(x, y);
+
+		//x = Canvas.cpcRoundingTowardsZeroX(x, this.modeData.pixelWidth);
+		//y = Canvas.cpcRoundingTowardsZeroY(y, this.modeData.pixelHeight);
 		this.setPixel(x, y, this.gPen, this.gColMode); // must be integer
 		this.setNeedUpdate();
 	}
 
 	test(x: number, y: number): number {
 		this.move(x, y);
+
+		//x = Canvas.cpcRoundingTowardsZeroX(x, this.modeData.pixelWidth);
+		//y = Canvas.cpcRoundingTowardsZeroY(y, this.modeData.pixelHeight);
 		return this.testPixel(this.xPos, this.yPos); // use rounded values
 	}
 
@@ -1199,10 +1235,8 @@ export class Canvas {
 
 	clearTextWindow(left: number, right: number, top: number, bottom: number, paper: number): void { // clear current text window
 		const width = right + 1 - left,
-			height = bottom + 1 - top,
-			pens = this.modeData.pens;
+			height = bottom + 1 - top;
 
-		paper %= pens; // limit papers
 		this.fillTextBox(left, top, width, height, paper);
 	}
 
@@ -1220,7 +1254,7 @@ export class Canvas {
 		this.setNeedUpdate();
 	}
 
-	windowScrollUp(left: number, right: number, top: number, bottom: number, pen: number): void {
+	windowScrollUp(left: number, right: number, top: number, bottom: number, paper: number): void {
 		const charWidth = this.modeData.pixelWidth * 8,
 			charHeight = this.modeData.pixelHeight * 8,
 			width = right + 1 - left,
@@ -1229,11 +1263,11 @@ export class Canvas {
 		if (height > 1) { // scroll part
 			this.moveMyRectUp(left * charWidth, (top + 1) * charHeight, width * charWidth, (height - 1) * charHeight, left * charWidth, top * charHeight);
 		}
-		this.fillTextBox(left, bottom, width, 1, pen);
+		this.fillTextBox(left, bottom, width, 1, paper);
 		this.setNeedUpdate();
 	}
 
-	windowScrollDown(left: number, right: number, top: number, bottom: number, pen: number): void {
+	windowScrollDown(left: number, right: number, top: number, bottom: number, paper: number): void {
 		const charWidth = this.modeData.pixelWidth * 8,
 			charHeight = this.modeData.pixelHeight * 8,
 			width = right + 1 - left,
@@ -1242,7 +1276,7 @@ export class Canvas {
 		if (height > 1) { // scroll part
 			this.moveMyRectDown(left * charWidth, top * charHeight, width * charWidth, (height - 1) * charHeight, left * charWidth, (top + 1) * charHeight);
 		}
-		this.fillTextBox(left, top, width, 1, pen);
+		this.fillTextBox(left, top, width, 1, paper);
 		this.setNeedUpdate();
 	}
 

@@ -1873,6 +1873,7 @@ export class CpcVm {
 		return eof;
 	}
 
+	/*
 	private vmFindArrayVariable(name: string): string {
 		name += "A";
 		if (this.variables.variableExist(name)) { // one dim array variable?
@@ -1882,6 +1883,34 @@ export class CpcVm {
 		// find multi-dim array variable
 		const fnArrayVarFilter = function (variable: string) {
 			return (variable.indexOf(name) === 0) ? variable : null; // find array varA
+		};
+		let names = this.variables.getAllVariableNames();
+
+		names = names.filter(fnArrayVarFilter); // find array varA... with any number of indices
+		return names[0]; // we should find exactly one
+	}
+	*/
+
+	//private vmFindArrayVarFilter(name: string, typeChar: string) {}
+
+	// find array variable matching <name>(A+)(typeChar?)
+	private vmFindArrayVariable(name: string): string {
+		let typeChar = name.charAt(name.length - 1); // last character
+
+		if (typeChar === "I" || typeChar === "R" || typeChar === "$") { // explicit type specified?
+			name = name.slice(0, -1); // remove type char
+		} else {
+			typeChar = "";
+		}
+
+		name += "A";
+		if (this.variables.variableExist(name + typeChar)) { // one dim array variable?
+			return name + typeChar;
+		}
+
+		// find multi-dim array variable
+		const fnArrayVarFilter = function (variable: string) {
+			return (variable.indexOf(name) === 0 && (!typeChar || variable.charAt(variable.length - 1) === typeChar)) ? variable : null; // find array varA(typeChar?)
 		};
 		let names = this.variables.getAllVariableNames();
 
@@ -3582,8 +3611,11 @@ export class CpcVm {
 		if (decimals >= 0 && decimals > maxDecimals) {
 			decimals = maxDecimals;
 		}
+
 		// To avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
-		return Number(Math.round(Number(n + "e" + decimals)) + "e" + ((decimals >= 0) ? "-" + decimals : "+" + -decimals));
+		// Use Math.abs(n) and Math.sign(n) To round negative numbers to larger negative numbers
+		//return Number(Math.round(Number(n + "e" + decimals)) + "e" + ((decimals >= 0) ? "-" + decimals : "+" + -decimals));
+		return Math.sign(n) * Number(Math.round(Number(Math.abs(n) + "e" + decimals)) + "e" + ((decimals >= 0) ? "-" + decimals : "+" + -decimals));
 	}
 
 	private vmRunCallback(input: string, meta: FileMeta) {
