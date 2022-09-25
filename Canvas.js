@@ -317,18 +317,19 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         Canvas.prototype.getYpos = function () {
             return this.yPos;
         };
-        Canvas.prototype.fillMyRect = function (x, y, width, height, pen) {
+        Canvas.prototype.fillMyRect = function (x, y, width, height, paper) {
             var canvasWidth = this.width, dataset8 = this.dataset8;
             for (var row = 0; row < height; row += 1) {
                 for (var col = 0; col < width; col += 1) {
                     var idx = (x + col) + (y + row) * canvasWidth;
-                    dataset8[idx] = pen;
+                    dataset8[idx] = paper;
                 }
             }
         };
-        Canvas.prototype.fillTextBox = function (left, top, width, height, pen) {
+        Canvas.prototype.fillTextBox = function (left, top, width, height, paper) {
             var charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8;
-            this.fillMyRect(left * charWidth, top * charHeight, width * charWidth, height * charHeight, pen);
+            paper %= this.modeData.pens; // limit papers
+            this.fillMyRect(left * charWidth, top * charHeight, width * charWidth, height * charHeight, paper);
             this.setNeedUpdate();
         };
         Canvas.prototype.moveMyRectUp = function (x, y, width, height, x2, y2) {
@@ -422,6 +423,11 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             /* eslint-enable no-bitwise */
         };
         Canvas.prototype.setPixel = function (x, y, gPen, gColMode) {
+            // some rounding needed before applying origin:
+            /* eslint-disable no-bitwise */
+            x = x >= 0 ? x & ~(this.modeData.pixelWidth - 1) : -(-x & ~(this.modeData.pixelWidth - 1));
+            y = y >= 0 ? y & ~(this.modeData.pixelHeight - 1) : -(-y & ~(this.modeData.pixelHeight - 1));
+            /* eslint-enable no-bitwise */
             x += this.xOrig;
             y = this.height - 1 - (y + this.yOrig);
             if (x < this.xLeft || x > this.xRight || y < (this.height - 1 - this.yTop) || y > (this.height - 1 - this.yBottom)) {
@@ -440,6 +446,11 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             return pen;
         };
         Canvas.prototype.testPixel = function (x, y) {
+            // some rounding needed before applying origin:
+            /* eslint-disable no-bitwise */
+            x = x >= 0 ? x & ~(this.modeData.pixelWidth - 1) : -(-x & ~(this.modeData.pixelWidth - 1));
+            y = y >= 0 ? y & ~(this.modeData.pixelHeight - 1) : -(-y & ~(this.modeData.pixelHeight - 1));
+            /* eslint-enable no-bitwise */
             x += this.xOrig;
             y = this.height - 1 - (y + this.yOrig);
             if (x < this.xLeft || x > this.xRight || y < (this.height - 1 - this.yTop) || y > (this.height - 1 - this.yBottom)) {
@@ -596,10 +607,25 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             }
             this.maskBit = maskBit;
         };
+        /*
+        private static cpcRoundingTowardsZeroX(x: number, pixelWidth: number) {
+            x = x < 0 && x >= -pixelWidth + 1 ? 0 : x;
+            return x;
+        }
+    
+        private static cpcRoundingTowardsZeroY(y: number, pixelHeight: number) {
+            y = y < 0 && y >= -pixelHeight + 1 ? 0 : y;
+            return y;
+        }
+        */
         Canvas.prototype.draw = function (x, y) {
+            //const xStart = Canvas.cpcRoundingTowardsZeroX(this.xPos, this.modeData.pixelWidth),
+            //	yStart = Canvas.cpcRoundingTowardsZeroY(this.yPos, this.modeData.pixelHeight);
             var xStart = this.xPos, yStart = this.yPos;
-            this.move(x, y); // destination, round values
-            this.drawBresenhamLine(xStart, yStart, this.xPos, this.yPos);
+            this.move(x, y); // destination
+            //x = Canvas.cpcRoundingTowardsZeroX(x, this.modeData.pixelWidth);
+            //y = Canvas.cpcRoundingTowardsZeroY(y, this.modeData.pixelHeight);
+            this.drawBresenhamLine(xStart, yStart, x, y);
             this.setNeedUpdate();
         };
         Canvas.prototype.move = function (x, y) {
@@ -608,11 +634,15 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         };
         Canvas.prototype.plot = function (x, y) {
             this.move(x, y);
+            //x = Canvas.cpcRoundingTowardsZeroX(x, this.modeData.pixelWidth);
+            //y = Canvas.cpcRoundingTowardsZeroY(y, this.modeData.pixelHeight);
             this.setPixel(x, y, this.gPen, this.gColMode); // must be integer
             this.setNeedUpdate();
         };
         Canvas.prototype.test = function (x, y) {
             this.move(x, y);
+            //x = Canvas.cpcRoundingTowardsZeroX(x, this.modeData.pixelWidth);
+            //y = Canvas.cpcRoundingTowardsZeroY(y, this.modeData.pixelHeight);
             return this.testPixel(this.xPos, this.yPos); // use rounded values
         };
         Canvas.prototype.setInk = function (pen, ink1, ink2) {
@@ -832,8 +862,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             }
         };
         Canvas.prototype.clearTextWindow = function (left, right, top, bottom, paper) {
-            var width = right + 1 - left, height = bottom + 1 - top, pens = this.modeData.pens;
-            paper %= pens; // limit papers
+            var width = right + 1 - left, height = bottom + 1 - top;
             this.fillTextBox(left, top, width, height, paper);
         };
         Canvas.prototype.clearGraphicsWindow = function () {
@@ -846,20 +875,20 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.fillMyRect(0, 0, this.width, this.height, paper);
             this.setNeedUpdate();
         };
-        Canvas.prototype.windowScrollUp = function (left, right, top, bottom, pen) {
+        Canvas.prototype.windowScrollUp = function (left, right, top, bottom, paper) {
             var charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8, width = right + 1 - left, height = bottom + 1 - top;
             if (height > 1) { // scroll part
                 this.moveMyRectUp(left * charWidth, (top + 1) * charHeight, width * charWidth, (height - 1) * charHeight, left * charWidth, top * charHeight);
             }
-            this.fillTextBox(left, bottom, width, 1, pen);
+            this.fillTextBox(left, bottom, width, 1, paper);
             this.setNeedUpdate();
         };
-        Canvas.prototype.windowScrollDown = function (left, right, top, bottom, pen) {
+        Canvas.prototype.windowScrollDown = function (left, right, top, bottom, paper) {
             var charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8, width = right + 1 - left, height = bottom + 1 - top;
             if (height > 1) { // scroll part
                 this.moveMyRectDown(left * charWidth, top * charHeight, width * charWidth, (height - 1) * charHeight, left * charWidth, (top + 1) * charHeight);
             }
-            this.fillTextBox(left, top, width, 1, pen);
+            this.fillTextBox(left, top, width, 1, paper);
             this.setNeedUpdate();
         };
         Canvas.prototype.setSpeedInk = function (time1, time2) {

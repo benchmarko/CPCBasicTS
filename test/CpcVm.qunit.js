@@ -662,6 +662,8 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             for (var _i = 0; _i < arguments.length; _i++) {
                 args[_i] = arguments[_i];
             }
+            var varName = args[0];
+            variablesMap[varName] = this.getVarType(varName.charAt(0)) === "$" ? [""] : [0];
             lastTestFunctions.push({
                 dimVariable: args
             });
@@ -689,6 +691,11 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
         },
         variableExist: function (name) {
             return name in variablesMap;
+        },
+        removeAllVariables: function () {
+            for (var name_1 in variablesMap) { // eslint-disable-line guard-for-in
+                delete variablesMap[name_1];
+            }
         }
     };
     // https://www.cpcwiki.eu/index.php/Locomotive_BASIC
@@ -1106,8 +1113,8 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 "": ""
             },
             dim: {
-                '"abc$A",5': "dimVariable:abc$A,6",
-                '"abc$A",5,2': "dimVariable:abc$A,6,3",
+                '"abcA$",5': "dimVariable:abcA$,6",
+                '"abcAA$",5,2': "dimVariable:abcAA$,6,3",
                 '"aA",0': "dimVariable:aA,1",
                 "": 'CpcVm: Type mismatch in 0: DIM undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 '""': "dimVariable:,",
@@ -1226,6 +1233,9 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 '"_testCase3"': '0 -- {"_key":"inFile","open":true,"command":"","name":"","line":0,"fileData":["A"],"first":0,"last":0,"memorizedExample":""}'
             },
             erase: {
+                '"abc4"': "",
+                '"abc5$"': "",
+                '"abc52$"': "",
                 '"ab"': 'CpcVm: Improper argument in 0: ERASE ab -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 "": 'CpcVm: Syntax Error in 0: ERASE -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 '""': 'CpcVm: Improper argument in 0: ERASE  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
@@ -2136,10 +2146,12 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 "2.50": "3",
                 "0 ": "0",
                 "-2.49": "-2",
-                "-2.50": "-2",
+                "-2.50": "-3",
                 "13 ": "13",
                 "2.49,1": "2.5",
                 "8.575,2": "8.58",
+                "1.005,2": "1.01",
+                "-1.005,2": "-1.01",
                 "2.49,-39": "0",
                 "2.49,39": "2.49",
                 "1234.5678,-2": "1200",
@@ -2819,7 +2831,9 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 return String(cpcVm.eof.apply(cpcVm, input));
             },
             erase: function (cpcVm, input) {
-                cpcVm.dim("abA", 5); // TODO: set also variable
+                cpcVm.dim("abc4A", 4);
+                cpcVm.dim("abc5A$", 5);
+                cpcVm.dim("abc52AA$", 5, 2);
                 clearLastTestFunctions();
                 cpcVm.erase.apply(cpcVm, input);
             },
@@ -3416,6 +3430,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                     cpcVm.closein();
                     cpcVm.closeout();
                     cpcVm.vmGotoLine(0);
+                    config.variables.removeAllVariables();
                     clearLastTestFunctions();
                     cpcVm.vmStop("", 0, true);
                     var vmState0 = getVmState(cpcVm), input = key === "" ? [] : adaptParameters(key.split(",")), expected = tests[key];
@@ -3445,6 +3460,32 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
         }
         TestHelper_1.TestHelper.generateAndRunAllTests(allTests, runTestsFor);
     });
+    /*
+    QUnit.module("CpcVm: combination", function (hooks) {
+        const that = { // eslint-disable-line consistent-this
+            cpcVm: {} as CpcVm
+        };
+    
+        hooks.beforeEach(function () {
+            const config: CpcVmOptions = {
+                canvas: mockCanvas,
+                textCanvas: mockTextCanvas,
+                keyboard: mockKeyboard,
+                sound: mockSound,
+                variables: mockVariables,
+                quiet: true
+            };
+    
+            that.cpcVm = new CpcVm(config);
+        });
+    
+        QUnit.test("dim and erase", function (assert) {
+            const cpcVm = that.cpcVm;
+    
+            cpcVm.dim(""); //TODO
+        });
+    });
+    */
     QUnit.module("CpcVm: vm functions", function (hooks) {
         var that = {}; // eslint-disable-line consistent-this
         hooks.beforeEach(function () {

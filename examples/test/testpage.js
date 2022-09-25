@@ -10,7 +10,17 @@ cpcBasic.addItem("", function () { /*
 50 '|renum,100,100,10,9000:stop
 60 '
 100 '
-110 MODE 2:'comment
+101 'pixel test
+102 MODE 0
+103 POKE &FF80,0:PLOT -1,0:IF PEEK(&FF80)<>128 or test(-1,0)<>1 THEN ERROR 33
+104 POKE &FF80,0:PLOT -2,0:IF PEEK(&FF80)<>128 or test(-2,0)<>1 THEN ERROR 33
+105 POKE &FF80,0:PLOT -3,0:IF PEEK(&FF80)<>128 or test(-3,0)<>1 THEN ERROR 33
+106 POKE &FF80,0:PLOT 0,-1:IF PEEK(&FF80)<>128 or test(0,-10)<>1 THEN ERROR 33
+107 MODE 1
+108 POKE &FF80,0:PLOT -1,0:IF PEEK(&FF80)<>128 or test(-1,0)<>1 THEN ERROR 33
+109 POKE &FF80,0:PLOT 0,-1:IF PEEK(&FF80)<>128 or test(0,-1)<>1 THEN ERROR 33
+110 '
+115 MODE 2:'comment
 120 '
 130 PRINT"Numbers"
 140 a=1:IF a<>1 THEN ERROR 33
@@ -48,6 +58,7 @@ cpcBasic.addItem("", function () { /*
 450 a!=1.5:IF a!<>1.5 THEN ERROR 33
 460 a%=1.4:IF a%<>1 THEN ERROR 33
 470 a%=1.5:IF a%<>2 THEN ERROR 33
+471 a%=-1.5:IF a%<>-2 THEN ERROR 33
 480 a$="1.4":IF a$<>"1.4" THEN ERROR 33
 490 insert.line=2:IF insert.line<>2 THEN ERROR 33
 500 '
@@ -454,6 +465,9 @@ cpcBasic.addItem("", function () { /*
 4110 a=ROUND(PI,2.4):IF a<>3.14 THEN ERROR 33
 4120 a=ROUND(1234.5678,-2):IF a<>1200 THEN ERROR 33
 4130 a=ROUND(8.575,2):IF a<>8.58 THEN ERROR 33
+4131 a=ROUND(-8.575,2):IF a<>-8.58 THEN ERROR 33
+4132 a=ROUND(1.005,2):IF a<>1.01 THEN ERROR 33
+4133 a=ROUND(-1.005,2):IF a<>-1.01 THEN ERROR 33
 4140 '
 4150 GOSUB 9040
 4160 PRINT"DATA and RESTORE"
@@ -591,8 +605,8 @@ cpcBasic.addItem("", function () { /*
 5462 PRINT "WRITE"
 5466 WRITE 1e9-1,1e9,"1e9","#"
 5467 GOSUB 9010:IF a$<>"999999999,1E+09,"+chr$(34)+"1e9"+chr$(34)+","+chr$(34)+"#" THEN ERROR 33
-5468 'TODO: WRITE 1e9-1;1e9;"1e9","#"
-5469 'GOSUB 9010:IF a$<>"999999999,1E+09,"+chr$(34)+"1e9"+chr$(34)+","+chr$(34)+"#" THEN ERROR 33
+5468 WRITE 1e9-1;1e9;"1e9","#"
+5469 GOSUB 9010:IF a$<>"999999999,1E+09,"+chr$(34)+"1e9"+chr$(34)+","+chr$(34)+"#" THEN ERROR 33
 5476 '
 5480 GOSUB 9040
 5490 '

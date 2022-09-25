@@ -960,7 +960,7 @@ declare module "Canvas" {
         getXpos(): number;
         getYpos(): number;
         private fillMyRect;
-        fillTextBox(left: number, top: number, width: number, height: number, pen: number): void;
+        fillTextBox(left: number, top: number, width: number, height: number, paper: number): void;
         private moveMyRectUp;
         private moveMyRectDown;
         private invertChar;
@@ -997,8 +997,8 @@ declare module "Canvas" {
         clearTextWindow(left: number, right: number, top: number, bottom: number, paper: number): void;
         clearGraphicsWindow(): void;
         clearFullWindow(): void;
-        windowScrollUp(left: number, right: number, top: number, bottom: number, pen: number): void;
-        windowScrollDown(left: number, right: number, top: number, bottom: number, pen: number): void;
+        windowScrollUp(left: number, right: number, top: number, bottom: number, paper: number): void;
+        windowScrollDown(left: number, right: number, top: number, bottom: number, paper: number): void;
         setSpeedInk(time1: number, time2: number): void;
         setMask(mask: number): void;
         setMaskFirst(maskFirst: number): void;
