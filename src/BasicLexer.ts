@@ -114,7 +114,7 @@ export class BasicLexer {
 
 	private debugCheckValue(type: string, value: string, pos: number, orig?: string) {
 		const origValue = orig || value,
-			part = this.input.substr(pos, origValue.length);
+			part = this.input.substring(pos, pos + origValue.length);
 
 		if (part !== origValue) {
 			Utils.console.debug("BasicLexer:debugCheckValue:", type, part, "<>", origValue, "at pos", pos);

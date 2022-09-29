@@ -727,8 +727,26 @@ const allTests: AllTestsType = { // eslint-disable-line vars-on-top
 };
 
 QUnit.module("BasicLexer: Tests", function () {
-	function fnReplacer(bin: string) {
-		return "0x" + parseInt(bin.substr(2), 2).toString(16).toLowerCase();
+	function runSingleTest(basicLexer: BasicLexer, key: string, expectedEntry: any) {
+		let result: string,
+			tokens: LexerToken[];
+
+		try {
+			tokens = basicLexer.lex(key);
+			result = JSON.stringify(tokens);
+		} catch (e) {
+			if ((e as Error).message !== expectedEntry.message) {
+				Utils.console.error(e); // only if unexpected
+			}
+			// on IE we have additional properties description, number, stack in the object, so we use a positive list...
+			// eslint-disable-next-line object-property-newline, object-curly-newline
+			const copiedError = (({ len, line, message, name, pos, shortMessage, value }) => ({ len, line, message, name, pos, shortMessage, value }))(e);
+			// (https://stackoverflow.com/questions/17781472/how-to-get-a-subset-of-a-javascript-objects-properties)
+
+			result = JSON.stringify(copiedError);
+		}
+
+		return result;
 	}
 
 	function runTestsFor(_category: string, tests: TestsType, assert?: Assert, results?: string[]) {
@@ -738,48 +756,25 @@ QUnit.module("BasicLexer: Tests", function () {
 
 		for (const key in tests) {
 			if (tests.hasOwnProperty(key)) {
-				let expectedString = tests[key],
-					expectedEntry,
-					tokens: LexerToken[],
-					result: string;
-
-				if (!Utils.supportsBinaryLiterals) {
-					expectedString = expectedString.replace(/(0b[01]+)/g, fnReplacer); // for old IE
-				}
+				const expected = TestHelper.handleBinaryLiterals(tests[key]);
+				let expectedEntry;
 
 				try {
-					try {
-						expectedEntry = JSON.parse(expectedString); // test: { e: expected }
-					} catch (e) {
-						Utils.console.error(e);
-						expectedEntry = {}; // continue
-					}
-
-					tokens = basicLexer.lex(key);
-					result = JSON.stringify(tokens);
+					expectedEntry = JSON.parse(expected); // test: { e: expected }
 				} catch (e) {
-					/*
 					Utils.console.error(e);
-					result = String(e);
-					tokens = result as any; // force to take it
-					*/
-					if ((e as Error).message !== expectedEntry.message) {
-						Utils.console.error(e); // only if unexpected
-					}
-					// on IE we have additional properties description, number, stack in the object, so we use a positive list...
-					// eslint-disable-next-line object-property-newline, object-curly-newline
-					const copiedError = (({ len, line, message, name, pos, shortMessage, value }) => ({ len, line, message, name, pos, shortMessage, value }))(e);
-					// (https://stackoverflow.com/questions/17781472/how-to-get-a-subset-of-a-javascript-objects-properties)
-
-					result = JSON.stringify(copiedError);
-					tokens = JSON.parse(result); // get error without Error object
+					expectedEntry = {}; // continue
 				}
+
+				const result = runSingleTest(basicLexer, key, expectedEntry);
 
 				if (results) {
 					results.push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
 				}
 
 				if (assert) {
+					const tokens = JSON.parse(result);
+
 					assert.deepEqual(tokens, expectedEntry, key);
 				}
 			}
@@ -813,7 +808,33 @@ QUnit.module("BasicLexer: keepWhiteSpace", function () {
 		return result;
 	}
 
-	function runTestsFor(_category: string, tests: TestsType, assert?: Assert, results?: string[]) {
+	function runSingleTestForWhitespace(basicLexer: BasicLexer, key: string, expected: string) {
+		let result: string,
+			expectedEntry;
+
+		try {
+			expectedEntry = JSON.parse(expected); // test: { e: expected }
+		} catch (e) {
+			Utils.console.error(e);
+			expectedEntry = {}; // continue
+		}
+
+		try {
+			const tokens = basicLexer.lex(key);
+
+			result = fnCombineTokens(tokens);
+		} catch (e) {
+			if ((e as Error).message.replace(/\d+/g, "") !== expectedEntry.message.replace(/\d+/g, "")) { // compare without positions
+				Utils.console.error(e); // only if unexpected
+				result = String(e);
+			} else {
+				result = key; // set desired result
+			}
+		}
+		return result;
+	}
+
+	function runTestsForWhitespace(_category: string, tests: TestsType, assert?: Assert, results?: string[]) {
 		const basicLexer = new BasicLexer({
 			quiet: true,
 			keepWhiteSpace: true
@@ -821,46 +842,9 @@ QUnit.module("BasicLexer: keepWhiteSpace", function () {
 
 		for (const key in tests) {
 			if (tests.hasOwnProperty(key)) {
-				let //tokens: LexerToken[],
-					expectedEntry,
-					result: string;
-				const key2 = key.replace(/([=?+\-*/^\\,;()])/g, "  $1   "); // make it a bit harder
-
-				try {
-					expectedEntry = JSON.parse(tests[key]); // test: { e: expected }
-				} catch (e) {
-					Utils.console.error(e);
-					expectedEntry = {}; // continue
-				}
-
-				try {
-					const tokens = basicLexer.lex(key2);
-
-					result = fnCombineTokens(tokens);
-				} catch (e) {
-					/*
-					Utils.console.error(e);
-					//tokens = String(e) as any; // force to take it
-					tokens = [];
-					*/
-					if ((e as Error).message.replace(/\d+/g, "") !== expectedEntry.message.replace(/\d+/g, "")) { // compare without positions
-						Utils.console.error(e); // only if unexpected
-						result = String(e);
-					} else {
-						result = key2; // set desired result
-					}
-					/*
-					// on IE we have additional properties description, number, stack in the object, so we use a positive list...
-					// eslint-disable-next-line object-property-newline, object-curly-newline
-					const copiedError = (({ len, line, message, name, pos, shortMessage, value }) => ({ len, line, message, name, pos, shortMessage, value }))(e);
-					// (https://stackoverflow.com/questions/17781472/how-to-get-a-subset-of-a-javascript-objects-properties)
-
-					result = JSON.stringify(copiedError);
-					//tokens = JSON.parse(result); // get error without Error object
-					*/
-				}
-
-				//const tokenString = fnCombineTokens(tokens);
+				const expected = tests[key],
+					key2 = key.replace(/([=?+\-*^/\\,;()])/g, "  $1   "), // make it a bit harder
+					result = runSingleTestForWhitespace(basicLexer, key2, expected);
 
 				if (results) {
 					//
@@ -873,14 +857,7 @@ QUnit.module("BasicLexer: keepWhiteSpace", function () {
 		}
 	}
 
-	/*
-	const keepWhiteSpaceTests = {
-		keepWhiteSpace: allTests.keepSpaces
-	};
-
-	TestHelper.generateAndRunAllTests(keepWhiteSpaceTests, runTestsFor);
-	*/
-	TestHelper.generateAndRunAllTests(allTests, runTestsFor);
+	TestHelper.generateAndRunAllTests(allTests, runTestsForWhitespace);
 });
 
 QUnit.module("BasicLexer: lexer specific tests", function (/* hooks */) {

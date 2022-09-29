@@ -96,7 +96,6 @@ export class NodeAdapt {
 			const element = domElements[id] || myCreateElement(id);
 
 			if (!element.options.add) {
-				// element.options = [];
 				element.add = (option: any) => {
 					// eslint-disable-next-line no-invalid-this
 					element.options.push(option);
@@ -122,7 +121,6 @@ export class NodeAdapt {
 		// https://nodejs.dev/learn/accept-input-from-the-command-line-in-nodejs
 		// readline?
 		const controller = nodeExports.Controller;
-		// startWithDirectInputOrig = controller.prototype.startWithDirectInput;
 
 		controller.prototype.startWithDirectInput = () => {
 			Utils.console.log("We are ready.");

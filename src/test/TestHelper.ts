@@ -14,12 +14,9 @@ declare global {
 	}
 }
 
-
 type ConfigEntryType = string | number | boolean; // also in Model
 
 type ConfigType = Record<string, ConfigEntryType>;
-
-// QUnit.dump.maxDepth = 10;
 
 export class TestHelper { // eslint-disable-line vars-on-top
 	static config: ConfigType = {
@@ -103,6 +100,17 @@ export class TestHelper { // eslint-disable-line vars-on-top
 				});
 			}
 		}
+	}
+
+	private static fnBinaryLiteralReplacer(bin: string) {
+		return "0x" + parseInt(bin.substring(2), 2).toString(16).toLowerCase();
+	}
+
+	static handleBinaryLiterals(str: string): string {
+		if (!Utils.supportsBinaryLiterals) {
+			str = str.replace(/(0b[01]+)/g, TestHelper.fnBinaryLiteralReplacer); // for old IE
+		}
+		return str;
 	}
 
 	static stringInQuotes(s: string): string {

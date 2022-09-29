@@ -937,8 +937,6 @@ export class Canvas {
 	plot(x: number, y: number): void {
 		this.move(x, y);
 
-		//x = Canvas.cpcRoundingTowardsZeroX(x, this.modeData.pixelWidth);
-		//y = Canvas.cpcRoundingTowardsZeroY(y, this.modeData.pixelHeight);
 		this.setPixel(x, y, this.gPen, this.gColMode); // must be integer
 		this.setNeedUpdate();
 	}
@@ -946,8 +944,6 @@ export class Canvas {
 	test(x: number, y: number): number {
 		this.move(x, y);
 
-		//x = Canvas.cpcRoundingTowardsZeroX(x, this.modeData.pixelWidth);
-		//y = Canvas.cpcRoundingTowardsZeroY(y, this.modeData.pixelHeight);
 		return this.testPixel(this.xPos, this.yPos); // use rounded values
 	}
 

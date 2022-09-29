@@ -148,7 +148,7 @@ export class TextCanvas {
 			yTxt = (y / charHeight) | 0;
 			/* eslint-enable no-bitwise */
 
-		if (Utils.debug > 0) { //TTT
+		if (Utils.debug > 0) {
 			Utils.console.debug("canvasClickAction2: x=" + x + ", y=" + y + ", xTxt=" + xTxt + ", yTxt=" + yTxt);
 		}
 

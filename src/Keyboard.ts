@@ -491,7 +491,7 @@ export class Keyboard {
 				}
 			} else if (key.length === 2) {
 				if (key.charAt(0) === "^" || key.charAt(0) === "´" || key.charAt(0) === "`") { // IE, Edge? prefix key
-					key = key.substr(1); // remove prefix
+					key = key.substring(1); // remove prefix
 				}
 			}
 			this.fnPressCpcKey(cpcKey, pressedKey, key, event.shiftKey, event.ctrlKey);

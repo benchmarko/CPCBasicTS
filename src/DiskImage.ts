@@ -227,7 +227,7 @@ export class DiskImage {
 	}
 
 	private readUtf(pos: number, len: number) {
-		const out = this.data.substr(pos, len);
+		const out = this.data.substring(pos, pos + len);
 
 		if (out.length !== len) {
 			throw this.composeError(new Error(), "End of File", "", pos);
@@ -263,10 +263,10 @@ export class DiskImage {
 
 		diskInfo.ident = ident + this.readUtf(pos + 8, 34 - 8); // read remaining ident
 
-		if (diskInfo.ident.substr(34 - 11, 9) !== "Disk-Info") { // some tools use "Disk-Info  " instead of "Disk-Info\r\n", so compare without "\r\n"
+		if (diskInfo.ident.substring(34 - 11, 34 - 11 + 9) !== "Disk-Info") { // some tools use "Disk-Info  " instead of "Disk-Info\r\n", so compare without "\r\n"
 			// "Disk-Info" string is optional
 			if (!this.quiet) {
-				Utils.console.warn(this.composeError({} as Error, "Disk ident not found", diskInfo.ident.substr(34 - 11, 9), pos + 34 - 11).message);
+				Utils.console.warn(this.composeError({} as Error, "Disk ident not found", diskInfo.ident.substring(34 - 11, 34 - 11 + 9), pos + 34 - 11).message);
 			}
 		}
 
@@ -300,10 +300,10 @@ export class DiskImage {
 		trackInfo.dataPos = pos + trackInfoSize;
 
 		trackInfo.ident = this.readUtf(pos, 12);
-		if (trackInfo.ident.substr(0, 10) !== "Track-Info") { // some tools use "Track-Info  " instead of "Track-Info\r\n", so compare without "\r\n"
+		if (trackInfo.ident.substring(0, 10) !== "Track-Info") { // some tools use "Track-Info  " instead of "Track-Info\r\n", so compare without "\r\n"
 			// "Track-Info" string is optional
 			if (!this.quiet) {
-				Utils.console.warn(this.composeError({} as Error, "Track ident not found", trackInfo.ident.substr(0, 10), pos).message);
+				Utils.console.warn(this.composeError({} as Error, "Track ident not found", trackInfo.ident.substring(0, 10), pos).message);
 			}
 		}
 		// 4 unused bytes
@@ -611,7 +611,7 @@ export class DiskImage {
 		return out;
 	}
 
-	readFile(fileExtents: ExtentEntry[]): string {
+	private readExtents(fileExtents: ExtentEntry[]) {
 		const recPerBlock = 8;
 		let out = "";
 
@@ -624,7 +624,7 @@ export class DiskImage {
 				let block = this.readBlock(blocks[blockIndex]);
 
 				if (records < recPerBlock) { // block with some remaining data
-					block = block.substr(0, 0x80 * records);
+					block = block.substring(0, 0x80 * records);
 				}
 
 				out += block;
@@ -634,6 +634,11 @@ export class DiskImage {
 				}
 			}
 		}
+		return out;
+	}
+
+	readFile(fileExtents: ExtentEntry[]): string {
+		let out = this.readExtents(fileExtents);
 
 		const header = DiskImage.parseAmsdosHeader(out);
 		let realLen: number | undefined;
@@ -658,7 +663,7 @@ export class DiskImage {
 		}
 
 		if (realLen !== undefined) { // now real length (from header or ASCII)?
-			out = out.substr(0, realLen);
+			out = out.substring(0, realLen);
 		}
 		return out;
 	}
@@ -712,14 +717,14 @@ export class DiskImage {
 		// http://www.benchmarko.de/cpcemu/cpcdoc/chapter/cpcdoc7_e.html#I_AMSDOS_HD
 		// http://www.cpcwiki.eu/index.php/AMSDOS_Header
 		if (data.length >= 0x80) {
-			const computed = DiskImage.computeChecksum(data.substr(0, 66)),
+			const computed = DiskImage.computeChecksum(data.substring(0, 66)),
 				sum = data.charCodeAt(67) + data.charCodeAt(68) * 256;
 
 			if (computed === sum) {
 				header = {
 					user: data.charCodeAt(0),
-					name: data.substr(1, 8),
-					ext: data.substr(9, 3),
+					name: data.substring(1, 1 + 8),
+					ext: data.substring(9, 9 + 3),
 					typeNumber: data.charCodeAt(18),
 					start: data.charCodeAt(21) + data.charCodeAt(22) * 256,
 					pseudoLen: data.charCodeAt(24) + data.charCodeAt(25) * 256,

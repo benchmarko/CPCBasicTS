@@ -7,6 +7,8 @@ import { TestHelper, TestsType, AllTestsType } from "./TestHelper";
 
 type TestFunctionInputType = string | number | undefined; // | object | Function;
 
+type TestFunctionType = (sound: Sound, input: TestFunctionInputType[]) => number | string | void;
+
 const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [];
 
 function clearLastTestFunctions() {
@@ -17,9 +19,9 @@ function combineLastTestFunctions() {
 	return lastTestFunctions.map((lastTestFunction) => Object.keys(lastTestFunction)[0] + ":" + Object.values(lastTestFunction)[0]).join(" , ") || undefined;
 }
 
-function combineResult(result: string) {
+function combineResult(result: string | number | void) {
 	const combinedTestFunctions = combineLastTestFunctions(),
-		combinedResult = [];
+		combinedResult: (string | number)[] = [];
 
 	if (combinedTestFunctions !== undefined) {
 		combinedResult.push(combinedTestFunctions);
@@ -72,7 +74,6 @@ class AudioContextMock {
 				lastTestFunctions.push({
 					"gain:connect": args as any
 				});
-				//return this;
 			},
 			gain: {
 				setValueAtTime: function (...args) {
@@ -104,7 +105,7 @@ class AudioContextMock {
 				lastTestFunctions.push({
 					"createBuffer:getChannelData": args2
 				});
-				return buffer; //new Float32Array(); // TODO
+				return buffer; // TODO: new Float32Array()
 			}
 		} as AudioBuffer;
 	}
@@ -160,7 +161,6 @@ class AudioContextMock {
 					});
 				}
 			},
-			//type: "",
 			connect: function (...args) {
 				lastTestFunctions.push({
 					"oscillator.connect": args as any
@@ -194,15 +194,9 @@ QUnit.module("Sound: Tests1", function (hooks) {
 		that.sound = new Sound({
 			AudioContextConstructor: AudioContextMock as typeof window.AudioContext
 		});
-		//that.model.setProperty("p2", "v2");
 	});
 
 	QUnit.test("create class", function (assert) {
-		/*
-		const sound = new Sound({
-			AudioContextConstructor: AudioContextMock
-		});
-		*/
 		assert.ok(that.sound, "defined");
 	});
 
@@ -268,7 +262,7 @@ QUnit.module("Sound: Tests", function () {
 			"1,3,2,2": "undefined"
 		}
 	},
-		allTestFunctions: Record<string, (...args: any) => any> = {
+		allTestFunctions: Record<string, TestFunctionType> = {
 			sound: function (sound: Sound, input: TestFunctionInputType[]) {
 				const soundData = {
 					state: input[0],
@@ -336,7 +330,7 @@ QUnit.module("Sound: Tests", function () {
 
 		for (let i = 0; i < a.length; i += 1) {
 			if (a[i].startsWith('"') && a[i].endsWith('"')) { // string in quotes?
-				b.push(a[i].substr(1, a[i].length - 2)); // remove quotes
+				b.push(a[i].substring(1, 1 + a[i].length - 2)); // remove quotes
 			} else if (a[i] !== "") { // non empty string => to number
 				b.push(Number(a[i]));
 			} else {
@@ -344,6 +338,31 @@ QUnit.module("Sound: Tests", function () {
 			}
 		}
 		return b;
+	}
+
+	function runSingleTest(testFunction: TestFunctionType, sound: Sound, key: string, expected: string, category: string) {
+		clearLastTestFunctions();
+		sound.reset();
+
+		const input = key === "" ? [] : adaptParameters(key.split(","));
+		let result: string;
+
+		try {
+			if (!testFunction) {
+				throw new Error("Undefined testFunction: " + category);
+			}
+			const result0 = testFunction(sound, input);
+
+			result = combineResult(result0);
+		} catch (e) {
+			result = String(e);
+			result = combineResult(result);
+			if (result !== expected) {
+				Utils.console.error(e); // only if not expected
+			}
+		}
+
+		return result;
 	}
 
 	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: string[]) {
@@ -357,27 +376,8 @@ QUnit.module("Sound: Tests", function () {
 
 		for (const key in tests) {
 			if (tests.hasOwnProperty(key)) {
-				clearLastTestFunctions();
-				sound.reset();
-				const //vmState0 = getVmState(cpcVm),
-					input = key === "" ? [] : adaptParameters(key.split(",")),
-					expected = tests[key];
-
-				let result: string;
-
-				try {
-					if (!testFunction) {
-						throw new Error("Undefined testFunction: " + category);
-					}
-					result = testFunction(sound, input);
-					result = combineResult(result); //, vmState0, getVmState(cpcVm));
-				} catch (e) {
-					result = String(e);
-					result = combineResult(result); //, vmState0, getVmState(cpcVm));
-					if (result !== expected) {
-						Utils.console.error(e); // only if not expected
-					}
-				}
+				const expected = tests[key],
+					result = runSingleTest(testFunction, sound, key, expected, category);
 
 				if (results) {
 					results.push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
