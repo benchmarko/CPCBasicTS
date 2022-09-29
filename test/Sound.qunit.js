@@ -72,7 +72,6 @@ define(["require", "exports", "../Utils", "../Sound", "./TestHelper"], function 
                     lastTestFunctions.push({
                         "gain:connect": args
                     });
-                    //return this;
                 },
                 gain: {
                     setValueAtTime: function () {
@@ -117,7 +116,7 @@ define(["require", "exports", "../Utils", "../Sound", "./TestHelper"], function 
                     lastTestFunctions.push({
                         "createBuffer:getChannelData": args2
                     });
-                    return buffer; //new Float32Array(); // TODO
+                    return buffer; // TODO: new Float32Array()
                 }
             };
         };
@@ -186,7 +185,6 @@ define(["require", "exports", "../Utils", "../Sound", "./TestHelper"], function 
                         });
                     }
                 },
-                //type: "",
                 connect: function () {
                     var args = [];
                     for (var _i = 0; _i < arguments.length; _i++) {
@@ -234,14 +232,8 @@ define(["require", "exports", "../Utils", "../Sound", "./TestHelper"], function 
             that.sound = new Sound_1.Sound({
                 AudioContextConstructor: AudioContextMock
             });
-            //that.model.setProperty("p2", "v2");
         });
         QUnit.test("create class", function (assert) {
-            /*
-            const sound = new Sound({
-                AudioContextConstructor: AudioContextMock
-            });
-            */
             assert.ok(that.sound, "defined");
         });
         QUnit.test("reset", function (assert) {
@@ -358,7 +350,7 @@ define(["require", "exports", "../Utils", "../Sound", "./TestHelper"], function 
             var b = [];
             for (var i = 0; i < a.length; i += 1) {
                 if (a[i].startsWith('"') && a[i].endsWith('"')) { // string in quotes?
-                    b.push(a[i].substr(1, a[i].length - 2)); // remove quotes
+                    b.push(a[i].substring(1, 1 + a[i].length - 2)); // remove quotes
                 }
                 else if (a[i] !== "") { // non empty string => to number
                     b.push(Number(a[i]));
@@ -369,6 +361,27 @@ define(["require", "exports", "../Utils", "../Sound", "./TestHelper"], function 
             }
             return b;
         }
+        function runSingleTest(testFunction, sound, key, expected, category) {
+            clearLastTestFunctions();
+            sound.reset();
+            var input = key === "" ? [] : adaptParameters(key.split(","));
+            var result;
+            try {
+                if (!testFunction) {
+                    throw new Error("Undefined testFunction: " + category);
+                }
+                var result0 = testFunction(sound, input);
+                result = combineResult(result0);
+            }
+            catch (e) {
+                result = String(e);
+                result = combineResult(result);
+                if (result !== expected) {
+                    Utils_1.Utils.console.error(e); // only if not expected
+                }
+            }
+            return result;
+        }
         function runTestsFor(category, tests, assert, results) {
             var sound = new Sound_1.Sound({
                 AudioContextConstructor: AudioContextMock
@@ -377,25 +390,7 @@ define(["require", "exports", "../Utils", "../Sound", "./TestHelper"], function 
             sound.setActivatedByUser();
             for (var key in tests) {
                 if (tests.hasOwnProperty(key)) {
-                    clearLastTestFunctions();
-                    sound.reset();
-                    var //vmState0 = getVmState(cpcVm),
-                    input = key === "" ? [] : adaptParameters(key.split(",")), expected = tests[key];
-                    var result = void 0;
-                    try {
-                        if (!testFunction) {
-                            throw new Error("Undefined testFunction: " + category);
-                        }
-                        result = testFunction(sound, input);
-                        result = combineResult(result); //, vmState0, getVmState(cpcVm));
-                    }
-                    catch (e) {
-                        result = String(e);
-                        result = combineResult(result); //, vmState0, getVmState(cpcVm));
-                        if (result !== expected) {
-                            Utils_1.Utils.console.error(e); // only if not expected
-                        }
-                    }
+                    var expected = tests[key], result = runSingleTest(testFunction, sound, key, expected, category);
                     if (results) {
                         results.push(TestHelper_1.TestHelper.stringInQuotes(key) + ": " + TestHelper_1.TestHelper.stringInQuotes(result));
                     }

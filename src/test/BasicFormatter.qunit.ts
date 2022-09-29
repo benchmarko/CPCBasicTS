@@ -2,7 +2,6 @@
 //
 // qunit dist/test/BasicFormatter.qunit.js debug=1 generateAll=true
 
-import { Utils } from "../Utils";
 import { BasicLexer } from "../BasicLexer"; // we use BasicLexer here just for convenient input
 import { BasicParser } from "../BasicParser";
 import { BasicFormatter } from "../BasicFormatter";
@@ -89,30 +88,30 @@ QUnit.module("BasicFormatter:renumber: Tests", function () {
 		}
 	};
 
-	function runTestsFor(_category: string, tests: TestsType, assert?: Assert, results?: string[]) {
-		const basicFormatter = new BasicFormatter({
-				lexer: new BasicLexer(),
-				parser: new BasicParser({
-					quiet: true
-				})
-			}),
-			fnReplacer = function (bin: string) {
-				return "0x" + parseInt(bin.substr(2), 2).toString(16).toLowerCase();
-			},
-			newLine = 10,
+	function runSingleTest(basicFormatter: BasicFormatter, key: string) {
+		const newLine = 10,
 			oldLine = 1,
 			step = 10,
-			keep = 65535;
+			keep = 65535,
+			output = basicFormatter.renumber(key, newLine, oldLine, step, keep),
+			result = output.error ? String(output.error) : output.text;
+
+		return result;
+	}
+
+	function runTestsFor(_category: string, tests: TestsType, assert?: Assert, results?: string[]) {
+		const basicFormatter = new BasicFormatter({
+			lexer: new BasicLexer(),
+			parser: new BasicParser({
+				quiet: true
+			})
+		});
 
 		for (const key in tests) {
 			if (tests.hasOwnProperty(key)) {
-				const output = basicFormatter.renumber(key, newLine, oldLine, step, keep),
-					result = output.error ? String(output.error) : output.text;
-				let expected = tests[key];
+				const expected = TestHelper.handleBinaryLiterals(tests[key]),
+					result = runSingleTest(basicFormatter, key);
 
-				if (!Utils.supportsBinaryLiterals) {
-					expected = expected.replace(/(0b[01]+)/g, fnReplacer); // for old IE
-				}
 				if (results) {
 					results.push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
 				}
@@ -126,5 +125,3 @@ QUnit.module("BasicFormatter:renumber: Tests", function () {
 
 	TestHelper.generateAndRunAllTests(allTests, runTestsFor);
 });
-
-// end

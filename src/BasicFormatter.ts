@@ -177,7 +177,7 @@ export class BasicFormatter {
 		for (let i = keys.length - 1; i >= 0; i -= 1) {
 			const line = changes[keys[i]];
 
-			input = input.substring(0, line.pos) + line.newLine + input.substr(line.pos + line.len);
+			input = input.substring(0, line.pos) + line.newLine + input.substring(line.pos + line.len);
 		}
 		return input;
 	}

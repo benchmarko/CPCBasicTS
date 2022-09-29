@@ -72,7 +72,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             view.prototype.setSelectOptions = function (id, options) {
                 var element = domElements[id] || myCreateElement(id);
                 if (!element.options.add) {
-                    // element.options = [];
                     element.add = function (option) {
                         // eslint-disable-next-line no-invalid-this
                         element.options.push(option);
@@ -95,7 +94,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             // https://nodejs.dev/learn/accept-input-from-the-command-line-in-nodejs
             // readline?
             var controller = nodeExports.Controller;
-            // startWithDirectInputOrig = controller.prototype.startWithDirectInput;
             controller.prototype.startWithDirectInput = function () {
                 Utils_1.Utils.console.log("We are ready.");
             };

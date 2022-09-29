@@ -17,6 +17,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             // will also be set in decode
             this.lineEnd = 0;
             this.input = "";
+            this.needSpace = false; // hmm
             this.debug = {
                 startPos: 0,
                 line: 0,
@@ -313,15 +314,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 exponent -= 0x81; // 2-complement: 2^-127 .. 2^128
                 var num = mantissa * Math.pow(2, exponent - 31);
                 out = Utils_1.Utils.toPrecision9(num);
-                /*
-                out = num.toPrecision(9); // some rounding, formatting
-                if (out.indexOf("e") >= 0) {
-                    out = out.replace(/\.?0*e/, "E"); // exponential uppercase, no zeros
-                    out = out.replace(/(E[+-])(\d)$/, "$10$2"); // exponent 1 digit to 2 digits (or this: replace(/(\D)(\d)$/, "$10$2") )
-                } else if (out.indexOf(".") >= 0) { // decimal number?
-                    out = out.replace(/\.?0*$/, ""); // remove trailing dot and/or zeros
-                }
-                */
             }
             return out;
         };
@@ -405,51 +397,54 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             debug.info += " [" + hex + "] " + tokenLine;
         };
+        BasicTokenizer.prototype.fnParseNextToken = function (input) {
+            var oldNeedSpace = this.needSpace;
+            var token = this.fnNum8Dec();
+            if (token === 0x01) { // statement seperator ":"?
+                if (this.pos < input.length) {
+                    var nextToken = input.charCodeAt(this.pos); // test next token
+                    if (nextToken === 0x97 || nextToken === 0xc0) { // ELSE or rem '?
+                        token = nextToken; // ignore ':'
+                        this.pos += 1;
+                    }
+                }
+            }
+            this.needSpace = ((token >= 0x02 && token <= 0x1f) || (token === 0x7c)); // constant 0..9; variable, or RSX?
+            var tokenValue;
+            if (token === 0xff) { // extended token?
+                token = this.fnNum8Dec(); // get it
+                tokenValue = this.tokensFF[token];
+            }
+            else {
+                tokenValue = this.tokens[token];
+            }
+            var tstr;
+            if (tokenValue !== undefined) {
+                tstr = typeof tokenValue === "function" ? tokenValue.call(this) : tokenValue;
+                if ((/[a-zA-Z0-9.]$/).test(tstr) && token !== 0xe4) { // last character char, number, dot? (not for token "FN")
+                    this.needSpace = true; // maybe need space next time...
+                }
+            }
+            else { // normal ASCII
+                tstr = String.fromCharCode(token);
+            }
+            if (oldNeedSpace) {
+                if ((/^[a-zA-Z0-9$%!]/).test(tstr) || (token >= 0x02 && token <= 0x1f)) {
+                    tstr = " " + tstr;
+                }
+            }
+            if (Utils_1.Utils.debug > 2) {
+                this.debugCollectInfo(tstr);
+            }
+            return tstr;
+        };
         BasicTokenizer.prototype.fnParseLineFragment = function () {
             var input = this.input;
-            var out = "", space = false;
+            var out = "";
+            this.needSpace = false; // only needed in fnParseNextToken
             while (this.pos < this.lineEnd) {
                 this.debug.startPos = this.pos;
-                var oldSpace = space;
-                var token = this.fnNum8Dec();
-                if (token === 0x01) { // statement seperator ":"?
-                    if (this.pos < input.length) {
-                        var nextToken = input.charCodeAt(this.pos); // test next token
-                        if (nextToken === 0x97 || nextToken === 0xc0) { // ELSE or rem '?
-                            token = nextToken; // ignore ':'
-                            this.pos += 1;
-                        }
-                    }
-                }
-                space = ((token >= 0x02 && token <= 0x1f) || (token === 0x7c)); // constant 0..9; variable, or RSX?
-                var tokenValue = void 0;
-                if (token === 0xff) { // extended token?
-                    token = this.fnNum8Dec(); // get it
-                    tokenValue = this.tokensFF[token];
-                }
-                else {
-                    tokenValue = this.tokens[token];
-                }
-                var tstr = void 0;
-                if (tokenValue !== undefined) {
-                    if (typeof tokenValue === "function") {
-                        tstr = tokenValue.call(this);
-                    }
-                    else { // string
-                        tstr = tokenValue;
-                    }
-                    if ((/[a-zA-Z0-9.]$/).test(tstr) && token !== 0xe4) { // last character char, number, dot? (not for token "FN")
-                        space = true; // maybe need space next time...
-                    }
-                }
-                else { // normal ASCII
-                    tstr = String.fromCharCode(token);
-                }
-                if (oldSpace) {
-                    if ((/^[a-zA-Z0-9$%!]/).test(tstr) || (token >= 0x02 && token <= 0x1f)) {
-                        tstr = " " + tstr;
-                    }
-                }
+                var tstr = this.fnParseNextToken(input);
                 out += tstr;
                 if (Utils_1.Utils.debug > 2) {
                     this.debugCollectInfo(tstr);

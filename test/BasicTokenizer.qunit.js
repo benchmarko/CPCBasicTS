@@ -34,16 +34,20 @@ define(["require", "exports", "../BasicTokenizer", "./TestHelper"], function (re
                 return String.fromCharCode(Number("0x" + s));
             }).join("");
         }
+        function runSingleTest(basicTokenizer, key) {
+            var withLines = (key.charAt(0) === "L"), input = fnHex2Bin(withLines ? key.substring(2) : key), result = withLines ? basicTokenizer.decode(input) : basicTokenizer.decodeLineFragment(input, 0, input.length);
+            return result;
+        }
         function runTestsFor(_category, tests, assert, results) {
             var basicTokenizer = new BasicTokenizer_1.BasicTokenizer();
             for (var key in tests) {
                 if (tests.hasOwnProperty(key)) {
-                    var expected = tests[key], withLines = (key.charAt(0) === "L"), input = fnHex2Bin(withLines ? key.substr(2) : key), // old: Utils.atob(key)
-                    result = withLines ? basicTokenizer.decode(input) : basicTokenizer.decodeLineFragment(input, 0, input.length), firstLine = expected.substr(0, expected.indexOf("\n")) || expected;
+                    var expected = tests[key], result = runSingleTest(basicTokenizer, key);
                     if (results) {
                         results.push(TestHelper_1.TestHelper.stringInQuotes(key) + ": " + TestHelper_1.TestHelper.stringInQuotes(result));
                     }
                     if (assert) {
+                        var firstLine = expected.substring(0, expected.indexOf("\n")) || expected;
                         assert.strictEqual(result, expected, firstLine);
                     }
                 }
@@ -52,5 +56,4 @@ define(["require", "exports", "../BasicTokenizer", "./TestHelper"], function (re
         TestHelper_1.TestHelper.generateAndRunAllTests(allTests, runTestsFor);
     });
 });
-// end
 //# sourceMappingURL=BasicTokenizer.qunit.js.map

@@ -1172,7 +1172,7 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
             return token;
         };
         BasicLexer.prototype.debugCheckValue = function (type, value, pos, orig) {
-            var origValue = orig || value, part = this.input.substr(pos, origValue.length);
+            var origValue = orig || value, part = this.input.substring(pos, pos + origValue.length);
             if (part !== origValue) {
                 Utils_2.Utils.console.debug("BasicLexer:debugCheckValue:", type, part, "<>", origValue, "at pos", pos);
             }
@@ -1803,7 +1803,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                     if (type === "#0?") { // optional stream?
                         if (this.token.type !== "#") { // no stream?
                             suppressAdvance = true;
-                            type = ","; // needMore = true;
+                            type = ",";
                         }
                         expression = this.fnGetOptionalStream();
                     }
@@ -1841,7 +1841,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                     }
                     break;
                 case "n": // number"
-                    if (type.substr(0, 2) === "n0" && this.token.type === separator) { // n0 or n0?: if parameter not specified, insert default value null?
+                    if (type.substring(0, 2) === "n0" && this.token.type === separator) { // n0 or n0?: if parameter not specified, insert default value null?
                         expression = BasicParser.fnCreateDummyArg("null");
                     }
                     else {
@@ -2392,25 +2392,12 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             var node = this.previousToken, closeTokens = BasicParser.closeTokensForArgs, stream = this.fnGetOptionalStream();
             node.args = [];
             node.args.push(stream);
-            /*
-            let commaAfterStream = false;
-    
-            if (stream.len !== 0) { // not an inserted stream?
-                commaAfterStream = true;
-            }
-            */
             if (stream.len !== 0) { // not an inserted stream?
                 if (!closeTokens[this.token.type]) {
                     this.advance(",");
                 }
             }
             while (!closeTokens[this.token.type]) {
-                /*
-                if (commaAfterStream) {
-                    this.advance(",");
-                    commaAfterStream = false;
-                }
-                */
                 var node2 = void 0;
                 if (this.token.type === "spc" || this.token.type === "tab") {
                     this.advance(this.token.type);
@@ -2996,7 +2983,7 @@ define("BasicFormatter", ["require", "exports", "Utils"], function (require, exp
             // apply changes to input in reverse order
             for (var i = keys.length - 1; i >= 0; i -= 1) {
                 var line = changes[keys[i]];
-                input = input.substring(0, line.pos) + line.newLine + input.substr(line.pos + line.len);
+                input = input.substring(0, line.pos) + line.newLine + input.substring(line.pos + line.len);
             }
             return input;
         };
@@ -3050,6 +3037,7 @@ define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exp
             // will also be set in decode
             this.lineEnd = 0;
             this.input = "";
+            this.needSpace = false; // hmm
             this.debug = {
                 startPos: 0,
                 line: 0,
@@ -3346,15 +3334,6 @@ define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exp
                 exponent -= 0x81; // 2-complement: 2^-127 .. 2^128
                 var num = mantissa * Math.pow(2, exponent - 31);
                 out = Utils_5.Utils.toPrecision9(num);
-                /*
-                out = num.toPrecision(9); // some rounding, formatting
-                if (out.indexOf("e") >= 0) {
-                    out = out.replace(/\.?0*e/, "E"); // exponential uppercase, no zeros
-                    out = out.replace(/(E[+-])(\d)$/, "$10$2"); // exponent 1 digit to 2 digits (or this: replace(/(\D)(\d)$/, "$10$2") )
-                } else if (out.indexOf(".") >= 0) { // decimal number?
-                    out = out.replace(/\.?0*$/, ""); // remove trailing dot and/or zeros
-                }
-                */
             }
             return out;
         };
@@ -3438,51 +3417,54 @@ define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exp
             }
             debug.info += " [" + hex + "] " + tokenLine;
         };
+        BasicTokenizer.prototype.fnParseNextToken = function (input) {
+            var oldNeedSpace = this.needSpace;
+            var token = this.fnNum8Dec();
+            if (token === 0x01) { // statement seperator ":"?
+                if (this.pos < input.length) {
+                    var nextToken = input.charCodeAt(this.pos); // test next token
+                    if (nextToken === 0x97 || nextToken === 0xc0) { // ELSE or rem '?
+                        token = nextToken; // ignore ':'
+                        this.pos += 1;
+                    }
+                }
+            }
+            this.needSpace = ((token >= 0x02 && token <= 0x1f) || (token === 0x7c)); // constant 0..9; variable, or RSX?
+            var tokenValue;
+            if (token === 0xff) { // extended token?
+                token = this.fnNum8Dec(); // get it
+                tokenValue = this.tokensFF[token];
+            }
+            else {
+                tokenValue = this.tokens[token];
+            }
+            var tstr;
+            if (tokenValue !== undefined) {
+                tstr = typeof tokenValue === "function" ? tokenValue.call(this) : tokenValue;
+                if ((/[a-zA-Z0-9.]$/).test(tstr) && token !== 0xe4) { // last character char, number, dot? (not for token "FN")
+                    this.needSpace = true; // maybe need space next time...
+                }
+            }
+            else { // normal ASCII
+                tstr = String.fromCharCode(token);
+            }
+            if (oldNeedSpace) {
+                if ((/^[a-zA-Z0-9$%!]/).test(tstr) || (token >= 0x02 && token <= 0x1f)) {
+                    tstr = " " + tstr;
+                }
+            }
+            if (Utils_5.Utils.debug > 2) {
+                this.debugCollectInfo(tstr);
+            }
+            return tstr;
+        };
         BasicTokenizer.prototype.fnParseLineFragment = function () {
             var input = this.input;
-            var out = "", space = false;
+            var out = "";
+            this.needSpace = false; // only needed in fnParseNextToken
             while (this.pos < this.lineEnd) {
                 this.debug.startPos = this.pos;
-                var oldSpace = space;
-                var token = this.fnNum8Dec();
-                if (token === 0x01) { // statement seperator ":"?
-                    if (this.pos < input.length) {
-                        var nextToken = input.charCodeAt(this.pos); // test next token
-                        if (nextToken === 0x97 || nextToken === 0xc0) { // ELSE or rem '?
-                            token = nextToken; // ignore ':'
-                            this.pos += 1;
-                        }
-                    }
-                }
-                space = ((token >= 0x02 && token <= 0x1f) || (token === 0x7c)); // constant 0..9; variable, or RSX?
-                var tokenValue = void 0;
-                if (token === 0xff) { // extended token?
-                    token = this.fnNum8Dec(); // get it
-                    tokenValue = this.tokensFF[token];
-                }
-                else {
-                    tokenValue = this.tokens[token];
-                }
-                var tstr = void 0;
-                if (tokenValue !== undefined) {
-                    if (typeof tokenValue === "function") {
-                        tstr = tokenValue.call(this);
-                    }
-                    else { // string
-                        tstr = tokenValue;
-                    }
-                    if ((/[a-zA-Z0-9.]$/).test(tstr) && token !== 0xe4) { // last character char, number, dot? (not for token "FN")
-                        space = true; // maybe need space next time...
-                    }
-                }
-                else { // normal ASCII
-                    tstr = String.fromCharCode(token);
-                }
-                if (oldSpace) {
-                    if ((/^[a-zA-Z0-9$%!]/).test(tstr) || (token >= 0x02 && token <= 0x1f)) {
-                        tstr = " " + tstr;
-                    }
-                }
+                var tstr = this.fnParseNextToken(input);
                 out += tstr;
                 if (Utils_5.Utils.debug > 2) {
                     this.debugCollectInfo(tstr);
@@ -3928,73 +3910,108 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             }
             return CodeGeneratorBasic.fnWs(node) + value;
         };
+        CodeGeneratorBasic.getLeftOrRightOperatorPrecedence = function (node) {
+            var precedence = CodeGeneratorBasic.operatorPrecedence, operators = CodeGeneratorBasic.operators;
+            var pr;
+            if (operators[node.type] && (node.left || node.right)) { // binary operator (or unary operator, e.g. not)
+                if (node.left) { // right is binary
+                    pr = precedence[node.type] || 0;
+                }
+                else {
+                    pr = precedence["p" + node.type] || precedence[node.type] || 0;
+                }
+            }
+            return pr;
+        };
+        CodeGeneratorBasic.prototype.parseOperator = function (node, type) {
+            var precedence = CodeGeneratorBasic.operatorPrecedence, operators = CodeGeneratorBasic.operators;
+            var value;
+            if (node.left) {
+                value = this.parseNode(node.left);
+                var p = precedence[node.type], pl = CodeGeneratorBasic.getLeftOrRightOperatorPrecedence(node.left);
+                /*
+                if (operators[node.left.type] && (node.left.left || node.left.right)) { // binary operator (or unary operator, e.g. not)
+                    const p = precedence[node.type];
+                    let pl: number;
+    
+                    if (node.left.left) { // left is binary
+                        pl = precedence[node.left.type] || 0;
+                    } else { // left is unary
+                        pl = precedence["p" + node.left.type] || precedence[node.left.type] || 0;
+                    }
+    
+                    if (pl < p) {
+                        value = "(" + value + ")";
+                    }
+                }
+                */
+                if (pl !== undefined && pl < p) {
+                    value = "(" + value + ")";
+                }
+                var right = node.right;
+                var value2 = this.parseNode(right);
+                var pr = CodeGeneratorBasic.getLeftOrRightOperatorPrecedence(right);
+                /*
+                if (operators[right.type] && (right.left || right.right)) { // binary operator (or unary operator, e.g. not)
+                    const p = precedence[node.type];
+                    let pr: number;
+    
+                    if (right.left) { // right is binary
+                        pr = precedence[right.type] || 0;
+                    } else {
+                        pr = precedence["p" + right.type] || precedence[right.type] || 0;
+                    }
+    
+                    if ((pr < p) || ((pr === p) && node.type === "-")) { // "-" is special
+                        value2 = "(" + value2 + ")";
+                    }
+                }
+                */
+                if (pr !== undefined) {
+                    if ((pr < p) || ((pr === p) && node.type === "-")) { // "-" is special
+                        value2 = "(" + value2 + ")";
+                    }
+                }
+                var whiteBefore = CodeGeneratorBasic.fnWs(node);
+                var operator = whiteBefore + operators[type].toUpperCase();
+                if (whiteBefore === "" && (/^(and|or|xor|mod)$/).test(type)) {
+                    operator = " " + operator + " ";
+                }
+                value += operator + value2;
+            }
+            else if (node.right) { // unary operator, e.g. not
+                var right = node.right;
+                value = this.parseNode(right);
+                var pr = void 0;
+                if (right.left) { // was binary op?
+                    pr = precedence[right.type] || 0; // no special prio
+                }
+                else {
+                    pr = precedence["p" + right.type] || precedence[right.type] || 0; // check unary operator first
+                }
+                var p = precedence["p" + node.type] || precedence[node.type] || 0; // check unary operator first
+                if (p && pr && (pr < p)) {
+                    value = "(" + value + ")";
+                }
+                var whiteBefore = CodeGeneratorBasic.fnWs(node), operator = whiteBefore + operators[type].toUpperCase(), whiteAfter = value.startsWith(" ");
+                if (!whiteAfter && type === "not") {
+                    value = " " + value;
+                }
+                value = operator + value;
+            }
+            else { // no operator, e.g. "=" in "for"
+                value = this.fnParseOther(node);
+            }
+            return value;
+        };
         CodeGeneratorBasic.prototype.parseNode = function (node) {
             if (Utils_6.Utils.debug > 3) {
                 Utils_6.Utils.console.debug("evaluate: parseNode node=%o type=" + node.type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
             }
-            var type = node.type, precedence = CodeGeneratorBasic.operatorPrecedence, operators = CodeGeneratorBasic.operators;
+            var operators = CodeGeneratorBasic.operators, type = node.type;
             var value;
             if (operators[type]) {
-                if (node.left) {
-                    value = this.parseNode(node.left);
-                    if (operators[node.left.type] && (node.left.left || node.left.right)) { // binary operator (or unary operator, e.g. not)
-                        var p = precedence[node.type];
-                        var pl = void 0;
-                        if (node.left.left) { // left is binary
-                            pl = precedence[node.left.type] || 0;
-                        }
-                        else { // left is unary
-                            pl = precedence["p" + node.left.type] || precedence[node.left.type] || 0;
-                        }
-                        if (pl < p) {
-                            value = "(" + value + ")";
-                        }
-                    }
-                    var right = node.right;
-                    var value2 = this.parseNode(right);
-                    if (operators[right.type] && (right.left || right.right)) { // binary operator (or unary operator, e.g. not)
-                        var p = precedence[node.type];
-                        var pr = void 0;
-                        if (right.left) { // right is binary
-                            pr = precedence[right.type] || 0;
-                        }
-                        else {
-                            pr = precedence["p" + right.type] || precedence[right.type] || 0;
-                        }
-                        if ((pr < p) || ((pr === p) && node.type === "-")) { // "-" is special
-                            value2 = "(" + value2 + ")";
-                        }
-                    }
-                    var whiteBefore = CodeGeneratorBasic.fnWs(node);
-                    var operator = whiteBefore + operators[type].toUpperCase();
-                    if (whiteBefore === "" && (/^(and|or|xor|mod)$/).test(type)) {
-                        operator = " " + operator + " ";
-                    }
-                    value += operator + value2;
-                }
-                else if (node.right) { // unary operator, e.g. not
-                    var right = node.right;
-                    value = this.parseNode(right);
-                    var pr = void 0;
-                    if (right.left) { // was binary op?
-                        pr = precedence[right.type] || 0; // no special prio
-                    }
-                    else {
-                        pr = precedence["p" + right.type] || precedence[right.type] || 0; // check unary operator first
-                    }
-                    var p = precedence["p" + node.type] || precedence[node.type] || 0; // check unary operator first
-                    if (p && pr && (pr < p)) {
-                        value = "(" + value + ")";
-                    }
-                    var whiteBefore = CodeGeneratorBasic.fnWs(node), operator = whiteBefore + operators[type].toUpperCase(), whiteAfter = value.startsWith(" ");
-                    if (!whiteAfter && type === "not") {
-                        value = " " + value;
-                    }
-                    value = operator + value;
-                }
-                else { // no operator, e.g. "=" in "for"
-                    value = this.fnParseOther(node);
-                }
+                value = this.parseOperator(node, type);
             }
             else if (this.parseFunctions[type]) { // function with special handling?
                 value = this.parseFunctions[type].call(this, node);
@@ -4004,6 +4021,99 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             }
             return value;
         };
+        /*
+        private parseNode(node: ParserNode) { // eslint-disable-line complexity
+            if (Utils.debug > 3) {
+                Utils.console.debug("evaluate: parseNode node=%o type=" + node.type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
+            }
+    
+            const type = node.type,
+                precedence = CodeGeneratorBasic.operatorPrecedence,
+                operators = CodeGeneratorBasic.operators;
+            let value: string;
+    
+            if (operators[type]) {
+                if (node.left) {
+                    value = this.parseNode(node.left);
+                    if (operators[node.left.type] && (node.left.left || node.left.right)) { // binary operator (or unary operator, e.g. not)
+                        const p = precedence[node.type];
+                        let pl: number;
+    
+                        if (node.left.left) { // left is binary
+                            pl = precedence[node.left.type] || 0;
+                        } else { // left is unary
+                            pl = precedence["p" + node.left.type] || precedence[node.left.type] || 0;
+                        }
+    
+                        if (pl < p) {
+                            value = "(" + value + ")";
+                        }
+                    }
+    
+                    const right = node.right as ParserNode;
+                    let value2 = this.parseNode(right);
+    
+                    if (operators[right.type] && (right.left || right.right)) { // binary operator (or unary operator, e.g. not)
+                        const p = precedence[node.type];
+                        let pr: number;
+    
+                        if (right.left) { // right is binary
+                            pr = precedence[right.type] || 0;
+                        } else {
+                            pr = precedence["p" + right.type] || precedence[right.type] || 0;
+                        }
+    
+                        if ((pr < p) || ((pr === p) && node.type === "-")) { // "-" is special
+                            value2 = "(" + value2 + ")";
+                        }
+                    }
+    
+                    const whiteBefore = CodeGeneratorBasic.fnWs(node);
+                    let operator = whiteBefore + operators[type].toUpperCase();
+    
+                    if (whiteBefore === "" && (/^(and|or|xor|mod)$/).test(type)) {
+                        operator = " " + operator + " ";
+                    }
+    
+                    value += operator + value2;
+                } else if (node.right) { // unary operator, e.g. not
+                    const right = node.right;
+    
+                    value = this.parseNode(right);
+                    let pr: number;
+    
+                    if (right.left) { // was binary op?
+                        pr = precedence[right.type] || 0; // no special prio
+                    } else {
+                        pr = precedence["p" + right.type] || precedence[right.type] || 0; // check unary operator first
+                    }
+    
+                    const p = precedence["p" + node.type] || precedence[node.type] || 0; // check unary operator first
+    
+                    if (p && pr && (pr < p)) {
+                        value = "(" + value + ")";
+                    }
+    
+                    const whiteBefore = CodeGeneratorBasic.fnWs(node),
+                        operator = whiteBefore + operators[type].toUpperCase(),
+                        whiteAfter = value.startsWith(" ");
+    
+                    if (!whiteAfter && type === "not") {
+                        value = " " + value;
+                    }
+                    value = operator + value;
+                } else { // no operator, e.g. "=" in "for"
+                    value = this.fnParseOther(node);
+                }
+            } else if (this.parseFunctions[type]) { // function with special handling?
+                value = this.parseFunctions[type].call(this, node);
+            } else { // for other functions, generate code directly
+                value = this.fnParseOther(node);
+            }
+    
+            return value;
+        }
+        */
         CodeGeneratorBasic.prototype.evaluate = function (parseTree) {
             var output = "";
             for (var i = 0; i < parseTree.length; i += 1) {
@@ -4172,10 +4282,10 @@ define("Variables", ["require", "exports"], function (require, exports) {
         // format: (v.|v["])(_)<sname>(A*)(I|R|$)([...]([...])) with optional parts in ()
         Variables.prototype.determineStaticVarType = function (name) {
             if (name.indexOf("v.") === 0) { // preceding variable object?
-                name = name.substr(2); // remove preceding "v."
+                name = name.substring(2); // remove preceding "v."
             }
             if (name.indexOf('v["') === 0) { // preceding variable object?
-                name = name.substr(3); // remove preceding 'v["'
+                name = name.substring(3); // remove preceding 'v["'
             }
             var nameType = name.charAt(0); // take first character to determine variable type later
             if (nameType === "_") { // ignore underscore (do not clash with keywords)
@@ -7023,7 +7133,7 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             return diskType;
         };
         DiskImage.prototype.readUtf = function (pos, len) {
-            var out = this.data.substr(pos, len);
+            var out = this.data.substring(pos, pos + len);
             if (out.length !== len) {
                 throw this.composeError(new Error(), "End of File", "", pos);
             }
@@ -7047,10 +7157,10 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             }
             diskInfo.extended = (diskType === 2);
             diskInfo.ident = ident + this.readUtf(pos + 8, 34 - 8); // read remaining ident
-            if (diskInfo.ident.substr(34 - 11, 9) !== "Disk-Info") { // some tools use "Disk-Info  " instead of "Disk-Info\r\n", so compare without "\r\n"
+            if (diskInfo.ident.substring(34 - 11, 34 - 11 + 9) !== "Disk-Info") { // some tools use "Disk-Info  " instead of "Disk-Info\r\n", so compare without "\r\n"
                 // "Disk-Info" string is optional
                 if (!this.quiet) {
-                    Utils_10.Utils.console.warn(this.composeError({}, "Disk ident not found", diskInfo.ident.substr(34 - 11, 9), pos + 34 - 11).message);
+                    Utils_10.Utils.console.warn(this.composeError({}, "Disk ident not found", diskInfo.ident.substring(34 - 11, 34 - 11 + 9), pos + 34 - 11).message);
                 }
             }
             diskInfo.creator = this.readUtf(pos + 34, 14);
@@ -7073,10 +7183,10 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             var trackInfoSize = 0x100, trackInfo = this.diskInfo.trackInfo, sectorInfoList = trackInfo.sectorInfo;
             trackInfo.dataPos = pos + trackInfoSize;
             trackInfo.ident = this.readUtf(pos, 12);
-            if (trackInfo.ident.substr(0, 10) !== "Track-Info") { // some tools use "Track-Info  " instead of "Track-Info\r\n", so compare without "\r\n"
+            if (trackInfo.ident.substring(0, 10) !== "Track-Info") { // some tools use "Track-Info  " instead of "Track-Info\r\n", so compare without "\r\n"
                 // "Track-Info" string is optional
                 if (!this.quiet) {
-                    Utils_10.Utils.console.warn(this.composeError({}, "Track ident not found", trackInfo.ident.substr(0, 10), pos).message);
+                    Utils_10.Utils.console.warn(this.composeError({}, "Track ident not found", trackInfo.ident.substring(0, 10), pos).message);
                 }
             }
             // 4 unused bytes
@@ -7302,7 +7412,7 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             }
             return out;
         };
-        DiskImage.prototype.readFile = function (fileExtents) {
+        DiskImage.prototype.readExtents = function (fileExtents) {
             var recPerBlock = 8;
             var out = "";
             for (var i = 0; i < fileExtents.length; i += 1) {
@@ -7311,7 +7421,7 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                 for (var blockIndex = 0; blockIndex < blocks.length; blockIndex += 1) {
                     var block = this.readBlock(blocks[blockIndex]);
                     if (records < recPerBlock) { // block with some remaining data
-                        block = block.substr(0, 0x80 * records);
+                        block = block.substring(0, 0x80 * records);
                     }
                     out += block;
                     records -= recPerBlock;
@@ -7320,6 +7430,10 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                     }
                 }
             }
+            return out;
+        };
+        DiskImage.prototype.readFile = function (fileExtents) {
+            var out = this.readExtents(fileExtents);
             var header = DiskImage.parseAmsdosHeader(out);
             var realLen;
             if (header) {
@@ -7336,7 +7450,7 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                 }
             }
             if (realLen !== undefined) { // now real length (from header or ASCII)?
-                out = out.substr(0, realLen);
+                out = out.substring(0, realLen);
             }
             return out;
         };
@@ -7371,12 +7485,12 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             // http://www.benchmarko.de/cpcemu/cpcdoc/chapter/cpcdoc7_e.html#I_AMSDOS_HD
             // http://www.cpcwiki.eu/index.php/AMSDOS_Header
             if (data.length >= 0x80) {
-                var computed = DiskImage.computeChecksum(data.substr(0, 66)), sum = data.charCodeAt(67) + data.charCodeAt(68) * 256;
+                var computed = DiskImage.computeChecksum(data.substring(0, 66)), sum = data.charCodeAt(67) + data.charCodeAt(68) * 256;
                 if (computed === sum) {
                     header = {
                         user: data.charCodeAt(0),
-                        name: data.substr(1, 8),
-                        ext: data.substr(9, 3),
+                        name: data.substring(1, 1 + 8),
+                        ext: data.substring(9, 9 + 3),
                         typeNumber: data.charCodeAt(18),
                         start: data.charCodeAt(21) + data.charCodeAt(22) * 256,
                         pseudoLen: data.charCodeAt(24) + data.charCodeAt(25) * 256,
@@ -7612,7 +7726,7 @@ define("View", ["require", "exports", "Utils"], function (require, exports, Util
                 classes = classes.trim() + " " + className;
             }
             else {
-                classes = classes.substr(0, nameIndex) + classes.substr(nameIndex + className.length + 1).trim();
+                classes = classes.substring(0, nameIndex) + classes.substring(nameIndex + className.length + 1).trim();
             }
             element.className = classes;
         };
@@ -7989,7 +8103,7 @@ define("Keyboard", ["require", "exports", "Utils", "View"], function (require, e
                 }
                 else if (key.length === 2) {
                     if (key.charAt(0) === "^" || key.charAt(0) === "´" || key.charAt(0) === "`") { // IE, Edge? prefix key
-                        key = key.substr(1); // remove prefix
+                        key = key.substring(1); // remove prefix
                     }
                 }
                 this.fnPressCpcKey(cpcKey, pressedKey, key, event.shiftKey, event.ctrlKey);
@@ -9768,15 +9882,11 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         };
         Canvas.prototype.plot = function (x, y) {
             this.move(x, y);
-            //x = Canvas.cpcRoundingTowardsZeroX(x, this.modeData.pixelWidth);
-            //y = Canvas.cpcRoundingTowardsZeroY(y, this.modeData.pixelHeight);
             this.setPixel(x, y, this.gPen, this.gColMode); // must be integer
             this.setNeedUpdate();
         };
         Canvas.prototype.test = function (x, y) {
             this.move(x, y);
-            //x = Canvas.cpcRoundingTowardsZeroX(x, this.modeData.pixelWidth);
-            //y = Canvas.cpcRoundingTowardsZeroY(y, this.modeData.pixelHeight);
             return this.testPixel(this.xPos, this.yPos); // use rounded values
         };
         Canvas.prototype.setInk = function (pen, ink1, ink2) {
@@ -10224,7 +10334,7 @@ define("TextCanvas", ["require", "exports", "Utils", "View"], function (require,
             /* eslint-disable no-bitwise */
             xTxt = (x / charWidth) | 0, yTxt = (y / charHeight) | 0;
             /* eslint-enable no-bitwise */
-            if (Utils_15.Utils.debug > 0) { //TTT
+            if (Utils_15.Utils.debug > 0) {
                 Utils_15.Utils.console.debug("canvasClickAction2: x=" + x + ", y=" + y + ", xTxt=" + xTxt + ", yTxt=" + yTxt);
             }
             var char = this.getCharFromTextBuffer(xTxt, yTxt); // is there a character an the click position?
@@ -10526,7 +10636,6 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
             view.prototype.setSelectOptions = function (id, options) {
                 var element = domElements[id] || myCreateElement(id);
                 if (!element.options.add) {
-                    // element.options = [];
                     element.add = function (option) {
                         // eslint-disable-next-line no-invalid-this
                         element.options.push(option);
@@ -10549,7 +10658,6 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
             // https://nodejs.dev/learn/accept-input-from-the-command-line-in-nodejs
             // readline?
             var controller = nodeExports.Controller;
-            // startWithDirectInputOrig = controller.prototype.startWithDirectInput;
             controller.prototype.startWithDirectInput = function () {
                 Utils_17.Utils.console.log("We are ready.");
             };
@@ -12069,7 +12177,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         };
         CpcVm.prototype.vmGetLetterCode = function (s, err) {
             this.vmAssertString(s, err);
-            // const reLetter = RegExp("^[A-Za-z]$");
             s = s.toLowerCase();
             if (s.length !== 1 || s < "a" || s > "z") { // single letter?
                 throw this.vmComposeError(Error(), 2, err + " " + s); // Syntax Error
@@ -12307,11 +12414,11 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.vmAssertString(name, err);
             name = name.replace(/ /g, ""); // remove spaces
             if (name.indexOf("!") === 0) {
-                name = name.substr(1); // remove preceding "!"
+                name = name.substring(1); // remove preceding "!"
             }
             var index = name.indexOf(":");
             if (index >= 0) {
-                name = name.substr(index + 1); // remove user and drive letter including ":"
+                name = name.substring(index + 1); // remove user and drive letter including ":"
             }
             name = name.toLowerCase();
             if (!name) {
@@ -13033,24 +13140,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             }
             return eof;
         };
-        /*
-        private vmFindArrayVariable(name: string): string {
-            name += "A";
-            if (this.variables.variableExist(name)) { // one dim array variable?
-                return name;
-            }
-    
-            // find multi-dim array variable
-            const fnArrayVarFilter = function (variable: string) {
-                return (variable.indexOf(name) === 0) ? variable : null; // find array varA
-            };
-            let names = this.variables.getAllVariableNames();
-    
-            names = names.filter(fnArrayVarFilter); // find array varA... with any number of indices
-            return names[0]; // we should find exactly one
-        }
-        */
-        //private vmFindArrayVarFilter(name: string, typeChar: string) {}
         // find array variable matching <name>(A+)(typeChar?)
         CpcVm.prototype.vmFindArrayVariable = function (name) {
             var typeChar = name.charAt(name.length - 1); // last character
@@ -13281,8 +13370,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             if (line.charAt(0) === '"') { // quoted string?
                 var index = line.indexOf('"', 1); // closing quotes in this line?
                 if (index >= 0) {
-                    value = line.substr(1, index - 1); // take string without quotes
-                    line = line.substr(index + 1);
+                    value = line.substring(1, index + 1 - 1); // take string without quotes
+                    line = line.substring(index + 1);
                     line = line.replace(/^\s*,/, ""); // multiple args => remove next comma
                 }
                 else if (fileData.length > 1) { // no closing quotes in this line => try to combine with next line
@@ -13296,8 +13385,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             else { // unquoted string
                 var index = line.indexOf(","); // multiple args?
                 if (index >= 0) {
-                    value = line.substr(0, index); // take arg
-                    line = line.substr(index + 1);
+                    value = line.substring(0, index); // take arg
+                    line = line.substring(index + 1);
                 }
                 else {
                     value = line; // take line
@@ -13312,14 +13401,14 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             index = line.indexOf(","), // multiple args?
             value;
             if (index >= 0) {
-                value = line.substr(0, index); // take arg
-                line = line.substr(index + 1);
+                value = line.substring(0, index); // take arg
+                line = line.substring(index + 1);
             }
             else {
                 index = line.indexOf(" "); // space?
                 if (index >= 0) {
-                    value = line.substr(0, index); // take item until space
-                    line = line.substr(index);
+                    value = line.substring(0, index); // take item until space
+                    line = line.substring(index);
                     line = line.replace(/^\s*/, ""); // remove spaces after number
                 }
                 else {
@@ -13391,14 +13480,29 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 this.vmInputFromFile(args); // remaining arguments
             }
         };
-        CpcVm.prototype.instr = function (p1, p2, p3) {
+        /*
+        instr(p1: string | number, p2: string, p3?: string): number { // optional startpos as first parameter
             this.vmAssertString(p2, "INSTR");
             if (typeof p1 === "string") { // p1=string, p2=search string
                 return p1.indexOf(p2) + 1;
             }
             p1 = this.vmInRangeRound(p1, 1, 255, "INSTR"); // p1=startpos
-            this.vmAssertString(p3, "INSTR");
-            return p2.indexOf(p3, p1 - 1) + 1; // p2=string, p3=search string
+            this.vmAssertString(p3 as string, "INSTR");
+            return p2.indexOf(p3 as string, p1 - 1) + 1; // p2=string, p3=search string
+        }
+        */
+        CpcVm.prototype.instr = function (p1, p2, p3) {
+            var startPos = typeof p1 === "number" ? this.vmInRangeRound(p1, 1, 255, "INSTR") - 1 : 0, // p1=startpos
+            str = typeof p1 === "number" ? p2 : p1, search = typeof p1 === "number" ? p3 : p2;
+            this.vmAssertString(str, "INSTR");
+            this.vmAssertString(search, "INSTR");
+            if (startPos >= str.length) {
+                return 0; // not found
+            }
+            if (!search.length) {
+                return startPos + 1;
+            }
+            return str.indexOf(search, startPos) + 1;
         };
         CpcVm.prototype["int"] = function (n) {
             this.vmAssertNumber(n, "INT");
@@ -13430,7 +13534,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.left$ = function (s, len) {
             this.vmAssertString(s, "LEFT$");
             len = this.vmInRangeRound(len, 0, 255, "LEFT$");
-            return s.substr(0, len);
+            return s.substring(0, len);
         };
         CpcVm.prototype.len = function (s) {
             this.vmAssertString(s, "LEN");
@@ -13637,7 +13741,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             if (len !== undefined) {
                 len = this.vmInRangeRound(len, 0, 255, "MID$");
             }
-            return s.substr(start - 1, len);
+            return s.substr(start - 1, len); // or: s.substring(start - 1, len === undefined ? len : start - 1 + len);
         };
         CpcVm.prototype.mid$Assign = function (s, start, len, newString) {
             this.vmAssertString(s, "MID$");
@@ -13650,7 +13754,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             if (len > s.length - start) {
                 len = s.length - start;
             }
-            s = s.substr(0, start) + newString.substr(0, len) + s.substr(start + len);
+            s = s.substring(0, start) + newString.substring(0, len) + s.substring(start + len);
             return s;
         };
         CpcVm.prototype.min = function () {
@@ -13797,7 +13901,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             if (input !== null) {
                 input = input.replace(/\r\n/g, "\n"); // remove CR (maybe from ASCII file in "binary" form)
                 if (input.endsWith("\n")) {
-                    input = input.substr(0, input.length - 1); // remove last "\n" (TTT: also for data files?)
+                    input = input.substring(0, input.length - 1); // remove last "\n" (TTT: also for data files?)
                 }
                 var inFile = this.inFile;
                 inFile.fileData = input.split("\n");
@@ -14215,11 +14319,11 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                     }
                     var paraCount = CpcVm.controlCodeParameterCount[code];
                     if (i + paraCount <= str.length) {
-                        out += this.vmHandleControlCode(code, str.substr(i, paraCount), stream);
+                        out += this.vmHandleControlCode(code, str.substring(i, i + paraCount), stream);
                         i += paraCount;
                     }
                     else {
-                        buf = str.substr(i - 1); // not enough parameters, put code in buffer and wait for more
+                        buf = str.substring(i - 1); // not enough parameters, put code in buffer and wait for more
                         i = str.length;
                     }
                 }
@@ -14238,23 +14342,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 this.canvas.printGChar(char);
             }
         };
-        /*
-        private static vmToExponential(num: number) {
-            return num.toExponential().toUpperCase().replace(/(\d+)$/, function (x) {
-                return x.length >= 2 ? x : x.padStart(2, "0"); // format with 2 exponential digits
-            });
-        }
-    
-        private static vmToPrecision9(num: number) {
-            const numStr = num.toPrecision(9), // some rounding, formatting
-                [decimal, exponent] = numStr.split("e"), // eslint-disable-line array-element-newline
-                result = String(Number(decimal)) + (exponent !== undefined ? ("E" + exponent.replace(/(\D)(\d)$/, "$10$2")) : "");
-    
-            // Number(): strip trailing decimal point and/or zeros (replace(/\.?0*$/, ""))
-            // exponent 1 digit to 2 digits
-            return result;
-        }
-        */
         CpcVm.prototype.print = function (stream) {
             var args = [];
             for (var _i = 1; _i < arguments.length; _i++) {
@@ -14294,7 +14381,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                     }
                 }
                 else if (typeof arg === "number") {
-                    //str = ((arg >= 0) ? " " : "") + (arg < 1e9 ? String(arg) : CpcVm.vmToExponential(arg)) + " ";
                     str = ((arg >= 0) ? " " : "") + Utils_21.Utils.toPrecision9(arg) + " ";
                 }
                 else { // e.g. string
@@ -14469,7 +14555,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.restore = function (line) {
             line = line === undefined ? 0 : this.vmLineInRange(line, "RESTORE");
             var dataLineIndex = this.dataLineIndex;
-            // line = String(line);
             if (line in dataLineIndex) {
                 this.dataIndex = dataLineIndex[line];
             }
@@ -14890,7 +14975,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 index = match.index + match[0].length;
             }
             if (index < format.length) { // non-format characters at the end
-                formatList.push(format.substr(index));
+                formatList.push(format.substring(index));
             }
             if (formatList.length < 2) {
                 if (!this.quiet) {
@@ -15006,7 +15091,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             for (var i = 0; i < args.length; i += 1) {
                 var arg = args[i];
                 if (typeof arg === "number") {
-                    //str = arg < 1e9 ? String(arg) : CpcVm.vmToExponential(arg);
                     str = Utils_21.Utils.toPrecision9(arg);
                 }
                 else {
@@ -15363,6 +15447,259 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Controller = void 0;
+    var FileSelect = /** @class */ (function () {
+        function FileSelect(options) {
+            this.fnEndOfImport = {};
+            this.outputError = {};
+            this.fnLoad2 = {};
+            this.files = {}; // = dataTransfer ? dataTransfer.files : ((event.target as any).files as FileList), // dataTransfer for drag&drop, target.files for file input
+            this.fileIndex = 0;
+            this.imported = []; // imported file names
+            this.file = {}; // current file
+            this.fnEndOfImport = options.fnEndOfImport;
+            this.outputError = options.outputError;
+            this.fnLoad2 = options.fnLoad2;
+        }
+        FileSelect.prototype.fnReadNextFile = function (reader) {
+            if (this.fileIndex < this.files.length) {
+                var file = this.files[this.fileIndex];
+                this.fileIndex += 1;
+                var lastModified = file.lastModified, lastModifiedDate = lastModified ? new Date(lastModified) : file.lastModifiedDate, // lastModifiedDate deprecated, but for old IE
+                text = file.name + " " + (file.type || "n/a") + " " + file.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
+                Utils_23.Utils.console.log(text);
+                if (file.type === "text/plain") {
+                    reader.readAsText(file);
+                }
+                else if (file.type === "application/x-zip-compressed") {
+                    reader.readAsArrayBuffer(file);
+                }
+                else {
+                    reader.readAsDataURL(file);
+                }
+                this.file = file;
+            }
+            else {
+                this.fnEndOfImport(this.imported);
+            }
+        };
+        FileSelect.prototype.fnOnLoad = function (event) {
+            var reader = event.target, data = (reader && reader.result) || null, file = this.file, name = file.name, type = file.type;
+            if (type === "application/x-zip-compressed" && data instanceof ArrayBuffer) {
+                var zip = void 0;
+                try {
+                    zip = new ZipFile_1.ZipFile(new Uint8Array(data), name); // rather data
+                }
+                catch (e) {
+                    Utils_23.Utils.console.error(e);
+                    if (e instanceof Error) {
+                        this.outputError(e, true);
+                    }
+                }
+                if (zip) {
+                    var zipDirectory = zip.getZipDirectory(), entries = Object.keys(zipDirectory);
+                    for (var i = 0; i < entries.length; i += 1) {
+                        var name2 = entries[i];
+                        var data2 = void 0;
+                        try {
+                            data2 = zip.readData(name2);
+                        }
+                        catch (e) {
+                            Utils_23.Utils.console.error(e);
+                            if (e instanceof Error) { // eslint-disable-line max-depth
+                                this.outputError(e, true);
+                            }
+                        }
+                        if (data2) {
+                            this.fnLoad2(data2, name2, type, this.imported);
+                        }
+                    }
+                }
+            }
+            else if (typeof data === "string") {
+                this.fnLoad2(data, name, type, this.imported);
+            }
+            else {
+                Utils_23.Utils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);
+            }
+            if (reader) {
+                this.fnReadNextFile(reader);
+            }
+        };
+        FileSelect.prototype.fnErrorHandler = function (event, file) {
+            var reader = event.target;
+            var msg = "fnErrorHandler: Error reading file " + file.name;
+            if (reader && reader.error !== null) {
+                if (reader.error.NOT_FOUND_ERR) {
+                    msg += ": File not found";
+                }
+                else if (reader.error.ABORT_ERR) {
+                    msg = ""; // nothing
+                }
+            }
+            if (msg) {
+                Utils_23.Utils.console.warn(msg);
+            }
+            if (reader) {
+                this.fnReadNextFile(reader);
+            }
+        };
+        // https://stackoverflow.com/questions/10261989/html5-javascript-drag-and-drop-file-from-external-window-windows-explorer
+        // https://www.w3.org/TR/file-upload/#dfn-filereader
+        FileSelect.prototype.fnHandleFileSelect = function (event) {
+            var dataTransfer = event.dataTransfer;
+            event.stopPropagation();
+            event.preventDefault();
+            this.files = dataTransfer ? dataTransfer.files : event.target.files; // dataTransfer for drag&drop, target.files for file input
+            this.fileIndex = 0;
+            this.imported.length = 0;
+            if (window.FileReader) {
+                var reader = new FileReader();
+                reader.onerror = this.fnErrorHandler.bind(this);
+                reader.onload = this.fnOnLoad.bind(this);
+                this.fnReadNextFile(reader);
+            }
+            else {
+                Utils_23.Utils.console.warn("FileReader API not supported.");
+            }
+        };
+        FileSelect.prototype.addFileSelectHandler = function (element, type) {
+            element.addEventListener(type, this.fnHandleFileSelect.bind(this), false);
+        };
+        return FileSelect;
+    }());
+    /*
+    // TODO
+    class FileHandler {
+        private static readonly metaIdent = "CPCBasic";
+    
+        private static dummyFunction = function () {
+            //
+        };
+    
+        private config = {
+            outputError: FileHandler.dummyFunction as (error: Error, noSelection?: boolean) => void, // e.g. Utils.console.error(String(error), "selection=", noSelection)
+            updateStorageDatabase: FileHandler.dummyFunction as (action: string, key: string) => void,
+            adaptFilename: FileHandler.dummyFunction as unknown as (name: string, err: string) => string,
+            fnEndOfImport: FileHandler.dummyFunction as (imported: string[]) => void
+        };
+    
+        private outputError(error: Error, noSelection?: boolean) {
+            this.config.outputError(error, noSelection);
+        }
+    
+        private static fnLocalStorageName(name: string, defaultExtension?: string) {
+            // modify name so we do not clash with localstorage methods/properites
+            if (name.indexOf(".") < 0) { // no dot inside name?
+                name += "." + (defaultExtension || ""); // append dot or default extension
+            }
+            return name;
+        }
+    
+        private static createMinimalAmsdosHeader(type: string,	start: number,	length: number) {
+            return {
+                typeString: type,
+                start: start,
+                length: length
+            } as AmsdosHeader;
+        }
+    
+        private static joinMeta(meta: FileMeta) {
+            return [
+                FileHandler.metaIdent,
+                meta.typeString,
+                meta.start,
+                meta.length,
+                meta.entry
+            ].join(";");
+        }
+    
+        private static reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/); // eslint-disable-line no-control-regex
+        // starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
+    
+        private fnLoad2(data: string, name: string, type: string, imported: string[]) {
+            let header: AmsdosHeader | undefined,
+                storageName = this.config.adaptFilename(name, "FILE");
+    
+            storageName = FileHandler.fnLocalStorageName(storageName);
+    
+            if (type === "text/plain") {
+                header = FileHandler.createMinimalAmsdosHeader("A", 0, data.length);
+            } else {
+                if (type === "application/x-zip-compressed" || type === "cpcBasic/binary") { // are we a file inside zip?
+                    // empty
+                } else { // e.g. "data:application/octet-stream;base64,..."
+                    const index = data.indexOf(",");
+    
+                    if (index >= 0) {
+                        const info1 = data.substring(0, index);
+    
+                        data = data.substring(index + 1); // remove meta prefix
+                        if (info1.indexOf("base64") >= 0) {
+                            data = Utils.atob(data); // decode base64
+                        }
+                    }
+                }
+    
+                header = DiskImage.parseAmsdosHeader(data);
+                if (header) {
+                    data = data.substring(0x80); // remove header
+                } else if (FileHandler.reRegExpIsText.test(data)) {
+                    header = FileHandler.createMinimalAmsdosHeader("A", 0, data.length);
+                } else if (DiskImage.testDiskIdent(data.substring(0, 8))) { // disk image file?
+                    try {
+                        const dsk = new DiskImage({
+                                data: data,
+                                diskName: name
+                            }),
+                            dir = dsk.readDirectory(),
+                            diskFiles = Object.keys(dir);
+    
+                        for (let i = 0; i < diskFiles.length; i += 1) {
+                            const fileName = diskFiles[i];
+    
+                            try { // eslint-disable-line max-depth
+                                data = dsk.readFile(dir[fileName]);
+                                this.fnLoad2(data, fileName, "cpcBasic/binary", imported); // recursive
+                            } catch (e) {
+                                Utils.console.error(e);
+                                if (e instanceof Error) { // eslint-disable-line max-depth
+                                    this.outputError(e, true);
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        Utils.console.error(e);
+                        if (e instanceof Error) {
+                            this.outputError(e, true);
+                        }
+                    }
+                    header = undefined; // ignore dsk file
+                } else { // binary
+                    header = FileHandler.createMinimalAmsdosHeader("B", 0, data.length);
+                }
+            }
+    
+            if (header) {
+                const meta = FileHandler.joinMeta(header);
+    
+                try {
+                    Utils.localStorage.setItem(storageName, meta + "," + data);
+                    this.config.updateStorageDatabase("set", storageName);
+                    Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
+                    imported.push(name);
+                } catch (e) { // maybe quota exceeded
+                    Utils.console.error(e);
+                    if (e instanceof Error) {
+                        if (e.name === "QuotaExceededError") {
+                            (e as CustomError).shortMessage = storageName + ": Quota exceeded";
+                        }
+                        this.outputError(e, true);
+                    }
+                }
+            }
+        }
+    }
+    */
     var Controller = /** @class */ (function () {
         function Controller(model, view) {
             this.fnScript = undefined; // eslint-disable-line @typescript-eslint/ban-types
@@ -15552,10 +15889,10 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 if (allExamples.hasOwnProperty(key)) {
                     var exampleEntry = allExamples[key];
                     if (exampleEntry.meta !== "D") { // skip data files
-                        var title = (exampleEntry.key + ": " + exampleEntry.title).substr(0, maxTitleLength), item = {
+                        var title = (exampleEntry.key + ": " + exampleEntry.title).substring(0, maxTitleLength), item = {
                             value: exampleEntry.key,
                             title: title,
-                            text: title.substr(0, maxTextLength),
+                            text: title.substring(0, maxTextLength),
                             selected: exampleEntry.key === example
                         };
                         if (item.selected) {
@@ -15583,7 +15920,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             };
             for (var i = 0; i < varNames.length; i += 1) {
                 var key = varNames[i], value = variables.getVariable(key), title = key + "=" + value;
-                var strippedTitle = title.substr(0, maxVarLength); // limit length
+                var strippedTitle = title.substring(0, maxVarLength); // limit length
                 if (title !== strippedTitle) {
                     strippedTitle += " ...";
                 }
@@ -15885,7 +16222,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 var number = lineParts[i];
                 var content = lineParts[i + 1];
                 if (content.endsWith("\n")) {
-                    content = content.substr(0, content.length - 1);
+                    content = content.substring(0, content.length - 1);
                 }
                 lines.push(number + content);
             }
@@ -16003,12 +16340,12 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             lastSlash = example.lastIndexOf("/");
             var fileMask = paras.fileMask ? Controller.fnLocalStorageName(paras.fileMask) : "", dir = Controller.fnGetStorageDirectoryEntries(fileMask), path = "";
             if (lastSlash >= 0) {
-                path = example.substr(0, lastSlash) + "/";
+                path = example.substring(0, lastSlash) + "/";
                 fileMask = path + (fileMask ? fileMask : "*.*"); // only in same directory
             }
             var dir2 = this.fnGetExampleDirectoryEntries(fileMask); // also from examples
             for (var i = 0; i < dir2.length; i += 1) {
-                dir2[i] = dir2[i].substr(path.length); // remove preceding path including "/"
+                dir2[i] = dir2[i].substring(path.length); // remove preceding path including "/"
             }
             dir = dir2.concat(dir); // combine
             this.fnPrintDirectoryEntries(stream, dir, false);
@@ -16232,25 +16569,65 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.vm.vmSetStartLine(startLine);
             this.startMainLoop();
         };
-        Controller.prototype.loadExample = function () {
-            var that = this, inFile = this.vm.vmGetInFileObject();
-            var example, url, fnExampleLoaded = function (_sFullUrl, key, suppressLog) {
+        Controller.prototype.createFnExampleLoaded = function (example, url, inFile) {
+            var _this = this;
+            return function (_sFullUrl, key, suppressLog) {
                 if (key !== example) {
                     Utils_23.Utils.console.warn("fnExampleLoaded: Unexpected", key, "<>", example);
                 }
-                var exampleEntry = that.model.getExample(example);
+                var exampleEntry = _this.model.getExample(example);
                 if (!suppressLog) {
                     Utils_23.Utils.console.log("Example", url, exampleEntry.meta || "", "loaded");
                 }
                 var input = exampleEntry.script;
+                _this.model.setProperty("example", inFile.memorizedExample);
+                _this.vm.vmStop("", 0, true);
+                _this.loadFileContinue(input);
+            };
+        };
+        Controller.prototype.createFnExampleError = function (example, url, inFile) {
+            var _this = this;
+            return function () {
+                Utils_23.Utils.console.log("Example", url, "error");
+                _this.model.setProperty("example", inFile.memorizedExample);
+                _this.vm.vmStop("", 0, true);
+                var error = _this.vm.vmComposeError(Error(), 32, example + " not found"); // TODO: set also derr=146 (xx not found)
+                // error or onError set
+                if (error.hidden) {
+                    _this.vm.vmStop("", 0, true); // clear onError
+                }
+                _this.outputError(error, true);
+                _this.loadFileContinue(null);
+            };
+        };
+        Controller.prototype.loadExample = function () {
+            var //that = this,
+            inFile = this.vm.vmGetInFileObject();
+            //url: string;
+            /*
+            fnExampleLoaded = function (_sFullUrl: string, key: string, suppressLog?: boolean) {
+                if (key !== example) {
+                    Utils.console.warn("fnExampleLoaded: Unexpected", key, "<>", example);
+                }
+                const exampleEntry = that.model.getExample(example);
+    
+                if (!suppressLog) {
+                    Utils.console.log("Example", url, exampleEntry.meta || "", "loaded");
+                }
+                const input = exampleEntry.script;
+    
                 that.model.setProperty("example", inFile.memorizedExample);
                 that.vm.vmStop("", 0, true);
                 that.loadFileContinue(input);
-            }, fnExampleError = function () {
-                Utils_23.Utils.console.log("Example", url, "error");
+            },
+            fnExampleError = function () {
+                Utils.console.log("Example", url, "error");
                 that.model.setProperty("example", inFile.memorizedExample);
+    
                 that.vm.vmStop("", 0, true);
-                var error = that.vm.vmComposeError(Error(), 32, example + " not found"); // TODO: set also derr=146 (xx not found)
+    
+                const error = that.vm.vmComposeError(Error(), 32, example + " not found"); // TODO: set also derr=146 (xx not found)
+    
                 // error or onError set
                 if (error.hidden) {
                     that.vm.vmStop("", 0, true); // clear onError
@@ -16258,40 +16635,47 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 that.outputError(error, true);
                 that.loadFileContinue(null);
             };
+            */
             var name = inFile.name;
             var key = this.model.getProperty("example");
             if (name.charAt(0) === "/") { // absolute path?
-                name = name.substr(1); // remove "/"
+                name = name.substring(1); // remove "/"
                 inFile.memorizedExample = name; // change!
             }
             else {
                 inFile.memorizedExample = key;
                 var lastSlash = key.lastIndexOf("/");
                 if (lastSlash >= 0) {
-                    var path = key.substr(0, lastSlash); // take path from selected example
+                    var path = key.substring(0, lastSlash); // take path from selected example
                     name = path + "/" + name;
                     name = name.replace(/\w+\/\.\.\//, ""); // simplify 2 dots (go back) in path: "dir/.."" => ""
                 }
             }
-            example = name;
+            //let	example: string,
+            var example = name;
             if (Utils_23.Utils.debug > 0) {
                 Utils_23.Utils.console.debug("loadExample: name=" + name + " (current=" + key + ")");
             }
             var exampleEntry = this.model.getExample(example); // already loaded
+            var url;
             if (exampleEntry && exampleEntry.loaded) {
                 this.model.setProperty("example", example);
+                url = example; //TTT
+                var fnExampleLoaded = this.createFnExampleLoaded(example, url, inFile);
                 fnExampleLoaded("", example, true);
             }
             else if (example && exampleEntry) { // need to load
                 this.model.setProperty("example", example);
                 var databaseDir = this.model.getDatabase().src;
                 url = databaseDir + "/" + example + ".js";
-                Utils_23.Utils.loadScript(url, fnExampleLoaded, fnExampleError, example);
+                //Utils.loadScript(url, fnExampleLoaded, fnExampleError, example);
+                Utils_23.Utils.loadScript(url, this.createFnExampleLoaded(example, url, inFile), this.createFnExampleError(example, url, inFile), example);
             }
             else { // keep original example in this error case
                 url = example;
                 if (example !== "") { // only if not empty
                     Utils_23.Utils.console.warn("loadExample: Unknown file:", example);
+                    var fnExampleError = this.createFnExampleError(example, url, inFile);
                     fnExampleError();
                 }
                 else {
@@ -16373,8 +16757,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             if (input.indexOf(Controller.metaIdent) === 0) { // starts with metaIdent?
                 var index = input.indexOf(","); // metadata separator
                 if (index >= 0) {
-                    var metaString = input.substr(0, index);
-                    input = input.substr(index + 1);
+                    var metaString = input.substring(0, index);
+                    input = input.substring(index + 1);
                     var meta = metaString.split(";");
                     fileMeta = {
                         typeString: meta[1],
@@ -17098,8 +17482,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 else { // e.g. "data:application/octet-stream;base64,..."
                     var index = data.indexOf(",");
                     if (index >= 0) {
-                        var info1 = data.substr(0, index);
-                        data = data.substr(index + 1); // remove meta prefix
+                        var info1 = data.substring(0, index);
+                        data = data.substring(index + 1); // remove meta prefix
                         if (info1.indexOf("base64") >= 0) {
                             data = Utils_23.Utils.atob(data); // decode base64
                         }
@@ -17107,12 +17491,12 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 }
                 header = DiskImage_1.DiskImage.parseAmsdosHeader(data);
                 if (header) {
-                    data = data.substr(0x80); // remove header
+                    data = data.substring(0x80); // remove header
                 }
                 else if (Controller.reRegExpIsText.test(data)) {
                     header = Controller.createMinimalAmsdosHeader("A", 0, data.length);
                 }
-                else if (DiskImage_1.DiskImage.testDiskIdent(data.substr(0, 8))) { // disk image file?
+                else if (DiskImage_1.DiskImage.testDiskIdent(data.substring(0, 8))) { // disk image file?
                     try {
                         var dsk = new DiskImage_1.DiskImage({
                             data: data,
@@ -17163,102 +17547,117 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 }
             }
         };
+        /*
         // https://stackoverflow.com/questions/10261989/html5-javascript-drag-and-drop-file-from-external-window-windows-explorer
         // https://www.w3.org/TR/file-upload/#dfn-filereader
-        Controller.prototype.fnHandleFileSelect = function (event) {
-            var dataTransfer = event.dataTransfer, files = dataTransfer ? dataTransfer.files : event.target.files, // dataTransfer for drag&drop, target.files for file input
-            that = this, imported = [];
-            var fileIndex = 0, file, reader;
+        private fnHandleFileSelect(event: Event) {
+            const dataTransfer = (event as DragEvent).dataTransfer,
+                files = dataTransfer ? dataTransfer.files : ((event.target as any).files as FileList), // dataTransfer for drag&drop, target.files for file input
+                that = this,
+                imported: string[] = [];
+            let fileIndex = 0,
+                file: File,
+                reader: FileReader;
+    
             function fnReadNextFile() {
                 if (fileIndex < files.length) {
                     file = files[fileIndex];
                     fileIndex += 1;
-                    var lastModified = file.lastModified, lastModifiedDate = lastModified ? new Date(lastModified) : file.lastModifiedDate, // lastModifiedDate deprecated, but for old IE
-                    text = file.name + " " + (file.type || "n/a") + " " + file.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
-                    Utils_23.Utils.console.log(text);
+                    const lastModified = file.lastModified,
+                        lastModifiedDate = lastModified ? new Date(lastModified) : (file as any).lastModifiedDate as Date, // lastModifiedDate deprecated, but for old IE
+                        text = file.name + " " + (file.type || "n/a") + " " + file.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
+    
+                    Utils.console.log(text);
                     if (file.type === "text/plain") {
                         reader.readAsText(file);
-                    }
-                    else if (file.type === "application/x-zip-compressed") {
+                    } else if (file.type === "application/x-zip-compressed") {
                         reader.readAsArrayBuffer(file);
-                    }
-                    else {
+                    } else {
                         reader.readAsDataURL(file);
                     }
-                }
-                else {
+                } else {
                     that.fnEndOfImport(imported);
                 }
             }
-            function fnErrorHandler(event2) {
-                var target = event2.target;
-                var msg = "fnErrorHandler: Error reading file " + file.name;
+    
+            function fnErrorHandler(event2: ProgressEvent<FileReader>) {
+                const target = event2.target;
+                let msg = "fnErrorHandler: Error reading file " + file.name;
+    
                 if (target !== null && target.error !== null) {
                     if (target.error.NOT_FOUND_ERR) {
                         msg += ": File not found";
-                    }
-                    else if (target.error.ABORT_ERR) {
+                    } else if (target.error.ABORT_ERR) {
                         msg = ""; // nothing
                     }
                 }
                 if (msg) {
-                    Utils_23.Utils.console.warn(msg);
+                    Utils.console.warn(msg);
                 }
                 fnReadNextFile();
             }
-            function fnOnLoad(event2) {
-                var target = event2.target, data = (target && target.result) || null, name = file.name, type = file.type;
+    
+            function fnOnLoad(event2: ProgressEvent<FileReader>) {
+                const target = event2.target,
+                    data = (target && target.result) || null,
+                    name = file.name,
+                    type = file.type;
+    
                 if (type === "application/x-zip-compressed" && data instanceof ArrayBuffer) {
-                    var zip = void 0;
+                    let zip: ZipFile | undefined;
+    
                     try {
-                        zip = new ZipFile_1.ZipFile(new Uint8Array(data), name); // rather data
-                    }
-                    catch (e) {
-                        Utils_23.Utils.console.error(e);
+                        zip = new ZipFile(new Uint8Array(data), name); // rather data
+                    } catch (e) {
+                        Utils.console.error(e);
                         if (e instanceof Error) {
                             that.outputError(e, true);
                         }
                     }
                     if (zip) {
-                        var zipDirectory = zip.getZipDirectory(), entries = Object.keys(zipDirectory);
-                        for (var i = 0; i < entries.length; i += 1) {
-                            var name2 = entries[i];
-                            var data2 = void 0;
+                        const zipDirectory = zip.getZipDirectory(),
+                            entries = Object.keys(zipDirectory);
+    
+                        for (let i = 0; i < entries.length; i += 1) {
+                            const name2 = entries[i];
+                            let data2: string | undefined;
+    
                             try {
                                 data2 = zip.readData(name2);
-                            }
-                            catch (e) {
-                                Utils_23.Utils.console.error(e);
+                            } catch (e) {
+                                Utils.console.error(e);
                                 if (e instanceof Error) { // eslint-disable-line max-depth
                                     that.outputError(e, true);
                                 }
                             }
+    
                             if (data2) {
                                 that.fnLoad2(data2, name2, type, imported);
                             }
                         }
                     }
-                }
-                else if (typeof data === "string") {
+                } else if (typeof data === "string") {
                     that.fnLoad2(data, name, type, imported);
+                } else {
+                    Utils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);
                 }
-                else {
-                    Utils_23.Utils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);
-                }
+    
                 fnReadNextFile();
             }
+    
             event.stopPropagation();
             event.preventDefault();
+    
             if (window.FileReader) {
                 reader = new FileReader();
                 reader.onerror = fnErrorHandler;
                 reader.onload = fnOnLoad;
                 fnReadNextFile();
+            } else {
+                Utils.console.warn("FileReader API not supported.");
             }
-            else {
-                Utils_23.Utils.console.warn("FileReader API not supported.");
-            }
-        };
+        }
+        */
         Controller.fnHandleDragOver = function (evt) {
             evt.stopPropagation();
             evt.preventDefault();
@@ -17267,13 +17666,24 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
         };
         Controller.prototype.initDropZone = function () {
+            if (!this.fileSelect) {
+                this.fileSelect = new FileSelect({
+                    fnEndOfImport: this.fnEndOfImport.bind(this),
+                    outputError: this.outputError.bind(this),
+                    fnLoad2: this.fnLoad2.bind(this)
+                });
+            }
             var dropZone = View_6.View.getElementById1("dropZone");
             dropZone.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
-            dropZone.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
+            //dropZone.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
+            this.fileSelect.addFileSelectHandler(dropZone, "drop");
             var canvasElement = this.canvas.getCanvas();
             canvasElement.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
-            canvasElement.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
-            View_6.View.getElementById1("fileInput").addEventListener("change", this.fnHandleFileSelect.bind(this), false);
+            //canvasElement.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
+            this.fileSelect.addFileSelectHandler(canvasElement, "drop");
+            //View.getElementById1("fileInput").addEventListener("change", this.fnHandleFileSelect.bind(this), false);
+            var fileInput = View_6.View.getElementById1("fileInput");
+            this.fileSelect.addFileSelectHandler(fileInput, "change");
         };
         Controller.prototype.fnUpdateUndoRedoButtons = function () {
             this.view.setDisabled("undoButton", !this.inputStack.canUndoKeepOne());
@@ -17388,8 +17798,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             if (data !== null) {
                 var index = data.indexOf(","); // metadata separator
                 if (index >= 0) {
-                    var meta = data.substr(0, index);
-                    data = data.substr(index + 1);
+                    var meta = data.substring(0, index);
+                    data = data.substring(index + 1);
                     data = Utils_23.Utils.btoa(data);
                     out = meta + ";base64," + data;
                 }

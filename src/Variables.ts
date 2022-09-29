@@ -71,10 +71,10 @@ export class Variables {
 	// format: (v.|v["])(_)<sname>(A*)(I|R|$)([...]([...])) with optional parts in ()
 	determineStaticVarType(name: string): string { // eslint-disable-line class-methods-use-this
 		if (name.indexOf("v.") === 0) { // preceding variable object?
-			name = name.substr(2); // remove preceding "v."
+			name = name.substring(2); // remove preceding "v."
 		}
 		if (name.indexOf('v["') === 0) { // preceding variable object?
-			name = name.substr(3); // remove preceding 'v["'
+			name = name.substring(3); // remove preceding 'v["'
 		}
 
 		let nameType = name.charAt(0); // take first character to determine variable type later

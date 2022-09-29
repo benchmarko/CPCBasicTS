@@ -61,6 +61,7 @@ export declare class DiskImage {
     readDirectory(): DirectoryListType;
     private nextSector;
     private readBlock;
+    private readExtents;
     readFile(fileExtents: ExtentEntry[]): string;
     private static protectTable;
     static unOrProtectData(data: string): string;

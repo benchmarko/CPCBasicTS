@@ -4,7 +4,6 @@ define(["require", "exports", "../Utils"], function (require, exports, Utils_1) 
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.TestHelper = void 0;
-    // QUnit.dump.maxDepth = 10;
     var TestHelper = /** @class */ (function () {
         function TestHelper() {
         }
@@ -72,6 +71,15 @@ define(["require", "exports", "../Utils"], function (require, exports, Utils_1) 
             for (var category in allTests) {
                 _loop_1(category);
             }
+        };
+        TestHelper.fnBinaryLiteralReplacer = function (bin) {
+            return "0x" + parseInt(bin.substring(2), 2).toString(16).toLowerCase();
+        };
+        TestHelper.handleBinaryLiterals = function (str) {
+            if (!Utils_1.Utils.supportsBinaryLiterals) {
+                str = str.replace(/(0b[01]+)/g, TestHelper.fnBinaryLiteralReplacer); // for old IE
+            }
+            return str;
         };
         TestHelper.stringInQuotes = function (s) {
             s = s.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/\r/g, "\\r");

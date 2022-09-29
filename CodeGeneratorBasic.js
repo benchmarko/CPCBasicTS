@@ -394,73 +394,108 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             }
             return CodeGeneratorBasic.fnWs(node) + value;
         };
+        CodeGeneratorBasic.getLeftOrRightOperatorPrecedence = function (node) {
+            var precedence = CodeGeneratorBasic.operatorPrecedence, operators = CodeGeneratorBasic.operators;
+            var pr;
+            if (operators[node.type] && (node.left || node.right)) { // binary operator (or unary operator, e.g. not)
+                if (node.left) { // right is binary
+                    pr = precedence[node.type] || 0;
+                }
+                else {
+                    pr = precedence["p" + node.type] || precedence[node.type] || 0;
+                }
+            }
+            return pr;
+        };
+        CodeGeneratorBasic.prototype.parseOperator = function (node, type) {
+            var precedence = CodeGeneratorBasic.operatorPrecedence, operators = CodeGeneratorBasic.operators;
+            var value;
+            if (node.left) {
+                value = this.parseNode(node.left);
+                var p = precedence[node.type], pl = CodeGeneratorBasic.getLeftOrRightOperatorPrecedence(node.left);
+                /*
+                if (operators[node.left.type] && (node.left.left || node.left.right)) { // binary operator (or unary operator, e.g. not)
+                    const p = precedence[node.type];
+                    let pl: number;
+    
+                    if (node.left.left) { // left is binary
+                        pl = precedence[node.left.type] || 0;
+                    } else { // left is unary
+                        pl = precedence["p" + node.left.type] || precedence[node.left.type] || 0;
+                    }
+    
+                    if (pl < p) {
+                        value = "(" + value + ")";
+                    }
+                }
+                */
+                if (pl !== undefined && pl < p) {
+                    value = "(" + value + ")";
+                }
+                var right = node.right;
+                var value2 = this.parseNode(right);
+                var pr = CodeGeneratorBasic.getLeftOrRightOperatorPrecedence(right);
+                /*
+                if (operators[right.type] && (right.left || right.right)) { // binary operator (or unary operator, e.g. not)
+                    const p = precedence[node.type];
+                    let pr: number;
+    
+                    if (right.left) { // right is binary
+                        pr = precedence[right.type] || 0;
+                    } else {
+                        pr = precedence["p" + right.type] || precedence[right.type] || 0;
+                    }
+    
+                    if ((pr < p) || ((pr === p) && node.type === "-")) { // "-" is special
+                        value2 = "(" + value2 + ")";
+                    }
+                }
+                */
+                if (pr !== undefined) {
+                    if ((pr < p) || ((pr === p) && node.type === "-")) { // "-" is special
+                        value2 = "(" + value2 + ")";
+                    }
+                }
+                var whiteBefore = CodeGeneratorBasic.fnWs(node);
+                var operator = whiteBefore + operators[type].toUpperCase();
+                if (whiteBefore === "" && (/^(and|or|xor|mod)$/).test(type)) {
+                    operator = " " + operator + " ";
+                }
+                value += operator + value2;
+            }
+            else if (node.right) { // unary operator, e.g. not
+                var right = node.right;
+                value = this.parseNode(right);
+                var pr = void 0;
+                if (right.left) { // was binary op?
+                    pr = precedence[right.type] || 0; // no special prio
+                }
+                else {
+                    pr = precedence["p" + right.type] || precedence[right.type] || 0; // check unary operator first
+                }
+                var p = precedence["p" + node.type] || precedence[node.type] || 0; // check unary operator first
+                if (p && pr && (pr < p)) {
+                    value = "(" + value + ")";
+                }
+                var whiteBefore = CodeGeneratorBasic.fnWs(node), operator = whiteBefore + operators[type].toUpperCase(), whiteAfter = value.startsWith(" ");
+                if (!whiteAfter && type === "not") {
+                    value = " " + value;
+                }
+                value = operator + value;
+            }
+            else { // no operator, e.g. "=" in "for"
+                value = this.fnParseOther(node);
+            }
+            return value;
+        };
         CodeGeneratorBasic.prototype.parseNode = function (node) {
             if (Utils_1.Utils.debug > 3) {
                 Utils_1.Utils.console.debug("evaluate: parseNode node=%o type=" + node.type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
             }
-            var type = node.type, precedence = CodeGeneratorBasic.operatorPrecedence, operators = CodeGeneratorBasic.operators;
+            var operators = CodeGeneratorBasic.operators, type = node.type;
             var value;
             if (operators[type]) {
-                if (node.left) {
-                    value = this.parseNode(node.left);
-                    if (operators[node.left.type] && (node.left.left || node.left.right)) { // binary operator (or unary operator, e.g. not)
-                        var p = precedence[node.type];
-                        var pl = void 0;
-                        if (node.left.left) { // left is binary
-                            pl = precedence[node.left.type] || 0;
-                        }
-                        else { // left is unary
-                            pl = precedence["p" + node.left.type] || precedence[node.left.type] || 0;
-                        }
-                        if (pl < p) {
-                            value = "(" + value + ")";
-                        }
-                    }
-                    var right = node.right;
-                    var value2 = this.parseNode(right);
-                    if (operators[right.type] && (right.left || right.right)) { // binary operator (or unary operator, e.g. not)
-                        var p = precedence[node.type];
-                        var pr = void 0;
-                        if (right.left) { // right is binary
-                            pr = precedence[right.type] || 0;
-                        }
-                        else {
-                            pr = precedence["p" + right.type] || precedence[right.type] || 0;
-                        }
-                        if ((pr < p) || ((pr === p) && node.type === "-")) { // "-" is special
-                            value2 = "(" + value2 + ")";
-                        }
-                    }
-                    var whiteBefore = CodeGeneratorBasic.fnWs(node);
-                    var operator = whiteBefore + operators[type].toUpperCase();
-                    if (whiteBefore === "" && (/^(and|or|xor|mod)$/).test(type)) {
-                        operator = " " + operator + " ";
-                    }
-                    value += operator + value2;
-                }
-                else if (node.right) { // unary operator, e.g. not
-                    var right = node.right;
-                    value = this.parseNode(right);
-                    var pr = void 0;
-                    if (right.left) { // was binary op?
-                        pr = precedence[right.type] || 0; // no special prio
-                    }
-                    else {
-                        pr = precedence["p" + right.type] || precedence[right.type] || 0; // check unary operator first
-                    }
-                    var p = precedence["p" + node.type] || precedence[node.type] || 0; // check unary operator first
-                    if (p && pr && (pr < p)) {
-                        value = "(" + value + ")";
-                    }
-                    var whiteBefore = CodeGeneratorBasic.fnWs(node), operator = whiteBefore + operators[type].toUpperCase(), whiteAfter = value.startsWith(" ");
-                    if (!whiteAfter && type === "not") {
-                        value = " " + value;
-                    }
-                    value = operator + value;
-                }
-                else { // no operator, e.g. "=" in "for"
-                    value = this.fnParseOther(node);
-                }
+                value = this.parseOperator(node, type);
             }
             else if (this.parseFunctions[type]) { // function with special handling?
                 value = this.parseFunctions[type].call(this, node);
@@ -470,6 +505,99 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             }
             return value;
         };
+        /*
+        private parseNode(node: ParserNode) { // eslint-disable-line complexity
+            if (Utils.debug > 3) {
+                Utils.console.debug("evaluate: parseNode node=%o type=" + node.type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
+            }
+    
+            const type = node.type,
+                precedence = CodeGeneratorBasic.operatorPrecedence,
+                operators = CodeGeneratorBasic.operators;
+            let value: string;
+    
+            if (operators[type]) {
+                if (node.left) {
+                    value = this.parseNode(node.left);
+                    if (operators[node.left.type] && (node.left.left || node.left.right)) { // binary operator (or unary operator, e.g. not)
+                        const p = precedence[node.type];
+                        let pl: number;
+    
+                        if (node.left.left) { // left is binary
+                            pl = precedence[node.left.type] || 0;
+                        } else { // left is unary
+                            pl = precedence["p" + node.left.type] || precedence[node.left.type] || 0;
+                        }
+    
+                        if (pl < p) {
+                            value = "(" + value + ")";
+                        }
+                    }
+    
+                    const right = node.right as ParserNode;
+                    let value2 = this.parseNode(right);
+    
+                    if (operators[right.type] && (right.left || right.right)) { // binary operator (or unary operator, e.g. not)
+                        const p = precedence[node.type];
+                        let pr: number;
+    
+                        if (right.left) { // right is binary
+                            pr = precedence[right.type] || 0;
+                        } else {
+                            pr = precedence["p" + right.type] || precedence[right.type] || 0;
+                        }
+    
+                        if ((pr < p) || ((pr === p) && node.type === "-")) { // "-" is special
+                            value2 = "(" + value2 + ")";
+                        }
+                    }
+    
+                    const whiteBefore = CodeGeneratorBasic.fnWs(node);
+                    let operator = whiteBefore + operators[type].toUpperCase();
+    
+                    if (whiteBefore === "" && (/^(and|or|xor|mod)$/).test(type)) {
+                        operator = " " + operator + " ";
+                    }
+    
+                    value += operator + value2;
+                } else if (node.right) { // unary operator, e.g. not
+                    const right = node.right;
+    
+                    value = this.parseNode(right);
+                    let pr: number;
+    
+                    if (right.left) { // was binary op?
+                        pr = precedence[right.type] || 0; // no special prio
+                    } else {
+                        pr = precedence["p" + right.type] || precedence[right.type] || 0; // check unary operator first
+                    }
+    
+                    const p = precedence["p" + node.type] || precedence[node.type] || 0; // check unary operator first
+    
+                    if (p && pr && (pr < p)) {
+                        value = "(" + value + ")";
+                    }
+    
+                    const whiteBefore = CodeGeneratorBasic.fnWs(node),
+                        operator = whiteBefore + operators[type].toUpperCase(),
+                        whiteAfter = value.startsWith(" ");
+    
+                    if (!whiteAfter && type === "not") {
+                        value = " " + value;
+                    }
+                    value = operator + value;
+                } else { // no operator, e.g. "=" in "for"
+                    value = this.fnParseOther(node);
+                }
+            } else if (this.parseFunctions[type]) { // function with special handling?
+                value = this.parseFunctions[type].call(this, node);
+            } else { // for other functions, generate code directly
+                value = this.fnParseOther(node);
+            }
+    
+            return value;
+        }
+        */
         CodeGeneratorBasic.prototype.evaluate = function (parseTree) {
             var output = "";
             for (var i = 0; i < parseTree.length; i += 1) {

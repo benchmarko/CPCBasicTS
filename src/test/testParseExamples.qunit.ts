@@ -388,9 +388,9 @@ function splitMeta(input: string) {
 		const index = input.indexOf(","); // metadata separator
 
 		if (index >= 0) {
-			const metaString = input.substr(0, index);
+			const metaString = input.substring(0, index);
 
-			input = input.substr(index + 1);
+			input = input.substring(index + 1);
 
 			const meta = metaString.split(";");
 
@@ -505,11 +505,7 @@ function testParseExample(example: ExampleEntry) {
 			} catch (e) {
 				Utils.console.error("Error in file", example.key);
 				Utils.console.error(e);
-				if (Utils.isCustomError(e)) {
-					output.error = e;
-				} else {
-					output.error = e as any;
-				}
+				output.error = e;
 			}
 		} else {
 			Utils.console.error("There was an error when parsing file", example.key);

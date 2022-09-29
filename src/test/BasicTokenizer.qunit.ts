@@ -39,22 +39,29 @@ QUnit.module("BasicTokenizer:decode: Tests", function () {
 		}).join("");
 	}
 
+	function runSingleTest(basicTokenizer: BasicTokenizer, key: string) {
+		const withLines = (key.charAt(0) === "L"),
+			input = fnHex2Bin(withLines ? key.substring(2) : key),
+			result = withLines ? basicTokenizer.decode(input) : basicTokenizer.decodeLineFragment(input, 0, input.length);
+
+		return result;
+	}
+
 	function runTestsFor(_category: string, tests: TestsType, assert?: Assert, results?: string[]) {
 		const basicTokenizer = new BasicTokenizer();
 
 		for (const key in tests) {
 			if (tests.hasOwnProperty(key)) {
 				const expected = tests[key],
-					withLines = (key.charAt(0) === "L"),
-					input = fnHex2Bin(withLines ? key.substr(2) : key), // old: Utils.atob(key)
-					result = withLines ? basicTokenizer.decode(input) : basicTokenizer.decodeLineFragment(input, 0, input.length),
-					firstLine = expected.substr(0, expected.indexOf("\n")) || expected;
+					result = runSingleTest(basicTokenizer, key);
 
 				if (results) {
 					results.push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
 				}
 
 				if (assert) {
+					const firstLine = expected.substring(0, expected.indexOf("\n")) || expected;
+
 					assert.strictEqual(result, expected, firstLine);
 				}
 			}
@@ -63,5 +70,3 @@ QUnit.module("BasicTokenizer:decode: Tests", function () {
 
 	TestHelper.generateAndRunAllTests(allTests, runTestsFor);
 });
-
-// end

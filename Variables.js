@@ -53,10 +53,10 @@ define(["require", "exports"], function (require, exports) {
         // format: (v.|v["])(_)<sname>(A*)(I|R|$)([...]([...])) with optional parts in ()
         Variables.prototype.determineStaticVarType = function (name) {
             if (name.indexOf("v.") === 0) { // preceding variable object?
-                name = name.substr(2); // remove preceding "v."
+                name = name.substring(2); // remove preceding "v."
             }
             if (name.indexOf('v["') === 0) { // preceding variable object?
-                name = name.substr(3); // remove preceding 'v["'
+                name = name.substring(3); // remove preceding 'v["'
             }
             var nameType = name.charAt(0); // take first character to determine variable type later
             if (nameType === "_") { // ignore underscore (do not clash with keywords)

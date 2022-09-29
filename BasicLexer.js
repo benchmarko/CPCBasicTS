@@ -88,7 +88,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return token;
         };
         BasicLexer.prototype.debugCheckValue = function (type, value, pos, orig) {
-            var origValue = orig || value, part = this.input.substr(pos, origValue.length);
+            var origValue = orig || value, part = this.input.substring(pos, pos + origValue.length);
             if (part !== origValue) {
                 Utils_1.Utils.console.debug("BasicLexer:debugCheckValue:", type, part, "<>", origValue, "at pos", pos);
             }

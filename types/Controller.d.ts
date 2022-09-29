@@ -2,6 +2,11 @@ import { IController } from "./Interfaces";
 import { Model } from "./Model";
 import { VariableValue } from "./Variables";
 import { View } from "./View";
+export interface FileSelectOptions {
+    fnEndOfImport: (imported: string[]) => void;
+    outputError: (error: Error, noSelection?: boolean) => void;
+    fnLoad2: (data: string, name: string, type: string, imported: string[]) => void;
+}
 export declare class Controller implements IController {
     private readonly fnRunLoopHandler;
     private readonly fnWaitKeyHandler;
@@ -33,6 +38,7 @@ export declare class Controller implements IController {
     private readonly rsx;
     private readonly noStop;
     private readonly savedStop;
+    private fileSelect?;
     constructor(model: Model, view: View);
     private initDatabases;
     private onUserAction;
@@ -67,6 +73,8 @@ export declare class Controller implements IController {
     private encodeTokenizedBasic;
     private prettyPrintBasic;
     private loadFileContinue;
+    private createFnExampleLoaded;
+    private createFnExampleError;
     private loadExample;
     private static fnLocalStorageName;
     private static defaultExtensions;
@@ -122,7 +130,6 @@ export declare class Controller implements IController {
     private fnEndOfImport;
     private static reRegExpIsText;
     private fnLoad2;
-    private fnHandleFileSelect;
     private static fnHandleDragOver;
     private initDropZone;
     private fnUpdateUndoRedoButtons;

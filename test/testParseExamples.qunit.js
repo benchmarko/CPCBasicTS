@@ -264,8 +264,8 @@ define(["require", "exports", "../Utils", "../Polyfills", "../BasicLexer", "../B
         if (input.indexOf(metaIdent) === 0) { // starts with metaIdent?
             var index = input.indexOf(","); // metadata separator
             if (index >= 0) {
-                var metaString = input.substr(0, index);
-                input = input.substr(index + 1);
+                var metaString = input.substring(0, index);
+                input = input.substring(index + 1);
                 var meta = metaString.split(";");
                 fileMeta = {
                     type: meta[1],
@@ -354,12 +354,7 @@ define(["require", "exports", "../Utils", "../Polyfills", "../BasicLexer", "../B
                 catch (e) {
                     Utils_1.Utils.console.error("Error in file", example.key);
                     Utils_1.Utils.console.error(e);
-                    if (Utils_1.Utils.isCustomError(e)) {
-                        output.error = e;
-                    }
-                    else {
-                        output.error = e;
-                    }
+                    output.error = e;
                 }
             }
             else {

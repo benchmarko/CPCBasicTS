@@ -1,7 +1,6 @@
 // CodeGeneratorJs.qunit.ts - QUnit tests for CPCBasic CodeGeneratorJs
 //
 
-import { Utils } from "../Utils";
 import { BasicLexer } from "../BasicLexer";
 import { BasicParser } from "../BasicParser";
 import { CodeGeneratorJs } from "../CodeGeneratorJs";
@@ -729,13 +728,17 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 	};
 
 
-	function fnReplacer(bin: string) {
-		return "0x" + parseInt(bin.substr(2), 2).toString(16).toLowerCase();
+	function runSingleTest(codeGeneratorJs: CodeGeneratorJs, key: string) {
+		const allowDirect = true,
+			variables = new Variables(),
+			output = codeGeneratorJs.generate(key, variables, allowDirect),
+			result = output.error ? String(output.error) : output.text;
+
+		return result;
 	}
 
 	function runTestsFor(_category: string, tests: TestsType, assert?: Assert, results?: string[]) {
-		const allowDirect = true,
-			options = {
+		const options = {
 				quiet: true
 			},
 			codeGeneratorJs = new CodeGeneratorJs({
@@ -753,14 +756,9 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 
 		for (const key in tests) {
 			if (tests.hasOwnProperty(key)) {
-				const variables = new Variables(),
-					output = codeGeneratorJs.generate(key, variables, allowDirect),
-					result = output.error ? String(output.error) : output.text;
-				let expected = tests[key];
+				const expected = TestHelper.handleBinaryLiterals(tests[key]),
+					result = runSingleTest(codeGeneratorJs, key);
 
-				if (!Utils.supportsBinaryLiterals) {
-					expected = expected.replace(/(0b[01]+)/g, fnReplacer); // for old IE
-				}
 				if (results) {
 					results.push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
 				}
@@ -774,5 +772,3 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 
 	TestHelper.generateAndRunAllTests(allTests, runTestsFor);
 });
-
-// end

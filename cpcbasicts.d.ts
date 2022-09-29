@@ -291,6 +291,7 @@ declare module "BasicTokenizer" {
         private line;
         private lineEnd;
         private input;
+        private needSpace;
         private readonly debug;
         private fnNum8Dec;
         private fnNum16Dec;
@@ -314,6 +315,7 @@ declare module "BasicTokenizer" {
         private readonly tokensFF;
         private debugPrintInfo;
         private debugCollectInfo;
+        private fnParseNextToken;
         private fnParseLineFragment;
         private fnParseNextLine;
         private fnParseProgram;
@@ -382,6 +384,8 @@ declare module "CodeGeneratorBasic" {
         private using;
         private readonly parseFunctions;
         private fnParseOther;
+        private static getLeftOrRightOperatorPrecedence;
+        private parseOperator;
         private parseNode;
         private evaluate;
         generate(input: string, _allowDirect?: boolean): IOutput;
@@ -724,6 +728,7 @@ declare module "DiskImage" {
         readDirectory(): DirectoryListType;
         private nextSector;
         private readBlock;
+        private readExtents;
         readFile(fileExtents: ExtentEntry[]): string;
         private static protectTable;
         static unOrProtectData(data: string): string;
@@ -1764,6 +1769,11 @@ declare module "Controller" {
     import { Model } from "Model";
     import { VariableValue } from "Variables";
     import { View } from "View";
+    export interface FileSelectOptions {
+        fnEndOfImport: (imported: string[]) => void;
+        outputError: (error: Error, noSelection?: boolean) => void;
+        fnLoad2: (data: string, name: string, type: string, imported: string[]) => void;
+    }
     export class Controller implements IController {
         private readonly fnRunLoopHandler;
         private readonly fnWaitKeyHandler;
@@ -1795,6 +1805,7 @@ declare module "Controller" {
         private readonly rsx;
         private readonly noStop;
         private readonly savedStop;
+        private fileSelect?;
         constructor(model: Model, view: View);
         private initDatabases;
         private onUserAction;
@@ -1829,6 +1840,8 @@ declare module "Controller" {
         private encodeTokenizedBasic;
         private prettyPrintBasic;
         private loadFileContinue;
+        private createFnExampleLoaded;
+        private createFnExampleError;
         private loadExample;
         private static fnLocalStorageName;
         private static defaultExtensions;
@@ -1884,7 +1897,6 @@ declare module "Controller" {
         private fnEndOfImport;
         private static reRegExpIsText;
         private fnLoad2;
-        private fnHandleFileSelect;
         private static fnHandleDragOver;
         private initDropZone;
         private fnUpdateUndoRedoButtons;

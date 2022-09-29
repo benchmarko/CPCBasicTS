@@ -94,7 +94,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             /* eslint-disable no-bitwise */
             xTxt = (x / charWidth) | 0, yTxt = (y / charHeight) | 0;
             /* eslint-enable no-bitwise */
-            if (Utils_1.Utils.debug > 0) { //TTT
+            if (Utils_1.Utils.debug > 0) {
                 Utils_1.Utils.console.debug("canvasClickAction2: x=" + x + ", y=" + y + ", xTxt=" + xTxt + ", yTxt=" + yTxt);
             }
             var char = this.getCharFromTextBuffer(xTxt, yTxt); // is there a character an the click position?

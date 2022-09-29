@@ -57,7 +57,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 classes = classes.trim() + " " + className;
             }
             else {
-                classes = classes.substr(0, nameIndex) + classes.substr(nameIndex + className.length + 1).trim();
+                classes = classes.substring(0, nameIndex) + classes.substring(nameIndex + className.length + 1).trim();
             }
             element.className = classes;
         };

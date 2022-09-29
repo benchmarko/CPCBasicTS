@@ -58,6 +58,8 @@ export declare class CodeGeneratorBasic {
     private using;
     private readonly parseFunctions;
     private fnParseOther;
+    private static getLeftOrRightOperatorPrecedence;
+    private parseOperator;
     private parseNode;
     private evaluate;
     generate(input: string, _allowDirect?: boolean): IOutput;

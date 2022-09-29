@@ -128,7 +128,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             // apply changes to input in reverse order
             for (var i = keys.length - 1; i >= 0; i -= 1) {
                 var line = changes[keys[i]];
-                input = input.substring(0, line.pos) + line.newLine + input.substr(line.pos + line.len);
+                input = input.substring(0, line.pos) + line.newLine + input.substring(line.pos + line.len);
             }
             return input;
         };

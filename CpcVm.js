@@ -356,7 +356,6 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         };
         CpcVm.prototype.vmGetLetterCode = function (s, err) {
             this.vmAssertString(s, err);
-            // const reLetter = RegExp("^[A-Za-z]$");
             s = s.toLowerCase();
             if (s.length !== 1 || s < "a" || s > "z") { // single letter?
                 throw this.vmComposeError(Error(), 2, err + " " + s); // Syntax Error
@@ -594,11 +593,11 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.vmAssertString(name, err);
             name = name.replace(/ /g, ""); // remove spaces
             if (name.indexOf("!") === 0) {
-                name = name.substr(1); // remove preceding "!"
+                name = name.substring(1); // remove preceding "!"
             }
             var index = name.indexOf(":");
             if (index >= 0) {
-                name = name.substr(index + 1); // remove user and drive letter including ":"
+                name = name.substring(index + 1); // remove user and drive letter including ":"
             }
             name = name.toLowerCase();
             if (!name) {
@@ -1320,24 +1319,6 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             }
             return eof;
         };
-        /*
-        private vmFindArrayVariable(name: string): string {
-            name += "A";
-            if (this.variables.variableExist(name)) { // one dim array variable?
-                return name;
-            }
-    
-            // find multi-dim array variable
-            const fnArrayVarFilter = function (variable: string) {
-                return (variable.indexOf(name) === 0) ? variable : null; // find array varA
-            };
-            let names = this.variables.getAllVariableNames();
-    
-            names = names.filter(fnArrayVarFilter); // find array varA... with any number of indices
-            return names[0]; // we should find exactly one
-        }
-        */
-        //private vmFindArrayVarFilter(name: string, typeChar: string) {}
         // find array variable matching <name>(A+)(typeChar?)
         CpcVm.prototype.vmFindArrayVariable = function (name) {
             var typeChar = name.charAt(name.length - 1); // last character
@@ -1568,8 +1549,8 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             if (line.charAt(0) === '"') { // quoted string?
                 var index = line.indexOf('"', 1); // closing quotes in this line?
                 if (index >= 0) {
-                    value = line.substr(1, index - 1); // take string without quotes
-                    line = line.substr(index + 1);
+                    value = line.substring(1, index + 1 - 1); // take string without quotes
+                    line = line.substring(index + 1);
                     line = line.replace(/^\s*,/, ""); // multiple args => remove next comma
                 }
                 else if (fileData.length > 1) { // no closing quotes in this line => try to combine with next line
@@ -1583,8 +1564,8 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             else { // unquoted string
                 var index = line.indexOf(","); // multiple args?
                 if (index >= 0) {
-                    value = line.substr(0, index); // take arg
-                    line = line.substr(index + 1);
+                    value = line.substring(0, index); // take arg
+                    line = line.substring(index + 1);
                 }
                 else {
                     value = line; // take line
@@ -1599,14 +1580,14 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             index = line.indexOf(","), // multiple args?
             value;
             if (index >= 0) {
-                value = line.substr(0, index); // take arg
-                line = line.substr(index + 1);
+                value = line.substring(0, index); // take arg
+                line = line.substring(index + 1);
             }
             else {
                 index = line.indexOf(" "); // space?
                 if (index >= 0) {
-                    value = line.substr(0, index); // take item until space
-                    line = line.substr(index);
+                    value = line.substring(0, index); // take item until space
+                    line = line.substring(index);
                     line = line.replace(/^\s*/, ""); // remove spaces after number
                 }
                 else {
@@ -1678,14 +1659,29 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                 this.vmInputFromFile(args); // remaining arguments
             }
         };
-        CpcVm.prototype.instr = function (p1, p2, p3) {
+        /*
+        instr(p1: string | number, p2: string, p3?: string): number { // optional startpos as first parameter
             this.vmAssertString(p2, "INSTR");
             if (typeof p1 === "string") { // p1=string, p2=search string
                 return p1.indexOf(p2) + 1;
             }
             p1 = this.vmInRangeRound(p1, 1, 255, "INSTR"); // p1=startpos
-            this.vmAssertString(p3, "INSTR");
-            return p2.indexOf(p3, p1 - 1) + 1; // p2=string, p3=search string
+            this.vmAssertString(p3 as string, "INSTR");
+            return p2.indexOf(p3 as string, p1 - 1) + 1; // p2=string, p3=search string
+        }
+        */
+        CpcVm.prototype.instr = function (p1, p2, p3) {
+            var startPos = typeof p1 === "number" ? this.vmInRangeRound(p1, 1, 255, "INSTR") - 1 : 0, // p1=startpos
+            str = typeof p1 === "number" ? p2 : p1, search = typeof p1 === "number" ? p3 : p2;
+            this.vmAssertString(str, "INSTR");
+            this.vmAssertString(search, "INSTR");
+            if (startPos >= str.length) {
+                return 0; // not found
+            }
+            if (!search.length) {
+                return startPos + 1;
+            }
+            return str.indexOf(search, startPos) + 1;
         };
         CpcVm.prototype["int"] = function (n) {
             this.vmAssertNumber(n, "INT");
@@ -1717,7 +1713,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         CpcVm.prototype.left$ = function (s, len) {
             this.vmAssertString(s, "LEFT$");
             len = this.vmInRangeRound(len, 0, 255, "LEFT$");
-            return s.substr(0, len);
+            return s.substring(0, len);
         };
         CpcVm.prototype.len = function (s) {
             this.vmAssertString(s, "LEN");
@@ -1924,7 +1920,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             if (len !== undefined) {
                 len = this.vmInRangeRound(len, 0, 255, "MID$");
             }
-            return s.substr(start - 1, len);
+            return s.substr(start - 1, len); // or: s.substring(start - 1, len === undefined ? len : start - 1 + len);
         };
         CpcVm.prototype.mid$Assign = function (s, start, len, newString) {
             this.vmAssertString(s, "MID$");
@@ -1937,7 +1933,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             if (len > s.length - start) {
                 len = s.length - start;
             }
-            s = s.substr(0, start) + newString.substr(0, len) + s.substr(start + len);
+            s = s.substring(0, start) + newString.substring(0, len) + s.substring(start + len);
             return s;
         };
         CpcVm.prototype.min = function () {
@@ -2084,7 +2080,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             if (input !== null) {
                 input = input.replace(/\r\n/g, "\n"); // remove CR (maybe from ASCII file in "binary" form)
                 if (input.endsWith("\n")) {
-                    input = input.substr(0, input.length - 1); // remove last "\n" (TTT: also for data files?)
+                    input = input.substring(0, input.length - 1); // remove last "\n" (TTT: also for data files?)
                 }
                 var inFile = this.inFile;
                 inFile.fileData = input.split("\n");
@@ -2502,11 +2498,11 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                     }
                     var paraCount = CpcVm.controlCodeParameterCount[code];
                     if (i + paraCount <= str.length) {
-                        out += this.vmHandleControlCode(code, str.substr(i, paraCount), stream);
+                        out += this.vmHandleControlCode(code, str.substring(i, i + paraCount), stream);
                         i += paraCount;
                     }
                     else {
-                        buf = str.substr(i - 1); // not enough parameters, put code in buffer and wait for more
+                        buf = str.substring(i - 1); // not enough parameters, put code in buffer and wait for more
                         i = str.length;
                     }
                 }
@@ -2525,23 +2521,6 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                 this.canvas.printGChar(char);
             }
         };
-        /*
-        private static vmToExponential(num: number) {
-            return num.toExponential().toUpperCase().replace(/(\d+)$/, function (x) {
-                return x.length >= 2 ? x : x.padStart(2, "0"); // format with 2 exponential digits
-            });
-        }
-    
-        private static vmToPrecision9(num: number) {
-            const numStr = num.toPrecision(9), // some rounding, formatting
-                [decimal, exponent] = numStr.split("e"), // eslint-disable-line array-element-newline
-                result = String(Number(decimal)) + (exponent !== undefined ? ("E" + exponent.replace(/(\D)(\d)$/, "$10$2")) : "");
-    
-            // Number(): strip trailing decimal point and/or zeros (replace(/\.?0*$/, ""))
-            // exponent 1 digit to 2 digits
-            return result;
-        }
-        */
         CpcVm.prototype.print = function (stream) {
             var args = [];
             for (var _i = 1; _i < arguments.length; _i++) {
@@ -2581,7 +2560,6 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                     }
                 }
                 else if (typeof arg === "number") {
-                    //str = ((arg >= 0) ? " " : "") + (arg < 1e9 ? String(arg) : CpcVm.vmToExponential(arg)) + " ";
                     str = ((arg >= 0) ? " " : "") + Utils_1.Utils.toPrecision9(arg) + " ";
                 }
                 else { // e.g. string
@@ -2756,7 +2734,6 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         CpcVm.prototype.restore = function (line) {
             line = line === undefined ? 0 : this.vmLineInRange(line, "RESTORE");
             var dataLineIndex = this.dataLineIndex;
-            // line = String(line);
             if (line in dataLineIndex) {
                 this.dataIndex = dataLineIndex[line];
             }
@@ -3177,7 +3154,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                 index = match.index + match[0].length;
             }
             if (index < format.length) { // non-format characters at the end
-                formatList.push(format.substr(index));
+                formatList.push(format.substring(index));
             }
             if (formatList.length < 2) {
                 if (!this.quiet) {
@@ -3293,7 +3270,6 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             for (var i = 0; i < args.length; i += 1) {
                 var arg = args[i];
                 if (typeof arg === "number") {
-                    //str = arg < 1e9 ? String(arg) : CpcVm.vmToExponential(arg);
                     str = Utils_1.Utils.toPrecision9(arg);
                 }
                 else {

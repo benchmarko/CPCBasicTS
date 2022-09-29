@@ -6,6 +6,259 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Controller = void 0;
+    var FileSelect = /** @class */ (function () {
+        function FileSelect(options) {
+            this.fnEndOfImport = {};
+            this.outputError = {};
+            this.fnLoad2 = {};
+            this.files = {}; // = dataTransfer ? dataTransfer.files : ((event.target as any).files as FileList), // dataTransfer for drag&drop, target.files for file input
+            this.fileIndex = 0;
+            this.imported = []; // imported file names
+            this.file = {}; // current file
+            this.fnEndOfImport = options.fnEndOfImport;
+            this.outputError = options.outputError;
+            this.fnLoad2 = options.fnLoad2;
+        }
+        FileSelect.prototype.fnReadNextFile = function (reader) {
+            if (this.fileIndex < this.files.length) {
+                var file = this.files[this.fileIndex];
+                this.fileIndex += 1;
+                var lastModified = file.lastModified, lastModifiedDate = lastModified ? new Date(lastModified) : file.lastModifiedDate, // lastModifiedDate deprecated, but for old IE
+                text = file.name + " " + (file.type || "n/a") + " " + file.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
+                Utils_1.Utils.console.log(text);
+                if (file.type === "text/plain") {
+                    reader.readAsText(file);
+                }
+                else if (file.type === "application/x-zip-compressed") {
+                    reader.readAsArrayBuffer(file);
+                }
+                else {
+                    reader.readAsDataURL(file);
+                }
+                this.file = file;
+            }
+            else {
+                this.fnEndOfImport(this.imported);
+            }
+        };
+        FileSelect.prototype.fnOnLoad = function (event) {
+            var reader = event.target, data = (reader && reader.result) || null, file = this.file, name = file.name, type = file.type;
+            if (type === "application/x-zip-compressed" && data instanceof ArrayBuffer) {
+                var zip = void 0;
+                try {
+                    zip = new ZipFile_1.ZipFile(new Uint8Array(data), name); // rather data
+                }
+                catch (e) {
+                    Utils_1.Utils.console.error(e);
+                    if (e instanceof Error) {
+                        this.outputError(e, true);
+                    }
+                }
+                if (zip) {
+                    var zipDirectory = zip.getZipDirectory(), entries = Object.keys(zipDirectory);
+                    for (var i = 0; i < entries.length; i += 1) {
+                        var name2 = entries[i];
+                        var data2 = void 0;
+                        try {
+                            data2 = zip.readData(name2);
+                        }
+                        catch (e) {
+                            Utils_1.Utils.console.error(e);
+                            if (e instanceof Error) { // eslint-disable-line max-depth
+                                this.outputError(e, true);
+                            }
+                        }
+                        if (data2) {
+                            this.fnLoad2(data2, name2, type, this.imported);
+                        }
+                    }
+                }
+            }
+            else if (typeof data === "string") {
+                this.fnLoad2(data, name, type, this.imported);
+            }
+            else {
+                Utils_1.Utils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);
+            }
+            if (reader) {
+                this.fnReadNextFile(reader);
+            }
+        };
+        FileSelect.prototype.fnErrorHandler = function (event, file) {
+            var reader = event.target;
+            var msg = "fnErrorHandler: Error reading file " + file.name;
+            if (reader && reader.error !== null) {
+                if (reader.error.NOT_FOUND_ERR) {
+                    msg += ": File not found";
+                }
+                else if (reader.error.ABORT_ERR) {
+                    msg = ""; // nothing
+                }
+            }
+            if (msg) {
+                Utils_1.Utils.console.warn(msg);
+            }
+            if (reader) {
+                this.fnReadNextFile(reader);
+            }
+        };
+        // https://stackoverflow.com/questions/10261989/html5-javascript-drag-and-drop-file-from-external-window-windows-explorer
+        // https://www.w3.org/TR/file-upload/#dfn-filereader
+        FileSelect.prototype.fnHandleFileSelect = function (event) {
+            var dataTransfer = event.dataTransfer;
+            event.stopPropagation();
+            event.preventDefault();
+            this.files = dataTransfer ? dataTransfer.files : event.target.files; // dataTransfer for drag&drop, target.files for file input
+            this.fileIndex = 0;
+            this.imported.length = 0;
+            if (window.FileReader) {
+                var reader = new FileReader();
+                reader.onerror = this.fnErrorHandler.bind(this);
+                reader.onload = this.fnOnLoad.bind(this);
+                this.fnReadNextFile(reader);
+            }
+            else {
+                Utils_1.Utils.console.warn("FileReader API not supported.");
+            }
+        };
+        FileSelect.prototype.addFileSelectHandler = function (element, type) {
+            element.addEventListener(type, this.fnHandleFileSelect.bind(this), false);
+        };
+        return FileSelect;
+    }());
+    /*
+    // TODO
+    class FileHandler {
+        private static readonly metaIdent = "CPCBasic";
+    
+        private static dummyFunction = function () {
+            //
+        };
+    
+        private config = {
+            outputError: FileHandler.dummyFunction as (error: Error, noSelection?: boolean) => void, // e.g. Utils.console.error(String(error), "selection=", noSelection)
+            updateStorageDatabase: FileHandler.dummyFunction as (action: string, key: string) => void,
+            adaptFilename: FileHandler.dummyFunction as unknown as (name: string, err: string) => string,
+            fnEndOfImport: FileHandler.dummyFunction as (imported: string[]) => void
+        };
+    
+        private outputError(error: Error, noSelection?: boolean) {
+            this.config.outputError(error, noSelection);
+        }
+    
+        private static fnLocalStorageName(name: string, defaultExtension?: string) {
+            // modify name so we do not clash with localstorage methods/properites
+            if (name.indexOf(".") < 0) { // no dot inside name?
+                name += "." + (defaultExtension || ""); // append dot or default extension
+            }
+            return name;
+        }
+    
+        private static createMinimalAmsdosHeader(type: string,	start: number,	length: number) {
+            return {
+                typeString: type,
+                start: start,
+                length: length
+            } as AmsdosHeader;
+        }
+    
+        private static joinMeta(meta: FileMeta) {
+            return [
+                FileHandler.metaIdent,
+                meta.typeString,
+                meta.start,
+                meta.length,
+                meta.entry
+            ].join(";");
+        }
+    
+        private static reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/); // eslint-disable-line no-control-regex
+        // starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
+    
+        private fnLoad2(data: string, name: string, type: string, imported: string[]) {
+            let header: AmsdosHeader | undefined,
+                storageName = this.config.adaptFilename(name, "FILE");
+    
+            storageName = FileHandler.fnLocalStorageName(storageName);
+    
+            if (type === "text/plain") {
+                header = FileHandler.createMinimalAmsdosHeader("A", 0, data.length);
+            } else {
+                if (type === "application/x-zip-compressed" || type === "cpcBasic/binary") { // are we a file inside zip?
+                    // empty
+                } else { // e.g. "data:application/octet-stream;base64,..."
+                    const index = data.indexOf(",");
+    
+                    if (index >= 0) {
+                        const info1 = data.substring(0, index);
+    
+                        data = data.substring(index + 1); // remove meta prefix
+                        if (info1.indexOf("base64") >= 0) {
+                            data = Utils.atob(data); // decode base64
+                        }
+                    }
+                }
+    
+                header = DiskImage.parseAmsdosHeader(data);
+                if (header) {
+                    data = data.substring(0x80); // remove header
+                } else if (FileHandler.reRegExpIsText.test(data)) {
+                    header = FileHandler.createMinimalAmsdosHeader("A", 0, data.length);
+                } else if (DiskImage.testDiskIdent(data.substring(0, 8))) { // disk image file?
+                    try {
+                        const dsk = new DiskImage({
+                                data: data,
+                                diskName: name
+                            }),
+                            dir = dsk.readDirectory(),
+                            diskFiles = Object.keys(dir);
+    
+                        for (let i = 0; i < diskFiles.length; i += 1) {
+                            const fileName = diskFiles[i];
+    
+                            try { // eslint-disable-line max-depth
+                                data = dsk.readFile(dir[fileName]);
+                                this.fnLoad2(data, fileName, "cpcBasic/binary", imported); // recursive
+                            } catch (e) {
+                                Utils.console.error(e);
+                                if (e instanceof Error) { // eslint-disable-line max-depth
+                                    this.outputError(e, true);
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        Utils.console.error(e);
+                        if (e instanceof Error) {
+                            this.outputError(e, true);
+                        }
+                    }
+                    header = undefined; // ignore dsk file
+                } else { // binary
+                    header = FileHandler.createMinimalAmsdosHeader("B", 0, data.length);
+                }
+            }
+    
+            if (header) {
+                const meta = FileHandler.joinMeta(header);
+    
+                try {
+                    Utils.localStorage.setItem(storageName, meta + "," + data);
+                    this.config.updateStorageDatabase("set", storageName);
+                    Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
+                    imported.push(name);
+                } catch (e) { // maybe quota exceeded
+                    Utils.console.error(e);
+                    if (e instanceof Error) {
+                        if (e.name === "QuotaExceededError") {
+                            (e as CustomError).shortMessage = storageName + ": Quota exceeded";
+                        }
+                        this.outputError(e, true);
+                    }
+                }
+            }
+        }
+    }
+    */
     var Controller = /** @class */ (function () {
         function Controller(model, view) {
             this.fnScript = undefined; // eslint-disable-line @typescript-eslint/ban-types
@@ -195,10 +448,10 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 if (allExamples.hasOwnProperty(key)) {
                     var exampleEntry = allExamples[key];
                     if (exampleEntry.meta !== "D") { // skip data files
-                        var title = (exampleEntry.key + ": " + exampleEntry.title).substr(0, maxTitleLength), item = {
+                        var title = (exampleEntry.key + ": " + exampleEntry.title).substring(0, maxTitleLength), item = {
                             value: exampleEntry.key,
                             title: title,
-                            text: title.substr(0, maxTextLength),
+                            text: title.substring(0, maxTextLength),
                             selected: exampleEntry.key === example
                         };
                         if (item.selected) {
@@ -226,7 +479,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             };
             for (var i = 0; i < varNames.length; i += 1) {
                 var key = varNames[i], value = variables.getVariable(key), title = key + "=" + value;
-                var strippedTitle = title.substr(0, maxVarLength); // limit length
+                var strippedTitle = title.substring(0, maxVarLength); // limit length
                 if (title !== strippedTitle) {
                     strippedTitle += " ...";
                 }
@@ -528,7 +781,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 var number = lineParts[i];
                 var content = lineParts[i + 1];
                 if (content.endsWith("\n")) {
-                    content = content.substr(0, content.length - 1);
+                    content = content.substring(0, content.length - 1);
                 }
                 lines.push(number + content);
             }
@@ -646,12 +899,12 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             lastSlash = example.lastIndexOf("/");
             var fileMask = paras.fileMask ? Controller.fnLocalStorageName(paras.fileMask) : "", dir = Controller.fnGetStorageDirectoryEntries(fileMask), path = "";
             if (lastSlash >= 0) {
-                path = example.substr(0, lastSlash) + "/";
+                path = example.substring(0, lastSlash) + "/";
                 fileMask = path + (fileMask ? fileMask : "*.*"); // only in same directory
             }
             var dir2 = this.fnGetExampleDirectoryEntries(fileMask); // also from examples
             for (var i = 0; i < dir2.length; i += 1) {
-                dir2[i] = dir2[i].substr(path.length); // remove preceding path including "/"
+                dir2[i] = dir2[i].substring(path.length); // remove preceding path including "/"
             }
             dir = dir2.concat(dir); // combine
             this.fnPrintDirectoryEntries(stream, dir, false);
@@ -875,25 +1128,65 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.vm.vmSetStartLine(startLine);
             this.startMainLoop();
         };
-        Controller.prototype.loadExample = function () {
-            var that = this, inFile = this.vm.vmGetInFileObject();
-            var example, url, fnExampleLoaded = function (_sFullUrl, key, suppressLog) {
+        Controller.prototype.createFnExampleLoaded = function (example, url, inFile) {
+            var _this = this;
+            return function (_sFullUrl, key, suppressLog) {
                 if (key !== example) {
                     Utils_1.Utils.console.warn("fnExampleLoaded: Unexpected", key, "<>", example);
                 }
-                var exampleEntry = that.model.getExample(example);
+                var exampleEntry = _this.model.getExample(example);
                 if (!suppressLog) {
                     Utils_1.Utils.console.log("Example", url, exampleEntry.meta || "", "loaded");
                 }
                 var input = exampleEntry.script;
+                _this.model.setProperty("example", inFile.memorizedExample);
+                _this.vm.vmStop("", 0, true);
+                _this.loadFileContinue(input);
+            };
+        };
+        Controller.prototype.createFnExampleError = function (example, url, inFile) {
+            var _this = this;
+            return function () {
+                Utils_1.Utils.console.log("Example", url, "error");
+                _this.model.setProperty("example", inFile.memorizedExample);
+                _this.vm.vmStop("", 0, true);
+                var error = _this.vm.vmComposeError(Error(), 32, example + " not found"); // TODO: set also derr=146 (xx not found)
+                // error or onError set
+                if (error.hidden) {
+                    _this.vm.vmStop("", 0, true); // clear onError
+                }
+                _this.outputError(error, true);
+                _this.loadFileContinue(null);
+            };
+        };
+        Controller.prototype.loadExample = function () {
+            var //that = this,
+            inFile = this.vm.vmGetInFileObject();
+            //url: string;
+            /*
+            fnExampleLoaded = function (_sFullUrl: string, key: string, suppressLog?: boolean) {
+                if (key !== example) {
+                    Utils.console.warn("fnExampleLoaded: Unexpected", key, "<>", example);
+                }
+                const exampleEntry = that.model.getExample(example);
+    
+                if (!suppressLog) {
+                    Utils.console.log("Example", url, exampleEntry.meta || "", "loaded");
+                }
+                const input = exampleEntry.script;
+    
                 that.model.setProperty("example", inFile.memorizedExample);
                 that.vm.vmStop("", 0, true);
                 that.loadFileContinue(input);
-            }, fnExampleError = function () {
-                Utils_1.Utils.console.log("Example", url, "error");
+            },
+            fnExampleError = function () {
+                Utils.console.log("Example", url, "error");
                 that.model.setProperty("example", inFile.memorizedExample);
+    
                 that.vm.vmStop("", 0, true);
-                var error = that.vm.vmComposeError(Error(), 32, example + " not found"); // TODO: set also derr=146 (xx not found)
+    
+                const error = that.vm.vmComposeError(Error(), 32, example + " not found"); // TODO: set also derr=146 (xx not found)
+    
                 // error or onError set
                 if (error.hidden) {
                     that.vm.vmStop("", 0, true); // clear onError
@@ -901,40 +1194,47 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 that.outputError(error, true);
                 that.loadFileContinue(null);
             };
+            */
             var name = inFile.name;
             var key = this.model.getProperty("example");
             if (name.charAt(0) === "/") { // absolute path?
-                name = name.substr(1); // remove "/"
+                name = name.substring(1); // remove "/"
                 inFile.memorizedExample = name; // change!
             }
             else {
                 inFile.memorizedExample = key;
                 var lastSlash = key.lastIndexOf("/");
                 if (lastSlash >= 0) {
-                    var path = key.substr(0, lastSlash); // take path from selected example
+                    var path = key.substring(0, lastSlash); // take path from selected example
                     name = path + "/" + name;
                     name = name.replace(/\w+\/\.\.\//, ""); // simplify 2 dots (go back) in path: "dir/.."" => ""
                 }
             }
-            example = name;
+            //let	example: string,
+            var example = name;
             if (Utils_1.Utils.debug > 0) {
                 Utils_1.Utils.console.debug("loadExample: name=" + name + " (current=" + key + ")");
             }
             var exampleEntry = this.model.getExample(example); // already loaded
+            var url;
             if (exampleEntry && exampleEntry.loaded) {
                 this.model.setProperty("example", example);
+                url = example; //TTT
+                var fnExampleLoaded = this.createFnExampleLoaded(example, url, inFile);
                 fnExampleLoaded("", example, true);
             }
             else if (example && exampleEntry) { // need to load
                 this.model.setProperty("example", example);
                 var databaseDir = this.model.getDatabase().src;
                 url = databaseDir + "/" + example + ".js";
-                Utils_1.Utils.loadScript(url, fnExampleLoaded, fnExampleError, example);
+                //Utils.loadScript(url, fnExampleLoaded, fnExampleError, example);
+                Utils_1.Utils.loadScript(url, this.createFnExampleLoaded(example, url, inFile), this.createFnExampleError(example, url, inFile), example);
             }
             else { // keep original example in this error case
                 url = example;
                 if (example !== "") { // only if not empty
                     Utils_1.Utils.console.warn("loadExample: Unknown file:", example);
+                    var fnExampleError = this.createFnExampleError(example, url, inFile);
                     fnExampleError();
                 }
                 else {
@@ -1016,8 +1316,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             if (input.indexOf(Controller.metaIdent) === 0) { // starts with metaIdent?
                 var index = input.indexOf(","); // metadata separator
                 if (index >= 0) {
-                    var metaString = input.substr(0, index);
-                    input = input.substr(index + 1);
+                    var metaString = input.substring(0, index);
+                    input = input.substring(index + 1);
                     var meta = metaString.split(";");
                     fileMeta = {
                         typeString: meta[1],
@@ -1741,8 +2041,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 else { // e.g. "data:application/octet-stream;base64,..."
                     var index = data.indexOf(",");
                     if (index >= 0) {
-                        var info1 = data.substr(0, index);
-                        data = data.substr(index + 1); // remove meta prefix
+                        var info1 = data.substring(0, index);
+                        data = data.substring(index + 1); // remove meta prefix
                         if (info1.indexOf("base64") >= 0) {
                             data = Utils_1.Utils.atob(data); // decode base64
                         }
@@ -1750,12 +2050,12 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 }
                 header = DiskImage_1.DiskImage.parseAmsdosHeader(data);
                 if (header) {
-                    data = data.substr(0x80); // remove header
+                    data = data.substring(0x80); // remove header
                 }
                 else if (Controller.reRegExpIsText.test(data)) {
                     header = Controller.createMinimalAmsdosHeader("A", 0, data.length);
                 }
-                else if (DiskImage_1.DiskImage.testDiskIdent(data.substr(0, 8))) { // disk image file?
+                else if (DiskImage_1.DiskImage.testDiskIdent(data.substring(0, 8))) { // disk image file?
                     try {
                         var dsk = new DiskImage_1.DiskImage({
                             data: data,
@@ -1806,102 +2106,117 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 }
             }
         };
+        /*
         // https://stackoverflow.com/questions/10261989/html5-javascript-drag-and-drop-file-from-external-window-windows-explorer
         // https://www.w3.org/TR/file-upload/#dfn-filereader
-        Controller.prototype.fnHandleFileSelect = function (event) {
-            var dataTransfer = event.dataTransfer, files = dataTransfer ? dataTransfer.files : event.target.files, // dataTransfer for drag&drop, target.files for file input
-            that = this, imported = [];
-            var fileIndex = 0, file, reader;
+        private fnHandleFileSelect(event: Event) {
+            const dataTransfer = (event as DragEvent).dataTransfer,
+                files = dataTransfer ? dataTransfer.files : ((event.target as any).files as FileList), // dataTransfer for drag&drop, target.files for file input
+                that = this,
+                imported: string[] = [];
+            let fileIndex = 0,
+                file: File,
+                reader: FileReader;
+    
             function fnReadNextFile() {
                 if (fileIndex < files.length) {
                     file = files[fileIndex];
                     fileIndex += 1;
-                    var lastModified = file.lastModified, lastModifiedDate = lastModified ? new Date(lastModified) : file.lastModifiedDate, // lastModifiedDate deprecated, but for old IE
-                    text = file.name + " " + (file.type || "n/a") + " " + file.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
-                    Utils_1.Utils.console.log(text);
+                    const lastModified = file.lastModified,
+                        lastModifiedDate = lastModified ? new Date(lastModified) : (file as any).lastModifiedDate as Date, // lastModifiedDate deprecated, but for old IE
+                        text = file.name + " " + (file.type || "n/a") + " " + file.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
+    
+                    Utils.console.log(text);
                     if (file.type === "text/plain") {
                         reader.readAsText(file);
-                    }
-                    else if (file.type === "application/x-zip-compressed") {
+                    } else if (file.type === "application/x-zip-compressed") {
                         reader.readAsArrayBuffer(file);
-                    }
-                    else {
+                    } else {
                         reader.readAsDataURL(file);
                     }
-                }
-                else {
+                } else {
                     that.fnEndOfImport(imported);
                 }
             }
-            function fnErrorHandler(event2) {
-                var target = event2.target;
-                var msg = "fnErrorHandler: Error reading file " + file.name;
+    
+            function fnErrorHandler(event2: ProgressEvent<FileReader>) {
+                const target = event2.target;
+                let msg = "fnErrorHandler: Error reading file " + file.name;
+    
                 if (target !== null && target.error !== null) {
                     if (target.error.NOT_FOUND_ERR) {
                         msg += ": File not found";
-                    }
-                    else if (target.error.ABORT_ERR) {
+                    } else if (target.error.ABORT_ERR) {
                         msg = ""; // nothing
                     }
                 }
                 if (msg) {
-                    Utils_1.Utils.console.warn(msg);
+                    Utils.console.warn(msg);
                 }
                 fnReadNextFile();
             }
-            function fnOnLoad(event2) {
-                var target = event2.target, data = (target && target.result) || null, name = file.name, type = file.type;
+    
+            function fnOnLoad(event2: ProgressEvent<FileReader>) {
+                const target = event2.target,
+                    data = (target && target.result) || null,
+                    name = file.name,
+                    type = file.type;
+    
                 if (type === "application/x-zip-compressed" && data instanceof ArrayBuffer) {
-                    var zip = void 0;
+                    let zip: ZipFile | undefined;
+    
                     try {
-                        zip = new ZipFile_1.ZipFile(new Uint8Array(data), name); // rather data
-                    }
-                    catch (e) {
-                        Utils_1.Utils.console.error(e);
+                        zip = new ZipFile(new Uint8Array(data), name); // rather data
+                    } catch (e) {
+                        Utils.console.error(e);
                         if (e instanceof Error) {
                             that.outputError(e, true);
                         }
                     }
                     if (zip) {
-                        var zipDirectory = zip.getZipDirectory(), entries = Object.keys(zipDirectory);
-                        for (var i = 0; i < entries.length; i += 1) {
-                            var name2 = entries[i];
-                            var data2 = void 0;
+                        const zipDirectory = zip.getZipDirectory(),
+                            entries = Object.keys(zipDirectory);
+    
+                        for (let i = 0; i < entries.length; i += 1) {
+                            const name2 = entries[i];
+                            let data2: string | undefined;
+    
                             try {
                                 data2 = zip.readData(name2);
-                            }
-                            catch (e) {
-                                Utils_1.Utils.console.error(e);
+                            } catch (e) {
+                                Utils.console.error(e);
                                 if (e instanceof Error) { // eslint-disable-line max-depth
                                     that.outputError(e, true);
                                 }
                             }
+    
                             if (data2) {
                                 that.fnLoad2(data2, name2, type, imported);
                             }
                         }
                     }
-                }
-                else if (typeof data === "string") {
+                } else if (typeof data === "string") {
                     that.fnLoad2(data, name, type, imported);
+                } else {
+                    Utils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);
                 }
-                else {
-                    Utils_1.Utils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);
-                }
+    
                 fnReadNextFile();
             }
+    
             event.stopPropagation();
             event.preventDefault();
+    
             if (window.FileReader) {
                 reader = new FileReader();
                 reader.onerror = fnErrorHandler;
                 reader.onload = fnOnLoad;
                 fnReadNextFile();
+            } else {
+                Utils.console.warn("FileReader API not supported.");
             }
-            else {
-                Utils_1.Utils.console.warn("FileReader API not supported.");
-            }
-        };
+        }
+        */
         Controller.fnHandleDragOver = function (evt) {
             evt.stopPropagation();
             evt.preventDefault();
@@ -1910,13 +2225,24 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
         };
         Controller.prototype.initDropZone = function () {
+            if (!this.fileSelect) {
+                this.fileSelect = new FileSelect({
+                    fnEndOfImport: this.fnEndOfImport.bind(this),
+                    outputError: this.outputError.bind(this),
+                    fnLoad2: this.fnLoad2.bind(this)
+                });
+            }
             var dropZone = View_1.View.getElementById1("dropZone");
             dropZone.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
-            dropZone.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
+            //dropZone.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
+            this.fileSelect.addFileSelectHandler(dropZone, "drop");
             var canvasElement = this.canvas.getCanvas();
             canvasElement.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
-            canvasElement.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
-            View_1.View.getElementById1("fileInput").addEventListener("change", this.fnHandleFileSelect.bind(this), false);
+            //canvasElement.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
+            this.fileSelect.addFileSelectHandler(canvasElement, "drop");
+            //View.getElementById1("fileInput").addEventListener("change", this.fnHandleFileSelect.bind(this), false);
+            var fileInput = View_1.View.getElementById1("fileInput");
+            this.fileSelect.addFileSelectHandler(fileInput, "change");
         };
         Controller.prototype.fnUpdateUndoRedoButtons = function () {
             this.view.setDisabled("undoButton", !this.inputStack.canUndoKeepOne());
@@ -2031,8 +2357,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             if (data !== null) {
                 var index = data.indexOf(","); // metadata separator
                 if (index >= 0) {
-                    var meta = data.substr(0, index);
-                    data = data.substr(index + 1);
+                    var meta = data.substring(0, index);
+                    data = data.substring(index + 1);
                     data = Utils_1.Utils.btoa(data);
                     out = meta + ";base64," + data;
                 }

@@ -34,6 +34,287 @@ interface FileMetaAndData {
 	data: string
 }
 
+
+// ---
+export interface FileSelectOptions {
+	fnEndOfImport: (imported: string[]) => void;
+	outputError: (error: Error, noSelection?: boolean) => void;
+	fnLoad2: (data: string, name: string, type: string, imported: string[]) => void;
+}
+
+class FileSelect {
+	private fnEndOfImport = {} as (imported: string[]) => void;
+	private outputError = {} as (error: Error, noSelection?: boolean) => void;
+	private fnLoad2 = {} as (data: string, name: string, type: string, imported: string[]) => void;
+
+	private files = {} as FileList; // = dataTransfer ? dataTransfer.files : ((event.target as any).files as FileList), // dataTransfer for drag&drop, target.files for file input
+	private fileIndex = 0;
+	private imported: string[] = []; // imported file names
+	private file = {} as File; // current file
+
+	constructor(options: FileSelectOptions) {
+		this.fnEndOfImport = options.fnEndOfImport;
+		this.outputError = options.outputError;
+		this.fnLoad2 = options.fnLoad2;
+	}
+
+	private fnReadNextFile(reader: FileReader) {
+		if (this.fileIndex < this.files.length) {
+			const file = this.files[this.fileIndex];
+
+			this.fileIndex += 1;
+			const lastModified = file.lastModified,
+				lastModifiedDate = lastModified ? new Date(lastModified) : (file as any).lastModifiedDate as Date, // lastModifiedDate deprecated, but for old IE
+				text = file.name + " " + (file.type || "n/a") + " " + file.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
+
+			Utils.console.log(text);
+			if (file.type === "text/plain") {
+				reader.readAsText(file);
+			} else if (file.type === "application/x-zip-compressed") {
+				reader.readAsArrayBuffer(file);
+			} else {
+				reader.readAsDataURL(file);
+			}
+			this.file = file;
+		} else {
+			this.fnEndOfImport(this.imported);
+		}
+	}
+
+	private fnOnLoad(event: ProgressEvent<FileReader>) {
+		const reader = event.target,
+			data = (reader && reader.result) || null,
+			file = this.file,
+			name = file.name,
+			type = file.type;
+
+		if (type === "application/x-zip-compressed" && data instanceof ArrayBuffer) {
+			let zip: ZipFile | undefined;
+
+			try {
+				zip = new ZipFile(new Uint8Array(data), name); // rather data
+			} catch (e) {
+				Utils.console.error(e);
+				if (e instanceof Error) {
+					this.outputError(e, true);
+				}
+			}
+			if (zip) {
+				const zipDirectory = zip.getZipDirectory(),
+					entries = Object.keys(zipDirectory);
+
+				for (let i = 0; i < entries.length; i += 1) {
+					const name2 = entries[i];
+					let data2: string | undefined;
+
+					try {
+						data2 = zip.readData(name2);
+					} catch (e) {
+						Utils.console.error(e);
+						if (e instanceof Error) { // eslint-disable-line max-depth
+							this.outputError(e, true);
+						}
+					}
+
+					if (data2) {
+						this.fnLoad2(data2, name2, type, this.imported);
+					}
+				}
+			}
+		} else if (typeof data === "string") {
+			this.fnLoad2(data, name, type, this.imported);
+		} else {
+			Utils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);
+		}
+
+		if (reader) {
+			this.fnReadNextFile(reader);
+		}
+	}
+
+	private fnErrorHandler(event: ProgressEvent<FileReader>, file: File) {
+		const reader = event.target;
+		let msg = "fnErrorHandler: Error reading file " + file.name;
+
+		if (reader && reader.error !== null) {
+			if (reader.error.NOT_FOUND_ERR) {
+				msg += ": File not found";
+			} else if (reader.error.ABORT_ERR) {
+				msg = ""; // nothing
+			}
+		}
+		if (msg) {
+			Utils.console.warn(msg);
+		}
+
+		if (reader) {
+			this.fnReadNextFile(reader);
+		}
+	}
+
+	// https://stackoverflow.com/questions/10261989/html5-javascript-drag-and-drop-file-from-external-window-windows-explorer
+	// https://www.w3.org/TR/file-upload/#dfn-filereader
+	private fnHandleFileSelect(event: Event) {
+		const dataTransfer = (event as DragEvent).dataTransfer;
+
+		event.stopPropagation();
+		event.preventDefault();
+
+		this.files = dataTransfer ? dataTransfer.files : ((event.target as any).files as FileList); // dataTransfer for drag&drop, target.files for file input
+		this.fileIndex = 0;
+		this.imported.length = 0;
+
+		if (window.FileReader) {
+			const reader = new FileReader();
+
+			reader.onerror = this.fnErrorHandler.bind(this);
+			reader.onload = this.fnOnLoad.bind(this);
+			this.fnReadNextFile(reader);
+		} else {
+			Utils.console.warn("FileReader API not supported.");
+		}
+	}
+
+	addFileSelectHandler(element: HTMLElement, type: string) {
+		element.addEventListener(type, this.fnHandleFileSelect.bind(this), false);
+	}
+}
+
+/*
+// TODO
+class FileHandler {
+	private static readonly metaIdent = "CPCBasic";
+
+	private static dummyFunction = function () {
+		//
+	};
+
+	private config = {
+		outputError: FileHandler.dummyFunction as (error: Error, noSelection?: boolean) => void, // e.g. Utils.console.error(String(error), "selection=", noSelection)
+		updateStorageDatabase: FileHandler.dummyFunction as (action: string, key: string) => void,
+		adaptFilename: FileHandler.dummyFunction as unknown as (name: string, err: string) => string,
+		fnEndOfImport: FileHandler.dummyFunction as (imported: string[]) => void
+	};
+
+	private outputError(error: Error, noSelection?: boolean) {
+		this.config.outputError(error, noSelection);
+	}
+
+	private static fnLocalStorageName(name: string, defaultExtension?: string) {
+		// modify name so we do not clash with localstorage methods/properites
+		if (name.indexOf(".") < 0) { // no dot inside name?
+			name += "." + (defaultExtension || ""); // append dot or default extension
+		}
+		return name;
+	}
+
+	private static createMinimalAmsdosHeader(type: string,	start: number,	length: number) {
+		return {
+			typeString: type,
+			start: start,
+			length: length
+		} as AmsdosHeader;
+	}
+
+	private static joinMeta(meta: FileMeta) {
+		return [
+			FileHandler.metaIdent,
+			meta.typeString,
+			meta.start,
+			meta.length,
+			meta.entry
+		].join(";");
+	}
+
+	private static reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/); // eslint-disable-line no-control-regex
+	// starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
+
+	private fnLoad2(data: string, name: string, type: string, imported: string[]) {
+		let header: AmsdosHeader | undefined,
+			storageName = this.config.adaptFilename(name, "FILE");
+
+		storageName = FileHandler.fnLocalStorageName(storageName);
+
+		if (type === "text/plain") {
+			header = FileHandler.createMinimalAmsdosHeader("A", 0, data.length);
+		} else {
+			if (type === "application/x-zip-compressed" || type === "cpcBasic/binary") { // are we a file inside zip?
+				// empty
+			} else { // e.g. "data:application/octet-stream;base64,..."
+				const index = data.indexOf(",");
+
+				if (index >= 0) {
+					const info1 = data.substring(0, index);
+
+					data = data.substring(index + 1); // remove meta prefix
+					if (info1.indexOf("base64") >= 0) {
+						data = Utils.atob(data); // decode base64
+					}
+				}
+			}
+
+			header = DiskImage.parseAmsdosHeader(data);
+			if (header) {
+				data = data.substring(0x80); // remove header
+			} else if (FileHandler.reRegExpIsText.test(data)) {
+				header = FileHandler.createMinimalAmsdosHeader("A", 0, data.length);
+			} else if (DiskImage.testDiskIdent(data.substring(0, 8))) { // disk image file?
+				try {
+					const dsk = new DiskImage({
+							data: data,
+							diskName: name
+						}),
+						dir = dsk.readDirectory(),
+						diskFiles = Object.keys(dir);
+
+					for (let i = 0; i < diskFiles.length; i += 1) {
+						const fileName = diskFiles[i];
+
+						try { // eslint-disable-line max-depth
+							data = dsk.readFile(dir[fileName]);
+							this.fnLoad2(data, fileName, "cpcBasic/binary", imported); // recursive
+						} catch (e) {
+							Utils.console.error(e);
+							if (e instanceof Error) { // eslint-disable-line max-depth
+								this.outputError(e, true);
+							}
+						}
+					}
+				} catch (e) {
+					Utils.console.error(e);
+					if (e instanceof Error) {
+						this.outputError(e, true);
+					}
+				}
+				header = undefined; // ignore dsk file
+			} else { // binary
+				header = FileHandler.createMinimalAmsdosHeader("B", 0, data.length);
+			}
+		}
+
+		if (header) {
+			const meta = FileHandler.joinMeta(header);
+
+			try {
+				Utils.localStorage.setItem(storageName, meta + "," + data);
+				this.config.updateStorageDatabase("set", storageName);
+				Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
+				imported.push(name);
+			} catch (e) { // maybe quota exceeded
+				Utils.console.error(e);
+				if (e instanceof Error) {
+					if (e.name === "QuotaExceededError") {
+						(e as CustomError).shortMessage = storageName + ": Quota exceeded";
+					}
+					this.outputError(e, true);
+				}
+			}
+		}
+	}
+}
+*/
+
+
 export class Controller implements IController {
 	private readonly fnRunLoopHandler: () => void;
 	private readonly fnWaitKeyHandler: () => void;
@@ -79,6 +360,8 @@ export class Controller implements IController {
 
 	private readonly noStop: VmStopEntry;
 	private readonly savedStop: VmStopEntry; // backup of stop object
+
+	private fileSelect?: FileSelect;
 
 	constructor(model: Model, view: View) {
 		this.fnRunLoopHandler = this.fnRunLoop.bind(this);
@@ -280,11 +563,11 @@ export class Controller implements IController {
 				const exampleEntry = allExamples[key];
 
 				if (exampleEntry.meta !== "D") { // skip data files
-					const title = (exampleEntry.key + ": " + exampleEntry.title).substr(0, maxTitleLength),
+					const title = (exampleEntry.key + ": " + exampleEntry.title).substring(0, maxTitleLength),
 						item: SelectOptionElement = {
 							value: exampleEntry.key,
 							title: title,
-							text: title.substr(0, maxTextLength),
+							text: title.substring(0, maxTextLength),
 							selected: exampleEntry.key === example
 						};
 
@@ -323,7 +606,7 @@ export class Controller implements IController {
 				value = variables.getVariable(key),
 				title = key + "=" + value;
 
-			let strippedTitle = title.substr(0, maxVarLength); // limit length
+			let strippedTitle = title.substring(0, maxVarLength); // limit length
 
 			if (title !== strippedTitle) {
 				strippedTitle += " ...";
@@ -657,7 +940,7 @@ export class Controller implements IController {
 			let content = lineParts[i + 1];
 
 			if (content.endsWith("\n")) {
-				content = content.substr(0, content.length - 1);
+				content = content.substring(0, content.length - 1);
 			}
 			lines.push(number + content);
 		}
@@ -819,14 +1102,14 @@ export class Controller implements IController {
 			path = "";
 
 		if (lastSlash >= 0) {
-			path = example.substr(0, lastSlash) + "/";
+			path = example.substring(0, lastSlash) + "/";
 			fileMask = path + (fileMask ? fileMask : "*.*"); // only in same directory
 		}
 
 		const dir2 = this.fnGetExampleDirectoryEntries(fileMask); // also from examples
 
 		for (let i = 0; i < dir2.length; i += 1) {
-			dir2[i] = dir2[i].substr(path.length); // remove preceding path including "/"
+			dir2[i] = dir2[i].substring(path.length); // remove preceding path including "/"
 		}
 		dir = dir2.concat(dir); // combine
 
@@ -1089,80 +1372,126 @@ export class Controller implements IController {
 		this.startMainLoop();
 	}
 
+	private createFnExampleLoaded(example: string, url: string, inFile: any) { //TTT
+		return (_sFullUrl: string, key: string, suppressLog?: boolean) => {
+			if (key !== example) {
+				Utils.console.warn("fnExampleLoaded: Unexpected", key, "<>", example);
+			}
+			const exampleEntry = this.model.getExample(example);
+
+			if (!suppressLog) {
+				Utils.console.log("Example", url, exampleEntry.meta || "", "loaded");
+			}
+			const input = exampleEntry.script;
+
+			this.model.setProperty("example", inFile.memorizedExample);
+			this.vm.vmStop("", 0, true);
+			this.loadFileContinue(input);
+		};
+	}
+
+	private createFnExampleError(example: string, url: string, inFile: any) { //TTT
+		return () => {
+			Utils.console.log("Example", url, "error");
+			this.model.setProperty("example", inFile.memorizedExample);
+
+			this.vm.vmStop("", 0, true);
+
+			const error = this.vm.vmComposeError(Error(), 32, example + " not found"); // TODO: set also derr=146 (xx not found)
+
+			// error or onError set
+			if (error.hidden) {
+				this.vm.vmStop("", 0, true); // clear onError
+			}
+			this.outputError(error, true);
+			this.loadFileContinue(null);
+		};
+	}
+
 	private loadExample() {
-		const that = this,
+		const //that = this,
 			inFile = this.vm.vmGetInFileObject();
-		var	example: string, url: string,
+			//url: string;
 
-			fnExampleLoaded = function (_sFullUrl: string, key: string, suppressLog?: boolean) {
-				if (key !== example) {
-					Utils.console.warn("fnExampleLoaded: Unexpected", key, "<>", example);
-				}
-				const exampleEntry = that.model.getExample(example);
+		/*
+		fnExampleLoaded = function (_sFullUrl: string, key: string, suppressLog?: boolean) {
+			if (key !== example) {
+				Utils.console.warn("fnExampleLoaded: Unexpected", key, "<>", example);
+			}
+			const exampleEntry = that.model.getExample(example);
 
-				if (!suppressLog) {
-					Utils.console.log("Example", url, exampleEntry.meta || "", "loaded");
-				}
-				const input = exampleEntry.script;
+			if (!suppressLog) {
+				Utils.console.log("Example", url, exampleEntry.meta || "", "loaded");
+			}
+			const input = exampleEntry.script;
 
-				that.model.setProperty("example", inFile.memorizedExample);
-				that.vm.vmStop("", 0, true);
-				that.loadFileContinue(input);
-			},
-			fnExampleError = function () {
-				Utils.console.log("Example", url, "error");
-				that.model.setProperty("example", inFile.memorizedExample);
+			that.model.setProperty("example", inFile.memorizedExample);
+			that.vm.vmStop("", 0, true);
+			that.loadFileContinue(input);
+		},
+		fnExampleError = function () {
+			Utils.console.log("Example", url, "error");
+			that.model.setProperty("example", inFile.memorizedExample);
 
-				that.vm.vmStop("", 0, true);
+			that.vm.vmStop("", 0, true);
 
-				const error = that.vm.vmComposeError(Error(), 32, example + " not found"); // TODO: set also derr=146 (xx not found)
+			const error = that.vm.vmComposeError(Error(), 32, example + " not found"); // TODO: set also derr=146 (xx not found)
 
-				// error or onError set
-				if (error.hidden) {
-					that.vm.vmStop("", 0, true); // clear onError
-				}
-				that.outputError(error, true);
-				that.loadFileContinue(null);
-			};
+			// error or onError set
+			if (error.hidden) {
+				that.vm.vmStop("", 0, true); // clear onError
+			}
+			that.outputError(error, true);
+			that.loadFileContinue(null);
+		};
+		*/
 
 		let name = inFile.name;
 		const key = this.model.getProperty<string>("example");
 
 		if (name.charAt(0) === "/") { // absolute path?
-			name = name.substr(1); // remove "/"
+			name = name.substring(1); // remove "/"
 			inFile.memorizedExample = name; // change!
 		} else {
 			inFile.memorizedExample = key;
 			const lastSlash = key.lastIndexOf("/");
 
 			if (lastSlash >= 0) {
-				const path = key.substr(0, lastSlash); // take path from selected example
+				const path = key.substring(0, lastSlash); // take path from selected example
 
 				name = path + "/" + name;
 				name = name.replace(/\w+\/\.\.\//, ""); // simplify 2 dots (go back) in path: "dir/.."" => ""
 			}
 		}
-		example = name;
+		//let	example: string,
+		const example = name;
 
 		if (Utils.debug > 0) {
 			Utils.console.debug("loadExample: name=" + name + " (current=" + key + ")");
 		}
 
 		const exampleEntry = this.model.getExample(example); // already loaded
+		let url: string;
 
 		if (exampleEntry && exampleEntry.loaded) {
 			this.model.setProperty("example", example);
+			url = example; //TTT
+			const fnExampleLoaded = this.createFnExampleLoaded(example, url, inFile);
+
 			fnExampleLoaded("", example, true);
 		} else if (example && exampleEntry) { // need to load
 			this.model.setProperty("example", example);
 			const databaseDir = this.model.getDatabase().src;
 
 			url = databaseDir + "/" + example + ".js";
-			Utils.loadScript(url, fnExampleLoaded, fnExampleError, example);
+			//Utils.loadScript(url, fnExampleLoaded, fnExampleError, example);
+			Utils.loadScript(url, this.createFnExampleLoaded(example, url, inFile), this.createFnExampleError(example, url, inFile), example);
 		} else { // keep original example in this error case
 			url = example;
 			if (example !== "") { // only if not empty
 				Utils.console.warn("loadExample: Unknown file:", example);
+				const fnExampleError = this.createFnExampleError(example, url, inFile);
+
 				fnExampleError();
 			} else {
 				this.model.setProperty("example", example);
@@ -1261,9 +1590,9 @@ export class Controller implements IController {
 			const index = input.indexOf(","); // metadata separator
 
 			if (index >= 0) {
-				const metaString = input.substr(0, index);
+				const metaString = input.substring(0, index);
 
-				input = input.substr(index + 1);
+				input = input.substring(index + 1);
 
 				const meta = metaString.split(";");
 
@@ -2177,9 +2506,9 @@ export class Controller implements IController {
 				const index = data.indexOf(",");
 
 				if (index >= 0) {
-					const info1 = data.substr(0, index);
+					const info1 = data.substring(0, index);
 
-					data = data.substr(index + 1); // remove meta prefix
+					data = data.substring(index + 1); // remove meta prefix
 					if (info1.indexOf("base64") >= 0) {
 						data = Utils.atob(data); // decode base64
 					}
@@ -2188,10 +2517,10 @@ export class Controller implements IController {
 
 			header = DiskImage.parseAmsdosHeader(data);
 			if (header) {
-				data = data.substr(0x80); // remove header
+				data = data.substring(0x80); // remove header
 			} else if (Controller.reRegExpIsText.test(data)) {
 				header = Controller.createMinimalAmsdosHeader("A", 0, data.length);
-			} else if (DiskImage.testDiskIdent(data.substr(0, 8))) { // disk image file?
+			} else if (DiskImage.testDiskIdent(data.substring(0, 8))) { // disk image file?
 				try {
 					const dsk = new DiskImage({
 							data: data,
@@ -2245,6 +2574,7 @@ export class Controller implements IController {
 		}
 	}
 
+	/*
 	// https://stackoverflow.com/questions/10261989/html5-javascript-drag-and-drop-file-from-external-window-windows-explorer
 	// https://www.w3.org/TR/file-upload/#dfn-filereader
 	private fnHandleFileSelect(event: Event) {
@@ -2354,6 +2684,7 @@ export class Controller implements IController {
 			Utils.console.warn("FileReader API not supported.");
 		}
 	}
+	*/
 
 	private static fnHandleDragOver(evt: DragEvent) {
 		evt.stopPropagation();
@@ -2364,17 +2695,29 @@ export class Controller implements IController {
 	}
 
 	private initDropZone() {
+		if (!this.fileSelect) {
+			this.fileSelect = new FileSelect({
+				fnEndOfImport: this.fnEndOfImport.bind(this),
+				outputError: this.outputError.bind(this),
+				fnLoad2: this.fnLoad2.bind(this)
+			});
+		}
 		const dropZone = View.getElementById1("dropZone");
 
 		dropZone.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
-		dropZone.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
+		//dropZone.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
+		this.fileSelect.addFileSelectHandler(dropZone, "drop");
 
 		const canvasElement = this.canvas.getCanvas();
 
 		canvasElement.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
-		canvasElement.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
+		//canvasElement.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
+		this.fileSelect.addFileSelectHandler(canvasElement, "drop");
 
-		View.getElementById1("fileInput").addEventListener("change", this.fnHandleFileSelect.bind(this), false);
+		//View.getElementById1("fileInput").addEventListener("change", this.fnHandleFileSelect.bind(this), false);
+		const fileInput = View.getElementById1("fileInput");
+
+		this.fileSelect.addFileSelectHandler(fileInput, "change");
 	}
 
 	private fnUpdateUndoRedoButtons() {
@@ -2524,9 +2867,9 @@ export class Controller implements IController {
 			const index = data.indexOf(","); // metadata separator
 
 			if (index >= 0) {
-				const meta = data.substr(0, index);
+				const meta = data.substring(0, index);
 
-				data = data.substr(index + 1);
+				data = data.substring(index + 1);
 				data = Utils.btoa(data);
 				out = meta + ";base64," + data;
 			} else { // hmm, no meta info

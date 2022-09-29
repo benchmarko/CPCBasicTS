@@ -44,7 +44,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return diskType;
         };
         DiskImage.prototype.readUtf = function (pos, len) {
-            var out = this.data.substr(pos, len);
+            var out = this.data.substring(pos, pos + len);
             if (out.length !== len) {
                 throw this.composeError(new Error(), "End of File", "", pos);
             }
@@ -68,10 +68,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             diskInfo.extended = (diskType === 2);
             diskInfo.ident = ident + this.readUtf(pos + 8, 34 - 8); // read remaining ident
-            if (diskInfo.ident.substr(34 - 11, 9) !== "Disk-Info") { // some tools use "Disk-Info  " instead of "Disk-Info\r\n", so compare without "\r\n"
+            if (diskInfo.ident.substring(34 - 11, 34 - 11 + 9) !== "Disk-Info") { // some tools use "Disk-Info  " instead of "Disk-Info\r\n", so compare without "\r\n"
                 // "Disk-Info" string is optional
                 if (!this.quiet) {
-                    Utils_1.Utils.console.warn(this.composeError({}, "Disk ident not found", diskInfo.ident.substr(34 - 11, 9), pos + 34 - 11).message);
+                    Utils_1.Utils.console.warn(this.composeError({}, "Disk ident not found", diskInfo.ident.substring(34 - 11, 34 - 11 + 9), pos + 34 - 11).message);
                 }
             }
             diskInfo.creator = this.readUtf(pos + 34, 14);
@@ -94,10 +94,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var trackInfoSize = 0x100, trackInfo = this.diskInfo.trackInfo, sectorInfoList = trackInfo.sectorInfo;
             trackInfo.dataPos = pos + trackInfoSize;
             trackInfo.ident = this.readUtf(pos, 12);
-            if (trackInfo.ident.substr(0, 10) !== "Track-Info") { // some tools use "Track-Info  " instead of "Track-Info\r\n", so compare without "\r\n"
+            if (trackInfo.ident.substring(0, 10) !== "Track-Info") { // some tools use "Track-Info  " instead of "Track-Info\r\n", so compare without "\r\n"
                 // "Track-Info" string is optional
                 if (!this.quiet) {
-                    Utils_1.Utils.console.warn(this.composeError({}, "Track ident not found", trackInfo.ident.substr(0, 10), pos).message);
+                    Utils_1.Utils.console.warn(this.composeError({}, "Track ident not found", trackInfo.ident.substring(0, 10), pos).message);
                 }
             }
             // 4 unused bytes
@@ -323,7 +323,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             return out;
         };
-        DiskImage.prototype.readFile = function (fileExtents) {
+        DiskImage.prototype.readExtents = function (fileExtents) {
             var recPerBlock = 8;
             var out = "";
             for (var i = 0; i < fileExtents.length; i += 1) {
@@ -332,7 +332,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 for (var blockIndex = 0; blockIndex < blocks.length; blockIndex += 1) {
                     var block = this.readBlock(blocks[blockIndex]);
                     if (records < recPerBlock) { // block with some remaining data
-                        block = block.substr(0, 0x80 * records);
+                        block = block.substring(0, 0x80 * records);
                     }
                     out += block;
                     records -= recPerBlock;
@@ -341,6 +341,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     }
                 }
             }
+            return out;
+        };
+        DiskImage.prototype.readFile = function (fileExtents) {
+            var out = this.readExtents(fileExtents);
             var header = DiskImage.parseAmsdosHeader(out);
             var realLen;
             if (header) {
@@ -357,7 +361,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 }
             }
             if (realLen !== undefined) { // now real length (from header or ASCII)?
-                out = out.substr(0, realLen);
+                out = out.substring(0, realLen);
             }
             return out;
         };
@@ -392,12 +396,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             // http://www.benchmarko.de/cpcemu/cpcdoc/chapter/cpcdoc7_e.html#I_AMSDOS_HD
             // http://www.cpcwiki.eu/index.php/AMSDOS_Header
             if (data.length >= 0x80) {
-                var computed = DiskImage.computeChecksum(data.substr(0, 66)), sum = data.charCodeAt(67) + data.charCodeAt(68) * 256;
+                var computed = DiskImage.computeChecksum(data.substring(0, 66)), sum = data.charCodeAt(67) + data.charCodeAt(68) * 256;
                 if (computed === sum) {
                     header = {
                         user: data.charCodeAt(0),
-                        name: data.substr(1, 8),
-                        ext: data.substr(9, 3),
+                        name: data.substring(1, 1 + 8),
+                        ext: data.substring(9, 9 + 3),
                         typeNumber: data.charCodeAt(18),
                         start: data.charCodeAt(21) + data.charCodeAt(22) * 256,
                         pseudoLen: data.charCodeAt(24) + data.charCodeAt(25) * 256,

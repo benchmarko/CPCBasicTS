@@ -17,6 +17,8 @@ export class BasicTokenizer {
 	private lineEnd = 0;
 	private input = "";
 
+	private needSpace = false; // hmm
+
 	private readonly debug = {
 		startPos: 0,
 		line: 0,
@@ -97,15 +99,6 @@ export class BasicTokenizer {
 			const num = mantissa * Math.pow(2, exponent - 31);
 
 			out = Utils.toPrecision9(num);
-			/*
-			out = num.toPrecision(9); // some rounding, formatting
-			if (out.indexOf("e") >= 0) {
-				out = out.replace(/\.?0*e/, "E"); // exponential uppercase, no zeros
-				out = out.replace(/(E[+-])(\d)$/, "$10$2"); // exponent 1 digit to 2 digits (or this: replace(/(\D)(\d)$/, "$10$2") )
-			} else if (out.indexOf(".") >= 0) { // decimal number?
-				out = out.replace(/\.?0*$/, ""); // remove trailing dot and/or zeros
-			}
-			*/
 		}
 		return out;
 	}
@@ -444,66 +437,70 @@ export class BasicTokenizer {
 		debug.info += " [" + hex + "] " + tokenLine;
 	}
 
+	private fnParseNextToken(input: string) {
+		const oldNeedSpace = this.needSpace;
+		let token = this.fnNum8Dec();
+
+		if (token === 0x01) { // statement seperator ":"?
+			if (this.pos < input.length) {
+				const nextToken = input.charCodeAt(this.pos); // test next token
+
+				if (nextToken === 0x97 || nextToken === 0xc0) { // ELSE or rem '?
+					token = nextToken; // ignore ':'
+					this.pos += 1;
+				}
+			}
+		}
+
+		this.needSpace = ((token >= 0x02 && token <= 0x1f) || (token === 0x7c)); // constant 0..9; variable, or RSX?
+
+		let tokenValue: string | (() => string);
+
+		if (token === 0xff) { // extended token?
+			token = this.fnNum8Dec(); // get it
+			tokenValue = this.tokensFF[token];
+		} else {
+			tokenValue = this.tokens[token];
+		}
+
+		let tstr: string;
+
+		if (tokenValue !== undefined) {
+			tstr = typeof tokenValue === "function" ? tokenValue.call(this) : tokenValue;
+
+			if ((/[a-zA-Z0-9.]$/).test(tstr) && token !== 0xe4) { // last character char, number, dot? (not for token "FN")
+				this.needSpace = true; // maybe need space next time...
+			}
+		} else { // normal ASCII
+			tstr = String.fromCharCode(token);
+		}
+
+		if (oldNeedSpace) {
+			if ((/^[a-zA-Z0-9$%!]/).test(tstr) || (token >= 0x02 && token <= 0x1f)) {
+				tstr = " " + tstr;
+			}
+		}
+		if (Utils.debug > 2) {
+			this.debugCollectInfo(tstr);
+		}
+		return tstr;
+	}
+
 	private fnParseLineFragment() {
 		const input = this.input;
-		let out = "",
-			space = false;
+		let out = "";
 
+		this.needSpace = false; // only needed in fnParseNextToken
 		while (this.pos < this.lineEnd) {
 			this.debug.startPos = this.pos;
 
-			const oldSpace = space;
-			let token = this.fnNum8Dec();
+			const tstr = this.fnParseNextToken(input);
 
-			if (token === 0x01) { // statement seperator ":"?
-				if (this.pos < input.length) {
-					const nextToken = input.charCodeAt(this.pos); // test next token
-
-					if (nextToken === 0x97 || nextToken === 0xc0) { // ELSE or rem '?
-						token = nextToken; // ignore ':'
-						this.pos += 1;
-					}
-				}
-			}
-
-			space = ((token >= 0x02 && token <= 0x1f) || (token === 0x7c)); // constant 0..9; variable, or RSX?
-
-			let tokenValue: string | (() => string);
-
-			if (token === 0xff) { // extended token?
-				token = this.fnNum8Dec(); // get it
-				tokenValue = this.tokensFF[token];
-			} else {
-				tokenValue = this.tokens[token];
-			}
-
-			let tstr: string;
-
-			if (tokenValue !== undefined) {
-				if (typeof tokenValue === "function") {
-					tstr = tokenValue.call(this);
-				} else { // string
-					tstr = tokenValue;
-				}
-
-				if ((/[a-zA-Z0-9.]$/).test(tstr) && token !== 0xe4) { // last character char, number, dot? (not for token "FN")
-					space = true; // maybe need space next time...
-				}
-			} else { // normal ASCII
-				tstr = String.fromCharCode(token);
-			}
-			if (oldSpace) {
-				if ((/^[a-zA-Z0-9$%!]/).test(tstr) || (token >= 0x02 && token <= 0x1f)) {
-					tstr = " " + tstr;
-				}
-			}
 			out += tstr;
-
 			if (Utils.debug > 2) {
 				this.debugCollectInfo(tstr);
 			}
 		}
-
 		return out;
 	}
 

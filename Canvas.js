@@ -634,15 +634,11 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         };
         Canvas.prototype.plot = function (x, y) {
             this.move(x, y);
-            //x = Canvas.cpcRoundingTowardsZeroX(x, this.modeData.pixelWidth);
-            //y = Canvas.cpcRoundingTowardsZeroY(y, this.modeData.pixelHeight);
             this.setPixel(x, y, this.gPen, this.gColMode); // must be integer
             this.setNeedUpdate();
         };
         Canvas.prototype.test = function (x, y) {
             this.move(x, y);
-            //x = Canvas.cpcRoundingTowardsZeroX(x, this.modeData.pixelWidth);
-            //y = Canvas.cpcRoundingTowardsZeroY(y, this.modeData.pixelHeight);
             return this.testPixel(this.xPos, this.yPos); // use rounded values
         };
         Canvas.prototype.setInk = function (pen, ink1, ink2) {

@@ -690,7 +690,7 @@ export class BasicParser {
 			if (type === "#0?") { // optional stream?
 				if (this.token.type !== "#") { // no stream?
 					suppressAdvance = true;
-					type = ","; // needMore = true;
+					type = ",";
 				}
 				expression = this.fnGetOptionalStream();
 			} else {
@@ -725,7 +725,7 @@ export class BasicParser {
 			}
 			break;
 		case "n": // number"
-			if (type.substr(0, 2) === "n0" && this.token.type === separator) { // n0 or n0?: if parameter not specified, insert default value null?
+			if (type.substring(0, 2) === "n0" && this.token.type === separator) { // n0 or n0?: if parameter not specified, insert default value null?
 				expression = BasicParser.fnCreateDummyArg("null");
 			} else {
 				expression = this.expression(0);
@@ -1410,13 +1410,6 @@ export class BasicParser {
 		node.args = [];
 		node.args.push(stream);
 
-		/*
-		let commaAfterStream = false;
-
-		if (stream.len !== 0) { // not an inserted stream?
-			commaAfterStream = true;
-		}
-		*/
 		if (stream.len !== 0) { // not an inserted stream?
 			if (!closeTokens[this.token.type]) {
 				this.advance(",");
@@ -1424,13 +1417,6 @@ export class BasicParser {
 		}
 
 		while (!closeTokens[this.token.type]) {
-			/*
-			if (commaAfterStream) {
-				this.advance(",");
-				commaAfterStream = false;
-			}
-			*/
-
 			let node2;
 
 			if (this.token.type === "spc" || this.token.type === "tab") {

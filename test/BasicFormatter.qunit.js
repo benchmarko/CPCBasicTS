@@ -1,7 +1,7 @@
 // BasicFormatter.qunit.ts - QUnit tests for CPCBasic BasicFormatter
 //
 // qunit dist/test/BasicFormatter.qunit.js debug=1 generateAll=true
-define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "../BasicFormatter", "./TestHelper"], function (require, exports, Utils_1, BasicLexer_1, BasicParser_1, BasicFormatter_1, TestHelper_1) {
+define(["require", "exports", "../BasicLexer", "../BasicParser", "../BasicFormatter", "./TestHelper"], function (require, exports, BasicLexer_1, BasicParser_1, BasicFormatter_1, TestHelper_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     QUnit.dump.maxDepth = 10;
@@ -83,22 +83,20 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
                 "1 goto 2": "BasicFormatter: Line does not exist in 1 at pos 7-8: 2"
             }
         };
+        function runSingleTest(basicFormatter, key) {
+            var newLine = 10, oldLine = 1, step = 10, keep = 65535, output = basicFormatter.renumber(key, newLine, oldLine, step, keep), result = output.error ? String(output.error) : output.text;
+            return result;
+        }
         function runTestsFor(_category, tests, assert, results) {
             var basicFormatter = new BasicFormatter_1.BasicFormatter({
                 lexer: new BasicLexer_1.BasicLexer(),
                 parser: new BasicParser_1.BasicParser({
                     quiet: true
                 })
-            }), fnReplacer = function (bin) {
-                return "0x" + parseInt(bin.substr(2), 2).toString(16).toLowerCase();
-            }, newLine = 10, oldLine = 1, step = 10, keep = 65535;
+            });
             for (var key in tests) {
                 if (tests.hasOwnProperty(key)) {
-                    var output = basicFormatter.renumber(key, newLine, oldLine, step, keep), result = output.error ? String(output.error) : output.text;
-                    var expected = tests[key];
-                    if (!Utils_1.Utils.supportsBinaryLiterals) {
-                        expected = expected.replace(/(0b[01]+)/g, fnReplacer); // for old IE
-                    }
+                    var expected = TestHelper_1.TestHelper.handleBinaryLiterals(tests[key]), result = runSingleTest(basicFormatter, key);
                     if (results) {
                         results.push(TestHelper_1.TestHelper.stringInQuotes(key) + ": " + TestHelper_1.TestHelper.stringInQuotes(result));
                     }
@@ -111,5 +109,4 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
         TestHelper_1.TestHelper.generateAndRunAllTests(allTests, runTestsFor);
     });
 });
-// end
 //# sourceMappingURL=BasicFormatter.qunit.js.map

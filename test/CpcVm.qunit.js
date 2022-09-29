@@ -216,14 +216,10 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 });
             }
         },
-        setCustomChar: function () {
-            var args = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                args[_i] = arguments[_i];
-            }
-            args[1] = args[1].join(",");
+        setCustomChar: function (char, charData) {
+            var charDataStrings = charData.map(function (arg) { return arg; }), stringArgs = [char].concat(charDataStrings);
             lastTestFunctions.push({
-                setCustomChar: args
+                setCustomChar: stringArgs
             });
         },
         setDefaultInks: function () {
@@ -365,103 +361,70 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
         }
     }, mockTextCanvas = {
         clearFullWindow: function () {
-            var _args = [];
+            var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
-                _args[_i] = arguments[_i];
+                args[_i] = arguments[_i];
             }
-            //
+            lastTestFunctions.push({
+                txtClearFullWindow: args
+            });
         },
         clearTextWindow: function () {
-            var _args = [];
+            var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
-                _args[_i] = arguments[_i];
+                args[_i] = arguments[_i];
             }
-            //
+            lastTestFunctions.push({
+                txtClearTextWindow: args
+            });
         },
         fillTextBox: function () {
-            var _args = [];
+            var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
-                _args[_i] = arguments[_i];
+                args[_i] = arguments[_i];
             }
-            //
+            lastTestFunctions.push({
+                txtFillTextBox: args
+            });
         },
         printChar: function () {
-            var _args = [];
+            var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
-                _args[_i] = arguments[_i];
+                args[_i] = arguments[_i];
             }
-            //
+            lastTestFunctions.push({
+                txtPrintChar: args.map(function (arg) { return String(arg); })
+            });
         },
         readChar: function () {
-            var _args = [];
+            var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
-                _args[_i] = arguments[_i];
+                args[_i] = arguments[_i];
             }
-            //
-        },
-        reset: function () {
-            var _args = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                _args[_i] = arguments[_i];
-            }
-            //
-        },
-        windowScrollUp: function () {
-            var _args = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                _args[_i] = arguments[_i];
-            }
-            //
-        },
-        windowScrollDown: function () {
-            var _args = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                _args[_i] = arguments[_i];
-            }
-            //
-        }
-    }, 
-    /*
-    mockTextCanvas = {
-        clearFullWindow: function (...args) {
             lastTestFunctions.push({
-                clearFullWindow: args
-            });
-        },
-        clearTextWindow: function (...args) {
-            lastTestFunctions.push({
-                clearTextWindow: args
-            });
-        },
-        fillTextBox: function (...args) {
-            lastTestFunctions.push({
-                fillTextBox: args
-            });
-        },
-        printChar: function (...args) {
-            lastTestFunctions.push({
-                printChar: args.map((arg) => String(arg))
-            });
-        },
-        readChar: function (...args) {
-            lastTestFunctions.push({
-                readChar: args
+                txtReadChar: args
             });
             return 65;
         },
-        reset: function (...args) {
+        reset: function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
+            }
             lastTestFunctions.push({
-                reset: args
+                txtReset: args
             });
         },
-        windowScrollDown: function (...args) {
+        windowScrollDown: function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
+            }
             lastTestFunctions.push({
-                windowScrollDown: args
+                txtWindowScrollDown: args
             });
         }
-    } as TextCanvas,
-    */
-    mockKeyboard = {
+    }, mockKeyboard = {
         clearInput: function () {
             var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
@@ -551,9 +514,9 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             for (var _i = 0; _i < arguments.length; _i++) {
                 args[_i] = arguments[_i];
             }
-            args = args.map(function (arg) { return JSON.stringify(arg); });
+            var stringArgs = args.map(function (arg) { return JSON.stringify(arg); });
             lastTestFunctions.push({
-                setCpcKeyExpansion: args
+                setCpcKeyExpansion: stringArgs
             });
         },
         setExpansionToken: function () {
@@ -602,28 +565,22 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 scheduler: args
             });
         },
-        setToneEnv: function () {
-            var args = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                args[_i] = arguments[_i];
-            }
-            if (args.length >= 2) {
-                args[1] = JSON.stringify(args[1]);
-            }
+        setToneEnv: function (toneEnv, toneEnvData) {
+            var args2 = [
+                toneEnv,
+                JSON.stringify(toneEnvData)
+            ];
             lastTestFunctions.push({
-                setToneEnv: args
+                setToneEnv: args2
             });
         },
-        setVolEnv: function () {
-            var args = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                args[_i] = arguments[_i];
-            }
-            if (args.length >= 2) {
-                args[1] = JSON.stringify(args[1]);
-            }
+        setVolEnv: function (volEnv, volEnvData) {
+            var args2 = [
+                volEnv,
+                JSON.stringify(volEnvData)
+            ];
             lastTestFunctions.push({
-                setVolEnv: args
+                setVolEnv: args2
             });
         },
         sound: function () {
@@ -631,9 +588,9 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             for (var _i = 0; _i < arguments.length; _i++) {
                 args[_i] = arguments[_i];
             }
-            args = args.map(function (arg) { return JSON.stringify(arg); });
+            var stringArgs = args.map(function (arg) { return JSON.stringify(arg); });
             lastTestFunctions.push({
-                sound: args
+                sound: stringArgs
             });
         },
         sq: function () {
@@ -663,9 +620,9 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 args[_i] = arguments[_i];
             }
             var varName = args[0];
-            variablesMap[varName] = this.getVarType(varName.charAt(0)) === "$" ? [""] : [0];
+            variablesMap[varName] = this.getVarType(varName.charAt(0)) === "$" ? [""] : [0]; // we set one dimension, one element
             lastTestFunctions.push({
-                dimVariable: args
+                dimVariable: args //TTT: it is string and numbers
             });
         },
         getVariableIndex: function (name) {
@@ -700,7 +657,6 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
     };
     // https://www.cpcwiki.eu/index.php/Locomotive_BASIC
     QUnit.module("CpcVm: Tests", function () {
-        // TODO: using: '"[#,###,###]",1234567,123,12345678': "[1,234,567][      123][%12,345,678]", // TODO
         var allTests = {
             abs: {
                 "-1 ": "1",
@@ -805,9 +761,9 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 "0xbb51": "",
                 "0xbb5a": "",
                 "0xbb5a,1,2,3,4,5,6,7,8": '{"_key":"win0","pos":-1}',
-                "0xbb5d": 'printChar:0,0,0,1,0,false -- {"_key":"win0","pos":1}',
-                "0xbb5d,1,2,3,4,5,6,7,8": 'printChar:8,0,0,1,0,false -- {"_key":"win0","pos":1}',
-                "0xbb6c": "clearTextWindow:0,39,0,24,0",
+                "0xbb5d": 'printChar:0,0,0,1,0,false , txtPrintChar:0,0,0,1,0,false -- {"_key":"win0","pos":1}',
+                "0xbb5d,1,2,3,4,5,6,7,8": 'printChar:8,0,0,1,0,false , txtPrintChar:8,0,0,1,0,false -- {"_key":"win0","pos":1}',
+                "0xbb6c": "clearTextWindow:0,39,0,24,0 , txtClearTextWindow:0,39,0,24,0",
                 "0xbb7b": "",
                 "0xbb7e": '{"_key":"win0","cursorEnabled":false}',
                 "0xbb81": 'drawCursor:0,0,1,0 -- {"_key":"win0","cursorOn":true}',
@@ -842,7 +798,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 "0xbbfc,1": "printGChar:1",
                 "0xbbfc,1,2": "printGChar:2",
                 "0xbbfc,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32": "printGChar:32",
-                "0xbbff": "setMode:1 , clearFullWindow: , setDefaultInks: , setSpeedInk:10,10",
+                "0xbbff": "setMode:1 , clearFullWindow: , txtClearFullWindow: , setDefaultInks: , setSpeedInk:10,10",
                 "0xbc02": "setDefaultInks: , setSpeedInk:10,10",
                 "0xbc06": 'CpcVm: Type mismatch in 0: screenBase undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 "0xbc06,0x40": "getByte:49152 , getByte:49153 , setByte:16384,0 , setByte:16385,0",
@@ -850,11 +806,11 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 "0xbc07": 'CpcVm: Type mismatch in 0: screenBase undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 "0xbc07,0x40": "getByte:49152 , getByte:49153 , setByte:16384,0 , setByte:16385,1",
                 "0xbc07,0xc0": "getByte:16384 , getByte:16385 , setByte:49152,0 , setByte:49153,1",
-                "0xbc0e": 'setMode:0 , clearFullWindow: -- {"_key":"win0","right":19} -- {"_key":"win1","right":19} -- {"_key":"win2","right":19} -- {"_key":"win3","right":19} -- {"_key":"win4","right":19} -- {"_key":"win5","right":19} -- {"_key":"win6","right":19} -- {"_key":"win7","right":19}',
-                "0xbc0e,1": "setMode:1 , clearFullWindow:",
-                "0xbc0e,1,2": 'setMode:2 , clearFullWindow: -- {"_key":"win0","right":79} -- {"_key":"win1","right":79} -- {"_key":"win2","right":79} -- {"_key":"win3","right":79} -- {"_key":"win4","right":79} -- {"_key":"win5","right":79} -- {"_key":"win6","right":79} -- {"_key":"win7","right":79}',
-                "0xbc0e,1,2,3": 'setMode:3 , clearFullWindow: -- {"_key":"win0","right":79,"bottom":49} -- {"_key":"win1","right":79,"bottom":49} -- {"_key":"win2","right":79,"bottom":49} -- {"_key":"win3","right":79,"bottom":49} -- {"_key":"win4","right":79,"bottom":49} -- {"_key":"win5","right":79,"bottom":49} -- {"_key":"win6","right":79,"bottom":49} -- {"_key":"win7","right":79,"bottom":49} -- {"_key":"win8","bottom":49} -- {"_key":"win9","bottom":49}',
-                "0xbc0e,1,2,3,4": 'setMode:0 , clearFullWindow: -- {"_key":"win0","right":19} -- {"_key":"win1","right":19} -- {"_key":"win2","right":19} -- {"_key":"win3","right":19} -- {"_key":"win4","right":19} -- {"_key":"win5","right":19} -- {"_key":"win6","right":19} -- {"_key":"win7","right":19}',
+                "0xbc0e": 'setMode:0 , clearFullWindow: , txtClearFullWindow: -- {"_key":"win0","right":19} -- {"_key":"win1","right":19} -- {"_key":"win2","right":19} -- {"_key":"win3","right":19} -- {"_key":"win4","right":19} -- {"_key":"win5","right":19} -- {"_key":"win6","right":19} -- {"_key":"win7","right":19}',
+                "0xbc0e,1": "setMode:1 , clearFullWindow: , txtClearFullWindow:",
+                "0xbc0e,1,2": 'setMode:2 , clearFullWindow: , txtClearFullWindow: -- {"_key":"win0","right":79} -- {"_key":"win1","right":79} -- {"_key":"win2","right":79} -- {"_key":"win3","right":79} -- {"_key":"win4","right":79} -- {"_key":"win5","right":79} -- {"_key":"win6","right":79} -- {"_key":"win7","right":79}',
+                "0xbc0e,1,2,3": 'setMode:3 , clearFullWindow: , txtClearFullWindow: -- {"_key":"win0","right":79,"bottom":49} -- {"_key":"win1","right":79,"bottom":49} -- {"_key":"win2","right":79,"bottom":49} -- {"_key":"win3","right":79,"bottom":49} -- {"_key":"win4","right":79,"bottom":49} -- {"_key":"win5","right":79,"bottom":49} -- {"_key":"win6","right":79,"bottom":49} -- {"_key":"win7","right":79,"bottom":49} -- {"_key":"win8","bottom":49} -- {"_key":"win9","bottom":49}',
+                "0xbc0e,1,2,3,4": 'setMode:0 , clearFullWindow: , txtClearFullWindow: -- {"_key":"win0","right":19} -- {"_key":"win1","right":19} -- {"_key":"win2","right":19} -- {"_key":"win3","right":19} -- {"_key":"win4","right":19} -- {"_key":"win5","right":19} -- {"_key":"win6","right":19} -- {"_key":"win7","right":19}',
                 "0xbca7": "reset:",
                 "0xbcbc": "",
                 "0xbcb6": "",
@@ -980,8 +936,8 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 '"_testCase3"': '{"_key":"stop","reason":"fileSave","priority":90,"paras":{}} -- {"_key":"outFile","open":true,"command":"closeout","name":"name1","line":0,"fileData":["A"],"stream":0,"typeString":"","length":0,"entry":0}'
             },
             cls: {
-                "0 ": "clearTextWindow:0,39,0,24,0",
-                "6.7 ": "clearTextWindow:0,39,0,24,0",
+                "0 ": "clearTextWindow:0,39,0,24,0 , txtClearTextWindow:0,39,0,24,0",
+                "6.7 ": "clearTextWindow:0,39,0,24,0 , txtClearTextWindow:0,39,0,24,0",
                 "": 'CpcVm: Type mismatch in 0: CLS undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 '""': 'CpcVm: Type mismatch in 0: CLS  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 "-1 ": 'CpcVm: Improper argument in 0: CLS -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
@@ -1433,12 +1389,12 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 "-32769": 'CpcVm: Overflow in 0: INP -32769 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
             },
             input: {
-                "0 ": 'printChar:117,0,0,1,0,false , printChar:110,1,0,1,0,false , printChar:100,2,0,1,0,false , printChar:101,3,0,1,0,false , printChar:102,4,0,1,0,false , printChar:105,5,0,1,0,false , printChar:110,6,0,1,0,false , printChar:101,7,0,1,0,false , printChar:100,8,0,1,0,false , drawCursor:9,0,1,0 , drawCursor:9,0,1,0 , drawCursor:9,0,1,0 --  -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":0,"types":[],"input":"","line":0}} -- {"_key":"win0","pos":9,"cursorOn":true}',
-                "7 ": 'printChar:117,0,0,1,0,false , printChar:110,1,0,1,0,false , printChar:100,2,0,1,0,false , printChar:101,3,0,1,0,false , printChar:102,4,0,1,0,false , printChar:105,5,0,1,0,false , printChar:110,6,0,1,0,false , printChar:101,7,0,1,0,false , printChar:100,8,0,1,0,false , drawCursor:9,0,1,0 , drawCursor:9,0,1,0 , drawCursor:9,0,1,0 --  -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":7,"types":[],"input":"","line":0}} -- {"_key":"win7","pos":9,"cursorOn":true}',
+                "0 ": 'printChar:117,0,0,1,0,false , txtPrintChar:117,0,0,1,0,false , printChar:110,1,0,1,0,false , txtPrintChar:110,1,0,1,0,false , printChar:100,2,0,1,0,false , txtPrintChar:100,2,0,1,0,false , printChar:101,3,0,1,0,false , txtPrintChar:101,3,0,1,0,false , printChar:102,4,0,1,0,false , txtPrintChar:102,4,0,1,0,false , printChar:105,5,0,1,0,false , txtPrintChar:105,5,0,1,0,false , printChar:110,6,0,1,0,false , txtPrintChar:110,6,0,1,0,false , printChar:101,7,0,1,0,false , txtPrintChar:101,7,0,1,0,false , printChar:100,8,0,1,0,false , txtPrintChar:100,8,0,1,0,false , drawCursor:9,0,1,0 , drawCursor:9,0,1,0 , drawCursor:9,0,1,0 --  -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":0,"types":[],"input":"","line":0}} -- {"_key":"win0","pos":9,"cursorOn":true}',
+                "7 ": 'printChar:117,0,0,1,0,false , txtPrintChar:117,0,0,1,0,false , printChar:110,1,0,1,0,false , txtPrintChar:110,1,0,1,0,false , printChar:100,2,0,1,0,false , txtPrintChar:100,2,0,1,0,false , printChar:101,3,0,1,0,false , txtPrintChar:101,3,0,1,0,false , printChar:102,4,0,1,0,false , txtPrintChar:102,4,0,1,0,false , printChar:105,5,0,1,0,false , txtPrintChar:105,5,0,1,0,false , printChar:110,6,0,1,0,false , txtPrintChar:110,6,0,1,0,false , printChar:101,7,0,1,0,false , txtPrintChar:101,7,0,1,0,false , printChar:100,8,0,1,0,false , txtPrintChar:100,8,0,1,0,false , drawCursor:9,0,1,0 , drawCursor:9,0,1,0 , drawCursor:9,0,1,0 --  -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":7,"types":[],"input":"","line":0}} -- {"_key":"win7","pos":9,"cursorOn":true}',
                 "8 ": "I am the printer!",
-                '0,undefined,"msg","a$"': 'printChar:109,0,0,1,0,false , printChar:115,1,0,1,0,false , printChar:103,2,0,1,0,false , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 --  -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":0,"message":"msg","noCRLF":null,"types":["a$"],"input":"","line":0}} -- {"_key":"win0","pos":3,"cursorOn":true}',
-                '0,";","msg","a$"': 'printChar:109,0,0,1,0,false , printChar:115,1,0,1,0,false , printChar:103,2,0,1,0,false , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 --  -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":0,"message":"msg","noCRLF":";","types":["a$"],"input":"","line":0}} -- {"_key":"win0","pos":3,"cursorOn":true}',
-                '0,";","msg","a$","b"': 'printChar:109,0,0,1,0,false , printChar:115,1,0,1,0,false , printChar:103,2,0,1,0,false , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 --  -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":0,"message":"msg","noCRLF":";","types":["a$","b"],"input":"","line":0}} -- {"_key":"win0","pos":3,"cursorOn":true}',
+                '0,undefined,"msg","a$"': 'printChar:109,0,0,1,0,false , txtPrintChar:109,0,0,1,0,false , printChar:115,1,0,1,0,false , txtPrintChar:115,1,0,1,0,false , printChar:103,2,0,1,0,false , txtPrintChar:103,2,0,1,0,false , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 --  -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":0,"message":"msg","noCRLF":null,"types":["a$"],"input":"","line":0}} -- {"_key":"win0","pos":3,"cursorOn":true}',
+                '0,";","msg","a$"': 'printChar:109,0,0,1,0,false , txtPrintChar:109,0,0,1,0,false , printChar:115,1,0,1,0,false , txtPrintChar:115,1,0,1,0,false , printChar:103,2,0,1,0,false , txtPrintChar:103,2,0,1,0,false , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 --  -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":0,"message":"msg","noCRLF":";","types":["a$"],"input":"","line":0}} -- {"_key":"win0","pos":3,"cursorOn":true}',
+                '0,";","msg","a$","b"': 'printChar:109,0,0,1,0,false , txtPrintChar:109,0,0,1,0,false , printChar:115,1,0,1,0,false , txtPrintChar:115,1,0,1,0,false , printChar:103,2,0,1,0,false , txtPrintChar:103,2,0,1,0,false , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 --  -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":0,"message":"msg","noCRLF":";","types":["a$","b"],"input":"","line":0}} -- {"_key":"win0","pos":3,"cursorOn":true}',
                 '9,"","msg","a$","b$","c"': 'abc def 7 -- {"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"openin","name":"file1","line":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
                 "": 'CpcVm: Type mismatch in 0: INPUT undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 '""': 'CpcVm: Type mismatch in 0: INPUT  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
@@ -1447,8 +1403,11 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 "9 ": 'CpcVm: File not open in 0: INPUT #9 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
             },
             instr: {
-                '"",""': "1",
-                '1"",""': 'CpcVm: Improper argument in 0: INSTR 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+                '"",""': "0",
+                '1,"",""': "0",
+                '1,"ab",""': "1",
+                '2,"ab",""': "2",
+                '3,"ab",""': "0",
                 '"abba","a"': "1",
                 '1,"abba","a"': "1",
                 '2,"abba","a"': "4",
@@ -1456,10 +1415,15 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 '5,"abba","a"': "0",
                 "": 'CpcVm: Type mismatch in 0: INSTR undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 '""': 'CpcVm: Type mismatch in 0: INSTR undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+                '"a"': 'CpcVm: Type mismatch in 0: INSTR undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+                '"a",2': "CpcVm: Type mismatch in 0: INSTR 2 -- {\"_key\":\"stop\",\"reason\":\"error\",\"priority\":50,\"paras\":{}}",
+                "0 ": 'CpcVm: Improper argument in 0: INSTR 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 '0,"abba","a"': 'CpcVm: Improper argument in 0: INSTR 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-                "-1": 'CpcVm: Type mismatch in 0: INSTR undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-                "256 ": 'CpcVm: Type mismatch in 0: INSTR undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-                "0,0": 'CpcVm: Type mismatch in 0: INSTR 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+                "256 ": 'CpcVm: Improper argument in 0: INSTR 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+                "1 ": 'CpcVm: Type mismatch in 0: INSTR undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+                "1,2": 'CpcVm: Type mismatch in 0: INSTR 2 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+                '1,"a"': 'CpcVm: Type mismatch in 0: INSTR undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+                '1,"a",3': 'CpcVm: Type mismatch in 0: INSTR 3 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
             },
             "int": {
                 "0 ": "0",
@@ -1535,12 +1499,12 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 "0 ": 'CpcVm: Type mismatch in 0: LEN 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
             },
             lineInput: {
-                '0,undefined,"? ","a$"': 'printChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":0,"message":"? ","noCRLF":null,"input":"abc1,7,e","line":0}} -- {"_key":"win0","pos":2}',
-                '7,undefined,"? ","a$"': 'printChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":7,"message":"? ","noCRLF":null,"input":"abc1,7,e","line":0}} -- {"_key":"win7","pos":2}',
-                '6.4,";","? ","a$"': 'printChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":6,"message":"? ","noCRLF":";","input":"abc1,7,e","line":0}} -- {"_key":"win6","pos":2}',
+                '0,undefined,"? ","a$"': 'printChar:63,0,0,1,0,false , txtPrintChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , txtPrintChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":0,"message":"? ","noCRLF":null,"input":"abc1,7,e","line":0}} -- {"_key":"win0","pos":2}',
+                '7,undefined,"? ","a$"': 'printChar:63,0,0,1,0,false , txtPrintChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , txtPrintChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":7,"message":"? ","noCRLF":null,"input":"abc1,7,e","line":0}} -- {"_key":"win7","pos":2}',
+                '6.4,";","? ","a$"': 'printChar:63,0,0,1,0,false , txtPrintChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , txtPrintChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":6,"message":"? ","noCRLF":";","input":"abc1,7,e","line":0}} -- {"_key":"win6","pos":2}',
                 "8 ": "I am the printer!",
-                '0,";","? ","a$"': 'printChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":0,"message":"? ","noCRLF":";","input":"abc1,7,e","line":0}} -- {"_key":"win0","pos":2}',
-                '0,";","? ","a$","b"': 'printChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":0,"message":"? ","noCRLF":";","input":"abc1,7,e","line":0}} -- {"_key":"win0","pos":2}',
+                '0,";","? ","a$"': 'printChar:63,0,0,1,0,false , txtPrintChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , txtPrintChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":0,"message":"? ","noCRLF":";","input":"abc1,7,e","line":0}} -- {"_key":"win0","pos":2}',
+                '0,";","? ","a$","b"': 'printChar:63,0,0,1,0,false , txtPrintChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , txtPrintChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":0,"message":"? ","noCRLF":";","input":"abc1,7,e","line":0}} -- {"_key":"win0","pos":2}',
                 "": 'CpcVm: Type mismatch in 0: LINE INPUT undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 '""': 'CpcVm: Type mismatch in 0: LINE INPUT  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 '-1,undefined,"? ","a$"': 'CpcVm: Improper argument in 0: LINE INPUT -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
@@ -1609,7 +1573,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 '""': "",
                 '"A"': "a",
                 '"ABCDEFGHKKLMNOPQRSTUVWXYZ"': "abcdefghkklmnopqrstuvwxyz",
-                '" !"#$%&\'()*+ -./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff"': " !\"#$%&'()*+ -./0123456789:;<=>?@abcdefghijklmnopqrstuvwxyz[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff",
+                '" !#$%&\'()*+ -./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff"': " !#$%&'()*+ -./0123456789:;<=>?@abcdefghijklmnopqrstuvwxyz[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff",
                 "": 'CpcVm: Type mismatch in 0: LOWER$ undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 "0 ": 'CpcVm: Type mismatch in 0: LOWER$ 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
             },
@@ -1700,10 +1664,10 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 '0,"7"': 'CpcVm: Type mismatch in 0: MIN 7 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
             },
             mode: {
-                "0 ": 'setMode:0 , clearFullWindow: -- {"_key":"win0","right":19} -- {"_key":"win1","right":19} -- {"_key":"win2","right":19} -- {"_key":"win3","right":19} -- {"_key":"win4","right":19} -- {"_key":"win5","right":19} -- {"_key":"win6","right":19} -- {"_key":"win7","right":19}',
-                "1 ": "setMode:1 , clearFullWindow:",
-                "2 ": 'setMode:2 , clearFullWindow: -- {"_key":"win0","right":79} -- {"_key":"win1","right":79} -- {"_key":"win2","right":79} -- {"_key":"win3","right":79} -- {"_key":"win4","right":79} -- {"_key":"win5","right":79} -- {"_key":"win6","right":79} -- {"_key":"win7","right":79}',
-                "3.4 ": 'setMode:3 , clearFullWindow: -- {"_key":"win0","right":79,"bottom":49} -- {"_key":"win1","right":79,"bottom":49} -- {"_key":"win2","right":79,"bottom":49} -- {"_key":"win3","right":79,"bottom":49} -- {"_key":"win4","right":79,"bottom":49} -- {"_key":"win5","right":79,"bottom":49} -- {"_key":"win6","right":79,"bottom":49} -- {"_key":"win7","right":79,"bottom":49} -- {"_key":"win8","bottom":49} -- {"_key":"win9","bottom":49}',
+                "0 ": 'setMode:0 , clearFullWindow: , txtClearFullWindow: -- {"_key":"win0","right":19} -- {"_key":"win1","right":19} -- {"_key":"win2","right":19} -- {"_key":"win3","right":19} -- {"_key":"win4","right":19} -- {"_key":"win5","right":19} -- {"_key":"win6","right":19} -- {"_key":"win7","right":19}',
+                "1 ": "setMode:1 , clearFullWindow: , txtClearFullWindow:",
+                "2 ": 'setMode:2 , clearFullWindow: , txtClearFullWindow: -- {"_key":"win0","right":79} -- {"_key":"win1","right":79} -- {"_key":"win2","right":79} -- {"_key":"win3","right":79} -- {"_key":"win4","right":79} -- {"_key":"win5","right":79} -- {"_key":"win6","right":79} -- {"_key":"win7","right":79}',
+                "3.4 ": 'setMode:3 , clearFullWindow: , txtClearFullWindow: -- {"_key":"win0","right":79,"bottom":49} -- {"_key":"win1","right":79,"bottom":49} -- {"_key":"win2","right":79,"bottom":49} -- {"_key":"win3","right":79,"bottom":49} -- {"_key":"win4","right":79,"bottom":49} -- {"_key":"win5","right":79,"bottom":49} -- {"_key":"win6","right":79,"bottom":49} -- {"_key":"win7","right":79,"bottom":49} -- {"_key":"win8","bottom":49} -- {"_key":"win9","bottom":49}',
                 "": 'CpcVm: Type mismatch in 0: MODE undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 '""': 'CpcVm: Type mismatch in 0: MODE  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 "4 ": 'CpcVm: Improper argument in 0: MODE 4 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
@@ -1983,20 +1947,20 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 "7 ": "",
                 "8 ": "",
                 "9 ": 'CpcVm: File not open in 0: PRINT #9 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-                "0,1": 'printChar:32,0,0,1,0,false , printChar:49,1,0,1,0,false , printChar:32,2,0,1,0,false -- {"_key":"win0","pos":3}',
-                "0,12.345": 'printChar:32,0,0,1,0,false , printChar:49,1,0,1,0,false , printChar:50,2,0,1,0,false , printChar:46,3,0,1,0,false , printChar:51,4,0,1,0,false , printChar:52,5,0,1,0,false , printChar:53,6,0,1,0,false , printChar:32,7,0,1,0,false -- {"_key":"win0","pos":8}',
-                "0,-12.345": 'printChar:45,0,0,1,0,false , printChar:49,1,0,1,0,false , printChar:50,2,0,1,0,false , printChar:46,3,0,1,0,false , printChar:51,4,0,1,0,false , printChar:52,5,0,1,0,false , printChar:53,6,0,1,0,false , printChar:32,7,0,1,0,false -- {"_key":"win0","pos":8}',
-                '0,"-12.345"': 'printChar:45,0,0,1,0,false , printChar:49,1,0,1,0,false , printChar:50,2,0,1,0,false , printChar:46,3,0,1,0,false , printChar:51,4,0,1,0,false , printChar:52,5,0,1,0,false , printChar:53,6,0,1,0,false -- {"_key":"win0","pos":7}',
-                '0,"abc"': 'printChar:97,0,0,1,0,false , printChar:98,1,0,1,0,false , printChar:99,2,0,1,0,false -- {"_key":"win0","pos":3}',
-                '0,"a","bc",7.2,"d"': 'printChar:97,0,0,1,0,false , printChar:98,1,0,1,0,false , printChar:99,2,0,1,0,false , printChar:32,3,0,1,0,false , printChar:55,4,0,1,0,false , printChar:46,5,0,1,0,false , printChar:50,6,0,1,0,false , printChar:32,7,0,1,0,false , printChar:100,8,0,1,0,false -- {"_key":"win0","pos":9}',
-                "0,999999999": 'printChar:32,0,0,1,0,false , printChar:57,1,0,1,0,false , printChar:57,2,0,1,0,false , printChar:57,3,0,1,0,false , printChar:57,4,0,1,0,false , printChar:57,5,0,1,0,false , printChar:57,6,0,1,0,false , printChar:57,7,0,1,0,false , printChar:57,8,0,1,0,false , printChar:57,9,0,1,0,false , printChar:32,10,0,1,0,false -- {"_key":"win0","pos":11}',
-                "0,1e9": 'printChar:32,0,0,1,0,false , printChar:49,1,0,1,0,false , printChar:69,2,0,1,0,false , printChar:43,3,0,1,0,false , printChar:48,4,0,1,0,false , printChar:57,5,0,1,0,false , printChar:32,6,0,1,0,false -- {"_key":"win0","pos":7}',
-                "0,0x00": 'printChar:32,0,0,1,0,false , printChar:48,1,0,1,0,false , printChar:32,2,0,1,0,false -- {"_key":"win0","pos":3}',
+                "0,1": 'printChar:32,0,0,1,0,false , txtPrintChar:32,0,0,1,0,false , printChar:49,1,0,1,0,false , txtPrintChar:49,1,0,1,0,false , printChar:32,2,0,1,0,false , txtPrintChar:32,2,0,1,0,false -- {"_key":"win0","pos":3}',
+                "0,12.345": 'printChar:32,0,0,1,0,false , txtPrintChar:32,0,0,1,0,false , printChar:49,1,0,1,0,false , txtPrintChar:49,1,0,1,0,false , printChar:50,2,0,1,0,false , txtPrintChar:50,2,0,1,0,false , printChar:46,3,0,1,0,false , txtPrintChar:46,3,0,1,0,false , printChar:51,4,0,1,0,false , txtPrintChar:51,4,0,1,0,false , printChar:52,5,0,1,0,false , txtPrintChar:52,5,0,1,0,false , printChar:53,6,0,1,0,false , txtPrintChar:53,6,0,1,0,false , printChar:32,7,0,1,0,false , txtPrintChar:32,7,0,1,0,false -- {"_key":"win0","pos":8}',
+                "0,-12.345": 'printChar:45,0,0,1,0,false , txtPrintChar:45,0,0,1,0,false , printChar:49,1,0,1,0,false , txtPrintChar:49,1,0,1,0,false , printChar:50,2,0,1,0,false , txtPrintChar:50,2,0,1,0,false , printChar:46,3,0,1,0,false , txtPrintChar:46,3,0,1,0,false , printChar:51,4,0,1,0,false , txtPrintChar:51,4,0,1,0,false , printChar:52,5,0,1,0,false , txtPrintChar:52,5,0,1,0,false , printChar:53,6,0,1,0,false , txtPrintChar:53,6,0,1,0,false , printChar:32,7,0,1,0,false , txtPrintChar:32,7,0,1,0,false -- {"_key":"win0","pos":8}',
+                '0,"-12.345"': 'printChar:45,0,0,1,0,false , txtPrintChar:45,0,0,1,0,false , printChar:49,1,0,1,0,false , txtPrintChar:49,1,0,1,0,false , printChar:50,2,0,1,0,false , txtPrintChar:50,2,0,1,0,false , printChar:46,3,0,1,0,false , txtPrintChar:46,3,0,1,0,false , printChar:51,4,0,1,0,false , txtPrintChar:51,4,0,1,0,false , printChar:52,5,0,1,0,false , txtPrintChar:52,5,0,1,0,false , printChar:53,6,0,1,0,false , txtPrintChar:53,6,0,1,0,false -- {"_key":"win0","pos":7}',
+                '0,"abc"': 'printChar:97,0,0,1,0,false , txtPrintChar:97,0,0,1,0,false , printChar:98,1,0,1,0,false , txtPrintChar:98,1,0,1,0,false , printChar:99,2,0,1,0,false , txtPrintChar:99,2,0,1,0,false -- {"_key":"win0","pos":3}',
+                '0,"a","bc",7.2,"d"': 'printChar:97,0,0,1,0,false , txtPrintChar:97,0,0,1,0,false , printChar:98,1,0,1,0,false , txtPrintChar:98,1,0,1,0,false , printChar:99,2,0,1,0,false , txtPrintChar:99,2,0,1,0,false , printChar:32,3,0,1,0,false , txtPrintChar:32,3,0,1,0,false , printChar:55,4,0,1,0,false , txtPrintChar:55,4,0,1,0,false , printChar:46,5,0,1,0,false , txtPrintChar:46,5,0,1,0,false , printChar:50,6,0,1,0,false , txtPrintChar:50,6,0,1,0,false , printChar:32,7,0,1,0,false , txtPrintChar:32,7,0,1,0,false , printChar:100,8,0,1,0,false , txtPrintChar:100,8,0,1,0,false -- {"_key":"win0","pos":9}',
+                "0,999999999": 'printChar:32,0,0,1,0,false , txtPrintChar:32,0,0,1,0,false , printChar:57,1,0,1,0,false , txtPrintChar:57,1,0,1,0,false , printChar:57,2,0,1,0,false , txtPrintChar:57,2,0,1,0,false , printChar:57,3,0,1,0,false , txtPrintChar:57,3,0,1,0,false , printChar:57,4,0,1,0,false , txtPrintChar:57,4,0,1,0,false , printChar:57,5,0,1,0,false , txtPrintChar:57,5,0,1,0,false , printChar:57,6,0,1,0,false , txtPrintChar:57,6,0,1,0,false , printChar:57,7,0,1,0,false , txtPrintChar:57,7,0,1,0,false , printChar:57,8,0,1,0,false , txtPrintChar:57,8,0,1,0,false , printChar:57,9,0,1,0,false , txtPrintChar:57,9,0,1,0,false , printChar:32,10,0,1,0,false , txtPrintChar:32,10,0,1,0,false -- {"_key":"win0","pos":11}',
+                "0,1e9": 'printChar:32,0,0,1,0,false , txtPrintChar:32,0,0,1,0,false , printChar:49,1,0,1,0,false , txtPrintChar:49,1,0,1,0,false , printChar:69,2,0,1,0,false , txtPrintChar:69,2,0,1,0,false , printChar:43,3,0,1,0,false , txtPrintChar:43,3,0,1,0,false , printChar:48,4,0,1,0,false , txtPrintChar:48,4,0,1,0,false , printChar:57,5,0,1,0,false , txtPrintChar:57,5,0,1,0,false , printChar:32,6,0,1,0,false , txtPrintChar:32,6,0,1,0,false -- {"_key":"win0","pos":7}',
+                "0,0x00": 'printChar:32,0,0,1,0,false , txtPrintChar:32,0,0,1,0,false , printChar:48,1,0,1,0,false , txtPrintChar:48,1,0,1,0,false , printChar:32,2,0,1,0,false , txtPrintChar:32,2,0,1,0,false -- {"_key":"win0","pos":3}',
                 '0,"\x00"': "",
-                '0,"\x01\x08"': 'printChar:8,0,0,1,0,false -- {"_key":"win0","pos":1}',
+                '0,"\x01\x08"': 'printChar:8,0,0,1,0,false , txtPrintChar:8,0,0,1,0,false -- {"_key":"win0","pos":1}',
                 '0,"\x02"': '{"_key":"win0","cursorEnabled":false}',
                 '0,"\x03"': "",
-                '0,"\x04\x02"': 'setMode:2 , clearFullWindow: -- {"_key":"win0","right":79} -- {"_key":"win1","right":79} -- {"_key":"win2","right":79} -- {"_key":"win3","right":79} -- {"_key":"win4","right":79} -- {"_key":"win5","right":79} -- {"_key":"win6","right":79} -- {"_key":"win7","right":79}',
+                '0,"\x04\x02"': 'setMode:2 , clearFullWindow: , txtClearFullWindow: -- {"_key":"win0","right":79} -- {"_key":"win1","right":79} -- {"_key":"win2","right":79} -- {"_key":"win3","right":79} -- {"_key":"win4","right":79} -- {"_key":"win5","right":79} -- {"_key":"win6","right":79} -- {"_key":"win7","right":79}',
                 '0,"\x05\x08"': "printGChar:8",
                 '0,"\x06"': "",
                 '0,"\x07"': 'testCanQueue:135 , sound:{"state":135,"period":90,"duration":20,"volume":12,"volEnv":0,"toneEnv":0,"noise":0}',
@@ -2004,15 +1968,15 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 '0,"\x09"': '{"_key":"win0","pos":1}',
                 '0,"\n"': '{"_key":"win0","vpos":1}',
                 '0,"\x0b"': '{"_key":"win0","vpos":-1}',
-                '0,"\x0c"': "clearTextWindow:0,39,0,24,0",
+                '0,"\x0c"': "clearTextWindow:0,39,0,24,0 , txtClearTextWindow:0,39,0,24,0",
                 '0,"\r"': "",
                 '0,"\x0e\x04"': '{"_key":"win0","paper":4}',
                 '0,"\x0f\x04"': '{"_key":"win0","pen":4}',
-                '0,"\x10"': "fillTextBox:0,0,1,1,0",
-                '0,"\x11"': "fillTextBox:0,0,1,1,0",
-                '0,"\x12"': "fillTextBox:0,0,40,1,0",
-                '0,"\x13"': "fillTextBox:0,0,40,0,0 , fillTextBox:0,0,1,1,0",
-                '0,"\x14"': "fillTextBox:0,0,40,1,0 , fillTextBox:0,1,40,24,0",
+                '0,"\x10"': "fillTextBox:0,0,1,1,0 , txtFillTextBox:0,0,1,1",
+                '0,"\x11"': "fillTextBox:0,0,1,1,0 , txtFillTextBox:0,0,1,1,0",
+                '0,"\x12"': "fillTextBox:0,0,40,1,0 , txtFillTextBox:0,0,40,1,0",
+                '0,"\x13"': "fillTextBox:0,0,40,0,0 , fillTextBox:0,0,1,1,0 , txtFillTextBox:0,0,40,0,0 , txtFillTextBox:0,0,1,1,0",
+                '0,"\x14"': "fillTextBox:0,0,40,1,0 , fillTextBox:0,1,40,24,0 , txtFillTextBox:0,0,40,1,0 , txtFillTextBox:0,1,40,24,0",
                 '0,"\x15"': '{"_key":"win0","textEnabled":false,"cursorEnabled":false}',
                 '0,"\x16\x00"': "",
                 '0,"\x16\x01"': '{"_key":"win0","transparent":true}',
@@ -2032,7 +1996,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 '0,"\x1f\x02\x03"': '{"_key":"win0","pos":1,"vpos":2}',
                 '7,"\x1f\x02\x03"': '{"_key":"win7","pos":1,"vpos":2}',
                 '6,"\x1f","\x08","\x09"': '{"_key":"win6","pos":7,"vpos":8}',
-                '0," "': 'printChar:32,0,0,1,0,false -- {"_key":"win0","pos":1}',
+                '0," "': 'printChar:32,0,0,1,0,false , txtPrintChar:32,0,0,1,0,false -- {"_key":"win0","pos":1}',
                 "": 'CpcVm: Type mismatch in 0: PRINT undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 '""': 'CpcVm: Type mismatch in 0: PRINT  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 "-1 ": 'CpcVm: Improper argument in 0: PRINT -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
@@ -2046,7 +2010,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 "-17.5": "undefined",
                 "0x89656c07": "undefined",
                 "0 ": "undefined",
-                "": 'printChar:82,0,0,1,0,false , printChar:97,1,0,1,0,false , printChar:110,2,0,1,0,false , printChar:100,3,0,1,0,false , printChar:111,4,0,1,0,false , printChar:109,5,0,1,0,false , printChar:32,6,0,1,0,false , printChar:110,7,0,1,0,false , printChar:117,8,0,1,0,false , printChar:109,9,0,1,0,false , printChar:98,10,0,1,0,false , printChar:101,11,0,1,0,false , printChar:114,12,0,1,0,false , printChar:32,13,0,1,0,false , printChar:115,14,0,1,0,false , printChar:101,15,0,1,0,false , printChar:101,16,0,1,0,false , printChar:100,17,0,1,0,false , printChar:32,18,0,1,0,false , printChar:63,19,0,1,0,false , printChar:32,20,0,1,0,false -- 12.76 -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"randomize","stream":0,"message":"Random number seed ? ","input":"12.76","line":0}} -- {"_key":"win0","pos":21}',
+                "": 'printChar:82,0,0,1,0,false , txtPrintChar:82,0,0,1,0,false , printChar:97,1,0,1,0,false , txtPrintChar:97,1,0,1,0,false , printChar:110,2,0,1,0,false , txtPrintChar:110,2,0,1,0,false , printChar:100,3,0,1,0,false , txtPrintChar:100,3,0,1,0,false , printChar:111,4,0,1,0,false , txtPrintChar:111,4,0,1,0,false , printChar:109,5,0,1,0,false , txtPrintChar:109,5,0,1,0,false , printChar:32,6,0,1,0,false , txtPrintChar:32,6,0,1,0,false , printChar:110,7,0,1,0,false , txtPrintChar:110,7,0,1,0,false , printChar:117,8,0,1,0,false , txtPrintChar:117,8,0,1,0,false , printChar:109,9,0,1,0,false , txtPrintChar:109,9,0,1,0,false , printChar:98,10,0,1,0,false , txtPrintChar:98,10,0,1,0,false , printChar:101,11,0,1,0,false , txtPrintChar:101,11,0,1,0,false , printChar:114,12,0,1,0,false , txtPrintChar:114,12,0,1,0,false , printChar:32,13,0,1,0,false , txtPrintChar:32,13,0,1,0,false , printChar:115,14,0,1,0,false , txtPrintChar:115,14,0,1,0,false , printChar:101,15,0,1,0,false , txtPrintChar:101,15,0,1,0,false , printChar:101,16,0,1,0,false , txtPrintChar:101,16,0,1,0,false , printChar:100,17,0,1,0,false , txtPrintChar:100,17,0,1,0,false , printChar:32,18,0,1,0,false , txtPrintChar:32,18,0,1,0,false , printChar:63,19,0,1,0,false , txtPrintChar:63,19,0,1,0,false , printChar:32,20,0,1,0,false , txtPrintChar:32,20,0,1,0,false -- 12.76 -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"randomize","stream":0,"message":"Random number seed ? ","input":"12.76","line":0}} -- {"_key":"win0","pos":21}',
                 '""': 'CpcVm: Type mismatch in 0: RANDOMIZE  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
             },
             read: {
@@ -2330,12 +2294,12 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 "254,1,2,3,4,5": "resetCustomChars: , setCustomChar:254,1,2,3,4,5",
                 "254,1,2,3,4,5,6": "resetCustomChars: , setCustomChar:254,1,2,3,4,5,6",
                 "254,1,2,3,4,5,6,7": "resetCustomChars: , setCustomChar:254,1,2,3,4,5,6,7",
-                "254 ": "resetCustomChars: , setCustomChar:254,",
+                "254 ": "resetCustomChars: , setCustomChar:254",
                 "254,1.4,2.3,3.4,4.2,5.0,6.3,7.3,7.5": "resetCustomChars: , setCustomChar:254,1,2,3,4,5,6,7,8",
                 "254,0,0,0,0,0,0,0,0": "resetCustomChars: , setCustomChar:254,0,0,0,0,0,0,0,0",
                 "255,255,255,255,255,255,255,255,255": "resetCustomChars: , setCustomChar:255,255,255,255,255,255,255,255,255",
                 "0 ": 'resetCustomChars: -- CpcVm: Improper argument in 0: SYMBOL 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-                "255 ": "resetCustomChars: , setCustomChar:255,",
+                "255 ": "resetCustomChars: , setCustomChar:255",
                 "": 'resetCustomChars: -- CpcVm: Type mismatch in 0: SYMBOL undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 '""': 'resetCustomChars: -- CpcVm: Type mismatch in 0: SYMBOL  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 "-1 ": 'resetCustomChars: -- CpcVm: Improper argument in 0: SYMBOL -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
@@ -2459,7 +2423,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 '""': "",
                 '"a"': "A",
                 '"abcdefghkklmnopqrstuvwxyz"': "ABCDEFGHKKLMNOPQRSTUVWXYZ",
-                '" !"#$%&\'()*+ -./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff"': " !\"#$%&'()*+ -./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`ABCDEFGHIJKLMNOPQRSTUVWXYZ{|}~\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff",
+                '" !#$%&\'()*+ -./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff"': " !#$%&'()*+ -./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`ABCDEFGHIJKLMNOPQRSTUVWXYZ{|}~\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff",
                 "": 'CpcVm: Type mismatch in 0: UPPER$ undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 "0 ": 'CpcVm: Type mismatch in 0: UPPER$ 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
             },
@@ -2469,6 +2433,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 '"##.##",1.005': " 1.01",
                 '"##.##",8.575': " 8.58",
                 '"#.##",15.355': "%15.36",
+                '"[#,###,###]",1234567,123,12345678': "[1,234,567][      123][%12,345,678]",
                 '"\\   \\","n1","n2"," xx3"': "n1   n2    xx3 ",
                 '"!","a1","b2"': "ab",
                 '"&","a1","b2"': "a1b2",
@@ -2554,13 +2519,13 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             },
             write: {
                 "0 ": '{"_key":"win0","vpos":1}',
-                "0,6": 'printChar:54,0,0,1,0,false -- {"_key":"win0","vpos":1}',
-                "0,6.234": 'printChar:54,0,0,1,0,false , printChar:46,1,0,1,0,false , printChar:50,2,0,1,0,false , printChar:51,3,0,1,0,false , printChar:52,4,0,1,0,false -- {"_key":"win0","vpos":1}',
-                '0,""': 'printChar:34,0,0,1,0,false , printChar:34,1,0,1,0,false -- {"_key":"win0","vpos":1}',
-                '0,"ab"': 'printChar:34,0,0,1,0,false , printChar:97,1,0,1,0,false , printChar:98,2,0,1,0,false , printChar:34,3,0,1,0,false -- {"_key":"win0","vpos":1}',
-                '0,"a","b"': 'printChar:34,0,0,1,0,false , printChar:97,1,0,1,0,false , printChar:34,2,0,1,0,false , printChar:44,3,0,1,0,false , printChar:34,4,0,1,0,false , printChar:98,5,0,1,0,false , printChar:34,6,0,1,0,false -- {"_key":"win0","vpos":1}',
-                "0,999999999": 'printChar:57,0,0,1,0,false , printChar:57,1,0,1,0,false , printChar:57,2,0,1,0,false , printChar:57,3,0,1,0,false , printChar:57,4,0,1,0,false , printChar:57,5,0,1,0,false , printChar:57,6,0,1,0,false , printChar:57,7,0,1,0,false , printChar:57,8,0,1,0,false -- {"_key":"win0","vpos":1}',
-                "0,1e9": 'printChar:49,0,0,1,0,false , printChar:69,1,0,1,0,false , printChar:43,2,0,1,0,false , printChar:48,3,0,1,0,false , printChar:57,4,0,1,0,false -- {"_key":"win0","vpos":1}',
+                "0,6": 'printChar:54,0,0,1,0,false , txtPrintChar:54,0,0,1,0,false -- {"_key":"win0","vpos":1}',
+                "0,6.234": 'printChar:54,0,0,1,0,false , txtPrintChar:54,0,0,1,0,false , printChar:46,1,0,1,0,false , txtPrintChar:46,1,0,1,0,false , printChar:50,2,0,1,0,false , txtPrintChar:50,2,0,1,0,false , printChar:51,3,0,1,0,false , txtPrintChar:51,3,0,1,0,false , printChar:52,4,0,1,0,false , txtPrintChar:52,4,0,1,0,false -- {"_key":"win0","vpos":1}',
+                '0,""': 'printChar:34,0,0,1,0,false , txtPrintChar:34,0,0,1,0,false , printChar:34,1,0,1,0,false , txtPrintChar:34,1,0,1,0,false -- {"_key":"win0","vpos":1}',
+                '0,"ab"': 'printChar:34,0,0,1,0,false , txtPrintChar:34,0,0,1,0,false , printChar:97,1,0,1,0,false , txtPrintChar:97,1,0,1,0,false , printChar:98,2,0,1,0,false , txtPrintChar:98,2,0,1,0,false , printChar:34,3,0,1,0,false , txtPrintChar:34,3,0,1,0,false -- {"_key":"win0","vpos":1}',
+                '0,"a","b"': 'printChar:34,0,0,1,0,false , txtPrintChar:34,0,0,1,0,false , printChar:97,1,0,1,0,false , txtPrintChar:97,1,0,1,0,false , printChar:34,2,0,1,0,false , txtPrintChar:34,2,0,1,0,false , printChar:44,3,0,1,0,false , txtPrintChar:44,3,0,1,0,false , printChar:34,4,0,1,0,false , txtPrintChar:34,4,0,1,0,false , printChar:98,5,0,1,0,false , txtPrintChar:98,5,0,1,0,false , printChar:34,6,0,1,0,false , txtPrintChar:34,6,0,1,0,false -- {"_key":"win0","vpos":1}',
+                "0,999999999": 'printChar:57,0,0,1,0,false , txtPrintChar:57,0,0,1,0,false , printChar:57,1,0,1,0,false , txtPrintChar:57,1,0,1,0,false , printChar:57,2,0,1,0,false , txtPrintChar:57,2,0,1,0,false , printChar:57,3,0,1,0,false , txtPrintChar:57,3,0,1,0,false , printChar:57,4,0,1,0,false , txtPrintChar:57,4,0,1,0,false , printChar:57,5,0,1,0,false , txtPrintChar:57,5,0,1,0,false , printChar:57,6,0,1,0,false , txtPrintChar:57,6,0,1,0,false , printChar:57,7,0,1,0,false , txtPrintChar:57,7,0,1,0,false , printChar:57,8,0,1,0,false , txtPrintChar:57,8,0,1,0,false -- {"_key":"win0","vpos":1}',
+                "0,1e9": 'printChar:49,0,0,1,0,false , txtPrintChar:49,0,0,1,0,false , printChar:69,1,0,1,0,false , txtPrintChar:69,1,0,1,0,false , printChar:43,2,0,1,0,false , txtPrintChar:43,2,0,1,0,false , printChar:48,3,0,1,0,false , txtPrintChar:48,3,0,1,0,false , printChar:57,4,0,1,0,false , txtPrintChar:57,4,0,1,0,false -- {"_key":"win0","vpos":1}',
                 "7 ": '{"_key":"win7","vpos":1}',
                 "8 ": "",
                 "9 ": 'CpcVm: File not open in 0: WRITE #9 -- {"_key":"stop","reason":"error","priority":50,"paras":{}} -- {"_key":"outFile","open":false,"command":"","name":"","line":0,"start":0,"fileData":[],"stream":9,"typeString":"","length":0,"entry":0}',
@@ -2604,10 +2569,10 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 "": "updateSpeedInk: , scheduler: -- true"
             },
             vmReset: {
-                "": 'resetCustomChars: , setMode:1 , clearFullWindow: , reset: , reset: , reset: -- {"_key":"outFile","open":false,"command":"","name":"","line":0,"fileData":[],"stream":0,"typeString":"","length":0,"entry":0} -- {"_key":"timer0","line":0,"repeat":false,"intervalMs":0,"active":false,"handlerRunning":false,"stackIndexReturn":0,"savedPriority":0} -- {"_key":"timer1","line":0,"repeat":false,"intervalMs":0,"active":false,"handlerRunning":false,"stackIndexReturn":0,"savedPriority":0} -- {"_key":"timer2","line":0,"repeat":false,"intervalMs":0,"active":false,"handlerRunning":false,"stackIndexReturn":0,"savedPriority":0} -- {"_key":"timer3","line":0,"repeat":false,"intervalMs":0,"active":false,"handlerRunning":false,"stackIndexReturn":0,"savedPriority":0}'
+                "": 'resetCustomChars: , setMode:1 , clearFullWindow: , txtClearFullWindow: , reset: , txtReset: , reset: , reset: -- {"_key":"outFile","open":false,"command":"","name":"","line":0,"fileData":[],"stream":0,"typeString":"","length":0,"entry":0} -- {"_key":"timer0","line":0,"repeat":false,"intervalMs":0,"active":false,"handlerRunning":false,"stackIndexReturn":0,"savedPriority":0} -- {"_key":"timer1","line":0,"repeat":false,"intervalMs":0,"active":false,"handlerRunning":false,"stackIndexReturn":0,"savedPriority":0} -- {"_key":"timer2","line":0,"repeat":false,"intervalMs":0,"active":false,"handlerRunning":false,"stackIndexReturn":0,"savedPriority":0} -- {"_key":"timer3","line":0,"repeat":false,"intervalMs":0,"active":false,"handlerRunning":false,"stackIndexReturn":0,"savedPriority":0}'
             },
             vmTrace: {
-                "12 ": 'printChar:91,0,0,1,0,false , printChar:49,1,0,1,0,false , printChar:50,2,0,1,0,false , printChar:93,3,0,1,0,false -- {"_key":"win0","pos":4}'
+                "12 ": 'printChar:91,0,0,1,0,false , txtPrintChar:91,0,0,1,0,false , printChar:49,1,0,1,0,false , txtPrintChar:49,1,0,1,0,false , printChar:50,2,0,1,0,false , txtPrintChar:50,2,0,1,0,false , printChar:93,3,0,1,0,false , txtPrintChar:93,3,0,1,0,false -- {"_key":"win0","pos":4}'
             }
         };
         function deleteObjectContents(obj) {
@@ -3274,7 +3239,9 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             },
             time: function (cpcVm, input) {
                 var time = cpcVm.time.apply(cpcVm, input);
-                time = 3;
+                if (time) { // we need a fixed value
+                    time = 3;
+                }
                 return String(time);
             },
             troff: function (cpcVm, input) {
@@ -3344,20 +3311,26 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 cpcVm.troff();
             }
         };
-        function adaptParameters(a) {
-            var b = [];
-            for (var i = 0; i < a.length; i += 1) {
-                if (a[i].startsWith('"') && a[i].endsWith('"')) { // string in quotes?
-                    b.push(a[i].substr(1, a[i].length - 2)); // remove quotes
+        function adaptParameters(input) {
+            var args = [], parts = input.split(/,?("[^"]*"),?/);
+            for (var p = 0; p < parts.length; p += 1) {
+                var part = parts[p];
+                if (part.startsWith('"')) { // string in quotes?
+                    args.push(part.substring(1, 1 + part.length - 2)); // remove quotes
                 }
-                else if (a[i] !== "") { // non empty string => to number
-                    b.push(Number(a[i]));
-                }
-                else {
-                    b.push(undefined);
+                else if (part !== "") {
+                    var a = part.split(",");
+                    for (var i = 0; i < a.length; i += 1) {
+                        if (a[i] !== "") { // non empty string => to number
+                            args.push(Number(a[i]));
+                        }
+                        else {
+                            args.push(undefined);
+                        }
+                    }
                 }
             }
-            return b;
+            return args;
         }
         function getVmState(cpcVm) {
             var vmState = {
@@ -3382,7 +3355,23 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             }
             return vmState;
         }
-        function combineResult(result, vmState0, vmState1) {
+        function getStateDiff(vmState0, vmState1) {
+            if (typeof vmState0 === "object" && typeof vmState1 === "object") {
+                var stateObj0 = vmState0, stateObj1 = vmState1;
+                for (var key in stateObj1) {
+                    if (stateObj1.hasOwnProperty(key)) {
+                        if (key !== "_key" && stateObj1[key] === stateObj0[key]) {
+                            // same values set to undefined (will be ignored by JSON.stringify)
+                            stateObj0[key] = undefined;
+                            stateObj1[key] = undefined;
+                        }
+                    }
+                }
+            }
+            var vmState0AsString = typeof vmState0 !== "string" ? JSON.stringify(vmState0) : vmState0, vmState1AsString = typeof vmState1 !== "string" ? JSON.stringify(vmState1) : vmState1;
+            return vmState0AsString !== vmState1AsString ? vmState1AsString : undefined;
+        }
+        function combineResult(vmState0, vmState1, result) {
             var combinedTestFunctions = combineLastTestFunctions(), combinedResult = [];
             if (combinedTestFunctions !== undefined) {
                 combinedResult.push(combinedTestFunctions);
@@ -3392,27 +3381,39 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             }
             for (var state in vmState0) {
                 if (vmState0.hasOwnProperty(state)) {
-                    if (typeof vmState0[state] === "object" && typeof vmState1[state] === "object") {
-                        var stateObj0 = vmState0[state], stateObj1 = vmState1[state]; // as Record<string, string>;
-                        for (var key in stateObj1) {
-                            /* eslint-disable max-depth */
-                            if (stateObj1.hasOwnProperty(key)) {
-                                if (key !== "_key" && stateObj1[key] === stateObj0[key]) {
-                                    stateObj0[key] = undefined; // same value
-                                    stateObj1[key] = undefined; // same value
-                                }
-                            }
-                            /* eslint-enable max-depth */
-                        }
-                        vmState0[state] = JSON.stringify(stateObj0);
-                        vmState1[state] = JSON.stringify(stateObj1);
-                    }
-                    if (vmState0[state] !== vmState1[state]) {
-                        combinedResult.push(vmState1[state]);
+                    var stateDiff = getStateDiff(vmState0[state], vmState1[state]);
+                    if (stateDiff !== undefined) {
+                        combinedResult.push(stateDiff);
                     }
                 }
             }
             return combinedResult.join(" -- ");
+        }
+        function runSingleTest(testFunction, cpcVm, config, key, expected, category) {
+            cpcVm.vmChangeMode(1);
+            cpcVm.vmResetWindowData(true); // prepare
+            cpcVm.closein();
+            cpcVm.closeout();
+            cpcVm.vmGotoLine(0);
+            config.variables.removeAllVariables();
+            clearLastTestFunctions();
+            cpcVm.vmStop("", 0, true);
+            var vmState0 = getVmState(cpcVm), input = key === "" ? [] : adaptParameters(key);
+            var result;
+            try {
+                if (!testFunction) {
+                    throw new Error("Undefined testFunction: " + category);
+                }
+                var result0 = testFunction(cpcVm, input);
+                result = combineResult(vmState0, getVmState(cpcVm), result0);
+            }
+            catch (e) {
+                result = combineResult(vmState0, getVmState(cpcVm), String(e));
+                if (result !== expected) {
+                    Utils_1.Utils.console.error(e); // only if not expected
+                }
+            }
+            return result;
         }
         function runTestsFor(category, tests, assert, results) {
             var config = {
@@ -3425,30 +3426,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             }, cpcVm = new CpcVm_1.CpcVm(config), testFunction = allTestFunctions[category];
             for (var key in tests) {
                 if (tests.hasOwnProperty(key)) {
-                    cpcVm.vmChangeMode(1);
-                    cpcVm.vmResetWindowData(true); // prepare
-                    cpcVm.closein();
-                    cpcVm.closeout();
-                    cpcVm.vmGotoLine(0);
-                    config.variables.removeAllVariables();
-                    clearLastTestFunctions();
-                    cpcVm.vmStop("", 0, true);
-                    var vmState0 = getVmState(cpcVm), input = key === "" ? [] : adaptParameters(key.split(",")), expected = tests[key];
-                    var result = void 0;
-                    try {
-                        if (!testFunction) {
-                            throw new Error("Undefined testFunction: " + category);
-                        }
-                        result = testFunction(cpcVm, input);
-                        result = combineResult(result, vmState0, getVmState(cpcVm));
-                    }
-                    catch (e) {
-                        result = String(e);
-                        result = combineResult(result, vmState0, getVmState(cpcVm));
-                        if (result !== expected) {
-                            Utils_1.Utils.console.error(e); // only if not expected
-                        }
-                    }
+                    var expected = tests[key], result = runSingleTest(testFunction, cpcVm, config, key, expected, category);
                     if (results) {
                         results.push(TestHelper_1.TestHelper.stringInQuotes(key) + ": " + TestHelper_1.TestHelper.stringInQuotes(result));
                     }
@@ -3460,32 +3438,6 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
         }
         TestHelper_1.TestHelper.generateAndRunAllTests(allTests, runTestsFor);
     });
-    /*
-    QUnit.module("CpcVm: combination", function (hooks) {
-        const that = { // eslint-disable-line consistent-this
-            cpcVm: {} as CpcVm
-        };
-    
-        hooks.beforeEach(function () {
-            const config: CpcVmOptions = {
-                canvas: mockCanvas,
-                textCanvas: mockTextCanvas,
-                keyboard: mockKeyboard,
-                sound: mockSound,
-                variables: mockVariables,
-                quiet: true
-            };
-    
-            that.cpcVm = new CpcVm(config);
-        });
-    
-        QUnit.test("dim and erase", function (assert) {
-            const cpcVm = that.cpcVm;
-    
-            cpcVm.dim(""); //TODO
-        });
-    });
-    */
     QUnit.module("CpcVm: vm functions", function (hooks) {
         var that = {}; // eslint-disable-line consistent-this
         hooks.beforeEach(function () {
@@ -3522,17 +3474,6 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             cpcVm.vmReset();
             assert.ok(cpcVm, "defined");
         });
-        /*
-        QUnit.test("vmTrace", function (assert) {
-            const cpcVm = that.cpcVm;
-    
-            cpcVm.vmGotoLine(123);
-            cpcVm.tron();
-    
-            assert.ok(cpcVm.vmTrace(10), "defined");
-        });
-        */
     });
 });
-// end
 //# sourceMappingURL=CpcVm.qunit.js.map

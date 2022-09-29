@@ -3,7 +3,7 @@
 
 import { Utils } from "../Utils";
 import { BasicLexer } from "../BasicLexer"; // we use BasicLexer here just for convenient input
-import { BasicParser, ParserNode } from "../BasicParser";
+import { BasicParser } from "../BasicParser";
 import { TestHelper, TestsType, AllTestsType } from "./TestHelper";
 
 QUnit.dump.maxDepth = 10;
@@ -728,8 +728,27 @@ QUnit.module("BasicParser: Tests", function () {
 		}
 	};
 
-	function fnReplacer(bin: string) {
-		return "0x" + parseInt(bin.substr(2), 2).toString(16).toLowerCase();
+	function runSingleTest(basicLexer: BasicLexer, basicParser: BasicParser, key: string, expectedEntry: any) {
+		let result: string;
+
+		try {
+			const tokens = basicLexer.lex(key),
+				parseTree = basicParser.parse(tokens);
+
+			result = JSON.stringify(parseTree);
+		} catch (e) {
+			if ((e as Error).message !== expectedEntry.message) {
+				Utils.console.error(e); // only if unexpected
+			}
+			// on IE we have additional properties description, number, stack in the object, so we use a positive list...
+			// eslint-disable-next-line object-property-newline, object-curly-newline
+			const copiedError = (({ len, line, message, name, pos, shortMessage, value }) => ({ len, line, message, name, pos, shortMessage, value }))(e);
+			// (https://stackoverflow.com/questions/17781472/how-to-get-a-subset-of-a-javascript-objects-properties)
+
+			result = JSON.stringify(copiedError);
+		}
+
+		return result;
 	}
 
 	function runTestsFor(_category: string, tests: TestsType, assert?: Assert, results?: string[]) {
@@ -742,46 +761,26 @@ QUnit.module("BasicParser: Tests", function () {
 
 		for (const key in tests) {
 			if (tests.hasOwnProperty(key)) {
-				let expectedString = tests[key],
-					expectedEntry,
-					parseTree: ParserNode[],
-					result: string;
-
-				if (!Utils.supportsBinaryLiterals) {
-					expectedString = expectedString.replace(/(0b[01]+)/g, fnReplacer); // for old IE
-				}
+				const expected = TestHelper.handleBinaryLiterals(tests[key]);
+				let expectedEntry;
 
 				try {
-					try {
-						expectedEntry = JSON.parse(expectedString); // test: { e: expected }
-					} catch (e) {
-						Utils.console.error(e);
-						expectedEntry = {}; // continue
-					}
-					const tokens = basicLexer.lex(key);
-
-					parseTree = basicParser.parse(tokens);
-					result = JSON.stringify(parseTree);
+					expectedEntry = JSON.parse(expected); // test: { e: expected }
 				} catch (e) {
-					if ((e as Error).message !== expectedEntry.message) {
-						Utils.console.error(e); // only if unexpected
-					}
-					// on IE we have additional properties description, number, stack in the object, so we use a positive list...
-					// eslint-disable-next-line object-property-newline, object-curly-newline
-					const copiedError = (({ len, line, message, name, pos, shortMessage, value }) => ({ len, line, message, name, pos, shortMessage, value }))(e);
-					// (https://stackoverflow.com/questions/17781472/how-to-get-a-subset-of-a-javascript-objects-properties)
-
-					result = JSON.stringify(copiedError);
-					parseTree = JSON.parse(result); // get error without Error object
+					Utils.console.error(e);
+					expectedEntry = {}; // continue
 				}
+
+				const result = runSingleTest(basicLexer, basicParser, key, expectedEntry);
 
 				if (results) {
 					results.push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
 				}
 
 				if (assert) {
+					const parseTree = JSON.parse(result);
+
 					assert.deepEqual(parseTree, expectedEntry, key);
-					// or: json = JSON.stringify(parseTree); //assert.strictEqual(json, expected);
 				}
 			}
 		}
@@ -789,5 +788,3 @@ QUnit.module("BasicParser: Tests", function () {
 
 	TestHelper.generateAndRunAllTests(allTests, runTestsFor);
 });
-
-// end

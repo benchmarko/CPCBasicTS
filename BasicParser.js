@@ -337,7 +337,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     if (type === "#0?") { // optional stream?
                         if (this.token.type !== "#") { // no stream?
                             suppressAdvance = true;
-                            type = ","; // needMore = true;
+                            type = ",";
                         }
                         expression = this.fnGetOptionalStream();
                     }
@@ -375,7 +375,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     }
                     break;
                 case "n": // number"
-                    if (type.substr(0, 2) === "n0" && this.token.type === separator) { // n0 or n0?: if parameter not specified, insert default value null?
+                    if (type.substring(0, 2) === "n0" && this.token.type === separator) { // n0 or n0?: if parameter not specified, insert default value null?
                         expression = BasicParser.fnCreateDummyArg("null");
                     }
                     else {
@@ -926,25 +926,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var node = this.previousToken, closeTokens = BasicParser.closeTokensForArgs, stream = this.fnGetOptionalStream();
             node.args = [];
             node.args.push(stream);
-            /*
-            let commaAfterStream = false;
-    
-            if (stream.len !== 0) { // not an inserted stream?
-                commaAfterStream = true;
-            }
-            */
             if (stream.len !== 0) { // not an inserted stream?
                 if (!closeTokens[this.token.type]) {
                     this.advance(",");
                 }
             }
             while (!closeTokens[this.token.type]) {
-                /*
-                if (commaAfterStream) {
-                    this.advance(",");
-                    commaAfterStream = false;
-                }
-                */
                 var node2 = void 0;
                 if (this.token.type === "spc" || this.token.type === "tab") {
                     this.advance(this.token.type);

@@ -723,8 +723,26 @@ define(["require", "exports", "../Utils", "../BasicLexer", "./TestHelper"], func
         }
     };
     QUnit.module("BasicLexer: Tests", function () {
-        function fnReplacer(bin) {
-            return "0x" + parseInt(bin.substr(2), 2).toString(16).toLowerCase();
+        function runSingleTest(basicLexer, key, expectedEntry) {
+            var result, tokens;
+            try {
+                tokens = basicLexer.lex(key);
+                result = JSON.stringify(tokens);
+            }
+            catch (e) {
+                if (e.message !== expectedEntry.message) {
+                    Utils_1.Utils.console.error(e); // only if unexpected
+                }
+                // on IE we have additional properties description, number, stack in the object, so we use a positive list...
+                // eslint-disable-next-line object-property-newline, object-curly-newline
+                var copiedError = (function (_a) {
+                    var len = _a.len, line = _a.line, message = _a.message, name = _a.name, pos = _a.pos, shortMessage = _a.shortMessage, value = _a.value;
+                    return ({ len: len, line: line, message: message, name: name, pos: pos, shortMessage: shortMessage, value: value });
+                })(e);
+                // (https://stackoverflow.com/questions/17781472/how-to-get-a-subset-of-a-javascript-objects-properties)
+                result = JSON.stringify(copiedError);
+            }
+            return result;
         }
         function runTestsFor(_category, tests, assert, results) {
             var basicLexer = new BasicLexer_1.BasicLexer({
@@ -732,44 +750,21 @@ define(["require", "exports", "../Utils", "../BasicLexer", "./TestHelper"], func
             });
             for (var key in tests) {
                 if (tests.hasOwnProperty(key)) {
-                    var expectedString = tests[key], expectedEntry = void 0, tokens = void 0, result = void 0;
-                    if (!Utils_1.Utils.supportsBinaryLiterals) {
-                        expectedString = expectedString.replace(/(0b[01]+)/g, fnReplacer); // for old IE
-                    }
+                    var expected = TestHelper_1.TestHelper.handleBinaryLiterals(tests[key]);
+                    var expectedEntry = void 0;
                     try {
-                        try {
-                            expectedEntry = JSON.parse(expectedString); // test: { e: expected }
-                        }
-                        catch (e) {
-                            Utils_1.Utils.console.error(e);
-                            expectedEntry = {}; // continue
-                        }
-                        tokens = basicLexer.lex(key);
-                        result = JSON.stringify(tokens);
+                        expectedEntry = JSON.parse(expected); // test: { e: expected }
                     }
                     catch (e) {
-                        /*
-                        Utils.console.error(e);
-                        result = String(e);
-                        tokens = result as any; // force to take it
-                        */
-                        if (e.message !== expectedEntry.message) {
-                            Utils_1.Utils.console.error(e); // only if unexpected
-                        }
-                        // on IE we have additional properties description, number, stack in the object, so we use a positive list...
-                        // eslint-disable-next-line object-property-newline, object-curly-newline
-                        var copiedError = (function (_a) {
-                            var len = _a.len, line = _a.line, message = _a.message, name = _a.name, pos = _a.pos, shortMessage = _a.shortMessage, value = _a.value;
-                            return ({ len: len, line: line, message: message, name: name, pos: pos, shortMessage: shortMessage, value: value });
-                        })(e);
-                        // (https://stackoverflow.com/questions/17781472/how-to-get-a-subset-of-a-javascript-objects-properties)
-                        result = JSON.stringify(copiedError);
-                        tokens = JSON.parse(result); // get error without Error object
+                        Utils_1.Utils.console.error(e);
+                        expectedEntry = {}; // continue
                     }
+                    var result = runSingleTest(basicLexer, key, expectedEntry);
                     if (results) {
                         results.push(TestHelper_1.TestHelper.stringInQuotes(key) + ": " + TestHelper_1.TestHelper.stringInQuotes(result));
                     }
                     if (assert) {
+                        var tokens = JSON.parse(result);
                         assert.deepEqual(tokens, expectedEntry, key);
                     }
                 }
@@ -799,51 +794,39 @@ define(["require", "exports", "../Utils", "../BasicLexer", "./TestHelper"], func
             }
             return result;
         }
-        function runTestsFor(_category, tests, assert, results) {
+        function runSingleTestForWhitespace(basicLexer, key, expected) {
+            var result, expectedEntry;
+            try {
+                expectedEntry = JSON.parse(expected); // test: { e: expected }
+            }
+            catch (e) {
+                Utils_1.Utils.console.error(e);
+                expectedEntry = {}; // continue
+            }
+            try {
+                var tokens = basicLexer.lex(key);
+                result = fnCombineTokens(tokens);
+            }
+            catch (e) {
+                if (e.message.replace(/\d+/g, "") !== expectedEntry.message.replace(/\d+/g, "")) { // compare without positions
+                    Utils_1.Utils.console.error(e); // only if unexpected
+                    result = String(e);
+                }
+                else {
+                    result = key; // set desired result
+                }
+            }
+            return result;
+        }
+        function runTestsForWhitespace(_category, tests, assert, results) {
             var basicLexer = new BasicLexer_1.BasicLexer({
                 quiet: true,
                 keepWhiteSpace: true
             });
             for (var key in tests) {
                 if (tests.hasOwnProperty(key)) {
-                    var //tokens: LexerToken[],
-                    expectedEntry = void 0, result = void 0;
-                    var key2 = key.replace(/([=?+\-*/^\\,;()])/g, "  $1   "); // make it a bit harder
-                    try {
-                        expectedEntry = JSON.parse(tests[key]); // test: { e: expected }
-                    }
-                    catch (e) {
-                        Utils_1.Utils.console.error(e);
-                        expectedEntry = {}; // continue
-                    }
-                    try {
-                        var tokens = basicLexer.lex(key2);
-                        result = fnCombineTokens(tokens);
-                    }
-                    catch (e) {
-                        /*
-                        Utils.console.error(e);
-                        //tokens = String(e) as any; // force to take it
-                        tokens = [];
-                        */
-                        if (e.message.replace(/\d+/g, "") !== expectedEntry.message.replace(/\d+/g, "")) { // compare without positions
-                            Utils_1.Utils.console.error(e); // only if unexpected
-                            result = String(e);
-                        }
-                        else {
-                            result = key2; // set desired result
-                        }
-                        /*
-                        // on IE we have additional properties description, number, stack in the object, so we use a positive list...
-                        // eslint-disable-next-line object-property-newline, object-curly-newline
-                        const copiedError = (({ len, line, message, name, pos, shortMessage, value }) => ({ len, line, message, name, pos, shortMessage, value }))(e);
-                        // (https://stackoverflow.com/questions/17781472/how-to-get-a-subset-of-a-javascript-objects-properties)
-    
-                        result = JSON.stringify(copiedError);
-                        //tokens = JSON.parse(result); // get error without Error object
-                        */
-                    }
-                    //const tokenString = fnCombineTokens(tokens);
+                    var expected = tests[key], key2 = key.replace(/([=?+\-*^/\\,;()])/g, "  $1   "), // make it a bit harder
+                    result = runSingleTestForWhitespace(basicLexer, key2, expected);
                     if (results) {
                         //
                     }
@@ -853,14 +836,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "./TestHelper"], func
                 }
             }
         }
-        /*
-        const keepWhiteSpaceTests = {
-            keepWhiteSpace: allTests.keepSpaces
-        };
-    
-        TestHelper.generateAndRunAllTests(keepWhiteSpaceTests, runTestsFor);
-        */
-        TestHelper_1.TestHelper.generateAndRunAllTests(allTests, runTestsFor);
+        TestHelper_1.TestHelper.generateAndRunAllTests(allTests, runTestsForWhitespace);
     });
     QUnit.module("BasicLexer: lexer specific tests", function ( /* hooks */) {
         QUnit.test("Error: Unrechognized token", function (assert) {
