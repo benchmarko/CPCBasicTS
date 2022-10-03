@@ -140,9 +140,11 @@ export declare class CodeGeneratorJs {
     private "while";
     private readonly parseFunctions;
     private fnParseOther;
+    private parseOperator;
     private parseNode;
     private static fnCommentUnusedCases;
-    private fnCreateLabelsMap;
+    private fnCheckLabel;
+    private fnCreateLabelMap;
     private removeAllDefVarTypes;
     private fnSetDefVarTypeRange;
     private fnPrecheckDefintDefstr;

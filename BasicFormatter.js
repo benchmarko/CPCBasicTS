@@ -20,31 +20,35 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         BasicFormatter.fnIsDirect = function (label) {
             return label === "";
         };
-        BasicFormatter.prototype.fnCreateLineNumbersMap = function (nodes) {
+        BasicFormatter.prototype.fnCreateLabelEntry = function (node, lastLine) {
+            var label = node.value, isDirect = BasicFormatter.fnIsDirect(label), line = Number(label);
+            this.line = label;
+            if (!isDirect) {
+                if (line <= lastLine) {
+                    throw this.composeError(Error(), "Expected increasing line number", label, node.pos, node.len);
+                }
+                if (line < 1 || line > 65535) {
+                    throw this.composeError(Error(), "Line number overflow", label, node.pos, node.len);
+                }
+            }
+            var labelEntry = {
+                value: label,
+                pos: node.pos,
+                len: (node.orig || label).length
+            };
+            return labelEntry;
+        };
+        BasicFormatter.prototype.fnCreateLabelMap = function (nodes) {
             var lines = {}; // line numbers
             var lastLine = -1;
             for (var i = 0; i < nodes.length; i += 1) {
                 var node = nodes[i];
                 if (node.type === "label") {
-                    var lineString = node.value, isDirect = BasicFormatter.fnIsDirect(lineString), line = Number(lineString);
-                    this.line = lineString;
-                    if (lineString in lines) {
-                        throw this.composeError(Error(), "Duplicate line number", lineString, node.pos, node.len);
+                    var labelEntry = this.fnCreateLabelEntry(node, lastLine);
+                    if (labelEntry) {
+                        lines[labelEntry.value] = labelEntry;
+                        lastLine = Number(labelEntry.value);
                     }
-                    if (!isDirect) {
-                        if (line <= lastLine) {
-                            throw this.composeError(Error(), "Line number not increasing", lineString, node.pos, node.len);
-                        }
-                        if (line < 1 || line > 65535) {
-                            throw this.composeError(Error(), "Line number overflow", lineString, node.pos, node.len);
-                        }
-                    }
-                    lines[lineString] = {
-                        value: lineString,
-                        pos: node.pos,
-                        len: (node.orig || lineString).length
-                    };
-                    lastLine = line;
                 }
             }
             return lines;
@@ -63,32 +67,34 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 }
             }
         };
-        BasicFormatter.prototype.fnAddReferences = function (nodes, lines, refs) {
-            for (var i = 0; i < nodes.length; i += 1) {
-                var node = nodes[i];
-                if (node.type === "label") {
-                    this.line = node.value;
+        BasicFormatter.prototype.fnAddReferencesForNode = function (node, lines, refs) {
+            if (node.type === "label") {
+                this.line = node.value;
+            }
+            else {
+                this.fnAddSingleReference(node, lines, refs);
+            }
+            if (node.left) {
+                this.fnAddSingleReference(node.left, lines, refs);
+            }
+            if (node.right) {
+                this.fnAddSingleReference(node.right, lines, refs);
+            }
+            if (node.args) {
+                if (node.type === "onErrorGoto" && node.args.length === 1 && node.args[0].value === "0") {
+                    // ignore "on error goto 0"
                 }
                 else {
-                    this.fnAddSingleReference(node, lines, refs);
+                    this.fnAddReferences(node.args, lines, refs); // recursive
                 }
-                if (node.left) {
-                    this.fnAddSingleReference(node.left, lines, refs);
-                }
-                if (node.right) {
-                    this.fnAddSingleReference(node.right, lines, refs);
-                }
-                if (node.args) {
-                    if (node.type === "onErrorGoto" && node.args.length === 1 && node.args[0].value === "0") {
-                        // ignore "on error goto 0"
-                    }
-                    else {
-                        this.fnAddReferences(node.args, lines, refs); // recursive
-                    }
-                }
-                if (node.args2) { // for "ELSE"
-                    this.fnAddReferences(node.args2, lines, refs); // recursive
-                }
+            }
+            if (node.args2) { // for "ELSE"
+                this.fnAddReferences(node.args2, lines, refs); // recursive
+            }
+        };
+        BasicFormatter.prototype.fnAddReferences = function (nodes, lines, refs) {
+            for (var i = 0; i < nodes.length; i += 1) {
+                this.fnAddReferencesForNode(nodes[i], lines, refs);
             }
         };
         BasicFormatter.prototype.fnRenumberLines = function (lines, refs, newLine, oldLine, step, keep) {
@@ -134,7 +140,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         BasicFormatter.prototype.fnRenumber = function (input, parseTree, newLine, oldLine, step, keep) {
             var refs = [], // references
-            lines = this.fnCreateLineNumbersMap(parseTree);
+            lines = this.fnCreateLabelMap(parseTree);
             this.fnAddReferences(parseTree, lines, refs); // create reference list
             var changes = this.fnRenumberLines(lines, refs, newLine, oldLine, step, keep), output = BasicFormatter.fnApplyChanges(input, changes);
             return output;

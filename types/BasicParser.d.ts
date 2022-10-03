@@ -38,6 +38,8 @@ export declare class BasicParser {
     private static readonly closeTokensForLineAndElse;
     private static readonly closeTokensForArgs;
     private composeError;
+    private fnLastStatementIsOnErrorGotoX;
+    private fnMaskedError;
     private getToken;
     private advance;
     private expression;
@@ -55,8 +57,6 @@ export declare class BasicParser {
     private static fnIsSingleLetterIdentifier;
     private fnGetLetterRange;
     private fnCheckRemainingTypes;
-    private fnLastStatemetIsOnErrorGotoX;
-    private fnMaskedExpressionError;
     private fnCheckStaticTypeNotNumber;
     private fnCheckStaticTypeNotString;
     private fnGetExpressionForType;

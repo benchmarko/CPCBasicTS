@@ -359,6 +359,31 @@ export class BasicParser {
 		return Utils.composeError("BasicParser", error, message, value, pos, len, this.label || undefined);
 	}
 
+	private fnLastStatementIsOnErrorGotoX() {
+		const statements = this.statementList;
+		let isOnErrorGoto = false;
+
+		for (let i = statements.length - 1; i >= 0; i -= 1) {
+			const lastStatement = statements[i];
+
+			if (lastStatement.type !== ":") { // ignore colons (separator when keepTokens=true)
+				if (lastStatement.type === "onErrorGoto" && lastStatement.args && Number(lastStatement.args[0].value) > 0) {
+					isOnErrorGoto = true;
+				}
+				break;
+			}
+		}
+		return isOnErrorGoto;
+	}
+
+	private fnMaskedError(node: ParserNode, message: string) {
+		if (!this.fnLastStatementIsOnErrorGotoX()) {
+			throw this.composeError(Error(), message, node.value, node.pos);
+		} else if (!this.quiet) {
+			Utils.console.warn(this.composeError({} as Error, message, node.value, node.pos).message);
+		}
+	}
+
 
 	// http://crockford.com/javascript/tdop/tdop.html (old: http://javascript.crockford.com/tdop/tdop.html)
 	// http://crockford.com/javascript/tdop/parse.js
@@ -371,12 +396,12 @@ export class BasicParser {
 		return this.token;
 	}
 
-	private advance(id: string) {
+	private advance(id?: string) {
 		let token = this.token;
 
 		this.previousToken = this.token;
-		if (token.type !== id) {
-			throw this.composeError(Error(), "Expected " + id, (token.value === "") ? token.type : token.value, token.pos);
+		if (id && id !== token.type) {
+			throw this.composeError(Error(), "Expected " + id, (token.value === "") ? token.type : token.value, token.pos); // we cannot mask this error because advance is very generic
 		}
 
 		token = this.tokens[this.index] as ParserNode; // we get a lex token and reuse it as parseTree token
@@ -413,7 +438,7 @@ export class BasicParser {
 			throw this.composeError(Error(), "Unexpected end of file", "", t.pos);
 		}
 
-		this.advance(t.type);
+		this.advance();
 		if (!s.nud) {
 			throw this.composeError(Error(), "Unexpected token", t.value, t.pos);
 		}
@@ -423,7 +448,7 @@ export class BasicParser {
 		t = this.token;
 		s = this.symbols[t.type];
 		while (rbp < (s.lbp || 0)) { // as long as the right binding power is less than the left binding power of the next token...
-			this.advance(t.type);
+			this.advance();
 			if (!s.led) {
 				throw this.composeError(Error(), "Unexpected token", t.type, t.pos);
 				// TODO: How to get this error?
@@ -437,7 +462,7 @@ export class BasicParser {
 
 	private fnCheckExpressionType(expression: ParserNode, expectedType: string, typeFirstChar: string) {
 		if (expression.type !== expectedType) {
-			throw this.composeError(Error(), "Expected " + BasicParser.parameterTypes[typeFirstChar], expression.value, expression.pos);
+			this.fnMaskedError(expression, "Expected " + BasicParser.parameterTypes[typeFirstChar]);
 		}
 	}
 
@@ -459,7 +484,7 @@ export class BasicParser {
 			s = this.symbols[t.type];
 
 		if (s.std) { // statement?
-			this.advance(t.type);
+			this.advance();
 			return s.std();
 		}
 
@@ -472,7 +497,7 @@ export class BasicParser {
 		}
 
 		if (value.type !== "assign" && value.type !== "fcall" && value.type !== "def" && value.type !== "(" && value.type !== "[") {
-			throw this.composeError(Error(), "Bad expression statement", t.value, t.pos);
+			this.fnMaskedError(t, "Bad expression statement");
 		}
 		return value;
 	}
@@ -507,7 +532,7 @@ export class BasicParser {
 			node = BasicParser.fnCreateDummyArg("label", "");
 			node.pos = this.token.pos;
 		} else {
-			this.advance("number");
+			this.advance();
 			node = this.previousToken; // number token
 			node.type = "label"; // number => label
 		}
@@ -515,7 +540,7 @@ export class BasicParser {
 		node.args = this.statements(BasicParser.closeTokensForLine);
 
 		if (this.token.type === "(eol)") {
-			this.advance("(eol)");
+			this.advance();
 		}
 		return node;
 	}
@@ -568,7 +593,7 @@ export class BasicParser {
 
 		if (this.token.type === "number") {
 			left = this.token;
-			this.advance("number");
+			this.advance();
 			this.fnChangeNumber2LineNumber(left);
 		}
 
@@ -576,7 +601,7 @@ export class BasicParser {
 
 		if (this.token.type === "-") {
 			range = this.token;
-			this.advance("-");
+			this.advance();
 		}
 
 		if (range) {
@@ -584,7 +609,7 @@ export class BasicParser {
 
 			if (this.token.type === "number") {
 				right = this.token;
-				this.advance("number");
+				this.advance();
 				this.fnChangeNumber2LineNumber(right);
 			}
 			// accept also "-" as full range
@@ -595,7 +620,7 @@ export class BasicParser {
 		} else if (left) {
 			range = left; // single line number
 		} else {
-			throw this.composeError(Error(), "Undefined range", this.token.value, this.token.pos);
+			throw this.composeError(Error(), "Programming error: Undefined range", this.token.value, this.token.pos);
 		}
 
 		return range;
@@ -616,7 +641,7 @@ export class BasicParser {
 			expression.left.type = "letter"; // change type: identifier -> letter
 			expression.right.type = "letter"; // change type: identifier -> letter
 		} else {
-			throw this.composeError(Error(), "Expected " + BasicParser.parameterTypes[typeFirstChar], expression.value, expression.pos);
+			this.fnMaskedError(expression, "Expected " + BasicParser.parameterTypes[typeFirstChar]);
 		}
 		return expression;
 	}
@@ -628,35 +653,21 @@ export class BasicParser {
 			if (!type.endsWith("?") && !type.endsWith("*")) { // mandatory?
 				const text = BasicParser.parameterTypes[type] || ("parameter " + type);
 
-				throw this.composeError(Error(), "Expected " + text + " for " + this.previousToken.type, this.token.value, this.token.pos);
+				this.fnMaskedError(this.token, "Expected " + text + " for " + this.previousToken.type);
 			}
 		}
 	}
 
-	private fnLastStatemetIsOnErrorGotoX() {
-		const statements = this.statementList;
-		let isOnErrorGoto = false;
-
-		for (let i = statements.length - 1; i >= 0; i -= 1) {
-			const lastStatement = statements[i];
-
-			if (lastStatement.type !== ":") { // ignore colons (separator when keepTokens=true)
-				if (lastStatement.type === "onErrorGoto" && lastStatement.args && Number(lastStatement.args[0].value) > 0) {
-					isOnErrorGoto = true;
-				}
-				break;
-			}
-		}
-		return isOnErrorGoto;
-	}
-
+	/*
 	private fnMaskedExpressionError(expression: ParserNode, typeFirstChar: string) {
-		if (!this.fnLastStatemetIsOnErrorGotoX()) {
-			throw this.composeError(Error(), "Expected " + BasicParser.parameterTypes[typeFirstChar], expression.value, expression.pos);
-		} else if (!this.quiet) {
-			Utils.console.warn(this.composeError({} as Error, "Expected " + BasicParser.parameterTypes[typeFirstChar], expression.value, expression.pos).message);
-		}
+		this.fnMaskedError(expression, "Expected " + BasicParser.parameterTypes[typeFirstChar]);
+		//if (!this.fnLastStatementIsOnErrorGotoX()) {
+		//	throw this.composeError(Error(), "Expected " + BasicParser.parameterTypes[typeFirstChar], expression.value, expression.pos);
+		//} else if (!this.quiet) {
+		//	Utils.console.warn(this.composeError({} as Error, "Expected " + BasicParser.parameterTypes[typeFirstChar], expression.value, expression.pos).message);
+		//}
 	}
+	*/
 
 	private fnCheckStaticTypeNotNumber(expression: ParserNode, typeFirstChar: string) {
 		const type = expression.type,
@@ -664,7 +675,7 @@ export class BasicParser {
 			isStringIdentifier = type === "identifier" && expression.value.endsWith("$");
 
 		if (type === "string" || type === "#" || isStringFunction || isStringIdentifier) { // got a string or a stream? (statical check)
-			this.fnMaskedExpressionError(expression, typeFirstChar);
+			this.fnMaskedError(expression, "Expected " + BasicParser.parameterTypes[typeFirstChar]);
 		}
 	}
 
@@ -675,7 +686,7 @@ export class BasicParser {
 			isComparison = type === "=" || type.startsWith("<") || type.startsWith(">"); // =, <, >, <=, >=
 
 		if (type === "number" || type === "binnumber" || type === "hexnumber" || type === "expnumber" || type === "#" || isNumericFunction || isNumericIdentifier || isComparison) { // got e.g. number or a stream? (statical check)
-			this.fnMaskedExpressionError(expression, typeFirstChar);
+			this.fnMaskedError(expression, "Expected " + BasicParser.parameterTypes[typeFirstChar]);
 		}
 	}
 
@@ -711,17 +722,16 @@ export class BasicParser {
 			expression = this.fnGetLetterRange(typeFirstChar);
 			break;
 		case "q": // line number range
-			if (type === "q0?") { // optional line number range
-				if (this.token.type === "number" || this.token.type === "-") {
-					expression = this.fnGetLineRange();
-				} else {
-					expression = BasicParser.fnCreateDummyArg("null");
-					if (types.length) {
-						type = ","; // needMore=true, maybe take it as next parameter
-					}
-				}
-			} else {
+			if (type !== "q0?") { // optional line number range
+				throw this.composeError(Error(), "Programming error: Unexpected line range type", this.token.type, this.token.pos); // should not occur
+			}
+			if (this.token.type === "number" || this.token.type === "-") {
 				expression = this.fnGetLineRange();
+			} else {
+				expression = BasicParser.fnCreateDummyArg("null");
+				if (types.length) {
+					type = ","; // needMore=true, maybe take it as next parameter
+				}
 			}
 			break;
 		case "n": // number"
@@ -739,14 +749,15 @@ export class BasicParser {
 		default:
 			expression = this.expression(0);
 			if (expression.type === "#") { // got stream?
-				throw this.composeError(Error(), "Unexpected stream", expression.value, expression.pos); // do we still need this?
+				//throw this.composeError(Error(), "Unexpected stream", expression.value, expression.pos);
+				this.fnMaskedError(expression, "Unexpected stream");
 			}
 			break;
 		}
 
 		if (this.token.type === separator) {
 			if (!suppressAdvance) {
-				this.advance(separator);
+				this.advance();
 			}
 			if (type.slice(-1) !== "*") {
 				type = "xxx"; // initial needMore
@@ -771,7 +782,8 @@ export class BasicParser {
 			if (types && type.slice(-1) !== "*") { // "*"= any number of parameters
 				type = types.shift() || "";
 				if (!type) {
-					throw this.composeError(Error(), "Expected end of arguments", this.previousToken.type, this.previousToken.pos);
+					//throw this.composeError(Error(), "Expected end of arguments", this.previousToken.type, this.previousToken.pos);
+					this.fnMaskedError(this.previousToken, "Expected end of arguments"); // If masked, it will accept more args than expected
 				}
 			}
 			type = this.fnGetExpressionForType(args, type, types);
@@ -789,11 +801,14 @@ export class BasicParser {
 		}
 
 		if (this.previousToken.type === "," && keyword !== "delete" && keyword !== "list") { // for line numbe range in delete, list it is ok
-			if (!this.fnLastStatemetIsOnErrorGotoX()) {
+			this.fnMaskedError(this.previousToken, "Operand missing");
+			/*
+			if (!this.fnLastStatementIsOnErrorGotoX()) {
 				throw this.composeError(Error(), "Operand missing", this.previousToken.type, this.previousToken.pos);
 			} else if (!this.quiet) {
 				Utils.console.warn(this.composeError({} as Error, "Operand missing", this.previousToken.type, this.previousToken.pos));
 			}
+			*/
 		}
 
 		return args;
@@ -806,7 +821,7 @@ export class BasicParser {
 		while (!closeTokens[this.token.type]) {
 			args.push(this.expression(0));
 			if (this.token.type === "," || this.token.type === ";") {
-				this.advance(this.token.type);
+				this.advance();
 			} else {
 				break;
 			}
@@ -881,7 +896,7 @@ export class BasicParser {
 		const node = this.previousToken;
 
 		if (this.token.type === "(") { // args in parenthesis?
-			this.advance("(");
+			this.advance();
 			node.args = this.fnGetArgs(node.type);
 			this.advance(")");
 		} else { // no parenthesis?
@@ -984,7 +999,7 @@ export class BasicParser {
 		let type = "_any1"; // expect any number of arguments
 
 		if (this.token.type === ",") { // arguments starting with comma
-			this.advance(",");
+			this.advance();
 			type = "_rsx1"; // dummy token: expect at least 1 argument
 		}
 		node.args = this.fnGetArgs(type); // get arguments
@@ -1024,7 +1039,7 @@ export class BasicParser {
 
 		this.token = this.getToken();
 		if (this.token.type === ",") {
-			this.token = this.advance(",");
+			this.token = this.advance();
 
 			let numberExpression = false; // line number (expression) found
 
@@ -1035,7 +1050,7 @@ export class BasicParser {
 			}
 
 			if (this.token.type === ",") {
-				this.advance(",");
+				this.advance();
 
 				if (!numberExpression) {
 					value2 = BasicParser.fnCreateDummyArg("null"); // insert dummy arg for line
@@ -1075,7 +1090,7 @@ export class BasicParser {
 			if (!parameterFound) {
 				node.args.push(BasicParser.fnCreateDummyArg("null")); // insert null parameter
 			}
-			this.token = this.advance(",");
+			this.token = this.advance();
 			if (this.keepDataComma) {
 				node.args.push(this.previousToken); // ","
 			}
@@ -1103,7 +1118,7 @@ export class BasicParser {
 
 		if (value2.type === "fn") { // fn and <identifier> separate?
 			fn = value2;
-			value2 = this.advance("fn");
+			value2 = this.advance();
 		}
 
 		this.token = this.advance("identifier");
@@ -1112,7 +1127,7 @@ export class BasicParser {
 			value2.value = fn.value + value2.value; // combine "fn" + identifier (maybe simplify by separating in lexer)
 			value2.space = true; // fast hack: set space for CodeGeneratorBasic
 		} else if (!value2.value.toLowerCase().startsWith("fn")) { // not fn<identifier>
-			throw this.composeError(Error(), "Invalid DEF", this.token.type, this.token.pos);
+			this.fnMaskedError(this.previousToken, "Expected FN");
 		}
 
 		node.left = value2;
@@ -1140,7 +1155,7 @@ export class BasicParser {
 		// TODO: data line as separate statement is taken
 		while (this.token.type !== "(eol)" && this.token.type !== "(end)") {
 			node.args.push(this.token); // collect tokens unchecked, may contain syntax error
-			this.advance(this.token.type);
+			this.advance();
 		}
 
 		return node;
@@ -1154,9 +1169,9 @@ export class BasicParser {
 		node.args.push(this.expression(0)); // should be number or variable
 
 		while (this.token.type === ",") {
-			this.token = this.advance(",");
+			this.token = this.advance();
 			if (this.token.type === "=" && (node.args.length - 1) % 3 === 0) { // special handling for parameter "number of steps"
-				this.advance("=");
+				this.advance();
 				node.args.push(BasicParser.fnCreateDummyArg("null")); // insert null parameter
 			}
 			const expression = this.expression(0);
@@ -1191,7 +1206,7 @@ export class BasicParser {
 		node.args.push(this.expression(0));
 
 		if (this.token.type === "step") {
-			this.advance("step");
+			this.advance();
 			if (this.keepTokens) {
 				node.args.push(this.previousToken);
 			}
@@ -1252,7 +1267,7 @@ export class BasicParser {
 		this.fnCheckForUnreachableCode(node.args);
 
 		if (this.token.type === "else") {
-			this.token = this.advance("else");
+			this.token = this.advance();
 			if (this.keepTokens) {
 				// TODO HOWTO?
 			}
@@ -1284,17 +1299,17 @@ export class BasicParser {
 
 		if (this.token.type === ";") { // no newline after input?
 			node.args.push(this.token);
-			this.advance(";");
+			this.advance();
 		} else {
 			node.args.push(BasicParser.fnCreateDummyArg("null"));
 		}
 
 		if (this.token.type === "string") { // message
 			node.args.push(this.token);
-			this.token = this.advance("string");
+			this.token = this.advance();
 			if (this.token.type === ";" || this.token.type === ",") { // ";" => need to append prompt "? " , "," = no prompt
 				node.args.push(this.token);
-				this.advance(this.token.type);
+				this.advance();
 			} else {
 				throw this.composeError(Error(), "Expected ; or ,", this.token.type, this.token.pos);
 			}
@@ -1312,7 +1327,7 @@ export class BasicParser {
 			if (node.type === "lineInput") {
 				break; // no loop for lineInput (only one arg)
 			}
-		} while ((this.token.type === ",") && this.advance(","));
+		} while ((this.token.type === ",") && this.advance());
 		return node;
 	}
 
@@ -1386,7 +1401,7 @@ export class BasicParser {
 		default: // on <expr>
 			left = this.expression(0);
 			if (this.token.type === "gosub" || this.token.type === "goto") {
-				this.advance(this.token.type);
+				this.advance();
 				if (this.keepTokens) {
 					node.right = this.previousToken;
 				}
@@ -1401,6 +1416,74 @@ export class BasicParser {
 		}
 		return node;
 	}
+
+	/*
+	private fnHandlePrintArgument_ok1(printNodeArgs: ParserNode[]) {
+		let node2: ParserNode | undefined;
+
+		if (this.token.type === "spc" || this.token.type === "tab") {
+			this.advance();
+			node2 = this.fnCreateFuncCall();
+		} else if (this.token.type === "using") {
+			node2 = this.token;
+			this.advance();
+			const t = this.expression(0); // format
+
+			this.advance(";"); // after the format there must be a ";"
+
+			node2.args = this.fnGetArgsSepByCommaSemi();
+			node2.args.unshift(t);
+			if (this.previousToken.type === ";") { // using closed by ";"?
+				//printNode.args.push(node2);
+				printNodeArgs.push(node2);
+				node2 = this.previousToken; // keep it for print
+			}
+		} else if (BasicParser.keywords[this.token.type] && (BasicParser.keywords[this.token.type].charAt(0) === "c" || BasicParser.keywords[this.token.type].charAt(0) === "p")) { // stop also at keyword which is c=command or p=part of command
+			// let node2 undefined
+		} else if (this.token.type === ";" || this.token.type === ",") { // separator ";" or comma tab separator ","
+			node2 = this.token;
+			this.advance();
+		} else {
+			node2 = this.expression(0);
+		}
+		return node2;
+	}
+	*/
+
+	/*
+	private fnHandlePrintArgument_t1(printNodeArgs: ParserNode[]) {
+		let node2: ParserNode | undefined;
+
+		if (this.token.type === "spc" || this.token.type === "tab") {
+			this.advance();
+			node2 = this.fnCreateFuncCall();
+		} else if (this.token.type === "using") {
+			node2 = this.token;
+			this.advance();
+			const t = this.expression(0); // format
+
+			this.advance(";"); // after the format there must be a ";"
+
+			node2.args = this.fnGetArgsSepByCommaSemi();
+			node2.args.unshift(t);
+			if (this.previousToken.type === ";") { // using closed by ";"?
+				//printNode.args.push(node2);
+				printNodeArgs.push(node2);
+				node2 = this.previousToken; // keep it for print
+			}
+		} else {
+			node2 = this.expression(0);
+		}
+
+		if (this.token.type === ";" || this.token.type === ",") { // separator ";" or comma tab separator ","
+			node2 = this.token;
+			this.advance();
+		} else {
+			node2 = this.expression(0);
+		}
+		return node2;
+	}
+	*/
 
 	private print() {
 		const node = this.previousToken,
@@ -1417,14 +1500,15 @@ export class BasicParser {
 		}
 
 		while (!closeTokens[this.token.type]) {
-			let node2;
+			/*
+			let node2: ParserNode;
 
 			if (this.token.type === "spc" || this.token.type === "tab") {
-				this.advance(this.token.type);
+				this.advance();
 				node2 = this.fnCreateFuncCall();
 			} else if (this.token.type === "using") {
 				node2 = this.token;
-				this.advance("using");
+				this.advance();
 				const t = this.expression(0); // format
 
 				this.advance(";"); // after the format there must be a ";"
@@ -1440,11 +1524,44 @@ export class BasicParser {
 				//TTT: node2 not set?
 			} else if (this.token.type === ";" || this.token.type === ",") { // separator ";" or comma tab separator ","
 				node2 = this.token;
-				this.advance(this.token.type);
+				this.advance();
 			} else {
 				node2 = this.expression(0);
 			}
+
+			const node2 = this.fnHandlePrintArgument(node.args);
+
+			if (!node2) {
+				break;
+			}
 			node.args.push(node2);
+			*/
+			let arg: ParserNode | undefined;
+
+			if (this.token.type === "spc" || this.token.type === "tab") {
+				this.advance();
+				arg = this.fnCreateFuncCall();
+			} else if (this.token.type === "using") {
+				arg = this.token;
+				this.advance();
+				const t = this.expression(0); // format
+
+				this.advance(";"); // after the format there must be a ";"
+
+				arg.args = this.fnGetArgsSepByCommaSemi();
+				arg.args.unshift(t);
+				if (this.previousToken.type === ";") { // using closed by ";"?
+					node.args.push(arg);
+					arg = this.previousToken; // keep it for print
+				}
+			} else if (this.token.type === ";" || this.token.type === ",") { // separator ";" or comma tab separator ","
+				arg = this.token;
+				this.advance();
+			} else {
+				arg = this.expression(0);
+			}
+
+			node.args.push(arg);
 		}
 		return node;
 	}
@@ -1513,11 +1630,14 @@ export class BasicParser {
 
 
 		if ((this.previousToken.type === "," && node.args.length > 1) || this.previousToken.type === ";") {
-			if (!this.fnLastStatemetIsOnErrorGotoX()) {
+			this.fnMaskedError(this.previousToken, "Operand missing");
+			/*
+			if (!this.fnLastStatementIsOnErrorGotoX()) {
 				throw this.composeError(Error(), "Operand missing", this.previousToken.type, this.previousToken.pos);
 			} else if (!this.quiet) {
 				Utils.console.warn(this.composeError({} as Error, "Operand missing", this.previousToken.type, this.previousToken.pos));
 			}
+			*/
 		}
 		return node;
 	}
@@ -1692,7 +1812,7 @@ export class BasicParser {
 		const parseTree = this.parseTree;
 
 		parseTree.length = 0;
-		this.advance(this.token.type);
+		this.advance();
 		while (this.token.type !== "(end)") {
 			parseTree.push(this.basicLine());
 		}

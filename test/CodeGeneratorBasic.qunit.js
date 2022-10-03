@@ -190,6 +190,8 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
                 "def fn clk(a)=a*10": "DEF FN clk(a)=a*10",
                 "def fn clk(a,b)=a*10+b": "DEF FN clk(a,b)=a*10+b",
                 "def fn clk$(a$,b$)=a$+b$": "DEF FN clk$(a$,b$)=a$+b$",
+                "def fx=1": "BasicParser: Expected FN at pos 4-6: fx",
+                "def fx y=1": "BasicParser: Expected FN at pos 4-6: fx",
                 "defint a": "DEFINT a",
                 "defint a-t": "DEFINT a-t",
                 "defint a-T": "DEFINT a-T",
@@ -300,6 +302,11 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
                 "for a=5+b to -4 step -2.3": "FOR a=5+b TO -4 STEP -2.3",
                 "for a=b to c step d": "FOR a=b TO c STEP d",
                 "for a=b% to c%": "FOR a=b% TO c%",
+                "for a=1 to 1 step 0": "FOR a=1 TO 1 STEP 0",
+                "for a=b to c step s": "FOR a=b TO c STEP s",
+                "for a=1 to 2 step 0": "FOR a=1 TO 2 STEP 0",
+                "for a=-1 to -2 step 0": "FOR a=-1 TO -2 STEP 0",
+                "1 for a$=1 to 2": "1 FOR a$=1 TO 2",
                 "defint a:for abc=1 to 10 step 3:next abc": "DEFINT a:FOR abc=1 TO 10 STEP 3:NEXT abc",
                 "defstr a:for abc=1 to 10 step 3:next abc": "DEFSTR a:FOR abc=1 TO 10 STEP 3:NEXT abc",
                 "for a=b to c step s:defint a-b:a=0:defreal a:next": "FOR a=b TO c STEP s:DEFINT a-b:a=0:DEFREAL a:NEXT",
@@ -750,7 +757,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             });
             for (var key in tests) {
                 if (tests.hasOwnProperty(key)) {
-                    var expected = tests[key], output = codeGeneratorBasic.generate(key, true), result = output.error ? String(output.error) : output.text;
+                    var expected = tests[key], output = codeGeneratorBasic.generate(key), result = output.error ? String(output.error) : output.text;
                     if (results) {
                         results.push(TestHelper_1.TestHelper.stringInQuotes(key) + ": " + TestHelper_1.TestHelper.stringInQuotes(result));
                     }

@@ -12,8 +12,10 @@ export declare class BasicFormatter {
     constructor(options: BasicFormatterOptions);
     private composeError;
     private static fnIsDirect;
-    private fnCreateLineNumbersMap;
+    private fnCreateLabelEntry;
+    private fnCreateLabelMap;
     private fnAddSingleReference;
+    private fnAddReferencesForNode;
     private fnAddReferences;
     private fnRenumberLines;
     private static fnSortNumbers;

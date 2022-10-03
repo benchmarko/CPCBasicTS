@@ -192,7 +192,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 node.pt = name.charAt(name.length - 1); // set also type; TODO currently not used
             }
             if (arrayIndices) {
-                name += "A".repeat(arrayIndices); // TODO: one "A" should be enough
+                name += "A".repeat(arrayIndices);
             }
             name += mappedTypeChar; // put type at the end
             var needDeclare = false;
@@ -253,32 +253,32 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         CodeGeneratorJs.fnExtractVarName = function (name) {
             if (name.indexOf("v.") === 0) { // variable object?
-                name = name.substr(2); // remove preceding "v."
+                name = name.substring(2); // remove preceding "v."
                 var bracketIndex = name.indexOf("[");
                 if (bracketIndex >= 0) {
-                    name = name.substr(0, bracketIndex);
+                    name = name.substring(0, bracketIndex);
                 }
             }
             if (name.indexOf('v["') === 0) { // variable object in brackets?
-                name = name.substr(3); // remove preceding 'v["'
+                name = name.substring(3); // remove preceding 'v["'
                 var quotesIndex = name.indexOf('"');
-                name = name.substr(0, quotesIndex);
+                name = name.substring(0, quotesIndex);
             }
             return name;
         };
         CodeGeneratorJs.fnGetNameTypeExpression = function (name) {
             if (name.indexOf("v.") === 0) { // variable object with dot?
-                name = name.substr(2); // remove preceding "v."
+                name = name.substring(2); // remove preceding "v."
                 var bracketIndex = name.indexOf("[");
                 if (bracketIndex >= 0) {
-                    name = name.substr(0, bracketIndex);
+                    name = name.substring(0, bracketIndex);
                 }
                 name = '"' + name + '"';
             }
             if (name.indexOf("v[") === 0) { // variable object with brackets?
-                name = name.substr(2); // remove preceding "v["
+                name = name.substring(2); // remove preceding "v["
                 var closeBracketIndex = name.indexOf("]");
-                name = name.substr(0, closeBracketIndex);
+                name = name.substring(0, closeBracketIndex);
             }
             return name;
         };
@@ -331,7 +331,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 // when optimizing, beware of "--" operator in JavaScript!
                 if (CodeGeneratorJs.fnIsIntConst(value) || right.type === "number") { // int const or number const (also fp)
                     if (value.charAt(0) === "-") { // starting already with "-"?
-                        node.pv = value.substr(1); // remove "-"
+                        node.pv = value.substring(1); // remove "-"
                     }
                     else {
                         node.pv = "-" + value;
@@ -495,7 +495,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             node.pv = node.type;
         };
         CodeGeneratorJs.prototype.vertical = function (node) {
-            var rsxName = node.value.substr(1).toLowerCase().replace(/\./g, "_");
+            var rsxName = node.value.substring(1).toLowerCase().replace(/\./g, "_");
             var rsxAvailable = this.rsx && this.rsx.rsxIsAvailable(rsxName), nodeArgs = this.fnParseArgs(node.args), label = this.fnGetStopLabel();
             if (!rsxAvailable) { // if RSX not available, we delay the error until it is executed (or catched by on error goto)
                 if (!this.quiet) {
@@ -666,8 +666,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     if (!(/[}:;\n]$/).test(value2)) { // does not end with } : ; \n
                         value2 += ";";
                     }
-                    else if (value2.substr(-1) === "\n") {
-                        value2 = value2.substr(0, value2.length - 1);
+                    else if (value2.substring(value2.length - 1) === "\n") {
+                        value2 = value2.substring(0, value2.length - 1);
                     }
                     value += " " + value2;
                 }
@@ -810,7 +810,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             // optimization for integer constants (check value and not type, because we also want to accept e.g. -<number>):
             var startIsIntConst = CodeGeneratorJs.fnIsIntConst(startValue), endIsIntConst = CodeGeneratorJs.fnIsIntConst(endValue), stepIsIntConst = CodeGeneratorJs.fnIsIntConst(stepValue), varType = this.fnDetermineStaticVarType(varName), type = (varType.length > 1) ? varType.charAt(1) : "";
             if (type === "$") {
-                throw this.composeError(Error(), "String type in FOR at", node.type, node.pos);
+                throw this.composeError(Error(), "Type error", node.args[0].value, node.args[0].pos);
             }
             if (!startIsIntConst) {
                 if (startNode.pt !== "I") {
@@ -861,12 +861,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 else if (Number(stepValue) < 0) {
                     value += "if (" + varName + " < " + endNameOrValue + ") { o.goto(\"" + label + "e\"); break; }";
                 }
-                else { // stepValue === 0 => endless loop, if starting with variable < end
-                    value += "if (" + varName + " < " + endNameOrValue + ") { o.goto(\"" + label + "e\"); break; }";
+                else { // stepValue === 0 => endless loop, if starting with variable !== end
+                    value += "if (" + varName + " === " + endNameOrValue + ") { o.goto(\"" + label + "e\"); break; }";
                 }
             }
             else {
-                value += "if (" + stepName + " > 0 && " + varName + " > " + endNameOrValue + " || " + stepName + " < 0 && " + varName + " < " + endNameOrValue + ") { o.goto(\"" + label + "e\"); break; }";
+                value += "if (" + stepName + " > 0 && " + varName + " > " + endNameOrValue + " || " + stepName + " < 0 && " + varName + " < " + endNameOrValue + " || !" + stepName + " && " + varName + " === " + endNameOrValue + ") { o.goto(\"" + label + "e\"); break; }";
             }
             node.pv = value;
         };
@@ -950,7 +950,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             var prompt = nodeArgs[3];
             if (prompt === ";" || node.args[3].type === "null") { // ";" => insert prompt "? " in quoted string
-                msg = msg.substr(0, msg.length - 1) + "? " + msg.substr(-1, 1);
+                msg = msg.substring(0, msg.length - 1) + "? " + msg.substr(-1, 1);
             }
             for (var i = 4; i < nodeArgs.length; i += 1) {
                 varTypes[i - 4] = this.fnDetermineStaticVarType(nodeArgs[i]);
@@ -1184,33 +1184,36 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 }
             }
         };
+        CodeGeneratorJs.prototype.parseOperator = function (node) {
+            var operators = this.allOperators;
+            if (node.left) {
+                this.parseNode(node.left);
+                if (operators[node.left.type] && node.left.left) { // binary operator?
+                    node.left.pv = "(" + node.left.pv + ")";
+                }
+                if (!node.right) {
+                    throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occur
+                }
+                this.parseNode(node.right);
+                if (operators[node.right.type] && node.right.left) { // binary operator?
+                    node.right.pv = "(" + node.right.pv + ")";
+                }
+                operators[node.type].call(this, node, node.left, node.right);
+            }
+            else {
+                if (!node.right) {
+                    throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occur
+                }
+                this.parseNode(node.right);
+                this.unaryOperators[node.type].call(this, node, undefined, node.right); // unary operator: we just use node.right
+            }
+        };
         CodeGeneratorJs.prototype.parseNode = function (node) {
             if (Utils_1.Utils.debug > 3) {
                 Utils_1.Utils.console.debug("evaluate: parseNode node=%o type=" + node.type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
             }
-            var operators = this.allOperators;
-            if (operators[node.type]) {
-                if (node.left) {
-                    this.parseNode(node.left);
-                    if (operators[node.left.type] && node.left.left) { // binary operator?
-                        node.left.pv = "(" + node.left.pv + ")";
-                    }
-                    if (!node.right) {
-                        throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occur
-                    }
-                    this.parseNode(node.right);
-                    if (operators[node.right.type] && node.right.left) { // binary operator?
-                        node.right.pv = "(" + node.right.pv + ")";
-                    }
-                    operators[node.type].call(this, node, node.left, node.right);
-                }
-                else {
-                    if (!node.right) {
-                        throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occur
-                    }
-                    this.parseNode(node.right);
-                    this.unaryOperators[node.type].call(this, node, undefined, node.right); // unary operator: we just use node.right
-                }
+            if (this.allOperators[node.type]) {
+                this.parseOperator(node);
             }
             else if (this.parseFunctions[node.type]) { // function with special handling?
                 this.parseFunctions[node.type].call(this, node);
@@ -1224,32 +1227,35 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 return (labels[line]) ? all : "/* " + all + " */";
             });
         };
-        CodeGeneratorJs.prototype.fnCreateLabelsMap = function (parseTree, labels, allowDirect) {
+        CodeGeneratorJs.prototype.fnCheckLabel = function (node, lastLine, allowDirect) {
+            var label = node.value, isDirect = label === "", lineNumber = Number(label);
+            if (!isDirect) {
+                if ((lineNumber | 0) !== lineNumber) { // eslint-disable-line no-bitwise
+                    throw this.composeError(Error(), "Expected integer line number", label, node.pos);
+                }
+                if (lineNumber <= lastLine) {
+                    throw this.composeError(Error(), "Expected increasing line number", label, node.pos);
+                }
+                if (lineNumber < 1 || lineNumber > 65535) {
+                    throw this.composeError(Error(), "Line number overflow", label, node.pos);
+                }
+                return label;
+            }
+            else if (!allowDirect) {
+                throw this.composeError(Error(), "Direct command found", label, node.pos);
+            }
+            return label;
+        };
+        CodeGeneratorJs.prototype.fnCreateLabelMap = function (nodes, labels, allowDirect) {
             var lastLine = -1;
-            for (var i = 0; i < parseTree.length; i += 1) {
-                var node = parseTree[i];
+            for (var i = 0; i < nodes.length; i += 1) {
+                var node = nodes[i];
                 if (node.type === "label") {
-                    var label = node.value, isDirect = label === "";
-                    if (label in labels) {
-                        throw this.composeError(Error(), "Duplicate line number", label, node.pos);
+                    var label = this.fnCheckLabel(node, lastLine, allowDirect);
+                    if (label) {
+                        labels[label] = 0; // init call count
+                        lastLine = Number(label);
                     }
-                    var lineNumber = Number(label);
-                    if (!isDirect) {
-                        if ((lineNumber | 0) !== lineNumber) { // eslint-disable-line no-bitwise
-                            throw this.composeError(Error(), "Expected integer line number", label, node.pos);
-                        }
-                        if (lineNumber <= lastLine) {
-                            throw this.composeError(Error(), "Expected increasing line number", label, node.pos);
-                        }
-                        if (lineNumber < 1 || lineNumber > 65535) {
-                            throw this.composeError(Error(), "Line number overflow", label, node.pos);
-                        }
-                        lastLine = lineNumber;
-                    }
-                    else if (!allowDirect) {
-                        throw this.composeError(Error(), "Direct command found", label, node.pos);
-                    }
-                    labels[label] = 0; // init call count
                 }
             }
         };
@@ -1311,7 +1317,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.variables = variables;
             this.defScopeArgs = undefined;
             // create labels map
-            this.fnCreateLabelsMap(parseTree, this.referencedLabelsCount, allowDirect);
+            this.fnCreateLabelMap(parseTree, this.referencedLabelsCount, allowDirect);
             this.removeAllDefVarTypes();
             this.fnPrecheckTree(parseTree, this.countMap); // also sets "resumeNoArgsCount" for resume without args
             this.traceActive = this.trace || Boolean(this.countMap.tron) || Boolean(this.countMap.resumeNext) || Boolean(this.countMap.resumeNoArgsCount); // we also switch on tracing for tron, resumeNext or resume without parameter

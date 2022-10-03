@@ -1160,43 +1160,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             };
         };
         Controller.prototype.loadExample = function () {
-            var //that = this,
-            inFile = this.vm.vmGetInFileObject();
-            //url: string;
-            /*
-            fnExampleLoaded = function (_sFullUrl: string, key: string, suppressLog?: boolean) {
-                if (key !== example) {
-                    Utils.console.warn("fnExampleLoaded: Unexpected", key, "<>", example);
-                }
-                const exampleEntry = that.model.getExample(example);
-    
-                if (!suppressLog) {
-                    Utils.console.log("Example", url, exampleEntry.meta || "", "loaded");
-                }
-                const input = exampleEntry.script;
-    
-                that.model.setProperty("example", inFile.memorizedExample);
-                that.vm.vmStop("", 0, true);
-                that.loadFileContinue(input);
-            },
-            fnExampleError = function () {
-                Utils.console.log("Example", url, "error");
-                that.model.setProperty("example", inFile.memorizedExample);
-    
-                that.vm.vmStop("", 0, true);
-    
-                const error = that.vm.vmComposeError(Error(), 32, example + " not found"); // TODO: set also derr=146 (xx not found)
-    
-                // error or onError set
-                if (error.hidden) {
-                    that.vm.vmStop("", 0, true); // clear onError
-                }
-                that.outputError(error, true);
-                that.loadFileContinue(null);
-            };
-            */
+            var inFile = this.vm.vmGetInFileObject(), key = this.model.getProperty("example");
             var name = inFile.name;
-            var key = this.model.getProperty("example");
             if (name.charAt(0) === "/") { // absolute path?
                 name = name.substring(1); // remove "/"
                 inFile.memorizedExample = name; // change!
@@ -1210,7 +1175,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     name = name.replace(/\w+\/\.\.\//, ""); // simplify 2 dots (go back) in path: "dir/.."" => ""
                 }
             }
-            //let	example: string,
             var example = name;
             if (Utils_1.Utils.debug > 0) {
                 Utils_1.Utils.console.debug("loadExample: name=" + name + " (current=" + key + ")");
@@ -1227,7 +1191,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.model.setProperty("example", example);
                 var databaseDir = this.model.getDatabase().src;
                 url = databaseDir + "/" + example + ".js";
-                //Utils.loadScript(url, fnExampleLoaded, fnExampleError, example);
                 Utils_1.Utils.loadScript(url, this.createFnExampleLoaded(example, url, inFile), this.createFnExampleError(example, url, inFile), example);
             }
             else { // keep original example in this error case
@@ -1512,7 +1475,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             else {
                 var error = this.vm.vmComposeError(Error(), 8, String(lineNumber)); // "Line does not exist"
-                //this.vm.print(stream, error.shortMessage + "\r\n");
                 this.outputError(error);
                 this.vm.vmStop("stop", 60, true);
             }
@@ -1736,7 +1698,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                         var error = output.error;
                         if (error.pos < inputText.length + 1) { // error not in direct?
                             error.message = "[prg] " + error.message;
-                            outputString = this.outputError(error, true);
                             output = undefined;
                         }
                     }
@@ -2106,117 +2067,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 }
             }
         };
-        /*
-        // https://stackoverflow.com/questions/10261989/html5-javascript-drag-and-drop-file-from-external-window-windows-explorer
-        // https://www.w3.org/TR/file-upload/#dfn-filereader
-        private fnHandleFileSelect(event: Event) {
-            const dataTransfer = (event as DragEvent).dataTransfer,
-                files = dataTransfer ? dataTransfer.files : ((event.target as any).files as FileList), // dataTransfer for drag&drop, target.files for file input
-                that = this,
-                imported: string[] = [];
-            let fileIndex = 0,
-                file: File,
-                reader: FileReader;
-    
-            function fnReadNextFile() {
-                if (fileIndex < files.length) {
-                    file = files[fileIndex];
-                    fileIndex += 1;
-                    const lastModified = file.lastModified,
-                        lastModifiedDate = lastModified ? new Date(lastModified) : (file as any).lastModifiedDate as Date, // lastModifiedDate deprecated, but for old IE
-                        text = file.name + " " + (file.type || "n/a") + " " + file.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
-    
-                    Utils.console.log(text);
-                    if (file.type === "text/plain") {
-                        reader.readAsText(file);
-                    } else if (file.type === "application/x-zip-compressed") {
-                        reader.readAsArrayBuffer(file);
-                    } else {
-                        reader.readAsDataURL(file);
-                    }
-                } else {
-                    that.fnEndOfImport(imported);
-                }
-            }
-    
-            function fnErrorHandler(event2: ProgressEvent<FileReader>) {
-                const target = event2.target;
-                let msg = "fnErrorHandler: Error reading file " + file.name;
-    
-                if (target !== null && target.error !== null) {
-                    if (target.error.NOT_FOUND_ERR) {
-                        msg += ": File not found";
-                    } else if (target.error.ABORT_ERR) {
-                        msg = ""; // nothing
-                    }
-                }
-                if (msg) {
-                    Utils.console.warn(msg);
-                }
-                fnReadNextFile();
-            }
-    
-            function fnOnLoad(event2: ProgressEvent<FileReader>) {
-                const target = event2.target,
-                    data = (target && target.result) || null,
-                    name = file.name,
-                    type = file.type;
-    
-                if (type === "application/x-zip-compressed" && data instanceof ArrayBuffer) {
-                    let zip: ZipFile | undefined;
-    
-                    try {
-                        zip = new ZipFile(new Uint8Array(data), name); // rather data
-                    } catch (e) {
-                        Utils.console.error(e);
-                        if (e instanceof Error) {
-                            that.outputError(e, true);
-                        }
-                    }
-                    if (zip) {
-                        const zipDirectory = zip.getZipDirectory(),
-                            entries = Object.keys(zipDirectory);
-    
-                        for (let i = 0; i < entries.length; i += 1) {
-                            const name2 = entries[i];
-                            let data2: string | undefined;
-    
-                            try {
-                                data2 = zip.readData(name2);
-                            } catch (e) {
-                                Utils.console.error(e);
-                                if (e instanceof Error) { // eslint-disable-line max-depth
-                                    that.outputError(e, true);
-                                }
-                            }
-    
-                            if (data2) {
-                                that.fnLoad2(data2, name2, type, imported);
-                            }
-                        }
-                    }
-                } else if (typeof data === "string") {
-                    that.fnLoad2(data, name, type, imported);
-                } else {
-                    Utils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);
-                }
-    
-                fnReadNextFile();
-            }
-    
-            event.stopPropagation();
-            event.preventDefault();
-    
-            if (window.FileReader) {
-                reader = new FileReader();
-                reader.onerror = fnErrorHandler;
-                reader.onload = fnOnLoad;
-                fnReadNextFile();
-            } else {
-                Utils.console.warn("FileReader API not supported.");
-            }
-        }
-        */
         Controller.fnHandleDragOver = function (evt) {
             evt.stopPropagation();
             evt.preventDefault();
@@ -2234,13 +2084,10 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             var dropZone = View_1.View.getElementById1("dropZone");
             dropZone.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
-            //dropZone.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
             this.fileSelect.addFileSelectHandler(dropZone, "drop");
             var canvasElement = this.canvas.getCanvas();
             canvasElement.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
-            //canvasElement.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
             this.fileSelect.addFileSelectHandler(canvasElement, "drop");
-            //View.getElementById1("fileInput").addEventListener("change", this.fnHandleFileSelect.bind(this), false);
             var fileInput = View_1.View.getElementById1("fileInput");
             this.fileSelect.addFileSelectHandler(fileInput, "change");
         };
@@ -2288,24 +2135,60 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         Controller.prototype.redoStackElement = function () {
             return this.inputStack.redo();
         };
+        Controller.prototype.createFnDatabaseLoaded = function (url) {
+            var _this = this;
+            return function (_sFullUrl, key) {
+                var selectedName = _this.model.getProperty("database");
+                if (selectedName === key) {
+                    _this.model.getDatabase().loaded = true;
+                }
+                else { // should not occur
+                    Utils_1.Utils.console.warn("databaseLoaded: name changed: " + key + " => " + selectedName);
+                    _this.model.setProperty("database", key);
+                    var database = _this.model.getDatabase();
+                    if (database) {
+                        database.loaded = true;
+                    }
+                    _this.model.setProperty("database", selectedName);
+                }
+                Utils_1.Utils.console.log("fnDatabaseLoaded: database loaded: " + key + ": " + url);
+                _this.setExampleSelectOptions();
+                _this.onExampleSelectChange();
+            };
+        };
+        Controller.prototype.createFnDatabaseError = function (url) {
+            var _this = this;
+            return function (_sFullUrl, key) {
+                Utils_1.Utils.console.error("fnDatabaseError: database error: " + key + ": " + url);
+                _this.setExampleSelectOptions();
+                _this.onExampleSelectChange();
+                _this.setInputText("");
+                _this.view.setAreaValue("resultText", "Cannot load database: " + key);
+            };
+        };
         Controller.prototype.onDatabaseSelectChange = function () {
             var url;
             var databaseName = this.view.getSelectValue("databaseSelect");
             this.model.setProperty("database", databaseName);
             this.view.setSelectTitleFromSelectedOption("databaseSelect");
-            var database = this.model.getDatabase(), that = this, fnDatabaseLoaded = function () {
+            var database = this.model.getDatabase();
+            /*
+            that = this,
+            fnDatabaseLoaded = function () {
                 database.loaded = true;
-                Utils_1.Utils.console.log("fnDatabaseLoaded: database loaded: " + databaseName + ": " + url);
+                Utils.console.log("fnDatabaseLoaded: database loaded: " + databaseName + ": " + url);
                 that.setExampleSelectOptions();
                 that.onExampleSelectChange();
-            }, fnDatabaseError = function () {
+            },
+            fnDatabaseError = function () {
                 database.loaded = false;
-                Utils_1.Utils.console.error("fnDatabaseError: database error: " + databaseName + ": " + url);
+                Utils.console.error("fnDatabaseError: database error: " + databaseName + ": " + url);
                 that.setExampleSelectOptions();
                 that.onExampleSelectChange();
                 that.setInputText("");
                 that.view.setAreaValue("resultText", "Cannot load database: " + databaseName);
             };
+            */
             if (!database) {
                 Utils_1.Utils.console.error("onDatabaseSelectChange: database not available:", databaseName);
                 return;
@@ -2322,7 +2205,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.setInputText("#loading database " + databaseName + "...");
                 var exampleIndex = this.model.getProperty("exampleIndex");
                 url = database.src + "/" + exampleIndex;
-                Utils_1.Utils.loadScript(url, fnDatabaseLoaded, fnDatabaseError, databaseName);
+                //Utils.loadScript(url, fnDatabaseLoaded, fnDatabaseError, databaseName);
+                Utils_1.Utils.loadScript(url, this.createFnDatabaseLoaded(url), this.createFnDatabaseError(url), databaseName);
             }
         };
         Controller.prototype.onExampleSelectChange = function () {

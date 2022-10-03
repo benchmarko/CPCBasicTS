@@ -46,7 +46,31 @@ export class BasicFormatter {
 		return label === "";
 	}
 
-	private fnCreateLineNumbersMap(nodes: ParserNode[]) { // create line numbers map
+	private fnCreateLabelEntry(node: ParserNode, lastLine: number) { // create line numbers map
+		const label = node.value,
+			isDirect = BasicFormatter.fnIsDirect(label),
+			line = Number(label);
+
+		this.line = label;
+		if (!isDirect) {
+			if (line <= lastLine) {
+				throw this.composeError(Error(), "Expected increasing line number", label, node.pos, node.len);
+			}
+			if (line < 1 || line > 65535) {
+				throw this.composeError(Error(), "Line number overflow", label, node.pos, node.len);
+			}
+		}
+
+		const labelEntry: LineEntry = {
+			value: label,
+			pos: node.pos,
+			len: (node.orig || label).length
+		};
+
+		return labelEntry;
+	}
+
+	private fnCreateLabelMap(nodes: ParserNode[]) { // create line numbers map
 		const lines: LinesType = {}; // line numbers
 		let lastLine = -1;
 
@@ -54,28 +78,12 @@ export class BasicFormatter {
 			const node = nodes[i];
 
 			if (node.type === "label") {
-				const lineString = node.value,
-					isDirect = BasicFormatter.fnIsDirect(lineString),
-					line = Number(lineString);
+				const labelEntry = this.fnCreateLabelEntry(node, lastLine);
 
-				this.line = lineString;
-				if (lineString in lines) {
-					throw this.composeError(Error(), "Duplicate line number", lineString, node.pos, node.len);
+				if (labelEntry) {
+					lines[labelEntry.value] = labelEntry;
+					lastLine = Number(labelEntry.value);
 				}
-				if (!isDirect) {
-					if (line <= lastLine) {
-						throw this.composeError(Error(), "Line number not increasing", lineString, node.pos, node.len);
-					}
-					if (line < 1 || line > 65535) {
-						throw this.composeError(Error(), "Line number overflow", lineString, node.pos, node.len);
-					}
-				}
-				lines[lineString] = {
-					value: lineString,
-					pos: node.pos,
-					len: (node.orig || lineString).length
-				};
-				lastLine = line;
 			}
 		}
 		return lines;
@@ -95,32 +103,34 @@ export class BasicFormatter {
 		}
 	}
 
+	private fnAddReferencesForNode(node: ParserNode, lines: LinesType, refs: LineEntry[]) {
+		if (node.type === "label") {
+			this.line = node.value;
+		} else {
+			this.fnAddSingleReference(node, lines, refs);
+		}
+
+		if (node.left) {
+			this.fnAddSingleReference(node.left, lines, refs);
+		}
+		if (node.right) {
+			this.fnAddSingleReference(node.right, lines, refs);
+		}
+		if (node.args) {
+			if (node.type === "onErrorGoto" && node.args.length === 1 && node.args[0].value === "0") {
+				// ignore "on error goto 0"
+			} else {
+				this.fnAddReferences(node.args, lines, refs); // recursive
+			}
+		}
+		if (node.args2) { // for "ELSE"
+			this.fnAddReferences(node.args2, lines, refs); // recursive
+		}
+	}
+
 	private fnAddReferences(nodes: ParserNode[], lines: LinesType, refs: LineEntry[]) {
 		for (let i = 0; i < nodes.length; i += 1) {
-			const node = nodes[i];
-
-			if (node.type === "label") {
-				this.line = node.value;
-			} else {
-				this.fnAddSingleReference(node, lines, refs);
-			}
-
-			if (node.left) {
-				this.fnAddSingleReference(node.left, lines, refs);
-			}
-			if (node.right) {
-				this.fnAddSingleReference(node.right, lines, refs);
-			}
-			if (node.args) {
-				if (node.type === "onErrorGoto" && node.args.length === 1 && node.args[0].value === "0") {
-					// ignore "on error goto 0"
-				} else {
-					this.fnAddReferences(node.args, lines, refs); // recursive
-				}
-			}
-			if (node.args2) { // for "ELSE"
-				this.fnAddReferences(node.args2, lines, refs); // recursive
-			}
+			this.fnAddReferencesForNode(nodes[i], lines, refs);
 		}
 	}
 
@@ -184,7 +194,7 @@ export class BasicFormatter {
 
 	private fnRenumber(input: string, parseTree: ParserNode[], newLine: number, oldLine: number, step: number, keep: number) {
 		const refs: LineEntry[] = [], // references
-			lines = this.fnCreateLineNumbersMap(parseTree);
+			lines = this.fnCreateLabelMap(parseTree);
 
 		this.fnAddReferences(parseTree, lines, refs); // create reference list
 

@@ -143,6 +143,8 @@ export declare class Controller implements IController {
     getVariable(par: string): VariableValue;
     undoStackElement(): string;
     redoStackElement(): string;
+    private createFnDatabaseLoaded;
+    private createFnDatabaseError;
     onDatabaseSelectChange(): void;
     onExampleSelectChange(): void;
     static exportAsBase64(storageName: string): string;

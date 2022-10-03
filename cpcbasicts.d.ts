@@ -186,6 +186,8 @@ declare module "BasicParser" {
         private static readonly closeTokensForLineAndElse;
         private static readonly closeTokensForArgs;
         private composeError;
+        private fnLastStatementIsOnErrorGotoX;
+        private fnMaskedError;
         private getToken;
         private advance;
         private expression;
@@ -203,8 +205,6 @@ declare module "BasicParser" {
         private static fnIsSingleLetterIdentifier;
         private fnGetLetterRange;
         private fnCheckRemainingTypes;
-        private fnLastStatemetIsOnErrorGotoX;
-        private fnMaskedExpressionError;
         private fnCheckStaticTypeNotNumber;
         private fnCheckStaticTypeNotString;
         private fnGetExpressionForType;
@@ -275,8 +275,10 @@ declare module "BasicFormatter" {
         constructor(options: BasicFormatterOptions);
         private composeError;
         private static fnIsDirect;
-        private fnCreateLineNumbersMap;
+        private fnCreateLabelEntry;
+        private fnCreateLabelMap;
         private fnAddSingleReference;
+        private fnAddReferencesForNode;
         private fnAddReferences;
         private fnRenumberLines;
         private static fnSortNumbers;
@@ -388,7 +390,7 @@ declare module "CodeGeneratorBasic" {
         private parseOperator;
         private parseNode;
         private evaluate;
-        generate(input: string, _allowDirect?: boolean): IOutput;
+        generate(input: string): IOutput;
     }
 }
 declare module "Variables" {
@@ -562,9 +564,11 @@ declare module "CodeGeneratorJs" {
         private "while";
         private readonly parseFunctions;
         private fnParseOther;
+        private parseOperator;
         private parseNode;
         private static fnCommentUnusedCases;
-        private fnCreateLabelsMap;
+        private fnCheckLabel;
+        private fnCreateLabelMap;
         private removeAllDefVarTypes;
         private fnSetDefVarTypeRange;
         private fnPrecheckDefintDefstr;
@@ -1910,6 +1914,8 @@ declare module "Controller" {
         getVariable(par: string): VariableValue;
         undoStackElement(): string;
         redoStackElement(): string;
+        private createFnDatabaseLoaded;
+        private createFnDatabaseError;
         onDatabaseSelectChange(): void;
         onExampleSelectChange(): void;
         static exportAsBase64(storageName: string): string;

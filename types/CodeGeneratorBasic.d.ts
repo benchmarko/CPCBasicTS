@@ -62,7 +62,7 @@ export declare class CodeGeneratorBasic {
     private parseOperator;
     private parseNode;
     private evaluate;
-    generate(input: string, _allowDirect?: boolean): IOutput;
+    generate(input: string): IOutput;
 }
 export {};
 //# sourceMappingURL=CodeGeneratorBasic.d.ts.map

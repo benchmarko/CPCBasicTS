@@ -1537,6 +1537,28 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             len = value === "(end)" ? 0 : len;
             return Utils_3.Utils.composeError("BasicParser", error, message, value, pos, len, this.label || undefined);
         };
+        BasicParser.prototype.fnLastStatementIsOnErrorGotoX = function () {
+            var statements = this.statementList;
+            var isOnErrorGoto = false;
+            for (var i = statements.length - 1; i >= 0; i -= 1) {
+                var lastStatement = statements[i];
+                if (lastStatement.type !== ":") { // ignore colons (separator when keepTokens=true)
+                    if (lastStatement.type === "onErrorGoto" && lastStatement.args && Number(lastStatement.args[0].value) > 0) {
+                        isOnErrorGoto = true;
+                    }
+                    break;
+                }
+            }
+            return isOnErrorGoto;
+        };
+        BasicParser.prototype.fnMaskedError = function (node, message) {
+            if (!this.fnLastStatementIsOnErrorGotoX()) {
+                throw this.composeError(Error(), message, node.value, node.pos);
+            }
+            else if (!this.quiet) {
+                Utils_3.Utils.console.warn(this.composeError({}, message, node.value, node.pos).message);
+            }
+        };
         // http://crockford.com/javascript/tdop/tdop.html (old: http://javascript.crockford.com/tdop/tdop.html)
         // http://crockford.com/javascript/tdop/parse.js
         // Operator precedence parsing
@@ -1550,8 +1572,8 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
         BasicParser.prototype.advance = function (id) {
             var token = this.token;
             this.previousToken = this.token;
-            if (token.type !== id) {
-                throw this.composeError(Error(), "Expected " + id, (token.value === "") ? token.type : token.value, token.pos);
+            if (id && id !== token.type) {
+                throw this.composeError(Error(), "Expected " + id, (token.value === "") ? token.type : token.value, token.pos); // we cannot mask this error because advance is very generic
             }
             token = this.tokens[this.index]; // we get a lex token and reuse it as parseTree token
             if (!token) { // should not occur
@@ -1577,7 +1599,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             if (t.type === "(end)") {
                 throw this.composeError(Error(), "Unexpected end of file", "", t.pos);
             }
-            this.advance(t.type);
+            this.advance();
             if (!s.nud) {
                 throw this.composeError(Error(), "Unexpected token", t.value, t.pos);
             }
@@ -1585,7 +1607,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             t = this.token;
             s = this.symbols[t.type];
             while (rbp < (s.lbp || 0)) { // as long as the right binding power is less than the left binding power of the next token...
-                this.advance(t.type);
+                this.advance();
                 if (!s.led) {
                     throw this.composeError(Error(), "Unexpected token", t.type, t.pos);
                     // TODO: How to get this error?
@@ -1598,7 +1620,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
         };
         BasicParser.prototype.fnCheckExpressionType = function (expression, expectedType, typeFirstChar) {
             if (expression.type !== expectedType) {
-                throw this.composeError(Error(), "Expected " + BasicParser.parameterTypes[typeFirstChar], expression.value, expression.pos);
+                this.fnMaskedError(expression, "Expected " + BasicParser.parameterTypes[typeFirstChar]);
             }
         };
         BasicParser.prototype.assignment = function () {
@@ -1614,7 +1636,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
         BasicParser.prototype.statement = function () {
             var t = this.token, s = this.symbols[t.type];
             if (s.std) { // statement?
-                this.advance(t.type);
+                this.advance();
                 return s.std();
             }
             var value;
@@ -1625,7 +1647,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 value = this.expression(0);
             }
             if (value.type !== "assign" && value.type !== "fcall" && value.type !== "def" && value.type !== "(" && value.type !== "[") {
-                throw this.composeError(Error(), "Bad expression statement", t.value, t.pos);
+                this.fnMaskedError(t, "Bad expression statement");
             }
             return value;
         };
@@ -1657,14 +1679,14 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 node.pos = this.token.pos;
             }
             else {
-                this.advance("number");
+                this.advance();
                 node = this.previousToken; // number token
                 node.type = "label"; // number => label
             }
             this.label = node.value; // set line number for error messages
             node.args = this.statements(BasicParser.closeTokensForLine);
             if (this.token.type === "(eol)") {
-                this.advance("(eol)");
+                this.advance();
             }
             return node;
         };
@@ -1705,19 +1727,19 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             var left;
             if (this.token.type === "number") {
                 left = this.token;
-                this.advance("number");
+                this.advance();
                 this.fnChangeNumber2LineNumber(left);
             }
             var range;
             if (this.token.type === "-") {
                 range = this.token;
-                this.advance("-");
+                this.advance();
             }
             if (range) {
                 var right = void 0;
                 if (this.token.type === "number") {
                     right = this.token;
-                    this.advance("number");
+                    this.advance();
                     this.fnChangeNumber2LineNumber(right);
                 }
                 // accept also "-" as full range
@@ -1729,7 +1751,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 range = left; // single line number
             }
             else {
-                throw this.composeError(Error(), "Undefined range", this.token.value, this.token.pos);
+                throw this.composeError(Error(), "Programming error: Undefined range", this.token.value, this.token.pos);
             }
             return range;
         };
@@ -1748,7 +1770,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 expression.right.type = "letter"; // change type: identifier -> letter
             }
             else {
-                throw this.composeError(Error(), "Expected " + BasicParser.parameterTypes[typeFirstChar], expression.value, expression.pos);
+                this.fnMaskedError(expression, "Expected " + BasicParser.parameterTypes[typeFirstChar]);
             }
             return expression;
         };
@@ -1757,42 +1779,30 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 var type = types[i];
                 if (!type.endsWith("?") && !type.endsWith("*")) { // mandatory?
                     var text = BasicParser.parameterTypes[type] || ("parameter " + type);
-                    throw this.composeError(Error(), "Expected " + text + " for " + this.previousToken.type, this.token.value, this.token.pos);
+                    this.fnMaskedError(this.token, "Expected " + text + " for " + this.previousToken.type);
                 }
             }
         };
-        BasicParser.prototype.fnLastStatemetIsOnErrorGotoX = function () {
-            var statements = this.statementList;
-            var isOnErrorGoto = false;
-            for (var i = statements.length - 1; i >= 0; i -= 1) {
-                var lastStatement = statements[i];
-                if (lastStatement.type !== ":") { // ignore colons (separator when keepTokens=true)
-                    if (lastStatement.type === "onErrorGoto" && lastStatement.args && Number(lastStatement.args[0].value) > 0) {
-                        isOnErrorGoto = true;
-                    }
-                    break;
-                }
-            }
-            return isOnErrorGoto;
-        };
-        BasicParser.prototype.fnMaskedExpressionError = function (expression, typeFirstChar) {
-            if (!this.fnLastStatemetIsOnErrorGotoX()) {
-                throw this.composeError(Error(), "Expected " + BasicParser.parameterTypes[typeFirstChar], expression.value, expression.pos);
-            }
-            else if (!this.quiet) {
-                Utils_3.Utils.console.warn(this.composeError({}, "Expected " + BasicParser.parameterTypes[typeFirstChar], expression.value, expression.pos).message);
-            }
-        };
+        /*
+        private fnMaskedExpressionError(expression: ParserNode, typeFirstChar: string) {
+            this.fnMaskedError(expression, "Expected " + BasicParser.parameterTypes[typeFirstChar]);
+            //if (!this.fnLastStatementIsOnErrorGotoX()) {
+            //	throw this.composeError(Error(), "Expected " + BasicParser.parameterTypes[typeFirstChar], expression.value, expression.pos);
+            //} else if (!this.quiet) {
+            //	Utils.console.warn(this.composeError({} as Error, "Expected " + BasicParser.parameterTypes[typeFirstChar], expression.value, expression.pos).message);
+            //}
+        }
+        */
         BasicParser.prototype.fnCheckStaticTypeNotNumber = function (expression, typeFirstChar) {
             var type = expression.type, isStringFunction = (BasicParser.keywords[type] || "").startsWith("f") && type.endsWith("$"), isStringIdentifier = type === "identifier" && expression.value.endsWith("$");
             if (type === "string" || type === "#" || isStringFunction || isStringIdentifier) { // got a string or a stream? (statical check)
-                this.fnMaskedExpressionError(expression, typeFirstChar);
+                this.fnMaskedError(expression, "Expected " + BasicParser.parameterTypes[typeFirstChar]);
             }
         };
         BasicParser.prototype.fnCheckStaticTypeNotString = function (expression, typeFirstChar) {
             var type = expression.type, isNumericFunction = (BasicParser.keywords[type] || "").startsWith("f") && !type.endsWith("$"), isNumericIdentifier = type === "identifier" && (expression.value.endsWith("%") || expression.value.endsWith("!")), isComparison = type === "=" || type.startsWith("<") || type.startsWith(">"); // =, <, >, <=, >=
             if (type === "number" || type === "binnumber" || type === "hexnumber" || type === "expnumber" || type === "#" || isNumericFunction || isNumericIdentifier || isComparison) { // got e.g. number or a stream? (statical check)
-                this.fnMaskedExpressionError(expression, typeFirstChar);
+                this.fnMaskedError(expression, "Expected " + BasicParser.parameterTypes[typeFirstChar]);
             }
         };
         BasicParser.prototype.fnGetExpressionForType = function (args, type, types) {
@@ -1825,19 +1835,17 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                     expression = this.fnGetLetterRange(typeFirstChar);
                     break;
                 case "q": // line number range
-                    if (type === "q0?") { // optional line number range
-                        if (this.token.type === "number" || this.token.type === "-") {
-                            expression = this.fnGetLineRange();
-                        }
-                        else {
-                            expression = BasicParser.fnCreateDummyArg("null");
-                            if (types.length) {
-                                type = ","; // needMore=true, maybe take it as next parameter
-                            }
-                        }
+                    if (type !== "q0?") { // optional line number range
+                        throw this.composeError(Error(), "Programming error: Unexpected line range type", this.token.type, this.token.pos); // should not occur
+                    }
+                    if (this.token.type === "number" || this.token.type === "-") {
+                        expression = this.fnGetLineRange();
                     }
                     else {
-                        expression = this.fnGetLineRange();
+                        expression = BasicParser.fnCreateDummyArg("null");
+                        if (types.length) {
+                            type = ","; // needMore=true, maybe take it as next parameter
+                        }
                     }
                     break;
                 case "n": // number"
@@ -1856,13 +1864,14 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 default:
                     expression = this.expression(0);
                     if (expression.type === "#") { // got stream?
-                        throw this.composeError(Error(), "Unexpected stream", expression.value, expression.pos); // do we still need this?
+                        //throw this.composeError(Error(), "Unexpected stream", expression.value, expression.pos);
+                        this.fnMaskedError(expression, "Unexpected stream");
                     }
                     break;
             }
             if (this.token.type === separator) {
                 if (!suppressAdvance) {
-                    this.advance(separator);
+                    this.advance();
                 }
                 if (type.slice(-1) !== "*") {
                     type = "xxx"; // initial needMore
@@ -1882,7 +1891,8 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 if (types && type.slice(-1) !== "*") { // "*"= any number of parameters
                     type = types.shift() || "";
                     if (!type) {
-                        throw this.composeError(Error(), "Expected end of arguments", this.previousToken.type, this.previousToken.pos);
+                        //throw this.composeError(Error(), "Expected end of arguments", this.previousToken.type, this.previousToken.pos);
+                        this.fnMaskedError(this.previousToken, "Expected end of arguments"); // If masked, it will accept more args than expected
                     }
                 }
                 type = this.fnGetExpressionForType(args, type, types);
@@ -1897,12 +1907,14 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 }
             }
             if (this.previousToken.type === "," && keyword !== "delete" && keyword !== "list") { // for line numbe range in delete, list it is ok
-                if (!this.fnLastStatemetIsOnErrorGotoX()) {
+                this.fnMaskedError(this.previousToken, "Operand missing");
+                /*
+                if (!this.fnLastStatementIsOnErrorGotoX()) {
                     throw this.composeError(Error(), "Operand missing", this.previousToken.type, this.previousToken.pos);
+                } else if (!this.quiet) {
+                    Utils.console.warn(this.composeError({} as Error, "Operand missing", this.previousToken.type, this.previousToken.pos));
                 }
-                else if (!this.quiet) {
-                    Utils_3.Utils.console.warn(this.composeError({}, "Operand missing", this.previousToken.type, this.previousToken.pos));
-                }
+                */
             }
             return args;
         };
@@ -1911,7 +1923,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             while (!closeTokens[this.token.type]) {
                 args.push(this.expression(0));
                 if (this.token.type === "," || this.token.type === ";") {
-                    this.advance(this.token.type);
+                    this.advance();
                 }
                 else {
                     break;
@@ -1967,7 +1979,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
         BasicParser.prototype.fnCreateFuncCall = function () {
             var node = this.previousToken;
             if (this.token.type === "(") { // args in parenthesis?
-                this.advance("(");
+                this.advance();
                 node.args = this.fnGetArgs(node.type);
                 this.advance(")");
             }
@@ -2052,7 +2064,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             var node = this.previousToken;
             var type = "_any1"; // expect any number of arguments
             if (this.token.type === ",") { // arguments starting with comma
-                this.advance(",");
+                this.advance();
                 type = "_rsx1"; // dummy token: expect at least 1 argument
             }
             node.args = this.fnGetArgs(type); // get arguments
@@ -2083,7 +2095,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             node.args.push(value2);
             this.token = this.getToken();
             if (this.token.type === ",") {
-                this.token = this.advance(",");
+                this.token = this.advance();
                 var numberExpression = false; // line number (expression) found
                 if (this.token.type !== "," && this.token.type !== "(eol)" && this.token.type !== "(eof)") {
                     value2 = this.expression(0); // line number or expression
@@ -2091,7 +2103,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                     numberExpression = true;
                 }
                 if (this.token.type === ",") {
-                    this.advance(",");
+                    this.advance();
                     if (!numberExpression) {
                         value2 = BasicParser.fnCreateDummyArg("null"); // insert dummy arg for line
                         node.args.push(value2);
@@ -2122,7 +2134,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 if (!parameterFound) {
                     node.args.push(BasicParser.fnCreateDummyArg("null")); // insert null parameter
                 }
-                this.token = this.advance(",");
+                this.token = this.advance();
                 if (this.keepDataComma) {
                     node.args.push(this.previousToken); // ","
                 }
@@ -2146,7 +2158,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             fn;
             if (value2.type === "fn") { // fn and <identifier> separate?
                 fn = value2;
-                value2 = this.advance("fn");
+                value2 = this.advance();
             }
             this.token = this.advance("identifier");
             if (fn) { // separate fn?
@@ -2154,7 +2166,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 value2.space = true; // fast hack: set space for CodeGeneratorBasic
             }
             else if (!value2.value.toLowerCase().startsWith("fn")) { // not fn<identifier>
-                throw this.composeError(Error(), "Invalid DEF", this.token.type, this.token.pos);
+                this.fnMaskedError(this.previousToken, "Expected FN");
             }
             node.left = value2;
             node.args = (this.token.type === "(") ? this.fnGetArgsInParenthesis() : [];
@@ -2174,7 +2186,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             // TODO: data line as separate statement is taken
             while (this.token.type !== "(eol)" && this.token.type !== "(end)") {
                 node.args.push(this.token); // collect tokens unchecked, may contain syntax error
-                this.advance(this.token.type);
+                this.advance();
             }
             return node;
         };
@@ -2183,9 +2195,9 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             node.args = [];
             node.args.push(this.expression(0)); // should be number or variable
             while (this.token.type === ",") {
-                this.token = this.advance(",");
+                this.token = this.advance();
                 if (this.token.type === "=" && (node.args.length - 1) % 3 === 0) { // special handling for parameter "number of steps"
-                    this.advance("=");
+                    this.advance();
                     node.args.push(BasicParser.fnCreateDummyArg("null")); // insert null parameter
                 }
                 var expression = this.expression(0);
@@ -2210,7 +2222,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             }
             node.args.push(this.expression(0));
             if (this.token.type === "step") {
-                this.advance("step");
+                this.advance();
                 if (this.keepTokens) {
                     node.args.push(this.previousToken);
                 }
@@ -2259,7 +2271,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             }
             this.fnCheckForUnreachableCode(node.args);
             if (this.token.type === "else") {
-                this.token = this.advance("else");
+                this.token = this.advance();
                 if (this.keepTokens) {
                     // TODO HOWTO?
                 }
@@ -2284,17 +2296,17 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             }
             if (this.token.type === ";") { // no newline after input?
                 node.args.push(this.token);
-                this.advance(";");
+                this.advance();
             }
             else {
                 node.args.push(BasicParser.fnCreateDummyArg("null"));
             }
             if (this.token.type === "string") { // message
                 node.args.push(this.token);
-                this.token = this.advance("string");
+                this.token = this.advance();
                 if (this.token.type === ";" || this.token.type === ",") { // ";" => need to append prompt "? " , "," = no prompt
                     node.args.push(this.token);
-                    this.advance(this.token.type);
+                    this.advance();
                 }
                 else {
                     throw this.composeError(Error(), "Expected ; or ,", this.token.type, this.token.pos);
@@ -2311,7 +2323,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 if (node.type === "lineInput") {
                     break; // no loop for lineInput (only one arg)
                 }
-            } while ((this.token.type === ",") && this.advance(","));
+            } while ((this.token.type === ",") && this.advance());
             return node;
         };
         BasicParser.prototype.key = function () {
@@ -2373,7 +2385,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 default: // on <expr>
                     left = this.expression(0);
                     if (this.token.type === "gosub" || this.token.type === "goto") {
-                        this.advance(this.token.type);
+                        this.advance();
                         if (this.keepTokens) {
                             node.right = this.previousToken;
                         }
@@ -2388,6 +2400,72 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             }
             return node;
         };
+        /*
+        private fnHandlePrintArgument_ok1(printNodeArgs: ParserNode[]) {
+            let node2: ParserNode | undefined;
+    
+            if (this.token.type === "spc" || this.token.type === "tab") {
+                this.advance();
+                node2 = this.fnCreateFuncCall();
+            } else if (this.token.type === "using") {
+                node2 = this.token;
+                this.advance();
+                const t = this.expression(0); // format
+    
+                this.advance(";"); // after the format there must be a ";"
+    
+                node2.args = this.fnGetArgsSepByCommaSemi();
+                node2.args.unshift(t);
+                if (this.previousToken.type === ";") { // using closed by ";"?
+                    //printNode.args.push(node2);
+                    printNodeArgs.push(node2);
+                    node2 = this.previousToken; // keep it for print
+                }
+            } else if (BasicParser.keywords[this.token.type] && (BasicParser.keywords[this.token.type].charAt(0) === "c" || BasicParser.keywords[this.token.type].charAt(0) === "p")) { // stop also at keyword which is c=command or p=part of command
+                // let node2 undefined
+            } else if (this.token.type === ";" || this.token.type === ",") { // separator ";" or comma tab separator ","
+                node2 = this.token;
+                this.advance();
+            } else {
+                node2 = this.expression(0);
+            }
+            return node2;
+        }
+        */
+        /*
+        private fnHandlePrintArgument_t1(printNodeArgs: ParserNode[]) {
+            let node2: ParserNode | undefined;
+    
+            if (this.token.type === "spc" || this.token.type === "tab") {
+                this.advance();
+                node2 = this.fnCreateFuncCall();
+            } else if (this.token.type === "using") {
+                node2 = this.token;
+                this.advance();
+                const t = this.expression(0); // format
+    
+                this.advance(";"); // after the format there must be a ";"
+    
+                node2.args = this.fnGetArgsSepByCommaSemi();
+                node2.args.unshift(t);
+                if (this.previousToken.type === ";") { // using closed by ";"?
+                    //printNode.args.push(node2);
+                    printNodeArgs.push(node2);
+                    node2 = this.previousToken; // keep it for print
+                }
+            } else {
+                node2 = this.expression(0);
+            }
+    
+            if (this.token.type === ";" || this.token.type === ",") { // separator ";" or comma tab separator ","
+                node2 = this.token;
+                this.advance();
+            } else {
+                node2 = this.expression(0);
+            }
+            return node2;
+        }
+        */
         BasicParser.prototype.print = function () {
             var node = this.previousToken, closeTokens = BasicParser.closeTokensForArgs, stream = this.fnGetOptionalStream();
             node.args = [];
@@ -2398,35 +2476,67 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 }
             }
             while (!closeTokens[this.token.type]) {
-                var node2 = void 0;
+                /*
+                let node2: ParserNode;
+    
                 if (this.token.type === "spc" || this.token.type === "tab") {
-                    this.advance(this.token.type);
+                    this.advance();
                     node2 = this.fnCreateFuncCall();
-                }
-                else if (this.token.type === "using") {
+                } else if (this.token.type === "using") {
                     node2 = this.token;
-                    this.advance("using");
-                    var t = this.expression(0); // format
+                    this.advance();
+                    const t = this.expression(0); // format
+    
                     this.advance(";"); // after the format there must be a ";"
+    
                     node2.args = this.fnGetArgsSepByCommaSemi();
                     node2.args.unshift(t);
                     if (this.previousToken.type === ";") { // using closed by ";"?
                         node.args.push(node2);
                         node2 = this.previousToken; // keep it for print
                     }
-                }
-                else if (BasicParser.keywords[this.token.type] && (BasicParser.keywords[this.token.type].charAt(0) === "c" || BasicParser.keywords[this.token.type].charAt(0) === "p")) { // stop also at keyword which is c=command or p=part of command
+                } else if (BasicParser.keywords[this.token.type] && (BasicParser.keywords[this.token.type].charAt(0) === "c" || BasicParser.keywords[this.token.type].charAt(0) === "p")) { // stop also at keyword which is c=command or p=part of command
                     break;
                     //TTT: node2 not set?
-                }
-                else if (this.token.type === ";" || this.token.type === ",") { // separator ";" or comma tab separator ","
+                } else if (this.token.type === ";" || this.token.type === ",") { // separator ";" or comma tab separator ","
                     node2 = this.token;
-                    this.advance(this.token.type);
-                }
-                else {
+                    this.advance();
+                } else {
                     node2 = this.expression(0);
                 }
+    
+                const node2 = this.fnHandlePrintArgument(node.args);
+    
+                if (!node2) {
+                    break;
+                }
                 node.args.push(node2);
+                */
+                var arg = void 0;
+                if (this.token.type === "spc" || this.token.type === "tab") {
+                    this.advance();
+                    arg = this.fnCreateFuncCall();
+                }
+                else if (this.token.type === "using") {
+                    arg = this.token;
+                    this.advance();
+                    var t = this.expression(0); // format
+                    this.advance(";"); // after the format there must be a ";"
+                    arg.args = this.fnGetArgsSepByCommaSemi();
+                    arg.args.unshift(t);
+                    if (this.previousToken.type === ";") { // using closed by ";"?
+                        node.args.push(arg);
+                        arg = this.previousToken; // keep it for print
+                    }
+                }
+                else if (this.token.type === ";" || this.token.type === ",") { // separator ";" or comma tab separator ","
+                    arg = this.token;
+                    this.advance();
+                }
+                else {
+                    arg = this.expression(0);
+                }
+                node.args.push(arg);
             }
             return node;
         };
@@ -2476,12 +2586,14 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             node.args = this.fnGetArgsSepByCommaSemi();
             node.args.unshift(stream);
             if ((this.previousToken.type === "," && node.args.length > 1) || this.previousToken.type === ";") {
-                if (!this.fnLastStatemetIsOnErrorGotoX()) {
+                this.fnMaskedError(this.previousToken, "Operand missing");
+                /*
+                if (!this.fnLastStatementIsOnErrorGotoX()) {
                     throw this.composeError(Error(), "Operand missing", this.previousToken.type, this.previousToken.pos);
+                } else if (!this.quiet) {
+                    Utils.console.warn(this.composeError({} as Error, "Operand missing", this.previousToken.type, this.previousToken.pos));
                 }
-                else if (!this.quiet) {
-                    Utils_3.Utils.console.warn(this.composeError({}, "Operand missing", this.previousToken.type, this.previousToken.pos));
-                }
+                */
             }
             return node;
         };
@@ -2615,7 +2727,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             this.previousToken = this.token; // just to avoid warning
             var parseTree = this.parseTree;
             parseTree.length = 0;
-            this.advance(this.token.type);
+            this.advance();
             while (this.token.type !== "(end)") {
                 parseTree.push(this.basicLine());
             }
@@ -2875,31 +2987,35 @@ define("BasicFormatter", ["require", "exports", "Utils"], function (require, exp
         BasicFormatter.fnIsDirect = function (label) {
             return label === "";
         };
-        BasicFormatter.prototype.fnCreateLineNumbersMap = function (nodes) {
+        BasicFormatter.prototype.fnCreateLabelEntry = function (node, lastLine) {
+            var label = node.value, isDirect = BasicFormatter.fnIsDirect(label), line = Number(label);
+            this.line = label;
+            if (!isDirect) {
+                if (line <= lastLine) {
+                    throw this.composeError(Error(), "Expected increasing line number", label, node.pos, node.len);
+                }
+                if (line < 1 || line > 65535) {
+                    throw this.composeError(Error(), "Line number overflow", label, node.pos, node.len);
+                }
+            }
+            var labelEntry = {
+                value: label,
+                pos: node.pos,
+                len: (node.orig || label).length
+            };
+            return labelEntry;
+        };
+        BasicFormatter.prototype.fnCreateLabelMap = function (nodes) {
             var lines = {}; // line numbers
             var lastLine = -1;
             for (var i = 0; i < nodes.length; i += 1) {
                 var node = nodes[i];
                 if (node.type === "label") {
-                    var lineString = node.value, isDirect = BasicFormatter.fnIsDirect(lineString), line = Number(lineString);
-                    this.line = lineString;
-                    if (lineString in lines) {
-                        throw this.composeError(Error(), "Duplicate line number", lineString, node.pos, node.len);
+                    var labelEntry = this.fnCreateLabelEntry(node, lastLine);
+                    if (labelEntry) {
+                        lines[labelEntry.value] = labelEntry;
+                        lastLine = Number(labelEntry.value);
                     }
-                    if (!isDirect) {
-                        if (line <= lastLine) {
-                            throw this.composeError(Error(), "Line number not increasing", lineString, node.pos, node.len);
-                        }
-                        if (line < 1 || line > 65535) {
-                            throw this.composeError(Error(), "Line number overflow", lineString, node.pos, node.len);
-                        }
-                    }
-                    lines[lineString] = {
-                        value: lineString,
-                        pos: node.pos,
-                        len: (node.orig || lineString).length
-                    };
-                    lastLine = line;
                 }
             }
             return lines;
@@ -2918,32 +3034,34 @@ define("BasicFormatter", ["require", "exports", "Utils"], function (require, exp
                 }
             }
         };
-        BasicFormatter.prototype.fnAddReferences = function (nodes, lines, refs) {
-            for (var i = 0; i < nodes.length; i += 1) {
-                var node = nodes[i];
-                if (node.type === "label") {
-                    this.line = node.value;
+        BasicFormatter.prototype.fnAddReferencesForNode = function (node, lines, refs) {
+            if (node.type === "label") {
+                this.line = node.value;
+            }
+            else {
+                this.fnAddSingleReference(node, lines, refs);
+            }
+            if (node.left) {
+                this.fnAddSingleReference(node.left, lines, refs);
+            }
+            if (node.right) {
+                this.fnAddSingleReference(node.right, lines, refs);
+            }
+            if (node.args) {
+                if (node.type === "onErrorGoto" && node.args.length === 1 && node.args[0].value === "0") {
+                    // ignore "on error goto 0"
                 }
                 else {
-                    this.fnAddSingleReference(node, lines, refs);
+                    this.fnAddReferences(node.args, lines, refs); // recursive
                 }
-                if (node.left) {
-                    this.fnAddSingleReference(node.left, lines, refs);
-                }
-                if (node.right) {
-                    this.fnAddSingleReference(node.right, lines, refs);
-                }
-                if (node.args) {
-                    if (node.type === "onErrorGoto" && node.args.length === 1 && node.args[0].value === "0") {
-                        // ignore "on error goto 0"
-                    }
-                    else {
-                        this.fnAddReferences(node.args, lines, refs); // recursive
-                    }
-                }
-                if (node.args2) { // for "ELSE"
-                    this.fnAddReferences(node.args2, lines, refs); // recursive
-                }
+            }
+            if (node.args2) { // for "ELSE"
+                this.fnAddReferences(node.args2, lines, refs); // recursive
+            }
+        };
+        BasicFormatter.prototype.fnAddReferences = function (nodes, lines, refs) {
+            for (var i = 0; i < nodes.length; i += 1) {
+                this.fnAddReferencesForNode(nodes[i], lines, refs);
             }
         };
         BasicFormatter.prototype.fnRenumberLines = function (lines, refs, newLine, oldLine, step, keep) {
@@ -2989,7 +3107,7 @@ define("BasicFormatter", ["require", "exports", "Utils"], function (require, exp
         };
         BasicFormatter.prototype.fnRenumber = function (input, parseTree, newLine, oldLine, step, keep) {
             var refs = [], // references
-            lines = this.fnCreateLineNumbersMap(parseTree);
+            lines = this.fnCreateLabelMap(parseTree);
             this.fnAddReferences(parseTree, lines, refs); // create reference list
             var changes = this.fnRenumberLines(lines, refs, newLine, oldLine, step, keep), output = BasicFormatter.fnApplyChanges(input, changes);
             return output;
@@ -3923,58 +4041,26 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             }
             return pr;
         };
-        CodeGeneratorBasic.prototype.parseOperator = function (node, type) {
+        CodeGeneratorBasic.prototype.parseOperator = function (node) {
             var precedence = CodeGeneratorBasic.operatorPrecedence, operators = CodeGeneratorBasic.operators;
             var value;
             if (node.left) {
                 value = this.parseNode(node.left);
                 var p = precedence[node.type], pl = CodeGeneratorBasic.getLeftOrRightOperatorPrecedence(node.left);
-                /*
-                if (operators[node.left.type] && (node.left.left || node.left.right)) { // binary operator (or unary operator, e.g. not)
-                    const p = precedence[node.type];
-                    let pl: number;
-    
-                    if (node.left.left) { // left is binary
-                        pl = precedence[node.left.type] || 0;
-                    } else { // left is unary
-                        pl = precedence["p" + node.left.type] || precedence[node.left.type] || 0;
-                    }
-    
-                    if (pl < p) {
-                        value = "(" + value + ")";
-                    }
-                }
-                */
                 if (pl !== undefined && pl < p) {
                     value = "(" + value + ")";
                 }
                 var right = node.right;
                 var value2 = this.parseNode(right);
                 var pr = CodeGeneratorBasic.getLeftOrRightOperatorPrecedence(right);
-                /*
-                if (operators[right.type] && (right.left || right.right)) { // binary operator (or unary operator, e.g. not)
-                    const p = precedence[node.type];
-                    let pr: number;
-    
-                    if (right.left) { // right is binary
-                        pr = precedence[right.type] || 0;
-                    } else {
-                        pr = precedence["p" + right.type] || precedence[right.type] || 0;
-                    }
-    
-                    if ((pr < p) || ((pr === p) && node.type === "-")) { // "-" is special
-                        value2 = "(" + value2 + ")";
-                    }
-                }
-                */
                 if (pr !== undefined) {
                     if ((pr < p) || ((pr === p) && node.type === "-")) { // "-" is special
                         value2 = "(" + value2 + ")";
                     }
                 }
                 var whiteBefore = CodeGeneratorBasic.fnWs(node);
-                var operator = whiteBefore + operators[type].toUpperCase();
-                if (whiteBefore === "" && (/^(and|or|xor|mod)$/).test(type)) {
+                var operator = whiteBefore + operators[node.type].toUpperCase();
+                if (whiteBefore === "" && (/^(and|or|xor|mod)$/).test(node.type)) {
                     operator = " " + operator + " ";
                 }
                 value += operator + value2;
@@ -3993,8 +4079,8 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
                 if (p && pr && (pr < p)) {
                     value = "(" + value + ")";
                 }
-                var whiteBefore = CodeGeneratorBasic.fnWs(node), operator = whiteBefore + operators[type].toUpperCase(), whiteAfter = value.startsWith(" ");
-                if (!whiteAfter && type === "not") {
+                var whiteBefore = CodeGeneratorBasic.fnWs(node), operator = whiteBefore + operators[node.type].toUpperCase(), whiteAfter = value.startsWith(" ");
+                if (!whiteAfter && node.type === "not") {
                     value = " " + value;
                 }
                 value = operator + value;
@@ -4008,10 +4094,10 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             if (Utils_6.Utils.debug > 3) {
                 Utils_6.Utils.console.debug("evaluate: parseNode node=%o type=" + node.type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
             }
-            var operators = CodeGeneratorBasic.operators, type = node.type;
+            var type = node.type;
             var value;
-            if (operators[type]) {
-                value = this.parseOperator(node, type);
+            if (CodeGeneratorBasic.operators[type]) {
+                value = this.parseOperator(node);
             }
             else if (this.parseFunctions[type]) { // function with special handling?
                 value = this.parseFunctions[type].call(this, node);
@@ -4021,99 +4107,6 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             }
             return value;
         };
-        /*
-        private parseNode(node: ParserNode) { // eslint-disable-line complexity
-            if (Utils.debug > 3) {
-                Utils.console.debug("evaluate: parseNode node=%o type=" + node.type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
-            }
-    
-            const type = node.type,
-                precedence = CodeGeneratorBasic.operatorPrecedence,
-                operators = CodeGeneratorBasic.operators;
-            let value: string;
-    
-            if (operators[type]) {
-                if (node.left) {
-                    value = this.parseNode(node.left);
-                    if (operators[node.left.type] && (node.left.left || node.left.right)) { // binary operator (or unary operator, e.g. not)
-                        const p = precedence[node.type];
-                        let pl: number;
-    
-                        if (node.left.left) { // left is binary
-                            pl = precedence[node.left.type] || 0;
-                        } else { // left is unary
-                            pl = precedence["p" + node.left.type] || precedence[node.left.type] || 0;
-                        }
-    
-                        if (pl < p) {
-                            value = "(" + value + ")";
-                        }
-                    }
-    
-                    const right = node.right as ParserNode;
-                    let value2 = this.parseNode(right);
-    
-                    if (operators[right.type] && (right.left || right.right)) { // binary operator (or unary operator, e.g. not)
-                        const p = precedence[node.type];
-                        let pr: number;
-    
-                        if (right.left) { // right is binary
-                            pr = precedence[right.type] || 0;
-                        } else {
-                            pr = precedence["p" + right.type] || precedence[right.type] || 0;
-                        }
-    
-                        if ((pr < p) || ((pr === p) && node.type === "-")) { // "-" is special
-                            value2 = "(" + value2 + ")";
-                        }
-                    }
-    
-                    const whiteBefore = CodeGeneratorBasic.fnWs(node);
-                    let operator = whiteBefore + operators[type].toUpperCase();
-    
-                    if (whiteBefore === "" && (/^(and|or|xor|mod)$/).test(type)) {
-                        operator = " " + operator + " ";
-                    }
-    
-                    value += operator + value2;
-                } else if (node.right) { // unary operator, e.g. not
-                    const right = node.right;
-    
-                    value = this.parseNode(right);
-                    let pr: number;
-    
-                    if (right.left) { // was binary op?
-                        pr = precedence[right.type] || 0; // no special prio
-                    } else {
-                        pr = precedence["p" + right.type] || precedence[right.type] || 0; // check unary operator first
-                    }
-    
-                    const p = precedence["p" + node.type] || precedence[node.type] || 0; // check unary operator first
-    
-                    if (p && pr && (pr < p)) {
-                        value = "(" + value + ")";
-                    }
-    
-                    const whiteBefore = CodeGeneratorBasic.fnWs(node),
-                        operator = whiteBefore + operators[type].toUpperCase(),
-                        whiteAfter = value.startsWith(" ");
-    
-                    if (!whiteAfter && type === "not") {
-                        value = " " + value;
-                    }
-                    value = operator + value;
-                } else { // no operator, e.g. "=" in "for"
-                    value = this.fnParseOther(node);
-                }
-            } else if (this.parseFunctions[type]) { // function with special handling?
-                value = this.parseFunctions[type].call(this, node);
-            } else { // for other functions, generate code directly
-                value = this.fnParseOther(node);
-            }
-    
-            return value;
-        }
-        */
         CodeGeneratorBasic.prototype.evaluate = function (parseTree) {
             var output = "";
             for (var i = 0; i < parseTree.length; i += 1) {
@@ -4137,7 +4130,7 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             }
             return output;
         };
-        CodeGeneratorBasic.prototype.generate = function (input, _allowDirect) {
+        CodeGeneratorBasic.prototype.generate = function (input) {
             var out = {
                 text: ""
             };
@@ -4558,7 +4551,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 node.pt = name.charAt(name.length - 1); // set also type; TODO currently not used
             }
             if (arrayIndices) {
-                name += "A".repeat(arrayIndices); // TODO: one "A" should be enough
+                name += "A".repeat(arrayIndices);
             }
             name += mappedTypeChar; // put type at the end
             var needDeclare = false;
@@ -4619,32 +4612,32 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
         };
         CodeGeneratorJs.fnExtractVarName = function (name) {
             if (name.indexOf("v.") === 0) { // variable object?
-                name = name.substr(2); // remove preceding "v."
+                name = name.substring(2); // remove preceding "v."
                 var bracketIndex = name.indexOf("[");
                 if (bracketIndex >= 0) {
-                    name = name.substr(0, bracketIndex);
+                    name = name.substring(0, bracketIndex);
                 }
             }
             if (name.indexOf('v["') === 0) { // variable object in brackets?
-                name = name.substr(3); // remove preceding 'v["'
+                name = name.substring(3); // remove preceding 'v["'
                 var quotesIndex = name.indexOf('"');
-                name = name.substr(0, quotesIndex);
+                name = name.substring(0, quotesIndex);
             }
             return name;
         };
         CodeGeneratorJs.fnGetNameTypeExpression = function (name) {
             if (name.indexOf("v.") === 0) { // variable object with dot?
-                name = name.substr(2); // remove preceding "v."
+                name = name.substring(2); // remove preceding "v."
                 var bracketIndex = name.indexOf("[");
                 if (bracketIndex >= 0) {
-                    name = name.substr(0, bracketIndex);
+                    name = name.substring(0, bracketIndex);
                 }
                 name = '"' + name + '"';
             }
             if (name.indexOf("v[") === 0) { // variable object with brackets?
-                name = name.substr(2); // remove preceding "v["
+                name = name.substring(2); // remove preceding "v["
                 var closeBracketIndex = name.indexOf("]");
-                name = name.substr(0, closeBracketIndex);
+                name = name.substring(0, closeBracketIndex);
             }
             return name;
         };
@@ -4697,7 +4690,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 // when optimizing, beware of "--" operator in JavaScript!
                 if (CodeGeneratorJs.fnIsIntConst(value) || right.type === "number") { // int const or number const (also fp)
                     if (value.charAt(0) === "-") { // starting already with "-"?
-                        node.pv = value.substr(1); // remove "-"
+                        node.pv = value.substring(1); // remove "-"
                     }
                     else {
                         node.pv = "-" + value;
@@ -4861,7 +4854,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             node.pv = node.type;
         };
         CodeGeneratorJs.prototype.vertical = function (node) {
-            var rsxName = node.value.substr(1).toLowerCase().replace(/\./g, "_");
+            var rsxName = node.value.substring(1).toLowerCase().replace(/\./g, "_");
             var rsxAvailable = this.rsx && this.rsx.rsxIsAvailable(rsxName), nodeArgs = this.fnParseArgs(node.args), label = this.fnGetStopLabel();
             if (!rsxAvailable) { // if RSX not available, we delay the error until it is executed (or catched by on error goto)
                 if (!this.quiet) {
@@ -5032,8 +5025,8 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                     if (!(/[}:;\n]$/).test(value2)) { // does not end with } : ; \n
                         value2 += ";";
                     }
-                    else if (value2.substr(-1) === "\n") {
-                        value2 = value2.substr(0, value2.length - 1);
+                    else if (value2.substring(value2.length - 1) === "\n") {
+                        value2 = value2.substring(0, value2.length - 1);
                     }
                     value += " " + value2;
                 }
@@ -5176,7 +5169,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             // optimization for integer constants (check value and not type, because we also want to accept e.g. -<number>):
             var startIsIntConst = CodeGeneratorJs.fnIsIntConst(startValue), endIsIntConst = CodeGeneratorJs.fnIsIntConst(endValue), stepIsIntConst = CodeGeneratorJs.fnIsIntConst(stepValue), varType = this.fnDetermineStaticVarType(varName), type = (varType.length > 1) ? varType.charAt(1) : "";
             if (type === "$") {
-                throw this.composeError(Error(), "String type in FOR at", node.type, node.pos);
+                throw this.composeError(Error(), "Type error", node.args[0].value, node.args[0].pos);
             }
             if (!startIsIntConst) {
                 if (startNode.pt !== "I") {
@@ -5227,12 +5220,12 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 else if (Number(stepValue) < 0) {
                     value += "if (" + varName + " < " + endNameOrValue + ") { o.goto(\"" + label + "e\"); break; }";
                 }
-                else { // stepValue === 0 => endless loop, if starting with variable < end
-                    value += "if (" + varName + " < " + endNameOrValue + ") { o.goto(\"" + label + "e\"); break; }";
+                else { // stepValue === 0 => endless loop, if starting with variable !== end
+                    value += "if (" + varName + " === " + endNameOrValue + ") { o.goto(\"" + label + "e\"); break; }";
                 }
             }
             else {
-                value += "if (" + stepName + " > 0 && " + varName + " > " + endNameOrValue + " || " + stepName + " < 0 && " + varName + " < " + endNameOrValue + ") { o.goto(\"" + label + "e\"); break; }";
+                value += "if (" + stepName + " > 0 && " + varName + " > " + endNameOrValue + " || " + stepName + " < 0 && " + varName + " < " + endNameOrValue + " || !" + stepName + " && " + varName + " === " + endNameOrValue + ") { o.goto(\"" + label + "e\"); break; }";
             }
             node.pv = value;
         };
@@ -5316,7 +5309,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             }
             var prompt = nodeArgs[3];
             if (prompt === ";" || node.args[3].type === "null") { // ";" => insert prompt "? " in quoted string
-                msg = msg.substr(0, msg.length - 1) + "? " + msg.substr(-1, 1);
+                msg = msg.substring(0, msg.length - 1) + "? " + msg.substr(-1, 1);
             }
             for (var i = 4; i < nodeArgs.length; i += 1) {
                 varTypes[i - 4] = this.fnDetermineStaticVarType(nodeArgs[i]);
@@ -5550,33 +5543,36 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 }
             }
         };
+        CodeGeneratorJs.prototype.parseOperator = function (node) {
+            var operators = this.allOperators;
+            if (node.left) {
+                this.parseNode(node.left);
+                if (operators[node.left.type] && node.left.left) { // binary operator?
+                    node.left.pv = "(" + node.left.pv + ")";
+                }
+                if (!node.right) {
+                    throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occur
+                }
+                this.parseNode(node.right);
+                if (operators[node.right.type] && node.right.left) { // binary operator?
+                    node.right.pv = "(" + node.right.pv + ")";
+                }
+                operators[node.type].call(this, node, node.left, node.right);
+            }
+            else {
+                if (!node.right) {
+                    throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occur
+                }
+                this.parseNode(node.right);
+                this.unaryOperators[node.type].call(this, node, undefined, node.right); // unary operator: we just use node.right
+            }
+        };
         CodeGeneratorJs.prototype.parseNode = function (node) {
             if (Utils_7.Utils.debug > 3) {
                 Utils_7.Utils.console.debug("evaluate: parseNode node=%o type=" + node.type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
             }
-            var operators = this.allOperators;
-            if (operators[node.type]) {
-                if (node.left) {
-                    this.parseNode(node.left);
-                    if (operators[node.left.type] && node.left.left) { // binary operator?
-                        node.left.pv = "(" + node.left.pv + ")";
-                    }
-                    if (!node.right) {
-                        throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occur
-                    }
-                    this.parseNode(node.right);
-                    if (operators[node.right.type] && node.right.left) { // binary operator?
-                        node.right.pv = "(" + node.right.pv + ")";
-                    }
-                    operators[node.type].call(this, node, node.left, node.right);
-                }
-                else {
-                    if (!node.right) {
-                        throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occur
-                    }
-                    this.parseNode(node.right);
-                    this.unaryOperators[node.type].call(this, node, undefined, node.right); // unary operator: we just use node.right
-                }
+            if (this.allOperators[node.type]) {
+                this.parseOperator(node);
             }
             else if (this.parseFunctions[node.type]) { // function with special handling?
                 this.parseFunctions[node.type].call(this, node);
@@ -5590,32 +5586,35 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 return (labels[line]) ? all : "/* " + all + " */";
             });
         };
-        CodeGeneratorJs.prototype.fnCreateLabelsMap = function (parseTree, labels, allowDirect) {
+        CodeGeneratorJs.prototype.fnCheckLabel = function (node, lastLine, allowDirect) {
+            var label = node.value, isDirect = label === "", lineNumber = Number(label);
+            if (!isDirect) {
+                if ((lineNumber | 0) !== lineNumber) { // eslint-disable-line no-bitwise
+                    throw this.composeError(Error(), "Expected integer line number", label, node.pos);
+                }
+                if (lineNumber <= lastLine) {
+                    throw this.composeError(Error(), "Expected increasing line number", label, node.pos);
+                }
+                if (lineNumber < 1 || lineNumber > 65535) {
+                    throw this.composeError(Error(), "Line number overflow", label, node.pos);
+                }
+                return label;
+            }
+            else if (!allowDirect) {
+                throw this.composeError(Error(), "Direct command found", label, node.pos);
+            }
+            return label;
+        };
+        CodeGeneratorJs.prototype.fnCreateLabelMap = function (nodes, labels, allowDirect) {
             var lastLine = -1;
-            for (var i = 0; i < parseTree.length; i += 1) {
-                var node = parseTree[i];
+            for (var i = 0; i < nodes.length; i += 1) {
+                var node = nodes[i];
                 if (node.type === "label") {
-                    var label = node.value, isDirect = label === "";
-                    if (label in labels) {
-                        throw this.composeError(Error(), "Duplicate line number", label, node.pos);
+                    var label = this.fnCheckLabel(node, lastLine, allowDirect);
+                    if (label) {
+                        labels[label] = 0; // init call count
+                        lastLine = Number(label);
                     }
-                    var lineNumber = Number(label);
-                    if (!isDirect) {
-                        if ((lineNumber | 0) !== lineNumber) { // eslint-disable-line no-bitwise
-                            throw this.composeError(Error(), "Expected integer line number", label, node.pos);
-                        }
-                        if (lineNumber <= lastLine) {
-                            throw this.composeError(Error(), "Expected increasing line number", label, node.pos);
-                        }
-                        if (lineNumber < 1 || lineNumber > 65535) {
-                            throw this.composeError(Error(), "Line number overflow", label, node.pos);
-                        }
-                        lastLine = lineNumber;
-                    }
-                    else if (!allowDirect) {
-                        throw this.composeError(Error(), "Direct command found", label, node.pos);
-                    }
-                    labels[label] = 0; // init call count
                 }
             }
         };
@@ -5677,7 +5676,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             this.variables = variables;
             this.defScopeArgs = undefined;
             // create labels map
-            this.fnCreateLabelsMap(parseTree, this.referencedLabelsCount, allowDirect);
+            this.fnCreateLabelMap(parseTree, this.referencedLabelsCount, allowDirect);
             this.removeAllDefVarTypes();
             this.fnPrecheckTree(parseTree, this.countMap); // also sets "resumeNoArgsCount" for resume without args
             this.traceActive = this.trace || Boolean(this.countMap.tron) || Boolean(this.countMap.resumeNext) || Boolean(this.countMap.resumeNoArgsCount); // we also switch on tracing for tron, resumeNext or resume without parameter
@@ -16601,43 +16600,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             };
         };
         Controller.prototype.loadExample = function () {
-            var //that = this,
-            inFile = this.vm.vmGetInFileObject();
-            //url: string;
-            /*
-            fnExampleLoaded = function (_sFullUrl: string, key: string, suppressLog?: boolean) {
-                if (key !== example) {
-                    Utils.console.warn("fnExampleLoaded: Unexpected", key, "<>", example);
-                }
-                const exampleEntry = that.model.getExample(example);
-    
-                if (!suppressLog) {
-                    Utils.console.log("Example", url, exampleEntry.meta || "", "loaded");
-                }
-                const input = exampleEntry.script;
-    
-                that.model.setProperty("example", inFile.memorizedExample);
-                that.vm.vmStop("", 0, true);
-                that.loadFileContinue(input);
-            },
-            fnExampleError = function () {
-                Utils.console.log("Example", url, "error");
-                that.model.setProperty("example", inFile.memorizedExample);
-    
-                that.vm.vmStop("", 0, true);
-    
-                const error = that.vm.vmComposeError(Error(), 32, example + " not found"); // TODO: set also derr=146 (xx not found)
-    
-                // error or onError set
-                if (error.hidden) {
-                    that.vm.vmStop("", 0, true); // clear onError
-                }
-                that.outputError(error, true);
-                that.loadFileContinue(null);
-            };
-            */
+            var inFile = this.vm.vmGetInFileObject(), key = this.model.getProperty("example");
             var name = inFile.name;
-            var key = this.model.getProperty("example");
             if (name.charAt(0) === "/") { // absolute path?
                 name = name.substring(1); // remove "/"
                 inFile.memorizedExample = name; // change!
@@ -16651,7 +16615,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     name = name.replace(/\w+\/\.\.\//, ""); // simplify 2 dots (go back) in path: "dir/.."" => ""
                 }
             }
-            //let	example: string,
             var example = name;
             if (Utils_23.Utils.debug > 0) {
                 Utils_23.Utils.console.debug("loadExample: name=" + name + " (current=" + key + ")");
@@ -16668,7 +16631,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.model.setProperty("example", example);
                 var databaseDir = this.model.getDatabase().src;
                 url = databaseDir + "/" + example + ".js";
-                //Utils.loadScript(url, fnExampleLoaded, fnExampleError, example);
                 Utils_23.Utils.loadScript(url, this.createFnExampleLoaded(example, url, inFile), this.createFnExampleError(example, url, inFile), example);
             }
             else { // keep original example in this error case
@@ -16953,7 +16915,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
             else {
                 var error = this.vm.vmComposeError(Error(), 8, String(lineNumber)); // "Line does not exist"
-                //this.vm.print(stream, error.shortMessage + "\r\n");
                 this.outputError(error);
                 this.vm.vmStop("stop", 60, true);
             }
@@ -17177,7 +17138,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                         var error = output.error;
                         if (error.pos < inputText.length + 1) { // error not in direct?
                             error.message = "[prg] " + error.message;
-                            outputString = this.outputError(error, true);
                             output = undefined;
                         }
                     }
@@ -17547,117 +17507,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 }
             }
         };
-        /*
-        // https://stackoverflow.com/questions/10261989/html5-javascript-drag-and-drop-file-from-external-window-windows-explorer
-        // https://www.w3.org/TR/file-upload/#dfn-filereader
-        private fnHandleFileSelect(event: Event) {
-            const dataTransfer = (event as DragEvent).dataTransfer,
-                files = dataTransfer ? dataTransfer.files : ((event.target as any).files as FileList), // dataTransfer for drag&drop, target.files for file input
-                that = this,
-                imported: string[] = [];
-            let fileIndex = 0,
-                file: File,
-                reader: FileReader;
-    
-            function fnReadNextFile() {
-                if (fileIndex < files.length) {
-                    file = files[fileIndex];
-                    fileIndex += 1;
-                    const lastModified = file.lastModified,
-                        lastModifiedDate = lastModified ? new Date(lastModified) : (file as any).lastModifiedDate as Date, // lastModifiedDate deprecated, but for old IE
-                        text = file.name + " " + (file.type || "n/a") + " " + file.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
-    
-                    Utils.console.log(text);
-                    if (file.type === "text/plain") {
-                        reader.readAsText(file);
-                    } else if (file.type === "application/x-zip-compressed") {
-                        reader.readAsArrayBuffer(file);
-                    } else {
-                        reader.readAsDataURL(file);
-                    }
-                } else {
-                    that.fnEndOfImport(imported);
-                }
-            }
-    
-            function fnErrorHandler(event2: ProgressEvent<FileReader>) {
-                const target = event2.target;
-                let msg = "fnErrorHandler: Error reading file " + file.name;
-    
-                if (target !== null && target.error !== null) {
-                    if (target.error.NOT_FOUND_ERR) {
-                        msg += ": File not found";
-                    } else if (target.error.ABORT_ERR) {
-                        msg = ""; // nothing
-                    }
-                }
-                if (msg) {
-                    Utils.console.warn(msg);
-                }
-                fnReadNextFile();
-            }
-    
-            function fnOnLoad(event2: ProgressEvent<FileReader>) {
-                const target = event2.target,
-                    data = (target && target.result) || null,
-                    name = file.name,
-                    type = file.type;
-    
-                if (type === "application/x-zip-compressed" && data instanceof ArrayBuffer) {
-                    let zip: ZipFile | undefined;
-    
-                    try {
-                        zip = new ZipFile(new Uint8Array(data), name); // rather data
-                    } catch (e) {
-                        Utils.console.error(e);
-                        if (e instanceof Error) {
-                            that.outputError(e, true);
-                        }
-                    }
-                    if (zip) {
-                        const zipDirectory = zip.getZipDirectory(),
-                            entries = Object.keys(zipDirectory);
-    
-                        for (let i = 0; i < entries.length; i += 1) {
-                            const name2 = entries[i];
-                            let data2: string | undefined;
-    
-                            try {
-                                data2 = zip.readData(name2);
-                            } catch (e) {
-                                Utils.console.error(e);
-                                if (e instanceof Error) { // eslint-disable-line max-depth
-                                    that.outputError(e, true);
-                                }
-                            }
-    
-                            if (data2) {
-                                that.fnLoad2(data2, name2, type, imported);
-                            }
-                        }
-                    }
-                } else if (typeof data === "string") {
-                    that.fnLoad2(data, name, type, imported);
-                } else {
-                    Utils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);
-                }
-    
-                fnReadNextFile();
-            }
-    
-            event.stopPropagation();
-            event.preventDefault();
-    
-            if (window.FileReader) {
-                reader = new FileReader();
-                reader.onerror = fnErrorHandler;
-                reader.onload = fnOnLoad;
-                fnReadNextFile();
-            } else {
-                Utils.console.warn("FileReader API not supported.");
-            }
-        }
-        */
         Controller.fnHandleDragOver = function (evt) {
             evt.stopPropagation();
             evt.preventDefault();
@@ -17675,13 +17524,10 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
             var dropZone = View_6.View.getElementById1("dropZone");
             dropZone.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
-            //dropZone.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
             this.fileSelect.addFileSelectHandler(dropZone, "drop");
             var canvasElement = this.canvas.getCanvas();
             canvasElement.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
-            //canvasElement.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
             this.fileSelect.addFileSelectHandler(canvasElement, "drop");
-            //View.getElementById1("fileInput").addEventListener("change", this.fnHandleFileSelect.bind(this), false);
             var fileInput = View_6.View.getElementById1("fileInput");
             this.fileSelect.addFileSelectHandler(fileInput, "change");
         };
@@ -17729,24 +17575,60 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.redoStackElement = function () {
             return this.inputStack.redo();
         };
+        Controller.prototype.createFnDatabaseLoaded = function (url) {
+            var _this = this;
+            return function (_sFullUrl, key) {
+                var selectedName = _this.model.getProperty("database");
+                if (selectedName === key) {
+                    _this.model.getDatabase().loaded = true;
+                }
+                else { // should not occur
+                    Utils_23.Utils.console.warn("databaseLoaded: name changed: " + key + " => " + selectedName);
+                    _this.model.setProperty("database", key);
+                    var database = _this.model.getDatabase();
+                    if (database) {
+                        database.loaded = true;
+                    }
+                    _this.model.setProperty("database", selectedName);
+                }
+                Utils_23.Utils.console.log("fnDatabaseLoaded: database loaded: " + key + ": " + url);
+                _this.setExampleSelectOptions();
+                _this.onExampleSelectChange();
+            };
+        };
+        Controller.prototype.createFnDatabaseError = function (url) {
+            var _this = this;
+            return function (_sFullUrl, key) {
+                Utils_23.Utils.console.error("fnDatabaseError: database error: " + key + ": " + url);
+                _this.setExampleSelectOptions();
+                _this.onExampleSelectChange();
+                _this.setInputText("");
+                _this.view.setAreaValue("resultText", "Cannot load database: " + key);
+            };
+        };
         Controller.prototype.onDatabaseSelectChange = function () {
             var url;
             var databaseName = this.view.getSelectValue("databaseSelect");
             this.model.setProperty("database", databaseName);
             this.view.setSelectTitleFromSelectedOption("databaseSelect");
-            var database = this.model.getDatabase(), that = this, fnDatabaseLoaded = function () {
+            var database = this.model.getDatabase();
+            /*
+            that = this,
+            fnDatabaseLoaded = function () {
                 database.loaded = true;
-                Utils_23.Utils.console.log("fnDatabaseLoaded: database loaded: " + databaseName + ": " + url);
+                Utils.console.log("fnDatabaseLoaded: database loaded: " + databaseName + ": " + url);
                 that.setExampleSelectOptions();
                 that.onExampleSelectChange();
-            }, fnDatabaseError = function () {
+            },
+            fnDatabaseError = function () {
                 database.loaded = false;
-                Utils_23.Utils.console.error("fnDatabaseError: database error: " + databaseName + ": " + url);
+                Utils.console.error("fnDatabaseError: database error: " + databaseName + ": " + url);
                 that.setExampleSelectOptions();
                 that.onExampleSelectChange();
                 that.setInputText("");
                 that.view.setAreaValue("resultText", "Cannot load database: " + databaseName);
             };
+            */
             if (!database) {
                 Utils_23.Utils.console.error("onDatabaseSelectChange: database not available:", databaseName);
                 return;
@@ -17763,7 +17645,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.setInputText("#loading database " + databaseName + "...");
                 var exampleIndex = this.model.getProperty("exampleIndex");
                 url = database.src + "/" + exampleIndex;
-                Utils_23.Utils.loadScript(url, fnDatabaseLoaded, fnDatabaseError, databaseName);
+                //Utils.loadScript(url, fnDatabaseLoaded, fnDatabaseError, databaseName);
+                Utils_23.Utils.loadScript(url, this.createFnDatabaseLoaded(url), this.createFnDatabaseError(url), databaseName);
             }
         };
         Controller.prototype.onExampleSelectChange = function () {

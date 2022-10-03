@@ -631,7 +631,7 @@ export class Controller implements IController {
 			storage = Utils.localStorage;
 
 		if (database !== "storage") {
-			this.model.setProperty<string>("database", "storage"); // switch to storage database
+			this.model.setProperty("database", "storage"); // switch to storage database
 		}
 
 		let	dir: string[];
@@ -668,7 +668,7 @@ export class Controller implements IController {
 		if (database === "storage") {
 			this.setExampleSelectOptions();
 		} else {
-			this.model.setProperty<string>("database", database); // restore database
+			this.model.setProperty("database", database); // restore database
 		}
 	}
 
@@ -1372,7 +1372,7 @@ export class Controller implements IController {
 		this.startMainLoop();
 	}
 
-	private createFnExampleLoaded(example: string, url: string, inFile: any) { //TTT
+	private createFnExampleLoaded(example: string, url: string, inFile: ReturnType<typeof this.vm.vmGetInFileObject>) {
 		return (_sFullUrl: string, key: string, suppressLog?: boolean) => {
 			if (key !== example) {
 				Utils.console.warn("fnExampleLoaded: Unexpected", key, "<>", example);
@@ -1390,7 +1390,7 @@ export class Controller implements IController {
 		};
 	}
 
-	private createFnExampleError(example: string, url: string, inFile: any) { //TTT
+	private createFnExampleError(example: string, url: string, inFile: ReturnType<typeof this.vm.vmGetInFileObject>) {
 		return () => {
 			Utils.console.log("Example", url, "error");
 			this.model.setProperty("example", inFile.memorizedExample);
@@ -1409,45 +1409,9 @@ export class Controller implements IController {
 	}
 
 	private loadExample() {
-		const //that = this,
-			inFile = this.vm.vmGetInFileObject();
-			//url: string;
-
-		/*
-		fnExampleLoaded = function (_sFullUrl: string, key: string, suppressLog?: boolean) {
-			if (key !== example) {
-				Utils.console.warn("fnExampleLoaded: Unexpected", key, "<>", example);
-			}
-			const exampleEntry = that.model.getExample(example);
-
-			if (!suppressLog) {
-				Utils.console.log("Example", url, exampleEntry.meta || "", "loaded");
-			}
-			const input = exampleEntry.script;
-
-			that.model.setProperty("example", inFile.memorizedExample);
-			that.vm.vmStop("", 0, true);
-			that.loadFileContinue(input);
-		},
-		fnExampleError = function () {
-			Utils.console.log("Example", url, "error");
-			that.model.setProperty("example", inFile.memorizedExample);
-
-			that.vm.vmStop("", 0, true);
-
-			const error = that.vm.vmComposeError(Error(), 32, example + " not found"); // TODO: set also derr=146 (xx not found)
-
-			// error or onError set
-			if (error.hidden) {
-				that.vm.vmStop("", 0, true); // clear onError
-			}
-			that.outputError(error, true);
-			that.loadFileContinue(null);
-		};
-		*/
-
+		const inFile = this.vm.vmGetInFileObject(),
+			key = this.model.getProperty<string>("example");
 		let name = inFile.name;
-		const key = this.model.getProperty<string>("example");
 
 		if (name.charAt(0) === "/") { // absolute path?
 			name = name.substring(1); // remove "/"
@@ -1463,7 +1427,6 @@ export class Controller implements IController {
 				name = name.replace(/\w+\/\.\.\//, ""); // simplify 2 dots (go back) in path: "dir/.."" => ""
 			}
 		}
-		//let	example: string,
 		const example = name;
 
 		if (Utils.debug > 0) {
@@ -1484,7 +1447,6 @@ export class Controller implements IController {
 			const databaseDir = this.model.getDatabase().src;
 
 			url = databaseDir + "/" + example + ".js";
-			//Utils.loadScript(url, fnExampleLoaded, fnExampleError, example);
 			Utils.loadScript(url, this.createFnExampleLoaded(example, url, inFile), this.createFnExampleError(example, url, inFile), example);
 		} else { // keep original example in this error case
 			url = example;
@@ -1839,7 +1801,6 @@ export class Controller implements IController {
 		} else {
 			const error = this.vm.vmComposeError(Error(), 8, String(lineNumber)); // "Line does not exist"
 
-			//this.vm.print(stream, error.shortMessage + "\r\n");
 			this.outputError(error);
 			this.vm.vmStop("stop", 60, true);
 		}
@@ -2126,7 +2087,6 @@ export class Controller implements IController {
 
 					if (error.pos < inputText.length + 1) { // error not in direct?
 						error.message = "[prg] " + error.message;
-						outputString = this.outputError(error, true);
 						output = undefined;
 					}
 				}
@@ -2574,118 +2534,6 @@ export class Controller implements IController {
 		}
 	}
 
-	/*
-	// https://stackoverflow.com/questions/10261989/html5-javascript-drag-and-drop-file-from-external-window-windows-explorer
-	// https://www.w3.org/TR/file-upload/#dfn-filereader
-	private fnHandleFileSelect(event: Event) {
-		const dataTransfer = (event as DragEvent).dataTransfer,
-			files = dataTransfer ? dataTransfer.files : ((event.target as any).files as FileList), // dataTransfer for drag&drop, target.files for file input
-			that = this,
-			imported: string[] = [];
-		let fileIndex = 0,
-			file: File,
-			reader: FileReader;
-
-		function fnReadNextFile() {
-			if (fileIndex < files.length) {
-				file = files[fileIndex];
-				fileIndex += 1;
-				const lastModified = file.lastModified,
-					lastModifiedDate = lastModified ? new Date(lastModified) : (file as any).lastModifiedDate as Date, // lastModifiedDate deprecated, but for old IE
-					text = file.name + " " + (file.type || "n/a") + " " + file.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
-
-				Utils.console.log(text);
-				if (file.type === "text/plain") {
-					reader.readAsText(file);
-				} else if (file.type === "application/x-zip-compressed") {
-					reader.readAsArrayBuffer(file);
-				} else {
-					reader.readAsDataURL(file);
-				}
-			} else {
-				that.fnEndOfImport(imported);
-			}
-		}
-
-		function fnErrorHandler(event2: ProgressEvent<FileReader>) {
-			const target = event2.target;
-			let msg = "fnErrorHandler: Error reading file " + file.name;
-
-			if (target !== null && target.error !== null) {
-				if (target.error.NOT_FOUND_ERR) {
-					msg += ": File not found";
-				} else if (target.error.ABORT_ERR) {
-					msg = ""; // nothing
-				}
-			}
-			if (msg) {
-				Utils.console.warn(msg);
-			}
-			fnReadNextFile();
-		}
-
-		function fnOnLoad(event2: ProgressEvent<FileReader>) {
-			const target = event2.target,
-				data = (target && target.result) || null,
-				name = file.name,
-				type = file.type;
-
-			if (type === "application/x-zip-compressed" && data instanceof ArrayBuffer) {
-				let zip: ZipFile | undefined;
-
-				try {
-					zip = new ZipFile(new Uint8Array(data), name); // rather data
-				} catch (e) {
-					Utils.console.error(e);
-					if (e instanceof Error) {
-						that.outputError(e, true);
-					}
-				}
-				if (zip) {
-					const zipDirectory = zip.getZipDirectory(),
-						entries = Object.keys(zipDirectory);
-
-					for (let i = 0; i < entries.length; i += 1) {
-						const name2 = entries[i];
-						let data2: string | undefined;
-
-						try {
-							data2 = zip.readData(name2);
-						} catch (e) {
-							Utils.console.error(e);
-							if (e instanceof Error) { // eslint-disable-line max-depth
-								that.outputError(e, true);
-							}
-						}
-
-						if (data2) {
-							that.fnLoad2(data2, name2, type, imported);
-						}
-					}
-				}
-			} else if (typeof data === "string") {
-				that.fnLoad2(data, name, type, imported);
-			} else {
-				Utils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);
-			}
-
-			fnReadNextFile();
-		}
-
-		event.stopPropagation();
-		event.preventDefault();
-
-		if (window.FileReader) {
-			reader = new FileReader();
-			reader.onerror = fnErrorHandler;
-			reader.onload = fnOnLoad;
-			fnReadNextFile();
-		} else {
-			Utils.console.warn("FileReader API not supported.");
-		}
-	}
-	*/
-
 	private static fnHandleDragOver(evt: DragEvent) {
 		evt.stopPropagation();
 		evt.preventDefault();
@@ -2705,16 +2553,13 @@ export class Controller implements IController {
 		const dropZone = View.getElementById1("dropZone");
 
 		dropZone.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
-		//dropZone.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
 		this.fileSelect.addFileSelectHandler(dropZone, "drop");
 
 		const canvasElement = this.canvas.getCanvas();
 
 		canvasElement.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
-		//canvasElement.addEventListener("drop", this.fnHandleFileSelect.bind(this), false);
 		this.fileSelect.addFileSelectHandler(canvasElement, "drop");
 
-		//View.getElementById1("fileInput").addEventListener("change", this.fnHandleFileSelect.bind(this), false);
 		const fileInput = View.getElementById1("fileInput");
 
 		this.fileSelect.addFileSelectHandler(fileInput, "change");
@@ -2777,6 +2622,39 @@ export class Controller implements IController {
 		return this.inputStack.redo();
 	}
 
+	private createFnDatabaseLoaded(url: string) {
+		return (_sFullUrl: string, key: string) => {
+			const selectedName = this.model.getProperty<string>("database");
+
+			if (selectedName === key) {
+				this.model.getDatabase().loaded = true;
+			} else { // should not occur
+				Utils.console.warn("databaseLoaded: name changed: " + key + " => " + selectedName);
+				this.model.setProperty("database", key);
+				const database = this.model.getDatabase();
+
+				if (database) {
+					database.loaded = true;
+				}
+				this.model.setProperty("database", selectedName);
+			}
+
+			Utils.console.log("fnDatabaseLoaded: database loaded: " + key + ": " + url);
+			this.setExampleSelectOptions();
+			this.onExampleSelectChange();
+		};
+	}
+
+	private createFnDatabaseError(url: string) {
+		return (_sFullUrl: string, key: string) => {
+			Utils.console.error("fnDatabaseError: database error: " + key + ": " + url);
+			this.setExampleSelectOptions();
+			this.onExampleSelectChange();
+			this.setInputText("");
+			this.view.setAreaValue("resultText", "Cannot load database: " + key);
+		};
+	}
+
 	onDatabaseSelectChange(): void {
 		let url: string;
 		const databaseName = this.view.getSelectValue("databaseSelect");
@@ -2784,22 +2662,24 @@ export class Controller implements IController {
 		this.model.setProperty("database", databaseName);
 		this.view.setSelectTitleFromSelectedOption("databaseSelect");
 
-		const database = this.model.getDatabase(),
-			that = this,
-			fnDatabaseLoaded = function () {
-				database.loaded = true;
-				Utils.console.log("fnDatabaseLoaded: database loaded: " + databaseName + ": " + url);
-				that.setExampleSelectOptions();
-				that.onExampleSelectChange();
-			},
-			fnDatabaseError = function () {
-				database.loaded = false;
-				Utils.console.error("fnDatabaseError: database error: " + databaseName + ": " + url);
-				that.setExampleSelectOptions();
-				that.onExampleSelectChange();
-				that.setInputText("");
-				that.view.setAreaValue("resultText", "Cannot load database: " + databaseName);
-			};
+		const database = this.model.getDatabase();
+		/*
+		that = this,
+		fnDatabaseLoaded = function () {
+			database.loaded = true;
+			Utils.console.log("fnDatabaseLoaded: database loaded: " + databaseName + ": " + url);
+			that.setExampleSelectOptions();
+			that.onExampleSelectChange();
+		},
+		fnDatabaseError = function () {
+			database.loaded = false;
+			Utils.console.error("fnDatabaseError: database error: " + databaseName + ": " + url);
+			that.setExampleSelectOptions();
+			that.onExampleSelectChange();
+			that.setInputText("");
+			that.view.setAreaValue("resultText", "Cannot load database: " + databaseName);
+		};
+		*/
 
 		if (!database) {
 			Utils.console.error("onDatabaseSelectChange: database not available:", databaseName);
@@ -2819,7 +2699,8 @@ export class Controller implements IController {
 			const exampleIndex = this.model.getProperty<string>("exampleIndex");
 
 			url = database.src + "/" + exampleIndex;
-			Utils.loadScript(url, fnDatabaseLoaded, fnDatabaseError, databaseName);
+			//Utils.loadScript(url, fnDatabaseLoaded, fnDatabaseError, databaseName);
+			Utils.loadScript(url, this.createFnDatabaseLoaded(url), this.createFnDatabaseError(url), databaseName);
 		}
 	}
 
