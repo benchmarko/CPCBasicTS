@@ -1287,15 +1287,10 @@ export class CpcVm {
 			this.keyboard.resetExpansionTokens();
 			// TODO: reset also speed key
 			break;
-		case 0xbb06: // KM Wait Char (ROM &1A3C)
-			// since we do not return a character, we do the same as call &bb18
-			if (this.inkey$() === "") { // no key?
-				this.vmStop("waitKey", 30); // wait for key
-			}
-			break;
 		case 0xbb0c: // KM Char Return (ROM &1A77), depending on number of args
 			this.vmPutKeyInBuffer(String.fromCharCode(args.length));
 			break;
+		case 0xbb06: // KM Wait Char (ROM &1A3C); since we do not return a character, we do the same as call &bb18
 		case 0xbb18: // KM Wait Key (ROM &1B56)
 			if (this.inkey$() === "") { // no key?
 				this.vmStop("waitKey", 30); // wait for key
@@ -1334,10 +1329,8 @@ export class CpcVm {
 			this.cursor(0, 0);
 			break;
 		case 0xbb8a: // TXT Place Cursor (ROM &1268)
-			this.vmPlaceRemoveCursor(0); // 0=stream
-			break;
 		case 0xbb8d: // TXT Remove Cursor (ROM &1268); same as place cursor
-			this.vmPlaceRemoveCursor(0);
+			this.vmPlaceRemoveCursor(0); // 0=stream
 			break;
 		case 0xbb90: // TXT Set Pen (ROM &12A9), depending on number of args
 			this.pen(0, args.length % 16);
@@ -2267,18 +2260,6 @@ export class CpcVm {
 			this.vmInputFromFile(args); // remaining arguments
 		}
 	}
-
-	/*
-	instr(p1: string | number, p2: string, p3?: string): number { // optional startpos as first parameter
-		this.vmAssertString(p2, "INSTR");
-		if (typeof p1 === "string") { // p1=string, p2=search string
-			return p1.indexOf(p2) + 1;
-		}
-		p1 = this.vmInRangeRound(p1, 1, 255, "INSTR"); // p1=startpos
-		this.vmAssertString(p3 as string, "INSTR");
-		return p2.indexOf(p3 as string, p1 - 1) + 1; // p2=string, p3=search string
-	}
-	*/
 
 	instr(p1: string | number, p2: string, p3?: string): number { // optional startpos as first parameter
 		const startPos = typeof p1 === "number" ? this.vmInRangeRound(p1, 1, 255, "INSTR") - 1 : 0, // p1=startpos
@@ -3592,7 +3573,6 @@ export class CpcVm {
 
 		// To avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
 		// Use Math.abs(n) and Math.sign(n) To round negative numbers to larger negative numbers
-		//return Number(Math.round(Number(n + "e" + decimals)) + "e" + ((decimals >= 0) ? "-" + decimals : "+" + -decimals));
 		return Math.sign(n) * Number(Math.round(Number(Math.abs(n) + "e" + decimals)) + "e" + ((decimals >= 0) ? "-" + decimals : "+" + -decimals));
 	}
 

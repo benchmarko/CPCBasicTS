@@ -371,7 +371,7 @@ export class CodeGeneratorToken {
 	}
 
 	private static getBit7TerminatedString(s: string) {
-		return s.substr(0, s.length - 1) + String.fromCharCode(s.charCodeAt(s.length - 1) | 0x80); // eslint-disable-line no-bitwise
+		return s.substring(0, s.length - 1) + String.fromCharCode(s.charCodeAt(s.length - 1) | 0x80); // eslint-disable-line no-bitwise
 	}
 
 	private combineArgsWithSeparator(nodeArgs: string[]) {
@@ -595,7 +595,7 @@ export class CodeGeneratorToken {
 
 	// special keyword functions
 	private vertical(node: ParserNode) { // "|" for rsx
-		const rsxName = node.value.substr(1).toUpperCase(),
+		const rsxName = node.value.substring(1).toUpperCase(),
 			nodeArgs = this.fnParseArgs(node.args),
 			offset = 0; // (offset to tokens following RSX name) TODO
 
@@ -653,7 +653,7 @@ export class CodeGeneratorToken {
 		}
 
 		const withFn = node.left.value,
-			withoutFn = withFn.substr(2); // remove first 2 characters "FN" or "fn"
+			withoutFn = withFn.substring(2); // remove first 2 characters "FN" or "fn"
 
 		node.left.value = withoutFn; // fast hack: without fn
 
@@ -804,8 +804,7 @@ export class CodeGeneratorToken {
 		}
 
 		nodeArgs.splice(i, 4, nodeArgs[i] + nodeArgs[i + 1] + nodeArgs[i + 2] + nodeArgs[i + 3]); // combine 4 elements into one
-		value += nodeArgs.join(",");
-		return value;
+		return value + nodeArgs.join(",");
 	}
 	private list(node: ParserNode) {
 		const nodeArgs = this.fnParseArgs(node.args);
@@ -907,8 +906,21 @@ export class CodeGeneratorToken {
 			template = " " + template;
 		}
 
-		// separator between args could be "," or ";", we use ","
-		return CodeGeneratorToken.token2String(node.type) + template + ";" + nodeArgs.join(",");
+		return CodeGeneratorToken.token2String(node.type) + template + nodeArgs.join(""); // separators comma or semicolon are already there
+	}
+	private write(node: ParserNode) {
+		const nodeArgs = this.fnParseArgs(node.args),
+			hasStream = CodeGeneratorToken.fnHasStream(node);
+		let value = CodeGeneratorToken.token2String(node.type);
+
+		if (nodeArgs.length && !hasStream) { // args and not stream?
+			value += " ";
+		}
+		if (hasStream && nodeArgs.length > 1) { // more args after stream?
+			nodeArgs[0] = String(nodeArgs[0]) + ",";
+		}
+
+		return value + nodeArgs.join(""); // separators comma or semicolon are already there
 	}
 
 	/* eslint-disable no-invalid-this */
@@ -953,7 +965,8 @@ export class CodeGeneratorToken {
 		onSqGosub: this.onSqGosub,
 		print: this.print,
 		rem: this.rem,
-		using: this.using
+		using: this.using,
+		write: this.write
 	};
 	/* eslint-enable no-invalid-this */
 

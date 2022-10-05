@@ -916,6 +916,7 @@ export class Canvas {
 	*/
 
 	draw(x: number, y: number): void {
+		// TODO
 		//const xStart = Canvas.cpcRoundingTowardsZeroX(this.xPos, this.modeData.pixelWidth),
 		//	yStart = Canvas.cpcRoundingTowardsZeroY(this.yPos, this.modeData.pixelHeight);
 		const xStart = this.xPos,

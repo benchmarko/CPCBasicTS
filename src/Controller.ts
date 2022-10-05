@@ -2663,23 +2663,6 @@ export class Controller implements IController {
 		this.view.setSelectTitleFromSelectedOption("databaseSelect");
 
 		const database = this.model.getDatabase();
-		/*
-		that = this,
-		fnDatabaseLoaded = function () {
-			database.loaded = true;
-			Utils.console.log("fnDatabaseLoaded: database loaded: " + databaseName + ": " + url);
-			that.setExampleSelectOptions();
-			that.onExampleSelectChange();
-		},
-		fnDatabaseError = function () {
-			database.loaded = false;
-			Utils.console.error("fnDatabaseError: database error: " + databaseName + ": " + url);
-			that.setExampleSelectOptions();
-			that.onExampleSelectChange();
-			that.setInputText("");
-			that.view.setAreaValue("resultText", "Cannot load database: " + databaseName);
-		};
-		*/
 
 		if (!database) {
 			Utils.console.error("onDatabaseSelectChange: database not available:", databaseName);
@@ -2699,7 +2682,6 @@ export class Controller implements IController {
 			const exampleIndex = this.model.getProperty<string>("exampleIndex");
 
 			url = database.src + "/" + exampleIndex;
-			//Utils.loadScript(url, fnDatabaseLoaded, fnDatabaseError, databaseName);
 			Utils.loadScript(url, this.createFnDatabaseLoaded(url), this.createFnDatabaseError(url), databaseName);
 		}
 	}
