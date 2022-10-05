@@ -46,6 +46,7 @@ export declare class CodeGeneratorJs {
     private fnParseOneArg;
     private fnParseArgRange;
     private fnParseArgs;
+    private fnParseArgsIgnoringCommaSemi;
     private fnDetermineStaticVarType;
     private static fnExtractVarName;
     private static fnGetNameTypeExpression;
@@ -136,6 +137,7 @@ export declare class CodeGeneratorJs {
     private spc;
     private stopOrEnd;
     private tab;
+    private usingOrWrite;
     private wend;
     private "while";
     private readonly parseFunctions;

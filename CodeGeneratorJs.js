@@ -58,6 +58,13 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 "@": this.addressOf,
                 "#": CodeGeneratorJs.stream
             };
+            /*
+            private write(node: CodeNode) {
+                const nodeArgs = this.fnParseArgsIgnoringCommaSemi(node.args);
+        
+                node.pv = nodeArgs.join(", ");
+            }
+            */
             /* eslint-disable no-invalid-this */
             this.parseFunctions = {
                 ";": CodeGeneratorJs.commaOrSemicolon,
@@ -135,8 +142,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 stop: this.stopOrEnd,
                 tab: this.tab,
                 tron: this.fnCommandWithGoto,
+                using: this.usingOrWrite,
                 wend: this.wend,
-                "while": this.while
+                "while": this.while,
+                write: this.usingOrWrite
             };
             this.lexer = options.lexer;
             this.parser = options.parser;
@@ -247,6 +256,15 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
             }
             return this.fnParseArgRange(args, 0, args.length - 1);
+        };
+        CodeGeneratorJs.prototype.fnParseArgsIgnoringCommaSemi = function (args) {
+            var nodeArgs = [];
+            for (var i = 0; i < args.length; i += 1) {
+                if (args[i].type !== "," && args[i].type !== ";") { // ignore separators
+                    nodeArgs.push(this.fnParseOneArg(args[i]));
+                }
+            }
+            return nodeArgs;
         };
         CodeGeneratorJs.prototype.fnDetermineStaticVarType = function (name) {
             return this.variables.determineStaticVarType(name);
@@ -1146,6 +1164,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         CodeGeneratorJs.prototype.tab = function (node) {
             var nodeArgs = this.fnParseArgs(node.args);
             node.pv = "{type: \"tab\", args: [" + nodeArgs.join(", ") + "]}"; // we must delay the tab() call until print() is called
+        };
+        CodeGeneratorJs.prototype.usingOrWrite = function (node) {
+            var nodeArgs = this.fnParseArgsIgnoringCommaSemi(node.args);
+            node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + ")";
         };
         CodeGeneratorJs.prototype.wend = function (node) {
             var label = this.stack.whileLabel.pop();

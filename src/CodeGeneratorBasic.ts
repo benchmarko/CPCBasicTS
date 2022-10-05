@@ -494,7 +494,18 @@ export class CodeGeneratorBasic {
 		const nodeArgs = this.fnParseArgs(node.args),
 			template = nodeArgs.length ? nodeArgs.shift() || "" : "";
 
-		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(template) + ";" + nodeArgs.join(","); // separator between args could be "," or ";", we use ","
+		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(template) + nodeArgs.join("");
+	}
+
+	private write(node: ParserNode) {
+		const nodeArgs = this.fnParseArgs(node.args),
+			hasStream = CodeGeneratorBasic.fnHasStream(node);
+
+		if (hasStream && nodeArgs.length > 1) { // more args after stream?
+			nodeArgs[0] = String(nodeArgs[0]) + ",";
+		}
+
+		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(nodeArgs.join("")); // separators already there
 	}
 
 	/* eslint-disable no-invalid-this */
@@ -533,7 +544,8 @@ export class CodeGeneratorBasic {
 		onSqGosub: this.onSqGosub,
 		print: this.print,
 		rem: this.rem,
-		using: this.using
+		using: this.using,
+		write: this.write
 	};
 	/* eslint-enable no-invalid-this */
 

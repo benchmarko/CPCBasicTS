@@ -277,13 +277,10 @@ define("Polyfills", ["require", "exports", "Utils"], function (require, exports,
     exports.Polyfills = {
         list: [],
         getList: function () {
-            //return Polyfills.count;
             return exports.Polyfills.list;
         },
         log: function (part) {
             exports.Polyfills.list.push(part);
-            //Utils.console.debug("Polyfill: " + part);
-            //Polyfills.count += 1;
         }
     };
     // IE: window.console is only available when Dev Tools are open
@@ -754,7 +751,6 @@ define("Polyfills", ["require", "exports", "Utils"], function (require, exports,
             exports.Polyfills.log("window.AudioContext");
         }
         else {
-            //Utils.console.warn("Polyfill: window.AudioContext: not ok!");
             exports.Polyfills.log("window.AudioContext not ok!");
         }
     }
@@ -801,7 +797,6 @@ define("Polyfills", ["require", "exports", "Utils"], function (require, exports,
         window.Uint8Array.BYTES_PER_ELEMENT = 1;
         // A more complex solution would be: https://github.com/inexorabletash/polyfill/blob/master/typedarray.js
     }
-    //Utils.console.debug("Polyfill: end of Polyfills: count=" + Polyfills.count);
     Utils_1.Utils.console.debug("Polyfills: (" + exports.Polyfills.getList().length + ") " + exports.Polyfills.getList().join("; "));
 });
 // end
@@ -1783,16 +1778,6 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 }
             }
         };
-        /*
-        private fnMaskedExpressionError(expression: ParserNode, typeFirstChar: string) {
-            this.fnMaskedError(expression, "Expected " + BasicParser.parameterTypes[typeFirstChar]);
-            //if (!this.fnLastStatementIsOnErrorGotoX()) {
-            //	throw this.composeError(Error(), "Expected " + BasicParser.parameterTypes[typeFirstChar], expression.value, expression.pos);
-            //} else if (!this.quiet) {
-            //	Utils.console.warn(this.composeError({} as Error, "Expected " + BasicParser.parameterTypes[typeFirstChar], expression.value, expression.pos).message);
-            //}
-        }
-        */
         BasicParser.prototype.fnCheckStaticTypeNotNumber = function (expression, typeFirstChar) {
             var type = expression.type, isStringFunction = (BasicParser.keywords[type] || "").startsWith("f") && type.endsWith("$"), isStringIdentifier = type === "identifier" && expression.value.endsWith("$");
             if (type === "string" || type === "#" || isStringFunction || isStringIdentifier) { // got a string or a stream? (statical check)
@@ -1891,7 +1876,6 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 if (types && type.slice(-1) !== "*") { // "*"= any number of parameters
                     type = types.shift() || "";
                     if (!type) {
-                        //throw this.composeError(Error(), "Expected end of arguments", this.previousToken.type, this.previousToken.pos);
                         this.fnMaskedError(this.previousToken, "Expected end of arguments"); // If masked, it will accept more args than expected
                     }
                 }
@@ -1908,13 +1892,6 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             }
             if (this.previousToken.type === "," && keyword !== "delete" && keyword !== "list") { // for line numbe range in delete, list it is ok
                 this.fnMaskedError(this.previousToken, "Operand missing");
-                /*
-                if (!this.fnLastStatementIsOnErrorGotoX()) {
-                    throw this.composeError(Error(), "Operand missing", this.previousToken.type, this.previousToken.pos);
-                } else if (!this.quiet) {
-                    Utils.console.warn(this.composeError({} as Error, "Operand missing", this.previousToken.type, this.previousToken.pos));
-                }
-                */
             }
             return args;
         };
@@ -1923,6 +1900,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             while (!closeTokens[this.token.type]) {
                 args.push(this.expression(0));
                 if (this.token.type === "," || this.token.type === ";") {
+                    args.push(this.token); // keep comma or semi
                     this.advance();
                 }
                 else {
@@ -1939,24 +1917,21 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
         };
         BasicParser.prototype.fnGetArgsInParenthesesOrBrackets = function () {
             var brackets = BasicParser.brackets;
-            var bracketOpen;
-            if (this.token.type === "(" || this.token.type === "[") {
-                bracketOpen = this.token;
+            if (this.token.type === "[") {
+                this.advance();
             }
-            this.advance(bracketOpen ? bracketOpen.type : "(");
-            if (!bracketOpen) {
-                throw this.composeError(Error(), "Programming error: Undefined bracketOpen", this.token.type, this.token.pos); // should not occur
+            else {
+                this.advance("(");
             }
-            var args = this.fnGetArgs("_any1"); // (until "]" or ")")
+            var bracketOpen = this.previousToken, args = this.fnGetArgs("_any1"); // (until "]" or ")")
             args.unshift(bracketOpen);
-            var bracketClose;
-            if (this.token.type === ")" || this.token.type === "]") {
-                bracketClose = this.token;
+            if (this.token.type === "]") {
+                this.advance();
             }
-            this.advance(bracketClose ? bracketClose.type : ")");
-            if (!bracketClose) {
-                throw this.composeError(Error(), "Programming error: Undefined bracketClose", this.token.type, this.token.pos); // should not occur
+            else {
+                this.advance(")");
             }
+            var bracketClose = this.previousToken;
             args.push(bracketClose);
             if (brackets[bracketOpen.type] !== bracketClose.type) {
                 if (!this.quiet) {
@@ -2400,72 +2375,6 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             }
             return node;
         };
-        /*
-        private fnHandlePrintArgument_ok1(printNodeArgs: ParserNode[]) {
-            let node2: ParserNode | undefined;
-    
-            if (this.token.type === "spc" || this.token.type === "tab") {
-                this.advance();
-                node2 = this.fnCreateFuncCall();
-            } else if (this.token.type === "using") {
-                node2 = this.token;
-                this.advance();
-                const t = this.expression(0); // format
-    
-                this.advance(";"); // after the format there must be a ";"
-    
-                node2.args = this.fnGetArgsSepByCommaSemi();
-                node2.args.unshift(t);
-                if (this.previousToken.type === ";") { // using closed by ";"?
-                    //printNode.args.push(node2);
-                    printNodeArgs.push(node2);
-                    node2 = this.previousToken; // keep it for print
-                }
-            } else if (BasicParser.keywords[this.token.type] && (BasicParser.keywords[this.token.type].charAt(0) === "c" || BasicParser.keywords[this.token.type].charAt(0) === "p")) { // stop also at keyword which is c=command or p=part of command
-                // let node2 undefined
-            } else if (this.token.type === ";" || this.token.type === ",") { // separator ";" or comma tab separator ","
-                node2 = this.token;
-                this.advance();
-            } else {
-                node2 = this.expression(0);
-            }
-            return node2;
-        }
-        */
-        /*
-        private fnHandlePrintArgument_t1(printNodeArgs: ParserNode[]) {
-            let node2: ParserNode | undefined;
-    
-            if (this.token.type === "spc" || this.token.type === "tab") {
-                this.advance();
-                node2 = this.fnCreateFuncCall();
-            } else if (this.token.type === "using") {
-                node2 = this.token;
-                this.advance();
-                const t = this.expression(0); // format
-    
-                this.advance(";"); // after the format there must be a ";"
-    
-                node2.args = this.fnGetArgsSepByCommaSemi();
-                node2.args.unshift(t);
-                if (this.previousToken.type === ";") { // using closed by ";"?
-                    //printNode.args.push(node2);
-                    printNodeArgs.push(node2);
-                    node2 = this.previousToken; // keep it for print
-                }
-            } else {
-                node2 = this.expression(0);
-            }
-    
-            if (this.token.type === ";" || this.token.type === ",") { // separator ";" or comma tab separator ","
-                node2 = this.token;
-                this.advance();
-            } else {
-                node2 = this.expression(0);
-            }
-            return node2;
-        }
-        */
         BasicParser.prototype.print = function () {
             var node = this.previousToken, closeTokens = BasicParser.closeTokensForArgs, stream = this.fnGetOptionalStream();
             node.args = [];
@@ -2476,42 +2385,6 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 }
             }
             while (!closeTokens[this.token.type]) {
-                /*
-                let node2: ParserNode;
-    
-                if (this.token.type === "spc" || this.token.type === "tab") {
-                    this.advance();
-                    node2 = this.fnCreateFuncCall();
-                } else if (this.token.type === "using") {
-                    node2 = this.token;
-                    this.advance();
-                    const t = this.expression(0); // format
-    
-                    this.advance(";"); // after the format there must be a ";"
-    
-                    node2.args = this.fnGetArgsSepByCommaSemi();
-                    node2.args.unshift(t);
-                    if (this.previousToken.type === ";") { // using closed by ";"?
-                        node.args.push(node2);
-                        node2 = this.previousToken; // keep it for print
-                    }
-                } else if (BasicParser.keywords[this.token.type] && (BasicParser.keywords[this.token.type].charAt(0) === "c" || BasicParser.keywords[this.token.type].charAt(0) === "p")) { // stop also at keyword which is c=command or p=part of command
-                    break;
-                    //TTT: node2 not set?
-                } else if (this.token.type === ";" || this.token.type === ",") { // separator ";" or comma tab separator ","
-                    node2 = this.token;
-                    this.advance();
-                } else {
-                    node2 = this.expression(0);
-                }
-    
-                const node2 = this.fnHandlePrintArgument(node.args);
-    
-                if (!node2) {
-                    break;
-                }
-                node.args.push(node2);
-                */
                 var arg = void 0;
                 if (this.token.type === "spc" || this.token.type === "tab") {
                     this.advance();
@@ -2520,11 +2393,13 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 else if (this.token.type === "using") {
                     arg = this.token;
                     this.advance();
-                    var t = this.expression(0); // format
+                    var format = this.expression(0); // format
                     this.advance(";"); // after the format there must be a ";"
+                    var semi = this.previousToken;
                     arg.args = this.fnGetArgsSepByCommaSemi();
-                    arg.args.unshift(t);
+                    arg.args.unshift(format, semi);
                     if (this.previousToken.type === ";") { // using closed by ";"?
+                        arg.args.pop(); // remove it from using
                         node.args.push(arg);
                         arg = this.previousToken; // keep it for print
                     }
@@ -2587,13 +2462,6 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             node.args.unshift(stream);
             if ((this.previousToken.type === "," && node.args.length > 1) || this.previousToken.type === ";") {
                 this.fnMaskedError(this.previousToken, "Operand missing");
-                /*
-                if (!this.fnLastStatementIsOnErrorGotoX()) {
-                    throw this.composeError(Error(), "Operand missing", this.previousToken.type, this.previousToken.pos);
-                } else if (!this.quiet) {
-                    Utils.console.warn(this.composeError({} as Error, "Operand missing", this.previousToken.type, this.previousToken.pos));
-                }
-                */
             }
             return node;
         };
@@ -3681,7 +3549,8 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
                 onSqGosub: this.onSqGosub,
                 print: this.print,
                 rem: this.rem,
-                using: this.using
+                using: this.using,
+                write: this.write
             };
             this.quiet = options.quiet || false;
             this.lexer = options.lexer;
@@ -3988,7 +3857,14 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
         };
         CodeGeneratorBasic.prototype.using = function (node) {
             var nodeArgs = this.fnParseArgs(node.args), template = nodeArgs.length ? nodeArgs.shift() || "" : "";
-            return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(template) + ";" + nodeArgs.join(","); // separator between args could be "," or ";", we use ","
+            return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(template) + nodeArgs.join("");
+        };
+        CodeGeneratorBasic.prototype.write = function (node) {
+            var nodeArgs = this.fnParseArgs(node.args), hasStream = CodeGeneratorBasic.fnHasStream(node);
+            if (hasStream && nodeArgs.length > 1) { // more args after stream?
+                nodeArgs[0] = String(nodeArgs[0]) + ",";
+            }
+            return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(nodeArgs.join("")); // separators already there
         };
         /* eslint-enable no-invalid-this */
         CodeGeneratorBasic.prototype.fnParseOther = function (node) {
@@ -4417,6 +4293,13 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 "@": this.addressOf,
                 "#": CodeGeneratorJs.stream
             };
+            /*
+            private write(node: CodeNode) {
+                const nodeArgs = this.fnParseArgsIgnoringCommaSemi(node.args);
+        
+                node.pv = nodeArgs.join(", ");
+            }
+            */
             /* eslint-disable no-invalid-this */
             this.parseFunctions = {
                 ";": CodeGeneratorJs.commaOrSemicolon,
@@ -4494,8 +4377,10 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 stop: this.stopOrEnd,
                 tab: this.tab,
                 tron: this.fnCommandWithGoto,
+                using: this.usingOrWrite,
                 wend: this.wend,
-                "while": this.while
+                "while": this.while,
+                write: this.usingOrWrite
             };
             this.lexer = options.lexer;
             this.parser = options.parser;
@@ -4606,6 +4491,15 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
             }
             return this.fnParseArgRange(args, 0, args.length - 1);
+        };
+        CodeGeneratorJs.prototype.fnParseArgsIgnoringCommaSemi = function (args) {
+            var nodeArgs = [];
+            for (var i = 0; i < args.length; i += 1) {
+                if (args[i].type !== "," && args[i].type !== ";") { // ignore separators
+                    nodeArgs.push(this.fnParseOneArg(args[i]));
+                }
+            }
+            return nodeArgs;
         };
         CodeGeneratorJs.prototype.fnDetermineStaticVarType = function (name) {
             return this.variables.determineStaticVarType(name);
@@ -5506,6 +5400,10 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             var nodeArgs = this.fnParseArgs(node.args);
             node.pv = "{type: \"tab\", args: [" + nodeArgs.join(", ") + "]}"; // we must delay the tab() call until print() is called
         };
+        CodeGeneratorJs.prototype.usingOrWrite = function (node) {
+            var nodeArgs = this.fnParseArgsIgnoringCommaSemi(node.args);
+            node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + ")";
+        };
         CodeGeneratorJs.prototype.wend = function (node) {
             var label = this.stack.whileLabel.pop();
             if (label === undefined) {
@@ -5883,7 +5781,8 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
                 onSqGosub: this.onSqGosub,
                 print: this.print,
                 rem: this.rem,
-                using: this.using
+                using: this.using,
+                write: this.write
             };
             this.quiet = options.quiet || false;
             this.lexer = options.lexer;
@@ -5916,7 +5815,7 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
             return result;
         };
         CodeGeneratorToken.getBit7TerminatedString = function (s) {
-            return s.substr(0, s.length - 1) + String.fromCharCode(s.charCodeAt(s.length - 1) | 0x80); // eslint-disable-line no-bitwise
+            return s.substring(0, s.length - 1) + String.fromCharCode(s.charCodeAt(s.length - 1) | 0x80); // eslint-disable-line no-bitwise
         };
         CodeGeneratorToken.prototype.combineArgsWithSeparator = function (nodeArgs) {
             var separator = "";
@@ -6092,7 +5991,7 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
         };
         // special keyword functions
         CodeGeneratorToken.prototype.vertical = function (node) {
-            var rsxName = node.value.substr(1).toUpperCase(), nodeArgs = this.fnParseArgs(node.args), offset = 0; // (offset to tokens following RSX name) TODO
+            var rsxName = node.value.substring(1).toUpperCase(), nodeArgs = this.fnParseArgs(node.args), offset = 0; // (offset to tokens following RSX name) TODO
             var value = CodeGeneratorToken.token2String(node.type) + CodeGeneratorToken.convUInt8ToString(offset) + CodeGeneratorToken.getBit7TerminatedString(rsxName);
             if (nodeArgs.length) {
                 value += "," + nodeArgs.join(",");
@@ -6134,7 +6033,7 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
             if (!node.left || !node.right) {
                 throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
             }
-            var withFn = node.left.value, withoutFn = withFn.substr(2); // remove first 2 characters "FN" or "fn"
+            var withFn = node.left.value, withoutFn = withFn.substring(2); // remove first 2 characters "FN" or "fn"
             node.left.value = withoutFn; // fast hack: without fn
             var name = this.fnParseOneArg(node.left);
             node.left.value = withFn; // fast hack: restore
@@ -6247,8 +6146,7 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
                 value += " ";
             }
             nodeArgs.splice(i, 4, nodeArgs[i] + nodeArgs[i + 1] + nodeArgs[i + 2] + nodeArgs[i + 3]); // combine 4 elements into one
-            value += nodeArgs.join(",");
-            return value;
+            return value + nodeArgs.join(",");
         };
         CodeGeneratorToken.prototype.list = function (node) {
             var nodeArgs = this.fnParseArgs(node.args);
@@ -6324,8 +6222,18 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
             if (template && template.charAt(0) !== '"') { // not a string => space required
                 template = " " + template;
             }
-            // separator between args could be "," or ";", we use ","
-            return CodeGeneratorToken.token2String(node.type) + template + ";" + nodeArgs.join(",");
+            return CodeGeneratorToken.token2String(node.type) + template + nodeArgs.join(""); // separators comma or semicolon are already there
+        };
+        CodeGeneratorToken.prototype.write = function (node) {
+            var nodeArgs = this.fnParseArgs(node.args), hasStream = CodeGeneratorToken.fnHasStream(node);
+            var value = CodeGeneratorToken.token2String(node.type);
+            if (nodeArgs.length && !hasStream) { // args and not stream?
+                value += " ";
+            }
+            if (hasStream && nodeArgs.length > 1) { // more args after stream?
+                nodeArgs[0] = String(nodeArgs[0]) + ",";
+            }
+            return value + nodeArgs.join(""); // separators comma or semicolon are already there
         };
         /* eslint-enable no-invalid-this */
         CodeGeneratorToken.prototype.fnParseOther = function (node) {
@@ -9866,6 +9774,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         }
         */
         Canvas.prototype.draw = function (x, y) {
+            // TODO
             //const xStart = Canvas.cpcRoundingTowardsZeroX(this.xPos, this.modeData.pixelWidth),
             //	yStart = Canvas.cpcRoundingTowardsZeroY(this.yPos, this.modeData.pixelHeight);
             var xStart = this.xPos, yStart = this.yPos;
@@ -12607,15 +12516,10 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                     this.keyboard.resetExpansionTokens();
                     // TODO: reset also speed key
                     break;
-                case 0xbb06: // KM Wait Char (ROM &1A3C)
-                    // since we do not return a character, we do the same as call &bb18
-                    if (this.inkey$() === "") { // no key?
-                        this.vmStop("waitKey", 30); // wait for key
-                    }
-                    break;
                 case 0xbb0c: // KM Char Return (ROM &1A77), depending on number of args
                     this.vmPutKeyInBuffer(String.fromCharCode(args.length));
                     break;
+                case 0xbb06: // KM Wait Char (ROM &1A3C); since we do not return a character, we do the same as call &bb18
                 case 0xbb18: // KM Wait Key (ROM &1B56)
                     if (this.inkey$() === "") { // no key?
                         this.vmStop("waitKey", 30); // wait for key
@@ -12654,10 +12558,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                     this.cursor(0, 0);
                     break;
                 case 0xbb8a: // TXT Place Cursor (ROM &1268)
-                    this.vmPlaceRemoveCursor(0); // 0=stream
-                    break;
                 case 0xbb8d: // TXT Remove Cursor (ROM &1268); same as place cursor
-                    this.vmPlaceRemoveCursor(0);
+                    this.vmPlaceRemoveCursor(0); // 0=stream
                     break;
                 case 0xbb90: // TXT Set Pen (ROM &12A9), depending on number of args
                     this.pen(0, args.length % 16);
@@ -13479,17 +13381,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 this.vmInputFromFile(args); // remaining arguments
             }
         };
-        /*
-        instr(p1: string | number, p2: string, p3?: string): number { // optional startpos as first parameter
-            this.vmAssertString(p2, "INSTR");
-            if (typeof p1 === "string") { // p1=string, p2=search string
-                return p1.indexOf(p2) + 1;
-            }
-            p1 = this.vmInRangeRound(p1, 1, 255, "INSTR"); // p1=startpos
-            this.vmAssertString(p3 as string, "INSTR");
-            return p2.indexOf(p3 as string, p1 - 1) + 1; // p2=string, p3=search string
-        }
-        */
         CpcVm.prototype.instr = function (p1, p2, p3) {
             var startPos = typeof p1 === "number" ? this.vmInRangeRound(p1, 1, 255, "INSTR") - 1 : 0, // p1=startpos
             str = typeof p1 === "number" ? p2 : p1, search = typeof p1 === "number" ? p3 : p2;
@@ -14656,7 +14547,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             }
             // To avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
             // Use Math.abs(n) and Math.sign(n) To round negative numbers to larger negative numbers
-            //return Number(Math.round(Number(n + "e" + decimals)) + "e" + ((decimals >= 0) ? "-" + decimals : "+" + -decimals));
             return Math.sign(n) * Number(Math.round(Number(Math.abs(n) + "e" + decimals)) + "e" + ((decimals >= 0) ? "-" + decimals : "+" + -decimals));
         };
         CpcVm.prototype.vmRunCallback = function (input, meta) {
@@ -17612,23 +17502,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.model.setProperty("database", databaseName);
             this.view.setSelectTitleFromSelectedOption("databaseSelect");
             var database = this.model.getDatabase();
-            /*
-            that = this,
-            fnDatabaseLoaded = function () {
-                database.loaded = true;
-                Utils.console.log("fnDatabaseLoaded: database loaded: " + databaseName + ": " + url);
-                that.setExampleSelectOptions();
-                that.onExampleSelectChange();
-            },
-            fnDatabaseError = function () {
-                database.loaded = false;
-                Utils.console.error("fnDatabaseError: database error: " + databaseName + ": " + url);
-                that.setExampleSelectOptions();
-                that.onExampleSelectChange();
-                that.setInputText("");
-                that.view.setAreaValue("resultText", "Cannot load database: " + databaseName);
-            };
-            */
             if (!database) {
                 Utils_23.Utils.console.error("onDatabaseSelectChange: database not available:", databaseName);
                 return;
@@ -17645,7 +17518,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.setInputText("#loading database " + databaseName + "...");
                 var exampleIndex = this.model.getProperty("exampleIndex");
                 url = database.src + "/" + exampleIndex;
-                //Utils.loadScript(url, fnDatabaseLoaded, fnDatabaseError, databaseName);
                 Utils_23.Utils.loadScript(url, this.createFnDatabaseLoaded(url), this.createFnDatabaseError(url), databaseName);
             }
         };

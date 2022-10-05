@@ -317,16 +317,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 }
             }
         };
-        /*
-        private fnMaskedExpressionError(expression: ParserNode, typeFirstChar: string) {
-            this.fnMaskedError(expression, "Expected " + BasicParser.parameterTypes[typeFirstChar]);
-            //if (!this.fnLastStatementIsOnErrorGotoX()) {
-            //	throw this.composeError(Error(), "Expected " + BasicParser.parameterTypes[typeFirstChar], expression.value, expression.pos);
-            //} else if (!this.quiet) {
-            //	Utils.console.warn(this.composeError({} as Error, "Expected " + BasicParser.parameterTypes[typeFirstChar], expression.value, expression.pos).message);
-            //}
-        }
-        */
         BasicParser.prototype.fnCheckStaticTypeNotNumber = function (expression, typeFirstChar) {
             var type = expression.type, isStringFunction = (BasicParser.keywords[type] || "").startsWith("f") && type.endsWith("$"), isStringIdentifier = type === "identifier" && expression.value.endsWith("$");
             if (type === "string" || type === "#" || isStringFunction || isStringIdentifier) { // got a string or a stream? (statical check)
@@ -425,7 +415,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 if (types && type.slice(-1) !== "*") { // "*"= any number of parameters
                     type = types.shift() || "";
                     if (!type) {
-                        //throw this.composeError(Error(), "Expected end of arguments", this.previousToken.type, this.previousToken.pos);
                         this.fnMaskedError(this.previousToken, "Expected end of arguments"); // If masked, it will accept more args than expected
                     }
                 }
@@ -442,13 +431,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             if (this.previousToken.type === "," && keyword !== "delete" && keyword !== "list") { // for line numbe range in delete, list it is ok
                 this.fnMaskedError(this.previousToken, "Operand missing");
-                /*
-                if (!this.fnLastStatementIsOnErrorGotoX()) {
-                    throw this.composeError(Error(), "Operand missing", this.previousToken.type, this.previousToken.pos);
-                } else if (!this.quiet) {
-                    Utils.console.warn(this.composeError({} as Error, "Operand missing", this.previousToken.type, this.previousToken.pos));
-                }
-                */
             }
             return args;
         };
@@ -457,6 +439,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             while (!closeTokens[this.token.type]) {
                 args.push(this.expression(0));
                 if (this.token.type === "," || this.token.type === ";") {
+                    args.push(this.token); // keep comma or semi
                     this.advance();
                 }
                 else {
@@ -473,24 +456,21 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         BasicParser.prototype.fnGetArgsInParenthesesOrBrackets = function () {
             var brackets = BasicParser.brackets;
-            var bracketOpen;
-            if (this.token.type === "(" || this.token.type === "[") {
-                bracketOpen = this.token;
+            if (this.token.type === "[") {
+                this.advance();
             }
-            this.advance(bracketOpen ? bracketOpen.type : "(");
-            if (!bracketOpen) {
-                throw this.composeError(Error(), "Programming error: Undefined bracketOpen", this.token.type, this.token.pos); // should not occur
+            else {
+                this.advance("(");
             }
-            var args = this.fnGetArgs("_any1"); // (until "]" or ")")
+            var bracketOpen = this.previousToken, args = this.fnGetArgs("_any1"); // (until "]" or ")")
             args.unshift(bracketOpen);
-            var bracketClose;
-            if (this.token.type === ")" || this.token.type === "]") {
-                bracketClose = this.token;
+            if (this.token.type === "]") {
+                this.advance();
             }
-            this.advance(bracketClose ? bracketClose.type : ")");
-            if (!bracketClose) {
-                throw this.composeError(Error(), "Programming error: Undefined bracketClose", this.token.type, this.token.pos); // should not occur
+            else {
+                this.advance(")");
             }
+            var bracketClose = this.previousToken;
             args.push(bracketClose);
             if (brackets[bracketOpen.type] !== bracketClose.type) {
                 if (!this.quiet) {
@@ -934,72 +914,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             return node;
         };
-        /*
-        private fnHandlePrintArgument_ok1(printNodeArgs: ParserNode[]) {
-            let node2: ParserNode | undefined;
-    
-            if (this.token.type === "spc" || this.token.type === "tab") {
-                this.advance();
-                node2 = this.fnCreateFuncCall();
-            } else if (this.token.type === "using") {
-                node2 = this.token;
-                this.advance();
-                const t = this.expression(0); // format
-    
-                this.advance(";"); // after the format there must be a ";"
-    
-                node2.args = this.fnGetArgsSepByCommaSemi();
-                node2.args.unshift(t);
-                if (this.previousToken.type === ";") { // using closed by ";"?
-                    //printNode.args.push(node2);
-                    printNodeArgs.push(node2);
-                    node2 = this.previousToken; // keep it for print
-                }
-            } else if (BasicParser.keywords[this.token.type] && (BasicParser.keywords[this.token.type].charAt(0) === "c" || BasicParser.keywords[this.token.type].charAt(0) === "p")) { // stop also at keyword which is c=command or p=part of command
-                // let node2 undefined
-            } else if (this.token.type === ";" || this.token.type === ",") { // separator ";" or comma tab separator ","
-                node2 = this.token;
-                this.advance();
-            } else {
-                node2 = this.expression(0);
-            }
-            return node2;
-        }
-        */
-        /*
-        private fnHandlePrintArgument_t1(printNodeArgs: ParserNode[]) {
-            let node2: ParserNode | undefined;
-    
-            if (this.token.type === "spc" || this.token.type === "tab") {
-                this.advance();
-                node2 = this.fnCreateFuncCall();
-            } else if (this.token.type === "using") {
-                node2 = this.token;
-                this.advance();
-                const t = this.expression(0); // format
-    
-                this.advance(";"); // after the format there must be a ";"
-    
-                node2.args = this.fnGetArgsSepByCommaSemi();
-                node2.args.unshift(t);
-                if (this.previousToken.type === ";") { // using closed by ";"?
-                    //printNode.args.push(node2);
-                    printNodeArgs.push(node2);
-                    node2 = this.previousToken; // keep it for print
-                }
-            } else {
-                node2 = this.expression(0);
-            }
-    
-            if (this.token.type === ";" || this.token.type === ",") { // separator ";" or comma tab separator ","
-                node2 = this.token;
-                this.advance();
-            } else {
-                node2 = this.expression(0);
-            }
-            return node2;
-        }
-        */
         BasicParser.prototype.print = function () {
             var node = this.previousToken, closeTokens = BasicParser.closeTokensForArgs, stream = this.fnGetOptionalStream();
             node.args = [];
@@ -1010,42 +924,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 }
             }
             while (!closeTokens[this.token.type]) {
-                /*
-                let node2: ParserNode;
-    
-                if (this.token.type === "spc" || this.token.type === "tab") {
-                    this.advance();
-                    node2 = this.fnCreateFuncCall();
-                } else if (this.token.type === "using") {
-                    node2 = this.token;
-                    this.advance();
-                    const t = this.expression(0); // format
-    
-                    this.advance(";"); // after the format there must be a ";"
-    
-                    node2.args = this.fnGetArgsSepByCommaSemi();
-                    node2.args.unshift(t);
-                    if (this.previousToken.type === ";") { // using closed by ";"?
-                        node.args.push(node2);
-                        node2 = this.previousToken; // keep it for print
-                    }
-                } else if (BasicParser.keywords[this.token.type] && (BasicParser.keywords[this.token.type].charAt(0) === "c" || BasicParser.keywords[this.token.type].charAt(0) === "p")) { // stop also at keyword which is c=command or p=part of command
-                    break;
-                    //TTT: node2 not set?
-                } else if (this.token.type === ";" || this.token.type === ",") { // separator ";" or comma tab separator ","
-                    node2 = this.token;
-                    this.advance();
-                } else {
-                    node2 = this.expression(0);
-                }
-    
-                const node2 = this.fnHandlePrintArgument(node.args);
-    
-                if (!node2) {
-                    break;
-                }
-                node.args.push(node2);
-                */
                 var arg = void 0;
                 if (this.token.type === "spc" || this.token.type === "tab") {
                     this.advance();
@@ -1054,11 +932,13 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 else if (this.token.type === "using") {
                     arg = this.token;
                     this.advance();
-                    var t = this.expression(0); // format
+                    var format = this.expression(0); // format
                     this.advance(";"); // after the format there must be a ";"
+                    var semi = this.previousToken;
                     arg.args = this.fnGetArgsSepByCommaSemi();
-                    arg.args.unshift(t);
+                    arg.args.unshift(format, semi);
                     if (this.previousToken.type === ";") { // using closed by ";"?
+                        arg.args.pop(); // remove it from using
                         node.args.push(arg);
                         arg = this.previousToken; // keep it for print
                     }
@@ -1121,13 +1001,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             node.args.unshift(stream);
             if ((this.previousToken.type === "," && node.args.length > 1) || this.previousToken.type === ";") {
                 this.fnMaskedError(this.previousToken, "Operand missing");
-                /*
-                if (!this.fnLastStatementIsOnErrorGotoX()) {
-                    throw this.composeError(Error(), "Operand missing", this.previousToken.type, this.previousToken.pos);
-                } else if (!this.quiet) {
-                    Utils.console.warn(this.composeError({} as Error, "Operand missing", this.previousToken.type, this.previousToken.pos));
-                }
-                */
             }
             return node;
         };

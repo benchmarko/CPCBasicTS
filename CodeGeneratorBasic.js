@@ -47,7 +47,8 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
                 onSqGosub: this.onSqGosub,
                 print: this.print,
                 rem: this.rem,
-                using: this.using
+                using: this.using,
+                write: this.write
             };
             this.quiet = options.quiet || false;
             this.lexer = options.lexer;
@@ -354,7 +355,14 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
         };
         CodeGeneratorBasic.prototype.using = function (node) {
             var nodeArgs = this.fnParseArgs(node.args), template = nodeArgs.length ? nodeArgs.shift() || "" : "";
-            return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(template) + ";" + nodeArgs.join(","); // separator between args could be "," or ";", we use ","
+            return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(template) + nodeArgs.join("");
+        };
+        CodeGeneratorBasic.prototype.write = function (node) {
+            var nodeArgs = this.fnParseArgs(node.args), hasStream = CodeGeneratorBasic.fnHasStream(node);
+            if (hasStream && nodeArgs.length > 1) { // more args after stream?
+                nodeArgs[0] = String(nodeArgs[0]) + ",";
+            }
+            return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(nodeArgs.join("")); // separators already there
         };
         /* eslint-enable no-invalid-this */
         CodeGeneratorBasic.prototype.fnParseOther = function (node) {

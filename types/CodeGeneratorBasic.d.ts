@@ -56,6 +56,7 @@ export declare class CodeGeneratorBasic {
     private print;
     private rem;
     private using;
+    private write;
     private readonly parseFunctions;
     private fnParseOther;
     private static getLeftOrRightOperatorPrecedence;

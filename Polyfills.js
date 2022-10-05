@@ -7,13 +7,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     exports.Polyfills = {
         list: [],
         getList: function () {
-            //return Polyfills.count;
             return exports.Polyfills.list;
         },
         log: function (part) {
             exports.Polyfills.list.push(part);
-            //Utils.console.debug("Polyfill: " + part);
-            //Polyfills.count += 1;
         }
     };
     // IE: window.console is only available when Dev Tools are open
@@ -484,7 +481,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             exports.Polyfills.log("window.AudioContext");
         }
         else {
-            //Utils.console.warn("Polyfill: window.AudioContext: not ok!");
             exports.Polyfills.log("window.AudioContext not ok!");
         }
     }
@@ -531,7 +527,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         window.Uint8Array.BYTES_PER_ELEMENT = 1;
         // A more complex solution would be: https://github.com/inexorabletash/polyfill/blob/master/typedarray.js
     }
-    //Utils.console.debug("Polyfill: end of Polyfills: count=" + Polyfills.count);
     Utils_1.Utils.console.debug("Polyfills: (" + exports.Polyfills.getList().length + ") " + exports.Polyfills.getList().join("; "));
 });
 // end

@@ -619,6 +619,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         }
         */
         Canvas.prototype.draw = function (x, y) {
+            // TODO
             //const xStart = Canvas.cpcRoundingTowardsZeroX(this.xPos, this.modeData.pixelWidth),
             //	yStart = Canvas.cpcRoundingTowardsZeroY(this.yPos, this.modeData.pixelHeight);
             var xStart = this.xPos, yStart = this.yPos;

@@ -2172,23 +2172,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.model.setProperty("database", databaseName);
             this.view.setSelectTitleFromSelectedOption("databaseSelect");
             var database = this.model.getDatabase();
-            /*
-            that = this,
-            fnDatabaseLoaded = function () {
-                database.loaded = true;
-                Utils.console.log("fnDatabaseLoaded: database loaded: " + databaseName + ": " + url);
-                that.setExampleSelectOptions();
-                that.onExampleSelectChange();
-            },
-            fnDatabaseError = function () {
-                database.loaded = false;
-                Utils.console.error("fnDatabaseError: database error: " + databaseName + ": " + url);
-                that.setExampleSelectOptions();
-                that.onExampleSelectChange();
-                that.setInputText("");
-                that.view.setAreaValue("resultText", "Cannot load database: " + databaseName);
-            };
-            */
             if (!database) {
                 Utils_1.Utils.console.error("onDatabaseSelectChange: database not available:", databaseName);
                 return;
@@ -2205,7 +2188,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.setInputText("#loading database " + databaseName + "...");
                 var exampleIndex = this.model.getProperty("exampleIndex");
                 url = database.src + "/" + exampleIndex;
-                //Utils.loadScript(url, fnDatabaseLoaded, fnDatabaseError, databaseName);
                 Utils_1.Utils.loadScript(url, this.createFnDatabaseLoaded(url), this.createFnDatabaseError(url), databaseName);
             }
         };

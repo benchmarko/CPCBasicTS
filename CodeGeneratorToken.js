@@ -53,7 +53,8 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
                 onSqGosub: this.onSqGosub,
                 print: this.print,
                 rem: this.rem,
-                using: this.using
+                using: this.using,
+                write: this.write
             };
             this.quiet = options.quiet || false;
             this.lexer = options.lexer;
@@ -86,7 +87,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             return result;
         };
         CodeGeneratorToken.getBit7TerminatedString = function (s) {
-            return s.substr(0, s.length - 1) + String.fromCharCode(s.charCodeAt(s.length - 1) | 0x80); // eslint-disable-line no-bitwise
+            return s.substring(0, s.length - 1) + String.fromCharCode(s.charCodeAt(s.length - 1) | 0x80); // eslint-disable-line no-bitwise
         };
         CodeGeneratorToken.prototype.combineArgsWithSeparator = function (nodeArgs) {
             var separator = "";
@@ -262,7 +263,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
         };
         // special keyword functions
         CodeGeneratorToken.prototype.vertical = function (node) {
-            var rsxName = node.value.substr(1).toUpperCase(), nodeArgs = this.fnParseArgs(node.args), offset = 0; // (offset to tokens following RSX name) TODO
+            var rsxName = node.value.substring(1).toUpperCase(), nodeArgs = this.fnParseArgs(node.args), offset = 0; // (offset to tokens following RSX name) TODO
             var value = CodeGeneratorToken.token2String(node.type) + CodeGeneratorToken.convUInt8ToString(offset) + CodeGeneratorToken.getBit7TerminatedString(rsxName);
             if (nodeArgs.length) {
                 value += "," + nodeArgs.join(",");
@@ -304,7 +305,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             if (!node.left || !node.right) {
                 throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
             }
-            var withFn = node.left.value, withoutFn = withFn.substr(2); // remove first 2 characters "FN" or "fn"
+            var withFn = node.left.value, withoutFn = withFn.substring(2); // remove first 2 characters "FN" or "fn"
             node.left.value = withoutFn; // fast hack: without fn
             var name = this.fnParseOneArg(node.left);
             node.left.value = withFn; // fast hack: restore
@@ -417,8 +418,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
                 value += " ";
             }
             nodeArgs.splice(i, 4, nodeArgs[i] + nodeArgs[i + 1] + nodeArgs[i + 2] + nodeArgs[i + 3]); // combine 4 elements into one
-            value += nodeArgs.join(",");
-            return value;
+            return value + nodeArgs.join(",");
         };
         CodeGeneratorToken.prototype.list = function (node) {
             var nodeArgs = this.fnParseArgs(node.args);
@@ -494,8 +494,18 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             if (template && template.charAt(0) !== '"') { // not a string => space required
                 template = " " + template;
             }
-            // separator between args could be "," or ";", we use ","
-            return CodeGeneratorToken.token2String(node.type) + template + ";" + nodeArgs.join(",");
+            return CodeGeneratorToken.token2String(node.type) + template + nodeArgs.join(""); // separators comma or semicolon are already there
+        };
+        CodeGeneratorToken.prototype.write = function (node) {
+            var nodeArgs = this.fnParseArgs(node.args), hasStream = CodeGeneratorToken.fnHasStream(node);
+            var value = CodeGeneratorToken.token2String(node.type);
+            if (nodeArgs.length && !hasStream) { // args and not stream?
+                value += " ";
+            }
+            if (hasStream && nodeArgs.length > 1) { // more args after stream?
+                nodeArgs[0] = String(nodeArgs[0]) + ",";
+            }
+            return value + nodeArgs.join(""); // separators comma or semicolon are already there
         };
         /* eslint-enable no-invalid-this */
         CodeGeneratorToken.prototype.fnParseOther = function (node) {

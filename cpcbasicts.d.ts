@@ -384,6 +384,7 @@ declare module "CodeGeneratorBasic" {
         private print;
         private rem;
         private using;
+        private write;
         private readonly parseFunctions;
         private fnParseOther;
         private static getLeftOrRightOperatorPrecedence;
@@ -470,6 +471,7 @@ declare module "CodeGeneratorJs" {
         private fnParseOneArg;
         private fnParseArgRange;
         private fnParseArgs;
+        private fnParseArgsIgnoringCommaSemi;
         private fnDetermineStaticVarType;
         private static fnExtractVarName;
         private static fnGetNameTypeExpression;
@@ -560,6 +562,7 @@ declare module "CodeGeneratorJs" {
         private spc;
         private stopOrEnd;
         private tab;
+        private usingOrWrite;
         private wend;
         private "while";
         private readonly parseFunctions;
@@ -650,6 +653,7 @@ declare module "CodeGeneratorToken" {
         private print;
         private rem;
         private using;
+        private write;
         private readonly parseFunctions;
         private fnParseOther;
         private parseNode;

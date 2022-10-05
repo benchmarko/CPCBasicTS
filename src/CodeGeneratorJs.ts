@@ -281,6 +281,17 @@ export class CodeGeneratorJs {
 		return this.fnParseArgRange(args, 0, args.length - 1);
 	}
 
+	private fnParseArgsIgnoringCommaSemi(args: ParserNode[]) { // for using, write
+		const nodeArgs: string[] = [];
+
+		for (let i = 0; i < args.length; i += 1) {
+			if (args[i].type !== "," && args[i].type !== ";") { // ignore separators
+				nodeArgs.push(this.fnParseOneArg(args[i]));
+			}
+		}
+		return nodeArgs;
+	}
+
 	private fnDetermineStaticVarType(name: string) {
 		return this.variables.determineStaticVarType(name);
 	}
@@ -1435,6 +1446,11 @@ export class CodeGeneratorJs {
 
 		node.pv = "{type: \"tab\", args: [" + nodeArgs.join(", ") + "]}"; // we must delay the tab() call until print() is called
 	}
+	private usingOrWrite(node: CodeNode) {
+		const nodeArgs = this.fnParseArgsIgnoringCommaSemi(node.args);
+
+		node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + ")";
+	}
 	private wend(node: CodeNode) {
 		const label = this.stack.whileLabel.pop();
 
@@ -1450,6 +1466,13 @@ export class CodeGeneratorJs {
 		this.stack.whileLabel.push(label);
 		node.pv = "\ncase \"" + label + "\": if (!(" + nodeArgs + ")) { o.goto(\"" + label + "e\"); break; }";
 	}
+	/*
+	private write(node: CodeNode) {
+		const nodeArgs = this.fnParseArgsIgnoringCommaSemi(node.args);
+
+		node.pv = nodeArgs.join(", ");
+	}
+	*/
 
 	/* eslint-disable no-invalid-this */
 	private readonly parseFunctions: Record<string, (node: CodeNode) => void> = { // to call methods, use parseFunctions[].call(this,...)
@@ -1528,8 +1551,10 @@ export class CodeGeneratorJs {
 		stop: this.stopOrEnd,
 		tab: this.tab,
 		tron: this.fnCommandWithGoto, // not really needed with goto, but...
+		using: this.usingOrWrite,
 		wend: this.wend,
-		"while": this.while
+		"while": this.while,
+		write: this.usingOrWrite
 	}
 	/* eslint-enable no-invalid-this */
 

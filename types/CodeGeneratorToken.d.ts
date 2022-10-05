@@ -66,6 +66,7 @@ export declare class CodeGeneratorToken {
     private print;
     private rem;
     private using;
+    private write;
     private readonly parseFunctions;
     private fnParseOther;
     private parseNode;
