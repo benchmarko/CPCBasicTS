@@ -187,7 +187,7 @@ export class CpcVm {
 	private startLine = 0;
 
 	private errorGotoLine = 0;
-	private errorResumeLine = 0;
+	private errorResumeLine: string | number = 0;
 	private breakGosubLine = 0;
 	private breakResumeLine = 0;
 
@@ -200,7 +200,7 @@ export class CpcVm {
 
 	private tronFlag1 = false; // trace flag
 
-	private traceLabel = "";
+	//private traceLabel = "";
 
 	private ramSelect = 0;
 
@@ -519,7 +519,7 @@ export class CpcVm {
 		this.degFlag = false; // degree or radians
 
 		this.tronFlag1 = false;
-		this.traceLabel = "";
+		//this.traceLabel = "";
 
 		this.mem.length = 0; // clear memory (for PEEK, POKE)
 		this.ramSelect = 0; // for banking with 16K banks in the range 0x4000-0x7fff (0=default; 1...=additional)
@@ -650,7 +650,7 @@ export class CpcVm {
 		this.closein();
 		this.closeout();
 		this.cursor(stream, 0);
-		this.traceLabel = ""; // last trace line
+		//this.traceLabel = ""; // last trace line
 		this.labelList.length = 0;
 	}
 
@@ -1075,12 +1075,11 @@ export class CpcVm {
 		this.sourceMap = sourceMap;
 	}
 
-	vmTrace(line: number | string): void {
-		const stream = 0;
+	vmTrace(): void {
+		if (this.tronFlag1) {
+			const stream = 0;
 
-		this.traceLabel = String(line);
-		if (this.tronFlag1 && !isNaN(Number(line))) {
-			this.print(stream, "[" + line + "]");
+			this.print(stream, "[" + String(this.line) + "]")
 		}
 	}
 
@@ -1926,17 +1925,18 @@ export class CpcVm {
 		this.errorCode = err;
 		this.errorLine = this.line;
 
+		/*
 		let line = this.errorLine;
-
 		if (this.traceLabel) {
 			line += " (trace: " + this.traceLabel + ")";
 		}
+		*/
 
-		const errorWithInfo = errorString + " in " + line + (errInfo ? (": " + errInfo) : "");
+		const errorWithInfo = errorString + " in " + this.errorLine + (errInfo ? (": " + errInfo) : "");
 		let	hidden = false; // hide errors wich are catched
 
 		if (this.errorGotoLine && !this.errorResumeLine) {
-			this.errorResumeLine = Number(this.errorLine);
+			this.errorResumeLine = this.errorLine; //Number(this.errorLine);
 			this.vmGotoLine(this.errorGotoLine, "onError");
 			this.vmStop("onError", 50);
 			hidden = true;
@@ -1946,12 +1946,12 @@ export class CpcVm {
 		if (!this.quiet) {
 			Utils.console.log("BASIC error(" + err + "):", errorWithInfo + (hidden ? " (hidden: " + hidden + ")" : ""));
 		}
-		const traceLine = this.traceLabel || this.line,
+		const traceLine = this.line, //this.traceLabel || this.line,
 			sourceMapEntry = this.sourceMap[traceLine],
 			pos = sourceMapEntry && sourceMapEntry[0],
 			len = sourceMapEntry && sourceMapEntry[1];
 
-		return Utils.composeError("CpcVm", error, errorString, errInfo, pos, len, line, hidden);
+		return Utils.composeError("CpcVm", error, errorString, errInfo, pos, len, this.line, hidden);
 	}
 
 	error(err: number, errInfo: string): void {
@@ -3490,12 +3490,9 @@ export class CpcVm {
 
 	resume(line?: number): void { // resume, resume n
 		if (this.errorGotoLine) {
-			if (line === undefined) {
-				line = this.errorResumeLine;
-			} else {
-				this.vmLineInRange(line, "RESUME");
-			}
-			this.vmGotoLine(line, "resume");
+			const label = line === undefined ? this.errorResumeLine : this.vmLineInRange(line, "RESUME");
+
+			this.vmGotoLine(label, "resume");
 			this.errorResumeLine = 0;
 		} else {
 			throw this.vmComposeError(Error(), 20, String(line)); // Unexpected RESUME

@@ -1,12 +1,14 @@
 {
   "name": "cpcbasicts",
-  "version": "0.0.74",
+  "version": "0.0.75",
   "description": "# CPCBasicTS - Run CPC BASIC in a Browser",
   "main": "src/cpcbasic.ts",
   "directories": {
     "test": "dist/test"
   },
-  "dependencies": {},
+  "dependencies": {
+    "npm": "^8.19.2"
+  },
   "devDependencies": {
     "@types/node": "^17.0.45",
     "@types/qunit": "^2.19.2",

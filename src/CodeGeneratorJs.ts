@@ -44,7 +44,7 @@ export class CodeGeneratorJs {
 	private readonly noCodeFrame: boolean // suppress generation of a code frame
 
 	private line = "0"; // current line (label)
-	private traceActive = false;
+	//private traceActive = false;
 	private readonly reJsKeywords: RegExp;
 
 	private readonly stack: StackType = {
@@ -794,6 +794,10 @@ export class CodeGeneratorJs {
 	}
 
 	private label(node: CodeNode) {
+		const isTraceActive = this.trace || Boolean(this.countMap.tron),
+			isResumeNext = Boolean(this.countMap.resumeNext),
+			isResumeNoArgs = Boolean(this.countMap.resumeNoArgsCount);
+
 		let label = node.value;
 
 		this.line = label; // set line before parsing args
@@ -813,6 +817,9 @@ export class CodeGeneratorJs {
 		if (!this.noCodeFrame) {
 			value += "case " + label + ":";
 			value += " o.line = " + label + ";";
+			if (isTraceActive) {
+				value += " o.vmTrace();";
+			}
 		} else {
 			value = "";
 		}
@@ -822,13 +829,27 @@ export class CodeGeneratorJs {
 		for (let i = 0; i < nodeArgs.length; i += 1) {
 			let value2 = nodeArgs[i];
 
-			if (this.traceActive) {
-				const traceLabel = this.generateTraceLabel(node.args[i], this.line, i);
-
-				value += " o.vmTrace(\"" + traceLabel + "\");";
-			}
-
 			if (value2 !== "") {
+				if (i > 0 && (isTraceActive || isResumeNext || isResumeNoArgs)) {
+					const traceLabel = this.generateTraceLabel(node.args[i], this.line, i);
+
+					if (isResumeNext || isResumeNoArgs) {
+						value += '\ncase "' + traceLabel + '":';
+					}
+					value += ' o.line = "' + traceLabel + '";';
+					if (isResumeNext) {
+						this.labelList.push('"' + traceLabel + '"'); // only needed to support resume next
+					}
+				}
+
+				/*
+				if (this.traceActive) {
+					const traceLabel = this.generateTraceLabel(node.args[i], this.line, i);
+
+					value += " o.vmTrace(\"" + traceLabel + "\");";
+				}
+				*/
+
 				if (!(/[}:;\n]$/).test(value2)) { // does not end with } : ; \n
 					value2 += ";";
 				} else if (value2.substring(value2.length - 1) === "\n") {
@@ -1116,7 +1137,9 @@ export class CodeGeneratorJs {
 	}
 
 	private fnThenOrElsePart(args: ParserNode[], tracePrefix: string) {
-		const nodeArgs = this.fnParseArgs(args);
+		const isResumeNext = Boolean(this.countMap.resumeNext),
+			isResumeNoArgs = Boolean(this.countMap.resumeNoArgsCount),
+			nodeArgs = this.fnParseArgs(args);
 
 		if (args[0].type === "linenumber") {
 			const line = nodeArgs[0];
@@ -1125,11 +1148,26 @@ export class CodeGeneratorJs {
 			nodeArgs[0] = "o.goto(" + line + "); break"; // convert to "goto"
 		}
 
+		/*
 		if (this.traceActive) {
 			for (let i = 0; i < nodeArgs.length; i += 1) {
 				const traceLabel = this.generateTraceLabel(args[i], tracePrefix, i);
 
 				nodeArgs[i] = "o.vmTrace(\"" + traceLabel + "\"); " + nodeArgs[i];
+			}
+		}
+		*/
+
+		if (isResumeNext || isResumeNoArgs) {
+			for (let i = 0; i < nodeArgs.length; i += 1) {
+				const traceLabel = this.generateTraceLabel(args[i], tracePrefix, i);
+				let value = '\ncase "' + traceLabel + '":';
+
+				if (isResumeNext) {
+					this.labelList.push('"' + traceLabel + '"'); // only needed to support resume next
+				}
+				value += ' o.line = "' + traceLabel + '";';
+				nodeArgs[i] = value + " " + nodeArgs[i];
 			}
 		}
 
@@ -1748,7 +1786,7 @@ export class CodeGeneratorJs {
 		this.removeAllDefVarTypes();
 		this.fnPrecheckTree(parseTree, this.countMap); // also sets "resumeNoArgsCount" for resume without args
 
-		this.traceActive = this.trace || Boolean(this.countMap.tron) || Boolean(this.countMap.resumeNext) || Boolean(this.countMap.resumeNoArgsCount); // we also switch on tracing for tron, resumeNext or resume without parameter
+		//this.traceActive = this.trace || Boolean(this.countMap.tron) || Boolean(this.countMap.resumeNext) || Boolean(this.countMap.resumeNoArgsCount); // we also switch on tracing for tron, resumeNext or resume without parameter
 
 		let output = "";
 

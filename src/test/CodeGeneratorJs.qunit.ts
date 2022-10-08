@@ -566,9 +566,9 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			"renum 100,50,2": ' o.renum(100, 50, 2); o.goto("s0"); break;\ncase "s0":',
 			"restore ": " o.restore();",
 			"10 restore 10": " o.restore(10);",
-			"resume ": ' o.vmTrace(""); o.resume(); break;',
+			"resume ": " o.resume(); break;",
 			"10 resume 10": " o.resume(10); break;",
-			"resume next": ' o.vmTrace(""); o.resumeNext(); break;',
+			"resume next": " o.resumeNext(); break;",
 			"return ": " o.return(); break;",
 			"a$=right$(b$,n)": " v.a$ = o.right$(v.b$, v.nR);",
 			"a=rnd": " v.aR = o.rnd();",
@@ -636,7 +636,7 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			"a=testr(xm,ym)": " v.aR = o.testr(v.xmR, v.ymR);",
 			"t!=time": " v.tR = o.time();",
 			"troff ": " o.troff();",
-			"tron ": ' o.vmTrace(""); o.tron(); o.goto("s0"); break;\ncase "s0":'
+			"tron ": ' o.tron(); o.goto("s0"); break;\ncase "s0":'
 		},
 		"unt, upper$": {
 			"a=unt(&ff66)": " v.aR = o.unt(-0x9a);",
