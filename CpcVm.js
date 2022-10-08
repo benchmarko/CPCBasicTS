@@ -34,7 +34,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.errorLine = 0; // line of last error (Erl)
             this.degFlag = false; // degree or radians
             this.tronFlag1 = false; // trace flag
-            this.traceLabel = "";
+            //private traceLabel = "";
             this.ramSelect = 0;
             this.screenPage = 3; // 16K screen page, 3=0xc000..0xffff
             this.minCharHimem = CpcVm.maxHimem;
@@ -154,7 +154,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.gosubStack.length = 0;
             this.degFlag = false; // degree or radians
             this.tronFlag1 = false;
-            this.traceLabel = "";
+            //this.traceLabel = "";
             this.mem.length = 0; // clear memory (for PEEK, POKE)
             this.ramSelect = 0; // for banking with 16K banks in the range 0x4000-0x7fff (0=default; 1...=additional)
             this.screenPage = 3; // 16K screen page, 3=0xc000..0xffff
@@ -255,7 +255,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.closein();
             this.closeout();
             this.cursor(stream, 0);
-            this.traceLabel = ""; // last trace line
+            //this.traceLabel = ""; // last trace line
             this.labelList.length = 0;
         };
         CpcVm.prototype.vmGetAllVariables = function () {
@@ -611,11 +611,10 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         CpcVm.prototype.vmSetSourceMap = function (sourceMap) {
             this.sourceMap = sourceMap;
         };
-        CpcVm.prototype.vmTrace = function (line) {
-            var stream = 0;
-            this.traceLabel = String(line);
-            if (this.tronFlag1 && !isNaN(Number(line))) {
-                this.print(stream, "[" + line + "]");
+        CpcVm.prototype.vmTrace = function () {
+            if (this.tronFlag1) {
+                var stream = 0;
+                this.print(stream, "[" + String(this.line) + "]");
             }
         };
         CpcVm.prototype.vmDrawMovePlot = function (type, gPen, gColMode) {
@@ -1366,14 +1365,16 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             var errors = CpcVm.errors, errorString = errors[err] || errors[errors.length - 1]; // maybe Unknown error
             this.errorCode = err;
             this.errorLine = this.line;
-            var line = this.errorLine;
+            /*
+            let line = this.errorLine;
             if (this.traceLabel) {
                 line += " (trace: " + this.traceLabel + ")";
             }
-            var errorWithInfo = errorString + " in " + line + (errInfo ? (": " + errInfo) : "");
+            */
+            var errorWithInfo = errorString + " in " + this.errorLine + (errInfo ? (": " + errInfo) : "");
             var hidden = false; // hide errors wich are catched
             if (this.errorGotoLine && !this.errorResumeLine) {
-                this.errorResumeLine = Number(this.errorLine);
+                this.errorResumeLine = this.errorLine; //Number(this.errorLine);
                 this.vmGotoLine(this.errorGotoLine, "onError");
                 this.vmStop("onError", 50);
                 hidden = true;
@@ -1384,8 +1385,9 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             if (!this.quiet) {
                 Utils_1.Utils.console.log("BASIC error(" + err + "):", errorWithInfo + (hidden ? " (hidden: " + hidden + ")" : ""));
             }
-            var traceLine = this.traceLabel || this.line, sourceMapEntry = this.sourceMap[traceLine], pos = sourceMapEntry && sourceMapEntry[0], len = sourceMapEntry && sourceMapEntry[1];
-            return Utils_1.Utils.composeError("CpcVm", error, errorString, errInfo, pos, len, line, hidden);
+            var traceLine = this.line, //this.traceLabel || this.line,
+            sourceMapEntry = this.sourceMap[traceLine], pos = sourceMapEntry && sourceMapEntry[0], len = sourceMapEntry && sourceMapEntry[1];
+            return Utils_1.Utils.composeError("CpcVm", error, errorString, errInfo, pos, len, this.line, hidden);
         };
         CpcVm.prototype.error = function (err, errInfo) {
             err = this.vmInRangeRound(err, 0, 255, "ERROR"); // could trigger another error
@@ -2744,13 +2746,8 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         };
         CpcVm.prototype.resume = function (line) {
             if (this.errorGotoLine) {
-                if (line === undefined) {
-                    line = this.errorResumeLine;
-                }
-                else {
-                    this.vmLineInRange(line, "RESUME");
-                }
-                this.vmGotoLine(line, "resume");
+                var label = line === undefined ? this.errorResumeLine : this.vmLineInRange(line, "RESUME");
+                this.vmGotoLine(label, "resume");
                 this.errorResumeLine = 0;
             }
             else {

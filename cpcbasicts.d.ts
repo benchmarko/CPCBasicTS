@@ -443,7 +443,6 @@ declare module "CodeGeneratorJs" {
         private quiet;
         private readonly noCodeFrame;
         private line;
-        private traceActive;
         private readonly reJsKeywords;
         private readonly stack;
         private gosubCount;
@@ -1449,7 +1448,6 @@ declare module "CpcVm" {
         private errorLine;
         private degFlag;
         private tronFlag1;
-        private traceLabel;
         private ramSelect;
         private screenPage;
         private minCharHimem;
@@ -1520,7 +1518,7 @@ declare module "CpcVm" {
         vmAdaptFilename(name: string, err: string): string;
         vmGetSoundData(): SoundData[];
         vmSetSourceMap(sourceMap: Record<string, number[]>): void;
-        vmTrace(line: number | string): void;
+        vmTrace(): void;
         private vmDrawMovePlot;
         private vmAfterEveryGosub;
         private vmCopyFromScreen;

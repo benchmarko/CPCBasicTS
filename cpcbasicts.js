@@ -4245,7 +4245,6 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
     var CodeGeneratorJs = /** @class */ (function () {
         function CodeGeneratorJs(options) {
             this.line = "0"; // current line (label)
-            this.traceActive = false;
             this.stack = {
                 forLabel: [],
                 forVarName: [],
@@ -4889,6 +4888,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             return traceLabel;
         };
         CodeGeneratorJs.prototype.label = function (node) {
+            var isTraceActive = this.trace || Boolean(this.countMap.tron), isResumeNext = Boolean(this.countMap.resumeNext), isResumeNoArgs = Boolean(this.countMap.resumeNoArgsCount);
             var label = node.value;
             this.line = label; // set line before parsing args
             if (this.countMap.resumeNext) {
@@ -4904,6 +4904,9 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             if (!this.noCodeFrame) {
                 value += "case " + label + ":";
                 value += " o.line = " + label + ";";
+                if (isTraceActive) {
+                    value += " o.vmTrace();";
+                }
             }
             else {
                 value = "";
@@ -4911,11 +4914,24 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             var nodeArgs = this.fnParseArgs(node.args);
             for (var i = 0; i < nodeArgs.length; i += 1) {
                 var value2 = nodeArgs[i];
-                if (this.traceActive) {
-                    var traceLabel = this.generateTraceLabel(node.args[i], this.line, i);
-                    value += " o.vmTrace(\"" + traceLabel + "\");";
-                }
                 if (value2 !== "") {
+                    if (i > 0 && (isTraceActive || isResumeNext || isResumeNoArgs)) {
+                        var traceLabel = this.generateTraceLabel(node.args[i], this.line, i);
+                        if (isResumeNext || isResumeNoArgs) {
+                            value += '\ncase "' + traceLabel + '":';
+                        }
+                        value += ' o.line = "' + traceLabel + '";';
+                        if (isResumeNext) {
+                            this.labelList.push('"' + traceLabel + '"'); // only needed to support resume next
+                        }
+                    }
+                    /*
+                    if (this.traceActive) {
+                        const traceLabel = this.generateTraceLabel(node.args[i], this.line, i);
+    
+                        value += " o.vmTrace(\"" + traceLabel + "\");";
+                    }
+                    */
                     if (!(/[}:;\n]$/).test(value2)) { // does not end with } : ; \n
                         value2 += ";";
                     }
@@ -5138,16 +5154,30 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + "); break"; // with break
         };
         CodeGeneratorJs.prototype.fnThenOrElsePart = function (args, tracePrefix) {
-            var nodeArgs = this.fnParseArgs(args);
+            var isResumeNext = Boolean(this.countMap.resumeNext), isResumeNoArgs = Boolean(this.countMap.resumeNoArgsCount), nodeArgs = this.fnParseArgs(args);
             if (args[0].type === "linenumber") {
                 var line = nodeArgs[0];
                 this.fnAddReferenceLabel(line, args[0]);
                 nodeArgs[0] = "o.goto(" + line + "); break"; // convert to "goto"
             }
+            /*
             if (this.traceActive) {
+                for (let i = 0; i < nodeArgs.length; i += 1) {
+                    const traceLabel = this.generateTraceLabel(args[i], tracePrefix, i);
+    
+                    nodeArgs[i] = "o.vmTrace(\"" + traceLabel + "\"); " + nodeArgs[i];
+                }
+            }
+            */
+            if (isResumeNext || isResumeNoArgs) {
                 for (var i = 0; i < nodeArgs.length; i += 1) {
                     var traceLabel = this.generateTraceLabel(args[i], tracePrefix, i);
-                    nodeArgs[i] = "o.vmTrace(\"" + traceLabel + "\"); " + nodeArgs[i];
+                    var value = '\ncase "' + traceLabel + '":';
+                    if (isResumeNext) {
+                        this.labelList.push('"' + traceLabel + '"'); // only needed to support resume next
+                    }
+                    value += ' o.line = "' + traceLabel + '";';
+                    nodeArgs[i] = value + " " + nodeArgs[i];
                 }
             }
             return nodeArgs.join("; ");
@@ -5577,7 +5607,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             this.fnCreateLabelMap(parseTree, this.referencedLabelsCount, allowDirect);
             this.removeAllDefVarTypes();
             this.fnPrecheckTree(parseTree, this.countMap); // also sets "resumeNoArgsCount" for resume without args
-            this.traceActive = this.trace || Boolean(this.countMap.tron) || Boolean(this.countMap.resumeNext) || Boolean(this.countMap.resumeNoArgsCount); // we also switch on tracing for tron, resumeNext or resume without parameter
+            //this.traceActive = this.trace || Boolean(this.countMap.tron) || Boolean(this.countMap.resumeNext) || Boolean(this.countMap.resumeNoArgsCount); // we also switch on tracing for tron, resumeNext or resume without parameter
             var output = "";
             for (var i = 0; i < parseTree.length; i += 1) {
                 if (Utils_7.Utils.debug > 2) {
@@ -11763,7 +11793,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.errorLine = 0; // line of last error (Erl)
             this.degFlag = false; // degree or radians
             this.tronFlag1 = false; // trace flag
-            this.traceLabel = "";
+            //private traceLabel = "";
             this.ramSelect = 0;
             this.screenPage = 3; // 16K screen page, 3=0xc000..0xffff
             this.minCharHimem = CpcVm.maxHimem;
@@ -11883,7 +11913,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.gosubStack.length = 0;
             this.degFlag = false; // degree or radians
             this.tronFlag1 = false;
-            this.traceLabel = "";
+            //this.traceLabel = "";
             this.mem.length = 0; // clear memory (for PEEK, POKE)
             this.ramSelect = 0; // for banking with 16K banks in the range 0x4000-0x7fff (0=default; 1...=additional)
             this.screenPage = 3; // 16K screen page, 3=0xc000..0xffff
@@ -11984,7 +12014,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.closein();
             this.closeout();
             this.cursor(stream, 0);
-            this.traceLabel = ""; // last trace line
+            //this.traceLabel = ""; // last trace line
             this.labelList.length = 0;
         };
         CpcVm.prototype.vmGetAllVariables = function () {
@@ -12340,11 +12370,10 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.vmSetSourceMap = function (sourceMap) {
             this.sourceMap = sourceMap;
         };
-        CpcVm.prototype.vmTrace = function (line) {
-            var stream = 0;
-            this.traceLabel = String(line);
-            if (this.tronFlag1 && !isNaN(Number(line))) {
-                this.print(stream, "[" + line + "]");
+        CpcVm.prototype.vmTrace = function () {
+            if (this.tronFlag1) {
+                var stream = 0;
+                this.print(stream, "[" + String(this.line) + "]");
             }
         };
         CpcVm.prototype.vmDrawMovePlot = function (type, gPen, gColMode) {
@@ -13095,14 +13124,16 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             var errors = CpcVm.errors, errorString = errors[err] || errors[errors.length - 1]; // maybe Unknown error
             this.errorCode = err;
             this.errorLine = this.line;
-            var line = this.errorLine;
+            /*
+            let line = this.errorLine;
             if (this.traceLabel) {
                 line += " (trace: " + this.traceLabel + ")";
             }
-            var errorWithInfo = errorString + " in " + line + (errInfo ? (": " + errInfo) : "");
+            */
+            var errorWithInfo = errorString + " in " + this.errorLine + (errInfo ? (": " + errInfo) : "");
             var hidden = false; // hide errors wich are catched
             if (this.errorGotoLine && !this.errorResumeLine) {
-                this.errorResumeLine = Number(this.errorLine);
+                this.errorResumeLine = this.errorLine; //Number(this.errorLine);
                 this.vmGotoLine(this.errorGotoLine, "onError");
                 this.vmStop("onError", 50);
                 hidden = true;
@@ -13113,8 +13144,9 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             if (!this.quiet) {
                 Utils_21.Utils.console.log("BASIC error(" + err + "):", errorWithInfo + (hidden ? " (hidden: " + hidden + ")" : ""));
             }
-            var traceLine = this.traceLabel || this.line, sourceMapEntry = this.sourceMap[traceLine], pos = sourceMapEntry && sourceMapEntry[0], len = sourceMapEntry && sourceMapEntry[1];
-            return Utils_21.Utils.composeError("CpcVm", error, errorString, errInfo, pos, len, line, hidden);
+            var traceLine = this.line, //this.traceLabel || this.line,
+            sourceMapEntry = this.sourceMap[traceLine], pos = sourceMapEntry && sourceMapEntry[0], len = sourceMapEntry && sourceMapEntry[1];
+            return Utils_21.Utils.composeError("CpcVm", error, errorString, errInfo, pos, len, this.line, hidden);
         };
         CpcVm.prototype.error = function (err, errInfo) {
             err = this.vmInRangeRound(err, 0, 255, "ERROR"); // could trigger another error
@@ -14473,13 +14505,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         };
         CpcVm.prototype.resume = function (line) {
             if (this.errorGotoLine) {
-                if (line === undefined) {
-                    line = this.errorResumeLine;
-                }
-                else {
-                    this.vmLineInRange(line, "RESUME");
-                }
-                this.vmGotoLine(line, "resume");
+                var label = line === undefined ? this.errorResumeLine : this.vmLineInRange(line, "RESUME");
+                this.vmGotoLine(label, "resume");
                 this.errorResumeLine = 0;
             }
             else {

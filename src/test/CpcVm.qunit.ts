@@ -450,13 +450,13 @@ QUnit.module("CpcVm: Tests", function () {
 			'""': 'CpcVm: Improper argument in 0: @ -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
 		afterGosub: {
-			"0,0,123": '{"_key":"timer0","active":false}',
-			"1,0,123": '{"_key":"timer0","active":true,"intervalMs":20,"line":123,"repeat":false}',
-			"1,0,1": '{"_key":"timer0","line":1}',
-			"1,0,65535": '{"_key":"timer0","line":65535}',
-			"32767.4,0,123": '{"_key":"timer0","intervalMs":655340,"line":123}',
-			"10,1,123": '{"_key":"timer1","intervalMs":200,"line":123,"repeat":false,"active":true}',
-			"10,3.4,123": '{"_key":"timer3","intervalMs":200,"line":123,"repeat":false,"active":true}',
+			"0,0,123": "",
+			"1,0,123": '{"_key":"timer0","line":123,"intervalMs":20,"active":true}',
+			"1,0,1": '{"_key":"timer0","line":1,"intervalMs":20,"active":true}',
+			"1,0,65535": '{"_key":"timer0","line":65535,"intervalMs":20,"active":true}',
+			"32767.4,0,123": '{"_key":"timer0","line":123,"intervalMs":655340,"active":true}',
+			"10,1,123": '{"_key":"timer1","line":123,"intervalMs":200,"active":true}',
+			"10,3.4,123": '{"_key":"timer3","line":123,"intervalMs":200,"active":true}',
 			"": 'CpcVm: Type mismatch in 0: AFTER undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			'""': 'CpcVm: Type mismatch in 0: AFTER  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			"-1,0,123": 'CpcVm: Improper argument in 0: AFTER -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
@@ -1021,13 +1021,13 @@ QUnit.module("CpcVm: Tests", function () {
 			"256 ": 'CpcVm: Improper argument in 0: ERROR 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
 		everyGosub: {
-			"0,0,123": '{"_key":"timer0","active":false}',
-			"1,0,123": '{"_key":"timer0","active":true,"intervalMs":20,"line":123,"repeat":true}',
-			"1,0,1": '{"_key":"timer0","line":1}',
-			"1,0,65535": '{"_key":"timer0","line":65535}',
-			"32767.4,0,123": '{"_key":"timer0","intervalMs":655340,"line":123}',
-			"10,1,123": '{"_key":"timer1","intervalMs":200,"line":123,"repeat":true,"active":true}',
-			"10,3.4,123": '{"_key":"timer3","intervalMs":200,"line":123,"repeat":true,"active":true}',
+			"0,0,123": "",
+			"1,0,123": '{"_key":"timer0","line":123,"repeat":true,"intervalMs":20,"active":true}',
+			"1,0,1": '{"_key":"timer0","line":1,"repeat":true,"intervalMs":20,"active":true}',
+			"1,0,65535": '{"_key":"timer0","line":65535,"repeat":true,"intervalMs":20,"active":true}',
+			"32767.4,0,123": '{"_key":"timer0","line":123,"repeat":true,"intervalMs":655340,"active":true}',
+			"10,1,123": '{"_key":"timer1","line":123,"repeat":true,"intervalMs":200,"active":true}',
+			"10,3.4,123": '{"_key":"timer3","line":123,"repeat":true,"intervalMs":200,"active":true}',
 			"": 'CpcVm: Type mismatch in 0: EVERY undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			'""': 'CpcVm: Type mismatch in 0: EVERY  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 			"-1,0,123": 'CpcVm: Improper argument in 0: EVERY -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
@@ -1496,7 +1496,7 @@ QUnit.module("CpcVm: Tests", function () {
 			"10,20,0,4": 'getXpos: , getYpos: , setGPen:0 -- CpcVm: Improper argument in 0: MOVER 4 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
 		"new": {
-			"": 'resetQueue: -- {"_key":"stop","reason":"new","priority":90,"paras":{"command":"new","stream":0,"first":0,"last":0,"line":0}} -- {"_key":"timer0","line":0,"repeat":false,"intervalMs":0,"active":false,"handlerRunning":false,"stackIndexReturn":0,"savedPriority":0} -- {"_key":"timer1","line":0,"repeat":false,"intervalMs":0,"active":false,"handlerRunning":false,"stackIndexReturn":0,"savedPriority":0} -- {"_key":"timer2","line":0,"repeat":false,"intervalMs":0,"active":false,"handlerRunning":false,"stackIndexReturn":0,"savedPriority":0} -- {"_key":"timer3","line":0,"repeat":false,"intervalMs":0,"active":false,"handlerRunning":false,"stackIndexReturn":0,"savedPriority":0}'
+			"": 'resetQueue: -- {"_key":"stop","reason":"new","priority":90,"paras":{"command":"new","stream":0,"first":0,"last":0,"line":0}}'
 		},
 		onBreakCont: {
 			"": "false, onBreakContSet:true, onBreakHandlerActive:false"
@@ -1518,11 +1518,11 @@ QUnit.module("CpcVm: Tests", function () {
 			"0 ": "",
 			"1 ": "",
 			"65535 ": "",
-			"": 'CpcVm: Type mismatch in 0: ON ERROR GOTO undefined -- {"_key":"stop","reason":"onError","priority":50,"paras":{}}',
-			'""': 'CpcVm: Type mismatch in 0: ON ERROR GOTO  -- {"_key":"stop","reason":"onError","priority":50,"paras":{}}',
-			"-1 ": 'CpcVm: Improper argument in 0: ON ERROR GOTO -1 -- {"_key":"stop","reason":"onError","priority":50,"paras":{}}',
-			"65536 ": 'CpcVm: Improper argument in 0: ON ERROR GOTO 65536 -- {"_key":"stop","reason":"onError","priority":50,"paras":{}}',
-			"10.4 ": 'CpcVm: Line too long in 0: ON ERROR GOTO 10.4 -- {"_key":"stop","reason":"onError","priority":50,"paras":{}}'
+			"": 'CpcVm: Type mismatch in 0: ON ERROR GOTO undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			'""': 'CpcVm: Type mismatch in 0: ON ERROR GOTO  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"-1 ": 'CpcVm: Improper argument in 0: ON ERROR GOTO -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"65536 ": 'CpcVm: Improper argument in 0: ON ERROR GOTO 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+			"10.4 ": 'CpcVm: Line too long in 0: ON ERROR GOTO 10.4 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 		},
 		onGosub: {
 			'"10s1",1,123': "123",
@@ -2347,10 +2347,10 @@ QUnit.module("CpcVm: Tests", function () {
 			"": "updateSpeedInk: , scheduler: -- true"
 		},
 		vmReset: {
-			"": 'resetCustomChars: , setMode:1 , clearFullWindow: , txtClearFullWindow: , reset: , txtReset: , reset: , reset: -- {"_key":"outFile","open":false,"command":"","name":"","line":0,"fileData":[],"stream":0,"typeString":"","length":0,"entry":0} -- {"_key":"timer0","line":0,"repeat":false,"intervalMs":0,"active":false,"handlerRunning":false,"stackIndexReturn":0,"savedPriority":0} -- {"_key":"timer1","line":0,"repeat":false,"intervalMs":0,"active":false,"handlerRunning":false,"stackIndexReturn":0,"savedPriority":0} -- {"_key":"timer2","line":0,"repeat":false,"intervalMs":0,"active":false,"handlerRunning":false,"stackIndexReturn":0,"savedPriority":0} -- {"_key":"timer3","line":0,"repeat":false,"intervalMs":0,"active":false,"handlerRunning":false,"stackIndexReturn":0,"savedPriority":0}'
+			"": 'resetCustomChars: , setMode:1 , clearFullWindow: , txtClearFullWindow: , reset: , txtReset: , reset: , reset: -- {"_key":"outFile","open":false,"command":"","name":"","line":0,"fileData":[],"stream":0,"typeString":"","length":0,"entry":0}'
 		},
 		vmTrace: {
-			"12 ": 'printChar:91,0,0,1,0,false , txtPrintChar:91,0,0,1,0,false , printChar:49,1,0,1,0,false , txtPrintChar:49,1,0,1,0,false , printChar:50,2,0,1,0,false , txtPrintChar:50,2,0,1,0,false , printChar:93,3,0,1,0,false , txtPrintChar:93,3,0,1,0,false -- {"_key":"win0","pos":4}'
+			"": 'printChar:91,0,0,1,0,false , txtPrintChar:91,0,0,1,0,false , printChar:49,1,0,1,0,false , txtPrintChar:49,1,0,1,0,false , printChar:50,2,0,1,0,false , txtPrintChar:50,2,0,1,0,false , printChar:51,3,0,1,0,false , txtPrintChar:51,3,0,1,0,false , printChar:93,4,0,1,0,false , txtPrintChar:93,4,0,1,0,false -- {"_key":"win0","pos":5}'
 		}
 
 	};
@@ -3267,8 +3267,9 @@ QUnit.module("CpcVm: Tests", function () {
 	function runSingleTest(testFunction: TestFunctionType, cpcVm: CpcVm, config: CpcVmOptions, key: string, expected: string, category: string) {
 		cpcVm.vmChangeMode(1);
 		cpcVm.vmResetWindowData(true); // prepare
-		cpcVm.closein();
-		cpcVm.closeout();
+		//cpcVm.closein();
+		//cpcVm.closeout();
+		cpcVm.clear();
 		cpcVm.vmGotoLine(0);
 		config.variables.removeAllVariables();
 

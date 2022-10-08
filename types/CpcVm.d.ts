@@ -153,7 +153,6 @@ export declare class CpcVm {
     private errorLine;
     private degFlag;
     private tronFlag1;
-    private traceLabel;
     private ramSelect;
     private screenPage;
     private minCharHimem;
@@ -224,7 +223,7 @@ export declare class CpcVm {
     vmAdaptFilename(name: string, err: string): string;
     vmGetSoundData(): SoundData[];
     vmSetSourceMap(sourceMap: Record<string, number[]>): void;
-    vmTrace(line: number | string): void;
+    vmTrace(): void;
     private vmDrawMovePlot;
     private vmAfterEveryGosub;
     private vmCopyFromScreen;
