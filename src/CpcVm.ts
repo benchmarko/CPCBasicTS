@@ -200,8 +200,6 @@ export class CpcVm {
 
 	private tronFlag1 = false; // trace flag
 
-	//private traceLabel = "";
-
 	private ramSelect = 0;
 
 	private screenPage = 3; // 16K screen page, 3=0xc000..0xffff
@@ -519,7 +517,6 @@ export class CpcVm {
 		this.degFlag = false; // degree or radians
 
 		this.tronFlag1 = false;
-		//this.traceLabel = "";
 
 		this.mem.length = 0; // clear memory (for PEEK, POKE)
 		this.ramSelect = 0; // for banking with 16K banks in the range 0x4000-0x7fff (0=default; 1...=additional)
@@ -650,7 +647,6 @@ export class CpcVm {
 		this.closein();
 		this.closeout();
 		this.cursor(stream, 0);
-		//this.traceLabel = ""; // last trace line
 		this.labelList.length = 0;
 	}
 
@@ -812,12 +808,14 @@ export class CpcVm {
 		return value;
 	}
 
-	vmGotoLine(line: string | number, msg?: string): void {
+	vmGoto(line: string | number, _msg?: string): void {
+		/*
 		if (Utils.debug > 5) {
 			if (typeof line === "number" || Utils.debug > 7) { // non-number labels only in higher debug levels
-				Utils.console.debug("dvmGotoLine:", msg + ": " + line);
+				Utils.console.debug("vmGotoLine:", msg + ": " + line);
 			}
 		}
+		*/
 		this.line = line;
 	}
 
@@ -1079,7 +1077,7 @@ export class CpcVm {
 		if (this.tronFlag1) {
 			const stream = 0;
 
-			this.print(stream, "[" + String(this.line) + "]")
+			this.print(stream, "[" + String(this.line) + "]");
 		}
 	}
 
@@ -1577,7 +1575,7 @@ export class CpcVm {
 		if (!this.startLine) {
 			throw this.vmComposeError(Error(), 17, "CONT"); // cannot continue
 		}
-		this.vmGotoLine(this.startLine, "CONT");
+		this.vmGoto(this.startLine, "CONT");
 		this.startLine = 0;
 	}
 
@@ -1925,19 +1923,12 @@ export class CpcVm {
 		this.errorCode = err;
 		this.errorLine = this.line;
 
-		/*
-		let line = this.errorLine;
-		if (this.traceLabel) {
-			line += " (trace: " + this.traceLabel + ")";
-		}
-		*/
-
 		const errorWithInfo = errorString + " in " + this.errorLine + (errInfo ? (": " + errInfo) : "");
 		let	hidden = false; // hide errors wich are catched
 
 		if (this.errorGotoLine && !this.errorResumeLine) {
-			this.errorResumeLine = this.errorLine; //Number(this.errorLine);
-			this.vmGotoLine(this.errorGotoLine, "onError");
+			this.errorResumeLine = this.errorLine;
+			this.vmGoto(this.errorGotoLine, "onError");
 			this.vmStop("onError", 50);
 			hidden = true;
 		} else {
@@ -1946,7 +1937,7 @@ export class CpcVm {
 		if (!this.quiet) {
 			Utils.console.log("BASIC error(" + err + "):", errorWithInfo + (hidden ? " (hidden: " + hidden + ")" : ""));
 		}
-		const traceLine = this.line, //this.traceLabel || this.line,
+		const traceLine = this.line,
 			sourceMapEntry = this.sourceMap[traceLine],
 			pos = sourceMapEntry && sourceMapEntry[0],
 			len = sourceMapEntry && sourceMapEntry[1];
@@ -1990,7 +1981,7 @@ export class CpcVm {
 	}
 
 	private vmGosub(retLabel: string | number, n: number) {
-		this.vmGotoLine(n, "gosub (ret=" + retLabel + ")");
+		this.vmGoto(n, "gosub (ret=" + retLabel + ")");
 		this.gosubStack.push(retLabel);
 	}
 
@@ -2002,9 +1993,9 @@ export class CpcVm {
 		this.vmGosub(retLabel, n);
 	}
 
-	"goto"(n: string): void {
-		// TODO: do we want: this.vmLineInRange(Number(n), "GOTO");
-		this.vmGotoLine(n, "goto");
+	"goto"(line: number): void {
+		this.vmLineInRange(line, "GOTO");
+		this.vmGoto(line, "goto");
 	}
 
 	graphicsPaper(gPaper: number): void {
@@ -2676,7 +2667,7 @@ export class CpcVm {
 			}
 			this.gosubStack.push(retLabel);
 		}
-		this.vmGotoLine(line, "onGosub (n=" + n + ", ret=" + retLabel + ", line=" + line + ")");
+		this.vmGoto(line, "onGosub (n=" + n + ", ret=" + retLabel + ", line=" + line + ")");
 	}
 
 	onGoto(retLabel: string, n: number, ...args: number[]): void {
@@ -2692,7 +2683,7 @@ export class CpcVm {
 		} else {
 			line = this.vmLineInRange(args[n - 1], "ON GOTO");
 		}
-		this.vmGotoLine(line, "onGoto (n=" + n + ", ret=" + retLabel + ", line=" + line + ")");
+		this.vmGoto(line, "onGoto (n=" + n + ", ret=" + retLabel + ", line=" + line + ")");
 	}
 
 	private static fnChannel2ChannelIndex(channel: number) {
@@ -3492,7 +3483,7 @@ export class CpcVm {
 		if (this.errorGotoLine) {
 			const label = line === undefined ? this.errorResumeLine : this.vmLineInRange(line, "RESUME");
 
-			this.vmGotoLine(label, "resume");
+			this.vmGoto(label, "resume");
 			this.errorResumeLine = 0;
 		} else {
 			throw this.vmComposeError(Error(), 20, String(line)); // Unexpected RESUME
@@ -3513,7 +3504,7 @@ export class CpcVm {
 
 		const line = this.labelList[resumeLineIndex + 1]; // get next line
 
-		this.vmGotoLine(line, "resumeNext");
+		this.vmGoto(line, "resumeNext");
 		this.errorResumeLine = 0;
 	}
 
@@ -3523,7 +3514,7 @@ export class CpcVm {
 		if (line === undefined) {
 			throw this.vmComposeError(Error(), 3, ""); // Unexpected Return [in <line>]
 		} else {
-			this.vmGotoLine(line, "return");
+			this.vmGoto(line, "return");
 		}
 		if (line === this.breakResumeLine) { // end of break handler?
 			this.breakResumeLine = 0; // can start another one
@@ -3778,7 +3769,7 @@ export class CpcVm {
 	// step
 
 	stop(label: string): void {
-		this.vmGotoLine(label, "stop");
+		this.vmGoto(label, "stop");
 		this.vmStop("stop", 60);
 	}
 

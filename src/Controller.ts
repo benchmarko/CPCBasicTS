@@ -155,12 +155,17 @@ class FileSelect {
 	// https://stackoverflow.com/questions/10261989/html5-javascript-drag-and-drop-file-from-external-window-windows-explorer
 	// https://www.w3.org/TR/file-upload/#dfn-filereader
 	private fnHandleFileSelect(event: Event) {
-		const dataTransfer = (event as DragEvent).dataTransfer;
-
 		event.stopPropagation();
 		event.preventDefault();
 
-		this.files = dataTransfer ? dataTransfer.files : ((event.target as any).files as FileList); // dataTransfer for drag&drop, target.files for file input
+		const dataTransfer = (event as DragEvent).dataTransfer,
+			files = dataTransfer ? dataTransfer.files : (event.target as HTMLInputElement).files; // dataTransfer for drag&drop, target.files for file input
+
+		if (!files || !files.length) {
+			Utils.console.error("fnHandleFileSelect: No files!");
+			return;
+		}
+		this.files = files;
 		this.fileIndex = 0;
 		this.imported.length = 0;
 
@@ -171,7 +176,7 @@ class FileSelect {
 			reader.onload = this.fnOnLoad.bind(this);
 			this.fnReadNextFile(reader);
 		} else {
-			Utils.console.warn("FileReader API not supported.");
+			Utils.console.warn("fnHandleFileSelect: FileReader API not supported.");
 		}
 	}
 
@@ -180,24 +185,24 @@ class FileSelect {
 	}
 }
 
-/*
-// TODO
+
+export interface FileHandlerOptions {
+	adaptFilename: (name: string, err: string) => string;
+	updateStorageDatabase: (action: string, key: string) => void;
+	outputError: (error: Error, noSelection?: boolean) => void;
+}
+
 class FileHandler {
 	private static readonly metaIdent = "CPCBasic";
 
-	private static dummyFunction = function () {
-		//
-	};
+	private adaptFilename = {} as (name: string, err: string) => string;
+	private updateStorageDatabase = {} as (action: string, key: string) => void;
+	private outputError = {} as (error: Error, noSelection?: boolean) => void;
 
-	private config = {
-		outputError: FileHandler.dummyFunction as (error: Error, noSelection?: boolean) => void, // e.g. Utils.console.error(String(error), "selection=", noSelection)
-		updateStorageDatabase: FileHandler.dummyFunction as (action: string, key: string) => void,
-		adaptFilename: FileHandler.dummyFunction as unknown as (name: string, err: string) => string,
-		fnEndOfImport: FileHandler.dummyFunction as (imported: string[]) => void
-	};
-
-	private outputError(error: Error, noSelection?: boolean) {
-		this.config.outputError(error, noSelection);
+	constructor(options: FileHandlerOptions) {
+		this.adaptFilename = options.adaptFilename;
+		this.updateStorageDatabase = options.updateStorageDatabase;
+		this.outputError = options.outputError;
 	}
 
 	private static fnLocalStorageName(name: string, defaultExtension?: string) {
@@ -208,7 +213,7 @@ class FileHandler {
 		return name;
 	}
 
-	private static createMinimalAmsdosHeader(type: string,	start: number,	length: number) {
+	static createMinimalAmsdosHeader(type: string,	start: number,	length: number) {
 		return {
 			typeString: type,
 			start: start,
@@ -229,9 +234,9 @@ class FileHandler {
 	private static reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/); // eslint-disable-line no-control-regex
 	// starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
 
-	private fnLoad2(data: string, name: string, type: string, imported: string[]) {
+	fnLoad2(data: string, name: string, type: string, imported: string[]) {
 		let header: AmsdosHeader | undefined,
-			storageName = this.config.adaptFilename(name, "FILE");
+			storageName = this.adaptFilename(name, "FILE");
 
 		storageName = FileHandler.fnLocalStorageName(storageName);
 
@@ -297,7 +302,7 @@ class FileHandler {
 
 			try {
 				Utils.localStorage.setItem(storageName, meta + "," + data);
-				this.config.updateStorageDatabase("set", storageName);
+				this.updateStorageDatabase("set", storageName);
 				Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
 				imported.push(name);
 			} catch (e) { // maybe quota exceeded
@@ -312,7 +317,7 @@ class FileHandler {
 		}
 	}
 }
-*/
+// */
 
 
 export class Controller implements IController {
@@ -361,6 +366,7 @@ export class Controller implements IController {
 	private readonly noStop: VmStopEntry;
 	private readonly savedStop: VmStopEntry; // backup of stop object
 
+	private fileHandler?: FileHandler;
 	private fileSelect?: FileSelect;
 
 	constructor(model: Model, view: View) {
@@ -730,7 +736,7 @@ export class Controller implements IController {
 			const savedStop = this.getStopObject();
 
 			if (savedStop.reason === "waitInput") { // sepcial handling: set line to repeat input
-				this.vm.vmGotoLine((savedStop.paras as VmInputParas).line);
+				this.vm.vmGoto((savedStop.paras as VmInputParas).line);
 			}
 
 			if (!this.vm.vmEscape()) {
@@ -1663,7 +1669,7 @@ export class Controller implements IController {
 			}
 		}
 
-		this.vm.vmGotoLine(0); // reset current line
+		this.vm.vmGoto(0); // reset current line
 		this.vm.vmStop("end", 0, true);
 	}
 
@@ -1673,7 +1679,7 @@ export class Controller implements IController {
 		this.setInputText(input);
 		this.variables.removeAllVariables();
 
-		this.vm.vmGotoLine(0); // reset current line
+		this.vm.vmGoto(0); // reset current line
 		this.vm.vmStop("end", 0, true);
 		this.invalidateScript();
 	}
@@ -1693,7 +1699,7 @@ export class Controller implements IController {
 			this.vm.print(stream, line, "\r\n");
 		}
 
-		this.vm.vmGotoLine(0); // reset current line
+		this.vm.vmGoto(0); // reset current line
 		this.vm.vmStop("end", 0, true);
 	}
 
@@ -1757,7 +1763,7 @@ export class Controller implements IController {
 			this.setInputText(output.text, true);
 			this.fnPutChangedInputOnStack();
 		}
-		this.vm.vmGotoLine(0); // reset current line
+		this.vm.vmGoto(0); // reset current line
 		vm.vmStop("end", 0, true);
 	}
 
@@ -1769,7 +1775,7 @@ export class Controller implements IController {
 		input = Controller.mergeScripts(inputText, input);
 		this.setInputText(input);
 		this.vm.vmSetStartLine(0);
-		this.vm.vmGotoLine(0); // to be sure
+		this.vm.vmGoto(0); // to be sure
 		this.view.setDisabled("continueButton", true);
 		this.vm.cursor(inputParas.stream, 0);
 		this.vm.vmStop("end", 90);
@@ -1921,7 +1927,7 @@ export class Controller implements IController {
 			tokens = this.encodeTokenizedBasic(input);
 
 		if (tokens !== "") {
-			const header = Controller.createMinimalAmsdosHeader("T", 0x170, tokens.length),
+			const header = FileHandler.createMinimalAmsdosHeader("T", 0x170, tokens.length),
 				headerString = DiskImage.combineAmsdosHeader(header),
 				data = headerString + tokens;
 
@@ -1985,7 +1991,7 @@ export class Controller implements IController {
 		if (this.fnScript) {
 			vm.outBuffer = this.view.getAreaValue("resultText");
 			vm.vmStop("", 0, true);
-			vm.vmGotoLine(0); // to load DATA lines
+			vm.vmGoto(0); // to load DATA lines
 			this.vm.vmSetStartLine(line); // clear resets also startline
 
 			this.view.setDisabled("runButton", true);
@@ -2064,7 +2070,7 @@ export class Controller implements IController {
 				this.setInputText(input, true);
 
 				this.vm.vmSetStartLine(0);
-				this.vm.vmGotoLine(0); // to be sure
+				this.vm.vmGoto(0); // to be sure
 				this.view.setDisabled("continueButton", true);
 
 				this.vm.cursor(stream, 1);
@@ -2109,7 +2115,7 @@ export class Controller implements IController {
 
 			if (!output.error) {
 				this.vm.vmSetStartLine(this.vm.line as number); // fast hack
-				this.vm.vmGotoLine("direct");
+				this.vm.vmGoto("direct");
 
 				try {
 					const fnScript = new Function("o", outputString); // eslint-disable-line no-new-func
@@ -2428,6 +2434,7 @@ export class Controller implements IController {
 		soundButton.innerText = text;
 	}
 
+	/*
 	private static createMinimalAmsdosHeader(type: string,	start: number,	length: number) {
 		return {
 			typeString: type,
@@ -2435,6 +2442,7 @@ export class Controller implements IController {
 			length: length
 		} as AmsdosHeader;
 	}
+	*/
 
 
 	private fnEndOfImport(imported: string[]) {
@@ -2448,6 +2456,7 @@ export class Controller implements IController {
 		this.updateResultText();
 	}
 
+	/*
 	private static reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/); // eslint-disable-line no-control-regex
 	// starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
 
@@ -2533,6 +2542,7 @@ export class Controller implements IController {
 			}
 		}
 	}
+	*/
 
 	private static fnHandleDragOver(evt: DragEvent) {
 		evt.stopPropagation();
@@ -2542,12 +2552,24 @@ export class Controller implements IController {
 		}
 	}
 
+	private adaptFilename(name: string, err: string) {
+		return this.vm.vmAdaptFilename(name, err);
+	}
+
 	private initDropZone() {
+		if (!this.fileHandler) {
+			this.fileHandler = new FileHandler({
+				adaptFilename: this.adaptFilename.bind(this),
+				updateStorageDatabase: this.updateStorageDatabase.bind(this),
+				outputError: this.outputError.bind(this)
+			});
+		}
+
 		if (!this.fileSelect) {
 			this.fileSelect = new FileSelect({
 				fnEndOfImport: this.fnEndOfImport.bind(this),
 				outputError: this.outputError.bind(this),
-				fnLoad2: this.fnLoad2.bind(this)
+				fnLoad2: this.fileHandler.fnLoad2.bind(this.fileHandler)
 			});
 		}
 		const dropZone = View.getElementById1("dropZone");

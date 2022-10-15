@@ -247,7 +247,11 @@ class cpcBasic {
 			}
 		},
 
-		"goto": function (line: string | number) {
+		vmGoto: function (line: string | number) {
+			cpcBasic.vmMock.line = line;
+		},
+
+		"goto": function (line: number) {
 			cpcBasic.vmMock.line = line;
 		},
 

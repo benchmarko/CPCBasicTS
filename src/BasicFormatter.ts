@@ -29,7 +29,7 @@ type ChangesType = Record<number, LineEntry>;
 export class BasicFormatter {
 	private readonly lexer: BasicLexer;
 	private readonly parser: BasicParser;
-	private line = ""; // current line (label) for error messages
+	private label = ""; // current label (line) for error messages
 
 	constructor(options: BasicFormatterOptions) {
 		this.lexer = options.lexer;
@@ -37,7 +37,7 @@ export class BasicFormatter {
 	}
 
 	private composeError(error: Error, message: string, value: string, pos: number, len?: number) {
-		return Utils.composeError("BasicFormatter", error, message, value, pos, len, this.line);
+		return Utils.composeError("BasicFormatter", error, message, value, pos, len, this.label);
 	}
 
 	// renumber
@@ -51,7 +51,7 @@ export class BasicFormatter {
 			isDirect = BasicFormatter.fnIsDirect(label),
 			line = Number(label);
 
-		this.line = label;
+		this.label = label;
 		if (!isDirect) {
 			if (line <= lastLine) {
 				throw this.composeError(Error(), "Expected increasing line number", label, node.pos, node.len);
@@ -105,7 +105,7 @@ export class BasicFormatter {
 
 	private fnAddReferencesForNode(node: ParserNode, lines: LinesType, refs: LineEntry[]) {
 		if (node.type === "label") {
-			this.line = node.value;
+			this.label = node.value;
 		} else {
 			this.fnAddSingleReference(node, lines, refs);
 		}
@@ -209,7 +209,7 @@ export class BasicFormatter {
 			text: ""
 		};
 
-		this.line = ""; // current line (label)
+		this.label = ""; // current line (label)
 		try {
 			const tokens = this.lexer.lex(input),
 				parseTree = this.parser.parse(tokens),
