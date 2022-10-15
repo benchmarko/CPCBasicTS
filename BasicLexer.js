@@ -11,8 +11,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     var BasicLexer = /** @class */ (function () {
         function BasicLexer(options) {
             this.keepWhiteSpace = false;
-            this.line = ""; // for error messages
-            this.takeNumberAsLinenumber = true; // first number in a line is assumed to be a line number
+            this.label = ""; // for error messages
+            this.takeNumberAsLabel = true; // first number in a line is assumed to be a label (line number)
             this.input = ""; // input to analyze
             this.index = 0; // position in input
             this.tokens = [];
@@ -25,7 +25,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.keepWhiteSpace = options.keepWhiteSpace || false;
         };
         BasicLexer.prototype.composeError = function (error, message, value, pos, len) {
-            return Utils_1.Utils.composeError("BasicLexer", error, message, value, pos, len, this.line || undefined);
+            return Utils_1.Utils.composeError("BasicLexer", error, message, value, pos, len, this.label || undefined);
         };
         BasicLexer.isOperatorOrStreamOrAddress = function (c) {
             return (/[+\-*/^=()[\],;:?\\@#]/).test(c);
@@ -157,9 +157,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             var number = expNumberPart ? token : parseFloat(token);
             this.addToken(expNumberPart ? "expnumber" : "number", String(number), startPos, token); // store number as string
-            if (this.takeNumberAsLinenumber) {
-                this.takeNumberAsLinenumber = false;
-                this.line = String(number); // save just for error message
+            if (this.takeNumberAsLabel) {
+                this.takeNumberAsLabel = false;
+                this.label = String(number); // save just for error message
             }
         };
         BasicLexer.prototype.fnParseCompleteLineForRemOrApostrophe = function (char, startPos) {
@@ -324,7 +324,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             else if (char === "\n") {
                 this.addToken("(eol)", "", startPos);
                 this.advance();
-                this.takeNumberAsLinenumber = true;
+                this.takeNumberAsLabel = true;
             }
             else if (char === "'") { // apostrophe (comment)
                 this.addToken(char, char, startPos);
@@ -365,8 +365,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var startPos;
             this.input = input;
             this.index = 0;
-            this.line = ""; // for error messages
-            this.takeNumberAsLinenumber = true;
+            this.label = ""; // for error messages
+            this.takeNumberAsLabel = true;
             this.whiteSpace = "";
             this.tokens.length = 0;
             while (this.index < input.length) {

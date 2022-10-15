@@ -101,8 +101,8 @@ declare module "BasicLexer" {
     }
     export class BasicLexer {
         private keepWhiteSpace;
-        private line;
-        private takeNumberAsLinenumber;
+        private label;
+        private takeNumberAsLabel;
         private input;
         private index;
         private readonly tokens;
@@ -271,7 +271,7 @@ declare module "BasicFormatter" {
     export class BasicFormatter {
         private readonly lexer;
         private readonly parser;
-        private line;
+        private label;
         constructor(options: BasicFormatterOptions);
         private composeError;
         private static fnIsDirect;
@@ -596,7 +596,7 @@ declare module "CodeGeneratorToken" {
         private quiet;
         private readonly lexer;
         private readonly parser;
-        private line;
+        private label;
         private statementSeparator;
         constructor(options: CodeGeneratorTokenOptions);
         private static readonly operators;
@@ -629,7 +629,7 @@ declare module "CodeGeneratorToken" {
         private static hexnumber;
         private identifier;
         private static linenumber;
-        private label;
+        private fnLabel;
         private vertical;
         private afterGosub;
         private chainMerge;
@@ -1498,7 +1498,7 @@ declare module "CpcVm" {
         vmDetermineVarType(varType: string): string;
         vmAssertNumberType(varType: string): void;
         vmAssign(varType: string, value: string | number): (string | number);
-        vmGotoLine(line: string | number, msg?: string): void;
+        vmGoto(line: string | number, _msg?: string): void;
         private fnCheckSqTimer;
         private vmCheckTimer;
         private vmCheckTimerHandlers;
@@ -1592,7 +1592,7 @@ declare module "CpcVm" {
         fre(arg: number | string): number;
         private vmGosub;
         gosub(retLabel: string | number, n: number): void;
-        "goto"(n: string): void;
+        "goto"(line: number): void;
         graphicsPaper(gPaper: number): void;
         graphicsPen(gPen?: number, transparentMode?: number): void;
         hex$(n: number, pad?: number): string;
@@ -1780,6 +1780,11 @@ declare module "Controller" {
         outputError: (error: Error, noSelection?: boolean) => void;
         fnLoad2: (data: string, name: string, type: string, imported: string[]) => void;
     }
+    export interface FileHandlerOptions {
+        adaptFilename: (name: string, err: string) => string;
+        updateStorageDatabase: (action: string, key: string) => void;
+        outputError: (error: Error, noSelection?: boolean) => void;
+    }
     export class Controller implements IController {
         private readonly fnRunLoopHandler;
         private readonly fnWaitKeyHandler;
@@ -1811,6 +1816,7 @@ declare module "Controller" {
         private readonly rsx;
         private readonly noStop;
         private readonly savedStop;
+        private fileHandler?;
         private fileSelect?;
         constructor(model: Model, view: View);
         private initDatabases;
@@ -1899,11 +1905,9 @@ declare module "Controller" {
         private static generateFunction;
         changeVariable(): void;
         setSoundActive(): void;
-        private static createMinimalAmsdosHeader;
         private fnEndOfImport;
-        private static reRegExpIsText;
-        private fnLoad2;
         private static fnHandleDragOver;
+        private adaptFilename;
         private initDropZone;
         private fnUpdateUndoRedoButtons;
         private fnInitUndoRedoButtons;

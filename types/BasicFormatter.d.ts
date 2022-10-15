@@ -8,7 +8,7 @@ interface BasicFormatterOptions {
 export declare class BasicFormatter {
     private readonly lexer;
     private readonly parser;
-    private line;
+    private label;
     constructor(options: BasicFormatterOptions);
     private composeError;
     private static fnIsDirect;

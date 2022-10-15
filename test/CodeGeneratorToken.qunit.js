@@ -91,7 +91,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
                 "a=1>=1>1": "0D,00,00,E1,EF,0F,F0,0F,EE,0F"
             },
             "Line numbers": {
-                "0 cls": "06,00,00,00,8A,00",
+                "0 cls": "06,00,00,00,8A,00,00,00",
                 "65535 cls": "06,00,FF,FF,8A,00,00,00",
                 "65536 cls": "06,00,00,100,8A,00,00,00",
                 "1.2 cls": "06,00,01,00,8A,00,00,00",

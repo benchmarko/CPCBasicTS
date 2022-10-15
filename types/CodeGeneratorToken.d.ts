@@ -10,7 +10,7 @@ export declare class CodeGeneratorToken {
     private quiet;
     private readonly lexer;
     private readonly parser;
-    private line;
+    private label;
     private statementSeparator;
     constructor(options: CodeGeneratorTokenOptions);
     private static readonly operators;
@@ -43,7 +43,7 @@ export declare class CodeGeneratorToken {
     private static hexnumber;
     private identifier;
     private static linenumber;
-    private label;
+    private fnLabel;
     private vertical;
     private afterGosub;
     private chainMerge;

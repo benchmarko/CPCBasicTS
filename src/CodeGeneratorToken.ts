@@ -19,7 +19,7 @@ export class CodeGeneratorToken {
 	private quiet = false;
 	private readonly lexer: BasicLexer;
 	private readonly parser: BasicParser;
-	private line = 0; // current line (label)
+	private label = ""; // current line (label)
 
 	private statementSeparator: string; // cannot be static when using token2String()
 
@@ -336,7 +336,7 @@ export class CodeGeneratorToken {
 	}
 
 	private composeError(error: Error, message: string, value: string, pos: number) { // eslint-disable-line class-methods-use-this
-		return Utils.composeError("CodeGeneratorToken", error, message, value, pos, undefined, this.line);
+		return Utils.composeError("CodeGeneratorToken", error, message, value, pos, undefined, this.label);
 	}
 
 	private static convUInt8ToString(n: number) {
@@ -577,10 +577,10 @@ export class CodeGeneratorToken {
 
 		return CodeGeneratorToken.token2String("_line16") + CodeGeneratorToken.convUInt16ToString(number);
 	}
-	private label(node: ParserNode) {
-		this.line = Number(node.value); // set line before parsing args
+	private fnLabel(node: ParserNode) {
+		this.label = node.value; // set line before parsing args
 
-		const line = this.line,
+		const line = Number(this.label),
 			nodeArgs = this.fnParseArgs(node.args);
 		let value = this.combineArgsWithSeparator(nodeArgs);
 
@@ -942,7 +942,7 @@ export class CodeGeneratorToken {
 		hexnumber: CodeGeneratorToken.hexnumber,
 		identifier: this.identifier,
 		linenumber: CodeGeneratorToken.linenumber,
-		label: this.label,
+		label: this.fnLabel,
 		"|": this.vertical,
 		afterGosub: this.afterGosub,
 		chainMerge: this.chainMerge,
@@ -1112,7 +1112,7 @@ export class CodeGeneratorToken {
 				}
 			}
 		}
-		if (output.length && this.line) {
+		if (output.length && this.label) {
 			output += CodeGeneratorToken.token2String("_eol") + CodeGeneratorToken.token2String("_eol"); // 2 times eol is eof
 		}
 		return output;
@@ -1123,7 +1123,7 @@ export class CodeGeneratorToken {
 			text: ""
 		};
 
-		this.line = 0;
+		this.label = "";
 		try {
 			const tokens = this.lexer.lex(input),
 				parseTree = this.parser.parse(tokens),

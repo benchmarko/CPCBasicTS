@@ -105,10 +105,14 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         // https://stackoverflow.com/questions/10261989/html5-javascript-drag-and-drop-file-from-external-window-windows-explorer
         // https://www.w3.org/TR/file-upload/#dfn-filereader
         FileSelect.prototype.fnHandleFileSelect = function (event) {
-            var dataTransfer = event.dataTransfer;
             event.stopPropagation();
             event.preventDefault();
-            this.files = dataTransfer ? dataTransfer.files : event.target.files; // dataTransfer for drag&drop, target.files for file input
+            var dataTransfer = event.dataTransfer, files = dataTransfer ? dataTransfer.files : event.target.files; // dataTransfer for drag&drop, target.files for file input
+            if (!files || !files.length) {
+                Utils_1.Utils.console.error("fnHandleFileSelect: No files!");
+                return;
+            }
+            this.files = files;
             this.fileIndex = 0;
             this.imported.length = 0;
             if (window.FileReader) {
@@ -118,7 +122,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.fnReadNextFile(reader);
             }
             else {
-                Utils_1.Utils.console.warn("FileReader API not supported.");
+                Utils_1.Utils.console.warn("fnHandleFileSelect: FileReader API not supported.");
             }
         };
         FileSelect.prototype.addFileSelectHandler = function (element, type) {
@@ -126,43 +130,30 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         };
         return FileSelect;
     }());
-    /*
-    // TODO
-    class FileHandler {
-        private static readonly metaIdent = "CPCBasic";
-    
-        private static dummyFunction = function () {
-            //
-        };
-    
-        private config = {
-            outputError: FileHandler.dummyFunction as (error: Error, noSelection?: boolean) => void, // e.g. Utils.console.error(String(error), "selection=", noSelection)
-            updateStorageDatabase: FileHandler.dummyFunction as (action: string, key: string) => void,
-            adaptFilename: FileHandler.dummyFunction as unknown as (name: string, err: string) => string,
-            fnEndOfImport: FileHandler.dummyFunction as (imported: string[]) => void
-        };
-    
-        private outputError(error: Error, noSelection?: boolean) {
-            this.config.outputError(error, noSelection);
+    var FileHandler = /** @class */ (function () {
+        function FileHandler(options) {
+            this.adaptFilename = {};
+            this.updateStorageDatabase = {};
+            this.outputError = {};
+            this.adaptFilename = options.adaptFilename;
+            this.updateStorageDatabase = options.updateStorageDatabase;
+            this.outputError = options.outputError;
         }
-    
-        private static fnLocalStorageName(name: string, defaultExtension?: string) {
+        FileHandler.fnLocalStorageName = function (name, defaultExtension) {
             // modify name so we do not clash with localstorage methods/properites
             if (name.indexOf(".") < 0) { // no dot inside name?
                 name += "." + (defaultExtension || ""); // append dot or default extension
             }
             return name;
-        }
-    
-        private static createMinimalAmsdosHeader(type: string,	start: number,	length: number) {
+        };
+        FileHandler.createMinimalAmsdosHeader = function (type, start, length) {
             return {
                 typeString: type,
                 start: start,
                 length: length
-            } as AmsdosHeader;
-        }
-    
-        private static joinMeta(meta: FileMeta) {
+            };
+        };
+        FileHandler.joinMeta = function (meta) {
             return [
                 FileHandler.metaIdent,
                 meta.typeString,
@@ -170,95 +161,91 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 meta.length,
                 meta.entry
             ].join(";");
-        }
-    
-        private static reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/); // eslint-disable-line no-control-regex
+        };
         // starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
-    
-        private fnLoad2(data: string, name: string, type: string, imported: string[]) {
-            let header: AmsdosHeader | undefined,
-                storageName = this.config.adaptFilename(name, "FILE");
-    
+        FileHandler.prototype.fnLoad2 = function (data, name, type, imported) {
+            var header, storageName = this.adaptFilename(name, "FILE");
             storageName = FileHandler.fnLocalStorageName(storageName);
-    
             if (type === "text/plain") {
                 header = FileHandler.createMinimalAmsdosHeader("A", 0, data.length);
-            } else {
+            }
+            else {
                 if (type === "application/x-zip-compressed" || type === "cpcBasic/binary") { // are we a file inside zip?
                     // empty
-                } else { // e.g. "data:application/octet-stream;base64,..."
-                    const index = data.indexOf(",");
-    
+                }
+                else { // e.g. "data:application/octet-stream;base64,..."
+                    var index = data.indexOf(",");
                     if (index >= 0) {
-                        const info1 = data.substring(0, index);
-    
+                        var info1 = data.substring(0, index);
                         data = data.substring(index + 1); // remove meta prefix
                         if (info1.indexOf("base64") >= 0) {
-                            data = Utils.atob(data); // decode base64
+                            data = Utils_1.Utils.atob(data); // decode base64
                         }
                     }
                 }
-    
-                header = DiskImage.parseAmsdosHeader(data);
+                header = DiskImage_1.DiskImage.parseAmsdosHeader(data);
                 if (header) {
                     data = data.substring(0x80); // remove header
-                } else if (FileHandler.reRegExpIsText.test(data)) {
+                }
+                else if (FileHandler.reRegExpIsText.test(data)) {
                     header = FileHandler.createMinimalAmsdosHeader("A", 0, data.length);
-                } else if (DiskImage.testDiskIdent(data.substring(0, 8))) { // disk image file?
+                }
+                else if (DiskImage_1.DiskImage.testDiskIdent(data.substring(0, 8))) { // disk image file?
                     try {
-                        const dsk = new DiskImage({
-                                data: data,
-                                diskName: name
-                            }),
-                            dir = dsk.readDirectory(),
-                            diskFiles = Object.keys(dir);
-    
-                        for (let i = 0; i < diskFiles.length; i += 1) {
-                            const fileName = diskFiles[i];
-    
+                        var dsk = new DiskImage_1.DiskImage({
+                            data: data,
+                            diskName: name
+                        }), dir = dsk.readDirectory(), diskFiles = Object.keys(dir);
+                        for (var i = 0; i < diskFiles.length; i += 1) {
+                            var fileName = diskFiles[i];
                             try { // eslint-disable-line max-depth
                                 data = dsk.readFile(dir[fileName]);
                                 this.fnLoad2(data, fileName, "cpcBasic/binary", imported); // recursive
-                            } catch (e) {
-                                Utils.console.error(e);
+                            }
+                            catch (e) {
+                                Utils_1.Utils.console.error(e);
                                 if (e instanceof Error) { // eslint-disable-line max-depth
                                     this.outputError(e, true);
                                 }
                             }
                         }
-                    } catch (e) {
-                        Utils.console.error(e);
+                    }
+                    catch (e) {
+                        Utils_1.Utils.console.error(e);
                         if (e instanceof Error) {
                             this.outputError(e, true);
                         }
                     }
                     header = undefined; // ignore dsk file
-                } else { // binary
+                }
+                else { // binary
                     header = FileHandler.createMinimalAmsdosHeader("B", 0, data.length);
                 }
             }
-    
             if (header) {
-                const meta = FileHandler.joinMeta(header);
-    
+                var meta = FileHandler.joinMeta(header);
                 try {
-                    Utils.localStorage.setItem(storageName, meta + "," + data);
-                    this.config.updateStorageDatabase("set", storageName);
-                    Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
+                    Utils_1.Utils.localStorage.setItem(storageName, meta + "," + data);
+                    this.updateStorageDatabase("set", storageName);
+                    Utils_1.Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
                     imported.push(name);
-                } catch (e) { // maybe quota exceeded
-                    Utils.console.error(e);
+                }
+                catch (e) { // maybe quota exceeded
+                    Utils_1.Utils.console.error(e);
                     if (e instanceof Error) {
                         if (e.name === "QuotaExceededError") {
-                            (e as CustomError).shortMessage = storageName + ": Quota exceeded";
+                            e.shortMessage = storageName + ": Quota exceeded";
                         }
                         this.outputError(e, true);
                     }
                 }
             }
-        }
-    }
-    */
+        };
+        FileHandler.metaIdent = "CPCBasic";
+        FileHandler.reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/); // eslint-disable-line no-control-regex
+        return FileHandler;
+    }());
+    // */
     var Controller = /** @class */ (function () {
         function Controller(model, view) {
             this.fnScript = undefined; // eslint-disable-line @typescript-eslint/ban-types
@@ -586,7 +573,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.vm.cursor(stream, 0);
                 var savedStop = this.getStopObject();
                 if (savedStop.reason === "waitInput") { // sepcial handling: set line to repeat input
-                    this.vm.vmGotoLine(savedStop.paras.line);
+                    this.vm.vmGoto(savedStop.paras.line);
                 }
                 if (!this.vm.vmEscape()) {
                     this.vm.vmStop("", 0, true); // continue program, in break handler?
@@ -1371,14 +1358,14 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     this.setInputText(input);
                 }
             }
-            this.vm.vmGotoLine(0); // reset current line
+            this.vm.vmGoto(0); // reset current line
             this.vm.vmStop("end", 0, true);
         };
         Controller.prototype.fnNew = function () {
             var input = "";
             this.setInputText(input);
             this.variables.removeAllVariables();
-            this.vm.vmGotoLine(0); // reset current line
+            this.vm.vmGoto(0); // reset current line
             this.vm.vmStop("end", 0, true);
             this.invalidateScript();
         };
@@ -1391,7 +1378,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 }
                 this.vm.print(stream, line, "\r\n");
             }
-            this.vm.vmGotoLine(0); // reset current line
+            this.vm.vmGoto(0); // reset current line
             this.vm.vmStop("end", 0, true);
         };
         Controller.prototype.fnReset = function () {
@@ -1441,7 +1428,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.setInputText(output.text, true);
                 this.fnPutChangedInputOnStack();
             }
-            this.vm.vmGotoLine(0); // reset current line
+            this.vm.vmGoto(0); // reset current line
             vm.vmStop("end", 0, true);
         };
         Controller.prototype.fnEditLineCallback = function () {
@@ -1450,7 +1437,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             input = Controller.mergeScripts(inputText, input);
             this.setInputText(input);
             this.vm.vmSetStartLine(0);
-            this.vm.vmGotoLine(0); // to be sure
+            this.vm.vmGoto(0); // to be sure
             this.view.setDisabled("continueButton", true);
             this.vm.cursor(inputParas.stream, 0);
             this.vm.vmStop("end", 90);
@@ -1562,7 +1549,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         Controller.prototype.fnDownload = function () {
             var input = this.view.getAreaValue("inputText"), tokens = this.encodeTokenizedBasic(input);
             if (tokens !== "") {
-                var header = Controller.createMinimalAmsdosHeader("T", 0x170, tokens.length), headerString = DiskImage_1.DiskImage.combineAmsdosHeader(header), data = headerString + tokens;
+                var header = FileHandler.createMinimalAmsdosHeader("T", 0x170, tokens.length), headerString = DiskImage_1.DiskImage.combineAmsdosHeader(header), data = headerString + tokens;
                 this.fnDownloadNewFile(data, "file.bas");
             }
         };
@@ -1613,7 +1600,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             if (this.fnScript) {
                 vm.outBuffer = this.view.getAreaValue("resultText");
                 vm.vmStop("", 0, true);
-                vm.vmGotoLine(0); // to load DATA lines
+                vm.vmGoto(0); // to load DATA lines
                 this.vm.vmSetStartLine(line); // clear resets also startline
                 this.view.setDisabled("runButton", true);
                 this.view.setDisabled("stopButton", false);
@@ -1682,7 +1669,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     input = Controller.mergeScripts(inputText, input);
                     this.setInputText(input, true);
                     this.vm.vmSetStartLine(0);
-                    this.vm.vmGotoLine(0); // to be sure
+                    this.vm.vmGoto(0); // to be sure
                     this.view.setDisabled("continueButton", true);
                     this.vm.cursor(stream, 1);
                     this.updateResultText();
@@ -1717,7 +1704,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.view.setAreaValue("outputText", outputString);
                 if (!output.error) {
                     this.vm.vmSetStartLine(this.vm.line); // fast hack
-                    this.vm.vmGotoLine("direct");
+                    this.vm.vmGoto("direct");
                     try {
                         var fnScript = new Function("o", outputString); // eslint-disable-line no-new-func
                         this.fnScript = fnScript;
@@ -1973,13 +1960,15 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             soundButton.innerText = text;
         };
-        Controller.createMinimalAmsdosHeader = function (type, start, length) {
+        /*
+        private static createMinimalAmsdosHeader(type: string,	start: number,	length: number) {
             return {
                 typeString: type,
                 start: start,
                 length: length
-            };
-        };
+            } as AmsdosHeader;
+        }
+        */
         Controller.prototype.fnEndOfImport = function (imported) {
             var stream = 0, vm = this.vm;
             for (var i = 0; i < imported.length; i += 1) {
@@ -1988,85 +1977,93 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             vm.print(stream, "\r\n", imported.length + " file" + (imported.length !== 1 ? "s" : "") + " imported.\r\n");
             this.updateResultText();
         };
+        /*
+        private static reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/); // eslint-disable-line no-control-regex
         // starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
-        Controller.prototype.fnLoad2 = function (data, name, type, imported) {
-            var header, storageName = this.vm.vmAdaptFilename(name, "FILE");
+    
+        private fnLoad2(data: string, name: string, type: string, imported: string[]) {
+            let header: AmsdosHeader | undefined,
+                storageName = this.vm.vmAdaptFilename(name, "FILE");
+    
             storageName = Controller.fnLocalStorageName(storageName);
+    
             if (type === "text/plain") {
                 header = Controller.createMinimalAmsdosHeader("A", 0, data.length);
-            }
-            else {
+            } else {
                 if (type === "application/x-zip-compressed" || type === "cpcBasic/binary") { // are we a file inside zip?
                     // empty
-                }
-                else { // e.g. "data:application/octet-stream;base64,..."
-                    var index = data.indexOf(",");
+                } else { // e.g. "data:application/octet-stream;base64,..."
+                    const index = data.indexOf(",");
+    
                     if (index >= 0) {
-                        var info1 = data.substring(0, index);
+                        const info1 = data.substring(0, index);
+    
                         data = data.substring(index + 1); // remove meta prefix
                         if (info1.indexOf("base64") >= 0) {
-                            data = Utils_1.Utils.atob(data); // decode base64
+                            data = Utils.atob(data); // decode base64
                         }
                     }
                 }
-                header = DiskImage_1.DiskImage.parseAmsdosHeader(data);
+    
+                header = DiskImage.parseAmsdosHeader(data);
                 if (header) {
                     data = data.substring(0x80); // remove header
-                }
-                else if (Controller.reRegExpIsText.test(data)) {
+                } else if (Controller.reRegExpIsText.test(data)) {
                     header = Controller.createMinimalAmsdosHeader("A", 0, data.length);
-                }
-                else if (DiskImage_1.DiskImage.testDiskIdent(data.substring(0, 8))) { // disk image file?
+                } else if (DiskImage.testDiskIdent(data.substring(0, 8))) { // disk image file?
                     try {
-                        var dsk = new DiskImage_1.DiskImage({
-                            data: data,
-                            diskName: name
-                        }), dir = dsk.readDirectory(), diskFiles = Object.keys(dir);
-                        for (var i = 0; i < diskFiles.length; i += 1) {
-                            var fileName = diskFiles[i];
+                        const dsk = new DiskImage({
+                                data: data,
+                                diskName: name
+                            }),
+                            dir = dsk.readDirectory(),
+                            diskFiles = Object.keys(dir);
+    
+                        for (let i = 0; i < diskFiles.length; i += 1) {
+                            const fileName = diskFiles[i];
+    
                             try { // eslint-disable-line max-depth
                                 data = dsk.readFile(dir[fileName]);
                                 this.fnLoad2(data, fileName, "cpcBasic/binary", imported); // recursive
-                            }
-                            catch (e) {
-                                Utils_1.Utils.console.error(e);
+                            } catch (e) {
+                                Utils.console.error(e);
                                 if (e instanceof Error) { // eslint-disable-line max-depth
                                     this.outputError(e, true);
                                 }
                             }
                         }
-                    }
-                    catch (e) {
-                        Utils_1.Utils.console.error(e);
+                    } catch (e) {
+                        Utils.console.error(e);
                         if (e instanceof Error) {
                             this.outputError(e, true);
                         }
                     }
                     header = undefined; // ignore dsk file
-                }
-                else { // binary
+                } else { // binary
                     header = Controller.createMinimalAmsdosHeader("B", 0, data.length);
                 }
             }
+    
             if (header) {
-                var meta = Controller.joinMeta(header);
+                const meta = Controller.joinMeta(header);
+    
                 try {
-                    Utils_1.Utils.localStorage.setItem(storageName, meta + "," + data);
+                    Utils.localStorage.setItem(storageName, meta + "," + data);
                     this.updateStorageDatabase("set", storageName);
-                    Utils_1.Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
+                    Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
                     imported.push(name);
-                }
-                catch (e) { // maybe quota exceeded
-                    Utils_1.Utils.console.error(e);
+                } catch (e) { // maybe quota exceeded
+                    Utils.console.error(e);
                     if (e instanceof Error) {
                         if (e.name === "QuotaExceededError") {
-                            e.shortMessage = storageName + ": Quota exceeded";
+                            (e as CustomError).shortMessage = storageName + ": Quota exceeded";
                         }
                         this.outputError(e, true);
                     }
                 }
             }
-        };
+        }
+        */
         Controller.fnHandleDragOver = function (evt) {
             evt.stopPropagation();
             evt.preventDefault();
@@ -2074,12 +2071,22 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 evt.dataTransfer.dropEffect = "copy"; // explicitly show this is a copy
             }
         };
+        Controller.prototype.adaptFilename = function (name, err) {
+            return this.vm.vmAdaptFilename(name, err);
+        };
         Controller.prototype.initDropZone = function () {
+            if (!this.fileHandler) {
+                this.fileHandler = new FileHandler({
+                    adaptFilename: this.adaptFilename.bind(this),
+                    updateStorageDatabase: this.updateStorageDatabase.bind(this),
+                    outputError: this.outputError.bind(this)
+                });
+            }
             if (!this.fileSelect) {
                 this.fileSelect = new FileSelect({
                     fnEndOfImport: this.fnEndOfImport.bind(this),
                     outputError: this.outputError.bind(this),
-                    fnLoad2: this.fnLoad2.bind(this)
+                    fnLoad2: this.fileHandler.fnLoad2.bind(this.fileHandler)
                 });
             }
             var dropZone = View_1.View.getElementById1("dropZone");
@@ -2257,7 +2264,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             "bas",
             "bin"
         ];
-        Controller.reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/); // eslint-disable-line no-control-regex
         return Controller;
     }());
     exports.Controller = Controller;

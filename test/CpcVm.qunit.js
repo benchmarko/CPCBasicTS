@@ -1304,10 +1304,10 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             },
             "goto": {
                 "123 ": "123",
-                '"123"': "123",
-                '"10s1"': "10s1",
-                "": "undefined",
-                '""': ""
+                '"123"': 'CpcVm: Type mismatch in 0: GOTO 123 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+                '"10s1"': 'CpcVm: Type mismatch in 0: GOTO 10s1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+                "": 'CpcVm: Type mismatch in 0: GOTO undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+                '""': 'CpcVm: Type mismatch in 0: GOTO  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
             },
             graphicsPaper: {
                 "0 ": "setGPaper:0",
@@ -2565,6 +2565,13 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 '"a$",2.5': 'CpcVm: Type mismatch in 0: type $=2.5 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
                 '"a","2.5"': 'CpcVm: Type mismatch in 0: = 2.5 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
             },
+            vmGoto: {
+                "123 ": "123",
+                '"123"': "123",
+                '"10s1"': "10s1",
+                "": "undefined",
+                '""': ""
+            },
             vmLoopCondition: {
                 "": "updateSpeedInk: , scheduler: -- true"
             },
@@ -2691,7 +2698,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                         cpcVm.vmSetStartLine(123);
                         break;
                     case "_testCase2":
-                        cpcVm.vmGotoLine(0);
+                        cpcVm.vmGoto(0);
                         cpcVm.vmSetStartLine(0);
                         break;
                     default:
@@ -2803,7 +2810,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 cpcVm.erase.apply(cpcVm, input);
             },
             erl: function (cpcVm, input) {
-                cpcVm.vmGotoLine("123aa");
+                cpcVm.vmGoto("123aa");
                 cpcVm.vmComposeError(Error(), 1, ""); // set erl
                 cpcVm.vmStop("", 0, true); // initialize stop object modified by vmComposeError
                 return String(cpcVm.erl.apply(cpcVm, input));
@@ -3019,7 +3026,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 return String(cpcVm.vmEscape()) + ", onBreakContSet:" + String(cpcVm.vmOnBreakContSet()) + ", onBreakHandlerActive:" + String(cpcVm.vmOnBreakHandlerActive());
             },
             onBreakGosub: function (cpcVm, input) {
-                cpcVm.vmGotoLine("123");
+                cpcVm.vmGoto("123");
                 cpcVm.onBreakGosub.apply(cpcVm, input);
                 return String(cpcVm.vmEscape()) + ", onBreakContSet:" + String(cpcVm.vmOnBreakContSet()) + ", onBreakHandlerActive:" + String(cpcVm.vmOnBreakHandlerActive());
             },
@@ -3298,6 +3305,10 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 cpcVm.defstr("s");
                 return String(cpcVm.vmAssign.apply(cpcVm, input));
             },
+            vmGoto: function (cpcVm, input) {
+                cpcVm.vmGoto.apply(cpcVm, input);
+                return String(cpcVm.line);
+            },
             vmLoopCondition: function (cpcVm, input) {
                 return String(cpcVm.vmLoopCondition.apply(cpcVm, input));
             },
@@ -3305,7 +3316,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 cpcVm.vmReset.apply(cpcVm, input);
             },
             vmTrace: function (cpcVm, input) {
-                cpcVm.vmGotoLine(123);
+                cpcVm.vmGoto(123);
                 cpcVm.tron();
                 cpcVm.vmTrace.apply(cpcVm, input);
                 cpcVm.troff();
@@ -3395,7 +3406,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             //cpcVm.closein();
             //cpcVm.closeout();
             cpcVm.clear();
-            cpcVm.vmGotoLine(0);
+            cpcVm.vmGoto(0);
             config.variables.removeAllVariables();
             clearLastTestFunctions();
             cpcVm.vmStop("", 0, true);

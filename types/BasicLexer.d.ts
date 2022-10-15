@@ -11,8 +11,8 @@ export interface LexerToken {
 }
 export declare class BasicLexer {
     private keepWhiteSpace;
-    private line;
-    private takeNumberAsLinenumber;
+    private label;
+    private takeNumberAsLabel;
     private input;
     private index;
     private readonly tokens;

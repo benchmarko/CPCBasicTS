@@ -9,12 +9,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     exports.BasicFormatter = void 0;
     var BasicFormatter = /** @class */ (function () {
         function BasicFormatter(options) {
-            this.line = ""; // current line (label) for error messages
+            this.label = ""; // current label (line) for error messages
             this.lexer = options.lexer;
             this.parser = options.parser;
         }
         BasicFormatter.prototype.composeError = function (error, message, value, pos, len) {
-            return Utils_1.Utils.composeError("BasicFormatter", error, message, value, pos, len, this.line);
+            return Utils_1.Utils.composeError("BasicFormatter", error, message, value, pos, len, this.label);
         };
         // renumber
         BasicFormatter.fnIsDirect = function (label) {
@@ -22,7 +22,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         BasicFormatter.prototype.fnCreateLabelEntry = function (node, lastLine) {
             var label = node.value, isDirect = BasicFormatter.fnIsDirect(label), line = Number(label);
-            this.line = label;
+            this.label = label;
             if (!isDirect) {
                 if (line <= lastLine) {
                     throw this.composeError(Error(), "Expected increasing line number", label, node.pos, node.len);
@@ -69,7 +69,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         BasicFormatter.prototype.fnAddReferencesForNode = function (node, lines, refs) {
             if (node.type === "label") {
-                this.line = node.value;
+                this.label = node.value;
             }
             else {
                 this.fnAddSingleReference(node, lines, refs);
@@ -149,7 +149,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var out = {
                 text: ""
             };
-            this.line = ""; // current line (label)
+            this.label = ""; // current line (label)
             try {
                 var tokens = this.lexer.lex(input), parseTree = this.parser.parse(tokens), output = this.fnRenumber(input, parseTree, newLine, oldLine, step, keep || 65535);
                 out.text = output;

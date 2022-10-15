@@ -34,7 +34,6 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.errorLine = 0; // line of last error (Erl)
             this.degFlag = false; // degree or radians
             this.tronFlag1 = false; // trace flag
-            //private traceLabel = "";
             this.ramSelect = 0;
             this.screenPage = 3; // 16K screen page, 3=0xc000..0xffff
             this.minCharHimem = CpcVm.maxHimem;
@@ -154,7 +153,6 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.gosubStack.length = 0;
             this.degFlag = false; // degree or radians
             this.tronFlag1 = false;
-            //this.traceLabel = "";
             this.mem.length = 0; // clear memory (for PEEK, POKE)
             this.ramSelect = 0; // for banking with 16K banks in the range 0x4000-0x7fff (0=default; 1...=additional)
             this.screenPage = 3; // 16K screen page, 3=0xc000..0xffff
@@ -255,7 +253,6 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.closein();
             this.closeout();
             this.cursor(stream, 0);
-            //this.traceLabel = ""; // last trace line
             this.labelList.length = 0;
         };
         CpcVm.prototype.vmGetAllVariables = function () {
@@ -390,12 +387,14 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             }
             return value;
         };
-        CpcVm.prototype.vmGotoLine = function (line, msg) {
-            if (Utils_1.Utils.debug > 5) {
-                if (typeof line === "number" || Utils_1.Utils.debug > 7) { // non-number labels only in higher debug levels
-                    Utils_1.Utils.console.debug("dvmGotoLine:", msg + ": " + line);
+        CpcVm.prototype.vmGoto = function (line, _msg) {
+            /*
+            if (Utils.debug > 5) {
+                if (typeof line === "number" || Utils.debug > 7) { // non-number labels only in higher debug levels
+                    Utils.console.debug("vmGotoLine:", msg + ": " + line);
                 }
             }
+            */
             this.line = line;
         };
         CpcVm.prototype.fnCheckSqTimer = function () {
@@ -1047,7 +1046,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             if (!this.startLine) {
                 throw this.vmComposeError(Error(), 17, "CONT"); // cannot continue
             }
-            this.vmGotoLine(this.startLine, "CONT");
+            this.vmGoto(this.startLine, "CONT");
             this.startLine = 0;
         };
         CpcVm.prototype.copychr$ = function (stream) {
@@ -1365,17 +1364,11 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             var errors = CpcVm.errors, errorString = errors[err] || errors[errors.length - 1]; // maybe Unknown error
             this.errorCode = err;
             this.errorLine = this.line;
-            /*
-            let line = this.errorLine;
-            if (this.traceLabel) {
-                line += " (trace: " + this.traceLabel + ")";
-            }
-            */
             var errorWithInfo = errorString + " in " + this.errorLine + (errInfo ? (": " + errInfo) : "");
             var hidden = false; // hide errors wich are catched
             if (this.errorGotoLine && !this.errorResumeLine) {
-                this.errorResumeLine = this.errorLine; //Number(this.errorLine);
-                this.vmGotoLine(this.errorGotoLine, "onError");
+                this.errorResumeLine = this.errorLine;
+                this.vmGoto(this.errorGotoLine, "onError");
                 this.vmStop("onError", 50);
                 hidden = true;
             }
@@ -1385,8 +1378,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             if (!this.quiet) {
                 Utils_1.Utils.console.log("BASIC error(" + err + "):", errorWithInfo + (hidden ? " (hidden: " + hidden + ")" : ""));
             }
-            var traceLine = this.line, //this.traceLabel || this.line,
-            sourceMapEntry = this.sourceMap[traceLine], pos = sourceMapEntry && sourceMapEntry[0], len = sourceMapEntry && sourceMapEntry[1];
+            var traceLine = this.line, sourceMapEntry = this.sourceMap[traceLine], pos = sourceMapEntry && sourceMapEntry[0], len = sourceMapEntry && sourceMapEntry[1];
             return Utils_1.Utils.composeError("CpcVm", error, errorString, errInfo, pos, len, this.line, hidden);
         };
         CpcVm.prototype.error = function (err, errInfo) {
@@ -1418,7 +1410,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             return this.himemValue; // example, e.g. 42245;
         };
         CpcVm.prototype.vmGosub = function (retLabel, n) {
-            this.vmGotoLine(n, "gosub (ret=" + retLabel + ")");
+            this.vmGoto(n, "gosub (ret=" + retLabel + ")");
             this.gosubStack.push(retLabel);
         };
         CpcVm.prototype.gosub = function (retLabel, n) {
@@ -1428,9 +1420,9 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             }
             this.vmGosub(retLabel, n);
         };
-        CpcVm.prototype["goto"] = function (n) {
-            // TODO: do we want: this.vmLineInRange(Number(n), "GOTO");
-            this.vmGotoLine(n, "goto");
+        CpcVm.prototype["goto"] = function (line) {
+            this.vmLineInRange(line, "GOTO");
+            this.vmGoto(line, "goto");
         };
         CpcVm.prototype.graphicsPaper = function (gPaper) {
             gPaper = this.vmInRangeRound(gPaper, 0, 15, "GRAPHICS PAPER");
@@ -2020,7 +2012,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                 }
                 this.gosubStack.push(retLabel);
             }
-            this.vmGotoLine(line, "onGosub (n=" + n + ", ret=" + retLabel + ", line=" + line + ")");
+            this.vmGoto(line, "onGosub (n=" + n + ", ret=" + retLabel + ", line=" + line + ")");
         };
         CpcVm.prototype.onGoto = function (retLabel, n) {
             var args = [];
@@ -2038,7 +2030,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             else {
                 line = this.vmLineInRange(args[n - 1], "ON GOTO");
             }
-            this.vmGotoLine(line, "onGoto (n=" + n + ", ret=" + retLabel + ", line=" + line + ")");
+            this.vmGoto(line, "onGoto (n=" + n + ", ret=" + retLabel + ", line=" + line + ")");
         };
         CpcVm.fnChannel2ChannelIndex = function (channel) {
             if (channel === 4) {
@@ -2747,7 +2739,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         CpcVm.prototype.resume = function (line) {
             if (this.errorGotoLine) {
                 var label = line === undefined ? this.errorResumeLine : this.vmLineInRange(line, "RESUME");
-                this.vmGotoLine(label, "resume");
+                this.vmGoto(label, "resume");
                 this.errorResumeLine = 0;
             }
             else {
@@ -2765,7 +2757,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                 return;
             }
             var line = this.labelList[resumeLineIndex + 1]; // get next line
-            this.vmGotoLine(line, "resumeNext");
+            this.vmGoto(line, "resumeNext");
             this.errorResumeLine = 0;
         };
         CpcVm.prototype["return"] = function () {
@@ -2774,7 +2766,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                 throw this.vmComposeError(Error(), 3, ""); // Unexpected Return [in <line>]
             }
             else {
-                this.vmGotoLine(line, "return");
+                this.vmGoto(line, "return");
             }
             if (line === this.breakResumeLine) { // end of break handler?
                 this.breakResumeLine = 0; // can start another one
@@ -2989,7 +2981,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         };
         // step
         CpcVm.prototype.stop = function (label) {
-            this.vmGotoLine(label, "stop");
+            this.vmGoto(label, "stop");
             this.vmStop("stop", 60);
         };
         CpcVm.prototype.str$ = function (n) {

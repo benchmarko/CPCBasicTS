@@ -203,7 +203,7 @@ export declare class CpcVm {
     vmDetermineVarType(varType: string): string;
     vmAssertNumberType(varType: string): void;
     vmAssign(varType: string, value: string | number): (string | number);
-    vmGotoLine(line: string | number, msg?: string): void;
+    vmGoto(line: string | number, _msg?: string): void;
     private fnCheckSqTimer;
     private vmCheckTimer;
     private vmCheckTimerHandlers;
@@ -297,7 +297,7 @@ export declare class CpcVm {
     fre(arg: number | string): number;
     private vmGosub;
     gosub(retLabel: string | number, n: number): void;
-    "goto"(n: string): void;
+    "goto"(line: number): void;
     graphicsPaper(gPaper: number): void;
     graphicsPen(gPen?: number, transparentMode?: number): void;
     hex$(n: number, pad?: number): string;

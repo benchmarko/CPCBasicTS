@@ -10,7 +10,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
     var CodeGeneratorToken = /** @class */ (function () {
         function CodeGeneratorToken(options) {
             this.quiet = false;
-            this.line = 0; // current line (label)
+            this.label = ""; // current line (label)
             /* eslint-disable no-invalid-this */
             this.parseFunctions = {
                 args: this.fnArgs,
@@ -30,7 +30,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
                 hexnumber: CodeGeneratorToken.hexnumber,
                 identifier: this.identifier,
                 linenumber: CodeGeneratorToken.linenumber,
-                label: this.label,
+                label: this.fnLabel,
                 "|": this.vertical,
                 afterGosub: this.afterGosub,
                 chainMerge: this.chainMerge,
@@ -62,7 +62,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             this.statementSeparator = CodeGeneratorToken.token2String(":");
         }
         CodeGeneratorToken.prototype.composeError = function (error, message, value, pos) {
-            return Utils_1.Utils.composeError("CodeGeneratorToken", error, message, value, pos, undefined, this.line);
+            return Utils_1.Utils.composeError("CodeGeneratorToken", error, message, value, pos, undefined, this.label);
         };
         CodeGeneratorToken.convUInt8ToString = function (n) {
             return String.fromCharCode(n);
@@ -250,9 +250,9 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             var number = Number(node.value);
             return CodeGeneratorToken.token2String("_line16") + CodeGeneratorToken.convUInt16ToString(number);
         };
-        CodeGeneratorToken.prototype.label = function (node) {
-            this.line = Number(node.value); // set line before parsing args
-            var line = this.line, nodeArgs = this.fnParseArgs(node.args);
+        CodeGeneratorToken.prototype.fnLabel = function (node) {
+            this.label = node.value; // set line before parsing args
+            var line = Number(this.label), nodeArgs = this.fnParseArgs(node.args);
             var value = this.combineArgsWithSeparator(nodeArgs);
             if (node.value !== "") { // direct
                 value = CodeGeneratorToken.convUInt16ToString(line) + value + CodeGeneratorToken.token2String("_eol");
@@ -633,7 +633,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
                     }
                 }
             }
-            if (output.length && this.line) {
+            if (output.length && this.label) {
                 output += CodeGeneratorToken.token2String("_eol") + CodeGeneratorToken.token2String("_eol"); // 2 times eol is eof
             }
             return output;
@@ -642,7 +642,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             var out = {
                 text: ""
             };
-            this.line = 0;
+            this.label = "";
             try {
                 var tokens = this.lexer.lex(input), parseTree = this.parser.parse(tokens), output = this.evaluate(parseTree);
                 out.text = output;

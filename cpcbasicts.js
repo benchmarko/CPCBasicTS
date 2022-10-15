@@ -1090,8 +1090,8 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
     var BasicLexer = /** @class */ (function () {
         function BasicLexer(options) {
             this.keepWhiteSpace = false;
-            this.line = ""; // for error messages
-            this.takeNumberAsLinenumber = true; // first number in a line is assumed to be a line number
+            this.label = ""; // for error messages
+            this.takeNumberAsLabel = true; // first number in a line is assumed to be a label (line number)
             this.input = ""; // input to analyze
             this.index = 0; // position in input
             this.tokens = [];
@@ -1104,7 +1104,7 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
             this.keepWhiteSpace = options.keepWhiteSpace || false;
         };
         BasicLexer.prototype.composeError = function (error, message, value, pos, len) {
-            return Utils_2.Utils.composeError("BasicLexer", error, message, value, pos, len, this.line || undefined);
+            return Utils_2.Utils.composeError("BasicLexer", error, message, value, pos, len, this.label || undefined);
         };
         BasicLexer.isOperatorOrStreamOrAddress = function (c) {
             return (/[+\-*/^=()[\],;:?\\@#]/).test(c);
@@ -1236,9 +1236,9 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
             }
             var number = expNumberPart ? token : parseFloat(token);
             this.addToken(expNumberPart ? "expnumber" : "number", String(number), startPos, token); // store number as string
-            if (this.takeNumberAsLinenumber) {
-                this.takeNumberAsLinenumber = false;
-                this.line = String(number); // save just for error message
+            if (this.takeNumberAsLabel) {
+                this.takeNumberAsLabel = false;
+                this.label = String(number); // save just for error message
             }
         };
         BasicLexer.prototype.fnParseCompleteLineForRemOrApostrophe = function (char, startPos) {
@@ -1403,7 +1403,7 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
             else if (char === "\n") {
                 this.addToken("(eol)", "", startPos);
                 this.advance();
-                this.takeNumberAsLinenumber = true;
+                this.takeNumberAsLabel = true;
             }
             else if (char === "'") { // apostrophe (comment)
                 this.addToken(char, char, startPos);
@@ -1444,8 +1444,8 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
             var startPos;
             this.input = input;
             this.index = 0;
-            this.line = ""; // for error messages
-            this.takeNumberAsLinenumber = true;
+            this.label = ""; // for error messages
+            this.takeNumberAsLabel = true;
             this.whiteSpace = "";
             this.tokens.length = 0;
             while (this.index < input.length) {
@@ -2844,12 +2844,12 @@ define("BasicFormatter", ["require", "exports", "Utils"], function (require, exp
     exports.BasicFormatter = void 0;
     var BasicFormatter = /** @class */ (function () {
         function BasicFormatter(options) {
-            this.line = ""; // current line (label) for error messages
+            this.label = ""; // current label (line) for error messages
             this.lexer = options.lexer;
             this.parser = options.parser;
         }
         BasicFormatter.prototype.composeError = function (error, message, value, pos, len) {
-            return Utils_4.Utils.composeError("BasicFormatter", error, message, value, pos, len, this.line);
+            return Utils_4.Utils.composeError("BasicFormatter", error, message, value, pos, len, this.label);
         };
         // renumber
         BasicFormatter.fnIsDirect = function (label) {
@@ -2857,7 +2857,7 @@ define("BasicFormatter", ["require", "exports", "Utils"], function (require, exp
         };
         BasicFormatter.prototype.fnCreateLabelEntry = function (node, lastLine) {
             var label = node.value, isDirect = BasicFormatter.fnIsDirect(label), line = Number(label);
-            this.line = label;
+            this.label = label;
             if (!isDirect) {
                 if (line <= lastLine) {
                     throw this.composeError(Error(), "Expected increasing line number", label, node.pos, node.len);
@@ -2904,7 +2904,7 @@ define("BasicFormatter", ["require", "exports", "Utils"], function (require, exp
         };
         BasicFormatter.prototype.fnAddReferencesForNode = function (node, lines, refs) {
             if (node.type === "label") {
-                this.line = node.value;
+                this.label = node.value;
             }
             else {
                 this.fnAddSingleReference(node, lines, refs);
@@ -2984,7 +2984,7 @@ define("BasicFormatter", ["require", "exports", "Utils"], function (require, exp
             var out = {
                 text: ""
             };
-            this.line = ""; // current line (label)
+            this.label = ""; // current line (label)
             try {
                 var tokens = this.lexer.lex(input), parseTree = this.parser.parse(tokens), output = this.fnRenumber(input, parseTree, newLine, oldLine, step, keep || 65535);
                 out.text = output;
@@ -4292,13 +4292,6 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 "@": this.addressOf,
                 "#": CodeGeneratorJs.stream
             };
-            /*
-            private write(node: CodeNode) {
-                const nodeArgs = this.fnParseArgsIgnoringCommaSemi(node.args);
-        
-                node.pv = nodeArgs.join(", ");
-            }
-            */
             /* eslint-disable no-invalid-this */
             this.parseFunctions = {
                 ";": CodeGeneratorJs.commaOrSemicolon,
@@ -4740,7 +4733,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
         CodeGeneratorJs.prototype.fnCommandWithGoto = function (node, nodeArgs) {
             nodeArgs = nodeArgs || this.fnParseArgs(node.args);
             var label = this.fnGetStopLabel();
-            node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + "); o.goto(\"" + label + "\"); break;\ncase \"" + label + "\":";
+            node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + "); o.vmGoto(\"" + label + "\"); break;\ncase \"" + label + "\":";
             return node.pv;
         };
         CodeGeneratorJs.commaOrSemicolon = function (node) {
@@ -4757,7 +4750,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 nodeArgs.unshift('"' + rsxName + '"'); // put as first arg
                 rsxName = "rsxExec"; // and call special handler which triggers error if not available
             }
-            node.pv = "o.rsx." + rsxName + "(" + nodeArgs.join(", ") + "); o.goto(\"" + label + "\"); break;\ncase \"" + label + "\":"; // most RSX commands need goto (era, ren,...)
+            node.pv = "o.rsx." + rsxName + "(" + nodeArgs.join(", ") + "); o.vmGoto(\"" + label + "\"); break;\ncase \"" + label + "\":"; // most RSX commands need goto (era, ren,...)
         };
         CodeGeneratorJs.number = function (node) {
             node.pt = (/^\d+$/).test(node.value) ? "I" : "R";
@@ -4898,7 +4891,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             var isDirect = label === "";
             var value = "";
             if (isDirect) { // special handling for direct
-                value = "o.goto(\"directEnd\"); break;\n";
+                value = "o.vmGoto(\"directEnd\"); break;\n";
                 label = '"direct"';
             }
             if (!this.noCodeFrame) {
@@ -4942,7 +4935,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 }
             }
             if (isDirect && !this.noCodeFrame) {
-                value += "\n o.goto(\"end\"); break;\ncase \"directEnd\":"; // put in next line because of possible "rem"
+                value += "\n o.vmGoto(\"end\"); break;\ncase \"directEnd\":"; // put in next line because of possible "rem"
             }
             node.pv = value;
         };
@@ -5118,24 +5111,24 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             if (!stepIsIntConst) {
                 value += " " + stepName + " = " + stepValue + ";";
             }
-            value += " o.goto(\"" + label + "b\"); break;";
+            value += " o.vmGoto(\"" + label + "b\"); break;";
             value += "\ncase \"" + label + "\": ";
             value += varName + " += " + (stepIsIntConst ? stepValue : stepName) + ";";
             value += "\ncase \"" + label + "b\": ";
             var endNameOrValue = endIsIntConst ? endValue : endName;
             if (stepIsIntConst) {
                 if (Number(stepValue) > 0) {
-                    value += "if (" + varName + " > " + endNameOrValue + ") { o.goto(\"" + label + "e\"); break; }";
+                    value += "if (" + varName + " > " + endNameOrValue + ") { o.vmGoto(\"" + label + "e\"); break; }";
                 }
                 else if (Number(stepValue) < 0) {
-                    value += "if (" + varName + " < " + endNameOrValue + ") { o.goto(\"" + label + "e\"); break; }";
+                    value += "if (" + varName + " < " + endNameOrValue + ") { o.vmGoto(\"" + label + "e\"); break; }";
                 }
                 else { // stepValue === 0 => endless loop, if starting with variable !== end
-                    value += "if (" + varName + " === " + endNameOrValue + ") { o.goto(\"" + label + "e\"); break; }";
+                    value += "if (" + varName + " === " + endNameOrValue + ") { o.vmGoto(\"" + label + "e\"); break; }";
                 }
             }
             else {
-                value += "if (" + stepName + " > 0 && " + varName + " > " + endNameOrValue + " || " + stepName + " < 0 && " + varName + " < " + endNameOrValue + " || !" + stepName + " && " + varName + " === " + endNameOrValue + ") { o.goto(\"" + label + "e\"); break; }";
+                value += "if (" + stepName + " > 0 && " + varName + " > " + endNameOrValue + " || " + stepName + " < 0 && " + varName + " < " + endNameOrValue + " || !" + stepName + " && " + varName + " === " + endNameOrValue + ") { o.vmGoto(\"" + label + "e\"); break; }";
             }
             node.pv = value;
         };
@@ -5206,11 +5199,11 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 }
             }
             else {
-                value += 'o.goto("' + label + '"); break; } ';
+                value += 'o.vmGoto("' + label + '"); break; } ';
                 if (elsePart !== "") { // "else" statements?
                     value += "/* else */ " + elsePart + "; ";
                 }
-                value += 'o.goto("' + label + 'e"); break;\ncase "' + label + '": ' + thenPart + ';\ncase "' + label + 'e": ';
+                value += 'o.vmGoto("' + label + 'e"); break;\ncase "' + label + '": ' + thenPart + ';\ncase "' + label + 'e": ';
             }
             node.pv = value;
         };
@@ -5238,9 +5231,9 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             for (var i = 4; i < nodeArgs.length; i += 1) {
                 varTypes[i - 4] = this.fnDetermineStaticVarType(nodeArgs[i]);
             }
-            var value = "o.goto(\"" + label + "\"); break;\ncase \"" + label + "\":"; // also before input
+            var value = "o.vmGoto(\"" + label + "\"); break;\ncase \"" + label + "\":"; // also before input
             var label2 = this.fnGetStopLabel();
-            value += "o." + node.type + "(" + stream + ", " + noCRLF + ", " + msg + ", \"" + varTypes.join('", "') + "\"); o.goto(\"" + label2 + "\"); break;\ncase \"" + label2 + "\":";
+            value += "o." + node.type + "(" + stream + ", " + noCRLF + ", " + msg + ", \"" + varTypes.join('", "') + "\"); o.vmGoto(\"" + label2 + "\"); break;\ncase \"" + label2 + "\":";
             for (var i = 4; i < nodeArgs.length; i += 1) {
                 value += "; " + nodeArgs[i] + " = o.vmGetNextInput()";
             }
@@ -5303,7 +5296,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                     errorNode = node.args[i];
                     throw this.composeError(Error(), "Unexpected NEXT variable", errorNode.value, errorNode.pos);
                 }
-                nodeArgs[i] = "/* " + node.type + "(\"" + nodeArgs[i] + "\") */ o.goto(\"" + label + "\"); break;\ncase \"" + label + "e\":";
+                nodeArgs[i] = "/* " + node.type + "(\"" + nodeArgs[i] + "\") */ o.vmGoto(\"" + label + "\"); break;\ncase \"" + label + "e\":";
             }
             node.pv = nodeArgs.join("; ");
         };
@@ -5372,7 +5365,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             }
             else {
                 var label = this.fnGetStopLabel();
-                value = "o.goto(\"" + label + "\"); break;\ncase \"" + label + "\":"; // also before input
+                value = "o.vmGoto(\"" + label + "\"); break;\ncase \"" + label + "\":"; // also before input
                 value += this.fnCommandWithGoto(node) + " o.randomize(o.vmGetNextInput())";
             }
             node.pv = value;
@@ -5439,12 +5432,12 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             if (label === undefined) {
                 throw this.composeError(Error(), "Unexpected WEND", node.type, node.pos);
             }
-            node.pv = "/* o." + node.type + "() */ o.goto(\"" + label + "\"); break;\ncase \"" + label + "e\":";
+            node.pv = "/* o." + node.type + "() */ o.vmGoto(\"" + label + "\"); break;\ncase \"" + label + "e\":";
         };
         CodeGeneratorJs.prototype["while"] = function (node) {
             var nodeArgs = this.fnParseArgs(node.args), label = this.fnGetWhileLabel();
             this.stack.whileLabel.push(label);
-            node.pv = "\ncase \"" + label + "\": if (!(" + nodeArgs + ")) { o.goto(\"" + label + "e\"); break; }";
+            node.pv = "\ncase \"" + label + "\": if (!(" + nodeArgs + ")) { o.vmGoto(\"" + label + "e\"); break; }";
         };
         /* eslint-enable no-invalid-this */
         CodeGeneratorJs.prototype.fnParseOther = function (node) {
@@ -5607,7 +5600,6 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             this.fnCreateLabelMap(parseTree, this.referencedLabelsCount, allowDirect);
             this.removeAllDefVarTypes();
             this.fnPrecheckTree(parseTree, this.countMap); // also sets "resumeNoArgsCount" for resume without args
-            //this.traceActive = this.trace || Boolean(this.countMap.tron) || Boolean(this.countMap.resumeNext) || Boolean(this.countMap.resumeNoArgsCount); // we also switch on tracing for tron, resumeNext or resume without parameter
             var output = "";
             for (var i = 0; i < parseTree.length; i += 1) {
                 if (Utils_7.Utils.debug > 2) {
@@ -5662,9 +5654,9 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                         + "while (o.vmLoopCondition()) {\nswitch (o.line) {\ncase 0:\n"
                         + combinedData
                         + combinedLabels
-                        + " o.goto(o.startLine ? o.startLine : \"start\"); break;\ncase \"start\":\n"
+                        + " o.vmGoto(o.startLine ? o.startLine : \"start\"); break;\ncase \"start\":\n"
                         + output
-                        + "\ncase \"end\": o.vmStop(\"end\", 90); break;\ndefault: o.error(8); o.goto(\"end\"); break;\n}}\n";
+                        + "\ncase \"end\": o.vmStop(\"end\", 90); break;\ndefault: o.error(8); o.vmGoto(\"end\"); break;\n}}\n";
                 }
                 else {
                     output = combinedData + output;
@@ -5768,7 +5760,7 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
     var CodeGeneratorToken = /** @class */ (function () {
         function CodeGeneratorToken(options) {
             this.quiet = false;
-            this.line = 0; // current line (label)
+            this.label = ""; // current line (label)
             /* eslint-disable no-invalid-this */
             this.parseFunctions = {
                 args: this.fnArgs,
@@ -5788,7 +5780,7 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
                 hexnumber: CodeGeneratorToken.hexnumber,
                 identifier: this.identifier,
                 linenumber: CodeGeneratorToken.linenumber,
-                label: this.label,
+                label: this.fnLabel,
                 "|": this.vertical,
                 afterGosub: this.afterGosub,
                 chainMerge: this.chainMerge,
@@ -5820,7 +5812,7 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
             this.statementSeparator = CodeGeneratorToken.token2String(":");
         }
         CodeGeneratorToken.prototype.composeError = function (error, message, value, pos) {
-            return Utils_8.Utils.composeError("CodeGeneratorToken", error, message, value, pos, undefined, this.line);
+            return Utils_8.Utils.composeError("CodeGeneratorToken", error, message, value, pos, undefined, this.label);
         };
         CodeGeneratorToken.convUInt8ToString = function (n) {
             return String.fromCharCode(n);
@@ -6008,9 +6000,9 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
             var number = Number(node.value);
             return CodeGeneratorToken.token2String("_line16") + CodeGeneratorToken.convUInt16ToString(number);
         };
-        CodeGeneratorToken.prototype.label = function (node) {
-            this.line = Number(node.value); // set line before parsing args
-            var line = this.line, nodeArgs = this.fnParseArgs(node.args);
+        CodeGeneratorToken.prototype.fnLabel = function (node) {
+            this.label = node.value; // set line before parsing args
+            var line = Number(this.label), nodeArgs = this.fnParseArgs(node.args);
             var value = this.combineArgsWithSeparator(nodeArgs);
             if (node.value !== "") { // direct
                 value = CodeGeneratorToken.convUInt16ToString(line) + value + CodeGeneratorToken.token2String("_eol");
@@ -6391,7 +6383,7 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
                     }
                 }
             }
-            if (output.length && this.line) {
+            if (output.length && this.label) {
                 output += CodeGeneratorToken.token2String("_eol") + CodeGeneratorToken.token2String("_eol"); // 2 times eol is eof
             }
             return output;
@@ -6400,7 +6392,7 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
             var out = {
                 text: ""
             };
-            this.line = 0;
+            this.label = "";
             try {
                 var tokens = this.lexer.lex(input), parseTree = this.parser.parse(tokens), output = this.evaluate(parseTree);
                 out.text = output;
@@ -11793,7 +11785,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.errorLine = 0; // line of last error (Erl)
             this.degFlag = false; // degree or radians
             this.tronFlag1 = false; // trace flag
-            //private traceLabel = "";
             this.ramSelect = 0;
             this.screenPage = 3; // 16K screen page, 3=0xc000..0xffff
             this.minCharHimem = CpcVm.maxHimem;
@@ -11913,7 +11904,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.gosubStack.length = 0;
             this.degFlag = false; // degree or radians
             this.tronFlag1 = false;
-            //this.traceLabel = "";
             this.mem.length = 0; // clear memory (for PEEK, POKE)
             this.ramSelect = 0; // for banking with 16K banks in the range 0x4000-0x7fff (0=default; 1...=additional)
             this.screenPage = 3; // 16K screen page, 3=0xc000..0xffff
@@ -12014,7 +12004,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.closein();
             this.closeout();
             this.cursor(stream, 0);
-            //this.traceLabel = ""; // last trace line
             this.labelList.length = 0;
         };
         CpcVm.prototype.vmGetAllVariables = function () {
@@ -12149,12 +12138,14 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             }
             return value;
         };
-        CpcVm.prototype.vmGotoLine = function (line, msg) {
-            if (Utils_21.Utils.debug > 5) {
-                if (typeof line === "number" || Utils_21.Utils.debug > 7) { // non-number labels only in higher debug levels
-                    Utils_21.Utils.console.debug("dvmGotoLine:", msg + ": " + line);
+        CpcVm.prototype.vmGoto = function (line, _msg) {
+            /*
+            if (Utils.debug > 5) {
+                if (typeof line === "number" || Utils.debug > 7) { // non-number labels only in higher debug levels
+                    Utils.console.debug("vmGotoLine:", msg + ": " + line);
                 }
             }
+            */
             this.line = line;
         };
         CpcVm.prototype.fnCheckSqTimer = function () {
@@ -12806,7 +12797,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             if (!this.startLine) {
                 throw this.vmComposeError(Error(), 17, "CONT"); // cannot continue
             }
-            this.vmGotoLine(this.startLine, "CONT");
+            this.vmGoto(this.startLine, "CONT");
             this.startLine = 0;
         };
         CpcVm.prototype.copychr$ = function (stream) {
@@ -13124,17 +13115,11 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             var errors = CpcVm.errors, errorString = errors[err] || errors[errors.length - 1]; // maybe Unknown error
             this.errorCode = err;
             this.errorLine = this.line;
-            /*
-            let line = this.errorLine;
-            if (this.traceLabel) {
-                line += " (trace: " + this.traceLabel + ")";
-            }
-            */
             var errorWithInfo = errorString + " in " + this.errorLine + (errInfo ? (": " + errInfo) : "");
             var hidden = false; // hide errors wich are catched
             if (this.errorGotoLine && !this.errorResumeLine) {
-                this.errorResumeLine = this.errorLine; //Number(this.errorLine);
-                this.vmGotoLine(this.errorGotoLine, "onError");
+                this.errorResumeLine = this.errorLine;
+                this.vmGoto(this.errorGotoLine, "onError");
                 this.vmStop("onError", 50);
                 hidden = true;
             }
@@ -13144,8 +13129,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             if (!this.quiet) {
                 Utils_21.Utils.console.log("BASIC error(" + err + "):", errorWithInfo + (hidden ? " (hidden: " + hidden + ")" : ""));
             }
-            var traceLine = this.line, //this.traceLabel || this.line,
-            sourceMapEntry = this.sourceMap[traceLine], pos = sourceMapEntry && sourceMapEntry[0], len = sourceMapEntry && sourceMapEntry[1];
+            var traceLine = this.line, sourceMapEntry = this.sourceMap[traceLine], pos = sourceMapEntry && sourceMapEntry[0], len = sourceMapEntry && sourceMapEntry[1];
             return Utils_21.Utils.composeError("CpcVm", error, errorString, errInfo, pos, len, this.line, hidden);
         };
         CpcVm.prototype.error = function (err, errInfo) {
@@ -13177,7 +13161,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             return this.himemValue; // example, e.g. 42245;
         };
         CpcVm.prototype.vmGosub = function (retLabel, n) {
-            this.vmGotoLine(n, "gosub (ret=" + retLabel + ")");
+            this.vmGoto(n, "gosub (ret=" + retLabel + ")");
             this.gosubStack.push(retLabel);
         };
         CpcVm.prototype.gosub = function (retLabel, n) {
@@ -13187,9 +13171,9 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             }
             this.vmGosub(retLabel, n);
         };
-        CpcVm.prototype["goto"] = function (n) {
-            // TODO: do we want: this.vmLineInRange(Number(n), "GOTO");
-            this.vmGotoLine(n, "goto");
+        CpcVm.prototype["goto"] = function (line) {
+            this.vmLineInRange(line, "GOTO");
+            this.vmGoto(line, "goto");
         };
         CpcVm.prototype.graphicsPaper = function (gPaper) {
             gPaper = this.vmInRangeRound(gPaper, 0, 15, "GRAPHICS PAPER");
@@ -13779,7 +13763,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 }
                 this.gosubStack.push(retLabel);
             }
-            this.vmGotoLine(line, "onGosub (n=" + n + ", ret=" + retLabel + ", line=" + line + ")");
+            this.vmGoto(line, "onGosub (n=" + n + ", ret=" + retLabel + ", line=" + line + ")");
         };
         CpcVm.prototype.onGoto = function (retLabel, n) {
             var args = [];
@@ -13797,7 +13781,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             else {
                 line = this.vmLineInRange(args[n - 1], "ON GOTO");
             }
-            this.vmGotoLine(line, "onGoto (n=" + n + ", ret=" + retLabel + ", line=" + line + ")");
+            this.vmGoto(line, "onGoto (n=" + n + ", ret=" + retLabel + ", line=" + line + ")");
         };
         CpcVm.fnChannel2ChannelIndex = function (channel) {
             if (channel === 4) {
@@ -14506,7 +14490,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.resume = function (line) {
             if (this.errorGotoLine) {
                 var label = line === undefined ? this.errorResumeLine : this.vmLineInRange(line, "RESUME");
-                this.vmGotoLine(label, "resume");
+                this.vmGoto(label, "resume");
                 this.errorResumeLine = 0;
             }
             else {
@@ -14524,7 +14508,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 return;
             }
             var line = this.labelList[resumeLineIndex + 1]; // get next line
-            this.vmGotoLine(line, "resumeNext");
+            this.vmGoto(line, "resumeNext");
             this.errorResumeLine = 0;
         };
         CpcVm.prototype["return"] = function () {
@@ -14533,7 +14517,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 throw this.vmComposeError(Error(), 3, ""); // Unexpected Return [in <line>]
             }
             else {
-                this.vmGotoLine(line, "return");
+                this.vmGoto(line, "return");
             }
             if (line === this.breakResumeLine) { // end of break handler?
                 this.breakResumeLine = 0; // can start another one
@@ -14748,7 +14732,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         };
         // step
         CpcVm.prototype.stop = function (label) {
-            this.vmGotoLine(label, "stop");
+            this.vmGoto(label, "stop");
             this.vmStop("stop", 60);
         };
         CpcVm.prototype.str$ = function (n) {
@@ -15462,10 +15446,14 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         // https://stackoverflow.com/questions/10261989/html5-javascript-drag-and-drop-file-from-external-window-windows-explorer
         // https://www.w3.org/TR/file-upload/#dfn-filereader
         FileSelect.prototype.fnHandleFileSelect = function (event) {
-            var dataTransfer = event.dataTransfer;
             event.stopPropagation();
             event.preventDefault();
-            this.files = dataTransfer ? dataTransfer.files : event.target.files; // dataTransfer for drag&drop, target.files for file input
+            var dataTransfer = event.dataTransfer, files = dataTransfer ? dataTransfer.files : event.target.files; // dataTransfer for drag&drop, target.files for file input
+            if (!files || !files.length) {
+                Utils_23.Utils.console.error("fnHandleFileSelect: No files!");
+                return;
+            }
+            this.files = files;
             this.fileIndex = 0;
             this.imported.length = 0;
             if (window.FileReader) {
@@ -15475,7 +15463,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.fnReadNextFile(reader);
             }
             else {
-                Utils_23.Utils.console.warn("FileReader API not supported.");
+                Utils_23.Utils.console.warn("fnHandleFileSelect: FileReader API not supported.");
             }
         };
         FileSelect.prototype.addFileSelectHandler = function (element, type) {
@@ -15483,43 +15471,30 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         };
         return FileSelect;
     }());
-    /*
-    // TODO
-    class FileHandler {
-        private static readonly metaIdent = "CPCBasic";
-    
-        private static dummyFunction = function () {
-            //
-        };
-    
-        private config = {
-            outputError: FileHandler.dummyFunction as (error: Error, noSelection?: boolean) => void, // e.g. Utils.console.error(String(error), "selection=", noSelection)
-            updateStorageDatabase: FileHandler.dummyFunction as (action: string, key: string) => void,
-            adaptFilename: FileHandler.dummyFunction as unknown as (name: string, err: string) => string,
-            fnEndOfImport: FileHandler.dummyFunction as (imported: string[]) => void
-        };
-    
-        private outputError(error: Error, noSelection?: boolean) {
-            this.config.outputError(error, noSelection);
+    var FileHandler = /** @class */ (function () {
+        function FileHandler(options) {
+            this.adaptFilename = {};
+            this.updateStorageDatabase = {};
+            this.outputError = {};
+            this.adaptFilename = options.adaptFilename;
+            this.updateStorageDatabase = options.updateStorageDatabase;
+            this.outputError = options.outputError;
         }
-    
-        private static fnLocalStorageName(name: string, defaultExtension?: string) {
+        FileHandler.fnLocalStorageName = function (name, defaultExtension) {
             // modify name so we do not clash with localstorage methods/properites
             if (name.indexOf(".") < 0) { // no dot inside name?
                 name += "." + (defaultExtension || ""); // append dot or default extension
             }
             return name;
-        }
-    
-        private static createMinimalAmsdosHeader(type: string,	start: number,	length: number) {
+        };
+        FileHandler.createMinimalAmsdosHeader = function (type, start, length) {
             return {
                 typeString: type,
                 start: start,
                 length: length
-            } as AmsdosHeader;
-        }
-    
-        private static joinMeta(meta: FileMeta) {
+            };
+        };
+        FileHandler.joinMeta = function (meta) {
             return [
                 FileHandler.metaIdent,
                 meta.typeString,
@@ -15527,95 +15502,91 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 meta.length,
                 meta.entry
             ].join(";");
-        }
-    
-        private static reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/); // eslint-disable-line no-control-regex
+        };
         // starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
-    
-        private fnLoad2(data: string, name: string, type: string, imported: string[]) {
-            let header: AmsdosHeader | undefined,
-                storageName = this.config.adaptFilename(name, "FILE");
-    
+        FileHandler.prototype.fnLoad2 = function (data, name, type, imported) {
+            var header, storageName = this.adaptFilename(name, "FILE");
             storageName = FileHandler.fnLocalStorageName(storageName);
-    
             if (type === "text/plain") {
                 header = FileHandler.createMinimalAmsdosHeader("A", 0, data.length);
-            } else {
+            }
+            else {
                 if (type === "application/x-zip-compressed" || type === "cpcBasic/binary") { // are we a file inside zip?
                     // empty
-                } else { // e.g. "data:application/octet-stream;base64,..."
-                    const index = data.indexOf(",");
-    
+                }
+                else { // e.g. "data:application/octet-stream;base64,..."
+                    var index = data.indexOf(",");
                     if (index >= 0) {
-                        const info1 = data.substring(0, index);
-    
+                        var info1 = data.substring(0, index);
                         data = data.substring(index + 1); // remove meta prefix
                         if (info1.indexOf("base64") >= 0) {
-                            data = Utils.atob(data); // decode base64
+                            data = Utils_23.Utils.atob(data); // decode base64
                         }
                     }
                 }
-    
-                header = DiskImage.parseAmsdosHeader(data);
+                header = DiskImage_1.DiskImage.parseAmsdosHeader(data);
                 if (header) {
                     data = data.substring(0x80); // remove header
-                } else if (FileHandler.reRegExpIsText.test(data)) {
+                }
+                else if (FileHandler.reRegExpIsText.test(data)) {
                     header = FileHandler.createMinimalAmsdosHeader("A", 0, data.length);
-                } else if (DiskImage.testDiskIdent(data.substring(0, 8))) { // disk image file?
+                }
+                else if (DiskImage_1.DiskImage.testDiskIdent(data.substring(0, 8))) { // disk image file?
                     try {
-                        const dsk = new DiskImage({
-                                data: data,
-                                diskName: name
-                            }),
-                            dir = dsk.readDirectory(),
-                            diskFiles = Object.keys(dir);
-    
-                        for (let i = 0; i < diskFiles.length; i += 1) {
-                            const fileName = diskFiles[i];
-    
+                        var dsk = new DiskImage_1.DiskImage({
+                            data: data,
+                            diskName: name
+                        }), dir = dsk.readDirectory(), diskFiles = Object.keys(dir);
+                        for (var i = 0; i < diskFiles.length; i += 1) {
+                            var fileName = diskFiles[i];
                             try { // eslint-disable-line max-depth
                                 data = dsk.readFile(dir[fileName]);
                                 this.fnLoad2(data, fileName, "cpcBasic/binary", imported); // recursive
-                            } catch (e) {
-                                Utils.console.error(e);
+                            }
+                            catch (e) {
+                                Utils_23.Utils.console.error(e);
                                 if (e instanceof Error) { // eslint-disable-line max-depth
                                     this.outputError(e, true);
                                 }
                             }
                         }
-                    } catch (e) {
-                        Utils.console.error(e);
+                    }
+                    catch (e) {
+                        Utils_23.Utils.console.error(e);
                         if (e instanceof Error) {
                             this.outputError(e, true);
                         }
                     }
                     header = undefined; // ignore dsk file
-                } else { // binary
+                }
+                else { // binary
                     header = FileHandler.createMinimalAmsdosHeader("B", 0, data.length);
                 }
             }
-    
             if (header) {
-                const meta = FileHandler.joinMeta(header);
-    
+                var meta = FileHandler.joinMeta(header);
                 try {
-                    Utils.localStorage.setItem(storageName, meta + "," + data);
-                    this.config.updateStorageDatabase("set", storageName);
-                    Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
+                    Utils_23.Utils.localStorage.setItem(storageName, meta + "," + data);
+                    this.updateStorageDatabase("set", storageName);
+                    Utils_23.Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
                     imported.push(name);
-                } catch (e) { // maybe quota exceeded
-                    Utils.console.error(e);
+                }
+                catch (e) { // maybe quota exceeded
+                    Utils_23.Utils.console.error(e);
                     if (e instanceof Error) {
                         if (e.name === "QuotaExceededError") {
-                            (e as CustomError).shortMessage = storageName + ": Quota exceeded";
+                            e.shortMessage = storageName + ": Quota exceeded";
                         }
                         this.outputError(e, true);
                     }
                 }
             }
-        }
-    }
-    */
+        };
+        FileHandler.metaIdent = "CPCBasic";
+        FileHandler.reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/); // eslint-disable-line no-control-regex
+        return FileHandler;
+    }());
+    // */
     var Controller = /** @class */ (function () {
         function Controller(model, view) {
             this.fnScript = undefined; // eslint-disable-line @typescript-eslint/ban-types
@@ -15943,7 +15914,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.vm.cursor(stream, 0);
                 var savedStop = this.getStopObject();
                 if (savedStop.reason === "waitInput") { // sepcial handling: set line to repeat input
-                    this.vm.vmGotoLine(savedStop.paras.line);
+                    this.vm.vmGoto(savedStop.paras.line);
                 }
                 if (!this.vm.vmEscape()) {
                     this.vm.vmStop("", 0, true); // continue program, in break handler?
@@ -16728,14 +16699,14 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     this.setInputText(input);
                 }
             }
-            this.vm.vmGotoLine(0); // reset current line
+            this.vm.vmGoto(0); // reset current line
             this.vm.vmStop("end", 0, true);
         };
         Controller.prototype.fnNew = function () {
             var input = "";
             this.setInputText(input);
             this.variables.removeAllVariables();
-            this.vm.vmGotoLine(0); // reset current line
+            this.vm.vmGoto(0); // reset current line
             this.vm.vmStop("end", 0, true);
             this.invalidateScript();
         };
@@ -16748,7 +16719,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 }
                 this.vm.print(stream, line, "\r\n");
             }
-            this.vm.vmGotoLine(0); // reset current line
+            this.vm.vmGoto(0); // reset current line
             this.vm.vmStop("end", 0, true);
         };
         Controller.prototype.fnReset = function () {
@@ -16798,7 +16769,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.setInputText(output.text, true);
                 this.fnPutChangedInputOnStack();
             }
-            this.vm.vmGotoLine(0); // reset current line
+            this.vm.vmGoto(0); // reset current line
             vm.vmStop("end", 0, true);
         };
         Controller.prototype.fnEditLineCallback = function () {
@@ -16807,7 +16778,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             input = Controller.mergeScripts(inputText, input);
             this.setInputText(input);
             this.vm.vmSetStartLine(0);
-            this.vm.vmGotoLine(0); // to be sure
+            this.vm.vmGoto(0); // to be sure
             this.view.setDisabled("continueButton", true);
             this.vm.cursor(inputParas.stream, 0);
             this.vm.vmStop("end", 90);
@@ -16919,7 +16890,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.fnDownload = function () {
             var input = this.view.getAreaValue("inputText"), tokens = this.encodeTokenizedBasic(input);
             if (tokens !== "") {
-                var header = Controller.createMinimalAmsdosHeader("T", 0x170, tokens.length), headerString = DiskImage_1.DiskImage.combineAmsdosHeader(header), data = headerString + tokens;
+                var header = FileHandler.createMinimalAmsdosHeader("T", 0x170, tokens.length), headerString = DiskImage_1.DiskImage.combineAmsdosHeader(header), data = headerString + tokens;
                 this.fnDownloadNewFile(data, "file.bas");
             }
         };
@@ -16970,7 +16941,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             if (this.fnScript) {
                 vm.outBuffer = this.view.getAreaValue("resultText");
                 vm.vmStop("", 0, true);
-                vm.vmGotoLine(0); // to load DATA lines
+                vm.vmGoto(0); // to load DATA lines
                 this.vm.vmSetStartLine(line); // clear resets also startline
                 this.view.setDisabled("runButton", true);
                 this.view.setDisabled("stopButton", false);
@@ -17039,7 +17010,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     input = Controller.mergeScripts(inputText, input);
                     this.setInputText(input, true);
                     this.vm.vmSetStartLine(0);
-                    this.vm.vmGotoLine(0); // to be sure
+                    this.vm.vmGoto(0); // to be sure
                     this.view.setDisabled("continueButton", true);
                     this.vm.cursor(stream, 1);
                     this.updateResultText();
@@ -17074,7 +17045,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.view.setAreaValue("outputText", outputString);
                 if (!output.error) {
                     this.vm.vmSetStartLine(this.vm.line); // fast hack
-                    this.vm.vmGotoLine("direct");
+                    this.vm.vmGoto("direct");
                     try {
                         var fnScript = new Function("o", outputString); // eslint-disable-line no-new-func
                         this.fnScript = fnScript;
@@ -17330,13 +17301,15 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
             soundButton.innerText = text;
         };
-        Controller.createMinimalAmsdosHeader = function (type, start, length) {
+        /*
+        private static createMinimalAmsdosHeader(type: string,	start: number,	length: number) {
             return {
                 typeString: type,
                 start: start,
                 length: length
-            };
-        };
+            } as AmsdosHeader;
+        }
+        */
         Controller.prototype.fnEndOfImport = function (imported) {
             var stream = 0, vm = this.vm;
             for (var i = 0; i < imported.length; i += 1) {
@@ -17345,85 +17318,93 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             vm.print(stream, "\r\n", imported.length + " file" + (imported.length !== 1 ? "s" : "") + " imported.\r\n");
             this.updateResultText();
         };
+        /*
+        private static reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/); // eslint-disable-line no-control-regex
         // starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
-        Controller.prototype.fnLoad2 = function (data, name, type, imported) {
-            var header, storageName = this.vm.vmAdaptFilename(name, "FILE");
+    
+        private fnLoad2(data: string, name: string, type: string, imported: string[]) {
+            let header: AmsdosHeader | undefined,
+                storageName = this.vm.vmAdaptFilename(name, "FILE");
+    
             storageName = Controller.fnLocalStorageName(storageName);
+    
             if (type === "text/plain") {
                 header = Controller.createMinimalAmsdosHeader("A", 0, data.length);
-            }
-            else {
+            } else {
                 if (type === "application/x-zip-compressed" || type === "cpcBasic/binary") { // are we a file inside zip?
                     // empty
-                }
-                else { // e.g. "data:application/octet-stream;base64,..."
-                    var index = data.indexOf(",");
+                } else { // e.g. "data:application/octet-stream;base64,..."
+                    const index = data.indexOf(",");
+    
                     if (index >= 0) {
-                        var info1 = data.substring(0, index);
+                        const info1 = data.substring(0, index);
+    
                         data = data.substring(index + 1); // remove meta prefix
                         if (info1.indexOf("base64") >= 0) {
-                            data = Utils_23.Utils.atob(data); // decode base64
+                            data = Utils.atob(data); // decode base64
                         }
                     }
                 }
-                header = DiskImage_1.DiskImage.parseAmsdosHeader(data);
+    
+                header = DiskImage.parseAmsdosHeader(data);
                 if (header) {
                     data = data.substring(0x80); // remove header
-                }
-                else if (Controller.reRegExpIsText.test(data)) {
+                } else if (Controller.reRegExpIsText.test(data)) {
                     header = Controller.createMinimalAmsdosHeader("A", 0, data.length);
-                }
-                else if (DiskImage_1.DiskImage.testDiskIdent(data.substring(0, 8))) { // disk image file?
+                } else if (DiskImage.testDiskIdent(data.substring(0, 8))) { // disk image file?
                     try {
-                        var dsk = new DiskImage_1.DiskImage({
-                            data: data,
-                            diskName: name
-                        }), dir = dsk.readDirectory(), diskFiles = Object.keys(dir);
-                        for (var i = 0; i < diskFiles.length; i += 1) {
-                            var fileName = diskFiles[i];
+                        const dsk = new DiskImage({
+                                data: data,
+                                diskName: name
+                            }),
+                            dir = dsk.readDirectory(),
+                            diskFiles = Object.keys(dir);
+    
+                        for (let i = 0; i < diskFiles.length; i += 1) {
+                            const fileName = diskFiles[i];
+    
                             try { // eslint-disable-line max-depth
                                 data = dsk.readFile(dir[fileName]);
                                 this.fnLoad2(data, fileName, "cpcBasic/binary", imported); // recursive
-                            }
-                            catch (e) {
-                                Utils_23.Utils.console.error(e);
+                            } catch (e) {
+                                Utils.console.error(e);
                                 if (e instanceof Error) { // eslint-disable-line max-depth
                                     this.outputError(e, true);
                                 }
                             }
                         }
-                    }
-                    catch (e) {
-                        Utils_23.Utils.console.error(e);
+                    } catch (e) {
+                        Utils.console.error(e);
                         if (e instanceof Error) {
                             this.outputError(e, true);
                         }
                     }
                     header = undefined; // ignore dsk file
-                }
-                else { // binary
+                } else { // binary
                     header = Controller.createMinimalAmsdosHeader("B", 0, data.length);
                 }
             }
+    
             if (header) {
-                var meta = Controller.joinMeta(header);
+                const meta = Controller.joinMeta(header);
+    
                 try {
-                    Utils_23.Utils.localStorage.setItem(storageName, meta + "," + data);
+                    Utils.localStorage.setItem(storageName, meta + "," + data);
                     this.updateStorageDatabase("set", storageName);
-                    Utils_23.Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
+                    Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
                     imported.push(name);
-                }
-                catch (e) { // maybe quota exceeded
-                    Utils_23.Utils.console.error(e);
+                } catch (e) { // maybe quota exceeded
+                    Utils.console.error(e);
                     if (e instanceof Error) {
                         if (e.name === "QuotaExceededError") {
-                            e.shortMessage = storageName + ": Quota exceeded";
+                            (e as CustomError).shortMessage = storageName + ": Quota exceeded";
                         }
                         this.outputError(e, true);
                     }
                 }
             }
-        };
+        }
+        */
         Controller.fnHandleDragOver = function (evt) {
             evt.stopPropagation();
             evt.preventDefault();
@@ -17431,12 +17412,22 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 evt.dataTransfer.dropEffect = "copy"; // explicitly show this is a copy
             }
         };
+        Controller.prototype.adaptFilename = function (name, err) {
+            return this.vm.vmAdaptFilename(name, err);
+        };
         Controller.prototype.initDropZone = function () {
+            if (!this.fileHandler) {
+                this.fileHandler = new FileHandler({
+                    adaptFilename: this.adaptFilename.bind(this),
+                    updateStorageDatabase: this.updateStorageDatabase.bind(this),
+                    outputError: this.outputError.bind(this)
+                });
+            }
             if (!this.fileSelect) {
                 this.fileSelect = new FileSelect({
                     fnEndOfImport: this.fnEndOfImport.bind(this),
                     outputError: this.outputError.bind(this),
-                    fnLoad2: this.fnLoad2.bind(this)
+                    fnLoad2: this.fileHandler.fnLoad2.bind(this.fileHandler)
                 });
             }
             var dropZone = View_6.View.getElementById1("dropZone");
@@ -17614,7 +17605,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             "bas",
             "bin"
         ];
-        Controller.reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/); // eslint-disable-line no-control-regex
         return Controller;
     }());
     exports.Controller = Controller;

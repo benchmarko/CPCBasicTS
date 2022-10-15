@@ -57,13 +57,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 "@": this.addressOf,
                 "#": CodeGeneratorJs.stream
             };
-            /*
-            private write(node: CodeNode) {
-                const nodeArgs = this.fnParseArgsIgnoringCommaSemi(node.args);
-        
-                node.pv = nodeArgs.join(", ");
-            }
-            */
             /* eslint-disable no-invalid-this */
             this.parseFunctions = {
                 ";": CodeGeneratorJs.commaOrSemicolon,
@@ -505,7 +498,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         CodeGeneratorJs.prototype.fnCommandWithGoto = function (node, nodeArgs) {
             nodeArgs = nodeArgs || this.fnParseArgs(node.args);
             var label = this.fnGetStopLabel();
-            node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + "); o.goto(\"" + label + "\"); break;\ncase \"" + label + "\":";
+            node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + "); o.vmGoto(\"" + label + "\"); break;\ncase \"" + label + "\":";
             return node.pv;
         };
         CodeGeneratorJs.commaOrSemicolon = function (node) {
@@ -522,7 +515,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 nodeArgs.unshift('"' + rsxName + '"'); // put as first arg
                 rsxName = "rsxExec"; // and call special handler which triggers error if not available
             }
-            node.pv = "o.rsx." + rsxName + "(" + nodeArgs.join(", ") + "); o.goto(\"" + label + "\"); break;\ncase \"" + label + "\":"; // most RSX commands need goto (era, ren,...)
+            node.pv = "o.rsx." + rsxName + "(" + nodeArgs.join(", ") + "); o.vmGoto(\"" + label + "\"); break;\ncase \"" + label + "\":"; // most RSX commands need goto (era, ren,...)
         };
         CodeGeneratorJs.number = function (node) {
             node.pt = (/^\d+$/).test(node.value) ? "I" : "R";
@@ -663,7 +656,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var isDirect = label === "";
             var value = "";
             if (isDirect) { // special handling for direct
-                value = "o.goto(\"directEnd\"); break;\n";
+                value = "o.vmGoto(\"directEnd\"); break;\n";
                 label = '"direct"';
             }
             if (!this.noCodeFrame) {
@@ -707,7 +700,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 }
             }
             if (isDirect && !this.noCodeFrame) {
-                value += "\n o.goto(\"end\"); break;\ncase \"directEnd\":"; // put in next line because of possible "rem"
+                value += "\n o.vmGoto(\"end\"); break;\ncase \"directEnd\":"; // put in next line because of possible "rem"
             }
             node.pv = value;
         };
@@ -883,24 +876,24 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (!stepIsIntConst) {
                 value += " " + stepName + " = " + stepValue + ";";
             }
-            value += " o.goto(\"" + label + "b\"); break;";
+            value += " o.vmGoto(\"" + label + "b\"); break;";
             value += "\ncase \"" + label + "\": ";
             value += varName + " += " + (stepIsIntConst ? stepValue : stepName) + ";";
             value += "\ncase \"" + label + "b\": ";
             var endNameOrValue = endIsIntConst ? endValue : endName;
             if (stepIsIntConst) {
                 if (Number(stepValue) > 0) {
-                    value += "if (" + varName + " > " + endNameOrValue + ") { o.goto(\"" + label + "e\"); break; }";
+                    value += "if (" + varName + " > " + endNameOrValue + ") { o.vmGoto(\"" + label + "e\"); break; }";
                 }
                 else if (Number(stepValue) < 0) {
-                    value += "if (" + varName + " < " + endNameOrValue + ") { o.goto(\"" + label + "e\"); break; }";
+                    value += "if (" + varName + " < " + endNameOrValue + ") { o.vmGoto(\"" + label + "e\"); break; }";
                 }
                 else { // stepValue === 0 => endless loop, if starting with variable !== end
-                    value += "if (" + varName + " === " + endNameOrValue + ") { o.goto(\"" + label + "e\"); break; }";
+                    value += "if (" + varName + " === " + endNameOrValue + ") { o.vmGoto(\"" + label + "e\"); break; }";
                 }
             }
             else {
-                value += "if (" + stepName + " > 0 && " + varName + " > " + endNameOrValue + " || " + stepName + " < 0 && " + varName + " < " + endNameOrValue + " || !" + stepName + " && " + varName + " === " + endNameOrValue + ") { o.goto(\"" + label + "e\"); break; }";
+                value += "if (" + stepName + " > 0 && " + varName + " > " + endNameOrValue + " || " + stepName + " < 0 && " + varName + " < " + endNameOrValue + " || !" + stepName + " && " + varName + " === " + endNameOrValue + ") { o.vmGoto(\"" + label + "e\"); break; }";
             }
             node.pv = value;
         };
@@ -971,11 +964,11 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 }
             }
             else {
-                value += 'o.goto("' + label + '"); break; } ';
+                value += 'o.vmGoto("' + label + '"); break; } ';
                 if (elsePart !== "") { // "else" statements?
                     value += "/* else */ " + elsePart + "; ";
                 }
-                value += 'o.goto("' + label + 'e"); break;\ncase "' + label + '": ' + thenPart + ';\ncase "' + label + 'e": ';
+                value += 'o.vmGoto("' + label + 'e"); break;\ncase "' + label + '": ' + thenPart + ';\ncase "' + label + 'e": ';
             }
             node.pv = value;
         };
@@ -1003,9 +996,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             for (var i = 4; i < nodeArgs.length; i += 1) {
                 varTypes[i - 4] = this.fnDetermineStaticVarType(nodeArgs[i]);
             }
-            var value = "o.goto(\"" + label + "\"); break;\ncase \"" + label + "\":"; // also before input
+            var value = "o.vmGoto(\"" + label + "\"); break;\ncase \"" + label + "\":"; // also before input
             var label2 = this.fnGetStopLabel();
-            value += "o." + node.type + "(" + stream + ", " + noCRLF + ", " + msg + ", \"" + varTypes.join('", "') + "\"); o.goto(\"" + label2 + "\"); break;\ncase \"" + label2 + "\":";
+            value += "o." + node.type + "(" + stream + ", " + noCRLF + ", " + msg + ", \"" + varTypes.join('", "') + "\"); o.vmGoto(\"" + label2 + "\"); break;\ncase \"" + label2 + "\":";
             for (var i = 4; i < nodeArgs.length; i += 1) {
                 value += "; " + nodeArgs[i] + " = o.vmGetNextInput()";
             }
@@ -1068,7 +1061,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     errorNode = node.args[i];
                     throw this.composeError(Error(), "Unexpected NEXT variable", errorNode.value, errorNode.pos);
                 }
-                nodeArgs[i] = "/* " + node.type + "(\"" + nodeArgs[i] + "\") */ o.goto(\"" + label + "\"); break;\ncase \"" + label + "e\":";
+                nodeArgs[i] = "/* " + node.type + "(\"" + nodeArgs[i] + "\") */ o.vmGoto(\"" + label + "\"); break;\ncase \"" + label + "e\":";
             }
             node.pv = nodeArgs.join("; ");
         };
@@ -1137,7 +1130,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             else {
                 var label = this.fnGetStopLabel();
-                value = "o.goto(\"" + label + "\"); break;\ncase \"" + label + "\":"; // also before input
+                value = "o.vmGoto(\"" + label + "\"); break;\ncase \"" + label + "\":"; // also before input
                 value += this.fnCommandWithGoto(node) + " o.randomize(o.vmGetNextInput())";
             }
             node.pv = value;
@@ -1204,12 +1197,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (label === undefined) {
                 throw this.composeError(Error(), "Unexpected WEND", node.type, node.pos);
             }
-            node.pv = "/* o." + node.type + "() */ o.goto(\"" + label + "\"); break;\ncase \"" + label + "e\":";
+            node.pv = "/* o." + node.type + "() */ o.vmGoto(\"" + label + "\"); break;\ncase \"" + label + "e\":";
         };
         CodeGeneratorJs.prototype["while"] = function (node) {
             var nodeArgs = this.fnParseArgs(node.args), label = this.fnGetWhileLabel();
             this.stack.whileLabel.push(label);
-            node.pv = "\ncase \"" + label + "\": if (!(" + nodeArgs + ")) { o.goto(\"" + label + "e\"); break; }";
+            node.pv = "\ncase \"" + label + "\": if (!(" + nodeArgs + ")) { o.vmGoto(\"" + label + "e\"); break; }";
         };
         /* eslint-enable no-invalid-this */
         CodeGeneratorJs.prototype.fnParseOther = function (node) {
@@ -1372,7 +1365,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.fnCreateLabelMap(parseTree, this.referencedLabelsCount, allowDirect);
             this.removeAllDefVarTypes();
             this.fnPrecheckTree(parseTree, this.countMap); // also sets "resumeNoArgsCount" for resume without args
-            //this.traceActive = this.trace || Boolean(this.countMap.tron) || Boolean(this.countMap.resumeNext) || Boolean(this.countMap.resumeNoArgsCount); // we also switch on tracing for tron, resumeNext or resume without parameter
             var output = "";
             for (var i = 0; i < parseTree.length; i += 1) {
                 if (Utils_1.Utils.debug > 2) {
@@ -1427,9 +1419,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                         + "while (o.vmLoopCondition()) {\nswitch (o.line) {\ncase 0:\n"
                         + combinedData
                         + combinedLabels
-                        + " o.goto(o.startLine ? o.startLine : \"start\"); break;\ncase \"start\":\n"
+                        + " o.vmGoto(o.startLine ? o.startLine : \"start\"); break;\ncase \"start\":\n"
                         + output
-                        + "\ncase \"end\": o.vmStop(\"end\", 90); break;\ndefault: o.error(8); o.goto(\"end\"); break;\n}}\n";
+                        + "\ncase \"end\": o.vmStop(\"end\", 90); break;\ndefault: o.error(8); o.vmGoto(\"end\"); break;\n}}\n";
                 }
                 else {
                     output = combinedData + output;

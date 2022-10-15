@@ -244,6 +244,9 @@ define(["require", "exports", "../Utils", "../Polyfills", "../BasicLexer", "../B
                     cpcBasic.vmMock.testStepCounter1 = 0;
                 }
             },
+            vmGoto: function (line) {
+                cpcBasic.vmMock.line = line;
+            },
             "goto": function (line) {
                 cpcBasic.vmMock.line = line;
             },

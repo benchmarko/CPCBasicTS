@@ -25,8 +25,8 @@ export interface LexerToken {
 export class BasicLexer {
 	private keepWhiteSpace = false;
 
-	private line = ""; // for error messages
-	private takeNumberAsLinenumber = true; // first number in a line is assumed to be a line number
+	private label = ""; // for error messages
+	private takeNumberAsLabel = true; // first number in a line is assumed to be a label (line number)
 
 	private input = ""; // input to analyze
 	private index = 0; // position in input
@@ -44,7 +44,7 @@ export class BasicLexer {
 	}
 
 	private composeError(error: Error, message: string, value: string, pos: number, len?: number) {
-		return Utils.composeError("BasicLexer", error, message, value, pos, len, this.line || undefined);
+		return Utils.composeError("BasicLexer", error, message, value, pos, len, this.label || undefined);
 	}
 
 	private static isOperatorOrStreamOrAddress(c: string) {
@@ -196,9 +196,9 @@ export class BasicLexer {
 		const number = expNumberPart ? token : parseFloat(token);
 
 		this.addToken(expNumberPart ? "expnumber" : "number", String(number), startPos, token); // store number as string
-		if (this.takeNumberAsLinenumber) {
-			this.takeNumberAsLinenumber = false;
-			this.line = String(number); // save just for error message
+		if (this.takeNumberAsLabel) {
+			this.takeNumberAsLabel = false;
+			this.label = String(number); // save just for error message
 		}
 	}
 	private fnParseCompleteLineForRemOrApostrophe(char: string, startPos: number) { // special handling for line comment
@@ -382,7 +382,7 @@ export class BasicLexer {
 		} else if (char === "\n") {
 			this.addToken("(eol)", "", startPos);
 			this.advance();
-			this.takeNumberAsLinenumber = true;
+			this.takeNumberAsLabel = true;
 		} else if (char === "'") { // apostrophe (comment)
 			this.addToken(char, char, startPos);
 			char = this.advance();
@@ -416,8 +416,8 @@ export class BasicLexer {
 		this.input = input;
 		this.index = 0;
 
-		this.line = ""; // for error messages
-		this.takeNumberAsLinenumber = true;
+		this.label = ""; // for error messages
+		this.takeNumberAsLabel = true;
 		this.whiteSpace = "";
 
 		this.tokens.length = 0;

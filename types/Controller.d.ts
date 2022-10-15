@@ -7,6 +7,11 @@ export interface FileSelectOptions {
     outputError: (error: Error, noSelection?: boolean) => void;
     fnLoad2: (data: string, name: string, type: string, imported: string[]) => void;
 }
+export interface FileHandlerOptions {
+    adaptFilename: (name: string, err: string) => string;
+    updateStorageDatabase: (action: string, key: string) => void;
+    outputError: (error: Error, noSelection?: boolean) => void;
+}
 export declare class Controller implements IController {
     private readonly fnRunLoopHandler;
     private readonly fnWaitKeyHandler;
@@ -38,6 +43,7 @@ export declare class Controller implements IController {
     private readonly rsx;
     private readonly noStop;
     private readonly savedStop;
+    private fileHandler?;
     private fileSelect?;
     constructor(model: Model, view: View);
     private initDatabases;
@@ -126,11 +132,9 @@ export declare class Controller implements IController {
     private static generateFunction;
     changeVariable(): void;
     setSoundActive(): void;
-    private static createMinimalAmsdosHeader;
     private fnEndOfImport;
-    private static reRegExpIsText;
-    private fnLoad2;
     private static fnHandleDragOver;
+    private adaptFilename;
     private initDropZone;
     private fnUpdateUndoRedoButtons;
     private fnInitUndoRedoButtons;
