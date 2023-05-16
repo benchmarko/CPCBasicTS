@@ -397,7 +397,7 @@ export class Controller implements IController {
 
 		view.setHidden("variableArea", !model.getProperty<boolean>("showVariable"));
 		view.setHidden("kbdArea", !model.getProperty<boolean>("showKbd"), "flex");
-		view.setHidden("kbdLayoutArea", !model.getProperty<boolean>("showKbdLayout"));
+		view.setHidden("kbdLayoutArea", model.getProperty<boolean>("showKbd"), "inherit"); // kbd visible => kbdlayout invisible
 
 		view.setHidden("cpcArea", false); // make sure canvas is not hidden (allows to get width, height)
 		this.canvas = new Canvas({
@@ -406,7 +406,10 @@ export class Controller implements IController {
 		});
 		view.setHidden("cpcArea", !model.getProperty<boolean>("showCpc"));
 
+		view.setHidden("settingsArea", !model.getProperty<boolean>("showSettings"), "flex");
 		view.setHidden("convertArea", !model.getProperty<boolean>("showConvert"), "flex");
+
+		view.setInputChecked("implicitLinesInput", model.getProperty<boolean>("implicitLines"));
 
 		const kbdLayout = model.getProperty<string>("kbdLayout");
 
@@ -457,7 +460,8 @@ export class Controller implements IController {
 			lexer: new BasicLexer(),
 			parser: new BasicParser(),
 			trace: model.getProperty<boolean>("trace"),
-			rsx: this.rsx // just to check the names
+			rsx: this.rsx, // just to check the names
+			addLineNumbers: model.getProperty<boolean>("implicitLines")
 		});
 
 		this.initDatabases();
@@ -932,7 +936,43 @@ export class Controller implements IController {
 		return lineNumber;
 	}
 
-	private static splitLines(input: string) {
+	/*
+	private static addLineNumbers(input: string) {
+		let lastLine = 0;
+
+		const fnLineAdder = function (spaces: string, line: string) {
+			const lineNum = line !== "" ? Number(line) : lastLine + 1;
+
+			lastLine = lineNum;
+			return spaces + String(lineNum);
+		};
+
+		input.replace(/^(\s*)(\d*)/m, fnLineAdder);
+		return input;
+	}
+	*/
+
+	private static addLineNumbers(input: string) {
+		const lineParts = input.split("\n");
+		let lastLine = 0;
+
+		for (let i = 0; i < lineParts.length; i += 1) {
+			let lineNum = parseInt(lineParts[i], 10);
+
+			if (isNaN(lineNum)) {
+				lineNum = lastLine + 1;
+				lineParts[i] = String(lastLine + 1) + " " + lineParts[i];
+			}
+			lastLine = lineNum;
+		}
+		return lineParts.join("\n");
+	}
+
+	private splitLines(input: string) {
+		if (this.model.getProperty<boolean>("implicitLines")) {
+			input = Controller.addLineNumbers(input);
+		}
+
 		// get numbers starting at the beginning of a line (allows some simple multi line strings)
 		const lineParts = input.split(/^(\s*\d+)/m),
 			lines = [];
@@ -955,9 +995,9 @@ export class Controller implements IController {
 	}
 
 	// merge two scripts with sorted line numbers, lines from script2 overwrite lines from script1
-	private static mergeScripts(script1: string, script2: string) {
-		const lines1 = Controller.splitLines(Utils.stringTrimEnd(script1)),
-			lines2 = Controller.splitLines(Utils.stringTrimEnd(script2));
+	private mergeScripts(script1: string, script2: string) {
+		const lines1 = this.splitLines(Utils.stringTrimEnd(script1)),
+			lines2 = this.splitLines(Utils.stringTrimEnd(script2));
 		let result = [],
 			lineNumber1: number | undefined,
 			lineNumber2: number | undefined;
@@ -994,8 +1034,8 @@ export class Controller implements IController {
 	}
 
 	// get line range from a script with sorted line numbers
-	private static fnGetLinesInRange(script: string, firstLine: number, lastLine: number) {
-		const lines = script ? Controller.splitLines(script) : [];
+	private fnGetLinesInRange(script: string, firstLine: number, lastLine: number) {
+		const lines = script ? this.splitLines(script) : [];
 
 		while (lines.length && parseInt(lines[0], 10) < firstLine) {
 			lines.shift();
@@ -1223,7 +1263,8 @@ export class Controller implements IController {
 					keepBrackets: true,
 					keepColons: true,
 					keepDataComma: true
-				})
+				}),
+				addLineNumbers: this.model.getProperty<boolean>("implicitLines")
 			});
 		}
 		const output = this.codeGeneratorToken.generate(input);
@@ -1330,7 +1371,7 @@ export class Controller implements IController {
 		case "openin":
 			break;
 		case "chainMerge":
-			input = Controller.mergeScripts(this.view.getAreaValue("inputText"), input);
+			input = this.mergeScripts(this.view.getAreaValue("inputText"), input);
 			this.setInputText(input);
 			this.view.setAreaValue("resultText", "");
 			startLine = inFile.line || 0;
@@ -1346,7 +1387,7 @@ export class Controller implements IController {
 			}
 			break;
 		case "merge":
-			input = Controller.mergeScripts(this.view.getAreaValue("inputText"), input);
+			input = this.mergeScripts(this.view.getAreaValue("inputText"), input);
 			this.setInputText(input);
 			this.view.setAreaValue("resultText", "");
 			this.invalidateScript();
@@ -1646,7 +1687,7 @@ export class Controller implements IController {
 
 	private fnDeleteLines(paras: VmLineParas) {
 		const inputText = this.view.getAreaValue("inputText"),
-			lines = Controller.fnGetLinesInRange(inputText, paras.first || 0, paras.last || 65535);
+			lines = this.fnGetLinesInRange(inputText, paras.first || 0, paras.last || 65535);
 		let	error: CustomError | undefined;
 
 		if (lines.length) {
@@ -1664,7 +1705,7 @@ export class Controller implements IController {
 			if (!error) {
 				let input = lines.join("\n");
 
-				input = Controller.mergeScripts(inputText, input); // delete input lines
+				input = this.mergeScripts(inputText, input); // delete input lines
 				this.setInputText(input);
 			}
 		}
@@ -1687,7 +1728,7 @@ export class Controller implements IController {
 	private fnList(paras: VmLineParas) {
 		const input = this.view.getAreaValue("inputText"),
 			stream = paras.stream,
-			lines = Controller.fnGetLinesInRange(input, paras.first || 0, paras.last || 65535),
+			lines = this.fnGetLinesInRange(input, paras.first || 0, paras.last || 65535),
 			regExp = new RegExp(/([\x00-\x1f])/g); // eslint-disable-line no-control-regex
 
 		for (let i = 0; i < lines.length; i += 1) {
@@ -1742,15 +1783,19 @@ export class Controller implements IController {
 		return shortError;
 	}
 
+	private static createBasicFormatter() {
+		return new BasicFormatter({
+			lexer: new BasicLexer(),
+			parser: new BasicParser()
+		});
+	}
+
 	private fnRenumLines(paras: VmLineRenumParas) {
 		const vm = this.vm,
 			input = this.view.getAreaValue("inputText");
 
 		if (!this.basicFormatter) {
-			this.basicFormatter = new BasicFormatter({
-				lexer: new BasicLexer(),
-				parser: new BasicParser()
-			});
+			this.basicFormatter = Controller.createBasicFormatter();
 		}
 
 		const output = this.basicFormatter.renumber(input, paras.newLine || 10, paras.oldLine || 1, paras.step || 10, paras.keep || 65535);
@@ -1772,7 +1817,7 @@ export class Controller implements IController {
 			inputText = this.view.getAreaValue("inputText");
 		let input = inputParas.input;
 
-		input = Controller.mergeScripts(inputText, input);
+		input = this.mergeScripts(inputText, input);
 		this.setInputText(input);
 		this.vm.vmSetStartLine(0);
 		this.vm.vmGoto(0); // to be sure
@@ -1786,7 +1831,7 @@ export class Controller implements IController {
 		const input = this.view.getAreaValue("inputText"),
 			stream = paras.stream,
 			lineNumber = paras.first || 0,
-			lines = Controller.fnGetLinesInRange(input, lineNumber, lineNumber);
+			lines = this.fnGetLinesInRange(input, lineNumber, lineNumber);
 
 		if (lines.length) {
 			const lineString = lines[0];
@@ -1880,6 +1925,33 @@ export class Controller implements IController {
 		}
 	}
 
+	fnAddLines(): void {
+		const input = this.view.getAreaValue("inputText"),
+			output = Controller.addLineNumbers(input);
+
+		if (output) {
+			this.fnPutChangedInputOnStack();
+			this.setInputText(output, true);
+			this.fnPutChangedInputOnStack();
+		}
+	}
+
+	fnRemoveLines(): void {
+		if (!this.basicFormatter) {
+			this.basicFormatter = Controller.createBasicFormatter();
+		}
+
+		const input = this.view.getAreaValue("inputText"),
+			output = this.basicFormatter.removeUnusedLines(input);
+
+		if (output.error) {
+			this.outputError(output.error);
+		} else {
+			this.fnPutChangedInputOnStack();
+			this.setInputText(output.text, true);
+			this.fnPutChangedInputOnStack();
+		}
+	}
 
 	// https://blog.logrocket.com/programmatic-file-downloads-in-the-browser-9a5186298d5c/
 	private static fnDownloadBlob(blob: Blob, filename: string) {
@@ -2066,7 +2138,7 @@ export class Controller implements IController {
 				if (Utils.debug > 0) {
 					Utils.console.debug("fnDirectInput: insert line=" + input);
 				}
-				input = Controller.mergeScripts(inputText, input);
+				input = this.mergeScripts(inputText, input);
 				this.setInputText(input, true);
 
 				this.vm.vmSetStartLine(0);
@@ -2084,7 +2156,7 @@ export class Controller implements IController {
 			let	output: IOutput | undefined,
 				outputString: string;
 
-			if (inputText && (/^\d+($| )/).test(inputText)) { // do we have a program starting with a line number?
+			if (inputText && ((/^\d+($| )/).test(inputText) || this.model.getProperty<boolean>("implicitLines"))) { // do we have a program starting with a line number?
 				const separator = inputText.endsWith("\n") ? "" : "\n";
 
 				output = codeGeneratorJs.generate(inputText + separator + input, this.variables, true); // compile both; allow direct command
@@ -2767,6 +2839,17 @@ export class Controller implements IController {
 	}
 
 	onCpcCanvasClick(event: MouseEvent): void {
+		if (this.model.getProperty<boolean>("showSettings")) {
+			this.model.setProperty("showSettings", false);
+			this.view.setHidden("settingsArea", !this.model.getProperty<boolean>("showSettings"), "flex");
+		}
+		if (this.model.getProperty<boolean>("showConvert")) {
+			this.model.setProperty("showConvert", false);
+			this.view.setHidden("convertArea", !this.model.getProperty<boolean>("showConvert"), "flex");
+		}
+		//this.view.setHidden("settingsArea", true, "flex");
+		//this.view.setHidden("convertArea", true, "flex");
+
 		this.canvas.onCpcCanvasClick(event);
 		this.textCanvas.onWindowClick(event);
 		this.keyboard.setActive(true);

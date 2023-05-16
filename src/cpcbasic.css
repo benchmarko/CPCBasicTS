@@ -25,7 +25,7 @@ body {
 .label {
 	background-color: WhiteSmoke;
 	float: left;
-	width: 4em;
+	/* width: 4em; */
 	margin-right: 0.2em;
 	text-align: right;
 	padding: 0px 2px 0px 2px;
@@ -36,6 +36,12 @@ body {
 .popover {
 	position: absolute;
 	background-color: WhiteSmoke;
+}
+
+.buttonPopoverContainer {
+	float: right;
+    padding-left: 4px;
+    padding-right: 4px;
 }
 
 
@@ -53,6 +59,13 @@ body {
 .field {
 	padding: 2px 2px 2px 2px;
 	float: left;
+	display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.flexStart {
+	justify-content: flex-start;
 }
 
 .editable {

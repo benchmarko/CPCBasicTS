@@ -12,28 +12,36 @@ import { IOutput } from "./Interfaces";
 interface BasicFormatterOptions {
 	lexer: BasicLexer
 	parser: BasicParser
+	implicitLines?: boolean
 }
 
 interface LineEntry {
 	value: string,
 	pos: number,
 	len: number,
-	lineLen?: number,
-	newLine?: number
+	refCount: number
+	newValue?: string
 }
+
+type RefsEntry = Omit<LineEntry, "refCount">;
 
 type LinesType = Record<string, LineEntry>;
 
-type ChangesType = Record<number, LineEntry>;
+type ChangesType = Record<number, RefsEntry>;
 
 export class BasicFormatter {
 	private readonly lexer: BasicLexer;
 	private readonly parser: BasicParser;
+	private implicitLines = false;
+
 	private label = ""; // current label (line) for error messages
 
 	constructor(options: BasicFormatterOptions) {
 		this.lexer = options.lexer;
 		this.parser = options.parser;
+		if (options.implicitLines !== undefined) {
+			this.implicitLines = options.implicitLines;
+		}
 	}
 
 	private composeError(error: Error, message: string, value: string, pos: number, len?: number) {
@@ -42,17 +50,61 @@ export class BasicFormatter {
 
 	// renumber
 
-	private static fnIsDirect(label: string) {
-		return label === "";
+	private static fnHasLabel(label: string) {
+		return label !== "";
 	}
 
-	private fnCreateLabelEntry(node: ParserNode, lastLine: number) { // create line numbers map
-		const label = node.value,
-			isDirect = BasicFormatter.fnIsDirect(label),
-			line = Number(label);
+	private fnCreateLabelEntry(node: ParserNode, lastLine: number, implicitLines: boolean) { // create line numbers map
+		const origLen = (node.orig || node.value).length;
 
-		this.label = label;
-		if (!isDirect) {
+		if (!BasicFormatter.fnHasLabel(node.value) && implicitLines) {
+			node.value = String(lastLine + 1); // generate label
+		}
+
+		const label = node.value;
+
+		//const label = (BasicFormatter.fnHasLabel(node.value) || !implicitLines) ? node.value : String(lastLine + 1),
+		//	hasLabel = BasicFormatter.fnHasLabel(label);
+
+		this.label = label; // for error messages
+
+		if (BasicFormatter.fnHasLabel(label)) {
+			const line = Number(label);
+
+			if (line < 1 || line > 65535) {
+				throw this.composeError(Error(), "Line number overflow", label, node.pos, node.len);
+			}
+			if (line <= lastLine) {
+				throw this.composeError(Error(), "Expected increasing line number", label, node.pos, node.len);
+			}
+		}
+
+		const labelEntry: LineEntry = {
+			value: label,
+			pos: node.pos,
+			len: origLen, // original length
+			refCount: 0
+		};
+
+		return labelEntry;
+	}
+
+	/*
+	private fnCreateLabelEntry(node: ParserNode, lastLine: number, implicitLines: boolean) { // create line numbers map
+		let label = node.value,
+			hasLabel = BasicFormatter.fnHasLabel(label);
+
+		const origLen = (node.orig || node.value).length;
+
+		if (!hasLabel && implicitLines) {
+			label = String(lastLine + 1);
+			hasLabel = true;
+		}
+		this.label = label; // for error messages
+
+		if (hasLabel) {
+			const line = Number(label);
+
 			if (line <= lastLine) {
 				throw this.composeError(Error(), "Expected increasing line number", label, node.pos, node.len);
 			}
@@ -64,32 +116,32 @@ export class BasicFormatter {
 		const labelEntry: LineEntry = {
 			value: label,
 			pos: node.pos,
-			len: (node.orig || label).length
+			len: origLen, // original length
+			refCount: 0
 		};
 
 		return labelEntry;
 	}
+	*/
 
-	private fnCreateLabelMap(nodes: ParserNode[]) { // create line numbers map
+	private fnCreateLabelMap(nodes: ParserNode[], implicitLines: boolean) { // create line numbers map
 		const lines: LinesType = {}; // line numbers
-		let lastLine = -1;
+		let lastLine = 0; //-1;
 
 		for (let i = 0; i < nodes.length; i += 1) {
 			const node = nodes[i];
 
 			if (node.type === "label") {
-				const labelEntry = this.fnCreateLabelEntry(node, lastLine);
+				const labelEntry = this.fnCreateLabelEntry(node, lastLine, implicitLines);
 
-				if (labelEntry) {
-					lines[labelEntry.value] = labelEntry;
-					lastLine = Number(labelEntry.value);
-				}
+				lines[labelEntry.value] = labelEntry;
+				lastLine = Number(labelEntry.value);
 			}
 		}
 		return lines;
 	}
 
-	private fnAddSingleReference(node: ParserNode, lines: LinesType, refs: LineEntry[]) {
+	private fnAddSingleReference(node: ParserNode, lines: LinesType, refs: RefsEntry[]) {
 		if (node.type === "linenumber") {
 			if (node.value in lines) {
 				refs.push({
@@ -97,13 +149,20 @@ export class BasicFormatter {
 					pos: node.pos,
 					len: (node.orig || node.value).length
 				});
+				const linesEntry = lines[node.value];
+
+				if (linesEntry.refCount === undefined) { // not needed for renum but for removing line numbers
+					linesEntry.refCount = 1;
+				} else {
+					linesEntry.refCount += 1;
+				}
 			} else {
 				throw this.composeError(Error(), "Line does not exist", node.value, node.pos);
 			}
 		}
 	}
 
-	private fnAddReferencesForNode(node: ParserNode, lines: LinesType, refs: LineEntry[]) {
+	private fnAddReferencesForNode(node: ParserNode, lines: LinesType, refs: RefsEntry[]) {
 		if (node.type === "label") {
 			this.label = node.value;
 		} else {
@@ -128,13 +187,13 @@ export class BasicFormatter {
 		}
 	}
 
-	private fnAddReferences(nodes: ParserNode[], lines: LinesType, refs: LineEntry[]) {
+	private fnAddReferences(nodes: ParserNode[], lines: LinesType, refs: RefsEntry[]) {
 		for (let i = 0; i < nodes.length; i += 1) {
 			this.fnAddReferencesForNode(nodes[i], lines, refs);
 		}
 	}
 
-	private fnRenumberLines(lines: LinesType, refs: LineEntry[], newLine: number, oldLine: number, step: number, keep: number) {
+	private fnRenumberLines(lines: LinesType, refs: RefsEntry[], newLine: number, oldLine: number, step: number, keep: number) {
 		const changes: ChangesType = {},
 			keys = Object.keys(lines);
 
@@ -146,14 +205,14 @@ export class BasicFormatter {
 
 		for (let i = 0; i < keys.length; i += 1) {
 			const lineEntry = lines[keys[i]],
-				isDirect = BasicFormatter.fnIsDirect(lineEntry.value),
+				hasLabel = BasicFormatter.fnHasLabel(lineEntry.value),
 				line = Number(lineEntry.value);
 
-			if (isDirect || (line >= oldLine && line < keep)) {
+			if (!hasLabel || (line >= oldLine && line < keep)) {
 				if (newLine > 65535) {
 					throw this.composeError(Error(), "Line number overflow", lineEntry.value, lineEntry.pos);
 				}
-				lineEntry.newLine = newLine;
+				lineEntry.newValue = String(newLine);
 				changes[lineEntry.pos] = lineEntry;
 				newLine += step;
 			}
@@ -165,8 +224,8 @@ export class BasicFormatter {
 				line = Number(lineString);
 
 			if (line >= oldLine && line < keep) {
-				if (line !== lines[lineString].newLine) {
-					ref.newLine = lines[lineString].newLine;
+				if (lineString !== lines[lineString].newValue) {
+					ref.newValue = lines[lineString].newValue;
 					changes[ref.pos] = ref;
 				}
 			}
@@ -187,14 +246,14 @@ export class BasicFormatter {
 		for (let i = keys.length - 1; i >= 0; i -= 1) {
 			const line = changes[keys[i]];
 
-			input = input.substring(0, line.pos) + line.newLine + input.substring(line.pos + line.len);
+			input = input.substring(0, line.pos) + line.newValue + input.substring(line.pos + line.len);
 		}
 		return input;
 	}
 
 	private fnRenumber(input: string, parseTree: ParserNode[], newLine: number, oldLine: number, step: number, keep: number) {
-		const refs: LineEntry[] = [], // references
-			lines = this.fnCreateLabelMap(parseTree);
+		const refs: RefsEntry[] = [], // references
+			lines = this.fnCreateLabelMap(parseTree, this.implicitLines);
 
 		this.fnAddReferences(parseTree, lines, refs); // create reference list
 
@@ -214,6 +273,60 @@ export class BasicFormatter {
 			const tokens = this.lexer.lex(input),
 				parseTree = this.parser.parse(tokens),
 				output = this.fnRenumber(input, parseTree, newLine, oldLine, step, keep || 65535);
+
+			out.text = output;
+		} catch (e) {
+			if (Utils.isCustomError(e)) {
+				out.error = e;
+			} else { // other errors
+				out.error = e as CustomError; // force set other error
+				Utils.console.error(e);
+			}
+		}
+		return out;
+	}
+
+	// ---
+
+
+	private fnRemoveUnusedLines(input: string, parseTree: ParserNode[]) {
+		const refs: RefsEntry[] = [], // references
+			implicitLines = true,
+			lines = this.fnCreateLabelMap(parseTree, implicitLines);
+
+		this.fnAddReferences(parseTree, lines, refs); // create reference list
+		// reference count would be enough
+
+		const changes: ChangesType = {},
+			keys = Object.keys(lines);
+
+		for (let i = 0; i < keys.length; i += 1) {
+			const lineEntry = lines[keys[i]];
+
+			if (lineEntry.len && !lineEntry.refCount) { // non-empty label without references?
+				lineEntry.newValue = ""; // set empty line number
+				if (input[lineEntry.pos + lineEntry.len] === " ") { // space following line number?
+					lineEntry.len += 1; // remove it as well
+				}
+				changes[lineEntry.pos] = lineEntry;
+			}
+		}
+
+		const output = BasicFormatter.fnApplyChanges(input, changes);
+
+		return output;
+	}
+
+	removeUnusedLines(input: string): IOutput {
+		const out: IOutput = {
+			text: ""
+		};
+
+		this.label = ""; // current line (label)
+		try {
+			const tokens = this.lexer.lex(input),
+				parseTree = this.parser.parse(tokens),
+				output = this.fnRemoveUnusedLines(input, parseTree);
 
 			out.text = output;
 		} catch (e) {

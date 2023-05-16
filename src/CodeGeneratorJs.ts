@@ -14,9 +14,10 @@ interface CodeGeneratorJsOptions {
 	lexer: BasicLexer
 	parser: BasicParser
 	rsx: ICpcVmRsx
-	trace?: boolean
-	quiet?: boolean
+	addLineNumbers?: boolean
 	noCodeFrame?: boolean
+	quiet?: boolean
+	trace?: boolean
 }
 
 interface CodeNode extends ParserNode {
@@ -39,9 +40,10 @@ export class CodeGeneratorJs {
 	private readonly lexer: BasicLexer;
 	private readonly parser: BasicParser;
 	private readonly rsx: ICpcVmRsx;
-	private trace: boolean;
-	private quiet: boolean; // quiet mode: suppress most warnings
-	private readonly noCodeFrame: boolean // suppress generation of a code frame
+	private trace = false;
+	private quiet = false; // quiet mode: suppress most warnings
+	private noCodeFrame = false; // suppress generation of a code frame
+	private addLineNumbers = false; // generate missing line numbers
 
 	private line = "0"; // current line (label)
 	//private traceActive = false;
@@ -77,10 +79,19 @@ export class CodeGeneratorJs {
 	constructor(options: CodeGeneratorJsOptions) {
 		this.lexer = options.lexer;
 		this.parser = options.parser;
-		this.trace = Boolean(options.trace);
 		this.rsx = options.rsx;
-		this.quiet = options.quiet || false;
-		this.noCodeFrame = options.noCodeFrame || false;
+		if (options.addLineNumbers !== undefined) {
+			this.addLineNumbers = options.addLineNumbers;
+		}
+		if (options.noCodeFrame !== undefined) {
+			this.noCodeFrame = options.noCodeFrame;
+		}
+		if (options.quiet !== undefined) {
+			this.quiet = options.quiet;
+		}
+		if (options.trace !== undefined) {
+			this.trace = options.trace;
+		}
 
 		this.reJsKeywords = CodeGeneratorJs.createJsKeywordRegex();
 	}
@@ -806,7 +817,8 @@ export class CodeGeneratorJs {
 		}
 		this.resetCountsPerLine(); // we want to have "stable" counts, even if other lines change, e.g. direct
 
-		const isDirect = label === "";
+		//const isDirect = label === "";
+		const isDirect = label === "direct";
 		let value = "";
 
 		if (isDirect) { // special handling for direct
@@ -889,7 +901,13 @@ export class CodeGeneratorJs {
 			}
 		}
 
-		nodeArgs.unshift(String(this.line)); // prepend line number
+		let lineString = String(this.line); // TODO: already string?
+
+		if (lineString === "direct") {
+			lineString = '"' + lineString + '"';
+		}
+
+		nodeArgs.unshift(lineString); // prepend line number
 		this.dataList.push("o.data(" + nodeArgs.join(", ") + ")"); // will be set at the beginning of the script
 		node.pv = "/* data */";
 	}
@@ -1661,36 +1679,39 @@ export class CodeGeneratorJs {
 		});
 	}
 
-	private fnCheckLabel(node: ParserNode, lastLine: number, allowDirect: boolean) { // create line numbers map
-		const label = node.value,
-			isDirect = label === "",
-			lineNumber = Number(label);
+	private fnCheckLabel(node: ParserNode, lastLine: number) { // create line numbers map
+		let label = node.value;
 
-		if (!isDirect) {
-			if ((lineNumber | 0) !== lineNumber) { // eslint-disable-line no-bitwise
-				throw this.composeError(Error(), "Expected integer line number", label, node.pos);
+		if (label === "") {
+			if (this.addLineNumbers) {
+				label = String(lastLine + 1); // no line => we just increase the last line by 1
+				node.value = label; // we also modify the parse tree
+			} else {
+				throw this.composeError(Error(), "Direct command found", label, node.pos);
 			}
-			if (lineNumber <= lastLine) {
-				throw this.composeError(Error(), "Expected increasing line number", label, node.pos);
-			}
-			if (lineNumber < 1 || lineNumber > 65535) {
-				throw this.composeError(Error(), "Line number overflow", label, node.pos);
-			}
-			return label;
-		} else if (!allowDirect) {
-			throw this.composeError(Error(), "Direct command found", label, node.pos);
+		}
+		const lineNumber = Number(label);
+
+		if ((lineNumber | 0) !== lineNumber) { // eslint-disable-line no-bitwise
+			throw this.composeError(Error(), "Expected integer line number", label, node.pos);
+		}
+		if (lineNumber < 1 || lineNumber > 65535) {
+			throw this.composeError(Error(), "Line number overflow", label, node.pos);
+		}
+		if (lineNumber <= lastLine) {
+			throw this.composeError(Error(), "Expected increasing line number", label, node.pos);
 		}
 		return label;
 	}
 
-	private fnCreateLabelMap(nodes: ParserNode[], labels: LabelsType, allowDirect: boolean) { // create line numbers map
-		let lastLine = -1;
+	private fnCreateLabelMap(nodes: ParserNode[], labels: LabelsType) { // create line numbers map
+		let lastLine = 0; //-1;
 
 		for (let i = 0; i < nodes.length; i += 1) {
 			const node = nodes[i];
 
-			if (node.type === "label") {
-				const label = this.fnCheckLabel(node, lastLine, allowDirect);
+			if (node.type === "label" && node.value !== "direct") {
+				const label = this.fnCheckLabel(node, lastLine);
 
 				if (label) {
 					labels[label] = 0; // init call count
@@ -1768,13 +1789,13 @@ export class CodeGeneratorJs {
 	//
 	// evaluate
 	//
-	private evaluate(parseTree: ParserNode[], variables: Variables, allowDirect: boolean) {
+	private evaluate(parseTree: ParserNode[], variables: Variables) {
 		this.variables = variables;
 
 		this.defScopeArgs = undefined;
 
 		// create labels map
-		this.fnCreateLabelMap(parseTree, this.referencedLabelsCount, allowDirect);
+		this.fnCreateLabelMap(parseTree, this.referencedLabelsCount);
 
 		this.removeAllDefVarTypes();
 		this.fnPrecheckTree(parseTree, this.countMap); // also sets "resumeNoArgsCount" for resume without args
@@ -1832,7 +1853,16 @@ export class CodeGeneratorJs {
 		try {
 			const tokens = this.lexer.lex(input),
 				parseTree = this.parser.parse(tokens);
-			let	output = this.evaluate(parseTree, variables, Boolean(allowDirect));
+
+			if (allowDirect && parseTree.length) {
+				const lastLine = parseTree[parseTree.length - 1];
+
+				if (lastLine.type === "label" && lastLine.value === "") {
+					lastLine.value = "direct";
+				}
+			}
+
+			let	output = this.evaluate(parseTree, variables);
 
 			const combinedData = CodeGeneratorJs.combineData(this.dataList),
 				combinedLabels = CodeGeneratorJs.combineLabels(this.labelList);

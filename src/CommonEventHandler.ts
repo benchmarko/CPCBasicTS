@@ -76,17 +76,20 @@ export class CommonEventHandler implements EventListenerObject {
 		this.toogleHidden("convertArea", "showConvert", "flex");
 	}
 
+	private onSettingsButtonClick() {
+		this.toogleHidden("settingsArea", "showSettings", "flex");
+	}
+
 	private onKbdButtonClick() {
 		if (this.toogleHidden("kbdArea", "showKbd", "flex")) {
 			if (this.view.getHidden("kbdArea")) { // on old browsers, display "flex" is not available, so set "block" if still hidden
 				this.view.setHidden("kbdArea", false);
 			}
 			this.controller.virtualKeyboardCreate(); // maybe draw it
+			this.view.setHidden("kbdLayoutArea", true, "inherit"); // kbd visible => kbdlayout invisible
+		} else {
+			this.view.setHidden("kbdLayoutArea", false, "inherit");
 		}
-	}
-
-	private onKbdLayoutButtonClick() {
-		this.toogleHidden("kbdLayoutArea", "showKbdLayout");
 	}
 
 	private onConsoleButtonClick() {
@@ -103,6 +106,14 @@ export class CommonEventHandler implements EventListenerObject {
 
 	private onPrettyButtonClick() {
 		this.controller.fnPretty();
+	}
+
+	private onLineNumberAddButtonClick() {
+		this.controller.fnAddLines();
+	}
+
+	private onLineNumberRemoveButtonClick() {
+		this.controller.fnRemoveLines();
 	}
 
 	private fnUpdateAreaText(input: string) {
@@ -224,6 +235,12 @@ export class CommonEventHandler implements EventListenerObject {
 		this.controller.changeVariable();
 	}
 
+	private onImplicitLinesInputChange() {
+		const checked = this.view.getInputChecked("implicitLinesInput");
+
+		this.model.setProperty("implicitLines", checked);
+	}
+
 	private onScreenshotButtonClick() {
 		var example = this.view.getSelectValue("exampleSelect"),
 			image = this.controller.startScreenshot(),
@@ -242,6 +259,12 @@ export class CommonEventHandler implements EventListenerObject {
 	private onSoundButtonClick() {
 		this.model.setProperty("sound", !this.model.getProperty<boolean>("sound"));
 		this.controller.setSoundActive();
+	}
+
+	private static onFullscreenButtonClick() {
+		const element = View.getElementById1("cpcCanvas");
+
+		element.requestFullscreen();
 	}
 
 	onCpcCanvasClick(event: Event): void {
@@ -267,12 +290,14 @@ export class CommonEventHandler implements EventListenerObject {
 		onVariableButtonClick: this.onVariableButtonClick,
 		onCpcButtonClick: this.onCpcButtonClick,
 		onConvertButtonClick: this.onConvertButtonClick,
+		onSettingsButtonClick: this.onSettingsButtonClick,
 		onKbdButtonClick: this.onKbdButtonClick,
-		onKbdLayoutButtonClick: this.onKbdLayoutButtonClick,
 		onConsoleButtonClick: this.onConsoleButtonClick,
 		onParseButtonClick: this.onParseButtonClick,
 		onRenumButtonClick: this.onRenumButtonClick,
 		onPrettyButtonClick: this.onPrettyButtonClick,
+		onLineNumberAddButtonClick: this.onLineNumberAddButtonClick,
+		onLineNumberRemoveButtonClick: this.onLineNumberRemoveButtonClick,
 		onUndoButtonClick: this.onUndoButtonClick,
 		onRedoButtonClick: this.onRedoButtonClick,
 		onDownloadButtonClick: this.onDownloadButtonClick,
@@ -293,9 +318,11 @@ export class CommonEventHandler implements EventListenerObject {
 		onVarSelectChange: this.onVarSelectChange,
 		onKbdLayoutSelectChange: this.onKbdLayoutSelectChange,
 		onVarTextChange: this.onVarTextChange,
+		onImplicitLinesInputChange: this.onImplicitLinesInputChange,
 		onScreenshotButtonClick: this.onScreenshotButtonClick,
 		onEnterButtonClick: this.onEnterButtonClick,
 		onSoundButtonClick: this.onSoundButtonClick,
+		onFullscreenButtonClick: CommonEventHandler.onFullscreenButtonClick,
 		onCpcCanvasClick: this.onCpcCanvasClick,
 		onWindowClick: this.onWindowClick,
 		onTextTextClick: this.onTextTextClick,
