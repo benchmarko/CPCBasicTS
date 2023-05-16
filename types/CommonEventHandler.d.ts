@@ -18,12 +18,14 @@ export declare class CommonEventHandler implements EventListenerObject {
     private onVariableButtonClick;
     private onCpcButtonClick;
     private onConvertButtonClick;
+    private onSettingsButtonClick;
     private onKbdButtonClick;
-    private onKbdLayoutButtonClick;
     private onConsoleButtonClick;
     private onParseButtonClick;
     private onRenumButtonClick;
     private onPrettyButtonClick;
+    private onLineNumberAddButtonClick;
+    private onLineNumberRemoveButtonClick;
     private fnUpdateAreaText;
     private onUndoButtonClick;
     private onRedoButtonClick;
@@ -44,9 +46,11 @@ export declare class CommonEventHandler implements EventListenerObject {
     onVarSelectChange(): void;
     onKbdLayoutSelectChange(): void;
     private onVarTextChange;
+    private onImplicitLinesInputChange;
     private onScreenshotButtonClick;
     private onEnterButtonClick;
     private onSoundButtonClick;
+    private static onFullscreenButtonClick;
     onCpcCanvasClick(event: Event): void;
     onWindowClick(event: Event): void;
     onTextTextClick(event: Event): void;

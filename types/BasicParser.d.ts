@@ -1,10 +1,10 @@
 import { LexerToken } from "./BasicLexer";
 interface BasicParserOptions {
     quiet?: boolean;
-    keepTokens?: boolean;
     keepBrackets?: boolean;
     keepColons?: boolean;
     keepDataComma?: boolean;
+    keepTokens?: boolean;
 }
 export interface ParserNode extends LexerToken {
     left?: ParserNode;
@@ -16,12 +16,12 @@ export interface ParserNode extends LexerToken {
     parenthesis?: boolean;
 }
 export declare class BasicParser {
-    private label;
     private quiet;
-    private keepTokens;
     private keepBrackets;
     private keepColons;
     private keepDataComma;
+    private keepTokens;
+    private label;
     private readonly symbols;
     private tokens;
     private index;

@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="stylesheet" href="cpcbasic.css" />
+<link rel="stylesheet" href="cpcbasic.css">
 <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
-<title id="title">CPC BasicTS v0.0.76</title>
+<title id="title">CPC BasicTS v0.0.77</title>
 </head>
 
 <body id="pageBody">
@@ -14,6 +14,17 @@
 			<button id="inputButton" class="legendButton" title="Show/Hide BASIC">CPC BASIC</button>
 			<button id="reloadButton" title="Reload page with URL parameter settings">Reload</button>
 			<button id="helpButton" title="Help">Help</button>
+			<span class="buttonPopoverContainer">
+				<button id="settingsButton" class="legendButton" title="Settings">Settings</button>
+				<span id="settingsArea" class="popover area flexColumn displayNone">
+					<span id="settingsArea1" class="area flexColumn displayFlex">
+						<span class="field flexStart">
+							<input id="implicitLinesInput" type="checkbox" title="Implicit line numbers">
+							<label id="implicitLinesLabel" for="implicitLinesInput" class="label" title="Implicit line numbers">Implicit Lines</label>
+						</span>
+					</span>
+				</span>
+			</span>
 		</legend>
 		<div id="exampleSelectArea" class="area">
 			<div class="field">
@@ -24,53 +35,65 @@
 			</div>
 		</div>
 		<div id="inputArea" class="area clearLeft">
-			<textarea id="inputText" rows="15" cols="80" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
-			<div>
+			<textarea id="inputText" rows="15" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+			<div class="displayFlex">
 				<button id="parseButton" title="Check BASIC script (compile to JavaScript)">Check</button>
-
-				<button id="convertButton" class="legendButton" title="Convert">Convert</button>
-				<div id="convertArea" class="popover area flexColumn displayNone">
-					<div id="renumArea" class="area">
-						<div class="field">
-							<label id="renumNewLabel" for="renumNewInput" class="label" title="New Line">New</label>
-							<input id="renumNewInput" value="10" min="0" max="65535" size="6" type="number" title="New" placeholder="value">
-						</div>
-						<div class="field clearLeft">
-							<label id="renumStartLabel" for="renumStartInput" class="label" title="Start Line">Start</label>
-							<input id="renumStartInput" value="1" min="0" max="65535" size="6" type="number" title="Start" placeholder="value">
-						</div>
-						<div class="field clearLeft">
-							<label id="renumStepLabel" for="renumStepInput" class="label" title="Step">Step</label>
-							<input id="renumStepInput" value="10" min="0" max="65535" size="6" type="number" title="Step" placeholder="value">
-						</div>
-						<div class="field clearLeft">
-							<label id="renumKeepLabel" for="renumKeepInput" class="label" title="First line to keep">Keep</label>
-							<input id="renumKeepInput" value="65535" min="0" max="65535" size="6" type="number" title="Keep" placeholder="value">
-						</div>
-						<div class="clearLeft"> <!-- clearLeft needed for IE -->
-							<button id="renumButton" title="Renumber lines">Renum</button>
-						</div>
-					</div>
-					<div id="prettyArea" class="area">
-						<div class="field">
-							<label id="prettyBracketsLabel" for="prettyBracketsInput" class="label" title="Keep Brackets">Brackets</label>
-							<input id="prettyBracketsInput" type="checkbox" title="Keep Brackets" checked>
-						</div>
-						<div class="field clearLeft">
-							<label id="prettySpaceLabel" for="prettySpaceInput" class="label" title="Keep Spaces">Spaces</label>
-							<input id="prettySpaceInput" type="checkbox" title="Keep Spaces">
-							<div class="clearLeft"> <!-- clearLeft needed for IE -->
-								<button id="prettyButton" title="Pretty print (experimental)">Pretty</button>
-							</div>
-						</div>
-					</div>
-					<div id="stackArea" class="area">
-						<button id="undoButton" title="Undo changes" disabled>Undo</button>
-						<button id="redoButton" title="Redo changes" disabled>Redo</button>
-					</div>
-				</div>
-		
-				<button id="downloadButton" title="Download tokenized (experimental)">Download</a></button>
+				<span class="buttonPopoverContainer">
+					<button id="convertButton" class="legendButton" title="Convert">Convert</button>
+					<span id="convertArea" class="popover area flexColumn displayNone">
+						<span id="renumArea" class="area flexColumn displayFlex">
+							<span class="field">
+								<label id="renumNewLabel" for="renumNewInput" class="label" title="New Line">New</label>
+								<input id="renumNewInput" value="10" min="0" max="65535" type="number" title="New" placeholder="value">
+							</span>
+							<span class="field clearLeft">
+								<label id="renumStartLabel" for="renumStartInput" class="label" title="Start Line">Start</label>
+								<input id="renumStartInput" value="1" min="0" max="65535" type="number" title="Start" placeholder="value">
+							</span>
+							<span class="field clearLeft">
+								<label id="renumStepLabel" for="renumStepInput" class="label" title="Step">Step</label>
+								<input id="renumStepInput" value="10" min="0" max="65535" type="number" title="Step" placeholder="value">
+							</span>
+							<span class="field clearLeft">
+								<label id="renumKeepLabel" for="renumKeepInput" class="label" title="First line to keep">Keep</label>
+								<input id="renumKeepInput" value="65535" min="0" max="65535" type="number" title="Keep" placeholder="value">
+							</span>
+							<span class="clearLeft"> <!-- clearLeft needed for IE -->
+								<button id="renumButton" title="Renumber lines">Renum</button>
+							</span>
+						</span>
+						<span id="prettyArea" class="area flexColumn displayFlex">
+							<span class="field flexStart">
+								<input id="prettyBracketsInput" type="checkbox" title="Keep Brackets" checked>
+								<label id="prettyBracketsLabel" for="prettyBracketsInput" class="label"	title="Keep Brackets">Brackets</label>
+							</span>
+							<span class="field flexStart clearLeft">
+								<input id="prettySpaceInput" type="checkbox" title="Keep Spaces">
+								<label id="prettySpaceLabel" for="prettySpaceInput" class="label" title="Keep Spaces">Spaces</label>
+							</span>
+							<span class="field clearLeft"> <!-- clearLeft needed for IE -->
+								<button id="prettyButton" title="Pretty print">Pretty</button>
+							</span>
+						</span>
+						<span id="lineNumberArea" class="area flexColumn displayFlex">
+							<span class="field">
+								<label id="lineNumberLabel" title="Line numbers">Line numbers</label>
+							</span>
+							<span class="field clearLeft">
+								<button id="lineNumberAddButton" title="Add (missing) line numbers">Add</button>
+								<button id="lineNumberRemoveButton" title="Remove (unreferenced) line numbers">Remove</button>
+							</span>
+						</span>
+						<span id="stackArea" class="area">
+							<span class="field">
+								<button id="undoButton" title="Undo changes" disabled>Undo</button>
+								<button id="redoButton" title="Redo changes" disabled>Redo</button>
+							</span>
+						</span>
+					</span>
+				</span>
+				<button id="downloadButton" title="Download tokenized">Download</button>
+			</div>
 		</div>
 	</fieldset>
 	<fieldset class="flexBox clearLeft" id="cpcAreaBox">
@@ -82,6 +105,7 @@
 			<button id="resetButton" title="Reset CPC">Reset</button>
 			<button id="screenshotButton" title="Take Screenshot and download">Screenshot</button>
 			<button id="soundButton" title="Sound on/off">Sound</button>
+			<button id="fullscreenButton" title="Fullscreen mode">Fullscreen</button>
 		</legend>
 		<div id="cpcArea" class="area" tabindex="0">
 			<canvas id="cpcCanvas" width="640" height="400"></canvas>
@@ -93,13 +117,20 @@
 			<button id="copyTextButton" title="Copy text to clipboard">Copy</button>
 		</legend>
 		<div id="textArea" class="area displayNone">
-			<textarea readonly id="textText" placeholder="" rows="26" cols="80" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+			<textarea readonly id="textText" placeholder="" rows="26" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
 		</div>
 	</fieldset>
 	<fieldset class="flexBox clearLeft" id="kbdAreaBox">
 		<legend>
 			<button id="kbdButton" class="legendButton" title="CPC Keyboard">Keyboard</button>
 			<span id="kbdMove" class="kbdMove">Move</span>
+			<span id="kbdLayoutArea">
+				<select id="kbdLayoutSelect" title="Select Keyboard Lyout">
+					<option value="alphanum" title="AlphaNum">AlphaNum</option>
+					<option value="alpha" title="Alpha">Alpha</option>
+					<option value="num" title="Numpad">Num</option>
+				</select>
+			</span>
 		</legend>
 		<div id="kbdArea" class="area kbdArea displayNone" tabindex="0">
 			<div id="kbdAlpha" class="area">
@@ -110,27 +141,15 @@
 	</fieldset>
 	<fieldset class="flexBox clearLeft">
 		<legend>
-			<button id="kbdLayoutButton" class="legendButton" title="Keyboard Layout">Keyboard Layout</button>
-		</legend>
-		<div id="kbdLayoutArea" class="area displayNone">
-			<select id="kbdLayoutSelect" title="Select Keyboard Lyout">
-				<option value="alphanum" title="AlphaNum">AlphaNum</option>
-				<option value="alpha" title="Alpha">Alpha</option>
-				<option value="num" title="Numpad">Num</option>
-			</select>
-		</div>
-	</fieldset>
-	<fieldset class="flexBox">
-		<legend>
 			<button id="inp2Button" class="legendButton" title="Alternative way of input">Input</button>
 		</legend>
 		<div id="inp2Area" class="area clearLeft displayNone">
 			<div class="area">
-				<textarea id="inp2Text" placeholder="input" rows="2" cols="40" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+				<textarea id="inp2Text" placeholder="input" rows="2" cols="40" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
 				<button id="enterButton" title="Enter">Enter</button>
 			</div>
 			<div class="area clearLeft">
-				<input type="file" id="fileInput" name="files[]" multiple />
+				<input type="file" id="fileInput" name="files[]" multiple>
 			</div>
 			<div class="area" id="dropZone" title="drop here or on canvas">
 				Drop files here
@@ -142,7 +161,7 @@
 			<button id="resultButton" class="legendButton" title="Show/Hide BASIC Console">Console</button>
 		</legend>
 		<div id="resultArea" class="area displayNone">
-			<textarea id="resultText" placeholder="" rows="15" cols="80" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+			<textarea id="resultText" placeholder="" rows="15" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
 		</div>
 	</fieldset>
 	<fieldset class="flexBox">
@@ -155,7 +174,7 @@
 				</select>
 			</div>
 			<div class="clearLeft">
-				<textarea id="varText" placeholder="value" rows="12" cols="40" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+				<textarea id="varText" placeholder="value" rows="12" cols="40" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
 			</div>
 		</div>
 	</fieldset>
@@ -166,7 +185,7 @@
 		<div id="outputArea" class="area displayNone">
 			<button id="runButton" title="Run JavaScript">Run</button>
 			<br>
-			<textarea id="outputText" placeholder="Use input field, press 'Run'" rows="15" cols="80" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+			<textarea id="outputText" placeholder="Use input field, press 'Run'" rows="15" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
 		</div>
 	</fieldset>
 	<fieldset class="flexBox clearLeft" id="consoleBox" hidden>

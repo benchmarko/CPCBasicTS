@@ -60,6 +60,8 @@ declare module "Interfaces" {
         startScreenshot: () => string;
         startEnter: () => void;
         fnPretty: () => void;
+        fnAddLines: () => void;
+        fnRemoveLines: () => void;
         fnDownload: () => void;
         setInputText: (input: string, keepStack?: boolean) => void;
         setExampleSelectOptions: () => void;
@@ -87,10 +89,50 @@ declare module "Interfaces" {
 declare module "cpcCharset" {
     export const cpcCharset: number[][];
 }
+declare module "Model" {
+    export type ConfigEntryType = string | number | boolean;
+    export type ConfigType = Record<string, ConfigEntryType>;
+    export interface DatabaseEntry {
+        text: string;
+        title: string;
+        src: string;
+        script?: string;
+        loaded?: boolean;
+    }
+    export interface ExampleEntry {
+        key: string;
+        title: string;
+        meta: string;
+        script?: string;
+        loaded?: boolean;
+    }
+    export type DatabasesType = Record<string, DatabaseEntry>;
+    export class Model {
+        private config;
+        private initialConfig;
+        private databases;
+        private examples;
+        constructor(config: ConfigType);
+        getProperty<T extends ConfigEntryType>(property: string): T;
+        setProperty<T extends ConfigEntryType>(property: string, value: T): void;
+        getAllProperties(): ConfigType;
+        getAllInitialProperties(): ConfigType;
+        getChangedProperties(): ConfigType;
+        addDatabases(db: DatabasesType): void;
+        getAllDatabases(): DatabasesType;
+        getDatabase(): DatabaseEntry;
+        getAllExamples(): {
+            [x: string]: ExampleEntry;
+        };
+        getExample(key: string): ExampleEntry;
+        setExample(example: ExampleEntry): void;
+        removeExample(key: string): void;
+    }
+}
 declare module "BasicLexer" {
     interface BasicLexerOptions {
-        quiet?: boolean;
         keepWhiteSpace?: boolean;
+        quiet?: boolean;
     }
     export interface LexerToken {
         type: string;
@@ -149,10 +191,10 @@ declare module "BasicParser" {
     import { LexerToken } from "BasicLexer";
     interface BasicParserOptions {
         quiet?: boolean;
-        keepTokens?: boolean;
         keepBrackets?: boolean;
         keepColons?: boolean;
         keepDataComma?: boolean;
+        keepTokens?: boolean;
     }
     export interface ParserNode extends LexerToken {
         left?: ParserNode;
@@ -164,12 +206,12 @@ declare module "BasicParser" {
         parenthesis?: boolean;
     }
     export class BasicParser {
-        private label;
         private quiet;
-        private keepTokens;
         private keepBrackets;
         private keepColons;
         private keepDataComma;
+        private keepTokens;
+        private label;
         private readonly symbols;
         private tokens;
         private index;
@@ -267,14 +309,16 @@ declare module "BasicFormatter" {
     interface BasicFormatterOptions {
         lexer: BasicLexer;
         parser: BasicParser;
+        implicitLines?: boolean;
     }
     export class BasicFormatter {
         private readonly lexer;
         private readonly parser;
+        private implicitLines;
         private label;
         constructor(options: BasicFormatterOptions);
         private composeError;
-        private static fnIsDirect;
+        private static fnHasLabel;
         private fnCreateLabelEntry;
         private fnCreateLabelMap;
         private fnAddSingleReference;
@@ -285,6 +329,8 @@ declare module "BasicFormatter" {
         private static fnApplyChanges;
         private fnRenumber;
         renumber(input: string, newLine: number, oldLine: number, step: number, keep: number): IOutput;
+        private fnRemoveUnusedLines;
+        removeUnusedLines(input: string): IOutput;
     }
 }
 declare module "BasicTokenizer" {
@@ -330,14 +376,14 @@ declare module "CodeGeneratorBasic" {
     import { BasicParser } from "BasicParser";
     import { IOutput } from "Interfaces";
     interface CodeGeneratorBasicOptions {
-        quiet?: boolean;
         lexer: BasicLexer;
         parser: BasicParser;
+        quiet?: boolean;
     }
     export class CodeGeneratorBasic {
-        private quiet;
         private readonly lexer;
         private readonly parser;
+        private quiet;
         private line;
         constructor(options: CodeGeneratorBasicOptions);
         getLexer(): BasicLexer;
@@ -431,9 +477,10 @@ declare module "CodeGeneratorJs" {
         lexer: BasicLexer;
         parser: BasicParser;
         rsx: ICpcVmRsx;
-        trace?: boolean;
-        quiet?: boolean;
+        addLineNumbers?: boolean;
         noCodeFrame?: boolean;
+        quiet?: boolean;
+        trace?: boolean;
     }
     export class CodeGeneratorJs {
         private readonly lexer;
@@ -441,7 +488,8 @@ declare module "CodeGeneratorJs" {
         private readonly rsx;
         private trace;
         private quiet;
-        private readonly noCodeFrame;
+        private noCodeFrame;
+        private addLineNumbers;
         private line;
         private readonly reJsKeywords;
         private readonly stack;
@@ -588,14 +636,16 @@ declare module "CodeGeneratorToken" {
     import { BasicParser } from "BasicParser";
     import { IOutput } from "Interfaces";
     interface CodeGeneratorTokenOptions {
-        quiet?: boolean;
         lexer: BasicLexer;
         parser: BasicParser;
+        quiet?: boolean;
+        addLineNumbers?: boolean;
     }
     export class CodeGeneratorToken {
-        private quiet;
         private readonly lexer;
         private readonly parser;
+        private addLineNumbers;
+        private quiet;
         private label;
         private statementSeparator;
         constructor(options: CodeGeneratorTokenOptions);
@@ -780,6 +830,7 @@ declare module "View" {
         getInputValue(id: string): string;
         setInputValue(id: string, value: string): this;
         getInputChecked(id: string): boolean;
+        setInputChecked(id: string, checked: boolean): this;
         setSelectOptions(id: string, options: SelectOptionElement[]): this;
         getSelectValue(id: string): string;
         setSelectValue(id: string, value: string): this;
@@ -1065,46 +1116,6 @@ declare module "TextCanvas" {
         windowScrollDown(left: number, right: number, top: number, bottom: number, _pen: number): void;
     }
 }
-declare module "Model" {
-    export type ConfigEntryType = string | number | boolean;
-    export type ConfigType = Record<string, ConfigEntryType>;
-    export interface DatabaseEntry {
-        text: string;
-        title: string;
-        src: string;
-        script?: string;
-        loaded?: boolean;
-    }
-    export interface ExampleEntry {
-        key: string;
-        title: string;
-        meta: string;
-        script?: string;
-        loaded?: boolean;
-    }
-    export type DatabasesType = Record<string, DatabaseEntry>;
-    export class Model {
-        private config;
-        private initialConfig;
-        private databases;
-        private examples;
-        constructor(config: ConfigType);
-        getProperty<T extends ConfigEntryType>(property: string): T;
-        setProperty<T extends ConfigEntryType>(property: string, value: T): void;
-        getAllProperties(): ConfigType;
-        getAllInitialProperties(): ConfigType;
-        getChangedProperties(): ConfigType;
-        addDatabases(db: DatabasesType): void;
-        getAllDatabases(): DatabasesType;
-        getDatabase(): DatabaseEntry;
-        getAllExamples(): {
-            [x: string]: ExampleEntry;
-        };
-        getExample(key: string): ExampleEntry;
-        setExample(example: ExampleEntry): void;
-        removeExample(key: string): void;
-    }
-}
 declare module "NodeAdapt" {
     export class NodeAdapt {
         static isNodeAvailable(): boolean;
@@ -1132,12 +1143,14 @@ declare module "CommonEventHandler" {
         private onVariableButtonClick;
         private onCpcButtonClick;
         private onConvertButtonClick;
+        private onSettingsButtonClick;
         private onKbdButtonClick;
-        private onKbdLayoutButtonClick;
         private onConsoleButtonClick;
         private onParseButtonClick;
         private onRenumButtonClick;
         private onPrettyButtonClick;
+        private onLineNumberAddButtonClick;
+        private onLineNumberRemoveButtonClick;
         private fnUpdateAreaText;
         private onUndoButtonClick;
         private onRedoButtonClick;
@@ -1158,9 +1171,11 @@ declare module "CommonEventHandler" {
         onVarSelectChange(): void;
         onKbdLayoutSelectChange(): void;
         private onVarTextChange;
+        private onImplicitLinesInputChange;
         private onScreenshotButtonClick;
         private onEnterButtonClick;
         private onSoundButtonClick;
+        private static onFullscreenButtonClick;
         onCpcCanvasClick(event: Event): void;
         onWindowClick(event: Event): void;
         onTextTextClick(event: Event): void;
@@ -1836,9 +1851,10 @@ declare module "Controller" {
         private fnWaitKey;
         private fnWaitInput;
         private static parseLineNumber;
-        private static splitLines;
-        private static mergeScripts;
-        private static fnGetLinesInRange;
+        private static addLineNumbers;
+        private splitLines;
+        private mergeScripts;
+        private fnGetLinesInRange;
         private static fnPrepareMaskRegExp;
         private fnGetExampleDirectoryEntries;
         private static fnGetStorageDirectoryEntries;
@@ -1867,12 +1883,15 @@ declare module "Controller" {
         private fnList;
         private fnReset;
         private outputError;
+        private static createBasicFormatter;
         private fnRenumLines;
         private fnEditLineCallback;
         private fnEditLine;
         private fnParseBench;
         private fnParse;
         fnPretty(): void;
+        fnAddLines(): void;
+        fnRemoveLines(): void;
         private static fnDownloadBlob;
         private fnDownloadNewFile;
         fnDownload(): void;

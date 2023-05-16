@@ -50,9 +50,11 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
                 using: this.using,
                 write: this.write
             };
-            this.quiet = options.quiet || false;
             this.lexer = options.lexer;
             this.parser = options.parser;
+            if (options.quiet !== undefined) {
+                this.quiet = options.quiet;
+            }
         }
         CodeGeneratorBasic.prototype.getLexer = function () {
             return this.lexer;

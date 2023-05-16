@@ -104,6 +104,12 @@ export class View {
 
 		return element.checked;
 	}
+	setInputChecked(id: string, checked: boolean): this {
+		const element = View.getElementByIdAs<HTMLInputElement>(id);
+
+		element.checked = checked;
+		return this;
+	}
 
 	setSelectOptions(id: string, options: SelectOptionElement[]): this {
 		const element = View.getElementByIdAs<HTMLSelectElement>(id);

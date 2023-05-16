@@ -308,14 +308,16 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             view.setHidden("textArea", !model.getProperty("showText"));
             view.setHidden("variableArea", !model.getProperty("showVariable"));
             view.setHidden("kbdArea", !model.getProperty("showKbd"), "flex");
-            view.setHidden("kbdLayoutArea", !model.getProperty("showKbdLayout"));
+            view.setHidden("kbdLayoutArea", model.getProperty("showKbd"), "inherit"); // kbd visible => kbdlayout invisible
             view.setHidden("cpcArea", false); // make sure canvas is not hidden (allows to get width, height)
             this.canvas = new Canvas_1.Canvas({
                 charset: cpcCharset_1.cpcCharset,
                 onClickKey: this.fnPutKeyInBufferHandler
             });
             view.setHidden("cpcArea", !model.getProperty("showCpc"));
+            view.setHidden("settingsArea", !model.getProperty("showSettings"), "flex");
             view.setHidden("convertArea", !model.getProperty("showConvert"), "flex");
+            view.setInputChecked("implicitLinesInput", model.getProperty("implicitLines"));
             var kbdLayout = model.getProperty("kbdLayout");
             view.setSelectValue("kbdLayoutSelect", kbdLayout);
             this.commonEventHandler.onKbdLayoutSelectChange();
@@ -355,7 +357,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 lexer: new BasicLexer_1.BasicLexer(),
                 parser: new BasicParser_1.BasicParser(),
                 trace: model.getProperty("trace"),
-                rsx: this.rsx // just to check the names
+                rsx: this.rsx,
+                addLineNumbers: model.getProperty("implicitLines")
             });
             this.initDatabases();
             if (model.getProperty("sound")) { // activate sound needs user action
@@ -758,7 +761,38 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             return lineNumber;
         };
-        Controller.splitLines = function (input) {
+        /*
+        private static addLineNumbers(input: string) {
+            let lastLine = 0;
+    
+            const fnLineAdder = function (spaces: string, line: string) {
+                const lineNum = line !== "" ? Number(line) : lastLine + 1;
+    
+                lastLine = lineNum;
+                return spaces + String(lineNum);
+            };
+    
+            input.replace(/^(\s*)(\d*)/m, fnLineAdder);
+            return input;
+        }
+        */
+        Controller.addLineNumbers = function (input) {
+            var lineParts = input.split("\n");
+            var lastLine = 0;
+            for (var i = 0; i < lineParts.length; i += 1) {
+                var lineNum = parseInt(lineParts[i], 10);
+                if (isNaN(lineNum)) {
+                    lineNum = lastLine + 1;
+                    lineParts[i] = String(lastLine + 1) + " " + lineParts[i];
+                }
+                lastLine = lineNum;
+            }
+            return lineParts.join("\n");
+        };
+        Controller.prototype.splitLines = function (input) {
+            if (this.model.getProperty("implicitLines")) {
+                input = Controller.addLineNumbers(input);
+            }
             // get numbers starting at the beginning of a line (allows some simple multi line strings)
             var lineParts = input.split(/^(\s*\d+)/m), lines = [];
             if (lineParts[0] === "") {
@@ -775,8 +809,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             return lines;
         };
         // merge two scripts with sorted line numbers, lines from script2 overwrite lines from script1
-        Controller.mergeScripts = function (script1, script2) {
-            var lines1 = Controller.splitLines(Utils_1.Utils.stringTrimEnd(script1)), lines2 = Controller.splitLines(Utils_1.Utils.stringTrimEnd(script2));
+        Controller.prototype.mergeScripts = function (script1, script2) {
+            var lines1 = this.splitLines(Utils_1.Utils.stringTrimEnd(script1)), lines2 = this.splitLines(Utils_1.Utils.stringTrimEnd(script2));
             var result = [], lineNumber1, lineNumber2;
             while (lines1.length && lines2.length) {
                 lineNumber1 = lineNumber1 || Controller.parseLineNumber(lines1[0]);
@@ -806,8 +840,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             return result.join("\n");
         };
         // get line range from a script with sorted line numbers
-        Controller.fnGetLinesInRange = function (script, firstLine, lastLine) {
-            var lines = script ? Controller.splitLines(script) : [];
+        Controller.prototype.fnGetLinesInRange = function (script, firstLine, lastLine) {
+            var lines = script ? this.splitLines(script) : [];
             while (lines.length && parseInt(lines[0], 10) < firstLine) {
                 lines.shift();
             }
@@ -978,7 +1012,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                         keepBrackets: true,
                         keepColons: true,
                         keepDataComma: true
-                    })
+                    }),
+                    addLineNumbers: this.model.getProperty("implicitLines")
                 });
             }
             var output = this.codeGeneratorToken.generate(input);
@@ -1067,7 +1102,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 case "openin":
                     break;
                 case "chainMerge":
-                    input = Controller.mergeScripts(this.view.getAreaValue("inputText"), input);
+                    input = this.mergeScripts(this.view.getAreaValue("inputText"), input);
                     this.setInputText(input);
                     this.view.setAreaValue("resultText", "");
                     startLine = inFile.line || 0;
@@ -1083,7 +1118,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     }
                     break;
                 case "merge":
-                    input = Controller.mergeScripts(this.view.getAreaValue("inputText"), input);
+                    input = this.mergeScripts(this.view.getAreaValue("inputText"), input);
                     this.setInputText(input);
                     this.view.setAreaValue("resultText", "");
                     this.invalidateScript();
@@ -1340,7 +1375,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.vm.vmStop("", 0, true); // continue
         };
         Controller.prototype.fnDeleteLines = function (paras) {
-            var inputText = this.view.getAreaValue("inputText"), lines = Controller.fnGetLinesInRange(inputText, paras.first || 0, paras.last || 65535);
+            var inputText = this.view.getAreaValue("inputText"), lines = this.fnGetLinesInRange(inputText, paras.first || 0, paras.last || 65535);
             var error;
             if (lines.length) {
                 for (var i = 0; i < lines.length; i += 1) {
@@ -1354,7 +1389,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 }
                 if (!error) {
                     var input = lines.join("\n");
-                    input = Controller.mergeScripts(inputText, input); // delete input lines
+                    input = this.mergeScripts(inputText, input); // delete input lines
                     this.setInputText(input);
                 }
             }
@@ -1370,7 +1405,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.invalidateScript();
         };
         Controller.prototype.fnList = function (paras) {
-            var input = this.view.getAreaValue("inputText"), stream = paras.stream, lines = Controller.fnGetLinesInRange(input, paras.first || 0, paras.last || 65535), regExp = new RegExp(/([\x00-\x1f])/g); // eslint-disable-line no-control-regex
+            var input = this.view.getAreaValue("inputText"), stream = paras.stream, lines = this.fnGetLinesInRange(input, paras.first || 0, paras.last || 65535), regExp = new RegExp(/([\x00-\x1f])/g); // eslint-disable-line no-control-regex
             for (var i = 0; i < lines.length; i += 1) {
                 var line = lines[i];
                 if (stream !== 9) {
@@ -1410,13 +1445,16 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.vm.print(stream, escapedShortError + "\r\n");
             return shortError;
         };
+        Controller.createBasicFormatter = function () {
+            return new BasicFormatter_1.BasicFormatter({
+                lexer: new BasicLexer_1.BasicLexer(),
+                parser: new BasicParser_1.BasicParser()
+            });
+        };
         Controller.prototype.fnRenumLines = function (paras) {
             var vm = this.vm, input = this.view.getAreaValue("inputText");
             if (!this.basicFormatter) {
-                this.basicFormatter = new BasicFormatter_1.BasicFormatter({
-                    lexer: new BasicLexer_1.BasicLexer(),
-                    parser: new BasicParser_1.BasicParser()
-                });
+                this.basicFormatter = Controller.createBasicFormatter();
             }
             var output = this.basicFormatter.renumber(input, paras.newLine || 10, paras.oldLine || 1, paras.step || 10, paras.keep || 65535);
             if (output.error) {
@@ -1434,7 +1472,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         Controller.prototype.fnEditLineCallback = function () {
             var inputParas = this.vm.vmGetStopObject().paras, inputText = this.view.getAreaValue("inputText");
             var input = inputParas.input;
-            input = Controller.mergeScripts(inputText, input);
+            input = this.mergeScripts(inputText, input);
             this.setInputText(input);
             this.vm.vmSetStartLine(0);
             this.vm.vmGoto(0); // to be sure
@@ -1444,7 +1482,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             return true;
         };
         Controller.prototype.fnEditLine = function (paras) {
-            var input = this.view.getAreaValue("inputText"), stream = paras.stream, lineNumber = paras.first || 0, lines = Controller.fnGetLinesInRange(input, lineNumber, lineNumber);
+            var input = this.view.getAreaValue("inputText"), stream = paras.stream, lineNumber = paras.first || 0, lines = this.fnGetLinesInRange(input, lineNumber, lineNumber);
             if (lines.length) {
                 var lineString = lines[0];
                 this.vm.print(stream, lineString);
@@ -1515,6 +1553,28 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 // for testing:
                 var diff = Diff_1.Diff.testDiff(input.toUpperCase(), output.toUpperCase());
                 this.view.setAreaValue("outputText", diff);
+            }
+        };
+        Controller.prototype.fnAddLines = function () {
+            var input = this.view.getAreaValue("inputText"), output = Controller.addLineNumbers(input);
+            if (output) {
+                this.fnPutChangedInputOnStack();
+                this.setInputText(output, true);
+                this.fnPutChangedInputOnStack();
+            }
+        };
+        Controller.prototype.fnRemoveLines = function () {
+            if (!this.basicFormatter) {
+                this.basicFormatter = Controller.createBasicFormatter();
+            }
+            var input = this.view.getAreaValue("inputText"), output = this.basicFormatter.removeUnusedLines(input);
+            if (output.error) {
+                this.outputError(output.error);
+            }
+            else {
+                this.fnPutChangedInputOnStack();
+                this.setInputText(output.text, true);
+                this.fnPutChangedInputOnStack();
             }
         };
         // https://blog.logrocket.com/programmatic-file-downloads-in-the-browser-9a5186298d5c/
@@ -1666,7 +1726,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     if (Utils_1.Utils.debug > 0) {
                         Utils_1.Utils.console.debug("fnDirectInput: insert line=" + input);
                     }
-                    input = Controller.mergeScripts(inputText, input);
+                    input = this.mergeScripts(inputText, input);
                     this.setInputText(input, true);
                     this.vm.vmSetStartLine(0);
                     this.vm.vmGoto(0); // to be sure
@@ -1678,7 +1738,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 Utils_1.Utils.console.log("fnDirectInput: execute:", input);
                 var codeGeneratorJs = this.codeGeneratorJs;
                 var output = void 0, outputString = void 0;
-                if (inputText && (/^\d+($| )/).test(inputText)) { // do we have a program starting with a line number?
+                if (inputText && ((/^\d+($| )/).test(inputText) || this.model.getProperty("implicitLines"))) { // do we have a program starting with a line number?
                     var separator = inputText.endsWith("\n") ? "" : "\n";
                     output = codeGeneratorJs.generate(inputText + separator + input, this.variables, true); // compile both; allow direct command
                     if (output.error) {
@@ -2244,6 +2304,16 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             return out;
         };
         Controller.prototype.onCpcCanvasClick = function (event) {
+            if (this.model.getProperty("showSettings")) {
+                this.model.setProperty("showSettings", false);
+                this.view.setHidden("settingsArea", !this.model.getProperty("showSettings"), "flex");
+            }
+            if (this.model.getProperty("showConvert")) {
+                this.model.setProperty("showConvert", false);
+                this.view.setHidden("convertArea", !this.model.getProperty("showConvert"), "flex");
+            }
+            //this.view.setHidden("settingsArea", true, "flex");
+            //this.view.setHidden("convertArea", true, "flex");
             this.canvas.onCpcCanvasClick(event);
             this.textCanvas.onWindowClick(event);
             this.keyboard.setActive(true);

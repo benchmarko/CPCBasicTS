@@ -10,8 +10,8 @@
 import { Utils } from "./Utils";
 
 interface BasicLexerOptions {
-	quiet?: boolean // no function
 	keepWhiteSpace?: boolean
+	quiet?: boolean // currently not used
 }
 
 export interface LexerToken {
@@ -24,6 +24,7 @@ export interface LexerToken {
 
 export class BasicLexer {
 	private keepWhiteSpace = false;
+	// private quiet = false;
 
 	private label = ""; // for error messages
 	private takeNumberAsLabel = true; // first number in a line is assumed to be a label (line number)
@@ -34,7 +35,12 @@ export class BasicLexer {
 	private whiteSpace = ""; // collected whitespace
 
 	setOptions(options: BasicLexerOptions): void {
-		this.keepWhiteSpace = options.keepWhiteSpace || false;
+		if (options.keepWhiteSpace !== undefined) {
+			this.keepWhiteSpace = options.keepWhiteSpace;
+		}
+		// if (options.quiet !== undefined) {
+		// 	 this.quiet = options.quiet;
+		// }
 	}
 
 	constructor(options?: BasicLexerOptions) {

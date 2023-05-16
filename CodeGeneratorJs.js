@@ -9,6 +9,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     exports.CodeGeneratorJs = void 0;
     var CodeGeneratorJs = /** @class */ (function () {
         function CodeGeneratorJs(options) {
+            this.trace = false;
+            this.quiet = false; // quiet mode: suppress most warnings
+            this.noCodeFrame = false; // suppress generation of a code frame
+            this.addLineNumbers = false; // generate missing line numbers
             this.line = "0"; // current line (label)
             this.stack = {
                 forLabel: [],
@@ -141,10 +145,19 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             };
             this.lexer = options.lexer;
             this.parser = options.parser;
-            this.trace = Boolean(options.trace);
             this.rsx = options.rsx;
-            this.quiet = options.quiet || false;
-            this.noCodeFrame = options.noCodeFrame || false;
+            if (options.addLineNumbers !== undefined) {
+                this.addLineNumbers = options.addLineNumbers;
+            }
+            if (options.noCodeFrame !== undefined) {
+                this.noCodeFrame = options.noCodeFrame;
+            }
+            if (options.quiet !== undefined) {
+                this.quiet = options.quiet;
+            }
+            if (options.trace !== undefined) {
+                this.trace = options.trace;
+            }
             this.reJsKeywords = CodeGeneratorJs.createJsKeywordRegex();
         }
         CodeGeneratorJs.prototype.reset = function () {
@@ -653,7 +666,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 this.labelList.push(label); // only needed to support resume next
             }
             this.resetCountsPerLine(); // we want to have "stable" counts, even if other lines change, e.g. direct
-            var isDirect = label === "";
+            //const isDirect = label === "";
+            var isDirect = label === "direct";
             var value = "";
             if (isDirect) { // special handling for direct
                 value = "o.vmGoto(\"directEnd\"); break;\n";
@@ -723,7 +737,11 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     nodeArgs[i] = '"' + nodeArgs[i].replace(/\\/g, "\\\\").replace(/"/g, "\\\"") + '"'; // escape backslashes and quotes, put in quotes
                 }
             }
-            nodeArgs.unshift(String(this.line)); // prepend line number
+            var lineString = String(this.line); // TODO: already string?
+            if (lineString === "direct") {
+                lineString = '"' + lineString + '"';
+            }
+            nodeArgs.unshift(lineString); // prepend line number
             this.dataList.push("o.data(" + nodeArgs.join(", ") + ")"); // will be set at the beginning of the script
             node.pv = "/* data */";
         };
@@ -1272,31 +1290,35 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 return (labels[line]) ? all : "/* " + all + " */";
             });
         };
-        CodeGeneratorJs.prototype.fnCheckLabel = function (node, lastLine, allowDirect) {
-            var label = node.value, isDirect = label === "", lineNumber = Number(label);
-            if (!isDirect) {
-                if ((lineNumber | 0) !== lineNumber) { // eslint-disable-line no-bitwise
-                    throw this.composeError(Error(), "Expected integer line number", label, node.pos);
+        CodeGeneratorJs.prototype.fnCheckLabel = function (node, lastLine) {
+            var label = node.value;
+            if (label === "") {
+                if (this.addLineNumbers) {
+                    label = String(lastLine + 1); // no line => we just increase the last line by 1
+                    node.value = label; // we also modify the parse tree
                 }
-                if (lineNumber <= lastLine) {
-                    throw this.composeError(Error(), "Expected increasing line number", label, node.pos);
+                else {
+                    throw this.composeError(Error(), "Direct command found", label, node.pos);
                 }
-                if (lineNumber < 1 || lineNumber > 65535) {
-                    throw this.composeError(Error(), "Line number overflow", label, node.pos);
-                }
-                return label;
             }
-            else if (!allowDirect) {
-                throw this.composeError(Error(), "Direct command found", label, node.pos);
+            var lineNumber = Number(label);
+            if ((lineNumber | 0) !== lineNumber) { // eslint-disable-line no-bitwise
+                throw this.composeError(Error(), "Expected integer line number", label, node.pos);
+            }
+            if (lineNumber < 1 || lineNumber > 65535) {
+                throw this.composeError(Error(), "Line number overflow", label, node.pos);
+            }
+            if (lineNumber <= lastLine) {
+                throw this.composeError(Error(), "Expected increasing line number", label, node.pos);
             }
             return label;
         };
-        CodeGeneratorJs.prototype.fnCreateLabelMap = function (nodes, labels, allowDirect) {
-            var lastLine = -1;
+        CodeGeneratorJs.prototype.fnCreateLabelMap = function (nodes, labels) {
+            var lastLine = 0; //-1;
             for (var i = 0; i < nodes.length; i += 1) {
                 var node = nodes[i];
-                if (node.type === "label") {
-                    var label = this.fnCheckLabel(node, lastLine, allowDirect);
+                if (node.type === "label" && node.value !== "direct") {
+                    var label = this.fnCheckLabel(node, lastLine);
                     if (label) {
                         labels[label] = 0; // init call count
                         lastLine = Number(label);
@@ -1358,11 +1380,11 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         //
         // evaluate
         //
-        CodeGeneratorJs.prototype.evaluate = function (parseTree, variables, allowDirect) {
+        CodeGeneratorJs.prototype.evaluate = function (parseTree, variables) {
             this.variables = variables;
             this.defScopeArgs = undefined;
             // create labels map
-            this.fnCreateLabelMap(parseTree, this.referencedLabelsCount, allowDirect);
+            this.fnCreateLabelMap(parseTree, this.referencedLabelsCount);
             this.removeAllDefVarTypes();
             this.fnPrecheckTree(parseTree, this.countMap); // also sets "resumeNoArgsCount" for resume without args
             var output = "";
@@ -1410,7 +1432,13 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.reset();
             try {
                 var tokens = this.lexer.lex(input), parseTree = this.parser.parse(tokens);
-                var output = this.evaluate(parseTree, variables, Boolean(allowDirect));
+                if (allowDirect && parseTree.length) {
+                    var lastLine = parseTree[parseTree.length - 1];
+                    if (lastLine.type === "label" && lastLine.value === "") {
+                        lastLine.value = "direct";
+                    }
+                }
+                var output = this.evaluate(parseTree, variables);
                 var combinedData = CodeGeneratorJs.combineData(this.dataList), combinedLabels = CodeGeneratorJs.combineLabels(this.labelList);
                 if (!this.noCodeFrame) {
                     output = '"use strict"\n'

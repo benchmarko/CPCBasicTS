@@ -16,6 +16,7 @@ export declare class View {
     getInputValue(id: string): string;
     setInputValue(id: string, value: string): this;
     getInputChecked(id: string): boolean;
+    setInputChecked(id: string, checked: boolean): this;
     setSelectOptions(id: string, options: SelectOptionElement[]): this;
     getSelectValue(id: string): string;
     setSelectValue(id: string, value: string): this;

@@ -10,23 +10,31 @@ import { BasicParser, ParserNode } from "./BasicParser"; // BasicParser just for
 import { IOutput } from "./Interfaces";
 
 interface CodeGeneratorTokenOptions {
-	quiet?: boolean
 	lexer: BasicLexer
 	parser: BasicParser
+	quiet?: boolean
+	addLineNumbers?: boolean
 }
 
 export class CodeGeneratorToken {
-	private quiet = false;
 	private readonly lexer: BasicLexer;
 	private readonly parser: BasicParser;
+	private addLineNumbers = false;
+	private quiet = false;
+
 	private label = ""; // current line (label)
 
 	private statementSeparator: string; // cannot be static when using token2String()
 
 	constructor(options: CodeGeneratorTokenOptions) {
-		this.quiet = options.quiet || false;
 		this.lexer = options.lexer;
 		this.parser = options.parser;
+		if (options.addLineNumbers !== undefined) {
+			this.addLineNumbers = options.addLineNumbers;
+		}
+		if (options.quiet !== undefined) {
+			this.quiet = options.quiet;
+		}
 
 		this.statementSeparator = CodeGeneratorToken.token2String(":");
 	}
@@ -578,6 +586,11 @@ export class CodeGeneratorToken {
 		return CodeGeneratorToken.token2String("_line16") + CodeGeneratorToken.convUInt16ToString(number);
 	}
 	private fnLabel(node: ParserNode) {
+		if (this.addLineNumbers) {
+			if (node.value === "") { // direct
+				node.value = String(Number(this.label) + 1);
+			}
+		}
 		this.label = node.value; // set line before parsing args
 
 		const line = Number(this.label),

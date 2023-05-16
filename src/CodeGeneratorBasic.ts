@@ -10,21 +10,24 @@ import { BasicParser, ParserNode } from "./BasicParser"; // BasicParser just for
 import { IOutput } from "./Interfaces";
 
 interface CodeGeneratorBasicOptions {
-	quiet?: boolean
 	lexer: BasicLexer
 	parser: BasicParser
+	quiet?: boolean
 }
 
 export class CodeGeneratorBasic {
-	private quiet = false;
 	private readonly lexer: BasicLexer;
 	private readonly parser: BasicParser;
+	private quiet = false;
+
 	private line = 0; // current line (label)
 
 	constructor(options: CodeGeneratorBasicOptions) {
-		this.quiet = options.quiet || false;
 		this.lexer = options.lexer;
 		this.parser = options.parser;
+		if (options.quiet !== undefined) {
+			this.quiet = options.quiet;
+		}
 	}
 
 	getLexer(): BasicLexer {

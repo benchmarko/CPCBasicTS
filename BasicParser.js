@@ -10,12 +10,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     exports.BasicParser = void 0;
     var BasicParser = /** @class */ (function () {
         function BasicParser(options) {
-            this.label = "0"; // for error messages
             this.quiet = false;
-            this.keepTokens = false;
             this.keepBrackets = false;
             this.keepColons = false;
             this.keepDataComma = false;
+            this.keepTokens = false;
+            this.label = "0"; // for error messages
             this.symbols = {};
             // set also during parse
             this.tokens = [];
@@ -61,11 +61,21 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.token = this.previousToken;
         }
         BasicParser.prototype.setOptions = function (options) {
-            this.quiet = options.quiet || false;
-            this.keepTokens = options.keepTokens || false;
-            this.keepBrackets = options.keepBrackets || false;
-            this.keepColons = options.keepColons || false;
-            this.keepDataComma = options.keepDataComma || false;
+            if (options.keepBrackets !== undefined) {
+                this.keepBrackets = options.keepBrackets;
+            }
+            if (options.keepColons !== undefined) {
+                this.keepColons = options.keepColons;
+            }
+            if (options.keepDataComma !== undefined) {
+                this.keepDataComma = options.keepDataComma;
+            }
+            if (options.keepTokens !== undefined) {
+                this.keepTokens = options.keepTokens;
+            }
+            if (options.quiet !== undefined) {
+                this.quiet = options.quiet;
+            }
         };
         BasicParser.prototype.composeError = function (error, message, value, pos, len) {
             len = value === "(end)" ? 0 : len;

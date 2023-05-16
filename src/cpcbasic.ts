@@ -18,19 +18,20 @@ class cpcBasic { // eslint-disable-line vars-on-top
 		database: "examples", // examples, apps, saved
 		example: "cpcbasic",
 		exampleIndex: "0index.js", // example index for every exampleDir
+		implicitLines: false, // allow implicit line numbers
 		input: "", // keyboard input when starting the app
 		kbdLayout: "alphanum", // alphanum, alpha, num
 		showInput: true,
 		showInp2: false,
 		showCpc: true,
 		showKbd: false,
-		showKbdLayout: false,
 		showOutput: false,
 		showResult: false,
 		showText: false,
 		showVariable: false,
 		showConsole: false,
 		showConvert: false,
+		showSettings: false,
 		sound: true,
 		trace: false // trace code
 	};

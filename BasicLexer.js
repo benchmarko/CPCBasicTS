@@ -11,6 +11,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     var BasicLexer = /** @class */ (function () {
         function BasicLexer(options) {
             this.keepWhiteSpace = false;
+            // private quiet = false;
             this.label = ""; // for error messages
             this.takeNumberAsLabel = true; // first number in a line is assumed to be a label (line number)
             this.input = ""; // input to analyze
@@ -22,7 +23,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
         }
         BasicLexer.prototype.setOptions = function (options) {
-            this.keepWhiteSpace = options.keepWhiteSpace || false;
+            if (options.keepWhiteSpace !== undefined) {
+                this.keepWhiteSpace = options.keepWhiteSpace;
+            }
+            // if (options.quiet !== undefined) {
+            // 	 this.quiet = options.quiet;
+            // }
         };
         BasicLexer.prototype.composeError = function (error, message, value, pos, len) {
             return Utils_1.Utils.composeError("BasicLexer", error, message, value, pos, len, this.label || undefined);

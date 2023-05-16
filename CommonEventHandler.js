@@ -19,12 +19,14 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 onVariableButtonClick: this.onVariableButtonClick,
                 onCpcButtonClick: this.onCpcButtonClick,
                 onConvertButtonClick: this.onConvertButtonClick,
+                onSettingsButtonClick: this.onSettingsButtonClick,
                 onKbdButtonClick: this.onKbdButtonClick,
-                onKbdLayoutButtonClick: this.onKbdLayoutButtonClick,
                 onConsoleButtonClick: this.onConsoleButtonClick,
                 onParseButtonClick: this.onParseButtonClick,
                 onRenumButtonClick: this.onRenumButtonClick,
                 onPrettyButtonClick: this.onPrettyButtonClick,
+                onLineNumberAddButtonClick: this.onLineNumberAddButtonClick,
+                onLineNumberRemoveButtonClick: this.onLineNumberRemoveButtonClick,
                 onUndoButtonClick: this.onUndoButtonClick,
                 onRedoButtonClick: this.onRedoButtonClick,
                 onDownloadButtonClick: this.onDownloadButtonClick,
@@ -45,9 +47,11 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 onVarSelectChange: this.onVarSelectChange,
                 onKbdLayoutSelectChange: this.onKbdLayoutSelectChange,
                 onVarTextChange: this.onVarTextChange,
+                onImplicitLinesInputChange: this.onImplicitLinesInputChange,
                 onScreenshotButtonClick: this.onScreenshotButtonClick,
                 onEnterButtonClick: this.onEnterButtonClick,
                 onSoundButtonClick: this.onSoundButtonClick,
+                onFullscreenButtonClick: CommonEventHandler.onFullscreenButtonClick,
                 onCpcCanvasClick: this.onCpcCanvasClick,
                 onWindowClick: this.onWindowClick,
                 onTextTextClick: this.onTextTextClick,
@@ -103,16 +107,20 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         CommonEventHandler.prototype.onConvertButtonClick = function () {
             this.toogleHidden("convertArea", "showConvert", "flex");
         };
+        CommonEventHandler.prototype.onSettingsButtonClick = function () {
+            this.toogleHidden("settingsArea", "showSettings", "flex");
+        };
         CommonEventHandler.prototype.onKbdButtonClick = function () {
             if (this.toogleHidden("kbdArea", "showKbd", "flex")) {
                 if (this.view.getHidden("kbdArea")) { // on old browsers, display "flex" is not available, so set "block" if still hidden
                     this.view.setHidden("kbdArea", false);
                 }
                 this.controller.virtualKeyboardCreate(); // maybe draw it
+                this.view.setHidden("kbdLayoutArea", true, "inherit"); // kbd visible => kbdlayout invisible
             }
-        };
-        CommonEventHandler.prototype.onKbdLayoutButtonClick = function () {
-            this.toogleHidden("kbdLayoutArea", "showKbdLayout");
+            else {
+                this.view.setHidden("kbdLayoutArea", false, "inherit");
+            }
         };
         CommonEventHandler.prototype.onConsoleButtonClick = function () {
             this.toogleHidden("consoleArea", "showConsole");
@@ -125,6 +133,12 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         };
         CommonEventHandler.prototype.onPrettyButtonClick = function () {
             this.controller.fnPretty();
+        };
+        CommonEventHandler.prototype.onLineNumberAddButtonClick = function () {
+            this.controller.fnAddLines();
+        };
+        CommonEventHandler.prototype.onLineNumberRemoveButtonClick = function () {
+            this.controller.fnRemoveLines();
         };
         CommonEventHandler.prototype.fnUpdateAreaText = function (input) {
             this.controller.setInputText(input, true);
@@ -212,6 +226,10 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         CommonEventHandler.prototype.onVarTextChange = function () {
             this.controller.changeVariable();
         };
+        CommonEventHandler.prototype.onImplicitLinesInputChange = function () {
+            var checked = this.view.getInputChecked("implicitLinesInput");
+            this.model.setProperty("implicitLines", checked);
+        };
         CommonEventHandler.prototype.onScreenshotButtonClick = function () {
             var example = this.view.getSelectValue("exampleSelect"), image = this.controller.startScreenshot(), link = View_1.View.getElementById1("screenshotLink"), name = example + ".png";
             link.setAttribute("download", name);
@@ -224,6 +242,10 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         CommonEventHandler.prototype.onSoundButtonClick = function () {
             this.model.setProperty("sound", !this.model.getProperty("sound"));
             this.controller.setSoundActive();
+        };
+        CommonEventHandler.onFullscreenButtonClick = function () {
+            var element = View_1.View.getElementById1("cpcCanvas");
+            element.requestFullscreen();
         };
         CommonEventHandler.prototype.onCpcCanvasClick = function (event) {
             this.controller.onCpcCanvasClick(event);

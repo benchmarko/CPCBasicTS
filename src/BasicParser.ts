@@ -24,10 +24,10 @@ import { LexerToken } from "./BasicLexer";
 
 interface BasicParserOptions {
 	quiet?: boolean
-	keepTokens?: boolean
 	keepBrackets?: boolean
 	keepColons?: boolean
 	keepDataComma?: boolean
+	keepTokens?: boolean
 }
 
 export interface ParserNode extends LexerToken {
@@ -52,13 +52,13 @@ interface SymbolType {
 }
 
 export class BasicParser {
-	private label = "0"; // for error messages
 	private quiet = false;
-	private keepTokens = false;
 	private keepBrackets = false;
 	private keepColons = false;
 	private keepDataComma = false;
+	private keepTokens = false;
 
+	private label = "0"; // for error messages
 	private readonly symbols: Record<string, SymbolType> = {};
 
 	// set also during parse
@@ -72,11 +72,21 @@ export class BasicParser {
 	private statementList: ParserNode[] = []; // just to check last statement when generating error message
 
 	setOptions(options: BasicParserOptions): void {
-		this.quiet = options.quiet || false;
-		this.keepTokens = options.keepTokens || false;
-		this.keepBrackets = options.keepBrackets || false;
-		this.keepColons = options.keepColons || false;
-		this.keepDataComma = options.keepDataComma || false;
+		if (options.keepBrackets !== undefined) {
+			this.keepBrackets = options.keepBrackets;
+		}
+		if (options.keepColons !== undefined) {
+			this.keepColons = options.keepColons;
+		}
+		if (options.keepDataComma !== undefined) {
+			this.keepDataComma = options.keepDataComma;
+		}
+		if (options.keepTokens !== undefined) {
+			this.keepTokens = options.keepTokens;
+		}
+		if (options.quiet !== undefined) {
+			this.quiet = options.quiet;
+		}
 	}
 
 	constructor(options?: BasicParserOptions) {

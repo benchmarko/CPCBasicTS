@@ -1,6 +1,6 @@
 interface BasicLexerOptions {
-    quiet?: boolean;
     keepWhiteSpace?: boolean;
+    quiet?: boolean;
 }
 export interface LexerToken {
     type: string;

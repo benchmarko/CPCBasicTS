@@ -83,6 +83,11 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var element = View.getElementByIdAs(id);
             return element.checked;
         };
+        View.prototype.setInputChecked = function (id, checked) {
+            var element = View.getElementByIdAs(id);
+            element.checked = checked;
+            return this;
+        };
         View.prototype.setSelectOptions = function (id, options) {
             var element = View.getElementByIdAs(id);
             for (var i = 0; i < options.length; i += 1) {
