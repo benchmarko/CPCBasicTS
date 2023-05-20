@@ -36,12 +36,16 @@ export class BasicFormatter {
 
 	private label = ""; // current label (line) for error messages
 
-	constructor(options: BasicFormatterOptions) {
-		this.lexer = options.lexer;
-		this.parser = options.parser;
+	setOptions(options: BasicFormatterOptions): void {
 		if (options.implicitLines !== undefined) {
 			this.implicitLines = options.implicitLines;
 		}
+	}
+
+	constructor(options: BasicFormatterOptions) {
+		this.lexer = options.lexer;
+		this.parser = options.parser;
+		this.setOptions(options);
 	}
 
 	private composeError(error: Error, message: string, value: string, pos: number, len?: number) {

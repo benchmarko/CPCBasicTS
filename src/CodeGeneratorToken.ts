@@ -13,28 +13,32 @@ interface CodeGeneratorTokenOptions {
 	lexer: BasicLexer
 	parser: BasicParser
 	quiet?: boolean
-	addLineNumbers?: boolean
+	implicitLines?: boolean
 }
 
 export class CodeGeneratorToken {
 	private readonly lexer: BasicLexer;
 	private readonly parser: BasicParser;
-	private addLineNumbers = false;
+	private implicitLines = false;
 	private quiet = false;
 
 	private label = ""; // current line (label)
 
 	private statementSeparator: string; // cannot be static when using token2String()
 
-	constructor(options: CodeGeneratorTokenOptions) {
-		this.lexer = options.lexer;
-		this.parser = options.parser;
-		if (options.addLineNumbers !== undefined) {
-			this.addLineNumbers = options.addLineNumbers;
+	setOptions(options: Omit<CodeGeneratorTokenOptions, "lexer" | "parser">): void {
+		if (options.implicitLines !== undefined) {
+			this.implicitLines = options.implicitLines;
 		}
 		if (options.quiet !== undefined) {
 			this.quiet = options.quiet;
 		}
+	}
+
+	constructor(options: CodeGeneratorTokenOptions) {
+		this.lexer = options.lexer;
+		this.parser = options.parser;
+		this.setOptions(options);
 
 		this.statementSeparator = CodeGeneratorToken.token2String(":");
 	}
@@ -586,7 +590,7 @@ export class CodeGeneratorToken {
 		return CodeGeneratorToken.token2String("_line16") + CodeGeneratorToken.convUInt16ToString(number);
 	}
 	private fnLabel(node: ParserNode) {
-		if (this.addLineNumbers) {
+		if (this.implicitLines) {
 			if (node.value === "") { // direct
 				node.value = String(Number(this.label) + 1);
 			}

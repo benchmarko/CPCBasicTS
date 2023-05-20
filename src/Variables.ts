@@ -2,6 +2,12 @@
 // (c) Marco Vieth, 2020
 // https://benchmarko.github.io/CPCBasicTS/
 
+import { Utils } from "./Utils";
+
+interface VariablesOptions {
+	arrayBounds?: boolean // check array bounds
+}
+
 export type VariableValue = string | number | Function | [] | VariableValue[]; // eslint-disable-line @typescript-eslint/ban-types
 
 export type VariableMap = Record<string, VariableValue>;
@@ -10,11 +16,64 @@ export type VarTypes = "I"|"R"|"$"; // or string
 
 export type VariableTypeMap = Record<string, VarTypes>;
 
+
+class ArrayProxy {
+	//private arr: VariableValue[]; //TTT
+
+	constructor(len: number) {
+		//this.arr = new Array(len);
+		//return new Proxy<ArrayProxy>(this.arr, this);
+		return new Proxy(new Array(len), this);
+	}
+
+	// eslint-disable-next-line class-methods-use-this
+	get(target: any, prop: string | symbol | number) {
+		if (typeof prop === "string" && !isNaN(Number(prop))) {
+			const numProp = Number(prop);
+
+			if (numProp < 0 || numProp >= target.length) {
+				//throw this.vmComposeError(Error(), 13, "INPUT #9: no closing quotes: " + line);
+				//Utils.composeError("Variables", error, errorString, errInfo, pos, len, this.line, hidden);
+				//throw Utils.composeError("Variables get", Error(), "Subscript out of range", prop);
+				throw Utils.composeVmError("Variables", Error(), 9, prop); // Subscript out of range
+			}
+		}
+		return target[prop];
+	}
+
+	// eslint-disable-next-line class-methods-use-this
+	set(target: any, prop: string, value: VariableValue) {
+		if (!isNaN(Number(prop))) {
+			const numProp = Number(prop);
+
+			if (numProp < 0 || numProp >= target.length) {
+				//Utils.composeError("Variables", error, errorString, errInfo, pos, len, this.line, hidden);
+				//throw Utils.composeError("Variables set", Error(), "Subscript out of range", prop);
+				throw Utils.composeVmError("Variables", Error(), 9, prop); // Subscript out of range
+			}
+		}
+		target[prop] = value;
+		return true;
+	}
+}
+
+
 export class Variables {
+	private arrayBounds = false;
+
 	private variables: VariableMap;
 	private varTypes: VariableTypeMap; // default variable types for variables starting with letters a-z
 
-	constructor() {
+	setOptions(options: VariablesOptions): void {
+		if (options.arrayBounds !== undefined) {
+			this.arrayBounds = options.arrayBounds;
+		}
+	}
+
+	constructor(options?: VariablesOptions) {
+		if (options) {
+			this.setOptions(options);
+		}
 		this.variables = {};
 		this.varTypes = {}; // default variable types for variables starting with letters a-z
 	}
@@ -46,9 +105,13 @@ export class Variables {
 	}
 
 	private createNDimArray(dims: number[], initVal: string | number) { // eslint-disable-line class-methods-use-this
-		const fnCreateRec = function (index: number) {
+		const that = this,
+			fnCreateRec = function (index: number) {
 				const len = dims[index],
-					arr: VariableValue[] = new Array(len);
+					//arr: VariableValue[] = new Array(len);
+					//arr: VariableValue[] = new ArrayProxy(len) as any as VariableValue[]; //TODO new Array(len);
+					//arr: VariableValue[] = that.arrayBounds ? new ArrayProxy(len) : new Array(len); //as VariableValue[]; //TODO new Array(len);
+					arr: VariableValue[] = that.arrayBounds ? new ArrayProxy(len) as any as VariableValue[] : new Array(len); //as VariableValue[]; //TODO new Array(len);
 
 				index += 1;
 				if (index < dims.length) { // more dimensions?

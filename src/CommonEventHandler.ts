@@ -239,6 +239,21 @@ export class CommonEventHandler implements EventListenerObject {
 		const checked = this.view.getInputChecked("implicitLinesInput");
 
 		this.model.setProperty("implicitLines", checked);
+		this.controller.fnImplicitLines();
+	}
+
+	private onArrayBoundsInputChange() {
+		const checked = this.view.getInputChecked("arrayBoundsInput");
+
+		this.model.setProperty("arrayBounds", checked);
+		this.controller.fnArrayBounds();
+	}
+
+	private onTraceInputChange() {
+		const checked = this.view.getInputChecked("traceInput");
+
+		this.model.setProperty("trace", checked);
+		this.controller.fnTrace();
 	}
 
 	private onScreenshotButtonClick() {
@@ -319,6 +334,8 @@ export class CommonEventHandler implements EventListenerObject {
 		onKbdLayoutSelectChange: this.onKbdLayoutSelectChange,
 		onVarTextChange: this.onVarTextChange,
 		onImplicitLinesInputChange: this.onImplicitLinesInputChange,
+		onArrayBoundsInputChange: this.onArrayBoundsInputChange,
+		onTraceInputChange: this.onTraceInputChange,
 		onScreenshotButtonClick: this.onScreenshotButtonClick,
 		onEnterButtonClick: this.onEnterButtonClick,
 		onSoundButtonClick: this.onSoundButtonClick,

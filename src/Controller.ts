@@ -337,7 +337,7 @@ export class Controller implements IController {
 
 	private inputSet = false;
 
-	private variables = new Variables();
+	private variables: Variables;
 
 	private basicFormatter?: BasicFormatter; // for renum
 	private basicTokenizer?: BasicTokenizer; // to decode tokenized BASIC
@@ -410,6 +410,12 @@ export class Controller implements IController {
 		view.setHidden("convertArea", !model.getProperty<boolean>("showConvert"), "flex");
 
 		view.setInputChecked("implicitLinesInput", model.getProperty<boolean>("implicitLines"));
+		view.setInputChecked("arrayBoundsInput", model.getProperty<boolean>("arrayBounds"));
+		this.variables = new Variables({
+			arrayBounds: model.getProperty<boolean>("arrayBounds")
+		});
+
+		view.setInputChecked("traceInput", model.getProperty<boolean>("trace"));
 
 		const kbdLayout = model.getProperty<string>("kbdLayout");
 
@@ -461,7 +467,7 @@ export class Controller implements IController {
 			parser: new BasicParser(),
 			trace: model.getProperty<boolean>("trace"),
 			rsx: this.rsx, // just to check the names
-			addLineNumbers: model.getProperty<boolean>("implicitLines")
+			implicitLines: model.getProperty<boolean>("implicitLines")
 		});
 
 		this.initDatabases();
@@ -1264,7 +1270,7 @@ export class Controller implements IController {
 					keepColons: true,
 					keepDataComma: true
 				}),
-				addLineNumbers: this.model.getProperty<boolean>("implicitLines")
+				implicitLines: this.model.getProperty<boolean>("implicitLines")
 			});
 		}
 		const output = this.codeGeneratorToken.generate(input);
@@ -2104,12 +2110,17 @@ export class Controller implements IController {
 			fnScript(this.vm);
 		} catch (e) {
 			if (e instanceof Error) {
-				if (e.name === "CpcVm") {
-					if (!(e as CustomError).hidden) {
-						Utils.console.warn(e);
-						this.outputError(e, !(e as CustomError).pos);
+				if (e.name === "CpcVm" || e.name === "Variables") { //TTT
+					let customError = e as CustomError;
+
+					if (customError.errCode !== undefined) {
+						customError = this.vm.vmComposeError(customError, customError.errCode, customError.value);
+					}
+					if (!customError.hidden) {
+						Utils.console.warn(customError);
+						this.outputError(customError, !customError.pos);
 					} else {
-						Utils.console.log(e.message);
+						Utils.console.log(customError.message);
 					}
 				} else {
 					Utils.console.error(e);
@@ -2865,6 +2876,36 @@ export class Controller implements IController {
 		this.textCanvas.onTextCanvasClick(event);
 		this.canvas.onWindowClick(event);
 		this.keyboard.setActive(true);
+	}
+
+	fnArrayBounds(): void {
+		const arrayBounds = this.model.getProperty<boolean>("arrayBounds");
+
+		this.variables.setOptions({
+			arrayBounds: arrayBounds
+		});
+		this.variables.removeAllVariables(); //TTT
+	}
+
+	fnImplicitLines(): void {
+		const implicitLines = this.model.getProperty<boolean>("implicitLines");
+
+		this.codeGeneratorJs.setOptions({
+			implicitLines: implicitLines
+		});
+		if (this.codeGeneratorToken) {
+			this.codeGeneratorToken.setOptions({
+				implicitLines: implicitLines
+			});
+		}
+	}
+
+	fnTrace(): void {
+		const trace = this.model.getProperty<boolean>("trace");
+
+		this.codeGeneratorJs.setOptions({
+			trace: trace
+		});
 	}
 
 	/* eslint-disable no-invalid-this */
