@@ -9,7 +9,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
     exports.CodeGeneratorToken = void 0;
     var CodeGeneratorToken = /** @class */ (function () {
         function CodeGeneratorToken(options) {
-            this.addLineNumbers = false;
+            this.implicitLines = false;
             this.quiet = false;
             this.label = ""; // current line (label)
             /* eslint-disable no-invalid-this */
@@ -59,14 +59,17 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             };
             this.lexer = options.lexer;
             this.parser = options.parser;
-            if (options.addLineNumbers !== undefined) {
-                this.addLineNumbers = options.addLineNumbers;
+            this.setOptions(options);
+            this.statementSeparator = CodeGeneratorToken.token2String(":");
+        }
+        CodeGeneratorToken.prototype.setOptions = function (options) {
+            if (options.implicitLines !== undefined) {
+                this.implicitLines = options.implicitLines;
             }
             if (options.quiet !== undefined) {
                 this.quiet = options.quiet;
             }
-            this.statementSeparator = CodeGeneratorToken.token2String(":");
-        }
+        };
         CodeGeneratorToken.prototype.composeError = function (error, message, value, pos) {
             return Utils_1.Utils.composeError("CodeGeneratorToken", error, message, value, pos, undefined, this.label);
         };
@@ -257,7 +260,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             return CodeGeneratorToken.token2String("_line16") + CodeGeneratorToken.convUInt16ToString(number);
         };
         CodeGeneratorToken.prototype.fnLabel = function (node) {
-            if (this.addLineNumbers) {
+            if (this.implicitLines) {
                 if (node.value === "") { // direct
                     node.value = String(Number(this.label) + 1);
                 }

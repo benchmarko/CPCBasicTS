@@ -157,6 +157,11 @@ define(["require", "exports"], function (require, exports) {
             customError.message += lineMsg + posMsg + ": " + customError.value;
             return customError;
         };
+        Utils.composeVmError = function (name, errorObject, errCode, value) {
+            var customError = Utils.composeError(name, errorObject, String(errCode), value);
+            customError.errCode = errCode;
+            return customError;
+        };
         Utils.debug = 0;
         Utils.console = (function () {
             return typeof window !== "undefined" ? window.console : globalThis.console; // browser or node.js

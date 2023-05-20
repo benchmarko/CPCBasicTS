@@ -1,15 +1,59 @@
 // Variables.ts - Variables
 // (c) Marco Vieth, 2020
 // https://benchmarko.github.io/CPCBasicTS/
-define(["require", "exports"], function (require, exports) {
+define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Variables = void 0;
+    var ArrayProxy = /** @class */ (function () {
+        //private arr: VariableValue[]; //TTT
+        function ArrayProxy(len) {
+            //this.arr = new Array(len);
+            //return new Proxy<ArrayProxy>(this.arr, this);
+            return new Proxy(new Array(len), this);
+        }
+        // eslint-disable-next-line class-methods-use-this
+        ArrayProxy.prototype.get = function (target, prop) {
+            if (typeof prop === "string" && !isNaN(Number(prop))) {
+                var numProp = Number(prop);
+                if (numProp < 0 || numProp >= target.length) {
+                    //throw this.vmComposeError(Error(), 13, "INPUT #9: no closing quotes: " + line);
+                    //Utils.composeError("Variables", error, errorString, errInfo, pos, len, this.line, hidden);
+                    //throw Utils.composeError("Variables get", Error(), "Subscript out of range", prop);
+                    throw Utils_1.Utils.composeVmError("Variables", Error(), 9, prop); // Subscript out of range
+                }
+            }
+            return target[prop];
+        };
+        // eslint-disable-next-line class-methods-use-this
+        ArrayProxy.prototype.set = function (target, prop, value) {
+            if (!isNaN(Number(prop))) {
+                var numProp = Number(prop);
+                if (numProp < 0 || numProp >= target.length) {
+                    //Utils.composeError("Variables", error, errorString, errInfo, pos, len, this.line, hidden);
+                    //throw Utils.composeError("Variables set", Error(), "Subscript out of range", prop);
+                    throw Utils_1.Utils.composeVmError("Variables", Error(), 9, prop); // Subscript out of range
+                }
+            }
+            target[prop] = value;
+            return true;
+        };
+        return ArrayProxy;
+    }());
     var Variables = /** @class */ (function () {
-        function Variables() {
+        function Variables(options) {
+            this.arrayBounds = false;
+            if (options) {
+                this.setOptions(options);
+            }
             this.variables = {};
             this.varTypes = {}; // default variable types for variables starting with letters a-z
         }
+        Variables.prototype.setOptions = function (options) {
+            if (options.arrayBounds !== undefined) {
+                this.arrayBounds = options.arrayBounds;
+            }
+        };
         Variables.prototype.removeAllVariables = function () {
             var variables = this.variables;
             for (var name_1 in variables) { // eslint-disable-line guard-for-in
@@ -32,8 +76,12 @@ define(["require", "exports"], function (require, exports) {
             return this.varTypes;
         };
         Variables.prototype.createNDimArray = function (dims, initVal) {
-            var fnCreateRec = function (index) {
-                var len = dims[index], arr = new Array(len);
+            var that = this, fnCreateRec = function (index) {
+                var len = dims[index], 
+                //arr: VariableValue[] = new Array(len);
+                //arr: VariableValue[] = new ArrayProxy(len) as any as VariableValue[]; //TODO new Array(len);
+                //arr: VariableValue[] = that.arrayBounds ? new ArrayProxy(len) : new Array(len); //as VariableValue[]; //TODO new Array(len);
+                arr = that.arrayBounds ? new ArrayProxy(len) : new Array(len); //as VariableValue[]; //TODO new Array(len);
                 index += 1;
                 if (index < dims.length) { // more dimensions?
                     for (var i = 0; i < len; i += 1) {

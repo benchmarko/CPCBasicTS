@@ -52,10 +52,13 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             };
             this.lexer = options.lexer;
             this.parser = options.parser;
+            this.setOptions(options);
+        }
+        CodeGeneratorBasic.prototype.setOptions = function (options) {
             if (options.quiet !== undefined) {
                 this.quiet = options.quiet;
             }
-        }
+        };
         CodeGeneratorBasic.prototype.getLexer = function () {
             return this.lexer;
         };

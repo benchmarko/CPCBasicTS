@@ -14,7 +14,7 @@ interface CodeGeneratorJsOptions {
 	lexer: BasicLexer
 	parser: BasicParser
 	rsx: ICpcVmRsx
-	addLineNumbers?: boolean
+	implicitLines?: boolean
 	noCodeFrame?: boolean
 	quiet?: boolean
 	trace?: boolean
@@ -43,7 +43,7 @@ export class CodeGeneratorJs {
 	private trace = false;
 	private quiet = false; // quiet mode: suppress most warnings
 	private noCodeFrame = false; // suppress generation of a code frame
-	private addLineNumbers = false; // generate missing line numbers
+	private implicitLines = false; // generate missing line numbers
 
 	private line = "0"; // current line (label)
 	//private traceActive = false;
@@ -76,12 +76,9 @@ export class CodeGeneratorJs {
 	private defScopeArgs?: Record<string, boolean>;
 	private defintDefstrTypes: VariableTypeMap = {};
 
-	constructor(options: CodeGeneratorJsOptions) {
-		this.lexer = options.lexer;
-		this.parser = options.parser;
-		this.rsx = options.rsx;
-		if (options.addLineNumbers !== undefined) {
-			this.addLineNumbers = options.addLineNumbers;
+	setOptions(options: Omit<CodeGeneratorJsOptions, "lexer" | "parser" | "rsx">): void {
+		if (options.implicitLines !== undefined) {
+			this.implicitLines = options.implicitLines;
 		}
 		if (options.noCodeFrame !== undefined) {
 			this.noCodeFrame = options.noCodeFrame;
@@ -92,6 +89,13 @@ export class CodeGeneratorJs {
 		if (options.trace !== undefined) {
 			this.trace = options.trace;
 		}
+	}
+
+	constructor(options: CodeGeneratorJsOptions) {
+		this.lexer = options.lexer;
+		this.parser = options.parser;
+		this.rsx = options.rsx;
+		this.setOptions(options); // optional options
 
 		this.reJsKeywords = CodeGeneratorJs.createJsKeywordRegex();
 	}
@@ -842,15 +846,17 @@ export class CodeGeneratorJs {
 			let value2 = nodeArgs[i];
 
 			if (value2 !== "") {
-				if (i > 0 && (isTraceActive || isResumeNext || isResumeNoArgs)) {
-					const traceLabel = this.generateTraceLabel(node.args[i], this.line, i);
+				if (isTraceActive || isResumeNext || isResumeNoArgs) {
+					const traceLabel = this.generateTraceLabel(node.args[i], this.line, i); // side effect: put position in source map
 
-					if (isResumeNext || isResumeNoArgs) {
-						value += '\ncase "' + traceLabel + '":';
-					}
-					value += ' o.line = "' + traceLabel + '";';
-					if (isResumeNext) {
-						this.labelList.push('"' + traceLabel + '"'); // only needed to support resume next
+					if (i > 0) { // only if not first statement in the line
+						if (isResumeNext || isResumeNoArgs) { // eslint-disable-line max-depth
+							value += '\ncase "' + traceLabel + '":';
+						}
+						value += ' o.line = "' + traceLabel + '";';
+						if (isResumeNext) { // eslint-disable-line max-depth
+							this.labelList.push('"' + traceLabel + '"'); // only needed to support resume next
+						}
 					}
 				}
 
@@ -1683,7 +1689,7 @@ export class CodeGeneratorJs {
 		let label = node.value;
 
 		if (label === "") {
-			if (this.addLineNumbers) {
+			if (this.implicitLines) {
 				label = String(lastLine + 1); // no line => we just increase the last line by 1
 				node.value = label; // we also modify the parse tree
 			} else {

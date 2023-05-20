@@ -1,7 +1,7 @@
 export interface DiskImageOptions {
-    quiet?: boolean;
     diskName: string;
     data: string;
+    quiet?: boolean;
 }
 interface ExtentEntry {
     user: number;
@@ -34,6 +34,7 @@ export declare class DiskImage {
     private data;
     private diskInfo;
     private format;
+    setOptions(options: DiskImageOptions): void;
     constructor(options: DiskImageOptions);
     private static readonly formatDescriptors;
     private static getInitialDiskInfo;

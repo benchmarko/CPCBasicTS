@@ -22,12 +22,16 @@ export class CodeGeneratorBasic {
 
 	private line = 0; // current line (label)
 
-	constructor(options: CodeGeneratorBasicOptions) {
-		this.lexer = options.lexer;
-		this.parser = options.parser;
+	setOptions(options: CodeGeneratorBasicOptions): void {
 		if (options.quiet !== undefined) {
 			this.quiet = options.quiet;
 		}
+	}
+
+	constructor(options: CodeGeneratorBasicOptions) {
+		this.lexer = options.lexer;
+		this.parser = options.parser;
+		this.setOptions(options);
 	}
 
 	getLexer(): BasicLexer {

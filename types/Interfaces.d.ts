@@ -36,6 +36,9 @@ export interface IController {
     getVariable: (par: string) => VariableValue;
     undoStackElement: () => string;
     redoStackElement: () => string;
+    fnImplicitLines: () => void;
+    fnArrayBounds: () => void;
+    fnTrace: () => void;
 }
 export interface ICpcVmRsx {
     rsxIsAvailable: (name: string) => boolean;

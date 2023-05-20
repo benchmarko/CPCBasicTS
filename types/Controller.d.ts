@@ -159,6 +159,9 @@ export declare class Controller implements IController {
     onCpcCanvasClick(event: MouseEvent): void;
     onWindowClick(event: Event): void;
     onTextTextClick(event: MouseEvent): void;
+    fnArrayBounds(): void;
+    fnImplicitLines(): void;
+    fnTrace(): void;
     private readonly handlers;
 }
 //# sourceMappingURL=Controller.d.ts.map

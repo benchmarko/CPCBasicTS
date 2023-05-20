@@ -12,6 +12,7 @@ import { NodeAdapt } from "./NodeAdapt";
 
 class cpcBasic { // eslint-disable-line vars-on-top
 	private static readonly config: ConfigType = {
+		arrayBounds: false,
 		bench: 0, // debug: number of parse bench loops
 		debug: 0,
 		databaseDirs: "examples", // example base directories (comma separated)

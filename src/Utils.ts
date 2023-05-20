@@ -10,6 +10,7 @@ export interface CustomError extends Error {
 	line?: number | string
 	hidden?: boolean
 	shortMessage?: string
+	errCode?: number
 }
 
 export class Utils { // eslint-disable-line vars-on-top
@@ -224,6 +225,13 @@ export class Utils { // eslint-disable-line vars-on-top
 		customError.shortMessage = customError.message + (lineMsg || posMsg) + ": " + customError.value;
 		customError.message += lineMsg + posMsg + ": " + customError.value;
 
+		return customError;
+	}
+
+	static composeVmError(name: string, errorObject: Error, errCode: number, value: string): CustomError {
+		const customError = Utils.composeError(name, errorObject, String(errCode), value);
+
+		customError.errCode = errCode;
 		return customError;
 	}
 }

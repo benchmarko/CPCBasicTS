@@ -10,9 +10,9 @@ import { Utils } from "./Utils";
 
 
 export interface DiskImageOptions {
-	quiet?: boolean,
 	diskName: string,
-	data: string
+	data: string,
+	quiet?: boolean
 }
 
 interface SectorInfo {
@@ -120,10 +120,16 @@ export class DiskImage {
 	private diskInfo: DiskInfo;
 	private format: FormatDescriptor;
 
+	setOptions(options: DiskImageOptions): void {
+		if (options.quiet !== undefined) {
+			this.quiet = options.quiet;
+		}
+	}
+
 	constructor(options: DiskImageOptions) {
 		this.diskName = options.diskName;
 		this.data = options.data;
-		this.quiet = options.quiet || false;
+		this.setOptions(options);
 
 		// reset
 		this.diskInfo = DiskImage.getInitialDiskInfo();

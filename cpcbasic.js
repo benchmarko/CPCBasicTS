@@ -154,6 +154,7 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
             cpcBasic.fnDoStart();
         };
         cpcBasic.config = {
+            arrayBounds: false,
             bench: 0,
             debug: 0,
             databaseDirs: "examples",

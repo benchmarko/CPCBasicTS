@@ -1,11 +1,16 @@
+interface VariablesOptions {
+    arrayBounds?: boolean;
+}
 export declare type VariableValue = string | number | Function | [] | VariableValue[];
 export declare type VariableMap = Record<string, VariableValue>;
 export declare type VarTypes = "I" | "R" | "$";
 export declare type VariableTypeMap = Record<string, VarTypes>;
 export declare class Variables {
+    private arrayBounds;
     private variables;
     private varTypes;
-    constructor();
+    setOptions(options: VariablesOptions): void;
+    constructor(options?: VariablesOptions);
     removeAllVariables(): void;
     getAllVariables(): VariableMap;
     getAllVarTypes(): VariableTypeMap;
@@ -24,4 +29,5 @@ export declare class Variables {
     getVarType(varChar: string): VarTypes;
     setVarType(varChar: string, type: VarTypes): void;
 }
+export {};
 //# sourceMappingURL=Variables.d.ts.map

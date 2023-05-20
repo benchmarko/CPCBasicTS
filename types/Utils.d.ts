@@ -5,6 +5,7 @@ export interface CustomError extends Error {
     line?: number | string;
     hidden?: boolean;
     shortMessage?: string;
+    errCode?: number;
 }
 export declare class Utils {
     static debug: number;
@@ -29,5 +30,6 @@ export declare class Utils {
     static isCustomError(e: unknown): e is CustomError;
     static split2(str: string, char: string): string[];
     static composeError(name: string, errorObject: Error, message: string, value: string, pos?: number, len?: number, line?: string | number, hidden?: boolean): CustomError;
+    static composeVmError(name: string, errorObject: Error, errCode: number, value: string): CustomError;
 }
 //# sourceMappingURL=Utils.d.ts.map

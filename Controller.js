@@ -252,7 +252,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.timeoutHandlerActive = false;
             this.nextLoopTimeOut = 0; // next timeout for the main loop
             this.inputSet = false;
-            this.variables = new Variables_1.Variables();
             this.inputStack = new InputStack_1.InputStack();
             this.sound = new Sound_1.Sound({
                 AudioContextConstructor: window.AudioContext
@@ -318,6 +317,11 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             view.setHidden("settingsArea", !model.getProperty("showSettings"), "flex");
             view.setHidden("convertArea", !model.getProperty("showConvert"), "flex");
             view.setInputChecked("implicitLinesInput", model.getProperty("implicitLines"));
+            view.setInputChecked("arrayBoundsInput", model.getProperty("arrayBounds"));
+            this.variables = new Variables_1.Variables({
+                arrayBounds: model.getProperty("arrayBounds")
+            });
+            view.setInputChecked("traceInput", model.getProperty("trace"));
             var kbdLayout = model.getProperty("kbdLayout");
             view.setSelectValue("kbdLayoutSelect", kbdLayout);
             this.commonEventHandler.onKbdLayoutSelectChange();
@@ -358,7 +362,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 parser: new BasicParser_1.BasicParser(),
                 trace: model.getProperty("trace"),
                 rsx: this.rsx,
-                addLineNumbers: model.getProperty("implicitLines")
+                implicitLines: model.getProperty("implicitLines")
             });
             this.initDatabases();
             if (model.getProperty("sound")) { // activate sound needs user action
@@ -1013,7 +1017,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                         keepColons: true,
                         keepDataComma: true
                     }),
-                    addLineNumbers: this.model.getProperty("implicitLines")
+                    implicitLines: this.model.getProperty("implicitLines")
                 });
             }
             var output = this.codeGeneratorToken.generate(input);
@@ -1693,13 +1697,17 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             catch (e) {
                 if (e instanceof Error) {
-                    if (e.name === "CpcVm") {
-                        if (!e.hidden) {
-                            Utils_1.Utils.console.warn(e);
-                            this.outputError(e, !e.pos);
+                    if (e.name === "CpcVm" || e.name === "Variables") { //TTT
+                        var customError = e;
+                        if (customError.errCode !== undefined) {
+                            customError = this.vm.vmComposeError(customError, customError.errCode, customError.value);
+                        }
+                        if (!customError.hidden) {
+                            Utils_1.Utils.console.warn(customError);
+                            this.outputError(customError, !customError.pos);
                         }
                         else {
-                            Utils_1.Utils.console.log(e.message);
+                            Utils_1.Utils.console.log(customError.message);
                         }
                     }
                     else {
@@ -2327,6 +2335,30 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.textCanvas.onTextCanvasClick(event);
             this.canvas.onWindowClick(event);
             this.keyboard.setActive(true);
+        };
+        Controller.prototype.fnArrayBounds = function () {
+            var arrayBounds = this.model.getProperty("arrayBounds");
+            this.variables.setOptions({
+                arrayBounds: arrayBounds
+            });
+            this.variables.removeAllVariables(); //TTT
+        };
+        Controller.prototype.fnImplicitLines = function () {
+            var implicitLines = this.model.getProperty("implicitLines");
+            this.codeGeneratorJs.setOptions({
+                implicitLines: implicitLines
+            });
+            if (this.codeGeneratorToken) {
+                this.codeGeneratorToken.setOptions({
+                    implicitLines: implicitLines
+                });
+            }
+        };
+        Controller.prototype.fnTrace = function () {
+            var trace = this.model.getProperty("trace");
+            this.codeGeneratorJs.setOptions({
+                trace: trace
+            });
         };
         Controller.metaIdent = "CPCBasic";
         Controller.defaultExtensions = [

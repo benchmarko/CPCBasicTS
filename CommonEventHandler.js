@@ -48,6 +48,8 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 onKbdLayoutSelectChange: this.onKbdLayoutSelectChange,
                 onVarTextChange: this.onVarTextChange,
                 onImplicitLinesInputChange: this.onImplicitLinesInputChange,
+                onArrayBoundsInputChange: this.onArrayBoundsInputChange,
+                onTraceInputChange: this.onTraceInputChange,
                 onScreenshotButtonClick: this.onScreenshotButtonClick,
                 onEnterButtonClick: this.onEnterButtonClick,
                 onSoundButtonClick: this.onSoundButtonClick,
@@ -229,6 +231,17 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         CommonEventHandler.prototype.onImplicitLinesInputChange = function () {
             var checked = this.view.getInputChecked("implicitLinesInput");
             this.model.setProperty("implicitLines", checked);
+            this.controller.fnImplicitLines();
+        };
+        CommonEventHandler.prototype.onArrayBoundsInputChange = function () {
+            var checked = this.view.getInputChecked("arrayBoundsInput");
+            this.model.setProperty("arrayBounds", checked);
+            this.controller.fnArrayBounds();
+        };
+        CommonEventHandler.prototype.onTraceInputChange = function () {
+            var checked = this.view.getInputChecked("traceInput");
+            this.model.setProperty("trace", checked);
+            this.controller.fnTrace();
         };
         CommonEventHandler.prototype.onScreenshotButtonClick = function () {
             var example = this.view.getSelectValue("exampleSelect"), image = this.controller.startScreenshot(), link = View_1.View.getElementById1("screenshotLink"), name = example + ".png";

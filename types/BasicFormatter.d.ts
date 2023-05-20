@@ -11,6 +11,7 @@ export declare class BasicFormatter {
     private readonly parser;
     private implicitLines;
     private label;
+    setOptions(options: BasicFormatterOptions): void;
     constructor(options: BasicFormatterOptions);
     private composeError;
     private static fnHasLabel;

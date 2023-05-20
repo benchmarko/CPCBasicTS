@@ -12,7 +12,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.trace = false;
             this.quiet = false; // quiet mode: suppress most warnings
             this.noCodeFrame = false; // suppress generation of a code frame
-            this.addLineNumbers = false; // generate missing line numbers
+            this.implicitLines = false; // generate missing line numbers
             this.line = "0"; // current line (label)
             this.stack = {
                 forLabel: [],
@@ -146,8 +146,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.lexer = options.lexer;
             this.parser = options.parser;
             this.rsx = options.rsx;
-            if (options.addLineNumbers !== undefined) {
-                this.addLineNumbers = options.addLineNumbers;
+            this.setOptions(options); // optional options
+            this.reJsKeywords = CodeGeneratorJs.createJsKeywordRegex();
+        }
+        CodeGeneratorJs.prototype.setOptions = function (options) {
+            if (options.implicitLines !== undefined) {
+                this.implicitLines = options.implicitLines;
             }
             if (options.noCodeFrame !== undefined) {
                 this.noCodeFrame = options.noCodeFrame;
@@ -158,8 +162,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (options.trace !== undefined) {
                 this.trace = options.trace;
             }
-            this.reJsKeywords = CodeGeneratorJs.createJsKeywordRegex();
-        }
+        };
         CodeGeneratorJs.prototype.reset = function () {
             var stack = this.stack;
             stack.forLabel.length = 0;
@@ -687,14 +690,16 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             for (var i = 0; i < nodeArgs.length; i += 1) {
                 var value2 = nodeArgs[i];
                 if (value2 !== "") {
-                    if (i > 0 && (isTraceActive || isResumeNext || isResumeNoArgs)) {
-                        var traceLabel = this.generateTraceLabel(node.args[i], this.line, i);
-                        if (isResumeNext || isResumeNoArgs) {
-                            value += '\ncase "' + traceLabel + '":';
-                        }
-                        value += ' o.line = "' + traceLabel + '";';
-                        if (isResumeNext) {
-                            this.labelList.push('"' + traceLabel + '"'); // only needed to support resume next
+                    if (isTraceActive || isResumeNext || isResumeNoArgs) {
+                        var traceLabel = this.generateTraceLabel(node.args[i], this.line, i); // side effect: put position in source map
+                        if (i > 0) { // only if not first statement in the line
+                            if (isResumeNext || isResumeNoArgs) { // eslint-disable-line max-depth
+                                value += '\ncase "' + traceLabel + '":';
+                            }
+                            value += ' o.line = "' + traceLabel + '";';
+                            if (isResumeNext) { // eslint-disable-line max-depth
+                                this.labelList.push('"' + traceLabel + '"'); // only needed to support resume next
+                            }
                         }
                     }
                     /*
@@ -1293,7 +1298,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         CodeGeneratorJs.prototype.fnCheckLabel = function (node, lastLine) {
             var label = node.value;
             if (label === "") {
-                if (this.addLineNumbers) {
+                if (this.implicitLines) {
                     label = String(lastLine + 1); // no line => we just increase the last line by 1
                     node.value = label; // we also modify the parse tree
                 }

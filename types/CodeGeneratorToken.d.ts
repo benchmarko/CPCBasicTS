@@ -5,15 +5,16 @@ interface CodeGeneratorTokenOptions {
     lexer: BasicLexer;
     parser: BasicParser;
     quiet?: boolean;
-    addLineNumbers?: boolean;
+    implicitLines?: boolean;
 }
 export declare class CodeGeneratorToken {
     private readonly lexer;
     private readonly parser;
-    private addLineNumbers;
+    private implicitLines;
     private quiet;
     private label;
     private statementSeparator;
+    setOptions(options: Omit<CodeGeneratorTokenOptions, "lexer" | "parser">): void;
     constructor(options: CodeGeneratorTokenOptions);
     private static readonly operators;
     private static readonly operatorPrecedence;

@@ -54,6 +54,10 @@ export interface IController {
 
     undoStackElement: () => string
     redoStackElement: () => string
+
+    fnImplicitLines: () => void
+    fnArrayBounds: () => void
+    fnTrace: () => void
  }
 
 export interface ICpcVmRsx {

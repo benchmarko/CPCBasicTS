@@ -13,10 +13,13 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.label = ""; // current label (line) for error messages
             this.lexer = options.lexer;
             this.parser = options.parser;
+            this.setOptions(options);
+        }
+        BasicFormatter.prototype.setOptions = function (options) {
             if (options.implicitLines !== undefined) {
                 this.implicitLines = options.implicitLines;
             }
-        }
+        };
         BasicFormatter.prototype.composeError = function (error, message, value, pos, len) {
             return Utils_1.Utils.composeError("BasicFormatter", error, message, value, pos, len, this.label);
         };

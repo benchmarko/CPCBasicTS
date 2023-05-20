@@ -9,6 +9,7 @@ declare module "Utils" {
         line?: number | string;
         hidden?: boolean;
         shortMessage?: string;
+        errCode?: number;
     }
     export class Utils {
         static debug: number;
@@ -33,6 +34,7 @@ declare module "Utils" {
         static isCustomError(e: unknown): e is CustomError;
         static split2(str: string, char: string): string[];
         static composeError(name: string, errorObject: Error, message: string, value: string, pos?: number, len?: number, line?: string | number, hidden?: boolean): CustomError;
+        static composeVmError(name: string, errorObject: Error, errCode: number, value: string): CustomError;
     }
 }
 declare module "Polyfills" {
@@ -81,6 +83,9 @@ declare module "Interfaces" {
         getVariable: (par: string) => VariableValue;
         undoStackElement: () => string;
         redoStackElement: () => string;
+        fnImplicitLines: () => void;
+        fnArrayBounds: () => void;
+        fnTrace: () => void;
     }
     export interface ICpcVmRsx {
         rsxIsAvailable: (name: string) => boolean;
@@ -316,6 +321,7 @@ declare module "BasicFormatter" {
         private readonly parser;
         private implicitLines;
         private label;
+        setOptions(options: BasicFormatterOptions): void;
         constructor(options: BasicFormatterOptions);
         private composeError;
         private static fnHasLabel;
@@ -385,6 +391,7 @@ declare module "CodeGeneratorBasic" {
         private readonly parser;
         private quiet;
         private line;
+        setOptions(options: CodeGeneratorBasicOptions): void;
         constructor(options: CodeGeneratorBasicOptions);
         getLexer(): BasicLexer;
         getParser(): BasicParser;
@@ -441,14 +448,19 @@ declare module "CodeGeneratorBasic" {
     }
 }
 declare module "Variables" {
+    interface VariablesOptions {
+        arrayBounds?: boolean;
+    }
     export type VariableValue = string | number | Function | [] | VariableValue[];
     export type VariableMap = Record<string, VariableValue>;
     export type VarTypes = "I" | "R" | "$";
     export type VariableTypeMap = Record<string, VarTypes>;
     export class Variables {
+        private arrayBounds;
         private variables;
         private varTypes;
-        constructor();
+        setOptions(options: VariablesOptions): void;
+        constructor(options?: VariablesOptions);
         removeAllVariables(): void;
         getAllVariables(): VariableMap;
         getAllVarTypes(): VariableTypeMap;
@@ -477,7 +489,7 @@ declare module "CodeGeneratorJs" {
         lexer: BasicLexer;
         parser: BasicParser;
         rsx: ICpcVmRsx;
-        addLineNumbers?: boolean;
+        implicitLines?: boolean;
         noCodeFrame?: boolean;
         quiet?: boolean;
         trace?: boolean;
@@ -489,7 +501,7 @@ declare module "CodeGeneratorJs" {
         private trace;
         private quiet;
         private noCodeFrame;
-        private addLineNumbers;
+        private implicitLines;
         private line;
         private readonly reJsKeywords;
         private readonly stack;
@@ -506,6 +518,7 @@ declare module "CodeGeneratorJs" {
         private variables;
         private defScopeArgs?;
         private defintDefstrTypes;
+        setOptions(options: Omit<CodeGeneratorJsOptions, "lexer" | "parser" | "rsx">): void;
         constructor(options: CodeGeneratorJsOptions);
         private static readonly jsKeywords;
         private reset;
@@ -639,15 +652,16 @@ declare module "CodeGeneratorToken" {
         lexer: BasicLexer;
         parser: BasicParser;
         quiet?: boolean;
-        addLineNumbers?: boolean;
+        implicitLines?: boolean;
     }
     export class CodeGeneratorToken {
         private readonly lexer;
         private readonly parser;
-        private addLineNumbers;
+        private implicitLines;
         private quiet;
         private label;
         private statementSeparator;
+        setOptions(options: Omit<CodeGeneratorTokenOptions, "lexer" | "parser">): void;
         constructor(options: CodeGeneratorTokenOptions);
         private static readonly operators;
         private static readonly operatorPrecedence;
@@ -723,9 +737,9 @@ declare module "Diff" {
 }
 declare module "DiskImage" {
     export interface DiskImageOptions {
-        quiet?: boolean;
         diskName: string;
         data: string;
+        quiet?: boolean;
     }
     interface ExtentEntry {
         user: number;
@@ -758,6 +772,7 @@ declare module "DiskImage" {
         private data;
         private diskInfo;
         private format;
+        setOptions(options: DiskImageOptions): void;
         constructor(options: DiskImageOptions);
         private static readonly formatDescriptors;
         private static getInitialDiskInfo;
@@ -1172,6 +1187,8 @@ declare module "CommonEventHandler" {
         onKbdLayoutSelectChange(): void;
         private onVarTextChange;
         private onImplicitLinesInputChange;
+        private onArrayBoundsInputChange;
+        private onTraceInputChange;
         private onScreenshotButtonClick;
         private onEnterButtonClick;
         private onSoundButtonClick;
@@ -1947,6 +1964,9 @@ declare module "Controller" {
         onCpcCanvasClick(event: MouseEvent): void;
         onWindowClick(event: Event): void;
         onTextTextClick(event: MouseEvent): void;
+        fnArrayBounds(): void;
+        fnImplicitLines(): void;
+        fnTrace(): void;
         private readonly handlers;
     }
 }

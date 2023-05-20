@@ -11,6 +11,7 @@ export declare class CodeGeneratorBasic {
     private readonly parser;
     private quiet;
     private line;
+    setOptions(options: CodeGeneratorBasicOptions): void;
     constructor(options: CodeGeneratorBasicOptions);
     getLexer(): BasicLexer;
     getParser(): BasicParser;

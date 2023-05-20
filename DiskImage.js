@@ -10,11 +10,16 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.quiet = false;
             this.diskName = options.diskName;
             this.data = options.data;
-            this.quiet = options.quiet || false;
+            this.setOptions(options);
             // reset
             this.diskInfo = DiskImage.getInitialDiskInfo();
             this.format = DiskImage.getInitialFormat();
         }
+        DiskImage.prototype.setOptions = function (options) {
+            if (options.quiet !== undefined) {
+                this.quiet = options.quiet;
+            }
+        };
         DiskImage.getInitialDiskInfo = function () {
             return {
                 trackInfo: {
