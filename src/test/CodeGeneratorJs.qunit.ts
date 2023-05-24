@@ -7,6 +7,8 @@ import { CodeGeneratorJs } from "../CodeGeneratorJs";
 import { Variables } from "../Variables";
 import { TestHelper, TestsType, AllTestsType } from "./TestHelper";
 
+//TODO: allTests extended "if": 24.05.2023
+
 QUnit.module("CodeGeneratorJs: Tests", function () {
 	const allTests: AllTestsType = { // eslint-disable-line vars-on-top
 		numbers: {
@@ -339,6 +341,13 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			"a=himem": ' v.aR = o.vmAssign("aR", o.himem());'
 		},
 		"if, ink, inkey, inkey$, inp, input, instr, int": {
+			"if a=1 then a=2": " if (v.aR === 1) { v.aR = 2; }",
+			"if a=1 then a=2 else a=1": " if (v.aR === 1) { v.aR = 2; } else { v.aR = 1; }",
+			"if a=1 then": " if (v.aR === 1) { ; }",
+			"if a=1 then else": " if (v.aR === 1) { ; }",
+			"if a=1 then a=2 else": " if (v.aR === 1) { v.aR = 2; }",
+			"if a=1 then else a=1": " if (v.aR === 1) { ; } else { v.aR = 1; }",
+			"if a=1 then if b=1 then else else a=1": " if (v.aR === 1) { if (v.bR === 1) { ; }; } else { v.aR = 1; }",
 			"10 if a=1 then goto 10": " if (v.aR === 1) { o.goto(10); break; }",
 			"10 if a=1 then 10": " if (v.aR === 1) { o.goto(10); break; }",
 			"10 if a=1 goto 10": " if (v.aR === 1) { o.goto(10); break; }",

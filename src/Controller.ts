@@ -1900,6 +1900,19 @@ export class Controller implements IController {
 		} else {
 			outputString = output.text;
 			this.vm.vmSetSourceMap(this.codeGeneratorJs.getSourceMap());
+			// optional: tokenize to put tokens into memory...
+			const tokens = this.encodeTokenizedBasic(input),
+				addr = 0x170;
+
+			for (let i = 0; i < tokens.length; i += 1) {
+				let code = tokens.charCodeAt(i);
+
+				if (code > 255) {
+					Utils.console.warn("Put token in memory: addr=" + (addr + i) + ", code=" + code + ", char=" + tokens.charAt(i));
+					code = 0x20; //TTT
+				}
+				this.vm.poke(addr + i, code);
+			}
 		}
 
 		if (outputString && outputString.length > 0) {
