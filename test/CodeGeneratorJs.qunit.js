@@ -3,6 +3,7 @@
 define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGeneratorJs", "../Variables", "./TestHelper"], function (require, exports, BasicLexer_1, BasicParser_1, CodeGeneratorJs_1, Variables_1, TestHelper_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
+    //TODO: allTests extended "if": 24.05.2023
     QUnit.module("CodeGeneratorJs: Tests", function () {
         var allTests = {
             numbers: {
@@ -335,6 +336,13 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
                 "a=himem": ' v.aR = o.vmAssign("aR", o.himem());'
             },
             "if, ink, inkey, inkey$, inp, input, instr, int": {
+                "if a=1 then a=2": " if (v.aR === 1) { v.aR = 2; }",
+                "if a=1 then a=2 else a=1": " if (v.aR === 1) { v.aR = 2; } else { v.aR = 1; }",
+                "if a=1 then": " if (v.aR === 1) { ; }",
+                "if a=1 then else": " if (v.aR === 1) { ; }",
+                "if a=1 then a=2 else": " if (v.aR === 1) { v.aR = 2; }",
+                "if a=1 then else a=1": " if (v.aR === 1) { ; } else { v.aR = 1; }",
+                "if a=1 then if b=1 then else else a=1": " if (v.aR === 1) { if (v.bR === 1) { ; }; } else { v.aR = 1; }",
                 "10 if a=1 then goto 10": " if (v.aR === 1) { o.goto(10); break; }",
                 "10 if a=1 then 10": " if (v.aR === 1) { o.goto(10); break; }",
                 "10 if a=1 goto 10": " if (v.aR === 1) { o.goto(10); break; }",

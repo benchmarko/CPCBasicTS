@@ -1219,8 +1219,10 @@ export class BasicParser {
 			if ((i === 0 && tokenType === "linenumber") || tokenType === "goto" || tokenType === "stop") {
 				const index = i + 1;
 
-				if (index < args.length && args[index].type !== "rem") {
-					if (!this.quiet) {
+				if (index < args.length && (args[index].type !== "rem")) {
+					if (args[index].type === ":" && this.keepColons) {
+						// ignore
+					} else if (!this.quiet) {
 						Utils.console.warn(this.composeError({} as Error, "IF: Unreachable code after THEN or ELSE", tokenType, node.pos).message);
 					}
 					break;

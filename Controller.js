@@ -1538,6 +1538,16 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             else {
                 outputString = output.text;
                 this.vm.vmSetSourceMap(this.codeGeneratorJs.getSourceMap());
+                // optional: tokenize to put tokens into memory...
+                var tokens = this.encodeTokenizedBasic(input), addr = 0x170;
+                for (var i = 0; i < tokens.length; i += 1) {
+                    var code = tokens.charCodeAt(i);
+                    if (code > 255) {
+                        Utils_1.Utils.console.warn("Put token in memory: addr=" + (addr + i) + ", code=" + code + ", char=" + tokens.charAt(i));
+                        code = 0x20; //TTT
+                    }
+                    this.vm.poke(addr + i, code);
+                }
             }
             if (outputString && outputString.length > 0) {
                 outputString += "\n";

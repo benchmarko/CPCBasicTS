@@ -398,7 +398,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             return CodeGeneratorToken.token2String(node.type) + nodeArgs.join("");
         };
         CodeGeneratorToken.prototype.fnThenOrElsePart = function (nodeBranch) {
-            var nodeArgs = this.fnParseArgs(nodeBranch); // args for "then" oe "else"
+            var nodeArgs = this.fnParseArgs(nodeBranch); // args for "then" or "else"
             return this.combineArgsWithSeparator(nodeArgs);
         };
         CodeGeneratorToken.prototype["if"] = function (node) {

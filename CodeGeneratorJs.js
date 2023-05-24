@@ -935,25 +935,19 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + "); break"; // with break
         };
         CodeGeneratorJs.prototype.fnThenOrElsePart = function (args, tracePrefix) {
-            var isResumeNext = Boolean(this.countMap.resumeNext), isResumeNoArgs = Boolean(this.countMap.resumeNoArgsCount), nodeArgs = this.fnParseArgs(args);
-            if (args[0].type === "linenumber") {
+            var isTraceActive = this.trace, isResumeNext = Boolean(this.countMap.resumeNext), isResumeNoArgs = Boolean(this.countMap.resumeNoArgsCount), nodeArgs = this.fnParseArgs(args);
+            if (args.length && args[0].type === "linenumber") {
                 var line = nodeArgs[0];
                 this.fnAddReferenceLabel(line, args[0]);
                 nodeArgs[0] = "o.goto(" + line + "); break"; // convert to "goto"
             }
-            /*
-            if (this.traceActive) {
-                for (let i = 0; i < nodeArgs.length; i += 1) {
-                    const traceLabel = this.generateTraceLabel(args[i], tracePrefix, i);
-    
-                    nodeArgs[i] = "o.vmTrace(\"" + traceLabel + "\"); " + nodeArgs[i];
-                }
-            }
-            */
-            if (isResumeNext || isResumeNoArgs) {
+            if (isTraceActive || isResumeNext || isResumeNoArgs) {
                 for (var i = 0; i < nodeArgs.length; i += 1) {
                     var traceLabel = this.generateTraceLabel(args[i], tracePrefix, i);
-                    var value = '\ncase "' + traceLabel + '":';
+                    var value = "";
+                    if (isResumeNext || isResumeNoArgs) {
+                        value += '\ncase "' + traceLabel + '":';
+                    }
                     if (isResumeNext) {
                         this.labelList.push('"' + traceLabel + '"'); // only needed to support resume next
                     }

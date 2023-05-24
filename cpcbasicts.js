@@ -2319,8 +2319,11 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 var node = args[i], tokenType = node.type;
                 if ((i === 0 && tokenType === "linenumber") || tokenType === "goto" || tokenType === "stop") {
                     var index = i + 1;
-                    if (index < args.length && args[index].type !== "rem") {
-                        if (!this.quiet) {
+                    if (index < args.length && (args[index].type !== "rem")) {
+                        if (args[index].type === ":" && this.keepColons) {
+                            // ignore
+                        }
+                        else if (!this.quiet) {
                             Utils_4.Utils.console.warn(this.composeError({}, "IF: Unreachable code after THEN or ELSE", tokenType, node.pos).message);
                         }
                         break;
@@ -5419,25 +5422,19 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + "); break"; // with break
         };
         CodeGeneratorJs.prototype.fnThenOrElsePart = function (args, tracePrefix) {
-            var isResumeNext = Boolean(this.countMap.resumeNext), isResumeNoArgs = Boolean(this.countMap.resumeNoArgsCount), nodeArgs = this.fnParseArgs(args);
-            if (args[0].type === "linenumber") {
+            var isTraceActive = this.trace, isResumeNext = Boolean(this.countMap.resumeNext), isResumeNoArgs = Boolean(this.countMap.resumeNoArgsCount), nodeArgs = this.fnParseArgs(args);
+            if (args.length && args[0].type === "linenumber") {
                 var line = nodeArgs[0];
                 this.fnAddReferenceLabel(line, args[0]);
                 nodeArgs[0] = "o.goto(" + line + "); break"; // convert to "goto"
             }
-            /*
-            if (this.traceActive) {
-                for (let i = 0; i < nodeArgs.length; i += 1) {
-                    const traceLabel = this.generateTraceLabel(args[i], tracePrefix, i);
-    
-                    nodeArgs[i] = "o.vmTrace(\"" + traceLabel + "\"); " + nodeArgs[i];
-                }
-            }
-            */
-            if (isResumeNext || isResumeNoArgs) {
+            if (isTraceActive || isResumeNext || isResumeNoArgs) {
                 for (var i = 0; i < nodeArgs.length; i += 1) {
                     var traceLabel = this.generateTraceLabel(args[i], tracePrefix, i);
-                    var value = '\ncase "' + traceLabel + '":';
+                    var value = "";
+                    if (isResumeNext || isResumeNoArgs) {
+                        value += '\ncase "' + traceLabel + '":';
+                    }
                     if (isResumeNext) {
                         this.labelList.push('"' + traceLabel + '"'); // only needed to support resume next
                     }
@@ -6430,7 +6427,7 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
             return CodeGeneratorToken.token2String(node.type) + nodeArgs.join("");
         };
         CodeGeneratorToken.prototype.fnThenOrElsePart = function (nodeBranch) {
-            var nodeArgs = this.fnParseArgs(nodeBranch); // args for "then" oe "else"
+            var nodeArgs = this.fnParseArgs(nodeBranch); // args for "then" or "else"
             return this.combineArgsWithSeparator(nodeArgs);
         };
         CodeGeneratorToken.prototype["if"] = function (node) {
@@ -17139,6 +17136,16 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             else {
                 outputString = output.text;
                 this.vm.vmSetSourceMap(this.codeGeneratorJs.getSourceMap());
+                // optional: tokenize to put tokens into memory...
+                var tokens = this.encodeTokenizedBasic(input), addr = 0x170;
+                for (var i = 0; i < tokens.length; i += 1) {
+                    var code = tokens.charCodeAt(i);
+                    if (code > 255) {
+                        Utils_24.Utils.console.warn("Put token in memory: addr=" + (addr + i) + ", code=" + code + ", char=" + tokens.charAt(i));
+                        code = 0x20; //TTT
+                    }
+                    this.vm.poke(addr + i, code);
+                }
             }
             if (outputString && outputString.length > 0) {
                 outputString += "\n";

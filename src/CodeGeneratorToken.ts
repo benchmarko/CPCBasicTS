@@ -773,7 +773,7 @@ export class CodeGeneratorToken {
 	}
 
 	private fnThenOrElsePart(nodeBranch: ParserNode[]) {
-		const nodeArgs = this.fnParseArgs(nodeBranch); // args for "then" oe "else"
+		const nodeArgs = this.fnParseArgs(nodeBranch); // args for "then" or "else"
 
 		return this.combineArgsWithSeparator(nodeArgs);
 	}

@@ -766,8 +766,11 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 var node = args[i], tokenType = node.type;
                 if ((i === 0 && tokenType === "linenumber") || tokenType === "goto" || tokenType === "stop") {
                     var index = i + 1;
-                    if (index < args.length && args[index].type !== "rem") {
-                        if (!this.quiet) {
+                    if (index < args.length && (args[index].type !== "rem")) {
+                        if (args[index].type === ":" && this.keepColons) {
+                            // ignore
+                        }
+                        else if (!this.quiet) {
                             Utils_1.Utils.console.warn(this.composeError({}, "IF: Unreachable code after THEN or ELSE", tokenType, node.pos).message);
                         }
                         break;
