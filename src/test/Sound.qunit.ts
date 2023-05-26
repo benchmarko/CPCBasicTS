@@ -222,30 +222,6 @@ QUnit.module("Sound: Tests1", function (hooks) {
 
 		sound.soundOff();
 	});
-
-	/*
-	QUnit.test("sound", function (assert) {
-		const sound = that.sound;
-
-		sound.soundOn();
-		sound.setActivatedByUser();
-		assert.strictEqual(sound.testCanQueue(0), true, "testCanQueue(0): true");
-
-		//clearLastTestFunctions();
-		sound.sound({
-			state: 1,
-			period: 100
-		} as SoundData);
-
-		const expected = "";
-
-		assert.strictEqual(combineResult(""), expected, "sound 1, 100");
-
-		sound.soundOff();
-
-		clearLastTestFunctions();
-	});
-	*/
 });
 
 QUnit.module("Sound: Tests", function () {

@@ -689,7 +689,7 @@ export class CodeGeneratorToken {
 
 		return CodeGeneratorToken.token2String(node.type) + " " + CodeGeneratorToken.token2String("fn") + space + name + nodeArgsString + CodeGeneratorToken.token2String("=") + expression;
 	}
-	private "else"(node: ParserNode) { // similar to a comment, with (un?)checked tokens
+	private fnElse(node: ParserNode) { // similar to a comment, with (un?)checked tokens
 		if (!node.args) {
 			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
 		}
@@ -766,7 +766,7 @@ export class CodeGeneratorToken {
 		return name2 + nodeArgsString;
 	}
 
-	private "for"(node: ParserNode) {
+	private fnFor(node: ParserNode) {
 		const nodeArgs = this.fnParseArgs(node.args);
 
 		return CodeGeneratorToken.token2String(node.type) + nodeArgs.join("");
@@ -778,7 +778,7 @@ export class CodeGeneratorToken {
 		return this.combineArgsWithSeparator(nodeArgs);
 	}
 
-	private "if"(node: ParserNode) {
+	private fnIf(node: ParserNode) {
 		if (!node.left) {
 			throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occur
 		}
@@ -965,13 +965,13 @@ export class CodeGeneratorToken {
 		chainMerge: this.chainMerge,
 		data: this.data,
 		def: this.def,
-		"else": this.else,
+		"else": this.fnElse,
 		ent: this.entEnv,
 		env: this.entEnv,
 		everyGosub: this.everyGosub,
 		fn: this.fn,
-		"for": this.for,
-		"if": this.if,
+		"for": this.fnFor,
+		"if": this.fnIf,
 		input: this.inputLineInput,
 		lineInput: this.inputLineInput,
 		list: this.list,

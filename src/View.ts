@@ -22,7 +22,7 @@ export class View {
 		return element;
 	}
 
-	private static getElementByIdAs<T extends HTMLButtonElement| HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(id: string) {
+	static getElementByIdAs<T extends HTMLButtonElement| HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(id: string): T {
 		return View.getElementById1(id) as T;
 	}
 
@@ -223,5 +223,14 @@ export class View {
 		}
 		window.document.addEventListener(type, eventHandler, false);
 		return this;
+	}
+
+	static getEventTarget<T extends HTMLElement>(event: Event): T {
+		const target = event.target || event.srcElement; // target, not currentTarget; srcElement for IE8
+
+		if (!target) {
+			Utils.console.error("getEventTarget: Undefined event target: " + target);
+		}
+		return target as T;
 	}
 }

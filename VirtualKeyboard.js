@@ -177,18 +177,8 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             }
             return pressedKey;
         };
-        VirtualKeyboard.prototype.fnGetEventTarget = function (event) {
-            var node = event.target || event.srcElement; // target, not currentTarget
-            if (!node) {
-                throw new Error("VirtualKeyboard: Undefined event target: " + node);
-            }
-            return node;
-        };
-        VirtualKeyboard.prototype.fnGetEventTargetAs = function (event) {
-            return this.fnGetEventTarget(event);
-        };
         VirtualKeyboard.prototype.onVirtualVirtualKeyboardKeydown = function (event) {
-            var node = this.fnGetEventTargetAs(event), cpcKey = node.getAttribute("data-key");
+            var node = View_1.View.getEventTarget(event), cpcKey = node.getAttribute("data-key");
             if (Utils_1.Utils.debug > 1) {
                 Utils_1.Utils.console.debug("onVirtualVirtualKeyboardKeydown: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", cpcKey);
             }
@@ -207,7 +197,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             return false;
         };
         VirtualKeyboard.prototype.fnVirtualVirtualKeyboardKeyupOrKeyout = function (event) {
-            var node = this.fnGetEventTargetAs(event), cpcKey = node.getAttribute("data-key");
+            var node = View_1.View.getEventTarget(event), cpcKey = node.getAttribute("data-key");
             if (cpcKey !== null) {
                 var cpcKeyCode = Number(cpcKey);
                 if (this.numLock) {
@@ -226,7 +216,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             }
         };
         VirtualKeyboard.prototype.onVirtualVirtualKeyboardKeyup = function (event) {
-            var node = this.fnGetEventTargetAs(event);
+            var node = View_1.View.getEventTarget(event);
             if (Utils_1.Utils.debug > 1) {
                 Utils_1.Utils.console.debug("onVirtualVirtualKeyboardKeyup: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", node.getAttribute("data-key"));
             }
@@ -238,7 +228,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             return false;
         };
         VirtualKeyboard.prototype.onVirtualVirtualKeyboardKeyout = function (event) {
-            var node = this.fnGetEventTargetAs(event);
+            var node = View_1.View.getEventTarget(event);
             if (Utils_1.Utils.debug > 1) {
                 Utils_1.Utils.console.debug("onVirtualVirtualKeyboardKeyout: event=", event);
             }
@@ -259,7 +249,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.fnAttachPointerEvents(containerId, this.dragStart.bind(this), this.drag.bind(this), this.dragEnd.bind(this));
         };
         VirtualKeyboard.prototype.dragStart = function (event) {
-            var node = this.fnGetEventTargetAs(event), parent = node.parentElement ? node.parentElement.parentElement : null, drag = this.dragInfo;
+            var node = View_1.View.getEventTarget(event), parent = node.parentElement ? node.parentElement.parentElement : null, drag = this.dragInfo;
             if (node === drag.dragItem || parent === drag.dragItem) {
                 if (event.type === "touchstart") {
                     var touchEvent = event;

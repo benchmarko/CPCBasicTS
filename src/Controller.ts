@@ -159,7 +159,7 @@ class FileSelect {
 		event.preventDefault();
 
 		const dataTransfer = (event as DragEvent).dataTransfer,
-			files = dataTransfer ? dataTransfer.files : (event.target as HTMLInputElement).files; // dataTransfer for drag&drop, target.files for file input
+			files = dataTransfer ? dataTransfer.files : View.getEventTarget<HTMLInputElement>(event).files; // dataTransfer for drag&drop, target.files for file input
 
 		if (!files || !files.length) {
 			Utils.console.error("fnHandleFileSelect: No files!");
@@ -432,10 +432,6 @@ export class Controller implements IController {
 
 		this.commonEventHandler.fnSetUserAction(this.onUserAction.bind(this)); // check first user action, also if sound is not yet on
 
-		const example = model.getProperty<string>("example");
-
-		view.setSelectValue("exampleSelect", example);
-
 		this.vm = new CpcVm({
 			canvas: this.canvas,
 			textCanvas: this.textCanvas,
@@ -470,7 +466,6 @@ export class Controller implements IController {
 			implicitLines: model.getProperty<boolean>("implicitLines")
 		});
 
-		this.initDatabases();
 		if (model.getProperty<boolean>("sound")) { // activate sound needs user action
 			this.setSoundActive(); // activate in waiting state
 		}
@@ -482,6 +477,12 @@ export class Controller implements IController {
 		}
 
 		this.initDropZone();
+
+		const example = model.getProperty<string>("example");
+
+		view.setSelectValue("exampleSelect", example);
+
+		this.initDatabases();
 	}
 
 	private initDatabases() {
@@ -503,7 +504,7 @@ export class Controller implements IController {
 		this.model.addDatabases(databases);
 
 		this.setDatabaseSelectOptions();
-		this.onDatabaseSelectChange();
+		//this.onDatabaseSelectChange();
 	}
 
 	private onUserAction(/* event, id */) {
@@ -941,22 +942,6 @@ export class Controller implements IController {
 		}
 		return lineNumber;
 	}
-
-	/*
-	private static addLineNumbers(input: string) {
-		let lastLine = 0;
-
-		const fnLineAdder = function (spaces: string, line: string) {
-			const lineNum = line !== "" ? Number(line) : lastLine + 1;
-
-			lastLine = lineNum;
-			return spaces + String(lineNum);
-		};
-
-		input.replace(/^(\s*)(\d*)/m, fnLineAdder);
-		return input;
-	}
-	*/
 
 	private static addLineNumbers(input: string) {
 		const lineParts = input.split("\n");
@@ -2002,6 +1987,11 @@ export class Controller implements IController {
 			data8[i] = data.charCodeAt(i);
 		}
 
+		if (typeof Blob === "undefined") {
+			Utils.console.warn("fnDownloadNewFile: Blob undefined");
+			return;
+		}
+
 		const blob = new Blob([data8.buffer], {
 			type: type
 		});
@@ -2424,7 +2414,13 @@ export class Controller implements IController {
 	}
 
 	startScreenshot(): string {
-		return this.canvas.startScreenshot();
+		const canvas = this.canvas.getCanvasElement();
+
+		if (canvas.toDataURL) {
+			return canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"); // here is the most important part because if you do not replace you will get a DOM 18 exception.
+		}
+		Utils.console.warn("Screenshot not available");
+		return "";
 	}
 
 	private fnPutKeyInBuffer(key: string) {
@@ -2530,17 +2526,6 @@ export class Controller implements IController {
 		soundButton.innerText = text;
 	}
 
-	/*
-	private static createMinimalAmsdosHeader(type: string,	start: number,	length: number) {
-		return {
-			typeString: type,
-			start: start,
-			length: length
-		} as AmsdosHeader;
-	}
-	*/
-
-
 	private fnEndOfImport(imported: string[]) {
 		const stream = 0,
 			vm = this.vm;
@@ -2551,94 +2536,6 @@ export class Controller implements IController {
 		vm.print(stream, "\r\n", imported.length + " file" + (imported.length !== 1 ? "s" : "") + " imported.\r\n");
 		this.updateResultText();
 	}
-
-	/*
-	private static reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/); // eslint-disable-line no-control-regex
-	// starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
-
-	private fnLoad2(data: string, name: string, type: string, imported: string[]) {
-		let header: AmsdosHeader | undefined,
-			storageName = this.vm.vmAdaptFilename(name, "FILE");
-
-		storageName = Controller.fnLocalStorageName(storageName);
-
-		if (type === "text/plain") {
-			header = Controller.createMinimalAmsdosHeader("A", 0, data.length);
-		} else {
-			if (type === "application/x-zip-compressed" || type === "cpcBasic/binary") { // are we a file inside zip?
-				// empty
-			} else { // e.g. "data:application/octet-stream;base64,..."
-				const index = data.indexOf(",");
-
-				if (index >= 0) {
-					const info1 = data.substring(0, index);
-
-					data = data.substring(index + 1); // remove meta prefix
-					if (info1.indexOf("base64") >= 0) {
-						data = Utils.atob(data); // decode base64
-					}
-				}
-			}
-
-			header = DiskImage.parseAmsdosHeader(data);
-			if (header) {
-				data = data.substring(0x80); // remove header
-			} else if (Controller.reRegExpIsText.test(data)) {
-				header = Controller.createMinimalAmsdosHeader("A", 0, data.length);
-			} else if (DiskImage.testDiskIdent(data.substring(0, 8))) { // disk image file?
-				try {
-					const dsk = new DiskImage({
-							data: data,
-							diskName: name
-						}),
-						dir = dsk.readDirectory(),
-						diskFiles = Object.keys(dir);
-
-					for (let i = 0; i < diskFiles.length; i += 1) {
-						const fileName = diskFiles[i];
-
-						try { // eslint-disable-line max-depth
-							data = dsk.readFile(dir[fileName]);
-							this.fnLoad2(data, fileName, "cpcBasic/binary", imported); // recursive
-						} catch (e) {
-							Utils.console.error(e);
-							if (e instanceof Error) { // eslint-disable-line max-depth
-								this.outputError(e, true);
-							}
-						}
-					}
-				} catch (e) {
-					Utils.console.error(e);
-					if (e instanceof Error) {
-						this.outputError(e, true);
-					}
-				}
-				header = undefined; // ignore dsk file
-			} else { // binary
-				header = Controller.createMinimalAmsdosHeader("B", 0, data.length);
-			}
-		}
-
-		if (header) {
-			const meta = Controller.joinMeta(header);
-
-			try {
-				Utils.localStorage.setItem(storageName, meta + "," + data);
-				this.updateStorageDatabase("set", storageName);
-				Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
-				imported.push(name);
-			} catch (e) { // maybe quota exceeded
-				Utils.console.error(e);
-				if (e instanceof Error) {
-					if (e.name === "QuotaExceededError") {
-						(e as CustomError).shortMessage = storageName + ": Quota exceeded";
-					}
-					this.outputError(e, true);
-				}
-			}
-		}
-	}
-	*/
 
 	private static fnHandleDragOver(evt: DragEvent) {
 		evt.stopPropagation();
@@ -2673,7 +2570,7 @@ export class Controller implements IController {
 		dropZone.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
 		this.fileSelect.addFileSelectHandler(dropZone, "drop");
 
-		const canvasElement = this.canvas.getCanvas();
+		const canvasElement = this.canvas.getCanvasElement();
 
 		canvasElement.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
 		this.fileSelect.addFileSelectHandler(canvasElement, "drop");

@@ -42,12 +42,12 @@ export declare class CodeGeneratorBasic {
     private chainOrChainMerge;
     private data;
     private def;
-    private "else";
+    private fnElse;
     private entOrEnv;
     private fn;
-    private "for";
+    private fnFor;
     private fnThenOrElsePart;
-    private "if";
+    private fnIf;
     private static fnHasStream;
     private inputLineInput;
     private list;

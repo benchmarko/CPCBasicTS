@@ -6,7 +6,7 @@
 //
 // node dist/test/testParseExamples.qunit.js
 // npm test...
-define(["require", "exports", "../Utils", "../Polyfills", "../BasicLexer", "../BasicParser", "../BasicTokenizer", "../CodeGeneratorJs", "../CodeGeneratorToken", "../Model", "../Variables", "../DiskImage", "../cpcconfig", "./TestHelper"], function (require, exports, Utils_1, Polyfills_1, BasicLexer_1, BasicParser_1, BasicTokenizer_1, CodeGeneratorJs_1, CodeGeneratorToken_1, Model_1, Variables_1, DiskImage_1, cpcconfig_1, TestHelper_1) {
+define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "../BasicTokenizer", "../CodeGeneratorJs", "../CodeGeneratorToken", "../Model", "../Variables", "../DiskImage", "../cpcconfig", "./TestHelper"], function (require, exports, Utils_1, BasicLexer_1, BasicParser_1, BasicTokenizer_1, CodeGeneratorJs_1, CodeGeneratorToken_1, Model_1, Variables_1, DiskImage_1, cpcconfig_1, TestHelper_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var https, // nodeJs
@@ -507,7 +507,8 @@ define(["require", "exports", "../Utils", "../Polyfills", "../BasicLexer", "../B
         }
     }
     function testStart() {
-        Utils_1.Utils.console.log("testParseExamples: nodeJs:", nodeJsAvail, " Polyfills.getList().length:", Polyfills_1.Polyfills.getList().length);
+        var Polyfills = window.Polyfills;
+        Utils_1.Utils.console.log("testParseExamples: nodeJs:", nodeJsAvail, " Polyfills.getList().length:", Polyfills.getList().length);
         cpcBasic.initVmMock1();
         cpcBasic.totalExamples = 0;
         cpcBasic.ignoredExamples = 0;

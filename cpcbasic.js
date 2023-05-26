@@ -148,6 +148,7 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
                 UtilsConsole.changeLog(View_1.View.getElementById1("consoleText"));
             }
             cpcBasic.controller = new Controller_1.Controller(cpcBasic.model, cpcBasic.view);
+            cpcBasic.controller.onDatabaseSelectChange(); // trigger loading example
         };
         cpcBasic.fnOnLoad = function () {
             Utils_1.Utils.console.log("CPCBasic started at", Utils_1.Utils.dateFormat(new Date()));
@@ -184,7 +185,7 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
     window.onload = function () {
         cpcBasic.fnOnLoad();
     };
-    if (NodeAdapt_1.NodeAdapt.isNodeAvailable()) {
+    if (window.Polyfills.isNodeAvailable) {
         NodeAdapt_1.NodeAdapt.doAdapt();
         cpcBasic.fnOnLoad();
         Utils_1.Utils.console.debug("End of main.");

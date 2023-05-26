@@ -25,8 +25,8 @@ export declare class Utils {
     static supportReservedNames: boolean;
     static stringTrimEnd(str: string): string;
     static localStorage: Storage;
-    static atob: (arg0: string) => string;
-    static btoa: (arg0: string) => string;
+    static atob: (data: string) => string;
+    static btoa: (data: string) => string;
     static isCustomError(e: unknown): e is CustomError;
     static split2(str: string, char: string): string[];
     static composeError(name: string, errorObject: Error, message: string, value: string, pos?: number, len?: number, line?: string | number, hidden?: boolean): CustomError;

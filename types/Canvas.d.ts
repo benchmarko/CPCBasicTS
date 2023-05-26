@@ -130,8 +130,7 @@ export declare class Canvas {
     getMode(): number;
     changeMode(mode: number): void;
     setMode(mode: number): void;
-    startScreenshot(): string;
-    getCanvas(): HTMLCanvasElement;
+    getCanvasElement(): HTMLCanvasElement;
 }
 export {};
 //# sourceMappingURL=Canvas.d.ts.map

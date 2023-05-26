@@ -31,13 +31,13 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 clear: this.clear,
                 data: this.data,
                 def: this.def,
-                "else": this.else,
+                "else": this.fnElse,
                 ent: this.entOrEnv,
                 env: this.entOrEnv,
                 every: this.afterEveryGosub,
-                "for": this.for,
+                "for": this.fnFor,
                 graphics: this.graphics,
-                "if": this.if,
+                "if": this.fnIf,
                 input: this.input,
                 key: this.key,
                 let: this.let,
@@ -398,7 +398,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 default:
                     expression = this.expression(0);
                     if (expression.type === "#") { // got stream?
-                        //throw this.composeError(Error(), "Unexpected stream", expression.value, expression.pos);
                         this.fnMaskedError(expression, "Unexpected stream");
                     }
                     break;
@@ -698,7 +697,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             node.right = this.expression(0);
             return node;
         };
-        BasicParser.prototype["else"] = function () {
+        BasicParser.prototype.fnElse = function () {
             var node = this.previousToken;
             node.args = [];
             if (!this.quiet) {
@@ -729,7 +728,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             return node;
         };
-        BasicParser.prototype["for"] = function () {
+        BasicParser.prototype.fnFor = function () {
             var node = this.previousToken;
             this.fnCheckExpressionType(this.token, "identifier", "v");
             var name = this.expression(90); // take simple identifier, nothing more
@@ -778,7 +777,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 }
             }
         };
-        BasicParser.prototype["if"] = function () {
+        BasicParser.prototype.fnIf = function () {
             var node = this.previousToken;
             var numberToken;
             node.left = this.expression(0);

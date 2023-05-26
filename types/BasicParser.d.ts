@@ -78,12 +78,12 @@ export declare class BasicParser {
     private clear;
     private data;
     private def;
-    private "else";
+    private fnElse;
     private entOrEnv;
-    private "for";
+    private fnFor;
     private graphics;
     private fnCheckForUnreachableCode;
-    private "if";
+    private fnIf;
     private input;
     private key;
     private let;

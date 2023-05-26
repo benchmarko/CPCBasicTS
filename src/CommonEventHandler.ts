@@ -169,6 +169,18 @@ export class CommonEventHandler implements EventListenerObject {
 
 	// eslint-disable-next-line class-methods-use-this
 	private onCopyTextButtonClick() {
+		const textText = View.getElementByIdAs<HTMLTextAreaElement>("textText");
+
+		textText.select();
+
+		this.view.setAreaSelection("textText", 0, 99999); // for mobile devices
+		if (window.navigator && window.navigator.clipboard) {
+			window.navigator.clipboard.writeText(textText.value);
+		} else {
+			Utils.console.warn("Copy to clipboard not available");
+		}
+
+		/*
 		const textText = document.getElementById("textText") as HTMLTextAreaElement;
 
 		// const copyText = View.getElementByIdAs<HTMLTextAreaElement>("textText");
@@ -178,6 +190,7 @@ export class CommonEventHandler implements EventListenerObject {
 		textText.setSelectionRange(0, 99999); // for mobile devices
 
 		window.navigator.clipboard.writeText(textText.value);
+		*/
 	}
 
 	private onOutputTextChange() {
@@ -262,9 +275,11 @@ export class CommonEventHandler implements EventListenerObject {
 			link = View.getElementById1("screenshotLink"),
 			name = example + ".png";
 
-		link.setAttribute("download", name);
-		link.setAttribute("href", image);
-		link.click();
+		if (image) {
+			link.setAttribute("download", name);
+			link.setAttribute("href", image);
+			link.click();
+		}
 	}
 
 	private onEnterButtonClick() {
@@ -279,7 +294,11 @@ export class CommonEventHandler implements EventListenerObject {
 	private static onFullscreenButtonClick() {
 		const element = View.getElementById1("cpcCanvas");
 
-		element.requestFullscreen();
+		if (element.requestFullscreen) {
+			element.requestFullscreen();
+		} else {
+			Utils.console.warn("Switch to fullscreen not available");
+		}
 	}
 
 	onCpcCanvasClick(event: Event): void {
@@ -349,7 +368,7 @@ export class CommonEventHandler implements EventListenerObject {
 
 
 	handleEvent(event: Event): void {
-		const target = event.target as HTMLButtonElement,
+		const target = View.getEventTarget<HTMLButtonElement>(event),
 			id = (target) ? target.getAttribute("id") as string : String(target),
 			type = event.type; // click or change
 

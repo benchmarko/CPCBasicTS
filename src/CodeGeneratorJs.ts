@@ -46,7 +46,6 @@ export class CodeGeneratorJs {
 	private implicitLines = false; // generate missing line numbers
 
 	private line = "0"; // current line (label)
-	//private traceActive = false;
 	private readonly reJsKeywords: RegExp;
 
 	private readonly stack: StackType = {
@@ -821,7 +820,6 @@ export class CodeGeneratorJs {
 		}
 		this.resetCountsPerLine(); // we want to have "stable" counts, even if other lines change, e.g. direct
 
-		//const isDirect = label === "";
 		const isDirect = label === "direct";
 		let value = "";
 
@@ -859,14 +857,6 @@ export class CodeGeneratorJs {
 						}
 					}
 				}
-
-				/*
-				if (this.traceActive) {
-					const traceLabel = this.generateTraceLabel(node.args[i], this.line, i);
-
-					value += " o.vmTrace(\"" + traceLabel + "\");";
-				}
-				*/
 
 				if (!(/[}:;\n]$/).test(value2)) { // does not end with } : ; \n
 					value2 += ";";
@@ -978,7 +968,7 @@ export class CodeGeneratorJs {
 
 		node.pv = args.join("; ");
 	}
-	private "delete"(node: CodeNode) {
+	private fnDelete(node: CodeNode) {
 		const nodeArgs = this.fnParseArgs(node.args),
 			name = Utils.supportReservedNames ? ("o." + node.type) : 'o[" + node.type + "]';
 
@@ -993,7 +983,7 @@ export class CodeGeneratorJs {
 
 		node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + "); break;";
 	}
-	private "else"(node: CodeNode) { // similar to a comment, with unchecked tokens
+	private fnElse(node: CodeNode) { // similar to a comment, with unchecked tokens
 		if (!node.args) {
 			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
 		}
@@ -1040,7 +1030,7 @@ export class CodeGeneratorJs {
 
 	// TODO: complexity
 	// eslint-disable-next-line complexity
-	private "for"(node: CodeNode) {
+	private fnFor(node: CodeNode) {
 		const nodeArgs = this.fnParseArgs(node.args),
 			varName = nodeArgs[0],
 			label = this.fnGetForLabel();
@@ -1200,7 +1190,7 @@ export class CodeGeneratorJs {
 		return simplePart;
 	}
 
-	private "if"(node: CodeNode) {
+	private fnIf(node: CodeNode) {
 		if (!node.left) {
 			throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occur
 		}
@@ -1317,7 +1307,7 @@ export class CodeGeneratorJs {
 
 		node.pv = name + " = o.vmAssign(\"" + varType + "\", o.mid$Assign(" + nodeArgs.join(", ") + "))";
 	}
-	private static "new"(node: CodeNode) {
+	private static fnNew(node: CodeNode) {
 		const name = Utils.supportReservedNames ? ("o." + node.type) : 'o[" + node.type + "]';
 
 		node.pv = name + "();";
@@ -1453,7 +1443,7 @@ export class CodeGeneratorJs {
 
 		node.pv = "//" + value + "\n";
 	}
-	private static "return"(node: CodeNode) {
+	private static fnReturn(node: CodeNode) {
 		const name = Utils.supportReservedNames ? ("o." + node.type) : 'o[" + node.type + "]';
 
 		node.pv = name + "(); break;";
@@ -1516,7 +1506,7 @@ export class CodeGeneratorJs {
 		}
 		node.pv = "/* o." + node.type + "() */ o.vmGoto(\"" + label + "\"); break;\ncase \"" + label + "e\":";
 	}
-	private "while"(node: CodeNode) {
+	private fnWhile(node: CodeNode) {
 		const nodeArgs = this.fnParseArgs(node.args),
 			label = this.fnGetWhileLabel();
 
@@ -1557,19 +1547,19 @@ export class CodeGeneratorJs {
 		defreal: this.fnParseDefIntRealStr,
 		defstr: this.fnParseDefIntRealStr,
 		dim: this.dim,
-		"delete": this.delete,
+		"delete": this.fnDelete,
 		edit: this.edit,
-		"else": this.else,
+		"else": this.fnElse,
 		end: this.stopOrEnd,
 		erase: this.erase,
 		error: this.error,
 		everyGosub: this.afterEveryGosub,
 		fn: this.fn,
-		"for": this.for,
+		"for": this.fnFor,
 		frame: this.fnCommandWithGoto,
 		gosub: this.gosub,
 		"goto": this.gotoOrResume,
-		"if": this.if,
+		"if": this.fnIf,
 		input: this.inputOrlineInput,
 		let: this.let,
 		lineInput: this.inputOrlineInput,
@@ -1577,7 +1567,7 @@ export class CodeGeneratorJs {
 		load: this.fnCommandWithGoto,
 		merge: this.fnCommandWithGoto,
 		mid$Assign: this.mid$Assign,
-		"new": CodeGeneratorJs.new,
+		"new": CodeGeneratorJs.fnNew,
 		next: this.next,
 		onBreakGosub: this.onBreakGosubOrRestore,
 		onErrorGoto: this.onErrorGoto,
@@ -1593,7 +1583,7 @@ export class CodeGeneratorJs {
 		restore: this.onBreakGosubOrRestore,
 		resume: this.gotoOrResume,
 		resumeNext: this.gotoOrResume,
-		"return": CodeGeneratorJs.return,
+		"return": CodeGeneratorJs.fnReturn,
 		run: this.run,
 		save: this.save,
 		sound: this.fnCommandWithGoto, // maybe queue is full, so insert break
@@ -1603,7 +1593,7 @@ export class CodeGeneratorJs {
 		tron: this.fnCommandWithGoto, // not really needed with goto, but...
 		using: this.usingOrWrite,
 		wend: this.wend,
-		"while": this.while,
+		"while": this.fnWhile,
 		write: this.usingOrWrite
 	}
 	/* eslint-enable no-invalid-this */
@@ -1706,7 +1696,7 @@ export class CodeGeneratorJs {
 	}
 
 	private fnCreateLabelMap(nodes: ParserNode[], labels: LabelsType) { // create line numbers map
-		let lastLine = 0; //-1;
+		let lastLine = 0;
 
 		for (let i = 0; i < nodes.length; i += 1) {
 			const node = nodes[i];

@@ -37,13 +37,13 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
                 chainMerge: this.chainMerge,
                 data: this.data,
                 def: this.def,
-                "else": this.else,
+                "else": this.fnElse,
                 ent: this.entEnv,
                 env: this.entEnv,
                 everyGosub: this.everyGosub,
                 fn: this.fn,
-                "for": this.for,
-                "if": this.if,
+                "for": this.fnFor,
+                "if": this.fnIf,
                 input: this.inputLineInput,
                 lineInput: this.inputLineInput,
                 list: this.list,
@@ -331,7 +331,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             }
             return CodeGeneratorToken.token2String(node.type) + " " + CodeGeneratorToken.token2String("fn") + space + name + nodeArgsString + CodeGeneratorToken.token2String("=") + expression;
         };
-        CodeGeneratorToken.prototype["else"] = function (node) {
+        CodeGeneratorToken.prototype.fnElse = function (node) {
             if (!node.args) {
                 throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
             }
@@ -393,7 +393,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             var name2 = CodeGeneratorToken.token2String(node.type) + space + name;
             return name2 + nodeArgsString;
         };
-        CodeGeneratorToken.prototype["for"] = function (node) {
+        CodeGeneratorToken.prototype.fnFor = function (node) {
             var nodeArgs = this.fnParseArgs(node.args);
             return CodeGeneratorToken.token2String(node.type) + nodeArgs.join("");
         };
@@ -401,7 +401,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             var nodeArgs = this.fnParseArgs(nodeBranch); // args for "then" or "else"
             return this.combineArgsWithSeparator(nodeArgs);
         };
-        CodeGeneratorToken.prototype["if"] = function (node) {
+        CodeGeneratorToken.prototype.fnIf = function (node) {
             if (!node.left) {
                 throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occur
             }

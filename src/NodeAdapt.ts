@@ -18,23 +18,6 @@ interface NodeFs {
 }
 
 export class NodeAdapt {
-	static isNodeAvailable(): boolean {
-		// eslint-disable-next-line no-new-func
-		const myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(); // for old IE
-		let nodeJs = false;
-
-		// https://www.npmjs.com/package/detect-node
-		// Only Node.JS has a process variable that is of [[Class]] process
-		try {
-			if (Object.prototype.toString.call(myGlobalThis.process) === "[object process]") {
-				nodeJs = true;
-			}
-		} catch (e) {
-			// empty
-		}
-		return nodeJs;
-	}
-
 	static doAdapt(): void {
 		let https: NodeHttps, // nodeJs
 			fs: NodeFs,
@@ -43,6 +26,7 @@ export class NodeAdapt {
 
 		const domElements: Record<string, any> = {},
 			myCreateElement = function (id: string) {
+				//Utils.console.debug("myCreateElement: ", id);
 				domElements[id] = {
 					className: "",
 					style: {
@@ -50,11 +34,26 @@ export class NodeAdapt {
 						borderStyle: ""
 					},
 					addEventListener: () => {}, // eslint-disable-line no-empty-function, @typescript-eslint/no-empty-function
-					options: [],
+					options: []
+					// getter is defined with Object.defineProperty() below... (to be compatible with ES3 syntax)
+					/*
 					get length() {
 						return domElements[id].options.length;
 					}
+					*/
 				};
+
+				// old syntax for getter with "get length() { ... }"
+				Object.defineProperty(domElements[id], "length", {
+					get() {
+						return domElements[id].options.length;
+					},
+					set(len: number) {
+						domElements[id].options.length = len;
+					},
+					enumerable: true,
+					configurable: true
+				});
 				return domElements[id];
 			};
 

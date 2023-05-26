@@ -33,6 +33,32 @@ function amd4Node() {
             }
             return require(fileName); // eslint-disable-line global-require
         }.bind(this, mod);
+        /*
+            depsMapped: string[] = []; // deps.map() (Array.map() not IE8)
+
+        for (let i = 0; i < deps.length; i += 1) {
+            const injection = deps[i];
+            let mapped;
+
+            switch (injection) {
+            // check for CommonJS injection variables
+            case "require":
+                mapped = req;
+                break;
+            case "exports":
+                mapped = mod.exports;
+                break;
+            case "module":
+                mapped = mod;
+                break;
+            default:
+                mapped = req(injection); // a module dependency
+                break;
+            }
+            depsMapped[i] = mapped;
+        }
+        func.apply(mod.exports, depsMapped);
+        */
         func.apply(mod.exports, deps.map(function (injection) {
             switch (injection) {
                 // check for CommonJS injection variables
@@ -62,20 +88,36 @@ function amd4browser() {
         window.define = function (arg1, arg2, arg3) {
             // if arg1 is no id, we have an anonymous module
             var _a = (typeof arg1 !== "string") ? [arg1, arg2] : [arg2, arg3], deps = _a[0], func = _a[1], // eslint-disable-line array-element-newline
+            depsMapped = []; // deps.map() (Array.map() not IE8)
+            for (var i = 0; i < deps.length; i += 1) {
+                var name_1 = deps[i];
+                var mapped = void 0;
+                if (name_1 === "require") {
+                    mapped = null;
+                }
+                else if (name_1 === "exports") {
+                    mapped = window.exports;
+                }
+                else {
+                    mapped = window.require(name_1);
+                }
+                depsMapped[i] = mapped;
+            }
+            /*
             args = deps.map(function (name) {
                 if (name === "require") {
                     return null;
-                }
-                else if (name === "exports") {
+                } else if (name === "exports") {
                     return window.exports;
                 }
                 return window.require(name);
             });
-            func.apply(this, args);
+            */
+            func.apply(this, depsMapped);
         };
     }
 }
-if ((typeof globalThis !== "undefined") && !globalThis.window) { // we assume nodeJS
+if (Polyfills.isNodeAvailable) {
     amd4Node();
 }
 else {

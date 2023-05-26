@@ -25,7 +25,6 @@ body {
 .label {
 	background-color: WhiteSmoke;
 	float: left;
-	/* width: 4em; */
 	margin-right: 0.2em;
 	text-align: right;
 	padding: 0px 2px 0px 2px;

@@ -607,25 +607,9 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             }
             this.maskBit = maskBit;
         };
-        /*
-        private static cpcRoundingTowardsZeroX(x: number, pixelWidth: number) {
-            x = x < 0 && x >= -pixelWidth + 1 ? 0 : x;
-            return x;
-        }
-    
-        private static cpcRoundingTowardsZeroY(y: number, pixelHeight: number) {
-            y = y < 0 && y >= -pixelHeight + 1 ? 0 : y;
-            return y;
-        }
-        */
         Canvas.prototype.draw = function (x, y) {
-            // TODO
-            //const xStart = Canvas.cpcRoundingTowardsZeroX(this.xPos, this.modeData.pixelWidth),
-            //	yStart = Canvas.cpcRoundingTowardsZeroY(this.yPos, this.modeData.pixelHeight);
             var xStart = this.xPos, yStart = this.yPos;
             this.move(x, y); // destination
-            //x = Canvas.cpcRoundingTowardsZeroX(x, this.modeData.pixelWidth);
-            //y = Canvas.cpcRoundingTowardsZeroY(y, this.modeData.pixelHeight);
             this.drawBresenhamLine(xStart, yStart, x, y);
             this.setNeedUpdate();
         };
@@ -919,10 +903,12 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.setGPaper(this.gPaper); // keep, maybe different for other mode
             this.setGTransparentMode(false);
         };
-        Canvas.prototype.startScreenshot = function () {
+        /*
+        startScreenshot(): string {
             return this.canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"); // here is the most important part because if you do not replace you will get a DOM 18 exception.
-        };
-        Canvas.prototype.getCanvas = function () {
+        }
+        */
+        Canvas.prototype.getCanvasElement = function () {
             return this.canvas;
         };
         // http://www.cpcwiki.eu/index.php/CPC_Palette

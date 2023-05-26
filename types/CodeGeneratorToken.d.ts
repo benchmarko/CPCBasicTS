@@ -52,13 +52,13 @@ export declare class CodeGeneratorToken {
     private chainMerge;
     private data;
     private def;
-    private "else";
+    private fnElse;
     private entEnv;
     private everyGosub;
     private fn;
-    private "for";
+    private fnFor;
     private fnThenOrElsePart;
-    private "if";
+    private fnIf;
     private static fnHasStream;
     private inputLineInput;
     private list;

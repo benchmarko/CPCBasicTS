@@ -31,13 +31,13 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
                 chainMerge: this.chainOrChainMerge,
                 data: this.data,
                 def: this.def,
-                "else": this.else,
+                "else": this.fnElse,
                 ent: this.entOrEnv,
                 env: this.entOrEnv,
                 everyGosub: this.afterEveryGosub,
                 fn: this.fn,
-                "for": this.for,
-                "if": this.if,
+                "for": this.fnFor,
+                "if": this.fnIf,
                 input: this.inputLineInput,
                 lineInput: this.inputLineInput,
                 list: this.list,
@@ -218,7 +218,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             var name2 = name.replace(/FN/i, "FN" + space);
             return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(name2) + nodeArgsString + "=" + expression; //TTT how to get space before "="?
         };
-        CodeGeneratorBasic.prototype["else"] = function (node) {
+        CodeGeneratorBasic.prototype.fnElse = function (node) {
             if (!node.args) {
                 throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
             }
@@ -266,7 +266,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             var name2 = node.value.replace(/FN/i, "FN"); // + space),
             return CodeGeneratorBasic.fnWs(node) + name2 + nodeArgsString;
         };
-        CodeGeneratorBasic.prototype["for"] = function (node) {
+        CodeGeneratorBasic.prototype.fnFor = function (node) {
             var nodeArgs = this.fnParseArgs(node.args);
             for (var i = 0; i < nodeArgs.length; i += 1) {
                 if (i !== 1 && i !== 2) { // not for "=" and startValue
@@ -279,7 +279,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             var nodeArgs = this.fnParseArgs(nodeBranch); // args for "then" or "else"
             return CodeGeneratorBasic.fnSpace1(CodeGeneratorBasic.combineArgsWithColon(nodeArgs));
         };
-        CodeGeneratorBasic.prototype["if"] = function (node) {
+        CodeGeneratorBasic.prototype.fnIf = function (node) {
             if (!node.left) {
                 throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occur
             }

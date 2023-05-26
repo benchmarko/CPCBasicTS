@@ -817,21 +817,8 @@ export class VirtualKeyboard {
 		return pressedKey;
 	}
 
-	private fnGetEventTarget(event: Event) { // eslint-disable-line class-methods-use-this
-		const node = event.target || event.srcElement; // target, not currentTarget
-
-		if (!node) {
-			throw new Error("VirtualKeyboard: Undefined event target: " + node);
-		}
-		return node;
-	}
-
-	private fnGetEventTargetAs<T extends HTMLElement>(event: Event) { // eslint-disable-line class-methods-use-this
-		return this.fnGetEventTarget(event) as T;
-	}
-
 	private onVirtualVirtualKeyboardKeydown(event: Event) {
-		const node = this.fnGetEventTargetAs<HTMLElement>(event),
+		const node = View.getEventTarget<HTMLElement>(event),
 			cpcKey = node.getAttribute("data-key");
 
 		if (Utils.debug > 1) {
@@ -860,7 +847,7 @@ export class VirtualKeyboard {
 	}
 
 	private fnVirtualVirtualKeyboardKeyupOrKeyout(event: Event) {
-		const node = this.fnGetEventTargetAs<HTMLElement>(event),
+		const node = View.getEventTarget<HTMLElement>(event),
 			cpcKey = node.getAttribute("data-key");
 
 		if (cpcKey !== null) {
@@ -886,7 +873,7 @@ export class VirtualKeyboard {
 	}
 
 	private onVirtualVirtualKeyboardKeyup(event: Event) {
-		const node = this.fnGetEventTargetAs<HTMLElement>(event);
+		const node = View.getEventTarget<HTMLElement>(event);
 
 		if (Utils.debug > 1) {
 			Utils.console.debug("onVirtualVirtualKeyboardKeyup: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", node.getAttribute("data-key"));
@@ -902,7 +889,7 @@ export class VirtualKeyboard {
 	}
 
 	private onVirtualVirtualKeyboardKeyout(event: Event) {
-		const node = this.fnGetEventTargetAs<HTMLElement>(event);
+		const node = View.getEventTarget<HTMLElement>(event);
 
 		if (Utils.debug > 1) {
 			Utils.console.debug("onVirtualVirtualKeyboardKeyout: event=", event);
@@ -928,7 +915,7 @@ export class VirtualKeyboard {
 	}
 
 	private dragStart(event: Event) {
-		const node = this.fnGetEventTargetAs<HTMLElement>(event),
+		const node = View.getEventTarget<HTMLElement>(event),
 			parent = node.parentElement ? node.parentElement.parentElement : null,
 			drag = this.dragInfo;
 

@@ -89,7 +89,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             return pos;
         };
         TextCanvas.prototype.canvasClickAction2 = function (event) {
-            var target = event.target, style = window.getComputedStyle(target, null).getPropertyValue("font-size"), fontSize = parseFloat(style), pos = this.getMousePos(event), charWidth = (fontSize + 1.4) / 2, charHeight = fontSize + 2.25, // TODO
+            var target = View_1.View.getEventTarget(event), style = window.getComputedStyle(target, null).getPropertyValue("font-size"), fontSize = parseFloat(style), pos = this.getMousePos(event), charWidth = (fontSize + 1.4) / 2, charHeight = fontSize + 2.25, // TODO
             x = pos.x, y = pos.y, 
             /* eslint-disable no-bitwise */
             xTxt = (x / charWidth) | 0, yTxt = (y / charHeight) | 0;

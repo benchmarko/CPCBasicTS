@@ -187,6 +187,13 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             window.document.addEventListener(type, eventHandler, false);
             return this;
         };
+        View.getEventTarget = function (event) {
+            var target = event.target || event.srcElement; // target, not currentTarget; srcElement for IE8
+            if (!target) {
+                Utils_1.Utils.console.error("getEventTarget: Undefined event target: " + target);
+            }
+            return target;
+        };
         return View;
     }());
     exports.View = View;

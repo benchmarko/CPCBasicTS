@@ -135,7 +135,7 @@ export class TextCanvas {
 	}
 
 	private canvasClickAction2(event: MouseEvent) {
-		const target = event.target as HTMLElement,
+		const target = View.getEventTarget<HTMLElement>(event),
 			style = window.getComputedStyle(target, null).getPropertyValue("font-size"),
 			fontSize = parseFloat(style),
 			pos = this.getMousePos(event),

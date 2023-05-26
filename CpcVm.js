@@ -388,13 +388,6 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             return value;
         };
         CpcVm.prototype.vmGoto = function (line, _msg) {
-            /*
-            if (Utils.debug > 5) {
-                if (typeof line === "number" || Utils.debug > 7) { // non-number labels only in higher debug levels
-                    Utils.console.debug("vmGotoLine:", msg + ": " + line);
-                }
-            }
-            */
             this.line = line;
         };
         CpcVm.prototype.fnCheckSqTimer = function () {
@@ -1167,43 +1160,6 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             }
             this.variables.dimVariable(varName, dimensions);
         };
-        /*
-        // TODO, if we want to check array access
-        vmGetVariable(varName: string, ...args: number[]): VariableValue { // TODO
-            let value = this.variables.getVariable(varName);
-    
-            for (let i = 0; i < args.length; i += 1) {
-                if (Array.isArray(value)) {
-                    const index = this.vmInRangeRound(args[i], 0, value.length - 1, "vmGet"); // TODO: in case of error: Subscript out of range; or: vmAssertInRange?
-    
-                    value = value[index];
-                } else {
-                    throw this.vmComposeError(Error(), 9, String(value)); // Subscript out of range
-                }
-            }
-            return value;
-        }
-    
-        vmSetVariable(varName: string, valueToSet: number | string, ...args: number[]): VariableValue { // TODO
-            let value = this.variables.getVariable(varName);
-    
-            for (let i = 0; i < args.length; i += 1) {
-                if (Array.isArray(value)) {
-                    const index = this.vmInRangeRound(args[i], 0, value.length - 1, "vmGet"); // TODO: in case of error: Subscript out of range; or: vmAssertInRange?
-    
-                    if (i < args.length - 1) {
-                        value = value[index];
-                    } else {
-                        value[index] = valueToSet;
-                    }
-                } else {
-                    throw this.vmComposeError(Error(), 9, String(value)); // Subscript out of range
-                }
-            }
-    
-            return value;
-        }
-        */
         CpcVm.prototype.draw = function (x, y, gPen, gColMode) {
             x = this.vmInRangeRound(x, -32768, 32767, "DRAW");
             y = this.vmInRangeRound(y, -32768, 32767, "DRAW");

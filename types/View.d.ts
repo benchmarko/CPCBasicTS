@@ -6,7 +6,7 @@ export interface SelectOptionElement {
 }
 export declare class View {
     static getElementById1(id: string): HTMLElement;
-    private static getElementByIdAs;
+    static getElementByIdAs<T extends HTMLButtonElement | HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(id: string): T;
     getHidden(id: string): boolean;
     setHidden(id: string, hidden: boolean, display?: string): this;
     setDisabled(id: string, disabled: boolean): this;
@@ -25,5 +25,6 @@ export declare class View {
     private setSelectionRange;
     setAreaSelection(id: string, pos: number, endPos: number): this;
     attachEventHandler(type: string, eventHandler: EventListenerOrEventListenerObject): this;
+    static getEventTarget<T extends HTMLElement>(event: Event): T;
 }
 //# sourceMappingURL=View.d.ts.map

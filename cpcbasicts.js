@@ -1,4 +1,650 @@
 "use strict";
+// Polyfills.ts - Some Polyfills for old browsers, e.g. IE8, and nodeJS
+//
+/* globals globalThis */
+//import { Utils } from "./Utils";
+//type ExtendedConsole = Console & { cpcBasicLog: string };
+var Polyfills = {
+    list: [],
+    getList: function () {
+        return Polyfills.list;
+    },
+    log: function (part) {
+        Polyfills.list.push(part);
+    },
+    console: typeof window !== "undefined" ? window.console : globalThis.console,
+    /*
+    console: function () { // IE: window.console is only available when Dev Tools are open (and: IE8 has no console.debug)
+        let console = (typeof window !== "undefined" ? window.console : globalThis.console) as Pick<Console, "log" | "info" | "warn"| "error"| "debug"> & { cpcBasicLog?: string } | undefined;
+
+        if (!console) {
+            console = {
+                cpcBasicLog: "LOG:\n",
+                log: function () { // varargs
+                    if (this.cpcBasicLog) {
+                        this.cpcBasicLog += Array.prototype.slice.call(arguments).join(" ") + "\n";
+                    }
+                },
+                info: this.log,
+                warn: this.log,
+                error: this.log,
+                debug: this.log
+            };
+        }
+        return console;
+    },
+    */
+    localStorage: (function () {
+        var rc;
+        if (typeof window !== "undefined") {
+            try {
+                rc = window.localStorage; // due to a bug in MS Edge this will throw an error when hosting locally (https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/8816771/)
+            }
+            catch (_e) {
+                // empty
+            }
+        }
+        return rc; // if it is undefined, localStorage is set in Polyfills
+    }()),
+    isNodeAvailable: (function () {
+        // eslint-disable-next-line no-new-func
+        var myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(); // for old IE
+        var nodeJs = false;
+        // https://www.npmjs.com/package/detect-node
+        // Only Node.JS has a process variable that is of [[Class]] process
+        try {
+            if (Object.prototype.toString.call(myGlobalThis.process) === "[object process]") {
+                nodeJs = true;
+            }
+        }
+        catch (e) {
+            // empty
+        }
+        return nodeJs;
+    }()),
+    isDefinePropertyOk: (function () {
+        if (!Object.defineProperty) {
+            return false;
+        }
+        try { // IE8 cannot do this...
+            Object.defineProperty({}, "p1", {
+                value: "1"
+            });
+        }
+        catch (e) { // on IE8 we get "TypeError: Object does not support this action"
+            //if (!(e instanceof TypeError)) { }
+            return false;
+        }
+        return true;
+    }())
+};
+// IE: window.console is only available when Dev Tools are open
+if (!Polyfills.console) { // browser or node.js
+    var polyFillConsole_1 = {
+        cpcBasicLog: "LOG:\n",
+        log: function () {
+            if (polyFillConsole_1.cpcBasicLog) {
+                polyFillConsole_1.cpcBasicLog += Array.prototype.slice.call(arguments).join(" ") + "\n";
+            }
+        }
+    };
+    polyFillConsole_1.info = polyFillConsole_1.log;
+    polyFillConsole_1.warn = polyFillConsole_1.log;
+    polyFillConsole_1.error = polyFillConsole_1.log;
+    polyFillConsole_1.debug = polyFillConsole_1.log;
+    Polyfills.console = polyFillConsole_1;
+    Polyfills.log("window.console");
+}
+if (!Polyfills.console.debug) { // IE8 has no console.debug
+    Polyfills.console.debug = Polyfills.console.log;
+    Polyfills.log("window.console.debug");
+}
+if ((typeof globalThis !== "undefined") && !globalThis.window) { // nodeJS
+    Polyfills.log("window");
+    globalThis.window = globalThis;
+}
+if (!Array.prototype.indexOf) { // IE8
+    Polyfills.log("Array.prototype.indexOf");
+    Array.prototype.indexOf = function (searchElement, from) {
+        var len = this.length >>> 0; // eslint-disable-line no-bitwise
+        from = Number(from) || 0;
+        from = (from < 0) ? Math.ceil(from) : Math.floor(from);
+        if (from < 0) {
+            from += len;
+        }
+        for (; from < len; from += 1) {
+            if (from in this && this[from] === searchElement) {
+                return from;
+            }
+        }
+        return -1;
+    };
+}
+if (!Array.prototype.fill) { // IE11
+    // based on: https://github.com/1000ch/array-fill/blob/master/index.js
+    Polyfills.log("Array.prototype.fill");
+    Array.prototype.fill = function (value, start, end) {
+        var length = this.length;
+        start = start || 0;
+        end = end === undefined ? length : (end || 0);
+        var i = start < 0 ? Math.max(length + start, 0) : Math.min(start, length);
+        var l = end < 0 ? Math.max(length + end, 0) : Math.min(end, length);
+        for (; i < l; i += 1) {
+            this[i] = value;
+        }
+        return this;
+    };
+}
+if (!Array.prototype.map) { // IE8
+    // based on: https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Global_Objects/Array/map
+    Polyfills.log("Array.prototype.map");
+    Array.prototype.map = function (callback, thisArg) {
+        var values = [], object = Object(this), len = object.length;
+        var T;
+        if (arguments.length > 1) {
+            T = thisArg;
+        }
+        for (var i = 0; i < len; i += 1) {
+            if (i in object) {
+                var kValue = object[i], mappedValue = callback.call(T, kValue, i, object);
+                values[i] = mappedValue;
+            }
+        }
+        return values;
+    };
+}
+if (window.Element) {
+    if (!Element.prototype.addEventListener) { // IE8
+        Polyfills.log("Element.prototype.addEventListener");
+        Element.prototype.addEventListener = function (event, fnCallback) {
+            event = "on" + event;
+            return this.attachEvent(event, fnCallback);
+        };
+    }
+    if (!Element.prototype.removeEventListener) { // IE8
+        Polyfills.log("Element.prototype.removeEventListener");
+        Element.prototype.removeEventListener = function (event, fnCallback) {
+            event = "on" + event;
+            return this.detachEvent(event, fnCallback);
+        };
+    }
+}
+if (window.Event) {
+    if (!Event.prototype.preventDefault) { // IE8
+        Polyfills.log("Event.prototype.preventDefault");
+        Event.prototype.preventDefault = function () {
+            // empty
+        };
+    }
+    if (!Event.prototype.stopPropagation) { // IE8
+        Polyfills.log("Event.prototype.stopPropagation");
+        Event.prototype.stopPropagation = function () {
+            // empty
+        };
+    }
+}
+if (!window.getComputedStyle) { // IE8
+    // https://stackoverflow.com/questions/21797258/getcomputedstyle-like-javascript-function-for-ie8
+    Polyfills.log("window.getComputedStyle");
+    window.getComputedStyle = function (el, _pseudo) {
+        //this.el = el;
+        this.getPropertyValue = function (prop) {
+            var re = /(-([a-z]){1})/g;
+            if (prop === "float") {
+                prop = "styleFloat";
+            }
+            if (re.test(prop)) {
+                prop = prop.replace(re, function () {
+                    return arguments[2].toUpperCase();
+                });
+            }
+            var currentStyle = el.currentStyle;
+            return currentStyle && currentStyle[prop] ? currentStyle[prop] : null;
+        };
+        return this;
+    };
+}
+if (!Date.now) { // IE8
+    Polyfills.log("Date.now");
+    Date.now = function () {
+        return new Date().getTime();
+    };
+}
+if (window.document) {
+    if (!document.addEventListener) {
+        // or check: https://gist.github.com/fuzzyfox/6762206
+        Polyfills.log("document.addEventListener, removeEventListener");
+        if (document.attachEvent) {
+            (function () {
+                var eventListeners = [];
+                document.addEventListener = function (eventString, fnHandler) {
+                    var fnFindCaret = function (event) {
+                        var documentSelection = document.selection; // IE only
+                        if (documentSelection) {
+                            var target = (event.target || event.srcElement);
+                            target.focus();
+                            var range = documentSelection.createRange(), range2 = range.duplicate();
+                            if (range2.moveToElementTxt) { // not on IE8
+                                range2.moveToElementTxt(target);
+                            }
+                            range2.setEndPoint("EndToEnd", range);
+                            target.selectionStart = range2.text.length - range.text.length;
+                            target.selectionEnd = target.selectionStart + range.text.length;
+                        }
+                    }, fnOnEvent = function (event) {
+                        event = event || window.event;
+                        var target = event.target || event.srcElement;
+                        if (event.type === "click" && target && target.tagName === "TEXTAREA") {
+                            fnFindCaret(event);
+                        }
+                        if (typeof fnHandler === "function") {
+                            fnHandler(event);
+                        }
+                        else if (typeof fnHandler === "object") {
+                            fnHandler.handleEvent(event);
+                        }
+                        else {
+                            Polyfills.console.error("Unknown fnHandler:", fnHandler);
+                        }
+                        return false;
+                    };
+                    // The change event is not bubbled and fired on document for old IE8. So attach it to every select tag
+                    if (eventString === "change") {
+                        var elements = document.getElementsByTagName("select");
+                        for (var i = 0; i < elements.length; i += 1) {
+                            elements[i].attachEvent("on" + eventString, fnOnEvent);
+                            eventListeners.push({
+                                object: this,
+                                eventString: eventString,
+                                fnHandler: fnHandler,
+                                fnOnEvent: fnOnEvent
+                            });
+                        }
+                    }
+                    else { // e.g. "Click"
+                        document.attachEvent("on" + eventString, fnOnEvent);
+                        eventListeners.push({
+                            object: this,
+                            eventString: eventString,
+                            fnHandler: fnHandler,
+                            fnOnEvent: fnOnEvent
+                        });
+                    }
+                };
+                document.removeEventListener = function (event, fnHandler) {
+                    var counter = 0;
+                    while (counter < eventListeners.length) {
+                        var eventListener = eventListeners[counter];
+                        if (eventListener.object === this && eventListener.eventString === event && eventListener.fnHandler === fnHandler) {
+                            this.detachEvent("on" + event, eventListener.fnOnEvent);
+                            eventListeners.splice(counter, 1);
+                            break;
+                        }
+                        counter += 1;
+                    }
+                };
+            }());
+        }
+        else {
+            (Polyfills.console || window.console).error("No document.attachEvent found."); // will be ignored
+            // debug: trying to fix
+            if (document.__proto__.addEventListener) { // eslint-disable-line no-proto
+                document.addEventListener = document.__proto__.addEventListener; // eslint-disable-line no-proto
+            }
+        }
+    }
+}
+if (!Function.prototype.bind) { // IE8
+    // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/bind
+    // Does not work with `new funcA.bind(thisArg, args)`
+    Polyfills.log("Function.prototype.bind");
+    (function () {
+        var ArrayPrototypeSlice = Array.prototype.slice; // since IE6
+        Function.prototype.bind = function () {
+            var that = this, // eslint-disable-line @typescript-eslint/no-this-alias
+            thatArg = arguments[0], args = ArrayPrototypeSlice.call(arguments, 1), argLen = args.length;
+            if (typeof that !== "function") {
+                // closest thing possible to the ECMAScript 5 internal IsCallable function
+                throw new TypeError("Function.prototype.bind - what is trying to be bound is not callable");
+            }
+            return function () {
+                args.length = argLen;
+                args.push.apply(args, arguments);
+                return that.apply(thatArg, args);
+            };
+        };
+    }());
+}
+if (!Math.log10) { // IE11
+    Polyfills.log("Math.log10");
+    Math.log10 = function (x) {
+        return Math.log(x) * Math.LOG10E;
+    };
+}
+if (!Math.sign) { // IE11
+    Polyfills.log("Math.sign");
+    Math.sign = function (x) {
+        return (Number(x > 0) - Number(x < 0)) || Number(x);
+    };
+}
+if (!Math.trunc) { // IE11
+    Polyfills.log("Math.trunc");
+    Math.trunc = function (v) {
+        return v < 0 ? Math.ceil(v) : Math.floor(v);
+    };
+}
+if (!Object.assign) { // IE11
+    Polyfills.log("Object.assign");
+    Object.assign = function (target) {
+        var to = target;
+        for (var i = 1; i < arguments.length; i += 1) {
+            var nextSource = arguments[i];
+            for (var nextKey in nextSource) {
+                if (nextSource.hasOwnProperty(nextKey)) {
+                    to[nextKey] = nextSource[nextKey];
+                }
+            }
+        }
+        return to;
+    };
+}
+if (!Object.defineProperty || !Polyfills.isDefinePropertyOk) { // IE8
+    Polyfills.log("Object.defineProperty");
+    Object.defineProperty = function (target, prop, PropDescriptor) {
+        // can handle simple case: Object.defineProperty(exports, "__esModule", { value: true });
+        target[prop] = PropDescriptor.value;
+        return target;
+    };
+}
+if (!Object.keys) { // IE8
+    Polyfills.log("Object.keys");
+    // based on: https://tokenposts.blogspot.com/2012/04/javascript-objectkeys-browser.html
+    Object.keys = function (o) {
+        var k = [];
+        if (o !== Object(o)) {
+            throw new TypeError("Object.keys called on a non-object");
+        }
+        for (var p in o) {
+            if (Object.prototype.hasOwnProperty.call(o, p)) {
+                k.push(p);
+            }
+        }
+        return k;
+    };
+}
+if (!Object.values) { // IE11
+    Polyfills.log("Object.values");
+    // based on: https://github.com/KhaledElAnsari/Object.values/blob/master/index.js
+    Object.values = function (o) {
+        return Object.keys(o).map(function (key) {
+            return o[key];
+        });
+    };
+}
+if (!String.prototype.endsWith) {
+    Polyfills.log("String.prototype.endsWith");
+    String.prototype.endsWith = function (search, position) {
+        if (position === undefined) {
+            position = this.length;
+        }
+        position -= search.length;
+        var lastIndex = this.indexOf(search, position);
+        return lastIndex !== -1 && lastIndex === position;
+    };
+}
+if (!String.prototype.includes) { // IE11
+    Polyfills.log("String.prototype.includes");
+    String.prototype.includes = function (search, start) {
+        if (start === void 0) { start = 0; }
+        var ret;
+        if (start + search.length > this.length) {
+            ret = false;
+        }
+        else {
+            ret = this.indexOf(search, start) !== -1;
+        }
+        return ret;
+    };
+}
+if (!String.prototype.padStart) { // IE11
+    Polyfills.log("String.prototype.padStart");
+    String.prototype.padStart = function (targetLength, pad) {
+        var ret = String(this);
+        targetLength >>= 0; // eslint-disable-line no-bitwise
+        if (this.length < targetLength) {
+            pad = String(typeof pad !== "undefined" ? pad : " ");
+            targetLength -= this.length;
+            if (targetLength > pad.length) {
+                pad += pad.repeat(targetLength / pad.length);
+            }
+            ret = pad.slice(0, targetLength) + ret;
+        }
+        return ret;
+    };
+}
+if (!String.prototype.padEnd) { // IE11
+    // based on: https://github.com/behnammodi/polyfill/blob/master/string.polyfill.js
+    Polyfills.log("String.prototype.padEnd");
+    String.prototype.padEnd = function (targetLength, pad) {
+        var ret = String(this);
+        targetLength >>= 0; // eslint-disable-line no-bitwise
+        if (this.length < targetLength) {
+            pad = String(typeof pad !== "undefined" ? pad : " ");
+            targetLength -= this.length;
+            if (targetLength > pad.length) {
+                pad += pad.repeat(targetLength / pad.length);
+            }
+            ret += pad.slice(0, targetLength); // this line differs from padStart
+        }
+        return ret;
+    };
+}
+if (!String.prototype.repeat) { // IE11
+    Polyfills.log("String.prototype.repeat");
+    String.prototype.repeat = function (count) {
+        var str = String(this);
+        var out = "";
+        for (var i = 0; i < count; i += 1) {
+            out += str;
+        }
+        return out;
+    };
+}
+if (!String.prototype.startsWith) {
+    Polyfills.log("String.prototype.startsWith");
+    String.prototype.startsWith = function (search, position) {
+        position = position || 0;
+        return this.indexOf(search, position) === position;
+    };
+}
+if (!String.prototype.trim) { // IE8
+    Polyfills.log("String.prototype.trim");
+    String.prototype.trim = function () {
+        return this.replace(/^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g, "");
+    };
+}
+// based on: https://github.com/mathiasbynens/base64/blob/master/base64.js
+// https://mths.be/base64 v0.1.0 by @mathias | MIT license
+if (!window.atob) { // IE9 (and node.js)
+    Polyfills.log("window.atob, window.btoa");
+    if (Polyfills.isNodeAvailable) { // for nodeJS we have an alternative
+        // https://dirask.com/posts/Node-js-atob-btoa-functions-equivalents-1Aqb51
+        window.atob = function (input) {
+            return Buffer.from(input, "base64").toString("binary");
+        };
+        window.btoa = function (input) {
+            return Buffer.from(input, "binary").toString("base64");
+        };
+    }
+    else {
+        (function () {
+            var table = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/", reSpaceCharacters = /[\t\n\f\r ]/g; // http://whatwg.org/html/common-microsyntaxes.html#space-character
+            /* eslint-disable no-bitwise */
+            window.atob = function (input) {
+                input = String(input).replace(reSpaceCharacters, "");
+                var length = input.length;
+                if (length % 4 === 0) {
+                    input = input.replace(/[=]=?$/, ""); // additional brackets to maks eslint happy
+                    length = input.length;
+                }
+                if (length % 4 === 1 || (/[^+a-zA-Z0-9/]/).test(input)) { // http://whatwg.org/C#alphanumeric-ascii-characters
+                    throw new TypeError("Polyfills:atob: Invalid character: the string to be decoded is not correctly encoded.");
+                }
+                var bitCounter = 0, output = "", position = 0, bitStorage = 0;
+                while (position < length) {
+                    var buffer = table.indexOf(input.charAt(position));
+                    bitStorage = bitCounter % 4 ? bitStorage * 64 + buffer : buffer;
+                    bitCounter += 1;
+                    if ((bitCounter - 1) % 4) { // Unless this is the first of a group of 4 characters...
+                        output += String.fromCharCode(0xFF & bitStorage >> (-2 * bitCounter & 6)); // ...convert the first 8 bits to a single ASCII character
+                    }
+                    position += 1;
+                }
+                return output;
+            };
+            window.btoa = function (input) {
+                input = String(input);
+                if ((/[^\0-\xFF]/).test(input)) {
+                    throw new TypeError("Polyfills:btoa: The string to be encoded contains characters outside of the Latin1 range.");
+                }
+                var padding = input.length % 3, length = input.length - padding; // Make sure any padding is handled outside of the loop
+                var output = "", position = 0;
+                while (position < length) {
+                    // Read three bytes, i.e. 24 bits.
+                    var a = input.charCodeAt(position) << 16;
+                    position += 1;
+                    var b = input.charCodeAt(position) << 8;
+                    position += 1;
+                    var c = input.charCodeAt(position);
+                    position += 1;
+                    var buffer = a + b + c;
+                    // Turn the 24 bits into four chunks of 6 bits each, and append the matching character for each of them to the output
+                    output += table.charAt(buffer >> 18 & 0x3F) + table.charAt(buffer >> 12 & 0x3F) + table.charAt(buffer >> 6 & 0x3F) + table.charAt(buffer & 0x3F);
+                }
+                if (padding === 2) {
+                    var a = input.charCodeAt(position) << 8;
+                    position += 1;
+                    var b = input.charCodeAt(position), buffer = a + b;
+                    output += table.charAt(buffer >> 10) + table.charAt((buffer >> 4) & 0x3F) + table.charAt((buffer << 2) & 0x3F) + "=";
+                }
+                else if (padding === 1) {
+                    var buffer = input.charCodeAt(position);
+                    output += table.charAt(buffer >> 2) + table.charAt((buffer << 4) & 0x3F) + "==";
+                }
+                return output;
+            };
+            /* eslint-enable no-bitwise */
+        }());
+    }
+}
+// For IE and Edge, localStorage is only available if page is hosted on web server, so we simulate it (do not use property "length" or method names as keys!)
+if (!Polyfills.localStorage) {
+    Polyfills.log("window.localStorage");
+    (function () {
+        var Storage = /** @class */ (function () {
+            function Storage() {
+                this.length = 0;
+            }
+            Storage.prototype.clear = function () {
+                for (var key in this) {
+                    if (this.hasOwnProperty(key)) {
+                        delete this[key];
+                    }
+                }
+                this.length = 0;
+            };
+            Storage.prototype.key = function (index) {
+                var i = 0;
+                for (var key in this) {
+                    if (this.hasOwnProperty(key) && key !== "length") {
+                        if (i === index) {
+                            return key;
+                        }
+                        i += 1;
+                    }
+                }
+                return null;
+            };
+            Storage.prototype.getItem = function (key) {
+                return this.hasOwnProperty(key) ? this[key] : null;
+            };
+            Storage.prototype.setItem = function (key, value) {
+                if (this.getItem(key) === null) {
+                    this.length += 1;
+                }
+                this[key] = String(value);
+            };
+            Storage.prototype.removeItem = function (key) {
+                if (this.getItem(key) !== null) {
+                    delete this[key];
+                    this.length -= 1;
+                }
+            };
+            return Storage;
+        }());
+        Polyfills.localStorage = new Storage();
+    }());
+}
+if (!window.ArrayBuffer) { // IE9
+    Polyfills.log("window.ArrayBuffer");
+    window.ArrayBuffer = Array;
+}
+if (!window.AudioContext) { // ? not for IE
+    window.AudioContext = window.webkitAudioContext || window.mozAudioContext;
+    if (window.AudioContext) {
+        Polyfills.log("window.AudioContext");
+    }
+    else {
+        Polyfills.log("window.AudioContext not ok!");
+    }
+}
+if (!window.JSON) { // simple polyfill for JSON.parse only
+    // for a better implementation, see https://github.com/douglascrockford/JSON-js/blob/master/json2.js
+    Polyfills.log("window.JSON.parse");
+    window.JSON = {
+        parse: function (text) {
+            return eval("(" + text + ")"); // eslint-disable-line no-eval
+        },
+        stringify: function (o) {
+            (Polyfills.console || window.console).error("Not implemented: window.JSON.stringify");
+            return String(o);
+        }
+    };
+}
+if (!window.requestAnimationFrame) { // IE9, SliTaz tazweb browser
+    // https://wiki.selfhtml.org/wiki/JavaScript/Window/requestAnimationFrame
+    window.requestAnimationFrame = window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
+    window.cancelAnimationFrame = window.mozCancelAnimationFrame || window.webkitCancelAnimationFrame || window.msCancelAnimationFrame;
+    if (!window.requestAnimationFrame || !window.cancelAnimationFrame) {
+        (function () {
+            var lastTime = 0;
+            Polyfills.log("window.requestAnimationFrame, cancelAnimationFrame");
+            window.requestAnimationFrame = function (callback /* , element */) {
+                var currTime = new Date().getTime(), timeToCall = Math.max(0, 16 - (currTime - lastTime)), id = window.setTimeout(function () { callback(currTime + timeToCall); }, timeToCall);
+                lastTime = currTime + timeToCall;
+                return id;
+            };
+            window.cancelAnimationFrame = function (id) {
+                clearTimeout(id);
+            };
+        }());
+    }
+    else {
+        Polyfills.log("window.requestAnimationFrame, cancelAnimationFrame: Using vendor specific method.");
+    }
+}
+if (!window.Uint8Array) { // IE9
+    Polyfills.log("Uint8Array (fallback only)");
+    window.Uint8Array = function (arrayBuffer) {
+        return arrayBuffer; // we just return the ArrayBuffer as fallback; enough for our needs
+    };
+    window.Uint8Array.BYTES_PER_ELEMENT = 1;
+    // A more complex solution would be: https://github.com/inexorabletash/polyfill/blob/master/typedarray.js
+}
+//Utils.console.debug("Polyfills: (" + Polyfills.getList().length + ") " + Polyfills.getList().join("; "));
+(Polyfills.console || window.console).debug("Polyfills: (" + Polyfills.getList().length + ") " + Polyfills.getList().join("; "));
+window.Polyfills = Polyfills; // for nodeJs
+// end
 // amdLoader.ts - AMD Loader for the browser or nodeJS
 // (c) Marco Vieth, 2022
 //
@@ -33,6 +679,32 @@ function amd4Node() {
             }
             return require(fileName); // eslint-disable-line global-require
         }.bind(this, mod);
+        /*
+            depsMapped: string[] = []; // deps.map() (Array.map() not IE8)
+
+        for (let i = 0; i < deps.length; i += 1) {
+            const injection = deps[i];
+            let mapped;
+
+            switch (injection) {
+            // check for CommonJS injection variables
+            case "require":
+                mapped = req;
+                break;
+            case "exports":
+                mapped = mod.exports;
+                break;
+            case "module":
+                mapped = mod;
+                break;
+            default:
+                mapped = req(injection); // a module dependency
+                break;
+            }
+            depsMapped[i] = mapped;
+        }
+        func.apply(mod.exports, depsMapped);
+        */
         func.apply(mod.exports, deps.map(function (injection) {
             switch (injection) {
                 // check for CommonJS injection variables
@@ -62,20 +734,36 @@ function amd4browser() {
         window.define = function (arg1, arg2, arg3) {
             // if arg1 is no id, we have an anonymous module
             var _a = (typeof arg1 !== "string") ? [arg1, arg2] : [arg2, arg3], deps = _a[0], func = _a[1], // eslint-disable-line array-element-newline
+            depsMapped = []; // deps.map() (Array.map() not IE8)
+            for (var i = 0; i < deps.length; i += 1) {
+                var name_1 = deps[i];
+                var mapped = void 0;
+                if (name_1 === "require") {
+                    mapped = null;
+                }
+                else if (name_1 === "exports") {
+                    mapped = window.exports;
+                }
+                else {
+                    mapped = window.require(name_1);
+                }
+                depsMapped[i] = mapped;
+            }
+            /*
             args = deps.map(function (name) {
                 if (name === "require") {
                     return null;
-                }
-                else if (name === "exports") {
+                } else if (name === "exports") {
                     return window.exports;
                 }
                 return window.require(name);
             });
-            func.apply(this, args);
+            */
+            func.apply(this, depsMapped);
         };
     }
 }
-if ((typeof globalThis !== "undefined") && !globalThis.window) { // we assume nodeJS
+if (Polyfills.isNodeAvailable) {
     amd4Node();
 }
 else {
@@ -89,6 +777,7 @@ define("Utils", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Utils = void 0;
+    var Polyfills = window.Polyfills;
     var Utils = /** @class */ (function () {
         function Utils() {
         }
@@ -246,565 +935,48 @@ define("Utils", ["require", "exports"], function (require, exports) {
             return customError;
         };
         Utils.debug = 0;
-        Utils.console = (function () {
+        /*
+        static console = (function () {
             return typeof window !== "undefined" ? window.console : globalThis.console; // browser or node.js
         }());
+        */
+        Utils.console = Polyfills.console;
         Utils.supportsBinaryLiterals = Utils.testIsSupported("0b01"); // does the browser support binary literals?
         Utils.supportReservedNames = Utils.testIsSupported("({}).return()"); // does the browser support reserved names (delete, new, return) in dot notation? (not old IE8; "goto" is ok)
-        Utils.localStorage = (function () {
-            var rc;
+        /*
+        static localStorage = (function () {
+            let rc: Storage | undefined;
+    
             if (typeof window !== "undefined") {
                 try {
                     rc = window.localStorage; // due to a bug in MS Edge this will throw an error when hosting locally (https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/8816771/)
-                }
-                catch (_e) {
+                } catch (_e) {
                     // empty
                 }
             }
-            return rc; // if it is undefined, localStorage is set in Polyfills
+            return rc as Storage; // if it is undefined, localStorage is set in Polyfills
         }());
-        Utils.atob = (function () {
+        */
+        Utils.localStorage = Polyfills.localStorage || window.localStorage;
+        /*
+        static atob = (function () {
             return typeof window !== "undefined" && window.atob && window.atob.bind ? window.atob.bind(window) : null; // we need bind: https://stackoverflow.com/questions/9677985/uncaught-typeerror-illegal-invocation-in-chrome
-        }());
-        Utils.btoa = (function () {
+        }()) as (arg0: string) => string;
+    
+        static btoa = (function () {
             return typeof window !== "undefined" && window.btoa && window.btoa.bind ? window.btoa.bind(window) : null; // we need bind!
-        }());
+        }()) as (arg0: string) => string;
+        */
+        Utils.atob = function (data) {
+            return window.atob(data);
+        };
+        Utils.btoa = function (data) {
+            return window.btoa(data);
+        };
         return Utils;
     }());
     exports.Utils = Utils;
 });
-// Polyfills.ts - Some Polyfills for old browsers, e.g. IE8, and nodeJS
-//
-define("Polyfills", ["require", "exports", "Utils"], function (require, exports, Utils_1) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-    exports.Polyfills = void 0;
-    exports.Polyfills = {
-        list: [],
-        getList: function () {
-            return exports.Polyfills.list;
-        },
-        log: function (part) {
-            exports.Polyfills.list.push(part);
-        }
-    };
-    // IE: window.console is only available when Dev Tools are open
-    if (!Utils_1.Utils.console) {
-        var utilsConsole_1 = {
-            cpcBasicLog: "LOG:\n",
-            log: function () {
-                if (utilsConsole_1.cpcBasicLog) {
-                    utilsConsole_1.cpcBasicLog += Array.prototype.slice.call(arguments).join(" ") + "\n";
-                }
-            }
-        };
-        utilsConsole_1.info = utilsConsole_1.log;
-        utilsConsole_1.warn = utilsConsole_1.log;
-        utilsConsole_1.error = utilsConsole_1.log;
-        utilsConsole_1.debug = utilsConsole_1.log;
-        Utils_1.Utils.console = utilsConsole_1;
-    }
-    if (!Utils_1.Utils.console.debug) { // IE8 has no console.debug
-        Utils_1.Utils.console.debug = Utils_1.Utils.console.log;
-        exports.Polyfills.log("window.console.debug");
-    }
-    if ((typeof globalThis !== "undefined") && !globalThis.window) { // nodeJS
-        exports.Polyfills.log("window");
-        globalThis.window = globalThis;
-    }
-    if (!Array.prototype.indexOf) { // IE8
-        exports.Polyfills.log("Array.prototype.indexOf");
-        Array.prototype.indexOf = function (searchElement, from) {
-            var len = this.length >>> 0; // eslint-disable-line no-bitwise
-            from = Number(from) || 0;
-            from = (from < 0) ? Math.ceil(from) : Math.floor(from);
-            if (from < 0) {
-                from += len;
-            }
-            for (; from < len; from += 1) {
-                if (from in this && this[from] === searchElement) {
-                    return from;
-                }
-            }
-            return -1;
-        };
-    }
-    if (!Array.prototype.fill) { // IE11
-        // based on: https://github.com/1000ch/array-fill/blob/master/index.js
-        exports.Polyfills.log("Array.prototype.fill");
-        Array.prototype.fill = function (value, start, end) {
-            var length = this.length;
-            start = start || 0;
-            end = end === undefined ? length : (end || 0);
-            var i = start < 0 ? Math.max(length + start, 0) : Math.min(start, length);
-            var l = end < 0 ? Math.max(length + end, 0) : Math.min(end, length);
-            for (; i < l; i += 1) {
-                this[i] = value;
-            }
-            return this;
-        };
-    }
-    if (!Array.prototype.map) { // IE8
-        // based on: https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Global_Objects/Array/map
-        exports.Polyfills.log("Array.prototype.map");
-        Array.prototype.map = function (callback, thisArg) {
-            var values = [], object = Object(this), len = object.length;
-            var T;
-            if (arguments.length > 1) {
-                T = thisArg;
-            }
-            for (var i = 0; i < len; i += 1) {
-                if (i in object) {
-                    var kValue = object[i], mappedValue = callback.call(T, kValue, i, object);
-                    values[i] = mappedValue;
-                }
-            }
-            return values;
-        };
-    }
-    if (window.Element) {
-        if (!Element.prototype.addEventListener) { // IE8
-            exports.Polyfills.log("Element.prototype.addEventListener");
-            Element.prototype.addEventListener = function (event, fnCallback) {
-                event = "on" + event;
-                return this.attachEvent(event, fnCallback);
-            };
-        }
-        if (!Element.prototype.removeEventListener) { // IE8
-            exports.Polyfills.log("Element.prototype.removeEventListener");
-            Element.prototype.removeEventListener = function (event, fnCallback) {
-                event = "on" + event;
-                return this.detachEvent(event, fnCallback);
-            };
-        }
-    }
-    if (window.Event) {
-        if (!Event.prototype.preventDefault) { // IE8
-            exports.Polyfills.log("Polyfill: Event.prototype.preventDefault");
-            Event.prototype.preventDefault = function () {
-                // empty
-            };
-        }
-        if (!Event.prototype.stopPropagation) { // IE8
-            exports.Polyfills.log("Event.prototype.stopPropagation");
-            Event.prototype.stopPropagation = function () {
-                // empty
-            };
-        }
-    }
-    if (!Date.now) { // IE8
-        exports.Polyfills.log("Date.now");
-        Date.now = function () {
-            return new Date().getTime();
-        };
-    }
-    if (window.document) {
-        if (!document.addEventListener) {
-            // or check: https://gist.github.com/fuzzyfox/6762206
-            exports.Polyfills.log("document.addEventListener, removeEventListener");
-            if (document.attachEvent) {
-                (function () {
-                    var eventListeners = [];
-                    document.addEventListener = function (eventString, fnHandler) {
-                        var fnFindCaret = function (event) {
-                            var documentSelection = document.selection; // IE only
-                            if (documentSelection) {
-                                var eventTarget = event.target;
-                                eventTarget.focus();
-                                var range = documentSelection.createRange(), range2 = range.duplicate();
-                                if (range2.moveToElementTxt) { // not on IE8
-                                    range2.moveToElementTxt(event.target);
-                                }
-                                range2.setEndPoint("EndToEnd", range);
-                                eventTarget.selectionStart = range2.text.length - range.text.length;
-                                eventTarget.selectionEnd = eventTarget.selectionStart + range.text.length;
-                            }
-                        }, fnOnEvent = function (event) {
-                            event = event || window.event;
-                            var eventTarget = event.target || event.srcElement;
-                            if (event.type === "click" && eventTarget && eventTarget.tagName === "TEXTAREA") {
-                                fnFindCaret(event);
-                            }
-                            fnHandler(event);
-                            return false;
-                        };
-                        // The change event is not bubbled and fired on document for old IE8. So attach it to every select tag
-                        if (eventString === "change") {
-                            var elements = document.getElementsByTagName("select");
-                            for (var i = 0; i < elements.length; i += 1) {
-                                elements[i].attachEvent("on" + eventString, fnOnEvent);
-                                eventListeners.push({
-                                    object: this,
-                                    eventString: eventString,
-                                    fnHandler: fnHandler,
-                                    fnOnEvent: fnOnEvent
-                                });
-                            }
-                        }
-                        else { // e.g. "Click"
-                            document.attachEvent("on" + eventString, fnOnEvent);
-                            eventListeners.push({
-                                object: this,
-                                eventString: eventString,
-                                fnHandler: fnHandler,
-                                fnOnEvent: fnOnEvent
-                            });
-                        }
-                    };
-                    document.removeEventListener = function (event, fnHandler) {
-                        var counter = 0;
-                        while (counter < eventListeners.length) {
-                            var eventListener = eventListeners[counter];
-                            if (eventListener.object === this && eventListener.eventString === event && eventListener.fnHandler === fnHandler) {
-                                this.detachEvent("on" + event, eventListener.fnOnEvent);
-                                eventListeners.splice(counter, 1);
-                                break;
-                            }
-                            counter += 1;
-                        }
-                    };
-                }());
-            }
-            else {
-                Utils_1.Utils.console.log("No document.attachEvent found."); // will be ignored
-                // debug: trying to fix
-                if (document.__proto__.addEventListener) { // eslint-disable-line no-proto
-                    document.addEventListener = document.__proto__.addEventListener; // eslint-disable-line no-proto
-                }
-            }
-        }
-    }
-    if (!Function.prototype.bind) { // IE8
-        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/bind
-        // Does not work with `new funcA.bind(thisArg, args)`
-        exports.Polyfills.log("Function.prototype.bind");
-        (function () {
-            var ArrayPrototypeSlice = Array.prototype.slice; // since IE6
-            Function.prototype.bind = function () {
-                var that = this, // eslint-disable-line @typescript-eslint/no-this-alias
-                thatArg = arguments[0], args = ArrayPrototypeSlice.call(arguments, 1), argLen = args.length;
-                if (typeof that !== "function") {
-                    // closest thing possible to the ECMAScript 5 internal IsCallable function
-                    throw new TypeError("Function.prototype.bind - what is trying to be bound is not callable");
-                }
-                return function () {
-                    args.length = argLen;
-                    args.push.apply(args, arguments);
-                    return that.apply(thatArg, args);
-                };
-            };
-        }());
-    }
-    if (!Math.log10) { // IE11
-        exports.Polyfills.log("Math.log10");
-        Math.log10 = function (x) {
-            return Math.log(x) * Math.LOG10E;
-        };
-    }
-    if (!Math.sign) { // IE11
-        exports.Polyfills.log("Math.sign");
-        Math.sign = function (x) {
-            return (Number(x > 0) - Number(x < 0)) || Number(x);
-        };
-    }
-    if (!Math.trunc) { // IE11
-        exports.Polyfills.log("Math.trunc");
-        Math.trunc = function (v) {
-            return v < 0 ? Math.ceil(v) : Math.floor(v);
-        };
-    }
-    if (!Object.assign) { // IE11
-        exports.Polyfills.log("Object.assign");
-        Object.assign = function (target) {
-            var to = target;
-            for (var i = 1; i < arguments.length; i += 1) {
-                var nextSource = arguments[i];
-                for (var nextKey in nextSource) {
-                    if (nextSource.hasOwnProperty(nextKey)) {
-                        to[nextKey] = nextSource[nextKey];
-                    }
-                }
-            }
-            return to;
-        };
-    }
-    if (!Object.keys) { // IE8
-        exports.Polyfills.log("Object.keys");
-        // based on: https://tokenposts.blogspot.com/2012/04/javascript-objectkeys-browser.html
-        Object.keys = function (o) {
-            var k = [];
-            if (o !== Object(o)) {
-                throw new TypeError("Object.keys called on a non-object");
-            }
-            for (var p in o) {
-                if (Object.prototype.hasOwnProperty.call(o, p)) {
-                    k.push(p);
-                }
-            }
-            return k;
-        };
-    }
-    if (!Object.values) { // IE11
-        exports.Polyfills.log("Object.values");
-        // based on: https://github.com/KhaledElAnsari/Object.values/blob/master/index.js
-        Object.values = function (o) {
-            return Object.keys(o).map(function (key) {
-                return o[key];
-            });
-        };
-    }
-    if (!String.prototype.endsWith) {
-        exports.Polyfills.log("String.prototype.endsWith");
-        String.prototype.endsWith = function (search, position) {
-            if (position === undefined) {
-                position = this.length;
-            }
-            position -= search.length;
-            var lastIndex = this.indexOf(search, position);
-            return lastIndex !== -1 && lastIndex === position;
-        };
-    }
-    if (!String.prototype.includes) { // IE11
-        exports.Polyfills.log("String.prototype.includes");
-        String.prototype.includes = function (search, start) {
-            if (start === void 0) { start = 0; }
-            var ret;
-            if (start + search.length > this.length) {
-                ret = false;
-            }
-            else {
-                ret = this.indexOf(search, start) !== -1;
-            }
-            return ret;
-        };
-    }
-    if (!String.prototype.padStart) { // IE11
-        exports.Polyfills.log("String.prototype.padStart");
-        String.prototype.padStart = function (targetLength, pad) {
-            var ret = String(this);
-            targetLength >>= 0; // eslint-disable-line no-bitwise
-            if (this.length < targetLength) {
-                pad = String(typeof pad !== "undefined" ? pad : " ");
-                targetLength -= this.length;
-                if (targetLength > pad.length) {
-                    pad += pad.repeat(targetLength / pad.length);
-                }
-                ret = pad.slice(0, targetLength) + ret;
-            }
-            return ret;
-        };
-    }
-    if (!String.prototype.padEnd) { // IE11
-        // based on: https://github.com/behnammodi/polyfill/blob/master/string.polyfill.js
-        exports.Polyfills.log("String.prototype.padEnd");
-        String.prototype.padEnd = function (targetLength, pad) {
-            var ret = String(this);
-            targetLength >>= 0; // eslint-disable-line no-bitwise
-            if (this.length < targetLength) {
-                pad = String(typeof pad !== "undefined" ? pad : " ");
-                targetLength -= this.length;
-                if (targetLength > pad.length) {
-                    pad += pad.repeat(targetLength / pad.length);
-                }
-                ret += pad.slice(0, targetLength); // this line differs from padStart
-            }
-            return ret;
-        };
-    }
-    if (!String.prototype.repeat) { // IE11
-        exports.Polyfills.log("String.prototype.repeat");
-        String.prototype.repeat = function (count) {
-            var str = String(this);
-            var out = "";
-            for (var i = 0; i < count; i += 1) {
-                out += str;
-            }
-            return out;
-        };
-    }
-    if (!String.prototype.startsWith) {
-        exports.Polyfills.log("String.prototype.startsWith");
-        String.prototype.startsWith = function (search, position) {
-            position = position || 0;
-            return this.indexOf(search, position) === position;
-        };
-    }
-    if (!String.prototype.trim) { // IE8
-        exports.Polyfills.log("String.prototype.trim");
-        String.prototype.trim = function () {
-            return this.replace(/^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g, "");
-        };
-    }
-    // based on: https://github.com/mathiasbynens/base64/blob/master/base64.js
-    // https://mths.be/base64 v0.1.0 by @mathias | MIT license
-    if (!Utils_1.Utils.atob) { // IE9 (and node.js)
-        exports.Polyfills.log("window.atob, btoa");
-        (function () {
-            var table = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/", reSpaceCharacters = /[\t\n\f\r ]/g; // http://whatwg.org/html/common-microsyntaxes.html#space-character
-            /* eslint-disable no-bitwise */
-            Utils_1.Utils.atob = function (input) {
-                input = String(input).replace(reSpaceCharacters, "");
-                var length = input.length;
-                if (length % 4 === 0) {
-                    input = input.replace(/[=]=?$/, ""); // additional brackets to maks eslint happy
-                    length = input.length;
-                }
-                if (length % 4 === 1 || (/[^+a-zA-Z0-9/]/).test(input)) { // http://whatwg.org/C#alphanumeric-ascii-characters
-                    throw new TypeError("Polyfills:atob: Invalid character: the string to be decoded is not correctly encoded.");
-                }
-                var bitCounter = 0, output = "", position = 0, bitStorage = 0;
-                while (position < length) {
-                    var buffer = table.indexOf(input.charAt(position));
-                    bitStorage = bitCounter % 4 ? bitStorage * 64 + buffer : buffer;
-                    bitCounter += 1;
-                    if ((bitCounter - 1) % 4) { // Unless this is the first of a group of 4 characters...
-                        output += String.fromCharCode(0xFF & bitStorage >> (-2 * bitCounter & 6)); // ...convert the first 8 bits to a single ASCII character
-                    }
-                    position += 1;
-                }
-                return output;
-            };
-            Utils_1.Utils.btoa = function (input) {
-                input = String(input);
-                if ((/[^\0-\xFF]/).test(input)) {
-                    throw new TypeError("Polyfills:btoa: The string to be encoded contains characters outside of the Latin1 range.");
-                }
-                var padding = input.length % 3, length = input.length - padding; // Make sure any padding is handled outside of the loop
-                var output = "", position = 0;
-                while (position < length) {
-                    // Read three bytes, i.e. 24 bits.
-                    var a = input.charCodeAt(position) << 16;
-                    position += 1;
-                    var b = input.charCodeAt(position) << 8;
-                    position += 1;
-                    var c = input.charCodeAt(position);
-                    position += 1;
-                    var buffer = a + b + c;
-                    // Turn the 24 bits into four chunks of 6 bits each, and append the matching character for each of them to the output
-                    output += table.charAt(buffer >> 18 & 0x3F) + table.charAt(buffer >> 12 & 0x3F) + table.charAt(buffer >> 6 & 0x3F) + table.charAt(buffer & 0x3F);
-                }
-                if (padding === 2) {
-                    var a = input.charCodeAt(position) << 8;
-                    position += 1;
-                    var b = input.charCodeAt(position), buffer = a + b;
-                    output += table.charAt(buffer >> 10) + table.charAt((buffer >> 4) & 0x3F) + table.charAt((buffer << 2) & 0x3F) + "=";
-                }
-                else if (padding === 1) {
-                    var buffer = input.charCodeAt(position);
-                    output += table.charAt(buffer >> 2) + table.charAt((buffer << 4) & 0x3F) + "==";
-                }
-                return output;
-            };
-            /* eslint-enable no-bitwise */
-        }());
-    }
-    // For IE and Edge, localStorage is only available if page is hosted on web server, so we simulate it (do not use property "length" or method names as keys!)
-    if (!Utils_1.Utils.localStorage) {
-        exports.Polyfills.log("window.localStorage");
-        (function () {
-            var Storage = /** @class */ (function () {
-                function Storage() {
-                    this.length = 0;
-                }
-                Storage.prototype.clear = function () {
-                    for (var key in this) {
-                        if (this.hasOwnProperty(key)) {
-                            delete this[key];
-                        }
-                    }
-                    this.length = 0;
-                };
-                Storage.prototype.key = function (index) {
-                    var i = 0;
-                    for (var key in this) {
-                        if (this.hasOwnProperty(key) && key !== "length") {
-                            if (i === index) {
-                                return key;
-                            }
-                            i += 1;
-                        }
-                    }
-                    return null;
-                };
-                Storage.prototype.getItem = function (key) {
-                    return this.hasOwnProperty(key) ? this[key] : null;
-                };
-                Storage.prototype.setItem = function (key, value) {
-                    if (this.getItem(key) === null) {
-                        this.length += 1;
-                    }
-                    this[key] = String(value);
-                };
-                Storage.prototype.removeItem = function (key) {
-                    if (this.getItem(key) !== null) {
-                        delete this[key];
-                        this.length -= 1;
-                    }
-                };
-                return Storage;
-            }());
-            Utils_1.Utils.localStorage = new Storage();
-        }());
-    }
-    if (!window.ArrayBuffer) { // IE9
-        exports.Polyfills.log("window.ArrayBuffer");
-        window.ArrayBuffer = Array;
-    }
-    if (!window.AudioContext) { // ? not for IE
-        window.AudioContext = window.webkitAudioContext || window.mozAudioContext;
-        if (window.AudioContext) {
-            exports.Polyfills.log("window.AudioContext");
-        }
-        else {
-            exports.Polyfills.log("window.AudioContext not ok!");
-        }
-    }
-    if (!window.JSON) { // simple polyfill for JSON.parse only
-        // for a better implementation, see https://github.com/douglascrockford/JSON-js/blob/master/json2.js
-        exports.Polyfills.log("window.JSON.parse");
-        window.JSON = {
-            parse: function (text) {
-                return eval("(" + text + ")"); // eslint-disable-line no-eval
-            },
-            stringify: function (o) {
-                Utils_1.Utils.console.error("Not implemented: window.JSON.stringify");
-                return String(o);
-            }
-        };
-    }
-    if (!window.requestAnimationFrame) { // IE9, SliTaz tazweb browser
-        // https://wiki.selfhtml.org/wiki/JavaScript/Window/requestAnimationFrame
-        window.requestAnimationFrame = window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
-        window.cancelAnimationFrame = window.mozCancelAnimationFrame || window.webkitCancelAnimationFrame || window.msCancelAnimationFrame;
-        if (!window.requestAnimationFrame || !window.cancelAnimationFrame) {
-            (function () {
-                var lastTime = 0;
-                exports.Polyfills.log("window.requestAnimationFrame, cancelAnimationFrame");
-                window.requestAnimationFrame = function (callback /* , element */) {
-                    var currTime = new Date().getTime(), timeToCall = Math.max(0, 16 - (currTime - lastTime)), id = window.setTimeout(function () { callback(currTime + timeToCall); }, timeToCall);
-                    lastTime = currTime + timeToCall;
-                    return id;
-                };
-                window.cancelAnimationFrame = function (id) {
-                    clearTimeout(id);
-                };
-            }());
-        }
-        else {
-            exports.Polyfills.log("window.requestAnimationFrame, cancelAnimationFrame: Using vendor specific method.");
-        }
-    }
-    if (!window.Uint8Array) { // IE9
-        exports.Polyfills.log("Uint8Array (fallback only)");
-        window.Uint8Array = function (arrayBuffer) {
-            return arrayBuffer; // we just return the ArrayBuffer as fallback; enough for our needs
-        };
-        window.Uint8Array.BYTES_PER_ELEMENT = 1;
-        // A more complex solution would be: https://github.com/inexorabletash/polyfill/blob/master/typedarray.js
-    }
-    Utils_1.Utils.console.debug("Polyfills: (" + exports.Polyfills.getList().length + ") " + exports.Polyfills.getList().join("; "));
-});
-// end
 // Interfaces.ts - Interfaces
 // (c) Marco Vieth, 2020
 // https://benchmarko.github.io/CPCBasicTS/
@@ -1085,7 +1257,7 @@ define("cpcCharset", ["require", "exports"], function (require, exports) {
 // Model.ts - Model (MVC)
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
-define("Model", ["require", "exports", "Utils"], function (require, exports, Utils_2) {
+define("Model", ["require", "exports", "Utils"], function (require, exports, Utils_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Model = void 0;
@@ -1110,10 +1282,10 @@ define("Model", ["require", "exports", "Utils"], function (require, exports, Uti
         };
         Model.prototype.getChangedProperties = function () {
             var current = this.config, initial = this.initialConfig, changed = {};
-            for (var name_1 in current) {
-                if (current.hasOwnProperty(name_1)) {
-                    if (current[name_1] !== initial[name_1]) {
-                        changed[name_1] = current[name_1];
+            for (var name_2 in current) {
+                if (current.hasOwnProperty(name_2)) {
+                    if (current[name_2] !== initial[name_2]) {
+                        changed[name_2] = current[name_2];
                     }
                 }
             }
@@ -1146,8 +1318,8 @@ define("Model", ["require", "exports", "Utils"], function (require, exports, Uti
         Model.prototype.setExample = function (example) {
             var database = this.getProperty("database"), key = example.key;
             if (!this.examples[database][key]) {
-                if (Utils_2.Utils.debug > 1) {
-                    Utils_2.Utils.console.debug("setExample: creating new example:", key);
+                if (Utils_1.Utils.debug > 1) {
+                    Utils_1.Utils.console.debug("setExample: creating new example:", key);
                 }
             }
             this.examples[database][key] = example;
@@ -1155,7 +1327,7 @@ define("Model", ["require", "exports", "Utils"], function (require, exports, Uti
         Model.prototype.removeExample = function (key) {
             var database = this.getProperty("database");
             if (!this.examples[database][key]) {
-                Utils_2.Utils.console.warn("removeExample: example does not exist: " + key);
+                Utils_1.Utils.console.warn("removeExample: example does not exist: " + key);
             }
             delete this.examples[database][key];
         };
@@ -1169,7 +1341,7 @@ define("Model", ["require", "exports", "Utils"], function (require, exports, Uti
 //
 // BASIC lexer for Locomotive BASIC 1.1 for Amstrad CPC 6128
 //
-define("BasicLexer", ["require", "exports", "Utils"], function (require, exports, Utils_3) {
+define("BasicLexer", ["require", "exports", "Utils"], function (require, exports, Utils_2) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.BasicLexer = void 0;
@@ -1196,7 +1368,7 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
             // }
         };
         BasicLexer.prototype.composeError = function (error, message, value, pos, len) {
-            return Utils_3.Utils.composeError("BasicLexer", error, message, value, pos, len, this.label || undefined);
+            return Utils_2.Utils.composeError("BasicLexer", error, message, value, pos, len, this.label || undefined);
         };
         BasicLexer.isOperatorOrStreamOrAddress = function (c) {
             return (/[+\-*/^=()[\],;:?\\@#]/).test(c);
@@ -1261,7 +1433,7 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
         BasicLexer.prototype.debugCheckValue = function (type, value, pos, orig) {
             var origValue = orig || value, part = this.input.substring(pos, pos + origValue.length);
             if (part !== origValue) {
-                Utils_3.Utils.console.debug("BasicLexer:debugCheckValue:", type, part, "<>", origValue, "at pos", pos);
+                Utils_2.Utils.console.debug("BasicLexer:debugCheckValue:", type, part, "<>", origValue, "at pos", pos);
             }
         };
         BasicLexer.prototype.addToken = function (type, value, pos, orig) {
@@ -1279,7 +1451,7 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
                 node.ws = this.whiteSpace;
                 this.whiteSpace = "";
             }
-            if (Utils_3.Utils.debug > 1) {
+            if (Utils_2.Utils.debug > 1) {
                 this.debugCheckValue(type, value, pos, node.orig); // check position of added value
             }
             this.tokens.push(node);
@@ -1468,8 +1640,8 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
             var char = "", token = this.advanceWhile(char, BasicLexer.isNotQuotes);
             char = this.getChar();
             if (char !== '"') {
-                if (Utils_3.Utils.debug) {
-                    Utils_3.Utils.console.debug(this.composeError({}, "Unterminated string", token, startPos + 1).message);
+                if (Utils_2.Utils.debug) {
+                    Utils_2.Utils.console.debug(this.composeError({}, "Unterminated string", token, startPos + 1).message);
                 }
                 token += this.fnTryContinueString(char); // heuristic to detect an LF in the string
                 char = this.getChar();
@@ -1557,7 +1729,7 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
 //
 // BASIC parser for Locomotive BASIC 1.1 for Amstrad CPC 6128
 //
-define("BasicParser", ["require", "exports", "Utils"], function (require, exports, Utils_4) {
+define("BasicParser", ["require", "exports", "Utils"], function (require, exports, Utils_3) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.BasicParser = void 0;
@@ -1584,13 +1756,13 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 clear: this.clear,
                 data: this.data,
                 def: this.def,
-                "else": this.else,
+                "else": this.fnElse,
                 ent: this.entOrEnv,
                 env: this.entOrEnv,
                 every: this.afterEveryGosub,
-                "for": this.for,
+                "for": this.fnFor,
                 graphics: this.graphics,
-                "if": this.if,
+                "if": this.fnIf,
                 input: this.input,
                 key: this.key,
                 let: this.let,
@@ -1632,7 +1804,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
         };
         BasicParser.prototype.composeError = function (error, message, value, pos, len) {
             len = value === "(end)" ? 0 : len;
-            return Utils_4.Utils.composeError("BasicParser", error, message, value, pos, len, this.label || undefined);
+            return Utils_3.Utils.composeError("BasicParser", error, message, value, pos, len, this.label || undefined);
         };
         BasicParser.prototype.fnLastStatementIsOnErrorGotoX = function () {
             var statements = this.statementList;
@@ -1653,7 +1825,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 throw this.composeError(Error(), message, node.value, node.pos);
             }
             else if (!this.quiet) {
-                Utils_4.Utils.console.warn(this.composeError({}, message, node.value, node.pos).message);
+                Utils_3.Utils.console.warn(this.composeError({}, message, node.value, node.pos).message);
             }
         };
         // http://crockford.com/javascript/tdop/tdop.html (old: http://javascript.crockford.com/tdop/tdop.html)
@@ -1674,7 +1846,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             }
             token = this.tokens[this.index]; // we get a lex token and reuse it as parseTree token
             if (!token) { // should not occur
-                Utils_4.Utils.console.error(this.composeError({}, "advance: End of file", "", this.token && this.token.pos).message);
+                Utils_3.Utils.console.error(this.composeError({}, "advance: End of file", "", this.token && this.token.pos).message);
                 return this.token; // old token
             }
             this.index += 1;
@@ -1690,8 +1862,8 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
         };
         BasicParser.prototype.expression = function (rbp) {
             var t = this.token, s = this.symbols[t.type];
-            if (Utils_4.Utils.debug > 3) {
-                Utils_4.Utils.console.debug("parse: expression rbp=" + rbp + " type=" + t.type + " t=%o", t);
+            if (Utils_3.Utils.debug > 3) {
+                Utils_3.Utils.console.debug("parse: expression rbp=" + rbp + " type=" + t.type + " t=%o", t);
             }
             if (t.type === "(end)") {
                 throw this.composeError(Error(), "Unexpected end of file", "", t.pos);
@@ -1796,7 +1968,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             };
         };
         BasicParser.prototype.fnCombineTwoTokensNoArgs = function (token2) {
-            var node = this.previousToken, name = node.type + Utils_4.Utils.stringCapitalize(this.token.type); // e.g ."speedInk"
+            var node = this.previousToken, name = node.type + Utils_3.Utils.stringCapitalize(this.token.type); // e.g ."speedInk"
             node.value += (this.token.ws || " ") + this.token.value; // combine values of both
             this.token = this.advance(token2); // for "speed" e.g. "ink", "key", "write" (this.token.type)
             this.previousToken = node; // fast hack to get e.g. "speed" token
@@ -1951,7 +2123,6 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 default:
                     expression = this.expression(0);
                     if (expression.type === "#") { // got stream?
-                        //throw this.composeError(Error(), "Unexpected stream", expression.value, expression.pos);
                         this.fnMaskedError(expression, "Unexpected stream");
                     }
                     break;
@@ -2037,7 +2208,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             args.push(bracketClose);
             if (brackets[bracketOpen.type] !== bracketClose.type) {
                 if (!this.quiet) {
-                    Utils_4.Utils.console.warn(this.composeError({}, "Inconsistent bracket style", this.previousToken.value, this.previousToken.pos).message);
+                    Utils_3.Utils.console.warn(this.composeError({}, "Inconsistent bracket style", this.previousToken.value, this.previousToken.pos).message);
                 }
             }
             return args;
@@ -2163,8 +2334,8 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
         BasicParser.prototype.chain = function () {
             var node = this.previousToken;
             if (this.token.type === "merge") { // chain merge?
-                var name_2 = this.fnCombineTwoTokensNoArgs(this.token.type); // chainMerge
-                node.type = name_2;
+                var name_3 = this.fnCombineTwoTokensNoArgs(this.token.type); // chainMerge
+                node.type = name_3;
             }
             node.args = [];
             // chain, chain merge with optional DELETE
@@ -2251,11 +2422,11 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             node.right = this.expression(0);
             return node;
         };
-        BasicParser.prototype["else"] = function () {
+        BasicParser.prototype.fnElse = function () {
             var node = this.previousToken;
             node.args = [];
             if (!this.quiet) {
-                Utils_4.Utils.console.warn(this.composeError({}, "ELSE: Weird use of ELSE", this.previousToken.type, this.previousToken.pos).message);
+                Utils_3.Utils.console.warn(this.composeError({}, "ELSE: Weird use of ELSE", this.previousToken.type, this.previousToken.pos).message);
             }
             if (this.token.type === "number") { // first token number?
                 this.fnChangeNumber2LineNumber(this.token);
@@ -2282,7 +2453,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             }
             return node;
         };
-        BasicParser.prototype["for"] = function () {
+        BasicParser.prototype.fnFor = function () {
             var node = this.previousToken;
             this.fnCheckExpressionType(this.token, "identifier", "v");
             var name = this.expression(90); // take simple identifier, nothing more
@@ -2324,14 +2495,14 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                             // ignore
                         }
                         else if (!this.quiet) {
-                            Utils_4.Utils.console.warn(this.composeError({}, "IF: Unreachable code after THEN or ELSE", tokenType, node.pos).message);
+                            Utils_3.Utils.console.warn(this.composeError({}, "IF: Unreachable code after THEN or ELSE", tokenType, node.pos).message);
                         }
                         break;
                     }
                 }
             }
         };
-        BasicParser.prototype["if"] = function () {
+        BasicParser.prototype.fnIf = function () {
             var node = this.previousToken;
             var numberToken;
             node.left = this.expression(0);
@@ -2469,7 +2640,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                         if (this.keepTokens) {
                             node.right = this.previousToken;
                         }
-                        node.type = "on" + Utils_4.Utils.stringCapitalize(this.previousToken.type); // onGoto, onGosub
+                        node.type = "on" + Utils_3.Utils.stringCapitalize(this.previousToken.type); // onGoto, onGosub
                         node.args = this.fnGetArgs(node.type);
                         node.left = left;
                     }
@@ -2943,7 +3114,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
 // https://benchmarko.github.io/CPCBasicTS/
 //
 //
-define("BasicFormatter", ["require", "exports", "Utils"], function (require, exports, Utils_5) {
+define("BasicFormatter", ["require", "exports", "Utils"], function (require, exports, Utils_4) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.BasicFormatter = void 0;
@@ -2961,7 +3132,7 @@ define("BasicFormatter", ["require", "exports", "Utils"], function (require, exp
             }
         };
         BasicFormatter.prototype.composeError = function (error, message, value, pos, len) {
-            return Utils_5.Utils.composeError("BasicFormatter", error, message, value, pos, len, this.label);
+            return Utils_4.Utils.composeError("BasicFormatter", error, message, value, pos, len, this.label);
         };
         // renumber
         BasicFormatter.fnHasLabel = function (label) {
@@ -2973,8 +3144,6 @@ define("BasicFormatter", ["require", "exports", "Utils"], function (require, exp
                 node.value = String(lastLine + 1); // generate label
             }
             var label = node.value;
-            //const label = (BasicFormatter.fnHasLabel(node.value) || !implicitLines) ? node.value : String(lastLine + 1),
-            //	hasLabel = BasicFormatter.fnHasLabel(label);
             this.label = label; // for error messages
             if (BasicFormatter.fnHasLabel(label)) {
                 var line = Number(label);
@@ -2993,43 +3162,9 @@ define("BasicFormatter", ["require", "exports", "Utils"], function (require, exp
             };
             return labelEntry;
         };
-        /*
-        private fnCreateLabelEntry(node: ParserNode, lastLine: number, implicitLines: boolean) { // create line numbers map
-            let label = node.value,
-                hasLabel = BasicFormatter.fnHasLabel(label);
-    
-            const origLen = (node.orig || node.value).length;
-    
-            if (!hasLabel && implicitLines) {
-                label = String(lastLine + 1);
-                hasLabel = true;
-            }
-            this.label = label; // for error messages
-    
-            if (hasLabel) {
-                const line = Number(label);
-    
-                if (line <= lastLine) {
-                    throw this.composeError(Error(), "Expected increasing line number", label, node.pos, node.len);
-                }
-                if (line < 1 || line > 65535) {
-                    throw this.composeError(Error(), "Line number overflow", label, node.pos, node.len);
-                }
-            }
-    
-            const labelEntry: LineEntry = {
-                value: label,
-                pos: node.pos,
-                len: origLen, // original length
-                refCount: 0
-            };
-    
-            return labelEntry;
-        }
-        */
         BasicFormatter.prototype.fnCreateLabelMap = function (nodes, implicitLines) {
             var lines = {}; // line numbers
-            var lastLine = 0; //-1;
+            var lastLine = 0;
             for (var i = 0; i < nodes.length; i += 1) {
                 var node = nodes[i];
                 if (node.type === "label") {
@@ -3149,12 +3284,12 @@ define("BasicFormatter", ["require", "exports", "Utils"], function (require, exp
                 out.text = output;
             }
             catch (e) {
-                if (Utils_5.Utils.isCustomError(e)) {
+                if (Utils_4.Utils.isCustomError(e)) {
                     out.error = e;
                 }
                 else { // other errors
                     out.error = e; // force set other error
-                    Utils_5.Utils.console.error(e);
+                    Utils_4.Utils.console.error(e);
                 }
             }
             return out;
@@ -3189,12 +3324,12 @@ define("BasicFormatter", ["require", "exports", "Utils"], function (require, exp
                 out.text = output;
             }
             catch (e) {
-                if (Utils_5.Utils.isCustomError(e)) {
+                if (Utils_4.Utils.isCustomError(e)) {
                     out.error = e;
                 }
                 else { // other errors
                     out.error = e; // force set other error
-                    Utils_5.Utils.console.error(e);
+                    Utils_4.Utils.console.error(e);
                 }
             }
             return out;
@@ -3211,7 +3346,7 @@ define("BasicFormatter", ["require", "exports", "Utils"], function (require, exp
 // http://cpctech.cpc-live.com/docs/bastech.html
 // https://www.cpcwiki.eu/index.php/Technical_information_about_Locomotive_BASIC#BASIC_tokens
 //
-define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exports, Utils_6) {
+define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exports, Utils_5) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.BasicTokenizer = void 0;
@@ -3518,7 +3653,7 @@ define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exp
                 var mantissa = value >= 0 ? value + 0x80000000 : value;
                 exponent -= 0x81; // 2-complement: 2^-127 .. 2^128
                 var num = mantissa * Math.pow(2, exponent - 31);
-                out = Utils_6.Utils.toPrecision9(num);
+                out = Utils_5.Utils.toPrecision9(num);
             }
             return out;
         };
@@ -3574,18 +3709,18 @@ define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exp
             }
             out = '"' + out;
             if (out.indexOf("\r") >= 0) {
-                Utils_6.Utils.console.log("BasicTokenizer line", this.line, ": string contains CR, replaced by CHR$(13)");
+                Utils_5.Utils.console.log("BasicTokenizer line", this.line, ": string contains CR, replaced by CHR$(13)");
                 out = out.replace(/\r/g, '"+chr$(13)+"');
             }
             if ((/\n\d/).test(out)) {
-                Utils_6.Utils.console.log("BasicTokenizer line", this.line, ": string contains LF<digit>, replaced by CHR$(10)<digit>");
+                Utils_5.Utils.console.log("BasicTokenizer line", this.line, ": string contains LF<digit>, replaced by CHR$(10)<digit>");
                 out = out.replace(/\n(\d)/g, '"+chr$(10)+"$1');
             }
             return out;
         };
         BasicTokenizer.prototype.debugPrintInfo = function () {
             var debug = this.debug;
-            Utils_6.Utils.console.debug("BasicTokenizer Details:\n", debug.info);
+            Utils_5.Utils.console.debug("BasicTokenizer Details:\n", debug.info);
             debug.line = 0;
             debug.info = "";
         };
@@ -3638,7 +3773,7 @@ define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exp
                     tstr = " " + tstr;
                 }
             }
-            if (Utils_6.Utils.debug > 2) {
+            if (Utils_5.Utils.debug > 2) {
                 this.debugCollectInfo(tstr);
             }
             return tstr;
@@ -3651,7 +3786,7 @@ define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exp
                 this.debug.startPos = this.pos;
                 var tstr = this.fnParseNextToken(input);
                 out += tstr;
-                if (Utils_6.Utils.debug > 2) {
+                if (Utils_5.Utils.debug > 2) {
                     this.debugCollectInfo(tstr);
                 }
             }
@@ -3680,7 +3815,7 @@ define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exp
             this.line = 0;
             this.lineEnd = this.pos + length;
             var out = this.fnParseLineFragment();
-            if (Utils_6.Utils.debug > 2) {
+            if (Utils_5.Utils.debug > 2) {
                 this.debugPrintInfo();
             }
             return out;
@@ -3690,7 +3825,7 @@ define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exp
             this.pos = 0;
             this.line = 0;
             var out = this.fnParseProgram();
-            if (Utils_6.Utils.debug > 2) {
+            if (Utils_5.Utils.debug > 2) {
                 this.debugPrintInfo();
             }
             return out;
@@ -3704,7 +3839,7 @@ define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exp
 // https://benchmarko.github.io/CPCBasicTS/
 //
 //
-define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], function (require, exports, Utils_7, BasicParser_1) {
+define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], function (require, exports, Utils_6, BasicParser_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CodeGeneratorBasic = void 0;
@@ -3732,13 +3867,13 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
                 chainMerge: this.chainOrChainMerge,
                 data: this.data,
                 def: this.def,
-                "else": this.else,
+                "else": this.fnElse,
                 ent: this.entOrEnv,
                 env: this.entOrEnv,
                 everyGosub: this.afterEveryGosub,
                 fn: this.fn,
-                "for": this.for,
-                "if": this.if,
+                "for": this.fnFor,
+                "if": this.fnIf,
                 input: this.inputLineInput,
                 lineInput: this.inputLineInput,
                 list: this.list,
@@ -3767,7 +3902,7 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             return this.parser;
         };
         CodeGeneratorBasic.prototype.composeError = function (error, message, value, pos) {
-            return Utils_7.Utils.composeError("CodeGeneratorBasic", error, message, value, pos, undefined, this.line);
+            return Utils_6.Utils.composeError("CodeGeneratorBasic", error, message, value, pos, undefined, this.line);
         };
         CodeGeneratorBasic.fnWs = function (node) {
             return node.ws || "";
@@ -3903,7 +4038,7 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
                 nodeArgs[i] = value2;
             }
             var args = nodeArgs.join("");
-            args = Utils_7.Utils.stringTrimEnd(args); // remove trailing spaces
+            args = Utils_6.Utils.stringTrimEnd(args); // remove trailing spaces
             return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(args);
         };
         CodeGeneratorBasic.prototype.def = function (node) {
@@ -3919,7 +4054,7 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             var name2 = name.replace(/FN/i, "FN" + space);
             return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(name2) + nodeArgsString + "=" + expression; //TTT how to get space before "="?
         };
-        CodeGeneratorBasic.prototype["else"] = function (node) {
+        CodeGeneratorBasic.prototype.fnElse = function (node) {
             if (!node.args) {
                 throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
             }
@@ -3967,7 +4102,7 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             var name2 = node.value.replace(/FN/i, "FN"); // + space),
             return CodeGeneratorBasic.fnWs(node) + name2 + nodeArgsString;
         };
-        CodeGeneratorBasic.prototype["for"] = function (node) {
+        CodeGeneratorBasic.prototype.fnFor = function (node) {
             var nodeArgs = this.fnParseArgs(node.args);
             for (var i = 0; i < nodeArgs.length; i += 1) {
                 if (i !== 1 && i !== 2) { // not for "=" and startValue
@@ -3980,7 +4115,7 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             var nodeArgs = this.fnParseArgs(nodeBranch); // args for "then" or "else"
             return CodeGeneratorBasic.fnSpace1(CodeGeneratorBasic.combineArgsWithColon(nodeArgs));
         };
-        CodeGeneratorBasic.prototype["if"] = function (node) {
+        CodeGeneratorBasic.prototype.fnIf = function (node) {
             if (!node.left) {
                 throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occur
             }
@@ -4171,8 +4306,8 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             return value;
         };
         CodeGeneratorBasic.prototype.parseNode = function (node) {
-            if (Utils_7.Utils.debug > 3) {
-                Utils_7.Utils.console.debug("evaluate: parseNode node=%o type=" + node.type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
+            if (Utils_6.Utils.debug > 3) {
+                Utils_6.Utils.console.debug("evaluate: parseNode node=%o type=" + node.type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
             }
             var type = node.type;
             var value;
@@ -4190,8 +4325,8 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
         CodeGeneratorBasic.prototype.evaluate = function (parseTree) {
             var output = "";
             for (var i = 0; i < parseTree.length; i += 1) {
-                if (Utils_7.Utils.debug > 2) {
-                    Utils_7.Utils.console.debug("evaluate: parseTree i=%d, node=%o", i, parseTree[i]);
+                if (Utils_6.Utils.debug > 2) {
+                    Utils_6.Utils.console.debug("evaluate: parseTree i=%d, node=%o", i, parseTree[i]);
                 }
                 var line = this.parseNode(parseTree[i]);
                 if ((line !== undefined) && (line !== "")) {
@@ -4220,15 +4355,15 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
                 out.text = output;
             }
             catch (e) {
-                if (Utils_7.Utils.isCustomError(e)) {
+                if (Utils_6.Utils.isCustomError(e)) {
                     out.error = e;
                     if (!this.quiet) {
-                        Utils_7.Utils.console.warn(e); // show our customError as warning
+                        Utils_6.Utils.console.warn(e); // show our customError as warning
                     }
                 }
                 else { // other errors
                     out.error = e; // force set other error
-                    Utils_7.Utils.console.error(e);
+                    Utils_6.Utils.console.error(e);
                 }
             }
             return out;
@@ -4303,7 +4438,7 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
 // Variables.ts - Variables
 // (c) Marco Vieth, 2020
 // https://benchmarko.github.io/CPCBasicTS/
-define("Variables", ["require", "exports", "Utils"], function (require, exports, Utils_8) {
+define("Variables", ["require", "exports", "Utils"], function (require, exports, Utils_7) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Variables = void 0;
@@ -4322,7 +4457,7 @@ define("Variables", ["require", "exports", "Utils"], function (require, exports,
                     //throw this.vmComposeError(Error(), 13, "INPUT #9: no closing quotes: " + line);
                     //Utils.composeError("Variables", error, errorString, errInfo, pos, len, this.line, hidden);
                     //throw Utils.composeError("Variables get", Error(), "Subscript out of range", prop);
-                    throw Utils_8.Utils.composeVmError("Variables", Error(), 9, prop); // Subscript out of range
+                    throw Utils_7.Utils.composeVmError("Variables", Error(), 9, prop); // Subscript out of range
                 }
             }
             return target[prop];
@@ -4334,7 +4469,7 @@ define("Variables", ["require", "exports", "Utils"], function (require, exports,
                 if (numProp < 0 || numProp >= target.length) {
                     //Utils.composeError("Variables", error, errorString, errInfo, pos, len, this.line, hidden);
                     //throw Utils.composeError("Variables set", Error(), "Subscript out of range", prop);
-                    throw Utils_8.Utils.composeVmError("Variables", Error(), 9, prop); // Subscript out of range
+                    throw Utils_7.Utils.composeVmError("Variables", Error(), 9, prop); // Subscript out of range
                 }
             }
             target[prop] = value;
@@ -4358,19 +4493,10 @@ define("Variables", ["require", "exports", "Utils"], function (require, exports,
         };
         Variables.prototype.removeAllVariables = function () {
             var variables = this.variables;
-            for (var name_3 in variables) { // eslint-disable-line guard-for-in
-                delete variables[name_3];
+            for (var name_4 in variables) { // eslint-disable-line guard-for-in
+                delete variables[name_4];
             }
         };
-        /*
-        removeAllVarTypes(): void {
-            const varTypes = this.varTypes;
-    
-            for (const name in varTypes) { // eslint-disable-line guard-for-in
-                delete varTypes[name];
-            }
-        }
-        */
         Variables.prototype.getAllVariables = function () {
             return this.variables;
         };
@@ -4379,11 +4505,7 @@ define("Variables", ["require", "exports", "Utils"], function (require, exports,
         };
         Variables.prototype.createNDimArray = function (dims, initVal) {
             var that = this, fnCreateRec = function (index) {
-                var len = dims[index], 
-                //arr: VariableValue[] = new Array(len);
-                //arr: VariableValue[] = new ArrayProxy(len) as any as VariableValue[]; //TODO new Array(len);
-                //arr: VariableValue[] = that.arrayBounds ? new ArrayProxy(len) : new Array(len); //as VariableValue[]; //TODO new Array(len);
-                arr = that.arrayBounds ? new ArrayProxy(len) : new Array(len); //as VariableValue[]; //TODO new Array(len);
+                var len = dims[index], arr = that.arrayBounds ? new ArrayProxy(len) : new Array(len);
                 index += 1;
                 if (index < dims.length) { // more dimensions?
                     for (var i = 0; i < len; i += 1) {
@@ -4490,7 +4612,7 @@ define("Variables", ["require", "exports", "Utils"], function (require, exports,
 // https://benchmarko.github.io/CPCBasicTS/
 //
 //
-define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, exports, Utils_9) {
+define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, exports, Utils_8) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CodeGeneratorJs = void 0;
@@ -4581,19 +4703,19 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 defreal: this.fnParseDefIntRealStr,
                 defstr: this.fnParseDefIntRealStr,
                 dim: this.dim,
-                "delete": this.delete,
+                "delete": this.fnDelete,
                 edit: this.edit,
-                "else": this.else,
+                "else": this.fnElse,
                 end: this.stopOrEnd,
                 erase: this.erase,
                 error: this.error,
                 everyGosub: this.afterEveryGosub,
                 fn: this.fn,
-                "for": this.for,
+                "for": this.fnFor,
                 frame: this.fnCommandWithGoto,
                 gosub: this.gosub,
                 "goto": this.gotoOrResume,
-                "if": this.if,
+                "if": this.fnIf,
                 input: this.inputOrlineInput,
                 let: this.let,
                 lineInput: this.inputOrlineInput,
@@ -4601,7 +4723,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 load: this.fnCommandWithGoto,
                 merge: this.fnCommandWithGoto,
                 mid$Assign: this.mid$Assign,
-                "new": CodeGeneratorJs.new,
+                "new": CodeGeneratorJs.fnNew,
                 next: this.next,
                 onBreakGosub: this.onBreakGosubOrRestore,
                 onErrorGoto: this.onErrorGoto,
@@ -4617,7 +4739,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 restore: this.onBreakGosubOrRestore,
                 resume: this.gotoOrResume,
                 resumeNext: this.gotoOrResume,
-                "return": CodeGeneratorJs.return,
+                "return": CodeGeneratorJs.fnReturn,
                 run: this.run,
                 save: this.save,
                 sound: this.fnCommandWithGoto,
@@ -4627,7 +4749,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 tron: this.fnCommandWithGoto,
                 using: this.usingOrWrite,
                 wend: this.wend,
-                "while": this.while,
+                "while": this.fnWhile,
                 write: this.usingOrWrite
             };
             this.lexer = options.lexer;
@@ -4671,7 +4793,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             this.whileCount = 0; // stack needed
         };
         CodeGeneratorJs.prototype.composeError = function (error, message, value, pos) {
-            return Utils_9.Utils.composeError("CodeGeneratorJs", error, message, value, pos, undefined, this.line);
+            return Utils_8.Utils.composeError("CodeGeneratorJs", error, message, value, pos, undefined, this.line);
         };
         CodeGeneratorJs.createJsKeywordRegex = function () {
             return new RegExp("^(" + CodeGeneratorJs.jsKeywords.join("|") + ")$");
@@ -4685,7 +4807,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             var defScopeArgs = this.defScopeArgs;
             name = name.toLowerCase().replace(/\./g, "_");
             var firstChar = name.charAt(0);
-            if (defScopeArgs || !Utils_9.Utils.supportReservedNames) { // avoid keywords as def fn parameters; and for IE8 avoid keywords in dot notation
+            if (defScopeArgs || !Utils_8.Utils.supportReservedNames) { // avoid keywords as def fn parameters; and for IE8 avoid keywords in dot notation
                 if (this.reJsKeywords.test(name)) { // IE8: avoid keywords in dot notation
                     name = "_" + name; // prepend underscore
                 }
@@ -4965,8 +5087,8 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 this.referencedLabelsCount[label] += 1;
             }
             else {
-                if (Utils_9.Utils.debug > 1) {
-                    Utils_9.Utils.console.debug("fnAddReferenceLabel: line does not (yet) exist:", label);
+                if (Utils_8.Utils.debug > 1) {
+                    Utils_8.Utils.console.debug("fnAddReferenceLabel: line does not (yet) exist:", label);
                 }
                 if (!this.countMap.merge && !this.countMap.chainMerge) {
                     throw this.composeError(Error(), "Line does not exist", label, node.pos);
@@ -5013,7 +5135,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             if (!rsxAvailable) { // if RSX not available, we delay the error until it is executed (or catched by on error goto)
                 if (!this.quiet) {
                     var error = this.composeError(Error(), "Unknown RSX command", node.value, node.pos);
-                    Utils_9.Utils.console.warn(error);
+                    Utils_8.Utils.console.warn(error);
                 }
                 nodeArgs.unshift('"' + rsxName + '"'); // put as first arg
                 rsxName = "rsxExec"; // and call special handler which triggers error if not available
@@ -5030,7 +5152,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
         };
         CodeGeneratorJs.binnumber = function (node) {
             var value = node.value.slice(2); // remove &x
-            if (Utils_9.Utils.supportsBinaryLiterals) {
+            if (Utils_8.Utils.supportsBinaryLiterals) {
                 value = "0b" + ((value.length) ? value : "0"); // &x->0b; 0b is ES6
             }
             else {
@@ -5103,7 +5225,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
         CodeGeneratorJs.string = function (node) {
             var value = node.value;
             value = value.replace(/\\/g, "\\\\"); // escape backslashes
-            value = Utils_9.Utils.hexEscape(value);
+            value = Utils_8.Utils.hexEscape(value);
             node.pt = "$";
             node.pv = '"' + value + '"';
         };
@@ -5156,7 +5278,6 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 this.labelList.push(label); // only needed to support resume next
             }
             this.resetCountsPerLine(); // we want to have "stable" counts, even if other lines change, e.g. direct
-            //const isDirect = label === "";
             var isDirect = label === "direct";
             var value = "";
             if (isDirect) { // special handling for direct
@@ -5189,13 +5310,6 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                             }
                         }
                     }
-                    /*
-                    if (this.traceActive) {
-                        const traceLabel = this.generateTraceLabel(node.args[i], this.line, i);
-    
-                        value += " o.vmTrace(\"" + traceLabel + "\");";
-                    }
-                    */
                     if (!(/[}:;\n]$/).test(value2)) { // does not end with } : ; \n
                         value2 += ";";
                     }
@@ -5279,14 +5393,14 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                     throw this.composeError(Error(), "Programming error: Undefined args", nodeArg.type, nodeArg.pos); // should not occur
                 }
                 var nodeArgs = this.fnParseArgRange(nodeArg.args, 1, nodeArg.args.length - 2), // we skip open and close bracket
-                fullExpression = this.fnParseOneArg(nodeArg), name_4 = CodeGeneratorJs.fnGetNameTypeExpression(fullExpression);
-                nodeArgs.unshift(name_4); // put as first arg
+                fullExpression = this.fnParseOneArg(nodeArg), name_5 = CodeGeneratorJs.fnGetNameTypeExpression(fullExpression);
+                nodeArgs.unshift(name_5); // put as first arg
                 args.push("/* " + fullExpression + " = */ o.dim(" + nodeArgs.join(", ") + ")");
             }
             node.pv = args.join("; ");
         };
-        CodeGeneratorJs.prototype["delete"] = function (node) {
-            var nodeArgs = this.fnParseArgs(node.args), name = Utils_9.Utils.supportReservedNames ? ("o." + node.type) : 'o[" + node.type + "]';
+        CodeGeneratorJs.prototype.fnDelete = function (node) {
+            var nodeArgs = this.fnParseArgs(node.args), name = Utils_8.Utils.supportReservedNames ? ("o." + node.type) : 'o[" + node.type + "]';
             if (!nodeArgs.length) { // no arguments? => complete range
                 nodeArgs.push("1");
                 nodeArgs.push("65535");
@@ -5297,7 +5411,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             var nodeArgs = this.fnParseArgs(node.args);
             node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + "); break;";
         };
-        CodeGeneratorJs.prototype["else"] = function (node) {
+        CodeGeneratorJs.prototype.fnElse = function (node) {
             if (!node.args) {
                 throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
             }
@@ -5335,7 +5449,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
         };
         // TODO: complexity
         // eslint-disable-next-line complexity
-        CodeGeneratorJs.prototype["for"] = function (node) {
+        CodeGeneratorJs.prototype.fnFor = function (node) {
             var nodeArgs = this.fnParseArgs(node.args), varName = nodeArgs[0], label = this.fnGetForLabel();
             this.stack.forLabel.push(label);
             this.stack.forVarName.push(varName);
@@ -5448,7 +5562,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             var partNoTrailingBreak = part.replace(/; break$/, ""), simplePart = !(/case|break/).test(partNoTrailingBreak);
             return simplePart;
         };
-        CodeGeneratorJs.prototype["if"] = function (node) {
+        CodeGeneratorJs.prototype.fnIf = function (node) {
             if (!node.left) {
                 throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occur
             }
@@ -5540,8 +5654,8 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             var name = nodeArgs[0], varType = this.fnDetermineStaticVarType(name);
             node.pv = name + " = o.vmAssign(\"" + varType + "\", o.mid$Assign(" + nodeArgs.join(", ") + "))";
         };
-        CodeGeneratorJs["new"] = function (node) {
-            var name = Utils_9.Utils.supportReservedNames ? ("o." + node.type) : 'o[" + node.type + "]';
+        CodeGeneratorJs.fnNew = function (node) {
+            var name = Utils_8.Utils.supportReservedNames ? ("o." + node.type) : 'o[" + node.type + "]';
             node.pv = name + "();";
         };
         CodeGeneratorJs.prototype.next = function (node) {
@@ -5642,8 +5756,8 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
         CodeGeneratorJs.prototype.read = function (node) {
             var nodeArgs = this.fnParseArgs(node.args);
             for (var i = 0; i < nodeArgs.length; i += 1) {
-                var name_5 = nodeArgs[i], varType = this.fnDetermineStaticVarType(name_5);
-                nodeArgs[i] = name_5 + " = o." + node.type + "(\"" + varType + "\")";
+                var name_6 = nodeArgs[i], varType = this.fnDetermineStaticVarType(name_6);
+                nodeArgs[i] = name_6 + " = o." + node.type + "(\"" + varType + "\")";
             }
             node.pv = nodeArgs.join("; ");
         };
@@ -5651,8 +5765,8 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             var nodeArgs = this.fnParseArgs(node.args), value = nodeArgs.length ? " " + nodeArgs[0] : "";
             node.pv = "//" + value + "\n";
         };
-        CodeGeneratorJs["return"] = function (node) {
-            var name = Utils_9.Utils.supportReservedNames ? ("o." + node.type) : 'o[" + node.type + "]';
+        CodeGeneratorJs.fnReturn = function (node) {
+            var name = Utils_8.Utils.supportReservedNames ? ("o." + node.type) : 'o[" + node.type + "]';
             node.pv = name + "(); break;";
         };
         CodeGeneratorJs.prototype.run = function (node) {
@@ -5703,7 +5817,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             }
             node.pv = "/* o." + node.type + "() */ o.vmGoto(\"" + label + "\"); break;\ncase \"" + label + "e\":";
         };
-        CodeGeneratorJs.prototype["while"] = function (node) {
+        CodeGeneratorJs.prototype.fnWhile = function (node) {
             var nodeArgs = this.fnParseArgs(node.args), label = this.fnGetWhileLabel();
             this.stack.whileLabel.push(label);
             node.pv = "\ncase \"" + label + "\": if (!(" + nodeArgs + ")) { o.vmGoto(\"" + label + "e\"); break; }";
@@ -5758,8 +5872,8 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             }
         };
         CodeGeneratorJs.prototype.parseNode = function (node) {
-            if (Utils_9.Utils.debug > 3) {
-                Utils_9.Utils.console.debug("evaluate: parseNode node=%o type=" + node.type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
+            if (Utils_8.Utils.debug > 3) {
+                Utils_8.Utils.console.debug("evaluate: parseNode node=%o type=" + node.type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
             }
             if (this.allOperators[node.type]) {
                 this.parseOperator(node);
@@ -5800,7 +5914,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             return label;
         };
         CodeGeneratorJs.prototype.fnCreateLabelMap = function (nodes, labels) {
-            var lastLine = 0; //-1;
+            var lastLine = 0;
             for (var i = 0; i < nodes.length; i += 1) {
                 var node = nodes[i];
                 if (node.type === "label" && node.value !== "direct") {
@@ -5814,8 +5928,8 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
         };
         CodeGeneratorJs.prototype.removeAllDefVarTypes = function () {
             var varTypes = this.defintDefstrTypes;
-            for (var name_6 in varTypes) { // eslint-disable-line guard-for-in
-                delete varTypes[name_6];
+            for (var name_7 in varTypes) { // eslint-disable-line guard-for-in
+                delete varTypes[name_7];
             }
         };
         CodeGeneratorJs.prototype.fnSetDefVarTypeRange = function (type, first, last) {
@@ -5875,8 +5989,8 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             this.fnPrecheckTree(parseTree, this.countMap); // also sets "resumeNoArgsCount" for resume without args
             var output = "";
             for (var i = 0; i < parseTree.length; i += 1) {
-                if (Utils_9.Utils.debug > 2) {
-                    Utils_9.Utils.console.debug("evaluate: parseTree i=%d, node=%o", i, parseTree[i]);
+                if (Utils_8.Utils.debug > 2) {
+                    Utils_8.Utils.console.debug("evaluate: parseTree i=%d, node=%o", i, parseTree[i]);
                 }
                 var line = this.fnParseOneArg(parseTree[i]);
                 if ((line !== undefined) && (line !== "")) {
@@ -5943,15 +6057,15 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 out.text = output;
             }
             catch (e) {
-                if (Utils_9.Utils.isCustomError(e)) {
+                if (Utils_8.Utils.isCustomError(e)) {
                     out.error = e;
                     if (!this.quiet) {
-                        Utils_9.Utils.console.warn(e); // show our customError as warning
+                        Utils_8.Utils.console.warn(e); // show our customError as warning
                     }
                 }
                 else { // other errors
                     out.error = e; // force set other error
-                    Utils_9.Utils.console.error(e);
+                    Utils_8.Utils.console.error(e);
                 }
             }
             return out;
@@ -6032,7 +6146,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
 // https://benchmarko.github.io/CPCBasicTS/
 //
 //
-define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], function (require, exports, Utils_10, BasicParser_2) {
+define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], function (require, exports, Utils_9, BasicParser_2) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CodeGeneratorToken = void 0;
@@ -6066,13 +6180,13 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
                 chainMerge: this.chainMerge,
                 data: this.data,
                 def: this.def,
-                "else": this.else,
+                "else": this.fnElse,
                 ent: this.entEnv,
                 env: this.entEnv,
                 everyGosub: this.everyGosub,
                 fn: this.fn,
-                "for": this.for,
-                "if": this.if,
+                "for": this.fnFor,
+                "if": this.fnIf,
                 input: this.inputLineInput,
                 lineInput: this.inputLineInput,
                 list: this.list,
@@ -6100,7 +6214,7 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
             }
         };
         CodeGeneratorToken.prototype.composeError = function (error, message, value, pos) {
-            return Utils_10.Utils.composeError("CodeGeneratorToken", error, message, value, pos, undefined, this.label);
+            return Utils_9.Utils.composeError("CodeGeneratorToken", error, message, value, pos, undefined, this.label);
         };
         CodeGeneratorToken.convUInt8ToString = function (n) {
             return String.fromCharCode(n);
@@ -6116,7 +6230,7 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
             if (token === undefined) {
                 token = CodeGeneratorToken.tokensFF[name];
                 if (token === undefined) {
-                    Utils_10.Utils.console.warn("token2String: Not a token: " + name);
+                    Utils_9.Utils.console.warn("token2String: Not a token: " + name);
                     return name; // return something
                 }
                 result = CodeGeneratorToken.convUInt8ToString(0xff); // prefix for special tokens
@@ -6360,7 +6474,7 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
             }
             return CodeGeneratorToken.token2String(node.type) + " " + CodeGeneratorToken.token2String("fn") + space + name + nodeArgsString + CodeGeneratorToken.token2String("=") + expression;
         };
-        CodeGeneratorToken.prototype["else"] = function (node) {
+        CodeGeneratorToken.prototype.fnElse = function (node) {
             if (!node.args) {
                 throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
             }
@@ -6422,7 +6536,7 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
             var name2 = CodeGeneratorToken.token2String(node.type) + space + name;
             return name2 + nodeArgsString;
         };
-        CodeGeneratorToken.prototype["for"] = function (node) {
+        CodeGeneratorToken.prototype.fnFor = function (node) {
             var nodeArgs = this.fnParseArgs(node.args);
             return CodeGeneratorToken.token2String(node.type) + nodeArgs.join("");
         };
@@ -6430,7 +6544,7 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
             var nodeArgs = this.fnParseArgs(nodeBranch); // args for "then" or "else"
             return this.combineArgsWithSeparator(nodeArgs);
         };
-        CodeGeneratorToken.prototype["if"] = function (node) {
+        CodeGeneratorToken.prototype.fnIf = function (node) {
             if (!node.left) {
                 throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occur
             }
@@ -6591,8 +6705,8 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
             return value;
         };
         CodeGeneratorToken.prototype.parseNode = function (node) {
-            if (Utils_10.Utils.debug > 3) {
-                Utils_10.Utils.console.debug("evaluate: parseNode node=%o type=" + node.type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
+            if (Utils_9.Utils.debug > 3) {
+                Utils_9.Utils.console.debug("evaluate: parseNode node=%o type=" + node.type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
             }
             var type = node.type, precedence = CodeGeneratorToken.operatorPrecedence, operators = CodeGeneratorToken.operators;
             var value;
@@ -6663,8 +6777,8 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
         CodeGeneratorToken.prototype.evaluate = function (parseTree) {
             var output = "";
             for (var i = 0; i < parseTree.length; i += 1) {
-                if (Utils_10.Utils.debug > 2) {
-                    Utils_10.Utils.console.debug("evaluate: parseTree i=%d, node=%o", i, parseTree[i]);
+                if (Utils_9.Utils.debug > 2) {
+                    Utils_9.Utils.console.debug("evaluate: parseTree i=%d, node=%o", i, parseTree[i]);
                 }
                 var node = this.parseNode(parseTree[i]);
                 if ((node !== undefined) && (node !== "")) {
@@ -6691,15 +6805,15 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
                 out.text = output;
             }
             catch (e) {
-                if (Utils_10.Utils.isCustomError(e)) {
+                if (Utils_9.Utils.isCustomError(e)) {
                     out.error = e;
                     if (!this.quiet) {
-                        Utils_10.Utils.console.warn(e); // show our customError as warning
+                        Utils_9.Utils.console.warn(e); // show our customError as warning
                     }
                 }
                 else { // other errors
                     out.error = e; // force set other error
-                    Utils_10.Utils.console.error(e);
+                    Utils_9.Utils.console.error(e);
                 }
             }
             return out;
@@ -7004,7 +7118,7 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
 // (c) Slava Kim
 // https://github.com/Slava/diff.js
 //
-define("Diff", ["require", "exports", "Utils"], function (require, exports, Utils_11) {
+define("Diff", ["require", "exports", "Utils"], function (require, exports, Utils_10) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Diff = void 0;
@@ -7013,7 +7127,7 @@ define("Diff", ["require", "exports", "Utils"], function (require, exports, Util
         }
         // Refer to http://www.xmailserver.org/diff2.pdf
         Diff.composeError = function (error, message, value, pos) {
-            return Utils_11.Utils.composeError("Diff", error, message, value, pos, undefined, 0);
+            return Utils_10.Utils.composeError("Diff", error, message, value, pos, undefined, 0);
         };
         Diff.inRange = function (x, l, r) {
             return (l <= x && x <= r) || (r <= x && x <= l);
@@ -7312,7 +7426,7 @@ define("Diff", ["require", "exports", "Utils"], function (require, exports, Util
 // DiskImage.ts - DiskImage
 // (c) Marco Vieth, 2020
 // https://benchmarko.github.io/CPCBasicTS/
-define("DiskImage", ["require", "exports", "Utils"], function (require, exports, Utils_12) {
+define("DiskImage", ["require", "exports", "Utils"], function (require, exports, Utils_11) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.DiskImage = void 0;
@@ -7347,7 +7461,7 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
         };
         DiskImage.prototype.composeError = function (error, message, value, pos) {
             var len = 0;
-            return Utils_12.Utils.composeError("DiskImage", error, this.diskName + ": " + message, value, pos || 0, len);
+            return Utils_11.Utils.composeError("DiskImage", error, this.diskName + ": " + message, value, pos || 0, len);
         };
         DiskImage.testDiskIdent = function (ident) {
             var diskType = 0;
@@ -7387,7 +7501,7 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             if (diskInfo.ident.substring(34 - 11, 34 - 11 + 9) !== "Disk-Info") { // some tools use "Disk-Info  " instead of "Disk-Info\r\n", so compare without "\r\n"
                 // "Disk-Info" string is optional
                 if (!this.quiet) {
-                    Utils_12.Utils.console.warn(this.composeError({}, "Disk ident not found", diskInfo.ident.substring(34 - 11, 34 - 11 + 9), pos + 34 - 11).message);
+                    Utils_11.Utils.console.warn(this.composeError({}, "Disk ident not found", diskInfo.ident.substring(34 - 11, 34 - 11 + 9), pos + 34 - 11).message);
                 }
             }
             diskInfo.creator = this.readUtf(pos + 34, 14);
@@ -7413,7 +7527,7 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             if (trackInfo.ident.substring(0, 10) !== "Track-Info") { // some tools use "Track-Info  " instead of "Track-Info\r\n", so compare without "\r\n"
                 // "Track-Info" string is optional
                 if (!this.quiet) {
-                    Utils_12.Utils.console.warn(this.composeError({}, "Track ident not found", trackInfo.ident.substring(0, 10), pos).message);
+                    Utils_11.Utils.console.warn(this.composeError({}, "Track ident not found", trackInfo.ident.substring(0, 10), pos).message);
                 }
             }
             // 4 unused bytes
@@ -7567,9 +7681,9 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
         };
         // do not know if we need to sort the extents per file, but...
         DiskImage.sortFileExtents = function (dir) {
-            for (var name_7 in dir) {
-                if (dir.hasOwnProperty(name_7)) {
-                    var fileExtents = dir[name_7];
+            for (var name_8 in dir) {
+                if (dir.hasOwnProperty(name_8)) {
+                    var fileExtents = dir[name_8];
                     fileExtents.sort(DiskImage.fnSortByExtentNumber);
                 }
             }
@@ -7579,13 +7693,13 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             for (var i = 0; i < extents.length; i += 1) {
                 var extent = extents[i];
                 if (fill === null || extent.user !== fill) {
-                    var name_8 = extent.name + "." + extent.ext; // and extent.user?
+                    var name_9 = extent.name + "." + extent.ext; // and extent.user?
                     // (do not convert filename here (to display messages in filenames))
-                    if (!reFilePattern || reFilePattern.test(name_8)) {
-                        if (!(name_8 in dir)) {
-                            dir[name_8] = [];
+                    if (!reFilePattern || reFilePattern.test(name_9)) {
+                        if (!(name_9 in dir)) {
+                            dir[name_9] = [];
                         }
-                        dir[name_8].push(extent);
+                        dir[name_9].push(extent);
                     }
                 }
             }
@@ -7627,10 +7741,10 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             var diskInfo = this.diskInfo, blockSectors = 2, pos = this.convertBlock2Sector(block);
             var out = "";
             if (pos.track >= diskInfo.tracks) {
-                Utils_12.Utils.console.error(this.composeError({}, "Block " + block + ": Track out of range", String(pos.track)));
+                Utils_11.Utils.console.error(this.composeError({}, "Block " + block + ": Track out of range", String(pos.track)));
             }
             if (pos.head >= diskInfo.heads) {
-                Utils_12.Utils.console.error(this.composeError({}, "Block " + block + ": Head out of range", String(pos.track)));
+                Utils_11.Utils.console.error(this.composeError({}, "Block " + block + ": Head out of range", String(pos.track)));
             }
             for (var i = 0; i < blockSectors; i += 1) {
                 this.seekTrack(pos.track, pos.head);
@@ -7671,8 +7785,8 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                 var fileLen = out.length, lastRecPos = fileLen > 0x80 ? (fileLen - 0x80) : 0, index = out.indexOf(String.fromCharCode(0x1a), lastRecPos);
                 if (index >= 0) {
                     realLen = index;
-                    if (Utils_12.Utils.debug > 0) {
-                        Utils_12.Utils.console.debug("readFile: ASCII file length " + fileLen + " truncated to " + realLen);
+                    if (Utils_11.Utils.debug > 0) {
+                        Utils_11.Utils.console.debug("readFile: ASCII file length " + fileLen + " truncated to " + realLen);
                     }
                 }
             }
@@ -7898,7 +8012,7 @@ define("InputStack", ["require", "exports"], function (require, exports) {
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("View", ["require", "exports", "Utils"], function (require, exports, Utils_13) {
+define("View", ["require", "exports", "Utils"], function (require, exports, Utils_12) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.View = void 0;
@@ -7921,7 +8035,7 @@ define("View", ["require", "exports", "Utils"], function (require, exports, Util
         };
         View.prototype.setHidden = function (id, hidden, display) {
             // optional display: block or flex
-            var element = View.getElementById1(id), displayVisible = "display" + Utils_13.Utils.stringCapitalize(display || "block");
+            var element = View.getElementById1(id), displayVisible = "display" + Utils_12.Utils.stringCapitalize(display || "block");
             if (hidden) {
                 if (element.className.indexOf("displayNone") < 0) {
                     this.toggleClass(id, "displayNone");
@@ -8003,8 +8117,8 @@ define("View", ["require", "exports", "Utils"], function (require, exports, Util
                         option.value = item.value;
                     }
                     if (option.text !== item.text) {
-                        if (Utils_13.Utils.debug > 3) {
-                            Utils_13.Utils.console.debug("setSelectOptions: " + id + ": text changed for index " + i + ": " + item.text);
+                        if (Utils_12.Utils.debug > 3) {
+                            Utils_12.Utils.console.debug("setSelectOptions: " + id + ": text changed for index " + i + ": " + item.text);
                         }
                         option.text = item.text;
                         option.title = item.title;
@@ -8077,11 +8191,18 @@ define("View", ["require", "exports", "Utils"], function (require, exports, Util
             return this;
         };
         View.prototype.attachEventHandler = function (type, eventHandler) {
-            if (Utils_13.Utils.debug) {
-                Utils_13.Utils.console.debug("attachEventHandler: type=" + type + ", eventHandler=" + ((eventHandler !== undefined) ? "[?]" : null));
+            if (Utils_12.Utils.debug) {
+                Utils_12.Utils.console.debug("attachEventHandler: type=" + type + ", eventHandler=" + ((eventHandler !== undefined) ? "[?]" : null));
             }
             window.document.addEventListener(type, eventHandler, false);
             return this;
+        };
+        View.getEventTarget = function (event) {
+            var target = event.target || event.srcElement; // target, not currentTarget; srcElement for IE8
+            if (!target) {
+                Utils_12.Utils.console.error("getEventTarget: Undefined event target: " + target);
+            }
+            return target;
         };
         return View;
     }());
@@ -8091,7 +8212,7 @@ define("View", ["require", "exports", "Utils"], function (require, exports, Util
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("Keyboard", ["require", "exports", "Utils", "View"], function (require, exports, Utils_14, View_1) {
+define("Keyboard", ["require", "exports", "Utils", "View"], function (require, exports, Utils_13, View_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Keyboard = void 0;
@@ -8174,8 +8295,8 @@ define("Keyboard", ["require", "exports", "Utils", "View"], function (require, e
         };
         Keyboard.prototype.removeCodeStringsFromKeymap = function () {
             var key2CpcKey = this.key2CpcKey, newMap = {};
-            if (Utils_14.Utils.debug > 1) {
-                Utils_14.Utils.console.log("removeCodeStringsFromKeymap: Unfortunately not all keys can be used.");
+            if (Utils_13.Utils.debug > 1) {
+                Utils_13.Utils.console.log("removeCodeStringsFromKeymap: Unfortunately not all keys can be used.");
             }
             for (var key in key2CpcKey) {
                 if (key2CpcKey.hasOwnProperty(key)) {
@@ -8200,8 +8321,8 @@ define("Keyboard", ["require", "exports", "Utils", "View"], function (require, e
             cpcKeyEntry.keys[pressedKey] = true;
             cpcKeyEntry.shift = shiftKey;
             cpcKeyEntry.ctrl = ctrlKey;
-            if (Utils_14.Utils.debug > 1) {
-                Utils_14.Utils.console.log("fnPressCpcKey: pressedKey=" + pressedKey + ", key=" + key + ", affected cpc key=" + cpcKey);
+            if (Utils_13.Utils.debug > 1) {
+                Utils_13.Utils.console.log("fnPressCpcKey: pressedKey=" + pressedKey + ", key=" + key + ", affected cpc key=" + cpcKey);
             }
             var repeat = cpcKeyExpansions.repeat;
             if (keyAlreadyPressed && ((cpcKey in repeat) && !repeat[cpcKey])) {
@@ -8257,11 +8378,11 @@ define("Keyboard", ["require", "exports", "Utils", "View"], function (require, e
         };
         Keyboard.prototype.fnReleaseCpcKey = function (cpcKeyCode, pressedKey, key, shiftKey, ctrlKey) {
             var pressedKeys = this.pressedKeys, cpcKey = pressedKeys[cpcKeyCode];
-            if (Utils_14.Utils.debug > 1) {
-                Utils_14.Utils.console.log("fnReleaseCpcKey: pressedKey=" + pressedKey + ", key=" + key + ", affected cpc key=" + cpcKeyCode + ", keys:", (cpcKey ? cpcKey.keys : "undef."));
+            if (Utils_13.Utils.debug > 1) {
+                Utils_13.Utils.console.log("fnReleaseCpcKey: pressedKey=" + pressedKey + ", key=" + key + ", affected cpc key=" + cpcKeyCode + ", keys:", (cpcKey ? cpcKey.keys : "undef."));
             }
             if (!cpcKey) {
-                Utils_14.Utils.console.warn("fnReleaseCpcKey: cpcKey was not pressed:", cpcKeyCode);
+                Utils_13.Utils.console.warn("fnReleaseCpcKey: cpcKey was not pressed:", cpcKeyCode);
             }
             else {
                 delete cpcKey.keys[pressedKey];
@@ -8298,8 +8419,8 @@ define("Keyboard", ["require", "exports", "Utils", "View"], function (require, e
                 this.removeCodeStringsFromKeymap(); // remove code information from the mapping. Not all keys can be detected any more
                 this.codeStringsRemoved = true;
             }
-            if (Utils_14.Utils.debug > 1) {
-                Utils_14.Utils.console.log("fnKeyboardKeydown: keyCode=" + keyCode + " pressedKey=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
+            if (Utils_13.Utils.debug > 1) {
+                Utils_13.Utils.console.log("fnKeyboardKeydown: keyCode=" + keyCode + " pressedKey=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
             }
             if (pressedKey in this.key2CpcKey) {
                 var cpcKey = this.key2CpcKey[pressedKey];
@@ -8342,17 +8463,17 @@ define("Keyboard", ["require", "exports", "Utils", "View"], function (require, e
             }
             else if (key.length === 1) { // put normal keys in buffer, ignore special keys with more than 1 character
                 this.putKeyInBuffer(key);
-                Utils_14.Utils.console.log("fnKeyboardKeydown: Partly unhandled key", pressedKey + ":", key);
+                Utils_13.Utils.console.log("fnKeyboardKeydown: Partly unhandled key", pressedKey + ":", key);
             }
             else {
-                Utils_14.Utils.console.log("fnKeyboardKeydown: Unhandled key", pressedKey + ":", key);
+                Utils_13.Utils.console.log("fnKeyboardKeydown: Unhandled key", pressedKey + ":", key);
             }
         };
         Keyboard.prototype.fnKeyboardKeyup = function (event) {
             var keyCode = event.which || event.keyCode, pressedKey = String(keyCode) + (event.code ? event.code : ""), // event.code available for e.g. Chrome, Firefox
             key = event.key || Keyboard.keyIdentifier2Char(event) || ""; // SliTaz web browser has not key but keyIdentifier
-            if (Utils_14.Utils.debug > 1) {
-                Utils_14.Utils.console.log("fnKeyboardKeyup: keyCode=" + keyCode + " pressedKey=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
+            if (Utils_13.Utils.debug > 1) {
+                Utils_13.Utils.console.log("fnKeyboardKeyup: keyCode=" + keyCode + " pressedKey=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
             }
             if (pressedKey in this.key2CpcKey) {
                 var cpcKey = this.key2CpcKey[pressedKey];
@@ -8362,7 +8483,7 @@ define("Keyboard", ["require", "exports", "Utils", "View"], function (require, e
                 this.fnReleaseCpcKey(cpcKey, pressedKey, key, event.shiftKey, event.ctrlKey);
             }
             else {
-                Utils_14.Utils.console.log("fnKeyboardKeyup: Unhandled key", pressedKey + ":", key);
+                Utils_13.Utils.console.log("fnKeyboardKeyup: Unhandled key", pressedKey + ":", key);
             }
         };
         Keyboard.prototype.getKeyFromBuffer = function () {
@@ -8620,7 +8741,7 @@ define("Keyboard", ["require", "exports", "Utils", "View"], function (require, e
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (require, exports, Utils_15, View_2) {
+define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (require, exports, Utils_14, View_2) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.VirtualKeyboard = void 0;
@@ -8661,8 +8782,8 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
             else {
                 eventNames = VirtualKeyboard.mouseEventNames;
             }
-            if (Utils_15.Utils.debug > 0) {
-                Utils_15.Utils.console.log("fnAttachPointerEvents: Using", eventNames.type, "events");
+            if (Utils_14.Utils.debug > 0) {
+                Utils_14.Utils.console.log("fnAttachPointerEvents: Using", eventNames.type, "events");
             }
             if (fnDown) {
                 area.addEventListener(eventNames.down, fnDown, false); // +clicked for pointer, touch?
@@ -8795,20 +8916,10 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
             }
             return pressedKey;
         };
-        VirtualKeyboard.prototype.fnGetEventTarget = function (event) {
-            var node = event.target || event.srcElement; // target, not currentTarget
-            if (!node) {
-                throw new Error("VirtualKeyboard: Undefined event target: " + node);
-            }
-            return node;
-        };
-        VirtualKeyboard.prototype.fnGetEventTargetAs = function (event) {
-            return this.fnGetEventTarget(event);
-        };
         VirtualKeyboard.prototype.onVirtualVirtualKeyboardKeydown = function (event) {
-            var node = this.fnGetEventTargetAs(event), cpcKey = node.getAttribute("data-key");
-            if (Utils_15.Utils.debug > 1) {
-                Utils_15.Utils.console.debug("onVirtualVirtualKeyboardKeydown: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", cpcKey);
+            var node = View_2.View.getEventTarget(event), cpcKey = node.getAttribute("data-key");
+            if (Utils_14.Utils.debug > 1) {
+                Utils_14.Utils.console.debug("onVirtualVirtualKeyboardKeydown: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", cpcKey);
             }
             if (cpcKey !== null) {
                 var cpcKeyCode = Number(cpcKey);
@@ -8825,7 +8936,7 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
             return false;
         };
         VirtualKeyboard.prototype.fnVirtualVirtualKeyboardKeyupOrKeyout = function (event) {
-            var node = this.fnGetEventTargetAs(event), cpcKey = node.getAttribute("data-key");
+            var node = View_2.View.getEventTarget(event), cpcKey = node.getAttribute("data-key");
             if (cpcKey !== null) {
                 var cpcKeyCode = Number(cpcKey);
                 if (this.numLock) {
@@ -8844,9 +8955,9 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
             }
         };
         VirtualKeyboard.prototype.onVirtualVirtualKeyboardKeyup = function (event) {
-            var node = this.fnGetEventTargetAs(event);
-            if (Utils_15.Utils.debug > 1) {
-                Utils_15.Utils.console.debug("onVirtualVirtualKeyboardKeyup: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", node.getAttribute("data-key"));
+            var node = View_2.View.getEventTarget(event);
+            if (Utils_14.Utils.debug > 1) {
+                Utils_14.Utils.console.debug("onVirtualVirtualKeyboardKeyup: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", node.getAttribute("data-key"));
             }
             this.fnVirtualVirtualKeyboardKeyupOrKeyout(event);
             if (this.pointerOutEvent && this.fnVirtualKeyout) {
@@ -8856,9 +8967,9 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
             return false;
         };
         VirtualKeyboard.prototype.onVirtualVirtualKeyboardKeyout = function (event) {
-            var node = this.fnGetEventTargetAs(event);
-            if (Utils_15.Utils.debug > 1) {
-                Utils_15.Utils.console.debug("onVirtualVirtualKeyboardKeyout: event=", event);
+            var node = View_2.View.getEventTarget(event);
+            if (Utils_14.Utils.debug > 1) {
+                Utils_14.Utils.console.debug("onVirtualVirtualKeyboardKeyout: event=", event);
             }
             this.fnVirtualVirtualKeyboardKeyupOrKeyout(event);
             if (this.pointerOutEvent && this.fnVirtualKeyout) {
@@ -8877,7 +8988,7 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
             this.fnAttachPointerEvents(containerId, this.dragStart.bind(this), this.drag.bind(this), this.dragEnd.bind(this));
         };
         VirtualKeyboard.prototype.dragStart = function (event) {
-            var node = this.fnGetEventTargetAs(event), parent = node.parentElement ? node.parentElement.parentElement : null, drag = this.dragInfo;
+            var node = View_2.View.getEventTarget(event), parent = node.parentElement ? node.parentElement.parentElement : null, drag = this.dragInfo;
             if (node === drag.dragItem || parent === drag.dragItem) {
                 if (event.type === "touchstart") {
                     var touchEvent = event;
@@ -9483,7 +9594,7 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
 // https://benchmarko.github.io/CPCBasicTS/
 //
 /* globals ArrayBuffer, Uint8Array, Uint32Array */
-define("Canvas", ["require", "exports", "Utils", "View"], function (require, exports, Utils_16, View_3) {
+define("Canvas", ["require", "exports", "Utils", "View"], function (require, exports, Utils_15, View_3) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Canvas = void 0;
@@ -9528,7 +9639,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.canvas = canvas;
             // make sure canvas is not hidden (allows to get width, height, set style)
             if (canvas.offsetParent === null) {
-                Utils_16.Utils.console.error("Error: canvas is not visible!");
+                Utils_15.Utils.console.error("Error: canvas is not visible!");
             }
             var width = canvas.width, height = canvas.height;
             this.width = width;
@@ -9547,17 +9658,17 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
                     this.pen2Color32 = new Uint32Array(new ArrayBuffer(Canvas.modeData[3].pens * 4));
                     this.data32 = new Uint32Array(this.imageData.data.buffer);
                     this.use32BitCopy = true;
-                    Utils_16.Utils.console.log("Canvas: using optimized copy2Canvas32bit, littleEndian:", this.littleEndian);
+                    Utils_15.Utils.console.log("Canvas: using optimized copy2Canvas32bit, littleEndian:", this.littleEndian);
                 }
                 else {
                     this.setAlpha(255);
                     this.use32BitCopy = false;
-                    Utils_16.Utils.console.log("Canvas: using copy2Canvas8bit");
+                    Utils_15.Utils.console.log("Canvas: using copy2Canvas8bit");
                 }
                 this.applyCopy2CanvasFunction(this.offset);
             }
             else {
-                Utils_16.Utils.console.warn("Error: canvas.getContext is not supported.");
+                Utils_15.Utils.console.warn("Error: canvas.getContext is not supported.");
                 this.ctx = {}; // not available
                 this.imageData = {}; // not available
             }
@@ -9772,8 +9883,8 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             if (this.xPos === 1000 && this.yPos === 1000) { // only activate move if pos is 1000, 1000
                 this.move(x, y);
             }
-            if (Utils_16.Utils.debug > 0) {
-                Utils_16.Utils.console.debug("onCpcCanvasClick: x-xOrig", x, "y-yOrig", y, "char", char, "char", (char !== undefined ? String.fromCharCode(char) : "?"), "detail", event.detail);
+            if (Utils_15.Utils.debug > 0) {
+                Utils_15.Utils.console.debug("onCpcCanvasClick: x-xOrig", x, "y-yOrig", y, "char", char, "char", (char !== undefined ? String.fromCharCode(char) : "?"), "detail", event.detail);
             }
         };
         Canvas.prototype.onCpcCanvasClick = function (event) {
@@ -9894,7 +10005,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
                             this.dataset8[i] |= gPen;
                             break;
                         default:
-                            Utils_16.Utils.console.warn("setSubPixels: Unknown colMode:", gColMode);
+                            Utils_15.Utils.console.warn("setSubPixels: Unknown colMode:", gColMode);
                             break;
                     }
                     i += 1;
@@ -10087,25 +10198,9 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             }
             this.maskBit = maskBit;
         };
-        /*
-        private static cpcRoundingTowardsZeroX(x: number, pixelWidth: number) {
-            x = x < 0 && x >= -pixelWidth + 1 ? 0 : x;
-            return x;
-        }
-    
-        private static cpcRoundingTowardsZeroY(y: number, pixelHeight: number) {
-            y = y < 0 && y >= -pixelHeight + 1 ? 0 : y;
-            return y;
-        }
-        */
         Canvas.prototype.draw = function (x, y) {
-            // TODO
-            //const xStart = Canvas.cpcRoundingTowardsZeroX(this.xPos, this.modeData.pixelWidth),
-            //	yStart = Canvas.cpcRoundingTowardsZeroY(this.yPos, this.modeData.pixelHeight);
             var xStart = this.xPos, yStart = this.yPos;
             this.move(x, y); // destination
-            //x = Canvas.cpcRoundingTowardsZeroX(x, this.modeData.pixelWidth);
-            //y = Canvas.cpcRoundingTowardsZeroY(y, this.modeData.pixelHeight);
             this.drawBresenhamLine(xStart, yStart, x, y);
             this.setNeedUpdate();
         };
@@ -10158,7 +10253,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         Canvas.prototype.printGChar = function (char) {
             var charWidth = this.modeData.pixelWidth * 8;
             if (char >= this.charset.length) {
-                Utils_16.Utils.console.warn("printGChar: Ignoring char with code", char);
+                Utils_15.Utils.console.warn("printGChar: Ignoring char with code", char);
                 return;
             }
             this.setChar(char, this.xPos, this.yPos, this.gPen, this.gPaper, this.gTransparent, this.gColMode, true);
@@ -10168,7 +10263,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         Canvas.prototype.printChar = function (char, x, y, pen, paper, transparent) {
             var charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8, pens = this.modeData.pens;
             if (char >= this.charset.length) {
-                Utils_16.Utils.console.warn("printChar: Ignoring char with code", char);
+                Utils_15.Utils.console.warn("printChar: Ignoring char with code", char);
                 return;
             }
             pen %= pens;
@@ -10399,10 +10494,12 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.setGPaper(this.gPaper); // keep, maybe different for other mode
             this.setGTransparentMode(false);
         };
-        Canvas.prototype.startScreenshot = function () {
+        /*
+        startScreenshot(): string {
             return this.canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"); // here is the most important part because if you do not replace you will get a DOM 18 exception.
-        };
-        Canvas.prototype.getCanvas = function () {
+        }
+        */
+        Canvas.prototype.getCanvasElement = function () {
             return this.canvas;
         };
         // http://www.cpcwiki.eu/index.php/CPC_Palette
@@ -10475,7 +10572,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
 // (c) Marco Vieth, 2022
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("TextCanvas", ["require", "exports", "Utils", "View"], function (require, exports, Utils_17, View_4) {
+define("TextCanvas", ["require", "exports", "Utils", "View"], function (require, exports, Utils_16, View_4) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.TextCanvas = void 0;
@@ -10562,13 +10659,13 @@ define("TextCanvas", ["require", "exports", "Utils", "View"], function (require,
             return pos;
         };
         TextCanvas.prototype.canvasClickAction2 = function (event) {
-            var target = event.target, style = window.getComputedStyle(target, null).getPropertyValue("font-size"), fontSize = parseFloat(style), pos = this.getMousePos(event), charWidth = (fontSize + 1.4) / 2, charHeight = fontSize + 2.25, // TODO
+            var target = View_4.View.getEventTarget(event), style = window.getComputedStyle(target, null).getPropertyValue("font-size"), fontSize = parseFloat(style), pos = this.getMousePos(event), charWidth = (fontSize + 1.4) / 2, charHeight = fontSize + 2.25, // TODO
             x = pos.x, y = pos.y, 
             /* eslint-disable no-bitwise */
             xTxt = (x / charWidth) | 0, yTxt = (y / charHeight) | 0;
             /* eslint-enable no-bitwise */
-            if (Utils_17.Utils.debug > 0) {
-                Utils_17.Utils.console.debug("canvasClickAction2: x=" + x + ", y=" + y + ", xTxt=" + xTxt + ", yTxt=" + yTxt);
+            if (Utils_16.Utils.debug > 0) {
+                Utils_16.Utils.console.debug("canvasClickAction2: x=" + x + ", y=" + y + ", xTxt=" + xTxt + ", yTxt=" + yTxt);
             }
             var char = this.getCharFromTextBuffer(xTxt, yTxt); // is there a character an the click position?
             if (char === undefined && event.detail === 2) { // no char but mouse double click?
@@ -10716,33 +10813,18 @@ define("TextCanvas", ["require", "exports", "Utils", "View"], function (require,
 });
 // NodeAdapt.ts - Adaptations for nodeJS
 //
-define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports, Utils_18) {
+define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports, Utils_17) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.NodeAdapt = void 0;
     var NodeAdapt = /** @class */ (function () {
         function NodeAdapt() {
         }
-        NodeAdapt.isNodeAvailable = function () {
-            // eslint-disable-next-line no-new-func
-            var myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(); // for old IE
-            var nodeJs = false;
-            // https://www.npmjs.com/package/detect-node
-            // Only Node.JS has a process variable that is of [[Class]] process
-            try {
-                if (Object.prototype.toString.call(myGlobalThis.process) === "[object process]") {
-                    nodeJs = true;
-                }
-            }
-            catch (e) {
-                // empty
-            }
-            return nodeJs;
-        };
         NodeAdapt.doAdapt = function () {
             var https, // nodeJs
             fs, module, audioContext;
             var domElements = {}, myCreateElement = function (id) {
+                //Utils.console.debug("myCreateElement: ", id);
                 domElements[id] = {
                     className: "",
                     style: {
@@ -10750,11 +10832,25 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
                         borderStyle: ""
                     },
                     addEventListener: function () { },
-                    options: [],
+                    options: []
+                    // getter is defined with Object.defineProperty() below... (to be compatible with ES3 syntax)
+                    /*
                     get length() {
                         return domElements[id].options.length;
                     }
+                    */
                 };
+                // old syntax for getter with "get length() { ... }"
+                Object.defineProperty(domElements[id], "length", {
+                    get: function () {
+                        return domElements[id].options.length;
+                    },
+                    set: function (len) {
+                        domElements[id].options.length = len;
+                    },
+                    enumerable: true,
+                    configurable: true
+                });
                 return domElements[id];
             };
             function fnEval(code) {
@@ -10777,7 +10873,7 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
                         if (type === "option") {
                             return {};
                         }
-                        Utils_18.Utils.console.error("createElement: unknown type", type);
+                        Utils_17.Utils.console.error("createElement: unknown type", type);
                         return {};
                     }
                 },
@@ -10802,7 +10898,7 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
             view.prototype.setAreaValue = function (id, value) {
                 if (id === "resultText") {
                     if (value) {
-                        Utils_18.Utils.console.log(value);
+                        Utils_17.Utils.console.log(value);
                     }
                 }
                 return setAreaValueOrig(id, value);
@@ -10811,7 +10907,7 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
             // readline?
             var controller = nodeExports.Controller;
             controller.prototype.startWithDirectInput = function () {
-                Utils_18.Utils.console.log("We are ready.");
+                Utils_17.Utils.console.log("We are ready.");
             };
             //
             function isUrl(s) {
@@ -10832,7 +10928,7 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
                         fnDataLoaded(undefined, data);
                     });
                 }).on("error", function (err) {
-                    Utils_18.Utils.console.log("Error: " + err.message);
+                    Utils_17.Utils.console.log("Error: " + err.message);
                     fnDataLoaded(err);
                 });
             }
@@ -10845,7 +10941,7 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
                     fnEval('module = require("module");'); // to trick TypeScript
                     modulePath = module.path || "";
                     if (!modulePath) {
-                        Utils_18.Utils.console.warn("nodeReadFile: Cannot determine module path");
+                        Utils_17.Utils.console.warn("nodeReadFile: Cannot determine module path");
                     }
                 }
                 var name2 = modulePath ? modulePath + "/" + name : name;
@@ -10855,7 +10951,7 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
             utils.loadScript = function (fileOrUrl, fnSuccess, _fnError, key) {
                 var fnLoaded = function (error, data) {
                     if (error) {
-                        Utils_18.Utils.console.error("file error: ", error);
+                        Utils_17.Utils.console.error("file error: ", error);
                     }
                     if (data) {
                         fnEval(data); // load js (for nodeJs)
@@ -10878,7 +10974,7 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
 // CommonEventHandler.ts - Common event handler for browser events
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
-define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (require, exports, Utils_19, View_5) {
+define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (require, exports, Utils_18, View_5) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CommonEventHandler = void 0;
@@ -11059,12 +11155,26 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
         };
         // eslint-disable-next-line class-methods-use-this
         CommonEventHandler.prototype.onCopyTextButtonClick = function () {
-            var textText = document.getElementById("textText");
+            var textText = View_5.View.getElementByIdAs("textText");
+            textText.select();
+            this.view.setAreaSelection("textText", 0, 99999); // for mobile devices
+            if (window.navigator && window.navigator.clipboard) {
+                window.navigator.clipboard.writeText(textText.value);
+            }
+            else {
+                Utils_18.Utils.console.warn("Copy to clipboard not available");
+            }
+            /*
+            const textText = document.getElementById("textText") as HTMLTextAreaElement;
+    
             // const copyText = View.getElementByIdAs<HTMLTextAreaElement>("textText");
             // TODO: use View.setAreaSelection...
+    
             textText.select();
             textText.setSelectionRange(0, 99999); // for mobile devices
+    
             window.navigator.clipboard.writeText(textText.value);
+            */
         };
         CommonEventHandler.prototype.onOutputTextChange = function () {
             this.controller.invalidateScript();
@@ -11122,9 +11232,11 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
         };
         CommonEventHandler.prototype.onScreenshotButtonClick = function () {
             var example = this.view.getSelectValue("exampleSelect"), image = this.controller.startScreenshot(), link = View_5.View.getElementById1("screenshotLink"), name = example + ".png";
-            link.setAttribute("download", name);
-            link.setAttribute("href", image);
-            link.click();
+            if (image) {
+                link.setAttribute("download", name);
+                link.setAttribute("href", image);
+                link.click();
+            }
         };
         CommonEventHandler.prototype.onEnterButtonClick = function () {
             this.controller.startEnter();
@@ -11135,7 +11247,12 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
         };
         CommonEventHandler.onFullscreenButtonClick = function () {
             var element = View_5.View.getElementById1("cpcCanvas");
-            element.requestFullscreen();
+            if (element.requestFullscreen) {
+                element.requestFullscreen();
+            }
+            else {
+                Utils_18.Utils.console.warn("Switch to fullscreen not available");
+            }
         };
         CommonEventHandler.prototype.onCpcCanvasClick = function (event) {
             this.controller.onCpcCanvasClick(event);
@@ -11148,27 +11265,27 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
         };
         /* eslint-enable no-invalid-this */
         CommonEventHandler.prototype.handleEvent = function (event) {
-            var target = event.target, id = (target) ? target.getAttribute("id") : String(target), type = event.type; // click or change
+            var target = View_5.View.getEventTarget(event), id = (target) ? target.getAttribute("id") : String(target), type = event.type; // click or change
             if (this.fnUserAction) {
                 this.fnUserAction(event, id);
             }
             if (id) {
                 if (!target.disabled) { // check needed for IE which also fires for disabled buttons
-                    var handler = "on" + Utils_19.Utils.stringCapitalize(id) + Utils_19.Utils.stringCapitalize(type);
-                    if (Utils_19.Utils.debug) {
-                        Utils_19.Utils.console.debug("fnCommonEventHandler: handler=" + handler);
+                    var handler = "on" + Utils_18.Utils.stringCapitalize(id) + Utils_18.Utils.stringCapitalize(type);
+                    if (Utils_18.Utils.debug) {
+                        Utils_18.Utils.console.debug("fnCommonEventHandler: handler=" + handler);
                     }
                     if (handler in this.handlers) {
                         this.handlers[handler].call(this, event);
                     }
                     else if (!handler.endsWith("SelectClick") && !handler.endsWith("InputClick")) { // do not print all messages
-                        Utils_19.Utils.console.log("Event handler not found:", handler);
+                        Utils_18.Utils.console.log("Event handler not found:", handler);
                     }
                 }
             }
             else if (target.getAttribute("data-key") === null) { // not for keyboard buttons
-                if (Utils_19.Utils.debug) {
-                    Utils_19.Utils.console.debug("Event handler for", type, "unknown target:", target.tagName, target.id);
+                if (Utils_18.Utils.debug) {
+                    Utils_18.Utils.console.debug("Event handler for", type, "unknown target:", target.tagName, target.id);
                 }
             }
             if (type === "click") { // special
@@ -11221,7 +11338,7 @@ define("Random", ["require", "exports"], function (require, exports) {
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("Sound", ["require", "exports", "Utils"], function (require, exports, Utils_20) {
+define("Sound", ["require", "exports", "Utils"], function (require, exports, Utils_19) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Sound = void 0;
@@ -11244,7 +11361,7 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
                     rendevousMask: 0
                 };
             }
-            if (Utils_20.Utils.debug > 1) {
+            if (Utils_19.Utils.debug > 1) {
                 this.debugLogList = []; // access: cpcBasic.controller.sound.debugLog
             }
         }
@@ -11416,7 +11533,7 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
             var maxVolume = 15, i100ms2sec = 100, // time duration unit: 1/100 sec=10 ms, convert to sec
             ctx = this.context, toneEnv = soundData.toneEnv;
             var volEnv = soundData.volEnv, volEnvRepeat = 1;
-            if (Utils_20.Utils.debug > 1) {
+            if (Utils_19.Utils.debug > 1) {
                 this.debugLog("scheduleNote: " + oscillator + " " + fTime);
             }
             var oscillatorNode = ctx.createOscillator();
@@ -11424,8 +11541,8 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
             oscillatorNode.frequency.value = (soundData.period >= 3) ? 62500 / soundData.period : 0;
             oscillatorNode.connect(this.gainNodes[oscillator]);
             if (fTime < ctx.currentTime) {
-                if (Utils_20.Utils.debug) {
-                    Utils_20.Utils.console.debug("Test: sound: scheduleNote:", fTime, "<", ctx.currentTime);
+                if (Utils_19.Utils.debug) {
+                    Utils_19.Utils.console.debug("Test: sound: scheduleNote:", fTime, "<", ctx.currentTime);
                 }
             }
             var volume = soundData.volume, gain = this.gainNodes[oscillator].gain, fVolume = volume / maxVolume;
@@ -11484,7 +11601,7 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
                         this.stopOscillator(i);
                     }
                     queue.soundData.push(soundData); // just a reference
-                    if (Utils_20.Utils.debug > 1) {
+                    if (Utils_19.Utils.debug > 1) {
                         this.debugLog("sound: " + i + " " + state + ":" + queue.soundData.length);
                     }
                     this.updateQueueStatus(i, queue);
@@ -11558,7 +11675,7 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
             if (!queues.length) {
                 return;
             }
-            if (Utils_20.Utils.debug > 1) {
+            if (Utils_19.Utils.debug > 1) {
                 this.debugLog("release: " + releaseMask);
             }
             for (var i = 0; i < 3; i += 1) {
@@ -11600,8 +11717,8 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
                 var mergerNode = this.mergerNode, context = this.context;
                 mergerNode.connect(context.destination);
                 this.isSoundOn = true;
-                if (Utils_20.Utils.debug) {
-                    Utils_20.Utils.console.debug("soundOn: Sound switched on");
+                if (Utils_19.Utils.debug) {
+                    Utils_19.Utils.console.debug("soundOn: Sound switched on");
                 }
             }
         };
@@ -11610,8 +11727,8 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
                 var mergerNode = this.mergerNode, context = this.context;
                 mergerNode.disconnect(context.destination);
                 this.isSoundOn = false;
-                if (Utils_20.Utils.debug) {
-                    Utils_20.Utils.console.debug("soundOff: Sound switched off");
+                if (Utils_19.Utils.debug) {
+                    Utils_19.Utils.console.debug("soundOff: Sound switched off");
                 }
             }
         };
@@ -11623,7 +11740,7 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("ZipFile", ["require", "exports", "Utils"], function (require, exports, Utils_21) {
+define("ZipFile", ["require", "exports", "Utils"], function (require, exports, Utils_20) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.ZipFile = void 0;
@@ -11638,7 +11755,7 @@ define("ZipFile", ["require", "exports", "Utils"], function (require, exports, U
         };
         ZipFile.prototype.composeError = function (error, message, value, pos) {
             message = this.zipName + ": " + message; // put zipname in message
-            return Utils_21.Utils.composeError("ZipFile", error, message, value, pos);
+            return Utils_20.Utils.composeError("ZipFile", error, message, value, pos);
         };
         ZipFile.prototype.subArr = function (begin, length) {
             var data = this.data, end = begin + length;
@@ -11746,7 +11863,7 @@ define("ZipFile", ["require", "exports", "Utils"], function (require, exports, U
                 cdfh.timestamp = new Date(((dostime >> 25) & 0x7F) + 1980, ((dostime >> 21) & 0x0F) - 1, (dostime >> 16) & 0x1F, (dostime >> 11) & 0x1F, (dostime >> 5) & 0x3F, (dostime & 0x1F) << 1).getTime(); // eslint-disable-line no-bitwise
                 // local file header... much more info
                 if (this.readUInt(cdfh.localOffset) !== lfhSignature) {
-                    Utils_21.Utils.console.error("Zip: readZipDirectory: LFH signature not found at offset", cdfh.localOffset);
+                    Utils_20.Utils.console.error("Zip: readZipDirectory: LFH signature not found at offset", cdfh.localOffset);
                 }
                 var lfhExtrafieldLength = this.readUShort(cdfh.localOffset + 28); // extra field length
                 cdfh.dataStart = cdfh.localOffset + lfhLen + cdfh.name.length + lfhExtrafieldLength;
@@ -11998,7 +12115,7 @@ define("ZipFile", ["require", "exports", "Utils"], function (require, exports, U
                 throw this.composeError(Error(), "Zip: readData: compression method not supported:" + cdfh.compressionMethod, "", 0);
             }
             if (dataUTF8.length !== cdfh.size) { // assert
-                Utils_21.Utils.console.error("Zip: readData: different length 2!");
+                Utils_20.Utils.console.error("Zip: readData: different length 2!");
             }
             return dataUTF8;
         };
@@ -12010,7 +12127,7 @@ define("ZipFile", ["require", "exports", "Utils"], function (require, exports, U
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, exports, Utils_22, Random_1) {
+define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, exports, Utils_21, Random_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CpcVm = void 0;
@@ -12310,7 +12427,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.vmAssertNumber(n, err);
             if (n < min || n > max) {
                 if (!this.quiet) {
-                    Utils_22.Utils.console.warn("vmAssertInRange: number not in range:", min + "<=" + n + "<=" + max);
+                    Utils_21.Utils.console.warn("vmAssertInRange: number not in range:", min + "<=" + n + "<=" + max);
                 }
                 throw this.vmComposeError(Error(), 5, err + " " + n); // 5=Improper argument
             }
@@ -12333,7 +12450,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             n = this.vmRound(n, err);
             if (n < min || n > max) {
                 if (!this.quiet) {
-                    Utils_22.Utils.console.warn("vmInRangeRound: number not in range:", min + "<=" + n + "<=" + max);
+                    Utils_21.Utils.console.warn("vmInRangeRound: number not in range:", min + "<=" + n + "<=" + max);
                 }
                 throw this.vmComposeError(Error(), n < -32768 || n > 32767 ? 6 : 5, err + " " + n); // 6=Overflow, 5=Improper argument
             }
@@ -12346,7 +12463,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             }
             if (n < min || n > max) {
                 if (!this.quiet) {
-                    Utils_22.Utils.console.warn("vmLineInRange: number not in range:", min + "<=" + n + "<=" + max);
+                    Utils_21.Utils.console.warn("vmLineInRange: number not in range:", min + "<=" + n + "<=" + max);
                 }
                 throw this.vmComposeError(Error(), 5, err + " " + n); // 5=Improper argument
             }
@@ -12388,7 +12505,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             else if (type === "$") { // string
                 if (typeof value !== "string") {
                     if (!this.quiet) {
-                        Utils_22.Utils.console.warn("vmAssign: expected string but got:", value);
+                        Utils_21.Utils.console.warn("vmAssign: expected string but got:", value);
                     }
                     throw this.vmComposeError(Error(), 13, "type " + type + "=" + value); // "Type mismatch"
                 }
@@ -12396,13 +12513,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             return value;
         };
         CpcVm.prototype.vmGoto = function (line, _msg) {
-            /*
-            if (Utils.debug > 5) {
-                if (typeof line === "number" || Utils.debug > 7) { // non-number labels only in higher debug levels
-                    Utils.console.debug("vmGotoLine:", msg + ": " + line);
-                }
-            }
-            */
             this.line = line;
         };
         CpcVm.prototype.fnCheckSqTimer = function () {
@@ -12523,7 +12633,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.vmStop = function (reason, priority, force, paras) {
             var defaultPriority = CpcVm.stopPriority[reason];
             if (defaultPriority === undefined) {
-                Utils_22.Utils.console.warn("Programming error: vmStop: Unknown reason:", reason);
+                Utils_21.Utils.console.warn("Programming error: vmStop: Unknown reason:", reason);
             }
             priority = priority || 0;
             if (priority !== 0) {
@@ -12537,7 +12647,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         };
         CpcVm.prototype.vmNotImplemented = function (name) {
             if (!this.quiet) {
-                Utils_22.Utils.console.warn("Not implemented:", name);
+                Utils_21.Utils.console.warn("Not implemented:", name);
             }
         };
         CpcVm.prototype.vmUsingStringFormat = function (format, arg) {
@@ -12575,7 +12685,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 str = arg.toFixed(decimals);
             }
             if (format.indexOf(",") >= 0) { // contains comma => insert thousands separator
-                str = Utils_22.Utils.numberWithCommas(str);
+                str = Utils_21.Utils.numberWithCommas(str);
             }
             var padLen = format.length - str.length, pad = (padLen > 0) ? padChar.repeat(padLen) : "";
             str = pad + str;
@@ -12720,7 +12830,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.atn = function (n) {
             this.vmAssertNumber(n, "ATN");
             n = Math.atan(n);
-            return this.degFlag ? Utils_22.Utils.toDegrees(n) : n;
+            return this.degFlag ? Utils_21.Utils.toDegrees(n) : n;
         };
         CpcVm.prototype.auto = function (line, increment) {
             line = line === undefined ? 10 : this.vmLineInRange(line, "AUTO");
@@ -12914,8 +13024,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                     this.vmSetRamSelect(args.length);
                     break;
                 default:
-                    if (Utils_22.Utils.debug > 0) {
-                        Utils_22.Utils.console.debug("Ignored: CALL", addr, args);
+                    if (Utils_21.Utils.debug > 0) {
+                        Utils_21.Utils.console.debug("Ignored: CALL", addr, args);
                     }
                     break;
             }
@@ -13010,7 +13120,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             if (outFile.open) {
                 if (outFile.command !== "openout") {
                     if (!this.quiet) {
-                        Utils_22.Utils.console.warn("closeout: command=", outFile.command); // should not occur
+                        Utils_21.Utils.console.warn("closeout: command=", outFile.command); // should not occur
                     }
                 }
                 if (!outFile.fileData.length) { // openout without data?
@@ -13069,7 +13179,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         };
         CpcVm.prototype.cos = function (n) {
             this.vmAssertNumber(n, "COS");
-            return Math.cos((this.degFlag) ? Utils_22.Utils.toRadians(n) : n);
+            return Math.cos((this.degFlag) ? Utils_21.Utils.toRadians(n) : n);
         };
         CpcVm.prototype.creal = function (n) {
             this.vmAssertNumber(n, "CREAL");
@@ -13175,43 +13285,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             }
             this.variables.dimVariable(varName, dimensions);
         };
-        /*
-        // TODO, if we want to check array access
-        vmGetVariable(varName: string, ...args: number[]): VariableValue { // TODO
-            let value = this.variables.getVariable(varName);
-    
-            for (let i = 0; i < args.length; i += 1) {
-                if (Array.isArray(value)) {
-                    const index = this.vmInRangeRound(args[i], 0, value.length - 1, "vmGet"); // TODO: in case of error: Subscript out of range; or: vmAssertInRange?
-    
-                    value = value[index];
-                } else {
-                    throw this.vmComposeError(Error(), 9, String(value)); // Subscript out of range
-                }
-            }
-            return value;
-        }
-    
-        vmSetVariable(varName: string, valueToSet: number | string, ...args: number[]): VariableValue { // TODO
-            let value = this.variables.getVariable(varName);
-    
-            for (let i = 0; i < args.length; i += 1) {
-                if (Array.isArray(value)) {
-                    const index = this.vmInRangeRound(args[i], 0, value.length - 1, "vmGet"); // TODO: in case of error: Subscript out of range; or: vmAssertInRange?
-    
-                    if (i < args.length - 1) {
-                        value = value[index];
-                    } else {
-                        value[index] = valueToSet;
-                    }
-                } else {
-                    throw this.vmComposeError(Error(), 9, String(value)); // Subscript out of range
-                }
-            }
-    
-            return value;
-        }
-        */
         CpcVm.prototype.draw = function (x, y, gPen, gColMode) {
             x = this.vmInRangeRound(x, -32768, 32767, "DRAW");
             y = this.vmInRangeRound(y, -32768, 32767, "DRAW");
@@ -13274,7 +13347,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             }
             else { // 0
                 if (!this.quiet) {
-                    Utils_22.Utils.console.warn("ENT: toneEnv", toneEnv);
+                    Utils_21.Utils.console.warn("ENT: toneEnv", toneEnv);
                 }
                 throw this.vmComposeError(Error(), 5, "ENT " + toneEnv); // Improper argument
             }
@@ -13349,13 +13422,13 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             }
             for (var i = 0; i < args.length; i += 1) {
                 this.vmAssertString(args[i], "ERASE");
-                var name_9 = this.vmFindArrayVariable(args[i]);
-                if (name_9) {
-                    this.variables.initVariable(name_9);
+                var name_10 = this.vmFindArrayVariable(args[i]);
+                if (name_10) {
+                    this.variables.initVariable(name_10);
                 }
                 else {
                     if (!this.quiet) {
-                        Utils_22.Utils.console.warn("erase: Array variable not found:", args[i]);
+                        Utils_21.Utils.console.warn("erase: Array variable not found:", args[i]);
                     }
                     throw this.vmComposeError(Error(), 5, "ERASE " + args[i]); // Improper argument
                 }
@@ -13384,10 +13457,10 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 this.vmStop("error", 50);
             }
             if (!this.quiet) {
-                Utils_22.Utils.console.log("BASIC error(" + err + "):", errorWithInfo + (hidden ? " (hidden: " + hidden + ")" : ""));
+                Utils_21.Utils.console.log("BASIC error(" + err + "):", errorWithInfo + (hidden ? " (hidden: " + hidden + ")" : ""));
             }
             var traceLine = this.line, sourceMapEntry = this.sourceMap[traceLine], pos = sourceMapEntry && sourceMapEntry[0], len = sourceMapEntry && sourceMapEntry[1];
-            return Utils_22.Utils.composeError("CpcVm", error, errorString, errInfo, pos, len, this.line, hidden);
+            return Utils_21.Utils.composeError("CpcVm", error, errorString, errInfo, pos, len, this.line, hidden);
         };
         CpcVm.prototype.error = function (err, errInfo) {
             err = this.vmInRangeRound(err, 0, 255, "ERROR"); // could trigger another error
@@ -13505,8 +13578,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.vmInputCallback = function () {
             var inputParas = this.vmGetStopObject().paras, stream = inputParas.stream, input = inputParas.input, inputValues = input.split(","), convertedInputValues = [], types = inputParas.types;
             var inputOk = true;
-            if (Utils_22.Utils.debug > 0) {
-                Utils_22.Utils.console.debug("vmInputCallback:", input);
+            if (Utils_21.Utils.debug > 0) {
+                Utils_21.Utils.console.debug("vmInputCallback:", input);
             }
             if (types && (inputValues.length === types.length)) {
                 for (var i = 0; i < types.length; i += 1) {
@@ -13706,8 +13779,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         // let
         CpcVm.prototype.vmLineInputCallback = function () {
             var inputParas = this.vmGetStopObject().paras, input = inputParas.input;
-            if (Utils_22.Utils.debug > 0) {
-                Utils_22.Utils.console.debug("vmLineInputCallback:", input);
+            if (Utils_21.Utils.debug > 0) {
+                Utils_21.Utils.console.debug("vmLineInputCallback:", input);
             }
             this.vmSetInputValues([input]);
             this.cursor(inputParas.stream, 0);
@@ -13787,8 +13860,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                     if (isNaN(length_1)) {
                         length_1 = input.length; // only valid after atob()
                     }
-                    if (Utils_22.Utils.debug > 1) {
-                        Utils_22.Utils.console.debug("vmLoadCallback:", inFile.name + ": putting data in memory", start, "-", start + length_1);
+                    if (Utils_21.Utils.debug > 1) {
+                        Utils_21.Utils.console.debug("vmLoadCallback:", inFile.name + ": putting data in memory", start, "-", start + length_1);
                     }
                     for (var i = 0; i < length_1; i += 1) {
                         var byte = input.charCodeAt(i);
@@ -13872,7 +13945,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             }
             else if (args.length === 1) { // if just one argument, return it, even if it is a string
                 if (typeof args[0] !== "number" && !this.quiet) {
-                    Utils_22.Utils.console.warn("MAX: Not a number:", args[0]);
+                    Utils_21.Utils.console.warn("MAX: Not a number:", args[0]);
                 }
                 return args[0];
             }
@@ -13930,7 +14003,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             }
             else if (args.length === 1) { // if just one argument, return it, even if it is a string
                 if (typeof args[0] !== "number" && !this.quiet) {
-                    Utils_22.Utils.console.warn("MIN: Not a number:", args[0]);
+                    Utils_21.Utils.console.warn("MIN: Not a number:", args[0]);
                 }
                 return args[0];
             }
@@ -14008,8 +14081,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             n = this.vmInRangeRound(n, 0, 255, "ON GOSUB");
             var line;
             if (!n || n > args.length) { // out of range? => continue with line after onGosub
-                if (Utils_22.Utils.debug > 1) {
-                    Utils_22.Utils.console.debug("onGosub: out of range: n=" + n + " in " + this.line);
+                if (Utils_21.Utils.debug > 1) {
+                    Utils_21.Utils.console.debug("onGosub: out of range: n=" + n + " in " + this.line);
                 }
                 line = retLabel;
             }
@@ -14030,8 +14103,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             n = this.vmInRangeRound(n, 0, 255, "ON GOTO");
             var line;
             if (!n || n > args.length) { // out of range? => continue with line after onGoto
-                if (Utils_22.Utils.debug > 1) {
-                    Utils_22.Utils.console.debug("onGoto: out of range: n=" + n + " in " + this.line);
+                if (Utils_21.Utils.debug > 1) {
+                    Utils_21.Utils.console.debug("onGoto: out of range: n=" + n + " in " + this.line);
                 }
                 line = retLabel;
             }
@@ -14145,8 +14218,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 this.vmSetCrtcData(byte);
                 this.crtcData[this.crtcReg] = byte;
             }
-            else if (Utils_22.Utils.debug > 0) {
-                Utils_22.Utils.console.debug("OUT", Number(port).toString(16), byte, ": unknown port");
+            else if (Utils_21.Utils.debug > 0) {
+                Utils_21.Utils.console.debug("OUT", Number(port).toString(16), byte, ": unknown port");
             }
         };
         CpcVm.prototype.paper = function (stream, paper) {
@@ -14299,8 +14372,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.vmPrintChars = function (stream, str) {
             var win = this.windowDataList[stream];
             if (!win.textEnabled) {
-                if (Utils_22.Utils.debug > 0) {
-                    Utils_22.Utils.console.debug("vmPrintChars: text output disabled:", str);
+                if (Utils_21.Utils.debug > 0) {
+                    Utils_21.Utils.console.debug("vmPrintChars: text output disabled:", str);
                 }
                 return;
             }
@@ -14327,8 +14400,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             if (char >= this.minCustomChar) {
                 this.symbol.apply(this, paraList);
             }
-            else if (Utils_22.Utils.debug > 0) {
-                Utils_22.Utils.console.debug("vmControlSymbol: define SYMBOL ignored:", char);
+            else if (Utils_21.Utils.debug > 0) {
+                Utils_21.Utils.console.debug("vmControlSymbol: define SYMBOL ignored:", char);
             }
         };
         CpcVm.prototype.vmControlWindow = function (para, stream) {
@@ -14465,7 +14538,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                     this.vmLocate(stream, para.charCodeAt(0), para.charCodeAt(1));
                     break;
                 default:
-                    Utils_22.Utils.console.warn("vmHandleControlCode: Unknown control code:", code);
+                    Utils_21.Utils.console.warn("vmHandleControlCode: Unknown control code:", code);
                     break;
             }
             return out;
@@ -14544,7 +14617,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                     }
                 }
                 else if (typeof arg === "number") {
-                    str = ((arg >= 0) ? " " : "") + Utils_22.Utils.toPrecision9(arg) + " ";
+                    str = ((arg >= 0) ? " " : "") + Utils_21.Utils.toPrecision9(arg) + " ";
                 }
                 else { // e.g. string
                     str = String(arg);
@@ -14614,8 +14687,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.vmRandomizeCallback = function () {
             var inputParas = this.vmGetStopObject().paras, input = inputParas.input, value = CpcVm.vmVal(input); // convert to number (also binary, hex)
             var inputOk = true;
-            if (Utils_22.Utils.debug > 0) {
-                Utils_22.Utils.console.debug("vmRandomizeCallback:", input);
+            if (Utils_21.Utils.debug > 0) {
+                Utils_21.Utils.console.debug("vmRandomizeCallback:", input);
             }
             if (isNaN(value)) {
                 inputOk = false;
@@ -14649,8 +14722,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 if (n === 0) {
                     n = rndInit;
                 }
-                if (Utils_22.Utils.debug > 1) {
-                    Utils_22.Utils.console.debug("randomize:", n);
+                if (Utils_21.Utils.debug > 1) {
+                    Utils_21.Utils.console.debug("randomize:", n);
                 }
                 this.random.init(n);
             }
@@ -14722,8 +14795,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 this.dataIndex = dataLineIndex[line];
             }
             else {
-                if (Utils_22.Utils.debug > 0) {
-                    Utils_22.Utils.console.debug("restore: search for dataLine >", line);
+                if (Utils_21.Utils.debug > 0) {
+                    Utils_21.Utils.console.debug("restore: search for dataLine >", line);
                 }
                 for (var dataLine in dataLineIndex) { // linear search a data line > line
                     if (dataLineIndex.hasOwnProperty(dataLine)) {
@@ -14737,8 +14810,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                     this.dataIndex = dataLineIndex[line];
                 }
                 else {
-                    if (Utils_22.Utils.debug > 0) {
-                        Utils_22.Utils.console.debug("restore", line + ": No DATA found starting at line");
+                    if (Utils_21.Utils.debug > 0) {
+                        Utils_21.Utils.console.debug("restore", line + ": No DATA found starting at line");
                     }
                     this.dataIndex = this.dataList.length;
                 }
@@ -14760,7 +14833,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             }
             var resumeLineIndex = this.labelList.indexOf(this.errorResumeLine);
             if (resumeLineIndex < 0) {
-                Utils_22.Utils.console.error("resumeNext: line not found: " + this.errorResumeLine);
+                Utils_21.Utils.console.error("resumeNext: line not found: " + this.errorResumeLine);
                 this.errorResumeLine = 0;
                 return;
             }
@@ -14836,11 +14909,11 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.run = function (numOrString) {
             var inFile = this.inFile;
             if (typeof numOrString === "string") { // filename?
-                var name_10 = this.vmAdaptFilename(numOrString, "RUN");
+                var name_11 = this.vmAdaptFilename(numOrString, "RUN");
                 this.closein();
                 inFile.open = true;
                 inFile.command = "run";
-                inFile.name = name_10;
+                inFile.name = name_11;
                 inFile.start = undefined;
                 inFile.fnFileCallback = this.fnRunHandler;
                 this.vmStop("fileLoad", 90);
@@ -14905,7 +14978,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         };
         CpcVm.prototype.sin = function (n) {
             this.vmAssertNumber(n, "SIN");
-            return Math.sin((this.degFlag) ? Utils_22.Utils.toRadians(n) : n);
+            return Math.sin((this.degFlag) ? Utils_21.Utils.toRadians(n) : n);
         };
         CpcVm.prototype.sound = function (state, period, duration, volume, volEnv, toneEnv, noise) {
             state = this.vmInRangeRound(state, 1, 255, "SOUND");
@@ -14949,7 +15022,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 str = " ".repeat(n);
             }
             else if (!this.quiet) {
-                Utils_22.Utils.console.log("SPC: negative number ignored:", n);
+                Utils_21.Utils.console.log("SPC: negative number ignored:", n);
             }
             return str;
         };
@@ -15066,7 +15139,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 str = " ".repeat(count);
             }
             else if (!this.quiet) {
-                Utils_22.Utils.console.log("TAB: no tab for value", n);
+                Utils_21.Utils.console.log("TAB: no tab for value", n);
             }
             return str;
         };
@@ -15082,7 +15155,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         };
         CpcVm.prototype.tan = function (n) {
             this.vmAssertNumber(n, "TAN");
-            return Math.tan((this.degFlag) ? Utils_22.Utils.toRadians(n) : n);
+            return Math.tan((this.degFlag) ? Utils_21.Utils.toRadians(n) : n);
         };
         CpcVm.prototype.test = function (x, y) {
             x = this.vmInRangeRound(x, -32768, 32767, "TEST");
@@ -15136,7 +15209,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             }
             if (formatList.length < 2) {
                 if (!this.quiet) {
-                    Utils_22.Utils.console.warn("USING: empty or invalid format:", format);
+                    Utils_21.Utils.console.warn("USING: empty or invalid format:", format);
                 }
                 throw this.vmComposeError(Error(), 5, "USING format " + format); // Improper argument
             }
@@ -15248,7 +15321,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             for (var i = 0; i < args.length; i += 1) {
                 var arg = args[i];
                 if (typeof arg === "number") {
-                    str = Utils_22.Utils.toPrecision9(arg);
+                    str = Utils_21.Utils.toPrecision9(arg);
                 }
                 else {
                     str = '"' + String(arg) + '"';
@@ -15467,7 +15540,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
 // (c) Marco Vieth, 2020
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("CpcVmRsx", ["require", "exports", "Utils"], function (require, exports, Utils_23) {
+define("CpcVmRsx", ["require", "exports", "Utils"], function (require, exports, Utils_22) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CpcVmRsx = void 0;
@@ -15497,7 +15570,7 @@ define("CpcVmRsx", ["require", "exports", "Utils"], function (require, exports, 
             this.vm.vmNotImplemented("|B");
         };
         CpcVmRsx.prototype.basic = function () {
-            Utils_23.Utils.console.log("basic: |BASIC");
+            Utils_22.Utils.console.log("basic: |BASIC");
             this.vm.vmStop("reset", 90);
         };
         CpcVmRsx.prototype.cpm = function () {
@@ -15600,7 +15673,7 @@ define("CpcVmRsx", ["require", "exports", "Utils"], function (require, exports, 
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLexer", "BasicParser", "BasicTokenizer", "Canvas", "CodeGeneratorBasic", "CodeGeneratorJs", "CodeGeneratorToken", "CommonEventHandler", "cpcCharset", "CpcVm", "CpcVmRsx", "Diff", "DiskImage", "InputStack", "Keyboard", "TextCanvas", "VirtualKeyboard", "Sound", "Variables", "View", "ZipFile"], function (require, exports, Utils_24, BasicFormatter_1, BasicLexer_1, BasicParser_3, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, CpcVmRsx_1, Diff_1, DiskImage_1, InputStack_1, Keyboard_1, TextCanvas_1, VirtualKeyboard_1, Sound_1, Variables_1, View_6, ZipFile_1) {
+define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLexer", "BasicParser", "BasicTokenizer", "Canvas", "CodeGeneratorBasic", "CodeGeneratorJs", "CodeGeneratorToken", "CommonEventHandler", "cpcCharset", "CpcVm", "CpcVmRsx", "Diff", "DiskImage", "InputStack", "Keyboard", "TextCanvas", "VirtualKeyboard", "Sound", "Variables", "View", "ZipFile"], function (require, exports, Utils_23, BasicFormatter_1, BasicLexer_1, BasicParser_3, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, CpcVmRsx_1, Diff_1, DiskImage_1, InputStack_1, Keyboard_1, TextCanvas_1, VirtualKeyboard_1, Sound_1, Variables_1, View_6, ZipFile_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Controller = void 0;
@@ -15623,7 +15696,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.fileIndex += 1;
                 var lastModified = file.lastModified, lastModifiedDate = lastModified ? new Date(lastModified) : file.lastModifiedDate, // lastModifiedDate deprecated, but for old IE
                 text = file.name + " " + (file.type || "n/a") + " " + file.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
-                Utils_24.Utils.console.log(text);
+                Utils_23.Utils.console.log(text);
                 if (file.type === "text/plain") {
                     reader.readAsText(file);
                 }
@@ -15647,7 +15720,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     zip = new ZipFile_1.ZipFile(new Uint8Array(data), name); // rather data
                 }
                 catch (e) {
-                    Utils_24.Utils.console.error(e);
+                    Utils_23.Utils.console.error(e);
                     if (e instanceof Error) {
                         this.outputError(e, true);
                     }
@@ -15661,7 +15734,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                             data2 = zip.readData(name2);
                         }
                         catch (e) {
-                            Utils_24.Utils.console.error(e);
+                            Utils_23.Utils.console.error(e);
                             if (e instanceof Error) { // eslint-disable-line max-depth
                                 this.outputError(e, true);
                             }
@@ -15676,7 +15749,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.fnLoad2(data, name, type, this.imported);
             }
             else {
-                Utils_24.Utils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);
+                Utils_23.Utils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);
             }
             if (reader) {
                 this.fnReadNextFile(reader);
@@ -15694,7 +15767,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 }
             }
             if (msg) {
-                Utils_24.Utils.console.warn(msg);
+                Utils_23.Utils.console.warn(msg);
             }
             if (reader) {
                 this.fnReadNextFile(reader);
@@ -15705,9 +15778,9 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         FileSelect.prototype.fnHandleFileSelect = function (event) {
             event.stopPropagation();
             event.preventDefault();
-            var dataTransfer = event.dataTransfer, files = dataTransfer ? dataTransfer.files : event.target.files; // dataTransfer for drag&drop, target.files for file input
+            var dataTransfer = event.dataTransfer, files = dataTransfer ? dataTransfer.files : View_6.View.getEventTarget(event).files; // dataTransfer for drag&drop, target.files for file input
             if (!files || !files.length) {
-                Utils_24.Utils.console.error("fnHandleFileSelect: No files!");
+                Utils_23.Utils.console.error("fnHandleFileSelect: No files!");
                 return;
             }
             this.files = files;
@@ -15720,7 +15793,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.fnReadNextFile(reader);
             }
             else {
-                Utils_24.Utils.console.warn("fnHandleFileSelect: FileReader API not supported.");
+                Utils_23.Utils.console.warn("fnHandleFileSelect: FileReader API not supported.");
             }
         };
         FileSelect.prototype.addFileSelectHandler = function (element, type) {
@@ -15777,7 +15850,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                         var info1 = data.substring(0, index);
                         data = data.substring(index + 1); // remove meta prefix
                         if (info1.indexOf("base64") >= 0) {
-                            data = Utils_24.Utils.atob(data); // decode base64
+                            data = Utils_23.Utils.atob(data); // decode base64
                         }
                     }
                 }
@@ -15801,7 +15874,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                                 this.fnLoad2(data, fileName, "cpcBasic/binary", imported); // recursive
                             }
                             catch (e) {
-                                Utils_24.Utils.console.error(e);
+                                Utils_23.Utils.console.error(e);
                                 if (e instanceof Error) { // eslint-disable-line max-depth
                                     this.outputError(e, true);
                                 }
@@ -15809,7 +15882,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                         }
                     }
                     catch (e) {
-                        Utils_24.Utils.console.error(e);
+                        Utils_23.Utils.console.error(e);
                         if (e instanceof Error) {
                             this.outputError(e, true);
                         }
@@ -15823,13 +15896,13 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             if (header) {
                 var meta = FileHandler.joinMeta(header);
                 try {
-                    Utils_24.Utils.localStorage.setItem(storageName, meta + "," + data);
+                    Utils_23.Utils.localStorage.setItem(storageName, meta + "," + data);
                     this.updateStorageDatabase("set", storageName);
-                    Utils_24.Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
+                    Utils_23.Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
                     imported.push(name);
                 }
                 catch (e) { // maybe quota exceeded
-                    Utils_24.Utils.console.error(e);
+                    Utils_23.Utils.console.error(e);
                     if (e instanceof Error) {
                         if (e.name === "QuotaExceededError") {
                             e.shortMessage = storageName + ": Quota exceeded";
@@ -15930,8 +16003,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.virtualKeyboardCreate();
             }
             this.commonEventHandler.fnSetUserAction(this.onUserAction.bind(this)); // check first user action, also if sound is not yet on
-            var example = model.getProperty("example");
-            view.setSelectValue("exampleSelect", example);
             this.vm = new CpcVm_1.CpcVm({
                 canvas: this.canvas,
                 textCanvas: this.textCanvas,
@@ -15962,7 +16033,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 rsx: this.rsx,
                 implicitLines: model.getProperty("implicitLines")
             });
-            this.initDatabases();
             if (model.getProperty("sound")) { // activate sound needs user action
                 this.setSoundActive(); // activate in waiting state
             }
@@ -15973,20 +16043,23 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.textCanvas.startUpdateCanvas();
             }
             this.initDropZone();
+            var example = model.getProperty("example");
+            view.setSelectValue("exampleSelect", example);
+            this.initDatabases();
         }
         Controller.prototype.initDatabases = function () {
             var model = this.model, databases = {}, databaseDirs = model.getProperty("databaseDirs").split(",");
             for (var i = 0; i < databaseDirs.length; i += 1) {
-                var databaseDir = databaseDirs[i], parts = databaseDir.split("/"), name_11 = parts[parts.length - 1];
-                databases[name_11] = {
-                    text: name_11,
+                var databaseDir = databaseDirs[i], parts = databaseDir.split("/"), name_12 = parts[parts.length - 1];
+                databases[name_12] = {
+                    text: name_12,
                     title: databaseDir,
                     src: databaseDir
                 };
             }
             this.model.addDatabases(databases);
             this.setDatabaseSelectOptions();
-            this.onDatabaseSelectChange();
+            //this.onDatabaseSelectChange();
         };
         Controller.prototype.onUserAction = function ( /* event, id */) {
             this.commonEventHandler.fnSetUserAction(undefined); // deactivate user action
@@ -16014,7 +16087,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             example.key = key; // maybe changed
             example.script = input;
             example.loaded = true;
-            Utils_24.Utils.console.log("addItem:", key);
+            Utils_23.Utils.console.log("addItem:", key);
             return key;
         };
         Controller.prototype.setDatabaseSelectOptions = function () {
@@ -16088,7 +16161,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.view.setSelectOptions(select, items);
         };
         Controller.prototype.updateStorageDatabase = function (action, key) {
-            var database = this.model.getProperty("database"), storage = Utils_24.Utils.localStorage;
+            var database = this.model.getProperty("database"), storage = Utils_23.Utils.localStorage;
             if (database !== "storage") {
                 this.model.setProperty("database", "storage"); // switch to storage database
             }
@@ -16117,7 +16190,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     }
                 }
                 else {
-                    Utils_24.Utils.console.error("updateStorageDatabase: unknown action", action);
+                    Utils_23.Utils.console.error("updateStorageDatabase: unknown action", action);
                 }
             }
             if (database === "storage") {
@@ -16212,7 +16285,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.fnWaitKey = function () {
             var key = this.keyboard.getKeyFromBuffer();
             if (key !== "") { // do we have a key from the buffer already?
-                Utils_24.Utils.console.log("Wait for key:", key);
+                Utils_23.Utils.console.log("Wait for key:", key);
                 this.vm.vmStop("", 0, true);
                 this.removeKeyBoardHandler();
             }
@@ -16329,7 +16402,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             inputParas.input = input;
             var inputOk = false;
             if (key === "\r") {
-                Utils_24.Utils.console.log("fnWaitInput:", input, "reason", stop.reason);
+                Utils_23.Utils.console.log("fnWaitInput:", input, "reason", stop.reason);
                 if (!inputParas.noCRLF) {
                     this.vm.print(stream, "\r\n");
                 }
@@ -16363,21 +16436,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
             return lineNumber;
         };
-        /*
-        private static addLineNumbers(input: string) {
-            let lastLine = 0;
-    
-            const fnLineAdder = function (spaces: string, line: string) {
-                const lineNum = line !== "" ? Number(line) : lastLine + 1;
-    
-                lastLine = lineNum;
-                return spaces + String(lineNum);
-            };
-    
-            input.replace(/^(\s*)(\d*)/m, fnLineAdder);
-            return input;
-        }
-        */
         Controller.addLineNumbers = function (input) {
             var lineParts = input.split("\n");
             var lastLine = 0;
@@ -16412,7 +16470,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         };
         // merge two scripts with sorted line numbers, lines from script2 overwrite lines from script1
         Controller.prototype.mergeScripts = function (script1, script2) {
-            var lines1 = this.splitLines(Utils_24.Utils.stringTrimEnd(script1)), lines2 = this.splitLines(Utils_24.Utils.stringTrimEnd(script2));
+            var lines1 = this.splitLines(Utils_23.Utils.stringTrimEnd(script1)), lines2 = this.splitLines(Utils_23.Utils.stringTrimEnd(script2));
             var result = [], lineNumber1, lineNumber2;
             while (lines1.length && lines2.length) {
                 lineNumber1 = lineNumber1 || Controller.parseLineNumber(lines1[0]);
@@ -16478,7 +16536,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             return dir;
         };
         Controller.fnGetStorageDirectoryEntries = function (mask) {
-            var storage = Utils_24.Utils.localStorage, dir = [];
+            var storage = Utils_23.Utils.localStorage, dir = [];
             var regExp;
             if (mask) {
                 regExp = Controller.fnPrepareMaskRegExp(mask);
@@ -16534,28 +16592,28 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.vm.vmStop("", 0, true);
         };
         Controller.prototype.fnFileEra = function (paras) {
-            var stream = paras.stream, storage = Utils_24.Utils.localStorage, fileMask = Controller.fnLocalStorageName(paras.fileMask || ""), dir = Controller.fnGetStorageDirectoryEntries(fileMask);
+            var stream = paras.stream, storage = Utils_23.Utils.localStorage, fileMask = Controller.fnLocalStorageName(paras.fileMask || ""), dir = Controller.fnGetStorageDirectoryEntries(fileMask);
             if (!dir.length) {
                 this.vm.print(stream, fileMask + " not found\r\n");
             }
             for (var i = 0; i < dir.length; i += 1) {
-                var name_12 = dir[i];
-                if (storage.getItem(name_12) !== null) {
-                    storage.removeItem(name_12);
-                    this.updateStorageDatabase("remove", name_12);
-                    if (Utils_24.Utils.debug > 0) {
-                        Utils_24.Utils.console.debug("fnEraseFile: name=" + name_12 + ": removed from localStorage");
+                var name_13 = dir[i];
+                if (storage.getItem(name_13) !== null) {
+                    storage.removeItem(name_13);
+                    this.updateStorageDatabase("remove", name_13);
+                    if (Utils_23.Utils.debug > 0) {
+                        Utils_23.Utils.console.debug("fnEraseFile: name=" + name_13 + ": removed from localStorage");
                     }
                 }
                 else {
-                    this.vm.print(stream, name_12 + " not found\r\n");
-                    Utils_24.Utils.console.warn("fnEraseFile: file not found in localStorage:", name_12);
+                    this.vm.print(stream, name_13 + " not found\r\n");
+                    Utils_23.Utils.console.warn("fnEraseFile: file not found in localStorage:", name_13);
                 }
             }
             this.vm.vmStop("", 0, true);
         };
         Controller.prototype.fnFileRen = function (paras) {
-            var stream = paras.stream, storage = Utils_24.Utils.localStorage, newName = Controller.fnLocalStorageName(paras.newName), oldName = Controller.fnLocalStorageName(paras.oldName), item = storage.getItem(oldName);
+            var stream = paras.stream, storage = Utils_23.Utils.localStorage, newName = Controller.fnLocalStorageName(paras.newName), oldName = Controller.fnLocalStorageName(paras.oldName), item = storage.getItem(oldName);
             if (item !== null) {
                 if (!storage.getItem(newName)) {
                     storage.setItem(newName, item);
@@ -16622,12 +16680,12 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             if (output.error) {
                 this.outputError(output.error);
             }
-            else if (Utils_24.Utils.debug > 1) {
+            else if (Utils_23.Utils.debug > 1) {
                 var outputText = output.text, hex = outputText.split("").map(function (s) { return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0"); }).join(","), decoded = this.decodeTokenizedBasic(outputText), diff = Diff_1.Diff.testDiff(input.toUpperCase(), decoded.toUpperCase()); // for testing
-                Utils_24.Utils.console.debug("TokenizerInput (" + name + "):\n", input);
-                Utils_24.Utils.console.debug("TokenizerHex (" + name + "):\n", hex);
-                Utils_24.Utils.console.debug("TokenizerDecoded (" + name + "):\n", decoded);
-                Utils_24.Utils.console.debug("TokenizerDiff (" + name + "):\n", diff);
+                Utils_23.Utils.console.debug("TokenizerInput (" + name + "):\n", input);
+                Utils_23.Utils.console.debug("TokenizerHex (" + name + "):\n", hex);
+                Utils_23.Utils.console.debug("TokenizerDecoded (" + name + "):\n", decoded);
+                Utils_23.Utils.console.debug("TokenizerDiff (" + name + "):\n", diff);
             }
             return output.text;
         };
@@ -16662,7 +16720,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 data = Controller.splitMeta(input);
                 input = data.data; // maybe changed
                 if (data.meta.encoding === "base64") {
-                    input = Utils_24.Utils.atob(input); // decode base64
+                    input = Utils_23.Utils.atob(input); // decode base64
                 }
                 var type = data.meta.typeString;
                 if (type === "T") { // tokenized basic?
@@ -16687,11 +16745,11 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     putInMemory = inFile.fnFileCallback(input, data && data.meta);
                 }
                 catch (e) {
-                    Utils_24.Utils.console.warn(e);
+                    Utils_23.Utils.console.warn(e);
                 }
             }
             if (input === undefined) {
-                Utils_24.Utils.console.error("loadFileContinue: File " + inFile.name + ": input undefined!");
+                Utils_23.Utils.console.error("loadFileContinue: File " + inFile.name + ": input undefined!");
                 this.vm.vmStop("stop", 60, true);
                 this.startMainLoop();
                 return;
@@ -16746,7 +16804,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     }
                     break;
                 default:
-                    Utils_24.Utils.console.error("loadExample: Unknown command:", command);
+                    Utils_23.Utils.console.error("loadExample: Unknown command:", command);
                     break;
             }
             this.vm.vmSetStartLine(startLine);
@@ -16756,11 +16814,11 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             var _this = this;
             return function (_sFullUrl, key, suppressLog) {
                 if (key !== example) {
-                    Utils_24.Utils.console.warn("fnExampleLoaded: Unexpected", key, "<>", example);
+                    Utils_23.Utils.console.warn("fnExampleLoaded: Unexpected", key, "<>", example);
                 }
                 var exampleEntry = _this.model.getExample(example);
                 if (!suppressLog) {
-                    Utils_24.Utils.console.log("Example", url, exampleEntry.meta || "", "loaded");
+                    Utils_23.Utils.console.log("Example", url, exampleEntry.meta || "", "loaded");
                 }
                 var input = exampleEntry.script;
                 _this.model.setProperty("example", inFile.memorizedExample);
@@ -16771,7 +16829,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.createFnExampleError = function (example, url, inFile) {
             var _this = this;
             return function () {
-                Utils_24.Utils.console.log("Example", url, "error");
+                Utils_23.Utils.console.log("Example", url, "error");
                 _this.model.setProperty("example", inFile.memorizedExample);
                 _this.vm.vmStop("", 0, true);
                 var error = _this.vm.vmComposeError(Error(), 32, example + " not found"); // TODO: set also derr=146 (xx not found)
@@ -16800,8 +16858,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 }
             }
             var example = name;
-            if (Utils_24.Utils.debug > 0) {
-                Utils_24.Utils.console.debug("loadExample: name=" + name + " (current=" + key + ")");
+            if (Utils_23.Utils.debug > 0) {
+                Utils_23.Utils.console.debug("loadExample: name=" + name + " (current=" + key + ")");
             }
             var exampleEntry = this.model.getExample(example); // already loaded
             var url;
@@ -16815,12 +16873,12 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.model.setProperty("example", example);
                 var databaseDir = this.model.getDatabase().src;
                 url = databaseDir + "/" + example + ".js";
-                Utils_24.Utils.loadScript(url, this.createFnExampleLoaded(example, url, inFile), this.createFnExampleError(example, url, inFile), example);
+                Utils_23.Utils.loadScript(url, this.createFnExampleLoaded(example, url, inFile), this.createFnExampleError(example, url, inFile), example);
             }
             else { // keep original example in this error case
                 url = example;
                 if (example !== "") { // only if not empty
-                    Utils_24.Utils.console.warn("loadExample: Unknown file:", example);
+                    Utils_23.Utils.console.warn("loadExample: Unknown file:", example);
                     var fnExampleError = this.createFnExampleError(example, url, inFile);
                     fnExampleError();
                 }
@@ -16839,7 +16897,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             return name;
         };
         Controller.tryLoadingFromLocalStorage = function (name) {
-            var storage = Utils_24.Utils.localStorage;
+            var storage = Utils_23.Utils.localStorage;
             var input = null;
             if (name.indexOf(".") >= 0) { // extension specified?
                 input = storage.getItem(name);
@@ -16868,14 +16926,14 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     });
                     this.vm.vmStop("fileLoad", 90); // restore
                 }
-                var name_13 = inFile.name;
-                if (Utils_24.Utils.debug > 1) {
-                    Utils_24.Utils.console.debug("fnFileLoad:", inFile.command, name_13, "details:", inFile);
+                var name_14 = inFile.name;
+                if (Utils_23.Utils.debug > 1) {
+                    Utils_23.Utils.console.debug("fnFileLoad:", inFile.command, name_14, "details:", inFile);
                 }
-                var input = Controller.tryLoadingFromLocalStorage(name_13);
+                var input = Controller.tryLoadingFromLocalStorage(name_14);
                 if (input !== null) {
-                    if (Utils_24.Utils.debug > 0) {
-                        Utils_24.Utils.console.debug("fnFileLoad:", inFile.command, name_13, "from localStorage");
+                    if (Utils_23.Utils.debug > 0) {
+                        Utils_23.Utils.console.debug("fnFileLoad:", inFile.command, name_14, "from localStorage");
                     }
                     this.vm.vmStop("", 0, true);
                     this.loadFileContinue(input);
@@ -16885,7 +16943,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 }
             }
             else {
-                Utils_24.Utils.console.error("fnFileLoad:", inFile.name, "File not open!"); // hopefully isName is defined
+                Utils_23.Utils.console.error("fnFileLoad:", inFile.name, "File not open!"); // hopefully isName is defined
             }
             this.nextLoopTimeOut = this.vm.vmGetTimeUntilFrame(); // wait until next frame
         };
@@ -16927,17 +16985,17 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             return metaAndData;
         };
         Controller.prototype.fnFileSave = function () {
-            var outFile = this.vm.vmGetOutFileObject(), storage = Utils_24.Utils.localStorage;
+            var outFile = this.vm.vmGetOutFileObject(), storage = Utils_23.Utils.localStorage;
             var defaultExtension = "";
             if (outFile.open) {
-                var type = outFile.typeString, name_14 = outFile.name;
+                var type = outFile.typeString, name_15 = outFile.name;
                 if (type === "P" || type === "T") {
                     defaultExtension = "bas";
                 }
                 else if (type === "B") {
                     defaultExtension = "bin";
                 }
-                var storageName = Controller.fnLocalStorageName(name_14, defaultExtension);
+                var storageName = Controller.fnLocalStorageName(name_15, defaultExtension);
                 var fileData = void 0;
                 if (outFile.fileData.length || (type === "B") || (outFile.command === "openout")) { // type A(for openout) or B
                     fileData = outFile.fileData.join("");
@@ -16955,8 +17013,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     }
                     outFile.length = fileData.length; // set length
                 }
-                if (Utils_24.Utils.debug > 0) {
-                    Utils_24.Utils.console.debug("fnFileSave: name=" + name_14 + ": put into localStorage");
+                if (Utils_23.Utils.debug > 0) {
+                    Utils_23.Utils.console.debug("fnFileSave: name=" + name_15 + ": put into localStorage");
                 }
                 var meta = Controller.joinMeta(outFile);
                 storage.setItem(storageName, meta + "," + fileData);
@@ -16966,13 +17024,13 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                         outFile.fnFileCallback(fileData); // close file
                     }
                     catch (e) {
-                        Utils_24.Utils.console.warn(e);
+                        Utils_23.Utils.console.warn(e);
                     }
                 }
                 CpcVm_1.CpcVm.vmResetFileHandling(outFile); // make sure it is closed
             }
             else {
-                Utils_24.Utils.console.error("fnFileSave: file not open!");
+                Utils_23.Utils.console.error("fnFileSave: file not open!");
             }
             this.vm.vmStop("", 0, true); // continue
         };
@@ -17033,7 +17091,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.outputError = function (error, noSelection) {
             var stream = 0;
             var shortError;
-            if (Utils_24.Utils.isCustomError(error)) {
+            if (Utils_23.Utils.isCustomError(error)) {
                 shortError = error.shortMessage || error.message;
                 if (!noSelection) {
                     var startPos = error.pos || 0, len = error.len || ((error.value !== undefined) ? String(error.value).length : 0), endPos = startPos + len;
@@ -17060,7 +17118,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
             var output = this.basicFormatter.renumber(input, paras.newLine || 10, paras.oldLine || 1, paras.step || 10, paras.keep || 65535);
             if (output.error) {
-                Utils_24.Utils.console.warn(output.error);
+                Utils_23.Utils.console.warn(output.error);
                 this.outputError(output.error);
             }
             else {
@@ -17112,7 +17170,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 var time = Date.now();
                 output = this.codeGeneratorJs.generate(input, this.variables);
                 time = Date.now() - time;
-                Utils_24.Utils.console.debug("bench size", input.length, "labels", this.codeGeneratorJs.debugGetLabelsCount(), "loop", i, ":", time, "ms");
+                Utils_23.Utils.console.debug("bench size", input.length, "labels", this.codeGeneratorJs.debugGetLabelsCount(), "loop", i, ":", time, "ms");
                 if (output.error) {
                     break;
                 }
@@ -17141,7 +17199,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 for (var i = 0; i < tokens.length; i += 1) {
                     var code = tokens.charCodeAt(i);
                     if (code > 255) {
-                        Utils_24.Utils.console.warn("Put token in memory: addr=" + (addr + i) + ", code=" + code + ", char=" + tokens.charAt(i));
+                        Utils_23.Utils.console.warn("Put token in memory: addr=" + (addr + i) + ", code=" + code + ", char=" + tokens.charAt(i));
                         code = 0x20; //TTT
                     }
                     this.vm.poke(addr + i, code);
@@ -17208,6 +17266,10 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             for (var i = 0; i < data.length; i += 1) {
                 data8[i] = data.charCodeAt(i);
             }
+            if (typeof Blob === "undefined") {
+                Utils_23.Utils.console.warn("fnDownloadNewFile: Blob undefined");
+                return;
+            }
             var blob = new Blob([data8.buffer], {
                 type: type
             });
@@ -17236,7 +17298,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     line += 1;
                 }
                 pos += columnNumber;
-                Utils_24.Utils.console.warn("Info: JS Error occurred at line", lineNumber, "column", columnNumber, "pos", pos);
+                Utils_23.Utils.console.warn("Info: JS Error occurred at line", lineNumber, "column", columnNumber, "pos", pos);
                 this.view.setAreaSelection("outputText", pos, pos + 1);
             }
         };
@@ -17256,7 +17318,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     this.fnScript = new Function("o", script); // eslint-disable-line no-new-func
                 }
                 catch (e) {
-                    Utils_24.Utils.console.error(e);
+                    Utils_23.Utils.console.error(e);
                     if (e instanceof Error) {
                         this.selectJsError(script, e);
                         e.shortMessage = "JS " + String(e);
@@ -17289,8 +17351,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     }, timeout);
                 }
             }
-            if (Utils_24.Utils.debug > 1) {
-                Utils_24.Utils.console.debug("End of fnRun");
+            if (Utils_23.Utils.debug > 1) {
+                Utils_23.Utils.console.debug("End of fnRun");
             }
         };
         Controller.prototype.fnParseRun = function () {
@@ -17311,22 +17373,22 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                             customError = this.vm.vmComposeError(customError, customError.errCode, customError.value);
                         }
                         if (!customError.hidden) {
-                            Utils_24.Utils.console.warn(customError);
+                            Utils_23.Utils.console.warn(customError);
                             this.outputError(customError, !customError.pos);
                         }
                         else {
-                            Utils_24.Utils.console.log(customError.message);
+                            Utils_23.Utils.console.log(customError.message);
                         }
                     }
                     else {
-                        Utils_24.Utils.console.error(e);
+                        Utils_23.Utils.console.error(e);
                         this.selectJsError(this.view.getAreaValue("outputText"), e);
                         this.vm.vmComposeError(e, 2, "JS " + String(e)); // generate Syntax Error, set also err and erl and set stop
                         this.outputError(e, true);
                     }
                 }
                 else {
-                    Utils_24.Utils.console.error(e);
+                    Utils_23.Utils.console.error(e);
                 }
             }
         };
@@ -17339,8 +17401,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.vm.cursor(stream, 0);
                 var inputText = this.view.getAreaValue("inputText");
                 if ((/^\d+($| )/).test(input)) { // start with number?
-                    if (Utils_24.Utils.debug > 0) {
-                        Utils_24.Utils.console.debug("fnDirectInput: insert line=" + input);
+                    if (Utils_23.Utils.debug > 0) {
+                        Utils_23.Utils.console.debug("fnDirectInput: insert line=" + input);
                     }
                     input = this.mergeScripts(inputText, input);
                     this.setInputText(input, true);
@@ -17351,7 +17413,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     this.updateResultText();
                     return false; // continue direct input
                 }
-                Utils_24.Utils.console.log("fnDirectInput: execute:", input);
+                Utils_23.Utils.console.log("fnDirectInput: execute:", input);
                 var codeGeneratorJs = this.codeGeneratorJs;
                 var output = void 0, outputString = void 0;
                 if (inputText && ((/^\d+($| )/).test(inputText) || this.model.getProperty("implicitLines"))) { // do we have a program starting with a line number?
@@ -17387,7 +17449,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                         this.vm.vmSetSourceMap(codeGeneratorJs.getSourceMap());
                     }
                     catch (e) {
-                        Utils_24.Utils.console.error(e);
+                        Utils_23.Utils.console.error(e);
                         if (e instanceof Error) {
                             this.outputError(e, true);
                         }
@@ -17463,7 +17525,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.handlers[stop.reason].call(this, stop.paras);
             }
             else {
-                Utils_24.Utils.console.warn("runLoop: Unknown run mode:", stop.reason);
+                Utils_23.Utils.console.warn("runLoop: Unknown run mode:", stop.reason);
                 this.vm.vmStop("error", 50);
             }
             if (stop.reason && stop.reason !== "waitSound" && stop.reason !== "waitKey" && stop.reason !== "waitInput") {
@@ -17551,7 +17613,12 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.startMainLoop();
         };
         Controller.prototype.startScreenshot = function () {
-            return this.canvas.startScreenshot();
+            var canvas = this.canvas.getCanvasElement();
+            if (canvas.toDataURL) {
+                return canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"); // here is the most important part because if you do not replace you will get a DOM 18 exception.
+            }
+            Utils_23.Utils.console.warn("Screenshot not available");
+            return "";
         };
         Controller.prototype.fnPutKeyInBuffer = function (key) {
             this.keyboard.putKeyInBuffer(key);
@@ -17604,10 +17671,10 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 try {
                     var value2 = this.vm.vmAssign(varType, value);
                     variables.setVariable(par, value2);
-                    Utils_24.Utils.console.log("Variable", par, "changed:", variables.getVariable(par), "=>", value);
+                    Utils_23.Utils.console.log("Variable", par, "changed:", variables.getVariable(par), "=>", value);
                 }
                 catch (e) {
-                    Utils_24.Utils.console.warn(e);
+                    Utils_23.Utils.console.warn(e);
                 }
             }
             this.setVarSelectOptions("varSelect", variables);
@@ -17622,7 +17689,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     text = (sound.isActivatedByUser()) ? "Sound is on" : "Sound on (waiting)";
                 }
                 catch (e) {
-                    Utils_24.Utils.console.warn("soundOn:", e);
+                    Utils_23.Utils.console.warn("soundOn:", e);
                     text = "Sound unavailable";
                 }
             }
@@ -17636,15 +17703,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
             soundButton.innerText = text;
         };
-        /*
-        private static createMinimalAmsdosHeader(type: string,	start: number,	length: number) {
-            return {
-                typeString: type,
-                start: start,
-                length: length
-            } as AmsdosHeader;
-        }
-        */
         Controller.prototype.fnEndOfImport = function (imported) {
             var stream = 0, vm = this.vm;
             for (var i = 0; i < imported.length; i += 1) {
@@ -17653,93 +17711,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             vm.print(stream, "\r\n", imported.length + " file" + (imported.length !== 1 ? "s" : "") + " imported.\r\n");
             this.updateResultText();
         };
-        /*
-        private static reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/); // eslint-disable-line no-control-regex
-        // starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
-    
-        private fnLoad2(data: string, name: string, type: string, imported: string[]) {
-            let header: AmsdosHeader | undefined,
-                storageName = this.vm.vmAdaptFilename(name, "FILE");
-    
-            storageName = Controller.fnLocalStorageName(storageName);
-    
-            if (type === "text/plain") {
-                header = Controller.createMinimalAmsdosHeader("A", 0, data.length);
-            } else {
-                if (type === "application/x-zip-compressed" || type === "cpcBasic/binary") { // are we a file inside zip?
-                    // empty
-                } else { // e.g. "data:application/octet-stream;base64,..."
-                    const index = data.indexOf(",");
-    
-                    if (index >= 0) {
-                        const info1 = data.substring(0, index);
-    
-                        data = data.substring(index + 1); // remove meta prefix
-                        if (info1.indexOf("base64") >= 0) {
-                            data = Utils.atob(data); // decode base64
-                        }
-                    }
-                }
-    
-                header = DiskImage.parseAmsdosHeader(data);
-                if (header) {
-                    data = data.substring(0x80); // remove header
-                } else if (Controller.reRegExpIsText.test(data)) {
-                    header = Controller.createMinimalAmsdosHeader("A", 0, data.length);
-                } else if (DiskImage.testDiskIdent(data.substring(0, 8))) { // disk image file?
-                    try {
-                        const dsk = new DiskImage({
-                                data: data,
-                                diskName: name
-                            }),
-                            dir = dsk.readDirectory(),
-                            diskFiles = Object.keys(dir);
-    
-                        for (let i = 0; i < diskFiles.length; i += 1) {
-                            const fileName = diskFiles[i];
-    
-                            try { // eslint-disable-line max-depth
-                                data = dsk.readFile(dir[fileName]);
-                                this.fnLoad2(data, fileName, "cpcBasic/binary", imported); // recursive
-                            } catch (e) {
-                                Utils.console.error(e);
-                                if (e instanceof Error) { // eslint-disable-line max-depth
-                                    this.outputError(e, true);
-                                }
-                            }
-                        }
-                    } catch (e) {
-                        Utils.console.error(e);
-                        if (e instanceof Error) {
-                            this.outputError(e, true);
-                        }
-                    }
-                    header = undefined; // ignore dsk file
-                } else { // binary
-                    header = Controller.createMinimalAmsdosHeader("B", 0, data.length);
-                }
-            }
-    
-            if (header) {
-                const meta = Controller.joinMeta(header);
-    
-                try {
-                    Utils.localStorage.setItem(storageName, meta + "," + data);
-                    this.updateStorageDatabase("set", storageName);
-                    Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
-                    imported.push(name);
-                } catch (e) { // maybe quota exceeded
-                    Utils.console.error(e);
-                    if (e instanceof Error) {
-                        if (e.name === "QuotaExceededError") {
-                            (e as CustomError).shortMessage = storageName + ": Quota exceeded";
-                        }
-                        this.outputError(e, true);
-                    }
-                }
-            }
-        }
-        */
         Controller.fnHandleDragOver = function (evt) {
             evt.stopPropagation();
             evt.preventDefault();
@@ -17768,7 +17739,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             var dropZone = View_6.View.getElementById1("dropZone");
             dropZone.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
             this.fileSelect.addFileSelectHandler(dropZone, "drop");
-            var canvasElement = this.canvas.getCanvas();
+            var canvasElement = this.canvas.getCanvasElement();
             canvasElement.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
             this.fileSelect.addFileSelectHandler(canvasElement, "drop");
             var fileInput = View_6.View.getElementById1("fileInput");
@@ -17826,7 +17797,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     _this.model.getDatabase().loaded = true;
                 }
                 else { // should not occur
-                    Utils_24.Utils.console.warn("databaseLoaded: name changed: " + key + " => " + selectedName);
+                    Utils_23.Utils.console.warn("databaseLoaded: name changed: " + key + " => " + selectedName);
                     _this.model.setProperty("database", key);
                     var database = _this.model.getDatabase();
                     if (database) {
@@ -17834,7 +17805,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     }
                     _this.model.setProperty("database", selectedName);
                 }
-                Utils_24.Utils.console.log("fnDatabaseLoaded: database loaded: " + key + ": " + url);
+                Utils_23.Utils.console.log("fnDatabaseLoaded: database loaded: " + key + ": " + url);
                 _this.setExampleSelectOptions();
                 _this.onExampleSelectChange();
             };
@@ -17842,7 +17813,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.createFnDatabaseError = function (url) {
             var _this = this;
             return function (_sFullUrl, key) {
-                Utils_24.Utils.console.error("fnDatabaseError: database error: " + key + ": " + url);
+                Utils_23.Utils.console.error("fnDatabaseError: database error: " + key + ": " + url);
                 _this.setExampleSelectOptions();
                 _this.onExampleSelectChange();
                 _this.setInputText("");
@@ -17856,7 +17827,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.view.setSelectTitleFromSelectedOption("databaseSelect");
             var database = this.model.getDatabase();
             if (!database) {
-                Utils_24.Utils.console.error("onDatabaseSelectChange: database not available:", databaseName);
+                Utils_23.Utils.console.error("onDatabaseSelectChange: database not available:", databaseName);
                 return;
             }
             if (database.text === "storage") { // sepcial handling: browser localStorage
@@ -17871,7 +17842,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.setInputText("#loading database " + databaseName + "...");
                 var exampleIndex = this.model.getProperty("exampleIndex");
                 url = database.src + "/" + exampleIndex;
-                Utils_24.Utils.loadScript(url, this.createFnDatabaseLoaded(url), this.createFnDatabaseError(url), databaseName);
+                Utils_23.Utils.loadScript(url, this.createFnDatabaseLoaded(url), this.createFnDatabaseError(url), databaseName);
             }
         };
         Controller.prototype.onExampleSelectChange = function () {
@@ -17901,22 +17872,22 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         };
         // currently not used. Can be called manually: cpcBasic.controller.exportAsBase64(file);
         Controller.exportAsBase64 = function (storageName) {
-            var storage = Utils_24.Utils.localStorage;
+            var storage = Utils_23.Utils.localStorage;
             var data = storage.getItem(storageName), out = "";
             if (data !== null) {
                 var index = data.indexOf(","); // metadata separator
                 if (index >= 0) {
                     var meta = data.substring(0, index);
                     data = data.substring(index + 1);
-                    data = Utils_24.Utils.btoa(data);
+                    data = Utils_23.Utils.btoa(data);
                     out = meta + ";base64," + data;
                 }
                 else { // hmm, no meta info
-                    data = Utils_24.Utils.btoa(data);
+                    data = Utils_23.Utils.btoa(data);
                     out = "base64," + data;
                 }
             }
-            Utils_24.Utils.console.log(out);
+            Utils_23.Utils.console.log(out);
             return out;
         };
         Controller.prototype.onCpcCanvasClick = function (event) {
@@ -17993,7 +17964,7 @@ define("cpcconfig", ["require", "exports"], function (require, exports) {
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "Model", "View", "NodeAdapt"], function (require, exports, Utils_25, Controller_1, cpcconfig_1, Model_1, View_7, NodeAdapt_1) {
+define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "Model", "View", "NodeAdapt"], function (require, exports, Utils_24, Controller_1, cpcconfig_1, Model_1, View_7, NodeAdapt_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var cpcBasic = /** @class */ (function () {
@@ -18017,11 +17988,11 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
         // can be used for nodeJS
         cpcBasic.fnParseArgs = function (args, config) {
             for (var i = 0; i < args.length; i += 1) {
-                var nameValue = args[i], nameValueList = Utils_25.Utils.split2(nameValue, "="), name_15 = nameValueList[0];
-                if (config.hasOwnProperty(name_15)) {
+                var nameValue = args[i], nameValueList = Utils_24.Utils.split2(nameValue, "="), name_16 = nameValueList[0];
+                if (config.hasOwnProperty(name_16)) {
                     var value = nameValueList[1]; // string|number|boolean
-                    if (value !== undefined && config.hasOwnProperty(name_15)) {
-                        switch (typeof config[name_15]) {
+                    if (value !== undefined && config.hasOwnProperty(name_16)) {
+                        switch (typeof config[name_16]) {
                             case "string":
                                 break;
                             case "boolean":
@@ -18036,7 +18007,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
                                 break;
                         }
                     }
-                    config[name_15] = value;
+                    config[name_16] = value;
                 }
             }
             return config;
@@ -18047,9 +18018,9 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             fnDecode = function (s) { return decodeURIComponent(s.replace(rPlus, " ")); }, rSearch = /([^&=]+)=?([^&]*)/g, args = [];
             var match;
             while ((match = rSearch.exec(urlQuery)) !== null) {
-                var name_16 = fnDecode(match[1]), value = fnDecode(match[2]);
-                if (value !== null && config.hasOwnProperty(name_16)) {
-                    args.push(name_16 + "=" + value);
+                var name_17 = fnDecode(match[1]), value = fnDecode(match[2]);
+                if (value !== null && config.hasOwnProperty(name_17)) {
+                    args.push(name_17 + "=" + value);
                 }
             }
             cpcBasic.fnParseArgs(args, config);
@@ -18069,7 +18040,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             return arg;
         };
         cpcBasic.createDebugUtilsConsole = function (cpcBasicLog) {
-            var currentConsole = Utils_25.Utils.console;
+            var currentConsole = Utils_24.Utils.console;
             return {
                 consoleLog: {
                     value: cpcBasicLog || "" // already something collected?
@@ -18126,22 +18097,23 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             }
             cpcBasic.view = new View_7.View();
             var debug = Number(cpcBasic.model.getProperty("debug"));
-            Utils_25.Utils.debug = debug;
-            var UtilsConsole = Utils_25.Utils.console, cpcBasicLog = "";
+            Utils_24.Utils.debug = debug;
+            var UtilsConsole = Utils_24.Utils.console, cpcBasicLog = "";
             if (UtilsConsole.cpcBasicLog) {
                 cpcBasicLog = UtilsConsole.cpcBasicLog;
                 UtilsConsole.cpcBasicLog = undefined; // do not log any more to dummy console
             }
-            if (Utils_25.Utils.debug > 1 && cpcBasic.model.getProperty("showConsole")) { // console log window?
+            if (Utils_24.Utils.debug > 1 && cpcBasic.model.getProperty("showConsole")) { // console log window?
                 UtilsConsole = cpcBasic.createDebugUtilsConsole(cpcBasicLog);
-                Utils_25.Utils.console = UtilsConsole;
-                Utils_25.Utils.console.log("CPCBasic log started at", Utils_25.Utils.dateFormat(new Date()));
+                Utils_24.Utils.console = UtilsConsole;
+                Utils_24.Utils.console.log("CPCBasic log started at", Utils_24.Utils.dateFormat(new Date()));
                 UtilsConsole.changeLog(View_7.View.getElementById1("consoleText"));
             }
             cpcBasic.controller = new Controller_1.Controller(cpcBasic.model, cpcBasic.view);
+            cpcBasic.controller.onDatabaseSelectChange(); // trigger loading example
         };
         cpcBasic.fnOnLoad = function () {
-            Utils_25.Utils.console.log("CPCBasic started at", Utils_25.Utils.dateFormat(new Date()));
+            Utils_24.Utils.console.log("CPCBasic started at", Utils_24.Utils.dateFormat(new Date()));
             cpcBasic.fnDoStart();
         };
         cpcBasic.config = {
@@ -18175,10 +18147,10 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
     window.onload = function () {
         cpcBasic.fnOnLoad();
     };
-    if (NodeAdapt_1.NodeAdapt.isNodeAvailable()) {
+    if (window.Polyfills.isNodeAvailable) {
         NodeAdapt_1.NodeAdapt.doAdapt();
         cpcBasic.fnOnLoad();
-        Utils_25.Utils.console.debug("End of main.");
+        Utils_24.Utils.console.debug("End of main.");
     }
 });
 //# sourceMappingURL=cpcbasicts.js.map

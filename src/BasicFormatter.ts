@@ -67,9 +67,6 @@ export class BasicFormatter {
 
 		const label = node.value;
 
-		//const label = (BasicFormatter.fnHasLabel(node.value) || !implicitLines) ? node.value : String(lastLine + 1),
-		//	hasLabel = BasicFormatter.fnHasLabel(label);
-
 		this.label = label; // for error messages
 
 		if (BasicFormatter.fnHasLabel(label)) {
@@ -93,44 +90,9 @@ export class BasicFormatter {
 		return labelEntry;
 	}
 
-	/*
-	private fnCreateLabelEntry(node: ParserNode, lastLine: number, implicitLines: boolean) { // create line numbers map
-		let label = node.value,
-			hasLabel = BasicFormatter.fnHasLabel(label);
-
-		const origLen = (node.orig || node.value).length;
-
-		if (!hasLabel && implicitLines) {
-			label = String(lastLine + 1);
-			hasLabel = true;
-		}
-		this.label = label; // for error messages
-
-		if (hasLabel) {
-			const line = Number(label);
-
-			if (line <= lastLine) {
-				throw this.composeError(Error(), "Expected increasing line number", label, node.pos, node.len);
-			}
-			if (line < 1 || line > 65535) {
-				throw this.composeError(Error(), "Line number overflow", label, node.pos, node.len);
-			}
-		}
-
-		const labelEntry: LineEntry = {
-			value: label,
-			pos: node.pos,
-			len: origLen, // original length
-			refCount: 0
-		};
-
-		return labelEntry;
-	}
-	*/
-
 	private fnCreateLabelMap(nodes: ParserNode[], implicitLines: boolean) { // create line numbers map
 		const lines: LinesType = {}; // line numbers
-		let lastLine = 0; //-1;
+		let lastLine = 0;
 
 		for (let i = 0; i < nodes.length; i += 1) {
 			const node = nodes[i];

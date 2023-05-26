@@ -60,15 +60,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 delete variables[name_1];
             }
         };
-        /*
-        removeAllVarTypes(): void {
-            const varTypes = this.varTypes;
-    
-            for (const name in varTypes) { // eslint-disable-line guard-for-in
-                delete varTypes[name];
-            }
-        }
-        */
         Variables.prototype.getAllVariables = function () {
             return this.variables;
         };
@@ -77,11 +68,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         Variables.prototype.createNDimArray = function (dims, initVal) {
             var that = this, fnCreateRec = function (index) {
-                var len = dims[index], 
-                //arr: VariableValue[] = new Array(len);
-                //arr: VariableValue[] = new ArrayProxy(len) as any as VariableValue[]; //TODO new Array(len);
-                //arr: VariableValue[] = that.arrayBounds ? new ArrayProxy(len) : new Array(len); //as VariableValue[]; //TODO new Array(len);
-                arr = that.arrayBounds ? new ArrayProxy(len) : new Array(len); //as VariableValue[]; //TODO new Array(len);
+                var len = dims[index], arr = that.arrayBounds ? new ArrayProxy(len) : new Array(len);
                 index += 1;
                 if (index < dims.length) { // more dimensions?
                     for (var i = 0; i < len; i += 1) {

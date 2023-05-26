@@ -809,13 +809,6 @@ export class CpcVm {
 	}
 
 	vmGoto(line: string | number, _msg?: string): void {
-		/*
-		if (Utils.debug > 5) {
-			if (typeof line === "number" || Utils.debug > 7) { // non-number labels only in higher debug levels
-				Utils.console.debug("vmGotoLine:", msg + ": " + line);
-			}
-		}
-		*/
 		this.line = line;
 	}
 
@@ -1712,44 +1705,6 @@ export class CpcVm {
 		}
 		this.variables.dimVariable(varName, dimensions);
 	}
-
-	/*
-	// TODO, if we want to check array access
-	vmGetVariable(varName: string, ...args: number[]): VariableValue { // TODO
-		let value = this.variables.getVariable(varName);
-
-		for (let i = 0; i < args.length; i += 1) {
-			if (Array.isArray(value)) {
-				const index = this.vmInRangeRound(args[i], 0, value.length - 1, "vmGet"); // TODO: in case of error: Subscript out of range; or: vmAssertInRange?
-
-				value = value[index];
-			} else {
-				throw this.vmComposeError(Error(), 9, String(value)); // Subscript out of range
-			}
-		}
-		return value;
-	}
-
-	vmSetVariable(varName: string, valueToSet: number | string, ...args: number[]): VariableValue { // TODO
-		let value = this.variables.getVariable(varName);
-
-		for (let i = 0; i < args.length; i += 1) {
-			if (Array.isArray(value)) {
-				const index = this.vmInRangeRound(args[i], 0, value.length - 1, "vmGet"); // TODO: in case of error: Subscript out of range; or: vmAssertInRange?
-
-				if (i < args.length - 1) {
-					value = value[index];
-				} else {
-					value[index] = valueToSet;
-				}
-			} else {
-				throw this.vmComposeError(Error(), 9, String(value)); // Subscript out of range
-			}
-		}
-
-		return value;
-	}
-	*/
 
 	draw(x: number, y: number, gPen?: number, gColMode?: number): void {
 		x = this.vmInRangeRound(x, -32768, 32767, "DRAW");

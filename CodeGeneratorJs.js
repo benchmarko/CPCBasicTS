@@ -94,19 +94,19 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 defreal: this.fnParseDefIntRealStr,
                 defstr: this.fnParseDefIntRealStr,
                 dim: this.dim,
-                "delete": this.delete,
+                "delete": this.fnDelete,
                 edit: this.edit,
-                "else": this.else,
+                "else": this.fnElse,
                 end: this.stopOrEnd,
                 erase: this.erase,
                 error: this.error,
                 everyGosub: this.afterEveryGosub,
                 fn: this.fn,
-                "for": this.for,
+                "for": this.fnFor,
                 frame: this.fnCommandWithGoto,
                 gosub: this.gosub,
                 "goto": this.gotoOrResume,
-                "if": this.if,
+                "if": this.fnIf,
                 input: this.inputOrlineInput,
                 let: this.let,
                 lineInput: this.inputOrlineInput,
@@ -114,7 +114,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 load: this.fnCommandWithGoto,
                 merge: this.fnCommandWithGoto,
                 mid$Assign: this.mid$Assign,
-                "new": CodeGeneratorJs.new,
+                "new": CodeGeneratorJs.fnNew,
                 next: this.next,
                 onBreakGosub: this.onBreakGosubOrRestore,
                 onErrorGoto: this.onErrorGoto,
@@ -130,7 +130,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 restore: this.onBreakGosubOrRestore,
                 resume: this.gotoOrResume,
                 resumeNext: this.gotoOrResume,
-                "return": CodeGeneratorJs.return,
+                "return": CodeGeneratorJs.fnReturn,
                 run: this.run,
                 save: this.save,
                 sound: this.fnCommandWithGoto,
@@ -140,7 +140,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 tron: this.fnCommandWithGoto,
                 using: this.usingOrWrite,
                 wend: this.wend,
-                "while": this.while,
+                "while": this.fnWhile,
                 write: this.usingOrWrite
             };
             this.lexer = options.lexer;
@@ -669,7 +669,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 this.labelList.push(label); // only needed to support resume next
             }
             this.resetCountsPerLine(); // we want to have "stable" counts, even if other lines change, e.g. direct
-            //const isDirect = label === "";
             var isDirect = label === "direct";
             var value = "";
             if (isDirect) { // special handling for direct
@@ -702,13 +701,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                             }
                         }
                     }
-                    /*
-                    if (this.traceActive) {
-                        const traceLabel = this.generateTraceLabel(node.args[i], this.line, i);
-    
-                        value += " o.vmTrace(\"" + traceLabel + "\");";
-                    }
-                    */
                     if (!(/[}:;\n]$/).test(value2)) { // does not end with } : ; \n
                         value2 += ";";
                     }
@@ -798,7 +790,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             node.pv = args.join("; ");
         };
-        CodeGeneratorJs.prototype["delete"] = function (node) {
+        CodeGeneratorJs.prototype.fnDelete = function (node) {
             var nodeArgs = this.fnParseArgs(node.args), name = Utils_1.Utils.supportReservedNames ? ("o." + node.type) : 'o[" + node.type + "]';
             if (!nodeArgs.length) { // no arguments? => complete range
                 nodeArgs.push("1");
@@ -810,7 +802,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var nodeArgs = this.fnParseArgs(node.args);
             node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + "); break;";
         };
-        CodeGeneratorJs.prototype["else"] = function (node) {
+        CodeGeneratorJs.prototype.fnElse = function (node) {
             if (!node.args) {
                 throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
             }
@@ -848,7 +840,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         // TODO: complexity
         // eslint-disable-next-line complexity
-        CodeGeneratorJs.prototype["for"] = function (node) {
+        CodeGeneratorJs.prototype.fnFor = function (node) {
             var nodeArgs = this.fnParseArgs(node.args), varName = nodeArgs[0], label = this.fnGetForLabel();
             this.stack.forLabel.push(label);
             this.stack.forVarName.push(varName);
@@ -961,7 +953,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var partNoTrailingBreak = part.replace(/; break$/, ""), simplePart = !(/case|break/).test(partNoTrailingBreak);
             return simplePart;
         };
-        CodeGeneratorJs.prototype["if"] = function (node) {
+        CodeGeneratorJs.prototype.fnIf = function (node) {
             if (!node.left) {
                 throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occur
             }
@@ -1053,7 +1045,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var name = nodeArgs[0], varType = this.fnDetermineStaticVarType(name);
             node.pv = name + " = o.vmAssign(\"" + varType + "\", o.mid$Assign(" + nodeArgs.join(", ") + "))";
         };
-        CodeGeneratorJs["new"] = function (node) {
+        CodeGeneratorJs.fnNew = function (node) {
             var name = Utils_1.Utils.supportReservedNames ? ("o." + node.type) : 'o[" + node.type + "]';
             node.pv = name + "();";
         };
@@ -1164,7 +1156,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var nodeArgs = this.fnParseArgs(node.args), value = nodeArgs.length ? " " + nodeArgs[0] : "";
             node.pv = "//" + value + "\n";
         };
-        CodeGeneratorJs["return"] = function (node) {
+        CodeGeneratorJs.fnReturn = function (node) {
             var name = Utils_1.Utils.supportReservedNames ? ("o." + node.type) : 'o[" + node.type + "]';
             node.pv = name + "(); break;";
         };
@@ -1216,7 +1208,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             node.pv = "/* o." + node.type + "() */ o.vmGoto(\"" + label + "\"); break;\ncase \"" + label + "e\":";
         };
-        CodeGeneratorJs.prototype["while"] = function (node) {
+        CodeGeneratorJs.prototype.fnWhile = function (node) {
             var nodeArgs = this.fnParseArgs(node.args), label = this.fnGetWhileLabel();
             this.stack.whileLabel.push(label);
             node.pv = "\ncase \"" + label + "\": if (!(" + nodeArgs + ")) { o.vmGoto(\"" + label + "e\"); break; }";
@@ -1313,7 +1305,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return label;
         };
         CodeGeneratorJs.prototype.fnCreateLabelMap = function (nodes, labels) {
-            var lastLine = 0; //-1;
+            var lastLine = 0;
             for (var i = 0; i < nodes.length; i += 1) {
                 var node = nodes[i];
                 if (node.type === "label" && node.value !== "direct") {

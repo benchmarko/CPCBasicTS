@@ -312,7 +312,7 @@ export class CodeGeneratorBasic {
 
 		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(name2) + nodeArgsString + "=" + expression; //TTT how to get space before "="?
 	}
-	private "else"(node: ParserNode) { // similar to a comment, with unchecked tokens
+	private fnElse(node: ParserNode) { // similar to a comment, with unchecked tokens
 		if (!node.args) {
 			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
 		}
@@ -371,7 +371,7 @@ export class CodeGeneratorBasic {
 
 		return CodeGeneratorBasic.fnWs(node) + name2 + nodeArgsString;
 	}
-	private "for"(node: ParserNode) {
+	private fnFor(node: ParserNode) {
 		const nodeArgs = this.fnParseArgs(node.args);
 
 		for (let i = 0; i < nodeArgs.length; i += 1) {
@@ -388,7 +388,7 @@ export class CodeGeneratorBasic {
 		return CodeGeneratorBasic.fnSpace1(CodeGeneratorBasic.combineArgsWithColon(nodeArgs));
 	}
 
-	private "if"(node: ParserNode) {
+	private fnIf(node: ParserNode) {
 		if (!node.left) {
 			throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occur
 		}
@@ -535,13 +535,13 @@ export class CodeGeneratorBasic {
 		chainMerge: this.chainOrChainMerge,
 		data: this.data,
 		def: this.def,
-		"else": this.else,
+		"else": this.fnElse,
 		ent: this.entOrEnv,
 		env: this.entOrEnv,
 		everyGosub: this.afterEveryGosub,
 		fn: this.fn,
-		"for": this.for,
-		"if": this.if,
+		"for": this.fnFor,
+		"if": this.fnIf,
 		input: this.inputLineInput,
 		lineInput: this.inputLineInput,
 		list: this.list,

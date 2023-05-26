@@ -7,26 +7,11 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     var NodeAdapt = /** @class */ (function () {
         function NodeAdapt() {
         }
-        NodeAdapt.isNodeAvailable = function () {
-            // eslint-disable-next-line no-new-func
-            var myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(); // for old IE
-            var nodeJs = false;
-            // https://www.npmjs.com/package/detect-node
-            // Only Node.JS has a process variable that is of [[Class]] process
-            try {
-                if (Object.prototype.toString.call(myGlobalThis.process) === "[object process]") {
-                    nodeJs = true;
-                }
-            }
-            catch (e) {
-                // empty
-            }
-            return nodeJs;
-        };
         NodeAdapt.doAdapt = function () {
             var https, // nodeJs
             fs, module, audioContext;
             var domElements = {}, myCreateElement = function (id) {
+                //Utils.console.debug("myCreateElement: ", id);
                 domElements[id] = {
                     className: "",
                     style: {
@@ -34,11 +19,25 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                         borderStyle: ""
                     },
                     addEventListener: function () { },
-                    options: [],
+                    options: []
+                    // getter is defined with Object.defineProperty() below... (to be compatible with ES3 syntax)
+                    /*
                     get length() {
                         return domElements[id].options.length;
                     }
+                    */
                 };
+                // old syntax for getter with "get length() { ... }"
+                Object.defineProperty(domElements[id], "length", {
+                    get: function () {
+                        return domElements[id].options.length;
+                    },
+                    set: function (len) {
+                        domElements[id].options.length = len;
+                    },
+                    enumerable: true,
+                    configurable: true
+                });
                 return domElements[id];
             };
             function fnEval(code) {

@@ -27,8 +27,6 @@ export declare class VirtualKeyboard {
     private virtualKeyboardCreate;
     private virtualKeyboardAdaptKeys;
     private fnVirtualGetPressedKey;
-    private fnGetEventTarget;
-    private fnGetEventTargetAs;
     private onVirtualVirtualKeyboardKeydown;
     private fnVirtualVirtualKeyboardKeyupOrKeyout;
     private onVirtualVirtualKeyboardKeyup;

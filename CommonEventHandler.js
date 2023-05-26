@@ -182,12 +182,26 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         };
         // eslint-disable-next-line class-methods-use-this
         CommonEventHandler.prototype.onCopyTextButtonClick = function () {
-            var textText = document.getElementById("textText");
+            var textText = View_1.View.getElementByIdAs("textText");
+            textText.select();
+            this.view.setAreaSelection("textText", 0, 99999); // for mobile devices
+            if (window.navigator && window.navigator.clipboard) {
+                window.navigator.clipboard.writeText(textText.value);
+            }
+            else {
+                Utils_1.Utils.console.warn("Copy to clipboard not available");
+            }
+            /*
+            const textText = document.getElementById("textText") as HTMLTextAreaElement;
+    
             // const copyText = View.getElementByIdAs<HTMLTextAreaElement>("textText");
             // TODO: use View.setAreaSelection...
+    
             textText.select();
             textText.setSelectionRange(0, 99999); // for mobile devices
+    
             window.navigator.clipboard.writeText(textText.value);
+            */
         };
         CommonEventHandler.prototype.onOutputTextChange = function () {
             this.controller.invalidateScript();
@@ -245,9 +259,11 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         };
         CommonEventHandler.prototype.onScreenshotButtonClick = function () {
             var example = this.view.getSelectValue("exampleSelect"), image = this.controller.startScreenshot(), link = View_1.View.getElementById1("screenshotLink"), name = example + ".png";
-            link.setAttribute("download", name);
-            link.setAttribute("href", image);
-            link.click();
+            if (image) {
+                link.setAttribute("download", name);
+                link.setAttribute("href", image);
+                link.click();
+            }
         };
         CommonEventHandler.prototype.onEnterButtonClick = function () {
             this.controller.startEnter();
@@ -258,7 +274,12 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         };
         CommonEventHandler.onFullscreenButtonClick = function () {
             var element = View_1.View.getElementById1("cpcCanvas");
-            element.requestFullscreen();
+            if (element.requestFullscreen) {
+                element.requestFullscreen();
+            }
+            else {
+                Utils_1.Utils.console.warn("Switch to fullscreen not available");
+            }
         };
         CommonEventHandler.prototype.onCpcCanvasClick = function (event) {
             this.controller.onCpcCanvasClick(event);
@@ -271,7 +292,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         };
         /* eslint-enable no-invalid-this */
         CommonEventHandler.prototype.handleEvent = function (event) {
-            var target = event.target, id = (target) ? target.getAttribute("id") : String(target), type = event.type; // click or change
+            var target = View_1.View.getEventTarget(event), id = (target) ? target.getAttribute("id") : String(target), type = event.type; // click or change
             if (this.fnUserAction) {
                 this.fnUserAction(event, id);
             }

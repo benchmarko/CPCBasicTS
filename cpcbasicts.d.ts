@@ -1,3 +1,12 @@
+declare var Polyfills: {
+    list: string[];
+    getList: () => string[];
+    log: (part: string) => void;
+    console: Console;
+    localStorage: Storage;
+    isNodeAvailable: boolean;
+    isDefinePropertyOk: boolean;
+};
 declare type MyDefineFunctionType = (...args: any) => void;
 declare function amd4Node(): void;
 declare function amd4browser(): void;
@@ -29,20 +38,13 @@ declare module "Utils" {
         static supportReservedNames: boolean;
         static stringTrimEnd(str: string): string;
         static localStorage: Storage;
-        static atob: (arg0: string) => string;
-        static btoa: (arg0: string) => string;
+        static atob: (data: string) => string;
+        static btoa: (data: string) => string;
         static isCustomError(e: unknown): e is CustomError;
         static split2(str: string, char: string): string[];
         static composeError(name: string, errorObject: Error, message: string, value: string, pos?: number, len?: number, line?: string | number, hidden?: boolean): CustomError;
         static composeVmError(name: string, errorObject: Error, errCode: number, value: string): CustomError;
     }
-}
-declare module "Polyfills" {
-    export var Polyfills: {
-        list: string[];
-        getList: () => string[];
-        log: (part: string) => void;
-    };
 }
 declare module "Interfaces" {
     import { CustomError } from "Utils";
@@ -273,12 +275,12 @@ declare module "BasicParser" {
         private clear;
         private data;
         private def;
-        private "else";
+        private fnElse;
         private entOrEnv;
-        private "for";
+        private fnFor;
         private graphics;
         private fnCheckForUnreachableCode;
-        private "if";
+        private fnIf;
         private input;
         private key;
         private let;
@@ -422,12 +424,12 @@ declare module "CodeGeneratorBasic" {
         private chainOrChainMerge;
         private data;
         private def;
-        private "else";
+        private fnElse;
         private entOrEnv;
         private fn;
-        private "for";
+        private fnFor;
         private fnThenOrElsePart;
-        private "if";
+        private fnIf;
         private static fnHasStream;
         private inputLineInput;
         private list;
@@ -590,23 +592,23 @@ declare module "CodeGeneratorJs" {
         private data;
         private def;
         private dim;
-        private "delete";
+        private fnDelete;
         private edit;
-        private "else";
+        private fnElse;
         private erase;
         private error;
         private fn;
-        private "for";
+        private fnFor;
         private gosub;
         private gotoOrResume;
         private fnThenOrElsePart;
         private static fnIsSimplePart;
-        private "if";
+        private fnIf;
         private inputOrlineInput;
         private let;
         private list;
         private mid$Assign;
-        private static "new";
+        private static fnNew;
         private next;
         private onBreakGosubOrRestore;
         private onErrorGoto;
@@ -616,7 +618,7 @@ declare module "CodeGeneratorJs" {
         private randomize;
         private read;
         private rem;
-        private static "return";
+        private static fnReturn;
         private run;
         private save;
         private spc;
@@ -624,7 +626,7 @@ declare module "CodeGeneratorJs" {
         private tab;
         private usingOrWrite;
         private wend;
-        private "while";
+        private fnWhile;
         private readonly parseFunctions;
         private fnParseOther;
         private parseOperator;
@@ -699,13 +701,13 @@ declare module "CodeGeneratorToken" {
         private chainMerge;
         private data;
         private def;
-        private "else";
+        private fnElse;
         private entEnv;
         private everyGosub;
         private fn;
-        private "for";
+        private fnFor;
         private fnThenOrElsePart;
-        private "if";
+        private fnIf;
         private static fnHasStream;
         private inputLineInput;
         private list;
@@ -835,7 +837,7 @@ declare module "View" {
     }
     export class View {
         static getElementById1(id: string): HTMLElement;
-        private static getElementByIdAs;
+        static getElementByIdAs<T extends HTMLButtonElement | HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(id: string): T;
         getHidden(id: string): boolean;
         setHidden(id: string, hidden: boolean, display?: string): this;
         setDisabled(id: string, disabled: boolean): this;
@@ -854,6 +856,7 @@ declare module "View" {
         private setSelectionRange;
         setAreaSelection(id: string, pos: number, endPos: number): this;
         attachEventHandler(type: string, eventHandler: EventListenerOrEventListenerObject): this;
+        static getEventTarget<T extends HTMLElement>(event: Event): T;
     }
 }
 declare module "Keyboard" {
@@ -937,8 +940,6 @@ declare module "VirtualKeyboard" {
         private virtualKeyboardCreate;
         private virtualKeyboardAdaptKeys;
         private fnVirtualGetPressedKey;
-        private fnGetEventTarget;
-        private fnGetEventTargetAs;
         private onVirtualVirtualKeyboardKeydown;
         private fnVirtualVirtualKeyboardKeyupOrKeyout;
         private onVirtualVirtualKeyboardKeyup;
@@ -1083,8 +1084,7 @@ declare module "Canvas" {
         getMode(): number;
         changeMode(mode: number): void;
         setMode(mode: number): void;
-        startScreenshot(): string;
-        getCanvas(): HTMLCanvasElement;
+        getCanvasElement(): HTMLCanvasElement;
     }
 }
 declare module "TextCanvas" {
@@ -1133,7 +1133,6 @@ declare module "TextCanvas" {
 }
 declare module "NodeAdapt" {
     export class NodeAdapt {
-        static isNodeAvailable(): boolean;
         static doAdapt(): void;
     }
 }

@@ -26,7 +26,7 @@ let https: NodeHttps, // nodeJs
 
 import { Utils } from "../Utils";
 import { ICpcVmRsx, IOutput } from "../Interfaces";
-import { Polyfills } from "../Polyfills";
+//import { Polyfills } from "../Polyfills";
 import { BasicLexer } from "../BasicLexer";
 import { BasicParser } from "../BasicParser";
 import { BasicTokenizer } from "../BasicTokenizer";
@@ -695,6 +695,8 @@ function testNextIndex() {
 }
 
 function testStart() {
+	const Polyfills = (window as any).Polyfills;
+
 	Utils.console.log("testParseExamples: nodeJs:", nodeJsAvail, " Polyfills.getList().length:", Polyfills.getList().length);
 
 	cpcBasic.initVmMock1();

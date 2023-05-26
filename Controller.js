@@ -107,7 +107,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         FileSelect.prototype.fnHandleFileSelect = function (event) {
             event.stopPropagation();
             event.preventDefault();
-            var dataTransfer = event.dataTransfer, files = dataTransfer ? dataTransfer.files : event.target.files; // dataTransfer for drag&drop, target.files for file input
+            var dataTransfer = event.dataTransfer, files = dataTransfer ? dataTransfer.files : View_1.View.getEventTarget(event).files; // dataTransfer for drag&drop, target.files for file input
             if (!files || !files.length) {
                 Utils_1.Utils.console.error("fnHandleFileSelect: No files!");
                 return;
@@ -332,8 +332,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.virtualKeyboardCreate();
             }
             this.commonEventHandler.fnSetUserAction(this.onUserAction.bind(this)); // check first user action, also if sound is not yet on
-            var example = model.getProperty("example");
-            view.setSelectValue("exampleSelect", example);
             this.vm = new CpcVm_1.CpcVm({
                 canvas: this.canvas,
                 textCanvas: this.textCanvas,
@@ -364,7 +362,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 rsx: this.rsx,
                 implicitLines: model.getProperty("implicitLines")
             });
-            this.initDatabases();
             if (model.getProperty("sound")) { // activate sound needs user action
                 this.setSoundActive(); // activate in waiting state
             }
@@ -375,6 +372,9 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.textCanvas.startUpdateCanvas();
             }
             this.initDropZone();
+            var example = model.getProperty("example");
+            view.setSelectValue("exampleSelect", example);
+            this.initDatabases();
         }
         Controller.prototype.initDatabases = function () {
             var model = this.model, databases = {}, databaseDirs = model.getProperty("databaseDirs").split(",");
@@ -388,7 +388,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             this.model.addDatabases(databases);
             this.setDatabaseSelectOptions();
-            this.onDatabaseSelectChange();
+            //this.onDatabaseSelectChange();
         };
         Controller.prototype.onUserAction = function ( /* event, id */) {
             this.commonEventHandler.fnSetUserAction(undefined); // deactivate user action
@@ -765,21 +765,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             return lineNumber;
         };
-        /*
-        private static addLineNumbers(input: string) {
-            let lastLine = 0;
-    
-            const fnLineAdder = function (spaces: string, line: string) {
-                const lineNum = line !== "" ? Number(line) : lastLine + 1;
-    
-                lastLine = lineNum;
-                return spaces + String(lineNum);
-            };
-    
-            input.replace(/^(\s*)(\d*)/m, fnLineAdder);
-            return input;
-        }
-        */
         Controller.addLineNumbers = function (input) {
             var lineParts = input.split("\n");
             var lastLine = 0;
@@ -1610,6 +1595,10 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             for (var i = 0; i < data.length; i += 1) {
                 data8[i] = data.charCodeAt(i);
             }
+            if (typeof Blob === "undefined") {
+                Utils_1.Utils.console.warn("fnDownloadNewFile: Blob undefined");
+                return;
+            }
             var blob = new Blob([data8.buffer], {
                 type: type
             });
@@ -1953,7 +1942,12 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.startMainLoop();
         };
         Controller.prototype.startScreenshot = function () {
-            return this.canvas.startScreenshot();
+            var canvas = this.canvas.getCanvasElement();
+            if (canvas.toDataURL) {
+                return canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"); // here is the most important part because if you do not replace you will get a DOM 18 exception.
+            }
+            Utils_1.Utils.console.warn("Screenshot not available");
+            return "";
         };
         Controller.prototype.fnPutKeyInBuffer = function (key) {
             this.keyboard.putKeyInBuffer(key);
@@ -2038,15 +2032,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             soundButton.innerText = text;
         };
-        /*
-        private static createMinimalAmsdosHeader(type: string,	start: number,	length: number) {
-            return {
-                typeString: type,
-                start: start,
-                length: length
-            } as AmsdosHeader;
-        }
-        */
         Controller.prototype.fnEndOfImport = function (imported) {
             var stream = 0, vm = this.vm;
             for (var i = 0; i < imported.length; i += 1) {
@@ -2055,93 +2040,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             vm.print(stream, "\r\n", imported.length + " file" + (imported.length !== 1 ? "s" : "") + " imported.\r\n");
             this.updateResultText();
         };
-        /*
-        private static reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/); // eslint-disable-line no-control-regex
-        // starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
-    
-        private fnLoad2(data: string, name: string, type: string, imported: string[]) {
-            let header: AmsdosHeader | undefined,
-                storageName = this.vm.vmAdaptFilename(name, "FILE");
-    
-            storageName = Controller.fnLocalStorageName(storageName);
-    
-            if (type === "text/plain") {
-                header = Controller.createMinimalAmsdosHeader("A", 0, data.length);
-            } else {
-                if (type === "application/x-zip-compressed" || type === "cpcBasic/binary") { // are we a file inside zip?
-                    // empty
-                } else { // e.g. "data:application/octet-stream;base64,..."
-                    const index = data.indexOf(",");
-    
-                    if (index >= 0) {
-                        const info1 = data.substring(0, index);
-    
-                        data = data.substring(index + 1); // remove meta prefix
-                        if (info1.indexOf("base64") >= 0) {
-                            data = Utils.atob(data); // decode base64
-                        }
-                    }
-                }
-    
-                header = DiskImage.parseAmsdosHeader(data);
-                if (header) {
-                    data = data.substring(0x80); // remove header
-                } else if (Controller.reRegExpIsText.test(data)) {
-                    header = Controller.createMinimalAmsdosHeader("A", 0, data.length);
-                } else if (DiskImage.testDiskIdent(data.substring(0, 8))) { // disk image file?
-                    try {
-                        const dsk = new DiskImage({
-                                data: data,
-                                diskName: name
-                            }),
-                            dir = dsk.readDirectory(),
-                            diskFiles = Object.keys(dir);
-    
-                        for (let i = 0; i < diskFiles.length; i += 1) {
-                            const fileName = diskFiles[i];
-    
-                            try { // eslint-disable-line max-depth
-                                data = dsk.readFile(dir[fileName]);
-                                this.fnLoad2(data, fileName, "cpcBasic/binary", imported); // recursive
-                            } catch (e) {
-                                Utils.console.error(e);
-                                if (e instanceof Error) { // eslint-disable-line max-depth
-                                    this.outputError(e, true);
-                                }
-                            }
-                        }
-                    } catch (e) {
-                        Utils.console.error(e);
-                        if (e instanceof Error) {
-                            this.outputError(e, true);
-                        }
-                    }
-                    header = undefined; // ignore dsk file
-                } else { // binary
-                    header = Controller.createMinimalAmsdosHeader("B", 0, data.length);
-                }
-            }
-    
-            if (header) {
-                const meta = Controller.joinMeta(header);
-    
-                try {
-                    Utils.localStorage.setItem(storageName, meta + "," + data);
-                    this.updateStorageDatabase("set", storageName);
-                    Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
-                    imported.push(name);
-                } catch (e) { // maybe quota exceeded
-                    Utils.console.error(e);
-                    if (e instanceof Error) {
-                        if (e.name === "QuotaExceededError") {
-                            (e as CustomError).shortMessage = storageName + ": Quota exceeded";
-                        }
-                        this.outputError(e, true);
-                    }
-                }
-            }
-        }
-        */
         Controller.fnHandleDragOver = function (evt) {
             evt.stopPropagation();
             evt.preventDefault();
@@ -2170,7 +2068,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             var dropZone = View_1.View.getElementById1("dropZone");
             dropZone.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
             this.fileSelect.addFileSelectHandler(dropZone, "drop");
-            var canvasElement = this.canvas.getCanvas();
+            var canvasElement = this.canvas.getCanvasElement();
             canvasElement.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
             this.fileSelect.addFileSelectHandler(canvasElement, "drop");
             var fileInput = View_1.View.getElementById1("fileInput");
