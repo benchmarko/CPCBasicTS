@@ -7,9 +7,9 @@
     "sourceRoot":"./src"
   },
   "files": [
+    "Polyfills.ts",
     "amdLoader.ts",
     "Utils.ts",
-    "Polyfills.ts",
     "Interfaces.ts",
     "cpcCharset.ts",
     "Model.ts",

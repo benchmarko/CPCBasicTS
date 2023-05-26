@@ -3,39 +3,110 @@
 
 /* globals globalThis */
 
-import { Utils } from "./Utils";
+//import { Utils } from "./Utils";
 
-export var Polyfills = {
+//type ExtendedConsole = Console & { cpcBasicLog: string };
+
+var Polyfills = {
 	list: [] as string[],
 	getList: function (): string[] {
 		return Polyfills.list;
 	},
 	log: function (part: string): void {
 		Polyfills.list.push(part);
-	}
+	},
+	console: typeof window !== "undefined" ? window.console : globalThis.console,
+	/*
+	console: function () { // IE: window.console is only available when Dev Tools are open (and: IE8 has no console.debug)
+		let console = (typeof window !== "undefined" ? window.console : globalThis.console) as Pick<Console, "log" | "info" | "warn"| "error"| "debug"> & { cpcBasicLog?: string } | undefined;
+
+		if (!console) {
+			console = {
+				cpcBasicLog: "LOG:\n",
+				log: function () { // varargs
+					if (this.cpcBasicLog) {
+						this.cpcBasicLog += Array.prototype.slice.call(arguments).join(" ") + "\n";
+					}
+				},
+				info: this.log,
+				warn: this.log,
+				error: this.log,
+				debug: this.log
+			};
+		}
+		return console;
+	},
+	*/
+
+	localStorage: (function () {
+		let rc: Storage | undefined;
+
+		if (typeof window !== "undefined") {
+			try {
+				rc = window.localStorage; // due to a bug in MS Edge this will throw an error when hosting locally (https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/8816771/)
+			} catch (_e) {
+				// empty
+			}
+		}
+		return rc as Storage; // if it is undefined, localStorage is set in Polyfills
+	}()),
+
+	isNodeAvailable: (function () {
+		// eslint-disable-next-line no-new-func
+		const myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(); // for old IE
+		let nodeJs = false;
+
+		// https://www.npmjs.com/package/detect-node
+		// Only Node.JS has a process variable that is of [[Class]] process
+		try {
+			if (Object.prototype.toString.call(myGlobalThis.process) === "[object process]") {
+				nodeJs = true;
+			}
+		} catch (e) {
+			// empty
+		}
+		return nodeJs;
+	}()),
+
+	isDefinePropertyOk: (function () {
+		if (!Object.defineProperty) {
+			return false;
+		}
+		try { // IE8 cannot do this...
+			Object.defineProperty({}, "p1", {
+				value: "1"
+			});
+		} catch (e) { // on IE8 we get "TypeError: Object does not support this action"
+			//if (!(e instanceof TypeError)) { }
+			return false;
+		}
+		return true;
+	}())
+
 };
 
 // IE: window.console is only available when Dev Tools are open
-if (!Utils.console) {
-	const utilsConsole: any = {
+if (!Polyfills.console) { // browser or node.js
+	const polyFillConsole: any = {
 		cpcBasicLog: "LOG:\n",
 		log: function () { // varargs
-			if (utilsConsole.cpcBasicLog) {
-				utilsConsole.cpcBasicLog += Array.prototype.slice.call(arguments).join(" ") + "\n";
+			if (polyFillConsole.cpcBasicLog) {
+				polyFillConsole.cpcBasicLog += Array.prototype.slice.call(arguments).join(" ") + "\n";
 			}
 		}
 	};
 
-	utilsConsole.info = utilsConsole.log;
-	utilsConsole.warn = utilsConsole.log;
-	utilsConsole.error = utilsConsole.log;
-	utilsConsole.debug = utilsConsole.log;
+	polyFillConsole.info = polyFillConsole.log;
+	polyFillConsole.warn = polyFillConsole.log;
+	polyFillConsole.error = polyFillConsole.log;
+	polyFillConsole.debug = polyFillConsole.log;
 
-	(Utils.console as any) = utilsConsole;
+	Polyfills.console = polyFillConsole;
+	Polyfills.log("window.console");
 }
 
-if (!Utils.console.debug) { // IE8 has no console.debug
-	Utils.console.debug = Utils.console.log;
+if (!Polyfills.console.debug) { // IE8 has no console.debug
+	Polyfills.console.debug = Polyfills.console.log;
 	Polyfills.log("window.console.debug");
 }
 
@@ -128,7 +199,7 @@ if (window.Element) {
 
 if (window.Event) {
 	if (!Event.prototype.preventDefault) { // IE8
-		Polyfills.log("Polyfill: Event.prototype.preventDefault");
+		Polyfills.log("Event.prototype.preventDefault");
 		Event.prototype.preventDefault = function () {
 			// empty
 		};
@@ -140,6 +211,31 @@ if (window.Event) {
 			// empty
 		};
 	}
+}
+
+if (!window.getComputedStyle) { // IE8
+	// https://stackoverflow.com/questions/21797258/getcomputedstyle-like-javascript-function-for-ie8
+	Polyfills.log("window.getComputedStyle");
+	(window as any).getComputedStyle = function (el: Element, _pseudo?: string) {
+		//this.el = el;
+		this.getPropertyValue = function (prop: string) {
+			const re = /(-([a-z]){1})/g;
+
+			if (prop === "float") {
+				prop = "styleFloat";
+			}
+			if (re.test(prop)) {
+				prop = prop.replace(re, function () {
+					return arguments[2].toUpperCase();
+				});
+			}
+
+			const currentStyle = (el as any).currentStyle;
+
+			return currentStyle && currentStyle[prop] ? currentStyle[prop] : null;
+		};
+		return this;
+	};
 }
 
 if (!Date.now) { // IE8
@@ -156,41 +252,48 @@ if (window.document) {
 		Polyfills.log("document.addEventListener, removeEventListener");
 		if ((document as any).attachEvent) {
 			(function () {
+				type fnHandlerType = ((e: Event) => void) | { handleEvent: ((e: Event) => void)};
 				type EventListenerEntry = {
 					object: Document,
 					eventString: string,
-					fnHandler: (e: Event) => void,
+					fnHandler: fnHandlerType,
 					fnOnEvent: (e: Event) => boolean
 				};
 				const eventListeners: EventListenerEntry[] = [];
 
-				document.addEventListener = function (eventString: string, fnHandler: (e: Event) => void) {
+				document.addEventListener = function (eventString: string, fnHandler: fnHandlerType) {
 					const fnFindCaret = function (event: Event) {
 							const documentSelection = (document as any).selection; // IE only
 
 							if (documentSelection) {
-								const eventTarget = event.target as HTMLTextAreaElement;
+								const target = (event.target || event.srcElement) as HTMLTextAreaElement;
 
-								eventTarget.focus();
+								target.focus();
 								const range = documentSelection.createRange(),
 									range2 = range.duplicate();
 
 								if (range2.moveToElementTxt) { // not on IE8
-									range2.moveToElementTxt(event.target);
+									range2.moveToElementTxt(target);
 								}
 								range2.setEndPoint("EndToEnd", range);
-								eventTarget.selectionStart = range2.text.length - range.text.length;
-								eventTarget.selectionEnd = eventTarget.selectionStart + range.text.length;
+								target.selectionStart = range2.text.length - range.text.length;
+								target.selectionEnd = target.selectionStart + range.text.length;
 							}
 						},
 						fnOnEvent = function (event: Event) {
 							event = event || window.event;
-							const eventTarget = event.target || event.srcElement;
+							const target = event.target || event.srcElement;
 
-							if (event.type === "click" && eventTarget && (eventTarget as HTMLTextAreaElement).tagName === "TEXTAREA") {
+							if (event.type === "click" && target && (target as HTMLTextAreaElement).tagName === "TEXTAREA") {
 								fnFindCaret(event);
 							}
-							fnHandler(event);
+							if (typeof fnHandler === "function") {
+								fnHandler(event);
+							} else if (typeof fnHandler === "object") {
+								fnHandler.handleEvent(event);
+							} else {
+								Polyfills.console.error("Unknown fnHandler:", fnHandler);
+							}
 							return false;
 						};
 
@@ -218,7 +321,7 @@ if (window.document) {
 					}
 				};
 
-				document.removeEventListener = function (event: string, fnHandler: (e: Event) => void) {
+				document.removeEventListener = function (event: string, fnHandler: fnHandlerType) {
 					let counter = 0;
 
 					while (counter < eventListeners.length) {
@@ -234,7 +337,7 @@ if (window.document) {
 				};
 			}());
 		} else {
-			Utils.console.log("No document.attachEvent found."); // will be ignored
+			(Polyfills.console || window.console).error("No document.attachEvent found."); // will be ignored
 			// debug: trying to fix
 			if ((document as any).__proto__.addEventListener) { // eslint-disable-line no-proto
 				document.addEventListener = (document as any).__proto__.addEventListener; // eslint-disable-line no-proto
@@ -305,6 +408,15 @@ if (!Object.assign) { // IE11
 			}
 		}
 		return to;
+	};
+}
+
+if (!Object.defineProperty || !Polyfills.isDefinePropertyOk) { // IE8
+	Polyfills.log("Object.defineProperty");
+	Object.defineProperty = function (target: any, prop: PropertyKey, PropDescriptor: PropertyDescriptor) {
+		// can handle simple case: Object.defineProperty(exports, "__esModule", { value: true });
+		target[prop] = PropDescriptor.value;
+		return target;
 	};
 }
 
@@ -430,92 +542,102 @@ if (!String.prototype.trim) { // IE8
 
 // based on: https://github.com/mathiasbynens/base64/blob/master/base64.js
 // https://mths.be/base64 v0.1.0 by @mathias | MIT license
-if (!Utils.atob) { // IE9 (and node.js)
-	Polyfills.log("window.atob, btoa");
-	(function () {
-		const table = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
-			reSpaceCharacters = /[\t\n\f\r ]/g; // http://whatwg.org/html/common-microsyntaxes.html#space-character
+if (!window.atob) { // IE9 (and node.js)
+	Polyfills.log("window.atob, window.btoa");
+	if (Polyfills.isNodeAvailable) { // for nodeJS we have an alternative
+		// https://dirask.com/posts/Node-js-atob-btoa-functions-equivalents-1Aqb51
+		window.atob = function (input: string) { // decode
+			return Buffer.from(input, "base64").toString("binary");
+		};
+		window.btoa = function (input: string) { // encode
+			return Buffer.from(input, "binary").toString("base64");
+		};
+	} else {
+		(function () {
+			const table = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
+				reSpaceCharacters = /[\t\n\f\r ]/g; // http://whatwg.org/html/common-microsyntaxes.html#space-character
 
-		/* eslint-disable no-bitwise */
-		Utils.atob = function (input: string) { // decode
-			input = String(input).replace(reSpaceCharacters, "");
-			let length = input.length;
+			/* eslint-disable no-bitwise */
+			window.atob = function (input: string) { // decode
+				input = String(input).replace(reSpaceCharacters, "");
+				let length = input.length;
 
-			if (length % 4 === 0) {
-				input = input.replace(/[=]=?$/, ""); // additional brackets to maks eslint happy
-				length = input.length;
-			}
-			if (length % 4 === 1 || (/[^+a-zA-Z0-9/]/).test(input)) { // http://whatwg.org/C#alphanumeric-ascii-characters
-				throw new TypeError("Polyfills:atob: Invalid character: the string to be decoded is not correctly encoded.");
-			}
-
-			let bitCounter = 0,
-				output = "",
-				position = 0,
-				bitStorage = 0;
-
-			while (position < length) {
-				const buffer = table.indexOf(input.charAt(position));
-
-				bitStorage = bitCounter % 4 ? bitStorage * 64 + buffer : buffer;
-				bitCounter += 1;
-				if ((bitCounter - 1) % 4) { // Unless this is the first of a group of 4 characters...
-					output += String.fromCharCode(0xFF & bitStorage >> (-2 * bitCounter & 6)); // ...convert the first 8 bits to a single ASCII character
+				if (length % 4 === 0) {
+					input = input.replace(/[=]=?$/, ""); // additional brackets to maks eslint happy
+					length = input.length;
 				}
-				position += 1;
-			}
-			return output;
-		};
+				if (length % 4 === 1 || (/[^+a-zA-Z0-9/]/).test(input)) { // http://whatwg.org/C#alphanumeric-ascii-characters
+					throw new TypeError("Polyfills:atob: Invalid character: the string to be decoded is not correctly encoded.");
+				}
 
-		Utils.btoa = function (input: string) { // encode
-			input = String(input);
-			if ((/[^\0-\xFF]/).test(input)) {
-				throw new TypeError("Polyfills:btoa: The string to be encoded contains characters outside of the Latin1 range.");
-			}
+				let bitCounter = 0,
+					output = "",
+					position = 0,
+					bitStorage = 0;
 
-			const padding = input.length % 3,
-				length = input.length - padding; // Make sure any padding is handled outside of the loop
-			let output = "",
-				position = 0;
+				while (position < length) {
+					const buffer = table.indexOf(input.charAt(position));
 
-			while (position < length) {
-				// Read three bytes, i.e. 24 bits.
-				const a = input.charCodeAt(position) << 16;
+					bitStorage = bitCounter % 4 ? bitStorage * 64 + buffer : buffer;
+					bitCounter += 1;
+					if ((bitCounter - 1) % 4) { // Unless this is the first of a group of 4 characters...
+						output += String.fromCharCode(0xFF & bitStorage >> (-2 * bitCounter & 6)); // ...convert the first 8 bits to a single ASCII character
+					}
+					position += 1;
+				}
+				return output;
+			};
 
-				position += 1;
-				const b = input.charCodeAt(position) << 8;
+			window.btoa = function (input: string) { // encode
+				input = String(input);
+				if ((/[^\0-\xFF]/).test(input)) {
+					throw new TypeError("Polyfills:btoa: The string to be encoded contains characters outside of the Latin1 range.");
+				}
 
-				position += 1;
-				const c = input.charCodeAt(position);
+				const padding = input.length % 3,
+					length = input.length - padding; // Make sure any padding is handled outside of the loop
+				let output = "",
+					position = 0;
 
-				position += 1;
-				const buffer = a + b + c;
+				while (position < length) {
+					// Read three bytes, i.e. 24 bits.
+					const a = input.charCodeAt(position) << 16;
 
-				// Turn the 24 bits into four chunks of 6 bits each, and append the matching character for each of them to the output
-				output += table.charAt(buffer >> 18 & 0x3F) + table.charAt(buffer >> 12 & 0x3F) + table.charAt(buffer >> 6 & 0x3F) + table.charAt(buffer & 0x3F);
-			}
+					position += 1;
+					const b = input.charCodeAt(position) << 8;
 
-			if (padding === 2) {
-				const a = input.charCodeAt(position) << 8;
+					position += 1;
+					const c = input.charCodeAt(position);
 
-				position += 1;
-				const b = input.charCodeAt(position),
-					buffer = a + b;
+					position += 1;
+					const buffer = a + b + c;
 
-				output += table.charAt(buffer >> 10) + table.charAt((buffer >> 4) & 0x3F) + table.charAt((buffer << 2) & 0x3F) + "=";
-			} else if (padding === 1) {
-				const buffer = input.charCodeAt(position);
+					// Turn the 24 bits into four chunks of 6 bits each, and append the matching character for each of them to the output
+					output += table.charAt(buffer >> 18 & 0x3F) + table.charAt(buffer >> 12 & 0x3F) + table.charAt(buffer >> 6 & 0x3F) + table.charAt(buffer & 0x3F);
+				}
 
-				output += table.charAt(buffer >> 2) + table.charAt((buffer << 4) & 0x3F) + "==";
-			}
-			return output;
-		};
-		/* eslint-enable no-bitwise */
-	}());
+				if (padding === 2) {
+					const a = input.charCodeAt(position) << 8;
+
+					position += 1;
+					const b = input.charCodeAt(position),
+						buffer = a + b;
+
+					output += table.charAt(buffer >> 10) + table.charAt((buffer >> 4) & 0x3F) + table.charAt((buffer << 2) & 0x3F) + "=";
+				} else if (padding === 1) {
+					const buffer = input.charCodeAt(position);
+
+					output += table.charAt(buffer >> 2) + table.charAt((buffer << 4) & 0x3F) + "==";
+				}
+				return output;
+			};
+			/* eslint-enable no-bitwise */
+		}());
+	}
 }
 
 // For IE and Edge, localStorage is only available if page is hosted on web server, so we simulate it (do not use property "length" or method names as keys!)
-if (!Utils.localStorage) {
+if (!Polyfills.localStorage) {
 	Polyfills.log("window.localStorage");
 	(function () {
 		class Storage {
@@ -563,7 +685,7 @@ if (!Utils.localStorage) {
 			}
 		}
 
-		Utils.localStorage = new Storage();
+		Polyfills.localStorage = new Storage();
 	}());
 }
 
@@ -589,7 +711,7 @@ if (!window.JSON) { // simple polyfill for JSON.parse only
 			return eval("(" + text + ")"); // eslint-disable-line no-eval
 		},
 		stringify: function (o: Object) { // eslint-disable-line @typescript-eslint/ban-types
-			Utils.console.error("Not implemented: window.JSON.stringify");
+			(Polyfills.console || window.console).error("Not implemented: window.JSON.stringify");
 			return String(o);
 		}
 	};
@@ -630,6 +752,9 @@ if (!window.Uint8Array) { // IE9
 	// A more complex solution would be: https://github.com/inexorabletash/polyfill/blob/master/typedarray.js
 }
 
-Utils.console.debug("Polyfills: (" + Polyfills.getList().length + ") " + Polyfills.getList().join("; "));
+//Utils.console.debug("Polyfills: (" + Polyfills.getList().length + ") " + Polyfills.getList().join("; "));
+(Polyfills.console || window.console).debug("Polyfills: (" + Polyfills.getList().length + ") " + Polyfills.getList().join("; "));
+
+window.Polyfills = Polyfills; // for nodeJs
 
 // end

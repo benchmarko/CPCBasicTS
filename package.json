@@ -1,6 +1,6 @@
 {
   "name": "cpcbasicts",
-  "version": "0.0.79",
+  "version": "0.0.80",
   "description": "# CPCBasicTS - Run CPC BASIC in a Browser",
   "main": "src/cpcbasic.ts",
   "directories": {
@@ -31,7 +31,7 @@
     "build:one": "tsc --build src/tsconfig-one.json",
     "build:separate": "tsc --build",
     "build": "npm run build:separate && npm run build:one && npm run copy",
-    "test": "qunit --require ./dist/amdLoader.js dist/test/*.qunit.js",
+    "test": "qunit --require ./dist/Polyfills.js --require ./dist/amdLoader.js dist/test/*.qunit.js",
     "deploy": "gh-pages -d dist",
     "lint": "eslint src --ext .ts"
   },

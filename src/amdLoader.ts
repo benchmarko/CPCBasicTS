@@ -47,6 +47,34 @@ function amd4Node() {
 				return require(fileName); // eslint-disable-line global-require
 			}.bind(this, mod);
 
+
+		/*
+			depsMapped: string[] = []; // deps.map() (Array.map() not IE8)
+
+		for (let i = 0; i < deps.length; i += 1) {
+			const injection = deps[i];
+			let mapped;
+
+			switch (injection) {
+			// check for CommonJS injection variables
+			case "require":
+				mapped = req;
+				break;
+			case "exports":
+				mapped = mod.exports;
+				break;
+			case "module":
+				mapped = mod;
+				break;
+			default:
+				mapped = req(injection); // a module dependency
+				break;
+			}
+			depsMapped[i] = mapped;
+		}
+		func.apply(mod.exports, depsMapped);
+		*/
+
 		func.apply(mod.exports, deps.map(function (injection: string) {
 			switch (injection) {
 			// check for CommonJS injection variables
@@ -79,21 +107,39 @@ function amd4browser() {
 		(window as any).define = function (arg1: string | string[], arg2: string[] | MyDefineFunctionType, arg3?: MyDefineFunctionType) {
 			// if arg1 is no id, we have an anonymous module
 			const [deps, func] = (typeof arg1 !== "string") ? [arg1, arg2 as MyDefineFunctionType] : [arg2 as string[], arg3 as MyDefineFunctionType], // eslint-disable-line array-element-newline
-				args = deps.map(function (name) {
-					if (name === "require") {
-						return null;
-					} else if (name === "exports") {
-						return window.exports;
-					}
-					return window.require(name);
-				});
+				depsMapped: string[] = []; // deps.map() (Array.map() not IE8)
 
-			func.apply(this, args);
+			for (let i = 0; i < deps.length; i += 1) {
+				const name = deps[i];
+				let mapped;
+
+				if (name === "require") {
+					mapped = null;
+				} else if (name === "exports") {
+					mapped = window.exports;
+				} else {
+					mapped = window.require(name);
+				}
+				depsMapped[i] = mapped;
+			}
+
+			/*
+			args = deps.map(function (name) {
+				if (name === "require") {
+					return null;
+				} else if (name === "exports") {
+					return window.exports;
+				}
+				return window.require(name);
+			});
+			*/
+
+			func.apply(this, depsMapped);
 		};
 	}
 }
 
-if ((typeof globalThis !== "undefined") && !globalThis.window) { // we assume nodeJS
+if (Polyfills.isNodeAvailable) {
 	amd4Node();
 } else {
 	amd4browser();

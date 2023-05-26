@@ -903,29 +903,12 @@ export class Canvas {
 		this.maskBit = maskBit;
 	}
 
-	/*
-	private static cpcRoundingTowardsZeroX(x: number, pixelWidth: number) {
-		x = x < 0 && x >= -pixelWidth + 1 ? 0 : x;
-		return x;
-	}
-
-	private static cpcRoundingTowardsZeroY(y: number, pixelHeight: number) {
-		y = y < 0 && y >= -pixelHeight + 1 ? 0 : y;
-		return y;
-	}
-	*/
-
 	draw(x: number, y: number): void {
-		// TODO
-		//const xStart = Canvas.cpcRoundingTowardsZeroX(this.xPos, this.modeData.pixelWidth),
-		//	yStart = Canvas.cpcRoundingTowardsZeroY(this.yPos, this.modeData.pixelHeight);
 		const xStart = this.xPos,
 			yStart = this.yPos;
 
 		this.move(x, y); // destination
 
-		//x = Canvas.cpcRoundingTowardsZeroX(x, this.modeData.pixelWidth);
-		//y = Canvas.cpcRoundingTowardsZeroY(y, this.modeData.pixelHeight);
 		this.drawBresenhamLine(xStart, yStart, x, y);
 		this.setNeedUpdate();
 	}
@@ -1315,11 +1298,13 @@ export class Canvas {
 		this.setGTransparentMode(false);
 	}
 
+	/*
 	startScreenshot(): string {
 		return this.canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"); // here is the most important part because if you do not replace you will get a DOM 18 exception.
 	}
+	*/
 
-	getCanvas(): HTMLCanvasElement {
+	getCanvasElement(): HTMLCanvasElement {
 		return this.canvas;
 	}
 }

@@ -215,6 +215,7 @@ class cpcBasic { // eslint-disable-line vars-on-top
 		}
 
 		cpcBasic.controller = new Controller(cpcBasic.model, cpcBasic.view);
+		cpcBasic.controller.onDatabaseSelectChange(); // trigger loading example
 	}
 
 	static fnOnLoad() {
@@ -236,7 +237,7 @@ window.onload = () => {
 	cpcBasic.fnOnLoad();
 };
 
-if (NodeAdapt.isNodeAvailable()) {
+if (window.Polyfills.isNodeAvailable) {
 	NodeAdapt.doAdapt();
 	cpcBasic.fnOnLoad();
 	Utils.console.debug("End of main.");

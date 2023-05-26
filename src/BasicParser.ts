@@ -318,13 +318,13 @@ export class BasicParser {
 		clear: this.clear,
 		data: this.data,
 		def: this.def,
-		"else": this.else, // simular to a comment, normally not used
+		"else": this.fnElse, // simular to a comment, normally not used
 		ent: this.entOrEnv,
 		env: this.entOrEnv,
 		every: this.afterEveryGosub,
-		"for": this.for,
+		"for": this.fnFor,
 		graphics: this.graphics,
-		"if": this.if,
+		"if": this.fnIf,
 		input: this.input,
 		key: this.key,
 		let: this.let,
@@ -748,7 +748,6 @@ export class BasicParser {
 		default:
 			expression = this.expression(0);
 			if (expression.type === "#") { // got stream?
-				//throw this.composeError(Error(), "Unexpected stream", expression.value, expression.pos);
 				this.fnMaskedError(expression, "Unexpected stream");
 			}
 			break;
@@ -1125,7 +1124,7 @@ export class BasicParser {
 		return node;
 	}
 
-	private "else"() { // similar to a comment, normally not used
+	private fnElse() { // similar to a comment, normally not used
 		const node = this.previousToken;
 
 		node.args = [];
@@ -1168,7 +1167,7 @@ export class BasicParser {
 		return node;
 	}
 
-	private "for"() {
+	private fnFor() {
 		const node = this.previousToken;
 
 		this.fnCheckExpressionType(this.token, "identifier", "v");
@@ -1231,7 +1230,7 @@ export class BasicParser {
 		}
 	}
 
-	private "if"() {
+	private fnIf() {
 		const node = this.previousToken;
 		let numberToken: ParserNode[] | undefined;
 

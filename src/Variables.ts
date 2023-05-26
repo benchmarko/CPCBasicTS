@@ -86,16 +86,6 @@ export class Variables {
 		}
 	}
 
-	/*
-	removeAllVarTypes(): void {
-		const varTypes = this.varTypes;
-
-		for (const name in varTypes) { // eslint-disable-line guard-for-in
-			delete varTypes[name];
-		}
-	}
-	*/
-
 	getAllVariables(): VariableMap {
 		return this.variables;
 	}
@@ -108,10 +98,7 @@ export class Variables {
 		const that = this,
 			fnCreateRec = function (index: number) {
 				const len = dims[index],
-					//arr: VariableValue[] = new Array(len);
-					//arr: VariableValue[] = new ArrayProxy(len) as any as VariableValue[]; //TODO new Array(len);
-					//arr: VariableValue[] = that.arrayBounds ? new ArrayProxy(len) : new Array(len); //as VariableValue[]; //TODO new Array(len);
-					arr: VariableValue[] = that.arrayBounds ? new ArrayProxy(len) as any as VariableValue[] : new Array(len); //as VariableValue[]; //TODO new Array(len);
+					arr: VariableValue[] = that.arrayBounds ? new ArrayProxy(len) as any as VariableValue[] : new Array(len);
 
 				index += 1;
 				if (index < dims.length) { // more dimensions?
