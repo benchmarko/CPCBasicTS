@@ -1268,10 +1268,10 @@ export class Controller implements IController {
 				decoded = this.decodeTokenizedBasic(outputText),
 				diff = Diff.testDiff(input.toUpperCase(), decoded.toUpperCase()); // for testing
 
-			Utils.console.debug("TokenizerInput (" + name + "):\n", input);
-			Utils.console.debug("TokenizerHex (" + name + "):\n", hex);
-			Utils.console.debug("TokenizerDecoded (" + name + "):\n", decoded);
-			Utils.console.debug("TokenizerDiff (" + name + "):\n", diff);
+			Utils.console.debug("TokenizerInput (" + name + "):\n" + input);
+			Utils.console.debug("TokenizerHex (" + name + "):\n" + hex);
+			Utils.console.debug("TokenizerDecoded (" + name + "):\n" + decoded);
+			Utils.console.debug("TokenizerDiff (" + name + "):\n" + diff);
 		}
 
 		return output.text;

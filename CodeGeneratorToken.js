@@ -33,29 +33,18 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
                 linenumber: CodeGeneratorToken.linenumber,
                 label: this.fnLabel,
                 "|": this.vertical,
-                afterGosub: this.afterGosub,
-                chainMerge: this.chainMerge,
                 data: this.data,
                 def: this.def,
                 "else": this.fnElse,
-                ent: this.entEnv,
-                env: this.entEnv,
-                everyGosub: this.everyGosub,
                 fn: this.fn,
-                "for": this.fnFor,
                 "if": this.fnIf,
-                input: this.inputLineInput,
-                lineInput: this.inputLineInput,
-                list: this.list,
                 mid$Assign: this.mid$Assign,
+                onBreakCont: this.onBreakContOrGosubOrStop,
+                onBreakGosub: this.onBreakContOrGosubOrStop,
+                onBreakStop: this.onBreakContOrGosubOrStop,
                 onErrorGoto: this.onErrorGoto,
-                onGosub: this.onGotoGosub,
-                onGoto: this.onGotoGosub,
                 onSqGosub: this.onSqGosub,
-                print: this.print,
-                rem: this.rem,
-                using: this.using,
-                write: this.write
+                rem: this.rem
             };
             this.lexer = options.lexer;
             this.parser = options.parser;
@@ -87,7 +76,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             if (token === undefined) {
                 token = CodeGeneratorToken.tokensFF[name];
                 if (token === undefined) {
-                    Utils_1.Utils.console.warn("token2String: Not a token: " + name);
+                    Utils_1.Utils.console.error("token2String: Not a token: " + name);
                     return name; // return something
                 }
                 result = CodeGeneratorToken.convUInt8ToString(0xff); // prefix for special tokens
@@ -98,19 +87,11 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
         CodeGeneratorToken.getBit7TerminatedString = function (s) {
             return s.substring(0, s.length - 1) + String.fromCharCode(s.charCodeAt(s.length - 1) | 0x80); // eslint-disable-line no-bitwise
         };
-        CodeGeneratorToken.prototype.combineArgsWithSeparator = function (nodeArgs) {
-            var separator = "";
-            if (nodeArgs.length > 1 && nodeArgs[1].charAt(0) !== this.statementSeparator) { // no separator for multiple items?
-                // (use charAt(0) because of apostrophe with separator prefix)
-                separator = this.statementSeparator;
-            }
-            return nodeArgs.join(separator);
+        CodeGeneratorToken.fnGetWs = function (node) {
+            return node.ws || "";
         };
         CodeGeneratorToken.prototype.fnParseOneArg = function (arg) {
             var value = this.parseNode(arg);
-            if (arg.ws && arg.ws !== " ") {
-                value = arg.ws + value;
-            }
             return value;
         };
         CodeGeneratorToken.prototype.fnParseArgs = function (args) {
@@ -120,9 +101,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             }
             for (var i = 0; i < args.length; i += 1) {
                 var value = this.fnParseOneArg(args[i]);
-                if (!(i === 0 && value === "#" && args[i].type === "#")) { // ignore empty stream as first argument (hmm, not for e.g. data!)
-                    nodeArgs.push(value);
-                }
+                nodeArgs.push(value);
             }
             return nodeArgs;
         };
@@ -131,30 +110,30 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             return nodeArgs.join(node.value);
         };
         CodeGeneratorToken.semicolon = function (node) {
-            return node.value; // ";"
+            return CodeGeneratorToken.fnGetWs(node) + node.value; // ";"
         };
-        CodeGeneratorToken.prototype.colon = function () {
-            return this.statementSeparator;
+        CodeGeneratorToken.prototype.colon = function (node) {
+            return CodeGeneratorToken.fnGetWs(node) + this.statementSeparator; // not ASCII ':'
         };
         CodeGeneratorToken.letter = function (node) {
-            return node.value;
+            return CodeGeneratorToken.fnGetWs(node) + node.value;
         };
         CodeGeneratorToken.prototype.range = function (node) {
             if (!node.left || !node.right) {
                 throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
             }
             var left = this.fnParseOneArg(node.left), right = this.fnParseOneArg(node.right);
-            return left + "-" + right;
+            return left + CodeGeneratorToken.fnGetWs(node) + node.value + right;
         };
         CodeGeneratorToken.prototype.linerange = function (node) {
             if (!node.left || !node.right) {
                 throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
             }
             var left = this.fnParseOneArg(node.left), right = this.fnParseOneArg(node.right);
-            return left + CodeGeneratorToken.token2String("-") + right;
+            return left + CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.value) + right;
         };
         CodeGeneratorToken.prototype.fnParenthesisOpen = function (node) {
-            var value = node.value;
+            var value = CodeGeneratorToken.fnGetWs(node) + node.value;
             if (node.args) {
                 var nodeArgs = this.fnParseArgs(node.args);
                 value += nodeArgs.join("");
@@ -162,10 +141,10 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             return value;
         };
         CodeGeneratorToken.string = function (node) {
-            return '"' + node.value + '"'; // TODO: how to set unterminated string?
+            return CodeGeneratorToken.fnGetWs(node) + '"' + node.value + '"'; // TODO: how to set unterminated string?
         };
         CodeGeneratorToken.unquoted = function (node) {
-            return node.value;
+            return CodeGeneratorToken.fnGetWs(node) + node.value;
         };
         CodeGeneratorToken.fnNull = function () {
             return "";
@@ -178,7 +157,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             if (node.left.type !== "identifier") {
                 throw this.composeError(Error(), "Unexpected assign type", node.type, node.pos); // should not occur
             }
-            return this.fnParseOneArg(node.left) + CodeGeneratorToken.token2String("=") + this.fnParseOneArg(node.right);
+            return this.fnParseOneArg(node.left) + CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.value) + this.fnParseOneArg(node.right);
         };
         CodeGeneratorToken.floatToByteString = function (number) {
             var mantissa = 0, exponent = 0, sign = 0;
@@ -197,12 +176,12 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             return CodeGeneratorToken.convInt32ToString(sign + mantissa) + CodeGeneratorToken.convUInt8ToString(exponent);
         };
         CodeGeneratorToken.number = function (node) {
-            var mumberString = node.value.toUpperCase(), // maybe "e" inside
-            number = Number(mumberString);
+            var numberString = node.value.toUpperCase(), // maybe "e" inside
+            number = Number(numberString);
             var result = "";
             if (number === Math.floor(number)) { // integer?
                 if (number >= 0 && number <= 9) { // integer number constant 0-9? (not sure when 10 is used)
-                    result = CodeGeneratorToken.token2String(mumberString);
+                    result = CodeGeneratorToken.token2String(numberString);
                 }
                 else if (number >= 10 && number <= 0xff) {
                     result = CodeGeneratorToken.token2String("_dec8") + CodeGeneratorToken.convUInt8ToString(number);
@@ -214,12 +193,12 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             if (result === "") { // no integer number yet, use float...
                 result = CodeGeneratorToken.token2String("_float") + CodeGeneratorToken.floatToByteString(number);
             }
-            return result;
+            return CodeGeneratorToken.fnGetWs(node) + result;
         };
         CodeGeneratorToken.binnumber = function (node) {
             var valueString = node.value.slice(2), // remove &x
             value = (valueString.length) ? parseInt(valueString, 2) : 0; // we convert it to dec
-            return CodeGeneratorToken.token2String("_bin16") + CodeGeneratorToken.convUInt16ToString(value);
+            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("_bin16") + CodeGeneratorToken.convUInt16ToString(value);
         };
         CodeGeneratorToken.hexnumber = function (node) {
             var valueString = node.value.slice(1); // remove &
@@ -227,7 +206,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
                 valueString = valueString.slice(1); // remove
             }
             var value = (valueString.length) ? parseInt(valueString, 16) : 0; // we convert it to dec
-            return CodeGeneratorToken.token2String("_hex16") + CodeGeneratorToken.convUInt16ToString(value);
+            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("_hex16") + CodeGeneratorToken.convUInt16ToString(value);
         };
         CodeGeneratorToken.prototype.identifier = function (node) {
             var name = node.value, // keep case, maybe mixed
@@ -250,14 +229,14 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             name = CodeGeneratorToken.getBit7TerminatedString(name);
             if (node.args) { // args including brackets
                 var nodeArgs = this.fnParseArgs(node.args), bracketOpen = nodeArgs.shift(), bracketClose = nodeArgs.pop();
-                name += bracketOpen + nodeArgs.join(",") + bracketClose;
+                name += bracketOpen + nodeArgs.join("") + bracketClose;
             }
             var offset = 0; // (offset to memory location of variable; not used here)
-            return result + CodeGeneratorToken.convUInt16ToString(offset) + name;
+            return CodeGeneratorToken.fnGetWs(node) + result + CodeGeneratorToken.convUInt16ToString(offset) + name;
         };
         CodeGeneratorToken.linenumber = function (node) {
             var number = Number(node.value);
-            return CodeGeneratorToken.token2String("_line16") + CodeGeneratorToken.convUInt16ToString(number);
+            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("_line16") + CodeGeneratorToken.convUInt16ToString(number);
         };
         CodeGeneratorToken.prototype.fnLabel = function (node) {
             if (this.implicitLines) {
@@ -267,9 +246,12 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             }
             this.label = node.value; // set line before parsing args
             var line = Number(this.label), nodeArgs = this.fnParseArgs(node.args);
-            var value = this.combineArgsWithSeparator(nodeArgs);
+            var value = nodeArgs.join("");
             if (node.value !== "") { // direct
-                value = CodeGeneratorToken.convUInt16ToString(line) + value + CodeGeneratorToken.token2String("_eol");
+                if (value.charAt(0) === " ") { // remove one space (implicit space after label)
+                    value = value.substring(1);
+                }
+                value = CodeGeneratorToken.convUInt16ToString(line) + value + CodeGeneratorToken.token2String("_eol"); // no ws
                 var len = value.length + 2;
                 value = CodeGeneratorToken.convUInt16ToString(len) + value;
             }
@@ -278,28 +260,10 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
         // special keyword functions
         CodeGeneratorToken.prototype.vertical = function (node) {
             var rsxName = node.value.substring(1).toUpperCase(), nodeArgs = this.fnParseArgs(node.args), offset = 0; // (offset to tokens following RSX name) TODO
-            var value = CodeGeneratorToken.token2String(node.type) + CodeGeneratorToken.convUInt8ToString(offset) + CodeGeneratorToken.getBit7TerminatedString(rsxName);
+            var value = CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + CodeGeneratorToken.convUInt8ToString(offset) + CodeGeneratorToken.getBit7TerminatedString(rsxName);
             if (nodeArgs.length) {
-                value += "," + nodeArgs.join(",");
+                value += "," + nodeArgs.join("");
             }
-            return value;
-        };
-        CodeGeneratorToken.prototype.afterGosub = function (node) {
-            var nodeArgs = this.fnParseArgs(node.args);
-            var value = CodeGeneratorToken.token2String("after") + nodeArgs[0];
-            if (nodeArgs[1]) {
-                value += "," + nodeArgs[1];
-            }
-            value += CodeGeneratorToken.token2String("gosub") + nodeArgs[2];
-            return value;
-        };
-        CodeGeneratorToken.prototype.chainMerge = function (node) {
-            var nodeArgs = this.fnParseArgs(node.args);
-            var value = CodeGeneratorToken.token2String(node.type);
-            if (nodeArgs.length === 3) {
-                nodeArgs[2] = CodeGeneratorToken.token2String("delete") + nodeArgs[2];
-            }
-            value += nodeArgs.join(",");
             return value;
         };
         CodeGeneratorToken.prototype.data = function (node) {
@@ -309,33 +273,29 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
                 nodeArgs[i] = value2;
             }
             var value = nodeArgs.join("");
-            if (value !== "" && value !== "," && value !== '"') { // argument?
-                value = " " + value;
-            }
-            value = CodeGeneratorToken.token2String(node.type) + value;
+            value = CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + value;
             return value;
         };
         CodeGeneratorToken.prototype.def = function (node) {
-            if (!node.left || !node.right) {
-                throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
+            if (!node.right) {
+                return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type); // only def (for key def)
             }
-            var withFn = node.left.value, withoutFn = withFn.substring(2); // remove first 2 characters "FN" or "fn"
-            node.left.value = withoutFn; // fast hack: without fn
-            var name = this.fnParseOneArg(node.left);
-            node.left.value = withFn; // fast hack: restore
-            var space = node.left.space ? " " : "", // fast hack
-            nodeArgs = this.fnParseArgs(node.args), expression = this.fnParseOneArg(node.right);
-            var nodeArgsString = nodeArgs.join(",");
-            if (nodeArgsString !== "") { // not empty?
-                nodeArgsString = "(" + nodeArgsString + ")";
+            var name = "";
+            if (node.args && node.args.length && node.args[0].type === "identifier") { // combined with fn?
+                var nodeLeft = node.args[0], // or: node.left as ParserNode,
+                withFn = nodeLeft.value, withoutFn = withFn.substring(2); // remove first 2 characters "FN" or "fn"
+                nodeLeft.value = withoutFn; // fast hack: without fn
+                name = CodeGeneratorToken.fnGetWs(nodeLeft) + CodeGeneratorToken.token2String("fn");
+                nodeLeft.ws = ""; // already done for fn part
             }
-            return CodeGeneratorToken.token2String(node.type) + " " + CodeGeneratorToken.token2String("fn") + space + name + nodeArgsString + CodeGeneratorToken.token2String("=") + expression;
+            var nodeArgs = this.fnParseArgs(node.args), expression = this.fnParseOneArg(node.right), nodeArgsString = nodeArgs.join("");
+            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + name + nodeArgsString + expression;
         };
         CodeGeneratorToken.prototype.fnElse = function (node) {
             if (!node.args) {
                 throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
             }
-            var value = CodeGeneratorToken.token2String(":") + CodeGeneratorToken.token2String(node.type); // always prefix with ":"
+            var value = CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(":") + CodeGeneratorToken.token2String(node.type); // always prefix with ":"
             var args = node.args;
             // we do not have a parse tree here but a simple list
             for (var i = 0; i < args.length; i += 1) {
@@ -350,56 +310,22 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             }
             return value;
         };
-        CodeGeneratorToken.prototype.entEnv = function (node) {
-            if (!node.args) {
-                throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
-            }
-            var args = node.args, nodeArgs = [];
-            var equal = false;
-            for (var i = 0; i < args.length; i += 1) {
-                if (args[i].type !== "null") {
-                    var arg = this.fnParseOneArg(args[i]);
-                    if (equal) {
-                        arg = "=" + arg;
-                        equal = false;
-                    }
-                    nodeArgs.push(arg);
-                }
-                else {
-                    equal = true;
-                }
-            }
-            return CodeGeneratorToken.token2String(node.type) + " " + nodeArgs.join(",");
-        };
-        CodeGeneratorToken.prototype.everyGosub = function (node) {
-            var nodeArgs = this.fnParseArgs(node.args);
-            var value = CodeGeneratorToken.token2String("every") + nodeArgs[0];
-            if (nodeArgs[1]) {
-                value += "," + nodeArgs[1];
-            }
-            value += CodeGeneratorToken.token2String("gosub") + nodeArgs[2];
-            return value;
-        };
         CodeGeneratorToken.prototype.fn = function (node) {
-            if (!node.left) {
-                throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occur
+            if (!node.left && !node.right) {
+                return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type); // only fn
             }
-            var nodeArgs = this.fnParseArgs(node.args), name = this.fnParseOneArg(node.left).replace(/FN/i, ""), // get identifier without FN
-            space = node.value.indexOf(" ") >= 0 ? " " : "";
-            var nodeArgsString = nodeArgs.join(",");
-            if (nodeArgsString !== "") { // not empty?
-                nodeArgsString = "(" + nodeArgsString + ")";
+            var nodeArgs = this.fnParseArgs(node.args), nodeArgsString = nodeArgs.join("");
+            var name = "";
+            if (!node.args || !node.args.length || node.args[0].type !== "identifier") { //TTT fast hack
+                name = this.fnParseOneArg(node.left).replace(/FN/i, ""); // get identifier without FN  (ts)
             }
-            var name2 = CodeGeneratorToken.token2String(node.type) + space + name;
-            return name2 + nodeArgsString;
-        };
-        CodeGeneratorToken.prototype.fnFor = function (node) {
-            var nodeArgs = this.fnParseArgs(node.args);
-            return CodeGeneratorToken.token2String(node.type) + nodeArgs.join("");
+            // We always need to store "fn" as as token and not as a string
+            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + name + nodeArgsString;
         };
         CodeGeneratorToken.prototype.fnThenOrElsePart = function (nodeBranch) {
-            var nodeArgs = this.fnParseArgs(nodeBranch); // args for "then" or "else"
-            return this.combineArgsWithSeparator(nodeArgs);
+            var nodeArgs = this.fnParseArgs(nodeBranch), // args for "then" or "else"
+            thenOrElse = nodeArgs.shift();
+            return thenOrElse + nodeArgs.join("");
         };
         CodeGeneratorToken.prototype.fnIf = function (node) {
             if (!node.left) {
@@ -408,49 +334,27 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             if (!node.args) {
                 throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occur
             }
-            var value = CodeGeneratorToken.token2String(node.type) + this.fnParseOneArg(node.left) + CodeGeneratorToken.token2String("then");
+            var value = CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + this.fnParseOneArg(node.left);
             value += this.fnThenOrElsePart(node.args); // "then" part
             if (node.args2) {
-                if (!value.endsWith(this.statementSeparator)) {
-                    value += this.statementSeparator; // ":" before "else"!
-                }
-                value += CodeGeneratorToken.token2String("else") + this.fnThenOrElsePart(node.args2); // "else" part
+                value += this.fnThenOrElsePart(node.args2); // "else" part
             }
             return value;
-        };
-        CodeGeneratorToken.fnHasStream = function (node) {
-            return node.args && node.args.length && (node.args[0].type === "#") && node.args[0].right && (node.args[0].right.type !== "null");
-        };
-        CodeGeneratorToken.prototype.inputLineInput = function (node) {
-            var nodeArgs = this.fnParseArgs(node.args), hasStream = CodeGeneratorToken.fnHasStream(node);
-            var value = CodeGeneratorToken.token2String(node.type), i = 0;
-            if (hasStream) { // stream?
-                i += 1;
-            }
-            if (nodeArgs.length && !hasStream && String(nodeArgs[0]).charAt(0) !== '"') {
-                // TODO: empty CRLF marker
-                value += " ";
-            }
-            nodeArgs.splice(i, 4, nodeArgs[i] + nodeArgs[i + 1] + nodeArgs[i + 2] + nodeArgs[i + 3]); // combine 4 elements into one
-            return value + nodeArgs.join(",");
-        };
-        CodeGeneratorToken.prototype.list = function (node) {
-            var nodeArgs = this.fnParseArgs(node.args);
-            if (nodeArgs.length && nodeArgs[0] === "") { // empty range?
-                nodeArgs.shift(); // remove
-            }
-            if (nodeArgs.length && nodeArgs[nodeArgs.length - 1] === "#") { // dummy stream?
-                nodeArgs.pop(); // remove
-            }
-            var name = CodeGeneratorToken.token2String(node.type), value = nodeArgs.join(",");
-            return name + value;
         };
         CodeGeneratorToken.prototype.mid$Assign = function (node) {
             if (!node.right) {
                 throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occur TTT
             }
             var nodeArgs = this.fnParseArgs(node.args);
-            return CodeGeneratorToken.token2String(node.type) + "(" + nodeArgs.join(",") + ")" + CodeGeneratorToken.token2String("=") + this.fnParseOneArg(node.right);
+            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + nodeArgs.join("") + this.fnParseOneArg(node.right);
+        };
+        CodeGeneratorToken.prototype.onBreakContOrGosubOrStop = function (node) {
+            var nodeArgs = this.fnParseArgs(node.args);
+            var name = "";
+            if (node.right && node.right.right) { // get which comes after "on break"...
+                name = this.fnParseOneArg(node.right.right);
+            }
+            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("_onBreak") + name + nodeArgs.join("");
         };
         CodeGeneratorToken.prototype.onErrorGoto = function (node) {
             var nodeArgs = this.fnParseArgs(node.args);
@@ -459,105 +363,40 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
                 value = CodeGeneratorToken.token2String("_onErrorGoto0");
             }
             else {
-                value = CodeGeneratorToken.token2String("on") + CodeGeneratorToken.token2String("error") + CodeGeneratorToken.token2String("goto") + nodeArgs.join(",");
+                value = CodeGeneratorToken.token2String("on") + CodeGeneratorToken.token2String("error") + CodeGeneratorToken.token2String("goto") + nodeArgs.join("");
             }
             return value;
-        };
-        CodeGeneratorToken.prototype.onGotoGosub = function (node) {
-            var left = this.fnParseOneArg(node.left), nodeArgs = this.fnParseArgs(node.args), right = this.fnParseOneArg(node.right); // "goto" or "gosub"
-            return CodeGeneratorToken.token2String("on") + left + right + nodeArgs.join(",");
         };
         CodeGeneratorToken.prototype.onSqGosub = function (node) {
-            var left = this.fnParseOneArg(node.left), nodeArgs = this.fnParseArgs(node.args);
-            return CodeGeneratorToken.token2String("_onSq") + "(" + left + ")" + CodeGeneratorToken.token2String("gosub") + nodeArgs.join(",");
-        };
-        CodeGeneratorToken.prototype.print = function (node) {
-            var regExp = /[a-zA-Z0-9.]/, nodeArgs = this.fnParseArgs(node.args), hasStream = CodeGeneratorToken.fnHasStream(node), token = node.value.toLowerCase(); // we use value to get PRINT or ?
-            var value = CodeGeneratorToken.token2String(node.type); // print and ? are tokenized as print, or use token here to keep it different
-            if (token === "print" && nodeArgs.length && !hasStream) { // PRINT with args and not stream?
-                value += " ";
-            }
-            if (hasStream && nodeArgs.length > 1) { // more args after stream?
-                nodeArgs[0] = String(nodeArgs[0]) + ",";
-            }
-            for (var i = 0; i < nodeArgs.length; i += 1) {
-                var arg = String(nodeArgs[i]);
-                if (regExp.test(value.charAt(value.length - 1)) && regExp.test(arg.charAt(0))) { // last character and first character of next arg: char, number, dot? (not for token "FN"??)
-                    value += " "; // additional space
-                }
-                value += nodeArgs[i];
-            }
-            return value;
+            var nodeArgs = this.fnParseArgs(node.args);
+            return CodeGeneratorToken.token2String("_onSq") + nodeArgs.join("");
         };
         CodeGeneratorToken.prototype.rem = function (node) {
-            var nodeArgs = this.fnParseArgs(node.args);
-            var value = nodeArgs.length ? nodeArgs[0] : "", name = CodeGeneratorToken.token2String(node.value.toLowerCase()); // we use value to get REM or '
-            if (node.value !== "'") { // for "rem"
-                if (value !== "") {
-                    value = " " + value; // add removed space
-                }
-            }
-            else { // apostrophe
-                name = this.statementSeparator + name; // always prefix apostrophe with ":"
-            }
+            var nodeArgs = this.fnParseArgs(node.args), name = CodeGeneratorToken.fnGetWs(node) + (node.value === "'" ? this.statementSeparator : "") + CodeGeneratorToken.token2String(node.value.toLowerCase()), // we use value to get REM or '
+            value = nodeArgs.length ? nodeArgs[0] : "";
             return name + value;
-        };
-        CodeGeneratorToken.prototype.using = function (node) {
-            var nodeArgs = this.fnParseArgs(node.args);
-            var template = nodeArgs.shift();
-            if (template && template.charAt(0) !== '"') { // not a string => space required
-                template = " " + template;
-            }
-            return CodeGeneratorToken.token2String(node.type) + template + nodeArgs.join(""); // separators comma or semicolon are already there
-        };
-        CodeGeneratorToken.prototype.write = function (node) {
-            var nodeArgs = this.fnParseArgs(node.args), hasStream = CodeGeneratorToken.fnHasStream(node);
-            var value = CodeGeneratorToken.token2String(node.type);
-            if (nodeArgs.length && !hasStream) { // args and not stream?
-                value += " ";
-            }
-            if (hasStream && nodeArgs.length > 1) { // more args after stream?
-                nodeArgs[0] = String(nodeArgs[0]) + ",";
-            }
-            return value + nodeArgs.join(""); // separators comma or semicolon are already there
         };
         /* eslint-enable no-invalid-this */
         CodeGeneratorToken.prototype.fnParseOther = function (node) {
             var type = node.type, keyType = BasicParser_1.BasicParser.keywords[type];
-            var value = CodeGeneratorToken.token2String(type), args = "";
-            if (node.left) {
-                args += this.fnParseOneArg(node.left);
+            var value = CodeGeneratorToken.fnGetWs(node);
+            if (keyType) {
+                value += CodeGeneratorToken.token2String(type);
             }
-            if (!keyType) {
-                if (node.value) { // e.g. string,...
-                    args += node.value;
-                }
+            else if (node.value) { // e.g. string,...
+                value += node.value;
+            }
+            if (node.left) {
+                value += this.fnParseOneArg(node.left);
             }
             if (node.right) {
-                args += this.fnParseOneArg(node.right);
+                value += this.fnParseOneArg(node.right);
             }
             if (node.args) {
-                args += this.fnParseArgs(node.args).join(",");
+                value += this.fnParseArgs(node.args).join("");
             }
             if (node.args2) { // ELSE part already handled
                 throw this.composeError(Error(), "Programming error: args2", node.type, node.pos); // should not occur
-            }
-            // for e.g. tab, spc...
-            if (keyType) {
-                if (args.length) {
-                    if (keyType.charAt(0) === "f") { // function with parameters?
-                        value += "(" + args + ")";
-                    }
-                    else {
-                        if (args.charAt(0) !== "#") { // only if not a stream
-                            value += " ";
-                        }
-                        value += args;
-                    }
-                }
-            }
-            else {
-                value = args; // for e.g. string
             }
             return value;
         };
@@ -565,59 +404,25 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             if (Utils_1.Utils.debug > 3) {
                 Utils_1.Utils.console.debug("evaluate: parseNode node=%o type=" + node.type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
             }
-            var type = node.type, precedence = CodeGeneratorToken.operatorPrecedence, operators = CodeGeneratorToken.operators;
+            var type = node.type, operators = CodeGeneratorToken.operators;
             var value;
             if (operators[type]) {
                 if (node.left) {
                     value = this.parseNode(node.left);
-                    if (operators[node.left.type] && (node.left.left || node.left.right)) { // binary operator (or unary operator, e.g. not)
-                        var p = precedence[node.type];
-                        var pl = void 0;
-                        if (node.left.left) { // left is binary
-                            pl = precedence[node.left.type] || 0;
-                        }
-                        else { // left is unary
-                            pl = precedence["p" + node.left.type] || precedence[node.left.type] || 0;
-                        }
-                        if (pl < p) {
-                            value = "(" + value + ")";
-                        }
-                    }
-                    var right = node.right;
-                    var value2 = this.parseNode(right);
-                    if (operators[right.type] && (right.left || right.right)) { // binary operator (or unary operator, e.g. not)
-                        var p = precedence[node.type];
-                        var pr = void 0;
-                        if (right.left) { // right is binary
-                            pr = precedence[right.type] || 0;
-                        }
-                        else {
-                            pr = precedence["p" + right.type] || precedence[right.type] || 0;
-                        }
-                        if ((pr < p) || ((pr === p) && node.type === "-")) { // "-" is special
-                            value2 = "(" + value2 + ")";
-                        }
-                    }
-                    value += CodeGeneratorToken.token2String(operators[type]) + value2;
+                    var value2 = this.parseNode(node.right);
+                    value += CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(operators[type]) + value2;
                 }
-                else if (node.right) { // unary operator, e.g. not
-                    var right = node.right;
-                    value = this.parseNode(right);
-                    var pr = void 0;
-                    if (right.left) { // was binary op?
-                        pr = precedence[right.type] || 0; // no special prio
+                else if (node.right) { // unary operator, e.g. 'not', '#'
+                    if (node.len === 0) {
+                        value = ""; // ignore dummy token, e.g. '#'
                     }
                     else {
-                        pr = precedence["p" + right.type] || precedence[right.type] || 0; // check unary operator first
+                        value = this.parseNode(node.right);
+                        value = CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(operators[type]) + value;
                     }
-                    var p = precedence["p" + node.type] || precedence[node.type] || 0; // check unary operator first
-                    if (p && pr && (pr < p)) {
-                        value = "(" + value + ")";
-                    }
-                    value = CodeGeneratorToken.token2String(operators[type]) + value;
                 }
-                else if (type === "=") { // no operator, "=" in "for"
-                    value = CodeGeneratorToken.token2String(type);
+                else if (type === "=") { // no operator, "=" in 'for' or 'def fn'
+                    value = CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(type);
                 }
                 else { // should not occur
                     value = this.fnParseOther(node);
@@ -628,6 +433,9 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             }
             else { // for other functions, generate code directly
                 value = this.fnParseOther(node);
+            }
+            if (Utils_1.Utils.debug > 2) {
+                Utils_1.Utils.console.debug("parseNode: type='" + type + "', value='" + node.value + "', ws='" + node.ws + "', resultValue='" + value + "'");
             }
             return value;
         };
@@ -696,29 +504,6 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             "@": "@",
             "#": "#"
         };
-        CodeGeneratorToken.operatorPrecedence = {
-            "@": 95,
-            "^": 90,
-            "p-": 80,
-            "p+": 80,
-            "*": 70,
-            "/": 70,
-            "\\": 60,
-            mod: 50,
-            "+": 40,
-            "-": 40,
-            "=": 30,
-            "<>": 30,
-            "<": 30,
-            "<=": 30,
-            ">": 30,
-            ">=": 30,
-            not: 23,
-            and: 22,
-            or: 21,
-            xor: 20,
-            "#": 10 // priority?
-        };
         CodeGeneratorToken.tokens = {
             _eol: 0x00,
             ":": 0x01,
@@ -765,14 +550,15 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             "]": 0x5d,
             "|": 0x7c,
             after: 0x80,
+            afterGosub: 0x80,
             auto: 0x81,
             border: 0x82,
             call: 0x83,
             cat: 0x84,
             chain: 0x85,
-            chainMerge: 0xab85,
+            chainMerge: 0x85,
             clear: 0x86,
-            clearInput: 0xa386,
+            clearInput: 0x86,
             clg: 0x87,
             closein: 0x88,
             closeout: 0x89,
@@ -796,6 +582,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             erase: 0x9b,
             error: 0x9c,
             every: 0x9d,
+            everyGosub: 0x9d,
             "for": 0x9e,
             gosub: 0x9f,
             "goto": 0xa0,
@@ -803,10 +590,10 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             ink: 0xa2,
             input: 0xa3,
             key: 0xa4,
-            keyDef: 0x8da4,
+            keyDef: 0xa4,
             let: 0xa5,
             line: 0xa6,
-            lineInput: 0xa3a6,
+            lineInput: 0xa6,
             list: 0xa7,
             load: 0xa8,
             locate: 0xa9,
@@ -820,10 +607,10 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             next: 0xb0,
             "new": 0xb1,
             on: 0xb2,
-            onBreakCont: 0x8bb3,
-            onBreakGosub: 0x9fb3,
-            onBreakStop: 0xceb3,
+            _onBreak: 0xb3,
             _onErrorGoto0: 0xb4,
+            onGosub: 0xb2,
+            onGoto: 0xb2,
             _onSq: 0xb5,
             openin: 0xb6,
             openout: 0xb7,
@@ -844,17 +631,18 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             renum: 0xc6,
             restore: 0xc7,
             resume: 0xc8,
-            resumeNext: 0xb0c8,
+            resumeNext: 0xc8,
             "return": 0xc9,
             run: 0xca,
             save: 0xcb,
             sound: 0xcc,
-            speedInk: 0xa2cd,
-            speedKey: 0xa4cd,
-            speedWrite: 0xd9cd,
+            speedInk: 0xcd,
+            speedKey: 0xcd,
+            speedWrite: 0xcd,
             stop: 0xce,
+            swap: 0xe7,
             symbol: 0xcf,
-            symbolAfter: 0x80cf,
+            symbolAfter: 0xcf,
             tag: 0xd0,
             tagoff: 0xd1,
             troff: 0xd2,
@@ -864,15 +652,15 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             "while": 0xd6,
             width: 0xd7,
             window: 0xd8,
-            windowSwap: 0xe7d8,
+            windowSwap: 0xd8,
             write: 0xd9,
             zone: 0xda,
             di: 0xdb,
             ei: 0xdc,
             fill: 0xdd,
             graphics: 0xde,
-            graphicsPaper: 0xbade,
-            graphicsPen: 0xbbde,
+            graphicsPaper: 0xde,
+            graphicsPen: 0xde,
             mask: 0xdf,
             frame: 0xe0,
             cursor: 0xe1,

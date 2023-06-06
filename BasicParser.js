@@ -230,6 +230,11 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.label = node.value; // set line number for error messages
             node.args = this.statements(BasicParser.closeTokensForLine);
             if (this.token.type === "(eol)") {
+                if (this.keepTokens) { // not really a token
+                    if (this.token.ws) {
+                        node.args.push(this.token); // eol token with whitespace
+                    }
+                }
                 this.advance();
             }
             return node;
@@ -246,6 +251,14 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var node = this.previousToken, name = node.type + Utils_1.Utils.stringCapitalize(this.token.type); // e.g ."speedInk"
             node.value += (this.token.ws || " ") + this.token.value; // combine values of both
             this.token = this.advance(token2); // for "speed" e.g. "ink", "key", "write" (this.token.type)
+            if (this.keepTokens) {
+                if (!node.right) {
+                    node.right = this.previousToken; // set second token in first token
+                }
+                else { // e.g. on break...
+                    node.right.right = this.previousToken;
+                }
+            }
             this.previousToken = node; // fast hack to get e.g. "speed" token
             return name;
         };
@@ -402,9 +415,13 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     }
                     break;
             }
+            args.push(expression);
             if (this.token.type === separator) {
                 if (!suppressAdvance) {
-                    this.advance();
+                    this.advance(separator);
+                    if (this.keepTokens) {
+                        args.push(this.previousToken);
+                    }
                 }
                 if (type.slice(-1) !== "*") {
                     type = "xxx"; // initial needMore
@@ -413,11 +430,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             else if (type !== ",") { // !needMore
                 type = ""; // stop
             }
-            args.push(expression);
             return type;
         };
-        BasicParser.prototype.fnGetArgs = function (keyword) {
-            var keyOpts = BasicParser.keywords[keyword], types = keyOpts.split(" "), args = [], closeTokens = BasicParser.closeTokensForArgs;
+        BasicParser.prototype.fnGetArgs = function (args, keyword) {
+            var keyOpts = BasicParser.keywords[keyword], types = keyOpts.split(" "), 
+            //args: ParserNode[] = [],
+            closeTokens = BasicParser.closeTokensForArgs;
             var type = "xxx"; // initial needMore
             types.shift(); // remove keyword type
             while (type && !closeTokens[this.token.type]) {
@@ -438,17 +456,17 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     args.push(expression);
                 }
             }
-            if (this.previousToken.type === "," && keyword !== "delete" && keyword !== "list") { // for line numbe range in delete, list it is ok
+            if (this.previousToken.type === "," && keyword !== "delete" && keyword !== "list") { // for line number range in delete, list it is ok
                 this.fnMaskedError(this.previousToken, "Operand missing");
             }
             return args;
         };
-        BasicParser.prototype.fnGetArgsSepByCommaSemi = function () {
-            var closeTokens = BasicParser.closeTokensForArgs, args = [];
+        BasicParser.prototype.fnGetArgsSepByCommaSemi = function (args) {
+            var closeTokens = BasicParser.closeTokensForArgs;
             while (!closeTokens[this.token.type]) {
                 args.push(this.expression(0));
                 if (this.token.type === "," || this.token.type === ";") {
-                    args.push(this.token); // keep comma or semi
+                    args.push(this.token); // keep comma or semicolon
                     this.advance();
                 }
                 else {
@@ -457,40 +475,35 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             return args;
         };
-        BasicParser.prototype.fnGetArgsInParenthesis = function () {
+        BasicParser.prototype.fnGetArgsInParenthesis = function (args) {
             this.advance("(");
-            var args = this.fnGetArgs("_any1"); // until ")"
+            if (this.keepTokens) {
+                args.push(this.previousToken);
+            }
+            this.fnGetArgs(args, "_any1"); // until ")"
             this.advance(")");
+            if (this.keepTokens) {
+                args.push(this.previousToken);
+            }
             return args;
         };
-        BasicParser.prototype.fnGetArgsInParenthesesOrBrackets = function () {
+        BasicParser.prototype.fnGetArgsInParenthesesOrBrackets = function (args) {
             var brackets = BasicParser.brackets;
-            if (this.token.type === "[") {
-                this.advance();
-            }
-            else {
-                this.advance("(");
-            }
-            var bracketOpen = this.previousToken, args = this.fnGetArgs("_any1"); // (until "]" or ")")
-            args.unshift(bracketOpen);
-            if (this.token.type === "]") {
-                this.advance();
-            }
-            else {
-                this.advance(")");
-            }
+            this.advance(this.token.type === "[" ? "[" : "(");
+            var bracketOpen = this.previousToken;
+            args.push(bracketOpen);
+            this.fnGetArgs(args, "_any1"); // until "]" or ")"
+            this.advance(this.token.type === "]" ? "]" : ")");
             var bracketClose = this.previousToken;
             args.push(bracketClose);
-            if (brackets[bracketOpen.type] !== bracketClose.type) {
-                if (!this.quiet) {
-                    Utils_1.Utils.console.warn(this.composeError({}, "Inconsistent bracket style", this.previousToken.value, this.previousToken.pos).message);
-                }
+            if (!this.quiet && (brackets[bracketOpen.type] !== bracketClose.type)) {
+                Utils_1.Utils.console.warn(this.composeError({}, "Inconsistent bracket style", this.previousToken.value, this.previousToken.pos).message);
             }
             return args;
         };
         BasicParser.prototype.fnCreateCmdCall = function () {
             var node = this.previousToken;
-            node.args = this.fnGetArgs(node.type);
+            node.args = this.fnGetArgs([], node.type);
             return node;
         };
         BasicParser.prototype.fnCreateCmdCallForType = function (type) {
@@ -501,13 +514,19 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         BasicParser.prototype.fnCreateFuncCall = function () {
             var node = this.previousToken;
+            node.args = [];
             if (this.token.type === "(") { // args in parenthesis?
-                this.advance();
-                node.args = this.fnGetArgs(node.type);
+                this.advance("(");
+                if (this.keepTokens) {
+                    node.args.push(this.previousToken);
+                }
+                this.fnGetArgs(node.args, node.type);
                 this.advance(")");
+                if (this.keepTokens) {
+                    node.args.push(this.previousToken);
+                }
             }
             else { // no parenthesis?
-                node.args = [];
                 // if we have a check, make sure there are no non-optional parameters left
                 var keyOpts = BasicParser.keywords[node.type];
                 if (keyOpts) {
@@ -538,8 +557,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 }
             }
             if (this.token.type === "(" || this.token.type === "[") {
+                node.args = [];
                 if (startsWithFn) {
-                    node.args = this.fnGetArgsInParenthesis();
+                    this.fnGetArgsInParenthesis(node.args);
                     node.type = "fn"; // FNxxx in e.g. print
                     node.left = {
                         type: "identifier",
@@ -548,7 +568,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     };
                 }
                 else {
-                    node.args = this.fnGetArgsInParenthesesOrBrackets();
+                    this.fnGetArgsInParenthesesOrBrackets(node.args);
                 }
             }
             return node;
@@ -571,13 +591,21 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         BasicParser.prototype.fnFn = function () {
             var node = this.previousToken, // "fn"
             value2 = this.token; // identifier
+            node.args = [];
+            if (this.keepTokens) {
+                node.args.push(Object.assign({}, value2)); // identifier (unmodified)
+            }
             this.fnCombineTwoTokensNoArgs("identifier");
             value2.value = "fn" + value2.value; // combine "fn" + identifier (maybe simplify by separating in lexer)
             if (value2.ws) {
                 value2.ws = "";
             }
-            node.left = value2;
-            node.args = this.token.type === "(" ? this.fnGetArgsInParenthesis() : []; // FN xxx name with ()?
+            if (this.token.type === "(") {
+                this.fnGetArgsInParenthesis(node.args); // FN xxx name with ()?
+            }
+            if (!this.keepTokens) {
+                node.left = value2;
+            }
             return node;
         };
         BasicParser.prototype.apostrophe = function () {
@@ -585,12 +613,13 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         BasicParser.prototype.rsx = function () {
             var node = this.previousToken;
+            node.args = [];
             var type = "_any1"; // expect any number of arguments
             if (this.token.type === ",") { // arguments starting with comma
                 this.advance();
                 type = "_rsx1"; // dummy token: expect at least 1 argument
             }
-            node.args = this.fnGetArgs(type); // get arguments
+            this.fnGetArgs(node.args, type); // get arguments
             return node;
         };
         BasicParser.prototype.afterEveryGosub = function () {
@@ -602,8 +631,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 node.args.push(BasicParser.fnCreateDummyArg("null"));
             }
             this.advance("gosub");
-            var line = this.fnGetArgs("gosub"); // line number
-            node.args.push(line[0]);
+            if (this.keepTokens) {
+                node.args.push(this.previousToken);
+            }
+            this.fnGetArgs(node.args, "gosub"); // line number
             return node;
         };
         BasicParser.prototype.chain = function () {
@@ -612,13 +643,18 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 var name_1 = this.fnCombineTwoTokensNoArgs(this.token.type); // chainMerge
                 node.type = name_1;
             }
-            node.args = [];
+            if (!node.args) {
+                node.args = [];
+            }
             // chain, chain merge with optional DELETE
             var value2 = this.expression(0); // filename
             node.args.push(value2);
             this.token = this.getToken();
             if (this.token.type === ",") {
                 this.token = this.advance();
+                if (this.keepTokens) {
+                    node.args.push(this.previousToken);
+                }
                 var numberExpression = false; // line number (expression) found
                 if (this.token.type !== "," && this.token.type !== "(eol)" && this.token.type !== "(eof)") {
                     value2 = this.expression(0); // line number or expression
@@ -627,15 +663,18 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 }
                 if (this.token.type === ",") {
                     this.advance();
+                    if (this.keepTokens) {
+                        node.args.push(this.previousToken);
+                    }
                     if (!numberExpression) {
                         value2 = BasicParser.fnCreateDummyArg("null"); // insert dummy arg for line
                         node.args.push(value2);
                     }
                     this.advance("delete");
-                    var args = this.fnGetArgs(this.previousToken.type); // args for "delete"
-                    for (var i = 0; i < args.length; i += 1) {
-                        node.args.push(args[i]); // copy arg
+                    if (this.keepTokens) {
+                        node.args.push(this.previousToken);
                     }
+                    this.fnGetArgs(node.args, this.previousToken.type); // args for "delete"
                 }
             }
             return node;
@@ -677,23 +716,34 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         BasicParser.prototype.def = function () {
             var node = this.previousToken; // def
-            var value2 = this.token, // fn or fn<identifier>
-            fn;
-            if (value2.type === "fn") { // fn and <identifier> separate?
-                fn = value2;
-                value2 = this.advance();
+            var node2 = this.token, // fn or fn<identifier>
+            fnToken;
+            node.args = [];
+            if (node2.type === "fn") { // fn and <identifier> separate?
+                fnToken = node2;
+                if (this.keepTokens) {
+                    node.args.push(fnToken);
+                }
+                node2 = this.advance();
             }
             this.token = this.advance("identifier");
-            if (fn) { // separate fn?
-                value2.value = fn.value + value2.value; // combine "fn" + identifier (maybe simplify by separating in lexer)
-                value2.space = true; // fast hack: set space for CodeGeneratorBasic
+            if (this.keepTokens) {
+                node.args.push(Object.assign({}, this.previousToken)); // keep unmodified token
             }
-            else if (!value2.value.toLowerCase().startsWith("fn")) { // not fn<identifier>
+            if (fnToken) { // separate fn?
+                node2.value = fnToken.value + node2.value; // combine "fn" + identifier (maybe simplify by separating in lexer)
+            }
+            else if (!node2.value.toLowerCase().startsWith("fn")) { // not fn<identifier>
                 this.fnMaskedError(this.previousToken, "Expected FN");
             }
-            node.left = value2;
-            node.args = (this.token.type === "(") ? this.fnGetArgsInParenthesis() : [];
+            node.left = node2;
+            if (this.token.type === "(") {
+                this.fnGetArgsInParenthesis(node.args);
+            }
             this.advance("=");
+            if (this.keepTokens) {
+                node.args.push(this.previousToken);
+            }
             node.right = this.expression(0);
             return node;
         };
@@ -717,14 +767,23 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var node = this.previousToken;
             node.args = [];
             node.args.push(this.expression(0)); // should be number or variable
+            var count = 0;
             while (this.token.type === ",") {
                 this.token = this.advance();
-                if (this.token.type === "=" && (node.args.length - 1) % 3 === 0) { // special handling for parameter "number of steps"
+                if (this.keepTokens) {
+                    node.args.push(this.previousToken);
+                }
+                if (this.token.type === "=" && count % 3 === 0) { // special handling for parameter "number of steps"
                     this.advance();
+                    if (this.keepTokens) {
+                        node.args.push(this.previousToken);
+                    }
                     node.args.push(BasicParser.fnCreateDummyArg("null")); // insert null parameter
+                    count += 1;
                 }
                 var expression = this.expression(0);
                 node.args.push(expression);
+                count += 1;
             }
             return node;
         };
@@ -779,15 +838,13 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         BasicParser.prototype.fnIf = function () {
             var node = this.previousToken;
-            var numberToken;
+            var thenToken, elseToken, numberToken;
             node.left = this.expression(0);
             if (this.token.type !== "goto") { // no "goto", expect "then" token...
                 this.advance("then");
-                if (this.keepTokens) {
-                    node.right = this.previousToken;
-                }
+                thenToken = this.previousToken;
                 if (this.token.type === "number") {
-                    numberToken = this.fnGetArgs("goto"); // take number parameter as line number
+                    numberToken = this.fnGetArgs([], "goto"); // take number parameter as line number
                 }
             }
             node.args = this.statements(BasicParser.closeTokensForLineAndElse); // get "then" statements until "else" or eol
@@ -795,30 +852,37 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 node.args.unshift(numberToken[0]);
                 numberToken = undefined;
             }
+            if (this.keepTokens && thenToken) {
+                node.args.unshift(thenToken);
+            }
             this.fnCheckForUnreachableCode(node.args);
             if (this.token.type === "else") {
-                this.token = this.advance();
-                if (this.keepTokens) {
-                    // TODO HOWTO?
-                }
+                this.token = this.advance("else");
+                elseToken = this.previousToken;
                 if (this.token.type === "number") {
-                    numberToken = this.fnGetArgs("goto"); // take number parameter as line number
+                    numberToken = this.fnGetArgs([], "goto"); // take number parameter as line number
                 }
                 node.args2 = this.token.type === "if" ? [this.statement()] : this.statements(BasicParser.closeTokensForLineAndElse);
                 if (numberToken) {
                     node.args2.unshift(numberToken[0]);
+                }
+                if (this.keepTokens && elseToken) {
+                    elseToken.args = [];
+                    node.args2.unshift(elseToken);
                 }
                 this.fnCheckForUnreachableCode(node.args2);
             }
             return node;
         };
         BasicParser.prototype.input = function () {
-            var node = this.previousToken;
+            var node = this.previousToken, stream = this.fnGetOptionalStream();
             node.args = [];
-            var stream = this.fnGetOptionalStream();
             node.args.push(stream);
             if (stream.len !== 0) { // not an inserted stream?
                 this.advance(",");
+                if (this.keepTokens) {
+                    node.args.push(this.previousToken);
+                }
             }
             if (this.token.type === ";") { // no newline after input?
                 node.args.push(this.token);
@@ -846,10 +910,14 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 var value2 = this.expression(90); // we expect "identifier", no fnxx
                 this.fnCheckExpressionType(value2, "identifier", "v");
                 node.args.push(value2);
-                if (node.type === "lineInput") {
-                    break; // no loop for lineInput (only one arg)
+                if (node.type === "lineInput" || this.token.type !== ",") {
+                    break; // no loop for lineInput (only one arg) or no more args
                 }
-            } while ((this.token.type === ",") && this.advance());
+                this.advance(",");
+                if (this.keepTokens) {
+                    node.args.push(this.previousToken);
+                }
+            } while (true); // eslint-disable-line no-constant-condition
             return node;
         };
         BasicParser.prototype.key = function () {
@@ -871,8 +939,18 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (!node.args) {
                 throw this.composeError(Error(), "Programming error: Undefined args", this.token.type, this.token.pos); // should not occur
             }
-            this.fnCheckExpressionType(node.args[0], "identifier", "v");
+            // check that first argument is a variable...
+            var i = 0;
+            if (this.keepTokens) {
+                while (node.args[i].type === "(" && i < (node.args.length - 1)) {
+                    i += 1;
+                }
+            }
+            this.fnCheckExpressionType(node.args[i], "identifier", "v");
             this.advance("="); // equal as assignment
+            if (this.keepTokens) {
+                node.args.push(this.previousToken);
+            }
             var right = this.expression(0);
             node.right = right;
             return node;
@@ -901,14 +979,16 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     if (!left.args) {
                         throw this.composeError(Error(), "Programming error: Undefined args", this.token.type, this.token.pos); // should not occur
                     }
-                    left = left.args[0];
                     this.token = this.getToken();
                     this.advance("gosub");
+                    if (this.keepTokens) {
+                        node.args.push(this.previousToken);
+                    }
                     node.type = "onSqGosub";
-                    node.args = this.fnGetArgs(node.type);
-                    node.left = left;
+                    this.fnGetArgs(node.args, node.type);
+                    node.args = left.args.concat(node.args); // we do not need "sq" token
                     break;
-                default: // on <expr>
+                default: // on <expr> goto|gosub
                     left = this.expression(0);
                     if (this.token.type === "gosub" || this.token.type === "goto") {
                         this.advance();
@@ -916,7 +996,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                             node.right = this.previousToken;
                         }
                         node.type = "on" + Utils_1.Utils.stringCapitalize(this.previousToken.type); // onGoto, onGosub
-                        node.args = this.fnGetArgs(node.type);
+                        this.fnGetArgs(node.args, node.type);
                         node.left = left;
                     }
                     else {
@@ -933,36 +1013,39 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (stream.len !== 0) { // not an inserted stream?
                 if (!closeTokens[this.token.type]) {
                     this.advance(",");
+                    if (this.keepTokens) {
+                        node.args.push(this.previousToken);
+                    }
                 }
             }
             while (!closeTokens[this.token.type]) {
-                var arg = void 0;
+                var node2 = void 0;
                 if (this.token.type === "spc" || this.token.type === "tab") {
                     this.advance();
-                    arg = this.fnCreateFuncCall();
+                    node2 = this.fnCreateFuncCall();
                 }
                 else if (this.token.type === "using") {
-                    arg = this.token;
+                    node2 = this.token;
+                    node2.args = [];
                     this.advance();
-                    var format = this.expression(0); // format
+                    node2.args.push(this.expression(0)); // format
                     this.advance(";"); // after the format there must be a ";"
-                    var semi = this.previousToken;
-                    arg.args = this.fnGetArgsSepByCommaSemi();
-                    arg.args.unshift(format, semi);
+                    node2.args.push(this.previousToken); // semicolon
+                    node2.args = this.fnGetArgsSepByCommaSemi(node2.args);
                     if (this.previousToken.type === ";") { // using closed by ";"?
-                        arg.args.pop(); // remove it from using
-                        node.args.push(arg);
-                        arg = this.previousToken; // keep it for print
+                        node2.args.pop(); // remove it from using
+                        node.args.push(node2);
+                        node2 = this.previousToken; // keep it for print
                     }
                 }
                 else if (this.token.type === ";" || this.token.type === ",") { // separator ";" or comma tab separator ","
-                    arg = this.token;
+                    node2 = this.token;
                     this.advance();
                 }
                 else {
-                    arg = this.expression(0);
+                    node2 = this.expression(0);
                 }
-                node.args.push(arg);
+                node.args.push(node2);
             }
             return node;
         };
@@ -976,11 +1059,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return tokenType === "next" ? this.fnCombineTwoTokens(tokenType) : this.fnCreateCmdCall(); // "resume next" or "resume"
         };
         BasicParser.prototype.run = function () {
-            var tokenType = this.token.type;
             var node;
-            if (tokenType === "number") {
+            if (this.token.type === "number") {
                 node = this.previousToken;
-                node.args = this.fnGetArgs("goto"); // we get linenumber arg as for goto
+                node.args = this.fnGetArgs([], "goto"); // we get linenumber arg as for goto
             }
             else {
                 node = this.fnCreateCmdCall();
@@ -1004,14 +1086,19 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         BasicParser.prototype.write = function () {
             var node = this.previousToken, closeTokens = BasicParser.closeTokensForArgs, stream = this.fnGetOptionalStream();
+            node.args = [];
+            node.args.push(stream);
             if (stream.len !== 0) { // not an inserted stream?
                 if (!closeTokens[this.token.type]) {
                     this.advance(",");
+                    if (this.keepTokens) {
+                        node.args.push(this.previousToken);
+                    }
                 }
             }
-            node.args = this.fnGetArgsSepByCommaSemi();
-            node.args.unshift(stream);
-            if ((this.previousToken.type === "," && node.args.length > 1) || this.previousToken.type === ";") {
+            var lengthBefore = node.args.length;
+            this.fnGetArgsSepByCommaSemi(node.args);
+            if ((this.previousToken.type === "," && node.args.length > lengthBefore) || this.previousToken.type === ";") {
                 this.fnMaskedError(this.previousToken, "Operand missing");
             }
             return node;

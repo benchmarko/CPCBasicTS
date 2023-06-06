@@ -1370,13 +1370,13 @@ export class CodeGeneratorJs {
 		node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + '); break;\ncase "' + label + '":';
 	}
 	private onSqGosub(node: CodeNode) {
-		const left = this.fnParseOneArg(node.left as CodeNode),
+		const //left = this.fnParseOneArg(node.left as CodeNode),
 			nodeArgs = this.fnParseArgs(node.args);
 
-		for (let i = 0; i < nodeArgs.length; i += 1) {
+		for (let i = 1; i < nodeArgs.length; i += 1) {
 			this.fnAddReferenceLabel(nodeArgs[i], node.args[i]);
 		}
-		nodeArgs.unshift(left);
+		//nodeArgs.unshift(left);
 		node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + ")";
 	}
 	private print(node: CodeNode) {

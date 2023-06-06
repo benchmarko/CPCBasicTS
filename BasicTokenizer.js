@@ -446,9 +446,11 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 this.debug.startPos = this.pos;
                 var tstr = this.fnParseNextToken(input);
                 out += tstr;
-                if (Utils_1.Utils.debug > 2) {
+                /*
+                if (Utils.debug > 2) {
                     this.debugCollectInfo(tstr);
                 }
+                */
             }
             return out;
         };

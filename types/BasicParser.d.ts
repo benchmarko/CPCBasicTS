@@ -12,7 +12,6 @@ export interface ParserNode extends LexerToken {
     args?: ParserNode[];
     args2?: ParserNode[];
     len?: number;
-    space?: boolean;
     parenthesis?: boolean;
 }
 export declare class BasicParser {

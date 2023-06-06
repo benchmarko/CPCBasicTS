@@ -1011,10 +1011,10 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             else if (Utils_1.Utils.debug > 1) {
                 var outputText = output.text, hex = outputText.split("").map(function (s) { return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0"); }).join(","), decoded = this.decodeTokenizedBasic(outputText), diff = Diff_1.Diff.testDiff(input.toUpperCase(), decoded.toUpperCase()); // for testing
-                Utils_1.Utils.console.debug("TokenizerInput (" + name + "):\n", input);
-                Utils_1.Utils.console.debug("TokenizerHex (" + name + "):\n", hex);
-                Utils_1.Utils.console.debug("TokenizerDecoded (" + name + "):\n", decoded);
-                Utils_1.Utils.console.debug("TokenizerDiff (" + name + "):\n", diff);
+                Utils_1.Utils.console.debug("TokenizerInput (" + name + "):\n" + input);
+                Utils_1.Utils.console.debug("TokenizerHex (" + name + "):\n" + hex);
+                Utils_1.Utils.console.debug("TokenizerDecoded (" + name + "):\n" + decoded);
+                Utils_1.Utils.console.debug("TokenizerDiff (" + name + "):\n" + diff);
             }
             return output.text;
         };

@@ -1099,11 +1099,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + '); break;\ncase "' + label + '":';
         };
         CodeGeneratorJs.prototype.onSqGosub = function (node) {
-            var left = this.fnParseOneArg(node.left), nodeArgs = this.fnParseArgs(node.args);
-            for (var i = 0; i < nodeArgs.length; i += 1) {
+            var //left = this.fnParseOneArg(node.left as CodeNode),
+            nodeArgs = this.fnParseArgs(node.args);
+            for (var i = 1; i < nodeArgs.length; i += 1) {
                 this.fnAddReferenceLabel(nodeArgs[i], node.args[i]);
             }
-            nodeArgs.unshift(left);
+            //nodeArgs.unshift(left);
             node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + ")";
         };
         CodeGeneratorJs.prototype.print = function (node) {

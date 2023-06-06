@@ -48,10 +48,10 @@ export declare class CodeGeneratorBasic {
     private fnFor;
     private fnThenOrElsePart;
     private fnIf;
-    private static fnHasStream;
     private inputLineInput;
     private list;
     private mid$Assign;
+    private onBreakOrError;
     private onGotoGosub;
     private onSqGosub;
     private print;

@@ -209,7 +209,6 @@ declare module "BasicParser" {
         args?: ParserNode[];
         args2?: ParserNode[];
         len?: number;
-        space?: boolean;
         parenthesis?: boolean;
     }
     export class BasicParser {
@@ -430,10 +429,10 @@ declare module "CodeGeneratorBasic" {
         private fnFor;
         private fnThenOrElsePart;
         private fnIf;
-        private static fnHasStream;
         private inputLineInput;
         private list;
         private mid$Assign;
+        private onBreakOrError;
         private onGotoGosub;
         private onSqGosub;
         private print;
@@ -666,7 +665,6 @@ declare module "CodeGeneratorToken" {
         setOptions(options: Omit<CodeGeneratorTokenOptions, "lexer" | "parser">): void;
         constructor(options: CodeGeneratorTokenOptions);
         private static readonly operators;
-        private static readonly operatorPrecedence;
         private static readonly tokens;
         private static readonly tokensFF;
         private composeError;
@@ -675,7 +673,7 @@ declare module "CodeGeneratorToken" {
         private static convInt32ToString;
         private static token2String;
         private static getBit7TerminatedString;
-        private combineArgsWithSeparator;
+        private static fnGetWs;
         private fnParseOneArg;
         private fnParseArgs;
         private fnArgs;
@@ -697,28 +695,17 @@ declare module "CodeGeneratorToken" {
         private static linenumber;
         private fnLabel;
         private vertical;
-        private afterGosub;
-        private chainMerge;
         private data;
         private def;
         private fnElse;
-        private entEnv;
-        private everyGosub;
         private fn;
-        private fnFor;
         private fnThenOrElsePart;
         private fnIf;
-        private static fnHasStream;
-        private inputLineInput;
-        private list;
         private mid$Assign;
+        private onBreakContOrGosubOrStop;
         private onErrorGoto;
-        private onGotoGosub;
         private onSqGosub;
-        private print;
         private rem;
-        private using;
-        private write;
         private readonly parseFunctions;
         private fnParseOther;
         private parseNode;
