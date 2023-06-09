@@ -190,8 +190,10 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
                 "def fn clk(a)=a*10": "8D,20,E4,20,0D,00,00,63,6C,EB,28,0D,00,00,E1,29,EF,0D,00,00,E1,F6,19,0A",
                 "def fn clk(a,b)=a*10+b": "8D,20,E4,20,0D,00,00,63,6C,EB,28,0D,00,00,E1,2C,0D,00,00,E2,29,EF,0D,00,00,E1,F6,19,0A,F4,0D,00,00,E2",
                 "def fn clk$(a$,b$)=a$+b$": "8D,20,E4,20,03,00,00,63,6C,EB,28,03,00,00,E1,2C,03,00,00,E2,29,EF,03,00,00,E1,F4,03,00,00,E2",
-                "def fx=1": "BasicParser: Expected FN at pos 4-6: fx",
-                "def fx y=1": "BasicParser: Expected FN at pos 4-6: fx",
+                "def fncls=1": "BasicParser: Expected identifier at pos 6-9: cls",
+                "def fncls1(x+1)=1": "BasicParser: Expected variable at pos 12-13: +",
+                "def fx=1": "BasicParser: Expected fn at pos 4-6: fx",
+                "def fx y=1": "BasicParser: Expected fn at pos 4-6: fx",
                 "defint a": "8E,20,61",
                 "defint a-t": "8E,20,61,2D,74",
                 "defint a-T": "8E,20,61,2D,54",
@@ -335,6 +337,13 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
                 "a=himem": "0D,00,00,E1,EF,FF,42"
             },
             "if, ink, inkey, inkey$, inp, input, instr, int": {
+                "if a=1 then a=2": "A1,20,0D,00,00,E1,EF,0F,20,EB,20,0D,00,00,E1,EF,10",
+                "if a=1 then a=2 else a=1": "A1,20,0D,00,00,E1,EF,0F,20,EB,20,0D,00,00,E1,EF,10,20,01,97,20,0D,00,00,E1,EF,0F",
+                "if a=1 then": "A1,20,0D,00,00,E1,EF,0F,20,EB",
+                "if a=1 then else": "A1,20,0D,00,00,E1,EF,0F,20,EB,20,01,97",
+                "if a=1 then a=2 else": "A1,20,0D,00,00,E1,EF,0F,20,EB,20,0D,00,00,E1,EF,10,20,01,97",
+                "if a=1 then else a=1": "A1,20,0D,00,00,E1,EF,0F,20,EB,20,01,97,20,0D,00,00,E1,EF,0F",
+                "if a=1 then if b=1 then else else a=1": "A1,20,0D,00,00,E1,EF,0F,20,EB,20,A1,20,0D,00,00,E2,EF,0F,20,EB,20,01,97,20,01,97,20,0D,00,00,E1,EF,0F",
                 "10 if a=1 then goto 10": "15,00,0A,00,A1,20,0D,00,00,E1,EF,0F,20,EB,20,A0,20,1E,0A,00,00,00,00",
                 "10 if a=1 then 10": "13,00,0A,00,A1,20,0D,00,00,E1,EF,0F,20,EB,20,1E,0A,00,00,00,00",
                 "10 if a=1 goto 10": "13,00,0A,00,A1,20,0D,00,00,E1,EF,0F,20,A0,20,1E,0A,00,00,00,00",
@@ -746,6 +755,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             var codeGeneratorToken = new CodeGeneratorToken_1.CodeGeneratorToken({
                 quiet: true,
                 lexer: new BasicLexer_1.BasicLexer({
+                    keywords: BasicParser_1.BasicParser.keywords,
                     quiet: true,
                     keepWhiteSpace: true
                 }),

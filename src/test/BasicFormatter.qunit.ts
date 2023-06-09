@@ -101,7 +101,9 @@ QUnit.module("BasicFormatter:renumber: Tests", function () {
 
 	function runTestsFor(_category: string, tests: TestsType, assert?: Assert, results?: string[]) {
 		const basicFormatter = new BasicFormatter({
-			lexer: new BasicLexer(),
+			lexer: new BasicLexer({
+				keywords: BasicParser.keywords
+			}),
 			parser: new BasicParser({
 				quiet: true
 			})

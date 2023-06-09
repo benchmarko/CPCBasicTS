@@ -3,7 +3,6 @@
 define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGeneratorJs", "../Variables", "./TestHelper"], function (require, exports, BasicLexer_1, BasicParser_1, CodeGeneratorJs_1, Variables_1, TestHelper_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    //TODO: allTests extended "if": 24.05.2023
     QUnit.module("CodeGeneratorJs: Tests", function () {
         var allTests = {
             numbers: {
@@ -191,8 +190,10 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
                 "def fn clk(a)=a*10": ' v.fnclkR = function (a) { return o.vmAssign("fR", a * 10); };',
                 "def fn clk(a,b)=a*10+b": ' v.fnclkR = function (a, b) { return o.vmAssign("fR", (a * 10) + b); };',
                 "def fn clk$(a$,b$)=a$+b$": " v.fnclk$ = function (a$, b$) { return a$ + b$; };",
-                "def fx=1": "BasicParser: Expected FN at pos 4-6: fx",
-                "def fx y=1": "BasicParser: Expected FN at pos 4-6: fx",
+                "def fncls=1": "BasicParser: Expected identifier at pos 6-9: cls",
+                "def fncls1(x+1)=1": "BasicParser: Expected variable at pos 12-13: +",
+                "def fx=1": "BasicParser: Expected fn at pos 4-6: fx",
+                "def fx y=1": "BasicParser: Expected fn at pos 4-6: fx",
                 "defint a": ' o.defint("a");',
                 "defint a-t": ' o.defint("a", "t");',
                 "defint a-T": ' o.defint("a", "t");',
@@ -746,7 +747,9 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
                 quiet: true
             }, codeGeneratorJs = new CodeGeneratorJs_1.CodeGeneratorJs({
                 quiet: true,
-                lexer: new BasicLexer_1.BasicLexer(),
+                lexer: new BasicLexer_1.BasicLexer({
+                    keywords: BasicParser_1.BasicParser.keywords
+                }),
                 parser: new BasicParser_1.BasicParser(options),
                 trace: false,
                 rsx: {

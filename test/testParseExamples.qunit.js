@@ -165,6 +165,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
             // will be programmatically extended by methods...
         };
         cpcBasic.lexer = new BasicLexer_1.BasicLexer({
+            keywords: BasicParser_1.BasicParser.keywords,
             quiet: true,
             keepWhiteSpace: true
         });

@@ -117,7 +117,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var token = this.token;
             this.previousToken = this.token;
             if (id && id !== token.type) {
-                throw this.composeError(Error(), "Expected " + id, (token.value === "") ? token.type : token.value, token.pos); // we cannot mask this error because advance is very generic
+                if (!this.fnLastStatementIsOnErrorGotoX()) {
+                    throw this.composeError(Error(), "Expected " + id, token.value === "" ? token.type : token.value, token.pos); //TTT we cannot mask this error because advance is very generic
+                }
+                else if (!this.quiet) {
+                    Utils_1.Utils.console.warn(this.composeError({}, "Expected " + id, token.value === "" ? token.type : token.value, token.pos).message);
+                }
             }
             token = this.tokens[this.index]; // we get a lex token and reuse it as parseTree token
             if (!token) { // should not occur
@@ -125,9 +130,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 return this.token; // old token
             }
             this.index += 1;
-            if (token.type === "identifier" && BasicParser.keywords[token.value.toLowerCase()]) {
-                token.type = token.value.toLowerCase(); // modify type identifier => keyword xy
-            }
             var sym = this.symbols[token.type];
             if (!sym) {
                 throw this.composeError(Error(), "Unknown token", token.type, token.pos);
@@ -433,9 +435,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return type;
         };
         BasicParser.prototype.fnGetArgs = function (args, keyword) {
-            var keyOpts = BasicParser.keywords[keyword], types = keyOpts.split(" "), 
-            //args: ParserNode[] = [],
-            closeTokens = BasicParser.closeTokensForArgs;
+            var keyOpts = BasicParser.keywords[keyword], types = keyOpts.split(" "), closeTokens = BasicParser.closeTokensForArgs;
             var type = "xxx"; // initial needMore
             types.shift(); // remove keyword type
             while (type && !closeTokens[this.token.type]) {
@@ -475,12 +475,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             return args;
         };
-        BasicParser.prototype.fnGetArgsInParenthesis = function (args) {
+        BasicParser.prototype.fnGetArgsInParenthesis = function (args, keyword) {
             this.advance("(");
             if (this.keepTokens) {
                 args.push(this.previousToken);
             }
-            this.fnGetArgs(args, "_any1"); // until ")"
+            this.fnGetArgs(args, keyword || "_any1"); // until ")"
             this.advance(")");
             if (this.keepTokens) {
                 args.push(this.previousToken);
@@ -539,44 +539,17 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         // ...
         BasicParser.prototype.fnIdentifier = function () {
-            var node = this.previousToken, nameValue = node.value, startsWithFn = nameValue.toLowerCase().startsWith("fn");
-            if (startsWithFn) {
-                if (this.token.type !== "(") { // Fnxxx name without ()
-                    var fnNode = {
-                        type: "fn",
-                        value: nameValue,
-                        args: [],
-                        left: node,
-                        pos: node.pos // same pos as identifier?
-                    };
-                    if (node.ws) {
-                        fnNode.ws = node.ws;
-                        node.ws = "";
-                    }
-                    return fnNode;
-                }
-            }
+            var node = this.previousToken;
             if (this.token.type === "(" || this.token.type === "[") {
                 node.args = [];
-                if (startsWithFn) {
-                    this.fnGetArgsInParenthesis(node.args);
-                    node.type = "fn"; // FNxxx in e.g. print
-                    node.left = {
-                        type: "identifier",
-                        value: node.value,
-                        pos: node.pos
-                    };
-                }
-                else {
-                    this.fnGetArgsInParenthesesOrBrackets(node.args);
-                }
+                this.fnGetArgsInParenthesesOrBrackets(node.args);
             }
             return node;
         };
         BasicParser.prototype.fnParenthesis = function () {
             var node;
             if (this.keepBrackets) {
-                node = this.previousToken; // "("
+                node = this.previousToken;
                 node.args = [
                     this.expression(0),
                     this.token // ")" (hopefully)
@@ -589,22 +562,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return node;
         };
         BasicParser.prototype.fnFn = function () {
-            var node = this.previousToken, // "fn"
-            value2 = this.token; // identifier
+            var node = this.previousToken;
             node.args = [];
-            if (this.keepTokens) {
-                node.args.push(Object.assign({}, value2)); // identifier (unmodified)
-            }
-            this.fnCombineTwoTokensNoArgs("identifier");
-            value2.value = "fn" + value2.value; // combine "fn" + identifier (maybe simplify by separating in lexer)
-            if (value2.ws) {
-                value2.ws = "";
-            }
-            if (this.token.type === "(") {
-                this.fnGetArgsInParenthesis(node.args); // FN xxx name with ()?
-            }
-            if (!this.keepTokens) {
-                node.left = value2;
+            this.token = this.advance("identifier");
+            node.left = this.previousToken;
+            if (this.token.type === "(") { // optional args?
+                this.fnGetArgsInParenthesis(node.args);
             }
             return node;
         };
@@ -715,30 +678,21 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return node;
         };
         BasicParser.prototype.def = function () {
-            var node = this.previousToken; // def
-            var node2 = this.token, // fn or fn<identifier>
-            fnToken;
+            var node = this.previousToken;
             node.args = [];
-            if (node2.type === "fn") { // fn and <identifier> separate?
-                fnToken = node2;
-                if (this.keepTokens) {
-                    node.args.push(fnToken);
-                }
-                node2 = this.advance();
+            this.advance("fn");
+            if (this.keepTokens) {
+                node.left = this.previousToken;
             }
             this.token = this.advance("identifier");
-            if (this.keepTokens) {
-                node.args.push(Object.assign({}, this.previousToken)); // keep unmodified token
+            if (node.left) { // keepTokens
+                node.left.left = this.previousToken;
             }
-            if (fnToken) { // separate fn?
-                node2.value = fnToken.value + node2.value; // combine "fn" + identifier (maybe simplify by separating in lexer)
+            else {
+                node.left = this.previousToken;
             }
-            else if (!node2.value.toLowerCase().startsWith("fn")) { // not fn<identifier>
-                this.fnMaskedError(this.previousToken, "Expected FN");
-            }
-            node.left = node2;
             if (this.token.type === "(") {
-                this.fnGetArgsInParenthesis(node.args);
+                this.fnGetArgsInParenthesis(node.args, "_vars1"); // accept only variable names
             }
             this.advance("=");
             if (this.keepTokens) {
@@ -1443,7 +1397,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             ypos: "f",
             zone: "c n",
             _rsx1: "c a a*",
-            _any1: "x *" // dummy: any number of args
+            _any1: "x *",
+            _vars1: "x v*" // dummy: any number of variables
         };
         /* eslint-enable no-invalid-this */
         BasicParser.closeTokensForLine = {

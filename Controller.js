@@ -356,7 +356,9 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }; // backup of stop object
             this.setStopObject(this.noStop);
             this.codeGeneratorJs = new CodeGeneratorJs_1.CodeGeneratorJs({
-                lexer: new BasicLexer_1.BasicLexer(),
+                lexer: new BasicLexer_1.BasicLexer({
+                    keywords: BasicParser_1.BasicParser.keywords
+                }),
                 parser: new BasicParser_1.BasicParser(),
                 trace: model.getProperty("trace"),
                 rsx: this.rsx,
@@ -994,6 +996,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             if (!this.codeGeneratorToken) {
                 this.codeGeneratorToken = new CodeGeneratorToken_1.CodeGeneratorToken({
                     lexer: new BasicLexer_1.BasicLexer({
+                        keywords: BasicParser_1.BasicParser.keywords,
                         keepWhiteSpace: true
                     }),
                     parser: new BasicParser_1.BasicParser({
@@ -1021,7 +1024,9 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         Controller.prototype.prettyPrintBasic = function (input, keepWhiteSpace, keepBrackets) {
             if (!this.codeGeneratorBasic) {
                 this.codeGeneratorBasic = new CodeGeneratorBasic_1.CodeGeneratorBasic({
-                    lexer: new BasicLexer_1.BasicLexer(),
+                    lexer: new BasicLexer_1.BasicLexer({
+                        keywords: BasicParser_1.BasicParser.keywords
+                    }),
                     parser: new BasicParser_1.BasicParser()
                 });
             }
@@ -1436,7 +1441,9 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         };
         Controller.createBasicFormatter = function () {
             return new BasicFormatter_1.BasicFormatter({
-                lexer: new BasicLexer_1.BasicLexer(),
+                lexer: new BasicLexer_1.BasicLexer({
+                    keywords: BasicParser_1.BasicParser.keywords
+                }),
                 parser: new BasicParser_1.BasicParser()
             });
         };

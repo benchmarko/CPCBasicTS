@@ -1,4 +1,5 @@
 interface BasicLexerOptions {
+    keywords: Record<string, string>;
     keepWhiteSpace?: boolean;
     quiet?: boolean;
 }
@@ -10,6 +11,7 @@ export interface LexerToken {
     ws?: string;
 }
 export declare class BasicLexer {
+    private keywords;
     private keepWhiteSpace;
     private label;
     private takeNumberAsLabel;
@@ -17,8 +19,8 @@ export declare class BasicLexer {
     private index;
     private readonly tokens;
     private whiteSpace;
-    setOptions(options: BasicLexerOptions): void;
-    constructor(options?: BasicLexerOptions);
+    setOptions(options: Omit<BasicLexerOptions, "keywords">): void;
+    constructor(options: BasicLexerOptions);
     private composeError;
     private static isOperatorOrStreamOrAddress;
     private static isComparison;

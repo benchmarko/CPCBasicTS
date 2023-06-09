@@ -89,7 +89,9 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../BasicFormat
         }
         function runTestsFor(_category, tests, assert, results) {
             var basicFormatter = new BasicFormatter_1.BasicFormatter({
-                lexer: new BasicLexer_1.BasicLexer(),
+                lexer: new BasicLexer_1.BasicLexer({
+                    keywords: BasicParser_1.BasicParser.keywords
+                }),
                 parser: new BasicParser_1.BasicParser({
                     quiet: true
                 })

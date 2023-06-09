@@ -18,6 +18,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.index = 0; // position in input
             this.tokens = [];
             this.whiteSpace = ""; // collected whitespace
+            this.keywords = options.keywords;
             if (options) {
                 this.setOptions(options);
             }
@@ -26,6 +27,11 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (options.keepWhiteSpace !== undefined) {
                 this.keepWhiteSpace = options.keepWhiteSpace;
             }
+            /*
+            if (options.keywords) {
+                this.keywords = options.keywords
+            }
+            */
             // if (options.quiet !== undefined) {
             // 	 this.quiet = options.quiet;
             // }
@@ -232,6 +238,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         BasicLexer.prototype.fnParseIdentifier = function (char, startPos) {
             var token = char;
             char = this.advance();
+            var lcToken = (token + char).toLowerCase(); // combine first 2 letters
+            if (lcToken === "fn" && this.keywords[lcToken]) {
+                this.addToken(lcToken, token + char, startPos); // create "fn" token
+                this.advance();
+                return;
+            }
             if (BasicLexer.isIdentifierMiddle(char)) {
                 token += this.advanceWhile(char, BasicLexer.isIdentifierMiddle);
                 char = this.getChar();
@@ -240,21 +252,26 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 token += char;
                 char = this.advance();
             }
-            this.addToken("identifier", token, startPos);
-            token = token.toLowerCase();
-            if (token === "rem") { // special handling for line comment
-                startPos += token.length;
-                if (char === " ") { // ignore first space
-                    if (this.keepWhiteSpace) {
-                        this.whiteSpace = char;
+            lcToken = token.toLowerCase();
+            if (this.keywords[lcToken]) {
+                this.addToken(lcToken, token, startPos);
+                if (lcToken === "rem") { // special handling for line comment
+                    startPos += lcToken.length;
+                    if (char === " ") { // ignore first space
+                        if (this.keepWhiteSpace) {
+                            this.whiteSpace = char;
+                        }
+                        char = this.advance();
+                        startPos += 1;
                     }
-                    char = this.advance();
-                    startPos += 1;
+                    this.fnParseCompleteLineForRemOrApostrophe(char, startPos);
                 }
-                this.fnParseCompleteLineForRemOrApostrophe(char, startPos);
+                else if (lcToken === "data") { // special handling because strings in data lines need not to be quoted
+                    this.fnParseCompleteLineForData(char);
+                }
             }
-            else if (token === "data") { // special handling because strings in data lines need not to be quoted
-                this.fnParseCompleteLineForData(char);
+            else {
+                this.addToken("identifier", token, startPos);
             }
         };
         BasicLexer.prototype.fnParseHexOrBin = function (char, startPos) {

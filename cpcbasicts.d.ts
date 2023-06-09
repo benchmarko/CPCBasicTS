@@ -138,6 +138,7 @@ declare module "Model" {
 }
 declare module "BasicLexer" {
     interface BasicLexerOptions {
+        keywords: Record<string, string>;
         keepWhiteSpace?: boolean;
         quiet?: boolean;
     }
@@ -149,6 +150,7 @@ declare module "BasicLexer" {
         ws?: string;
     }
     export class BasicLexer {
+        private keywords;
         private keepWhiteSpace;
         private label;
         private takeNumberAsLabel;
@@ -156,8 +158,8 @@ declare module "BasicLexer" {
         private index;
         private readonly tokens;
         private whiteSpace;
-        setOptions(options: BasicLexerOptions): void;
-        constructor(options?: BasicLexerOptions);
+        setOptions(options: Omit<BasicLexerOptions, "keywords">): void;
+        constructor(options: BasicLexerOptions);
         private composeError;
         private static isOperatorOrStreamOrAddress;
         private static isComparison;

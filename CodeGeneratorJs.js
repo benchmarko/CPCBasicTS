@@ -746,7 +746,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (!node.left || !node.right) {
                 throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
             }
+            var savedValue = node.left.value;
+            node.left.value = "fn" + savedValue; // prefix with "fn"
             var name = this.fnParseOneArg(node.left);
+            node.left.value = savedValue; // restore
             this.defScopeArgs = {}; // collect DEF scope args
             var nodeArgs = this.fnParseArgs(node.args);
             this.defScopeArgs.collectDone = true; // collection done => now use them
@@ -791,7 +794,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             node.pv = args.join("; ");
         };
         CodeGeneratorJs.prototype.fnDelete = function (node) {
-            var nodeArgs = this.fnParseArgs(node.args), name = Utils_1.Utils.supportReservedNames ? ("o." + node.type) : 'o[" + node.type + "]';
+            var nodeArgs = this.fnParseArgs(node.args), name = Utils_1.Utils.supportReservedNames ? ("o." + node.type) : 'o["' + node.type + '"]';
             if (!nodeArgs.length) { // no arguments? => complete range
                 nodeArgs.push("1");
                 nodeArgs.push("65535");
@@ -832,7 +835,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (!node.left) {
                 throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occur
             }
-            var nodeArgs = this.fnParseArgs(node.args), name = this.fnParseOneArg(node.left);
+            var nodeArgs = this.fnParseArgs(node.args), savedValue = node.left.value;
+            node.left.value = "fn" + savedValue; // prefix with "fn"
+            var name = this.fnParseOneArg(node.left);
+            node.left.value = savedValue; // restore
             if (node.left.pt) {
                 node.pt = node.left.pt;
             }
@@ -1046,7 +1052,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             node.pv = name + " = o.vmAssign(\"" + varType + "\", o.mid$Assign(" + nodeArgs.join(", ") + "))";
         };
         CodeGeneratorJs.fnNew = function (node) {
-            var name = Utils_1.Utils.supportReservedNames ? ("o." + node.type) : 'o[" + node.type + "]';
+            var name = Utils_1.Utils.supportReservedNames ? ("o." + node.type) : 'o["' + node.type + '"]';
             node.pv = name + "();";
         };
         CodeGeneratorJs.prototype.next = function (node) {
@@ -1099,12 +1105,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + '); break;\ncase "' + label + '":';
         };
         CodeGeneratorJs.prototype.onSqGosub = function (node) {
-            var //left = this.fnParseOneArg(node.left as CodeNode),
-            nodeArgs = this.fnParseArgs(node.args);
+            var nodeArgs = this.fnParseArgs(node.args);
             for (var i = 1; i < nodeArgs.length; i += 1) {
                 this.fnAddReferenceLabel(nodeArgs[i], node.args[i]);
             }
-            //nodeArgs.unshift(left);
             node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + ")";
         };
         CodeGeneratorJs.prototype.print = function (node) {
@@ -1158,7 +1162,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             node.pv = "//" + value + "\n";
         };
         CodeGeneratorJs.fnReturn = function (node) {
-            var name = Utils_1.Utils.supportReservedNames ? ("o." + node.type) : 'o[" + node.type + "]';
+            var name = Utils_1.Utils.supportReservedNames ? ("o." + node.type) : 'o["' + node.type + '"]';
             node.pv = name + "(); break;";
         };
         CodeGeneratorJs.prototype.run = function (node) {

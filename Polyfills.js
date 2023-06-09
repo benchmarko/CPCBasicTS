@@ -72,7 +72,6 @@ var Polyfills = {
             });
         }
         catch (e) { // on IE8 we get "TypeError: Object does not support this action"
-            //if (!(e instanceof TypeError)) { }
             return false;
         }
         return true;

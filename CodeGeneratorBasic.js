@@ -212,15 +212,8 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             if (!node.left || !node.right) {
                 return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase(); // maybe key def
             }
-            var name = "", nodeArgs = this.fnParseArgs(node.args), expression = this.fnParseOneArg(node.right);
-            if (node.args && node.args.length > 1 && node.args[0].type === "fn" && node.args[1].type === "identifier") {
-                nodeArgs[1] = CodeGeneratorBasic.fnSpace1(nodeArgs[1]); // space before identifier
-            }
-            else { // combined fn+identifier
-                nodeArgs[0] = nodeArgs[0].replace(/FN/i, "FN"); // to upperCase
-            }
-            var nodeArgsString = nodeArgs.join("");
-            return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(name) + CodeGeneratorBasic.fnSpace1(nodeArgsString) + expression;
+            var left = this.fnParseOneArg(node.left), nodeArgs = this.fnParseArgs(node.args), expression = this.fnParseOneArg(node.right);
+            return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(left) + nodeArgs.join("") + expression;
         };
         CodeGeneratorBasic.prototype.fnElse = function (node) {
             if (!node.args) {
@@ -257,15 +250,15 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
         };
         CodeGeneratorBasic.prototype.fn = function (node) {
-            if (!node.left && !node.right) {
+            if (!node.left) {
                 return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase(); // only fn
             }
-            var nodeArgs = this.fnParseArgs(node.args);
-            if (node.args && node.args.length && node.args[0].type === "identifier") {
-                nodeArgs.shift(); // remove first identifier
+            var left = this.fnParseOneArg(node.left);
+            var nodeArgs = node.args ? this.fnParseArgs(node.args) : []; //TTT
+            if ((node.left.pos - node.pos) > 2) { // space between fn and identifier?
+                left = CodeGeneratorBasic.fnSpace1(left); // keep it
             }
-            var nodeArgsString = nodeArgs.join(""), name2 = node.value.replace(/FN/i, "FN");
-            return CodeGeneratorBasic.fnWs(node) + name2 + nodeArgsString;
+            return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + left + nodeArgs.join("");
         };
         CodeGeneratorBasic.prototype.fnFor = function (node) {
             var nodeArgs = this.fnParseArgs(node.args);

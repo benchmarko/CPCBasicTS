@@ -601,32 +601,19 @@ export class CodeGeneratorToken {
 		value = CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + value;
 		return value;
 	}
+
 	private def(node: ParserNode) {
-		if (!node.right) {
+		if (!node.left || !node.right) {
 			return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type); // only def (for key def)
 		}
 
-		let name = "";
+		const fnNode = this.fnParseOneArg(node.left),
+			nodeArgs = this.fnParseArgs(node.args),
+			expression = this.fnParseOneArg(node.right);
 
-		if (node.args && node.args.length && node.args[0].type === "identifier") { // combined with fn?
-			const nodeLeft = node.args[0], // or: node.left as ParserNode,
-				withFn = nodeLeft.value,
-				withoutFn = withFn.substring(2); // remove first 2 characters "FN" or "fn"
-
-			nodeLeft.value = withoutFn; // fast hack: without fn
-
-			name = CodeGeneratorToken.fnGetWs(nodeLeft) + CodeGeneratorToken.token2String("fn");
-
-			nodeLeft.ws = ""; // already done for fn part
-		}
-
-
-		const nodeArgs = this.fnParseArgs(node.args),
-			expression = this.fnParseOneArg(node.right),
-			nodeArgsString = nodeArgs.join("");
-
-		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + name + nodeArgsString + expression;
+		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + fnNode + nodeArgs.join("") + expression;
 	}
+
 	private fnElse(node: ParserNode) { // similar to a comment, with (un?)checked tokens
 		if (!node.args) {
 			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
@@ -652,20 +639,15 @@ export class CodeGeneratorToken {
 	}
 
 	private fn(node: ParserNode) {
-		if (!node.left && !node.right) {
+		if (!node.left) {
 			return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type); // only fn
 		}
 
-		const nodeArgs = this.fnParseArgs(node.args),
-			nodeArgsString = nodeArgs.join("");
-		let name = "";
-
-		if (!node.args || !node.args.length || node.args[0].type !== "identifier") { //TTT fast hack
-			name = this.fnParseOneArg(node.left as ParserNode).replace(/FN/i, ""); // get identifier without FN  (ts)
-		}
+		const left = this.fnParseOneArg(node.left),
+			nodeArgs = node.args ? this.fnParseArgs(node.args) : []; //TTT
 
 		// We always need to store "fn" as as token and not as a string
-		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + name + nodeArgsString;
+		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + left + nodeArgs.join("");
 	}
 
 	private fnThenOrElsePart(nodeBranch: ParserNode[]) {

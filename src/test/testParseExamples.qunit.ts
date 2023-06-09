@@ -146,6 +146,7 @@ class cpcBasic {
 	};
 
 	static lexer = new BasicLexer({
+		keywords: BasicParser.keywords,
 		quiet: true,
 		keepWhiteSpace: true
 	});

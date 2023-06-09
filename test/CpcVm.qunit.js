@@ -3403,8 +3403,6 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
         function runSingleTest(testFunction, cpcVm, config, key, expected, category) {
             cpcVm.vmChangeMode(1);
             cpcVm.vmResetWindowData(true); // prepare
-            //cpcVm.closein();
-            //cpcVm.closeout();
             cpcVm.clear();
             cpcVm.vmGoto(0);
             config.variables.removeAllVariables();
