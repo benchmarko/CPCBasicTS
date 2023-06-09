@@ -459,7 +459,9 @@ export class Controller implements IController {
 		this.setStopObject(this.noStop);
 
 		this.codeGeneratorJs = new CodeGeneratorJs({
-			lexer: new BasicLexer(),
+			lexer: new BasicLexer({
+				keywords: BasicParser.keywords
+			}),
 			parser: new BasicParser(),
 			trace: model.getProperty<boolean>("trace"),
 			rsx: this.rsx, // just to check the names
@@ -1247,6 +1249,7 @@ export class Controller implements IController {
 		if (!this.codeGeneratorToken) {
 			this.codeGeneratorToken = new CodeGeneratorToken({
 				lexer: new BasicLexer({
+					keywords: BasicParser.keywords,
 					keepWhiteSpace: true
 				}),
 				parser: new BasicParser({
@@ -1280,7 +1283,9 @@ export class Controller implements IController {
 	private prettyPrintBasic(input: string, keepWhiteSpace: boolean, keepBrackets: boolean) {
 		if (!this.codeGeneratorBasic) {
 			this.codeGeneratorBasic = new CodeGeneratorBasic({
-				lexer: new BasicLexer(),
+				lexer: new BasicLexer({
+					keywords: BasicParser.keywords
+				}),
 				parser: new BasicParser()
 			});
 		}
@@ -1776,7 +1781,9 @@ export class Controller implements IController {
 
 	private static createBasicFormatter() {
 		return new BasicFormatter({
-			lexer: new BasicLexer(),
+			lexer: new BasicLexer({
+				keywords: BasicParser.keywords
+			}),
 			parser: new BasicParser()
 		});
 	}

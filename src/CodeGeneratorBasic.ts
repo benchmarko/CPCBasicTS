@@ -301,20 +301,13 @@ export class CodeGeneratorBasic {
 			return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase(); // maybe key def
 		}
 
-		const name = "",
+		const left = this.fnParseOneArg(node.left),
 			nodeArgs = this.fnParseArgs(node.args),
 			expression = this.fnParseOneArg(node.right);
 
-		if (node.args && node.args.length > 1 && node.args[0].type === "fn" && node.args[1].type === "identifier") {
-			nodeArgs[1] = CodeGeneratorBasic.fnSpace1(nodeArgs[1]); // space before identifier
-		} else { // combined fn+identifier
-			nodeArgs[0] = nodeArgs[0].replace(/FN/i, "FN"); // to upperCase
-		}
-
-		const nodeArgsString = nodeArgs.join("");
-
-		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(name) + CodeGeneratorBasic.fnSpace1(nodeArgsString) + expression;
+		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(left) + nodeArgs.join("") + expression;
 	}
+
 	private fnElse(node: ParserNode) { // similar to a comment, with unchecked tokens
 		if (!node.args) {
 			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
@@ -357,21 +350,20 @@ export class CodeGeneratorBasic {
 	}
 
 	private fn(node: ParserNode) {
-		if (!node.left && !node.right) {
+		if (!node.left) {
 			return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase(); // only fn
 		}
 
-		const nodeArgs = this.fnParseArgs(node.args);
+		let left = this.fnParseOneArg(node.left);
+		const nodeArgs = node.args ? this.fnParseArgs(node.args) : []; //TTT
 
-		if (node.args && node.args.length && node.args[0].type === "identifier") {
-			nodeArgs.shift(); // remove first identifier
+		if ((node.left.pos - node.pos) > 2) { // space between fn and identifier?
+			left = CodeGeneratorBasic.fnSpace1(left); // keep it
 		}
 
-		const nodeArgsString = nodeArgs.join(""),
-			name2 = node.value.replace(/FN/i, "FN");
-
-		return CodeGeneratorBasic.fnWs(node) + name2 + nodeArgsString;
+		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + left + nodeArgs.join("");
 	}
+
 	private fnFor(node: ParserNode) {
 		const nodeArgs = this.fnParseArgs(node.args);
 

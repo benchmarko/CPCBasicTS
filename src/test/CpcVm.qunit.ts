@@ -3278,8 +3278,6 @@ QUnit.module("CpcVm: Tests", function () {
 	function runSingleTest(testFunction: TestFunctionType, cpcVm: CpcVm, config: CpcVmOptions, key: string, expected: string, category: string) {
 		cpcVm.vmChangeMode(1);
 		cpcVm.vmResetWindowData(true); // prepare
-		//cpcVm.closein();
-		//cpcVm.closeout();
 		cpcVm.clear();
 		cpcVm.vmGoto(0);
 		config.variables.removeAllVariables();

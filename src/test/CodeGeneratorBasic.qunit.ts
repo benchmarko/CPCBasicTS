@@ -193,8 +193,10 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 			"def fn clk(a)=a*10": "DEF FN clk(a)=a*10",
 			"def fn clk(a,b)=a*10+b": "DEF FN clk(a,b)=a*10+b",
 			"def fn clk$(a$,b$)=a$+b$": "DEF FN clk$(a$,b$)=a$+b$",
-			"def fx=1": "BasicParser: Expected FN at pos 4-6: fx",
-			"def fx y=1": "BasicParser: Expected FN at pos 4-6: fx",
+			"def fncls=1": "BasicParser: Expected identifier at pos 6-9: cls",
+			"def fncls1(x+1)=1": "BasicParser: Expected variable at pos 12-13: +",
+			"def fx=1": "BasicParser: Expected fn at pos 4-6: fx",
+			"def fx y=1": "BasicParser: Expected fn at pos 4-6: fx",
 			"defint a": "DEFINT a",
 			"defint a-t": "DEFINT a-t",
 			"defint a-T": "DEFINT a-T",
@@ -338,6 +340,13 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 			"a=himem": "a=HIMEM"
 		},
 		"if, ink, inkey, inkey$, inp, input, instr, int": {
+			"if a=1 then a=2": "IF a=1 THEN a=2",
+			"if a=1 then a=2 else a=1": "IF a=1 THEN a=2 ELSE a=1",
+			"if a=1 then": "IF a=1 THEN",
+			"if a=1 then else": "IF a=1 THEN ELSE",
+			"if a=1 then a=2 else": "IF a=1 THEN a=2 ELSE",
+			"if a=1 then else a=1": "IF a=1 THEN ELSE a=1",
+			"if a=1 then if b=1 then else else a=1": "IF a=1 THEN IF b=1 THEN ELSE ELSE a=1",
 			"10 if a=1 then goto 10": "10 IF a=1 THEN GOTO 10",
 			"10 if a=1 then 10": "10 IF a=1 THEN 10",
 			"10 if a=1 goto 10": "10 IF a=1 GOTO 10",
@@ -742,6 +751,7 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 		// "a=1 else a=2": "a=1:ELSE a = 2", //TTT
 
 		lexer = new BasicLexer({
+			keywords: BasicParser.keywords,
 			quiet: true,
 			keepWhiteSpace: false
 		}),

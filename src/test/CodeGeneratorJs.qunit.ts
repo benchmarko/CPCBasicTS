@@ -7,8 +7,6 @@ import { CodeGeneratorJs } from "../CodeGeneratorJs";
 import { Variables } from "../Variables";
 import { TestHelper, TestsType, AllTestsType } from "./TestHelper";
 
-//TODO: allTests extended "if": 24.05.2023
-
 QUnit.module("CodeGeneratorJs: Tests", function () {
 	const allTests: AllTestsType = { // eslint-disable-line vars-on-top
 		numbers: {
@@ -196,8 +194,10 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			"def fn clk(a)=a*10": ' v.fnclkR = function (a) { return o.vmAssign("fR", a * 10); };',
 			"def fn clk(a,b)=a*10+b": ' v.fnclkR = function (a, b) { return o.vmAssign("fR", (a * 10) + b); };',
 			"def fn clk$(a$,b$)=a$+b$": " v.fnclk$ = function (a$, b$) { return a$ + b$; };",
-			"def fx=1": "BasicParser: Expected FN at pos 4-6: fx",
-			"def fx y=1": "BasicParser: Expected FN at pos 4-6: fx",
+			"def fncls=1": "BasicParser: Expected identifier at pos 6-9: cls",
+			"def fncls1(x+1)=1": "BasicParser: Expected variable at pos 12-13: +",
+			"def fx=1": "BasicParser: Expected fn at pos 4-6: fx",
+			"def fx y=1": "BasicParser: Expected fn at pos 4-6: fx",
 			"defint a": ' o.defint("a");',
 			"defint a-t": ' o.defint("a", "t");',
 			"defint a-T": ' o.defint("a", "t");',
@@ -759,7 +759,9 @@ QUnit.module("CodeGeneratorJs: Tests", function () {
 			},
 			codeGeneratorJs = new CodeGeneratorJs({
 				quiet: true,
-				lexer: new BasicLexer(),
+				lexer: new BasicLexer({
+					keywords: BasicParser.keywords
+				}),
 				parser: new BasicParser(options),
 				trace: false,
 				rsx: {

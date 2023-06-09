@@ -912,7 +912,12 @@ export class CodeGeneratorJs {
 			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
 		}
 
+		const savedValue = node.left.value;
+
+		node.left.value = "fn" + savedValue; // prefix with "fn"
 		const name = this.fnParseOneArg(node.left);
+
+		node.left.value = savedValue; // restore
 
 		this.defScopeArgs = {}; // collect DEF scope args
 		const nodeArgs = this.fnParseArgs(node.args);
@@ -970,7 +975,7 @@ export class CodeGeneratorJs {
 	}
 	private fnDelete(node: CodeNode) {
 		const nodeArgs = this.fnParseArgs(node.args),
-			name = Utils.supportReservedNames ? ("o." + node.type) : 'o[" + node.type + "]';
+			name = Utils.supportReservedNames ? ("o." + node.type) : 'o["' + node.type + '"]';
 
 		if (!nodeArgs.length) { // no arguments? => complete range
 			nodeArgs.push("1");
@@ -1020,7 +1025,12 @@ export class CodeGeneratorJs {
 		}
 
 		const nodeArgs = this.fnParseArgs(node.args),
-			name = this.fnParseOneArg(node.left);
+			savedValue = node.left.value;
+
+		node.left.value = "fn" + savedValue; // prefix with "fn"
+		const name = this.fnParseOneArg(node.left);
+
+		node.left.value = savedValue; // restore
 
 		if (node.left.pt) {
 			node.pt = node.left.pt;
@@ -1308,7 +1318,7 @@ export class CodeGeneratorJs {
 		node.pv = name + " = o.vmAssign(\"" + varType + "\", o.mid$Assign(" + nodeArgs.join(", ") + "))";
 	}
 	private static fnNew(node: CodeNode) {
-		const name = Utils.supportReservedNames ? ("o." + node.type) : 'o[" + node.type + "]';
+		const name = Utils.supportReservedNames ? ("o." + node.type) : 'o["' + node.type + '"]';
 
 		node.pv = name + "();";
 	}
@@ -1370,13 +1380,11 @@ export class CodeGeneratorJs {
 		node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + '); break;\ncase "' + label + '":';
 	}
 	private onSqGosub(node: CodeNode) {
-		const //left = this.fnParseOneArg(node.left as CodeNode),
-			nodeArgs = this.fnParseArgs(node.args);
+		const nodeArgs = this.fnParseArgs(node.args);
 
 		for (let i = 1; i < nodeArgs.length; i += 1) {
 			this.fnAddReferenceLabel(nodeArgs[i], node.args[i]);
 		}
-		//nodeArgs.unshift(left);
 		node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + ")";
 	}
 	private print(node: CodeNode) {
@@ -1444,7 +1452,7 @@ export class CodeGeneratorJs {
 		node.pv = "//" + value + "\n";
 	}
 	private static fnReturn(node: CodeNode) {
-		const name = Utils.supportReservedNames ? ("o." + node.type) : 'o[" + node.type + "]';
+		const name = Utils.supportReservedNames ? ("o." + node.type) : 'o["' + node.type + '"]';
 
 		node.pv = name + "(); break;";
 	}

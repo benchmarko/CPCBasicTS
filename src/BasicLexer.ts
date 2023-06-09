@@ -10,6 +10,7 @@
 import { Utils } from "./Utils";
 
 interface BasicLexerOptions {
+	keywords: Record<string, string>
 	keepWhiteSpace?: boolean
 	quiet?: boolean // currently not used
 }
@@ -23,6 +24,7 @@ export interface LexerToken {
 }
 
 export class BasicLexer {
+	private keywords: Record<string, string>
 	private keepWhiteSpace = false;
 	// private quiet = false;
 
@@ -34,16 +36,23 @@ export class BasicLexer {
 	private readonly tokens: LexerToken[] = [];
 	private whiteSpace = ""; // collected whitespace
 
-	setOptions(options: BasicLexerOptions): void {
+	setOptions(options: Omit<BasicLexerOptions, "keywords">): void {
 		if (options.keepWhiteSpace !== undefined) {
 			this.keepWhiteSpace = options.keepWhiteSpace;
 		}
+		/*
+		if (options.keywords) {
+			this.keywords = options.keywords
+		}
+		*/
+
 		// if (options.quiet !== undefined) {
 		// 	 this.quiet = options.quiet;
 		// }
 	}
 
-	constructor(options?: BasicLexerOptions) {
+	constructor(options: BasicLexerOptions) {
+		this.keywords = options.keywords;
 		if (options) {
 			this.setOptions(options);
 		}
@@ -282,6 +291,14 @@ export class BasicLexer {
 		let token = char;
 
 		char = this.advance();
+		let lcToken = (token + char).toLowerCase(); // combine first 2 letters
+
+		if (lcToken === "fn" && this.keywords[lcToken]) {
+			this.addToken(lcToken, token + char, startPos); // create "fn" token
+			this.advance();
+			return;
+		}
+
 		if (BasicLexer.isIdentifierMiddle(char)) {
 			token += this.advanceWhile(char, BasicLexer.isIdentifierMiddle);
 			char = this.getChar();
@@ -290,21 +307,27 @@ export class BasicLexer {
 			token += char;
 			char = this.advance();
 		}
-		this.addToken("identifier", token, startPos);
-		token = token.toLowerCase();
 
-		if (token === "rem") { // special handling for line comment
-			startPos += token.length;
-			if (char === " ") { // ignore first space
-				if (this.keepWhiteSpace) {
-					this.whiteSpace = char;
+		lcToken = token.toLowerCase();
+
+		if (this.keywords[lcToken]) {
+			this.addToken(lcToken, token, startPos);
+
+			if (lcToken === "rem") { // special handling for line comment
+				startPos += lcToken.length;
+				if (char === " ") { // ignore first space
+					if (this.keepWhiteSpace) {
+						this.whiteSpace = char;
+					}
+					char = this.advance();
+					startPos += 1;
 				}
-				char = this.advance();
-				startPos += 1;
+				this.fnParseCompleteLineForRemOrApostrophe(char, startPos);
+			} else if (lcToken === "data") { // special handling because strings in data lines need not to be quoted
+				this.fnParseCompleteLineForData(char);
 			}
-			this.fnParseCompleteLineForRemOrApostrophe(char, startPos);
-		} else if (token === "data") { // special handling because strings in data lines need not to be quoted
-			this.fnParseCompleteLineForData(char);
+		} else {
+			this.addToken("identifier", token, startPos);
 		}
 	}
 
