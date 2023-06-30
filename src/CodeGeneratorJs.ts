@@ -908,31 +908,33 @@ export class CodeGeneratorJs {
 		node.pv = "/* data */";
 	}
 	private def(node: CodeNode) { // somehow special because we need to get plain variables
-		if (!node.left || !node.right) {
-			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
+		if (!node.right) {
+			throw this.composeError(Error(), "Programming error: Undefined right", node.type, node.pos); // should not occur
 		}
 
-		const savedValue = node.left.value;
+		const savedValue = node.right.value;
 
-		node.left.value = "fn" + savedValue; // prefix with "fn"
-		const name = this.fnParseOneArg(node.left);
+		node.right.value = "fn" + savedValue; // prefix with "fn"
+		const name = this.fnParseOneArg(node.right);
 
-		node.left.value = savedValue; // restore
+		node.right.value = savedValue; // restore
+
+		const expressionArg = node.args.pop() as CodeNode;
 
 		this.defScopeArgs = {}; // collect DEF scope args
 		const nodeArgs = this.fnParseArgs(node.args);
 
 		this.defScopeArgs.collectDone = true; // collection done => now use them
 
-		const expression = this.fnParseOneArg(node.right);
+		const expression = this.fnParseOneArg(expressionArg); //this.fnParseOneArg(node.right);
 
 		this.defScopeArgs = undefined;
-		this.fnPropagateStaticTypes(node, node.left, node.right, "II RR IR RI $$");
+		this.fnPropagateStaticTypes(node, node.right, expressionArg, "II RR IR RI $$");
 
 		let value: string;
 
 		if (node.pt) {
-			if (node.left.pt === "I" && node.right.pt === "R") { // special handing for IR: rounding needed
+			if (node.right.pt === "I" && expressionArg.pt === "R") { // special handing for IR: rounding needed
 				value = "o.vmRound(" + expression + ")";
 				node.pt = "I"; // "R" => "I"
 			} else {
@@ -946,6 +948,7 @@ export class CodeGeneratorJs {
 		value = name + " = function (" + nodeArgs.join(", ") + ") { return " + value + "; };";
 		node.pv = value;
 	}
+
 	private dim(node: CodeNode) {
 		const args: string[] = [];
 
@@ -1019,21 +1022,22 @@ export class CodeGeneratorJs {
 
 		node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + "); break";
 	}
+
 	private fn(node: CodeNode) {
-		if (!node.left) {
-			throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occur
+		if (!node.right) {
+			throw this.composeError(Error(), "Programming error: Undefined right", node.type, node.pos); // should not occur
 		}
 
 		const nodeArgs = this.fnParseArgs(node.args),
-			savedValue = node.left.value;
+			savedValue = node.right.value;
 
-		node.left.value = "fn" + savedValue; // prefix with "fn"
-		const name = this.fnParseOneArg(node.left);
+		node.right.value = "fn" + savedValue; // prefix with "fn"
+		const name = this.fnParseOneArg(node.right);
 
-		node.left.value = savedValue; // restore
+		node.right.value = savedValue; // restore
 
-		if (node.left.pt) {
-			node.pt = node.left.pt;
+		if (node.right.pt) {
+			node.pt = node.right.pt;
 		}
 		node.pv = name + "(" + nodeArgs.join(", ") + ")";
 	}
@@ -1298,25 +1302,20 @@ export class CodeGeneratorJs {
 
 		node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + "); break;";
 	}
+
 	private mid$Assign(node: CodeNode) {
 		const nodeArgs = this.fnParseArgs(node.args);
 
-		if (nodeArgs.length < 3) {
-			nodeArgs.push("undefined"); // empty length
+		if (nodeArgs.length < 4) {
+			nodeArgs.splice(2, 0, "undefined"); // set empty length
 		}
-
-		if (!node.right) {
-			throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occur
-		}
-		const right = this.fnParseOneArg(node.right);
-
-		nodeArgs.push(right);
 
 		const name = nodeArgs[0],
 			varType = this.fnDetermineStaticVarType(name);
 
 		node.pv = name + " = o.vmAssign(\"" + varType + "\", o.mid$Assign(" + nodeArgs.join(", ") + "))";
 	}
+
 	private static fnNew(node: CodeNode) {
 		const name = Utils.supportReservedNames ? ("o." + node.type) : 'o["' + node.type + '"]';
 
@@ -1369,16 +1368,16 @@ export class CodeGeneratorJs {
 		node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + ")";
 	}
 	private onGosubOnGoto(node: CodeNode) {
-		const left = this.fnParseOneArg(node.left as CodeNode),
-			nodeArgs = this.fnParseArgs(node.args),
+		const nodeArgs = this.fnParseArgs(node.args),
 			label = node.type === "onGosub" ? this.fnGetGosubLabel() : this.fnGetStopLabel();
 
-		for (let i = 0; i < nodeArgs.length; i += 1) {
+		for (let i = 1; i < nodeArgs.length; i += 1) { // starting with 1
 			this.fnAddReferenceLabel(nodeArgs[i], node.args[i]);
 		}
-		nodeArgs.unshift('"' + label + '"', left);
+		nodeArgs.unshift('"' + label + '"');
 		node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + '); break;\ncase "' + label + '":';
 	}
+
 	private onSqGosub(node: CodeNode) {
 		const nodeArgs = this.fnParseArgs(node.args);
 

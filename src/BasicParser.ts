@@ -955,7 +955,7 @@ export class BasicParser {
 		node.args = [];
 
 		this.token = this.advance("identifier");
-		node.left = this.previousToken;
+		node.right = this.previousToken;
 
 		if (this.token.type === "(") { // optional args?
 			this.fnGetArgsInParenthesis(node.args);
@@ -1103,14 +1103,14 @@ export class BasicParser {
 
 		this.advance("fn");
 		if (this.keepTokens) {
-			node.left = this.previousToken;
+			node.right = this.previousToken;
 		}
 
 		this.token = this.advance("identifier");
-		if (node.left) { // keepTokens
-			node.left.left = this.previousToken;
+		if (node.right) { // keepTokens
+			node.right.right = this.previousToken;
 		} else {
-			node.left = this.previousToken;
+			node.right = this.previousToken;
 		}
 
 		if (this.token.type === "(") {
@@ -1122,7 +1122,9 @@ export class BasicParser {
 			node.args.push(this.previousToken);
 		}
 
-		node.right = this.expression(0);
+		const expression = this.expression(0);
+
+		node.args.push(expression);
 		return node;
 	}
 
@@ -1381,9 +1383,9 @@ export class BasicParser {
 		if (this.keepTokens) {
 			node.args.push(this.previousToken);
 		}
-		const right = this.expression(0);
+		const expression = this.expression(0);
 
-		node.right = right;
+		node.args.push(expression);
 
 		return node;
 	}
@@ -1416,7 +1418,7 @@ export class BasicParser {
 			this.token = this.getToken();
 			this.advance("gosub");
 			if (this.keepTokens) {
-				node.args.push(this.previousToken);
+				node.args.push(this.previousToken); // modify
 			}
 
 			node.type = "onSqGosub";
@@ -1424,16 +1426,15 @@ export class BasicParser {
 			node.args = left.args.concat(node.args); // we do not need "sq" token
 			break;
 		default: // on <expr> goto|gosub
-			left = this.expression(0);
+			node.args.push(this.expression(0));
 			if (this.token.type === "gosub" || this.token.type === "goto") {
 				this.advance();
 				if (this.keepTokens) {
-					node.right = this.previousToken;
+					node.args.push(this.previousToken); // modify
 				}
 
 				node.type = "on" + Utils.stringCapitalize(this.previousToken.type); // onGoto, onGosub
 				this.fnGetArgs(node.args, node.type);
-				node.left = left;
 			} else {
 				throw this.composeError(Error(), "Expected GOTO or GOSUB", this.token.type, this.token.pos);
 			}
