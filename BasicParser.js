@@ -565,7 +565,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var node = this.previousToken;
             node.args = [];
             this.token = this.advance("identifier");
-            node.left = this.previousToken;
+            node.right = this.previousToken;
             if (this.token.type === "(") { // optional args?
                 this.fnGetArgsInParenthesis(node.args);
             }
@@ -682,14 +682,14 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             node.args = [];
             this.advance("fn");
             if (this.keepTokens) {
-                node.left = this.previousToken;
+                node.right = this.previousToken;
             }
             this.token = this.advance("identifier");
-            if (node.left) { // keepTokens
-                node.left.left = this.previousToken;
+            if (node.right) { // keepTokens
+                node.right.right = this.previousToken;
             }
             else {
-                node.left = this.previousToken;
+                node.right = this.previousToken;
             }
             if (this.token.type === "(") {
                 this.fnGetArgsInParenthesis(node.args, "_vars1"); // accept only variable names
@@ -698,7 +698,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (this.keepTokens) {
                 node.args.push(this.previousToken);
             }
-            node.right = this.expression(0);
+            var expression = this.expression(0);
+            node.args.push(expression);
             return node;
         };
         BasicParser.prototype.fnElse = function () {
@@ -905,8 +906,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (this.keepTokens) {
                 node.args.push(this.previousToken);
             }
-            var right = this.expression(0);
-            node.right = right;
+            var expression = this.expression(0);
+            node.args.push(expression);
             return node;
         };
         BasicParser.prototype.on = function () {
@@ -936,22 +937,21 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     this.token = this.getToken();
                     this.advance("gosub");
                     if (this.keepTokens) {
-                        node.args.push(this.previousToken);
+                        node.args.push(this.previousToken); // modify
                     }
                     node.type = "onSqGosub";
                     this.fnGetArgs(node.args, node.type);
                     node.args = left.args.concat(node.args); // we do not need "sq" token
                     break;
                 default: // on <expr> goto|gosub
-                    left = this.expression(0);
+                    node.args.push(this.expression(0));
                     if (this.token.type === "gosub" || this.token.type === "goto") {
                         this.advance();
                         if (this.keepTokens) {
-                            node.right = this.previousToken;
+                            node.args.push(this.previousToken); // modify
                         }
                         node.type = "on" + Utils_1.Utils.stringCapitalize(this.previousToken.type); // onGoto, onGosub
                         this.fnGetArgs(node.args, node.type);
-                        node.left = left;
                     }
                     else {
                         throw this.composeError(Error(), "Expected GOTO or GOSUB", this.token.type, this.token.pos);

@@ -209,11 +209,11 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(args);
         };
         CodeGeneratorBasic.prototype.def = function (node) {
-            if (!node.left || !node.right) {
+            if (!node.right) {
                 return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase(); // maybe key def
             }
-            var left = this.fnParseOneArg(node.left), nodeArgs = this.fnParseArgs(node.args), expression = this.fnParseOneArg(node.right);
-            return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(left) + nodeArgs.join("") + expression;
+            var right = this.fnParseOneArg(node.right), nodeArgs = this.fnParseArgs(node.args); // including expression
+            return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(right) + nodeArgs.join("");
         };
         CodeGeneratorBasic.prototype.fnElse = function (node) {
             if (!node.args) {
@@ -250,15 +250,15 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
         };
         CodeGeneratorBasic.prototype.fn = function (node) {
-            if (!node.left) {
+            if (!node.right) {
                 return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase(); // only fn
             }
-            var left = this.fnParseOneArg(node.left);
-            var nodeArgs = node.args ? this.fnParseArgs(node.args) : []; //TTT
-            if ((node.left.pos - node.pos) > 2) { // space between fn and identifier?
-                left = CodeGeneratorBasic.fnSpace1(left); // keep it
+            var right = this.fnParseOneArg(node.right);
+            var nodeArgs = node.args ? this.fnParseArgs(node.args) : [];
+            if ((node.right.pos - node.pos) > 2) { // space between fn and identifier?
+                right = CodeGeneratorBasic.fnSpace1(right); // keep it
             }
-            return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + left + nodeArgs.join("");
+            return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + right + nodeArgs.join("");
         };
         CodeGeneratorBasic.prototype.fnFor = function (node) {
             var nodeArgs = this.fnParseArgs(node.args);
@@ -309,19 +309,16 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
         };
         CodeGeneratorBasic.prototype.mid$Assign = function (node) {
-            if (!node.right) {
-                throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occur
-            }
             var nodeArgs = this.fnParseArgs(node.args), typeUc = CodeGeneratorBasic.getUcKeyword(node);
-            return CodeGeneratorBasic.fnWs(node) + typeUc + nodeArgs.join("") + this.fnParseOneArg(node.right);
+            return CodeGeneratorBasic.fnWs(node) + typeUc + nodeArgs.join("");
         };
         CodeGeneratorBasic.prototype.onBreakOrError = function (node) {
             var nodeArgs = this.fnParseArgs(node.args), right = this.fnParseOneArg(node.right);
             return CodeGeneratorBasic.fnWs(node) + "ON" + CodeGeneratorBasic.fnSpace1(right) + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
         };
         CodeGeneratorBasic.prototype.onGotoGosub = function (node) {
-            var left = this.fnParseOneArg(node.left), nodeArgs = this.fnParseArgs(node.args), right = this.fnParseOneArg(node.right); // "goto" or "gosub"
-            return CodeGeneratorBasic.fnWs(node) + "ON" + CodeGeneratorBasic.fnSpace1(left) + CodeGeneratorBasic.fnSpace1(right) + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
+            var nodeArgs = this.fnParseArgs(node.args), expression = nodeArgs.shift(), instruction = nodeArgs.shift(); // "goto" or "gosub"
+            return CodeGeneratorBasic.fnWs(node) + "ON" + CodeGeneratorBasic.fnSpace1(expression) + CodeGeneratorBasic.fnSpace1(instruction) + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
         };
         CodeGeneratorBasic.prototype.onSqGosub = function (node) {
             var nodeArgs = this.fnParseArgs(node.args);

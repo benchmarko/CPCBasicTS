@@ -743,22 +743,23 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             node.pv = "/* data */";
         };
         CodeGeneratorJs.prototype.def = function (node) {
-            if (!node.left || !node.right) {
-                throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
+            if (!node.right) {
+                throw this.composeError(Error(), "Programming error: Undefined right", node.type, node.pos); // should not occur
             }
-            var savedValue = node.left.value;
-            node.left.value = "fn" + savedValue; // prefix with "fn"
-            var name = this.fnParseOneArg(node.left);
-            node.left.value = savedValue; // restore
+            var savedValue = node.right.value;
+            node.right.value = "fn" + savedValue; // prefix with "fn"
+            var name = this.fnParseOneArg(node.right);
+            node.right.value = savedValue; // restore
+            var expressionArg = node.args.pop();
             this.defScopeArgs = {}; // collect DEF scope args
             var nodeArgs = this.fnParseArgs(node.args);
             this.defScopeArgs.collectDone = true; // collection done => now use them
-            var expression = this.fnParseOneArg(node.right);
+            var expression = this.fnParseOneArg(expressionArg); //this.fnParseOneArg(node.right);
             this.defScopeArgs = undefined;
-            this.fnPropagateStaticTypes(node, node.left, node.right, "II RR IR RI $$");
+            this.fnPropagateStaticTypes(node, node.right, expressionArg, "II RR IR RI $$");
             var value;
             if (node.pt) {
-                if (node.left.pt === "I" && node.right.pt === "R") { // special handing for IR: rounding needed
+                if (node.right.pt === "I" && expressionArg.pt === "R") { // special handing for IR: rounding needed
                     value = "o.vmRound(" + expression + ")";
                     node.pt = "I"; // "R" => "I"
                 }
@@ -832,15 +833,15 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + "); break";
         };
         CodeGeneratorJs.prototype.fn = function (node) {
-            if (!node.left) {
-                throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occur
+            if (!node.right) {
+                throw this.composeError(Error(), "Programming error: Undefined right", node.type, node.pos); // should not occur
             }
-            var nodeArgs = this.fnParseArgs(node.args), savedValue = node.left.value;
-            node.left.value = "fn" + savedValue; // prefix with "fn"
-            var name = this.fnParseOneArg(node.left);
-            node.left.value = savedValue; // restore
-            if (node.left.pt) {
-                node.pt = node.left.pt;
+            var nodeArgs = this.fnParseArgs(node.args), savedValue = node.right.value;
+            node.right.value = "fn" + savedValue; // prefix with "fn"
+            var name = this.fnParseOneArg(node.right);
+            node.right.value = savedValue; // restore
+            if (node.right.pt) {
+                node.pt = node.right.pt;
             }
             node.pv = name + "(" + nodeArgs.join(", ") + ")";
         };
@@ -1040,14 +1041,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         CodeGeneratorJs.prototype.mid$Assign = function (node) {
             var nodeArgs = this.fnParseArgs(node.args);
-            if (nodeArgs.length < 3) {
-                nodeArgs.push("undefined"); // empty length
+            if (nodeArgs.length < 4) {
+                nodeArgs.splice(2, 0, "undefined"); // set empty length
             }
-            if (!node.right) {
-                throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occur
-            }
-            var right = this.fnParseOneArg(node.right);
-            nodeArgs.push(right);
             var name = nodeArgs[0], varType = this.fnDetermineStaticVarType(name);
             node.pv = name + " = o.vmAssign(\"" + varType + "\", o.mid$Assign(" + nodeArgs.join(", ") + "))";
         };
@@ -1097,11 +1093,11 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + ")";
         };
         CodeGeneratorJs.prototype.onGosubOnGoto = function (node) {
-            var left = this.fnParseOneArg(node.left), nodeArgs = this.fnParseArgs(node.args), label = node.type === "onGosub" ? this.fnGetGosubLabel() : this.fnGetStopLabel();
-            for (var i = 0; i < nodeArgs.length; i += 1) {
+            var nodeArgs = this.fnParseArgs(node.args), label = node.type === "onGosub" ? this.fnGetGosubLabel() : this.fnGetStopLabel();
+            for (var i = 1; i < nodeArgs.length; i += 1) { // starting with 1
                 this.fnAddReferenceLabel(nodeArgs[i], node.args[i]);
             }
-            nodeArgs.unshift('"' + label + '"', left);
+            nodeArgs.unshift('"' + label + '"');
             node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + '); break;\ncase "' + label + '":';
         };
         CodeGeneratorJs.prototype.onSqGosub = function (node) {

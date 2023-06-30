@@ -2306,7 +2306,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             var node = this.previousToken;
             node.args = [];
             this.token = this.advance("identifier");
-            node.left = this.previousToken;
+            node.right = this.previousToken;
             if (this.token.type === "(") { // optional args?
                 this.fnGetArgsInParenthesis(node.args);
             }
@@ -2423,14 +2423,14 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             node.args = [];
             this.advance("fn");
             if (this.keepTokens) {
-                node.left = this.previousToken;
+                node.right = this.previousToken;
             }
             this.token = this.advance("identifier");
-            if (node.left) { // keepTokens
-                node.left.left = this.previousToken;
+            if (node.right) { // keepTokens
+                node.right.right = this.previousToken;
             }
             else {
-                node.left = this.previousToken;
+                node.right = this.previousToken;
             }
             if (this.token.type === "(") {
                 this.fnGetArgsInParenthesis(node.args, "_vars1"); // accept only variable names
@@ -2439,7 +2439,8 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             if (this.keepTokens) {
                 node.args.push(this.previousToken);
             }
-            node.right = this.expression(0);
+            var expression = this.expression(0);
+            node.args.push(expression);
             return node;
         };
         BasicParser.prototype.fnElse = function () {
@@ -2646,8 +2647,8 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             if (this.keepTokens) {
                 node.args.push(this.previousToken);
             }
-            var right = this.expression(0);
-            node.right = right;
+            var expression = this.expression(0);
+            node.args.push(expression);
             return node;
         };
         BasicParser.prototype.on = function () {
@@ -2677,22 +2678,21 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                     this.token = this.getToken();
                     this.advance("gosub");
                     if (this.keepTokens) {
-                        node.args.push(this.previousToken);
+                        node.args.push(this.previousToken); // modify
                     }
                     node.type = "onSqGosub";
                     this.fnGetArgs(node.args, node.type);
                     node.args = left.args.concat(node.args); // we do not need "sq" token
                     break;
                 default: // on <expr> goto|gosub
-                    left = this.expression(0);
+                    node.args.push(this.expression(0));
                     if (this.token.type === "gosub" || this.token.type === "goto") {
                         this.advance();
                         if (this.keepTokens) {
-                            node.right = this.previousToken;
+                            node.args.push(this.previousToken); // modify
                         }
                         node.type = "on" + Utils_3.Utils.stringCapitalize(this.previousToken.type); // onGoto, onGosub
                         this.fnGetArgs(node.args, node.type);
-                        node.left = left;
                     }
                     else {
                         throw this.composeError(Error(), "Expected GOTO or GOSUB", this.token.type, this.token.pos);
@@ -4105,11 +4105,11 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(args);
         };
         CodeGeneratorBasic.prototype.def = function (node) {
-            if (!node.left || !node.right) {
+            if (!node.right) {
                 return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase(); // maybe key def
             }
-            var left = this.fnParseOneArg(node.left), nodeArgs = this.fnParseArgs(node.args), expression = this.fnParseOneArg(node.right);
-            return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(left) + nodeArgs.join("") + expression;
+            var right = this.fnParseOneArg(node.right), nodeArgs = this.fnParseArgs(node.args); // including expression
+            return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(right) + nodeArgs.join("");
         };
         CodeGeneratorBasic.prototype.fnElse = function (node) {
             if (!node.args) {
@@ -4146,15 +4146,15 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
         };
         CodeGeneratorBasic.prototype.fn = function (node) {
-            if (!node.left) {
+            if (!node.right) {
                 return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase(); // only fn
             }
-            var left = this.fnParseOneArg(node.left);
-            var nodeArgs = node.args ? this.fnParseArgs(node.args) : []; //TTT
-            if ((node.left.pos - node.pos) > 2) { // space between fn and identifier?
-                left = CodeGeneratorBasic.fnSpace1(left); // keep it
+            var right = this.fnParseOneArg(node.right);
+            var nodeArgs = node.args ? this.fnParseArgs(node.args) : [];
+            if ((node.right.pos - node.pos) > 2) { // space between fn and identifier?
+                right = CodeGeneratorBasic.fnSpace1(right); // keep it
             }
-            return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + left + nodeArgs.join("");
+            return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + right + nodeArgs.join("");
         };
         CodeGeneratorBasic.prototype.fnFor = function (node) {
             var nodeArgs = this.fnParseArgs(node.args);
@@ -4205,19 +4205,16 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
         };
         CodeGeneratorBasic.prototype.mid$Assign = function (node) {
-            if (!node.right) {
-                throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occur
-            }
             var nodeArgs = this.fnParseArgs(node.args), typeUc = CodeGeneratorBasic.getUcKeyword(node);
-            return CodeGeneratorBasic.fnWs(node) + typeUc + nodeArgs.join("") + this.fnParseOneArg(node.right);
+            return CodeGeneratorBasic.fnWs(node) + typeUc + nodeArgs.join("");
         };
         CodeGeneratorBasic.prototype.onBreakOrError = function (node) {
             var nodeArgs = this.fnParseArgs(node.args), right = this.fnParseOneArg(node.right);
             return CodeGeneratorBasic.fnWs(node) + "ON" + CodeGeneratorBasic.fnSpace1(right) + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
         };
         CodeGeneratorBasic.prototype.onGotoGosub = function (node) {
-            var left = this.fnParseOneArg(node.left), nodeArgs = this.fnParseArgs(node.args), right = this.fnParseOneArg(node.right); // "goto" or "gosub"
-            return CodeGeneratorBasic.fnWs(node) + "ON" + CodeGeneratorBasic.fnSpace1(left) + CodeGeneratorBasic.fnSpace1(right) + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
+            var nodeArgs = this.fnParseArgs(node.args), expression = nodeArgs.shift(), instruction = nodeArgs.shift(); // "goto" or "gosub"
+            return CodeGeneratorBasic.fnWs(node) + "ON" + CodeGeneratorBasic.fnSpace1(expression) + CodeGeneratorBasic.fnSpace1(instruction) + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
         };
         CodeGeneratorBasic.prototype.onSqGosub = function (node) {
             var nodeArgs = this.fnParseArgs(node.args);
@@ -5419,22 +5416,23 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             node.pv = "/* data */";
         };
         CodeGeneratorJs.prototype.def = function (node) {
-            if (!node.left || !node.right) {
-                throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
+            if (!node.right) {
+                throw this.composeError(Error(), "Programming error: Undefined right", node.type, node.pos); // should not occur
             }
-            var savedValue = node.left.value;
-            node.left.value = "fn" + savedValue; // prefix with "fn"
-            var name = this.fnParseOneArg(node.left);
-            node.left.value = savedValue; // restore
+            var savedValue = node.right.value;
+            node.right.value = "fn" + savedValue; // prefix with "fn"
+            var name = this.fnParseOneArg(node.right);
+            node.right.value = savedValue; // restore
+            var expressionArg = node.args.pop();
             this.defScopeArgs = {}; // collect DEF scope args
             var nodeArgs = this.fnParseArgs(node.args);
             this.defScopeArgs.collectDone = true; // collection done => now use them
-            var expression = this.fnParseOneArg(node.right);
+            var expression = this.fnParseOneArg(expressionArg); //this.fnParseOneArg(node.right);
             this.defScopeArgs = undefined;
-            this.fnPropagateStaticTypes(node, node.left, node.right, "II RR IR RI $$");
+            this.fnPropagateStaticTypes(node, node.right, expressionArg, "II RR IR RI $$");
             var value;
             if (node.pt) {
-                if (node.left.pt === "I" && node.right.pt === "R") { // special handing for IR: rounding needed
+                if (node.right.pt === "I" && expressionArg.pt === "R") { // special handing for IR: rounding needed
                     value = "o.vmRound(" + expression + ")";
                     node.pt = "I"; // "R" => "I"
                 }
@@ -5508,15 +5506,15 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + "); break";
         };
         CodeGeneratorJs.prototype.fn = function (node) {
-            if (!node.left) {
-                throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occur
+            if (!node.right) {
+                throw this.composeError(Error(), "Programming error: Undefined right", node.type, node.pos); // should not occur
             }
-            var nodeArgs = this.fnParseArgs(node.args), savedValue = node.left.value;
-            node.left.value = "fn" + savedValue; // prefix with "fn"
-            var name = this.fnParseOneArg(node.left);
-            node.left.value = savedValue; // restore
-            if (node.left.pt) {
-                node.pt = node.left.pt;
+            var nodeArgs = this.fnParseArgs(node.args), savedValue = node.right.value;
+            node.right.value = "fn" + savedValue; // prefix with "fn"
+            var name = this.fnParseOneArg(node.right);
+            node.right.value = savedValue; // restore
+            if (node.right.pt) {
+                node.pt = node.right.pt;
             }
             node.pv = name + "(" + nodeArgs.join(", ") + ")";
         };
@@ -5716,14 +5714,9 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
         };
         CodeGeneratorJs.prototype.mid$Assign = function (node) {
             var nodeArgs = this.fnParseArgs(node.args);
-            if (nodeArgs.length < 3) {
-                nodeArgs.push("undefined"); // empty length
+            if (nodeArgs.length < 4) {
+                nodeArgs.splice(2, 0, "undefined"); // set empty length
             }
-            if (!node.right) {
-                throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occur
-            }
-            var right = this.fnParseOneArg(node.right);
-            nodeArgs.push(right);
             var name = nodeArgs[0], varType = this.fnDetermineStaticVarType(name);
             node.pv = name + " = o.vmAssign(\"" + varType + "\", o.mid$Assign(" + nodeArgs.join(", ") + "))";
         };
@@ -5773,11 +5766,11 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + ")";
         };
         CodeGeneratorJs.prototype.onGosubOnGoto = function (node) {
-            var left = this.fnParseOneArg(node.left), nodeArgs = this.fnParseArgs(node.args), label = node.type === "onGosub" ? this.fnGetGosubLabel() : this.fnGetStopLabel();
-            for (var i = 0; i < nodeArgs.length; i += 1) {
+            var nodeArgs = this.fnParseArgs(node.args), label = node.type === "onGosub" ? this.fnGetGosubLabel() : this.fnGetStopLabel();
+            for (var i = 1; i < nodeArgs.length; i += 1) { // starting with 1
                 this.fnAddReferenceLabel(nodeArgs[i], node.args[i]);
             }
-            nodeArgs.unshift('"' + label + '"', left);
+            nodeArgs.unshift('"' + label + '"');
             node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + '); break;\ncase "' + label + '":';
         };
         CodeGeneratorJs.prototype.onSqGosub = function (node) {
@@ -6218,7 +6211,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
 // https://benchmarko.github.io/CPCBasicTS/
 //
 //
-define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], function (require, exports, Utils_9, BasicParser_2) {
+define("CodeGeneratorToken", ["require", "exports", "Utils"], function (require, exports, Utils_9) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CodeGeneratorToken = void 0;
@@ -6230,14 +6223,9 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
             /* eslint-disable no-invalid-this */
             this.parseFunctions = {
                 args: this.fnArgs,
-                "(": this.fnParenthesisOpen,
-                ";": CodeGeneratorToken.semicolon,
-                ":": this.colon,
-                letter: CodeGeneratorToken.letter,
                 range: this.range,
                 linerange: this.linerange,
                 string: CodeGeneratorToken.string,
-                unquoted: CodeGeneratorToken.unquoted,
                 "null": CodeGeneratorToken.fnNull,
                 assign: this.assign,
                 number: CodeGeneratorToken.number,
@@ -6248,12 +6236,8 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
                 linenumber: CodeGeneratorToken.linenumber,
                 label: this.fnLabel,
                 "|": this.vertical,
-                data: this.data,
-                def: this.def,
                 "else": this.fnElse,
-                fn: this.fn,
                 "if": this.fnIf,
-                mid$Assign: this.mid$Assign,
                 onBreakCont: this.onBreakContOrGosubOrStop,
                 onBreakGosub: this.onBreakContOrGosubOrStop,
                 onBreakStop: this.onBreakContOrGosubOrStop,
@@ -6264,7 +6248,6 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
             this.lexer = options.lexer;
             this.parser = options.parser;
             this.setOptions(options);
-            this.statementSeparator = CodeGeneratorToken.token2String(":");
         }
         CodeGeneratorToken.prototype.setOptions = function (options) {
             if (options.implicitLines !== undefined) {
@@ -6296,8 +6279,7 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
                 }
                 result = CodeGeneratorToken.convUInt8ToString(0xff); // prefix for special tokens
             }
-            result += (token <= 255) ? CodeGeneratorToken.convUInt8ToString(token) : CodeGeneratorToken.convUInt16ToString(token);
-            return result;
+            return result + CodeGeneratorToken.convUInt8ToString(token);
         };
         CodeGeneratorToken.getBit7TerminatedString = function (s) {
             return s.substring(0, s.length - 1) + String.fromCharCode(s.charCodeAt(s.length - 1) | 0x80); // eslint-disable-line no-bitwise
@@ -6305,74 +6287,38 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
         CodeGeneratorToken.fnGetWs = function (node) {
             return node.ws || "";
         };
-        CodeGeneratorToken.prototype.fnParseOneArg = function (arg) {
-            var value = this.parseNode(arg);
-            return value;
-        };
         CodeGeneratorToken.prototype.fnParseArgs = function (args) {
             var nodeArgs = []; // do not modify node.args here (could be a parameter of defined function)
             if (!args) {
                 throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
             }
             for (var i = 0; i < args.length; i += 1) {
-                var value = this.fnParseOneArg(args[i]);
+                var value = this.parseNode(args[i]);
                 nodeArgs.push(value);
             }
             return nodeArgs;
         };
         CodeGeneratorToken.prototype.fnArgs = function (node) {
-            var nodeArgs = this.fnParseArgs(node.args);
-            return nodeArgs.join(node.value);
-        };
-        CodeGeneratorToken.semicolon = function (node) {
-            return CodeGeneratorToken.fnGetWs(node) + node.value; // ";"
-        };
-        CodeGeneratorToken.prototype.colon = function (node) {
-            return CodeGeneratorToken.fnGetWs(node) + this.statementSeparator; // not ASCII ':'
-        };
-        CodeGeneratorToken.letter = function (node) {
-            return CodeGeneratorToken.fnGetWs(node) + node.value;
+            return this.fnParseArgs(node.args).join(node.value);
         };
         CodeGeneratorToken.prototype.range = function (node) {
-            if (!node.left || !node.right) {
-                throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
-            }
-            var left = this.fnParseOneArg(node.left), right = this.fnParseOneArg(node.right);
-            return left + CodeGeneratorToken.fnGetWs(node) + node.value + right;
+            return this.parseNode(node.left) + CodeGeneratorToken.fnGetWs(node) + node.value + this.parseNode(node.right);
         };
         CodeGeneratorToken.prototype.linerange = function (node) {
-            if (!node.left || !node.right) {
-                throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
-            }
-            var left = this.fnParseOneArg(node.left), right = this.fnParseOneArg(node.right);
-            return left + CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.value) + right;
-        };
-        CodeGeneratorToken.prototype.fnParenthesisOpen = function (node) {
-            var value = CodeGeneratorToken.fnGetWs(node) + node.value;
-            if (node.args) {
-                var nodeArgs = this.fnParseArgs(node.args);
-                value += nodeArgs.join("");
-            }
-            return value;
+            return this.parseNode(node.left) + CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.value) + this.parseNode(node.right);
         };
         CodeGeneratorToken.string = function (node) {
             return CodeGeneratorToken.fnGetWs(node) + '"' + node.value + '"'; // TODO: how to set unterminated string?
-        };
-        CodeGeneratorToken.unquoted = function (node) {
-            return CodeGeneratorToken.fnGetWs(node) + node.value;
         };
         CodeGeneratorToken.fnNull = function () {
             return "";
         };
         CodeGeneratorToken.prototype.assign = function (node) {
             // see also "let"
-            if (!node.left || !node.right) {
-                throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
-            }
             if (node.left.type !== "identifier") {
                 throw this.composeError(Error(), "Unexpected assign type", node.type, node.pos); // should not occur
             }
-            return this.fnParseOneArg(node.left) + CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.value) + this.fnParseOneArg(node.right);
+            return this.parseNode(node.left) + CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.value) + this.parseNode(node.right);
         };
         CodeGeneratorToken.floatToByteString = function (number) {
             var mantissa = 0, exponent = 0, sign = 0;
@@ -6425,33 +6371,18 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
         };
         CodeGeneratorToken.prototype.identifier = function (node) {
             var name = node.value, // keep case, maybe mixed
-            result;
-            if (name.endsWith("!")) { // real number?
-                name = name.slice(0, -1);
-                result = CodeGeneratorToken.token2String("_floatVar");
-            }
-            else if (name.endsWith("%")) { // integer number?
-                name = name.slice(0, -1);
-                result = CodeGeneratorToken.token2String("_intVar");
-            }
-            else if (name.endsWith("$")) { // string?
-                name = name.slice(0, -1);
-                result = CodeGeneratorToken.token2String("_stringVar");
+            mappedTypeName = CodeGeneratorToken.varTypeMap[name.charAt(name.length - 1)] || ""; // map last char
+            if (mappedTypeName) {
+                name = name.slice(0, -1); // remove type char
             }
             else {
-                result = CodeGeneratorToken.token2String("_anyVar");
-            }
-            name = CodeGeneratorToken.getBit7TerminatedString(name);
-            if (node.args) { // args including brackets
-                var nodeArgs = this.fnParseArgs(node.args), bracketOpen = nodeArgs.shift(), bracketClose = nodeArgs.pop();
-                name += bracketOpen + nodeArgs.join("") + bracketClose;
+                mappedTypeName = "_anyVar";
             }
             var offset = 0; // (offset to memory location of variable; not used here)
-            return CodeGeneratorToken.fnGetWs(node) + result + CodeGeneratorToken.convUInt16ToString(offset) + name;
+            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(mappedTypeName) + CodeGeneratorToken.convUInt16ToString(offset) + CodeGeneratorToken.getBit7TerminatedString(name) + (node.args ? this.fnParseArgs(node.args).join("") : "");
         };
         CodeGeneratorToken.linenumber = function (node) {
-            var number = Number(node.value);
-            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("_line16") + CodeGeneratorToken.convUInt16ToString(number);
+            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("_line16") + CodeGeneratorToken.convUInt16ToString(Number(node.value));
         };
         CodeGeneratorToken.prototype.fnLabel = function (node) {
             if (this.implicitLines) {
@@ -6467,36 +6398,14 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
                     value = value.substring(1);
                 }
                 value = CodeGeneratorToken.convUInt16ToString(line) + value + CodeGeneratorToken.token2String("_eol"); // no ws
-                var len = value.length + 2;
-                value = CodeGeneratorToken.convUInt16ToString(len) + value;
+                value = CodeGeneratorToken.convUInt16ToString(value.length + 2) + value;
             }
             return value;
         };
         // special keyword functions
         CodeGeneratorToken.prototype.vertical = function (node) {
             var rsxName = node.value.substring(1).toUpperCase(), nodeArgs = this.fnParseArgs(node.args), offset = 0; // (offset to tokens following RSX name) TODO
-            var value = CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + CodeGeneratorToken.convUInt8ToString(offset) + CodeGeneratorToken.getBit7TerminatedString(rsxName);
-            if (nodeArgs.length) {
-                value += "," + nodeArgs.join("");
-            }
-            return value;
-        };
-        CodeGeneratorToken.prototype.data = function (node) {
-            var nodeArgs = this.fnParseArgs(node.args);
-            for (var i = 0; i < nodeArgs.length; i += 1) {
-                var value2 = nodeArgs[i];
-                nodeArgs[i] = value2;
-            }
-            var value = nodeArgs.join("");
-            value = CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + value;
-            return value;
-        };
-        CodeGeneratorToken.prototype.def = function (node) {
-            if (!node.left || !node.right) {
-                return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type); // only def (for key def)
-            }
-            var fnNode = this.fnParseOneArg(node.left), nodeArgs = this.fnParseArgs(node.args), expression = this.fnParseOneArg(node.right);
-            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + fnNode + nodeArgs.join("") + expression;
+            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + CodeGeneratorToken.convUInt8ToString(offset) + CodeGeneratorToken.getBit7TerminatedString(rsxName) + (nodeArgs.length ? "," + nodeArgs.join("") : "");
         };
         CodeGeneratorToken.prototype.fnElse = function (node) {
             if (!node.args) {
@@ -6517,83 +6426,41 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
             }
             return value;
         };
-        CodeGeneratorToken.prototype.fn = function (node) {
-            if (!node.left) {
-                return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type); // only fn
-            }
-            var left = this.fnParseOneArg(node.left), nodeArgs = node.args ? this.fnParseArgs(node.args) : []; //TTT
-            // We always need to store "fn" as as token and not as a string
-            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + left + nodeArgs.join("");
-        };
-        CodeGeneratorToken.prototype.fnThenOrElsePart = function (nodeBranch) {
-            var nodeArgs = this.fnParseArgs(nodeBranch), // args for "then" or "else"
-            thenOrElse = nodeArgs.shift();
-            return thenOrElse + nodeArgs.join("");
-        };
         CodeGeneratorToken.prototype.fnIf = function (node) {
-            if (!node.left) {
-                throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occur
-            }
-            if (!node.args) {
-                throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occur
-            }
-            var value = CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + this.fnParseOneArg(node.left);
-            value += this.fnThenOrElsePart(node.args); // "then" part
-            if (node.args2) {
-                value += this.fnThenOrElsePart(node.args2); // "else" part
-            }
-            return value;
-        };
-        CodeGeneratorToken.prototype.mid$Assign = function (node) {
-            if (!node.right) {
-                throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occur TTT
-            }
-            var nodeArgs = this.fnParseArgs(node.args);
-            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + nodeArgs.join("") + this.fnParseOneArg(node.right);
+            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + this.parseNode(node.left) + this.fnParseArgs(node.args).join("") + (node.args2 ? this.fnParseArgs(node.args2).join("") : "");
         };
         CodeGeneratorToken.prototype.onBreakContOrGosubOrStop = function (node) {
-            var nodeArgs = this.fnParseArgs(node.args);
-            var name = "";
-            if (node.right && node.right.right) { // get which comes after "on break"...
-                name = this.fnParseOneArg(node.right.right);
-            }
-            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("_onBreak") + name + nodeArgs.join("");
+            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("_onBreak") + (node.right && node.right.right ? this.parseNode(node.right.right) : "") + this.fnParseArgs(node.args).join("");
         };
         CodeGeneratorToken.prototype.onErrorGoto = function (node) {
-            var nodeArgs = this.fnParseArgs(node.args);
-            var value;
             if (node.args && node.args.length && node.args[0].value === "0") { // on error goto 0?
-                value = CodeGeneratorToken.token2String("_onErrorGoto0");
+                return CodeGeneratorToken.token2String("_onErrorGoto0");
             }
-            else {
-                value = CodeGeneratorToken.token2String("on") + CodeGeneratorToken.token2String("error") + CodeGeneratorToken.token2String("goto") + nodeArgs.join("");
-            }
-            return value;
+            return CodeGeneratorToken.token2String("on") + CodeGeneratorToken.token2String("error") + CodeGeneratorToken.token2String("goto") + this.fnParseArgs(node.args).join("");
         };
         CodeGeneratorToken.prototype.onSqGosub = function (node) {
-            var nodeArgs = this.fnParseArgs(node.args);
-            return CodeGeneratorToken.token2String("_onSq") + nodeArgs.join("");
+            return CodeGeneratorToken.token2String("_onSq") + this.fnParseArgs(node.args).join("");
         };
         CodeGeneratorToken.prototype.rem = function (node) {
-            var nodeArgs = this.fnParseArgs(node.args), name = CodeGeneratorToken.fnGetWs(node) + (node.value === "'" ? this.statementSeparator : "") + CodeGeneratorToken.token2String(node.value.toLowerCase()), // we use value to get REM or '
-            value = nodeArgs.length ? nodeArgs[0] : "";
-            return name + value;
+            var nodeArgs = this.fnParseArgs(node.args);
+            return CodeGeneratorToken.fnGetWs(node) + (node.value === "'" ? CodeGeneratorToken.token2String(":") : "") + CodeGeneratorToken.token2String(node.value.toLowerCase()) + (nodeArgs.length ? nodeArgs[0] : ""); // we use value to get REM or '
         };
         /* eslint-enable no-invalid-this */
         CodeGeneratorToken.prototype.fnParseOther = function (node) {
-            var type = node.type, keyType = BasicParser_2.BasicParser.keywords[type];
-            var value = CodeGeneratorToken.fnGetWs(node);
-            if (keyType) {
+            var type = node.type, isToken = CodeGeneratorToken.tokens[type] !== undefined || CodeGeneratorToken.tokensFF[type] !== undefined;
+            var value = ""; // CodeGeneratorToken.fnGetWs(node);
+            if (node.left) {
+                value += this.parseNode(node.left);
+            }
+            value += CodeGeneratorToken.fnGetWs(node);
+            if (isToken) {
                 value += CodeGeneratorToken.token2String(type);
             }
             else if (node.value) { // e.g. string,...
                 value += node.value;
             }
-            if (node.left) {
-                value += this.fnParseOneArg(node.left);
-            }
             if (node.right) {
-                value += this.fnParseOneArg(node.right);
+                value += this.parseNode(node.right);
             }
             if (node.args) {
                 value += this.fnParseArgs(node.args).join("");
@@ -6607,35 +6474,14 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
             if (Utils_9.Utils.debug > 3) {
                 Utils_9.Utils.console.debug("evaluate: parseNode node=%o type=" + node.type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
             }
-            var type = node.type, operators = CodeGeneratorToken.operators;
+            var type = node.type;
             var value;
-            if (operators[type]) {
-                if (node.left) {
-                    value = this.parseNode(node.left);
-                    var value2 = this.parseNode(node.right);
-                    value += CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(operators[type]) + value2;
-                }
-                else if (node.right) { // unary operator, e.g. 'not', '#'
-                    if (node.len === 0) {
-                        value = ""; // ignore dummy token, e.g. '#'
-                    }
-                    else {
-                        value = this.parseNode(node.right);
-                        value = CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(operators[type]) + value;
-                    }
-                }
-                else if (type === "=") { // no operator, "=" in 'for' or 'def fn'
-                    value = CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(type);
-                }
-                else { // should not occur
-                    value = this.fnParseOther(node);
-                }
+            if (node.len === 0 && type !== "label") { // ignore dummy token, e.g. '#' (but not label)
+                value = "";
             }
-            else if (this.parseFunctions[type]) { // function with special handling?
-                value = this.parseFunctions[type].call(this, node);
-            }
-            else { // for other functions, generate code directly
-                value = this.fnParseOther(node);
+            else {
+                value = this.parseFunctions[type] ? this.parseFunctions[type].call(this, node) : this.fnParseOther(node);
+                // function with special handling or other type
             }
             if (Utils_9.Utils.debug > 2) {
                 Utils_9.Utils.console.debug("parseNode: type='" + type + "', value='" + node.value + "', ws='" + node.ws + "', resultValue='" + value + "'");
@@ -6685,27 +6531,6 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
                 }
             }
             return out;
-        };
-        CodeGeneratorToken.operators = {
-            "+": "+",
-            "-": "-",
-            "*": "*",
-            "/": "/",
-            "\\": "\\",
-            "^": "^",
-            and: "and",
-            or: "or",
-            xor: "xor",
-            not: "not",
-            mod: "mod",
-            ">": ">",
-            "<": "<",
-            ">=": ">=",
-            "<=": "<=",
-            "=": "=",
-            "<>": "<>",
-            "@": "@",
-            "#": "#"
         };
         CodeGeneratorToken.tokens = {
             _eol: 0x00,
@@ -6957,6 +6782,11 @@ define("CodeGeneratorToken", ["require", "exports", "Utils", "BasicParser"], fun
             testr: 0x7d,
             copychr$: 0x7e,
             vpos: 0x7f
+        };
+        CodeGeneratorToken.varTypeMap = {
+            "!": "_floatVar",
+            "%": "_intVar",
+            $: "_stringVar"
         };
         return CodeGeneratorToken;
     }());
@@ -15521,7 +15351,7 @@ define("CpcVmRsx", ["require", "exports", "Utils"], function (require, exports, 
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLexer", "BasicParser", "BasicTokenizer", "Canvas", "CodeGeneratorBasic", "CodeGeneratorJs", "CodeGeneratorToken", "CommonEventHandler", "cpcCharset", "CpcVm", "CpcVmRsx", "Diff", "DiskImage", "InputStack", "Keyboard", "TextCanvas", "VirtualKeyboard", "Sound", "Variables", "View", "ZipFile"], function (require, exports, Utils_23, BasicFormatter_1, BasicLexer_1, BasicParser_3, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, CpcVmRsx_1, Diff_1, DiskImage_1, InputStack_1, Keyboard_1, TextCanvas_1, VirtualKeyboard_1, Sound_1, Variables_1, View_6, ZipFile_1) {
+define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLexer", "BasicParser", "BasicTokenizer", "Canvas", "CodeGeneratorBasic", "CodeGeneratorJs", "CodeGeneratorToken", "CommonEventHandler", "cpcCharset", "CpcVm", "CpcVmRsx", "Diff", "DiskImage", "InputStack", "Keyboard", "TextCanvas", "VirtualKeyboard", "Sound", "Variables", "View", "ZipFile"], function (require, exports, Utils_23, BasicFormatter_1, BasicLexer_1, BasicParser_2, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, CpcVmRsx_1, Diff_1, DiskImage_1, InputStack_1, Keyboard_1, TextCanvas_1, VirtualKeyboard_1, Sound_1, Variables_1, View_6, ZipFile_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Controller = void 0;
@@ -15876,9 +15706,9 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.setStopObject(this.noStop);
             this.codeGeneratorJs = new CodeGeneratorJs_1.CodeGeneratorJs({
                 lexer: new BasicLexer_1.BasicLexer({
-                    keywords: BasicParser_3.BasicParser.keywords
+                    keywords: BasicParser_2.BasicParser.keywords
                 }),
-                parser: new BasicParser_3.BasicParser(),
+                parser: new BasicParser_2.BasicParser(),
                 trace: model.getProperty("trace"),
                 rsx: this.rsx,
                 implicitLines: model.getProperty("implicitLines")
@@ -16515,10 +16345,10 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             if (!this.codeGeneratorToken) {
                 this.codeGeneratorToken = new CodeGeneratorToken_1.CodeGeneratorToken({
                     lexer: new BasicLexer_1.BasicLexer({
-                        keywords: BasicParser_3.BasicParser.keywords,
+                        keywords: BasicParser_2.BasicParser.keywords,
                         keepWhiteSpace: true
                     }),
-                    parser: new BasicParser_3.BasicParser({
+                    parser: new BasicParser_2.BasicParser({
                         keepTokens: true,
                         keepBrackets: true,
                         keepColons: true,
@@ -16544,9 +16374,9 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             if (!this.codeGeneratorBasic) {
                 this.codeGeneratorBasic = new CodeGeneratorBasic_1.CodeGeneratorBasic({
                     lexer: new BasicLexer_1.BasicLexer({
-                        keywords: BasicParser_3.BasicParser.keywords
+                        keywords: BasicParser_2.BasicParser.keywords
                     }),
-                    parser: new BasicParser_3.BasicParser()
+                    parser: new BasicParser_2.BasicParser()
                 });
             }
             var keepColons = keepBrackets, // we switch all with one setting
@@ -16961,9 +16791,9 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.createBasicFormatter = function () {
             return new BasicFormatter_1.BasicFormatter({
                 lexer: new BasicLexer_1.BasicLexer({
-                    keywords: BasicParser_3.BasicParser.keywords
+                    keywords: BasicParser_2.BasicParser.keywords
                 }),
-                parser: new BasicParser_3.BasicParser()
+                parser: new BasicParser_2.BasicParser()
             });
         };
         Controller.prototype.fnRenumLines = function (paras) {

@@ -6,7 +6,7 @@
 
 import { Utils, CustomError } from "./Utils";
 import { BasicLexer } from "./BasicLexer";
-import { BasicParser, ParserNode } from "./BasicParser"; // BasicParser just for keyword definitions
+import { BasicParser, ParserNode } from "./BasicParser";
 import { IOutput } from "./Interfaces";
 
 interface CodeGeneratorTokenOptions {
@@ -24,8 +24,6 @@ export class CodeGeneratorToken {
 
 	private label = ""; // current line (label)
 
-	private statementSeparator: string; // cannot be static when using token2String()
-
 	setOptions(options: Omit<CodeGeneratorTokenOptions, "lexer" | "parser">): void {
 		if (options.implicitLines !== undefined) {
 			this.implicitLines = options.implicitLines;
@@ -39,30 +37,6 @@ export class CodeGeneratorToken {
 		this.lexer = options.lexer;
 		this.parser = options.parser;
 		this.setOptions(options);
-
-		this.statementSeparator = CodeGeneratorToken.token2String(":");
-	}
-
-	private static readonly operators: Record<string, string> = {
-		"+": "+",
-		"-": "-",
-		"*": "*",
-		"/": "/",
-		"\\": "\\",
-		"^": "^",
-		and: "and",
-		or: "or",
-		xor: "xor",
-		not: "not",
-		mod: "mod",
-		">": ">",
-		"<": "<",
-		">=": ">=",
-		"<=": "<=",
-		"=": "=",
-		"<>": "<>",
-		"@": "@",
-		"#": "#"
 	}
 
 	private static readonly tokens: Record<string, number> = {
@@ -350,9 +324,7 @@ export class CodeGeneratorToken {
 			result = CodeGeneratorToken.convUInt8ToString(0xff); // prefix for special tokens
 		}
 
-		result += (token <= 255) ? CodeGeneratorToken.convUInt8ToString(token) : CodeGeneratorToken.convUInt16ToString(token);
-
-		return result;
+		return result + CodeGeneratorToken.convUInt8ToString(token);
 	}
 
 	private static getBit7TerminatedString(s: string) {
@@ -363,12 +335,6 @@ export class CodeGeneratorToken {
 		return node.ws || "";
 	}
 
-	private fnParseOneArg(arg: ParserNode) {
-		const value = this.parseNode(arg);
-
-		return value;
-	}
-
 	private fnParseArgs(args: ParserNode[] | undefined) {
 		const nodeArgs: string[] = []; // do not modify node.args here (could be a parameter of defined function)
 
@@ -377,7 +343,7 @@ export class CodeGeneratorToken {
 		}
 
 		for (let i = 0; i < args.length; i += 1) {
-			const value = this.fnParseOneArg(args[i]);
+			const value = this.parseNode(args[i]);
 
 			nodeArgs.push(value);
 		}
@@ -385,73 +351,32 @@ export class CodeGeneratorToken {
 	}
 
 	private fnArgs(node: ParserNode) { // special construct to combine tokens
-		const nodeArgs = this.fnParseArgs(node.args);
-
-		return nodeArgs.join(node.value);
-	}
-
-	private static semicolon(node: ParserNode) {
-		return CodeGeneratorToken.fnGetWs(node) + node.value; // ";"
-	}
-
-	private colon(node: ParserNode) { // statement separator special token ':'
-		return CodeGeneratorToken.fnGetWs(node) + this.statementSeparator; // not ASCII ':'
-	}
-
-	private static letter(node: ParserNode) { // for defint, defreal, defstr
-		return CodeGeneratorToken.fnGetWs(node) + node.value;
+		return this.fnParseArgs(node.args).join(node.value);
 	}
 
 	private range(node: ParserNode) { // for defint, defreal, defstr
-		if (!node.left || !node.right) {
-			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
-		}
-		const left = this.fnParseOneArg(node.left),
-			right = this.fnParseOneArg(node.right);
-
-		return left + CodeGeneratorToken.fnGetWs(node) + node.value + right;
+		return this.parseNode(node.left as ParserNode) + CodeGeneratorToken.fnGetWs(node) + node.value + this.parseNode(node.right as ParserNode);
 	}
 
 	private linerange(node: ParserNode) { // for delete, list
-		if (!node.left || !node.right) {
-			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
-		}
-		const left = this.fnParseOneArg(node.left),
-			right = this.fnParseOneArg(node.right);
-
-		return left + CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.value) + right;
+		return this.parseNode(node.left as ParserNode) + CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.value) + this.parseNode(node.right as ParserNode);
 	}
 
-	private fnParenthesisOpen(node: ParserNode) { // special construct to combine tokens (only used in BasicParser keep brackets mode)
-		let value = CodeGeneratorToken.fnGetWs(node) + node.value;
-
-		if (node.args) {
-			const nodeArgs = this.fnParseArgs(node.args);
-
-			value += nodeArgs.join("");
-		}
-
-		return value;
-	}
 
 	private static string(node: ParserNode) {
 		return CodeGeneratorToken.fnGetWs(node) + '"' + node.value + '"'; // TODO: how to set unterminated string?
 	}
-	private static unquoted(node: ParserNode) {
-		return CodeGeneratorToken.fnGetWs(node) + node.value;
-	}
+
 	private static fnNull() { // "null" means: no parameter specified
 		return "";
 	}
+
 	private assign(node: ParserNode) {
 		// see also "let"
-		if (!node.left || !node.right) {
-			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
-		}
-		if (node.left.type !== "identifier") {
+		if ((node.left as ParserNode).type !== "identifier") {
 			throw this.composeError(Error(), "Unexpected assign type", node.type, node.pos); // should not occur
 		}
-		return this.fnParseOneArg(node.left) + CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.value) + this.fnParseOneArg(node.right);
+		return this.parseNode(node.left as ParserNode) + CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.value) + this.parseNode(node.right as ParserNode);
 	}
 
 	private static floatToByteString(number: number) {
@@ -513,41 +438,30 @@ export class CodeGeneratorToken {
 
 		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("_hex16") + CodeGeneratorToken.convUInt16ToString(value);
 	}
+
+	private static varTypeMap: Record<string, string> = {
+		"!": "_floatVar",
+		"%": "_intVar",
+		$: "_stringVar"
+	};
+
 	private identifier(node: ParserNode) { // identifier or identifier with array
 		let name = node.value, // keep case, maybe mixed
-			result;
+			mappedTypeName = CodeGeneratorToken.varTypeMap[name.charAt(name.length - 1)] || ""; // map last char
 
-		if (name.endsWith("!")) { // real number?
-			name = name.slice(0, -1);
-			result = CodeGeneratorToken.token2String("_floatVar");
-		} else if (name.endsWith("%")) { // integer number?
-			name = name.slice(0, -1);
-			result = CodeGeneratorToken.token2String("_intVar");
-		} else if (name.endsWith("$")) { // string?
-			name = name.slice(0, -1);
-			result = CodeGeneratorToken.token2String("_stringVar");
+		if (mappedTypeName) {
+			name = name.slice(0, -1); // remove type char
 		} else {
-			result = CodeGeneratorToken.token2String("_anyVar");
-		}
-
-		name = CodeGeneratorToken.getBit7TerminatedString(name);
-
-		if (node.args) { // args including brackets
-			const nodeArgs = this.fnParseArgs(node.args),
-				bracketOpen = nodeArgs.shift(),
-				bracketClose = nodeArgs.pop();
-
-			name += bracketOpen + nodeArgs.join("") + bracketClose;
+			mappedTypeName = "_anyVar";
 		}
 
 		const offset = 0; // (offset to memory location of variable; not used here)
 
-		return CodeGeneratorToken.fnGetWs(node) + result + CodeGeneratorToken.convUInt16ToString(offset) + name;
+		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(mappedTypeName) + CodeGeneratorToken.convUInt16ToString(offset) + CodeGeneratorToken.getBit7TerminatedString(name) + (node.args ? this.fnParseArgs(node.args).join("") : "");
 	}
-	private static linenumber(node: ParserNode) {
-		const number = Number(node.value);
 
-		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("_line16") + CodeGeneratorToken.convUInt16ToString(number);
+	private static linenumber(node: ParserNode) {
+		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("_line16") + CodeGeneratorToken.convUInt16ToString(Number(node.value));
 	}
 	private fnLabel(node: ParserNode) {
 		if (this.implicitLines) {
@@ -566,9 +480,7 @@ export class CodeGeneratorToken {
 				value = value.substring(1);
 			}
 			value = CodeGeneratorToken.convUInt16ToString(line) + value + CodeGeneratorToken.token2String("_eol"); // no ws
-			const len = value.length + 2;
-
-			value = CodeGeneratorToken.convUInt16ToString(len) + value;
+			value = CodeGeneratorToken.convUInt16ToString(value.length + 2) + value;
 		}
 		return value;
 	}
@@ -579,39 +491,7 @@ export class CodeGeneratorToken {
 			nodeArgs = this.fnParseArgs(node.args),
 			offset = 0; // (offset to tokens following RSX name) TODO
 
-		let value = CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + CodeGeneratorToken.convUInt8ToString(offset) + CodeGeneratorToken.getBit7TerminatedString(rsxName);
-
-		if (nodeArgs.length) {
-			value += "," + nodeArgs.join("");
-		}
-		return value;
-	}
-
-	private data(node: ParserNode) {
-		const nodeArgs = this.fnParseArgs(node.args);
-
-		for (let i = 0; i < nodeArgs.length; i += 1) {
-			const value2 = nodeArgs[i];
-
-			nodeArgs[i] = value2;
-		}
-
-		let value = nodeArgs.join("");
-
-		value = CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + value;
-		return value;
-	}
-
-	private def(node: ParserNode) {
-		if (!node.left || !node.right) {
-			return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type); // only def (for key def)
-		}
-
-		const fnNode = this.fnParseOneArg(node.left),
-			nodeArgs = this.fnParseArgs(node.args),
-			expression = this.fnParseOneArg(node.right);
-
-		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + fnNode + nodeArgs.join("") + expression;
+		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + CodeGeneratorToken.convUInt8ToString(offset) + CodeGeneratorToken.getBit7TerminatedString(rsxName) + (nodeArgs.length ? "," + nodeArgs.join("") : "");
 	}
 
 	private fnElse(node: ParserNode) { // similar to a comment, with (un?)checked tokens
@@ -638,102 +518,37 @@ export class CodeGeneratorToken {
 		return value;
 	}
 
-	private fn(node: ParserNode) {
-		if (!node.left) {
-			return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type); // only fn
-		}
-
-		const left = this.fnParseOneArg(node.left),
-			nodeArgs = node.args ? this.fnParseArgs(node.args) : []; //TTT
-
-		// We always need to store "fn" as as token and not as a string
-		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + left + nodeArgs.join("");
-	}
-
-	private fnThenOrElsePart(nodeBranch: ParserNode[]) {
-		const nodeArgs = this.fnParseArgs(nodeBranch), // args for "then" or "else"
-			thenOrElse = nodeArgs.shift();
-
-		return thenOrElse + nodeArgs.join("");
-	}
-
 	private fnIf(node: ParserNode) {
-		if (!node.left) {
-			throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occur
-		}
-		if (!node.args) {
-			throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occur
-		}
-
-		let value = CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + this.fnParseOneArg(node.left);
-
-		value += this.fnThenOrElsePart(node.args); // "then" part
-
-		if (node.args2) {
-			value += this.fnThenOrElsePart(node.args2); // "else" part
-		}
-		return value;
-	}
-
-	private mid$Assign(node: ParserNode) {
-		if (!node.right) {
-			throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occur TTT
-		}
-
-		const nodeArgs = this.fnParseArgs(node.args);
-
-		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + nodeArgs.join("") + this.fnParseOneArg(node.right);
+		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + this.parseNode(node.left as ParserNode) + this.fnParseArgs(node.args as ParserNode[]).join("") + (node.args2 ? this.fnParseArgs(node.args2).join("") : "");
 	}
 
 	private onBreakContOrGosubOrStop(node: ParserNode) {
-		const nodeArgs = this.fnParseArgs(node.args);
-		let name = "";
-
-		if (node.right && node.right.right) { // get which comes after "on break"...
-			name = this.fnParseOneArg(node.right.right);
-		}
-
-		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("_onBreak") + name + nodeArgs.join("");
+		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("_onBreak") + (node.right && node.right.right ? this.parseNode(node.right.right) : "") + this.fnParseArgs(node.args).join("");
 	}
 
 	private onErrorGoto(node: ParserNode) {
-		const nodeArgs = this.fnParseArgs(node.args);
-		let value;
-
 		if (node.args && node.args.length && node.args[0].value === "0") { // on error goto 0?
-			value = CodeGeneratorToken.token2String("_onErrorGoto0");
-		} else {
-			value = CodeGeneratorToken.token2String("on") + CodeGeneratorToken.token2String("error") + CodeGeneratorToken.token2String("goto") + nodeArgs.join("");
+			return CodeGeneratorToken.token2String("_onErrorGoto0");
 		}
-
-		return value;
+		return CodeGeneratorToken.token2String("on") + CodeGeneratorToken.token2String("error") + CodeGeneratorToken.token2String("goto") + this.fnParseArgs(node.args).join("");
 	}
 
 	private onSqGosub(node: ParserNode) {
-		const nodeArgs = this.fnParseArgs(node.args);
-
-		return CodeGeneratorToken.token2String("_onSq") + nodeArgs.join("");
+		return CodeGeneratorToken.token2String("_onSq") + this.fnParseArgs(node.args).join("");
 	}
 
 	private rem(node: ParserNode) {
-		const nodeArgs = this.fnParseArgs(node.args),
-			name = CodeGeneratorToken.fnGetWs(node) + (node.value === "'" ? this.statementSeparator : "") + CodeGeneratorToken.token2String(node.value.toLowerCase()), // we use value to get REM or '
-			value = nodeArgs.length ? nodeArgs[0] : "";
+		const nodeArgs = this.fnParseArgs(node.args);
 
-		return name + value;
+		return CodeGeneratorToken.fnGetWs(node) + (node.value === "'" ? CodeGeneratorToken.token2String(":") : "") + CodeGeneratorToken.token2String(node.value.toLowerCase()) + (nodeArgs.length ? nodeArgs[0] : ""); // we use value to get REM or '
 	}
 
 	/* eslint-disable no-invalid-this */
 	private readonly parseFunctions: Record<string, (node: ParserNode) => string> = { // to call methods, use parseFunctions[].call(this,...)
 		args: this.fnArgs,
-		"(": this.fnParenthesisOpen,
-		";": CodeGeneratorToken.semicolon,
-		":": this.colon,
-		letter: CodeGeneratorToken.letter,
 		range: this.range,
 		linerange: this.linerange,
 		string: CodeGeneratorToken.string,
-		unquoted: CodeGeneratorToken.unquoted,
 		"null": CodeGeneratorToken.fnNull,
 		assign: this.assign,
 		number: CodeGeneratorToken.number,
@@ -744,12 +559,8 @@ export class CodeGeneratorToken {
 		linenumber: CodeGeneratorToken.linenumber,
 		label: this.fnLabel,
 		"|": this.vertical,
-		data: this.data,
-		def: this.def,
 		"else": this.fnElse,
-		fn: this.fn,
 		"if": this.fnIf,
-		mid$Assign: this.mid$Assign,
 		onBreakCont: this.onBreakContOrGosubOrStop,
 		onBreakGosub: this.onBreakContOrGosubOrStop,
 		onBreakStop: this.onBreakContOrGosubOrStop,
@@ -762,22 +573,24 @@ export class CodeGeneratorToken {
 
 	private fnParseOther(node: ParserNode) {
 		const type = node.type,
-			keyType = BasicParser.keywords[type];
+			isToken = CodeGeneratorToken.tokens[type] !== undefined || CodeGeneratorToken.tokensFF[type] !== undefined;
 
-		let value = CodeGeneratorToken.fnGetWs(node);
+		let value = ""; // CodeGeneratorToken.fnGetWs(node);
 
-		if (keyType) {
+		if (node.left) {
+			value += this.parseNode(node.left);
+		}
+
+		value += CodeGeneratorToken.fnGetWs(node);
+
+		if (isToken) {
 			value += CodeGeneratorToken.token2String(type);
 		} else if (node.value) { // e.g. string,...
 			value += node.value;
 		}
 
-		if (node.left) {
-			value += this.fnParseOneArg(node.left);
-		}
-
 		if (node.right) {
-			value += this.fnParseOneArg(node.right);
+			value += this.parseNode(node.right);
 		}
 		if (node.args) {
 			value += this.fnParseArgs(node.args).join("");
@@ -789,37 +602,19 @@ export class CodeGeneratorToken {
 		return value;
 	}
 
-	private parseNode(node: ParserNode) { // eslint-disable-line complexity
+	private parseNode(node: ParserNode) {
 		if (Utils.debug > 3) {
 			Utils.console.debug("evaluate: parseNode node=%o type=" + node.type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
 		}
 
-		const type = node.type,
-			operators = CodeGeneratorToken.operators;
+		const type = node.type;
 		let value: string;
 
-		if (operators[type]) {
-			if (node.left) {
-				value = this.parseNode(node.left);
-				const value2 = this.parseNode(node.right as ParserNode);
-
-				value += CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(operators[type]) + value2;
-			} else if (node.right) { // unary operator, e.g. 'not', '#'
-				if (node.len === 0) {
-					value = ""; // ignore dummy token, e.g. '#'
-				} else {
-					value = this.parseNode(node.right);
-					value = CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(operators[type]) + value;
-				}
-			} else if (type === "=") { // no operator, "=" in 'for' or 'def fn'
-				value = CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(type);
-			} else { // should not occur
-				value = this.fnParseOther(node);
-			}
-		} else if (this.parseFunctions[type]) { // function with special handling?
-			value = this.parseFunctions[type].call(this, node);
-		} else { // for other functions, generate code directly
-			value = this.fnParseOther(node);
+		if (node.len === 0 && type !== "label") { // ignore dummy token, e.g. '#' (but not label)
+			value = "";
+		} else {
+			value = this.parseFunctions[type] ? this.parseFunctions[type].call(this, node) : this.fnParseOther(node);
+			// function with special handling or other type
 		}
 
 		if (Utils.debug > 2) {

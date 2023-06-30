@@ -296,16 +296,16 @@ export class CodeGeneratorBasic {
 
 		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(args);
 	}
+
 	private def(node: ParserNode) {
-		if (!node.left || !node.right) {
+		if (!node.right) {
 			return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase(); // maybe key def
 		}
 
-		const left = this.fnParseOneArg(node.left),
-			nodeArgs = this.fnParseArgs(node.args),
-			expression = this.fnParseOneArg(node.right);
+		const right = this.fnParseOneArg(node.right),
+			nodeArgs = this.fnParseArgs(node.args); // including expression
 
-		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(left) + nodeArgs.join("") + expression;
+		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(right) + nodeArgs.join("");
 	}
 
 	private fnElse(node: ParserNode) { // similar to a comment, with unchecked tokens
@@ -350,18 +350,18 @@ export class CodeGeneratorBasic {
 	}
 
 	private fn(node: ParserNode) {
-		if (!node.left) {
+		if (!node.right) {
 			return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase(); // only fn
 		}
 
-		let left = this.fnParseOneArg(node.left);
-		const nodeArgs = node.args ? this.fnParseArgs(node.args) : []; //TTT
+		let right = this.fnParseOneArg(node.right);
+		const nodeArgs = node.args ? this.fnParseArgs(node.args) : [];
 
-		if ((node.left.pos - node.pos) > 2) { // space between fn and identifier?
-			left = CodeGeneratorBasic.fnSpace1(left); // keep it
+		if ((node.right.pos - node.pos) > 2) { // space between fn and identifier?
+			right = CodeGeneratorBasic.fnSpace1(right); // keep it
 		}
 
-		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + left + nodeArgs.join("");
+		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + right + nodeArgs.join("");
 	}
 
 	private fnFor(node: ParserNode) {
@@ -428,14 +428,10 @@ export class CodeGeneratorBasic {
 		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
 	}
 	private mid$Assign(node: ParserNode) {
-		if (!node.right) {
-			throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occur
-		}
-
 		const nodeArgs = this.fnParseArgs(node.args),
 			typeUc = CodeGeneratorBasic.getUcKeyword(node);
 
-		return CodeGeneratorBasic.fnWs(node) + typeUc + nodeArgs.join("") + this.fnParseOneArg(node.right);
+		return CodeGeneratorBasic.fnWs(node) + typeUc + nodeArgs.join("");
 	}
 
 	private onBreakOrError(node: ParserNode) {
@@ -446,12 +442,13 @@ export class CodeGeneratorBasic {
 	}
 
 	private onGotoGosub(node: ParserNode) {
-		const left = this.fnParseOneArg(node.left as ParserNode),
-			nodeArgs = this.fnParseArgs(node.args),
-			right = this.fnParseOneArg(node.right as ParserNode); // "goto" or "gosub"
+		const nodeArgs = this.fnParseArgs(node.args),
+			expression = nodeArgs.shift() as string,
+			instruction = nodeArgs.shift() as string; // "goto" or "gosub"
 
-		return CodeGeneratorBasic.fnWs(node) + "ON" + CodeGeneratorBasic.fnSpace1(left) + CodeGeneratorBasic.fnSpace1(right) + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
+		return CodeGeneratorBasic.fnWs(node) + "ON" + CodeGeneratorBasic.fnSpace1(expression) + CodeGeneratorBasic.fnSpace1(instruction) + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
 	}
+
 	private onSqGosub(node: ParserNode) {
 		const nodeArgs = this.fnParseArgs(node.args);
 
