@@ -29,6 +29,7 @@ export declare class CodeGeneratorToken {
     private range;
     private linerange;
     private static string;
+    private static ustring;
     private static fnNull;
     private assign;
     private static floatToByteString;

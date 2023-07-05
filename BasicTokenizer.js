@@ -343,8 +343,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return this.fnVar() + "!";
         };
         BasicTokenizer.prototype.fnRsx = function () {
-            this.fnNum8Dec(); // ignore length (offset to tokens following RSX name)
-            return "|" + this.fnGetBit7TerminatedString();
+            var name = this.fnGetBit7TerminatedString();
+            name = name.substring(1); // ignore length (offset to tokens following RSX name)
+            return "|" + name;
         };
         BasicTokenizer.prototype.fnStringUntilEol = function () {
             var out = this.input.substring(this.pos, this.lineEnd - 1); // take remaining line

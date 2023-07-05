@@ -48,7 +48,11 @@ QUnit.module("CodeGeneratorToken: Tests", function (/* hooks */) {
 		strings: {
 			'a$="a12"': "03,00,00,E1,EF,22,61,31,32,22",
 			'a$=+"7.1"': "03,00,00,E1,EF,F4,22,37,2E,31,22",
-			'a$="\\"': "03,00,00,E1,EF,22,5C,22"
+			'a$="\\"': "03,00,00,E1,EF,22,5C,22",
+			'a$="unterminated string': "03,00,00,E1,EF,22,75,6E,74,65,72,6D,69,6E,61,74,65,64,20,73,74,72,69,6E,67",
+			'a$="string with\nnewline"': "03,00,00,E1,EF,22,73,74,72,69,6E,67,20,77,69,74,68,0A,6E,65,77,6C,69,6E,65,22",
+			'a$="unterminated string with\nnewline=7': "03,00,00,E1,EF,22,75,6E,74,65,72,6D,69,6E,61,74,65,64,20,73,74,72,69,6E,67,20,77,69,74,68,0A,6E,65,77,6C,69,6E,65,3D,37",
+			'1 a$="unterminated string\n2 newline=7': "1E,00,01,00,03,00,00,E1,EF,22,75,6E,74,65,72,6D,69,6E,61,74,65,64,20,73,74,72,69,6E,67,00,11,00,02,00,0D,00,00,6E,65,77,6C,69,6E,E5,EF,15,00,00,00"
 		},
 		variables: {
 			"a!=1.4": "04,00,00,E1,EF,1F,33,33,33,33,81",
@@ -94,6 +98,7 @@ QUnit.module("CodeGeneratorToken: Tests", function (/* hooks */) {
 			"a=1>=1>1": "0D,00,00,E1,EF,0F,F0,0F,EE,0F"
 		},
 		"Line numbers": {
+			"1 ": "05,00,01,00,00,00,00",
 			"0 cls": "06,00,00,00,8A,00,00,00",
 			"65535 cls": "06,00,FF,FF,8A,00,00,00",
 			"65536 cls": "06,00,00,100,8A,00,00,00",
@@ -101,17 +106,6 @@ QUnit.module("CodeGeneratorToken: Tests", function (/* hooks */) {
 			"2 cls\n1 cls": "06,00,02,00,8A,00,06,00,01,00,8A,00,00,00"
 		},
 		special: {
-			"1 ": "05,00,01,00,00,00,00",
-			'a$="string with\nnewline"': "03,00,00,E1,EF,22,73,74,72,69,6E,67,20,77,69,74,68,0A,6E,65,77,6C,69,6E,65,22",
-			"1 on error goto 0:a=asc(0)": "BasicParser: Expected string in 1 at pos 24-25: 0",
-			"1 on error goto 2:a=asc(0)\n2 rem": "17,00,01,00,B2,9C,A0,20,1E,02,00,01,0D,00,00,E1,EF,FF,01,28,0E,29,00,06,00,02,00,C5,00,00,00",
-			'1 on error goto 0:?chr$("A")': "BasicParser: Expected number in 1 at pos 25-26: A",
-			'1 on error goto 2:?chr$("A")\n2 rem': "15,00,01,00,B2,9C,A0,20,1E,02,00,01,BF,FF,03,28,22,41,22,29,00,06,00,02,00,C5,00,00,00",
-			'1 on error goto 0:a$=dec$(b$,"\\    \\")': "BasicParser: Expected number in 1 at pos 26-28: b$",
-			'1 on error goto 2:a$=dec$(b$,"\\    \\")\n2 rem': "23,00,01,00,B2,9C,A0,20,1E,02,00,01,03,00,00,E1,EF,FF,72,28,03,00,00,E2,2C,22,5C,20,20,20,20,5C,22,29,00,06,00,02,00,C5,00,00,00",
-			"1 on error goto 0:mask ,": "BasicParser: Operand missing in 1 at pos 23-24: ,",
-			"1 on error goto 2:mask ,\n2 rem": "10,00,01,00,B2,9C,A0,20,1E,02,00,01,DF,20,2C,00,06,00,02,00,C5,00,00,00",
-			"|": "7C,00,80",
 			"!": "BasicLexer: Unrecognized token at pos 0-1: !"
 		},
 		"abs, after gosub, and, asc, atn, auto": {
@@ -482,7 +476,15 @@ QUnit.module("CodeGeneratorToken: Tests", function (/* hooks */) {
 			"10 on break gosub 10": "0C,00,0A,00,B3,20,9F,20,1E,0A,00,00,00,00",
 			"on break stop": "B3,20,CE",
 			"10 on error goto 0": "06,00,0A,00,B4,00,00,00",
-			"10 on error goto 10": "0C,00,0A,00,B2,9C,A0,20,1E,0A,00,00,00,00",
+			"10 on error goto 10": "0E,00,0A,00,B2,20,9C,20,A0,20,1E,0A,00,00,00,00",
+			"1 on error goto 0:a=asc(0)": "BasicParser: Expected string in 1 at pos 24-25: 0",
+			"1 on error goto 2:a=asc(0)\n2 rem": "19,00,01,00,B2,20,9C,20,A0,20,1E,02,00,01,0D,00,00,E1,EF,FF,01,28,0E,29,00,06,00,02,00,C5,00,00,00",
+			'1 on error goto 0:?chr$("A")': "BasicParser: Expected number in 1 at pos 25-26: A",
+			'1 on error goto 2:?chr$("A")\n2 rem': "17,00,01,00,B2,20,9C,20,A0,20,1E,02,00,01,BF,FF,03,28,22,41,22,29,00,06,00,02,00,C5,00,00,00",
+			'1 on error goto 0:a$=dec$(b$,"\\    \\")': "BasicParser: Expected number in 1 at pos 26-28: b$",
+			'1 on error goto 2:a$=dec$(b$,"\\    \\")\n2 rem': "25,00,01,00,B2,20,9C,20,A0,20,1E,02,00,01,03,00,00,E1,EF,FF,72,28,03,00,00,E2,2C,22,5C,20,20,20,20,5C,22,29,00,06,00,02,00,C5,00,00,00",
+			"1 on error goto 0:mask ,": "BasicParser: Operand missing in 1 at pos 23-24: ,",
+			"1 on error goto 2:mask ,\n2 rem": "12,00,01,00,B2,20,9C,20,A0,20,1E,02,00,01,DF,20,2C,00,06,00,02,00,C5,00,00,00",
 			"10 on 1 gosub 10": "0E,00,0A,00,B2,20,0F,20,9F,20,1E,0A,00,00,00,00",
 			"10 on x gosub 10,20\n20 rem": "15,00,0A,00,B2,20,0D,00,00,F8,20,9F,20,1E,0A,00,2C,1E,14,00,00,06,00,14,00,C5,00,00,00",
 			"10 on x+1 gosub 10,20,20\n20 rem": "1B,00,0A,00,B2,20,0D,00,00,F8,F4,0F,20,9F,20,1E,0A,00,2C,1E,14,00,2C,1E,14,00,00,06,00,14,00,C5,00,00,00",
@@ -714,7 +716,8 @@ QUnit.module("CodeGeneratorToken: Tests", function (/* hooks */) {
 			"|tape.out": "7C,00,54,41,50,45,2E,4F,55,D4",
 			"|user,1": "7C,00,55,53,45,D2,2C,0F",
 			"|mode,3": "7C,00,4D,4F,44,C5,2C,11",
-			"|renum,1,2,3,4": "7C,00,52,45,4E,55,CD,2C,0F,2C,10,2C,11,2C,12"
+			"|renum,1,2,3,4": "7C,00,52,45,4E,55,CD,2C,0F,2C,10,2C,11,2C,12",
+			"|": "7C,80"
 		},
 		keepSpaces: {
 			' 1  chain   merge  "f5"': "11,00,01,00,20,85,20,20,20,AB,20,20,22,66,35,22,00,00,00",
@@ -725,7 +728,7 @@ QUnit.module("CodeGeneratorToken: Tests", function (/* hooks */) {
 			" 1  on  break   cont": "0B,00,01,00,20,B3,20,20,20,8B,00,00,00",
 			" 1  on  break   gosub   1 ": "11,00,01,00,20,B3,20,20,20,9F,20,20,20,1E,01,00,00,00,00",
 			" 1  on  break   stop": "0B,00,01,00,20,B3,20,20,20,CE,00,00,00",
-			" 1  on  error   goto   1 ": "0E,00,01,00,B2,9C,A0,20,20,20,1E,01,00,00,00,00",
+			" 1  on  error   goto   1 ": "14,00,01,00,20,B2,20,20,9C,20,20,20,A0,20,20,20,1E,01,00,00,00,00",
 			" 1  on  x  gosub   1  ,  2\n2  rem": "1E,00,01,00,20,B2,20,20,0D,00,00,F8,20,20,9F,20,20,20,1E,01,00,20,20,2C,20,20,1E,02,00,00,07,00,02,00,20,C5,00,00,00",
 			" 1  on  x  goto   1  ,  2\n2  rem": "1E,00,01,00,20,B2,20,20,0D,00,00,F8,20,20,A0,20,20,20,1E,01,00,20,20,2C,20,20,1E,02,00,00,07,00,02,00,20,C5,00,00,00",
 			' 1   print   using    "####" ;  ri  ;': "22,00,01,00,20,20,BF,20,20,20,ED,20,20,20,20,22,23,23,23,23,22,20,3B,20,20,0D,00,00,72,E9,20,20,3B,00,00,00",

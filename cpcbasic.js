@@ -121,9 +121,18 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
                 }
             };
         };
+        cpcBasic.fnRedirectExamples = function (redirectExamples) {
+            var name = this.model.getProperty("database") + "/" + this.model.getProperty("example");
+            if (redirectExamples[name]) {
+                this.model.setProperty("database", redirectExamples[name].database);
+                this.model.setProperty("example", redirectExamples[name].example);
+            }
+        };
         cpcBasic.fnDoStart = function () {
             var startConfig = cpcBasic.config, winCpcConfig = window.cpcConfig || {};
             Object.assign(startConfig, cpcconfig_1.cpcconfig, winCpcConfig);
+            var redirectExamples = startConfig.redirectExamples;
+            delete startConfig.redirectExamples;
             cpcBasic.model = new Model_1.Model(startConfig);
             // eslint-disable-next-line no-new-func
             var myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(); // for old IE
@@ -146,6 +155,9 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
                 Utils_1.Utils.console = UtilsConsole;
                 Utils_1.Utils.console.log("CPCBasic log started at", Utils_1.Utils.dateFormat(new Date()));
                 UtilsConsole.changeLog(View_1.View.getElementById1("consoleText"));
+            }
+            if (redirectExamples) {
+                this.fnRedirectExamples(redirectExamples);
             }
             cpcBasic.controller = new Controller_1.Controller(cpcBasic.model, cpcBasic.view);
             cpcBasic.controller.onDatabaseSelectChange(); // trigger loading example

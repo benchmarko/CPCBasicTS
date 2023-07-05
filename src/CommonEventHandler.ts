@@ -204,7 +204,7 @@ export class CommonEventHandler implements EventListenerObject {
 			if (params.hasOwnProperty(key)) {
 				const value = params[key];
 
-				parts[parts.length] = encodeURIComponent(key) + "=" + encodeURIComponent((value === null) ? "" : value);
+				parts[parts.length] = encodeURIComponent(key) + "=" + encodeURIComponent(value === null ? "" : value);
 			}
 		}
 		return parts.join("&");

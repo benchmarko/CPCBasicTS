@@ -376,20 +376,31 @@ export class BasicLexer {
 
 	private fnParseString(startPos: number) {
 		let char = "",
-			token = this.advanceWhile(char, BasicLexer.isNotQuotes);
+			token = this.advanceWhile(char, BasicLexer.isNotQuotes),
+			type = "string";
 
 		char = this.getChar();
 		if (char !== '"') {
+			const contString = this.fnTryContinueString(char); // heuristic to detect an LF in the string
+
+			if (contString) {
+				if (Utils.debug) {
+					Utils.console.debug(this.composeError({} as Error, "Continued string", token, startPos + 1).message);
+				}
+				token += contString;
+				char = this.getChar();
+			}
+		}
+		if (char === '"') { // not for newline
+			this.advance();
+		} else {
 			if (Utils.debug) {
 				Utils.console.debug(this.composeError({} as Error, "Unterminated string", token, startPos + 1).message);
 			}
-			token += this.fnTryContinueString(char); // heuristic to detect an LF in the string
-			char = this.getChar();
+			type = "ustring"; // unterminated string
 		}
-		this.addToken("string", token, startPos + 1);
-		if (char === '"') { // not for newline
-			this.advance();
-		}
+
+		this.addToken(type, token, startPos + 1);
 	}
 
 	private fnParseRsx(char: string, startPos: number) {

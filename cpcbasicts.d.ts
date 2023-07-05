@@ -211,7 +211,6 @@ declare module "BasicParser" {
         args?: ParserNode[];
         args2?: ParserNode[];
         len?: number;
-        parenthesis?: boolean;
     }
     export class BasicParser {
         private quiet;
@@ -411,6 +410,7 @@ declare module "CodeGeneratorBasic" {
         private static combineArgsWithColon;
         private fnParenthesisOpen;
         private static string;
+        private static ustring;
         private static unquoted;
         private static fnNull;
         private assign;
@@ -679,6 +679,7 @@ declare module "CodeGeneratorToken" {
         private range;
         private linerange;
         private static string;
+        private static ustring;
         private static fnNull;
         private assign;
         private static floatToByteString;
@@ -1949,6 +1950,16 @@ declare module "Controller" {
 declare module "cpcconfig" {
     export const cpcconfig: {
         databaseDirs: string;
+        redirectExamples: {
+            "examples/art": {
+                database: string;
+                example: string;
+            };
+            "examples/blkedit": {
+                database: string;
+                example: string;
+            };
+        };
     };
 }
 declare module "cpcbasic" {
@@ -1965,6 +1976,7 @@ declare module "cpcbasic" {
         private static fnParseUri;
         private static fnMapObjectProperties;
         private static createDebugUtilsConsole;
+        private static fnRedirectExamples;
         private static fnDoStart;
         static fnOnLoad(): void;
     }

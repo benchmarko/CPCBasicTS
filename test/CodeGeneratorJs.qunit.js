@@ -45,7 +45,11 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             strings: {
                 'a$="a12"': ' v.a$ = "a12";',
                 'a$=+"7.1"': ' v.a$ = "7.1";',
-                'a$="\\"': ' v.a$ = "\\\\";'
+                'a$="\\"': ' v.a$ = "\\\\";',
+                'a$="unterminated string': ' v.a$ = "unterminated string";',
+                'a$="string with\nnewline"': ' v.a$ = "string with\\x0anewline";',
+                'a$="unterminated string with\nnewline=7': ' v.a$ = "unterminated string with\\x0anewline=7";',
+                '1 a$="unterminated string\n2 newline=7': ' v.a$ = "unterminated string";\n v.newlineR = 7;'
             },
             variables: {
                 "a!=1.4": " v.aR = 1.4;",
@@ -91,6 +95,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
                 "a=1>=1>1": " v.aR = (1 >= 1 ? -1 : 0) > 1 ? -1 : 0;"
             },
             "Line numbers": {
+                "1 ": "",
                 "0 cls": "CodeGeneratorJs: Line number overflow in 0 at pos 0-1: 0",
                 "65535 cls": " o.cls(0);",
                 "65536 cls": "CodeGeneratorJs: Line number overflow in 0 at pos 0-5: 65536",
@@ -98,17 +103,6 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
                 "2 cls\n1 cls": "CodeGeneratorJs: Expected increasing line number in 0 at pos 6-7: 1"
             },
             special: {
-                "1 ": "",
-                'a$="string with\nnewline"': ' v.a$ = "string with\\x0anewline";',
-                "1 on error goto 0:a=asc(0)": "BasicParser: Expected string in 1 at pos 24-25: 0",
-                "1 on error goto 2:a=asc(0)\n2 rem": " o.onErrorGoto(2); v.aR = o.asc(0);\n //",
-                '1 on error goto 0:?chr$("A")': "BasicParser: Expected number in 1 at pos 25-26: A",
-                '1 on error goto 2:?chr$("A")\n2 rem': ' o.onErrorGoto(2); o.print(0, o.chr$("A"), "\\r\\n");\n //',
-                '1 on error goto 0:a$=dec$(b$,"\\    \\")': "BasicParser: Expected number in 1 at pos 26-28: b$",
-                '1 on error goto 2:a$=dec$(b$,"\\    \\")\n2 rem': ' o.onErrorGoto(2); v.a$ = o.dec$(v.b$, "\\\\    \\\\");\n //',
-                "1 on error goto 0:mask ,": "BasicParser: Operand missing in 1 at pos 23-24: ,",
-                "1 on error goto 2:mask ,\n2 rem": " o.onErrorGoto(2); o.mask(undefined);\n //",
-                "|": ' o.rsx.rsxExec(""); o.vmGoto("directs0"); break;\ncase "directs0":',
                 "!": "BasicLexer: Unrecognized token at pos 0-1: !"
             },
             "abs, after gosub, and, asc, atn, auto": {
@@ -480,6 +474,14 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
                 "on break stop": " o.onBreakStop();",
                 "10 on error goto 0": " o.onErrorGoto(0);",
                 "10 on error goto 10": " o.onErrorGoto(10);",
+                "1 on error goto 0:a=asc(0)": "BasicParser: Expected string in 1 at pos 24-25: 0",
+                "1 on error goto 2:a=asc(0)\n2 rem": " o.onErrorGoto(2); v.aR = o.asc(0);\n //",
+                '1 on error goto 0:?chr$("A")': "BasicParser: Expected number in 1 at pos 25-26: A",
+                '1 on error goto 2:?chr$("A")\n2 rem': ' o.onErrorGoto(2); o.print(0, o.chr$("A"), "\\r\\n");\n //',
+                '1 on error goto 0:a$=dec$(b$,"\\    \\")': "BasicParser: Expected number in 1 at pos 26-28: b$",
+                '1 on error goto 2:a$=dec$(b$,"\\    \\")\n2 rem': ' o.onErrorGoto(2); v.a$ = o.dec$(v.b$, "\\\\    \\\\");\n //',
+                "1 on error goto 0:mask ,": "BasicParser: Operand missing in 1 at pos 23-24: ,",
+                "1 on error goto 2:mask ,\n2 rem": " o.onErrorGoto(2); o.mask(undefined);\n //",
                 "10 on 1 gosub 10": ' o.onGosub("10g0", 1, 10); break;\ncase "10g0":',
                 "10 on x gosub 10,20\n20 rem": ' o.onGosub("10g0", v.xR, 10, 20); break;\ncase "10g0":\n //',
                 "10 on x+1 gosub 10,20,20\n20 rem": ' o.onGosub("10g0", v.xR + 1, 10, 20, 20); break;\ncase "10g0":\n //',
@@ -711,7 +713,8 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
                 "|tape.out": ' o.rsx.tape_out(); o.vmGoto("directs0"); break;\ncase "directs0":',
                 "|user,1": ' o.rsx.user(1); o.vmGoto("directs0"); break;\ncase "directs0":',
                 "|mode,3": ' o.rsx.mode(3); o.vmGoto("directs0"); break;\ncase "directs0":',
-                "|renum,1,2,3,4": ' o.rsx.renum(1, 2, 3, 4); o.vmGoto("directs0"); break;\ncase "directs0":'
+                "|renum,1,2,3,4": ' o.rsx.renum(1, 2, 3, 4); o.vmGoto("directs0"); break;\ncase "directs0":',
+                "|": ' o.rsx.rsxExec(""); o.vmGoto("directs0"); break;\ncase "directs0":'
             },
             keepSpaces: {
                 ' 1  chain   merge  "f5"': ' o.chainMerge("f5"); o.vmGoto("1s0"); break;\ncase "1s0":',

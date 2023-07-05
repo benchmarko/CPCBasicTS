@@ -1653,19 +1653,28 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
             return out;
         };
         BasicLexer.prototype.fnParseString = function (startPos) {
-            var char = "", token = this.advanceWhile(char, BasicLexer.isNotQuotes);
+            var char = "", token = this.advanceWhile(char, BasicLexer.isNotQuotes), type = "string";
             char = this.getChar();
             if (char !== '"') {
-                if (Utils_2.Utils.debug) {
-                    Utils_2.Utils.console.debug(this.composeError({}, "Unterminated string", token, startPos + 1).message);
+                var contString = this.fnTryContinueString(char); // heuristic to detect an LF in the string
+                if (contString) {
+                    if (Utils_2.Utils.debug) {
+                        Utils_2.Utils.console.debug(this.composeError({}, "Continued string", token, startPos + 1).message);
+                    }
+                    token += contString;
+                    char = this.getChar();
                 }
-                token += this.fnTryContinueString(char); // heuristic to detect an LF in the string
-                char = this.getChar();
             }
-            this.addToken("string", token, startPos + 1);
             if (char === '"') { // not for newline
                 this.advance();
             }
+            else {
+                if (Utils_2.Utils.debug) {
+                    Utils_2.Utils.console.debug(this.composeError({}, "Unterminated string", token, startPos + 1).message);
+                }
+                type = "ustring"; // unterminated string
+            }
+            this.addToken(type, token, startPos + 1);
         };
         BasicLexer.prototype.fnParseRsx = function (char, startPos) {
             var token = char;
@@ -2085,7 +2094,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
         };
         BasicParser.prototype.fnCheckStaticTypeNotNumber = function (expression, typeFirstChar) {
             var type = expression.type, isStringFunction = (BasicParser.keywords[type] || "").startsWith("f") && type.endsWith("$"), isStringIdentifier = type === "identifier" && expression.value.endsWith("$");
-            if (type === "string" || type === "#" || isStringFunction || isStringIdentifier) { // got a string or a stream? (statical check)
+            if (type === "string" || type === "ustring" || type === "#" || isStringFunction || isStringIdentifier) { // got a string or a stream? (statical check)
                 this.fnMaskedError(expression, "Expected " + BasicParser.parameterTypes[typeFirstChar]);
             }
         };
@@ -2587,7 +2596,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             else {
                 node.args.push(BasicParser.fnCreateDummyArg("null"));
             }
-            if (this.token.type === "string") { // message
+            if (this.token.type === "string" || this.token.type === "ustring") { // message
                 node.args.push(this.token);
                 this.token = this.advance();
                 if (this.token.type === ";" || this.token.type === ",") { // ";" => need to append prompt "? " , "," = no prompt
@@ -2885,6 +2894,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             this.createNudSymbol("hexnumber", BasicParser.fnNode);
             this.createNudSymbol("linenumber", BasicParser.fnNode);
             this.createNudSymbol("string", BasicParser.fnNode);
+            this.createNudSymbol("ustring", BasicParser.fnNode);
             this.createNudSymbol("unquoted", BasicParser.fnNode);
             this.createNudSymbol("ws", BasicParser.fnNode); // optional whitespace
             this.createNudSymbol("identifier", function () { return _this.fnIdentifier(); });
@@ -3741,8 +3751,9 @@ define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exp
             return this.fnVar() + "!";
         };
         BasicTokenizer.prototype.fnRsx = function () {
-            this.fnNum8Dec(); // ignore length (offset to tokens following RSX name)
-            return "|" + this.fnGetBit7TerminatedString();
+            var name = this.fnGetBit7TerminatedString();
+            name = name.substring(1); // ignore length (offset to tokens following RSX name)
+            return "|" + name;
         };
         BasicTokenizer.prototype.fnStringUntilEol = function () {
             var out = this.input.substring(this.pos, this.lineEnd - 1); // take remaining line
@@ -3911,6 +3922,7 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             this.parseFunctions = {
                 "(": this.fnParenthesisOpen,
                 string: CodeGeneratorBasic.string,
+                ustring: CodeGeneratorBasic.ustring,
                 unquoted: CodeGeneratorBasic.unquoted,
                 "null": CodeGeneratorBasic.fnNull,
                 assign: this.assign,
@@ -4016,6 +4028,9 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
         };
         CodeGeneratorBasic.string = function (node) {
             return CodeGeneratorBasic.fnWs(node) + '"' + node.value + '"';
+        };
+        CodeGeneratorBasic.ustring = function (node) {
+            return CodeGeneratorBasic.fnWs(node) + '"' + node.value;
         };
         CodeGeneratorBasic.unquoted = function (node) {
             return CodeGeneratorBasic.fnWs(node) + node.value;
@@ -4749,6 +4764,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 range: this.range,
                 linerange: this.linerange,
                 string: CodeGeneratorJs.string,
+                ustring: CodeGeneratorJs.string,
                 unquoted: CodeGeneratorJs.unquoted,
                 "null": CodeGeneratorJs.fnNull,
                 assign: this.assign,
@@ -6226,6 +6242,7 @@ define("CodeGeneratorToken", ["require", "exports", "Utils"], function (require,
                 range: this.range,
                 linerange: this.linerange,
                 string: CodeGeneratorToken.string,
+                ustring: CodeGeneratorToken.ustring,
                 "null": CodeGeneratorToken.fnNull,
                 assign: this.assign,
                 number: CodeGeneratorToken.number,
@@ -6308,7 +6325,10 @@ define("CodeGeneratorToken", ["require", "exports", "Utils"], function (require,
             return this.parseNode(node.left) + CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.value) + this.parseNode(node.right);
         };
         CodeGeneratorToken.string = function (node) {
-            return CodeGeneratorToken.fnGetWs(node) + '"' + node.value + '"'; // TODO: how to set unterminated string?
+            return CodeGeneratorToken.fnGetWs(node) + '"' + node.value + '"';
+        };
+        CodeGeneratorToken.ustring = function (node) {
+            return CodeGeneratorToken.fnGetWs(node) + '"' + node.value; // unterminated string
         };
         CodeGeneratorToken.fnNull = function () {
             return "";
@@ -6405,7 +6425,8 @@ define("CodeGeneratorToken", ["require", "exports", "Utils"], function (require,
         // special keyword functions
         CodeGeneratorToken.prototype.vertical = function (node) {
             var rsxName = node.value.substring(1).toUpperCase(), nodeArgs = this.fnParseArgs(node.args), offset = 0; // (offset to tokens following RSX name) TODO
-            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + CodeGeneratorToken.convUInt8ToString(offset) + CodeGeneratorToken.getBit7TerminatedString(rsxName) + (nodeArgs.length ? "," + nodeArgs.join("") : "");
+            // if rsxname.length=0 we take 0x80 from empty getBit7TerminatedString
+            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + (rsxName.length ? CodeGeneratorToken.convUInt8ToString(offset) : "") + CodeGeneratorToken.getBit7TerminatedString(rsxName) + (nodeArgs.length ? "," + nodeArgs.join("") : "");
         };
         CodeGeneratorToken.prototype.fnElse = function (node) {
             if (!node.args) {
@@ -6434,9 +6455,10 @@ define("CodeGeneratorToken", ["require", "exports", "Utils"], function (require,
         };
         CodeGeneratorToken.prototype.onErrorGoto = function (node) {
             if (node.args && node.args.length && node.args[0].value === "0") { // on error goto 0?
-                return CodeGeneratorToken.token2String("_onErrorGoto0");
+                return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("_onErrorGoto0");
             }
-            return CodeGeneratorToken.token2String("on") + CodeGeneratorToken.token2String("error") + CodeGeneratorToken.token2String("goto") + this.fnParseArgs(node.args).join("");
+            //return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("on") + CodeGeneratorToken.token2String("error") + CodeGeneratorToken.token2String("goto") + this.fnParseArgs(node.args).join("");
+            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("on") + this.parseNode(node.right) + this.fnParseArgs(node.args).join("");
         };
         CodeGeneratorToken.prototype.onSqGosub = function (node) {
             return CodeGeneratorToken.token2String("_onSq") + this.fnParseArgs(node.args).join("");
@@ -10862,7 +10884,7 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             for (var key in params) {
                 if (params.hasOwnProperty(key)) {
                     var value = params[key];
-                    parts[parts.length] = encodeURIComponent(key) + "=" + encodeURIComponent((value === null) ? "" : value);
+                    parts[parts.length] = encodeURIComponent(key) + "=" + encodeURIComponent(value === null ? "" : value);
                 }
             }
             return parts.join("&");
@@ -16501,7 +16523,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 }
                 var exampleEntry = _this.model.getExample(example);
                 if (!suppressLog) {
-                    Utils_23.Utils.console.log("Example", url, exampleEntry.meta || "", "loaded");
+                    Utils_23.Utils.console.log("Example", url, (exampleEntry.meta ? exampleEntry.meta + " " : "") + " loaded");
                 }
                 var input = exampleEntry.script;
                 _this.model.setProperty("example", inFile.memorizedExample);
@@ -17640,9 +17662,19 @@ define("cpcconfig", ["require", "exports"], function (require, exports) {
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.cpcconfig = void 0;
     exports.cpcconfig = {
-        databaseDirs: "./examples,https://benchmarko.github.io/CPCBasicApps/apps,storage"
-        //databaseDirs: "./examples,../../CPCBasicApps/apps,storage" // local test
-        //databaseDirs: "../apps,storage"
+        databaseDirs: "./examples,https://benchmarko.github.io/CPCBasicApps/apps,storage",
+        //databaseDirs: "./examples,../../CPCBasicApps/apps,storage", // local test
+        // just an example, not the full list of moved examples...
+        redirectExamples: {
+            "examples/art": {
+                database: "apps",
+                example: "demo/art"
+            },
+            "examples/blkedit": {
+                database: "apps",
+                example: "apps/blkedit"
+            }
+        }
     };
 });
 // cpcbasic.ts - CPCBasic for the Browser
@@ -17768,9 +17800,18 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
                 }
             };
         };
+        cpcBasic.fnRedirectExamples = function (redirectExamples) {
+            var name = this.model.getProperty("database") + "/" + this.model.getProperty("example");
+            if (redirectExamples[name]) {
+                this.model.setProperty("database", redirectExamples[name].database);
+                this.model.setProperty("example", redirectExamples[name].example);
+            }
+        };
         cpcBasic.fnDoStart = function () {
             var startConfig = cpcBasic.config, winCpcConfig = window.cpcConfig || {};
             Object.assign(startConfig, cpcconfig_1.cpcconfig, winCpcConfig);
+            var redirectExamples = startConfig.redirectExamples;
+            delete startConfig.redirectExamples;
             cpcBasic.model = new Model_1.Model(startConfig);
             // eslint-disable-next-line no-new-func
             var myGlobalThis = (typeof globalThis !== "undefined") ? globalThis : Function("return this")(); // for old IE
@@ -17793,6 +17834,9 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
                 Utils_24.Utils.console = UtilsConsole;
                 Utils_24.Utils.console.log("CPCBasic log started at", Utils_24.Utils.dateFormat(new Date()));
                 UtilsConsole.changeLog(View_7.View.getElementById1("consoleText"));
+            }
+            if (redirectExamples) {
+                this.fnRedirectExamples(redirectExamples);
             }
             cpcBasic.controller = new Controller_1.Controller(cpcBasic.model, cpcBasic.view);
             cpcBasic.controller.onDatabaseSelectChange(); // trigger loading example

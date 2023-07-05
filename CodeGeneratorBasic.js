@@ -15,6 +15,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             this.parseFunctions = {
                 "(": this.fnParenthesisOpen,
                 string: CodeGeneratorBasic.string,
+                ustring: CodeGeneratorBasic.ustring,
                 unquoted: CodeGeneratorBasic.unquoted,
                 "null": CodeGeneratorBasic.fnNull,
                 assign: this.assign,
@@ -120,6 +121,9 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
         };
         CodeGeneratorBasic.string = function (node) {
             return CodeGeneratorBasic.fnWs(node) + '"' + node.value + '"';
+        };
+        CodeGeneratorBasic.ustring = function (node) {
+            return CodeGeneratorBasic.fnWs(node) + '"' + node.value;
         };
         CodeGeneratorBasic.unquoted = function (node) {
             return CodeGeneratorBasic.fnWs(node) + node.value;

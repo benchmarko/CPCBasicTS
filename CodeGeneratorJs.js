@@ -76,6 +76,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 range: this.range,
                 linerange: this.linerange,
                 string: CodeGeneratorJs.string,
+                ustring: CodeGeneratorJs.string,
                 unquoted: CodeGeneratorJs.unquoted,
                 "null": CodeGeneratorJs.fnNull,
                 assign: this.assign,

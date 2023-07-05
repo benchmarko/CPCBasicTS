@@ -18,6 +18,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 range: this.range,
                 linerange: this.linerange,
                 string: CodeGeneratorToken.string,
+                ustring: CodeGeneratorToken.ustring,
                 "null": CodeGeneratorToken.fnNull,
                 assign: this.assign,
                 number: CodeGeneratorToken.number,
@@ -100,7 +101,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return this.parseNode(node.left) + CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.value) + this.parseNode(node.right);
         };
         CodeGeneratorToken.string = function (node) {
-            return CodeGeneratorToken.fnGetWs(node) + '"' + node.value + '"'; // TODO: how to set unterminated string?
+            return CodeGeneratorToken.fnGetWs(node) + '"' + node.value + '"';
+        };
+        CodeGeneratorToken.ustring = function (node) {
+            return CodeGeneratorToken.fnGetWs(node) + '"' + node.value; // unterminated string
         };
         CodeGeneratorToken.fnNull = function () {
             return "";
@@ -197,7 +201,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         // special keyword functions
         CodeGeneratorToken.prototype.vertical = function (node) {
             var rsxName = node.value.substring(1).toUpperCase(), nodeArgs = this.fnParseArgs(node.args), offset = 0; // (offset to tokens following RSX name) TODO
-            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + CodeGeneratorToken.convUInt8ToString(offset) + CodeGeneratorToken.getBit7TerminatedString(rsxName) + (nodeArgs.length ? "," + nodeArgs.join("") : "");
+            // if rsxname.length=0 we take 0x80 from empty getBit7TerminatedString
+            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + (rsxName.length ? CodeGeneratorToken.convUInt8ToString(offset) : "") + CodeGeneratorToken.getBit7TerminatedString(rsxName) + (nodeArgs.length ? "," + nodeArgs.join("") : "");
         };
         CodeGeneratorToken.prototype.fnElse = function (node) {
             if (!node.args) {
@@ -226,9 +231,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         CodeGeneratorToken.prototype.onErrorGoto = function (node) {
             if (node.args && node.args.length && node.args[0].value === "0") { // on error goto 0?
-                return CodeGeneratorToken.token2String("_onErrorGoto0");
+                return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("_onErrorGoto0");
             }
-            return CodeGeneratorToken.token2String("on") + CodeGeneratorToken.token2String("error") + CodeGeneratorToken.token2String("goto") + this.fnParseArgs(node.args).join("");
+            //return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("on") + CodeGeneratorToken.token2String("error") + CodeGeneratorToken.token2String("goto") + this.fnParseArgs(node.args).join("");
+            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("on") + this.parseNode(node.right) + this.fnParseArgs(node.args).join("");
         };
         CodeGeneratorToken.prototype.onSqGosub = function (node) {
             return CodeGeneratorToken.token2String("_onSq") + this.fnParseArgs(node.args).join("");

@@ -344,7 +344,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         BasicParser.prototype.fnCheckStaticTypeNotNumber = function (expression, typeFirstChar) {
             var type = expression.type, isStringFunction = (BasicParser.keywords[type] || "").startsWith("f") && type.endsWith("$"), isStringIdentifier = type === "identifier" && expression.value.endsWith("$");
-            if (type === "string" || type === "#" || isStringFunction || isStringIdentifier) { // got a string or a stream? (statical check)
+            if (type === "string" || type === "ustring" || type === "#" || isStringFunction || isStringIdentifier) { // got a string or a stream? (statical check)
                 this.fnMaskedError(expression, "Expected " + BasicParser.parameterTypes[typeFirstChar]);
             }
         };
@@ -846,7 +846,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             else {
                 node.args.push(BasicParser.fnCreateDummyArg("null"));
             }
-            if (this.token.type === "string") { // message
+            if (this.token.type === "string" || this.token.type === "ustring") { // message
                 node.args.push(this.token);
                 this.token = this.advance();
                 if (this.token.type === ";" || this.token.type === ",") { // ";" => need to append prompt "? " , "," = no prompt
@@ -1144,6 +1144,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.createNudSymbol("hexnumber", BasicParser.fnNode);
             this.createNudSymbol("linenumber", BasicParser.fnNode);
             this.createNudSymbol("string", BasicParser.fnNode);
+            this.createNudSymbol("ustring", BasicParser.fnNode);
             this.createNudSymbol("unquoted", BasicParser.fnNode);
             this.createNudSymbol("ws", BasicParser.fnNode); // optional whitespace
             this.createNudSymbol("identifier", function () { return _this.fnIdentifier(); });

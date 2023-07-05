@@ -11,6 +11,7 @@ declare class cpcBasic {
     private static fnParseUri;
     private static fnMapObjectProperties;
     private static createDebugUtilsConsole;
+    private static fnRedirectExamples;
     private static fnDoStart;
     static fnOnLoad(): void;
 }

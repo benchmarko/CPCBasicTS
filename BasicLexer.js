@@ -317,19 +317,28 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return out;
         };
         BasicLexer.prototype.fnParseString = function (startPos) {
-            var char = "", token = this.advanceWhile(char, BasicLexer.isNotQuotes);
+            var char = "", token = this.advanceWhile(char, BasicLexer.isNotQuotes), type = "string";
             char = this.getChar();
             if (char !== '"') {
-                if (Utils_1.Utils.debug) {
-                    Utils_1.Utils.console.debug(this.composeError({}, "Unterminated string", token, startPos + 1).message);
+                var contString = this.fnTryContinueString(char); // heuristic to detect an LF in the string
+                if (contString) {
+                    if (Utils_1.Utils.debug) {
+                        Utils_1.Utils.console.debug(this.composeError({}, "Continued string", token, startPos + 1).message);
+                    }
+                    token += contString;
+                    char = this.getChar();
                 }
-                token += this.fnTryContinueString(char); // heuristic to detect an LF in the string
-                char = this.getChar();
             }
-            this.addToken("string", token, startPos + 1);
             if (char === '"') { // not for newline
                 this.advance();
             }
+            else {
+                if (Utils_1.Utils.debug) {
+                    Utils_1.Utils.console.debug(this.composeError({}, "Unterminated string", token, startPos + 1).message);
+                }
+                type = "ustring"; // unterminated string
+            }
+            this.addToken(type, token, startPos + 1);
         };
         BasicLexer.prototype.fnParseRsx = function (char, startPos) {
             var token = char;

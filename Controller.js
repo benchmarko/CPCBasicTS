@@ -1152,7 +1152,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 }
                 var exampleEntry = _this.model.getExample(example);
                 if (!suppressLog) {
-                    Utils_1.Utils.console.log("Example", url, exampleEntry.meta || "", "loaded");
+                    Utils_1.Utils.console.log("Example", url, (exampleEntry.meta ? exampleEntry.meta + " " : "") + " loaded");
                 }
                 var input = exampleEntry.script;
                 _this.model.setProperty("example", inFile.memorizedExample);

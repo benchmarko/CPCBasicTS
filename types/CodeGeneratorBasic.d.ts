@@ -28,6 +28,7 @@ export declare class CodeGeneratorBasic {
     private static combineArgsWithColon;
     private fnParenthesisOpen;
     private static string;
+    private static ustring;
     private static unquoted;
     private static fnNull;
     private assign;

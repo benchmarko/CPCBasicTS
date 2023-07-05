@@ -211,7 +211,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             for (var key in params) {
                 if (params.hasOwnProperty(key)) {
                     var value = params[key];
-                    parts[parts.length] = encodeURIComponent(key) + "=" + encodeURIComponent((value === null) ? "" : value);
+                    parts[parts.length] = encodeURIComponent(key) + "=" + encodeURIComponent(value === null ? "" : value);
                 }
             }
             return parts.join("&");

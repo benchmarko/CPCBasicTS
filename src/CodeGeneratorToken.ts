@@ -364,7 +364,11 @@ export class CodeGeneratorToken {
 
 
 	private static string(node: ParserNode) {
-		return CodeGeneratorToken.fnGetWs(node) + '"' + node.value + '"'; // TODO: how to set unterminated string?
+		return CodeGeneratorToken.fnGetWs(node) + '"' + node.value + '"';
+	}
+
+	private static ustring(node: ParserNode) {
+		return CodeGeneratorToken.fnGetWs(node) + '"' + node.value; // unterminated string
 	}
 
 	private static fnNull() { // "null" means: no parameter specified
@@ -491,7 +495,8 @@ export class CodeGeneratorToken {
 			nodeArgs = this.fnParseArgs(node.args),
 			offset = 0; // (offset to tokens following RSX name) TODO
 
-		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + CodeGeneratorToken.convUInt8ToString(offset) + CodeGeneratorToken.getBit7TerminatedString(rsxName) + (nodeArgs.length ? "," + nodeArgs.join("") : "");
+		// if rsxname.length=0 we take 0x80 from empty getBit7TerminatedString
+		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + (rsxName.length ? CodeGeneratorToken.convUInt8ToString(offset) : "") + CodeGeneratorToken.getBit7TerminatedString(rsxName) + (nodeArgs.length ? "," + nodeArgs.join("") : "");
 	}
 
 	private fnElse(node: ParserNode) { // similar to a comment, with (un?)checked tokens
@@ -528,9 +533,10 @@ export class CodeGeneratorToken {
 
 	private onErrorGoto(node: ParserNode) {
 		if (node.args && node.args.length && node.args[0].value === "0") { // on error goto 0?
-			return CodeGeneratorToken.token2String("_onErrorGoto0");
+			return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("_onErrorGoto0");
 		}
-		return CodeGeneratorToken.token2String("on") + CodeGeneratorToken.token2String("error") + CodeGeneratorToken.token2String("goto") + this.fnParseArgs(node.args).join("");
+		//return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("on") + CodeGeneratorToken.token2String("error") + CodeGeneratorToken.token2String("goto") + this.fnParseArgs(node.args).join("");
+		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("on") + this.parseNode(node.right as ParserNode) + this.fnParseArgs(node.args).join("");
 	}
 
 	private onSqGosub(node: ParserNode) {
@@ -549,6 +555,7 @@ export class CodeGeneratorToken {
 		range: this.range,
 		linerange: this.linerange,
 		string: CodeGeneratorToken.string,
+		ustring: CodeGeneratorToken.ustring,
 		"null": CodeGeneratorToken.fnNull,
 		assign: this.assign,
 		number: CodeGeneratorToken.number,
