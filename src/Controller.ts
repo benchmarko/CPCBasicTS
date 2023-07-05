@@ -1423,7 +1423,7 @@ export class Controller implements IController {
 			const exampleEntry = this.model.getExample(example);
 
 			if (!suppressLog) {
-				Utils.console.log("Example", url, exampleEntry.meta || "", "loaded");
+				Utils.console.log("Example", url, (exampleEntry.meta ? exampleEntry.meta + " " : "") + " loaded");
 			}
 			const input = exampleEntry.script;
 

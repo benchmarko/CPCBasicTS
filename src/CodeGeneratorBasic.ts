@@ -186,6 +186,9 @@ export class CodeGeneratorBasic {
 	private static string(node: ParserNode) {
 		return CodeGeneratorBasic.fnWs(node) + '"' + node.value + '"';
 	}
+	private static ustring(node: ParserNode) {
+		return CodeGeneratorBasic.fnWs(node) + '"' + node.value;
+	}
 	private static unquoted(node: ParserNode) {
 		return CodeGeneratorBasic.fnWs(node) + node.value;
 	}
@@ -505,6 +508,7 @@ export class CodeGeneratorBasic {
 	private readonly parseFunctions: Record<string, (node: ParserNode) => string> = { // to call methods, use parseFunctions[].call(this,...)
 		"(": this.fnParenthesisOpen,
 		string: CodeGeneratorBasic.string,
+		ustring: CodeGeneratorBasic.ustring,
 		unquoted: CodeGeneratorBasic.unquoted,
 		"null": CodeGeneratorBasic.fnNull,
 		assign: this.assign,

@@ -137,8 +137,10 @@ export class BasicTokenizer {
 	}
 
 	private fnRsx() {
-		this.fnNum8Dec(); // ignore length (offset to tokens following RSX name)
-		return "|" + this.fnGetBit7TerminatedString();
+		let name = this.fnGetBit7TerminatedString();
+
+		name = name.substring(1); // ignore length (offset to tokens following RSX name)
+		return "|" + name;
 	}
 
 	private fnStringUntilEol() {

@@ -1536,6 +1536,7 @@ export class CodeGeneratorJs {
 		range: this.range,
 		linerange: this.linerange,
 		string: CodeGeneratorJs.string,
+		ustring: CodeGeneratorJs.string, // unterminated string the same as string
 		unquoted: CodeGeneratorJs.unquoted,
 		"null": CodeGeneratorJs.fnNull,
 		assign: this.assign,

@@ -10,6 +10,8 @@ import { Model, ConfigType, ConfigEntryType } from "./Model";
 import { View } from "./View";
 import { NodeAdapt } from "./NodeAdapt";
 
+type RedirectExamplesType = Record<string, Record<"database" | "example", string>>;
+
 class cpcBasic { // eslint-disable-line vars-on-top
 	private static readonly config: ConfigType = {
 		arrayBounds: false,
@@ -176,11 +178,24 @@ class cpcBasic { // eslint-disable-line vars-on-top
 		};
 	}
 
+	private static fnRedirectExamples(redirectExamples: RedirectExamplesType) {
+		const name = this.model.getProperty("database") + "/" + this.model.getProperty("example");
+
+		if (redirectExamples[name]) {
+			this.model.setProperty("database", redirectExamples[name].database);
+			this.model.setProperty("example", redirectExamples[name].example);
+		}
+	}
+
 	private static fnDoStart() {
 		const startConfig = cpcBasic.config,
 			winCpcConfig = window.cpcConfig || {};
 
 		Object.assign(startConfig, cpcconfig, winCpcConfig);
+
+		const redirectExamples = startConfig.redirectExamples;
+
+		delete startConfig.redirectExamples;
 
 		cpcBasic.model = new Model(startConfig);
 
@@ -212,6 +227,10 @@ class cpcBasic { // eslint-disable-line vars-on-top
 			Utils.console = UtilsConsole;
 			Utils.console.log("CPCBasic log started at", Utils.dateFormat(new Date()));
 			UtilsConsole.changeLog(View.getElementById1("consoleText"));
+		}
+
+		if (redirectExamples) {
+			this.fnRedirectExamples(redirectExamples as unknown as Record<string, Record<"database" | "example", string>>);
 		}
 
 		cpcBasic.controller = new Controller(cpcBasic.model, cpcBasic.view);

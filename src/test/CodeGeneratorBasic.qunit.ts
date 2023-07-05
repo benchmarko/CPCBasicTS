@@ -48,7 +48,11 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 		strings: {
 			'a$="a12"': 'a$="a12"',
 			'a$=+"7.1"': 'a$=+"7.1"',
-			'a$="\\"': 'a$="\\"'
+			'a$="\\"': 'a$="\\"',
+			'a$="unterminated string': 'a$="unterminated string',
+			'a$="string with\nnewline"': 'a$="string with\nnewline"',
+			'a$="unterminated string with\nnewline=7': 'a$="unterminated string with\nnewline=7',
+			'1 a$="unterminated string\n2 newline=7': '1 a$="unterminated string\n2 newline=7'
 		},
 		variables: {
 			"a!=1.4": "a!=1.4",
@@ -94,6 +98,7 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 			"a=1>=1>1": "a=1>=1>1"
 		},
 		"Line numbers": {
+			"1 ": "1",
 			"0 cls": "0 CLS",
 			"65535 cls": "65535 CLS",
 			"65536 cls": "65536 CLS",
@@ -101,17 +106,6 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 			"2 cls\n1 cls": "2 CLS\n1 CLS"
 		},
 		special: {
-			"1 ": "1",
-			'a$="string with\nnewline"': 'a$="string with\nnewline"',
-			"1 on error goto 0:a=asc(0)": "BasicParser: Expected string in 1 at pos 24-25: 0",
-			"1 on error goto 2:a=asc(0)\n2 rem": "1 ON ERROR GOTO 2:a=ASC(0)\n2 REM",
-			'1 on error goto 0:?chr$("A")': "BasicParser: Expected number in 1 at pos 25-26: A",
-			'1 on error goto 2:?chr$("A")\n2 rem': '1 ON ERROR GOTO 2:?CHR$("A")\n2 REM',
-			'1 on error goto 0:a$=dec$(b$,"\\    \\")': "BasicParser: Expected number in 1 at pos 26-28: b$",
-			'1 on error goto 2:a$=dec$(b$,"\\    \\")\n2 rem': '1 ON ERROR GOTO 2:a$=DEC$(b$,"\\    \\")\n2 REM',
-			"1 on error goto 0:mask ,": "BasicParser: Operand missing in 1 at pos 23-24: ,",
-			"1 on error goto 2:mask ,\n2 rem": "1 ON ERROR GOTO 2:MASK ,\n2 REM",
-			"|": "|",
 			"!": "BasicLexer: Unrecognized token at pos 0-1: !"
 		},
 		"abs, after gosub, and, asc, atn, auto": {
@@ -483,6 +477,14 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 			"on break stop": "ON BREAK STOP",
 			"10 on error goto 0": "10 ON ERROR GOTO 0",
 			"10 on error goto 10": "10 ON ERROR GOTO 10",
+			"1 on error goto 0:a=asc(0)": "BasicParser: Expected string in 1 at pos 24-25: 0",
+			"1 on error goto 2:a=asc(0)\n2 rem": "1 ON ERROR GOTO 2:a=ASC(0)\n2 REM",
+			'1 on error goto 0:?chr$("A")': "BasicParser: Expected number in 1 at pos 25-26: A",
+			'1 on error goto 2:?chr$("A")\n2 rem': '1 ON ERROR GOTO 2:?CHR$("A")\n2 REM',
+			'1 on error goto 0:a$=dec$(b$,"\\    \\")': "BasicParser: Expected number in 1 at pos 26-28: b$",
+			'1 on error goto 2:a$=dec$(b$,"\\    \\")\n2 rem': '1 ON ERROR GOTO 2:a$=DEC$(b$,"\\    \\")\n2 REM',
+			"1 on error goto 0:mask ,": "BasicParser: Operand missing in 1 at pos 23-24: ,",
+			"1 on error goto 2:mask ,\n2 rem": "1 ON ERROR GOTO 2:MASK ,\n2 REM",
 			"10 on 1 gosub 10": "10 ON 1 GOSUB 10",
 			"10 on x gosub 10,20\n20 rem": "10 ON x GOSUB 10,20\n20 REM",
 			"10 on x+1 gosub 10,20,20\n20 rem": "10 ON x+1 GOSUB 10,20,20\n20 REM",
@@ -714,7 +716,8 @@ QUnit.module("CodeGeneratorBasic: Tests", function (/* hooks */) {
 			"|tape.out": "|TAPE.OUT",
 			"|user,1": "|USER,1",
 			"|mode,3": "|MODE,3",
-			"|renum,1,2,3,4": "|RENUM,1,2,3,4"
+			"|renum,1,2,3,4": "|RENUM,1,2,3,4",
+			"|": "|"
 		},
 		keepSpaces: {
 			' 1  chain   merge  "f5"': ' 1  CHAIN   MERGE  "f5"',
