@@ -3,7 +3,7 @@
 
 import { Utils } from "../Utils";
 import { Sound, SoundData, ToneEnvData, VolEnvData } from "../Sound";
-import { TestHelper, TestsType, AllTestsType } from "./TestHelper";
+import { TestHelper, TestsType, AllTestsType, ResultType } from "./TestHelper";
 
 type TestFunctionInputType = string | number | undefined; // | object | Function;
 
@@ -224,7 +224,7 @@ QUnit.module("Sound: Tests1", function (hooks) {
 	});
 });
 
-QUnit.module("Sound: Tests", function () {
+QUnit.module("Sound: Tests", function (hooks) {
 	const allTests: AllTestsType = { // eslint-disable-line vars-on-top
 		sound: {
 			"1,100,3,12": "createOscillator: , oscillator.connect:[obj gain] , gain:gain.setValueAtTime:0.6400000000000001,0 , oscillator.start:0 , oscillator.stop:0.03 -- undefined",
@@ -341,7 +341,7 @@ QUnit.module("Sound: Tests", function () {
 		return result;
 	}
 
-	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: string[]) {
+	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
 		const sound = new Sound({
 				AudioContextConstructor: AudioContextMock as typeof window.AudioContext
 			}),
@@ -356,7 +356,7 @@ QUnit.module("Sound: Tests", function () {
 					result = runSingleTest(testFunction, sound, key, expected, category);
 
 				if (results) {
-					results.push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+					results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
 				}
 
 				if (assert) {
@@ -367,6 +367,6 @@ QUnit.module("Sound: Tests", function () {
 		sound.soundOff();
 	}
 
-	TestHelper.generateAndRunAllTests(allTests, runTestsFor);
+	TestHelper.generateAllTests(allTests, runTestsFor, hooks);
 });
 // end

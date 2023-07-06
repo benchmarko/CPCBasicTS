@@ -2,7 +2,7 @@
 //
 
 import { Variables } from "../Variables";
-import { TestHelper, TestsType, AllTestsType } from "./TestHelper";
+import { TestHelper, TestsType, AllTestsType, ResultType } from "./TestHelper";
 
 QUnit.module("Variables", function (/* hooks */) {
 	QUnit.test("create class", function (assert) {
@@ -141,7 +141,7 @@ QUnit.module("Variables", function (/* hooks */) {
 });
 
 
-QUnit.module("Variables: determineStaticVarType", function () {
+QUnit.module("Variables: determineStaticVarType", function (hooks) {
 	/* eslint-disable quote-props */
 	const allTests: AllTestsType = { // xxeslint-disable-line vars-on-top
 		determineStaticVarType: {
@@ -165,7 +165,7 @@ QUnit.module("Variables: determineStaticVarType", function () {
 	};
 	/* eslint-enable quote-props */
 
-	function runTestsForDetermineStaticVarType(_category: string, tests: TestsType, assert?: Assert, results?: string[]) {
+	function runTestsForDetermineStaticVarType(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
 		const variables = new Variables();
 
 		for (const key in tests) {
@@ -174,7 +174,7 @@ QUnit.module("Variables: determineStaticVarType", function () {
 					result = variables.determineStaticVarType(key);
 
 				if (results) {
-					results.push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+					results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
 				}
 
 				if (assert) {
@@ -184,6 +184,6 @@ QUnit.module("Variables: determineStaticVarType", function () {
 		}
 	}
 
-	TestHelper.generateAndRunAllTests(allTests, runTestsForDetermineStaticVarType);
+	TestHelper.generateAllTests(allTests, runTestsForDetermineStaticVarType, hooks);
 });
 // end

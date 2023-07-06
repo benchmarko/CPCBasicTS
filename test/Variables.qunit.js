@@ -99,7 +99,7 @@ define(["require", "exports", "../Variables", "./TestHelper"], function (require
             assert.propEqual(variables.getVariable("cAA"), zero2x5, "init cAA; get cAA: 0,0... (2x5)");
         });
     });
-    QUnit.module("Variables: determineStaticVarType", function () {
+    QUnit.module("Variables: determineStaticVarType", function (hooks) {
         /* eslint-disable quote-props */
         var allTests = {
             determineStaticVarType: {
@@ -122,13 +122,13 @@ define(["require", "exports", "../Variables", "./TestHelper"], function (require
             }
         };
         /* eslint-enable quote-props */
-        function runTestsForDetermineStaticVarType(_category, tests, assert, results) {
+        function runTestsForDetermineStaticVarType(category, tests, assert, results) {
             var variables = new Variables_1.Variables();
             for (var key in tests) {
                 if (tests.hasOwnProperty(key)) {
                     var expected = tests[key], result = variables.determineStaticVarType(key);
                     if (results) {
-                        results.push(TestHelper_1.TestHelper.stringInQuotes(key) + ": " + TestHelper_1.TestHelper.stringInQuotes(result));
+                        results[category].push(TestHelper_1.TestHelper.stringInQuotes(key) + ": " + TestHelper_1.TestHelper.stringInQuotes(result));
                     }
                     if (assert) {
                         assert.strictEqual(result, expected, key);
@@ -136,7 +136,7 @@ define(["require", "exports", "../Variables", "./TestHelper"], function (require
                 }
             }
         }
-        TestHelper_1.TestHelper.generateAndRunAllTests(allTests, runTestsForDetermineStaticVarType);
+        TestHelper_1.TestHelper.generateAllTests(allTests, runTestsForDetermineStaticVarType, hooks);
     });
 });
 // end

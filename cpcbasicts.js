@@ -1968,6 +1968,14 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             }
             return statementList;
         };
+        BasicParser.fnCreateDummyArg = function (type, value) {
+            return {
+                type: type,
+                value: value !== undefined ? value : type,
+                pos: 0,
+                len: 0
+            };
+        };
         BasicParser.prototype.basicLine = function () {
             var node;
             if (this.token.type !== "number") {
@@ -1990,14 +1998,6 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 this.advance();
             }
             return node;
-        };
-        BasicParser.fnCreateDummyArg = function (type, value) {
-            return {
-                type: type,
-                value: value !== undefined ? value : type,
-                pos: 0,
-                len: 0
-            };
         };
         BasicParser.prototype.fnCombineTwoTokensNoArgs = function (token2) {
             var node = this.previousToken, name = node.type + Utils_3.Utils.stringCapitalize(this.token.type); // e.g ."speedInk"
@@ -4290,7 +4290,7 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             if (node.args) {
                 var nodeArgs = this.fnParseArgs(node.args);
                 if (BasicParser_1.BasicParser.keywords[right.toLowerCase()]) { // for combined keywords
-                    // special handling for 2 tokens (for 3 tokens, we need a secific function)
+                    // special handling for 2 tokens (for 3 tokens, we need a specific function)
                     args += CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
                 }
                 else {
@@ -4347,12 +4347,13 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
                         value2 = "(" + value2 + ")";
                     }
                 }
-                var whiteBefore = CodeGeneratorBasic.fnWs(node);
-                var operator = whiteBefore + operators[node.type].toUpperCase();
-                if (whiteBefore === "" && (/^(and|or|xor|mod)$/).test(node.type)) {
-                    operator = " " + operator + " ";
+                var operator = CodeGeneratorBasic.fnWs(node) + operators[node.type].toUpperCase();
+                if ((/^(and|or|xor|mod)$/).test(node.type)) {
+                    value += CodeGeneratorBasic.fnSpace1(operator) + CodeGeneratorBasic.fnSpace1(value2);
                 }
-                value += operator + value2;
+                else {
+                    value += operator + value2;
+                }
             }
             else if (node.right) { // unary operator, e.g. not, '#'
                 if (node.len === 0) {
@@ -4372,11 +4373,13 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
                     if (p && pr && (pr < p)) {
                         value = "(" + value + ")";
                     }
-                    var whiteBefore = CodeGeneratorBasic.fnWs(node), operator = whiteBefore + operators[node.type].toUpperCase(), whiteAfter = value.startsWith(" ");
-                    if (!whiteAfter && node.type === "not") {
-                        value = " " + value;
+                    var operator = CodeGeneratorBasic.fnWs(node) + operators[node.type].toUpperCase();
+                    if (node.type === "not") {
+                        value = operator + CodeGeneratorBasic.fnSpace1(value);
                     }
-                    value = operator + value;
+                    else {
+                        value = operator + value;
+                    }
                 }
             }
             else { // no operator, e.g. "=" in "for"

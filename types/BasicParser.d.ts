@@ -45,8 +45,8 @@ export declare class BasicParser {
     private assignment;
     private statement;
     private statements;
-    private basicLine;
     private static fnCreateDummyArg;
+    private basicLine;
     private fnCombineTwoTokensNoArgs;
     private fnCombineTwoTokens;
     private fnGetOptionalStream;

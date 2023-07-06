@@ -383,7 +383,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             if (node.args) {
                 var nodeArgs = this.fnParseArgs(node.args);
                 if (BasicParser_1.BasicParser.keywords[right.toLowerCase()]) { // for combined keywords
-                    // special handling for 2 tokens (for 3 tokens, we need a secific function)
+                    // special handling for 2 tokens (for 3 tokens, we need a specific function)
                     args += CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
                 }
                 else {
@@ -440,12 +440,13 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
                         value2 = "(" + value2 + ")";
                     }
                 }
-                var whiteBefore = CodeGeneratorBasic.fnWs(node);
-                var operator = whiteBefore + operators[node.type].toUpperCase();
-                if (whiteBefore === "" && (/^(and|or|xor|mod)$/).test(node.type)) {
-                    operator = " " + operator + " ";
+                var operator = CodeGeneratorBasic.fnWs(node) + operators[node.type].toUpperCase();
+                if ((/^(and|or|xor|mod)$/).test(node.type)) {
+                    value += CodeGeneratorBasic.fnSpace1(operator) + CodeGeneratorBasic.fnSpace1(value2);
                 }
-                value += operator + value2;
+                else {
+                    value += operator + value2;
+                }
             }
             else if (node.right) { // unary operator, e.g. not, '#'
                 if (node.len === 0) {
@@ -465,11 +466,13 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
                     if (p && pr && (pr < p)) {
                         value = "(" + value + ")";
                     }
-                    var whiteBefore = CodeGeneratorBasic.fnWs(node), operator = whiteBefore + operators[node.type].toUpperCase(), whiteAfter = value.startsWith(" ");
-                    if (!whiteAfter && node.type === "not") {
-                        value = " " + value;
+                    var operator = CodeGeneratorBasic.fnWs(node) + operators[node.type].toUpperCase();
+                    if (node.type === "not") {
+                        value = operator + CodeGeneratorBasic.fnSpace1(value);
                     }
-                    value = operator + value;
+                    else {
+                        value = operator + value;
+                    }
                 }
             }
             else { // no operator, e.g. "=" in "for"

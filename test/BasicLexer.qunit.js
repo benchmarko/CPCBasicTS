@@ -748,7 +748,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "./TestHelper"], func
         }
         return keywordMap;
     }
-    QUnit.module("BasicLexer: Tests", function () {
+    QUnit.module("BasicLexer: Tests", function (hooks) {
         function runSingleTest(basicLexer, key, expectedEntry) {
             var result, tokens;
             try {
@@ -770,7 +770,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "./TestHelper"], func
             }
             return result;
         }
-        function runTestsFor(_category, tests, assert, results) {
+        function runTestsFor(category, tests, assert, results) {
             var basicLexer = new BasicLexer_1.BasicLexer({
                 keywords: getKeywords(),
                 quiet: true
@@ -788,7 +788,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "./TestHelper"], func
                     }
                     var result = runSingleTest(basicLexer, key, expectedEntry);
                     if (results) {
-                        results.push(TestHelper_1.TestHelper.stringInQuotes(key) + ": " + TestHelper_1.TestHelper.stringInQuotes(result));
+                        results[category].push(TestHelper_1.TestHelper.stringInQuotes(key) + ": " + TestHelper_1.TestHelper.stringInQuotes(result));
                     }
                     if (assert) {
                         var tokens = JSON.parse(result);
@@ -797,9 +797,9 @@ define(["require", "exports", "../Utils", "../BasicLexer", "./TestHelper"], func
                 }
             }
         }
-        TestHelper_1.TestHelper.generateAndRunAllTests(allTests, runTestsFor);
+        TestHelper_1.TestHelper.generateAllTests(allTests, runTestsFor, hooks);
     });
-    QUnit.module("BasicLexer: keepWhiteSpace", function () {
+    QUnit.module("BasicLexer: keepWhiteSpace", function (hooks) {
         function fnCombineTokens(tokens) {
             var result = "";
             for (var i = 0; i < tokens.length; i += 1) {
@@ -848,26 +848,30 @@ define(["require", "exports", "../Utils", "../BasicLexer", "./TestHelper"], func
             }
             return result;
         }
-        function runTestsForWhitespace(_category, tests, assert, results) {
+        function runTestsForWhitespace(category, tests, assert, results) {
+            var spaceCount = 1;
             var basicLexer = new BasicLexer_1.BasicLexer({
                 keywords: getKeywords(),
                 quiet: true,
                 keepWhiteSpace: true
-            });
+            }), fnSpaceReplacer = function () {
+                spaceCount += 1;
+                return " ".repeat(spaceCount);
+            };
             for (var key in tests) {
                 if (tests.hasOwnProperty(key)) {
-                    var expected = tests[key], key2 = key.replace(/([=?+\-*^/\\,;()])/g, "  $1   "), // make it a bit harder
-                    result = runSingleTestForWhitespace(basicLexer, key2, expected);
+                    spaceCount = 1;
+                    var expected = tests[key], keyWithSpaces = key.replace(/([=?+\-*^/\\,;()#])/g, " $1 ").replace(/\s+/g, fnSpaceReplacer), result = runSingleTestForWhitespace(basicLexer, keyWithSpaces, expected);
                     if (results) {
-                        //
+                        results[category].push(TestHelper_1.TestHelper.stringInQuotes(keyWithSpaces) + ": " + TestHelper_1.TestHelper.stringInQuotes(result));
                     }
                     if (assert) {
-                        assert.strictEqual(result, key2, key2);
+                        assert.strictEqual(result, keyWithSpaces, keyWithSpaces);
                     }
                 }
             }
         }
-        TestHelper_1.TestHelper.generateAndRunAllTests(allTests, runTestsForWhitespace);
+        TestHelper_1.TestHelper.generateAllTests(allTests, runTestsForWhitespace, hooks);
     });
     QUnit.module("BasicLexer: lexer specific tests", function ( /* hooks */) {
         QUnit.test("Error: Unrechognized token", function (assert) {

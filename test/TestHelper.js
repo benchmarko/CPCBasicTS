@@ -60,11 +60,14 @@ define(["require", "exports", "../Utils"], function (require, exports, Utils_1) 
             }
             TestHelper.fnParseArgs(args, config);
         };
-        TestHelper.generateTests = function (allTests, runTestsFor) {
+        TestHelper.generateTests = function (allTests, runTestsFor, results) {
             var _loop_1 = function (category) {
                 if (allTests.hasOwnProperty(category)) {
+                    if (results) {
+                        results[category] = [];
+                    }
                     QUnit.test(category, function (assert) {
-                        runTestsFor(category, allTests[category], assert);
+                        runTestsFor(category, allTests[category], assert, results);
                     });
                 }
             };
@@ -96,23 +99,25 @@ define(["require", "exports", "../Utils"], function (require, exports, Utils_1) 
         TestHelper.createJsKeywordRegex = function () {
             return new RegExp("^(" + TestHelper.jsKeywords.join("|") + ")$");
         };
-        TestHelper.listKeys = function (_category, tests, _assert, results) {
+        TestHelper.listKeys = function (category, tests, assert, results) {
             for (var key in tests) {
                 if (tests.hasOwnProperty(key)) {
                     var result = "";
                     if (results) {
-                        results.push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+                        results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+                    }
+                    if (assert) {
+                        assert.strictEqual(result, result);
                     }
                 }
             }
         };
-        TestHelper.generateAllResults = function (allTests, runTestsFor) {
+        TestHelper.printAllResults = function (allResults) {
             var reJsKeywords = TestHelper.createJsKeywordRegex();
             var result = "";
-            for (var category in allTests) {
-                if (allTests.hasOwnProperty(category)) {
-                    var results = [], containsSpace = category.indexOf(" ") >= 0, isJsKeyword = reJsKeywords.test(category);
-                    runTestsFor(category, allTests[category], undefined, results);
+            for (var category in allResults) {
+                if (allResults.hasOwnProperty(category)) {
+                    var results = allResults[category], containsSpace = category.indexOf(" ") >= 0, isJsKeyword = reJsKeywords.test(category);
                     if (results.length) {
                         result += containsSpace || isJsKeyword ? TestHelper.stringInQuotes(category) : category;
                         result += ": {\n";
@@ -124,14 +129,17 @@ define(["require", "exports", "../Utils"], function (require, exports, Utils_1) 
             Utils_1.Utils.console.log(result);
             return result;
         };
-        TestHelper.generateAndRunAllTests = function (allTests, runTestsFor) {
-            TestHelper.generateTests(allTests, runTestsFor);
-            if (TestHelper.config.generateAll) {
-                TestHelper.generateAllResults(allTests, runTestsFor);
+        TestHelper.generateAllTests = function (allTests, runTestsFor, hooks) {
+            var allResults;
+            if (TestHelper.config.generateAll || TestHelper.config.generateKeys) {
+                allResults = {};
+                hooks.after(function () {
+                    if (allResults) {
+                        TestHelper.printAllResults(allResults);
+                    }
+                });
             }
-            if (TestHelper.config.generateKeys) {
-                TestHelper.generateAllResults(allTests, TestHelper.listKeys);
-            }
+            TestHelper.generateTests(allTests, TestHelper.config.generateKeys ? TestHelper.listKeys : runTestsFor, allResults);
         };
         TestHelper.config = {
             debug: 0,

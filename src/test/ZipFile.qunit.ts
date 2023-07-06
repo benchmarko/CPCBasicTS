@@ -3,11 +3,11 @@
 
 import { Utils } from "../Utils";
 import { ZipFile } from "../ZipFile";
-import { TestHelper, TestsType, AllTestsType } from "./TestHelper";
+import { TestHelper, TestsType, AllTestsType, ResultType } from "./TestHelper";
 
 QUnit.dump.maxDepth = 10;
 
-QUnit.module("ZipFile: Tests", function () {
+QUnit.module("ZipFile: Tests", function (hooks) {
 	// examples store.zip and deflate.zip taken from https://github.com/bower/decompress-zip/tree/master/test/assets/file-mode-pack
 	// deflate example created by: Controller.exportAsBase64("deflate.zip.xxx")
 	const allTests: AllTestsType = { // eslint-disable-line vars-on-top
@@ -48,7 +48,7 @@ QUnit.module("ZipFile: Tests", function () {
 		return result.join(",");
 	}
 
-	function runTestsFor(_category: string, tests: TestsType, assert?: Assert, results?: string[]) {
+	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
 		for (const key in tests) {
 			if (tests.hasOwnProperty(key)) {
 				const parts = Utils.split2(key, ","),
@@ -66,7 +66,7 @@ QUnit.module("ZipFile: Tests", function () {
 				}
 
 				if (results) {
-					results.push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+					results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
 				}
 
 				if (assert) {
@@ -76,7 +76,7 @@ QUnit.module("ZipFile: Tests", function () {
 		}
 	}
 
-	TestHelper.generateAndRunAllTests(allTests, runTestsFor);
+	TestHelper.generateAllTests(allTests, runTestsFor, hooks);
 });
 
 // end

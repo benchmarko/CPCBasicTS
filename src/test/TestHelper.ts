@@ -7,7 +7,10 @@ export type TestsType = Record<string, string>;
 
 export type AllTestsType = Record<string, TestsType>;
 
-export type runTestsForType = (category: string, tests: TestsType, assert?: Assert, results?: string[]) => void;
+export type ResultType = Record<string, string[]>;
+
+export type runTestsForType = (category: string, tests: TestsType, assert?: Assert, results?: ResultType) => void;
+
 declare global {
     interface Window {
 		QUnit: unknown
@@ -92,11 +95,15 @@ export class TestHelper { // eslint-disable-line vars-on-top
 		TestHelper.fnParseArgs(args, config);
 	}
 
-	private static generateTests(allTests: AllTestsType, runTestsFor: runTestsForType) {
+	private static generateTests(allTests: AllTestsType, runTestsFor: runTestsForType, results?: ResultType) {
 		for (const category in allTests) {
 			if (allTests.hasOwnProperty(category)) {
+				if (results) {
+					results[category] = [];
+				}
+
 				QUnit.test(category, function (assert) { // category must be a local variable
-					runTestsFor(category, allTests[category], assert);
+					runTestsFor(category, allTests[category], assert, results);
 				});
 			}
 		}
@@ -196,29 +203,32 @@ export class TestHelper { // eslint-disable-line vars-on-top
 		return new RegExp("^(" + TestHelper.jsKeywords.join("|") + ")$");
 	}
 
-	private static listKeys(_category: string, tests: TestsType, _assert?: Assert, results?: string[]) {
+	private static listKeys(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
 		for (const key in tests) {
 			if (tests.hasOwnProperty(key)) {
 				const result = "";
 
 				if (results) {
-					results.push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+					results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+				}
+
+				if (assert) {
+					assert.strictEqual(result, result);
 				}
 			}
 		}
 	}
 
-	private static generateAllResults(allTests: AllTestsType, runTestsFor: runTestsForType) {
+	private static printAllResults(allResults: ResultType) {
 		const reJsKeywords = TestHelper.createJsKeywordRegex();
 		let result = "";
 
-		for (const category in allTests) {
-			if (allTests.hasOwnProperty(category)) {
-				const results: string[] = [],
+		for (const category in allResults) {
+			if (allResults.hasOwnProperty(category)) {
+				const results = allResults[category],
 					containsSpace = category.indexOf(" ") >= 0,
 					isJsKeyword = reJsKeywords.test(category);
 
-				runTestsFor(category, allTests[category], undefined, results);
 				if (results.length) {
 					result += containsSpace || isJsKeyword ? TestHelper.stringInQuotes(category) : category;
 					result += ": {\n";
@@ -231,15 +241,18 @@ export class TestHelper { // eslint-disable-line vars-on-top
 		return result;
 	}
 
-	static generateAndRunAllTests(allTests: AllTestsType, runTestsFor: runTestsForType): void {
-		TestHelper.generateTests(allTests, runTestsFor);
+	static generateAllTests(allTests: AllTestsType, runTestsFor: runTestsForType, hooks: NestedHooks): void {
+		let allResults: ResultType | undefined;
 
-		if (TestHelper.config.generateAll) {
-			TestHelper.generateAllResults(allTests, runTestsFor);
+		if (TestHelper.config.generateAll || TestHelper.config.generateKeys) {
+			allResults = {};
+			hooks.after(function () {
+				if (allResults) {
+					TestHelper.printAllResults(allResults);
+				}
+			});
 		}
-		if (TestHelper.config.generateKeys) {
-			TestHelper.generateAllResults(allTests, TestHelper.listKeys);
-		}
+		TestHelper.generateTests(allTests, TestHelper.config.generateKeys ? TestHelper.listKeys : runTestsFor, allResults);
 	}
 }
 

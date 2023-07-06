@@ -253,7 +253,7 @@ define(["require", "exports", "../Utils", "../Sound", "./TestHelper"], function 
             sound.soundOff();
         });
     });
-    QUnit.module("Sound: Tests", function () {
+    QUnit.module("Sound: Tests", function (hooks) {
         var allTests = {
             sound: {
                 "1,100,3,12": "createOscillator: , oscillator.connect:[obj gain] , gain:gain.setValueAtTime:0.6400000000000001,0 , oscillator.start:0 , oscillator.stop:0.03 -- undefined",
@@ -369,7 +369,7 @@ define(["require", "exports", "../Utils", "../Sound", "./TestHelper"], function 
                 if (tests.hasOwnProperty(key)) {
                     var expected = tests[key], result = runSingleTest(testFunction, sound, key, expected, category);
                     if (results) {
-                        results.push(TestHelper_1.TestHelper.stringInQuotes(key) + ": " + TestHelper_1.TestHelper.stringInQuotes(result));
+                        results[category].push(TestHelper_1.TestHelper.stringInQuotes(key) + ": " + TestHelper_1.TestHelper.stringInQuotes(result));
                     }
                     if (assert) {
                         assert.strictEqual(result, expected, key);
@@ -378,7 +378,7 @@ define(["require", "exports", "../Utils", "../Sound", "./TestHelper"], function 
             }
             sound.soundOff();
         }
-        TestHelper_1.TestHelper.generateAndRunAllTests(allTests, runTestsFor);
+        TestHelper_1.TestHelper.generateAllTests(allTests, runTestsFor, hooks);
     });
 });
 // end

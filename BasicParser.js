@@ -218,6 +218,14 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             return statementList;
         };
+        BasicParser.fnCreateDummyArg = function (type, value) {
+            return {
+                type: type,
+                value: value !== undefined ? value : type,
+                pos: 0,
+                len: 0
+            };
+        };
         BasicParser.prototype.basicLine = function () {
             var node;
             if (this.token.type !== "number") {
@@ -240,14 +248,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 this.advance();
             }
             return node;
-        };
-        BasicParser.fnCreateDummyArg = function (type, value) {
-            return {
-                type: type,
-                value: value !== undefined ? value : type,
-                pos: 0,
-                len: 0
-            };
         };
         BasicParser.prototype.fnCombineTwoTokensNoArgs = function (token2) {
             var node = this.previousToken, name = node.type + Utils_1.Utils.stringCapitalize(this.token.type); // e.g ."speedInk"

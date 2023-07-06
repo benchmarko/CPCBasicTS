@@ -1,6 +1,7 @@
 export declare type TestsType = Record<string, string>;
 export declare type AllTestsType = Record<string, TestsType>;
-export declare type runTestsForType = (category: string, tests: TestsType, assert?: Assert, results?: string[]) => void;
+export declare type ResultType = Record<string, string[]>;
+export declare type runTestsForType = (category: string, tests: TestsType, assert?: Assert, results?: ResultType) => void;
 declare global {
     interface Window {
         QUnit: unknown;
@@ -20,8 +21,8 @@ export declare class TestHelper {
     private static readonly jsKeywords;
     private static createJsKeywordRegex;
     private static listKeys;
-    private static generateAllResults;
-    static generateAndRunAllTests(allTests: AllTestsType, runTestsFor: runTestsForType): void;
+    private static printAllResults;
+    static generateAllTests(allTests: AllTestsType, runTestsFor: runTestsForType, hooks: NestedHooks): void;
 }
 export {};
 //# sourceMappingURL=TestHelper.d.ts.map

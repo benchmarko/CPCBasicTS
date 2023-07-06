@@ -4,7 +4,7 @@ define(["require", "exports", "../Utils", "../ZipFile", "./TestHelper"], functio
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     QUnit.dump.maxDepth = 10;
-    QUnit.module("ZipFile: Tests", function () {
+    QUnit.module("ZipFile: Tests", function (hooks) {
         // examples store.zip and deflate.zip taken from https://github.com/bower/decompress-zip/tree/master/test/assets/file-mode-pack
         // deflate example created by: Controller.exportAsBase64("deflate.zip.xxx")
         var allTests = {
@@ -35,7 +35,7 @@ define(["require", "exports", "../Utils", "../ZipFile", "./TestHelper"], functio
             }
             return result.join(",");
         }
-        function runTestsFor(_category, tests, assert, results) {
+        function runTestsFor(category, tests, assert, results) {
             for (var key in tests) {
                 if (tests.hasOwnProperty(key)) {
                     var parts = Utils_1.Utils.split2(key, ","), meta = parts[0], data = Utils_1.Utils.atob(parts[1]), // decode base64
@@ -49,7 +49,7 @@ define(["require", "exports", "../Utils", "../ZipFile", "./TestHelper"], functio
                         result = String(e);
                     }
                     if (results) {
-                        results.push(TestHelper_1.TestHelper.stringInQuotes(key) + ": " + TestHelper_1.TestHelper.stringInQuotes(result));
+                        results[category].push(TestHelper_1.TestHelper.stringInQuotes(key) + ": " + TestHelper_1.TestHelper.stringInQuotes(result));
                     }
                     if (assert) {
                         assert.strictEqual(result, expected, meta);
@@ -57,7 +57,7 @@ define(["require", "exports", "../Utils", "../ZipFile", "./TestHelper"], functio
                 }
             }
         }
-        TestHelper_1.TestHelper.generateAndRunAllTests(allTests, runTestsFor);
+        TestHelper_1.TestHelper.generateAllTests(allTests, runTestsFor, hooks);
     });
 });
 // end
