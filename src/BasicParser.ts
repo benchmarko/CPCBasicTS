@@ -535,6 +535,15 @@ export class BasicParser {
 		return statementList;
 	}
 
+	private static fnCreateDummyArg(type: string, value?: string): ParserNode {
+		return {
+			type: type, // e.g. "null"
+			value: value !== undefined ? value : type, // e.g. "null"
+			pos: 0,
+			len: 0
+		};
+	}
+
 	private basicLine() {
 		let node: ParserNode;
 
@@ -558,15 +567,6 @@ export class BasicParser {
 			this.advance();
 		}
 		return node;
-	}
-
-	private static fnCreateDummyArg(type: string, value?: string): ParserNode {
-		return {
-			type: type, // e.g. "null"
-			value: value !== undefined ? value : type, // e.g. "null"
-			pos: 0,
-			len: 0
-		};
 	}
 
 	private fnCombineTwoTokensNoArgs(token2: string) {

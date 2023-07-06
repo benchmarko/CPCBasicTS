@@ -577,7 +577,7 @@ export class CodeGeneratorBasic {
 			const nodeArgs = this.fnParseArgs(node.args);
 
 			if (BasicParser.keywords[right.toLowerCase()]) { // for combined keywords
-				// special handling for 2 tokens (for 3 tokens, we need a secific function)
+				// special handling for 2 tokens (for 3 tokens, we need a specific function)
 				args += CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
 			} else {
 				args += nodeArgs.join("");
@@ -643,14 +643,13 @@ export class CodeGeneratorBasic {
 				}
 			}
 
-			const whiteBefore = CodeGeneratorBasic.fnWs(node);
-			let operator = whiteBefore + operators[node.type].toUpperCase();
+			const operator = CodeGeneratorBasic.fnWs(node) + operators[node.type].toUpperCase();
 
-			if (whiteBefore === "" && (/^(and|or|xor|mod)$/).test(node.type)) {
-				operator = " " + operator + " ";
+			if ((/^(and|or|xor|mod)$/).test(node.type)) {
+				value += CodeGeneratorBasic.fnSpace1(operator) + CodeGeneratorBasic.fnSpace1(value2);
+			} else {
+				value += operator + value2;
 			}
-
-			value += operator + value2;
 		} else if (node.right) { // unary operator, e.g. not, '#'
 			if (node.len === 0) {
 				value = ""; // ignore dummy token, e.g. '#'
@@ -672,14 +671,13 @@ export class CodeGeneratorBasic {
 					value = "(" + value + ")";
 				}
 
-				const whiteBefore = CodeGeneratorBasic.fnWs(node),
-					operator = whiteBefore + operators[node.type].toUpperCase(),
-					whiteAfter = value.startsWith(" ");
+				const operator = CodeGeneratorBasic.fnWs(node) + operators[node.type].toUpperCase();
 
-				if (!whiteAfter && node.type === "not") {
-					value = " " + value;
+				if (node.type === "not") {
+					value = operator + CodeGeneratorBasic.fnSpace1(value);
+				} else {
+					value = operator + value;
 				}
-				value = operator + value;
 			}
 		} else { // no operator, e.g. "=" in "for"
 			value = this.fnParseOther(node);
