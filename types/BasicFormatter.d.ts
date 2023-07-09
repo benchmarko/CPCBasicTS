@@ -7,11 +7,10 @@ interface BasicFormatterOptions {
     implicitLines?: boolean;
 }
 export declare class BasicFormatter {
-    private readonly lexer;
-    private readonly parser;
-    private implicitLines;
+    private readonly options;
     private label;
     setOptions(options: BasicFormatterOptions): void;
+    getOptions(): BasicFormatterOptions;
     constructor(options: BasicFormatterOptions);
     private composeError;
     private static fnHasLabel;

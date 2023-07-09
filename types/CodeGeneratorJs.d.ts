@@ -12,13 +12,7 @@ interface CodeGeneratorJsOptions {
     trace?: boolean;
 }
 export declare class CodeGeneratorJs {
-    private readonly lexer;
-    private readonly parser;
-    private readonly rsx;
-    private trace;
-    private quiet;
-    private noCodeFrame;
-    private implicitLines;
+    private readonly options;
     private line;
     private readonly reJsKeywords;
     private readonly stack;
@@ -36,6 +30,7 @@ export declare class CodeGeneratorJs {
     private defScopeArgs?;
     private defintDefstrTypes;
     setOptions(options: Omit<CodeGeneratorJsOptions, "lexer" | "parser" | "rsx">): void;
+    getOptions(): CodeGeneratorJsOptions;
     constructor(options: CodeGeneratorJsOptions);
     private static readonly jsKeywords;
     private reset;

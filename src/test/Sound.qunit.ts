@@ -225,7 +225,7 @@ QUnit.module("Sound: Tests1", function (hooks) {
 });
 
 QUnit.module("Sound: Tests", function (hooks) {
-	const allTests: AllTestsType = { // eslint-disable-line vars-on-top
+	const allTests: AllTestsType = {
 		sound: {
 			"1,100,3,12": "createOscillator: , oscillator.connect:[obj gain] , gain:gain.setValueAtTime:0.6400000000000001,0 , oscillator.start:0 , oscillator.stop:0.03 -- undefined",
 			"1,100,20,10,0,0,5": "oscillator.stop: , oscillator.disconnect: , createOscillator: , oscillator.connect:[obj gain] , gain:gain.setValueAtTime:0.4444444444444444,0 , oscillator.start:0 , oscillator.stop:0.2 , createBuffer:1,4800,24000 , createBuffer:getChannelData:0 , createBufferSource: , createBiquadFilter: , bufferSource.connect:[obj BiquadFilterNode] , bufferSource.connect:[obj gain] , bufferSource:start:0 , bufferSource:stop:0.2 -- undefined",

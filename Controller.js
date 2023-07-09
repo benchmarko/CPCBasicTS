@@ -390,7 +390,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             this.model.addDatabases(databases);
             this.setDatabaseSelectOptions();
-            //this.onDatabaseSelectChange();
         };
         Controller.prototype.onUserAction = function ( /* event, id */) {
             this.commonEventHandler.fnSetUserAction(undefined); // deactivate user action
@@ -1032,10 +1031,10 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             var keepColons = keepBrackets, // we switch all with one setting
             keepDataComma = true;
-            this.codeGeneratorBasic.getLexer().setOptions({
+            this.codeGeneratorBasic.getOptions().lexer.setOptions({
                 keepWhiteSpace: keepWhiteSpace
             });
-            this.codeGeneratorBasic.getParser().setOptions({
+            this.codeGeneratorBasic.getOptions().parser.setOptions({
                 keepTokens: true,
                 keepBrackets: keepBrackets,
                 keepColons: keepColons,
@@ -1361,7 +1360,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                         Utils_1.Utils.console.warn(e);
                     }
                 }
-                CpcVm_1.CpcVm.vmResetFileHandling(outFile); // make sure it is closed
+                this.vm.vmResetOutFileHandling(); // make sure it is closed
             }
             else {
                 Utils_1.Utils.console.error("fnFileSave: file not open!");
@@ -2235,8 +2234,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.model.setProperty("showConvert", false);
                 this.view.setHidden("convertArea", !this.model.getProperty("showConvert"), "flex");
             }
-            //this.view.setHidden("settingsArea", true, "flex");
-            //this.view.setHidden("convertArea", true, "flex");
             this.canvas.onCpcCanvasClick(event);
             this.textCanvas.onWindowClick(event);
             this.keyboard.setActive(true);

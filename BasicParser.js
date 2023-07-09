@@ -10,11 +10,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     exports.BasicParser = void 0;
     var BasicParser = /** @class */ (function () {
         function BasicParser(options) {
-            this.quiet = false;
-            this.keepBrackets = false;
-            this.keepColons = false;
-            this.keepDataComma = false;
-            this.keepTokens = false;
             this.label = "0"; // for error messages
             this.symbols = {};
             // set also during parse
@@ -52,6 +47,13 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 window: this.window,
                 write: this.write
             };
+            this.options = {
+                quiet: false,
+                keepBrackets: false,
+                keepColons: false,
+                keepDataComma: false,
+                keepTokens: false
+            };
             if (options) {
                 this.setOptions(options);
             }
@@ -61,30 +63,23 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         }
         BasicParser.prototype.setOptions = function (options) {
             if (options.keepBrackets !== undefined) {
-                this.keepBrackets = options.keepBrackets;
+                this.options.keepBrackets = options.keepBrackets;
             }
             if (options.keepColons !== undefined) {
-                this.keepColons = options.keepColons;
+                this.options.keepColons = options.keepColons;
             }
             if (options.keepDataComma !== undefined) {
-                this.keepDataComma = options.keepDataComma;
+                this.options.keepDataComma = options.keepDataComma;
             }
             if (options.keepTokens !== undefined) {
-                this.keepTokens = options.keepTokens;
+                this.options.keepTokens = options.keepTokens;
             }
             if (options.quiet !== undefined) {
-                this.quiet = options.quiet;
+                this.options.quiet = options.quiet;
             }
         };
         BasicParser.prototype.getOptions = function () {
-            var options = {
-                keepBrackets: this.keepBrackets,
-                keepColons: this.keepColons,
-                keepDataComma: this.keepDataComma,
-                keepTokens: this.keepTokens,
-                quiet: this.quiet
-            };
-            return options;
+            return this.options;
         };
         BasicParser.prototype.composeError = function (error, message, value, pos, len) {
             len = value === "(end)" ? 0 : len;
@@ -108,7 +103,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (!this.fnLastStatementIsOnErrorGotoX()) {
                 throw this.composeError(Error(), message, node.value, node.pos);
             }
-            else if (!this.quiet) {
+            else if (!this.options.quiet) {
                 Utils_1.Utils.console.warn(this.composeError({}, message, node.value, node.pos).message);
             }
         };
@@ -129,7 +124,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 if (!this.fnLastStatementIsOnErrorGotoX()) {
                     throw this.composeError(Error(), "Expected " + id, token.value === "" ? token.type : token.value, token.pos); //TTT we cannot mask this error because advance is very generic
                 }
-                else if (!this.quiet) {
+                else if (!this.options.quiet) {
                     Utils_1.Utils.console.warn(this.composeError({}, "Expected " + id, token.value === "" ? token.type : token.value, token.pos).message);
                 }
             }
@@ -214,7 +209,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 if (colonExpected || this.token.type === ":") {
                     if (this.token.type !== "'" && this.token.type !== "else") { // no colon required for line comment or ELSE
                         this.advance(":");
-                        if (this.keepColons) {
+                        if (this.options.keepColons) {
                             statementList.push(this.previousToken);
                         }
                     }
@@ -249,12 +244,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.label = node.value; // set line number for error messages
             node.args = this.statements(BasicParser.closeTokensForLine);
             if (this.token.type === "(eol)") {
-                if (this.keepTokens) { // not really a token
+                if (this.options.keepTokens) { // not really a token
                     node.args.push(this.token); // eol token with whitespace
                 }
                 this.advance();
             }
-            else if (this.token.type === "(end)" && this.token.ws && this.keepTokens) {
+            else if (this.token.type === "(end)" && this.token.ws && this.options.keepTokens) {
                 node.args.push(this.token); // end token with whitespace
             }
             return node;
@@ -263,7 +258,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var node = this.previousToken, name = node.type + Utils_1.Utils.stringCapitalize(this.token.type); // e.g ."speedInk"
             node.value += (this.token.ws || " ") + this.token.value; // combine values of both
             this.token = this.advance(token2); // for "speed" e.g. "ink", "key", "write" (this.token.type)
-            if (this.keepTokens) {
+            if (this.options.keepTokens) {
                 if (!node.right) {
                     node.right = this.previousToken; // set second token in first token
                 }
@@ -431,7 +426,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (this.token.type === separator) {
                 if (!suppressAdvance) {
                     this.advance(separator);
-                    if (this.keepTokens) {
+                    if (this.options.keepTokens) {
                         args.push(this.previousToken);
                     }
                 }
@@ -487,12 +482,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         BasicParser.prototype.fnGetArgsInParenthesis = function (args, keyword) {
             this.advance("(");
-            if (this.keepTokens) {
+            if (this.options.keepTokens) {
                 args.push(this.previousToken);
             }
             this.fnGetArgs(args, keyword || "_any1"); // until ")"
             this.advance(")");
-            if (this.keepTokens) {
+            if (this.options.keepTokens) {
                 args.push(this.previousToken);
             }
             return args;
@@ -506,7 +501,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.advance(this.token.type === "]" ? "]" : ")");
             var bracketClose = this.previousToken;
             args.push(bracketClose);
-            if (!this.quiet && (brackets[bracketOpen.type] !== bracketClose.type)) {
+            if (!this.options.quiet && (brackets[bracketOpen.type] !== bracketClose.type)) {
                 Utils_1.Utils.console.warn(this.composeError({}, "Inconsistent bracket style", this.previousToken.value, this.previousToken.pos).message);
             }
             return args;
@@ -527,12 +522,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             node.args = [];
             if (this.token.type === "(") { // args in parenthesis?
                 this.advance("(");
-                if (this.keepTokens) {
+                if (this.options.keepTokens) {
                     node.args.push(this.previousToken);
                 }
                 this.fnGetArgs(node.args, node.type);
                 this.advance(")");
-                if (this.keepTokens) {
+                if (this.options.keepTokens) {
                     node.args.push(this.previousToken);
                 }
             }
@@ -558,7 +553,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         BasicParser.prototype.fnParenthesis = function () {
             var node;
-            if (this.keepBrackets) {
+            if (this.options.keepBrackets) {
                 node = this.previousToken;
                 node.args = [
                     this.expression(0),
@@ -587,7 +582,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var type = "_any1"; // expect any number of arguments
             if (this.token.type === ",") { // arguments starting with comma
                 this.advance();
-                if (this.keepTokens) {
+                if (this.options.keepTokens) {
                     node.args.push(this.previousToken);
                 }
                 type = "_rsx1"; // dummy token: expect at least 1 argument
@@ -604,7 +599,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 node.args.push(BasicParser.fnCreateDummyArg("null"));
             }
             this.advance("gosub");
-            if (this.keepTokens) {
+            if (this.options.keepTokens) {
                 node.args.push(this.previousToken);
             }
             this.fnGetArgs(node.args, "gosub"); // line number
@@ -625,7 +620,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.token = this.getToken();
             if (this.token.type === ",") {
                 this.token = this.advance();
-                if (this.keepTokens) {
+                if (this.options.keepTokens) {
                     node.args.push(this.previousToken);
                 }
                 var numberExpression = false; // line number (expression) found
@@ -636,7 +631,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 }
                 if (this.token.type === ",") {
                     this.advance();
-                    if (this.keepTokens) {
+                    if (this.options.keepTokens) {
                         node.args.push(this.previousToken);
                     }
                     if (!numberExpression) {
@@ -644,7 +639,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                         node.args.push(value2);
                     }
                     this.advance("delete");
-                    if (this.keepTokens) {
+                    if (this.options.keepTokens) {
                         node.args.push(this.previousToken);
                     }
                     this.fnGetArgs(node.args, this.previousToken.type); // args for "delete"
@@ -670,7 +665,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     node.args.push(BasicParser.fnCreateDummyArg("null")); // insert null parameter
                 }
                 this.token = this.advance();
-                if (this.keepDataComma) {
+                if (this.options.keepDataComma) {
                     node.args.push(this.previousToken); // ","
                 }
                 parameterFound = false;
@@ -691,7 +686,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var node = this.previousToken;
             node.args = [];
             this.advance("fn");
-            if (this.keepTokens) {
+            if (this.options.keepTokens) {
                 node.right = this.previousToken;
             }
             this.token = this.advance("identifier");
@@ -705,7 +700,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 this.fnGetArgsInParenthesis(node.args, "_vars1"); // accept only variable names
             }
             this.advance("=");
-            if (this.keepTokens) {
+            if (this.options.keepTokens) {
                 node.args.push(this.previousToken);
             }
             var expression = this.expression(0);
@@ -715,7 +710,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         BasicParser.prototype.fnElse = function () {
             var node = this.previousToken;
             node.args = [];
-            if (!this.quiet) {
+            if (!this.options.quiet) {
                 Utils_1.Utils.console.warn(this.composeError({}, "ELSE: Weird use of ELSE", this.previousToken.type, this.previousToken.pos).message);
             }
             if (this.token.type === "number") { // first token number?
@@ -735,12 +730,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var count = 0;
             while (this.token.type === ",") {
                 this.token = this.advance();
-                if (this.keepTokens) {
+                if (this.options.keepTokens) {
                     node.args.push(this.previousToken);
                 }
                 if (this.token.type === "=" && count % 3 === 0) { // special handling for parameter "number of steps"
                     this.advance();
-                    if (this.keepTokens) {
+                    if (this.options.keepTokens) {
                         node.args.push(this.previousToken);
                     }
                     node.args.push(BasicParser.fnCreateDummyArg("null")); // insert null parameter
@@ -759,18 +754,18 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.fnCheckExpressionType(name, "identifier", "v"); // expected simple
             node.args = [name];
             this.advance("=");
-            if (this.keepTokens) {
+            if (this.options.keepTokens) {
                 node.args.push(this.previousToken);
             }
             node.args.push(this.expression(0));
             this.token = this.advance("to");
-            if (this.keepTokens) {
+            if (this.options.keepTokens) {
                 node.args.push(this.previousToken);
             }
             node.args.push(this.expression(0));
             if (this.token.type === "step") {
                 this.advance();
-                if (this.keepTokens) {
+                if (this.options.keepTokens) {
                     node.args.push(this.previousToken);
                 }
                 node.args.push(this.expression(0));
@@ -790,10 +785,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 if ((i === 0 && tokenType === "linenumber") || tokenType === "goto" || tokenType === "stop") {
                     var index = i + 1;
                     if (index < args.length && (args[index].type !== "rem") && (args[index].type !== "'")) {
-                        if (args[index].type === ":" && this.keepColons) {
+                        if (args[index].type === ":" && this.options.keepColons) {
                             // ignore
                         }
-                        else if (!this.quiet) {
+                        else if (!this.options.quiet) {
                             Utils_1.Utils.console.warn(this.composeError({}, "IF: Unreachable code after THEN or ELSE", tokenType, node.pos).message);
                         }
                         break;
@@ -817,7 +812,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 node.args.unshift(numberToken[0]);
                 numberToken = undefined;
             }
-            if (this.keepTokens && thenToken) {
+            if (this.options.keepTokens && thenToken) {
                 node.args.unshift(thenToken);
             }
             this.fnCheckForUnreachableCode(node.args);
@@ -831,7 +826,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 if (numberToken) {
                     node.args2.unshift(numberToken[0]);
                 }
-                if (this.keepTokens && elseToken) {
+                if (this.options.keepTokens && elseToken) {
                     elseToken.args = [];
                     node.args2.unshift(elseToken);
                 }
@@ -845,7 +840,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             node.args.push(stream);
             if (stream.len !== 0) { // not an inserted stream?
                 this.advance(",");
-                if (this.keepTokens) {
+                if (this.options.keepTokens) {
                     node.args.push(this.previousToken);
                 }
             }
@@ -879,7 +874,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     break; // no loop for lineInput (only one arg) or no more args
                 }
                 this.advance(",");
-                if (this.keepTokens) {
+                if (this.options.keepTokens) {
                     node.args.push(this.previousToken);
                 }
             } while (true); // eslint-disable-line no-constant-condition
@@ -906,14 +901,14 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             // check that first argument is a variable...
             var i = 0;
-            if (this.keepTokens) {
+            if (this.options.keepTokens) {
                 while (node.args[i].type === "(" && i < (node.args.length - 1)) {
                     i += 1;
                 }
             }
             this.fnCheckExpressionType(node.args[i], "identifier", "v");
             this.advance("="); // equal as assignment
-            if (this.keepTokens) {
+            if (this.options.keepTokens) {
                 node.args.push(this.previousToken);
             }
             var expression = this.expression(0);
@@ -945,7 +940,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     }
                     this.token = this.getToken();
                     this.advance("gosub");
-                    if (this.keepTokens) {
+                    if (this.options.keepTokens) {
                         node.args.push(this.previousToken);
                     }
                     node.type = "onSqGosub";
@@ -955,7 +950,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     node.args.push(this.expression(0));
                     if (this.token.type === "gosub" || this.token.type === "goto") {
                         this.advance();
-                        if (this.keepTokens) {
+                        if (this.options.keepTokens) {
                             node.args.push(this.previousToken); // modify
                         }
                         node.type = "on" + Utils_1.Utils.stringCapitalize(this.previousToken.type); // onGoto, onGosub
@@ -975,7 +970,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (stream.len !== 0) { // not an inserted stream?
                 if (!closeTokens[this.token.type]) {
                     this.advance(",");
-                    if (this.keepTokens) {
+                    if (this.options.keepTokens) {
                         node.args.push(this.previousToken);
                     }
                 }
@@ -1053,7 +1048,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (stream.len !== 0) { // not an inserted stream?
                 if (!closeTokens[this.token.type]) {
                     this.advance(",");
-                    if (this.keepTokens) {
+                    if (this.options.keepTokens) {
                         node.args.push(this.previousToken);
                     }
                 }

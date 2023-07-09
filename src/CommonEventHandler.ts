@@ -179,18 +179,6 @@ export class CommonEventHandler implements EventListenerObject {
 		} else {
 			Utils.console.warn("Copy to clipboard not available");
 		}
-
-		/*
-		const textText = document.getElementById("textText") as HTMLTextAreaElement;
-
-		// const copyText = View.getElementByIdAs<HTMLTextAreaElement>("textText");
-		// TODO: use View.setAreaSelection...
-
-		textText.select();
-		textText.setSelectionRange(0, 99999); // for mobile devices
-
-		window.navigator.clipboard.writeText(textText.value);
-		*/
 	}
 
 	private onOutputTextChange() {

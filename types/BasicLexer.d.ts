@@ -11,8 +11,7 @@ export interface LexerToken {
     ws?: string;
 }
 export declare class BasicLexer {
-    private keywords;
-    private keepWhiteSpace;
+    private readonly options;
     private label;
     private takeNumberAsLabel;
     private input;
@@ -20,6 +19,7 @@ export declare class BasicLexer {
     private readonly tokens;
     private whiteSpace;
     setOptions(options: Omit<BasicLexerOptions, "keywords">): void;
+    getOptions(): BasicLexerOptions;
     constructor(options: BasicLexerOptions);
     private composeError;
     private static isOperatorOrStreamOrAddress;

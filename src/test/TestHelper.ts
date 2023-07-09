@@ -21,7 +21,7 @@ type ConfigEntryType = string | number | boolean; // also in Model
 
 type ConfigType = Record<string, ConfigEntryType>;
 
-export class TestHelper { // eslint-disable-line vars-on-top
+export class TestHelper {
 	static config: ConfigType = {
 		debug: 0,
 		generateAll: false,

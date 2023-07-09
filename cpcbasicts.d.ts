@@ -150,8 +150,7 @@ declare module "BasicLexer" {
         ws?: string;
     }
     export class BasicLexer {
-        private keywords;
-        private keepWhiteSpace;
+        private readonly options;
         private label;
         private takeNumberAsLabel;
         private input;
@@ -159,6 +158,7 @@ declare module "BasicLexer" {
         private readonly tokens;
         private whiteSpace;
         setOptions(options: Omit<BasicLexerOptions, "keywords">): void;
+        getOptions(): BasicLexerOptions;
         constructor(options: BasicLexerOptions);
         private composeError;
         private static isOperatorOrStreamOrAddress;
@@ -213,11 +213,7 @@ declare module "BasicParser" {
         len?: number;
     }
     export class BasicParser {
-        private quiet;
-        private keepBrackets;
-        private keepColons;
-        private keepDataComma;
-        private keepTokens;
+        private readonly options;
         private label;
         private readonly symbols;
         private tokens;
@@ -319,11 +315,10 @@ declare module "BasicFormatter" {
         implicitLines?: boolean;
     }
     export class BasicFormatter {
-        private readonly lexer;
-        private readonly parser;
-        private implicitLines;
+        private readonly options;
         private label;
         setOptions(options: BasicFormatterOptions): void;
+        getOptions(): BasicFormatterOptions;
         constructor(options: BasicFormatterOptions);
         private composeError;
         private static fnHasLabel;
@@ -389,15 +384,13 @@ declare module "CodeGeneratorBasic" {
         quiet?: boolean;
     }
     export class CodeGeneratorBasic {
-        private readonly lexer;
-        private readonly parser;
-        private quiet;
+        private readonly options;
         private hasColons;
+        private keepWhiteSpace;
         private line;
-        setOptions(options: CodeGeneratorBasicOptions): void;
+        setOptions(options: Omit<CodeGeneratorBasicOptions, "lexer" | "parser">): void;
+        getOptions(): CodeGeneratorBasicOptions;
         constructor(options: CodeGeneratorBasicOptions);
-        getLexer(): BasicLexer;
-        getParser(): BasicParser;
         private static readonly combinedKeywords;
         private static readonly operators;
         private static readonly operatorPrecedence;
@@ -405,19 +398,15 @@ declare module "CodeGeneratorBasic" {
         private static fnWs;
         private static fnSpace1;
         private static getUcKeyword;
-        private fnParseOneArg;
         private fnParseArgs;
         private combineArgsWithColon;
         private fnParenthesisOpen;
         private static string;
         private static ustring;
-        private static unquoted;
         private static fnNull;
         private assign;
-        private static number;
         private static expnumber;
         private static binHexNumber;
-        private identifier;
         private static linenumber;
         private label;
         private vertical;
@@ -498,13 +487,7 @@ declare module "CodeGeneratorJs" {
         trace?: boolean;
     }
     export class CodeGeneratorJs {
-        private readonly lexer;
-        private readonly parser;
-        private readonly rsx;
-        private trace;
-        private quiet;
-        private noCodeFrame;
-        private implicitLines;
+        private readonly options;
         private line;
         private readonly reJsKeywords;
         private readonly stack;
@@ -522,6 +505,7 @@ declare module "CodeGeneratorJs" {
         private defScopeArgs?;
         private defintDefstrTypes;
         setOptions(options: Omit<CodeGeneratorJsOptions, "lexer" | "parser" | "rsx">): void;
+        getOptions(): CodeGeneratorJsOptions;
         constructor(options: CodeGeneratorJsOptions);
         private static readonly jsKeywords;
         private reset;
@@ -658,12 +642,10 @@ declare module "CodeGeneratorToken" {
         implicitLines?: boolean;
     }
     export class CodeGeneratorToken {
-        private readonly lexer;
-        private readonly parser;
-        private implicitLines;
-        private quiet;
+        private readonly options;
         private label;
         setOptions(options: Omit<CodeGeneratorTokenOptions, "lexer" | "parser">): void;
+        getOptions(): CodeGeneratorTokenOptions;
         constructor(options: CodeGeneratorTokenOptions);
         private static readonly tokens;
         private static readonly tokensFF;
@@ -747,9 +729,7 @@ declare module "DiskImage" {
     }
     type DirectoryListType = Record<string, ExtentEntry[]>;
     export class DiskImage {
-        private quiet;
-        private diskName;
-        private data;
+        private readonly options;
         private diskInfo;
         private format;
         setOptions(options: DiskImageOptions): void;
@@ -852,7 +832,6 @@ declare module "Keyboard" {
     }
     export class Keyboard {
         private readonly options;
-        private fnOnKeyDown?;
         private readonly keyBuffer;
         private readonly expansionTokens;
         private readonly cpcKeyExpansions;
@@ -860,6 +839,8 @@ declare module "Keyboard" {
         private key2CpcKey;
         private codeStringsRemoved;
         private pressedKeys;
+        setOptions(options: KeyboardOptions): void;
+        getOptions(): KeyboardOptions;
         constructor(options: KeyboardOptions);
         private static readonly key2CpcKey;
         private static readonly specialKeys;
@@ -895,8 +876,7 @@ declare module "VirtualKeyboard" {
         fnReleaseCpcKey: PressReleaseCpcKey;
     }
     export class VirtualKeyboard {
-        private readonly fnPressCpcKey;
-        private readonly fnReleaseCpcKey;
+        private readonly options;
         private readonly pointerOutEvent?;
         private readonly fnVirtualKeyout?;
         private shiftLock;
@@ -937,13 +917,12 @@ declare module "Canvas" {
         onClickKey?: (arg0: string) => void;
     }
     export class Canvas {
+        private readonly options;
         private readonly fnUpdateCanvasHandler;
         private readonly fnUpdateCanvas2Handler;
         private fps;
         private readonly cpcAreaBox;
-        private readonly charset;
         private customCharset;
-        private readonly onClickKey?;
         private gColMode;
         private mask;
         private maskBit;
@@ -1070,6 +1049,7 @@ declare module "TextCanvas" {
         onClickKey?: (arg0: string) => void;
     }
     export class TextCanvas {
+        private readonly options;
         private readonly fnUpdateTextCanvasHandler;
         private readonly fnUpdateTextCanvas2Handler;
         private fps;
@@ -1079,7 +1059,6 @@ declare module "TextCanvas" {
         private needTextUpdate;
         private readonly textBuffer;
         private hasFocus;
-        private readonly onClickKey?;
         constructor(options: TextCanvasOptions);
         private static readonly cpc2Unicode;
         reset(): void;
@@ -1221,7 +1200,7 @@ declare module "Sound" {
         AudioContextConstructor: AudioContextConstructorType;
     }
     export class Sound {
-        private AudioContextConstructor;
+        private readonly options;
         private isSoundOn;
         private isActivatedByUserFlag;
         private context?;
@@ -1479,13 +1458,18 @@ declare module "CpcVm" {
         private static readonly controlCodeParameterCount;
         private static readonly errors;
         private static readonly stopPriority;
+        getOptions(): CpcVmOptions;
         constructor(options: CpcVmOptions);
         vmSetRsxClass(rsx: ICpcVmRsx): void;
         vmReset(): void;
+        vmResetMemory(): void;
+        vmResetRandom(): void;
         vmResetTimers(): void;
         vmResetWindowData(resetPenPaper: boolean): void;
         vmResetControlBuffer(): void;
-        static vmResetFileHandling(file: FileBase): void;
+        private static vmResetFileHandling;
+        vmResetInFileHandling(): void;
+        vmResetOutFileHandling(): void;
         vmResetData(): void;
         private vmResetInks;
         vmReset4Run(): void;

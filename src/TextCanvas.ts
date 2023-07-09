@@ -11,6 +11,7 @@ export interface TextCanvasOptions {
 }
 
 export class TextCanvas {
+	private readonly options: TextCanvasOptions;
 	private readonly fnUpdateTextCanvasHandler: () => void;
 	private readonly fnUpdateTextCanvas2Handler: () => void;
 
@@ -25,12 +26,12 @@ export class TextCanvas {
 
 	private hasFocus = false; // canvas has focus
 
-	private readonly onClickKey?: (arg0: string) => void;
-
 	constructor(options: TextCanvasOptions) {
+		this.options = {
+			onClickKey: options.onClickKey
+		};
 		this.fnUpdateTextCanvasHandler = this.updateTextCanvas.bind(this);
 		this.fnUpdateTextCanvas2Handler = this.updateTextCanvas2.bind(this);
-		this.onClickKey = options.onClickKey;
 		this.textText = View.getElementById1("textText") as HTMLTextAreaElement; // View.setAreaValue()
 
 		this.animationTimeoutId = undefined;
@@ -158,8 +159,8 @@ export class TextCanvas {
 			char = 13; // use CR
 		}
 
-		if (char !== undefined && this.onClickKey) { // call click handler (put char in keyboard input buffer)
-			this.onClickKey(String.fromCharCode(char));
+		if (char !== undefined && this.options.onClickKey) { // call click handler (put char in keyboard input buffer)
+			this.options.onClickKey(String.fromCharCode(char));
 		}
 	}
 

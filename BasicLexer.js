@@ -10,31 +10,26 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     exports.BasicLexer = void 0;
     var BasicLexer = /** @class */ (function () {
         function BasicLexer(options) {
-            this.keepWhiteSpace = false;
-            // private quiet = false;
             this.label = ""; // for error messages
             this.takeNumberAsLabel = true; // first number in a line is assumed to be a label (line number)
             this.input = ""; // input to analyze
             this.index = 0; // position in input
             this.tokens = [];
             this.whiteSpace = ""; // collected whitespace
-            this.keywords = options.keywords;
-            if (options) {
-                this.setOptions(options);
-            }
+            this.options = {
+                keywords: options.keywords,
+                keepWhiteSpace: false,
+                quiet: false
+            };
+            this.setOptions(options);
         }
         BasicLexer.prototype.setOptions = function (options) {
             if (options.keepWhiteSpace !== undefined) {
-                this.keepWhiteSpace = options.keepWhiteSpace;
+                this.options.keepWhiteSpace = options.keepWhiteSpace;
             }
-            /*
-            if (options.keywords) {
-                this.keywords = options.keywords
-            }
-            */
-            // if (options.quiet !== undefined) {
-            // 	 this.quiet = options.quiet;
-            // }
+        };
+        BasicLexer.prototype.getOptions = function () {
+            return this.options;
         };
         BasicLexer.prototype.composeError = function (error, message, value, pos, len) {
             return Utils_1.Utils.composeError("BasicLexer", error, message, value, pos, len, this.label || undefined);
@@ -127,11 +122,18 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         BasicLexer.prototype.fnParseExponentialNumber = function (char) {
             // we also try to check: [eE][+-]?\d+; because "E" could be ERR, ELSE,...
-            var token = "";
-            var char1 = this.testChar(1), char2 = this.testChar(2);
+            var token = "", index = 1;
+            while (BasicLexer.isWhiteSpace(this.testChar(index))) { // whitespace between e and rest?
+                index += 1;
+            }
+            var char1 = this.testChar(index), char2 = this.testChar(index + 1);
             if (BasicLexer.isDigit(char1) || (BasicLexer.isSign(char1) && BasicLexer.isDigit(char2))) { // so it is a number
                 token += char; // take "E"
                 char = this.advance();
+                while (BasicLexer.isWhiteSpace(char)) {
+                    token += char;
+                    char = this.advance();
+                }
                 if (BasicLexer.isSign(char)) {
                     token += char; // take sign "+" or "-"
                     char = this.advance();
@@ -162,13 +164,18 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (char === "e" || char === "E") { // we also try to check: [eE][+-]?\d+; because "E" could be ERR, ELSE,...
                 expNumberPart = this.fnParseExponentialNumber(char);
                 token += expNumberPart;
+                if (expNumberPart[1] === " " && !this.options.quiet) {
+                    Utils_1.Utils.console.warn(this.composeError({}, "Whitespace in exponential number", token, startPos).message);
+                    // do we really want to allow this?
+                }
             }
-            token = token.trim(); // remove trailing spaces
+            var orig = token;
+            token = token.replace(/ /g, ""); // remove spaces
             if (!isFinite(Number(token))) { // Infnity?
                 throw this.composeError(Error(), "Number is too large or too small", token, startPos); // for a 64-bit double
             }
             var number = expNumberPart ? token : parseFloat(token);
-            this.addToken(expNumberPart ? "expnumber" : "number", String(number), startPos, token); // store number as string
+            this.addToken(expNumberPart ? "expnumber" : "number", String(number), startPos, orig); // store number as string
             if (this.takeNumberAsLabel) {
                 this.takeNumberAsLabel = false;
                 this.label = String(number); // save just for error message
@@ -184,7 +191,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         BasicLexer.prototype.fnParseWhiteSpace = function (char) {
             var token = this.advanceWhile(char, BasicLexer.isWhiteSpace);
-            if (this.keepWhiteSpace) {
+            if (this.options.keepWhiteSpace) {
                 this.whiteSpace = token;
             }
         };
@@ -194,7 +201,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var match = reSpacesAtEnd.exec(token), endingSpaces = (match && match[0]) || "";
             token = token.trim(); // remove whitespace before and after; do we need this?
             this.addToken("unquoted", token, pos); // could be interpreted as string or number during runtime
-            if (this.keepWhiteSpace) {
+            if (this.options.keepWhiteSpace) {
                 this.whiteSpace = endingSpaces;
             }
         };
@@ -239,7 +246,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var token = char;
             char = this.advance();
             var lcToken = (token + char).toLowerCase(); // combine first 2 letters
-            if (lcToken === "fn" && this.keywords[lcToken]) {
+            if (lcToken === "fn" && this.options.keywords[lcToken]) {
                 this.addToken(lcToken, token + char, startPos); // create "fn" token
                 this.advance();
                 return;
@@ -253,12 +260,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 char = this.advance();
             }
             lcToken = token.toLowerCase();
-            if (this.keywords[lcToken]) {
+            if (this.options.keywords[lcToken]) {
                 this.addToken(lcToken, token, startPos);
                 if (lcToken === "rem") { // special handling for line comment
                     startPos += lcToken.length;
                     if (char === " ") { // ignore first space
-                        if (this.keepWhiteSpace) {
+                        if (this.options.keepWhiteSpace) {
                             this.whiteSpace = char;
                         }
                         char = this.advance();

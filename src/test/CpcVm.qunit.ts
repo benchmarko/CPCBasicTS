@@ -14,7 +14,7 @@ type TestFunctionInputType = string | number | undefined;
 
 // https://www.cpcwiki.eu/index.php/Locomotive_BASIC
 
-const allTests: AllTestsType = { // eslint-disable-line vars-on-top
+const allTests: AllTestsType = {
 	abs: {
 		"-1 ": "1",
 		"0 ": "0",
@@ -159,10 +159,10 @@ const allTests: AllTestsType = { // eslint-disable-line vars-on-top
 		"0xbc02": "setDefaultInks: , setSpeedInk:10,10",
 		"0xbc06": 'CpcVm: Type mismatch in 0: screenBase undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 		"0xbc06,0x40": "getByte:49152 , getByte:49153 , setByte:16384,0 , setByte:16385,0",
-		"0xbc06,0xc0": "getByte:16384 , getByte:16385 , setByte:49152,0 , setByte:49153,1",
+		"0xbc06,0xc0": "getByte:16384 , getByte:16385 , setByte:49152,0 , setByte:49153,0",
 		"0xbc07": 'CpcVm: Type mismatch in 0: screenBase undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-		"0xbc07,0x40": "getByte:49152 , getByte:49153 , setByte:16384,0 , setByte:16385,1",
-		"0xbc07,0xc0": "getByte:16384 , getByte:16385 , setByte:49152,0 , setByte:49153,1",
+		"0xbc07,0x40": "getByte:49152 , getByte:49153 , setByte:16384,0 , setByte:16385,0",
+		"0xbc07,0xc0": "getByte:16384 , getByte:16385 , setByte:49152,0 , setByte:49153,0",
 		"0xbc0e": 'setMode:0 , clearFullWindow: , txtClearFullWindow: -- {"_key":"win0","right":19} -- {"_key":"win1","right":19} -- {"_key":"win2","right":19} -- {"_key":"win3","right":19} -- {"_key":"win4","right":19} -- {"_key":"win5","right":19} -- {"_key":"win6","right":19} -- {"_key":"win7","right":19}',
 		"0xbc0e,1": "setMode:1 , clearFullWindow: , txtClearFullWindow:",
 		"0xbc0e,1,2": 'setMode:2 , clearFullWindow: , txtClearFullWindow: -- {"_key":"win0","right":79} -- {"_key":"win1","right":79} -- {"_key":"win2","right":79} -- {"_key":"win3","right":79} -- {"_key":"win4","right":79} -- {"_key":"win5","right":79} -- {"_key":"win6","right":79} -- {"_key":"win7","right":79}',
@@ -227,10 +227,10 @@ const allTests: AllTestsType = { // eslint-disable-line vars-on-top
 		"7 ": 'CpcVm: Type mismatch in 0: CHAIN 7 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 		'"file1",-1': 'CpcVm: Improper argument in 0: CHAIN -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 		'"file1",65536': 'CpcVm: Overflow in 0: CHAIN 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-		'"file1",0,-1': 'CpcVm: Improper argument in 0: CHAIN -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}} -- {"_key":"inFile","open":false,"command":"","name":"file1","line":0,"fileData":[],"first":0,"last":20,"memorizedExample":""}',
+		'"file1",0,-1': 'CpcVm: Improper argument in 0: CHAIN -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 		'"file1",0,65536': 'CpcVm: Improper argument in 0: CHAIN 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-		'"file1",0,1,-1': 'CpcVm: Improper argument in 0: CHAIN -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}} -- {"_key":"inFile","open":false,"command":"","name":"file1","line":0,"fileData":[],"first":1,"last":20,"memorizedExample":""}',
-		'"file1",0,1,65536': 'CpcVm: Improper argument in 0: CHAIN 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		'"file1",0,1,-1': 'CpcVm: Improper argument in 0: CHAIN -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}} -- {"_key":"inFile","open":false,"command":"","name":"","line":0,"fileData":[],"first":1,"last":0,"memorizedExample":""}',
+		'"file1",0,1,65536': 'CpcVm: Improper argument in 0: CHAIN 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}} -- {"_key":"inFile","open":false,"command":"","name":"","line":0,"fileData":[],"first":1,"last":0,"memorizedExample":""}'
 	},
 	chainMerge: {
 		'"file1"': '{"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"chainMerge","name":"file1","line":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
@@ -245,10 +245,10 @@ const allTests: AllTestsType = { // eslint-disable-line vars-on-top
 		"7 ": 'CpcVm: Type mismatch in 0: CHAIN MERGE 7 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 		'"file1",-1': 'CpcVm: Improper argument in 0: CHAIN MERGE -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 		'"file1",65536': 'CpcVm: Overflow in 0: CHAIN MERGE 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-		'"file1",0,-1': 'CpcVm: Improper argument in 0: CHAIN MERGE -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}} -- {"_key":"inFile","open":false,"command":"","name":"file1","line":0,"fileData":[],"first":0,"last":20,"memorizedExample":""}',
+		'"file1",0,-1': 'CpcVm: Improper argument in 0: CHAIN MERGE -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 		'"file1",0,65536': 'CpcVm: Improper argument in 0: CHAIN MERGE 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-		'"file1",0,1,-1': 'CpcVm: Improper argument in 0: CHAIN MERGE -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}} -- {"_key":"inFile","open":false,"command":"","name":"file1","line":0,"fileData":[],"first":1,"last":20,"memorizedExample":""}',
-		'"file1",0,1,65536': 'CpcVm: Improper argument in 0: CHAIN MERGE 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
+		'"file1",0,1,-1': 'CpcVm: Improper argument in 0: CHAIN MERGE -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}} -- {"_key":"inFile","open":false,"command":"","name":"","line":0,"fileData":[],"first":1,"last":0,"memorizedExample":""}',
+		'"file1",0,1,65536': 'CpcVm: Improper argument in 0: CHAIN MERGE 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}} -- {"_key":"inFile","open":false,"command":"","name":"","line":0,"fileData":[],"first":1,"last":0,"memorizedExample":""}'
 	},
 	chr$: {
 		"0 ": "\x00",
@@ -285,11 +285,11 @@ const allTests: AllTestsType = { // eslint-disable-line vars-on-top
 		"16 ": 'CpcVm: Improper argument in 0: CLG 16 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 	},
 	closein: {
-		"": '{"_key":"inFile","open":false,"command":"","name":"name1","line":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}'
+		"": ""
 	},
 	closeout: {
 		'"_testCase1"': "",
-		'"_testCase2"': '{"_key":"outFile","open":false,"command":"","name":"name1","line":0,"fileData":[],"stream":0,"typeString":"","length":0,"entry":0}',
+		'"_testCase2"': "",
 		'"_testCase3"': '{"_key":"stop","reason":"fileSave","priority":90,"paras":{}} -- {"_key":"outFile","open":true,"command":"closeout","name":"name1","line":0,"fileData":["A"],"stream":0,"typeString":"","length":0,"entry":0}'
 	},
 	cls: {
@@ -773,7 +773,7 @@ const allTests: AllTestsType = { // eslint-disable-line vars-on-top
 		"": 'CpcVm: Type mismatch in 0: INSTR undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 		'""': 'CpcVm: Type mismatch in 0: INSTR undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 		'"a"': 'CpcVm: Type mismatch in 0: INSTR undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-		'"a",2': "CpcVm: Type mismatch in 0: INSTR 2 -- {\"_key\":\"stop\",\"reason\":\"error\",\"priority\":50,\"paras\":{}}",
+		'"a",2': 'CpcVm: Type mismatch in 0: INSTR 2 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 		"0 ": 'CpcVm: Improper argument in 0: INSTR 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 		'0,"abba","a"': 'CpcVm: Improper argument in 0: INSTR 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 		"256 ": 'CpcVm: Improper argument in 0: INSTR 256 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
@@ -887,7 +887,7 @@ const allTests: AllTestsType = { // eslint-disable-line vars-on-top
 		"0,1,65536": 'CpcVm: Overflow in 0: LIST 65536 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 	},
 	load: {
-		'"file1"': '{"open":true,"command":"load","name":"file1","line":0,"fileData":[],"first":0,"last":0,"memorizedExample":""} -- {"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":false,"command":"","name":"file1","line":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
+		'"file1"': '{"open":true,"command":"load","name":"file1","line":0,"fileData":[],"first":0,"last":0,"memorizedExample":""} -- {"_key":"stop","reason":"fileLoad","priority":90,"paras":{}}',
 		'"file1",123': '{"open":true,"command":"load","name":"file1","line":0,"start":123,"fileData":[],"first":0,"last":0,"memorizedExample":""} -- {"_key":"stop","reason":"fileLoad","priority":90,"paras":{}}',
 		'"file1",-32768': '{"open":true,"command":"load","name":"file1","line":0,"start":32768,"fileData":[],"first":0,"last":0,"memorizedExample":""} -- {"_key":"stop","reason":"fileLoad","priority":90,"paras":{}}',
 		'"file1",65535': '{"open":true,"command":"load","name":"file1","line":0,"start":65535,"fileData":[],"first":0,"last":0,"memorizedExample":""} -- {"_key":"stop","reason":"fileLoad","priority":90,"paras":{}}',
@@ -1148,7 +1148,7 @@ const allTests: AllTestsType = { // eslint-disable-line vars-on-top
 		'""': 'CpcVm: Broken in 0: Bad filename:  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 	},
 	openout: {
-		'"file1"': '{"_key":"outFile","open":true,"command":"openout","name":"file1","line":0,"start":0,"fileData":[],"stream":0,"typeString":"A","length":0,"entry":0}',
+		'"file1"': '{"_key":"outFile","open":true,"command":"openout","name":"file1","line":0,"fileData":[],"stream":0,"typeString":"A","length":0,"entry":0}',
 		"": 'CpcVm: Type mismatch in 0: OPENOUT undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 		'""': 'CpcVm: Broken in 0: Bad filename:  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 	},
@@ -1457,9 +1457,9 @@ const allTests: AllTestsType = { // eslint-disable-line vars-on-top
 	},
 	rnd: {
 		"-1 ": "0.000007826369259425611",
-		"0 ": "0.1315377881431662",
-		"2 ": "0.7556053221950332",
-		"": "0.4586501319234493",
+		"0 ": "0.00000782636925942561",
+		"2 ": "0.000007826369259425611",
+		"": "0.000007826369259425611",
 		'""': 'CpcVm: Type mismatch in 0: RND  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 	},
 	round: {
@@ -1483,7 +1483,7 @@ const allTests: AllTestsType = { // eslint-disable-line vars-on-top
 	},
 	run: {
 		"123 ": '{"reason":"run","priority":95,"paras":{"command":"run","stream":0,"first":123,"last":0,"line":0}} -- {"_key":"stop","reason":"run","priority":95,"paras":{"command":"run","stream":0,"first":123,"last":0,"line":0}}',
-		'"file1"': '{"reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"stop","reason":"run","priority":95,"paras":{"command":"run","stream":0,"first":0,"last":0,"line":0}} -- {"_key":"inFile","open":false,"command":"","name":"file1","line":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
+		'"file1"': '{"reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"stop","reason":"run","priority":95,"paras":{"command":"run","stream":0,"first":0,"last":0,"line":0}}',
 		"": '{"reason":"run","priority":95,"paras":{"command":"run","stream":0,"first":0,"last":0,"line":0}} -- {"_key":"stop","reason":"run","priority":95,"paras":{"command":"run","stream":0,"first":0,"last":0,"line":0}}',
 		'""': 'CpcVm: Broken in 0: Bad filename:  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 		"10.4 ": 'CpcVm: Line too long in 0: RUN 10.4 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
@@ -1885,7 +1885,7 @@ const allTests: AllTestsType = { // eslint-disable-line vars-on-top
 		"0,1e9": 'printChar:49,0,0,1,0,false , txtPrintChar:49,0,0,1,0,false , printChar:69,1,0,1,0,false , txtPrintChar:69,1,0,1,0,false , printChar:43,2,0,1,0,false , txtPrintChar:43,2,0,1,0,false , printChar:48,3,0,1,0,false , txtPrintChar:48,3,0,1,0,false , printChar:57,4,0,1,0,false , txtPrintChar:57,4,0,1,0,false -- {"_key":"win0","vpos":1}',
 		"7 ": '{"_key":"win7","vpos":1}',
 		"8 ": "",
-		"9 ": 'CpcVm: File not open in 0: WRITE #9 -- {"_key":"stop","reason":"error","priority":50,"paras":{}} -- {"_key":"outFile","open":false,"command":"","name":"","line":0,"start":0,"fileData":[],"stream":9,"typeString":"","length":0,"entry":0}',
+		"9 ": 'CpcVm: File not open in 0: WRITE #9 -- {"_key":"stop","reason":"error","priority":50,"paras":{}} -- {"_key":"outFile","open":false,"command":"","name":"","line":0,"fileData":[],"stream":9,"typeString":"","length":0,"entry":0}',
 		"": 'CpcVm: Type mismatch in 0: WRITE undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 		'""': 'CpcVm: Type mismatch in 0: WRITE  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 		"-1": 'CpcVm: Improper argument in 0: WRITE -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
@@ -1933,7 +1933,7 @@ const allTests: AllTestsType = { // eslint-disable-line vars-on-top
 		"": "updateSpeedInk: , scheduler: -- true"
 	},
 	vmReset: {
-		"": 'resetCustomChars: , setMode:1 , clearFullWindow: , txtClearFullWindow: , reset: , txtReset: , reset: , reset: -- {"_key":"outFile","open":false,"command":"","name":"","line":0,"fileData":[],"stream":0,"typeString":"","length":0,"entry":0}'
+		"": "resetCustomChars: , setMode:1 , clearFullWindow: , txtClearFullWindow: , reset: , txtReset: , reset: , reset:"
 	},
 	vmTrace: {
 		"": 'printChar:91,0,0,1,0,false , txtPrintChar:91,0,0,1,0,false , printChar:49,1,0,1,0,false , txtPrintChar:49,1,0,1,0,false , printChar:50,2,0,1,0,false , txtPrintChar:50,2,0,1,0,false , printChar:51,3,0,1,0,false , txtPrintChar:51,3,0,1,0,false , printChar:93,4,0,1,0,false , txtPrintChar:93,4,0,1,0,false -- {"_key":"win0","pos":5}'
@@ -2361,7 +2361,29 @@ const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [], // esli
 	} as Variables;
 
 
+type hooksWithCpcVm = NestedHooks & {
+	cpcVm: CpcVm
+};
+
+function createCpcVm() {
+	const options: CpcVmOptions = {
+		canvas: mockCanvas,
+		textCanvas: mockTextCanvas,
+		keyboard: mockKeyboard,
+		sound: mockSound,
+		variables: mockVariables,
+		quiet: true
+	};
+
+	return new CpcVm(options);
+}
+
+
 QUnit.module("CpcVm: Tests", function (hooks) {
+	hooks.before(function () {
+		(hooks as hooksWithCpcVm).cpcVm = createCpcVm();
+	});
+
 	function deleteObjectContents(obj: Record<string, unknown>) {
 		for (const prop in obj) {
 			if (obj.hasOwnProperty(prop)) {
@@ -3276,8 +3298,11 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 	}
 
 	function runSingleTest(testFunction: TestFunctionType, cpcVm: CpcVm, config: CpcVmOptions, key: string, expected: string, category: string) {
+		cpcVm.vmResetRandom();
+		cpcVm.vmResetMemory();
 		cpcVm.vmChangeMode(1);
 		cpcVm.vmResetWindowData(true); // prepare
+		cpcVm.vmResetData();
 		cpcVm.clear();
 		cpcVm.vmGoto(0);
 		config.variables.removeAllVariables();
@@ -3306,21 +3331,13 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 	}
 
 	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
-		const config: CpcVmOptions = {
-			canvas: mockCanvas,
-			textCanvas: mockTextCanvas,
-			keyboard: mockKeyboard,
-			sound: mockSound,
-			variables: mockVariables,
-			quiet: true
-		},
-			cpcVm = new CpcVm(config),
+		const cpcVm = (hooks as hooksWithCpcVm).cpcVm,
 			testFunction = allTestFunctions[category];
 
 		for (const key in tests) {
 			if (tests.hasOwnProperty(key)) {
 				const expected = tests[key],
-					result = runSingleTest(testFunction, cpcVm, config, key, expected, category);
+					result = runSingleTest(testFunction, cpcVm, cpcVm.getOptions(), key, expected, category);
 
 				if (results) {
 					results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));

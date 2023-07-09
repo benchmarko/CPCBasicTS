@@ -21,8 +21,10 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 currentX: 0,
                 currentY: 0
             };
-            this.fnPressCpcKey = options.fnPressCpcKey;
-            this.fnReleaseCpcKey = options.fnReleaseCpcKey;
+            this.options = {
+                fnPressCpcKey: options.fnPressCpcKey,
+                fnReleaseCpcKey: options.fnReleaseCpcKey
+            };
             var eventNames = this.fnAttachPointerEvents("kbdArea", this.onVirtualVirtualKeyboardKeydown.bind(this), undefined, this.onVirtualVirtualKeyboardKeyup.bind(this));
             if (eventNames.out) {
                 this.pointerOutEvent = eventNames.out;
@@ -188,7 +190,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                     cpcKeyCode = this.mapNumLockCpcKey(cpcKeyCode);
                 }
                 var pressedKey = this.fnVirtualGetPressedKey(cpcKeyCode), pointerEvent = event, ascii = this.fnVirtualGetAscii(cpcKeyCode, this.shiftLock || pointerEvent.shiftKey, this.numLock);
-                this.fnPressCpcKey(cpcKeyCode, pressedKey, ascii.key, pointerEvent.shiftKey, pointerEvent.ctrlKey);
+                this.options.fnPressCpcKey(cpcKeyCode, pressedKey, ascii.key, pointerEvent.shiftKey, pointerEvent.ctrlKey);
             }
             if (this.pointerOutEvent && this.fnVirtualKeyout) {
                 node.addEventListener(this.pointerOutEvent, this.fnVirtualKeyout, false);
@@ -204,7 +206,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                     cpcKeyCode = this.mapNumLockCpcKey(cpcKeyCode);
                 }
                 var pressedKey = this.fnVirtualGetPressedKey(cpcKeyCode), pointerEvent = event, ascii = this.fnVirtualGetAscii(cpcKeyCode, this.shiftLock || pointerEvent.shiftKey, this.numLock);
-                this.fnReleaseCpcKey(cpcKeyCode, pressedKey, ascii.key, pointerEvent.shiftKey, pointerEvent.ctrlKey);
+                this.options.fnReleaseCpcKey(cpcKeyCode, pressedKey, ascii.key, pointerEvent.shiftKey, pointerEvent.ctrlKey);
                 if (cpcKeyCode === 70) { // Caps Lock?
                     this.shiftLock = !this.shiftLock;
                     this.virtualKeyboardAdaptKeys(this.shiftLock, this.numLock);

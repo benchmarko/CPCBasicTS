@@ -7,9 +7,11 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     exports.DiskImage = void 0;
     var DiskImage = /** @class */ (function () {
         function DiskImage(options) {
-            this.quiet = false;
-            this.diskName = options.diskName;
-            this.data = options.data;
+            this.options = {
+                diskName: options.diskName,
+                data: options.data,
+                quiet: false
+            };
             this.setOptions(options);
             // reset
             this.diskInfo = DiskImage.getInitialDiskInfo();
@@ -17,7 +19,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         }
         DiskImage.prototype.setOptions = function (options) {
             if (options.quiet !== undefined) {
-                this.quiet = options.quiet;
+                this.options.quiet = options.quiet;
             }
         };
         DiskImage.getInitialDiskInfo = function () {
@@ -36,7 +38,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         DiskImage.prototype.composeError = function (error, message, value, pos) {
             var len = 0;
-            return Utils_1.Utils.composeError("DiskImage", error, this.diskName + ": " + message, value, pos || 0, len);
+            return Utils_1.Utils.composeError("DiskImage", error, this.options.diskName + ": " + message, value, pos || 0, len);
         };
         DiskImage.testDiskIdent = function (ident) {
             var diskType = 0;
@@ -49,14 +51,14 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return diskType;
         };
         DiskImage.prototype.readUtf = function (pos, len) {
-            var out = this.data.substring(pos, pos + len);
+            var out = this.options.data.substring(pos, pos + len);
             if (out.length !== len) {
                 throw this.composeError(new Error(), "End of File", "", pos);
             }
             return out;
         };
         DiskImage.prototype.readUInt8 = function (pos) {
-            var num = this.data.charCodeAt(pos);
+            var num = this.options.data.charCodeAt(pos);
             if (isNaN(num)) {
                 throw this.composeError(new Error(), "End of File", String(num), pos);
             }
@@ -75,7 +77,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             diskInfo.ident = ident + this.readUtf(pos + 8, 34 - 8); // read remaining ident
             if (diskInfo.ident.substring(34 - 11, 34 - 11 + 9) !== "Disk-Info") { // some tools use "Disk-Info  " instead of "Disk-Info\r\n", so compare without "\r\n"
                 // "Disk-Info" string is optional
-                if (!this.quiet) {
+                if (!this.options.quiet) {
                     Utils_1.Utils.console.warn(this.composeError({}, "Disk ident not found", diskInfo.ident.substring(34 - 11, 34 - 11 + 9), pos + 34 - 11).message);
                 }
             }
@@ -101,7 +103,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             trackInfo.ident = this.readUtf(pos, 12);
             if (trackInfo.ident.substring(0, 10) !== "Track-Info") { // some tools use "Track-Info  " instead of "Track-Info\r\n", so compare without "\r\n"
                 // "Track-Info" string is optional
-                if (!this.quiet) {
+                if (!this.options.quiet) {
                     Utils_1.Utils.console.warn(this.composeError({}, "Track ident not found", trackInfo.ident.substring(0, 10), pos).message);
                 }
             }
@@ -419,17 +421,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             return header;
         };
-        // for testing only
-        /*
-        private static writeUInt8(data: Uint8Array, pos: number, value: number) {
-            data[pos] = value;
-        }
-    
-        private static writeUInt16(data: Uint8Array, pos: number, value: number) {
-            data[pos] = value & 0xff;
-            data[pos + 1] = (value >> 8) & 0xff;
-        }
-        */
         DiskImage.uInt8ToString = function (value) {
             return String.fromCharCode(value);
         };

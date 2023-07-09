@@ -14,9 +14,9 @@ interface CodeGeneratorJsOptions {
 	lexer: BasicLexer
 	parser: BasicParser
 	rsx: ICpcVmRsx
-	implicitLines?: boolean
-	noCodeFrame?: boolean
-	quiet?: boolean
+	implicitLines?: boolean // generate missing line numbers
+	noCodeFrame?: boolean // suppress generation of a code frame
+	quiet?: boolean // quiet mode: suppress most warnings
 	trace?: boolean
 }
 
@@ -37,13 +37,7 @@ type StackType = {
 type LabelsType = Record<string, number>;
 
 export class CodeGeneratorJs {
-	private readonly lexer: BasicLexer;
-	private readonly parser: BasicParser;
-	private readonly rsx: ICpcVmRsx;
-	private trace = false;
-	private quiet = false; // quiet mode: suppress most warnings
-	private noCodeFrame = false; // suppress generation of a code frame
-	private implicitLines = false; // generate missing line numbers
+	private readonly options: CodeGeneratorJsOptions;
 
 	private line = "0"; // current line (label)
 	private readonly reJsKeywords: RegExp;
@@ -77,23 +71,30 @@ export class CodeGeneratorJs {
 
 	setOptions(options: Omit<CodeGeneratorJsOptions, "lexer" | "parser" | "rsx">): void {
 		if (options.implicitLines !== undefined) {
-			this.implicitLines = options.implicitLines;
+			this.options.implicitLines = options.implicitLines;
 		}
 		if (options.noCodeFrame !== undefined) {
-			this.noCodeFrame = options.noCodeFrame;
+			this.options.noCodeFrame = options.noCodeFrame;
 		}
 		if (options.quiet !== undefined) {
-			this.quiet = options.quiet;
+			this.options.quiet = options.quiet;
 		}
 		if (options.trace !== undefined) {
-			this.trace = options.trace;
+			this.options.trace = options.trace;
 		}
 	}
 
+	getOptions(): CodeGeneratorJsOptions {
+		return this.options;
+	}
+
 	constructor(options: CodeGeneratorJsOptions) {
-		this.lexer = options.lexer;
-		this.parser = options.parser;
-		this.rsx = options.rsx;
+		this.options = {
+			lexer: options.lexer,
+			parser: options.parser,
+			rsx: options.rsx,
+			quiet: false
+		};
 		this.setOptions(options); // optional options
 
 		this.reJsKeywords = CodeGeneratorJs.createJsKeywordRegex();
@@ -634,12 +635,12 @@ export class CodeGeneratorJs {
 
 	private vertical(node: CodeNode) { // "|" rsx
 		let rsxName = node.value.substring(1).toLowerCase().replace(/\./g, "_");
-		const rsxAvailable = this.rsx && this.rsx.rsxIsAvailable(rsxName),
+		const rsxAvailable = this.options.rsx && this.options.rsx.rsxIsAvailable(rsxName),
 			nodeArgs = this.fnParseArgs(node.args),
 			label = this.fnGetStopLabel();
 
 		if (!rsxAvailable) { // if RSX not available, we delay the error until it is executed (or catched by on error goto)
-			if (!this.quiet) {
+			if (!this.options.quiet) {
 				const error = this.composeError(Error(), "Unknown RSX command", node.value, node.pos);
 
 				Utils.console.warn(error);
@@ -808,7 +809,7 @@ export class CodeGeneratorJs {
 	}
 
 	private label(node: CodeNode) {
-		const isTraceActive = this.trace || Boolean(this.countMap.tron),
+		const isTraceActive = this.options.trace || Boolean(this.countMap.tron),
 			isResumeNext = Boolean(this.countMap.resumeNext),
 			isResumeNoArgs = Boolean(this.countMap.resumeNoArgsCount);
 
@@ -828,7 +829,7 @@ export class CodeGeneratorJs {
 			label = '"direct"';
 		}
 
-		if (!this.noCodeFrame) {
+		if (!this.options.noCodeFrame) {
 			value += "case " + label + ":";
 			value += " o.line = " + label + ";";
 			if (isTraceActive) {
@@ -867,7 +868,7 @@ export class CodeGeneratorJs {
 			}
 		}
 
-		if (isDirect && !this.noCodeFrame) {
+		if (isDirect && !this.options.noCodeFrame) {
 			value += "\n o.vmGoto(\"end\"); break;\ncase \"directEnd\":"; // put in next line because of possible "rem"
 		}
 
@@ -1165,7 +1166,7 @@ export class CodeGeneratorJs {
 	}
 
 	private fnThenOrElsePart(args: ParserNode[], tracePrefix: string) {
-		const isTraceActive = this.trace,
+		const isTraceActive = this.options.trace,
 			isResumeNext = Boolean(this.countMap.resumeNext),
 			isResumeNoArgs = Boolean(this.countMap.resumeNoArgsCount),
 			nodeArgs = this.fnParseArgs(args);
@@ -1690,7 +1691,7 @@ export class CodeGeneratorJs {
 		let label = node.value;
 
 		if (label === "") {
-			if (this.implicitLines) {
+			if (this.options.implicitLines) {
 				label = String(lastLine + 1); // no line => we just increase the last line by 1
 				node.value = label; // we also modify the parse tree
 			} else {
@@ -1858,8 +1859,8 @@ export class CodeGeneratorJs {
 
 		this.reset();
 		try {
-			const tokens = this.lexer.lex(input),
-				parseTree = this.parser.parse(tokens);
+			const tokens = this.options.lexer.lex(input),
+				parseTree = this.options.parser.parse(tokens);
 
 			if (allowDirect && parseTree.length) {
 				const lastLine = parseTree[parseTree.length - 1];
@@ -1874,7 +1875,7 @@ export class CodeGeneratorJs {
 			const combinedData = CodeGeneratorJs.combineData(this.dataList),
 				combinedLabels = CodeGeneratorJs.combineLabels(this.labelList);
 
-			if (!this.noCodeFrame) {
+			if (!this.options.noCodeFrame) {
 				output = '"use strict"\n'
 					+ "var v=o.vmGetAllVariables();\n"
 					+ "var t=o.vmGetAllVarTypes();\n"
@@ -1891,7 +1892,7 @@ export class CodeGeneratorJs {
 		} catch (e) {
 			if (Utils.isCustomError(e)) {
 				out.error = e;
-				if (!this.quiet) {
+				if (!this.options.quiet) {
 					Utils.console.warn(e); // show our customError as warning
 				}
 			} else { // other errors

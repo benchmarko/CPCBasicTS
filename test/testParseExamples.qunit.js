@@ -166,8 +166,8 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
         };
         cpcBasic.lexer = new BasicLexer_1.BasicLexer({
             keywords: BasicParser_1.BasicParser.keywords,
-            quiet: true,
-            keepWhiteSpace: true
+            keepWhiteSpace: true,
+            quiet: true
         });
         cpcBasic.parser = new BasicParser_1.BasicParser({
             quiet: true

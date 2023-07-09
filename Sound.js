@@ -16,7 +16,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.fScheduleAheadTime = 0.1; // 100 ms
             this.volEnv = [];
             this.toneEnv = [];
-            this.AudioContextConstructor = options.AudioContextConstructor;
+            this.options = {
+                AudioContextConstructor: options.AudioContextConstructor
+            };
             for (var i = 0; i < 3; i += 1) {
                 this.queues[i] = {
                     soundData: [],
@@ -80,7 +82,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 0,
                 2,
                 1
-            ], context = new this.AudioContextConstructor(), // may produce exception if not available
+            ], context = new this.options.AudioContextConstructor(), // may produce exception if not available
             mergerNode = context.createChannelMerger(6); // create mergerNode with 6 inputs; we are using the first 3 for left, right, center
             this.context = context;
             this.mergerNode = mergerNode;

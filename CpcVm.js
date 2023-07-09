@@ -126,13 +126,22 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             }
             this.crtcData = [];
         }
+        CpcVm.prototype.getOptions = function () {
+            return {
+                canvas: this.canvas,
+                textCanvas: this.textCanvas,
+                keyboard: this.keyboard,
+                sound: this.soundClass,
+                variables: this.variables,
+                quiet: this.quiet
+            };
+        };
         CpcVm.prototype.vmSetRsxClass = function (rsx) {
             this.rsx = rsx; // this.rsx just used in the script
         };
         CpcVm.prototype.vmReset = function () {
             this.startTime = Date.now();
-            this.random.init();
-            this.lastRnd = 0;
+            this.vmResetRandom();
             this.nextFrameTime = Date.now() + CpcVm.frameTimeMs; // next time of frame fly
             this.stopCount = 0;
             this.line = 0; // current line number (or label)
@@ -142,8 +151,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.breakGosubLine = 0;
             this.breakResumeLine = 0;
             this.inputValues.length = 0;
-            CpcVm.vmResetFileHandling(this.inFile);
-            CpcVm.vmResetFileHandling(this.outFile);
+            this.vmResetInFileHandling();
             this.vmResetControlBuffer();
             this.outBuffer = ""; // console output
             this.vmStop("", 0, true);
@@ -153,15 +161,10 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.gosubStack.length = 0;
             this.degFlag = false; // degree or radians
             this.tronFlag1 = false;
-            this.mem.length = 0; // clear memory (for PEEK, POKE)
-            this.ramSelect = 0; // for banking with 16K banks in the range 0x4000-0x7fff (0=default; 1...=additional)
             this.screenPage = 3; // 16K screen page, 3=0xc000..0xffff
             this.crtcReg = 0;
             this.crtcData.length = 0;
-            this.minCharHimem = CpcVm.maxHimem;
-            this.maxCharHimem = CpcVm.maxHimem;
-            this.himemValue = CpcVm.maxHimem;
-            this.minCustomChar = 256;
+            this.vmResetMemory();
             this.symbolAfter(240); // set also minCustomChar
             this.vmResetTimers();
             this.timerPriority = -1; // priority of running task: -1=low (min priority to start new timers)
@@ -177,6 +180,18 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.soundClass.reset();
             this.soundData.length = 0;
             this.inkeyTimeMs = 0; // if >0, next time when inkey$ can be checked without inserting "waitFrame"
+        };
+        CpcVm.prototype.vmResetMemory = function () {
+            this.mem.length = 0; // clear memory (for PEEK, POKE)
+            this.ramSelect = 0; // for banking with 16K banks in the range 0x4000-0x7fff (0=default; 1...=additional)
+            this.minCharHimem = CpcVm.maxHimem;
+            this.maxCharHimem = CpcVm.maxHimem;
+            this.himemValue = CpcVm.maxHimem;
+            this.minCustomChar = 256;
+        };
+        CpcVm.prototype.vmResetRandom = function () {
+            this.random.init();
+            this.lastRnd = 0;
         };
         CpcVm.prototype.vmResetTimers = function () {
             var data = {
@@ -233,7 +248,24 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         CpcVm.vmResetFileHandling = function (file) {
             file.open = false;
             file.command = ""; // to be sure
+            file.name = "";
+            file.line = 0;
             file.start = undefined; // to be sure
+            file.fileData.length = 0;
+        };
+        CpcVm.prototype.vmResetInFileHandling = function () {
+            var inFile = this.inFile;
+            CpcVm.vmResetFileHandling(inFile);
+            inFile.first = 0;
+            inFile.last = 0;
+        };
+        CpcVm.prototype.vmResetOutFileHandling = function () {
+            var outFile = this.outFile;
+            CpcVm.vmResetFileHandling(outFile);
+            outFile.stream = 0;
+            outFile.typeString = "";
+            outFile.length = 0;
+            outFile.entry = 0;
         };
         CpcVm.prototype.vmResetData = function () {
             this.dataList.length = 0; // array for BASIC data lines (continuous)
@@ -313,14 +345,6 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.vmAssertNumber(n, err || "?");
             return (n >= 0) ? (n + 0.5) | 0 : (n - 0.5) | 0; // eslint-disable-line no-bitwise
         };
-        /*
-        // round for comparison TODO
-        vmRound4Cmp(n) {
-            const nAdd = (n >= 0) ? 0.5 : -0.5;
-    
-            return ((n * 1e12 + nAdd) | 0) / 1e12; // eslint-disable-line no-bitwise
-        }
-        */
         CpcVm.prototype.vmInRangeRound = function (n, min, max, err) {
             n = this.vmRound(n, err);
             if (n < min || n > max) {
@@ -963,8 +987,8 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.rad();
             this.soundClass.resetQueue();
             this.soundData.length = 0;
-            this.closein();
-            this.closeout();
+            this.vmResetInFileHandling();
+            this.vmResetOutFileHandling();
         };
         CpcVm.prototype.clearInput = function () {
             this.keyboard.clearInput();
@@ -981,9 +1005,8 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             CpcVm.vmResetFileHandling(inFile);
         };
         CpcVm.prototype.closein = function () {
-            var inFile = this.inFile;
-            if (inFile.open) {
-                this.vmCloseinCallback(); // not really used as a callback here
+            if (this.inFile.open) {
+                this.vmCloseinCallback(); // close directly
             }
         };
         CpcVm.prototype.vmCloseoutCallback = function () {

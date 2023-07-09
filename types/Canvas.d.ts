@@ -5,13 +5,12 @@ export interface CanvasOptions {
     onClickKey?: (arg0: string) => void;
 }
 export declare class Canvas {
+    private readonly options;
     private readonly fnUpdateCanvasHandler;
     private readonly fnUpdateCanvas2Handler;
     private fps;
     private readonly cpcAreaBox;
-    private readonly charset;
     private customCharset;
-    private readonly onClickKey?;
     private gColMode;
     private mask;
     private maskBit;

@@ -756,7 +756,36 @@ const allTests: AllTestsType = {
 // "data \" \",//": "8C,20,22,20,22,2C,2F,2F",
 // "a=1 :'comment": "0D,00,00,E1,EF,0F,01,01,C0,63,6F,6D,6D,65,6E,74",
 
+type hooksWithCodeGeneratorToken = NestedHooks & {
+	codeGeneratorToken: CodeGeneratorToken
+};
+
+function createCodeGeneratorToken() {
+	const lexer = new BasicLexer({
+			keywords: BasicParser.keywords,
+			keepWhiteSpace: true,
+			quiet: true
+		}),
+		parser = new BasicParser({
+			quiet: true,
+			keepTokens: true,
+			keepBrackets: true,
+			keepColons: true,
+			keepDataComma: true
+		});
+
+	return new CodeGeneratorToken({
+		quiet: true,
+		lexer: lexer,
+		parser: parser
+	});
+}
+
 QUnit.module("CodeGeneratorToken: Tests", function (hooks) {
+	hooks.before(function () {
+		(hooks as hooksWithCodeGeneratorToken).codeGeneratorToken = createCodeGeneratorToken();
+	});
+
 	function fnBin2Hex(bin: string) {
 		return bin.split("").map(function (s) {
 			return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0");
@@ -764,21 +793,7 @@ QUnit.module("CodeGeneratorToken: Tests", function (hooks) {
 	}
 
 	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
-		const codeGeneratorToken = new CodeGeneratorToken({
-			quiet: true,
-			lexer: new BasicLexer({
-				keywords: BasicParser.keywords,
-				quiet: true,
-				keepWhiteSpace: true
-			}),
-			parser: new BasicParser({
-				quiet: true,
-				keepTokens: true,
-				keepBrackets: true,
-				keepColons: true,
-				keepDataComma: true
-			})
-		});
+		const codeGeneratorToken = (hooks as hooksWithCodeGeneratorToken).codeGeneratorToken;
 
 		for (const key in tests) {
 			if (tests.hasOwnProperty(key)) {

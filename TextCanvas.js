@@ -12,9 +12,11 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.needTextUpdate = false;
             this.textBuffer = []; // textbuffer characters at row,column
             this.hasFocus = false; // canvas has focus
+            this.options = {
+                onClickKey: options.onClickKey
+            };
             this.fnUpdateTextCanvasHandler = this.updateTextCanvas.bind(this);
             this.fnUpdateTextCanvas2Handler = this.updateTextCanvas2.bind(this);
-            this.onClickKey = options.onClickKey;
             this.textText = View_1.View.getElementById1("textText"); // View.setAreaValue()
             this.animationTimeoutId = undefined;
             this.animationFrame = undefined;
@@ -101,8 +103,8 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             if (char === undefined && event.detail === 2) { // no char but mouse double click?
                 char = 13; // use CR
             }
-            if (char !== undefined && this.onClickKey) { // call click handler (put char in keyboard input buffer)
-                this.onClickKey(String.fromCharCode(char));
+            if (char !== undefined && this.options.onClickKey) { // call click handler (put char in keyboard input buffer)
+                this.options.onClickKey(String.fromCharCode(char));
             }
         };
         TextCanvas.prototype.onTextCanvasClick = function (event) {

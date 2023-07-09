@@ -14,11 +14,7 @@ export interface ParserNode extends LexerToken {
     len?: number;
 }
 export declare class BasicParser {
-    private quiet;
-    private keepBrackets;
-    private keepColons;
-    private keepDataComma;
-    private keepTokens;
+    private readonly options;
     private label;
     private readonly symbols;
     private tokens;

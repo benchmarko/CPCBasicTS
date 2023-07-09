@@ -2,6 +2,7 @@ export interface TextCanvasOptions {
     onClickKey?: (arg0: string) => void;
 }
 export declare class TextCanvas {
+    private readonly options;
     private readonly fnUpdateTextCanvasHandler;
     private readonly fnUpdateTextCanvas2Handler;
     private fps;
@@ -11,7 +12,6 @@ export declare class TextCanvas {
     private needTextUpdate;
     private readonly textBuffer;
     private hasFocus;
-    private readonly onClickKey?;
     constructor(options: TextCanvasOptions);
     private static readonly cpc2Unicode;
     reset(): void;

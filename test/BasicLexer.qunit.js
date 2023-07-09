@@ -751,7 +751,17 @@ define(["require", "exports", "../Utils", "../BasicLexer", "./TestHelper", "./Te
         }
         return keywordMap;
     }
+    function createBasicLexer(keepWhiteSpace) {
+        return new BasicLexer_1.BasicLexer({
+            keywords: getKeywords(),
+            quiet: true,
+            keepWhiteSpace: keepWhiteSpace
+        });
+    }
     QUnit.module("BasicLexer: Tests", function (hooks) {
+        hooks.before(function () {
+            hooks.basicLexer = createBasicLexer(false);
+        });
         function runSingleTest(basicLexer, key, expectedEntry) {
             var result, tokens;
             try {
@@ -774,10 +784,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "./TestHelper", "./Te
             return result;
         }
         function runTestsFor(category, tests, assert, results) {
-            var basicLexer = new BasicLexer_1.BasicLexer({
-                keywords: getKeywords(),
-                quiet: true
-            });
+            var basicLexer = hooks.basicLexer;
             for (var key in tests) {
                 if (tests.hasOwnProperty(key)) {
                     var expected = TestHelper_1.TestHelper.handleBinaryLiterals(tests[key]);
@@ -804,6 +811,9 @@ define(["require", "exports", "../Utils", "../BasicLexer", "./TestHelper", "./Te
         TestHelper_1.TestHelper.generateAllTests(allTests, runTestsFor, hooks);
     });
     QUnit.module("BasicLexer: keepWhiteSpace", function (hooks) {
+        hooks.before(function () {
+            hooks.basicLexer = createBasicLexer(true);
+        });
         function fnCombineTokens(tokens) {
             var result = "";
             for (var i = 0; i < tokens.length; i += 1) {
@@ -853,12 +863,9 @@ define(["require", "exports", "../Utils", "../BasicLexer", "./TestHelper", "./Te
             return result;
         }
         function runTestsForWhitespace(category, tests, assert, results) {
+            var basicLexer = hooks.basicLexer;
             var spaceCount = 1;
-            var basicLexer = new BasicLexer_1.BasicLexer({
-                keywords: getKeywords(),
-                quiet: true,
-                keepWhiteSpace: true
-            }), fnSpaceReplacer = function () {
+            var fnSpaceReplacer = function () {
                 spaceCount += 1;
                 return " ".repeat(spaceCount);
             };

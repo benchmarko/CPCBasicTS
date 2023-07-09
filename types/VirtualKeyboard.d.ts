@@ -4,8 +4,7 @@ interface VirtualKeyboardOptions {
     fnReleaseCpcKey: PressReleaseCpcKey;
 }
 export declare class VirtualKeyboard {
-    private readonly fnPressCpcKey;
-    private readonly fnReleaseCpcKey;
+    private readonly options;
     private readonly pointerOutEvent?;
     private readonly fnVirtualKeyout?;
     private shiftLock;

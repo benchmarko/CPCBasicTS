@@ -9,10 +9,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     exports.CodeGeneratorJs = void 0;
     var CodeGeneratorJs = /** @class */ (function () {
         function CodeGeneratorJs(options) {
-            this.trace = false;
-            this.quiet = false; // quiet mode: suppress most warnings
-            this.noCodeFrame = false; // suppress generation of a code frame
-            this.implicitLines = false; // generate missing line numbers
             this.line = "0"; // current line (label)
             this.stack = {
                 forLabel: [],
@@ -145,25 +141,31 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 "while": this.fnWhile,
                 write: this.usingOrWrite
             };
-            this.lexer = options.lexer;
-            this.parser = options.parser;
-            this.rsx = options.rsx;
+            this.options = {
+                lexer: options.lexer,
+                parser: options.parser,
+                rsx: options.rsx,
+                quiet: false
+            };
             this.setOptions(options); // optional options
             this.reJsKeywords = CodeGeneratorJs.createJsKeywordRegex();
         }
         CodeGeneratorJs.prototype.setOptions = function (options) {
             if (options.implicitLines !== undefined) {
-                this.implicitLines = options.implicitLines;
+                this.options.implicitLines = options.implicitLines;
             }
             if (options.noCodeFrame !== undefined) {
-                this.noCodeFrame = options.noCodeFrame;
+                this.options.noCodeFrame = options.noCodeFrame;
             }
             if (options.quiet !== undefined) {
-                this.quiet = options.quiet;
+                this.options.quiet = options.quiet;
             }
             if (options.trace !== undefined) {
-                this.trace = options.trace;
+                this.options.trace = options.trace;
             }
+        };
+        CodeGeneratorJs.prototype.getOptions = function () {
+            return this.options;
         };
         CodeGeneratorJs.prototype.reset = function () {
             var stack = this.stack;
@@ -524,9 +526,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         CodeGeneratorJs.prototype.vertical = function (node) {
             var rsxName = node.value.substring(1).toLowerCase().replace(/\./g, "_");
-            var rsxAvailable = this.rsx && this.rsx.rsxIsAvailable(rsxName), nodeArgs = this.fnParseArgs(node.args), label = this.fnGetStopLabel();
+            var rsxAvailable = this.options.rsx && this.options.rsx.rsxIsAvailable(rsxName), nodeArgs = this.fnParseArgs(node.args), label = this.fnGetStopLabel();
             if (!rsxAvailable) { // if RSX not available, we delay the error until it is executed (or catched by on error goto)
-                if (!this.quiet) {
+                if (!this.options.quiet) {
                     var error = this.composeError(Error(), "Unknown RSX command", node.value, node.pos);
                     Utils_1.Utils.console.warn(error);
                 }
@@ -664,7 +666,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return traceLabel;
         };
         CodeGeneratorJs.prototype.label = function (node) {
-            var isTraceActive = this.trace || Boolean(this.countMap.tron), isResumeNext = Boolean(this.countMap.resumeNext), isResumeNoArgs = Boolean(this.countMap.resumeNoArgsCount);
+            var isTraceActive = this.options.trace || Boolean(this.countMap.tron), isResumeNext = Boolean(this.countMap.resumeNext), isResumeNoArgs = Boolean(this.countMap.resumeNoArgsCount);
             var label = node.value;
             this.line = label; // set line before parsing args
             if (this.countMap.resumeNext) {
@@ -677,7 +679,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 value = "o.vmGoto(\"directEnd\"); break;\n";
                 label = '"direct"';
             }
-            if (!this.noCodeFrame) {
+            if (!this.options.noCodeFrame) {
                 value += "case " + label + ":";
                 value += " o.line = " + label + ";";
                 if (isTraceActive) {
@@ -712,7 +714,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     value += " " + value2;
                 }
             }
-            if (isDirect && !this.noCodeFrame) {
+            if (isDirect && !this.options.noCodeFrame) {
                 value += "\n o.vmGoto(\"end\"); break;\ncase \"directEnd\":"; // put in next line because of possible "rem"
             }
             node.pv = value;
@@ -936,7 +938,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + "); break"; // with break
         };
         CodeGeneratorJs.prototype.fnThenOrElsePart = function (args, tracePrefix) {
-            var isTraceActive = this.trace, isResumeNext = Boolean(this.countMap.resumeNext), isResumeNoArgs = Boolean(this.countMap.resumeNoArgsCount), nodeArgs = this.fnParseArgs(args);
+            var isTraceActive = this.options.trace, isResumeNext = Boolean(this.countMap.resumeNext), isResumeNoArgs = Boolean(this.countMap.resumeNoArgsCount), nodeArgs = this.fnParseArgs(args);
             if (args.length && args[0].type === "linenumber") {
                 var line = nodeArgs[0];
                 this.fnAddReferenceLabel(line, args[0]);
@@ -1292,7 +1294,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         CodeGeneratorJs.prototype.fnCheckLabel = function (node, lastLine) {
             var label = node.value;
             if (label === "") {
-                if (this.implicitLines) {
+                if (this.options.implicitLines) {
                     label = String(lastLine + 1); // no line => we just increase the last line by 1
                     node.value = label; // we also modify the parse tree
                 }
@@ -1430,7 +1432,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             };
             this.reset();
             try {
-                var tokens = this.lexer.lex(input), parseTree = this.parser.parse(tokens);
+                var tokens = this.options.lexer.lex(input), parseTree = this.options.parser.parse(tokens);
                 if (allowDirect && parseTree.length) {
                     var lastLine = parseTree[parseTree.length - 1];
                     if (lastLine.type === "label" && lastLine.value === "") {
@@ -1439,7 +1441,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 }
                 var output = this.evaluate(parseTree, variables);
                 var combinedData = CodeGeneratorJs.combineData(this.dataList), combinedLabels = CodeGeneratorJs.combineLabels(this.labelList);
-                if (!this.noCodeFrame) {
+                if (!this.options.noCodeFrame) {
                     output = '"use strict"\n'
                         + "var v=o.vmGetAllVariables();\n"
                         + "var t=o.vmGetAllVarTypes();\n"
@@ -1458,7 +1460,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             catch (e) {
                 if (Utils_1.Utils.isCustomError(e)) {
                     out.error = e;
-                    if (!this.quiet) {
+                    if (!this.options.quiet) {
                         Utils_1.Utils.console.warn(e); // show our customError as warning
                     }
                 }

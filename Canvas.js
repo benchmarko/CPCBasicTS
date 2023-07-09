@@ -8,9 +8,12 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Canvas = void 0;
     var Canvas = /** @class */ (function () {
+        //setOptions(options: CanvasOptions): void { }
         function Canvas(options) {
             this.fps = 15; // FPS for canvas update
+            //private readonly charset: CharsetType;
             this.customCharset = {};
+            //private readonly onClickKey?: (arg0: string) => void;
             this.gColMode = 0; // 0=normal, 1=xor, 2=and, 3=or
             this.mask = 255;
             this.maskBit = 128;
@@ -39,10 +42,12 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.yTop = 399;
             this.yBottom = 0;
             this.gTransparent = false;
+            this.options = {
+                charset: options.charset,
+                onClickKey: options.onClickKey
+            };
             this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
             this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
-            this.charset = options.charset;
-            this.onClickKey = options.onClickKey;
             this.cpcAreaBox = View_1.View.getElementById1("cpcAreaBox");
             var canvas = View_1.View.getElementById1("cpcCanvas");
             this.canvas = canvas;
@@ -249,7 +254,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.customCharset[char] = charData;
         };
         Canvas.prototype.getCharData = function (char) {
-            return this.customCharset[char] || this.charset[char];
+            return this.customCharset[char] || this.options.charset[char];
         };
         Canvas.prototype.setDefaultInks = function () {
             this.currentInks[0] = Canvas.defaultInks[0].slice(); // copy ink set 0 array
@@ -283,8 +288,8 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             if (char < 0 && event.detail === 2) { // no char but mouse double click?
                 char = 13; // use CR
             }
-            if (char >= 0 && this.onClickKey) { // call click handler (put char in keyboard input buffer)
-                this.onClickKey(String.fromCharCode(char));
+            if (char >= 0 && this.options.onClickKey) { // call click handler (put char in keyboard input buffer)
+                this.options.onClickKey(String.fromCharCode(char));
             }
             // for graphics coordinates, adapt origin
             x -= this.xOrig;
@@ -362,7 +367,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             }
         };
         Canvas.prototype.setChar = function (char, x, y, pen, paper, transparent, gColMode, textAtGraphics) {
-            var charData = this.customCharset[char] || this.charset[char], pixelWidth = this.modeData.pixelWidth, pixelHeight = this.modeData.pixelHeight;
+            var charData = this.customCharset[char] || this.options.charset[char], pixelWidth = this.modeData.pixelWidth, pixelHeight = this.modeData.pixelHeight;
             for (var row = 0; row < 8; row += 1) {
                 for (var col = 0; col < 8; col += 1) {
                     var charValue = charData[row], bit = charValue & (0x80 >> col); // eslint-disable-line no-bitwise
@@ -661,7 +666,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         };
         Canvas.prototype.printGChar = function (char) {
             var charWidth = this.modeData.pixelWidth * 8;
-            if (char >= this.charset.length) {
+            if (char >= this.options.charset.length) {
                 Utils_1.Utils.console.warn("printGChar: Ignoring char with code", char);
                 return;
             }
@@ -671,7 +676,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         };
         Canvas.prototype.printChar = function (char, x, y, pen, paper, transparent) {
             var charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8, pens = this.modeData.pens;
-            if (char >= this.charset.length) {
+            if (char >= this.options.charset.length) {
                 Utils_1.Utils.console.warn("printChar: Ignoring char with code", char);
                 return;
             }
@@ -688,7 +693,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.setNeedUpdate();
         };
         Canvas.prototype.findMatchingChar = function (charData) {
-            var charset = this.charset;
+            var charset = this.options.charset;
             var char = -1; // not detected
             for (var i = 0; i < charset.length; i += 1) {
                 var charData2 = this.customCharset[i] || charset[i];
@@ -903,11 +908,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.setGPaper(this.gPaper); // keep, maybe different for other mode
             this.setGTransparentMode(false);
         };
-        /*
-        startScreenshot(): string {
-            return this.canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"); // here is the most important part because if you do not replace you will get a DOM 18 exception.
-        }
-        */
         Canvas.prototype.getCanvasElement = function () {
             return this.canvas;
         };

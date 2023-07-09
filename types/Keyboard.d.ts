@@ -12,7 +12,6 @@ interface KeyboardOptions {
 }
 export declare class Keyboard {
     private readonly options;
-    private fnOnKeyDown?;
     private readonly keyBuffer;
     private readonly expansionTokens;
     private readonly cpcKeyExpansions;
@@ -20,6 +19,8 @@ export declare class Keyboard {
     private key2CpcKey;
     private codeStringsRemoved;
     private pressedKeys;
+    setOptions(options: KeyboardOptions): void;
+    getOptions(): KeyboardOptions;
     constructor(options: KeyboardOptions);
     private static readonly key2CpcKey;
     private static readonly specialKeys;

@@ -12,7 +12,7 @@ import { NodeAdapt } from "./NodeAdapt";
 
 type RedirectExamplesType = Record<string, Record<"database" | "example", string>>;
 
-class cpcBasic { // eslint-disable-line vars-on-top
+class cpcBasic {
 	private static readonly config: ConfigType = {
 		arrayBounds: false,
 		bench: 0, // debug: number of parse bench loops

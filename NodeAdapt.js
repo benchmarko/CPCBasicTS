@@ -11,7 +11,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var https, // nodeJs
             fs, module, audioContext;
             var domElements = {}, myCreateElement = function (id) {
-                //Utils.console.debug("myCreateElement: ", id);
                 domElements[id] = {
                     className: "",
                     style: {
@@ -20,12 +19,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     },
                     addEventListener: function () { },
                     options: []
-                    // getter is defined with Object.defineProperty() below... (to be compatible with ES3 syntax)
-                    /*
-                    get length() {
-                        return domElements[id].options.length;
-                    }
-                    */
                 };
                 // old syntax for getter with "get length() { ... }"
                 Object.defineProperty(domElements[id], "length", {

@@ -191,17 +191,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             else {
                 Utils_1.Utils.console.warn("Copy to clipboard not available");
             }
-            /*
-            const textText = document.getElementById("textText") as HTMLTextAreaElement;
-    
-            // const copyText = View.getElementByIdAs<HTMLTextAreaElement>("textText");
-            // TODO: use View.setAreaSelection...
-    
-            textText.select();
-            textText.setSelectionRange(0, 99999); // for mobile devices
-    
-            window.navigator.clipboard.writeText(textText.value);
-            */
         };
         CommonEventHandler.prototype.onOutputTextChange = function () {
             this.controller.invalidateScript();

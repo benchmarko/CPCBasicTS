@@ -82,7 +82,20 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../BasicFormat
             "1 goto 2": "BasicFormatter: Line does not exist in 1 at pos 7-8: 2"
         }
     };
+    function createBasicFormatter() {
+        return new BasicFormatter_1.BasicFormatter({
+            lexer: new BasicLexer_1.BasicLexer({
+                keywords: BasicParser_1.BasicParser.keywords
+            }),
+            parser: new BasicParser_1.BasicParser({
+                quiet: true
+            })
+        });
+    }
     QUnit.module("BasicFormatter:renumber: Tests", function (hooks) {
+        hooks.before(function () {
+            hooks.basicFormatter = createBasicFormatter();
+        });
         function runSingleTest(basicFormatter, key) {
             var newLine = 10, oldLine = 1, step = 10, keep = 65535, output = basicFormatter.renumber(key, newLine, oldLine, step, keep), result = output.error ? String(output.error) : output.text;
             return result;

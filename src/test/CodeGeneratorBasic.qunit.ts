@@ -1,6 +1,7 @@
 // CodeGeneratorBasic.qunit.ts - QUnit tests for CPCBasic CodeGeneratorBasic
 //
 
+import { Utils } from "../Utils";
 import { BasicLexer } from "../BasicLexer";
 import { BasicParser } from "../BasicParser";
 import { CodeGeneratorBasic } from "../CodeGeneratorBasic";
@@ -734,7 +735,7 @@ const allTests: AllTestsType = {
 		" 1  on  x  goto   1  ,  2\n2  rem": " 1  ON  x  GOTO   1  ,  2\n2  REM",
 		' 1   print   using    "####" ;  ri  ;': ' 1   PRINT   USING    "####" ;  ri  ;',
 		" 1  window   swap  1,0": " 1  WINDOW   SWAP  1,0",
-		"a=1 else a=2": "a=1 ELSE a = 2",
+		"a=1 else a=2": "a=1 ELSE a=2",
 		"a=1 'comment": "a=1 'comment",
 		"a=1 :'comment": "a=1 :'comment",
 		"::a=3-2-1: :": "::a=3-2-1: :",
@@ -755,11 +756,14 @@ const allTests: AllTestsType = {
 // "else a=7": "ELSE a = 7", // TODO: whitespace
 // "a=1 else a=2": "a=1:ELSE a = 2", //TTT
 
-QUnit.module("CodeGeneratorBasic: Tests", function (hooks) {
+type hooksWithCodeGeneratorBasic = NestedHooks & {
+	codeGeneratorBasic: CodeGeneratorBasic
+};
+
+function createCodeGeneratorBasic(keepWhiteSpace: boolean) {
 	const lexer = new BasicLexer({
 			keywords: BasicParser.keywords,
-			quiet: true,
-			keepWhiteSpace: false
+			keepWhiteSpace: keepWhiteSpace
 		}),
 
 		parser = new BasicParser({
@@ -768,19 +772,25 @@ QUnit.module("CodeGeneratorBasic: Tests", function (hooks) {
 			keepBrackets: true,
 			keepColons: true,
 			keepDataComma: true
-		}),
-
-		codeGeneratorBasic = new CodeGeneratorBasic({
-			quiet: true,
-			lexer: lexer,
-			parser: parser
 		});
 
+	return new CodeGeneratorBasic({
+		quiet: true,
+		lexer: lexer,
+		parser: parser
+	});
+}
+
+QUnit.module("CodeGeneratorBasic: Tests", function (hooks) {
+	hooks.before(function () {
+		(hooks as hooksWithCodeGeneratorBasic).codeGeneratorBasic = createCodeGeneratorBasic(false);
+	});
 
 	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
-		lexer.setOptions({
-			quiet: true,
-			keepWhiteSpace: category === "keepSpaces"
+		const codeGeneratorBasic = (hooks as hooksWithCodeGeneratorBasic).codeGeneratorBasic;
+
+		codeGeneratorBasic.getOptions().lexer.setOptions({
+			keepWhiteSpace: category === "keepSpaces" // keepWhiteSpace active for category "keepSpaces"
 		});
 
 		for (const key in tests) {
@@ -802,6 +812,83 @@ QUnit.module("CodeGeneratorBasic: Tests", function (hooks) {
 
 	TestHelper.compareAllTests(TestInput.getAllTests(), allTests);
 	TestHelper.generateAllTests(allTests, runTestsFor, hooks);
+});
+
+
+QUnit.module("CodeGeneratorBasic: keepWhiteSpace", function (hooks) {
+	hooks.before(function () {
+		(hooks as hooksWithCodeGeneratorBasic).codeGeneratorBasic = createCodeGeneratorBasic(true);
+	});
+
+	function runSingleTestForWhitespace(codeGeneratorBasic: CodeGeneratorBasic, key: string, expected: string) {
+		let result: string;
+
+		const output = codeGeneratorBasic.generate(key);
+
+		result = output.error ? String(output.error) : output.text;
+		if (output.error) {
+			if (String(output.error).replace(/pos \d+-?\d*/g, "pos ") !== expected.replace(/pos \d+-?\d*/g, "pos ")) { // compare without positions
+				Utils.console.error(output.error); // only if unexpected
+				result = String(output.error);
+			} else {
+				result = expected; // set desired result
+			}
+		}
+		return result;
+	}
+
+	function runTestsForWhitespace(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
+		const codeGeneratorBasic = (hooks as hooksWithCodeGeneratorBasic).codeGeneratorBasic;
+		let spaceCount = 1;
+		const fnSpaceReplacer = function (value: string) {
+			spaceCount += 2;
+			return " ".repeat(spaceCount) + value + " ".repeat(spaceCount + 1);
+		};
+
+		for (const key in tests) {
+			if (tests.hasOwnProperty(key)) {
+				spaceCount = 1;
+				const expected = TestHelper.handleBinaryLiterals(tests[key]);
+				let keyWithSpaces = key;
+
+				keyWithSpaces = keyWithSpaces.replace(/(\w)#/g, "$1 #").replace(/:\s+(\w)/g, ":$1");
+
+				if (keyWithSpaces.startsWith("chain")) {
+					keyWithSpaces = keyWithSpaces.replace(/\s+,/g, ",").replace(/,\s+/g, ","); // fast hack: prepare
+				} else if (keyWithSpaces.startsWith("else")) {
+					keyWithSpaces = keyWithSpaces.replace(/(=)/g, " $1 ");// hack ELSE a=7 => ELSE a = 7
+				}
+
+				keyWithSpaces = keyWithSpaces.replace(/(\d+)e(\d+)/, "$1e+$2"); // 1e9, 2.5e10 => 1e+9
+
+				keyWithSpaces = keyWithSpaces.replace(/([=?+\-*^/\\,;()#])/g, fnSpaceReplacer);
+				keyWithSpaces = keyWithSpaces.replace(/> +=/, ">=").replace(/< +=/, "<=").replace(/e[ ]+\+[ ]+(\d+)/g, "e+$1"); // with fast hacks
+
+				const result = runSingleTestForWhitespace(codeGeneratorBasic, keyWithSpaces, expected);
+
+				let expectedWithSpaces = expected;
+
+				if (expected !== result) { // fast hack: not for error messages
+					spaceCount = 1;
+					expectedWithSpaces = expectedWithSpaces.replace(/:\s+(\w)/g, ":$1");
+					expectedWithSpaces = expectedWithSpaces.replace(/(chain)"/g, '$1"');
+
+					expectedWithSpaces = expectedWithSpaces.replace(/([=?+\-*^/\\,;()#])/g, fnSpaceReplacer);
+					expectedWithSpaces = expectedWithSpaces.replace(/> +=/, ">=").replace(/< +=/, "<=").replace(/E[ ]+\+[ ]+(\d+)/g, "E+$1"); // with fast hacks
+				}
+
+				if (results) {
+					results[category].push(TestHelper.stringInQuotes(keyWithSpaces) + ": " + TestHelper.stringInQuotes(result));
+				}
+
+				if (assert) {
+					assert.strictEqual(result, expectedWithSpaces, keyWithSpaces);
+				}
+			}
+		}
+	}
+
+	TestHelper.generateAllTests(allTests, runTestsForWhitespace, hooks);
 });
 
 // end

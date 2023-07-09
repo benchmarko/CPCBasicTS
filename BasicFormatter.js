@@ -9,16 +9,21 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     exports.BasicFormatter = void 0;
     var BasicFormatter = /** @class */ (function () {
         function BasicFormatter(options) {
-            this.implicitLines = false;
             this.label = ""; // current label (line) for error messages
-            this.lexer = options.lexer;
-            this.parser = options.parser;
+            this.options = {
+                lexer: options.lexer,
+                parser: options.parser,
+                implicitLines: false
+            };
             this.setOptions(options);
         }
         BasicFormatter.prototype.setOptions = function (options) {
             if (options.implicitLines !== undefined) {
-                this.implicitLines = options.implicitLines;
+                this.options.implicitLines = options.implicitLines;
             }
+        };
+        BasicFormatter.prototype.getOptions = function () {
+            return this.options;
         };
         BasicFormatter.prototype.composeError = function (error, message, value, pos, len) {
             return Utils_1.Utils.composeError("BasicFormatter", error, message, value, pos, len, this.label);
@@ -158,7 +163,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         BasicFormatter.prototype.fnRenumber = function (input, parseTree, newLine, oldLine, step, keep) {
             var refs = [], // references
-            lines = this.fnCreateLabelMap(parseTree, this.implicitLines);
+            lines = this.fnCreateLabelMap(parseTree, Boolean(this.options.implicitLines));
             this.fnAddReferences(parseTree, lines, refs); // create reference list
             var changes = this.fnRenumberLines(lines, refs, newLine, oldLine, step, keep), output = BasicFormatter.fnApplyChanges(input, changes);
             return output;
@@ -169,7 +174,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             };
             this.label = ""; // current line (label)
             try {
-                var tokens = this.lexer.lex(input), parseTree = this.parser.parse(tokens), output = this.fnRenumber(input, parseTree, newLine, oldLine, step, keep || 65535);
+                var tokens = this.options.lexer.lex(input), parseTree = this.options.parser.parse(tokens), output = this.fnRenumber(input, parseTree, newLine, oldLine, step, keep || 65535);
                 out.text = output;
             }
             catch (e) {
@@ -209,7 +214,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             };
             this.label = ""; // current line (label)
             try {
-                var tokens = this.lexer.lex(input), parseTree = this.parser.parse(tokens), output = this.fnRemoveUnusedLines(input, parseTree);
+                var tokens = this.options.lexer.lex(input), parseTree = this.options.parser.parse(tokens), output = this.fnRemoveUnusedLines(input, parseTree);
                 out.text = output;
             }
             catch (e) {

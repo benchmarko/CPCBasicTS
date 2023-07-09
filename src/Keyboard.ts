@@ -15,6 +15,7 @@ export interface CpcKeyExpansionsOptions {
 }
 
 export type PressReleaseCpcKey = (cpcKey: number, pressedKey: string, key: string, shiftKey: boolean, ctrlKey: boolean) => void;
+
 interface KeyboardOptions {
 	fnOnEscapeHandler?: (key: string, pressedKey: string) => void
 	fnOnKeyDown?: () => void
@@ -39,7 +40,6 @@ interface CpcKeyExpansions {
 export class Keyboard {
 	private readonly options: KeyboardOptions;
 
-	private fnOnKeyDown?: () => void;
 	private readonly keyBuffer: string[] = []; // buffered pressed keys
 	private readonly expansionTokens: string[] = []; // strings for expansion tokens 0..31 (in reality: 128..159)
 	private readonly cpcKeyExpansions: CpcKeyExpansions; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
@@ -51,10 +51,26 @@ export class Keyboard {
 
 	private pressedKeys: PressedKeysType = {}; // currently pressed browser keys
 
-	constructor(options: KeyboardOptions) {
-		this.options = Object.assign({}, options);
+	setOptions(options: KeyboardOptions): void {
+		if (options.fnOnEscapeHandler !== undefined) {
+			this.options.fnOnEscapeHandler = options.fnOnEscapeHandler;
+		}
+		if (options.fnOnKeyDown !== undefined) {
+			this.options.fnOnKeyDown = options.fnOnKeyDown;
+		}
+	}
 
-		this.fnOnKeyDown = this.options.fnOnKeyDown;
+	getOptions(): KeyboardOptions {
+		return this.options;
+	}
+
+	constructor(options: KeyboardOptions) {
+		this.options = {
+			fnOnEscapeHandler: undefined,
+			fnOnKeyDown: undefined
+		};
+		this.setOptions(options);
+
 		this.key2CpcKey = Keyboard.key2CpcKey;
 
 		this.cpcKeyExpansions = {
@@ -250,7 +266,7 @@ export class Keyboard {
 	/* eslint-enable array-element-newline */
 
 	reset(): void {
-		this.fnOnKeyDown = undefined;
+		this.options.fnOnKeyDown = undefined;
 		this.clearInput();
 		this.pressedKeys = {}; // currently pressed browser keys
 		this.resetExpansionTokens();
@@ -302,12 +318,13 @@ export class Keyboard {
 		cpcKeyExpansions.repeat = {};
 	}
 
+	//TODO: remove getKeyDownHandler, setKeyDownHandler?
 	getKeyDownHandler(): (() => void) | undefined {
-		return this.fnOnKeyDown;
+		return this.options.fnOnKeyDown;
 	}
 
 	setKeyDownHandler(fnOnKeyDown?: () => void): void {
-		this.fnOnKeyDown = fnOnKeyDown;
+		this.options.fnOnKeyDown = fnOnKeyDown;
 	}
 
 	setActive(active: boolean): void {
@@ -406,8 +423,8 @@ export class Keyboard {
 			this.options.fnOnEscapeHandler(key, pressedKey);
 		}
 
-		if (this.fnOnKeyDown) { // special handler?
-			this.fnOnKeyDown();
+		if (this.options.fnOnKeyDown) { // special handler?
+			this.options.fnOnKeyDown();
 		}
 	}
 

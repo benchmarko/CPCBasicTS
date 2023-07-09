@@ -2,8 +2,6 @@
 // Polyfills.ts - Some Polyfills for old browsers, e.g. IE8, and nodeJS
 //
 /* globals globalThis */
-//import { Utils } from "./Utils";
-//type ExtendedConsole = Console & { cpcBasicLog: string };
 var Polyfills = {
     list: [],
     getList: function () {
@@ -13,27 +11,6 @@ var Polyfills = {
         Polyfills.list.push(part);
     },
     console: typeof window !== "undefined" ? window.console : globalThis.console,
-    /*
-    console: function () { // IE: window.console is only available when Dev Tools are open (and: IE8 has no console.debug)
-        let console = (typeof window !== "undefined" ? window.console : globalThis.console) as Pick<Console, "log" | "info" | "warn"| "error"| "debug"> & { cpcBasicLog?: string } | undefined;
-
-        if (!console) {
-            console = {
-                cpcBasicLog: "LOG:\n",
-                log: function () { // varargs
-                    if (this.cpcBasicLog) {
-                        this.cpcBasicLog += Array.prototype.slice.call(arguments).join(" ") + "\n";
-                    }
-                },
-                info: this.log,
-                warn: this.log,
-                error: this.log,
-                debug: this.log
-            };
-        }
-        return console;
-    },
-    */
     localStorage: (function () {
         var rc;
         if (typeof window !== "undefined") {
@@ -186,7 +163,6 @@ if (!window.getComputedStyle) { // IE8
     // https://stackoverflow.com/questions/21797258/getcomputedstyle-like-javascript-function-for-ie8
     Polyfills.log("window.getComputedStyle");
     window.getComputedStyle = function (el, _pseudo) {
-        //this.el = el;
         this.getPropertyValue = function (prop) {
             var re = /(-([a-z]){1})/g;
             if (prop === "float") {
@@ -640,7 +616,6 @@ if (!window.Uint8Array) { // IE9
     window.Uint8Array.BYTES_PER_ELEMENT = 1;
     // A more complex solution would be: https://github.com/inexorabletash/polyfill/blob/master/typedarray.js
 }
-//Utils.console.debug("Polyfills: (" + Polyfills.getList().length + ") " + Polyfills.getList().join("; "));
 (Polyfills.console || window.console).debug("Polyfills: (" + Polyfills.getList().length + ") " + Polyfills.getList().join("; "));
 window.Polyfills = Polyfills; // for nodeJs
 // end

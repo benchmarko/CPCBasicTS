@@ -40,8 +40,7 @@ interface VirtualButtonRowOptions {
 }
 
 export class VirtualKeyboard {
-	private readonly fnPressCpcKey: PressReleaseCpcKey;
-	private readonly fnReleaseCpcKey: PressReleaseCpcKey;
+	private readonly options: VirtualKeyboardOptions;
 
 	private readonly pointerOutEvent?: string;
 	private readonly fnVirtualKeyout?: EventListener;
@@ -50,8 +49,10 @@ export class VirtualKeyboard {
 	private numLock = false;
 
 	constructor(options: VirtualKeyboardOptions) {
-		this.fnPressCpcKey = options.fnPressCpcKey;
-		this.fnReleaseCpcKey = options.fnReleaseCpcKey;
+		this.options = {
+			fnPressCpcKey: options.fnPressCpcKey,
+			fnReleaseCpcKey: options.fnReleaseCpcKey
+		};
 
 		const eventNames = this.fnAttachPointerEvents("kbdArea", this.onVirtualVirtualKeyboardKeydown.bind(this), undefined, this.onVirtualVirtualKeyboardKeyup.bind(this));
 
@@ -836,7 +837,7 @@ export class VirtualKeyboard {
 				pointerEvent = event as PointerEvent,
 				ascii = this.fnVirtualGetAscii(cpcKeyCode, this.shiftLock || pointerEvent.shiftKey, this.numLock);
 
-			this.fnPressCpcKey(cpcKeyCode, pressedKey, ascii.key, pointerEvent.shiftKey, pointerEvent.ctrlKey);
+			this.options.fnPressCpcKey(cpcKeyCode, pressedKey, ascii.key, pointerEvent.shiftKey, pointerEvent.ctrlKey);
 		}
 
 		if (this.pointerOutEvent && this.fnVirtualKeyout) {
@@ -860,7 +861,7 @@ export class VirtualKeyboard {
 				pointerEvent = event as PointerEvent,
 				ascii = this.fnVirtualGetAscii(cpcKeyCode, this.shiftLock || pointerEvent.shiftKey, this.numLock);
 
-			this.fnReleaseCpcKey(cpcKeyCode, pressedKey, ascii.key, pointerEvent.shiftKey, pointerEvent.ctrlKey);
+			this.options.fnReleaseCpcKey(cpcKeyCode, pressedKey, ascii.key, pointerEvent.shiftKey, pointerEvent.ctrlKey);
 
 			if (cpcKeyCode === 70) { // Caps Lock?
 				this.shiftLock = !this.shiftLock;

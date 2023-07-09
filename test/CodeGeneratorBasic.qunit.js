@@ -1,6 +1,6 @@
 // CodeGeneratorBasic.qunit.ts - QUnit tests for CPCBasic CodeGeneratorBasic
 //
-define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGeneratorBasic", "./TestHelper", "./TestInput"], function (require, exports, BasicLexer_1, BasicParser_1, CodeGeneratorBasic_1, TestHelper_1, TestInput_1) {
+define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "../CodeGeneratorBasic", "./TestHelper", "./TestInput"], function (require, exports, Utils_1, BasicLexer_1, BasicParser_1, CodeGeneratorBasic_1, TestHelper_1, TestInput_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     /* eslint-disable quote-props */
@@ -730,7 +730,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             " 1  on  x  goto   1  ,  2\n2  rem": " 1  ON  x  GOTO   1  ,  2\n2  REM",
             ' 1   print   using    "####" ;  ri  ;': ' 1   PRINT   USING    "####" ;  ri  ;',
             " 1  window   swap  1,0": " 1  WINDOW   SWAP  1,0",
-            "a=1 else a=2": "a=1 ELSE a = 2",
+            "a=1 else a=2": "a=1 ELSE a=2",
             "a=1 'comment": "a=1 'comment",
             "a=1 :'comment": "a=1 :'comment",
             "::a=3-2-1: :": "::a=3-2-1: :",
@@ -741,34 +741,31 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             '100 \'Das Raetsel\n110 \'21.5.1988 Kopf um Kopf\n120 \'ab*c=de  de+fg=hi   [dabei sind a-i verschiedene Ziffern 1-9!!]\n130 MODE 1:PRINT"Please wait ...  ( ca. 1 min 34 sec )"\n140 CLEAR:DEFINT a-y\n150 \'\n155 z=TIME\n160 FOR a=1 TO 9:FOR b=1 TO 9:FOR c=1 TO 9:FOR f=1 TO 9:FOR g=1 TO 9\n170 de=(a*10+b)*c:IF de>99 THEN 320\n180 hi=de+(f*10+g):IF hi>99 THEN 320\n190 d=INT(de/10):e=de MOD 10:h=INT(hi/10):i=hi MOD 10\n200 IF a=b OR a=c OR a=d OR a=e OR a=f OR a=g OR a=h OR a=i THEN 320\n210 IF b=c OR b=d OR b=e OR b=f OR b=g OR b=h OR b=i THEN 320\n220 IF c=d OR c=e OR c=f OR c=g OR c=h OR c=i THEN 320\n230 IF d=e OR d=f OR d=g OR d=h OR d=i THEN 320\n240 IF e=f OR e=g OR e=h OR e=i THEN 320\n250 IF f=g OR f=h OR f=i THEN 320\n260 IF g=h OR g=i THEN 320\n270 IF h=i THEN 320\n280 IF i=0 THEN 320\n285 z=TIME-z\n290 CLS:PRINT"Die Loesung:":PRINT\n300 PRINT a*10+b"*"c"="de" / "de"+"f*10+g"="hi\n310 PRINT z,z/300:STOP\n320 NEXT g,f,c,b,a\n': '100 \'Das Raetsel\n110 \'21.5.1988 Kopf um Kopf\n120 \'ab*c=de  de+fg=hi   [dabei sind a-i verschiedene Ziffern 1-9!!]\n130 MODE 1:PRINT "Please wait ...  ( ca. 1 min 34 sec )"\n140 CLEAR:DEFINT a-y\n150 \'\n155 z=TIME\n160 FOR a=1 TO 9:FOR b=1 TO 9:FOR c=1 TO 9:FOR f=1 TO 9:FOR g=1 TO 9\n170 de=(a*10+b)*c:IF de>99 THEN 320\n180 hi=de+(f*10+g):IF hi>99 THEN 320\n190 d=INT(de/10):e=de MOD 10:h=INT(hi/10):i=hi MOD 10\n200 IF a=b OR a=c OR a=d OR a=e OR a=f OR a=g OR a=h OR a=i THEN 320\n210 IF b=c OR b=d OR b=e OR b=f OR b=g OR b=h OR b=i THEN 320\n220 IF c=d OR c=e OR c=f OR c=g OR c=h OR c=i THEN 320\n230 IF d=e OR d=f OR d=g OR d=h OR d=i THEN 320\n240 IF e=f OR e=g OR e=h OR e=i THEN 320\n250 IF f=g OR f=h OR f=i THEN 320\n260 IF g=h OR g=i THEN 320\n270 IF h=i THEN 320\n280 IF i=0 THEN 320\n285 z=TIME-z\n290 CLS:PRINT "Die Loesung:":PRINT\n300 PRINT a*10+b"*"c"="de" / "de"+"f*10+g"="hi\n310 PRINT z,z/300:STOP\n320 NEXT g,f,c,b,a\n'
         }
     };
-    /* eslint-enable quote-props */
-    // notes:
-    // "call &a7bc": "CALL &A7BC",
-    //
-    // "a=(1=0)": "a=(1=0)", // optimal: a=1=0
-    // "data &a3,4,abc,": "DATA &a3,4,abc,", // &a3 is not converted
-    // "else a=7": "ELSE a = 7", // TODO: whitespace
-    // "a=1 else a=2": "a=1:ELSE a = 2", //TTT
-    QUnit.module("CodeGeneratorBasic: Tests", function (hooks) {
+    function createCodeGeneratorBasic(keepWhiteSpace) {
         var lexer = new BasicLexer_1.BasicLexer({
             keywords: BasicParser_1.BasicParser.keywords,
-            quiet: true,
-            keepWhiteSpace: false
+            keepWhiteSpace: keepWhiteSpace
         }), parser = new BasicParser_1.BasicParser({
             quiet: true,
             keepTokens: true,
             keepBrackets: true,
             keepColons: true,
             keepDataComma: true
-        }), codeGeneratorBasic = new CodeGeneratorBasic_1.CodeGeneratorBasic({
+        });
+        return new CodeGeneratorBasic_1.CodeGeneratorBasic({
             quiet: true,
             lexer: lexer,
             parser: parser
         });
+    }
+    QUnit.module("CodeGeneratorBasic: Tests", function (hooks) {
+        hooks.before(function () {
+            hooks.codeGeneratorBasic = createCodeGeneratorBasic(false);
+        });
         function runTestsFor(category, tests, assert, results) {
-            lexer.setOptions({
-                quiet: true,
-                keepWhiteSpace: category === "keepSpaces"
+            var codeGeneratorBasic = hooks.codeGeneratorBasic;
+            codeGeneratorBasic.getOptions().lexer.setOptions({
+                keepWhiteSpace: category === "keepSpaces" // keepWhiteSpace active for category "keepSpaces"
             });
             for (var key in tests) {
                 if (tests.hasOwnProperty(key)) {
@@ -784,6 +781,67 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
         }
         TestHelper_1.TestHelper.compareAllTests(TestInput_1.TestInput.getAllTests(), allTests);
         TestHelper_1.TestHelper.generateAllTests(allTests, runTestsFor, hooks);
+    });
+    QUnit.module("CodeGeneratorBasic: keepWhiteSpace", function (hooks) {
+        hooks.before(function () {
+            hooks.codeGeneratorBasic = createCodeGeneratorBasic(true);
+        });
+        function runSingleTestForWhitespace(codeGeneratorBasic, key, expected) {
+            var result;
+            var output = codeGeneratorBasic.generate(key);
+            result = output.error ? String(output.error) : output.text;
+            if (output.error) {
+                if (String(output.error).replace(/pos \d+-?\d*/g, "pos ") !== expected.replace(/pos \d+-?\d*/g, "pos ")) { // compare without positions
+                    Utils_1.Utils.console.error(output.error); // only if unexpected
+                    result = String(output.error);
+                }
+                else {
+                    result = expected; // set desired result
+                }
+            }
+            return result;
+        }
+        function runTestsForWhitespace(category, tests, assert, results) {
+            var codeGeneratorBasic = hooks.codeGeneratorBasic;
+            var spaceCount = 1;
+            var fnSpaceReplacer = function (value) {
+                spaceCount += 2;
+                return " ".repeat(spaceCount) + value + " ".repeat(spaceCount + 1);
+            };
+            for (var key in tests) {
+                if (tests.hasOwnProperty(key)) {
+                    spaceCount = 1;
+                    var expected = TestHelper_1.TestHelper.handleBinaryLiterals(tests[key]);
+                    var keyWithSpaces = key;
+                    keyWithSpaces = keyWithSpaces.replace(/(\w)#/g, "$1 #").replace(/:\s+(\w)/g, ":$1");
+                    if (keyWithSpaces.startsWith("chain")) {
+                        keyWithSpaces = keyWithSpaces.replace(/\s+,/g, ",").replace(/,\s+/g, ","); // fast hack: prepare
+                    }
+                    else if (keyWithSpaces.startsWith("else")) {
+                        keyWithSpaces = keyWithSpaces.replace(/(=)/g, " $1 "); // hack ELSE a=7 => ELSE a = 7
+                    }
+                    keyWithSpaces = keyWithSpaces.replace(/(\d+)e(\d+)/, "$1e+$2"); // 1e9, 2.5e10 => 1e+9
+                    keyWithSpaces = keyWithSpaces.replace(/([=?+\-*^/\\,;()#])/g, fnSpaceReplacer);
+                    keyWithSpaces = keyWithSpaces.replace(/> +=/, ">=").replace(/< +=/, "<=").replace(/e[ ]+\+[ ]+(\d+)/g, "e+$1"); // with fast hacks
+                    var result = runSingleTestForWhitespace(codeGeneratorBasic, keyWithSpaces, expected);
+                    var expectedWithSpaces = expected;
+                    if (expected !== result) { // fast hack: not for error messages
+                        spaceCount = 1;
+                        expectedWithSpaces = expectedWithSpaces.replace(/:\s+(\w)/g, ":$1");
+                        expectedWithSpaces = expectedWithSpaces.replace(/(chain)"/g, '$1"');
+                        expectedWithSpaces = expectedWithSpaces.replace(/([=?+\-*^/\\,;()#])/g, fnSpaceReplacer);
+                        expectedWithSpaces = expectedWithSpaces.replace(/> +=/, ">=").replace(/< +=/, "<=").replace(/E[ ]+\+[ ]+(\d+)/g, "E+$1"); // with fast hacks
+                    }
+                    if (results) {
+                        results[category].push(TestHelper_1.TestHelper.stringInQuotes(keyWithSpaces) + ": " + TestHelper_1.TestHelper.stringInQuotes(result));
+                    }
+                    if (assert) {
+                        assert.strictEqual(result, expectedWithSpaces, keyWithSpaces);
+                    }
+                }
+            }
+        }
+        TestHelper_1.TestHelper.generateAllTests(allTests, runTestsForWhitespace, hooks);
     });
 });
 // end

@@ -1,8 +1,6 @@
 // NodeAdapt.ts - Adaptations for nodeJS
 //
 
-/* globals globalThis */
-
 import { Utils } from "./Utils";
 
 // examples:
@@ -26,7 +24,6 @@ export class NodeAdapt {
 
 		const domElements: Record<string, any> = {},
 			myCreateElement = function (id: string) {
-				//Utils.console.debug("myCreateElement: ", id);
 				domElements[id] = {
 					className: "",
 					style: {
@@ -35,12 +32,6 @@ export class NodeAdapt {
 					},
 					addEventListener: () => {}, // eslint-disable-line no-empty-function, @typescript-eslint/no-empty-function
 					options: []
-					// getter is defined with Object.defineProperty() below... (to be compatible with ES3 syntax)
-					/*
-					get length() {
-						return domElements[id].options.length;
-					}
-					*/
 				};
 
 				// old syntax for getter with "get length() { ... }"

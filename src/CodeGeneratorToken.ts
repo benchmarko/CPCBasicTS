@@ -17,25 +17,31 @@ interface CodeGeneratorTokenOptions {
 }
 
 export class CodeGeneratorToken {
-	private readonly lexer: BasicLexer;
-	private readonly parser: BasicParser;
-	private implicitLines = false;
-	private quiet = false;
+	private readonly options: CodeGeneratorTokenOptions;
 
 	private label = ""; // current line (label)
 
 	setOptions(options: Omit<CodeGeneratorTokenOptions, "lexer" | "parser">): void {
 		if (options.implicitLines !== undefined) {
-			this.implicitLines = options.implicitLines;
+			this.options.implicitLines = options.implicitLines;
 		}
 		if (options.quiet !== undefined) {
-			this.quiet = options.quiet;
+			this.options.quiet = options.quiet;
 		}
 	}
 
+	getOptions(): CodeGeneratorTokenOptions {
+		return this.options;
+	}
+
 	constructor(options: CodeGeneratorTokenOptions) {
-		this.lexer = options.lexer;
-		this.parser = options.parser;
+		this.options = {
+			lexer: options.lexer,
+			parser: options.parser,
+			implicitLines: false,
+			quiet: false
+		};
+
 		this.setOptions(options);
 	}
 
@@ -343,9 +349,7 @@ export class CodeGeneratorToken {
 		}
 
 		for (let i = 0; i < args.length; i += 1) {
-			const value = this.parseNode(args[i]);
-
-			nodeArgs.push(value);
+			nodeArgs.push(this.parseNode(args[i]));
 		}
 		return nodeArgs;
 	}
@@ -468,7 +472,7 @@ export class CodeGeneratorToken {
 		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("_line16") + CodeGeneratorToken.convUInt16ToString(Number(node.value));
 	}
 	private fnLabel(node: ParserNode) {
-		if (this.implicitLines) {
+		if (this.options.implicitLines) {
 			if (node.value === "") { // direct
 				node.value = String(Number(this.label) + 1);
 			}
@@ -658,15 +662,15 @@ export class CodeGeneratorToken {
 
 		this.label = "";
 		try {
-			const tokens = this.lexer.lex(input),
-				parseTree = this.parser.parse(tokens),
+			const tokens = this.options.lexer.lex(input),
+				parseTree = this.options.parser.parse(tokens),
 				output = this.evaluate(parseTree);
 
 			out.text = output;
 		} catch (e) {
 			if (Utils.isCustomError(e)) {
 				out.error = e;
-				if (!this.quiet) {
+				if (!this.options.quiet) {
 					Utils.console.warn(e); // show our customError as warning
 				}
 			} else { // other errors

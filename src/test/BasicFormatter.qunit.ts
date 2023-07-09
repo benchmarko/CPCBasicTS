@@ -9,7 +9,7 @@ import { TestHelper, TestsType, AllTestsType, ResultType } from "./TestHelper";
 
 QUnit.dump.maxDepth = 10;
 
-const allTests: AllTestsType = { // eslint-disable-line vars-on-top
+const allTests: AllTestsType = {
 	"after gosub, auto": {
 		"1 after 2 gosub 1": "10 after 2 gosub 10",
 		"1 auto 100": "10 auto 100"
@@ -87,7 +87,26 @@ const allTests: AllTestsType = { // eslint-disable-line vars-on-top
 	}
 };
 
+type hooksWithBasicFormatter = NestedHooks & {
+	basicFormatter: BasicFormatter
+};
+
+function createBasicFormatter() {
+	return new BasicFormatter({
+		lexer: new BasicLexer({
+			keywords: BasicParser.keywords
+		}),
+		parser: new BasicParser({
+			quiet: true
+		})
+	});
+}
+
 QUnit.module("BasicFormatter:renumber: Tests", function (hooks) {
+	hooks.before(function () {
+		(hooks as hooksWithBasicFormatter).basicFormatter = createBasicFormatter();
+	});
+
 	function runSingleTest(basicFormatter: BasicFormatter, key: string) {
 		const newLine = 10,
 			oldLine = 1,

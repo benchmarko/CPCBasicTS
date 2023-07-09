@@ -143,7 +143,7 @@ QUnit.module("Variables", function (/* hooks */) {
 
 QUnit.module("Variables: determineStaticVarType", function (hooks) {
 	/* eslint-disable quote-props */
-	const allTests: AllTestsType = { // xxeslint-disable-line vars-on-top
+	const allTests: AllTestsType = {
 		determineStaticVarType: {
 			// eslint-disable-next-line quote-props
 			"a": "a",

@@ -8,12 +8,10 @@ interface CodeGeneratorTokenOptions {
     implicitLines?: boolean;
 }
 export declare class CodeGeneratorToken {
-    private readonly lexer;
-    private readonly parser;
-    private implicitLines;
-    private quiet;
+    private readonly options;
     private label;
     setOptions(options: Omit<CodeGeneratorTokenOptions, "lexer" | "parser">): void;
+    getOptions(): CodeGeneratorTokenOptions;
     constructor(options: CodeGeneratorTokenOptions);
     private static readonly tokens;
     private static readonly tokensFF;

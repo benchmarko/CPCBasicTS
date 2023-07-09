@@ -9,8 +9,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     exports.CodeGeneratorToken = void 0;
     var CodeGeneratorToken = /** @class */ (function () {
         function CodeGeneratorToken(options) {
-            this.implicitLines = false;
-            this.quiet = false;
             this.label = ""; // current line (label)
             /* eslint-disable no-invalid-this */
             this.parseFunctions = {
@@ -39,17 +37,24 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 onSqGosub: this.onSqGosub,
                 "'": this.apostrophe
             };
-            this.lexer = options.lexer;
-            this.parser = options.parser;
+            this.options = {
+                lexer: options.lexer,
+                parser: options.parser,
+                implicitLines: false,
+                quiet: false
+            };
             this.setOptions(options);
         }
         CodeGeneratorToken.prototype.setOptions = function (options) {
             if (options.implicitLines !== undefined) {
-                this.implicitLines = options.implicitLines;
+                this.options.implicitLines = options.implicitLines;
             }
             if (options.quiet !== undefined) {
-                this.quiet = options.quiet;
+                this.options.quiet = options.quiet;
             }
+        };
+        CodeGeneratorToken.prototype.getOptions = function () {
+            return this.options;
         };
         CodeGeneratorToken.prototype.composeError = function (error, message, value, pos) {
             return Utils_1.Utils.composeError("CodeGeneratorToken", error, message, value, pos, undefined, this.label);
@@ -87,8 +92,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
             }
             for (var i = 0; i < args.length; i += 1) {
-                var value = this.parseNode(args[i]);
-                nodeArgs.push(value);
+                nodeArgs.push(this.parseNode(args[i]));
             }
             return nodeArgs;
         };
@@ -182,7 +186,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("_line16") + CodeGeneratorToken.convUInt16ToString(Number(node.value));
         };
         CodeGeneratorToken.prototype.fnLabel = function (node) {
-            if (this.implicitLines) {
+            if (this.options.implicitLines) {
                 if (node.value === "") { // direct
                     node.value = String(Number(this.label) + 1);
                 }
@@ -312,13 +316,13 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             };
             this.label = "";
             try {
-                var tokens = this.lexer.lex(input), parseTree = this.parser.parse(tokens), output = this.evaluate(parseTree);
+                var tokens = this.options.lexer.lex(input), parseTree = this.options.parser.parse(tokens), output = this.evaluate(parseTree);
                 out.text = output;
             }
             catch (e) {
                 if (Utils_1.Utils.isCustomError(e)) {
                     out.error = e;
-                    if (!this.quiet) {
+                    if (!this.options.quiet) {
                         Utils_1.Utils.console.warn(e); // show our customError as warning
                     }
                 }

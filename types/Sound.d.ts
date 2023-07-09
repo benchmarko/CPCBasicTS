@@ -33,7 +33,7 @@ interface SoundOptions {
     AudioContextConstructor: AudioContextConstructorType;
 }
 export declare class Sound {
-    private AudioContextConstructor;
+    private readonly options;
     private isSoundOn;
     private isActivatedByUserFlag;
     private context?;

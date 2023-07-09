@@ -741,29 +741,35 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             '100 \'Das Raetsel\n110 \'21.5.1988 Kopf um Kopf\n120 \'ab*c=de  de+fg=hi   [dabei sind a-i verschiedene Ziffern 1-9!!]\n130 MODE 1:PRINT"Please wait ...  ( ca. 1 min 34 sec )"\n140 CLEAR:DEFINT a-y\n150 \'\n155 z=TIME\n160 FOR a=1 TO 9:FOR b=1 TO 9:FOR c=1 TO 9:FOR f=1 TO 9:FOR g=1 TO 9\n170 de=(a*10+b)*c:IF de>99 THEN 320\n180 hi=de+(f*10+g):IF hi>99 THEN 320\n190 d=INT(de/10):e=de MOD 10:h=INT(hi/10):i=hi MOD 10\n200 IF a=b OR a=c OR a=d OR a=e OR a=f OR a=g OR a=h OR a=i THEN 320\n210 IF b=c OR b=d OR b=e OR b=f OR b=g OR b=h OR b=i THEN 320\n220 IF c=d OR c=e OR c=f OR c=g OR c=h OR c=i THEN 320\n230 IF d=e OR d=f OR d=g OR d=h OR d=i THEN 320\n240 IF e=f OR e=g OR e=h OR e=i THEN 320\n250 IF f=g OR f=h OR f=i THEN 320\n260 IF g=h OR g=i THEN 320\n270 IF h=i THEN 320\n280 IF i=0 THEN 320\n285 z=TIME-z\n290 CLS:PRINT"Die Loesung:":PRINT\n300 PRINT a*10+b"*"c"="de" / "de"+"f*10+g"="hi\n310 PRINT z,z/300:STOP\n320 NEXT g,f,c,b,a\n': ' // Das Raetsel\n // 21.5.1988 Kopf um Kopf\n // ab*c=de  de+fg=hi   [dabei sind a-i verschiedene Ziffern 1-9!!]\n o.mode(1); o.print(0, "Please wait ...  ( ca. 1 min 34 sec )", "\\r\\n");\n o.clear(); o.vmGoto("140s0"); break;\ncase "140s0": o.defint("a", "y");\n //\n v.zR = o.time();\n /* for() */ o.vmAssertNumberType("a"); v["a" + t.a] = 1; o.vmGoto("160f0b"); break;\ncase "160f0": v["a" + t.a] += 1;\ncase "160f0b": if (v["a" + t.a] > 9) { o.vmGoto("160f0e"); break; } /* for() */ o.vmAssertNumberType("b"); v["b" + t.b] = 1; o.vmGoto("160f1b"); break;\ncase "160f1": v["b" + t.b] += 1;\ncase "160f1b": if (v["b" + t.b] > 9) { o.vmGoto("160f1e"); break; } /* for() */ o.vmAssertNumberType("c"); v["c" + t.c] = 1; o.vmGoto("160f2b"); break;\ncase "160f2": v["c" + t.c] += 1;\ncase "160f2b": if (v["c" + t.c] > 9) { o.vmGoto("160f2e"); break; } /* for() */ o.vmAssertNumberType("f"); v["f" + t.f] = 1; o.vmGoto("160f3b"); break;\ncase "160f3": v["f" + t.f] += 1;\ncase "160f3b": if (v["f" + t.f] > 9) { o.vmGoto("160f3e"); break; } /* for() */ o.vmAssertNumberType("g"); v["g" + t.g] = 1; o.vmGoto("160f4b"); break;\ncase "160f4": v["g" + t.g] += 1;\ncase "160f4b": if (v["g" + t.g] > 9) { o.vmGoto("160f4e"); break; }\n v["de" + t.d] = o.vmAssign("d", ((v["a" + t.a] * 10) + v["b" + t.b]) * v["c" + t.c]); if (v["de" + t.d] > 99) { o.goto(320); break; }\n v["hi" + t.h] = o.vmAssign("h", v["de" + t.d] + ((v["f" + t.f] * 10) + v["g" + t.g])); if (v["hi" + t.h] > 99) { o.goto(320); break; }\n v["d" + t.d] = o.vmAssign("d", o.int(v["de" + t.d] / 10)); v["e" + t.e] = o.vmAssign("e", o.vmRound(v["de" + t.d]) % 10); v["h" + t.h] = o.vmAssign("h", o.int(v["hi" + t.h] / 10)); v["i" + t.i] = o.vmAssign("i", o.vmRound(v["hi" + t.h]) % 10);\n if ((v["a" + t.a] === v["b" + t.b] ? -1 : 0) | ((v["a" + t.a] === v["c" + t.c] ? -1 : 0) | ((v["a" + t.a] === v["d" + t.d] ? -1 : 0) | ((v["a" + t.a] === v["e" + t.e] ? -1 : 0) | ((v["a" + t.a] === v["f" + t.f] ? -1 : 0) | ((v["a" + t.a] === v["g" + t.g] ? -1 : 0) | ((v["a" + t.a] === v["h" + t.h] ? -1 : 0) | (v["a" + t.a] === v["i" + t.i] ? -1 : 0)))))))) { o.goto(320); break; }\n if ((v["b" + t.b] === v["c" + t.c] ? -1 : 0) | ((v["b" + t.b] === v["d" + t.d] ? -1 : 0) | ((v["b" + t.b] === v["e" + t.e] ? -1 : 0) | ((v["b" + t.b] === v["f" + t.f] ? -1 : 0) | ((v["b" + t.b] === v["g" + t.g] ? -1 : 0) | ((v["b" + t.b] === v["h" + t.h] ? -1 : 0) | (v["b" + t.b] === v["i" + t.i] ? -1 : 0))))))) { o.goto(320); break; }\n if ((v["c" + t.c] === v["d" + t.d] ? -1 : 0) | ((v["c" + t.c] === v["e" + t.e] ? -1 : 0) | ((v["c" + t.c] === v["f" + t.f] ? -1 : 0) | ((v["c" + t.c] === v["g" + t.g] ? -1 : 0) | ((v["c" + t.c] === v["h" + t.h] ? -1 : 0) | (v["c" + t.c] === v["i" + t.i] ? -1 : 0)))))) { o.goto(320); break; }\n if ((v["d" + t.d] === v["e" + t.e] ? -1 : 0) | ((v["d" + t.d] === v["f" + t.f] ? -1 : 0) | ((v["d" + t.d] === v["g" + t.g] ? -1 : 0) | ((v["d" + t.d] === v["h" + t.h] ? -1 : 0) | (v["d" + t.d] === v["i" + t.i] ? -1 : 0))))) { o.goto(320); break; }\n if ((v["e" + t.e] === v["f" + t.f] ? -1 : 0) | ((v["e" + t.e] === v["g" + t.g] ? -1 : 0) | ((v["e" + t.e] === v["h" + t.h] ? -1 : 0) | (v["e" + t.e] === v["i" + t.i] ? -1 : 0)))) { o.goto(320); break; }\n if ((v["f" + t.f] === v["g" + t.g] ? -1 : 0) | ((v["f" + t.f] === v["h" + t.h] ? -1 : 0) | (v["f" + t.f] === v["i" + t.i] ? -1 : 0))) { o.goto(320); break; }\n if ((v["g" + t.g] === v["h" + t.h] ? -1 : 0) | (v["g" + t.g] === v["i" + t.i] ? -1 : 0)) { o.goto(320); break; }\n if (v["h" + t.h] === v["i" + t.i]) { o.goto(320); break; }\n if (v["i" + t.i] === 0) { o.goto(320); break; }\n v.zR = o.time() - v.zR;\n o.cls(0); o.print(0, "Die Loesung:", "\\r\\n"); o.print(0, "\\r\\n");\n o.print(0, (v["a" + t.a] * 10) + v["b" + t.b], "*", v["c" + t.c], "=", v["de" + t.d], " / ", v["de" + t.d], "+", (v["f" + t.f] * 10) + v["g" + t.g], "=", v["hi" + t.h], "\\r\\n");\n o.print(0, v.zR, {type: "commaTab", args: []}, v.zR / 300, "\\r\\n"); o.stop("310s0"); break;\ncase "310s0":\n /* next("v["g" + t.g]") */ o.vmGoto("160f4"); break;\ncase "160f4e":; /* next("v["f" + t.f]") */ o.vmGoto("160f3"); break;\ncase "160f3e":; /* next("v["c" + t.c]") */ o.vmGoto("160f2"); break;\ncase "160f2e":; /* next("v["b" + t.b]") */ o.vmGoto("160f1"); break;\ncase "160f1e":; /* next("v["a" + t.a]") */ o.vmGoto("160f0"); break;\ncase "160f0e":'
         }
     };
-    /* eslint-enable quote-props */
+    function createCodeGeneratorJs() {
+        return new CodeGeneratorJs_1.CodeGeneratorJs({
+            quiet: true,
+            lexer: new BasicLexer_1.BasicLexer({
+                keywords: BasicParser_1.BasicParser.keywords,
+                quiet: true
+            }),
+            parser: new BasicParser_1.BasicParser({
+                quiet: true
+            }),
+            trace: false,
+            rsx: {
+                rsxIsAvailable: function (rsx) {
+                    return (/^a|b|basic|cpm|dir|disc|disc\.in|disc\.out|drive|era|ren|tape|tape\.in|tape\.out|user|mode|renum$/).test(rsx);
+                }
+            },
+            noCodeFrame: true
+        });
+    }
     QUnit.module("CodeGeneratorJs: Tests", function (hooks) {
+        hooks.before(function () {
+            hooks.codeGeneratorJs = createCodeGeneratorJs();
+        });
         function runSingleTest(codeGeneratorJs, key) {
             var allowDirect = true, variables = new Variables_1.Variables(), output = codeGeneratorJs.generate(key, variables, allowDirect), result = output.error ? String(output.error) : output.text;
             return result;
         }
         function runTestsFor(category, tests, assert, results) {
-            var options = {
-                quiet: true
-            }, codeGeneratorJs = new CodeGeneratorJs_1.CodeGeneratorJs({
-                quiet: true,
-                lexer: new BasicLexer_1.BasicLexer({
-                    keywords: BasicParser_1.BasicParser.keywords
-                }),
-                parser: new BasicParser_1.BasicParser(options),
-                trace: false,
-                rsx: {
-                    rsxIsAvailable: function (rsx) {
-                        return (/^a|b|basic|cpm|dir|disc|disc\.in|disc\.out|drive|era|ren|tape|tape\.in|tape\.out|user|mode|renum$/).test(rsx);
-                    }
-                },
-                noCodeFrame: true
-            });
+            var codeGeneratorJs = hooks.codeGeneratorJs;
             for (var key in tests) {
                 if (tests.hasOwnProperty(key)) {
                     var expected = TestHelper_1.TestHelper.handleBinaryLiterals(tests[key]), result = runSingleTest(codeGeneratorJs, key);

@@ -7,15 +7,13 @@ interface CodeGeneratorBasicOptions {
     quiet?: boolean;
 }
 export declare class CodeGeneratorBasic {
-    private readonly lexer;
-    private readonly parser;
-    private quiet;
+    private readonly options;
     private hasColons;
+    private keepWhiteSpace;
     private line;
-    setOptions(options: CodeGeneratorBasicOptions): void;
+    setOptions(options: Omit<CodeGeneratorBasicOptions, "lexer" | "parser">): void;
+    getOptions(): CodeGeneratorBasicOptions;
     constructor(options: CodeGeneratorBasicOptions);
-    getLexer(): BasicLexer;
-    getParser(): BasicParser;
     private static readonly combinedKeywords;
     private static readonly operators;
     private static readonly operatorPrecedence;
@@ -23,19 +21,15 @@ export declare class CodeGeneratorBasic {
     private static fnWs;
     private static fnSpace1;
     private static getUcKeyword;
-    private fnParseOneArg;
     private fnParseArgs;
     private combineArgsWithColon;
     private fnParenthesisOpen;
     private static string;
     private static ustring;
-    private static unquoted;
     private static fnNull;
     private assign;
-    private static number;
     private static expnumber;
     private static binHexNumber;
-    private identifier;
     private static linenumber;
     private label;
     private vertical;

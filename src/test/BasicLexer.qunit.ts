@@ -759,7 +759,23 @@ function getKeywords() {
 	return keywordMap;
 }
 
+type hooksWithBasicLexer = NestedHooks & {
+	basicLexer: BasicLexer
+};
+
+function createBasicLexer(keepWhiteSpace: boolean) {
+	return new BasicLexer({
+		keywords: getKeywords(),
+		quiet: true,
+		keepWhiteSpace: keepWhiteSpace
+	});
+}
+
 QUnit.module("BasicLexer: Tests", function (hooks) {
+	hooks.before(function () {
+		(hooks as hooksWithBasicLexer).basicLexer = createBasicLexer(false);
+	});
+
 	function runSingleTest(basicLexer: BasicLexer, key: string, expectedEntry: Record<string, unknown>) {
 		let result: string,
 			tokens: LexerToken[];
@@ -783,10 +799,7 @@ QUnit.module("BasicLexer: Tests", function (hooks) {
 	}
 
 	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
-		const basicLexer = new BasicLexer({
-			keywords: getKeywords(),
-			quiet: true
-		});
+		const basicLexer = (hooks as hooksWithBasicLexer).basicLexer;
 
 		for (const key in tests) {
 			if (tests.hasOwnProperty(key)) {
@@ -820,6 +833,10 @@ QUnit.module("BasicLexer: Tests", function (hooks) {
 });
 
 QUnit.module("BasicLexer: keepWhiteSpace", function (hooks) {
+	hooks.before(function () {
+		(hooks as hooksWithBasicLexer).basicLexer = createBasicLexer(true);
+	});
+
 	function fnCombineTokens(tokens: LexerToken[]) {
 		let result = "";
 
@@ -872,16 +889,12 @@ QUnit.module("BasicLexer: keepWhiteSpace", function (hooks) {
 	}
 
 	function runTestsForWhitespace(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
+		const basicLexer = (hooks as hooksWithBasicLexer).basicLexer;
 		let spaceCount = 1;
-		const basicLexer = new BasicLexer({
-				keywords: getKeywords(),
-				quiet: true,
-				keepWhiteSpace: true
-			}),
-			fnSpaceReplacer = function () {
-				spaceCount += 1;
-				return " ".repeat(spaceCount);
-			};
+		const fnSpaceReplacer = function () {
+			spaceCount += 1;
+			return " ".repeat(spaceCount);
+		};
 
 		for (const key in tests) {
 			if (tests.hasOwnProperty(key)) {

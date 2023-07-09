@@ -9,22 +9,19 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
     exports.CodeGeneratorBasic = void 0;
     var CodeGeneratorBasic = /** @class */ (function () {
         function CodeGeneratorBasic(options) {
-            this.quiet = false;
             this.hasColons = false;
+            this.keepWhiteSpace = false;
             this.line = 0; // current line (label)
             /* eslint-disable no-invalid-this */
             this.parseFunctions = {
                 "(": this.fnParenthesisOpen,
                 string: CodeGeneratorBasic.string,
                 ustring: CodeGeneratorBasic.ustring,
-                unquoted: CodeGeneratorBasic.unquoted,
                 "null": CodeGeneratorBasic.fnNull,
                 assign: this.assign,
-                number: CodeGeneratorBasic.number,
                 expnumber: CodeGeneratorBasic.expnumber,
                 binnumber: CodeGeneratorBasic.binHexNumber,
                 hexnumber: CodeGeneratorBasic.binHexNumber,
-                identifier: this.identifier,
                 linenumber: CodeGeneratorBasic.linenumber,
                 label: this.label,
                 "|": this.vertical,
@@ -56,20 +53,20 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
                 using: this.using,
                 write: this.write
             };
-            this.lexer = options.lexer;
-            this.parser = options.parser;
+            this.options = {
+                lexer: options.lexer,
+                parser: options.parser,
+                quiet: false
+            };
             this.setOptions(options);
         }
         CodeGeneratorBasic.prototype.setOptions = function (options) {
             if (options.quiet !== undefined) {
-                this.quiet = options.quiet;
+                this.options.quiet = options.quiet;
             }
         };
-        CodeGeneratorBasic.prototype.getLexer = function () {
-            return this.lexer;
-        };
-        CodeGeneratorBasic.prototype.getParser = function () {
-            return this.parser;
+        CodeGeneratorBasic.prototype.getOptions = function () {
+            return this.options;
         };
         CodeGeneratorBasic.prototype.composeError = function (error, message, value, pos) {
             return Utils_1.Utils.composeError("CodeGeneratorBasic", error, message, value, pos, undefined, this.line);
@@ -84,17 +81,14 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             var type = node.type, typeUc = CodeGeneratorBasic.combinedKeywords[type] || type.toUpperCase();
             return typeUc;
         };
-        CodeGeneratorBasic.prototype.fnParseOneArg = function (arg) {
-            return this.parseNode(arg);
-        };
         CodeGeneratorBasic.prototype.fnParseArgs = function (args) {
             var nodeArgs = []; // do not modify node.args here (could be a parameter of defined function)
             if (!args) {
                 throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
             }
             for (var i = 0; i < args.length; i += 1) {
-                var value = this.fnParseOneArg(args[i]);
-                if (args[i].type === "'") { // fast hack to put a space before "'", if there is no space previously
+                var value = this.parseNode(args[i]);
+                if (args[i].type === "'" || args[i].type === "else") { // fast hack to put a space before "'" or "else", if there is no space previously
                     if (i > 0 && !nodeArgs[i - 1].endsWith(" ") && !nodeArgs[i - 1].endsWith(":")) {
                         value = CodeGeneratorBasic.fnSpace1(value);
                     }
@@ -121,24 +115,16 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
         CodeGeneratorBasic.ustring = function (node) {
             return CodeGeneratorBasic.fnWs(node) + '"' + node.value;
         };
-        CodeGeneratorBasic.unquoted = function (node) {
-            return CodeGeneratorBasic.fnWs(node) + node.value;
-        };
         CodeGeneratorBasic.fnNull = function () {
             return "";
         };
         CodeGeneratorBasic.prototype.assign = function (node) {
             // see also "let"
-            if (!node.left || !node.right) {
-                throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
-            }
             if (node.left.type !== "identifier") {
                 throw this.composeError(Error(), "Unexpected assign type", node.type, node.pos); // should not occur
             }
-            return this.fnParseOneArg(node.left) + CodeGeneratorBasic.fnWs(node) + node.value + this.fnParseOneArg(node.right);
-        };
-        CodeGeneratorBasic.number = function (node) {
-            return CodeGeneratorBasic.fnWs(node) + node.value;
+            // no spaces needed around "="
+            return this.parseNode(node.left) + CodeGeneratorBasic.fnWs(node) + node.value + this.parseNode(node.right);
         };
         CodeGeneratorBasic.expnumber = function (node) {
             return CodeGeneratorBasic.fnWs(node) + Number(node.value).toExponential().toUpperCase().replace(/(\d+)$/, function (x) {
@@ -147,14 +133,6 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
         };
         CodeGeneratorBasic.binHexNumber = function (node) {
             return CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase(); // binnumber: maybe "&x", hexnumber: mayby "&h"
-        };
-        CodeGeneratorBasic.prototype.identifier = function (node) {
-            var value = CodeGeneratorBasic.fnWs(node) + node.value; // keep case, maybe mixed
-            if (node.args) { // args including brackets or parenthesis
-                var nodeArgs = this.fnParseArgs(node.args), bracketOpen = nodeArgs.shift(), bracketClose = nodeArgs.pop();
-                value += bracketOpen + nodeArgs.join("") + bracketClose;
-            }
-            return value;
         };
         CodeGeneratorBasic.linenumber = function (node) {
             return CodeGeneratorBasic.fnWs(node) + node.value;
@@ -184,7 +162,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             var nodeArgs = this.fnParseArgs(node.args), typeUc = CodeGeneratorBasic.getUcKeyword(node);
             var name = "";
             if (node.right) { // merge?
-                name = this.fnParseOneArg(node.right);
+                name = this.parseNode(node.right);
             }
             if (nodeArgs.length > 2) { // with delete?
                 if (nodeArgs[nodeArgs.length - 2] === "DELETE") {
@@ -200,14 +178,16 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
                 nodeArgs[i] = value2;
             }
             var args = nodeArgs.join("");
-            args = Utils_1.Utils.stringTrimEnd(args); // remove trailing spaces
+            if (!this.keepWhiteSpace) {
+                args = Utils_1.Utils.stringTrimEnd(args); // remove trailing spaces
+            }
             return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(args);
         };
         CodeGeneratorBasic.prototype.def = function (node) {
             if (!node.right) {
                 return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase(); // maybe key def
             }
-            var right = this.fnParseOneArg(node.right), nodeArgs = this.fnParseArgs(node.args); // including expression
+            var right = this.parseNode(node.right), nodeArgs = this.fnParseArgs(node.args); // including expression
             return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(right) + nodeArgs.join("");
         };
         CodeGeneratorBasic.prototype.fnElse = function (node) {
@@ -219,7 +199,12 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             for (var i = 0; i < args.length; i += 1) {
                 var token = args[i];
                 if (token.value) {
-                    value += " " + token.value;
+                    if (this.keepWhiteSpace) {
+                        value += CodeGeneratorBasic.fnWs(token) + token.value;
+                    }
+                    else {
+                        value += CodeGeneratorBasic.fnSpace1(CodeGeneratorBasic.fnWs(token) + token.value); //TTT
+                    }
                 }
             }
             return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + value;
@@ -232,7 +217,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             var equal = false;
             for (var i = 0; i < args.length; i += 1) {
                 if (args[i].type !== "null") {
-                    var arg = this.fnParseOneArg(args[i]);
+                    var arg = this.parseNode(args[i]);
                     if (equal) {
                         equal = false;
                     }
@@ -248,7 +233,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             if (!node.right) {
                 return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase(); // only fn
             }
-            var right = this.fnParseOneArg(node.right);
+            var right = this.parseNode(node.right);
             var nodeArgs = node.args ? this.fnParseArgs(node.args) : [];
             if ((node.right.pos - node.pos) > 2) { // space between fn and identifier?
                 right = CodeGeneratorBasic.fnSpace1(right); // keep it
@@ -275,7 +260,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             if (!node.args) {
                 throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occur
             }
-            var value = CodeGeneratorBasic.fnSpace1(this.fnParseOneArg(node.left));
+            var value = CodeGeneratorBasic.fnSpace1(this.parseNode(node.left));
             if (node.args.length) {
                 value += this.fnThenOrElsePart(node.args); // "then" part
             }
@@ -289,7 +274,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             typeUc = CodeGeneratorBasic.getUcKeyword(node);
             var name = "";
             if (node.right) { // input?
-                name = this.fnParseOneArg(node.right);
+                name = this.parseNode(node.right);
             }
             return CodeGeneratorBasic.fnWs(node) + typeUc + CodeGeneratorBasic.fnSpace1(name) + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
         };
@@ -308,7 +293,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             return CodeGeneratorBasic.fnWs(node) + typeUc + nodeArgs.join("");
         };
         CodeGeneratorBasic.prototype.onBreakOrError = function (node) {
-            var nodeArgs = this.fnParseArgs(node.args), right = this.fnParseOneArg(node.right);
+            var nodeArgs = this.fnParseArgs(node.args), right = this.parseNode(node.right);
             return CodeGeneratorBasic.fnWs(node) + "ON" + CodeGeneratorBasic.fnSpace1(right) + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
         };
         CodeGeneratorBasic.prototype.onGotoGosub = function (node) {
@@ -316,7 +301,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             return CodeGeneratorBasic.fnWs(node) + "ON" + CodeGeneratorBasic.fnSpace1(expression) + CodeGeneratorBasic.fnSpace1(instruction) + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
         };
         CodeGeneratorBasic.prototype.onSqGosub = function (node) {
-            var nodeArgs = this.fnParseArgs(node.args), right = this.fnParseOneArg(node.right);
+            var nodeArgs = this.fnParseArgs(node.args), right = this.parseNode(node.right);
             nodeArgs[nodeArgs.length - 2] = CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 2]); // "gosub" with space (optional)
             nodeArgs[nodeArgs.length - 1] = CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 1]); // line number with space
             return CodeGeneratorBasic.fnWs(node) + "ON" + CodeGeneratorBasic.fnSpace1(right) + nodeArgs.join("");
@@ -333,14 +318,6 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             return CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase() + value; // we use value to get PRINT or ?
         };
         CodeGeneratorBasic.prototype.rem = function (node) {
-            /*
-            const nodeArgs = this.fnParseArgs(node.args);
-            let value = nodeArgs.length ? nodeArgs[0] : "";
-    
-            if (node.value !== "'" && value.length) { // for "rem": add removed space
-                value = " " + value; // add removed space
-            }
-            */
             return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(this.fnParseArgs(node.args).join(""));
         };
         CodeGeneratorBasic.prototype.using = function (node) {
@@ -356,50 +333,34 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
         };
         /* eslint-enable no-invalid-this */
         CodeGeneratorBasic.prototype.fnParseOther = function (node) {
-            var type = node.type, typeUc = CodeGeneratorBasic.getUcKeyword(node), keyType = BasicParser_1.BasicParser.keywords[type];
-            var args = "";
+            var type = node.type;
+            var value = ""; // CodeGeneratorBasic.fnGetWs(node);
             if (node.left) {
-                args += this.fnParseOneArg(node.left);
+                value += this.parseNode(node.left);
             }
-            if (!keyType) {
-                if (node.value) { // e.g. string,...
-                    args += node.value;
-                }
+            value += CodeGeneratorBasic.fnWs(node);
+            var keyType = BasicParser_1.BasicParser.keywords[type];
+            if (keyType) {
+                value += CodeGeneratorBasic.getUcKeyword(node);
+            }
+            else if (node.value) { // e.g. string,...
+                value += node.value;
             }
             var right = "";
             if (node.right) {
-                right = this.fnParseOneArg(node.right);
-                args += right;
+                right = this.parseNode(node.right);
+                var needSpace1 = BasicParser_1.BasicParser.keywords[right.toLowerCase()] || keyType;
+                value += needSpace1 ? CodeGeneratorBasic.fnSpace1(right) : right;
             }
             if (node.args) {
-                var nodeArgs = this.fnParseArgs(node.args);
-                if (BasicParser_1.BasicParser.keywords[right.toLowerCase()]) { // for combined keywords
-                    // special handling for 2 tokens (for 3 tokens, we need a specific function)
-                    args += CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
-                }
-                else {
-                    args += nodeArgs.join("");
-                }
+                var nodeArgs = this.fnParseArgs(node.args).join(""), needSpace2 = keyType && keyType.charAt(0) !== "f" && node.type !== "'";
+                // special handling for combined keywords with 2 tokens (for 3 tokens, we need a specific function)
+                value += needSpace2 ? CodeGeneratorBasic.fnSpace1(nodeArgs) : nodeArgs;
             }
             if (node.args2) { // ELSE part already handled
                 throw this.composeError(Error(), "Programming error: args2", node.type, node.pos); // should not occur
             }
-            var value;
-            if (keyType) {
-                value = typeUc;
-                if (args.length) {
-                    if (keyType.charAt(0) === "f" || node.type === "'") { // function with parameters or apostrophe comment?
-                        value += args;
-                    }
-                    else {
-                        value += CodeGeneratorBasic.fnSpace1(args);
-                    }
-                }
-            }
-            else {
-                value = args; // for e.g. string
-            }
-            return CodeGeneratorBasic.fnWs(node) + value;
+            return value;
         };
         CodeGeneratorBasic.getLeftOrRightOperatorPrecedence = function (node) {
             var precedence = CodeGeneratorBasic.operatorPrecedence, operators = CodeGeneratorBasic.operators;
@@ -515,16 +476,17 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             var out = {
                 text: ""
             };
-            this.hasColons = Boolean(this.parser.getOptions().keepColons);
+            this.hasColons = Boolean(this.options.parser.getOptions().keepColons);
+            this.keepWhiteSpace = Boolean(this.options.lexer.getOptions().keepWhiteSpace);
             this.line = 0;
             try {
-                var tokens = this.lexer.lex(input), parseTree = this.parser.parse(tokens), output = this.evaluate(parseTree);
+                var tokens = this.options.lexer.lex(input), parseTree = this.options.parser.parse(tokens), output = this.evaluate(parseTree);
                 out.text = output;
             }
             catch (e) {
                 if (Utils_1.Utils.isCustomError(e)) {
                     out.error = e;
-                    if (!this.quiet) {
+                    if (!this.options.quiet) {
                         Utils_1.Utils.console.warn(e); // show our customError as warning
                     }
                 }

@@ -1,1 +1,1 @@
-{"version":3,"file":"amdLoader.d.ts","sourceRoot":"./src/","sources":["amdLoader.ts"],"names":[],"mappings":"AAWA,aAAK,oBAAoB,GAAG,CAAC,GAAG,IAAI,EAAE,GAAG,KAAK,IAAI,CAAC;AAEnD,iBAAS,QAAQ,SA0EhB;AAED,iBAAS,WAAW,SAkDnB"}
+{"version":3,"file":"amdLoader.d.ts","sourceRoot":"./src/","sources":["amdLoader.ts"],"names":[],"mappings":"AAWA,aAAK,oBAAoB,GAAG,CAAC,GAAG,IAAI,EAAE,GAAG,KAAK,IAAI,CAAC;AAEnD,iBAAS,QAAQ,SA8ChB;AAED,iBAAS,WAAW,SAuCnB"}

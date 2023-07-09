@@ -499,11 +499,6 @@ export class BasicTokenizer {
 			const tstr = this.fnParseNextToken(input);
 
 			out += tstr;
-			/*
-			if (Utils.debug > 2) {
-				this.debugCollectInfo(tstr);
-			}
-			*/
 		}
 		return out;
 	}

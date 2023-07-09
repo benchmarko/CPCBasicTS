@@ -6,10 +6,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Variables = void 0;
     var ArrayProxy = /** @class */ (function () {
-        //private arr: VariableValue[]; //TTT
         function ArrayProxy(len) {
-            //this.arr = new Array(len);
-            //return new Proxy<ArrayProxy>(this.arr, this);
             return new Proxy(new Array(len), this);
         }
         // eslint-disable-next-line class-methods-use-this
@@ -17,9 +14,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (typeof prop === "string" && !isNaN(Number(prop))) {
                 var numProp = Number(prop);
                 if (numProp < 0 || numProp >= target.length) {
-                    //throw this.vmComposeError(Error(), 13, "INPUT #9: no closing quotes: " + line);
-                    //Utils.composeError("Variables", error, errorString, errInfo, pos, len, this.line, hidden);
-                    //throw Utils.composeError("Variables get", Error(), "Subscript out of range", prop);
                     throw Utils_1.Utils.composeVmError("Variables", Error(), 9, prop); // Subscript out of range
                 }
             }
@@ -30,8 +24,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (!isNaN(Number(prop))) {
                 var numProp = Number(prop);
                 if (numProp < 0 || numProp >= target.length) {
-                    //Utils.composeError("Variables", error, errorString, errInfo, pos, len, this.line, hidden);
-                    //throw Utils.composeError("Variables set", Error(), "Subscript out of range", prop);
                     throw Utils_1.Utils.composeVmError("Variables", Error(), 9, prop); // Subscript out of range
                 }
             }

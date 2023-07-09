@@ -18,11 +18,7 @@ export type VariableTypeMap = Record<string, VarTypes>;
 
 
 class ArrayProxy {
-	//private arr: VariableValue[]; //TTT
-
 	constructor(len: number) {
-		//this.arr = new Array(len);
-		//return new Proxy<ArrayProxy>(this.arr, this);
 		return new Proxy(new Array(len), this);
 	}
 
@@ -32,9 +28,6 @@ class ArrayProxy {
 			const numProp = Number(prop);
 
 			if (numProp < 0 || numProp >= target.length) {
-				//throw this.vmComposeError(Error(), 13, "INPUT #9: no closing quotes: " + line);
-				//Utils.composeError("Variables", error, errorString, errInfo, pos, len, this.line, hidden);
-				//throw Utils.composeError("Variables get", Error(), "Subscript out of range", prop);
 				throw Utils.composeVmError("Variables", Error(), 9, prop); // Subscript out of range
 			}
 		}
@@ -47,8 +40,6 @@ class ArrayProxy {
 			const numProp = Number(prop);
 
 			if (numProp < 0 || numProp >= target.length) {
-				//Utils.composeError("Variables", error, errorString, errInfo, pos, len, this.line, hidden);
-				//throw Utils.composeError("Variables set", Error(), "Subscript out of range", prop);
 				throw Utils.composeVmError("Variables", Error(), 9, prop); // Subscript out of range
 			}
 		}

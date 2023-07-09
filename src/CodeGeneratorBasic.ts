@@ -16,31 +16,29 @@ interface CodeGeneratorBasicOptions {
 }
 
 export class CodeGeneratorBasic {
-	private readonly lexer: BasicLexer;
-	private readonly parser: BasicParser;
-	private quiet = false;
+	private readonly options: CodeGeneratorBasicOptions;
 	private hasColons = false;
+	private keepWhiteSpace = false;
 
 	private line = 0; // current line (label)
 
-	setOptions(options: CodeGeneratorBasicOptions): void {
+	setOptions(options: Omit<CodeGeneratorBasicOptions, "lexer" | "parser">): void {
 		if (options.quiet !== undefined) {
-			this.quiet = options.quiet;
+			this.options.quiet = options.quiet;
 		}
 	}
 
+	getOptions(): CodeGeneratorBasicOptions {
+		return this.options;
+	}
+
 	constructor(options: CodeGeneratorBasicOptions) {
-		this.lexer = options.lexer;
-		this.parser = options.parser;
+		this.options = {
+			lexer: options.lexer,
+			parser: options.parser,
+			quiet: false
+		};
 		this.setOptions(options);
-	}
-
-	getLexer(): BasicLexer {
-		return this.lexer;
-	}
-
-	getParser(): BasicParser {
-		return this.parser;
 	}
 
 	private static readonly combinedKeywords: Record<string, string> = {
@@ -134,9 +132,6 @@ export class CodeGeneratorBasic {
 		return typeUc;
 	}
 
-	private fnParseOneArg(arg: ParserNode) {
-		return this.parseNode(arg);
-	}
 
 	private fnParseArgs(args: ParserNode[] | undefined) {
 		const nodeArgs: string[] = []; // do not modify node.args here (could be a parameter of defined function)
@@ -146,9 +141,9 @@ export class CodeGeneratorBasic {
 		}
 
 		for (let i = 0; i < args.length; i += 1) {
-			let value = this.fnParseOneArg(args[i]);
+			let value = this.parseNode(args[i]);
 
-			if (args[i].type === "'") { // fast hack to put a space before "'", if there is no space previously
+			if (args[i].type === "'" || args[i].type === "else") { // fast hack to put a space before "'" or "else", if there is no space previously
 				if (i > 0 && !nodeArgs[i - 1].endsWith(" ") && !nodeArgs[i - 1].endsWith(":")) {
 					value = CodeGeneratorBasic.fnSpace1(value);
 				}
@@ -184,26 +179,20 @@ export class CodeGeneratorBasic {
 	private static ustring(node: ParserNode) {
 		return CodeGeneratorBasic.fnWs(node) + '"' + node.value;
 	}
-	private static unquoted(node: ParserNode) {
-		return CodeGeneratorBasic.fnWs(node) + node.value;
-	}
+
 	private static fnNull() { // "null" means: no parameter specified
 		return "";
 	}
+
 	private assign(node: ParserNode) {
 		// see also "let"
-		if (!node.left || !node.right) {
-			throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
-		}
-		if (node.left.type !== "identifier") {
+		if ((node.left as ParserNode).type !== "identifier") {
 			throw this.composeError(Error(), "Unexpected assign type", node.type, node.pos); // should not occur
 		}
-		return this.fnParseOneArg(node.left) + CodeGeneratorBasic.fnWs(node) + node.value + this.fnParseOneArg(node.right);
+		// no spaces needed around "="
+		return this.parseNode(node.left as ParserNode) + CodeGeneratorBasic.fnWs(node) + node.value + this.parseNode(node.right as ParserNode);
 	}
 
-	private static number(node: ParserNode) {
-		return CodeGeneratorBasic.fnWs(node) + node.value;
-	}
 	private static expnumber(node: ParserNode) {
 		return CodeGeneratorBasic.fnWs(node) + Number(node.value).toExponential().toUpperCase().replace(/(\d+)$/, function (x) {
 			return x.length >= 2 ? x : x.padStart(2, "0"); // format with 2 exponential digits
@@ -212,19 +201,7 @@ export class CodeGeneratorBasic {
 	private static binHexNumber(node: ParserNode) {
 		return CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase(); // binnumber: maybe "&x", hexnumber: mayby "&h"
 	}
-	private identifier(node: ParserNode) { // identifier or identifier with array
-		let value = CodeGeneratorBasic.fnWs(node) + node.value; // keep case, maybe mixed
 
-		if (node.args) { // args including brackets or parenthesis
-			const nodeArgs = this.fnParseArgs(node.args),
-				bracketOpen = nodeArgs.shift(),
-				bracketClose = nodeArgs.pop();
-
-			value += bracketOpen + nodeArgs.join("") + bracketClose;
-		}
-
-		return value;
-	}
 	private static linenumber(node: ParserNode) {
 		return CodeGeneratorBasic.fnWs(node) + node.value;
 	}
@@ -262,7 +239,7 @@ export class CodeGeneratorBasic {
 		let name = "";
 
 		if (node.right) { // merge?
-			name = this.fnParseOneArg(node.right);
+			name = this.parseNode(node.right);
 		}
 
 		if (nodeArgs.length > 2) { // with delete?
@@ -284,7 +261,9 @@ export class CodeGeneratorBasic {
 
 		let args = nodeArgs.join("");
 
-		args = Utils.stringTrimEnd(args); // remove trailing spaces
+		if (!this.keepWhiteSpace) {
+			args = Utils.stringTrimEnd(args); // remove trailing spaces
+		}
 
 		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(args);
 	}
@@ -294,7 +273,7 @@ export class CodeGeneratorBasic {
 			return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase(); // maybe key def
 		}
 
-		const right = this.fnParseOneArg(node.right),
+		const right = this.parseNode(node.right),
 			nodeArgs = this.fnParseArgs(node.args); // including expression
 
 		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(right) + nodeArgs.join("");
@@ -312,7 +291,11 @@ export class CodeGeneratorBasic {
 			const token = args[i];
 
 			if (token.value) {
-				value += " " + token.value;
+				if (this.keepWhiteSpace) {
+					value += CodeGeneratorBasic.fnWs(token) + token.value;
+				} else {
+					value += CodeGeneratorBasic.fnSpace1(CodeGeneratorBasic.fnWs(token) + token.value); //TTT
+				}
 			}
 		}
 		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + value;
@@ -328,7 +311,7 @@ export class CodeGeneratorBasic {
 
 		for (let i = 0; i < args.length; i += 1) {
 			if (args[i].type !== "null") {
-				const arg = this.fnParseOneArg(args[i]);
+				const arg = this.parseNode(args[i]);
 
 				if (equal) {
 					equal = false;
@@ -346,7 +329,7 @@ export class CodeGeneratorBasic {
 			return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase(); // only fn
 		}
 
-		let right = this.fnParseOneArg(node.right);
+		let right = this.parseNode(node.right);
 		const nodeArgs = node.args ? this.fnParseArgs(node.args) : [];
 
 		if ((node.right.pos - node.pos) > 2) { // space between fn and identifier?
@@ -383,7 +366,7 @@ export class CodeGeneratorBasic {
 			throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occur
 		}
 
-		let value = CodeGeneratorBasic.fnSpace1(this.fnParseOneArg(node.left));
+		let value = CodeGeneratorBasic.fnSpace1(this.parseNode(node.left));
 
 		if (node.args.length) {
 			value += this.fnThenOrElsePart(node.args); // "then" part
@@ -401,7 +384,7 @@ export class CodeGeneratorBasic {
 		let name = "";
 
 		if (node.right) { // input?
-			name = this.fnParseOneArg(node.right);
+			name = this.parseNode(node.right);
 		}
 
 		return CodeGeneratorBasic.fnWs(node) + typeUc + CodeGeneratorBasic.fnSpace1(name) + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
@@ -428,7 +411,7 @@ export class CodeGeneratorBasic {
 
 	private onBreakOrError(node: ParserNode) {
 		const nodeArgs = this.fnParseArgs(node.args),
-			right = this.fnParseOneArg(node.right as ParserNode);
+			right = this.parseNode(node.right as ParserNode);
 
 		return CodeGeneratorBasic.fnWs(node) + "ON" + CodeGeneratorBasic.fnSpace1(right) + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
 	}
@@ -443,7 +426,7 @@ export class CodeGeneratorBasic {
 
 	private onSqGosub(node: ParserNode) {
 		const nodeArgs = this.fnParseArgs(node.args),
-			right = this.fnParseOneArg(node.right as ParserNode);
+			right = this.parseNode(node.right as ParserNode);
 
 		nodeArgs[nodeArgs.length - 2] = CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 2]); // "gosub" with space (optional)
 		nodeArgs[nodeArgs.length - 1] = CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 1]); // line number with space
@@ -466,15 +449,6 @@ export class CodeGeneratorBasic {
 		return CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase() + value; // we use value to get PRINT or ?
 	}
 	private rem(node: ParserNode) {
-		/*
-		const nodeArgs = this.fnParseArgs(node.args);
-		let value = nodeArgs.length ? nodeArgs[0] : "";
-
-		if (node.value !== "'" && value.length) { // for "rem": add removed space
-			value = " " + value; // add removed space
-		}
-		*/
-
 		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(this.fnParseArgs(node.args).join(""));
 	}
 	private using(node: ParserNode) {
@@ -498,14 +472,11 @@ export class CodeGeneratorBasic {
 		"(": this.fnParenthesisOpen,
 		string: CodeGeneratorBasic.string,
 		ustring: CodeGeneratorBasic.ustring,
-		unquoted: CodeGeneratorBasic.unquoted,
 		"null": CodeGeneratorBasic.fnNull,
 		assign: this.assign,
-		number: CodeGeneratorBasic.number,
 		expnumber: CodeGeneratorBasic.expnumber,
 		binnumber: CodeGeneratorBasic.binHexNumber,
 		hexnumber: CodeGeneratorBasic.binHexNumber,
-		identifier: this.identifier,
 		linenumber: CodeGeneratorBasic.linenumber,
 		label: this.label,
 		"|": this.vertical,
@@ -539,58 +510,44 @@ export class CodeGeneratorBasic {
 	};
 	/* eslint-enable no-invalid-this */
 
-
 	private fnParseOther(node: ParserNode) {
-		const type = node.type,
-			typeUc = CodeGeneratorBasic.getUcKeyword(node),
-			keyType = BasicParser.keywords[type];
-		let args = "";
+		const type = node.type;
+		let value = ""; // CodeGeneratorBasic.fnGetWs(node);
 
 		if (node.left) {
-			args += this.fnParseOneArg(node.left);
+			value += this.parseNode(node.left);
 		}
 
-		if (!keyType) {
-			if (node.value) { // e.g. string,...
-				args += node.value;
-			}
+		value += CodeGeneratorBasic.fnWs(node);
+
+		const keyType = BasicParser.keywords[type];
+
+		if (keyType) {
+			value += CodeGeneratorBasic.getUcKeyword(node);
+		} else if (node.value) { // e.g. string,...
+			value += node.value;
 		}
 
 		let right = "";
 
 		if (node.right) {
-			right = this.fnParseOneArg(node.right);
-			args += right;
+			right = this.parseNode(node.right);
+			const needSpace1 = BasicParser.keywords[right.toLowerCase()] || keyType;
+
+			value += needSpace1 ? CodeGeneratorBasic.fnSpace1(right) : right;
 		}
 		if (node.args) {
-			const nodeArgs = this.fnParseArgs(node.args);
+			const nodeArgs = this.fnParseArgs(node.args).join(""),
+				needSpace2 = keyType && keyType.charAt(0) !== "f" && node.type !== "'";
 
-			if (BasicParser.keywords[right.toLowerCase()]) { // for combined keywords
-				// special handling for 2 tokens (for 3 tokens, we need a specific function)
-				args += CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
-			} else {
-				args += nodeArgs.join("");
-			}
+			// special handling for combined keywords with 2 tokens (for 3 tokens, we need a specific function)
+			value += needSpace2 ? CodeGeneratorBasic.fnSpace1(nodeArgs) : nodeArgs;
 		}
 		if (node.args2) { // ELSE part already handled
 			throw this.composeError(Error(), "Programming error: args2", node.type, node.pos); // should not occur
 		}
 
-		let value: string;
-
-		if (keyType) {
-			value = typeUc;
-			if (args.length) {
-				if (keyType.charAt(0) === "f" || node.type === "'") { // function with parameters or apostrophe comment?
-					value += args;
-				} else {
-					value += CodeGeneratorBasic.fnSpace1(args);
-				}
-			}
-		} else {
-			value = args; // for e.g. string
-		}
-		return CodeGeneratorBasic.fnWs(node) + value;
+		return value;
 	}
 
 	private static getLeftOrRightOperatorPrecedence(node: ParserNode) {
@@ -707,7 +664,7 @@ export class CodeGeneratorBasic {
 					if (output.length === 0) {
 						output = line;
 					} else {
-							output += line;
+						output += line;
 					}
 				} else {
 					output = ""; // cls (clear output when node is set to null)
@@ -722,19 +679,20 @@ export class CodeGeneratorBasic {
 			text: ""
 		};
 
-		this.hasColons = Boolean(this.parser.getOptions().keepColons);
+		this.hasColons = Boolean(this.options.parser.getOptions().keepColons);
+		this.keepWhiteSpace = Boolean(this.options.lexer.getOptions().keepWhiteSpace);
 
 		this.line = 0;
 		try {
-			const tokens = this.lexer.lex(input),
-				parseTree = this.parser.parse(tokens),
+			const tokens = this.options.lexer.lex(input),
+				parseTree = this.options.parser.parse(tokens),
 				output = this.evaluate(parseTree);
 
 			out.text = output;
 		} catch (e) {
 			if (Utils.isCustomError(e)) {
 				out.error = e;
-				if (!this.quiet) {
+				if (!this.options.quiet) {
 					Utils.console.warn(e); // show our customError as warning
 				}
 			} else { // other errors

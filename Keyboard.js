@@ -13,8 +13,11 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.active = false; // flag if keyboard is active/focused, set from outside
             this.codeStringsRemoved = false;
             this.pressedKeys = {}; // currently pressed browser keys
-            this.options = Object.assign({}, options);
-            this.fnOnKeyDown = this.options.fnOnKeyDown;
+            this.options = {
+                fnOnEscapeHandler: undefined,
+                fnOnKeyDown: undefined
+            };
+            this.setOptions(options);
             this.key2CpcKey = Keyboard.key2CpcKey;
             this.cpcKeyExpansions = {
                 normal: {},
@@ -29,9 +32,20 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             textArea.addEventListener("keydown", this.onCpcAreaKeydown.bind(this), false);
             textArea.addEventListener("keyup", this.oncpcAreaKeyup.bind(this), false);
         }
+        Keyboard.prototype.setOptions = function (options) {
+            if (options.fnOnEscapeHandler !== undefined) {
+                this.options.fnOnEscapeHandler = options.fnOnEscapeHandler;
+            }
+            if (options.fnOnKeyDown !== undefined) {
+                this.options.fnOnKeyDown = options.fnOnKeyDown;
+            }
+        };
+        Keyboard.prototype.getOptions = function () {
+            return this.options;
+        };
         /* eslint-enable array-element-newline */
         Keyboard.prototype.reset = function () {
-            this.fnOnKeyDown = undefined;
+            this.options.fnOnKeyDown = undefined;
             this.clearInput();
             this.pressedKeys = {}; // currently pressed browser keys
             this.resetExpansionTokens();
@@ -74,11 +88,12 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             };
             cpcKeyExpansions.repeat = {};
         };
+        //TODO: remove getKeyDownHandler, setKeyDownHandler?
         Keyboard.prototype.getKeyDownHandler = function () {
-            return this.fnOnKeyDown;
+            return this.options.fnOnKeyDown;
         };
         Keyboard.prototype.setKeyDownHandler = function (fnOnKeyDown) {
-            this.fnOnKeyDown = fnOnKeyDown;
+            this.options.fnOnKeyDown = fnOnKeyDown;
         };
         Keyboard.prototype.setActive = function (active) {
             this.active = active;
@@ -162,8 +177,8 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             if (cpcKeyCode === 66 && this.options.fnOnEscapeHandler) { // or: key === "Escape" or "Esc" (on IE)
                 this.options.fnOnEscapeHandler(key, pressedKey);
             }
-            if (this.fnOnKeyDown) { // special handler?
-                this.fnOnKeyDown();
+            if (this.options.fnOnKeyDown) { // special handler?
+                this.options.fnOnKeyDown();
             }
         };
         Keyboard.prototype.fnReleaseCpcKey = function (cpcKeyCode, pressedKey, key, shiftKey, ctrlKey) {

@@ -164,38 +164,10 @@ define(["require", "exports"], function (require, exports) {
             return customError;
         };
         Utils.debug = 0;
-        /*
-        static console = (function () {
-            return typeof window !== "undefined" ? window.console : globalThis.console; // browser or node.js
-        }());
-        */
         Utils.console = Polyfills.console;
         Utils.supportsBinaryLiterals = Utils.testIsSupported("0b01"); // does the browser support binary literals?
         Utils.supportReservedNames = Utils.testIsSupported("({}).return()"); // does the browser support reserved names (delete, new, return) in dot notation? (not old IE8; "goto" is ok)
-        /*
-        static localStorage = (function () {
-            let rc: Storage | undefined;
-    
-            if (typeof window !== "undefined") {
-                try {
-                    rc = window.localStorage; // due to a bug in MS Edge this will throw an error when hosting locally (https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/8816771/)
-                } catch (_e) {
-                    // empty
-                }
-            }
-            return rc as Storage; // if it is undefined, localStorage is set in Polyfills
-        }());
-        */
         Utils.localStorage = Polyfills.localStorage || window.localStorage;
-        /*
-        static atob = (function () {
-            return typeof window !== "undefined" && window.atob && window.atob.bind ? window.atob.bind(window) : null; // we need bind: https://stackoverflow.com/questions/9677985/uncaught-typeerror-illegal-invocation-in-chrome
-        }()) as (arg0: string) => string;
-    
-        static btoa = (function () {
-            return typeof window !== "undefined" && window.btoa && window.btoa.bind ? window.btoa.bind(window) : null; // we need bind!
-        }()) as (arg0: string) => string;
-        */
         Utils.atob = function (data) {
             return window.atob(data);
         };

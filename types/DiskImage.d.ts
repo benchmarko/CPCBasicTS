@@ -29,9 +29,7 @@ export interface AmsdosHeader {
 }
 declare type DirectoryListType = Record<string, ExtentEntry[]>;
 export declare class DiskImage {
-    private quiet;
-    private diskName;
-    private data;
+    private readonly options;
     private diskInfo;
     private format;
     setOptions(options: DiskImageOptions): void;
