@@ -227,6 +227,7 @@ declare module "BasicParser" {
         private readonly parseTree;
         private statementList;
         setOptions(options: BasicParserOptions): void;
+        getOptions(): BasicParserOptions;
         constructor(options?: BasicParserOptions);
         private static readonly parameterTypes;
         static readonly keywords: Record<string, string>;
@@ -268,7 +269,6 @@ declare module "BasicParser" {
         private fnIdentifier;
         private fnParenthesis;
         private fnFn;
-        private apostrophe;
         private rsx;
         private afterEveryGosub;
         private chain;
@@ -392,6 +392,7 @@ declare module "CodeGeneratorBasic" {
         private readonly lexer;
         private readonly parser;
         private quiet;
+        private hasColons;
         private line;
         setOptions(options: CodeGeneratorBasicOptions): void;
         constructor(options: CodeGeneratorBasicOptions);
@@ -406,8 +407,7 @@ declare module "CodeGeneratorBasic" {
         private static getUcKeyword;
         private fnParseOneArg;
         private fnParseArgs;
-        private static fnColonsAvailable;
-        private static combineArgsWithColon;
+        private combineArgsWithColon;
         private fnParenthesisOpen;
         private static string;
         private static ustring;
@@ -696,7 +696,7 @@ declare module "CodeGeneratorToken" {
         private onBreakContOrGosubOrStop;
         private onErrorGoto;
         private onSqGosub;
-        private rem;
+        private apostrophe;
         private readonly parseFunctions;
         private fnParseOther;
         private parseNode;

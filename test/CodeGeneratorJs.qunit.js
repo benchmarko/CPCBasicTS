@@ -1,8 +1,9 @@
 // CodeGeneratorJs.qunit.ts - QUnit tests for CPCBasic CodeGeneratorJs
 //
-define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGeneratorJs", "../Variables", "./TestHelper"], function (require, exports, BasicLexer_1, BasicParser_1, CodeGeneratorJs_1, Variables_1, TestHelper_1) {
+define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGeneratorJs", "../Variables", "./TestHelper", "./TestInput"], function (require, exports, BasicLexer_1, BasicParser_1, CodeGeneratorJs_1, Variables_1, TestHelper_1, TestInput_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
+    /* eslint-disable quote-props */
     var allTests = {
         numbers: {
             "a=1": " v.aR = 1;",
@@ -36,7 +37,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "a=&h": "BasicLexer: Expected hex number at pos 2-4: &h",
             "a=&x": "BasicLexer: Expected binary number at pos 2-4: &x",
             "a=&x2": "BasicLexer: Expected binary number at pos 2-4: &x",
-            "a ": "BasicParser: Expected = at pos 2: (end)",
+            "a": "BasicParser: Expected = at pos 1: (end)",
             "1 a=": "BasicParser: Unexpected end of file in 1 at pos 4: ",
             "1 5=7": "BasicParser: Bad expression statement in 1 at pos 2-3: 5",
             "1 let 5=7": "BasicParser: Expected variable in 1 at pos 6-7: 5"
@@ -94,7 +95,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "a=1>=1>1": " v.aR = (1 >= 1 ? -1 : 0) > 1 ? -1 : 0;"
         },
         "Line numbers": {
-            "1 ": "",
+            "1": "",
             "0 cls": "CodeGeneratorJs: Line number overflow in 0 at pos 0-1: 0",
             "65535 cls": " o.cls(0);",
             "65536 cls": "CodeGeneratorJs: Line number overflow in 0 at pos 0-5: 65536",
@@ -114,7 +115,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             'a=asc("A")': ' v.aR = o.asc("A");',
             "a!=asc(b$) and c%": " v.aR = o.asc(v.b$) & v.cI;",
             "a=atn(2.3)": " v.aR = o.atn(2.3);",
-            "auto ": " o.auto();",
+            "auto": " o.auto();",
             "auto 100": " o.auto(100);"
         },
         "bin$, border": {
@@ -127,7 +128,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
         "call, cat, chain, chain merge, chr$, cint, clg, closein, closeout, cls, cont, copychr$, cos, creal, cursor": {
             "call&a7bc": ' o.call(-0x5844); o.vmGoto("directs0"); break;\ncase "directs0":',
             "call 4711,1,2,3,4": ' o.call(4711, 1, 2, 3, 4); o.vmGoto("directs0"); break;\ncase "directs0":',
-            "cat ": " o.cat();",
+            "cat": " o.cat();",
             'chain"f1"': ' o.chain("f1"); o.vmGoto("directs0"); break;\ncase "directs0":',
             'chain"f2" , 10': ' o.chain("f2", 10); o.vmGoto("directs0"); break;\ncase "directs0":',
             'chain"f3" , 10+3': ' o.chain("f3", 10 + 3); o.vmGoto("directs0"); break;\ncase "directs0":',
@@ -140,21 +141,21 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             'chain merge "f5" , , delete 100-200': ' o.chainMerge("f5", undefined, 100, 200); o.vmGoto("directs0"); break;\ncase "directs0":',
             "a=chr$(65)": "CodeGeneratorJs: Type error in direct at pos 1-2: =",
             "a=cint(2.3)": " v.aR = o.cint(2.3);",
-            "clear ": ' o.clear(); o.vmGoto("directs0"); break;\ncase "directs0":',
+            "clear": ' o.clear(); o.vmGoto("directs0"); break;\ncase "directs0":',
             "clear input": " o.clearInput();",
-            "clg ": " o.clg();",
+            "clg": " o.clg();",
             "clg 15-1": " o.clg(15 - 1);",
-            "closein ": " o.closein();",
-            "closeout ": ' o.closeout(); o.vmGoto("directs0"); break;\ncase "directs0":',
-            "cls ": " o.cls(0);",
+            "closein": " o.closein();",
+            "closeout": ' o.closeout(); o.vmGoto("directs0"); break;\ncase "directs0":',
+            "cls": " o.cls(0);",
             "cls #5": " o.cls(5);",
             "cls #a+7-2*b": " o.cls((v.aR + 7) - (2 * v.bR));",
-            "cont ": " o.cont(); break;",
+            "cont": " o.cont(); break;",
             "a$=copychr$(#0)": " v.a$ = o.copychr$(0);",
             "a$=copychr$(#a+1)": " v.a$ = o.copychr$(v.aR + 1);",
             "a=cos(2.3)": " v.aR = o.cos(2.3);",
             "a=creal(2.3+a)": " v.aR = o.creal(2.3 + v.aR);",
-            "cursor ": " o.cursor(0);",
+            "cursor": " o.cursor(0);",
             "cursor 0": " o.cursor(0, 0);",
             "cursor 1": " o.cursor(0, 1);",
             "cursor 1,1": " o.cursor(0, 1, 1);",
@@ -165,7 +166,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "cursor #2,,1": " o.cursor(2, undefined, 1);"
         },
         "data, dec$, def fn, defint, defreal, defstr, deg, delete, derr, di, dim, draw, drawr": {
-            "data ": 'o.data("direct", "");\n /* data */;',
+            "data": 'o.data("direct", undefined);\n /* data */;',
             "data ,": 'o.data("direct", undefined, undefined);\n /* data */;',
             "data \\": 'o.data("direct", "\\\\");\n /* data */;',
             "data 1,2,3": 'o.data("direct", "1", "2", "3");\n /* data */;',
@@ -218,7 +219,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "defstr a:ab=ab+de[7]": ' o.defstr("a"); v["ab" + t.a] = o.vmAssign("a", v["ab" + t.a] + v.deAR[7]);',
             "1 defstr z-a": "CodeGeneratorJs: Decreasing range in 1 at pos 10-11: -",
             'defstr f:f(x)="w"': ' o.defstr("f"); v["fA" + t.f][o.vmRound(v.xR)] = o.vmAssign("f", "w");',
-            "deg ": " o.deg();",
+            "deg": " o.deg();",
             "delete": " o.delete(1, 65535); break;",
             "delete -": " o.delete(undefined, 65535); break;",
             "delete ,": " o.delete(undefined); break;",
@@ -231,7 +232,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "1 delete 1+2": "BasicParser: Expected : in 1 at pos 10-11: +",
             "1 delete a": "BasicParser: Expected : in 1 at pos 9-10: a",
             "a=derr": " v.aR = o.derr();",
-            "di ": " o.di();",
+            "di": " o.di();",
             "dim a(1)": ' /* v.aAR[1] = */ o.dim("aAR", 1);',
             "dim a!(1)": ' /* v.aAR[1] = */ o.dim("aAR", 1);',
             "dim a%(1)": ' /* v.aAI[1] = */ o.dim("aAI", 1);',
@@ -252,11 +253,11 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
         },
         "edit, ei, else, end, ent, env, eof, erase, erl, err, error, every gosub, exp": {
             "edit 20": " o.edit(20); break;",
-            "ei ": " o.ei();",
+            "ei": " o.ei();",
             "else": " // else",
             "else 10": " // else 10",
             "else a=7": " // else a = 7",
-            "end ": ' o.end("directs0"); break;\ncase "directs0":',
+            "end": ' o.end("directs0"); break;\ncase "directs0":',
             "ent 1": " o.ent(1);",
             "ent 1,2,a,4": " o.ent(1, 2, v.aR, 4);",
             "ent num,steps,dist,ti,steps2,dist2,ti2": " o.ent(v.numR, v.stepsR, v.distR, v.tiR, v.steps2R, v.dist2R, v.ti2R);",
@@ -305,7 +306,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "defint a:for abc=1 to 10 step 3:next abc": ' o.defint("a"); /* for() */ o.vmAssertNumberType("a"); v["abc" + t.a] = 1; o.vmGoto("directf0b"); break;\ncase "directf0": v["abc" + t.a] += 3;\ncase "directf0b": if (v["abc" + t.a] > 10) { o.vmGoto("directf0e"); break; } /* next("v["abc" + t.a]") */ o.vmGoto("directf0"); break;\ncase "directf0e":',
             "defstr a:for abc=1 to 10 step 3:next abc": ' o.defstr("a"); /* for() */ o.vmAssertNumberType("a"); v["abc" + t.a] = 1; o.vmGoto("directf0b"); break;\ncase "directf0": v["abc" + t.a] += 3;\ncase "directf0b": if (v["abc" + t.a] > 10) { o.vmGoto("directf0e"); break; } /* next("v["abc" + t.a]") */ o.vmGoto("directf0"); break;\ncase "directf0e":',
             "for a=b to c step s:defint a-b:a=0:defreal a:next": ' /* for() */ o.vmAssertNumberType("a"); v["a" + t.a] = o.vmAssign("a", v["b" + t.b]); v.aEnd = o.vmAssign("a", v.cR); v.aStep = o.vmAssign("a", v.sR); o.vmGoto("directf0b"); break;\ncase "directf0": v["a" + t.a] += v.aStep;\ncase "directf0b": if (v.aStep > 0 && v["a" + t.a] > v.aEnd || v.aStep < 0 && v["a" + t.a] < v.aEnd || !v.aStep && v["a" + t.a] === v.aEnd) { o.vmGoto("directf0e"); break; } o.defint("a", "b"); v["a" + t.a] = o.vmAssign("a", 0); o.defreal("a"); /* next("") */ o.vmGoto("directf0"); break;\ncase "directf0e":',
-            "frame ": ' o.frame(); o.vmGoto("directs0"); break;\ncase "directs0":',
+            "frame": ' o.frame(); o.vmGoto("directs0"); break;\ncase "directs0":',
             "a=fre(0)": " v.aR = o.fre(0);",
             'a=fre("")': ' v.aR = o.fre("");',
             "a=fre(b-2)": " v.aR = o.fre(v.bR - 2);",
@@ -392,7 +393,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             'line input ;"para noCRLF";a$': ' o.vmGoto("directs0"); break;\ncase "directs0":o.lineInput(0, ";", "para noCRLF? ", "a$"); o.vmGoto("directs1"); break;\ncase "directs1":; v.a$ = o.vmGetNextInput();',
             'line input#2,;"para noCRLF";a$': ' o.vmGoto("directs0"); break;\ncase "directs0":o.lineInput(2, ";", "para noCRLF? ", "a$"); o.vmGoto("directs1"); break;\ncase "directs1":; v.a$ = o.vmGetNextInput();',
             'line input#stream,;"string";a$': ' o.vmGoto("directs0"); break;\ncase "directs0":o.lineInput(v.streamR, ";", "string? ", "a$"); o.vmGoto("directs1"); break;\ncase "directs1":; v.a$ = o.vmGetNextInput();',
-            "list ": " o.list(0); break;",
+            "list": " o.list(0); break;",
             "list -": " o.list(0, undefined, 65535); break;",
             "list ,": " o.list(0, undefined); break;",
             "list -,": " o.list(0, undefined, 65535); break;",
@@ -460,8 +461,8 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "mover x,y,m,g1": " o.mover(v.xR, v.yR, v.mR, v.g1R);"
         },
         "new, next, not": {
-            "new ": " o.new();",
-            "for a=1 to 2: next ": ' /* for() */ v.aR = 1; o.vmGoto("directf0b"); break;\ncase "directf0": v.aR += 1;\ncase "directf0b": if (v.aR > 2) { o.vmGoto("directf0e"); break; } /* next("") */ o.vmGoto("directf0"); break;\ncase "directf0e":',
+            "new": " o.new();",
+            "for a=1 to 2: next": ' /* for() */ v.aR = 1; o.vmGoto("directf0b"); break;\ncase "directf0": v.aR += 1;\ncase "directf0b": if (v.aR > 2) { o.vmGoto("directf0e"); break; } /* next("") */ o.vmGoto("directf0"); break;\ncase "directf0e":',
             "for i=1 to 2: next i": ' /* for() */ v.iR = 1; o.vmGoto("directf0b"); break;\ncase "directf0": v.iR += 1;\ncase "directf0b": if (v.iR > 2) { o.vmGoto("directf0e"); break; } /* next("v.iR") */ o.vmGoto("directf0"); break;\ncase "directf0e":',
             "for j=1 to 2:for i=3 to 4: next i,j": ' /* for() */ v.jR = 1; o.vmGoto("directf0b"); break;\ncase "directf0": v.jR += 1;\ncase "directf0b": if (v.jR > 2) { o.vmGoto("directf0e"); break; } /* for() */ v.iR = 3; o.vmGoto("directf1b"); break;\ncase "directf1": v.iR += 1;\ncase "directf1b": if (v.iR > 4) { o.vmGoto("directf1e"); break; } /* next("v.iR") */ o.vmGoto("directf1"); break;\ncase "directf1e":; /* next("v.jR") */ o.vmGoto("directf0"); break;\ncase "directf0e":',
             "a=not 2": " v.aR = ~(2);",
@@ -525,7 +526,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "poke adr,by": " o.poke(v.adrR, v.byR);",
             "a=pos(#0)": " v.aR = o.pos(0);",
             "a=pos(#stream)": " v.aR = o.pos(v.streamR);",
-            "print ": ' o.print(0, "\\r\\n");',
+            "print": ' o.print(0, "\\r\\n");',
             "print ,": ' o.print(0, {type: "commaTab", args: []});',
             "print ;": " o.print(0);",
             "print #2": ' o.print(2, "\\r\\n");',
@@ -549,15 +550,15 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "?#2,ti-t0!;spc(5);": ' o.print(2, v.tiR - v.t0R, {type: "spc", args: [5]});'
         },
         "rad, randomize, read, release, rem, remain, renum, restore, resume, return, right$, rnd, round, run": {
-            "rad ": " o.rad();",
-            "randomize ": ' o.vmGoto("directs0"); break;\ncase "directs0":o.randomize(); o.vmGoto("directs1"); break;\ncase "directs1": o.randomize(o.vmGetNextInput());',
+            "rad": " o.rad();",
+            "randomize": ' o.vmGoto("directs0"); break;\ncase "directs0":o.randomize(); o.vmGoto("directs1"); break;\ncase "directs1": o.randomize(o.vmGetNextInput());',
             "randomize 123.456": " o.randomize(123.456);",
             "read a$": ' v.a$ = o.read("a$");',
             "read b": ' v.bR = o.read("bR");',
             "read a$,b,c$": ' v.a$ = o.read("a$"); v.bR = o.read("bR"); v.c$ = o.read("c$");',
             "release 1": " o.release(1);",
             "release n+1": " o.release(v.nR + 1);",
-            "rem ": " //",
+            "rem": " //",
             "rem comment until EOL": " // comment until EOL",
             "rem \\": " // \\",
             "'": " //",
@@ -566,23 +567,23 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "a=1 'comment": " v.aR = 1; // comment",
             "a=remain(0)": " v.aR = o.remain(0);",
             "a=remain(ti)": " v.aR = o.remain(v.tiR);",
-            "renum ": ' o.renum(); o.vmGoto("directs0"); break;\ncase "directs0":',
+            "renum": ' o.renum(); o.vmGoto("directs0"); break;\ncase "directs0":',
             "renum 100": ' o.renum(100); o.vmGoto("directs0"); break;\ncase "directs0":',
             "renum 100,50": ' o.renum(100, 50); o.vmGoto("directs0"); break;\ncase "directs0":',
             "renum 100,50,2": ' o.renum(100, 50, 2); o.vmGoto("directs0"); break;\ncase "directs0":',
-            "restore ": " o.restore();",
+            "restore": " o.restore();",
             "10 restore 10": " o.restore(10);",
-            "resume ": " o.resume(); break;",
+            "resume": " o.resume(); break;",
             "10 resume 10": " o.resume(10); break;",
             "resume next": " o.resumeNext(); break;",
-            "return ": " o.return(); break;",
+            "return": " o.return(); break;",
             "a$=right$(b$,n)": " v.a$ = o.right$(v.b$, v.nR);",
             "a=rnd": " v.aR = o.rnd();",
             "a=rnd(0)": " v.aR = o.rnd(0);",
             "a=rnd(-1*b)": " v.aR = o.rnd(-1 * v.bR);",
             "a=round(2.335)": " v.aR = o.round(2.335);",
             "a=round(2.335,2)": " v.aR = o.round(2.335, 2);",
-            "run ": ' o.run(); o.vmGoto("directs0"); break;\ncase "directs0":',
+            "run": ' o.run(); o.vmGoto("directs0"); break;\ncase "directs0":',
             "10 run 10": ' o.run(10); o.vmGoto("10s0"); break;\ncase "10s0":',
             'run "file"': ' o.run("file"); o.vmGoto("directs0"); break;\ncase "directs0":',
             "run f$": ' o.run(v.f$); o.vmGoto("directs0"); break;\ncase "directs0":'
@@ -618,7 +619,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "a=sq(1)": " v.aR = o.sq(1);",
             "a=sq(channel)": " v.aR = o.sq(v.channelR);",
             "a=sqr(9)": " v.aR = o.sqr(9);",
-            "stop ": ' o.stop("directs0"); break;\ncase "directs0":',
+            "stop": ' o.stop("directs0"); break;\ncase "directs0":',
             "a$=str$(123)": " v.a$ = o.str$(123);",
             "a$=str$(a+b)": " v.a$ = o.str$(v.aR + v.bR);",
             'a$=string$(40,"*")': ' v.a$ = o.string$(40, "*");',
@@ -629,10 +630,10 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "symbol after 255": " o.symbolAfter(255);"
         },
         "tag, tagoff, tan, test, testr, time, troff, tron": {
-            "tag ": " o.tag(0);",
+            "tag": " o.tag(0);",
             "tag#2": " o.tag(2);",
             "tag#stream": " o.tag(v.streamR);",
-            "tagoff ": " o.tagoff(0);",
+            "tagoff": " o.tagoff(0);",
             "tagoff#2": " o.tagoff(2);",
             "tagoff#stream": " o.tagoff(v.streamR);",
             "a=tan(45)": " v.aR = o.tan(45);",
@@ -641,8 +642,8 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "a=testr(10,-20)": " v.aR = o.testr(10, -20);",
             "a=testr(xm,ym)": " v.aR = o.testr(v.xmR, v.ymR);",
             "t!=time": " v.tR = o.time();",
-            "troff ": " o.troff();",
-            "tron ": ' o.tron(); o.vmGoto("directs0"); break;\ncase "directs0":'
+            "troff": " o.troff();",
+            "tron": ' o.tron(); o.vmGoto("directs0"); break;\ncase "directs0":'
         },
         "unt, upper$": {
             "a=unt(&ff66)": " v.aR = o.unt(-0x9a);",
@@ -658,7 +659,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
         "wait, wend, while, width, window, window swap, write": {
             "wait &ff34,20": " o.wait(-0xcc, 20);",
             "wait &ff34,20,25": " o.wait(-0xcc, 20, 25);",
-            "while a=10: wend ": ' \ncase "directw0": if (!(v.aR === 10 ? -1 : 0)) { o.vmGoto("directw0e"); break; } /* o.wend() */ o.vmGoto("directw0"); break;\ncase "directw0e":',
+            "while a=10: wend": ' \ncase "directw0": if (!(v.aR === 10 ? -1 : 0)) { o.vmGoto("directw0e"); break; } /* o.wend() */ o.vmGoto("directw0"); break;\ncase "directw0e":',
             "while a>0": ' \ncase "directw0": if (!(v.aR > 0 ? -1 : 0)) { o.vmGoto("directw0e"); break; }',
             "width 40": " o.width(40);",
             "window 10,30,5,20": " o.window(0, 10, 30, 5, 20);",
@@ -667,7 +668,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "window swap 1": " o.windowSwap(1);",
             "window swap 1,0": " o.windowSwap(1, 0);",
             "1 window swap #1": "BasicParser: Expected number in 1 at pos 14-15: #",
-            "write ": " o.write(0);",
+            "write": " o.write(0);",
             "write #2": " o.write(2);",
             "write #2,": " o.write(2);",
             'write "string"': ' o.write(0, "string");',
@@ -722,9 +723,9 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             " 1  if    a  =  1     then  1     else    goto  1": " if (v.aR === 1) { o.goto(1); break; } else { o.goto(1); break; }",
             " 1  line   input  a$": ' o.vmGoto("1s0"); break;\ncase "1s0":o.lineInput(0, undefined, "? ", "a$"); o.vmGoto("1s1"); break;\ncase "1s1":; v.a$ = o.vmGetNextInput();',
             " 1  on  break   cont": " o.onBreakCont();",
-            " 1  on  break   gosub   1 ": " o.onBreakGosub(1);",
+            " 1  on  break   gosub   1": " o.onBreakGosub(1);",
             " 1  on  break   stop": " o.onBreakStop();",
-            " 1  on  error   goto   1 ": " o.onErrorGoto(1);",
+            " 1  on  error   goto   1": " o.onErrorGoto(1);",
             " 1  on  x  gosub   1  ,  2\n2  rem": ' o.onGosub("1g0", v.xR, 1, 2); break;\ncase "1g0":\n //',
             " 1  on  x  goto   1  ,  2\n2  rem": ' o.onGoto("1s0", v.xR, 1, 2); break;\ncase "1s0":\n //',
             ' 1   print   using    "####" ;  ri  ;': ' o.print(0, o.using("####", v.riR));',
@@ -740,6 +741,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             '100 \'Das Raetsel\n110 \'21.5.1988 Kopf um Kopf\n120 \'ab*c=de  de+fg=hi   [dabei sind a-i verschiedene Ziffern 1-9!!]\n130 MODE 1:PRINT"Please wait ...  ( ca. 1 min 34 sec )"\n140 CLEAR:DEFINT a-y\n150 \'\n155 z=TIME\n160 FOR a=1 TO 9:FOR b=1 TO 9:FOR c=1 TO 9:FOR f=1 TO 9:FOR g=1 TO 9\n170 de=(a*10+b)*c:IF de>99 THEN 320\n180 hi=de+(f*10+g):IF hi>99 THEN 320\n190 d=INT(de/10):e=de MOD 10:h=INT(hi/10):i=hi MOD 10\n200 IF a=b OR a=c OR a=d OR a=e OR a=f OR a=g OR a=h OR a=i THEN 320\n210 IF b=c OR b=d OR b=e OR b=f OR b=g OR b=h OR b=i THEN 320\n220 IF c=d OR c=e OR c=f OR c=g OR c=h OR c=i THEN 320\n230 IF d=e OR d=f OR d=g OR d=h OR d=i THEN 320\n240 IF e=f OR e=g OR e=h OR e=i THEN 320\n250 IF f=g OR f=h OR f=i THEN 320\n260 IF g=h OR g=i THEN 320\n270 IF h=i THEN 320\n280 IF i=0 THEN 320\n285 z=TIME-z\n290 CLS:PRINT"Die Loesung:":PRINT\n300 PRINT a*10+b"*"c"="de" / "de"+"f*10+g"="hi\n310 PRINT z,z/300:STOP\n320 NEXT g,f,c,b,a\n': ' // Das Raetsel\n // 21.5.1988 Kopf um Kopf\n // ab*c=de  de+fg=hi   [dabei sind a-i verschiedene Ziffern 1-9!!]\n o.mode(1); o.print(0, "Please wait ...  ( ca. 1 min 34 sec )", "\\r\\n");\n o.clear(); o.vmGoto("140s0"); break;\ncase "140s0": o.defint("a", "y");\n //\n v.zR = o.time();\n /* for() */ o.vmAssertNumberType("a"); v["a" + t.a] = 1; o.vmGoto("160f0b"); break;\ncase "160f0": v["a" + t.a] += 1;\ncase "160f0b": if (v["a" + t.a] > 9) { o.vmGoto("160f0e"); break; } /* for() */ o.vmAssertNumberType("b"); v["b" + t.b] = 1; o.vmGoto("160f1b"); break;\ncase "160f1": v["b" + t.b] += 1;\ncase "160f1b": if (v["b" + t.b] > 9) { o.vmGoto("160f1e"); break; } /* for() */ o.vmAssertNumberType("c"); v["c" + t.c] = 1; o.vmGoto("160f2b"); break;\ncase "160f2": v["c" + t.c] += 1;\ncase "160f2b": if (v["c" + t.c] > 9) { o.vmGoto("160f2e"); break; } /* for() */ o.vmAssertNumberType("f"); v["f" + t.f] = 1; o.vmGoto("160f3b"); break;\ncase "160f3": v["f" + t.f] += 1;\ncase "160f3b": if (v["f" + t.f] > 9) { o.vmGoto("160f3e"); break; } /* for() */ o.vmAssertNumberType("g"); v["g" + t.g] = 1; o.vmGoto("160f4b"); break;\ncase "160f4": v["g" + t.g] += 1;\ncase "160f4b": if (v["g" + t.g] > 9) { o.vmGoto("160f4e"); break; }\n v["de" + t.d] = o.vmAssign("d", ((v["a" + t.a] * 10) + v["b" + t.b]) * v["c" + t.c]); if (v["de" + t.d] > 99) { o.goto(320); break; }\n v["hi" + t.h] = o.vmAssign("h", v["de" + t.d] + ((v["f" + t.f] * 10) + v["g" + t.g])); if (v["hi" + t.h] > 99) { o.goto(320); break; }\n v["d" + t.d] = o.vmAssign("d", o.int(v["de" + t.d] / 10)); v["e" + t.e] = o.vmAssign("e", o.vmRound(v["de" + t.d]) % 10); v["h" + t.h] = o.vmAssign("h", o.int(v["hi" + t.h] / 10)); v["i" + t.i] = o.vmAssign("i", o.vmRound(v["hi" + t.h]) % 10);\n if ((v["a" + t.a] === v["b" + t.b] ? -1 : 0) | ((v["a" + t.a] === v["c" + t.c] ? -1 : 0) | ((v["a" + t.a] === v["d" + t.d] ? -1 : 0) | ((v["a" + t.a] === v["e" + t.e] ? -1 : 0) | ((v["a" + t.a] === v["f" + t.f] ? -1 : 0) | ((v["a" + t.a] === v["g" + t.g] ? -1 : 0) | ((v["a" + t.a] === v["h" + t.h] ? -1 : 0) | (v["a" + t.a] === v["i" + t.i] ? -1 : 0)))))))) { o.goto(320); break; }\n if ((v["b" + t.b] === v["c" + t.c] ? -1 : 0) | ((v["b" + t.b] === v["d" + t.d] ? -1 : 0) | ((v["b" + t.b] === v["e" + t.e] ? -1 : 0) | ((v["b" + t.b] === v["f" + t.f] ? -1 : 0) | ((v["b" + t.b] === v["g" + t.g] ? -1 : 0) | ((v["b" + t.b] === v["h" + t.h] ? -1 : 0) | (v["b" + t.b] === v["i" + t.i] ? -1 : 0))))))) { o.goto(320); break; }\n if ((v["c" + t.c] === v["d" + t.d] ? -1 : 0) | ((v["c" + t.c] === v["e" + t.e] ? -1 : 0) | ((v["c" + t.c] === v["f" + t.f] ? -1 : 0) | ((v["c" + t.c] === v["g" + t.g] ? -1 : 0) | ((v["c" + t.c] === v["h" + t.h] ? -1 : 0) | (v["c" + t.c] === v["i" + t.i] ? -1 : 0)))))) { o.goto(320); break; }\n if ((v["d" + t.d] === v["e" + t.e] ? -1 : 0) | ((v["d" + t.d] === v["f" + t.f] ? -1 : 0) | ((v["d" + t.d] === v["g" + t.g] ? -1 : 0) | ((v["d" + t.d] === v["h" + t.h] ? -1 : 0) | (v["d" + t.d] === v["i" + t.i] ? -1 : 0))))) { o.goto(320); break; }\n if ((v["e" + t.e] === v["f" + t.f] ? -1 : 0) | ((v["e" + t.e] === v["g" + t.g] ? -1 : 0) | ((v["e" + t.e] === v["h" + t.h] ? -1 : 0) | (v["e" + t.e] === v["i" + t.i] ? -1 : 0)))) { o.goto(320); break; }\n if ((v["f" + t.f] === v["g" + t.g] ? -1 : 0) | ((v["f" + t.f] === v["h" + t.h] ? -1 : 0) | (v["f" + t.f] === v["i" + t.i] ? -1 : 0))) { o.goto(320); break; }\n if ((v["g" + t.g] === v["h" + t.h] ? -1 : 0) | (v["g" + t.g] === v["i" + t.i] ? -1 : 0)) { o.goto(320); break; }\n if (v["h" + t.h] === v["i" + t.i]) { o.goto(320); break; }\n if (v["i" + t.i] === 0) { o.goto(320); break; }\n v.zR = o.time() - v.zR;\n o.cls(0); o.print(0, "Die Loesung:", "\\r\\n"); o.print(0, "\\r\\n");\n o.print(0, (v["a" + t.a] * 10) + v["b" + t.b], "*", v["c" + t.c], "=", v["de" + t.d], " / ", v["de" + t.d], "+", (v["f" + t.f] * 10) + v["g" + t.g], "=", v["hi" + t.h], "\\r\\n");\n o.print(0, v.zR, {type: "commaTab", args: []}, v.zR / 300, "\\r\\n"); o.stop("310s0"); break;\ncase "310s0":\n /* next("v["g" + t.g]") */ o.vmGoto("160f4"); break;\ncase "160f4e":; /* next("v["f" + t.f]") */ o.vmGoto("160f3"); break;\ncase "160f3e":; /* next("v["c" + t.c]") */ o.vmGoto("160f2"); break;\ncase "160f2e":; /* next("v["b" + t.b]") */ o.vmGoto("160f1"); break;\ncase "160f1e":; /* next("v["a" + t.a]") */ o.vmGoto("160f0"); break;\ncase "160f0e":'
         }
     };
+    /* eslint-enable quote-props */
     QUnit.module("CodeGeneratorJs: Tests", function (hooks) {
         function runSingleTest(codeGeneratorJs, key) {
             var allowDirect = true, variables = new Variables_1.Variables(), output = codeGeneratorJs.generate(key, variables, allowDirect), result = output.error ? String(output.error) : output.text;
@@ -774,6 +776,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
                 }
             }
         }
+        TestHelper_1.TestHelper.compareAllTests(TestInput_1.TestInput.getAllTests(), allTests);
         TestHelper_1.TestHelper.generateAllTests(allTests, runTestsFor, hooks);
     });
 });

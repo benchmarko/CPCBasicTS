@@ -237,6 +237,7 @@ export class TestHelper { // eslint-disable-line vars-on-top
 				}
 			}
 		}
+		result = result.replace(/,\n$/, "\n"); // remove last comma
 		Utils.console.log(result);
 		return result;
 	}
@@ -253,6 +254,42 @@ export class TestHelper { // eslint-disable-line vars-on-top
 			});
 		}
 		TestHelper.generateTests(allTests, TestHelper.config.generateKeys ? TestHelper.listKeys : runTestsFor, allResults);
+	}
+
+	private static compareKeys(keys1: string[], keys2: string[], type: string) {
+		let isEqual = true;
+
+		for (let i = 0; i < keys1.length; i += 1) {
+			if (keys1[i] !== keys2[i]) {
+				isEqual = false;
+				Utils.console.warn("compareKeys: " + type + ": " + keys1[i] + " <> " + keys2[i]);
+			}
+		}
+		if (keys1.length !== keys2.length) {
+			isEqual = false;
+			Utils.console.warn("compareKeys: " + type + ": different sizes: " + keys1.length + " <> " + keys2.length);
+		}
+		return isEqual;
+	}
+
+	static compareAllTests(allTests1: AllTestsType, allTests2: AllTestsType): boolean {
+		const categories1 = Object.keys(allTests1),
+			categories2 = Object.keys(allTests2);
+		let isEqual = TestHelper.compareKeys(categories1, categories2, "categories");
+
+		if (isEqual) {
+			for (let i = 0; i < categories1.length; i += 1) {
+				const category = categories1[i],
+					key1 = allTests1[category],
+					key2 = allTests2[category],
+					keys1 = Object.keys(key1),
+					keys2 = Object.keys(key2);
+
+				isEqual = TestHelper.compareKeys(keys1, keys2, "keys");
+			}
+		}
+
+		return isEqual;
 	}
 }
 

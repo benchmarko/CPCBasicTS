@@ -28,6 +28,7 @@ export declare class BasicParser {
     private readonly parseTree;
     private statementList;
     setOptions(options: BasicParserOptions): void;
+    getOptions(): BasicParserOptions;
     constructor(options?: BasicParserOptions);
     private static readonly parameterTypes;
     static readonly keywords: Record<string, string>;
@@ -69,7 +70,6 @@ export declare class BasicParser {
     private fnIdentifier;
     private fnParenthesis;
     private fnFn;
-    private apostrophe;
     private rsx;
     private afterEveryGosub;
     private chain;

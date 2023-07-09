@@ -46,7 +46,7 @@ export declare class CodeGeneratorToken {
     private onBreakContOrGosubOrStop;
     private onErrorGoto;
     private onSqGosub;
-    private rem;
+    private apostrophe;
     private readonly parseFunctions;
     private fnParseOther;
     private parseNode;

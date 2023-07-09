@@ -1690,7 +1690,7 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
                 this.fnParseWhiteSpace(char);
             }
             else if (char === "\n") {
-                this.addToken("(eol)", "", startPos);
+                this.addToken("(eol)", char, startPos);
                 this.advance();
                 this.takeNumberAsLabel = true;
             }
@@ -1774,7 +1774,6 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             this.statementList = []; // just to check last statement when generating error message
             /* eslint-disable no-invalid-this */
             this.specialStatements = {
-                "'": this.apostrophe,
                 "|": this.rsx,
                 after: this.afterEveryGosub,
                 chain: this.chain,
@@ -1826,6 +1825,16 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             if (options.quiet !== undefined) {
                 this.quiet = options.quiet;
             }
+        };
+        BasicParser.prototype.getOptions = function () {
+            var options = {
+                keepBrackets: this.keepBrackets,
+                keepColons: this.keepColons,
+                keepDataComma: this.keepDataComma,
+                keepTokens: this.keepTokens,
+                quiet: this.quiet
+            };
+            return options;
         };
         BasicParser.prototype.composeError = function (error, message, value, pos, len) {
             len = value === "(end)" ? 0 : len;
@@ -1991,11 +2000,12 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             node.args = this.statements(BasicParser.closeTokensForLine);
             if (this.token.type === "(eol)") {
                 if (this.keepTokens) { // not really a token
-                    if (this.token.ws) {
-                        node.args.push(this.token); // eol token with whitespace
-                    }
+                    node.args.push(this.token); // eol token with whitespace
                 }
                 this.advance();
+            }
+            else if (this.token.type === "(end)" && this.token.ws && this.keepTokens) {
+                node.args.push(this.token); // end token with whitespace
             }
             return node;
         };
@@ -2321,15 +2331,15 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             }
             return node;
         };
-        BasicParser.prototype.apostrophe = function () {
-            return this.fnCreateCmdCallForType("rem");
-        };
         BasicParser.prototype.rsx = function () {
             var node = this.previousToken;
             node.args = [];
             var type = "_any1"; // expect any number of arguments
             if (this.token.type === ",") { // arguments starting with comma
                 this.advance();
+                if (this.keepTokens) {
+                    node.args.push(this.previousToken);
+                }
                 type = "_rsx1"; // dummy token: expect at least 1 argument
             }
             this.fnGetArgs(node.args, type); // get arguments
@@ -2529,7 +2539,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 var node = args[i], tokenType = node.type;
                 if ((i === 0 && tokenType === "linenumber") || tokenType === "goto" || tokenType === "stop") {
                     var index = i + 1;
-                    if (index < args.length && (args[index].type !== "rem")) {
+                    if (index < args.length && (args[index].type !== "rem") && (args[index].type !== "'")) {
                         if (args[index].type === ":" && this.keepColons) {
                             // ignore
                         }
@@ -2662,7 +2672,6 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
         };
         BasicParser.prototype.on = function () {
             var node = this.previousToken;
-            var left;
             node.args = [];
             switch (this.token.type) {
                 case "break":
@@ -2680,18 +2689,17 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                     this.fnCombineTwoTokens("goto"); // onErrorGoto
                     break;
                 case "sq": // on sq(n) gosub
-                    left = this.expression(0);
-                    if (!left.args) {
+                    node.right = this.expression(0);
+                    if (!node.right.args) {
                         throw this.composeError(Error(), "Programming error: Undefined args", this.token.type, this.token.pos); // should not occur
                     }
                     this.token = this.getToken();
                     this.advance("gosub");
                     if (this.keepTokens) {
-                        node.args.push(this.previousToken); // modify
+                        node.args.push(this.previousToken);
                     }
                     node.type = "onSqGosub";
                     this.fnGetArgs(node.args, node.type);
-                    node.args = left.args.concat(node.args); // we do not need "sq" token
                     break;
                 default: // on <expr> goto|gosub
                     node.args.push(this.expression(0));
@@ -2876,7 +2884,6 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             var _this = this;
             this.fnGenerateKeywordSymbols();
             // special statements ...
-            this.createStatement("'", this.specialStatements["'"]);
             this.createStatement("|", this.specialStatements["|"]); // rsx
             this.createStatement("mid$", this.specialStatements.mid$); // mid$Assign (statement), combine with function
             this.createStatement("?", this.specialStatements["?"]); // "?" is same as print
@@ -3091,6 +3098,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             read: "c v v*",
             release: "c n",
             rem: "c s?",
+            "'": "c s?",
             remain: "f n",
             renum: "c n0? n0? n?",
             restore: "c l?",
@@ -3917,6 +3925,7 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
     var CodeGeneratorBasic = /** @class */ (function () {
         function CodeGeneratorBasic(options) {
             this.quiet = false;
+            this.hasColons = false;
             this.line = 0; // current line (label)
             /* eslint-disable no-invalid-this */
             this.parseFunctions = {
@@ -4000,22 +4009,17 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             }
             for (var i = 0; i < args.length; i += 1) {
                 var value = this.fnParseOneArg(args[i]);
+                if (args[i].type === "'") { // fast hack to put a space before "'", if there is no space previously
+                    if (i > 0 && !nodeArgs[i - 1].endsWith(" ") && !nodeArgs[i - 1].endsWith(":")) {
+                        value = CodeGeneratorBasic.fnSpace1(value);
+                    }
+                }
                 nodeArgs.push(value);
             }
             return nodeArgs;
         };
-        CodeGeneratorBasic.fnColonsAvailable = function (args) {
-            var colonsAvailable = false;
-            for (var i = 0; i < args.length; i += 1) {
-                if (args[i].trim() === ":") {
-                    colonsAvailable = true;
-                    break;
-                }
-            }
-            return colonsAvailable;
-        };
-        CodeGeneratorBasic.combineArgsWithColon = function (args) {
-            var separator = CodeGeneratorBasic.fnColonsAvailable(args) ? "" : ":", value = args.join(separator);
+        CodeGeneratorBasic.prototype.combineArgsWithColon = function (args) {
+            var separator = this.hasColons ? "" : ":", value = args.join(separator);
             return value;
         };
         CodeGeneratorBasic.prototype.fnParenthesisOpen = function (node) {
@@ -4073,7 +4077,7 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
         CodeGeneratorBasic.prototype.label = function (node) {
             this.line = Number(node.value); // set line before parsing args
             var nodeArgs = this.fnParseArgs(node.args);
-            var value = CodeGeneratorBasic.combineArgsWithColon(nodeArgs);
+            var value = this.combineArgsWithColon(nodeArgs);
             if (node.value !== "") { // direct
                 value = node.value + CodeGeneratorBasic.fnSpace1(value);
             }
@@ -4081,12 +4085,7 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
         };
         // special keyword functions
         CodeGeneratorBasic.prototype.vertical = function (node) {
-            var nodeArgs = this.fnParseArgs(node.args);
-            var value = node.value.toUpperCase(); // use value!
-            if (nodeArgs.length) {
-                value += "," + nodeArgs.join("");
-            }
-            return CodeGeneratorBasic.fnWs(node) + value;
+            return CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase() + this.fnParseArgs(node.args).join("");
         };
         CodeGeneratorBasic.prototype.afterEveryGosub = function (node) {
             var nodeArgs = this.fnParseArgs(node.args);
@@ -4182,7 +4181,7 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
         };
         CodeGeneratorBasic.prototype.fnThenOrElsePart = function (nodeBranch) {
             var nodeArgs = this.fnParseArgs(nodeBranch), partName = nodeArgs.shift(); // "then" or "else"
-            return CodeGeneratorBasic.fnSpace1(partName) + CodeGeneratorBasic.fnSpace1(CodeGeneratorBasic.combineArgsWithColon(nodeArgs));
+            return CodeGeneratorBasic.fnSpace1(partName) + CodeGeneratorBasic.fnSpace1(this.combineArgsWithColon(nodeArgs));
         };
         CodeGeneratorBasic.prototype.fnIf = function (node) {
             if (!node.left) {
@@ -4232,10 +4231,10 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             return CodeGeneratorBasic.fnWs(node) + "ON" + CodeGeneratorBasic.fnSpace1(expression) + CodeGeneratorBasic.fnSpace1(instruction) + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
         };
         CodeGeneratorBasic.prototype.onSqGosub = function (node) {
-            var nodeArgs = this.fnParseArgs(node.args);
+            var nodeArgs = this.fnParseArgs(node.args), right = this.fnParseOneArg(node.right);
             nodeArgs[nodeArgs.length - 2] = CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 2]); // "gosub" with space (optional)
             nodeArgs[nodeArgs.length - 1] = CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 1]); // line number with space
-            return CodeGeneratorBasic.fnWs(node) + "ON SQ" + nodeArgs.join("");
+            return CodeGeneratorBasic.fnWs(node) + "ON" + CodeGeneratorBasic.fnSpace1(right) + nodeArgs.join("");
         };
         CodeGeneratorBasic.prototype.print = function (node) {
             var nodeArgs = this.fnParseArgs(node.args);
@@ -4249,15 +4248,15 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             return CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase() + value; // we use value to get PRINT or ?
         };
         CodeGeneratorBasic.prototype.rem = function (node) {
-            var nodeArgs = this.fnParseArgs(node.args);
-            var value = nodeArgs.length ? nodeArgs[0] : "";
-            if (node.value !== "'" && value !== "") { // for "rem"
-                var arg0 = node.args && node.args[0];
-                if (arg0 && !arg0.ws) {
-                    value = " " + value; // add removed space
-                }
+            /*
+            const nodeArgs = this.fnParseArgs(node.args);
+            let value = nodeArgs.length ? nodeArgs[0] : "";
+    
+            if (node.value !== "'" && value.length) { // for "rem": add removed space
+                value = " " + value; // add removed space
             }
-            return CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase() + value; // we use value to get rem or '
+            */
+            return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(this.fnParseArgs(node.args).join(""));
         };
         CodeGeneratorBasic.prototype.using = function (node) {
             var nodeArgs = this.fnParseArgs(node.args), template = nodeArgs.length ? nodeArgs.shift() || "" : "";
@@ -4304,7 +4303,7 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             if (keyType) {
                 value = typeUc;
                 if (args.length) {
-                    if (keyType.charAt(0) === "f") { // function with parameters?
+                    if (keyType.charAt(0) === "f" || node.type === "'") { // function with parameters or apostrophe comment?
                         value += args;
                     }
                     else {
@@ -4417,7 +4416,7 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
                             output = line;
                         }
                         else {
-                            output += "\n" + line;
+                            output += line;
                         }
                     }
                     else {
@@ -4431,6 +4430,7 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             var out = {
                 text: ""
             };
+            this.hasColons = Boolean(this.parser.getOptions().keepColons);
             this.line = 0;
             try {
                 var tokens = this.lexer.lex(input), parseTree = this.parser.parse(tokens), output = this.evaluate(parseTree);
@@ -4818,6 +4818,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 randomize: this.randomize,
                 read: this.read,
                 rem: this.rem,
+                "'": this.rem,
                 renum: this.fnCommandWithGoto,
                 restore: this.onBreakGosubOrRestore,
                 resume: this.gotoOrResume,
@@ -5794,9 +5795,14 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
         };
         CodeGeneratorJs.prototype.onSqGosub = function (node) {
             var nodeArgs = this.fnParseArgs(node.args);
-            for (var i = 1; i < nodeArgs.length; i += 1) {
+            for (var i = 0; i < nodeArgs.length; i += 1) {
                 this.fnAddReferenceLabel(nodeArgs[i], node.args[i]);
             }
+            if (!node.right) {
+                throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occur
+            }
+            var sqArgs = this.fnParseArgs(node.right.args);
+            nodeArgs.unshift(sqArgs[0]);
             node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + ")";
         };
         CodeGeneratorJs.prototype.print = function (node) {
@@ -6247,6 +6253,7 @@ define("CodeGeneratorToken", ["require", "exports", "Utils"], function (require,
                 string: CodeGeneratorToken.string,
                 ustring: CodeGeneratorToken.ustring,
                 "null": CodeGeneratorToken.fnNull,
+                "(eol)": CodeGeneratorToken.fnNull,
                 assign: this.assign,
                 number: CodeGeneratorToken.number,
                 expnumber: CodeGeneratorToken.number,
@@ -6263,7 +6270,7 @@ define("CodeGeneratorToken", ["require", "exports", "Utils"], function (require,
                 onBreakStop: this.onBreakContOrGosubOrStop,
                 onErrorGoto: this.onErrorGoto,
                 onSqGosub: this.onSqGosub,
-                rem: this.rem
+                "'": this.apostrophe
             };
             this.lexer = options.lexer;
             this.parser = options.parser;
@@ -6427,9 +6434,9 @@ define("CodeGeneratorToken", ["require", "exports", "Utils"], function (require,
         };
         // special keyword functions
         CodeGeneratorToken.prototype.vertical = function (node) {
-            var rsxName = node.value.substring(1).toUpperCase(), nodeArgs = this.fnParseArgs(node.args), offset = 0; // (offset to tokens following RSX name) TODO
+            var rsxName = node.value.substring(1).toUpperCase(), nodeArgs = this.fnParseArgs(node.args), offset = 0; // offset to tokens following RSX name
             // if rsxname.length=0 we take 0x80 from empty getBit7TerminatedString
-            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + (rsxName.length ? CodeGeneratorToken.convUInt8ToString(offset) : "") + CodeGeneratorToken.getBit7TerminatedString(rsxName) + (nodeArgs.length ? "," + nodeArgs.join("") : "");
+            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + (rsxName.length ? CodeGeneratorToken.convUInt8ToString(offset) : "") + CodeGeneratorToken.getBit7TerminatedString(rsxName) + nodeArgs.join("");
         };
         CodeGeneratorToken.prototype.fnElse = function (node) {
             if (!node.args) {
@@ -6460,15 +6467,13 @@ define("CodeGeneratorToken", ["require", "exports", "Utils"], function (require,
             if (node.args && node.args.length && node.args[0].value === "0") { // on error goto 0?
                 return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("_onErrorGoto0");
             }
-            //return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("on") + CodeGeneratorToken.token2String("error") + CodeGeneratorToken.token2String("goto") + this.fnParseArgs(node.args).join("");
             return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("on") + this.parseNode(node.right) + this.fnParseArgs(node.args).join("");
         };
         CodeGeneratorToken.prototype.onSqGosub = function (node) {
-            return CodeGeneratorToken.token2String("_onSq") + this.fnParseArgs(node.args).join("");
+            return CodeGeneratorToken.token2String("_onSq") + this.fnParseArgs(node.right.args).join("") + this.fnParseArgs(node.args).join("");
         };
-        CodeGeneratorToken.prototype.rem = function (node) {
-            var nodeArgs = this.fnParseArgs(node.args);
-            return CodeGeneratorToken.fnGetWs(node) + (node.value === "'" ? CodeGeneratorToken.token2String(":") : "") + CodeGeneratorToken.token2String(node.value.toLowerCase()) + (nodeArgs.length ? nodeArgs[0] : ""); // we use value to get REM or '
+        CodeGeneratorToken.prototype.apostrophe = function (node) {
+            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(":") + CodeGeneratorToken.token2String(node.type) + this.fnParseArgs(node.args).join("");
         };
         /* eslint-enable no-invalid-this */
         CodeGeneratorToken.prototype.fnParseOther = function (node) {

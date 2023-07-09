@@ -20,6 +20,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 string: CodeGeneratorToken.string,
                 ustring: CodeGeneratorToken.ustring,
                 "null": CodeGeneratorToken.fnNull,
+                "(eol)": CodeGeneratorToken.fnNull,
                 assign: this.assign,
                 number: CodeGeneratorToken.number,
                 expnumber: CodeGeneratorToken.number,
@@ -36,7 +37,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 onBreakStop: this.onBreakContOrGosubOrStop,
                 onErrorGoto: this.onErrorGoto,
                 onSqGosub: this.onSqGosub,
-                rem: this.rem
+                "'": this.apostrophe
             };
             this.lexer = options.lexer;
             this.parser = options.parser;
@@ -200,9 +201,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         // special keyword functions
         CodeGeneratorToken.prototype.vertical = function (node) {
-            var rsxName = node.value.substring(1).toUpperCase(), nodeArgs = this.fnParseArgs(node.args), offset = 0; // (offset to tokens following RSX name) TODO
+            var rsxName = node.value.substring(1).toUpperCase(), nodeArgs = this.fnParseArgs(node.args), offset = 0; // offset to tokens following RSX name
             // if rsxname.length=0 we take 0x80 from empty getBit7TerminatedString
-            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + (rsxName.length ? CodeGeneratorToken.convUInt8ToString(offset) : "") + CodeGeneratorToken.getBit7TerminatedString(rsxName) + (nodeArgs.length ? "," + nodeArgs.join("") : "");
+            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + (rsxName.length ? CodeGeneratorToken.convUInt8ToString(offset) : "") + CodeGeneratorToken.getBit7TerminatedString(rsxName) + nodeArgs.join("");
         };
         CodeGeneratorToken.prototype.fnElse = function (node) {
             if (!node.args) {
@@ -233,15 +234,13 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (node.args && node.args.length && node.args[0].value === "0") { // on error goto 0?
                 return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("_onErrorGoto0");
             }
-            //return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("on") + CodeGeneratorToken.token2String("error") + CodeGeneratorToken.token2String("goto") + this.fnParseArgs(node.args).join("");
             return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("on") + this.parseNode(node.right) + this.fnParseArgs(node.args).join("");
         };
         CodeGeneratorToken.prototype.onSqGosub = function (node) {
-            return CodeGeneratorToken.token2String("_onSq") + this.fnParseArgs(node.args).join("");
+            return CodeGeneratorToken.token2String("_onSq") + this.fnParseArgs(node.right.args).join("") + this.fnParseArgs(node.args).join("");
         };
-        CodeGeneratorToken.prototype.rem = function (node) {
-            var nodeArgs = this.fnParseArgs(node.args);
-            return CodeGeneratorToken.fnGetWs(node) + (node.value === "'" ? CodeGeneratorToken.token2String(":") : "") + CodeGeneratorToken.token2String(node.value.toLowerCase()) + (nodeArgs.length ? nodeArgs[0] : ""); // we use value to get REM or '
+        CodeGeneratorToken.prototype.apostrophe = function (node) {
+            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(":") + CodeGeneratorToken.token2String(node.type) + this.fnParseArgs(node.args).join("");
         };
         /* eslint-enable no-invalid-this */
         CodeGeneratorToken.prototype.fnParseOther = function (node) {

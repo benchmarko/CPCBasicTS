@@ -1381,9 +1381,16 @@ export class CodeGeneratorJs {
 	private onSqGosub(node: CodeNode) {
 		const nodeArgs = this.fnParseArgs(node.args);
 
-		for (let i = 1; i < nodeArgs.length; i += 1) {
+		for (let i = 0; i < nodeArgs.length; i += 1) {
 			this.fnAddReferenceLabel(nodeArgs[i], node.args[i]);
 		}
+
+		if (!node.right) {
+			throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occur
+		}
+		const sqArgs = this.fnParseArgs(node.right.args);
+
+		nodeArgs.unshift(sqArgs[0]);
 		node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + ")";
 	}
 	private print(node: CodeNode) {
@@ -1587,6 +1594,7 @@ export class CodeGeneratorJs {
 		randomize: this.randomize,
 		read: this.read,
 		rem: this.rem,
+		"'": this.rem, // apostrophe comment
 		renum: this.fnCommandWithGoto,
 		restore: this.onBreakGosubOrRestore,
 		resume: this.gotoOrResume,

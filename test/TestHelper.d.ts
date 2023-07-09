@@ -23,6 +23,8 @@ export declare class TestHelper {
     private static listKeys;
     private static printAllResults;
     static generateAllTests(allTests: AllTestsType, runTestsFor: runTestsForType, hooks: NestedHooks): void;
+    private static compareKeys;
+    static compareAllTests(allTests1: AllTestsType, allTests2: AllTestsType): boolean;
 }
 export {};
 //# sourceMappingURL=TestHelper.d.ts.map

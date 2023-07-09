@@ -10,6 +10,7 @@ export declare class CodeGeneratorBasic {
     private readonly lexer;
     private readonly parser;
     private quiet;
+    private hasColons;
     private line;
     setOptions(options: CodeGeneratorBasicOptions): void;
     constructor(options: CodeGeneratorBasicOptions);
@@ -24,8 +25,7 @@ export declare class CodeGeneratorBasic {
     private static getUcKeyword;
     private fnParseOneArg;
     private fnParseArgs;
-    private static fnColonsAvailable;
-    private static combineArgsWithColon;
+    private combineArgsWithColon;
     private fnParenthesisOpen;
     private static string;
     private static ustring;

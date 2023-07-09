@@ -24,7 +24,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.statementList = []; // just to check last statement when generating error message
             /* eslint-disable no-invalid-this */
             this.specialStatements = {
-                "'": this.apostrophe,
                 "|": this.rsx,
                 after: this.afterEveryGosub,
                 chain: this.chain,
@@ -76,6 +75,16 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (options.quiet !== undefined) {
                 this.quiet = options.quiet;
             }
+        };
+        BasicParser.prototype.getOptions = function () {
+            var options = {
+                keepBrackets: this.keepBrackets,
+                keepColons: this.keepColons,
+                keepDataComma: this.keepDataComma,
+                keepTokens: this.keepTokens,
+                quiet: this.quiet
+            };
+            return options;
         };
         BasicParser.prototype.composeError = function (error, message, value, pos, len) {
             len = value === "(end)" ? 0 : len;
@@ -241,11 +250,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             node.args = this.statements(BasicParser.closeTokensForLine);
             if (this.token.type === "(eol)") {
                 if (this.keepTokens) { // not really a token
-                    if (this.token.ws) {
-                        node.args.push(this.token); // eol token with whitespace
-                    }
+                    node.args.push(this.token); // eol token with whitespace
                 }
                 this.advance();
+            }
+            else if (this.token.type === "(end)" && this.token.ws && this.keepTokens) {
+                node.args.push(this.token); // end token with whitespace
             }
             return node;
         };
@@ -571,15 +581,15 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             return node;
         };
-        BasicParser.prototype.apostrophe = function () {
-            return this.fnCreateCmdCallForType("rem");
-        };
         BasicParser.prototype.rsx = function () {
             var node = this.previousToken;
             node.args = [];
             var type = "_any1"; // expect any number of arguments
             if (this.token.type === ",") { // arguments starting with comma
                 this.advance();
+                if (this.keepTokens) {
+                    node.args.push(this.previousToken);
+                }
                 type = "_rsx1"; // dummy token: expect at least 1 argument
             }
             this.fnGetArgs(node.args, type); // get arguments
@@ -779,7 +789,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 var node = args[i], tokenType = node.type;
                 if ((i === 0 && tokenType === "linenumber") || tokenType === "goto" || tokenType === "stop") {
                     var index = i + 1;
-                    if (index < args.length && (args[index].type !== "rem")) {
+                    if (index < args.length && (args[index].type !== "rem") && (args[index].type !== "'")) {
                         if (args[index].type === ":" && this.keepColons) {
                             // ignore
                         }
@@ -912,7 +922,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         BasicParser.prototype.on = function () {
             var node = this.previousToken;
-            var left;
             node.args = [];
             switch (this.token.type) {
                 case "break":
@@ -930,18 +939,17 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     this.fnCombineTwoTokens("goto"); // onErrorGoto
                     break;
                 case "sq": // on sq(n) gosub
-                    left = this.expression(0);
-                    if (!left.args) {
+                    node.right = this.expression(0);
+                    if (!node.right.args) {
                         throw this.composeError(Error(), "Programming error: Undefined args", this.token.type, this.token.pos); // should not occur
                     }
                     this.token = this.getToken();
                     this.advance("gosub");
                     if (this.keepTokens) {
-                        node.args.push(this.previousToken); // modify
+                        node.args.push(this.previousToken);
                     }
                     node.type = "onSqGosub";
                     this.fnGetArgs(node.args, node.type);
-                    node.args = left.args.concat(node.args); // we do not need "sq" token
                     break;
                 default: // on <expr> goto|gosub
                     node.args.push(this.expression(0));
@@ -1126,7 +1134,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var _this = this;
             this.fnGenerateKeywordSymbols();
             // special statements ...
-            this.createStatement("'", this.specialStatements["'"]);
             this.createStatement("|", this.specialStatements["|"]); // rsx
             this.createStatement("mid$", this.specialStatements.mid$); // mid$Assign (statement), combine with function
             this.createStatement("?", this.specialStatements["?"]); // "?" is same as print
@@ -1341,6 +1348,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             read: "c v v*",
             release: "c n",
             rem: "c s?",
+            "'": "c s?",
             remain: "f n",
             renum: "c n0? n0? n?",
             restore: "c l?",

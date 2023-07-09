@@ -354,7 +354,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 this.fnParseWhiteSpace(char);
             }
             else if (char === "\n") {
-                this.addToken("(eol)", "", startPos);
+                this.addToken("(eol)", char, startPos);
                 this.advance();
                 this.takeNumberAsLabel = true;
             }

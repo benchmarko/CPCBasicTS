@@ -127,6 +127,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 randomize: this.randomize,
                 read: this.read,
                 rem: this.rem,
+                "'": this.rem,
                 renum: this.fnCommandWithGoto,
                 restore: this.onBreakGosubOrRestore,
                 resume: this.gotoOrResume,
@@ -1103,9 +1104,14 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         CodeGeneratorJs.prototype.onSqGosub = function (node) {
             var nodeArgs = this.fnParseArgs(node.args);
-            for (var i = 1; i < nodeArgs.length; i += 1) {
+            for (var i = 0; i < nodeArgs.length; i += 1) {
                 this.fnAddReferenceLabel(nodeArgs[i], node.args[i]);
             }
+            if (!node.right) {
+                throw this.composeError(Error(), "Programming error: Undefined right", "", -1); // should not occur
+            }
+            var sqArgs = this.fnParseArgs(node.right.args);
+            nodeArgs.unshift(sqArgs[0]);
             node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + ")";
         };
         CodeGeneratorJs.prototype.print = function (node) {

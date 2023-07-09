@@ -1,8 +1,9 @@
 // CodeGeneratorBasic.qunit.ts - QUnit tests for CPCBasic CodeGeneratorBasic
 //
-define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGeneratorBasic", "./TestHelper"], function (require, exports, BasicLexer_1, BasicParser_1, CodeGeneratorBasic_1, TestHelper_1) {
+define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGeneratorBasic", "./TestHelper", "./TestInput"], function (require, exports, BasicLexer_1, BasicParser_1, CodeGeneratorBasic_1, TestHelper_1, TestInput_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
+    /* eslint-disable quote-props */
     var allTests = {
         numbers: {
             "a=1": "a=1",
@@ -36,7 +37,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "a=&h": "BasicLexer: Expected hex number at pos 2-4: &h",
             "a=&x": "BasicLexer: Expected binary number at pos 2-4: &x",
             "a=&x2": "BasicLexer: Expected binary number at pos 2-4: &x",
-            "a ": "BasicParser: Expected = at pos 2: (end)",
+            "a": "BasicParser: Expected = at pos 1: (end)",
             "1 a=": "BasicParser: Unexpected end of file in 1 at pos 4: ",
             "1 5=7": "BasicParser: Bad expression statement in 1 at pos 2-3: 5",
             "1 let 5=7": "BasicParser: Expected variable in 1 at pos 6-7: 5"
@@ -94,7 +95,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "a=1>=1>1": "a=1>=1>1"
         },
         "Line numbers": {
-            "1 ": "1",
+            "1": "1",
             "0 cls": "0 CLS",
             "65535 cls": "65535 CLS",
             "65536 cls": "65536 CLS",
@@ -114,7 +115,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             'a=asc("A")': 'a=ASC("A")',
             "a!=asc(b$) and c%": "a!=ASC(b$) AND c%",
             "a=atn(2.3)": "a=ATN(2.3)",
-            "auto ": "AUTO",
+            "auto": "AUTO",
             "auto 100": "AUTO 100"
         },
         "bin$, border": {
@@ -127,7 +128,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
         "call, cat, chain, chain merge, chr$, cint, clg, closein, closeout, cls, cont, copychr$, cos, creal, cursor": {
             "call&a7bc": "CALL &A7BC",
             "call 4711,1,2,3,4": "CALL 4711,1,2,3,4",
-            "cat ": "CAT",
+            "cat": "CAT",
             'chain"f1"': 'CHAIN "f1"',
             'chain"f2" , 10': 'CHAIN "f2",10',
             'chain"f3" , 10+3': 'CHAIN "f3",10+3',
@@ -140,21 +141,21 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             'chain merge "f5" , , delete 100-200': 'CHAIN MERGE "f5",,DELETE 100-200',
             "a=chr$(65)": "a=CHR$(65)",
             "a=cint(2.3)": "a=CINT(2.3)",
-            "clear ": "CLEAR",
+            "clear": "CLEAR",
             "clear input": "CLEAR INPUT",
-            "clg ": "CLG",
+            "clg": "CLG",
             "clg 15-1": "CLG 15-1",
-            "closein ": "CLOSEIN",
-            "closeout ": "CLOSEOUT",
-            "cls ": "CLS",
+            "closein": "CLOSEIN",
+            "closeout": "CLOSEOUT",
+            "cls": "CLS",
             "cls #5": "CLS #5",
             "cls #a+7-2*b": "CLS #a+7-2*b",
-            "cont ": "CONT",
+            "cont": "CONT",
             "a$=copychr$(#0)": "a$=COPYCHR$(#0)",
             "a$=copychr$(#a+1)": "a$=COPYCHR$(#a+1)",
             "a=cos(2.3)": "a=COS(2.3)",
             "a=creal(2.3+a)": "a=CREAL(2.3+a)",
-            "cursor ": "CURSOR",
+            "cursor": "CURSOR",
             "cursor 0": "CURSOR 0",
             "cursor 1": "CURSOR 1",
             "cursor 1,1": "CURSOR 1,1",
@@ -165,7 +166,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "cursor #2,,1": "CURSOR #2,,1"
         },
         "data, dec$, def fn, defint, defreal, defstr, deg, delete, derr, di, dim, draw, drawr": {
-            "data ": "DATA",
+            "data": "DATA",
             "data ,": "DATA ,",
             "data \\": "DATA \\",
             "data 1,2,3": "DATA 1,2,3",
@@ -218,7 +219,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "defstr a:ab=ab+de[7]": "DEFSTR a:ab=ab+de[7]",
             "1 defstr z-a": "1 DEFSTR z-a",
             'defstr f:f(x)="w"': 'DEFSTR f:f(x)="w"',
-            "deg ": "DEG",
+            "deg": "DEG",
             "delete": "DELETE",
             "delete -": "DELETE -",
             "delete ,": "DELETE ,",
@@ -231,7 +232,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "1 delete 1+2": "BasicParser: Expected : in 1 at pos 10-11: +",
             "1 delete a": "BasicParser: Expected : in 1 at pos 9-10: a",
             "a=derr": "a=DERR",
-            "di ": "DI",
+            "di": "DI",
             "dim a(1)": "DIM a(1)",
             "dim a!(1)": "DIM a!(1)",
             "dim a%(1)": "DIM a%(1)",
@@ -252,11 +253,11 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
         },
         "edit, ei, else, end, ent, env, eof, erase, erl, err, error, every gosub, exp": {
             "edit 20": "EDIT 20",
-            "ei ": "EI",
+            "ei": "EI",
             "else": "ELSE",
             "else 10": "ELSE 10",
             "else a=7": "ELSE a = 7",
-            "end ": "END",
+            "end": "END",
             "ent 1": "ENT 1",
             "ent 1,2,a,4": "ENT 1,2,a,4",
             "ent num,steps,dist,ti,steps2,dist2,ti2": "ENT num,steps,dist,ti,steps2,dist2,ti2",
@@ -305,7 +306,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "defint a:for abc=1 to 10 step 3:next abc": "DEFINT a:FOR abc=1 TO 10 STEP 3:NEXT abc",
             "defstr a:for abc=1 to 10 step 3:next abc": "DEFSTR a:FOR abc=1 TO 10 STEP 3:NEXT abc",
             "for a=b to c step s:defint a-b:a=0:defreal a:next": "FOR a=b TO c STEP s:DEFINT a-b:a=0:DEFREAL a:NEXT",
-            "frame ": "FRAME",
+            "frame": "FRAME",
             "a=fre(0)": "a=FRE(0)",
             'a=fre("")': 'a=FRE("")',
             "a=fre(b-2)": "a=FRE(b-2)",
@@ -392,7 +393,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             'line input ;"para noCRLF";a$': 'LINE INPUT ;"para noCRLF";a$',
             'line input#2,;"para noCRLF";a$': 'LINE INPUT #2,;"para noCRLF";a$',
             'line input#stream,;"string";a$': 'LINE INPUT #stream,;"string";a$',
-            "list ": "LIST",
+            "list": "LIST",
             "list -": "LIST -",
             "list ,": "LIST ,",
             "list -,": "LIST -,",
@@ -460,8 +461,8 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "mover x,y,m,g1": "MOVER x,y,m,g1"
         },
         "new, next, not": {
-            "new ": "NEW",
-            "for a=1 to 2: next ": "FOR a=1 TO 2:NEXT",
+            "new": "NEW",
+            "for a=1 to 2: next": "FOR a=1 TO 2:NEXT",
             "for i=1 to 2: next i": "FOR i=1 TO 2:NEXT i",
             "for j=1 to 2:for i=3 to 4: next i,j": "FOR j=1 TO 2:FOR i=3 TO 4:NEXT i,j",
             "a=not 2": "a=NOT 2",
@@ -525,7 +526,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "poke adr,by": "POKE adr,by",
             "a=pos(#0)": "a=POS(#0)",
             "a=pos(#stream)": "a=POS(#stream)",
-            "print ": "PRINT",
+            "print": "PRINT",
             "print ,": "PRINT ,",
             "print ;": "PRINT ;",
             "print #2": "PRINT #2",
@@ -549,40 +550,40 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "?#2,ti-t0!;spc(5);": "?#2,ti-t0!;SPC(5);"
         },
         "rad, randomize, read, release, rem, remain, renum, restore, resume, return, right$, rnd, round, run": {
-            "rad ": "RAD",
-            "randomize ": "RANDOMIZE",
+            "rad": "RAD",
+            "randomize": "RANDOMIZE",
             "randomize 123.456": "RANDOMIZE 123.456",
             "read a$": "READ a$",
             "read b": "READ b",
             "read a$,b,c$": "READ a$,b,c$",
             "release 1": "RELEASE 1",
             "release n+1": "RELEASE n+1",
-            "rem ": "REM",
+            "rem": "REM",
             "rem comment until EOL": "REM comment until EOL",
             "rem \\": "REM \\",
             "'": "'",
             "'comment until EOL": "'comment until EOL",
             "'\\": "'\\",
-            "a=1 'comment": "a=1:'comment",
+            "a=1 'comment": "a=1 'comment",
             "a=remain(0)": "a=REMAIN(0)",
             "a=remain(ti)": "a=REMAIN(ti)",
-            "renum ": "RENUM",
+            "renum": "RENUM",
             "renum 100": "RENUM 100",
             "renum 100,50": "RENUM 100,50",
             "renum 100,50,2": "RENUM 100,50,2",
-            "restore ": "RESTORE",
+            "restore": "RESTORE",
             "10 restore 10": "10 RESTORE 10",
-            "resume ": "RESUME",
+            "resume": "RESUME",
             "10 resume 10": "10 RESUME 10",
             "resume next": "RESUME NEXT",
-            "return ": "RETURN",
+            "return": "RETURN",
             "a$=right$(b$,n)": "a$=RIGHT$(b$,n)",
             "a=rnd": "a=RND",
             "a=rnd(0)": "a=RND(0)",
             "a=rnd(-1*b)": "a=RND(-1*b)",
             "a=round(2.335)": "a=ROUND(2.335)",
             "a=round(2.335,2)": "a=ROUND(2.335,2)",
-            "run ": "RUN",
+            "run": "RUN",
             "10 run 10": "10 RUN 10",
             'run "file"': 'RUN "file"',
             "run f$": "RUN f$"
@@ -618,7 +619,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "a=sq(1)": "a=SQ(1)",
             "a=sq(channel)": "a=SQ(channel)",
             "a=sqr(9)": "a=SQR(9)",
-            "stop ": "STOP",
+            "stop": "STOP",
             "a$=str$(123)": "a$=STR$(123)",
             "a$=str$(a+b)": "a$=STR$(a+b)",
             'a$=string$(40,"*")': 'a$=STRING$(40,"*")',
@@ -629,10 +630,10 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "symbol after 255": "SYMBOL AFTER 255"
         },
         "tag, tagoff, tan, test, testr, time, troff, tron": {
-            "tag ": "TAG",
+            "tag": "TAG",
             "tag#2": "TAG #2",
             "tag#stream": "TAG #stream",
-            "tagoff ": "TAGOFF",
+            "tagoff": "TAGOFF",
             "tagoff#2": "TAGOFF #2",
             "tagoff#stream": "TAGOFF #stream",
             "a=tan(45)": "a=TAN(45)",
@@ -641,8 +642,8 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "a=testr(10,-20)": "a=TESTR(10,-20)",
             "a=testr(xm,ym)": "a=TESTR(xm,ym)",
             "t!=time": "t!=TIME",
-            "troff ": "TROFF",
-            "tron ": "TRON"
+            "troff": "TROFF",
+            "tron": "TRON"
         },
         "unt, upper$": {
             "a=unt(&ff66)": "a=UNT(&FF66)",
@@ -658,7 +659,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
         "wait, wend, while, width, window, window swap, write": {
             "wait &ff34,20": "WAIT &FF34,20",
             "wait &ff34,20,25": "WAIT &FF34,20,25",
-            "while a=10: wend ": "WHILE a=10:WEND",
+            "while a=10: wend": "WHILE a=10:WEND",
             "while a>0": "WHILE a>0",
             "width 40": "WIDTH 40",
             "window 10,30,5,20": "WINDOW 10,30,5,20",
@@ -667,7 +668,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "window swap 1": "WINDOW SWAP 1",
             "window swap 1,0": "WINDOW SWAP 1,0",
             "1 window swap #1": "BasicParser: Expected number in 1 at pos 14-15: #",
-            "write ": "WRITE",
+            "write": "WRITE",
             "write #2": "WRITE #2",
             "write #2,": "WRITE #2,",
             'write "string"': 'WRITE "string"',
@@ -722,24 +723,25 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             " 1  if    a  =  1     then  1     else    goto  1": " 1  IF    a  =  1     THEN  1     ELSE    GOTO  1",
             " 1  line   input  a$": " 1  LINE   INPUT  a$",
             " 1  on  break   cont": " 1  ON  BREAK   CONT",
-            " 1  on  break   gosub   1 ": " 1  ON  BREAK   GOSUB   1",
+            " 1  on  break   gosub   1": " 1  ON  BREAK   GOSUB   1",
             " 1  on  break   stop": " 1  ON  BREAK   STOP",
-            " 1  on  error   goto   1 ": " 1  ON  ERROR   GOTO   1",
+            " 1  on  error   goto   1": " 1  ON  ERROR   GOTO   1",
             " 1  on  x  gosub   1  ,  2\n2  rem": " 1  ON  x  GOSUB   1  ,  2\n2  REM",
             " 1  on  x  goto   1  ,  2\n2  rem": " 1  ON  x  GOTO   1  ,  2\n2  REM",
             ' 1   print   using    "####" ;  ri  ;': ' 1   PRINT   USING    "####" ;  ri  ;',
             " 1  window   swap  1,0": " 1  WINDOW   SWAP  1,0",
-            "a=1 else a=2": "a=1: ELSE a = 2",
-            "a=1 'comment": "a=1: 'comment",
+            "a=1 else a=2": "a=1 ELSE a = 2",
+            "a=1 'comment": "a=1 'comment",
             "a=1 :'comment": "a=1 :'comment",
             "::a=3-2-1: :": "::a=3-2-1: :",
-            " a =  ( b% >= c%  ) *     ( d <=e )  ": " a =  ( b% >= c%  ) *     ( d <=e )",
+            " a =  ( b% >= c%  ) *     ( d <=e )  ": " a =  ( b% >= c%  ) *     ( d <=e )  ",
             "a = (((3+2))*((3-7)))": "a = (((3+2))*((3-7)))"
         },
         PRG: {
-            '100 \'Das Raetsel\n110 \'21.5.1988 Kopf um Kopf\n120 \'ab*c=de  de+fg=hi   [dabei sind a-i verschiedene Ziffern 1-9!!]\n130 MODE 1:PRINT"Please wait ...  ( ca. 1 min 34 sec )"\n140 CLEAR:DEFINT a-y\n150 \'\n155 z=TIME\n160 FOR a=1 TO 9:FOR b=1 TO 9:FOR c=1 TO 9:FOR f=1 TO 9:FOR g=1 TO 9\n170 de=(a*10+b)*c:IF de>99 THEN 320\n180 hi=de+(f*10+g):IF hi>99 THEN 320\n190 d=INT(de/10):e=de MOD 10:h=INT(hi/10):i=hi MOD 10\n200 IF a=b OR a=c OR a=d OR a=e OR a=f OR a=g OR a=h OR a=i THEN 320\n210 IF b=c OR b=d OR b=e OR b=f OR b=g OR b=h OR b=i THEN 320\n220 IF c=d OR c=e OR c=f OR c=g OR c=h OR c=i THEN 320\n230 IF d=e OR d=f OR d=g OR d=h OR d=i THEN 320\n240 IF e=f OR e=g OR e=h OR e=i THEN 320\n250 IF f=g OR f=h OR f=i THEN 320\n260 IF g=h OR g=i THEN 320\n270 IF h=i THEN 320\n280 IF i=0 THEN 320\n285 z=TIME-z\n290 CLS:PRINT"Die Loesung:":PRINT\n300 PRINT a*10+b"*"c"="de" / "de"+"f*10+g"="hi\n310 PRINT z,z/300:STOP\n320 NEXT g,f,c,b,a\n': '100 \'Das Raetsel\n110 \'21.5.1988 Kopf um Kopf\n120 \'ab*c=de  de+fg=hi   [dabei sind a-i verschiedene Ziffern 1-9!!]\n130 MODE 1:PRINT "Please wait ...  ( ca. 1 min 34 sec )"\n140 CLEAR:DEFINT a-y\n150 \'\n155 z=TIME\n160 FOR a=1 TO 9:FOR b=1 TO 9:FOR c=1 TO 9:FOR f=1 TO 9:FOR g=1 TO 9\n170 de=(a*10+b)*c:IF de>99 THEN 320\n180 hi=de+(f*10+g):IF hi>99 THEN 320\n190 d=INT(de/10):e=de MOD 10:h=INT(hi/10):i=hi MOD 10\n200 IF a=b OR a=c OR a=d OR a=e OR a=f OR a=g OR a=h OR a=i THEN 320\n210 IF b=c OR b=d OR b=e OR b=f OR b=g OR b=h OR b=i THEN 320\n220 IF c=d OR c=e OR c=f OR c=g OR c=h OR c=i THEN 320\n230 IF d=e OR d=f OR d=g OR d=h OR d=i THEN 320\n240 IF e=f OR e=g OR e=h OR e=i THEN 320\n250 IF f=g OR f=h OR f=i THEN 320\n260 IF g=h OR g=i THEN 320\n270 IF h=i THEN 320\n280 IF i=0 THEN 320\n285 z=TIME-z\n290 CLS:PRINT "Die Loesung:":PRINT\n300 PRINT a*10+b"*"c"="de" / "de"+"f*10+g"="hi\n310 PRINT z,z/300:STOP\n320 NEXT g,f,c,b,a'
+            '100 \'Das Raetsel\n110 \'21.5.1988 Kopf um Kopf\n120 \'ab*c=de  de+fg=hi   [dabei sind a-i verschiedene Ziffern 1-9!!]\n130 MODE 1:PRINT"Please wait ...  ( ca. 1 min 34 sec )"\n140 CLEAR:DEFINT a-y\n150 \'\n155 z=TIME\n160 FOR a=1 TO 9:FOR b=1 TO 9:FOR c=1 TO 9:FOR f=1 TO 9:FOR g=1 TO 9\n170 de=(a*10+b)*c:IF de>99 THEN 320\n180 hi=de+(f*10+g):IF hi>99 THEN 320\n190 d=INT(de/10):e=de MOD 10:h=INT(hi/10):i=hi MOD 10\n200 IF a=b OR a=c OR a=d OR a=e OR a=f OR a=g OR a=h OR a=i THEN 320\n210 IF b=c OR b=d OR b=e OR b=f OR b=g OR b=h OR b=i THEN 320\n220 IF c=d OR c=e OR c=f OR c=g OR c=h OR c=i THEN 320\n230 IF d=e OR d=f OR d=g OR d=h OR d=i THEN 320\n240 IF e=f OR e=g OR e=h OR e=i THEN 320\n250 IF f=g OR f=h OR f=i THEN 320\n260 IF g=h OR g=i THEN 320\n270 IF h=i THEN 320\n280 IF i=0 THEN 320\n285 z=TIME-z\n290 CLS:PRINT"Die Loesung:":PRINT\n300 PRINT a*10+b"*"c"="de" / "de"+"f*10+g"="hi\n310 PRINT z,z/300:STOP\n320 NEXT g,f,c,b,a\n': '100 \'Das Raetsel\n110 \'21.5.1988 Kopf um Kopf\n120 \'ab*c=de  de+fg=hi   [dabei sind a-i verschiedene Ziffern 1-9!!]\n130 MODE 1:PRINT "Please wait ...  ( ca. 1 min 34 sec )"\n140 CLEAR:DEFINT a-y\n150 \'\n155 z=TIME\n160 FOR a=1 TO 9:FOR b=1 TO 9:FOR c=1 TO 9:FOR f=1 TO 9:FOR g=1 TO 9\n170 de=(a*10+b)*c:IF de>99 THEN 320\n180 hi=de+(f*10+g):IF hi>99 THEN 320\n190 d=INT(de/10):e=de MOD 10:h=INT(hi/10):i=hi MOD 10\n200 IF a=b OR a=c OR a=d OR a=e OR a=f OR a=g OR a=h OR a=i THEN 320\n210 IF b=c OR b=d OR b=e OR b=f OR b=g OR b=h OR b=i THEN 320\n220 IF c=d OR c=e OR c=f OR c=g OR c=h OR c=i THEN 320\n230 IF d=e OR d=f OR d=g OR d=h OR d=i THEN 320\n240 IF e=f OR e=g OR e=h OR e=i THEN 320\n250 IF f=g OR f=h OR f=i THEN 320\n260 IF g=h OR g=i THEN 320\n270 IF h=i THEN 320\n280 IF i=0 THEN 320\n285 z=TIME-z\n290 CLS:PRINT "Die Loesung:":PRINT\n300 PRINT a*10+b"*"c"="de" / "de"+"f*10+g"="hi\n310 PRINT z,z/300:STOP\n320 NEXT g,f,c,b,a\n'
         }
     };
+    /* eslint-enable quote-props */
     // notes:
     // "call &a7bc": "CALL &A7BC",
     //
@@ -780,6 +782,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
                 }
             }
         }
+        TestHelper_1.TestHelper.compareAllTests(TestInput_1.TestInput.getAllTests(), allTests);
         TestHelper_1.TestHelper.generateAllTests(allTests, runTestsFor, hooks);
     });
 });
