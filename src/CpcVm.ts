@@ -386,6 +386,17 @@ export class CpcVm {
 		reset: 99 // reset system
 	};
 
+	getOptions(): CpcVmOptions {
+		return {
+			canvas: this.canvas,
+			textCanvas: this.textCanvas,
+			keyboard: this.keyboard,
+			sound: this.soundClass,
+			variables: this.variables,
+			quiet: this.quiet
+		};
+	}
+
 	constructor(options: CpcVmOptions) {
 		this.fnOpeninHandler = this.vmOpeninCallback.bind(this);
 		this.fnCloseinHandler = this.vmCloseinCallback.bind(this);
@@ -484,8 +495,7 @@ export class CpcVm {
 
 	vmReset(): void {
 		this.startTime = Date.now();
-		this.random.init();
-		this.lastRnd = 0;
+		this.vmResetRandom();
 
 		this.nextFrameTime = Date.now() + CpcVm.frameTimeMs; // next time of frame fly
 		this.stopCount = 0;
@@ -499,8 +509,7 @@ export class CpcVm {
 		this.breakResumeLine = 0;
 
 		this.inputValues.length = 0;
-		CpcVm.vmResetFileHandling(this.inFile);
-		CpcVm.vmResetFileHandling(this.outFile);
+		this.vmResetInFileHandling();
 
 		this.vmResetControlBuffer();
 
@@ -518,17 +527,12 @@ export class CpcVm {
 
 		this.tronFlag1 = false;
 
-		this.mem.length = 0; // clear memory (for PEEK, POKE)
-		this.ramSelect = 0; // for banking with 16K banks in the range 0x4000-0x7fff (0=default; 1...=additional)
 		this.screenPage = 3; // 16K screen page, 3=0xc000..0xffff
 
 		this.crtcReg = 0;
 		this.crtcData.length = 0;
 
-		this.minCharHimem = CpcVm.maxHimem;
-		this.maxCharHimem = CpcVm.maxHimem;
-		this.himemValue = CpcVm.maxHimem;
-		this.minCustomChar = 256;
+		this.vmResetMemory();
 		this.symbolAfter(240); // set also minCustomChar
 
 		this.vmResetTimers();
@@ -553,6 +557,21 @@ export class CpcVm {
 		this.soundData.length = 0;
 
 		this.inkeyTimeMs = 0; // if >0, next time when inkey$ can be checked without inserting "waitFrame"
+	}
+
+	vmResetMemory(): void {
+		this.mem.length = 0; // clear memory (for PEEK, POKE)
+		this.ramSelect = 0; // for banking with 16K banks in the range 0x4000-0x7fff (0=default; 1...=additional)
+
+		this.minCharHimem = CpcVm.maxHimem;
+		this.maxCharHimem = CpcVm.maxHimem;
+		this.himemValue = CpcVm.maxHimem;
+		this.minCustomChar = 256;
+	}
+
+	vmResetRandom(): void {
+		this.random.init();
+		this.lastRnd = 0;
 	}
 
 	vmResetTimers(): void {
@@ -620,10 +639,32 @@ export class CpcVm {
 		this.printControlBuf = ""; // collected control characters for PRINT
 	}
 
-	static vmResetFileHandling(file: FileBase): void {
+	private static vmResetFileHandling(file: FileBase): void {
 		file.open = false;
 		file.command = ""; // to be sure
+
+		file.name = "";
+		file.line = 0;
 		file.start = undefined; // to be sure
+		file.fileData.length = 0;
+	}
+
+	vmResetInFileHandling(): void {
+		const inFile = this.inFile;
+
+		CpcVm.vmResetFileHandling(inFile);
+		inFile.first = 0;
+		inFile.last = 0;
+	}
+
+	vmResetOutFileHandling(): void {
+		const outFile = this.outFile;
+
+		CpcVm.vmResetFileHandling(outFile);
+		outFile.stream = 0;
+		outFile.typeString = "";
+		outFile.length = 0;
+		outFile.entry = 0;
 	}
 
 	vmResetData(): void {
@@ -720,15 +761,6 @@ export class CpcVm {
 		this.vmAssertNumber(n, err || "?");
 		return ((n as number) >= 0) ? ((n as number) + 0.5) | 0 : ((n as number) - 0.5) | 0; // eslint-disable-line no-bitwise
 	}
-
-	/*
-	// round for comparison TODO
-	vmRound4Cmp(n) {
-		const nAdd = (n >= 0) ? 0.5 : -0.5;
-
-		return ((n * 1e12 + nAdd) | 0) / 1e12; // eslint-disable-line no-bitwise
-	}
-	*/
 
 	vmInRangeRound(n: number | undefined, min: number, max: number, err: string): number {
 		n = this.vmRound(n, err);
@@ -1472,8 +1504,8 @@ export class CpcVm {
 		this.rad();
 		this.soundClass.resetQueue();
 		this.soundData.length = 0;
-		this.closein();
-		this.closeout();
+		this.vmResetInFileHandling();
+		this.vmResetOutFileHandling();
 	}
 
 	clearInput(): void {
@@ -1495,10 +1527,8 @@ export class CpcVm {
 	}
 
 	closein(): void {
-		const inFile = this.inFile;
-
-		if (inFile.open) {
-			this.vmCloseinCallback(); // not really used as a callback here
+		if (this.inFile.open) {
+			this.vmCloseinCallback(); // close directly
 		}
 	}
 

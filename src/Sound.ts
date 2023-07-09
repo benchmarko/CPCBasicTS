@@ -56,7 +56,8 @@ interface Queue {
 }
 
 export class Sound {
-	private AudioContextConstructor: AudioContextConstructorType;
+	private readonly options: SoundOptions;
+
 	private isSoundOn = false;
 	private isActivatedByUserFlag = false;
 	private context?: AudioContext;
@@ -70,7 +71,9 @@ export class Sound {
 	private readonly debugLogList?: [number, string][];
 
 	constructor(options: SoundOptions) {
-		this.AudioContextConstructor = options.AudioContextConstructor;
+		this.options = {
+			AudioContextConstructor: options.AudioContextConstructor
+		};
 
 		for (let i = 0; i < 3; i += 1) {
 			this.queues[i] = {
@@ -152,7 +155,7 @@ export class Sound {
 				2,
 				1
 			],
-			context = new this.AudioContextConstructor(), // may produce exception if not available
+			context = new this.options.AudioContextConstructor(), // may produce exception if not available
 			mergerNode = context.createChannelMerger(6); // create mergerNode with 6 inputs; we are using the first 3 for left, right, center
 
 		this.context = context;

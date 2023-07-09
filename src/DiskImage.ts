@@ -114,21 +114,22 @@ interface SectorPos {
 }
 
 export class DiskImage {
-	private quiet = false;
-	private diskName: string;
-	private data: string;
+	private readonly options: DiskImageOptions;
 	private diskInfo: DiskInfo;
 	private format: FormatDescriptor;
 
 	setOptions(options: DiskImageOptions): void {
 		if (options.quiet !== undefined) {
-			this.quiet = options.quiet;
+			this.options.quiet = options.quiet;
 		}
 	}
 
 	constructor(options: DiskImageOptions) {
-		this.diskName = options.diskName;
-		this.data = options.data;
+		this.options = {
+			diskName: options.diskName,
+			data: options.data,
+			quiet: false
+		};
 		this.setOptions(options);
 
 		// reset
@@ -218,7 +219,7 @@ export class DiskImage {
 	private composeError(error: Error, message: string, value: string, pos?: number) {
 		const len = 0;
 
-		return Utils.composeError("DiskImage", error, this.diskName + ": " + message, value, pos || 0, len);
+		return Utils.composeError("DiskImage", error, this.options.diskName + ": " + message, value, pos || 0, len);
 	}
 
 	static testDiskIdent(ident: string): number {
@@ -233,7 +234,7 @@ export class DiskImage {
 	}
 
 	private readUtf(pos: number, len: number) {
-		const out = this.data.substring(pos, pos + len);
+		const out = this.options.data.substring(pos, pos + len);
 
 		if (out.length !== len) {
 			throw this.composeError(new Error(), "End of File", "", pos);
@@ -243,7 +244,7 @@ export class DiskImage {
 	}
 
 	private readUInt8(pos: number) {
-		const num = this.data.charCodeAt(pos);
+		const num = this.options.data.charCodeAt(pos);
 
 		if (isNaN(num)) {
 			throw this.composeError(new Error(), "End of File", String(num), pos);
@@ -271,7 +272,7 @@ export class DiskImage {
 
 		if (diskInfo.ident.substring(34 - 11, 34 - 11 + 9) !== "Disk-Info") { // some tools use "Disk-Info  " instead of "Disk-Info\r\n", so compare without "\r\n"
 			// "Disk-Info" string is optional
-			if (!this.quiet) {
+			if (!this.options.quiet) {
 				Utils.console.warn(this.composeError({} as Error, "Disk ident not found", diskInfo.ident.substring(34 - 11, 34 - 11 + 9), pos + 34 - 11).message);
 			}
 		}
@@ -308,7 +309,7 @@ export class DiskImage {
 		trackInfo.ident = this.readUtf(pos, 12);
 		if (trackInfo.ident.substring(0, 10) !== "Track-Info") { // some tools use "Track-Info  " instead of "Track-Info\r\n", so compare without "\r\n"
 			// "Track-Info" string is optional
-			if (!this.quiet) {
+			if (!this.options.quiet) {
 				Utils.console.warn(this.composeError({} as Error, "Track ident not found", trackInfo.ident.substring(0, 10), pos).message);
 			}
 		}
@@ -744,20 +745,6 @@ export class DiskImage {
 		}
 		return header;
 	}
-
-
-	// for testing only
-
-	/*
-	private static writeUInt8(data: Uint8Array, pos: number, value: number) {
-		data[pos] = value;
-	}
-
-	private static writeUInt16(data: Uint8Array, pos: number, value: number) {
-		data[pos] = value & 0xff;
-		data[pos + 1] = (value >> 8) & 0xff;
-	}
-	*/
 
 	private static uInt8ToString(value: number) {
 		return String.fromCharCode(value);

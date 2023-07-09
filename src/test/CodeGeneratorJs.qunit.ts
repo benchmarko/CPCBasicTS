@@ -748,7 +748,37 @@ const allTests: AllTestsType = {
 };
 /* eslint-enable quote-props */
 
+
+type hooksWithCodeGeneratorJs = NestedHooks & {
+	codeGeneratorJs: CodeGeneratorJs
+};
+
+function createCodeGeneratorJs() {
+	return new CodeGeneratorJs({
+		quiet: true,
+		lexer: new BasicLexer({
+			keywords: BasicParser.keywords,
+			quiet: true
+		}),
+		parser: new BasicParser({
+			quiet: true
+		}),
+		trace: false,
+		rsx: {
+			rsxIsAvailable: function (rsx: string) { // not needed to suppress warnings when using quiet
+				return (/^a|b|basic|cpm|dir|disc|disc\.in|disc\.out|drive|era|ren|tape|tape\.in|tape\.out|user|mode|renum$/).test(rsx);
+			}
+		}, // ICpcVmRsx
+		noCodeFrame: true
+	});
+}
+
+
 QUnit.module("CodeGeneratorJs: Tests", function (hooks) {
+	hooks.before(function () {
+		(hooks as hooksWithCodeGeneratorJs).codeGeneratorJs = createCodeGeneratorJs();
+	});
+
 	function runSingleTest(codeGeneratorJs: CodeGeneratorJs, key: string) {
 		const allowDirect = true,
 			variables = new Variables(),
@@ -759,23 +789,7 @@ QUnit.module("CodeGeneratorJs: Tests", function (hooks) {
 	}
 
 	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
-		const options = {
-				quiet: true
-			},
-			codeGeneratorJs = new CodeGeneratorJs({
-				quiet: true,
-				lexer: new BasicLexer({
-					keywords: BasicParser.keywords
-				}),
-				parser: new BasicParser(options),
-				trace: false,
-				rsx: {
-					rsxIsAvailable: function (rsx: string) { // not needed to suppress warnings when using quiet
-						return (/^a|b|basic|cpm|dir|disc|disc\.in|disc\.out|drive|era|ren|tape|tape\.in|tape\.out|user|mode|renum$/).test(rsx);
-					}
-				}, // ICpcVmRsx
-				noCodeFrame: true
-			});
+		const codeGeneratorJs = (hooks as hooksWithCodeGeneratorJs).codeGeneratorJs;
 
 		for (const key in tests) {
 			if (tests.hasOwnProperty(key)) {

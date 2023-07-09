@@ -50,11 +50,7 @@ interface SymbolType {
 }
 
 export class BasicParser {
-	private quiet = false;
-	private keepBrackets = false;
-	private keepColons = false;
-	private keepDataComma = false;
-	private keepTokens = false;
+	private readonly options: BasicParserOptions;
 
 	private label = "0"; // for error messages
 	private readonly symbols: Record<string, SymbolType> = {};
@@ -71,35 +67,34 @@ export class BasicParser {
 
 	setOptions(options: BasicParserOptions): void {
 		if (options.keepBrackets !== undefined) {
-			this.keepBrackets = options.keepBrackets;
+			this.options.keepBrackets = options.keepBrackets;
 		}
 		if (options.keepColons !== undefined) {
-			this.keepColons = options.keepColons;
+			this.options.keepColons = options.keepColons;
 		}
 		if (options.keepDataComma !== undefined) {
-			this.keepDataComma = options.keepDataComma;
+			this.options.keepDataComma = options.keepDataComma;
 		}
 		if (options.keepTokens !== undefined) {
-			this.keepTokens = options.keepTokens;
+			this.options.keepTokens = options.keepTokens;
 		}
 		if (options.quiet !== undefined) {
-			this.quiet = options.quiet;
+			this.options.quiet = options.quiet;
 		}
 	}
 
 	getOptions(): BasicParserOptions {
-		const options: BasicParserOptions = {
-			keepBrackets: this.keepBrackets,
-			keepColons: this.keepColons,
-			keepDataComma: this.keepDataComma,
-			keepTokens: this.keepTokens,
-			quiet: this.quiet
-		};
-
-		return options;
+		return this.options;
 	}
 
 	constructor(options?: BasicParserOptions) {
+		this.options = {
+			quiet: false,
+			keepBrackets: false,
+			keepColons: false,
+			keepDataComma: false,
+			keepTokens: false
+		};
 		if (options) {
 			this.setOptions(options);
 		}
@@ -400,7 +395,7 @@ export class BasicParser {
 	private fnMaskedError(node: ParserNode, message: string) {
 		if (!this.fnLastStatementIsOnErrorGotoX()) {
 			throw this.composeError(Error(), message, node.value, node.pos);
-		} else if (!this.quiet) {
+		} else if (!this.options.quiet) {
 			Utils.console.warn(this.composeError({} as Error, message, node.value, node.pos).message);
 		}
 	}
@@ -424,7 +419,7 @@ export class BasicParser {
 		if (id && id !== token.type) {
 			if (!this.fnLastStatementIsOnErrorGotoX()) {
 				throw this.composeError(Error(), "Expected " + id, token.value === "" ? token.type : token.value, token.pos); //TTT we cannot mask this error because advance is very generic
-			} else if (!this.quiet) {
+			} else if (!this.options.quiet) {
 				Utils.console.warn(this.composeError({} as Error, "Expected " + id, token.value === "" ? token.type : token.value, token.pos).message);
 			}
 		}
@@ -534,7 +529,7 @@ export class BasicParser {
 			if (colonExpected || this.token.type === ":") {
 				if (this.token.type !== "'" && this.token.type !== "else") { // no colon required for line comment or ELSE
 					this.advance(":");
-					if (this.keepColons) {
+					if (this.options.keepColons) {
 						statementList.push(this.previousToken);
 					}
 				}
@@ -571,11 +566,11 @@ export class BasicParser {
 		node.args = this.statements(BasicParser.closeTokensForLine);
 
 		if (this.token.type === "(eol)") {
-			if (this.keepTokens) { // not really a token
+			if (this.options.keepTokens) { // not really a token
 				node.args.push(this.token); // eol token with whitespace
 			}
 			this.advance();
-		} else if (this.token.type === "(end)" && this.token.ws && this.keepTokens) {
+		} else if (this.token.type === "(end)" && this.token.ws && this.options.keepTokens) {
 			node.args.push(this.token); // end token with whitespace
 		}
 		return node;
@@ -588,7 +583,7 @@ export class BasicParser {
 		node.value += (this.token.ws || " ") + this.token.value; // combine values of both
 
 		this.token = this.advance(token2); // for "speed" e.g. "ink", "key", "write" (this.token.type)
-		if (this.keepTokens) {
+		if (this.options.keepTokens) {
 			if (!node.right) {
 				node.right = this.previousToken; // set second token in first token
 			} else { // e.g. on break...
@@ -782,7 +777,7 @@ export class BasicParser {
 		if (this.token.type === separator) {
 			if (!suppressAdvance) {
 				this.advance(separator);
-				if (this.keepTokens) {
+				if (this.options.keepTokens) {
 					args.push(this.previousToken);
 				}
 			}
@@ -848,13 +843,13 @@ export class BasicParser {
 
 	private fnGetArgsInParenthesis(args: ParserNode[], keyword?: string) {
 		this.advance("(");
-		if (this.keepTokens) {
+		if (this.options.keepTokens) {
 			args.push(this.previousToken);
 		}
 		this.fnGetArgs(args, keyword || "_any1"); // until ")"
 
 		this.advance(")");
-		if (this.keepTokens) {
+		if (this.options.keepTokens) {
 			args.push(this.previousToken);
 		}
 		return args;
@@ -879,7 +874,7 @@ export class BasicParser {
 
 		args.push(bracketClose);
 
-		if (!this.quiet && (brackets[bracketOpen.type] !== bracketClose.type)) {
+		if (!this.options.quiet && (brackets[bracketOpen.type] !== bracketClose.type)) {
 			Utils.console.warn(this.composeError({} as Error, "Inconsistent bracket style", this.previousToken.value, this.previousToken.pos).message);
 		}
 		return args;
@@ -906,14 +901,14 @@ export class BasicParser {
 
 		if (this.token.type === "(") { // args in parenthesis?
 			this.advance("(");
-			if (this.keepTokens) {
+			if (this.options.keepTokens) {
 				node.args.push(this.previousToken);
 			}
 
 			this.fnGetArgs(node.args, node.type);
 
 			this.advance(")");
-			if (this.keepTokens) {
+			if (this.options.keepTokens) {
 				node.args.push(this.previousToken);
 			}
 		} else { // no parenthesis?
@@ -946,7 +941,7 @@ export class BasicParser {
 	private fnParenthesis() { // "("
 		let node: ParserNode;
 
-		if (this.keepBrackets) {
+		if (this.options.keepBrackets) {
 			node = this.previousToken;
 			node.args = [
 				this.expression(0),
@@ -983,7 +978,7 @@ export class BasicParser {
 
 		if (this.token.type === ",") { // arguments starting with comma
 			this.advance();
-			if (this.keepTokens) {
+			if (this.options.keepTokens) {
 				node.args.push(this.previousToken);
 			}
 			type = "_rsx1"; // dummy token: expect at least 1 argument
@@ -1002,7 +997,7 @@ export class BasicParser {
 			node.args.push(BasicParser.fnCreateDummyArg("null"));
 		}
 		this.advance("gosub");
-		if (this.keepTokens) {
+		if (this.options.keepTokens) {
 			node.args.push(this.previousToken);
 		}
 		this.fnGetArgs(node.args, "gosub"); // line number
@@ -1030,7 +1025,7 @@ export class BasicParser {
 		this.token = this.getToken();
 		if (this.token.type === ",") {
 			this.token = this.advance();
-			if (this.keepTokens) {
+			if (this.options.keepTokens) {
 				node.args.push(this.previousToken);
 			}
 
@@ -1044,7 +1039,7 @@ export class BasicParser {
 
 			if (this.token.type === ",") {
 				this.advance();
-				if (this.keepTokens) {
+				if (this.options.keepTokens) {
 					node.args.push(this.previousToken);
 				}
 
@@ -1054,7 +1049,7 @@ export class BasicParser {
 				}
 
 				this.advance("delete");
-				if (this.keepTokens) {
+				if (this.options.keepTokens) {
 					node.args.push(this.previousToken);
 				}
 				this.fnGetArgs(node.args, this.previousToken.type); // args for "delete"
@@ -1086,7 +1081,7 @@ export class BasicParser {
 				node.args.push(BasicParser.fnCreateDummyArg("null")); // insert null parameter
 			}
 			this.token = this.advance();
-			if (this.keepDataComma) {
+			if (this.options.keepDataComma) {
 				node.args.push(this.previousToken); // ","
 			}
 
@@ -1112,7 +1107,7 @@ export class BasicParser {
 		node.args = [];
 
 		this.advance("fn");
-		if (this.keepTokens) {
+		if (this.options.keepTokens) {
 			node.right = this.previousToken;
 		}
 
@@ -1128,7 +1123,7 @@ export class BasicParser {
 		}
 
 		this.advance("=");
-		if (this.keepTokens) {
+		if (this.options.keepTokens) {
 			node.args.push(this.previousToken);
 		}
 
@@ -1143,7 +1138,7 @@ export class BasicParser {
 
 		node.args = [];
 
-		if (!this.quiet) {
+		if (!this.options.quiet) {
 			Utils.console.warn(this.composeError({} as Error, "ELSE: Weird use of ELSE", this.previousToken.type, this.previousToken.pos).message);
 		}
 
@@ -1170,12 +1165,12 @@ export class BasicParser {
 
 		while (this.token.type === ",") {
 			this.token = this.advance();
-			if (this.keepTokens) {
+			if (this.options.keepTokens) {
 				node.args.push(this.previousToken);
 			}
 			if (this.token.type === "=" && count % 3 === 0) { // special handling for parameter "number of steps"
 				this.advance();
-				if (this.keepTokens) {
+				if (this.options.keepTokens) {
 					node.args.push(this.previousToken);
 				}
 
@@ -1203,20 +1198,20 @@ export class BasicParser {
 		node.args = [name];
 
 		this.advance("=");
-		if (this.keepTokens) {
+		if (this.options.keepTokens) {
 			node.args.push(this.previousToken);
 		}
 		node.args.push(this.expression(0));
 
 		this.token = this.advance("to");
-		if (this.keepTokens) {
+		if (this.options.keepTokens) {
 			node.args.push(this.previousToken);
 		}
 		node.args.push(this.expression(0));
 
 		if (this.token.type === "step") {
 			this.advance();
-			if (this.keepTokens) {
+			if (this.options.keepTokens) {
 				node.args.push(this.previousToken);
 			}
 			node.args.push(this.expression(0));
@@ -1243,9 +1238,9 @@ export class BasicParser {
 				const index = i + 1;
 
 				if (index < args.length && (args[index].type !== "rem") && (args[index].type !== "'")) {
-					if (args[index].type === ":" && this.keepColons) {
+					if (args[index].type === ":" && this.options.keepColons) {
 						// ignore
-					} else if (!this.quiet) {
+					} else if (!this.options.quiet) {
 						Utils.console.warn(this.composeError({} as Error, "IF: Unreachable code after THEN or ELSE", tokenType, node.pos).message);
 					}
 					break;
@@ -1275,7 +1270,7 @@ export class BasicParser {
 			node.args.unshift(numberToken[0]);
 			numberToken = undefined;
 		}
-		if (this.keepTokens && thenToken) {
+		if (this.options.keepTokens && thenToken) {
 			node.args.unshift(thenToken);
 		}
 		this.fnCheckForUnreachableCode(node.args);
@@ -1292,7 +1287,7 @@ export class BasicParser {
 			if (numberToken) {
 				node.args2.unshift(numberToken[0]);
 			}
-			if (this.keepTokens && elseToken) {
+			if (this.options.keepTokens && elseToken) {
 				elseToken.args = [];
 				node.args2.unshift(elseToken);
 			}
@@ -1310,7 +1305,7 @@ export class BasicParser {
 
 		if (stream.len !== 0) { // not an inserted stream?
 			this.advance(",");
-			if (this.keepTokens) {
+			if (this.options.keepTokens) {
 				node.args.push(this.previousToken);
 			}
 		}
@@ -1346,7 +1341,7 @@ export class BasicParser {
 				break; // no loop for lineInput (only one arg) or no more args
 			}
 			this.advance(",");
-			if (this.keepTokens) {
+			if (this.options.keepTokens) {
 				node.args.push(this.previousToken);
 			}
 		} while (true); // eslint-disable-line no-constant-condition
@@ -1382,7 +1377,7 @@ export class BasicParser {
 		// check that first argument is a variable...
 		let i = 0;
 
-		if (this.keepTokens) {
+		if (this.options.keepTokens) {
 			while (node.args[i].type === "(" && i < (node.args.length - 1)) {
 				i += 1;
 			}
@@ -1390,7 +1385,7 @@ export class BasicParser {
 		this.fnCheckExpressionType(node.args[i], "identifier", "v");
 
 		this.advance("="); // equal as assignment
-		if (this.keepTokens) {
+		if (this.options.keepTokens) {
 			node.args.push(this.previousToken);
 		}
 		const expression = this.expression(0);
@@ -1426,7 +1421,7 @@ export class BasicParser {
 			}
 			this.token = this.getToken();
 			this.advance("gosub");
-			if (this.keepTokens) {
+			if (this.options.keepTokens) {
 				node.args.push(this.previousToken);
 			}
 
@@ -1437,7 +1432,7 @@ export class BasicParser {
 			node.args.push(this.expression(0));
 			if (this.token.type === "gosub" || this.token.type === "goto") {
 				this.advance();
-				if (this.keepTokens) {
+				if (this.options.keepTokens) {
 					node.args.push(this.previousToken); // modify
 				}
 
@@ -1462,7 +1457,7 @@ export class BasicParser {
 		if (stream.len !== 0) { // not an inserted stream?
 			if (!closeTokens[this.token.type]) {
 				this.advance(",");
-				if (this.keepTokens) {
+				if (this.options.keepTokens) {
 					node.args.push(this.previousToken);
 				}
 			}
@@ -1560,7 +1555,7 @@ export class BasicParser {
 		if (stream.len !== 0) { // not an inserted stream?
 			if (!closeTokens[this.token.type]) {
 				this.advance(",");
-				if (this.keepTokens) {
+				if (this.options.keepTokens) {
 					node.args.push(this.previousToken);
 				}
 			}

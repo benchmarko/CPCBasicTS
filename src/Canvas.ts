@@ -25,6 +25,8 @@ interface ModeData {
 }
 
 export class Canvas {
+	private readonly options: CanvasOptions;
+
 	private readonly fnUpdateCanvasHandler: () => void;
 	private readonly fnUpdateCanvas2Handler: () => void;
 
@@ -32,10 +34,10 @@ export class Canvas {
 
 	private readonly cpcAreaBox: HTMLElement;
 
-	private readonly charset: CharsetType;
+	//private readonly charset: CharsetType;
 	private customCharset: Record<number, CharType> = {};
 
-	private readonly onClickKey?: (arg0: string) => void;
+	//private readonly onClickKey?: (arg0: string) => void;
 
 	private gColMode = 0; // 0=normal, 1=xor, 2=and, 3=or
 
@@ -97,12 +99,15 @@ export class Canvas {
 
 	private gTransparent = false;
 
+	//setOptions(options: CanvasOptions): void { }
+
 	constructor(options: CanvasOptions) {
+		this.options = {
+			charset: options.charset,
+			onClickKey: options.onClickKey
+		};
 		this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
 		this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
-
-		this.charset = options.charset;
-		this.onClickKey = options.onClickKey;
 
 		this.cpcAreaBox = View.getElementById1("cpcAreaBox");
 
@@ -440,7 +445,7 @@ export class Canvas {
 	}
 
 	getCharData(char: number): CharType {
-		return this.customCharset[char] || this.charset[char];
+		return this.customCharset[char] || this.options.charset[char];
 	}
 
 	setDefaultInks(): void {
@@ -489,8 +494,8 @@ export class Canvas {
 			char = 13; // use CR
 		}
 
-		if (char >= 0 && this.onClickKey) { // call click handler (put char in keyboard input buffer)
-			this.onClickKey(String.fromCharCode(char));
+		if (char >= 0 && this.options.onClickKey) { // call click handler (put char in keyboard input buffer)
+			this.options.onClickKey(String.fromCharCode(char));
 		}
 
 		// for graphics coordinates, adapt origin
@@ -596,7 +601,7 @@ export class Canvas {
 	}
 
 	private setChar(char: number, x: number, y: number, pen: number, paper: number, transparent: boolean, gColMode: number, textAtGraphics: boolean) {
-		const charData = this.customCharset[char] || this.charset[char],
+		const charData = this.customCharset[char] || this.options.charset[char],
 			pixelWidth = this.modeData.pixelWidth,
 			pixelHeight = this.modeData.pixelHeight;
 
@@ -974,7 +979,7 @@ export class Canvas {
 	printGChar(char: number): void {
 		const charWidth = this.modeData.pixelWidth * 8;
 
-		if (char >= this.charset.length) {
+		if (char >= this.options.charset.length) {
 			Utils.console.warn("printGChar: Ignoring char with code", char);
 			return;
 		}
@@ -989,7 +994,7 @@ export class Canvas {
 			charHeight = this.modeData.pixelHeight * 8,
 			pens = this.modeData.pens;
 
-		if (char >= this.charset.length) {
+		if (char >= this.options.charset.length) {
 			Utils.console.warn("printChar: Ignoring char with code", char);
 			return;
 		}
@@ -1014,7 +1019,7 @@ export class Canvas {
 	}
 
 	private findMatchingChar(charData: CharType) {
-		const charset = this.charset;
+		const charset = this.options.charset;
 		let	char = -1; // not detected
 
 		for (let i = 0; i < charset.length; i += 1) {
@@ -1297,12 +1302,6 @@ export class Canvas {
 		this.setGPaper(this.gPaper); // keep, maybe different for other mode
 		this.setGTransparentMode(false);
 	}
-
-	/*
-	startScreenshot(): string {
-		return this.canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"); // here is the most important part because if you do not replace you will get a DOM 18 exception.
-	}
-	*/
 
 	getCanvasElement(): HTMLCanvasElement {
 		return this.canvas;

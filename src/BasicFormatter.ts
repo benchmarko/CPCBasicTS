@@ -30,21 +30,26 @@ type LinesType = Record<string, LineEntry>;
 type ChangesType = Record<number, RefsEntry>;
 
 export class BasicFormatter {
-	private readonly lexer: BasicLexer;
-	private readonly parser: BasicParser;
-	private implicitLines = false;
+	private readonly options: BasicFormatterOptions;
 
 	private label = ""; // current label (line) for error messages
 
 	setOptions(options: BasicFormatterOptions): void {
 		if (options.implicitLines !== undefined) {
-			this.implicitLines = options.implicitLines;
+			this.options.implicitLines = options.implicitLines;
 		}
 	}
 
+	getOptions(): BasicFormatterOptions {
+		return this.options;
+	}
+
 	constructor(options: BasicFormatterOptions) {
-		this.lexer = options.lexer;
-		this.parser = options.parser;
+		this.options = {
+			lexer: options.lexer,
+			parser: options.parser,
+			implicitLines: false
+		};
 		this.setOptions(options);
 	}
 
@@ -219,7 +224,7 @@ export class BasicFormatter {
 
 	private fnRenumber(input: string, parseTree: ParserNode[], newLine: number, oldLine: number, step: number, keep: number) {
 		const refs: RefsEntry[] = [], // references
-			lines = this.fnCreateLabelMap(parseTree, this.implicitLines);
+			lines = this.fnCreateLabelMap(parseTree, Boolean(this.options.implicitLines));
 
 		this.fnAddReferences(parseTree, lines, refs); // create reference list
 
@@ -236,8 +241,8 @@ export class BasicFormatter {
 
 		this.label = ""; // current line (label)
 		try {
-			const tokens = this.lexer.lex(input),
-				parseTree = this.parser.parse(tokens),
+			const tokens = this.options.lexer.lex(input),
+				parseTree = this.options.parser.parse(tokens),
 				output = this.fnRenumber(input, parseTree, newLine, oldLine, step, keep || 65535);
 
 			out.text = output;
@@ -290,8 +295,8 @@ export class BasicFormatter {
 
 		this.label = ""; // current line (label)
 		try {
-			const tokens = this.lexer.lex(input),
-				parseTree = this.parser.parse(tokens),
+			const tokens = this.options.lexer.lex(input),
+				parseTree = this.options.parser.parse(tokens),
 				output = this.fnRemoveUnusedLines(input, parseTree);
 
 			out.text = output;

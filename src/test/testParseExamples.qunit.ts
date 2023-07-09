@@ -26,7 +26,6 @@ let https: NodeHttps, // nodeJs
 
 import { Utils } from "../Utils";
 import { ICpcVmRsx, IOutput } from "../Interfaces";
-//import { Polyfills } from "../Polyfills";
 import { BasicLexer } from "../BasicLexer";
 import { BasicParser } from "../BasicParser";
 import { BasicTokenizer } from "../BasicTokenizer";
@@ -147,8 +146,8 @@ class cpcBasic {
 
 	static lexer = new BasicLexer({
 		keywords: BasicParser.keywords,
-		quiet: true,
-		keepWhiteSpace: true
+		keepWhiteSpace: true,
+		quiet: true
 	});
 
 	static parser = new BasicParser({

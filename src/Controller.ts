@@ -506,7 +506,6 @@ export class Controller implements IController {
 		this.model.addDatabases(databases);
 
 		this.setDatabaseSelectOptions();
-		//this.onDatabaseSelectChange();
 	}
 
 	private onUserAction(/* event, id */) {
@@ -1293,10 +1292,10 @@ export class Controller implements IController {
 		const keepColons = keepBrackets, // we switch all with one setting
 			keepDataComma = true;
 
-		this.codeGeneratorBasic.getLexer().setOptions({
+		this.codeGeneratorBasic.getOptions().lexer.setOptions({
 			keepWhiteSpace: keepWhiteSpace
 		});
-		this.codeGeneratorBasic.getParser().setOptions({
+		this.codeGeneratorBasic.getOptions().parser.setOptions({
 			keepTokens: true,
 			keepBrackets: keepBrackets,
 			keepColons: keepColons,
@@ -1674,7 +1673,7 @@ export class Controller implements IController {
 					Utils.console.warn(e);
 				}
 			}
-			CpcVm.vmResetFileHandling(outFile); // make sure it is closed
+			this.vm.vmResetOutFileHandling(); // make sure it is closed
 		} else {
 			Utils.console.error("fnFileSave: file not open!");
 		}
@@ -2775,8 +2774,6 @@ export class Controller implements IController {
 			this.model.setProperty("showConvert", false);
 			this.view.setHidden("convertArea", !this.model.getProperty<boolean>("showConvert"), "flex");
 		}
-		//this.view.setHidden("settingsArea", true, "flex");
-		//this.view.setHidden("convertArea", true, "flex");
 
 		this.canvas.onCpcCanvasClick(event);
 		this.textCanvas.onWindowClick(event);

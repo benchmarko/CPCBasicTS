@@ -15,14 +15,8 @@ export interface CustomError extends Error {
 
 const Polyfills = window.Polyfills;
 
-export class Utils { // eslint-disable-line vars-on-top
+export class Utils {
 	static debug = 0;
-
-	/*
-	static console = (function () {
-		return typeof window !== "undefined" ? window.console : globalThis.console; // browser or node.js
-	}());
-	*/
 	static console = Polyfills.console;
 
 	private static fnLoadScriptOrStyle(script: HTMLScriptElement | HTMLLinkElement, fnSuccess: (url: string, key: string) => void, fnError: (url: string, key: string) => void) {
@@ -166,31 +160,8 @@ export class Utils { // eslint-disable-line vars-on-top
 		return str.replace(/[\s\uFEFF\xA0]+$/, "");
 	}
 
-	/*
-	static localStorage = (function () {
-		let rc: Storage | undefined;
-
-		if (typeof window !== "undefined") {
-			try {
-				rc = window.localStorage; // due to a bug in MS Edge this will throw an error when hosting locally (https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/8816771/)
-			} catch (_e) {
-				// empty
-			}
-		}
-		return rc as Storage; // if it is undefined, localStorage is set in Polyfills
-	}());
-	*/
 	static localStorage = Polyfills.localStorage || window.localStorage;
 
-	/*
-	static atob = (function () {
-		return typeof window !== "undefined" && window.atob && window.atob.bind ? window.atob.bind(window) : null; // we need bind: https://stackoverflow.com/questions/9677985/uncaught-typeerror-illegal-invocation-in-chrome
-	}()) as (arg0: string) => string;
-
-	static btoa = (function () {
-		return typeof window !== "undefined" && window.btoa && window.btoa.bind ? window.btoa.bind(window) : null; // we need bind!
-	}()) as (arg0: string) => string;
-	*/
 	static atob = function (data: string): string {
 		return window.atob(data);
 	}

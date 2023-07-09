@@ -749,7 +749,31 @@ const allTests: AllTestsType = {
 };
 /* eslint-enable quote-props */
 
+type hooksWithBasicLexerParser = NestedHooks & {
+	basicLexer: BasicLexer,
+	basicParser: BasicParser
+};
+
+function createBasicLexer(keepWhiteSpace: boolean) {
+	return new BasicLexer({
+		keywords: BasicParser.keywords,
+		quiet: true,
+		keepWhiteSpace: keepWhiteSpace
+	});
+}
+
 QUnit.module("BasicParser: Tests", function (hooks) {
+	function createBasicParser1() {
+		return new BasicParser({
+			quiet: true
+		});
+	}
+
+	hooks.before(function () {
+		(hooks as hooksWithBasicLexerParser).basicLexer = createBasicLexer(false);
+		(hooks as hooksWithBasicLexerParser).basicParser = createBasicParser1();
+	});
+
 	function runSingleTest(basicLexer: BasicLexer, basicParser: BasicParser, key: string, expectedEntry: Record<string, unknown>) {
 		let result: string;
 
@@ -774,13 +798,8 @@ QUnit.module("BasicParser: Tests", function (hooks) {
 	}
 
 	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
-		const basicLexer = new BasicLexer({
-				keywords: BasicParser.keywords,
-				quiet: true
-			}),
-			basicParser = new BasicParser({
-				quiet: true
-			});
+		const basicLexer = (hooks as hooksWithBasicLexerParser).basicLexer,
+			basicParser = (hooks as hooksWithBasicLexerParser).basicParser;
 
 		for (const key in tests) {
 			if (tests.hasOwnProperty(key)) {
@@ -809,10 +828,28 @@ QUnit.module("BasicParser: Tests", function (hooks) {
 		}
 	}
 
+	TestHelper.compareAllTests(TestInput.getAllTests(), allTests);
 	TestHelper.generateAllTests(allTests, runTestsFor, hooks);
 });
 
+
 QUnit.module("BasicParser: keepWhiteSpace", function (hooks) {
+	function createBasicParser2() {
+		return new BasicParser({
+			keepBrackets: true,
+			keepColons: true,
+			keepDataComma: true,
+			keepTokens: true,
+			quiet: true
+		});
+	}
+
+	hooks.before(function () {
+		(hooks as hooksWithBasicLexerParser).basicLexer = createBasicLexer(true);
+		(hooks as hooksWithBasicLexerParser).basicParser = createBasicParser2();
+	});
+
+
 	function fnCombineTreeNodes(node: ParserNode | ParserNode[]) {
 		if (node instanceof Array) {
 			const nodeArgs: string[] = [];
@@ -904,23 +941,14 @@ QUnit.module("BasicParser: keepWhiteSpace", function (hooks) {
 	}
 
 	function runTestsForWhitespace(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
+		const basicLexer = (hooks as hooksWithBasicLexerParser).basicLexer,
+			basicParser = (hooks as hooksWithBasicLexerParser).basicParser;
+
 		let spaceCount = 1;
-		const basicLexer = new BasicLexer({
-				keywords: BasicParser.keywords,
-				quiet: true,
-				keepWhiteSpace: true
-			}),
-			basicParser = new BasicParser({
-				keepBrackets: true,
-				keepColons: true,
-				keepDataComma: true,
-				keepTokens: true,
-				quiet: true
-			}),
-			fnSpaceReplacer = function () {
-				spaceCount += 1;
-				return " ".repeat(spaceCount);
-			};
+		const fnSpaceReplacer = function () {
+			spaceCount += 1;
+			return " ".repeat(spaceCount);
+		};
 
 		for (const key in tests) {
 			if (tests.hasOwnProperty(key)) {
@@ -940,6 +968,5 @@ QUnit.module("BasicParser: keepWhiteSpace", function (hooks) {
 		}
 	}
 
-	TestHelper.compareAllTests(TestInput.getAllTests(), allTests);
 	TestHelper.generateAllTests(allTests, runTestsForWhitespace, hooks);
 });

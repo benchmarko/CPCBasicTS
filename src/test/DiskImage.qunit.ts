@@ -13,7 +13,7 @@ QUnit.dump.maxDepth = 10;
 // noDiskInfo: will just show a warning: "DiskImage: name: Disk ident not found at pos 0-9: XXsk-Info"
 // noTrackInfo: will just show a warning: "DiskImage: name: Track ident not found at pos 256-266: XXack-Info"
 
-const allTests: AllTestsType = { // eslint-disable-line vars-on-top
+const allTests: AllTestsType = {
 	dataEmpty: {
 		"CPCBasic;B;0;245;;base64,UEsDBBQAAAAIAMiAj1IH4jtleQAAAAAUAAANAAAAZGF0YUVtcHR5LmRza/MNU9BVcA5wdvUNVXDJLM7WdcvMSeXlAjM989LyeblSgMxMIEsBDDQYGYQZhhEIKUpMhvkUJsbE6feUgeEgE4R3CEofhtJHoPRRKH0MSh+H0ieg9EkoPbjB01EwCkbBKBgFo2AUjIJRMApGwSgYBaNgFIyCUTCsAQBQSwECFAAUAAAACADIgI9SB+I7ZXkAAAAAFAAADQAAAAAAAAAAACAAAAAAAAAAZGF0YUVtcHR5LmRza1BLBQYAAAAAAQABADsAAACkAAAAAAA=": ""
 	},
