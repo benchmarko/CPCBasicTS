@@ -19,6 +19,7 @@ export class CodeGeneratorBasic {
 	private readonly lexer: BasicLexer;
 	private readonly parser: BasicParser;
 	private quiet = false;
+	private hasColons = false;
 
 	private line = 0; // current line (label)
 
@@ -145,27 +146,21 @@ export class CodeGeneratorBasic {
 		}
 
 		for (let i = 0; i < args.length; i += 1) {
-			const value = this.fnParseOneArg(args[i]);
+			let value = this.fnParseOneArg(args[i]);
+
+			if (args[i].type === "'") { // fast hack to put a space before "'", if there is no space previously
+				if (i > 0 && !nodeArgs[i - 1].endsWith(" ") && !nodeArgs[i - 1].endsWith(":")) {
+					value = CodeGeneratorBasic.fnSpace1(value);
+				}
+			}
 
 			nodeArgs.push(value);
 		}
 		return nodeArgs;
 	}
 
-	private static fnColonsAvailable(args: string[]) {
-		let colonsAvailable = false;
-
-		for (let i = 0; i < args.length; i += 1) {
-			if (args[i].trim() === ":") {
-				colonsAvailable = true;
-				break;
-			}
-		}
-		return colonsAvailable;
-	}
-
-	private static combineArgsWithColon(args: string[]) {
-		const separator = CodeGeneratorBasic.fnColonsAvailable(args) ? "" : ":",
+	private combineArgsWithColon(args: string[]) {
+		const separator = this.hasColons ? "" : ":",
 			value = args.join(separator);
 
 		return value;
@@ -238,7 +233,7 @@ export class CodeGeneratorBasic {
 
 		const nodeArgs = this.fnParseArgs(node.args);
 
-		let value = CodeGeneratorBasic.combineArgsWithColon(nodeArgs);
+		let value = this.combineArgsWithColon(nodeArgs);
 
 		if (node.value !== "") { // direct
 			value = node.value + CodeGeneratorBasic.fnSpace1(value);
@@ -248,13 +243,7 @@ export class CodeGeneratorBasic {
 
 	// special keyword functions
 	private vertical(node: ParserNode) { // "|" rsx
-		const nodeArgs = this.fnParseArgs(node.args);
-		let value = node.value.toUpperCase(); // use value!
-
-		if (nodeArgs.length) {
-			value += "," + nodeArgs.join("");
-		}
-		return CodeGeneratorBasic.fnWs(node) + value;
+		return CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase() + this.fnParseArgs(node.args).join("");
 	}
 	private afterEveryGosub(node: ParserNode) {
 		const nodeArgs = this.fnParseArgs(node.args);
@@ -383,7 +372,7 @@ export class CodeGeneratorBasic {
 			partName = nodeArgs.shift() as string; // "then" or "else"
 
 
-		return CodeGeneratorBasic.fnSpace1(partName) + CodeGeneratorBasic.fnSpace1(CodeGeneratorBasic.combineArgsWithColon(nodeArgs));
+		return CodeGeneratorBasic.fnSpace1(partName) + CodeGeneratorBasic.fnSpace1(this.combineArgsWithColon(nodeArgs));
 	}
 
 	private fnIf(node: ParserNode) {
@@ -453,13 +442,15 @@ export class CodeGeneratorBasic {
 	}
 
 	private onSqGosub(node: ParserNode) {
-		const nodeArgs = this.fnParseArgs(node.args);
+		const nodeArgs = this.fnParseArgs(node.args),
+			right = this.fnParseOneArg(node.right as ParserNode);
 
 		nodeArgs[nodeArgs.length - 2] = CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 2]); // "gosub" with space (optional)
 		nodeArgs[nodeArgs.length - 1] = CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 1]); // line number with space
 
-		return CodeGeneratorBasic.fnWs(node) + "ON SQ" + nodeArgs.join("");
+		return CodeGeneratorBasic.fnWs(node) + "ON" + CodeGeneratorBasic.fnSpace1(right) + nodeArgs.join("");
 	}
+
 	private print(node: ParserNode) {
 		const nodeArgs = this.fnParseArgs(node.args);
 		let value = "";
@@ -475,18 +466,16 @@ export class CodeGeneratorBasic {
 		return CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase() + value; // we use value to get PRINT or ?
 	}
 	private rem(node: ParserNode) {
+		/*
 		const nodeArgs = this.fnParseArgs(node.args);
 		let value = nodeArgs.length ? nodeArgs[0] : "";
 
-		if (node.value !== "'" && value !== "") { // for "rem"
-			const arg0 = node.args && node.args[0];
-
-			if (arg0 && !arg0.ws) {
-				value = " " + value; // add removed space
-			}
+		if (node.value !== "'" && value.length) { // for "rem": add removed space
+			value = " " + value; // add removed space
 		}
+		*/
 
-		return CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase() + value; // we use value to get rem or '
+		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(this.fnParseArgs(node.args).join(""));
 	}
 	private using(node: ParserNode) {
 		const nodeArgs = this.fnParseArgs(node.args),
@@ -592,7 +581,7 @@ export class CodeGeneratorBasic {
 		if (keyType) {
 			value = typeUc;
 			if (args.length) {
-				if (keyType.charAt(0) === "f") { // function with parameters?
+				if (keyType.charAt(0) === "f" || node.type === "'") { // function with parameters or apostrophe comment?
 					value += args;
 				} else {
 					value += CodeGeneratorBasic.fnSpace1(args);
@@ -718,7 +707,7 @@ export class CodeGeneratorBasic {
 					if (output.length === 0) {
 						output = line;
 					} else {
-						output += "\n" + line;
+							output += line;
 					}
 				} else {
 					output = ""; // cls (clear output when node is set to null)
@@ -732,6 +721,8 @@ export class CodeGeneratorBasic {
 		const out: IOutput = {
 			text: ""
 		};
+
+		this.hasColons = Boolean(this.parser.getOptions().keepColons);
 
 		this.line = 0;
 		try {

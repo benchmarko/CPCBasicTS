@@ -493,10 +493,10 @@ export class CodeGeneratorToken {
 	private vertical(node: ParserNode) { // "|" for rsx
 		const rsxName = node.value.substring(1).toUpperCase(),
 			nodeArgs = this.fnParseArgs(node.args),
-			offset = 0; // (offset to tokens following RSX name) TODO
+			offset = 0; // offset to tokens following RSX name
 
 		// if rsxname.length=0 we take 0x80 from empty getBit7TerminatedString
-		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + (rsxName.length ? CodeGeneratorToken.convUInt8ToString(offset) : "") + CodeGeneratorToken.getBit7TerminatedString(rsxName) + (nodeArgs.length ? "," + nodeArgs.join("") : "");
+		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + (rsxName.length ? CodeGeneratorToken.convUInt8ToString(offset) : "") + CodeGeneratorToken.getBit7TerminatedString(rsxName) + nodeArgs.join("");
 	}
 
 	private fnElse(node: ParserNode) { // similar to a comment, with (un?)checked tokens
@@ -535,18 +535,15 @@ export class CodeGeneratorToken {
 		if (node.args && node.args.length && node.args[0].value === "0") { // on error goto 0?
 			return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("_onErrorGoto0");
 		}
-		//return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("on") + CodeGeneratorToken.token2String("error") + CodeGeneratorToken.token2String("goto") + this.fnParseArgs(node.args).join("");
 		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("on") + this.parseNode(node.right as ParserNode) + this.fnParseArgs(node.args).join("");
 	}
 
 	private onSqGosub(node: ParserNode) {
-		return CodeGeneratorToken.token2String("_onSq") + this.fnParseArgs(node.args).join("");
+		return CodeGeneratorToken.token2String("_onSq") + this.fnParseArgs((node.right as ParserNode).args).join("") + this.fnParseArgs(node.args).join("");
 	}
 
-	private rem(node: ParserNode) {
-		const nodeArgs = this.fnParseArgs(node.args);
-
-		return CodeGeneratorToken.fnGetWs(node) + (node.value === "'" ? CodeGeneratorToken.token2String(":") : "") + CodeGeneratorToken.token2String(node.value.toLowerCase()) + (nodeArgs.length ? nodeArgs[0] : ""); // we use value to get REM or '
+	private apostrophe(node: ParserNode) {
+		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(":") + CodeGeneratorToken.token2String(node.type) + this.fnParseArgs(node.args).join("");
 	}
 
 	/* eslint-disable no-invalid-this */
@@ -557,6 +554,7 @@ export class CodeGeneratorToken {
 		string: CodeGeneratorToken.string,
 		ustring: CodeGeneratorToken.ustring,
 		"null": CodeGeneratorToken.fnNull,
+		"(eol)": CodeGeneratorToken.fnNull, // ignore newline "\n"
 		assign: this.assign,
 		number: CodeGeneratorToken.number,
 		expnumber: CodeGeneratorToken.number, // same handling as for number
@@ -573,7 +571,7 @@ export class CodeGeneratorToken {
 		onBreakStop: this.onBreakContOrGosubOrStop,
 		onErrorGoto: this.onErrorGoto,
 		onSqGosub: this.onSqGosub,
-		rem: this.rem
+		"'": this.apostrophe
 	};
 	/* eslint-enable no-invalid-this */
 

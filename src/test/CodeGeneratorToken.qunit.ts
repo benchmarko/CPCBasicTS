@@ -5,7 +5,9 @@ import { BasicLexer } from "../BasicLexer";
 import { BasicParser } from "../BasicParser";
 import { CodeGeneratorToken } from "../CodeGeneratorToken";
 import { TestHelper, TestsType, AllTestsType, ResultType } from "./TestHelper";
+import { TestInput } from "./TestInput";
 
+/* eslint-disable quote-props */
 const allTests: AllTestsType = {
 	numbers: {
 		"a=1": "0D,00,00,E1,EF,0F",
@@ -39,7 +41,7 @@ const allTests: AllTestsType = {
 		"a=&h": "BasicLexer: Expected hex number at pos 2-4: &h",
 		"a=&x": "BasicLexer: Expected binary number at pos 2-4: &x",
 		"a=&x2": "BasicLexer: Expected binary number at pos 2-4: &x",
-		"a ": "BasicParser: Expected = at pos 2: (end)",
+		"a": "BasicParser: Expected = at pos 1: (end)",
 		"1 a=": "BasicParser: Unexpected end of file in 1 at pos 4: ",
 		"1 5=7": "BasicParser: Bad expression statement in 1 at pos 2-3: 5",
 		"1 let 5=7": "BasicParser: Expected variable in 1 at pos 6-7: 5"
@@ -97,7 +99,7 @@ const allTests: AllTestsType = {
 		"a=1>=1>1": "0D,00,00,E1,EF,0F,F0,0F,EE,0F"
 	},
 	"Line numbers": {
-		"1 ": "05,00,01,00,00,00,00",
+		"1": "05,00,01,00,00,00,00",
 		"0 cls": "06,00,00,00,8A,00,00,00",
 		"65535 cls": "06,00,FF,FF,8A,00,00,00",
 		"65536 cls": "06,00,00,100,8A,00,00,00",
@@ -117,7 +119,7 @@ const allTests: AllTestsType = {
 		'a=asc("A")': "0D,00,00,E1,EF,FF,01,28,22,41,22,29",
 		"a!=asc(b$) and c%": "04,00,00,E1,EF,FF,01,28,03,00,00,E2,29,20,FA,20,02,00,00,E3",
 		"a=atn(2.3)": "0D,00,00,E1,EF,FF,02,28,1F,33,33,33,13,82,29",
-		"auto ": "81",
+		"auto": "81",
 		"auto 100": "81,20,19,64"
 	},
 	"bin$, border": {
@@ -130,7 +132,7 @@ const allTests: AllTestsType = {
 	"call, cat, chain, chain merge, chr$, cint, clg, closein, closeout, cls, cont, copychr$, cos, creal, cursor": {
 		"call&a7bc": "83,1C,BC,A7",
 		"call 4711,1,2,3,4": "83,20,1A,67,12,2C,0F,2C,10,2C,11,2C,12",
-		"cat ": "84",
+		"cat": "84",
 		'chain"f1"': "85,22,66,31,22",
 		'chain"f2" , 10': "85,22,66,32,22,20,2C,20,19,0A",
 		'chain"f3" , 10+3': "85,22,66,33,22,20,2C,20,19,0A,F4,11",
@@ -143,21 +145,21 @@ const allTests: AllTestsType = {
 		'chain merge "f5" , , delete 100-200': "85,20,AB,20,22,66,35,22,20,2C,20,2C,20,92,20,1E,64,00,F5,1E,C8,00",
 		"a=chr$(65)": "0D,00,00,E1,EF,FF,03,28,19,41,29",
 		"a=cint(2.3)": "0D,00,00,E1,EF,FF,04,28,1F,33,33,33,13,82,29",
-		"clear ": "86",
+		"clear": "86",
 		"clear input": "86,20,A3",
-		"clg ": "87",
+		"clg": "87",
 		"clg 15-1": "87,20,19,0F,F5,0F",
-		"closein ": "88",
-		"closeout ": "89",
-		"cls ": "8A",
+		"closein": "88",
+		"closeout": "89",
+		"cls": "8A",
 		"cls #5": "8A,20,23,13",
 		"cls #a+7-2*b": "8A,20,23,0D,00,00,E1,F4,15,F5,10,F6,0D,00,00,E2",
-		"cont ": "8B",
+		"cont": "8B",
 		"a$=copychr$(#0)": "03,00,00,E1,EF,FF,7E,28,23,0E,29",
 		"a$=copychr$(#a+1)": "03,00,00,E1,EF,FF,7E,28,23,0D,00,00,E1,F4,0F,29",
 		"a=cos(2.3)": "0D,00,00,E1,EF,FF,05,28,1F,33,33,33,13,82,29",
 		"a=creal(2.3+a)": "0D,00,00,E1,EF,FF,06,28,1F,33,33,33,13,82,F4,0D,00,00,E1,29",
-		"cursor ": "E1",
+		"cursor": "E1",
 		"cursor 0": "E1,20,0E",
 		"cursor 1": "E1,20,0F",
 		"cursor 1,1": "E1,20,0F,2C,0F",
@@ -168,7 +170,7 @@ const allTests: AllTestsType = {
 		"cursor #2,,1": "E1,20,23,10,2C,2C,0F"
 	},
 	"data, dec$, def fn, defint, defreal, defstr, deg, delete, derr, di, dim, draw, drawr": {
-		"data ": "8C,20",
+		"data": "8C",
 		"data ,": "8C,20,2C",
 		"data \\": "8C,20,5C",
 		"data 1,2,3": "8C,20,31,2C,32,2C,33",
@@ -221,7 +223,7 @@ const allTests: AllTestsType = {
 		"defstr a:ab=ab+de[7]": "90,20,61,01,0D,00,00,61,E2,EF,0D,00,00,61,E2,F4,0D,00,00,64,E5,5B,15,5D",
 		"1 defstr z-a": "0A,00,01,00,90,20,7A,2D,61,00,00,00",
 		'defstr f:f(x)="w"': "90,20,66,01,0D,00,00,E6,28,0D,00,00,F8,29,EF,22,77,22",
-		"deg ": "91",
+		"deg": "91",
 		"delete": "92",
 		"delete -": "92,20,F5",
 		"delete ,": "92,20,2C",
@@ -234,7 +236,7 @@ const allTests: AllTestsType = {
 		"1 delete 1+2": "BasicParser: Expected : in 1 at pos 10-11: +",
 		"1 delete a": "BasicParser: Expected : in 1 at pos 9-10: a",
 		"a=derr": "0D,00,00,E1,EF,FF,49",
-		"di ": "DB",
+		"di": "DB",
 		"dim a(1)": "93,20,0D,00,00,E1,28,0F,29",
 		"dim a!(1)": "93,20,04,00,00,E1,28,0F,29",
 		"dim a%(1)": "93,20,02,00,00,E1,28,0F,29",
@@ -255,11 +257,11 @@ const allTests: AllTestsType = {
 	},
 	"edit, ei, else, end, ent, env, eof, erase, erl, err, error, every gosub, exp": {
 		"edit 20": "96,20,1E,14,00",
-		"ei ": "DC",
+		"ei": "DC",
 		"else": "01,97",
 		"else 10": "01,97,20,1E,0A,00",
 		"else a=7": "01,97,61,3D,37",
-		"end ": "98",
+		"end": "98",
 		"ent 1": "99,20,0F",
 		"ent 1,2,a,4": "99,20,0F,2C,10,2C,0D,00,00,E1,2C,12",
 		"ent num,steps,dist,ti,steps2,dist2,ti2": "99,20,0D,00,00,6E,75,ED,2C,0D,00,00,73,74,65,70,F3,2C,0D,00,00,64,69,73,F4,2C,0D,00,00,74,E9,2C,0D,00,00,73,74,65,70,73,B2,2C,0D,00,00,64,69,73,74,B2,2C,0D,00,00,74,69,B2",
@@ -308,7 +310,7 @@ const allTests: AllTestsType = {
 		"defint a:for abc=1 to 10 step 3:next abc": "8E,20,61,01,9E,20,0D,00,00,61,62,E3,EF,0F,20,EC,20,19,0A,20,E6,20,11,01,B0,20,0D,00,00,61,62,E3",
 		"defstr a:for abc=1 to 10 step 3:next abc": "90,20,61,01,9E,20,0D,00,00,61,62,E3,EF,0F,20,EC,20,19,0A,20,E6,20,11,01,B0,20,0D,00,00,61,62,E3",
 		"for a=b to c step s:defint a-b:a=0:defreal a:next": "9E,20,0D,00,00,E1,EF,0D,00,00,E2,20,EC,20,0D,00,00,E3,20,E6,20,0D,00,00,F3,01,8E,20,61,2D,62,01,0D,00,00,E1,EF,0E,01,8F,20,61,01,B0",
-		"frame ": "E0",
+		"frame": "E0",
 		"a=fre(0)": "0D,00,00,E1,EF,FF,09,28,0E,29",
 		'a=fre("")': "0D,00,00,E1,EF,FF,09,28,22,22,29",
 		"a=fre(b-2)": "0D,00,00,E1,EF,FF,09,28,0D,00,00,E2,F5,10,29",
@@ -395,7 +397,7 @@ const allTests: AllTestsType = {
 		'line input ;"para noCRLF";a$': "A6,20,A3,20,3B,22,70,61,72,61,20,6E,6F,43,52,4C,46,22,3B,03,00,00,E1",
 		'line input#2,;"para noCRLF";a$': "A6,20,A3,23,10,2C,3B,22,70,61,72,61,20,6E,6F,43,52,4C,46,22,3B,03,00,00,E1",
 		'line input#stream,;"string";a$': "A6,20,A3,23,0D,00,00,73,74,72,65,61,ED,2C,3B,22,73,74,72,69,6E,67,22,3B,03,00,00,E1",
-		"list ": "A7",
+		"list": "A7",
 		"list -": "A7,20,F5",
 		"list ,": "A7,20,2C",
 		"list -,": "A7,20,F5,2C",
@@ -463,8 +465,8 @@ const allTests: AllTestsType = {
 		"mover x,y,m,g1": "AF,20,0D,00,00,F8,2C,0D,00,00,F9,2C,0D,00,00,ED,2C,0D,00,00,67,B1"
 	},
 	"new, next, not": {
-		"new ": "B1",
-		"for a=1 to 2: next ": "9E,20,0D,00,00,E1,EF,0F,20,EC,20,10,01,20,B0",
+		"new": "B1",
+		"for a=1 to 2: next": "9E,20,0D,00,00,E1,EF,0F,20,EC,20,10,01,20,B0",
 		"for i=1 to 2: next i": "9E,20,0D,00,00,E9,EF,0F,20,EC,20,10,01,20,B0,20,0D,00,00,E9",
 		"for j=1 to 2:for i=3 to 4: next i,j": "9E,20,0D,00,00,EA,EF,0F,20,EC,20,10,01,9E,20,0D,00,00,E9,EF,11,20,EC,20,12,01,20,B0,20,0D,00,00,E9,2C,0D,00,00,EA",
 		"a=not 2": "0D,00,00,E1,EF,FE,20,10",
@@ -528,7 +530,7 @@ const allTests: AllTestsType = {
 		"poke adr,by": "BE,20,0D,00,00,61,64,F2,2C,0D,00,00,62,F9",
 		"a=pos(#0)": "0D,00,00,E1,EF,FF,78,28,23,0E,29",
 		"a=pos(#stream)": "0D,00,00,E1,EF,FF,78,28,23,0D,00,00,73,74,72,65,61,ED,29",
-		"print ": "BF",
+		"print": "BF",
 		"print ,": "BF,20,2C",
 		"print ;": "BF,20,3B",
 		"print #2": "BF,20,23,10",
@@ -552,15 +554,15 @@ const allTests: AllTestsType = {
 		"?#2,ti-t0!;spc(5);": "BF,23,10,2C,0D,00,00,74,E9,F5,04,00,00,74,B0,3B,E5,28,13,29,3B"
 	},
 	"rad, randomize, read, release, rem, remain, renum, restore, resume, return, right$, rnd, round, run": {
-		"rad ": "C1",
-		"randomize ": "C2",
+		"rad": "C1",
+		"randomize": "C2",
 		"randomize 123.456": "C2,20,1F,D5,78,E9,76,87",
 		"read a$": "C3,20,03,00,00,E1",
 		"read b": "C3,20,0D,00,00,E2",
 		"read a$,b,c$": "C3,20,03,00,00,E1,2C,0D,00,00,E2,2C,03,00,00,E3",
 		"release 1": "C4,20,0F",
 		"release n+1": "C4,20,0D,00,00,EE,F4,0F",
-		"rem ": "C5",
+		"rem": "C5",
 		"rem comment until EOL": "C5,20,63,6F,6D,6D,65,6E,74,20,75,6E,74,69,6C,20,45,4F,4C",
 		"rem \\": "C5,20,5C",
 		"'": "01,C0",
@@ -569,23 +571,23 @@ const allTests: AllTestsType = {
 		"a=1 'comment": "0D,00,00,E1,EF,0F,20,01,C0,63,6F,6D,6D,65,6E,74",
 		"a=remain(0)": "0D,00,00,E1,EF,FF,13,28,0E,29",
 		"a=remain(ti)": "0D,00,00,E1,EF,FF,13,28,0D,00,00,74,E9,29",
-		"renum ": "C6",
+		"renum": "C6",
 		"renum 100": "C6,20,19,64",
 		"renum 100,50": "C6,20,19,64,2C,19,32",
 		"renum 100,50,2": "C6,20,19,64,2C,19,32,2C,10",
-		"restore ": "C7",
+		"restore": "C7",
 		"10 restore 10": "0A,00,0A,00,C7,20,1E,0A,00,00,00,00",
-		"resume ": "C8",
+		"resume": "C8",
 		"10 resume 10": "0A,00,0A,00,C8,20,1E,0A,00,00,00,00",
 		"resume next": "C8,20,B0",
-		"return ": "C9",
+		"return": "C9",
 		"a$=right$(b$,n)": "03,00,00,E1,EF,FF,79,28,03,00,00,E2,2C,0D,00,00,EE,29",
 		"a=rnd": "0D,00,00,E1,EF,FF,45",
 		"a=rnd(0)": "0D,00,00,E1,EF,FF,45,28,0E,29",
 		"a=rnd(-1*b)": "0D,00,00,E1,EF,FF,45,28,F5,0F,F6,0D,00,00,E2,29",
 		"a=round(2.335)": "0D,00,00,E1,EF,FF,7A,28,1F,D7,A3,70,15,82,29",
 		"a=round(2.335,2)": "0D,00,00,E1,EF,FF,7A,28,1F,D7,A3,70,15,82,2C,10,29",
-		"run ": "CA",
+		"run": "CA",
 		"10 run 10": "0A,00,0A,00,CA,20,1E,0A,00,00,00,00",
 		'run "file"': "CA,20,22,66,69,6C,65,22",
 		"run f$": "CA,20,03,00,00,E6"
@@ -621,7 +623,7 @@ const allTests: AllTestsType = {
 		"a=sq(1)": "0D,00,00,E1,EF,FF,17,28,0F,29",
 		"a=sq(channel)": "0D,00,00,E1,EF,FF,17,28,0D,00,00,63,68,61,6E,6E,65,EC,29",
 		"a=sqr(9)": "0D,00,00,E1,EF,FF,18,28,17,29",
-		"stop ": "CE",
+		"stop": "CE",
 		"a$=str$(123)": "03,00,00,E1,EF,FF,19,28,19,7B,29",
 		"a$=str$(a+b)": "03,00,00,E1,EF,FF,19,28,0D,00,00,E1,F4,0D,00,00,E2,29",
 		'a$=string$(40,"*")': "03,00,00,E1,EF,FF,7B,28,19,28,2C,22,2A,22,29",
@@ -632,10 +634,10 @@ const allTests: AllTestsType = {
 		"symbol after 255": "CF,20,80,20,19,FF"
 	},
 	"tag, tagoff, tan, test, testr, time, troff, tron": {
-		"tag ": "D0",
+		"tag": "D0",
 		"tag#2": "D0,23,10",
 		"tag#stream": "D0,23,0D,00,00,73,74,72,65,61,ED",
-		"tagoff ": "D1",
+		"tagoff": "D1",
 		"tagoff#2": "D1,23,10",
 		"tagoff#stream": "D1,23,0D,00,00,73,74,72,65,61,ED",
 		"a=tan(45)": "0D,00,00,E1,EF,FF,1A,28,19,2D,29",
@@ -644,8 +646,8 @@ const allTests: AllTestsType = {
 		"a=testr(10,-20)": "0D,00,00,E1,EF,FF,7D,28,19,0A,2C,F5,19,14,29",
 		"a=testr(xm,ym)": "0D,00,00,E1,EF,FF,7D,28,0D,00,00,78,ED,2C,0D,00,00,79,ED,29",
 		"t!=time": "04,00,00,F4,EF,FF,46",
-		"troff ": "D2",
-		"tron ": "D3"
+		"troff": "D2",
+		"tron": "D3"
 	},
 	"unt, upper$": {
 		"a=unt(&ff66)": "0D,00,00,E1,EF,FF,1B,28,1C,66,FF,29",
@@ -661,7 +663,7 @@ const allTests: AllTestsType = {
 	"wait, wend, while, width, window, window swap, write": {
 		"wait &ff34,20": "D4,20,1C,34,FF,2C,19,14",
 		"wait &ff34,20,25": "D4,20,1C,34,FF,2C,19,14,2C,19,19",
-		"while a=10: wend ": "D6,20,0D,00,00,E1,EF,19,0A,01,20,D5",
+		"while a=10: wend": "D6,20,0D,00,00,E1,EF,19,0A,01,20,D5",
 		"while a>0": "D6,20,0D,00,00,E1,EE,0E",
 		"width 40": "D7,20,19,28",
 		"window 10,30,5,20": "D8,20,19,0A,2C,19,1E,2C,13,2C,19,14",
@@ -670,7 +672,7 @@ const allTests: AllTestsType = {
 		"window swap 1": "D8,20,E7,20,0F",
 		"window swap 1,0": "D8,20,E7,20,0F,2C,0E",
 		"1 window swap #1": "BasicParser: Expected number in 1 at pos 14-15: #",
-		"write ": "D9",
+		"write": "D9",
 		"write #2": "D9,20,23,10",
 		"write #2,": "D9,20,23,10,2C",
 		'write "string"': "D9,20,22,73,74,72,69,6E,67,22",
@@ -725,9 +727,9 @@ const allTests: AllTestsType = {
 		" 1  if    a  =  1     then  1     else    goto  1": "31,00,01,00,20,A1,20,20,20,20,0D,00,00,E1,20,20,EF,20,20,0F,20,20,20,20,20,EB,20,20,1E,01,00,20,20,20,20,20,01,97,20,20,20,20,A0,20,20,1E,01,00,00,00,00",
 		" 1  line   input  a$": "11,00,01,00,20,A6,20,20,20,A3,20,20,03,00,00,E1,00,00,00",
 		" 1  on  break   cont": "0B,00,01,00,20,B3,20,20,20,8B,00,00,00",
-		" 1  on  break   gosub   1 ": "11,00,01,00,20,B3,20,20,20,9F,20,20,20,1E,01,00,00,00,00",
+		" 1  on  break   gosub   1": "11,00,01,00,20,B3,20,20,20,9F,20,20,20,1E,01,00,00,00,00",
 		" 1  on  break   stop": "0B,00,01,00,20,B3,20,20,20,CE,00,00,00",
-		" 1  on  error   goto   1 ": "14,00,01,00,20,B2,20,20,9C,20,20,20,A0,20,20,20,1E,01,00,00,00,00",
+		" 1  on  error   goto   1": "14,00,01,00,20,B2,20,20,9C,20,20,20,A0,20,20,20,1E,01,00,00,00,00",
 		" 1  on  x  gosub   1  ,  2\n2  rem": "1E,00,01,00,20,B2,20,20,0D,00,00,F8,20,20,9F,20,20,20,1E,01,00,20,20,2C,20,20,1E,02,00,00,07,00,02,00,20,C5,00,00,00",
 		" 1  on  x  goto   1  ,  2\n2  rem": "1E,00,01,00,20,B2,20,20,0D,00,00,F8,20,20,A0,20,20,20,1E,01,00,20,20,2C,20,20,1E,02,00,00,07,00,02,00,20,C5,00,00,00",
 		' 1   print   using    "####" ;  ri  ;': "22,00,01,00,20,20,BF,20,20,20,ED,20,20,20,20,22,23,23,23,23,22,20,3B,20,20,0D,00,00,72,E9,20,20,3B,00,00,00",
@@ -736,13 +738,14 @@ const allTests: AllTestsType = {
 		"a=1 'comment": "0D,00,00,E1,EF,0F,20,01,C0,63,6F,6D,6D,65,6E,74",
 		"a=1 :'comment": "0D,00,00,E1,EF,0F,20,01,01,C0,63,6F,6D,6D,65,6E,74",
 		"::a=3-2-1: :": "01,01,0D,00,00,E1,EF,11,F5,10,F5,0F,01,20,01",
-		" a =  ( b% >= c%  ) *     ( d <=e )  ": "20,0D,00,00,E1,20,EF,20,20,28,20,02,00,00,E2,20,F0,20,02,00,00,E3,20,20,29,20,F6,20,20,20,20,20,28,20,0D,00,00,E4,20,F3,0D,00,00,E5,20,29",
+		" a =  ( b% >= c%  ) *     ( d <=e )  ": "20,0D,00,00,E1,20,EF,20,20,28,20,02,00,00,E2,20,F0,20,02,00,00,E3,20,20,29,20,F6,20,20,20,20,20,28,20,0D,00,00,E4,20,F3,0D,00,00,E5,20,29,20,20",
 		"a = (((3+2))*((3-7)))": "0D,00,00,E1,20,EF,20,28,28,28,11,F4,10,29,29,F6,28,28,11,F5,15,29,29,29"
 	},
 	PRG: {
 		'100 \'Das Raetsel\n110 \'21.5.1988 Kopf um Kopf\n120 \'ab*c=de  de+fg=hi   [dabei sind a-i verschiedene Ziffern 1-9!!]\n130 MODE 1:PRINT"Please wait ...  ( ca. 1 min 34 sec )"\n140 CLEAR:DEFINT a-y\n150 \'\n155 z=TIME\n160 FOR a=1 TO 9:FOR b=1 TO 9:FOR c=1 TO 9:FOR f=1 TO 9:FOR g=1 TO 9\n170 de=(a*10+b)*c:IF de>99 THEN 320\n180 hi=de+(f*10+g):IF hi>99 THEN 320\n190 d=INT(de/10):e=de MOD 10:h=INT(hi/10):i=hi MOD 10\n200 IF a=b OR a=c OR a=d OR a=e OR a=f OR a=g OR a=h OR a=i THEN 320\n210 IF b=c OR b=d OR b=e OR b=f OR b=g OR b=h OR b=i THEN 320\n220 IF c=d OR c=e OR c=f OR c=g OR c=h OR c=i THEN 320\n230 IF d=e OR d=f OR d=g OR d=h OR d=i THEN 320\n240 IF e=f OR e=g OR e=h OR e=i THEN 320\n250 IF f=g OR f=h OR f=i THEN 320\n260 IF g=h OR g=i THEN 320\n270 IF h=i THEN 320\n280 IF i=0 THEN 320\n285 z=TIME-z\n290 CLS:PRINT"Die Loesung:":PRINT\n300 PRINT a*10+b"*"c"="de" / "de"+"f*10+g"="hi\n310 PRINT z,z/300:STOP\n320 NEXT g,f,c,b,a\n': "12,00,64,00,01,C0,44,61,73,20,52,61,65,74,73,65,6C,00,1D,00,6E,00,01,C0,32,31,2E,35,2E,31,39,38,38,20,4B,6F,70,66,20,75,6D,20,4B,6F,70,66,00,46,00,78,00,01,C0,61,62,2A,63,3D,64,65,20,20,64,65,2B,66,67,3D,68,69,20,20,20,5B,64,61,62,65,69,20,73,69,6E,64,20,61,2D,69,20,76,65,72,73,63,68,69,65,64,65,6E,65,20,5A,69,66,66,65,72,6E,20,31,2D,39,21,21,5D,00,31,00,82,00,AD,20,0F,01,BF,22,50,6C,65,61,73,65,20,77,61,69,74,20,2E,2E,2E,20,20,28,20,63,61,2E,20,31,20,6D,69,6E,20,33,34,20,73,65,63,20,29,22,00,0C,00,8C,00,86,01,8E,20,61,2D,79,00,07,00,96,00,01,C0,00,0C,00,9B,00,0D,00,00,FA,EF,FF,46,00,45,00,A0,00,9E,20,0D,00,00,E1,EF,0F,20,EC,20,17,01,9E,20,0D,00,00,E2,EF,0F,20,EC,20,17,01,9E,20,0D,00,00,E3,EF,0F,20,EC,20,17,01,9E,20,0D,00,00,E6,EF,0F,20,EC,20,17,01,9E,20,0D,00,00,E7,EF,0F,20,EC,20,17,00,2F,00,AA,00,0D,00,00,64,E5,EF,28,0D,00,00,E1,F6,19,0A,F4,0D,00,00,E2,29,F6,0D,00,00,E3,01,A1,20,0D,00,00,64,E5,EE,19,63,20,EB,20,1E,40,01,00,30,00,B4,00,0D,00,00,68,E9,EF,0D,00,00,64,E5,F4,28,0D,00,00,E6,F6,19,0A,F4,0D,00,00,E7,29,01,A1,20,0D,00,00,68,E9,EE,19,63,20,EB,20,1E,40,01,00,48,00,BE,00,0D,00,00,E4,EF,FF,0C,28,0D,00,00,64,E5,F7,19,0A,29,01,0D,00,00,E5,EF,0D,00,00,64,E5,20,FB,20,19,0A,01,0D,00,00,E8,EF,FF,0C,28,0D,00,00,68,E9,F7,19,0A,29,01,0D,00,00,E9,EF,0D,00,00,68,E9,20,FB,20,19,0A,00,6A,00,C8,00,A1,20,0D,00,00,E1,EF,0D,00,00,E2,20,FC,20,0D,00,00,E1,EF,0D,00,00,E3,20,FC,20,0D,00,00,E1,EF,0D,00,00,E4,20,FC,20,0D,00,00,E1,EF,0D,00,00,E5,20,FC,20,0D,00,00,E1,EF,0D,00,00,E6,20,FC,20,0D,00,00,E1,EF,0D,00,00,E7,20,FC,20,0D,00,00,E1,EF,0D,00,00,E8,20,FC,20,0D,00,00,E1,EF,0D,00,00,E9,20,EB,20,1E,40,01,00,5E,00,D2,00,A1,20,0D,00,00,E2,EF,0D,00,00,E3,20,FC,20,0D,00,00,E2,EF,0D,00,00,E4,20,FC,20,0D,00,00,E2,EF,0D,00,00,E5,20,FC,20,0D,00,00,E2,EF,0D,00,00,E6,20,FC,20,0D,00,00,E2,EF,0D,00,00,E7,20,FC,20,0D,00,00,E2,EF,0D,00,00,E8,20,FC,20,0D,00,00,E2,EF,0D,00,00,E9,20,EB,20,1E,40,01,00,52,00,DC,00,A1,20,0D,00,00,E3,EF,0D,00,00,E4,20,FC,20,0D,00,00,E3,EF,0D,00,00,E5,20,FC,20,0D,00,00,E3,EF,0D,00,00,E6,20,FC,20,0D,00,00,E3,EF,0D,00,00,E7,20,FC,20,0D,00,00,E3,EF,0D,00,00,E8,20,FC,20,0D,00,00,E3,EF,0D,00,00,E9,20,EB,20,1E,40,01,00,46,00,E6,00,A1,20,0D,00,00,E4,EF,0D,00,00,E5,20,FC,20,0D,00,00,E4,EF,0D,00,00,E6,20,FC,20,0D,00,00,E4,EF,0D,00,00,E7,20,FC,20,0D,00,00,E4,EF,0D,00,00,E8,20,FC,20,0D,00,00,E4,EF,0D,00,00,E9,20,EB,20,1E,40,01,00,3A,00,F0,00,A1,20,0D,00,00,E5,EF,0D,00,00,E6,20,FC,20,0D,00,00,E5,EF,0D,00,00,E7,20,FC,20,0D,00,00,E5,EF,0D,00,00,E8,20,FC,20,0D,00,00,E5,EF,0D,00,00,E9,20,EB,20,1E,40,01,00,2E,00,FA,00,A1,20,0D,00,00,E6,EF,0D,00,00,E7,20,FC,20,0D,00,00,E6,EF,0D,00,00,E8,20,FC,20,0D,00,00,E6,EF,0D,00,00,E9,20,EB,20,1E,40,01,00,22,00,04,01,A1,20,0D,00,00,E7,EF,0D,00,00,E8,20,FC,20,0D,00,00,E7,EF,0D,00,00,E9,20,EB,20,1E,40,01,00,16,00,0E,01,A1,20,0D,00,00,E8,EF,0D,00,00,E9,20,EB,20,1E,40,01,00,13,00,18,01,A1,20,0D,00,00,E9,EF,0E,20,EB,20,1E,40,01,00,11,00,1D,01,0D,00,00,FA,EF,FF,46,F5,0D,00,00,FA,00,18,00,22,01,8A,01,BF,22,44,69,65,20,4C,6F,65,73,75,6E,67,3A,22,01,BF,00,43,00,2C,01,BF,20,0D,00,00,E1,F6,19,0A,F4,0D,00,00,E2,22,2A,22,0D,00,00,E3,22,3D,22,0D,00,00,64,E5,22,20,2F,20,22,0D,00,00,64,E5,22,2B,22,0D,00,00,E6,F6,19,0A,F4,0D,00,00,E7,22,3D,22,0D,00,00,68,E9,00,16,00,36,01,BF,20,0D,00,00,FA,2C,0D,00,00,FA,F7,1A,2C,01,01,CE,00,1F,00,40,01,B0,20,0D,00,00,E7,2C,0D,00,00,E6,2C,0D,00,00,E3,2C,0D,00,00,E2,2C,0D,00,00,E1,00,00,00"
 	}
 };
+/* eslint-enable quote-props */
 
 // notes:
 // "::a=3-2-1: :": "01,01,0D,00,00,E1,EF,11,F5,10,F5,0F,01,01",
@@ -794,6 +797,7 @@ QUnit.module("CodeGeneratorToken: Tests", function (hooks) {
 		}
 	}
 
+	TestHelper.compareAllTests(TestInput.getAllTests(), allTests);
 	TestHelper.generateAllTests(allTests, runTestsFor, hooks);
 });
 

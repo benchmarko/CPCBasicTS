@@ -87,6 +87,18 @@ export class BasicParser {
 		}
 	}
 
+	getOptions(): BasicParserOptions {
+		const options: BasicParserOptions = {
+			keepBrackets: this.keepBrackets,
+			keepColons: this.keepColons,
+			keepDataComma: this.keepDataComma,
+			keepTokens: this.keepTokens,
+			quiet: this.quiet
+		};
+
+		return options;
+	}
+
 	constructor(options?: BasicParserOptions) {
 		if (options) {
 			this.setOptions(options);
@@ -247,6 +259,7 @@ export class BasicParser {
 		read: "c v v*", // READ <list of: variable>
 		release: "c n", // RELEASE <sound channels>  / (sound channels=1..7)
 		rem: "c s?", // REM <rest of line>
+		"'": "c s?", // '<rest of line> (apostrophe comment)
 		remain: "f n", // REMAIN(<timer number>)  / (timer number=0..3)
 		renum: "c n0? n0? n?", // RENUM [<new line number>][,<old line number>][,<increment>]
 		restore: "c l?", // RESTORE [<line number>]
@@ -310,7 +323,6 @@ export class BasicParser {
 
 	/* eslint-disable no-invalid-this */
 	private readonly specialStatements: Record<string, () => ParserNode> = { // to call methods, use specialStatements[].call(this,...)
-		"'": this.apostrophe,
 		"|": this.rsx, // rsx
 		after: this.afterEveryGosub,
 		chain: this.chain,
@@ -560,11 +572,11 @@ export class BasicParser {
 
 		if (this.token.type === "(eol)") {
 			if (this.keepTokens) { // not really a token
-				if (this.token.ws) {
-					node.args.push(this.token); // eol token with whitespace
-				}
+				node.args.push(this.token); // eol token with whitespace
 			}
 			this.advance();
+		} else if (this.token.type === "(end)" && this.token.ws && this.keepTokens) {
+			node.args.push(this.token); // end token with whitespace
 		}
 		return node;
 	}
@@ -962,10 +974,6 @@ export class BasicParser {
 		return node;
 	}
 
-	private apostrophe() { // "'" apostrophe comment => rem
-		return this.fnCreateCmdCallForType("rem");
-	}
-
 	private rsx() { // rsx: "|"
 		const node = this.previousToken;
 
@@ -975,6 +983,9 @@ export class BasicParser {
 
 		if (this.token.type === ",") { // arguments starting with comma
 			this.advance();
+			if (this.keepTokens) {
+				node.args.push(this.previousToken);
+			}
 			type = "_rsx1"; // dummy token: expect at least 1 argument
 		}
 		this.fnGetArgs(node.args, type); // get arguments
@@ -1231,7 +1242,7 @@ export class BasicParser {
 			if ((i === 0 && tokenType === "linenumber") || tokenType === "goto" || tokenType === "stop") {
 				const index = i + 1;
 
-				if (index < args.length && (args[index].type !== "rem")) {
+				if (index < args.length && (args[index].type !== "rem") && (args[index].type !== "'")) {
 					if (args[index].type === ":" && this.keepColons) {
 						// ignore
 					} else if (!this.quiet) {
@@ -1391,7 +1402,6 @@ export class BasicParser {
 
 	private on() {
 		const node = this.previousToken;
-		let left: ParserNode;
 
 		node.args = [];
 
@@ -1410,19 +1420,18 @@ export class BasicParser {
 			this.fnCombineTwoTokens("goto"); // onErrorGoto
 			break;
 		case "sq": // on sq(n) gosub
-			left = this.expression(0);
-			if (!left.args) {
+			node.right = this.expression(0);
+			if (!node.right.args) {
 				throw this.composeError(Error(), "Programming error: Undefined args", this.token.type, this.token.pos); // should not occur
 			}
 			this.token = this.getToken();
 			this.advance("gosub");
 			if (this.keepTokens) {
-				node.args.push(this.previousToken); // modify
+				node.args.push(this.previousToken);
 			}
 
 			node.type = "onSqGosub";
 			this.fnGetArgs(node.args, node.type);
-			node.args = left.args.concat(node.args); // we do not need "sq" token
 			break;
 		default: // on <expr> goto|gosub
 			node.args.push(this.expression(0));
@@ -1647,7 +1656,6 @@ export class BasicParser {
 		this.fnGenerateKeywordSymbols();
 
 		// special statements ...
-		this.createStatement("'", this.specialStatements["'"]);
 		this.createStatement("|", this.specialStatements["|"]); // rsx
 		this.createStatement("mid$", this.specialStatements.mid$); // mid$Assign (statement), combine with function
 		this.createStatement("?", this.specialStatements["?"]); // "?" is same as print

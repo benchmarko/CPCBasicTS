@@ -420,7 +420,7 @@ export class BasicLexer {
 		if (BasicLexer.isWhiteSpace(char)) {
 			this.fnParseWhiteSpace(char);
 		} else if (char === "\n") {
-			this.addToken("(eol)", "", startPos);
+			this.addToken("(eol)", char, startPos);
 			this.advance();
 			this.takeNumberAsLabel = true;
 		} else if (char === "'") { // apostrophe (comment)
