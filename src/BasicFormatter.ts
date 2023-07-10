@@ -153,9 +153,6 @@ export class BasicFormatter {
 				this.fnAddReferences(node.args, lines, refs); // recursive
 			}
 		}
-		if (node.args2) { // for "ELSE"
-			this.fnAddReferences(node.args2, lines, refs); // recursive
-		}
 	}
 
 	private fnAddReferences(nodes: ParserNode[], lines: LinesType, refs: RefsEntry[]) {

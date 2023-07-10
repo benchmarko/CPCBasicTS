@@ -762,7 +762,7 @@ export class CodeGeneratorJs {
 		node.pv = node.value;
 	}
 	private static fnNull(node: CodeNode) { // "null": means: no parameter specified
-		node.pv = node.value !== "null" ? node.value : "undefined"; // use explicit value or convert "null" to "undefined"
+		node.pv = node.value || "undefined"; // use explicit value or "undefined"
 	}
 	private assign(node: CodeNode) {
 		// see also "let"
@@ -992,11 +992,12 @@ export class CodeGeneratorJs {
 
 		node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + "); break;";
 	}
-	private fnElse(node: CodeNode) { // similar to a comment, with unchecked tokens
+
+	private elseComment(node: CodeNode) { // similar to a comment, with unchecked tokens
 		if (!node.args) {
 			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
 		}
-		let	value = node.type;
+		let	value = "else"; // not: node.type;
 
 		for (let i = 0; i < node.args.length; i += 1) {
 			const token = node.args[i];
@@ -1206,20 +1207,21 @@ export class CodeGeneratorJs {
 	}
 
 	private fnIf(node: CodeNode) {
-		if (!node.left) {
+		if (!node.right) {
 			throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occur
 		}
-		let expression = this.fnParseOneArg(node.left);
+		let expression = this.fnParseOneArg(node.right);
 
 		if (expression.endsWith(" ? -1 : 0")) { // optimize simple expression
 			expression = expression.replace(/ \? -1 : 0$/, "");
 		}
 
 		const label = this.fnGetIfLabel(), // need it also for tracing nested if
-			thenPart = this.fnThenOrElsePart(node.args, label + "T"), // "then" statements
+			elseArgs = node.args.length && node.args[node.args.length - 1].type === "else" ? (node.args.pop() as ParserNode).args : undefined,
+			elsePart = elseArgs ? this.fnThenOrElsePart(elseArgs, label + "E") : "",
+			thenPart = this.fnThenOrElsePart(node.args, label + "T"), // "then"/"goto" statements
 			simpleThen = CodeGeneratorJs.fnIsSimplePart(thenPart),
-			elsePart = node.args2 ? this.fnThenOrElsePart(node.args2, label + "E") : "", // "else" statements
-			simpleElse = node.args2 ? CodeGeneratorJs.fnIsSimplePart(elsePart) : true;
+			simpleElse = elsePart ? CodeGeneratorJs.fnIsSimplePart(elsePart) : true;
 		let value = "if (" + expression + ") { ";
 
 		if (simpleThen && simpleElse) {
@@ -1565,7 +1567,7 @@ export class CodeGeneratorJs {
 		dim: this.dim,
 		"delete": this.fnDelete,
 		edit: this.edit,
-		"else": this.fnElse,
+		elseComment: this.elseComment,
 		end: this.stopOrEnd,
 		erase: this.erase,
 		error: this.error,
@@ -1788,9 +1790,11 @@ export class CodeGeneratorJs {
 			if (node.args) {
 				this.fnPrecheckTree(node.args, countMap); // recursive
 			}
+			/*
 			if (node.args2) { // for "ELSE"
 				this.fnPrecheckTree(node.args2, countMap); // recursive
 			}
+			*/
 		}
 	}
 
