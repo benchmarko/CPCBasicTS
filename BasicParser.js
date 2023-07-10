@@ -201,8 +201,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             return value;
         };
-        BasicParser.prototype.statements = function (closeTokens) {
-            var statementList = [];
+        BasicParser.prototype.statements = function (statementList, closeTokens) {
             this.statementList = statementList; // fast hack to access last statement for error messages
             var colonExpected = false;
             while (!closeTokens[this.token.type]) {
@@ -225,7 +224,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         BasicParser.fnCreateDummyArg = function (type, value) {
             return {
                 type: type,
-                value: value !== undefined ? value : type,
+                value: value || "",
                 pos: 0,
                 len: 0
             };
@@ -242,7 +241,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 node.type = "label"; // number => label
             }
             this.label = node.value; // set line number for error messages
-            node.args = this.statements(BasicParser.closeTokensForLine);
+            node.args = this.statements([], BasicParser.closeTokensForLine);
             if (this.token.type === "(eol)") {
                 if (this.options.keepTokens) { // not really a token
                     node.args.push(this.token); // eol token with whitespace
@@ -710,6 +709,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         BasicParser.prototype.fnElse = function () {
             var node = this.previousToken;
             node.args = [];
+            node.type += "Comment"; // else => elseComment
             if (!this.options.quiet) {
                 Utils_1.Utils.console.warn(this.composeError({}, "ELSE: Weird use of ELSE", this.previousToken.type, this.previousToken.pos).message);
             }
@@ -725,8 +725,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         BasicParser.prototype.entOrEnv = function () {
             var node = this.previousToken;
-            node.args = [];
-            node.args.push(this.expression(0)); // should be number or variable
+            node.args = [this.expression(0)]; // should be number or variable
             var count = 0;
             while (this.token.type === ",") {
                 this.token = this.advance();
@@ -798,39 +797,35 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         BasicParser.prototype.fnIf = function () {
             var node = this.previousToken;
-            var thenToken, elseToken, numberToken;
-            node.left = this.expression(0);
+            node.right = this.expression(0); // condition
+            node.args = [];
             if (this.token.type !== "goto") { // no "goto", expect "then" token...
                 this.advance("then");
-                thenToken = this.previousToken;
+                if (this.options.keepTokens) {
+                    node.args.unshift(this.previousToken);
+                }
                 if (this.token.type === "number") {
-                    numberToken = this.fnGetArgs([], "goto"); // take number parameter as line number
+                    this.fnGetArgs(node.args, "goto"); // take number parameter as line number
                 }
             }
-            node.args = this.statements(BasicParser.closeTokensForLineAndElse); // get "then" statements until "else" or eol
-            if (numberToken) {
-                node.args.unshift(numberToken[0]);
-                numberToken = undefined;
-            }
-            if (this.options.keepTokens && thenToken) {
-                node.args.unshift(thenToken);
-            }
+            this.statements(node.args, BasicParser.closeTokensForLineAndElse); // get "then" statements until "else" or eol
             this.fnCheckForUnreachableCode(node.args);
             if (this.token.type === "else") {
                 this.token = this.advance("else");
-                elseToken = this.previousToken;
+                var elseNode = this.previousToken;
+                node.args.push(elseNode);
+                elseNode.args = [];
                 if (this.token.type === "number") {
-                    numberToken = this.fnGetArgs([], "goto"); // take number parameter as line number
+                    this.fnGetArgs(elseNode.args, "goto"); // take number parameter as line number
+                    // only number 0?
                 }
-                node.args2 = this.token.type === "if" ? [this.statement()] : this.statements(BasicParser.closeTokensForLineAndElse);
-                if (numberToken) {
-                    node.args2.unshift(numberToken[0]);
+                if (this.token.type === "if") {
+                    elseNode.args.push(this.statement());
                 }
-                if (this.options.keepTokens && elseToken) {
-                    elseToken.args = [];
-                    node.args2.unshift(elseToken);
+                else {
+                    this.statements(elseNode.args, BasicParser.closeTokensForLineAndElse);
                 }
-                this.fnCheckForUnreachableCode(node.args2);
+                this.fnCheckForUnreachableCode(elseNode.args);
             }
             return node;
         };

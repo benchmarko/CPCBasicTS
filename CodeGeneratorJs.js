@@ -93,7 +93,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 dim: this.dim,
                 "delete": this.fnDelete,
                 edit: this.edit,
-                "else": this.fnElse,
+                elseComment: this.elseComment,
                 end: this.stopOrEnd,
                 erase: this.erase,
                 error: this.error,
@@ -629,7 +629,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             node.pv = node.value;
         };
         CodeGeneratorJs.fnNull = function (node) {
-            node.pv = node.value !== "null" ? node.value : "undefined"; // use explicit value or convert "null" to "undefined"
+            node.pv = node.value || "undefined"; // use explicit value or "undefined"
         };
         CodeGeneratorJs.prototype.assign = function (node) {
             // see also "let"
@@ -810,11 +810,11 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var nodeArgs = this.fnParseArgs(node.args);
             node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + "); break;";
         };
-        CodeGeneratorJs.prototype.fnElse = function (node) {
+        CodeGeneratorJs.prototype.elseComment = function (node) {
             if (!node.args) {
                 throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
             }
-            var value = node.type;
+            var value = "else"; // not: node.type;
             for (var i = 0; i < node.args.length; i += 1) {
                 var token = node.args[i];
                 if (token.value) {
@@ -965,17 +965,16 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return simplePart;
         };
         CodeGeneratorJs.prototype.fnIf = function (node) {
-            if (!node.left) {
+            if (!node.right) {
                 throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occur
             }
-            var expression = this.fnParseOneArg(node.left);
+            var expression = this.fnParseOneArg(node.right);
             if (expression.endsWith(" ? -1 : 0")) { // optimize simple expression
                 expression = expression.replace(/ \? -1 : 0$/, "");
             }
             var label = this.fnGetIfLabel(), // need it also for tracing nested if
-            thenPart = this.fnThenOrElsePart(node.args, label + "T"), // "then" statements
-            simpleThen = CodeGeneratorJs.fnIsSimplePart(thenPart), elsePart = node.args2 ? this.fnThenOrElsePart(node.args2, label + "E") : "", // "else" statements
-            simpleElse = node.args2 ? CodeGeneratorJs.fnIsSimplePart(elsePart) : true;
+            elseArgs = node.args.length && node.args[node.args.length - 1].type === "else" ? node.args.pop().args : undefined, elsePart = elseArgs ? this.fnThenOrElsePart(elseArgs, label + "E") : "", thenPart = this.fnThenOrElsePart(node.args, label + "T"), // "then"/"goto" statements
+            simpleThen = CodeGeneratorJs.fnIsSimplePart(thenPart), simpleElse = elsePart ? CodeGeneratorJs.fnIsSimplePart(elsePart) : true;
             var value = "if (" + expression + ") { ";
             if (simpleThen && simpleElse) {
                 value += thenPart + "; }";
@@ -1373,9 +1372,11 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 if (node.args) {
                     this.fnPrecheckTree(node.args, countMap); // recursive
                 }
+                /*
                 if (node.args2) { // for "ELSE"
                     this.fnPrecheckTree(node.args2, countMap); // recursive
                 }
+                */
             }
         };
         //

@@ -143,7 +143,7 @@ export class CodeGeneratorBasic {
 		for (let i = 0; i < args.length; i += 1) {
 			let value = this.parseNode(args[i]);
 
-			if (args[i].type === "'" || args[i].type === "else") { // fast hack to put a space before "'" or "else", if there is no space previously
+			if (args[i].type === "'" || args[i].type === "else" || args[i].type === "elseComment") { // fast hack to put a space before "'", "else" or "elseComment", if there is no space previously
 				if (i > 0 && !nodeArgs[i - 1].endsWith(" ") && !nodeArgs[i - 1].endsWith(":")) {
 					value = CodeGeneratorBasic.fnSpace1(value);
 				}
@@ -178,10 +178,6 @@ export class CodeGeneratorBasic {
 	}
 	private static ustring(node: ParserNode) {
 		return CodeGeneratorBasic.fnWs(node) + '"' + node.value;
-	}
-
-	private static fnNull() { // "null" means: no parameter specified
-		return "";
 	}
 
 	private assign(node: ParserNode) {
@@ -279,7 +275,7 @@ export class CodeGeneratorBasic {
 		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(right) + nodeArgs.join("");
 	}
 
-	private fnElse(node: ParserNode) { // similar to a comment, with unchecked tokens
+	private elseComment(node: ParserNode) { // similar to a comment, with unchecked tokens
 		if (!node.args) {
 			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
 		}
@@ -298,7 +294,7 @@ export class CodeGeneratorBasic {
 				}
 			}
 		}
-		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + value;
+		return CodeGeneratorBasic.fnWs(node) + "else".toUpperCase() + value;
 	}
 	private entOrEnv(node: ParserNode) { // "ent" or "env"
 		if (!node.args) {
@@ -352,29 +348,26 @@ export class CodeGeneratorBasic {
 
 	private fnThenOrElsePart(nodeBranch: ParserNode[]) {
 		const nodeArgs = this.fnParseArgs(nodeBranch),
-			partName = nodeArgs.shift() as string; // "then" or "else"
-
+			partName = nodeArgs.shift() as string; // "then"/"goto" or "else"
 
 		return CodeGeneratorBasic.fnSpace1(partName) + CodeGeneratorBasic.fnSpace1(this.combineArgsWithColon(nodeArgs));
 	}
 
+	private fnElse(node: ParserNode) {
+		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(this.fnParseArgs(node.args).join(""));
+	}
+
 	private fnIf(node: ParserNode) {
-		if (!node.left) {
+		if (!node.right) {
 			throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occur
 		}
 		if (!node.args) {
 			throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occur
 		}
 
-		let value = CodeGeneratorBasic.fnSpace1(this.parseNode(node.left));
+		let value = CodeGeneratorBasic.fnSpace1(this.parseNode(node.right));
 
-		if (node.args.length) {
-			value += this.fnThenOrElsePart(node.args); // "then" part
-		}
-
-		if (node.args2) {
-			value += this.fnThenOrElsePart(node.args2); // "else" part
-		}
+		value += this.fnThenOrElsePart(node.args); // "then" part
 		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + value;
 	}
 
@@ -472,7 +465,6 @@ export class CodeGeneratorBasic {
 		"(": this.fnParenthesisOpen,
 		string: CodeGeneratorBasic.string,
 		ustring: CodeGeneratorBasic.ustring,
-		"null": CodeGeneratorBasic.fnNull,
 		assign: this.assign,
 		expnumber: CodeGeneratorBasic.expnumber,
 		binnumber: CodeGeneratorBasic.binHexNumber,
@@ -486,6 +478,7 @@ export class CodeGeneratorBasic {
 		data: this.data,
 		def: this.def,
 		"else": this.fnElse,
+		elseComment: this.elseComment,
 		ent: this.entOrEnv,
 		env: this.entOrEnv,
 		everyGosub: this.afterEveryGosub,
@@ -543,10 +536,6 @@ export class CodeGeneratorBasic {
 			// special handling for combined keywords with 2 tokens (for 3 tokens, we need a specific function)
 			value += needSpace2 ? CodeGeneratorBasic.fnSpace1(nodeArgs) : nodeArgs;
 		}
-		if (node.args2) { // ELSE part already handled
-			throw this.composeError(Error(), "Programming error: args2", node.type, node.pos); // should not occur
-		}
-
 		return value;
 	}
 

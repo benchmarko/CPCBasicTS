@@ -111,9 +111,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     this.fnAddReferences(node.args, lines, refs); // recursive
                 }
             }
-            if (node.args2) { // for "ELSE"
-                this.fnAddReferences(node.args2, lines, refs); // recursive
-            }
         };
         BasicFormatter.prototype.fnAddReferences = function (nodes, lines, refs) {
             for (var i = 0; i < nodes.length; i += 1) {

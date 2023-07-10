@@ -375,7 +375,7 @@ export class CodeGeneratorToken {
 		return CodeGeneratorToken.fnGetWs(node) + '"' + node.value; // unterminated string
 	}
 
-	private static fnNull() { // "null" means: no parameter specified
+	private static fnEol() { // ignore newline character
 		return "";
 	}
 
@@ -503,12 +503,17 @@ export class CodeGeneratorToken {
 		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + (rsxName.length ? CodeGeneratorToken.convUInt8ToString(offset) : "") + CodeGeneratorToken.getBit7TerminatedString(rsxName) + nodeArgs.join("");
 	}
 
-	private fnElse(node: ParserNode) { // similar to a comment, with (un?)checked tokens
+	private fnElse(node: ParserNode) {
+		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(":") + CodeGeneratorToken.token2String(node.type) + this.fnParseArgs(node.args).join("");
+	}
+
+	private elseComment(node: ParserNode) { // similar to a comment, with (un?)checked tokens
 		if (!node.args) {
 			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
 		}
 
-		let value = CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(":") + CodeGeneratorToken.token2String(node.type); // always prefix with ":"
+		const type = "else"; // not "elseComment"
+		let value = CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(":") + CodeGeneratorToken.token2String(type); // always prefix with ":"
 
 		const args = node.args;
 
@@ -528,7 +533,8 @@ export class CodeGeneratorToken {
 	}
 
 	private fnIf(node: ParserNode) {
-		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + this.parseNode(node.left as ParserNode) + this.fnParseArgs(node.args as ParserNode[]).join("") + (node.args2 ? this.fnParseArgs(node.args2).join("") : "");
+		//return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + this.parseNode(node.left as ParserNode) + this.fnParseArgs(node.args as ParserNode[]).join("") + (node.args2 ? this.fnParseArgs(node.args2).join("") : "");
+		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + this.parseNode(node.right as ParserNode) + this.fnParseArgs(node.args as ParserNode[]).join("");
 	}
 
 	private onBreakContOrGosubOrStop(node: ParserNode) {
@@ -557,8 +563,7 @@ export class CodeGeneratorToken {
 		linerange: this.linerange,
 		string: CodeGeneratorToken.string,
 		ustring: CodeGeneratorToken.ustring,
-		"null": CodeGeneratorToken.fnNull,
-		"(eol)": CodeGeneratorToken.fnNull, // ignore newline "\n"
+		"(eol)": CodeGeneratorToken.fnEol, // ignore newline "\n"
 		assign: this.assign,
 		number: CodeGeneratorToken.number,
 		expnumber: CodeGeneratorToken.number, // same handling as for number
@@ -569,6 +574,7 @@ export class CodeGeneratorToken {
 		label: this.fnLabel,
 		"|": this.vertical,
 		"else": this.fnElse,
+		elseComment: this.elseComment,
 		"if": this.fnIf,
 		onBreakCont: this.onBreakContOrGosubOrStop,
 		onBreakGosub: this.onBreakContOrGosubOrStop,
@@ -604,10 +610,6 @@ export class CodeGeneratorToken {
 		if (node.args) {
 			value += this.fnParseArgs(node.args).join("");
 		}
-		if (node.args2) { // ELSE part already handled
-			throw this.composeError(Error(), "Programming error: args2", node.type, node.pos); // should not occur
-		}
-
 		return value;
 	}
 

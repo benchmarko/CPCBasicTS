@@ -34,7 +34,6 @@ export interface ParserNode extends LexerToken {
 	left?: ParserNode
 	right?: ParserNode
 	args?: ParserNode[]
-	args2?: ParserNode[] // only used for if: "else" statements
 	len?: number
 }
 
@@ -519,9 +518,7 @@ export class BasicParser {
 		return value;
 	}
 
-	private statements(closeTokens: Record<string, number>) {
-		const statementList: ParserNode[] = [];
-
+	private statements(statementList: ParserNode[], closeTokens: Record<string, number>) {
 		this.statementList = statementList; // fast hack to access last statement for error messages
 		let colonExpected = false;
 
@@ -545,7 +542,7 @@ export class BasicParser {
 	private static fnCreateDummyArg(type: string, value?: string): ParserNode {
 		return {
 			type: type, // e.g. "null"
-			value: value !== undefined ? value : type, // e.g. "null"
+			value: value || "",
 			pos: 0,
 			len: 0
 		};
@@ -563,7 +560,7 @@ export class BasicParser {
 			node.type = "label"; // number => label
 		}
 		this.label = node.value; // set line number for error messages
-		node.args = this.statements(BasicParser.closeTokensForLine);
+		node.args = this.statements([], BasicParser.closeTokensForLine);
 
 		if (this.token.type === "(eol)") {
 			if (this.options.keepTokens) { // not really a token
@@ -1137,6 +1134,7 @@ export class BasicParser {
 		const node = this.previousToken;
 
 		node.args = [];
+		node.type += "Comment"; // else => elseComment
 
 		if (!this.options.quiet) {
 			Utils.console.warn(this.composeError({} as Error, "ELSE: Weird use of ELSE", this.previousToken.type, this.previousToken.pos).message);
@@ -1158,8 +1156,7 @@ export class BasicParser {
 	private entOrEnv() {
 		const node = this.previousToken;
 
-		node.args = [];
-		node.args.push(this.expression(0)); // should be number or variable
+		node.args = [this.expression(0)]; // should be number or variable
 
 		let count = 0;
 
@@ -1251,47 +1248,44 @@ export class BasicParser {
 
 	private fnIf() {
 		const node = this.previousToken;
-		let thenToken: ParserNode | undefined,
-			elseToken: ParserNode | undefined,
-			numberToken: ParserNode[] | undefined;
 
-		node.left = this.expression(0);
+		node.right = this.expression(0); // condition
+		node.args = [];
 
 		if (this.token.type !== "goto") { // no "goto", expect "then" token...
 			this.advance("then");
-			thenToken = this.previousToken;
+			if (this.options.keepTokens) {
+				node.args.unshift(this.previousToken);
+			}
 
 			if (this.token.type === "number") {
-				numberToken = this.fnGetArgs([], "goto"); // take number parameter as line number
+				this.fnGetArgs(node.args, "goto"); // take number parameter as line number
 			}
 		}
-		node.args = this.statements(BasicParser.closeTokensForLineAndElse); // get "then" statements until "else" or eol
-		if (numberToken) {
-			node.args.unshift(numberToken[0]);
-			numberToken = undefined;
-		}
-		if (this.options.keepTokens && thenToken) {
-			node.args.unshift(thenToken);
-		}
+		this.statements(node.args, BasicParser.closeTokensForLineAndElse); // get "then" statements until "else" or eol
+
 		this.fnCheckForUnreachableCode(node.args);
 
 		if (this.token.type === "else") {
 			this.token = this.advance("else");
-			elseToken = this.previousToken;
+			const elseNode = this.previousToken;
+
+			node.args.push(elseNode);
+
+			elseNode.args = [];
 
 			if (this.token.type === "number") {
-				numberToken = this.fnGetArgs([], "goto"); // take number parameter as line number
+				this.fnGetArgs(elseNode.args, "goto"); // take number parameter as line number
+				// only number 0?
 			}
 
-			node.args2 = this.token.type === "if" ? [this.statement()] : this.statements(BasicParser.closeTokensForLineAndElse);
-			if (numberToken) {
-				node.args2.unshift(numberToken[0]);
+			if (this.token.type === "if") {
+				elseNode.args.push(this.statement());
+			} else {
+				this.statements(elseNode.args, BasicParser.closeTokensForLineAndElse);
 			}
-			if (this.options.keepTokens && elseToken) {
-				elseToken.args = [];
-				node.args2.unshift(elseToken);
-			}
-			this.fnCheckForUnreachableCode(node.args2);
+
+			this.fnCheckForUnreachableCode(elseNode.args);
 		}
 		return node;
 	}

@@ -17,8 +17,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 linerange: this.linerange,
                 string: CodeGeneratorToken.string,
                 ustring: CodeGeneratorToken.ustring,
-                "null": CodeGeneratorToken.fnNull,
-                "(eol)": CodeGeneratorToken.fnNull,
+                "(eol)": CodeGeneratorToken.fnEol,
                 assign: this.assign,
                 number: CodeGeneratorToken.number,
                 expnumber: CodeGeneratorToken.number,
@@ -29,6 +28,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 label: this.fnLabel,
                 "|": this.vertical,
                 "else": this.fnElse,
+                elseComment: this.elseComment,
                 "if": this.fnIf,
                 onBreakCont: this.onBreakContOrGosubOrStop,
                 onBreakGosub: this.onBreakContOrGosubOrStop,
@@ -111,7 +111,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         CodeGeneratorToken.ustring = function (node) {
             return CodeGeneratorToken.fnGetWs(node) + '"' + node.value; // unterminated string
         };
-        CodeGeneratorToken.fnNull = function () {
+        CodeGeneratorToken.fnEol = function () {
             return "";
         };
         CodeGeneratorToken.prototype.assign = function (node) {
@@ -210,10 +210,14 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + (rsxName.length ? CodeGeneratorToken.convUInt8ToString(offset) : "") + CodeGeneratorToken.getBit7TerminatedString(rsxName) + nodeArgs.join("");
         };
         CodeGeneratorToken.prototype.fnElse = function (node) {
+            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(":") + CodeGeneratorToken.token2String(node.type) + this.fnParseArgs(node.args).join("");
+        };
+        CodeGeneratorToken.prototype.elseComment = function (node) {
             if (!node.args) {
                 throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
             }
-            var value = CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(":") + CodeGeneratorToken.token2String(node.type); // always prefix with ":"
+            var type = "else"; // not "elseComment"
+            var value = CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(":") + CodeGeneratorToken.token2String(type); // always prefix with ":"
             var args = node.args;
             // we do not have a parse tree here but a simple list
             for (var i = 0; i < args.length; i += 1) {
@@ -229,7 +233,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return value;
         };
         CodeGeneratorToken.prototype.fnIf = function (node) {
-            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + this.parseNode(node.left) + this.fnParseArgs(node.args).join("") + (node.args2 ? this.fnParseArgs(node.args2).join("") : "");
+            //return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + this.parseNode(node.left as ParserNode) + this.fnParseArgs(node.args as ParserNode[]).join("") + (node.args2 ? this.fnParseArgs(node.args2).join("") : "");
+            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + this.parseNode(node.right) + this.fnParseArgs(node.args).join("");
         };
         CodeGeneratorToken.prototype.onBreakContOrGosubOrStop = function (node) {
             return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("_onBreak") + (node.right && node.right.right ? this.parseNode(node.right.right) : "") + this.fnParseArgs(node.args).join("");
@@ -265,9 +270,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             if (node.args) {
                 value += this.fnParseArgs(node.args).join("");
-            }
-            if (node.args2) { // ELSE part already handled
-                throw this.composeError(Error(), "Programming error: args2", node.type, node.pos); // should not occur
             }
             return value;
         };

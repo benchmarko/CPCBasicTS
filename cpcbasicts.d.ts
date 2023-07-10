@@ -209,7 +209,6 @@ declare module "BasicParser" {
         left?: ParserNode;
         right?: ParserNode;
         args?: ParserNode[];
-        args2?: ParserNode[];
         len?: number;
     }
     export class BasicParser {
@@ -403,7 +402,6 @@ declare module "CodeGeneratorBasic" {
         private fnParenthesisOpen;
         private static string;
         private static ustring;
-        private static fnNull;
         private assign;
         private static expnumber;
         private static binHexNumber;
@@ -414,11 +412,12 @@ declare module "CodeGeneratorBasic" {
         private chainOrChainMerge;
         private data;
         private def;
-        private fnElse;
+        private elseComment;
         private entOrEnv;
         private fn;
         private fnFor;
         private fnThenOrElsePart;
+        private fnElse;
         private fnIf;
         private inputLineInput;
         private list;
@@ -579,7 +578,7 @@ declare module "CodeGeneratorJs" {
         private dim;
         private fnDelete;
         private edit;
-        private fnElse;
+        private elseComment;
         private erase;
         private error;
         private fn;
@@ -662,7 +661,7 @@ declare module "CodeGeneratorToken" {
         private linerange;
         private static string;
         private static ustring;
-        private static fnNull;
+        private static fnEol;
         private assign;
         private static floatToByteString;
         private static number;
@@ -674,6 +673,7 @@ declare module "CodeGeneratorToken" {
         private fnLabel;
         private vertical;
         private fnElse;
+        private elseComment;
         private fnIf;
         private onBreakContOrGosubOrStop;
         private onErrorGoto;

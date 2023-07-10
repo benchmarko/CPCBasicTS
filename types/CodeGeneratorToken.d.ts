@@ -28,7 +28,7 @@ export declare class CodeGeneratorToken {
     private linerange;
     private static string;
     private static ustring;
-    private static fnNull;
+    private static fnEol;
     private assign;
     private static floatToByteString;
     private static number;
@@ -40,6 +40,7 @@ export declare class CodeGeneratorToken {
     private fnLabel;
     private vertical;
     private fnElse;
+    private elseComment;
     private fnIf;
     private onBreakContOrGosubOrStop;
     private onErrorGoto;

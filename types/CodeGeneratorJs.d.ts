@@ -104,7 +104,7 @@ export declare class CodeGeneratorJs {
     private dim;
     private fnDelete;
     private edit;
-    private fnElse;
+    private elseComment;
     private erase;
     private error;
     private fn;

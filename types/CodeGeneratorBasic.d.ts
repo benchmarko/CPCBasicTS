@@ -26,7 +26,6 @@ export declare class CodeGeneratorBasic {
     private fnParenthesisOpen;
     private static string;
     private static ustring;
-    private static fnNull;
     private assign;
     private static expnumber;
     private static binHexNumber;
@@ -37,11 +36,12 @@ export declare class CodeGeneratorBasic {
     private chainOrChainMerge;
     private data;
     private def;
-    private fnElse;
+    private elseComment;
     private entOrEnv;
     private fn;
     private fnFor;
     private fnThenOrElsePart;
+    private fnElse;
     private fnIf;
     private inputLineInput;
     private list;
