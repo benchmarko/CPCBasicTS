@@ -128,6 +128,20 @@ if (!Array.prototype.fill) { // IE11
 	};
 }
 
+if (!Array.prototype.filter) { // IE8
+	Polyfills.log("Array.prototype.filter");
+	Array.prototype.filter = function (callbackFn: any) { // eslint-disable-line no-extend-native,func-names
+		const arr = [];
+
+		for (let i = 0; i < this.length; i += 1) {
+			if (callbackFn.call(this, this[i], i, this)) {
+				arr.push(this[i]);
+			}
+		}
+		return arr;
+	}
+}
+
 if (!Array.prototype.map) { // IE8
 	// based on: https://developer.mozilla.org/de/docs/Web/JavaScript/Reference/Global_Objects/Array/map
 	Polyfills.log("Array.prototype.map");

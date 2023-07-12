@@ -18,7 +18,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 string: CodeGeneratorToken.string,
                 ustring: CodeGeneratorToken.ustring,
                 "(eol)": CodeGeneratorToken.fnEol,
-                assign: this.assign,
                 number: CodeGeneratorToken.number,
                 expnumber: CodeGeneratorToken.number,
                 binnumber: CodeGeneratorToken.binnumber,
@@ -27,15 +26,14 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 linenumber: CodeGeneratorToken.linenumber,
                 label: this.fnLabel,
                 "|": this.vertical,
-                "else": this.fnElse,
+                "else": this.fnElseOrApostrophe,
                 elseComment: this.elseComment,
-                "if": this.fnIf,
                 onBreakCont: this.onBreakContOrGosubOrStop,
                 onBreakGosub: this.onBreakContOrGosubOrStop,
                 onBreakStop: this.onBreakContOrGosubOrStop,
                 onErrorGoto: this.onErrorGoto,
                 onSqGosub: this.onSqGosub,
-                "'": this.apostrophe
+                "'": this.fnElseOrApostrophe
             };
             this.options = {
                 lexer: options.lexer,
@@ -113,13 +111,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         CodeGeneratorToken.fnEol = function () {
             return "";
-        };
-        CodeGeneratorToken.prototype.assign = function (node) {
-            // see also "let"
-            if (node.left.type !== "identifier") {
-                throw this.composeError(Error(), "Unexpected assign type", node.type, node.pos); // should not occur
-            }
-            return this.parseNode(node.left) + CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.value) + this.parseNode(node.right);
         };
         CodeGeneratorToken.floatToByteString = function (number) {
             var mantissa = 0, exponent = 0, sign = 0;
@@ -209,7 +200,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             // if rsxname.length=0 we take 0x80 from empty getBit7TerminatedString
             return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + (rsxName.length ? CodeGeneratorToken.convUInt8ToString(offset) : "") + CodeGeneratorToken.getBit7TerminatedString(rsxName) + nodeArgs.join("");
         };
-        CodeGeneratorToken.prototype.fnElse = function (node) {
+        CodeGeneratorToken.prototype.fnElseOrApostrophe = function (node) {
+            // prefix token with ":"
             return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(":") + CodeGeneratorToken.token2String(node.type) + this.fnParseArgs(node.args).join("");
         };
         CodeGeneratorToken.prototype.elseComment = function (node) {
@@ -232,10 +224,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             return value;
         };
-        CodeGeneratorToken.prototype.fnIf = function (node) {
-            //return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + this.parseNode(node.left as ParserNode) + this.fnParseArgs(node.args as ParserNode[]).join("") + (node.args2 ? this.fnParseArgs(node.args2).join("") : "");
-            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + this.parseNode(node.right) + this.fnParseArgs(node.args).join("");
-        };
         CodeGeneratorToken.prototype.onBreakContOrGosubOrStop = function (node) {
             return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("_onBreak") + (node.right && node.right.right ? this.parseNode(node.right.right) : "") + this.fnParseArgs(node.args).join("");
         };
@@ -247,9 +235,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         CodeGeneratorToken.prototype.onSqGosub = function (node) {
             return CodeGeneratorToken.token2String("_onSq") + this.fnParseArgs(node.right.args).join("") + this.fnParseArgs(node.args).join("");
-        };
-        CodeGeneratorToken.prototype.apostrophe = function (node) {
-            return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(":") + CodeGeneratorToken.token2String(node.type) + this.fnParseArgs(node.args).join("");
         };
         /* eslint-enable no-invalid-this */
         CodeGeneratorToken.prototype.fnParseOther = function (node) {
@@ -509,6 +494,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             using: 0xed,
             ">": 0xee,
             "=": 0xef,
+            assign: 0xef,
             ">=": 0xf0,
             "<": 0xf1,
             "<>": 0xf2,

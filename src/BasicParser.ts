@@ -37,15 +37,13 @@ export interface ParserNode extends LexerToken {
 	len?: number
 }
 
-type ParseExpressionFunction = (arg0: ParserNode) => ParserNode;
-
-type ParseStatmentFunction = () => ParserNode;
+type ParseFunction = (node: ParserNode) => ParserNode;
 
 interface SymbolType {
-	nud?: ParseExpressionFunction // null denotative function
+	nud?: ParseFunction // null denotative function
 	lbp?: number // left binding power
-	led?: ParseExpressionFunction // left denotative function
-	std?: ParseStatmentFunction // statement function
+	led?: ParseFunction // left denotative function
+	std?: ParseFunction // statement function
 }
 
 export class BasicParser {
@@ -316,7 +314,7 @@ export class BasicParser {
 	}
 
 	/* eslint-disable no-invalid-this */
-	private readonly specialStatements: Record<string, () => ParserNode> = { // to call methods, use specialStatements[].call(this,...)
+	private readonly specialStatements: Record<string, (node: ParserNode) => ParserNode> = { // to call methods, use specialStatements[].call(this,...)
 		"|": this.rsx, // rsx
 		after: this.afterEveryGosub,
 		chain: this.chain,
@@ -407,9 +405,6 @@ export class BasicParser {
 	// Operator: With left binding power (lbp) and operational function.
 	// Manipulates tokens to its left (e.g: +)? => left denotative function led(), otherwise null denotative function nud()), (e.g. unary -)
 	// identifiers, numbers: also nud.
-	private getToken() {
-		return this.token;
-	}
 
 	private advance(id?: string) {
 		let token = this.token;
@@ -501,7 +496,7 @@ export class BasicParser {
 
 		if (s.std) { // statement?
 			this.advance();
-			return s.std();
+			return s.std(this.previousToken);
 		}
 
 		let value: ParserNode;
@@ -528,6 +523,8 @@ export class BasicParser {
 					this.advance(":");
 					if (this.options.keepColons) {
 						statementList.push(this.previousToken);
+					} else if (this.previousToken.ws) { // colon token has ws?
+						this.token.ws = this.previousToken.ws + (this.token.ws || ""); // add ws to next token
 					}
 				}
 				colonExpected = false;
@@ -573,9 +570,8 @@ export class BasicParser {
 		return node;
 	}
 
-	private fnCombineTwoTokensNoArgs(token2: string) {
-		const node = this.previousToken,
-			name = node.type + Utils.stringCapitalize(this.token.type); // e.g ."speedInk"
+	private fnCombineTwoTokensNoArgs(node: ParserNode, token2: string) {
+		const name = node.type + Utils.stringCapitalize(this.token.type); // e.g ."speedInk"
 
 		node.value += (this.token.ws || " ") + this.token.value; // combine values of both
 
@@ -593,8 +589,8 @@ export class BasicParser {
 		return name;
 	}
 
-	private fnCombineTwoTokens(token2: string) {
-		return this.fnCreateCmdCallForType(this.fnCombineTwoTokensNoArgs(token2));
+	private fnCombineTwoTokens(node: ParserNode, token2: string) {
+		return this.fnCreateCmdCallForType(node, this.fnCombineTwoTokensNoArgs(node, token2));
 	}
 
 	private fnGetOptionalStream() {
@@ -877,25 +873,20 @@ export class BasicParser {
 		return args;
 	}
 
-	private fnCreateCmdCall() {
-		const node = this.previousToken;
-
+	private fnCreateCmdCall(node: ParserNode) {
 		node.args = this.fnGetArgs([], node.type);
 		return node;
 	}
 
-	private fnCreateCmdCallForType(type: string) {
+	private fnCreateCmdCallForType(node: ParserNode, type: string) {
 		if (type) {
-			this.previousToken.type = type; // override
+			node.type = type; // override
 		}
-		return this.fnCreateCmdCall();
+		return this.fnCreateCmdCall(node);
 	}
 
-	private fnCreateFuncCall() {
-		const node = this.previousToken;
-
+	private fnCreateFuncCall(node: ParserNode) {
 		node.args = [];
-
 		if (this.token.type === "(") { // args in parenthesis?
 			this.advance("(");
 			if (this.options.keepTokens) {
@@ -919,15 +910,12 @@ export class BasicParser {
 				this.fnCheckRemainingTypes(types);
 			}
 		}
-
 		return node;
 	}
 
 	// ...
 
-	private fnIdentifier() {
-		const node = this.previousToken;
-
+	private fnIdentifier(node: ParserNode) {
 		if (this.token.type === "(" || this.token.type === "[") {
 			node.args = [];
 			this.fnGetArgsInParenthesesOrBrackets(node.args);
@@ -935,28 +923,27 @@ export class BasicParser {
 		return node;
 	}
 
-	private fnParenthesis() { // "("
-		let node: ParserNode;
-
+	private fnParenthesis(node: ParserNode) { // "("
 		if (this.options.keepBrackets) {
-			node = this.previousToken;
-			node.args = [
-				this.expression(0),
-				this.token // ")" (hopefully)
-			];
+			node.args = [this.expression(0)];
 		} else {
+			if (node.ws) { // bracket open has ws?
+				this.token.ws = node.ws + (this.token.ws || ""); // add ws to next token
+			}
 			node = this.expression(0);
 		}
 
 		this.advance(")");
+		if (this.options.keepBrackets) {
+			(node.args as ParserNode[]).push(this.previousToken);
+		} else if (this.previousToken.ws) { // bracket close token has ws?
+			this.token.ws = this.previousToken.ws + (this.token.ws || ""); // add ws to next token
+		}
 		return node;
 	}
 
-	private fnFn() {
-		const node = this.previousToken;
-
+	private fnFn(node: ParserNode) {
 		node.args = [];
-
 		this.token = this.advance("identifier");
 		node.right = this.previousToken;
 
@@ -966,9 +953,7 @@ export class BasicParser {
 		return node;
 	}
 
-	private rsx() { // rsx: "|"
-		const node = this.previousToken;
-
+	private rsx(node: ParserNode) { // rsx: "|"
 		node.args = [];
 
 		let type = "_any1"; // expect any number of arguments
@@ -984,42 +969,36 @@ export class BasicParser {
 		return node;
 	}
 
-	private afterEveryGosub() {
-		const node = this.fnCreateCmdCallForType(this.previousToken.type + "Gosub"); // "afterGosub" or "everyGosub", interval and optional timer
+	private afterEveryGosub(node: ParserNode) {
+		const combinedNode = this.fnCreateCmdCallForType(node, node.type + "Gosub"); // "afterGosub" or "everyGosub", interval and optional timer
 
-		if (!node.args) {
+		if (!combinedNode.args) {
 			throw this.composeError(Error(), "Programming error: Undefined args", this.token.type, this.token.pos); // should not occur
 		}
-		if (node.args.length < 2) { // add default timer 0
-			node.args.push(BasicParser.fnCreateDummyArg("null"));
+		if (combinedNode.args.length < 2) { // add default timer 0
+			combinedNode.args.push(BasicParser.fnCreateDummyArg("null"));
 		}
 		this.advance("gosub");
 		if (this.options.keepTokens) {
-			node.args.push(this.previousToken);
+			combinedNode.args.push(this.previousToken);
 		}
-		this.fnGetArgs(node.args, "gosub"); // line number
+		this.fnGetArgs(combinedNode.args, "gosub"); // line number
 
-		return node;
+		return combinedNode;
 	}
 
-	private chain() {
-		const node = this.previousToken;
-
+	private chain(node: ParserNode) {
 		if (this.token.type === "merge") { // chain merge?
-			const name = this.fnCombineTwoTokensNoArgs(this.token.type); // chainMerge
+			const name = this.fnCombineTwoTokensNoArgs(node, this.token.type); // chainMerge
 
 			node.type = name;
 		}
-		if (!node.args) {
-			node.args = [];
-		}
+		node.args = [];
 
 		// chain, chain merge with optional DELETE
-		let value2 = this.expression(0); // filename
+		let node2 = this.expression(0); // filename
 
-		node.args.push(value2);
-
-		this.token = this.getToken();
+		node.args.push(node2);
 		if (this.token.type === ",") {
 			this.token = this.advance();
 			if (this.options.keepTokens) {
@@ -1029,8 +1008,8 @@ export class BasicParser {
 			let numberExpression = false; // line number (expression) found
 
 			if (this.token.type !== "," && this.token.type !== "(eol)" && this.token.type !== "(eof)") {
-				value2 = this.expression(0); // line number or expression
-				node.args.push(value2);
+				node2 = this.expression(0); // line number or expression
+				node.args.push(node2);
 				numberExpression = true;
 			}
 
@@ -1041,8 +1020,8 @@ export class BasicParser {
 				}
 
 				if (!numberExpression) {
-					value2 = BasicParser.fnCreateDummyArg("null"); // insert dummy arg for line
-					node.args.push(value2);
+					node2 = BasicParser.fnCreateDummyArg("null"); // insert dummy arg for line
+					node.args.push(node2);
 				}
 
 				this.advance("delete");
@@ -1055,14 +1034,13 @@ export class BasicParser {
 		return node;
 	}
 
-	private clear() {
+	private clear(node: ParserNode) {
 		const tokenType = this.token.type;
 
-		return tokenType === "input" ? this.fnCombineTwoTokens(tokenType) : this.fnCreateCmdCall(); // "clear input" or "clear"
+		return tokenType === "input" ? this.fnCombineTwoTokens(node, tokenType) : this.fnCreateCmdCall(node); // "clear input" or "clear"
 	}
 
-	private data() {
-		const node = this.previousToken;
+	private data(node: ParserNode) {
 		let parameterFound = false;
 
 		node.args = [];
@@ -1098,9 +1076,7 @@ export class BasicParser {
 		return node;
 	}
 
-	private def() {
-		const node = this.previousToken;
-
+	private def(node: ParserNode) {
 		node.args = [];
 
 		this.advance("fn");
@@ -1130,9 +1106,7 @@ export class BasicParser {
 		return node;
 	}
 
-	private fnElse() { // similar to a comment, normally not used
-		const node = this.previousToken;
-
+	private fnElse(node: ParserNode) { // similar to a comment, normally not used
 		node.args = [];
 		node.type += "Comment"; // else => elseComment
 
@@ -1153,9 +1127,7 @@ export class BasicParser {
 		return node;
 	}
 
-	private entOrEnv() {
-		const node = this.previousToken;
-
+	private entOrEnv(node: ParserNode) {
 		node.args = [this.expression(0)]; // should be number or variable
 
 		let count = 0;
@@ -1183,9 +1155,7 @@ export class BasicParser {
 		return node;
 	}
 
-	private fnFor() {
-		const node = this.previousToken;
-
+	private fnFor(node: ParserNode) {
 		this.fnCheckExpressionType(this.token, "identifier", "v");
 
 		const name = this.expression(90); // take simple identifier, nothing more
@@ -1216,14 +1186,14 @@ export class BasicParser {
 		return node;
 	}
 
-	private graphics() {
+	private graphics(node: ParserNode) {
 		const tokenType = this.token.type;
 
 		if (tokenType !== "pen" && tokenType !== "paper") {
 			throw this.composeError(Error(), "Expected PEN or PAPER", tokenType, this.token.pos);
 		}
 
-		return this.fnCombineTwoTokens(tokenType);
+		return this.fnCombineTwoTokens(node, tokenType);
 	}
 
 	private fnCheckForUnreachableCode(args: ParserNode[]) {
@@ -1246,9 +1216,7 @@ export class BasicParser {
 		}
 	}
 
-	private fnIf() {
-		const node = this.previousToken;
-
+	private fnIf(node: ParserNode) {
 		node.right = this.expression(0); // condition
 		node.args = [];
 
@@ -1290,13 +1258,10 @@ export class BasicParser {
 		return node;
 	}
 
-	private input() { // input or line input
-		const node = this.previousToken,
-			stream = this.fnGetOptionalStream();
+	private input(node: ParserNode) { // input or line input
+		const stream = this.fnGetOptionalStream();
 
-		node.args = [];
-		node.args.push(stream);
-
+		node.args = [stream];
 		if (stream.len !== 0) { // not an inserted stream?
 			this.advance(",");
 			if (this.options.keepTokens) {
@@ -1342,27 +1307,25 @@ export class BasicParser {
 		return node;
 	}
 
-	private key() {
+	private key(node: ParserNode) {
 		const tokenType = this.token.type;
 
-		return tokenType === "def" ? this.fnCombineTwoTokens(tokenType) : this.fnCreateCmdCall(); // "key def" or "key"
+		return tokenType === "def" ? this.fnCombineTwoTokens(node, tokenType) : this.fnCreateCmdCall(node); // "key def" or "key"
 	}
 
-	private let() {
-		const node = this.previousToken;
-
+	private let(node: ParserNode) {
 		node.right = this.assignment();
 		return node;
 	}
 
-	private line() {
-		this.previousToken.type = this.fnCombineTwoTokensNoArgs("input"); // combine "line" => "lineInput"
-		return this.input(); // continue with input
+	private line(node: ParserNode) {
+		node.type = this.fnCombineTwoTokensNoArgs(node, "input"); // combine "line" => "lineInput"
+		return this.input(node); // continue with input //TTT
 	}
 
-	private mid$Assign() { // mid$Assign
-		this.previousToken.type = "mid$Assign"; // change type mid$ => mid$Assign
-		const node = this.fnCreateFuncCall();
+	private mid$Assign(node: ParserNode) { // mid$Assign
+		node.type = "mid$Assign"; // change type mid$ => mid$Assign
+		this.fnCreateFuncCall(node);
 
 		if (!node.args) {
 			throw this.composeError(Error(), "Programming error: Undefined args", this.token.type, this.token.pos); // should not occur
@@ -1389,31 +1352,29 @@ export class BasicParser {
 		return node;
 	}
 
-	private on() {
-		const node = this.previousToken;
-
+	private on(node: ParserNode) {
 		node.args = [];
+		let tokenType: string;
 
 		switch (this.token.type) {
 		case "break":
-			this.previousToken.type = this.fnCombineTwoTokensNoArgs("break"); // onBreak
-			this.token = this.getToken();
-			if (this.token.type === "gosub" || this.token.type === "cont" || this.token.type === "stop") {
-				this.fnCombineTwoTokens(this.token.type); // onBreakGosub, onBreakCont, onBreakStop
+			node.type = this.fnCombineTwoTokensNoArgs(node, "break"); // onBreak
+			tokenType = this.token.type;
+			if (tokenType === "gosub" || tokenType === "cont" || tokenType === "stop") {
+				this.fnCombineTwoTokens(node, this.token.type); // onBreakGosub, onBreakCont, onBreakStop
 			} else {
 				throw this.composeError(Error(), "Expected GOSUB, CONT or STOP", this.token.type, this.token.pos);
 			}
 			break;
 		case "error": // on error goto
-			this.previousToken.type = this.fnCombineTwoTokensNoArgs("error"); // onError..
-			this.fnCombineTwoTokens("goto"); // onErrorGoto
+			node.type = this.fnCombineTwoTokensNoArgs(node, "error"); // onError..
+			this.fnCombineTwoTokens(node, "goto"); // onErrorGoto
 			break;
 		case "sq": // on sq(n) gosub
 			node.right = this.expression(0);
 			if (!node.right.args) {
 				throw this.composeError(Error(), "Programming error: Undefined args", this.token.type, this.token.pos); // should not occur
 			}
-			this.token = this.getToken();
 			this.advance("gosub");
 			if (this.options.keepTokens) {
 				node.args.push(this.previousToken);
@@ -1440,9 +1401,8 @@ export class BasicParser {
 		return node;
 	}
 
-	private print() {
-		const node = this.previousToken,
-			closeTokens = BasicParser.closeTokensForArgs,
+	private print(node: ParserNode) {
+		const closeTokens = BasicParser.closeTokensForArgs,
 			stream = this.fnGetOptionalStream();
 
 		node.args = [];
@@ -1462,7 +1422,7 @@ export class BasicParser {
 
 			if (this.token.type === "spc" || this.token.type === "tab") {
 				this.advance();
-				node2 = this.fnCreateFuncCall();
+				node2 = this.fnCreateFuncCall(this.previousToken);
 			} else if (this.token.type === "using") {
 				node2 = this.token;
 				node2.args = [];
@@ -1491,61 +1451,55 @@ export class BasicParser {
 		return node;
 	}
 
-	private question() { // "?"
-		const node = this.print();
+	private question(node: ParserNode) { // "?"
+		const node2 = this.print(node); // not really a new node
 
-		node.type = "print";
-		return node;
+		node2.type = "print";
+		return node2;
 	}
 
-	private resume() {
+	private resume(node: ParserNode) {
 		const tokenType = this.token.type;
 
-		return tokenType === "next" ? this.fnCombineTwoTokens(tokenType) : this.fnCreateCmdCall(); // "resume next" or "resume"
+		return tokenType === "next" ? this.fnCombineTwoTokens(node, tokenType) : this.fnCreateCmdCall(node); // "resume next" or "resume"
 	}
 
-	private run() {
-		let node: ParserNode;
-
+	private run(node: ParserNode) {
 		if (this.token.type === "number") {
-			node = this.previousToken;
 			node.args = this.fnGetArgs([], "goto"); // we get linenumber arg as for goto
 		} else {
-			node = this.fnCreateCmdCall();
+			node = this.fnCreateCmdCall(node);
 		}
 		return node;
 	}
 
-	private speed() {
+	private speed(node: ParserNode) {
 		const tokenType = this.token.type;
 
 		if (tokenType !== "ink" && tokenType !== "key" && tokenType !== "write") {
 			throw this.composeError(Error(), "Expected INK, KEY or WRITE", tokenType, this.token.pos);
 		}
 
-		return this.fnCombineTwoTokens(tokenType);
+		return this.fnCombineTwoTokens(node, tokenType);
 	}
 
-	private symbol() {
+	private symbol(node: ParserNode) {
 		const tokenType = this.token.type;
 
-		return tokenType === "after" ? this.fnCombineTwoTokens(tokenType) : this.fnCreateCmdCall(); // "symbol after" or "symbol"
+		return tokenType === "after" ? this.fnCombineTwoTokens(node, tokenType) : this.fnCreateCmdCall(node); // "symbol after" or "symbol"
 	}
 
-	private window() {
+	private window(node: ParserNode) {
 		const tokenType = this.token.type;
 
-		return tokenType === "swap" ? this.fnCombineTwoTokens(tokenType) : this.fnCreateCmdCall(); // "window swap" or "window"
+		return tokenType === "swap" ? this.fnCombineTwoTokens(node, tokenType) : this.fnCreateCmdCall(node); // "window swap" or "window"
 	}
 
-	private write() {
-		const node = this.previousToken,
-			closeTokens = BasicParser.closeTokensForArgs,
+	private write(node: ParserNode) {
+		const closeTokens = BasicParser.closeTokensForArgs,
 			stream = this.fnGetOptionalStream();
 
-		node.args = [];
-		node.args.push(stream);
-
+		node.args = [stream];
 		if (stream.len !== 0) { // not an inserted stream?
 			if (!closeTokens[this.token.type]) {
 				this.advance(",");
@@ -1578,7 +1532,7 @@ export class BasicParser {
 		return this.symbols[id];
 	}
 
-	private createNudSymbol(id: string, nud: ParseExpressionFunction) {
+	private createNudSymbol(id: string, nud: ParseFunction) {
 		const symbol = this.createSymbol(id);
 
 		symbol.nud = nud;
@@ -1618,10 +1572,10 @@ export class BasicParser {
 		this.createNudSymbol(id, () => this.fnPrefixNud(rbp));
 	}
 
-	private createStatement(id: string, fn: ParseStatmentFunction) {
+	private createStatement(id: string, fn: ParseFunction) {
 		const symbol = this.createSymbol(id);
 
-		symbol.std = () => fn.call(this);
+		symbol.std = () => fn.call(this, this.previousToken);
 		return symbol;
 	}
 
@@ -1631,7 +1585,7 @@ export class BasicParser {
 				const keywordType = BasicParser.keywords[key].charAt(0);
 
 				if (keywordType === "f") {
-					this.createNudSymbol(key, () => this.fnCreateFuncCall());
+					this.createNudSymbol(key, () => this.fnCreateFuncCall(this.previousToken));
 				} else if (keywordType === "c") {
 					this.createStatement(key, this.specialStatements[key] || this.fnCreateCmdCall);
 				} else if (keywordType === "p") { // additional parts of command
@@ -1677,11 +1631,11 @@ export class BasicParser {
 
 		this.createNudSymbol("ws", BasicParser.fnNode); // optional whitespace
 
-		this.createNudSymbol("identifier", () => this.fnIdentifier());
+		this.createNudSymbol("identifier", () => this.fnIdentifier(this.previousToken));
 
-		this.createNudSymbol("(", () => this.fnParenthesis());
+		this.createNudSymbol("(", () => this.fnParenthesis(this.previousToken));
 
-		this.createNudSymbol("fn", () => this.fnFn()); // separate fn
+		this.createNudSymbol("fn", () => this.fnFn(this.previousToken)); // separate fn
 
 
 		this.createPrefix("@", 95); // address of

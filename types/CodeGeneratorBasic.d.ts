@@ -29,7 +29,6 @@ export declare class CodeGeneratorBasic {
     private assign;
     private static expnumber;
     private static binHexNumber;
-    private static linenumber;
     private label;
     private vertical;
     private afterEveryGosub;
@@ -37,10 +36,8 @@ export declare class CodeGeneratorBasic {
     private data;
     private def;
     private elseComment;
-    private entOrEnv;
     private fn;
     private fnFor;
-    private fnThenOrElsePart;
     private fnElse;
     private fnIf;
     private inputLineInput;

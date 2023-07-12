@@ -843,6 +843,83 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
         }
         TestHelper_1.TestHelper.generateAllTests(allTests, runTestsForWhitespace, hooks);
     });
+    QUnit.module("CodeGeneratorBasic: Not keepColons", function (hooks) {
+        hooks.before(function () {
+            var codeGeneratorBasic = createCodeGeneratorBasic(false);
+            codeGeneratorBasic.getOptions().parser.setOptions({
+                keepColons: false
+            });
+            hooks.codeGeneratorBasic = codeGeneratorBasic;
+        });
+        function runTestsFor(category, tests, assert, results) {
+            var codeGeneratorBasic = hooks.codeGeneratorBasic;
+            codeGeneratorBasic.getOptions().lexer.setOptions({
+                keepWhiteSpace: category === "keepSpaces" // keepWhiteSpace active for category "keepSpaces"
+            });
+            for (var key in tests) {
+                if (tests.hasOwnProperty(key)) {
+                    var output = codeGeneratorBasic.generate(key), result = output.error ? String(output.error) : output.text;
+                    var expected = tests[key];
+                    if (!output.error) {
+                        expected = expected.replace(":'", "'");
+                        expected = expected.replace(/^:+/, "");
+                        expected = expected.replace(/:+$/, "");
+                        expected = expected.replace(/:+( *)$/, "$1");
+                    }
+                    if (results) {
+                        results[category].push(TestHelper_1.TestHelper.stringInQuotes(key) + ": " + TestHelper_1.TestHelper.stringInQuotes(result));
+                    }
+                    if (assert) {
+                        assert.strictEqual(result, expected, key);
+                    }
+                }
+            }
+        }
+        TestHelper_1.TestHelper.generateAllTests(allTests, runTestsFor, hooks);
+    });
+    QUnit.module("CodeGeneratorBasic: Not keepBrackets", function (hooks) {
+        hooks.before(function () {
+            var codeGeneratorBasic = createCodeGeneratorBasic(false);
+            codeGeneratorBasic.getOptions().parser.setOptions({
+                keepBrackets: false
+            });
+            hooks.codeGeneratorBasic = codeGeneratorBasic;
+        });
+        function runTestsFor(category, tests, assert, results) {
+            var codeGeneratorBasic = hooks.codeGeneratorBasic;
+            codeGeneratorBasic.getOptions().lexer.setOptions({
+                keepWhiteSpace: category === "keepSpaces" // keepWhiteSpace active for category "keepSpaces"
+            });
+            for (var key in tests) {
+                if (tests.hasOwnProperty(key)) {
+                    var output = codeGeneratorBasic.generate(key), result = output.error ? String(output.error) : output.text;
+                    var expected = tests[key];
+                    if (!output.error) {
+                        if (key === "a=(1=0)") { // test where brackets are not needed
+                            expected = "a=1=0";
+                        }
+                        else if (key === "a = (((3+2))*((3-7)))") {
+                            expected = "a =( 3+2)*(3-7)";
+                        }
+                        else if (key.indexOf("hi=de+(f*10+g)") >= 0) {
+                            expected = expected.replace("hi=de+(f*10+g)", "hi=de+f*10+g");
+                        }
+                        if (category !== "PRG") { // not in string of PRG example
+                            expected = expected.replace(/( +)\(/g, "($1");
+                            expected = expected.replace(/( +)\)/g, ")$1");
+                        }
+                    }
+                    if (results) {
+                        results[category].push(TestHelper_1.TestHelper.stringInQuotes(key) + ": " + TestHelper_1.TestHelper.stringInQuotes(result));
+                    }
+                    if (assert) {
+                        assert.strictEqual(result, expected, key);
+                    }
+                }
+            }
+        }
+        TestHelper_1.TestHelper.generateAllTests(allTests, runTestsFor, hooks);
+    });
 });
 // end
 //# sourceMappingURL=CodeGeneratorBasic.qunit.js.map

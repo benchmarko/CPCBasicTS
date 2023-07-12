@@ -34,7 +34,6 @@ export declare class BasicParser {
     private composeError;
     private fnLastStatementIsOnErrorGotoX;
     private fnMaskedError;
-    private getToken;
     private advance;
     private expression;
     private fnCheckExpressionType;

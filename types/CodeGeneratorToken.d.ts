@@ -29,7 +29,6 @@ export declare class CodeGeneratorToken {
     private static string;
     private static ustring;
     private static fnEol;
-    private assign;
     private static floatToByteString;
     private static number;
     private static binnumber;
@@ -39,13 +38,11 @@ export declare class CodeGeneratorToken {
     private static linenumber;
     private fnLabel;
     private vertical;
-    private fnElse;
+    private fnElseOrApostrophe;
     private elseComment;
-    private fnIf;
     private onBreakContOrGosubOrStop;
     private onErrorGoto;
     private onSqGosub;
-    private apostrophe;
     private readonly parseFunctions;
     private fnParseOther;
     private parseNode;

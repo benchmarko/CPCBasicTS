@@ -233,7 +233,6 @@ declare module "BasicParser" {
         private composeError;
         private fnLastStatementIsOnErrorGotoX;
         private fnMaskedError;
-        private getToken;
         private advance;
         private expression;
         private fnCheckExpressionType;
@@ -405,7 +404,6 @@ declare module "CodeGeneratorBasic" {
         private assign;
         private static expnumber;
         private static binHexNumber;
-        private static linenumber;
         private label;
         private vertical;
         private afterEveryGosub;
@@ -413,10 +411,8 @@ declare module "CodeGeneratorBasic" {
         private data;
         private def;
         private elseComment;
-        private entOrEnv;
         private fn;
         private fnFor;
-        private fnThenOrElsePart;
         private fnElse;
         private fnIf;
         private inputLineInput;
@@ -662,7 +658,6 @@ declare module "CodeGeneratorToken" {
         private static string;
         private static ustring;
         private static fnEol;
-        private assign;
         private static floatToByteString;
         private static number;
         private static binnumber;
@@ -672,13 +667,11 @@ declare module "CodeGeneratorToken" {
         private static linenumber;
         private fnLabel;
         private vertical;
-        private fnElse;
+        private fnElseOrApostrophe;
         private elseComment;
-        private fnIf;
         private onBreakContOrGosubOrStop;
         private onErrorGoto;
         private onSqGosub;
-        private apostrophe;
         private readonly parseFunctions;
         private fnParseOther;
         private parseNode;

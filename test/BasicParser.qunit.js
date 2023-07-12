@@ -807,7 +807,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "./
         TestHelper_1.TestHelper.compareAllTests(TestInput_1.TestInput.getAllTests(), allTests);
         TestHelper_1.TestHelper.generateAllTests(allTests, runTestsFor, hooks);
     });
-    QUnit.module("BasicParser: keepWhiteSpace", function (hooks) {
+    QUnit.module("BasicParser: keepWhiteSpace, keep...", function (hooks) {
         function createBasicParser2() {
             return new BasicParser_1.BasicParser({
                 keepBrackets: true,
@@ -832,15 +832,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "./
             }
             var value = "";
             if (node.left) {
-                if (node.type === "if") { //TODO fast hack
-                    if (node.args) {
-                        node.args.unshift(node.left);
-                    }
-                    node.left = undefined;
-                }
-                else {
-                    value += fnCombineTreeNodes(node.left);
-                }
+                value += fnCombineTreeNodes(node.left);
             }
             value += (node.ws || "");
             if (node.len === 0 && node.type !== "label") { // ignore dummy token, e.g. '#' (but not label)
@@ -851,9 +843,6 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "./
             }
             else if (node.type === "ustring") {
                 value += '"' + node.value;
-            }
-            else if (node.type === "null") {
-                //value += ""; // TODO: set to "" in BasicParser
             }
             else if (node.value) {
                 if ((/[A-Z]/).test(node.type)) { // uppercase letter? => combined token  TODO: better do not combine tokens in value in BasicParser
