@@ -126,10 +126,9 @@ export class CodeGeneratorBasic {
 	}
 
 	private static getUcKeyword(node: ParserNode) {
-		const type = node.type,
-			typeUc = CodeGeneratorBasic.combinedKeywords[type] || type.toUpperCase();
+		const type = node.type;
 
-		return typeUc;
+		return CodeGeneratorBasic.combinedKeywords[type] || type.toUpperCase();
 	}
 
 
@@ -155,22 +154,21 @@ export class CodeGeneratorBasic {
 	}
 
 	private combineArgsWithColon(args: string[]) {
-		const separator = this.hasColons ? "" : ":",
-			value = args.join(separator);
+		if (!this.hasColons) {
+			for (let i = 1; i < args.length; i += 1) { // start with 1
+				const arg = args[i].trim();
 
-		return value;
+				if (!arg.startsWith("ELSE") && !arg.startsWith("'") && arg !== "") { //TTT arg !== "\n"
+					args[i] = ":" + args[i];
+				}
+			}
+		}
+
+		return args.join("");
 	}
 
 	private fnParenthesisOpen(node: ParserNode) { // special construct to combine tokens
-		let value = node.value;
-
-		if (node.args) {
-			const nodeArgs = this.fnParseArgs(node.args);
-
-			value += nodeArgs.join("");
-		}
-
-		return CodeGeneratorBasic.fnWs(node) + value;
+		return CodeGeneratorBasic.fnWs(node) + node.value + (node.args ? this.fnParseArgs(node.args).join("") : "");
 	}
 
 	private static string(node: ParserNode) {
@@ -198,20 +196,11 @@ export class CodeGeneratorBasic {
 		return CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase(); // binnumber: maybe "&x", hexnumber: mayby "&h"
 	}
 
-	private static linenumber(node: ParserNode) {
-		return CodeGeneratorBasic.fnWs(node) + node.value;
-	}
 	private label(node: ParserNode) {
 		this.line = Number(node.value); // set line before parsing args
+		const value = this.combineArgsWithColon(this.fnParseArgs(node.args));
 
-		const nodeArgs = this.fnParseArgs(node.args);
-
-		let value = this.combineArgsWithColon(nodeArgs);
-
-		if (node.value !== "") { // direct
-			value = node.value + CodeGeneratorBasic.fnSpace1(value);
-		}
-		return CodeGeneratorBasic.fnWs(node) + value;
+		return CodeGeneratorBasic.fnWs(node) + node.value + (node.value !== "" ? CodeGeneratorBasic.fnSpace1(value) : value);
 	}
 
 	// special keyword functions
@@ -224,19 +213,11 @@ export class CodeGeneratorBasic {
 		nodeArgs[0] = CodeGeneratorBasic.fnSpace1(nodeArgs[0]); // first argument
 		nodeArgs[nodeArgs.length - 2] = CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 2]); // "gosub"
 		nodeArgs[nodeArgs.length - 1] = CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 1]); // line number
-		const value = node.value.toUpperCase() + nodeArgs.join("");
 
-		return CodeGeneratorBasic.fnWs(node) + value;
+		return CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase() + nodeArgs.join("");
 	}
 	private chainOrChainMerge(node: ParserNode) {
-		const nodeArgs = this.fnParseArgs(node.args),
-			typeUc = CodeGeneratorBasic.getUcKeyword(node);
-
-		let name = "";
-
-		if (node.right) { // merge?
-			name = this.parseNode(node.right);
-		}
+		const nodeArgs = this.fnParseArgs(node.args);
 
 		if (nodeArgs.length > 2) { // with delete?
 			if (nodeArgs[nodeArgs.length - 2] === "DELETE") {
@@ -244,7 +225,7 @@ export class CodeGeneratorBasic {
 			}
 		}
 
-		return CodeGeneratorBasic.fnWs(node) + typeUc + CodeGeneratorBasic.fnSpace1(name) + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
+		return CodeGeneratorBasic.fnWs(node) + CodeGeneratorBasic.getUcKeyword(node) + (node.right ? CodeGeneratorBasic.fnSpace1(this.parseNode(node.right)) : "") + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
 	}
 	private data(node: ParserNode) {
 		const nodeArgs = this.fnParseArgs(node.args);
@@ -265,14 +246,7 @@ export class CodeGeneratorBasic {
 	}
 
 	private def(node: ParserNode) {
-		if (!node.right) {
-			return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase(); // maybe key def
-		}
-
-		const right = this.parseNode(node.right),
-			nodeArgs = this.fnParseArgs(node.args); // including expression
-
-		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(right) + nodeArgs.join("");
+		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + (node.right ? CodeGeneratorBasic.fnSpace1(this.parseNode(node.right)) + this.fnParseArgs(node.args).join("") : "");
 	}
 
 	private elseComment(node: ParserNode) { // similar to a comment, with unchecked tokens
@@ -296,37 +270,14 @@ export class CodeGeneratorBasic {
 		}
 		return CodeGeneratorBasic.fnWs(node) + "else".toUpperCase() + value;
 	}
-	private entOrEnv(node: ParserNode) { // "ent" or "env"
-		if (!node.args) {
-			throw this.composeError(Error(), "Programming error: Undefined args", "", -1); // should not occur
-		}
-
-		const args = node.args,
-			nodeArgs = [];
-		let equal = false;
-
-		for (let i = 0; i < args.length; i += 1) {
-			if (args[i].type !== "null") {
-				const arg = this.parseNode(args[i]);
-
-				if (equal) {
-					equal = false;
-				}
-				nodeArgs.push(arg);
-			} else {
-				equal = true;
-			}
-		}
-		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
-	}
 
 	private fn(node: ParserNode) {
 		if (!node.right) {
 			return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase(); // only fn
 		}
 
-		let right = this.parseNode(node.right);
 		const nodeArgs = node.args ? this.fnParseArgs(node.args) : [];
+		let right = this.parseNode(node.right);
 
 		if ((node.right.pos - node.pos) > 2) { // space between fn and identifier?
 			right = CodeGeneratorBasic.fnSpace1(right); // keep it
@@ -346,41 +297,28 @@ export class CodeGeneratorBasic {
 		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + nodeArgs.join("");
 	}
 
-	private fnThenOrElsePart(nodeBranch: ParserNode[]) {
-		const nodeArgs = this.fnParseArgs(nodeBranch),
-			partName = nodeArgs.shift() as string; // "then"/"goto" or "else"
-
-		return CodeGeneratorBasic.fnSpace1(partName) + CodeGeneratorBasic.fnSpace1(this.combineArgsWithColon(nodeArgs));
-	}
-
 	private fnElse(node: ParserNode) {
-		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(this.fnParseArgs(node.args).join(""));
+		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(this.combineArgsWithColon(this.fnParseArgs(node.args)));
 	}
 
 	private fnIf(node: ParserNode) {
-		if (!node.right) {
-			throw this.composeError(Error(), "Programming error: Undefined left", node.type, node.pos); // should not occur
-		}
-		if (!node.args) {
-			throw this.composeError(Error(), "Programming error: Undefined args", node.type, node.pos); // should not occur
-		}
+		/*
+		const elseNode = node.args && node.args.length && node.args[node.args.length - 1].type === "else" ? (node.args.pop() as ParserNode);
+		elseArgs = node.args && node.args.length && node.args[node.args.length - 1].type === "else" ? (node.args.pop() as ParserNode).args : undefined,
+		*/
+		const nodeArgs = this.fnParseArgs(node.args),
+			partName = nodeArgs.shift() as string; // "then"/"goto"
 
-		let value = CodeGeneratorBasic.fnSpace1(this.parseNode(node.right));
-
-		value += this.fnThenOrElsePart(node.args); // "then" part
-		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + value;
+		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(this.parseNode(node.right as ParserNode))
+			+ CodeGeneratorBasic.fnSpace1(partName) + CodeGeneratorBasic.fnSpace1(this.combineArgsWithColon(nodeArgs));
+			//+ elseArgs ? CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase()
 	}
 
 	private inputLineInput(node: ParserNode) { // input or line input
 		const nodeArgs = node.args ? this.fnParseArgs(node.args) : [], // also for clear input, which has no args
-			typeUc = CodeGeneratorBasic.getUcKeyword(node);
-		let name = "";
+			name = node.right ? this.parseNode(node.right) : ""; // line input?
 
-		if (node.right) { // input?
-			name = this.parseNode(node.right);
-		}
-
-		return CodeGeneratorBasic.fnWs(node) + typeUc + CodeGeneratorBasic.fnSpace1(name) + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
+		return CodeGeneratorBasic.fnWs(node) + CodeGeneratorBasic.getUcKeyword(node) + CodeGeneratorBasic.fnSpace1(name) + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
 	}
 	private list(node: ParserNode) {
 		const nodeArgs = this.fnParseArgs(node.args);
@@ -396,17 +334,11 @@ export class CodeGeneratorBasic {
 		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
 	}
 	private mid$Assign(node: ParserNode) {
-		const nodeArgs = this.fnParseArgs(node.args),
-			typeUc = CodeGeneratorBasic.getUcKeyword(node);
-
-		return CodeGeneratorBasic.fnWs(node) + typeUc + nodeArgs.join("");
+		return CodeGeneratorBasic.fnWs(node) + CodeGeneratorBasic.getUcKeyword(node) + this.fnParseArgs(node.args).join("");
 	}
 
 	private onBreakOrError(node: ParserNode) {
-		const nodeArgs = this.fnParseArgs(node.args),
-			right = this.parseNode(node.right as ParserNode);
-
-		return CodeGeneratorBasic.fnWs(node) + "ON" + CodeGeneratorBasic.fnSpace1(right) + CodeGeneratorBasic.fnSpace1(nodeArgs.join(""));
+		return CodeGeneratorBasic.fnWs(node) + "ON" + CodeGeneratorBasic.fnSpace1(this.parseNode(node.right as ParserNode)) + CodeGeneratorBasic.fnSpace1(this.fnParseArgs(node.args).join(""));
 	}
 
 	private onGotoGosub(node: ParserNode) {
@@ -418,13 +350,12 @@ export class CodeGeneratorBasic {
 	}
 
 	private onSqGosub(node: ParserNode) {
-		const nodeArgs = this.fnParseArgs(node.args),
-			right = this.parseNode(node.right as ParserNode);
+		const nodeArgs = this.fnParseArgs(node.args);
 
 		nodeArgs[nodeArgs.length - 2] = CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 2]); // "gosub" with space (optional)
 		nodeArgs[nodeArgs.length - 1] = CodeGeneratorBasic.fnSpace1(nodeArgs[nodeArgs.length - 1]); // line number with space
 
-		return CodeGeneratorBasic.fnWs(node) + "ON" + CodeGeneratorBasic.fnSpace1(right) + nodeArgs.join("");
+		return CodeGeneratorBasic.fnWs(node) + "ON" + CodeGeneratorBasic.fnSpace1(this.parseNode(node.right as ParserNode)) + nodeArgs.join("");
 	}
 
 	private print(node: ParserNode) {
@@ -452,12 +383,7 @@ export class CodeGeneratorBasic {
 	}
 
 	private write(node: ParserNode) {
-		if (!node.args) { // e.g. speed write
-			return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase();
-		}
-		const nodeArgs = this.fnParseArgs(node.args);
-
-		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(nodeArgs.join("")); // separators already there
+		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + (node.args ? CodeGeneratorBasic.fnSpace1(this.fnParseArgs(node.args).join("")) : ""); // separators already there
 	}
 
 	/* eslint-disable no-invalid-this */
@@ -469,7 +395,6 @@ export class CodeGeneratorBasic {
 		expnumber: CodeGeneratorBasic.expnumber,
 		binnumber: CodeGeneratorBasic.binHexNumber,
 		hexnumber: CodeGeneratorBasic.binHexNumber,
-		linenumber: CodeGeneratorBasic.linenumber,
 		label: this.label,
 		"|": this.vertical,
 		afterGosub: this.afterEveryGosub,
@@ -479,8 +404,6 @@ export class CodeGeneratorBasic {
 		def: this.def,
 		"else": this.fnElse,
 		elseComment: this.elseComment,
-		ent: this.entOrEnv,
-		env: this.entOrEnv,
 		everyGosub: this.afterEveryGosub,
 		fn: this.fn,
 		"for": this.fnFor,
@@ -605,14 +528,7 @@ export class CodeGeneratorBasic {
 				if (p && pr && (pr < p)) {
 					value = "(" + value + ")";
 				}
-
-				const operator = CodeGeneratorBasic.fnWs(node) + operators[node.type].toUpperCase();
-
-				if (node.type === "not") {
-					value = operator + CodeGeneratorBasic.fnSpace1(value);
-				} else {
-					value = operator + value;
-				}
+				value = CodeGeneratorBasic.fnWs(node) + operators[node.type].toUpperCase() + (node.type === "not" ? CodeGeneratorBasic.fnSpace1(value) : value);
 			}
 		} else { // no operator, e.g. "=" in "for"
 			value = this.fnParseOther(node);
@@ -621,11 +537,12 @@ export class CodeGeneratorBasic {
 	}
 
 	private parseNode(node: ParserNode) {
+		const type = node.type;
+
 		if (Utils.debug > 3) {
-			Utils.console.debug("evaluate: parseNode node=%o type=" + node.type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
+			Utils.console.debug("evaluate: parseNode node=%o type=" + type + " value=" + node.value + " left=%o right=%o args=%o", node, node.left, node.right, node.args);
 		}
 
-		const type = node.type;
 		let value: string;
 
 		if (CodeGeneratorBasic.operators[type]) {

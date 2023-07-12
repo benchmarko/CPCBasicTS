@@ -833,7 +833,7 @@ QUnit.module("BasicParser: Tests", function (hooks) {
 });
 
 
-QUnit.module("BasicParser: keepWhiteSpace", function (hooks) {
+QUnit.module("BasicParser: keepWhiteSpace, keep...", function (hooks) {
 	function createBasicParser2() {
 		return new BasicParser({
 			keepBrackets: true,
@@ -865,14 +865,7 @@ QUnit.module("BasicParser: keepWhiteSpace", function (hooks) {
 		let value = "";
 
 		if (node.left) {
-			if (node.type === "if") { //TODO fast hack
-				if (node.args) {
-					node.args.unshift(node.left);
-				}
-				node.left = undefined;
-			} else {
-				value += fnCombineTreeNodes(node.left);
-			}
+			value += fnCombineTreeNodes(node.left);
 		}
 
 		value += (node.ws || "");
@@ -883,8 +876,6 @@ QUnit.module("BasicParser: keepWhiteSpace", function (hooks) {
 			value += '"' + node.value + '"';
 		} else if (node.type === "ustring") {
 			value += '"' + node.value;
-		} else if (node.type === "null") {
-			//value += ""; // TODO: set to "" in BasicParser
 		} else if (node.value) {
 			if ((/[A-Z]/).test(node.type)) { // uppercase letter? => combined token  TODO: better do not combine tokens in value in BasicParser
 				const spacePos = node.value.indexOf(" ");

@@ -219,6 +219,7 @@ export class CodeGeneratorToken {
 		using: 0xed,
 		">": 0xee, // (greater than)
 		"=": 0xef, // (equal)
+		assign: 0xef, // equal as assign
 		">=": 0xf0, // (greater or equal)
 		"<": 0xf1, // (less than)
 		"<>": 0xf2, // (not equal)
@@ -358,11 +359,11 @@ export class CodeGeneratorToken {
 		return this.fnParseArgs(node.args).join(node.value);
 	}
 
-	private range(node: ParserNode) { // for defint, defreal, defstr
+	private range(node: ParserNode) { // for defint, defreal, defstr (keeps "-")
 		return this.parseNode(node.left as ParserNode) + CodeGeneratorToken.fnGetWs(node) + node.value + this.parseNode(node.right as ParserNode);
 	}
 
-	private linerange(node: ParserNode) { // for delete, list
+	private linerange(node: ParserNode) { // for delete, list (get special token for "-")
 		return this.parseNode(node.left as ParserNode) + CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.value) + this.parseNode(node.right as ParserNode);
 	}
 
@@ -377,14 +378,6 @@ export class CodeGeneratorToken {
 
 	private static fnEol() { // ignore newline character
 		return "";
-	}
-
-	private assign(node: ParserNode) {
-		// see also "let"
-		if ((node.left as ParserNode).type !== "identifier") {
-			throw this.composeError(Error(), "Unexpected assign type", node.type, node.pos); // should not occur
-		}
-		return this.parseNode(node.left as ParserNode) + CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.value) + this.parseNode(node.right as ParserNode);
 	}
 
 	private static floatToByteString(number: number) {
@@ -503,7 +496,8 @@ export class CodeGeneratorToken {
 		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + (rsxName.length ? CodeGeneratorToken.convUInt8ToString(offset) : "") + CodeGeneratorToken.getBit7TerminatedString(rsxName) + nodeArgs.join("");
 	}
 
-	private fnElse(node: ParserNode) {
+	private fnElseOrApostrophe(node: ParserNode) {
+		// prefix token with ":"
 		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(":") + CodeGeneratorToken.token2String(node.type) + this.fnParseArgs(node.args).join("");
 	}
 
@@ -532,11 +526,6 @@ export class CodeGeneratorToken {
 		return value;
 	}
 
-	private fnIf(node: ParserNode) {
-		//return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + this.parseNode(node.left as ParserNode) + this.fnParseArgs(node.args as ParserNode[]).join("") + (node.args2 ? this.fnParseArgs(node.args2).join("") : "");
-		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(node.type) + this.parseNode(node.right as ParserNode) + this.fnParseArgs(node.args as ParserNode[]).join("");
-	}
-
 	private onBreakContOrGosubOrStop(node: ParserNode) {
 		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String("_onBreak") + (node.right && node.right.right ? this.parseNode(node.right.right) : "") + this.fnParseArgs(node.args).join("");
 	}
@@ -552,10 +541,6 @@ export class CodeGeneratorToken {
 		return CodeGeneratorToken.token2String("_onSq") + this.fnParseArgs((node.right as ParserNode).args).join("") + this.fnParseArgs(node.args).join("");
 	}
 
-	private apostrophe(node: ParserNode) {
-		return CodeGeneratorToken.fnGetWs(node) + CodeGeneratorToken.token2String(":") + CodeGeneratorToken.token2String(node.type) + this.fnParseArgs(node.args).join("");
-	}
-
 	/* eslint-disable no-invalid-this */
 	private readonly parseFunctions: Record<string, (node: ParserNode) => string> = { // to call methods, use parseFunctions[].call(this,...)
 		args: this.fnArgs,
@@ -564,7 +549,6 @@ export class CodeGeneratorToken {
 		string: CodeGeneratorToken.string,
 		ustring: CodeGeneratorToken.ustring,
 		"(eol)": CodeGeneratorToken.fnEol, // ignore newline "\n"
-		assign: this.assign,
 		number: CodeGeneratorToken.number,
 		expnumber: CodeGeneratorToken.number, // same handling as for number
 		binnumber: CodeGeneratorToken.binnumber,
@@ -573,15 +557,14 @@ export class CodeGeneratorToken {
 		linenumber: CodeGeneratorToken.linenumber,
 		label: this.fnLabel,
 		"|": this.vertical,
-		"else": this.fnElse,
+		"else": this.fnElseOrApostrophe,
 		elseComment: this.elseComment,
-		"if": this.fnIf,
 		onBreakCont: this.onBreakContOrGosubOrStop,
 		onBreakGosub: this.onBreakContOrGosubOrStop,
 		onBreakStop: this.onBreakContOrGosubOrStop,
 		onErrorGoto: this.onErrorGoto,
 		onSqGosub: this.onSqGosub,
-		"'": this.apostrophe
+		"'": this.fnElseOrApostrophe
 	};
 	/* eslint-enable no-invalid-this */
 

@@ -891,4 +891,102 @@ QUnit.module("CodeGeneratorBasic: keepWhiteSpace", function (hooks) {
 	TestHelper.generateAllTests(allTests, runTestsForWhitespace, hooks);
 });
 
+
+QUnit.module("CodeGeneratorBasic: Not keepColons", function (hooks) {
+	hooks.before(function () {
+		const codeGeneratorBasic = createCodeGeneratorBasic(false);
+
+		codeGeneratorBasic.getOptions().parser.setOptions({
+			keepColons: false
+		});
+		(hooks as hooksWithCodeGeneratorBasic).codeGeneratorBasic = codeGeneratorBasic;
+	});
+
+	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
+		const codeGeneratorBasic = (hooks as hooksWithCodeGeneratorBasic).codeGeneratorBasic;
+
+		codeGeneratorBasic.getOptions().lexer.setOptions({
+			keepWhiteSpace: category === "keepSpaces" // keepWhiteSpace active for category "keepSpaces"
+		});
+
+		for (const key in tests) {
+			if (tests.hasOwnProperty(key)) {
+				const output = codeGeneratorBasic.generate(key),
+					result = output.error ? String(output.error) : output.text;
+				let expected = tests[key];
+
+				if (!output.error) {
+					expected = expected.replace(":'", "'");
+					expected = expected.replace(/^:+/, "");
+					expected = expected.replace(/:+$/, "");
+					expected = expected.replace(/:+( *)$/, "$1");
+				}
+
+				if (results) {
+					results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+				}
+
+				if (assert) {
+					assert.strictEqual(result, expected, key);
+				}
+			}
+		}
+	}
+
+	TestHelper.generateAllTests(allTests, runTestsFor, hooks);
+});
+
+
+QUnit.module("CodeGeneratorBasic: Not keepBrackets", function (hooks) {
+	hooks.before(function () {
+		const codeGeneratorBasic = createCodeGeneratorBasic(false);
+
+		codeGeneratorBasic.getOptions().parser.setOptions({
+			keepBrackets: false
+		});
+		(hooks as hooksWithCodeGeneratorBasic).codeGeneratorBasic = codeGeneratorBasic;
+	});
+
+	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
+		const codeGeneratorBasic = (hooks as hooksWithCodeGeneratorBasic).codeGeneratorBasic;
+
+		codeGeneratorBasic.getOptions().lexer.setOptions({
+			keepWhiteSpace: category === "keepSpaces" // keepWhiteSpace active for category "keepSpaces"
+		});
+
+		for (const key in tests) {
+			if (tests.hasOwnProperty(key)) {
+				const output = codeGeneratorBasic.generate(key),
+					result = output.error ? String(output.error) : output.text;
+				let	expected = tests[key];
+
+				if (!output.error) {
+					if (key === "a=(1=0)") { // test where brackets are not needed
+						expected = "a=1=0";
+					} else if (key === "a = (((3+2))*((3-7)))") {
+						expected = "a =( 3+2)*(3-7)";
+					} else if (key.indexOf("hi=de+(f*10+g)") >= 0) {
+						expected =	expected.replace("hi=de+(f*10+g)", "hi=de+f*10+g");
+					}
+
+					if (category !== "PRG") { // not in string of PRG example
+						expected = expected.replace(/( +)\(/g, "($1");
+						expected = expected.replace(/( +)\)/g, ")$1");
+					}
+				}
+
+				if (results) {
+					results[category].push(TestHelper.stringInQuotes(key) + ": " + TestHelper.stringInQuotes(result));
+				}
+
+				if (assert) {
+					assert.strictEqual(result, expected, key);
+				}
+			}
+		}
+	}
+
+	TestHelper.generateAllTests(allTests, runTestsFor, hooks);
+});
+
 // end
