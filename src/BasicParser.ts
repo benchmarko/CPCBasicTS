@@ -1405,8 +1405,7 @@ export class BasicParser {
 		const closeTokens = BasicParser.closeTokensForArgs,
 			stream = this.fnGetOptionalStream();
 
-		node.args = [];
-		node.args.push(stream);
+		node.args = [stream];
 
 		if (stream.len !== 0) { // not an inserted stream?
 			if (!closeTokens[this.token.type]) {

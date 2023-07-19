@@ -36,6 +36,7 @@ class cpcBasic {
 		showConvert: false,
 		showSettings: false,
 		sound: true,
+		speed: 100,
 		trace: false // trace code
 	};
 

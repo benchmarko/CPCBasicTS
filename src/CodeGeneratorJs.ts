@@ -1455,10 +1455,17 @@ export class CodeGeneratorJs {
 		node.pv = nodeArgs.join("; ");
 	}
 	private rem(node: CodeNode) {
-		const nodeArgs = this.fnParseArgs(node.args),
-			value = nodeArgs.length ? " " + nodeArgs[0] : "";
+		const nodeArgs = this.fnParseArgs(node.args);
 
-		node.pv = "//" + value + "\n";
+		node.pv = "//" + nodeArgs.join("") + "\n";
+	}
+	private apostrophe(node: CodeNode) {
+		const nodeArgs = this.fnParseArgs(node.args);
+
+		if (nodeArgs.length && !nodeArgs[0].startsWith(" ")) {
+			nodeArgs[0] = " " + nodeArgs[0]; // add extra space
+		}
+		node.pv = "//" + nodeArgs.join("") + "\n";
 	}
 	private static fnReturn(node: CodeNode) {
 		const name = Utils.supportReservedNames ? ("o." + node.type) : 'o["' + node.type + '"]';
@@ -1597,7 +1604,7 @@ export class CodeGeneratorJs {
 		randomize: this.randomize,
 		read: this.read,
 		rem: this.rem,
-		"'": this.rem, // apostrophe comment
+		"'": this.apostrophe, // apostrophe comment
 		renum: this.fnCommandWithGoto,
 		restore: this.onBreakGosubOrRestore,
 		resume: this.gotoOrResume,

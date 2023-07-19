@@ -51,11 +51,15 @@ With CPC Basic we do not get that accuracy. But if we compile it to JavaScript, 
     - The checkbox **Array Bounds** checks array bounds of the running program. This option requires an ES6 compatible browser and is switched off per default.
     - The checkbox **Implicit Lines** allows to run BASIC programs without line numbers.
     - The checkbox **Trace Mode** switches on trace mode. Ths allows to show the source position in case of runtime errors.
+    - The range slider **Speed** allows to reduce the simulation speed (0..100). This is an experimental feature.
   - The **Check** button checks the syntax of the program. It compiles the program to JavaScript.
   - The **Convert** button opens a popover with functions to renumber lines or pretty print the program.
     - The **Renum** button renumbers the lines (see also *RENUM*)
-    - The **Pretty** button performs a pretty print on the input.
-    - The **Add** button adds (missing) line numbers to the program. New numbers are increased by 1.
+    - The **Pretty** button performs a pretty print on the input. There are options for pretty print:
+      - The checkbox **Brackets** keeps the brackets (parenthesis) during pretty print. If unchecked, brackets are used only where needed. Please note that this could lead to overflows in expressions in some cases, where brackets were used to priorize a computation without overflow.
+      - The checkbox **Colons** keeps the colons. If unset, colons are only used where needed. Multiple columns are removed.
+      - The checkbox **Spaces** keeps whitespace and preserves the input as much as possible.
+    - The **Add** button adds (missing) line numbers to the program. New numbers are increased by one.
     - The **Remove** button removes unreferenced line numbers from the program. Use the setting "Implicit Lines" to run such programs.
     - The **Undo** button reverts the last renum or pretty print.
     - The **Redo** button activates the last renum or pretty print.
@@ -69,7 +73,7 @@ With CPC Basic we do not get that accuracy. But if we compile it to JavaScript, 
   - The **Screenshot** button creates a screenshot of the current CPC screen.
   - The **Sound** button activates or deactivates sound.
     - If you start the app or use the *Reload* button with the sound enabled, the sound needs to be activated by a user action, e.g. a click anywhere. This is a browser limitation.
-  The **Fullscreen** button activates fullscreen mode of the CPC window.
+  - The **Fullscreen** button activates fullscreen mode of the CPC window.
 - The *Text View* window shows the text which is written in text mode.
 - The *Keyboard* window shows a virtual keyboard which can be also used with touch devices. You can test the functionality with the test program [keyboard](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=test/keyboard&showKbd=true).
 - The *Keyboard Layout* window allows you to change the layout of the keyboard.

@@ -36,6 +36,8 @@
     "ZipFile.ts",
     "CpcVm.ts",
     "CpcVmRsx.ts",
+    "FileHandler.ts",
+    "FileSelect.ts",
     "Controller.ts",
     "cpcconfig.ts",
     "cpcbasic.ts"
