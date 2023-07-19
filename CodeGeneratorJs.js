@@ -123,7 +123,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 randomize: this.randomize,
                 read: this.read,
                 rem: this.rem,
-                "'": this.rem,
+                "'": this.apostrophe,
                 renum: this.fnCommandWithGoto,
                 restore: this.onBreakGosubOrRestore,
                 resume: this.gotoOrResume,
@@ -1162,8 +1162,15 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             node.pv = nodeArgs.join("; ");
         };
         CodeGeneratorJs.prototype.rem = function (node) {
-            var nodeArgs = this.fnParseArgs(node.args), value = nodeArgs.length ? " " + nodeArgs[0] : "";
-            node.pv = "//" + value + "\n";
+            var nodeArgs = this.fnParseArgs(node.args);
+            node.pv = "//" + nodeArgs.join("") + "\n";
+        };
+        CodeGeneratorJs.prototype.apostrophe = function (node) {
+            var nodeArgs = this.fnParseArgs(node.args);
+            if (nodeArgs.length && !nodeArgs[0].startsWith(" ")) {
+                nodeArgs[0] = " " + nodeArgs[0]; // add extra space
+            }
+            node.pv = "//" + nodeArgs.join("") + "\n";
         };
         CodeGeneratorJs.fnReturn = function (node) {
             var name = Utils_1.Utils.supportReservedNames ? ("o." + node.type) : 'o["' + node.type + '"]';

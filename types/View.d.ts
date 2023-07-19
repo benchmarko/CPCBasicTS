@@ -26,5 +26,6 @@ export declare class View {
     setAreaSelection(id: string, pos: number, endPos: number): this;
     attachEventHandler(type: string, eventHandler: EventListenerOrEventListenerObject): this;
     static getEventTarget<T extends HTMLElement>(event: Event): T;
+    static requestFullscreenForId(id: string): boolean;
 }
 //# sourceMappingURL=View.d.ts.map

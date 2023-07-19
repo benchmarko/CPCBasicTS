@@ -2,255 +2,16 @@
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./BasicParser", "./BasicTokenizer", "./Canvas", "./CodeGeneratorBasic", "./CodeGeneratorJs", "./CodeGeneratorToken", "./CommonEventHandler", "./cpcCharset", "./CpcVm", "./CpcVmRsx", "./Diff", "./DiskImage", "./InputStack", "./Keyboard", "./TextCanvas", "./VirtualKeyboard", "./Sound", "./Variables", "./View", "./ZipFile"], function (require, exports, Utils_1, BasicFormatter_1, BasicLexer_1, BasicParser_1, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, CpcVmRsx_1, Diff_1, DiskImage_1, InputStack_1, Keyboard_1, TextCanvas_1, VirtualKeyboard_1, Sound_1, Variables_1, View_1, ZipFile_1) {
+define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./BasicParser", "./BasicTokenizer", "./Canvas", "./CodeGeneratorBasic", "./CodeGeneratorJs", "./CodeGeneratorToken", "./CommonEventHandler", "./cpcCharset", "./CpcVm", "./CpcVmRsx", "./Diff", "./DiskImage", "./FileHandler", "./FileSelect", "./InputStack", "./Keyboard", "./TextCanvas", "./VirtualKeyboard", "./Sound", "./Variables", "./View"], function (require, exports, Utils_1, BasicFormatter_1, BasicLexer_1, BasicParser_1, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, CpcVmRsx_1, Diff_1, DiskImage_1, FileHandler_1, FileSelect_1, InputStack_1, Keyboard_1, TextCanvas_1, VirtualKeyboard_1, Sound_1, Variables_1, View_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Controller = void 0;
-    var FileSelect = /** @class */ (function () {
-        function FileSelect(options) {
-            this.fnEndOfImport = {};
-            this.outputError = {};
-            this.fnLoad2 = {};
-            this.files = {}; // = dataTransfer ? dataTransfer.files : ((event.target as any).files as FileList), // dataTransfer for drag&drop, target.files for file input
-            this.fileIndex = 0;
-            this.imported = []; // imported file names
-            this.file = {}; // current file
-            this.fnEndOfImport = options.fnEndOfImport;
-            this.outputError = options.outputError;
-            this.fnLoad2 = options.fnLoad2;
-        }
-        FileSelect.prototype.fnReadNextFile = function (reader) {
-            if (this.fileIndex < this.files.length) {
-                var file = this.files[this.fileIndex];
-                this.fileIndex += 1;
-                var lastModified = file.lastModified, lastModifiedDate = lastModified ? new Date(lastModified) : file.lastModifiedDate, // lastModifiedDate deprecated, but for old IE
-                text = file.name + " " + (file.type || "n/a") + " " + file.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
-                Utils_1.Utils.console.log(text);
-                if (file.type === "text/plain") {
-                    reader.readAsText(file);
-                }
-                else if (file.type === "application/x-zip-compressed") {
-                    reader.readAsArrayBuffer(file);
-                }
-                else {
-                    reader.readAsDataURL(file);
-                }
-                this.file = file;
-            }
-            else {
-                this.fnEndOfImport(this.imported);
-            }
-        };
-        FileSelect.prototype.fnOnLoad = function (event) {
-            var reader = event.target, data = (reader && reader.result) || null, file = this.file, name = file.name, type = file.type;
-            if (type === "application/x-zip-compressed" && data instanceof ArrayBuffer) {
-                var zip = void 0;
-                try {
-                    zip = new ZipFile_1.ZipFile(new Uint8Array(data), name); // rather data
-                }
-                catch (e) {
-                    Utils_1.Utils.console.error(e);
-                    if (e instanceof Error) {
-                        this.outputError(e, true);
-                    }
-                }
-                if (zip) {
-                    var zipDirectory = zip.getZipDirectory(), entries = Object.keys(zipDirectory);
-                    for (var i = 0; i < entries.length; i += 1) {
-                        var name2 = entries[i];
-                        var data2 = void 0;
-                        try {
-                            data2 = zip.readData(name2);
-                        }
-                        catch (e) {
-                            Utils_1.Utils.console.error(e);
-                            if (e instanceof Error) { // eslint-disable-line max-depth
-                                this.outputError(e, true);
-                            }
-                        }
-                        if (data2) {
-                            this.fnLoad2(data2, name2, type, this.imported);
-                        }
-                    }
-                }
-            }
-            else if (typeof data === "string") {
-                this.fnLoad2(data, name, type, this.imported);
-            }
-            else {
-                Utils_1.Utils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);
-            }
-            if (reader) {
-                this.fnReadNextFile(reader);
-            }
-        };
-        FileSelect.prototype.fnErrorHandler = function (event, file) {
-            var reader = event.target;
-            var msg = "fnErrorHandler: Error reading file " + file.name;
-            if (reader && reader.error !== null) {
-                if (reader.error.NOT_FOUND_ERR) {
-                    msg += ": File not found";
-                }
-                else if (reader.error.ABORT_ERR) {
-                    msg = ""; // nothing
-                }
-            }
-            if (msg) {
-                Utils_1.Utils.console.warn(msg);
-            }
-            if (reader) {
-                this.fnReadNextFile(reader);
-            }
-        };
-        // https://stackoverflow.com/questions/10261989/html5-javascript-drag-and-drop-file-from-external-window-windows-explorer
-        // https://www.w3.org/TR/file-upload/#dfn-filereader
-        FileSelect.prototype.fnHandleFileSelect = function (event) {
-            event.stopPropagation();
-            event.preventDefault();
-            var dataTransfer = event.dataTransfer, files = dataTransfer ? dataTransfer.files : View_1.View.getEventTarget(event).files; // dataTransfer for drag&drop, target.files for file input
-            if (!files || !files.length) {
-                Utils_1.Utils.console.error("fnHandleFileSelect: No files!");
-                return;
-            }
-            this.files = files;
-            this.fileIndex = 0;
-            this.imported.length = 0;
-            if (window.FileReader) {
-                var reader = new FileReader();
-                reader.onerror = this.fnErrorHandler.bind(this);
-                reader.onload = this.fnOnLoad.bind(this);
-                this.fnReadNextFile(reader);
-            }
-            else {
-                Utils_1.Utils.console.warn("fnHandleFileSelect: FileReader API not supported.");
-            }
-        };
-        FileSelect.prototype.addFileSelectHandler = function (element, type) {
-            element.addEventListener(type, this.fnHandleFileSelect.bind(this), false);
-        };
-        return FileSelect;
-    }());
-    var FileHandler = /** @class */ (function () {
-        function FileHandler(options) {
-            this.adaptFilename = {};
-            this.updateStorageDatabase = {};
-            this.outputError = {};
-            this.adaptFilename = options.adaptFilename;
-            this.updateStorageDatabase = options.updateStorageDatabase;
-            this.outputError = options.outputError;
-        }
-        FileHandler.fnLocalStorageName = function (name, defaultExtension) {
-            // modify name so we do not clash with localstorage methods/properites
-            if (name.indexOf(".") < 0) { // no dot inside name?
-                name += "." + (defaultExtension || ""); // append dot or default extension
-            }
-            return name;
-        };
-        FileHandler.createMinimalAmsdosHeader = function (type, start, length) {
-            return {
-                typeString: type,
-                start: start,
-                length: length
-            };
-        };
-        FileHandler.joinMeta = function (meta) {
-            return [
-                FileHandler.metaIdent,
-                meta.typeString,
-                meta.start,
-                meta.length,
-                meta.entry
-            ].join(";");
-        };
-        // starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
-        FileHandler.prototype.fnLoad2 = function (data, name, type, imported) {
-            var header, storageName = this.adaptFilename(name, "FILE");
-            storageName = FileHandler.fnLocalStorageName(storageName);
-            if (type === "text/plain") {
-                header = FileHandler.createMinimalAmsdosHeader("A", 0, data.length);
-            }
-            else {
-                if (type === "application/x-zip-compressed" || type === "cpcBasic/binary") { // are we a file inside zip?
-                    // empty
-                }
-                else { // e.g. "data:application/octet-stream;base64,..."
-                    var index = data.indexOf(",");
-                    if (index >= 0) {
-                        var info1 = data.substring(0, index);
-                        data = data.substring(index + 1); // remove meta prefix
-                        if (info1.indexOf("base64") >= 0) {
-                            data = Utils_1.Utils.atob(data); // decode base64
-                        }
-                    }
-                }
-                header = DiskImage_1.DiskImage.parseAmsdosHeader(data);
-                if (header) {
-                    data = data.substring(0x80); // remove header
-                }
-                else if (FileHandler.reRegExpIsText.test(data)) {
-                    header = FileHandler.createMinimalAmsdosHeader("A", 0, data.length);
-                }
-                else if (DiskImage_1.DiskImage.testDiskIdent(data.substring(0, 8))) { // disk image file?
-                    try {
-                        var dsk = new DiskImage_1.DiskImage({
-                            data: data,
-                            diskName: name
-                        }), dir = dsk.readDirectory(), diskFiles = Object.keys(dir);
-                        for (var i = 0; i < diskFiles.length; i += 1) {
-                            var fileName = diskFiles[i];
-                            try { // eslint-disable-line max-depth
-                                data = dsk.readFile(dir[fileName]);
-                                this.fnLoad2(data, fileName, "cpcBasic/binary", imported); // recursive
-                            }
-                            catch (e) {
-                                Utils_1.Utils.console.error(e);
-                                if (e instanceof Error) { // eslint-disable-line max-depth
-                                    this.outputError(e, true);
-                                }
-                            }
-                        }
-                    }
-                    catch (e) {
-                        Utils_1.Utils.console.error(e);
-                        if (e instanceof Error) {
-                            this.outputError(e, true);
-                        }
-                    }
-                    header = undefined; // ignore dsk file
-                }
-                else { // binary
-                    header = FileHandler.createMinimalAmsdosHeader("B", 0, data.length);
-                }
-            }
-            if (header) {
-                var meta = FileHandler.joinMeta(header);
-                try {
-                    Utils_1.Utils.localStorage.setItem(storageName, meta + "," + data);
-                    this.updateStorageDatabase("set", storageName);
-                    Utils_1.Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
-                    imported.push(name);
-                }
-                catch (e) { // maybe quota exceeded
-                    Utils_1.Utils.console.error(e);
-                    if (e instanceof Error) {
-                        if (e.name === "QuotaExceededError") {
-                            e.shortMessage = storageName + ": Quota exceeded";
-                        }
-                        this.outputError(e, true);
-                    }
-                }
-            }
-        };
-        FileHandler.metaIdent = "CPCBasic";
-        FileHandler.reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/); // eslint-disable-line no-control-regex
-        return FileHandler;
-    }());
-    // */
     var Controller = /** @class */ (function () {
         function Controller(model, view) {
             this.fnScript = undefined; // eslint-disable-line @typescript-eslint/ban-types
             this.timeoutHandlerActive = false;
             this.nextLoopTimeOut = 0; // next timeout for the main loop
+            this.initialLoopTimeout = 0;
             this.inputSet = false;
             this.inputStack = new InputStack_1.InputStack();
             this.sound = new Sound_1.Sound({
@@ -322,6 +83,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 arrayBounds: model.getProperty("arrayBounds")
             });
             view.setInputChecked("traceInput", model.getProperty("trace"));
+            view.setInputValue("speedInput", String(model.getProperty("speed")));
+            this.fnSpeed();
             var kbdLayout = model.getProperty("kbdLayout");
             view.setSelectValue("kbdLayoutSelect", kbdLayout);
             this.commonEventHandler.onKbdLayoutSelectChange();
@@ -1020,7 +783,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             return output.text;
         };
-        Controller.prototype.prettyPrintBasic = function (input, keepWhiteSpace, keepBrackets) {
+        Controller.prototype.prettyPrintBasic = function (input, keepWhiteSpace, keepBrackets, keepColons) {
             if (!this.codeGeneratorBasic) {
                 this.codeGeneratorBasic = new CodeGeneratorBasic_1.CodeGeneratorBasic({
                     lexer: new BasicLexer_1.BasicLexer({
@@ -1029,8 +792,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     parser: new BasicParser_1.BasicParser()
                 });
             }
-            var keepColons = keepBrackets, // we switch all with one setting
-            keepDataComma = true;
+            var keepDataComma = true;
             this.codeGeneratorBasic.getOptions().lexer.setOptions({
                 keepWhiteSpace: keepWhiteSpace
             });
@@ -1550,7 +1312,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             return output;
         };
         Controller.prototype.fnPretty = function () {
-            var input = this.view.getAreaValue("inputText"), keepWhiteSpace = this.view.getInputChecked("prettySpaceInput"), keepBrackets = this.view.getInputChecked("prettyBracketsInput"), output = this.prettyPrintBasic(input, keepWhiteSpace, keepBrackets);
+            var input = this.view.getAreaValue("inputText"), keepWhiteSpace = this.view.getInputChecked("prettySpaceInput"), keepBrackets = this.view.getInputChecked("prettyBracketsInput"), keepColons = this.view.getInputChecked("prettyColonsInput"), output = this.prettyPrintBasic(input, keepWhiteSpace, keepBrackets, keepColons);
             if (output) {
                 this.fnPutChangedInputOnStack();
                 this.setInputText(output, true);
@@ -1618,7 +1380,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         Controller.prototype.fnDownload = function () {
             var input = this.view.getAreaValue("inputText"), tokens = this.encodeTokenizedBasic(input);
             if (tokens !== "") {
-                var header = FileHandler.createMinimalAmsdosHeader("T", 0x170, tokens.length), headerString = DiskImage_1.DiskImage.combineAmsdosHeader(header), data = headerString + tokens;
+                var header = FileHandler_1.FileHandler.createMinimalAmsdosHeader("T", 0x170, tokens.length), headerString = DiskImage_1.DiskImage.combineAmsdosHeader(header), data = headerString + tokens;
                 this.fnDownloadNewFile(data, "file.bas");
             }
         };
@@ -1852,7 +1614,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         };
         Controller.prototype.fnRunLoop = function () {
             var stop = this.vm.vmGetStopObject();
-            this.nextLoopTimeOut = 0;
+            this.nextLoopTimeOut = this.initialLoopTimeout;
             if (!stop.reason && this.fnScript) {
                 this.fnRunPart1(this.fnScript); // could change reason
             }
@@ -2058,14 +1820,14 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         };
         Controller.prototype.initDropZone = function () {
             if (!this.fileHandler) {
-                this.fileHandler = new FileHandler({
+                this.fileHandler = new FileHandler_1.FileHandler({
                     adaptFilename: this.adaptFilename.bind(this),
                     updateStorageDatabase: this.updateStorageDatabase.bind(this),
                     outputError: this.outputError.bind(this)
                 });
             }
             if (!this.fileSelect) {
-                this.fileSelect = new FileSelect({
+                this.fileSelect = new FileSelect_1.FileSelect({
                     fnEndOfImport: this.fnEndOfImport.bind(this),
                     outputError: this.outputError.bind(this),
                     fnLoad2: this.fileHandler.fnLoad2.bind(this.fileHandler)
@@ -2271,6 +2033,10 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.codeGeneratorJs.setOptions({
                 trace: trace
             });
+        };
+        Controller.prototype.fnSpeed = function () {
+            var speed = this.model.getProperty("speed");
+            this.initialLoopTimeout = 1000 - speed * 10;
         };
         Controller.metaIdent = "CPCBasic";
         Controller.defaultExtensions = [

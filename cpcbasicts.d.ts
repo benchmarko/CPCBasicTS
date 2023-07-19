@@ -88,6 +88,7 @@ declare module "Interfaces" {
         fnImplicitLines: () => void;
         fnArrayBounds: () => void;
         fnTrace: () => void;
+        fnSpeed: () => void;
     }
     export interface ICpcVmRsx {
         rsxIsAvailable: (name: string) => boolean;
@@ -598,6 +599,7 @@ declare module "CodeGeneratorJs" {
         private randomize;
         private read;
         private rem;
+        private apostrophe;
         private static fnReturn;
         private run;
         private save;
@@ -808,6 +810,7 @@ declare module "View" {
         setAreaSelection(id: string, pos: number, endPos: number): this;
         attachEventHandler(type: string, eventHandler: EventListenerOrEventListenerObject): this;
         static getEventTarget<T extends HTMLElement>(event: Event): T;
+        static requestFullscreenForId(id: string): boolean;
     }
 }
 declare module "Keyboard" {
@@ -1138,6 +1141,7 @@ declare module "CommonEventHandler" {
         private onImplicitLinesInputChange;
         private onArrayBoundsInputChange;
         private onTraceInputChange;
+        private onSpeedInputChange;
         private onScreenshotButtonClick;
         private onEnterButtonClick;
         private onSoundButtonClick;
@@ -1417,6 +1421,7 @@ declare module "CpcVm" {
         private startTime;
         private lastRnd;
         private nextFrameTime;
+        private initialStop;
         private stopCount;
         line: string | number;
         private startLine;
@@ -1756,21 +1761,53 @@ declare module "CpcVmRsx" {
         renum(...args: number[]): void;
     }
 }
-declare module "Controller" {
-    import { IController } from "Interfaces";
-    import { Model } from "Model";
-    import { VariableValue } from "Variables";
-    import { View } from "View";
-    export interface FileSelectOptions {
-        fnEndOfImport: (imported: string[]) => void;
-        outputError: (error: Error, noSelection?: boolean) => void;
-        fnLoad2: (data: string, name: string, type: string, imported: string[]) => void;
-    }
+declare module "FileHandler" {
+    import { AmsdosHeader } from "DiskImage";
     export interface FileHandlerOptions {
         adaptFilename: (name: string, err: string) => string;
         updateStorageDatabase: (action: string, key: string) => void;
         outputError: (error: Error, noSelection?: boolean) => void;
     }
+    export class FileHandler {
+        private static readonly metaIdent;
+        private adaptFilename;
+        private updateStorageDatabase;
+        private outputError;
+        constructor(options: FileHandlerOptions);
+        private static fnLocalStorageName;
+        static createMinimalAmsdosHeader(type: string, start: number, length: number): AmsdosHeader;
+        private static joinMeta;
+        private static reRegExpIsText;
+        fnLoad2(data: string, name: string, type: string, imported: string[]): void;
+    }
+}
+declare module "FileSelect" {
+    export interface FileSelectOptions {
+        fnEndOfImport: (imported: string[]) => void;
+        outputError: (error: Error, noSelection?: boolean) => void;
+        fnLoad2: (data: string, name: string, type: string, imported: string[]) => void;
+    }
+    export class FileSelect {
+        private fnEndOfImport;
+        private outputError;
+        private fnLoad2;
+        private files;
+        private fileIndex;
+        private imported;
+        private file;
+        constructor(options: FileSelectOptions);
+        private fnReadNextFile;
+        private fnOnLoad;
+        private fnErrorHandler;
+        private fnHandleFileSelect;
+        addFileSelectHandler(element: HTMLElement, type: string): void;
+    }
+}
+declare module "Controller" {
+    import { IController } from "Interfaces";
+    import { Model } from "Model";
+    import { VariableValue } from "Variables";
+    import { View } from "View";
     export class Controller implements IController {
         private readonly fnRunLoopHandler;
         private readonly fnWaitKeyHandler;
@@ -1782,6 +1819,7 @@ declare module "Controller" {
         private fnScript?;
         private timeoutHandlerActive;
         private nextLoopTimeOut;
+        private initialLoopTimeout;
         private inputSet;
         private variables;
         private basicFormatter?;
@@ -1921,6 +1959,7 @@ declare module "Controller" {
         fnArrayBounds(): void;
         fnImplicitLines(): void;
         fnTrace(): void;
+        fnSpeed(): void;
         private readonly handlers;
     }
 }

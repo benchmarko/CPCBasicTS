@@ -22,6 +22,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.startTime = 0;
             this.lastRnd = 0; // last random number
             this.nextFrameTime = 0;
+            this.initialStop = 5;
             this.stopCount = 0;
             this.line = 0;
             this.startLine = 0;
@@ -63,6 +64,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.variables = options.variables;
             this.quiet = Boolean(options.quiet);
             this.random = new Random_1.Random();
+            this.stopCount = this.initialStop;
             this.stopEntry = {
                 reason: "",
                 priority: 0,
@@ -143,7 +145,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.startTime = Date.now();
             this.vmResetRandom();
             this.nextFrameTime = Date.now() + CpcVm.frameTimeMs; // next time of frame fly
-            this.stopCount = 0;
+            this.stopCount = this.initialStop;
             this.line = 0; // current line number (or label)
             this.startLine = 0; // line to start
             this.errorGotoLine = 0;
@@ -514,9 +516,9 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             var time = Date.now();
             if (time >= this.nextFrameTime) {
                 this.vmCheckNextFrame(time);
-                this.stopCount += 1;
-                if (this.stopCount >= 5) { // do not stop too often because of just timer reason because setTimeout is expensive
-                    this.stopCount = 0;
+                this.stopCount -= 1;
+                if (this.stopCount <= 0) { // do not stop too often because of just timer reason because setTimeout is expensive
+                    this.stopCount = this.initialStop;
                     this.vmStop("timer", 20);
                 }
             }

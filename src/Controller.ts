@@ -18,7 +18,9 @@ import { cpcCharset } from "./cpcCharset";
 import { CpcVm, FileMeta, VmStopEntry, VmFileParas, VmInputParas, VmLineParas, VmLineRenumParas, VmBaseParas } from "./CpcVm";
 import { CpcVmRsx } from "./CpcVmRsx";
 import { Diff } from "./Diff";
-import { DiskImage, AmsdosHeader } from "./DiskImage";
+import { DiskImage } from "./DiskImage";
+import { FileHandler } from "./FileHandler";
+import { FileSelect } from "./FileSelect";
 import { InputStack } from "./InputStack";
 import { Keyboard } from "./Keyboard";
 import { TextCanvas } from "./TextCanvas";
@@ -27,298 +29,11 @@ import { Model, DatabasesType } from "./Model";
 import { Sound, SoundData } from "./Sound";
 import { Variables, VariableValue } from "./Variables";
 import { View, SelectOptionElement } from "./View";
-import { ZipFile } from "./ZipFile";
 
 interface FileMetaAndData {
 	meta: FileMeta
 	data: string
 }
-
-
-// ---
-export interface FileSelectOptions {
-	fnEndOfImport: (imported: string[]) => void;
-	outputError: (error: Error, noSelection?: boolean) => void;
-	fnLoad2: (data: string, name: string, type: string, imported: string[]) => void;
-}
-
-class FileSelect {
-	private fnEndOfImport = {} as (imported: string[]) => void;
-	private outputError = {} as (error: Error, noSelection?: boolean) => void;
-	private fnLoad2 = {} as (data: string, name: string, type: string, imported: string[]) => void;
-
-	private files = {} as FileList; // = dataTransfer ? dataTransfer.files : ((event.target as any).files as FileList), // dataTransfer for drag&drop, target.files for file input
-	private fileIndex = 0;
-	private imported: string[] = []; // imported file names
-	private file = {} as File; // current file
-
-	constructor(options: FileSelectOptions) {
-		this.fnEndOfImport = options.fnEndOfImport;
-		this.outputError = options.outputError;
-		this.fnLoad2 = options.fnLoad2;
-	}
-
-	private fnReadNextFile(reader: FileReader) {
-		if (this.fileIndex < this.files.length) {
-			const file = this.files[this.fileIndex];
-
-			this.fileIndex += 1;
-			const lastModified = file.lastModified,
-				lastModifiedDate = lastModified ? new Date(lastModified) : (file as any).lastModifiedDate as Date, // lastModifiedDate deprecated, but for old IE
-				text = file.name + " " + (file.type || "n/a") + " " + file.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
-
-			Utils.console.log(text);
-			if (file.type === "text/plain") {
-				reader.readAsText(file);
-			} else if (file.type === "application/x-zip-compressed") {
-				reader.readAsArrayBuffer(file);
-			} else {
-				reader.readAsDataURL(file);
-			}
-			this.file = file;
-		} else {
-			this.fnEndOfImport(this.imported);
-		}
-	}
-
-	private fnOnLoad(event: ProgressEvent<FileReader>) {
-		const reader = event.target,
-			data = (reader && reader.result) || null,
-			file = this.file,
-			name = file.name,
-			type = file.type;
-
-		if (type === "application/x-zip-compressed" && data instanceof ArrayBuffer) {
-			let zip: ZipFile | undefined;
-
-			try {
-				zip = new ZipFile(new Uint8Array(data), name); // rather data
-			} catch (e) {
-				Utils.console.error(e);
-				if (e instanceof Error) {
-					this.outputError(e, true);
-				}
-			}
-			if (zip) {
-				const zipDirectory = zip.getZipDirectory(),
-					entries = Object.keys(zipDirectory);
-
-				for (let i = 0; i < entries.length; i += 1) {
-					const name2 = entries[i];
-					let data2: string | undefined;
-
-					try {
-						data2 = zip.readData(name2);
-					} catch (e) {
-						Utils.console.error(e);
-						if (e instanceof Error) { // eslint-disable-line max-depth
-							this.outputError(e, true);
-						}
-					}
-
-					if (data2) {
-						this.fnLoad2(data2, name2, type, this.imported);
-					}
-				}
-			}
-		} else if (typeof data === "string") {
-			this.fnLoad2(data, name, type, this.imported);
-		} else {
-			Utils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);
-		}
-
-		if (reader) {
-			this.fnReadNextFile(reader);
-		}
-	}
-
-	private fnErrorHandler(event: ProgressEvent<FileReader>, file: File) {
-		const reader = event.target;
-		let msg = "fnErrorHandler: Error reading file " + file.name;
-
-		if (reader && reader.error !== null) {
-			if (reader.error.NOT_FOUND_ERR) {
-				msg += ": File not found";
-			} else if (reader.error.ABORT_ERR) {
-				msg = ""; // nothing
-			}
-		}
-		if (msg) {
-			Utils.console.warn(msg);
-		}
-
-		if (reader) {
-			this.fnReadNextFile(reader);
-		}
-	}
-
-	// https://stackoverflow.com/questions/10261989/html5-javascript-drag-and-drop-file-from-external-window-windows-explorer
-	// https://www.w3.org/TR/file-upload/#dfn-filereader
-	private fnHandleFileSelect(event: Event) {
-		event.stopPropagation();
-		event.preventDefault();
-
-		const dataTransfer = (event as DragEvent).dataTransfer,
-			files = dataTransfer ? dataTransfer.files : View.getEventTarget<HTMLInputElement>(event).files; // dataTransfer for drag&drop, target.files for file input
-
-		if (!files || !files.length) {
-			Utils.console.error("fnHandleFileSelect: No files!");
-			return;
-		}
-		this.files = files;
-		this.fileIndex = 0;
-		this.imported.length = 0;
-
-		if (window.FileReader) {
-			const reader = new FileReader();
-
-			reader.onerror = this.fnErrorHandler.bind(this);
-			reader.onload = this.fnOnLoad.bind(this);
-			this.fnReadNextFile(reader);
-		} else {
-			Utils.console.warn("fnHandleFileSelect: FileReader API not supported.");
-		}
-	}
-
-	addFileSelectHandler(element: HTMLElement, type: string) {
-		element.addEventListener(type, this.fnHandleFileSelect.bind(this), false);
-	}
-}
-
-
-export interface FileHandlerOptions {
-	adaptFilename: (name: string, err: string) => string;
-	updateStorageDatabase: (action: string, key: string) => void;
-	outputError: (error: Error, noSelection?: boolean) => void;
-}
-
-class FileHandler {
-	private static readonly metaIdent = "CPCBasic";
-
-	private adaptFilename = {} as (name: string, err: string) => string;
-	private updateStorageDatabase = {} as (action: string, key: string) => void;
-	private outputError = {} as (error: Error, noSelection?: boolean) => void;
-
-	constructor(options: FileHandlerOptions) {
-		this.adaptFilename = options.adaptFilename;
-		this.updateStorageDatabase = options.updateStorageDatabase;
-		this.outputError = options.outputError;
-	}
-
-	private static fnLocalStorageName(name: string, defaultExtension?: string) {
-		// modify name so we do not clash with localstorage methods/properites
-		if (name.indexOf(".") < 0) { // no dot inside name?
-			name += "." + (defaultExtension || ""); // append dot or default extension
-		}
-		return name;
-	}
-
-	static createMinimalAmsdosHeader(type: string,	start: number,	length: number) {
-		return {
-			typeString: type,
-			start: start,
-			length: length
-		} as AmsdosHeader;
-	}
-
-	private static joinMeta(meta: FileMeta) {
-		return [
-			FileHandler.metaIdent,
-			meta.typeString,
-			meta.start,
-			meta.length,
-			meta.entry
-		].join(";");
-	}
-
-	private static reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/); // eslint-disable-line no-control-regex
-	// starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
-
-	fnLoad2(data: string, name: string, type: string, imported: string[]) {
-		let header: AmsdosHeader | undefined,
-			storageName = this.adaptFilename(name, "FILE");
-
-		storageName = FileHandler.fnLocalStorageName(storageName);
-
-		if (type === "text/plain") {
-			header = FileHandler.createMinimalAmsdosHeader("A", 0, data.length);
-		} else {
-			if (type === "application/x-zip-compressed" || type === "cpcBasic/binary") { // are we a file inside zip?
-				// empty
-			} else { // e.g. "data:application/octet-stream;base64,..."
-				const index = data.indexOf(",");
-
-				if (index >= 0) {
-					const info1 = data.substring(0, index);
-
-					data = data.substring(index + 1); // remove meta prefix
-					if (info1.indexOf("base64") >= 0) {
-						data = Utils.atob(data); // decode base64
-					}
-				}
-			}
-
-			header = DiskImage.parseAmsdosHeader(data);
-			if (header) {
-				data = data.substring(0x80); // remove header
-			} else if (FileHandler.reRegExpIsText.test(data)) {
-				header = FileHandler.createMinimalAmsdosHeader("A", 0, data.length);
-			} else if (DiskImage.testDiskIdent(data.substring(0, 8))) { // disk image file?
-				try {
-					const dsk = new DiskImage({
-							data: data,
-							diskName: name
-						}),
-						dir = dsk.readDirectory(),
-						diskFiles = Object.keys(dir);
-
-					for (let i = 0; i < diskFiles.length; i += 1) {
-						const fileName = diskFiles[i];
-
-						try { // eslint-disable-line max-depth
-							data = dsk.readFile(dir[fileName]);
-							this.fnLoad2(data, fileName, "cpcBasic/binary", imported); // recursive
-						} catch (e) {
-							Utils.console.error(e);
-							if (e instanceof Error) { // eslint-disable-line max-depth
-								this.outputError(e, true);
-							}
-						}
-					}
-				} catch (e) {
-					Utils.console.error(e);
-					if (e instanceof Error) {
-						this.outputError(e, true);
-					}
-				}
-				header = undefined; // ignore dsk file
-			} else { // binary
-				header = FileHandler.createMinimalAmsdosHeader("B", 0, data.length);
-			}
-		}
-
-		if (header) {
-			const meta = FileHandler.joinMeta(header);
-
-			try {
-				Utils.localStorage.setItem(storageName, meta + "," + data);
-				this.updateStorageDatabase("set", storageName);
-				Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
-				imported.push(name);
-			} catch (e) { // maybe quota exceeded
-				Utils.console.error(e);
-				if (e instanceof Error) {
-					if (e.name === "QuotaExceededError") {
-						(e as CustomError).shortMessage = storageName + ": Quota exceeded";
-					}
-					this.outputError(e, true);
-				}
-			}
-		}
-	}
-}
-// */
-
 
 export class Controller implements IController {
 	private readonly fnRunLoopHandler: () => void;
@@ -334,6 +49,7 @@ export class Controller implements IController {
 
 	private timeoutHandlerActive = false;
 	private nextLoopTimeOut = 0; // next timeout for the main loop
+	private initialLoopTimeout = 0;
 
 	private inputSet = false;
 
@@ -416,6 +132,9 @@ export class Controller implements IController {
 		});
 
 		view.setInputChecked("traceInput", model.getProperty<boolean>("trace"));
+
+		view.setInputValue("speedInput", String(model.getProperty<number>("speed")));
+		this.fnSpeed();
 
 		const kbdLayout = model.getProperty<string>("kbdLayout");
 
@@ -1279,7 +998,7 @@ export class Controller implements IController {
 		return output.text;
 	}
 
-	private prettyPrintBasic(input: string, keepWhiteSpace: boolean, keepBrackets: boolean) {
+	private prettyPrintBasic(input: string, keepWhiteSpace: boolean, keepBrackets: boolean, keepColons: boolean) {
 		if (!this.codeGeneratorBasic) {
 			this.codeGeneratorBasic = new CodeGeneratorBasic({
 				lexer: new BasicLexer({
@@ -1289,8 +1008,7 @@ export class Controller implements IController {
 			});
 		}
 
-		const keepColons = keepBrackets, // we switch all with one setting
-			keepDataComma = true;
+		const keepDataComma = true;
 
 		this.codeGeneratorBasic.getOptions().lexer.setOptions({
 			keepWhiteSpace: keepWhiteSpace
@@ -1921,7 +1639,8 @@ export class Controller implements IController {
 		const input = this.view.getAreaValue("inputText"),
 			keepWhiteSpace = this.view.getInputChecked("prettySpaceInput"),
 			keepBrackets = this.view.getInputChecked("prettyBracketsInput"),
-			output = this.prettyPrintBasic(input, keepWhiteSpace, keepBrackets);
+			keepColons = this.view.getInputChecked("prettyColonsInput"),
+			output = this.prettyPrintBasic(input, keepWhiteSpace, keepBrackets, keepColons);
 
 		if (output) {
 			this.fnPutChangedInputOnStack();
@@ -2304,7 +2023,7 @@ export class Controller implements IController {
 	private fnRunLoop() {
 		const stop = this.vm.vmGetStopObject();
 
-		this.nextLoopTimeOut = 0;
+		this.nextLoopTimeOut = this.initialLoopTimeout;
 		if (!stop.reason && this.fnScript) {
 			this.fnRunPart1(this.fnScript); // could change reason
 		}
@@ -2820,6 +2539,12 @@ export class Controller implements IController {
 		this.codeGeneratorJs.setOptions({
 			trace: trace
 		});
+	}
+
+	fnSpeed(): void {
+		const speed = this.model.getProperty<number>("speed");
+
+		this.initialLoopTimeout = 1000 - speed * 10;
 	}
 
 	/* eslint-disable no-invalid-this */

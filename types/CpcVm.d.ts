@@ -141,6 +141,7 @@ export declare class CpcVm {
     private startTime;
     private lastRnd;
     private nextFrameTime;
+    private initialStop;
     private stopCount;
     line: string | number;
     private startLine;

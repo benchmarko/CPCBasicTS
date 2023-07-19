@@ -2,16 +2,6 @@ import { IController } from "./Interfaces";
 import { Model } from "./Model";
 import { VariableValue } from "./Variables";
 import { View } from "./View";
-export interface FileSelectOptions {
-    fnEndOfImport: (imported: string[]) => void;
-    outputError: (error: Error, noSelection?: boolean) => void;
-    fnLoad2: (data: string, name: string, type: string, imported: string[]) => void;
-}
-export interface FileHandlerOptions {
-    adaptFilename: (name: string, err: string) => string;
-    updateStorageDatabase: (action: string, key: string) => void;
-    outputError: (error: Error, noSelection?: boolean) => void;
-}
 export declare class Controller implements IController {
     private readonly fnRunLoopHandler;
     private readonly fnWaitKeyHandler;
@@ -23,6 +13,7 @@ export declare class Controller implements IController {
     private fnScript?;
     private timeoutHandlerActive;
     private nextLoopTimeOut;
+    private initialLoopTimeout;
     private inputSet;
     private variables;
     private basicFormatter?;
@@ -162,6 +153,7 @@ export declare class Controller implements IController {
     fnArrayBounds(): void;
     fnImplicitLines(): void;
     fnTrace(): void;
+    fnSpeed(): void;
     private readonly handlers;
 }
 //# sourceMappingURL=Controller.d.ts.map

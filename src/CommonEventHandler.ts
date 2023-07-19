@@ -257,6 +257,13 @@ export class CommonEventHandler implements EventListenerObject {
 		this.controller.fnTrace();
 	}
 
+	private onSpeedInputChange() {
+		const speed = this.view.getInputValue("speedInput");
+
+		this.model.setProperty<number>("speed", Number(speed));
+		this.controller.fnSpeed();
+	}
+
 	private onScreenshotButtonClick() {
 		var example = this.view.getSelectValue("exampleSelect"),
 			image = this.controller.startScreenshot(),
@@ -280,11 +287,9 @@ export class CommonEventHandler implements EventListenerObject {
 	}
 
 	private static onFullscreenButtonClick() {
-		const element = View.getElementById1("cpcCanvas");
+		const switched = View.requestFullscreenForId("cpcCanvas");
 
-		if (element.requestFullscreen) {
-			element.requestFullscreen();
-		} else {
+		if (!switched) {
 			Utils.console.warn("Switch to fullscreen not available");
 		}
 	}
@@ -343,6 +348,7 @@ export class CommonEventHandler implements EventListenerObject {
 		onImplicitLinesInputChange: this.onImplicitLinesInputChange,
 		onArrayBoundsInputChange: this.onArrayBoundsInputChange,
 		onTraceInputChange: this.onTraceInputChange,
+		onSpeedInputChange: this.onSpeedInputChange,
 		onScreenshotButtonClick: this.onScreenshotButtonClick,
 		onEnterButtonClick: this.onEnterButtonClick,
 		onSoundButtonClick: this.onSoundButtonClick,

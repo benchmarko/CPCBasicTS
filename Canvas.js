@@ -58,8 +58,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             var width = canvas.width, height = canvas.height;
             this.width = width;
             this.height = height;
-            canvas.style.borderWidth = this.borderWidth + "px";
-            canvas.style.borderStyle = "solid";
             this.dataset8 = new Uint8Array(new ArrayBuffer(width * height)); // array with pen values
             this.colorValues = Canvas.extractAllColorValues(Canvas.colors);
             this.animationTimeoutId = undefined;

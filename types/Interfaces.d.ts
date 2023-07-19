@@ -39,6 +39,7 @@ export interface IController {
     fnImplicitLines: () => void;
     fnArrayBounds: () => void;
     fnTrace: () => void;
+    fnSpeed: () => void;
 }
 export interface ICpcVmRsx {
     rsxIsAvailable: (name: string) => boolean;

@@ -128,6 +128,7 @@ export declare class CodeGeneratorJs {
     private randomize;
     private read;
     private rem;
+    private apostrophe;
     private static fnReturn;
     private run;
     private save;

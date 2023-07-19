@@ -946,8 +946,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         BasicParser.prototype.print = function (node) {
             var closeTokens = BasicParser.closeTokensForArgs, stream = this.fnGetOptionalStream();
-            node.args = [];
-            node.args.push(stream);
+            node.args = [stream];
             if (stream.len !== 0) { // not an inserted stream?
                 if (!closeTokens[this.token.type]) {
                     this.advance(",");

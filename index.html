@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="cpcbasic.css">
 <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
-<title id="title">CPC BasicTS v0.0.89</title>
+<title id="title">CPC BasicTS v0.0.90</title>
 </head>
 
 <body id="pageBody">
@@ -29,6 +29,10 @@
 						<span class="field flexStart">
 							<input id="traceInput" type="checkbox" title="Trace Mode">
 							<label id="traceLabel" for="traceInput" class="label" title="Trace Mode">Trace Mode</label>
+						</span>
+						<span class="field flexStart">
+							<input id="speedInput" type="range" min="0" max="100" step="1" value="100" title="Speed">
+							<label id="speedLabel" for="speedInput" class="label" title="Speed">Speed</label>
 						</span>
 					</span>
 				</span>
@@ -74,6 +78,10 @@
 							<span class="field flexStart">
 								<input id="prettyBracketsInput" type="checkbox" title="Keep Brackets" checked>
 								<label id="prettyBracketsLabel" for="prettyBracketsInput" class="label"	title="Keep Brackets">Brackets</label>
+							</span>
+							<span class="field flexStart">
+								<input id="prettyColonsInput" type="checkbox" title="Keep Colons" checked>
+								<label id="prettyColonsLabel" for="prettyColonsInput" class="label"	title="Keep Colons">Colons</label>
 							</span>
 							<span class="field flexStart clearLeft">
 								<input id="prettySpaceInput" type="checkbox" title="Keep Spaces">

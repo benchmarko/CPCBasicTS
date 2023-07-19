@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="cpcbasic.css" />
 <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
-<title id="title">CPC BasicTS v0.0.89 (separate source files)</title>
+<title id="title">CPC BasicTS v0.0.90 (separate source files)</title>
 </head>
 
 <body id="pageBody">
@@ -29,6 +29,10 @@
 						<span class="field flexStart">
 							<input id="traceInput" type="checkbox" title="Trace Mode">
 							<label id="traceLabel" for="traceInput" class="label" title="Trace Mode">Trace Mode</label>
+						</span>
+						<span class="field flexStart">
+							<input id="speedInput" type="range" min="0" max="100" step="1" value="100" title="Speed">
+							<label id="speedLabel" for="speedInput" class="label" title="Speed">Speed</label>
 						</span>
 					</span>
 				</span>
@@ -240,6 +244,8 @@
 <script src="ZipFile.js"></script>
 <script src="CpcVm.js"></script>
 <script src="CpcVmRsx.js"></script>
+<script src="FileHandler.js"></script>
+<script src="FileSelect.js"></script>
 <script src="Controller.js"></script>
 <script src="cpcconfig.js"></script>
 <script src="cpcbasic.js"></script>

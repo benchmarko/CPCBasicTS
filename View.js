@@ -194,6 +194,22 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             return target;
         };
+        View.requestFullscreenForId = function (id) {
+            var element = View.getElementById1(id), anyEl = element, requestMethod = element.requestFullscreen || anyEl.webkitRequestFullscreen || anyEl.mozRequestFullscreen || anyEl.msRequestFullscreen;
+            if (requestMethod) {
+                requestMethod.call(element); // can we ALLOW_KEYBOARD_INPUT?
+            }
+            else if (typeof window.ActiveXObject !== "undefined") { // older IE
+                var wscript = new window.ActiveXObject("WScript.Shell");
+                if (wscript !== null) {
+                    wscript.SendKeys("{F11}"); // eslint-disable-line new-cap
+                }
+            }
+            else {
+                return false;
+            }
+            return true;
+        };
         return View;
     }());
     exports.View = View;

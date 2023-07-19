@@ -264,13 +264,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 this.addToken(lcToken, token, startPos);
                 if (lcToken === "rem") { // special handling for line comment
                     startPos += lcToken.length;
-                    if (char === " ") { // ignore first space
-                        if (this.options.keepWhiteSpace) {
-                            this.whiteSpace = char;
-                        }
-                        char = this.advance();
-                        startPos += 1;
-                    }
                     this.fnParseCompleteLineForRemOrApostrophe(char, startPos);
                 }
                 else if (lcToken === "data") { // special handling because strings in data lines need not to be quoted

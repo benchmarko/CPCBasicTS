@@ -1523,13 +1523,6 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
                 this.addToken(lcToken, token, startPos);
                 if (lcToken === "rem") { // special handling for line comment
                     startPos += lcToken.length;
-                    if (char === " ") { // ignore first space
-                        if (this.options.keepWhiteSpace) {
-                            this.whiteSpace = char;
-                        }
-                        char = this.advance();
-                        startPos += 1;
-                    }
                     this.fnParseCompleteLineForRemOrApostrophe(char, startPos);
                 }
                 else if (lcToken === "data") { // special handling because strings in data lines need not to be quoted
@@ -2626,8 +2619,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
         };
         BasicParser.prototype.print = function (node) {
             var closeTokens = BasicParser.closeTokensForArgs, stream = this.fnGetOptionalStream();
-            node.args = [];
-            node.args.push(stream);
+            node.args = [stream];
             if (stream.len !== 0) { // not an inserted stream?
                 if (!closeTokens[this.token.type]) {
                     this.advance(",");
@@ -4080,7 +4072,7 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             return CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase() + value; // we use value to get PRINT or ?
         };
         CodeGeneratorBasic.prototype.rem = function (node) {
-            return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(this.fnParseArgs(node.args).join(""));
+            return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + this.fnParseArgs(node.args).join("");
         };
         CodeGeneratorBasic.prototype.using = function (node) {
             var nodeArgs = this.fnParseArgs(node.args), template = nodeArgs.length ? nodeArgs.shift() || "" : "";
@@ -4602,7 +4594,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 randomize: this.randomize,
                 read: this.read,
                 rem: this.rem,
-                "'": this.rem,
+                "'": this.apostrophe,
                 renum: this.fnCommandWithGoto,
                 restore: this.onBreakGosubOrRestore,
                 resume: this.gotoOrResume,
@@ -5641,8 +5633,15 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             node.pv = nodeArgs.join("; ");
         };
         CodeGeneratorJs.prototype.rem = function (node) {
-            var nodeArgs = this.fnParseArgs(node.args), value = nodeArgs.length ? " " + nodeArgs[0] : "";
-            node.pv = "//" + value + "\n";
+            var nodeArgs = this.fnParseArgs(node.args);
+            node.pv = "//" + nodeArgs.join("") + "\n";
+        };
+        CodeGeneratorJs.prototype.apostrophe = function (node) {
+            var nodeArgs = this.fnParseArgs(node.args);
+            if (nodeArgs.length && !nodeArgs[0].startsWith(" ")) {
+                nodeArgs[0] = " " + nodeArgs[0]; // add extra space
+            }
+            node.pv = "//" + nodeArgs.join("") + "\n";
         };
         CodeGeneratorJs.fnReturn = function (node) {
             var name = Utils_8.Utils.supportReservedNames ? ("o." + node.type) : 'o["' + node.type + '"]';
@@ -7686,6 +7685,22 @@ define("View", ["require", "exports", "Utils"], function (require, exports, Util
             }
             return target;
         };
+        View.requestFullscreenForId = function (id) {
+            var element = View.getElementById1(id), anyEl = element, requestMethod = element.requestFullscreen || anyEl.webkitRequestFullscreen || anyEl.mozRequestFullscreen || anyEl.msRequestFullscreen;
+            if (requestMethod) {
+                requestMethod.call(element); // can we ALLOW_KEYBOARD_INPUT?
+            }
+            else if (typeof window.ActiveXObject !== "undefined") { // older IE
+                var wscript = new window.ActiveXObject("WScript.Shell");
+                if (wscript !== null) {
+                    wscript.SendKeys("{F11}"); // eslint-disable-line new-cap
+                }
+            }
+            else {
+                return false;
+            }
+            return true;
+        };
         return View;
     }());
     exports.View = View;
@@ -9148,8 +9163,6 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             var width = canvas.width, height = canvas.height;
             this.width = width;
             this.height = height;
-            canvas.style.borderWidth = this.borderWidth + "px";
-            canvas.style.borderStyle = "solid";
             this.dataset8 = new Uint8Array(new ArrayBuffer(width * height)); // array with pen values
             this.colorValues = Canvas.extractAllColorValues(Canvas.colors);
             this.animationTimeoutId = undefined;
@@ -10517,6 +10530,7 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                 onImplicitLinesInputChange: this.onImplicitLinesInputChange,
                 onArrayBoundsInputChange: this.onArrayBoundsInputChange,
                 onTraceInputChange: this.onTraceInputChange,
+                onSpeedInputChange: this.onSpeedInputChange,
                 onScreenshotButtonClick: this.onScreenshotButtonClick,
                 onEnterButtonClick: this.onEnterButtonClick,
                 onSoundButtonClick: this.onSoundButtonClick,
@@ -10713,6 +10727,11 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             this.model.setProperty("trace", checked);
             this.controller.fnTrace();
         };
+        CommonEventHandler.prototype.onSpeedInputChange = function () {
+            var speed = this.view.getInputValue("speedInput");
+            this.model.setProperty("speed", Number(speed));
+            this.controller.fnSpeed();
+        };
         CommonEventHandler.prototype.onScreenshotButtonClick = function () {
             var example = this.view.getSelectValue("exampleSelect"), image = this.controller.startScreenshot(), link = View_5.View.getElementById1("screenshotLink"), name = example + ".png";
             if (image) {
@@ -10729,11 +10748,8 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             this.controller.setSoundActive();
         };
         CommonEventHandler.onFullscreenButtonClick = function () {
-            var element = View_5.View.getElementById1("cpcCanvas");
-            if (element.requestFullscreen) {
-                element.requestFullscreen();
-            }
-            else {
+            var switched = View_5.View.requestFullscreenForId("cpcCanvas");
+            if (!switched) {
                 Utils_18.Utils.console.warn("Switch to fullscreen not available");
             }
         };
@@ -11632,6 +11648,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.startTime = 0;
             this.lastRnd = 0; // last random number
             this.nextFrameTime = 0;
+            this.initialStop = 5;
             this.stopCount = 0;
             this.line = 0;
             this.startLine = 0;
@@ -11673,6 +11690,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.variables = options.variables;
             this.quiet = Boolean(options.quiet);
             this.random = new Random_1.Random();
+            this.stopCount = this.initialStop;
             this.stopEntry = {
                 reason: "",
                 priority: 0,
@@ -11753,7 +11771,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.startTime = Date.now();
             this.vmResetRandom();
             this.nextFrameTime = Date.now() + CpcVm.frameTimeMs; // next time of frame fly
-            this.stopCount = 0;
+            this.stopCount = this.initialStop;
             this.line = 0; // current line number (or label)
             this.startLine = 0; // line to start
             this.errorGotoLine = 0;
@@ -12124,9 +12142,9 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             var time = Date.now();
             if (time >= this.nextFrameTime) {
                 this.vmCheckNextFrame(time);
-                this.stopCount += 1;
-                if (this.stopCount >= 5) { // do not stop too often because of just timer reason because setTimeout is expensive
-                    this.stopCount = 0;
+                this.stopCount -= 1;
+                if (this.stopCount <= 0) { // do not stop too often because of just timer reason because setTimeout is expensive
+                    this.stopCount = this.initialStop;
                     this.vmStop("timer", 20);
                 }
             }
@@ -15177,138 +15195,14 @@ define("CpcVmRsx", ["require", "exports", "Utils"], function (require, exports, 
     }());
     exports.CpcVmRsx = CpcVmRsx;
 });
-// Controller.ts - Controller
+// FileHandler.ts - FileHandler
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLexer", "BasicParser", "BasicTokenizer", "Canvas", "CodeGeneratorBasic", "CodeGeneratorJs", "CodeGeneratorToken", "CommonEventHandler", "cpcCharset", "CpcVm", "CpcVmRsx", "Diff", "DiskImage", "InputStack", "Keyboard", "TextCanvas", "VirtualKeyboard", "Sound", "Variables", "View", "ZipFile"], function (require, exports, Utils_23, BasicFormatter_1, BasicLexer_1, BasicParser_2, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, CpcVmRsx_1, Diff_1, DiskImage_1, InputStack_1, Keyboard_1, TextCanvas_1, VirtualKeyboard_1, Sound_1, Variables_1, View_6, ZipFile_1) {
+define("FileHandler", ["require", "exports", "Utils", "DiskImage"], function (require, exports, Utils_23, DiskImage_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.Controller = void 0;
-    var FileSelect = /** @class */ (function () {
-        function FileSelect(options) {
-            this.fnEndOfImport = {};
-            this.outputError = {};
-            this.fnLoad2 = {};
-            this.files = {}; // = dataTransfer ? dataTransfer.files : ((event.target as any).files as FileList), // dataTransfer for drag&drop, target.files for file input
-            this.fileIndex = 0;
-            this.imported = []; // imported file names
-            this.file = {}; // current file
-            this.fnEndOfImport = options.fnEndOfImport;
-            this.outputError = options.outputError;
-            this.fnLoad2 = options.fnLoad2;
-        }
-        FileSelect.prototype.fnReadNextFile = function (reader) {
-            if (this.fileIndex < this.files.length) {
-                var file = this.files[this.fileIndex];
-                this.fileIndex += 1;
-                var lastModified = file.lastModified, lastModifiedDate = lastModified ? new Date(lastModified) : file.lastModifiedDate, // lastModifiedDate deprecated, but for old IE
-                text = file.name + " " + (file.type || "n/a") + " " + file.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
-                Utils_23.Utils.console.log(text);
-                if (file.type === "text/plain") {
-                    reader.readAsText(file);
-                }
-                else if (file.type === "application/x-zip-compressed") {
-                    reader.readAsArrayBuffer(file);
-                }
-                else {
-                    reader.readAsDataURL(file);
-                }
-                this.file = file;
-            }
-            else {
-                this.fnEndOfImport(this.imported);
-            }
-        };
-        FileSelect.prototype.fnOnLoad = function (event) {
-            var reader = event.target, data = (reader && reader.result) || null, file = this.file, name = file.name, type = file.type;
-            if (type === "application/x-zip-compressed" && data instanceof ArrayBuffer) {
-                var zip = void 0;
-                try {
-                    zip = new ZipFile_1.ZipFile(new Uint8Array(data), name); // rather data
-                }
-                catch (e) {
-                    Utils_23.Utils.console.error(e);
-                    if (e instanceof Error) {
-                        this.outputError(e, true);
-                    }
-                }
-                if (zip) {
-                    var zipDirectory = zip.getZipDirectory(), entries = Object.keys(zipDirectory);
-                    for (var i = 0; i < entries.length; i += 1) {
-                        var name2 = entries[i];
-                        var data2 = void 0;
-                        try {
-                            data2 = zip.readData(name2);
-                        }
-                        catch (e) {
-                            Utils_23.Utils.console.error(e);
-                            if (e instanceof Error) { // eslint-disable-line max-depth
-                                this.outputError(e, true);
-                            }
-                        }
-                        if (data2) {
-                            this.fnLoad2(data2, name2, type, this.imported);
-                        }
-                    }
-                }
-            }
-            else if (typeof data === "string") {
-                this.fnLoad2(data, name, type, this.imported);
-            }
-            else {
-                Utils_23.Utils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);
-            }
-            if (reader) {
-                this.fnReadNextFile(reader);
-            }
-        };
-        FileSelect.prototype.fnErrorHandler = function (event, file) {
-            var reader = event.target;
-            var msg = "fnErrorHandler: Error reading file " + file.name;
-            if (reader && reader.error !== null) {
-                if (reader.error.NOT_FOUND_ERR) {
-                    msg += ": File not found";
-                }
-                else if (reader.error.ABORT_ERR) {
-                    msg = ""; // nothing
-                }
-            }
-            if (msg) {
-                Utils_23.Utils.console.warn(msg);
-            }
-            if (reader) {
-                this.fnReadNextFile(reader);
-            }
-        };
-        // https://stackoverflow.com/questions/10261989/html5-javascript-drag-and-drop-file-from-external-window-windows-explorer
-        // https://www.w3.org/TR/file-upload/#dfn-filereader
-        FileSelect.prototype.fnHandleFileSelect = function (event) {
-            event.stopPropagation();
-            event.preventDefault();
-            var dataTransfer = event.dataTransfer, files = dataTransfer ? dataTransfer.files : View_6.View.getEventTarget(event).files; // dataTransfer for drag&drop, target.files for file input
-            if (!files || !files.length) {
-                Utils_23.Utils.console.error("fnHandleFileSelect: No files!");
-                return;
-            }
-            this.files = files;
-            this.fileIndex = 0;
-            this.imported.length = 0;
-            if (window.FileReader) {
-                var reader = new FileReader();
-                reader.onerror = this.fnErrorHandler.bind(this);
-                reader.onload = this.fnOnLoad.bind(this);
-                this.fnReadNextFile(reader);
-            }
-            else {
-                Utils_23.Utils.console.warn("fnHandleFileSelect: FileReader API not supported.");
-            }
-        };
-        FileSelect.prototype.addFileSelectHandler = function (element, type) {
-            element.addEventListener(type, this.fnHandleFileSelect.bind(this), false);
-        };
-        return FileSelect;
-    }());
+    exports.FileHandler = void 0;
     var FileHandler = /** @class */ (function () {
         function FileHandler(options) {
             this.adaptFilename = {};
@@ -15424,12 +15318,157 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         FileHandler.reRegExpIsText = new RegExp(/^\d+ |^[\t\r\n\x1a\x20-\x7e]*$/); // eslint-disable-line no-control-regex
         return FileHandler;
     }());
-    // */
+    exports.FileHandler = FileHandler;
+});
+// FileSelect.ts - FileSelect
+// (c) Marco Vieth, 2019
+// https://benchmarko.github.io/CPCBasicTS/
+//
+define("FileSelect", ["require", "exports", "Utils", "ZipFile", "View"], function (require, exports, Utils_24, ZipFile_1, View_6) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.FileSelect = void 0;
+    var FileSelect = /** @class */ (function () {
+        function FileSelect(options) {
+            this.fnEndOfImport = {};
+            this.outputError = {};
+            this.fnLoad2 = {};
+            this.files = {}; // = dataTransfer ? dataTransfer.files : ((event.target as any).files as FileList), // dataTransfer for drag&drop, target.files for file input
+            this.fileIndex = 0;
+            this.imported = []; // imported file names
+            this.file = {}; // current file
+            this.fnEndOfImport = options.fnEndOfImport;
+            this.outputError = options.outputError;
+            this.fnLoad2 = options.fnLoad2;
+        }
+        FileSelect.prototype.fnReadNextFile = function (reader) {
+            if (this.fileIndex < this.files.length) {
+                var file = this.files[this.fileIndex];
+                this.fileIndex += 1;
+                var lastModified = file.lastModified, lastModifiedDate = lastModified ? new Date(lastModified) : file.lastModifiedDate, // lastModifiedDate deprecated, but for old IE
+                text = file.name + " " + (file.type || "n/a") + " " + file.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
+                Utils_24.Utils.console.log(text);
+                if (file.type === "text/plain") {
+                    reader.readAsText(file);
+                }
+                else if (file.type === "application/x-zip-compressed") {
+                    reader.readAsArrayBuffer(file);
+                }
+                else {
+                    reader.readAsDataURL(file);
+                }
+                this.file = file;
+            }
+            else {
+                this.fnEndOfImport(this.imported);
+            }
+        };
+        FileSelect.prototype.fnOnLoad = function (event) {
+            var reader = event.target, data = (reader && reader.result) || null, file = this.file, name = file.name, type = file.type;
+            if (type === "application/x-zip-compressed" && data instanceof ArrayBuffer) {
+                var zip = void 0;
+                try {
+                    zip = new ZipFile_1.ZipFile(new Uint8Array(data), name); // rather data
+                }
+                catch (e) {
+                    Utils_24.Utils.console.error(e);
+                    if (e instanceof Error) {
+                        this.outputError(e, true);
+                    }
+                }
+                if (zip) {
+                    var zipDirectory = zip.getZipDirectory(), entries = Object.keys(zipDirectory);
+                    for (var i = 0; i < entries.length; i += 1) {
+                        var name2 = entries[i];
+                        var data2 = void 0;
+                        try {
+                            data2 = zip.readData(name2);
+                        }
+                        catch (e) {
+                            Utils_24.Utils.console.error(e);
+                            if (e instanceof Error) { // eslint-disable-line max-depth
+                                this.outputError(e, true);
+                            }
+                        }
+                        if (data2) {
+                            this.fnLoad2(data2, name2, type, this.imported);
+                        }
+                    }
+                }
+            }
+            else if (typeof data === "string") {
+                this.fnLoad2(data, name, type, this.imported);
+            }
+            else {
+                Utils_24.Utils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);
+            }
+            if (reader) {
+                this.fnReadNextFile(reader);
+            }
+        };
+        FileSelect.prototype.fnErrorHandler = function (event, file) {
+            var reader = event.target;
+            var msg = "fnErrorHandler: Error reading file " + file.name;
+            if (reader && reader.error !== null) {
+                if (reader.error.NOT_FOUND_ERR) {
+                    msg += ": File not found";
+                }
+                else if (reader.error.ABORT_ERR) {
+                    msg = ""; // nothing
+                }
+            }
+            if (msg) {
+                Utils_24.Utils.console.warn(msg);
+            }
+            if (reader) {
+                this.fnReadNextFile(reader);
+            }
+        };
+        // https://stackoverflow.com/questions/10261989/html5-javascript-drag-and-drop-file-from-external-window-windows-explorer
+        // https://www.w3.org/TR/file-upload/#dfn-filereader
+        FileSelect.prototype.fnHandleFileSelect = function (event) {
+            event.stopPropagation();
+            event.preventDefault();
+            var dataTransfer = event.dataTransfer, files = dataTransfer ? dataTransfer.files : View_6.View.getEventTarget(event).files; // dataTransfer for drag&drop, target.files for file input
+            if (!files || !files.length) {
+                Utils_24.Utils.console.error("fnHandleFileSelect: No files!");
+                return;
+            }
+            this.files = files;
+            this.fileIndex = 0;
+            this.imported.length = 0;
+            if (window.FileReader) {
+                var reader = new FileReader();
+                reader.onerror = this.fnErrorHandler.bind(this);
+                reader.onload = this.fnOnLoad.bind(this);
+                this.fnReadNextFile(reader);
+            }
+            else {
+                Utils_24.Utils.console.warn("fnHandleFileSelect: FileReader API not supported.");
+            }
+        };
+        //TODO: can we use View.attachEventHandler() somehow?
+        FileSelect.prototype.addFileSelectHandler = function (element, type) {
+            element.addEventListener(type, this.fnHandleFileSelect.bind(this), false);
+        };
+        return FileSelect;
+    }());
+    exports.FileSelect = FileSelect;
+});
+// Controller.ts - Controller
+// (c) Marco Vieth, 2019
+// https://benchmarko.github.io/CPCBasicTS/
+//
+define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLexer", "BasicParser", "BasicTokenizer", "Canvas", "CodeGeneratorBasic", "CodeGeneratorJs", "CodeGeneratorToken", "CommonEventHandler", "cpcCharset", "CpcVm", "CpcVmRsx", "Diff", "DiskImage", "FileHandler", "FileSelect", "InputStack", "Keyboard", "TextCanvas", "VirtualKeyboard", "Sound", "Variables", "View"], function (require, exports, Utils_25, BasicFormatter_1, BasicLexer_1, BasicParser_2, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, CpcVmRsx_1, Diff_1, DiskImage_2, FileHandler_1, FileSelect_1, InputStack_1, Keyboard_1, TextCanvas_1, VirtualKeyboard_1, Sound_1, Variables_1, View_7) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.Controller = void 0;
     var Controller = /** @class */ (function () {
         function Controller(model, view) {
             this.fnScript = undefined; // eslint-disable-line @typescript-eslint/ban-types
             this.timeoutHandlerActive = false;
             this.nextLoopTimeOut = 0; // next timeout for the main loop
+            this.initialLoopTimeout = 0;
             this.inputSet = false;
             this.inputStack = new InputStack_1.InputStack();
             this.sound = new Sound_1.Sound({
@@ -15501,6 +15540,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 arrayBounds: model.getProperty("arrayBounds")
             });
             view.setInputChecked("traceInput", model.getProperty("trace"));
+            view.setInputValue("speedInput", String(model.getProperty("speed")));
+            this.fnSpeed();
             var kbdLayout = model.getProperty("kbdLayout");
             view.setSelectValue("kbdLayoutSelect", kbdLayout);
             this.commonEventHandler.onKbdLayoutSelectChange();
@@ -15596,7 +15637,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             example.key = key; // maybe changed
             example.script = input;
             example.loaded = true;
-            Utils_23.Utils.console.log("addItem:", key);
+            Utils_25.Utils.console.log("addItem:", key);
             return key;
         };
         Controller.prototype.setDatabaseSelectOptions = function () {
@@ -15670,7 +15711,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.view.setSelectOptions(select, items);
         };
         Controller.prototype.updateStorageDatabase = function (action, key) {
-            var database = this.model.getProperty("database"), storage = Utils_23.Utils.localStorage;
+            var database = this.model.getProperty("database"), storage = Utils_25.Utils.localStorage;
             if (database !== "storage") {
                 this.model.setProperty("database", "storage"); // switch to storage database
             }
@@ -15699,7 +15740,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     }
                 }
                 else {
-                    Utils_23.Utils.console.error("updateStorageDatabase: unknown action", action);
+                    Utils_25.Utils.console.error("updateStorageDatabase: unknown action", action);
                 }
             }
             if (database === "storage") {
@@ -15794,7 +15835,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.fnWaitKey = function () {
             var key = this.keyboard.getKeyFromBuffer();
             if (key !== "") { // do we have a key from the buffer already?
-                Utils_23.Utils.console.log("Wait for key:", key);
+                Utils_25.Utils.console.log("Wait for key:", key);
                 this.vm.vmStop("", 0, true);
                 this.removeKeyBoardHandler();
             }
@@ -15911,7 +15952,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             inputParas.input = input;
             var inputOk = false;
             if (key === "\r") {
-                Utils_23.Utils.console.log("fnWaitInput:", input, "reason", stop.reason);
+                Utils_25.Utils.console.log("fnWaitInput:", input, "reason", stop.reason);
                 if (!inputParas.noCRLF) {
                     this.vm.print(stream, "\r\n");
                 }
@@ -15979,7 +16020,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         };
         // merge two scripts with sorted line numbers, lines from script2 overwrite lines from script1
         Controller.prototype.mergeScripts = function (script1, script2) {
-            var lines1 = this.splitLines(Utils_23.Utils.stringTrimEnd(script1)), lines2 = this.splitLines(Utils_23.Utils.stringTrimEnd(script2));
+            var lines1 = this.splitLines(Utils_25.Utils.stringTrimEnd(script1)), lines2 = this.splitLines(Utils_25.Utils.stringTrimEnd(script2));
             var result = [], lineNumber1, lineNumber2;
             while (lines1.length && lines2.length) {
                 lineNumber1 = lineNumber1 || Controller.parseLineNumber(lines1[0]);
@@ -16045,7 +16086,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             return dir;
         };
         Controller.fnGetStorageDirectoryEntries = function (mask) {
-            var storage = Utils_23.Utils.localStorage, dir = [];
+            var storage = Utils_25.Utils.localStorage, dir = [];
             var regExp;
             if (mask) {
                 regExp = Controller.fnPrepareMaskRegExp(mask);
@@ -16101,7 +16142,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.vm.vmStop("", 0, true);
         };
         Controller.prototype.fnFileEra = function (paras) {
-            var stream = paras.stream, storage = Utils_23.Utils.localStorage, fileMask = Controller.fnLocalStorageName(paras.fileMask || ""), dir = Controller.fnGetStorageDirectoryEntries(fileMask);
+            var stream = paras.stream, storage = Utils_25.Utils.localStorage, fileMask = Controller.fnLocalStorageName(paras.fileMask || ""), dir = Controller.fnGetStorageDirectoryEntries(fileMask);
             if (!dir.length) {
                 this.vm.print(stream, fileMask + " not found\r\n");
             }
@@ -16110,19 +16151,19 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 if (storage.getItem(name_13) !== null) {
                     storage.removeItem(name_13);
                     this.updateStorageDatabase("remove", name_13);
-                    if (Utils_23.Utils.debug > 0) {
-                        Utils_23.Utils.console.debug("fnEraseFile: name=" + name_13 + ": removed from localStorage");
+                    if (Utils_25.Utils.debug > 0) {
+                        Utils_25.Utils.console.debug("fnEraseFile: name=" + name_13 + ": removed from localStorage");
                     }
                 }
                 else {
                     this.vm.print(stream, name_13 + " not found\r\n");
-                    Utils_23.Utils.console.warn("fnEraseFile: file not found in localStorage:", name_13);
+                    Utils_25.Utils.console.warn("fnEraseFile: file not found in localStorage:", name_13);
                 }
             }
             this.vm.vmStop("", 0, true);
         };
         Controller.prototype.fnFileRen = function (paras) {
-            var stream = paras.stream, storage = Utils_23.Utils.localStorage, newName = Controller.fnLocalStorageName(paras.newName), oldName = Controller.fnLocalStorageName(paras.oldName), item = storage.getItem(oldName);
+            var stream = paras.stream, storage = Utils_25.Utils.localStorage, newName = Controller.fnLocalStorageName(paras.newName), oldName = Controller.fnLocalStorageName(paras.oldName), item = storage.getItem(oldName);
             if (item !== null) {
                 if (!storage.getItem(newName)) {
                     storage.setItem(newName, item);
@@ -16190,16 +16231,16 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             if (output.error) {
                 this.outputError(output.error);
             }
-            else if (Utils_23.Utils.debug > 1) {
+            else if (Utils_25.Utils.debug > 1) {
                 var outputText = output.text, hex = outputText.split("").map(function (s) { return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0"); }).join(","), decoded = this.decodeTokenizedBasic(outputText), diff = Diff_1.Diff.testDiff(input.toUpperCase(), decoded.toUpperCase()); // for testing
-                Utils_23.Utils.console.debug("TokenizerInput (" + name + "):\n" + input);
-                Utils_23.Utils.console.debug("TokenizerHex (" + name + "):\n" + hex);
-                Utils_23.Utils.console.debug("TokenizerDecoded (" + name + "):\n" + decoded);
-                Utils_23.Utils.console.debug("TokenizerDiff (" + name + "):\n" + diff);
+                Utils_25.Utils.console.debug("TokenizerInput (" + name + "):\n" + input);
+                Utils_25.Utils.console.debug("TokenizerHex (" + name + "):\n" + hex);
+                Utils_25.Utils.console.debug("TokenizerDecoded (" + name + "):\n" + decoded);
+                Utils_25.Utils.console.debug("TokenizerDiff (" + name + "):\n" + diff);
             }
             return output.text;
         };
-        Controller.prototype.prettyPrintBasic = function (input, keepWhiteSpace, keepBrackets) {
+        Controller.prototype.prettyPrintBasic = function (input, keepWhiteSpace, keepBrackets, keepColons) {
             if (!this.codeGeneratorBasic) {
                 this.codeGeneratorBasic = new CodeGeneratorBasic_1.CodeGeneratorBasic({
                     lexer: new BasicLexer_1.BasicLexer({
@@ -16208,8 +16249,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     parser: new BasicParser_2.BasicParser()
                 });
             }
-            var keepColons = keepBrackets, // we switch all with one setting
-            keepDataComma = true;
+            var keepDataComma = true;
             this.codeGeneratorBasic.getOptions().lexer.setOptions({
                 keepWhiteSpace: keepWhiteSpace
             });
@@ -16232,14 +16272,14 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 data = Controller.splitMeta(input);
                 input = data.data; // maybe changed
                 if (data.meta.encoding === "base64") {
-                    input = Utils_23.Utils.atob(input); // decode base64
+                    input = Utils_25.Utils.atob(input); // decode base64
                 }
                 var type = data.meta.typeString;
                 if (type === "T") { // tokenized basic?
                     input = this.decodeTokenizedBasic(input);
                 }
                 else if (type === "P") { // BASIC?
-                    input = DiskImage_1.DiskImage.unOrProtectData(input);
+                    input = DiskImage_2.DiskImage.unOrProtectData(input);
                     input = this.decodeTokenizedBasic(input);
                 }
                 else if (type === "B") { // binary?
@@ -16257,11 +16297,11 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     putInMemory = inFile.fnFileCallback(input, data && data.meta);
                 }
                 catch (e) {
-                    Utils_23.Utils.console.warn(e);
+                    Utils_25.Utils.console.warn(e);
                 }
             }
             if (input === undefined) {
-                Utils_23.Utils.console.error("loadFileContinue: File " + inFile.name + ": input undefined!");
+                Utils_25.Utils.console.error("loadFileContinue: File " + inFile.name + ": input undefined!");
                 this.vm.vmStop("stop", 60, true);
                 this.startMainLoop();
                 return;
@@ -16316,7 +16356,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     }
                     break;
                 default:
-                    Utils_23.Utils.console.error("loadExample: Unknown command:", command);
+                    Utils_25.Utils.console.error("loadExample: Unknown command:", command);
                     break;
             }
             this.vm.vmSetStartLine(startLine);
@@ -16326,11 +16366,11 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             var _this = this;
             return function (_sFullUrl, key, suppressLog) {
                 if (key !== example) {
-                    Utils_23.Utils.console.warn("fnExampleLoaded: Unexpected", key, "<>", example);
+                    Utils_25.Utils.console.warn("fnExampleLoaded: Unexpected", key, "<>", example);
                 }
                 var exampleEntry = _this.model.getExample(example);
                 if (!suppressLog) {
-                    Utils_23.Utils.console.log("Example", url, (exampleEntry.meta ? exampleEntry.meta + " " : "") + " loaded");
+                    Utils_25.Utils.console.log("Example", url, (exampleEntry.meta ? exampleEntry.meta + " " : "") + " loaded");
                 }
                 var input = exampleEntry.script;
                 _this.model.setProperty("example", inFile.memorizedExample);
@@ -16341,7 +16381,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.createFnExampleError = function (example, url, inFile) {
             var _this = this;
             return function () {
-                Utils_23.Utils.console.log("Example", url, "error");
+                Utils_25.Utils.console.log("Example", url, "error");
                 _this.model.setProperty("example", inFile.memorizedExample);
                 _this.vm.vmStop("", 0, true);
                 var error = _this.vm.vmComposeError(Error(), 32, example + " not found"); // TODO: set also derr=146 (xx not found)
@@ -16370,8 +16410,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 }
             }
             var example = name;
-            if (Utils_23.Utils.debug > 0) {
-                Utils_23.Utils.console.debug("loadExample: name=" + name + " (current=" + key + ")");
+            if (Utils_25.Utils.debug > 0) {
+                Utils_25.Utils.console.debug("loadExample: name=" + name + " (current=" + key + ")");
             }
             var exampleEntry = this.model.getExample(example); // already loaded
             var url;
@@ -16385,12 +16425,12 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.model.setProperty("example", example);
                 var databaseDir = this.model.getDatabase().src;
                 url = databaseDir + "/" + example + ".js";
-                Utils_23.Utils.loadScript(url, this.createFnExampleLoaded(example, url, inFile), this.createFnExampleError(example, url, inFile), example);
+                Utils_25.Utils.loadScript(url, this.createFnExampleLoaded(example, url, inFile), this.createFnExampleError(example, url, inFile), example);
             }
             else { // keep original example in this error case
                 url = example;
                 if (example !== "") { // only if not empty
-                    Utils_23.Utils.console.warn("loadExample: Unknown file:", example);
+                    Utils_25.Utils.console.warn("loadExample: Unknown file:", example);
                     var fnExampleError = this.createFnExampleError(example, url, inFile);
                     fnExampleError();
                 }
@@ -16409,7 +16449,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             return name;
         };
         Controller.tryLoadingFromLocalStorage = function (name) {
-            var storage = Utils_23.Utils.localStorage;
+            var storage = Utils_25.Utils.localStorage;
             var input = null;
             if (name.indexOf(".") >= 0) { // extension specified?
                 input = storage.getItem(name);
@@ -16439,13 +16479,13 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     this.vm.vmStop("fileLoad", 90); // restore
                 }
                 var name_14 = inFile.name;
-                if (Utils_23.Utils.debug > 1) {
-                    Utils_23.Utils.console.debug("fnFileLoad:", inFile.command, name_14, "details:", inFile);
+                if (Utils_25.Utils.debug > 1) {
+                    Utils_25.Utils.console.debug("fnFileLoad:", inFile.command, name_14, "details:", inFile);
                 }
                 var input = Controller.tryLoadingFromLocalStorage(name_14);
                 if (input !== null) {
-                    if (Utils_23.Utils.debug > 0) {
-                        Utils_23.Utils.console.debug("fnFileLoad:", inFile.command, name_14, "from localStorage");
+                    if (Utils_25.Utils.debug > 0) {
+                        Utils_25.Utils.console.debug("fnFileLoad:", inFile.command, name_14, "from localStorage");
                     }
                     this.vm.vmStop("", 0, true);
                     this.loadFileContinue(input);
@@ -16455,7 +16495,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 }
             }
             else {
-                Utils_23.Utils.console.error("fnFileLoad:", inFile.name, "File not open!"); // hopefully isName is defined
+                Utils_25.Utils.console.error("fnFileLoad:", inFile.name, "File not open!"); // hopefully isName is defined
             }
             this.nextLoopTimeOut = this.vm.vmGetTimeUntilFrame(); // wait until next frame
         };
@@ -16497,7 +16537,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             return metaAndData;
         };
         Controller.prototype.fnFileSave = function () {
-            var outFile = this.vm.vmGetOutFileObject(), storage = Utils_23.Utils.localStorage;
+            var outFile = this.vm.vmGetOutFileObject(), storage = Utils_25.Utils.localStorage;
             var defaultExtension = "";
             if (outFile.open) {
                 var type = outFile.typeString, name_15 = outFile.name;
@@ -16520,13 +16560,13 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                             outFile.typeString = "A"; // override type
                         }
                         else if (type === "P") {
-                            fileData = DiskImage_1.DiskImage.unOrProtectData(fileData);
+                            fileData = DiskImage_2.DiskImage.unOrProtectData(fileData);
                         }
                     }
                     outFile.length = fileData.length; // set length
                 }
-                if (Utils_23.Utils.debug > 0) {
-                    Utils_23.Utils.console.debug("fnFileSave: name=" + name_15 + ": put into localStorage");
+                if (Utils_25.Utils.debug > 0) {
+                    Utils_25.Utils.console.debug("fnFileSave: name=" + name_15 + ": put into localStorage");
                 }
                 var meta = Controller.joinMeta(outFile);
                 storage.setItem(storageName, meta + "," + fileData);
@@ -16536,13 +16576,13 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                         outFile.fnFileCallback(fileData); // close file
                     }
                     catch (e) {
-                        Utils_23.Utils.console.warn(e);
+                        Utils_25.Utils.console.warn(e);
                     }
                 }
                 this.vm.vmResetOutFileHandling(); // make sure it is closed
             }
             else {
-                Utils_23.Utils.console.error("fnFileSave: file not open!");
+                Utils_25.Utils.console.error("fnFileSave: file not open!");
             }
             this.vm.vmStop("", 0, true); // continue
         };
@@ -16603,7 +16643,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.outputError = function (error, noSelection) {
             var stream = 0;
             var shortError;
-            if (Utils_23.Utils.isCustomError(error)) {
+            if (Utils_25.Utils.isCustomError(error)) {
                 shortError = error.shortMessage || error.message;
                 if (!noSelection) {
                     var startPos = error.pos || 0, len = error.len || ((error.value !== undefined) ? String(error.value).length : 0), endPos = startPos + len;
@@ -16632,7 +16672,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
             var output = this.basicFormatter.renumber(input, paras.newLine || 10, paras.oldLine || 1, paras.step || 10, paras.keep || 65535);
             if (output.error) {
-                Utils_23.Utils.console.warn(output.error);
+                Utils_25.Utils.console.warn(output.error);
                 this.outputError(output.error);
             }
             else {
@@ -16684,7 +16724,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 var time = Date.now();
                 output = this.codeGeneratorJs.generate(input, this.variables);
                 time = Date.now() - time;
-                Utils_23.Utils.console.debug("bench size", input.length, "labels", this.codeGeneratorJs.debugGetLabelsCount(), "loop", i, ":", time, "ms");
+                Utils_25.Utils.console.debug("bench size", input.length, "labels", this.codeGeneratorJs.debugGetLabelsCount(), "loop", i, ":", time, "ms");
                 if (output.error) {
                     break;
                 }
@@ -16713,7 +16753,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 for (var i = 0; i < tokens.length; i += 1) {
                     var code = tokens.charCodeAt(i);
                     if (code > 255) {
-                        Utils_23.Utils.console.warn("Put token in memory: addr=" + (addr + i) + ", code=" + code + ", char=" + tokens.charAt(i));
+                        Utils_25.Utils.console.warn("Put token in memory: addr=" + (addr + i) + ", code=" + code + ", char=" + tokens.charAt(i));
                         code = 0x20; //TTT
                     }
                     this.vm.poke(addr + i, code);
@@ -16729,7 +16769,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             return output;
         };
         Controller.prototype.fnPretty = function () {
-            var input = this.view.getAreaValue("inputText"), keepWhiteSpace = this.view.getInputChecked("prettySpaceInput"), keepBrackets = this.view.getInputChecked("prettyBracketsInput"), output = this.prettyPrintBasic(input, keepWhiteSpace, keepBrackets);
+            var input = this.view.getAreaValue("inputText"), keepWhiteSpace = this.view.getInputChecked("prettySpaceInput"), keepBrackets = this.view.getInputChecked("prettyBracketsInput"), keepColons = this.view.getInputChecked("prettyColonsInput"), output = this.prettyPrintBasic(input, keepWhiteSpace, keepBrackets, keepColons);
             if (output) {
                 this.fnPutChangedInputOnStack();
                 this.setInputText(output, true);
@@ -16781,7 +16821,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 data8[i] = data.charCodeAt(i);
             }
             if (typeof Blob === "undefined") {
-                Utils_23.Utils.console.warn("fnDownloadNewFile: Blob undefined");
+                Utils_25.Utils.console.warn("fnDownloadNewFile: Blob undefined");
                 return;
             }
             var blob = new Blob([data8.buffer], {
@@ -16797,7 +16837,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.fnDownload = function () {
             var input = this.view.getAreaValue("inputText"), tokens = this.encodeTokenizedBasic(input);
             if (tokens !== "") {
-                var header = FileHandler.createMinimalAmsdosHeader("T", 0x170, tokens.length), headerString = DiskImage_1.DiskImage.combineAmsdosHeader(header), data = headerString + tokens;
+                var header = FileHandler_1.FileHandler.createMinimalAmsdosHeader("T", 0x170, tokens.length), headerString = DiskImage_2.DiskImage.combineAmsdosHeader(header), data = headerString + tokens;
                 this.fnDownloadNewFile(data, "file.bas");
             }
         };
@@ -16812,7 +16852,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     line += 1;
                 }
                 pos += columnNumber;
-                Utils_23.Utils.console.warn("Info: JS Error occurred at line", lineNumber, "column", columnNumber, "pos", pos);
+                Utils_25.Utils.console.warn("Info: JS Error occurred at line", lineNumber, "column", columnNumber, "pos", pos);
                 this.view.setAreaSelection("outputText", pos, pos + 1);
             }
         };
@@ -16832,7 +16872,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     this.fnScript = new Function("o", script); // eslint-disable-line no-new-func
                 }
                 catch (e) {
-                    Utils_23.Utils.console.error(e);
+                    Utils_25.Utils.console.error(e);
                     if (e instanceof Error) {
                         this.selectJsError(script, e);
                         e.shortMessage = "JS " + String(e);
@@ -16865,8 +16905,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     }, timeout);
                 }
             }
-            if (Utils_23.Utils.debug > 1) {
-                Utils_23.Utils.console.debug("End of fnRun");
+            if (Utils_25.Utils.debug > 1) {
+                Utils_25.Utils.console.debug("End of fnRun");
             }
         };
         Controller.prototype.fnParseRun = function () {
@@ -16887,22 +16927,22 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                             customError = this.vm.vmComposeError(customError, customError.errCode, customError.value);
                         }
                         if (!customError.hidden) {
-                            Utils_23.Utils.console.warn(customError);
+                            Utils_25.Utils.console.warn(customError);
                             this.outputError(customError, !customError.pos);
                         }
                         else {
-                            Utils_23.Utils.console.log(customError.message);
+                            Utils_25.Utils.console.log(customError.message);
                         }
                     }
                     else {
-                        Utils_23.Utils.console.error(e);
+                        Utils_25.Utils.console.error(e);
                         this.selectJsError(this.view.getAreaValue("outputText"), e);
                         this.vm.vmComposeError(e, 2, "JS " + String(e)); // generate Syntax Error, set also err and erl and set stop
                         this.outputError(e, true);
                     }
                 }
                 else {
-                    Utils_23.Utils.console.error(e);
+                    Utils_25.Utils.console.error(e);
                 }
             }
         };
@@ -16915,8 +16955,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.vm.cursor(stream, 0);
                 var inputText = this.view.getAreaValue("inputText");
                 if ((/^\d+($| )/).test(input)) { // start with number?
-                    if (Utils_23.Utils.debug > 0) {
-                        Utils_23.Utils.console.debug("fnDirectInput: insert line=" + input);
+                    if (Utils_25.Utils.debug > 0) {
+                        Utils_25.Utils.console.debug("fnDirectInput: insert line=" + input);
                     }
                     input = this.mergeScripts(inputText, input);
                     this.setInputText(input, true);
@@ -16927,7 +16967,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     this.updateResultText();
                     return false; // continue direct input
                 }
-                Utils_23.Utils.console.log("fnDirectInput: execute:", input);
+                Utils_25.Utils.console.log("fnDirectInput: execute:", input);
                 var codeGeneratorJs = this.codeGeneratorJs;
                 var output = void 0, outputString = void 0;
                 if (inputText && ((/^\d+($| )/).test(inputText) || this.model.getProperty("implicitLines"))) { // do we have a program starting with a line number?
@@ -16963,7 +17003,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                         this.vm.vmSetSourceMap(codeGeneratorJs.getSourceMap());
                     }
                     catch (e) {
-                        Utils_23.Utils.console.error(e);
+                        Utils_25.Utils.console.error(e);
                         if (e instanceof Error) {
                             this.outputError(e, true);
                         }
@@ -17031,7 +17071,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         };
         Controller.prototype.fnRunLoop = function () {
             var stop = this.vm.vmGetStopObject();
-            this.nextLoopTimeOut = 0;
+            this.nextLoopTimeOut = this.initialLoopTimeout;
             if (!stop.reason && this.fnScript) {
                 this.fnRunPart1(this.fnScript); // could change reason
             }
@@ -17039,7 +17079,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.handlers[stop.reason].call(this, stop.paras);
             }
             else {
-                Utils_23.Utils.console.warn("runLoop: Unknown run mode:", stop.reason);
+                Utils_25.Utils.console.warn("runLoop: Unknown run mode:", stop.reason);
                 this.vm.vmStop("error", 50);
             }
             if (stop.reason && stop.reason !== "waitSound" && stop.reason !== "waitKey" && stop.reason !== "waitInput") {
@@ -17131,7 +17171,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             if (canvas.toDataURL) {
                 return canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"); // here is the most important part because if you do not replace you will get a DOM 18 exception.
             }
-            Utils_23.Utils.console.warn("Screenshot not available");
+            Utils_25.Utils.console.warn("Screenshot not available");
             return "";
         };
         Controller.prototype.fnPutKeyInBuffer = function (key) {
@@ -17185,17 +17225,17 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 try {
                     var value2 = this.vm.vmAssign(varType, value);
                     variables.setVariable(par, value2);
-                    Utils_23.Utils.console.log("Variable", par, "changed:", variables.getVariable(par), "=>", value);
+                    Utils_25.Utils.console.log("Variable", par, "changed:", variables.getVariable(par), "=>", value);
                 }
                 catch (e) {
-                    Utils_23.Utils.console.warn(e);
+                    Utils_25.Utils.console.warn(e);
                 }
             }
             this.setVarSelectOptions("varSelect", variables);
             this.commonEventHandler.onVarSelectChange(); // title change?
         };
         Controller.prototype.setSoundActive = function () {
-            var sound = this.sound, soundButton = View_6.View.getElementById1("soundButton"), active = this.model.getProperty("sound");
+            var sound = this.sound, soundButton = View_7.View.getElementById1("soundButton"), active = this.model.getProperty("sound");
             var text;
             if (active) {
                 try {
@@ -17203,7 +17243,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     text = (sound.isActivatedByUser()) ? "Sound is on" : "Sound on (waiting)";
                 }
                 catch (e) {
-                    Utils_23.Utils.console.warn("soundOn:", e);
+                    Utils_25.Utils.console.warn("soundOn:", e);
                     text = "Sound unavailable";
                 }
             }
@@ -17237,26 +17277,26 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         };
         Controller.prototype.initDropZone = function () {
             if (!this.fileHandler) {
-                this.fileHandler = new FileHandler({
+                this.fileHandler = new FileHandler_1.FileHandler({
                     adaptFilename: this.adaptFilename.bind(this),
                     updateStorageDatabase: this.updateStorageDatabase.bind(this),
                     outputError: this.outputError.bind(this)
                 });
             }
             if (!this.fileSelect) {
-                this.fileSelect = new FileSelect({
+                this.fileSelect = new FileSelect_1.FileSelect({
                     fnEndOfImport: this.fnEndOfImport.bind(this),
                     outputError: this.outputError.bind(this),
                     fnLoad2: this.fileHandler.fnLoad2.bind(this.fileHandler)
                 });
             }
-            var dropZone = View_6.View.getElementById1("dropZone");
+            var dropZone = View_7.View.getElementById1("dropZone");
             dropZone.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
             this.fileSelect.addFileSelectHandler(dropZone, "drop");
             var canvasElement = this.canvas.getCanvasElement();
             canvasElement.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
             this.fileSelect.addFileSelectHandler(canvasElement, "drop");
-            var fileInput = View_6.View.getElementById1("fileInput");
+            var fileInput = View_7.View.getElementById1("fileInput");
             this.fileSelect.addFileSelectHandler(fileInput, "change");
         };
         Controller.prototype.fnUpdateUndoRedoButtons = function () {
@@ -17311,7 +17351,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     _this.model.getDatabase().loaded = true;
                 }
                 else { // should not occur
-                    Utils_23.Utils.console.warn("databaseLoaded: name changed: " + key + " => " + selectedName);
+                    Utils_25.Utils.console.warn("databaseLoaded: name changed: " + key + " => " + selectedName);
                     _this.model.setProperty("database", key);
                     var database = _this.model.getDatabase();
                     if (database) {
@@ -17319,7 +17359,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     }
                     _this.model.setProperty("database", selectedName);
                 }
-                Utils_23.Utils.console.log("fnDatabaseLoaded: database loaded: " + key + ": " + url);
+                Utils_25.Utils.console.log("fnDatabaseLoaded: database loaded: " + key + ": " + url);
                 _this.setExampleSelectOptions();
                 _this.onExampleSelectChange();
             };
@@ -17327,7 +17367,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.createFnDatabaseError = function (url) {
             var _this = this;
             return function (_sFullUrl, key) {
-                Utils_23.Utils.console.error("fnDatabaseError: database error: " + key + ": " + url);
+                Utils_25.Utils.console.error("fnDatabaseError: database error: " + key + ": " + url);
                 _this.setExampleSelectOptions();
                 _this.onExampleSelectChange();
                 _this.setInputText("");
@@ -17341,7 +17381,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.view.setSelectTitleFromSelectedOption("databaseSelect");
             var database = this.model.getDatabase();
             if (!database) {
-                Utils_23.Utils.console.error("onDatabaseSelectChange: database not available:", databaseName);
+                Utils_25.Utils.console.error("onDatabaseSelectChange: database not available:", databaseName);
                 return;
             }
             if (database.text === "storage") { // sepcial handling: browser localStorage
@@ -17356,7 +17396,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.setInputText("#loading database " + databaseName + "...");
                 var exampleIndex = this.model.getProperty("exampleIndex");
                 url = database.src + "/" + exampleIndex;
-                Utils_23.Utils.loadScript(url, this.createFnDatabaseLoaded(url), this.createFnDatabaseError(url), databaseName);
+                Utils_25.Utils.loadScript(url, this.createFnDatabaseLoaded(url), this.createFnDatabaseError(url), databaseName);
             }
         };
         Controller.prototype.onExampleSelectChange = function () {
@@ -17386,22 +17426,22 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         };
         // currently not used. Can be called manually: cpcBasic.controller.exportAsBase64(file);
         Controller.exportAsBase64 = function (storageName) {
-            var storage = Utils_23.Utils.localStorage;
+            var storage = Utils_25.Utils.localStorage;
             var data = storage.getItem(storageName), out = "";
             if (data !== null) {
                 var index = data.indexOf(","); // metadata separator
                 if (index >= 0) {
                     var meta = data.substring(0, index);
                     data = data.substring(index + 1);
-                    data = Utils_23.Utils.btoa(data);
+                    data = Utils_25.Utils.btoa(data);
                     out = meta + ";base64," + data;
                 }
                 else { // hmm, no meta info
-                    data = Utils_23.Utils.btoa(data);
+                    data = Utils_25.Utils.btoa(data);
                     out = "base64," + data;
                 }
             }
-            Utils_23.Utils.console.log(out);
+            Utils_25.Utils.console.log(out);
             return out;
         };
         Controller.prototype.onCpcCanvasClick = function (event) {
@@ -17451,6 +17491,10 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 trace: trace
             });
         };
+        Controller.prototype.fnSpeed = function () {
+            var speed = this.model.getProperty("speed");
+            this.initialLoopTimeout = 1000 - speed * 10;
+        };
         Controller.metaIdent = "CPCBasic";
         Controller.defaultExtensions = [
             "",
@@ -17486,7 +17530,7 @@ define("cpcconfig", ["require", "exports"], function (require, exports) {
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "Model", "View", "NodeAdapt"], function (require, exports, Utils_24, Controller_1, cpcconfig_1, Model_1, View_7, NodeAdapt_1) {
+define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "Model", "View", "NodeAdapt"], function (require, exports, Utils_26, Controller_1, cpcconfig_1, Model_1, View_8, NodeAdapt_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var cpcBasic = /** @class */ (function () {
@@ -17510,7 +17554,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
         // can be used for nodeJS
         cpcBasic.fnParseArgs = function (args, config) {
             for (var i = 0; i < args.length; i += 1) {
-                var nameValue = args[i], nameValueList = Utils_24.Utils.split2(nameValue, "="), name_16 = nameValueList[0];
+                var nameValue = args[i], nameValueList = Utils_26.Utils.split2(nameValue, "="), name_16 = nameValueList[0];
                 if (config.hasOwnProperty(name_16)) {
                     var value = nameValueList[1]; // string|number|boolean
                     if (value !== undefined && config.hasOwnProperty(name_16)) {
@@ -17562,7 +17606,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             return arg;
         };
         cpcBasic.createDebugUtilsConsole = function (cpcBasicLog) {
-            var currentConsole = Utils_24.Utils.console;
+            var currentConsole = Utils_26.Utils.console;
             return {
                 consoleLog: {
                     value: cpcBasicLog || "" // already something collected?
@@ -17626,19 +17670,19 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             else { // nodeJs
                 cpcBasic.fnParseArgs(myGlobalThis.process.argv.slice(2), startConfig);
             }
-            cpcBasic.view = new View_7.View();
+            cpcBasic.view = new View_8.View();
             var debug = Number(cpcBasic.model.getProperty("debug"));
-            Utils_24.Utils.debug = debug;
-            var UtilsConsole = Utils_24.Utils.console, cpcBasicLog = "";
+            Utils_26.Utils.debug = debug;
+            var UtilsConsole = Utils_26.Utils.console, cpcBasicLog = "";
             if (UtilsConsole.cpcBasicLog) {
                 cpcBasicLog = UtilsConsole.cpcBasicLog;
                 UtilsConsole.cpcBasicLog = undefined; // do not log any more to dummy console
             }
-            if (Utils_24.Utils.debug > 1 && cpcBasic.model.getProperty("showConsole")) { // console log window?
+            if (Utils_26.Utils.debug > 1 && cpcBasic.model.getProperty("showConsole")) { // console log window?
                 UtilsConsole = cpcBasic.createDebugUtilsConsole(cpcBasicLog);
-                Utils_24.Utils.console = UtilsConsole;
-                Utils_24.Utils.console.log("CPCBasic log started at", Utils_24.Utils.dateFormat(new Date()));
-                UtilsConsole.changeLog(View_7.View.getElementById1("consoleText"));
+                Utils_26.Utils.console = UtilsConsole;
+                Utils_26.Utils.console.log("CPCBasic log started at", Utils_26.Utils.dateFormat(new Date()));
+                UtilsConsole.changeLog(View_8.View.getElementById1("consoleText"));
             }
             if (redirectExamples) {
                 this.fnRedirectExamples(redirectExamples);
@@ -17647,7 +17691,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             cpcBasic.controller.onDatabaseSelectChange(); // trigger loading example
         };
         cpcBasic.fnOnLoad = function () {
-            Utils_24.Utils.console.log("CPCBasic started at", Utils_24.Utils.dateFormat(new Date()));
+            Utils_26.Utils.console.log("CPCBasic started at", Utils_26.Utils.dateFormat(new Date()));
             cpcBasic.fnDoStart();
         };
         cpcBasic.config = {
@@ -17673,6 +17717,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             showConvert: false,
             showSettings: false,
             sound: true,
+            speed: 100,
             trace: false // trace code
         };
         return cpcBasic;
@@ -17684,7 +17729,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
     if (window.Polyfills.isNodeAvailable) {
         NodeAdapt_1.NodeAdapt.doAdapt();
         cpcBasic.fnOnLoad();
-        Utils_24.Utils.console.debug("End of main.");
+        Utils_26.Utils.console.debug("End of main.");
     }
 });
 //# sourceMappingURL=cpcbasicts.js.map

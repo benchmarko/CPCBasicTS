@@ -141,3 +141,8 @@ body {
 	opacity: 0.8;
     background-color: rgba(211, 211, 211, 0.5);
 }
+
+#cpcCanvas {
+	border-style: solid;
+	border-width: 4px;
+}

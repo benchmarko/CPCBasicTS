@@ -233,4 +233,23 @@ export class View {
 		}
 		return target as T;
 	}
+
+	static requestFullscreenForId(id: string): boolean {
+		const element = View.getElementById1(id),
+			anyEl = element as any,
+			requestMethod = element.requestFullscreen || anyEl.webkitRequestFullscreen || anyEl.mozRequestFullscreen || anyEl.msRequestFullscreen;
+
+		if (requestMethod) {
+			requestMethod.call(element); // can we ALLOW_KEYBOARD_INPUT?
+		} else if (typeof (window as any).ActiveXObject !== "undefined") { // older IE
+			const wscript = new (window as any).ActiveXObject("WScript.Shell");
+
+			if (wscript !== null) {
+				wscript.SendKeys("{F11}"); // eslint-disable-line new-cap
+			}
+		} else {
+			return false;
+		}
+		return true;
+	}
 }

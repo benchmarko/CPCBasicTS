@@ -181,6 +181,8 @@ export class CpcVm {
 	private lastRnd = 0; // last random number
 
 	private nextFrameTime = 0;
+
+	private initialStop = 5;
 	private stopCount = 0;
 
 	line: string | number = 0;
@@ -413,6 +415,8 @@ export class CpcVm {
 
 		this.random = new Random();
 
+		this.stopCount = this.initialStop;
+
 		this.stopEntry = {
 			reason: "", // stop reason
 			priority: 0, // stop priority (higher number means higher priority which can overwrite lower priority)
@@ -498,7 +502,7 @@ export class CpcVm {
 		this.vmResetRandom();
 
 		this.nextFrameTime = Date.now() + CpcVm.frameTimeMs; // next time of frame fly
-		this.stopCount = 0;
+		this.stopCount = this.initialStop;
 
 		this.line = 0; // current line number (or label)
 		this.startLine = 0; // line to start
@@ -956,9 +960,9 @@ export class CpcVm {
 
 		if (time >= this.nextFrameTime) {
 			this.vmCheckNextFrame(time);
-			this.stopCount += 1;
-			if (this.stopCount >= 5) { // do not stop too often because of just timer reason because setTimeout is expensive
-				this.stopCount = 0;
+			this.stopCount -= 1;
+			if (this.stopCount <= 0) { // do not stop too often because of just timer reason because setTimeout is expensive
+				this.stopCount = this.initialStop;
 				this.vmStop("timer", 20);
 			}
 		}

@@ -372,8 +372,9 @@ export class CodeGeneratorBasic {
 
 		return CodeGeneratorBasic.fnWs(node) + node.value.toUpperCase() + value; // we use value to get PRINT or ?
 	}
+
 	private rem(node: ParserNode) {
-		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(this.fnParseArgs(node.args).join(""));
+		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + this.fnParseArgs(node.args).join("");
 	}
 	private using(node: ParserNode) {
 		const nodeArgs = this.fnParseArgs(node.args),

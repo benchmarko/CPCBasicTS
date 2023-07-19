@@ -50,6 +50,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 onImplicitLinesInputChange: this.onImplicitLinesInputChange,
                 onArrayBoundsInputChange: this.onArrayBoundsInputChange,
                 onTraceInputChange: this.onTraceInputChange,
+                onSpeedInputChange: this.onSpeedInputChange,
                 onScreenshotButtonClick: this.onScreenshotButtonClick,
                 onEnterButtonClick: this.onEnterButtonClick,
                 onSoundButtonClick: this.onSoundButtonClick,
@@ -246,6 +247,11 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.model.setProperty("trace", checked);
             this.controller.fnTrace();
         };
+        CommonEventHandler.prototype.onSpeedInputChange = function () {
+            var speed = this.view.getInputValue("speedInput");
+            this.model.setProperty("speed", Number(speed));
+            this.controller.fnSpeed();
+        };
         CommonEventHandler.prototype.onScreenshotButtonClick = function () {
             var example = this.view.getSelectValue("exampleSelect"), image = this.controller.startScreenshot(), link = View_1.View.getElementById1("screenshotLink"), name = example + ".png";
             if (image) {
@@ -262,11 +268,8 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.controller.setSoundActive();
         };
         CommonEventHandler.onFullscreenButtonClick = function () {
-            var element = View_1.View.getElementById1("cpcCanvas");
-            if (element.requestFullscreen) {
-                element.requestFullscreen();
-            }
-            else {
+            var switched = View_1.View.requestFullscreenForId("cpcCanvas");
+            if (!switched) {
                 Utils_1.Utils.console.warn("Switch to fullscreen not available");
             }
         };
