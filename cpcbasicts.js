@@ -9116,9 +9116,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         //setOptions(options: CanvasOptions): void { }
         function Canvas(options) {
             this.fps = 15; // FPS for canvas update
-            //private readonly charset: CharsetType;
             this.customCharset = {};
-            //private readonly onClickKey?: (arg0: string) => void;
             this.gColMode = 0; // 0=normal, 1=xor, 2=and, 3=or
             this.mask = 255;
             this.maskBit = 128;
@@ -9373,26 +9371,38 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.hasFocus = true;
         };
         Canvas.prototype.getMousePos = function (event) {
-            var rect = this.canvas.getBoundingClientRect(), pos = {
-                x: event.clientX - this.borderWidth - rect.left,
-                y: event.clientY - this.borderWidth - rect.top
+            var anyDoc = document, isFullScreen = Boolean(document.fullscreenElement || anyDoc.mozFullScreenElement || anyDoc.webkitFullscreenElement || anyDoc.msFullscreenElement), rect = this.canvas.getBoundingClientRect();
+            if (isFullScreen) {
+                var rectwidth = rect.right - rect.left - this.borderWidth * 2, rectHeight = rect.bottom - rect.top - this.borderWidth * 2, ratioX = rectwidth / this.canvas.width, ratioY = rectHeight / this.canvas.height, minRatio = ratioX <= ratioY ? ratioX : ratioY, diffX = rectwidth - (this.canvas.width * minRatio), diffY = rectHeight - (this.canvas.height * minRatio);
+                return {
+                    x: (event.clientX - this.borderWidth - rect.left - diffX / 2) / ratioX * ratioX / minRatio,
+                    y: (event.clientY - this.borderWidth - rect.top - diffY / 2) / ratioY * ratioY / minRatio
+                };
+            }
+            return {
+                x: (event.clientX - this.borderWidth - rect.left) / (rect.right - rect.left - this.borderWidth * 2) * this.canvas.width,
+                y: (event.clientY - this.borderWidth - rect.top) / (rect.bottom - rect.top - this.borderWidth * 2) * this.canvas.height
             };
-            return pos;
         };
         Canvas.prototype.canvasClickAction2 = function (event) {
-            var pos = this.getMousePos(event), charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8;
-            var x = pos.x, y = pos.y;
+            var pos = this.getMousePos(event);
+            var x = pos.x, y = pos.y, char;
             /* eslint-disable no-bitwise */
             x |= 0; // force integer
             y |= 0;
-            var xTxt = (x / charWidth) | 0, yTxt = (y / charHeight) | 0;
             /* eslint-enable no-bitwise */
-            var char = this.readChar(xTxt, yTxt, 1, 0); // TODO: currently we use pen 1, paper 0
-            if (char < 0 && event.detail === 2) { // no char but mouse double click?
-                char = 13; // use CR
-            }
-            if (char >= 0 && this.options.onClickKey) { // call click handler (put char in keyboard input buffer)
-                this.options.onClickKey(String.fromCharCode(char));
+            if (x >= 0 && x <= 639 && y >= 0 && y <= 399) {
+                var charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8, 
+                /* eslint-disable no-bitwise */
+                xTxt = (x / charWidth) | 0, yTxt = (y / charHeight) | 0;
+                /* eslint-enable no-bitwise */
+                char = this.readChar(xTxt, yTxt, 1, 0); // TODO: currently we use pen 1, paper 0
+                if (char < 0 && event.detail === 2) { // no char but mouse double click?
+                    char = 13; // use CR
+                }
+                if (char >= 0 && this.options.onClickKey) { // call click handler (put char in keyboard input buffer)
+                    this.options.onClickKey(String.fromCharCode(char));
+                }
             }
             // for graphics coordinates, adapt origin
             x -= this.xOrig;
@@ -9401,7 +9411,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
                 this.move(x, y);
             }
             if (Utils_15.Utils.debug > 0) {
-                Utils_15.Utils.console.debug("onCpcCanvasClick: x-xOrig", x, "y-yOrig", y, "char", char, "char", (char !== undefined ? String.fromCharCode(char) : "?"), "detail", event.detail);
+                Utils_15.Utils.console.debug("onCpcCanvasClick: x", pos.x, "y", pos.y, "x - xOrig", x, "y - yOrig", y, "char", char, "char", (char !== undefined ? String.fromCharCode(char) : "?"), "detail", event.detail);
             }
         };
         Canvas.prototype.onCpcCanvasClick = function (event) {
@@ -11908,7 +11918,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         };
         CpcVm.prototype.vmReset4Run = function () {
             var stream = 0;
-            this.vmResetInks();
             this.clearInput();
             this.closein();
             this.closeout();

@@ -687,7 +687,6 @@ export class CpcVm {
 	vmReset4Run(): void {
 		const stream = 0;
 
-		this.vmResetInks();
 		this.clearInput();
 		this.closein();
 		this.closeout();

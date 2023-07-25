@@ -282,7 +282,6 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         };
         CpcVm.prototype.vmReset4Run = function () {
             var stream = 0;
-            this.vmResetInks();
             this.clearInput();
             this.closein();
             this.closeout();

@@ -34,10 +34,7 @@ export class Canvas {
 
 	private readonly cpcAreaBox: HTMLElement;
 
-	//private readonly charset: CharsetType;
 	private customCharset: Record<number, CharType> = {};
-
-	//private readonly onClickKey?: (arg0: string) => void;
 
 	private gColMode = 0; // 0=normal, 1=xor, 2=and, 3=or
 
@@ -462,38 +459,59 @@ export class Canvas {
 	}
 
 	private getMousePos(event: MouseEvent) {
-		const rect = this.canvas.getBoundingClientRect(),
-			pos = {
-				x: event.clientX - this.borderWidth - rect.left,
-				y: event.clientY - this.borderWidth - rect.top
-			};
+		const anyDoc = document as any,
+			isFullScreen = Boolean(document.fullscreenElement || anyDoc.mozFullScreenElement || anyDoc.webkitFullscreenElement || anyDoc.msFullscreenElement),
+			rect = this.canvas.getBoundingClientRect();
 
-		return pos;
+		if (isFullScreen) {
+			const rectwidth = rect.right - rect.left - this.borderWidth * 2,
+				rectHeight = rect.bottom - rect.top - this.borderWidth * 2,
+				ratioX = rectwidth / this.canvas.width,
+				ratioY = rectHeight / this.canvas.height,
+				minRatio = ratioX <= ratioY ? ratioX : ratioY,
+				diffX = rectwidth - (this.canvas.width * minRatio),
+				diffY = rectHeight - (this.canvas.height * minRatio);
+
+			return {
+				x: (event.clientX - this.borderWidth - rect.left - diffX / 2) / ratioX * ratioX / minRatio,
+				y: (event.clientY - this.borderWidth - rect.top - diffY / 2) / ratioY * ratioY / minRatio
+			};
+		}
+
+		return {
+			x: (event.clientX - this.borderWidth - rect.left) / (rect.right - rect.left - this.borderWidth * 2) * this.canvas.width,
+			y: (event.clientY - this.borderWidth - rect.top) / (rect.bottom - rect.top - this.borderWidth * 2) * this.canvas.height
+		};
 	}
 
 	private canvasClickAction2(event: MouseEvent) {
-		const pos = this.getMousePos(event),
-			charWidth = this.modeData.pixelWidth * 8,
-			charHeight = this.modeData.pixelHeight * 8;
+		const pos = this.getMousePos(event);
 		let x = pos.x,
-			y = pos.y;
+			y = pos.y,
+			char: number | undefined;
 
 		/* eslint-disable no-bitwise */
 		x |= 0; // force integer
 		y |= 0;
-
-		const xTxt = (x / charWidth) | 0,
-			yTxt = (y / charHeight) | 0;
 		/* eslint-enable no-bitwise */
 
-		let char = this.readChar(xTxt, yTxt, 1, 0); // TODO: currently we use pen 1, paper 0
+		if (x >= 0 && x <= 639 && y >= 0 && y <= 399) {
+			const charWidth = this.modeData.pixelWidth * 8,
+				charHeight = this.modeData.pixelHeight * 8,
+				/* eslint-disable no-bitwise */
+				xTxt = (x / charWidth) | 0,
+				yTxt = (y / charHeight) | 0;
+			/* eslint-enable no-bitwise */
 
-		if (char < 0 && event.detail === 2) { // no char but mouse double click?
-			char = 13; // use CR
-		}
+			char = this.readChar(xTxt, yTxt, 1, 0); // TODO: currently we use pen 1, paper 0
 
-		if (char >= 0 && this.options.onClickKey) { // call click handler (put char in keyboard input buffer)
-			this.options.onClickKey(String.fromCharCode(char));
+			if (char < 0 && event.detail === 2) { // no char but mouse double click?
+				char = 13; // use CR
+			}
+
+			if (char >= 0 && this.options.onClickKey) { // call click handler (put char in keyboard input buffer)
+				this.options.onClickKey(String.fromCharCode(char));
+			}
 		}
 
 		// for graphics coordinates, adapt origin
@@ -504,7 +522,7 @@ export class Canvas {
 			this.move(x, y);
 		}
 		if (Utils.debug > 0) {
-			Utils.console.debug("onCpcCanvasClick: x-xOrig", x, "y-yOrig", y, "char", char, "char", (char !== undefined ? String.fromCharCode(char) : "?"), "detail", event.detail);
+			Utils.console.debug("onCpcCanvasClick: x", pos.x, "y", pos.y, "x - xOrig", x, "y - yOrig", y, "char", char, "char", (char !== undefined ? String.fromCharCode(char) : "?"), "detail", event.detail);
 		}
 	}
 
