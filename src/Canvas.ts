@@ -408,6 +408,21 @@ export class Canvas {
 		}
 	}
 
+	updateColorsAndCanvasImmediately(inkList: number[]): void {
+		if (this.fnCopy2Canvas) { // not available on e.g. IE8
+			const currentInksInSet = this.currentInks[this.inkSet],
+				memorizedInks = currentInksInSet.slice();
+
+			this.currentInks[this.inkSet] = inkList; // temporary inks
+			this.updateColorMap();
+
+			this.fnCopy2Canvas(); // do it immediately
+			this.currentInks[this.inkSet] = memorizedInks.slice();
+			this.updateColorMap();
+			this.needUpdate = true; // we want to restore it with the next update...
+		}
+	}
+
 	updateSpeedInk(): void {
 		const pens = this.modeData.pens;
 

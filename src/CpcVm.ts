@@ -1291,6 +1291,22 @@ export class CpcVm {
 		}
 	}
 
+	// special function to set all inks temporarily; experimental and expensive
+	private updateColorsImmediately(addr: number) {
+		const inkList: number[] = [];
+
+		for (let i = 0; i < 17; i += 1) {
+			/* eslint-disable no-bitwise */
+			const byte = this.peek((addr + i) & 0xffff),
+				color = byte & 0x1f;
+			/* eslint-enable no-bitwise */
+
+			inkList[i] = color;
+		}
+
+		this.canvas.updateColorsAndCanvasImmediately(inkList);
+	}
+
 	call(addr: number, ...args: (string|number)[]): void { // eslint-disable-line complexity
 		// varargs (adr + parameters)
 		addr = this.vmRound2Complement(addr, "CALL");
@@ -1415,6 +1431,14 @@ export class CpcVm {
 			break;
 		case 0xbd1c: // MC Set Mode (ROM &0776) just set mode, depending on number of args
 			this.vmMcSetMode(args.length % 4);
+			break;
+		/*
+		// would be a temporary functionality, will be undo with next interrupt
+		case 0xbd22: // MC Clear Inks (ROM &0786), ink table address in DE (last parameter)
+			break;
+		*/
+		case 0xbd25: // MC Set Inks (ROM &0799), ink table address in DE (last parameter) TTT experimantal
+			this.updateColorsImmediately(args[0] as number);
 			break;
 		case 0xbd3d: // KM Flush (ROM ?; CPC 664/6128)
 			this.clearInput();
