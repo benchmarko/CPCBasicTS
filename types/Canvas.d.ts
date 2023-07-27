@@ -72,6 +72,7 @@ export declare class Canvas {
     private applyCopy2CanvasFunction;
     setScreenOffset(offset: number): void;
     private updateColorMap;
+    updateColorsAndCanvasImmediately(inkList: number[]): void;
     updateSpeedInk(): void;
     setCustomChar(char: number, charData: CharType): void;
     getCharData(char: number): CharType;

@@ -980,6 +980,7 @@ declare module "Canvas" {
         private applyCopy2CanvasFunction;
         setScreenOffset(offset: number): void;
         private updateColorMap;
+        updateColorsAndCanvasImmediately(inkList: number[]): void;
         updateSpeedInk(): void;
         setCustomChar(char: number, charData: CharType): void;
         getCharData(char: number): CharType;
@@ -1529,6 +1530,7 @@ declare module "CpcVm" {
         private vmMcSetMode;
         private vmTxtInverse;
         private vmPutKeyInBuffer;
+        private updateColorsImmediately;
         call(addr: number, ...args: (string | number)[]): void;
         cat(): void;
         chain(name: string, line?: number, first?: number, last?: number): void;

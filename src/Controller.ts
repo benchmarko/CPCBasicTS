@@ -2517,6 +2517,8 @@ export class Controller implements IController {
 		this.variables.setOptions({
 			arrayBounds: arrayBounds
 		});
+		this.vm.vmGoto(0); // reset current line
+		this.vm.vmStop("end", 0, true);
 		this.variables.removeAllVariables(); //TTT
 	}
 

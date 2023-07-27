@@ -9330,6 +9330,17 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
                 }
             }
         };
+        Canvas.prototype.updateColorsAndCanvasImmediately = function (inkList) {
+            if (this.fnCopy2Canvas) { // not available on e.g. IE8
+                var currentInksInSet = this.currentInks[this.inkSet], memorizedInks = currentInksInSet.slice();
+                this.currentInks[this.inkSet] = inkList; // temporary inks
+                this.updateColorMap();
+                this.fnCopy2Canvas(); // do it immediately
+                this.currentInks[this.inkSet] = memorizedInks.slice();
+                this.updateColorMap();
+                this.needUpdate = true; // we want to restore it with the next update...
+            }
+        };
         Canvas.prototype.updateSpeedInk = function () {
             var pens = this.modeData.pens;
             this.speedInkCount -= 1;
@@ -12414,6 +12425,17 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 keyDownHandler();
             }
         };
+        // special function to set all inks temporarily; experimental and expensive
+        CpcVm.prototype.updateColorsImmediately = function (addr) {
+            var inkList = [];
+            for (var i = 0; i < 17; i += 1) {
+                /* eslint-disable no-bitwise */
+                var byte = this.peek((addr + i) & 0xffff), color = byte & 0x1f;
+                /* eslint-enable no-bitwise */
+                inkList[i] = color;
+            }
+            this.canvas.updateColorsAndCanvasImmediately(inkList);
+        };
         CpcVm.prototype.call = function (addr) {
             var args = [];
             for (var _i = 1; _i < arguments.length; _i++) {
@@ -12542,6 +12564,14 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                     break;
                 case 0xbd1c: // MC Set Mode (ROM &0776) just set mode, depending on number of args
                     this.vmMcSetMode(args.length % 4);
+                    break;
+                /*
+                // would be a temporary functionality, will be undo with next interrupt
+                case 0xbd22: // MC Clear Inks (ROM &0786), ink table address in DE (last parameter)
+                    break;
+                */
+                case 0xbd25: // MC Set Inks (ROM &0799), ink table address in DE (last parameter) TTT experimantal
+                    this.updateColorsImmediately(args[0]);
                     break;
                 case 0xbd3d: // KM Flush (ROM ?; CPC 664/6128)
                     this.clearInput();
@@ -17481,6 +17511,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.variables.setOptions({
                 arrayBounds: arrayBounds
             });
+            this.vm.vmGoto(0); // reset current line
+            this.vm.vmStop("end", 0, true);
             this.variables.removeAllVariables(); //TTT
         };
         Controller.prototype.fnImplicitLines = function () {

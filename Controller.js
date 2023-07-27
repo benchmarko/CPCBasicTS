@@ -2015,6 +2015,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.variables.setOptions({
                 arrayBounds: arrayBounds
             });
+            this.vm.vmGoto(0); // reset current line
+            this.vm.vmStop("end", 0, true);
             this.variables.removeAllVariables(); //TTT
         };
         Controller.prototype.fnImplicitLines = function () {

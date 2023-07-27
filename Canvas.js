@@ -225,6 +225,17 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 }
             }
         };
+        Canvas.prototype.updateColorsAndCanvasImmediately = function (inkList) {
+            if (this.fnCopy2Canvas) { // not available on e.g. IE8
+                var currentInksInSet = this.currentInks[this.inkSet], memorizedInks = currentInksInSet.slice();
+                this.currentInks[this.inkSet] = inkList; // temporary inks
+                this.updateColorMap();
+                this.fnCopy2Canvas(); // do it immediately
+                this.currentInks[this.inkSet] = memorizedInks.slice();
+                this.updateColorMap();
+                this.needUpdate = true; // we want to restore it with the next update...
+            }
+        };
         Canvas.prototype.updateSpeedInk = function () {
             var pens = this.modeData.pens;
             this.speedInkCount -= 1;

@@ -22,6 +22,14 @@ body {
 	background-color: LimeGreen
 }
 
+.popoverButton {
+	background-color: LightBlue;
+}
+
+.popoverButton:hover {
+	background-color: CornflowerBlue;
+}
+
 .label {
 	background-color: WhiteSmoke;
 	float: left;
