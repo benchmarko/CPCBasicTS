@@ -95,18 +95,29 @@ class cpcBasic {
 		return config;
 	}
 
+	private static fnDecodeUri(s: string) {
+		const rPlus = /\+/g; // Regex for replacing addition symbol with a space
+		let decoded = "";
+
+		try {
+			decoded = decodeURIComponent(s.replace(rPlus, " "));
+		} catch	(err) {
+			err.message += ": " + s;
+			Utils.console.error(err);
+		}
+		return decoded;
+	}
+
 	// https://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
 	private static fnParseUri(urlQuery: string, config: ConfigType) {
-		const rPlus = /\+/g, // Regex for replacing addition symbol with a space
-			fnDecode = function (s: string) { return decodeURIComponent(s.replace(rPlus, " ")); },
-			rSearch = /([^&=]+)=?([^&]*)/g,
+		const rSearch = /([^&=]+)=?([^&]*)/g,
 			args: string[] = [];
 
 		let match: RegExpExecArray | null;
 
 		while ((match = rSearch.exec(urlQuery)) !== null) {
-			const name = fnDecode(match[1]),
-				value = fnDecode(match[2]);
+			const name = cpcBasic.fnDecodeUri(match[1]),
+				value = cpcBasic.fnDecodeUri(match[2]);
 
 			if (value !== null && config.hasOwnProperty(name)) {
 				args.push(name + "=" + value);

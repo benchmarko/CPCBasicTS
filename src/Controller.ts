@@ -91,7 +91,7 @@ export class Controller implements IController {
 		this.fnWaitInputHandler = this.fnWaitInput.bind(this);
 		this.fnOnEscapeHandler = this.fnOnEscape.bind(this);
 		this.fnDirectInputHandler = this.fnDirectInput.bind(this);
-		this.fnPutKeyInBufferHandler = this.fnPutKeyInBuffer.bind(this);
+		this.fnPutKeyInBufferHandler = this.fnPutKeysInBuffer.bind(this);
 
 		this.model = model;
 		this.view = view;
@@ -2148,8 +2148,10 @@ export class Controller implements IController {
 		return "";
 	}
 
-	private fnPutKeyInBuffer(key: string) {
-		this.keyboard.putKeyInBuffer(key);
+	private fnPutKeysInBuffer(keys: string) {
+		for (let i = 0; i < keys.length; i += 1) {
+			this.keyboard.putKeyInBuffer(keys.charAt(i));
+		}
 
 		const keyDownHandler = this.keyboard.getKeyDownHandler();
 
@@ -2162,12 +2164,7 @@ export class Controller implements IController {
 		let input = this.view.getAreaValue("inp2Text");
 
 		input = input.replace(/\n/g, "\r"); // LF => CR
-		if (!input.endsWith("\r")) {
-			input += "\r";
-		}
-		for (let i = 0; i < input.length; i += 1) {
-			this.fnPutKeyInBuffer(input.charAt(i));
-		}
+		this.fnPutKeysInBuffer(input);
 
 		this.view.setAreaValue("inp2Text", "");
 	}
@@ -2461,7 +2458,7 @@ export class Controller implements IController {
 	}
 
 	// currently not used. Can be called manually: cpcBasic.controller.exportAsBase64(file);
-	static exportAsBase64(storageName: string): string {
+	exportAsBase64(storageName: string): string { // eslint-disable-line class-methods-use-this
 		const storage = Utils.localStorage;
 		let data = storage.getItem(storageName),
 			out = "";
