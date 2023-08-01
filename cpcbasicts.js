@@ -12193,8 +12193,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             }
         };
         CpcVm.prototype.vmNotImplemented = function (name) {
-            if (!this.quiet) {
-                Utils_21.Utils.console.warn("Not implemented:", name);
+            if (Utils_21.Utils.debug > 0) {
+                Utils_21.Utils.console.debug("Not implemented:", name);
             }
         };
         CpcVm.prototype.vmUsingStringFormat = function (format, arg) {
@@ -15547,7 +15547,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.fnWaitInputHandler = this.fnWaitInput.bind(this);
             this.fnOnEscapeHandler = this.fnOnEscape.bind(this);
             this.fnDirectInputHandler = this.fnDirectInput.bind(this);
-            this.fnPutKeyInBufferHandler = this.fnPutKeyInBuffer.bind(this);
+            this.fnPutKeyInBufferHandler = this.fnPutKeysInBuffer.bind(this);
             this.model = model;
             this.view = view;
             this.commonEventHandler = new CommonEventHandler_1.CommonEventHandler(model, view, this);
@@ -17213,8 +17213,10 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             Utils_25.Utils.console.warn("Screenshot not available");
             return "";
         };
-        Controller.prototype.fnPutKeyInBuffer = function (key) {
-            this.keyboard.putKeyInBuffer(key);
+        Controller.prototype.fnPutKeysInBuffer = function (keys) {
+            for (var i = 0; i < keys.length; i += 1) {
+                this.keyboard.putKeyInBuffer(keys.charAt(i));
+            }
             var keyDownHandler = this.keyboard.getKeyDownHandler();
             if (keyDownHandler) {
                 keyDownHandler();
@@ -17223,12 +17225,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.startEnter = function () {
             var input = this.view.getAreaValue("inp2Text");
             input = input.replace(/\n/g, "\r"); // LF => CR
-            if (!input.endsWith("\r")) {
-                input += "\r";
-            }
-            for (var i = 0; i < input.length; i += 1) {
-                this.fnPutKeyInBuffer(input.charAt(i));
-            }
+            this.fnPutKeysInBuffer(input);
             this.view.setAreaValue("inp2Text", "");
         };
         Controller.generateFunction = function (par, functionString) {
@@ -17464,7 +17461,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.startMainLoop();
         };
         // currently not used. Can be called manually: cpcBasic.controller.exportAsBase64(file);
-        Controller.exportAsBase64 = function (storageName) {
+        Controller.prototype.exportAsBase64 = function (storageName) {
             var storage = Utils_25.Utils.localStorage;
             var data = storage.getItem(storageName), out = "";
             if (data !== null) {
@@ -17619,13 +17616,24 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             }
             return config;
         };
+        cpcBasic.fnDecodeUri = function (s) {
+            var rPlus = /\+/g; // Regex for replacing addition symbol with a space
+            var decoded = "";
+            try {
+                decoded = decodeURIComponent(s.replace(rPlus, " "));
+            }
+            catch (err) {
+                err.message += ": " + s;
+                Utils_26.Utils.console.error(err);
+            }
+            return decoded;
+        };
         // https://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
         cpcBasic.fnParseUri = function (urlQuery, config) {
-            var rPlus = /\+/g, // Regex for replacing addition symbol with a space
-            fnDecode = function (s) { return decodeURIComponent(s.replace(rPlus, " ")); }, rSearch = /([^&=]+)=?([^&]*)/g, args = [];
+            var rSearch = /([^&=]+)=?([^&]*)/g, args = [];
             var match;
             while ((match = rSearch.exec(urlQuery)) !== null) {
-                var name_17 = fnDecode(match[1]), value = fnDecode(match[2]);
+                var name_17 = cpcBasic.fnDecodeUri(match[1]), value = cpcBasic.fnDecodeUri(match[2]);
                 if (value !== null && config.hasOwnProperty(name_17)) {
                     args.push(name_17 + "=" + value);
                 }

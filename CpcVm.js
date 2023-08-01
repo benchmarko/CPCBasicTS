@@ -546,8 +546,8 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             }
         };
         CpcVm.prototype.vmNotImplemented = function (name) {
-            if (!this.quiet) {
-                Utils_1.Utils.console.warn("Not implemented:", name);
+            if (Utils_1.Utils.debug > 0) {
+                Utils_1.Utils.console.debug("Not implemented:", name);
             }
         };
         CpcVm.prototype.vmUsingStringFormat = function (format, arg) {

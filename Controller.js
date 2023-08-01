@@ -51,7 +51,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.fnWaitInputHandler = this.fnWaitInput.bind(this);
             this.fnOnEscapeHandler = this.fnOnEscape.bind(this);
             this.fnDirectInputHandler = this.fnDirectInput.bind(this);
-            this.fnPutKeyInBufferHandler = this.fnPutKeyInBuffer.bind(this);
+            this.fnPutKeyInBufferHandler = this.fnPutKeysInBuffer.bind(this);
             this.model = model;
             this.view = view;
             this.commonEventHandler = new CommonEventHandler_1.CommonEventHandler(model, view, this);
@@ -1717,8 +1717,10 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             Utils_1.Utils.console.warn("Screenshot not available");
             return "";
         };
-        Controller.prototype.fnPutKeyInBuffer = function (key) {
-            this.keyboard.putKeyInBuffer(key);
+        Controller.prototype.fnPutKeysInBuffer = function (keys) {
+            for (var i = 0; i < keys.length; i += 1) {
+                this.keyboard.putKeyInBuffer(keys.charAt(i));
+            }
             var keyDownHandler = this.keyboard.getKeyDownHandler();
             if (keyDownHandler) {
                 keyDownHandler();
@@ -1727,12 +1729,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         Controller.prototype.startEnter = function () {
             var input = this.view.getAreaValue("inp2Text");
             input = input.replace(/\n/g, "\r"); // LF => CR
-            if (!input.endsWith("\r")) {
-                input += "\r";
-            }
-            for (var i = 0; i < input.length; i += 1) {
-                this.fnPutKeyInBuffer(input.charAt(i));
-            }
+            this.fnPutKeysInBuffer(input);
             this.view.setAreaValue("inp2Text", "");
         };
         Controller.generateFunction = function (par, functionString) {
@@ -1968,7 +1965,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.startMainLoop();
         };
         // currently not used. Can be called manually: cpcBasic.controller.exportAsBase64(file);
-        Controller.exportAsBase64 = function (storageName) {
+        Controller.prototype.exportAsBase64 = function (storageName) {
             var storage = Utils_1.Utils.localStorage;
             var data = storage.getItem(storageName), out = "";
             if (data !== null) {

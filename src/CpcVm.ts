@@ -997,9 +997,9 @@ export class CpcVm {
 		}
 	}
 
-	vmNotImplemented(name: string): void {
-		if (!this.quiet) {
-			Utils.console.warn("Not implemented:", name);
+	vmNotImplemented(name: string): void { // eslint-disable-line class-methods-use-this
+		if (Utils.debug > 0) {
+			Utils.console.debug("Not implemented:", name);
 		}
 	}
 

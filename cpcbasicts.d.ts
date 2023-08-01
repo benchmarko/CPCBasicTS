@@ -1930,7 +1930,7 @@ declare module "Controller" {
         startContinue(): void;
         startReset(): void;
         startScreenshot(): string;
-        private fnPutKeyInBuffer;
+        private fnPutKeysInBuffer;
         startEnter(): void;
         private static generateFunction;
         changeVariable(): void;
@@ -1954,7 +1954,7 @@ declare module "Controller" {
         private createFnDatabaseError;
         onDatabaseSelectChange(): void;
         onExampleSelectChange(): void;
-        static exportAsBase64(storageName: string): string;
+        exportAsBase64(storageName: string): string;
         onCpcCanvasClick(event: MouseEvent): void;
         onWindowClick(event: Event): void;
         onTextTextClick(event: MouseEvent): void;
@@ -1991,6 +1991,7 @@ declare module "cpcbasic" {
         static addIndex(dir: string, input: string | (() => void)): void;
         static addItem(key: string, input: string | (() => void)): string;
         private static fnParseArgs;
+        private static fnDecodeUri;
         private static fnParseUri;
         private static fnMapObjectProperties;
         private static createDebugUtilsConsole;

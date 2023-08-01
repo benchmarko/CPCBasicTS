@@ -50,13 +50,24 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
             }
             return config;
         };
+        cpcBasic.fnDecodeUri = function (s) {
+            var rPlus = /\+/g; // Regex for replacing addition symbol with a space
+            var decoded = "";
+            try {
+                decoded = decodeURIComponent(s.replace(rPlus, " "));
+            }
+            catch (err) {
+                err.message += ": " + s;
+                Utils_1.Utils.console.error(err);
+            }
+            return decoded;
+        };
         // https://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
         cpcBasic.fnParseUri = function (urlQuery, config) {
-            var rPlus = /\+/g, // Regex for replacing addition symbol with a space
-            fnDecode = function (s) { return decodeURIComponent(s.replace(rPlus, " ")); }, rSearch = /([^&=]+)=?([^&]*)/g, args = [];
+            var rSearch = /([^&=]+)=?([^&]*)/g, args = [];
             var match;
             while ((match = rSearch.exec(urlQuery)) !== null) {
-                var name_2 = fnDecode(match[1]), value = fnDecode(match[2]);
+                var name_2 = cpcBasic.fnDecodeUri(match[1]), value = cpcBasic.fnDecodeUri(match[2]);
                 if (value !== null && config.hasOwnProperty(name_2)) {
                     args.push(name_2 + "=" + value);
                 }

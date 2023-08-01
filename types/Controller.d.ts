@@ -122,7 +122,7 @@ export declare class Controller implements IController {
     startContinue(): void;
     startReset(): void;
     startScreenshot(): string;
-    private fnPutKeyInBuffer;
+    private fnPutKeysInBuffer;
     startEnter(): void;
     private static generateFunction;
     changeVariable(): void;
@@ -146,7 +146,7 @@ export declare class Controller implements IController {
     private createFnDatabaseError;
     onDatabaseSelectChange(): void;
     onExampleSelectChange(): void;
-    static exportAsBase64(storageName: string): string;
+    exportAsBase64(storageName: string): string;
     onCpcCanvasClick(event: MouseEvent): void;
     onWindowClick(event: Event): void;
     onTextTextClick(event: MouseEvent): void;
