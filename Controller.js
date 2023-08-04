@@ -198,19 +198,55 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             this.view.setSelectOptions(select, items);
         };
-        Controller.prototype.setExampleSelectOptions = function () {
-            var maxTitleLength = 160, maxTextLength = 60, // (32 visible?)
-            select = "exampleSelect", items = [], example = this.model.getProperty("example"), allExamples = this.model.getAllExamples();
-            var exampleSelected = false;
+        Controller.getPathFromExample = function (example) {
+            var index = example.lastIndexOf("/");
+            var path = "";
+            if (index >= 0) {
+                path = example.substring(0, index);
+            }
+            return path;
+        };
+        Controller.getNameFromExample = function (example) {
+            var index = example.lastIndexOf("/");
+            var name = example;
+            if (index >= 0) {
+                name = example.substring(index + 1);
+            }
+            return name;
+        };
+        Controller.prototype.setDirectorySelectOptions = function () {
+            var select = "directorySelect", items = [], allExamples = this.model.getAllExamples(), examplePath = Controller.getPathFromExample(this.model.getProperty("example")), directorySeen = {};
             for (var key in allExamples) {
                 if (allExamples.hasOwnProperty(key)) {
-                    var exampleEntry = allExamples[key];
+                    var exampleEntry = allExamples[key], value = Controller.getPathFromExample(exampleEntry.key);
+                    if (!directorySeen[value]) {
+                        var item = {
+                            value: value,
+                            text: value,
+                            title: value,
+                            selected: value === examplePath
+                        };
+                        items.push(item);
+                        directorySeen[value] = true;
+                    }
+                }
+            }
+            this.view.setSelectOptions(select, items);
+        };
+        Controller.prototype.setExampleSelectOptions = function () {
+            var maxTitleLength = 160, maxTextLength = 60, // (32 visible?)
+            select = "exampleSelect", items = [], exampleName = Controller.getNameFromExample(this.model.getProperty("example")), allExamples = this.model.getAllExamples(), directoryName = this.view.getSelectValue("directorySelect");
+            //this.setDirectorySelectOptions(); //TTT
+            var exampleSelected = false;
+            for (var key in allExamples) {
+                if (allExamples.hasOwnProperty(key) && (Controller.getPathFromExample(key) === directoryName)) {
+                    var exampleEntry = allExamples[key], exampleName2 = Controller.getNameFromExample(exampleEntry.key);
                     if (exampleEntry.meta !== "D") { // skip data files
-                        var title = (exampleEntry.key + ": " + exampleEntry.title).substring(0, maxTitleLength), item = {
-                            value: exampleEntry.key,
+                        var title = (exampleName2 + ": " + exampleEntry.title).substring(0, maxTitleLength), item = {
+                            value: exampleName2,
                             title: title,
                             text: title.substring(0, maxTextLength),
-                            selected: exampleEntry.key === example
+                            selected: exampleName2 === exampleName
                         };
                         if (item.selected) {
                             exampleSelected = true;
@@ -287,7 +323,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 }
             }
             if (database === "storage") {
-                this.setExampleSelectOptions();
+                //this.setExampleSelectOptions(); // TTT
+                this.setDirectorySelectOptions();
             }
             else {
                 this.model.setProperty("database", database); // restore database
@@ -647,41 +684,52 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         Controller.prototype.fnPrintDirectoryEntries = function (stream, dir, sort) {
             // first, format names
             for (var i = 0; i < dir.length; i += 1) {
-                var key = dir[i], parts = key.split(".");
+                var parts = dir[i].split(".");
+                dir[i] = parts[0].padEnd(8, " ") + "." + (parts.length >= 2 ? parts[1] : "").padEnd(3, " ");
+                /*
                 if (parts.length === 2) {
                     dir[i] = parts[0].padEnd(8, " ") + "." + parts[1].padEnd(3, " ");
                 }
+                */
             }
             if (sort) {
                 dir.sort();
             }
-            this.vm.print(stream, "\r\n");
+            this.vm.print(stream, "\r\nDrive A: user  0\r\n\r\n");
             for (var i = 0; i < dir.length; i += 1) {
                 var key = dir[i] + "  ";
                 this.vm.print(stream, key);
             }
-            this.vm.print(stream, "\r\n");
+            this.vm.print(stream, "\r\n\r\n999K free\r\n\r\n");
         };
         Controller.prototype.fnFileCat = function (paras) {
-            var stream = paras.stream, dir = Controller.fnGetStorageDirectoryEntries();
-            this.fnPrintDirectoryEntries(stream, dir, true);
+            var stream = paras.stream, dirList = Controller.fnGetStorageDirectoryEntries();
+            this.fnPrintDirectoryEntries(stream, dirList, true);
             // currently only from localstorage
             this.vm.vmStop("", 0, true);
         };
         Controller.prototype.fnFileDir = function (paras) {
-            var stream = paras.stream, example = this.model.getProperty("example"), // if we have a fileMask, include also example names from same directory
-            lastSlash = example.lastIndexOf("/");
-            var fileMask = paras.fileMask ? Controller.fnLocalStorageName(paras.fileMask) : "", dir = Controller.fnGetStorageDirectoryEntries(fileMask), path = "";
+            var stream = paras.stream, example = this.model.getProperty("example"), lastSlash = example.lastIndexOf("/");
+            var fileMask = paras.fileMask ? Controller.fnLocalStorageName(paras.fileMask) : "";
+            var dirList = Controller.fnGetStorageDirectoryEntries(fileMask);
+            var path = "";
             if (lastSlash >= 0) {
                 path = example.substring(0, lastSlash) + "/";
                 fileMask = path + (fileMask ? fileMask : "*.*"); // only in same directory
             }
-            var dir2 = this.fnGetExampleDirectoryEntries(fileMask); // also from examples
-            for (var i = 0; i < dir2.length; i += 1) {
-                dir2[i] = dir2[i].substring(path.length); // remove preceding path including "/"
+            var fileExists = {};
+            for (var i = 0; i < dirList.length; i += 1) {
+                fileExists[dirList[i]] = true;
             }
-            dir = dir2.concat(dir); // combine
-            this.fnPrintDirectoryEntries(stream, dir, false);
+            var dirListEx = this.fnGetExampleDirectoryEntries(fileMask); // also from examples
+            for (var i = 0; i < dirListEx.length; i += 1) {
+                var file = dirListEx[i].substring(path.length); // remove preceding path including "/"
+                if (!fileExists[file]) { // ignore duplicates
+                    fileExists[file] = true;
+                    dirList.push(file);
+                }
+            }
+            this.fnPrintDirectoryEntries(stream, dirList, false);
             this.vm.vmStop("", 0, true);
         };
         Controller.prototype.fnFileEra = function (paras) {
@@ -1900,22 +1948,25 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     _this.model.setProperty("database", selectedName);
                 }
                 Utils_1.Utils.console.log("fnDatabaseLoaded: database loaded: " + key + ": " + url);
-                _this.setExampleSelectOptions();
-                _this.onExampleSelectChange();
+                //this.setExampleSelectOptions();
+                //this.onExampleSelectChange();
+                _this.setDirectorySelectOptions();
+                _this.onDirectorySelectChange();
             };
         };
         Controller.prototype.createFnDatabaseError = function (url) {
             var _this = this;
             return function (_sFullUrl, key) {
                 Utils_1.Utils.console.error("fnDatabaseError: database error: " + key + ": " + url);
-                _this.setExampleSelectOptions();
-                _this.onExampleSelectChange();
+                //this.setExampleSelectOptions();
+                //this.onExampleSelectChange();
+                _this.setDirectorySelectOptions();
+                _this.onDirectorySelectChange();
                 _this.setInputText("");
                 _this.view.setAreaValue("resultText", "Cannot load database: " + key);
             };
         };
         Controller.prototype.onDatabaseSelectChange = function () {
-            var url;
             var databaseName = this.view.getSelectValue("databaseSelect");
             this.model.setProperty("database", databaseName);
             this.view.setSelectTitleFromSelectedOption("databaseSelect");
@@ -1929,21 +1980,31 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 database.loaded = true;
             }
             if (database.loaded) {
-                this.setExampleSelectOptions();
-                this.onExampleSelectChange();
+                this.setDirectorySelectOptions();
+                this.onDirectorySelectChange();
+                //this.setExampleSelectOptions();
+                //this.onExampleSelectChange();
             }
             else {
                 this.setInputText("#loading database " + databaseName + "...");
-                var exampleIndex = this.model.getProperty("exampleIndex");
-                url = database.src + "/" + exampleIndex;
+                var exampleIndex = this.model.getProperty("exampleIndex"), url = database.src + "/" + exampleIndex;
                 Utils_1.Utils.loadScript(url, this.createFnDatabaseLoaded(url), this.createFnDatabaseError(url), databaseName);
             }
         };
+        //TODO
+        Controller.prototype.onDirectorySelectChange = function () {
+            this.setExampleSelectOptions();
+            this.onExampleSelectChange();
+        };
         Controller.prototype.onExampleSelectChange = function () {
-            var vm = this.vm, inFile = vm.vmGetInFileObject(), dataBaseName = this.model.getProperty("database");
+            var vm = this.vm, inFile = vm.vmGetInFileObject(), dataBaseName = this.model.getProperty("database"), directoryName = this.view.getSelectValue("directorySelect");
+            //directoryName = this.model.getProperty<string>("database");
             vm.closein();
             inFile.open = true;
             var exampleName = this.view.getSelectValue("exampleSelect");
+            if (directoryName) {
+                exampleName = directoryName + "/" + exampleName;
+            }
             var exampleEntry = this.model.getExample(exampleName);
             inFile.command = "run";
             if (exampleEntry && exampleEntry.meta) { // TTT TODO: this is just a workaround, meta is in input now; should change command after loading!

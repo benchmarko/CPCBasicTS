@@ -210,6 +210,10 @@ export class CommonEventHandler implements EventListenerObject {
 		this.controller.onDatabaseSelectChange();
 	}
 
+	onDirectorySelectChange(): void {
+		this.controller.onDirectorySelectChange();
+	}
+
 	onExampleSelectChange(): void {
 		this.controller.onExampleSelectChange();
 	}
@@ -341,6 +345,7 @@ export class CommonEventHandler implements EventListenerObject {
 		onOutputTextChange: this.onOutputTextChange,
 		onReloadButtonClick: this.onReloadButtonClick,
 		onDatabaseSelectChange: this.onDatabaseSelectChange,
+		onDirectorySelectChange: this.onDirectorySelectChange,
 		onExampleSelectChange: this.onExampleSelectChange,
 		onVarSelectChange: this.onVarSelectChange,
 		onKbdLayoutSelectChange: this.onKbdLayoutSelectChange,

@@ -43,6 +43,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 onOutputTextChange: this.onOutputTextChange,
                 onReloadButtonClick: this.onReloadButtonClick,
                 onDatabaseSelectChange: this.onDatabaseSelectChange,
+                onDirectorySelectChange: this.onDirectorySelectChange,
                 onExampleSelectChange: this.onExampleSelectChange,
                 onVarSelectChange: this.onVarSelectChange,
                 onKbdLayoutSelectChange: this.onKbdLayoutSelectChange,
@@ -214,6 +215,9 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         };
         CommonEventHandler.prototype.onDatabaseSelectChange = function () {
             this.controller.onDatabaseSelectChange();
+        };
+        CommonEventHandler.prototype.onDirectorySelectChange = function () {
+            this.controller.onDirectorySelectChange();
         };
         CommonEventHandler.prototype.onExampleSelectChange = function () {
             this.controller.onExampleSelectChange();

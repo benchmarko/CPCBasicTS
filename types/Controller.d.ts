@@ -42,6 +42,9 @@ export declare class Controller implements IController {
     addIndex(dir: string, input: string): void;
     addItem(key: string, input: string): string;
     private setDatabaseSelectOptions;
+    private static getPathFromExample;
+    private static getNameFromExample;
+    private setDirectorySelectOptions;
     setExampleSelectOptions(): void;
     private setVarSelectOptions;
     private updateStorageDatabase;
@@ -145,6 +148,7 @@ export declare class Controller implements IController {
     private createFnDatabaseLoaded;
     private createFnDatabaseError;
     onDatabaseSelectChange(): void;
+    onDirectorySelectChange(): void;
     onExampleSelectChange(): void;
     exportAsBase64(storageName: string): string;
     onCpcCanvasClick(event: MouseEvent): void;

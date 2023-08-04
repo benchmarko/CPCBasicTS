@@ -1847,7 +1847,7 @@ const allTests: AllTestsType = {
 	window: {
 		"0,2,4,3,5": '{"_key":"win0","left":1,"right":3,"top":2,"bottom":4}',
 		"0,1.4,1.4,1.4,1.2": '{"_key":"win0","right":0,"bottom":0}',
-		"7,255.2,255,255,255": '{"_key":"win7","left":254,"right":254,"top":254,"bottom":254}',
+		"7,255.2,255,255,255": '{"_key":"win7","left":39,"top":24}',
 		"": 'CpcVm: Type mismatch in 0: WINDOW undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 		'""': 'CpcVm: Type mismatch in 0: WINDOW  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 		"-1,1,1,1,1": 'CpcVm: Improper argument in 0: WINDOW -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',

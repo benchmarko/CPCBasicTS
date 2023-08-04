@@ -436,6 +436,7 @@ export declare class CpcVm {
     vpos(stream: number): number;
     wait(port: number, mask: number, inv?: number): void;
     width(width: number): void;
+    private static forceInRange;
     window(stream: number, left: number, right: number, top: number, bottom: number): void;
     windowSwap(stream1: number, stream2?: number): void;
     write(stream: number, ...args: (string | number)[]): void;

@@ -166,6 +166,7 @@ class cpcBasic {
 		lexer: cpcBasic.lexer,
 		parser: cpcBasic.parser,
 		trace: false,
+		quiet: true,
 		rsx: cpcBasic.rsx
 	})
 

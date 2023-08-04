@@ -183,6 +183,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
             lexer: cpcBasic.lexer,
             parser: cpcBasic.parser,
             trace: false,
+            quiet: true,
             rsx: cpcBasic.rsx
         });
         cpcBasic.codeGeneratorToken = new CodeGeneratorToken_1.CodeGeneratorToken({

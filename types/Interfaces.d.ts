@@ -24,6 +24,7 @@ export interface IController {
     setSoundActive: () => void;
     changeVariable: () => void;
     onExampleSelectChange: () => void;
+    onDirectorySelectChange: () => void;
     onDatabaseSelectChange: () => void;
     onCpcCanvasClick: (event: MouseEvent) => void;
     onWindowClick: (event: Event) => void;

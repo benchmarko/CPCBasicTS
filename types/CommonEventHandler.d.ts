@@ -42,6 +42,7 @@ export declare class CommonEventHandler implements EventListenerObject {
     private static encodeUriParam;
     private onReloadButtonClick;
     onDatabaseSelectChange(): void;
+    onDirectorySelectChange(): void;
     onExampleSelectChange(): void;
     onVarSelectChange(): void;
     onKbdLayoutSelectChange(): void;

@@ -20,7 +20,7 @@ class cpcBasic {
 		databaseDirs: "examples", // example base directories (comma separated)
 		database: "examples", // examples, apps, saved
 		example: "cpcbasic",
-		exampleIndex: "0index.js", // example index for every exampleDir
+		exampleIndex: "0index.js", // example index for every databaseDir
 		implicitLines: false, // allow implicit line numbers
 		input: "", // keyboard input when starting the app
 		kbdLayout: "alphanum", // alphanum, alpha, num

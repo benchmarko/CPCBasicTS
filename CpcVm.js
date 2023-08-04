@@ -609,12 +609,15 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         CpcVm.prototype.vmAdaptFilename = function (name, err) {
             this.vmAssertString(name, err);
             name = name.replace(/ /g, ""); // remove spaces
-            if (name.indexOf("!") === 0) {
+            if (name[0] === "!") {
                 name = name.substring(1); // remove preceding "!"
             }
             var index = name.indexOf(":");
             if (index >= 0) {
                 name = name.substring(index + 1); // remove user and drive letter including ":"
+            }
+            if (name.endsWith(".")) {
+                name = name.substring(0, name.length - 1); // remove training "."
             }
             name = name.toLowerCase();
             if (!name) {
@@ -3207,17 +3210,27 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             var win = this.windowDataList[8];
             win.right = win.left + width;
         };
+        CpcVm.forceInRange = function (num, min, max) {
+            if (num < min) {
+                num = min;
+            }
+            else if (num > max) {
+                num = max;
+            }
+            return num;
+        };
         CpcVm.prototype.window = function (stream, left, right, top, bottom) {
             stream = this.vmInRangeRound(stream, 0, 7, "WINDOW");
             left = this.vmInRangeRound(left, 1, 255, "WINDOW");
             right = this.vmInRangeRound(right, 1, 255, "WINDOW");
             top = this.vmInRangeRound(top, 1, 255, "WINDOW");
             bottom = this.vmInRangeRound(bottom, 1, 255, "WINDOW");
-            var win = this.windowDataList[stream];
-            win.left = Math.min(left, right) - 1;
-            win.right = Math.max(left, right) - 1;
-            win.top = Math.min(top, bottom) - 1;
-            win.bottom = Math.max(top, bottom) - 1;
+            var win = this.windowDataList[stream], winData = CpcVm.winData[this.modeValue];
+            // make left and top the smaller; make sure the window fits on the screen
+            win.left = CpcVm.forceInRange(Math.min(left, right) - 1, winData.left, winData.right);
+            win.right = CpcVm.forceInRange(Math.max(left, right) - 1, winData.left, winData.right);
+            win.top = CpcVm.forceInRange(Math.min(top, bottom) - 1, winData.top, winData.bottom);
+            win.bottom = CpcVm.forceInRange(Math.max(top, bottom) - 1, winData.top, winData.bottom);
             win.pos = 0;
             win.vpos = 0;
         };

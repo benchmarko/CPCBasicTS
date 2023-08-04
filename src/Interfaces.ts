@@ -38,6 +38,7 @@ export interface IController {
 
     changeVariable: () => void
     onExampleSelectChange: () => void
+    onDirectorySelectChange: () => void
     onDatabaseSelectChange: () => void
 
     onCpcCanvasClick: (event: MouseEvent) => void

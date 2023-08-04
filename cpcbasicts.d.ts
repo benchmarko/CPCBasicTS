@@ -73,6 +73,7 @@ declare module "Interfaces" {
         setSoundActive: () => void;
         changeVariable: () => void;
         onExampleSelectChange: () => void;
+        onDirectorySelectChange: () => void;
         onDatabaseSelectChange: () => void;
         onCpcCanvasClick: (event: MouseEvent) => void;
         onWindowClick: (event: Event) => void;
@@ -1135,6 +1136,7 @@ declare module "CommonEventHandler" {
         private static encodeUriParam;
         private onReloadButtonClick;
         onDatabaseSelectChange(): void;
+        onDirectorySelectChange(): void;
         onExampleSelectChange(): void;
         onVarSelectChange(): void;
         onKbdLayoutSelectChange(): void;
@@ -1717,6 +1719,7 @@ declare module "CpcVm" {
         vpos(stream: number): number;
         wait(port: number, mask: number, inv?: number): void;
         width(width: number): void;
+        private static forceInRange;
         window(stream: number, left: number, right: number, top: number, bottom: number): void;
         windowSwap(stream1: number, stream2?: number): void;
         write(stream: number, ...args: (string | number)[]): void;
@@ -1850,6 +1853,9 @@ declare module "Controller" {
         addIndex(dir: string, input: string): void;
         addItem(key: string, input: string): string;
         private setDatabaseSelectOptions;
+        private static getPathFromExample;
+        private static getNameFromExample;
+        private setDirectorySelectOptions;
         setExampleSelectOptions(): void;
         private setVarSelectOptions;
         private updateStorageDatabase;
@@ -1953,6 +1959,7 @@ declare module "Controller" {
         private createFnDatabaseLoaded;
         private createFnDatabaseError;
         onDatabaseSelectChange(): void;
+        onDirectorySelectChange(): void;
         onExampleSelectChange(): void;
         exportAsBase64(storageName: string): string;
         onCpcCanvasClick(event: MouseEvent): void;
