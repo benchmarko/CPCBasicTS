@@ -139,7 +139,7 @@ if (!Array.prototype.filter) { // IE8
 			}
 		}
 		return arr;
-	}
+	};
 }
 
 if (!Array.prototype.map) { // IE8

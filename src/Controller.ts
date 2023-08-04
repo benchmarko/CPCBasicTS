@@ -285,27 +285,78 @@ export class Controller implements IController {
 		this.view.setSelectOptions(select, items);
 	}
 
+	private static getPathFromExample(example: string) {
+		const index = example.lastIndexOf("/");
+		let path = "";
+
+		if (index >= 0) {
+			path = example.substring(0, index);
+		}
+		return path;
+	}
+
+	private static getNameFromExample(example: string) {
+		const index = example.lastIndexOf("/");
+		let name = example;
+
+		if (index >= 0) {
+			name = example.substring(index + 1);
+		}
+		return name;
+	}
+
+	private setDirectorySelectOptions() {
+		const select = "directorySelect",
+			items: SelectOptionElement[] = [],
+			allExamples = this.model.getAllExamples(),
+			examplePath = Controller.getPathFromExample(this.model.getProperty<string>("example")),
+			directorySeen: Record<string, boolean> = {};
+
+		for (const key in allExamples) {
+			if (allExamples.hasOwnProperty(key)) {
+				const exampleEntry = allExamples[key],
+					value = Controller.getPathFromExample(exampleEntry.key);
+
+				if (!directorySeen[value]) {
+					const item: SelectOptionElement = {
+						value: value,
+						text: value,
+						title: value,
+						selected: value === examplePath
+					};
+
+					items.push(item);
+					directorySeen[value] = true;
+				}
+			}
+		}
+		this.view.setSelectOptions(select, items);
+	}
+
 	setExampleSelectOptions(): void {
 		const maxTitleLength = 160,
 			maxTextLength = 60, // (32 visible?)
 			select = "exampleSelect",
 			items: SelectOptionElement[] = [],
-			example = this.model.getProperty<string>("example"),
-			allExamples = this.model.getAllExamples();
+			exampleName = Controller.getNameFromExample(this.model.getProperty<string>("example")),
+			allExamples = this.model.getAllExamples(),
+			directoryName = this.view.getSelectValue("directorySelect");
 
+		//this.setDirectorySelectOptions(); //TTT
 		let exampleSelected = false;
 
 		for (const key in allExamples) {
-			if (allExamples.hasOwnProperty(key)) {
-				const exampleEntry = allExamples[key];
+			if (allExamples.hasOwnProperty(key) && (Controller.getPathFromExample(key) === directoryName)) {
+				const exampleEntry = allExamples[key],
+					exampleName2 = Controller.getNameFromExample(exampleEntry.key);
 
 				if (exampleEntry.meta !== "D") { // skip data files
-					const title = (exampleEntry.key + ": " + exampleEntry.title).substring(0, maxTitleLength),
+					const title = (exampleName2 + ": " + exampleEntry.title).substring(0, maxTitleLength),
 						item: SelectOptionElement = {
-							value: exampleEntry.key,
+							value: exampleName2,
 							title: title,
 							text: title.substring(0, maxTextLength),
-							selected: exampleEntry.key === example
+							selected: exampleName2 === exampleName
 						};
 
 					if (item.selected) {
@@ -403,7 +454,8 @@ export class Controller implements IController {
 		}
 
 		if (database === "storage") {
-			this.setExampleSelectOptions();
+			//this.setExampleSelectOptions(); // TTT
+			this.setDirectorySelectOptions();
 		} else {
 			this.model.setProperty("database", database); // restore database
 		}
@@ -817,32 +869,34 @@ export class Controller implements IController {
 	private fnPrintDirectoryEntries(stream: number, dir: string[], sort: boolean) {
 		// first, format names
 		for (let i = 0; i < dir.length; i += 1) {
-			const key = dir[i],
-				parts = key.split(".");
+			const parts = dir[i].split(".");
 
+			dir[i] = parts[0].padEnd(8, " ") + "." + (parts.length >= 2 ? parts[1] : "").padEnd(3, " ");
+			/*
 			if (parts.length === 2) {
 				dir[i] = parts[0].padEnd(8, " ") + "." + parts[1].padEnd(3, " ");
 			}
+			*/
 		}
 
 		if (sort) {
 			dir.sort();
 		}
 
-		this.vm.print(stream, "\r\n");
+		this.vm.print(stream, "\r\nDrive A: user  0\r\n\r\n");
 		for (let i = 0; i < dir.length; i += 1) {
 			const key = dir[i] + "  ";
 
 			this.vm.print(stream, key);
 		}
-		this.vm.print(stream, "\r\n");
+		this.vm.print(stream, "\r\n\r\n999K free\r\n\r\n");
 	}
 
 	private fnFileCat(paras: VmFileParas): void {
 		const stream = paras.stream,
-			dir = Controller.fnGetStorageDirectoryEntries();
+			dirList = Controller.fnGetStorageDirectoryEntries();
 
-		this.fnPrintDirectoryEntries(stream, dir, true);
+		this.fnPrintDirectoryEntries(stream, dirList, true);
 
 		// currently only from localstorage
 
@@ -851,26 +905,35 @@ export class Controller implements IController {
 
 	private fnFileDir(paras: VmFileParas): void {
 		const stream = paras.stream,
-			example = this.model.getProperty<string>("example"), // if we have a fileMask, include also example names from same directory
+			example = this.model.getProperty<string>("example"),
 			lastSlash = example.lastIndexOf("/");
 
-		let fileMask = paras.fileMask ? Controller.fnLocalStorageName(paras.fileMask) : "",
-			dir = Controller.fnGetStorageDirectoryEntries(fileMask),
-			path = "";
+		let fileMask = paras.fileMask ? Controller.fnLocalStorageName(paras.fileMask) : "";
+		const dirList = Controller.fnGetStorageDirectoryEntries(fileMask);
+		let	path = "";
 
 		if (lastSlash >= 0) {
 			path = example.substring(0, lastSlash) + "/";
 			fileMask = path + (fileMask ? fileMask : "*.*"); // only in same directory
 		}
 
-		const dir2 = this.fnGetExampleDirectoryEntries(fileMask); // also from examples
+		const fileExists: Record<string, boolean> = {};
 
-		for (let i = 0; i < dir2.length; i += 1) {
-			dir2[i] = dir2[i].substring(path.length); // remove preceding path including "/"
+		for (let i = 0; i < dirList.length; i += 1) {
+			fileExists[dirList[i]] = true;
 		}
-		dir = dir2.concat(dir); // combine
 
-		this.fnPrintDirectoryEntries(stream, dir, false);
+		const dirListEx = this.fnGetExampleDirectoryEntries(fileMask); // also from examples
+
+		for (let i = 0; i < dirListEx.length; i += 1) {
+			const file = dirListEx[i].substring(path.length); // remove preceding path including "/"
+
+			if (!fileExists[file]) { // ignore duplicates
+				fileExists[file] = true;
+				dirList.push(file);
+			}
+		}
+		this.fnPrintDirectoryEntries(stream, dirList, false);
 		this.vm.vmStop("", 0, true);
 	}
 
@@ -2377,23 +2440,26 @@ export class Controller implements IController {
 			}
 
 			Utils.console.log("fnDatabaseLoaded: database loaded: " + key + ": " + url);
-			this.setExampleSelectOptions();
-			this.onExampleSelectChange();
+			//this.setExampleSelectOptions();
+			//this.onExampleSelectChange();
+			this.setDirectorySelectOptions();
+			this.onDirectorySelectChange();
 		};
 	}
 
 	private createFnDatabaseError(url: string) {
 		return (_sFullUrl: string, key: string) => {
 			Utils.console.error("fnDatabaseError: database error: " + key + ": " + url);
-			this.setExampleSelectOptions();
-			this.onExampleSelectChange();
+			//this.setExampleSelectOptions();
+			//this.onExampleSelectChange();
+			this.setDirectorySelectOptions();
+			this.onDirectorySelectChange();
 			this.setInputText("");
 			this.view.setAreaValue("resultText", "Cannot load database: " + key);
 		};
 	}
 
 	onDatabaseSelectChange(): void {
-		let url: string;
 		const databaseName = this.view.getSelectValue("databaseSelect");
 
 		this.model.setProperty("database", databaseName);
@@ -2412,27 +2478,42 @@ export class Controller implements IController {
 		}
 
 		if (database.loaded) {
-			this.setExampleSelectOptions();
-			this.onExampleSelectChange();
+			this.setDirectorySelectOptions();
+			this.onDirectorySelectChange();
+			//this.setExampleSelectOptions();
+			//this.onExampleSelectChange();
 		} else {
 			this.setInputText("#loading database " + databaseName + "...");
-			const exampleIndex = this.model.getProperty<string>("exampleIndex");
+			const exampleIndex = this.model.getProperty<string>("exampleIndex"),
+				url = database.src + "/" + exampleIndex;
 
-			url = database.src + "/" + exampleIndex;
 			Utils.loadScript(url, this.createFnDatabaseLoaded(url), this.createFnDatabaseError(url), databaseName);
 		}
+	}
+
+	//TODO
+	onDirectorySelectChange(): void {
+		this.setExampleSelectOptions();
+		this.onExampleSelectChange();
 	}
 
 	onExampleSelectChange(): void {
 		const vm = this.vm,
 			inFile = vm.vmGetInFileObject(),
-			dataBaseName = this.model.getProperty<string>("database");
+			dataBaseName = this.model.getProperty<string>("database"),
+			directoryName = this.view.getSelectValue("directorySelect");
+			//directoryName = this.model.getProperty<string>("database");
 
 		vm.closein();
 
 		inFile.open = true;
 
 		let exampleName = this.view.getSelectValue("exampleSelect");
+
+		if (directoryName) {
+			exampleName = directoryName + "/" + exampleName;
+		}
+
 		const exampleEntry = this.model.getExample(exampleName);
 
 		inFile.command = "run";
