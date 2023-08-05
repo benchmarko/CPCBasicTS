@@ -163,3 +163,23 @@ body {
 	overflow: hidden;
 	padding-bottom: 12px;
 }
+
+#galleryAreaItems {
+    width: 320px;
+    max-height: 600px;
+    overflow-y: scroll;
+}
+
+#galleryAreaItems input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0;
+}
+
+#galleryAreaItems label {
+    display: block;
+    height: 200px;
+	border: 2px solid black;
+	background-size: cover;
+}

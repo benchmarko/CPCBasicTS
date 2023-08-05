@@ -12,6 +12,12 @@ export interface SelectOptionElement { // similar to HtmlOptionElement
 	selected: boolean
 }
 
+export interface AreaInputElement {
+	value: string,
+	checked: boolean,
+	imgUrl: string
+}
+
 export class View {
 	static getElementById1(id: string): HTMLElement {
 		const element = window.document.getElementById(id);
@@ -22,7 +28,7 @@ export class View {
 		return element;
 	}
 
-	static getElementByIdAs<T extends HTMLButtonElement| HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(id: string): T {
+	static getElementByIdAs<T extends HTMLButtonElement| HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | HTMLElement>(id: string): T {
 		return View.getElementById1(id) as T;
 	}
 
@@ -111,6 +117,55 @@ export class View {
 		return this;
 	}
 
+	setAreaInputList(id: string, inputs: AreaInputElement[]): this {
+		const element = View.getElementByIdAs<HTMLElement>(id),
+			childNodes = element.childNodes;
+
+		while (childNodes.length && childNodes[0].nodeType !== Node.ELEMENT_NODE) { // remove all non-element nodes
+			element.removeChild(element.firstChild as Element);
+		}
+
+		for (let i = 0; i < inputs.length; i += 1) {
+			const item = inputs[i];
+			let input: HTMLInputElement,
+				label: HTMLLabelElement;
+
+			if (i * 2 >= childNodes.length) {
+				input = window.document.createElement("input");
+				input.type = "radio";
+				input.id = "galleryItem" + i;
+				input.name = "gallery";
+				input.value = item.value;
+				input.checked = item.checked;
+
+				label = window.document.createElement("label");
+				label.setAttribute("for", "galleryItem" + i);
+				label.setAttribute("style", 'background: url("' + item.imgUrl + '"); background-size: cover');
+
+				element.appendChild(input);
+				element.appendChild(label);
+			} else {
+				input = childNodes[i * 2] as HTMLInputElement;
+				if (input.value !== item.value) {
+					if (Utils.debug > 3) {
+						Utils.console.debug("setInputList: " + id + ": value changed for index " + i + ": " + item.value);
+					}
+					input.value = item.value;
+					label = childNodes[i * 2 + 1] as HTMLLabelElement;
+					label.setAttribute("style", 'background: url("' + item.imgUrl + '");');
+				}
+				if (input.checked !== item.checked) {
+					input.checked = item.checked;
+				}
+			}
+		}
+		// remove additional items
+		while (element.childElementCount > inputs.length * 2) {
+			element.removeChild(element.lastChild as Element);
+		}
+		return this;
+	}
+
 	setSelectOptions(id: string, options: SelectOptionElement[]): this {
 		const element = View.getElementByIdAs<HTMLSelectElement>(id);
 
@@ -144,6 +199,25 @@ export class View {
 		element.options.length = options.length;
 		return this;
 	}
+
+	getSelectOptions(id: string): SelectOptionElement[] { // eslint-disable-line class-methods-use-this
+		const element = View.getElementByIdAs<HTMLSelectElement>(id),
+			elementOptions = element.options,
+			options: SelectOptionElement[] = [];
+
+		for (let i = 0; i < elementOptions.length; i += 1) {
+			const elementOption = elementOptions[i];
+
+			options.push({
+				value: elementOption.value,
+				text: elementOption.text,
+				title: elementOption.title,
+				selected: elementOption.selected
+			});
+		}
+		return options;
+	}
+
 	getSelectValue(id: string): string { // eslint-disable-line class-methods-use-this
 		const element = View.getElementByIdAs<HTMLSelectElement>(id);
 

@@ -28,7 +28,7 @@ import { VirtualKeyboard } from "./VirtualKeyboard";
 import { Model, DatabasesType } from "./Model";
 import { Sound, SoundData } from "./Sound";
 import { Variables, VariableValue } from "./Variables";
-import { View, SelectOptionElement } from "./View";
+import { View, SelectOptionElement, AreaInputElement } from "./View";
 
 interface FileMetaAndData {
 	meta: FileMeta
@@ -123,6 +123,7 @@ export class Controller implements IController {
 		view.setHidden("cpcArea", !model.getProperty<boolean>("showCpc"));
 
 		view.setHidden("settingsArea", !model.getProperty<boolean>("showSettings"), "flex");
+		view.setHidden("galleryArea", !model.getProperty<boolean>("showGallery"), "flex");
 		view.setHidden("convertArea", !model.getProperty<boolean>("showConvert"), "flex");
 
 		view.setInputChecked("implicitLinesInput", model.getProperty<boolean>("implicitLines"));
@@ -342,7 +343,6 @@ export class Controller implements IController {
 			allExamples = this.model.getAllExamples(),
 			directoryName = this.view.getSelectValue("directorySelect");
 
-		//this.setDirectorySelectOptions(); //TTT
 		let exampleSelected = false;
 
 		for (const key in allExamples) {
@@ -370,6 +370,25 @@ export class Controller implements IController {
 			items[0].selected = true; // if example is not found, select first element
 		}
 		this.view.setSelectOptions(select, items);
+	}
+
+	setGalleryAreaInputs(): void {
+		const database = this.model.getDatabase(),
+			directory = this.view.getSelectValue("directorySelect"),
+			options = this.view.getSelectOptions("exampleSelect"),
+			inputs: AreaInputElement[] = [];
+
+		for (let i = 0; i < options.length; i += 1) {
+			const item = options[i],
+				input: AreaInputElement = {
+					value: item.value,
+					checked: item.selected,
+					imgUrl: database.src + "/" + directory + "/img/" + item.value + ".png"
+				};
+
+			inputs.push(input);
+		}
+		this.view.setAreaInputList("galleryAreaItems", inputs);
 	}
 
 	private setVarSelectOptions(select: string, variables: Variables) {
@@ -454,8 +473,8 @@ export class Controller implements IController {
 		}
 
 		if (database === "storage") {
-			//this.setExampleSelectOptions(); // TTT
 			this.setDirectorySelectOptions();
+			this.setExampleSelectOptions();
 		} else {
 			this.model.setProperty("database", database); // restore database
 		}
@@ -1261,7 +1280,7 @@ export class Controller implements IController {
 
 		if (exampleEntry && exampleEntry.loaded) {
 			this.model.setProperty("example", example);
-			url = example; //TTT
+			url = example;
 			const fnExampleLoaded = this.createFnExampleLoaded(example, url, inFile);
 
 			fnExampleLoaded("", example, true);
@@ -1681,7 +1700,7 @@ export class Controller implements IController {
 
 				if (code > 255) {
 					Utils.console.warn("Put token in memory: addr=" + (addr + i) + ", code=" + code + ", char=" + tokens.charAt(i));
-					code = 0x20; //TTT
+					code = 0x20;
 				}
 				this.vm.poke(addr + i, code);
 			}
@@ -2440,8 +2459,6 @@ export class Controller implements IController {
 			}
 
 			Utils.console.log("fnDatabaseLoaded: database loaded: " + key + ": " + url);
-			//this.setExampleSelectOptions();
-			//this.onExampleSelectChange();
 			this.setDirectorySelectOptions();
 			this.onDirectorySelectChange();
 		};
@@ -2450,8 +2467,6 @@ export class Controller implements IController {
 	private createFnDatabaseError(url: string) {
 		return (_sFullUrl: string, key: string) => {
 			Utils.console.error("fnDatabaseError: database error: " + key + ": " + url);
-			//this.setExampleSelectOptions();
-			//this.onExampleSelectChange();
 			this.setDirectorySelectOptions();
 			this.onDirectorySelectChange();
 			this.setInputText("");
@@ -2480,8 +2495,6 @@ export class Controller implements IController {
 		if (database.loaded) {
 			this.setDirectorySelectOptions();
 			this.onDirectorySelectChange();
-			//this.setExampleSelectOptions();
-			//this.onExampleSelectChange();
 		} else {
 			this.setInputText("#loading database " + databaseName + "...");
 			const exampleIndex = this.model.getProperty<string>("exampleIndex"),
@@ -2491,7 +2504,6 @@ export class Controller implements IController {
 		}
 	}
 
-	//TODO
 	onDirectorySelectChange(): void {
 		this.setExampleSelectOptions();
 		this.onExampleSelectChange();
@@ -2502,9 +2514,13 @@ export class Controller implements IController {
 			inFile = vm.vmGetInFileObject(),
 			dataBaseName = this.model.getProperty<string>("database"),
 			directoryName = this.view.getSelectValue("directorySelect");
-			//directoryName = this.model.getProperty<string>("database");
 
 		vm.closein();
+
+		if (!this.view.getHidden("galleryArea")) { // close gallery, if open
+			this.view.setHidden("galleryArea", true, "flex");
+			this.model.setProperty("showGallery", false);
+		}
 
 		inFile.open = true;
 
@@ -2597,7 +2613,7 @@ export class Controller implements IController {
 		});
 		this.vm.vmGoto(0); // reset current line
 		this.vm.vmStop("end", 0, true);
-		this.variables.removeAllVariables(); //TTT
+		this.variables.removeAllVariables();
 	}
 
 	fnImplicitLines(): void {

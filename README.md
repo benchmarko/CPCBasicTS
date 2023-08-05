@@ -48,6 +48,7 @@ With CPC Basic we do not get that accuracy. But if we compile it to JavaScript, 
   - Use the *third selection field* to select a sample program. It will reset the CPC and run the program.
   - The **Reload** button reloads the page with the current settings put in URL parameters. (Please note that modifications of the BASIC program are not saved!)
   - The **Help** button opens the readme in the browser.
+  - The **Gallery** button opens a gallery with examples and you can select one.
   - The **Settings** button opens a popover with settings.
     - The checkbox **Array Bounds** checks array bounds of the running program. This option requires an ES6 compatible browser and is switched off per default.
     - The checkbox **Implicit Lines** allows to run BASIC programs without line numbers.
