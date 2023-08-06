@@ -69,6 +69,7 @@ declare module "Interfaces" {
         fnDownload: () => void;
         setInputText: (input: string, keepStack?: boolean) => void;
         setExampleSelectOptions: () => void;
+        setGalleryAreaInputs: () => void;
         invalidateScript: () => void;
         setSoundActive: () => void;
         changeVariable: () => void;
@@ -789,9 +790,14 @@ declare module "View" {
         title: string;
         selected: boolean;
     }
+    export interface AreaInputElement {
+        value: string;
+        checked: boolean;
+        imgUrl: string;
+    }
     export class View {
         static getElementById1(id: string): HTMLElement;
-        static getElementByIdAs<T extends HTMLButtonElement | HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(id: string): T;
+        static getElementByIdAs<T extends HTMLButtonElement | HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | HTMLElement>(id: string): T;
         getHidden(id: string): boolean;
         setHidden(id: string, hidden: boolean, display?: string): this;
         setDisabled(id: string, disabled: boolean): this;
@@ -802,7 +808,9 @@ declare module "View" {
         setInputValue(id: string, value: string): this;
         getInputChecked(id: string): boolean;
         setInputChecked(id: string, checked: boolean): this;
+        setAreaInputList(id: string, inputs: AreaInputElement[]): this;
         setSelectOptions(id: string, options: SelectOptionElement[]): this;
+        getSelectOptions(id: string): SelectOptionElement[];
         getSelectValue(id: string): string;
         setSelectValue(id: string, value: string): this;
         setSelectTitleFromSelectedOption(id: string): this;
@@ -1113,6 +1121,7 @@ declare module "CommonEventHandler" {
         private onCpcButtonClick;
         private onConvertButtonClick;
         private onSettingsButtonClick;
+        private onGalleryButtonClick;
         private onKbdButtonClick;
         private onConsoleButtonClick;
         private onParseButtonClick;
@@ -1130,6 +1139,7 @@ declare module "CommonEventHandler" {
         private onResetButtonClick;
         private onParseRunButtonClick;
         private static onHelpButtonClick;
+        private onGalleryItemClick;
         private static onNothing;
         private onCopyTextButtonClick;
         private onOutputTextChange;
@@ -1857,6 +1867,7 @@ declare module "Controller" {
         private static getNameFromExample;
         private setDirectorySelectOptions;
         setExampleSelectOptions(): void;
+        setGalleryAreaInputs(): void;
         private setVarSelectOptions;
         private updateStorageDatabase;
         private removeKeyBoardHandler;

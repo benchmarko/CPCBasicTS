@@ -33,6 +33,7 @@ export interface IController {
     fnDownload: () => void
     setInputText: (input: string, keepStack?: boolean) => void
     setExampleSelectOptions: () => void
+    setGalleryAreaInputs: () => void
     invalidateScript: () => void
     setSoundActive: () => void
 

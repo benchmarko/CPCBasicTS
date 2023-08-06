@@ -76,6 +76,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             });
             view.setHidden("cpcArea", !model.getProperty("showCpc"));
             view.setHidden("settingsArea", !model.getProperty("showSettings"), "flex");
+            view.setHidden("galleryArea", !model.getProperty("showGallery"), "flex");
             view.setHidden("convertArea", !model.getProperty("showConvert"), "flex");
             view.setInputChecked("implicitLinesInput", model.getProperty("implicitLines"));
             view.setInputChecked("arrayBoundsInput", model.getProperty("arrayBounds"));
@@ -236,7 +237,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         Controller.prototype.setExampleSelectOptions = function () {
             var maxTitleLength = 160, maxTextLength = 60, // (32 visible?)
             select = "exampleSelect", items = [], exampleName = Controller.getNameFromExample(this.model.getProperty("example")), allExamples = this.model.getAllExamples(), directoryName = this.view.getSelectValue("directorySelect");
-            //this.setDirectorySelectOptions(); //TTT
             var exampleSelected = false;
             for (var key in allExamples) {
                 if (allExamples.hasOwnProperty(key) && (Controller.getPathFromExample(key) === directoryName)) {
@@ -259,6 +259,18 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 items[0].selected = true; // if example is not found, select first element
             }
             this.view.setSelectOptions(select, items);
+        };
+        Controller.prototype.setGalleryAreaInputs = function () {
+            var database = this.model.getDatabase(), directory = this.view.getSelectValue("directorySelect"), options = this.view.getSelectOptions("exampleSelect"), inputs = [];
+            for (var i = 0; i < options.length; i += 1) {
+                var item = options[i], input = {
+                    value: item.value,
+                    checked: item.selected,
+                    imgUrl: database.src + "/" + directory + "/img/" + item.value + ".png"
+                };
+                inputs.push(input);
+            }
+            this.view.setAreaInputList("galleryAreaItems", inputs);
         };
         Controller.prototype.setVarSelectOptions = function (select, variables) {
             var maxVarLength = 35, varNames = variables.getAllVariableNames(), items = [], fnSortByStringProperties = function (a, b) {
@@ -323,8 +335,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 }
             }
             if (database === "storage") {
-                //this.setExampleSelectOptions(); // TTT
                 this.setDirectorySelectOptions();
+                this.setExampleSelectOptions();
             }
             else {
                 this.model.setProperty("database", database); // restore database
@@ -1008,7 +1020,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             var url;
             if (exampleEntry && exampleEntry.loaded) {
                 this.model.setProperty("example", example);
-                url = example; //TTT
+                url = example;
                 var fnExampleLoaded = this.createFnExampleLoaded(example, url, inFile);
                 fnExampleLoaded("", example, true);
             }
@@ -1345,7 +1357,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     var code = tokens.charCodeAt(i);
                     if (code > 255) {
                         Utils_1.Utils.console.warn("Put token in memory: addr=" + (addr + i) + ", code=" + code + ", char=" + tokens.charAt(i));
-                        code = 0x20; //TTT
+                        code = 0x20;
                     }
                     this.vm.poke(addr + i, code);
                 }
@@ -1948,8 +1960,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     _this.model.setProperty("database", selectedName);
                 }
                 Utils_1.Utils.console.log("fnDatabaseLoaded: database loaded: " + key + ": " + url);
-                //this.setExampleSelectOptions();
-                //this.onExampleSelectChange();
                 _this.setDirectorySelectOptions();
                 _this.onDirectorySelectChange();
             };
@@ -1958,8 +1968,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             var _this = this;
             return function (_sFullUrl, key) {
                 Utils_1.Utils.console.error("fnDatabaseError: database error: " + key + ": " + url);
-                //this.setExampleSelectOptions();
-                //this.onExampleSelectChange();
                 _this.setDirectorySelectOptions();
                 _this.onDirectorySelectChange();
                 _this.setInputText("");
@@ -1982,8 +1990,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             if (database.loaded) {
                 this.setDirectorySelectOptions();
                 this.onDirectorySelectChange();
-                //this.setExampleSelectOptions();
-                //this.onExampleSelectChange();
             }
             else {
                 this.setInputText("#loading database " + databaseName + "...");
@@ -1991,15 +1997,17 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 Utils_1.Utils.loadScript(url, this.createFnDatabaseLoaded(url), this.createFnDatabaseError(url), databaseName);
             }
         };
-        //TODO
         Controller.prototype.onDirectorySelectChange = function () {
             this.setExampleSelectOptions();
             this.onExampleSelectChange();
         };
         Controller.prototype.onExampleSelectChange = function () {
             var vm = this.vm, inFile = vm.vmGetInFileObject(), dataBaseName = this.model.getProperty("database"), directoryName = this.view.getSelectValue("directorySelect");
-            //directoryName = this.model.getProperty<string>("database");
             vm.closein();
+            if (!this.view.getHidden("galleryArea")) { // close gallery, if open
+                this.view.setHidden("galleryArea", true, "flex");
+                this.model.setProperty("showGallery", false);
+            }
             inFile.open = true;
             var exampleName = this.view.getSelectValue("exampleSelect");
             if (directoryName) {
@@ -2075,7 +2083,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             });
             this.vm.vmGoto(0); // reset current line
             this.vm.vmStop("end", 0, true);
-            this.variables.removeAllVariables(); //TTT
+            this.variables.removeAllVariables();
         };
         Controller.prototype.fnImplicitLines = function () {
             var implicitLines = this.model.getProperty("implicitLines");

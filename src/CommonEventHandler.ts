@@ -80,6 +80,12 @@ export class CommonEventHandler implements EventListenerObject {
 		this.toogleHidden("settingsArea", "showSettings", "flex");
 	}
 
+	private onGalleryButtonClick() {
+		if (this.toogleHidden("galleryArea", "showGallery", "flex")) {
+			this.controller.setGalleryAreaInputs();
+		}
+	}
+
 	private onKbdButtonClick() {
 		if (this.toogleHidden("kbdArea", "showKbd", "flex")) {
 			if (this.view.getHidden("kbdArea")) { // on old browsers, display "flex" is not available, so set "block" if still hidden
@@ -161,6 +167,15 @@ export class CommonEventHandler implements EventListenerObject {
 
 	private static onHelpButtonClick() {
 		window.open("https://github.com/benchmarko/CPCBasicTS/#readme");
+	}
+
+	private onGalleryItemClick(event: Event) {
+		const target = View.getEventTarget<HTMLInputElement>(event),
+			value = target.value;
+
+		this.view.setSelectValue("exampleSelect", value);
+		this.toogleHidden("galleryArea", "showGallery", "flex"); // close
+		this.onExampleSelectChange();
 	}
 
 	private static onNothing() {
@@ -322,6 +337,7 @@ export class CommonEventHandler implements EventListenerObject {
 		onCpcButtonClick: this.onCpcButtonClick,
 		onConvertButtonClick: this.onConvertButtonClick,
 		onSettingsButtonClick: this.onSettingsButtonClick,
+		onGalleryButtonClick: this.onGalleryButtonClick,
 		onKbdButtonClick: this.onKbdButtonClick,
 		onConsoleButtonClick: this.onConsoleButtonClick,
 		onParseButtonClick: this.onParseButtonClick,
@@ -338,6 +354,7 @@ export class CommonEventHandler implements EventListenerObject {
 		onResetButtonClick: this.onResetButtonClick,
 		onParseRunButtonClick: this.onParseRunButtonClick,
 		onHelpButtonClick: CommonEventHandler.onHelpButtonClick,
+		onGalleryItemClick: this.onGalleryItemClick,
 		onInputTextClick: CommonEventHandler.onNothing,
 		onOutputTextClick: CommonEventHandler.onNothing,
 		onResultTextClick: CommonEventHandler.onNothing,
@@ -377,7 +394,8 @@ export class CommonEventHandler implements EventListenerObject {
 
 		if (id) {
 			if (!target.disabled) { // check needed for IE which also fires for disabled buttons
-				const handler = "on" + Utils.stringCapitalize(id) + Utils.stringCapitalize(type);
+				const idNoNum = id.replace(/\d+$/, ""), // remove a trailing number
+					handler = "on" + Utils.stringCapitalize(idNoNum) + Utils.stringCapitalize(type);
 
 				if (Utils.debug) {
 					Utils.console.debug("fnCommonEventHandler: handler=" + handler);

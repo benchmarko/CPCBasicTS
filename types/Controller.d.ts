@@ -46,6 +46,7 @@ export declare class Controller implements IController {
     private static getNameFromExample;
     private setDirectorySelectOptions;
     setExampleSelectOptions(): void;
+    setGalleryAreaInputs(): void;
     private setVarSelectOptions;
     private updateStorageDatabase;
     private removeKeyBoardHandler;

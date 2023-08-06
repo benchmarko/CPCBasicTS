@@ -19,6 +19,7 @@ export declare class CommonEventHandler implements EventListenerObject {
     private onCpcButtonClick;
     private onConvertButtonClick;
     private onSettingsButtonClick;
+    private onGalleryButtonClick;
     private onKbdButtonClick;
     private onConsoleButtonClick;
     private onParseButtonClick;
@@ -36,6 +37,7 @@ export declare class CommonEventHandler implements EventListenerObject {
     private onResetButtonClick;
     private onParseRunButtonClick;
     private static onHelpButtonClick;
+    private onGalleryItemClick;
     private static onNothing;
     private onCopyTextButtonClick;
     private onOutputTextChange;

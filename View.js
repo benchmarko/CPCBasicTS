@@ -88,6 +88,48 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             element.checked = checked;
             return this;
         };
+        View.prototype.setAreaInputList = function (id, inputs) {
+            var element = View.getElementByIdAs(id), childNodes = element.childNodes;
+            while (childNodes.length && childNodes[0].nodeType !== Node.ELEMENT_NODE) { // remove all non-element nodes
+                element.removeChild(element.firstChild);
+            }
+            for (var i = 0; i < inputs.length; i += 1) {
+                var item = inputs[i];
+                var input = void 0, label = void 0;
+                if (i * 2 >= childNodes.length) {
+                    input = window.document.createElement("input");
+                    input.type = "radio";
+                    input.id = "galleryItem" + i;
+                    input.name = "gallery";
+                    input.value = item.value;
+                    input.checked = item.checked;
+                    label = window.document.createElement("label");
+                    label.setAttribute("for", "galleryItem" + i);
+                    label.setAttribute("style", 'background: url("' + item.imgUrl + '"); background-size: cover');
+                    element.appendChild(input);
+                    element.appendChild(label);
+                }
+                else {
+                    input = childNodes[i * 2];
+                    if (input.value !== item.value) {
+                        if (Utils_1.Utils.debug > 3) {
+                            Utils_1.Utils.console.debug("setInputList: " + id + ": value changed for index " + i + ": " + item.value);
+                        }
+                        input.value = item.value;
+                        label = childNodes[i * 2 + 1];
+                        label.setAttribute("style", 'background: url("' + item.imgUrl + '");');
+                    }
+                    if (input.checked !== item.checked) {
+                        input.checked = item.checked;
+                    }
+                }
+            }
+            // remove additional items
+            while (element.childElementCount > inputs.length * 2) {
+                element.removeChild(element.lastChild);
+            }
+            return this;
+        };
         View.prototype.setSelectOptions = function (id, options) {
             var element = View.getElementByIdAs(id);
             for (var i = 0; i < options.length; i += 1) {
@@ -119,6 +161,19 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             // remove additional select options
             element.options.length = options.length;
             return this;
+        };
+        View.prototype.getSelectOptions = function (id) {
+            var element = View.getElementByIdAs(id), elementOptions = element.options, options = [];
+            for (var i = 0; i < elementOptions.length; i += 1) {
+                var elementOption = elementOptions[i];
+                options.push({
+                    value: elementOption.value,
+                    text: elementOption.text,
+                    title: elementOption.title,
+                    selected: elementOption.selected
+                });
+            }
+            return options;
         };
         View.prototype.getSelectValue = function (id) {
             var element = View.getElementByIdAs(id);

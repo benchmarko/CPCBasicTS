@@ -20,6 +20,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 onCpcButtonClick: this.onCpcButtonClick,
                 onConvertButtonClick: this.onConvertButtonClick,
                 onSettingsButtonClick: this.onSettingsButtonClick,
+                onGalleryButtonClick: this.onGalleryButtonClick,
                 onKbdButtonClick: this.onKbdButtonClick,
                 onConsoleButtonClick: this.onConsoleButtonClick,
                 onParseButtonClick: this.onParseButtonClick,
@@ -36,6 +37,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 onResetButtonClick: this.onResetButtonClick,
                 onParseRunButtonClick: this.onParseRunButtonClick,
                 onHelpButtonClick: CommonEventHandler.onHelpButtonClick,
+                onGalleryItemClick: this.onGalleryItemClick,
                 onInputTextClick: CommonEventHandler.onNothing,
                 onOutputTextClick: CommonEventHandler.onNothing,
                 onResultTextClick: CommonEventHandler.onNothing,
@@ -114,6 +116,11 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         CommonEventHandler.prototype.onSettingsButtonClick = function () {
             this.toogleHidden("settingsArea", "showSettings", "flex");
         };
+        CommonEventHandler.prototype.onGalleryButtonClick = function () {
+            if (this.toogleHidden("galleryArea", "showGallery", "flex")) {
+                this.controller.setGalleryAreaInputs();
+            }
+        };
         CommonEventHandler.prototype.onKbdButtonClick = function () {
             if (this.toogleHidden("kbdArea", "showKbd", "flex")) {
                 if (this.view.getHidden("kbdArea")) { // on old browsers, display "flex" is not available, so set "block" if still hidden
@@ -178,6 +185,12 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         };
         CommonEventHandler.onHelpButtonClick = function () {
             window.open("https://github.com/benchmarko/CPCBasicTS/#readme");
+        };
+        CommonEventHandler.prototype.onGalleryItemClick = function (event) {
+            var target = View_1.View.getEventTarget(event), value = target.value;
+            this.view.setSelectValue("exampleSelect", value);
+            this.toogleHidden("galleryArea", "showGallery", "flex"); // close
+            this.onExampleSelectChange();
         };
         CommonEventHandler.onNothing = function () {
             // nothing
@@ -294,7 +307,8 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             }
             if (id) {
                 if (!target.disabled) { // check needed for IE which also fires for disabled buttons
-                    var handler = "on" + Utils_1.Utils.stringCapitalize(id) + Utils_1.Utils.stringCapitalize(type);
+                    var idNoNum = id.replace(/\d+$/, ""), // remove a trailing number
+                    handler = "on" + Utils_1.Utils.stringCapitalize(idNoNum) + Utils_1.Utils.stringCapitalize(type);
                     if (Utils_1.Utils.debug) {
                         Utils_1.Utils.console.debug("fnCommonEventHandler: handler=" + handler);
                     }

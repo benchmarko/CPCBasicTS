@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="cpcbasic.css" />
 <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
-<title id="title">CPC BasicTS v0.0.94 (separate source files)</title>
+<title id="title">CPC BasicTS v0.0.95 (separate source files)</title>
 </head>
 
 <body id="pageBody">
@@ -17,7 +17,7 @@
 			<span class="buttonPopoverContainer">
 				<button id="settingsButton" class="popoverButton" title="Settings">Settings</button>
 				<span id="settingsArea" class="popover area flexColumn displayNone">
-					<span id="settingsArea1" class="area flexColumn displayFlex">
+					<span id="settingsAreaInner" class="area flexColumn displayFlex">
 						<span class="field flexStart">
 							<input id="arrayBoundsInput" type="checkbox" title="Check array bounds">
 							<label id="arrayBoundsLabel" for="arrayBoundsInput" class="label" title="Check array bounds">Array Bounds</label>
@@ -34,6 +34,14 @@
 							<input id="speedInput" type="range" min="0" max="100" step="1" value="100" title="Speed">
 							<label id="speedLabel" for="speedInput" class="label" title="Speed">Speed</label>
 						</span>
+					</span>
+				</span>
+			</span>
+			<span class="buttonPopoverContainer">
+				<button id="galleryButton" class="popoverButton" title="Gallery">Gallery</button>
+				<span id="galleryArea" class="popover area flexColumn displayNone">
+					<span id="galleryAreaInner" class="area flexColumn displayFlex">
+						<span id="galleryAreaItems" class="displayBlock" />
 					</span>
 				</span>
 			</span>

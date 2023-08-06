@@ -7579,6 +7579,48 @@ define("View", ["require", "exports", "Utils"], function (require, exports, Util
             element.checked = checked;
             return this;
         };
+        View.prototype.setAreaInputList = function (id, inputs) {
+            var element = View.getElementByIdAs(id), childNodes = element.childNodes;
+            while (childNodes.length && childNodes[0].nodeType !== Node.ELEMENT_NODE) { // remove all non-element nodes
+                element.removeChild(element.firstChild);
+            }
+            for (var i = 0; i < inputs.length; i += 1) {
+                var item = inputs[i];
+                var input = void 0, label = void 0;
+                if (i * 2 >= childNodes.length) {
+                    input = window.document.createElement("input");
+                    input.type = "radio";
+                    input.id = "galleryItem" + i;
+                    input.name = "gallery";
+                    input.value = item.value;
+                    input.checked = item.checked;
+                    label = window.document.createElement("label");
+                    label.setAttribute("for", "galleryItem" + i);
+                    label.setAttribute("style", 'background: url("' + item.imgUrl + '"); background-size: cover');
+                    element.appendChild(input);
+                    element.appendChild(label);
+                }
+                else {
+                    input = childNodes[i * 2];
+                    if (input.value !== item.value) {
+                        if (Utils_12.Utils.debug > 3) {
+                            Utils_12.Utils.console.debug("setInputList: " + id + ": value changed for index " + i + ": " + item.value);
+                        }
+                        input.value = item.value;
+                        label = childNodes[i * 2 + 1];
+                        label.setAttribute("style", 'background: url("' + item.imgUrl + '");');
+                    }
+                    if (input.checked !== item.checked) {
+                        input.checked = item.checked;
+                    }
+                }
+            }
+            // remove additional items
+            while (element.childElementCount > inputs.length * 2) {
+                element.removeChild(element.lastChild);
+            }
+            return this;
+        };
         View.prototype.setSelectOptions = function (id, options) {
             var element = View.getElementByIdAs(id);
             for (var i = 0; i < options.length; i += 1) {
@@ -7610,6 +7652,19 @@ define("View", ["require", "exports", "Utils"], function (require, exports, Util
             // remove additional select options
             element.options.length = options.length;
             return this;
+        };
+        View.prototype.getSelectOptions = function (id) {
+            var element = View.getElementByIdAs(id), elementOptions = element.options, options = [];
+            for (var i = 0; i < elementOptions.length; i += 1) {
+                var elementOption = elementOptions[i];
+                options.push({
+                    value: elementOption.value,
+                    text: elementOption.text,
+                    title: elementOption.title,
+                    selected: elementOption.selected
+                });
+            }
+            return options;
         };
         View.prototype.getSelectValue = function (id) {
             var element = View.getElementByIdAs(id);
@@ -10521,6 +10576,7 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                 onCpcButtonClick: this.onCpcButtonClick,
                 onConvertButtonClick: this.onConvertButtonClick,
                 onSettingsButtonClick: this.onSettingsButtonClick,
+                onGalleryButtonClick: this.onGalleryButtonClick,
                 onKbdButtonClick: this.onKbdButtonClick,
                 onConsoleButtonClick: this.onConsoleButtonClick,
                 onParseButtonClick: this.onParseButtonClick,
@@ -10537,6 +10593,7 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                 onResetButtonClick: this.onResetButtonClick,
                 onParseRunButtonClick: this.onParseRunButtonClick,
                 onHelpButtonClick: CommonEventHandler.onHelpButtonClick,
+                onGalleryItemClick: this.onGalleryItemClick,
                 onInputTextClick: CommonEventHandler.onNothing,
                 onOutputTextClick: CommonEventHandler.onNothing,
                 onResultTextClick: CommonEventHandler.onNothing,
@@ -10615,6 +10672,11 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
         CommonEventHandler.prototype.onSettingsButtonClick = function () {
             this.toogleHidden("settingsArea", "showSettings", "flex");
         };
+        CommonEventHandler.prototype.onGalleryButtonClick = function () {
+            if (this.toogleHidden("galleryArea", "showGallery", "flex")) {
+                this.controller.setGalleryAreaInputs();
+            }
+        };
         CommonEventHandler.prototype.onKbdButtonClick = function () {
             if (this.toogleHidden("kbdArea", "showKbd", "flex")) {
                 if (this.view.getHidden("kbdArea")) { // on old browsers, display "flex" is not available, so set "block" if still hidden
@@ -10679,6 +10741,12 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
         };
         CommonEventHandler.onHelpButtonClick = function () {
             window.open("https://github.com/benchmarko/CPCBasicTS/#readme");
+        };
+        CommonEventHandler.prototype.onGalleryItemClick = function (event) {
+            var target = View_5.View.getEventTarget(event), value = target.value;
+            this.view.setSelectValue("exampleSelect", value);
+            this.toogleHidden("galleryArea", "showGallery", "flex"); // close
+            this.onExampleSelectChange();
         };
         CommonEventHandler.onNothing = function () {
             // nothing
@@ -10795,7 +10863,8 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             }
             if (id) {
                 if (!target.disabled) { // check needed for IE which also fires for disabled buttons
-                    var handler = "on" + Utils_18.Utils.stringCapitalize(id) + Utils_18.Utils.stringCapitalize(type);
+                    var idNoNum = id.replace(/\d+$/, ""), // remove a trailing number
+                    handler = "on" + Utils_18.Utils.stringCapitalize(idNoNum) + Utils_18.Utils.stringCapitalize(type);
                     if (Utils_18.Utils.debug) {
                         Utils_18.Utils.console.debug("fnCommonEventHandler: handler=" + handler);
                     }
@@ -15589,6 +15658,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             });
             view.setHidden("cpcArea", !model.getProperty("showCpc"));
             view.setHidden("settingsArea", !model.getProperty("showSettings"), "flex");
+            view.setHidden("galleryArea", !model.getProperty("showGallery"), "flex");
             view.setHidden("convertArea", !model.getProperty("showConvert"), "flex");
             view.setInputChecked("implicitLinesInput", model.getProperty("implicitLines"));
             view.setInputChecked("arrayBoundsInput", model.getProperty("arrayBounds"));
@@ -15749,7 +15819,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.setExampleSelectOptions = function () {
             var maxTitleLength = 160, maxTextLength = 60, // (32 visible?)
             select = "exampleSelect", items = [], exampleName = Controller.getNameFromExample(this.model.getProperty("example")), allExamples = this.model.getAllExamples(), directoryName = this.view.getSelectValue("directorySelect");
-            //this.setDirectorySelectOptions(); //TTT
             var exampleSelected = false;
             for (var key in allExamples) {
                 if (allExamples.hasOwnProperty(key) && (Controller.getPathFromExample(key) === directoryName)) {
@@ -15772,6 +15841,18 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 items[0].selected = true; // if example is not found, select first element
             }
             this.view.setSelectOptions(select, items);
+        };
+        Controller.prototype.setGalleryAreaInputs = function () {
+            var database = this.model.getDatabase(), directory = this.view.getSelectValue("directorySelect"), options = this.view.getSelectOptions("exampleSelect"), inputs = [];
+            for (var i = 0; i < options.length; i += 1) {
+                var item = options[i], input = {
+                    value: item.value,
+                    checked: item.selected,
+                    imgUrl: database.src + "/" + directory + "/img/" + item.value + ".png"
+                };
+                inputs.push(input);
+            }
+            this.view.setAreaInputList("galleryAreaItems", inputs);
         };
         Controller.prototype.setVarSelectOptions = function (select, variables) {
             var maxVarLength = 35, varNames = variables.getAllVariableNames(), items = [], fnSortByStringProperties = function (a, b) {
@@ -15836,8 +15917,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 }
             }
             if (database === "storage") {
-                //this.setExampleSelectOptions(); // TTT
                 this.setDirectorySelectOptions();
+                this.setExampleSelectOptions();
             }
             else {
                 this.model.setProperty("database", database); // restore database
@@ -16521,7 +16602,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             var url;
             if (exampleEntry && exampleEntry.loaded) {
                 this.model.setProperty("example", example);
-                url = example; //TTT
+                url = example;
                 var fnExampleLoaded = this.createFnExampleLoaded(example, url, inFile);
                 fnExampleLoaded("", example, true);
             }
@@ -16858,7 +16939,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     var code = tokens.charCodeAt(i);
                     if (code > 255) {
                         Utils_25.Utils.console.warn("Put token in memory: addr=" + (addr + i) + ", code=" + code + ", char=" + tokens.charAt(i));
-                        code = 0x20; //TTT
+                        code = 0x20;
                     }
                     this.vm.poke(addr + i, code);
                 }
@@ -17461,8 +17542,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     _this.model.setProperty("database", selectedName);
                 }
                 Utils_25.Utils.console.log("fnDatabaseLoaded: database loaded: " + key + ": " + url);
-                //this.setExampleSelectOptions();
-                //this.onExampleSelectChange();
                 _this.setDirectorySelectOptions();
                 _this.onDirectorySelectChange();
             };
@@ -17471,8 +17550,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             var _this = this;
             return function (_sFullUrl, key) {
                 Utils_25.Utils.console.error("fnDatabaseError: database error: " + key + ": " + url);
-                //this.setExampleSelectOptions();
-                //this.onExampleSelectChange();
                 _this.setDirectorySelectOptions();
                 _this.onDirectorySelectChange();
                 _this.setInputText("");
@@ -17495,8 +17572,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             if (database.loaded) {
                 this.setDirectorySelectOptions();
                 this.onDirectorySelectChange();
-                //this.setExampleSelectOptions();
-                //this.onExampleSelectChange();
             }
             else {
                 this.setInputText("#loading database " + databaseName + "...");
@@ -17504,15 +17579,17 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 Utils_25.Utils.loadScript(url, this.createFnDatabaseLoaded(url), this.createFnDatabaseError(url), databaseName);
             }
         };
-        //TODO
         Controller.prototype.onDirectorySelectChange = function () {
             this.setExampleSelectOptions();
             this.onExampleSelectChange();
         };
         Controller.prototype.onExampleSelectChange = function () {
             var vm = this.vm, inFile = vm.vmGetInFileObject(), dataBaseName = this.model.getProperty("database"), directoryName = this.view.getSelectValue("directorySelect");
-            //directoryName = this.model.getProperty<string>("database");
             vm.closein();
+            if (!this.view.getHidden("galleryArea")) { // close gallery, if open
+                this.view.setHidden("galleryArea", true, "flex");
+                this.model.setProperty("showGallery", false);
+            }
             inFile.open = true;
             var exampleName = this.view.getSelectValue("exampleSelect");
             if (directoryName) {
@@ -17588,7 +17665,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             });
             this.vm.vmGoto(0); // reset current line
             this.vm.vmStop("end", 0, true);
-            this.variables.removeAllVariables(); //TTT
+            this.variables.removeAllVariables();
         };
         Controller.prototype.fnImplicitLines = function () {
             var implicitLines = this.model.getProperty("implicitLines");
@@ -17843,6 +17920,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             showConsole: false,
             showConvert: false,
             showSettings: false,
+            showGallery: false,
             sound: true,
             speed: 100,
             trace: false // trace code

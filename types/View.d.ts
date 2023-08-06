@@ -4,9 +4,14 @@ export interface SelectOptionElement {
     title: string;
     selected: boolean;
 }
+export interface AreaInputElement {
+    value: string;
+    checked: boolean;
+    imgUrl: string;
+}
 export declare class View {
     static getElementById1(id: string): HTMLElement;
-    static getElementByIdAs<T extends HTMLButtonElement | HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(id: string): T;
+    static getElementByIdAs<T extends HTMLButtonElement | HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | HTMLElement>(id: string): T;
     getHidden(id: string): boolean;
     setHidden(id: string, hidden: boolean, display?: string): this;
     setDisabled(id: string, disabled: boolean): this;
@@ -17,7 +22,9 @@ export declare class View {
     setInputValue(id: string, value: string): this;
     getInputChecked(id: string): boolean;
     setInputChecked(id: string, checked: boolean): this;
+    setAreaInputList(id: string, inputs: AreaInputElement[]): this;
     setSelectOptions(id: string, options: SelectOptionElement[]): this;
+    getSelectOptions(id: string): SelectOptionElement[];
     getSelectValue(id: string): string;
     setSelectValue(id: string, value: string): this;
     setSelectTitleFromSelectedOption(id: string): this;
