@@ -1895,7 +1895,7 @@ export class CodeGeneratorJs {
 					+ combinedLabels
 					+ " o.vmGoto(o.startLine ? o.startLine : \"start\"); break;\ncase \"start\":\n"
 					+ output
-					+ "\ncase \"end\": o.vmStop(\"end\", 90); break;\ndefault: o.error(8); o.vmGoto(\"end\"); break;\n}}\n";
+					+ "\ncase \"end\": o.line=\"end\"; o.vmStop(\"end\", 90); break;\ndefault: o.error(8); o.vmGoto(\"end\"); break;\n}}\n";
 			} else {
 				output = combinedData + output;
 			}

@@ -853,6 +853,13 @@ define("Utils", ["require", "exports"], function (require, exports) {
             var index = str.indexOf(char);
             return index >= 0 ? [str.slice(0, index), str.slice(index + 1)] : [str]; // eslint-disable-line array-element-newline
         };
+        Utils.string2Uint8Array = function (data) {
+            var buf = new ArrayBuffer(data.length), view = new Uint8Array(buf);
+            for (var i = 0; i < data.length; i += 1) {
+                view[i] = data.charCodeAt(i);
+            }
+            return view;
+        };
         Utils.composeError = function (name, errorObject, message, value, pos, len, line, hidden) {
             var customError = errorObject;
             customError.name = name;
@@ -5929,7 +5936,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                         + combinedLabels
                         + " o.vmGoto(o.startLine ? o.startLine : \"start\"); break;\ncase \"start\":\n"
                         + output
-                        + "\ncase \"end\": o.vmStop(\"end\", 90); break;\ndefault: o.error(8); o.vmGoto(\"end\"); break;\n}}\n";
+                        + "\ncase \"end\": o.line=\"end\"; o.vmStop(\"end\", 90); break;\ndefault: o.error(8); o.vmGoto(\"end\"); break;\n}}\n";
                 }
                 else {
                     output = combinedData + output;
@@ -7117,7 +7124,10 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             else if (firstSector === 0x41) {
                 format = "system";
             }
-            else if ((firstSector === 0x01) && (diskInfo.tracks === 80)) { // big780k
+            else if ((firstSector === 0x91) && (diskInfo.tracks === 80)) { // parados80
+                format = "parados80";
+            }
+            else if ((firstSector === 0x01) && (diskInfo.tracks === 80)) { // big780k (usually diskInfo.heads: 2)
                 format = "big780k";
             }
             else {
@@ -7199,7 +7209,8 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             return dir;
         };
         DiskImage.prototype.convertBlock2Sector = function (block) {
-            var format = this.format, spt = format.spt, blockSectors = 2, logSec = block * blockSectors, // directory is in block 0-1
+            var format = this.format, spt = format.spt, blockSectors = format.bls / 512, // usually 2
+            logSec = block * blockSectors, // directory is in block 0-1
             pos = {
                 track: Math.floor(logSec / spt) + format.off,
                 head: 0,
@@ -7208,7 +7219,8 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             return pos;
         };
         DiskImage.prototype.readDirectory = function () {
-            var directorySectors = 4, extents = [], format = this.determineFormat(), off = format.off, firstSector = format.firstSector;
+            var directorySectors = 4, // could be determined from al0,al1
+            extents = [], format = this.determineFormat(), off = format.off, firstSector = format.firstSector;
             this.format = format;
             this.seekTrack(off, 0);
             for (var i = 0; i < directorySectors; i += 1) {
@@ -7230,7 +7242,8 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             }
         };
         DiskImage.prototype.readBlock = function (block) {
-            var diskInfo = this.diskInfo, blockSectors = 2, pos = this.convertBlock2Sector(block);
+            var diskInfo = this.diskInfo, blockSectors = this.format.bls / 512, // usually 2
+            pos = this.convertBlock2Sector(block);
             var out = "";
             if (pos.track >= diskInfo.tracks) {
                 Utils_11.Utils.console.error(this.composeError({}, "Block " + block + ": Track out of range", String(pos.track)));
@@ -7246,11 +7259,16 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             return out;
         };
         DiskImage.prototype.readExtents = function (fileExtents) {
-            var recPerBlock = 8;
+            var recPerBlock = this.format.bls / 128; // usually 8
             var out = "";
             for (var i = 0; i < fileExtents.length; i += 1) {
                 var extent = fileExtents[i], blocks = extent.blocks;
                 var records = extent.records;
+                if (extent.extent > 0) {
+                    if (recPerBlock > 8) { // fast hack for parados: adapt records
+                        records += extent.extent * 128;
+                    }
+                }
                 for (var blockIndex = 0; blockIndex < blocks.length; blockIndex += 1) {
                     var block = this.readBlock(blocks[blockIndex]);
                     if (records < recPerBlock) { // block with some remaining data
@@ -7420,6 +7438,13 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             "3dos": {
                 parentRef: "data",
                 firstSector: 0x00
+            },
+            parados80: {
+                parentRef: "data",
+                tracks: 80,
+                firstSector: 0x91,
+                spt: 10,
+                bls: 2048
             },
             big780k: {
                 parentRef: "data",
@@ -9179,6 +9204,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.offset = 0; // screen offset
             this.borderWidth = 4;
             this.needUpdate = false;
+            this.colorValues = [];
             this.currentInks = [];
             this.speedInk = [];
             this.inkSet = 0;
@@ -9202,6 +9228,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.gTransparent = false;
             this.options = {
                 charset: options.charset,
+                colors: options.colors,
                 onClickKey: options.onClickKey
             };
             this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
@@ -9217,7 +9244,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.width = width;
             this.height = height;
             this.dataset8 = new Uint8Array(new ArrayBuffer(width * height)); // array with pen values
-            this.colorValues = Canvas.extractAllColorValues(Canvas.colors);
+            this.setColors(this.options.colors);
             this.animationTimeoutId = undefined;
             this.animationFrame = undefined;
             if (this.canvas.getContext) { // not available on e.g. IE8
@@ -9251,7 +9278,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.speedInk[0] = 10;
             this.speedInk[1] = 10;
             this.speedInkCount = this.speedInk[this.inkSet];
-            this.canvas.style.borderColor = Canvas.colors[this.currentInks[this.inkSet][16]];
+            this.canvas.style.borderColor = this.options.colors[this.currentInks[this.inkSet][16]];
             this.setGPen(1);
             this.setGPaper(0);
             this.resetCustomChars();
@@ -9274,12 +9301,14 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
                 parseInt(color.substring(5, 7), 16)
             ];
         };
-        Canvas.extractAllColorValues = function (colors) {
-            var colorValues = [];
+        Canvas.extractAllColorValues = function (colors, colorValues) {
+            //const colorValues: number[][] = [];
             for (var i = 0; i < colors.length; i += 1) {
                 colorValues[i] = Canvas.extractColorValues(colors[i]);
             }
-            return colorValues;
+        };
+        Canvas.prototype.setColors = function (colors) {
+            Canvas.extractAllColorValues(colors, this.colorValues);
         };
         Canvas.prototype.setAlpha = function (alpha) {
             var buf8 = this.imageData.data, length = this.dataset8.length; // or: this.width * this.height
@@ -9413,7 +9442,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
                 }
                 // check border ink
                 if (this.currentInks[newInkSet][16] !== this.currentInks[currentInkSet][16]) {
-                    this.canvas.style.borderColor = Canvas.colors[this.currentInks[newInkSet][16]];
+                    this.canvas.style.borderColor = this.options.colors[this.currentInks[newInkSet][16]];
                 }
             }
         };
@@ -9829,7 +9858,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         Canvas.prototype.setBorder = function (ink1, ink2) {
             var needInkUpdate = this.setInk(16, ink1, ink2);
             if (needInkUpdate) {
-                this.canvas.style.borderColor = Canvas.colors[this.currentInks[this.inkSet][16]];
+                this.canvas.style.borderColor = this.options.colors[this.currentInks[this.inkSet][16]];
             }
         };
         Canvas.prototype.setGPen = function (gPen) {
@@ -10090,41 +10119,6 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         Canvas.prototype.getCanvasElement = function () {
             return this.canvas;
         };
-        // http://www.cpcwiki.eu/index.php/CPC_Palette
-        Canvas.colors = [
-            "#000000",
-            "#000080",
-            "#0000FF",
-            "#800000",
-            "#800080",
-            "#8000FF",
-            "#FF0000",
-            "#FF0080",
-            "#FF00FF",
-            "#008000",
-            "#008080",
-            "#0080FF",
-            "#808000",
-            "#808080",
-            "#8080FF",
-            "#FF8000",
-            "#FF8080",
-            "#FF80FF",
-            "#00FF00",
-            "#00FF80",
-            "#00FFFF",
-            "#80FF00",
-            "#80FF80",
-            "#80FFFF",
-            "#FFFF00",
-            "#FFFF80",
-            "#FFFFFF",
-            "#808080",
-            "#FF00FF",
-            "#FFFF80",
-            "#000080",
-            "#00FF80" //  31 Sea Green (same as 19)
-        ];
         // mode 0: pen 0-15,16=border; inks for pen 14,15 are alternating: "1,24", "16,11"
         Canvas.defaultInks = [
             [1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1],
@@ -15324,7 +15318,7 @@ define("CpcVmRsx", ["require", "exports", "Utils"], function (require, exports, 
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("FileHandler", ["require", "exports", "Utils", "DiskImage"], function (require, exports, Utils_23, DiskImage_1) {
+define("FileHandler", ["require", "exports", "Utils", "DiskImage", "ZipFile"], function (require, exports, Utils_23, DiskImage_1, ZipFile_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.FileHandler = void 0;
@@ -15361,64 +15355,101 @@ define("FileHandler", ["require", "exports", "Utils", "DiskImage"], function (re
             ].join(";");
         };
         // starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
-        FileHandler.prototype.fnLoad2 = function (data, name, type, imported) {
-            var header, storageName = this.adaptFilename(name, "FILE");
-            storageName = FileHandler.fnLocalStorageName(storageName);
-            if (type === "text/plain") {
-                header = FileHandler.createMinimalAmsdosHeader("A", 0, data.length);
+        FileHandler.prototype.processZipFile = function (uint8Array, name, imported) {
+            var zip;
+            try {
+                zip = new ZipFile_1.ZipFile(uint8Array, name); // rather data
             }
-            else {
-                if (type === "application/x-zip-compressed" || type === "cpcBasic/binary") { // are we a file inside zip?
-                    // empty
+            catch (e) {
+                Utils_23.Utils.console.error(e);
+                if (e instanceof Error) {
+                    this.outputError(e, true);
                 }
-                else { // e.g. "data:application/octet-stream;base64,..."
-                    var index = data.indexOf(",");
-                    if (index >= 0) {
-                        var info1 = data.substring(0, index);
-                        data = data.substring(index + 1); // remove meta prefix
-                        if (info1.indexOf("base64") >= 0) {
-                            data = Utils_23.Utils.atob(data); // decode base64
-                        }
-                    }
-                }
-                header = DiskImage_1.DiskImage.parseAmsdosHeader(data);
-                if (header) {
-                    data = data.substring(0x80); // remove header
-                }
-                else if (FileHandler.reRegExpIsText.test(data)) {
-                    header = FileHandler.createMinimalAmsdosHeader("A", 0, data.length);
-                }
-                else if (DiskImage_1.DiskImage.testDiskIdent(data.substring(0, 8))) { // disk image file?
+            }
+            if (zip) {
+                var zipDirectory = zip.getZipDirectory(), entries = Object.keys(zipDirectory);
+                for (var i = 0; i < entries.length; i += 1) {
+                    var name2 = entries[i];
+                    var data2 = void 0;
                     try {
-                        var dsk = new DiskImage_1.DiskImage({
-                            data: data,
-                            diskName: name
-                        }), dir = dsk.readDirectory(), diskFiles = Object.keys(dir);
-                        for (var i = 0; i < diskFiles.length; i += 1) {
-                            var fileName = diskFiles[i];
-                            try { // eslint-disable-line max-depth
-                                data = dsk.readFile(dir[fileName]);
-                                this.fnLoad2(data, fileName, "cpcBasic/binary", imported); // recursive
-                            }
-                            catch (e) {
-                                Utils_23.Utils.console.error(e);
-                                if (e instanceof Error) { // eslint-disable-line max-depth
-                                    this.outputError(e, true);
-                                }
-                            }
-                        }
+                        data2 = zip.readData(name2);
                     }
                     catch (e) {
                         Utils_23.Utils.console.error(e);
-                        if (e instanceof Error) {
+                        if (e instanceof Error) { // eslint-disable-line max-depth
                             this.outputError(e, true);
                         }
                     }
-                    header = undefined; // ignore dsk file
+                    if (data2) {
+                        this.fnLoad2(data2, name2, "", imported); // type not known but without meta
+                    }
                 }
-                else { // binary
+            }
+        };
+        FileHandler.prototype.processDskFile = function (data, name, imported) {
+            try {
+                var dsk = new DiskImage_1.DiskImage({
+                    data: data,
+                    diskName: name
+                }), dir = dsk.readDirectory(), diskFiles = Object.keys(dir);
+                for (var i = 0; i < diskFiles.length; i += 1) {
+                    var fileName = diskFiles[i];
+                    try { // eslint-disable-line max-depth
+                        data = dsk.readFile(dir[fileName]);
+                        this.fnLoad2(data, fileName, "", imported); // recursive
+                    }
+                    catch (e) {
+                        Utils_23.Utils.console.error(e);
+                        if (e instanceof Error) { // eslint-disable-line max-depth
+                            this.outputError(e, true);
+                        }
+                    }
+                }
+            }
+            catch (e) {
+                Utils_23.Utils.console.error(e);
+                if (e instanceof Error) {
+                    this.outputError(e, true);
+                }
+            }
+        };
+        FileHandler.prototype.fnLoad2 = function (data, name, type, imported) {
+            if (data instanceof Uint8Array) { // FileSelect filereader zip file?
+                this.processZipFile(data, name, imported);
+                return;
+            }
+            var header, storageName = this.adaptFilename(name, "FILE");
+            storageName = FileHandler.fnLocalStorageName(storageName);
+            if (type === "") { // detetermine type
+                header = DiskImage_1.DiskImage.parseAmsdosHeader(data);
+                if (header) {
+                    type = "H"; // with header
+                    data = data.substring(0x80); // remove header
+                }
+                else if (FileHandler.reRegExpIsText.test(data)) {
+                    type = "A";
+                }
+                else if (DiskImage_1.DiskImage.testDiskIdent(data.substring(0, 8))) { // disk image file?
+                    type = "X";
+                }
+            }
+            switch (type) {
+                case "A": // "text/plain"
+                case "B": // binary?
+                    header = FileHandler.createMinimalAmsdosHeader(type, 0, data.length);
+                    break;
+                case "Z": // zip file?
+                    this.processZipFile(Utils_23.Utils.string2Uint8Array(data), name, imported);
+                    break;
+                case "X": // dsk file?
+                    this.processDskFile(data, name, imported);
+                    break;
+                case "H": // with header?
+                    break;
+                default:
+                    Utils_23.Utils.console.warn("fnLoad2: " + name + ": Unknown file type: " + type + ", assuming B");
                     header = FileHandler.createMinimalAmsdosHeader("B", 0, data.length);
-                }
+                    break;
             }
             if (header) {
                 var meta = FileHandler.joinMeta(header);
@@ -15449,21 +15480,19 @@ define("FileHandler", ["require", "exports", "Utils", "DiskImage"], function (re
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("FileSelect", ["require", "exports", "Utils", "ZipFile", "View"], function (require, exports, Utils_24, ZipFile_1, View_6) {
+define("FileSelect", ["require", "exports", "Utils", "View"], function (require, exports, Utils_24, View_6) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.FileSelect = void 0;
     var FileSelect = /** @class */ (function () {
         function FileSelect(options) {
             this.fnEndOfImport = {};
-            this.outputError = {};
             this.fnLoad2 = {};
             this.files = {}; // = dataTransfer ? dataTransfer.files : ((event.target as any).files as FileList), // dataTransfer for drag&drop, target.files for file input
             this.fileIndex = 0;
             this.imported = []; // imported file names
             this.file = {}; // current file
             this.fnEndOfImport = options.fnEndOfImport;
-            this.outputError = options.outputError;
             this.fnLoad2 = options.fnLoad2;
         }
         FileSelect.prototype.fnReadNextFile = function (reader) {
@@ -15489,39 +15518,31 @@ define("FileSelect", ["require", "exports", "Utils", "ZipFile", "View"], functio
             }
         };
         FileSelect.prototype.fnOnLoad = function (event) {
-            var reader = event.target, data = (reader && reader.result) || null, file = this.file, name = file.name, type = file.type;
+            var reader = event.target, file = this.file, name = file.name;
+            var data = (reader && reader.result) || null, type = file.type;
             if (type === "application/x-zip-compressed" && data instanceof ArrayBuffer) {
-                var zip = void 0;
-                try {
-                    zip = new ZipFile_1.ZipFile(new Uint8Array(data), name); // rather data
-                }
-                catch (e) {
-                    Utils_24.Utils.console.error(e);
-                    if (e instanceof Error) {
-                        this.outputError(e, true);
-                    }
-                }
-                if (zip) {
-                    var zipDirectory = zip.getZipDirectory(), entries = Object.keys(zipDirectory);
-                    for (var i = 0; i < entries.length; i += 1) {
-                        var name2 = entries[i];
-                        var data2 = void 0;
-                        try {
-                            data2 = zip.readData(name2);
-                        }
-                        catch (e) {
-                            Utils_24.Utils.console.error(e);
-                            if (e instanceof Error) { // eslint-disable-line max-depth
-                                this.outputError(e, true);
-                            }
-                        }
-                        if (data2) {
-                            this.fnLoad2(data2, name2, type, this.imported);
-                        }
-                    }
-                }
+                type = "Z";
+                this.fnLoad2(new Uint8Array(data), name, type, this.imported);
             }
             else if (typeof data === "string") {
+                if (type === "text/plain") { // "text/plain"
+                    type = "A";
+                }
+                else if (data.indexOf("data:") === 0) {
+                    // check for meta info in data: data:application/octet-stream;base64, or: data:text/javascript;base64,
+                    var index = data.indexOf(",");
+                    if (index >= 0) {
+                        var info1 = data.substring(0, index);
+                        // remove meta prefix
+                        data = data.substring(index + 1);
+                        if (info1.indexOf("base64") >= 0) {
+                            data = Utils_24.Utils.atob(data); // decode base64
+                        }
+                        if (info1.indexOf("text/") >= 0) {
+                            type = "A";
+                        }
+                    }
+                }
                 this.fnLoad2(data, name, type, this.imported);
             }
             else {
@@ -15652,8 +15673,10 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             view.setHidden("kbdArea", !model.getProperty("showKbd"), "flex");
             view.setHidden("kbdLayoutArea", model.getProperty("showKbd"), "inherit"); // kbd visible => kbdlayout invisible
             view.setHidden("cpcArea", false); // make sure canvas is not hidden (allows to get width, height)
+            var palette = model.getProperty("palette");
             this.canvas = new Canvas_1.Canvas({
                 charset: cpcCharset_1.cpcCharset,
+                colors: palette === "grey" ? Controller.paletteGrey : Controller.paletteColors,
                 onClickKey: this.fnPutKeyInBufferHandler
             });
             view.setHidden("cpcArea", !model.getProperty("showCpc"));
@@ -16475,6 +16498,16 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 }
                 else if (type === "G") { // Hisoft Devpac GENA3 Z80 Assember
                     input = Controller.asmGena3Convert(input);
+                }
+                else if (type === "X") { // (Extended) Disk image file
+                    var fileHandler = this.fileHandler || this.createFileHandler(), imported = [];
+                    fileHandler.fnLoad2(input, inFile.name, type, imported); // no meta in data
+                    input = "1 ' " + imported.join(", "); // imported files
+                }
+                else if (type === "Z") { // ZIP file
+                    var fileHandler = this.fileHandler || this.createFileHandler(), imported = [];
+                    fileHandler.fnLoad2(input, inFile.name, type, imported);
+                    input = "1 ' " + imported.join(", "); // imported files
                 }
             }
             if (inFile.fnFileCallback) {
@@ -17457,7 +17490,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.adaptFilename = function (name, err) {
             return this.vm.vmAdaptFilename(name, err);
         };
-        Controller.prototype.initDropZone = function () {
+        Controller.prototype.createFileHandler = function () {
             if (!this.fileHandler) {
                 this.fileHandler = new FileHandler_1.FileHandler({
                     adaptFilename: this.adaptFilename.bind(this),
@@ -17465,11 +17498,24 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     outputError: this.outputError.bind(this)
                 });
             }
+            return this.fileHandler;
+        };
+        Controller.prototype.initDropZone = function () {
+            var fileHandler = this.fileHandler || this.createFileHandler();
+            /*
+            if (!this.fileHandler) {
+                this.fileHandler = new FileHandler({
+                    adaptFilename: this.adaptFilename.bind(this),
+                    updateStorageDatabase: this.updateStorageDatabase.bind(this),
+                    outputError: this.outputError.bind(this)
+                });
+            }
+            */
             if (!this.fileSelect) {
                 this.fileSelect = new FileSelect_1.FileSelect({
                     fnEndOfImport: this.fnEndOfImport.bind(this),
-                    outputError: this.outputError.bind(this),
-                    fnLoad2: this.fileHandler.fnLoad2.bind(this.fileHandler)
+                    //outputError: this.outputError.bind(this),
+                    fnLoad2: fileHandler.fnLoad2.bind(fileHandler)
                 });
             }
             var dropZone = View_7.View.getElementById1("dropZone");
@@ -17689,6 +17735,75 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.initialLoopTimeout = 1000 - speed * 10;
         };
         Controller.metaIdent = "CPCBasic";
+        // http://www.cpcwiki.eu/index.php/CPC_Palette
+        Controller.paletteColors = [
+            "#000000",
+            "#000080",
+            "#0000FF",
+            "#800000",
+            "#800080",
+            "#8000FF",
+            "#FF0000",
+            "#FF0080",
+            "#FF00FF",
+            "#008000",
+            "#008080",
+            "#0080FF",
+            "#808000",
+            "#808080",
+            "#8080FF",
+            "#FF8000",
+            "#FF8080",
+            "#FF80FF",
+            "#00FF00",
+            "#00FF80",
+            "#00FFFF",
+            "#80FF00",
+            "#80FF80",
+            "#80FFFF",
+            "#FFFF00",
+            "#FFFF80",
+            "#FFFFFF",
+            "#808080",
+            "#FF00FF",
+            "#FFFF80",
+            "#000080",
+            "#00FF80" //  31 Sea Green (same as 19)
+        ];
+        Controller.paletteGrey = [
+            "#000000",
+            "#0A0A0A",
+            "#131313",
+            "#1D1D1D",
+            "#262626",
+            "#303030",
+            "#393939",
+            "#434343",
+            "#4C4C4C",
+            "#575757",
+            "#606060",
+            "#6A6A6A",
+            "#737373",
+            "#7D7D7D",
+            "#868686",
+            "#909090",
+            "#999999",
+            "#A3A3A3",
+            "#ACACAC",
+            "#B5B5B5",
+            "#BFBFBF",
+            "#C9C9C9",
+            "#D2D2D2",
+            "#DCDCDC",
+            "#E5E5E5",
+            "#EFEFEF",
+            "#F8F8F8",
+            "#7D7D7D",
+            "#434343",
+            "#EFEFEF",
+            "#A0A0A0",
+            "#B5B5B5"
+        ];
         Controller.defaultExtensions = [
             "",
             "bas",
@@ -17923,6 +18038,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             showGallery: false,
             sound: true,
             speed: 100,
+            palette: "color",
             trace: false // trace code
         };
         return cpcBasic;

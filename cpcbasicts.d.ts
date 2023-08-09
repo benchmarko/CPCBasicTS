@@ -42,6 +42,7 @@ declare module "Utils" {
         static btoa: (data: string) => string;
         static isCustomError(e: unknown): e is CustomError;
         static split2(str: string, char: string): string[];
+        static string2Uint8Array(data: string): Uint8Array;
         static composeError(name: string, errorObject: Error, message: string, value: string, pos?: number, len?: number, line?: string | number, hidden?: boolean): CustomError;
         static composeVmError(name: string, errorObject: Error, errCode: number, value: string): CustomError;
     }
@@ -919,6 +920,7 @@ declare module "Canvas" {
     type CharsetType = CharType[];
     export interface CanvasOptions {
         charset: CharsetType;
+        colors: string[];
         onClickKey?: (arg0: string) => void;
     }
     export class Canvas {
@@ -969,7 +971,6 @@ declare module "Canvas" {
         private yBottom;
         private gTransparent;
         constructor(options: CanvasOptions);
-        private static readonly colors;
         private static readonly defaultInks;
         private static readonly modeData;
         reset(): void;
@@ -977,6 +978,7 @@ declare module "Canvas" {
         private static isLittleEndian;
         private static extractColorValues;
         private static extractAllColorValues;
+        setColors(colors: string[]): void;
         private setAlpha;
         private setNeedUpdate;
         private updateCanvas2;
@@ -1793,18 +1795,18 @@ declare module "FileHandler" {
         static createMinimalAmsdosHeader(type: string, start: number, length: number): AmsdosHeader;
         private static joinMeta;
         private static reRegExpIsText;
-        fnLoad2(data: string, name: string, type: string, imported: string[]): void;
+        private processZipFile;
+        private processDskFile;
+        fnLoad2(data: string | Uint8Array, name: string, type: string, imported: string[]): void;
     }
 }
 declare module "FileSelect" {
     export interface FileSelectOptions {
         fnEndOfImport: (imported: string[]) => void;
-        outputError: (error: Error, noSelection?: boolean) => void;
-        fnLoad2: (data: string, name: string, type: string, imported: string[]) => void;
+        fnLoad2: (data: string | Uint8Array, name: string, type: string, imported: string[]) => void;
     }
     export class FileSelect {
         private fnEndOfImport;
-        private outputError;
         private fnLoad2;
         private files;
         private fileIndex;
@@ -1858,6 +1860,8 @@ declare module "Controller" {
         private fileHandler?;
         private fileSelect?;
         constructor(model: Model, view: View);
+        private static readonly paletteColors;
+        private static readonly paletteGrey;
         private initDatabases;
         private onUserAction;
         addIndex(dir: string, input: string): void;
@@ -1955,6 +1959,7 @@ declare module "Controller" {
         private fnEndOfImport;
         private static fnHandleDragOver;
         private adaptFilename;
+        private createFileHandler;
         private initDropZone;
         private fnUpdateUndoRedoButtons;
         private fnInitUndoRedoButtons;

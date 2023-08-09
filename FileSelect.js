@@ -2,21 +2,19 @@
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define(["require", "exports", "./Utils", "./ZipFile", "./View"], function (require, exports, Utils_1, ZipFile_1, View_1) {
+define(["require", "exports", "./Utils", "./View"], function (require, exports, Utils_1, View_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.FileSelect = void 0;
     var FileSelect = /** @class */ (function () {
         function FileSelect(options) {
             this.fnEndOfImport = {};
-            this.outputError = {};
             this.fnLoad2 = {};
             this.files = {}; // = dataTransfer ? dataTransfer.files : ((event.target as any).files as FileList), // dataTransfer for drag&drop, target.files for file input
             this.fileIndex = 0;
             this.imported = []; // imported file names
             this.file = {}; // current file
             this.fnEndOfImport = options.fnEndOfImport;
-            this.outputError = options.outputError;
             this.fnLoad2 = options.fnLoad2;
         }
         FileSelect.prototype.fnReadNextFile = function (reader) {
@@ -42,39 +40,31 @@ define(["require", "exports", "./Utils", "./ZipFile", "./View"], function (requi
             }
         };
         FileSelect.prototype.fnOnLoad = function (event) {
-            var reader = event.target, data = (reader && reader.result) || null, file = this.file, name = file.name, type = file.type;
+            var reader = event.target, file = this.file, name = file.name;
+            var data = (reader && reader.result) || null, type = file.type;
             if (type === "application/x-zip-compressed" && data instanceof ArrayBuffer) {
-                var zip = void 0;
-                try {
-                    zip = new ZipFile_1.ZipFile(new Uint8Array(data), name); // rather data
-                }
-                catch (e) {
-                    Utils_1.Utils.console.error(e);
-                    if (e instanceof Error) {
-                        this.outputError(e, true);
-                    }
-                }
-                if (zip) {
-                    var zipDirectory = zip.getZipDirectory(), entries = Object.keys(zipDirectory);
-                    for (var i = 0; i < entries.length; i += 1) {
-                        var name2 = entries[i];
-                        var data2 = void 0;
-                        try {
-                            data2 = zip.readData(name2);
-                        }
-                        catch (e) {
-                            Utils_1.Utils.console.error(e);
-                            if (e instanceof Error) { // eslint-disable-line max-depth
-                                this.outputError(e, true);
-                            }
-                        }
-                        if (data2) {
-                            this.fnLoad2(data2, name2, type, this.imported);
-                        }
-                    }
-                }
+                type = "Z";
+                this.fnLoad2(new Uint8Array(data), name, type, this.imported);
             }
             else if (typeof data === "string") {
+                if (type === "text/plain") { // "text/plain"
+                    type = "A";
+                }
+                else if (data.indexOf("data:") === 0) {
+                    // check for meta info in data: data:application/octet-stream;base64, or: data:text/javascript;base64,
+                    var index = data.indexOf(",");
+                    if (index >= 0) {
+                        var info1 = data.substring(0, index);
+                        // remove meta prefix
+                        data = data.substring(index + 1);
+                        if (info1.indexOf("base64") >= 0) {
+                            data = Utils_1.Utils.atob(data); // decode base64
+                        }
+                        if (info1.indexOf("text/") >= 0) {
+                            type = "A";
+                        }
+                    }
+                }
                 this.fnLoad2(data, name, type, this.imported);
             }
             else {

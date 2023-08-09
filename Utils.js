@@ -132,6 +132,13 @@ define(["require", "exports"], function (require, exports) {
             var index = str.indexOf(char);
             return index >= 0 ? [str.slice(0, index), str.slice(index + 1)] : [str]; // eslint-disable-line array-element-newline
         };
+        Utils.string2Uint8Array = function (data) {
+            var buf = new ArrayBuffer(data.length), view = new Uint8Array(buf);
+            for (var i = 0; i < data.length; i += 1) {
+                view[i] = data.charCodeAt(i);
+            }
+            return view;
+        };
         Utils.composeError = function (name, errorObject, message, value, pos, len, line, hidden) {
             var customError = errorObject;
             customError.name = name;

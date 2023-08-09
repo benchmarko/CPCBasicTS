@@ -15,13 +15,6 @@ define(["require", "exports", "../Utils", "../ZipFile", "./TestHelper"], functio
                 "CPCBasic;B;0;408;;base64,UEsDBAoAAAAAAGyFJkYAAAAAAAAAAAAAAAAFAAAAZGlyMS9QSwMECgAAAAAAbIUmRgAAAAAAAAAAAAAAAAUAAABkaXIyL1BLAwQUAAgACABshSZGAAAAAAAAAAAAAAAABQAAAGZpbGUxS0xKBgBQSwcIwkEkNQUAAAADAAAAUEsDBBQACAAIAGyFJkYAAAAAAAAAAAAAAAAFAAAAZmlsZTKrqKwCAFBLBwhnuo7rBQAAAAMAAABQSwECLQMKAAAAAABshSZGAAAAAAAAAAAAAAAABQAAAAAAAAAAABAA7QEAAAAAZGlyMS9QSwECLQMKAAAAAABshSZGAAAAAAAAAAAAAAAABQAAAAAAAAAAABAAyQEjAAAAZGlyMi9QSwECLQMUAAgACABshSZGwkEkNQUAAAADAAAABQAAAAAAAAAAACAA7YFGAAAAZmlsZTFQSwECLQMUAAgACABshSZGZ7qO6wUAAAADAAAABQAAAAAAAAAAACAAyYF+AAAAZmlsZTJQSwUGAAAAAAQABADMAAAAtgAAAAAA": "file1=abc,file2=xyz"
             }
         };
-        function fnString2ArrayBuf(data) {
-            var buf = new ArrayBuffer(data.length), view = new Uint8Array(buf);
-            for (var i = 0; i < data.length; i += 1) {
-                view[i] = data.charCodeAt(i);
-            }
-            return buf;
-        }
         function fnExtractZipFiles(zip) {
             var result = [];
             if (zip) {
@@ -39,7 +32,7 @@ define(["require", "exports", "../Utils", "../ZipFile", "./TestHelper"], functio
             for (var key in tests) {
                 if (tests.hasOwnProperty(key)) {
                     var parts = Utils_1.Utils.split2(key, ","), meta = parts[0], data = Utils_1.Utils.atob(parts[1]), // decode base64
-                    zip = new ZipFile_1.ZipFile(new Uint8Array(fnString2ArrayBuf(data)), "name"), expected = tests[key];
+                    zip = new ZipFile_1.ZipFile(Utils_1.Utils.string2Uint8Array(data), "name"), expected = tests[key];
                     var result = void 0;
                     try {
                         result = fnExtractZipFiles(zip);

@@ -202,7 +202,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             else if (firstSector === 0x41) {
                 format = "system";
             }
-            else if ((firstSector === 0x01) && (diskInfo.tracks === 80)) { // big780k
+            else if ((firstSector === 0x91) && (diskInfo.tracks === 80)) { // parados80
+                format = "parados80";
+            }
+            else if ((firstSector === 0x01) && (diskInfo.tracks === 80)) { // big780k (usually diskInfo.heads: 2)
                 format = "big780k";
             }
             else {
@@ -284,7 +287,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return dir;
         };
         DiskImage.prototype.convertBlock2Sector = function (block) {
-            var format = this.format, spt = format.spt, blockSectors = 2, logSec = block * blockSectors, // directory is in block 0-1
+            var format = this.format, spt = format.spt, blockSectors = format.bls / 512, // usually 2
+            logSec = block * blockSectors, // directory is in block 0-1
             pos = {
                 track: Math.floor(logSec / spt) + format.off,
                 head: 0,
@@ -293,7 +297,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return pos;
         };
         DiskImage.prototype.readDirectory = function () {
-            var directorySectors = 4, extents = [], format = this.determineFormat(), off = format.off, firstSector = format.firstSector;
+            var directorySectors = 4, // could be determined from al0,al1
+            extents = [], format = this.determineFormat(), off = format.off, firstSector = format.firstSector;
             this.format = format;
             this.seekTrack(off, 0);
             for (var i = 0; i < directorySectors; i += 1) {
@@ -315,7 +320,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
         };
         DiskImage.prototype.readBlock = function (block) {
-            var diskInfo = this.diskInfo, blockSectors = 2, pos = this.convertBlock2Sector(block);
+            var diskInfo = this.diskInfo, blockSectors = this.format.bls / 512, // usually 2
+            pos = this.convertBlock2Sector(block);
             var out = "";
             if (pos.track >= diskInfo.tracks) {
                 Utils_1.Utils.console.error(this.composeError({}, "Block " + block + ": Track out of range", String(pos.track)));
@@ -331,11 +337,16 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return out;
         };
         DiskImage.prototype.readExtents = function (fileExtents) {
-            var recPerBlock = 8;
+            var recPerBlock = this.format.bls / 128; // usually 8
             var out = "";
             for (var i = 0; i < fileExtents.length; i += 1) {
                 var extent = fileExtents[i], blocks = extent.blocks;
                 var records = extent.records;
+                if (extent.extent > 0) {
+                    if (recPerBlock > 8) { // fast hack for parados: adapt records
+                        records += extent.extent * 128;
+                    }
+                }
                 for (var blockIndex = 0; blockIndex < blocks.length; blockIndex += 1) {
                     var block = this.readBlock(blocks[blockIndex]);
                     if (records < recPerBlock) { // block with some remaining data
@@ -505,6 +516,13 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             "3dos": {
                 parentRef: "data",
                 firstSector: 0x00
+            },
+            parados80: {
+                parentRef: "data",
+                tracks: 80,
+                firstSector: 0x91,
+                spt: 10,
+                bls: 2048
             },
             big780k: {
                 parentRef: "data",

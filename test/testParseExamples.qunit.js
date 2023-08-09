@@ -320,7 +320,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
     function testParseExample(example) {
         var codeGeneratorJs = cpcBasic.codeGeneratorJs, codeGeneratorToken = cpcBasic.codeGeneratorToken, basicTokenizer = cpcBasic.basicTokenizer, script = example.script || "", input = testCheckMeta(script);
         var checks = "", output, fnScript; // eslint-disable-line @typescript-eslint/ban-types
-        if (example.meta !== "D") { // skip data files
+        if (example.meta !== "D") { // skip data files  && example.meta !== "X" && example.meta !== "Z") { // skip data, dsk and zip files
             checks = "Js";
             var variables = cpcBasic.vmMock.testVariables1;
             // test lexer, parser and JS code generator

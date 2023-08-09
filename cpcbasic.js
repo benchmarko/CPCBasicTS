@@ -202,6 +202,7 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
             showGallery: false,
             sound: true,
             speed: 100,
+            palette: "color",
             trace: false // trace code
         };
         return cpcBasic;

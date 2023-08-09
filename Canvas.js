@@ -19,6 +19,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.offset = 0; // screen offset
             this.borderWidth = 4;
             this.needUpdate = false;
+            this.colorValues = [];
             this.currentInks = [];
             this.speedInk = [];
             this.inkSet = 0;
@@ -42,6 +43,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.gTransparent = false;
             this.options = {
                 charset: options.charset,
+                colors: options.colors,
                 onClickKey: options.onClickKey
             };
             this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
@@ -57,7 +59,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.width = width;
             this.height = height;
             this.dataset8 = new Uint8Array(new ArrayBuffer(width * height)); // array with pen values
-            this.colorValues = Canvas.extractAllColorValues(Canvas.colors);
+            this.setColors(this.options.colors);
             this.animationTimeoutId = undefined;
             this.animationFrame = undefined;
             if (this.canvas.getContext) { // not available on e.g. IE8
@@ -91,7 +93,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.speedInk[0] = 10;
             this.speedInk[1] = 10;
             this.speedInkCount = this.speedInk[this.inkSet];
-            this.canvas.style.borderColor = Canvas.colors[this.currentInks[this.inkSet][16]];
+            this.canvas.style.borderColor = this.options.colors[this.currentInks[this.inkSet][16]];
             this.setGPen(1);
             this.setGPaper(0);
             this.resetCustomChars();
@@ -114,12 +116,14 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 parseInt(color.substring(5, 7), 16)
             ];
         };
-        Canvas.extractAllColorValues = function (colors) {
-            var colorValues = [];
+        Canvas.extractAllColorValues = function (colors, colorValues) {
+            //const colorValues: number[][] = [];
             for (var i = 0; i < colors.length; i += 1) {
                 colorValues[i] = Canvas.extractColorValues(colors[i]);
             }
-            return colorValues;
+        };
+        Canvas.prototype.setColors = function (colors) {
+            Canvas.extractAllColorValues(colors, this.colorValues);
         };
         Canvas.prototype.setAlpha = function (alpha) {
             var buf8 = this.imageData.data, length = this.dataset8.length; // or: this.width * this.height
@@ -253,7 +257,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 }
                 // check border ink
                 if (this.currentInks[newInkSet][16] !== this.currentInks[currentInkSet][16]) {
-                    this.canvas.style.borderColor = Canvas.colors[this.currentInks[newInkSet][16]];
+                    this.canvas.style.borderColor = this.options.colors[this.currentInks[newInkSet][16]];
                 }
             }
         };
@@ -669,7 +673,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         Canvas.prototype.setBorder = function (ink1, ink2) {
             var needInkUpdate = this.setInk(16, ink1, ink2);
             if (needInkUpdate) {
-                this.canvas.style.borderColor = Canvas.colors[this.currentInks[this.inkSet][16]];
+                this.canvas.style.borderColor = this.options.colors[this.currentInks[this.inkSet][16]];
             }
         };
         Canvas.prototype.setGPen = function (gPen) {
@@ -930,41 +934,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         Canvas.prototype.getCanvasElement = function () {
             return this.canvas;
         };
-        // http://www.cpcwiki.eu/index.php/CPC_Palette
-        Canvas.colors = [
-            "#000000",
-            "#000080",
-            "#0000FF",
-            "#800000",
-            "#800080",
-            "#8000FF",
-            "#FF0000",
-            "#FF0080",
-            "#FF00FF",
-            "#008000",
-            "#008080",
-            "#0080FF",
-            "#808000",
-            "#808080",
-            "#8080FF",
-            "#FF8000",
-            "#FF8080",
-            "#FF80FF",
-            "#00FF00",
-            "#00FF80",
-            "#00FFFF",
-            "#80FF00",
-            "#80FF80",
-            "#80FFFF",
-            "#FFFF00",
-            "#FFFF80",
-            "#FFFFFF",
-            "#808080",
-            "#FF00FF",
-            "#FFFF80",
-            "#000080",
-            "#00FF80" //  31 Sea Green (same as 19)
-        ];
         // mode 0: pen 0-15,16=border; inks for pen 14,15 are alternating: "1,24", "16,11"
         Canvas.defaultInks = [
             [1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1],

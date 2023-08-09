@@ -37,6 +37,8 @@ export declare class Controller implements IController {
     private fileHandler?;
     private fileSelect?;
     constructor(model: Model, view: View);
+    private static readonly paletteColors;
+    private static readonly paletteGrey;
     private initDatabases;
     private onUserAction;
     addIndex(dir: string, input: string): void;
@@ -134,6 +136,7 @@ export declare class Controller implements IController {
     private fnEndOfImport;
     private static fnHandleDragOver;
     private adaptFilename;
+    private createFileHandler;
     private initDropZone;
     private fnUpdateUndoRedoButtons;
     private fnInitUndoRedoButtons;

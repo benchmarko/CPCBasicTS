@@ -185,6 +185,14 @@ export class DiskImage {
 			firstSector: 0x00
 		},
 
+		parados80: { // 396K (https://www.cpcwiki.eu/imgs/0/0d/Parados.pdf)
+			parentRef: "data",
+			tracks: 80,
+			firstSector: 0x91,
+			spt: 10,
+			bls: 2048
+		},
+
 		big780k: {
 			parentRef: "data",
 			al0: 0x80, // block 0 reserved
@@ -451,7 +459,9 @@ export class DiskImage {
 			format = "data";
 		} else if (firstSector === 0x41) {
 			format = "system";
-		} else if ((firstSector === 0x01) && (diskInfo.tracks === 80)) { // big780k
+		} else if ((firstSector === 0x91) && (diskInfo.tracks === 80)) { // parados80
+			format = "parados80";
+		} else if ((firstSector === 0x01) && (diskInfo.tracks === 80)) { // big780k (usually diskInfo.heads: 2)
 			format = "big780k";
 		} else {
 			throw this.composeError(Error(), "Unknown format with sector", String(firstSector));
@@ -552,7 +562,7 @@ export class DiskImage {
 	private convertBlock2Sector(block: number) {
 		const format = this.format,
 			spt = format.spt,
-			blockSectors = 2,
+			blockSectors = format.bls / 512, // usually 2
 			logSec = block * blockSectors, // directory is in block 0-1
 			pos: SectorPos = {
 				track: Math.floor(logSec / spt) + format.off,
@@ -564,7 +574,7 @@ export class DiskImage {
 	}
 
 	readDirectory(): DirectoryListType {
-		const directorySectors = 4,
+		const directorySectors = 4, // could be determined from al0,al1
 			extents: ExtentEntry[] = [],
 			format = this.determineFormat(),
 			off = format.off,
@@ -599,7 +609,7 @@ export class DiskImage {
 
 	private readBlock(block: number) {
 		const diskInfo = this.diskInfo,
-			blockSectors = 2,
+			blockSectors = this.format.bls / 512, // usually 2
 			pos = this.convertBlock2Sector(block);
 		let	out = "";
 
@@ -619,13 +629,19 @@ export class DiskImage {
 	}
 
 	private readExtents(fileExtents: ExtentEntry[]) {
-		const recPerBlock = 8;
+		const recPerBlock = this.format.bls / 128; // usually 8
 		let out = "";
 
 		for (let i = 0; i < fileExtents.length; i += 1) {
 			const extent = fileExtents[i],
 				blocks = extent.blocks;
 			let	records = extent.records;
+
+			if (extent.extent > 0) {
+				if (recPerBlock > 8) { // fast hack for parados: adapt records
+					records += extent.extent * 128;
+				}
+			}
 
 			for (let blockIndex = 0; blockIndex < blocks.length; blockIndex += 1) {
 				let block = this.readBlock(blocks[blockIndex]);

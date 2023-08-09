@@ -2,6 +2,7 @@ declare type CharType = number[];
 declare type CharsetType = CharType[];
 export interface CanvasOptions {
     charset: CharsetType;
+    colors: string[];
     onClickKey?: (arg0: string) => void;
 }
 export declare class Canvas {
@@ -52,7 +53,6 @@ export declare class Canvas {
     private yBottom;
     private gTransparent;
     constructor(options: CanvasOptions);
-    private static readonly colors;
     private static readonly defaultInks;
     private static readonly modeData;
     reset(): void;
@@ -60,6 +60,7 @@ export declare class Canvas {
     private static isLittleEndian;
     private static extractColorValues;
     private static extractAllColorValues;
+    setColors(colors: string[]): void;
     private setAlpha;
     private setNeedUpdate;
     private updateCanvas2;

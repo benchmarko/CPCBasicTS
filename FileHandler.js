@@ -2,7 +2,7 @@
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define(["require", "exports", "./Utils", "./DiskImage"], function (require, exports, Utils_1, DiskImage_1) {
+define(["require", "exports", "./Utils", "./DiskImage", "./ZipFile"], function (require, exports, Utils_1, DiskImage_1, ZipFile_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.FileHandler = void 0;
@@ -39,64 +39,101 @@ define(["require", "exports", "./Utils", "./DiskImage"], function (require, expo
             ].join(";");
         };
         // starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
-        FileHandler.prototype.fnLoad2 = function (data, name, type, imported) {
-            var header, storageName = this.adaptFilename(name, "FILE");
-            storageName = FileHandler.fnLocalStorageName(storageName);
-            if (type === "text/plain") {
-                header = FileHandler.createMinimalAmsdosHeader("A", 0, data.length);
+        FileHandler.prototype.processZipFile = function (uint8Array, name, imported) {
+            var zip;
+            try {
+                zip = new ZipFile_1.ZipFile(uint8Array, name); // rather data
             }
-            else {
-                if (type === "application/x-zip-compressed" || type === "cpcBasic/binary") { // are we a file inside zip?
-                    // empty
+            catch (e) {
+                Utils_1.Utils.console.error(e);
+                if (e instanceof Error) {
+                    this.outputError(e, true);
                 }
-                else { // e.g. "data:application/octet-stream;base64,..."
-                    var index = data.indexOf(",");
-                    if (index >= 0) {
-                        var info1 = data.substring(0, index);
-                        data = data.substring(index + 1); // remove meta prefix
-                        if (info1.indexOf("base64") >= 0) {
-                            data = Utils_1.Utils.atob(data); // decode base64
-                        }
-                    }
-                }
-                header = DiskImage_1.DiskImage.parseAmsdosHeader(data);
-                if (header) {
-                    data = data.substring(0x80); // remove header
-                }
-                else if (FileHandler.reRegExpIsText.test(data)) {
-                    header = FileHandler.createMinimalAmsdosHeader("A", 0, data.length);
-                }
-                else if (DiskImage_1.DiskImage.testDiskIdent(data.substring(0, 8))) { // disk image file?
+            }
+            if (zip) {
+                var zipDirectory = zip.getZipDirectory(), entries = Object.keys(zipDirectory);
+                for (var i = 0; i < entries.length; i += 1) {
+                    var name2 = entries[i];
+                    var data2 = void 0;
                     try {
-                        var dsk = new DiskImage_1.DiskImage({
-                            data: data,
-                            diskName: name
-                        }), dir = dsk.readDirectory(), diskFiles = Object.keys(dir);
-                        for (var i = 0; i < diskFiles.length; i += 1) {
-                            var fileName = diskFiles[i];
-                            try { // eslint-disable-line max-depth
-                                data = dsk.readFile(dir[fileName]);
-                                this.fnLoad2(data, fileName, "cpcBasic/binary", imported); // recursive
-                            }
-                            catch (e) {
-                                Utils_1.Utils.console.error(e);
-                                if (e instanceof Error) { // eslint-disable-line max-depth
-                                    this.outputError(e, true);
-                                }
-                            }
-                        }
+                        data2 = zip.readData(name2);
                     }
                     catch (e) {
                         Utils_1.Utils.console.error(e);
-                        if (e instanceof Error) {
+                        if (e instanceof Error) { // eslint-disable-line max-depth
                             this.outputError(e, true);
                         }
                     }
-                    header = undefined; // ignore dsk file
+                    if (data2) {
+                        this.fnLoad2(data2, name2, "", imported); // type not known but without meta
+                    }
                 }
-                else { // binary
+            }
+        };
+        FileHandler.prototype.processDskFile = function (data, name, imported) {
+            try {
+                var dsk = new DiskImage_1.DiskImage({
+                    data: data,
+                    diskName: name
+                }), dir = dsk.readDirectory(), diskFiles = Object.keys(dir);
+                for (var i = 0; i < diskFiles.length; i += 1) {
+                    var fileName = diskFiles[i];
+                    try { // eslint-disable-line max-depth
+                        data = dsk.readFile(dir[fileName]);
+                        this.fnLoad2(data, fileName, "", imported); // recursive
+                    }
+                    catch (e) {
+                        Utils_1.Utils.console.error(e);
+                        if (e instanceof Error) { // eslint-disable-line max-depth
+                            this.outputError(e, true);
+                        }
+                    }
+                }
+            }
+            catch (e) {
+                Utils_1.Utils.console.error(e);
+                if (e instanceof Error) {
+                    this.outputError(e, true);
+                }
+            }
+        };
+        FileHandler.prototype.fnLoad2 = function (data, name, type, imported) {
+            if (data instanceof Uint8Array) { // FileSelect filereader zip file?
+                this.processZipFile(data, name, imported);
+                return;
+            }
+            var header, storageName = this.adaptFilename(name, "FILE");
+            storageName = FileHandler.fnLocalStorageName(storageName);
+            if (type === "") { // detetermine type
+                header = DiskImage_1.DiskImage.parseAmsdosHeader(data);
+                if (header) {
+                    type = "H"; // with header
+                    data = data.substring(0x80); // remove header
+                }
+                else if (FileHandler.reRegExpIsText.test(data)) {
+                    type = "A";
+                }
+                else if (DiskImage_1.DiskImage.testDiskIdent(data.substring(0, 8))) { // disk image file?
+                    type = "X";
+                }
+            }
+            switch (type) {
+                case "A": // "text/plain"
+                case "B": // binary?
+                    header = FileHandler.createMinimalAmsdosHeader(type, 0, data.length);
+                    break;
+                case "Z": // zip file?
+                    this.processZipFile(Utils_1.Utils.string2Uint8Array(data), name, imported);
+                    break;
+                case "X": // dsk file?
+                    this.processDskFile(data, name, imported);
+                    break;
+                case "H": // with header?
+                    break;
+                default:
+                    Utils_1.Utils.console.warn("fnLoad2: " + name + ": Unknown file type: " + type + ", assuming B");
                     header = FileHandler.createMinimalAmsdosHeader("B", 0, data.length);
-                }
+                    break;
             }
             if (header) {
                 var meta = FileHandler.joinMeta(header);

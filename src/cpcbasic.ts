@@ -38,6 +38,7 @@ class cpcBasic {
 		showGallery: false,
 		sound: true,
 		speed: 100,
+		palette: "color", // currently only on relaod: "color" or "grey"
 		trace: false // trace code
 	};
 

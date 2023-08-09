@@ -461,7 +461,7 @@ function testParseExample(example: ExampleEntry) {
 		output: IOutput,
 		fnScript: Function; // eslint-disable-line @typescript-eslint/ban-types
 
-	if (example.meta !== "D") { // skip data files
+	if (example.meta !== "D") { // skip data files  && example.meta !== "X" && example.meta !== "Z") { // skip data, dsk and zip files
 		checks = "Js";
 		const variables = cpcBasic.vmMock.testVariables1;
 

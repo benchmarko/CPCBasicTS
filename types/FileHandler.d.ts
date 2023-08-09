@@ -14,6 +14,8 @@ export declare class FileHandler {
     static createMinimalAmsdosHeader(type: string, start: number, length: number): AmsdosHeader;
     private static joinMeta;
     private static reRegExpIsText;
-    fnLoad2(data: string, name: string, type: string, imported: string[]): void;
+    private processZipFile;
+    private processDskFile;
+    fnLoad2(data: string | Uint8Array, name: string, type: string, imported: string[]): void;
 }
 //# sourceMappingURL=FileHandler.d.ts.map

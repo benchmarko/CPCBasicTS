@@ -15,6 +15,7 @@ type CharsetType = CharType[];
 
 export interface CanvasOptions {
 	charset: CharsetType
+	colors: string[],
 	onClickKey?: (arg0: string) => void
 }
 
@@ -54,7 +55,7 @@ export class Canvas {
 
 	private needUpdate = false;
 
-	private readonly colorValues: number[][];
+	private readonly colorValues: number[][] = [];
 
 	private readonly currentInks: number[][] = [];
 	private readonly speedInk: number[] = [];
@@ -101,6 +102,7 @@ export class Canvas {
 	constructor(options: CanvasOptions) {
 		this.options = {
 			charset: options.charset,
+			colors: options.colors,
 			onClickKey: options.onClickKey
 		};
 		this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
@@ -125,7 +127,7 @@ export class Canvas {
 
 		this.dataset8 = new Uint8Array(new ArrayBuffer(width * height)); // array with pen values
 
-		this.colorValues = Canvas.extractAllColorValues(Canvas.colors);
+		this.setColors(this.options.colors);
 
 		this.animationTimeoutId = undefined;
 		this.animationFrame = undefined;
@@ -155,42 +157,6 @@ export class Canvas {
 		}
 		this.reset();
 	}
-
-	// http://www.cpcwiki.eu/index.php/CPC_Palette
-	private static readonly colors = [
-		"#000000", //  0 Black
-		"#000080", //  1 Blue
-		"#0000FF", //  2 Bright Blue
-		"#800000", //  3 Red
-		"#800080", //  4 Magenta
-		"#8000FF", //  5 Mauve
-		"#FF0000", //  6 Bright Red
-		"#FF0080", //  7 Purple
-		"#FF00FF", //  8 Bright Magenta
-		"#008000", //  9 Green
-		"#008080", // 10 Cyan
-		"#0080FF", // 11 Sky Blue
-		"#808000", // 12 Yellow
-		"#808080", // 13 White
-		"#8080FF", // 14 Pastel Blue
-		"#FF8000", // 15 Orange
-		"#FF8080", // 16 Pink
-		"#FF80FF", // 17 Pastel Magenta
-		"#00FF00", // 18 Bright Green
-		"#00FF80", // 19 Sea Green
-		"#00FFFF", // 20 Bright Cyan
-		"#80FF00", // 21 Lime
-		"#80FF80", // 22 Pastel Green
-		"#80FFFF", // 23 Pastel Cyan
-		"#FFFF00", // 24 Bright Yellow
-		"#FFFF80", // 25 Pastel Yellow
-		"#FFFFFF", // 26 Bright White
-		"#808080", // 27 White (same as 13)
-		"#FF00FF", // 28 Bright Magenta (same as 8)
-		"#FFFF80", // 29 Pastel Yellow (same as 25)
-		"#000080", // 30 Blue (same as 1)
-		"#00FF80" //  31 Sea Green (same as 19)
-	];
 
 	// mode 0: pen 0-15,16=border; inks for pen 14,15 are alternating: "1,24", "16,11"
 	private static readonly defaultInks = [
@@ -229,7 +195,7 @@ export class Canvas {
 		this.speedInk[0] = 10;
 		this.speedInk[1] = 10;
 		this.speedInkCount = this.speedInk[this.inkSet];
-		this.canvas.style.borderColor = Canvas.colors[this.currentInks[this.inkSet][16]];
+		this.canvas.style.borderColor = this.options.colors[this.currentInks[this.inkSet][16]];
 
 		this.setGPen(1);
 		this.setGPaper(0);
@@ -252,7 +218,7 @@ export class Canvas {
 		return (c[0] === 0xef);
 	}
 
-	private static extractColorValues(color: string): number[] { // from "#rrggbb"
+	private static extractColorValues(color: string) { // from "#rrggbb"
 		return [
 			parseInt(color.substring(1, 3), 16),
 			parseInt(color.substring(3, 5), 16),
@@ -260,14 +226,16 @@ export class Canvas {
 		];
 	}
 
-	private static extractAllColorValues(colors: string[]): number[][] {
-		const colorValues: number[][] = [];
+	private static extractAllColorValues(colors: string[], colorValues: number[][]) {
+		//const colorValues: number[][] = [];
 
 		for (let i = 0; i < colors.length; i += 1) {
 			colorValues[i] = Canvas.extractColorValues(colors[i]);
 		}
+	}
 
-		return colorValues;
+	setColors(colors: string[]): void {
+		Canvas.extractAllColorValues(colors, this.colorValues);
 	}
 
 	private setAlpha(alpha: number) {
@@ -445,7 +413,7 @@ export class Canvas {
 
 			// check border ink
 			if (this.currentInks[newInkSet][16] !== this.currentInks[currentInkSet][16]) {
-				this.canvas.style.borderColor = Canvas.colors[this.currentInks[newInkSet][16]];
+				this.canvas.style.borderColor = this.options.colors[this.currentInks[newInkSet][16]];
 			}
 		}
 	}
@@ -989,7 +957,7 @@ export class Canvas {
 		const needInkUpdate = this.setInk(16, ink1, ink2);
 
 		if (needInkUpdate) {
-			this.canvas.style.borderColor = Canvas.colors[this.currentInks[this.inkSet][16]];
+			this.canvas.style.borderColor = this.options.colors[this.currentInks[this.inkSet][16]];
 		}
 	}
 

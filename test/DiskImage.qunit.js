@@ -28,13 +28,6 @@ define(["require", "exports", "../Utils", "../BasicTokenizer", "../DiskImage", "
         }
     };
     QUnit.module("DiskImage: Tests", function (hooks) {
-        function fnString2ArrayBuf(data) {
-            var buf = new ArrayBuffer(data.length), view = new Uint8Array(buf);
-            for (var i = 0; i < data.length; i += 1) {
-                view[i] = data.charCodeAt(i);
-            }
-            return buf;
-        }
         function createMinimalAmsdosHeader(type, start, length) {
             return {
                 typeString: type,
@@ -72,7 +65,7 @@ define(["require", "exports", "../Utils", "../BasicTokenizer", "../DiskImage", "
             for (var key in tests) {
                 if (tests.hasOwnProperty(key)) {
                     var parts = Utils_1.Utils.split2(key, ","), meta = parts[0], compressed = Utils_1.Utils.atob(parts[1]), // decode base64
-                    zip = new ZipFile_1.ZipFile(new Uint8Array(fnString2ArrayBuf(compressed)), "name"), firstFileInZip = Object.keys(zip.getZipDirectory())[0], uncompressed = zip.readData(firstFileInZip), disk = new DiskImage_1.DiskImage({
+                    zip = new ZipFile_1.ZipFile(Utils_1.Utils.string2Uint8Array(compressed), "name"), firstFileInZip = Object.keys(zip.getZipDirectory())[0], uncompressed = zip.readData(firstFileInZip), disk = new DiskImage_1.DiskImage({
                         data: uncompressed,
                         diskName: "name",
                         quiet: true

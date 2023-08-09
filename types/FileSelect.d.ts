@@ -1,11 +1,9 @@
 export interface FileSelectOptions {
     fnEndOfImport: (imported: string[]) => void;
-    outputError: (error: Error, noSelection?: boolean) => void;
-    fnLoad2: (data: string, name: string, type: string, imported: string[]) => void;
+    fnLoad2: (data: string | Uint8Array, name: string, type: string, imported: string[]) => void;
 }
 export declare class FileSelect {
     private fnEndOfImport;
-    private outputError;
     private fnLoad2;
     private files;
     private fileIndex;
