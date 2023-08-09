@@ -180,6 +180,16 @@ export class Utils {
 		return index >= 0 ? [str.slice(0, index), str.slice(index + 1)] : [str]; // eslint-disable-line array-element-newline
 	}
 
+	static string2Uint8Array(data: string): Uint8Array {
+		const buf = new ArrayBuffer(data.length),
+			view = new Uint8Array(buf);
+
+		for (let i = 0; i < data.length; i += 1) {
+			view[i] = data.charCodeAt(i);
+		}
+		return view;
+	}
+
 	static composeError(name: string, errorObject: Error, message: string, value: string, pos?: number, len?: number, line?: string | number, hidden?: boolean): CustomError {
 		const customError = errorObject as CustomError;
 

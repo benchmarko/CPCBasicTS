@@ -4,20 +4,17 @@
 //
 
 import { Utils } from "./Utils";
-import { ZipFile } from "./ZipFile";
 import { View } from "./View";
 
 
 export interface FileSelectOptions {
 	fnEndOfImport: (imported: string[]) => void;
-	outputError: (error: Error, noSelection?: boolean) => void;
-	fnLoad2: (data: string, name: string, type: string, imported: string[]) => void;
+	fnLoad2: (data: string | Uint8Array, name: string, type: string, imported: string[]) => void;
 }
 
 export class FileSelect {
 	private fnEndOfImport = {} as (imported: string[]) => void;
-	private outputError = {} as (error: Error, noSelection?: boolean) => void;
-	private fnLoad2 = {} as (data: string, name: string, type: string, imported: string[]) => void;
+	private fnLoad2 = {} as (data: string | Uint8Array, name: string, type: string, imported: string[]) => void;
 
 	private files = {} as FileList; // = dataTransfer ? dataTransfer.files : ((event.target as any).files as FileList), // dataTransfer for drag&drop, target.files for file input
 	private fileIndex = 0;
@@ -26,7 +23,6 @@ export class FileSelect {
 
 	constructor(options: FileSelectOptions) {
 		this.fnEndOfImport = options.fnEndOfImport;
-		this.outputError = options.outputError;
 		this.fnLoad2 = options.fnLoad2;
 	}
 
@@ -55,45 +51,34 @@ export class FileSelect {
 
 	private fnOnLoad(event: ProgressEvent<FileReader>) {
 		const reader = event.target,
-			data = (reader && reader.result) || null,
 			file = this.file,
-			name = file.name,
+			name = file.name;
+		let data = (reader && reader.result) || null,
 			type = file.type;
 
 		if (type === "application/x-zip-compressed" && data instanceof ArrayBuffer) {
-			let zip: ZipFile | undefined;
-
-			try {
-				zip = new ZipFile(new Uint8Array(data), name); // rather data
-			} catch (e) {
-				Utils.console.error(e);
-				if (e instanceof Error) {
-					this.outputError(e, true);
-				}
-			}
-			if (zip) {
-				const zipDirectory = zip.getZipDirectory(),
-					entries = Object.keys(zipDirectory);
-
-				for (let i = 0; i < entries.length; i += 1) {
-					const name2 = entries[i];
-					let data2: string | undefined;
-
-					try {
-						data2 = zip.readData(name2);
-					} catch (e) {
-						Utils.console.error(e);
-						if (e instanceof Error) { // eslint-disable-line max-depth
-							this.outputError(e, true);
-						}
-					}
-
-					if (data2) {
-						this.fnLoad2(data2, name2, type, this.imported);
-					}
-				}
-			}
+			type = "Z";
+			this.fnLoad2(new Uint8Array(data), name, type, this.imported);
 		} else if (typeof data === "string") {
+			if (type === "text/plain") { // "text/plain"
+				type = "A";
+			} else if (data.indexOf("data:") === 0) {
+				// check for meta info in data: data:application/octet-stream;base64, or: data:text/javascript;base64,
+				const index = data.indexOf(",");
+
+				if (index >= 0) {
+					const info1 = data.substring(0, index);
+
+					// remove meta prefix
+					data = data.substring(index + 1);
+					if (info1.indexOf("base64") >= 0) {
+						data = Utils.atob(data); // decode base64
+					}
+					if (info1.indexOf("text/") >= 0) {
+						type = "A";
+					}
+				}
+			}
 			this.fnLoad2(data, name, type, this.imported);
 		} else {
 			Utils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);

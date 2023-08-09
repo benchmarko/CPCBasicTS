@@ -36,16 +36,6 @@ const allTests: AllTestsType = {
 
 
 QUnit.module("DiskImage: Tests", function (hooks) {
-	function fnString2ArrayBuf(data: string) {
-		const buf = new ArrayBuffer(data.length),
-			view = new Uint8Array(buf);
-
-		for (let i = 0; i < data.length; i += 1) {
-			view[i] = data.charCodeAt(i);
-		}
-		return buf;
-	}
-
 	function createMinimalAmsdosHeader(type: string, start: number, length: number) {
 		return {
 			typeString: type,
@@ -92,7 +82,7 @@ QUnit.module("DiskImage: Tests", function (hooks) {
 				const parts = Utils.split2(key, ","),
 					meta = parts[0],
 					compressed = Utils.atob(parts[1]), // decode base64
-					zip = new ZipFile(new Uint8Array(fnString2ArrayBuf(compressed)), "name"),
+					zip = new ZipFile(Utils.string2Uint8Array(compressed), "name"),
 					firstFileInZip = Object.keys(zip.getZipDirectory())[0],
 					uncompressed = zip.readData(firstFileInZip),
 					disk = new DiskImage({

@@ -116,8 +116,11 @@ export class Controller implements IController {
 		view.setHidden("kbdLayoutArea", model.getProperty<boolean>("showKbd"), "inherit"); // kbd visible => kbdlayout invisible
 
 		view.setHidden("cpcArea", false); // make sure canvas is not hidden (allows to get width, height)
+		const palette = model.getProperty<string>("palette");
+
 		this.canvas = new Canvas({
 			charset: cpcCharset,
+			colors: palette === "grey" ? Controller.paletteGrey : Controller.paletteColors,
 			onClickKey: this.fnPutKeyInBufferHandler
 		});
 		view.setHidden("cpcArea", !model.getProperty<boolean>("showCpc"));
@@ -206,6 +209,77 @@ export class Controller implements IController {
 
 		this.initDatabases();
 	}
+
+	// http://www.cpcwiki.eu/index.php/CPC_Palette
+	private static readonly paletteColors = [
+		"#000000", //  0 Black
+		"#000080", //  1 Blue
+		"#0000FF", //  2 Bright Blue
+		"#800000", //  3 Red
+		"#800080", //  4 Magenta
+		"#8000FF", //  5 Mauve
+		"#FF0000", //  6 Bright Red
+		"#FF0080", //  7 Purple
+		"#FF00FF", //  8 Bright Magenta
+		"#008000", //  9 Green
+		"#008080", // 10 Cyan
+		"#0080FF", // 11 Sky Blue
+		"#808000", // 12 Yellow
+		"#808080", // 13 White
+		"#8080FF", // 14 Pastel Blue
+		"#FF8000", // 15 Orange
+		"#FF8080", // 16 Pink
+		"#FF80FF", // 17 Pastel Magenta
+		"#00FF00", // 18 Bright Green
+		"#00FF80", // 19 Sea Green
+		"#00FFFF", // 20 Bright Cyan
+		"#80FF00", // 21 Lime
+		"#80FF80", // 22 Pastel Green
+		"#80FFFF", // 23 Pastel Cyan
+		"#FFFF00", // 24 Bright Yellow
+		"#FFFF80", // 25 Pastel Yellow
+		"#FFFFFF", // 26 Bright White
+		"#808080", // 27 White (same as 13)
+		"#FF00FF", // 28 Bright Magenta (same as 8)
+		"#FFFF80", // 29 Pastel Yellow (same as 25)
+		"#000080", // 30 Blue (same as 1)
+		"#00FF80" //  31 Sea Green (same as 19)
+	];
+
+	private static readonly paletteGrey = [
+		"#000000",
+		"#0A0A0A",
+		"#131313",
+		"#1D1D1D",
+		"#262626",
+		"#303030",
+		"#393939",
+		"#434343",
+		"#4C4C4C",
+		"#575757",
+		"#606060",
+		"#6A6A6A",
+		"#737373",
+		"#7D7D7D",
+		"#868686",
+		"#909090",
+		"#999999",
+		"#A3A3A3",
+		"#ACACAC",
+		"#B5B5B5",
+		"#BFBFBF",
+		"#C9C9C9",
+		"#D2D2D2",
+		"#DCDCDC",
+		"#E5E5E5",
+		"#EFEFEF",
+		"#F8F8F8",
+		"#7D7D7D",
+		"#434343",
+		"#EFEFEF",
+		"#A0A0A0",
+		"#B5B5B5"
+	];
 
 	private initDatabases() {
 		const model = this.model,
@@ -1139,6 +1213,18 @@ export class Controller implements IController {
 				input = input.replace(/\x1a+$/, ""); // eslint-disable-line no-control-regex
 			} else if (type === "G") { // Hisoft Devpac GENA3 Z80 Assember
 				input = Controller.asmGena3Convert(input);
+			} else if (type === "X") { // (Extended) Disk image file
+				const fileHandler = this.fileHandler || this.createFileHandler(),
+					imported: string[] = [];
+
+				fileHandler.fnLoad2(input, inFile.name, type, imported); // no meta in data
+				input = "1 ' " + imported.join(", "); // imported files
+			} else if (type === "Z") { // ZIP file
+				const fileHandler = this.fileHandler || this.createFileHandler(),
+					imported: string[] = [];
+
+				fileHandler.fnLoad2(input, inFile.name, type, imported);
+				input = "1 ' " + imported.join(", "); // imported files
 			}
 		}
 
@@ -2353,7 +2439,7 @@ export class Controller implements IController {
 		return this.vm.vmAdaptFilename(name, err);
 	}
 
-	private initDropZone() {
+	private createFileHandler() {
 		if (!this.fileHandler) {
 			this.fileHandler = new FileHandler({
 				adaptFilename: this.adaptFilename.bind(this),
@@ -2361,12 +2447,27 @@ export class Controller implements IController {
 				outputError: this.outputError.bind(this)
 			});
 		}
+		return this.fileHandler;
+	}
+
+	private initDropZone() {
+		const fileHandler = this.fileHandler || this.createFileHandler();
+
+		/*
+		if (!this.fileHandler) {
+			this.fileHandler = new FileHandler({
+				adaptFilename: this.adaptFilename.bind(this),
+				updateStorageDatabase: this.updateStorageDatabase.bind(this),
+				outputError: this.outputError.bind(this)
+			});
+		}
+		*/
 
 		if (!this.fileSelect) {
 			this.fileSelect = new FileSelect({
 				fnEndOfImport: this.fnEndOfImport.bind(this),
-				outputError: this.outputError.bind(this),
-				fnLoad2: this.fileHandler.fnLoad2.bind(this.fileHandler)
+				//outputError: this.outputError.bind(this),
+				fnLoad2: fileHandler.fnLoad2.bind(fileHandler)
 			});
 		}
 		const dropZone = View.getElementById1("dropZone");
