@@ -456,6 +456,7 @@ export class Controller implements IController {
 			const item = options[i],
 				input: AreaInputElement = {
 					value: item.value,
+					title: item.title,
 					checked: item.selected,
 					imgUrl: database.src + "/" + directory + "/img/" + item.value + ".png"
 				};
