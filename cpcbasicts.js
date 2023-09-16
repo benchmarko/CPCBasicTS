@@ -7622,6 +7622,7 @@ define("View", ["require", "exports", "Utils"], function (require, exports, Util
                     label = window.document.createElement("label");
                     label.setAttribute("for", "galleryItem" + i);
                     label.setAttribute("style", 'background: url("' + item.imgUrl + '"); background-size: cover');
+                    label.setAttribute("title", item.title);
                     element.appendChild(input);
                     element.appendChild(label);
                 }
@@ -7634,6 +7635,7 @@ define("View", ["require", "exports", "Utils"], function (require, exports, Util
                         input.value = item.value;
                         label = childNodes[i * 2 + 1];
                         label.setAttribute("style", 'background: url("' + item.imgUrl + '");');
+                        label.setAttribute("title", item.title);
                     }
                     if (input.checked !== item.checked) {
                         input.checked = item.checked;
@@ -15870,6 +15872,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             for (var i = 0; i < options.length; i += 1) {
                 var item = options[i], input = {
                     value: item.value,
+                    title: item.title,
                     checked: item.selected,
                     imgUrl: database.src + "/" + directory + "/img/" + item.value + ".png"
                 };

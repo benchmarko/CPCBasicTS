@@ -106,6 +106,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     label = window.document.createElement("label");
                     label.setAttribute("for", "galleryItem" + i);
                     label.setAttribute("style", 'background: url("' + item.imgUrl + '"); background-size: cover');
+                    label.setAttribute("title", item.title);
                     element.appendChild(input);
                     element.appendChild(label);
                 }
@@ -118,6 +119,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                         input.value = item.value;
                         label = childNodes[i * 2 + 1];
                         label.setAttribute("style", 'background: url("' + item.imgUrl + '");');
+                        label.setAttribute("title", item.title);
                     }
                     if (input.checked !== item.checked) {
                         input.checked = item.checked;

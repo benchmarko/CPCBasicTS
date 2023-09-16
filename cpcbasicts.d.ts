@@ -793,6 +793,7 @@ declare module "View" {
     }
     export interface AreaInputElement {
         value: string;
+        title: string;
         checked: boolean;
         imgUrl: string;
     }

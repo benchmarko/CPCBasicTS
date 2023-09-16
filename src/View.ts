@@ -14,6 +14,7 @@ export interface SelectOptionElement { // similar to HtmlOptionElement
 
 export interface AreaInputElement {
 	value: string,
+	title: string,
 	checked: boolean,
 	imgUrl: string
 }
@@ -141,6 +142,7 @@ export class View {
 				label = window.document.createElement("label");
 				label.setAttribute("for", "galleryItem" + i);
 				label.setAttribute("style", 'background: url("' + item.imgUrl + '"); background-size: cover');
+				label.setAttribute("title", item.title);
 
 				element.appendChild(input);
 				element.appendChild(label);
@@ -153,6 +155,7 @@ export class View {
 					input.value = item.value;
 					label = childNodes[i * 2 + 1] as HTMLLabelElement;
 					label.setAttribute("style", 'background: url("' + item.imgUrl + '");');
+					label.setAttribute("title", item.title);
 				}
 				if (input.checked !== item.checked) {
 					input.checked = item.checked;

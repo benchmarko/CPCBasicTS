@@ -267,6 +267,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             for (var i = 0; i < options.length; i += 1) {
                 var item = options[i], input = {
                     value: item.value,
+                    title: item.title,
                     checked: item.selected,
                     imgUrl: database.src + "/" + directory + "/img/" + item.value + ".png"
                 };
