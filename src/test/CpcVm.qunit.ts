@@ -1945,6 +1945,11 @@ const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [], // esli
 	varTypesMap: Record<string, string> = {},
 	variablesMap: Record<string, string | number | string[] | number[]> = {},
 	mockCanvas = {
+		setOnCharClick: function (...args) {
+			lastTestFunctions.push({
+				setOnCharClick: [String(args)]
+			});
+		},
 		changeMode: function (...args) {
 			lastTestFunctions.push({
 				changeMode: args
@@ -2159,6 +2164,11 @@ const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [], // esli
 	} as Canvas,
 
 	mockTextCanvas = {
+		setOnCharClick: function (...args) {
+			lastTestFunctions.push({
+				setOnCharClick: [String(args)]
+			});
+		},
 		clearFullWindow: function (...args) {
 			lastTestFunctions.push({
 				txtClearFullWindow: args
@@ -3368,12 +3378,16 @@ QUnit.module("CpcVm: vm functions", function (hooks) {
 		that.cpcVm = new CpcVm(config);
 	});
 
+	//type ClickHandlerType = (event: MouseEvent, x: number, y: number) => void;
+
 	QUnit.test("init without options", function (assert) {
 		const minimalCanvas = {
-			reset: () => undefined
+			reset: () => undefined,
+			setOnCharClick: (_onCharClickHandler: (event: MouseEvent, x: number, y: number) => void) => undefined
 		} as Canvas,
 			minimalTextCanvas = {
-				reset: () => undefined
+				reset: () => undefined,
+				setOnCharClick: (_onCharClickHandler: (event: MouseEvent, x: number, y: number) => void) => undefined
 			} as TextCanvas,
 			minimalKeyboard = {
 				reset: () => undefined

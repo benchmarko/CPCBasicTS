@@ -15,6 +15,7 @@ export interface IOutput {
 export type VariableValue = string | number | Function | [] | VariableValue[]; // eslint-disable-line @typescript-eslint/ban-types
 
 export interface IController {
+    toggleAreaHidden: (id: string) => boolean,
     startParse: () => void
     startRenum: () => void
 
@@ -36,6 +37,7 @@ export interface IController {
     setGalleryAreaInputs: () => void
     invalidateScript: () => void
     setSoundActive: () => void
+    setPalette: (palette: string) => void
 
     changeVariable: () => void
     onExampleSelectChange: () => void

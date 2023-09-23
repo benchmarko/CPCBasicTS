@@ -15,8 +15,9 @@ type CharsetType = CharType[];
 
 export interface CanvasOptions {
 	charset: CharsetType
-	colors: string[],
-	onClickKey?: (arg0: string) => void
+	palette: "color" | "green" | "grey"
+	//onClickKey?: (arg0: string) => void
+	onCharClick?: (event: MouseEvent, x: number, y: number) => void
 }
 
 interface ModeData {
@@ -102,8 +103,9 @@ export class Canvas {
 	constructor(options: CanvasOptions) {
 		this.options = {
 			charset: options.charset,
-			colors: options.colors,
-			onClickKey: options.onClickKey
+			palette: options.palette,
+			//onClickKey: options.onClickKey
+			onCharClick: options.onCharClick
 		};
 		this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
 		this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
@@ -127,7 +129,10 @@ export class Canvas {
 
 		this.dataset8 = new Uint8Array(new ArrayBuffer(width * height)); // array with pen values
 
-		this.setColors(this.options.colors);
+		if (!Canvas.palettes[this.options.palette]) {
+			Canvas.computePalette(this.options.palette);
+		}
+		this.setColorValues(Canvas.palettes[this.options.palette]);
 
 		this.animationTimeoutId = undefined;
 		this.animationFrame = undefined;
@@ -158,6 +163,81 @@ export class Canvas {
 		this.reset();
 	}
 
+	// http://www.cpcwiki.eu/index.php/CPC_Palette
+	// (green and gray palette will be computed if needed)
+	private static readonly palettes: Record<string, string[]> = {
+		color: [
+			"#000000", //  0 Black
+			"#000080", //  1 Blue
+			"#0000FF", //  2 Bright Blue
+			"#800000", //  3 Red
+			"#800080", //  4 Magenta
+			"#8000FF", //  5 Mauve
+			"#FF0000", //  6 Bright Red
+			"#FF0080", //  7 Purple
+			"#FF00FF", //  8 Bright Magenta
+			"#008000", //  9 Green
+			"#008080", // 10 Cyan
+			"#0080FF", // 11 Sky Blue
+			"#808000", // 12 Yellow
+			"#808080", // 13 White
+			"#8080FF", // 14 Pastel Blue
+			"#FF8000", // 15 Orange
+			"#FF8080", // 16 Pink
+			"#FF80FF", // 17 Pastel Magenta
+			"#00FF00", // 18 Bright Green
+			"#00FF80", // 19 Sea Green
+			"#00FFFF", // 20 Bright Cyan
+			"#80FF00", // 21 Lime
+			"#80FF80", // 22 Pastel Green
+			"#80FFFF", // 23 Pastel Cyan
+			"#FFFF00", // 24 Bright Yellow
+			"#FFFF80", // 25 Pastel Yellow
+			"#FFFFFF", // 26 Bright White
+			"#808080", // 27 White (same as 13)
+			"#FF00FF", // 28 Bright Magenta (same as 8)
+			"#FFFF80", // 29 Pastel Yellow (same as 25)
+			"#000080", // 30 Blue (same as 1)
+			"#00FF80" //  31 Sea Green (same as 19)
+		]
+		/*
+		grey2: [ // other grey?
+			"#000000",
+			"#0A0A0A",
+			"#131313",
+			"#1D1D1D",
+			"#262626",
+			"#303030",
+			"#393939",
+			"#434343",
+			"#4C4C4C",
+			"#575757",
+			"#606060",
+			"#6A6A6A",
+			"#737373",
+			"#7D7D7D",
+			"#868686",
+			"#909090",
+			"#999999",
+			"#A3A3A3",
+			"#ACACAC",
+			"#B5B5B5",
+			"#BFBFBF",
+			"#C9C9C9",
+			"#D2D2D2",
+			"#DCDCDC",
+			"#E5E5E5",
+			"#EFEFEF",
+			"#F8F8F8",
+			"#7D7D7D",
+			"#434343",
+			"#EFEFEF",
+			"#A0A0A0",
+			"#B5B5B5"
+		]
+		*/
+	};
+
 	// mode 0: pen 0-15,16=border; inks for pen 14,15 are alternating: "1,24", "16,11"
 	private static readonly defaultInks = [
 		[1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1], // eslint-disable-line array-element-newline
@@ -187,6 +267,14 @@ export class Canvas {
 		}
 	];
 
+	private applyBorderColor() {
+		this.canvas.style.borderColor = Canvas.palettes[this.options.palette][this.currentInks[this.inkSet][16]];
+	}
+
+	setOnCharClick(onCharClickHandler: (event: MouseEvent, x: number, y: number) => void): void {
+		this.options.onCharClick = onCharClickHandler;
+	}
+
 	reset(): void {
 		this.changeMode(1);
 		this.inkSet = 0;
@@ -195,7 +283,7 @@ export class Canvas {
 		this.speedInk[0] = 10;
 		this.speedInk[1] = 10;
 		this.speedInkCount = this.speedInk[this.inkSet];
-		this.canvas.style.borderColor = this.options.colors[this.currentInks[this.inkSet][16]];
+		this.applyBorderColor();
 
 		this.setGPen(1);
 		this.setGPaper(0);
@@ -206,6 +294,42 @@ export class Canvas {
 
 	resetCustomChars(): void {
 		this.customCharset = {}; // symbol
+	}
+
+	private static computePalette(palette: "color" | "green" | "grey") {
+		if (palette === "green" || palette === "grey") {
+			const colorPalette = Canvas.palettes.color,
+				colorValues: number[][] = [],
+				monoPalette = [];
+
+			Canvas.extractAllColorValues(colorPalette, colorValues);
+
+			for (let i = 0; i < colorPalette.length; i += 1) {
+				// https://en.wikipedia.org/wiki/Luma_(video)
+				// (0.299 * R) + (0.587 * G) + (0.114 * B);
+				const monoValue = (0.299 * colorValues[i][0] + 0.587 * colorValues[i][1] + 0.114 * colorValues[i][2]) | 0, // eslint-disable-line no-bitwise
+					monoHex = monoValue.toString(16).toUpperCase().padStart(2, "0");
+
+
+				monoPalette[i] = palette === "green" ? "#00" + monoHex + "00" : "#" + monoHex + monoHex + monoHex;
+			}
+			Canvas.palettes[palette] = monoPalette;
+		}
+	}
+
+	setPalette(palette: "color" | "green" | "grey"): void {
+		if (palette !== this.options.palette) {
+			this.options.palette = palette;
+
+			if (!Canvas.palettes[this.options.palette]) {
+				Canvas.computePalette(this.options.palette);
+			}
+
+			this.setColorValues(Canvas.palettes[this.options.palette]);
+			this.updateColorMap();
+			this.setNeedUpdate();
+			this.applyBorderColor();
+		}
 	}
 
 	private static isLittleEndian() {
@@ -227,15 +351,13 @@ export class Canvas {
 	}
 
 	private static extractAllColorValues(colors: string[], colorValues: number[][]) {
-		//const colorValues: number[][] = [];
-
 		for (let i = 0; i < colors.length; i += 1) {
 			colorValues[i] = Canvas.extractColorValues(colors[i]);
 		}
 	}
 
-	setColors(colors: string[]): void {
-		Canvas.extractAllColorValues(colors, this.colorValues);
+	private setColorValues(palette: string[]) {
+		Canvas.extractAllColorValues(palette, this.colorValues);
 	}
 
 	private setAlpha(alpha: number) {
@@ -413,7 +535,8 @@ export class Canvas {
 
 			// check border ink
 			if (this.currentInks[newInkSet][16] !== this.currentInks[currentInkSet][16]) {
-				this.canvas.style.borderColor = this.options.colors[this.currentInks[newInkSet][16]];
+				//this.canvas.style.borderColor = this.options.palette[this.currentInks[newInkSet][16]];
+				this.applyBorderColor();
 			}
 		}
 	}
@@ -467,25 +590,29 @@ export class Canvas {
 		};
 	}
 
-	private canvasClickAction2(event: MouseEvent) {
+	private canvasClickAction(event: MouseEvent) {
 		const pos = this.getMousePos(event);
 		let x = pos.x,
-			y = pos.y,
-			char: number | undefined;
+			y = pos.y;
 
 		/* eslint-disable no-bitwise */
 		x |= 0; // force integer
 		y |= 0;
 		/* eslint-enable no-bitwise */
 
-		if (x >= 0 && x <= 639 && y >= 0 && y <= 399) {
-			const charWidth = this.modeData.pixelWidth * 8,
-				charHeight = this.modeData.pixelHeight * 8,
-				/* eslint-disable no-bitwise */
-				xTxt = (x / charWidth) | 0,
-				yTxt = (y / charHeight) | 0;
-			/* eslint-enable no-bitwise */
+		if (this.options.onCharClick) {
+			if (x >= 0 && x <= this.width - 1 && y >= 0 && y <= this.height - 1) {
+				const charWidth = this.modeData.pixelWidth * 8,
+					charHeight = this.modeData.pixelHeight * 8,
+					/* eslint-disable no-bitwise */
+					xTxt = (x / charWidth) | 0,
+					yTxt = (y / charHeight) | 0;
+					/* eslint-enable no-bitwise */
 
+				this.options.onCharClick(event, xTxt, yTxt);
+			}
+
+			/*
 			char = this.readChar(xTxt, yTxt, 1, 0); // TODO: currently we use pen 1, paper 0
 
 			if (char < 0 && event.detail === 2) { // no char but mouse double click?
@@ -495,6 +622,7 @@ export class Canvas {
 			if (char >= 0 && this.options.onClickKey) { // call click handler (put char in keyboard input buffer)
 				this.options.onClickKey(String.fromCharCode(char));
 			}
+			*/
 		}
 
 		// for graphics coordinates, adapt origin
@@ -505,7 +633,8 @@ export class Canvas {
 			this.move(x, y);
 		}
 		if (Utils.debug > 0) {
-			Utils.console.debug("onCpcCanvasClick: x", pos.x, "y", pos.y, "x - xOrig", x, "y - yOrig", y, "char", char, "char", (char !== undefined ? String.fromCharCode(char) : "?"), "detail", event.detail);
+			//Utils.console.debug("canvasClickAction: x", pos.x, "y", pos.y, "x - xOrig", x, "y - yOrig", y, "char", char, "char", (char !== undefined ? String.fromCharCode(char) : "?"), "detail", event.detail);
+			Utils.console.debug("canvasClickAction: x", pos.x, "y", pos.y, "x - xOrig", x, "y - yOrig", y, "detail", event.detail);
 		}
 	}
 
@@ -513,7 +642,7 @@ export class Canvas {
 		if (!this.hasFocus) {
 			this.setFocusOnCanvas();
 		} else {
-			this.canvasClickAction2(event);
+			this.canvasClickAction(event);
 		}
 		event.stopPropagation();
 	}
@@ -957,7 +1086,7 @@ export class Canvas {
 		const needInkUpdate = this.setInk(16, ink1, ink2);
 
 		if (needInkUpdate) {
-			this.canvas.style.borderColor = this.options.colors[this.currentInks[this.inkSet][16]];
+			this.applyBorderColor();
 		}
 	}
 

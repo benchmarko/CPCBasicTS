@@ -5,38 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="cpcbasic.css">
 <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
-<title id="title">CPC BasicTS v0.0.97</title>
+<title id="title">CPC BasicTS v0.0.98</title>
 </head>
 
 <body id="pageBody">
 	<fieldset class="flexBox">
 		<legend>
 			<button id="inputButton" class="legendButton" title="Show/Hide BASIC">CPC BASIC</button>
-			<button id="reloadButton" title="Reload page with URL parameter settings">Reload</button>
-			<button id="helpButton" title="Help">Help</button>
-			<span class="buttonPopoverContainer">
-				<button id="settingsButton" class="popoverButton" title="Settings">Settings</button>
-				<span id="settingsArea" class="popover area flexColumn displayNone">
-					<span id="settingsAreaInner" class="area flexColumn displayFlex">
-						<span class="field flexStart">
-							<input id="arrayBoundsInput" type="checkbox" title="Check array bounds">
-							<label id="arrayBoundsLabel" for="arrayBoundsInput" class="label" title="Check array bounds">Array Bounds</label>
-						</span>
-						<span class="field flexStart">
-							<input id="implicitLinesInput" type="checkbox" title="Allow implicit line numbers">
-							<label id="implicitLinesLabel" for="implicitLinesInput" class="label" title="Allow implicit line numbers">Implicit Lines</label>
-						</span>
-						<span class="field flexStart">
-							<input id="traceInput" type="checkbox" title="Trace Mode">
-							<label id="traceLabel" for="traceInput" class="label" title="Trace Mode">Trace Mode</label>
-						</span>
-						<span class="field flexStart">
-							<input id="speedInput" type="range" min="0" max="100" step="1" value="100" title="Speed">
-							<label id="speedLabel" for="speedInput" class="label" title="Speed">Speed</label>
-						</span>
-					</span>
-				</span>
-			</span>
 			<span class="buttonPopoverContainer">
 				<button id="galleryButton" class="popoverButton" title="Gallery">Gallery</button>
 				<span id="galleryArea" class="popover area flexColumn displayNone">
@@ -44,6 +19,59 @@
 						<span id="galleryAreaItems" class="displayBlock" />
 					</span>
 				</span>
+			</span>
+			<span class="buttonPopoverContainer">
+				<button id="settingsButton" class="popoverButton" title="Settings">Settings</button>
+				<span id="settingsArea" class="popover area flexColumn displayNone">
+					<span id="settingsAreaInner" class="area flexColumn displayFlex">
+						<span id="compileSettingsArea" class="area flexColumn displayFlex">
+							<span class="field flexStart">
+								<input id="arrayBoundsInput" type="checkbox" title="Check array bounds">
+								<label id="arrayBoundsLabel" for="arrayBoundsInput" class="label" title="Check array bounds">Array Bounds</label>
+							</span>
+							<span class="field flexStart">
+								<input id="implicitLinesInput" type="checkbox" title="Allow implicit line numbers">
+								<label id="implicitLinesLabel" for="implicitLinesInput" class="label" title="Allow implicit line numbers">Implicit Lines</label>
+							</span>
+							<span class="field flexStart">
+								<input id="traceInput" type="checkbox" title="Trace Mode">
+								<label id="traceLabel" for="traceInput" class="label" title="Trace Mode">Trace Mode</label>
+							</span>
+						</span>
+						<span id="runSettingsArea" class="area flexColumn displayFlex">
+							<span class="field flexStart">
+								<input id="soundInput" type="checkbox" title="Sound">
+								<label id="soundLabel" for="soundInput" class="label" title="Sound">Sound</label>
+							</span>
+							<span class="field flexStart">
+								<select id="paletteSelect" title="Select Palette">
+									<option value="color" title="Color" default>Color</option>
+									<option value="green" title="Green">Green</option>
+									<option value="grey" title="Grey">Grey</option>
+								</select>
+								<label id="paletteLabel" for="paletteSelect" class="label" title="Palette">Palette</label>
+							</span>
+							<span class="field flexStart">
+								<input id="speedInput" type="range" min="0" max="100" step="1" value="100" title="Speed">
+								<label id="speedLabel" for="speedInput" class="label" title="Speed">Speed</label>
+							</span>
+						</span>
+						<span id="debugSettingsArea" class="area flexColumn displayFlex">
+							<span class="field flexStart">
+								<input id="debugInput" type="number" min="0" max="99" value="0" title="Debug Level">
+								<label id="debugLabel" for="debugInput" class="label" title="Debug Level">Debug</label>
+							</span>
+							<span class="field flexStart">
+								<input id="consoleLogInput" type="checkbox" title="Show Console Log">
+								<label id="consoleLogLabel" for="consoleLogInput" class="label" title="Show Console Log">Console Log</label>
+							</span>
+						</span>
+					</span>
+					<span class="field flexStart">
+						<button id="helpButton" title="Help">Help</button>
+					</span>
+				</span>
+				<button id="reloadButton" title="Reload page with URL parameter settings">Reload</button>
 			</span>
 		</legend>
 		<div id="exampleSelectArea" class="area">
@@ -128,9 +156,19 @@
 			<button id="stopButton" title="Stop/escape/break running script" disabled>Break</button>
 			<button id="continueButton" title="Continue script" disabled>Continue</button>
 			<button id="resetButton" title="Reset CPC">Reset</button>
-			<button id="screenshotButton" title="Take Screenshot and download">Screenshot</button>
-			<button id="soundButton" title="Sound on/off">Sound</button>
-			<button id="fullscreenButton" title="Fullscreen mode">Fullscreen</button>
+			<span class="buttonPopoverContainer">
+				<button id="moreButton" class="popoverButton" title="More">More</button>
+				<span id="moreArea" class="popover area flexColumn displayNone">
+					<span id="moreAreaInner" class="area flexColumn displayFlex">
+						<span class="field flexStart">
+							<button id="screenshotButton" title="Take Screenshot and download">Screenshot</button>
+						</span>
+						<span class="field flexStart">
+							<button id="fullscreenButton" title="Fullscreen mode">Fullscreen</button>
+						</span>
+					</span>
+				</span>
+			</span>
 		</legend>
 		<div id="cpcArea" class="area" tabindex="0">
 			<canvas id="cpcCanvas" width="640" height="400"></canvas>
@@ -150,7 +188,7 @@
 			<button id="kbdButton" class="legendButton" title="CPC Keyboard">Keyboard</button>
 			<span id="kbdMove" class="kbdMove">Move</span>
 			<span id="kbdLayoutArea">
-				<select id="kbdLayoutSelect" title="Select Keyboard Lyout">
+				<select id="kbdLayoutSelect" title="Select Keyboard Layout">
 					<option value="alphanum" title="AlphaNum">AlphaNum</option>
 					<option value="alpha" title="Alpha">Alpha</option>
 					<option value="num" title="Numpad">Num</option>

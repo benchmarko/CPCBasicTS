@@ -25,7 +25,8 @@ export class TestHelper {
 	static config: ConfigType = {
 		debug: 0,
 		generateAll: false,
-		generateKeys: false
+		generateKeys: false,
+		test: "" // a specific test
 	};
 
 	static init(): void {

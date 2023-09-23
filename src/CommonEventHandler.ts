@@ -20,40 +20,28 @@ export class CommonEventHandler implements EventListenerObject {
 		this.controller = controller;
 	}
 
-	private toogleHidden(id: string, prop: string, display?: string) {
-		const visible = !this.model.getProperty<boolean>(prop);
-
-		this.model.setProperty(prop, visible);
-		this.view.setHidden(id, !visible, display);
-		return visible;
-	}
-
 	fnSetUserAction(fnAction: ((event: Event, id: string) => void) | undefined): void {
 		this.fnUserAction = fnAction;
 	}
 
-	private onSpecialButtonClick() {
-		this.toogleHidden("specialArea", "showSpecial");
-	}
-
 	private onInputButtonClick() {
-		this.toogleHidden("inputArea", "showInput");
+		this.controller.toggleAreaHidden("inputArea");
 	}
 
 	private onInp2ButtonClick() {
-		this.toogleHidden("inp2Area", "showInp2");
+		this.controller.toggleAreaHidden("inp2Area");
 	}
 
 	private onOutputButtonClick() {
-		this.toogleHidden("outputArea", "showOutput");
+		this.controller.toggleAreaHidden("outputArea");
 	}
 
 	private onResultButtonClick() {
-		this.toogleHidden("resultArea", "showResult");
+		this.controller.toggleAreaHidden("resultArea");
 	}
 
 	private onTextButtonClick() {
-		if (this.toogleHidden("textArea", "showText")) {
+		if (this.controller.toggleAreaHidden("textArea")) {
 			this.controller.startUpdateTextCanvas();
 		} else {
 			this.controller.stopUpdateTextCanvas();
@@ -61,11 +49,11 @@ export class CommonEventHandler implements EventListenerObject {
 	}
 
 	private onVariableButtonClick() {
-		this.toogleHidden("variableArea", "showVariable");
+		this.controller.toggleAreaHidden("variableArea");
 	}
 
 	private onCpcButtonClick() {
-		if (this.toogleHidden("cpcArea", "showCpc")) {
+		if (this.controller.toggleAreaHidden("cpcArea")) {
 			this.controller.startUpdateCanvas();
 		} else {
 			this.controller.stopUpdateCanvas();
@@ -73,24 +61,25 @@ export class CommonEventHandler implements EventListenerObject {
 	}
 
 	private onConvertButtonClick() {
-		this.toogleHidden("convertArea", "showConvert", "flex");
+		this.controller.toggleAreaHidden("convertArea");
 	}
 
 	private onSettingsButtonClick() {
-		this.toogleHidden("settingsArea", "showSettings", "flex");
+		this.controller.toggleAreaHidden("settingsArea");
 	}
 
 	private onGalleryButtonClick() {
-		if (this.toogleHidden("galleryArea", "showGallery", "flex")) {
+		if (this.controller.toggleAreaHidden("galleryArea")) {
 			this.controller.setGalleryAreaInputs();
 		}
 	}
 
+	private onMoreButtonClick() {
+		this.controller.toggleAreaHidden("moreArea");
+	}
+
 	private onKbdButtonClick() {
-		if (this.toogleHidden("kbdArea", "showKbd", "flex")) {
-			if (this.view.getHidden("kbdArea")) { // on old browsers, display "flex" is not available, so set "block" if still hidden
-				this.view.setHidden("kbdArea", false);
-			}
+		if (this.controller.toggleAreaHidden("kbdArea")) {
 			this.controller.virtualKeyboardCreate(); // maybe draw it
 			this.view.setHidden("kbdLayoutArea", true, "inherit"); // kbd visible => kbdlayout invisible
 		} else {
@@ -99,7 +88,7 @@ export class CommonEventHandler implements EventListenerObject {
 	}
 
 	private onConsoleButtonClick() {
-		this.toogleHidden("consoleArea", "showConsole");
+		this.controller.toggleAreaHidden("consoleArea");
 	}
 
 	private onParseButtonClick() {
@@ -174,7 +163,8 @@ export class CommonEventHandler implements EventListenerObject {
 			value = target.value;
 
 		this.view.setSelectValue("exampleSelect", value);
-		this.toogleHidden("galleryArea", "showGallery", "flex"); // close
+		this.controller.toggleAreaHidden("galleryArea"); // close
+
 		this.onExampleSelectChange();
 	}
 
@@ -221,15 +211,15 @@ export class CommonEventHandler implements EventListenerObject {
 		window.location.search = "?" + paras;
 	}
 
-	onDatabaseSelectChange(): void {
+	private onDatabaseSelectChange(): void {
 		this.controller.onDatabaseSelectChange();
 	}
 
-	onDirectorySelectChange(): void {
+	private onDirectorySelectChange(): void {
 		this.controller.onDirectorySelectChange();
 	}
 
-	onExampleSelectChange(): void {
+	private onExampleSelectChange(): void {
 		this.controller.onExampleSelectChange();
 	}
 
@@ -251,8 +241,22 @@ export class CommonEventHandler implements EventListenerObject {
 		this.view.setHidden("kbdNum", value === "alpha");
 	}
 
+	private onPaletteSelectChange() {
+		const value = this.view.getSelectValue("paletteSelect");
+
+		this.model.setProperty("palette", value);
+		this.view.setSelectTitleFromSelectedOption("paletteSelect");
+		this.controller.setPalette(value);
+	}
+
 	private onVarTextChange() {
 		this.controller.changeVariable();
+	}
+
+	private onDebugInputChange() {
+		const debug = this.view.getInputValue("debugInput");
+
+		this.model.setProperty<number>("debug", Number(debug));
 	}
 
 	private onImplicitLinesInputChange() {
@@ -269,11 +273,27 @@ export class CommonEventHandler implements EventListenerObject {
 		this.controller.fnArrayBounds();
 	}
 
+	private onConsoleLogInputChange() {
+		const checked = this.view.getInputChecked("consoleLogInput");
+
+		this.model.setProperty("showConsole", checked);
+		if (checked && this.view.getHidden("consoleBox")) {
+			this.view.setHidden("consoleBox", !checked); // make sure the box around is visible
+		}
+	}
+
 	private onTraceInputChange() {
 		const checked = this.view.getInputChecked("traceInput");
 
 		this.model.setProperty("trace", checked);
 		this.controller.fnTrace();
+	}
+
+	private onSoundInputChange() {
+		const checked = this.view.getInputChecked("soundInput");
+
+		this.model.setProperty("sound", checked);
+		this.controller.setSoundActive();
 	}
 
 	private onSpeedInputChange() {
@@ -300,11 +320,6 @@ export class CommonEventHandler implements EventListenerObject {
 		this.controller.startEnter();
 	}
 
-	private onSoundButtonClick() {
-		this.model.setProperty("sound", !this.model.getProperty<boolean>("sound"));
-		this.controller.setSoundActive();
-	}
-
 	private static onFullscreenButtonClick() {
 		const switched = View.requestFullscreenForId("cpcCanvas");
 
@@ -313,21 +328,20 @@ export class CommonEventHandler implements EventListenerObject {
 		}
 	}
 
-	onCpcCanvasClick(event: Event): void {
+	private onCpcCanvasClick(event: Event) {
 		this.controller.onCpcCanvasClick(event as MouseEvent);
 	}
 
-	onWindowClick(event: Event): void {
+	private onWindowClick(event: Event) {
 		this.controller.onWindowClick(event);
 	}
 
-	onTextTextClick(event: Event): void {
+	private onTextTextClick(event: Event) {
 		this.controller.onTextTextClick(event as MouseEvent);
 	}
 
 	/* eslint-disable no-invalid-this */
 	private readonly handlers: Record<string, (e: Event | MouseEvent) => void> = {
-		onSpecialButtonClick: this.onSpecialButtonClick,
 		onInputButtonClick: this.onInputButtonClick,
 		onInp2ButtonClick: this.onInp2ButtonClick,
 		onOutputButtonClick: this.onOutputButtonClick,
@@ -338,6 +352,7 @@ export class CommonEventHandler implements EventListenerObject {
 		onConvertButtonClick: this.onConvertButtonClick,
 		onSettingsButtonClick: this.onSettingsButtonClick,
 		onGalleryButtonClick: this.onGalleryButtonClick,
+		onMoreButtonClick: this.onMoreButtonClick,
 		onKbdButtonClick: this.onKbdButtonClick,
 		onConsoleButtonClick: this.onConsoleButtonClick,
 		onParseButtonClick: this.onParseButtonClick,
@@ -367,13 +382,16 @@ export class CommonEventHandler implements EventListenerObject {
 		onVarSelectChange: this.onVarSelectChange,
 		onKbdLayoutSelectChange: this.onKbdLayoutSelectChange,
 		onVarTextChange: this.onVarTextChange,
+		onDebugInputChange: this.onDebugInputChange,
 		onImplicitLinesInputChange: this.onImplicitLinesInputChange,
 		onArrayBoundsInputChange: this.onArrayBoundsInputChange,
+		onConsoleLogInputChange: this.onConsoleLogInputChange,
 		onTraceInputChange: this.onTraceInputChange,
+		onSoundInputChange: this.onSoundInputChange,
 		onSpeedInputChange: this.onSpeedInputChange,
+		onPaletteSelectChange: this.onPaletteSelectChange,
 		onScreenshotButtonClick: this.onScreenshotButtonClick,
 		onEnterButtonClick: this.onEnterButtonClick,
-		onSoundButtonClick: this.onSoundButtonClick,
 		onFullscreenButtonClick: CommonEventHandler.onFullscreenButtonClick,
 		onCpcCanvasClick: this.onCpcCanvasClick,
 		onWindowClick: this.onWindowClick,
