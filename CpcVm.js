@@ -63,7 +63,14 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.soundClass = options.sound;
             this.variables = options.variables;
             this.quiet = Boolean(options.quiet);
+            this.onClickKey = options.onClickKey;
             this.random = new Random_1.Random();
+            if (this.canvas) {
+                this.canvas.setOnCharClick(this.onCharClickCallback.bind(this));
+            }
+            if (this.textCanvas) {
+                this.textCanvas.setOnCharClick(this.onCharClickCallback.bind(this));
+            }
             this.stopCount = this.initialStop;
             this.stopEntry = {
                 reason: "",
@@ -287,6 +294,30 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.closeout();
             this.cursor(stream, 0);
             this.labelList.length = 0;
+        };
+        CpcVm.prototype.onCharClickCallback = function (event, x, y) {
+            if (this.onClickKey) {
+                var isTextCanvas = event.target && event.target.type === "textarea"; //fast hack; this.textCanvas.textText === event.target
+                var char = -1;
+                if (isTextCanvas) {
+                    char = this.textCanvas.readChar(x, y);
+                }
+                else {
+                    for (var stream = 0; stream < CpcVm.streamCount - 2; stream += 1) { // check all window streams
+                        var win = this.windowDataList[stream];
+                        char = this.canvas.readChar(x, y, win.pen, win.paper);
+                        if (char > 0 && char !== 32) {
+                            break; // found some char
+                        }
+                    }
+                }
+                if ((char < 0 || char === 32 || char === 143) && event.detail === 2) { // no (useful) char but mouse double click?
+                    char = 13; // use CR
+                }
+                if (char >= 0) { // call click handler (put char in keyboard input buffer)
+                    this.onClickKey(String.fromCharCode(char));
+                }
+            }
         };
         CpcVm.prototype.vmGetAllVariables = function () {
             return this.variables.getAllVariables();

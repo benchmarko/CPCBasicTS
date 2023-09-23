@@ -1931,6 +1931,15 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
     };
     var lastTestFunctions = [], // eslint-disable-line one-var
     varTypesMap = {}, variablesMap = {}, mockCanvas = {
+        setOnCharClick: function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
+            }
+            lastTestFunctions.push({
+                setOnCharClick: [String(args)]
+            });
+        },
         changeMode: function () {
             var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
@@ -2287,6 +2296,15 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             });
         }
     }, mockTextCanvas = {
+        setOnCharClick: function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
+            }
+            lastTestFunctions.push({
+                setOnCharClick: [String(args)]
+            });
+        },
         clearFullWindow: function () {
             var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
@@ -3472,11 +3490,14 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             };
             that.cpcVm = new CpcVm_1.CpcVm(config);
         });
+        //type ClickHandlerType = (event: MouseEvent, x: number, y: number) => void;
         QUnit.test("init without options", function (assert) {
             var minimalCanvas = {
-                reset: function () { return undefined; }
+                reset: function () { return undefined; },
+                setOnCharClick: function (_onCharClickHandler) { return undefined; }
             }, minimalTextCanvas = {
-                reset: function () { return undefined; }
+                reset: function () { return undefined; },
+                setOnCharClick: function (_onCharClickHandler) { return undefined; }
             }, minimalKeyboard = {
                 reset: function () { return undefined; }
             }, minimalSound = {

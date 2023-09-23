@@ -12,6 +12,7 @@ export interface CpcVmOptions {
     sound: Sound;
     variables: Variables;
     quiet?: boolean;
+    onClickKey?: (arg0: string) => void;
 }
 export interface FileMeta {
     typeString: string;
@@ -107,6 +108,7 @@ declare type PrintObjectType = {
 declare type DataEntryType = (string | undefined);
 export declare class CpcVm {
     private quiet;
+    private readonly onClickKey?;
     private readonly fnOpeninHandler;
     private readonly fnCloseinHandler;
     private readonly fnCloseoutHandler;
@@ -191,6 +193,7 @@ export declare class CpcVm {
     vmResetData(): void;
     private vmResetInks;
     vmReset4Run(): void;
+    private onCharClickCallback;
     vmGetAllVariables(): VariableMap;
     vmGetAllVarTypes(): VariableTypeMap;
     vmSetStartLine(line: number): void;

@@ -5,6 +5,7 @@ export interface IOutput {
 }
 export declare type VariableValue = string | number | Function | [] | VariableValue[];
 export interface IController {
+    toggleAreaHidden: (id: string) => boolean;
     startParse: () => void;
     startRenum: () => void;
     startRun: () => void;
@@ -23,6 +24,7 @@ export interface IController {
     setGalleryAreaInputs: () => void;
     invalidateScript: () => void;
     setSoundActive: () => void;
+    setPalette: (palette: string) => void;
     changeVariable: () => void;
     onExampleSelectChange: () => void;
     onDirectorySelectChange: () => void;

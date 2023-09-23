@@ -35,6 +35,12 @@ interface FileMetaAndData {
 	data: string
 }
 
+type AreaDefinitionType = {
+	property: string,
+	display?: "flex",
+	isPopover?: boolean
+}
+
 export class Controller implements IController {
 	private readonly fnRunLoopHandler: () => void;
 	private readonly fnWaitKeyHandler: () => void;
@@ -85,6 +91,57 @@ export class Controller implements IController {
 	private fileHandler?: FileHandler;
 	private fileSelect?: FileSelect;
 
+	private static areaDefinitions: Record<string, AreaDefinitionType> = {
+		consoleArea: {
+			property: "showConsole"
+		},
+		convertArea: {
+			property: "showConvert",
+			display: "flex",
+			isPopover: true
+		},
+		cpcArea: {
+			property: "showCpc"
+		},
+		galleryArea: {
+			property: "showGallery",
+			display: "flex",
+			isPopover: true
+		},
+		inp2Area: {
+			property: "showInp2"
+		},
+		inputArea: {
+			property: "showInput"
+		},
+		kbdArea: {
+			property: "showKbd",
+			display: "flex"
+		},
+		moreArea: {
+			property: "showMore",
+			display: "flex",
+			isPopover: true
+		},
+		outputArea: {
+			property: "showOutput"
+		},
+		resultArea: {
+			property: "showResult"
+		},
+		settingsArea: {
+			property: "showSettings",
+			display: "flex",
+			isPopover: true
+		},
+		textArea: {
+			property: "showText"
+		},
+		variableArea: {
+			property: "showVariable"
+		}
+	};
+
 	constructor(model: Model, view: View) {
 		this.fnRunLoopHandler = this.fnRunLoop.bind(this);
 		this.fnWaitKeyHandler = this.fnWaitKey.bind(this);
@@ -99,36 +156,27 @@ export class Controller implements IController {
 		this.view.attachEventHandler("click", this.commonEventHandler);
 		this.view.attachEventHandler("change", this.commonEventHandler);
 
+		// unhide console box, if console should be shown
 		view.setHidden("consoleBox", !model.getProperty<boolean>("showConsole"));
+		this.view.setInputChecked("consoleLogInput", model.getProperty<boolean>("showConsole"));
 
-		view.setHidden("inputArea", !model.getProperty<boolean>("showInput"));
-		view.setHidden("inp2Area", !model.getProperty<boolean>("showInp2"));
-		view.setHidden("outputArea", !model.getProperty<boolean>("showOutput"));
-		view.setHidden("resultArea", !model.getProperty<boolean>("showResult"));
+		this.textCanvas = new TextCanvas({}); //({ onClickKey: this.fnPutKeyInBufferHandler	});
 
-		this.textCanvas = new TextCanvas({
-			onClickKey: this.fnPutKeyInBufferHandler
-		});
-		view.setHidden("textArea", !model.getProperty<boolean>("showText"));
-
-		view.setHidden("variableArea", !model.getProperty<boolean>("showVariable"));
-		view.setHidden("kbdArea", !model.getProperty<boolean>("showKbd"), "flex");
-		view.setHidden("kbdLayoutArea", model.getProperty<boolean>("showKbd"), "inherit"); // kbd visible => kbdlayout invisible
-
-		view.setHidden("cpcArea", false); // make sure canvas is not hidden (allows to get width, height)
 		const palette = model.getProperty<string>("palette");
 
+		view.setSelectValue("paletteSelect", palette);
+
+		view.setHidden("cpcArea", false); // make sure canvas area is not hidden when creating canvas object (allows to get width, height)
 		this.canvas = new Canvas({
 			charset: cpcCharset,
-			colors: palette === "grey" ? Controller.paletteGrey : Controller.paletteColors,
-			onClickKey: this.fnPutKeyInBufferHandler
+			palette: palette === "green" || palette === "grey" ? palette : "color"
+			//onClickKey: this.fnPutKeyInBufferHandler
 		});
-		view.setHidden("cpcArea", !model.getProperty<boolean>("showCpc"));
 
-		view.setHidden("settingsArea", !model.getProperty<boolean>("showSettings"), "flex");
-		view.setHidden("galleryArea", !model.getProperty<boolean>("showGallery"), "flex");
-		view.setHidden("convertArea", !model.getProperty<boolean>("showConvert"), "flex");
+		view.setHidden("kbdLayoutArea", model.getProperty<boolean>("showKbd"), "inherit"); // kbd visible => kbdlayout invisible
+		this.initAreas();
 
+		view.setInputValue("debugInput", String(model.getProperty<number>("debug")));
 		view.setInputChecked("implicitLinesInput", model.getProperty<boolean>("implicitLines"));
 		view.setInputChecked("arrayBoundsInput", model.getProperty<boolean>("arrayBounds"));
 		this.variables = new Variables({
@@ -136,6 +184,7 @@ export class Controller implements IController {
 		});
 
 		view.setInputChecked("traceInput", model.getProperty<boolean>("trace"));
+		view.setInputChecked("soundInput", model.getProperty<boolean>("sound"));
 
 		view.setInputValue("speedInput", String(model.getProperty<number>("speed")));
 		this.fnSpeed();
@@ -160,7 +209,8 @@ export class Controller implements IController {
 			textCanvas: this.textCanvas,
 			keyboard: this.keyboard,
 			sound: this.sound,
-			variables: this.variables
+			variables: this.variables,
+			onClickKey: this.fnPutKeyInBufferHandler
 		});
 		this.vm.vmReset();
 
@@ -210,76 +260,13 @@ export class Controller implements IController {
 		this.initDatabases();
 	}
 
-	// http://www.cpcwiki.eu/index.php/CPC_Palette
-	private static readonly paletteColors = [
-		"#000000", //  0 Black
-		"#000080", //  1 Blue
-		"#0000FF", //  2 Bright Blue
-		"#800000", //  3 Red
-		"#800080", //  4 Magenta
-		"#8000FF", //  5 Mauve
-		"#FF0000", //  6 Bright Red
-		"#FF0080", //  7 Purple
-		"#FF00FF", //  8 Bright Magenta
-		"#008000", //  9 Green
-		"#008080", // 10 Cyan
-		"#0080FF", // 11 Sky Blue
-		"#808000", // 12 Yellow
-		"#808080", // 13 White
-		"#8080FF", // 14 Pastel Blue
-		"#FF8000", // 15 Orange
-		"#FF8080", // 16 Pink
-		"#FF80FF", // 17 Pastel Magenta
-		"#00FF00", // 18 Bright Green
-		"#00FF80", // 19 Sea Green
-		"#00FFFF", // 20 Bright Cyan
-		"#80FF00", // 21 Lime
-		"#80FF80", // 22 Pastel Green
-		"#80FFFF", // 23 Pastel Cyan
-		"#FFFF00", // 24 Bright Yellow
-		"#FFFF80", // 25 Pastel Yellow
-		"#FFFFFF", // 26 Bright White
-		"#808080", // 27 White (same as 13)
-		"#FF00FF", // 28 Bright Magenta (same as 8)
-		"#FFFF80", // 29 Pastel Yellow (same as 25)
-		"#000080", // 30 Blue (same as 1)
-		"#00FF80" //  31 Sea Green (same as 19)
-	];
+	private initAreas() {
+		for (const id in Controller.areaDefinitions) { // eslint-disable-line guard-for-in
+			const propertyObject = Controller.areaDefinitions[id];
 
-	private static readonly paletteGrey = [
-		"#000000",
-		"#0A0A0A",
-		"#131313",
-		"#1D1D1D",
-		"#262626",
-		"#303030",
-		"#393939",
-		"#434343",
-		"#4C4C4C",
-		"#575757",
-		"#606060",
-		"#6A6A6A",
-		"#737373",
-		"#7D7D7D",
-		"#868686",
-		"#909090",
-		"#999999",
-		"#A3A3A3",
-		"#ACACAC",
-		"#B5B5B5",
-		"#BFBFBF",
-		"#C9C9C9",
-		"#D2D2D2",
-		"#DCDCDC",
-		"#E5E5E5",
-		"#EFEFEF",
-		"#F8F8F8",
-		"#7D7D7D",
-		"#434343",
-		"#EFEFEF",
-		"#A0A0A0",
-		"#B5B5B5"
-	];
+			this.view.setHidden(id, !this.model.getProperty<boolean>(propertyObject.property), propertyObject.display);
+		}
+	}
 
 	private initDatabases() {
 		const model = this.model,
@@ -966,11 +953,6 @@ export class Controller implements IController {
 			const parts = dir[i].split(".");
 
 			dir[i] = parts[0].padEnd(8, " ") + "." + (parts.length >= 2 ? parts[1] : "").padEnd(3, " ");
-			/*
-			if (parts.length === 2) {
-				dir[i] = parts[0].padEnd(8, " ") + "." + parts[1].padEnd(3, " ");
-			}
-			*/
 		}
 
 		if (sort) {
@@ -2227,7 +2209,6 @@ export class Controller implements IController {
 		return this.savedStop;
 	}
 
-
 	startParse(): void {
 		this.removeKeyBoardHandler();
 		this.vm.vmStop("parse", 95);
@@ -2359,6 +2340,42 @@ export class Controller implements IController {
 		return fnFunction;
 	}
 
+	private setPopoversHiddenExcept(exceptId: string): void {
+		const areaDefinitions = Controller.areaDefinitions;
+
+		for (const id in areaDefinitions) {
+			if (id !== exceptId) {
+				const propertyObject = areaDefinitions[id];
+
+				if (propertyObject.isPopover && !this.view.getHidden(id)) {
+					// we cannot use toggleAreaHidden becasue it would be recursive
+					this.model.setProperty(propertyObject.property, false);
+					this.view.setHidden(id, true, propertyObject.display);
+				}
+			}
+		}
+	}
+
+	toggleAreaHidden(id: string): boolean {
+		const propertyObject = Controller.areaDefinitions[id],
+			propertyName = propertyObject.property,
+			visible = !this.model.getProperty<boolean>(propertyName);
+
+		this.model.setProperty(propertyName, visible);
+		this.view.setHidden(id, !visible, propertyObject.display);
+
+		// on old browsers display "flex" is not available, so set default "" (="block"), if still hidden
+		if (visible && propertyObject.display === "flex" && this.view.getHidden(id)) {
+			this.view.setHidden(id, !visible);
+		}
+
+		if (visible && propertyObject.isPopover) {
+			this.setPopoversHiddenExcept(id);
+		}
+
+		return visible;
+	}
+
 	changeVariable(): void {
 		const par = this.view.getSelectValue("varSelect"),
 			valueString = this.view.getSelectValue("varText"),
@@ -2391,30 +2408,36 @@ export class Controller implements IController {
 		this.commonEventHandler.onVarSelectChange(); // title change?
 	}
 
+	setPalette(palette: string): void {
+		this.canvas.setPalette(palette === "green" || palette === "grey" ? palette : "color");
+	}
+
 	setSoundActive(): void {
 		const sound = this.sound,
-			soundButton = View.getElementById1("soundButton"),
+			soundLabel = View.getElementById1("soundLabel"),
 			active = this.model.getProperty<boolean>("sound");
-		let	text: string;
+		let	text = "";
 
 		if (active) {
 			try {
 				sound.soundOn();
-				text = (sound.isActivatedByUser()) ? "Sound is on" : "Sound on (waiting)";
+				//text = (sound.isActivatedByUser()) ? "Sound" : "Sound on (waiting)";
 			} catch (e) {
 				Utils.console.warn("soundOn:", e);
-				text = "Sound unavailable";
+				text = "Sound (unavailable)";
 			}
 		} else {
 			sound.soundOff();
-			text = "Sound is off";
+			//text = "Sound is off";
 			const stop = this.vm && this.vm.vmGetStopObject();
 
 			if (stop && stop.reason === "waitSound") {
 				this.vm.vmStop("", 0, true); // do not wait
 			}
 		}
-		soundButton.innerText = text;
+		if (text) {
+			soundLabel.innerText = text;
+		}
 	}
 
 	private fnEndOfImport(imported: string[]) {
@@ -2454,20 +2477,9 @@ export class Controller implements IController {
 	private initDropZone() {
 		const fileHandler = this.fileHandler || this.createFileHandler();
 
-		/*
-		if (!this.fileHandler) {
-			this.fileHandler = new FileHandler({
-				adaptFilename: this.adaptFilename.bind(this),
-				updateStorageDatabase: this.updateStorageDatabase.bind(this),
-				outputError: this.outputError.bind(this)
-			});
-		}
-		*/
-
 		if (!this.fileSelect) {
 			this.fileSelect = new FileSelect({
 				fnEndOfImport: this.fnEndOfImport.bind(this),
-				//outputError: this.outputError.bind(this),
 				fnLoad2: fileHandler.fnLoad2.bind(fileHandler)
 			});
 		}
@@ -2619,11 +2631,7 @@ export class Controller implements IController {
 
 		vm.closein();
 
-		if (!this.view.getHidden("galleryArea")) { // close gallery, if open
-			this.view.setHidden("galleryArea", true, "flex");
-			this.model.setProperty("showGallery", false);
-		}
-
+		this.setPopoversHiddenExcept(""); // hide all popovers, especially the gallery
 		inFile.open = true;
 
 		let exampleName = this.view.getSelectValue("exampleSelect");
@@ -2681,14 +2689,7 @@ export class Controller implements IController {
 	}
 
 	onCpcCanvasClick(event: MouseEvent): void {
-		if (this.model.getProperty<boolean>("showSettings")) {
-			this.model.setProperty("showSettings", false);
-			this.view.setHidden("settingsArea", !this.model.getProperty<boolean>("showSettings"), "flex");
-		}
-		if (this.model.getProperty<boolean>("showConvert")) {
-			this.model.setProperty("showConvert", false);
-			this.view.setHidden("convertArea", !this.model.getProperty<boolean>("showConvert"), "flex");
-		}
+		this.setPopoversHiddenExcept(""); // hide all popovers
 
 		this.canvas.onCpcCanvasClick(event);
 		this.textCanvas.onWindowClick(event);

@@ -24,7 +24,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return element.className.indexOf("displayNone") >= 0;
         };
         View.prototype.setHidden = function (id, hidden, display) {
-            // optional display: block or flex
+            // optional display: block or flex or inherit
             var element = View.getElementById1(id), displayVisible = "display" + Utils_1.Utils.stringCapitalize(display || "block");
             if (hidden) {
                 if (element.className.indexOf("displayNone") < 0) {
@@ -88,6 +88,19 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             element.checked = checked;
             return this;
         };
+        /*
+        getInputDisabled(id: string): boolean { // eslint-disable-line class-methods-use-this
+            const element = View.getElementByIdAs<HTMLInputElement>(id);
+    
+            return element.disabled;
+        }
+        setInputDisabled(id: string, disabled: boolean): this {
+            const element = View.getElementByIdAs<HTMLInputElement>(id);
+    
+            element.disabled = disabled;
+            return this;
+        }
+        */
         View.prototype.setAreaInputList = function (id, inputs) {
             var element = View.getElementByIdAs(id), childNodes = element.childNodes;
             while (childNodes.length && childNodes[0].nodeType !== Node.ELEMENT_NODE) { // remove all non-element nodes

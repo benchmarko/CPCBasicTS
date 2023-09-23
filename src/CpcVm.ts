@@ -19,6 +19,7 @@ export interface CpcVmOptions {
 	sound: Sound
 	variables: Variables
 	quiet?: boolean
+	onClickKey?: (arg0: string) => void
 }
 
 export interface FileMeta {
@@ -128,6 +129,7 @@ type PrintObjectType = {type: string, args: (string | number)[]};
 type DataEntryType = (string | undefined);
 export class CpcVm {
 	private quiet = false;
+	private readonly onClickKey?: (arg0: string) => void;
 	private readonly fnOpeninHandler: FileBase["fnFileCallback"]; // = undefined;
 	private readonly fnCloseinHandler: () => void;
 	private readonly fnCloseoutHandler: () => void;
@@ -412,8 +414,16 @@ export class CpcVm {
 		this.soundClass = options.sound;
 		this.variables = options.variables;
 		this.quiet = Boolean(options.quiet);
+		this.onClickKey = options.onClickKey;
 
 		this.random = new Random();
+
+		if (this.canvas) {
+			this.canvas.setOnCharClick(this.onCharClickCallback.bind(this));
+		}
+		if (this.textCanvas) {
+			this.textCanvas.setOnCharClick(this.onCharClickCallback.bind(this));
+		}
 
 		this.stopCount = this.initialStop;
 
@@ -692,6 +702,33 @@ export class CpcVm {
 		this.closeout();
 		this.cursor(stream, 0);
 		this.labelList.length = 0;
+	}
+
+	private onCharClickCallback(event: MouseEvent, x: number, y: number) {
+		if (this.onClickKey) {
+			const isTextCanvas = event.target && (event.target as any).type === "textarea"; //fast hack; this.textCanvas.textText === event.target
+			let char = -1;
+
+			if (isTextCanvas) {
+				char = this.textCanvas.readChar(x, y);
+			} else {
+				for (let stream = 0; stream < CpcVm.streamCount - 2; stream += 1) { // check all window streams
+					const win = this.windowDataList[stream];
+
+					char = this.canvas.readChar(x, y, win.pen, win.paper);
+					if (char > 0 && char !== 32) {
+						break; // found some char
+					}
+				}
+			}
+			if ((char < 0 || char === 32 || char === 143) && event.detail === 2) { // no (useful) char but mouse double click?
+				char = 13; // use CR
+			}
+
+			if (char >= 0) { // call click handler (put char in keyboard input buffer)
+				this.onClickKey(String.fromCharCode(char));
+			}
+		}
 	}
 
 	vmGetAllVariables(): VariableMap { // also called from JS script

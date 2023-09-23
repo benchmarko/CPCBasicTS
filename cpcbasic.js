@@ -161,7 +161,7 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
                 cpcBasicLog = UtilsConsole.cpcBasicLog;
                 UtilsConsole.cpcBasicLog = undefined; // do not log any more to dummy console
             }
-            if (Utils_1.Utils.debug > 1 && cpcBasic.model.getProperty("showConsole")) { // console log window?
+            if (Utils_1.Utils.debug > 0 && cpcBasic.model.getProperty("showConsole")) { // console log window?
                 UtilsConsole = cpcBasic.createDebugUtilsConsole(cpcBasicLog);
                 Utils_1.Utils.console = UtilsConsole;
                 Utils_1.Utils.console.log("CPCBasic log started at", Utils_1.Utils.dateFormat(new Date()));
@@ -200,6 +200,7 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
             showConvert: false,
             showSettings: false,
             showGallery: false,
+            showMore: false,
             sound: true,
             speed: 100,
             palette: "color",

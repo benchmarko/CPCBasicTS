@@ -7,7 +7,8 @@ import { Utils } from "./Utils";
 import { View } from "./View";
 
 export interface TextCanvasOptions {
-	onClickKey?: (arg0: string) => void
+	//onClickKey?: (arg0: string) => void
+	onCharClick?: (event: MouseEvent, x: number, y: number) => void
 }
 
 export class TextCanvas {
@@ -28,7 +29,8 @@ export class TextCanvas {
 
 	constructor(options: TextCanvasOptions) {
 		this.options = {
-			onClickKey: options.onClickKey
+			//onClickKey: options.onClickKey
+			onCharClick: options.onCharClick
 		};
 		this.fnUpdateTextCanvasHandler = this.updateTextCanvas.bind(this);
 		this.fnUpdateTextCanvas2Handler = this.updateTextCanvas2.bind(this);
@@ -49,6 +51,11 @@ export class TextCanvas {
 	+ "\u1FBA5\u1FBA6\u1FBA4\u1FBA8\u1FBA9\u1FBAE\u2573\u2571\u2572\u1FB95\u2592\u23BA\u23B9\u23BD\u23B8\u25E4\u25E5\u25E2\u25E3\u1FB8E\u1FB8D\u1FB8F"
 	+ "\u1FB8C\u1FB9C\u1FB9D\u1FB9E\u1FB9F\u263A\u2639\u2663\u2666\u2665\u2660\u25CB\u25CF\u25A1\u25A0\u2642\u2640\u2669\u266A\u263C\uFFBDB\u2B61\u2B63"
 	+ "\u2B60\u2B62\u25B2\u25BC\u25B6\u25C0\u1FBC6\u1FBC5\u1FBC7\u1FBC8\uFFBDC\uFFBDD\u2B65\u2B64";
+
+
+	setOnCharClick(onCharClickHandler: (event: MouseEvent, x: number, y: number) => void): void {
+		this.options.onCharClick = onCharClickHandler;
+	}
 
 	reset(): void {
 		this.resetTextBuffer();
@@ -135,7 +142,7 @@ export class TextCanvas {
 		return pos;
 	}
 
-	private canvasClickAction2(event: MouseEvent) {
+	private canvasClickAction(event: MouseEvent) {
 		const target = View.getEventTarget<HTMLElement>(event),
 			style = window.getComputedStyle(target, null).getPropertyValue("font-size"),
 			fontSize = parseFloat(style),
@@ -150,9 +157,14 @@ export class TextCanvas {
 			/* eslint-enable no-bitwise */
 
 		if (Utils.debug > 0) {
-			Utils.console.debug("canvasClickAction2: x=" + x + ", y=" + y + ", xTxt=" + xTxt + ", yTxt=" + yTxt);
+			Utils.console.debug("canvasClickAction: x=" + x + ", y=" + y + ", xTxt=" + xTxt + ", yTxt=" + yTxt);
 		}
 
+		if (this.options.onCharClick) {
+			this.options.onCharClick(event, xTxt, yTxt);
+		}
+
+		/*
 		let char = this.getCharFromTextBuffer(xTxt, yTxt); // is there a character an the click position?
 
 		if (char === undefined && event.detail === 2) { // no char but mouse double click?
@@ -162,13 +174,14 @@ export class TextCanvas {
 		if (char !== undefined && this.options.onClickKey) { // call click handler (put char in keyboard input buffer)
 			this.options.onClickKey(String.fromCharCode(char));
 		}
+		*/
 	}
 
 	onTextCanvasClick(event: MouseEvent): void {
 		if (!this.hasFocus) {
 			this.setFocusOnCanvas();
 		} else {
-			this.canvasClickAction2(event);
+			this.canvasClickAction(event);
 		}
 		event.stopPropagation();
 	}
@@ -274,7 +287,7 @@ export class TextCanvas {
 		this.putCharInTextBuffer(char, x, y);
 	}
 
-	readChar(x: number, y: number, _pen: number, _paper: number): number {
+	readChar(x: number, y: number, _pen?: number, _paper?: number): number {
 		let char = this.getCharFromTextBuffer(x, y); // TODO
 
 		if (char === undefined) {

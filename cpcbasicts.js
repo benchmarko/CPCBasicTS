@@ -7540,7 +7540,7 @@ define("View", ["require", "exports", "Utils"], function (require, exports, Util
             return element.className.indexOf("displayNone") >= 0;
         };
         View.prototype.setHidden = function (id, hidden, display) {
-            // optional display: block or flex
+            // optional display: block or flex or inherit
             var element = View.getElementById1(id), displayVisible = "display" + Utils_12.Utils.stringCapitalize(display || "block");
             if (hidden) {
                 if (element.className.indexOf("displayNone") < 0) {
@@ -7604,6 +7604,19 @@ define("View", ["require", "exports", "Utils"], function (require, exports, Util
             element.checked = checked;
             return this;
         };
+        /*
+        getInputDisabled(id: string): boolean { // eslint-disable-line class-methods-use-this
+            const element = View.getElementByIdAs<HTMLInputElement>(id);
+    
+            return element.disabled;
+        }
+        setInputDisabled(id: string, disabled: boolean): this {
+            const element = View.getElementByIdAs<HTMLInputElement>(id);
+    
+            element.disabled = disabled;
+            return this;
+        }
+        */
         View.prototype.setAreaInputList = function (id, inputs) {
             var element = View.getElementByIdAs(id), childNodes = element.childNodes;
             while (childNodes.length && childNodes[0].nodeType !== Node.ELEMENT_NODE) { // remove all non-element nodes
@@ -9230,8 +9243,9 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.gTransparent = false;
             this.options = {
                 charset: options.charset,
-                colors: options.colors,
-                onClickKey: options.onClickKey
+                palette: options.palette,
+                //onClickKey: options.onClickKey
+                onCharClick: options.onCharClick
             };
             this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
             this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
@@ -9246,7 +9260,10 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.width = width;
             this.height = height;
             this.dataset8 = new Uint8Array(new ArrayBuffer(width * height)); // array with pen values
-            this.setColors(this.options.colors);
+            if (!Canvas.palettes[this.options.palette]) {
+                Canvas.computePalette(this.options.palette);
+            }
+            this.setColorValues(Canvas.palettes[this.options.palette]);
             this.animationTimeoutId = undefined;
             this.animationFrame = undefined;
             if (this.canvas.getContext) { // not available on e.g. IE8
@@ -9273,6 +9290,12 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             }
             this.reset();
         }
+        Canvas.prototype.applyBorderColor = function () {
+            this.canvas.style.borderColor = Canvas.palettes[this.options.palette][this.currentInks[this.inkSet][16]];
+        };
+        Canvas.prototype.setOnCharClick = function (onCharClickHandler) {
+            this.options.onCharClick = onCharClickHandler;
+        };
         Canvas.prototype.reset = function () {
             this.changeMode(1);
             this.inkSet = 0;
@@ -9280,7 +9303,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.speedInk[0] = 10;
             this.speedInk[1] = 10;
             this.speedInkCount = this.speedInk[this.inkSet];
-            this.canvas.style.borderColor = this.options.colors[this.currentInks[this.inkSet][16]];
+            this.applyBorderColor();
             this.setGPen(1);
             this.setGPaper(0);
             this.resetCustomChars();
@@ -9289,6 +9312,32 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         };
         Canvas.prototype.resetCustomChars = function () {
             this.customCharset = {}; // symbol
+        };
+        Canvas.computePalette = function (palette) {
+            if (palette === "green" || palette === "grey") {
+                var colorPalette = Canvas.palettes.color, colorValues = [], monoPalette = [];
+                Canvas.extractAllColorValues(colorPalette, colorValues);
+                for (var i = 0; i < colorPalette.length; i += 1) {
+                    // https://en.wikipedia.org/wiki/Luma_(video)
+                    // (0.299 * R) + (0.587 * G) + (0.114 * B);
+                    var monoValue = (0.299 * colorValues[i][0] + 0.587 * colorValues[i][1] + 0.114 * colorValues[i][2]) | 0, // eslint-disable-line no-bitwise
+                    monoHex = monoValue.toString(16).toUpperCase().padStart(2, "0");
+                    monoPalette[i] = palette === "green" ? "#00" + monoHex + "00" : "#" + monoHex + monoHex + monoHex;
+                }
+                Canvas.palettes[palette] = monoPalette;
+            }
+        };
+        Canvas.prototype.setPalette = function (palette) {
+            if (palette !== this.options.palette) {
+                this.options.palette = palette;
+                if (!Canvas.palettes[this.options.palette]) {
+                    Canvas.computePalette(this.options.palette);
+                }
+                this.setColorValues(Canvas.palettes[this.options.palette]);
+                this.updateColorMap();
+                this.setNeedUpdate();
+                this.applyBorderColor();
+            }
         };
         Canvas.isLittleEndian = function () {
             // https://gist.github.com/TooTallNate/4750953
@@ -9304,13 +9353,12 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             ];
         };
         Canvas.extractAllColorValues = function (colors, colorValues) {
-            //const colorValues: number[][] = [];
             for (var i = 0; i < colors.length; i += 1) {
                 colorValues[i] = Canvas.extractColorValues(colors[i]);
             }
         };
-        Canvas.prototype.setColors = function (colors) {
-            Canvas.extractAllColorValues(colors, this.colorValues);
+        Canvas.prototype.setColorValues = function (palette) {
+            Canvas.extractAllColorValues(palette, this.colorValues);
         };
         Canvas.prototype.setAlpha = function (alpha) {
             var buf8 = this.imageData.data, length = this.dataset8.length; // or: this.width * this.height
@@ -9444,7 +9492,8 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
                 }
                 // check border ink
                 if (this.currentInks[newInkSet][16] !== this.currentInks[currentInkSet][16]) {
-                    this.canvas.style.borderColor = this.options.colors[this.currentInks[newInkSet][16]];
+                    //this.canvas.style.borderColor = this.options.palette[this.currentInks[newInkSet][16]];
+                    this.applyBorderColor();
                 }
             }
         };
@@ -9481,25 +9530,32 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
                 y: (event.clientY - this.borderWidth - rect.top) / (rect.bottom - rect.top - this.borderWidth * 2) * this.canvas.height
             };
         };
-        Canvas.prototype.canvasClickAction2 = function (event) {
+        Canvas.prototype.canvasClickAction = function (event) {
             var pos = this.getMousePos(event);
-            var x = pos.x, y = pos.y, char;
+            var x = pos.x, y = pos.y;
             /* eslint-disable no-bitwise */
             x |= 0; // force integer
             y |= 0;
             /* eslint-enable no-bitwise */
-            if (x >= 0 && x <= 639 && y >= 0 && y <= 399) {
-                var charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8, 
-                /* eslint-disable no-bitwise */
-                xTxt = (x / charWidth) | 0, yTxt = (y / charHeight) | 0;
-                /* eslint-enable no-bitwise */
+            if (this.options.onCharClick) {
+                if (x >= 0 && x <= this.width - 1 && y >= 0 && y <= this.height - 1) {
+                    var charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8, 
+                    /* eslint-disable no-bitwise */
+                    xTxt = (x / charWidth) | 0, yTxt = (y / charHeight) | 0;
+                    /* eslint-enable no-bitwise */
+                    this.options.onCharClick(event, xTxt, yTxt);
+                }
+                /*
                 char = this.readChar(xTxt, yTxt, 1, 0); // TODO: currently we use pen 1, paper 0
+    
                 if (char < 0 && event.detail === 2) { // no char but mouse double click?
                     char = 13; // use CR
                 }
+    
                 if (char >= 0 && this.options.onClickKey) { // call click handler (put char in keyboard input buffer)
                     this.options.onClickKey(String.fromCharCode(char));
                 }
+                */
             }
             // for graphics coordinates, adapt origin
             x -= this.xOrig;
@@ -9508,7 +9564,8 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
                 this.move(x, y);
             }
             if (Utils_15.Utils.debug > 0) {
-                Utils_15.Utils.console.debug("onCpcCanvasClick: x", pos.x, "y", pos.y, "x - xOrig", x, "y - yOrig", y, "char", char, "char", (char !== undefined ? String.fromCharCode(char) : "?"), "detail", event.detail);
+                //Utils.console.debug("canvasClickAction: x", pos.x, "y", pos.y, "x - xOrig", x, "y - yOrig", y, "char", char, "char", (char !== undefined ? String.fromCharCode(char) : "?"), "detail", event.detail);
+                Utils_15.Utils.console.debug("canvasClickAction: x", pos.x, "y", pos.y, "x - xOrig", x, "y - yOrig", y, "detail", event.detail);
             }
         };
         Canvas.prototype.onCpcCanvasClick = function (event) {
@@ -9516,7 +9573,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
                 this.setFocusOnCanvas();
             }
             else {
-                this.canvasClickAction2(event);
+                this.canvasClickAction(event);
             }
             event.stopPropagation();
         };
@@ -9860,7 +9917,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         Canvas.prototype.setBorder = function (ink1, ink2) {
             var needInkUpdate = this.setInk(16, ink1, ink2);
             if (needInkUpdate) {
-                this.canvas.style.borderColor = this.options.colors[this.currentInks[this.inkSet][16]];
+                this.applyBorderColor();
             }
         };
         Canvas.prototype.setGPen = function (gPen) {
@@ -10121,6 +10178,80 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         Canvas.prototype.getCanvasElement = function () {
             return this.canvas;
         };
+        // http://www.cpcwiki.eu/index.php/CPC_Palette
+        // (green and gray palette will be computed if needed)
+        Canvas.palettes = {
+            color: [
+                "#000000",
+                "#000080",
+                "#0000FF",
+                "#800000",
+                "#800080",
+                "#8000FF",
+                "#FF0000",
+                "#FF0080",
+                "#FF00FF",
+                "#008000",
+                "#008080",
+                "#0080FF",
+                "#808000",
+                "#808080",
+                "#8080FF",
+                "#FF8000",
+                "#FF8080",
+                "#FF80FF",
+                "#00FF00",
+                "#00FF80",
+                "#00FFFF",
+                "#80FF00",
+                "#80FF80",
+                "#80FFFF",
+                "#FFFF00",
+                "#FFFF80",
+                "#FFFFFF",
+                "#808080",
+                "#FF00FF",
+                "#FFFF80",
+                "#000080",
+                "#00FF80" //  31 Sea Green (same as 19)
+            ]
+            /*
+            grey2: [ // other grey?
+                "#000000",
+                "#0A0A0A",
+                "#131313",
+                "#1D1D1D",
+                "#262626",
+                "#303030",
+                "#393939",
+                "#434343",
+                "#4C4C4C",
+                "#575757",
+                "#606060",
+                "#6A6A6A",
+                "#737373",
+                "#7D7D7D",
+                "#868686",
+                "#909090",
+                "#999999",
+                "#A3A3A3",
+                "#ACACAC",
+                "#B5B5B5",
+                "#BFBFBF",
+                "#C9C9C9",
+                "#D2D2D2",
+                "#DCDCDC",
+                "#E5E5E5",
+                "#EFEFEF",
+                "#F8F8F8",
+                "#7D7D7D",
+                "#434343",
+                "#EFEFEF",
+                "#A0A0A0",
+                "#B5B5B5"
+            ]
+            */
+        };
         // mode 0: pen 0-15,16=border; inks for pen 14,15 are alternating: "1,24", "16,11"
         Canvas.defaultInks = [
             [1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1],
@@ -10167,7 +10298,8 @@ define("TextCanvas", ["require", "exports", "Utils", "View"], function (require,
             this.textBuffer = []; // textbuffer characters at row,column
             this.hasFocus = false; // canvas has focus
             this.options = {
-                onClickKey: options.onClickKey
+                //onClickKey: options.onClickKey
+                onCharClick: options.onCharClick
             };
             this.fnUpdateTextCanvasHandler = this.updateTextCanvas.bind(this);
             this.fnUpdateTextCanvas2Handler = this.updateTextCanvas2.bind(this);
@@ -10176,6 +10308,9 @@ define("TextCanvas", ["require", "exports", "Utils", "View"], function (require,
             this.animationFrame = undefined;
             this.reset();
         }
+        TextCanvas.prototype.setOnCharClick = function (onCharClickHandler) {
+            this.options.onCharClick = onCharClickHandler;
+        };
         TextCanvas.prototype.reset = function () {
             this.resetTextBuffer();
             this.setNeedTextUpdate();
@@ -10244,29 +10379,36 @@ define("TextCanvas", ["require", "exports", "Utils", "View"], function (require,
             };
             return pos;
         };
-        TextCanvas.prototype.canvasClickAction2 = function (event) {
+        TextCanvas.prototype.canvasClickAction = function (event) {
             var target = View_4.View.getEventTarget(event), style = window.getComputedStyle(target, null).getPropertyValue("font-size"), fontSize = parseFloat(style), pos = this.getMousePos(event), charWidth = (fontSize + 1.4) / 2, charHeight = fontSize + 2.25, // TODO
             x = pos.x, y = pos.y, 
             /* eslint-disable no-bitwise */
             xTxt = (x / charWidth) | 0, yTxt = (y / charHeight) | 0;
             /* eslint-enable no-bitwise */
             if (Utils_16.Utils.debug > 0) {
-                Utils_16.Utils.console.debug("canvasClickAction2: x=" + x + ", y=" + y + ", xTxt=" + xTxt + ", yTxt=" + yTxt);
+                Utils_16.Utils.console.debug("canvasClickAction: x=" + x + ", y=" + y + ", xTxt=" + xTxt + ", yTxt=" + yTxt);
             }
-            var char = this.getCharFromTextBuffer(xTxt, yTxt); // is there a character an the click position?
+            if (this.options.onCharClick) {
+                this.options.onCharClick(event, xTxt, yTxt);
+            }
+            /*
+            let char = this.getCharFromTextBuffer(xTxt, yTxt); // is there a character an the click position?
+    
             if (char === undefined && event.detail === 2) { // no char but mouse double click?
                 char = 13; // use CR
             }
+    
             if (char !== undefined && this.options.onClickKey) { // call click handler (put char in keyboard input buffer)
                 this.options.onClickKey(String.fromCharCode(char));
             }
+            */
         };
         TextCanvas.prototype.onTextCanvasClick = function (event) {
             if (!this.hasFocus) {
                 this.setFocusOnCanvas();
             }
             else {
-                this.canvasClickAction2(event);
+                this.canvasClickAction(event);
             }
             event.stopPropagation();
         };
@@ -10562,7 +10704,6 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             this.fnUserAction = undefined;
             /* eslint-disable no-invalid-this */
             this.handlers = {
-                onSpecialButtonClick: this.onSpecialButtonClick,
                 onInputButtonClick: this.onInputButtonClick,
                 onInp2ButtonClick: this.onInp2ButtonClick,
                 onOutputButtonClick: this.onOutputButtonClick,
@@ -10573,6 +10714,7 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                 onConvertButtonClick: this.onConvertButtonClick,
                 onSettingsButtonClick: this.onSettingsButtonClick,
                 onGalleryButtonClick: this.onGalleryButtonClick,
+                onMoreButtonClick: this.onMoreButtonClick,
                 onKbdButtonClick: this.onKbdButtonClick,
                 onConsoleButtonClick: this.onConsoleButtonClick,
                 onParseButtonClick: this.onParseButtonClick,
@@ -10602,13 +10744,16 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                 onVarSelectChange: this.onVarSelectChange,
                 onKbdLayoutSelectChange: this.onKbdLayoutSelectChange,
                 onVarTextChange: this.onVarTextChange,
+                onDebugInputChange: this.onDebugInputChange,
                 onImplicitLinesInputChange: this.onImplicitLinesInputChange,
                 onArrayBoundsInputChange: this.onArrayBoundsInputChange,
+                onConsoleLogInputChange: this.onConsoleLogInputChange,
                 onTraceInputChange: this.onTraceInputChange,
+                onSoundInputChange: this.onSoundInputChange,
                 onSpeedInputChange: this.onSpeedInputChange,
+                onPaletteSelectChange: this.onPaletteSelectChange,
                 onScreenshotButtonClick: this.onScreenshotButtonClick,
                 onEnterButtonClick: this.onEnterButtonClick,
-                onSoundButtonClick: this.onSoundButtonClick,
                 onFullscreenButtonClick: CommonEventHandler.onFullscreenButtonClick,
                 onCpcCanvasClick: this.onCpcCanvasClick,
                 onWindowClick: this.onWindowClick,
@@ -10619,32 +10764,23 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             this.view = view;
             this.controller = controller;
         }
-        CommonEventHandler.prototype.toogleHidden = function (id, prop, display) {
-            var visible = !this.model.getProperty(prop);
-            this.model.setProperty(prop, visible);
-            this.view.setHidden(id, !visible, display);
-            return visible;
-        };
         CommonEventHandler.prototype.fnSetUserAction = function (fnAction) {
             this.fnUserAction = fnAction;
         };
-        CommonEventHandler.prototype.onSpecialButtonClick = function () {
-            this.toogleHidden("specialArea", "showSpecial");
-        };
         CommonEventHandler.prototype.onInputButtonClick = function () {
-            this.toogleHidden("inputArea", "showInput");
+            this.controller.toggleAreaHidden("inputArea");
         };
         CommonEventHandler.prototype.onInp2ButtonClick = function () {
-            this.toogleHidden("inp2Area", "showInp2");
+            this.controller.toggleAreaHidden("inp2Area");
         };
         CommonEventHandler.prototype.onOutputButtonClick = function () {
-            this.toogleHidden("outputArea", "showOutput");
+            this.controller.toggleAreaHidden("outputArea");
         };
         CommonEventHandler.prototype.onResultButtonClick = function () {
-            this.toogleHidden("resultArea", "showResult");
+            this.controller.toggleAreaHidden("resultArea");
         };
         CommonEventHandler.prototype.onTextButtonClick = function () {
-            if (this.toogleHidden("textArea", "showText")) {
+            if (this.controller.toggleAreaHidden("textArea")) {
                 this.controller.startUpdateTextCanvas();
             }
             else {
@@ -10652,10 +10788,10 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             }
         };
         CommonEventHandler.prototype.onVariableButtonClick = function () {
-            this.toogleHidden("variableArea", "showVariable");
+            this.controller.toggleAreaHidden("variableArea");
         };
         CommonEventHandler.prototype.onCpcButtonClick = function () {
-            if (this.toogleHidden("cpcArea", "showCpc")) {
+            if (this.controller.toggleAreaHidden("cpcArea")) {
                 this.controller.startUpdateCanvas();
             }
             else {
@@ -10663,21 +10799,21 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             }
         };
         CommonEventHandler.prototype.onConvertButtonClick = function () {
-            this.toogleHidden("convertArea", "showConvert", "flex");
+            this.controller.toggleAreaHidden("convertArea");
         };
         CommonEventHandler.prototype.onSettingsButtonClick = function () {
-            this.toogleHidden("settingsArea", "showSettings", "flex");
+            this.controller.toggleAreaHidden("settingsArea");
         };
         CommonEventHandler.prototype.onGalleryButtonClick = function () {
-            if (this.toogleHidden("galleryArea", "showGallery", "flex")) {
+            if (this.controller.toggleAreaHidden("galleryArea")) {
                 this.controller.setGalleryAreaInputs();
             }
         };
+        CommonEventHandler.prototype.onMoreButtonClick = function () {
+            this.controller.toggleAreaHidden("moreArea");
+        };
         CommonEventHandler.prototype.onKbdButtonClick = function () {
-            if (this.toogleHidden("kbdArea", "showKbd", "flex")) {
-                if (this.view.getHidden("kbdArea")) { // on old browsers, display "flex" is not available, so set "block" if still hidden
-                    this.view.setHidden("kbdArea", false);
-                }
+            if (this.controller.toggleAreaHidden("kbdArea")) {
                 this.controller.virtualKeyboardCreate(); // maybe draw it
                 this.view.setHidden("kbdLayoutArea", true, "inherit"); // kbd visible => kbdlayout invisible
             }
@@ -10686,7 +10822,7 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             }
         };
         CommonEventHandler.prototype.onConsoleButtonClick = function () {
-            this.toogleHidden("consoleArea", "showConsole");
+            this.controller.toggleAreaHidden("consoleArea");
         };
         CommonEventHandler.prototype.onParseButtonClick = function () {
             this.controller.startParse();
@@ -10741,7 +10877,7 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
         CommonEventHandler.prototype.onGalleryItemClick = function (event) {
             var target = View_5.View.getEventTarget(event), value = target.value;
             this.view.setSelectValue("exampleSelect", value);
-            this.toogleHidden("galleryArea", "showGallery", "flex"); // close
+            this.controller.toggleAreaHidden("galleryArea"); // close
             this.onExampleSelectChange();
         };
         CommonEventHandler.onNothing = function () {
@@ -10798,8 +10934,18 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             this.view.setHidden("kbdAlpha", value === "num");
             this.view.setHidden("kbdNum", value === "alpha");
         };
+        CommonEventHandler.prototype.onPaletteSelectChange = function () {
+            var value = this.view.getSelectValue("paletteSelect");
+            this.model.setProperty("palette", value);
+            this.view.setSelectTitleFromSelectedOption("paletteSelect");
+            this.controller.setPalette(value);
+        };
         CommonEventHandler.prototype.onVarTextChange = function () {
             this.controller.changeVariable();
+        };
+        CommonEventHandler.prototype.onDebugInputChange = function () {
+            var debug = this.view.getInputValue("debugInput");
+            this.model.setProperty("debug", Number(debug));
         };
         CommonEventHandler.prototype.onImplicitLinesInputChange = function () {
             var checked = this.view.getInputChecked("implicitLinesInput");
@@ -10811,10 +10957,22 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             this.model.setProperty("arrayBounds", checked);
             this.controller.fnArrayBounds();
         };
+        CommonEventHandler.prototype.onConsoleLogInputChange = function () {
+            var checked = this.view.getInputChecked("consoleLogInput");
+            this.model.setProperty("showConsole", checked);
+            if (checked && this.view.getHidden("consoleBox")) {
+                this.view.setHidden("consoleBox", !checked); // make sure the box around is visible
+            }
+        };
         CommonEventHandler.prototype.onTraceInputChange = function () {
             var checked = this.view.getInputChecked("traceInput");
             this.model.setProperty("trace", checked);
             this.controller.fnTrace();
+        };
+        CommonEventHandler.prototype.onSoundInputChange = function () {
+            var checked = this.view.getInputChecked("soundInput");
+            this.model.setProperty("sound", checked);
+            this.controller.setSoundActive();
         };
         CommonEventHandler.prototype.onSpeedInputChange = function () {
             var speed = this.view.getInputValue("speedInput");
@@ -10831,10 +10989,6 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
         };
         CommonEventHandler.prototype.onEnterButtonClick = function () {
             this.controller.startEnter();
-        };
-        CommonEventHandler.prototype.onSoundButtonClick = function () {
-            this.model.setProperty("sound", !this.model.getProperty("sound"));
-            this.controller.setSoundActive();
         };
         CommonEventHandler.onFullscreenButtonClick = function () {
             var switched = View_5.View.requestFullscreenForId("cpcCanvas");
@@ -11779,7 +11933,14 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.soundClass = options.sound;
             this.variables = options.variables;
             this.quiet = Boolean(options.quiet);
+            this.onClickKey = options.onClickKey;
             this.random = new Random_1.Random();
+            if (this.canvas) {
+                this.canvas.setOnCharClick(this.onCharClickCallback.bind(this));
+            }
+            if (this.textCanvas) {
+                this.textCanvas.setOnCharClick(this.onCharClickCallback.bind(this));
+            }
             this.stopCount = this.initialStop;
             this.stopEntry = {
                 reason: "",
@@ -12003,6 +12164,30 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.closeout();
             this.cursor(stream, 0);
             this.labelList.length = 0;
+        };
+        CpcVm.prototype.onCharClickCallback = function (event, x, y) {
+            if (this.onClickKey) {
+                var isTextCanvas = event.target && event.target.type === "textarea"; //fast hack; this.textCanvas.textText === event.target
+                var char = -1;
+                if (isTextCanvas) {
+                    char = this.textCanvas.readChar(x, y);
+                }
+                else {
+                    for (var stream = 0; stream < CpcVm.streamCount - 2; stream += 1) { // check all window streams
+                        var win = this.windowDataList[stream];
+                        char = this.canvas.readChar(x, y, win.pen, win.paper);
+                        if (char > 0 && char !== 32) {
+                            break; // found some char
+                        }
+                    }
+                }
+                if ((char < 0 || char === 32 || char === 143) && event.detail === 2) { // no (useful) char but mouse double click?
+                    char = 13; // use CR
+                }
+                if (char >= 0) { // call click handler (put char in keyboard input buffer)
+                    this.onClickKey(String.fromCharCode(char));
+                }
+            }
         };
         CpcVm.prototype.vmGetAllVariables = function () {
             return this.variables.getAllVariables();
@@ -15662,35 +15847,28 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.commonEventHandler = new CommonEventHandler_1.CommonEventHandler(model, view, this);
             this.view.attachEventHandler("click", this.commonEventHandler);
             this.view.attachEventHandler("change", this.commonEventHandler);
+            // unhide console box, if console should be shown
             view.setHidden("consoleBox", !model.getProperty("showConsole"));
-            view.setHidden("inputArea", !model.getProperty("showInput"));
-            view.setHidden("inp2Area", !model.getProperty("showInp2"));
-            view.setHidden("outputArea", !model.getProperty("showOutput"));
-            view.setHidden("resultArea", !model.getProperty("showResult"));
-            this.textCanvas = new TextCanvas_1.TextCanvas({
-                onClickKey: this.fnPutKeyInBufferHandler
-            });
-            view.setHidden("textArea", !model.getProperty("showText"));
-            view.setHidden("variableArea", !model.getProperty("showVariable"));
-            view.setHidden("kbdArea", !model.getProperty("showKbd"), "flex");
-            view.setHidden("kbdLayoutArea", model.getProperty("showKbd"), "inherit"); // kbd visible => kbdlayout invisible
-            view.setHidden("cpcArea", false); // make sure canvas is not hidden (allows to get width, height)
+            this.view.setInputChecked("consoleLogInput", model.getProperty("showConsole"));
+            this.textCanvas = new TextCanvas_1.TextCanvas({}); //({ onClickKey: this.fnPutKeyInBufferHandler	});
             var palette = model.getProperty("palette");
+            view.setSelectValue("paletteSelect", palette);
+            view.setHidden("cpcArea", false); // make sure canvas area is not hidden when creating canvas object (allows to get width, height)
             this.canvas = new Canvas_1.Canvas({
                 charset: cpcCharset_1.cpcCharset,
-                colors: palette === "grey" ? Controller.paletteGrey : Controller.paletteColors,
-                onClickKey: this.fnPutKeyInBufferHandler
+                palette: palette === "green" || palette === "grey" ? palette : "color"
+                //onClickKey: this.fnPutKeyInBufferHandler
             });
-            view.setHidden("cpcArea", !model.getProperty("showCpc"));
-            view.setHidden("settingsArea", !model.getProperty("showSettings"), "flex");
-            view.setHidden("galleryArea", !model.getProperty("showGallery"), "flex");
-            view.setHidden("convertArea", !model.getProperty("showConvert"), "flex");
+            view.setHidden("kbdLayoutArea", model.getProperty("showKbd"), "inherit"); // kbd visible => kbdlayout invisible
+            this.initAreas();
+            view.setInputValue("debugInput", String(model.getProperty("debug")));
             view.setInputChecked("implicitLinesInput", model.getProperty("implicitLines"));
             view.setInputChecked("arrayBoundsInput", model.getProperty("arrayBounds"));
             this.variables = new Variables_1.Variables({
                 arrayBounds: model.getProperty("arrayBounds")
             });
             view.setInputChecked("traceInput", model.getProperty("trace"));
+            view.setInputChecked("soundInput", model.getProperty("sound"));
             view.setInputValue("speedInput", String(model.getProperty("speed")));
             this.fnSpeed();
             var kbdLayout = model.getProperty("kbdLayout");
@@ -15708,7 +15886,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 textCanvas: this.textCanvas,
                 keyboard: this.keyboard,
                 sound: this.sound,
-                variables: this.variables
+                variables: this.variables,
+                onClickKey: this.fnPutKeyInBufferHandler
             });
             this.vm.vmReset();
             this.rsx = new CpcVmRsx_1.CpcVmRsx(this.vm);
@@ -15749,6 +15928,12 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             view.setSelectValue("exampleSelect", example);
             this.initDatabases();
         }
+        Controller.prototype.initAreas = function () {
+            for (var id in Controller.areaDefinitions) { // eslint-disable-line guard-for-in
+                var propertyObject = Controller.areaDefinitions[id];
+                this.view.setHidden(id, !this.model.getProperty(propertyObject.property), propertyObject.display);
+            }
+        };
         Controller.prototype.initDatabases = function () {
             var model = this.model, databases = {}, databaseDirs = model.getProperty("databaseDirs").split(",");
             for (var i = 0; i < databaseDirs.length; i += 1) {
@@ -16306,11 +16491,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             for (var i = 0; i < dir.length; i += 1) {
                 var parts = dir[i].split(".");
                 dir[i] = parts[0].padEnd(8, " ") + "." + (parts.length >= 2 ? parts[1] : "").padEnd(3, " ");
-                /*
-                if (parts.length === 2) {
-                    dir[i] = parts[0].padEnd(8, " ") + "." + parts[1].padEnd(3, " ");
-                }
-                */
             }
             if (sort) {
                 dir.sort();
@@ -17425,6 +17605,32 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             // we support at most 5 arguments
             return fnFunction;
         };
+        Controller.prototype.setPopoversHiddenExcept = function (exceptId) {
+            var areaDefinitions = Controller.areaDefinitions;
+            for (var id in areaDefinitions) {
+                if (id !== exceptId) {
+                    var propertyObject = areaDefinitions[id];
+                    if (propertyObject.isPopover && !this.view.getHidden(id)) {
+                        // we cannot use toggleAreaHidden becasue it would be recursive
+                        this.model.setProperty(propertyObject.property, false);
+                        this.view.setHidden(id, true, propertyObject.display);
+                    }
+                }
+            }
+        };
+        Controller.prototype.toggleAreaHidden = function (id) {
+            var propertyObject = Controller.areaDefinitions[id], propertyName = propertyObject.property, visible = !this.model.getProperty(propertyName);
+            this.model.setProperty(propertyName, visible);
+            this.view.setHidden(id, !visible, propertyObject.display);
+            // on old browsers display "flex" is not available, so set default "" (="block"), if still hidden
+            if (visible && propertyObject.display === "flex" && this.view.getHidden(id)) {
+                this.view.setHidden(id, !visible);
+            }
+            if (visible && propertyObject.isPopover) {
+                this.setPopoversHiddenExcept(id);
+            }
+            return visible;
+        };
         Controller.prototype.changeVariable = function () {
             var par = this.view.getSelectValue("varSelect"), valueString = this.view.getSelectValue("varText"), variables = this.variables;
             var value = variables.getVariable(par);
@@ -17452,28 +17658,33 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.setVarSelectOptions("varSelect", variables);
             this.commonEventHandler.onVarSelectChange(); // title change?
         };
+        Controller.prototype.setPalette = function (palette) {
+            this.canvas.setPalette(palette === "green" || palette === "grey" ? palette : "color");
+        };
         Controller.prototype.setSoundActive = function () {
-            var sound = this.sound, soundButton = View_7.View.getElementById1("soundButton"), active = this.model.getProperty("sound");
-            var text;
+            var sound = this.sound, soundLabel = View_7.View.getElementById1("soundLabel"), active = this.model.getProperty("sound");
+            var text = "";
             if (active) {
                 try {
                     sound.soundOn();
-                    text = (sound.isActivatedByUser()) ? "Sound is on" : "Sound on (waiting)";
+                    //text = (sound.isActivatedByUser()) ? "Sound" : "Sound on (waiting)";
                 }
                 catch (e) {
                     Utils_25.Utils.console.warn("soundOn:", e);
-                    text = "Sound unavailable";
+                    text = "Sound (unavailable)";
                 }
             }
             else {
                 sound.soundOff();
-                text = "Sound is off";
+                //text = "Sound is off";
                 var stop_1 = this.vm && this.vm.vmGetStopObject();
                 if (stop_1 && stop_1.reason === "waitSound") {
                     this.vm.vmStop("", 0, true); // do not wait
                 }
             }
-            soundButton.innerText = text;
+            if (text) {
+                soundLabel.innerText = text;
+            }
         };
         Controller.prototype.fnEndOfImport = function (imported) {
             var stream = 0, vm = this.vm;
@@ -17505,19 +17716,9 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         };
         Controller.prototype.initDropZone = function () {
             var fileHandler = this.fileHandler || this.createFileHandler();
-            /*
-            if (!this.fileHandler) {
-                this.fileHandler = new FileHandler({
-                    adaptFilename: this.adaptFilename.bind(this),
-                    updateStorageDatabase: this.updateStorageDatabase.bind(this),
-                    outputError: this.outputError.bind(this)
-                });
-            }
-            */
             if (!this.fileSelect) {
                 this.fileSelect = new FileSelect_1.FileSelect({
                     fnEndOfImport: this.fnEndOfImport.bind(this),
-                    //outputError: this.outputError.bind(this),
                     fnLoad2: fileHandler.fnLoad2.bind(fileHandler)
                 });
             }
@@ -17635,10 +17836,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.onExampleSelectChange = function () {
             var vm = this.vm, inFile = vm.vmGetInFileObject(), dataBaseName = this.model.getProperty("database"), directoryName = this.view.getSelectValue("directorySelect");
             vm.closein();
-            if (!this.view.getHidden("galleryArea")) { // close gallery, if open
-                this.view.setHidden("galleryArea", true, "flex");
-                this.model.setProperty("showGallery", false);
-            }
+            this.setPopoversHiddenExcept(""); // hide all popovers, especially the gallery
             inFile.open = true;
             var exampleName = this.view.getSelectValue("exampleSelect");
             if (directoryName) {
@@ -17685,14 +17883,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             return out;
         };
         Controller.prototype.onCpcCanvasClick = function (event) {
-            if (this.model.getProperty("showSettings")) {
-                this.model.setProperty("showSettings", false);
-                this.view.setHidden("settingsArea", !this.model.getProperty("showSettings"), "flex");
-            }
-            if (this.model.getProperty("showConvert")) {
-                this.model.setProperty("showConvert", false);
-                this.view.setHidden("convertArea", !this.model.getProperty("showConvert"), "flex");
-            }
+            this.setPopoversHiddenExcept(""); // hide all popovers
             this.canvas.onCpcCanvasClick(event);
             this.textCanvas.onWindowClick(event);
             this.keyboard.setActive(true);
@@ -17738,75 +17929,56 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.initialLoopTimeout = 1000 - speed * 10;
         };
         Controller.metaIdent = "CPCBasic";
-        // http://www.cpcwiki.eu/index.php/CPC_Palette
-        Controller.paletteColors = [
-            "#000000",
-            "#000080",
-            "#0000FF",
-            "#800000",
-            "#800080",
-            "#8000FF",
-            "#FF0000",
-            "#FF0080",
-            "#FF00FF",
-            "#008000",
-            "#008080",
-            "#0080FF",
-            "#808000",
-            "#808080",
-            "#8080FF",
-            "#FF8000",
-            "#FF8080",
-            "#FF80FF",
-            "#00FF00",
-            "#00FF80",
-            "#00FFFF",
-            "#80FF00",
-            "#80FF80",
-            "#80FFFF",
-            "#FFFF00",
-            "#FFFF80",
-            "#FFFFFF",
-            "#808080",
-            "#FF00FF",
-            "#FFFF80",
-            "#000080",
-            "#00FF80" //  31 Sea Green (same as 19)
-        ];
-        Controller.paletteGrey = [
-            "#000000",
-            "#0A0A0A",
-            "#131313",
-            "#1D1D1D",
-            "#262626",
-            "#303030",
-            "#393939",
-            "#434343",
-            "#4C4C4C",
-            "#575757",
-            "#606060",
-            "#6A6A6A",
-            "#737373",
-            "#7D7D7D",
-            "#868686",
-            "#909090",
-            "#999999",
-            "#A3A3A3",
-            "#ACACAC",
-            "#B5B5B5",
-            "#BFBFBF",
-            "#C9C9C9",
-            "#D2D2D2",
-            "#DCDCDC",
-            "#E5E5E5",
-            "#EFEFEF",
-            "#F8F8F8",
-            "#7D7D7D",
-            "#434343",
-            "#EFEFEF",
-            "#A0A0A0",
-            "#B5B5B5"
-        ];
+        Controller.areaDefinitions = {
+            consoleArea: {
+                property: "showConsole"
+            },
+            convertArea: {
+                property: "showConvert",
+                display: "flex",
+                isPopover: true
+            },
+            cpcArea: {
+                property: "showCpc"
+            },
+            galleryArea: {
+                property: "showGallery",
+                display: "flex",
+                isPopover: true
+            },
+            inp2Area: {
+                property: "showInp2"
+            },
+            inputArea: {
+                property: "showInput"
+            },
+            kbdArea: {
+                property: "showKbd",
+                display: "flex"
+            },
+            moreArea: {
+                property: "showMore",
+                display: "flex",
+                isPopover: true
+            },
+            outputArea: {
+                property: "showOutput"
+            },
+            resultArea: {
+                property: "showResult"
+            },
+            settingsArea: {
+                property: "showSettings",
+                display: "flex",
+                isPopover: true
+            },
+            textArea: {
+                property: "showText"
+            },
+            variableArea: {
+                property: "showVariable"
+            }
+        };
         Controller.defaultExtensions = [
             "",
             "bas",
@@ -18000,7 +18172,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
                 cpcBasicLog = UtilsConsole.cpcBasicLog;
                 UtilsConsole.cpcBasicLog = undefined; // do not log any more to dummy console
             }
-            if (Utils_26.Utils.debug > 1 && cpcBasic.model.getProperty("showConsole")) { // console log window?
+            if (Utils_26.Utils.debug > 0 && cpcBasic.model.getProperty("showConsole")) { // console log window?
                 UtilsConsole = cpcBasic.createDebugUtilsConsole(cpcBasicLog);
                 Utils_26.Utils.console = UtilsConsole;
                 Utils_26.Utils.console.log("CPCBasic log started at", Utils_26.Utils.dateFormat(new Date()));
@@ -18039,6 +18211,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             showConvert: false,
             showSettings: false,
             showGallery: false,
+            showMore: false,
             sound: true,
             speed: 100,
             palette: "color",

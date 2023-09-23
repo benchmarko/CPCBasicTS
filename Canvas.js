@@ -43,8 +43,9 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.gTransparent = false;
             this.options = {
                 charset: options.charset,
-                colors: options.colors,
-                onClickKey: options.onClickKey
+                palette: options.palette,
+                //onClickKey: options.onClickKey
+                onCharClick: options.onCharClick
             };
             this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
             this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
@@ -59,7 +60,10 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.width = width;
             this.height = height;
             this.dataset8 = new Uint8Array(new ArrayBuffer(width * height)); // array with pen values
-            this.setColors(this.options.colors);
+            if (!Canvas.palettes[this.options.palette]) {
+                Canvas.computePalette(this.options.palette);
+            }
+            this.setColorValues(Canvas.palettes[this.options.palette]);
             this.animationTimeoutId = undefined;
             this.animationFrame = undefined;
             if (this.canvas.getContext) { // not available on e.g. IE8
@@ -86,6 +90,12 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             }
             this.reset();
         }
+        Canvas.prototype.applyBorderColor = function () {
+            this.canvas.style.borderColor = Canvas.palettes[this.options.palette][this.currentInks[this.inkSet][16]];
+        };
+        Canvas.prototype.setOnCharClick = function (onCharClickHandler) {
+            this.options.onCharClick = onCharClickHandler;
+        };
         Canvas.prototype.reset = function () {
             this.changeMode(1);
             this.inkSet = 0;
@@ -93,7 +103,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.speedInk[0] = 10;
             this.speedInk[1] = 10;
             this.speedInkCount = this.speedInk[this.inkSet];
-            this.canvas.style.borderColor = this.options.colors[this.currentInks[this.inkSet][16]];
+            this.applyBorderColor();
             this.setGPen(1);
             this.setGPaper(0);
             this.resetCustomChars();
@@ -102,6 +112,32 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         };
         Canvas.prototype.resetCustomChars = function () {
             this.customCharset = {}; // symbol
+        };
+        Canvas.computePalette = function (palette) {
+            if (palette === "green" || palette === "grey") {
+                var colorPalette = Canvas.palettes.color, colorValues = [], monoPalette = [];
+                Canvas.extractAllColorValues(colorPalette, colorValues);
+                for (var i = 0; i < colorPalette.length; i += 1) {
+                    // https://en.wikipedia.org/wiki/Luma_(video)
+                    // (0.299 * R) + (0.587 * G) + (0.114 * B);
+                    var monoValue = (0.299 * colorValues[i][0] + 0.587 * colorValues[i][1] + 0.114 * colorValues[i][2]) | 0, // eslint-disable-line no-bitwise
+                    monoHex = monoValue.toString(16).toUpperCase().padStart(2, "0");
+                    monoPalette[i] = palette === "green" ? "#00" + monoHex + "00" : "#" + monoHex + monoHex + monoHex;
+                }
+                Canvas.palettes[palette] = monoPalette;
+            }
+        };
+        Canvas.prototype.setPalette = function (palette) {
+            if (palette !== this.options.palette) {
+                this.options.palette = palette;
+                if (!Canvas.palettes[this.options.palette]) {
+                    Canvas.computePalette(this.options.palette);
+                }
+                this.setColorValues(Canvas.palettes[this.options.palette]);
+                this.updateColorMap();
+                this.setNeedUpdate();
+                this.applyBorderColor();
+            }
         };
         Canvas.isLittleEndian = function () {
             // https://gist.github.com/TooTallNate/4750953
@@ -117,13 +153,12 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             ];
         };
         Canvas.extractAllColorValues = function (colors, colorValues) {
-            //const colorValues: number[][] = [];
             for (var i = 0; i < colors.length; i += 1) {
                 colorValues[i] = Canvas.extractColorValues(colors[i]);
             }
         };
-        Canvas.prototype.setColors = function (colors) {
-            Canvas.extractAllColorValues(colors, this.colorValues);
+        Canvas.prototype.setColorValues = function (palette) {
+            Canvas.extractAllColorValues(palette, this.colorValues);
         };
         Canvas.prototype.setAlpha = function (alpha) {
             var buf8 = this.imageData.data, length = this.dataset8.length; // or: this.width * this.height
@@ -257,7 +292,8 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 }
                 // check border ink
                 if (this.currentInks[newInkSet][16] !== this.currentInks[currentInkSet][16]) {
-                    this.canvas.style.borderColor = this.options.colors[this.currentInks[newInkSet][16]];
+                    //this.canvas.style.borderColor = this.options.palette[this.currentInks[newInkSet][16]];
+                    this.applyBorderColor();
                 }
             }
         };
@@ -294,25 +330,32 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 y: (event.clientY - this.borderWidth - rect.top) / (rect.bottom - rect.top - this.borderWidth * 2) * this.canvas.height
             };
         };
-        Canvas.prototype.canvasClickAction2 = function (event) {
+        Canvas.prototype.canvasClickAction = function (event) {
             var pos = this.getMousePos(event);
-            var x = pos.x, y = pos.y, char;
+            var x = pos.x, y = pos.y;
             /* eslint-disable no-bitwise */
             x |= 0; // force integer
             y |= 0;
             /* eslint-enable no-bitwise */
-            if (x >= 0 && x <= 639 && y >= 0 && y <= 399) {
-                var charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8, 
-                /* eslint-disable no-bitwise */
-                xTxt = (x / charWidth) | 0, yTxt = (y / charHeight) | 0;
-                /* eslint-enable no-bitwise */
+            if (this.options.onCharClick) {
+                if (x >= 0 && x <= this.width - 1 && y >= 0 && y <= this.height - 1) {
+                    var charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8, 
+                    /* eslint-disable no-bitwise */
+                    xTxt = (x / charWidth) | 0, yTxt = (y / charHeight) | 0;
+                    /* eslint-enable no-bitwise */
+                    this.options.onCharClick(event, xTxt, yTxt);
+                }
+                /*
                 char = this.readChar(xTxt, yTxt, 1, 0); // TODO: currently we use pen 1, paper 0
+    
                 if (char < 0 && event.detail === 2) { // no char but mouse double click?
                     char = 13; // use CR
                 }
+    
                 if (char >= 0 && this.options.onClickKey) { // call click handler (put char in keyboard input buffer)
                     this.options.onClickKey(String.fromCharCode(char));
                 }
+                */
             }
             // for graphics coordinates, adapt origin
             x -= this.xOrig;
@@ -321,7 +364,8 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 this.move(x, y);
             }
             if (Utils_1.Utils.debug > 0) {
-                Utils_1.Utils.console.debug("onCpcCanvasClick: x", pos.x, "y", pos.y, "x - xOrig", x, "y - yOrig", y, "char", char, "char", (char !== undefined ? String.fromCharCode(char) : "?"), "detail", event.detail);
+                //Utils.console.debug("canvasClickAction: x", pos.x, "y", pos.y, "x - xOrig", x, "y - yOrig", y, "char", char, "char", (char !== undefined ? String.fromCharCode(char) : "?"), "detail", event.detail);
+                Utils_1.Utils.console.debug("canvasClickAction: x", pos.x, "y", pos.y, "x - xOrig", x, "y - yOrig", y, "detail", event.detail);
             }
         };
         Canvas.prototype.onCpcCanvasClick = function (event) {
@@ -329,7 +373,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 this.setFocusOnCanvas();
             }
             else {
-                this.canvasClickAction2(event);
+                this.canvasClickAction(event);
             }
             event.stopPropagation();
         };
@@ -673,7 +717,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         Canvas.prototype.setBorder = function (ink1, ink2) {
             var needInkUpdate = this.setInk(16, ink1, ink2);
             if (needInkUpdate) {
-                this.canvas.style.borderColor = this.options.colors[this.currentInks[this.inkSet][16]];
+                this.applyBorderColor();
             }
         };
         Canvas.prototype.setGPen = function (gPen) {
@@ -933,6 +977,80 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         };
         Canvas.prototype.getCanvasElement = function () {
             return this.canvas;
+        };
+        // http://www.cpcwiki.eu/index.php/CPC_Palette
+        // (green and gray palette will be computed if needed)
+        Canvas.palettes = {
+            color: [
+                "#000000",
+                "#000080",
+                "#0000FF",
+                "#800000",
+                "#800080",
+                "#8000FF",
+                "#FF0000",
+                "#FF0080",
+                "#FF00FF",
+                "#008000",
+                "#008080",
+                "#0080FF",
+                "#808000",
+                "#808080",
+                "#8080FF",
+                "#FF8000",
+                "#FF8080",
+                "#FF80FF",
+                "#00FF00",
+                "#00FF80",
+                "#00FFFF",
+                "#80FF00",
+                "#80FF80",
+                "#80FFFF",
+                "#FFFF00",
+                "#FFFF80",
+                "#FFFFFF",
+                "#808080",
+                "#FF00FF",
+                "#FFFF80",
+                "#000080",
+                "#00FF80" //  31 Sea Green (same as 19)
+            ]
+            /*
+            grey2: [ // other grey?
+                "#000000",
+                "#0A0A0A",
+                "#131313",
+                "#1D1D1D",
+                "#262626",
+                "#303030",
+                "#393939",
+                "#434343",
+                "#4C4C4C",
+                "#575757",
+                "#606060",
+                "#6A6A6A",
+                "#737373",
+                "#7D7D7D",
+                "#868686",
+                "#909090",
+                "#999999",
+                "#A3A3A3",
+                "#ACACAC",
+                "#B5B5B5",
+                "#BFBFBF",
+                "#C9C9C9",
+                "#D2D2D2",
+                "#DCDCDC",
+                "#E5E5E5",
+                "#EFEFEF",
+                "#F8F8F8",
+                "#7D7D7D",
+                "#434343",
+                "#EFEFEF",
+                "#A0A0A0",
+                "#B5B5B5"
+            ]
+            */
         };
         // mode 0: pen 0-15,16=border; inks for pen 14,15 are alternating: "1,24", "16,11"
         Canvas.defaultInks = [

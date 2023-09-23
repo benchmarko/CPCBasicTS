@@ -36,9 +36,9 @@ export declare class Controller implements IController {
     private readonly savedStop;
     private fileHandler?;
     private fileSelect?;
+    private static areaDefinitions;
     constructor(model: Model, view: View);
-    private static readonly paletteColors;
-    private static readonly paletteGrey;
+    private initAreas;
     private initDatabases;
     private onUserAction;
     addIndex(dir: string, input: string): void;
@@ -131,7 +131,10 @@ export declare class Controller implements IController {
     private fnPutKeysInBuffer;
     startEnter(): void;
     private static generateFunction;
+    private setPopoversHiddenExcept;
+    toggleAreaHidden(id: string): boolean;
     changeVariable(): void;
+    setPalette(palette: string): void;
     setSoundActive(): void;
     private fnEndOfImport;
     private static fnHandleDragOver;

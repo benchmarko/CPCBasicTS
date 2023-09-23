@@ -57,35 +57,28 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.commonEventHandler = new CommonEventHandler_1.CommonEventHandler(model, view, this);
             this.view.attachEventHandler("click", this.commonEventHandler);
             this.view.attachEventHandler("change", this.commonEventHandler);
+            // unhide console box, if console should be shown
             view.setHidden("consoleBox", !model.getProperty("showConsole"));
-            view.setHidden("inputArea", !model.getProperty("showInput"));
-            view.setHidden("inp2Area", !model.getProperty("showInp2"));
-            view.setHidden("outputArea", !model.getProperty("showOutput"));
-            view.setHidden("resultArea", !model.getProperty("showResult"));
-            this.textCanvas = new TextCanvas_1.TextCanvas({
-                onClickKey: this.fnPutKeyInBufferHandler
-            });
-            view.setHidden("textArea", !model.getProperty("showText"));
-            view.setHidden("variableArea", !model.getProperty("showVariable"));
-            view.setHidden("kbdArea", !model.getProperty("showKbd"), "flex");
-            view.setHidden("kbdLayoutArea", model.getProperty("showKbd"), "inherit"); // kbd visible => kbdlayout invisible
-            view.setHidden("cpcArea", false); // make sure canvas is not hidden (allows to get width, height)
+            this.view.setInputChecked("consoleLogInput", model.getProperty("showConsole"));
+            this.textCanvas = new TextCanvas_1.TextCanvas({}); //({ onClickKey: this.fnPutKeyInBufferHandler	});
             var palette = model.getProperty("palette");
+            view.setSelectValue("paletteSelect", palette);
+            view.setHidden("cpcArea", false); // make sure canvas area is not hidden when creating canvas object (allows to get width, height)
             this.canvas = new Canvas_1.Canvas({
                 charset: cpcCharset_1.cpcCharset,
-                colors: palette === "grey" ? Controller.paletteGrey : Controller.paletteColors,
-                onClickKey: this.fnPutKeyInBufferHandler
+                palette: palette === "green" || palette === "grey" ? palette : "color"
+                //onClickKey: this.fnPutKeyInBufferHandler
             });
-            view.setHidden("cpcArea", !model.getProperty("showCpc"));
-            view.setHidden("settingsArea", !model.getProperty("showSettings"), "flex");
-            view.setHidden("galleryArea", !model.getProperty("showGallery"), "flex");
-            view.setHidden("convertArea", !model.getProperty("showConvert"), "flex");
+            view.setHidden("kbdLayoutArea", model.getProperty("showKbd"), "inherit"); // kbd visible => kbdlayout invisible
+            this.initAreas();
+            view.setInputValue("debugInput", String(model.getProperty("debug")));
             view.setInputChecked("implicitLinesInput", model.getProperty("implicitLines"));
             view.setInputChecked("arrayBoundsInput", model.getProperty("arrayBounds"));
             this.variables = new Variables_1.Variables({
                 arrayBounds: model.getProperty("arrayBounds")
             });
             view.setInputChecked("traceInput", model.getProperty("trace"));
+            view.setInputChecked("soundInput", model.getProperty("sound"));
             view.setInputValue("speedInput", String(model.getProperty("speed")));
             this.fnSpeed();
             var kbdLayout = model.getProperty("kbdLayout");
@@ -103,7 +96,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 textCanvas: this.textCanvas,
                 keyboard: this.keyboard,
                 sound: this.sound,
-                variables: this.variables
+                variables: this.variables,
+                onClickKey: this.fnPutKeyInBufferHandler
             });
             this.vm.vmReset();
             this.rsx = new CpcVmRsx_1.CpcVmRsx(this.vm);
@@ -144,6 +138,12 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             view.setSelectValue("exampleSelect", example);
             this.initDatabases();
         }
+        Controller.prototype.initAreas = function () {
+            for (var id in Controller.areaDefinitions) { // eslint-disable-line guard-for-in
+                var propertyObject = Controller.areaDefinitions[id];
+                this.view.setHidden(id, !this.model.getProperty(propertyObject.property), propertyObject.display);
+            }
+        };
         Controller.prototype.initDatabases = function () {
             var model = this.model, databases = {}, databaseDirs = model.getProperty("databaseDirs").split(",");
             for (var i = 0; i < databaseDirs.length; i += 1) {
@@ -701,11 +701,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             for (var i = 0; i < dir.length; i += 1) {
                 var parts = dir[i].split(".");
                 dir[i] = parts[0].padEnd(8, " ") + "." + (parts.length >= 2 ? parts[1] : "").padEnd(3, " ");
-                /*
-                if (parts.length === 2) {
-                    dir[i] = parts[0].padEnd(8, " ") + "." + parts[1].padEnd(3, " ");
-                }
-                */
             }
             if (sort) {
                 dir.sort();
@@ -1820,6 +1815,32 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             // we support at most 5 arguments
             return fnFunction;
         };
+        Controller.prototype.setPopoversHiddenExcept = function (exceptId) {
+            var areaDefinitions = Controller.areaDefinitions;
+            for (var id in areaDefinitions) {
+                if (id !== exceptId) {
+                    var propertyObject = areaDefinitions[id];
+                    if (propertyObject.isPopover && !this.view.getHidden(id)) {
+                        // we cannot use toggleAreaHidden becasue it would be recursive
+                        this.model.setProperty(propertyObject.property, false);
+                        this.view.setHidden(id, true, propertyObject.display);
+                    }
+                }
+            }
+        };
+        Controller.prototype.toggleAreaHidden = function (id) {
+            var propertyObject = Controller.areaDefinitions[id], propertyName = propertyObject.property, visible = !this.model.getProperty(propertyName);
+            this.model.setProperty(propertyName, visible);
+            this.view.setHidden(id, !visible, propertyObject.display);
+            // on old browsers display "flex" is not available, so set default "" (="block"), if still hidden
+            if (visible && propertyObject.display === "flex" && this.view.getHidden(id)) {
+                this.view.setHidden(id, !visible);
+            }
+            if (visible && propertyObject.isPopover) {
+                this.setPopoversHiddenExcept(id);
+            }
+            return visible;
+        };
         Controller.prototype.changeVariable = function () {
             var par = this.view.getSelectValue("varSelect"), valueString = this.view.getSelectValue("varText"), variables = this.variables;
             var value = variables.getVariable(par);
@@ -1847,28 +1868,33 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.setVarSelectOptions("varSelect", variables);
             this.commonEventHandler.onVarSelectChange(); // title change?
         };
+        Controller.prototype.setPalette = function (palette) {
+            this.canvas.setPalette(palette === "green" || palette === "grey" ? palette : "color");
+        };
         Controller.prototype.setSoundActive = function () {
-            var sound = this.sound, soundButton = View_1.View.getElementById1("soundButton"), active = this.model.getProperty("sound");
-            var text;
+            var sound = this.sound, soundLabel = View_1.View.getElementById1("soundLabel"), active = this.model.getProperty("sound");
+            var text = "";
             if (active) {
                 try {
                     sound.soundOn();
-                    text = (sound.isActivatedByUser()) ? "Sound is on" : "Sound on (waiting)";
+                    //text = (sound.isActivatedByUser()) ? "Sound" : "Sound on (waiting)";
                 }
                 catch (e) {
                     Utils_1.Utils.console.warn("soundOn:", e);
-                    text = "Sound unavailable";
+                    text = "Sound (unavailable)";
                 }
             }
             else {
                 sound.soundOff();
-                text = "Sound is off";
+                //text = "Sound is off";
                 var stop_1 = this.vm && this.vm.vmGetStopObject();
                 if (stop_1 && stop_1.reason === "waitSound") {
                     this.vm.vmStop("", 0, true); // do not wait
                 }
             }
-            soundButton.innerText = text;
+            if (text) {
+                soundLabel.innerText = text;
+            }
         };
         Controller.prototype.fnEndOfImport = function (imported) {
             var stream = 0, vm = this.vm;
@@ -1900,19 +1926,9 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         };
         Controller.prototype.initDropZone = function () {
             var fileHandler = this.fileHandler || this.createFileHandler();
-            /*
-            if (!this.fileHandler) {
-                this.fileHandler = new FileHandler({
-                    adaptFilename: this.adaptFilename.bind(this),
-                    updateStorageDatabase: this.updateStorageDatabase.bind(this),
-                    outputError: this.outputError.bind(this)
-                });
-            }
-            */
             if (!this.fileSelect) {
                 this.fileSelect = new FileSelect_1.FileSelect({
                     fnEndOfImport: this.fnEndOfImport.bind(this),
-                    //outputError: this.outputError.bind(this),
                     fnLoad2: fileHandler.fnLoad2.bind(fileHandler)
                 });
             }
@@ -2030,10 +2046,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         Controller.prototype.onExampleSelectChange = function () {
             var vm = this.vm, inFile = vm.vmGetInFileObject(), dataBaseName = this.model.getProperty("database"), directoryName = this.view.getSelectValue("directorySelect");
             vm.closein();
-            if (!this.view.getHidden("galleryArea")) { // close gallery, if open
-                this.view.setHidden("galleryArea", true, "flex");
-                this.model.setProperty("showGallery", false);
-            }
+            this.setPopoversHiddenExcept(""); // hide all popovers, especially the gallery
             inFile.open = true;
             var exampleName = this.view.getSelectValue("exampleSelect");
             if (directoryName) {
@@ -2080,14 +2093,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             return out;
         };
         Controller.prototype.onCpcCanvasClick = function (event) {
-            if (this.model.getProperty("showSettings")) {
-                this.model.setProperty("showSettings", false);
-                this.view.setHidden("settingsArea", !this.model.getProperty("showSettings"), "flex");
-            }
-            if (this.model.getProperty("showConvert")) {
-                this.model.setProperty("showConvert", false);
-                this.view.setHidden("convertArea", !this.model.getProperty("showConvert"), "flex");
-            }
+            this.setPopoversHiddenExcept(""); // hide all popovers
             this.canvas.onCpcCanvasClick(event);
             this.textCanvas.onWindowClick(event);
             this.keyboard.setActive(true);
@@ -2133,75 +2139,56 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.initialLoopTimeout = 1000 - speed * 10;
         };
         Controller.metaIdent = "CPCBasic";
-        // http://www.cpcwiki.eu/index.php/CPC_Palette
-        Controller.paletteColors = [
-            "#000000",
-            "#000080",
-            "#0000FF",
-            "#800000",
-            "#800080",
-            "#8000FF",
-            "#FF0000",
-            "#FF0080",
-            "#FF00FF",
-            "#008000",
-            "#008080",
-            "#0080FF",
-            "#808000",
-            "#808080",
-            "#8080FF",
-            "#FF8000",
-            "#FF8080",
-            "#FF80FF",
-            "#00FF00",
-            "#00FF80",
-            "#00FFFF",
-            "#80FF00",
-            "#80FF80",
-            "#80FFFF",
-            "#FFFF00",
-            "#FFFF80",
-            "#FFFFFF",
-            "#808080",
-            "#FF00FF",
-            "#FFFF80",
-            "#000080",
-            "#00FF80" //  31 Sea Green (same as 19)
-        ];
-        Controller.paletteGrey = [
-            "#000000",
-            "#0A0A0A",
-            "#131313",
-            "#1D1D1D",
-            "#262626",
-            "#303030",
-            "#393939",
-            "#434343",
-            "#4C4C4C",
-            "#575757",
-            "#606060",
-            "#6A6A6A",
-            "#737373",
-            "#7D7D7D",
-            "#868686",
-            "#909090",
-            "#999999",
-            "#A3A3A3",
-            "#ACACAC",
-            "#B5B5B5",
-            "#BFBFBF",
-            "#C9C9C9",
-            "#D2D2D2",
-            "#DCDCDC",
-            "#E5E5E5",
-            "#EFEFEF",
-            "#F8F8F8",
-            "#7D7D7D",
-            "#434343",
-            "#EFEFEF",
-            "#A0A0A0",
-            "#B5B5B5"
-        ];
+        Controller.areaDefinitions = {
+            consoleArea: {
+                property: "showConsole"
+            },
+            convertArea: {
+                property: "showConvert",
+                display: "flex",
+                isPopover: true
+            },
+            cpcArea: {
+                property: "showCpc"
+            },
+            galleryArea: {
+                property: "showGallery",
+                display: "flex",
+                isPopover: true
+            },
+            inp2Area: {
+                property: "showInp2"
+            },
+            inputArea: {
+                property: "showInput"
+            },
+            kbdArea: {
+                property: "showKbd",
+                display: "flex"
+            },
+            moreArea: {
+                property: "showMore",
+                display: "flex",
+                isPopover: true
+            },
+            outputArea: {
+                property: "showOutput"
+            },
+            resultArea: {
+                property: "showResult"
+            },
+            settingsArea: {
+                property: "showSettings",
+                display: "flex",
+                isPopover: true
+            },
+            textArea: {
+                property: "showText"
+            },
+            variableArea: {
+                property: "showVariable"
+            }
+        };
         Controller.defaultExtensions = [
             "",
             "bas",

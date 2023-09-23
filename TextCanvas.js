@@ -13,7 +13,8 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.textBuffer = []; // textbuffer characters at row,column
             this.hasFocus = false; // canvas has focus
             this.options = {
-                onClickKey: options.onClickKey
+                //onClickKey: options.onClickKey
+                onCharClick: options.onCharClick
             };
             this.fnUpdateTextCanvasHandler = this.updateTextCanvas.bind(this);
             this.fnUpdateTextCanvas2Handler = this.updateTextCanvas2.bind(this);
@@ -22,6 +23,9 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.animationFrame = undefined;
             this.reset();
         }
+        TextCanvas.prototype.setOnCharClick = function (onCharClickHandler) {
+            this.options.onCharClick = onCharClickHandler;
+        };
         TextCanvas.prototype.reset = function () {
             this.resetTextBuffer();
             this.setNeedTextUpdate();
@@ -90,29 +94,36 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             };
             return pos;
         };
-        TextCanvas.prototype.canvasClickAction2 = function (event) {
+        TextCanvas.prototype.canvasClickAction = function (event) {
             var target = View_1.View.getEventTarget(event), style = window.getComputedStyle(target, null).getPropertyValue("font-size"), fontSize = parseFloat(style), pos = this.getMousePos(event), charWidth = (fontSize + 1.4) / 2, charHeight = fontSize + 2.25, // TODO
             x = pos.x, y = pos.y, 
             /* eslint-disable no-bitwise */
             xTxt = (x / charWidth) | 0, yTxt = (y / charHeight) | 0;
             /* eslint-enable no-bitwise */
             if (Utils_1.Utils.debug > 0) {
-                Utils_1.Utils.console.debug("canvasClickAction2: x=" + x + ", y=" + y + ", xTxt=" + xTxt + ", yTxt=" + yTxt);
+                Utils_1.Utils.console.debug("canvasClickAction: x=" + x + ", y=" + y + ", xTxt=" + xTxt + ", yTxt=" + yTxt);
             }
-            var char = this.getCharFromTextBuffer(xTxt, yTxt); // is there a character an the click position?
+            if (this.options.onCharClick) {
+                this.options.onCharClick(event, xTxt, yTxt);
+            }
+            /*
+            let char = this.getCharFromTextBuffer(xTxt, yTxt); // is there a character an the click position?
+    
             if (char === undefined && event.detail === 2) { // no char but mouse double click?
                 char = 13; // use CR
             }
+    
             if (char !== undefined && this.options.onClickKey) { // call click handler (put char in keyboard input buffer)
                 this.options.onClickKey(String.fromCharCode(char));
             }
+            */
         };
         TextCanvas.prototype.onTextCanvasClick = function (event) {
             if (!this.hasFocus) {
                 this.setFocusOnCanvas();
             }
             else {
-                this.canvasClickAction2(event);
+                this.canvasClickAction(event);
             }
             event.stopPropagation();
         };

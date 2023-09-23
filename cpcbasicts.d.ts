@@ -55,6 +55,7 @@ declare module "Interfaces" {
     }
     export type VariableValue = string | number | Function | [] | VariableValue[];
     export interface IController {
+        toggleAreaHidden: (id: string) => boolean;
         startParse: () => void;
         startRenum: () => void;
         startRun: () => void;
@@ -73,6 +74,7 @@ declare module "Interfaces" {
         setGalleryAreaInputs: () => void;
         invalidateScript: () => void;
         setSoundActive: () => void;
+        setPalette: (palette: string) => void;
         changeVariable: () => void;
         onExampleSelectChange: () => void;
         onDirectorySelectChange: () => void;
@@ -921,8 +923,8 @@ declare module "Canvas" {
     type CharsetType = CharType[];
     export interface CanvasOptions {
         charset: CharsetType;
-        colors: string[];
-        onClickKey?: (arg0: string) => void;
+        palette: "color" | "green" | "grey";
+        onCharClick?: (event: MouseEvent, x: number, y: number) => void;
     }
     export class Canvas {
         private readonly options;
@@ -972,14 +974,19 @@ declare module "Canvas" {
         private yBottom;
         private gTransparent;
         constructor(options: CanvasOptions);
+        private static readonly palettes;
         private static readonly defaultInks;
         private static readonly modeData;
+        private applyBorderColor;
+        setOnCharClick(onCharClickHandler: (event: MouseEvent, x: number, y: number) => void): void;
         reset(): void;
         resetCustomChars(): void;
+        private static computePalette;
+        setPalette(palette: "color" | "green" | "grey"): void;
         private static isLittleEndian;
         private static extractColorValues;
         private static extractAllColorValues;
-        setColors(colors: string[]): void;
+        private setColorValues;
         private setAlpha;
         private setNeedUpdate;
         private updateCanvas2;
@@ -999,7 +1006,7 @@ declare module "Canvas" {
         setDefaultInks(): void;
         private setFocusOnCanvas;
         private getMousePos;
-        private canvasClickAction2;
+        private canvasClickAction;
         onCpcCanvasClick(event: MouseEvent): void;
         onWindowClick(_event: Event): void;
         getXpos(): number;
@@ -1055,7 +1062,7 @@ declare module "Canvas" {
 }
 declare module "TextCanvas" {
     export interface TextCanvasOptions {
-        onClickKey?: (arg0: string) => void;
+        onCharClick?: (event: MouseEvent, x: number, y: number) => void;
     }
     export class TextCanvas {
         private readonly options;
@@ -1070,6 +1077,7 @@ declare module "TextCanvas" {
         private hasFocus;
         constructor(options: TextCanvasOptions);
         private static readonly cpc2Unicode;
+        setOnCharClick(onCharClickHandler: (event: MouseEvent, x: number, y: number) => void): void;
         reset(): void;
         private resetTextBuffer;
         private setNeedTextUpdate;
@@ -1080,7 +1088,7 @@ declare module "TextCanvas" {
         private updateTextWindow;
         private setFocusOnCanvas;
         private getMousePos;
-        private canvasClickAction2;
+        private canvasClickAction;
         onTextCanvasClick(event: MouseEvent): void;
         onWindowClick(_event: Event): void;
         fillTextBox(left: number, top: number, width: number, height: number, _pen?: number): void;
@@ -1090,7 +1098,7 @@ declare module "TextCanvas" {
         private putCharInTextBuffer;
         private getCharFromTextBuffer;
         printChar(char: number, x: number, y: number, _pen: number, _paper: number, _transparent: boolean): void;
-        readChar(x: number, y: number, _pen: number, _paper: number): number;
+        readChar(x: number, y: number, _pen?: number, _paper?: number): number;
         clearTextWindow(left: number, right: number, top: number, bottom: number, _paper: number): void;
         clearFullWindow(): void;
         windowScrollUp(left: number, right: number, top: number, bottom: number, _pen: number): void;
@@ -1112,9 +1120,7 @@ declare module "CommonEventHandler" {
         private readonly controller;
         private fnUserAction;
         constructor(model: Model, view: View, controller: IController);
-        private toogleHidden;
         fnSetUserAction(fnAction: ((event: Event, id: string) => void) | undefined): void;
-        private onSpecialButtonClick;
         private onInputButtonClick;
         private onInp2ButtonClick;
         private onOutputButtonClick;
@@ -1125,6 +1131,7 @@ declare module "CommonEventHandler" {
         private onConvertButtonClick;
         private onSettingsButtonClick;
         private onGalleryButtonClick;
+        private onMoreButtonClick;
         private onKbdButtonClick;
         private onConsoleButtonClick;
         private onParseButtonClick;
@@ -1148,23 +1155,26 @@ declare module "CommonEventHandler" {
         private onOutputTextChange;
         private static encodeUriParam;
         private onReloadButtonClick;
-        onDatabaseSelectChange(): void;
-        onDirectorySelectChange(): void;
-        onExampleSelectChange(): void;
+        private onDatabaseSelectChange;
+        private onDirectorySelectChange;
+        private onExampleSelectChange;
         onVarSelectChange(): void;
         onKbdLayoutSelectChange(): void;
+        private onPaletteSelectChange;
         private onVarTextChange;
+        private onDebugInputChange;
         private onImplicitLinesInputChange;
         private onArrayBoundsInputChange;
+        private onConsoleLogInputChange;
         private onTraceInputChange;
+        private onSoundInputChange;
         private onSpeedInputChange;
         private onScreenshotButtonClick;
         private onEnterButtonClick;
-        private onSoundButtonClick;
         private static onFullscreenButtonClick;
-        onCpcCanvasClick(event: Event): void;
-        onWindowClick(event: Event): void;
-        onTextTextClick(event: Event): void;
+        private onCpcCanvasClick;
+        private onWindowClick;
+        private onTextTextClick;
         private readonly handlers;
         handleEvent(event: Event): void;
     }
@@ -1308,6 +1318,7 @@ declare module "CpcVm" {
         sound: Sound;
         variables: Variables;
         quiet?: boolean;
+        onClickKey?: (arg0: string) => void;
     }
     export interface FileMeta {
         typeString: string;
@@ -1403,6 +1414,7 @@ declare module "CpcVm" {
     type DataEntryType = (string | undefined);
     export class CpcVm {
         private quiet;
+        private readonly onClickKey?;
         private readonly fnOpeninHandler;
         private readonly fnCloseinHandler;
         private readonly fnCloseoutHandler;
@@ -1487,6 +1499,7 @@ declare module "CpcVm" {
         vmResetData(): void;
         private vmResetInks;
         vmReset4Run(): void;
+        private onCharClickCallback;
         vmGetAllVariables(): VariableMap;
         vmGetAllVarTypes(): VariableTypeMap;
         vmSetStartLine(line: number): void;
@@ -1860,9 +1873,9 @@ declare module "Controller" {
         private readonly savedStop;
         private fileHandler?;
         private fileSelect?;
+        private static areaDefinitions;
         constructor(model: Model, view: View);
-        private static readonly paletteColors;
-        private static readonly paletteGrey;
+        private initAreas;
         private initDatabases;
         private onUserAction;
         addIndex(dir: string, input: string): void;
@@ -1955,7 +1968,10 @@ declare module "Controller" {
         private fnPutKeysInBuffer;
         startEnter(): void;
         private static generateFunction;
+        private setPopoversHiddenExcept;
+        toggleAreaHidden(id: string): boolean;
         changeVariable(): void;
+        setPalette(palette: string): void;
         setSoundActive(): void;
         private fnEndOfImport;
         private static fnHandleDragOver;

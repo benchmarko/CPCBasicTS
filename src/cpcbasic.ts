@@ -36,6 +36,7 @@ class cpcBasic {
 		showConvert: false,
 		showSettings: false,
 		showGallery: false,
+		showMore: false,
 		sound: true,
 		speed: 100,
 		palette: "color", // currently only on relaod: "color" or "grey"
@@ -236,7 +237,7 @@ class cpcBasic {
 			UtilsConsole.cpcBasicLog = undefined; // do not log any more to dummy console
 		}
 
-		if (Utils.debug > 1 && cpcBasic.model.getProperty<boolean>("showConsole")) { // console log window?
+		if (Utils.debug > 0 && cpcBasic.model.getProperty<boolean>("showConsole")) { // console log window?
 			UtilsConsole = cpcBasic.createDebugUtilsConsole(cpcBasicLog);
 			Utils.console = UtilsConsole;
 			Utils.console.log("CPCBasic log started at", Utils.dateFormat(new Date()));

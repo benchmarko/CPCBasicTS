@@ -218,8 +218,14 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
             vmRound: function (n) {
                 return (n >= 0) ? (n + 0.5) | 0 : (n - 0.5) | 0; // eslint-disable-line no-bitwise
             },
-            vmAssign: function () {
-                return 0;
+            /*
+            vmDetermineVarType(varType: string): string { // also used in controller
+                return (varType.length > 1) ? varType.charAt(1) : this.testVariables1.getVarType(varType.charAt(0));
+            },
+            */
+            vmAssign: function (_varType, value) {
+                //const type = this.vmDetermineVarType(varType);
+                return value;
             },
             vmAssertNumberType: function () {
                 // empty
@@ -447,6 +453,12 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
         }
         var allExamples = cpcBasic.model.getAllExamples();
         cpcBasic.testExamples = Object.keys(allExamples);
+        if (TestHelper_1.TestHelper.config.test) { // a single test specified?
+            var testName_1 = TestHelper_1.TestHelper.config.test;
+            cpcBasic.testExamples = cpcBasic.testExamples.filter(function (item) {
+                return item === testName_1;
+            });
+        }
         cpcBasic.testIndex = 0;
         cpcBasic.totalExamples += cpcBasic.testExamples.length;
         if (cpcBasic.assert) {

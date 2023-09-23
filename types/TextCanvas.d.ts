@@ -1,5 +1,5 @@
 export interface TextCanvasOptions {
-    onClickKey?: (arg0: string) => void;
+    onCharClick?: (event: MouseEvent, x: number, y: number) => void;
 }
 export declare class TextCanvas {
     private readonly options;
@@ -14,6 +14,7 @@ export declare class TextCanvas {
     private hasFocus;
     constructor(options: TextCanvasOptions);
     private static readonly cpc2Unicode;
+    setOnCharClick(onCharClickHandler: (event: MouseEvent, x: number, y: number) => void): void;
     reset(): void;
     private resetTextBuffer;
     private setNeedTextUpdate;
@@ -24,7 +25,7 @@ export declare class TextCanvas {
     private updateTextWindow;
     private setFocusOnCanvas;
     private getMousePos;
-    private canvasClickAction2;
+    private canvasClickAction;
     onTextCanvasClick(event: MouseEvent): void;
     onWindowClick(_event: Event): void;
     fillTextBox(left: number, top: number, width: number, height: number, _pen?: number): void;
@@ -34,7 +35,7 @@ export declare class TextCanvas {
     private putCharInTextBuffer;
     private getCharFromTextBuffer;
     printChar(char: number, x: number, y: number, _pen: number, _paper: number, _transparent: boolean): void;
-    readChar(x: number, y: number, _pen: number, _paper: number): number;
+    readChar(x: number, y: number, _pen?: number, _paper?: number): number;
     clearTextWindow(left: number, right: number, top: number, bottom: number, _paper: number): void;
     clearFullWindow(): void;
     windowScrollUp(left: number, right: number, top: number, bottom: number, _pen: number): void;
