@@ -758,7 +758,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.defScopeArgs = {}; // collect DEF scope args
             var nodeArgs = this.fnParseArgs(node.args);
             this.defScopeArgs.collectDone = true; // collection done => now use them
-            var expression = this.fnParseOneArg(expressionArg); //this.fnParseOneArg(node.right);
+            var expression = this.fnParseOneArg(expressionArg);
             this.defScopeArgs = undefined;
             this.fnPropagateStaticTypes(node, node.right, expressionArg, "II RR IR RI $$");
             var value;
@@ -849,7 +849,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             node.pv = name + "(" + nodeArgs.join(", ") + ")";
         };
-        // TODO: complexity
         // eslint-disable-next-line complexity
         CodeGeneratorJs.prototype.fnFor = function (node) {
             var nodeArgs = this.fnParseArgs(node.args), varName = nodeArgs[0], label = this.fnGetForLabel();
@@ -1379,11 +1378,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 if (node.args) {
                     this.fnPrecheckTree(node.args, countMap); // recursive
                 }
-                /*
-                if (node.args2) { // for "ELSE"
-                    this.fnPrecheckTree(node.args2, countMap); // recursive
-                }
-                */
             }
         };
         //

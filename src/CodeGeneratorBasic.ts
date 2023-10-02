@@ -158,7 +158,7 @@ export class CodeGeneratorBasic {
 			for (let i = 1; i < args.length; i += 1) { // start with 1
 				const arg = args[i].trim();
 
-				if (!arg.startsWith("ELSE") && !arg.startsWith("'") && arg !== "") { //TTT arg !== "\n"
+				if (!arg.startsWith("ELSE") && !arg.startsWith("'") && arg !== "") {
 					args[i] = ":" + args[i];
 				}
 			}
@@ -264,7 +264,7 @@ export class CodeGeneratorBasic {
 				if (this.keepWhiteSpace) {
 					value += CodeGeneratorBasic.fnWs(token) + token.value;
 				} else {
-					value += CodeGeneratorBasic.fnSpace1(CodeGeneratorBasic.fnWs(token) + token.value); //TTT
+					value += CodeGeneratorBasic.fnSpace1(CodeGeneratorBasic.fnWs(token) + token.value);
 				}
 			}
 		}
@@ -302,16 +302,11 @@ export class CodeGeneratorBasic {
 	}
 
 	private fnIf(node: ParserNode) {
-		/*
-		const elseNode = node.args && node.args.length && node.args[node.args.length - 1].type === "else" ? (node.args.pop() as ParserNode);
-		elseArgs = node.args && node.args.length && node.args[node.args.length - 1].type === "else" ? (node.args.pop() as ParserNode).args : undefined,
-		*/
 		const nodeArgs = this.fnParseArgs(node.args),
 			partName = nodeArgs.shift() as string; // "then"/"goto"
 
 		return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(this.parseNode(node.right as ParserNode))
 			+ CodeGeneratorBasic.fnSpace1(partName) + CodeGeneratorBasic.fnSpace1(this.combineArgsWithColon(nodeArgs));
-			//+ elseArgs ? CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase()
 	}
 
 	private inputLineInput(node: ParserNode) { // input or line input

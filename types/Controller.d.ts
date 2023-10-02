@@ -36,6 +36,7 @@ export declare class Controller implements IController {
     private readonly savedStop;
     private fileHandler?;
     private fileSelect?;
+    private hasStorageDatabase;
     private static areaDefinitions;
     constructor(model: Model, view: View);
     private initAreas;
@@ -105,8 +106,10 @@ export declare class Controller implements IController {
     private fnDownloadNewFile;
     fnDownload(): void;
     private selectJsError;
+    private fnChain;
     private fnRun;
     private fnParseRun;
+    private fnParseChain;
     private fnRunPart1;
     private fnDirectInput;
     private startWithDirectInput;

@@ -60,14 +60,13 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             // unhide console box, if console should be shown
             view.setHidden("consoleBox", !model.getProperty("showConsole"));
             this.view.setInputChecked("consoleLogInput", model.getProperty("showConsole"));
-            this.textCanvas = new TextCanvas_1.TextCanvas({}); //({ onClickKey: this.fnPutKeyInBufferHandler	});
+            this.textCanvas = new TextCanvas_1.TextCanvas({});
             var palette = model.getProperty("palette");
             view.setSelectValue("paletteSelect", palette);
             view.setHidden("cpcArea", false); // make sure canvas area is not hidden when creating canvas object (allows to get width, height)
             this.canvas = new Canvas_1.Canvas({
                 charset: cpcCharset_1.cpcCharset,
                 palette: palette === "green" || palette === "grey" ? palette : "color"
-                //onClickKey: this.fnPutKeyInBufferHandler
             });
             view.setHidden("kbdLayoutArea", model.getProperty("showKbd"), "inherit"); // kbd visible => kbdlayout invisible
             this.initAreas();
@@ -78,6 +77,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 arrayBounds: model.getProperty("arrayBounds")
             });
             view.setInputChecked("traceInput", model.getProperty("trace"));
+            view.setInputChecked("autorunInput", model.getProperty("autorun"));
             view.setInputChecked("soundInput", model.getProperty("sound"));
             view.setInputValue("speedInput", String(model.getProperty("speed")));
             this.fnSpeed();
@@ -136,7 +136,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.initDropZone();
             var example = model.getProperty("example");
             view.setSelectValue("exampleSelect", example);
-            this.initDatabases();
+            this.hasStorageDatabase = this.initDatabases();
         }
         Controller.prototype.initAreas = function () {
             for (var id in Controller.areaDefinitions) { // eslint-disable-line guard-for-in
@@ -146,6 +146,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         };
         Controller.prototype.initDatabases = function () {
             var model = this.model, databases = {}, databaseDirs = model.getProperty("databaseDirs").split(",");
+            var hasStorageDatabase = false;
             for (var i = 0; i < databaseDirs.length; i += 1) {
                 var databaseDir = databaseDirs[i], parts = databaseDir.split("/"), name_1 = parts[parts.length - 1];
                 databases[name_1] = {
@@ -153,9 +154,13 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     title: databaseDir,
                     src: databaseDir
                 };
+                if (name_1 === "storage") {
+                    hasStorageDatabase = true;
+                }
             }
             this.model.addDatabases(databases);
             this.setDatabaseSelectOptions();
+            return hasStorageDatabase;
         };
         Controller.prototype.onUserAction = function ( /* event, id */) {
             this.commonEventHandler.fnSetUserAction(undefined); // deactivate user action
@@ -305,6 +310,9 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.view.setSelectOptions(select, items);
         };
         Controller.prototype.updateStorageDatabase = function (action, key) {
+            if (!this.hasStorageDatabase) {
+                return;
+            }
             var database = this.model.getProperty("database"), storage = Utils_1.Utils.localStorage;
             if (database !== "storage") {
                 this.model.setProperty("database", "storage"); // switch to storage database
@@ -867,8 +875,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             return output.text;
         };
         Controller.prototype.loadFileContinue = function (input) {
-            var inFile = this.vm.vmGetInFileObject(), command = inFile.command;
-            var startLine = 0, putInMemory = false, data;
+            var inFile = this.vm.vmGetInFileObject();
+            var data;
             if (input !== null && input !== undefined) {
                 data = Controller.splitMeta(input);
                 input = data.data; // maybe changed
@@ -903,8 +911,12 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     input = "1 ' " + imported.join(", "); // imported files
                 }
             }
+            var command = inFile.command, // create copy of data
+            inFileLine = inFile.line || 0;
+            var putInMemory = false, startLine = 0;
             if (inFile.fnFileCallback) {
                 try {
+                    // the callback could close inFile, so do not use it any more
                     putInMemory = inFile.fnFileCallback(input, data && data.meta);
                 }
                 catch (e) {
@@ -928,9 +940,9 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     input = this.mergeScripts(this.view.getAreaValue("inputText"), input);
                     this.setInputText(input);
                     this.view.setAreaValue("resultText", "");
-                    startLine = inFile.line || 0;
+                    startLine = inFileLine;
                     this.invalidateScript();
-                    this.fnParseRun();
+                    this.fnParseChain();
                     break;
                 case "load":
                     if (!putInMemory) {
@@ -945,25 +957,27 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     this.setInputText(input);
                     this.view.setAreaValue("resultText", "");
                     this.invalidateScript();
+                    this.variables.removeAllVariables();
                     this.vm.vmStop("end", 90);
                     break;
                 case "chain": // TODO: if we have a line number, make sure it is not optimized away when compiling
                     this.setInputText(input);
                     this.view.setAreaValue("resultText", "");
-                    startLine = inFile.line || 0;
+                    startLine = inFileLine;
                     this.invalidateScript();
-                    this.fnParseRun();
+                    this.fnParseChain();
                     break;
                 case "run":
                     if (!putInMemory) {
                         this.setInputText(input);
                         this.view.setAreaValue("resultText", "");
-                        startLine = inFile.line || 0;
+                        startLine = inFileLine;
                         this.fnReset();
                         this.fnParseRun();
                     }
                     else {
                         this.fnReset();
+                        this.vm.clear(); // do we need this?
                     }
                     break;
                 default:
@@ -1344,7 +1358,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         };
         Controller.prototype.fnParse = function () {
             var input = this.view.getAreaValue("inputText"), bench = this.model.getProperty("bench");
-            this.variables.removeAllVariables();
+            // keep variables; this.variables.removeAllVariables();
             var output;
             if (!bench) {
                 output = this.codeGeneratorJs.generate(input, this.variables);
@@ -1467,7 +1481,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.view.setAreaSelection("outputText", pos, pos + 1);
             }
         };
-        Controller.prototype.fnRun = function (paras) {
+        Controller.prototype.fnChain = function (paras) {
             var script = this.view.getAreaValue("outputText"), vm = this.vm;
             var line = paras && paras.first || 0;
             line = line || 0;
@@ -1478,7 +1492,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.fnFileSave();
             }
             if (!this.fnScript) {
-                vm.clear(); // init variables
                 try {
                     this.fnScript = new Function("o", script); // eslint-disable-line no-new-func
                 }
@@ -1491,9 +1504,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     }
                     this.fnScript = undefined;
                 }
-            }
-            else {
-                vm.clear(); // we do a clear as well here
             }
             vm.vmReset4Run();
             if (this.fnScript) {
@@ -1520,10 +1530,20 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 Utils_1.Utils.console.debug("End of fnRun");
             }
         };
+        Controller.prototype.fnRun = function (paras) {
+            this.vm.clear(); // init variables
+            this.fnChain(paras);
+        };
         Controller.prototype.fnParseRun = function () {
             var output = this.fnParse();
             if (!output.error) {
                 this.fnRun();
+            }
+        };
+        Controller.prototype.fnParseChain = function () {
+            var output = this.fnParse();
+            if (!output.error) {
+                this.fnChain();
             }
         };
         Controller.prototype.fnRunPart1 = function (fnScript) {
@@ -1532,7 +1552,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             catch (e) {
                 if (e instanceof Error) {
-                    if (e.name === "CpcVm" || e.name === "Variables") { //TTT
+                    if (e.name === "CpcVm" || e.name === "Variables") {
                         var customError = e;
                         if (customError.errCode !== undefined) {
                             customError = this.vm.vmComposeError(customError, customError.errCode, customError.value);
@@ -1877,7 +1897,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             if (active) {
                 try {
                     sound.soundOn();
-                    //text = (sound.isActivatedByUser()) ? "Sound" : "Sound on (waiting)";
                 }
                 catch (e) {
                     Utils_1.Utils.console.warn("soundOn:", e);
@@ -1886,7 +1905,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             else {
                 sound.soundOff();
-                //text = "Sound is off";
                 var stop_1 = this.vm && this.vm.vmGetStopObject();
                 if (stop_1 && stop_1.reason === "waitSound") {
                     this.vm.vmStop("", 0, true); // do not wait
@@ -2053,13 +2071,14 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 exampleName = directoryName + "/" + exampleName;
             }
             var exampleEntry = this.model.getExample(exampleName);
-            inFile.command = "run";
+            var autorun = this.model.getProperty("autorun");
             if (exampleEntry && exampleEntry.meta) { // TTT TODO: this is just a workaround, meta is in input now; should change command after loading!
                 var type = exampleEntry.meta.charAt(0);
                 if (type === "B" || type === "D" || type === "G") { // binary, data only, Gena Assembler?
-                    inFile.command = "load";
+                    autorun = false;
                 }
             }
+            inFile.command = autorun ? "run" : "load";
             if (dataBaseName !== "storage") {
                 exampleName = "/" + exampleName; // load absolute
             }

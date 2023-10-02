@@ -9,6 +9,7 @@ cpcBasic.addItem("", function () { /*
 40 '
 50 '|renum,100,100,10,9000:stop
 60 '
+70 IF chain1<>0 THEN ERROR 33:' chain (merge) running
 100 '
 110 'pixel test
 120 MODE 0
@@ -612,7 +613,18 @@ cpcBasic.addItem("", function () { /*
 6070 GOSUB 9010:IF a$<>"999999999,1E+09,"+chr$(34)+"1e9"+chr$(34)+","+chr$(34)+"#" THEN ERROR 33
 6080 '
 6090 GOSUB 9040
-6100 '
+6092 '
+6093 PRINT "CHAIN, CHAIN MERGE"
+6094 chain1=1:a=1
+6095 chain "testpage", 6096
+6096 IF a<>1 THEN ERROR 33
+6097 a=a+1
+6098 chain merge "testpage", 6099
+6099 IF a<>2 THEN ERROR 33
+6100 chain1=0
+6104 '
+6105 GOSUB 9040
+6106 '
 6110 PRINT "stairs"
 6120 FOR i=1 TO 24:PRINT STRING$(i*2, "O"):NEXT
 6130 MOVE 0,350

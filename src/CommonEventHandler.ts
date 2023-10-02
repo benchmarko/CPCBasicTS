@@ -289,6 +289,12 @@ export class CommonEventHandler implements EventListenerObject {
 		this.controller.fnTrace();
 	}
 
+	private onAutorunInputChange() {
+		const checked = this.view.getInputChecked("autorunInput");
+
+		this.model.setProperty("autorun", checked);
+	}
+
 	private onSoundInputChange() {
 		const checked = this.view.getInputChecked("soundInput");
 
@@ -387,6 +393,7 @@ export class CommonEventHandler implements EventListenerObject {
 		onArrayBoundsInputChange: this.onArrayBoundsInputChange,
 		onConsoleLogInputChange: this.onConsoleLogInputChange,
 		onTraceInputChange: this.onTraceInputChange,
+		onAutorunInputChange: this.onAutorunInputChange,
 		onSoundInputChange: this.onSoundInputChange,
 		onSpeedInputChange: this.onSpeedInputChange,
 		onPaletteSelectChange: this.onPaletteSelectChange,

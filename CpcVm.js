@@ -294,6 +294,12 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.closeout();
             this.cursor(stream, 0);
             this.labelList.length = 0;
+            this.gosubStack.length = 0;
+            this.restore(); // restore data line index
+            this.errorGotoLine = 0;
+            this.errorResumeLine = 0;
+            this.soundClass.resetQueue();
+            this.soundData.length = 0;
         };
         CpcVm.prototype.onCharClickCallback = function (event, x, y) {
             if (this.onClickKey) {
@@ -1029,7 +1035,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.vmResetTimers();
             this.ei();
             this.vmSetStartLine(0);
-            this.errorCode = 0;
+            //this.errorCode = 0;
             this.breakGosubLine = 0;
             this.breakResumeLine = 0;
             this.errorGotoLine = 0;

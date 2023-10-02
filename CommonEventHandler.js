@@ -55,6 +55,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 onArrayBoundsInputChange: this.onArrayBoundsInputChange,
                 onConsoleLogInputChange: this.onConsoleLogInputChange,
                 onTraceInputChange: this.onTraceInputChange,
+                onAutorunInputChange: this.onAutorunInputChange,
                 onSoundInputChange: this.onSoundInputChange,
                 onSpeedInputChange: this.onSpeedInputChange,
                 onPaletteSelectChange: this.onPaletteSelectChange,
@@ -274,6 +275,10 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             var checked = this.view.getInputChecked("traceInput");
             this.model.setProperty("trace", checked);
             this.controller.fnTrace();
+        };
+        CommonEventHandler.prototype.onAutorunInputChange = function () {
+            var checked = this.view.getInputChecked("autorunInput");
+            this.model.setProperty("autorun", checked);
         };
         CommonEventHandler.prototype.onSoundInputChange = function () {
             var checked = this.view.getInputChecked("soundInput");

@@ -8,7 +8,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Canvas = void 0;
     var Canvas = /** @class */ (function () {
-        //setOptions(options: CanvasOptions): void { }
         function Canvas(options) {
             this.fps = 15; // FPS for canvas update
             this.customCharset = {};
@@ -44,7 +43,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.options = {
                 charset: options.charset,
                 palette: options.palette,
-                //onClickKey: options.onClickKey
                 onCharClick: options.onCharClick
             };
             this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
@@ -292,7 +290,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 }
                 // check border ink
                 if (this.currentInks[newInkSet][16] !== this.currentInks[currentInkSet][16]) {
-                    //this.canvas.style.borderColor = this.options.palette[this.currentInks[newInkSet][16]];
                     this.applyBorderColor();
                 }
             }
@@ -345,17 +342,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                     /* eslint-enable no-bitwise */
                     this.options.onCharClick(event, xTxt, yTxt);
                 }
-                /*
-                char = this.readChar(xTxt, yTxt, 1, 0); // TODO: currently we use pen 1, paper 0
-    
-                if (char < 0 && event.detail === 2) { // no char but mouse double click?
-                    char = 13; // use CR
-                }
-    
-                if (char >= 0 && this.options.onClickKey) { // call click handler (put char in keyboard input buffer)
-                    this.options.onClickKey(String.fromCharCode(char));
-                }
-                */
             }
             // for graphics coordinates, adapt origin
             x -= this.xOrig;
@@ -364,7 +350,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 this.move(x, y);
             }
             if (Utils_1.Utils.debug > 0) {
-                //Utils.console.debug("canvasClickAction: x", pos.x, "y", pos.y, "x - xOrig", x, "y - yOrig", y, "char", char, "char", (char !== undefined ? String.fromCharCode(char) : "?"), "detail", event.detail);
                 Utils_1.Utils.console.debug("canvasClickAction: x", pos.x, "y", pos.y, "x - xOrig", x, "y - yOrig", y, "detail", event.detail);
             }
         };
@@ -1015,42 +1000,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 "#000080",
                 "#00FF80" //  31 Sea Green (same as 19)
             ]
-            /*
-            grey2: [ // other grey?
-                "#000000",
-                "#0A0A0A",
-                "#131313",
-                "#1D1D1D",
-                "#262626",
-                "#303030",
-                "#393939",
-                "#434343",
-                "#4C4C4C",
-                "#575757",
-                "#606060",
-                "#6A6A6A",
-                "#737373",
-                "#7D7D7D",
-                "#868686",
-                "#909090",
-                "#999999",
-                "#A3A3A3",
-                "#ACACAC",
-                "#B5B5B5",
-                "#BFBFBF",
-                "#C9C9C9",
-                "#D2D2D2",
-                "#DCDCDC",
-                "#E5E5E5",
-                "#EFEFEF",
-                "#F8F8F8",
-                "#7D7D7D",
-                "#434343",
-                "#EFEFEF",
-                "#A0A0A0",
-                "#B5B5B5"
-            ]
-            */
         };
         // mode 0: pen 0-15,16=border; inks for pen 14,15 are alternating: "1,24", "16,11"
         Canvas.defaultInks = [

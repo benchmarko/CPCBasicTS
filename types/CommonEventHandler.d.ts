@@ -54,6 +54,7 @@ export declare class CommonEventHandler implements EventListenerObject {
     private onArrayBoundsInputChange;
     private onConsoleLogInputChange;
     private onTraceInputChange;
+    private onAutorunInputChange;
     private onSoundInputChange;
     private onSpeedInputChange;
     private onScreenshotButtonClick;

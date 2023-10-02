@@ -163,18 +163,6 @@ export class TextCanvas {
 		if (this.options.onCharClick) {
 			this.options.onCharClick(event, xTxt, yTxt);
 		}
-
-		/*
-		let char = this.getCharFromTextBuffer(xTxt, yTxt); // is there a character an the click position?
-
-		if (char === undefined && event.detail === 2) { // no char but mouse double click?
-			char = 13; // use CR
-		}
-
-		if (char !== undefined && this.options.onClickKey) { // call click handler (put char in keyboard input buffer)
-			this.options.onClickKey(String.fromCharCode(char));
-		}
-		*/
 	}
 
 	onTextCanvasClick(event: MouseEvent): void {

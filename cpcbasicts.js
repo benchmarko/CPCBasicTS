@@ -3912,7 +3912,7 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             if (!this.hasColons) {
                 for (var i = 1; i < args.length; i += 1) { // start with 1
                     var arg = args[i].trim();
-                    if (!arg.startsWith("ELSE") && !arg.startsWith("'") && arg !== "") { //TTT arg !== "\n"
+                    if (!arg.startsWith("ELSE") && !arg.startsWith("'") && arg !== "") {
                         args[i] = ":" + args[i];
                     }
                 }
@@ -3997,7 +3997,7 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
                         value += CodeGeneratorBasic.fnWs(token) + token.value;
                     }
                     else {
-                        value += CodeGeneratorBasic.fnSpace1(CodeGeneratorBasic.fnWs(token) + token.value); //TTT
+                        value += CodeGeneratorBasic.fnSpace1(CodeGeneratorBasic.fnWs(token) + token.value);
                     }
                 }
             }
@@ -4027,14 +4027,9 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(this.combineArgsWithColon(this.fnParseArgs(node.args)));
         };
         CodeGeneratorBasic.prototype.fnIf = function (node) {
-            /*
-            const elseNode = node.args && node.args.length && node.args[node.args.length - 1].type === "else" ? (node.args.pop() as ParserNode);
-            elseArgs = node.args && node.args.length && node.args[node.args.length - 1].type === "else" ? (node.args.pop() as ParserNode).args : undefined,
-            */
             var nodeArgs = this.fnParseArgs(node.args), partName = nodeArgs.shift(); // "then"/"goto"
             return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(this.parseNode(node.right))
                 + CodeGeneratorBasic.fnSpace1(partName) + CodeGeneratorBasic.fnSpace1(this.combineArgsWithColon(nodeArgs));
-            //+ elseArgs ? CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase()
         };
         CodeGeneratorBasic.prototype.inputLineInput = function (node) {
             var nodeArgs = node.args ? this.fnParseArgs(node.args) : [], // also for clear input, which has no args
@@ -5236,7 +5231,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             this.defScopeArgs = {}; // collect DEF scope args
             var nodeArgs = this.fnParseArgs(node.args);
             this.defScopeArgs.collectDone = true; // collection done => now use them
-            var expression = this.fnParseOneArg(expressionArg); //this.fnParseOneArg(node.right);
+            var expression = this.fnParseOneArg(expressionArg);
             this.defScopeArgs = undefined;
             this.fnPropagateStaticTypes(node, node.right, expressionArg, "II RR IR RI $$");
             var value;
@@ -5327,7 +5322,6 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             }
             node.pv = name + "(" + nodeArgs.join(", ") + ")";
         };
-        // TODO: complexity
         // eslint-disable-next-line complexity
         CodeGeneratorJs.prototype.fnFor = function (node) {
             var nodeArgs = this.fnParseArgs(node.args), varName = nodeArgs[0], label = this.fnGetForLabel();
@@ -5857,11 +5851,6 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 if (node.args) {
                     this.fnPrecheckTree(node.args, countMap); // recursive
                 }
-                /*
-                if (node.args2) { // for "ELSE"
-                    this.fnPrecheckTree(node.args2, countMap); // recursive
-                }
-                */
             }
         };
         //
@@ -9208,7 +9197,6 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Canvas = void 0;
     var Canvas = /** @class */ (function () {
-        //setOptions(options: CanvasOptions): void { }
         function Canvas(options) {
             this.fps = 15; // FPS for canvas update
             this.customCharset = {};
@@ -9244,7 +9232,6 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.options = {
                 charset: options.charset,
                 palette: options.palette,
-                //onClickKey: options.onClickKey
                 onCharClick: options.onCharClick
             };
             this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
@@ -9492,7 +9479,6 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
                 }
                 // check border ink
                 if (this.currentInks[newInkSet][16] !== this.currentInks[currentInkSet][16]) {
-                    //this.canvas.style.borderColor = this.options.palette[this.currentInks[newInkSet][16]];
                     this.applyBorderColor();
                 }
             }
@@ -9545,17 +9531,6 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
                     /* eslint-enable no-bitwise */
                     this.options.onCharClick(event, xTxt, yTxt);
                 }
-                /*
-                char = this.readChar(xTxt, yTxt, 1, 0); // TODO: currently we use pen 1, paper 0
-    
-                if (char < 0 && event.detail === 2) { // no char but mouse double click?
-                    char = 13; // use CR
-                }
-    
-                if (char >= 0 && this.options.onClickKey) { // call click handler (put char in keyboard input buffer)
-                    this.options.onClickKey(String.fromCharCode(char));
-                }
-                */
             }
             // for graphics coordinates, adapt origin
             x -= this.xOrig;
@@ -9564,7 +9539,6 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
                 this.move(x, y);
             }
             if (Utils_15.Utils.debug > 0) {
-                //Utils.console.debug("canvasClickAction: x", pos.x, "y", pos.y, "x - xOrig", x, "y - yOrig", y, "char", char, "char", (char !== undefined ? String.fromCharCode(char) : "?"), "detail", event.detail);
                 Utils_15.Utils.console.debug("canvasClickAction: x", pos.x, "y", pos.y, "x - xOrig", x, "y - yOrig", y, "detail", event.detail);
             }
         };
@@ -10215,42 +10189,6 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
                 "#000080",
                 "#00FF80" //  31 Sea Green (same as 19)
             ]
-            /*
-            grey2: [ // other grey?
-                "#000000",
-                "#0A0A0A",
-                "#131313",
-                "#1D1D1D",
-                "#262626",
-                "#303030",
-                "#393939",
-                "#434343",
-                "#4C4C4C",
-                "#575757",
-                "#606060",
-                "#6A6A6A",
-                "#737373",
-                "#7D7D7D",
-                "#868686",
-                "#909090",
-                "#999999",
-                "#A3A3A3",
-                "#ACACAC",
-                "#B5B5B5",
-                "#BFBFBF",
-                "#C9C9C9",
-                "#D2D2D2",
-                "#DCDCDC",
-                "#E5E5E5",
-                "#EFEFEF",
-                "#F8F8F8",
-                "#7D7D7D",
-                "#434343",
-                "#EFEFEF",
-                "#A0A0A0",
-                "#B5B5B5"
-            ]
-            */
         };
         // mode 0: pen 0-15,16=border; inks for pen 14,15 are alternating: "1,24", "16,11"
         Canvas.defaultInks = [
@@ -10391,17 +10329,6 @@ define("TextCanvas", ["require", "exports", "Utils", "View"], function (require,
             if (this.options.onCharClick) {
                 this.options.onCharClick(event, xTxt, yTxt);
             }
-            /*
-            let char = this.getCharFromTextBuffer(xTxt, yTxt); // is there a character an the click position?
-    
-            if (char === undefined && event.detail === 2) { // no char but mouse double click?
-                char = 13; // use CR
-            }
-    
-            if (char !== undefined && this.options.onClickKey) { // call click handler (put char in keyboard input buffer)
-                this.options.onClickKey(String.fromCharCode(char));
-            }
-            */
         };
         TextCanvas.prototype.onTextCanvasClick = function (event) {
             if (!this.hasFocus) {
@@ -10749,6 +10676,7 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                 onArrayBoundsInputChange: this.onArrayBoundsInputChange,
                 onConsoleLogInputChange: this.onConsoleLogInputChange,
                 onTraceInputChange: this.onTraceInputChange,
+                onAutorunInputChange: this.onAutorunInputChange,
                 onSoundInputChange: this.onSoundInputChange,
                 onSpeedInputChange: this.onSpeedInputChange,
                 onPaletteSelectChange: this.onPaletteSelectChange,
@@ -10968,6 +10896,10 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             var checked = this.view.getInputChecked("traceInput");
             this.model.setProperty("trace", checked);
             this.controller.fnTrace();
+        };
+        CommonEventHandler.prototype.onAutorunInputChange = function () {
+            var checked = this.view.getInputChecked("autorunInput");
+            this.model.setProperty("autorun", checked);
         };
         CommonEventHandler.prototype.onSoundInputChange = function () {
             var checked = this.view.getInputChecked("soundInput");
@@ -12164,6 +12096,12 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.closeout();
             this.cursor(stream, 0);
             this.labelList.length = 0;
+            this.gosubStack.length = 0;
+            this.restore(); // restore data line index
+            this.errorGotoLine = 0;
+            this.errorResumeLine = 0;
+            this.soundClass.resetQueue();
+            this.soundData.length = 0;
         };
         CpcVm.prototype.onCharClickCallback = function (event, x, y) {
             if (this.onClickKey) {
@@ -12899,7 +12837,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.vmResetTimers();
             this.ei();
             this.vmSetStartLine(0);
-            this.errorCode = 0;
+            //this.errorCode = 0;
             this.breakGosubLine = 0;
             this.breakResumeLine = 0;
             this.errorGotoLine = 0;
@@ -15850,14 +15788,13 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             // unhide console box, if console should be shown
             view.setHidden("consoleBox", !model.getProperty("showConsole"));
             this.view.setInputChecked("consoleLogInput", model.getProperty("showConsole"));
-            this.textCanvas = new TextCanvas_1.TextCanvas({}); //({ onClickKey: this.fnPutKeyInBufferHandler	});
+            this.textCanvas = new TextCanvas_1.TextCanvas({});
             var palette = model.getProperty("palette");
             view.setSelectValue("paletteSelect", palette);
             view.setHidden("cpcArea", false); // make sure canvas area is not hidden when creating canvas object (allows to get width, height)
             this.canvas = new Canvas_1.Canvas({
                 charset: cpcCharset_1.cpcCharset,
                 palette: palette === "green" || palette === "grey" ? palette : "color"
-                //onClickKey: this.fnPutKeyInBufferHandler
             });
             view.setHidden("kbdLayoutArea", model.getProperty("showKbd"), "inherit"); // kbd visible => kbdlayout invisible
             this.initAreas();
@@ -15868,6 +15805,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 arrayBounds: model.getProperty("arrayBounds")
             });
             view.setInputChecked("traceInput", model.getProperty("trace"));
+            view.setInputChecked("autorunInput", model.getProperty("autorun"));
             view.setInputChecked("soundInput", model.getProperty("sound"));
             view.setInputValue("speedInput", String(model.getProperty("speed")));
             this.fnSpeed();
@@ -15926,7 +15864,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.initDropZone();
             var example = model.getProperty("example");
             view.setSelectValue("exampleSelect", example);
-            this.initDatabases();
+            this.hasStorageDatabase = this.initDatabases();
         }
         Controller.prototype.initAreas = function () {
             for (var id in Controller.areaDefinitions) { // eslint-disable-line guard-for-in
@@ -15936,6 +15874,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         };
         Controller.prototype.initDatabases = function () {
             var model = this.model, databases = {}, databaseDirs = model.getProperty("databaseDirs").split(",");
+            var hasStorageDatabase = false;
             for (var i = 0; i < databaseDirs.length; i += 1) {
                 var databaseDir = databaseDirs[i], parts = databaseDir.split("/"), name_12 = parts[parts.length - 1];
                 databases[name_12] = {
@@ -15943,9 +15882,13 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     title: databaseDir,
                     src: databaseDir
                 };
+                if (name_12 === "storage") {
+                    hasStorageDatabase = true;
+                }
             }
             this.model.addDatabases(databases);
             this.setDatabaseSelectOptions();
+            return hasStorageDatabase;
         };
         Controller.prototype.onUserAction = function ( /* event, id */) {
             this.commonEventHandler.fnSetUserAction(undefined); // deactivate user action
@@ -16095,6 +16038,9 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.view.setSelectOptions(select, items);
         };
         Controller.prototype.updateStorageDatabase = function (action, key) {
+            if (!this.hasStorageDatabase) {
+                return;
+            }
             var database = this.model.getProperty("database"), storage = Utils_25.Utils.localStorage;
             if (database !== "storage") {
                 this.model.setProperty("database", "storage"); // switch to storage database
@@ -16657,8 +16603,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             return output.text;
         };
         Controller.prototype.loadFileContinue = function (input) {
-            var inFile = this.vm.vmGetInFileObject(), command = inFile.command;
-            var startLine = 0, putInMemory = false, data;
+            var inFile = this.vm.vmGetInFileObject();
+            var data;
             if (input !== null && input !== undefined) {
                 data = Controller.splitMeta(input);
                 input = data.data; // maybe changed
@@ -16693,8 +16639,12 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     input = "1 ' " + imported.join(", "); // imported files
                 }
             }
+            var command = inFile.command, // create copy of data
+            inFileLine = inFile.line || 0;
+            var putInMemory = false, startLine = 0;
             if (inFile.fnFileCallback) {
                 try {
+                    // the callback could close inFile, so do not use it any more
                     putInMemory = inFile.fnFileCallback(input, data && data.meta);
                 }
                 catch (e) {
@@ -16718,9 +16668,9 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     input = this.mergeScripts(this.view.getAreaValue("inputText"), input);
                     this.setInputText(input);
                     this.view.setAreaValue("resultText", "");
-                    startLine = inFile.line || 0;
+                    startLine = inFileLine;
                     this.invalidateScript();
-                    this.fnParseRun();
+                    this.fnParseChain();
                     break;
                 case "load":
                     if (!putInMemory) {
@@ -16735,25 +16685,27 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     this.setInputText(input);
                     this.view.setAreaValue("resultText", "");
                     this.invalidateScript();
+                    this.variables.removeAllVariables();
                     this.vm.vmStop("end", 90);
                     break;
                 case "chain": // TODO: if we have a line number, make sure it is not optimized away when compiling
                     this.setInputText(input);
                     this.view.setAreaValue("resultText", "");
-                    startLine = inFile.line || 0;
+                    startLine = inFileLine;
                     this.invalidateScript();
-                    this.fnParseRun();
+                    this.fnParseChain();
                     break;
                 case "run":
                     if (!putInMemory) {
                         this.setInputText(input);
                         this.view.setAreaValue("resultText", "");
-                        startLine = inFile.line || 0;
+                        startLine = inFileLine;
                         this.fnReset();
                         this.fnParseRun();
                     }
                     else {
                         this.fnReset();
+                        this.vm.clear(); // do we need this?
                     }
                     break;
                 default:
@@ -17134,7 +17086,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         };
         Controller.prototype.fnParse = function () {
             var input = this.view.getAreaValue("inputText"), bench = this.model.getProperty("bench");
-            this.variables.removeAllVariables();
+            // keep variables; this.variables.removeAllVariables();
             var output;
             if (!bench) {
                 output = this.codeGeneratorJs.generate(input, this.variables);
@@ -17257,7 +17209,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.view.setAreaSelection("outputText", pos, pos + 1);
             }
         };
-        Controller.prototype.fnRun = function (paras) {
+        Controller.prototype.fnChain = function (paras) {
             var script = this.view.getAreaValue("outputText"), vm = this.vm;
             var line = paras && paras.first || 0;
             line = line || 0;
@@ -17268,7 +17220,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.fnFileSave();
             }
             if (!this.fnScript) {
-                vm.clear(); // init variables
                 try {
                     this.fnScript = new Function("o", script); // eslint-disable-line no-new-func
                 }
@@ -17281,9 +17232,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     }
                     this.fnScript = undefined;
                 }
-            }
-            else {
-                vm.clear(); // we do a clear as well here
             }
             vm.vmReset4Run();
             if (this.fnScript) {
@@ -17310,10 +17258,20 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 Utils_25.Utils.console.debug("End of fnRun");
             }
         };
+        Controller.prototype.fnRun = function (paras) {
+            this.vm.clear(); // init variables
+            this.fnChain(paras);
+        };
         Controller.prototype.fnParseRun = function () {
             var output = this.fnParse();
             if (!output.error) {
                 this.fnRun();
+            }
+        };
+        Controller.prototype.fnParseChain = function () {
+            var output = this.fnParse();
+            if (!output.error) {
+                this.fnChain();
             }
         };
         Controller.prototype.fnRunPart1 = function (fnScript) {
@@ -17322,7 +17280,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
             catch (e) {
                 if (e instanceof Error) {
-                    if (e.name === "CpcVm" || e.name === "Variables") { //TTT
+                    if (e.name === "CpcVm" || e.name === "Variables") {
                         var customError = e;
                         if (customError.errCode !== undefined) {
                             customError = this.vm.vmComposeError(customError, customError.errCode, customError.value);
@@ -17667,7 +17625,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             if (active) {
                 try {
                     sound.soundOn();
-                    //text = (sound.isActivatedByUser()) ? "Sound" : "Sound on (waiting)";
                 }
                 catch (e) {
                     Utils_25.Utils.console.warn("soundOn:", e);
@@ -17676,7 +17633,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
             else {
                 sound.soundOff();
-                //text = "Sound is off";
                 var stop_1 = this.vm && this.vm.vmGetStopObject();
                 if (stop_1 && stop_1.reason === "waitSound") {
                     this.vm.vmStop("", 0, true); // do not wait
@@ -17843,13 +17799,14 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 exampleName = directoryName + "/" + exampleName;
             }
             var exampleEntry = this.model.getExample(exampleName);
-            inFile.command = "run";
+            var autorun = this.model.getProperty("autorun");
             if (exampleEntry && exampleEntry.meta) { // TTT TODO: this is just a workaround, meta is in input now; should change command after loading!
                 var type = exampleEntry.meta.charAt(0);
                 if (type === "B" || type === "D" || type === "G") { // binary, data only, Gena Assembler?
-                    inFile.command = "load";
+                    autorun = false;
                 }
             }
+            inFile.command = autorun ? "run" : "load";
             if (dataBaseName !== "storage") {
                 exampleName = "/" + exampleName; // load absolute
             }
@@ -18190,31 +18147,32 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
         };
         cpcBasic.config = {
             arrayBounds: false,
+            autorun: true,
             bench: 0,
-            debug: 0,
             databaseDirs: "examples",
             database: "examples",
+            debug: 0,
             example: "cpcbasic",
             exampleIndex: "0index.js",
             implicitLines: false,
             input: "",
             kbdLayout: "alphanum",
+            palette: "color",
+            showConsole: false,
+            showConvert: false,
+            showCpc: true,
+            showGallery: false,
             showInput: true,
             showInp2: false,
-            showCpc: true,
             showKbd: false,
+            showMore: false,
             showOutput: false,
             showResult: false,
             showText: false,
             showVariable: false,
-            showConsole: false,
-            showConvert: false,
             showSettings: false,
-            showGallery: false,
-            showMore: false,
             sound: true,
             speed: 100,
-            palette: "color",
             trace: false // trace code
         };
         return cpcBasic;

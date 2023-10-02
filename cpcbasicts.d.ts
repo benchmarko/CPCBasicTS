@@ -1167,6 +1167,7 @@ declare module "CommonEventHandler" {
         private onArrayBoundsInputChange;
         private onConsoleLogInputChange;
         private onTraceInputChange;
+        private onAutorunInputChange;
         private onSoundInputChange;
         private onSpeedInputChange;
         private onScreenshotButtonClick;
@@ -1873,6 +1874,7 @@ declare module "Controller" {
         private readonly savedStop;
         private fileHandler?;
         private fileSelect?;
+        private hasStorageDatabase;
         private static areaDefinitions;
         constructor(model: Model, view: View);
         private initAreas;
@@ -1942,8 +1944,10 @@ declare module "Controller" {
         private fnDownloadNewFile;
         fnDownload(): void;
         private selectJsError;
+        private fnChain;
         private fnRun;
         private fnParseRun;
+        private fnParseChain;
         private fnRunPart1;
         private fnDirectInput;
         private startWithDirectInput;

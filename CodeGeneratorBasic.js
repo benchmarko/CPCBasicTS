@@ -98,7 +98,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             if (!this.hasColons) {
                 for (var i = 1; i < args.length; i += 1) { // start with 1
                     var arg = args[i].trim();
-                    if (!arg.startsWith("ELSE") && !arg.startsWith("'") && arg !== "") { //TTT arg !== "\n"
+                    if (!arg.startsWith("ELSE") && !arg.startsWith("'") && arg !== "") {
                         args[i] = ":" + args[i];
                     }
                 }
@@ -183,7 +183,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
                         value += CodeGeneratorBasic.fnWs(token) + token.value;
                     }
                     else {
-                        value += CodeGeneratorBasic.fnSpace1(CodeGeneratorBasic.fnWs(token) + token.value); //TTT
+                        value += CodeGeneratorBasic.fnSpace1(CodeGeneratorBasic.fnWs(token) + token.value);
                     }
                 }
             }
@@ -213,14 +213,9 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(this.combineArgsWithColon(this.fnParseArgs(node.args)));
         };
         CodeGeneratorBasic.prototype.fnIf = function (node) {
-            /*
-            const elseNode = node.args && node.args.length && node.args[node.args.length - 1].type === "else" ? (node.args.pop() as ParserNode);
-            elseArgs = node.args && node.args.length && node.args[node.args.length - 1].type === "else" ? (node.args.pop() as ParserNode).args : undefined,
-            */
             var nodeArgs = this.fnParseArgs(node.args), partName = nodeArgs.shift(); // "then"/"goto"
             return CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase() + CodeGeneratorBasic.fnSpace1(this.parseNode(node.right))
                 + CodeGeneratorBasic.fnSpace1(partName) + CodeGeneratorBasic.fnSpace1(this.combineArgsWithColon(nodeArgs));
-            //+ elseArgs ? CodeGeneratorBasic.fnWs(node) + node.type.toUpperCase()
         };
         CodeGeneratorBasic.prototype.inputLineInput = function (node) {
             var nodeArgs = node.args ? this.fnParseArgs(node.args) : [], // also for clear input, which has no args

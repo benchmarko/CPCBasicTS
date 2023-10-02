@@ -218,13 +218,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
             vmRound: function (n) {
                 return (n >= 0) ? (n + 0.5) | 0 : (n - 0.5) | 0; // eslint-disable-line no-bitwise
             },
-            /*
-            vmDetermineVarType(varType: string): string { // also used in controller
-                return (varType.length > 1) ? varType.charAt(1) : this.testVariables1.getVarType(varType.charAt(0));
-            },
-            */
             vmAssign: function (_varType, value) {
-                //const type = this.vmDetermineVarType(varType);
                 return value;
             },
             vmAssertNumberType: function () {

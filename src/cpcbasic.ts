@@ -15,31 +15,32 @@ type RedirectExamplesType = Record<string, Record<"database" | "example", string
 class cpcBasic {
 	private static readonly config: ConfigType = {
 		arrayBounds: false,
+		autorun: true,
 		bench: 0, // debug: number of parse bench loops
-		debug: 0,
 		databaseDirs: "examples", // example base directories (comma separated)
 		database: "examples", // examples, apps, saved
+		debug: 0,
 		example: "cpcbasic",
 		exampleIndex: "0index.js", // example index for every databaseDir
 		implicitLines: false, // allow implicit line numbers
 		input: "", // keyboard input when starting the app
 		kbdLayout: "alphanum", // alphanum, alpha, num
+		palette: "color", // currently only on relaod: "color" or "grey"
+		showConsole: false,
+		showConvert: false,
+		showCpc: true,
+		showGallery: false,
 		showInput: true,
 		showInp2: false,
-		showCpc: true,
 		showKbd: false,
+		showMore: false,
 		showOutput: false,
 		showResult: false,
 		showText: false,
 		showVariable: false,
-		showConsole: false,
-		showConvert: false,
 		showSettings: false,
-		showGallery: false,
-		showMore: false,
 		sound: true,
 		speed: 100,
-		palette: "color", // currently only on relaod: "color" or "grey"
 		trace: false // trace code
 	};
 

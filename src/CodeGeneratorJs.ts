@@ -927,7 +927,7 @@ export class CodeGeneratorJs {
 
 		this.defScopeArgs.collectDone = true; // collection done => now use them
 
-		const expression = this.fnParseOneArg(expressionArg); //this.fnParseOneArg(node.right);
+		const expression = this.fnParseOneArg(expressionArg);
 
 		this.defScopeArgs = undefined;
 		this.fnPropagateStaticTypes(node, node.right, expressionArg, "II RR IR RI $$");
@@ -1044,7 +1044,6 @@ export class CodeGeneratorJs {
 		node.pv = name + "(" + nodeArgs.join(", ") + ")";
 	}
 
-	// TODO: complexity
 	// eslint-disable-next-line complexity
 	private fnFor(node: CodeNode) {
 		const nodeArgs = this.fnParseArgs(node.args),
@@ -1797,11 +1796,6 @@ export class CodeGeneratorJs {
 			if (node.args) {
 				this.fnPrecheckTree(node.args, countMap); // recursive
 			}
-			/*
-			if (node.args2) { // for "ELSE"
-				this.fnPrecheckTree(node.args2, countMap); // recursive
-			}
-			*/
 		}
 	}
 
