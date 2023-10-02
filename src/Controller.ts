@@ -91,6 +91,8 @@ export class Controller implements IController {
 	private fileHandler?: FileHandler;
 	private fileSelect?: FileSelect;
 
+	private hasStorageDatabase: boolean;
+
 	private static areaDefinitions: Record<string, AreaDefinitionType> = {
 		consoleArea: {
 			property: "showConsole"
@@ -160,7 +162,7 @@ export class Controller implements IController {
 		view.setHidden("consoleBox", !model.getProperty<boolean>("showConsole"));
 		this.view.setInputChecked("consoleLogInput", model.getProperty<boolean>("showConsole"));
 
-		this.textCanvas = new TextCanvas({}); //({ onClickKey: this.fnPutKeyInBufferHandler	});
+		this.textCanvas = new TextCanvas({});
 
 		const palette = model.getProperty<string>("palette");
 
@@ -170,7 +172,6 @@ export class Controller implements IController {
 		this.canvas = new Canvas({
 			charset: cpcCharset,
 			palette: palette === "green" || palette === "grey" ? palette : "color"
-			//onClickKey: this.fnPutKeyInBufferHandler
 		});
 
 		view.setHidden("kbdLayoutArea", model.getProperty<boolean>("showKbd"), "inherit"); // kbd visible => kbdlayout invisible
@@ -184,6 +185,7 @@ export class Controller implements IController {
 		});
 
 		view.setInputChecked("traceInput", model.getProperty<boolean>("trace"));
+		view.setInputChecked("autorunInput", model.getProperty<boolean>("autorun"));
 		view.setInputChecked("soundInput", model.getProperty<boolean>("sound"));
 
 		view.setInputValue("speedInput", String(model.getProperty<number>("speed")));
@@ -257,7 +259,7 @@ export class Controller implements IController {
 
 		view.setSelectValue("exampleSelect", example);
 
-		this.initDatabases();
+		this.hasStorageDatabase = this.initDatabases();
 	}
 
 	private initAreas() {
@@ -272,6 +274,7 @@ export class Controller implements IController {
 		const model = this.model,
 			databases: DatabasesType = {},
 			databaseDirs = model.getProperty<string>("databaseDirs").split(",");
+		let hasStorageDatabase = false;
 
 		for (let i = 0; i < databaseDirs.length; i += 1) {
 			const databaseDir = databaseDirs[i],
@@ -283,10 +286,14 @@ export class Controller implements IController {
 				title: databaseDir,
 				src: databaseDir
 			};
+			if (name === "storage") {
+				hasStorageDatabase = true;
+			}
 		}
 		this.model.addDatabases(databases);
 
 		this.setDatabaseSelectOptions();
+		return hasStorageDatabase;
 	}
 
 	private onUserAction(/* event, id */) {
@@ -496,6 +503,10 @@ export class Controller implements IController {
 	}
 
 	private updateStorageDatabase(action: string, key: string) {
+		if (!this.hasStorageDatabase) {
+			return;
+		}
+
 		const database = this.model.getProperty<string>("database"),
 			storage = Utils.localStorage;
 
@@ -1168,11 +1179,8 @@ export class Controller implements IController {
 	}
 
 	private loadFileContinue(input: string | null | undefined) { // eslint-disable-line complexity
-		const inFile = this.vm.vmGetInFileObject(),
-			command = inFile.command;
-		let	startLine = 0,
-			putInMemory = false,
-			data: FileMetaAndData | undefined;
+		const inFile = this.vm.vmGetInFileObject();
+		let	data: FileMetaAndData | undefined;
 
 		if (input !== null && input !== undefined) {
 			data = Controller.splitMeta(input);
@@ -1211,8 +1219,14 @@ export class Controller implements IController {
 			}
 		}
 
+		const command = inFile.command, // create copy of data
+			inFileLine = inFile.line || 0;
+		let	putInMemory = false,
+			startLine = 0;
+
 		if (inFile.fnFileCallback) {
 			try {
+				// the callback could close inFile, so do not use it any more
 				putInMemory = inFile.fnFileCallback(input, data && data.meta) as boolean;
 			} catch (e) {
 				Utils.console.warn(e);
@@ -1238,9 +1252,9 @@ export class Controller implements IController {
 			input = this.mergeScripts(this.view.getAreaValue("inputText"), input);
 			this.setInputText(input);
 			this.view.setAreaValue("resultText", "");
-			startLine = inFile.line || 0;
+			startLine = inFileLine;
 			this.invalidateScript();
-			this.fnParseRun();
+			this.fnParseChain();
 			break;
 		case "load":
 			if (!putInMemory) {
@@ -1255,24 +1269,26 @@ export class Controller implements IController {
 			this.setInputText(input);
 			this.view.setAreaValue("resultText", "");
 			this.invalidateScript();
+			this.variables.removeAllVariables();
 			this.vm.vmStop("end", 90);
 			break;
 		case "chain": // TODO: if we have a line number, make sure it is not optimized away when compiling
 			this.setInputText(input);
 			this.view.setAreaValue("resultText", "");
-			startLine = inFile.line || 0;
+			startLine = inFileLine;
 			this.invalidateScript();
-			this.fnParseRun();
+			this.fnParseChain();
 			break;
 		case "run":
 			if (!putInMemory) {
 				this.setInputText(input);
 				this.view.setAreaValue("resultText", "");
-				startLine = inFile.line || 0;
+				startLine = inFileLine;
 				this.fnReset();
 				this.fnParseRun();
 			} else {
 				this.fnReset();
+				this.vm.clear(); // do we need this?
 			}
 			break;
 		default:
@@ -1744,7 +1760,7 @@ export class Controller implements IController {
 		const input = this.view.getAreaValue("inputText"),
 			bench = this.model.getProperty<number>("bench");
 
-		this.variables.removeAllVariables();
+		// keep variables; this.variables.removeAllVariables();
 		let	output: IOutput;
 
 		if (!bench) {
@@ -1913,7 +1929,7 @@ export class Controller implements IController {
 		}
 	}
 
-	private fnRun(paras?: VmLineParas) {
+	private fnChain(paras?: VmLineParas) {
 		const script = this.view.getAreaValue("outputText"),
 			vm = this.vm;
 		let line = paras && paras.first || 0;
@@ -1928,7 +1944,6 @@ export class Controller implements IController {
 		}
 
 		if (!this.fnScript) {
-			vm.clear(); // init variables
 			try {
 				this.fnScript = new Function("o", script); // eslint-disable-line no-new-func
 			} catch (e) {
@@ -1940,8 +1955,6 @@ export class Controller implements IController {
 				}
 				this.fnScript = undefined;
 			}
-		} else {
-			vm.clear(); // we do a clear as well here
 		}
 		vm.vmReset4Run();
 
@@ -1976,6 +1989,11 @@ export class Controller implements IController {
 		}
 	}
 
+	private fnRun(paras?: VmLineParas) {
+		this.vm.clear(); // init variables
+		this.fnChain(paras);
+	}
+
 	private fnParseRun() {
 		const output = this.fnParse();
 
@@ -1984,12 +2002,20 @@ export class Controller implements IController {
 		}
 	}
 
+	private fnParseChain() {
+		const output = this.fnParse();
+
+		if (!output.error) {
+			this.fnChain();
+		}
+	}
+
 	private fnRunPart1(fnScript: Function) { // eslint-disable-line @typescript-eslint/ban-types
 		try {
 			fnScript(this.vm);
 		} catch (e) {
 			if (e instanceof Error) {
-				if (e.name === "CpcVm" || e.name === "Variables") { //TTT
+				if (e.name === "CpcVm" || e.name === "Variables") {
 					let customError = e as CustomError;
 
 					if (customError.errCode !== undefined) {
@@ -2421,14 +2447,12 @@ export class Controller implements IController {
 		if (active) {
 			try {
 				sound.soundOn();
-				//text = (sound.isActivatedByUser()) ? "Sound" : "Sound on (waiting)";
 			} catch (e) {
 				Utils.console.warn("soundOn:", e);
 				text = "Sound (unavailable)";
 			}
 		} else {
 			sound.soundOff();
-			//text = "Sound is off";
 			const stop = this.vm && this.vm.vmGetStopObject();
 
 			if (stop && stop.reason === "waitSound") {
@@ -2641,15 +2665,16 @@ export class Controller implements IController {
 		}
 
 		const exampleEntry = this.model.getExample(exampleName);
+		let	autorun = this.model.getProperty<boolean>("autorun");
 
-		inFile.command = "run";
 		if (exampleEntry && exampleEntry.meta) { // TTT TODO: this is just a workaround, meta is in input now; should change command after loading!
 			const type = exampleEntry.meta.charAt(0);
 
 			if (type === "B" || type === "D" || type === "G") { // binary, data only, Gena Assembler?
-				inFile.command = "load";
+				autorun = false;
 			}
 		}
+		inFile.command = autorun ? "run" : "load";
 
 		if (dataBaseName !== "storage") {
 			exampleName = "/" + exampleName; // load absolute
