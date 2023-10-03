@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="cpcbasic.css">
 <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
-<title id="title">CPC BasicTS v0.0.99</title>
+<title id="title">CPC BasicTS v0.1.0</title>
 </head>
 
 <body id="pageBody">
@@ -159,11 +159,13 @@
 			<button id="parseRunButton" title="Compile and run script">Run</button>
 			<button id="stopButton" title="Stop/escape/break running script" disabled>Break</button>
 			<button id="continueButton" title="Continue script" disabled>Continue</button>
-			<button id="resetButton" title="Reset CPC">Reset</button>
 			<span class="buttonPopoverContainer">
 				<button id="moreButton" class="popoverButton" title="More">More</button>
 				<span id="moreArea" class="popover area flexColumn displayNone">
 					<span id="moreAreaInner" class="area flexColumn displayFlex">
+						<span class="field flexStart">
+							<button id="resetButton" title="Reset CPC">Reset</button>
+						</span>
 						<span class="field flexStart">
 							<button id="screenshotButton" title="Take Screenshot and download">Screenshot</button>
 						</span>
@@ -174,8 +176,10 @@
 				</span>
 			</span>
 		</legend>
-		<div id="cpcArea" class="area" tabindex="0">
-			<canvas id="cpcCanvas" width="640" height="400"></canvas>
+		<div id="cpcArea" class="area">
+			<div id="cpcCanvasDiv">
+				<canvas id="cpcCanvas" width="640" height="400" tabindex="0"></canvas>
+			</div>
 		</div>
 	</fieldset>
 	<fieldset class="flexBox clearLeft">
@@ -183,8 +187,8 @@
 			<button id="textButton" class="legendButton" title="Show/Hide Text View">Text View</button>
 			<button id="copyTextButton" title="Copy text to clipboard">Copy</button>
 		</legend>
-		<div id="textArea" class="area displayNone">
-			<textarea readonly id="textText" placeholder="" rows="26" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+		<div id="textArea" class="area displayNone textCanvas">
+			<textarea readonly id="textText" placeholder="" rows="25" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off" style="overflow:hidden; resize:none; padding:0px; line-height: 15px;"></textarea>
 		</div>
 	</fieldset>
 	<fieldset class="flexBox clearLeft" id="kbdAreaBox">

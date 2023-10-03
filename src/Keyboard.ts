@@ -80,7 +80,9 @@ export class Keyboard {
 			repeat: {}
 		}; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
 
-		const cpcArea = View.getElementById1("cpcArea");
+		//TTT
+		const name = "cpcCanvas", //"cpcCanvasDiv", //"cpcArea"
+			cpcArea = View.getElementById1(name);
 
 		cpcArea.addEventListener("keydown", this.onCpcAreaKeydown.bind(this), false);
 		cpcArea.addEventListener("keyup", this.oncpcAreaKeyup.bind(this), false);

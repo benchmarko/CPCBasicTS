@@ -12,11 +12,12 @@ type CharType = number[]; // 8 bytes char bitmap
 
 type CharsetType = CharType[];
 
+type CanvasClickType = (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
 
 export interface CanvasOptions {
 	charset: CharsetType
 	palette: "color" | "green" | "grey"
-	onCharClick?: (event: MouseEvent, x: number, y: number) => void
+	onCanvasClick?: CanvasClickType
 }
 
 interface ModeData {
@@ -101,7 +102,7 @@ export class Canvas {
 		this.options = {
 			charset: options.charset,
 			palette: options.palette,
-			onCharClick: options.onCharClick
+			onCanvasClick: options.onCanvasClick
 		};
 		this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
 		this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
@@ -231,8 +232,8 @@ export class Canvas {
 		this.canvas.style.borderColor = Canvas.palettes[this.options.palette][this.currentInks[this.inkSet][16]];
 	}
 
-	setOnCharClick(onCharClickHandler: (event: MouseEvent, x: number, y: number) => void): void {
-		this.options.onCharClick = onCharClickHandler;
+	setOnCanvasClick(onCanvasClickHandler: CanvasClickType): void {
+		this.options.onCanvasClick = onCanvasClickHandler;
 	}
 
 	reset(): void {
@@ -529,8 +530,10 @@ export class Canvas {
 			rect = this.canvas.getBoundingClientRect();
 
 		if (isFullScreen) {
-			const rectwidth = rect.right - rect.left - this.borderWidth * 2,
-				rectHeight = rect.bottom - rect.top - this.borderWidth * 2,
+			const areaX = 0, //TTT
+				areaY = 0,
+				rectwidth = rect.right - rect.left - (this.borderWidth + areaX) * 2,
+				rectHeight = rect.bottom - rect.top - (this.borderWidth + areaY) * 2,
 				ratioX = rectwidth / this.canvas.width,
 				ratioY = rectHeight / this.canvas.height,
 				minRatio = ratioX <= ratioY ? ratioX : ratioY,
@@ -543,6 +546,28 @@ export class Canvas {
 			};
 		}
 
+		/*
+		// alternative, when using scaling, maybe with other aspect ratio
+		if (isFullScreen) {
+			const areaX = 0, //TTT
+				areaY = 0,
+				rectwidth = rect.right - rect.left - (this.borderWidth + areaX) * 2,
+				rectHeight = rect.bottom - rect.top - (this.borderWidth + areaY) * 2,
+				ratioX = rectwidth / this.canvas.width,
+				ratioY = rectHeight / this.canvas.height,
+				//minRatio = ratioX <= ratioY ? ratioX : ratioY,
+				diffX = rectwidth - (this.canvas.width * ratioX), //rectwidth - (this.canvas.width * minRatio),
+				diffY = rectHeight - (this.canvas.height * ratioY); //rectHeight - (this.canvas.height * minRatio);
+
+			return {
+				//x: (event.clientX - this.borderWidth - rect.left - diffX / 2) / ratioX * ratioX / minRatio,
+				//y: (event.clientY - this.borderWidth - rect.top - diffY / 2) / ratioY * ratioY / minRatio
+				x: (event.clientX - this.borderWidth - rect.left - diffX / 2) / ratioX * ratioX / ratioX,
+				y: (event.clientY - this.borderWidth - rect.top - diffY / 2) / ratioY * ratioY / ratioY
+			};
+		}
+		*/
+
 		return {
 			x: (event.clientX - this.borderWidth - rect.left) / (rect.right - rect.left - this.borderWidth * 2) * this.canvas.width,
 			y: (event.clientY - this.borderWidth - rect.top) / (rect.bottom - rect.top - this.borderWidth * 2) * this.canvas.height
@@ -550,16 +575,13 @@ export class Canvas {
 	}
 
 	private canvasClickAction(event: MouseEvent) {
-		const pos = this.getMousePos(event);
-		let x = pos.x,
-			y = pos.y;
+		const pos = this.getMousePos(event),
+			/* eslint-disable no-bitwise */
+			x = pos.x | 0, // force integer
+			y = pos.y | 0;
+			/* eslint-enable no-bitwise */
 
-		/* eslint-disable no-bitwise */
-		x |= 0; // force integer
-		y |= 0;
-		/* eslint-enable no-bitwise */
-
-		if (this.options.onCharClick) {
+		if (this.options.onCanvasClick) {
 			if (x >= 0 && x <= this.width - 1 && y >= 0 && y <= this.height - 1) {
 				const charWidth = this.modeData.pixelWidth * 8,
 					charHeight = this.modeData.pixelHeight * 8,
@@ -568,10 +590,11 @@ export class Canvas {
 					yTxt = (y / charHeight) | 0;
 					/* eslint-enable no-bitwise */
 
-				this.options.onCharClick(event, xTxt, yTxt);
+				this.options.onCanvasClick(event, x, y, xTxt, yTxt);
 			}
 		}
 
+		/*
 		// for graphics coordinates, adapt origin
 		x -= this.xOrig;
 		y = this.height - 1 - (y + this.yOrig);
@@ -582,6 +605,7 @@ export class Canvas {
 		if (Utils.debug > 0) {
 			Utils.console.debug("canvasClickAction: x", pos.x, "y", pos.y, "x - xOrig", x, "y - yOrig", y, "detail", event.detail);
 		}
+		*/
 	}
 
 	onCpcCanvasClick(event: MouseEvent): void {
@@ -1244,6 +1268,14 @@ export class Canvas {
 		this.xOrig = xOrig; // must be integer
 		this.yOrig = yOrig;
 		this.move(0, 0);
+	}
+
+	getXOrigin(): number {
+		return this.xOrig;
+	}
+
+	getYOrigin(): number {
+		return this.yOrig;
 	}
 
 	setGWindow(xLeft: number, xRight: number, yTop: number, yBottom: number): void {

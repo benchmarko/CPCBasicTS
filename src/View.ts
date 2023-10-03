@@ -329,6 +329,7 @@ export class View {
 		const element = View.getElementById1(id),
 			anyEl = element as any,
 			requestMethod = element.requestFullscreen || anyEl.webkitRequestFullscreen || anyEl.mozRequestFullscreen || anyEl.msRequestFullscreen;
+			//parameter = anyEl.webkitRequestFullscreen ? (Element as any).ALLOW_KEYBOARD_INPUT : undefined; // does this work?
 
 		if (requestMethod) {
 			requestMethod.call(element); // can we ALLOW_KEYBOARD_INPUT?

@@ -419,10 +419,10 @@ export class CpcVm {
 		this.random = new Random();
 
 		if (this.canvas) {
-			this.canvas.setOnCharClick(this.onCharClickCallback.bind(this));
+			this.canvas.setOnCanvasClick(this.onCanvasClickCallback.bind(this));
 		}
 		if (this.textCanvas) {
-			this.textCanvas.setOnCharClick(this.onCharClickCallback.bind(this));
+			this.textCanvas.setOnCanvasClick(this.onCanvasClickCallback.bind(this));
 		}
 
 		this.stopCount = this.initialStop;
@@ -711,18 +711,28 @@ export class CpcVm {
 		this.soundData.length = 0;
 	}
 
-	private onCharClickCallback(event: MouseEvent, x: number, y: number) {
+	private onCanvasClickCallback(event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) {
+		// for graphics coordinates, adapt origin
+		const height = 400; //TTT
+		let char = -1;
+
+		x -= this.canvas.getXOrigin();
+		y = height - 1 - (y + this.canvas.getYOrigin());
+
+		if (this.canvas.getXpos() === 1000 && this.canvas.getYpos() === 1000) { // only activate move if pos is 1000, 1000
+			this.canvas.move(x, y);
+		}
+
 		if (this.onClickKey) {
 			const isTextCanvas = event.target && (event.target as any).type === "textarea"; //fast hack; this.textCanvas.textText === event.target
-			let char = -1;
 
 			if (isTextCanvas) {
-				char = this.textCanvas.readChar(x, y);
+				char = this.textCanvas.readChar(xTxt, yTxt);
 			} else {
 				for (let stream = 0; stream < CpcVm.streamCount - 2; stream += 1) { // check all window streams
 					const win = this.windowDataList[stream];
 
-					char = this.canvas.readChar(x, y, win.pen, win.paper);
+					char = this.canvas.readChar(xTxt, yTxt, win.pen, win.paper);
 					if (char > 0 && char !== 32) {
 						break; // found some char
 					}
@@ -735,6 +745,9 @@ export class CpcVm {
 			if (char >= 0) { // call click handler (put char in keyboard input buffer)
 				this.onClickKey(String.fromCharCode(char));
 			}
+		}
+		if (Utils.debug > 0) {
+			Utils.console.debug("onCanvasClickCallback: x", x, "y", y, "xTxt", xTxt, "yTxt", yTxt, "char", char);
 		}
 	}
 
@@ -2656,8 +2669,11 @@ export class CpcVm {
 		this.vmResetWindowData(false); // do not reset pen and paper
 		this.outBuffer = ""; // clear console
 		this.canvas.setMode(mode); // does not clear canvas
-
 		this.canvas.clearFullWindow(); // always with paper 0 (SCR MODE CLEAR)
+
+		const winData = CpcVm.winData[this.modeValue];
+
+		this.textCanvas.setMode(mode, winData.right, winData.bottom);
 		this.textCanvas.clearFullWindow();
 	}
 
