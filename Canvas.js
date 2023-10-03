@@ -43,7 +43,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.options = {
                 charset: options.charset,
                 palette: options.palette,
-                onCharClick: options.onCharClick
+                onCanvasClick: options.onCanvasClick
             };
             this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
             this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
@@ -91,8 +91,8 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         Canvas.prototype.applyBorderColor = function () {
             this.canvas.style.borderColor = Canvas.palettes[this.options.palette][this.currentInks[this.inkSet][16]];
         };
-        Canvas.prototype.setOnCharClick = function (onCharClickHandler) {
-            this.options.onCharClick = onCharClickHandler;
+        Canvas.prototype.setOnCanvasClick = function (onCanvasClickHandler) {
+            this.options.onCanvasClick = onCanvasClickHandler;
         };
         Canvas.prototype.reset = function () {
             this.changeMode(1);
@@ -316,42 +316,66 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         Canvas.prototype.getMousePos = function (event) {
             var anyDoc = document, isFullScreen = Boolean(document.fullscreenElement || anyDoc.mozFullScreenElement || anyDoc.webkitFullscreenElement || anyDoc.msFullscreenElement), rect = this.canvas.getBoundingClientRect();
             if (isFullScreen) {
-                var rectwidth = rect.right - rect.left - this.borderWidth * 2, rectHeight = rect.bottom - rect.top - this.borderWidth * 2, ratioX = rectwidth / this.canvas.width, ratioY = rectHeight / this.canvas.height, minRatio = ratioX <= ratioY ? ratioX : ratioY, diffX = rectwidth - (this.canvas.width * minRatio), diffY = rectHeight - (this.canvas.height * minRatio);
+                var areaX = 0, //TTT
+                areaY = 0, rectwidth = rect.right - rect.left - (this.borderWidth + areaX) * 2, rectHeight = rect.bottom - rect.top - (this.borderWidth + areaY) * 2, ratioX = rectwidth / this.canvas.width, ratioY = rectHeight / this.canvas.height, minRatio = ratioX <= ratioY ? ratioX : ratioY, diffX = rectwidth - (this.canvas.width * minRatio), diffY = rectHeight - (this.canvas.height * minRatio);
                 return {
                     x: (event.clientX - this.borderWidth - rect.left - diffX / 2) / ratioX * ratioX / minRatio,
                     y: (event.clientY - this.borderWidth - rect.top - diffY / 2) / ratioY * ratioY / minRatio
                 };
             }
+            /*
+            // alternative, when using scaling, maybe with other aspect ratio
+            if (isFullScreen) {
+                const areaX = 0, //TTT
+                    areaY = 0,
+                    rectwidth = rect.right - rect.left - (this.borderWidth + areaX) * 2,
+                    rectHeight = rect.bottom - rect.top - (this.borderWidth + areaY) * 2,
+                    ratioX = rectwidth / this.canvas.width,
+                    ratioY = rectHeight / this.canvas.height,
+                    //minRatio = ratioX <= ratioY ? ratioX : ratioY,
+                    diffX = rectwidth - (this.canvas.width * ratioX), //rectwidth - (this.canvas.width * minRatio),
+                    diffY = rectHeight - (this.canvas.height * ratioY); //rectHeight - (this.canvas.height * minRatio);
+    
+                return {
+                    //x: (event.clientX - this.borderWidth - rect.left - diffX / 2) / ratioX * ratioX / minRatio,
+                    //y: (event.clientY - this.borderWidth - rect.top - diffY / 2) / ratioY * ratioY / minRatio
+                    x: (event.clientX - this.borderWidth - rect.left - diffX / 2) / ratioX * ratioX / ratioX,
+                    y: (event.clientY - this.borderWidth - rect.top - diffY / 2) / ratioY * ratioY / ratioY
+                };
+            }
+            */
             return {
                 x: (event.clientX - this.borderWidth - rect.left) / (rect.right - rect.left - this.borderWidth * 2) * this.canvas.width,
                 y: (event.clientY - this.borderWidth - rect.top) / (rect.bottom - rect.top - this.borderWidth * 2) * this.canvas.height
             };
         };
         Canvas.prototype.canvasClickAction = function (event) {
-            var pos = this.getMousePos(event);
-            var x = pos.x, y = pos.y;
+            var pos = this.getMousePos(event), 
             /* eslint-disable no-bitwise */
-            x |= 0; // force integer
-            y |= 0;
+            x = pos.x | 0, // force integer
+            y = pos.y | 0;
             /* eslint-enable no-bitwise */
-            if (this.options.onCharClick) {
+            if (this.options.onCanvasClick) {
                 if (x >= 0 && x <= this.width - 1 && y >= 0 && y <= this.height - 1) {
                     var charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8, 
                     /* eslint-disable no-bitwise */
                     xTxt = (x / charWidth) | 0, yTxt = (y / charHeight) | 0;
                     /* eslint-enable no-bitwise */
-                    this.options.onCharClick(event, xTxt, yTxt);
+                    this.options.onCanvasClick(event, x, y, xTxt, yTxt);
                 }
             }
+            /*
             // for graphics coordinates, adapt origin
             x -= this.xOrig;
             y = this.height - 1 - (y + this.yOrig);
+    
             if (this.xPos === 1000 && this.yPos === 1000) { // only activate move if pos is 1000, 1000
                 this.move(x, y);
             }
-            if (Utils_1.Utils.debug > 0) {
-                Utils_1.Utils.console.debug("canvasClickAction: x", pos.x, "y", pos.y, "x - xOrig", x, "y - yOrig", y, "detail", event.detail);
+            if (Utils.debug > 0) {
+                Utils.console.debug("canvasClickAction: x", pos.x, "y", pos.y, "x - xOrig", x, "y - yOrig", y, "detail", event.detail);
             }
+            */
         };
         Canvas.prototype.onCpcCanvasClick = function (event) {
             if (!this.hasFocus) {
@@ -862,6 +886,12 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.xOrig = xOrig; // must be integer
             this.yOrig = yOrig;
             this.move(0, 0);
+        };
+        Canvas.prototype.getXOrigin = function () {
+            return this.xOrig;
+        };
+        Canvas.prototype.getYOrigin = function () {
+            return this.yOrig;
         };
         Canvas.prototype.setGWindow = function (xLeft, xRight, yTop, yBottom) {
             var pixelWidth = 8, // force byte boundaries: always 8 x/byte

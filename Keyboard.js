@@ -25,7 +25,9 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 ctrl: {},
                 repeat: {}
             }; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
-            var cpcArea = View_1.View.getElementById1("cpcArea");
+            //TTT
+            var name = "cpcCanvas", //"cpcCanvasDiv", //"cpcArea"
+            cpcArea = View_1.View.getElementById1(name);
             cpcArea.addEventListener("keydown", this.onCpcAreaKeydown.bind(this), false);
             cpcArea.addEventListener("keyup", this.oncpcAreaKeyup.bind(this), false);
             var textArea = View_1.View.getElementById1("textArea");

@@ -921,10 +921,11 @@ declare module "VirtualKeyboard" {
 declare module "Canvas" {
     type CharType = number[];
     type CharsetType = CharType[];
+    type CanvasClickType = (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
     export interface CanvasOptions {
         charset: CharsetType;
         palette: "color" | "green" | "grey";
-        onCharClick?: (event: MouseEvent, x: number, y: number) => void;
+        onCanvasClick?: CanvasClickType;
     }
     export class Canvas {
         private readonly options;
@@ -978,7 +979,7 @@ declare module "Canvas" {
         private static readonly defaultInks;
         private static readonly modeData;
         private applyBorderColor;
-        setOnCharClick(onCharClickHandler: (event: MouseEvent, x: number, y: number) => void): void;
+        setOnCanvasClick(onCanvasClickHandler: CanvasClickType): void;
         reset(): void;
         resetCustomChars(): void;
         private static computePalette;
@@ -1044,6 +1045,8 @@ declare module "Canvas" {
         fill(fillPen: number): void;
         private static fnPutInRange;
         setOrigin(xOrig: number, yOrig: number): void;
+        getXOrigin(): number;
+        getYOrigin(): number;
         setGWindow(xLeft: number, xRight: number, yTop: number, yBottom: number): void;
         setGColMode(gColMode: number): void;
         clearTextWindow(left: number, right: number, top: number, bottom: number, paper: number): void;
@@ -1061,8 +1064,9 @@ declare module "Canvas" {
     }
 }
 declare module "TextCanvas" {
+    type CanvasClickType = (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
     export interface TextCanvasOptions {
-        onCharClick?: (event: MouseEvent, x: number, y: number) => void;
+        onCanvasClick?: CanvasClickType;
     }
     export class TextCanvas {
         private readonly options;
@@ -1072,12 +1076,15 @@ declare module "TextCanvas" {
         private animationTimeoutId?;
         private animationFrame?;
         private readonly textText;
+        private borderWidth;
+        private cols;
+        private rows;
         private needTextUpdate;
         private readonly textBuffer;
         private hasFocus;
         constructor(options: TextCanvasOptions);
         private static readonly cpc2Unicode;
-        setOnCharClick(onCharClickHandler: (event: MouseEvent, x: number, y: number) => void): void;
+        setOnCanvasClick(onCanvasClickHandler: CanvasClickType): void;
         reset(): void;
         private resetTextBuffer;
         private setNeedTextUpdate;
@@ -1100,6 +1107,7 @@ declare module "TextCanvas" {
         printChar(char: number, x: number, y: number, _pen: number, _paper: number, _transparent: boolean): void;
         readChar(x: number, y: number, _pen?: number, _paper?: number): number;
         clearTextWindow(left: number, right: number, top: number, bottom: number, _paper: number): void;
+        setMode(_mode: number, right: number, bottom: number): void;
         clearFullWindow(): void;
         windowScrollUp(left: number, right: number, top: number, bottom: number, _pen: number): void;
         windowScrollDown(left: number, right: number, top: number, bottom: number, _pen: number): void;
@@ -1500,7 +1508,7 @@ declare module "CpcVm" {
         vmResetData(): void;
         private vmResetInks;
         vmReset4Run(): void;
-        private onCharClickCallback;
+        private onCanvasClickCallback;
         vmGetAllVariables(): VariableMap;
         vmGetAllVarTypes(): VariableTypeMap;
         vmSetStartLine(line: number): void;

@@ -66,10 +66,10 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.onClickKey = options.onClickKey;
             this.random = new Random_1.Random();
             if (this.canvas) {
-                this.canvas.setOnCharClick(this.onCharClickCallback.bind(this));
+                this.canvas.setOnCanvasClick(this.onCanvasClickCallback.bind(this));
             }
             if (this.textCanvas) {
-                this.textCanvas.setOnCharClick(this.onCharClickCallback.bind(this));
+                this.textCanvas.setOnCanvasClick(this.onCanvasClickCallback.bind(this));
             }
             this.stopCount = this.initialStop;
             this.stopEntry = {
@@ -301,17 +301,24 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.soundClass.resetQueue();
             this.soundData.length = 0;
         };
-        CpcVm.prototype.onCharClickCallback = function (event, x, y) {
+        CpcVm.prototype.onCanvasClickCallback = function (event, x, y, xTxt, yTxt) {
+            // for graphics coordinates, adapt origin
+            var height = 400; //TTT
+            var char = -1;
+            x -= this.canvas.getXOrigin();
+            y = height - 1 - (y + this.canvas.getYOrigin());
+            if (this.canvas.getXpos() === 1000 && this.canvas.getYpos() === 1000) { // only activate move if pos is 1000, 1000
+                this.canvas.move(x, y);
+            }
             if (this.onClickKey) {
                 var isTextCanvas = event.target && event.target.type === "textarea"; //fast hack; this.textCanvas.textText === event.target
-                var char = -1;
                 if (isTextCanvas) {
-                    char = this.textCanvas.readChar(x, y);
+                    char = this.textCanvas.readChar(xTxt, yTxt);
                 }
                 else {
                     for (var stream = 0; stream < CpcVm.streamCount - 2; stream += 1) { // check all window streams
                         var win = this.windowDataList[stream];
-                        char = this.canvas.readChar(x, y, win.pen, win.paper);
+                        char = this.canvas.readChar(xTxt, yTxt, win.pen, win.paper);
                         if (char > 0 && char !== 32) {
                             break; // found some char
                         }
@@ -323,6 +330,9 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                 if (char >= 0) { // call click handler (put char in keyboard input buffer)
                     this.onClickKey(String.fromCharCode(char));
                 }
+            }
+            if (Utils_1.Utils.debug > 0) {
+                Utils_1.Utils.console.debug("onCanvasClickCallback: x", x, "y", y, "xTxt", xTxt, "yTxt", yTxt, "char", char);
             }
         };
         CpcVm.prototype.vmGetAllVariables = function () {
@@ -1988,6 +1998,8 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.outBuffer = ""; // clear console
             this.canvas.setMode(mode); // does not clear canvas
             this.canvas.clearFullWindow(); // always with paper 0 (SCR MODE CLEAR)
+            var winData = CpcVm.winData[this.modeValue];
+            this.textCanvas.setMode(mode, winData.right, winData.bottom);
             this.textCanvas.clearFullWindow();
         };
         CpcVm.prototype.move = function (x, y, gPen, gColMode) {

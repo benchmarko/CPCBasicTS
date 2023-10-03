@@ -253,6 +253,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         CommonEventHandler.prototype.onDebugInputChange = function () {
             var debug = this.view.getInputValue("debugInput");
             this.model.setProperty("debug", Number(debug));
+            Utils_1.Utils.debug = Number(debug);
         };
         CommonEventHandler.prototype.onImplicitLinesInputChange = function () {
             var checked = this.view.getInputChecked("implicitLinesInput");
@@ -302,7 +303,8 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.controller.startEnter();
         };
         CommonEventHandler.onFullscreenButtonClick = function () {
-            var switched = View_1.View.requestFullscreenForId("cpcCanvas");
+            var switched = View_1.View.requestFullscreenForId("cpcCanvas"); // make sure to use an element with tabindex set to get keyboard events
+            //const switched = View.requestFullscreenForId("cpcCanvasDiv");
             if (!switched) {
                 Utils_1.Utils.console.warn("Switch to fullscreen not available");
             }

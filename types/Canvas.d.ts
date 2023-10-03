@@ -1,9 +1,10 @@
 declare type CharType = number[];
 declare type CharsetType = CharType[];
+declare type CanvasClickType = (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
 export interface CanvasOptions {
     charset: CharsetType;
     palette: "color" | "green" | "grey";
-    onCharClick?: (event: MouseEvent, x: number, y: number) => void;
+    onCanvasClick?: CanvasClickType;
 }
 export declare class Canvas {
     private readonly options;
@@ -57,7 +58,7 @@ export declare class Canvas {
     private static readonly defaultInks;
     private static readonly modeData;
     private applyBorderColor;
-    setOnCharClick(onCharClickHandler: (event: MouseEvent, x: number, y: number) => void): void;
+    setOnCanvasClick(onCanvasClickHandler: CanvasClickType): void;
     reset(): void;
     resetCustomChars(): void;
     private static computePalette;
@@ -123,6 +124,8 @@ export declare class Canvas {
     fill(fillPen: number): void;
     private static fnPutInRange;
     setOrigin(xOrig: number, yOrig: number): void;
+    getXOrigin(): number;
+    getYOrigin(): number;
     setGWindow(xLeft: number, xRight: number, yTop: number, yBottom: number): void;
     setGColMode(gColMode: number): void;
     clearTextWindow(left: number, right: number, top: number, bottom: number, paper: number): void;

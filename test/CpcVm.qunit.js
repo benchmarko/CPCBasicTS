@@ -153,11 +153,11 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             "0xbc07": 'CpcVm: Type mismatch in 0: screenBase undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
             "0xbc07,0x40": "getByte:49152 , getByte:49153 , setByte:16384,0 , setByte:16385,0",
             "0xbc07,0xc0": "getByte:16384 , getByte:16385 , setByte:49152,0 , setByte:49153,0",
-            "0xbc0e": 'setMode:0 , clearFullWindow: , txtClearFullWindow: -- {"_key":"win0","right":19} -- {"_key":"win1","right":19} -- {"_key":"win2","right":19} -- {"_key":"win3","right":19} -- {"_key":"win4","right":19} -- {"_key":"win5","right":19} -- {"_key":"win6","right":19} -- {"_key":"win7","right":19}',
-            "0xbc0e,1": "setMode:1 , clearFullWindow: , txtClearFullWindow:",
-            "0xbc0e,1,2": 'setMode:2 , clearFullWindow: , txtClearFullWindow: -- {"_key":"win0","right":79} -- {"_key":"win1","right":79} -- {"_key":"win2","right":79} -- {"_key":"win3","right":79} -- {"_key":"win4","right":79} -- {"_key":"win5","right":79} -- {"_key":"win6","right":79} -- {"_key":"win7","right":79}',
-            "0xbc0e,1,2,3": 'setMode:3 , clearFullWindow: , txtClearFullWindow: -- {"_key":"win0","right":79,"bottom":49} -- {"_key":"win1","right":79,"bottom":49} -- {"_key":"win2","right":79,"bottom":49} -- {"_key":"win3","right":79,"bottom":49} -- {"_key":"win4","right":79,"bottom":49} -- {"_key":"win5","right":79,"bottom":49} -- {"_key":"win6","right":79,"bottom":49} -- {"_key":"win7","right":79,"bottom":49} -- {"_key":"win8","bottom":49} -- {"_key":"win9","bottom":49}',
-            "0xbc0e,1,2,3,4": 'setMode:0 , clearFullWindow: , txtClearFullWindow: -- {"_key":"win0","right":19} -- {"_key":"win1","right":19} -- {"_key":"win2","right":19} -- {"_key":"win3","right":19} -- {"_key":"win4","right":19} -- {"_key":"win5","right":19} -- {"_key":"win6","right":19} -- {"_key":"win7","right":19}',
+            "0xbc0e": 'setMode:0 , clearFullWindow: , setMode:0,19,24 , txtClearFullWindow: -- {"_key":"win0","right":19} -- {"_key":"win1","right":19} -- {"_key":"win2","right":19} -- {"_key":"win3","right":19} -- {"_key":"win4","right":19} -- {"_key":"win5","right":19} -- {"_key":"win6","right":19} -- {"_key":"win7","right":19}',
+            "0xbc0e,1": "setMode:1 , clearFullWindow: , setMode:1,39,24 , txtClearFullWindow:",
+            "0xbc0e,1,2": 'setMode:2 , clearFullWindow: , setMode:2,79,24 , txtClearFullWindow: -- {"_key":"win0","right":79} -- {"_key":"win1","right":79} -- {"_key":"win2","right":79} -- {"_key":"win3","right":79} -- {"_key":"win4","right":79} -- {"_key":"win5","right":79} -- {"_key":"win6","right":79} -- {"_key":"win7","right":79}',
+            "0xbc0e,1,2,3": 'setMode:3 , clearFullWindow: , setMode:3,79,49 , txtClearFullWindow: -- {"_key":"win0","right":79,"bottom":49} -- {"_key":"win1","right":79,"bottom":49} -- {"_key":"win2","right":79,"bottom":49} -- {"_key":"win3","right":79,"bottom":49} -- {"_key":"win4","right":79,"bottom":49} -- {"_key":"win5","right":79,"bottom":49} -- {"_key":"win6","right":79,"bottom":49} -- {"_key":"win7","right":79,"bottom":49} -- {"_key":"win8","bottom":49} -- {"_key":"win9","bottom":49}',
+            "0xbc0e,1,2,3,4": 'setMode:0 , clearFullWindow: , setMode:0,19,24 , txtClearFullWindow: -- {"_key":"win0","right":19} -- {"_key":"win1","right":19} -- {"_key":"win2","right":19} -- {"_key":"win3","right":19} -- {"_key":"win4","right":19} -- {"_key":"win5","right":19} -- {"_key":"win6","right":19} -- {"_key":"win7","right":19}',
             "0xbca7": "reset:",
             "0xbcbc": "",
             "0xbcb6": "",
@@ -1011,10 +1011,10 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             '0,"7"': 'CpcVm: Type mismatch in 0: MIN 7 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
         },
         mode: {
-            "0 ": 'setMode:0 , clearFullWindow: , txtClearFullWindow: -- {"_key":"win0","right":19} -- {"_key":"win1","right":19} -- {"_key":"win2","right":19} -- {"_key":"win3","right":19} -- {"_key":"win4","right":19} -- {"_key":"win5","right":19} -- {"_key":"win6","right":19} -- {"_key":"win7","right":19}',
-            "1 ": "setMode:1 , clearFullWindow: , txtClearFullWindow:",
-            "2 ": 'setMode:2 , clearFullWindow: , txtClearFullWindow: -- {"_key":"win0","right":79} -- {"_key":"win1","right":79} -- {"_key":"win2","right":79} -- {"_key":"win3","right":79} -- {"_key":"win4","right":79} -- {"_key":"win5","right":79} -- {"_key":"win6","right":79} -- {"_key":"win7","right":79}',
-            "3.4 ": 'setMode:3 , clearFullWindow: , txtClearFullWindow: -- {"_key":"win0","right":79,"bottom":49} -- {"_key":"win1","right":79,"bottom":49} -- {"_key":"win2","right":79,"bottom":49} -- {"_key":"win3","right":79,"bottom":49} -- {"_key":"win4","right":79,"bottom":49} -- {"_key":"win5","right":79,"bottom":49} -- {"_key":"win6","right":79,"bottom":49} -- {"_key":"win7","right":79,"bottom":49} -- {"_key":"win8","bottom":49} -- {"_key":"win9","bottom":49}',
+            "0 ": 'setMode:0 , clearFullWindow: , setMode:0,19,24 , txtClearFullWindow: -- {"_key":"win0","right":19} -- {"_key":"win1","right":19} -- {"_key":"win2","right":19} -- {"_key":"win3","right":19} -- {"_key":"win4","right":19} -- {"_key":"win5","right":19} -- {"_key":"win6","right":19} -- {"_key":"win7","right":19}',
+            "1 ": "setMode:1 , clearFullWindow: , setMode:1,39,24 , txtClearFullWindow:",
+            "2 ": 'setMode:2 , clearFullWindow: , setMode:2,79,24 , txtClearFullWindow: -- {"_key":"win0","right":79} -- {"_key":"win1","right":79} -- {"_key":"win2","right":79} -- {"_key":"win3","right":79} -- {"_key":"win4","right":79} -- {"_key":"win5","right":79} -- {"_key":"win6","right":79} -- {"_key":"win7","right":79}',
+            "3.4 ": 'setMode:3 , clearFullWindow: , setMode:3,79,49 , txtClearFullWindow: -- {"_key":"win0","right":79,"bottom":49} -- {"_key":"win1","right":79,"bottom":49} -- {"_key":"win2","right":79,"bottom":49} -- {"_key":"win3","right":79,"bottom":49} -- {"_key":"win4","right":79,"bottom":49} -- {"_key":"win5","right":79,"bottom":49} -- {"_key":"win6","right":79,"bottom":49} -- {"_key":"win7","right":79,"bottom":49} -- {"_key":"win8","bottom":49} -- {"_key":"win9","bottom":49}',
             "": 'CpcVm: Type mismatch in 0: MODE undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
             '""': 'CpcVm: Type mismatch in 0: MODE  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
             "4 ": 'CpcVm: Improper argument in 0: MODE 4 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
@@ -1307,7 +1307,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             '0,"\x01\x08"': 'printChar:8,0,0,1,0,false , txtPrintChar:8,0,0,1,0,false -- {"_key":"win0","pos":1}',
             '0,"\x02"': '{"_key":"win0","cursorEnabled":false}',
             '0,"\x03"': "",
-            '0,"\x04\x02"': 'setMode:2 , clearFullWindow: , txtClearFullWindow: -- {"_key":"win0","right":79} -- {"_key":"win1","right":79} -- {"_key":"win2","right":79} -- {"_key":"win3","right":79} -- {"_key":"win4","right":79} -- {"_key":"win5","right":79} -- {"_key":"win6","right":79} -- {"_key":"win7","right":79}',
+            '0,"\x04\x02"': 'setMode:2 , clearFullWindow: , setMode:2,79,24 , txtClearFullWindow: -- {"_key":"win0","right":79} -- {"_key":"win1","right":79} -- {"_key":"win2","right":79} -- {"_key":"win3","right":79} -- {"_key":"win4","right":79} -- {"_key":"win5","right":79} -- {"_key":"win6","right":79} -- {"_key":"win7","right":79}',
             '0,"\x05\x08"': "printGChar:8",
             '0,"\x06"': "",
             '0,"\x07"': 'testCanQueue:135 , sound:{"state":135,"period":90,"duration":20,"volume":12,"volEnv":0,"toneEnv":0,"noise":0}',
@@ -1923,7 +1923,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             "": "updateSpeedInk: , scheduler: -- true"
         },
         vmReset: {
-            "": "resetCustomChars: , setMode:1 , clearFullWindow: , txtClearFullWindow: , reset: , txtReset: , reset: , reset:"
+            "": "resetCustomChars: , setMode:1 , clearFullWindow: , setMode:1,39,24 , txtClearFullWindow: , reset: , txtReset: , reset: , reset:"
         },
         vmTrace: {
             "": 'printChar:91,0,0,1,0,false , txtPrintChar:91,0,0,1,0,false , printChar:49,1,0,1,0,false , txtPrintChar:49,1,0,1,0,false , printChar:50,2,0,1,0,false , txtPrintChar:50,2,0,1,0,false , printChar:51,3,0,1,0,false , txtPrintChar:51,3,0,1,0,false , printChar:93,4,0,1,0,false , txtPrintChar:93,4,0,1,0,false -- {"_key":"win0","pos":5}'
@@ -1931,13 +1931,13 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
     };
     var lastTestFunctions = [], // eslint-disable-line one-var
     varTypesMap = {}, variablesMap = {}, mockCanvas = {
-        setOnCharClick: function () {
+        setOnCanvasClick: function () {
             var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
                 args[_i] = arguments[_i];
             }
             lastTestFunctions.push({
-                setOnCharClick: [String(args)]
+                setOnCanvasClick: [String(args)]
             });
         },
         changeMode: function () {
@@ -2296,13 +2296,13 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             });
         }
     }, mockTextCanvas = {
-        setOnCharClick: function () {
+        setOnCanvasClick: function () {
             var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
                 args[_i] = arguments[_i];
             }
             lastTestFunctions.push({
-                setOnCharClick: [String(args)]
+                setOnCanvasClick: [String(args)]
             });
         },
         clearFullWindow: function () {
@@ -2367,6 +2367,15 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             }
             lastTestFunctions.push({
                 txtWindowScrollDown: args
+            });
+        },
+        setMode: function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
+            }
+            lastTestFunctions.push({
+                setMode: args
             });
         }
     }, mockKeyboard = {
@@ -3494,10 +3503,10 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
         QUnit.test("init without options", function (assert) {
             var minimalCanvas = {
                 reset: function () { return undefined; },
-                setOnCharClick: function (_onCharClickHandler) { return undefined; }
+                setOnCanvasClick: function (_onCanvasClickHandler) { return undefined; }
             }, minimalTextCanvas = {
                 reset: function () { return undefined; },
-                setOnCharClick: function (_onCharClickHandler) { return undefined; }
+                setOnCanvasClick: function (_onCanvasClickHandler) { return undefined; }
             }, minimalKeyboard = {
                 reset: function () { return undefined; }
             }, minimalSound = {

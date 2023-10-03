@@ -266,6 +266,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         View.requestFullscreenForId = function (id) {
             var element = View.getElementById1(id), anyEl = element, requestMethod = element.requestFullscreen || anyEl.webkitRequestFullscreen || anyEl.mozRequestFullscreen || anyEl.msRequestFullscreen;
+            //parameter = anyEl.webkitRequestFullscreen ? (Element as any).ALLOW_KEYBOARD_INPUT : undefined; // does this work?
             if (requestMethod) {
                 requestMethod.call(element); // can we ALLOW_KEYBOARD_INPUT?
             }

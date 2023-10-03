@@ -193,7 +193,7 @@ export declare class CpcVm {
     vmResetData(): void;
     private vmResetInks;
     vmReset4Run(): void;
-    private onCharClickCallback;
+    private onCanvasClickCallback;
     vmGetAllVariables(): VariableMap;
     vmGetAllVarTypes(): VariableTypeMap;
     vmSetStartLine(line: number): void;

@@ -257,6 +257,7 @@ export class CommonEventHandler implements EventListenerObject {
 		const debug = this.view.getInputValue("debugInput");
 
 		this.model.setProperty<number>("debug", Number(debug));
+		Utils.debug = Number(debug);
 	}
 
 	private onImplicitLinesInputChange() {
@@ -327,7 +328,8 @@ export class CommonEventHandler implements EventListenerObject {
 	}
 
 	private static onFullscreenButtonClick() {
-		const switched = View.requestFullscreenForId("cpcCanvas");
+		const switched = View.requestFullscreenForId("cpcCanvas"); // make sure to use an element with tabindex set to get keyboard events
+		//const switched = View.requestFullscreenForId("cpcCanvasDiv");
 
 		if (!switched) {
 			Utils.console.warn("Switch to fullscreen not available");
