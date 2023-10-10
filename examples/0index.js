@@ -21,6 +21,10 @@ cpcBasic.addIndex("./examples", function () { /*
     	"key": "test/testpage.dat",
 		"title": "Test data for Test Page",
 		"meta": "D"
+	},
+	{
+		"key": "test/testspec",
+		"title": "Test Special TS"
 	}
 ]
 */ });

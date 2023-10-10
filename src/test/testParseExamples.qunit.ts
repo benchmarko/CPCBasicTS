@@ -227,6 +227,10 @@ class cpcBasic {
 			// empty
 		},
 
+		addressOf(variable: string): number { // addressOf operator
+			return cpcBasic.vmMock.testVariables1.getVariableIndex(variable);
+		},
+
 		dim(varName: string): void { // varargs
 			const dimensions = [];
 

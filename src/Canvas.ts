@@ -637,11 +637,16 @@ export class Canvas {
 			dataset8 = this.dataset8;
 
 		for (let row = 0; row < height; row += 1) {
+			const idx = x + (y + row) * canvasWidth;
+
+			dataset8.fill(paper, idx, idx + width);
+			/*
 			for (let col = 0; col < width; col += 1) {
 				const idx = (x + col) + (y + row) * canvasWidth;
 
 				dataset8[idx] = paper;
 			}
+			*/
 		}
 	}
 
@@ -662,9 +667,12 @@ export class Canvas {
 			const idx1 = x + (y + row) * canvasWidth,
 				idx2 = x2 + (y2 + row) * canvasWidth;
 
+			dataset8.copyWithin(idx2, idx1, idx1 + width);
+			/*
 			for (let col = 0; col < width; col += 1) {
 				dataset8[idx2 + col] = dataset8[idx1 + col];
 			}
+			*/
 		}
 	}
 
@@ -676,9 +684,12 @@ export class Canvas {
 			const idx1 = x + (y + row) * canvasWidth,
 				idx2 = x2 + (y2 + row) * canvasWidth;
 
+			dataset8.copyWithin(idx2, idx1, idx1 + width);
+			/*
 			for (let col = 0; col < width; col += 1) {
 				dataset8[idx2 + col] = dataset8[idx1 + col];
 			}
+			*/
 		}
 	}
 

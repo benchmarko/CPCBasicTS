@@ -41,19 +41,25 @@ With CPC Basic we do not get that accuracy. But if we compile it to JavaScript, 
 
 - Just open index.html in a browser.
   The user interface shows several windows, which can be reduced and expanded by pressing the **green** buttons.
-- The *Input* window is used to input and modify the BASIC program.
+- The *CPC BASIC* window is used to input and modify the BASIC program.
   - Use the *first selection field* to select the example library: CPCBasic *examples*,
   CPCBasicApps *apps*, *examplesTS* or *storage*.
   - Use the *second selection field* to select a directory/path.
   - Use the *third selection field* to select a sample program. It will reset the CPC and run the program.
-  - The **Reload** button reloads the page with the current settings put in URL parameters. (Please note that modifications of the BASIC program are not saved!)
-  - The **Help** button opens the readme in the browser.
   - The **Gallery** button opens a gallery with examples and you can select one.
   - The **Settings** button opens a popover with settings.
     - The checkbox **Array Bounds** checks array bounds of the running program. This option requires an ES6 compatible browser and is switched off per default.
     - The checkbox **Implicit Lines** allows to run BASIC programs without line numbers.
     - The checkbox **Trace Mode** switches on trace mode. Ths allows to show the source position in case of runtime errors.
+    - The checkbox **Autorun** loads and runs an example when selected.
+    - The checkbox **Sound** enables sound. If you start the app or use the *Reload* button with the sound enabled, the sound needs to be activated by a user action, e.g. a click anywhere. This is a browser limitation.
+    - The selection field **Palette** allows to set the palette to Color, Green or Grey.
     - The range slider **Speed** allows to reduce the simulation speed (0..100). This is an experimental feature.
+    - The input field **Debug** allows to set the debug level.
+       Debug messages can be seen in the Browser debugger or in the *Console Log* window.
+    - The checkbox **Console Log** allows to see the console log.
+    - The **Help** button opens the CPCBasicTS readme in the browser.
+  - The **Reload** button reloads the page with the current settings put in URL parameters. (Please note that modifications of the BASIC program are not saved!)
   - The **Check** button checks the syntax of the program. It compiles the program to JavaScript.
   - The **Convert** button opens a popover with functions to renumber lines or pretty print the program.
     - The **Renum** button renumbers the lines (see also *RENUM*)
@@ -70,18 +76,20 @@ With CPC Basic we do not get that accuracy. But if we compile it to JavaScript, 
   - The **Run** button compiles the BASIC program to JavaScript and runs it (simular to *RUN*).
     - If the focus is on the CPC screen, keystrokes will be detected by a running program or also in direct mode. An alternative way of input is the *virtual keyboard* below.
   - The **Break** button halts the program. This is an unconditional break. Pressing the ESC key once also halts the program, if not masked with *ON BREAK CONT*.
-  - The **Continue** button continues the program (simular to *CONT*).
-  - The **Reset** button resets the CPC.
-  - The **Screenshot** button creates a screenshot of the current CPC screen.
-  - The **Sound** button activates or deactivates sound.
-    - If you start the app or use the *Reload* button with the sound enabled, the sound needs to be activated by a user action, e.g. a click anywhere. This is a browser limitation.
-  - The **Fullscreen** button activates fullscreen mode of the CPC window.
+  - The **Continue** button continues the program (similar to *CONT*).
+  - The **More** button opens a popover with more functions.
+    - The **Reset** button resets the CPC.
+    - The **Screenshot** button creates a screenshot of the current CPC screen.
+    - The **Fullscreen** button activates fullscreen mode of the CPC window.
 - The *Text View* window shows the text which is written in text mode.
-- The *Keyboard* window shows a virtual keyboard which can be also used with touch devices. You can test the functionality with the test program [keyboard](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=test/keyboard&showKbd=true).
-- The *Keyboard Layout* window allows you to change the layout of the keyboard.
+- The *Keyboard* window shows a virtual keyboard which can be also used with touch devices. It can be moved around. You can test the functionality with the test program [keyboard](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=test/keyboard&showKbd=true).
+When minimized, you can select the keyboard layout AlphaNum, Alpha or Num.
 - The *Input* window is an alternative way to send input to the CPC.
+  - Input a (multiline) text and press the **Send** button.
+  - Use the **Select File** button (or drag&drop) to import a file.
+    File types are detected. ZIP files and DSK files can also be imported.
 - The *Console* window shows the textual output. This is useful for copying and pasting the output. It is cleared when the CPC screen is cleared (*MODE* or *CLS*).
-- The *Variables* window allows you to see the variables used by the program. Simple variables can also be modified.
+- The *Variables* window allows you to see the variables used by the program. Use the selection field to select a variable and see the details. Simple variables can also be modified. Variables are updated when the program stops.
 - In the *JavaScript* window you will see the compiled JavaScript code. It can be changed and then executed with the **Run** button in this window. So it is possible to program the simulated CPC directly with JavaScript.
 
 ## Extensions and Features
