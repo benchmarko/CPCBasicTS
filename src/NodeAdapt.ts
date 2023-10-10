@@ -31,7 +31,9 @@ export class NodeAdapt {
 						borderStyle: ""
 					},
 					addEventListener: () => {}, // eslint-disable-line no-empty-function, @typescript-eslint/no-empty-function
-					options: []
+					options: [],
+					getAttribute: () => {}, // eslint-disable-line no-empty-function, @typescript-eslint/no-empty-function
+					setAttribute: () => {} // eslint-disable-line no-empty-function, @typescript-eslint/no-empty-function
 				};
 
 				// old syntax for getter with "get length() { ... }"

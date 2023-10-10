@@ -97,7 +97,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 keyboard: this.keyboard,
                 sound: this.sound,
                 variables: this.variables,
-                onClickKey: this.fnPutKeyInBufferHandler
+                onClickKey: this.fnPutKeyInBufferHandler,
+                copyChrFromTextCanvas: window.Polyfills.isNodeAvailable // use textcanvas when using nodeJS
             });
             this.vm.vmReset();
             this.rsx = new CpcVmRsx_1.CpcVmRsx(this.vm);

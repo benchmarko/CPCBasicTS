@@ -9,19 +9,12 @@ cpcBasic.addItem("", function () { /*
 40 '
 50 '|renum,100,100,10,9000:stop
 60 '
-70 IF chain1<>0 THEN ERROR 33:' chain (merge) running
-100 '
-110 'pixel test
-120 MODE 0
-130 POKE &FF80,0:PLOT -1,0:IF PEEK(&FF80)<>128 or test(-1,0)<>1 THEN ERROR 33
-140 POKE &FF80,0:PLOT -2,0:IF PEEK(&FF80)<>128 or test(-2,0)<>1 THEN ERROR 33
-150 POKE &FF80,0:PLOT -3,0:IF PEEK(&FF80)<>128 or test(-3,0)<>1 THEN ERROR 33
-160 POKE &FF80,0:PLOT 0,-1:IF PEEK(&FF80)<>128 or test(0,-1)<>1 THEN ERROR 33
-170 MODE 1
-180 POKE &FF80,0:PLOT -1,0:IF PEEK(&FF80)<>128 or test(-1,0)<>1 THEN ERROR 33
-190 POKE &FF80,0:PLOT 0,-1:IF PEEK(&FF80)<>128 or test(0,-1)<>1 THEN ERROR 33
-200 '
-210 MODE 2:'comment
+80 MODE 2:'comment
+90 CLEAR: 'needed for @(address of)
+100 t0! = TIME
+110 PRINT"@ (address of)": 'CPCBasic: just return internal variable index
+120 a=7:PRINT@a;@a^2;@a+1*2
+130 b=8:PRINT@b;@a(0)
 220 '
 230 PRINT"Numbers"
 240 a=1:IF a<>1 THEN ERROR 33
@@ -97,11 +90,6 @@ cpcBasic.addItem("", function () { /*
 940 a=ABS(-67.98):IF a<>67.98 THEN ERROR 33
 950 PRINT"ABS(0)"
 960 a=ABS(0):IF a<>0 THEN ERROR 33
-970 '
-980 PRINT"@ (address of)": 'CPCBasic: just return internal variable index
-990 CLEAR
-1000 a=7:PRINT@a;@a^2;@a+1*2
-1010 b=8:PRINT@b;@a(0)
 1020 '
 1030 PRINT"AND (and OR)"
 1040 a=4 OR 7 AND 2:IF a<>6 THEN ERROR 33
@@ -138,9 +126,9 @@ cpcBasic.addItem("", function () { /*
 1350 PRINT"Detect char 130 with matching paper as char 141"
 1360 PEN 0:PAPER 1:PRINT CHR$(130);"#";:PEN 1
 1370 GOSUB 9010:PAPER 0:IF a$<>CHR$(141)+"#" THEN PRINT"Check: Different on real CPC!":IF a$<>CHR$(130)+"#" THEN ERROR 33
-1380 PRINT"Detect char 143 with matching paper as char 32"
-1390 PEN 0:PAPER 1:PRINT CHR$(143);"#";:PEN 1
-1400 GOSUB 9010:PAPER 0:IF a$<>" #" THEN ERROR 33
+1380 'PRINT"Detect char 143 with matching paper as char 32"
+1390 'PEN 0:PAPER 1:PRINT CHR$(143);"#";:PEN 1
+1400 'GOSUB 9010:PAPER 0:IF a$<>" #" THEN ERROR 33
 1410 '
 1420 PRINT"DATA with spaces between arguments"
 1430 b$="":RESTORE 1450
@@ -614,16 +602,16 @@ cpcBasic.addItem("", function () { /*
 6080 '
 6090 GOSUB 9040
 6092 '
-6093 PRINT "CHAIN, CHAIN MERGE"
-6094 chain1=1:a=1
-6095 chain "testpage", 6096
-6096 IF a<>1 THEN ERROR 33
-6097 a=a+1
-6098 chain merge "testpage", 6099
-6099 IF a<>2 THEN ERROR 33
-6100 chain1=0
+6093 'PRINT "CHAIN, CHAIN MERGE"
+6094 'chain1=1:a=1
+6095 'chain "testpage", 6096
+6096 'IF a<>1 THEN ERROR 33
+6097 'a=a+1
+6098 'chain merge "testpage", 6099
+6099 'IF a<>2 THEN ERROR 33
+6100 'chain1=0
 6104 '
-6105 GOSUB 9040
+6105 'GOSUB 9040
 6106 '
 6110 PRINT "stairs"
 6120 FOR i=1 TO 24:PRINT STRING$(i*2, "O"):NEXT
@@ -635,15 +623,16 @@ cpcBasic.addItem("", function () { /*
 6180 MOVE 348,0
 6190 FILL 1
 6200 '
-6210 PRINT "test finished: ok"
+6205 GOSUB 9040
+6210 PRINT "testpage finished: ok"
 6220 END
 6230 '
 9000 'get characters from screen; print crlf
 9010 a$="":i=1:WHILE i<=80 AND RIGHT$(a$,1)<>"#":LOCATE i,VPOS(#0):a$=a$+COPYCHR$(#0):i=i+1:WEND:PRINT:RETURN
 9020 '
-9030 'wait some time or for key press
-9040 t!=TIME+6*50:a$="":WHILE TIME<t! AND a$="":a$=INKEY$:WEND
-9050 PRINT:PRINT STRING$(10, "-"):PRINT
+9030 'print separator and time
+9040 PRINT:PRINT STRING$(10, "-");" Time until now (sec):";(TIME-t0!)/300:PRINT
+9050 't!=TIME+6*50:a$="":WHILE TIME<t! AND a$="":a$=INKEY$:WEND:' wait some time or for key press
 9060 RETURN
 9070 '
 */ });

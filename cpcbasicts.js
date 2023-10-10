@@ -79,6 +79,18 @@ if ((typeof globalThis !== "undefined") && !globalThis.window) { // nodeJS
     Polyfills.log("window");
     globalThis.window = globalThis;
 }
+if (!Array.prototype.copyWithin) {
+    Polyfills.log("Array.prototype.copyWithin"); // a simple polyfill where the parts must not overlap and "end" is defined!
+    // a more complex solution would be: https://github.com/gearcase/array-copyWithin/blob/master/index.js
+    // or: https://github.com/zloirock/core-js/blob/master/packages/core-js/internals/array-copy-within.js
+    Array.prototype.copyWithin = function (target, start, end) {
+        for (var i = start; i <= end; i += 1) {
+            this[target] = this[i];
+            target += 1;
+        }
+        return this;
+    };
+}
 if (!Array.prototype.indexOf) { // IE8
     Polyfills.log("Array.prototype.indexOf");
     Array.prototype.indexOf = function (searchElement, from) {
@@ -627,6 +639,10 @@ if (!window.Uint8Array) { // IE9
     };
     window.Uint8Array.BYTES_PER_ELEMENT = 1;
     // A more complex solution would be: https://github.com/inexorabletash/polyfill/blob/master/typedarray.js
+}
+if (!window.Uint8Array.prototype.copyWithin) {
+    Polyfills.log("Uint8Array.prototype.copyWithin");
+    window.Uint8Array.prototype.copyWithin = Array.prototype.copyWithin;
 }
 (Polyfills.console || window.console).debug("Polyfills: (" + Polyfills.getList().length + ") " + Polyfills.getList().join("; "));
 window.Polyfills = Polyfills; // for nodeJs
@@ -9593,10 +9609,15 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         Canvas.prototype.fillMyRect = function (x, y, width, height, paper) {
             var canvasWidth = this.width, dataset8 = this.dataset8;
             for (var row = 0; row < height; row += 1) {
-                for (var col = 0; col < width; col += 1) {
-                    var idx = (x + col) + (y + row) * canvasWidth;
+                var idx = x + (y + row) * canvasWidth;
+                dataset8.fill(paper, idx, idx + width);
+                /*
+                for (let col = 0; col < width; col += 1) {
+                    const idx = (x + col) + (y + row) * canvasWidth;
+    
                     dataset8[idx] = paper;
                 }
+                */
             }
         };
         Canvas.prototype.fillTextBox = function (left, top, width, height, paper) {
@@ -9609,18 +9630,24 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             var canvasWidth = this.width, dataset8 = this.dataset8;
             for (var row = 0; row < height; row += 1) {
                 var idx1 = x + (y + row) * canvasWidth, idx2 = x2 + (y2 + row) * canvasWidth;
-                for (var col = 0; col < width; col += 1) {
+                dataset8.copyWithin(idx2, idx1, idx1 + width);
+                /*
+                for (let col = 0; col < width; col += 1) {
                     dataset8[idx2 + col] = dataset8[idx1 + col];
                 }
+                */
             }
         };
         Canvas.prototype.moveMyRectDown = function (x, y, width, height, x2, y2) {
             var canvasWidth = this.width, dataset8 = this.dataset8;
             for (var row = height - 1; row >= 0; row -= 1) {
                 var idx1 = x + (y + row) * canvasWidth, idx2 = x2 + (y2 + row) * canvasWidth;
-                for (var col = 0; col < width; col += 1) {
+                dataset8.copyWithin(idx2, idx1, idx1 + width);
+                /*
+                for (let col = 0; col < width; col += 1) {
                     dataset8[idx2 + col] = dataset8[idx1 + col];
                 }
+                */
             }
         };
         Canvas.prototype.invertChar = function (x, y, pen, paper) {
@@ -10627,7 +10654,9 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
                         borderStyle: ""
                     },
                     addEventListener: function () { },
-                    options: []
+                    options: [],
+                    getAttribute: function () { },
+                    setAttribute: function () { } // eslint-disable-line no-empty-function, @typescript-eslint/no-empty-function
                 };
                 // old syntax for getter with "get length() { ... }"
                 Object.defineProperty(domElements[id], "length", {
@@ -11954,6 +11983,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
     var CpcVm = /** @class */ (function () {
         function CpcVm(options) {
             this.quiet = false;
+            this.copyChrFromTextCanvas = false;
             this.inkeyTimeMs = 0; // next time of frame fly (if >0, next time when inkey$ can be checked without inserting "waitFrame")
             this.gosubStack = []; // stack of line numbers for gosub/return
             this.maxGosubStackLength = 83; // maximum nesting of GOSUB on a real CPC
@@ -12008,6 +12038,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.soundClass = options.sound;
             this.variables = options.variables;
             this.quiet = Boolean(options.quiet);
+            this.copyChrFromTextCanvas = Boolean(options.copyChrFromTextCanvas);
             this.onClickKey = options.onClickKey;
             this.random = new Random_1.Random();
             if (this.canvas) {
@@ -12087,7 +12118,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 keyboard: this.keyboard,
                 sound: this.soundClass,
                 variables: this.variables,
-                quiet: this.quiet
+                quiet: this.quiet,
+                copyChrFromTextCanvas: this.copyChrFromTextCanvas
             };
         };
         CpcVm.prototype.vmSetRsxClass = function (rsx) {
@@ -13084,9 +13116,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             stream = this.vmInRangeRound(stream, 0, 7, "COPYCHR$");
             this.vmMoveCursor2AllowedPos(stream);
             this.vmDrawUndrawCursor(stream); // undraw
-            var win = this.windowDataList[stream], charCode = this.canvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper), 
-            // TODO charCode2 = this.textCanvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper),
-            char = (charCode >= 0) ? String.fromCharCode(charCode) : "";
+            var win = this.windowDataList[stream], charCode = !this.copyChrFromTextCanvas ? this.canvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper) : this.textCanvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper), char = (charCode >= 0) ? String.fromCharCode(charCode) : "";
             this.vmDrawUndrawCursor(stream); // draw
             return char;
         };
@@ -15980,7 +16010,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 keyboard: this.keyboard,
                 sound: this.sound,
                 variables: this.variables,
-                onClickKey: this.fnPutKeyInBufferHandler
+                onClickKey: this.fnPutKeyInBufferHandler,
+                copyChrFromTextCanvas: window.Polyfills.isNodeAvailable // use textcanvas when using nodeJS
             });
             this.vm.vmReset();
             this.rsx = new CpcVmRsx_1.CpcVmRsx(this.vm);

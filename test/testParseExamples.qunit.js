@@ -230,6 +230,9 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
             vmSetLabels: function () {
                 // empty
             },
+            addressOf: function (variable) {
+                return cpcBasic.vmMock.testVariables1.getVariableIndex(variable);
+            },
             dim: function (varName) {
                 var dimensions = [];
                 for (var i = 1; i < arguments.length; i += 1) {

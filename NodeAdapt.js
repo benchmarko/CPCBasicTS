@@ -18,7 +18,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                         borderStyle: ""
                     },
                     addEventListener: function () { },
-                    options: []
+                    options: [],
+                    getAttribute: function () { },
+                    setAttribute: function () { } // eslint-disable-line no-empty-function, @typescript-eslint/no-empty-function
                 };
                 // old syntax for getter with "get length() { ... }"
                 Object.defineProperty(domElements[id], "length", {

@@ -9,6 +9,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
     var CpcVm = /** @class */ (function () {
         function CpcVm(options) {
             this.quiet = false;
+            this.copyChrFromTextCanvas = false;
             this.inkeyTimeMs = 0; // next time of frame fly (if >0, next time when inkey$ can be checked without inserting "waitFrame")
             this.gosubStack = []; // stack of line numbers for gosub/return
             this.maxGosubStackLength = 83; // maximum nesting of GOSUB on a real CPC
@@ -63,6 +64,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.soundClass = options.sound;
             this.variables = options.variables;
             this.quiet = Boolean(options.quiet);
+            this.copyChrFromTextCanvas = Boolean(options.copyChrFromTextCanvas);
             this.onClickKey = options.onClickKey;
             this.random = new Random_1.Random();
             if (this.canvas) {
@@ -142,7 +144,8 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                 keyboard: this.keyboard,
                 sound: this.soundClass,
                 variables: this.variables,
-                quiet: this.quiet
+                quiet: this.quiet,
+                copyChrFromTextCanvas: this.copyChrFromTextCanvas
             };
         };
         CpcVm.prototype.vmSetRsxClass = function (rsx) {
@@ -1139,9 +1142,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             stream = this.vmInRangeRound(stream, 0, 7, "COPYCHR$");
             this.vmMoveCursor2AllowedPos(stream);
             this.vmDrawUndrawCursor(stream); // undraw
-            var win = this.windowDataList[stream], charCode = this.canvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper), 
-            // TODO charCode2 = this.textCanvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper),
-            char = (charCode >= 0) ? String.fromCharCode(charCode) : "";
+            var win = this.windowDataList[stream], charCode = !this.copyChrFromTextCanvas ? this.canvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper) : this.textCanvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper), char = (charCode >= 0) ? String.fromCharCode(charCode) : "";
             this.vmDrawUndrawCursor(stream); // draw
             return char;
         };

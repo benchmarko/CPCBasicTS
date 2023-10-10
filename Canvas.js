@@ -401,10 +401,15 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         Canvas.prototype.fillMyRect = function (x, y, width, height, paper) {
             var canvasWidth = this.width, dataset8 = this.dataset8;
             for (var row = 0; row < height; row += 1) {
-                for (var col = 0; col < width; col += 1) {
-                    var idx = (x + col) + (y + row) * canvasWidth;
+                var idx = x + (y + row) * canvasWidth;
+                dataset8.fill(paper, idx, idx + width);
+                /*
+                for (let col = 0; col < width; col += 1) {
+                    const idx = (x + col) + (y + row) * canvasWidth;
+    
                     dataset8[idx] = paper;
                 }
+                */
             }
         };
         Canvas.prototype.fillTextBox = function (left, top, width, height, paper) {
@@ -417,18 +422,24 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             var canvasWidth = this.width, dataset8 = this.dataset8;
             for (var row = 0; row < height; row += 1) {
                 var idx1 = x + (y + row) * canvasWidth, idx2 = x2 + (y2 + row) * canvasWidth;
-                for (var col = 0; col < width; col += 1) {
+                dataset8.copyWithin(idx2, idx1, idx1 + width);
+                /*
+                for (let col = 0; col < width; col += 1) {
                     dataset8[idx2 + col] = dataset8[idx1 + col];
                 }
+                */
             }
         };
         Canvas.prototype.moveMyRectDown = function (x, y, width, height, x2, y2) {
             var canvasWidth = this.width, dataset8 = this.dataset8;
             for (var row = height - 1; row >= 0; row -= 1) {
                 var idx1 = x + (y + row) * canvasWidth, idx2 = x2 + (y2 + row) * canvasWidth;
-                for (var col = 0; col < width; col += 1) {
+                dataset8.copyWithin(idx2, idx1, idx1 + width);
+                /*
+                for (let col = 0; col < width; col += 1) {
                     dataset8[idx2 + col] = dataset8[idx1 + col];
                 }
+                */
             }
         };
         Canvas.prototype.invertChar = function (x, y, pen, paper) {

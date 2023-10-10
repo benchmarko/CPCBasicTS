@@ -20,6 +20,7 @@ export interface CpcVmOptions {
 	variables: Variables
 	quiet?: boolean
 	onClickKey?: (arg0: string) => void
+	copyChrFromTextCanvas?: boolean
 }
 
 export interface FileMeta {
@@ -129,6 +130,7 @@ type PrintObjectType = {type: string, args: (string | number)[]};
 type DataEntryType = (string | undefined);
 export class CpcVm {
 	private quiet = false;
+	private copyChrFromTextCanvas = false;
 	private readonly onClickKey?: (arg0: string) => void;
 	private readonly fnOpeninHandler: FileBase["fnFileCallback"]; // = undefined;
 	private readonly fnCloseinHandler: () => void;
@@ -397,7 +399,8 @@ export class CpcVm {
 			keyboard: this.keyboard,
 			sound: this.soundClass,
 			variables: this.variables,
-			quiet: this.quiet
+			quiet: this.quiet,
+			copyChrFromTextCanvas: this.copyChrFromTextCanvas
 		};
 	}
 
@@ -414,6 +417,7 @@ export class CpcVm {
 		this.soundClass = options.sound;
 		this.variables = options.variables;
 		this.quiet = Boolean(options.quiet);
+		this.copyChrFromTextCanvas = Boolean(options.copyChrFromTextCanvas);
 		this.onClickKey = options.onClickKey;
 
 		this.random = new Random();
@@ -1697,8 +1701,7 @@ export class CpcVm {
 
 		this.vmDrawUndrawCursor(stream); // undraw
 		const win = this.windowDataList[stream],
-			charCode = this.canvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper),
-			// TODO charCode2 = this.textCanvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper),
+			charCode = !this.copyChrFromTextCanvas ? this.canvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper) : this.textCanvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper),
 			char = (charCode >= 0) ? String.fromCharCode(charCode) : "";
 
 		this.vmDrawUndrawCursor(stream); // draw

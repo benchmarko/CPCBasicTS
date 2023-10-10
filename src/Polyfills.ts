@@ -89,6 +89,19 @@ if ((typeof globalThis !== "undefined") && !globalThis.window) { // nodeJS
 	(globalThis.window as any) = globalThis;
 }
 
+if (!Array.prototype.copyWithin) {
+	Polyfills.log("Array.prototype.copyWithin"); // a simple polyfill where the parts must not overlap and "end" is defined!
+	// a more complex solution would be: https://github.com/gearcase/array-copyWithin/blob/master/index.js
+	// or: https://github.com/zloirock/core-js/blob/master/packages/core-js/internals/array-copy-within.js
+	Array.prototype.copyWithin = function (target: number, start: number, end: number) { // eslint-disable-line no-extend-native
+		for (let i = start; i <= end; i += 1) {
+			this[target] = this[i];
+			target += 1;
+		}
+		return this;
+	};
+}
+
 if (!Array.prototype.indexOf) { // IE8
 	Polyfills.log("Array.prototype.indexOf");
 	Array.prototype.indexOf = function (searchElement, from?: number) { // eslint-disable-line no-extend-native
@@ -737,6 +750,11 @@ if (!window.Uint8Array) { // IE9
 	};
 	(window.Uint8Array as any).BYTES_PER_ELEMENT = 1;
 	// A more complex solution would be: https://github.com/inexorabletash/polyfill/blob/master/typedarray.js
+}
+
+if (!window.Uint8Array.prototype.copyWithin) {
+	Polyfills.log("Uint8Array.prototype.copyWithin");
+	(window as any).Uint8Array.prototype.copyWithin = Array.prototype.copyWithin;
 }
 
 (Polyfills.console || window.console).debug("Polyfills: (" + Polyfills.getList().length + ") " + Polyfills.getList().join("; "));

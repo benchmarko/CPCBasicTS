@@ -212,7 +212,8 @@ export class Controller implements IController {
 			keyboard: this.keyboard,
 			sound: this.sound,
 			variables: this.variables,
-			onClickKey: this.fnPutKeyInBufferHandler
+			onClickKey: this.fnPutKeyInBufferHandler,
+			copyChrFromTextCanvas: window.Polyfills.isNodeAvailable // use textcanvas when using nodeJS
 		});
 		this.vm.vmReset();
 

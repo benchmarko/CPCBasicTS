@@ -1328,6 +1328,7 @@ declare module "CpcVm" {
         variables: Variables;
         quiet?: boolean;
         onClickKey?: (arg0: string) => void;
+        copyChrFromTextCanvas?: boolean;
     }
     export interface FileMeta {
         typeString: string;
@@ -1423,6 +1424,7 @@ declare module "CpcVm" {
     type DataEntryType = (string | undefined);
     export class CpcVm {
         private quiet;
+        private copyChrFromTextCanvas;
         private readonly onClickKey?;
         private readonly fnOpeninHandler;
         private readonly fnCloseinHandler;
