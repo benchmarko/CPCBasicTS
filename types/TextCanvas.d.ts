@@ -1,14 +1,12 @@
-declare type CanvasClickType = (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
-export interface TextCanvasOptions {
-    onCanvasClick?: CanvasClickType;
-}
-export declare class TextCanvas {
+import { CanvasOptions, ICanvas, CanvasClickType, CanvasCharType } from "./Interfaces";
+export declare class TextCanvas implements ICanvas {
     private readonly options;
     private readonly fnUpdateTextCanvasHandler;
     private readonly fnUpdateTextCanvas2Handler;
     private fps;
     private animationTimeoutId?;
     private animationFrame?;
+    private readonly cpcAreaBox;
     private readonly textText;
     private borderWidth;
     private cols;
@@ -16,10 +14,48 @@ export declare class TextCanvas {
     private needTextUpdate;
     private readonly textBuffer;
     private hasFocus;
-    constructor(options: TextCanvasOptions);
+    constructor(options: CanvasOptions);
     private static readonly cpc2Unicode;
+    private static readonly winData;
     setOnCanvasClick(onCanvasClickHandler: CanvasClickType): void;
     reset(): void;
+    resetCustomChars(): void;
+    setPalette(_palette: "color" | "green" | "grey"): void;
+    setScreenOffset(_offset: number): void;
+    updateColorsAndCanvasImmediately(_inkList: number[]): void;
+    updateSpeedInk(): void;
+    setCustomChar(_char: number, _charData: CanvasCharType): void;
+    getCharData(_char: number): CanvasCharType;
+    setDefaultInks(): void;
+    getXpos(): number;
+    getYpos(): number;
+    getByte(_addr: number): number | null;
+    setByte(_addr: number, _byte: number): void;
+    draw(_x: number, _y: number): void;
+    move(_x: number, _y: number): void;
+    plot(_x: number, _y: number): void;
+    test(_x: number, _y: number): number;
+    setInk(_pen: number, _ink1: number, _ink2: number): boolean;
+    setBorder(_ink1: number, _ink2: number): void;
+    setGPen(_gPen: number): void;
+    setGPaper(_gPaper: number): void;
+    setGTransparentMode(_transparent: boolean): void;
+    printGChar(_char: number): void;
+    drawCursor(_x: number, _y: number, _pen: number, _paper: number): void;
+    fill(_fillPen: number): void;
+    setOrigin(_xOrig: number, _yOrig: number): void;
+    getXOrigin(): number;
+    getYOrigin(): number;
+    setGWindow(_xLeft: number, _xRight: number, _yTop: number, _yBottom: number): void;
+    setGColMode(_gColMode: number): void;
+    clearGraphicsWindow(): void;
+    setSpeedInk(_time1: number, _time2: number): void;
+    setMask(_mask: number): void;
+    setMaskFirst(_maskFirst: number): void;
+    getMode(): number;
+    changeMode(_mode: number): void;
+    getCanvasElement(): HTMLElement;
+    takeScreenShot(): string;
     private resetTextBuffer;
     private setNeedTextUpdate;
     private updateTextCanvas2;
@@ -30,7 +66,7 @@ export declare class TextCanvas {
     private setFocusOnCanvas;
     private getMousePos;
     private canvasClickAction;
-    onTextCanvasClick(event: MouseEvent): void;
+    onCanvasClick(event: MouseEvent): void;
     onWindowClick(_event: Event): void;
     fillTextBox(left: number, top: number, width: number, height: number, _pen?: number): void;
     private clearTextBufferBox;
@@ -41,10 +77,9 @@ export declare class TextCanvas {
     printChar(char: number, x: number, y: number, _pen: number, _paper: number, _transparent: boolean): void;
     readChar(x: number, y: number, _pen?: number, _paper?: number): number;
     clearTextWindow(left: number, right: number, top: number, bottom: number, _paper: number): void;
-    setMode(_mode: number, right: number, bottom: number): void;
+    setMode(mode: number): void;
     clearFullWindow(): void;
     windowScrollUp(left: number, right: number, top: number, bottom: number, _pen: number): void;
     windowScrollDown(left: number, right: number, top: number, bottom: number, _pen: number): void;
 }
-export {};
 //# sourceMappingURL=TextCanvas.d.ts.map

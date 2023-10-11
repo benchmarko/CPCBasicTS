@@ -53,6 +53,70 @@ declare module "Interfaces" {
         text: string;
         error?: CustomError;
     }
+    export interface ICpcVmRsx {
+        rsxIsAvailable: (name: string) => boolean;
+    }
+    export type CanvasClickType = (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
+    export type CanvasCharType = number[];
+    export type CanvasCharsetType = CanvasCharType[];
+    export interface CanvasOptions {
+        charset: CanvasCharsetType;
+        palette: "color" | "green" | "grey";
+        onCanvasClick?: CanvasClickType;
+    }
+    export interface ICanvas {
+        setOnCanvasClick(onCanvasClickHandler: CanvasClickType): void;
+        reset(): void;
+        resetCustomChars(): void;
+        setPalette(palette: "color" | "green" | "grey"): void;
+        startUpdateCanvas(): void;
+        stopUpdateCanvas(): void;
+        setScreenOffset(offset: number): void;
+        updateColorsAndCanvasImmediately(inkList: number[]): void;
+        updateSpeedInk(): void;
+        setCustomChar(char: number, charData: CanvasCharType): void;
+        getCharData(char: number): CanvasCharType;
+        setDefaultInks(): void;
+        onCanvasClick(event: MouseEvent): void;
+        onWindowClick(_event: Event): void;
+        getXpos(): number;
+        getYpos(): number;
+        fillTextBox(left: number, top: number, width: number, height: number, paper: number): void;
+        getByte(addr: number): number | null;
+        setByte(addr: number, byte: number): void;
+        draw(x: number, y: number): void;
+        move(x: number, y: number): void;
+        plot(x: number, y: number): void;
+        test(x: number, y: number): number;
+        setInk(pen: number, ink1: number, ink2: number): boolean;
+        setBorder(ink1: number, ink2: number): void;
+        setGPen(gPen: number): void;
+        setGPaper(gPaper: number): void;
+        setGTransparentMode(transparent: boolean): void;
+        printGChar(char: number): void;
+        printChar(char: number, x: number, y: number, pen: number, paper: number, transparent: boolean): void;
+        drawCursor(x: number, y: number, pen: number, paper: number): void;
+        readChar(x: number, y: number, pen: number, paper: number): number;
+        fill(fillPen: number): void;
+        setOrigin(xOrig: number, yOrig: number): void;
+        getXOrigin(): number;
+        getYOrigin(): number;
+        setGWindow(xLeft: number, xRight: number, yTop: number, yBottom: number): void;
+        setGColMode(gColMode: number): void;
+        clearTextWindow(left: number, right: number, top: number, bottom: number, paper: number): void;
+        clearGraphicsWindow(): void;
+        clearFullWindow(): void;
+        windowScrollUp(left: number, right: number, top: number, bottom: number, paper: number): void;
+        windowScrollDown(left: number, right: number, top: number, bottom: number, paper: number): void;
+        setSpeedInk(time1: number, time2: number): void;
+        setMask(mask: number): void;
+        setMaskFirst(maskFirst: number): void;
+        getMode(): number;
+        changeMode(mode: number): void;
+        setMode(mode: number): void;
+        takeScreenShot(): string;
+        getCanvasElement(): HTMLElement | undefined;
+    }
     export type VariableValue = string | number | Function | [] | VariableValue[];
     export interface IController {
         toggleAreaHidden: (id: string) => boolean;
@@ -75,17 +139,15 @@ declare module "Interfaces" {
         invalidateScript: () => void;
         setSoundActive: () => void;
         setPalette: (palette: string) => void;
+        setCanvasType: (canvasType: string) => ICanvas;
         changeVariable: () => void;
         onExampleSelectChange: () => void;
         onDirectorySelectChange: () => void;
         onDatabaseSelectChange: () => void;
         onCpcCanvasClick: (event: MouseEvent) => void;
         onWindowClick: (event: Event) => void;
-        onTextTextClick: (event: MouseEvent) => void;
         startUpdateCanvas: () => void;
         stopUpdateCanvas: () => void;
-        startUpdateTextCanvas: () => void;
-        stopUpdateTextCanvas: () => void;
         virtualKeyboardCreate: () => void;
         getVariable: (par: string) => VariableValue;
         undoStackElement: () => string;
@@ -94,9 +156,6 @@ declare module "Interfaces" {
         fnArrayBounds: () => void;
         fnTrace: () => void;
         fnSpeed: () => void;
-    }
-    export interface ICpcVmRsx {
-        rsxIsAvailable: (name: string) => boolean;
     }
 }
 declare module "cpcCharset" {
@@ -840,6 +899,8 @@ declare module "Keyboard" {
         fnOnKeyDown?: () => void;
     }
     export class Keyboard {
+        private readonly fnCpcAreaKeydownHandler;
+        private readonly fnCpcAreaKeyupHandler;
         private readonly options;
         private readonly keyBuffer;
         private readonly expansionTokens;
@@ -919,15 +980,8 @@ declare module "VirtualKeyboard" {
     }
 }
 declare module "Canvas" {
-    type CharType = number[];
-    type CharsetType = CharType[];
-    type CanvasClickType = (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
-    export interface CanvasOptions {
-        charset: CharsetType;
-        palette: "color" | "green" | "grey";
-        onCanvasClick?: CanvasClickType;
-    }
-    export class Canvas {
+    import { CanvasOptions, ICanvas, CanvasClickType, CanvasCharType } from "Interfaces";
+    export class Canvas implements ICanvas {
         private readonly options;
         private readonly fnUpdateCanvasHandler;
         private readonly fnUpdateCanvas2Handler;
@@ -1002,13 +1056,13 @@ declare module "Canvas" {
         private updateColorMap;
         updateColorsAndCanvasImmediately(inkList: number[]): void;
         updateSpeedInk(): void;
-        setCustomChar(char: number, charData: CharType): void;
-        getCharData(char: number): CharType;
+        setCustomChar(char: number, charData: CanvasCharType): void;
+        getCharData(char: number): CanvasCharType;
         setDefaultInks(): void;
         private setFocusOnCanvas;
         private getMousePos;
         private canvasClickAction;
-        onCpcCanvasClick(event: MouseEvent): void;
+        onCanvasClick(event: MouseEvent): void;
         onWindowClick(_event: Event): void;
         getXpos(): number;
         getYpos(): number;
@@ -1060,21 +1114,20 @@ declare module "Canvas" {
         getMode(): number;
         changeMode(mode: number): void;
         setMode(mode: number): void;
-        getCanvasElement(): HTMLCanvasElement;
+        takeScreenShot(): string;
+        getCanvasElement(): HTMLElement | undefined;
     }
 }
 declare module "TextCanvas" {
-    type CanvasClickType = (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
-    export interface TextCanvasOptions {
-        onCanvasClick?: CanvasClickType;
-    }
-    export class TextCanvas {
+    import { CanvasOptions, ICanvas, CanvasClickType, CanvasCharType } from "Interfaces";
+    export class TextCanvas implements ICanvas {
         private readonly options;
         private readonly fnUpdateTextCanvasHandler;
         private readonly fnUpdateTextCanvas2Handler;
         private fps;
         private animationTimeoutId?;
         private animationFrame?;
+        private readonly cpcAreaBox;
         private readonly textText;
         private borderWidth;
         private cols;
@@ -1082,10 +1135,48 @@ declare module "TextCanvas" {
         private needTextUpdate;
         private readonly textBuffer;
         private hasFocus;
-        constructor(options: TextCanvasOptions);
+        constructor(options: CanvasOptions);
         private static readonly cpc2Unicode;
+        private static readonly winData;
         setOnCanvasClick(onCanvasClickHandler: CanvasClickType): void;
         reset(): void;
+        resetCustomChars(): void;
+        setPalette(_palette: "color" | "green" | "grey"): void;
+        setScreenOffset(_offset: number): void;
+        updateColorsAndCanvasImmediately(_inkList: number[]): void;
+        updateSpeedInk(): void;
+        setCustomChar(_char: number, _charData: CanvasCharType): void;
+        getCharData(_char: number): CanvasCharType;
+        setDefaultInks(): void;
+        getXpos(): number;
+        getYpos(): number;
+        getByte(_addr: number): number | null;
+        setByte(_addr: number, _byte: number): void;
+        draw(_x: number, _y: number): void;
+        move(_x: number, _y: number): void;
+        plot(_x: number, _y: number): void;
+        test(_x: number, _y: number): number;
+        setInk(_pen: number, _ink1: number, _ink2: number): boolean;
+        setBorder(_ink1: number, _ink2: number): void;
+        setGPen(_gPen: number): void;
+        setGPaper(_gPaper: number): void;
+        setGTransparentMode(_transparent: boolean): void;
+        printGChar(_char: number): void;
+        drawCursor(_x: number, _y: number, _pen: number, _paper: number): void;
+        fill(_fillPen: number): void;
+        setOrigin(_xOrig: number, _yOrig: number): void;
+        getXOrigin(): number;
+        getYOrigin(): number;
+        setGWindow(_xLeft: number, _xRight: number, _yTop: number, _yBottom: number): void;
+        setGColMode(_gColMode: number): void;
+        clearGraphicsWindow(): void;
+        setSpeedInk(_time1: number, _time2: number): void;
+        setMask(_mask: number): void;
+        setMaskFirst(_maskFirst: number): void;
+        getMode(): number;
+        changeMode(_mode: number): void;
+        getCanvasElement(): HTMLElement;
+        takeScreenShot(): string;
         private resetTextBuffer;
         private setNeedTextUpdate;
         private updateTextCanvas2;
@@ -1096,7 +1187,7 @@ declare module "TextCanvas" {
         private setFocusOnCanvas;
         private getMousePos;
         private canvasClickAction;
-        onTextCanvasClick(event: MouseEvent): void;
+        onCanvasClick(event: MouseEvent): void;
         onWindowClick(_event: Event): void;
         fillTextBox(left: number, top: number, width: number, height: number, _pen?: number): void;
         private clearTextBufferBox;
@@ -1107,7 +1198,7 @@ declare module "TextCanvas" {
         printChar(char: number, x: number, y: number, _pen: number, _paper: number, _transparent: boolean): void;
         readChar(x: number, y: number, _pen?: number, _paper?: number): number;
         clearTextWindow(left: number, right: number, top: number, bottom: number, _paper: number): void;
-        setMode(_mode: number, right: number, bottom: number): void;
+        setMode(mode: number): void;
         clearFullWindow(): void;
         windowScrollUp(left: number, right: number, top: number, bottom: number, _pen: number): void;
         windowScrollDown(left: number, right: number, top: number, bottom: number, _pen: number): void;
@@ -1133,7 +1224,6 @@ declare module "CommonEventHandler" {
         private onInp2ButtonClick;
         private onOutputButtonClick;
         private onResultButtonClick;
-        private onTextButtonClick;
         private onVariableButtonClick;
         private onCpcButtonClick;
         private onConvertButtonClick;
@@ -1169,6 +1259,7 @@ declare module "CommonEventHandler" {
         onVarSelectChange(): void;
         onKbdLayoutSelectChange(): void;
         private onPaletteSelectChange;
+        private onCanvasTypeSelectChange;
         private onVarTextChange;
         private onDebugInputChange;
         private onImplicitLinesInputChange;
@@ -1314,21 +1405,17 @@ declare module "ZipFile" {
 }
 declare module "CpcVm" {
     import { CustomError } from "Utils";
+    import { ICanvas, ICpcVmRsx } from "Interfaces";
     import { Keyboard } from "Keyboard";
     import { Sound, SoundData } from "Sound";
-    import { Canvas } from "Canvas";
-    import { TextCanvas } from "TextCanvas";
     import { Variables, VariableMap, VariableTypeMap } from "Variables";
-    import { ICpcVmRsx } from "Interfaces";
     export interface CpcVmOptions {
-        canvas: Canvas;
-        textCanvas: TextCanvas;
+        canvas: ICanvas;
         keyboard: Keyboard;
         sound: Sound;
         variables: Variables;
         quiet?: boolean;
         onClickKey?: (arg0: string) => void;
-        copyChrFromTextCanvas?: boolean;
     }
     export interface FileMeta {
         typeString: string;
@@ -1424,15 +1511,14 @@ declare module "CpcVm" {
     type DataEntryType = (string | undefined);
     export class CpcVm {
         private quiet;
-        private copyChrFromTextCanvas;
         private readonly onClickKey?;
         private readonly fnOpeninHandler;
         private readonly fnCloseinHandler;
         private readonly fnCloseoutHandler;
         fnLoadHandler: (input: string, meta: FileMeta) => boolean;
         private readonly fnRunHandler;
-        private readonly canvas;
-        private readonly textCanvas;
+        private readonly fnOnCanvasClickHandler;
+        private canvas;
         private readonly keyboard;
         private readonly soundClass;
         readonly variables: Variables;
@@ -1510,6 +1596,7 @@ declare module "CpcVm" {
         vmResetData(): void;
         private vmResetInks;
         vmReset4Run(): void;
+        setCanvas(canvas: ICanvas): ICanvas;
         private onCanvasClickCallback;
         vmGetAllVariables(): VariableMap;
         vmGetAllVarTypes(): VariableTypeMap;
@@ -1845,8 +1932,65 @@ declare module "FileSelect" {
         addFileSelectHandler(element: HTMLElement, type: string): void;
     }
 }
+declare module "NoCanvas" {
+    import { CanvasOptions, ICanvas, CanvasClickType, CanvasCharType } from "Interfaces";
+    export class NoCanvas implements ICanvas {
+        constructor(_options: CanvasOptions);
+        setOnCanvasClick(_onCanvasClickHandler: CanvasClickType): void;
+        reset(): void;
+        resetCustomChars(): void;
+        setPalette(_palette: "color" | "green" | "grey"): void;
+        setScreenOffset(_offset: number): void;
+        updateColorsAndCanvasImmediately(_inkList: number[]): void;
+        updateSpeedInk(): void;
+        setCustomChar(_char: number, _charData: CanvasCharType): void;
+        getCharData(_char: number): CanvasCharType;
+        setDefaultInks(): void;
+        onCanvasClick(_event: MouseEvent): void;
+        getXpos(): number;
+        getYpos(): number;
+        getByte(_addr: number): number | null;
+        setByte(_addr: number, _byte: number): void;
+        draw(_x: number, _y: number): void;
+        move(_x: number, _y: number): void;
+        plot(_x: number, _y: number): void;
+        test(_x: number, _y: number): number;
+        setInk(_pen: number, _ink1: number, _ink2: number): boolean;
+        setBorder(_ink1: number, _ink2: number): void;
+        setGPen(_gPen: number): void;
+        setGPaper(_gPaper: number): void;
+        setGTransparentMode(_transparent: boolean): void;
+        printGChar(_char: number): void;
+        drawCursor(_x: number, _y: number, _pen: number, _paper: number): void;
+        fill(_fillPen: number): void;
+        setOrigin(_xOrig: number, _yOrig: number): void;
+        getXOrigin(): number;
+        getYOrigin(): number;
+        setGWindow(_xLeft: number, _xRight: number, _yTop: number, _yBottom: number): void;
+        setGColMode(_gColMode: number): void;
+        clearGraphicsWindow(): void;
+        setSpeedInk(_time1: number, _time2: number): void;
+        setMask(_mask: number): void;
+        setMaskFirst(_maskFirst: number): void;
+        getMode(): number;
+        changeMode(_mode: number): void;
+        getCanvasElement(): HTMLElement | undefined;
+        takeScreenShot(): string;
+        startUpdateCanvas(): void;
+        stopUpdateCanvas(): void;
+        onWindowClick(_event: Event): void;
+        fillTextBox(_left: number, _top: number, _width: number, _height: number, _paper: number): void;
+        printChar(_char: number, _x: number, _y: number, _pen: number, _paper: number, _transparent: boolean): void;
+        readChar(_x: number, _y: number, _pen: number, _paper: number): number;
+        clearTextWindow(_left: number, _right: number, _top: number, _bottom: number, _paper: number): void;
+        setMode(_mode: number): void;
+        clearFullWindow(): void;
+        windowScrollUp(_left: number, _right: number, _top: number, _bottom: number, _paper: number): void;
+        windowScrollDown(_left: number, _right: number, _top: number, _bottom: number, _paper: number): void;
+    }
+}
 declare module "Controller" {
-    import { IController } from "Interfaces";
+    import { IController, ICanvas } from "Interfaces";
     import { Model } from "Model";
     import { VariableValue } from "Variables";
     import { View } from "View";
@@ -1857,6 +2001,7 @@ declare module "Controller" {
         private readonly fnOnEscapeHandler;
         private readonly fnDirectInputHandler;
         private readonly fnPutKeyInBufferHandler;
+        private readonly fnHandleDragOverHandler;
         private static readonly metaIdent;
         private fnScript?;
         private timeoutHandlerActive;
@@ -1872,8 +2017,8 @@ declare module "Controller" {
         private readonly view;
         private readonly commonEventHandler;
         private readonly codeGeneratorJs;
-        private readonly canvas;
-        private readonly textCanvas;
+        private readonly canvases;
+        private canvas;
         private readonly inputStack;
         private readonly keyboard;
         private virtualKeyboard?;
@@ -1986,6 +2131,7 @@ declare module "Controller" {
         toggleAreaHidden(id: string): boolean;
         changeVariable(): void;
         setPalette(palette: string): void;
+        setCanvasType(canvasType: string): ICanvas;
         setSoundActive(): void;
         private fnEndOfImport;
         private static fnHandleDragOver;
@@ -1996,9 +2142,7 @@ declare module "Controller" {
         private fnInitUndoRedoButtons;
         private fnPutChangedInputOnStack;
         startUpdateCanvas(): void;
-        startUpdateTextCanvas(): void;
         stopUpdateCanvas(): void;
-        stopUpdateTextCanvas(): void;
         virtualKeyboardCreate(): void;
         getVariable(par: string): VariableValue;
         undoStackElement(): string;
@@ -2011,7 +2155,6 @@ declare module "Controller" {
         exportAsBase64(storageName: string): string;
         onCpcCanvasClick(event: MouseEvent): void;
         onWindowClick(event: Event): void;
-        onTextTextClick(event: MouseEvent): void;
         fnArrayBounds(): void;
         fnImplicitLines(): void;
         fnTrace(): void;

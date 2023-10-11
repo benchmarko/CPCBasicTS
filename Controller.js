@@ -2,7 +2,7 @@
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./BasicParser", "./BasicTokenizer", "./Canvas", "./CodeGeneratorBasic", "./CodeGeneratorJs", "./CodeGeneratorToken", "./CommonEventHandler", "./cpcCharset", "./CpcVm", "./CpcVmRsx", "./Diff", "./DiskImage", "./FileHandler", "./FileSelect", "./InputStack", "./Keyboard", "./TextCanvas", "./VirtualKeyboard", "./Sound", "./Variables", "./View"], function (require, exports, Utils_1, BasicFormatter_1, BasicLexer_1, BasicParser_1, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, CpcVmRsx_1, Diff_1, DiskImage_1, FileHandler_1, FileSelect_1, InputStack_1, Keyboard_1, TextCanvas_1, VirtualKeyboard_1, Sound_1, Variables_1, View_1) {
+define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./BasicParser", "./BasicTokenizer", "./Canvas", "./CodeGeneratorBasic", "./CodeGeneratorJs", "./CodeGeneratorToken", "./CommonEventHandler", "./cpcCharset", "./CpcVm", "./CpcVmRsx", "./Diff", "./DiskImage", "./FileHandler", "./FileSelect", "./InputStack", "./Keyboard", "./NoCanvas", "./TextCanvas", "./VirtualKeyboard", "./Sound", "./Variables", "./View"], function (require, exports, Utils_1, BasicFormatter_1, BasicLexer_1, BasicParser_1, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, CpcVmRsx_1, Diff_1, DiskImage_1, FileHandler_1, FileSelect_1, InputStack_1, Keyboard_1, NoCanvas_1, TextCanvas_1, VirtualKeyboard_1, Sound_1, Variables_1, View_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Controller = void 0;
@@ -13,6 +13,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.nextLoopTimeOut = 0; // next timeout for the main loop
             this.initialLoopTimeout = 0;
             this.inputSet = false;
+            this.canvases = {};
+            //private readonly textCanvas: ICanvas;
             this.inputStack = new InputStack_1.InputStack();
             this.sound = new Sound_1.Sound({
                 AudioContextConstructor: window.AudioContext
@@ -52,6 +54,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.fnOnEscapeHandler = this.fnOnEscape.bind(this);
             this.fnDirectInputHandler = this.fnDirectInput.bind(this);
             this.fnPutKeyInBufferHandler = this.fnPutKeysInBuffer.bind(this);
+            this.fnHandleDragOverHandler = Controller.fnHandleDragOver.bind(this);
             this.model = model;
             this.view = view;
             this.commonEventHandler = new CommonEventHandler_1.CommonEventHandler(model, view, this);
@@ -60,14 +63,27 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             // unhide console box, if console should be shown
             view.setHidden("consoleBox", !model.getProperty("showConsole"));
             this.view.setInputChecked("consoleLogInput", model.getProperty("showConsole"));
-            this.textCanvas = new TextCanvas_1.TextCanvas({});
+            var canvasType = model.getProperty("canvasType");
+            view.setSelectValue("canvasTypeSelect", canvasType);
             var palette = model.getProperty("palette");
             view.setSelectValue("paletteSelect", palette);
-            view.setHidden("cpcArea", false); // make sure canvas area is not hidden when creating canvas object (allows to get width, height)
-            this.canvas = new Canvas_1.Canvas({
-                charset: cpcCharset_1.cpcCharset,
+            this.canvas = this.setCanvasType(canvasType);
+            /*
+            const canvasOptions: CanvasOptions = {
+                charset: cpcCharset,
                 palette: palette === "green" || palette === "grey" ? palette : "color"
-            });
+                //onCanvasDragover: this.fnHandleDragOverHandler
+            };
+    
+            if (canvasType === "text") {
+                this.canvas = new TextCanvas(canvasOptions);
+            } else if (canvasType === "none") {
+                this.canvas = new NoCanvas(canvasOptions);
+            } else { // "graphics"
+                view.setHidden("cpcArea", false); // make sure canvas area is not hidden when creating canvas object (allows to get width, height)
+                this.canvas = new Canvas(canvasOptions);
+            }
+            */
             view.setHidden("kbdLayoutArea", model.getProperty("showKbd"), "inherit"); // kbd visible => kbdlayout invisible
             this.initAreas();
             view.setInputValue("debugInput", String(model.getProperty("debug")));
@@ -93,12 +109,12 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.commonEventHandler.fnSetUserAction(this.onUserAction.bind(this)); // check first user action, also if sound is not yet on
             this.vm = new CpcVm_1.CpcVm({
                 canvas: this.canvas,
-                textCanvas: this.textCanvas,
+                //textCanvas: this.textCanvas,
                 keyboard: this.keyboard,
                 sound: this.sound,
                 variables: this.variables,
-                onClickKey: this.fnPutKeyInBufferHandler,
-                copyChrFromTextCanvas: window.Polyfills.isNodeAvailable // use textcanvas when using nodeJS
+                onClickKey: this.fnPutKeyInBufferHandler
+                //copyChrFromTextCanvas: window.Polyfills.isNodeAvailable // use textcanvas when using nodeJS
             });
             this.vm.vmReset();
             this.rsx = new CpcVmRsx_1.CpcVmRsx(this.vm);
@@ -128,16 +144,18 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             if (model.getProperty("sound")) { // activate sound needs user action
                 this.setSoundActive(); // activate in waiting state
             }
-            if (model.getProperty("showCpc")) {
-                this.canvas.startUpdateCanvas();
-            }
-            if (model.getProperty("showText")) {
-                this.textCanvas.startUpdateCanvas();
-            }
             this.initDropZone();
             var example = model.getProperty("example");
             view.setSelectValue("exampleSelect", example);
             this.hasStorageDatabase = this.initDatabases();
+            if (model.getProperty("showCpc")) {
+                this.canvas.startUpdateCanvas();
+            }
+            /*
+            if (model.getProperty<boolean>("showText")) {
+                this.textCanvas.startUpdateCanvas();
+            }
+            */
         }
         Controller.prototype.initAreas = function () {
             for (var id in Controller.areaDefinitions) { // eslint-disable-line guard-for-in
@@ -1799,12 +1817,16 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.startMainLoop();
         };
         Controller.prototype.startScreenshot = function () {
-            var canvas = this.canvas.getCanvasElement();
+            return this.canvas.takeScreenShot();
+            /*
+            const canvas = this.canvas.getCanvasElement();
+    
             if (canvas.toDataURL) {
                 return canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"); // here is the most important part because if you do not replace you will get a DOM 18 exception.
             }
-            Utils_1.Utils.console.warn("Screenshot not available");
+            Utils.console.warn("Screenshot not available");
             return "";
+            */
         };
         Controller.prototype.fnPutKeysInBuffer = function (keys) {
             for (var i = 0; i < keys.length; i += 1) {
@@ -1892,6 +1914,57 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         Controller.prototype.setPalette = function (palette) {
             this.canvas.setPalette(palette === "green" || palette === "grey" ? palette : "color");
         };
+        Controller.prototype.setCanvasType = function (canvasType) {
+            var palette = this.model.getProperty("palette"), canvasOptions = {
+                charset: cpcCharset_1.cpcCharset,
+                palette: palette === "green" || palette === "grey" ? palette : "color"
+                //onCanvasDragover: this.fnHandleDragOverHandler
+            };
+            var canvas = this.canvas;
+            if (canvas) {
+                canvas.stopUpdateCanvas(); // stop updates on current canvas
+                var currentCanvasElement = canvas.getCanvasElement();
+                if (currentCanvasElement) {
+                    this.view.setHidden(currentCanvasElement.id, true);
+                }
+            }
+            if (this.canvases[canvasType]) {
+                canvas = this.canvases[canvasType];
+            }
+            else {
+                if (canvasType === "text") {
+                    canvas = new TextCanvas_1.TextCanvas(canvasOptions);
+                }
+                else if (canvasType === "none") {
+                    canvas = new NoCanvas_1.NoCanvas(canvasOptions);
+                }
+                else { // "graphics"
+                    var isAreaHidden = this.view.getHidden("cpcArea");
+                    // make sure canvas area is not hidden when creating canvas object (allows to get width, height)
+                    if (isAreaHidden) {
+                        this.toggleAreaHidden("cpcArea");
+                    }
+                    this.view.setHidden("cpcCanvas", false);
+                    canvas = new Canvas_1.Canvas(canvasOptions);
+                    if (isAreaHidden) {
+                        this.toggleAreaHidden("cpcArea"); // hide again
+                    }
+                }
+                this.canvases[canvasType] = canvas;
+            }
+            this.canvas = canvas;
+            if (this.vm) {
+                this.vm.setCanvas(canvas);
+            }
+            var canvasElement = canvas.getCanvasElement();
+            if (canvasElement) {
+                this.view.setHidden(canvasElement.id, false);
+            }
+            if (this.model.getProperty("showCpc")) {
+                this.canvas.startUpdateCanvas();
+            }
+            return canvas;
+        };
         Controller.prototype.setSoundActive = function () {
             var sound = this.sound, soundLabel = View_1.View.getElementById1("soundLabel"), active = this.model.getProperty("sound");
             var text = "";
@@ -1952,11 +2025,24 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 });
             }
             var dropZone = View_1.View.getElementById1("dropZone");
-            dropZone.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
+            dropZone.addEventListener("dragover", this.fnHandleDragOverHandler, false);
             this.fileSelect.addFileSelectHandler(dropZone, "drop");
             var canvasElement = this.canvas.getCanvasElement();
-            canvasElement.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
-            this.fileSelect.addFileSelectHandler(canvasElement, "drop");
+            if (canvasElement) {
+                canvasElement.addEventListener("dragover", this.fnHandleDragOverHandler, false);
+                //this.canvas.setOnCanvasDragover(this.fnHandleDragOverHandler);
+                //const canvasElement = this.canvas.getCanvasElement();
+                this.fileSelect.addFileSelectHandler(canvasElement, "drop");
+            }
+            /*
+            const textCanvasElement = this.textCanvas.getCanvasElement();
+    
+            textCanvasElement.addEventListener("dragover", this.fnHandleDragOverHandler, false);
+            //this.canvas.setOnCanvasDragover(this.fnHandleDragOverHandler);
+            //const canvasElement = this.canvas.getCanvasElement();
+    
+            this.fileSelect.addFileSelectHandler(textCanvasElement, "drop");
+            */
             var fileInput = View_1.View.getElementById1("fileInput");
             this.fileSelect.addFileSelectHandler(fileInput, "change");
         };
@@ -1978,15 +2064,19 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         Controller.prototype.startUpdateCanvas = function () {
             this.canvas.startUpdateCanvas();
         };
-        Controller.prototype.startUpdateTextCanvas = function () {
+        /*
+        startUpdateTextCanvas(): void {
             this.textCanvas.startUpdateCanvas();
-        };
+        }
+        */
         Controller.prototype.stopUpdateCanvas = function () {
             this.canvas.stopUpdateCanvas();
         };
-        Controller.prototype.stopUpdateTextCanvas = function () {
+        /*
+        stopUpdateTextCanvas(): void {
             this.textCanvas.stopUpdateCanvas();
-        };
+        }
+        */
         Controller.prototype.virtualKeyboardCreate = function () {
             if (!this.virtualKeyboard) {
                 this.virtualKeyboard = new VirtualKeyboard_1.VirtualKeyboard({
@@ -2114,20 +2204,22 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         };
         Controller.prototype.onCpcCanvasClick = function (event) {
             this.setPopoversHiddenExcept(""); // hide all popovers
-            this.canvas.onCpcCanvasClick(event);
-            this.textCanvas.onWindowClick(event);
+            this.canvas.onCanvasClick(event);
+            //this.textCanvas.onWindowClick(event);
             this.keyboard.setActive(true);
         };
         Controller.prototype.onWindowClick = function (event) {
             this.canvas.onWindowClick(event);
-            this.textCanvas.onWindowClick(event);
+            //this.textCanvas.onWindowClick(event);
             this.keyboard.setActive(false);
         };
-        Controller.prototype.onTextTextClick = function (event) {
-            this.textCanvas.onTextCanvasClick(event);
+        /*
+        onTextTextClick(event: MouseEvent): void {
+            this.textCanvas.onCpcCanvasClick(event);
             this.canvas.onWindowClick(event);
             this.keyboard.setActive(true);
-        };
+        }
+        */
         Controller.prototype.fnArrayBounds = function () {
             var arrayBounds = this.model.getProperty("arrayBounds");
             this.variables.setOptions({
@@ -2201,9 +2293,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 property: "showSettings",
                 display: "flex",
                 isPopover: true
-            },
-            textArea: {
-                property: "showText"
             },
             variableArea: {
                 property: "showVariable"

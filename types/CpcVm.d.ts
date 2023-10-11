@@ -1,19 +1,15 @@
 import { CustomError } from "./Utils";
+import { ICanvas, ICpcVmRsx } from "./Interfaces";
 import { Keyboard } from "./Keyboard";
 import { Sound, SoundData } from "./Sound";
-import { Canvas } from "./Canvas";
-import { TextCanvas } from "./TextCanvas";
 import { Variables, VariableMap, VariableTypeMap } from "./Variables";
-import { ICpcVmRsx } from "./Interfaces";
 export interface CpcVmOptions {
-    canvas: Canvas;
-    textCanvas: TextCanvas;
+    canvas: ICanvas;
     keyboard: Keyboard;
     sound: Sound;
     variables: Variables;
     quiet?: boolean;
     onClickKey?: (arg0: string) => void;
-    copyChrFromTextCanvas?: boolean;
 }
 export interface FileMeta {
     typeString: string;
@@ -109,15 +105,14 @@ declare type PrintObjectType = {
 declare type DataEntryType = (string | undefined);
 export declare class CpcVm {
     private quiet;
-    private copyChrFromTextCanvas;
     private readonly onClickKey?;
     private readonly fnOpeninHandler;
     private readonly fnCloseinHandler;
     private readonly fnCloseoutHandler;
     fnLoadHandler: (input: string, meta: FileMeta) => boolean;
     private readonly fnRunHandler;
-    private readonly canvas;
-    private readonly textCanvas;
+    private readonly fnOnCanvasClickHandler;
+    private canvas;
     private readonly keyboard;
     private readonly soundClass;
     readonly variables: Variables;
@@ -195,6 +190,7 @@ export declare class CpcVm {
     vmResetData(): void;
     private vmResetInks;
     vmReset4Run(): void;
+    setCanvas(canvas: ICanvas): ICanvas;
     private onCanvasClickCallback;
     vmGetAllVariables(): VariableMap;
     vmGetAllVarTypes(): VariableTypeMap;

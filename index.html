@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="cpcbasic.css">
 <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
-<title id="title">CPC BasicTS v0.1.1</title>
+<title id="title">CPC BasicTS v0.1.2</title>
 </head>
 
 <body id="pageBody">
@@ -46,6 +46,14 @@
 							<span class="field flexStart">
 								<input id="soundInput" type="checkbox" title="Sound">
 								<label id="soundLabel" for="soundInput" class="label" title="Sound">Sound</label>
+							</span>
+							<span class="field flexStart">
+								<select id="canvasTypeSelect" title="Select Canvas">
+									<option value="graphics" title="Graphics" default>Graphics</option>
+									<option value="text" title="Text">Text</option>
+									<option value="none" title="None">None</option>
+								</select>
+								<label id="canvasTypeLabel" for="canvasTypeSelect" class="label" title="Canvas Type">Canvas</label>
 							</span>
 							<span class="field flexStart">
 								<select id="paletteSelect" title="Select Palette">
@@ -172,16 +180,24 @@
 						<span class="field flexStart">
 							<button id="fullscreenButton" title="Fullscreen mode">Fullscreen</button>
 						</span>
+						<span class="field flexStart">
+							<button id="copyTextButton" title="Copy text to clipboard">Copy</button>
+						</span>
 					</span>
 				</span>
 			</span>
 		</legend>
 		<div id="cpcArea" class="area">
 			<div id="cpcCanvasDiv">
-				<canvas id="cpcCanvas" width="640" height="400" tabindex="0"></canvas>
+				<canvas id="cpcCanvas" width="640" height="400" tabindex="0" hidden></canvas>
 			</div>
-		</div>
+			<div id="textCanvasDiv">
+				<!-- <textarea readonly id="textText" placeholder="" rows="25" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off" style="overflow:hidden; resize:none; padding:0px; line-height: 15px;" hidden></textarea> -->
+				<textarea readonly id="textText" placeholder="" rows="25" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off" hidden></textarea>
+			</div>
+		</div>	
 	</fieldset>
+	<!--
 	<fieldset class="flexBox clearLeft">
 		<legend>
 			<button id="textButton" class="legendButton" title="Show/Hide Text View">Text View</button>
@@ -191,6 +207,7 @@
 			<textarea readonly id="textText" placeholder="" rows="25" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off" style="overflow:hidden; resize:none; padding:0px; line-height: 15px;"></textarea>
 		</div>
 	</fieldset>
+	-->
 	<fieldset class="flexBox clearLeft" id="kbdAreaBox">
 		<legend>
 			<button id="kbdButton" class="legendButton" title="CPC Keyboard">Keyboard</button>

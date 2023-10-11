@@ -1,12 +1,5 @@
-declare type CharType = number[];
-declare type CharsetType = CharType[];
-declare type CanvasClickType = (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
-export interface CanvasOptions {
-    charset: CharsetType;
-    palette: "color" | "green" | "grey";
-    onCanvasClick?: CanvasClickType;
-}
-export declare class Canvas {
+import { CanvasOptions, ICanvas, CanvasClickType, CanvasCharType } from "./Interfaces";
+export declare class Canvas implements ICanvas {
     private readonly options;
     private readonly fnUpdateCanvasHandler;
     private readonly fnUpdateCanvas2Handler;
@@ -81,13 +74,13 @@ export declare class Canvas {
     private updateColorMap;
     updateColorsAndCanvasImmediately(inkList: number[]): void;
     updateSpeedInk(): void;
-    setCustomChar(char: number, charData: CharType): void;
-    getCharData(char: number): CharType;
+    setCustomChar(char: number, charData: CanvasCharType): void;
+    getCharData(char: number): CanvasCharType;
     setDefaultInks(): void;
     private setFocusOnCanvas;
     private getMousePos;
     private canvasClickAction;
-    onCpcCanvasClick(event: MouseEvent): void;
+    onCanvasClick(event: MouseEvent): void;
     onWindowClick(_event: Event): void;
     getXpos(): number;
     getYpos(): number;
@@ -139,7 +132,7 @@ export declare class Canvas {
     getMode(): number;
     changeMode(mode: number): void;
     setMode(mode: number): void;
-    getCanvasElement(): HTMLCanvasElement;
+    takeScreenShot(): string;
+    getCanvasElement(): HTMLElement | undefined;
 }
-export {};
 //# sourceMappingURL=Canvas.d.ts.map

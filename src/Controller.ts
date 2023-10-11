@@ -4,7 +4,6 @@
 //
 
 import { Utils, CustomError } from "./Utils";
-import { IController, IOutput } from "./Interfaces";
 import { BasicFormatter } from "./BasicFormatter";
 import { BasicLexer } from "./BasicLexer";
 import { BasicParser } from "./BasicParser";
@@ -22,7 +21,9 @@ import { DiskImage } from "./DiskImage";
 import { FileHandler } from "./FileHandler";
 import { FileSelect } from "./FileSelect";
 import { InputStack } from "./InputStack";
+import { IController, IOutput, ICanvas, CanvasOptions } from "./Interfaces";
 import { Keyboard } from "./Keyboard";
+import { NoCanvas } from "./NoCanvas";
 import { TextCanvas } from "./TextCanvas";
 import { VirtualKeyboard } from "./VirtualKeyboard";
 import { Model, DatabasesType } from "./Model";
@@ -48,6 +49,7 @@ export class Controller implements IController {
 	private readonly fnOnEscapeHandler: () => void;
 	private readonly fnDirectInputHandler: () => boolean;
 	private readonly fnPutKeyInBufferHandler: (key: string) => void;
+	private readonly fnHandleDragOverHandler: () => void;
 
 	private static readonly metaIdent = "CPCBasic";
 
@@ -71,8 +73,9 @@ export class Controller implements IController {
 
 	private readonly codeGeneratorJs: CodeGeneratorJs;
 
-	private readonly canvas: Canvas;
-	private readonly textCanvas: TextCanvas;
+	private readonly canvases: Record<string, ICanvas> = {};
+	private canvas: ICanvas;
+	//private readonly textCanvas: ICanvas;
 
 	private readonly inputStack = new InputStack();
 
@@ -136,9 +139,6 @@ export class Controller implements IController {
 			display: "flex",
 			isPopover: true
 		},
-		textArea: {
-			property: "showText"
-		},
 		variableArea: {
 			property: "showVariable"
 		}
@@ -151,6 +151,7 @@ export class Controller implements IController {
 		this.fnOnEscapeHandler = this.fnOnEscape.bind(this);
 		this.fnDirectInputHandler = this.fnDirectInput.bind(this);
 		this.fnPutKeyInBufferHandler = this.fnPutKeysInBuffer.bind(this);
+		this.fnHandleDragOverHandler = Controller.fnHandleDragOver.bind(this);
 
 		this.model = model;
 		this.view = view;
@@ -162,17 +163,31 @@ export class Controller implements IController {
 		view.setHidden("consoleBox", !model.getProperty<boolean>("showConsole"));
 		this.view.setInputChecked("consoleLogInput", model.getProperty<boolean>("showConsole"));
 
-		this.textCanvas = new TextCanvas({});
+		const canvasType = model.getProperty<string>("canvasType");
+
+		view.setSelectValue("canvasTypeSelect", canvasType);
 
 		const palette = model.getProperty<string>("palette");
 
 		view.setSelectValue("paletteSelect", palette);
 
-		view.setHidden("cpcArea", false); // make sure canvas area is not hidden when creating canvas object (allows to get width, height)
-		this.canvas = new Canvas({
+		this.canvas = this.setCanvasType(canvasType);
+		/*
+		const canvasOptions: CanvasOptions = {
 			charset: cpcCharset,
 			palette: palette === "green" || palette === "grey" ? palette : "color"
-		});
+			//onCanvasDragover: this.fnHandleDragOverHandler
+		};
+
+		if (canvasType === "text") {
+			this.canvas = new TextCanvas(canvasOptions);
+		} else if (canvasType === "none") {
+			this.canvas = new NoCanvas(canvasOptions);
+		} else { // "graphics"
+			view.setHidden("cpcArea", false); // make sure canvas area is not hidden when creating canvas object (allows to get width, height)
+			this.canvas = new Canvas(canvasOptions);
+		}
+		*/
 
 		view.setHidden("kbdLayoutArea", model.getProperty<boolean>("showKbd"), "inherit"); // kbd visible => kbdlayout invisible
 		this.initAreas();
@@ -208,12 +223,12 @@ export class Controller implements IController {
 
 		this.vm = new CpcVm({
 			canvas: this.canvas,
-			textCanvas: this.textCanvas,
+			//textCanvas: this.textCanvas,
 			keyboard: this.keyboard,
 			sound: this.sound,
 			variables: this.variables,
-			onClickKey: this.fnPutKeyInBufferHandler,
-			copyChrFromTextCanvas: window.Polyfills.isNodeAvailable // use textcanvas when using nodeJS
+			onClickKey: this.fnPutKeyInBufferHandler
+			//copyChrFromTextCanvas: window.Polyfills.isNodeAvailable // use textcanvas when using nodeJS
 		});
 		this.vm.vmReset();
 
@@ -247,13 +262,6 @@ export class Controller implements IController {
 		if (model.getProperty<boolean>("sound")) { // activate sound needs user action
 			this.setSoundActive(); // activate in waiting state
 		}
-		if (model.getProperty<boolean>("showCpc")) {
-			this.canvas.startUpdateCanvas();
-		}
-		if (model.getProperty<boolean>("showText")) {
-			this.textCanvas.startUpdateCanvas();
-		}
-
 		this.initDropZone();
 
 		const example = model.getProperty<string>("example");
@@ -261,6 +269,15 @@ export class Controller implements IController {
 		view.setSelectValue("exampleSelect", example);
 
 		this.hasStorageDatabase = this.initDatabases();
+
+		if (model.getProperty<boolean>("showCpc")) {
+			this.canvas.startUpdateCanvas();
+		}
+		/*
+		if (model.getProperty<boolean>("showText")) {
+			this.textCanvas.startUpdateCanvas();
+		}
+		*/
 	}
 
 	private initAreas() {
@@ -2316,6 +2333,8 @@ export class Controller implements IController {
 	}
 
 	startScreenshot(): string {
+		return this.canvas.takeScreenShot();
+		/*
 		const canvas = this.canvas.getCanvasElement();
 
 		if (canvas.toDataURL) {
@@ -2323,6 +2342,7 @@ export class Controller implements IController {
 		}
 		Utils.console.warn("Screenshot not available");
 		return "";
+		*/
 	}
 
 	private fnPutKeysInBuffer(keys: string) {
@@ -2439,6 +2459,62 @@ export class Controller implements IController {
 		this.canvas.setPalette(palette === "green" || palette === "grey" ? palette : "color");
 	}
 
+	setCanvasType(canvasType: string): ICanvas {
+		const palette = this.model.getProperty<string>("palette"),
+			canvasOptions: CanvasOptions = {
+				charset: cpcCharset,
+				palette: palette === "green" || palette === "grey" ? palette : "color"
+				//onCanvasDragover: this.fnHandleDragOverHandler
+			};
+		let canvas: ICanvas = this.canvas;
+
+		if (canvas) {
+			canvas.stopUpdateCanvas(); // stop updates on current canvas
+			const currentCanvasElement = canvas.getCanvasElement();
+
+			if (currentCanvasElement) {
+				this.view.setHidden(currentCanvasElement.id, true);
+			}
+		}
+
+		if (this.canvases[canvasType]) {
+			canvas = this.canvases[canvasType];
+		} else {
+			if (canvasType === "text") {
+				canvas = new TextCanvas(canvasOptions);
+			} else if (canvasType === "none") {
+				canvas = new NoCanvas(canvasOptions);
+			} else { // "graphics"
+				const isAreaHidden = this.view.getHidden("cpcArea");
+
+				// make sure canvas area is not hidden when creating canvas object (allows to get width, height)
+				if (isAreaHidden) {
+					this.toggleAreaHidden("cpcArea");
+				}
+				this.view.setHidden("cpcCanvas", false);
+				canvas = new Canvas(canvasOptions);
+				if (isAreaHidden) {
+					this.toggleAreaHidden("cpcArea"); // hide again
+				}
+			}
+			this.canvases[canvasType] = canvas;
+		}
+		this.canvas = canvas;
+		if (this.vm) {
+			this.vm.setCanvas(canvas);
+		}
+
+		const canvasElement = canvas.getCanvasElement();
+
+		if (canvasElement) {
+			this.view.setHidden(canvasElement.id, false);
+		}
+		if (this.model.getProperty<boolean>("showCpc")) {
+			this.canvas.startUpdateCanvas();
+		}
+		return canvas;
+	}
+
 	setSoundActive(): void {
 		const sound = this.sound,
 			soundLabel = View.getElementById1("soundLabel"),
@@ -2510,13 +2586,27 @@ export class Controller implements IController {
 		}
 		const dropZone = View.getElementById1("dropZone");
 
-		dropZone.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
+		dropZone.addEventListener("dragover", this.fnHandleDragOverHandler, false);
 		this.fileSelect.addFileSelectHandler(dropZone, "drop");
 
 		const canvasElement = this.canvas.getCanvasElement();
 
-		canvasElement.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
-		this.fileSelect.addFileSelectHandler(canvasElement, "drop");
+		if (canvasElement) {
+			canvasElement.addEventListener("dragover", this.fnHandleDragOverHandler, false);
+			//this.canvas.setOnCanvasDragover(this.fnHandleDragOverHandler);
+			//const canvasElement = this.canvas.getCanvasElement();
+			this.fileSelect.addFileSelectHandler(canvasElement, "drop");
+		}
+
+		/*
+		const textCanvasElement = this.textCanvas.getCanvasElement();
+
+		textCanvasElement.addEventListener("dragover", this.fnHandleDragOverHandler, false);
+		//this.canvas.setOnCanvasDragover(this.fnHandleDragOverHandler);
+		//const canvasElement = this.canvas.getCanvasElement();
+
+		this.fileSelect.addFileSelectHandler(textCanvasElement, "drop");
+		*/
 
 		const fileInput = View.getElementById1("fileInput");
 
@@ -2547,17 +2637,21 @@ export class Controller implements IController {
 		this.canvas.startUpdateCanvas();
 	}
 
+	/*
 	startUpdateTextCanvas(): void {
 		this.textCanvas.startUpdateCanvas();
 	}
+	*/
 
 	stopUpdateCanvas(): void {
 		this.canvas.stopUpdateCanvas();
 	}
 
+	/*
 	stopUpdateTextCanvas(): void {
 		this.textCanvas.stopUpdateCanvas();
 	}
+	*/
 
 	virtualKeyboardCreate(): void {
 		if (!this.virtualKeyboard) {
@@ -2717,22 +2811,24 @@ export class Controller implements IController {
 	onCpcCanvasClick(event: MouseEvent): void {
 		this.setPopoversHiddenExcept(""); // hide all popovers
 
-		this.canvas.onCpcCanvasClick(event);
-		this.textCanvas.onWindowClick(event);
+		this.canvas.onCanvasClick(event);
+		//this.textCanvas.onWindowClick(event);
 		this.keyboard.setActive(true);
 	}
 
 	onWindowClick(event: Event): void {
 		this.canvas.onWindowClick(event);
-		this.textCanvas.onWindowClick(event);
+		//this.textCanvas.onWindowClick(event);
 		this.keyboard.setActive(false);
 	}
 
+	/*
 	onTextTextClick(event: MouseEvent): void {
-		this.textCanvas.onTextCanvasClick(event);
+		this.textCanvas.onCpcCanvasClick(event);
 		this.canvas.onWindowClick(event);
 		this.keyboard.setActive(true);
 	}
+	*/
 
 	fnArrayBounds(): void {
 		const arrayBounds = this.model.getProperty<boolean>("arrayBounds");

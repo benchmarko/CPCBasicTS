@@ -7821,6 +7821,8 @@ define("Keyboard", ["require", "exports", "Utils", "View"], function (require, e
             this.active = false; // flag if keyboard is active/focused, set from outside
             this.codeStringsRemoved = false;
             this.pressedKeys = {}; // currently pressed browser keys
+            this.fnCpcAreaKeydownHandler = this.onCpcAreaKeydown.bind(this);
+            this.fnCpcAreaKeyupHandler = this.oncpcAreaKeyup.bind(this);
             this.options = {
                 fnOnEscapeHandler: undefined,
                 fnOnKeyDown: undefined
@@ -7834,13 +7836,16 @@ define("Keyboard", ["require", "exports", "Utils", "View"], function (require, e
                 repeat: {}
             }; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
             //TTT
-            var name = "cpcCanvas", //"cpcCanvasDiv", //"cpcArea"
+            var name = "cpcArea", //"cpcCanvas", //"cpcCanvasDiv", //"cpcArea"
             cpcArea = View_1.View.getElementById1(name);
-            cpcArea.addEventListener("keydown", this.onCpcAreaKeydown.bind(this), false);
-            cpcArea.addEventListener("keyup", this.oncpcAreaKeyup.bind(this), false);
-            var textArea = View_1.View.getElementById1("textArea");
-            textArea.addEventListener("keydown", this.onCpcAreaKeydown.bind(this), false);
-            textArea.addEventListener("keyup", this.oncpcAreaKeyup.bind(this), false);
+            cpcArea.addEventListener("keydown", this.fnCpcAreaKeydownHandler, false);
+            cpcArea.addEventListener("keyup", this.fnCpcAreaKeyupHandler, false);
+            /*
+            const textArea = View.getElementById1("textArea");
+    
+            textArea.addEventListener("keydown", this.fnCpcAreaKeydownHandler, false);
+            textArea.addEventListener("keyup", this.fnCpcAreaKeyupHandler, false);
+            */
         }
         Keyboard.prototype.setOptions = function (options) {
             if (options.fnOnEscapeHandler !== undefined) {
@@ -9248,11 +9253,15 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.yTop = 399;
             this.yBottom = 0;
             this.gTransparent = false;
+            this.options = options;
+            /*
             this.options = {
                 charset: options.charset,
                 palette: options.palette,
-                onCanvasClick: options.onCanvasClick
+                onCanvasClick: options.onCanvasClick,
+                onCanvasDragover: options.onCanvasDragover
             };
+            */
             this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
             this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
             this.cpcAreaBox = View_3.View.getElementById1("cpcAreaBox");
@@ -9302,6 +9311,12 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         Canvas.prototype.setOnCanvasClick = function (onCanvasClickHandler) {
             this.options.onCanvasClick = onCanvasClickHandler;
         };
+        /*
+        setOnCanvasDragover(onCanvasDragoverHandler: (e: Event) => void) : HTMLElement {
+            this.options.onCanvasDragover = onCanvasDragoverHandler;
+            return this.canvas;
+        }
+        */
         Canvas.prototype.reset = function () {
             this.changeMode(1);
             this.inkSet = 0;
@@ -9531,27 +9546,6 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
                     y: (event.clientY - this.borderWidth - rect.top - diffY / 2) / ratioY * ratioY / minRatio
                 };
             }
-            /*
-            // alternative, when using scaling, maybe with other aspect ratio
-            if (isFullScreen) {
-                const areaX = 0, //TTT
-                    areaY = 0,
-                    rectwidth = rect.right - rect.left - (this.borderWidth + areaX) * 2,
-                    rectHeight = rect.bottom - rect.top - (this.borderWidth + areaY) * 2,
-                    ratioX = rectwidth / this.canvas.width,
-                    ratioY = rectHeight / this.canvas.height,
-                    //minRatio = ratioX <= ratioY ? ratioX : ratioY,
-                    diffX = rectwidth - (this.canvas.width * ratioX), //rectwidth - (this.canvas.width * minRatio),
-                    diffY = rectHeight - (this.canvas.height * ratioY); //rectHeight - (this.canvas.height * minRatio);
-    
-                return {
-                    //x: (event.clientX - this.borderWidth - rect.left - diffX / 2) / ratioX * ratioX / minRatio,
-                    //y: (event.clientY - this.borderWidth - rect.top - diffY / 2) / ratioY * ratioY / minRatio
-                    x: (event.clientX - this.borderWidth - rect.left - diffX / 2) / ratioX * ratioX / ratioX,
-                    y: (event.clientY - this.borderWidth - rect.top - diffY / 2) / ratioY * ratioY / ratioY
-                };
-            }
-            */
             return {
                 x: (event.clientX - this.borderWidth - rect.left) / (rect.right - rect.left - this.borderWidth * 2) * this.canvas.width,
                 y: (event.clientY - this.borderWidth - rect.top) / (rect.bottom - rect.top - this.borderWidth * 2) * this.canvas.height
@@ -9572,20 +9566,8 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
                     this.options.onCanvasClick(event, x, y, xTxt, yTxt);
                 }
             }
-            /*
-            // for graphics coordinates, adapt origin
-            x -= this.xOrig;
-            y = this.height - 1 - (y + this.yOrig);
-    
-            if (this.xPos === 1000 && this.yPos === 1000) { // only activate move if pos is 1000, 1000
-                this.move(x, y);
-            }
-            if (Utils.debug > 0) {
-                Utils.console.debug("canvasClickAction: x", pos.x, "y", pos.y, "x - xOrig", x, "y - yOrig", y, "detail", event.detail);
-            }
-            */
         };
-        Canvas.prototype.onCpcCanvasClick = function (event) {
+        Canvas.prototype.onCanvasClick = function (event) {
             if (!this.hasFocus) {
                 this.setFocusOnCanvas();
             }
@@ -10209,6 +10191,13 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.setGPaper(this.gPaper); // keep, maybe different for other mode
             this.setGTransparentMode(false);
         };
+        Canvas.prototype.takeScreenShot = function () {
+            if (this.canvas.toDataURL) {
+                return this.canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"); // here is the most important part because if you do not replace you will get a DOM 18 exception.
+            }
+            Utils_15.Utils.console.warn("Screenshot not available");
+            return "";
+        };
         Canvas.prototype.getCanvasElement = function () {
             return this.canvas;
         };
@@ -10289,6 +10278,11 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.TextCanvas = void 0;
+    /*
+    export interface TextCanvasOptions {
+        onCanvasClick?: CanvasClickType
+    }
+    */
     var TextCanvas = /** @class */ (function () {
         function TextCanvas(options) {
             this.fps = 15; // FPS for canvas update
@@ -10296,9 +10290,13 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
             this.needTextUpdate = false;
             this.textBuffer = []; // textbuffer characters at row,column
             this.hasFocus = false; // canvas has focus
+            this.options = options;
+            /*
             this.options = {
                 onCanvasClick: options.onCanvasClick
             };
+            */
+            this.cpcAreaBox = View_4.View.getElementById1("cpcAreaBox");
             this.fnUpdateTextCanvasHandler = this.updateTextCanvas.bind(this);
             this.fnUpdateTextCanvas2Handler = this.updateTextCanvas2.bind(this);
             this.textText = View_4.View.getElementById1("textText"); // View.setAreaValue()
@@ -10308,16 +10306,6 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
             this.animationFrame = undefined;
             this.reset();
         }
-        /*
-        private static readonly cpc2Unicode =
-        "................................ !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]\u2195_`abcdefghijklmnopqrstuvwxyz{|}~\u2591"
-        + "\u00A0\u2598\u259D\u2580\u2596\u258C\u259E\u259B\u2597\u259A\u2590\u259C\u2584\u2599\u259F\u2588\u00B7\u2575\u2576\u2514\u2577\u2502\u250C"
-        + "\u251C\u2574\u2518\u2500\u2534\u2510\u2524\u252C\u253C\u005E\u00B4\u00A8\u00A3\u00A9\u00B6\u00A7\u2018\u00BC\u00BD\u00BE\u00B1\u00F7\u00AC"
-        + "\u00BF\u00A1\u03B1\u03B2\u03B3\u03B4\u03B5\u03B8\u03BB\u03BC\u03C0\u03C3\u03C6\u03C8\u03C7\u03C9\u03A3\u03A9\u1FBA0\u1FBA1\u1FBA3\u1FBA2\u1FBA7"
-        + "\u1FBA5\u1FBA6\u1FBA4\u1FBA8\u1FBA9\u1FBAE\u2573\u2571\u2572\u1FB95\u2592\u23BA\u23B9\u23BD\u23B8\u25E4\u25E5\u25E2\u25E3\u1FB8E\u1FB8D\u1FB8F"
-        + "\u1FB8C\u1FB9C\u1FB9D\u1FB9E\u1FB9F\u263A\u2639\u2663\u2666\u2665\u2660\u25CB\u25CF\u25A1\u25A0\u2642\u2640\u2669\u266A\u263C\uFFBDB\u2B61\u2B63"
-        + "\u2B60\u2B62\u25B2\u25BC\u25B6\u25C0\u1FBC6\u1FBC5\u1FBC7\u1FBC8\uFFBDC\uFFBDD\u2B65\u2B64";
-        */
         TextCanvas.prototype.setOnCanvasClick = function (onCanvasClickHandler) {
             this.options.onCanvasClick = onCanvasClickHandler;
         };
@@ -10325,6 +10313,97 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
             this.resetTextBuffer();
             this.setNeedTextUpdate();
         };
+        TextCanvas.prototype.resetCustomChars = function () {
+        };
+        TextCanvas.prototype.setPalette = function (_palette) {
+        };
+        TextCanvas.prototype.setScreenOffset = function (_offset) {
+        };
+        TextCanvas.prototype.updateColorsAndCanvasImmediately = function (_inkList) {
+        };
+        TextCanvas.prototype.updateSpeedInk = function () {
+        };
+        TextCanvas.prototype.setCustomChar = function (_char, _charData) {
+        };
+        TextCanvas.prototype.getCharData = function (_char) {
+            return [];
+        };
+        TextCanvas.prototype.setDefaultInks = function () {
+        };
+        TextCanvas.prototype.getXpos = function () {
+            return 0;
+        };
+        TextCanvas.prototype.getYpos = function () {
+            return 0;
+        };
+        TextCanvas.prototype.getByte = function (_addr) {
+            return 0;
+        };
+        TextCanvas.prototype.setByte = function (_addr, _byte) {
+        };
+        TextCanvas.prototype.draw = function (_x, _y) {
+        };
+        TextCanvas.prototype.move = function (_x, _y) {
+        };
+        TextCanvas.prototype.plot = function (_x, _y) {
+        };
+        TextCanvas.prototype.test = function (_x, _y) {
+            return 0;
+        };
+        TextCanvas.prototype.setInk = function (_pen, _ink1, _ink2) {
+            return false;
+        };
+        TextCanvas.prototype.setBorder = function (_ink1, _ink2) {
+        };
+        TextCanvas.prototype.setGPen = function (_gPen) {
+        };
+        TextCanvas.prototype.setGPaper = function (_gPaper) {
+        };
+        TextCanvas.prototype.setGTransparentMode = function (_transparent) {
+        };
+        TextCanvas.prototype.printGChar = function (_char) {
+        };
+        TextCanvas.prototype.drawCursor = function (_x, _y, _pen, _paper) {
+        };
+        TextCanvas.prototype.fill = function (_fillPen) {
+        };
+        TextCanvas.prototype.setOrigin = function (_xOrig, _yOrig) {
+        };
+        TextCanvas.prototype.getXOrigin = function () {
+            return 0;
+        };
+        TextCanvas.prototype.getYOrigin = function () {
+            return 0;
+        };
+        TextCanvas.prototype.setGWindow = function (_xLeft, _xRight, _yTop, _yBottom) {
+        };
+        TextCanvas.prototype.setGColMode = function (_gColMode) {
+        };
+        TextCanvas.prototype.clearGraphicsWindow = function () {
+        };
+        TextCanvas.prototype.setSpeedInk = function (_time1, _time2) {
+        };
+        TextCanvas.prototype.setMask = function (_mask) {
+        };
+        TextCanvas.prototype.setMaskFirst = function (_maskFirst) {
+        };
+        TextCanvas.prototype.getMode = function () {
+            return 0;
+        };
+        TextCanvas.prototype.changeMode = function (_mode) {
+        };
+        TextCanvas.prototype.getCanvasElement = function () {
+            return this.textText; // as HTML;
+        };
+        TextCanvas.prototype.takeScreenShot = function () {
+            return "";
+        };
+        /*
+        setOnCanvasDragover(onCanvasDragoverHandler: (e: Event) => void) : HTMLElement {
+            this.options.onCanvasDragover = onCanvasDragoverHandler;
+            return this.textText;
+        }
+        */
         TextCanvas.prototype.resetTextBuffer = function () {
             this.textBuffer.length = 0;
         };
@@ -10356,30 +10435,6 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
                 this.animationTimeoutId = undefined;
             }
         };
-        /*
-        // eslint-disable-next-line class-methods-use-this
-        private test1(tooWide: number[]) {
-            const tooWide = [132,134,135,136,137,139,141,142,224,225,226,227,245],
-                cpc2Unicode = TextCanvas.cpc2Unicode;
-            let out = "";
-    
-            for (let i = 0; i <= 255; i += 1) {
-                if (tooWide.indexOf(i) >= 0) {
-                    out += ".";
-                } else {
-                    const ch1 = cpc2Unicode[i],
-                        code1 = cpc2Unicode.charCodeAt(i);
-    
-                    if (code1 > 127) {
-                        out += "\\u" + code1.toString(16).toUpperCase().padStart(4, "0");
-                    } else {
-                        out += ch1;
-                    }
-                }
-            }
-            console.log(out); //TTT
-        }
-        */
         TextCanvas.prototype.updateTextWindow = function () {
             var textBuffer = this.textBuffer, cpc2Unicode = TextCanvas.cpc2Unicode;
             var out = "";
@@ -10395,16 +10450,12 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
             this.textText.value = out;
         };
         TextCanvas.prototype.setFocusOnCanvas = function () {
-            var parentNode = this.textText.parentNode;
-            if (parentNode) {
-                parentNode.style.background = "#463c3c";
-            }
+            this.cpcAreaBox.style.background = "#463c3c";
             if (this.textText) {
                 this.textText.focus();
             }
             this.hasFocus = true;
         };
-        // eslint-disable-next-line class-methods-use-this
         TextCanvas.prototype.getMousePos = function (event, canvasWidth, canvasHeight) {
             var //padding = 0, //2, // TODO
             rect = this.textText.getBoundingClientRect(), pos = {
@@ -10491,7 +10542,7 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
             * /
         }
         */
-        TextCanvas.prototype.onTextCanvasClick = function (event) {
+        TextCanvas.prototype.onCanvasClick = function (event) {
             if (!this.hasFocus) {
                 this.setFocusOnCanvas();
             }
@@ -10503,10 +10554,7 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
         TextCanvas.prototype.onWindowClick = function (_event) {
             if (this.hasFocus) {
                 this.hasFocus = false;
-                var parentNode = this.textText.parentNode;
-                if (parentNode) {
-                    parentNode.style.background = "";
-                }
+                this.cpcAreaBox.style.background = "";
             }
         };
         TextCanvas.prototype.fillTextBox = function (left, top, width, height, _pen) {
@@ -10595,8 +10643,8 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
             var width = right + 1 - left, height = bottom + 1 - top;
             this.fillTextBox(left, top, width, height);
         };
-        TextCanvas.prototype.setMode = function (_mode, right, bottom) {
-            var cols = right + 1, rows = bottom + 1;
+        TextCanvas.prototype.setMode = function (mode) {
+            var winData = TextCanvas.winData[mode], cols = winData.right + 1, rows = winData.bottom + 1;
             if (this.cols !== cols) {
                 this.cols = cols;
                 this.textText.setAttribute("cols", String(cols));
@@ -10630,6 +10678,33 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
         // tooWide = [132,134,135,136,137,139,141,142,224,225,226,227,245];
         // For equal height we set line-height: 15px;
         TextCanvas.cpc2Unicode = "................................ !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]\u2195_`abcdefghijklmnopqrstuvwxyz{|}~\u2591\u00A0\u2598\u259D\u2580.\u258C....\u2590.\u2584..\u2588\u00B7\u2575\u2576\u2514\u2577\u2502\u250C\u251C\u2574\u2518\u2500\u2534\u2510\u2524\u252C\u253C^\u00B4\u00A8\u00A3\u00A9\u00B6\u00A7\u2018\u00BC\u00BD\u00BE\u00B1\u00F7\u00AC\u00BF\u00A1\u03B1\u03B2\u03B3\u03B4\u03B5\u03B8\u03BB\u03BC\u03C0\u03C3\u03C6\u03C8\u03C7\u03C9\u03A3\u03A9\u1FBA0\u1FBA1\u1FBA3\u1FBA2\u1FBA7\u1FBA5\u1FBA6\u1FBA4\u1FBA8\u1FBA9\u1FBAE\u2573\u2571\u2572\u1FB95\u2592\u23BA\u23B9\u23BD\u23B8....\u1FB8E\u1FB8D\u1FB8F\u1FB8C\u1FB9C\u1FB9D\u1FB9E\u1FB9F\u263A.\u2663\u2666\u2665\u2660\u25CB\u25CF\u25A1\u25A0\u2642\u2640";
+        // same as in CpcVm
+        TextCanvas.winData = [
+            {
+                left: 0,
+                right: 19,
+                top: 0,
+                bottom: 24
+            },
+            {
+                left: 0,
+                right: 39,
+                top: 0,
+                bottom: 24
+            },
+            {
+                left: 0,
+                right: 79,
+                top: 0,
+                bottom: 24
+            },
+            {
+                left: 0,
+                right: 79,
+                top: 0,
+                bottom: 49
+            }
+        ];
         return TextCanvas;
     }());
     exports.TextCanvas = TextCanvas;
@@ -10805,7 +10880,7 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                 onInp2ButtonClick: this.onInp2ButtonClick,
                 onOutputButtonClick: this.onOutputButtonClick,
                 onResultButtonClick: this.onResultButtonClick,
-                onTextButtonClick: this.onTextButtonClick,
+                //onTextButtonClick: this.onTextButtonClick,
                 onVariableButtonClick: this.onVariableButtonClick,
                 onCpcButtonClick: this.onCpcButtonClick,
                 onConvertButtonClick: this.onConvertButtonClick,
@@ -10849,6 +10924,7 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                 onAutorunInputChange: this.onAutorunInputChange,
                 onSoundInputChange: this.onSoundInputChange,
                 onSpeedInputChange: this.onSpeedInputChange,
+                onCanvasTypeSelectChange: this.onCanvasTypeSelectChange,
                 onPaletteSelectChange: this.onPaletteSelectChange,
                 onScreenshotButtonClick: this.onScreenshotButtonClick,
                 onEnterButtonClick: this.onEnterButtonClick,
@@ -10877,14 +10953,15 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
         CommonEventHandler.prototype.onResultButtonClick = function () {
             this.controller.toggleAreaHidden("resultArea");
         };
-        CommonEventHandler.prototype.onTextButtonClick = function () {
+        /*
+        private onTextButtonClick() {
             if (this.controller.toggleAreaHidden("textArea")) {
                 this.controller.startUpdateTextCanvas();
-            }
-            else {
+            } else {
                 this.controller.stopUpdateTextCanvas();
             }
-        };
+        }
+        */
         CommonEventHandler.prototype.onVariableButtonClick = function () {
             this.controller.toggleAreaHidden("variableArea");
         };
@@ -11038,6 +11115,12 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             this.view.setSelectTitleFromSelectedOption("paletteSelect");
             this.controller.setPalette(value);
         };
+        CommonEventHandler.prototype.onCanvasTypeSelectChange = function () {
+            var value = this.view.getSelectValue("canvasTypeSelect");
+            this.model.setProperty("canvasType", value);
+            this.view.setSelectTitleFromSelectedOption("canvasTypeSelect");
+            this.controller.setCanvasType(value);
+        };
         CommonEventHandler.prototype.onVarTextChange = function () {
             this.controller.changeVariable();
         };
@@ -11095,7 +11178,6 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
         };
         CommonEventHandler.onFullscreenButtonClick = function () {
             var switched = View_5.View.requestFullscreenForId("cpcCanvas"); // make sure to use an element with tabindex set to get keyboard events
-            //const switched = View.requestFullscreenForId("cpcCanvasDiv");
             if (!switched) {
                 Utils_17.Utils.console.warn("Switch to fullscreen not available");
             }
@@ -11107,7 +11189,8 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             this.controller.onWindowClick(event);
         };
         CommonEventHandler.prototype.onTextTextClick = function (event) {
-            this.controller.onTextTextClick(event);
+            //this.controller.onTextTextClick(event as MouseEvent);
+            this.controller.onCpcCanvasClick(event);
         };
         /* eslint-enable no-invalid-this */
         CommonEventHandler.prototype.handleEvent = function (event) {
@@ -11983,7 +12066,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
     var CpcVm = /** @class */ (function () {
         function CpcVm(options) {
             this.quiet = false;
-            this.copyChrFromTextCanvas = false;
             this.inkeyTimeMs = 0; // next time of frame fly (if >0, next time when inkey$ can be checked without inserting "waitFrame")
             this.gosubStack = []; // stack of line numbers for gosub/return
             this.maxGosubStackLength = 83; // maximum nesting of GOSUB on a real CPC
@@ -12032,21 +12114,27 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.fnCloseoutHandler = this.vmCloseoutCallback.bind(this);
             this.fnLoadHandler = this.vmLoadCallback.bind(this);
             this.fnRunHandler = this.vmRunCallback.bind(this);
-            this.canvas = options.canvas;
-            this.textCanvas = options.textCanvas;
+            this.fnOnCanvasClickHandler = this.onCanvasClickCallback.bind(this);
+            this.canvas = this.setCanvas(options.canvas);
+            //this.canvas = options.canvas;
+            //this.textCanvas = options.textCanvas;
             this.keyboard = options.keyboard;
             this.soundClass = options.sound;
             this.variables = options.variables;
             this.quiet = Boolean(options.quiet);
-            this.copyChrFromTextCanvas = Boolean(options.copyChrFromTextCanvas);
+            //this.copyChrFromTextCanvas = Boolean(options.copyChrFromTextCanvas);
             this.onClickKey = options.onClickKey;
             this.random = new Random_1.Random();
+            /*
             if (this.canvas) {
-                this.canvas.setOnCanvasClick(this.onCanvasClickCallback.bind(this));
+                this.canvas.setOnCanvasClick(this.fnOnCanvasClickHandler);
             }
+            */
+            /*
             if (this.textCanvas) {
                 this.textCanvas.setOnCanvasClick(this.onCanvasClickCallback.bind(this));
             }
+            */
             this.stopCount = this.initialStop;
             this.stopEntry = {
                 reason: "",
@@ -12114,12 +12202,12 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.getOptions = function () {
             return {
                 canvas: this.canvas,
-                textCanvas: this.textCanvas,
+                //textCanvas: this.textCanvas,
                 keyboard: this.keyboard,
                 sound: this.soundClass,
                 variables: this.variables,
-                quiet: this.quiet,
-                copyChrFromTextCanvas: this.copyChrFromTextCanvas
+                quiet: this.quiet
+                //copyChrFromTextCanvas: this.copyChrFromTextCanvas
             };
         };
         CpcVm.prototype.vmSetRsxClass = function (rsx) {
@@ -12161,7 +12249,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.width(132); // set default printer width
             this.mode(1); // including vmResetWindowData() without pen and paper
             this.canvas.reset();
-            this.textCanvas.reset();
+            //this.textCanvas.reset();
             this.keyboard.reset();
             this.soundClass.reset();
             this.soundData.length = 0;
@@ -12278,6 +12366,13 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.soundClass.resetQueue();
             this.soundData.length = 0;
         };
+        CpcVm.prototype.setCanvas = function (canvas) {
+            this.canvas = canvas;
+            if (this.canvas) {
+                this.canvas.setOnCanvasClick(this.fnOnCanvasClickHandler);
+            }
+            return canvas;
+        };
         CpcVm.prototype.onCanvasClickCallback = function (event, x, y, xTxt, yTxt) {
             // for graphics coordinates, adapt origin
             var height = 400; //TTT
@@ -12288,19 +12383,21 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 this.canvas.move(x, y);
             }
             if (this.onClickKey) {
-                var isTextCanvas = event.target && event.target.type === "textarea"; //fast hack; this.textCanvas.textText === event.target
+                /*
+                const isTextCanvas = event.target && (event.target as any).type === "textarea"; //fast hack; this.textCanvas.textText === event.target
+    
                 if (isTextCanvas) {
-                    char = this.textCanvas.readChar(xTxt, yTxt);
-                }
-                else {
-                    for (var stream = 0; stream < CpcVm.streamCount - 2; stream += 1) { // check all window streams
-                        var win = this.windowDataList[stream];
-                        char = this.canvas.readChar(xTxt, yTxt, win.pen, win.paper);
-                        if (char > 0 && char !== 32) {
-                            break; // found some char
-                        }
+                    char = this.textCanvas.readChar(xTxt, yTxt, 0, 0);
+                } else {
+                */
+                for (var stream = 0; stream < CpcVm.streamCount - 2; stream += 1) { // check all window streams
+                    var win = this.windowDataList[stream];
+                    char = this.canvas.readChar(xTxt, yTxt, win.pen, win.paper);
+                    if (char > 0 && char !== 32) {
+                        break; // found some char
                     }
                 }
+                //}
                 if ((char < 0 || char === 32 || char === 143) && event.detail === 2) { // no (useful) char but mouse double click?
                     char = 13; // use CR
                 }
@@ -12916,7 +13013,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                     this.modeValue = 1;
                     this.canvas.setMode(this.modeValue); // does not clear canvas
                     this.canvas.clearFullWindow(); // (SCR Mode Clear)
-                    this.textCanvas.clearFullWindow();
+                    //this.textCanvas.clearFullWindow();
                     // and SCR Reset:
                     this.vmResetInks();
                     break;
@@ -13084,7 +13181,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             var win = this.windowDataList[stream];
             this.vmDrawUndrawCursor(stream); // why, if we clear anyway?
             this.canvas.clearTextWindow(win.left, win.right, win.top, win.bottom, win.paper); // cls window
-            this.textCanvas.clearTextWindow(win.left, win.right, win.top, win.bottom, win.paper);
+            //this.textCanvas.clearTextWindow(win.left, win.right, win.top, win.bottom, win.paper);
             win.pos = 0;
             win.vpos = 0;
             if (!stream) {
@@ -13116,7 +13213,9 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             stream = this.vmInRangeRound(stream, 0, 7, "COPYCHR$");
             this.vmMoveCursor2AllowedPos(stream);
             this.vmDrawUndrawCursor(stream); // undraw
-            var win = this.windowDataList[stream], charCode = !this.copyChrFromTextCanvas ? this.canvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper) : this.textCanvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper), char = (charCode >= 0) ? String.fromCharCode(charCode) : "";
+            var win = this.windowDataList[stream], 
+            //charCode = !this.copyChrFromTextCanvas ? this.canvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper) : this.textCanvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper),
+            charCode = this.canvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper), char = (charCode >= 0) ? String.fromCharCode(charCode) : "";
             this.vmDrawUndrawCursor(stream); // draw
             return char;
         };
@@ -13973,9 +14072,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.outBuffer = ""; // clear console
             this.canvas.setMode(mode); // does not clear canvas
             this.canvas.clearFullWindow(); // always with paper 0 (SCR MODE CLEAR)
-            var winData = CpcVm.winData[this.modeValue];
-            this.textCanvas.setMode(mode, winData.right, winData.bottom);
-            this.textCanvas.clearFullWindow();
+            //this.textCanvas.setMode(mode);
+            //this.textCanvas.clearFullWindow();
         };
         CpcVm.prototype.move = function (x, y, gPen, gColMode) {
             x = this.vmInRangeRound(x, -32768, 32767, "MOVE");
@@ -14301,14 +14399,14 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 y = 0;
                 if (stream < 8) {
                     this.canvas.windowScrollDown(left, right, top, bottom, win.paper);
-                    this.textCanvas.windowScrollDown(left, right, top, bottom, win.paper);
+                    //this.textCanvas.windowScrollDown(left, right, top, bottom, win.paper);
                 }
             }
             if (y > (bottom - top)) {
                 y = bottom - top;
                 if (stream < 8) {
                     this.canvas.windowScrollUp(left, right, top, bottom, win.paper);
-                    this.textCanvas.windowScrollUp(left, right, top, bottom, win.paper);
+                    //this.textCanvas.windowScrollUp(left, right, top, bottom, win.paper);
                 }
             }
             win.pos = x;
@@ -14332,7 +14430,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 var char = CpcVm.vmGetCpcCharCode(str.charCodeAt(i));
                 this.vmMoveCursor2AllowedPos(stream);
                 this.canvas.printChar(char, win.pos + win.left, win.vpos + win.top, win.pen, win.paper, win.transparent);
-                this.textCanvas.printChar(char, win.pos + win.left, win.vpos + win.top, win.pen, win.paper, win.transparent);
+                //this.textCanvas.printChar(char, win.pos + win.left, win.vpos + win.top, win.pen, win.paper, win.transparent);
                 win.pos += 1;
             }
         };
@@ -14421,31 +14519,31 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 case 0x10: // DLE
                     this.vmMoveCursor2AllowedPos(stream);
                     this.canvas.fillTextBox(win.left + win.pos, win.top + win.vpos, 1, 1, win.paper); // clear character under cursor
-                    this.textCanvas.fillTextBox(win.left + win.pos, win.top + win.vpos, 1, 1); // clear character under cursor
+                    //this.textCanvas.fillTextBox(win.left + win.pos, win.top + win.vpos, 1, 1, 0); // clear character under cursor
                     break;
                 case 0x11: // DC1
                     this.vmMoveCursor2AllowedPos(stream);
                     this.canvas.fillTextBox(win.left, win.top + win.vpos, win.pos + 1, 1, win.paper); // clear line up to cursor
-                    this.textCanvas.fillTextBox(win.left, win.top + win.vpos, win.pos + 1, 1, win.paper); // clear line up to cursor
+                    //this.textCanvas.fillTextBox(win.left, win.top + win.vpos, win.pos + 1, 1, win.paper); // clear line up to cursor
                     break;
                 case 0x12: // DC2
                     this.vmMoveCursor2AllowedPos(stream);
                     this.canvas.fillTextBox(win.left + win.pos, win.top + win.vpos, win.right - win.left + 1 - win.pos, 1, win.paper); // clear line from cursor
-                    this.textCanvas.fillTextBox(win.left + win.pos, win.top + win.vpos, win.right - win.left + 1 - win.pos, 1, win.paper); // clear line from cursor
+                    //this.textCanvas.fillTextBox(win.left + win.pos, win.top + win.vpos, win.right - win.left + 1 - win.pos, 1, win.paper); // clear line from cursor
                     break;
                 case 0x13: // DC3
                     this.vmMoveCursor2AllowedPos(stream);
                     this.canvas.fillTextBox(win.left, win.top, win.right - win.left + 1, win.top - win.vpos, win.paper); // clear window up to cursor line -1
                     this.canvas.fillTextBox(win.left, win.top + win.vpos, win.pos + 1, 1, win.paper); // clear line up to cursor (DC1)
-                    this.textCanvas.fillTextBox(win.left, win.top, win.right - win.left + 1, win.top - win.vpos, win.paper); // clear window up to cursor line -1
-                    this.textCanvas.fillTextBox(win.left, win.top + win.vpos, win.pos + 1, 1, win.paper); // clear line up to cursor (DC1)
+                    //this.textCanvas.fillTextBox(win.left, win.top, win.right - win.left + 1, win.top - win.vpos, win.paper); // clear window up to cursor line -1
+                    //this.textCanvas.fillTextBox(win.left, win.top + win.vpos, win.pos + 1, 1, win.paper); // clear line up to cursor (DC1)
                     break;
                 case 0x14: // DC4
                     this.vmMoveCursor2AllowedPos(stream);
                     this.canvas.fillTextBox(win.left + win.pos, win.top + win.vpos, win.right - win.left + 1 - win.pos, 1, win.paper); // clear line from cursor (DC2)
                     this.canvas.fillTextBox(win.left, win.top + win.vpos + 1, win.right - win.left + 1, win.bottom - win.top - win.vpos, win.paper); // clear window from cursor line +1
-                    this.textCanvas.fillTextBox(win.left + win.pos, win.top + win.vpos, win.right - win.left + 1 - win.pos, 1, win.paper); // clear line from cursor (DC2)
-                    this.textCanvas.fillTextBox(win.left, win.top + win.vpos + 1, win.right - win.left + 1, win.bottom - win.top - win.vpos, win.paper); // clear window from cursor line +1
+                    //this.textCanvas.fillTextBox(win.left + win.pos, win.top + win.vpos, win.right - win.left + 1 - win.pos, 1, win.paper); // clear line from cursor (DC2)
+                    //this.textCanvas.fillTextBox(win.left, win.top + win.vpos + 1, win.right - win.left + 1, win.bottom - win.top - win.vpos, win.paper); // clear window from cursor line +1
                     break;
                 case 0x15: // NAK
                     win.cursorEnabled = false;
@@ -15911,11 +16009,149 @@ define("FileSelect", ["require", "exports", "Utils", "View"], function (require,
     }());
     exports.FileSelect = FileSelect;
 });
+// NoCanvas.ts - No Canvas
+// (c) Marco Vieth, 2023
+// https://benchmarko.github.io/CPCBasicTS/
+//
+define("NoCanvas", ["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.NoCanvas = void 0;
+    var NoCanvas = /** @class */ (function () {
+        //private readonly options: CanvasOptions;
+        function NoCanvas(_options) {
+            //this.options = options;
+            this.reset();
+        }
+        NoCanvas.prototype.setOnCanvasClick = function (_onCanvasClickHandler) {
+        };
+        NoCanvas.prototype.reset = function () {
+        };
+        NoCanvas.prototype.resetCustomChars = function () {
+        };
+        NoCanvas.prototype.setPalette = function (_palette) {
+        };
+        NoCanvas.prototype.setScreenOffset = function (_offset) {
+        };
+        NoCanvas.prototype.updateColorsAndCanvasImmediately = function (_inkList) {
+        };
+        NoCanvas.prototype.updateSpeedInk = function () {
+        };
+        NoCanvas.prototype.setCustomChar = function (_char, _charData) {
+        };
+        NoCanvas.prototype.getCharData = function (_char) {
+            return [];
+        };
+        NoCanvas.prototype.setDefaultInks = function () {
+        };
+        NoCanvas.prototype.onCanvasClick = function (_event) {
+        };
+        NoCanvas.prototype.getXpos = function () {
+            return 0;
+        };
+        NoCanvas.prototype.getYpos = function () {
+            return 0;
+        };
+        NoCanvas.prototype.getByte = function (_addr) {
+            return 0;
+        };
+        NoCanvas.prototype.setByte = function (_addr, _byte) {
+        };
+        NoCanvas.prototype.draw = function (_x, _y) {
+        };
+        NoCanvas.prototype.move = function (_x, _y) {
+        };
+        NoCanvas.prototype.plot = function (_x, _y) {
+        };
+        NoCanvas.prototype.test = function (_x, _y) {
+            return 0;
+        };
+        NoCanvas.prototype.setInk = function (_pen, _ink1, _ink2) {
+            return false;
+        };
+        NoCanvas.prototype.setBorder = function (_ink1, _ink2) {
+        };
+        NoCanvas.prototype.setGPen = function (_gPen) {
+        };
+        NoCanvas.prototype.setGPaper = function (_gPaper) {
+        };
+        NoCanvas.prototype.setGTransparentMode = function (_transparent) {
+        };
+        NoCanvas.prototype.printGChar = function (_char) {
+        };
+        NoCanvas.prototype.drawCursor = function (_x, _y, _pen, _paper) {
+        };
+        NoCanvas.prototype.fill = function (_fillPen) {
+        };
+        NoCanvas.prototype.setOrigin = function (_xOrig, _yOrig) {
+        };
+        NoCanvas.prototype.getXOrigin = function () {
+            return 0;
+        };
+        NoCanvas.prototype.getYOrigin = function () {
+            return 0;
+        };
+        NoCanvas.prototype.setGWindow = function (_xLeft, _xRight, _yTop, _yBottom) {
+        };
+        NoCanvas.prototype.setGColMode = function (_gColMode) {
+        };
+        NoCanvas.prototype.clearGraphicsWindow = function () {
+        };
+        NoCanvas.prototype.setSpeedInk = function (_time1, _time2) {
+        };
+        NoCanvas.prototype.setMask = function (_mask) {
+        };
+        NoCanvas.prototype.setMaskFirst = function (_maskFirst) {
+        };
+        NoCanvas.prototype.getMode = function () {
+            return 0;
+        };
+        NoCanvas.prototype.changeMode = function (_mode) {
+        };
+        NoCanvas.prototype.getCanvasElement = function () {
+            return undefined;
+        };
+        NoCanvas.prototype.takeScreenShot = function () {
+            return "";
+        };
+        /*
+        setOnCanvasDragover(onCanvasDragoverHandler: (e: Event) => void) : HTMLElement {
+            this.options.onCanvasDragover = onCanvasDragoverHandler;
+            return this.textText;
+        }
+        */
+        NoCanvas.prototype.startUpdateCanvas = function () {
+        };
+        NoCanvas.prototype.stopUpdateCanvas = function () {
+        };
+        NoCanvas.prototype.onWindowClick = function (_event) {
+        };
+        NoCanvas.prototype.fillTextBox = function (_left, _top, _width, _height, _paper) {
+        };
+        NoCanvas.prototype.printChar = function (_char, _x, _y, _pen, _paper, _transparent) {
+        };
+        NoCanvas.prototype.readChar = function (_x, _y, _pen, _paper) {
+            return 0;
+        };
+        NoCanvas.prototype.clearTextWindow = function (_left, _right, _top, _bottom, _paper) {
+        };
+        NoCanvas.prototype.setMode = function (_mode) {
+        };
+        NoCanvas.prototype.clearFullWindow = function () {
+        };
+        NoCanvas.prototype.windowScrollUp = function (_left, _right, _top, _bottom, _paper) {
+        };
+        NoCanvas.prototype.windowScrollDown = function (_left, _right, _top, _bottom, _paper) {
+        };
+        return NoCanvas;
+    }());
+    exports.NoCanvas = NoCanvas;
+});
 // Controller.ts - Controller
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLexer", "BasicParser", "BasicTokenizer", "Canvas", "CodeGeneratorBasic", "CodeGeneratorJs", "CodeGeneratorToken", "CommonEventHandler", "cpcCharset", "CpcVm", "CpcVmRsx", "Diff", "DiskImage", "FileHandler", "FileSelect", "InputStack", "Keyboard", "TextCanvas", "VirtualKeyboard", "Sound", "Variables", "View"], function (require, exports, Utils_24, BasicFormatter_1, BasicLexer_1, BasicParser_2, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, CpcVmRsx_1, Diff_1, DiskImage_2, FileHandler_1, FileSelect_1, InputStack_1, Keyboard_1, TextCanvas_1, VirtualKeyboard_1, Sound_1, Variables_1, View_7) {
+define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLexer", "BasicParser", "BasicTokenizer", "Canvas", "CodeGeneratorBasic", "CodeGeneratorJs", "CodeGeneratorToken", "CommonEventHandler", "cpcCharset", "CpcVm", "CpcVmRsx", "Diff", "DiskImage", "FileHandler", "FileSelect", "InputStack", "Keyboard", "NoCanvas", "TextCanvas", "VirtualKeyboard", "Sound", "Variables", "View"], function (require, exports, Utils_24, BasicFormatter_1, BasicLexer_1, BasicParser_2, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, CpcVmRsx_1, Diff_1, DiskImage_2, FileHandler_1, FileSelect_1, InputStack_1, Keyboard_1, NoCanvas_1, TextCanvas_1, VirtualKeyboard_1, Sound_1, Variables_1, View_7) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Controller = void 0;
@@ -15926,6 +16162,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.nextLoopTimeOut = 0; // next timeout for the main loop
             this.initialLoopTimeout = 0;
             this.inputSet = false;
+            this.canvases = {};
+            //private readonly textCanvas: ICanvas;
             this.inputStack = new InputStack_1.InputStack();
             this.sound = new Sound_1.Sound({
                 AudioContextConstructor: window.AudioContext
@@ -15965,6 +16203,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.fnOnEscapeHandler = this.fnOnEscape.bind(this);
             this.fnDirectInputHandler = this.fnDirectInput.bind(this);
             this.fnPutKeyInBufferHandler = this.fnPutKeysInBuffer.bind(this);
+            this.fnHandleDragOverHandler = Controller.fnHandleDragOver.bind(this);
             this.model = model;
             this.view = view;
             this.commonEventHandler = new CommonEventHandler_1.CommonEventHandler(model, view, this);
@@ -15973,14 +16212,27 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             // unhide console box, if console should be shown
             view.setHidden("consoleBox", !model.getProperty("showConsole"));
             this.view.setInputChecked("consoleLogInput", model.getProperty("showConsole"));
-            this.textCanvas = new TextCanvas_1.TextCanvas({});
+            var canvasType = model.getProperty("canvasType");
+            view.setSelectValue("canvasTypeSelect", canvasType);
             var palette = model.getProperty("palette");
             view.setSelectValue("paletteSelect", palette);
-            view.setHidden("cpcArea", false); // make sure canvas area is not hidden when creating canvas object (allows to get width, height)
-            this.canvas = new Canvas_1.Canvas({
-                charset: cpcCharset_1.cpcCharset,
+            this.canvas = this.setCanvasType(canvasType);
+            /*
+            const canvasOptions: CanvasOptions = {
+                charset: cpcCharset,
                 palette: palette === "green" || palette === "grey" ? palette : "color"
-            });
+                //onCanvasDragover: this.fnHandleDragOverHandler
+            };
+    
+            if (canvasType === "text") {
+                this.canvas = new TextCanvas(canvasOptions);
+            } else if (canvasType === "none") {
+                this.canvas = new NoCanvas(canvasOptions);
+            } else { // "graphics"
+                view.setHidden("cpcArea", false); // make sure canvas area is not hidden when creating canvas object (allows to get width, height)
+                this.canvas = new Canvas(canvasOptions);
+            }
+            */
             view.setHidden("kbdLayoutArea", model.getProperty("showKbd"), "inherit"); // kbd visible => kbdlayout invisible
             this.initAreas();
             view.setInputValue("debugInput", String(model.getProperty("debug")));
@@ -16006,12 +16258,12 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.commonEventHandler.fnSetUserAction(this.onUserAction.bind(this)); // check first user action, also if sound is not yet on
             this.vm = new CpcVm_1.CpcVm({
                 canvas: this.canvas,
-                textCanvas: this.textCanvas,
+                //textCanvas: this.textCanvas,
                 keyboard: this.keyboard,
                 sound: this.sound,
                 variables: this.variables,
-                onClickKey: this.fnPutKeyInBufferHandler,
-                copyChrFromTextCanvas: window.Polyfills.isNodeAvailable // use textcanvas when using nodeJS
+                onClickKey: this.fnPutKeyInBufferHandler
+                //copyChrFromTextCanvas: window.Polyfills.isNodeAvailable // use textcanvas when using nodeJS
             });
             this.vm.vmReset();
             this.rsx = new CpcVmRsx_1.CpcVmRsx(this.vm);
@@ -16041,16 +16293,18 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             if (model.getProperty("sound")) { // activate sound needs user action
                 this.setSoundActive(); // activate in waiting state
             }
-            if (model.getProperty("showCpc")) {
-                this.canvas.startUpdateCanvas();
-            }
-            if (model.getProperty("showText")) {
-                this.textCanvas.startUpdateCanvas();
-            }
             this.initDropZone();
             var example = model.getProperty("example");
             view.setSelectValue("exampleSelect", example);
             this.hasStorageDatabase = this.initDatabases();
+            if (model.getProperty("showCpc")) {
+                this.canvas.startUpdateCanvas();
+            }
+            /*
+            if (model.getProperty<boolean>("showText")) {
+                this.textCanvas.startUpdateCanvas();
+            }
+            */
         }
         Controller.prototype.initAreas = function () {
             for (var id in Controller.areaDefinitions) { // eslint-disable-line guard-for-in
@@ -17712,12 +17966,16 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.startMainLoop();
         };
         Controller.prototype.startScreenshot = function () {
-            var canvas = this.canvas.getCanvasElement();
+            return this.canvas.takeScreenShot();
+            /*
+            const canvas = this.canvas.getCanvasElement();
+    
             if (canvas.toDataURL) {
                 return canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"); // here is the most important part because if you do not replace you will get a DOM 18 exception.
             }
-            Utils_24.Utils.console.warn("Screenshot not available");
+            Utils.console.warn("Screenshot not available");
             return "";
+            */
         };
         Controller.prototype.fnPutKeysInBuffer = function (keys) {
             for (var i = 0; i < keys.length; i += 1) {
@@ -17805,6 +18063,57 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.setPalette = function (palette) {
             this.canvas.setPalette(palette === "green" || palette === "grey" ? palette : "color");
         };
+        Controller.prototype.setCanvasType = function (canvasType) {
+            var palette = this.model.getProperty("palette"), canvasOptions = {
+                charset: cpcCharset_1.cpcCharset,
+                palette: palette === "green" || palette === "grey" ? palette : "color"
+                //onCanvasDragover: this.fnHandleDragOverHandler
+            };
+            var canvas = this.canvas;
+            if (canvas) {
+                canvas.stopUpdateCanvas(); // stop updates on current canvas
+                var currentCanvasElement = canvas.getCanvasElement();
+                if (currentCanvasElement) {
+                    this.view.setHidden(currentCanvasElement.id, true);
+                }
+            }
+            if (this.canvases[canvasType]) {
+                canvas = this.canvases[canvasType];
+            }
+            else {
+                if (canvasType === "text") {
+                    canvas = new TextCanvas_1.TextCanvas(canvasOptions);
+                }
+                else if (canvasType === "none") {
+                    canvas = new NoCanvas_1.NoCanvas(canvasOptions);
+                }
+                else { // "graphics"
+                    var isAreaHidden = this.view.getHidden("cpcArea");
+                    // make sure canvas area is not hidden when creating canvas object (allows to get width, height)
+                    if (isAreaHidden) {
+                        this.toggleAreaHidden("cpcArea");
+                    }
+                    this.view.setHidden("cpcCanvas", false);
+                    canvas = new Canvas_1.Canvas(canvasOptions);
+                    if (isAreaHidden) {
+                        this.toggleAreaHidden("cpcArea"); // hide again
+                    }
+                }
+                this.canvases[canvasType] = canvas;
+            }
+            this.canvas = canvas;
+            if (this.vm) {
+                this.vm.setCanvas(canvas);
+            }
+            var canvasElement = canvas.getCanvasElement();
+            if (canvasElement) {
+                this.view.setHidden(canvasElement.id, false);
+            }
+            if (this.model.getProperty("showCpc")) {
+                this.canvas.startUpdateCanvas();
+            }
+            return canvas;
+        };
         Controller.prototype.setSoundActive = function () {
             var sound = this.sound, soundLabel = View_7.View.getElementById1("soundLabel"), active = this.model.getProperty("sound");
             var text = "";
@@ -17865,11 +18174,24 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 });
             }
             var dropZone = View_7.View.getElementById1("dropZone");
-            dropZone.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
+            dropZone.addEventListener("dragover", this.fnHandleDragOverHandler, false);
             this.fileSelect.addFileSelectHandler(dropZone, "drop");
             var canvasElement = this.canvas.getCanvasElement();
-            canvasElement.addEventListener("dragover", Controller.fnHandleDragOver.bind(this), false);
-            this.fileSelect.addFileSelectHandler(canvasElement, "drop");
+            if (canvasElement) {
+                canvasElement.addEventListener("dragover", this.fnHandleDragOverHandler, false);
+                //this.canvas.setOnCanvasDragover(this.fnHandleDragOverHandler);
+                //const canvasElement = this.canvas.getCanvasElement();
+                this.fileSelect.addFileSelectHandler(canvasElement, "drop");
+            }
+            /*
+            const textCanvasElement = this.textCanvas.getCanvasElement();
+    
+            textCanvasElement.addEventListener("dragover", this.fnHandleDragOverHandler, false);
+            //this.canvas.setOnCanvasDragover(this.fnHandleDragOverHandler);
+            //const canvasElement = this.canvas.getCanvasElement();
+    
+            this.fileSelect.addFileSelectHandler(textCanvasElement, "drop");
+            */
             var fileInput = View_7.View.getElementById1("fileInput");
             this.fileSelect.addFileSelectHandler(fileInput, "change");
         };
@@ -17891,15 +18213,19 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.startUpdateCanvas = function () {
             this.canvas.startUpdateCanvas();
         };
-        Controller.prototype.startUpdateTextCanvas = function () {
+        /*
+        startUpdateTextCanvas(): void {
             this.textCanvas.startUpdateCanvas();
-        };
+        }
+        */
         Controller.prototype.stopUpdateCanvas = function () {
             this.canvas.stopUpdateCanvas();
         };
-        Controller.prototype.stopUpdateTextCanvas = function () {
+        /*
+        stopUpdateTextCanvas(): void {
             this.textCanvas.stopUpdateCanvas();
-        };
+        }
+        */
         Controller.prototype.virtualKeyboardCreate = function () {
             if (!this.virtualKeyboard) {
                 this.virtualKeyboard = new VirtualKeyboard_1.VirtualKeyboard({
@@ -18027,20 +18353,22 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         };
         Controller.prototype.onCpcCanvasClick = function (event) {
             this.setPopoversHiddenExcept(""); // hide all popovers
-            this.canvas.onCpcCanvasClick(event);
-            this.textCanvas.onWindowClick(event);
+            this.canvas.onCanvasClick(event);
+            //this.textCanvas.onWindowClick(event);
             this.keyboard.setActive(true);
         };
         Controller.prototype.onWindowClick = function (event) {
             this.canvas.onWindowClick(event);
-            this.textCanvas.onWindowClick(event);
+            //this.textCanvas.onWindowClick(event);
             this.keyboard.setActive(false);
         };
-        Controller.prototype.onTextTextClick = function (event) {
-            this.textCanvas.onTextCanvasClick(event);
+        /*
+        onTextTextClick(event: MouseEvent): void {
+            this.textCanvas.onCpcCanvasClick(event);
             this.canvas.onWindowClick(event);
             this.keyboard.setActive(true);
-        };
+        }
+        */
         Controller.prototype.fnArrayBounds = function () {
             var arrayBounds = this.model.getProperty("arrayBounds");
             this.variables.setOptions({
@@ -18114,9 +18442,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 property: "showSettings",
                 display: "flex",
                 isPopover: true
-            },
-            textArea: {
-                property: "showText"
             },
             variableArea: {
                 property: "showVariable"
@@ -18343,6 +18668,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             implicitLines: false,
             input: "",
             kbdLayout: "alphanum",
+            canvasType: "graphics",
             palette: "color",
             showConsole: false,
             showConvert: false,
@@ -18354,7 +18680,6 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             showMore: false,
             showOutput: false,
             showResult: false,
-            showText: false,
             showVariable: false,
             showSettings: false,
             sound: true,

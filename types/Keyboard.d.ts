@@ -11,6 +11,8 @@ interface KeyboardOptions {
     fnOnKeyDown?: () => void;
 }
 export declare class Keyboard {
+    private readonly fnCpcAreaKeydownHandler;
+    private readonly fnCpcAreaKeyupHandler;
     private readonly options;
     private readonly keyBuffer;
     private readonly expansionTokens;

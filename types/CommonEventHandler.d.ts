@@ -12,7 +12,6 @@ export declare class CommonEventHandler implements EventListenerObject {
     private onInp2ButtonClick;
     private onOutputButtonClick;
     private onResultButtonClick;
-    private onTextButtonClick;
     private onVariableButtonClick;
     private onCpcButtonClick;
     private onConvertButtonClick;
@@ -48,6 +47,7 @@ export declare class CommonEventHandler implements EventListenerObject {
     onVarSelectChange(): void;
     onKbdLayoutSelectChange(): void;
     private onPaletteSelectChange;
+    private onCanvasTypeSelectChange;
     private onVarTextChange;
     private onDebugInputChange;
     private onImplicitLinesInputChange;

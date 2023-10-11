@@ -9,7 +9,6 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
     var CpcVm = /** @class */ (function () {
         function CpcVm(options) {
             this.quiet = false;
-            this.copyChrFromTextCanvas = false;
             this.inkeyTimeMs = 0; // next time of frame fly (if >0, next time when inkey$ can be checked without inserting "waitFrame")
             this.gosubStack = []; // stack of line numbers for gosub/return
             this.maxGosubStackLength = 83; // maximum nesting of GOSUB on a real CPC
@@ -58,21 +57,27 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.fnCloseoutHandler = this.vmCloseoutCallback.bind(this);
             this.fnLoadHandler = this.vmLoadCallback.bind(this);
             this.fnRunHandler = this.vmRunCallback.bind(this);
-            this.canvas = options.canvas;
-            this.textCanvas = options.textCanvas;
+            this.fnOnCanvasClickHandler = this.onCanvasClickCallback.bind(this);
+            this.canvas = this.setCanvas(options.canvas);
+            //this.canvas = options.canvas;
+            //this.textCanvas = options.textCanvas;
             this.keyboard = options.keyboard;
             this.soundClass = options.sound;
             this.variables = options.variables;
             this.quiet = Boolean(options.quiet);
-            this.copyChrFromTextCanvas = Boolean(options.copyChrFromTextCanvas);
+            //this.copyChrFromTextCanvas = Boolean(options.copyChrFromTextCanvas);
             this.onClickKey = options.onClickKey;
             this.random = new Random_1.Random();
+            /*
             if (this.canvas) {
-                this.canvas.setOnCanvasClick(this.onCanvasClickCallback.bind(this));
+                this.canvas.setOnCanvasClick(this.fnOnCanvasClickHandler);
             }
+            */
+            /*
             if (this.textCanvas) {
                 this.textCanvas.setOnCanvasClick(this.onCanvasClickCallback.bind(this));
             }
+            */
             this.stopCount = this.initialStop;
             this.stopEntry = {
                 reason: "",
@@ -140,12 +145,12 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
         CpcVm.prototype.getOptions = function () {
             return {
                 canvas: this.canvas,
-                textCanvas: this.textCanvas,
+                //textCanvas: this.textCanvas,
                 keyboard: this.keyboard,
                 sound: this.soundClass,
                 variables: this.variables,
-                quiet: this.quiet,
-                copyChrFromTextCanvas: this.copyChrFromTextCanvas
+                quiet: this.quiet
+                //copyChrFromTextCanvas: this.copyChrFromTextCanvas
             };
         };
         CpcVm.prototype.vmSetRsxClass = function (rsx) {
@@ -187,7 +192,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.width(132); // set default printer width
             this.mode(1); // including vmResetWindowData() without pen and paper
             this.canvas.reset();
-            this.textCanvas.reset();
+            //this.textCanvas.reset();
             this.keyboard.reset();
             this.soundClass.reset();
             this.soundData.length = 0;
@@ -304,6 +309,13 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.soundClass.resetQueue();
             this.soundData.length = 0;
         };
+        CpcVm.prototype.setCanvas = function (canvas) {
+            this.canvas = canvas;
+            if (this.canvas) {
+                this.canvas.setOnCanvasClick(this.fnOnCanvasClickHandler);
+            }
+            return canvas;
+        };
         CpcVm.prototype.onCanvasClickCallback = function (event, x, y, xTxt, yTxt) {
             // for graphics coordinates, adapt origin
             var height = 400; //TTT
@@ -314,19 +326,21 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                 this.canvas.move(x, y);
             }
             if (this.onClickKey) {
-                var isTextCanvas = event.target && event.target.type === "textarea"; //fast hack; this.textCanvas.textText === event.target
+                /*
+                const isTextCanvas = event.target && (event.target as any).type === "textarea"; //fast hack; this.textCanvas.textText === event.target
+    
                 if (isTextCanvas) {
-                    char = this.textCanvas.readChar(xTxt, yTxt);
-                }
-                else {
-                    for (var stream = 0; stream < CpcVm.streamCount - 2; stream += 1) { // check all window streams
-                        var win = this.windowDataList[stream];
-                        char = this.canvas.readChar(xTxt, yTxt, win.pen, win.paper);
-                        if (char > 0 && char !== 32) {
-                            break; // found some char
-                        }
+                    char = this.textCanvas.readChar(xTxt, yTxt, 0, 0);
+                } else {
+                */
+                for (var stream = 0; stream < CpcVm.streamCount - 2; stream += 1) { // check all window streams
+                    var win = this.windowDataList[stream];
+                    char = this.canvas.readChar(xTxt, yTxt, win.pen, win.paper);
+                    if (char > 0 && char !== 32) {
+                        break; // found some char
                     }
                 }
+                //}
                 if ((char < 0 || char === 32 || char === 143) && event.detail === 2) { // no (useful) char but mouse double click?
                     char = 13; // use CR
                 }
@@ -942,7 +956,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                     this.modeValue = 1;
                     this.canvas.setMode(this.modeValue); // does not clear canvas
                     this.canvas.clearFullWindow(); // (SCR Mode Clear)
-                    this.textCanvas.clearFullWindow();
+                    //this.textCanvas.clearFullWindow();
                     // and SCR Reset:
                     this.vmResetInks();
                     break;
@@ -1110,7 +1124,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             var win = this.windowDataList[stream];
             this.vmDrawUndrawCursor(stream); // why, if we clear anyway?
             this.canvas.clearTextWindow(win.left, win.right, win.top, win.bottom, win.paper); // cls window
-            this.textCanvas.clearTextWindow(win.left, win.right, win.top, win.bottom, win.paper);
+            //this.textCanvas.clearTextWindow(win.left, win.right, win.top, win.bottom, win.paper);
             win.pos = 0;
             win.vpos = 0;
             if (!stream) {
@@ -1142,7 +1156,9 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             stream = this.vmInRangeRound(stream, 0, 7, "COPYCHR$");
             this.vmMoveCursor2AllowedPos(stream);
             this.vmDrawUndrawCursor(stream); // undraw
-            var win = this.windowDataList[stream], charCode = !this.copyChrFromTextCanvas ? this.canvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper) : this.textCanvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper), char = (charCode >= 0) ? String.fromCharCode(charCode) : "";
+            var win = this.windowDataList[stream], 
+            //charCode = !this.copyChrFromTextCanvas ? this.canvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper) : this.textCanvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper),
+            charCode = this.canvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper), char = (charCode >= 0) ? String.fromCharCode(charCode) : "";
             this.vmDrawUndrawCursor(stream); // draw
             return char;
         };
@@ -1999,9 +2015,8 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.outBuffer = ""; // clear console
             this.canvas.setMode(mode); // does not clear canvas
             this.canvas.clearFullWindow(); // always with paper 0 (SCR MODE CLEAR)
-            var winData = CpcVm.winData[this.modeValue];
-            this.textCanvas.setMode(mode, winData.right, winData.bottom);
-            this.textCanvas.clearFullWindow();
+            //this.textCanvas.setMode(mode);
+            //this.textCanvas.clearFullWindow();
         };
         CpcVm.prototype.move = function (x, y, gPen, gColMode) {
             x = this.vmInRangeRound(x, -32768, 32767, "MOVE");
@@ -2327,14 +2342,14 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                 y = 0;
                 if (stream < 8) {
                     this.canvas.windowScrollDown(left, right, top, bottom, win.paper);
-                    this.textCanvas.windowScrollDown(left, right, top, bottom, win.paper);
+                    //this.textCanvas.windowScrollDown(left, right, top, bottom, win.paper);
                 }
             }
             if (y > (bottom - top)) {
                 y = bottom - top;
                 if (stream < 8) {
                     this.canvas.windowScrollUp(left, right, top, bottom, win.paper);
-                    this.textCanvas.windowScrollUp(left, right, top, bottom, win.paper);
+                    //this.textCanvas.windowScrollUp(left, right, top, bottom, win.paper);
                 }
             }
             win.pos = x;
@@ -2358,7 +2373,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                 var char = CpcVm.vmGetCpcCharCode(str.charCodeAt(i));
                 this.vmMoveCursor2AllowedPos(stream);
                 this.canvas.printChar(char, win.pos + win.left, win.vpos + win.top, win.pen, win.paper, win.transparent);
-                this.textCanvas.printChar(char, win.pos + win.left, win.vpos + win.top, win.pen, win.paper, win.transparent);
+                //this.textCanvas.printChar(char, win.pos + win.left, win.vpos + win.top, win.pen, win.paper, win.transparent);
                 win.pos += 1;
             }
         };
@@ -2447,31 +2462,31 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                 case 0x10: // DLE
                     this.vmMoveCursor2AllowedPos(stream);
                     this.canvas.fillTextBox(win.left + win.pos, win.top + win.vpos, 1, 1, win.paper); // clear character under cursor
-                    this.textCanvas.fillTextBox(win.left + win.pos, win.top + win.vpos, 1, 1); // clear character under cursor
+                    //this.textCanvas.fillTextBox(win.left + win.pos, win.top + win.vpos, 1, 1, 0); // clear character under cursor
                     break;
                 case 0x11: // DC1
                     this.vmMoveCursor2AllowedPos(stream);
                     this.canvas.fillTextBox(win.left, win.top + win.vpos, win.pos + 1, 1, win.paper); // clear line up to cursor
-                    this.textCanvas.fillTextBox(win.left, win.top + win.vpos, win.pos + 1, 1, win.paper); // clear line up to cursor
+                    //this.textCanvas.fillTextBox(win.left, win.top + win.vpos, win.pos + 1, 1, win.paper); // clear line up to cursor
                     break;
                 case 0x12: // DC2
                     this.vmMoveCursor2AllowedPos(stream);
                     this.canvas.fillTextBox(win.left + win.pos, win.top + win.vpos, win.right - win.left + 1 - win.pos, 1, win.paper); // clear line from cursor
-                    this.textCanvas.fillTextBox(win.left + win.pos, win.top + win.vpos, win.right - win.left + 1 - win.pos, 1, win.paper); // clear line from cursor
+                    //this.textCanvas.fillTextBox(win.left + win.pos, win.top + win.vpos, win.right - win.left + 1 - win.pos, 1, win.paper); // clear line from cursor
                     break;
                 case 0x13: // DC3
                     this.vmMoveCursor2AllowedPos(stream);
                     this.canvas.fillTextBox(win.left, win.top, win.right - win.left + 1, win.top - win.vpos, win.paper); // clear window up to cursor line -1
                     this.canvas.fillTextBox(win.left, win.top + win.vpos, win.pos + 1, 1, win.paper); // clear line up to cursor (DC1)
-                    this.textCanvas.fillTextBox(win.left, win.top, win.right - win.left + 1, win.top - win.vpos, win.paper); // clear window up to cursor line -1
-                    this.textCanvas.fillTextBox(win.left, win.top + win.vpos, win.pos + 1, 1, win.paper); // clear line up to cursor (DC1)
+                    //this.textCanvas.fillTextBox(win.left, win.top, win.right - win.left + 1, win.top - win.vpos, win.paper); // clear window up to cursor line -1
+                    //this.textCanvas.fillTextBox(win.left, win.top + win.vpos, win.pos + 1, 1, win.paper); // clear line up to cursor (DC1)
                     break;
                 case 0x14: // DC4
                     this.vmMoveCursor2AllowedPos(stream);
                     this.canvas.fillTextBox(win.left + win.pos, win.top + win.vpos, win.right - win.left + 1 - win.pos, 1, win.paper); // clear line from cursor (DC2)
                     this.canvas.fillTextBox(win.left, win.top + win.vpos + 1, win.right - win.left + 1, win.bottom - win.top - win.vpos, win.paper); // clear window from cursor line +1
-                    this.textCanvas.fillTextBox(win.left + win.pos, win.top + win.vpos, win.right - win.left + 1 - win.pos, 1, win.paper); // clear line from cursor (DC2)
-                    this.textCanvas.fillTextBox(win.left, win.top + win.vpos + 1, win.right - win.left + 1, win.bottom - win.top - win.vpos, win.paper); // clear window from cursor line +1
+                    //this.textCanvas.fillTextBox(win.left + win.pos, win.top + win.vpos, win.right - win.left + 1 - win.pos, 1, win.paper); // clear line from cursor (DC2)
+                    //this.textCanvas.fillTextBox(win.left, win.top + win.vpos + 1, win.right - win.left + 1, win.bottom - win.top - win.vpos, win.paper); // clear window from cursor line +1
                     break;
                 case 0x15: // NAK
                     win.cursorEnabled = false;

@@ -13,6 +13,8 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.active = false; // flag if keyboard is active/focused, set from outside
             this.codeStringsRemoved = false;
             this.pressedKeys = {}; // currently pressed browser keys
+            this.fnCpcAreaKeydownHandler = this.onCpcAreaKeydown.bind(this);
+            this.fnCpcAreaKeyupHandler = this.oncpcAreaKeyup.bind(this);
             this.options = {
                 fnOnEscapeHandler: undefined,
                 fnOnKeyDown: undefined
@@ -26,13 +28,16 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 repeat: {}
             }; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
             //TTT
-            var name = "cpcCanvas", //"cpcCanvasDiv", //"cpcArea"
+            var name = "cpcArea", //"cpcCanvas", //"cpcCanvasDiv", //"cpcArea"
             cpcArea = View_1.View.getElementById1(name);
-            cpcArea.addEventListener("keydown", this.onCpcAreaKeydown.bind(this), false);
-            cpcArea.addEventListener("keyup", this.oncpcAreaKeyup.bind(this), false);
-            var textArea = View_1.View.getElementById1("textArea");
-            textArea.addEventListener("keydown", this.onCpcAreaKeydown.bind(this), false);
-            textArea.addEventListener("keyup", this.oncpcAreaKeyup.bind(this), false);
+            cpcArea.addEventListener("keydown", this.fnCpcAreaKeydownHandler, false);
+            cpcArea.addEventListener("keyup", this.fnCpcAreaKeyupHandler, false);
+            /*
+            const textArea = View.getElementById1("textArea");
+    
+            textArea.addEventListener("keydown", this.fnCpcAreaKeydownHandler, false);
+            textArea.addEventListener("keyup", this.fnCpcAreaKeyupHandler, false);
+            */
         }
         Keyboard.prototype.setOptions = function (options) {
             if (options.fnOnEscapeHandler !== undefined) {

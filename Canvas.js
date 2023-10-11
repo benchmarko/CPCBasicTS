@@ -40,11 +40,15 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.yTop = 399;
             this.yBottom = 0;
             this.gTransparent = false;
+            this.options = options;
+            /*
             this.options = {
                 charset: options.charset,
                 palette: options.palette,
-                onCanvasClick: options.onCanvasClick
+                onCanvasClick: options.onCanvasClick,
+                onCanvasDragover: options.onCanvasDragover
             };
+            */
             this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
             this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
             this.cpcAreaBox = View_1.View.getElementById1("cpcAreaBox");
@@ -94,6 +98,12 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         Canvas.prototype.setOnCanvasClick = function (onCanvasClickHandler) {
             this.options.onCanvasClick = onCanvasClickHandler;
         };
+        /*
+        setOnCanvasDragover(onCanvasDragoverHandler: (e: Event) => void) : HTMLElement {
+            this.options.onCanvasDragover = onCanvasDragoverHandler;
+            return this.canvas;
+        }
+        */
         Canvas.prototype.reset = function () {
             this.changeMode(1);
             this.inkSet = 0;
@@ -323,27 +333,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                     y: (event.clientY - this.borderWidth - rect.top - diffY / 2) / ratioY * ratioY / minRatio
                 };
             }
-            /*
-            // alternative, when using scaling, maybe with other aspect ratio
-            if (isFullScreen) {
-                const areaX = 0, //TTT
-                    areaY = 0,
-                    rectwidth = rect.right - rect.left - (this.borderWidth + areaX) * 2,
-                    rectHeight = rect.bottom - rect.top - (this.borderWidth + areaY) * 2,
-                    ratioX = rectwidth / this.canvas.width,
-                    ratioY = rectHeight / this.canvas.height,
-                    //minRatio = ratioX <= ratioY ? ratioX : ratioY,
-                    diffX = rectwidth - (this.canvas.width * ratioX), //rectwidth - (this.canvas.width * minRatio),
-                    diffY = rectHeight - (this.canvas.height * ratioY); //rectHeight - (this.canvas.height * minRatio);
-    
-                return {
-                    //x: (event.clientX - this.borderWidth - rect.left - diffX / 2) / ratioX * ratioX / minRatio,
-                    //y: (event.clientY - this.borderWidth - rect.top - diffY / 2) / ratioY * ratioY / minRatio
-                    x: (event.clientX - this.borderWidth - rect.left - diffX / 2) / ratioX * ratioX / ratioX,
-                    y: (event.clientY - this.borderWidth - rect.top - diffY / 2) / ratioY * ratioY / ratioY
-                };
-            }
-            */
             return {
                 x: (event.clientX - this.borderWidth - rect.left) / (rect.right - rect.left - this.borderWidth * 2) * this.canvas.width,
                 y: (event.clientY - this.borderWidth - rect.top) / (rect.bottom - rect.top - this.borderWidth * 2) * this.canvas.height
@@ -364,20 +353,8 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                     this.options.onCanvasClick(event, x, y, xTxt, yTxt);
                 }
             }
-            /*
-            // for graphics coordinates, adapt origin
-            x -= this.xOrig;
-            y = this.height - 1 - (y + this.yOrig);
-    
-            if (this.xPos === 1000 && this.yPos === 1000) { // only activate move if pos is 1000, 1000
-                this.move(x, y);
-            }
-            if (Utils.debug > 0) {
-                Utils.console.debug("canvasClickAction: x", pos.x, "y", pos.y, "x - xOrig", x, "y - yOrig", y, "detail", event.detail);
-            }
-            */
         };
-        Canvas.prototype.onCpcCanvasClick = function (event) {
+        Canvas.prototype.onCanvasClick = function (event) {
             if (!this.hasFocus) {
                 this.setFocusOnCanvas();
             }
@@ -1000,6 +977,13 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.setGPen(this.gPen); // keep, but maybe different for other mode
             this.setGPaper(this.gPaper); // keep, maybe different for other mode
             this.setGTransparentMode(false);
+        };
+        Canvas.prototype.takeScreenShot = function () {
+            if (this.canvas.toDataURL) {
+                return this.canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"); // here is the most important part because if you do not replace you will get a DOM 18 exception.
+            }
+            Utils_1.Utils.console.warn("Screenshot not available");
+            return "";
         };
         Canvas.prototype.getCanvasElement = function () {
             return this.canvas;

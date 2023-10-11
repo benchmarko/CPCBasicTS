@@ -14,7 +14,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 onInp2ButtonClick: this.onInp2ButtonClick,
                 onOutputButtonClick: this.onOutputButtonClick,
                 onResultButtonClick: this.onResultButtonClick,
-                onTextButtonClick: this.onTextButtonClick,
+                //onTextButtonClick: this.onTextButtonClick,
                 onVariableButtonClick: this.onVariableButtonClick,
                 onCpcButtonClick: this.onCpcButtonClick,
                 onConvertButtonClick: this.onConvertButtonClick,
@@ -58,6 +58,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 onAutorunInputChange: this.onAutorunInputChange,
                 onSoundInputChange: this.onSoundInputChange,
                 onSpeedInputChange: this.onSpeedInputChange,
+                onCanvasTypeSelectChange: this.onCanvasTypeSelectChange,
                 onPaletteSelectChange: this.onPaletteSelectChange,
                 onScreenshotButtonClick: this.onScreenshotButtonClick,
                 onEnterButtonClick: this.onEnterButtonClick,
@@ -86,14 +87,15 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         CommonEventHandler.prototype.onResultButtonClick = function () {
             this.controller.toggleAreaHidden("resultArea");
         };
-        CommonEventHandler.prototype.onTextButtonClick = function () {
+        /*
+        private onTextButtonClick() {
             if (this.controller.toggleAreaHidden("textArea")) {
                 this.controller.startUpdateTextCanvas();
-            }
-            else {
+            } else {
                 this.controller.stopUpdateTextCanvas();
             }
-        };
+        }
+        */
         CommonEventHandler.prototype.onVariableButtonClick = function () {
             this.controller.toggleAreaHidden("variableArea");
         };
@@ -247,6 +249,12 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.view.setSelectTitleFromSelectedOption("paletteSelect");
             this.controller.setPalette(value);
         };
+        CommonEventHandler.prototype.onCanvasTypeSelectChange = function () {
+            var value = this.view.getSelectValue("canvasTypeSelect");
+            this.model.setProperty("canvasType", value);
+            this.view.setSelectTitleFromSelectedOption("canvasTypeSelect");
+            this.controller.setCanvasType(value);
+        };
         CommonEventHandler.prototype.onVarTextChange = function () {
             this.controller.changeVariable();
         };
@@ -304,7 +312,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         };
         CommonEventHandler.onFullscreenButtonClick = function () {
             var switched = View_1.View.requestFullscreenForId("cpcCanvas"); // make sure to use an element with tabindex set to get keyboard events
-            //const switched = View.requestFullscreenForId("cpcCanvasDiv");
             if (!switched) {
                 Utils_1.Utils.console.warn("Switch to fullscreen not available");
             }
@@ -316,7 +323,8 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.controller.onWindowClick(event);
         };
         CommonEventHandler.prototype.onTextTextClick = function (event) {
-            this.controller.onTextTextClick(event);
+            //this.controller.onTextTextClick(event as MouseEvent);
+            this.controller.onCpcCanvasClick(event);
         };
         /* eslint-enable no-invalid-this */
         CommonEventHandler.prototype.handleEvent = function (event) {

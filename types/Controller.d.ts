@@ -1,4 +1,4 @@
-import { IController } from "./Interfaces";
+import { IController, ICanvas } from "./Interfaces";
 import { Model } from "./Model";
 import { VariableValue } from "./Variables";
 import { View } from "./View";
@@ -9,6 +9,7 @@ export declare class Controller implements IController {
     private readonly fnOnEscapeHandler;
     private readonly fnDirectInputHandler;
     private readonly fnPutKeyInBufferHandler;
+    private readonly fnHandleDragOverHandler;
     private static readonly metaIdent;
     private fnScript?;
     private timeoutHandlerActive;
@@ -24,8 +25,8 @@ export declare class Controller implements IController {
     private readonly view;
     private readonly commonEventHandler;
     private readonly codeGeneratorJs;
-    private readonly canvas;
-    private readonly textCanvas;
+    private readonly canvases;
+    private canvas;
     private readonly inputStack;
     private readonly keyboard;
     private virtualKeyboard?;
@@ -138,6 +139,7 @@ export declare class Controller implements IController {
     toggleAreaHidden(id: string): boolean;
     changeVariable(): void;
     setPalette(palette: string): void;
+    setCanvasType(canvasType: string): ICanvas;
     setSoundActive(): void;
     private fnEndOfImport;
     private static fnHandleDragOver;
@@ -148,9 +150,7 @@ export declare class Controller implements IController {
     private fnInitUndoRedoButtons;
     private fnPutChangedInputOnStack;
     startUpdateCanvas(): void;
-    startUpdateTextCanvas(): void;
     stopUpdateCanvas(): void;
-    stopUpdateTextCanvas(): void;
     virtualKeyboardCreate(): void;
     getVariable(par: string): VariableValue;
     undoStackElement(): string;
@@ -163,7 +163,6 @@ export declare class Controller implements IController {
     exportAsBase64(storageName: string): string;
     onCpcCanvasClick(event: MouseEvent): void;
     onWindowClick(event: Event): void;
-    onTextTextClick(event: MouseEvent): void;
     fnArrayBounds(): void;
     fnImplicitLines(): void;
     fnTrace(): void;

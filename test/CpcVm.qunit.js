@@ -108,9 +108,9 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             "0xbb51": "",
             "0xbb5a": "",
             "0xbb5a,1,2,3,4,5,6,7,8": '{"_key":"win0","pos":-1}',
-            "0xbb5d": 'printChar:0,0,0,1,0,false , txtPrintChar:0,0,0,1,0,false -- {"_key":"win0","pos":1}',
-            "0xbb5d,1,2,3,4,5,6,7,8": 'printChar:8,0,0,1,0,false , txtPrintChar:8,0,0,1,0,false -- {"_key":"win0","pos":1}',
-            "0xbb6c": "clearTextWindow:0,39,0,24,0 , txtClearTextWindow:0,39,0,24,0",
+            "0xbb5d": 'printChar:0,0,0,1,0,false -- {"_key":"win0","pos":1}',
+            "0xbb5d,1,2,3,4,5,6,7,8": 'printChar:8,0,0,1,0,false -- {"_key":"win0","pos":1}',
+            "0xbb6c": "clearTextWindow:0,39,0,24,0",
             "0xbb7b": "",
             "0xbb7e": '{"_key":"win0","cursorEnabled":false}',
             "0xbb81": 'drawCursor:0,0,1,0 -- {"_key":"win0","cursorOn":true}',
@@ -145,7 +145,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             "0xbbfc,1": "printGChar:1",
             "0xbbfc,1,2": "printGChar:2",
             "0xbbfc,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32": "printGChar:32",
-            "0xbbff": "setMode:1 , clearFullWindow: , txtClearFullWindow: , setDefaultInks: , setSpeedInk:10,10",
+            "0xbbff": "setMode:1 , clearFullWindow: , setDefaultInks: , setSpeedInk:10,10",
             "0xbc02": "setDefaultInks: , setSpeedInk:10,10",
             "0xbc06": 'CpcVm: Type mismatch in 0: screenBase undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
             "0xbc06,0x40": "getByte:49152 , getByte:49153 , setByte:16384,0 , setByte:16385,0",
@@ -153,11 +153,11 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             "0xbc07": 'CpcVm: Type mismatch in 0: screenBase undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
             "0xbc07,0x40": "getByte:49152 , getByte:49153 , setByte:16384,0 , setByte:16385,0",
             "0xbc07,0xc0": "getByte:16384 , getByte:16385 , setByte:49152,0 , setByte:49153,0",
-            "0xbc0e": 'setMode:0 , clearFullWindow: , setMode:0,19,24 , txtClearFullWindow: -- {"_key":"win0","right":19} -- {"_key":"win1","right":19} -- {"_key":"win2","right":19} -- {"_key":"win3","right":19} -- {"_key":"win4","right":19} -- {"_key":"win5","right":19} -- {"_key":"win6","right":19} -- {"_key":"win7","right":19}',
-            "0xbc0e,1": "setMode:1 , clearFullWindow: , setMode:1,39,24 , txtClearFullWindow:",
-            "0xbc0e,1,2": 'setMode:2 , clearFullWindow: , setMode:2,79,24 , txtClearFullWindow: -- {"_key":"win0","right":79} -- {"_key":"win1","right":79} -- {"_key":"win2","right":79} -- {"_key":"win3","right":79} -- {"_key":"win4","right":79} -- {"_key":"win5","right":79} -- {"_key":"win6","right":79} -- {"_key":"win7","right":79}',
-            "0xbc0e,1,2,3": 'setMode:3 , clearFullWindow: , setMode:3,79,49 , txtClearFullWindow: -- {"_key":"win0","right":79,"bottom":49} -- {"_key":"win1","right":79,"bottom":49} -- {"_key":"win2","right":79,"bottom":49} -- {"_key":"win3","right":79,"bottom":49} -- {"_key":"win4","right":79,"bottom":49} -- {"_key":"win5","right":79,"bottom":49} -- {"_key":"win6","right":79,"bottom":49} -- {"_key":"win7","right":79,"bottom":49} -- {"_key":"win8","bottom":49} -- {"_key":"win9","bottom":49}',
-            "0xbc0e,1,2,3,4": 'setMode:0 , clearFullWindow: , setMode:0,19,24 , txtClearFullWindow: -- {"_key":"win0","right":19} -- {"_key":"win1","right":19} -- {"_key":"win2","right":19} -- {"_key":"win3","right":19} -- {"_key":"win4","right":19} -- {"_key":"win5","right":19} -- {"_key":"win6","right":19} -- {"_key":"win7","right":19}',
+            "0xbc0e": 'setMode:0 , clearFullWindow: -- {"_key":"win0","right":19} -- {"_key":"win1","right":19} -- {"_key":"win2","right":19} -- {"_key":"win3","right":19} -- {"_key":"win4","right":19} -- {"_key":"win5","right":19} -- {"_key":"win6","right":19} -- {"_key":"win7","right":19}',
+            "0xbc0e,1": "setMode:1 , clearFullWindow:",
+            "0xbc0e,1,2": 'setMode:2 , clearFullWindow: -- {"_key":"win0","right":79} -- {"_key":"win1","right":79} -- {"_key":"win2","right":79} -- {"_key":"win3","right":79} -- {"_key":"win4","right":79} -- {"_key":"win5","right":79} -- {"_key":"win6","right":79} -- {"_key":"win7","right":79}',
+            "0xbc0e,1,2,3": 'setMode:3 , clearFullWindow: -- {"_key":"win0","right":79,"bottom":49} -- {"_key":"win1","right":79,"bottom":49} -- {"_key":"win2","right":79,"bottom":49} -- {"_key":"win3","right":79,"bottom":49} -- {"_key":"win4","right":79,"bottom":49} -- {"_key":"win5","right":79,"bottom":49} -- {"_key":"win6","right":79,"bottom":49} -- {"_key":"win7","right":79,"bottom":49} -- {"_key":"win8","bottom":49} -- {"_key":"win9","bottom":49}',
+            "0xbc0e,1,2,3,4": 'setMode:0 , clearFullWindow: -- {"_key":"win0","right":19} -- {"_key":"win1","right":19} -- {"_key":"win2","right":19} -- {"_key":"win3","right":19} -- {"_key":"win4","right":19} -- {"_key":"win5","right":19} -- {"_key":"win6","right":19} -- {"_key":"win7","right":19}',
             "0xbca7": "reset:",
             "0xbcbc": "",
             "0xbcb6": "",
@@ -283,8 +283,8 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             '"_testCase3"': '{"_key":"stop","reason":"fileSave","priority":90,"paras":{}} -- {"_key":"outFile","open":true,"command":"closeout","name":"name1","line":0,"fileData":["A"],"stream":0,"typeString":"","length":0,"entry":0}'
         },
         cls: {
-            "0 ": "clearTextWindow:0,39,0,24,0 , txtClearTextWindow:0,39,0,24,0",
-            "6.7 ": "clearTextWindow:0,39,0,24,0 , txtClearTextWindow:0,39,0,24,0",
+            "0 ": "clearTextWindow:0,39,0,24,0",
+            "6.7 ": "clearTextWindow:0,39,0,24,0",
             "": 'CpcVm: Type mismatch in 0: CLS undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
             '""': 'CpcVm: Type mismatch in 0: CLS  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
             "-1 ": 'CpcVm: Improper argument in 0: CLS -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
@@ -736,12 +736,12 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             "-32769": 'CpcVm: Overflow in 0: INP -32769 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
         },
         input: {
-            "0 ": 'printChar:117,0,0,1,0,false , txtPrintChar:117,0,0,1,0,false , printChar:110,1,0,1,0,false , txtPrintChar:110,1,0,1,0,false , printChar:100,2,0,1,0,false , txtPrintChar:100,2,0,1,0,false , printChar:101,3,0,1,0,false , txtPrintChar:101,3,0,1,0,false , printChar:102,4,0,1,0,false , txtPrintChar:102,4,0,1,0,false , printChar:105,5,0,1,0,false , txtPrintChar:105,5,0,1,0,false , printChar:110,6,0,1,0,false , txtPrintChar:110,6,0,1,0,false , printChar:101,7,0,1,0,false , txtPrintChar:101,7,0,1,0,false , printChar:100,8,0,1,0,false , txtPrintChar:100,8,0,1,0,false , drawCursor:9,0,1,0 , drawCursor:9,0,1,0 , drawCursor:9,0,1,0 --  -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":0,"types":[],"input":"","line":0}} -- {"_key":"win0","pos":9,"cursorOn":true}',
-            "7 ": 'printChar:117,0,0,1,0,false , txtPrintChar:117,0,0,1,0,false , printChar:110,1,0,1,0,false , txtPrintChar:110,1,0,1,0,false , printChar:100,2,0,1,0,false , txtPrintChar:100,2,0,1,0,false , printChar:101,3,0,1,0,false , txtPrintChar:101,3,0,1,0,false , printChar:102,4,0,1,0,false , txtPrintChar:102,4,0,1,0,false , printChar:105,5,0,1,0,false , txtPrintChar:105,5,0,1,0,false , printChar:110,6,0,1,0,false , txtPrintChar:110,6,0,1,0,false , printChar:101,7,0,1,0,false , txtPrintChar:101,7,0,1,0,false , printChar:100,8,0,1,0,false , txtPrintChar:100,8,0,1,0,false , drawCursor:9,0,1,0 , drawCursor:9,0,1,0 , drawCursor:9,0,1,0 --  -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":7,"types":[],"input":"","line":0}} -- {"_key":"win7","pos":9,"cursorOn":true}',
+            "0 ": 'printChar:117,0,0,1,0,false , printChar:110,1,0,1,0,false , printChar:100,2,0,1,0,false , printChar:101,3,0,1,0,false , printChar:102,4,0,1,0,false , printChar:105,5,0,1,0,false , printChar:110,6,0,1,0,false , printChar:101,7,0,1,0,false , printChar:100,8,0,1,0,false , drawCursor:9,0,1,0 , drawCursor:9,0,1,0 , drawCursor:9,0,1,0 --  -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":0,"types":[],"input":"","line":0}} -- {"_key":"win0","pos":9,"cursorOn":true}',
+            "7 ": 'printChar:117,0,0,1,0,false , printChar:110,1,0,1,0,false , printChar:100,2,0,1,0,false , printChar:101,3,0,1,0,false , printChar:102,4,0,1,0,false , printChar:105,5,0,1,0,false , printChar:110,6,0,1,0,false , printChar:101,7,0,1,0,false , printChar:100,8,0,1,0,false , drawCursor:9,0,1,0 , drawCursor:9,0,1,0 , drawCursor:9,0,1,0 --  -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":7,"types":[],"input":"","line":0}} -- {"_key":"win7","pos":9,"cursorOn":true}',
             "8 ": "I am the printer!",
-            '0,undefined,"msg","a$"': 'printChar:109,0,0,1,0,false , txtPrintChar:109,0,0,1,0,false , printChar:115,1,0,1,0,false , txtPrintChar:115,1,0,1,0,false , printChar:103,2,0,1,0,false , txtPrintChar:103,2,0,1,0,false , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 --  -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":0,"message":"msg","noCRLF":null,"types":["a$"],"input":"","line":0}} -- {"_key":"win0","pos":3,"cursorOn":true}',
-            '0,";","msg","a$"': 'printChar:109,0,0,1,0,false , txtPrintChar:109,0,0,1,0,false , printChar:115,1,0,1,0,false , txtPrintChar:115,1,0,1,0,false , printChar:103,2,0,1,0,false , txtPrintChar:103,2,0,1,0,false , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 --  -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":0,"message":"msg","noCRLF":";","types":["a$"],"input":"","line":0}} -- {"_key":"win0","pos":3,"cursorOn":true}',
-            '0,";","msg","a$","b"': 'printChar:109,0,0,1,0,false , txtPrintChar:109,0,0,1,0,false , printChar:115,1,0,1,0,false , txtPrintChar:115,1,0,1,0,false , printChar:103,2,0,1,0,false , txtPrintChar:103,2,0,1,0,false , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 --  -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":0,"message":"msg","noCRLF":";","types":["a$","b"],"input":"","line":0}} -- {"_key":"win0","pos":3,"cursorOn":true}',
+            '0,undefined,"msg","a$"': 'printChar:109,0,0,1,0,false , printChar:115,1,0,1,0,false , printChar:103,2,0,1,0,false , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 --  -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":0,"message":"msg","noCRLF":null,"types":["a$"],"input":"","line":0}} -- {"_key":"win0","pos":3,"cursorOn":true}',
+            '0,";","msg","a$"': 'printChar:109,0,0,1,0,false , printChar:115,1,0,1,0,false , printChar:103,2,0,1,0,false , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 --  -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":0,"message":"msg","noCRLF":";","types":["a$"],"input":"","line":0}} -- {"_key":"win0","pos":3,"cursorOn":true}',
+            '0,";","msg","a$","b"': 'printChar:109,0,0,1,0,false , printChar:115,1,0,1,0,false , printChar:103,2,0,1,0,false , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 , drawCursor:3,0,1,0 --  -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"input","stream":0,"message":"msg","noCRLF":";","types":["a$","b"],"input":"","line":0}} -- {"_key":"win0","pos":3,"cursorOn":true}',
             '9,"","msg","a$","b$","c"': 'abc def 7 -- {"_key":"stop","reason":"fileLoad","priority":90,"paras":{}} -- {"_key":"inFile","open":true,"command":"openin","name":"file1","line":0,"fileData":[],"first":0,"last":0,"memorizedExample":""}',
             "": 'CpcVm: Type mismatch in 0: INPUT undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
             '""': 'CpcVm: Type mismatch in 0: INPUT  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
@@ -846,12 +846,12 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             "0 ": 'CpcVm: Type mismatch in 0: LEN 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
         },
         lineInput: {
-            '0,undefined,"? ","a$"': 'printChar:63,0,0,1,0,false , txtPrintChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , txtPrintChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":0,"message":"? ","noCRLF":null,"input":"abc1,7,e","line":0}} -- {"_key":"win0","pos":2}',
-            '7,undefined,"? ","a$"': 'printChar:63,0,0,1,0,false , txtPrintChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , txtPrintChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":7,"message":"? ","noCRLF":null,"input":"abc1,7,e","line":0}} -- {"_key":"win7","pos":2}',
-            '6.4,";","? ","a$"': 'printChar:63,0,0,1,0,false , txtPrintChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , txtPrintChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":6,"message":"? ","noCRLF":";","input":"abc1,7,e","line":0}} -- {"_key":"win6","pos":2}',
+            '0,undefined,"? ","a$"': 'printChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":0,"message":"? ","noCRLF":null,"input":"abc1,7,e","line":0}} -- {"_key":"win0","pos":2}',
+            '7,undefined,"? ","a$"': 'printChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":7,"message":"? ","noCRLF":null,"input":"abc1,7,e","line":0}} -- {"_key":"win7","pos":2}',
+            '6.4,";","? ","a$"': 'printChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":6,"message":"? ","noCRLF":";","input":"abc1,7,e","line":0}} -- {"_key":"win6","pos":2}',
             "8 ": "I am the printer!",
-            '0,";","? ","a$"': 'printChar:63,0,0,1,0,false , txtPrintChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , txtPrintChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":0,"message":"? ","noCRLF":";","input":"abc1,7,e","line":0}} -- {"_key":"win0","pos":2}',
-            '0,";","? ","a$","b"': 'printChar:63,0,0,1,0,false , txtPrintChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , txtPrintChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":0,"message":"? ","noCRLF":";","input":"abc1,7,e","line":0}} -- {"_key":"win0","pos":2}',
+            '0,";","? ","a$"': 'printChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":0,"message":"? ","noCRLF":";","input":"abc1,7,e","line":0}} -- {"_key":"win0","pos":2}',
+            '0,";","? ","a$","b"': 'printChar:63,0,0,1,0,false , printChar:32,1,0,1,0,false , drawCursor:2,0,1,0 , drawCursor:2,0,1,0 -- abc1,7,e -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"lineinput","stream":0,"message":"? ","noCRLF":";","input":"abc1,7,e","line":0}} -- {"_key":"win0","pos":2}',
             "": 'CpcVm: Type mismatch in 0: LINE INPUT undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
             '""': 'CpcVm: Type mismatch in 0: LINE INPUT  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
             '-1,undefined,"? ","a$"': 'CpcVm: Improper argument in 0: LINE INPUT -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
@@ -1011,10 +1011,10 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             '0,"7"': 'CpcVm: Type mismatch in 0: MIN 7 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
         },
         mode: {
-            "0 ": 'setMode:0 , clearFullWindow: , setMode:0,19,24 , txtClearFullWindow: -- {"_key":"win0","right":19} -- {"_key":"win1","right":19} -- {"_key":"win2","right":19} -- {"_key":"win3","right":19} -- {"_key":"win4","right":19} -- {"_key":"win5","right":19} -- {"_key":"win6","right":19} -- {"_key":"win7","right":19}',
-            "1 ": "setMode:1 , clearFullWindow: , setMode:1,39,24 , txtClearFullWindow:",
-            "2 ": 'setMode:2 , clearFullWindow: , setMode:2,79,24 , txtClearFullWindow: -- {"_key":"win0","right":79} -- {"_key":"win1","right":79} -- {"_key":"win2","right":79} -- {"_key":"win3","right":79} -- {"_key":"win4","right":79} -- {"_key":"win5","right":79} -- {"_key":"win6","right":79} -- {"_key":"win7","right":79}',
-            "3.4 ": 'setMode:3 , clearFullWindow: , setMode:3,79,49 , txtClearFullWindow: -- {"_key":"win0","right":79,"bottom":49} -- {"_key":"win1","right":79,"bottom":49} -- {"_key":"win2","right":79,"bottom":49} -- {"_key":"win3","right":79,"bottom":49} -- {"_key":"win4","right":79,"bottom":49} -- {"_key":"win5","right":79,"bottom":49} -- {"_key":"win6","right":79,"bottom":49} -- {"_key":"win7","right":79,"bottom":49} -- {"_key":"win8","bottom":49} -- {"_key":"win9","bottom":49}',
+            "0 ": 'setMode:0 , clearFullWindow: -- {"_key":"win0","right":19} -- {"_key":"win1","right":19} -- {"_key":"win2","right":19} -- {"_key":"win3","right":19} -- {"_key":"win4","right":19} -- {"_key":"win5","right":19} -- {"_key":"win6","right":19} -- {"_key":"win7","right":19}',
+            "1 ": "setMode:1 , clearFullWindow:",
+            "2 ": 'setMode:2 , clearFullWindow: -- {"_key":"win0","right":79} -- {"_key":"win1","right":79} -- {"_key":"win2","right":79} -- {"_key":"win3","right":79} -- {"_key":"win4","right":79} -- {"_key":"win5","right":79} -- {"_key":"win6","right":79} -- {"_key":"win7","right":79}',
+            "3.4 ": 'setMode:3 , clearFullWindow: -- {"_key":"win0","right":79,"bottom":49} -- {"_key":"win1","right":79,"bottom":49} -- {"_key":"win2","right":79,"bottom":49} -- {"_key":"win3","right":79,"bottom":49} -- {"_key":"win4","right":79,"bottom":49} -- {"_key":"win5","right":79,"bottom":49} -- {"_key":"win6","right":79,"bottom":49} -- {"_key":"win7","right":79,"bottom":49} -- {"_key":"win8","bottom":49} -- {"_key":"win9","bottom":49}',
             "": 'CpcVm: Type mismatch in 0: MODE undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
             '""': 'CpcVm: Type mismatch in 0: MODE  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
             "4 ": 'CpcVm: Improper argument in 0: MODE 4 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
@@ -1294,20 +1294,20 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             "7 ": "",
             "8 ": "",
             "9 ": 'CpcVm: File not open in 0: PRINT #9 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-            "0,1": 'printChar:32,0,0,1,0,false , txtPrintChar:32,0,0,1,0,false , printChar:49,1,0,1,0,false , txtPrintChar:49,1,0,1,0,false , printChar:32,2,0,1,0,false , txtPrintChar:32,2,0,1,0,false -- {"_key":"win0","pos":3}',
-            "0,12.345": 'printChar:32,0,0,1,0,false , txtPrintChar:32,0,0,1,0,false , printChar:49,1,0,1,0,false , txtPrintChar:49,1,0,1,0,false , printChar:50,2,0,1,0,false , txtPrintChar:50,2,0,1,0,false , printChar:46,3,0,1,0,false , txtPrintChar:46,3,0,1,0,false , printChar:51,4,0,1,0,false , txtPrintChar:51,4,0,1,0,false , printChar:52,5,0,1,0,false , txtPrintChar:52,5,0,1,0,false , printChar:53,6,0,1,0,false , txtPrintChar:53,6,0,1,0,false , printChar:32,7,0,1,0,false , txtPrintChar:32,7,0,1,0,false -- {"_key":"win0","pos":8}',
-            "0,-12.345": 'printChar:45,0,0,1,0,false , txtPrintChar:45,0,0,1,0,false , printChar:49,1,0,1,0,false , txtPrintChar:49,1,0,1,0,false , printChar:50,2,0,1,0,false , txtPrintChar:50,2,0,1,0,false , printChar:46,3,0,1,0,false , txtPrintChar:46,3,0,1,0,false , printChar:51,4,0,1,0,false , txtPrintChar:51,4,0,1,0,false , printChar:52,5,0,1,0,false , txtPrintChar:52,5,0,1,0,false , printChar:53,6,0,1,0,false , txtPrintChar:53,6,0,1,0,false , printChar:32,7,0,1,0,false , txtPrintChar:32,7,0,1,0,false -- {"_key":"win0","pos":8}',
-            '0,"-12.345"': 'printChar:45,0,0,1,0,false , txtPrintChar:45,0,0,1,0,false , printChar:49,1,0,1,0,false , txtPrintChar:49,1,0,1,0,false , printChar:50,2,0,1,0,false , txtPrintChar:50,2,0,1,0,false , printChar:46,3,0,1,0,false , txtPrintChar:46,3,0,1,0,false , printChar:51,4,0,1,0,false , txtPrintChar:51,4,0,1,0,false , printChar:52,5,0,1,0,false , txtPrintChar:52,5,0,1,0,false , printChar:53,6,0,1,0,false , txtPrintChar:53,6,0,1,0,false -- {"_key":"win0","pos":7}',
-            '0,"abc"': 'printChar:97,0,0,1,0,false , txtPrintChar:97,0,0,1,0,false , printChar:98,1,0,1,0,false , txtPrintChar:98,1,0,1,0,false , printChar:99,2,0,1,0,false , txtPrintChar:99,2,0,1,0,false -- {"_key":"win0","pos":3}',
-            '0,"a","bc",7.2,"d"': 'printChar:97,0,0,1,0,false , txtPrintChar:97,0,0,1,0,false , printChar:98,1,0,1,0,false , txtPrintChar:98,1,0,1,0,false , printChar:99,2,0,1,0,false , txtPrintChar:99,2,0,1,0,false , printChar:32,3,0,1,0,false , txtPrintChar:32,3,0,1,0,false , printChar:55,4,0,1,0,false , txtPrintChar:55,4,0,1,0,false , printChar:46,5,0,1,0,false , txtPrintChar:46,5,0,1,0,false , printChar:50,6,0,1,0,false , txtPrintChar:50,6,0,1,0,false , printChar:32,7,0,1,0,false , txtPrintChar:32,7,0,1,0,false , printChar:100,8,0,1,0,false , txtPrintChar:100,8,0,1,0,false -- {"_key":"win0","pos":9}',
-            "0,999999999": 'printChar:32,0,0,1,0,false , txtPrintChar:32,0,0,1,0,false , printChar:57,1,0,1,0,false , txtPrintChar:57,1,0,1,0,false , printChar:57,2,0,1,0,false , txtPrintChar:57,2,0,1,0,false , printChar:57,3,0,1,0,false , txtPrintChar:57,3,0,1,0,false , printChar:57,4,0,1,0,false , txtPrintChar:57,4,0,1,0,false , printChar:57,5,0,1,0,false , txtPrintChar:57,5,0,1,0,false , printChar:57,6,0,1,0,false , txtPrintChar:57,6,0,1,0,false , printChar:57,7,0,1,0,false , txtPrintChar:57,7,0,1,0,false , printChar:57,8,0,1,0,false , txtPrintChar:57,8,0,1,0,false , printChar:57,9,0,1,0,false , txtPrintChar:57,9,0,1,0,false , printChar:32,10,0,1,0,false , txtPrintChar:32,10,0,1,0,false -- {"_key":"win0","pos":11}',
-            "0,1e9": 'printChar:32,0,0,1,0,false , txtPrintChar:32,0,0,1,0,false , printChar:49,1,0,1,0,false , txtPrintChar:49,1,0,1,0,false , printChar:69,2,0,1,0,false , txtPrintChar:69,2,0,1,0,false , printChar:43,3,0,1,0,false , txtPrintChar:43,3,0,1,0,false , printChar:48,4,0,1,0,false , txtPrintChar:48,4,0,1,0,false , printChar:57,5,0,1,0,false , txtPrintChar:57,5,0,1,0,false , printChar:32,6,0,1,0,false , txtPrintChar:32,6,0,1,0,false -- {"_key":"win0","pos":7}',
-            "0,0x00": 'printChar:32,0,0,1,0,false , txtPrintChar:32,0,0,1,0,false , printChar:48,1,0,1,0,false , txtPrintChar:48,1,0,1,0,false , printChar:32,2,0,1,0,false , txtPrintChar:32,2,0,1,0,false -- {"_key":"win0","pos":3}',
+            "0,1": 'printChar:32,0,0,1,0,false , printChar:49,1,0,1,0,false , printChar:32,2,0,1,0,false -- {"_key":"win0","pos":3}',
+            "0,12.345": 'printChar:32,0,0,1,0,false , printChar:49,1,0,1,0,false , printChar:50,2,0,1,0,false , printChar:46,3,0,1,0,false , printChar:51,4,0,1,0,false , printChar:52,5,0,1,0,false , printChar:53,6,0,1,0,false , printChar:32,7,0,1,0,false -- {"_key":"win0","pos":8}',
+            "0,-12.345": 'printChar:45,0,0,1,0,false , printChar:49,1,0,1,0,false , printChar:50,2,0,1,0,false , printChar:46,3,0,1,0,false , printChar:51,4,0,1,0,false , printChar:52,5,0,1,0,false , printChar:53,6,0,1,0,false , printChar:32,7,0,1,0,false -- {"_key":"win0","pos":8}',
+            '0,"-12.345"': 'printChar:45,0,0,1,0,false , printChar:49,1,0,1,0,false , printChar:50,2,0,1,0,false , printChar:46,3,0,1,0,false , printChar:51,4,0,1,0,false , printChar:52,5,0,1,0,false , printChar:53,6,0,1,0,false -- {"_key":"win0","pos":7}',
+            '0,"abc"': 'printChar:97,0,0,1,0,false , printChar:98,1,0,1,0,false , printChar:99,2,0,1,0,false -- {"_key":"win0","pos":3}',
+            '0,"a","bc",7.2,"d"': 'printChar:97,0,0,1,0,false , printChar:98,1,0,1,0,false , printChar:99,2,0,1,0,false , printChar:32,3,0,1,0,false , printChar:55,4,0,1,0,false , printChar:46,5,0,1,0,false , printChar:50,6,0,1,0,false , printChar:32,7,0,1,0,false , printChar:100,8,0,1,0,false -- {"_key":"win0","pos":9}',
+            "0,999999999": 'printChar:32,0,0,1,0,false , printChar:57,1,0,1,0,false , printChar:57,2,0,1,0,false , printChar:57,3,0,1,0,false , printChar:57,4,0,1,0,false , printChar:57,5,0,1,0,false , printChar:57,6,0,1,0,false , printChar:57,7,0,1,0,false , printChar:57,8,0,1,0,false , printChar:57,9,0,1,0,false , printChar:32,10,0,1,0,false -- {"_key":"win0","pos":11}',
+            "0,1e9": 'printChar:32,0,0,1,0,false , printChar:49,1,0,1,0,false , printChar:69,2,0,1,0,false , printChar:43,3,0,1,0,false , printChar:48,4,0,1,0,false , printChar:57,5,0,1,0,false , printChar:32,6,0,1,0,false -- {"_key":"win0","pos":7}',
+            "0,0x00": 'printChar:32,0,0,1,0,false , printChar:48,1,0,1,0,false , printChar:32,2,0,1,0,false -- {"_key":"win0","pos":3}',
             '0,"\x00"': "",
-            '0,"\x01\x08"': 'printChar:8,0,0,1,0,false , txtPrintChar:8,0,0,1,0,false -- {"_key":"win0","pos":1}',
+            '0,"\x01\x08"': 'printChar:8,0,0,1,0,false -- {"_key":"win0","pos":1}',
             '0,"\x02"': '{"_key":"win0","cursorEnabled":false}',
             '0,"\x03"': "",
-            '0,"\x04\x02"': 'setMode:2 , clearFullWindow: , setMode:2,79,24 , txtClearFullWindow: -- {"_key":"win0","right":79} -- {"_key":"win1","right":79} -- {"_key":"win2","right":79} -- {"_key":"win3","right":79} -- {"_key":"win4","right":79} -- {"_key":"win5","right":79} -- {"_key":"win6","right":79} -- {"_key":"win7","right":79}',
+            '0,"\x04\x02"': 'setMode:2 , clearFullWindow: -- {"_key":"win0","right":79} -- {"_key":"win1","right":79} -- {"_key":"win2","right":79} -- {"_key":"win3","right":79} -- {"_key":"win4","right":79} -- {"_key":"win5","right":79} -- {"_key":"win6","right":79} -- {"_key":"win7","right":79}',
             '0,"\x05\x08"': "printGChar:8",
             '0,"\x06"': "",
             '0,"\x07"': 'testCanQueue:135 , sound:{"state":135,"period":90,"duration":20,"volume":12,"volEnv":0,"toneEnv":0,"noise":0}',
@@ -1315,15 +1315,15 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             '0,"\x09"': '{"_key":"win0","pos":1}',
             '0,"\n"': '{"_key":"win0","vpos":1}',
             '0,"\x0b"': '{"_key":"win0","vpos":-1}',
-            '0,"\x0c"': "clearTextWindow:0,39,0,24,0 , txtClearTextWindow:0,39,0,24,0",
+            '0,"\x0c"': "clearTextWindow:0,39,0,24,0",
             '0,"\r"': "",
             '0,"\x0e\x04"': '{"_key":"win0","paper":4}',
             '0,"\x0f\x04"': '{"_key":"win0","pen":4}',
-            '0,"\x10"': "fillTextBox:0,0,1,1,0 , txtFillTextBox:0,0,1,1",
-            '0,"\x11"': "fillTextBox:0,0,1,1,0 , txtFillTextBox:0,0,1,1,0",
-            '0,"\x12"': "fillTextBox:0,0,40,1,0 , txtFillTextBox:0,0,40,1,0",
-            '0,"\x13"': "fillTextBox:0,0,40,0,0 , fillTextBox:0,0,1,1,0 , txtFillTextBox:0,0,40,0,0 , txtFillTextBox:0,0,1,1,0",
-            '0,"\x14"': "fillTextBox:0,0,40,1,0 , fillTextBox:0,1,40,24,0 , txtFillTextBox:0,0,40,1,0 , txtFillTextBox:0,1,40,24,0",
+            '0,"\x10"': "fillTextBox:0,0,1,1,0",
+            '0,"\x11"': "fillTextBox:0,0,1,1,0",
+            '0,"\x12"': "fillTextBox:0,0,40,1,0",
+            '0,"\x13"': "fillTextBox:0,0,40,0,0 , fillTextBox:0,0,1,1,0",
+            '0,"\x14"': "fillTextBox:0,0,40,1,0 , fillTextBox:0,1,40,24,0",
             '0,"\x15"': '{"_key":"win0","textEnabled":false,"cursorEnabled":false}',
             '0,"\x16\x00"': "",
             '0,"\x16\x01"': '{"_key":"win0","transparent":true}',
@@ -1343,7 +1343,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             '0,"\x1f\x02\x03"': '{"_key":"win0","pos":1,"vpos":2}',
             '7,"\x1f\x02\x03"': '{"_key":"win7","pos":1,"vpos":2}',
             '6,"\x1f","\x08","\x09"': '{"_key":"win6","pos":7,"vpos":8}',
-            '0," "': 'printChar:32,0,0,1,0,false , txtPrintChar:32,0,0,1,0,false -- {"_key":"win0","pos":1}',
+            '0," "': 'printChar:32,0,0,1,0,false -- {"_key":"win0","pos":1}',
             "": 'CpcVm: Type mismatch in 0: PRINT undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
             '""': 'CpcVm: Type mismatch in 0: PRINT  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
             "-1 ": 'CpcVm: Improper argument in 0: PRINT -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
@@ -1357,7 +1357,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             "-17.5": "undefined",
             "0x89656c07": "undefined",
             "0 ": "undefined",
-            "": 'printChar:82,0,0,1,0,false , txtPrintChar:82,0,0,1,0,false , printChar:97,1,0,1,0,false , txtPrintChar:97,1,0,1,0,false , printChar:110,2,0,1,0,false , txtPrintChar:110,2,0,1,0,false , printChar:100,3,0,1,0,false , txtPrintChar:100,3,0,1,0,false , printChar:111,4,0,1,0,false , txtPrintChar:111,4,0,1,0,false , printChar:109,5,0,1,0,false , txtPrintChar:109,5,0,1,0,false , printChar:32,6,0,1,0,false , txtPrintChar:32,6,0,1,0,false , printChar:110,7,0,1,0,false , txtPrintChar:110,7,0,1,0,false , printChar:117,8,0,1,0,false , txtPrintChar:117,8,0,1,0,false , printChar:109,9,0,1,0,false , txtPrintChar:109,9,0,1,0,false , printChar:98,10,0,1,0,false , txtPrintChar:98,10,0,1,0,false , printChar:101,11,0,1,0,false , txtPrintChar:101,11,0,1,0,false , printChar:114,12,0,1,0,false , txtPrintChar:114,12,0,1,0,false , printChar:32,13,0,1,0,false , txtPrintChar:32,13,0,1,0,false , printChar:115,14,0,1,0,false , txtPrintChar:115,14,0,1,0,false , printChar:101,15,0,1,0,false , txtPrintChar:101,15,0,1,0,false , printChar:101,16,0,1,0,false , txtPrintChar:101,16,0,1,0,false , printChar:100,17,0,1,0,false , txtPrintChar:100,17,0,1,0,false , printChar:32,18,0,1,0,false , txtPrintChar:32,18,0,1,0,false , printChar:63,19,0,1,0,false , txtPrintChar:63,19,0,1,0,false , printChar:32,20,0,1,0,false , txtPrintChar:32,20,0,1,0,false -- 12.76 -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"randomize","stream":0,"message":"Random number seed ? ","input":"12.76","line":0}} -- {"_key":"win0","pos":21}',
+            "": 'printChar:82,0,0,1,0,false , printChar:97,1,0,1,0,false , printChar:110,2,0,1,0,false , printChar:100,3,0,1,0,false , printChar:111,4,0,1,0,false , printChar:109,5,0,1,0,false , printChar:32,6,0,1,0,false , printChar:110,7,0,1,0,false , printChar:117,8,0,1,0,false , printChar:109,9,0,1,0,false , printChar:98,10,0,1,0,false , printChar:101,11,0,1,0,false , printChar:114,12,0,1,0,false , printChar:32,13,0,1,0,false , printChar:115,14,0,1,0,false , printChar:101,15,0,1,0,false , printChar:101,16,0,1,0,false , printChar:100,17,0,1,0,false , printChar:32,18,0,1,0,false , printChar:63,19,0,1,0,false , printChar:32,20,0,1,0,false -- 12.76 -- {"_key":"stop","reason":"waitInput","priority":45,"paras":{"command":"randomize","stream":0,"message":"Random number seed ? ","input":"12.76","line":0}} -- {"_key":"win0","pos":21}',
             '""': 'CpcVm: Type mismatch in 0: RANDOMIZE  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
         },
         read: {
@@ -1866,13 +1866,13 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
         },
         write: {
             "0 ": '{"_key":"win0","vpos":1}',
-            "0,6": 'printChar:54,0,0,1,0,false , txtPrintChar:54,0,0,1,0,false -- {"_key":"win0","vpos":1}',
-            "0,6.234": 'printChar:54,0,0,1,0,false , txtPrintChar:54,0,0,1,0,false , printChar:46,1,0,1,0,false , txtPrintChar:46,1,0,1,0,false , printChar:50,2,0,1,0,false , txtPrintChar:50,2,0,1,0,false , printChar:51,3,0,1,0,false , txtPrintChar:51,3,0,1,0,false , printChar:52,4,0,1,0,false , txtPrintChar:52,4,0,1,0,false -- {"_key":"win0","vpos":1}',
-            '0,""': 'printChar:34,0,0,1,0,false , txtPrintChar:34,0,0,1,0,false , printChar:34,1,0,1,0,false , txtPrintChar:34,1,0,1,0,false -- {"_key":"win0","vpos":1}',
-            '0,"ab"': 'printChar:34,0,0,1,0,false , txtPrintChar:34,0,0,1,0,false , printChar:97,1,0,1,0,false , txtPrintChar:97,1,0,1,0,false , printChar:98,2,0,1,0,false , txtPrintChar:98,2,0,1,0,false , printChar:34,3,0,1,0,false , txtPrintChar:34,3,0,1,0,false -- {"_key":"win0","vpos":1}',
-            '0,"a","b"': 'printChar:34,0,0,1,0,false , txtPrintChar:34,0,0,1,0,false , printChar:97,1,0,1,0,false , txtPrintChar:97,1,0,1,0,false , printChar:34,2,0,1,0,false , txtPrintChar:34,2,0,1,0,false , printChar:44,3,0,1,0,false , txtPrintChar:44,3,0,1,0,false , printChar:34,4,0,1,0,false , txtPrintChar:34,4,0,1,0,false , printChar:98,5,0,1,0,false , txtPrintChar:98,5,0,1,0,false , printChar:34,6,0,1,0,false , txtPrintChar:34,6,0,1,0,false -- {"_key":"win0","vpos":1}',
-            "0,999999999": 'printChar:57,0,0,1,0,false , txtPrintChar:57,0,0,1,0,false , printChar:57,1,0,1,0,false , txtPrintChar:57,1,0,1,0,false , printChar:57,2,0,1,0,false , txtPrintChar:57,2,0,1,0,false , printChar:57,3,0,1,0,false , txtPrintChar:57,3,0,1,0,false , printChar:57,4,0,1,0,false , txtPrintChar:57,4,0,1,0,false , printChar:57,5,0,1,0,false , txtPrintChar:57,5,0,1,0,false , printChar:57,6,0,1,0,false , txtPrintChar:57,6,0,1,0,false , printChar:57,7,0,1,0,false , txtPrintChar:57,7,0,1,0,false , printChar:57,8,0,1,0,false , txtPrintChar:57,8,0,1,0,false -- {"_key":"win0","vpos":1}',
-            "0,1e9": 'printChar:49,0,0,1,0,false , txtPrintChar:49,0,0,1,0,false , printChar:69,1,0,1,0,false , txtPrintChar:69,1,0,1,0,false , printChar:43,2,0,1,0,false , txtPrintChar:43,2,0,1,0,false , printChar:48,3,0,1,0,false , txtPrintChar:48,3,0,1,0,false , printChar:57,4,0,1,0,false , txtPrintChar:57,4,0,1,0,false -- {"_key":"win0","vpos":1}',
+            "0,6": 'printChar:54,0,0,1,0,false -- {"_key":"win0","vpos":1}',
+            "0,6.234": 'printChar:54,0,0,1,0,false , printChar:46,1,0,1,0,false , printChar:50,2,0,1,0,false , printChar:51,3,0,1,0,false , printChar:52,4,0,1,0,false -- {"_key":"win0","vpos":1}',
+            '0,""': 'printChar:34,0,0,1,0,false , printChar:34,1,0,1,0,false -- {"_key":"win0","vpos":1}',
+            '0,"ab"': 'printChar:34,0,0,1,0,false , printChar:97,1,0,1,0,false , printChar:98,2,0,1,0,false , printChar:34,3,0,1,0,false -- {"_key":"win0","vpos":1}',
+            '0,"a","b"': 'printChar:34,0,0,1,0,false , printChar:97,1,0,1,0,false , printChar:34,2,0,1,0,false , printChar:44,3,0,1,0,false , printChar:34,4,0,1,0,false , printChar:98,5,0,1,0,false , printChar:34,6,0,1,0,false -- {"_key":"win0","vpos":1}',
+            "0,999999999": 'printChar:57,0,0,1,0,false , printChar:57,1,0,1,0,false , printChar:57,2,0,1,0,false , printChar:57,3,0,1,0,false , printChar:57,4,0,1,0,false , printChar:57,5,0,1,0,false , printChar:57,6,0,1,0,false , printChar:57,7,0,1,0,false , printChar:57,8,0,1,0,false -- {"_key":"win0","vpos":1}',
+            "0,1e9": 'printChar:49,0,0,1,0,false , printChar:69,1,0,1,0,false , printChar:43,2,0,1,0,false , printChar:48,3,0,1,0,false , printChar:57,4,0,1,0,false -- {"_key":"win0","vpos":1}',
             "7 ": '{"_key":"win7","vpos":1}',
             "8 ": "",
             "9 ": 'CpcVm: File not open in 0: WRITE #9 -- {"_key":"stop","reason":"error","priority":50,"paras":{}} -- {"_key":"outFile","open":false,"command":"","name":"","line":0,"fileData":[],"stream":9,"typeString":"","length":0,"entry":0}',
@@ -1923,10 +1923,10 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             "": "updateSpeedInk: , scheduler: -- true"
         },
         vmReset: {
-            "": "resetCustomChars: , setMode:1 , clearFullWindow: , setMode:1,39,24 , txtClearFullWindow: , reset: , txtReset: , reset: , reset:"
+            "": "resetCustomChars: , setMode:1 , clearFullWindow: , reset: , reset: , reset:"
         },
         vmTrace: {
-            "": 'printChar:91,0,0,1,0,false , txtPrintChar:91,0,0,1,0,false , printChar:49,1,0,1,0,false , txtPrintChar:49,1,0,1,0,false , printChar:50,2,0,1,0,false , txtPrintChar:50,2,0,1,0,false , printChar:51,3,0,1,0,false , txtPrintChar:51,3,0,1,0,false , printChar:93,4,0,1,0,false , txtPrintChar:93,4,0,1,0,false -- {"_key":"win0","pos":5}'
+            "": 'printChar:91,0,0,1,0,false , printChar:49,1,0,1,0,false , printChar:50,2,0,1,0,false , printChar:51,3,0,1,0,false , printChar:93,4,0,1,0,false -- {"_key":"win0","pos":5}'
         }
     };
     var lastTestFunctions = [], // eslint-disable-line one-var
@@ -2285,99 +2285,78 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             lastTestFunctions.push({
                 updateSpeedInk: args
             });
-        },
-        windowScrollDown: function () {
-            var args = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                args[_i] = arguments[_i];
-            }
+        }
+        /*
+        windowScrollDown: function (...args) {
             lastTestFunctions.push({
                 windowScrollDown: args
             });
+        },
+        setPalette: function (...args) {
+            lastTestFunctions.push({
+                setPalette: args
+            });
+        },
+        startUpdateCanvas: function (...args) {
+            lastTestFunctions.push({
+                startUpdateCanvas: args
+            });
+        },
+        stopUpdateCanvas: function (...args) {
+            lastTestFunctions.push({
+                stopUpdateCanvas: args
+            });
+        },
+        setScreenOffset: function (...args) {
+            lastTestFunctions.push({
+                startUpdateCanvas: args
+            });
+        },
+        updateColorsAndCanvasImmediately: function (...args) {
+            lastTestFunctions.push({
+                updateColorsAndCanvasImmediately: [String(args)] //TTT
+            });
+        },
+        onCanvasClick: function (...args) {
+            lastTestFunctions.push({
+                onCanvasClick: [String(args)] //TTT
+            });
+        },
+        onWindowClick: function (...args) {
+            lastTestFunctions.push({
+                onWindowClick: [String(args)] //TTT
+            });
+        },
+        getXOrigin: function (...args) {
+            lastTestFunctions.push({
+                getXOrigin: args
+            });
+            return 0;
+        },
+        getYOrigin: function (...args) {
+            lastTestFunctions.push({
+                getYOrigin: args
+            });
+            return 0;
+        },
+        windowScrollUp: function (...args) {
+            lastTestFunctions.push({
+                windowScrollUp: args
+            });
+        },
+        takeScreenShot: function (...args) {
+            lastTestFunctions.push({
+                takeScreenShot: args
+            });
+            return "scr";
+        },
+        getCanvasElement: function (...args) {
+            lastTestFunctions.push({
+                getCanvasElement: args
+            });
+            return undefined;
         }
-    }, mockTextCanvas = {
-        setOnCanvasClick: function () {
-            var args = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                args[_i] = arguments[_i];
-            }
-            lastTestFunctions.push({
-                setOnCanvasClick: [String(args)]
-            });
-        },
-        clearFullWindow: function () {
-            var args = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                args[_i] = arguments[_i];
-            }
-            lastTestFunctions.push({
-                txtClearFullWindow: args
-            });
-        },
-        clearTextWindow: function () {
-            var args = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                args[_i] = arguments[_i];
-            }
-            lastTestFunctions.push({
-                txtClearTextWindow: args
-            });
-        },
-        fillTextBox: function () {
-            var args = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                args[_i] = arguments[_i];
-            }
-            lastTestFunctions.push({
-                txtFillTextBox: args
-            });
-        },
-        printChar: function () {
-            var args = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                args[_i] = arguments[_i];
-            }
-            lastTestFunctions.push({
-                txtPrintChar: args.map(function (arg) { return String(arg); })
-            });
-        },
-        readChar: function () {
-            var args = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                args[_i] = arguments[_i];
-            }
-            lastTestFunctions.push({
-                txtReadChar: args
-            });
-            return 65;
-        },
-        reset: function () {
-            var args = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                args[_i] = arguments[_i];
-            }
-            lastTestFunctions.push({
-                txtReset: args
-            });
-        },
-        windowScrollDown: function () {
-            var args = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                args[_i] = arguments[_i];
-            }
-            lastTestFunctions.push({
-                txtWindowScrollDown: args
-            });
-        },
-        setMode: function () {
-            var args = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                args[_i] = arguments[_i];
-            }
-            lastTestFunctions.push({
-                setMode: args
-            });
-        }
+        */
     }, mockKeyboard = {
         clearInput: function () {
             var args = [];
@@ -2406,6 +2385,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             lastTestFunctions.push({
                 getKeyDownHandler: args
             });
+            return undefined;
         },
         getKeyFromBuffer: function () {
             var args = [];
@@ -2612,7 +2592,6 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
     function createCpcVm() {
         var options = {
             canvas: mockCanvas,
-            textCanvas: mockTextCanvas,
             keyboard: mockKeyboard,
             sound: mockSound,
             variables: mockVariables,
@@ -3491,7 +3470,6 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
         hooks.beforeEach(function () {
             var config = {
                 canvas: mockCanvas,
-                textCanvas: mockTextCanvas,
                 keyboard: mockKeyboard,
                 sound: mockSound,
                 variables: mockVariables,
@@ -3499,12 +3477,8 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             };
             that.cpcVm = new CpcVm_1.CpcVm(config);
         });
-        //type ClickHandlerType = (event: MouseEvent, x: number, y: number) => void;
         QUnit.test("init without options", function (assert) {
             var minimalCanvas = {
-                reset: function () { return undefined; },
-                setOnCanvasClick: function (_onCanvasClickHandler) { return undefined; }
-            }, minimalTextCanvas = {
                 reset: function () { return undefined; },
                 setOnCanvasClick: function (_onCanvasClickHandler) { return undefined; }
             }, minimalKeyboard = {
@@ -3513,7 +3487,6 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 reset: function () { return undefined; }
             }, minimalVariables = {}, cpcVm = new CpcVm_1.CpcVm({
                 canvas: minimalCanvas,
-                textCanvas: minimalTextCanvas,
                 keyboard: minimalKeyboard,
                 sound: minimalSound,
                 variables: minimalVariables
