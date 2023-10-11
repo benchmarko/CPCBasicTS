@@ -11,6 +11,78 @@ export interface IOutput {
     error?: CustomError
 }
 
+export interface ICpcVmRsx {
+    rsxIsAvailable: (name: string) => boolean
+}
+
+
+export type CanvasClickType = (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
+export type CanvasCharType = number[]; // 8 bytes char bitmap
+export type CanvasCharsetType = CanvasCharType[];
+
+export interface CanvasOptions {
+	charset: CanvasCharsetType
+	palette: "color" | "green" | "grey"
+	onCanvasClick?: CanvasClickType
+	//onCanvasDragover?: (event: Event) => void
+}
+
+export interface ICanvas {
+    setOnCanvasClick(onCanvasClickHandler: CanvasClickType): void
+    //setOnCanvasDragover(onCanvasDragoverHandler: (e: Event) => void) : HTMLElement
+    reset(): void
+    resetCustomChars(): void
+    setPalette(palette: "color" | "green" | "grey"): void
+    startUpdateCanvas(): void
+    stopUpdateCanvas(): void
+    setScreenOffset(offset: number): void
+    updateColorsAndCanvasImmediately(inkList: number[]): void
+    updateSpeedInk(): void
+    setCustomChar(char: number, charData: CanvasCharType): void
+    getCharData(char: number): CanvasCharType
+    setDefaultInks(): void
+    onCanvasClick(event: MouseEvent): void
+    onWindowClick(_event: Event): void
+    getXpos(): number
+    getYpos(): number
+    fillTextBox(left: number, top: number, width: number, height: number, paper: number): void
+    getByte(addr: number): number | null
+    setByte(addr: number, byte: number): void
+    draw(x: number, y: number): void
+    move(x: number, y: number): void
+    plot(x: number, y: number): void
+    test(x: number, y: number): number
+    setInk(pen: number, ink1: number, ink2: number): boolean
+    setBorder(ink1: number, ink2: number): void
+    setGPen(gPen: number): void
+    setGPaper(gPaper: number): void
+    setGTransparentMode(transparent: boolean): void
+    printGChar(char: number): void
+    printChar(char: number, x: number, y: number, pen: number, paper: number, transparent: boolean): void
+    drawCursor(x: number, y: number, pen: number, paper: number): void
+    readChar(x: number, y: number, pen: number, paper: number): number
+    fill(fillPen: number): void
+    setOrigin(xOrig: number, yOrig: number): void
+    getXOrigin(): number
+    getYOrigin(): number
+    setGWindow(xLeft: number, xRight: number, yTop: number, yBottom: number): void
+    setGColMode(gColMode: number): void
+    clearTextWindow(left: number, right: number, top: number, bottom: number, paper: number): void
+    clearGraphicsWindow(): void
+    clearFullWindow(): void
+    windowScrollUp(left: number, right: number, top: number, bottom: number, paper: number): void
+    windowScrollDown(left: number, right: number, top: number, bottom: number, paper: number): void
+    setSpeedInk(time1: number, time2: number): void
+    setMask(mask: number): void
+    setMaskFirst(maskFirst: number): void
+    getMode(): number
+    changeMode(mode: number): void
+    setMode(mode: number): void
+    takeScreenShot(): string
+    getCanvasElement(): HTMLElement | undefined //HTMLCanvasElement
+}
+
+
 // Same as VariableValue in Variables.ts
 export type VariableValue = string | number | Function | [] | VariableValue[]; // eslint-disable-line @typescript-eslint/ban-types
 
@@ -38,6 +110,7 @@ export interface IController {
     invalidateScript: () => void
     setSoundActive: () => void
     setPalette: (palette: string) => void
+    setCanvasType: (canvasType: string) => ICanvas
 
     changeVariable: () => void
     onExampleSelectChange: () => void
@@ -46,12 +119,12 @@ export interface IController {
 
     onCpcCanvasClick: (event: MouseEvent) => void
     onWindowClick: (event: Event) => void
-    onTextTextClick: (event: MouseEvent) => void
+    //onTextTextClick: (event: MouseEvent) => void
 
     startUpdateCanvas: () => void
     stopUpdateCanvas: () => void
-    startUpdateTextCanvas: () => void
-    stopUpdateTextCanvas: () => void
+    //startUpdateTextCanvas: () => void
+    //stopUpdateTextCanvas: () => void
     virtualKeyboardCreate: () => void
     getVariable: (par: string) => VariableValue
     // see VariableValue in Variables.ts
@@ -64,9 +137,5 @@ export interface IController {
     fnTrace: () => void
     fnSpeed: () => void
  }
-
-export interface ICpcVmRsx {
-    rsxIsAvailable: (name: string) => boolean
-}
 
 //

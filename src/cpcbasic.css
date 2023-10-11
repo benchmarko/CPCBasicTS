@@ -164,6 +164,15 @@ body {
 	padding-bottom: 12px;
 }
 
+#textText {
+	overflow:hidden;
+	resize:none;
+	padding:0px;
+	line-height: 15px;
+	cursor: default;
+   	user-select: none;
+}
+
 #galleryAreaItems {
     width: 320px;
     max-height: 600px;

@@ -6,19 +6,21 @@
 
 import { Utils } from "./Utils";
 import { View } from "./View";
+import { CanvasOptions, ICanvas, CanvasClickType, CanvasCharType } from "./Interfaces";
 
 
-type CharType = number[]; // 8 bytes char bitmap
+//type CharsetType = CharType[];
 
-type CharsetType = CharType[];
+//type CanvasClickType = (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
 
-type CanvasClickType = (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
-
+/*
 export interface CanvasOptions {
 	charset: CharsetType
 	palette: "color" | "green" | "grey"
 	onCanvasClick?: CanvasClickType
+	onCanvasDragover?: (event: Event) => void
 }
+*/
 
 interface ModeData {
 	pens: number // number of pens
@@ -26,7 +28,7 @@ interface ModeData {
 	pixelHeight: number // pixel height
 }
 
-export class Canvas {
+export class Canvas implements ICanvas {
 	private readonly options: CanvasOptions;
 
 	private readonly fnUpdateCanvasHandler: () => void;
@@ -36,7 +38,7 @@ export class Canvas {
 
 	private readonly cpcAreaBox: HTMLElement;
 
-	private customCharset: Record<number, CharType> = {};
+	private customCharset: Record<number, CanvasCharType> = {};
 
 	private gColMode = 0; // 0=normal, 1=xor, 2=and, 3=or
 
@@ -99,11 +101,16 @@ export class Canvas {
 	private gTransparent = false;
 
 	constructor(options: CanvasOptions) {
+		this.options = options;
+		/*
 		this.options = {
 			charset: options.charset,
 			palette: options.palette,
-			onCanvasClick: options.onCanvasClick
+			onCanvasClick: options.onCanvasClick,
+			onCanvasDragover: options.onCanvasDragover
 		};
+		*/
+
 		this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
 		this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
 
@@ -235,6 +242,13 @@ export class Canvas {
 	setOnCanvasClick(onCanvasClickHandler: CanvasClickType): void {
 		this.options.onCanvasClick = onCanvasClickHandler;
 	}
+
+	/*
+	setOnCanvasDragover(onCanvasDragoverHandler: (e: Event) => void) : HTMLElement {
+		this.options.onCanvasDragover = onCanvasDragoverHandler;
+		return this.canvas;
+	}
+	*/
 
 	reset(): void {
 		this.changeMode(1);
@@ -501,11 +515,11 @@ export class Canvas {
 		}
 	}
 
-	setCustomChar(char: number, charData: CharType): void {
+	setCustomChar(char: number, charData: CanvasCharType): void {
 		this.customCharset[char] = charData;
 	}
 
-	getCharData(char: number): CharType {
+	getCharData(char: number): CanvasCharType {
 		return this.customCharset[char] || this.options.charset[char];
 	}
 
@@ -546,28 +560,6 @@ export class Canvas {
 			};
 		}
 
-		/*
-		// alternative, when using scaling, maybe with other aspect ratio
-		if (isFullScreen) {
-			const areaX = 0, //TTT
-				areaY = 0,
-				rectwidth = rect.right - rect.left - (this.borderWidth + areaX) * 2,
-				rectHeight = rect.bottom - rect.top - (this.borderWidth + areaY) * 2,
-				ratioX = rectwidth / this.canvas.width,
-				ratioY = rectHeight / this.canvas.height,
-				//minRatio = ratioX <= ratioY ? ratioX : ratioY,
-				diffX = rectwidth - (this.canvas.width * ratioX), //rectwidth - (this.canvas.width * minRatio),
-				diffY = rectHeight - (this.canvas.height * ratioY); //rectHeight - (this.canvas.height * minRatio);
-
-			return {
-				//x: (event.clientX - this.borderWidth - rect.left - diffX / 2) / ratioX * ratioX / minRatio,
-				//y: (event.clientY - this.borderWidth - rect.top - diffY / 2) / ratioY * ratioY / minRatio
-				x: (event.clientX - this.borderWidth - rect.left - diffX / 2) / ratioX * ratioX / ratioX,
-				y: (event.clientY - this.borderWidth - rect.top - diffY / 2) / ratioY * ratioY / ratioY
-			};
-		}
-		*/
-
 		return {
 			x: (event.clientX - this.borderWidth - rect.left) / (rect.right - rect.left - this.borderWidth * 2) * this.canvas.width,
 			y: (event.clientY - this.borderWidth - rect.top) / (rect.bottom - rect.top - this.borderWidth * 2) * this.canvas.height
@@ -593,22 +585,9 @@ export class Canvas {
 				this.options.onCanvasClick(event, x, y, xTxt, yTxt);
 			}
 		}
-
-		/*
-		// for graphics coordinates, adapt origin
-		x -= this.xOrig;
-		y = this.height - 1 - (y + this.yOrig);
-
-		if (this.xPos === 1000 && this.yPos === 1000) { // only activate move if pos is 1000, 1000
-			this.move(x, y);
-		}
-		if (Utils.debug > 0) {
-			Utils.console.debug("canvasClickAction: x", pos.x, "y", pos.y, "x - xOrig", x, "y - yOrig", y, "detail", event.detail);
-		}
-		*/
 	}
 
-	onCpcCanvasClick(event: MouseEvent): void {
+	onCanvasClick(event: MouseEvent): void {
 		if (!this.hasFocus) {
 			this.setFocusOnCanvas();
 		} else {
@@ -733,7 +712,7 @@ export class Canvas {
 	}
 
 	private readCharData(x: number, y: number, expectedPen: number) {
-		const charData: CharType = [],
+		const charData: CanvasCharType = [],
 			pixelWidth = this.modeData.pixelWidth,
 			pixelHeight = this.modeData.pixelHeight;
 
@@ -1127,7 +1106,7 @@ export class Canvas {
 		this.setNeedUpdate();
 	}
 
-	private findMatchingChar(charData: CharType) {
+	private findMatchingChar(charData: CanvasCharType) {
 		const charset = this.options.charset;
 		let	char = -1; // not detected
 
@@ -1420,7 +1399,15 @@ export class Canvas {
 		this.setGTransparentMode(false);
 	}
 
-	getCanvasElement(): HTMLCanvasElement {
+	takeScreenShot(): string {
+		if (this.canvas.toDataURL) {
+			return this.canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"); // here is the most important part because if you do not replace you will get a DOM 18 exception.
+		}
+		Utils.console.warn("Screenshot not available");
+		return "";
+	}
+
+	getCanvasElement(): HTMLElement | undefined {
 		return this.canvas;
 	}
 }

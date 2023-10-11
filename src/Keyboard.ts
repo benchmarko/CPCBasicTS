@@ -38,6 +38,9 @@ interface CpcKeyExpansions {
 }
 
 export class Keyboard {
+	private readonly fnCpcAreaKeydownHandler: (event: KeyboardEvent) => boolean;
+	private readonly fnCpcAreaKeyupHandler: (event: KeyboardEvent) => boolean;
+
 	private readonly options: KeyboardOptions;
 
 	private readonly keyBuffer: string[] = []; // buffered pressed keys
@@ -65,6 +68,8 @@ export class Keyboard {
 	}
 
 	constructor(options: KeyboardOptions) {
+		this.fnCpcAreaKeydownHandler = this.onCpcAreaKeydown.bind(this);
+		this.fnCpcAreaKeyupHandler = this.oncpcAreaKeyup.bind(this);
 		this.options = {
 			fnOnEscapeHandler: undefined,
 			fnOnKeyDown: undefined
@@ -81,16 +86,18 @@ export class Keyboard {
 		}; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
 
 		//TTT
-		const name = "cpcCanvas", //"cpcCanvasDiv", //"cpcArea"
+		const name = "cpcArea", //"cpcCanvas", //"cpcCanvasDiv", //"cpcArea"
 			cpcArea = View.getElementById1(name);
 
-		cpcArea.addEventListener("keydown", this.onCpcAreaKeydown.bind(this), false);
-		cpcArea.addEventListener("keyup", this.oncpcAreaKeyup.bind(this), false);
+		cpcArea.addEventListener("keydown", this.fnCpcAreaKeydownHandler, false);
+		cpcArea.addEventListener("keyup", this.fnCpcAreaKeyupHandler, false);
 
+		/*
 		const textArea = View.getElementById1("textArea");
 
-		textArea.addEventListener("keydown", this.onCpcAreaKeydown.bind(this), false);
-		textArea.addEventListener("keyup", this.oncpcAreaKeyup.bind(this), false);
+		textArea.addEventListener("keydown", this.fnCpcAreaKeydownHandler, false);
+		textArea.addEventListener("keyup", this.fnCpcAreaKeyupHandler, false);
+		*/
 	}
 
 	// use this:

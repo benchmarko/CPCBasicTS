@@ -53,6 +53,7 @@ With CPC Basic we do not get that accuracy. But if we compile it to JavaScript, 
     - The checkbox **Trace Mode** switches on trace mode. Ths allows to show the source position in case of runtime errors.
     - The checkbox **Autorun** loads and runs an example when selected.
     - The checkbox **Sound** enables sound. If you start the app or use the *Reload* button with the sound enabled, the sound needs to be activated by a user action, e.g. a click anywhere. This is a browser limitation.
+    - The selection field **Canvas** allows to set the canvas type *Graphics*, *Text* or *None*. This will change the *CPC* window, (see below).
     - The selection field **Palette** allows to set the palette to Color, Green or Grey.
     - The range slider **Speed** allows to reduce the simulation speed (0..100). This is an experimental feature.
     - The input field **Debug** allows to set the debug level.
@@ -81,7 +82,7 @@ With CPC Basic we do not get that accuracy. But if we compile it to JavaScript, 
     - The **Reset** button resets the CPC.
     - The **Screenshot** button creates a screenshot of the current CPC screen.
     - The **Fullscreen** button activates fullscreen mode of the CPC window.
-- The *Text View* window shows the text which is written in text mode.
+    - The **Copy** button copies the text from the text view (if visible).
 - The *Keyboard* window shows a virtual keyboard which can be also used with touch devices. It can be moved around. You can test the functionality with the test program [keyboard](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=test/keyboard&showKbd=true).
 When minimized, you can select the keyboard layout AlphaNum, Alpha or Num.
 - The *Input* window is an alternative way to send input to the CPC.
@@ -234,27 +235,32 @@ A list of *CALL*s which are supported. Other *CALL*s are ignored.
 These URL parameters are also put in the URL when you press the *Reload* button and the setting is not the default.
 
 - arrayBounds=false (check array bounds)
+- autorun=true
 - bench=0 (only for debugging: number of parse bench loops)
-- debug=0 (debug level)
 - databaseDirs=examples (example base directories, comma separated)
 - database=examples (selected database)
+- debug=0 (debug level)
 - example=cpcbasic (selected sample program)
 - exampleIndex=0index.js (example index file in every entry of exampleDirs)
 - implicitLines=false (allow implicit line numbers)
 - input= (keyboard input when starting the app, use %0D as return charcter)
 - kbdLayout=alphanum (virtual keyboard layout: alphanum, alpha, num)
-- showInput=true
-- showInp2=false
-- showCpc=true (show the CPC window)
-- showKbd=false
-- showOutput=false
-- showResult=false
-- showText=false
-- showVariable=false
+- canvasType="graphics" ("graphics", "text", "none")
+- palette="color" ("color", "green", "grey")
 - showConsole=false
 - showConvert=false,
+- showCpc=true (show the CPC window)
+- showGallery=false,
+- showInput=true
+- showInp2=false
+- showKbd=false
+- showMore=false
+- showOutput=false
+- showResult=false
+- showVariable=false
 - showSettings=false
 - sound=true (sound enabled or disabled)
+- speed=100
 - trace=false (trace mode)
 
 (Some URL parameters are experimental and may change.)

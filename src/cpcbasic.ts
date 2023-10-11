@@ -25,7 +25,8 @@ class cpcBasic {
 		implicitLines: false, // allow implicit line numbers
 		input: "", // keyboard input when starting the app
 		kbdLayout: "alphanum", // alphanum, alpha, num
-		palette: "color", // currently only on relaod: "color" or "grey"
+		canvasType: "graphics", // "graphics", "text", "none"
+		palette: "color", // "color", "green", "grey"
 		showConsole: false,
 		showConvert: false,
 		showCpc: true,
@@ -36,7 +37,6 @@ class cpcBasic {
 		showMore: false,
 		showOutput: false,
 		showResult: false,
-		showText: false,
 		showVariable: false,
 		showSettings: false,
 		sound: true,
