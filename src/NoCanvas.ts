@@ -3,16 +3,11 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 
-//import { Utils } from "./Utils";
-//import { View } from "./View";
 import { CanvasOptions, ICanvas, CanvasClickType, CanvasCharType } from "./Interfaces";
 
 
 export class NoCanvas implements ICanvas {
-	//private readonly options: CanvasOptions;
-
 	constructor(_options: CanvasOptions) {
-		//this.options = options;
 		this.reset();
 	}
 
@@ -146,13 +141,6 @@ export class NoCanvas implements ICanvas {
 	takeScreenShot(): string { // eslint-disable-line class-methods-use-this
 		return "";
 	}
-
-	/*
-	setOnCanvasDragover(onCanvasDragoverHandler: (e: Event) => void) : HTMLElement {
-		this.options.onCanvasDragover = onCanvasDragoverHandler;
-		return this.textText;
-	}
-	*/
 
 	startUpdateCanvas(): void { // eslint-disable-line class-methods-use-this
 	}

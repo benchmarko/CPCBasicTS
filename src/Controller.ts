@@ -49,7 +49,10 @@ export class Controller implements IController {
 	private readonly fnOnEscapeHandler: () => void;
 	private readonly fnDirectInputHandler: () => boolean;
 	private readonly fnPutKeyInBufferHandler: (key: string) => void;
-	private readonly fnHandleDragOverHandler: () => void;
+	private readonly fnOnDragoverHandler: (evt: DragEvent) => void;
+	private readonly fnOnUserActionHandler: () => void;
+	private readonly fnWaitForContinueHandler: () => void;
+	private readonly fnEditLineCallbackHandler: () => boolean;
 
 	private static readonly metaIdent = "CPCBasic";
 
@@ -75,7 +78,6 @@ export class Controller implements IController {
 
 	private readonly canvases: Record<string, ICanvas> = {};
 	private canvas: ICanvas;
-	//private readonly textCanvas: ICanvas;
 
 	private readonly inputStack = new InputStack();
 
@@ -151,7 +153,10 @@ export class Controller implements IController {
 		this.fnOnEscapeHandler = this.fnOnEscape.bind(this);
 		this.fnDirectInputHandler = this.fnDirectInput.bind(this);
 		this.fnPutKeyInBufferHandler = this.fnPutKeysInBuffer.bind(this);
-		this.fnHandleDragOverHandler = Controller.fnHandleDragOver.bind(this);
+		this.fnOnDragoverHandler = Controller.fnOnDragover;
+		this.fnOnUserActionHandler = this.onUserAction.bind(this);
+		this.fnWaitForContinueHandler = this.fnWaitForContinue.bind(this);
+		this.fnEditLineCallbackHandler = this.fnEditLineCallback.bind(this);
 
 		this.model = model;
 		this.view = view;
@@ -172,22 +177,6 @@ export class Controller implements IController {
 		view.setSelectValue("paletteSelect", palette);
 
 		this.canvas = this.setCanvasType(canvasType);
-		/*
-		const canvasOptions: CanvasOptions = {
-			charset: cpcCharset,
-			palette: palette === "green" || palette === "grey" ? palette : "color"
-			//onCanvasDragover: this.fnHandleDragOverHandler
-		};
-
-		if (canvasType === "text") {
-			this.canvas = new TextCanvas(canvasOptions);
-		} else if (canvasType === "none") {
-			this.canvas = new NoCanvas(canvasOptions);
-		} else { // "graphics"
-			view.setHidden("cpcArea", false); // make sure canvas area is not hidden when creating canvas object (allows to get width, height)
-			this.canvas = new Canvas(canvasOptions);
-		}
-		*/
 
 		view.setHidden("kbdLayoutArea", model.getProperty<boolean>("showKbd"), "inherit"); // kbd visible => kbdlayout invisible
 		this.initAreas();
@@ -219,16 +208,14 @@ export class Controller implements IController {
 			this.virtualKeyboardCreate();
 		}
 
-		this.commonEventHandler.fnSetUserAction(this.onUserAction.bind(this)); // check first user action, also if sound is not yet on
+		this.commonEventHandler.fnSetUserAction(this.fnOnUserActionHandler); // check first user action, also if sound is not yet on
 
 		this.vm = new CpcVm({
 			canvas: this.canvas,
-			//textCanvas: this.textCanvas,
 			keyboard: this.keyboard,
 			sound: this.sound,
 			variables: this.variables,
 			onClickKey: this.fnPutKeyInBufferHandler
-			//copyChrFromTextCanvas: window.Polyfills.isNodeAvailable // use textcanvas when using nodeJS
 		});
 		this.vm.vmReset();
 
@@ -273,11 +260,6 @@ export class Controller implements IController {
 		if (model.getProperty<boolean>("showCpc")) {
 			this.canvas.startUpdateCanvas();
 		}
-		/*
-		if (model.getProperty<boolean>("showText")) {
-			this.textCanvas.startUpdateCanvas();
-		}
-		*/
 	}
 
 	private initAreas() {
@@ -613,7 +595,7 @@ export class Controller implements IController {
 		} else if (stop.reason !== "escape") { // first escape?
 			this.vm.cursor(stream, 1);
 			this.keyboard.clearInput();
-			this.keyboard.setKeyDownHandler(this.fnWaitForContinue.bind(this));
+			this.keyboard.setKeyDownHandler(this.fnWaitForContinueHandler);
 			this.setStopObject(stop);
 			this.vm.vmStop("escape", 85, false, {
 				command: "escape",
@@ -1743,7 +1725,7 @@ export class Controller implements IController {
 				line: paras.line,
 				stream: stream,
 				message: "",
-				fnInputCallback: this.fnEditLineCallback.bind(this),
+				fnInputCallback: this.fnEditLineCallbackHandler,
 				input: lineString
 			};
 
@@ -2241,7 +2223,7 @@ export class Controller implements IController {
 	startMainLoop(): void {
 		if (!this.timeoutHandlerActive) {
 			this.timeoutHandlerActive = true;
-			this.fnRunLoop();
+			setTimeout(this.fnRunLoopHandler, 0);
 		}
 	}
 
@@ -2334,15 +2316,6 @@ export class Controller implements IController {
 
 	startScreenshot(): string {
 		return this.canvas.takeScreenShot();
-		/*
-		const canvas = this.canvas.getCanvasElement();
-
-		if (canvas.toDataURL) {
-			return canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"); // here is the most important part because if you do not replace you will get a DOM 18 exception.
-		}
-		Utils.console.warn("Screenshot not available");
-		return "";
-		*/
 	}
 
 	private fnPutKeysInBuffer(keys: string) {
@@ -2464,7 +2437,6 @@ export class Controller implements IController {
 			canvasOptions: CanvasOptions = {
 				charset: cpcCharset,
 				palette: palette === "green" || palette === "grey" ? palette : "color"
-				//onCanvasDragover: this.fnHandleDragOverHandler
 			};
 		let canvas: ICanvas = this.canvas;
 
@@ -2475,6 +2447,9 @@ export class Controller implements IController {
 			if (currentCanvasElement) {
 				this.view.setHidden(currentCanvasElement.id, true);
 			}
+		} else if (canvasType !== "graphics") {
+			// initially graphics canvas is not hidden, but we must hide it, if other canvas should be shown
+			this.view.setHidden("cpcCanvas", true);
 		}
 
 		if (this.canvases[canvasType]) {
@@ -2552,7 +2527,7 @@ export class Controller implements IController {
 		this.updateResultText();
 	}
 
-	private static fnHandleDragOver(evt: DragEvent) {
+	private static fnOnDragover(evt: DragEvent) {
 		evt.stopPropagation();
 		evt.preventDefault();
 		if (evt.dataTransfer !== null) {
@@ -2586,27 +2561,15 @@ export class Controller implements IController {
 		}
 		const dropZone = View.getElementById1("dropZone");
 
-		dropZone.addEventListener("dragover", this.fnHandleDragOverHandler, false);
+		dropZone.addEventListener("dragover", this.fnOnDragoverHandler, false);
 		this.fileSelect.addFileSelectHandler(dropZone, "drop");
 
 		const canvasElement = this.canvas.getCanvasElement();
 
 		if (canvasElement) {
-			canvasElement.addEventListener("dragover", this.fnHandleDragOverHandler, false);
-			//this.canvas.setOnCanvasDragover(this.fnHandleDragOverHandler);
-			//const canvasElement = this.canvas.getCanvasElement();
+			canvasElement.addEventListener("dragover", this.fnOnDragoverHandler, false);
 			this.fileSelect.addFileSelectHandler(canvasElement, "drop");
 		}
-
-		/*
-		const textCanvasElement = this.textCanvas.getCanvasElement();
-
-		textCanvasElement.addEventListener("dragover", this.fnHandleDragOverHandler, false);
-		//this.canvas.setOnCanvasDragover(this.fnHandleDragOverHandler);
-		//const canvasElement = this.canvas.getCanvasElement();
-
-		this.fileSelect.addFileSelectHandler(textCanvasElement, "drop");
-		*/
 
 		const fileInput = View.getElementById1("fileInput");
 
@@ -2637,21 +2600,9 @@ export class Controller implements IController {
 		this.canvas.startUpdateCanvas();
 	}
 
-	/*
-	startUpdateTextCanvas(): void {
-		this.textCanvas.startUpdateCanvas();
-	}
-	*/
-
 	stopUpdateCanvas(): void {
 		this.canvas.stopUpdateCanvas();
 	}
-
-	/*
-	stopUpdateTextCanvas(): void {
-		this.textCanvas.stopUpdateCanvas();
-	}
-	*/
 
 	virtualKeyboardCreate(): void {
 		if (!this.virtualKeyboard) {
@@ -2779,7 +2730,7 @@ export class Controller implements IController {
 
 		inFile.name = exampleName;
 		inFile.start = undefined;
-		inFile.fnFileCallback = vm.fnLoadHandler;
+		inFile.fnFileCallback = vm.vmGetLoadHandler();
 		vm.vmStop("fileLoad", 90);
 		this.startMainLoop();
 	}
@@ -2812,23 +2763,13 @@ export class Controller implements IController {
 		this.setPopoversHiddenExcept(""); // hide all popovers
 
 		this.canvas.onCanvasClick(event);
-		//this.textCanvas.onWindowClick(event);
 		this.keyboard.setActive(true);
 	}
 
 	onWindowClick(event: Event): void {
 		this.canvas.onWindowClick(event);
-		//this.textCanvas.onWindowClick(event);
 		this.keyboard.setActive(false);
 	}
-
-	/*
-	onTextTextClick(event: MouseEvent): void {
-		this.textCanvas.onCpcCanvasClick(event);
-		this.canvas.onWindowClick(event);
-		this.keyboard.setActive(true);
-	}
-	*/
 
 	fnArrayBounds(): void {
 		const arrayBounds = this.model.getProperty<boolean>("arrayBounds");

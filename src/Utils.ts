@@ -102,11 +102,13 @@ export class Utils {
 		});
 	}
 
+	/*
 	static hexUnescape(str: string): string {
 		return str.replace(/\\x([0-9A-Fa-f]{2})/g, function () {
 			return String.fromCharCode(parseInt(arguments[1], 16));
 		});
 	}
+	*/
 
 	static dateFormat(d: Date): string {
 		return d.getFullYear() + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + ("0" + d.getDate()).slice(-2) + " "

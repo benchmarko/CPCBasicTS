@@ -14,7 +14,7 @@ export interface CpcKeyExpansionsOptions {
 	ctrl?: number
 }
 
-export type PressReleaseCpcKey = (cpcKey: number, pressedKey: string, key: string, shiftKey: boolean, ctrlKey: boolean) => void;
+export type PressReleaseCpcKey = (event: KeyboardEvent | PointerEvent, cpcKey: number, pressedKey: string, key: string) => void;
 
 interface KeyboardOptions {
 	fnOnEscapeHandler?: (key: string, pressedKey: string) => void
@@ -54,27 +54,13 @@ export class Keyboard {
 
 	private pressedKeys: PressedKeysType = {}; // currently pressed browser keys
 
-	setOptions(options: KeyboardOptions): void {
-		if (options.fnOnEscapeHandler !== undefined) {
-			this.options.fnOnEscapeHandler = options.fnOnEscapeHandler;
-		}
-		if (options.fnOnKeyDown !== undefined) {
-			this.options.fnOnKeyDown = options.fnOnKeyDown;
-		}
-	}
-
-	getOptions(): KeyboardOptions {
-		return this.options;
-	}
 
 	constructor(options: KeyboardOptions) {
 		this.fnCpcAreaKeydownHandler = this.onCpcAreaKeydown.bind(this);
 		this.fnCpcAreaKeyupHandler = this.oncpcAreaKeyup.bind(this);
-		this.options = {
-			fnOnEscapeHandler: undefined,
-			fnOnKeyDown: undefined
-		};
-		this.setOptions(options);
+
+		this.options = options;
+
 
 		this.key2CpcKey = Keyboard.key2CpcKey;
 
@@ -85,19 +71,11 @@ export class Keyboard {
 			repeat: {}
 		}; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
 
-		//TTT
-		const name = "cpcArea", //"cpcCanvas", //"cpcCanvasDiv", //"cpcArea"
+		const name = "cpcArea",
 			cpcArea = View.getElementById1(name);
 
 		cpcArea.addEventListener("keydown", this.fnCpcAreaKeydownHandler, false);
 		cpcArea.addEventListener("keyup", this.fnCpcAreaKeyupHandler, false);
-
-		/*
-		const textArea = View.getElementById1("textArea");
-
-		textArea.addEventListener("keydown", this.fnCpcAreaKeydownHandler, false);
-		textArea.addEventListener("keyup", this.fnCpcAreaKeyupHandler, false);
-		*/
 	}
 
 	// use this:
@@ -357,8 +335,10 @@ export class Keyboard {
 		this.key2CpcKey = newMap;
 	}
 
-	fnPressCpcKey(cpcKeyCode: number, pressedKey: string, key: string, shiftKey: boolean, ctrlKey: boolean): void { // eslint-disable-line complexity
-		const pressedKeys = this.pressedKeys,
+	fnPressCpcKey(event: KeyboardEvent | PointerEvent, cpcKeyCode: number, pressedKey: string, key: string): void { // eslint-disable-line complexity
+		const shiftKey = event.shiftKey,
+			ctrlKey = event.ctrlKey,
+			pressedKeys = this.pressedKeys,
 			cpcKeyExpansions = this.cpcKeyExpansions,
 			specialKeys = Keyboard.specialKeys,
 			cpcKey = String(cpcKeyCode);
@@ -437,8 +417,10 @@ export class Keyboard {
 		}
 	}
 
-	fnReleaseCpcKey(cpcKeyCode: number, pressedKey: string, key: string, shiftKey: boolean, ctrlKey: boolean): void {
-		const pressedKeys = this.pressedKeys,
+	fnReleaseCpcKey(event: KeyboardEvent | PointerEvent, cpcKeyCode: number, pressedKey: string, key: string): void {
+		const shiftKey = event.shiftKey,
+			ctrlKey = event.ctrlKey,
+			pressedKeys = this.pressedKeys,
 			cpcKey = pressedKeys[cpcKeyCode];
 
 		if (Utils.debug > 1) {
@@ -520,7 +502,7 @@ export class Keyboard {
 					key = key.substring(1); // remove prefix
 				}
 			}
-			this.fnPressCpcKey(cpcKey, pressedKey, key, event.shiftKey, event.ctrlKey);
+			this.fnPressCpcKey(event, cpcKey, pressedKey, key);
 		} else if (key.length === 1) { // put normal keys in buffer, ignore special keys with more than 1 character
 			this.putKeyInBuffer(key);
 			Utils.console.log("fnKeyboardKeydown: Partly unhandled key", pressedKey + ":", key);
@@ -544,7 +526,7 @@ export class Keyboard {
 			if (cpcKey === 85) { // map virtual cpc key 85 to 22 (english keyboard)
 				cpcKey = 22;
 			}
-			this.fnReleaseCpcKey(cpcKey, pressedKey, key, event.shiftKey, event.ctrlKey);
+			this.fnReleaseCpcKey(event, cpcKey, pressedKey, key);
 		} else {
 			Utils.console.log("fnKeyboardKeyup: Unhandled key", pressedKey + ":", key);
 		}

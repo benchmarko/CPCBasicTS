@@ -13,6 +13,10 @@ export interface FileSelectOptions {
 }
 
 export class FileSelect {
+	private readonly fnOnErrorHandler: () => void;
+	private readonly fnOnLoadHandler: () => void;
+	private readonly fnOnFileSelectHandler: () => void;
+
 	private fnEndOfImport = {} as (imported: string[]) => void;
 	private fnLoad2 = {} as (data: string | Uint8Array, name: string, type: string, imported: string[]) => void;
 
@@ -22,6 +26,10 @@ export class FileSelect {
 	private file = {} as File; // current file
 
 	constructor(options: FileSelectOptions) {
+		this.fnOnLoadHandler = this.fnOnLoad.bind(this);
+		this.fnOnErrorHandler = this.fnOnError.bind(this);
+		this.fnOnFileSelectHandler = this.fnOnFileSelect.bind(this);
+
 		this.fnEndOfImport = options.fnEndOfImport;
 		this.fnLoad2 = options.fnLoad2;
 	}
@@ -89,7 +97,7 @@ export class FileSelect {
 		}
 	}
 
-	private fnErrorHandler(event: ProgressEvent<FileReader>, file: File) {
+	private fnOnError(event: ProgressEvent<FileReader>, file: File) {
 		const reader = event.target;
 		let msg = "fnErrorHandler: Error reading file " + file.name;
 
@@ -111,7 +119,7 @@ export class FileSelect {
 
 	// https://stackoverflow.com/questions/10261989/html5-javascript-drag-and-drop-file-from-external-window-windows-explorer
 	// https://www.w3.org/TR/file-upload/#dfn-filereader
-	private fnHandleFileSelect(event: Event) {
+	private fnOnFileSelect(event: Event) {
 		event.stopPropagation();
 		event.preventDefault();
 
@@ -129,8 +137,8 @@ export class FileSelect {
 		if (window.FileReader) {
 			const reader = new FileReader();
 
-			reader.onerror = this.fnErrorHandler.bind(this);
-			reader.onload = this.fnOnLoad.bind(this);
+			reader.onerror = this.fnOnErrorHandler;
+			reader.onload = this.fnOnLoadHandler;
 			this.fnReadNextFile(reader);
 		} else {
 			Utils.console.warn("fnHandleFileSelect: FileReader API not supported.");
@@ -139,6 +147,6 @@ export class FileSelect {
 
 	//TODO: can we use View.attachEventHandler() somehow?
 	addFileSelectHandler(element: HTMLElement, type: string): void {
-		element.addEventListener(type, this.fnHandleFileSelect.bind(this), false);
+		element.addEventListener(type, this.fnOnFileSelectHandler, false);
 	}
 }
