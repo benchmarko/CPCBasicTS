@@ -41,14 +41,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.yBottom = 0;
             this.gTransparent = false;
             this.options = options;
-            /*
-            this.options = {
-                charset: options.charset,
-                palette: options.palette,
-                onCanvasClick: options.onCanvasClick,
-                onCanvasDragover: options.onCanvasDragover
-            };
-            */
             this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
             this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
             this.cpcAreaBox = View_1.View.getElementById1("cpcAreaBox");
@@ -98,12 +90,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         Canvas.prototype.setOnCanvasClick = function (onCanvasClickHandler) {
             this.options.onCanvasClick = onCanvasClickHandler;
         };
-        /*
-        setOnCanvasDragover(onCanvasDragoverHandler: (e: Event) => void) : HTMLElement {
-            this.options.onCanvasDragover = onCanvasDragoverHandler;
-            return this.canvas;
-        }
-        */
         Canvas.prototype.reset = function () {
             this.changeMode(1);
             this.inkSet = 0;
@@ -380,13 +366,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             for (var row = 0; row < height; row += 1) {
                 var idx = x + (y + row) * canvasWidth;
                 dataset8.fill(paper, idx, idx + width);
-                /*
-                for (let col = 0; col < width; col += 1) {
-                    const idx = (x + col) + (y + row) * canvasWidth;
-    
-                    dataset8[idx] = paper;
-                }
-                */
             }
         };
         Canvas.prototype.fillTextBox = function (left, top, width, height, paper) {
@@ -400,11 +379,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             for (var row = 0; row < height; row += 1) {
                 var idx1 = x + (y + row) * canvasWidth, idx2 = x2 + (y2 + row) * canvasWidth;
                 dataset8.copyWithin(idx2, idx1, idx1 + width);
-                /*
-                for (let col = 0; col < width; col += 1) {
-                    dataset8[idx2 + col] = dataset8[idx1 + col];
-                }
-                */
             }
         };
         Canvas.prototype.moveMyRectDown = function (x, y, width, height, x2, y2) {
@@ -412,11 +386,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             for (var row = height - 1; row >= 0; row -= 1) {
                 var idx1 = x + (y + row) * canvasWidth, idx2 = x2 + (y2 + row) * canvasWidth;
                 dataset8.copyWithin(idx2, idx1, idx1 + width);
-                /*
-                for (let col = 0; col < width; col += 1) {
-                    dataset8[idx2 + col] = dataset8[idx1 + col];
-                }
-                */
             }
         };
         Canvas.prototype.invertChar = function (x, y, pen, paper) {

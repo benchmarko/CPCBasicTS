@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="cpcbasic.css">
 <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
-<title id="title">CPC BasicTS v0.1.2</title>
+<title id="title">CPC BasicTS v0.1.3</title>
 </head>
 
 <body id="pageBody">
@@ -189,25 +189,13 @@
 		</legend>
 		<div id="cpcArea" class="area">
 			<div id="cpcCanvasDiv">
-				<canvas id="cpcCanvas" width="640" height="400" tabindex="0" hidden></canvas>
+				<canvas id="cpcCanvas" width="640" height="400" tabindex="0"></canvas>
 			</div>
 			<div id="textCanvasDiv">
-				<!-- <textarea readonly id="textText" placeholder="" rows="25" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off" style="overflow:hidden; resize:none; padding:0px; line-height: 15px;" hidden></textarea> -->
 				<textarea readonly id="textText" placeholder="" rows="25" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off" hidden></textarea>
 			</div>
 		</div>	
 	</fieldset>
-	<!--
-	<fieldset class="flexBox clearLeft">
-		<legend>
-			<button id="textButton" class="legendButton" title="Show/Hide Text View">Text View</button>
-			<button id="copyTextButton" title="Copy text to clipboard">Copy</button>
-		</legend>
-		<div id="textArea" class="area displayNone textCanvas">
-			<textarea readonly id="textText" placeholder="" rows="25" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off" style="overflow:hidden; resize:none; padding:0px; line-height: 15px;"></textarea>
-		</div>
-	</fieldset>
-	-->
 	<fieldset class="flexBox clearLeft" id="kbdAreaBox">
 		<legend>
 			<button id="kbdButton" class="legendButton" title="CPC Keyboard">Keyboard</button>
@@ -291,6 +279,46 @@
 		//databaseDirs: "./examples,../../CPCBasicApps/apps,storage" // local test
 	};
 </script>
+
 <script src="cpcbasicts.js"></script>
+
+<!--
+<script src="Polyfills.js"></script>
+<script src="amdLoader.js"></script>
+<script src="Utils.js"></script>
+<script src="Interfaces.js"></script>
+<script src="cpcCharset.js"></script>
+<script src="Model.js"></script>
+<script src="BasicFormatter.js"></script>
+<script src="BasicLexer.js"></script>
+<script src="BasicParser.js"></script>
+<script src="BasicTokenizer.js"></script>
+<script src="CodeGeneratorBasic.js"></script>
+<script src="CodeGeneratorJs.js"></script>
+<script src="CodeGeneratorToken.js"></script>
+<script src="Diff.js"></script>
+<script src="DiskImage.js"></script>
+<script src="InputStack.js"></script>
+<script src="View.js"></script>
+<script src="Keyboard.js"></script>
+<script src="VirtualKeyboard.js"></script>
+<script src="Canvas.js"></script>
+<script src="TextCanvas.js"></script>
+<script src="NoCanvas.js"></script>
+<script src="NodeAdapt.js"></script>
+<script src="Variables.js"></script>
+<script src="CommonEventHandler.js"></script>
+<script src="Random.js"></script>
+<script src="Sound.js"></script>
+<script src="ZipFile.js"></script>
+<script src="CpcVm.js"></script>
+<script src="CpcVmRsx.js"></script>
+<script src="FileHandler.js"></script>
+<script src="FileSelect.js"></script>
+<script src="Controller.js"></script>
+<script src="cpcconfig.js"></script>
+<script src="cpcbasic.js"></script>
+-->
+
 </body>
 </html>

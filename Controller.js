@@ -14,7 +14,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.initialLoopTimeout = 0;
             this.inputSet = false;
             this.canvases = {};
-            //private readonly textCanvas: ICanvas;
             this.inputStack = new InputStack_1.InputStack();
             this.sound = new Sound_1.Sound({
                 AudioContextConstructor: window.AudioContext
@@ -54,7 +53,10 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.fnOnEscapeHandler = this.fnOnEscape.bind(this);
             this.fnDirectInputHandler = this.fnDirectInput.bind(this);
             this.fnPutKeyInBufferHandler = this.fnPutKeysInBuffer.bind(this);
-            this.fnHandleDragOverHandler = Controller.fnHandleDragOver.bind(this);
+            this.fnOnDragoverHandler = Controller.fnOnDragover;
+            this.fnOnUserActionHandler = this.onUserAction.bind(this);
+            this.fnWaitForContinueHandler = this.fnWaitForContinue.bind(this);
+            this.fnEditLineCallbackHandler = this.fnEditLineCallback.bind(this);
             this.model = model;
             this.view = view;
             this.commonEventHandler = new CommonEventHandler_1.CommonEventHandler(model, view, this);
@@ -68,22 +70,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             var palette = model.getProperty("palette");
             view.setSelectValue("paletteSelect", palette);
             this.canvas = this.setCanvasType(canvasType);
-            /*
-            const canvasOptions: CanvasOptions = {
-                charset: cpcCharset,
-                palette: palette === "green" || palette === "grey" ? palette : "color"
-                //onCanvasDragover: this.fnHandleDragOverHandler
-            };
-    
-            if (canvasType === "text") {
-                this.canvas = new TextCanvas(canvasOptions);
-            } else if (canvasType === "none") {
-                this.canvas = new NoCanvas(canvasOptions);
-            } else { // "graphics"
-                view.setHidden("cpcArea", false); // make sure canvas area is not hidden when creating canvas object (allows to get width, height)
-                this.canvas = new Canvas(canvasOptions);
-            }
-            */
             view.setHidden("kbdLayoutArea", model.getProperty("showKbd"), "inherit"); // kbd visible => kbdlayout invisible
             this.initAreas();
             view.setInputValue("debugInput", String(model.getProperty("debug")));
@@ -106,15 +92,13 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             if (this.model.getProperty("showKbd")) { // maybe we need to draw virtual keyboard
                 this.virtualKeyboardCreate();
             }
-            this.commonEventHandler.fnSetUserAction(this.onUserAction.bind(this)); // check first user action, also if sound is not yet on
+            this.commonEventHandler.fnSetUserAction(this.fnOnUserActionHandler); // check first user action, also if sound is not yet on
             this.vm = new CpcVm_1.CpcVm({
                 canvas: this.canvas,
-                //textCanvas: this.textCanvas,
                 keyboard: this.keyboard,
                 sound: this.sound,
                 variables: this.variables,
                 onClickKey: this.fnPutKeyInBufferHandler
-                //copyChrFromTextCanvas: window.Polyfills.isNodeAvailable // use textcanvas when using nodeJS
             });
             this.vm.vmReset();
             this.rsx = new CpcVmRsx_1.CpcVmRsx(this.vm);
@@ -151,11 +135,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             if (model.getProperty("showCpc")) {
                 this.canvas.startUpdateCanvas();
             }
-            /*
-            if (model.getProperty<boolean>("showText")) {
-                this.textCanvas.startUpdateCanvas();
-            }
-            */
         }
         Controller.prototype.initAreas = function () {
             for (var id in Controller.areaDefinitions) { // eslint-disable-line guard-for-in
@@ -408,7 +387,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             else if (stop.reason !== "escape") { // first escape?
                 this.vm.cursor(stream, 1);
                 this.keyboard.clearInput();
-                this.keyboard.setKeyDownHandler(this.fnWaitForContinue.bind(this));
+                this.keyboard.setKeyDownHandler(this.fnWaitForContinueHandler);
                 this.setStopObject(stop);
                 this.vm.vmStop("escape", 85, false, {
                     command: "escape",
@@ -1350,7 +1329,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     line: paras.line,
                     stream: stream,
                     message: "",
-                    fnInputCallback: this.fnEditLineCallback.bind(this),
+                    fnInputCallback: this.fnEditLineCallbackHandler,
                     input: lineString
                 };
                 this.vm.vmStop("waitInput", 45, true, inputParas);
@@ -1743,7 +1722,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         Controller.prototype.startMainLoop = function () {
             if (!this.timeoutHandlerActive) {
                 this.timeoutHandlerActive = true;
-                this.fnRunLoop();
+                setTimeout(this.fnRunLoopHandler, 0);
             }
         };
         Controller.prototype.setStopObject = function (stop) {
@@ -1818,15 +1797,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         };
         Controller.prototype.startScreenshot = function () {
             return this.canvas.takeScreenShot();
-            /*
-            const canvas = this.canvas.getCanvasElement();
-    
-            if (canvas.toDataURL) {
-                return canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"); // here is the most important part because if you do not replace you will get a DOM 18 exception.
-            }
-            Utils.console.warn("Screenshot not available");
-            return "";
-            */
         };
         Controller.prototype.fnPutKeysInBuffer = function (keys) {
             for (var i = 0; i < keys.length; i += 1) {
@@ -1918,7 +1888,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             var palette = this.model.getProperty("palette"), canvasOptions = {
                 charset: cpcCharset_1.cpcCharset,
                 palette: palette === "green" || palette === "grey" ? palette : "color"
-                //onCanvasDragover: this.fnHandleDragOverHandler
             };
             var canvas = this.canvas;
             if (canvas) {
@@ -1927,6 +1896,10 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 if (currentCanvasElement) {
                     this.view.setHidden(currentCanvasElement.id, true);
                 }
+            }
+            else if (canvasType !== "graphics") {
+                // initially graphics canvas is not hidden, but we must hide it, if other canvas should be shown
+                this.view.setHidden("cpcCanvas", true);
             }
             if (this.canvases[canvasType]) {
                 canvas = this.canvases[canvasType];
@@ -1996,7 +1969,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             vm.print(stream, "\r\n", imported.length + " file" + (imported.length !== 1 ? "s" : "") + " imported.\r\n");
             this.updateResultText();
         };
-        Controller.fnHandleDragOver = function (evt) {
+        Controller.fnOnDragover = function (evt) {
             evt.stopPropagation();
             evt.preventDefault();
             if (evt.dataTransfer !== null) {
@@ -2025,24 +1998,13 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 });
             }
             var dropZone = View_1.View.getElementById1("dropZone");
-            dropZone.addEventListener("dragover", this.fnHandleDragOverHandler, false);
+            dropZone.addEventListener("dragover", this.fnOnDragoverHandler, false);
             this.fileSelect.addFileSelectHandler(dropZone, "drop");
             var canvasElement = this.canvas.getCanvasElement();
             if (canvasElement) {
-                canvasElement.addEventListener("dragover", this.fnHandleDragOverHandler, false);
-                //this.canvas.setOnCanvasDragover(this.fnHandleDragOverHandler);
-                //const canvasElement = this.canvas.getCanvasElement();
+                canvasElement.addEventListener("dragover", this.fnOnDragoverHandler, false);
                 this.fileSelect.addFileSelectHandler(canvasElement, "drop");
             }
-            /*
-            const textCanvasElement = this.textCanvas.getCanvasElement();
-    
-            textCanvasElement.addEventListener("dragover", this.fnHandleDragOverHandler, false);
-            //this.canvas.setOnCanvasDragover(this.fnHandleDragOverHandler);
-            //const canvasElement = this.canvas.getCanvasElement();
-    
-            this.fileSelect.addFileSelectHandler(textCanvasElement, "drop");
-            */
             var fileInput = View_1.View.getElementById1("fileInput");
             this.fileSelect.addFileSelectHandler(fileInput, "change");
         };
@@ -2064,19 +2026,9 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         Controller.prototype.startUpdateCanvas = function () {
             this.canvas.startUpdateCanvas();
         };
-        /*
-        startUpdateTextCanvas(): void {
-            this.textCanvas.startUpdateCanvas();
-        }
-        */
         Controller.prototype.stopUpdateCanvas = function () {
             this.canvas.stopUpdateCanvas();
         };
-        /*
-        stopUpdateTextCanvas(): void {
-            this.textCanvas.stopUpdateCanvas();
-        }
-        */
         Controller.prototype.virtualKeyboardCreate = function () {
             if (!this.virtualKeyboard) {
                 this.virtualKeyboard = new VirtualKeyboard_1.VirtualKeyboard({
@@ -2178,7 +2130,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             inFile.name = exampleName;
             inFile.start = undefined;
-            inFile.fnFileCallback = vm.fnLoadHandler;
+            inFile.fnFileCallback = vm.vmGetLoadHandler();
             vm.vmStop("fileLoad", 90);
             this.startMainLoop();
         };
@@ -2205,21 +2157,12 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         Controller.prototype.onCpcCanvasClick = function (event) {
             this.setPopoversHiddenExcept(""); // hide all popovers
             this.canvas.onCanvasClick(event);
-            //this.textCanvas.onWindowClick(event);
             this.keyboard.setActive(true);
         };
         Controller.prototype.onWindowClick = function (event) {
             this.canvas.onWindowClick(event);
-            //this.textCanvas.onWindowClick(event);
             this.keyboard.setActive(false);
         };
-        /*
-        onTextTextClick(event: MouseEvent): void {
-            this.textCanvas.onCpcCanvasClick(event);
-            this.canvas.onWindowClick(event);
-            this.keyboard.setActive(true);
-        }
-        */
         Controller.prototype.fnArrayBounds = function () {
             var arrayBounds = this.model.getProperty("arrayBounds");
             this.variables.setOptions({

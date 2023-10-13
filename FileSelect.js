@@ -14,6 +14,9 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.fileIndex = 0;
             this.imported = []; // imported file names
             this.file = {}; // current file
+            this.fnOnLoadHandler = this.fnOnLoad.bind(this);
+            this.fnOnErrorHandler = this.fnOnError.bind(this);
+            this.fnOnFileSelectHandler = this.fnOnFileSelect.bind(this);
             this.fnEndOfImport = options.fnEndOfImport;
             this.fnLoad2 = options.fnLoad2;
         }
@@ -74,7 +77,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 this.fnReadNextFile(reader);
             }
         };
-        FileSelect.prototype.fnErrorHandler = function (event, file) {
+        FileSelect.prototype.fnOnError = function (event, file) {
             var reader = event.target;
             var msg = "fnErrorHandler: Error reading file " + file.name;
             if (reader && reader.error !== null) {
@@ -94,7 +97,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         };
         // https://stackoverflow.com/questions/10261989/html5-javascript-drag-and-drop-file-from-external-window-windows-explorer
         // https://www.w3.org/TR/file-upload/#dfn-filereader
-        FileSelect.prototype.fnHandleFileSelect = function (event) {
+        FileSelect.prototype.fnOnFileSelect = function (event) {
             event.stopPropagation();
             event.preventDefault();
             var dataTransfer = event.dataTransfer, files = dataTransfer ? dataTransfer.files : View_1.View.getEventTarget(event).files; // dataTransfer for drag&drop, target.files for file input
@@ -107,8 +110,8 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.imported.length = 0;
             if (window.FileReader) {
                 var reader = new FileReader();
-                reader.onerror = this.fnErrorHandler.bind(this);
-                reader.onload = this.fnOnLoad.bind(this);
+                reader.onerror = this.fnOnErrorHandler;
+                reader.onload = this.fnOnLoadHandler;
                 this.fnReadNextFile(reader);
             }
             else {
@@ -117,7 +120,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         };
         //TODO: can we use View.attachEventHandler() somehow?
         FileSelect.prototype.addFileSelectHandler = function (element, type) {
-            element.addEventListener(type, this.fnHandleFileSelect.bind(this), false);
+            element.addEventListener(type, this.fnOnFileSelectHandler, false);
         };
         return FileSelect;
     }());

@@ -3,16 +3,8 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 
-//import { Utils } from "./Utils";
 import { View } from "./View";
 import { CanvasOptions, ICanvas, CanvasClickType, CanvasCharType } from "./Interfaces";
-
-
-/*
-export interface TextCanvasOptions {
-	onCanvasClick?: CanvasClickType
-}
-*/
 
 export class TextCanvas implements ICanvas {
 	private readonly options: CanvasOptions;
@@ -37,11 +29,6 @@ export class TextCanvas implements ICanvas {
 
 	constructor(options: CanvasOptions) {
 		this.options = options;
-		/*
-		this.options = {
-			onCanvasClick: options.onCanvasClick
-		};
-		*/
 
 		this.cpcAreaBox = View.getElementById1("cpcAreaBox");
 
@@ -222,13 +209,6 @@ export class TextCanvas implements ICanvas {
 		return "";
 	}
 
-	/*
-	setOnCanvasDragover(onCanvasDragoverHandler: (e: Event) => void) : HTMLElement {
-		this.options.onCanvasDragover = onCanvasDragoverHandler;
-		return this.textText;
-	}
-	*/
-
 
 	private resetTextBuffer() {
 		this.textBuffer.length = 0;
@@ -294,8 +274,7 @@ export class TextCanvas implements ICanvas {
 	}
 
 	private getMousePos(event: MouseEvent, canvasWidth: number, canvasHeight: number) { // eslint-disable-line class-methods-use-this
-		const //padding = 0, //2, // TODO
-			rect = this.textText.getBoundingClientRect(),
+		const rect = this.textText.getBoundingClientRect(),
 			pos = {
 				x: (event.clientX - this.borderWidth - rect.left) / (rect.right - rect.left - this.borderWidth * 2) * canvasWidth,
 				y: (event.clientY - this.borderWidth - rect.top) / (rect.bottom - rect.top - this.borderWidth * 2) * canvasHeight
@@ -314,13 +293,6 @@ export class TextCanvas implements ICanvas {
 			/* eslint-enable no-bitwise */
 
 		if (this.options.onCanvasClick) {
-			/*
-			const target = View.getEventTarget<HTMLElement>(event),
-				style = window.getComputedStyle(target, null).getPropertyValue("font-size"),
-				fontSize = parseFloat(style),
-				charWidth = (fontSize * 1.1075) / 2, //(fontSize + 1.4) / 2,
-				charHeight = fontSize * 1.125, //+ 2.25, // TODO
-			*/
 			const charWidth = canvasWidth / this.cols,
 				charHeight = canvasHeight / this.rows,
 				/* eslint-disable no-bitwise */
@@ -331,64 +303,6 @@ export class TextCanvas implements ICanvas {
 			this.options.onCanvasClick(event, x, y, xTxt, yTxt);
 		}
 	}
-
-	/*
-	private getMousePos_old1(event: MouseEvent) {
-		const padding = 0, //2, // TODO
-			rect = this.textText.getBoundingClientRect(),
-			pos = {
-				x: event.clientX - this.borderWidth - padding - rect.left,
-				y: event.clientY - this.borderWidth - padding - rect.top
-			};
-
-		return pos;
-	}
-
-	private canvasClickAction_old1(event: MouseEvent) {
-		const pos = this.getMousePos(event),
-			canvasWidth = 640,
-			canvasHeight = 400,
-			x = pos.x,
-			y = pos.y;
-
-		if (this.options.onCanvasClick) {
-			const target = View.getEventTarget<HTMLElement>(event),
-				style = window.getComputedStyle(target, null).getPropertyValue("font-size"),
-				fontSize = parseFloat(style),
-				charWidth = (fontSize * 1.1075) / 2, //(fontSize + 1.4) / 2,
-				charHeight = fontSize * 1.125, //+ 2.25, // TODO
-				/ * eslint-disable no-bitwise * /
-				xTxt = (x / charWidth) | 0,
-				yTxt = (y / charHeight) | 0,
-				//TODO
-				rect = this.textText.getBoundingClientRect(),
-				x2 = ((event.clientX - this.borderWidth - rect.left) / (rect.right - rect.left - this.borderWidth * 2) * canvasWidth) | 0,
-				y2 = ((event.clientY - this.borderWidth - rect.top) / (rect.bottom - rect.top - this.borderWidth * 2) * canvasHeight) | 0;
-				/ * eslint-enable no-bitwise * /
-				/ *
-				scaleX = canvasWidth / rect.width,
-				scaleY = canvasHeight / rect.height,
-				x2 = (x * scaleX) | 0, // force integer
-				y2 = (y * scaleY) | 0;
-				* /
-
-			this.options.onCanvasClick(event, x2, y2, xTxt, yTxt);
-		}
-
-		/ *
-		// for graphics coordinates, adapt origin
-		x -= this.xOrig;
-		y = this.height - 1 - (y + this.yOrig);
-
-		if (this.xPos === 1000 && this.yPos === 1000) { // only activate move if pos is 1000, 1000
-			this.move(x, y);
-		}
-		if (Utils.debug > 0) {
-			Utils.console.debug("canvasClickAction: x", pos.x, "y", pos.y, "x - xOrig", x, "y - yOrig", y, "detail", event.detail);
-		}
-		* /
-	}
-	*/
 
 	onCanvasClick(event: MouseEvent): void {
 		if (!this.hasFocus) {
@@ -496,7 +410,7 @@ export class TextCanvas implements ICanvas {
 	}
 
 	readChar(x: number, y: number, _pen?: number, _paper?: number): number {
-		let char = this.getCharFromTextBuffer(x, y); // TODO
+		let char = this.getCharFromTextBuffer(x, y);
 
 		if (char === undefined) {
 			char = -1; // not detected

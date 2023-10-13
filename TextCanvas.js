@@ -6,11 +6,6 @@ define(["require", "exports", "./View"], function (require, exports, View_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.TextCanvas = void 0;
-    /*
-    export interface TextCanvasOptions {
-        onCanvasClick?: CanvasClickType
-    }
-    */
     var TextCanvas = /** @class */ (function () {
         function TextCanvas(options) {
             this.fps = 15; // FPS for canvas update
@@ -19,11 +14,6 @@ define(["require", "exports", "./View"], function (require, exports, View_1) {
             this.textBuffer = []; // textbuffer characters at row,column
             this.hasFocus = false; // canvas has focus
             this.options = options;
-            /*
-            this.options = {
-                onCanvasClick: options.onCanvasClick
-            };
-            */
             this.cpcAreaBox = View_1.View.getElementById1("cpcAreaBox");
             this.fnUpdateTextCanvasHandler = this.updateTextCanvas.bind(this);
             this.fnUpdateTextCanvas2Handler = this.updateTextCanvas2.bind(this);
@@ -126,12 +116,6 @@ define(["require", "exports", "./View"], function (require, exports, View_1) {
         TextCanvas.prototype.takeScreenShot = function () {
             return "";
         };
-        /*
-        setOnCanvasDragover(onCanvasDragoverHandler: (e: Event) => void) : HTMLElement {
-            this.options.onCanvasDragover = onCanvasDragoverHandler;
-            return this.textText;
-        }
-        */
         TextCanvas.prototype.resetTextBuffer = function () {
             this.textBuffer.length = 0;
         };
@@ -185,8 +169,7 @@ define(["require", "exports", "./View"], function (require, exports, View_1) {
             this.hasFocus = true;
         };
         TextCanvas.prototype.getMousePos = function (event, canvasWidth, canvasHeight) {
-            var //padding = 0, //2, // TODO
-            rect = this.textText.getBoundingClientRect(), pos = {
+            var rect = this.textText.getBoundingClientRect(), pos = {
                 x: (event.clientX - this.borderWidth - rect.left) / (rect.right - rect.left - this.borderWidth * 2) * canvasWidth,
                 y: (event.clientY - this.borderWidth - rect.top) / (rect.bottom - rect.top - this.borderWidth * 2) * canvasHeight
             };
@@ -199,13 +182,6 @@ define(["require", "exports", "./View"], function (require, exports, View_1) {
             y = pos.y | 0;
             /* eslint-enable no-bitwise */
             if (this.options.onCanvasClick) {
-                /*
-                const target = View.getEventTarget<HTMLElement>(event),
-                    style = window.getComputedStyle(target, null).getPropertyValue("font-size"),
-                    fontSize = parseFloat(style),
-                    charWidth = (fontSize * 1.1075) / 2, //(fontSize + 1.4) / 2,
-                    charHeight = fontSize * 1.125, //+ 2.25, // TODO
-                */
                 var charWidth = canvasWidth / this.cols, charHeight = canvasHeight / this.rows, 
                 /* eslint-disable no-bitwise */
                 xTxt = (x / charWidth) | 0, yTxt = (y / charHeight) | 0;
@@ -213,63 +189,6 @@ define(["require", "exports", "./View"], function (require, exports, View_1) {
                 this.options.onCanvasClick(event, x, y, xTxt, yTxt);
             }
         };
-        /*
-        private getMousePos_old1(event: MouseEvent) {
-            const padding = 0, //2, // TODO
-                rect = this.textText.getBoundingClientRect(),
-                pos = {
-                    x: event.clientX - this.borderWidth - padding - rect.left,
-                    y: event.clientY - this.borderWidth - padding - rect.top
-                };
-    
-            return pos;
-        }
-    
-        private canvasClickAction_old1(event: MouseEvent) {
-            const pos = this.getMousePos(event),
-                canvasWidth = 640,
-                canvasHeight = 400,
-                x = pos.x,
-                y = pos.y;
-    
-            if (this.options.onCanvasClick) {
-                const target = View.getEventTarget<HTMLElement>(event),
-                    style = window.getComputedStyle(target, null).getPropertyValue("font-size"),
-                    fontSize = parseFloat(style),
-                    charWidth = (fontSize * 1.1075) / 2, //(fontSize + 1.4) / 2,
-                    charHeight = fontSize * 1.125, //+ 2.25, // TODO
-                    / * eslint-disable no-bitwise * /
-                    xTxt = (x / charWidth) | 0,
-                    yTxt = (y / charHeight) | 0,
-                    //TODO
-                    rect = this.textText.getBoundingClientRect(),
-                    x2 = ((event.clientX - this.borderWidth - rect.left) / (rect.right - rect.left - this.borderWidth * 2) * canvasWidth) | 0,
-                    y2 = ((event.clientY - this.borderWidth - rect.top) / (rect.bottom - rect.top - this.borderWidth * 2) * canvasHeight) | 0;
-                    / * eslint-enable no-bitwise * /
-                    / *
-                    scaleX = canvasWidth / rect.width,
-                    scaleY = canvasHeight / rect.height,
-                    x2 = (x * scaleX) | 0, // force integer
-                    y2 = (y * scaleY) | 0;
-                    * /
-    
-                this.options.onCanvasClick(event, x2, y2, xTxt, yTxt);
-            }
-    
-            / *
-            // for graphics coordinates, adapt origin
-            x -= this.xOrig;
-            y = this.height - 1 - (y + this.yOrig);
-    
-            if (this.xPos === 1000 && this.yPos === 1000) { // only activate move if pos is 1000, 1000
-                this.move(x, y);
-            }
-            if (Utils.debug > 0) {
-                Utils.console.debug("canvasClickAction: x", pos.x, "y", pos.y, "x - xOrig", x, "y - yOrig", y, "detail", event.detail);
-            }
-            * /
-        }
-        */
         TextCanvas.prototype.onCanvasClick = function (event) {
             if (!this.hasFocus) {
                 this.setFocusOnCanvas();
@@ -361,7 +280,7 @@ define(["require", "exports", "./View"], function (require, exports, View_1) {
             this.putCharInTextBuffer(char, x, y);
         };
         TextCanvas.prototype.readChar = function (x, y, _pen, _paper) {
-            var char = this.getCharFromTextBuffer(x, y); // TODO
+            var char = this.getCharFromTextBuffer(x, y);
             if (char === undefined) {
                 char = -1; // not detected
             }

@@ -9,7 +9,10 @@ export declare class Controller implements IController {
     private readonly fnOnEscapeHandler;
     private readonly fnDirectInputHandler;
     private readonly fnPutKeyInBufferHandler;
-    private readonly fnHandleDragOverHandler;
+    private readonly fnOnDragoverHandler;
+    private readonly fnOnUserActionHandler;
+    private readonly fnWaitForContinueHandler;
+    private readonly fnEditLineCallbackHandler;
     private static readonly metaIdent;
     private fnScript?;
     private timeoutHandlerActive;
@@ -142,7 +145,7 @@ export declare class Controller implements IController {
     setCanvasType(canvasType: string): ICanvas;
     setSoundActive(): void;
     private fnEndOfImport;
-    private static fnHandleDragOver;
+    private static fnOnDragover;
     private adaptFilename;
     private createFileHandler;
     private initDropZone;

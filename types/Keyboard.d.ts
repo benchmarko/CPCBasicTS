@@ -5,7 +5,7 @@ export interface CpcKeyExpansionsOptions {
     shift?: number;
     ctrl?: number;
 }
-export declare type PressReleaseCpcKey = (cpcKey: number, pressedKey: string, key: string, shiftKey: boolean, ctrlKey: boolean) => void;
+export declare type PressReleaseCpcKey = (event: KeyboardEvent | PointerEvent, cpcKey: number, pressedKey: string, key: string) => void;
 interface KeyboardOptions {
     fnOnEscapeHandler?: (key: string, pressedKey: string) => void;
     fnOnKeyDown?: () => void;
@@ -21,8 +21,6 @@ export declare class Keyboard {
     private key2CpcKey;
     private codeStringsRemoved;
     private pressedKeys;
-    setOptions(options: KeyboardOptions): void;
-    getOptions(): KeyboardOptions;
     constructor(options: KeyboardOptions);
     private static readonly key2CpcKey;
     private static readonly specialKeys;
@@ -35,8 +33,8 @@ export declare class Keyboard {
     setKeyDownHandler(fnOnKeyDown?: () => void): void;
     setActive(active: boolean): void;
     private removeCodeStringsFromKeymap;
-    fnPressCpcKey(cpcKeyCode: number, pressedKey: string, key: string, shiftKey: boolean, ctrlKey: boolean): void;
-    fnReleaseCpcKey(cpcKeyCode: number, pressedKey: string, key: string, shiftKey: boolean, ctrlKey: boolean): void;
+    fnPressCpcKey(event: KeyboardEvent | PointerEvent, cpcKeyCode: number, pressedKey: string, key: string): void;
+    fnReleaseCpcKey(event: KeyboardEvent | PointerEvent, cpcKeyCode: number, pressedKey: string, key: string): void;
     private static keyIdentifier2Char;
     private fnKeyboardKeydown;
     private fnKeyboardKeyup;

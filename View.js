@@ -88,19 +88,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             element.checked = checked;
             return this;
         };
-        /*
-        getInputDisabled(id: string): boolean { // eslint-disable-line class-methods-use-this
-            const element = View.getElementByIdAs<HTMLInputElement>(id);
-    
-            return element.disabled;
-        }
-        setInputDisabled(id: string, disabled: boolean): this {
-            const element = View.getElementByIdAs<HTMLInputElement>(id);
-    
-            element.disabled = disabled;
-            return this;
-        }
-        */
         View.prototype.setAreaInputList = function (id, inputs) {
             var element = View.getElementByIdAs(id), childNodes = element.childNodes;
             while (childNodes.length && childNodes[0].nodeType !== Node.ELEMENT_NODE) { // remove all non-element nodes
@@ -146,20 +133,22 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return this;
         };
         View.prototype.setSelectOptions = function (id, options) {
-            var element = View.getElementByIdAs(id);
+            var element = View.getElementByIdAs(id), optionList = [], existingElements = element.length;
+            // pre-create additional options
+            for (var i = existingElements; i < options.length; i += 1) {
+                var item = options[i], option = window.document.createElement("option");
+                option.value = item.value;
+                option.text = item.text;
+                option.title = item.title;
+                option.selected = item.selected; // multi-select
+                optionList.push(option);
+            }
             for (var i = 0; i < options.length; i += 1) {
-                var item = options[i];
-                var option = void 0;
-                if (i >= element.length) {
-                    option = window.document.createElement("option");
-                    option.value = item.value;
-                    option.text = item.text;
-                    option.title = item.title;
-                    option.selected = item.selected; // multi-select
-                    element.add(option, null); // null needed for old FF 3.x
+                if (i >= existingElements) {
+                    element.add(optionList[i - existingElements], null); // null needed for old FF 3.x
                 }
                 else {
-                    option = element.options[i];
+                    var item = options[i], option = element.options[i];
                     if (option.value !== item.value) {
                         option.value = item.value;
                     }
@@ -266,7 +255,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         View.requestFullscreenForId = function (id) {
             var element = View.getElementById1(id), anyEl = element, requestMethod = element.requestFullscreen || anyEl.webkitRequestFullscreen || anyEl.mozRequestFullscreen || anyEl.msRequestFullscreen;
-            //parameter = anyEl.webkitRequestFullscreen ? (Element as any).ALLOW_KEYBOARD_INPUT : undefined; // does this work?
             if (requestMethod) {
                 requestMethod.call(element); // can we ALLOW_KEYBOARD_INPUT?
             }

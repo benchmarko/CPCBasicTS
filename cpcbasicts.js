@@ -818,11 +818,13 @@ define("Utils", ["require", "exports"], function (require, exports) {
                 return "\\x" + ("00" + char.charCodeAt(0).toString(16)).slice(-2);
             });
         };
-        Utils.hexUnescape = function (str) {
+        /*
+        static hexUnescape(str: string): string {
             return str.replace(/\\x([0-9A-Fa-f]{2})/g, function () {
                 return String.fromCharCode(parseInt(arguments[1], 16));
             });
-        };
+        }
+        */
         Utils.dateFormat = function (d) {
             return d.getFullYear() + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + ("0" + d.getDate()).slice(-2) + " "
                 + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2) + ":" + ("0" + d.getSeconds()).slice(-2) + "." + ("0" + d.getMilliseconds()).slice(-3);
@@ -7609,19 +7611,6 @@ define("View", ["require", "exports", "Utils"], function (require, exports, Util
             element.checked = checked;
             return this;
         };
-        /*
-        getInputDisabled(id: string): boolean { // eslint-disable-line class-methods-use-this
-            const element = View.getElementByIdAs<HTMLInputElement>(id);
-    
-            return element.disabled;
-        }
-        setInputDisabled(id: string, disabled: boolean): this {
-            const element = View.getElementByIdAs<HTMLInputElement>(id);
-    
-            element.disabled = disabled;
-            return this;
-        }
-        */
         View.prototype.setAreaInputList = function (id, inputs) {
             var element = View.getElementByIdAs(id), childNodes = element.childNodes;
             while (childNodes.length && childNodes[0].nodeType !== Node.ELEMENT_NODE) { // remove all non-element nodes
@@ -7667,20 +7656,22 @@ define("View", ["require", "exports", "Utils"], function (require, exports, Util
             return this;
         };
         View.prototype.setSelectOptions = function (id, options) {
-            var element = View.getElementByIdAs(id);
+            var element = View.getElementByIdAs(id), optionList = [], existingElements = element.length;
+            // pre-create additional options
+            for (var i = existingElements; i < options.length; i += 1) {
+                var item = options[i], option = window.document.createElement("option");
+                option.value = item.value;
+                option.text = item.text;
+                option.title = item.title;
+                option.selected = item.selected; // multi-select
+                optionList.push(option);
+            }
             for (var i = 0; i < options.length; i += 1) {
-                var item = options[i];
-                var option = void 0;
-                if (i >= element.length) {
-                    option = window.document.createElement("option");
-                    option.value = item.value;
-                    option.text = item.text;
-                    option.title = item.title;
-                    option.selected = item.selected; // multi-select
-                    element.add(option, null); // null needed for old FF 3.x
+                if (i >= existingElements) {
+                    element.add(optionList[i - existingElements], null); // null needed for old FF 3.x
                 }
                 else {
-                    option = element.options[i];
+                    var item = options[i], option = element.options[i];
                     if (option.value !== item.value) {
                         option.value = item.value;
                     }
@@ -7787,7 +7778,6 @@ define("View", ["require", "exports", "Utils"], function (require, exports, Util
         };
         View.requestFullscreenForId = function (id) {
             var element = View.getElementById1(id), anyEl = element, requestMethod = element.requestFullscreen || anyEl.webkitRequestFullscreen || anyEl.mozRequestFullscreen || anyEl.msRequestFullscreen;
-            //parameter = anyEl.webkitRequestFullscreen ? (Element as any).ALLOW_KEYBOARD_INPUT : undefined; // does this work?
             if (requestMethod) {
                 requestMethod.call(element); // can we ALLOW_KEYBOARD_INPUT?
             }
@@ -7823,11 +7813,7 @@ define("Keyboard", ["require", "exports", "Utils", "View"], function (require, e
             this.pressedKeys = {}; // currently pressed browser keys
             this.fnCpcAreaKeydownHandler = this.onCpcAreaKeydown.bind(this);
             this.fnCpcAreaKeyupHandler = this.oncpcAreaKeyup.bind(this);
-            this.options = {
-                fnOnEscapeHandler: undefined,
-                fnOnKeyDown: undefined
-            };
-            this.setOptions(options);
+            this.options = options;
             this.key2CpcKey = Keyboard.key2CpcKey;
             this.cpcKeyExpansions = {
                 normal: {},
@@ -7835,29 +7821,10 @@ define("Keyboard", ["require", "exports", "Utils", "View"], function (require, e
                 ctrl: {},
                 repeat: {}
             }; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
-            //TTT
-            var name = "cpcArea", //"cpcCanvas", //"cpcCanvasDiv", //"cpcArea"
-            cpcArea = View_1.View.getElementById1(name);
+            var name = "cpcArea", cpcArea = View_1.View.getElementById1(name);
             cpcArea.addEventListener("keydown", this.fnCpcAreaKeydownHandler, false);
             cpcArea.addEventListener("keyup", this.fnCpcAreaKeyupHandler, false);
-            /*
-            const textArea = View.getElementById1("textArea");
-    
-            textArea.addEventListener("keydown", this.fnCpcAreaKeydownHandler, false);
-            textArea.addEventListener("keyup", this.fnCpcAreaKeyupHandler, false);
-            */
         }
-        Keyboard.prototype.setOptions = function (options) {
-            if (options.fnOnEscapeHandler !== undefined) {
-                this.options.fnOnEscapeHandler = options.fnOnEscapeHandler;
-            }
-            if (options.fnOnKeyDown !== undefined) {
-                this.options.fnOnKeyDown = options.fnOnKeyDown;
-            }
-        };
-        Keyboard.prototype.getOptions = function () {
-            return this.options;
-        };
         /* eslint-enable array-element-newline */
         Keyboard.prototype.reset = function () {
             this.options.fnOnKeyDown = undefined;
@@ -7926,8 +7893,8 @@ define("Keyboard", ["require", "exports", "Utils", "View"], function (require, e
             }
             this.key2CpcKey = newMap;
         };
-        Keyboard.prototype.fnPressCpcKey = function (cpcKeyCode, pressedKey, key, shiftKey, ctrlKey) {
-            var pressedKeys = this.pressedKeys, cpcKeyExpansions = this.cpcKeyExpansions, specialKeys = Keyboard.specialKeys, cpcKey = String(cpcKeyCode);
+        Keyboard.prototype.fnPressCpcKey = function (event, cpcKeyCode, pressedKey, key) {
+            var shiftKey = event.shiftKey, ctrlKey = event.ctrlKey, pressedKeys = this.pressedKeys, cpcKeyExpansions = this.cpcKeyExpansions, specialKeys = Keyboard.specialKeys, cpcKey = String(cpcKeyCode);
             var cpcKeyEntry = pressedKeys[cpcKey];
             if (!cpcKeyEntry) {
                 pressedKeys[cpcKey] = {
@@ -7996,8 +7963,8 @@ define("Keyboard", ["require", "exports", "Utils", "View"], function (require, e
                 this.options.fnOnKeyDown();
             }
         };
-        Keyboard.prototype.fnReleaseCpcKey = function (cpcKeyCode, pressedKey, key, shiftKey, ctrlKey) {
-            var pressedKeys = this.pressedKeys, cpcKey = pressedKeys[cpcKeyCode];
+        Keyboard.prototype.fnReleaseCpcKey = function (event, cpcKeyCode, pressedKey, key) {
+            var shiftKey = event.shiftKey, ctrlKey = event.ctrlKey, pressedKeys = this.pressedKeys, cpcKey = pressedKeys[cpcKeyCode];
             if (Utils_13.Utils.debug > 1) {
                 Utils_13.Utils.console.log("fnReleaseCpcKey: pressedKey=" + pressedKey + ", key=" + key + ", affected cpc key=" + cpcKeyCode + ", keys:", (cpcKey ? cpcKey.keys : "undef."));
             }
@@ -8079,7 +8046,7 @@ define("Keyboard", ["require", "exports", "Utils", "View"], function (require, e
                         key = key.substring(1); // remove prefix
                     }
                 }
-                this.fnPressCpcKey(cpcKey, pressedKey, key, event.shiftKey, event.ctrlKey);
+                this.fnPressCpcKey(event, cpcKey, pressedKey, key);
             }
             else if (key.length === 1) { // put normal keys in buffer, ignore special keys with more than 1 character
                 this.putKeyInBuffer(key);
@@ -8100,7 +8067,7 @@ define("Keyboard", ["require", "exports", "Utils", "View"], function (require, e
                 if (cpcKey === 85) { // map virtual cpc key 85 to 22 (english keyboard)
                     cpcKey = 22;
                 }
-                this.fnReleaseCpcKey(cpcKey, pressedKey, key, event.shiftKey, event.ctrlKey);
+                this.fnReleaseCpcKey(event, cpcKey, pressedKey, key);
             }
             else {
                 Utils_13.Utils.console.log("fnKeyboardKeyup: Unhandled key", pressedKey + ":", key);
@@ -8384,10 +8351,10 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
                 fnPressCpcKey: options.fnPressCpcKey,
                 fnReleaseCpcKey: options.fnReleaseCpcKey
             };
-            var eventNames = this.fnAttachPointerEvents("kbdArea", this.onVirtualVirtualKeyboardKeydown.bind(this), undefined, this.onVirtualVirtualKeyboardKeyup.bind(this));
+            var eventNames = this.fnAttachPointerEvents("kbdArea", this.onVirtualKeyboardKeydown.bind(this), undefined, this.onVirtualKeyboardKeyup.bind(this));
             if (eventNames.out) {
                 this.pointerOutEvent = eventNames.out;
-                this.fnVirtualKeyout = this.onVirtualVirtualKeyboardKeyout.bind(this);
+                this.fnVirtualKeyout = this.onVirtualKeyboardKeyout.bind(this);
             }
             this.dragInit("pageBody", "kbdAreaBox");
             this.virtualKeyboardCreate();
@@ -8481,11 +8448,11 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
             }
             return this;
         };
-        VirtualKeyboard.prototype.virtualKeyboardCreatePart = function (id, virtualVirtualKeyboard) {
+        VirtualKeyboard.prototype.virtualKeyboardCreatePart = function (id, virtualKeyboard) {
             var keyArea = View_2.View.getElementById1(id), shiftLock = this.shiftLock, numLock = this.numLock, cpcKey2Key = VirtualKeyboard.cpcKey2Key, buttons = keyArea.getElementsByTagName("button");
             if (!buttons.length) { // not yet created?
-                for (var row = 0; row < virtualVirtualKeyboard.length; row += 1) {
-                    var rowList = virtualVirtualKeyboard[row], optionsList = [];
+                for (var row = 0; row < virtualKeyboard.length; row += 1) {
+                    var rowList = virtualKeyboard[row], optionsList = [];
                     for (var col = 0; col < rowList.length; col += 1) {
                         var cpcKeyEntry = void 0;
                         if (typeof rowList[col] === "number") {
@@ -8509,8 +8476,8 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
             }
         };
         VirtualKeyboard.prototype.virtualKeyboardCreate = function () {
-            this.virtualKeyboardCreatePart("kbdAlpha", VirtualKeyboard.virtualVirtualKeyboardAlpha);
-            this.virtualKeyboardCreatePart("kbdNum", VirtualKeyboard.virtualVirtualKeyboardNum);
+            this.virtualKeyboardCreatePart("kbdAlpha", VirtualKeyboard.virtualKeyboardAlpha);
+            this.virtualKeyboardCreatePart("kbdNum", VirtualKeyboard.virtualKeyboardNum);
         };
         VirtualKeyboard.prototype.virtualKeyboardAdaptKeys = function (shiftLock, numLock) {
             var keyArea = View_2.View.getElementById1("kbdArea"), buttons = keyArea.getElementsByTagName("button"); // or: keyArea.childNodes and filter
@@ -8538,18 +8505,18 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
             }
             return pressedKey;
         };
-        VirtualKeyboard.prototype.onVirtualVirtualKeyboardKeydown = function (event) {
+        VirtualKeyboard.prototype.onVirtualKeyboardKeydown = function (event) {
             var node = View_2.View.getEventTarget(event), cpcKey = node.getAttribute("data-key");
             if (Utils_14.Utils.debug > 1) {
-                Utils_14.Utils.console.debug("onVirtualVirtualKeyboardKeydown: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", cpcKey);
+                Utils_14.Utils.console.debug("onVirtualKeyboardKeydown: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", cpcKey);
             }
             if (cpcKey !== null) {
                 var cpcKeyCode = Number(cpcKey);
                 if (this.numLock) {
                     cpcKeyCode = this.mapNumLockCpcKey(cpcKeyCode);
                 }
-                var pressedKey = this.fnVirtualGetPressedKey(cpcKeyCode), pointerEvent = event, ascii = this.fnVirtualGetAscii(cpcKeyCode, this.shiftLock || pointerEvent.shiftKey, this.numLock);
-                this.options.fnPressCpcKey(cpcKeyCode, pressedKey, ascii.key, pointerEvent.shiftKey, pointerEvent.ctrlKey);
+                var pressedKey = this.fnVirtualGetPressedKey(cpcKeyCode), ascii = this.fnVirtualGetAscii(cpcKeyCode, this.shiftLock || event.shiftKey, this.numLock);
+                this.options.fnPressCpcKey(event, cpcKeyCode, pressedKey, ascii.key);
             }
             if (this.pointerOutEvent && this.fnVirtualKeyout) {
                 node.addEventListener(this.pointerOutEvent, this.fnVirtualKeyout, false);
@@ -8557,15 +8524,15 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
             event.preventDefault();
             return false;
         };
-        VirtualKeyboard.prototype.fnVirtualVirtualKeyboardKeyupOrKeyout = function (event) {
+        VirtualKeyboard.prototype.fnVirtualKeyboardKeyupOrKeyout = function (event) {
             var node = View_2.View.getEventTarget(event), cpcKey = node.getAttribute("data-key");
             if (cpcKey !== null) {
                 var cpcKeyCode = Number(cpcKey);
                 if (this.numLock) {
                     cpcKeyCode = this.mapNumLockCpcKey(cpcKeyCode);
                 }
-                var pressedKey = this.fnVirtualGetPressedKey(cpcKeyCode), pointerEvent = event, ascii = this.fnVirtualGetAscii(cpcKeyCode, this.shiftLock || pointerEvent.shiftKey, this.numLock);
-                this.options.fnReleaseCpcKey(cpcKeyCode, pressedKey, ascii.key, pointerEvent.shiftKey, pointerEvent.ctrlKey);
+                var pressedKey = this.fnVirtualGetPressedKey(cpcKeyCode), ascii = this.fnVirtualGetAscii(cpcKeyCode, this.shiftLock || event.shiftKey, this.numLock);
+                this.options.fnReleaseCpcKey(event, cpcKeyCode, pressedKey, ascii.key);
                 if (cpcKeyCode === 70) { // Caps Lock?
                     this.shiftLock = !this.shiftLock;
                     this.virtualKeyboardAdaptKeys(this.shiftLock, this.numLock);
@@ -8576,24 +8543,24 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
                 }
             }
         };
-        VirtualKeyboard.prototype.onVirtualVirtualKeyboardKeyup = function (event) {
+        VirtualKeyboard.prototype.onVirtualKeyboardKeyup = function (event) {
             var node = View_2.View.getEventTarget(event);
             if (Utils_14.Utils.debug > 1) {
-                Utils_14.Utils.console.debug("onVirtualVirtualKeyboardKeyup: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", node.getAttribute("data-key"));
+                Utils_14.Utils.console.debug("onVirtualKeyboardKeyup: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", node.getAttribute("data-key"));
             }
-            this.fnVirtualVirtualKeyboardKeyupOrKeyout(event);
+            this.fnVirtualKeyboardKeyupOrKeyout(event);
             if (this.pointerOutEvent && this.fnVirtualKeyout) {
                 node.removeEventListener(this.pointerOutEvent, this.fnVirtualKeyout); // do not need out event any more
             }
             event.preventDefault();
             return false;
         };
-        VirtualKeyboard.prototype.onVirtualVirtualKeyboardKeyout = function (event) {
+        VirtualKeyboard.prototype.onVirtualKeyboardKeyout = function (event) {
             var node = View_2.View.getEventTarget(event);
             if (Utils_14.Utils.debug > 1) {
-                Utils_14.Utils.console.debug("onVirtualVirtualKeyboardKeyout: event=", event);
+                Utils_14.Utils.console.debug("onVirtualKeyboardKeyout: event=", event);
             }
-            this.fnVirtualVirtualKeyboardKeyupOrKeyout(event);
+            this.fnVirtualKeyboardKeyupOrKeyout(event);
             if (this.pointerOutEvent && this.fnVirtualKeyout) {
                 node.removeEventListener(this.pointerOutEvent, this.fnVirtualKeyout);
             }
@@ -9163,7 +9130,7 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
             // "226IntlBackslash", "122F11", "123F12", "44PrintScreen", "145ScrollLock", "19Pause", "45Insert", "36Home", "33PageUp", "35End", "34PageDown", "111NumpadDivide", "106NumpadMultiply", "109NumpadSubtract", "107NumpadAdd"
         ];
         /* eslint-disable array-element-newline */
-        VirtualKeyboard.virtualVirtualKeyboardAlpha = [
+        VirtualKeyboard.virtualKeyboardAlpha = [
             [66, 64, 65, 57, 56, 49, 48, 41, 40, 33, 32, 25, 24, 16, 79],
             [68, 67, 59, 58, 50, 51, 43, 42, 35, 34, 27, 26, 17, 18],
             [70, 69, 60, 61, 53, 52, 44, 45, 37, 36, 29, 28, 19, 90],
@@ -9176,7 +9143,7 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
             ],
             [23, 9, 47, 6]
         ];
-        VirtualKeyboard.virtualVirtualKeyboardNum = [
+        VirtualKeyboard.virtualKeyboardNum = [
             [10, 11, 3],
             [20, 12, 4],
             [13, 14, 5],
@@ -9254,14 +9221,6 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.yBottom = 0;
             this.gTransparent = false;
             this.options = options;
-            /*
-            this.options = {
-                charset: options.charset,
-                palette: options.palette,
-                onCanvasClick: options.onCanvasClick,
-                onCanvasDragover: options.onCanvasDragover
-            };
-            */
             this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
             this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
             this.cpcAreaBox = View_3.View.getElementById1("cpcAreaBox");
@@ -9311,12 +9270,6 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         Canvas.prototype.setOnCanvasClick = function (onCanvasClickHandler) {
             this.options.onCanvasClick = onCanvasClickHandler;
         };
-        /*
-        setOnCanvasDragover(onCanvasDragoverHandler: (e: Event) => void) : HTMLElement {
-            this.options.onCanvasDragover = onCanvasDragoverHandler;
-            return this.canvas;
-        }
-        */
         Canvas.prototype.reset = function () {
             this.changeMode(1);
             this.inkSet = 0;
@@ -9593,13 +9546,6 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             for (var row = 0; row < height; row += 1) {
                 var idx = x + (y + row) * canvasWidth;
                 dataset8.fill(paper, idx, idx + width);
-                /*
-                for (let col = 0; col < width; col += 1) {
-                    const idx = (x + col) + (y + row) * canvasWidth;
-    
-                    dataset8[idx] = paper;
-                }
-                */
             }
         };
         Canvas.prototype.fillTextBox = function (left, top, width, height, paper) {
@@ -9613,11 +9559,6 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             for (var row = 0; row < height; row += 1) {
                 var idx1 = x + (y + row) * canvasWidth, idx2 = x2 + (y2 + row) * canvasWidth;
                 dataset8.copyWithin(idx2, idx1, idx1 + width);
-                /*
-                for (let col = 0; col < width; col += 1) {
-                    dataset8[idx2 + col] = dataset8[idx1 + col];
-                }
-                */
             }
         };
         Canvas.prototype.moveMyRectDown = function (x, y, width, height, x2, y2) {
@@ -9625,11 +9566,6 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             for (var row = height - 1; row >= 0; row -= 1) {
                 var idx1 = x + (y + row) * canvasWidth, idx2 = x2 + (y2 + row) * canvasWidth;
                 dataset8.copyWithin(idx2, idx1, idx1 + width);
-                /*
-                for (let col = 0; col < width; col += 1) {
-                    dataset8[idx2 + col] = dataset8[idx1 + col];
-                }
-                */
             }
         };
         Canvas.prototype.invertChar = function (x, y, pen, paper) {
@@ -10278,11 +10214,6 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.TextCanvas = void 0;
-    /*
-    export interface TextCanvasOptions {
-        onCanvasClick?: CanvasClickType
-    }
-    */
     var TextCanvas = /** @class */ (function () {
         function TextCanvas(options) {
             this.fps = 15; // FPS for canvas update
@@ -10291,11 +10222,6 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
             this.textBuffer = []; // textbuffer characters at row,column
             this.hasFocus = false; // canvas has focus
             this.options = options;
-            /*
-            this.options = {
-                onCanvasClick: options.onCanvasClick
-            };
-            */
             this.cpcAreaBox = View_4.View.getElementById1("cpcAreaBox");
             this.fnUpdateTextCanvasHandler = this.updateTextCanvas.bind(this);
             this.fnUpdateTextCanvas2Handler = this.updateTextCanvas2.bind(this);
@@ -10398,12 +10324,6 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
         TextCanvas.prototype.takeScreenShot = function () {
             return "";
         };
-        /*
-        setOnCanvasDragover(onCanvasDragoverHandler: (e: Event) => void) : HTMLElement {
-            this.options.onCanvasDragover = onCanvasDragoverHandler;
-            return this.textText;
-        }
-        */
         TextCanvas.prototype.resetTextBuffer = function () {
             this.textBuffer.length = 0;
         };
@@ -10457,8 +10377,7 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
             this.hasFocus = true;
         };
         TextCanvas.prototype.getMousePos = function (event, canvasWidth, canvasHeight) {
-            var //padding = 0, //2, // TODO
-            rect = this.textText.getBoundingClientRect(), pos = {
+            var rect = this.textText.getBoundingClientRect(), pos = {
                 x: (event.clientX - this.borderWidth - rect.left) / (rect.right - rect.left - this.borderWidth * 2) * canvasWidth,
                 y: (event.clientY - this.borderWidth - rect.top) / (rect.bottom - rect.top - this.borderWidth * 2) * canvasHeight
             };
@@ -10471,13 +10390,6 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
             y = pos.y | 0;
             /* eslint-enable no-bitwise */
             if (this.options.onCanvasClick) {
-                /*
-                const target = View.getEventTarget<HTMLElement>(event),
-                    style = window.getComputedStyle(target, null).getPropertyValue("font-size"),
-                    fontSize = parseFloat(style),
-                    charWidth = (fontSize * 1.1075) / 2, //(fontSize + 1.4) / 2,
-                    charHeight = fontSize * 1.125, //+ 2.25, // TODO
-                */
                 var charWidth = canvasWidth / this.cols, charHeight = canvasHeight / this.rows, 
                 /* eslint-disable no-bitwise */
                 xTxt = (x / charWidth) | 0, yTxt = (y / charHeight) | 0;
@@ -10485,63 +10397,6 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
                 this.options.onCanvasClick(event, x, y, xTxt, yTxt);
             }
         };
-        /*
-        private getMousePos_old1(event: MouseEvent) {
-            const padding = 0, //2, // TODO
-                rect = this.textText.getBoundingClientRect(),
-                pos = {
-                    x: event.clientX - this.borderWidth - padding - rect.left,
-                    y: event.clientY - this.borderWidth - padding - rect.top
-                };
-    
-            return pos;
-        }
-    
-        private canvasClickAction_old1(event: MouseEvent) {
-            const pos = this.getMousePos(event),
-                canvasWidth = 640,
-                canvasHeight = 400,
-                x = pos.x,
-                y = pos.y;
-    
-            if (this.options.onCanvasClick) {
-                const target = View.getEventTarget<HTMLElement>(event),
-                    style = window.getComputedStyle(target, null).getPropertyValue("font-size"),
-                    fontSize = parseFloat(style),
-                    charWidth = (fontSize * 1.1075) / 2, //(fontSize + 1.4) / 2,
-                    charHeight = fontSize * 1.125, //+ 2.25, // TODO
-                    / * eslint-disable no-bitwise * /
-                    xTxt = (x / charWidth) | 0,
-                    yTxt = (y / charHeight) | 0,
-                    //TODO
-                    rect = this.textText.getBoundingClientRect(),
-                    x2 = ((event.clientX - this.borderWidth - rect.left) / (rect.right - rect.left - this.borderWidth * 2) * canvasWidth) | 0,
-                    y2 = ((event.clientY - this.borderWidth - rect.top) / (rect.bottom - rect.top - this.borderWidth * 2) * canvasHeight) | 0;
-                    / * eslint-enable no-bitwise * /
-                    / *
-                    scaleX = canvasWidth / rect.width,
-                    scaleY = canvasHeight / rect.height,
-                    x2 = (x * scaleX) | 0, // force integer
-                    y2 = (y * scaleY) | 0;
-                    * /
-    
-                this.options.onCanvasClick(event, x2, y2, xTxt, yTxt);
-            }
-    
-            / *
-            // for graphics coordinates, adapt origin
-            x -= this.xOrig;
-            y = this.height - 1 - (y + this.yOrig);
-    
-            if (this.xPos === 1000 && this.yPos === 1000) { // only activate move if pos is 1000, 1000
-                this.move(x, y);
-            }
-            if (Utils.debug > 0) {
-                Utils.console.debug("canvasClickAction: x", pos.x, "y", pos.y, "x - xOrig", x, "y - yOrig", y, "detail", event.detail);
-            }
-            * /
-        }
-        */
         TextCanvas.prototype.onCanvasClick = function (event) {
             if (!this.hasFocus) {
                 this.setFocusOnCanvas();
@@ -10633,7 +10488,7 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
             this.putCharInTextBuffer(char, x, y);
         };
         TextCanvas.prototype.readChar = function (x, y, _pen, _paper) {
-            var char = this.getCharFromTextBuffer(x, y); // TODO
+            var char = this.getCharFromTextBuffer(x, y);
             if (char === undefined) {
                 char = -1; // not detected
             }
@@ -10880,7 +10735,6 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                 onInp2ButtonClick: this.onInp2ButtonClick,
                 onOutputButtonClick: this.onOutputButtonClick,
                 onResultButtonClick: this.onResultButtonClick,
-                //onTextButtonClick: this.onTextButtonClick,
                 onVariableButtonClick: this.onVariableButtonClick,
                 onCpcButtonClick: this.onCpcButtonClick,
                 onConvertButtonClick: this.onConvertButtonClick,
@@ -10953,15 +10807,6 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
         CommonEventHandler.prototype.onResultButtonClick = function () {
             this.controller.toggleAreaHidden("resultArea");
         };
-        /*
-        private onTextButtonClick() {
-            if (this.controller.toggleAreaHidden("textArea")) {
-                this.controller.startUpdateTextCanvas();
-            } else {
-                this.controller.stopUpdateTextCanvas();
-            }
-        }
-        */
         CommonEventHandler.prototype.onVariableButtonClick = function () {
             this.controller.toggleAreaHidden("variableArea");
         };
@@ -11189,7 +11034,6 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             this.controller.onWindowClick(event);
         };
         CommonEventHandler.prototype.onTextTextClick = function (event) {
-            //this.controller.onTextTextClick(event as MouseEvent);
             this.controller.onCpcCanvasClick(event);
         };
         /* eslint-enable no-invalid-this */
@@ -12115,26 +11959,16 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.fnLoadHandler = this.vmLoadCallback.bind(this);
             this.fnRunHandler = this.vmRunCallback.bind(this);
             this.fnOnCanvasClickHandler = this.onCanvasClickCallback.bind(this);
+            this.fnInputCallbackHandler = this.vmInputCallback.bind(this);
+            this.fnLineInputCallbackHandler = this.vmLineInputCallback.bind(this);
+            this.fnRandomizeCallbackHandler = this.vmRandomizeCallback.bind(this);
             this.canvas = this.setCanvas(options.canvas);
-            //this.canvas = options.canvas;
-            //this.textCanvas = options.textCanvas;
             this.keyboard = options.keyboard;
             this.soundClass = options.sound;
             this.variables = options.variables;
             this.quiet = Boolean(options.quiet);
-            //this.copyChrFromTextCanvas = Boolean(options.copyChrFromTextCanvas);
             this.onClickKey = options.onClickKey;
             this.random = new Random_1.Random();
-            /*
-            if (this.canvas) {
-                this.canvas.setOnCanvasClick(this.fnOnCanvasClickHandler);
-            }
-            */
-            /*
-            if (this.textCanvas) {
-                this.textCanvas.setOnCanvasClick(this.onCanvasClickCallback.bind(this));
-            }
-            */
             this.stopCount = this.initialStop;
             this.stopEntry = {
                 reason: "",
@@ -12202,12 +12036,10 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
         CpcVm.prototype.getOptions = function () {
             return {
                 canvas: this.canvas,
-                //textCanvas: this.textCanvas,
                 keyboard: this.keyboard,
                 sound: this.soundClass,
                 variables: this.variables,
                 quiet: this.quiet
-                //copyChrFromTextCanvas: this.copyChrFromTextCanvas
             };
         };
         CpcVm.prototype.vmSetRsxClass = function (rsx) {
@@ -12249,7 +12081,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.width(132); // set default printer width
             this.mode(1); // including vmResetWindowData() without pen and paper
             this.canvas.reset();
-            //this.textCanvas.reset();
             this.keyboard.reset();
             this.soundClass.reset();
             this.soundData.length = 0;
@@ -12373,6 +12204,9 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             }
             return canvas;
         };
+        CpcVm.prototype.vmGetLoadHandler = function () {
+            return this.fnLoadHandler;
+        };
         CpcVm.prototype.onCanvasClickCallback = function (event, x, y, xTxt, yTxt) {
             // for graphics coordinates, adapt origin
             var height = 400; //TTT
@@ -12383,13 +12217,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 this.canvas.move(x, y);
             }
             if (this.onClickKey) {
-                /*
-                const isTextCanvas = event.target && (event.target as any).type === "textarea"; //fast hack; this.textCanvas.textText === event.target
-    
-                if (isTextCanvas) {
-                    char = this.textCanvas.readChar(xTxt, yTxt, 0, 0);
-                } else {
-                */
                 for (var stream = 0; stream < CpcVm.streamCount - 2; stream += 1) { // check all window streams
                     var win = this.windowDataList[stream];
                     char = this.canvas.readChar(xTxt, yTxt, win.pen, win.paper);
@@ -12397,7 +12224,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                         break; // found some char
                     }
                 }
-                //}
                 if ((char < 0 || char === 32 || char === 143) && event.detail === 2) { // no (useful) char but mouse double click?
                     char = 13; // use CR
                 }
@@ -13013,7 +12839,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                     this.modeValue = 1;
                     this.canvas.setMode(this.modeValue); // does not clear canvas
                     this.canvas.clearFullWindow(); // (SCR Mode Clear)
-                    //this.textCanvas.clearFullWindow();
                     // and SCR Reset:
                     this.vmResetInks();
                     break;
@@ -13119,7 +12944,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.vmResetTimers();
             this.ei();
             this.vmSetStartLine(0);
-            //this.errorCode = 0;
             this.breakGosubLine = 0;
             this.breakResumeLine = 0;
             this.errorGotoLine = 0;
@@ -13181,7 +13005,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             var win = this.windowDataList[stream];
             this.vmDrawUndrawCursor(stream); // why, if we clear anyway?
             this.canvas.clearTextWindow(win.left, win.right, win.top, win.bottom, win.paper); // cls window
-            //this.textCanvas.clearTextWindow(win.left, win.right, win.top, win.bottom, win.paper);
             win.pos = 0;
             win.vpos = 0;
             if (!stream) {
@@ -13213,9 +13036,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             stream = this.vmInRangeRound(stream, 0, 7, "COPYCHR$");
             this.vmMoveCursor2AllowedPos(stream);
             this.vmDrawUndrawCursor(stream); // undraw
-            var win = this.windowDataList[stream], 
-            //charCode = !this.copyChrFromTextCanvas ? this.canvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper) : this.textCanvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper),
-            charCode = this.canvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper), char = (charCode >= 0) ? String.fromCharCode(charCode) : "";
+            var win = this.windowDataList[stream], charCode = this.canvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper), char = (charCode >= 0) ? String.fromCharCode(charCode) : "";
             this.vmDrawUndrawCursor(stream); // draw
             return char;
         };
@@ -13749,7 +13570,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                     stream: stream,
                     message: msg,
                     noCRLF: noCRLF,
-                    fnInputCallback: this.vmInputCallback.bind(this),
+                    fnInputCallback: this.fnInputCallbackHandler,
                     types: args,
                     input: "",
                     line: this.line // to repeat in case of break
@@ -13844,7 +13665,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                     stream: stream,
                     message: msg,
                     noCRLF: noCRLF,
-                    fnInputCallback: this.vmLineInputCallback.bind(this),
+                    fnInputCallback: this.fnLineInputCallbackHandler,
                     input: "",
                     line: this.line // to repeat in case of break
                 });
@@ -14072,8 +13893,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             this.outBuffer = ""; // clear console
             this.canvas.setMode(mode); // does not clear canvas
             this.canvas.clearFullWindow(); // always with paper 0 (SCR MODE CLEAR)
-            //this.textCanvas.setMode(mode);
-            //this.textCanvas.clearFullWindow();
         };
         CpcVm.prototype.move = function (x, y, gPen, gColMode) {
             x = this.vmInRangeRound(x, -32768, 32767, "MOVE");
@@ -14399,14 +14218,12 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 y = 0;
                 if (stream < 8) {
                     this.canvas.windowScrollDown(left, right, top, bottom, win.paper);
-                    //this.textCanvas.windowScrollDown(left, right, top, bottom, win.paper);
                 }
             }
             if (y > (bottom - top)) {
                 y = bottom - top;
                 if (stream < 8) {
                     this.canvas.windowScrollUp(left, right, top, bottom, win.paper);
-                    //this.textCanvas.windowScrollUp(left, right, top, bottom, win.paper);
                 }
             }
             win.pos = x;
@@ -14430,7 +14247,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 var char = CpcVm.vmGetCpcCharCode(str.charCodeAt(i));
                 this.vmMoveCursor2AllowedPos(stream);
                 this.canvas.printChar(char, win.pos + win.left, win.vpos + win.top, win.pen, win.paper, win.transparent);
-                //this.textCanvas.printChar(char, win.pos + win.left, win.vpos + win.top, win.pen, win.paper, win.transparent);
                 win.pos += 1;
             }
         };
@@ -14519,31 +14335,24 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 case 0x10: // DLE
                     this.vmMoveCursor2AllowedPos(stream);
                     this.canvas.fillTextBox(win.left + win.pos, win.top + win.vpos, 1, 1, win.paper); // clear character under cursor
-                    //this.textCanvas.fillTextBox(win.left + win.pos, win.top + win.vpos, 1, 1, 0); // clear character under cursor
                     break;
                 case 0x11: // DC1
                     this.vmMoveCursor2AllowedPos(stream);
                     this.canvas.fillTextBox(win.left, win.top + win.vpos, win.pos + 1, 1, win.paper); // clear line up to cursor
-                    //this.textCanvas.fillTextBox(win.left, win.top + win.vpos, win.pos + 1, 1, win.paper); // clear line up to cursor
                     break;
                 case 0x12: // DC2
                     this.vmMoveCursor2AllowedPos(stream);
                     this.canvas.fillTextBox(win.left + win.pos, win.top + win.vpos, win.right - win.left + 1 - win.pos, 1, win.paper); // clear line from cursor
-                    //this.textCanvas.fillTextBox(win.left + win.pos, win.top + win.vpos, win.right - win.left + 1 - win.pos, 1, win.paper); // clear line from cursor
                     break;
                 case 0x13: // DC3
                     this.vmMoveCursor2AllowedPos(stream);
                     this.canvas.fillTextBox(win.left, win.top, win.right - win.left + 1, win.top - win.vpos, win.paper); // clear window up to cursor line -1
                     this.canvas.fillTextBox(win.left, win.top + win.vpos, win.pos + 1, 1, win.paper); // clear line up to cursor (DC1)
-                    //this.textCanvas.fillTextBox(win.left, win.top, win.right - win.left + 1, win.top - win.vpos, win.paper); // clear window up to cursor line -1
-                    //this.textCanvas.fillTextBox(win.left, win.top + win.vpos, win.pos + 1, 1, win.paper); // clear line up to cursor (DC1)
                     break;
                 case 0x14: // DC4
                     this.vmMoveCursor2AllowedPos(stream);
                     this.canvas.fillTextBox(win.left + win.pos, win.top + win.vpos, win.right - win.left + 1 - win.pos, 1, win.paper); // clear line from cursor (DC2)
                     this.canvas.fillTextBox(win.left, win.top + win.vpos + 1, win.right - win.left + 1, win.bottom - win.top - win.vpos, win.paper); // clear window from cursor line +1
-                    //this.textCanvas.fillTextBox(win.left + win.pos, win.top + win.vpos, win.right - win.left + 1 - win.pos, 1, win.paper); // clear line from cursor (DC2)
-                    //this.textCanvas.fillTextBox(win.left, win.top + win.vpos + 1, win.right - win.left + 1, win.bottom - win.top - win.vpos, win.paper); // clear window from cursor line +1
                     break;
                 case 0x15: // NAK
                     win.cursorEnabled = false;
@@ -14753,7 +14562,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                     command: "randomize",
                     stream: stream,
                     message: msg,
-                    fnInputCallback: this.vmRandomizeCallback.bind(this),
+                    fnInputCallback: this.fnRandomizeCallbackHandler,
                     input: "",
                     line: this.line // to repeat in case of break
                 };
@@ -15900,6 +15709,9 @@ define("FileSelect", ["require", "exports", "Utils", "View"], function (require,
             this.fileIndex = 0;
             this.imported = []; // imported file names
             this.file = {}; // current file
+            this.fnOnLoadHandler = this.fnOnLoad.bind(this);
+            this.fnOnErrorHandler = this.fnOnError.bind(this);
+            this.fnOnFileSelectHandler = this.fnOnFileSelect.bind(this);
             this.fnEndOfImport = options.fnEndOfImport;
             this.fnLoad2 = options.fnLoad2;
         }
@@ -15960,7 +15772,7 @@ define("FileSelect", ["require", "exports", "Utils", "View"], function (require,
                 this.fnReadNextFile(reader);
             }
         };
-        FileSelect.prototype.fnErrorHandler = function (event, file) {
+        FileSelect.prototype.fnOnError = function (event, file) {
             var reader = event.target;
             var msg = "fnErrorHandler: Error reading file " + file.name;
             if (reader && reader.error !== null) {
@@ -15980,7 +15792,7 @@ define("FileSelect", ["require", "exports", "Utils", "View"], function (require,
         };
         // https://stackoverflow.com/questions/10261989/html5-javascript-drag-and-drop-file-from-external-window-windows-explorer
         // https://www.w3.org/TR/file-upload/#dfn-filereader
-        FileSelect.prototype.fnHandleFileSelect = function (event) {
+        FileSelect.prototype.fnOnFileSelect = function (event) {
             event.stopPropagation();
             event.preventDefault();
             var dataTransfer = event.dataTransfer, files = dataTransfer ? dataTransfer.files : View_6.View.getEventTarget(event).files; // dataTransfer for drag&drop, target.files for file input
@@ -15993,8 +15805,8 @@ define("FileSelect", ["require", "exports", "Utils", "View"], function (require,
             this.imported.length = 0;
             if (window.FileReader) {
                 var reader = new FileReader();
-                reader.onerror = this.fnErrorHandler.bind(this);
-                reader.onload = this.fnOnLoad.bind(this);
+                reader.onerror = this.fnOnErrorHandler;
+                reader.onload = this.fnOnLoadHandler;
                 this.fnReadNextFile(reader);
             }
             else {
@@ -16003,7 +15815,7 @@ define("FileSelect", ["require", "exports", "Utils", "View"], function (require,
         };
         //TODO: can we use View.attachEventHandler() somehow?
         FileSelect.prototype.addFileSelectHandler = function (element, type) {
-            element.addEventListener(type, this.fnHandleFileSelect.bind(this), false);
+            element.addEventListener(type, this.fnOnFileSelectHandler, false);
         };
         return FileSelect;
     }());
@@ -16018,9 +15830,7 @@ define("NoCanvas", ["require", "exports"], function (require, exports) {
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.NoCanvas = void 0;
     var NoCanvas = /** @class */ (function () {
-        //private readonly options: CanvasOptions;
         function NoCanvas(_options) {
-            //this.options = options;
             this.reset();
         }
         NoCanvas.prototype.setOnCanvasClick = function (_onCanvasClickHandler) {
@@ -16114,12 +15924,6 @@ define("NoCanvas", ["require", "exports"], function (require, exports) {
         NoCanvas.prototype.takeScreenShot = function () {
             return "";
         };
-        /*
-        setOnCanvasDragover(onCanvasDragoverHandler: (e: Event) => void) : HTMLElement {
-            this.options.onCanvasDragover = onCanvasDragoverHandler;
-            return this.textText;
-        }
-        */
         NoCanvas.prototype.startUpdateCanvas = function () {
         };
         NoCanvas.prototype.stopUpdateCanvas = function () {
@@ -16163,7 +15967,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.initialLoopTimeout = 0;
             this.inputSet = false;
             this.canvases = {};
-            //private readonly textCanvas: ICanvas;
             this.inputStack = new InputStack_1.InputStack();
             this.sound = new Sound_1.Sound({
                 AudioContextConstructor: window.AudioContext
@@ -16203,7 +16006,10 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.fnOnEscapeHandler = this.fnOnEscape.bind(this);
             this.fnDirectInputHandler = this.fnDirectInput.bind(this);
             this.fnPutKeyInBufferHandler = this.fnPutKeysInBuffer.bind(this);
-            this.fnHandleDragOverHandler = Controller.fnHandleDragOver.bind(this);
+            this.fnOnDragoverHandler = Controller.fnOnDragover;
+            this.fnOnUserActionHandler = this.onUserAction.bind(this);
+            this.fnWaitForContinueHandler = this.fnWaitForContinue.bind(this);
+            this.fnEditLineCallbackHandler = this.fnEditLineCallback.bind(this);
             this.model = model;
             this.view = view;
             this.commonEventHandler = new CommonEventHandler_1.CommonEventHandler(model, view, this);
@@ -16217,22 +16023,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             var palette = model.getProperty("palette");
             view.setSelectValue("paletteSelect", palette);
             this.canvas = this.setCanvasType(canvasType);
-            /*
-            const canvasOptions: CanvasOptions = {
-                charset: cpcCharset,
-                palette: palette === "green" || palette === "grey" ? palette : "color"
-                //onCanvasDragover: this.fnHandleDragOverHandler
-            };
-    
-            if (canvasType === "text") {
-                this.canvas = new TextCanvas(canvasOptions);
-            } else if (canvasType === "none") {
-                this.canvas = new NoCanvas(canvasOptions);
-            } else { // "graphics"
-                view.setHidden("cpcArea", false); // make sure canvas area is not hidden when creating canvas object (allows to get width, height)
-                this.canvas = new Canvas(canvasOptions);
-            }
-            */
             view.setHidden("kbdLayoutArea", model.getProperty("showKbd"), "inherit"); // kbd visible => kbdlayout invisible
             this.initAreas();
             view.setInputValue("debugInput", String(model.getProperty("debug")));
@@ -16255,15 +16045,13 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             if (this.model.getProperty("showKbd")) { // maybe we need to draw virtual keyboard
                 this.virtualKeyboardCreate();
             }
-            this.commonEventHandler.fnSetUserAction(this.onUserAction.bind(this)); // check first user action, also if sound is not yet on
+            this.commonEventHandler.fnSetUserAction(this.fnOnUserActionHandler); // check first user action, also if sound is not yet on
             this.vm = new CpcVm_1.CpcVm({
                 canvas: this.canvas,
-                //textCanvas: this.textCanvas,
                 keyboard: this.keyboard,
                 sound: this.sound,
                 variables: this.variables,
                 onClickKey: this.fnPutKeyInBufferHandler
-                //copyChrFromTextCanvas: window.Polyfills.isNodeAvailable // use textcanvas when using nodeJS
             });
             this.vm.vmReset();
             this.rsx = new CpcVmRsx_1.CpcVmRsx(this.vm);
@@ -16300,11 +16088,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             if (model.getProperty("showCpc")) {
                 this.canvas.startUpdateCanvas();
             }
-            /*
-            if (model.getProperty<boolean>("showText")) {
-                this.textCanvas.startUpdateCanvas();
-            }
-            */
         }
         Controller.prototype.initAreas = function () {
             for (var id in Controller.areaDefinitions) { // eslint-disable-line guard-for-in
@@ -16557,7 +16340,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             else if (stop.reason !== "escape") { // first escape?
                 this.vm.cursor(stream, 1);
                 this.keyboard.clearInput();
-                this.keyboard.setKeyDownHandler(this.fnWaitForContinue.bind(this));
+                this.keyboard.setKeyDownHandler(this.fnWaitForContinueHandler);
                 this.setStopObject(stop);
                 this.vm.vmStop("escape", 85, false, {
                     command: "escape",
@@ -17499,7 +17282,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     line: paras.line,
                     stream: stream,
                     message: "",
-                    fnInputCallback: this.fnEditLineCallback.bind(this),
+                    fnInputCallback: this.fnEditLineCallbackHandler,
                     input: lineString
                 };
                 this.vm.vmStop("waitInput", 45, true, inputParas);
@@ -17892,7 +17675,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.startMainLoop = function () {
             if (!this.timeoutHandlerActive) {
                 this.timeoutHandlerActive = true;
-                this.fnRunLoop();
+                setTimeout(this.fnRunLoopHandler, 0);
             }
         };
         Controller.prototype.setStopObject = function (stop) {
@@ -17967,15 +17750,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         };
         Controller.prototype.startScreenshot = function () {
             return this.canvas.takeScreenShot();
-            /*
-            const canvas = this.canvas.getCanvasElement();
-    
-            if (canvas.toDataURL) {
-                return canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"); // here is the most important part because if you do not replace you will get a DOM 18 exception.
-            }
-            Utils.console.warn("Screenshot not available");
-            return "";
-            */
         };
         Controller.prototype.fnPutKeysInBuffer = function (keys) {
             for (var i = 0; i < keys.length; i += 1) {
@@ -18067,7 +17841,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             var palette = this.model.getProperty("palette"), canvasOptions = {
                 charset: cpcCharset_1.cpcCharset,
                 palette: palette === "green" || palette === "grey" ? palette : "color"
-                //onCanvasDragover: this.fnHandleDragOverHandler
             };
             var canvas = this.canvas;
             if (canvas) {
@@ -18076,6 +17849,10 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 if (currentCanvasElement) {
                     this.view.setHidden(currentCanvasElement.id, true);
                 }
+            }
+            else if (canvasType !== "graphics") {
+                // initially graphics canvas is not hidden, but we must hide it, if other canvas should be shown
+                this.view.setHidden("cpcCanvas", true);
             }
             if (this.canvases[canvasType]) {
                 canvas = this.canvases[canvasType];
@@ -18145,7 +17922,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             vm.print(stream, "\r\n", imported.length + " file" + (imported.length !== 1 ? "s" : "") + " imported.\r\n");
             this.updateResultText();
         };
-        Controller.fnHandleDragOver = function (evt) {
+        Controller.fnOnDragover = function (evt) {
             evt.stopPropagation();
             evt.preventDefault();
             if (evt.dataTransfer !== null) {
@@ -18174,24 +17951,13 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 });
             }
             var dropZone = View_7.View.getElementById1("dropZone");
-            dropZone.addEventListener("dragover", this.fnHandleDragOverHandler, false);
+            dropZone.addEventListener("dragover", this.fnOnDragoverHandler, false);
             this.fileSelect.addFileSelectHandler(dropZone, "drop");
             var canvasElement = this.canvas.getCanvasElement();
             if (canvasElement) {
-                canvasElement.addEventListener("dragover", this.fnHandleDragOverHandler, false);
-                //this.canvas.setOnCanvasDragover(this.fnHandleDragOverHandler);
-                //const canvasElement = this.canvas.getCanvasElement();
+                canvasElement.addEventListener("dragover", this.fnOnDragoverHandler, false);
                 this.fileSelect.addFileSelectHandler(canvasElement, "drop");
             }
-            /*
-            const textCanvasElement = this.textCanvas.getCanvasElement();
-    
-            textCanvasElement.addEventListener("dragover", this.fnHandleDragOverHandler, false);
-            //this.canvas.setOnCanvasDragover(this.fnHandleDragOverHandler);
-            //const canvasElement = this.canvas.getCanvasElement();
-    
-            this.fileSelect.addFileSelectHandler(textCanvasElement, "drop");
-            */
             var fileInput = View_7.View.getElementById1("fileInput");
             this.fileSelect.addFileSelectHandler(fileInput, "change");
         };
@@ -18213,19 +17979,9 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.startUpdateCanvas = function () {
             this.canvas.startUpdateCanvas();
         };
-        /*
-        startUpdateTextCanvas(): void {
-            this.textCanvas.startUpdateCanvas();
-        }
-        */
         Controller.prototype.stopUpdateCanvas = function () {
             this.canvas.stopUpdateCanvas();
         };
-        /*
-        stopUpdateTextCanvas(): void {
-            this.textCanvas.stopUpdateCanvas();
-        }
-        */
         Controller.prototype.virtualKeyboardCreate = function () {
             if (!this.virtualKeyboard) {
                 this.virtualKeyboard = new VirtualKeyboard_1.VirtualKeyboard({
@@ -18327,7 +18083,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
             inFile.name = exampleName;
             inFile.start = undefined;
-            inFile.fnFileCallback = vm.fnLoadHandler;
+            inFile.fnFileCallback = vm.vmGetLoadHandler();
             vm.vmStop("fileLoad", 90);
             this.startMainLoop();
         };
@@ -18354,21 +18110,12 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.onCpcCanvasClick = function (event) {
             this.setPopoversHiddenExcept(""); // hide all popovers
             this.canvas.onCanvasClick(event);
-            //this.textCanvas.onWindowClick(event);
             this.keyboard.setActive(true);
         };
         Controller.prototype.onWindowClick = function (event) {
             this.canvas.onWindowClick(event);
-            //this.textCanvas.onWindowClick(event);
             this.keyboard.setActive(false);
         };
-        /*
-        onTextTextClick(event: MouseEvent): void {
-            this.textCanvas.onCpcCanvasClick(event);
-            this.canvas.onWindowClick(event);
-            this.keyboard.setActive(true);
-        }
-        */
         Controller.prototype.fnArrayBounds = function () {
             var arrayBounds = this.model.getProperty("arrayBounds");
             this.variables.setOptions({

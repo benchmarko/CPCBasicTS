@@ -25,10 +25,10 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 fnPressCpcKey: options.fnPressCpcKey,
                 fnReleaseCpcKey: options.fnReleaseCpcKey
             };
-            var eventNames = this.fnAttachPointerEvents("kbdArea", this.onVirtualVirtualKeyboardKeydown.bind(this), undefined, this.onVirtualVirtualKeyboardKeyup.bind(this));
+            var eventNames = this.fnAttachPointerEvents("kbdArea", this.onVirtualKeyboardKeydown.bind(this), undefined, this.onVirtualKeyboardKeyup.bind(this));
             if (eventNames.out) {
                 this.pointerOutEvent = eventNames.out;
-                this.fnVirtualKeyout = this.onVirtualVirtualKeyboardKeyout.bind(this);
+                this.fnVirtualKeyout = this.onVirtualKeyboardKeyout.bind(this);
             }
             this.dragInit("pageBody", "kbdAreaBox");
             this.virtualKeyboardCreate();
@@ -122,11 +122,11 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             }
             return this;
         };
-        VirtualKeyboard.prototype.virtualKeyboardCreatePart = function (id, virtualVirtualKeyboard) {
+        VirtualKeyboard.prototype.virtualKeyboardCreatePart = function (id, virtualKeyboard) {
             var keyArea = View_1.View.getElementById1(id), shiftLock = this.shiftLock, numLock = this.numLock, cpcKey2Key = VirtualKeyboard.cpcKey2Key, buttons = keyArea.getElementsByTagName("button");
             if (!buttons.length) { // not yet created?
-                for (var row = 0; row < virtualVirtualKeyboard.length; row += 1) {
-                    var rowList = virtualVirtualKeyboard[row], optionsList = [];
+                for (var row = 0; row < virtualKeyboard.length; row += 1) {
+                    var rowList = virtualKeyboard[row], optionsList = [];
                     for (var col = 0; col < rowList.length; col += 1) {
                         var cpcKeyEntry = void 0;
                         if (typeof rowList[col] === "number") {
@@ -150,8 +150,8 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             }
         };
         VirtualKeyboard.prototype.virtualKeyboardCreate = function () {
-            this.virtualKeyboardCreatePart("kbdAlpha", VirtualKeyboard.virtualVirtualKeyboardAlpha);
-            this.virtualKeyboardCreatePart("kbdNum", VirtualKeyboard.virtualVirtualKeyboardNum);
+            this.virtualKeyboardCreatePart("kbdAlpha", VirtualKeyboard.virtualKeyboardAlpha);
+            this.virtualKeyboardCreatePart("kbdNum", VirtualKeyboard.virtualKeyboardNum);
         };
         VirtualKeyboard.prototype.virtualKeyboardAdaptKeys = function (shiftLock, numLock) {
             var keyArea = View_1.View.getElementById1("kbdArea"), buttons = keyArea.getElementsByTagName("button"); // or: keyArea.childNodes and filter
@@ -179,18 +179,18 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             }
             return pressedKey;
         };
-        VirtualKeyboard.prototype.onVirtualVirtualKeyboardKeydown = function (event) {
+        VirtualKeyboard.prototype.onVirtualKeyboardKeydown = function (event) {
             var node = View_1.View.getEventTarget(event), cpcKey = node.getAttribute("data-key");
             if (Utils_1.Utils.debug > 1) {
-                Utils_1.Utils.console.debug("onVirtualVirtualKeyboardKeydown: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", cpcKey);
+                Utils_1.Utils.console.debug("onVirtualKeyboardKeydown: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", cpcKey);
             }
             if (cpcKey !== null) {
                 var cpcKeyCode = Number(cpcKey);
                 if (this.numLock) {
                     cpcKeyCode = this.mapNumLockCpcKey(cpcKeyCode);
                 }
-                var pressedKey = this.fnVirtualGetPressedKey(cpcKeyCode), pointerEvent = event, ascii = this.fnVirtualGetAscii(cpcKeyCode, this.shiftLock || pointerEvent.shiftKey, this.numLock);
-                this.options.fnPressCpcKey(cpcKeyCode, pressedKey, ascii.key, pointerEvent.shiftKey, pointerEvent.ctrlKey);
+                var pressedKey = this.fnVirtualGetPressedKey(cpcKeyCode), ascii = this.fnVirtualGetAscii(cpcKeyCode, this.shiftLock || event.shiftKey, this.numLock);
+                this.options.fnPressCpcKey(event, cpcKeyCode, pressedKey, ascii.key);
             }
             if (this.pointerOutEvent && this.fnVirtualKeyout) {
                 node.addEventListener(this.pointerOutEvent, this.fnVirtualKeyout, false);
@@ -198,15 +198,15 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             event.preventDefault();
             return false;
         };
-        VirtualKeyboard.prototype.fnVirtualVirtualKeyboardKeyupOrKeyout = function (event) {
+        VirtualKeyboard.prototype.fnVirtualKeyboardKeyupOrKeyout = function (event) {
             var node = View_1.View.getEventTarget(event), cpcKey = node.getAttribute("data-key");
             if (cpcKey !== null) {
                 var cpcKeyCode = Number(cpcKey);
                 if (this.numLock) {
                     cpcKeyCode = this.mapNumLockCpcKey(cpcKeyCode);
                 }
-                var pressedKey = this.fnVirtualGetPressedKey(cpcKeyCode), pointerEvent = event, ascii = this.fnVirtualGetAscii(cpcKeyCode, this.shiftLock || pointerEvent.shiftKey, this.numLock);
-                this.options.fnReleaseCpcKey(cpcKeyCode, pressedKey, ascii.key, pointerEvent.shiftKey, pointerEvent.ctrlKey);
+                var pressedKey = this.fnVirtualGetPressedKey(cpcKeyCode), ascii = this.fnVirtualGetAscii(cpcKeyCode, this.shiftLock || event.shiftKey, this.numLock);
+                this.options.fnReleaseCpcKey(event, cpcKeyCode, pressedKey, ascii.key);
                 if (cpcKeyCode === 70) { // Caps Lock?
                     this.shiftLock = !this.shiftLock;
                     this.virtualKeyboardAdaptKeys(this.shiftLock, this.numLock);
@@ -217,24 +217,24 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 }
             }
         };
-        VirtualKeyboard.prototype.onVirtualVirtualKeyboardKeyup = function (event) {
+        VirtualKeyboard.prototype.onVirtualKeyboardKeyup = function (event) {
             var node = View_1.View.getEventTarget(event);
             if (Utils_1.Utils.debug > 1) {
-                Utils_1.Utils.console.debug("onVirtualVirtualKeyboardKeyup: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", node.getAttribute("data-key"));
+                Utils_1.Utils.console.debug("onVirtualKeyboardKeyup: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", node.getAttribute("data-key"));
             }
-            this.fnVirtualVirtualKeyboardKeyupOrKeyout(event);
+            this.fnVirtualKeyboardKeyupOrKeyout(event);
             if (this.pointerOutEvent && this.fnVirtualKeyout) {
                 node.removeEventListener(this.pointerOutEvent, this.fnVirtualKeyout); // do not need out event any more
             }
             event.preventDefault();
             return false;
         };
-        VirtualKeyboard.prototype.onVirtualVirtualKeyboardKeyout = function (event) {
+        VirtualKeyboard.prototype.onVirtualKeyboardKeyout = function (event) {
             var node = View_1.View.getEventTarget(event);
             if (Utils_1.Utils.debug > 1) {
-                Utils_1.Utils.console.debug("onVirtualVirtualKeyboardKeyout: event=", event);
+                Utils_1.Utils.console.debug("onVirtualKeyboardKeyout: event=", event);
             }
-            this.fnVirtualVirtualKeyboardKeyupOrKeyout(event);
+            this.fnVirtualKeyboardKeyupOrKeyout(event);
             if (this.pointerOutEvent && this.fnVirtualKeyout) {
                 node.removeEventListener(this.pointerOutEvent, this.fnVirtualKeyout);
             }
@@ -804,7 +804,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             // "226IntlBackslash", "122F11", "123F12", "44PrintScreen", "145ScrollLock", "19Pause", "45Insert", "36Home", "33PageUp", "35End", "34PageDown", "111NumpadDivide", "106NumpadMultiply", "109NumpadSubtract", "107NumpadAdd"
         ];
         /* eslint-disable array-element-newline */
-        VirtualKeyboard.virtualVirtualKeyboardAlpha = [
+        VirtualKeyboard.virtualKeyboardAlpha = [
             [66, 64, 65, 57, 56, 49, 48, 41, 40, 33, 32, 25, 24, 16, 79],
             [68, 67, 59, 58, 50, 51, 43, 42, 35, 34, 27, 26, 17, 18],
             [70, 69, 60, 61, 53, 52, 44, 45, 37, 36, 29, 28, 19, 90],
@@ -817,7 +817,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             ],
             [23, 9, 47, 6]
         ];
-        VirtualKeyboard.virtualVirtualKeyboardNum = [
+        VirtualKeyboard.virtualKeyboardNum = [
             [10, 11, 3],
             [20, 12, 4],
             [13, 14, 5],

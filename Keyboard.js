@@ -15,11 +15,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.pressedKeys = {}; // currently pressed browser keys
             this.fnCpcAreaKeydownHandler = this.onCpcAreaKeydown.bind(this);
             this.fnCpcAreaKeyupHandler = this.oncpcAreaKeyup.bind(this);
-            this.options = {
-                fnOnEscapeHandler: undefined,
-                fnOnKeyDown: undefined
-            };
-            this.setOptions(options);
+            this.options = options;
             this.key2CpcKey = Keyboard.key2CpcKey;
             this.cpcKeyExpansions = {
                 normal: {},
@@ -27,29 +23,10 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 ctrl: {},
                 repeat: {}
             }; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
-            //TTT
-            var name = "cpcArea", //"cpcCanvas", //"cpcCanvasDiv", //"cpcArea"
-            cpcArea = View_1.View.getElementById1(name);
+            var name = "cpcArea", cpcArea = View_1.View.getElementById1(name);
             cpcArea.addEventListener("keydown", this.fnCpcAreaKeydownHandler, false);
             cpcArea.addEventListener("keyup", this.fnCpcAreaKeyupHandler, false);
-            /*
-            const textArea = View.getElementById1("textArea");
-    
-            textArea.addEventListener("keydown", this.fnCpcAreaKeydownHandler, false);
-            textArea.addEventListener("keyup", this.fnCpcAreaKeyupHandler, false);
-            */
         }
-        Keyboard.prototype.setOptions = function (options) {
-            if (options.fnOnEscapeHandler !== undefined) {
-                this.options.fnOnEscapeHandler = options.fnOnEscapeHandler;
-            }
-            if (options.fnOnKeyDown !== undefined) {
-                this.options.fnOnKeyDown = options.fnOnKeyDown;
-            }
-        };
-        Keyboard.prototype.getOptions = function () {
-            return this.options;
-        };
         /* eslint-enable array-element-newline */
         Keyboard.prototype.reset = function () {
             this.options.fnOnKeyDown = undefined;
@@ -118,8 +95,8 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             }
             this.key2CpcKey = newMap;
         };
-        Keyboard.prototype.fnPressCpcKey = function (cpcKeyCode, pressedKey, key, shiftKey, ctrlKey) {
-            var pressedKeys = this.pressedKeys, cpcKeyExpansions = this.cpcKeyExpansions, specialKeys = Keyboard.specialKeys, cpcKey = String(cpcKeyCode);
+        Keyboard.prototype.fnPressCpcKey = function (event, cpcKeyCode, pressedKey, key) {
+            var shiftKey = event.shiftKey, ctrlKey = event.ctrlKey, pressedKeys = this.pressedKeys, cpcKeyExpansions = this.cpcKeyExpansions, specialKeys = Keyboard.specialKeys, cpcKey = String(cpcKeyCode);
             var cpcKeyEntry = pressedKeys[cpcKey];
             if (!cpcKeyEntry) {
                 pressedKeys[cpcKey] = {
@@ -188,8 +165,8 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 this.options.fnOnKeyDown();
             }
         };
-        Keyboard.prototype.fnReleaseCpcKey = function (cpcKeyCode, pressedKey, key, shiftKey, ctrlKey) {
-            var pressedKeys = this.pressedKeys, cpcKey = pressedKeys[cpcKeyCode];
+        Keyboard.prototype.fnReleaseCpcKey = function (event, cpcKeyCode, pressedKey, key) {
+            var shiftKey = event.shiftKey, ctrlKey = event.ctrlKey, pressedKeys = this.pressedKeys, cpcKey = pressedKeys[cpcKeyCode];
             if (Utils_1.Utils.debug > 1) {
                 Utils_1.Utils.console.log("fnReleaseCpcKey: pressedKey=" + pressedKey + ", key=" + key + ", affected cpc key=" + cpcKeyCode + ", keys:", (cpcKey ? cpcKey.keys : "undef."));
             }
@@ -271,7 +248,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                         key = key.substring(1); // remove prefix
                     }
                 }
-                this.fnPressCpcKey(cpcKey, pressedKey, key, event.shiftKey, event.ctrlKey);
+                this.fnPressCpcKey(event, cpcKey, pressedKey, key);
             }
             else if (key.length === 1) { // put normal keys in buffer, ignore special keys with more than 1 character
                 this.putKeyInBuffer(key);
@@ -292,7 +269,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 if (cpcKey === 85) { // map virtual cpc key 85 to 22 (english keyboard)
                     cpcKey = 22;
                 }
-                this.fnReleaseCpcKey(cpcKey, pressedKey, key, event.shiftKey, event.ctrlKey);
+                this.fnReleaseCpcKey(event, cpcKey, pressedKey, key);
             }
             else {
                 Utils_1.Utils.console.log("fnKeyboardKeyup: Unhandled key", pressedKey + ":", key);

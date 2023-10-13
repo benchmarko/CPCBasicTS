@@ -7,9 +7,7 @@ define(["require", "exports"], function (require, exports) {
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.NoCanvas = void 0;
     var NoCanvas = /** @class */ (function () {
-        //private readonly options: CanvasOptions;
         function NoCanvas(_options) {
-            //this.options = options;
             this.reset();
         }
         NoCanvas.prototype.setOnCanvasClick = function (_onCanvasClickHandler) {
@@ -103,12 +101,6 @@ define(["require", "exports"], function (require, exports) {
         NoCanvas.prototype.takeScreenShot = function () {
             return "";
         };
-        /*
-        setOnCanvasDragover(onCanvasDragoverHandler: (e: Event) => void) : HTMLElement {
-            this.options.onCanvasDragover = onCanvasDragoverHandler;
-            return this.textText;
-        }
-        */
         NoCanvas.prototype.startUpdateCanvas = function () {
         };
         NoCanvas.prototype.stopUpdateCanvas = function () {

@@ -8,20 +8,6 @@ import { Utils } from "./Utils";
 import { View } from "./View";
 import { CanvasOptions, ICanvas, CanvasClickType, CanvasCharType } from "./Interfaces";
 
-
-//type CharsetType = CharType[];
-
-//type CanvasClickType = (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
-
-/*
-export interface CanvasOptions {
-	charset: CharsetType
-	palette: "color" | "green" | "grey"
-	onCanvasClick?: CanvasClickType
-	onCanvasDragover?: (event: Event) => void
-}
-*/
-
 interface ModeData {
 	pens: number // number of pens
 	pixelWidth: number // pixel width
@@ -102,14 +88,6 @@ export class Canvas implements ICanvas {
 
 	constructor(options: CanvasOptions) {
 		this.options = options;
-		/*
-		this.options = {
-			charset: options.charset,
-			palette: options.palette,
-			onCanvasClick: options.onCanvasClick,
-			onCanvasDragover: options.onCanvasDragover
-		};
-		*/
 
 		this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
 		this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
@@ -242,13 +220,6 @@ export class Canvas implements ICanvas {
 	setOnCanvasClick(onCanvasClickHandler: CanvasClickType): void {
 		this.options.onCanvasClick = onCanvasClickHandler;
 	}
-
-	/*
-	setOnCanvasDragover(onCanvasDragoverHandler: (e: Event) => void) : HTMLElement {
-		this.options.onCanvasDragover = onCanvasDragoverHandler;
-		return this.canvas;
-	}
-	*/
 
 	reset(): void {
 		this.changeMode(1);
@@ -619,13 +590,6 @@ export class Canvas implements ICanvas {
 			const idx = x + (y + row) * canvasWidth;
 
 			dataset8.fill(paper, idx, idx + width);
-			/*
-			for (let col = 0; col < width; col += 1) {
-				const idx = (x + col) + (y + row) * canvasWidth;
-
-				dataset8[idx] = paper;
-			}
-			*/
 		}
 	}
 
@@ -647,11 +611,6 @@ export class Canvas implements ICanvas {
 				idx2 = x2 + (y2 + row) * canvasWidth;
 
 			dataset8.copyWithin(idx2, idx1, idx1 + width);
-			/*
-			for (let col = 0; col < width; col += 1) {
-				dataset8[idx2 + col] = dataset8[idx1 + col];
-			}
-			*/
 		}
 	}
 
@@ -664,11 +623,6 @@ export class Canvas implements ICanvas {
 				idx2 = x2 + (y2 + row) * canvasWidth;
 
 			dataset8.copyWithin(idx2, idx1, idx1 + width);
-			/*
-			for (let col = 0; col < width; col += 1) {
-				dataset8[idx2 + col] = dataset8[idx1 + col];
-			}
-			*/
 		}
 	}
 

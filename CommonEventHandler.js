@@ -14,7 +14,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 onInp2ButtonClick: this.onInp2ButtonClick,
                 onOutputButtonClick: this.onOutputButtonClick,
                 onResultButtonClick: this.onResultButtonClick,
-                //onTextButtonClick: this.onTextButtonClick,
                 onVariableButtonClick: this.onVariableButtonClick,
                 onCpcButtonClick: this.onCpcButtonClick,
                 onConvertButtonClick: this.onConvertButtonClick,
@@ -87,15 +86,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         CommonEventHandler.prototype.onResultButtonClick = function () {
             this.controller.toggleAreaHidden("resultArea");
         };
-        /*
-        private onTextButtonClick() {
-            if (this.controller.toggleAreaHidden("textArea")) {
-                this.controller.startUpdateTextCanvas();
-            } else {
-                this.controller.stopUpdateTextCanvas();
-            }
-        }
-        */
         CommonEventHandler.prototype.onVariableButtonClick = function () {
             this.controller.toggleAreaHidden("variableArea");
         };
@@ -323,7 +313,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.controller.onWindowClick(event);
         };
         CommonEventHandler.prototype.onTextTextClick = function (event) {
-            //this.controller.onTextTextClick(event as MouseEvent);
             this.controller.onCpcCanvasClick(event);
         };
         /* eslint-enable no-invalid-this */

@@ -11,8 +11,8 @@ export declare class VirtualKeyboard {
     private numLock;
     constructor(options: VirtualKeyboardOptions);
     private static readonly cpcKey2Key;
-    private static readonly virtualVirtualKeyboardAlpha;
-    private static readonly virtualVirtualKeyboardNum;
+    private static readonly virtualKeyboardAlpha;
+    private static readonly virtualKeyboardNum;
     private readonly dragInfo;
     private static readonly pointerEventNames;
     private static readonly touchEventNames;
@@ -26,10 +26,10 @@ export declare class VirtualKeyboard {
     private virtualKeyboardCreate;
     private virtualKeyboardAdaptKeys;
     private fnVirtualGetPressedKey;
-    private onVirtualVirtualKeyboardKeydown;
-    private fnVirtualVirtualKeyboardKeyupOrKeyout;
-    private onVirtualVirtualKeyboardKeyup;
-    private onVirtualVirtualKeyboardKeyout;
+    private onVirtualKeyboardKeydown;
+    private fnVirtualKeyboardKeyupOrKeyout;
+    private onVirtualKeyboardKeyup;
+    private onVirtualKeyboardKeyout;
     private dragInit;
     private dragStart;
     private dragEnd;

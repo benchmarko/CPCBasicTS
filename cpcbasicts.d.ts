@@ -26,7 +26,6 @@ declare module "Utils" {
         private static fnLoadScriptOrStyle;
         static loadScript(url: string, fnSuccess: (url2: string, key: string) => void, fnError: (url2: string, key: string) => void, key: string): void;
         static hexEscape(str: string): string;
-        static hexUnescape(str: string): string;
         static dateFormat(d: Date): string;
         static stringCapitalize(str: string): string;
         static numberWithCommas(x: number | string): string;
@@ -893,7 +892,7 @@ declare module "Keyboard" {
         shift?: number;
         ctrl?: number;
     }
-    export type PressReleaseCpcKey = (cpcKey: number, pressedKey: string, key: string, shiftKey: boolean, ctrlKey: boolean) => void;
+    export type PressReleaseCpcKey = (event: KeyboardEvent | PointerEvent, cpcKey: number, pressedKey: string, key: string) => void;
     interface KeyboardOptions {
         fnOnEscapeHandler?: (key: string, pressedKey: string) => void;
         fnOnKeyDown?: () => void;
@@ -909,8 +908,6 @@ declare module "Keyboard" {
         private key2CpcKey;
         private codeStringsRemoved;
         private pressedKeys;
-        setOptions(options: KeyboardOptions): void;
-        getOptions(): KeyboardOptions;
         constructor(options: KeyboardOptions);
         private static readonly key2CpcKey;
         private static readonly specialKeys;
@@ -923,8 +920,8 @@ declare module "Keyboard" {
         setKeyDownHandler(fnOnKeyDown?: () => void): void;
         setActive(active: boolean): void;
         private removeCodeStringsFromKeymap;
-        fnPressCpcKey(cpcKeyCode: number, pressedKey: string, key: string, shiftKey: boolean, ctrlKey: boolean): void;
-        fnReleaseCpcKey(cpcKeyCode: number, pressedKey: string, key: string, shiftKey: boolean, ctrlKey: boolean): void;
+        fnPressCpcKey(event: KeyboardEvent | PointerEvent, cpcKeyCode: number, pressedKey: string, key: string): void;
+        fnReleaseCpcKey(event: KeyboardEvent | PointerEvent, cpcKeyCode: number, pressedKey: string, key: string): void;
         private static keyIdentifier2Char;
         private fnKeyboardKeydown;
         private fnKeyboardKeyup;
@@ -953,8 +950,8 @@ declare module "VirtualKeyboard" {
         private numLock;
         constructor(options: VirtualKeyboardOptions);
         private static readonly cpcKey2Key;
-        private static readonly virtualVirtualKeyboardAlpha;
-        private static readonly virtualVirtualKeyboardNum;
+        private static readonly virtualKeyboardAlpha;
+        private static readonly virtualKeyboardNum;
         private readonly dragInfo;
         private static readonly pointerEventNames;
         private static readonly touchEventNames;
@@ -968,10 +965,10 @@ declare module "VirtualKeyboard" {
         private virtualKeyboardCreate;
         private virtualKeyboardAdaptKeys;
         private fnVirtualGetPressedKey;
-        private onVirtualVirtualKeyboardKeydown;
-        private fnVirtualVirtualKeyboardKeyupOrKeyout;
-        private onVirtualVirtualKeyboardKeyup;
-        private onVirtualVirtualKeyboardKeyout;
+        private onVirtualKeyboardKeydown;
+        private fnVirtualKeyboardKeyupOrKeyout;
+        private onVirtualKeyboardKeyup;
+        private onVirtualKeyboardKeyout;
         private dragInit;
         private dragStart;
         private dragEnd;
@@ -1509,15 +1506,19 @@ declare module "CpcVm" {
         args: (string | number)[];
     };
     type DataEntryType = (string | undefined);
+    type LoadHandlerType = (input: string, meta: FileMeta) => boolean;
     export class CpcVm {
         private quiet;
         private readonly onClickKey?;
         private readonly fnOpeninHandler;
         private readonly fnCloseinHandler;
         private readonly fnCloseoutHandler;
-        fnLoadHandler: (input: string, meta: FileMeta) => boolean;
+        private readonly fnLoadHandler;
         private readonly fnRunHandler;
         private readonly fnOnCanvasClickHandler;
+        private readonly fnInputCallbackHandler;
+        private readonly fnLineInputCallbackHandler;
+        private readonly fnRandomizeCallbackHandler;
         private canvas;
         private readonly keyboard;
         private readonly soundClass;
@@ -1597,6 +1598,7 @@ declare module "CpcVm" {
         private vmResetInks;
         vmReset4Run(): void;
         setCanvas(canvas: ICanvas): ICanvas;
+        vmGetLoadHandler(): LoadHandlerType;
         private onCanvasClickCallback;
         vmGetAllVariables(): VariableMap;
         vmGetAllVarTypes(): VariableTypeMap;
@@ -1918,6 +1920,9 @@ declare module "FileSelect" {
         fnLoad2: (data: string | Uint8Array, name: string, type: string, imported: string[]) => void;
     }
     export class FileSelect {
+        private readonly fnOnErrorHandler;
+        private readonly fnOnLoadHandler;
+        private readonly fnOnFileSelectHandler;
         private fnEndOfImport;
         private fnLoad2;
         private files;
@@ -1927,8 +1932,8 @@ declare module "FileSelect" {
         constructor(options: FileSelectOptions);
         private fnReadNextFile;
         private fnOnLoad;
-        private fnErrorHandler;
-        private fnHandleFileSelect;
+        private fnOnError;
+        private fnOnFileSelect;
         addFileSelectHandler(element: HTMLElement, type: string): void;
     }
 }
@@ -2001,7 +2006,10 @@ declare module "Controller" {
         private readonly fnOnEscapeHandler;
         private readonly fnDirectInputHandler;
         private readonly fnPutKeyInBufferHandler;
-        private readonly fnHandleDragOverHandler;
+        private readonly fnOnDragoverHandler;
+        private readonly fnOnUserActionHandler;
+        private readonly fnWaitForContinueHandler;
+        private readonly fnEditLineCallbackHandler;
         private static readonly metaIdent;
         private fnScript?;
         private timeoutHandlerActive;
@@ -2134,7 +2142,7 @@ declare module "Controller" {
         setCanvasType(canvasType: string): ICanvas;
         setSoundActive(): void;
         private fnEndOfImport;
-        private static fnHandleDragOver;
+        private static fnOnDragover;
         private adaptFilename;
         private createFileHandler;
         private initDropZone;

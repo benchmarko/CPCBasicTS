@@ -81,11 +81,13 @@ define(["require", "exports"], function (require, exports) {
                 return "\\x" + ("00" + char.charCodeAt(0).toString(16)).slice(-2);
             });
         };
-        Utils.hexUnescape = function (str) {
+        /*
+        static hexUnescape(str: string): string {
             return str.replace(/\\x([0-9A-Fa-f]{2})/g, function () {
                 return String.fromCharCode(parseInt(arguments[1], 16));
             });
-        };
+        }
+        */
         Utils.dateFormat = function (d) {
             return d.getFullYear() + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + ("0" + d.getDate()).slice(-2) + " "
                 + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2) + ":" + ("0" + d.getSeconds()).slice(-2) + "." + ("0" + d.getMilliseconds()).slice(-3);

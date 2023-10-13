@@ -118,20 +118,6 @@ export class View {
 		return this;
 	}
 
-	/*
-	getInputDisabled(id: string): boolean { // eslint-disable-line class-methods-use-this
-		const element = View.getElementByIdAs<HTMLInputElement>(id);
-
-		return element.disabled;
-	}
-	setInputDisabled(id: string, disabled: boolean): this {
-		const element = View.getElementByIdAs<HTMLInputElement>(id);
-
-		element.disabled = disabled;
-		return this;
-	}
-	*/
-
 	setAreaInputList(id: string, inputs: AreaInputElement[]): this {
 		const element = View.getElementByIdAs<HTMLElement>(id),
 			childNodes = element.childNodes;
@@ -184,21 +170,29 @@ export class View {
 	}
 
 	setSelectOptions(id: string, options: SelectOptionElement[]): this {
-		const element = View.getElementByIdAs<HTMLSelectElement>(id);
+		const element = View.getElementByIdAs<HTMLSelectElement>(id),
+			optionList: HTMLOptionElement[] = [],
+			existingElements = element.length;
+
+		// pre-create additional options
+		for (let i = existingElements; i < options.length; i += 1) {
+			const item = options[i],
+				option = window.document.createElement("option");
+
+			option.value = item.value;
+			option.text = item.text;
+			option.title = item.title;
+			option.selected = item.selected; // multi-select
+			optionList.push(option);
+		}
 
 		for (let i = 0; i < options.length; i += 1) {
-			const item = options[i];
-			let option: HTMLOptionElement;
-
-			if (i >= element.length) {
-				option = window.document.createElement("option");
-				option.value = item.value;
-				option.text = item.text;
-				option.title = item.title;
-				option.selected = item.selected; // multi-select
-				element.add(option, null); // null needed for old FF 3.x
+			if (i >= existingElements) {
+				element.add(optionList[i - existingElements], null); // null needed for old FF 3.x
 			} else {
-				option = element.options[i];
+				const item = options[i],
+					option = element.options[i];
+
 				if (option.value !== item.value) {
 					option.value = item.value;
 				}
@@ -329,7 +323,6 @@ export class View {
 		const element = View.getElementById1(id),
 			anyEl = element as any,
 			requestMethod = element.requestFullscreen || anyEl.webkitRequestFullscreen || anyEl.mozRequestFullscreen || anyEl.msRequestFullscreen;
-			//parameter = anyEl.webkitRequestFullscreen ? (Element as any).ALLOW_KEYBOARD_INPUT : undefined; // does this work?
 
 		if (requestMethod) {
 			requestMethod.call(element); // can we ALLOW_KEYBOARD_INPUT?

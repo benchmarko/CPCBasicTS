@@ -40,16 +40,6 @@ export class CommonEventHandler implements EventListenerObject {
 		this.controller.toggleAreaHidden("resultArea");
 	}
 
-	/*
-	private onTextButtonClick() {
-		if (this.controller.toggleAreaHidden("textArea")) {
-			this.controller.startUpdateTextCanvas();
-		} else {
-			this.controller.stopUpdateTextCanvas();
-		}
-	}
-	*/
-
 	private onVariableButtonClick() {
 		this.controller.toggleAreaHidden("variableArea");
 	}
@@ -354,7 +344,6 @@ export class CommonEventHandler implements EventListenerObject {
 	}
 
 	private onTextTextClick(event: Event) {
-		//this.controller.onTextTextClick(event as MouseEvent);
 		this.controller.onCpcCanvasClick(event as MouseEvent);
 	}
 
@@ -364,7 +353,6 @@ export class CommonEventHandler implements EventListenerObject {
 		onInp2ButtonClick: this.onInp2ButtonClick,
 		onOutputButtonClick: this.onOutputButtonClick,
 		onResultButtonClick: this.onResultButtonClick,
-		//onTextButtonClick: this.onTextButtonClick,
 		onVariableButtonClick: this.onVariableButtonClick,
 		onCpcButtonClick: this.onCpcButtonClick,
 		onConvertButtonClick: this.onConvertButtonClick,

@@ -12,13 +12,11 @@ import { Variables, VariableMap, VarTypes, VariableTypeMap } from "./Variables";
 
 export interface CpcVmOptions {
 	canvas: ICanvas
-	//textCanvas: ICanvas
 	keyboard: Keyboard
 	sound: Sound
 	variables: Variables
 	quiet?: boolean
 	onClickKey?: (arg0: string) => void
-	//copyChrFromTextCanvas?: boolean
 }
 
 export interface FileMeta {
@@ -126,19 +124,23 @@ export interface VmStopEntry {
 type PrintObjectType = {type: string, args: (string | number)[]};
 
 type DataEntryType = (string | undefined);
+
+type LoadHandlerType = (input: string, meta: FileMeta) => boolean;
+
 export class CpcVm {
 	private quiet = false;
-	//private copyChrFromTextCanvas = false;
 	private readonly onClickKey?: (arg0: string) => void;
 	private readonly fnOpeninHandler: FileBase["fnFileCallback"]; // = undefined;
 	private readonly fnCloseinHandler: () => void;
 	private readonly fnCloseoutHandler: () => void;
-	fnLoadHandler: (input: string, meta: FileMeta) => boolean;
-	private readonly fnRunHandler: (input: string, meta: FileMeta) => boolean;
+	private readonly fnLoadHandler: LoadHandlerType;
+	private readonly fnRunHandler: LoadHandlerType;
 	private readonly fnOnCanvasClickHandler: () => void;
+	private readonly fnInputCallbackHandler: () => boolean;
+	private readonly fnLineInputCallbackHandler: () => boolean;
+	private readonly fnRandomizeCallbackHandler: () => boolean;
 
 	private canvas: ICanvas;
-	//private readonly textCanvas: ICanvas;
 	private readonly keyboard: Keyboard;
 	private readonly soundClass: Sound;
 	readonly variables: Variables;
@@ -394,12 +396,10 @@ export class CpcVm {
 	getOptions(): CpcVmOptions {
 		return {
 			canvas: this.canvas,
-			//textCanvas: this.textCanvas,
 			keyboard: this.keyboard,
 			sound: this.soundClass,
 			variables: this.variables,
 			quiet: this.quiet
-			//copyChrFromTextCanvas: this.copyChrFromTextCanvas
 		};
 	}
 
@@ -410,29 +410,18 @@ export class CpcVm {
 		this.fnLoadHandler = this.vmLoadCallback.bind(this);
 		this.fnRunHandler = this.vmRunCallback.bind(this);
 		this.fnOnCanvasClickHandler = this.onCanvasClickCallback.bind(this);
+		this.fnInputCallbackHandler = this.vmInputCallback.bind(this);
+		this.fnLineInputCallbackHandler = this.vmLineInputCallback.bind(this);
+		this.fnRandomizeCallbackHandler = this.vmRandomizeCallback.bind(this);
 
 		this.canvas = this.setCanvas(options.canvas);
-		//this.canvas = options.canvas;
-		//this.textCanvas = options.textCanvas;
 		this.keyboard = options.keyboard;
 		this.soundClass = options.sound;
 		this.variables = options.variables;
 		this.quiet = Boolean(options.quiet);
-		//this.copyChrFromTextCanvas = Boolean(options.copyChrFromTextCanvas);
 		this.onClickKey = options.onClickKey;
 
 		this.random = new Random();
-
-		/*
-		if (this.canvas) {
-			this.canvas.setOnCanvasClick(this.fnOnCanvasClickHandler);
-		}
-		*/
-		/*
-		if (this.textCanvas) {
-			this.textCanvas.setOnCanvasClick(this.onCanvasClickCallback.bind(this));
-		}
-		*/
 
 		this.stopCount = this.initialStop;
 
@@ -572,7 +561,6 @@ export class CpcVm {
 		this.mode(1); // including vmResetWindowData() without pen and paper
 
 		this.canvas.reset();
-		//this.textCanvas.reset();
 
 		this.keyboard.reset();
 
@@ -728,6 +716,10 @@ export class CpcVm {
 		return canvas;
 	}
 
+	vmGetLoadHandler(): LoadHandlerType {
+		return this.fnLoadHandler;
+	}
+
 	private onCanvasClickCallback(event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) {
 		// for graphics coordinates, adapt origin
 		const height = 400; //TTT
@@ -741,13 +733,6 @@ export class CpcVm {
 		}
 
 		if (this.onClickKey) {
-			/*
-			const isTextCanvas = event.target && (event.target as any).type === "textarea"; //fast hack; this.textCanvas.textText === event.target
-
-			if (isTextCanvas) {
-				char = this.textCanvas.readChar(xTxt, yTxt, 0, 0);
-			} else {
-			*/
 			for (let stream = 0; stream < CpcVm.streamCount - 2; stream += 1) { // check all window streams
 				const win = this.windowDataList[stream];
 
@@ -756,7 +741,6 @@ export class CpcVm {
 					break; // found some char
 				}
 			}
-			//}
 
 			if ((char < 0 || char === 32 || char === 143) && event.detail === 2) { // no (useful) char but mouse double click?
 				char = 13; // use CR
@@ -1485,7 +1469,6 @@ export class CpcVm {
 			this.modeValue = 1;
 			this.canvas.setMode(this.modeValue); // does not clear canvas
 			this.canvas.clearFullWindow(); // (SCR Mode Clear)
-			//this.textCanvas.clearFullWindow();
 			// and SCR Reset:
 			this.vmResetInks();
 			break;
@@ -1601,7 +1584,6 @@ export class CpcVm {
 		this.vmResetTimers();
 		this.ei();
 		this.vmSetStartLine(0);
-		//this.errorCode = 0;
 		this.breakGosubLine = 0;
 		this.breakResumeLine = 0;
 		this.errorGotoLine = 0;
@@ -1675,7 +1657,6 @@ export class CpcVm {
 		this.vmDrawUndrawCursor(stream); // why, if we clear anyway?
 
 		this.canvas.clearTextWindow(win.left, win.right, win.top, win.bottom, win.paper); // cls window
-		//this.textCanvas.clearTextWindow(win.left, win.right, win.top, win.bottom, win.paper);
 		win.pos = 0;
 		win.vpos = 0;
 
@@ -1717,7 +1698,6 @@ export class CpcVm {
 
 		this.vmDrawUndrawCursor(stream); // undraw
 		const win = this.windowDataList[stream],
-			//charCode = !this.copyChrFromTextCanvas ? this.canvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper) : this.textCanvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper),
 			charCode = this.canvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper),
 			char = (charCode >= 0) ? String.fromCharCode(charCode) : "";
 
@@ -2328,7 +2308,7 @@ export class CpcVm {
 				stream: stream,
 				message: msg,
 				noCRLF: noCRLF,
-				fnInputCallback: this.vmInputCallback.bind(this),
+				fnInputCallback: this.fnInputCallbackHandler,
 				types: args,
 				input: "",
 				line: this.line // to repeat in case of break
@@ -2438,7 +2418,7 @@ export class CpcVm {
 				stream: stream,
 				message: msg,
 				noCRLF: noCRLF,
-				fnInputCallback: this.vmLineInputCallback.bind(this),
+				fnInputCallback: this.fnLineInputCallbackHandler,
 				input: "",
 				line: this.line // to repeat in case of break
 			});
@@ -2690,9 +2670,6 @@ export class CpcVm {
 		this.outBuffer = ""; // clear console
 		this.canvas.setMode(mode); // does not clear canvas
 		this.canvas.clearFullWindow(); // always with paper 0 (SCR MODE CLEAR)
-
-		//this.textCanvas.setMode(mode);
-		//this.textCanvas.clearFullWindow();
 	}
 
 	move(x: number, y: number, gPen?: number, gColMode?: number): void {
@@ -3080,7 +3057,6 @@ export class CpcVm {
 			y = 0;
 			if (stream < 8) {
 				this.canvas.windowScrollDown(left, right, top, bottom, win.paper);
-				//this.textCanvas.windowScrollDown(left, right, top, bottom, win.paper);
 			}
 		}
 
@@ -3088,7 +3064,6 @@ export class CpcVm {
 			y = bottom - top;
 			if (stream < 8) {
 				this.canvas.windowScrollUp(left, right, top, bottom, win.paper);
-				//this.textCanvas.windowScrollUp(left, right, top, bottom, win.paper);
 			}
 		}
 		win.pos = x;
@@ -3116,7 +3091,6 @@ export class CpcVm {
 
 			this.vmMoveCursor2AllowedPos(stream);
 			this.canvas.printChar(char, win.pos + win.left, win.vpos + win.top, win.pen, win.paper, win.transparent);
-			//this.textCanvas.printChar(char, win.pos + win.left, win.vpos + win.top, win.pen, win.paper, win.transparent);
 			win.pos += 1;
 		}
 	}
@@ -3214,31 +3188,24 @@ export class CpcVm {
 		case 0x10: // DLE
 			this.vmMoveCursor2AllowedPos(stream);
 			this.canvas.fillTextBox(win.left + win.pos, win.top + win.vpos, 1, 1, win.paper); // clear character under cursor
-			//this.textCanvas.fillTextBox(win.left + win.pos, win.top + win.vpos, 1, 1, 0); // clear character under cursor
 			break;
 		case 0x11: // DC1
 			this.vmMoveCursor2AllowedPos(stream);
 			this.canvas.fillTextBox(win.left, win.top + win.vpos, win.pos + 1, 1, win.paper); // clear line up to cursor
-			//this.textCanvas.fillTextBox(win.left, win.top + win.vpos, win.pos + 1, 1, win.paper); // clear line up to cursor
 			break;
 		case 0x12: // DC2
 			this.vmMoveCursor2AllowedPos(stream);
 			this.canvas.fillTextBox(win.left + win.pos, win.top + win.vpos, win.right - win.left + 1 - win.pos, 1, win.paper); // clear line from cursor
-			//this.textCanvas.fillTextBox(win.left + win.pos, win.top + win.vpos, win.right - win.left + 1 - win.pos, 1, win.paper); // clear line from cursor
 			break;
 		case 0x13: // DC3
 			this.vmMoveCursor2AllowedPos(stream);
 			this.canvas.fillTextBox(win.left, win.top, win.right - win.left + 1, win.top - win.vpos, win.paper); // clear window up to cursor line -1
 			this.canvas.fillTextBox(win.left, win.top + win.vpos, win.pos + 1, 1, win.paper); // clear line up to cursor (DC1)
-			//this.textCanvas.fillTextBox(win.left, win.top, win.right - win.left + 1, win.top - win.vpos, win.paper); // clear window up to cursor line -1
-			//this.textCanvas.fillTextBox(win.left, win.top + win.vpos, win.pos + 1, 1, win.paper); // clear line up to cursor (DC1)
 			break;
 		case 0x14: // DC4
 			this.vmMoveCursor2AllowedPos(stream);
 			this.canvas.fillTextBox(win.left + win.pos, win.top + win.vpos, win.right - win.left + 1 - win.pos, 1, win.paper); // clear line from cursor (DC2)
 			this.canvas.fillTextBox(win.left, win.top + win.vpos + 1, win.right - win.left + 1, win.bottom - win.top - win.vpos, win.paper); // clear window from cursor line +1
-			//this.textCanvas.fillTextBox(win.left + win.pos, win.top + win.vpos, win.right - win.left + 1 - win.pos, 1, win.paper); // clear line from cursor (DC2)
-			//this.textCanvas.fillTextBox(win.left, win.top + win.vpos + 1, win.right - win.left + 1, win.bottom - win.top - win.vpos, win.paper); // clear window from cursor line +1
 			break;
 		case 0x15: // NAK
 			win.cursorEnabled = false;
@@ -3462,7 +3429,7 @@ export class CpcVm {
 				command: "randomize",
 				stream: stream,
 				message: msg,
-				fnInputCallback: this.vmRandomizeCallback.bind(this),
+				fnInputCallback: this.fnRandomizeCallbackHandler,
 				input: "",
 				line: this.line // to repeat in case of break
 			};

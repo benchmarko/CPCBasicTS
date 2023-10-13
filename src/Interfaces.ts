@@ -24,12 +24,10 @@ export interface CanvasOptions {
 	charset: CanvasCharsetType
 	palette: "color" | "green" | "grey"
 	onCanvasClick?: CanvasClickType
-	//onCanvasDragover?: (event: Event) => void
 }
 
 export interface ICanvas {
     setOnCanvasClick(onCanvasClickHandler: CanvasClickType): void
-    //setOnCanvasDragover(onCanvasDragoverHandler: (e: Event) => void) : HTMLElement
     reset(): void
     resetCustomChars(): void
     setPalette(palette: "color" | "green" | "grey"): void
@@ -79,7 +77,7 @@ export interface ICanvas {
     changeMode(mode: number): void
     setMode(mode: number): void
     takeScreenShot(): string
-    getCanvasElement(): HTMLElement | undefined //HTMLCanvasElement
+    getCanvasElement(): HTMLElement | undefined
 }
 
 
@@ -119,12 +117,9 @@ export interface IController {
 
     onCpcCanvasClick: (event: MouseEvent) => void
     onWindowClick: (event: Event) => void
-    //onTextTextClick: (event: MouseEvent) => void
 
     startUpdateCanvas: () => void
     stopUpdateCanvas: () => void
-    //startUpdateTextCanvas: () => void
-    //stopUpdateTextCanvas: () => void
     virtualKeyboardCreate: () => void
     getVariable: (par: string) => VariableValue
     // see VariableValue in Variables.ts

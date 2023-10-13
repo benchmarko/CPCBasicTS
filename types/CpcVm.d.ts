@@ -103,15 +103,19 @@ declare type PrintObjectType = {
     args: (string | number)[];
 };
 declare type DataEntryType = (string | undefined);
+declare type LoadHandlerType = (input: string, meta: FileMeta) => boolean;
 export declare class CpcVm {
     private quiet;
     private readonly onClickKey?;
     private readonly fnOpeninHandler;
     private readonly fnCloseinHandler;
     private readonly fnCloseoutHandler;
-    fnLoadHandler: (input: string, meta: FileMeta) => boolean;
+    private readonly fnLoadHandler;
     private readonly fnRunHandler;
     private readonly fnOnCanvasClickHandler;
+    private readonly fnInputCallbackHandler;
+    private readonly fnLineInputCallbackHandler;
+    private readonly fnRandomizeCallbackHandler;
     private canvas;
     private readonly keyboard;
     private readonly soundClass;
@@ -191,6 +195,7 @@ export declare class CpcVm {
     private vmResetInks;
     vmReset4Run(): void;
     setCanvas(canvas: ICanvas): ICanvas;
+    vmGetLoadHandler(): LoadHandlerType;
     private onCanvasClickCallback;
     vmGetAllVariables(): VariableMap;
     vmGetAllVarTypes(): VariableTypeMap;
