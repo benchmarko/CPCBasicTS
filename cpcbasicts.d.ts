@@ -983,6 +983,9 @@ declare module "Canvas" {
         private readonly fnUpdateCanvasHandler;
         private readonly fnUpdateCanvas2Handler;
         private fps;
+        private isRunning;
+        private animationTimeoutId?;
+        private animationFrame?;
         private readonly cpcAreaBox;
         private customCharset;
         private gColMode;
@@ -1001,11 +1004,9 @@ declare module "Canvas" {
         private readonly speedInk;
         private inkSet;
         private readonly pen2ColorMap;
-        private animationTimeoutId?;
-        private animationFrame?;
         private readonly ctx;
         private readonly imageData;
-        private fnCopy2Canvas?;
+        private fnCopy2Canvas;
         private littleEndian;
         private pen2Color32?;
         private data32?;
@@ -1048,7 +1049,7 @@ declare module "Canvas" {
         private copy2Canvas8bit;
         private copy2Canvas32bit;
         private copy2Canvas32bitWithOffset;
-        private applyCopy2CanvasFunction;
+        private getCopy2CanvasFunction;
         setScreenOffset(offset: number): void;
         private updateColorMap;
         updateColorsAndCanvasImmediately(inkList: number[]): void;
@@ -1119,9 +1120,10 @@ declare module "TextCanvas" {
     import { CanvasOptions, ICanvas, CanvasClickType, CanvasCharType } from "Interfaces";
     export class TextCanvas implements ICanvas {
         private readonly options;
-        private readonly fnUpdateTextCanvasHandler;
-        private readonly fnUpdateTextCanvas2Handler;
+        private readonly fnUpdateCanvasHandler;
+        private readonly fnUpdateCanvas2Handler;
         private fps;
+        private isRunning;
         private animationTimeoutId?;
         private animationFrame?;
         private readonly cpcAreaBox;
@@ -1129,7 +1131,7 @@ declare module "TextCanvas" {
         private borderWidth;
         private cols;
         private rows;
-        private needTextUpdate;
+        private needUpdate;
         private readonly textBuffer;
         private hasFocus;
         constructor(options: CanvasOptions);
@@ -1175,9 +1177,9 @@ declare module "TextCanvas" {
         getCanvasElement(): HTMLElement;
         takeScreenShot(): string;
         private resetTextBuffer;
-        private setNeedTextUpdate;
-        private updateTextCanvas2;
-        private updateTextCanvas;
+        private setNeedUpdate;
+        private updateCanvas2;
+        private updateCanvas;
         startUpdateCanvas(): void;
         stopUpdateCanvas(): void;
         private updateTextWindow;
@@ -1186,19 +1188,19 @@ declare module "TextCanvas" {
         private canvasClickAction;
         onCanvasClick(event: MouseEvent): void;
         onWindowClick(_event: Event): void;
-        fillTextBox(left: number, top: number, width: number, height: number, _pen?: number): void;
+        fillTextBox(left: number, top: number, width: number, height: number, _paper?: number): void;
         private clearTextBufferBox;
         private copyTextBufferBoxUp;
         private copyTextBufferBoxDown;
         private putCharInTextBuffer;
         private getCharFromTextBuffer;
         printChar(char: number, x: number, y: number, _pen: number, _paper: number, _transparent: boolean): void;
-        readChar(x: number, y: number, _pen?: number, _paper?: number): number;
+        readChar(x: number, y: number, _pen: number, _paper: number): number;
         clearTextWindow(left: number, right: number, top: number, bottom: number, _paper: number): void;
         setMode(mode: number): void;
         clearFullWindow(): void;
-        windowScrollUp(left: number, right: number, top: number, bottom: number, _pen: number): void;
-        windowScrollDown(left: number, right: number, top: number, bottom: number, _pen: number): void;
+        windowScrollUp(left: number, right: number, top: number, bottom: number, _paper: number): void;
+        windowScrollDown(left: number, right: number, top: number, bottom: number, _paper: number): void;
     }
 }
 declare module "NodeAdapt" {
@@ -1323,6 +1325,8 @@ declare module "Sound" {
         private readonly options;
         private isSoundOn;
         private isActivatedByUserFlag;
+        private contextNotAvailable;
+        private contextStartTime;
         private context?;
         private mergerNode?;
         private readonly gainNodes;
@@ -1339,8 +1343,10 @@ declare module "Sound" {
         resetQueue(): void;
         private createSoundContext;
         private playNoise;
+        private simulateApplyVolEnv;
         private applyVolEnv;
         private applyToneEnv;
+        private simulateScheduleNote;
         private scheduleNote;
         testCanQueue(state: number): boolean;
         sound(soundData: SoundData): void;
@@ -1352,7 +1358,7 @@ declare module "Sound" {
         sq(n: number): number;
         setActivatedByUser(): void;
         isActivatedByUser(): boolean;
-        soundOn(): void;
+        soundOn(): boolean;
         soundOff(): void;
     }
 }
@@ -1555,7 +1561,7 @@ declare module "CpcVm" {
         private errorResumeLine;
         private breakGosubLine;
         private breakResumeLine;
-        outBuffer: string;
+        private outBuffer;
         private errorCode;
         private errorLine;
         private degFlag;
@@ -1639,6 +1645,7 @@ declare module "CpcVm" {
         vmGetSoundData(): SoundData[];
         vmSetSourceMap(sourceMap: Record<string, number[]>): void;
         vmTrace(): void;
+        vmGetOutBuffer(): string;
         private vmDrawMovePlot;
         private vmAfterEveryGosub;
         private vmCopyFromScreen;

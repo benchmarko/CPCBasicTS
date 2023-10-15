@@ -36,6 +36,8 @@ export declare class Sound {
     private readonly options;
     private isSoundOn;
     private isActivatedByUserFlag;
+    private contextNotAvailable;
+    private contextStartTime;
     private context?;
     private mergerNode?;
     private readonly gainNodes;
@@ -52,8 +54,10 @@ export declare class Sound {
     resetQueue(): void;
     private createSoundContext;
     private playNoise;
+    private simulateApplyVolEnv;
     private applyVolEnv;
     private applyToneEnv;
+    private simulateScheduleNote;
     private scheduleNote;
     testCanQueue(state: number): boolean;
     sound(soundData: SoundData): void;
@@ -65,7 +69,7 @@ export declare class Sound {
     sq(n: number): number;
     setActivatedByUser(): void;
     isActivatedByUser(): boolean;
-    soundOn(): void;
+    soundOn(): boolean;
     soundOff(): void;
 }
 export {};

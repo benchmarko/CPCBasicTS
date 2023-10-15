@@ -4,6 +4,9 @@ export declare class Canvas implements ICanvas {
     private readonly fnUpdateCanvasHandler;
     private readonly fnUpdateCanvas2Handler;
     private fps;
+    private isRunning;
+    private animationTimeoutId?;
+    private animationFrame?;
     private readonly cpcAreaBox;
     private customCharset;
     private gColMode;
@@ -22,11 +25,9 @@ export declare class Canvas implements ICanvas {
     private readonly speedInk;
     private inkSet;
     private readonly pen2ColorMap;
-    private animationTimeoutId?;
-    private animationFrame?;
     private readonly ctx;
     private readonly imageData;
-    private fnCopy2Canvas?;
+    private fnCopy2Canvas;
     private littleEndian;
     private pen2Color32?;
     private data32?;
@@ -69,7 +70,7 @@ export declare class Canvas implements ICanvas {
     private copy2Canvas8bit;
     private copy2Canvas32bit;
     private copy2Canvas32bitWithOffset;
-    private applyCopy2CanvasFunction;
+    private getCopy2CanvasFunction;
     setScreenOffset(offset: number): void;
     private updateColorMap;
     updateColorsAndCanvasImmediately(inkList: number[]): void;

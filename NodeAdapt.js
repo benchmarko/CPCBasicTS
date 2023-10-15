@@ -17,10 +17,16 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                         borderwidth: "",
                         borderStyle: ""
                     },
-                    addEventListener: function () { },
+                    addEventListener: function () {
+                        // nothing
+                    },
                     options: [],
-                    getAttribute: function () { },
-                    setAttribute: function () { } // eslint-disable-line no-empty-function, @typescript-eslint/no-empty-function
+                    getAttribute: function () {
+                        // nothing
+                    },
+                    setAttribute: function () {
+                        // nothing
+                    }
                 };
                 // old syntax for getter with "get length() { ... }"
                 Object.defineProperty(domElements[id], "length", {
@@ -49,7 +55,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             Object.assign(window, {
                 console: console,
                 document: {
-                    addEventListener: function () { },
+                    addEventListener: function () {
+                        // nothing
+                    },
                     getElementById: function (id) { return domElements[id] || myCreateElement(id); },
                     createElement: function (type) {
                         if (type === "option") {
@@ -63,6 +71,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             });
             // eslint-disable-next-line no-eval
             var nodeExports = eval("exports"), view = nodeExports.View, setSelectOptionsOrig = view.prototype.setSelectOptions;
+            // fast hacks...
             view.prototype.setSelectOptions = function (id, options) {
                 var element = domElements[id] || myCreateElement(id);
                 if (!element.options.add) {
@@ -88,7 +97,14 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             // https://nodejs.dev/learn/accept-input-from-the-command-line-in-nodejs
             // readline?
             var controller = nodeExports.Controller;
+            /*
+            controller.prototype.startWithDirectInput = () => {
+                this.stopUpdateCanvas();
+                Utils.console.log("We are ready.");
+            };
+            */
             controller.prototype.startWithDirectInput = function () {
+                this.stopUpdateCanvas();
                 Utils_1.Utils.console.log("We are ready.");
             };
             //

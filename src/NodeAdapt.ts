@@ -5,8 +5,8 @@ import { Utils } from "./Utils";
 
 // examples:
 // npm run build:one
-// node dist/cpcbasicts.js sound=false showCpc=false debug=0 example=test/testpage
-// node dist/cpcbasicts.js sound=false showCpc=false debug=0 databaseDirs=https://benchmarko.github.io/CPCBasicApps/apps database=apps example=math/euler
+// node dist/cpcbasicts.js sound=false canvasType=text debug=0 example=test/testpage
+// node dist/cpcbasicts.js sound=false canvasType=text debug=0 databaseDirs=https://benchmarko.github.io/CPCBasicApps/apps database=apps example=math/euler
 interface NodeHttps {
 	get: (url: string, fn: (res: any) => void) => any
 }
@@ -30,10 +30,16 @@ export class NodeAdapt {
 						borderwidth: "",
 						borderStyle: ""
 					},
-					addEventListener: () => {}, // eslint-disable-line no-empty-function, @typescript-eslint/no-empty-function
+					addEventListener: () => {
+						// nothing
+					},
 					options: [],
-					getAttribute: () => {}, // eslint-disable-line no-empty-function, @typescript-eslint/no-empty-function
-					setAttribute: () => {} // eslint-disable-line no-empty-function, @typescript-eslint/no-empty-function
+					getAttribute: () => {
+						// nothing
+					},
+					setAttribute: () => {
+						// nothing
+					}
 				};
 
 				// old syntax for getter with "get length() { ... }"
@@ -66,7 +72,9 @@ export class NodeAdapt {
 		Object.assign(window, {
 			console: console,
 			document: {
-				addEventListener: () => {}, // eslint-disable-line no-empty-function, @typescript-eslint/no-empty-function
+				addEventListener: () => {
+					// nothing
+				},
 				getElementById: (id: string) => domElements[id] || myCreateElement(id),
 				createElement: (type: string) => {
 					if (type === "option") {
@@ -83,6 +91,8 @@ export class NodeAdapt {
 		const nodeExports = eval("exports"),
 			view = nodeExports.View,
 			setSelectOptionsOrig = view.prototype.setSelectOptions;
+
+		// fast hacks...
 
 		view.prototype.setSelectOptions = (id: string, options: any[]) => {
 			const element = domElements[id] || myCreateElement(id);
@@ -114,10 +124,16 @@ export class NodeAdapt {
 		// readline?
 		const controller = nodeExports.Controller;
 
+		/*
 		controller.prototype.startWithDirectInput = () => {
+			this.stopUpdateCanvas();
 			Utils.console.log("We are ready.");
 		};
-
+		*/
+		controller.prototype.startWithDirectInput = function () {
+			this.stopUpdateCanvas();
+			Utils.console.log("We are ready.");
+		};
 		//
 
 		function isUrl(s: string) {

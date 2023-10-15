@@ -1259,7 +1259,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.virtualKeyboard.reset();
             }
             vm.vmStop("end", 0, true); // set "end" with priority 0, so that "compile only" still works
-            vm.outBuffer = "";
+            //vm.outBuffer = "";
             this.view.setAreaValue("outputText", "");
             this.invalidateScript();
         };
@@ -1505,7 +1505,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             vm.vmReset4Run();
             if (this.fnScript) {
-                vm.outBuffer = this.view.getAreaValue("resultText");
+                //TTT not needed? vm.outBuffer = this.view.getAreaValue("resultText");
                 vm.vmStop("", 0, true);
                 vm.vmGoto(0); // to load DATA lines
                 this.vm.vmSetStartLine(line); // clear resets also startline
@@ -1670,7 +1670,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.fnWaitInput();
         };
         Controller.prototype.updateResultText = function () {
-            this.view.setAreaValue("resultText", this.vm.outBuffer);
+            this.view.setAreaValue("resultText", this.vm.vmGetOutBuffer());
             this.view.setAreaScrollTop("resultText"); // scroll to bottom
         };
         Controller.prototype.exitLoop = function () {
@@ -1939,16 +1939,9 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             return canvas;
         };
         Controller.prototype.setSoundActive = function () {
-            var sound = this.sound, soundLabel = View_1.View.getElementById1("soundLabel"), active = this.model.getProperty("sound");
-            var text = "";
+            var sound = this.sound, active = this.model.getProperty("sound");
             if (active) {
-                try {
-                    sound.soundOn();
-                }
-                catch (e) {
-                    Utils_1.Utils.console.warn("soundOn:", e);
-                    text = "Sound (unavailable)";
-                }
+                sound.soundOn();
             }
             else {
                 sound.soundOff();
@@ -1956,9 +1949,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 if (stop_1 && stop_1.reason === "waitSound") {
                     this.vm.vmStop("", 0, true); // do not wait
                 }
-            }
-            if (text) {
-                soundLabel.innerText = text;
             }
         };
         Controller.prototype.fnEndOfImport = function (imported) {

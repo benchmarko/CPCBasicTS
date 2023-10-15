@@ -9,14 +9,15 @@ define(["require", "exports", "./View"], function (require, exports, View_1) {
     var TextCanvas = /** @class */ (function () {
         function TextCanvas(options) {
             this.fps = 15; // FPS for canvas update
+            this.isRunning = false;
             this.borderWidth = 1;
-            this.needTextUpdate = false;
+            this.needUpdate = false;
             this.textBuffer = []; // textbuffer characters at row,column
             this.hasFocus = false; // canvas has focus
             this.options = options;
             this.cpcAreaBox = View_1.View.getElementById1("cpcAreaBox");
-            this.fnUpdateTextCanvasHandler = this.updateTextCanvas.bind(this);
-            this.fnUpdateTextCanvas2Handler = this.updateTextCanvas2.bind(this);
+            this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
+            this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
             this.textText = View_1.View.getElementById1("textText"); // View.setAreaValue()
             this.cols = parseFloat(this.textText.getAttribute("cols") || "0");
             this.rows = parseFloat(this.textText.getAttribute("rows") || "0");
@@ -29,7 +30,7 @@ define(["require", "exports", "./View"], function (require, exports, View_1) {
         };
         TextCanvas.prototype.reset = function () {
             this.resetTextBuffer();
-            this.setNeedTextUpdate();
+            this.setNeedUpdate();
         };
         TextCanvas.prototype.resetCustomChars = function () {
         };
@@ -119,31 +120,38 @@ define(["require", "exports", "./View"], function (require, exports, View_1) {
         TextCanvas.prototype.resetTextBuffer = function () {
             this.textBuffer.length = 0;
         };
-        TextCanvas.prototype.setNeedTextUpdate = function () {
-            this.needTextUpdate = true;
+        TextCanvas.prototype.setNeedUpdate = function () {
+            this.needUpdate = true;
         };
-        TextCanvas.prototype.updateTextCanvas2 = function () {
-            this.animationFrame = requestAnimationFrame(this.fnUpdateTextCanvasHandler);
+        TextCanvas.prototype.updateCanvas2 = function () {
+            if (!this.isRunning) {
+                return; // ignore remaining timeouts, if stopped
+            }
+            this.animationFrame = requestAnimationFrame(this.fnUpdateCanvasHandler);
             if (this.textText.offsetParent) { // text area visible?
-                if (this.needTextUpdate) {
-                    this.needTextUpdate = false;
+                if (this.needUpdate) {
+                    this.needUpdate = false;
                     this.updateTextWindow();
                 }
             }
         };
-        TextCanvas.prototype.updateTextCanvas = function () {
-            this.animationTimeoutId = window.setTimeout(this.fnUpdateTextCanvas2Handler, 1000 / this.fps); // ts (node)
+        TextCanvas.prototype.updateCanvas = function () {
+            this.animationTimeoutId = window.setTimeout(this.fnUpdateCanvas2Handler, 1000 / this.fps); // ts (node)
         };
         TextCanvas.prototype.startUpdateCanvas = function () {
-            if (this.animationFrame === undefined && this.textText.offsetParent !== null) { // animation off and canvas visible in DOM?
-                this.updateTextCanvas();
+            if (!this.isRunning && this.textText.offsetParent !== null) { // animation off and canvas visible in DOM? (with noteJS it is currently undefined)
+                this.isRunning = true;
+                this.updateCanvas();
             }
         };
         TextCanvas.prototype.stopUpdateCanvas = function () {
-            if (this.animationFrame !== undefined) {
-                cancelAnimationFrame(this.animationFrame);
+            if (this.isRunning) {
+                this.isRunning = false;
+                if (this.animationFrame) {
+                    cancelAnimationFrame(this.animationFrame);
+                    this.animationFrame = undefined;
+                }
                 clearTimeout(this.animationTimeoutId);
-                this.animationFrame = undefined;
                 this.animationTimeoutId = undefined;
             }
         };
@@ -204,7 +212,7 @@ define(["require", "exports", "./View"], function (require, exports, View_1) {
                 this.cpcAreaBox.style.background = "";
             }
         };
-        TextCanvas.prototype.fillTextBox = function (left, top, width, height, _pen) {
+        TextCanvas.prototype.fillTextBox = function (left, top, width, height, _paper) {
             this.clearTextBufferBox(left, top, width, height);
         };
         TextCanvas.prototype.clearTextBufferBox = function (left, top, width, height) {
@@ -217,7 +225,7 @@ define(["require", "exports", "./View"], function (require, exports, View_1) {
                     }
                 }
             }
-            this.setNeedTextUpdate();
+            this.setNeedUpdate();
         };
         TextCanvas.prototype.copyTextBufferBoxUp = function (left, top, width, height, left2, top2) {
             var textBuffer = this.textBuffer;
@@ -238,7 +246,7 @@ define(["require", "exports", "./View"], function (require, exports, View_1) {
                     delete textBuffer[top2 + y]; // no sourceRow => clear destinationRow
                 }
             }
-            this.setNeedTextUpdate();
+            this.setNeedUpdate();
         };
         TextCanvas.prototype.copyTextBufferBoxDown = function (left, top, width, height, left2, top2) {
             var textBuffer = this.textBuffer;
@@ -258,7 +266,7 @@ define(["require", "exports", "./View"], function (require, exports, View_1) {
                     delete textBuffer[top2 + y]; // no sourceRow => clear destinationRow
                 }
             }
-            this.setNeedTextUpdate();
+            this.setNeedUpdate();
         };
         TextCanvas.prototype.putCharInTextBuffer = function (char, x, y) {
             var textBuffer = this.textBuffer;
@@ -266,7 +274,7 @@ define(["require", "exports", "./View"], function (require, exports, View_1) {
                 textBuffer[y] = [];
             }
             this.textBuffer[y][x] = char;
-            this.setNeedTextUpdate();
+            this.setNeedUpdate();
         };
         TextCanvas.prototype.getCharFromTextBuffer = function (x, y) {
             var textBuffer = this.textBuffer;
@@ -303,9 +311,9 @@ define(["require", "exports", "./View"], function (require, exports, View_1) {
         };
         TextCanvas.prototype.clearFullWindow = function () {
             this.resetTextBuffer();
-            this.setNeedTextUpdate();
+            this.setNeedUpdate();
         };
-        TextCanvas.prototype.windowScrollUp = function (left, right, top, bottom, _pen) {
+        TextCanvas.prototype.windowScrollUp = function (left, right, top, bottom, _paper) {
             var width = right + 1 - left, height = bottom + 1 - top;
             if (height > 1) { // scroll part
                 // adapt also text buffer
@@ -313,7 +321,7 @@ define(["require", "exports", "./View"], function (require, exports, View_1) {
             }
             this.fillTextBox(left, bottom, width, 1);
         };
-        TextCanvas.prototype.windowScrollDown = function (left, right, top, bottom, _pen) {
+        TextCanvas.prototype.windowScrollDown = function (left, right, top, bottom, _paper) {
             var width = right + 1 - left, height = bottom + 1 - top;
             if (height > 1) { // scroll part
                 // adapt also text buffer

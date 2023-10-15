@@ -8,10 +8,11 @@ import { CanvasOptions, ICanvas, CanvasClickType, CanvasCharType } from "./Inter
 
 export class TextCanvas implements ICanvas {
 	private readonly options: CanvasOptions;
-	private readonly fnUpdateTextCanvasHandler: () => void;
-	private readonly fnUpdateTextCanvas2Handler: () => void;
+	private readonly fnUpdateCanvasHandler: () => void;
+	private readonly fnUpdateCanvas2Handler: () => void;
 
 	private fps = 15; // FPS for canvas update
+	private isRunning = false;
 	private animationTimeoutId?: number;
 	private animationFrame?: number;
 
@@ -22,7 +23,7 @@ export class TextCanvas implements ICanvas {
 	private cols;
 	private rows;
 
-	private needTextUpdate = false;
+	private needUpdate = false;
 	private readonly textBuffer: number[][] = []; // textbuffer characters at row,column
 
 	private hasFocus = false; // canvas has focus
@@ -32,8 +33,8 @@ export class TextCanvas implements ICanvas {
 
 		this.cpcAreaBox = View.getElementById1("cpcAreaBox");
 
-		this.fnUpdateTextCanvasHandler = this.updateTextCanvas.bind(this);
-		this.fnUpdateTextCanvas2Handler = this.updateTextCanvas2.bind(this);
+		this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
+		this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
 		this.textText = View.getElementById1("textText") as HTMLTextAreaElement; // View.setAreaValue()
 
 		this.cols = parseFloat(this.textText.getAttribute("cols") || "0");
@@ -84,7 +85,7 @@ export class TextCanvas implements ICanvas {
 
 	reset(): void {
 		this.resetTextBuffer();
-		this.setNeedTextUpdate();
+		this.setNeedUpdate();
 	}
 
 	resetCustomChars(): void { // eslint-disable-line class-methods-use-this
@@ -214,35 +215,42 @@ export class TextCanvas implements ICanvas {
 		this.textBuffer.length = 0;
 	}
 
-	private setNeedTextUpdate() {
-		this.needTextUpdate = true;
+	private setNeedUpdate() {
+		this.needUpdate = true;
 	}
 
-	private updateTextCanvas2() {
-		this.animationFrame = requestAnimationFrame(this.fnUpdateTextCanvasHandler);
+	private updateCanvas2() {
+		if (!this.isRunning) {
+			return; // ignore remaining timeouts, if stopped
+		}
+		this.animationFrame = requestAnimationFrame(this.fnUpdateCanvasHandler);
 		if (this.textText.offsetParent) { // text area visible?
-			if (this.needTextUpdate) {
-				this.needTextUpdate = false;
+			if (this.needUpdate) {
+				this.needUpdate = false;
 				this.updateTextWindow();
 			}
 		}
 	}
 
-	private updateTextCanvas() {
-		this.animationTimeoutId = window.setTimeout(this.fnUpdateTextCanvas2Handler, 1000 / this.fps); // ts (node)
+	private updateCanvas() {
+		this.animationTimeoutId = window.setTimeout(this.fnUpdateCanvas2Handler, 1000 / this.fps); // ts (node)
 	}
 
 	startUpdateCanvas(): void {
-		if (this.animationFrame === undefined && this.textText.offsetParent !== null) { // animation off and canvas visible in DOM?
-			this.updateTextCanvas();
+		if (!this.isRunning && this.textText.offsetParent !== null) { // animation off and canvas visible in DOM? (with noteJS it is currently undefined)
+			this.isRunning = true;
+			this.updateCanvas();
 		}
 	}
 
 	stopUpdateCanvas(): void {
-		if (this.animationFrame !== undefined) {
-			cancelAnimationFrame(this.animationFrame);
+		if (this.isRunning) {
+			this.isRunning = false;
+			if (this.animationFrame) {
+				cancelAnimationFrame(this.animationFrame);
+				this.animationFrame = undefined;
+			}
 			clearTimeout(this.animationTimeoutId);
-			this.animationFrame = undefined;
 			this.animationTimeoutId = undefined;
 		}
 	}
@@ -320,7 +328,7 @@ export class TextCanvas implements ICanvas {
 		}
 	}
 
-	fillTextBox(left: number, top: number, width: number, height: number, _pen?: number): void {
+	fillTextBox(left: number, top: number, width: number, height: number, _paper?: number): void {
 		this.clearTextBufferBox(left, top, width, height);
 	}
 
@@ -336,7 +344,7 @@ export class TextCanvas implements ICanvas {
 				}
 			}
 		}
-		this.setNeedTextUpdate();
+		this.setNeedUpdate();
 	}
 
 	private copyTextBufferBoxUp(left: number, top: number, width: number, height: number, left2: number, top2: number) {
@@ -359,7 +367,7 @@ export class TextCanvas implements ICanvas {
 				delete textBuffer[top2 + y]; // no sourceRow => clear destinationRow
 			}
 		}
-		this.setNeedTextUpdate();
+		this.setNeedUpdate();
 	}
 
 	private copyTextBufferBoxDown(left: number, top: number, width: number, height: number, left2: number, top2: number) {
@@ -381,7 +389,7 @@ export class TextCanvas implements ICanvas {
 				delete textBuffer[top2 + y]; // no sourceRow => clear destinationRow
 			}
 		}
-		this.setNeedTextUpdate();
+		this.setNeedUpdate();
 	}
 
 	private putCharInTextBuffer(char: number, x: number, y: number) {
@@ -391,7 +399,7 @@ export class TextCanvas implements ICanvas {
 			textBuffer[y] = [];
 		}
 		this.textBuffer[y][x] = char;
-		this.setNeedTextUpdate();
+		this.setNeedUpdate();
 	}
 
 	private getCharFromTextBuffer(x: number, y: number) {
@@ -409,7 +417,7 @@ export class TextCanvas implements ICanvas {
 		this.putCharInTextBuffer(char, x, y);
 	}
 
-	readChar(x: number, y: number, _pen?: number, _paper?: number): number {
+	readChar(x: number, y: number, _pen: number, _paper: number): number {
 		let char = this.getCharFromTextBuffer(x, y);
 
 		if (char === undefined) {
@@ -443,10 +451,10 @@ export class TextCanvas implements ICanvas {
 
 	clearFullWindow(): void { // clear full window with paper 0 (SCR MODE CLEAR)
 		this.resetTextBuffer();
-		this.setNeedTextUpdate();
+		this.setNeedUpdate();
 	}
 
-	windowScrollUp(left: number, right: number, top: number, bottom: number, _pen: number): void {
+	windowScrollUp(left: number, right: number, top: number, bottom: number, _paper: number): void {
 		const width = right + 1 - left,
 			height = bottom + 1 - top;
 
@@ -457,7 +465,7 @@ export class TextCanvas implements ICanvas {
 		this.fillTextBox(left, bottom, width, 1);
 	}
 
-	windowScrollDown(left: number, right: number, top: number, bottom: number, _pen: number): void {
+	windowScrollDown(left: number, right: number, top: number, bottom: number, _paper: number): void {
 		const width = right + 1 - left,
 			height = bottom + 1 - top;
 

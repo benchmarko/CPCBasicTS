@@ -10,6 +10,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
     var Canvas = /** @class */ (function () {
         function Canvas(options) {
             this.fps = 15; // FPS for canvas update
+            this.isRunning = false;
             this.customCharset = {};
             this.gColMode = 0; // 0=normal, 1=xor, 2=and, 3=or
             this.mask = 255;
@@ -75,10 +76,14 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                     this.use32BitCopy = false;
                     Utils_1.Utils.console.log("Canvas: using copy2Canvas8bit");
                 }
-                this.applyCopy2CanvasFunction(this.offset);
+                this.fnCopy2Canvas = this.getCopy2CanvasFunction(this.offset);
             }
             else {
                 Utils_1.Utils.console.warn("Error: canvas.getContext is not supported.");
+                // not available on e.g. IE8, nodeJS
+                this.fnCopy2Canvas = function () {
+                    // nothing
+                };
                 this.ctx = {}; // not available
                 this.imageData = {}; // not available
             }
@@ -164,13 +169,14 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.needUpdate = true;
         };
         Canvas.prototype.updateCanvas2 = function () {
+            if (!this.isRunning) {
+                return; // ignore remaining timeouts, if stopped
+            }
             this.animationFrame = requestAnimationFrame(this.fnUpdateCanvasHandler);
             if (this.needUpdate) { // could be improved: update only updateRect
                 this.needUpdate = false;
                 // we always do a full updateCanvas...
-                if (this.fnCopy2Canvas) { // not available on e.g. IE8
-                    this.fnCopy2Canvas();
-                }
+                this.fnCopy2Canvas();
             }
         };
         // http://creativejs.com/resources/requestanimationframe/ (set frame rate)
@@ -179,15 +185,19 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.animationTimeoutId = window.setTimeout(this.fnUpdateCanvas2Handler, 1000 / this.fps); // ts (node)
         };
         Canvas.prototype.startUpdateCanvas = function () {
-            if (this.animationFrame === undefined && this.canvas.offsetParent !== null) { // animation off and canvas visible in DOM?
+            if (!this.isRunning && this.canvas.offsetParent !== null) { // animation off and canvas visible in DOM?
+                this.isRunning = true;
                 this.updateCanvas();
             }
         };
         Canvas.prototype.stopUpdateCanvas = function () {
-            if (this.animationFrame !== undefined) {
-                cancelAnimationFrame(this.animationFrame);
+            if (this.isRunning) {
+                this.isRunning = false;
+                if (this.animationFrame) {
+                    cancelAnimationFrame(this.animationFrame);
+                    this.animationFrame = undefined;
+                }
                 clearTimeout(this.animationTimeoutId);
-                this.animationFrame = undefined;
                 this.animationTimeoutId = undefined;
             }
         };
@@ -221,13 +231,11 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             }
             this.ctx.putImageData(this.imageData, 0, 0);
         };
-        Canvas.prototype.applyCopy2CanvasFunction = function (offset) {
+        Canvas.prototype.getCopy2CanvasFunction = function (offset) {
             if (this.use32BitCopy) {
-                this.fnCopy2Canvas = offset ? this.copy2Canvas32bitWithOffset : this.copy2Canvas32bit;
+                return offset ? this.copy2Canvas32bitWithOffset : this.copy2Canvas32bit;
             }
-            else {
-                this.fnCopy2Canvas = offset ? this.copy2Canvas8bit : this.copy2Canvas8bit; // TODO: for older browsers
-            }
+            return offset ? this.copy2Canvas8bit : this.copy2Canvas8bit; // TODO: for older browsers
         };
         Canvas.prototype.setScreenOffset = function (offset) {
             if (offset) {
@@ -237,37 +245,35 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             }
             if (offset !== this.offset) {
                 this.offset = offset;
-                this.applyCopy2CanvasFunction(offset);
+                this.fnCopy2Canvas = this.getCopy2CanvasFunction(offset);
                 this.setNeedUpdate();
             }
         };
         Canvas.prototype.updateColorMap = function () {
-            var colorValues = this.colorValues, currentInksInSet = this.currentInks[this.inkSet], pen2ColorMap = this.pen2ColorMap, pen2Color32 = this.pen2Color32;
-            for (var i = 0; i < 16; i += 1) {
+            var colorValues = this.colorValues, currentInksInSet = this.currentInks[this.inkSet], pen2ColorMap = this.pen2ColorMap, pen2Color32 = this.pen2Color32, maxPens = 16, alpha = 255;
+            for (var i = 0; i < maxPens; i += 1) {
                 pen2ColorMap[i] = colorValues[currentInksInSet[i]];
             }
             if (pen2Color32) {
-                for (var i = 0; i < 16; i += 1) {
+                for (var i = 0; i < maxPens; i += 1) {
                     var color = pen2ColorMap[i];
                     if (this.littleEndian) {
-                        pen2Color32[i] = color[0] + color[1] * 256 + color[2] * 65536 + 255 * 65536 * 256;
+                        pen2Color32[i] = color[0] + color[1] * 256 + color[2] * 65536 + alpha * 65536 * 256;
                     }
                     else {
-                        pen2Color32[i] = color[2] + color[1] * 256 + color[0] * 65536 + 255 * 65536 * 256; // for big endian (untested)
+                        pen2Color32[i] = color[2] + color[1] * 256 + color[0] * 65536 + alpha * 65536 * 256; // for big endian (untested)
                     }
                 }
             }
         };
         Canvas.prototype.updateColorsAndCanvasImmediately = function (inkList) {
-            if (this.fnCopy2Canvas) { // not available on e.g. IE8
-                var currentInksInSet = this.currentInks[this.inkSet], memorizedInks = currentInksInSet.slice();
-                this.currentInks[this.inkSet] = inkList; // temporary inks
-                this.updateColorMap();
-                this.fnCopy2Canvas(); // do it immediately
-                this.currentInks[this.inkSet] = memorizedInks.slice();
-                this.updateColorMap();
-                this.needUpdate = true; // we want to restore it with the next update...
-            }
+            var currentInksInSet = this.currentInks[this.inkSet], memorizedInks = currentInksInSet.slice();
+            this.currentInks[this.inkSet] = inkList; // temporary inks
+            this.updateColorMap();
+            this.fnCopy2Canvas(); // do it immediately
+            this.currentInks[this.inkSet] = memorizedInks.slice();
+            this.updateColorMap();
+            this.needUpdate = true; // we want to restore it with the next update...
         };
         Canvas.prototype.updateSpeedInk = function () {
             var pens = this.modeData.pens;

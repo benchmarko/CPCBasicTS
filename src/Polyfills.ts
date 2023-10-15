@@ -727,8 +727,9 @@ if (!window.requestAnimationFrame) { // IE9, SliTaz tazweb browser
 
 			Polyfills.log("window.requestAnimationFrame, cancelAnimationFrame");
 			window.requestAnimationFrame = function (callback /* , element */) {
-				const currTime = new Date().getTime(),
-					timeToCall = Math.max(0, 16 - (currTime - lastTime)),
+				const currTime = Date.now(),
+					frameDuration = 1000 / 60, // e.g. 60 Hz
+					timeToCall = Math.max(0, frameDuration - (currTime - lastTime)),
 					id = window.setTimeout(function () { callback(currTime + timeToCall); }, timeToCall);
 
 				lastTime = currTime + timeToCall;

@@ -152,7 +152,7 @@ export declare class CpcVm {
     private errorResumeLine;
     private breakGosubLine;
     private breakResumeLine;
-    outBuffer: string;
+    private outBuffer;
     private errorCode;
     private errorLine;
     private degFlag;
@@ -236,6 +236,7 @@ export declare class CpcVm {
     vmGetSoundData(): SoundData[];
     vmSetSourceMap(sourceMap: Record<string, number[]>): void;
     vmTrace(): void;
+    vmGetOutBuffer(): string;
     private vmDrawMovePlot;
     private vmAfterEveryGosub;
     private vmCopyFromScreen;

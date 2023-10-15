@@ -619,7 +619,8 @@ if (!window.requestAnimationFrame) { // IE9, SliTaz tazweb browser
             var lastTime = 0;
             Polyfills.log("window.requestAnimationFrame, cancelAnimationFrame");
             window.requestAnimationFrame = function (callback /* , element */) {
-                var currTime = new Date().getTime(), timeToCall = Math.max(0, 16 - (currTime - lastTime)), id = window.setTimeout(function () { callback(currTime + timeToCall); }, timeToCall);
+                var currTime = Date.now(), frameDuration = 1000 / 60, // e.g. 60 Hz
+                timeToCall = Math.max(0, frameDuration - (currTime - lastTime)), id = window.setTimeout(function () { callback(currTime + timeToCall); }, timeToCall);
                 lastTime = currTime + timeToCall;
                 return id;
             };
@@ -9190,6 +9191,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
     var Canvas = /** @class */ (function () {
         function Canvas(options) {
             this.fps = 15; // FPS for canvas update
+            this.isRunning = false;
             this.customCharset = {};
             this.gColMode = 0; // 0=normal, 1=xor, 2=and, 3=or
             this.mask = 255;
@@ -9255,10 +9257,14 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
                     this.use32BitCopy = false;
                     Utils_15.Utils.console.log("Canvas: using copy2Canvas8bit");
                 }
-                this.applyCopy2CanvasFunction(this.offset);
+                this.fnCopy2Canvas = this.getCopy2CanvasFunction(this.offset);
             }
             else {
                 Utils_15.Utils.console.warn("Error: canvas.getContext is not supported.");
+                // not available on e.g. IE8, nodeJS
+                this.fnCopy2Canvas = function () {
+                    // nothing
+                };
                 this.ctx = {}; // not available
                 this.imageData = {}; // not available
             }
@@ -9344,13 +9350,14 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.needUpdate = true;
         };
         Canvas.prototype.updateCanvas2 = function () {
+            if (!this.isRunning) {
+                return; // ignore remaining timeouts, if stopped
+            }
             this.animationFrame = requestAnimationFrame(this.fnUpdateCanvasHandler);
             if (this.needUpdate) { // could be improved: update only updateRect
                 this.needUpdate = false;
                 // we always do a full updateCanvas...
-                if (this.fnCopy2Canvas) { // not available on e.g. IE8
-                    this.fnCopy2Canvas();
-                }
+                this.fnCopy2Canvas();
             }
         };
         // http://creativejs.com/resources/requestanimationframe/ (set frame rate)
@@ -9359,15 +9366,19 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.animationTimeoutId = window.setTimeout(this.fnUpdateCanvas2Handler, 1000 / this.fps); // ts (node)
         };
         Canvas.prototype.startUpdateCanvas = function () {
-            if (this.animationFrame === undefined && this.canvas.offsetParent !== null) { // animation off and canvas visible in DOM?
+            if (!this.isRunning && this.canvas.offsetParent !== null) { // animation off and canvas visible in DOM?
+                this.isRunning = true;
                 this.updateCanvas();
             }
         };
         Canvas.prototype.stopUpdateCanvas = function () {
-            if (this.animationFrame !== undefined) {
-                cancelAnimationFrame(this.animationFrame);
+            if (this.isRunning) {
+                this.isRunning = false;
+                if (this.animationFrame) {
+                    cancelAnimationFrame(this.animationFrame);
+                    this.animationFrame = undefined;
+                }
                 clearTimeout(this.animationTimeoutId);
-                this.animationFrame = undefined;
                 this.animationTimeoutId = undefined;
             }
         };
@@ -9401,13 +9412,11 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             }
             this.ctx.putImageData(this.imageData, 0, 0);
         };
-        Canvas.prototype.applyCopy2CanvasFunction = function (offset) {
+        Canvas.prototype.getCopy2CanvasFunction = function (offset) {
             if (this.use32BitCopy) {
-                this.fnCopy2Canvas = offset ? this.copy2Canvas32bitWithOffset : this.copy2Canvas32bit;
+                return offset ? this.copy2Canvas32bitWithOffset : this.copy2Canvas32bit;
             }
-            else {
-                this.fnCopy2Canvas = offset ? this.copy2Canvas8bit : this.copy2Canvas8bit; // TODO: for older browsers
-            }
+            return offset ? this.copy2Canvas8bit : this.copy2Canvas8bit; // TODO: for older browsers
         };
         Canvas.prototype.setScreenOffset = function (offset) {
             if (offset) {
@@ -9417,37 +9426,35 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             }
             if (offset !== this.offset) {
                 this.offset = offset;
-                this.applyCopy2CanvasFunction(offset);
+                this.fnCopy2Canvas = this.getCopy2CanvasFunction(offset);
                 this.setNeedUpdate();
             }
         };
         Canvas.prototype.updateColorMap = function () {
-            var colorValues = this.colorValues, currentInksInSet = this.currentInks[this.inkSet], pen2ColorMap = this.pen2ColorMap, pen2Color32 = this.pen2Color32;
-            for (var i = 0; i < 16; i += 1) {
+            var colorValues = this.colorValues, currentInksInSet = this.currentInks[this.inkSet], pen2ColorMap = this.pen2ColorMap, pen2Color32 = this.pen2Color32, maxPens = 16, alpha = 255;
+            for (var i = 0; i < maxPens; i += 1) {
                 pen2ColorMap[i] = colorValues[currentInksInSet[i]];
             }
             if (pen2Color32) {
-                for (var i = 0; i < 16; i += 1) {
+                for (var i = 0; i < maxPens; i += 1) {
                     var color = pen2ColorMap[i];
                     if (this.littleEndian) {
-                        pen2Color32[i] = color[0] + color[1] * 256 + color[2] * 65536 + 255 * 65536 * 256;
+                        pen2Color32[i] = color[0] + color[1] * 256 + color[2] * 65536 + alpha * 65536 * 256;
                     }
                     else {
-                        pen2Color32[i] = color[2] + color[1] * 256 + color[0] * 65536 + 255 * 65536 * 256; // for big endian (untested)
+                        pen2Color32[i] = color[2] + color[1] * 256 + color[0] * 65536 + alpha * 65536 * 256; // for big endian (untested)
                     }
                 }
             }
         };
         Canvas.prototype.updateColorsAndCanvasImmediately = function (inkList) {
-            if (this.fnCopy2Canvas) { // not available on e.g. IE8
-                var currentInksInSet = this.currentInks[this.inkSet], memorizedInks = currentInksInSet.slice();
-                this.currentInks[this.inkSet] = inkList; // temporary inks
-                this.updateColorMap();
-                this.fnCopy2Canvas(); // do it immediately
-                this.currentInks[this.inkSet] = memorizedInks.slice();
-                this.updateColorMap();
-                this.needUpdate = true; // we want to restore it with the next update...
-            }
+            var currentInksInSet = this.currentInks[this.inkSet], memorizedInks = currentInksInSet.slice();
+            this.currentInks[this.inkSet] = inkList; // temporary inks
+            this.updateColorMap();
+            this.fnCopy2Canvas(); // do it immediately
+            this.currentInks[this.inkSet] = memorizedInks.slice();
+            this.updateColorMap();
+            this.needUpdate = true; // we want to restore it with the next update...
         };
         Canvas.prototype.updateSpeedInk = function () {
             var pens = this.modeData.pens;
@@ -10217,14 +10224,15 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
     var TextCanvas = /** @class */ (function () {
         function TextCanvas(options) {
             this.fps = 15; // FPS for canvas update
+            this.isRunning = false;
             this.borderWidth = 1;
-            this.needTextUpdate = false;
+            this.needUpdate = false;
             this.textBuffer = []; // textbuffer characters at row,column
             this.hasFocus = false; // canvas has focus
             this.options = options;
             this.cpcAreaBox = View_4.View.getElementById1("cpcAreaBox");
-            this.fnUpdateTextCanvasHandler = this.updateTextCanvas.bind(this);
-            this.fnUpdateTextCanvas2Handler = this.updateTextCanvas2.bind(this);
+            this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
+            this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
             this.textText = View_4.View.getElementById1("textText"); // View.setAreaValue()
             this.cols = parseFloat(this.textText.getAttribute("cols") || "0");
             this.rows = parseFloat(this.textText.getAttribute("rows") || "0");
@@ -10237,7 +10245,7 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
         };
         TextCanvas.prototype.reset = function () {
             this.resetTextBuffer();
-            this.setNeedTextUpdate();
+            this.setNeedUpdate();
         };
         TextCanvas.prototype.resetCustomChars = function () {
         };
@@ -10327,31 +10335,38 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
         TextCanvas.prototype.resetTextBuffer = function () {
             this.textBuffer.length = 0;
         };
-        TextCanvas.prototype.setNeedTextUpdate = function () {
-            this.needTextUpdate = true;
+        TextCanvas.prototype.setNeedUpdate = function () {
+            this.needUpdate = true;
         };
-        TextCanvas.prototype.updateTextCanvas2 = function () {
-            this.animationFrame = requestAnimationFrame(this.fnUpdateTextCanvasHandler);
+        TextCanvas.prototype.updateCanvas2 = function () {
+            if (!this.isRunning) {
+                return; // ignore remaining timeouts, if stopped
+            }
+            this.animationFrame = requestAnimationFrame(this.fnUpdateCanvasHandler);
             if (this.textText.offsetParent) { // text area visible?
-                if (this.needTextUpdate) {
-                    this.needTextUpdate = false;
+                if (this.needUpdate) {
+                    this.needUpdate = false;
                     this.updateTextWindow();
                 }
             }
         };
-        TextCanvas.prototype.updateTextCanvas = function () {
-            this.animationTimeoutId = window.setTimeout(this.fnUpdateTextCanvas2Handler, 1000 / this.fps); // ts (node)
+        TextCanvas.prototype.updateCanvas = function () {
+            this.animationTimeoutId = window.setTimeout(this.fnUpdateCanvas2Handler, 1000 / this.fps); // ts (node)
         };
         TextCanvas.prototype.startUpdateCanvas = function () {
-            if (this.animationFrame === undefined && this.textText.offsetParent !== null) { // animation off and canvas visible in DOM?
-                this.updateTextCanvas();
+            if (!this.isRunning && this.textText.offsetParent !== null) { // animation off and canvas visible in DOM? (with noteJS it is currently undefined)
+                this.isRunning = true;
+                this.updateCanvas();
             }
         };
         TextCanvas.prototype.stopUpdateCanvas = function () {
-            if (this.animationFrame !== undefined) {
-                cancelAnimationFrame(this.animationFrame);
+            if (this.isRunning) {
+                this.isRunning = false;
+                if (this.animationFrame) {
+                    cancelAnimationFrame(this.animationFrame);
+                    this.animationFrame = undefined;
+                }
                 clearTimeout(this.animationTimeoutId);
-                this.animationFrame = undefined;
                 this.animationTimeoutId = undefined;
             }
         };
@@ -10412,7 +10427,7 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
                 this.cpcAreaBox.style.background = "";
             }
         };
-        TextCanvas.prototype.fillTextBox = function (left, top, width, height, _pen) {
+        TextCanvas.prototype.fillTextBox = function (left, top, width, height, _paper) {
             this.clearTextBufferBox(left, top, width, height);
         };
         TextCanvas.prototype.clearTextBufferBox = function (left, top, width, height) {
@@ -10425,7 +10440,7 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
                     }
                 }
             }
-            this.setNeedTextUpdate();
+            this.setNeedUpdate();
         };
         TextCanvas.prototype.copyTextBufferBoxUp = function (left, top, width, height, left2, top2) {
             var textBuffer = this.textBuffer;
@@ -10446,7 +10461,7 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
                     delete textBuffer[top2 + y]; // no sourceRow => clear destinationRow
                 }
             }
-            this.setNeedTextUpdate();
+            this.setNeedUpdate();
         };
         TextCanvas.prototype.copyTextBufferBoxDown = function (left, top, width, height, left2, top2) {
             var textBuffer = this.textBuffer;
@@ -10466,7 +10481,7 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
                     delete textBuffer[top2 + y]; // no sourceRow => clear destinationRow
                 }
             }
-            this.setNeedTextUpdate();
+            this.setNeedUpdate();
         };
         TextCanvas.prototype.putCharInTextBuffer = function (char, x, y) {
             var textBuffer = this.textBuffer;
@@ -10474,7 +10489,7 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
                 textBuffer[y] = [];
             }
             this.textBuffer[y][x] = char;
-            this.setNeedTextUpdate();
+            this.setNeedUpdate();
         };
         TextCanvas.prototype.getCharFromTextBuffer = function (x, y) {
             var textBuffer = this.textBuffer;
@@ -10511,9 +10526,9 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
         };
         TextCanvas.prototype.clearFullWindow = function () {
             this.resetTextBuffer();
-            this.setNeedTextUpdate();
+            this.setNeedUpdate();
         };
-        TextCanvas.prototype.windowScrollUp = function (left, right, top, bottom, _pen) {
+        TextCanvas.prototype.windowScrollUp = function (left, right, top, bottom, _paper) {
             var width = right + 1 - left, height = bottom + 1 - top;
             if (height > 1) { // scroll part
                 // adapt also text buffer
@@ -10521,7 +10536,7 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
             }
             this.fillTextBox(left, bottom, width, 1);
         };
-        TextCanvas.prototype.windowScrollDown = function (left, right, top, bottom, _pen) {
+        TextCanvas.prototype.windowScrollDown = function (left, right, top, bottom, _paper) {
             var width = right + 1 - left, height = bottom + 1 - top;
             if (height > 1) { // scroll part
                 // adapt also text buffer
@@ -10583,10 +10598,16 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
                         borderwidth: "",
                         borderStyle: ""
                     },
-                    addEventListener: function () { },
+                    addEventListener: function () {
+                        // nothing
+                    },
                     options: [],
-                    getAttribute: function () { },
-                    setAttribute: function () { } // eslint-disable-line no-empty-function, @typescript-eslint/no-empty-function
+                    getAttribute: function () {
+                        // nothing
+                    },
+                    setAttribute: function () {
+                        // nothing
+                    }
                 };
                 // old syntax for getter with "get length() { ... }"
                 Object.defineProperty(domElements[id], "length", {
@@ -10615,7 +10636,9 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
             Object.assign(window, {
                 console: console,
                 document: {
-                    addEventListener: function () { },
+                    addEventListener: function () {
+                        // nothing
+                    },
                     getElementById: function (id) { return domElements[id] || myCreateElement(id); },
                     createElement: function (type) {
                         if (type === "option") {
@@ -10629,6 +10652,7 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
             });
             // eslint-disable-next-line no-eval
             var nodeExports = eval("exports"), view = nodeExports.View, setSelectOptionsOrig = view.prototype.setSelectOptions;
+            // fast hacks...
             view.prototype.setSelectOptions = function (id, options) {
                 var element = domElements[id] || myCreateElement(id);
                 if (!element.options.add) {
@@ -10654,7 +10678,14 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
             // https://nodejs.dev/learn/accept-input-from-the-command-line-in-nodejs
             // readline?
             var controller = nodeExports.Controller;
+            /*
+            controller.prototype.startWithDirectInput = () => {
+                this.stopUpdateCanvas();
+                Utils.console.log("We are ready.");
+            };
+            */
             controller.prototype.startWithDirectInput = function () {
+                this.stopUpdateCanvas();
                 Utils_16.Utils.console.log("We are ready.");
             };
             //
@@ -11120,6 +11151,8 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
         function Sound(options) {
             this.isSoundOn = false;
             this.isActivatedByUserFlag = false;
+            this.contextNotAvailable = false;
+            this.contextStartTime = 0;
             this.gainNodes = [];
             this.oscillators = []; // 3 oscillators left, middle, right
             this.queues = []; // node queues and info for the three channels
@@ -11192,28 +11225,46 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
                 0,
                 2,
                 1
-            ], context = new this.options.AudioContextConstructor(), // may produce exception if not available
-            mergerNode = context.createChannelMerger(6); // create mergerNode with 6 inputs; we are using the first 3 for left, right, center
-            this.context = context;
-            this.mergerNode = mergerNode;
-            for (var i = 0; i < 3; i += 1) {
-                var gainNode = context.createGain();
-                gainNode.connect(mergerNode, 0, channelMap2Cpc[i]); // connect output #0 of gainNode i to input #j of the mergerNode
-                this.gainNodes[i] = gainNode;
+            ];
+            var context;
+            try {
+                context = new this.options.AudioContextConstructor(); // may produce exception if not available
+                var mergerNode = context.createChannelMerger(6); // create mergerNode with 6 inputs; we are using the first 3 for left, right, center
+                this.mergerNode = mergerNode; // set as side effect
+                for (var i = 0; i < 3; i += 1) {
+                    var gainNode = context.createGain();
+                    gainNode.connect(mergerNode, 0, channelMap2Cpc[i]); // connect output #0 of gainNode i to input #j of the mergerNode
+                    this.gainNodes[i] = gainNode;
+                }
             }
+            catch (e) {
+                Utils_18.Utils.console.warn("createSoundContext:", e);
+                this.contextNotAvailable = true;
+            }
+            var oldContextStartTime = this.contextStartTime;
+            this.contextStartTime = Date.now() / 1000;
+            if (oldContextStartTime && context) { // was there a start time set before?
+                var correctionTime = context.currentTime + (this.contextStartTime - oldContextStartTime), queues = this.queues;
+                for (var i = 0; i < 3; i += 1) {
+                    if (queues[i].soundData.length) {
+                        queues[i].fNextNoteTime -= correctionTime;
+                    }
+                }
+            }
+            return context;
         };
         Sound.prototype.playNoise = function (oscillator, fTime, fDuration, noise) {
-            var ctx = this.context, bufferSize = ctx.sampleRate * fDuration, // set the time of the note
-            buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate), // create an empty buffer
+            var context = this.context, bufferSize = context.sampleRate * fDuration, // set the time of the note
+            buffer = context.createBuffer(1, bufferSize, context.sampleRate), // create an empty buffer
             data = buffer.getChannelData(0), // get data
-            noiseNode = ctx.createBufferSource(); // create a buffer source for noise data
+            noiseNode = context.createBufferSource(); // create a buffer source for noise data
             // fill the buffer with noise
             for (var i = 0; i < bufferSize; i += 1) {
                 data[i] = Math.random() * 2 - 1; // -1..1
             }
             noiseNode.buffer = buffer;
             if (noise > 1) {
-                var bandHz = 20000 / noise, bandpass = ctx.createBiquadFilter();
+                var bandHz = 20000 / noise, bandpass = context.createBiquadFilter();
                 bandpass.type = "bandpass";
                 bandpass.frequency.value = bandHz;
                 // bandpass.Q.value = q; // ?
@@ -11224,6 +11275,42 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
             }
             noiseNode.start(fTime);
             noiseNode.stop(fTime + fDuration);
+        };
+        Sound.prototype.simulateApplyVolEnv = function (volData, duration, volEnvRepeat) {
+            var time = 0;
+            for (var loop = 0; loop < volEnvRepeat; loop += 1) {
+                for (var part = 0; part < volData.length; part += 1) {
+                    var group = volData[part];
+                    if (group.steps !== undefined) {
+                        var group1 = group, volTime = group1.time;
+                        var volSteps = group1.steps;
+                        if (!volSteps) { // steps=0
+                            volSteps = 1;
+                        }
+                        for (var i = 0; i < volSteps; i += 1) {
+                            time += volTime;
+                            if (duration && time >= duration) { // eslint-disable-line max-depth
+                                loop = volEnvRepeat; // stop early if longer than specified duration
+                                part = volData.length;
+                                break;
+                            }
+                        }
+                    }
+                    else { // register
+                        var group2 = group, register = group2.register, period = group2.period, volTime = period;
+                        if (register === 0) {
+                            time += volTime;
+                        }
+                        else {
+                            // TODO: other registers
+                        }
+                    }
+                }
+            }
+            if (duration === 0) {
+                duration = time;
+            }
+            return duration;
         };
         Sound.prototype.applyVolEnv = function (volData, gain, fTime, volume, duration, volEnvRepeat) {
             var maxVolume = 15, i100ms2sec = 100; // time duration unit: 1/100 sec=10 ms, convert to sec
@@ -11305,25 +11392,42 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
                 }
             }
         };
+        // simulate schedule note when sound is off
+        Sound.prototype.simulateScheduleNote = function (soundData) {
+            var duration = soundData.duration, volEnv = soundData.volEnv, volEnvRepeat = 1;
+            if (duration < 0) { // <0: repeat volume envelope?
+                volEnvRepeat = Math.min(5, -duration); // we limit repeat to 5 times sice we precompute duration
+                duration = 0;
+            }
+            if (volEnv || !duration) { // some volume envelope or duration 0?
+                if (!this.volEnv[volEnv]) {
+                    volEnv = 0; // envelope not defined => use default envelope 0
+                }
+                duration = this.simulateApplyVolEnv(this.volEnv[volEnv], duration, volEnvRepeat);
+            }
+            var i100ms2sec = 100, // time duration unit: 1/100 sec=10 ms, convert to sec
+            fDuration = duration / i100ms2sec;
+            return fDuration;
+        };
         Sound.prototype.scheduleNote = function (oscillator, fTime, soundData) {
-            var maxVolume = 15, i100ms2sec = 100, // time duration unit: 1/100 sec=10 ms, convert to sec
-            ctx = this.context, toneEnv = soundData.toneEnv;
-            var volEnv = soundData.volEnv, volEnvRepeat = 1;
             if (Utils_18.Utils.debug > 1) {
                 this.debugLog("scheduleNote: " + oscillator + " " + fTime);
             }
-            var oscillatorNode = ctx.createOscillator();
+            if (!this.isSoundOn) {
+                return this.simulateScheduleNote(soundData);
+            }
+            var context = this.context, oscillatorNode = context.createOscillator();
             oscillatorNode.type = "square";
             oscillatorNode.frequency.value = (soundData.period >= 3) ? 62500 / soundData.period : 0;
             oscillatorNode.connect(this.gainNodes[oscillator]);
-            if (fTime < ctx.currentTime) {
+            if (fTime < context.currentTime) {
                 if (Utils_18.Utils.debug) {
-                    Utils_18.Utils.console.debug("Test: sound: scheduleNote:", fTime, "<", ctx.currentTime);
+                    Utils_18.Utils.console.debug("Test: sound: scheduleNote:", fTime, "<", context.currentTime);
                 }
             }
-            var volume = soundData.volume, gain = this.gainNodes[oscillator].gain, fVolume = volume / maxVolume;
+            var volume = soundData.volume, gain = this.gainNodes[oscillator].gain, maxVolume = 15, fVolume = volume / maxVolume;
             gain.setValueAtTime(fVolume * fVolume, fTime); // start volume
-            var duration = soundData.duration;
+            var duration = soundData.duration, volEnv = soundData.volEnv, volEnvRepeat = 1;
             if (duration < 0) { // <0: repeat volume envelope?
                 volEnvRepeat = Math.min(5, -duration); // we limit repeat to 5 times sice we precompute duration
                 duration = 0;
@@ -11334,10 +11438,12 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
                 }
                 duration = this.applyVolEnv(this.volEnv[volEnv], gain, fTime, volume, duration, volEnvRepeat);
             }
+            var toneEnv = soundData.toneEnv;
             if (toneEnv && this.toneEnv[toneEnv]) { // some tone envelope?
                 this.applyToneEnv(this.toneEnv[toneEnv], oscillatorNode.frequency, fTime, soundData.period, duration);
             }
-            var fDuration = duration / i100ms2sec;
+            var i100ms2sec = 100, // time duration unit: 1/100 sec=10 ms, convert to sec
+            fDuration = duration / i100ms2sec;
             oscillatorNode.start(fTime);
             oscillatorNode.stop(fTime + fDuration);
             this.oscillators[oscillator] = oscillatorNode;
@@ -11364,9 +11470,6 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
             return canQueue;
         };
         Sound.prototype.sound = function (soundData) {
-            if (!this.isSoundOn) {
-                return;
-            }
             var queues = this.queues, state = soundData.state;
             for (var i = 0; i < 3; i += 1) {
                 if ((state >> i) & 0x01) { // eslint-disable-line no-bitwise
@@ -11408,10 +11511,11 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
         };
         // idea from: https://www.html5rocks.com/en/tutorials/audio/scheduling/
         Sound.prototype.scheduler = function () {
-            if (!this.isSoundOn) {
+            if (!this.isActivatedByUserFlag) {
                 return;
             }
-            var context = this.context, fCurrentTime = context.currentTime, queues = this.queues;
+            var context = this.context, fCurrentTime = context ? context.currentTime : Date.now() / 1000 - this.contextStartTime, // use Date.now() when sound is off
+            queues = this.queues;
             var canPlayMask = 0;
             for (var i = 0; i < 3; i += 1) {
                 var queue = queues[i];
@@ -11481,27 +11585,33 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
         };
         Sound.prototype.setActivatedByUser = function () {
             this.isActivatedByUserFlag = true;
+            if (!this.contextStartTime) { // not yet started?
+                this.contextStartTime = Date.now() / 1000; // set it
+            }
         };
         Sound.prototype.isActivatedByUser = function () {
             return this.isActivatedByUserFlag;
         };
         Sound.prototype.soundOn = function () {
             if (!this.isSoundOn) {
-                if (!this.context) {
-                    this.createSoundContext();
+                if (!this.context && !this.contextNotAvailable) { // try to create context
+                    this.context = this.createSoundContext(); // still undefined in case of exception
                 }
-                var mergerNode = this.mergerNode, context = this.context;
-                mergerNode.connect(context.destination);
+                if (this.context) { // maybe not available
+                    this.mergerNode.connect(this.context.destination);
+                }
                 this.isSoundOn = true;
                 if (Utils_18.Utils.debug) {
                     Utils_18.Utils.console.debug("soundOn: Sound switched on");
                 }
             }
+            return Boolean(this.context); // true if sound is available
         };
         Sound.prototype.soundOff = function () {
             if (this.isSoundOn) {
-                var mergerNode = this.mergerNode, context = this.context;
-                mergerNode.disconnect(context.destination);
+                if (this.context) {
+                    this.mergerNode.disconnect(this.context.destination);
+                }
                 this.isSoundOn = false;
                 if (Utils_18.Utils.debug) {
                     Utils_18.Utils.console.debug("soundOff: Sound switched off");
@@ -12583,6 +12693,9 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
                 var stream = 0;
                 this.print(stream, "[" + String(this.line) + "]");
             }
+        };
+        CpcVm.prototype.vmGetOutBuffer = function () {
+            return this.outBuffer;
         };
         CpcVm.prototype.vmDrawMovePlot = function (type, gPen, gColMode) {
             if (gPen !== undefined) {
@@ -17212,7 +17325,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.virtualKeyboard.reset();
             }
             vm.vmStop("end", 0, true); // set "end" with priority 0, so that "compile only" still works
-            vm.outBuffer = "";
+            //vm.outBuffer = "";
             this.view.setAreaValue("outputText", "");
             this.invalidateScript();
         };
@@ -17458,7 +17571,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
             vm.vmReset4Run();
             if (this.fnScript) {
-                vm.outBuffer = this.view.getAreaValue("resultText");
+                //TTT not needed? vm.outBuffer = this.view.getAreaValue("resultText");
                 vm.vmStop("", 0, true);
                 vm.vmGoto(0); // to load DATA lines
                 this.vm.vmSetStartLine(line); // clear resets also startline
@@ -17623,7 +17736,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.fnWaitInput();
         };
         Controller.prototype.updateResultText = function () {
-            this.view.setAreaValue("resultText", this.vm.outBuffer);
+            this.view.setAreaValue("resultText", this.vm.vmGetOutBuffer());
             this.view.setAreaScrollTop("resultText"); // scroll to bottom
         };
         Controller.prototype.exitLoop = function () {
@@ -17892,16 +18005,9 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             return canvas;
         };
         Controller.prototype.setSoundActive = function () {
-            var sound = this.sound, soundLabel = View_7.View.getElementById1("soundLabel"), active = this.model.getProperty("sound");
-            var text = "";
+            var sound = this.sound, active = this.model.getProperty("sound");
             if (active) {
-                try {
-                    sound.soundOn();
-                }
-                catch (e) {
-                    Utils_24.Utils.console.warn("soundOn:", e);
-                    text = "Sound (unavailable)";
-                }
+                sound.soundOn();
             }
             else {
                 sound.soundOff();
@@ -17909,9 +18015,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 if (stop_1 && stop_1.reason === "waitSound") {
                     this.vm.vmStop("", 0, true); // do not wait
                 }
-            }
-            if (text) {
-                soundLabel.innerText = text;
             }
         };
         Controller.prototype.fnEndOfImport = function (imported) {

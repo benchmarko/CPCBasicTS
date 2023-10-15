@@ -10,6 +10,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         function Sound(options) {
             this.isSoundOn = false;
             this.isActivatedByUserFlag = false;
+            this.contextNotAvailable = false;
+            this.contextStartTime = 0;
             this.gainNodes = [];
             this.oscillators = []; // 3 oscillators left, middle, right
             this.queues = []; // node queues and info for the three channels
@@ -82,28 +84,46 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 0,
                 2,
                 1
-            ], context = new this.options.AudioContextConstructor(), // may produce exception if not available
-            mergerNode = context.createChannelMerger(6); // create mergerNode with 6 inputs; we are using the first 3 for left, right, center
-            this.context = context;
-            this.mergerNode = mergerNode;
-            for (var i = 0; i < 3; i += 1) {
-                var gainNode = context.createGain();
-                gainNode.connect(mergerNode, 0, channelMap2Cpc[i]); // connect output #0 of gainNode i to input #j of the mergerNode
-                this.gainNodes[i] = gainNode;
+            ];
+            var context;
+            try {
+                context = new this.options.AudioContextConstructor(); // may produce exception if not available
+                var mergerNode = context.createChannelMerger(6); // create mergerNode with 6 inputs; we are using the first 3 for left, right, center
+                this.mergerNode = mergerNode; // set as side effect
+                for (var i = 0; i < 3; i += 1) {
+                    var gainNode = context.createGain();
+                    gainNode.connect(mergerNode, 0, channelMap2Cpc[i]); // connect output #0 of gainNode i to input #j of the mergerNode
+                    this.gainNodes[i] = gainNode;
+                }
             }
+            catch (e) {
+                Utils_1.Utils.console.warn("createSoundContext:", e);
+                this.contextNotAvailable = true;
+            }
+            var oldContextStartTime = this.contextStartTime;
+            this.contextStartTime = Date.now() / 1000;
+            if (oldContextStartTime && context) { // was there a start time set before?
+                var correctionTime = context.currentTime + (this.contextStartTime - oldContextStartTime), queues = this.queues;
+                for (var i = 0; i < 3; i += 1) {
+                    if (queues[i].soundData.length) {
+                        queues[i].fNextNoteTime -= correctionTime;
+                    }
+                }
+            }
+            return context;
         };
         Sound.prototype.playNoise = function (oscillator, fTime, fDuration, noise) {
-            var ctx = this.context, bufferSize = ctx.sampleRate * fDuration, // set the time of the note
-            buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate), // create an empty buffer
+            var context = this.context, bufferSize = context.sampleRate * fDuration, // set the time of the note
+            buffer = context.createBuffer(1, bufferSize, context.sampleRate), // create an empty buffer
             data = buffer.getChannelData(0), // get data
-            noiseNode = ctx.createBufferSource(); // create a buffer source for noise data
+            noiseNode = context.createBufferSource(); // create a buffer source for noise data
             // fill the buffer with noise
             for (var i = 0; i < bufferSize; i += 1) {
                 data[i] = Math.random() * 2 - 1; // -1..1
             }
             noiseNode.buffer = buffer;
             if (noise > 1) {
-                var bandHz = 20000 / noise, bandpass = ctx.createBiquadFilter();
+                var bandHz = 20000 / noise, bandpass = context.createBiquadFilter();
                 bandpass.type = "bandpass";
                 bandpass.frequency.value = bandHz;
                 // bandpass.Q.value = q; // ?
@@ -114,6 +134,42 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             noiseNode.start(fTime);
             noiseNode.stop(fTime + fDuration);
+        };
+        Sound.prototype.simulateApplyVolEnv = function (volData, duration, volEnvRepeat) {
+            var time = 0;
+            for (var loop = 0; loop < volEnvRepeat; loop += 1) {
+                for (var part = 0; part < volData.length; part += 1) {
+                    var group = volData[part];
+                    if (group.steps !== undefined) {
+                        var group1 = group, volTime = group1.time;
+                        var volSteps = group1.steps;
+                        if (!volSteps) { // steps=0
+                            volSteps = 1;
+                        }
+                        for (var i = 0; i < volSteps; i += 1) {
+                            time += volTime;
+                            if (duration && time >= duration) { // eslint-disable-line max-depth
+                                loop = volEnvRepeat; // stop early if longer than specified duration
+                                part = volData.length;
+                                break;
+                            }
+                        }
+                    }
+                    else { // register
+                        var group2 = group, register = group2.register, period = group2.period, volTime = period;
+                        if (register === 0) {
+                            time += volTime;
+                        }
+                        else {
+                            // TODO: other registers
+                        }
+                    }
+                }
+            }
+            if (duration === 0) {
+                duration = time;
+            }
+            return duration;
         };
         Sound.prototype.applyVolEnv = function (volData, gain, fTime, volume, duration, volEnvRepeat) {
             var maxVolume = 15, i100ms2sec = 100; // time duration unit: 1/100 sec=10 ms, convert to sec
@@ -195,25 +251,42 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 }
             }
         };
+        // simulate schedule note when sound is off
+        Sound.prototype.simulateScheduleNote = function (soundData) {
+            var duration = soundData.duration, volEnv = soundData.volEnv, volEnvRepeat = 1;
+            if (duration < 0) { // <0: repeat volume envelope?
+                volEnvRepeat = Math.min(5, -duration); // we limit repeat to 5 times sice we precompute duration
+                duration = 0;
+            }
+            if (volEnv || !duration) { // some volume envelope or duration 0?
+                if (!this.volEnv[volEnv]) {
+                    volEnv = 0; // envelope not defined => use default envelope 0
+                }
+                duration = this.simulateApplyVolEnv(this.volEnv[volEnv], duration, volEnvRepeat);
+            }
+            var i100ms2sec = 100, // time duration unit: 1/100 sec=10 ms, convert to sec
+            fDuration = duration / i100ms2sec;
+            return fDuration;
+        };
         Sound.prototype.scheduleNote = function (oscillator, fTime, soundData) {
-            var maxVolume = 15, i100ms2sec = 100, // time duration unit: 1/100 sec=10 ms, convert to sec
-            ctx = this.context, toneEnv = soundData.toneEnv;
-            var volEnv = soundData.volEnv, volEnvRepeat = 1;
             if (Utils_1.Utils.debug > 1) {
                 this.debugLog("scheduleNote: " + oscillator + " " + fTime);
             }
-            var oscillatorNode = ctx.createOscillator();
+            if (!this.isSoundOn) {
+                return this.simulateScheduleNote(soundData);
+            }
+            var context = this.context, oscillatorNode = context.createOscillator();
             oscillatorNode.type = "square";
             oscillatorNode.frequency.value = (soundData.period >= 3) ? 62500 / soundData.period : 0;
             oscillatorNode.connect(this.gainNodes[oscillator]);
-            if (fTime < ctx.currentTime) {
+            if (fTime < context.currentTime) {
                 if (Utils_1.Utils.debug) {
-                    Utils_1.Utils.console.debug("Test: sound: scheduleNote:", fTime, "<", ctx.currentTime);
+                    Utils_1.Utils.console.debug("Test: sound: scheduleNote:", fTime, "<", context.currentTime);
                 }
             }
-            var volume = soundData.volume, gain = this.gainNodes[oscillator].gain, fVolume = volume / maxVolume;
+            var volume = soundData.volume, gain = this.gainNodes[oscillator].gain, maxVolume = 15, fVolume = volume / maxVolume;
             gain.setValueAtTime(fVolume * fVolume, fTime); // start volume
-            var duration = soundData.duration;
+            var duration = soundData.duration, volEnv = soundData.volEnv, volEnvRepeat = 1;
             if (duration < 0) { // <0: repeat volume envelope?
                 volEnvRepeat = Math.min(5, -duration); // we limit repeat to 5 times sice we precompute duration
                 duration = 0;
@@ -224,10 +297,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 }
                 duration = this.applyVolEnv(this.volEnv[volEnv], gain, fTime, volume, duration, volEnvRepeat);
             }
+            var toneEnv = soundData.toneEnv;
             if (toneEnv && this.toneEnv[toneEnv]) { // some tone envelope?
                 this.applyToneEnv(this.toneEnv[toneEnv], oscillatorNode.frequency, fTime, soundData.period, duration);
             }
-            var fDuration = duration / i100ms2sec;
+            var i100ms2sec = 100, // time duration unit: 1/100 sec=10 ms, convert to sec
+            fDuration = duration / i100ms2sec;
             oscillatorNode.start(fTime);
             oscillatorNode.stop(fTime + fDuration);
             this.oscillators[oscillator] = oscillatorNode;
@@ -254,9 +329,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return canQueue;
         };
         Sound.prototype.sound = function (soundData) {
-            if (!this.isSoundOn) {
-                return;
-            }
             var queues = this.queues, state = soundData.state;
             for (var i = 0; i < 3; i += 1) {
                 if ((state >> i) & 0x01) { // eslint-disable-line no-bitwise
@@ -298,10 +370,11 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         // idea from: https://www.html5rocks.com/en/tutorials/audio/scheduling/
         Sound.prototype.scheduler = function () {
-            if (!this.isSoundOn) {
+            if (!this.isActivatedByUserFlag) {
                 return;
             }
-            var context = this.context, fCurrentTime = context.currentTime, queues = this.queues;
+            var context = this.context, fCurrentTime = context ? context.currentTime : Date.now() / 1000 - this.contextStartTime, // use Date.now() when sound is off
+            queues = this.queues;
             var canPlayMask = 0;
             for (var i = 0; i < 3; i += 1) {
                 var queue = queues[i];
@@ -371,27 +444,33 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         Sound.prototype.setActivatedByUser = function () {
             this.isActivatedByUserFlag = true;
+            if (!this.contextStartTime) { // not yet started?
+                this.contextStartTime = Date.now() / 1000; // set it
+            }
         };
         Sound.prototype.isActivatedByUser = function () {
             return this.isActivatedByUserFlag;
         };
         Sound.prototype.soundOn = function () {
             if (!this.isSoundOn) {
-                if (!this.context) {
-                    this.createSoundContext();
+                if (!this.context && !this.contextNotAvailable) { // try to create context
+                    this.context = this.createSoundContext(); // still undefined in case of exception
                 }
-                var mergerNode = this.mergerNode, context = this.context;
-                mergerNode.connect(context.destination);
+                if (this.context) { // maybe not available
+                    this.mergerNode.connect(this.context.destination);
+                }
                 this.isSoundOn = true;
                 if (Utils_1.Utils.debug) {
                     Utils_1.Utils.console.debug("soundOn: Sound switched on");
                 }
             }
+            return Boolean(this.context); // true if sound is available
         };
         Sound.prototype.soundOff = function () {
             if (this.isSoundOn) {
-                var mergerNode = this.mergerNode, context = this.context;
-                mergerNode.disconnect(context.destination);
+                if (this.context) {
+                    this.mergerNode.disconnect(this.context.destination);
+                }
                 this.isSoundOn = false;
                 if (Utils_1.Utils.debug) {
                     Utils_1.Utils.console.debug("soundOff: Sound switched off");

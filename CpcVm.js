@@ -683,6 +683,9 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                 this.print(stream, "[" + String(this.line) + "]");
             }
         };
+        CpcVm.prototype.vmGetOutBuffer = function () {
+            return this.outBuffer;
+        };
         CpcVm.prototype.vmDrawMovePlot = function (type, gPen, gColMode) {
             if (gPen !== undefined) {
                 gPen = this.vmInRangeRound(gPen, 0, 15, type);

@@ -1635,7 +1635,7 @@ export class Controller implements IController {
 		}
 
 		vm.vmStop("end", 0, true); // set "end" with priority 0, so that "compile only" still works
-		vm.outBuffer = "";
+		//vm.outBuffer = "";
 		this.view.setAreaValue("outputText", "");
 		this.invalidateScript();
 	}
@@ -1959,7 +1959,7 @@ export class Controller implements IController {
 		vm.vmReset4Run();
 
 		if (this.fnScript) {
-			vm.outBuffer = this.view.getAreaValue("resultText");
+			//TTT not needed? vm.outBuffer = this.view.getAreaValue("resultText");
 			vm.vmStop("", 0, true);
 			vm.vmGoto(0); // to load DATA lines
 			this.vm.vmSetStartLine(line); // clear resets also startline
@@ -2158,7 +2158,7 @@ export class Controller implements IController {
 	}
 
 	private updateResultText() {
-		this.view.setAreaValue("resultText", this.vm.outBuffer);
+		this.view.setAreaValue("resultText", this.vm.vmGetOutBuffer());
 		this.view.setAreaScrollTop("resultText"); // scroll to bottom
 	}
 
@@ -2492,17 +2492,10 @@ export class Controller implements IController {
 
 	setSoundActive(): void {
 		const sound = this.sound,
-			soundLabel = View.getElementById1("soundLabel"),
 			active = this.model.getProperty<boolean>("sound");
-		let	text = "";
 
 		if (active) {
-			try {
-				sound.soundOn();
-			} catch (e) {
-				Utils.console.warn("soundOn:", e);
-				text = "Sound (unavailable)";
-			}
+			sound.soundOn();
 		} else {
 			sound.soundOff();
 			const stop = this.vm && this.vm.vmGetStopObject();
@@ -2510,9 +2503,6 @@ export class Controller implements IController {
 			if (stop && stop.reason === "waitSound") {
 				this.vm.vmStop("", 0, true); // do not wait
 			}
-		}
-		if (text) {
-			soundLabel.innerText = text;
 		}
 	}
 

@@ -60,6 +60,8 @@ export class Sound {
 
 	private isSoundOn = false;
 	private isActivatedByUserFlag = false;
+	private contextNotAvailable = false;
+	private contextStartTime = 0;
 	private context?: AudioContext;
 	private mergerNode?: ChannelMergerNode;
 	private readonly gainNodes: GainNode[] = [];
@@ -151,30 +153,51 @@ export class Sound {
 
 	private createSoundContext() {
 		const channelMap2Cpc = [ // channel map for CPC: left, middle (center), right; so swap middle and right
-				0,
-				2,
-				1
-			],
-			context = new this.options.AudioContextConstructor(), // may produce exception if not available
-			mergerNode = context.createChannelMerger(6); // create mergerNode with 6 inputs; we are using the first 3 for left, right, center
+			0,
+			2,
+			1
+		];
+		let context;
 
-		this.context = context;
-		this.mergerNode = mergerNode;
+		try {
+			context = new this.options.AudioContextConstructor(); // may produce exception if not available
 
-		for (let i = 0; i < 3; i += 1) {
-			const gainNode = context.createGain();
+			const mergerNode = context.createChannelMerger(6); // create mergerNode with 6 inputs; we are using the first 3 for left, right, center
 
-			gainNode.connect(mergerNode, 0, channelMap2Cpc[i]); // connect output #0 of gainNode i to input #j of the mergerNode
-			this.gainNodes[i] = gainNode;
+			this.mergerNode = mergerNode; // set as side effect
+			for (let i = 0; i < 3; i += 1) {
+				const gainNode = context.createGain();
+
+				gainNode.connect(mergerNode, 0, channelMap2Cpc[i]); // connect output #0 of gainNode i to input #j of the mergerNode
+				this.gainNodes[i] = gainNode;
+			}
+		} catch (e) {
+			Utils.console.warn("createSoundContext:", e);
+			this.contextNotAvailable = true;
 		}
+
+		const oldContextStartTime = this.contextStartTime;
+
+		this.contextStartTime = Date.now() / 1000;
+		if (oldContextStartTime && context) { // was there a start time set before?
+			const correctionTime = context.currentTime + (this.contextStartTime - oldContextStartTime),
+				queues = this.queues;
+
+			for (let i = 0; i < 3; i += 1) {
+				if (queues[i].soundData.length) {
+					queues[i].fNextNoteTime -= correctionTime;
+				}
+			}
+		}
+		return context;
 	}
 
 	private playNoise(oscillator: number, fTime: number, fDuration: number, noise: number) { // could be improved
-		const ctx = this.context as AudioContext,
-			bufferSize = ctx.sampleRate * fDuration, // set the time of the note
-			buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate), // create an empty buffer
+		const context = this.context as AudioContext,
+			bufferSize = context.sampleRate * fDuration, // set the time of the note
+			buffer = context.createBuffer(1, bufferSize, context.sampleRate), // create an empty buffer
 			data = buffer.getChannelData(0), // get data
-			noiseNode = ctx.createBufferSource(); // create a buffer source for noise data
+			noiseNode = context.createBufferSource(); // create a buffer source for noise data
 
 		// fill the buffer with noise
 		for (let i = 0; i < bufferSize; i += 1) {
@@ -185,7 +208,7 @@ export class Sound {
 
 		if (noise > 1) {
 			const bandHz = 20000 / noise,
-				bandpass = ctx.createBiquadFilter();
+				bandpass = context.createBiquadFilter();
 
 			bandpass.type = "bandpass";
 			bandpass.frequency.value = bandHz;
@@ -196,6 +219,49 @@ export class Sound {
 		}
 		noiseNode.start(fTime);
 		noiseNode.stop(fTime + fDuration);
+	}
+
+	private simulateApplyVolEnv(volData: VolEnvData[], duration: number, volEnvRepeat: number) { // eslint-disable-line class-methods-use-this
+		let time = 0;
+
+		for (let loop = 0; loop < volEnvRepeat; loop += 1) {
+			for (let part = 0; part < volData.length; part += 1) {
+				const group = volData[part];
+
+				if ((group as VolEnvData1).steps !== undefined) {
+					const group1 = group as VolEnvData1,
+						volTime = group1.time;
+					let volSteps = group1.steps;
+
+					if (!volSteps) { // steps=0
+						volSteps = 1;
+					}
+					for (let i = 0; i < volSteps; i += 1) {
+						time += volTime;
+						if (duration && time >= duration) { // eslint-disable-line max-depth
+							loop = volEnvRepeat; // stop early if longer than specified duration
+							part = volData.length;
+							break;
+						}
+					}
+				} else { // register
+					const group2 = group as VolEnvData2,
+						register = group2.register,
+						period = group2.period,
+						volTime = period;
+
+					if (register === 0) {
+						time += volTime;
+					} else {
+						// TODO: other registers
+					}
+				}
+			}
+		}
+		if (duration === 0) {
+			duration = time;
+		}
+		return duration;
 	}
 
 	private applyVolEnv(volData: VolEnvData[], gain: AudioParam, fTime: number, volume: number, duration: number, volEnvRepeat: number) { // eslint-disable-line class-methods-use-this
@@ -302,38 +368,62 @@ export class Sound {
 		}
 	}
 
-	private scheduleNote(oscillator: number, fTime: number, soundData: SoundData) {
-		const maxVolume = 15,
-			i100ms2sec = 100, // time duration unit: 1/100 sec=10 ms, convert to sec
-			ctx = this.context as AudioContext,
-			toneEnv = soundData.toneEnv;
-
-		let volEnv = soundData.volEnv,
+	// simulate schedule note when sound is off
+	private simulateScheduleNote(soundData: SoundData) {
+		let duration = soundData.duration,
+			volEnv = soundData.volEnv,
 			volEnvRepeat = 1;
 
+		if (duration < 0) { // <0: repeat volume envelope?
+			volEnvRepeat = Math.min(5, -duration); // we limit repeat to 5 times sice we precompute duration
+			duration = 0;
+		}
+
+		if (volEnv || !duration) { // some volume envelope or duration 0?
+			if (!this.volEnv[volEnv]) {
+				volEnv = 0; // envelope not defined => use default envelope 0
+			}
+			duration = this.simulateApplyVolEnv(this.volEnv[volEnv], duration, volEnvRepeat);
+		}
+
+		const i100ms2sec = 100, // time duration unit: 1/100 sec=10 ms, convert to sec
+			fDuration = duration / i100ms2sec;
+
+		return fDuration;
+	}
+
+	private scheduleNote(oscillator: number, fTime: number, soundData: SoundData) {
 		if (Utils.debug > 1) {
 			this.debugLog("scheduleNote: " + oscillator + " " + fTime);
 		}
-		const oscillatorNode = ctx.createOscillator();
+		if (!this.isSoundOn) {
+			return this.simulateScheduleNote(soundData);
+		}
+
+		const context = this.context as AudioContext,
+			oscillatorNode = context.createOscillator();
 
 		oscillatorNode.type = "square";
 
 		oscillatorNode.frequency.value = (soundData.period >= 3) ? 62500 / soundData.period : 0;
 
 		oscillatorNode.connect(this.gainNodes[oscillator]);
-		if (fTime < ctx.currentTime) {
+		if (fTime < context.currentTime) {
 			if (Utils.debug) {
-				Utils.console.debug("Test: sound: scheduleNote:", fTime, "<", ctx.currentTime);
+				Utils.console.debug("Test: sound: scheduleNote:", fTime, "<", context.currentTime);
 			}
 		}
 
 		const volume = soundData.volume,
 			gain = this.gainNodes[oscillator].gain,
+			maxVolume = 15,
 			fVolume = volume / maxVolume;
 
 		gain.setValueAtTime(fVolume * fVolume, fTime); // start volume
 
-		let duration = soundData.duration;
+		let duration = soundData.duration,
+			volEnv = soundData.volEnv,
+			volEnvRepeat = 1;
 
 		if (duration < 0) { // <0: repeat volume envelope?
 			volEnvRepeat = Math.min(5, -duration); // we limit repeat to 5 times sice we precompute duration
@@ -347,11 +437,14 @@ export class Sound {
 			duration = this.applyVolEnv(this.volEnv[volEnv], gain, fTime, volume, duration, volEnvRepeat);
 		}
 
+		const toneEnv = soundData.toneEnv;
+
 		if (toneEnv && this.toneEnv[toneEnv]) { // some tone envelope?
 			this.applyToneEnv(this.toneEnv[toneEnv], oscillatorNode.frequency, fTime, soundData.period, duration);
 		}
 
-		const fDuration = duration / i100ms2sec;
+		const i100ms2sec = 100, // time duration unit: 1/100 sec=10 ms, convert to sec
+			fDuration = duration / i100ms2sec;
 
 		oscillatorNode.start(fTime);
 		oscillatorNode.stop(fTime + fDuration);
@@ -384,10 +477,6 @@ export class Sound {
 	}
 
 	sound(soundData: SoundData): void {
-		if (!this.isSoundOn) {
-			return;
-		}
-
 		const queues = this.queues,
 			state = soundData.state;
 
@@ -436,12 +525,12 @@ export class Sound {
 
 	// idea from: https://www.html5rocks.com/en/tutorials/audio/scheduling/
 	scheduler(): void {
-		if (!this.isSoundOn) {
+		if (!this.isActivatedByUserFlag) {
 			return;
 		}
 
-		const context = this.context as AudioContext,
-			fCurrentTime = context.currentTime,
+		const context = this.context,
+			fCurrentTime = context ? context.currentTime : Date.now() / 1000 - this.contextStartTime, // use Date.now() when sound is off
 			queues = this.queues;
 		let canPlayMask = 0;
 
@@ -531,34 +620,38 @@ export class Sound {
 
 	setActivatedByUser(): void {
 		this.isActivatedByUserFlag = true;
+		if (!this.contextStartTime) { // not yet started?
+			this.contextStartTime = Date.now() / 1000; // set it
+		}
 	}
 
 	isActivatedByUser(): boolean {
 		return this.isActivatedByUserFlag;
 	}
 
-	soundOn(): void {
+	soundOn(): boolean {
 		if (!this.isSoundOn) {
-			if (!this.context) {
-				this.createSoundContext();
+			if (!this.context && !this.contextNotAvailable) { // try to create context
+				this.context = this.createSoundContext(); // still undefined in case of exception
 			}
-			const mergerNode = this.mergerNode as ChannelMergerNode,
-				context = this.context as AudioContext;
 
-			mergerNode.connect(context.destination);
+			if (this.context) { // maybe not available
+				(this.mergerNode as ChannelMergerNode).connect(this.context.destination);
+			}
+
 			this.isSoundOn = true;
 			if (Utils.debug) {
 				Utils.console.debug("soundOn: Sound switched on");
 			}
 		}
+		return Boolean(this.context); // true if sound is available
 	}
 
 	soundOff(): void {
 		if (this.isSoundOn) {
-			const mergerNode = this.mergerNode as ChannelMergerNode,
-				context = this.context as AudioContext;
-
-			mergerNode.disconnect(context.destination);
+			if (this.context) {
+				(this.mergerNode as ChannelMergerNode).disconnect(this.context.destination);
+			}
 			this.isSoundOn = false;
 			if (Utils.debug) {
 				Utils.console.debug("soundOff: Sound switched off");
