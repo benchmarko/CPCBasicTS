@@ -21,6 +21,9 @@ export class Canvas implements ICanvas {
 	private readonly fnUpdateCanvas2Handler: () => void;
 
 	private fps = 15; // FPS for canvas update
+	private isRunning = false;
+	private animationTimeoutId?: number;
+	private animationFrame?: number;
 
 	private readonly cpcAreaBox: HTMLElement;
 
@@ -52,13 +55,10 @@ export class Canvas implements ICanvas {
 
 	private readonly pen2ColorMap: number[][] = [];
 
-	private animationTimeoutId?: number;
-	private animationFrame?: number;
-
 	private readonly ctx: CanvasRenderingContext2D;
 	private readonly imageData: ImageData;
 
-	private fnCopy2Canvas?: () => void;
+	private fnCopy2Canvas: () => void;
 	private littleEndian = true;
 	private pen2Color32?: Uint32Array;
 	private data32?: Uint32Array;
@@ -136,9 +136,13 @@ export class Canvas implements ICanvas {
 				Utils.console.log("Canvas: using copy2Canvas8bit");
 			}
 
-			this.applyCopy2CanvasFunction(this.offset);
+			this.fnCopy2Canvas = this.getCopy2CanvasFunction(this.offset);
 		} else {
 			Utils.console.warn("Error: canvas.getContext is not supported.");
+			// not available on e.g. IE8, nodeJS
+			this.fnCopy2Canvas = () => {
+				// nothing
+			};
 			this.ctx = {} as CanvasRenderingContext2D; // not available
 			this.imageData = {} as ImageData; // not available
 		}
@@ -320,13 +324,14 @@ export class Canvas implements ICanvas {
 	}
 
 	private updateCanvas2() {
+		if (!this.isRunning) {
+			return; // ignore remaining timeouts, if stopped
+		}
 		this.animationFrame = requestAnimationFrame(this.fnUpdateCanvasHandler);
 		if (this.needUpdate) { // could be improved: update only updateRect
 			this.needUpdate = false;
 			// we always do a full updateCanvas...
-			if (this.fnCopy2Canvas) { // not available on e.g. IE8
-				this.fnCopy2Canvas();
-			}
+			this.fnCopy2Canvas();
 		}
 	}
 
@@ -337,16 +342,20 @@ export class Canvas implements ICanvas {
 	}
 
 	startUpdateCanvas(): void {
-		if (this.animationFrame === undefined && this.canvas.offsetParent !== null) { // animation off and canvas visible in DOM?
+		if (!this.isRunning && this.canvas.offsetParent !== null) { // animation off and canvas visible in DOM?
+			this.isRunning = true;
 			this.updateCanvas();
 		}
 	}
 
 	stopUpdateCanvas(): void {
-		if (this.animationFrame !== undefined) {
-			cancelAnimationFrame(this.animationFrame);
+		if (this.isRunning) {
+			this.isRunning = false;
+			if (this.animationFrame) {
+				cancelAnimationFrame(this.animationFrame);
+				this.animationFrame = undefined;
+			}
 			clearTimeout(this.animationTimeoutId);
-			this.animationFrame = undefined;
 			this.animationTimeoutId = undefined;
 		}
 	}
@@ -398,12 +407,11 @@ export class Canvas implements ICanvas {
 		this.ctx.putImageData(this.imageData, 0, 0);
 	}
 
-	private applyCopy2CanvasFunction(offset: number) {
+	private getCopy2CanvasFunction(offset: number): () => void {
 		if (this.use32BitCopy) {
-			this.fnCopy2Canvas = offset ? this.copy2Canvas32bitWithOffset : this.copy2Canvas32bit;
-		} else {
-			this.fnCopy2Canvas = offset ? this.copy2Canvas8bit : this.copy2Canvas8bit; // TODO: for older browsers
+			return offset ? this.copy2Canvas32bitWithOffset : this.copy2Canvas32bit;
 		}
+		return offset ? this.copy2Canvas8bit : this.copy2Canvas8bit; // TODO: for older browsers
 	}
 
 	setScreenOffset(offset: number): void {
@@ -415,7 +423,7 @@ export class Canvas implements ICanvas {
 
 		if (offset !== this.offset) {
 			this.offset = offset;
-			this.applyCopy2CanvasFunction(offset);
+			this.fnCopy2Canvas = this.getCopy2CanvasFunction(offset);
 
 			this.setNeedUpdate();
 		}
@@ -425,38 +433,38 @@ export class Canvas implements ICanvas {
 		const colorValues = this.colorValues,
 			currentInksInSet = this.currentInks[this.inkSet],
 			pen2ColorMap = this.pen2ColorMap,
-			pen2Color32 = this.pen2Color32;
+			pen2Color32 = this.pen2Color32,
+			maxPens = 16,
+			alpha = 255;
 
-		for (let i = 0; i < 16; i += 1) {
+		for (let i = 0; i < maxPens; i += 1) {
 			pen2ColorMap[i] = colorValues[currentInksInSet[i]];
 		}
 
 		if (pen2Color32) {
-			for (let i = 0; i < 16; i += 1) {
+			for (let i = 0; i < maxPens; i += 1) {
 				const color = pen2ColorMap[i];
 
 				if (this.littleEndian) {
-					pen2Color32[i] = color[0] + color[1] * 256 + color[2] * 65536 + 255 * 65536 * 256;
+					pen2Color32[i] = color[0] + color[1] * 256 + color[2] * 65536 + alpha * 65536 * 256;
 				} else {
-					pen2Color32[i] = color[2] + color[1] * 256 + color[0] * 65536 + 255 * 65536 * 256; // for big endian (untested)
+					pen2Color32[i] = color[2] + color[1] * 256 + color[0] * 65536 + alpha * 65536 * 256; // for big endian (untested)
 				}
 			}
 		}
 	}
 
 	updateColorsAndCanvasImmediately(inkList: number[]): void {
-		if (this.fnCopy2Canvas) { // not available on e.g. IE8
-			const currentInksInSet = this.currentInks[this.inkSet],
-				memorizedInks = currentInksInSet.slice();
+		const currentInksInSet = this.currentInks[this.inkSet],
+			memorizedInks = currentInksInSet.slice();
 
-			this.currentInks[this.inkSet] = inkList; // temporary inks
-			this.updateColorMap();
+		this.currentInks[this.inkSet] = inkList; // temporary inks
+		this.updateColorMap();
 
-			this.fnCopy2Canvas(); // do it immediately
-			this.currentInks[this.inkSet] = memorizedInks.slice();
-			this.updateColorMap();
-			this.needUpdate = true; // we want to restore it with the next update...
-		}
+		this.fnCopy2Canvas(); // do it immediately
+		this.currentInks[this.inkSet] = memorizedInks.slice();
+		this.updateColorMap();
+		this.needUpdate = true; // we want to restore it with the next update...
 	}
 
 	updateSpeedInk(): void {

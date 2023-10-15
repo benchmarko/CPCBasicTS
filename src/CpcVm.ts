@@ -198,7 +198,7 @@ export class CpcVm {
 	private breakGosubLine = 0;
 	private breakResumeLine = 0;
 
-	outBuffer = "";
+	private outBuffer = "";
 
 	private errorCode = 0; // last error code (Err)
 	private errorLine: string | number = 0; // line of last error (Erl)
@@ -1173,6 +1173,10 @@ export class CpcVm {
 
 			this.print(stream, "[" + String(this.line) + "]");
 		}
+	}
+
+	vmGetOutBuffer(): string {
+		return this.outBuffer;
 	}
 
 	private vmDrawMovePlot(type: string, gPen?: number, gColMode?: number) {
