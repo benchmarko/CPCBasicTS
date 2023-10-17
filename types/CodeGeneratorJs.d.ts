@@ -108,6 +108,7 @@ export declare class CodeGeneratorJs {
     private erase;
     private error;
     private fn;
+    private static parseIntNumber;
     private fnFor;
     private gosub;
     private gotoOrResume;

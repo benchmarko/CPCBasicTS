@@ -15,6 +15,7 @@ export declare class TextCanvas implements ICanvas {
     private needUpdate;
     private readonly textBuffer;
     private hasFocus;
+    private customCharset;
     constructor(options: CanvasOptions);
     private static readonly cpc2Unicode;
     private static readonly winData;
@@ -25,8 +26,8 @@ export declare class TextCanvas implements ICanvas {
     setScreenOffset(_offset: number): void;
     updateColorsAndCanvasImmediately(_inkList: number[]): void;
     updateSpeedInk(): void;
-    setCustomChar(_char: number, _charData: CanvasCharType): void;
-    getCharData(_char: number): CanvasCharType;
+    setCustomChar(char: number, charData: CanvasCharType): void;
+    getCharData(char: number): CanvasCharType;
     setDefaultInks(): void;
     getXpos(): number;
     getYpos(): number;

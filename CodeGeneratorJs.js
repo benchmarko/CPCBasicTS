@@ -849,6 +849,11 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             node.pv = name + "(" + nodeArgs.join(", ") + ")";
         };
+        CodeGeneratorJs.parseIntNumber = function (numString) {
+            // Number() cannot parse negative bin or hex numbers so detect a sign first
+            var hasSign = numString[0] === "-", value = hasSign ? -Number(numString.substring(1)) : Number(numString);
+            return value;
+        };
         // eslint-disable-next-line complexity
         CodeGeneratorJs.prototype.fnFor = function (node) {
             var nodeArgs = this.fnParseArgs(node.args), varName = nodeArgs[0], label = this.fnGetForLabel();
@@ -907,10 +912,11 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             value += "\ncase \"" + label + "b\": ";
             var endNameOrValue = endIsIntConst ? endValue : endName;
             if (stepIsIntConst) {
-                if (Number(stepValue) > 0) {
+                var stepValueAsNum = CodeGeneratorJs.parseIntNumber(stepValue); // can also be a negative binary or hexadecimal string
+                if (stepValueAsNum > 0) {
                     value += "if (" + varName + " > " + endNameOrValue + ") { o.vmGoto(\"" + label + "e\"); break; }";
                 }
-                else if (Number(stepValue) < 0) {
+                else if (stepValueAsNum < 0) {
                     value += "if (" + varName + " < " + endNameOrValue + ") { o.vmGoto(\"" + label + "e\"); break; }";
                 }
                 else { // stepValue === 0 => endless loop, if starting with variable !== end

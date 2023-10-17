@@ -14,6 +14,7 @@ define(["require", "exports", "./View"], function (require, exports, View_1) {
             this.needUpdate = false;
             this.textBuffer = []; // textbuffer characters at row,column
             this.hasFocus = false; // canvas has focus
+            this.customCharset = {};
             this.options = options;
             this.cpcAreaBox = View_1.View.getElementById1("cpcAreaBox");
             this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
@@ -42,10 +43,11 @@ define(["require", "exports", "./View"], function (require, exports, View_1) {
         };
         TextCanvas.prototype.updateSpeedInk = function () {
         };
-        TextCanvas.prototype.setCustomChar = function (_char, _charData) {
+        TextCanvas.prototype.setCustomChar = function (char, charData) {
+            this.customCharset[char] = charData;
         };
-        TextCanvas.prototype.getCharData = function (_char) {
-            return [];
+        TextCanvas.prototype.getCharData = function (char) {
+            return this.customCharset[char] || this.options.charset[char];
         };
         TextCanvas.prototype.setDefaultInks = function () {
         };

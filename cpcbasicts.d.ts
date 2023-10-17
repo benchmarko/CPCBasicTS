@@ -642,6 +642,7 @@ declare module "CodeGeneratorJs" {
         private erase;
         private error;
         private fn;
+        private static parseIntNumber;
         private fnFor;
         private gosub;
         private gotoOrResume;
@@ -1134,6 +1135,7 @@ declare module "TextCanvas" {
         private needUpdate;
         private readonly textBuffer;
         private hasFocus;
+        private customCharset;
         constructor(options: CanvasOptions);
         private static readonly cpc2Unicode;
         private static readonly winData;
@@ -1144,8 +1146,8 @@ declare module "TextCanvas" {
         setScreenOffset(_offset: number): void;
         updateColorsAndCanvasImmediately(_inkList: number[]): void;
         updateSpeedInk(): void;
-        setCustomChar(_char: number, _charData: CanvasCharType): void;
-        getCharData(_char: number): CanvasCharType;
+        setCustomChar(char: number, charData: CanvasCharType): void;
+        getCharData(char: number): CanvasCharType;
         setDefaultInks(): void;
         getXpos(): number;
         getYpos(): number;
