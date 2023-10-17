@@ -28,6 +28,8 @@ export class TextCanvas implements ICanvas {
 
 	private hasFocus = false; // canvas has focus
 
+	private customCharset: Record<number, CanvasCharType> = {};
+
 	constructor(options: CanvasOptions) {
 		this.options = options;
 
@@ -103,11 +105,12 @@ export class TextCanvas implements ICanvas {
 	updateSpeedInk(): void { // eslint-disable-line class-methods-use-this
 	}
 
-	setCustomChar(_char: number, _charData: CanvasCharType): void { // eslint-disable-line class-methods-use-this
+	setCustomChar(char: number, charData: CanvasCharType): void { // eslint-disable-line class-methods-use-this
+		this.customCharset[char] = charData;
 	}
 
-	getCharData(_char: number): CanvasCharType { // eslint-disable-line class-methods-use-this
-		return [];
+	getCharData(char: number): CanvasCharType { // eslint-disable-line class-methods-use-this
+		return this.customCharset[char] || this.options.charset[char];
 	}
 
 	setDefaultInks(): void { // eslint-disable-line class-methods-use-this

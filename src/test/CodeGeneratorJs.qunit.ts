@@ -307,6 +307,9 @@ const allTests: AllTestsType = {
 		"for a=b to c step s": ' /* for() */ v.aR = o.vmAssign("aR", v.bR); v.aREnd = o.vmAssign("aR", v.cR); v.aRStep = o.vmAssign("aR", v.sR); o.vmGoto("directf0b"); break;\ncase "directf0": v.aR += v.aRStep;\ncase "directf0b": if (v.aRStep > 0 && v.aR > v.aREnd || v.aRStep < 0 && v.aR < v.aREnd || !v.aRStep && v.aR === v.aREnd) { o.vmGoto("directf0e"); break; }',
 		"for a=1 to 2 step 0": ' /* for() */ v.aR = 1; o.vmGoto("directf0b"); break;\ncase "directf0": v.aR += 0;\ncase "directf0b": if (v.aR === 2) { o.vmGoto("directf0e"); break; }',
 		"for a=-1 to -2 step 0": ' /* for() */ v.aR = -1; o.vmGoto("directf0b"); break;\ncase "directf0": v.aR += 0;\ncase "directf0b": if (v.aR === -2) { o.vmGoto("directf0e"); break; }',
+		"for a=&a000 TO &ha00b step &x101": ' /* for() */ v.aR = -0x6000; o.vmGoto("directf0b"); break;\ncase "directf0": v.aR += 0b101;\ncase "directf0b": if (v.aR > -0x5ff5) { o.vmGoto("directf0e"); break; }',
+		"for a=2 to 1 step -&1": ' /* for() */ v.aR = 2; o.vmGoto("directf0b"); break;\ncase "directf0": v.aR += -0x1;\ncase "directf0b": if (v.aR < 1) { o.vmGoto("directf0e"); break; }',
+		"for a=2 to 1 step -&x1": ' /* for() */ v.aR = 2; o.vmGoto("directf0b"); break;\ncase "directf0": v.aR += -0b1;\ncase "directf0b": if (v.aR < 1) { o.vmGoto("directf0e"); break; }',
 		"1 for a$=1 to 2": "CodeGeneratorJs: Type error in 1 at pos 6-8: a$",
 		"defint a:for abc=1 to 10 step 3:next abc": ' o.defint("a"); /* for() */ o.vmAssertNumberType("a"); v["abc" + t.a] = 1; o.vmGoto("directf0b"); break;\ncase "directf0": v["abc" + t.a] += 3;\ncase "directf0b": if (v["abc" + t.a] > 10) { o.vmGoto("directf0e"); break; } /* next("v["abc" + t.a]") */ o.vmGoto("directf0"); break;\ncase "directf0e":',
 		"defstr a:for abc=1 to 10 step 3:next abc": ' o.defstr("a"); /* for() */ o.vmAssertNumberType("a"); v["abc" + t.a] = 1; o.vmGoto("directf0b"); break;\ncase "directf0": v["abc" + t.a] += 3;\ncase "directf0b": if (v["abc" + t.a] > 10) { o.vmGoto("directf0e"); break; } /* next("v["abc" + t.a]") */ o.vmGoto("directf0"); break;\ncase "directf0e":',
@@ -747,6 +750,8 @@ const allTests: AllTestsType = {
 	}
 };
 /* eslint-enable quote-props */
+
+// tests added: for with hex and bin constants
 
 
 type hooksWithCodeGeneratorJs = NestedHooks & {

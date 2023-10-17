@@ -268,6 +268,8 @@ cpcBasic.addItem("", function () { /*
 2770 PRINT"FOR with integer constants"
 2780 a$="":FOR i=+4 TO 0 STEP -2:a$=a$+STR$(i):NEXT:IF a$<>" 4 2 0" THEN ERROR 33
 2790 a=0:FOR i=++4 TO 1 STEP ---2:a=a+i:NEXT:IF a<>6 THEN ERROR 33: 'avoid ++ and -- in js!
+2792 a=0:FOR i=2 TO 1 STEP -&1:a=a+i:NEXT:IF a<>3 THEN ERROR 33: 'negative hex constant
+2794 a=0:FOR i=2 TO 1 STEP -&X1:a=a+i:NEXT:IF a<>3 THEN ERROR 33: 'negative bin constant
 2800 PRINT"FOR with integer variable and floating point ranges"
 2810 a=0:FOR i%=1.2 TO 9.7 STEP 3.2:a=a+i%:NEXT:IF a<>22 THEN ERROR 33: '1+4+7+10
 2820 PRINT"FOR with condition expressions"

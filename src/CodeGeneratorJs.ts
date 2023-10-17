@@ -1044,6 +1044,14 @@ export class CodeGeneratorJs {
 		node.pv = name + "(" + nodeArgs.join(", ") + ")";
 	}
 
+	private static parseIntNumber(numString: string) { // can also be hex or binary string
+		// Number() cannot parse negative bin or hex numbers so detect a sign first
+		const hasSign = numString[0] === "-",
+			value = hasSign ? -Number(numString.substring(1)) : Number(numString);
+
+		return value;
+	}
+
 	// eslint-disable-next-line complexity
 	private fnFor(node: CodeNode) {
 		const nodeArgs = this.fnParseArgs(node.args),
@@ -1133,9 +1141,11 @@ export class CodeGeneratorJs {
 		const endNameOrValue = endIsIntConst ? endValue : endName;
 
 		if (stepIsIntConst) {
-			if (Number(stepValue) > 0) {
+			const stepValueAsNum = CodeGeneratorJs.parseIntNumber(stepValue); // can also be a negative binary or hexadecimal string
+
+			if (stepValueAsNum > 0) {
 				value += "if (" + varName + " > " + endNameOrValue + ") { o.vmGoto(\"" + label + "e\"); break; }";
-			} else if (Number(stepValue) < 0) {
+			} else if (stepValueAsNum < 0) {
 				value += "if (" + varName + " < " + endNameOrValue + ") { o.vmGoto(\"" + label + "e\"); break; }";
 			} else { // stepValue === 0 => endless loop, if starting with variable !== end
 				value += "if (" + varName + " === " + endNameOrValue + ") { o.vmGoto(\"" + label + "e\"); break; }";
