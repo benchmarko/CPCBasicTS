@@ -124,17 +124,10 @@ export class NodeAdapt {
 		// readline?
 		const controller = nodeExports.Controller;
 
-		/*
-		controller.prototype.startWithDirectInput = () => {
-			this.stopUpdateCanvas();
-			Utils.console.log("We are ready.");
-		};
-		*/
 		controller.prototype.startWithDirectInput = function () {
 			this.stopUpdateCanvas();
 			Utils.console.log("We are ready.");
 		};
-		//
 
 		function isUrl(s: string) {
 			return s.startsWith("http"); // http or https

@@ -5,99 +5,191 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="cpcbasic.css">
 <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
-<title id="title">CPC BasicTS v0.1.5</title>
+<title id="title">CPC BasicTS v0.1.6</title>
 </head>
 
 <body id="pageBody">
-    <fieldset class="flexBox" id="cpcVert1Box">
+
+	<fieldset class="flexBox" id="cpcVert0Box">
+		<fieldset class="flexBox">
+			<legend>
+				<button id="xxxButton" class="legendButton" title="xxx BASIC">CPCBasic</button>
+				<span class="buttonPopoverContainer">
+					<button id="galleryButton" class="popoverButton" title="Gallery">Gallery</button>
+					<span id="galleryArea" class="popover area flexColumn displayNone">
+						<span id="galleryAreaInner" class="area flexColumn displayFlex">
+							<span id="galleryAreaItems" class="displayBlock" />
+						</span>
+					</span>
+				</span>
+				<span class="buttonPopoverContainer">
+					<button id="settingsButton" class="popoverButton" title="Settings">Settings</button>
+					<span id="settingsArea" class="popover area flexColumn displayNone">
+						<span id="settingsAreaInner" class="area flexColumn displayFlex">
+							<span id="compileSettingsArea" class="area flexColumn displayFlex">
+								<span class="field flexStart">
+									<input id="arrayBoundsInput" type="checkbox" title="Check array bounds">
+									<label id="arrayBoundsLabel" for="arrayBoundsInput" class="label" title="Check array bounds">Array Bounds</label>
+								</span>
+								<span class="field flexStart">
+									<input id="implicitLinesInput" type="checkbox" title="Allow implicit line numbers">
+									<label id="implicitLinesLabel" for="implicitLinesInput" class="label" title="Allow implicit line numbers">Implicit Lines</label>
+								</span>
+								<span class="field flexStart">
+									<input id="traceInput" type="checkbox" title="Trace Mode">
+									<label id="traceLabel" for="traceInput" class="label" title="Trace Mode">Trace Mode</label>
+								</span>
+							</span>
+							<span id="runSettingsArea" class="area flexColumn displayFlex">
+								<span class="field flexStart">
+									<input id="autorunInput" type="checkbox" title="Autorun">
+									<label id="autorunLabel" for="autorunInput" class="label" title="Autorun on select">Autorun</label>
+								</span>
+								<span class="field flexStart">
+									<input id="soundInput" type="checkbox" title="Sound">
+									<label id="soundLabel" for="soundInput" class="label" title="Sound">Sound</label>
+								</span>
+								<span class="field flexStart">
+									<select id="canvasTypeSelect" title="Select Canvas">
+										<option value="graphics" title="Graphics" default>Graphics</option>
+										<option value="text" title="Text">Text</option>
+										<option value="none" title="None">None</option>
+									</select>
+									<label id="canvasTypeLabel" for="canvasTypeSelect" class="label" title="Canvas Type">Canvas</label>
+								</span>
+								<span class="field flexStart">
+									<select id="paletteSelect" title="Select Palette">
+										<option value="color" title="Color" default>Color</option>
+										<option value="green" title="Green">Green</option>
+										<option value="grey" title="Grey">Grey</option>
+									</select>
+									<label id="paletteLabel" for="paletteSelect" class="label" title="Palette">Palette</label>
+								</span>
+								<span class="field flexStart">
+									<input id="speedInput" type="range" min="0" max="100" step="1" value="100" title="Speed">
+									<label id="speedLabel" for="speedInput" class="label" title="Speed">Speed</label>
+								</span>
+							</span>
+							<span id="debugSettingsArea" class="area flexColumn displayFlex">
+								<span class="field flexStart">
+									<input id="debugInput" type="number" min="0" max="99" value="0" title="Debug Level">
+									<label id="debugLabel" for="debugInput" class="label" title="Debug Level">Debug</label>
+								</span>
+								<span class="field flexStart">
+									<input id="consoleLogInput" type="checkbox" title="Show Console Log">
+									<label id="consoleLogLabel" for="consoleLogInput" class="label" title="Show Console Log">Console Log</label>
+								</span>
+							</span>
+						</span>
+						<span class="field flexStart">
+							<button id="helpButton" title="Help">Help</button>
+						</span>
+					</span>
+					<button id="reloadButton" title="Reload page with URL parameter settings">Reload</button>
+				</span>
+			</legend>
+			<div id="exampleSelectArea" class="area">
+				<div class="field">
+					<select id="databaseSelect" title="Select Database"></select>
+				</div>
+				<div class="field">
+					<select id="directorySelect" title="Select Directory"></select>
+				</div>
+				<div class="field selectWrap">
+					<select id="exampleSelect" title="Load Example"></select>
+				</div>
+			</div>
+		</fieldset>
+	</fieldset>
+
+	<fieldset class="flexBox clearLeft" id="cpcVert1Box">
+	
+		<fieldset class="flexBox" id="cpcAreaBox">
+			<legend>
+				<button id="cpcButton" class="legendButton" title="Show/Hide CPC">CPC</button>
+				<button id="parseRunButton" title="Compile and run script">Run</button>
+				<button id="stopButton" title="Stop/escape/break running script" disabled>Break</button>
+				<button id="continueButton" title="Continue script" disabled>Continue</button>
+				<span class="buttonPopoverContainer">
+					<button id="moreButton" class="popoverButton" title="More">More</button>
+					<span id="moreArea" class="popover area flexColumn displayNone">
+						<span id="moreAreaInner" class="area flexColumn displayFlex">
+							<span class="field flexStart">
+								<button id="resetButton" title="Reset CPC">Reset</button>
+							</span>
+							<span class="field flexStart">
+								<button id="screenshotButton" title="Take Screenshot and download">Screenshot</button>
+							</span>
+							<span class="field flexStart">
+								<button id="fullscreenButton" title="Fullscreen mode">Fullscreen</button>
+							</span>
+							<span class="field flexStart">
+								<button id="copyTextButton" title="Copy text to clipboard">Copy</button>
+							</span>
+						</span>
+					</span>
+				</span>
+			</legend>
+			<div id="cpcArea" class="area">
+				<div id="cpcCanvasDiv">
+					<canvas id="cpcCanvas" width="640" height="400" tabindex="0"></canvas>
+				</div>
+				<div id="textCanvasDiv">
+					<textarea readonly id="textText" placeholder="" rows="25" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off" hidden></textarea>
+				</div>
+			</div>	
+		</fieldset>
+		<fieldset class="flexBox clearLeft" id="kbdAreaBox">
+			<legend>
+				<button id="kbdButton" class="legendButton" title="CPC Keyboard">Keyboard</button>
+				<span id="kbdMove" class="kbdMove">Move</span>
+				<span id="kbdLayoutArea">
+					<select id="kbdLayoutSelect" title="Select Keyboard Layout">
+						<option value="alphanum" title="AlphaNum">AlphaNum</option>
+						<option value="alpha" title="Alpha">Alpha</option>
+						<option value="num" title="Numpad">Num</option>
+					</select>
+				</span>
+			</legend>
+			<div id="kbdArea" class="area kbdArea displayNone" tabindex="0">
+				<div id="kbdAlpha" class="area">
+				</div>
+				<div id="kbdNum" class="area">
+				</div>
+			</div>
+		</fieldset>
+		<fieldset class="flexBox clearLeft">
+			<legend>
+				<button id="inp2Button" class="legendButton" title="Alternative way of input">Input</button>
+			</legend>
+			<div id="inp2Area" class="area clearLeft displayNone">
+				<div class="area">
+					<textarea id="inp2Text" placeholder="input" rows="2" cols="40" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+					<button id="enterButton" title="Send">Send</button>
+				</div>
+				<div class="area clearLeft">
+					<input type="file" id="fileInput" name="files[]" multiple>
+				</div>
+				<div class="area" id="dropZone" title="drop here or on canvas">
+					Drop files here
+				</div>
+			</div>
+		</fieldset>
+		<fieldset class="flexBox clearLeft">
+			<legend>
+				<button id="resultButton" class="legendButton" title="Show/Hide BASIC Console">Console</button>
+			</legend>
+			<div id="resultArea" class="area displayNone">
+				<textarea id="resultText" placeholder="" rows="15" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+			</div>
+		</fieldset>
+		</fieldset>
+
+    <fieldset class="flexBox" id="cpcVert2Box">
 	<fieldset class="flexBox">
 		<legend>
-			<button id="inputButton" class="legendButton" title="Show/Hide BASIC">CPC BASIC</button>
-			<span class="buttonPopoverContainer">
-				<button id="galleryButton" class="popoverButton" title="Gallery">Gallery</button>
-				<span id="galleryArea" class="popover area flexColumn displayNone">
-					<span id="galleryAreaInner" class="area flexColumn displayFlex">
-						<span id="galleryAreaItems" class="displayBlock" />
-					</span>
-				</span>
-			</span>
-			<span class="buttonPopoverContainer">
-				<button id="settingsButton" class="popoverButton" title="Settings">Settings</button>
-				<span id="settingsArea" class="popover area flexColumn displayNone">
-					<span id="settingsAreaInner" class="area flexColumn displayFlex">
-						<span id="compileSettingsArea" class="area flexColumn displayFlex">
-							<span class="field flexStart">
-								<input id="arrayBoundsInput" type="checkbox" title="Check array bounds">
-								<label id="arrayBoundsLabel" for="arrayBoundsInput" class="label" title="Check array bounds">Array Bounds</label>
-							</span>
-							<span class="field flexStart">
-								<input id="implicitLinesInput" type="checkbox" title="Allow implicit line numbers">
-								<label id="implicitLinesLabel" for="implicitLinesInput" class="label" title="Allow implicit line numbers">Implicit Lines</label>
-							</span>
-							<span class="field flexStart">
-								<input id="traceInput" type="checkbox" title="Trace Mode">
-								<label id="traceLabel" for="traceInput" class="label" title="Trace Mode">Trace Mode</label>
-							</span>
-						</span>
-						<span id="runSettingsArea" class="area flexColumn displayFlex">
-							<span class="field flexStart">
-								<input id="autorunInput" type="checkbox" title="Autorun">
-								<label id="autorunLabel" for="autorunInput" class="label" title="Autorun on select">Autorun</label>
-							</span>
-							<span class="field flexStart">
-								<input id="soundInput" type="checkbox" title="Sound">
-								<label id="soundLabel" for="soundInput" class="label" title="Sound">Sound</label>
-							</span>
-							<span class="field flexStart">
-								<select id="canvasTypeSelect" title="Select Canvas">
-									<option value="graphics" title="Graphics" default>Graphics</option>
-									<option value="text" title="Text">Text</option>
-									<option value="none" title="None">None</option>
-								</select>
-								<label id="canvasTypeLabel" for="canvasTypeSelect" class="label" title="Canvas Type">Canvas</label>
-							</span>
-							<span class="field flexStart">
-								<select id="paletteSelect" title="Select Palette">
-									<option value="color" title="Color" default>Color</option>
-									<option value="green" title="Green">Green</option>
-									<option value="grey" title="Grey">Grey</option>
-								</select>
-								<label id="paletteLabel" for="paletteSelect" class="label" title="Palette">Palette</label>
-							</span>
-							<span class="field flexStart">
-								<input id="speedInput" type="range" min="0" max="100" step="1" value="100" title="Speed">
-								<label id="speedLabel" for="speedInput" class="label" title="Speed">Speed</label>
-							</span>
-						</span>
-						<span id="debugSettingsArea" class="area flexColumn displayFlex">
-							<span class="field flexStart">
-								<input id="debugInput" type="number" min="0" max="99" value="0" title="Debug Level">
-								<label id="debugLabel" for="debugInput" class="label" title="Debug Level">Debug</label>
-							</span>
-							<span class="field flexStart">
-								<input id="consoleLogInput" type="checkbox" title="Show Console Log">
-								<label id="consoleLogLabel" for="consoleLogInput" class="label" title="Show Console Log">Console Log</label>
-							</span>
-						</span>
-					</span>
-					<span class="field flexStart">
-						<button id="helpButton" title="Help">Help</button>
-					</span>
-				</span>
-				<button id="reloadButton" title="Reload page with URL parameter settings">Reload</button>
-			</span>
+			<button id="inputButton" class="legendButton" title="Show/Hide BASIC">BASIC</button>
 		</legend>
-		<div id="exampleSelectArea" class="area">
-			<div class="field">
-				<select id="databaseSelect" title="Select Database"></select>
-			</div>
-			<div class="field">
-				<select id="directorySelect" title="Select Directory"></select>
-			</div>
-			<div class="field selectWrap">
-				<select id="exampleSelect" title="Load Example"></select>
-			</div>
-		</div>
 		<div id="inputArea" class="area clearLeft">
 			<textarea id="inputText" rows="15" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
 			<div class="displayFlex">
@@ -197,88 +289,6 @@
 
 	</fieldset>
 	
-	<fieldset class="flexBox" id="cpcVert2Box">
-	
-	<fieldset class="flexBox" id="cpcAreaBox">
-		<legend>
-			<button id="cpcButton" class="legendButton" title="Show/Hide CPC">CPC</button>
-			<button id="parseRunButton" title="Compile and run script">Run</button>
-			<button id="stopButton" title="Stop/escape/break running script" disabled>Break</button>
-			<button id="continueButton" title="Continue script" disabled>Continue</button>
-			<span class="buttonPopoverContainer">
-				<button id="moreButton" class="popoverButton" title="More">More</button>
-				<span id="moreArea" class="popover area flexColumn displayNone">
-					<span id="moreAreaInner" class="area flexColumn displayFlex">
-						<span class="field flexStart">
-							<button id="resetButton" title="Reset CPC">Reset</button>
-						</span>
-						<span class="field flexStart">
-							<button id="screenshotButton" title="Take Screenshot and download">Screenshot</button>
-						</span>
-						<span class="field flexStart">
-							<button id="fullscreenButton" title="Fullscreen mode">Fullscreen</button>
-						</span>
-						<span class="field flexStart">
-							<button id="copyTextButton" title="Copy text to clipboard">Copy</button>
-						</span>
-					</span>
-				</span>
-			</span>
-		</legend>
-		<div id="cpcArea" class="area">
-			<div id="cpcCanvasDiv">
-				<canvas id="cpcCanvas" width="640" height="400" tabindex="0"></canvas>
-			</div>
-			<div id="textCanvasDiv">
-				<textarea readonly id="textText" placeholder="" rows="25" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off" hidden></textarea>
-			</div>
-		</div>	
-	</fieldset>
-	<fieldset class="flexBox clearLeft" id="kbdAreaBox">
-		<legend>
-			<button id="kbdButton" class="legendButton" title="CPC Keyboard">Keyboard</button>
-			<span id="kbdMove" class="kbdMove">Move</span>
-			<span id="kbdLayoutArea">
-				<select id="kbdLayoutSelect" title="Select Keyboard Layout">
-					<option value="alphanum" title="AlphaNum">AlphaNum</option>
-					<option value="alpha" title="Alpha">Alpha</option>
-					<option value="num" title="Numpad">Num</option>
-				</select>
-			</span>
-		</legend>
-		<div id="kbdArea" class="area kbdArea displayNone" tabindex="0">
-			<div id="kbdAlpha" class="area">
-			</div>
-			<div id="kbdNum" class="area">
-			</div>
-		</div>
-	</fieldset>
-	<fieldset class="flexBox clearLeft">
-		<legend>
-			<button id="inp2Button" class="legendButton" title="Alternative way of input">Input</button>
-		</legend>
-		<div id="inp2Area" class="area clearLeft displayNone">
-			<div class="area">
-				<textarea id="inp2Text" placeholder="input" rows="2" cols="40" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
-				<button id="enterButton" title="Send">Send</button>
-			</div>
-			<div class="area clearLeft">
-				<input type="file" id="fileInput" name="files[]" multiple>
-			</div>
-			<div class="area" id="dropZone" title="drop here or on canvas">
-				Drop files here
-			</div>
-		</div>
-	</fieldset>
-	<fieldset class="flexBox clearLeft">
-		<legend>
-			<button id="resultButton" class="legendButton" title="Show/Hide BASIC Console">Console</button>
-		</legend>
-		<div id="resultArea" class="area displayNone">
-			<textarea id="resultText" placeholder="" rows="15" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
-		</div>
-	</fieldset>
-	</fieldset>
 	<a id="screenshotLink"></a>
 <script>
 	var cpcConfig = { // it is possible to override the config in cpcconfig here:

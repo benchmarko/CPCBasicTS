@@ -1795,6 +1795,8 @@ const allTests: AllTestsType = {
 		'"\\   \\","n1","n2"," xx3"': "n1   n2    xx3 ",
 		'"!","a1","b2"': "ab",
 		'"&","a1","b2"': "a1b2",
+		'"&_!_& xy_#","a1"': "a1!& xy#",
+		'"&_!_&_","a1","b2"': "a1!&_b2!&_",
 		"": 'CpcVm: Type mismatch in 0: USING undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 		'""': 'CpcVm: Improper argument in 0: USING format  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 		"3 ": 'CpcVm: Type mismatch in 0: USING 3 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
@@ -1941,6 +1943,8 @@ const allTests: AllTestsType = {
 	}
 };
 
+
+// tests added: USING with escape character "_"
 
 const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [], // eslint-disable-line one-var
 	varTypesMap: Record<string, string> = {},

@@ -449,6 +449,11 @@ cpcBasic.addItem("", function () { /*
 4530 GOSUB 9010:IF a$<>"ab#" THEN ERROR 33
 4540 PRINT USING "&";"a1";"b2";:PRINT"#";
 4550 GOSUB 9010:IF a$<>"a1b2#" THEN ERROR 33
+4551 PRINT"PRINT USING escape character"
+4552 PRINT USING "&_!_& xy_#";"a1";:PRINT"#";
+4553 GOSUB 9010:IF a$<>"a1!& xy#" THEN ERROR 33
+4554 PRINT USING "&_!_&_";"a1";"b2";:PRINT"#";
+4555 GOSUB 9010:IF a$<>"a1!&_b2!&_#" THEN ERROR 33
 4560 'gosub 9040
 4570 '
 4580 PRINT"ROUND"

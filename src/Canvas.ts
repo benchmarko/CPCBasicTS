@@ -637,15 +637,14 @@ export class Canvas implements ICanvas {
 	private invertChar(x: number, y: number, pen: number, paper: number) {
 		const pixelWidth = this.modeData.pixelWidth,
 			pixelHeight = this.modeData.pixelHeight,
-			penXorPaper = pen ^ paper, // eslint-disable-line no-bitwise
-			gColMode = 0;
+			penXorPaper = pen ^ paper; // eslint-disable-line no-bitwise
 
 		for (let row = 0; row < 8; row += 1) {
 			for (let col = 0; col < 8; col += 1) {
 				let testPen = this.testSubPixel(x + col * pixelWidth, y + row * pixelHeight);
 
 				testPen ^= penXorPaper; // eslint-disable-line no-bitwise
-				this.setSubPixels(x + col * pixelWidth, y + row * pixelHeight, testPen, gColMode);
+				this.setSubPixelsNormal(x + col * pixelWidth, y + row * pixelHeight, testPen);
 			}
 		}
 	}
@@ -693,6 +692,26 @@ export class Canvas implements ICanvas {
 		return charData;
 	}
 
+	// set subpixels with normal mode (gColmode=0)
+	private setSubPixelsNormal(x: number, y: number, gPen: number) {
+		const pixelWidth = this.modeData.pixelWidth,
+			pixelHeight = this.modeData.pixelHeight,
+			width = this.width;
+
+		/* eslint-disable no-bitwise */
+		x &= ~(pixelWidth - 1); // match CPC pixel
+		y &= ~(pixelHeight - 1);
+
+		for (let row = 0; row < pixelHeight; row += 1) {
+			const i = x + width * (y + row);
+
+			for (let col = 0; col < pixelWidth; col += 1) {
+				this.dataset8[i + col] = gPen;
+			}
+		}
+		/* eslint-enable no-bitwise */
+	}
+
 	private setSubPixels(x: number, y: number, gPen: number, gColMode: number) {
 		const pixelWidth = this.modeData.pixelWidth,
 			pixelHeight = this.modeData.pixelHeight,
@@ -729,12 +748,17 @@ export class Canvas implements ICanvas {
 		/* eslint-enable no-bitwise */
 	}
 
+	// some rounding needed before applying origin:
+	private static roundCoordinate(cor: number, widthOrHeight: number) {
+		/* eslint-disable no-bitwise */
+		return cor >= 0 ? cor & ~(widthOrHeight - 1) : -(-cor & ~(widthOrHeight - 1));
+		/* eslint-enable no-bitwise */
+	}
+
 	private setPixel(x: number, y: number, gPen: number, gColMode: number) {
 		// some rounding needed before applying origin:
-		/* eslint-disable no-bitwise */
-		x = x >= 0 ? x & ~(this.modeData.pixelWidth - 1) : -(-x & ~(this.modeData.pixelWidth - 1));
-		y = y >= 0 ? y & ~(this.modeData.pixelHeight - 1) : -(-y & ~(this.modeData.pixelHeight - 1));
-		/* eslint-enable no-bitwise */
+		x = Canvas.roundCoordinate(x, this.modeData.pixelWidth);
+		y = Canvas.roundCoordinate(y, this.modeData.pixelHeight);
 
 		x += this.xOrig;
 		y = this.height - 1 - (y + this.yOrig);
@@ -760,10 +784,8 @@ export class Canvas implements ICanvas {
 
 	private testPixel(x: number, y: number) {
 		// some rounding needed before applying origin:
-		/* eslint-disable no-bitwise */
-		x = x >= 0 ? x & ~(this.modeData.pixelWidth - 1) : -(-x & ~(this.modeData.pixelWidth - 1));
-		y = y >= 0 ? y & ~(this.modeData.pixelHeight - 1) : -(-y & ~(this.modeData.pixelHeight - 1));
-		/* eslint-enable no-bitwise */
+		x = Canvas.roundCoordinate(x, this.modeData.pixelWidth);
+		y = Canvas.roundCoordinate(y, this.modeData.pixelHeight);
 
 		x += this.xOrig;
 		y = this.height - 1 - (y + this.yOrig);
@@ -825,32 +847,30 @@ export class Canvas implements ICanvas {
 			pixelWidth = this.modeData.pixelWidth,
 			pixelHeight = this.modeData.pixelHeight,
 			x = ((addr & 0x7ff) % 80) * 8,
-			y = (((addr & 0x3800) / 0x800) + (((addr & 0x7ff) / 80) | 0) * 8) * pixelHeight,
-			gColMode = 0; // always 0
-
+			y = (((addr & 0x3800) / 0x800) + (((addr & 0x7ff) / 80) | 0) * 8) * pixelHeight;
 		let gPen: number;
 
 		if (y < this.height) { // only if in visible range
 			if (mode === 0) {
 				gPen = ((byte << 2) & 0x08) | ((byte >> 3) & 0x04) | ((byte >> 2) & 0x02) | ((byte >> 7) & 0x01); // b1,b5,b3,b7 (left pixel)
-				this.setSubPixels(x, y, gPen, gColMode);
+				this.setSubPixelsNormal(x, y, gPen);
 				gPen = ((byte << 3) & 0x08) | ((byte >> 2) & 0x04) | ((byte >> 1) & 0x02) | ((byte >> 6) & 0x01); // b0,b4,b2,b6 (right pixel)
-				this.setSubPixels(x + pixelWidth, y, gPen, gColMode);
+				this.setSubPixelsNormal(x + pixelWidth, y, gPen);
 				this.setNeedUpdate();
 			} else if (mode === 1) {
 				gPen = ((byte >> 2) & 0x02) | ((byte >> 7) & 0x01); // b3,b7 (left pixel 1)
-				this.setSubPixels(x, y, gPen, gColMode);
+				this.setSubPixelsNormal(x, y, gPen);
 				gPen = ((byte >> 1) & 0x02) | ((byte >> 6) & 0x01); // b2,b6 (pixel 2)
-				this.setSubPixels(x + pixelWidth, y, gPen, gColMode);
+				this.setSubPixelsNormal(x + pixelWidth, y, gPen);
 				gPen = ((byte >> 0) & 0x02) | ((byte >> 5) & 0x01); // b1,b5 (pixel 3)
-				this.setSubPixels(x + pixelWidth * 2, y, gPen, gColMode);
+				this.setSubPixelsNormal(x + pixelWidth * 2, y, gPen);
 				gPen = ((byte << 1) & 0x02) | ((byte >> 4) & 0x01); // b0,b4 (right pixel 4)
-				this.setSubPixels(x + pixelWidth * 3, y, gPen, gColMode);
+				this.setSubPixelsNormal(x + pixelWidth * 3, y, gPen);
 				this.setNeedUpdate();
 			} else if (mode === 2) {
 				for (let i = 0; i <= 7; i += 1) {
 					gPen = (byte >> (7 - i)) & 0x01;
-					this.setSubPixels(x + i * pixelWidth, y, gPen, gColMode);
+					this.setSubPixelsNormal(x + i * pixelWidth, y, gPen);
 				}
 				this.setNeedUpdate();
 			} else { // mode === 3 (not supported)
@@ -871,6 +891,11 @@ export class Canvas implements ICanvas {
 			transparent = this.gTransparent;
 		let maskBit = this.maskBit;
 
+		xstart = Canvas.roundCoordinate(xstart, pixelWidth);
+		ystart = Canvas.roundCoordinate(ystart, pixelHeight);
+		xend = Canvas.roundCoordinate(xend, pixelWidth);
+		yend = Canvas.roundCoordinate(yend, pixelHeight);
+
 		// we have to add origin before modifying coordinates to match CPC pixel
 		xstart += this.xOrig;
 		ystart = this.height - 1 - (ystart + this.yOrig);
@@ -878,18 +903,6 @@ export class Canvas implements ICanvas {
 		yend = this.height - 1 - (yend + this.yOrig);
 
 		/* eslint-disable no-bitwise */
-		if (xend >= xstart) { // line from left to right
-			xend |= (pixelWidth - 1); // match CPC pixel
-		} else { // line from right to left
-			xstart |= (pixelWidth - 1);
-		}
-
-		if (yend >= ystart) { // line from bottom to top
-			yend |= (pixelHeight - 1);
-		} else { // line from top to bottom
-			ystart |= (pixelHeight - 1);
-		}
-
 		let dx = ((xend - xstart) / pixelWidth) | 0,
 			dy = ((yend - ystart) / pixelHeight) | 0;
 		/* eslint-enable no-bitwise */
@@ -1169,7 +1182,7 @@ export class Canvas implements ICanvas {
 
 			p1 = this.testSubPixel(pixel.x, y1);
 			while (y1 <= (this.height - 1 - this.yBottom) && !fnIsStopPen(p1)) {
-				this.setSubPixels(pixel.x, y1, fillPen, 0);
+				this.setSubPixelsNormal(pixel.x, y1, fillPen);
 
 				let x1 = pixel.x - pixelWidth;
 				const p2 = this.testSubPixel(x1, y1);
