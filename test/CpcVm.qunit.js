@@ -1784,6 +1784,8 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             '"\\   \\","n1","n2"," xx3"': "n1   n2    xx3 ",
             '"!","a1","b2"': "ab",
             '"&","a1","b2"': "a1b2",
+            '"&_!_& xy_#","a1"': "a1!& xy#",
+            '"&_!_&_","a1","b2"': "a1!&_b2!&_",
             "": 'CpcVm: Type mismatch in 0: USING undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
             '""': 'CpcVm: Improper argument in 0: USING format  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
             "3 ": 'CpcVm: Type mismatch in 0: USING 3 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
@@ -1929,6 +1931,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             "": 'printChar:91,0,0,1,0,false , printChar:49,1,0,1,0,false , printChar:50,2,0,1,0,false , printChar:51,3,0,1,0,false , printChar:93,4,0,1,0,false -- {"_key":"win0","pos":5}'
         }
     };
+    // tests added: USING with escape character "_"
     var lastTestFunctions = [], // eslint-disable-line one-var
     varTypesMap = {}, variablesMap = {}, mockCanvas = {
         setOnCanvasClick: function () {

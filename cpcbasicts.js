@@ -9582,13 +9582,12 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             }
         };
         Canvas.prototype.invertChar = function (x, y, pen, paper) {
-            var pixelWidth = this.modeData.pixelWidth, pixelHeight = this.modeData.pixelHeight, penXorPaper = pen ^ paper, // eslint-disable-line no-bitwise
-            gColMode = 0;
+            var pixelWidth = this.modeData.pixelWidth, pixelHeight = this.modeData.pixelHeight, penXorPaper = pen ^ paper; // eslint-disable-line no-bitwise
             for (var row = 0; row < 8; row += 1) {
                 for (var col = 0; col < 8; col += 1) {
                     var testPen = this.testSubPixel(x + col * pixelWidth, y + row * pixelHeight);
                     testPen ^= penXorPaper; // eslint-disable-line no-bitwise
-                    this.setSubPixels(x + col * pixelWidth, y + row * pixelHeight, testPen, gColMode);
+                    this.setSubPixelsNormal(x + col * pixelWidth, y + row * pixelHeight, testPen);
                 }
             }
         };
@@ -9623,6 +9622,20 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             }
             return charData;
         };
+        // set subpixels with normal mode (gColmode=0)
+        Canvas.prototype.setSubPixelsNormal = function (x, y, gPen) {
+            var pixelWidth = this.modeData.pixelWidth, pixelHeight = this.modeData.pixelHeight, width = this.width;
+            /* eslint-disable no-bitwise */
+            x &= ~(pixelWidth - 1); // match CPC pixel
+            y &= ~(pixelHeight - 1);
+            for (var row = 0; row < pixelHeight; row += 1) {
+                var i = x + width * (y + row);
+                for (var col = 0; col < pixelWidth; col += 1) {
+                    this.dataset8[i + col] = gPen;
+                }
+            }
+            /* eslint-enable no-bitwise */
+        };
         Canvas.prototype.setSubPixels = function (x, y, gPen, gColMode) {
             var pixelWidth = this.modeData.pixelWidth, pixelHeight = this.modeData.pixelHeight, width = this.width;
             /* eslint-disable no-bitwise */
@@ -9653,12 +9666,16 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             }
             /* eslint-enable no-bitwise */
         };
+        // some rounding needed before applying origin:
+        Canvas.roundCoordinate = function (cor, widthOrHeight) {
+            /* eslint-disable no-bitwise */
+            return cor >= 0 ? cor & ~(widthOrHeight - 1) : -(-cor & ~(widthOrHeight - 1));
+            /* eslint-enable no-bitwise */
+        };
         Canvas.prototype.setPixel = function (x, y, gPen, gColMode) {
             // some rounding needed before applying origin:
-            /* eslint-disable no-bitwise */
-            x = x >= 0 ? x & ~(this.modeData.pixelWidth - 1) : -(-x & ~(this.modeData.pixelWidth - 1));
-            y = y >= 0 ? y & ~(this.modeData.pixelHeight - 1) : -(-y & ~(this.modeData.pixelHeight - 1));
-            /* eslint-enable no-bitwise */
+            x = Canvas.roundCoordinate(x, this.modeData.pixelWidth);
+            y = Canvas.roundCoordinate(y, this.modeData.pixelHeight);
             x += this.xOrig;
             y = this.height - 1 - (y + this.yOrig);
             if (x < this.xLeft || x > this.xRight || y < (this.height - 1 - this.yTop) || y > (this.height - 1 - this.yBottom)) {
@@ -9678,10 +9695,8 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         };
         Canvas.prototype.testPixel = function (x, y) {
             // some rounding needed before applying origin:
-            /* eslint-disable no-bitwise */
-            x = x >= 0 ? x & ~(this.modeData.pixelWidth - 1) : -(-x & ~(this.modeData.pixelWidth - 1));
-            y = y >= 0 ? y & ~(this.modeData.pixelHeight - 1) : -(-y & ~(this.modeData.pixelHeight - 1));
-            /* eslint-enable no-bitwise */
+            x = Canvas.roundCoordinate(x, this.modeData.pixelWidth);
+            y = Canvas.roundCoordinate(y, this.modeData.pixelHeight);
             x += this.xOrig;
             y = this.height - 1 - (y + this.yOrig);
             if (x < this.xLeft || x > this.xRight || y < (this.height - 1 - this.yTop) || y > (this.height - 1 - this.yBottom)) {
@@ -9728,31 +9743,31 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         };
         Canvas.prototype.setByte = function (addr, byte) {
             /* eslint-disable no-bitwise */
-            var mode = this.mode, pixelWidth = this.modeData.pixelWidth, pixelHeight = this.modeData.pixelHeight, x = ((addr & 0x7ff) % 80) * 8, y = (((addr & 0x3800) / 0x800) + (((addr & 0x7ff) / 80) | 0) * 8) * pixelHeight, gColMode = 0; // always 0
+            var mode = this.mode, pixelWidth = this.modeData.pixelWidth, pixelHeight = this.modeData.pixelHeight, x = ((addr & 0x7ff) % 80) * 8, y = (((addr & 0x3800) / 0x800) + (((addr & 0x7ff) / 80) | 0) * 8) * pixelHeight;
             var gPen;
             if (y < this.height) { // only if in visible range
                 if (mode === 0) {
                     gPen = ((byte << 2) & 0x08) | ((byte >> 3) & 0x04) | ((byte >> 2) & 0x02) | ((byte >> 7) & 0x01); // b1,b5,b3,b7 (left pixel)
-                    this.setSubPixels(x, y, gPen, gColMode);
+                    this.setSubPixelsNormal(x, y, gPen);
                     gPen = ((byte << 3) & 0x08) | ((byte >> 2) & 0x04) | ((byte >> 1) & 0x02) | ((byte >> 6) & 0x01); // b0,b4,b2,b6 (right pixel)
-                    this.setSubPixels(x + pixelWidth, y, gPen, gColMode);
+                    this.setSubPixelsNormal(x + pixelWidth, y, gPen);
                     this.setNeedUpdate();
                 }
                 else if (mode === 1) {
                     gPen = ((byte >> 2) & 0x02) | ((byte >> 7) & 0x01); // b3,b7 (left pixel 1)
-                    this.setSubPixels(x, y, gPen, gColMode);
+                    this.setSubPixelsNormal(x, y, gPen);
                     gPen = ((byte >> 1) & 0x02) | ((byte >> 6) & 0x01); // b2,b6 (pixel 2)
-                    this.setSubPixels(x + pixelWidth, y, gPen, gColMode);
+                    this.setSubPixelsNormal(x + pixelWidth, y, gPen);
                     gPen = ((byte >> 0) & 0x02) | ((byte >> 5) & 0x01); // b1,b5 (pixel 3)
-                    this.setSubPixels(x + pixelWidth * 2, y, gPen, gColMode);
+                    this.setSubPixelsNormal(x + pixelWidth * 2, y, gPen);
                     gPen = ((byte << 1) & 0x02) | ((byte >> 4) & 0x01); // b0,b4 (right pixel 4)
-                    this.setSubPixels(x + pixelWidth * 3, y, gPen, gColMode);
+                    this.setSubPixelsNormal(x + pixelWidth * 3, y, gPen);
                     this.setNeedUpdate();
                 }
                 else if (mode === 2) {
                     for (var i = 0; i <= 7; i += 1) {
                         gPen = (byte >> (7 - i)) & 0x01;
-                        this.setSubPixels(x + i * pixelWidth, y, gPen, gColMode);
+                        this.setSubPixelsNormal(x + i * pixelWidth, y, gPen);
                     }
                     this.setNeedUpdate();
                 }
@@ -9765,24 +9780,16 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         Canvas.prototype.drawBresenhamLine = function (xstart, ystart, xend, yend) {
             var pixelWidth = this.modeData.pixelWidth, pixelHeight = this.modeData.pixelHeight, gPen = this.gPen, gPaper = this.gPaper, mask = this.mask, maskFirst = this.maskFirst, gColMode = this.gColMode, transparent = this.gTransparent;
             var maskBit = this.maskBit;
+            xstart = Canvas.roundCoordinate(xstart, pixelWidth);
+            ystart = Canvas.roundCoordinate(ystart, pixelHeight);
+            xend = Canvas.roundCoordinate(xend, pixelWidth);
+            yend = Canvas.roundCoordinate(yend, pixelHeight);
             // we have to add origin before modifying coordinates to match CPC pixel
             xstart += this.xOrig;
             ystart = this.height - 1 - (ystart + this.yOrig);
             xend += this.xOrig;
             yend = this.height - 1 - (yend + this.yOrig);
             /* eslint-disable no-bitwise */
-            if (xend >= xstart) { // line from left to right
-                xend |= (pixelWidth - 1); // match CPC pixel
-            }
-            else { // line from right to left
-                xstart |= (pixelWidth - 1);
-            }
-            if (yend >= ystart) { // line from bottom to top
-                yend |= (pixelHeight - 1);
-            }
-            else { // line from top to bottom
-                ystart |= (pixelHeight - 1);
-            }
             var dx = ((xend - xstart) / pixelWidth) | 0, dy = ((yend - ystart) / pixelHeight) | 0;
             /* eslint-enable no-bitwise */
             var incx = Math.sign(dx) * pixelWidth, incy = Math.sign(dy) * pixelHeight;
@@ -9990,7 +9997,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
                 var spanLeft = false, spanRight = false;
                 p1 = this.testSubPixel(pixel.x, y1);
                 while (y1 <= (this.height - 1 - this.yBottom) && !fnIsStopPen(p1)) {
-                    this.setSubPixels(pixel.x, y1, fillPen, 0);
+                    this.setSubPixelsNormal(pixel.x, y1, fillPen);
                     var x1 = pixel.x - pixelWidth;
                     var p2 = this.testSubPixel(x1, y1);
                     if (!spanLeft && x1 >= this.xLeft && !fnIsStopPen(p2)) {
@@ -10686,17 +10693,10 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
             // https://nodejs.dev/learn/accept-input-from-the-command-line-in-nodejs
             // readline?
             var controller = nodeExports.Controller;
-            /*
-            controller.prototype.startWithDirectInput = () => {
-                this.stopUpdateCanvas();
-                Utils.console.log("We are ready.");
-            };
-            */
             controller.prototype.startWithDirectInput = function () {
                 this.stopUpdateCanvas();
                 Utils_16.Utils.console.log("We are ready.");
             };
-            //
             function isUrl(s) {
                 return s.startsWith("http"); // http or https
             }
@@ -15168,17 +15168,38 @@ define("CpcVm", ["require", "exports", "Utils", "Random"], function (require, ex
             for (var _i = 1; _i < arguments.length; _i++) {
                 args[_i - 1] = arguments[_i];
             }
-            var reFormat = /(!|&|\\ *\\|(?:\*\*|\$\$|\*\*\$)?\+?(?:#|,)+\.?#*(?:\^\^\^\^)?[+-]?)/g, formatList = [];
+            var reFormat = /(_|!|&|\\ *\\|(?:\*\*|\$\$|\*\*\$)?\+?(?:#|,)+\.?#*(?:\^\^\^\^)?[+-]?)/g, formatList = [];
             this.vmAssertString(format, "USING");
             // We simulate format.split(reFormat) here since it does not work with IE8
             var index = 0, match;
             while ((match = reFormat.exec(format)) !== null) {
-                formatList.push(format.substring(index, match.index)); // non-format characters at the beginning
-                formatList.push(match[0]);
-                index = match.index + match[0].length;
+                var nonFormChars = format.substring(index, match.index); // non-format characters at the beginning
+                if (match[0] === "_") { // underscore "_" is escape character
+                    nonFormChars += format.charAt(match.index + 1) || "_"; // add escaped character
+                }
+                if (formatList.length % 2) { // odd?
+                    formatList[formatList.length - 1] += nonFormChars;
+                }
+                else {
+                    formatList.push(nonFormChars);
+                }
+                if (match[0] === "_") { // underscore "_" is escape character
+                    reFormat.lastIndex += 1;
+                    index = reFormat.lastIndex;
+                }
+                else {
+                    formatList.push(match[0]);
+                    index = match.index + match[0].length;
+                }
             }
             if (index < format.length) { // non-format characters at the end
-                formatList.push(format.substring(index));
+                var nonFormCharsEnd = format.substring(index);
+                if (formatList.length % 2) { // odd?
+                    formatList[formatList.length - 1] += nonFormCharsEnd;
+                }
+                else {
+                    formatList.push(nonFormCharsEnd);
+                }
             }
             if (formatList.length < 2) {
                 if (!this.quiet) {

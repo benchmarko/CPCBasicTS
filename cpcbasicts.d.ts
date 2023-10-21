@@ -1072,7 +1072,9 @@ declare module "Canvas" {
         private invertChar;
         private setChar;
         private readCharData;
+        private setSubPixelsNormal;
         private setSubPixels;
+        private static roundCoordinate;
         private setPixel;
         private setPixelOriginIncluded;
         private testSubPixel;

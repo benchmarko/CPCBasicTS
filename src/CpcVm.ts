@@ -3989,7 +3989,7 @@ export class CpcVm {
 	}
 
 	using(format: string, ...args: (string | number)[]): string { // varargs
-		const reFormat = /(!|&|\\ *\\|(?:\*\*|\$\$|\*\*\$)?\+?(?:#|,)+\.?#*(?:\^\^\^\^)?[+-]?)/g,
+		const reFormat = /(_|!|&|\\ *\\|(?:\*\*|\$\$|\*\*\$)?\+?(?:#|,)+\.?#*(?:\^\^\^\^)?[+-]?)/g,
 			formatList: string[] = [];
 
 		this.vmAssertString(format, "USING");
@@ -3999,12 +3999,34 @@ export class CpcVm {
 			match: RegExpExecArray | null;
 
 		while ((match = reFormat.exec(format)) !== null) {
-			formatList.push(format.substring(index, match.index)); // non-format characters at the beginning
-			formatList.push(match[0]);
-			index = match.index + match[0].length;
+			let nonFormChars = format.substring(index, match.index); // non-format characters at the beginning
+
+			if (match[0] === "_") { // underscore "_" is escape character
+				nonFormChars += format.charAt(match.index + 1) || "_"; // add escaped character
+			}
+
+			if (formatList.length % 2) { // odd?
+				formatList[formatList.length - 1] += nonFormChars;
+			} else {
+				formatList.push(nonFormChars);
+			}
+
+			if (match[0] === "_") { // underscore "_" is escape character
+				reFormat.lastIndex += 1;
+				index = reFormat.lastIndex;
+			} else {
+				formatList.push(match[0]);
+				index = match.index + match[0].length;
+			}
 		}
 		if (index < format.length) { // non-format characters at the end
-			formatList.push(format.substring(index));
+			const nonFormCharsEnd = format.substring(index);
+
+			if (formatList.length % 2) { // odd?
+				formatList[formatList.length - 1] += nonFormCharsEnd;
+			} else {
+				formatList.push(nonFormCharsEnd);
+			}
 		}
 
 		if (formatList.length < 2) {

@@ -3149,17 +3149,38 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             for (var _i = 1; _i < arguments.length; _i++) {
                 args[_i - 1] = arguments[_i];
             }
-            var reFormat = /(!|&|\\ *\\|(?:\*\*|\$\$|\*\*\$)?\+?(?:#|,)+\.?#*(?:\^\^\^\^)?[+-]?)/g, formatList = [];
+            var reFormat = /(_|!|&|\\ *\\|(?:\*\*|\$\$|\*\*\$)?\+?(?:#|,)+\.?#*(?:\^\^\^\^)?[+-]?)/g, formatList = [];
             this.vmAssertString(format, "USING");
             // We simulate format.split(reFormat) here since it does not work with IE8
             var index = 0, match;
             while ((match = reFormat.exec(format)) !== null) {
-                formatList.push(format.substring(index, match.index)); // non-format characters at the beginning
-                formatList.push(match[0]);
-                index = match.index + match[0].length;
+                var nonFormChars = format.substring(index, match.index); // non-format characters at the beginning
+                if (match[0] === "_") { // underscore "_" is escape character
+                    nonFormChars += format.charAt(match.index + 1) || "_"; // add escaped character
+                }
+                if (formatList.length % 2) { // odd?
+                    formatList[formatList.length - 1] += nonFormChars;
+                }
+                else {
+                    formatList.push(nonFormChars);
+                }
+                if (match[0] === "_") { // underscore "_" is escape character
+                    reFormat.lastIndex += 1;
+                    index = reFormat.lastIndex;
+                }
+                else {
+                    formatList.push(match[0]);
+                    index = match.index + match[0].length;
+                }
             }
             if (index < format.length) { // non-format characters at the end
-                formatList.push(format.substring(index));
+                var nonFormCharsEnd = format.substring(index);
+                if (formatList.length % 2) { // odd?
+                    formatList[formatList.length - 1] += nonFormCharsEnd;
+                }
+                else {
+                    formatList.push(nonFormCharsEnd);
+                }
             }
             if (formatList.length < 2) {
                 if (!this.quiet) {

@@ -97,17 +97,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             // https://nodejs.dev/learn/accept-input-from-the-command-line-in-nodejs
             // readline?
             var controller = nodeExports.Controller;
-            /*
-            controller.prototype.startWithDirectInput = () => {
-                this.stopUpdateCanvas();
-                Utils.console.log("We are ready.");
-            };
-            */
             controller.prototype.startWithDirectInput = function () {
                 this.stopUpdateCanvas();
                 Utils_1.Utils.console.log("We are ready.");
             };
-            //
             function isUrl(s) {
                 return s.startsWith("http"); // http or https
             }
