@@ -698,26 +698,26 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             "zone 13+n": " o.zone(13 + v.nR);"
         },
         rsx: {
-            "|a": ' o.rsx.a(); o.vmGoto("directs0"); break;\ncase "directs0":',
-            "|b": ' o.rsx.b(); o.vmGoto("directs0"); break;\ncase "directs0":',
-            "|basic": ' o.rsx.basic(); o.vmGoto("directs0"); break;\ncase "directs0":',
-            "|cpm": ' o.rsx.cpm(); o.vmGoto("directs0"); break;\ncase "directs0":',
-            'a$="*.drw":|dir,@a$': ' v.a$ = "*.drw"; o.rsx.dir(o.addressOf("a$")); o.vmGoto("directs0"); break;\ncase "directs0":',
-            "|disc": ' o.rsx.disc(); o.vmGoto("directs0"); break;\ncase "directs0":',
-            "|disc.in": ' o.rsx.disc_in(); o.vmGoto("directs0"); break;\ncase "directs0":',
-            "|disc.out": ' o.rsx.disc_out(); o.vmGoto("directs0"); break;\ncase "directs0":',
-            "|drive,0": ' o.rsx.drive(0); o.vmGoto("directs0"); break;\ncase "directs0":',
+            "|a": ' o.callRsx("a"); o.vmGoto("directs0"); break;\ncase "directs0":',
+            "|b": ' o.callRsx("b"); o.vmGoto("directs0"); break;\ncase "directs0":',
+            "|basic": ' o.callRsx("basic"); o.vmGoto("directs0"); break;\ncase "directs0":',
+            "|cpm": ' o.callRsx("cpm"); o.vmGoto("directs0"); break;\ncase "directs0":',
+            'a$="*.drw":|dir,@a$': ' v.a$ = "*.drw"; o.callRsx("dir", o.addressOf("a$")); o.vmGoto("directs0"); break;\ncase "directs0":',
+            "|disc": ' o.callRsx("disc"); o.vmGoto("directs0"); break;\ncase "directs0":',
+            "|disc.in": ' o.callRsx("disc.in"); o.vmGoto("directs0"); break;\ncase "directs0":',
+            "|disc.out": ' o.callRsx("disc.out"); o.vmGoto("directs0"); break;\ncase "directs0":',
+            "|drive,0": ' o.callRsx("drive", 0); o.vmGoto("directs0"); break;\ncase "directs0":',
             "1 |drive,": "BasicParser: Expected any parameter for , in 1 at pos 9: ",
             "1 |drive,#1": "BasicParser: Unexpected stream in 1 at pos 9-10: #",
-            '|era,"file.bas"': ' o.rsx.era("file.bas"); o.vmGoto("directs0"); break;\ncase "directs0":',
-            '|ren,"file1.bas","file2.bas"': ' o.rsx.ren("file1.bas", "file2.bas"); o.vmGoto("directs0"); break;\ncase "directs0":',
-            "|tape": ' o.rsx.tape(); o.vmGoto("directs0"); break;\ncase "directs0":',
-            "|tape.in": ' o.rsx.tape_in(); o.vmGoto("directs0"); break;\ncase "directs0":',
-            "|tape.out": ' o.rsx.tape_out(); o.vmGoto("directs0"); break;\ncase "directs0":',
-            "|user,1": ' o.rsx.user(1); o.vmGoto("directs0"); break;\ncase "directs0":',
-            "|mode,3": ' o.rsx.mode(3); o.vmGoto("directs0"); break;\ncase "directs0":',
-            "|renum,1,2,3,4": ' o.rsx.renum(1, 2, 3, 4); o.vmGoto("directs0"); break;\ncase "directs0":',
-            "|": ' o.rsx.rsxExec(""); o.vmGoto("directs0"); break;\ncase "directs0":'
+            '|era,"file.bas"': ' o.callRsx("era", "file.bas"); o.vmGoto("directs0"); break;\ncase "directs0":',
+            '|ren,"file1.bas","file2.bas"': ' o.callRsx("ren", "file1.bas", "file2.bas"); o.vmGoto("directs0"); break;\ncase "directs0":',
+            "|tape": ' o.callRsx("tape"); o.vmGoto("directs0"); break;\ncase "directs0":',
+            "|tape.in": ' o.callRsx("tape.in"); o.vmGoto("directs0"); break;\ncase "directs0":',
+            "|tape.out": ' o.callRsx("tape.out"); o.vmGoto("directs0"); break;\ncase "directs0":',
+            "|user,1": ' o.callRsx("user", 1); o.vmGoto("directs0"); break;\ncase "directs0":',
+            "|mode,3": ' o.callRsx("mode", 3); o.vmGoto("directs0"); break;\ncase "directs0":',
+            "|renum,1,2,3,4": ' o.callRsx("renum", 1, 2, 3, 4); o.vmGoto("directs0"); break;\ncase "directs0":',
+            "|": ' o.callRsx(""); o.vmGoto("directs0"); break;\ncase "directs0":'
         },
         keepSpaces: {
             ' 1  chain   merge  "f5"': ' o.chainMerge("f5"); o.vmGoto("1s0"); break;\ncase "1s0":',
@@ -755,11 +755,13 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
                 quiet: true
             }),
             trace: false,
+            /*
             rsx: {
-                rsxIsAvailable: function (rsx) {
+                rsxIsAvailable: function (rsx: string) { // not needed to suppress warnings when using quiet
                     return (/^a|b|basic|cpm|dir|disc|disc\.in|disc\.out|drive|era|ren|tape|tape\.in|tape\.out|user|mode|renum$/).test(rsx);
                 }
-            },
+            }, // ICpcVmRsx
+            */
             noCodeFrame: true
         });
     }

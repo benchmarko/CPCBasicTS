@@ -5,6 +5,7 @@
 define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model", "./View", "./NodeAdapt"], function (require, exports, Utils_1, Controller_1, cpcconfig_1, Model_1, View_1, NodeAdapt_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
+    //type RsxConstructorType = new () => ICpcVmRsx;
     var cpcBasic = /** @class */ (function () {
         function cpcBasic() {
         }
@@ -23,6 +24,49 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
             var inputString = (typeof input !== "string") ? this.fnHereDoc(input) : input;
             return cpcBasic.controller.addItem(key, inputString);
         };
+        cpcBasic.addRsx = function (key, RsxConstructor) {
+            //return cpcBasic.controller.registerRsx(key, new RsxConstructor());
+            return cpcBasic.controller.addRsx(key, RsxConstructor);
+        };
+        /*
+        //TTT
+        static testRsx1() {
+            const Class1 = function () {
+                return {
+                    getRsxCommands: function () {
+                        return {
+                            stop: function () {
+                                this.vmStop("stop", 60);
+                            }
+                        };
+                    }
+                };
+            } as RsxConstructorType;
+    
+            this.registerRsx("test1", Class1); // howto?
+        }
+        */
+        /*
+        //TTT
+        static testRsx1() {
+            const c1 = function () {
+                function Class1() {
+                    // empty
+                }
+                Class1.getRsxCommands = function () {
+                    return {
+                        stop: function () {
+                            this.vmStop("stop", 60);
+                        }
+                    };
+                };
+    
+                return c1;
+            };
+    
+            this.registerRsx("test1", c1 as RsxConstructorType); // howto?
+        }
+        */
         // can be used for nodeJS
         cpcBasic.fnParseArgs = function (args, config) {
             for (var i = 0; i < args.length; i += 1) {

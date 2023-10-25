@@ -1,5 +1,5 @@
 import { CustomError } from "./Utils";
-import { ICanvas, ICpcVmRsx } from "./Interfaces";
+import { ICpcVm, ICanvas, VariableValue, VmStopParas, ICpcVmRsx } from "./Interfaces";
 import { Keyboard } from "./Keyboard";
 import { Sound, SoundData } from "./Sound";
 import { Variables, VariableMap, VariableTypeMap } from "./Variables";
@@ -65,34 +65,6 @@ interface TimerEntry {
     stackIndexReturn: number;
     savedPriority: number;
 }
-export interface VmBaseParas {
-    command: string;
-    stream: number;
-    line: string | number;
-}
-export interface VmLineParas extends VmBaseParas {
-    first?: number;
-    last?: number;
-}
-export interface VmLineRenumParas extends VmBaseParas {
-    newLine?: number;
-    oldLine?: number;
-    step?: number;
-    keep?: number;
-}
-export interface VmFileParas extends VmBaseParas {
-    fileMask?: string;
-    newName?: string;
-    oldName?: string;
-}
-export interface VmInputParas extends VmBaseParas {
-    input: string;
-    message: string;
-    noCRLF?: string;
-    types?: string[];
-    fnInputCallback: () => boolean;
-}
-export declare type VmStopParas = VmFileParas | VmInputParas | VmLineParas | VmLineRenumParas;
 export interface VmStopEntry {
     reason: string;
     priority: number;
@@ -104,7 +76,7 @@ declare type PrintObjectType = {
 };
 declare type DataEntryType = (string | undefined);
 declare type LoadHandlerType = (input: string, meta: FileMeta) => boolean;
-export declare class CpcVm {
+export declare class CpcVm implements ICpcVm {
     private quiet;
     private readonly onClickKey?;
     private readonly fnOpeninHandler;
@@ -166,7 +138,7 @@ export declare class CpcVm {
     private timerPriority;
     private zoneValue;
     private modeValue;
-    rsx?: ICpcVmRsx;
+    private readonly rsx;
     private static readonly frameTimeMs;
     private static readonly timerCount;
     private static readonly sqTimerCount;
@@ -181,7 +153,6 @@ export declare class CpcVm {
     private static readonly stopPriority;
     getOptions(): CpcVmOptions;
     constructor(options: CpcVmOptions);
-    vmSetRsxClass(rsx: ICpcVmRsx): void;
     vmReset(): void;
     vmResetMemory(): void;
     vmResetRandom(): void;
@@ -197,8 +168,10 @@ export declare class CpcVm {
     setCanvas(canvas: ICanvas): ICanvas;
     vmGetLoadHandler(): LoadHandlerType;
     private onCanvasClickCallback;
+    vmRegisterRsx(rsxModule: ICpcVmRsx, permanent: boolean): void;
     vmGetAllVariables(): VariableMap;
     vmGetAllVarTypes(): VariableTypeMap;
+    vmGetVariableByIndex(index: number): VariableValue;
     vmSetStartLine(line: number): void;
     vmSetLabels(labels: string[]): void;
     vmOnBreakContSet(): boolean;
@@ -258,6 +231,7 @@ export declare class CpcVm {
     private vmPutKeyInBuffer;
     private updateColorsImmediately;
     call(addr: number, ...args: (string | number)[]): void;
+    callRsx(name: string, ...args: (string | number)[]): void;
     cat(): void;
     chain(name: string, line?: number, first?: number, last?: number): void;
     chainMerge(name: string, line?: number, first?: number, last?: number): void;

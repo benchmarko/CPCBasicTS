@@ -144,7 +144,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.options = {
                 lexer: options.lexer,
                 parser: options.parser,
-                rsx: options.rsx,
+                //rsx: options.rsx,
                 quiet: false
             };
             this.setOptions(options); // optional options
@@ -525,18 +525,30 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             node.pv = node.type;
         };
         CodeGeneratorJs.prototype.vertical = function (node) {
-            var rsxName = node.value.substring(1).toLowerCase().replace(/\./g, "_");
-            var rsxAvailable = this.options.rsx && this.options.rsx.rsxIsAvailable(rsxName), nodeArgs = this.fnParseArgs(node.args), label = this.fnGetStopLabel();
+            var rsxName = node.value.substring(1).toLowerCase(), nodeArgs = this.fnParseArgs(node.args), label = this.fnGetStopLabel();
+            nodeArgs.unshift('"' + rsxName + '"'); // put as first arg
+            node.pv = "o.callRsx(" + nodeArgs.join(", ") + "); o.vmGoto(\"" + label + "\"); break;\ncase \"" + label + "\":"; // most RSX commands need goto (era, ren,...)
+        };
+        /*
+        private vertical(node: CodeNode) { // "|" rsx
+            let rsxName = node.value.substring(1).toLowerCase().replace(/\./g, "_");
+            const rsxAvailable = this.options.rsx && this.options.rsx.rsxIsAvailable(rsxName),
+                nodeArgs = this.fnParseArgs(node.args),
+                label = this.fnGetStopLabel();
+    
             if (!rsxAvailable) { // if RSX not available, we delay the error until it is executed (or catched by on error goto)
                 if (!this.options.quiet) {
-                    var error = this.composeError(Error(), "Unknown RSX command", node.value, node.pos);
-                    Utils_1.Utils.console.warn(error);
+                    const error = this.composeError(Error(), "Unknown RSX command", node.value, node.pos);
+    
+                    Utils.console.warn(error);
                 }
                 nodeArgs.unshift('"' + rsxName + '"'); // put as first arg
                 rsxName = "rsxExec"; // and call special handler which triggers error if not available
             }
+    
             node.pv = "o.rsx." + rsxName + "(" + nodeArgs.join(", ") + "); o.vmGoto(\"" + label + "\"); break;\ncase \"" + label + "\":"; // most RSX commands need goto (era, ren,...)
-        };
+        }
+        */
         CodeGeneratorJs.number = function (node) {
             node.pt = (/^\d+$/).test(node.value) ? "I" : "R";
             node.pv = node.value;

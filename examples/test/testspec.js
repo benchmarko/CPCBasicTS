@@ -3,7 +3,7 @@
 "use strict";
 
 cpcBasic.addItem("", function () { /*
-100 REM Test Special TS
+100 REM testspec - Test Special TS
 110 REM Marco Vieth, 2023
 120 '
 130 ' Special tests which do not work with nodeJS

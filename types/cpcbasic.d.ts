@@ -1,4 +1,5 @@
 import { ConfigType } from "./Model";
+import { ICpcVmRsx } from "./Interfaces";
 declare class cpcBasic {
     private static readonly config;
     private static model;
@@ -7,6 +8,7 @@ declare class cpcBasic {
     private static fnHereDoc;
     static addIndex(dir: string, input: string | (() => void)): void;
     static addItem(key: string, input: string | (() => void)): string;
+    static addRsx(key: string, RsxConstructor: new () => ICpcVmRsx): string;
     private static fnParseArgs;
     private static fnDecodeUri;
     private static fnParseUri;

@@ -3,6 +3,7 @@
 // https://benchmarko.github.io/CPCBasicTS/
 
 import { Utils } from "./Utils";
+import { ICpcVmRsx } from "./Interfaces";
 
 export type ConfigEntryType = string | number | boolean;
 
@@ -21,6 +22,7 @@ export interface ExampleEntry {
 	title: string
 	meta: string // D=data
 	script?: string
+	rsx?: ICpcVmRsx
 	loaded?: boolean
 }
 

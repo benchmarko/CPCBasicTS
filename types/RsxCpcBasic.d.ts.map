@@ -1,0 +1,1 @@
+{"version":3,"file":"RsxCpcBasic.d.ts","sourceRoot":"./src/","sources":["RsxCpcBasic.ts"],"names":[],"mappings":"AAMA,OAAO,EAAE,SAAS,EAAU,cAAc,EAAE,MAAM,cAAc,CAAC;AAEjE,qBAAa,WAAY,YAAW,SAAS;IAC5C,OAAO,CAAC,MAAM,CAAC,QAAQ,CAAC,WAAW,CAYlC;IAED,cAAc,IAAI,MAAM,CAAC,MAAM,EAAE,cAAc,CAAC;CAGhD"}

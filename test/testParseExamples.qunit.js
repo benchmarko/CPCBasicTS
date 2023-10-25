@@ -90,18 +90,21 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
             for (var key in keywords) {
                 _loop_1(key);
             }
-            var rsx = vmMock.rsx, rsxKeysString = "a|b|basic|cpm|dir|disc|disc.in|disc.out|drive|era|ren|tape|tape.in|tape.out|user|mode|renum", rsxKeysList = rsxKeysString.split("|");
-            var _loop_2 = function (i) {
-                var key = rsxKeysList[i];
-                if (!rsx[key]) {
-                    rsx[key] = function () {
+            /*
+            const rsx = vmMock.rsx,
+                rsxKeysString = "a|b|basic|cpm|dir|disc|disc.in|disc.out|drive|era|ren|tape|tape.in|tape.out|user|mode|renum",
+                rsxKeysList = rsxKeysString.split("|");
+    
+            for (let i = 0; i < rsxKeysList.length; i += 1) {
+                const key = rsxKeysList[i];
+    
+                if (!(rsx as any)[key]) {
+                    (rsx as any)[key] = function () {
                         return key;
                     };
                 }
-            };
-            for (var i = 0; i < rsxKeysList.length; i += 1) {
-                _loop_2(i);
             }
+            */
         };
         cpcBasic.initDatabases = function () {
             var model = cpcBasic.model, databases = {}, databaseDirs = model.getProperty("databaseDirs").split(","), databaseNames = [];
@@ -155,15 +158,31 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
             }
             return this.addItem2(key, input);
         };
+        cpcBasic.addRsx = function (key, RsxConstructor) {
+            var rsx = new RsxConstructor();
+            if (!key) { // maybe ""
+                key = cpcBasic.model.getProperty("example");
+            }
+            var example = cpcBasic.model.getExample(key);
+            example.key = key; // maybe changed
+            example.rsx = rsx;
+            example.loaded = true;
+            var commands = rsx.getRsxCommands();
+            if (Utils_1.Utils.debug > 0) {
+                Utils_1.Utils.console.debug("addRsx: commands.length:", commands.length);
+            }
+        };
         cpcBasic.baseDir = "../"; // base test directory (relative to dist)
         cpcBasic.dataBaseDirOrUrl = "";
         cpcBasic.model = createModel();
-        cpcBasic.rsx = {
-            rsxIsAvailable: function (rsx) {
+        /*
+        static rsx: ICpcVmRsx = {
+            rsxIsAvailable: function (rsx: string): boolean { // not needed to suppress warnings when using quiet
                 return (/^a|b|basic|cpm|dir|disc|disc\.in|disc\.out|drive|era|ren|tape|tape\.in|tape\.out|user|mode|renum$/).test(rsx);
             }
             // will be programmatically extended by methods...
         };
+        */
         cpcBasic.lexer = new BasicLexer_1.BasicLexer({
             keywords: BasicParser_1.BasicParser.keywords,
             keepWhiteSpace: true,
@@ -183,15 +202,15 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
             lexer: cpcBasic.lexer,
             parser: cpcBasic.parser,
             trace: false,
-            quiet: true,
-            rsx: cpcBasic.rsx
+            quiet: true
+            //rsx: cpcBasic.rsx
         });
         cpcBasic.codeGeneratorToken = new CodeGeneratorToken_1.CodeGeneratorToken({
             lexer: cpcBasic.lexer,
             parser: cpcBasic.convertParser
         });
         cpcBasic.vmMock = {
-            rsx: cpcBasic.rsx,
+            //rsx: cpcBasic.rsx,
             line: "",
             testVariables1: new Variables_1.Variables(),
             testStepCounter1: 0,
@@ -232,6 +251,9 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
             },
             addressOf: function (variable) {
                 return cpcBasic.vmMock.testVariables1.getVariableIndex(variable);
+            },
+            callRsx: function () {
+                // empty
             },
             dim: function (varName) {
                 var dimensions = [];

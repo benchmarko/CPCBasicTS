@@ -3,9 +3,6 @@ export interface IOutput {
     text: string;
     error?: CustomError;
 }
-export interface ICpcVmRsx {
-    rsxIsAvailable: (name: string) => boolean;
-}
 export declare type CanvasClickType = (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
 export declare type CanvasCharType = number[];
 export declare type CanvasCharsetType = CanvasCharType[];
@@ -67,7 +64,50 @@ export interface ICanvas {
     takeScreenShot(): string;
     getCanvasElement(): HTMLElement | undefined;
 }
+export interface VmBaseParas {
+    command: string;
+    stream: number;
+    line: string | number;
+}
+export interface VmLineParas extends VmBaseParas {
+    first?: number;
+    last?: number;
+}
+export interface VmLineRenumParas extends VmBaseParas {
+    newLine?: number;
+    oldLine?: number;
+    step?: number;
+    keep?: number;
+}
+export interface VmFileParas extends VmBaseParas {
+    fileMask?: string;
+    newName?: string;
+    oldName?: string;
+}
+export interface VmInputParas extends VmBaseParas {
+    input: string;
+    message: string;
+    noCRLF?: string;
+    types?: string[];
+    fnInputCallback: () => boolean;
+}
+export declare type VmStopParas = VmFileParas | VmInputParas | VmLineParas | VmLineRenumParas;
 export declare type VariableValue = string | number | Function | [] | VariableValue[];
+export interface ICpcVm {
+    line: string | number;
+    vmComposeError(error: Error, err: number, errInfo: string): CustomError;
+    vmStop(reason: string, priority: number, force?: boolean, paras?: VmStopParas): void;
+    vmInRangeRound(n: number | undefined, min: number, max: number, err: string): number;
+    vmAdaptFilename(name: string, err: string): string;
+    vmGetVariableByIndex(index: number): VariableValue;
+    vmChangeMode(mode: number): void;
+    renum(newLine: number, oldLine: number, step: number, keep: number): void;
+    vmNotImplemented(name: string): void;
+}
+export declare type RsxCommandType = (this: ICpcVm, ...args: (string | number)[]) => void;
+export interface ICpcVmRsx {
+    getRsxCommands: () => Record<string, RsxCommandType>;
+}
 export interface IController {
     toggleAreaHidden: (id: string) => boolean;
     startParse: () => void;

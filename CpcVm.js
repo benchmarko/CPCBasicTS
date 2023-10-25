@@ -2,7 +2,16 @@
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define(["require", "exports", "./Utils", "./Random"], function (require, exports, Utils_1, Random_1) {
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
+};
+define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (require, exports, Utils_1, Random_1, CpcVmRsx_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CpcVm = void 0;
@@ -44,6 +53,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.timerPriority = -1; // priority of running task: -1=low (min priority to start new timers)
             this.zoneValue = 13; // print tab zone value
             this.modeValue = -1;
+            this.rsx = new CpcVmRsx_1.CpcVmRsx();
             /* eslint-disable no-invalid-this */
             this.vmInternal = {
                 getTimerList: this.vmTestGetTimerList,
@@ -141,9 +151,11 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                 quiet: this.quiet
             };
         };
-        CpcVm.prototype.vmSetRsxClass = function (rsx) {
+        /*
+        vmSetRsxClass(rsx: ICpcVmRsx): void {
             this.rsx = rsx; // this.rsx just used in the script
-        };
+        }
+        */
         CpcVm.prototype.vmReset = function () {
             this.startTime = Date.now();
             this.vmResetRandom();
@@ -184,6 +196,7 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
             this.soundClass.reset();
             this.soundData.length = 0;
             this.inkeyTimeMs = 0; // if >0, next time when inkey$ can be checked without inserting "waitFrame"
+            this.rsx.resetRsx(); // remove temporary rsx
         };
         CpcVm.prototype.vmResetMemory = function () {
             this.mem.length = 0; // clear memory (for PEEK, POKE)
@@ -334,11 +347,17 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                 Utils_1.Utils.console.debug("onCanvasClickCallback: x", x, "y", y, "xTxt", xTxt, "yTxt", yTxt, "char", char);
             }
         };
+        CpcVm.prototype.vmRegisterRsx = function (rsxModule, permanent) {
+            this.rsx.registerRsx(rsxModule, permanent);
+        };
         CpcVm.prototype.vmGetAllVariables = function () {
             return this.variables.getAllVariables();
         };
         CpcVm.prototype.vmGetAllVarTypes = function () {
             return this.variables.getAllVarTypes();
+        };
+        CpcVm.prototype.vmGetVariableByIndex = function (index) {
+            return this.variables.getVariableByIndex(index);
         };
         CpcVm.prototype.vmSetStartLine = function (line) {
             this.startLine = line;
@@ -999,6 +1018,14 @@ define(["require", "exports", "./Utils", "./Random"], function (require, exports
                     }
                     break;
             }
+        };
+        CpcVm.prototype.callRsx = function (name) {
+            var _a;
+            var args = [];
+            for (var _i = 1; _i < arguments.length; _i++) {
+                args[_i - 1] = arguments[_i];
+            }
+            (_a = this.rsx).callRsx.apply(_a, __spreadArray([this, name], args, false));
         };
         CpcVm.prototype.cat = function () {
             var stream = 0, fileParas = {

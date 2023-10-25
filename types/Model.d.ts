@@ -1,3 +1,4 @@
+import { ICpcVmRsx } from "./Interfaces";
 export declare type ConfigEntryType = string | number | boolean;
 export declare type ConfigType = Record<string, ConfigEntryType>;
 export interface DatabaseEntry {
@@ -12,6 +13,7 @@ export interface ExampleEntry {
     title: string;
     meta: string;
     script?: string;
+    rsx?: ICpcVmRsx;
     loaded?: boolean;
 }
 export declare type DatabasesType = Record<string, DatabaseEntry>;

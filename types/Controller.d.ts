@@ -1,6 +1,5 @@
-import { IController, ICanvas } from "./Interfaces";
+import { IController, ICanvas, VariableValue, ICpcVmRsx } from "./Interfaces";
 import { Model } from "./Model";
-import { VariableValue } from "./Variables";
 import { View } from "./View";
 export declare class Controller implements IController {
     private readonly fnRunLoopHandler;
@@ -35,7 +34,6 @@ export declare class Controller implements IController {
     private virtualKeyboard?;
     private readonly sound;
     private readonly vm;
-    private readonly rsx;
     private readonly noStop;
     private readonly savedStop;
     private fileHandler?;
@@ -48,6 +46,7 @@ export declare class Controller implements IController {
     private onUserAction;
     addIndex(dir: string, input: string): void;
     addItem(key: string, input: string): string;
+    addRsx(key: string, RsxConstructor: new () => ICpcVmRsx): string;
     private setDatabaseSelectOptions;
     private static getPathFromExample;
     private static getNameFromExample;

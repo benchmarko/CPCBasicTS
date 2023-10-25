@@ -2,12 +2,10 @@
 //
 
 import { Utils } from "../Utils";
-import { CpcVm, CpcVmOptions, VmInputParas, FileMeta } from "../CpcVm";
-//import { Canvas } from "../Canvas";
-import { ICanvas, CanvasClickType } from "../Interfaces";
+import { CpcVm, CpcVmOptions, FileMeta } from "../CpcVm";
+import { ICanvas, CanvasClickType, VmInputParas } from "../Interfaces";
 import { Keyboard } from "../Keyboard";
 import { Sound } from "../Sound";
-//import { TextCanvas } from "../TextCanvas";
 import { Variables } from "../Variables";
 import { TestHelper, TestsType, AllTestsType, ResultType } from "./TestHelper";
 

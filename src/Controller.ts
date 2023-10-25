@@ -14,22 +14,24 @@ import { CodeGeneratorJs } from "./CodeGeneratorJs";
 import { CodeGeneratorToken } from "./CodeGeneratorToken";
 import { CommonEventHandler } from "./CommonEventHandler";
 import { cpcCharset } from "./cpcCharset";
-import { CpcVm, FileMeta, VmStopEntry, VmFileParas, VmInputParas, VmLineParas, VmLineRenumParas, VmBaseParas } from "./CpcVm";
-import { CpcVmRsx } from "./CpcVmRsx";
+import { CpcVm, FileMeta, VmStopEntry } from "./CpcVm";
+//import { CpcVmRsx } from "./CpcVmRsx";
 import { Diff } from "./Diff";
 import { DiskImage } from "./DiskImage";
 import { FileHandler } from "./FileHandler";
 import { FileSelect } from "./FileSelect";
 import { InputStack } from "./InputStack";
-import { IController, IOutput, ICanvas, CanvasOptions } from "./Interfaces";
+import { IController, IOutput, ICanvas, CanvasOptions, VmFileParas, VmInputParas, VmLineParas, VmLineRenumParas, VmBaseParas, VariableValue, ICpcVmRsx } from "./Interfaces";
 import { Keyboard } from "./Keyboard";
 import { NoCanvas } from "./NoCanvas";
 import { TextCanvas } from "./TextCanvas";
 import { VirtualKeyboard } from "./VirtualKeyboard";
 import { Model, DatabasesType } from "./Model";
 import { Sound, SoundData } from "./Sound";
-import { Variables, VariableValue } from "./Variables";
+import { Variables } from "./Variables";
 import { View, SelectOptionElement, AreaInputElement } from "./View";
+import { RsxAmsdos } from "./RsxAmsdos";
+import { RsxCpcBasic } from "./RsxCpcBasic";
 
 interface FileMetaAndData {
 	meta: FileMeta
@@ -88,7 +90,7 @@ export class Controller implements IController {
 	});
 
 	private readonly vm: CpcVm;
-	private readonly rsx: CpcVmRsx;
+	//private readonly rsx: CpcVmRsx;
 
 	private readonly noStop: VmStopEntry;
 	private readonly savedStop: VmStopEntry; // backup of stop object
@@ -219,8 +221,11 @@ export class Controller implements IController {
 		});
 		this.vm.vmReset();
 
-		this.rsx = new CpcVmRsx(this.vm);
-		this.vm.vmSetRsxClass(this.rsx);
+		this.vm.vmRegisterRsx(new RsxAmsdos(), true);
+		this.vm.vmRegisterRsx(new RsxCpcBasic(), true); //TTT test
+
+		//this.rsx = new CpcVmRsx(this.vm);
+		//this.vm.vmSetRsxClass(this.rsx);
 
 		this.noStop = Object.assign({}, this.vm.vmGetStopObject());
 		this.savedStop = {
@@ -242,7 +247,7 @@ export class Controller implements IController {
 			}),
 			parser: new BasicParser(),
 			trace: model.getProperty<boolean>("trace"),
-			rsx: this.rsx, // just to check the names
+			//rsx: this.rsx, // just to check the names
 			implicitLines: model.getProperty<boolean>("implicitLines")
 		});
 
@@ -331,6 +336,31 @@ export class Controller implements IController {
 		Utils.console.log("addItem:", key);
 		return key;
 	}
+
+	addRsx(key: string, RsxConstructor: new () => ICpcVmRsx): string {
+		if (!key) { // maybe ""
+			key = (document.currentScript && document.currentScript.getAttribute("data-key")) || this.model.getProperty<string>("example");
+			// on IE we can just get the current example
+		}
+
+		const example = this.model.getExample(key);
+
+		example.key = key; // maybe changed
+		//example.script = input;
+		example.rsx = new RsxConstructor();
+		example.loaded = true;
+		Utils.console.log("addItem:", key);
+		return key;
+	}
+
+	/*
+	registerRsx(name: string, rsxModule: ICpcVmRsx, permanent?: boolean): void {
+		if (Utils.debug > 0) {
+			Utils.console.debug("registerRsx:", name, ", permanent:", permanent);
+		}
+		this.vm.vmRegisterRsx(rsxModule, Boolean(permanent));
+	}
+	*/
 
 	private setDatabaseSelectOptions() {
 		const select = "databaseSelect",
@@ -1309,10 +1339,15 @@ export class Controller implements IController {
 			if (!suppressLog) {
 				Utils.console.log("Example", url, (exampleEntry.meta ? exampleEntry.meta + " " : "") + " loaded");
 			}
-			const input = exampleEntry.script;
-
 			this.model.setProperty("example", inFile.memorizedExample);
 			this.vm.vmStop("", 0, true);
+
+			if (exampleEntry.rsx) {
+				this.vm.vmRegisterRsx(exampleEntry.rsx, false);
+			}
+
+			const input = exampleEntry.script;
+
 			this.loadFileContinue(input);
 		};
 	}

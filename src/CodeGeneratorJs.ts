@@ -5,7 +5,7 @@
 //
 
 import { Utils, CustomError } from "./Utils";
-import { IOutput, ICpcVmRsx } from "./Interfaces";
+import { IOutput } from "./Interfaces";
 import { BasicLexer } from "./BasicLexer";
 import { BasicParser, ParserNode } from "./BasicParser";
 import { Variables, VariableTypeMap, VarTypes } from "./Variables";
@@ -13,7 +13,7 @@ import { Variables, VariableTypeMap, VarTypes } from "./Variables";
 interface CodeGeneratorJsOptions {
 	lexer: BasicLexer
 	parser: BasicParser
-	rsx: ICpcVmRsx
+	//rsx: ICpcVmRsx
 	implicitLines?: boolean // generate missing line numbers
 	noCodeFrame?: boolean // suppress generation of a code frame
 	quiet?: boolean // quiet mode: suppress most warnings
@@ -92,7 +92,7 @@ export class CodeGeneratorJs {
 		this.options = {
 			lexer: options.lexer,
 			parser: options.parser,
-			rsx: options.rsx,
+			//rsx: options.rsx,
 			quiet: false
 		};
 		this.setOptions(options); // optional options
@@ -634,6 +634,16 @@ export class CodeGeneratorJs {
 	}
 
 	private vertical(node: CodeNode) { // "|" rsx
+		const rsxName = node.value.substring(1).toLowerCase(),
+			nodeArgs = this.fnParseArgs(node.args),
+			label = this.fnGetStopLabel();
+
+		nodeArgs.unshift('"' + rsxName + '"'); // put as first arg
+		node.pv = "o.callRsx(" + nodeArgs.join(", ") + "); o.vmGoto(\"" + label + "\"); break;\ncase \"" + label + "\":"; // most RSX commands need goto (era, ren,...)
+	}
+
+	/*
+	private vertical(node: CodeNode) { // "|" rsx
 		let rsxName = node.value.substring(1).toLowerCase().replace(/\./g, "_");
 		const rsxAvailable = this.options.rsx && this.options.rsx.rsxIsAvailable(rsxName),
 			nodeArgs = this.fnParseArgs(node.args),
@@ -651,6 +661,8 @@ export class CodeGeneratorJs {
 
 		node.pv = "o.rsx." + rsxName + "(" + nodeArgs.join(", ") + "); o.vmGoto(\"" + label + "\"); break;\ncase \"" + label + "\":"; // most RSX commands need goto (era, ren,...)
 	}
+	*/
+
 	private static number(node: CodeNode) {
 		node.pt = (/^\d+$/).test(node.value) ? "I" : "R";
 		node.pv = node.value;

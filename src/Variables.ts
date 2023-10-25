@@ -3,12 +3,13 @@
 // https://benchmarko.github.io/CPCBasicTS/
 
 import { Utils } from "./Utils";
+import { VariableValue } from "./Interfaces";
 
 interface VariablesOptions {
 	arrayBounds?: boolean // check array bounds
 }
 
-export type VariableValue = string | number | Function | [] | VariableValue[]; // eslint-disable-line @typescript-eslint/ban-types
+//export type VariableValue = string | number | Function | [] | VariableValue[]; // eslint-disable-line @typescript-eslint/ban-types
 
 export type VariableMap = Record<string, VariableValue>;
 

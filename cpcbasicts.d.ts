@@ -52,9 +52,6 @@ declare module "Interfaces" {
         text: string;
         error?: CustomError;
     }
-    export interface ICpcVmRsx {
-        rsxIsAvailable: (name: string) => boolean;
-    }
     export type CanvasClickType = (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
     export type CanvasCharType = number[];
     export type CanvasCharsetType = CanvasCharType[];
@@ -116,7 +113,50 @@ declare module "Interfaces" {
         takeScreenShot(): string;
         getCanvasElement(): HTMLElement | undefined;
     }
+    export interface VmBaseParas {
+        command: string;
+        stream: number;
+        line: string | number;
+    }
+    export interface VmLineParas extends VmBaseParas {
+        first?: number;
+        last?: number;
+    }
+    export interface VmLineRenumParas extends VmBaseParas {
+        newLine?: number;
+        oldLine?: number;
+        step?: number;
+        keep?: number;
+    }
+    export interface VmFileParas extends VmBaseParas {
+        fileMask?: string;
+        newName?: string;
+        oldName?: string;
+    }
+    export interface VmInputParas extends VmBaseParas {
+        input: string;
+        message: string;
+        noCRLF?: string;
+        types?: string[];
+        fnInputCallback: () => boolean;
+    }
+    export type VmStopParas = VmFileParas | VmInputParas | VmLineParas | VmLineRenumParas;
     export type VariableValue = string | number | Function | [] | VariableValue[];
+    export interface ICpcVm {
+        line: string | number;
+        vmComposeError(error: Error, err: number, errInfo: string): CustomError;
+        vmStop(reason: string, priority: number, force?: boolean, paras?: VmStopParas): void;
+        vmInRangeRound(n: number | undefined, min: number, max: number, err: string): number;
+        vmAdaptFilename(name: string, err: string): string;
+        vmGetVariableByIndex(index: number): VariableValue;
+        vmChangeMode(mode: number): void;
+        renum(newLine: number, oldLine: number, step: number, keep: number): void;
+        vmNotImplemented(name: string): void;
+    }
+    export type RsxCommandType = (this: ICpcVm, ...args: (string | number)[]) => void;
+    export interface ICpcVmRsx {
+        getRsxCommands: () => Record<string, RsxCommandType>;
+    }
     export interface IController {
         toggleAreaHidden: (id: string) => boolean;
         startParse: () => void;
@@ -161,6 +201,7 @@ declare module "cpcCharset" {
     export const cpcCharset: number[][];
 }
 declare module "Model" {
+    import { ICpcVmRsx } from "Interfaces";
     export type ConfigEntryType = string | number | boolean;
     export type ConfigType = Record<string, ConfigEntryType>;
     export interface DatabaseEntry {
@@ -175,6 +216,7 @@ declare module "Model" {
         title: string;
         meta: string;
         script?: string;
+        rsx?: ICpcVmRsx;
         loaded?: boolean;
     }
     export type DatabasesType = Record<string, DatabaseEntry>;
@@ -499,10 +541,10 @@ declare module "CodeGeneratorBasic" {
     }
 }
 declare module "Variables" {
+    import { VariableValue } from "Interfaces";
     interface VariablesOptions {
         arrayBounds?: boolean;
     }
-    export type VariableValue = string | number | Function | [] | VariableValue[];
     export type VariableMap = Record<string, VariableValue>;
     export type VarTypes = "I" | "R" | "$";
     export type VariableTypeMap = Record<string, VarTypes>;
@@ -532,14 +574,13 @@ declare module "Variables" {
     }
 }
 declare module "CodeGeneratorJs" {
-    import { IOutput, ICpcVmRsx } from "Interfaces";
+    import { IOutput } from "Interfaces";
     import { BasicLexer } from "BasicLexer";
     import { BasicParser } from "BasicParser";
     import { Variables } from "Variables";
     interface CodeGeneratorJsOptions {
         lexer: BasicLexer;
         parser: BasicParser;
-        rsx: ICpcVmRsx;
         implicitLines?: boolean;
         noCodeFrame?: boolean;
         quiet?: boolean;
@@ -1410,9 +1451,19 @@ declare module "ZipFile" {
         readData(name: string): string;
     }
 }
+declare module "CpcVmRsx" {
+    import { ICpcVm, ICpcVmRsx } from "Interfaces";
+    export class CpcVmRsx {
+        private readonly rsxPermanent;
+        private rsxTemporary;
+        callRsx(vm: ICpcVm, name: string, ...args: (string | number)[]): void;
+        registerRsx(rsxModule: ICpcVmRsx, permanent: boolean): void;
+        resetRsx(): void;
+    }
+}
 declare module "CpcVm" {
     import { CustomError } from "Utils";
-    import { ICanvas, ICpcVmRsx } from "Interfaces";
+    import { ICpcVm, ICanvas, VariableValue, VmStopParas, ICpcVmRsx } from "Interfaces";
     import { Keyboard } from "Keyboard";
     import { Sound, SoundData } from "Sound";
     import { Variables, VariableMap, VariableTypeMap } from "Variables";
@@ -1478,34 +1529,6 @@ declare module "CpcVm" {
         stackIndexReturn: number;
         savedPriority: number;
     }
-    export interface VmBaseParas {
-        command: string;
-        stream: number;
-        line: string | number;
-    }
-    export interface VmLineParas extends VmBaseParas {
-        first?: number;
-        last?: number;
-    }
-    export interface VmLineRenumParas extends VmBaseParas {
-        newLine?: number;
-        oldLine?: number;
-        step?: number;
-        keep?: number;
-    }
-    export interface VmFileParas extends VmBaseParas {
-        fileMask?: string;
-        newName?: string;
-        oldName?: string;
-    }
-    export interface VmInputParas extends VmBaseParas {
-        input: string;
-        message: string;
-        noCRLF?: string;
-        types?: string[];
-        fnInputCallback: () => boolean;
-    }
-    export type VmStopParas = VmFileParas | VmInputParas | VmLineParas | VmLineRenumParas;
     export interface VmStopEntry {
         reason: string;
         priority: number;
@@ -1517,7 +1540,7 @@ declare module "CpcVm" {
     };
     type DataEntryType = (string | undefined);
     type LoadHandlerType = (input: string, meta: FileMeta) => boolean;
-    export class CpcVm {
+    export class CpcVm implements ICpcVm {
         private quiet;
         private readonly onClickKey?;
         private readonly fnOpeninHandler;
@@ -1579,7 +1602,7 @@ declare module "CpcVm" {
         private timerPriority;
         private zoneValue;
         private modeValue;
-        rsx?: ICpcVmRsx;
+        private readonly rsx;
         private static readonly frameTimeMs;
         private static readonly timerCount;
         private static readonly sqTimerCount;
@@ -1594,7 +1617,6 @@ declare module "CpcVm" {
         private static readonly stopPriority;
         getOptions(): CpcVmOptions;
         constructor(options: CpcVmOptions);
-        vmSetRsxClass(rsx: ICpcVmRsx): void;
         vmReset(): void;
         vmResetMemory(): void;
         vmResetRandom(): void;
@@ -1610,8 +1632,10 @@ declare module "CpcVm" {
         setCanvas(canvas: ICanvas): ICanvas;
         vmGetLoadHandler(): LoadHandlerType;
         private onCanvasClickCallback;
+        vmRegisterRsx(rsxModule: ICpcVmRsx, permanent: boolean): void;
         vmGetAllVariables(): VariableMap;
         vmGetAllVarTypes(): VariableTypeMap;
+        vmGetVariableByIndex(index: number): VariableValue;
         vmSetStartLine(line: number): void;
         vmSetLabels(labels: string[]): void;
         vmOnBreakContSet(): boolean;
@@ -1671,6 +1695,7 @@ declare module "CpcVm" {
         private vmPutKeyInBuffer;
         private updateColorsImmediately;
         call(addr: number, ...args: (string | number)[]): void;
+        callRsx(name: string, ...args: (string | number)[]): void;
         cat(): void;
         chain(name: string, line?: number, first?: number, last?: number): void;
         chainMerge(name: string, line?: number, first?: number, last?: number): void;
@@ -1874,35 +1899,6 @@ declare module "CpcVm" {
         };
     }
 }
-declare module "CpcVmRsx" {
-    import { ICpcVmRsx } from "Interfaces";
-    import { CpcVm } from "CpcVm";
-    export class CpcVmRsx implements ICpcVmRsx {
-        private readonly vm;
-        constructor(vm: CpcVm);
-        rsxIsAvailable(name: string): boolean;
-        rsxExec(name: string, ...args: (string | number)[]): void;
-        a(): void;
-        b(): void;
-        basic(): void;
-        cpm(): void;
-        private fnGetVariableByAddress;
-        private fnGetParameterAsString;
-        dir(fileMask?: string | number): void;
-        disc(): void;
-        disc_in(): void;
-        disc_out(): void;
-        drive(): void;
-        era(fileMask?: string | number): void;
-        ren(newName: string | number, oldName: string | number): void;
-        tape(): void;
-        tape_in(): void;
-        tape_out(): void;
-        user(): void;
-        mode(mode: number): void;
-        renum(...args: number[]): void;
-    }
-}
 declare module "FileHandler" {
     import { AmsdosHeader } from "DiskImage";
     export interface FileHandlerOptions {
@@ -1946,6 +1942,24 @@ declare module "FileSelect" {
         private fnOnError;
         private fnOnFileSelect;
         addFileSelectHandler(element: HTMLElement, type: string): void;
+    }
+}
+declare module "RsxAmsdos" {
+    import { ICpcVmRsx, RsxCommandType } from "Interfaces";
+    export class RsxAmsdos implements ICpcVmRsx {
+        private static fnGetParameterAsString;
+        private static dir;
+        private static era;
+        private static ren;
+        private static readonly rsxCommands;
+        getRsxCommands(): Record<string, RsxCommandType>;
+    }
+}
+declare module "RsxCpcBasic" {
+    import { ICpcVmRsx, RsxCommandType } from "Interfaces";
+    export class RsxCpcBasic implements ICpcVmRsx {
+        private static readonly rsxCommands;
+        getRsxCommands(): Record<string, RsxCommandType>;
     }
 }
 declare module "NoCanvas" {
@@ -2006,9 +2020,8 @@ declare module "NoCanvas" {
     }
 }
 declare module "Controller" {
-    import { IController, ICanvas } from "Interfaces";
+    import { IController, ICanvas, VariableValue, ICpcVmRsx } from "Interfaces";
     import { Model } from "Model";
-    import { VariableValue } from "Variables";
     import { View } from "View";
     export class Controller implements IController {
         private readonly fnRunLoopHandler;
@@ -2043,7 +2056,6 @@ declare module "Controller" {
         private virtualKeyboard?;
         private readonly sound;
         private readonly vm;
-        private readonly rsx;
         private readonly noStop;
         private readonly savedStop;
         private fileHandler?;
@@ -2056,6 +2068,7 @@ declare module "Controller" {
         private onUserAction;
         addIndex(dir: string, input: string): void;
         addItem(key: string, input: string): string;
+        addRsx(key: string, RsxConstructor: new () => ICpcVmRsx): string;
         private setDatabaseSelectOptions;
         private static getPathFromExample;
         private static getNameFromExample;
@@ -2198,6 +2211,7 @@ declare module "cpcconfig" {
 }
 declare module "cpcbasic" {
     import { ConfigType } from "Model";
+    import { ICpcVmRsx } from "Interfaces";
     class cpcBasic {
         private static readonly config;
         private static model;
@@ -2206,6 +2220,7 @@ declare module "cpcbasic" {
         private static fnHereDoc;
         static addIndex(dir: string, input: string | (() => void)): void;
         static addItem(key: string, input: string | (() => void)): string;
+        static addRsx(key: string, RsxConstructor: new () => ICpcVmRsx): string;
         private static fnParseArgs;
         private static fnDecodeUri;
         private static fnParseUri;

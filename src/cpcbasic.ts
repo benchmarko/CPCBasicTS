@@ -9,8 +9,11 @@ import { cpcconfig } from "./cpcconfig";
 import { Model, ConfigType, ConfigEntryType } from "./Model";
 import { View } from "./View";
 import { NodeAdapt } from "./NodeAdapt";
+import { ICpcVmRsx } from "./Interfaces";
 
 type RedirectExamplesType = Record<string, Record<"database" | "example", string>>;
+
+//type RsxConstructorType = new () => ICpcVmRsx;
 
 class cpcBasic {
 	private static readonly config: ConfigType = {
@@ -66,6 +69,54 @@ class cpcBasic {
 
 		return cpcBasic.controller.addItem(key, inputString);
 	}
+
+	static addRsx(key: string, RsxConstructor: new () => ICpcVmRsx) {
+		//return cpcBasic.controller.registerRsx(key, new RsxConstructor());
+
+		return cpcBasic.controller.addRsx(key, RsxConstructor);
+	}
+
+	/*
+	//TTT
+	static testRsx1() {
+		const Class1 = function () {
+			return {
+				getRsxCommands: function () {
+					return {
+						stop: function () {
+							this.vmStop("stop", 60);
+						}
+					};
+				}
+			};
+		} as RsxConstructorType;
+
+		this.registerRsx("test1", Class1); // howto?
+	}
+	*/
+
+	/*
+	//TTT
+	static testRsx1() {
+		const c1 = function () {
+			function Class1() {
+				// empty
+			}
+			Class1.getRsxCommands = function () {
+				return {
+					stop: function () {
+						this.vmStop("stop", 60);
+					}
+				};
+			};
+
+			return c1;
+		};
+
+		this.registerRsx("test1", c1 as RsxConstructorType); // howto?
+	}
+	*/
+
 
 	// can be used for nodeJS
 	private static fnParseArgs(args: string[], config: ConfigType) {

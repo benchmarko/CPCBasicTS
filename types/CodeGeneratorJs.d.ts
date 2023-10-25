@@ -1,11 +1,10 @@
-import { IOutput, ICpcVmRsx } from "./Interfaces";
+import { IOutput } from "./Interfaces";
 import { BasicLexer } from "./BasicLexer";
 import { BasicParser } from "./BasicParser";
 import { Variables } from "./Variables";
 interface CodeGeneratorJsOptions {
     lexer: BasicLexer;
     parser: BasicParser;
-    rsx: ICpcVmRsx;
     implicitLines?: boolean;
     noCodeFrame?: boolean;
     quiet?: boolean;

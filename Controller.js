@@ -2,7 +2,7 @@
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./BasicParser", "./BasicTokenizer", "./Canvas", "./CodeGeneratorBasic", "./CodeGeneratorJs", "./CodeGeneratorToken", "./CommonEventHandler", "./cpcCharset", "./CpcVm", "./CpcVmRsx", "./Diff", "./DiskImage", "./FileHandler", "./FileSelect", "./InputStack", "./Keyboard", "./NoCanvas", "./TextCanvas", "./VirtualKeyboard", "./Sound", "./Variables", "./View"], function (require, exports, Utils_1, BasicFormatter_1, BasicLexer_1, BasicParser_1, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, CpcVmRsx_1, Diff_1, DiskImage_1, FileHandler_1, FileSelect_1, InputStack_1, Keyboard_1, NoCanvas_1, TextCanvas_1, VirtualKeyboard_1, Sound_1, Variables_1, View_1) {
+define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./BasicParser", "./BasicTokenizer", "./Canvas", "./CodeGeneratorBasic", "./CodeGeneratorJs", "./CodeGeneratorToken", "./CommonEventHandler", "./cpcCharset", "./CpcVm", "./Diff", "./DiskImage", "./FileHandler", "./FileSelect", "./InputStack", "./Keyboard", "./NoCanvas", "./TextCanvas", "./VirtualKeyboard", "./Sound", "./Variables", "./View", "./RsxAmsdos", "./RsxCpcBasic"], function (require, exports, Utils_1, BasicFormatter_1, BasicLexer_1, BasicParser_1, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, Diff_1, DiskImage_1, FileHandler_1, FileSelect_1, InputStack_1, Keyboard_1, NoCanvas_1, TextCanvas_1, VirtualKeyboard_1, Sound_1, Variables_1, View_1, RsxAmsdos_1, RsxCpcBasic_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Controller = void 0;
@@ -101,8 +101,10 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 onClickKey: this.fnPutKeyInBufferHandler
             });
             this.vm.vmReset();
-            this.rsx = new CpcVmRsx_1.CpcVmRsx(this.vm);
-            this.vm.vmSetRsxClass(this.rsx);
+            this.vm.vmRegisterRsx(new RsxAmsdos_1.RsxAmsdos(), true);
+            this.vm.vmRegisterRsx(new RsxCpcBasic_1.RsxCpcBasic(), true); //TTT test
+            //this.rsx = new CpcVmRsx(this.vm);
+            //this.vm.vmSetRsxClass(this.rsx);
             this.noStop = Object.assign({}, this.vm.vmGetStopObject());
             this.savedStop = {
                 reason: "",
@@ -122,7 +124,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 }),
                 parser: new BasicParser_1.BasicParser(),
                 trace: model.getProperty("trace"),
-                rsx: this.rsx,
+                //rsx: this.rsx, // just to check the names
                 implicitLines: model.getProperty("implicitLines")
             });
             if (model.getProperty("sound")) { // activate sound needs user action
@@ -189,6 +191,27 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             Utils_1.Utils.console.log("addItem:", key);
             return key;
         };
+        Controller.prototype.addRsx = function (key, RsxConstructor) {
+            if (!key) { // maybe ""
+                key = (document.currentScript && document.currentScript.getAttribute("data-key")) || this.model.getProperty("example");
+                // on IE we can just get the current example
+            }
+            var example = this.model.getExample(key);
+            example.key = key; // maybe changed
+            //example.script = input;
+            example.rsx = new RsxConstructor();
+            example.loaded = true;
+            Utils_1.Utils.console.log("addItem:", key);
+            return key;
+        };
+        /*
+        registerRsx(name: string, rsxModule: ICpcVmRsx, permanent?: boolean): void {
+            if (Utils.debug > 0) {
+                Utils.console.debug("registerRsx:", name, ", permanent:", permanent);
+            }
+            this.vm.vmRegisterRsx(rsxModule, Boolean(permanent));
+        }
+        */
         Controller.prototype.setDatabaseSelectOptions = function () {
             var select = "databaseSelect", items = [], databases = this.model.getAllDatabases(), database = this.model.getProperty("database");
             for (var value in databases) {
@@ -995,9 +1018,12 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 if (!suppressLog) {
                     Utils_1.Utils.console.log("Example", url, (exampleEntry.meta ? exampleEntry.meta + " " : "") + " loaded");
                 }
-                var input = exampleEntry.script;
                 _this.model.setProperty("example", inFile.memorizedExample);
                 _this.vm.vmStop("", 0, true);
+                if (exampleEntry.rsx) {
+                    _this.vm.vmRegisterRsx(exampleEntry.rsx, false);
+                }
+                var input = exampleEntry.script;
                 _this.loadFileContinue(input);
             };
         };

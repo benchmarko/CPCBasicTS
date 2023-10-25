@@ -1,7 +1,7 @@
+import { VariableValue } from "./Interfaces";
 interface VariablesOptions {
     arrayBounds?: boolean;
 }
-export declare type VariableValue = string | number | Function | [] | VariableValue[];
 export declare type VariableMap = Record<string, VariableValue>;
 export declare type VarTypes = "I" | "R" | "$";
 export declare type VariableTypeMap = Record<string, VarTypes>;
