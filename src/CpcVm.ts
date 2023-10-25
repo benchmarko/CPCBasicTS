@@ -4,11 +4,12 @@
 //
 
 import { Utils, CustomError } from "./Utils";
-import { ICanvas, ICpcVmRsx } from "./Interfaces";
+import { ICpcVm, ICanvas, VariableValue, VmFileParas, VmInputParas, VmLineParas, VmLineRenumParas, VmStopParas, ICpcVmRsx } from "./Interfaces";
 import { Keyboard, CpcKeyExpansionsOptions } from "./Keyboard";
 import { Random } from "./Random";
 import { Sound, SoundData, ToneEnvData, VolEnvData } from "./Sound";
 import { Variables, VariableMap, VarTypes, VariableTypeMap } from "./Variables";
+import { CpcVmRsx } from "./CpcVmRsx";
 
 export interface CpcVmOptions {
 	canvas: ICanvas
@@ -81,40 +82,6 @@ interface TimerEntry {
 	savedPriority: number
 }
 
-export interface VmBaseParas {
-	command: string
-	stream: number
-	line: string | number
-}
-
-export interface VmLineParas extends VmBaseParas { // delete lines, list lines, edit line, run line
-	first?: number // (req)
-	last?: number // (req)
-}
-
-export interface VmLineRenumParas extends VmBaseParas { // renum lines
-	newLine?: number // (req)
-	oldLine?: number // (req)
-	step?: number // (req)
-	keep?: number // (req)
-}
-
-export interface VmFileParas extends VmBaseParas {
-	fileMask?: string // (req) CAT, |DIR, |ERA
-	newName?: string // |REN
-	oldName?: string // |REN
-}
-
-export interface VmInputParas extends VmBaseParas {
-	input: string // (req)
-	message: string // (req)
-	noCRLF?: string
-	types?: string[]
-	fnInputCallback: () => boolean
-}
-
-export type VmStopParas = VmFileParas | VmInputParas | VmLineParas | VmLineRenumParas
-
 export interface VmStopEntry {
 	reason: string // stop reason
 	priority: number // stop priority (higher number means higher priority which can overwrite lower priority)
@@ -127,7 +94,7 @@ type DataEntryType = (string | undefined);
 
 type LoadHandlerType = (input: string, meta: FileMeta) => boolean;
 
-export class CpcVm {
+export class CpcVm implements ICpcVm {
 	private quiet = false;
 	private readonly onClickKey?: (arg0: string) => void;
 	private readonly fnOpeninHandler: FileBase["fnFileCallback"]; // = undefined;
@@ -222,7 +189,7 @@ export class CpcVm {
 
 	private modeValue = -1;
 
-	rsx?: ICpcVmRsx; // called from scripts
+	private readonly rsx = new CpcVmRsx();
 
 	private static readonly frameTimeMs = 1000 / 50; // 50 Hz => 20 ms
 	private static readonly timerCount = 4; // number of timers
@@ -501,9 +468,11 @@ export class CpcVm {
 		this.crtcData = [];
 	}
 
+	/*
 	vmSetRsxClass(rsx: ICpcVmRsx): void {
 		this.rsx = rsx; // this.rsx just used in the script
 	}
+	*/
 
 	vmReset(): void {
 		this.startTime = Date.now();
@@ -568,6 +537,8 @@ export class CpcVm {
 		this.soundData.length = 0;
 
 		this.inkeyTimeMs = 0; // if >0, next time when inkey$ can be checked without inserting "waitFrame"
+
+		this.rsx.resetRsx(); // remove temporary rsx
 	}
 
 	vmResetMemory(): void {
@@ -755,12 +726,20 @@ export class CpcVm {
 		}
 	}
 
+	vmRegisterRsx(rsxModule: ICpcVmRsx, permanent: boolean): void {
+		this.rsx.registerRsx(rsxModule, permanent);
+	}
+
 	vmGetAllVariables(): VariableMap { // also called from JS script
 		return this.variables.getAllVariables();
 	}
 
 	vmGetAllVarTypes(): VariableTypeMap { // also called from JS script
 		return this.variables.getAllVarTypes();
+	}
+
+	vmGetVariableByIndex(index: number): VariableValue { // also called from JS script
+		return this.variables.getVariableByIndex(index);
 	}
 
 	vmSetStartLine(line: number): void {
@@ -1531,6 +1510,10 @@ export class CpcVm {
 			}
 			break;
 		}
+	}
+
+	callRsx(name: string, ...args: (string | number)[]): void {
+		this.rsx.callRsx(this, name, ...args);
 	}
 
 	cat(): void {

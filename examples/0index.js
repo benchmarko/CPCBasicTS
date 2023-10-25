@@ -25,6 +25,14 @@ cpcBasic.addIndex("./examples", function () { /*
 	{
 		"key": "test/testspec",
 		"title": "Test Special TS"
+	},
+	{
+		"key": "test/testrsx",
+		"title": "Test RSX TS"
+	},
+	{
+		"key": "test/testrsx.rsx",
+		"title": "Test RSX TS: JS module"
 	}
 ]
 */ });

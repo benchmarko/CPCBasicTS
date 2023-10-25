@@ -137,12 +137,14 @@ class cpcBasic {
 	static testIndex: number; // example index for current database
 	static fnExampleDone1: () => void;
 
+	/*
 	static rsx: ICpcVmRsx = {
 		rsxIsAvailable: function (rsx: string): boolean { // not needed to suppress warnings when using quiet
 			return (/^a|b|basic|cpm|dir|disc|disc\.in|disc\.out|drive|era|ren|tape|tape\.in|tape\.out|user|mode|renum$/).test(rsx);
 		}
 		// will be programmatically extended by methods...
 	};
+	*/
 
 	static lexer = new BasicLexer({
 		keywords: BasicParser.keywords,
@@ -166,8 +168,8 @@ class cpcBasic {
 		lexer: cpcBasic.lexer,
 		parser: cpcBasic.parser,
 		trace: false,
-		quiet: true,
-		rsx: cpcBasic.rsx
+		quiet: true
+		//rsx: cpcBasic.rsx
 	})
 
 	static codeGeneratorToken = new CodeGeneratorToken({
@@ -176,7 +178,7 @@ class cpcBasic {
 	})
 
 	static vmMock = {
-		rsx: cpcBasic.rsx,
+		//rsx: cpcBasic.rsx,
 		line: "" as string | number,
 
 		testVariables1: new Variables(),
@@ -231,6 +233,10 @@ class cpcBasic {
 			return cpcBasic.vmMock.testVariables1.getVariableIndex(variable);
 		},
 
+		callRsx() {
+			// empty
+		},
+
 		dim(varName: string): void { // varargs
 			const dimensions = [];
 
@@ -283,6 +289,7 @@ class cpcBasic {
 			}
 		}
 
+		/*
 		const rsx = vmMock.rsx,
 			rsxKeysString = "a|b|basic|cpm|dir|disc|disc.in|disc.out|drive|era|ren|tape|tape.in|tape.out|user|mode|renum",
 			rsxKeysList = rsxKeysString.split("|");
@@ -296,6 +303,7 @@ class cpcBasic {
 				};
 			}
 		}
+		*/
 	}
 
 
@@ -366,6 +374,25 @@ class cpcBasic {
 			input = this.fnHereDoc(input);
 		}
 		return this.addItem2(key, input);
+	}
+
+	static addRsx(key: string, RsxConstructor: new () => ICpcVmRsx) {
+		const rsx = new RsxConstructor();
+
+		if (!key) { // maybe ""
+			key = cpcBasic.model.getProperty<string>("example");
+		}
+		const example = cpcBasic.model.getExample(key);
+
+		example.key = key; // maybe changed
+		example.rsx = rsx;
+		example.loaded = true;
+
+		const commands = rsx.getRsxCommands();
+
+		if (Utils.debug > 0) {
+			Utils.console.debug("addRsx: commands.length:", commands.length);
+		}
 	}
 }
 

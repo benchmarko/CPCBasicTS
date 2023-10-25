@@ -11,11 +11,6 @@ export interface IOutput {
     error?: CustomError
 }
 
-export interface ICpcVmRsx {
-    rsxIsAvailable: (name: string) => boolean
-}
-
-
 export type CanvasClickType = (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
 export type CanvasCharType = number[]; // 8 bytes char bitmap
 export type CanvasCharsetType = CanvasCharType[];
@@ -80,9 +75,61 @@ export interface ICanvas {
     getCanvasElement(): HTMLElement | undefined
 }
 
+export interface VmBaseParas {
+	command: string
+	stream: number
+	line: string | number
+}
+
+export interface VmLineParas extends VmBaseParas { // delete lines, list lines, edit line, run line
+	first?: number // (req)
+	last?: number // (req)
+}
+
+export interface VmLineRenumParas extends VmBaseParas { // renum lines
+	newLine?: number // (req)
+	oldLine?: number // (req)
+	step?: number // (req)
+	keep?: number // (req)
+}
+
+export interface VmFileParas extends VmBaseParas {
+	fileMask?: string // (req) CAT, |DIR, |ERA
+	newName?: string // |REN
+	oldName?: string // |REN
+}
+
+export interface VmInputParas extends VmBaseParas {
+	input: string // (req)
+	message: string // (req)
+	noCRLF?: string
+	types?: string[]
+	fnInputCallback: () => boolean
+}
+
+export type VmStopParas = VmFileParas | VmInputParas | VmLineParas | VmLineRenumParas
 
 // Same as VariableValue in Variables.ts
 export type VariableValue = string | number | Function | [] | VariableValue[]; // eslint-disable-line @typescript-eslint/ban-types
+
+export interface ICpcVm {
+    line: string | number
+    vmComposeError(error: Error, err: number, errInfo: string): CustomError
+    vmStop(reason: string, priority: number, force?: boolean, paras?: VmStopParas): void
+    vmInRangeRound(n: number | undefined, min: number, max: number, err: string): number
+    vmAdaptFilename(name: string, err: string): string
+    vmGetVariableByIndex(index: number): VariableValue
+    vmChangeMode(mode: number): void
+    renum(newLine: number, oldLine: number, step: number, keep: number): void
+    vmNotImplemented(name: string): void
+}
+
+
+export type RsxCommandType = (this: ICpcVm, ...args: (string|number)[]) => void
+
+export interface ICpcVmRsx {
+    getRsxCommands: () => Record<string, RsxCommandType>
+}
 
 export interface IController {
     toggleAreaHidden: (id: string) => boolean,

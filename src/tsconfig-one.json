@@ -38,6 +38,8 @@
     "CpcVmRsx.ts",
     "FileHandler.ts",
     "FileSelect.ts",
+    "RsxAmsdos.ts",
+    "RsxCpcBasic.ts",
     "Controller.ts",
     "cpcconfig.ts",
     "cpcbasic.ts"
