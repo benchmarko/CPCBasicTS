@@ -761,23 +761,22 @@ type hooksWithCodeGeneratorBasic = NestedHooks & {
 };
 
 function createCodeGeneratorBasic(keepWhiteSpace: boolean) {
-	const lexer = new BasicLexer({
-			keywords: BasicParser.keywords,
-			keepWhiteSpace: keepWhiteSpace
-		}),
-
-		parser = new BasicParser({
+	const basicParser = new BasicParser({
 			quiet: true,
 			keepTokens: true,
 			keepBrackets: true,
 			keepColons: true,
 			keepDataComma: true
+		}),
+		basicLexer = new BasicLexer({
+			keywords: basicParser.getKeywords(),
+			keepWhiteSpace: keepWhiteSpace
 		});
 
 	return new CodeGeneratorBasic({
 		quiet: true,
-		lexer: lexer,
-		parser: parser
+		lexer: basicLexer,
+		parser: basicParser
 	});
 }
 

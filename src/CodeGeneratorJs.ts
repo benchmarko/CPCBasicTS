@@ -13,7 +13,6 @@ import { Variables, VariableTypeMap, VarTypes } from "./Variables";
 interface CodeGeneratorJsOptions {
 	lexer: BasicLexer
 	parser: BasicParser
-	//rsx: ICpcVmRsx
 	implicitLines?: boolean // generate missing line numbers
 	noCodeFrame?: boolean // suppress generation of a code frame
 	quiet?: boolean // quiet mode: suppress most warnings
@@ -92,7 +91,6 @@ export class CodeGeneratorJs {
 		this.options = {
 			lexer: options.lexer,
 			parser: options.parser,
-			//rsx: options.rsx,
 			quiet: false
 		};
 		this.setOptions(options); // optional options
@@ -1169,6 +1167,14 @@ export class CodeGeneratorJs {
 	}
 
 	private gosub(node: CodeNode) {
+		//TTT
+		/*
+		if (!node.args) { // maybe GOSUB token
+			Utils.console.log("DEBUG: gosub: ignoring; ", node.type);
+			node.pv = "";
+			return;
+		}
+		*/
 		const nodeArgs = this.fnParseArgs(node.args),
 			label = this.fnGetGosubLabel();
 
@@ -1646,6 +1652,14 @@ export class CodeGeneratorJs {
 	/* eslint-enable no-invalid-this */
 
 	private fnParseOther(node: CodeNode) {
+		//TTT
+		/*
+		if (!node.args) { // maybe whitespace
+			Utils.console.log("fnParseOther: ignoring; ", node.type);
+			node.pv = "";
+			return;
+		}
+		*/
 		const nodeArgs = this.fnParseArgs(node.args),
 			typeWithSpaces = " " + node.type + " ";
 
@@ -1787,7 +1801,7 @@ export class CodeGeneratorJs {
 
 				if (arg.type === "letter") {
 					this.defintDefstrTypes[arg.value.toLowerCase()] = type;
-				} else { // assuming range
+				} else if (arg.type === "range") {
 					if (!arg.left || !arg.right) {
 						throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
 					}

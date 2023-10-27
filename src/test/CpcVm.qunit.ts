@@ -1805,11 +1805,21 @@ const allTests: AllTestsType = {
 		'"4.78"': "4.78",
 		'" -4.78 "': "-4.78",
 		'"a"': "0",
-		'"&xa"': "0",
+		'"&x0"': "0",
+		'"&x1r"': "1",
 		'"&a0"': "160",
 		'"&ha0"': "160",
-		"": 'CpcVm: Type mismatch in 0: VAL undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+		'"&ar"': "10",
 		'""': "0",
+		'"-"': 'CpcVm: Type mismatch in 0: VAL - -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+		'"."': 'CpcVm: Type mismatch in 0: VAL . -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+		'"&"': 'CpcVm: Type mismatch in 0: VAL & -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+		'"&r"': 'CpcVm: Type mismatch in 0: VAL &r -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+		'"&x"': 'CpcVm: Type mismatch in 0: VAL &x -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+		'"&x2"': 'CpcVm: Type mismatch in 0: VAL &x2 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+		'"&h"': 'CpcVm: Type mismatch in 0: VAL &h -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+		'"&hr"': 'CpcVm: Type mismatch in 0: VAL &hr -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+		"": 'CpcVm: Type mismatch in 0: VAL undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 		"2 ": 'CpcVm: Type mismatch in 0: VAL 2 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
 	},
 	vpos: {
@@ -1942,7 +1952,7 @@ const allTests: AllTestsType = {
 };
 
 
-// tests added: USING with escape character "_"
+// tests added: USING with escape character "_"; VAl...
 
 const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [], // eslint-disable-line one-var
 	varTypesMap: Record<string, string> = {},

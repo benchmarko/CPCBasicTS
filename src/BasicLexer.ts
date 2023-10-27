@@ -34,7 +34,10 @@ export class BasicLexer {
 	private readonly tokens: LexerToken[] = [];
 	private whiteSpace = ""; // collected whitespace
 
-	setOptions(options: Omit<BasicLexerOptions, "keywords">): void {
+	setOptions(options: Partial<BasicLexerOptions>): void {
+		if (options.keywords !== undefined) {
+			this.options.keywords = options.keywords;
+		}
 		if (options.keepWhiteSpace !== undefined) {
 			this.options.keepWhiteSpace = options.keepWhiteSpace;
 		}

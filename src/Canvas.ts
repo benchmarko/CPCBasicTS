@@ -523,7 +523,7 @@ export class Canvas implements ICanvas {
 			rect = this.canvas.getBoundingClientRect();
 
 		if (isFullScreen) {
-			const areaX = 0, //TTT
+			const areaX = 0,
 				areaY = 0,
 				rectwidth = rect.right - rect.left - (this.borderWidth + areaX) * 2,
 				rectHeight = rect.bottom - rect.top - (this.borderWidth + areaY) * 2,

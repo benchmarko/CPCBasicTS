@@ -15,7 +15,6 @@ import { CodeGeneratorToken } from "./CodeGeneratorToken";
 import { CommonEventHandler } from "./CommonEventHandler";
 import { cpcCharset } from "./cpcCharset";
 import { CpcVm, FileMeta, VmStopEntry } from "./CpcVm";
-//import { CpcVmRsx } from "./CpcVmRsx";
 import { Diff } from "./Diff";
 import { DiskImage } from "./DiskImage";
 import { FileHandler } from "./FileHandler";
@@ -76,6 +75,9 @@ export class Controller implements IController {
 	private readonly view: View;
 	private readonly commonEventHandler: CommonEventHandler;
 
+	private readonly basicLexer: BasicLexer;
+	private readonly basicParser: BasicParser;
+
 	private readonly codeGeneratorJs: CodeGeneratorJs;
 
 	private readonly canvases: Record<string, ICanvas> = {};
@@ -90,7 +92,6 @@ export class Controller implements IController {
 	});
 
 	private readonly vm: CpcVm;
-	//private readonly rsx: CpcVmRsx;
 
 	private readonly noStop: VmStopEntry;
 	private readonly savedStop: VmStopEntry; // backup of stop object
@@ -162,6 +163,7 @@ export class Controller implements IController {
 
 		this.model = model;
 		this.view = view;
+
 		this.commonEventHandler = new CommonEventHandler(model, view, this);
 		this.view.attachEventHandler("click", this.commonEventHandler);
 		this.view.attachEventHandler("change", this.commonEventHandler);
@@ -222,10 +224,7 @@ export class Controller implements IController {
 		this.vm.vmReset();
 
 		this.vm.vmRegisterRsx(new RsxAmsdos(), true);
-		this.vm.vmRegisterRsx(new RsxCpcBasic(), true); //TTT test
-
-		//this.rsx = new CpcVmRsx(this.vm);
-		//this.vm.vmSetRsxClass(this.rsx);
+		this.vm.vmRegisterRsx(new RsxCpcBasic(), true);
 
 		this.noStop = Object.assign({}, this.vm.vmGetStopObject());
 		this.savedStop = {
@@ -241,13 +240,21 @@ export class Controller implements IController {
 		}; // backup of stop object
 		this.setStopObject(this.noStop);
 
+		const basicVersion = this.model.getProperty<string>("basicVersion");
+
+		view.setSelectValue("basicVersionSelect", basicVersion);
+
+		this.basicParser = new BasicParser({
+			basicVersion: basicVersion
+		});
+		this.basicLexer = new BasicLexer({
+			keywords: this.basicParser.getKeywords()
+		});
+
 		this.codeGeneratorJs = new CodeGeneratorJs({
-			lexer: new BasicLexer({
-				keywords: BasicParser.keywords
-			}),
-			parser: new BasicParser(),
+			lexer: this.basicLexer,
+			parser: this.basicParser,
 			trace: model.getProperty<boolean>("trace"),
-			//rsx: this.rsx, // just to check the names
 			implicitLines: model.getProperty<boolean>("implicitLines")
 		});
 
@@ -266,6 +273,27 @@ export class Controller implements IController {
 			this.canvas.startUpdateCanvas();
 		}
 	}
+
+	private static readonly codeGenJsBasicParserOptions = {
+		keepBrackets: false,
+		keepColons: false,
+		keepDataComma: false,
+		keepTokens: false
+	};
+
+	private static readonly codeGenTokenBasicParserOptions = {
+		keepTokens: true,
+		keepBrackets: true,
+		keepColons: true,
+		keepDataComma: true
+	};
+
+	private static readonly formatterBasicParserOptions = {
+		keepBrackets: false,
+		keepColons: false,
+		keepDataComma: false,
+		keepTokens: false
+	};
 
 	private initAreas() {
 		for (const id in Controller.areaDefinitions) { // eslint-disable-line guard-for-in
@@ -346,21 +374,11 @@ export class Controller implements IController {
 		const example = this.model.getExample(key);
 
 		example.key = key; // maybe changed
-		//example.script = input;
 		example.rsx = new RsxConstructor();
 		example.loaded = true;
 		Utils.console.log("addItem:", key);
 		return key;
 	}
-
-	/*
-	registerRsx(name: string, rsxModule: ICpcVmRsx, permanent?: boolean): void {
-		if (Utils.debug > 0) {
-			Utils.console.debug("registerRsx:", name, ", permanent:", permanent);
-		}
-		this.vm.vmRegisterRsx(rsxModule, Boolean(permanent));
-	}
-	*/
 
 	private setDatabaseSelectOptions() {
 		const select = "databaseSelect",
@@ -1146,19 +1164,17 @@ export class Controller implements IController {
 	private encodeTokenizedBasic(input: string, name = "test") {
 		if (!this.codeGeneratorToken) {
 			this.codeGeneratorToken = new CodeGeneratorToken({
-				lexer: new BasicLexer({
-					keywords: BasicParser.keywords,
-					keepWhiteSpace: true
-				}),
-				parser: new BasicParser({
-					keepTokens: true,
-					keepBrackets: true,
-					keepColons: true,
-					keepDataComma: true
-				}),
+				lexer: this.basicLexer,
+				parser: this.basicParser,
 				implicitLines: this.model.getProperty<boolean>("implicitLines")
 			});
 		}
+
+		this.basicLexer.setOptions({
+			keepWhiteSpace: true
+		});
+		this.basicParser.setOptions(Controller.codeGenTokenBasicParserOptions);
+
 		const output = this.codeGeneratorToken.generate(input);
 
 		if (output.error) {
@@ -1181,19 +1197,17 @@ export class Controller implements IController {
 	private prettyPrintBasic(input: string, keepWhiteSpace: boolean, keepBrackets: boolean, keepColons: boolean) {
 		if (!this.codeGeneratorBasic) {
 			this.codeGeneratorBasic = new CodeGeneratorBasic({
-				lexer: new BasicLexer({
-					keywords: BasicParser.keywords
-				}),
-				parser: new BasicParser()
+				lexer: this.basicLexer,
+				parser: this.basicParser
 			});
 		}
 
 		const keepDataComma = true;
 
-		this.codeGeneratorBasic.getOptions().lexer.setOptions({
+		this.basicLexer.setOptions({
 			keepWhiteSpace: keepWhiteSpace
 		});
-		this.codeGeneratorBasic.getOptions().parser.setOptions({
+		this.basicParser.setOptions({
 			keepTokens: true,
 			keepBrackets: keepBrackets,
 			keepColons: keepColons,
@@ -1670,7 +1684,6 @@ export class Controller implements IController {
 		}
 
 		vm.vmStop("end", 0, true); // set "end" with priority 0, so that "compile only" still works
-		//vm.outBuffer = "";
 		this.view.setAreaValue("outputText", "");
 		this.invalidateScript();
 	}
@@ -1698,23 +1711,21 @@ export class Controller implements IController {
 		return shortError;
 	}
 
-	private static createBasicFormatter() {
-		return new BasicFormatter({
-			lexer: new BasicLexer({
-				keywords: BasicParser.keywords
-			}),
-			parser: new BasicParser()
-		});
-	}
-
 	private fnRenumLines(paras: VmLineRenumParas) {
 		const vm = this.vm,
 			input = this.view.getAreaValue("inputText");
 
 		if (!this.basicFormatter) {
-			this.basicFormatter = Controller.createBasicFormatter();
+			this.basicFormatter = new BasicFormatter({
+				lexer: this.basicLexer,
+				parser: this.basicParser
+			});
 		}
 
+		this.basicLexer.setOptions({
+			keepWhiteSpace: false
+		});
+		this.basicParser.setOptions(Controller.formatterBasicParserOptions);
 		const output = this.basicFormatter.renumber(input, paras.newLine || 10, paras.oldLine || 1, paras.step || 10, paras.keep || 65535);
 
 		if (output.error) {
@@ -1798,6 +1809,10 @@ export class Controller implements IController {
 		// keep variables; this.variables.removeAllVariables();
 		let	output: IOutput;
 
+		this.basicLexer.setOptions({
+			keepWhiteSpace: false
+		});
+		this.basicParser.setOptions(Controller.codeGenJsBasicParserOptions);
 		if (!bench) {
 			output = this.codeGeneratorJs.generate(input, this.variables);
 		} else {
@@ -1869,9 +1884,16 @@ export class Controller implements IController {
 
 	fnRemoveLines(): void {
 		if (!this.basicFormatter) {
-			this.basicFormatter = Controller.createBasicFormatter();
+			this.basicFormatter = new BasicFormatter({
+				lexer: this.basicLexer,
+				parser: this.basicParser
+			});
 		}
 
+		this.basicLexer.setOptions({
+			keepWhiteSpace: false
+		});
+		this.basicParser.setOptions(Controller.formatterBasicParserOptions);
 		const input = this.view.getAreaValue("inputText"),
 			output = this.basicFormatter.removeUnusedLines(input);
 
@@ -1994,7 +2016,6 @@ export class Controller implements IController {
 		vm.vmReset4Run();
 
 		if (this.fnScript) {
-			//TTT not needed? vm.outBuffer = this.view.getAreaValue("resultText");
 			vm.vmStop("", 0, true);
 			vm.vmGoto(0); // to load DATA lines
 			this.vm.vmSetStartLine(line); // clear resets also startline
@@ -2461,6 +2482,16 @@ export class Controller implements IController {
 		}
 		this.setVarSelectOptions("varSelect", variables);
 		this.commonEventHandler.onVarSelectChange(); // title change?
+	}
+
+	setBasicVersion(basicVersion: string): void {
+		this.basicParser.setBasicVersion(basicVersion);
+
+		this.basicLexer.setOptions({
+			keywords: this.basicParser.getKeywords()
+		});
+
+		this.invalidateScript();
 	}
 
 	setPalette(palette: string): void {

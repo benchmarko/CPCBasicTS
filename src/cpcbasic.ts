@@ -19,6 +19,7 @@ class cpcBasic {
 	private static readonly config: ConfigType = {
 		arrayBounds: false,
 		autorun: true,
+		basicVersion: "1.1", // "1.1" or "1.0"
 		bench: 0, // debug: number of parse bench loops
 		databaseDirs: "examples", // example base directories (comma separated)
 		database: "examples", // examples, apps, saved
@@ -71,52 +72,8 @@ class cpcBasic {
 	}
 
 	static addRsx(key: string, RsxConstructor: new () => ICpcVmRsx) {
-		//return cpcBasic.controller.registerRsx(key, new RsxConstructor());
-
 		return cpcBasic.controller.addRsx(key, RsxConstructor);
 	}
-
-	/*
-	//TTT
-	static testRsx1() {
-		const Class1 = function () {
-			return {
-				getRsxCommands: function () {
-					return {
-						stop: function () {
-							this.vmStop("stop", 60);
-						}
-					};
-				}
-			};
-		} as RsxConstructorType;
-
-		this.registerRsx("test1", Class1); // howto?
-	}
-	*/
-
-	/*
-	//TTT
-	static testRsx1() {
-		const c1 = function () {
-			function Class1() {
-				// empty
-			}
-			Class1.getRsxCommands = function () {
-				return {
-					stop: function () {
-						this.vmStop("stop", 60);
-					}
-				};
-			};
-
-			return c1;
-		};
-
-		this.registerRsx("test1", c1 as RsxConstructorType); // howto?
-	}
-	*/
-
 
 	// can be used for nodeJS
 	private static fnParseArgs(args: string[], config: ConfigType) {
