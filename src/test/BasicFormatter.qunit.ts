@@ -92,19 +92,23 @@ type hooksWithBasicFormatter = NestedHooks & {
 };
 
 function createBasicFormatter() {
+	const basicParser = new BasicParser({
+		quiet: true
+	});
+
 	return new BasicFormatter({
 		lexer: new BasicLexer({
-			keywords: BasicParser.keywords
+			keywords: basicParser.getKeywords()
 		}),
-		parser: new BasicParser({
-			quiet: true
-		})
+		parser: basicParser
 	});
 }
 
 QUnit.module("BasicFormatter:renumber: Tests", function (hooks) {
 	hooks.before(function () {
-		(hooks as hooksWithBasicFormatter).basicFormatter = createBasicFormatter();
+		const thisHooks = hooks as hooksWithBasicFormatter;
+
+		thisHooks.basicFormatter = createBasicFormatter();
 	});
 
 	function runSingleTest(basicFormatter: BasicFormatter, key: string) {
@@ -119,14 +123,15 @@ QUnit.module("BasicFormatter:renumber: Tests", function (hooks) {
 	}
 
 	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
-		const basicFormatter = new BasicFormatter({
-			lexer: new BasicLexer({
-				keywords: BasicParser.keywords
-			}),
-			parser: new BasicParser({
+		const basicParser = new BasicParser({
 				quiet: true
-			})
-		});
+			}),
+			basicFormatter = new BasicFormatter({
+				lexer: new BasicLexer({
+					keywords: basicParser.getKeywords()
+				}),
+				parser: basicParser
+			});
 
 		for (const key in tests) {
 			if (tests.hasOwnProperty(key)) {

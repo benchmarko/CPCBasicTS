@@ -128,6 +128,7 @@ export interface IController {
     setGalleryAreaInputs: () => void;
     invalidateScript: () => void;
     setSoundActive: () => void;
+    setBasicVersion: (basicVersion: string) => void;
     setPalette: (palette: string) => void;
     setCanvasType: (canvasType: string) => ICanvas;
     changeVariable: () => void;

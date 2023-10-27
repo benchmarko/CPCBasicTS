@@ -144,7 +144,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.options = {
                 lexer: options.lexer,
                 parser: options.parser,
-                //rsx: options.rsx,
                 quiet: false
             };
             this.setOptions(options); // optional options
@@ -941,6 +940,14 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             node.pv = value;
         };
         CodeGeneratorJs.prototype.gosub = function (node) {
+            //TTT
+            /*
+            if (!node.args) { // maybe GOSUB token
+                Utils.console.log("DEBUG: gosub: ignoring; ", node.type);
+                node.pv = "";
+                return;
+            }
+            */
             var nodeArgs = this.fnParseArgs(node.args), label = this.fnGetGosubLabel();
             for (var i = 0; i < nodeArgs.length; i += 1) {
                 this.fnAddReferenceLabel(nodeArgs[i], node.args[i]);
@@ -1248,6 +1255,14 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         /* eslint-enable no-invalid-this */
         CodeGeneratorJs.prototype.fnParseOther = function (node) {
+            //TTT
+            /*
+            if (!node.args) { // maybe whitespace
+                Utils.console.log("fnParseOther: ignoring; ", node.type);
+                node.pv = "";
+                return;
+            }
+            */
             var nodeArgs = this.fnParseArgs(node.args), typeWithSpaces = " " + node.type + " ";
             node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + ")";
             if (CodeGeneratorJs.fnIsInString(" asc cint derr eof erl err fix fre inkey inp instr int joy len memory peek pos remain sgn sq test testr unt vpos xpos ypos ", typeWithSpaces)) {
@@ -1371,7 +1386,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     if (arg.type === "letter") {
                         this.defintDefstrTypes[arg.value.toLowerCase()] = type;
                     }
-                    else { // assuming range
+                    else if (arg.type === "range") {
                         if (!arg.left || !arg.right) {
                             throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
                         }

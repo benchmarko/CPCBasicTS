@@ -26,6 +26,8 @@ export declare class Controller implements IController {
     private readonly model;
     private readonly view;
     private readonly commonEventHandler;
+    private readonly basicLexer;
+    private readonly basicParser;
     private readonly codeGeneratorJs;
     private readonly canvases;
     private canvas;
@@ -41,6 +43,9 @@ export declare class Controller implements IController {
     private hasStorageDatabase;
     private static areaDefinitions;
     constructor(model: Model, view: View);
+    private static readonly codeGenJsBasicParserOptions;
+    private static readonly codeGenTokenBasicParserOptions;
+    private static readonly formatterBasicParserOptions;
     private initAreas;
     private initDatabases;
     private onUserAction;
@@ -96,7 +101,6 @@ export declare class Controller implements IController {
     private fnList;
     private fnReset;
     private outputError;
-    private static createBasicFormatter;
     private fnRenumLines;
     private fnEditLineCallback;
     private fnEditLine;
@@ -140,6 +144,7 @@ export declare class Controller implements IController {
     private setPopoversHiddenExcept;
     toggleAreaHidden(id: string): boolean;
     changeVariable(): void;
+    setBasicVersion(basicVersion: string): void;
     setPalette(palette: string): void;
     setCanvasType(canvasType: string): ICanvas;
     setSoundActive(): void;

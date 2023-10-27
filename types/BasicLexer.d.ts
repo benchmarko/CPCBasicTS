@@ -18,7 +18,7 @@ export declare class BasicLexer {
     private index;
     private readonly tokens;
     private whiteSpace;
-    setOptions(options: Omit<BasicLexerOptions, "keywords">): void;
+    setOptions(options: Partial<BasicLexerOptions>): void;
     getOptions(): BasicLexerOptions;
     constructor(options: BasicLexerOptions);
     private composeError;

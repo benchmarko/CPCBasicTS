@@ -8,10 +8,11 @@ interface CodeGeneratorBasicOptions {
 }
 export declare class CodeGeneratorBasic {
     private readonly options;
+    private keywords;
     private hasColons;
     private keepWhiteSpace;
     private line;
-    setOptions(options: Omit<CodeGeneratorBasicOptions, "lexer" | "parser">): void;
+    setOptions(options: Partial<CodeGeneratorBasicOptions>): void;
     getOptions(): CodeGeneratorBasicOptions;
     constructor(options: CodeGeneratorBasicOptions);
     private static readonly combinedKeywords;

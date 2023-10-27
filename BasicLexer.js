@@ -24,6 +24,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.setOptions(options);
         }
         BasicLexer.prototype.setOptions = function (options) {
+            if (options.keywords !== undefined) {
+                this.options.keywords = options.keywords;
+            }
             if (options.keepWhiteSpace !== undefined) {
                 this.options.keepWhiteSpace = options.keepWhiteSpace;
             }

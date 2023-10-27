@@ -1,5 +1,6 @@
 import { LexerToken } from "./BasicLexer";
 interface BasicParserOptions {
+    basicVersion?: string;
     quiet?: boolean;
     keepBrackets?: boolean;
     keepColons?: boolean;
@@ -14,23 +15,29 @@ export interface ParserNode extends LexerToken {
 }
 export declare class BasicParser {
     private readonly options;
+    private keywordsBasic10?;
+    private keywords;
     private label;
-    private readonly symbols;
+    private symbols;
     private tokens;
     private index;
     private previousToken;
     private token;
     private readonly parseTree;
     private statementList;
-    setOptions(options: BasicParserOptions): void;
+    setOptions(options: Partial<BasicParserOptions>): void;
     getOptions(): BasicParserOptions;
-    constructor(options?: BasicParserOptions);
+    getKeywords(): Record<string, string>;
+    setBasicVersion(basicVersion: string): void;
+    constructor(options: BasicParserOptions);
     private static readonly parameterTypes;
-    static readonly keywords: Record<string, string>;
+    private static readonly keywordsBasic11;
     private readonly specialStatements;
     private static readonly closeTokensForLine;
     private static readonly closeTokensForLineAndElse;
     private static readonly closeTokensForArgs;
+    private static fnIsInString;
+    private getKeywords10;
     private composeError;
     private fnLastStatementIsOnErrorGotoX;
     private fnMaskedError;
@@ -90,6 +97,7 @@ export declare class BasicParser {
     private symbol;
     private window;
     private write;
+    private fnClearSymbols;
     private static fnNode;
     private createSymbol;
     private createNudSymbol;

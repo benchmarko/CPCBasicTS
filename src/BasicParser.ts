@@ -23,6 +23,7 @@ import { Utils } from "./Utils";
 import { LexerToken } from "./BasicLexer";
 
 interface BasicParserOptions {
+	basicVersion?: string, // "1.1" or "1.0"
 	quiet?: boolean
 	keepBrackets?: boolean
 	keepColons?: boolean
@@ -49,8 +50,12 @@ interface SymbolType {
 export class BasicParser {
 	private readonly options: BasicParserOptions;
 
+	private keywordsBasic10?: typeof BasicParser.keywordsBasic11; // keyward list for BASIC 1.0
+
+	private keywords = BasicParser.keywordsBasic11;
+
 	private label = "0"; // for error messages
-	private readonly symbols: Record<string, SymbolType> = {};
+	private symbols: Record<string, SymbolType> = {};
 
 	// set also during parse
 	private tokens: LexerToken[] = [];
@@ -62,7 +67,11 @@ export class BasicParser {
 
 	private statementList: ParserNode[] = []; // just to check last statement when generating error message
 
-	setOptions(options: BasicParserOptions): void {
+	setOptions(options: Partial<BasicParserOptions>): void {
+		if (options.basicVersion !== undefined) {
+			this.setBasicVersion(options.basicVersion);
+		}
+
 		if (options.keepBrackets !== undefined) {
 			this.options.keepBrackets = options.keepBrackets;
 		}
@@ -84,8 +93,23 @@ export class BasicParser {
 		return this.options;
 	}
 
-	constructor(options?: BasicParserOptions) {
+	getKeywords(): Record<string, string> {
+		return this.keywords;
+	}
+
+	setBasicVersion(basicVersion: string): void {
+		this.options.basicVersion = basicVersion;
+
+		this.keywords = basicVersion === "1.0" ? this.getKeywords10() : BasicParser.keywordsBasic11;
+
+		// if basicVersion changes, we need to recreate the symbols
+		this.fnClearSymbols();
+		this.fnGenerateSymbols();
+	}
+
+	constructor(options: BasicParserOptions) {
 		this.options = {
+			basicVersion: "",
 			quiet: false,
 			keepBrackets: false,
 			keepColons: false,
@@ -96,12 +120,15 @@ export class BasicParser {
 			this.setOptions(options);
 		}
 
-		this.fnGenerateSymbols();
+		if (!this.options.basicVersion) { // not yet set?
+			this.setBasicVersion("1.1"); // set default
+		}
 
 		this.previousToken = {} as ParserNode; // to avoid warnings
 		this.token = this.previousToken;
 	}
 
+	// for basicKeywords:
 	private static readonly parameterTypes: Record<string, string> = {
 		c: "command",
 		f: "function",
@@ -118,9 +145,10 @@ export class BasicParser {
 		"#": "stream"
 	}
 
+	// keyword list for BASIC 1.1
 	// first letter: c=command, f=function, p=part of command, o=operator, x=misc
 	// following are arguments: n=number, s=string, l=line number (checked), v=variable (checked), q=line number range, r=letter or range, a=any, n0?=optional parameter with default null, #=stream, #0?=optional stream with default 0; suffix ?=optional (optionals must be last); last *=any number of arguments may follow
-	static readonly keywords: Record<string, string> = {
+	private static readonly keywordsBasic11: Record<string, string> = {
 		abs: "f n", // ABS(<numeric expression>)
 		after: "c", // => afterGosub
 		afterGosub: "c n n?", // AFTER <timer delay>[,<timer number>] GOSUB <line number> / (special, cannot check optional first n, and line number)
@@ -138,29 +166,29 @@ export class BasicParser {
 		chr$: "f n", // CHR$(<integer expression>)
 		cint: "f n", // CINT(<numeric expression>)
 		clear: "c", // CLEAR  or: => clearInput
-		clearInput: "c", // CLEAR INPUT
+		clearInput: "c", // CLEAR INPUT  (BASIC 1.1)
 		clg: "c n?", // CLG [<ink>]
 		closein: "c", // CLOSEIN
 		closeout: "c", // CLOSEOUT
 		cls: "c #0?", // CLS[#<stream expression>]
 		cont: "c", // CONT
-		copychr$: "f #", // COPYCHR$(#<stream expression>)
+		copychr$: "f #", // COPYCHR$(#<stream expression>)  (BASIC 1.1)
 		cos: "f n", // COS(<numeric expression>)
 		creal: "f n", // CREAL(<numeric expression>)
-		cursor: "c #0? n0? n?", // CURSOR [<system switch>][,<user switch>] (either parameter can be omitted but not both)
+		cursor: "c #0? n0? n?", // CURSOR [<system switch>][,<user switch>] (either parameter can be omitted but not both)  (BASIC 1.1)
 		data: "c n0*", // DATA <list of: constant> (rather 0*, insert dummy null, if necessary)
-		dec$: "f n s", // DEC$(<numeric expression>,<format template>)
+		dec$: "f n s", // DEC$(<numeric expression>,<format template>)  (corrected with BASIC 1.1)
 		def: "c s *", // DEF FN[<space>]<function name>[(<formal parameters>)]=<expression> / (not checked from this)
 		defint: "c r r*", // DEFINT <list of: letter range>
 		defreal: "c r r*", // DEFREAL <list of: letter range>
 		defstr: "c r r*", // DEFSTR <list of: letter range>
 		deg: "c", // DEG
 		"delete": "c q0?", // DELETE [<line number range>]
-		derr: "f", // DERR
+		derr: "f", // DERR [BASIC 1.1]
 		di: "c", // DI
 		dim: "c v *", // DIM <list of: subscripted variable>
-		draw: "c n n n0? n?", // DRAW <x coordinate>,<y coordinate>[,[<ink>][,<ink mode>]]
-		drawr: "c n n n0? n?", // DRAWR <x offset>,<y offset>[,[<ink>][,<ink mode>]]
+		draw: "c n n n0? n?", // DRAW <x coordinate>,<y coordinate>[,[<ink>][,<ink mode>]]  (BASIC 1.1 with <ink mode>)
+		drawr: "c n n n0? n?", // DRAWR <x offset>,<y offset>[,[<ink>][,<ink mode>]]  (BASIC 1.1 with <ink mode>)
 		edit: "c l", // EDIT <line number>
 		ei: "c", // EI
 		"else": "c", // see: IF (else belongs to "if", but can also be used as command)
@@ -175,7 +203,7 @@ export class BasicParser {
 		every: "c", // => everyGosub
 		everyGosub: "c n n?", // EVERY <timer delay>[,<timer number>] GOSUB <line number>  / (special, cannot check optional first n, and line number)
 		exp: "f n", // EXP(<numeric expression>)
-		fill: "c n", // FILL <ink>
+		fill: "c n", // FILL <ink>  (BASIC 1.1)
 		fix: "f n", // FIX(<numeric expression>)
 		fn: "x", // see DEF FN / (FN can also be separate from <function name>)
 		"for": "c", // FOR <simple variable>=<start> TO <end> [STEP <size>]
@@ -183,9 +211,9 @@ export class BasicParser {
 		fre: "f a", // FRE(<numeric expression>)  or: FRE(<string expression>)
 		gosub: "c l", // GOSUB <line number>
 		"goto": "c l", // GOTO <line number>
-		graphics: "c", // => graphicsPaper or graphicsPen
-		graphicsPaper: "x n", // GRAPHICS PAPER <ink>  / (special)
-		graphicsPen: "x n0? n?", // GRAPHICS PEN [<ink>][,<background mode>]  / (either of the parameters may be omitted, but not both)
+		graphics: "c", // => graphicsPaper or graphicsPen  (BASIC 1.1)
+		graphicsPaper: "x n", // GRAPHICS PAPER <ink>  / (special)  (BASIC 1.1)
+		graphicsPen: "x n0? n?", // GRAPHICS PEN [<ink>][,<background mode>]  / (either of the parameters may be omitted, but not both)  (BASIC 1.1)
 		hex$: "f n n?", // HEX$(<unsigned integer expression>[,<field width>])
 		himem: "f", // HIMEM
 		"if": "c", // IF <logical expression> THEN <option part> [ELSE <option part>]
@@ -210,7 +238,7 @@ export class BasicParser {
 		log: "f n", // LOG(<numeric expression>)
 		log10: "f n", // LOG10(<numeric expression>)
 		lower$: "f s", // LOWER$(<string expression>)
-		mask: "c n0? n?", // MASK [<integer expression>][,<first point setting>]  / (either of the parameters may be omitted, but not both)
+		mask: "c n0? n?", // MASK [<integer expression>][,<first point setting>]  / (either of the parameters may be omitted, but not both)  (BASIC 1.1)
 		max: "f a *", // MAX(<list of: numeric expression> | <one number of string>)
 		memory: "c n", // MEMORY <address expression>
 		merge: "c s", // MERGE <filename>
@@ -219,8 +247,8 @@ export class BasicParser {
 		min: "f a *", // MIN(<list of: numeric expression> | <one number of string>)
 		mod: "o", // <argument> MOD <argument>
 		mode: "c n", // MODE <integer expression>
-		move: "c n n n0? n?", // MOVE <x coordinate>,<y coordinate>[,[<ink>][,<ink mode>]]
-		mover: "c n n n0? n?", // MOVER <x offset>,<y offset>[,[<ink>][,<ink mode>]]
+		move: "c n n n0? n?", // MOVE <x coordinate>,<y coordinate>[,[<ink>][,<ink mode>]]  (BASIC 1.1 with <ink>,<ink mode>)
+		mover: "c n n n0? n?", // MOVER <x offset>,<y offset>[,[<ink>][,<ink mode>]]  (BASIC 1.1 with <ink>,<ink mode>)
 		"new": "c", // NEW
 		next: "c v*", // NEXT [<list of: variable>]
 		not: "o", // NOT <argument>
@@ -239,10 +267,10 @@ export class BasicParser {
 		out: "c n n", // OUT <port number>,<integer expression>
 		paper: "c #0? n", // PAPER[#<stream expression>,]<ink>
 		peek: "f n", // PEEK(<address expression>)
-		pen: "c #0? n0 n?", // PEN[#<stream expression>,][<ink>][,<background mode>]  / ink=0..15; background mode=0..1
+		pen: "c #0? n0 n?", // PEN[#<stream expression>,][<ink>][,<background mode>]  / ink=0..15; background mode=0..1 (BASIC 1.1 with <background mode)
 		pi: "f", // PI
-		plot: "c n n n0? n?", // PLOT <x coordinate>,<y coordinate>[,[<ink>][,<ink mode>]]
-		plotr: "c n n n0? n?", // PLOTR <x offset>,<y offset>[,[<ink>][,<ink mode>]]
+		plot: "c n n n0? n?", // PLOT <x coordinate>,<y coordinate>[,[<ink>][,<ink mode>]]  (BASIC 1.1 with <ink mode>)
+		plotr: "c n n n0? n?", // PLOTR <x offset>,<y offset>[,[<ink>][,<ink mode>]]  (BASIC 1.1 with <ink mode>)
 		poke: "c n n", // POKE <address expression>,<integer expression>
 		pos: "f #", // POS(#<stream expression>)
 		print: "c #0? *", // PRINT[#<stream expression>,][<list of: print items>] ... [;][SPC(<integer expression>)] ... [;][TAB(<integer expression>)] ... [;][USING <format template>][<separator expression>]
@@ -311,7 +339,7 @@ export class BasicParser {
 		_rsx1: "c a a*", // |<rsxName>[, <argument list>] dummy with at least one parameter
 		_any1: "x *", // dummy: any number of args
 		_vars1: "x v*" // dummy: any number of variables
-	}
+	};
 
 	/* eslint-disable no-invalid-this */
 	private readonly specialStatements: Record<string, (node: ParserNode) => ParserNode> = { // to call methods, use specialStatements[].call(this,...)
@@ -365,6 +393,38 @@ export class BasicParser {
 		"else": 1,
 		rem: 1,
 		"'": 1
+	}
+
+	private static fnIsInString(string: string, find: string) { // same as in CodeGeneratorJS
+		return find && string.indexOf(find) >= 0;
+	}
+
+	private getKeywords10(): Record<string, string> {
+		if (this.keywordsBasic10) {
+			return this.keywordsBasic10;
+		}
+
+		const keywords10 = {
+			...BasicParser.keywordsBasic11
+		}; // clone
+
+		for (const key in keywords10) {
+			if (keywords10.hasOwnProperty(key)) {
+				const keyWithSpaces = " " + key + " ";
+
+				// what about DEC$ ?
+				if (BasicParser.fnIsInString(" clearInput copychr$ cursor derr fill frame graphics graphicsPaper graphicsPen mask onBreakCont ", keyWithSpaces)) {
+					delete keywords10[key]; // remove keywords which do not exist in BASIC 1.0
+				} else if (BasicParser.fnIsInString(" draw drawr move mover pen plot plotr ", keyWithSpaces)) {
+					keywords10[key] = keywords10[key].substring(0, keywords10[key].lastIndexOf(" ")); // remove the last parameter <ink mode>; or <background mode> for pen
+					if (BasicParser.fnIsInString(" move mover ", keyWithSpaces)) {
+						keywords10[key] = keywords10[key].substring(0, keywords10[key].lastIndexOf(" ")); // also remove parameter <ink>
+					}
+				}
+			}
+		}
+		this.keywordsBasic10 = keywords10;
+		return keywords10;
 	}
 
 	private composeError(error: Error, message: string, value: string, pos: number, len?: number) {
@@ -682,7 +742,7 @@ export class BasicParser {
 
 	private fnCheckStaticTypeNotNumber(expression: ParserNode, typeFirstChar: string) {
 		const type = expression.type,
-			isStringFunction = (BasicParser.keywords[type] || "").startsWith("f") && type.endsWith("$"),
+			isStringFunction = (this.keywords[type] || "").startsWith("f") && type.endsWith("$"),
 			isStringIdentifier = type === "identifier" && expression.value.endsWith("$");
 
 		if (type === "string" || type === "ustring" || type === "#" || isStringFunction || isStringIdentifier) { // got a string or a stream? (statical check)
@@ -692,7 +752,7 @@ export class BasicParser {
 
 	private fnCheckStaticTypeNotString(expression: ParserNode, typeFirstChar: string) {
 		const type = expression.type,
-			isNumericFunction = (BasicParser.keywords[type] || "").startsWith("f") && !type.endsWith("$"),
+			isNumericFunction = (this.keywords[type] || "").startsWith("f") && !type.endsWith("$"),
 			isNumericIdentifier = type === "identifier" && (expression.value.endsWith("%") || expression.value.endsWith("!")),
 			isComparison = type === "=" || type.startsWith("<") || type.startsWith(">"); // =, <, >, <=, >=
 
@@ -784,7 +844,7 @@ export class BasicParser {
 	}
 
 	private fnGetArgs(args: ParserNode[], keyword: string) {
-		const keyOpts = BasicParser.keywords[keyword],
+		const keyOpts = this.keywords[keyword],
 			types = keyOpts.split(" "),
 			closeTokens = BasicParser.closeTokensForArgs;
 		let type = "xxx"; // initial needMore
@@ -888,20 +948,13 @@ export class BasicParser {
 	private fnCreateFuncCall(node: ParserNode) {
 		node.args = [];
 		if (this.token.type === "(") { // args in parenthesis?
-			this.advance("(");
-			if (this.options.keepTokens) {
-				node.args.push(this.previousToken);
+			if (node.type === "dec$" && this.options.basicVersion === "1.0") {
+				this.advance("("); // BASIC 1.0: simulate DEC$(( bug with 2 open brackets
 			}
-
-			this.fnGetArgs(node.args, node.type);
-
-			this.advance(")");
-			if (this.options.keepTokens) {
-				node.args.push(this.previousToken);
-			}
+			this.fnGetArgsInParenthesis(node.args, node.type);
 		} else { // no parenthesis?
 			// if we have a check, make sure there are no non-optional parameters left
-			const keyOpts = BasicParser.keywords[node.type];
+			const keyOpts = this.keywords[node.type];
 
 			if (keyOpts) {
 				const types = keyOpts.split(" ");
@@ -966,6 +1019,11 @@ export class BasicParser {
 			type = "_rsx1"; // dummy token: expect at least 1 argument
 		}
 		this.fnGetArgs(node.args, type); // get arguments
+		if (this.options.basicVersion === "1.0") { // BASIC 1.0: make sure there are no string parameters
+			for (let i = 0; i < node.args.length; i += 1) {
+				this.fnCheckStaticTypeNotNumber(node.args[i], "n");
+			}
+		}
 		return node;
 	}
 
@@ -1037,7 +1095,7 @@ export class BasicParser {
 	private clear(node: ParserNode) {
 		const tokenType = this.token.type;
 
-		return tokenType === "input" ? this.fnCombineTwoTokens(node, tokenType) : this.fnCreateCmdCall(node); // "clear input" or "clear"
+		return tokenType === "input" && this.keywords.clearInput ? this.fnCombineTwoTokens(node, tokenType) : this.fnCreateCmdCall(node); // "clear input" (BASIC 1.1) or "clear"
 	}
 
 	private data(node: ParserNode) {
@@ -1320,7 +1378,7 @@ export class BasicParser {
 
 	private line(node: ParserNode) {
 		node.type = this.fnCombineTwoTokensNoArgs(node, "input"); // combine "line" => "lineInput"
-		return this.input(node); // continue with input //TTT
+		return this.input(node); // continue with input
 	}
 
 	private mid$Assign(node: ParserNode) { // mid$Assign
@@ -1360,10 +1418,12 @@ export class BasicParser {
 		case "break":
 			node.type = this.fnCombineTwoTokensNoArgs(node, "break"); // onBreak
 			tokenType = this.token.type;
-			if (tokenType === "gosub" || tokenType === "cont" || tokenType === "stop") {
+			if ((tokenType === "cont" && this.keywords.onBreakCont) || tokenType === "gosub" || tokenType === "stop") {
 				this.fnCombineTwoTokens(node, this.token.type); // onBreakGosub, onBreakCont, onBreakStop
 			} else {
-				throw this.composeError(Error(), "Expected GOSUB, CONT or STOP", this.token.type, this.token.pos);
+				const msgContPart = this.keywords.onBreakCont ? "CONT, " : "";
+
+				throw this.composeError(Error(), "Expected " + msgContPart + "GOSUB or STOP", this.token.type, this.token.pos);
 			}
 			break;
 		case "error": // on error goto
@@ -1520,6 +1580,19 @@ export class BasicParser {
 
 	// ---
 
+	private fnClearSymbols() {
+		this.symbols = {};
+		/*
+		const symbols = this.symbols;
+
+		for (const symbol in symbols) {
+			if (symbols.hasOwnProperty(symbol)) {
+				delete symbols[symbol];
+			}
+		}
+		*/
+	}
+
 	private static fnNode(node: ParserNode) {
 		return node;
 	}
@@ -1579,9 +1652,9 @@ export class BasicParser {
 	}
 
 	private fnGenerateKeywordSymbols() {
-		for (const key in BasicParser.keywords) {
-			if (BasicParser.keywords.hasOwnProperty(key)) {
-				const keywordType = BasicParser.keywords[key].charAt(0);
+		for (const key in this.keywords) {
+			if (this.keywords.hasOwnProperty(key)) {
+				const keywordType = this.keywords[key].charAt(0);
 
 				if (keywordType === "f") {
 					this.createNudSymbol(key, () => this.fnCreateFuncCall(this.previousToken));

@@ -1796,11 +1796,21 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             '"4.78"': "4.78",
             '" -4.78 "': "-4.78",
             '"a"': "0",
-            '"&xa"': "0",
+            '"&x0"': "0",
+            '"&x1r"': "1",
             '"&a0"': "160",
             '"&ha0"': "160",
-            "": 'CpcVm: Type mismatch in 0: VAL undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+            '"&ar"': "10",
             '""': "0",
+            '"-"': 'CpcVm: Type mismatch in 0: VAL - -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+            '"."': 'CpcVm: Type mismatch in 0: VAL . -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+            '"&"': 'CpcVm: Type mismatch in 0: VAL & -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+            '"&r"': 'CpcVm: Type mismatch in 0: VAL &r -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+            '"&x"': 'CpcVm: Type mismatch in 0: VAL &x -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+            '"&x2"': 'CpcVm: Type mismatch in 0: VAL &x2 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+            '"&h"': 'CpcVm: Type mismatch in 0: VAL &h -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+            '"&hr"': 'CpcVm: Type mismatch in 0: VAL &hr -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
+            "": 'CpcVm: Type mismatch in 0: VAL undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
             "2 ": 'CpcVm: Type mismatch in 0: VAL 2 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
         },
         vpos: {
@@ -1931,7 +1941,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             "": 'printChar:91,0,0,1,0,false , printChar:49,1,0,1,0,false , printChar:50,2,0,1,0,false , printChar:51,3,0,1,0,false , printChar:93,4,0,1,0,false -- {"_key":"win0","pos":5}'
         }
     };
-    // tests added: USING with escape character "_"
+    // tests added: USING with escape character "_"; VAl...
     var lastTestFunctions = [], // eslint-disable-line one-var
     varTypesMap = {}, variablesMap = {}, mockCanvas = {
         setOnCanvasClick: function () {

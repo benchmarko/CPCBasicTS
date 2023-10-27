@@ -3,7 +3,7 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 //
-define(["require", "exports", "./Utils", "./BasicParser"], function (require, exports, Utils_1, BasicParser_1) {
+define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CodeGeneratorBasic = void 0;
@@ -56,6 +56,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
                 quiet: false
             };
             this.setOptions(options);
+            this.keywords = options.parser.getKeywords();
         }
         CodeGeneratorBasic.prototype.setOptions = function (options) {
             if (options.quiet !== undefined) {
@@ -277,7 +278,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
                 value += this.parseNode(node.left);
             }
             value += CodeGeneratorBasic.fnWs(node);
-            var keyType = BasicParser_1.BasicParser.keywords[type];
+            var keyType = this.keywords[type];
             if (keyType) {
                 value += CodeGeneratorBasic.getUcKeyword(node);
             }
@@ -287,7 +288,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             var right = "";
             if (node.right) {
                 right = this.parseNode(node.right);
-                var needSpace1 = BasicParser_1.BasicParser.keywords[right.toLowerCase()] || keyType;
+                var needSpace1 = this.keywords[right.toLowerCase()] || keyType;
                 value += needSpace1 ? CodeGeneratorBasic.fnSpace1(right) : right;
             }
             if (node.args) {
@@ -407,6 +408,7 @@ define(["require", "exports", "./Utils", "./BasicParser"], function (require, ex
             };
             this.hasColons = Boolean(this.options.parser.getOptions().keepColons);
             this.keepWhiteSpace = Boolean(this.options.lexer.getOptions().keepWhiteSpace);
+            this.keywords = this.options.parser.getKeywords();
             this.line = 0;
             try {
                 var tokens = this.options.lexer.lex(input), parseTree = this.options.parser.parse(tokens), output = this.evaluate(parseTree);

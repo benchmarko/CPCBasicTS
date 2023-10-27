@@ -412,7 +412,7 @@ export declare class CpcVm implements ICpcVm {
     private static fnUpperCase;
     upper$(s: string): string;
     using(format: string, ...args: (string | number)[]): string;
-    private static vmVal;
+    private vmVal;
     val(s: string): number;
     vpos(stream: number): number;
     wait(port: number, mask: number, inv?: number): void;

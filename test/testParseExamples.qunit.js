@@ -77,7 +77,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
         function cpcBasic() {
         }
         cpcBasic.initVmMock1 = function () {
-            var vmMock = cpcBasic.vmMock, keywords = BasicParser_1.BasicParser.keywords;
+            var vmMock = cpcBasic.vmMock, keywords = cpcBasic.basicParser.getKeywords();
             var _loop_1 = function (key) {
                 if (keywords.hasOwnProperty(key)) {
                     if (!vmMock[key]) {
@@ -175,20 +175,12 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
         cpcBasic.baseDir = "../"; // base test directory (relative to dist)
         cpcBasic.dataBaseDirOrUrl = "";
         cpcBasic.model = createModel();
-        /*
-        static rsx: ICpcVmRsx = {
-            rsxIsAvailable: function (rsx: string): boolean { // not needed to suppress warnings when using quiet
-                return (/^a|b|basic|cpm|dir|disc|disc\.in|disc\.out|drive|era|ren|tape|tape\.in|tape\.out|user|mode|renum$/).test(rsx);
-            }
-            // will be programmatically extended by methods...
-        };
-        */
-        cpcBasic.lexer = new BasicLexer_1.BasicLexer({
-            keywords: BasicParser_1.BasicParser.keywords,
-            keepWhiteSpace: true,
+        cpcBasic.basicParser = new BasicParser_1.BasicParser({
             quiet: true
         });
-        cpcBasic.parser = new BasicParser_1.BasicParser({
+        cpcBasic.basicLexer = new BasicLexer_1.BasicLexer({
+            keywords: cpcBasic.basicParser.getKeywords(),
+            keepWhiteSpace: true,
             quiet: true
         });
         cpcBasic.convertParser = new BasicParser_1.BasicParser({
@@ -199,18 +191,16 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
             keepDataComma: true
         });
         cpcBasic.codeGeneratorJs = new CodeGeneratorJs_1.CodeGeneratorJs({
-            lexer: cpcBasic.lexer,
-            parser: cpcBasic.parser,
+            lexer: cpcBasic.basicLexer,
+            parser: cpcBasic.basicParser,
             trace: false,
             quiet: true
-            //rsx: cpcBasic.rsx
         });
         cpcBasic.codeGeneratorToken = new CodeGeneratorToken_1.CodeGeneratorToken({
-            lexer: cpcBasic.lexer,
+            lexer: cpcBasic.basicLexer,
             parser: cpcBasic.convertParser
         });
         cpcBasic.vmMock = {
-            //rsx: cpcBasic.rsx,
             line: "",
             testVariables1: new Variables_1.Variables(),
             testStepCounter1: 0,

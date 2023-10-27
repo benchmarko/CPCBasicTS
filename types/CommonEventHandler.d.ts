@@ -46,6 +46,7 @@ export declare class CommonEventHandler implements EventListenerObject {
     private onExampleSelectChange;
     onVarSelectChange(): void;
     onKbdLayoutSelectChange(): void;
+    private onBasicVersionSelectChange;
     private onPaletteSelectChange;
     private onCanvasTypeSelectChange;
     private onVarTextChange;

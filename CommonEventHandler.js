@@ -57,6 +57,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 onAutorunInputChange: this.onAutorunInputChange,
                 onSoundInputChange: this.onSoundInputChange,
                 onSpeedInputChange: this.onSpeedInputChange,
+                onBasicVersionSelectChange: this.onBasicVersionSelectChange,
                 onCanvasTypeSelectChange: this.onCanvasTypeSelectChange,
                 onPaletteSelectChange: this.onPaletteSelectChange,
                 onScreenshotButtonClick: this.onScreenshotButtonClick,
@@ -232,6 +233,12 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.view.setSelectTitleFromSelectedOption("kbdLayoutSelect");
             this.view.setHidden("kbdAlpha", value === "num");
             this.view.setHidden("kbdNum", value === "alpha");
+        };
+        CommonEventHandler.prototype.onBasicVersionSelectChange = function () {
+            var value = this.view.getSelectValue("basicVersionSelect");
+            this.model.setProperty("basicVersion", value);
+            this.view.setSelectTitleFromSelectedOption("basicVersionSelect");
+            this.controller.setBasicVersion(value);
         };
         CommonEventHandler.prototype.onPaletteSelectChange = function () {
             var value = this.view.getSelectValue("paletteSelect");

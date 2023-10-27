@@ -742,20 +742,20 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
         }
     };
     function createCodeGeneratorBasic(keepWhiteSpace) {
-        var lexer = new BasicLexer_1.BasicLexer({
-            keywords: BasicParser_1.BasicParser.keywords,
-            keepWhiteSpace: keepWhiteSpace
-        }), parser = new BasicParser_1.BasicParser({
+        var basicParser = new BasicParser_1.BasicParser({
             quiet: true,
             keepTokens: true,
             keepBrackets: true,
             keepColons: true,
             keepDataComma: true
+        }), basicLexer = new BasicLexer_1.BasicLexer({
+            keywords: basicParser.getKeywords(),
+            keepWhiteSpace: keepWhiteSpace
         });
         return new CodeGeneratorBasic_1.CodeGeneratorBasic({
             quiet: true,
-            lexer: lexer,
-            parser: parser
+            lexer: basicLexer,
+            parser: basicParser
         });
     }
     QUnit.module("CodeGeneratorBasic: Tests", function (hooks) {

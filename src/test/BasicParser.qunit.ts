@@ -749,14 +749,14 @@ const allTests: AllTestsType = {
 };
 /* eslint-enable quote-props */
 
-type hooksWithBasicLexerParser = NestedHooks & {
+type HooksWithBasicLexerParser = NestedHooks & {
 	basicLexer: BasicLexer,
 	basicParser: BasicParser
 };
 
-function createBasicLexer(keepWhiteSpace: boolean) {
+function createBasicLexer(keywords: Record<string, string>, keepWhiteSpace: boolean) {
 	return new BasicLexer({
-		keywords: BasicParser.keywords,
+		keywords: keywords,
 		quiet: true,
 		keepWhiteSpace: keepWhiteSpace
 	});
@@ -770,8 +770,10 @@ QUnit.module("BasicParser: Tests", function (hooks) {
 	}
 
 	hooks.before(function () {
-		(hooks as hooksWithBasicLexerParser).basicLexer = createBasicLexer(false);
-		(hooks as hooksWithBasicLexerParser).basicParser = createBasicParser1();
+		const thisHooks = hooks as HooksWithBasicLexerParser;
+
+		thisHooks.basicParser = createBasicParser1();
+		thisHooks.basicLexer = createBasicLexer(thisHooks.basicParser.getKeywords(), false);
 	});
 
 	function runSingleTest(basicLexer: BasicLexer, basicParser: BasicParser, key: string, expectedEntry: Record<string, unknown>) {
@@ -798,8 +800,9 @@ QUnit.module("BasicParser: Tests", function (hooks) {
 	}
 
 	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
-		const basicLexer = (hooks as hooksWithBasicLexerParser).basicLexer,
-			basicParser = (hooks as hooksWithBasicLexerParser).basicParser;
+		const thisHooks = hooks as HooksWithBasicLexerParser,
+			basicLexer = thisHooks.basicLexer,
+			basicParser = thisHooks.basicParser;
 
 		for (const key in tests) {
 			if (tests.hasOwnProperty(key)) {
@@ -845,8 +848,10 @@ QUnit.module("BasicParser: keepWhiteSpace, keep...", function (hooks) {
 	}
 
 	hooks.before(function () {
-		(hooks as hooksWithBasicLexerParser).basicLexer = createBasicLexer(true);
-		(hooks as hooksWithBasicLexerParser).basicParser = createBasicParser2();
+		const thisHooks = hooks as HooksWithBasicLexerParser;
+
+		thisHooks.basicParser = createBasicParser2();
+		thisHooks.basicLexer = createBasicLexer(thisHooks.basicParser.getKeywords(), true);
 	});
 
 
@@ -929,8 +934,8 @@ QUnit.module("BasicParser: keepWhiteSpace, keep...", function (hooks) {
 	}
 
 	function runTestsForWhitespace(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
-		const basicLexer = (hooks as hooksWithBasicLexerParser).basicLexer,
-			basicParser = (hooks as hooksWithBasicLexerParser).basicParser;
+		const basicLexer = (hooks as HooksWithBasicLexerParser).basicLexer,
+			basicParser = (hooks as HooksWithBasicLexerParser).basicParser;
 
 		let spaceCount = 1;
 		const fnSpaceReplacer = function () {

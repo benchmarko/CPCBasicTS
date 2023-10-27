@@ -1,4 +1,15 @@
 "use strict";
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
 var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
         if (ar || !(i in from)) {
@@ -1318,6 +1329,9 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
             this.setOptions(options);
         }
         BasicLexer.prototype.setOptions = function (options) {
+            if (options.keywords !== undefined) {
+                this.options.keywords = options.keywords;
+            }
             if (options.keepWhiteSpace !== undefined) {
                 this.options.keepWhiteSpace = options.keepWhiteSpace;
             }
@@ -1718,6 +1732,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
     exports.BasicParser = void 0;
     var BasicParser = /** @class */ (function () {
         function BasicParser(options) {
+            this.keywords = BasicParser.keywordsBasic11;
             this.label = "0"; // for error messages
             this.symbols = {};
             // set also during parse
@@ -1756,6 +1771,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 write: this.write
             };
             this.options = {
+                basicVersion: "",
                 quiet: false,
                 keepBrackets: false,
                 keepColons: false,
@@ -1765,11 +1781,16 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             if (options) {
                 this.setOptions(options);
             }
-            this.fnGenerateSymbols();
+            if (!this.options.basicVersion) { // not yet set?
+                this.setBasicVersion("1.1"); // set default
+            }
             this.previousToken = {}; // to avoid warnings
             this.token = this.previousToken;
         }
         BasicParser.prototype.setOptions = function (options) {
+            if (options.basicVersion !== undefined) {
+                this.setBasicVersion(options.basicVersion);
+            }
             if (options.keepBrackets !== undefined) {
                 this.options.keepBrackets = options.keepBrackets;
             }
@@ -1788,6 +1809,42 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
         };
         BasicParser.prototype.getOptions = function () {
             return this.options;
+        };
+        BasicParser.prototype.getKeywords = function () {
+            return this.keywords;
+        };
+        BasicParser.prototype.setBasicVersion = function (basicVersion) {
+            this.options.basicVersion = basicVersion;
+            this.keywords = basicVersion === "1.0" ? this.getKeywords10() : BasicParser.keywordsBasic11;
+            // if basicVersion changes, we need to recreate the symbols
+            this.fnClearSymbols();
+            this.fnGenerateSymbols();
+        };
+        BasicParser.fnIsInString = function (string, find) {
+            return find && string.indexOf(find) >= 0;
+        };
+        BasicParser.prototype.getKeywords10 = function () {
+            if (this.keywordsBasic10) {
+                return this.keywordsBasic10;
+            }
+            var keywords10 = __assign({}, BasicParser.keywordsBasic11); // clone
+            for (var key in keywords10) {
+                if (keywords10.hasOwnProperty(key)) {
+                    var keyWithSpaces = " " + key + " ";
+                    // what about DEC$ ?
+                    if (BasicParser.fnIsInString(" clearInput copychr$ cursor derr fill frame graphics graphicsPaper graphicsPen mask onBreakCont ", keyWithSpaces)) {
+                        delete keywords10[key]; // remove keywords which do not exist in BASIC 1.0
+                    }
+                    else if (BasicParser.fnIsInString(" draw drawr move mover pen plot plotr ", keyWithSpaces)) {
+                        keywords10[key] = keywords10[key].substring(0, keywords10[key].lastIndexOf(" ")); // remove the last parameter <ink mode>; or <background mode> for pen
+                        if (BasicParser.fnIsInString(" move mover ", keyWithSpaces)) {
+                            keywords10[key] = keywords10[key].substring(0, keywords10[key].lastIndexOf(" ")); // also remove parameter <ink>
+                        }
+                    }
+                }
+            }
+            this.keywordsBasic10 = keywords10;
+            return keywords10;
         };
         BasicParser.prototype.composeError = function (error, message, value, pos, len) {
             len = value === "(end)" ? 0 : len;
@@ -2055,13 +2112,13 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             }
         };
         BasicParser.prototype.fnCheckStaticTypeNotNumber = function (expression, typeFirstChar) {
-            var type = expression.type, isStringFunction = (BasicParser.keywords[type] || "").startsWith("f") && type.endsWith("$"), isStringIdentifier = type === "identifier" && expression.value.endsWith("$");
+            var type = expression.type, isStringFunction = (this.keywords[type] || "").startsWith("f") && type.endsWith("$"), isStringIdentifier = type === "identifier" && expression.value.endsWith("$");
             if (type === "string" || type === "ustring" || type === "#" || isStringFunction || isStringIdentifier) { // got a string or a stream? (statical check)
                 this.fnMaskedError(expression, "Expected " + BasicParser.parameterTypes[typeFirstChar]);
             }
         };
         BasicParser.prototype.fnCheckStaticTypeNotString = function (expression, typeFirstChar) {
-            var type = expression.type, isNumericFunction = (BasicParser.keywords[type] || "").startsWith("f") && !type.endsWith("$"), isNumericIdentifier = type === "identifier" && (expression.value.endsWith("%") || expression.value.endsWith("!")), isComparison = type === "=" || type.startsWith("<") || type.startsWith(">"); // =, <, >, <=, >=
+            var type = expression.type, isNumericFunction = (this.keywords[type] || "").startsWith("f") && !type.endsWith("$"), isNumericIdentifier = type === "identifier" && (expression.value.endsWith("%") || expression.value.endsWith("!")), isComparison = type === "=" || type.startsWith("<") || type.startsWith(">"); // =, <, >, <=, >=
             if (type === "number" || type === "binnumber" || type === "hexnumber" || type === "expnumber" || type === "#" || isNumericFunction || isNumericIdentifier || isComparison) { // got e.g. number or a stream? (statical check)
                 this.fnMaskedError(expression, "Expected " + BasicParser.parameterTypes[typeFirstChar]);
             }
@@ -2147,7 +2204,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             return type;
         };
         BasicParser.prototype.fnGetArgs = function (args, keyword) {
-            var keyOpts = BasicParser.keywords[keyword], types = keyOpts.split(" "), closeTokens = BasicParser.closeTokensForArgs;
+            var keyOpts = this.keywords[keyword], types = keyOpts.split(" "), closeTokens = BasicParser.closeTokensForArgs;
             var type = "xxx"; // initial needMore
             types.shift(); // remove keyword type
             while (type && !closeTokens[this.token.type]) {
@@ -2226,19 +2283,14 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
         BasicParser.prototype.fnCreateFuncCall = function (node) {
             node.args = [];
             if (this.token.type === "(") { // args in parenthesis?
-                this.advance("(");
-                if (this.options.keepTokens) {
-                    node.args.push(this.previousToken);
+                if (node.type === "dec$" && this.options.basicVersion === "1.0") {
+                    this.advance("("); // BASIC 1.0: simulate DEC$(( bug with 2 open brackets
                 }
-                this.fnGetArgs(node.args, node.type);
-                this.advance(")");
-                if (this.options.keepTokens) {
-                    node.args.push(this.previousToken);
-                }
+                this.fnGetArgsInParenthesis(node.args, node.type);
             }
             else { // no parenthesis?
                 // if we have a check, make sure there are no non-optional parameters left
-                var keyOpts = BasicParser.keywords[node.type];
+                var keyOpts = this.keywords[node.type];
                 if (keyOpts) {
                     var types = keyOpts.split(" ");
                     types.shift(); // remove key
@@ -2294,6 +2346,11 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 type = "_rsx1"; // dummy token: expect at least 1 argument
             }
             this.fnGetArgs(node.args, type); // get arguments
+            if (this.options.basicVersion === "1.0") { // BASIC 1.0: make sure there are no string parameters
+                for (var i = 0; i < node.args.length; i += 1) {
+                    this.fnCheckStaticTypeNotNumber(node.args[i], "n");
+                }
+            }
             return node;
         };
         BasicParser.prototype.afterEveryGosub = function (node) {
@@ -2351,7 +2408,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
         };
         BasicParser.prototype.clear = function (node) {
             var tokenType = this.token.type;
-            return tokenType === "input" ? this.fnCombineTwoTokens(node, tokenType) : this.fnCreateCmdCall(node); // "clear input" or "clear"
+            return tokenType === "input" && this.keywords.clearInput ? this.fnCombineTwoTokens(node, tokenType) : this.fnCreateCmdCall(node); // "clear input" (BASIC 1.1) or "clear"
         };
         BasicParser.prototype.data = function (node) {
             var parameterFound = false;
@@ -2581,7 +2638,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
         };
         BasicParser.prototype.line = function (node) {
             node.type = this.fnCombineTwoTokensNoArgs(node, "input"); // combine "line" => "lineInput"
-            return this.input(node); // continue with input //TTT
+            return this.input(node); // continue with input
         };
         BasicParser.prototype.mid$Assign = function (node) {
             node.type = "mid$Assign"; // change type mid$ => mid$Assign
@@ -2612,11 +2669,12 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 case "break":
                     node.type = this.fnCombineTwoTokensNoArgs(node, "break"); // onBreak
                     tokenType = this.token.type;
-                    if (tokenType === "gosub" || tokenType === "cont" || tokenType === "stop") {
+                    if ((tokenType === "cont" && this.keywords.onBreakCont) || tokenType === "gosub" || tokenType === "stop") {
                         this.fnCombineTwoTokens(node, this.token.type); // onBreakGosub, onBreakCont, onBreakStop
                     }
                     else {
-                        throw this.composeError(Error(), "Expected GOSUB, CONT or STOP", this.token.type, this.token.pos);
+                        var msgContPart = this.keywords.onBreakCont ? "CONT, " : "";
+                        throw this.composeError(Error(), "Expected " + msgContPart + "GOSUB or STOP", this.token.type, this.token.pos);
                     }
                     break;
                 case "error": // on error goto
@@ -2746,6 +2804,18 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             return node;
         };
         // ---
+        BasicParser.prototype.fnClearSymbols = function () {
+            this.symbols = {};
+            /*
+            const symbols = this.symbols;
+    
+            for (const symbol in symbols) {
+                if (symbols.hasOwnProperty(symbol)) {
+                    delete symbols[symbol];
+                }
+            }
+            */
+        };
         BasicParser.fnNode = function (node) {
             return node;
         };
@@ -2795,9 +2865,9 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
         };
         BasicParser.prototype.fnGenerateKeywordSymbols = function () {
             var _this = this;
-            for (var key in BasicParser.keywords) {
-                if (BasicParser.keywords.hasOwnProperty(key)) {
-                    var keywordType = BasicParser.keywords[key].charAt(0);
+            for (var key in this.keywords) {
+                if (this.keywords.hasOwnProperty(key)) {
+                    var keywordType = this.keywords[key].charAt(0);
                     if (keywordType === "f") {
                         this.createNudSymbol(key, function () { return _this.fnCreateFuncCall(_this.previousToken); });
                     }
@@ -2881,6 +2951,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             }
             return parseTree;
         };
+        // for basicKeywords:
         BasicParser.parameterTypes = {
             c: "command",
             f: "function",
@@ -2895,9 +2966,10 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             "n0?": "optional parameter with default null",
             "#": "stream"
         };
+        // keyword list for BASIC 1.1
         // first letter: c=command, f=function, p=part of command, o=operator, x=misc
         // following are arguments: n=number, s=string, l=line number (checked), v=variable (checked), q=line number range, r=letter or range, a=any, n0?=optional parameter with default null, #=stream, #0?=optional stream with default 0; suffix ?=optional (optionals must be last); last *=any number of arguments may follow
-        BasicParser.keywords = {
+        BasicParser.keywordsBasic11 = {
             abs: "f n",
             after: "c",
             afterGosub: "c n n?",
@@ -3845,7 +3917,7 @@ define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exp
 // https://benchmarko.github.io/CPCBasicTS/
 //
 //
-define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], function (require, exports, Utils_6, BasicParser_1) {
+define("CodeGeneratorBasic", ["require", "exports", "Utils"], function (require, exports, Utils_6) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CodeGeneratorBasic = void 0;
@@ -3898,6 +3970,7 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
                 quiet: false
             };
             this.setOptions(options);
+            this.keywords = options.parser.getKeywords();
         }
         CodeGeneratorBasic.prototype.setOptions = function (options) {
             if (options.quiet !== undefined) {
@@ -4119,7 +4192,7 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
                 value += this.parseNode(node.left);
             }
             value += CodeGeneratorBasic.fnWs(node);
-            var keyType = BasicParser_1.BasicParser.keywords[type];
+            var keyType = this.keywords[type];
             if (keyType) {
                 value += CodeGeneratorBasic.getUcKeyword(node);
             }
@@ -4129,7 +4202,7 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             var right = "";
             if (node.right) {
                 right = this.parseNode(node.right);
-                var needSpace1 = BasicParser_1.BasicParser.keywords[right.toLowerCase()] || keyType;
+                var needSpace1 = this.keywords[right.toLowerCase()] || keyType;
                 value += needSpace1 ? CodeGeneratorBasic.fnSpace1(right) : right;
             }
             if (node.args) {
@@ -4249,6 +4322,7 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils", "BasicParser"], fun
             };
             this.hasColons = Boolean(this.options.parser.getOptions().keepColons);
             this.keepWhiteSpace = Boolean(this.options.lexer.getOptions().keepWhiteSpace);
+            this.keywords = this.options.parser.getKeywords();
             this.line = 0;
             try {
                 var tokens = this.options.lexer.lex(input), parseTree = this.options.parser.parse(tokens), output = this.evaluate(parseTree);
@@ -4645,7 +4719,6 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             this.options = {
                 lexer: options.lexer,
                 parser: options.parser,
-                //rsx: options.rsx,
                 quiet: false
             };
             this.setOptions(options); // optional options
@@ -5442,6 +5515,14 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             node.pv = value;
         };
         CodeGeneratorJs.prototype.gosub = function (node) {
+            //TTT
+            /*
+            if (!node.args) { // maybe GOSUB token
+                Utils.console.log("DEBUG: gosub: ignoring; ", node.type);
+                node.pv = "";
+                return;
+            }
+            */
             var nodeArgs = this.fnParseArgs(node.args), label = this.fnGetGosubLabel();
             for (var i = 0; i < nodeArgs.length; i += 1) {
                 this.fnAddReferenceLabel(nodeArgs[i], node.args[i]);
@@ -5749,6 +5830,14 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
         };
         /* eslint-enable no-invalid-this */
         CodeGeneratorJs.prototype.fnParseOther = function (node) {
+            //TTT
+            /*
+            if (!node.args) { // maybe whitespace
+                Utils.console.log("fnParseOther: ignoring; ", node.type);
+                node.pv = "";
+                return;
+            }
+            */
             var nodeArgs = this.fnParseArgs(node.args), typeWithSpaces = " " + node.type + " ";
             node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + ")";
             if (CodeGeneratorJs.fnIsInString(" asc cint derr eof erl err fix fre inkey inp instr int joy len memory peek pos remain sgn sq test testr unt vpos xpos ypos ", typeWithSpaces)) {
@@ -5872,7 +5961,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                     if (arg.type === "letter") {
                         this.defintDefstrTypes[arg.value.toLowerCase()] = type;
                     }
-                    else { // assuming range
+                    else if (arg.type === "range") {
                         if (!arg.left || !arg.right) {
                             throw this.composeError(Error(), "Programming error: Undefined left or right", node.type, node.pos); // should not occur
                         }
@@ -9526,8 +9615,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         Canvas.prototype.getMousePos = function (event) {
             var anyDoc = document, isFullScreen = Boolean(document.fullscreenElement || anyDoc.mozFullScreenElement || anyDoc.webkitFullscreenElement || anyDoc.msFullscreenElement), rect = this.canvas.getBoundingClientRect();
             if (isFullScreen) {
-                var areaX = 0, //TTT
-                areaY = 0, rectwidth = rect.right - rect.left - (this.borderWidth + areaX) * 2, rectHeight = rect.bottom - rect.top - (this.borderWidth + areaY) * 2, ratioX = rectwidth / this.canvas.width, ratioY = rectHeight / this.canvas.height, minRatio = ratioX <= ratioY ? ratioX : ratioY, diffX = rectwidth - (this.canvas.width * minRatio), diffY = rectHeight - (this.canvas.height * minRatio);
+                var areaX = 0, areaY = 0, rectwidth = rect.right - rect.left - (this.borderWidth + areaX) * 2, rectHeight = rect.bottom - rect.top - (this.borderWidth + areaY) * 2, ratioX = rectwidth / this.canvas.width, ratioY = rectHeight / this.canvas.height, minRatio = ratioX <= ratioY ? ratioX : ratioY, diffX = rectwidth - (this.canvas.width * minRatio), diffY = rectHeight - (this.canvas.height * minRatio);
                 return {
                     x: (event.clientX - this.borderWidth - rect.left - diffX / 2) / ratioX * ratioX / minRatio,
                     y: (event.clientY - this.borderWidth - rect.top - diffY / 2) / ratioY * ratioY / minRatio
@@ -10838,6 +10926,7 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                 onAutorunInputChange: this.onAutorunInputChange,
                 onSoundInputChange: this.onSoundInputChange,
                 onSpeedInputChange: this.onSpeedInputChange,
+                onBasicVersionSelectChange: this.onBasicVersionSelectChange,
                 onCanvasTypeSelectChange: this.onCanvasTypeSelectChange,
                 onPaletteSelectChange: this.onPaletteSelectChange,
                 onScreenshotButtonClick: this.onScreenshotButtonClick,
@@ -11013,6 +11102,12 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             this.view.setSelectTitleFromSelectedOption("kbdLayoutSelect");
             this.view.setHidden("kbdAlpha", value === "num");
             this.view.setHidden("kbdNum", value === "alpha");
+        };
+        CommonEventHandler.prototype.onBasicVersionSelectChange = function () {
+            var value = this.view.getSelectValue("basicVersionSelect");
+            this.model.setProperty("basicVersion", value);
+            this.view.setSelectTitleFromSelectedOption("basicVersionSelect");
+            this.controller.setBasicVersion(value);
         };
         CommonEventHandler.prototype.onPaletteSelectChange = function () {
             var value = this.view.getSelectValue("paletteSelect");
@@ -13070,7 +13165,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                 case 0xbd22: // MC Clear Inks (ROM &0786), ink table address in DE (last parameter)
                     break;
                 */
-                case 0xbd25: // MC Set Inks (ROM &0799), ink table address in DE (last parameter) TTT experimantal
+                case 0xbd25: // MC Set Inks (ROM &0799), ink table address in DE (last parameter), experimental
                     this.updateColorsImmediately(args[0]);
                     break;
                 case 0xbd3d: // KM Flush (ROM ?; CPC 664/6128)
@@ -13296,8 +13391,12 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             }
         };
         CpcVm.prototype.dec$ = function (n, frmt) {
+            var formatRegExp = /^[+\-$£*#,.^]*$/;
             this.vmAssertNumber(n, "DEC$");
             this.vmAssertString(frmt, "DEC$");
+            if (!formatRegExp.test(frmt)) { // only allowed characters: + - $ £ * # , . ^
+                throw this.vmComposeError(Error(), 5, "DEC$ " + frmt); // Improper argument
+            }
             return this.vmUsingNumberFormat(frmt, n);
         };
         // def fn
@@ -13654,7 +13753,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                 for (var i = 0; i < types.length; i += 1) {
                     var varType = types[i], type = this.vmDetermineVarType(varType), value = inputValues[i];
                     if (type !== "$") { // not a string?
-                        var valueNumber = CpcVm.vmVal(value); // convert to number (also binary, hex), empty string gets 0
+                        var valueNumber = this.vmVal(value); // convert to number (also binary, hex), empty string gets 0
                         if (isNaN(valueNumber)) {
                             inputOk = false;
                         }
@@ -13732,7 +13831,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                     line = "";
                 }
             }
-            var nValue = CpcVm.vmVal(value); // convert to number (also binary, hex)
+            var nValue = this.vmVal(value); // convert to number (also binary, hex)
             if (isNaN(nValue)) { // eslint-disable-line max-depth
                 throw this.vmComposeError(Error(), 13, "INPUT #9 " + nValue + ": " + value); // Type mismatch
             }
@@ -14743,7 +14842,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             return hash;
         };
         CpcVm.prototype.vmRandomizeCallback = function () {
-            var inputParas = this.vmGetStopObject().paras, input = inputParas.input, value = CpcVm.vmVal(input); // convert to number (also binary, hex)
+            var inputParas = this.vmGetStopObject().paras, input = inputParas.input, value = this.vmVal(input); // convert to number (also binary, hex)
             var inputOk = true;
             if (Utils_20.Utils.debug > 0) {
                 Utils_20.Utils.console.debug("vmRandomizeCallback:", input);
@@ -15311,35 +15410,71 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             }
             return s;
         };
-        CpcVm.vmVal = function (s) {
+        CpcVm.prototype.vmVal = function (s) {
             var num = 0;
             s = s.trim().toLowerCase();
-            if (s.startsWith("&x")) { // binary &x
-                s = s.slice(2);
-                num = parseInt(s, 2);
-            }
-            else if (s.startsWith("&h")) { // hex &h
-                s = s.slice(2);
-                num = parseInt(s, 16);
-                if (num > 32767) { // two's complement
-                    num -= 65536;
+            if (s[0] === "&") {
+                if (s[1] === "x") { // binary &x
+                    num = parseInt(s.slice(2), 2);
                 }
-            }
-            else if (s.startsWith("&")) { // hex &
-                s = s.slice(1);
-                num = parseInt(s, 16);
-                if (num > 32767) { // two's complement
-                    num -= 65536;
+                else {
+                    if (s[1] === "h") { // hex &h
+                        num = parseInt(s.slice(2), 16);
+                    }
+                    else { // hex &
+                        num = parseInt(s.slice(1), 16);
+                    }
+                    if (num > 32767) { // two's complement
+                        num -= 65536;
+                    }
+                }
+                if (isNaN(num)) {
+                    throw this.vmComposeError(Error(), 13, "VAL " + s); // Type mismatch
                 }
             }
             else if (s !== "") { // not empty string?
                 num = parseFloat(s);
+                if (isNaN(num)) {
+                    if (s[0] === "-" || s[0] === ".") { // this characters must follow a valid number
+                        throw this.vmComposeError(Error(), 13, "VAL " + s); // Type mismatch
+                    }
+                }
             }
             return num;
         };
+        /*
+                if (s.startsWith("&x")) { // binary &x
+                    s = s.slice(2);
+                    //if (s.charAt(0) !== "0" && s.charAt(0))
+                    num = parseInt(s, 2);
+                } else if (s.startsWith("&h")) { // hex &h
+                    s = s.slice(2);
+                    num = parseInt(s, 16);
+                    if (num > 32767) { // two's complement
+                        num -= 65536;
+                    }
+                } else if (s.startsWith("&")) { // hex &
+                    s = s.slice(1);
+                    num = parseInt(s, 16);
+                    if (num > 32767) { // two's complement
+                        num -= 65536;
+                    }
+                } else if (s !== "") { // not empty string?
+                    num = parseFloat(s);
+                }
+                return num;
+        */
         CpcVm.prototype.val = function (s) {
             this.vmAssertString(s, "VAL");
-            var num = CpcVm.vmVal(s);
+            s = s.replace(/ /g, ""); // remove spaces
+            /*
+            const regEx = /^([-+]?\.?[0-9]|&h?[0-9a-f]|&x[01]|.)/;
+    
+            if (!regEx.test(s.toLowerCase())) {
+                throw this.vmComposeError(Error(), 13, "VAL " + s); // Type mismatch
+            }
+            */
+            var num = this.vmVal(s);
             if (isNaN(num)) {
                 num = 0;
             }
@@ -16192,7 +16327,7 @@ define("NoCanvas", ["require", "exports"], function (require, exports) {
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLexer", "BasicParser", "BasicTokenizer", "Canvas", "CodeGeneratorBasic", "CodeGeneratorJs", "CodeGeneratorToken", "CommonEventHandler", "cpcCharset", "CpcVm", "Diff", "DiskImage", "FileHandler", "FileSelect", "InputStack", "Keyboard", "NoCanvas", "TextCanvas", "VirtualKeyboard", "Sound", "Variables", "View", "RsxAmsdos", "RsxCpcBasic"], function (require, exports, Utils_24, BasicFormatter_1, BasicLexer_1, BasicParser_2, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, Diff_1, DiskImage_2, FileHandler_1, FileSelect_1, InputStack_1, Keyboard_1, NoCanvas_1, TextCanvas_1, VirtualKeyboard_1, Sound_1, Variables_1, View_7, RsxAmsdos_1, RsxCpcBasic_1) {
+define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLexer", "BasicParser", "BasicTokenizer", "Canvas", "CodeGeneratorBasic", "CodeGeneratorJs", "CodeGeneratorToken", "CommonEventHandler", "cpcCharset", "CpcVm", "Diff", "DiskImage", "FileHandler", "FileSelect", "InputStack", "Keyboard", "NoCanvas", "TextCanvas", "VirtualKeyboard", "Sound", "Variables", "View", "RsxAmsdos", "RsxCpcBasic"], function (require, exports, Utils_24, BasicFormatter_1, BasicLexer_1, BasicParser_1, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, Diff_1, DiskImage_2, FileHandler_1, FileSelect_1, InputStack_1, Keyboard_1, NoCanvas_1, TextCanvas_1, VirtualKeyboard_1, Sound_1, Variables_1, View_7, RsxAmsdos_1, RsxCpcBasic_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Controller = void 0;
@@ -16292,9 +16427,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             });
             this.vm.vmReset();
             this.vm.vmRegisterRsx(new RsxAmsdos_1.RsxAmsdos(), true);
-            this.vm.vmRegisterRsx(new RsxCpcBasic_1.RsxCpcBasic(), true); //TTT test
-            //this.rsx = new CpcVmRsx(this.vm);
-            //this.vm.vmSetRsxClass(this.rsx);
+            this.vm.vmRegisterRsx(new RsxCpcBasic_1.RsxCpcBasic(), true);
             this.noStop = Object.assign({}, this.vm.vmGetStopObject());
             this.savedStop = {
                 reason: "",
@@ -16308,13 +16441,18 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 }
             }; // backup of stop object
             this.setStopObject(this.noStop);
+            var basicVersion = this.model.getProperty("basicVersion");
+            view.setSelectValue("basicVersionSelect", basicVersion);
+            this.basicParser = new BasicParser_1.BasicParser({
+                basicVersion: basicVersion
+            });
+            this.basicLexer = new BasicLexer_1.BasicLexer({
+                keywords: this.basicParser.getKeywords()
+            });
             this.codeGeneratorJs = new CodeGeneratorJs_1.CodeGeneratorJs({
-                lexer: new BasicLexer_1.BasicLexer({
-                    keywords: BasicParser_2.BasicParser.keywords
-                }),
-                parser: new BasicParser_2.BasicParser(),
+                lexer: this.basicLexer,
+                parser: this.basicParser,
                 trace: model.getProperty("trace"),
-                //rsx: this.rsx, // just to check the names
                 implicitLines: model.getProperty("implicitLines")
             });
             if (model.getProperty("sound")) { // activate sound needs user action
@@ -16388,20 +16526,11 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
             var example = this.model.getExample(key);
             example.key = key; // maybe changed
-            //example.script = input;
             example.rsx = new RsxConstructor();
             example.loaded = true;
             Utils_24.Utils.console.log("addItem:", key);
             return key;
         };
-        /*
-        registerRsx(name: string, rsxModule: ICpcVmRsx, permanent?: boolean): void {
-            if (Utils.debug > 0) {
-                Utils.console.debug("registerRsx:", name, ", permanent:", permanent);
-            }
-            this.vm.vmRegisterRsx(rsxModule, Boolean(permanent));
-        }
-        */
         Controller.prototype.setDatabaseSelectOptions = function () {
             var select = "databaseSelect", items = [], databases = this.model.getAllDatabases(), database = this.model.getProperty("database");
             for (var value in databases) {
@@ -17034,19 +17163,15 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             if (name === void 0) { name = "test"; }
             if (!this.codeGeneratorToken) {
                 this.codeGeneratorToken = new CodeGeneratorToken_1.CodeGeneratorToken({
-                    lexer: new BasicLexer_1.BasicLexer({
-                        keywords: BasicParser_2.BasicParser.keywords,
-                        keepWhiteSpace: true
-                    }),
-                    parser: new BasicParser_2.BasicParser({
-                        keepTokens: true,
-                        keepBrackets: true,
-                        keepColons: true,
-                        keepDataComma: true
-                    }),
+                    lexer: this.basicLexer,
+                    parser: this.basicParser,
                     implicitLines: this.model.getProperty("implicitLines")
                 });
             }
+            this.basicLexer.setOptions({
+                keepWhiteSpace: true
+            });
+            this.basicParser.setOptions(Controller.codeGenTokenBasicParserOptions);
             var output = this.codeGeneratorToken.generate(input);
             if (output.error) {
                 this.outputError(output.error);
@@ -17063,17 +17188,15 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.prettyPrintBasic = function (input, keepWhiteSpace, keepBrackets, keepColons) {
             if (!this.codeGeneratorBasic) {
                 this.codeGeneratorBasic = new CodeGeneratorBasic_1.CodeGeneratorBasic({
-                    lexer: new BasicLexer_1.BasicLexer({
-                        keywords: BasicParser_2.BasicParser.keywords
-                    }),
-                    parser: new BasicParser_2.BasicParser()
+                    lexer: this.basicLexer,
+                    parser: this.basicParser
                 });
             }
             var keepDataComma = true;
-            this.codeGeneratorBasic.getOptions().lexer.setOptions({
+            this.basicLexer.setOptions({
                 keepWhiteSpace: keepWhiteSpace
             });
-            this.codeGeneratorBasic.getOptions().parser.setOptions({
+            this.basicParser.setOptions({
                 keepTokens: true,
                 keepBrackets: keepBrackets,
                 keepColons: keepColons,
@@ -17475,7 +17598,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.virtualKeyboard.reset();
             }
             vm.vmStop("end", 0, true); // set "end" with priority 0, so that "compile only" still works
-            //vm.outBuffer = "";
             this.view.setAreaValue("outputText", "");
             this.invalidateScript();
         };
@@ -17496,19 +17618,18 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.vm.print(stream, escapedShortError + "\r\n");
             return shortError;
         };
-        Controller.createBasicFormatter = function () {
-            return new BasicFormatter_1.BasicFormatter({
-                lexer: new BasicLexer_1.BasicLexer({
-                    keywords: BasicParser_2.BasicParser.keywords
-                }),
-                parser: new BasicParser_2.BasicParser()
-            });
-        };
         Controller.prototype.fnRenumLines = function (paras) {
             var vm = this.vm, input = this.view.getAreaValue("inputText");
             if (!this.basicFormatter) {
-                this.basicFormatter = Controller.createBasicFormatter();
+                this.basicFormatter = new BasicFormatter_1.BasicFormatter({
+                    lexer: this.basicLexer,
+                    parser: this.basicParser
+                });
             }
+            this.basicLexer.setOptions({
+                keepWhiteSpace: false
+            });
+            this.basicParser.setOptions(Controller.formatterBasicParserOptions);
             var output = this.basicFormatter.renumber(input, paras.newLine || 10, paras.oldLine || 1, paras.step || 10, paras.keep || 65535);
             if (output.error) {
                 Utils_24.Utils.console.warn(output.error);
@@ -17574,6 +17695,10 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             var input = this.view.getAreaValue("inputText"), bench = this.model.getProperty("bench");
             // keep variables; this.variables.removeAllVariables();
             var output;
+            this.basicLexer.setOptions({
+                keepWhiteSpace: false
+            });
+            this.basicParser.setOptions(Controller.codeGenJsBasicParserOptions);
             if (!bench) {
                 output = this.codeGeneratorJs.generate(input, this.variables);
             }
@@ -17628,8 +17753,15 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         };
         Controller.prototype.fnRemoveLines = function () {
             if (!this.basicFormatter) {
-                this.basicFormatter = Controller.createBasicFormatter();
+                this.basicFormatter = new BasicFormatter_1.BasicFormatter({
+                    lexer: this.basicLexer,
+                    parser: this.basicParser
+                });
             }
+            this.basicLexer.setOptions({
+                keepWhiteSpace: false
+            });
+            this.basicParser.setOptions(Controller.formatterBasicParserOptions);
             var input = this.view.getAreaValue("inputText"), output = this.basicFormatter.removeUnusedLines(input);
             if (output.error) {
                 this.outputError(output.error);
@@ -17721,7 +17853,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
             vm.vmReset4Run();
             if (this.fnScript) {
-                //TTT not needed? vm.outBuffer = this.view.getAreaValue("resultText");
                 vm.vmStop("", 0, true);
                 vm.vmGoto(0); // to load DATA lines
                 this.vm.vmSetStartLine(line); // clear resets also startline
@@ -18097,6 +18228,13 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.setVarSelectOptions("varSelect", variables);
             this.commonEventHandler.onVarSelectChange(); // title change?
         };
+        Controller.prototype.setBasicVersion = function (basicVersion) {
+            this.basicParser.setBasicVersion(basicVersion);
+            this.basicLexer.setOptions({
+                keywords: this.basicParser.getKeywords()
+            });
+            this.invalidateScript();
+        };
         Controller.prototype.setPalette = function (palette) {
             this.canvas.setPalette(palette === "green" || palette === "grey" ? palette : "color");
         };
@@ -18447,6 +18585,24 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 property: "showVariable"
             }
         };
+        Controller.codeGenJsBasicParserOptions = {
+            keepBrackets: false,
+            keepColons: false,
+            keepDataComma: false,
+            keepTokens: false
+        };
+        Controller.codeGenTokenBasicParserOptions = {
+            keepTokens: true,
+            keepBrackets: true,
+            keepColons: true,
+            keepDataComma: true
+        };
+        Controller.formatterBasicParserOptions = {
+            keepBrackets: false,
+            keepColons: false,
+            keepDataComma: false,
+            keepTokens: false
+        };
         Controller.defaultExtensions = [
             "",
             "bas",
@@ -18504,48 +18660,8 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             return cpcBasic.controller.addItem(key, inputString);
         };
         cpcBasic.addRsx = function (key, RsxConstructor) {
-            //return cpcBasic.controller.registerRsx(key, new RsxConstructor());
             return cpcBasic.controller.addRsx(key, RsxConstructor);
         };
-        /*
-        //TTT
-        static testRsx1() {
-            const Class1 = function () {
-                return {
-                    getRsxCommands: function () {
-                        return {
-                            stop: function () {
-                                this.vmStop("stop", 60);
-                            }
-                        };
-                    }
-                };
-            } as RsxConstructorType;
-    
-            this.registerRsx("test1", Class1); // howto?
-        }
-        */
-        /*
-        //TTT
-        static testRsx1() {
-            const c1 = function () {
-                function Class1() {
-                    // empty
-                }
-                Class1.getRsxCommands = function () {
-                    return {
-                        stop: function () {
-                            this.vmStop("stop", 60);
-                        }
-                    };
-                };
-    
-                return c1;
-            };
-    
-            this.registerRsx("test1", c1 as RsxConstructorType); // howto?
-        }
-        */
         // can be used for nodeJS
         cpcBasic.fnParseArgs = function (args, config) {
             for (var i = 0; i < args.length; i += 1) {
@@ -18703,6 +18819,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
         cpcBasic.config = {
             arrayBounds: false,
             autorun: true,
+            basicVersion: "1.1",
             bench: 0,
             databaseDirs: "examples",
             database: "examples",

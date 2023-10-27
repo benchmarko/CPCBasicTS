@@ -745,23 +745,17 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
         }
     };
     function createCodeGeneratorJs() {
+        var basicParser = new BasicParser_1.BasicParser({
+            quiet: true
+        });
         return new CodeGeneratorJs_1.CodeGeneratorJs({
             quiet: true,
             lexer: new BasicLexer_1.BasicLexer({
-                keywords: BasicParser_1.BasicParser.keywords,
+                keywords: basicParser.getKeywords(),
                 quiet: true
             }),
-            parser: new BasicParser_1.BasicParser({
-                quiet: true
-            }),
+            parser: basicParser,
             trace: false,
-            /*
-            rsx: {
-                rsxIsAvailable: function (rsx: string) { // not needed to suppress warnings when using quiet
-                    return (/^a|b|basic|cpm|dir|disc|disc\.in|disc\.out|drive|era|ren|tape|tape\.in|tape\.out|user|mode|renum$/).test(rsx);
-                }
-            }, // ICpcVmRsx
-            */
             noCodeFrame: true
         });
     }

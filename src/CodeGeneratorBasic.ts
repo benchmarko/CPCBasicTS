@@ -17,12 +17,15 @@ interface CodeGeneratorBasicOptions {
 
 export class CodeGeneratorBasic {
 	private readonly options: CodeGeneratorBasicOptions;
+
+	// set in every generate:
+	private keywords: Record<string, string>;
 	private hasColons = false;
 	private keepWhiteSpace = false;
 
 	private line = 0; // current line (label)
 
-	setOptions(options: Omit<CodeGeneratorBasicOptions, "lexer" | "parser">): void {
+	setOptions(options: Partial<CodeGeneratorBasicOptions>): void {
 		if (options.quiet !== undefined) {
 			this.options.quiet = options.quiet;
 		}
@@ -39,6 +42,8 @@ export class CodeGeneratorBasic {
 			quiet: false
 		};
 		this.setOptions(options);
+
+		this.keywords = options.parser.getKeywords();
 	}
 
 	private static readonly combinedKeywords: Record<string, string> = {
@@ -432,7 +437,7 @@ export class CodeGeneratorBasic {
 
 		value += CodeGeneratorBasic.fnWs(node);
 
-		const keyType = BasicParser.keywords[type];
+		const keyType = this.keywords[type];
 
 		if (keyType) {
 			value += CodeGeneratorBasic.getUcKeyword(node);
@@ -444,7 +449,7 @@ export class CodeGeneratorBasic {
 
 		if (node.right) {
 			right = this.parseNode(node.right);
-			const needSpace1 = BasicParser.keywords[right.toLowerCase()] || keyType;
+			const needSpace1 = this.keywords[right.toLowerCase()] || keyType;
 
 			value += needSpace1 ? CodeGeneratorBasic.fnSpace1(right) : right;
 		}
@@ -583,6 +588,7 @@ export class CodeGeneratorBasic {
 
 		this.hasColons = Boolean(this.options.parser.getOptions().keepColons);
 		this.keepWhiteSpace = Boolean(this.options.lexer.getOptions().keepWhiteSpace);
+		this.keywords = this.options.parser.getKeywords();
 
 		this.line = 0;
 		try {

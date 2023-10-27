@@ -233,6 +233,14 @@ export class CommonEventHandler implements EventListenerObject {
 		this.view.setHidden("kbdNum", value === "alpha");
 	}
 
+	private onBasicVersionSelectChange() {
+		const value = this.view.getSelectValue("basicVersionSelect");
+
+		this.model.setProperty("basicVersion", value);
+		this.view.setSelectTitleFromSelectedOption("basicVersionSelect");
+		this.controller.setBasicVersion(value);
+	}
+
 	private onPaletteSelectChange() {
 		const value = this.view.getSelectValue("paletteSelect");
 
@@ -396,6 +404,7 @@ export class CommonEventHandler implements EventListenerObject {
 		onAutorunInputChange: this.onAutorunInputChange,
 		onSoundInputChange: this.onSoundInputChange,
 		onSpeedInputChange: this.onSpeedInputChange,
+		onBasicVersionSelectChange: this.onBasicVersionSelectChange,
 		onCanvasTypeSelectChange: this.onCanvasTypeSelectChange,
 		onPaletteSelectChange: this.onPaletteSelectChange,
 		onScreenshotButtonClick: this.onScreenshotButtonClick,

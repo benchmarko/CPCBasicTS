@@ -137,22 +137,13 @@ class cpcBasic {
 	static testIndex: number; // example index for current database
 	static fnExampleDone1: () => void;
 
-	/*
-	static rsx: ICpcVmRsx = {
-		rsxIsAvailable: function (rsx: string): boolean { // not needed to suppress warnings when using quiet
-			return (/^a|b|basic|cpm|dir|disc|disc\.in|disc\.out|drive|era|ren|tape|tape\.in|tape\.out|user|mode|renum$/).test(rsx);
-		}
-		// will be programmatically extended by methods...
-	};
-	*/
-
-	static lexer = new BasicLexer({
-		keywords: BasicParser.keywords,
-		keepWhiteSpace: true,
+	static basicParser = new BasicParser({
 		quiet: true
 	});
 
-	static parser = new BasicParser({
+	static basicLexer = new BasicLexer({
+		keywords: cpcBasic.basicParser.getKeywords(),
+		keepWhiteSpace: true,
 		quiet: true
 	});
 
@@ -165,20 +156,18 @@ class cpcBasic {
 	});
 
 	static codeGeneratorJs = new CodeGeneratorJs({
-		lexer: cpcBasic.lexer,
-		parser: cpcBasic.parser,
+		lexer: cpcBasic.basicLexer,
+		parser: cpcBasic.basicParser,
 		trace: false,
 		quiet: true
-		//rsx: cpcBasic.rsx
 	})
 
 	static codeGeneratorToken = new CodeGeneratorToken({
-		lexer: cpcBasic.lexer,
+		lexer: cpcBasic.basicLexer,
 		parser: cpcBasic.convertParser
 	})
 
 	static vmMock = {
-		//rsx: cpcBasic.rsx,
 		line: "" as string | number,
 
 		testVariables1: new Variables(),
@@ -277,7 +266,7 @@ class cpcBasic {
 
 	static initVmMock1() {
 		const vmMock = cpcBasic.vmMock,
-			keywords = BasicParser.keywords;
+			keywords = cpcBasic.basicParser.getKeywords();
 
 		for (const key in keywords) {
 			if (keywords.hasOwnProperty(key)) {

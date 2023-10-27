@@ -759,23 +759,18 @@ type hooksWithCodeGeneratorJs = NestedHooks & {
 };
 
 function createCodeGeneratorJs() {
+	const basicParser = new BasicParser({
+		quiet: true
+	});
+
 	return new CodeGeneratorJs({
 		quiet: true,
 		lexer: new BasicLexer({
-			keywords: BasicParser.keywords,
+			keywords: basicParser.getKeywords(),
 			quiet: true
 		}),
-		parser: new BasicParser({
-			quiet: true
-		}),
+		parser: basicParser,
 		trace: false,
-		/*
-		rsx: {
-			rsxIsAvailable: function (rsx: string) { // not needed to suppress warnings when using quiet
-				return (/^a|b|basic|cpm|dir|disc|disc\.in|disc\.out|drive|era|ren|tape|tape\.in|tape\.out|user|mode|renum$/).test(rsx);
-			}
-		}, // ICpcVmRsx
-		*/
 		noCodeFrame: true
 	});
 }

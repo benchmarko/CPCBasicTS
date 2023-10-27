@@ -993,7 +993,7 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
                 case 0xbd22: // MC Clear Inks (ROM &0786), ink table address in DE (last parameter)
                     break;
                 */
-                case 0xbd25: // MC Set Inks (ROM &0799), ink table address in DE (last parameter) TTT experimantal
+                case 0xbd25: // MC Set Inks (ROM &0799), ink table address in DE (last parameter), experimental
                     this.updateColorsImmediately(args[0]);
                     break;
                 case 0xbd3d: // KM Flush (ROM ?; CPC 664/6128)
@@ -1219,8 +1219,12 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
             }
         };
         CpcVm.prototype.dec$ = function (n, frmt) {
+            var formatRegExp = /^[+\-$£*#,.^]*$/;
             this.vmAssertNumber(n, "DEC$");
             this.vmAssertString(frmt, "DEC$");
+            if (!formatRegExp.test(frmt)) { // only allowed characters: + - $ £ * # , . ^
+                throw this.vmComposeError(Error(), 5, "DEC$ " + frmt); // Improper argument
+            }
             return this.vmUsingNumberFormat(frmt, n);
         };
         // def fn
@@ -1577,7 +1581,7 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
                 for (var i = 0; i < types.length; i += 1) {
                     var varType = types[i], type = this.vmDetermineVarType(varType), value = inputValues[i];
                     if (type !== "$") { // not a string?
-                        var valueNumber = CpcVm.vmVal(value); // convert to number (also binary, hex), empty string gets 0
+                        var valueNumber = this.vmVal(value); // convert to number (also binary, hex), empty string gets 0
                         if (isNaN(valueNumber)) {
                             inputOk = false;
                         }
@@ -1655,7 +1659,7 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
                     line = "";
                 }
             }
-            var nValue = CpcVm.vmVal(value); // convert to number (also binary, hex)
+            var nValue = this.vmVal(value); // convert to number (also binary, hex)
             if (isNaN(nValue)) { // eslint-disable-line max-depth
                 throw this.vmComposeError(Error(), 13, "INPUT #9 " + nValue + ": " + value); // Type mismatch
             }
@@ -2666,7 +2670,7 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
             return hash;
         };
         CpcVm.prototype.vmRandomizeCallback = function () {
-            var inputParas = this.vmGetStopObject().paras, input = inputParas.input, value = CpcVm.vmVal(input); // convert to number (also binary, hex)
+            var inputParas = this.vmGetStopObject().paras, input = inputParas.input, value = this.vmVal(input); // convert to number (also binary, hex)
             var inputOk = true;
             if (Utils_1.Utils.debug > 0) {
                 Utils_1.Utils.console.debug("vmRandomizeCallback:", input);
@@ -3234,35 +3238,71 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
             }
             return s;
         };
-        CpcVm.vmVal = function (s) {
+        CpcVm.prototype.vmVal = function (s) {
             var num = 0;
             s = s.trim().toLowerCase();
-            if (s.startsWith("&x")) { // binary &x
-                s = s.slice(2);
-                num = parseInt(s, 2);
-            }
-            else if (s.startsWith("&h")) { // hex &h
-                s = s.slice(2);
-                num = parseInt(s, 16);
-                if (num > 32767) { // two's complement
-                    num -= 65536;
+            if (s[0] === "&") {
+                if (s[1] === "x") { // binary &x
+                    num = parseInt(s.slice(2), 2);
                 }
-            }
-            else if (s.startsWith("&")) { // hex &
-                s = s.slice(1);
-                num = parseInt(s, 16);
-                if (num > 32767) { // two's complement
-                    num -= 65536;
+                else {
+                    if (s[1] === "h") { // hex &h
+                        num = parseInt(s.slice(2), 16);
+                    }
+                    else { // hex &
+                        num = parseInt(s.slice(1), 16);
+                    }
+                    if (num > 32767) { // two's complement
+                        num -= 65536;
+                    }
+                }
+                if (isNaN(num)) {
+                    throw this.vmComposeError(Error(), 13, "VAL " + s); // Type mismatch
                 }
             }
             else if (s !== "") { // not empty string?
                 num = parseFloat(s);
+                if (isNaN(num)) {
+                    if (s[0] === "-" || s[0] === ".") { // this characters must follow a valid number
+                        throw this.vmComposeError(Error(), 13, "VAL " + s); // Type mismatch
+                    }
+                }
             }
             return num;
         };
+        /*
+                if (s.startsWith("&x")) { // binary &x
+                    s = s.slice(2);
+                    //if (s.charAt(0) !== "0" && s.charAt(0))
+                    num = parseInt(s, 2);
+                } else if (s.startsWith("&h")) { // hex &h
+                    s = s.slice(2);
+                    num = parseInt(s, 16);
+                    if (num > 32767) { // two's complement
+                        num -= 65536;
+                    }
+                } else if (s.startsWith("&")) { // hex &
+                    s = s.slice(1);
+                    num = parseInt(s, 16);
+                    if (num > 32767) { // two's complement
+                        num -= 65536;
+                    }
+                } else if (s !== "") { // not empty string?
+                    num = parseFloat(s);
+                }
+                return num;
+        */
         CpcVm.prototype.val = function (s) {
             this.vmAssertString(s, "VAL");
-            var num = CpcVm.vmVal(s);
+            s = s.replace(/ /g, ""); // remove spaces
+            /*
+            const regEx = /^([-+]?\.?[0-9]|&h?[0-9a-f]|&x[01]|.)/;
+    
+            if (!regEx.test(s.toLowerCase())) {
+                throw this.vmComposeError(Error(), 13, "VAL " + s); // Type mismatch
+            }
+            */
+            var num = this.vmVal(s);
             if (isNaN(num)) {
                 num = 0;
             }

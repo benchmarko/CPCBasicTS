@@ -102,9 +102,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             });
             this.vm.vmReset();
             this.vm.vmRegisterRsx(new RsxAmsdos_1.RsxAmsdos(), true);
-            this.vm.vmRegisterRsx(new RsxCpcBasic_1.RsxCpcBasic(), true); //TTT test
-            //this.rsx = new CpcVmRsx(this.vm);
-            //this.vm.vmSetRsxClass(this.rsx);
+            this.vm.vmRegisterRsx(new RsxCpcBasic_1.RsxCpcBasic(), true);
             this.noStop = Object.assign({}, this.vm.vmGetStopObject());
             this.savedStop = {
                 reason: "",
@@ -118,13 +116,18 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 }
             }; // backup of stop object
             this.setStopObject(this.noStop);
+            var basicVersion = this.model.getProperty("basicVersion");
+            view.setSelectValue("basicVersionSelect", basicVersion);
+            this.basicParser = new BasicParser_1.BasicParser({
+                basicVersion: basicVersion
+            });
+            this.basicLexer = new BasicLexer_1.BasicLexer({
+                keywords: this.basicParser.getKeywords()
+            });
             this.codeGeneratorJs = new CodeGeneratorJs_1.CodeGeneratorJs({
-                lexer: new BasicLexer_1.BasicLexer({
-                    keywords: BasicParser_1.BasicParser.keywords
-                }),
-                parser: new BasicParser_1.BasicParser(),
+                lexer: this.basicLexer,
+                parser: this.basicParser,
                 trace: model.getProperty("trace"),
-                //rsx: this.rsx, // just to check the names
                 implicitLines: model.getProperty("implicitLines")
             });
             if (model.getProperty("sound")) { // activate sound needs user action
@@ -198,20 +201,11 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             var example = this.model.getExample(key);
             example.key = key; // maybe changed
-            //example.script = input;
             example.rsx = new RsxConstructor();
             example.loaded = true;
             Utils_1.Utils.console.log("addItem:", key);
             return key;
         };
-        /*
-        registerRsx(name: string, rsxModule: ICpcVmRsx, permanent?: boolean): void {
-            if (Utils.debug > 0) {
-                Utils.console.debug("registerRsx:", name, ", permanent:", permanent);
-            }
-            this.vm.vmRegisterRsx(rsxModule, Boolean(permanent));
-        }
-        */
         Controller.prototype.setDatabaseSelectOptions = function () {
             var select = "databaseSelect", items = [], databases = this.model.getAllDatabases(), database = this.model.getProperty("database");
             for (var value in databases) {
@@ -844,19 +838,15 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             if (name === void 0) { name = "test"; }
             if (!this.codeGeneratorToken) {
                 this.codeGeneratorToken = new CodeGeneratorToken_1.CodeGeneratorToken({
-                    lexer: new BasicLexer_1.BasicLexer({
-                        keywords: BasicParser_1.BasicParser.keywords,
-                        keepWhiteSpace: true
-                    }),
-                    parser: new BasicParser_1.BasicParser({
-                        keepTokens: true,
-                        keepBrackets: true,
-                        keepColons: true,
-                        keepDataComma: true
-                    }),
+                    lexer: this.basicLexer,
+                    parser: this.basicParser,
                     implicitLines: this.model.getProperty("implicitLines")
                 });
             }
+            this.basicLexer.setOptions({
+                keepWhiteSpace: true
+            });
+            this.basicParser.setOptions(Controller.codeGenTokenBasicParserOptions);
             var output = this.codeGeneratorToken.generate(input);
             if (output.error) {
                 this.outputError(output.error);
@@ -873,17 +863,15 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         Controller.prototype.prettyPrintBasic = function (input, keepWhiteSpace, keepBrackets, keepColons) {
             if (!this.codeGeneratorBasic) {
                 this.codeGeneratorBasic = new CodeGeneratorBasic_1.CodeGeneratorBasic({
-                    lexer: new BasicLexer_1.BasicLexer({
-                        keywords: BasicParser_1.BasicParser.keywords
-                    }),
-                    parser: new BasicParser_1.BasicParser()
+                    lexer: this.basicLexer,
+                    parser: this.basicParser
                 });
             }
             var keepDataComma = true;
-            this.codeGeneratorBasic.getOptions().lexer.setOptions({
+            this.basicLexer.setOptions({
                 keepWhiteSpace: keepWhiteSpace
             });
-            this.codeGeneratorBasic.getOptions().parser.setOptions({
+            this.basicParser.setOptions({
                 keepTokens: true,
                 keepBrackets: keepBrackets,
                 keepColons: keepColons,
@@ -1285,7 +1273,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.virtualKeyboard.reset();
             }
             vm.vmStop("end", 0, true); // set "end" with priority 0, so that "compile only" still works
-            //vm.outBuffer = "";
             this.view.setAreaValue("outputText", "");
             this.invalidateScript();
         };
@@ -1306,19 +1293,18 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.vm.print(stream, escapedShortError + "\r\n");
             return shortError;
         };
-        Controller.createBasicFormatter = function () {
-            return new BasicFormatter_1.BasicFormatter({
-                lexer: new BasicLexer_1.BasicLexer({
-                    keywords: BasicParser_1.BasicParser.keywords
-                }),
-                parser: new BasicParser_1.BasicParser()
-            });
-        };
         Controller.prototype.fnRenumLines = function (paras) {
             var vm = this.vm, input = this.view.getAreaValue("inputText");
             if (!this.basicFormatter) {
-                this.basicFormatter = Controller.createBasicFormatter();
+                this.basicFormatter = new BasicFormatter_1.BasicFormatter({
+                    lexer: this.basicLexer,
+                    parser: this.basicParser
+                });
             }
+            this.basicLexer.setOptions({
+                keepWhiteSpace: false
+            });
+            this.basicParser.setOptions(Controller.formatterBasicParserOptions);
             var output = this.basicFormatter.renumber(input, paras.newLine || 10, paras.oldLine || 1, paras.step || 10, paras.keep || 65535);
             if (output.error) {
                 Utils_1.Utils.console.warn(output.error);
@@ -1384,6 +1370,10 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             var input = this.view.getAreaValue("inputText"), bench = this.model.getProperty("bench");
             // keep variables; this.variables.removeAllVariables();
             var output;
+            this.basicLexer.setOptions({
+                keepWhiteSpace: false
+            });
+            this.basicParser.setOptions(Controller.codeGenJsBasicParserOptions);
             if (!bench) {
                 output = this.codeGeneratorJs.generate(input, this.variables);
             }
@@ -1438,8 +1428,15 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         };
         Controller.prototype.fnRemoveLines = function () {
             if (!this.basicFormatter) {
-                this.basicFormatter = Controller.createBasicFormatter();
+                this.basicFormatter = new BasicFormatter_1.BasicFormatter({
+                    lexer: this.basicLexer,
+                    parser: this.basicParser
+                });
             }
+            this.basicLexer.setOptions({
+                keepWhiteSpace: false
+            });
+            this.basicParser.setOptions(Controller.formatterBasicParserOptions);
             var input = this.view.getAreaValue("inputText"), output = this.basicFormatter.removeUnusedLines(input);
             if (output.error) {
                 this.outputError(output.error);
@@ -1531,7 +1528,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             vm.vmReset4Run();
             if (this.fnScript) {
-                //TTT not needed? vm.outBuffer = this.view.getAreaValue("resultText");
                 vm.vmStop("", 0, true);
                 vm.vmGoto(0); // to load DATA lines
                 this.vm.vmSetStartLine(line); // clear resets also startline
@@ -1907,6 +1903,13 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.setVarSelectOptions("varSelect", variables);
             this.commonEventHandler.onVarSelectChange(); // title change?
         };
+        Controller.prototype.setBasicVersion = function (basicVersion) {
+            this.basicParser.setBasicVersion(basicVersion);
+            this.basicLexer.setOptions({
+                keywords: this.basicParser.getKeywords()
+            });
+            this.invalidateScript();
+        };
         Controller.prototype.setPalette = function (palette) {
             this.canvas.setPalette(palette === "green" || palette === "grey" ? palette : "color");
         };
@@ -2256,6 +2259,24 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             variableArea: {
                 property: "showVariable"
             }
+        };
+        Controller.codeGenJsBasicParserOptions = {
+            keepBrackets: false,
+            keepColons: false,
+            keepDataComma: false,
+            keepTokens: false
+        };
+        Controller.codeGenTokenBasicParserOptions = {
+            keepTokens: true,
+            keepBrackets: true,
+            keepColons: true,
+            keepDataComma: true
+        };
+        Controller.formatterBasicParserOptions = {
+            keepBrackets: false,
+            keepColons: false,
+            keepDataComma: false,
+            keepTokens: false
         };
         Controller.defaultExtensions = [
             "",

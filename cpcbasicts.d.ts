@@ -177,6 +177,7 @@ declare module "Interfaces" {
         setGalleryAreaInputs: () => void;
         invalidateScript: () => void;
         setSoundActive: () => void;
+        setBasicVersion: (basicVersion: string) => void;
         setPalette: (palette: string) => void;
         setCanvasType: (canvasType: string) => ICanvas;
         changeVariable: () => void;
@@ -263,7 +264,7 @@ declare module "BasicLexer" {
         private index;
         private readonly tokens;
         private whiteSpace;
-        setOptions(options: Omit<BasicLexerOptions, "keywords">): void;
+        setOptions(options: Partial<BasicLexerOptions>): void;
         getOptions(): BasicLexerOptions;
         constructor(options: BasicLexerOptions);
         private composeError;
@@ -305,6 +306,7 @@ declare module "BasicLexer" {
 declare module "BasicParser" {
     import { LexerToken } from "BasicLexer";
     interface BasicParserOptions {
+        basicVersion?: string;
         quiet?: boolean;
         keepBrackets?: boolean;
         keepColons?: boolean;
@@ -319,23 +321,29 @@ declare module "BasicParser" {
     }
     export class BasicParser {
         private readonly options;
+        private keywordsBasic10?;
+        private keywords;
         private label;
-        private readonly symbols;
+        private symbols;
         private tokens;
         private index;
         private previousToken;
         private token;
         private readonly parseTree;
         private statementList;
-        setOptions(options: BasicParserOptions): void;
+        setOptions(options: Partial<BasicParserOptions>): void;
         getOptions(): BasicParserOptions;
-        constructor(options?: BasicParserOptions);
+        getKeywords(): Record<string, string>;
+        setBasicVersion(basicVersion: string): void;
+        constructor(options: BasicParserOptions);
         private static readonly parameterTypes;
-        static readonly keywords: Record<string, string>;
+        private static readonly keywordsBasic11;
         private readonly specialStatements;
         private static readonly closeTokensForLine;
         private static readonly closeTokensForLineAndElse;
         private static readonly closeTokensForArgs;
+        private static fnIsInString;
+        private getKeywords10;
         private composeError;
         private fnLastStatementIsOnErrorGotoX;
         private fnMaskedError;
@@ -395,6 +403,7 @@ declare module "BasicParser" {
         private symbol;
         private window;
         private write;
+        private fnClearSymbols;
         private static fnNode;
         private createSymbol;
         private createNudSymbol;
@@ -489,10 +498,11 @@ declare module "CodeGeneratorBasic" {
     }
     export class CodeGeneratorBasic {
         private readonly options;
+        private keywords;
         private hasColons;
         private keepWhiteSpace;
         private line;
-        setOptions(options: Omit<CodeGeneratorBasicOptions, "lexer" | "parser">): void;
+        setOptions(options: Partial<CodeGeneratorBasicOptions>): void;
         getOptions(): CodeGeneratorBasicOptions;
         constructor(options: CodeGeneratorBasicOptions);
         private static readonly combinedKeywords;
@@ -1302,6 +1312,7 @@ declare module "CommonEventHandler" {
         private onExampleSelectChange;
         onVarSelectChange(): void;
         onKbdLayoutSelectChange(): void;
+        private onBasicVersionSelectChange;
         private onPaletteSelectChange;
         private onCanvasTypeSelectChange;
         private onVarTextChange;
@@ -1876,7 +1887,7 @@ declare module "CpcVm" {
         private static fnUpperCase;
         upper$(s: string): string;
         using(format: string, ...args: (string | number)[]): string;
-        private static vmVal;
+        private vmVal;
         val(s: string): number;
         vpos(stream: number): number;
         wait(port: number, mask: number, inv?: number): void;
@@ -2048,6 +2059,8 @@ declare module "Controller" {
         private readonly model;
         private readonly view;
         private readonly commonEventHandler;
+        private readonly basicLexer;
+        private readonly basicParser;
         private readonly codeGeneratorJs;
         private readonly canvases;
         private canvas;
@@ -2063,6 +2076,9 @@ declare module "Controller" {
         private hasStorageDatabase;
         private static areaDefinitions;
         constructor(model: Model, view: View);
+        private static readonly codeGenJsBasicParserOptions;
+        private static readonly codeGenTokenBasicParserOptions;
+        private static readonly formatterBasicParserOptions;
         private initAreas;
         private initDatabases;
         private onUserAction;
@@ -2118,7 +2134,6 @@ declare module "Controller" {
         private fnList;
         private fnReset;
         private outputError;
-        private static createBasicFormatter;
         private fnRenumLines;
         private fnEditLineCallback;
         private fnEditLine;
@@ -2162,6 +2177,7 @@ declare module "Controller" {
         private setPopoversHiddenExcept;
         toggleAreaHidden(id: string): boolean;
         changeVariable(): void;
+        setBasicVersion(basicVersion: string): void;
         setPalette(palette: string): void;
         setCanvasType(canvasType: string): ICanvas;
         setSoundActive(): void;

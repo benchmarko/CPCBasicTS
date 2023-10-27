@@ -4,12 +4,24 @@
 //
 // BASIC parser for Locomotive BASIC 1.1 for Amstrad CPC 6128
 //
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
 define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.BasicParser = void 0;
     var BasicParser = /** @class */ (function () {
         function BasicParser(options) {
+            this.keywords = BasicParser.keywordsBasic11;
             this.label = "0"; // for error messages
             this.symbols = {};
             // set also during parse
@@ -48,6 +60,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 write: this.write
             };
             this.options = {
+                basicVersion: "",
                 quiet: false,
                 keepBrackets: false,
                 keepColons: false,
@@ -57,11 +70,16 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (options) {
                 this.setOptions(options);
             }
-            this.fnGenerateSymbols();
+            if (!this.options.basicVersion) { // not yet set?
+                this.setBasicVersion("1.1"); // set default
+            }
             this.previousToken = {}; // to avoid warnings
             this.token = this.previousToken;
         }
         BasicParser.prototype.setOptions = function (options) {
+            if (options.basicVersion !== undefined) {
+                this.setBasicVersion(options.basicVersion);
+            }
             if (options.keepBrackets !== undefined) {
                 this.options.keepBrackets = options.keepBrackets;
             }
@@ -80,6 +98,42 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         BasicParser.prototype.getOptions = function () {
             return this.options;
+        };
+        BasicParser.prototype.getKeywords = function () {
+            return this.keywords;
+        };
+        BasicParser.prototype.setBasicVersion = function (basicVersion) {
+            this.options.basicVersion = basicVersion;
+            this.keywords = basicVersion === "1.0" ? this.getKeywords10() : BasicParser.keywordsBasic11;
+            // if basicVersion changes, we need to recreate the symbols
+            this.fnClearSymbols();
+            this.fnGenerateSymbols();
+        };
+        BasicParser.fnIsInString = function (string, find) {
+            return find && string.indexOf(find) >= 0;
+        };
+        BasicParser.prototype.getKeywords10 = function () {
+            if (this.keywordsBasic10) {
+                return this.keywordsBasic10;
+            }
+            var keywords10 = __assign({}, BasicParser.keywordsBasic11); // clone
+            for (var key in keywords10) {
+                if (keywords10.hasOwnProperty(key)) {
+                    var keyWithSpaces = " " + key + " ";
+                    // what about DEC$ ?
+                    if (BasicParser.fnIsInString(" clearInput copychr$ cursor derr fill frame graphics graphicsPaper graphicsPen mask onBreakCont ", keyWithSpaces)) {
+                        delete keywords10[key]; // remove keywords which do not exist in BASIC 1.0
+                    }
+                    else if (BasicParser.fnIsInString(" draw drawr move mover pen plot plotr ", keyWithSpaces)) {
+                        keywords10[key] = keywords10[key].substring(0, keywords10[key].lastIndexOf(" ")); // remove the last parameter <ink mode>; or <background mode> for pen
+                        if (BasicParser.fnIsInString(" move mover ", keyWithSpaces)) {
+                            keywords10[key] = keywords10[key].substring(0, keywords10[key].lastIndexOf(" ")); // also remove parameter <ink>
+                        }
+                    }
+                }
+            }
+            this.keywordsBasic10 = keywords10;
+            return keywords10;
         };
         BasicParser.prototype.composeError = function (error, message, value, pos, len) {
             len = value === "(end)" ? 0 : len;
@@ -347,13 +401,13 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
         };
         BasicParser.prototype.fnCheckStaticTypeNotNumber = function (expression, typeFirstChar) {
-            var type = expression.type, isStringFunction = (BasicParser.keywords[type] || "").startsWith("f") && type.endsWith("$"), isStringIdentifier = type === "identifier" && expression.value.endsWith("$");
+            var type = expression.type, isStringFunction = (this.keywords[type] || "").startsWith("f") && type.endsWith("$"), isStringIdentifier = type === "identifier" && expression.value.endsWith("$");
             if (type === "string" || type === "ustring" || type === "#" || isStringFunction || isStringIdentifier) { // got a string or a stream? (statical check)
                 this.fnMaskedError(expression, "Expected " + BasicParser.parameterTypes[typeFirstChar]);
             }
         };
         BasicParser.prototype.fnCheckStaticTypeNotString = function (expression, typeFirstChar) {
-            var type = expression.type, isNumericFunction = (BasicParser.keywords[type] || "").startsWith("f") && !type.endsWith("$"), isNumericIdentifier = type === "identifier" && (expression.value.endsWith("%") || expression.value.endsWith("!")), isComparison = type === "=" || type.startsWith("<") || type.startsWith(">"); // =, <, >, <=, >=
+            var type = expression.type, isNumericFunction = (this.keywords[type] || "").startsWith("f") && !type.endsWith("$"), isNumericIdentifier = type === "identifier" && (expression.value.endsWith("%") || expression.value.endsWith("!")), isComparison = type === "=" || type.startsWith("<") || type.startsWith(">"); // =, <, >, <=, >=
             if (type === "number" || type === "binnumber" || type === "hexnumber" || type === "expnumber" || type === "#" || isNumericFunction || isNumericIdentifier || isComparison) { // got e.g. number or a stream? (statical check)
                 this.fnMaskedError(expression, "Expected " + BasicParser.parameterTypes[typeFirstChar]);
             }
@@ -439,7 +493,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return type;
         };
         BasicParser.prototype.fnGetArgs = function (args, keyword) {
-            var keyOpts = BasicParser.keywords[keyword], types = keyOpts.split(" "), closeTokens = BasicParser.closeTokensForArgs;
+            var keyOpts = this.keywords[keyword], types = keyOpts.split(" "), closeTokens = BasicParser.closeTokensForArgs;
             var type = "xxx"; // initial needMore
             types.shift(); // remove keyword type
             while (type && !closeTokens[this.token.type]) {
@@ -518,19 +572,14 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         BasicParser.prototype.fnCreateFuncCall = function (node) {
             node.args = [];
             if (this.token.type === "(") { // args in parenthesis?
-                this.advance("(");
-                if (this.options.keepTokens) {
-                    node.args.push(this.previousToken);
+                if (node.type === "dec$" && this.options.basicVersion === "1.0") {
+                    this.advance("("); // BASIC 1.0: simulate DEC$(( bug with 2 open brackets
                 }
-                this.fnGetArgs(node.args, node.type);
-                this.advance(")");
-                if (this.options.keepTokens) {
-                    node.args.push(this.previousToken);
-                }
+                this.fnGetArgsInParenthesis(node.args, node.type);
             }
             else { // no parenthesis?
                 // if we have a check, make sure there are no non-optional parameters left
-                var keyOpts = BasicParser.keywords[node.type];
+                var keyOpts = this.keywords[node.type];
                 if (keyOpts) {
                     var types = keyOpts.split(" ");
                     types.shift(); // remove key
@@ -586,6 +635,11 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 type = "_rsx1"; // dummy token: expect at least 1 argument
             }
             this.fnGetArgs(node.args, type); // get arguments
+            if (this.options.basicVersion === "1.0") { // BASIC 1.0: make sure there are no string parameters
+                for (var i = 0; i < node.args.length; i += 1) {
+                    this.fnCheckStaticTypeNotNumber(node.args[i], "n");
+                }
+            }
             return node;
         };
         BasicParser.prototype.afterEveryGosub = function (node) {
@@ -643,7 +697,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         BasicParser.prototype.clear = function (node) {
             var tokenType = this.token.type;
-            return tokenType === "input" ? this.fnCombineTwoTokens(node, tokenType) : this.fnCreateCmdCall(node); // "clear input" or "clear"
+            return tokenType === "input" && this.keywords.clearInput ? this.fnCombineTwoTokens(node, tokenType) : this.fnCreateCmdCall(node); // "clear input" (BASIC 1.1) or "clear"
         };
         BasicParser.prototype.data = function (node) {
             var parameterFound = false;
@@ -873,7 +927,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         BasicParser.prototype.line = function (node) {
             node.type = this.fnCombineTwoTokensNoArgs(node, "input"); // combine "line" => "lineInput"
-            return this.input(node); // continue with input //TTT
+            return this.input(node); // continue with input
         };
         BasicParser.prototype.mid$Assign = function (node) {
             node.type = "mid$Assign"; // change type mid$ => mid$Assign
@@ -904,11 +958,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 case "break":
                     node.type = this.fnCombineTwoTokensNoArgs(node, "break"); // onBreak
                     tokenType = this.token.type;
-                    if (tokenType === "gosub" || tokenType === "cont" || tokenType === "stop") {
+                    if ((tokenType === "cont" && this.keywords.onBreakCont) || tokenType === "gosub" || tokenType === "stop") {
                         this.fnCombineTwoTokens(node, this.token.type); // onBreakGosub, onBreakCont, onBreakStop
                     }
                     else {
-                        throw this.composeError(Error(), "Expected GOSUB, CONT or STOP", this.token.type, this.token.pos);
+                        var msgContPart = this.keywords.onBreakCont ? "CONT, " : "";
+                        throw this.composeError(Error(), "Expected " + msgContPart + "GOSUB or STOP", this.token.type, this.token.pos);
                     }
                     break;
                 case "error": // on error goto
@@ -1038,6 +1093,18 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return node;
         };
         // ---
+        BasicParser.prototype.fnClearSymbols = function () {
+            this.symbols = {};
+            /*
+            const symbols = this.symbols;
+    
+            for (const symbol in symbols) {
+                if (symbols.hasOwnProperty(symbol)) {
+                    delete symbols[symbol];
+                }
+            }
+            */
+        };
         BasicParser.fnNode = function (node) {
             return node;
         };
@@ -1087,9 +1154,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         BasicParser.prototype.fnGenerateKeywordSymbols = function () {
             var _this = this;
-            for (var key in BasicParser.keywords) {
-                if (BasicParser.keywords.hasOwnProperty(key)) {
-                    var keywordType = BasicParser.keywords[key].charAt(0);
+            for (var key in this.keywords) {
+                if (this.keywords.hasOwnProperty(key)) {
+                    var keywordType = this.keywords[key].charAt(0);
                     if (keywordType === "f") {
                         this.createNudSymbol(key, function () { return _this.fnCreateFuncCall(_this.previousToken); });
                     }
@@ -1173,6 +1240,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             return parseTree;
         };
+        // for basicKeywords:
         BasicParser.parameterTypes = {
             c: "command",
             f: "function",
@@ -1187,9 +1255,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             "n0?": "optional parameter with default null",
             "#": "stream"
         };
+        // keyword list for BASIC 1.1
         // first letter: c=command, f=function, p=part of command, o=operator, x=misc
         // following are arguments: n=number, s=string, l=line number (checked), v=variable (checked), q=line number range, r=letter or range, a=any, n0?=optional parameter with default null, #=stream, #0?=optional stream with default 0; suffix ?=optional (optionals must be last); last *=any number of arguments may follow
-        BasicParser.keywords = {
+        BasicParser.keywordsBasic11 = {
             abs: "f n",
             after: "c",
             afterGosub: "c n n?",

@@ -83,31 +83,33 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../BasicFormat
         }
     };
     function createBasicFormatter() {
+        var basicParser = new BasicParser_1.BasicParser({
+            quiet: true
+        });
         return new BasicFormatter_1.BasicFormatter({
             lexer: new BasicLexer_1.BasicLexer({
-                keywords: BasicParser_1.BasicParser.keywords
+                keywords: basicParser.getKeywords()
             }),
-            parser: new BasicParser_1.BasicParser({
-                quiet: true
-            })
+            parser: basicParser
         });
     }
     QUnit.module("BasicFormatter:renumber: Tests", function (hooks) {
         hooks.before(function () {
-            hooks.basicFormatter = createBasicFormatter();
+            var thisHooks = hooks;
+            thisHooks.basicFormatter = createBasicFormatter();
         });
         function runSingleTest(basicFormatter, key) {
             var newLine = 10, oldLine = 1, step = 10, keep = 65535, output = basicFormatter.renumber(key, newLine, oldLine, step, keep), result = output.error ? String(output.error) : output.text;
             return result;
         }
         function runTestsFor(category, tests, assert, results) {
-            var basicFormatter = new BasicFormatter_1.BasicFormatter({
+            var basicParser = new BasicParser_1.BasicParser({
+                quiet: true
+            }), basicFormatter = new BasicFormatter_1.BasicFormatter({
                 lexer: new BasicLexer_1.BasicLexer({
-                    keywords: BasicParser_1.BasicParser.keywords
+                    keywords: basicParser.getKeywords()
                 }),
-                parser: new BasicParser_1.BasicParser({
-                    quiet: true
-                })
+                parser: basicParser
             });
             for (var key in tests) {
                 if (tests.hasOwnProperty(key)) {
