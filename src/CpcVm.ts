@@ -2458,13 +2458,33 @@ export class CpcVm implements ICpcVm {
 		});
 	}
 
+	/*
+	vmGetTokenizedBasicFromMemory(): string {
+		const startAddr = 0x170;
+		let memstr = "",
+			addr = startAddr,
+			lineLen = 0;
+
+		do {
+			lineLen = this.peek(addr) + this.peek(addr + 1) * 256;
+			if (lineLen) {
+				for (let i = 0; i < lineLen; i += 1) {
+					memstr += String.fromCharCode(this.peek(addr + i));
+				}
+				addr += lineLen;
+			}
+		} while (lineLen && addr < 0x10000);
+		return memstr;
+	}
+	*/
+
 	private vmLoadCallback(input: string, meta: FileMeta) {
 		const inFile = this.inFile;
 
 		let	putInMemory = false;
 
 		if (input !== null && meta) {
-			if (meta.typeString === "B" || inFile.start !== undefined) { // only for binary files or when a load address is specified (feature)
+			if (meta.typeString === "B" || meta.typeString === "S" || inFile.start !== undefined) { // only for binary files or when a load address is specified (feature)
 				const start = inFile.start !== undefined ? inFile.start : Number(meta.start);
 				let	length = Number(meta.length); // we do not really need the length from metadata
 
@@ -2474,10 +2494,18 @@ export class CpcVm implements ICpcVm {
 				if (Utils.debug > 1) {
 					Utils.console.debug("vmLoadCallback:", inFile.name + ": putting data in memory", start, "-", start + length);
 				}
-				for (let i = 0; i < length; i += 1) {
-					const byte = input.charCodeAt(i);
 
-					this.poke((start + i) & 0xffff, byte); // eslint-disable-line no-bitwise
+				if (meta.typeString === "S") {
+					for (let i = 0; i < length; i += 1) {
+						this.vmSetMem(start + i, input.charCodeAt(i)); // set snapshot data directly without memory mapping
+					}
+					const addr = this.screenPage << 14; // eslint-disable-line no-bitwise
+
+					this.vmCopyToScreen(addr, addr);
+				} else {
+					for (let i = 0; i < length; i += 1) {
+						this.poke((start + i) & 0xffff, input.charCodeAt(i)); // eslint-disable-line no-bitwise
+					}
 				}
 				putInMemory = true;
 			}
@@ -2846,15 +2874,21 @@ export class CpcVm implements ICpcVm {
 		}
 	}
 
-	vmSetCrtcData(byte: number): void {
-		const crtcReg = this.crtcReg,
-			crtcData = this.crtcData;
+	vmSetCrtcData(crtcReg: number, byte: number): void {
+		const crtcData = this.crtcData;
 
 		crtcData[crtcReg] = byte;
+
 		if (crtcReg === 12 || crtcReg === 13) { // screen offset changed
 			const offset = (((crtcData[12] || 0) & 0x03) << 9) | ((crtcData[13] || 0) << 1); // eslint-disable-line no-bitwise
 
 			this.vmSetScreenOffset(offset);
+
+			if (crtcReg === 12) { // scren base?
+				// do we want to set it here?
+				// 0x30 => 0xc0
+				this.vmSetScreenBase((byte << 2) & 0xc0); // eslint-disable-line no-bitwise
+			}
 		}
 	}
 
@@ -2869,8 +2903,8 @@ export class CpcVm implements ICpcVm {
 		} else if (portHigh === 0xbc) { // limited support for CRTC 12, 13
 			this.crtcReg = byte % 14;
 		} else if (portHigh === 0xbd) {
-			this.vmSetCrtcData(byte);
-			this.crtcData[this.crtcReg] = byte;
+			this.vmSetCrtcData(this.crtcReg, byte);
+			//this.crtcData[this.crtcReg] = byte;
 		} else if (Utils.debug > 0) {
 			Utils.console.debug("OUT", Number(port).toString(16), byte, ": unknown port");
 		}
@@ -2956,6 +2990,11 @@ export class CpcVm implements ICpcVm {
 		y = this.vmInRangeRound(y, -32768, 32767, "PLOTR") + this.canvas.getYpos();
 		this.vmDrawMovePlot("PLOTR", gPen, gColMode);
 		this.canvas.plot(x, y);
+	}
+
+	// put directly in memory without memory papping
+	private vmSetMem(addr: number, byte: number): void {
+		this.mem[addr] = byte;
 	}
 
 	poke(addr: number, byte: number): void {

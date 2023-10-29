@@ -17,13 +17,13 @@ export class FileSelect {
 	private readonly fnOnLoadHandler: () => void;
 	private readonly fnOnFileSelectHandler: () => void;
 
-	private fnEndOfImport = {} as (imported: string[]) => void;
-	private fnLoad2 = {} as (data: string | Uint8Array, name: string, type: string, imported: string[]) => void;
+	private readonly fnEndOfImport: FileSelectOptions["fnEndOfImport"]; //(imported: string[]) => void;
+	private readonly fnLoad2: FileSelectOptions["fnLoad2"]; //(data: string | Uint8Array, name: string, type: string, imported: string[]) => void;
 
-	private files = {} as FileList; // = dataTransfer ? dataTransfer.files : ((event.target as any).files as FileList), // dataTransfer for drag&drop, target.files for file input
+	private files?: FileList;
 	private fileIndex = 0;
 	private imported: string[] = []; // imported file names
-	private file = {} as File; // current file
+	private file?: File; // current file
 
 	constructor(options: FileSelectOptions) {
 		this.fnOnLoadHandler = this.fnOnLoad.bind(this);
@@ -35,7 +35,7 @@ export class FileSelect {
 	}
 
 	private fnReadNextFile(reader: FileReader) {
-		if (this.fileIndex < this.files.length) {
+		if (this.files && this.fileIndex < this.files.length) {
 			const file = this.files[this.fileIndex];
 
 			this.fileIndex += 1;
@@ -58,9 +58,13 @@ export class FileSelect {
 	}
 
 	private fnOnLoad(event: ProgressEvent<FileReader>) {
-		const reader = event.target,
-			file = this.file,
-			name = file.name;
+		if (!this.file) {
+			Utils.console.error("fnOnLoad: Programming error: No file");
+			return;
+		}
+		const file = this.file,
+			name = file.name,
+			reader = event.target;
 		let data = (reader && reader.result) || null,
 			type = file.type;
 
@@ -97,20 +101,16 @@ export class FileSelect {
 		}
 	}
 
-	private fnOnError(event: ProgressEvent<FileReader>, file: File) {
-		const reader = event.target;
-		let msg = "fnErrorHandler: Error reading file " + file.name;
+	private fnOnError(event: ProgressEvent<FileReader>) {
+		const reader = event.target,
+			filename = (this.file && this.file.name) || "unknown";
+		let msg = "fnOnError: " + filename;
 
-		if (reader && reader.error !== null) {
-			if (reader.error.NOT_FOUND_ERR) {
-				msg += ": File not found";
-			} else if (reader.error.ABORT_ERR) {
-				msg = ""; // nothing
-			}
+		if (reader && reader.error) {
+			msg += ": " + String(reader.error);
 		}
-		if (msg) {
-			Utils.console.warn(msg);
-		}
+
+		Utils.console.error(msg);
 
 		if (reader) {
 			this.fnReadNextFile(reader);
@@ -135,7 +135,7 @@ export class FileSelect {
 		this.imported.length = 0;
 
 		if (window.FileReader) {
-			const reader = new FileReader();
+			const reader = new window.FileReader();
 
 			reader.onerror = this.fnOnErrorHandler;
 			reader.onload = this.fnOnLoadHandler;

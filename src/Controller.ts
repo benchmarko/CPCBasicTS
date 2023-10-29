@@ -26,6 +26,7 @@ import { NoCanvas } from "./NoCanvas";
 import { TextCanvas } from "./TextCanvas";
 import { VirtualKeyboard } from "./VirtualKeyboard";
 import { Model, DatabasesType } from "./Model";
+import { Snapshot } from "./Snapshot";
 import { Sound, SoundData } from "./Sound";
 import { Variables } from "./Variables";
 import { View, SelectOptionElement, AreaInputElement } from "./View";
@@ -55,7 +56,7 @@ export class Controller implements IController {
 	private readonly fnWaitForContinueHandler: () => void;
 	private readonly fnEditLineCallbackHandler: () => boolean;
 
-	private static readonly metaIdent = "CPCBasic";
+	//private static readonly metaIdent = "CPCBasic";
 
 	private fnScript?: Function = undefined; // eslint-disable-line @typescript-eslint/ban-types
 
@@ -209,7 +210,7 @@ export class Controller implements IController {
 		});
 
 		if (this.model.getProperty<boolean>("showKbd")) { // maybe we need to draw virtual keyboard
-			this.virtualKeyboardCreate();
+			this.getVirtualKeyboard();
 		}
 
 		this.commonEventHandler.fnSetUserAction(this.fnOnUserActionHandler); // check first user action, also if sound is not yet on
@@ -987,6 +988,7 @@ export class Controller implements IController {
 
 	private static fnGetStorageDirectoryEntries(mask?: string) {
 		const storage = Utils.localStorage,
+			metaIdent = FileHandler.getMetaIdent(),
 			dir: string[] = [];
 		let	regExp: RegExp | undefined;
 
@@ -997,7 +999,7 @@ export class Controller implements IController {
 		for (let i = 0; i < storage.length; i += 1) {
 			const key = storage.key(i);
 
-			if (key !== null && storage[key].startsWith(this.metaIdent)) { // take only cpcBasic files
+			if (key !== null && storage[key].startsWith(metaIdent)) { // take only cpcBasic files
 				if (!regExp || regExp.test(key)) {
 					dir.push(key);
 				}
@@ -1154,14 +1156,34 @@ export class Controller implements IController {
 		return out;
 	}
 
-	private decodeTokenizedBasic(input: string) {
+	private getBasicFormatter() {
+		if (!this.basicFormatter) {
+			this.basicFormatter = new BasicFormatter({
+				lexer: this.basicLexer,
+				parser: this.basicParser
+			});
+		}
+		return this.basicFormatter;
+	}
+
+	private getBasicTokenizer() {
 		if (!this.basicTokenizer) {
 			this.basicTokenizer = new BasicTokenizer();
 		}
-		return this.basicTokenizer.decode(input);
+		return this.basicTokenizer;
 	}
 
-	private encodeTokenizedBasic(input: string, name = "test") {
+	private getCodeGeneratorBasic() {
+		if (!this.codeGeneratorBasic) {
+			this.codeGeneratorBasic = new CodeGeneratorBasic({
+				lexer: this.basicLexer,
+				parser: this.basicParser
+			});
+		}
+		return this.codeGeneratorBasic;
+	}
+
+	private getCodeGeneratorToken() {
 		if (!this.codeGeneratorToken) {
 			this.codeGeneratorToken = new CodeGeneratorToken({
 				lexer: this.basicLexer,
@@ -1169,13 +1191,24 @@ export class Controller implements IController {
 				implicitLines: this.model.getProperty<boolean>("implicitLines")
 			});
 		}
+		return this.codeGeneratorToken;
+	}
+
+	private decodeTokenizedBasic(input: string) {
+		const basicTokenizer = this.getBasicTokenizer();
+
+		return basicTokenizer.decode(input);
+	}
+
+	private encodeTokenizedBasic(input: string, name = "test") {
+		const codeGeneratorToken = this.getCodeGeneratorToken();
 
 		this.basicLexer.setOptions({
 			keepWhiteSpace: true
 		});
 		this.basicParser.setOptions(Controller.codeGenTokenBasicParserOptions);
 
-		const output = this.codeGeneratorToken.generate(input);
+		const output = codeGeneratorToken.generate(input);
 
 		if (output.error) {
 			this.outputError(output.error);
@@ -1195,14 +1228,8 @@ export class Controller implements IController {
 	}
 
 	private prettyPrintBasic(input: string, keepWhiteSpace: boolean, keepBrackets: boolean, keepColons: boolean) {
-		if (!this.codeGeneratorBasic) {
-			this.codeGeneratorBasic = new CodeGeneratorBasic({
-				lexer: this.basicLexer,
-				parser: this.basicParser
-			});
-		}
-
-		const keepDataComma = true;
+		const codeGeneratorBasic = this.getCodeGeneratorBasic(),
+			keepDataComma = true;
 
 		this.basicLexer.setOptions({
 			keepWhiteSpace: keepWhiteSpace
@@ -1214,12 +1241,79 @@ export class Controller implements IController {
 			keepDataComma: keepDataComma
 		});
 
-		const output = this.codeGeneratorBasic.generate(input);
+		const output = codeGeneratorBasic.generate(input);
 
 		if (output.error) {
 			this.outputError(output.error);
 		}
 		return output.text;
+	}
+
+	// gate array ink to basic ink
+
+	private static gaInk2Ink = [
+		13,
+		27,
+		19,
+		25,
+		1,
+		7,
+		10,
+		16,
+		28,
+		29,
+		24,
+		26,
+		6,
+		8,
+		15,
+		17,
+		30,
+		31,
+		18,
+		20,
+		0,
+		2,
+		9,
+		11,
+		4,
+		22,
+		21,
+		23,
+		3,
+		5,
+		12,
+		14
+	];
+
+	private applyGaInks(inkval: number[]) {
+		for (let i = 0; i < inkval.length - 1; i += 1) {
+			this.vm.ink(i, Controller.gaInk2Ink[inkval[i]]);
+		}
+		this.vm.border(Controller.gaInk2Ink[inkval[inkval.length - 1]]);
+	}
+
+	private applyCrtcRegs(reg: number[]) {
+		for (let i = 0; i < reg.length; i += 1) {
+			this.vm.vmSetCrtcData(i, reg[i]);
+		}
+	}
+
+	private applySnapshot(input: string) {
+		const snapshot = new Snapshot({
+				name: "",
+				data: input
+			}),
+			info = snapshot.getSnapshotInfo(),
+			mode = info.ga.multi & 0x03, // eslint-disable-line no-bitwise
+			mem = snapshot.getMemory();
+
+		this.vm.vmChangeMode(mode);
+		this.applyGaInks(info.ga.inkval);
+		this.vm.vmSetRamSelect(info.ramconf);
+		this.applyCrtcRegs(info.crtc.reg);
+
+		return mem;
 	}
 
 	private loadFileContinue(input: string | null | undefined) { // eslint-disable-line complexity
@@ -1248,14 +1342,16 @@ export class Controller implements IController {
 				input = input.replace(/\x1a+$/, ""); // eslint-disable-line no-control-regex
 			} else if (type === "G") { // Hisoft Devpac GENA3 Z80 Assember
 				input = Controller.asmGena3Convert(input);
+			} else if (type === "S") { // Snapshot
+				input = this.applySnapshot(input);
 			} else if (type === "X") { // (Extended) Disk image file
-				const fileHandler = this.fileHandler || this.createFileHandler(),
+				const fileHandler = this.getFileHandler(),
 					imported: string[] = [];
 
 				fileHandler.fnLoad2(input, inFile.name, type, imported); // no meta in data
 				input = "1 ' " + imported.join(", "); // imported files
 			} else if (type === "Z") { // ZIP file
-				const fileHandler = this.fileHandler || this.createFileHandler(),
+				const fileHandler = this.getFileHandler(),
 					imported: string[] = [];
 
 				fileHandler.fnLoad2(input, inFile.name, type, imported);
@@ -1287,6 +1383,21 @@ export class Controller implements IController {
 		if (input === null) {
 			this.startMainLoop();
 			return;
+		}
+
+		/*
+		if (data && data.meta.typeString === "S" && putInMemory) { // fast hack
+			const basicCode = this.vm.vmGetTokenizedBasicFromMemory();
+
+			if (basicCode) {
+				input = this.decodeTokenizedBasic(basicCode);
+				putInMemory = false; // put input in text box
+			}
+		}
+		*/
+		if (data && data.meta.typeString === "S" && putInMemory) { // fast hack
+			input = this.decodeTokenizedBasic(input.substring(0x170));
+			putInMemory = false; // put input in text box
 		}
 
 		switch (command) {
@@ -1511,6 +1622,7 @@ export class Controller implements IController {
 		this.nextLoopTimeOut = this.vm.vmGetTimeUntilFrame(); // wait until next frame
 	}
 
+	/*
 	private static joinMeta(meta: FileMeta) {
 		return [
 			Controller.metaIdent,
@@ -1520,11 +1632,12 @@ export class Controller implements IController {
 			meta.entry
 		].join(";");
 	}
+	*/
 
 	private static splitMeta(input: string) {
 		let fileMeta: FileMeta | undefined;
 
-		if (input.indexOf(Controller.metaIdent) === 0) { // starts with metaIdent?
+		if (input.indexOf(FileHandler.getMetaIdent()) === 0) { // starts with metaIdent?
 			const index = input.indexOf(","); // metadata separator
 
 			if (index >= 0) {
@@ -1595,7 +1708,7 @@ export class Controller implements IController {
 				Utils.console.debug("fnFileSave: name=" + name + ": put into localStorage");
 			}
 
-			const meta = Controller.joinMeta(outFile);
+			const meta = FileHandler.joinMeta(outFile);
 
 			storage.setItem(storageName, meta + "," + fileData);
 			this.updateStorageDatabase("set", storageName);
@@ -1713,20 +1826,14 @@ export class Controller implements IController {
 
 	private fnRenumLines(paras: VmLineRenumParas) {
 		const vm = this.vm,
-			input = this.view.getAreaValue("inputText");
-
-		if (!this.basicFormatter) {
-			this.basicFormatter = new BasicFormatter({
-				lexer: this.basicLexer,
-				parser: this.basicParser
-			});
-		}
+			input = this.view.getAreaValue("inputText"),
+			basicFormatter = this.getBasicFormatter();
 
 		this.basicLexer.setOptions({
 			keepWhiteSpace: false
 		});
 		this.basicParser.setOptions(Controller.formatterBasicParserOptions);
-		const output = this.basicFormatter.renumber(input, paras.newLine || 10, paras.oldLine || 1, paras.step || 10, paras.keep || 65535);
+		const output = basicFormatter.renumber(input, paras.newLine || 10, paras.oldLine || 1, paras.step || 10, paras.keep || 65535);
 
 		if (output.error) {
 			Utils.console.warn(output.error);
@@ -1883,19 +1990,14 @@ export class Controller implements IController {
 	}
 
 	fnRemoveLines(): void {
-		if (!this.basicFormatter) {
-			this.basicFormatter = new BasicFormatter({
-				lexer: this.basicLexer,
-				parser: this.basicParser
-			});
-		}
+		const basicFormatter = this.getBasicFormatter();
 
 		this.basicLexer.setOptions({
 			keepWhiteSpace: false
 		});
 		this.basicParser.setOptions(Controller.formatterBasicParserOptions);
 		const input = this.view.getAreaValue("inputText"),
-			output = this.basicFormatter.removeUnusedLines(input);
+			output = basicFormatter.removeUnusedLines(input);
 
 		if (output.error) {
 			this.outputError(output.error);
@@ -2131,6 +2233,7 @@ export class Controller implements IController {
 			if (inputText && ((/^\d+($| )/).test(inputText) || this.model.getProperty<boolean>("implicitLines"))) { // do we have a program starting with a line number?
 				const separator = inputText.endsWith("\n") ? "" : "\n";
 
+				this.basicParser.setOptions(Controller.codeGenJsBasicParserOptions);
 				output = codeGeneratorJs.generate(inputText + separator + input, this.variables, true); // compile both; allow direct command
 				if (output.error) {
 					const error = output.error;
@@ -2143,6 +2246,7 @@ export class Controller implements IController {
 			}
 
 			if (!output) {
+				this.basicParser.setOptions(Controller.codeGenJsBasicParserOptions);
 				output = codeGeneratorJs.generate(input, this.variables, true); // compile direct input only
 			}
 
@@ -2595,41 +2699,46 @@ export class Controller implements IController {
 		return this.vm.vmAdaptFilename(name, err);
 	}
 
-	private createFileHandler() {
+	private getFileHandler() {
 		if (!this.fileHandler) {
 			this.fileHandler = new FileHandler({
 				adaptFilename: this.adaptFilename.bind(this),
 				updateStorageDatabase: this.updateStorageDatabase.bind(this),
-				outputError: this.outputError.bind(this)
+				outputError: this.outputError.bind(this),
+				processFileImports: this.model.getProperty<boolean>("processFileImports")
 			});
 		}
 		return this.fileHandler;
 	}
 
-	private initDropZone() {
-		const fileHandler = this.fileHandler || this.createFileHandler();
-
+	private getFileSelect(fileHandler: FileHandler) {
 		if (!this.fileSelect) {
 			this.fileSelect = new FileSelect({
 				fnEndOfImport: this.fnEndOfImport.bind(this),
 				fnLoad2: fileHandler.fnLoad2.bind(fileHandler)
 			});
 		}
-		const dropZone = View.getElementById1("dropZone");
+		return this.fileSelect;
+	}
+
+	private initDropZone() {
+		const fileHandler = this.getFileHandler(),
+			fileSelect = this.getFileSelect(fileHandler),
+			dropZone = View.getElementById1("dropZone");
 
 		dropZone.addEventListener("dragover", this.fnOnDragoverHandler, false);
-		this.fileSelect.addFileSelectHandler(dropZone, "drop");
+		fileSelect.addFileSelectHandler(dropZone, "drop");
 
 		const canvasElement = this.canvas.getCanvasElement();
 
 		if (canvasElement) {
 			canvasElement.addEventListener("dragover", this.fnOnDragoverHandler, false);
-			this.fileSelect.addFileSelectHandler(canvasElement, "drop");
+			fileSelect.addFileSelectHandler(canvasElement, "drop");
 		}
 
 		const fileInput = View.getElementById1("fileInput");
 
-		this.fileSelect.addFileSelectHandler(fileInput, "change");
+		fileSelect.addFileSelectHandler(fileInput, "change");
 	}
 
 	private fnUpdateUndoRedoButtons() {
@@ -2660,13 +2769,14 @@ export class Controller implements IController {
 		this.canvas.stopUpdateCanvas();
 	}
 
-	virtualKeyboardCreate(): void {
+	getVirtualKeyboard(): VirtualKeyboard {
 		if (!this.virtualKeyboard) {
 			this.virtualKeyboard = new VirtualKeyboard({
 				fnPressCpcKey: this.keyboard.fnPressCpcKey.bind(this.keyboard),
 				fnReleaseCpcKey: this.keyboard.fnReleaseCpcKey.bind(this.keyboard)
 			});
 		}
+		return this.virtualKeyboard;
 	}
 
 	getVariable(par: string): VariableValue {

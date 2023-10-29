@@ -31,6 +31,7 @@ class cpcBasic {
 		kbdLayout: "alphanum", // alphanum, alpha, num
 		canvasType: "graphics", // "graphics", "text", "none"
 		palette: "color", // "color", "green", "grey"
+		processFileImports: true, // open ZIP, DSK files on import
 		showConsole: false,
 		showConvert: false,
 		showCpc: true,
