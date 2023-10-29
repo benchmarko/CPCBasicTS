@@ -6,12 +6,12 @@ export declare class FileSelect {
     private readonly fnOnErrorHandler;
     private readonly fnOnLoadHandler;
     private readonly fnOnFileSelectHandler;
-    private fnEndOfImport;
-    private fnLoad2;
-    private files;
+    private readonly fnEndOfImport;
+    private readonly fnLoad2;
+    private files?;
     private fileIndex;
     private imported;
-    private file;
+    private file?;
     constructor(options: FileSelectOptions);
     private fnReadNextFile;
     private fnOnLoad;

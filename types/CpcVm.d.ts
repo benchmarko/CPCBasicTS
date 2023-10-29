@@ -345,7 +345,7 @@ export declare class CpcVm implements ICpcVm {
     openout(name: string): void;
     origin(xOff: number, yOff: number, xLeft?: number, xRight?: number, yTop?: number, yBottom?: number): void;
     vmSetRamSelect(bank: number): void;
-    vmSetCrtcData(byte: number): void;
+    vmSetCrtcData(crtcReg: number, byte: number): void;
     out(port: number, byte: number): void;
     paper(stream: number, paper: number): void;
     vmGetCharDataByte(addr: number): number;
@@ -355,6 +355,7 @@ export declare class CpcVm implements ICpcVm {
     pi(): number;
     plot(x: number, y: number, gPen?: number, gColMode?: number): void;
     plotr(x: number, y: number, gPen?: number, gColMode?: number): void;
+    private vmSetMem;
     poke(addr: number, byte: number): void;
     pos(stream: number): number;
     private vmGetAllowedPosOrVpos;

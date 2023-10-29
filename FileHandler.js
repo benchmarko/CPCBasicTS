@@ -2,7 +2,7 @@
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define(["require", "exports", "./Utils", "./DiskImage", "./ZipFile"], function (require, exports, Utils_1, DiskImage_1, ZipFile_1) {
+define(["require", "exports", "./Utils", "./DiskImage", "./Snapshot", "./ZipFile"], function (require, exports, Utils_1, DiskImage_1, Snapshot_1, ZipFile_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.FileHandler = void 0;
@@ -11,16 +11,26 @@ define(["require", "exports", "./Utils", "./DiskImage", "./ZipFile"], function (
             this.adaptFilename = {};
             this.updateStorageDatabase = {};
             this.outputError = {};
+            this.processFileImports = true;
             this.adaptFilename = options.adaptFilename;
             this.updateStorageDatabase = options.updateStorageDatabase;
             this.outputError = options.outputError;
+            this.setOptions(options);
         }
+        FileHandler.prototype.setOptions = function (options) {
+            if (options.processFileImports !== undefined) {
+                this.processFileImports = options.processFileImports;
+            }
+        };
         FileHandler.fnLocalStorageName = function (name, defaultExtension) {
             // modify name so we do not clash with localstorage methods/properites
             if (name.indexOf(".") < 0) { // no dot inside name?
                 name += "." + (defaultExtension || ""); // append dot or default extension
             }
             return name;
+        };
+        FileHandler.getMetaIdent = function () {
+            return FileHandler.metaIdent;
         };
         FileHandler.createMinimalAmsdosHeader = function (type, start, length) {
             return {
@@ -39,6 +49,50 @@ define(["require", "exports", "./Utils", "./DiskImage", "./ZipFile"], function (
             ].join(";");
         };
         // starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
+        FileHandler.prototype.processDskFile = function (data, name, imported) {
+            try {
+                var dsk = new DiskImage_1.DiskImage({
+                    data: data,
+                    diskName: name
+                }), dir = dsk.readDirectory(), diskFiles = Object.keys(dir);
+                for (var i = 0; i < diskFiles.length; i += 1) {
+                    var fileName = diskFiles[i];
+                    try { // eslint-disable-line max-depth
+                        data = dsk.readFile(dir[fileName]);
+                        this.fnLoad2(data, fileName, "", imported); // recursive
+                    }
+                    catch (e) {
+                        Utils_1.Utils.console.error(e);
+                        if (e instanceof Error) { // eslint-disable-line max-depth
+                            this.outputError(e, true);
+                        }
+                    }
+                }
+            }
+            catch (e) {
+                Utils_1.Utils.console.error(e);
+                if (e instanceof Error) {
+                    this.outputError(e, true);
+                }
+            }
+        };
+        /*
+        private processSnaFile(data: string, name: string, imported: string[]) {
+            try {
+                const sna = new Snapshot({
+                    data: data,
+                    name: name
+                });
+    
+                this.fnLoad2(data, name, "", imported); // recursive
+            } catch (e) {
+                Utils.console.error(e);
+                if (e instanceof Error) {
+                    this.outputError(e, true);
+                }
+            }
+        }
+        */
         FileHandler.prototype.processZipFile = function (uint8Array, name, imported) {
             var zip;
             try {
@@ -70,41 +124,16 @@ define(["require", "exports", "./Utils", "./DiskImage", "./ZipFile"], function (
                 }
             }
         };
-        FileHandler.prototype.processDskFile = function (data, name, imported) {
-            try {
-                var dsk = new DiskImage_1.DiskImage({
-                    data: data,
-                    diskName: name
-                }), dir = dsk.readDirectory(), diskFiles = Object.keys(dir);
-                for (var i = 0; i < diskFiles.length; i += 1) {
-                    var fileName = diskFiles[i];
-                    try { // eslint-disable-line max-depth
-                        data = dsk.readFile(dir[fileName]);
-                        this.fnLoad2(data, fileName, "", imported); // recursive
-                    }
-                    catch (e) {
-                        Utils_1.Utils.console.error(e);
-                        if (e instanceof Error) { // eslint-disable-line max-depth
-                            this.outputError(e, true);
-                        }
-                    }
-                }
-            }
-            catch (e) {
-                Utils_1.Utils.console.error(e);
-                if (e instanceof Error) {
-                    this.outputError(e, true);
-                }
-            }
-        };
         FileHandler.prototype.fnLoad2 = function (data, name, type, imported) {
+            // data instanceof Uint8Array is used only for FileSelect filereader zip file
+            /*
             if (data instanceof Uint8Array) { // FileSelect filereader zip file?
                 this.processZipFile(data, name, imported);
                 return;
             }
-            var header, storageName = this.adaptFilename(name, "FILE");
-            storageName = FileHandler.fnLocalStorageName(storageName);
-            if (type === "") { // detetermine type
+            */
+            var header;
+            if (type === "" && !(data instanceof Uint8Array)) { // detetermine type
                 header = DiskImage_1.DiskImage.parseAmsdosHeader(data);
                 if (header) {
                     type = "H"; // with header
@@ -112,6 +141,9 @@ define(["require", "exports", "./Utils", "./DiskImage", "./ZipFile"], function (
                 }
                 else if (FileHandler.reRegExpIsText.test(data)) {
                     type = "A";
+                }
+                else if (Snapshot_1.Snapshot.testSnapIdent(data.substring(0, 8))) { // snapshot file?
+                    type = "S";
                 }
                 else if (DiskImage_1.DiskImage.testDiskIdent(data.substring(0, 8))) { // disk image file?
                     type = "X";
@@ -122,23 +154,49 @@ define(["require", "exports", "./Utils", "./DiskImage", "./ZipFile"], function (
                 case "B": // binary?
                     header = FileHandler.createMinimalAmsdosHeader(type, 0, data.length);
                     break;
-                case "Z": // zip file?
-                    this.processZipFile(Utils_1.Utils.string2Uint8Array(data), name, imported);
+                case "H": // with header?
+                    break;
+                case "S": // sna file?
+                    header = FileHandler.createMinimalAmsdosHeader(type, 0, data.length); // currently we store it
+                    /*
+                    if (this.processFileImports) {
+                        //this.processSnaFile(data, name, imported);
+                        //howto?
+                    } else {
+                        header = FileHandler.createMinimalAmsdosHeader(type, 0, data.length);
+                    }
+                    */
                     break;
                 case "X": // dsk file?
-                    this.processDskFile(data, name, imported);
+                    if (this.processFileImports) {
+                        this.processDskFile(data, name, imported); // we know data is string
+                    }
+                    else {
+                        header = FileHandler.createMinimalAmsdosHeader(type, 0, data.length);
+                    }
                     break;
-                case "H": // with header?
+                case "Z": // zip file?
+                    if (this.processFileImports) {
+                        this.processZipFile(data instanceof Uint8Array ? data : Utils_1.Utils.string2Uint8Array(data), name, imported);
+                    }
+                    else { //Test
+                        /*
+                        if (data instanceof Uint8Array) {
+                            data = Utils.uint8Array2string(data);
+                        }
+                        */
+                        header = FileHandler.createMinimalAmsdosHeader(type, 0, data.length);
+                    }
                     break;
                 default:
                     Utils_1.Utils.console.warn("fnLoad2: " + name + ": Unknown file type: " + type + ", assuming B");
                     header = FileHandler.createMinimalAmsdosHeader("B", 0, data.length);
                     break;
             }
-            if (header) {
-                var meta = FileHandler.joinMeta(header);
+            if (header) { // do we have a header? (means we should store it as a file in storage...)
+                var storageName = FileHandler.fnLocalStorageName(this.adaptFilename(name, "FILE")), meta = FileHandler.joinMeta(header), dataAsString = data instanceof Uint8Array ? Utils_1.Utils.uint8Array2string(data) : data;
                 try {
-                    Utils_1.Utils.localStorage.setItem(storageName, meta + "," + data);
+                    Utils_1.Utils.localStorage.setItem(storageName, meta + "," + dataAsString);
                     this.updateStorageDatabase("set", storageName);
                     Utils_1.Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
                     imported.push(name);

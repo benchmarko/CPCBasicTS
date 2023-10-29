@@ -168,7 +168,7 @@ export interface IController {
 
     startUpdateCanvas: () => void
     stopUpdateCanvas: () => void
-    virtualKeyboardCreate: () => void
+    getVirtualKeyboard: () => void
     getVariable: (par: string) => VariableValue
     // see VariableValue in Variables.ts
 

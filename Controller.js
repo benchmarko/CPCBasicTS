@@ -2,12 +2,13 @@
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./BasicParser", "./BasicTokenizer", "./Canvas", "./CodeGeneratorBasic", "./CodeGeneratorJs", "./CodeGeneratorToken", "./CommonEventHandler", "./cpcCharset", "./CpcVm", "./Diff", "./DiskImage", "./FileHandler", "./FileSelect", "./InputStack", "./Keyboard", "./NoCanvas", "./TextCanvas", "./VirtualKeyboard", "./Sound", "./Variables", "./View", "./RsxAmsdos", "./RsxCpcBasic"], function (require, exports, Utils_1, BasicFormatter_1, BasicLexer_1, BasicParser_1, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, Diff_1, DiskImage_1, FileHandler_1, FileSelect_1, InputStack_1, Keyboard_1, NoCanvas_1, TextCanvas_1, VirtualKeyboard_1, Sound_1, Variables_1, View_1, RsxAmsdos_1, RsxCpcBasic_1) {
+define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./BasicParser", "./BasicTokenizer", "./Canvas", "./CodeGeneratorBasic", "./CodeGeneratorJs", "./CodeGeneratorToken", "./CommonEventHandler", "./cpcCharset", "./CpcVm", "./Diff", "./DiskImage", "./FileHandler", "./FileSelect", "./InputStack", "./Keyboard", "./NoCanvas", "./TextCanvas", "./VirtualKeyboard", "./Snapshot", "./Sound", "./Variables", "./View", "./RsxAmsdos", "./RsxCpcBasic"], function (require, exports, Utils_1, BasicFormatter_1, BasicLexer_1, BasicParser_1, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, Diff_1, DiskImage_1, FileHandler_1, FileSelect_1, InputStack_1, Keyboard_1, NoCanvas_1, TextCanvas_1, VirtualKeyboard_1, Snapshot_1, Sound_1, Variables_1, View_1, RsxAmsdos_1, RsxCpcBasic_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Controller = void 0;
     var Controller = /** @class */ (function () {
         function Controller(model, view) {
+            //private static readonly metaIdent = "CPCBasic";
             this.fnScript = undefined; // eslint-disable-line @typescript-eslint/ban-types
             this.timeoutHandlerActive = false;
             this.nextLoopTimeOut = 0; // next timeout for the main loop
@@ -90,7 +91,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 fnOnEscapeHandler: this.fnOnEscapeHandler
             });
             if (this.model.getProperty("showKbd")) { // maybe we need to draw virtual keyboard
-                this.virtualKeyboardCreate();
+                this.getVirtualKeyboard();
             }
             this.commonEventHandler.fnSetUserAction(this.fnOnUserActionHandler); // check first user action, also if sound is not yet on
             this.vm = new CpcVm_1.CpcVm({
@@ -704,14 +705,14 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             return dir;
         };
         Controller.fnGetStorageDirectoryEntries = function (mask) {
-            var storage = Utils_1.Utils.localStorage, dir = [];
+            var storage = Utils_1.Utils.localStorage, metaIdent = FileHandler_1.FileHandler.getMetaIdent(), dir = [];
             var regExp;
             if (mask) {
                 regExp = Controller.fnPrepareMaskRegExp(mask);
             }
             for (var i = 0; i < storage.length; i += 1) {
                 var key = storage.key(i);
-                if (key !== null && storage[key].startsWith(this.metaIdent)) { // take only cpcBasic files
+                if (key !== null && storage[key].startsWith(metaIdent)) { // take only cpcBasic files
                     if (!regExp || regExp.test(key)) {
                         dir.push(key);
                     }
@@ -828,14 +829,31 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             return out;
         };
-        Controller.prototype.decodeTokenizedBasic = function (input) {
+        Controller.prototype.getBasicFormatter = function () {
+            if (!this.basicFormatter) {
+                this.basicFormatter = new BasicFormatter_1.BasicFormatter({
+                    lexer: this.basicLexer,
+                    parser: this.basicParser
+                });
+            }
+            return this.basicFormatter;
+        };
+        Controller.prototype.getBasicTokenizer = function () {
             if (!this.basicTokenizer) {
                 this.basicTokenizer = new BasicTokenizer_1.BasicTokenizer();
             }
-            return this.basicTokenizer.decode(input);
+            return this.basicTokenizer;
         };
-        Controller.prototype.encodeTokenizedBasic = function (input, name) {
-            if (name === void 0) { name = "test"; }
+        Controller.prototype.getCodeGeneratorBasic = function () {
+            if (!this.codeGeneratorBasic) {
+                this.codeGeneratorBasic = new CodeGeneratorBasic_1.CodeGeneratorBasic({
+                    lexer: this.basicLexer,
+                    parser: this.basicParser
+                });
+            }
+            return this.codeGeneratorBasic;
+        };
+        Controller.prototype.getCodeGeneratorToken = function () {
             if (!this.codeGeneratorToken) {
                 this.codeGeneratorToken = new CodeGeneratorToken_1.CodeGeneratorToken({
                     lexer: this.basicLexer,
@@ -843,11 +861,20 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     implicitLines: this.model.getProperty("implicitLines")
                 });
             }
+            return this.codeGeneratorToken;
+        };
+        Controller.prototype.decodeTokenizedBasic = function (input) {
+            var basicTokenizer = this.getBasicTokenizer();
+            return basicTokenizer.decode(input);
+        };
+        Controller.prototype.encodeTokenizedBasic = function (input, name) {
+            if (name === void 0) { name = "test"; }
+            var codeGeneratorToken = this.getCodeGeneratorToken();
             this.basicLexer.setOptions({
                 keepWhiteSpace: true
             });
             this.basicParser.setOptions(Controller.codeGenTokenBasicParserOptions);
-            var output = this.codeGeneratorToken.generate(input);
+            var output = codeGeneratorToken.generate(input);
             if (output.error) {
                 this.outputError(output.error);
             }
@@ -861,13 +888,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             return output.text;
         };
         Controller.prototype.prettyPrintBasic = function (input, keepWhiteSpace, keepBrackets, keepColons) {
-            if (!this.codeGeneratorBasic) {
-                this.codeGeneratorBasic = new CodeGeneratorBasic_1.CodeGeneratorBasic({
-                    lexer: this.basicLexer,
-                    parser: this.basicParser
-                });
-            }
-            var keepDataComma = true;
+            var codeGeneratorBasic = this.getCodeGeneratorBasic(), keepDataComma = true;
             this.basicLexer.setOptions({
                 keepWhiteSpace: keepWhiteSpace
             });
@@ -877,11 +898,34 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 keepColons: keepColons,
                 keepDataComma: keepDataComma
             });
-            var output = this.codeGeneratorBasic.generate(input);
+            var output = codeGeneratorBasic.generate(input);
             if (output.error) {
                 this.outputError(output.error);
             }
             return output.text;
+        };
+        Controller.prototype.applyGaInks = function (inkval) {
+            for (var i = 0; i < inkval.length - 1; i += 1) {
+                this.vm.ink(i, Controller.gaInk2Ink[inkval[i]]);
+            }
+            this.vm.border(Controller.gaInk2Ink[inkval[inkval.length - 1]]);
+        };
+        Controller.prototype.applyCrtcRegs = function (reg) {
+            for (var i = 0; i < reg.length; i += 1) {
+                this.vm.vmSetCrtcData(i, reg[i]);
+            }
+        };
+        Controller.prototype.applySnapshot = function (input) {
+            var snapshot = new Snapshot_1.Snapshot({
+                name: "",
+                data: input
+            }), info = snapshot.getSnapshotInfo(), mode = info.ga.multi & 0x03, // eslint-disable-line no-bitwise
+            mem = snapshot.getMemory();
+            this.vm.vmChangeMode(mode);
+            this.applyGaInks(info.ga.inkval);
+            this.vm.vmSetRamSelect(info.ramconf);
+            this.applyCrtcRegs(info.crtc.reg);
+            return mem;
         };
         Controller.prototype.loadFileContinue = function (input) {
             var inFile = this.vm.vmGetInFileObject();
@@ -909,13 +953,16 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 else if (type === "G") { // Hisoft Devpac GENA3 Z80 Assember
                     input = Controller.asmGena3Convert(input);
                 }
+                else if (type === "S") { // Snapshot
+                    input = this.applySnapshot(input);
+                }
                 else if (type === "X") { // (Extended) Disk image file
-                    var fileHandler = this.fileHandler || this.createFileHandler(), imported = [];
+                    var fileHandler = this.getFileHandler(), imported = [];
                     fileHandler.fnLoad2(input, inFile.name, type, imported); // no meta in data
                     input = "1 ' " + imported.join(", "); // imported files
                 }
                 else if (type === "Z") { // ZIP file
-                    var fileHandler = this.fileHandler || this.createFileHandler(), imported = [];
+                    var fileHandler = this.getFileHandler(), imported = [];
                     fileHandler.fnLoad2(input, inFile.name, type, imported);
                     input = "1 ' " + imported.join(", "); // imported files
                 }
@@ -941,6 +988,20 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             if (input === null) {
                 this.startMainLoop();
                 return;
+            }
+            /*
+            if (data && data.meta.typeString === "S" && putInMemory) { // fast hack
+                const basicCode = this.vm.vmGetTokenizedBasicFromMemory();
+    
+                if (basicCode) {
+                    input = this.decodeTokenizedBasic(basicCode);
+                    putInMemory = false; // put input in text box
+                }
+            }
+            */
+            if (data && data.meta.typeString === "S" && putInMemory) { // fast hack
+                input = this.decodeTokenizedBasic(input.substring(0x170));
+                putInMemory = false; // put input in text box
             }
             switch (command) {
                 case "openin":
@@ -1136,7 +1197,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             this.nextLoopTimeOut = this.vm.vmGetTimeUntilFrame(); // wait until next frame
         };
-        Controller.joinMeta = function (meta) {
+        /*
+        private static joinMeta(meta: FileMeta) {
             return [
                 Controller.metaIdent,
                 meta.typeString,
@@ -1144,10 +1206,11 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 meta.length,
                 meta.entry
             ].join(";");
-        };
+        }
+        */
         Controller.splitMeta = function (input) {
             var fileMeta;
-            if (input.indexOf(Controller.metaIdent) === 0) { // starts with metaIdent?
+            if (input.indexOf(FileHandler_1.FileHandler.getMetaIdent()) === 0) { // starts with metaIdent?
                 var index = input.indexOf(","); // metadata separator
                 if (index >= 0) {
                     var metaString = input.substring(0, index);
@@ -1205,7 +1268,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 if (Utils_1.Utils.debug > 0) {
                     Utils_1.Utils.console.debug("fnFileSave: name=" + name_4 + ": put into localStorage");
                 }
-                var meta = Controller.joinMeta(outFile);
+                var meta = FileHandler_1.FileHandler.joinMeta(outFile);
                 storage.setItem(storageName, meta + "," + fileData);
                 this.updateStorageDatabase("set", storageName);
                 if (outFile.fnFileCallback) {
@@ -1294,18 +1357,12 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             return shortError;
         };
         Controller.prototype.fnRenumLines = function (paras) {
-            var vm = this.vm, input = this.view.getAreaValue("inputText");
-            if (!this.basicFormatter) {
-                this.basicFormatter = new BasicFormatter_1.BasicFormatter({
-                    lexer: this.basicLexer,
-                    parser: this.basicParser
-                });
-            }
+            var vm = this.vm, input = this.view.getAreaValue("inputText"), basicFormatter = this.getBasicFormatter();
             this.basicLexer.setOptions({
                 keepWhiteSpace: false
             });
             this.basicParser.setOptions(Controller.formatterBasicParserOptions);
-            var output = this.basicFormatter.renumber(input, paras.newLine || 10, paras.oldLine || 1, paras.step || 10, paras.keep || 65535);
+            var output = basicFormatter.renumber(input, paras.newLine || 10, paras.oldLine || 1, paras.step || 10, paras.keep || 65535);
             if (output.error) {
                 Utils_1.Utils.console.warn(output.error);
                 this.outputError(output.error);
@@ -1427,17 +1484,12 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
         };
         Controller.prototype.fnRemoveLines = function () {
-            if (!this.basicFormatter) {
-                this.basicFormatter = new BasicFormatter_1.BasicFormatter({
-                    lexer: this.basicLexer,
-                    parser: this.basicParser
-                });
-            }
+            var basicFormatter = this.getBasicFormatter();
             this.basicLexer.setOptions({
                 keepWhiteSpace: false
             });
             this.basicParser.setOptions(Controller.formatterBasicParserOptions);
-            var input = this.view.getAreaValue("inputText"), output = this.basicFormatter.removeUnusedLines(input);
+            var input = this.view.getAreaValue("inputText"), output = basicFormatter.removeUnusedLines(input);
             if (output.error) {
                 this.outputError(output.error);
             }
@@ -1623,6 +1675,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 var output = void 0, outputString = void 0;
                 if (inputText && ((/^\d+($| )/).test(inputText) || this.model.getProperty("implicitLines"))) { // do we have a program starting with a line number?
                     var separator = inputText.endsWith("\n") ? "" : "\n";
+                    this.basicParser.setOptions(Controller.codeGenJsBasicParserOptions);
                     output = codeGeneratorJs.generate(inputText + separator + input, this.variables, true); // compile both; allow direct command
                     if (output.error) {
                         var error = output.error;
@@ -1633,6 +1686,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     }
                 }
                 if (!output) {
+                    this.basicParser.setOptions(Controller.codeGenJsBasicParserOptions);
                     output = codeGeneratorJs.generate(input, this.variables, true); // compile direct input only
                 }
                 if (output.error) {
@@ -1998,34 +2052,37 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         Controller.prototype.adaptFilename = function (name, err) {
             return this.vm.vmAdaptFilename(name, err);
         };
-        Controller.prototype.createFileHandler = function () {
+        Controller.prototype.getFileHandler = function () {
             if (!this.fileHandler) {
                 this.fileHandler = new FileHandler_1.FileHandler({
                     adaptFilename: this.adaptFilename.bind(this),
                     updateStorageDatabase: this.updateStorageDatabase.bind(this),
-                    outputError: this.outputError.bind(this)
+                    outputError: this.outputError.bind(this),
+                    processFileImports: this.model.getProperty("processFileImports")
                 });
             }
             return this.fileHandler;
         };
-        Controller.prototype.initDropZone = function () {
-            var fileHandler = this.fileHandler || this.createFileHandler();
+        Controller.prototype.getFileSelect = function (fileHandler) {
             if (!this.fileSelect) {
                 this.fileSelect = new FileSelect_1.FileSelect({
                     fnEndOfImport: this.fnEndOfImport.bind(this),
                     fnLoad2: fileHandler.fnLoad2.bind(fileHandler)
                 });
             }
-            var dropZone = View_1.View.getElementById1("dropZone");
+            return this.fileSelect;
+        };
+        Controller.prototype.initDropZone = function () {
+            var fileHandler = this.getFileHandler(), fileSelect = this.getFileSelect(fileHandler), dropZone = View_1.View.getElementById1("dropZone");
             dropZone.addEventListener("dragover", this.fnOnDragoverHandler, false);
-            this.fileSelect.addFileSelectHandler(dropZone, "drop");
+            fileSelect.addFileSelectHandler(dropZone, "drop");
             var canvasElement = this.canvas.getCanvasElement();
             if (canvasElement) {
                 canvasElement.addEventListener("dragover", this.fnOnDragoverHandler, false);
-                this.fileSelect.addFileSelectHandler(canvasElement, "drop");
+                fileSelect.addFileSelectHandler(canvasElement, "drop");
             }
             var fileInput = View_1.View.getElementById1("fileInput");
-            this.fileSelect.addFileSelectHandler(fileInput, "change");
+            fileSelect.addFileSelectHandler(fileInput, "change");
         };
         Controller.prototype.fnUpdateUndoRedoButtons = function () {
             this.view.setDisabled("undoButton", !this.inputStack.canUndoKeepOne());
@@ -2048,13 +2105,14 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         Controller.prototype.stopUpdateCanvas = function () {
             this.canvas.stopUpdateCanvas();
         };
-        Controller.prototype.virtualKeyboardCreate = function () {
+        Controller.prototype.getVirtualKeyboard = function () {
             if (!this.virtualKeyboard) {
                 this.virtualKeyboard = new VirtualKeyboard_1.VirtualKeyboard({
                     fnPressCpcKey: this.keyboard.fnPressCpcKey.bind(this.keyboard),
                     fnReleaseCpcKey: this.keyboard.fnReleaseCpcKey.bind(this.keyboard)
                 });
             }
+            return this.virtualKeyboard;
         };
         Controller.prototype.getVariable = function (par) {
             return this.variables.getVariable(par);
@@ -2212,7 +2270,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             var speed = this.model.getProperty("speed");
             this.initialLoopTimeout = 1000 - speed * 10;
         };
-        Controller.metaIdent = "CPCBasic";
         Controller.areaDefinitions = {
             consoleArea: {
                 property: "showConsole"
@@ -2278,6 +2335,41 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             keepDataComma: false,
             keepTokens: false
         };
+        // gate array ink to basic ink
+        Controller.gaInk2Ink = [
+            13,
+            27,
+            19,
+            25,
+            1,
+            7,
+            10,
+            16,
+            28,
+            29,
+            24,
+            26,
+            6,
+            8,
+            15,
+            17,
+            30,
+            31,
+            18,
+            20,
+            0,
+            2,
+            9,
+            11,
+            4,
+            22,
+            21,
+            23,
+            3,
+            5,
+            12,
+            14
+        ];
         Controller.defaultExtensions = [
             "",
             "bas",

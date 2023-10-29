@@ -196,6 +196,7 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
             kbdLayout: "alphanum",
             canvasType: "graphics",
             palette: "color",
+            processFileImports: true,
             showConsole: false,
             showConvert: false,
             showCpc: true,

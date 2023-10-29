@@ -8,12 +8,8 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
     exports.FileSelect = void 0;
     var FileSelect = /** @class */ (function () {
         function FileSelect(options) {
-            this.fnEndOfImport = {};
-            this.fnLoad2 = {};
-            this.files = {}; // = dataTransfer ? dataTransfer.files : ((event.target as any).files as FileList), // dataTransfer for drag&drop, target.files for file input
             this.fileIndex = 0;
             this.imported = []; // imported file names
-            this.file = {}; // current file
             this.fnOnLoadHandler = this.fnOnLoad.bind(this);
             this.fnOnErrorHandler = this.fnOnError.bind(this);
             this.fnOnFileSelectHandler = this.fnOnFileSelect.bind(this);
@@ -21,7 +17,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.fnLoad2 = options.fnLoad2;
         }
         FileSelect.prototype.fnReadNextFile = function (reader) {
-            if (this.fileIndex < this.files.length) {
+            if (this.files && this.fileIndex < this.files.length) {
                 var file = this.files[this.fileIndex];
                 this.fileIndex += 1;
                 var lastModified = file.lastModified, lastModifiedDate = lastModified ? new Date(lastModified) : file.lastModifiedDate, // lastModifiedDate deprecated, but for old IE
@@ -43,7 +39,11 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             }
         };
         FileSelect.prototype.fnOnLoad = function (event) {
-            var reader = event.target, file = this.file, name = file.name;
+            if (!this.file) {
+                Utils_1.Utils.console.error("fnOnLoad: Programming error: No file");
+                return;
+            }
+            var file = this.file, name = file.name, reader = event.target;
             var data = (reader && reader.result) || null, type = file.type;
             if (type === "application/x-zip-compressed" && data instanceof ArrayBuffer) {
                 type = "Z";
@@ -77,20 +77,13 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 this.fnReadNextFile(reader);
             }
         };
-        FileSelect.prototype.fnOnError = function (event, file) {
-            var reader = event.target;
-            var msg = "fnErrorHandler: Error reading file " + file.name;
-            if (reader && reader.error !== null) {
-                if (reader.error.NOT_FOUND_ERR) {
-                    msg += ": File not found";
-                }
-                else if (reader.error.ABORT_ERR) {
-                    msg = ""; // nothing
-                }
+        FileSelect.prototype.fnOnError = function (event) {
+            var reader = event.target, filename = (this.file && this.file.name) || "unknown";
+            var msg = "fnOnError: " + filename;
+            if (reader && reader.error) {
+                msg += ": " + String(reader.error);
             }
-            if (msg) {
-                Utils_1.Utils.console.warn(msg);
-            }
+            Utils_1.Utils.console.error(msg);
             if (reader) {
                 this.fnReadNextFile(reader);
             }
@@ -109,7 +102,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.fileIndex = 0;
             this.imported.length = 0;
             if (window.FileReader) {
-                var reader = new FileReader();
+                var reader = new window.FileReader();
                 reader.onerror = this.fnOnErrorHandler;
                 reader.onload = this.fnOnLoadHandler;
                 this.fnReadNextFile(reader);

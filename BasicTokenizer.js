@@ -55,7 +55,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 0x1a: this.fnNum16DecAsStr,
                 0x1b: this.fnNum16Bin,
                 0x1c: this.fnNum16Hex,
-                0x1d: this.fnNum16DecAsStr,
+                0x1d: this.fnNum16LineAddrAsStr,
                 0x1e: this.fnNum16DecAsStr,
                 0x1f: this.fnNumFp,
                 // 0x20-0x21 ASCII printable symbols
@@ -269,6 +269,14 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         BasicTokenizer.prototype.fnNum16DecAsStr = function () {
             return String(this.fnNum16Dec());
+        };
+        // line number pointer (can occur when loading snapshots)
+        BasicTokenizer.prototype.fnNum16LineAddrAsStr = function () {
+            var prgStart = 0x170, // assuming this as program start
+            lineAddr = this.fnNum16Dec() - prgStart, // address of (byte 0 before line)
+            addr = lineAddr + 3, // address of line number
+            line = this.input.charCodeAt(addr) + this.input.charCodeAt(addr + 1) * 256;
+            return String(line);
         };
         BasicTokenizer.prototype.fnNum16Bin = function () {
             return "&X" + this.fnNum16Dec().toString(2);

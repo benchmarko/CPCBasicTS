@@ -139,7 +139,7 @@ export interface IController {
     onWindowClick: (event: Event) => void;
     startUpdateCanvas: () => void;
     stopUpdateCanvas: () => void;
-    virtualKeyboardCreate: () => void;
+    getVirtualKeyboard: () => void;
     getVariable: (par: string) => VariableValue;
     undoStackElement: () => string;
     redoStackElement: () => string;

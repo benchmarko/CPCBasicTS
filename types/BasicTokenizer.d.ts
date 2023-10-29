@@ -10,6 +10,7 @@ export declare class BasicTokenizer {
     private fnNum32Dec;
     private fnNum8DecAsStr;
     private fnNum16DecAsStr;
+    private fnNum16LineAddrAsStr;
     private fnNum16Bin;
     private fnNum16Hex;
     private fnNumFp;

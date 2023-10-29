@@ -1846,11 +1846,30 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
                 line: this.line // unused
             });
         };
+        /*
+        vmGetTokenizedBasicFromMemory(): string {
+            const startAddr = 0x170;
+            let memstr = "",
+                addr = startAddr,
+                lineLen = 0;
+    
+            do {
+                lineLen = this.peek(addr) + this.peek(addr + 1) * 256;
+                if (lineLen) {
+                    for (let i = 0; i < lineLen; i += 1) {
+                        memstr += String.fromCharCode(this.peek(addr + i));
+                    }
+                    addr += lineLen;
+                }
+            } while (lineLen && addr < 0x10000);
+            return memstr;
+        }
+        */
         CpcVm.prototype.vmLoadCallback = function (input, meta) {
             var inFile = this.inFile;
             var putInMemory = false;
             if (input !== null && meta) {
-                if (meta.typeString === "B" || inFile.start !== undefined) { // only for binary files or when a load address is specified (feature)
+                if (meta.typeString === "B" || meta.typeString === "S" || inFile.start !== undefined) { // only for binary files or when a load address is specified (feature)
                     var start = inFile.start !== undefined ? inFile.start : Number(meta.start);
                     var length_1 = Number(meta.length); // we do not really need the length from metadata
                     if (isNaN(length_1)) {
@@ -1859,9 +1878,17 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
                     if (Utils_1.Utils.debug > 1) {
                         Utils_1.Utils.console.debug("vmLoadCallback:", inFile.name + ": putting data in memory", start, "-", start + length_1);
                     }
-                    for (var i = 0; i < length_1; i += 1) {
-                        var byte = input.charCodeAt(i);
-                        this.poke((start + i) & 0xffff, byte); // eslint-disable-line no-bitwise
+                    if (meta.typeString === "S") {
+                        for (var i = 0; i < length_1; i += 1) {
+                            this.vmSetMem(start + i, input.charCodeAt(i)); // set snapshot data directly without memory mapping
+                        }
+                        var addr = this.screenPage << 14; // eslint-disable-line no-bitwise
+                        this.vmCopyToScreen(addr, addr);
+                    }
+                    else {
+                        for (var i = 0; i < length_1; i += 1) {
+                            this.poke((start + i) & 0xffff, input.charCodeAt(i)); // eslint-disable-line no-bitwise
+                        }
                     }
                     putInMemory = true;
                 }
@@ -2191,12 +2218,17 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
                 this.ramSelect = bank - 3; // bank 4 gets position 1
             }
         };
-        CpcVm.prototype.vmSetCrtcData = function (byte) {
-            var crtcReg = this.crtcReg, crtcData = this.crtcData;
+        CpcVm.prototype.vmSetCrtcData = function (crtcReg, byte) {
+            var crtcData = this.crtcData;
             crtcData[crtcReg] = byte;
             if (crtcReg === 12 || crtcReg === 13) { // screen offset changed
                 var offset = (((crtcData[12] || 0) & 0x03) << 9) | ((crtcData[13] || 0) << 1); // eslint-disable-line no-bitwise
                 this.vmSetScreenOffset(offset);
+                if (crtcReg === 12) { // scren base?
+                    // do we want to set it here?
+                    // 0x30 => 0xc0
+                    this.vmSetScreenBase((byte << 2) & 0xc0); // eslint-disable-line no-bitwise
+                }
             }
         };
         CpcVm.prototype.out = function (port, byte) {
@@ -2210,8 +2242,8 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
                 this.crtcReg = byte % 14;
             }
             else if (portHigh === 0xbd) {
-                this.vmSetCrtcData(byte);
-                this.crtcData[this.crtcReg] = byte;
+                this.vmSetCrtcData(this.crtcReg, byte);
+                //this.crtcData[this.crtcReg] = byte;
             }
             else if (Utils_1.Utils.debug > 0) {
                 Utils_1.Utils.console.debug("OUT", Number(port).toString(16), byte, ": unknown port");
@@ -2281,6 +2313,10 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
             y = this.vmInRangeRound(y, -32768, 32767, "PLOTR") + this.canvas.getYpos();
             this.vmDrawMovePlot("PLOTR", gPen, gColMode);
             this.canvas.plot(x, y);
+        };
+        // put directly in memory without memory papping
+        CpcVm.prototype.vmSetMem = function (addr, byte) {
+            this.mem[addr] = byte;
         };
         CpcVm.prototype.poke = function (addr, byte) {
             addr = this.vmRound2Complement(addr, "POKE address");

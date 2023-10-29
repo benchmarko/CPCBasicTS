@@ -141,6 +141,17 @@ define(["require", "exports"], function (require, exports) {
             }
             return view;
         };
+        Utils.uint8Array2string = function (data) {
+            var callSize = 25000; // use call window to avoid "maximum call stack error" for e.g. size 336461
+            var len = data.length, offset = 0, out = "";
+            while (len) {
+                var chunkLen = Math.min(len, callSize), chunk = data.slice ? data.slice(offset, offset + chunkLen) : data.subarray(offset, offset + chunkLen); // array.slice on Uint8Array not for IE11
+                out += String.fromCharCode.apply(null, chunk); // on Chrome this is faster than single character processing
+                offset += chunkLen;
+                len -= chunkLen;
+            }
+            return out;
+        };
         Utils.composeError = function (name, errorObject, message, value, pos, len, line, hidden) {
             var customError = errorObject;
             customError.name = name;

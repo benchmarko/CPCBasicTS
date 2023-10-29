@@ -48,6 +48,16 @@ export class BasicTokenizer {
 		return String(this.fnNum16Dec());
 	}
 
+	// line number pointer (can occur when loading snapshots)
+	private fnNum16LineAddrAsStr() {
+		const prgStart = 0x170, // assuming this as program start
+			lineAddr = this.fnNum16Dec() - prgStart, // address of (byte 0 before line)
+			addr = lineAddr + 3, // address of line number
+			line = this.input.charCodeAt(addr) + this.input.charCodeAt(addr + 1) * 256;
+
+		return String(line);
+	}
+
 	private fnNum16Bin() {
 		return "&X" + this.fnNum16Dec().toString(2);
 	}
@@ -213,7 +223,7 @@ export class BasicTokenizer {
 		0x1a: this.fnNum16DecAsStr, // 16-bit integer decimal value
 		0x1b: this.fnNum16Bin, // 16-bit integer binary value (with "&X" prefix)
 		0x1c: this.fnNum16Hex, // num16Hex: 16-bit integer hexadecimal value (with "&H" or "&" prefix)
-		0x1d: this.fnNum16DecAsStr, // 16-bit BASIC program line memory address pointer (should not occur)
+		0x1d: this.fnNum16LineAddrAsStr, // 16-bit BASIC program line memory address pointer
 		0x1e: this.fnNum16DecAsStr, // 16-bit integer BASIC line number
 		0x1f: this.fnNumFp, // floating point value
 		// 0x20-0x21 ASCII printable symbols

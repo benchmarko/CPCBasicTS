@@ -72,7 +72,7 @@ export class CommonEventHandler implements EventListenerObject {
 
 	private onKbdButtonClick() {
 		if (this.controller.toggleAreaHidden("kbdArea")) {
-			this.controller.virtualKeyboardCreate(); // maybe draw it
+			this.controller.getVirtualKeyboard(); // maybe draw it
 			this.view.setHidden("kbdLayoutArea", true, "inherit"); // kbd visible => kbdlayout invisible
 		} else {
 			this.view.setHidden("kbdLayoutArea", false, "inherit");

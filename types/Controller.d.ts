@@ -1,4 +1,5 @@
 import { IController, ICanvas, VariableValue, ICpcVmRsx } from "./Interfaces";
+import { VirtualKeyboard } from "./VirtualKeyboard";
 import { Model } from "./Model";
 import { View } from "./View";
 export declare class Controller implements IController {
@@ -12,7 +13,6 @@ export declare class Controller implements IController {
     private readonly fnOnUserActionHandler;
     private readonly fnWaitForContinueHandler;
     private readonly fnEditLineCallbackHandler;
-    private static readonly metaIdent;
     private fnScript?;
     private timeoutHandlerActive;
     private nextLoopTimeOut;
@@ -82,9 +82,17 @@ export declare class Controller implements IController {
     private fnFileEra;
     private fnFileRen;
     private static asmGena3Convert;
+    private getBasicFormatter;
+    private getBasicTokenizer;
+    private getCodeGeneratorBasic;
+    private getCodeGeneratorToken;
     private decodeTokenizedBasic;
     private encodeTokenizedBasic;
     private prettyPrintBasic;
+    private static gaInk2Ink;
+    private applyGaInks;
+    private applyCrtcRegs;
+    private applySnapshot;
     private loadFileContinue;
     private createFnExampleLoaded;
     private createFnExampleError;
@@ -93,7 +101,6 @@ export declare class Controller implements IController {
     private static defaultExtensions;
     private static tryLoadingFromLocalStorage;
     private fnFileLoad;
-    private static joinMeta;
     private static splitMeta;
     private fnFileSave;
     private fnDeleteLines;
@@ -151,14 +158,15 @@ export declare class Controller implements IController {
     private fnEndOfImport;
     private static fnOnDragover;
     private adaptFilename;
-    private createFileHandler;
+    private getFileHandler;
+    private getFileSelect;
     private initDropZone;
     private fnUpdateUndoRedoButtons;
     private fnInitUndoRedoButtons;
     private fnPutChangedInputOnStack;
     startUpdateCanvas(): void;
     stopUpdateCanvas(): void;
-    virtualKeyboardCreate(): void;
+    getVirtualKeyboard(): VirtualKeyboard;
     getVariable(par: string): VariableValue;
     undoStackElement(): string;
     redoStackElement(): string;

@@ -29,6 +29,7 @@ export declare class Utils {
     static isCustomError(e: unknown): e is CustomError;
     static split2(str: string, char: string): string[];
     static string2Uint8Array(data: string): Uint8Array;
+    static uint8Array2string(data: Uint8Array): string;
     static composeError(name: string, errorObject: Error, message: string, value: string, pos?: number, len?: number, line?: string | number, hidden?: boolean): CustomError;
     static composeVmError(name: string, errorObject: Error, errCode: number, value: string): CustomError;
 }

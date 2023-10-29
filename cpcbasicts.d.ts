@@ -42,6 +42,7 @@ declare module "Utils" {
         static isCustomError(e: unknown): e is CustomError;
         static split2(str: string, char: string): string[];
         static string2Uint8Array(data: string): Uint8Array;
+        static uint8Array2string(data: Uint8Array): string;
         static composeError(name: string, errorObject: Error, message: string, value: string, pos?: number, len?: number, line?: string | number, hidden?: boolean): CustomError;
         static composeVmError(name: string, errorObject: Error, errCode: number, value: string): CustomError;
     }
@@ -188,7 +189,7 @@ declare module "Interfaces" {
         onWindowClick: (event: Event) => void;
         startUpdateCanvas: () => void;
         stopUpdateCanvas: () => void;
-        virtualKeyboardCreate: () => void;
+        getVirtualKeyboard: () => void;
         getVariable: (par: string) => VariableValue;
         undoStackElement: () => string;
         redoStackElement: () => string;
@@ -462,6 +463,7 @@ declare module "BasicTokenizer" {
         private fnNum32Dec;
         private fnNum8DecAsStr;
         private fnNum16DecAsStr;
+        private fnNum16LineAddrAsStr;
         private fnNum16Bin;
         private fnNum16Hex;
         private fnNumFp;
@@ -1820,7 +1822,7 @@ declare module "CpcVm" {
         openout(name: string): void;
         origin(xOff: number, yOff: number, xLeft?: number, xRight?: number, yTop?: number, yBottom?: number): void;
         vmSetRamSelect(bank: number): void;
-        vmSetCrtcData(byte: number): void;
+        vmSetCrtcData(crtcReg: number, byte: number): void;
         out(port: number, byte: number): void;
         paper(stream: number, paper: number): void;
         vmGetCharDataByte(addr: number): number;
@@ -1830,6 +1832,7 @@ declare module "CpcVm" {
         pi(): number;
         plot(x: number, y: number, gPen?: number, gColMode?: number): void;
         plotr(x: number, y: number, gPen?: number, gColMode?: number): void;
+        private vmSetMem;
         poke(addr: number, byte: number): void;
         pos(stream: number): number;
         private vmGetAllowedPosOrVpos;
@@ -1910,25 +1913,95 @@ declare module "CpcVm" {
         };
     }
 }
+declare module "Snapshot" {
+    type SnapshotInfo = {
+        ident: string;
+        unused1: string;
+        version: number;
+        z80: {
+            AF: number;
+            BC: number;
+            DE: number;
+            HL: number;
+            IR: number;
+            IFF: number;
+            IX: number;
+            IY: number;
+            SP: number;
+            PC: number;
+            M: number;
+            AF2: number;
+            BC2: number;
+            DE2: number;
+            HL2: number;
+        };
+        ga: {
+            inknum: number;
+            inkval: number[];
+            multi: number;
+        };
+        ramconf: number;
+        crtc: {
+            index: number;
+            reg: number[];
+        };
+        romnum: number;
+        ppi: {
+            portA: number;
+            portB: number;
+            portC: number;
+            portCtl: number;
+        };
+        psg: {
+            index: number;
+            reg: number[];
+        };
+        memsize: number;
+    };
+    export interface SnapshotOptions {
+        name: string;
+        data: string;
+        quiet?: boolean;
+    }
+    export class Snapshot {
+        private readonly options;
+        private pos;
+        setOptions(options: SnapshotOptions): void;
+        constructor(options: SnapshotOptions);
+        private composeError;
+        static testSnapIdent(ident: string): boolean;
+        private readUInt8;
+        private readUInt16;
+        private readUInt8Array;
+        private readUtf;
+        getSnapshotInfo(): SnapshotInfo;
+        getMemory(): string;
+    }
+}
 declare module "FileHandler" {
+    import { FileMeta } from "CpcVm";
     import { AmsdosHeader } from "DiskImage";
     export interface FileHandlerOptions {
         adaptFilename: (name: string, err: string) => string;
         updateStorageDatabase: (action: string, key: string) => void;
         outputError: (error: Error, noSelection?: boolean) => void;
+        processFileImports?: boolean;
     }
     export class FileHandler {
         private static readonly metaIdent;
         private adaptFilename;
         private updateStorageDatabase;
         private outputError;
+        private processFileImports;
+        setOptions(options: Partial<FileHandlerOptions>): void;
         constructor(options: FileHandlerOptions);
         private static fnLocalStorageName;
+        static getMetaIdent(): string;
         static createMinimalAmsdosHeader(type: string, start: number, length: number): AmsdosHeader;
-        private static joinMeta;
+        static joinMeta(meta: FileMeta): string;
         private static reRegExpIsText;
-        private processZipFile;
         private processDskFile;
+        private processZipFile;
         fnLoad2(data: string | Uint8Array, name: string, type: string, imported: string[]): void;
     }
 }
@@ -1941,12 +2014,12 @@ declare module "FileSelect" {
         private readonly fnOnErrorHandler;
         private readonly fnOnLoadHandler;
         private readonly fnOnFileSelectHandler;
-        private fnEndOfImport;
-        private fnLoad2;
-        private files;
+        private readonly fnEndOfImport;
+        private readonly fnLoad2;
+        private files?;
         private fileIndex;
         private imported;
-        private file;
+        private file?;
         constructor(options: FileSelectOptions);
         private fnReadNextFile;
         private fnOnLoad;
@@ -2032,6 +2105,7 @@ declare module "NoCanvas" {
 }
 declare module "Controller" {
     import { IController, ICanvas, VariableValue, ICpcVmRsx } from "Interfaces";
+    import { VirtualKeyboard } from "VirtualKeyboard";
     import { Model } from "Model";
     import { View } from "View";
     export class Controller implements IController {
@@ -2045,7 +2119,6 @@ declare module "Controller" {
         private readonly fnOnUserActionHandler;
         private readonly fnWaitForContinueHandler;
         private readonly fnEditLineCallbackHandler;
-        private static readonly metaIdent;
         private fnScript?;
         private timeoutHandlerActive;
         private nextLoopTimeOut;
@@ -2115,9 +2188,17 @@ declare module "Controller" {
         private fnFileEra;
         private fnFileRen;
         private static asmGena3Convert;
+        private getBasicFormatter;
+        private getBasicTokenizer;
+        private getCodeGeneratorBasic;
+        private getCodeGeneratorToken;
         private decodeTokenizedBasic;
         private encodeTokenizedBasic;
         private prettyPrintBasic;
+        private static gaInk2Ink;
+        private applyGaInks;
+        private applyCrtcRegs;
+        private applySnapshot;
         private loadFileContinue;
         private createFnExampleLoaded;
         private createFnExampleError;
@@ -2126,7 +2207,6 @@ declare module "Controller" {
         private static defaultExtensions;
         private static tryLoadingFromLocalStorage;
         private fnFileLoad;
-        private static joinMeta;
         private static splitMeta;
         private fnFileSave;
         private fnDeleteLines;
@@ -2184,14 +2264,15 @@ declare module "Controller" {
         private fnEndOfImport;
         private static fnOnDragover;
         private adaptFilename;
-        private createFileHandler;
+        private getFileHandler;
+        private getFileSelect;
         private initDropZone;
         private fnUpdateUndoRedoButtons;
         private fnInitUndoRedoButtons;
         private fnPutChangedInputOnStack;
         startUpdateCanvas(): void;
         stopUpdateCanvas(): void;
-        virtualKeyboardCreate(): void;
+        getVirtualKeyboard(): VirtualKeyboard;
         getVariable(par: string): VariableValue;
         undoStackElement(): string;
         redoStackElement(): string;
