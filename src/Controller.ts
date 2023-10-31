@@ -1385,16 +1385,6 @@ export class Controller implements IController {
 			return;
 		}
 
-		/*
-		if (data && data.meta.typeString === "S" && putInMemory) { // fast hack
-			const basicCode = this.vm.vmGetTokenizedBasicFromMemory();
-
-			if (basicCode) {
-				input = this.decodeTokenizedBasic(basicCode);
-				putInMemory = false; // put input in text box
-			}
-		}
-		*/
 		if (data && data.meta.typeString === "S" && putInMemory) { // fast hack
 			input = this.decodeTokenizedBasic(input.substring(0x170));
 			putInMemory = false; // put input in text box
@@ -1621,18 +1611,6 @@ export class Controller implements IController {
 		}
 		this.nextLoopTimeOut = this.vm.vmGetTimeUntilFrame(); // wait until next frame
 	}
-
-	/*
-	private static joinMeta(meta: FileMeta) {
-		return [
-			Controller.metaIdent,
-			meta.typeString,
-			meta.start,
-			meta.length,
-			meta.entry
-		].join(";");
-	}
-	*/
 
 	private static splitMeta(input: string) {
 		let fileMeta: FileMeta | undefined;

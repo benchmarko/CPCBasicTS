@@ -3,7 +3,6 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 
-//import { Utils } from "./Utils";
 import { ICpcVmRsx, ICpcVm, VmFileParas, RsxCommandType } from "./Interfaces";
 
 export class RsxAmsdos implements ICpcVmRsx {
@@ -77,60 +76,41 @@ export class RsxAmsdos implements ICpcVmRsx {
 			this.vmNotImplemented("|A");
 		},
 		b: function (this: ICpcVm) {
-			this.vmNotImplemented("|A");
+			this.vmNotImplemented("|B");
 		},
 		cpm: function (this: ICpcVm) {
-			this.vmNotImplemented("|A");
+			this.vmNotImplemented("|CPM");
 		},
-		//basic: RsxAmsdos.basic,
 		dir: RsxAmsdos.dir,
 		disc: function (this: ICpcVm) {
-			this.vmNotImplemented("|A");
+			this.vmNotImplemented("|DISC");
 		},
 		"disc.in": function (this: ICpcVm) {
-			this.vmNotImplemented("|A");
+			this.vmNotImplemented("|DISC.IN");
 		},
 		"disc.out": function (this: ICpcVm) {
-			this.vmNotImplemented("|A");
+			this.vmNotImplemented("|DISC.OUT");
 		},
 		drive: function (this: ICpcVm) {
-			this.vmNotImplemented("|A");
+			this.vmNotImplemented("|DRIVE");
 		},
 		era: RsxAmsdos.era,
 		ren: RsxAmsdos.ren,
 		tape: function (this: ICpcVm) {
-			this.vmNotImplemented("|A");
+			this.vmNotImplemented("|TAPE");
 		},
 		"tape.in": function (this: ICpcVm) {
-			this.vmNotImplemented("|A");
+			this.vmNotImplemented("|TAPE.IN");
 		},
 		"tape.out": function (this: ICpcVm) {
-			this.vmNotImplemented("|A");
+			this.vmNotImplemented("|TAPE.OUT");
 		},
 		user: function (this: ICpcVm) {
-			this.vmNotImplemented("|A");
+			this.vmNotImplemented("|USER");
 		}
 	}
 
 	getRsxCommands(): Record<string, RsxCommandType> { // eslint-disable-line class-methods-use-this
 		return RsxAmsdos.rsxCommands;
 	}
-
-	/*
-	basic(): void { // not an AMSDOS command
-		Utils.console.log("basic: |BASIC");
-		this.vm.vmStop("reset", 90);
-	}
-	*/
-
-	/*
-	mode(mode: number): void {
-		mode = this.vm.vmInRangeRound(mode, 0, 3, "|MODE");
-		this.vm.vmChangeMode(mode);
-	}
-
-	renum(...args: number[]): void { // optional args: new number, old number, step, keep line (only for |renum)
-		this.vm.renum.apply(this.vm, args); // execute in vm context
-	}
-	*/
 }
