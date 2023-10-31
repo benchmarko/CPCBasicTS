@@ -640,27 +640,6 @@ export class CodeGeneratorJs {
 		node.pv = "o.callRsx(" + nodeArgs.join(", ") + "); o.vmGoto(\"" + label + "\"); break;\ncase \"" + label + "\":"; // most RSX commands need goto (era, ren,...)
 	}
 
-	/*
-	private vertical(node: CodeNode) { // "|" rsx
-		let rsxName = node.value.substring(1).toLowerCase().replace(/\./g, "_");
-		const rsxAvailable = this.options.rsx && this.options.rsx.rsxIsAvailable(rsxName),
-			nodeArgs = this.fnParseArgs(node.args),
-			label = this.fnGetStopLabel();
-
-		if (!rsxAvailable) { // if RSX not available, we delay the error until it is executed (or catched by on error goto)
-			if (!this.options.quiet) {
-				const error = this.composeError(Error(), "Unknown RSX command", node.value, node.pos);
-
-				Utils.console.warn(error);
-			}
-			nodeArgs.unshift('"' + rsxName + '"'); // put as first arg
-			rsxName = "rsxExec"; // and call special handler which triggers error if not available
-		}
-
-		node.pv = "o.rsx." + rsxName + "(" + nodeArgs.join(", ") + "); o.vmGoto(\"" + label + "\"); break;\ncase \"" + label + "\":"; // most RSX commands need goto (era, ren,...)
-	}
-	*/
-
 	private static number(node: CodeNode) {
 		node.pt = (/^\d+$/).test(node.value) ? "I" : "R";
 		node.pv = node.value;
@@ -1167,14 +1146,6 @@ export class CodeGeneratorJs {
 	}
 
 	private gosub(node: CodeNode) {
-		//TTT
-		/*
-		if (!node.args) { // maybe GOSUB token
-			Utils.console.log("DEBUG: gosub: ignoring; ", node.type);
-			node.pv = "";
-			return;
-		}
-		*/
 		const nodeArgs = this.fnParseArgs(node.args),
 			label = this.fnGetGosubLabel();
 
@@ -1652,14 +1623,6 @@ export class CodeGeneratorJs {
 	/* eslint-enable no-invalid-this */
 
 	private fnParseOther(node: CodeNode) {
-		//TTT
-		/*
-		if (!node.args) { // maybe whitespace
-			Utils.console.log("fnParseOther: ignoring; ", node.type);
-			node.pv = "";
-			return;
-		}
-		*/
 		const nodeArgs = this.fnParseArgs(node.args),
 			typeWithSpaces = " " + node.type + " ";
 

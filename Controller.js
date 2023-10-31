@@ -989,16 +989,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.startMainLoop();
                 return;
             }
-            /*
-            if (data && data.meta.typeString === "S" && putInMemory) { // fast hack
-                const basicCode = this.vm.vmGetTokenizedBasicFromMemory();
-    
-                if (basicCode) {
-                    input = this.decodeTokenizedBasic(basicCode);
-                    putInMemory = false; // put input in text box
-                }
-            }
-            */
             if (data && data.meta.typeString === "S" && putInMemory) { // fast hack
                 input = this.decodeTokenizedBasic(input.substring(0x170));
                 putInMemory = false; // put input in text box
@@ -1197,17 +1187,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             this.nextLoopTimeOut = this.vm.vmGetTimeUntilFrame(); // wait until next frame
         };
-        /*
-        private static joinMeta(meta: FileMeta) {
-            return [
-                Controller.metaIdent,
-                meta.typeString,
-                meta.start,
-                meta.length,
-                meta.entry
-            ].join(";");
-        }
-        */
         Controller.splitMeta = function (input) {
             var fileMeta;
             if (input.indexOf(FileHandler_1.FileHandler.getMetaIdent()) === 0) { // starts with metaIdent?

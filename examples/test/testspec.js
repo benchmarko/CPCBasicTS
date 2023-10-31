@@ -42,7 +42,15 @@ cpcBasic.addItem("", function () { /*
 650 PRINT "Detect char 143 with matching paper as char 32"
 660 PEN 0:PAPER 1:PRINT CHR$(143);"#";:PEN 1
 670 GOSUB 9010:PAPER 0:IF a$<>" #" THEN ERROR 33
-680 '
+680 PRINT "Detect custom character"
+685 symbol after 254
+690 SYMBOL 254,6,249,166
+700 PRINT CHR$(254);"#";
+710 GOSUB 9010:IF a$<>chr$(254)+"#" THEN ERROR 33
+720 PRINT CHR$(254);"#";
+725 SYMBOL AFTER 256
+730 GOSUB 9010:IF a$<>" #" THEN ERROR 33
+740 SYMBOL AFTER 240
 1000 '
 1010 PRINT "CHAIN, CHAIN MERGE"
 1020 chain1=1:a=1

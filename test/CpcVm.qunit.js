@@ -1334,7 +1334,8 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             '0,"\x17\x03"': "setGColMode:3",
             '0,"\x17\x04"': "setGColMode:0",
             '0,"\x18"': '{"_key":"win0","pen":0,"paper":1}',
-            '0,"\x19\xfe\x01\x02\x03\x04\x05\x06\x07\x08"': "",
+            '0,"\x19\xfd\x01\x02\x03\x04\x05\x06\x07\x08"': "resetCustomChars:",
+            '0,"\x19\xfe\x01\x02\x03\x04\x05\x06\x07\x08"': "resetCustomChars: , setCustomChar:254,1,2,3,4,5,6,7,8",
             '0,"\x1a\x01\x08\x02\x09"': '{"_key":"win0","left":1,"right":8,"top":2,"bottom":9}',
             '0,"\x1b"': "",
             '0,"\x1c\x01\x02\x03"': "setInk:1,2,3",
@@ -1634,19 +1635,19 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
         },
         symbol: {
             "254,1,2,3,4,5,6,7,8": "resetCustomChars: , setCustomChar:254,1,2,3,4,5,6,7,8",
-            "254,1": "resetCustomChars: , setCustomChar:254,1",
-            "254,1,2": "resetCustomChars: , setCustomChar:254,1,2",
-            "254,1,2,3": "resetCustomChars: , setCustomChar:254,1,2,3",
-            "254,1,2,3,4": "resetCustomChars: , setCustomChar:254,1,2,3,4",
-            "254,1,2,3,4,5": "resetCustomChars: , setCustomChar:254,1,2,3,4,5",
-            "254,1,2,3,4,5,6": "resetCustomChars: , setCustomChar:254,1,2,3,4,5,6",
-            "254,1,2,3,4,5,6,7": "resetCustomChars: , setCustomChar:254,1,2,3,4,5,6,7",
-            "254 ": "resetCustomChars: , setCustomChar:254",
+            "254,1": "resetCustomChars: , setCustomChar:254,1,0,0,0,0,0,0,0",
+            "254,1,2": "resetCustomChars: , setCustomChar:254,1,2,0,0,0,0,0,0",
+            "254,1,2,3": "resetCustomChars: , setCustomChar:254,1,2,3,0,0,0,0,0",
+            "254,1,2,3,4": "resetCustomChars: , setCustomChar:254,1,2,3,4,0,0,0,0",
+            "254,1,2,3,4,5": "resetCustomChars: , setCustomChar:254,1,2,3,4,5,0,0,0",
+            "254,1,2,3,4,5,6": "resetCustomChars: , setCustomChar:254,1,2,3,4,5,6,0,0",
+            "254,1,2,3,4,5,6,7": "resetCustomChars: , setCustomChar:254,1,2,3,4,5,6,7,0",
+            "254 ": "resetCustomChars: , setCustomChar:254,0,0,0,0,0,0,0,0",
             "254,1.4,2.3,3.4,4.2,5.0,6.3,7.3,7.5": "resetCustomChars: , setCustomChar:254,1,2,3,4,5,6,7,8",
             "254,0,0,0,0,0,0,0,0": "resetCustomChars: , setCustomChar:254,0,0,0,0,0,0,0,0",
             "255,255,255,255,255,255,255,255,255": "resetCustomChars: , setCustomChar:255,255,255,255,255,255,255,255,255",
             "0 ": 'resetCustomChars: -- CpcVm: Improper argument in 0: SYMBOL 0 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
-            "255 ": "resetCustomChars: , setCustomChar:255",
+            "255 ": "resetCustomChars: , setCustomChar:255,0,0,0,0,0,0,0,0",
             "": 'resetCustomChars: -- CpcVm: Type mismatch in 0: SYMBOL undefined -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
             '""': 'resetCustomChars: -- CpcVm: Type mismatch in 0: SYMBOL  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
             "-1 ": 'resetCustomChars: -- CpcVm: Improper argument in 0: SYMBOL -1 -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
@@ -3130,6 +3131,9 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 return String(cpcVm.pos.apply(cpcVm, input));
             },
             print: function (cpcVm, input) {
+                if (input && input.length === 2 && String(input[1]).charCodeAt(0) === 0x19) {
+                    cpcVm.symbolAfter(254);
+                }
                 cpcVm.print.apply(cpcVm, input);
             },
             rad: function (cpcVm, input) {

@@ -528,26 +528,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             nodeArgs.unshift('"' + rsxName + '"'); // put as first arg
             node.pv = "o.callRsx(" + nodeArgs.join(", ") + "); o.vmGoto(\"" + label + "\"); break;\ncase \"" + label + "\":"; // most RSX commands need goto (era, ren,...)
         };
-        /*
-        private vertical(node: CodeNode) { // "|" rsx
-            let rsxName = node.value.substring(1).toLowerCase().replace(/\./g, "_");
-            const rsxAvailable = this.options.rsx && this.options.rsx.rsxIsAvailable(rsxName),
-                nodeArgs = this.fnParseArgs(node.args),
-                label = this.fnGetStopLabel();
-    
-            if (!rsxAvailable) { // if RSX not available, we delay the error until it is executed (or catched by on error goto)
-                if (!this.options.quiet) {
-                    const error = this.composeError(Error(), "Unknown RSX command", node.value, node.pos);
-    
-                    Utils.console.warn(error);
-                }
-                nodeArgs.unshift('"' + rsxName + '"'); // put as first arg
-                rsxName = "rsxExec"; // and call special handler which triggers error if not available
-            }
-    
-            node.pv = "o.rsx." + rsxName + "(" + nodeArgs.join(", ") + "); o.vmGoto(\"" + label + "\"); break;\ncase \"" + label + "\":"; // most RSX commands need goto (era, ren,...)
-        }
-        */
         CodeGeneratorJs.number = function (node) {
             node.pt = (/^\d+$/).test(node.value) ? "I" : "R";
             node.pv = node.value;
@@ -940,14 +920,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             node.pv = value;
         };
         CodeGeneratorJs.prototype.gosub = function (node) {
-            //TTT
-            /*
-            if (!node.args) { // maybe GOSUB token
-                Utils.console.log("DEBUG: gosub: ignoring; ", node.type);
-                node.pv = "";
-                return;
-            }
-            */
             var nodeArgs = this.fnParseArgs(node.args), label = this.fnGetGosubLabel();
             for (var i = 0; i < nodeArgs.length; i += 1) {
                 this.fnAddReferenceLabel(nodeArgs[i], node.args[i]);
@@ -1255,14 +1227,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         /* eslint-enable no-invalid-this */
         CodeGeneratorJs.prototype.fnParseOther = function (node) {
-            //TTT
-            /*
-            if (!node.args) { // maybe whitespace
-                Utils.console.log("fnParseOther: ignoring; ", node.type);
-                node.pv = "";
-                return;
-            }
-            */
             var nodeArgs = this.fnParseArgs(node.args), typeWithSpaces = " " + node.type + " ";
             node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + ")";
             if (CodeGeneratorJs.fnIsInString(" asc cint derr eof erl err fix fre inkey inp instr int joy len memory peek pos remain sgn sq test testr unt vpos xpos ypos ", typeWithSpaces)) {

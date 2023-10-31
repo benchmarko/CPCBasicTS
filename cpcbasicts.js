@@ -2817,15 +2817,6 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
         // ---
         BasicParser.prototype.fnClearSymbols = function () {
             this.symbols = {};
-            /*
-            const symbols = this.symbols;
-    
-            for (const symbol in symbols) {
-                if (symbols.hasOwnProperty(symbol)) {
-                    delete symbols[symbol];
-                }
-            }
-            */
         };
         BasicParser.fnNode = function (node) {
             return node;
@@ -5122,26 +5113,6 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             nodeArgs.unshift('"' + rsxName + '"'); // put as first arg
             node.pv = "o.callRsx(" + nodeArgs.join(", ") + "); o.vmGoto(\"" + label + "\"); break;\ncase \"" + label + "\":"; // most RSX commands need goto (era, ren,...)
         };
-        /*
-        private vertical(node: CodeNode) { // "|" rsx
-            let rsxName = node.value.substring(1).toLowerCase().replace(/\./g, "_");
-            const rsxAvailable = this.options.rsx && this.options.rsx.rsxIsAvailable(rsxName),
-                nodeArgs = this.fnParseArgs(node.args),
-                label = this.fnGetStopLabel();
-    
-            if (!rsxAvailable) { // if RSX not available, we delay the error until it is executed (or catched by on error goto)
-                if (!this.options.quiet) {
-                    const error = this.composeError(Error(), "Unknown RSX command", node.value, node.pos);
-    
-                    Utils.console.warn(error);
-                }
-                nodeArgs.unshift('"' + rsxName + '"'); // put as first arg
-                rsxName = "rsxExec"; // and call special handler which triggers error if not available
-            }
-    
-            node.pv = "o.rsx." + rsxName + "(" + nodeArgs.join(", ") + "); o.vmGoto(\"" + label + "\"); break;\ncase \"" + label + "\":"; // most RSX commands need goto (era, ren,...)
-        }
-        */
         CodeGeneratorJs.number = function (node) {
             node.pt = (/^\d+$/).test(node.value) ? "I" : "R";
             node.pv = node.value;
@@ -5534,14 +5505,6 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             node.pv = value;
         };
         CodeGeneratorJs.prototype.gosub = function (node) {
-            //TTT
-            /*
-            if (!node.args) { // maybe GOSUB token
-                Utils.console.log("DEBUG: gosub: ignoring; ", node.type);
-                node.pv = "";
-                return;
-            }
-            */
             var nodeArgs = this.fnParseArgs(node.args), label = this.fnGetGosubLabel();
             for (var i = 0; i < nodeArgs.length; i += 1) {
                 this.fnAddReferenceLabel(nodeArgs[i], node.args[i]);
@@ -5849,14 +5812,6 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
         };
         /* eslint-enable no-invalid-this */
         CodeGeneratorJs.prototype.fnParseOther = function (node) {
-            //TTT
-            /*
-            if (!node.args) { // maybe whitespace
-                Utils.console.log("fnParseOther: ignoring; ", node.type);
-                node.pv = "";
-                return;
-            }
-            */
             var nodeArgs = this.fnParseArgs(node.args), typeWithSpaces = " " + node.type + " ";
             node.pv = "o." + node.type + "(" + nodeArgs.join(", ") + ")";
             if (CodeGeneratorJs.fnIsInString(" asc cint derr eof erl err fix fre inkey inp instr int joy len memory peek pos remain sgn sq test testr unt vpos xpos ypos ", typeWithSpaces)) {
@@ -12152,7 +12107,7 @@ define("ZipFile", ["require", "exports", "Utils"], function (require, exports, U
     }());
     exports.ZipFile = ZipFile;
 });
-// CpcVmRsx.ts - CPC Virtual Machine: RSX
+// CpcVmRsx.ts - CPC Virtual Machine: RSX (Resident System Extension)
 // (c) Marco Vieth, 2020
 // https://benchmarko.github.io/CPCBasicTS/
 //
@@ -12166,8 +12121,12 @@ define("CpcVmRsx", ["require", "exports"], function (require, exports) {
             this.rsxTemporary = {};
         }
         /*
-        constructor(vm: ICpcVm) {
-            this.vm = vm;
+        private readonly addrPermanent: Record<string, RsxCommandType> = {};
+        private addrTemporary: Record<string, RsxCommandType> = {};
+        */
+        /*
+        rxAvailable(name: string): boolean {
+            return Boolean(this.rsxTemporary[name] || this.rsxPermanent[name]);
         }
         */
         CpcVmRsx.prototype.callRsx = function (vm, name) {
@@ -12179,10 +12138,20 @@ define("CpcVmRsx", ["require", "exports"], function (require, exports) {
             if (fn) {
                 fn.apply(vm, args);
             }
-            else {
-                throw vm.vmComposeError(Error(), 28, "|" + name); // Unknown command
-            }
+            return Boolean(fn);
         };
+        /*
+        // we also allow to define adresses for call
+        callAddr(vm: ICpcVm, addr: number, ...args: (string|number)[]): void {
+            const fn = this.addrTemporary[addr] || this.addrPermanent[addr];
+    
+            if (fn) {
+                fn.apply(vm, args);
+            } else if (Utils.debug > 0) {
+                Utils.console.debug("Ignored: CALL", addr, args);
+            }
+        }
+        */
         CpcVmRsx.prototype.registerRsx = function (rsxModule, permanent) {
             var rsxRegister = permanent ? this.rsxPermanent : this.rsxTemporary, rsxCommands = rsxModule.getRsxCommands();
             for (var command in rsxCommands) {
@@ -12342,11 +12311,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                 quiet: this.quiet
             };
         };
-        /*
-        vmSetRsxClass(rsx: ICpcVmRsx): void {
-            this.rsx = rsx; // this.rsx just used in the script
-        }
-        */
         CpcVm.prototype.vmReset = function () {
             this.startTime = Date.now();
             this.vmResetRandom();
@@ -13052,6 +13016,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             this.canvas.updateColorsAndCanvasImmediately(inkList);
         };
         CpcVm.prototype.call = function (addr) {
+            var _a;
             var args = [];
             for (var _i = 1; _i < arguments.length; _i++) {
                 args[_i - 1] = arguments[_i];
@@ -13204,8 +13169,10 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                     this.vmSetRamSelect(args.length);
                     break;
                 default:
-                    if (Utils_20.Utils.debug > 0) {
-                        Utils_20.Utils.console.debug("Ignored: CALL", addr, args);
+                    if (!(_a = this.rsx).callRsx.apply(_a, __spreadArray([this, "&" + addr.toString(16).toLowerCase().padStart(4, "0")], args, false))) { // maybe user defined addr
+                        if (Utils_20.Utils.debug > 0) {
+                            Utils_20.Utils.console.debug("Ignored: CALL", addr, args);
+                        }
                     }
                     break;
             }
@@ -13216,7 +13183,18 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             for (var _i = 1; _i < arguments.length; _i++) {
                 args[_i - 1] = arguments[_i];
             }
-            (_a = this.rsx).callRsx.apply(_a, __spreadArray([this, name], args, false));
+            // RSX name can contain letters, digits and "." (in basic it is uppercase but here we get lowercase characters)
+            if (args.length > 32) { // more that 32 arguments?
+                throw this.vmComposeError(Error(), 2, "RSX "); // Syntax Error
+            }
+            for (var i = 0; i < args.length; i += 1) {
+                if (typeof args[i] === "number") {
+                    args[i] = this.vmRound2Complement(args[i], "RSX"); // even if the args itself are not used here
+                }
+            }
+            if (!(_a = this.rsx).callRsx.apply(_a, __spreadArray([this, name], args, false))) {
+                throw this.vmComposeError(Error(), 28, "|" + name); // Unknown command
+            }
         };
         CpcVm.prototype.cat = function () {
             var stream = 0, fileParas = {
@@ -13356,7 +13334,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             stream = this.vmInRangeRound(stream, 0, 7, "COPYCHR$");
             this.vmMoveCursor2AllowedPos(stream);
             this.vmDrawUndrawCursor(stream); // undraw
-            var win = this.windowDataList[stream], charCode = this.canvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper), char = (charCode >= 0) ? String.fromCharCode(charCode) : "";
+            var win = this.windowDataList[stream], charCode = this.canvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper), char = (charCode >= 0) ? String.fromCharCode(charCode) : " "; // if not detected (-1), use space
             this.vmDrawUndrawCursor(stream); // draw
             return char;
         };
@@ -14037,25 +14015,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                 line: this.line // unused
             });
         };
-        /*
-        vmGetTokenizedBasicFromMemory(): string {
-            const startAddr = 0x170;
-            let memstr = "",
-                addr = startAddr,
-                lineLen = 0;
-    
-            do {
-                lineLen = this.peek(addr) + this.peek(addr + 1) * 256;
-                if (lineLen) {
-                    for (let i = 0; i < lineLen; i += 1) {
-                        memstr += String.fromCharCode(this.peek(addr + i));
-                    }
-                    addr += lineLen;
-                }
-            } while (lineLen && addr < 0x10000);
-            return memstr;
-        }
-        */
         CpcVm.prototype.vmLoadCallback = function (input, meta) {
             var inFile = this.inFile;
             var putInMemory = false;
@@ -14614,6 +14573,9 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             var paraList = [];
             for (var i = 0; i < para.length; i += 1) {
                 paraList.push(para.charCodeAt(i));
+            }
+            while (paraList.length < 9) { // fill up with 0 (1xchar, 8xchardata)
+                paraList.push(0);
             }
             var char = paraList[0];
             if (char >= this.minCustomChar) {
@@ -15301,11 +15263,14 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             }
             char = this.vmInRangeRound(char, this.minCustomChar, 255, "SYMBOL");
             var charData = [];
-            for (var i = 0; i < args.length; i += 1) { // start with 1, get available args
+            for (var i = 0; i < args.length; i += 1) { // get available args
                 var bitMask = this.vmInRangeRound(args[i], 0, 255, "SYMBOL");
                 charData.push(bitMask);
             }
-            // Note: If there are less than 8 rows, the others are assumed as 0 (actually empty)
+            // Note: If there are less than 8 rows, set missing rows to 0 (needed for read char)
+            while (charData.length < 8) { // fill up with 0 (1xchar, 8xchardata)
+                charData.push(0);
+            }
             this.canvas.setCustomChar(char, charData);
         };
         CpcVm.prototype.symbolAfter = function (char) {
@@ -15497,38 +15462,9 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             }
             return num;
         };
-        /*
-                if (s.startsWith("&x")) { // binary &x
-                    s = s.slice(2);
-                    //if (s.charAt(0) !== "0" && s.charAt(0))
-                    num = parseInt(s, 2);
-                } else if (s.startsWith("&h")) { // hex &h
-                    s = s.slice(2);
-                    num = parseInt(s, 16);
-                    if (num > 32767) { // two's complement
-                        num -= 65536;
-                    }
-                } else if (s.startsWith("&")) { // hex &
-                    s = s.slice(1);
-                    num = parseInt(s, 16);
-                    if (num > 32767) { // two's complement
-                        num -= 65536;
-                    }
-                } else if (s !== "") { // not empty string?
-                    num = parseFloat(s);
-                }
-                return num;
-        */
         CpcVm.prototype.val = function (s) {
             this.vmAssertString(s, "VAL");
             s = s.replace(/ /g, ""); // remove spaces
-            /*
-            const regEx = /^([-+]?\.?[0-9]|&h?[0-9a-f]|&x[01]|.)/;
-    
-            if (!regEx.test(s.toLowerCase())) {
-                throw this.vmComposeError(Error(), 13, "VAL " + s); // Type mismatch
-            }
-            */
             var num = this.vmVal(s);
             if (isNaN(num)) {
                 num = 0;
@@ -16003,23 +15939,6 @@ define("FileHandler", ["require", "exports", "Utils", "DiskImage", "Snapshot", "
                 }
             }
         };
-        /*
-        private processSnaFile(data: string, name: string, imported: string[]) {
-            try {
-                const sna = new Snapshot({
-                    data: data,
-                    name: name
-                });
-    
-                this.fnLoad2(data, name, "", imported); // recursive
-            } catch (e) {
-                Utils.console.error(e);
-                if (e instanceof Error) {
-                    this.outputError(e, true);
-                }
-            }
-        }
-        */
         FileHandler.prototype.processZipFile = function (uint8Array, name, imported) {
             var zip;
             try {
@@ -16052,13 +15971,6 @@ define("FileHandler", ["require", "exports", "Utils", "DiskImage", "Snapshot", "
             }
         };
         FileHandler.prototype.fnLoad2 = function (data, name, type, imported) {
-            // data instanceof Uint8Array is used only for FileSelect filereader zip file
-            /*
-            if (data instanceof Uint8Array) { // FileSelect filereader zip file?
-                this.processZipFile(data, name, imported);
-                return;
-            }
-            */
             var header;
             if (type === "" && !(data instanceof Uint8Array)) { // detetermine type
                 header = DiskImage_1.DiskImage.parseAmsdosHeader(data);
@@ -16085,14 +15997,6 @@ define("FileHandler", ["require", "exports", "Utils", "DiskImage", "Snapshot", "
                     break;
                 case "S": // sna file?
                     header = FileHandler.createMinimalAmsdosHeader(type, 0, data.length); // currently we store it
-                    /*
-                    if (this.processFileImports) {
-                        //this.processSnaFile(data, name, imported);
-                        //howto?
-                    } else {
-                        header = FileHandler.createMinimalAmsdosHeader(type, 0, data.length);
-                    }
-                    */
                     break;
                 case "X": // dsk file?
                     if (this.processFileImports) {
@@ -16106,12 +16010,7 @@ define("FileHandler", ["require", "exports", "Utils", "DiskImage", "Snapshot", "
                     if (this.processFileImports) {
                         this.processZipFile(data instanceof Uint8Array ? data : Utils_22.Utils.string2Uint8Array(data), name, imported);
                     }
-                    else { //Test
-                        /*
-                        if (data instanceof Uint8Array) {
-                            data = Utils.uint8Array2string(data);
-                        }
-                        */
+                    else {
                         header = FileHandler.createMinimalAmsdosHeader(type, 0, data.length);
                     }
                     break;
@@ -16336,38 +16235,37 @@ define("RsxAmsdos", ["require", "exports"], function (require, exports) {
                 this.vmNotImplemented("|A");
             },
             b: function () {
-                this.vmNotImplemented("|A");
+                this.vmNotImplemented("|B");
             },
             cpm: function () {
-                this.vmNotImplemented("|A");
+                this.vmNotImplemented("|CPM");
             },
-            //basic: RsxAmsdos.basic,
             dir: RsxAmsdos.dir,
             disc: function () {
-                this.vmNotImplemented("|A");
+                this.vmNotImplemented("|DISC");
             },
             "disc.in": function () {
-                this.vmNotImplemented("|A");
+                this.vmNotImplemented("|DISC.IN");
             },
             "disc.out": function () {
-                this.vmNotImplemented("|A");
+                this.vmNotImplemented("|DISC.OUT");
             },
             drive: function () {
-                this.vmNotImplemented("|A");
+                this.vmNotImplemented("|DRIVE");
             },
             era: RsxAmsdos.era,
             ren: RsxAmsdos.ren,
             tape: function () {
-                this.vmNotImplemented("|A");
+                this.vmNotImplemented("|TAPE");
             },
             "tape.in": function () {
-                this.vmNotImplemented("|A");
+                this.vmNotImplemented("|TAPE.IN");
             },
             "tape.out": function () {
-                this.vmNotImplemented("|A");
+                this.vmNotImplemented("|TAPE.OUT");
             },
             user: function () {
-                this.vmNotImplemented("|A");
+                this.vmNotImplemented("|USER");
             }
         };
         return RsxAmsdos;
@@ -17530,16 +17428,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.startMainLoop();
                 return;
             }
-            /*
-            if (data && data.meta.typeString === "S" && putInMemory) { // fast hack
-                const basicCode = this.vm.vmGetTokenizedBasicFromMemory();
-    
-                if (basicCode) {
-                    input = this.decodeTokenizedBasic(basicCode);
-                    putInMemory = false; // put input in text box
-                }
-            }
-            */
             if (data && data.meta.typeString === "S" && putInMemory) { // fast hack
                 input = this.decodeTokenizedBasic(input.substring(0x170));
                 putInMemory = false; // put input in text box
@@ -17738,17 +17626,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
             this.nextLoopTimeOut = this.vm.vmGetTimeUntilFrame(); // wait until next frame
         };
-        /*
-        private static joinMeta(meta: FileMeta) {
-            return [
-                Controller.metaIdent,
-                meta.typeString,
-                meta.start,
-                meta.length,
-                meta.entry
-            ].join(";");
-        }
-        */
         Controller.splitMeta = function (input) {
             var fileMeta;
             if (input.indexOf(FileHandler_1.FileHandler.getMetaIdent()) === 0) { // starts with metaIdent?

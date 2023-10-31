@@ -68,38 +68,37 @@ define(["require", "exports"], function (require, exports) {
                 this.vmNotImplemented("|A");
             },
             b: function () {
-                this.vmNotImplemented("|A");
+                this.vmNotImplemented("|B");
             },
             cpm: function () {
-                this.vmNotImplemented("|A");
+                this.vmNotImplemented("|CPM");
             },
-            //basic: RsxAmsdos.basic,
             dir: RsxAmsdos.dir,
             disc: function () {
-                this.vmNotImplemented("|A");
+                this.vmNotImplemented("|DISC");
             },
             "disc.in": function () {
-                this.vmNotImplemented("|A");
+                this.vmNotImplemented("|DISC.IN");
             },
             "disc.out": function () {
-                this.vmNotImplemented("|A");
+                this.vmNotImplemented("|DISC.OUT");
             },
             drive: function () {
-                this.vmNotImplemented("|A");
+                this.vmNotImplemented("|DRIVE");
             },
             era: RsxAmsdos.era,
             ren: RsxAmsdos.ren,
             tape: function () {
-                this.vmNotImplemented("|A");
+                this.vmNotImplemented("|TAPE");
             },
             "tape.in": function () {
-                this.vmNotImplemented("|A");
+                this.vmNotImplemented("|TAPE.IN");
             },
             "tape.out": function () {
-                this.vmNotImplemented("|A");
+                this.vmNotImplemented("|TAPE.OUT");
             },
             user: function () {
-                this.vmNotImplemented("|A");
+                this.vmNotImplemented("|USER");
             }
         };
         return RsxAmsdos;

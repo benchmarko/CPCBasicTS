@@ -1582,15 +1582,6 @@ export class BasicParser {
 
 	private fnClearSymbols() {
 		this.symbols = {};
-		/*
-		const symbols = this.symbols;
-
-		for (const symbol in symbols) {
-			if (symbols.hasOwnProperty(symbol)) {
-				delete symbols[symbol];
-			}
-		}
-		*/
 	}
 
 	private static fnNode(node: ParserNode) {

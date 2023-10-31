@@ -277,22 +277,6 @@ class cpcBasic {
 				}
 			}
 		}
-
-		/*
-		const rsx = vmMock.rsx,
-			rsxKeysString = "a|b|basic|cpm|dir|disc|disc.in|disc.out|drive|era|ren|tape|tape.in|tape.out|user|mode|renum",
-			rsxKeysList = rsxKeysString.split("|");
-
-		for (let i = 0; i < rsxKeysList.length; i += 1) {
-			const key = rsxKeysList[i];
-
-			if (!(rsx as any)[key]) {
-				(rsx as any)[key] = function () {
-					return key;
-				};
-			}
-		}
-		*/
 	}
 
 

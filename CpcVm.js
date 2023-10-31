@@ -151,11 +151,6 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
                 quiet: this.quiet
             };
         };
-        /*
-        vmSetRsxClass(rsx: ICpcVmRsx): void {
-            this.rsx = rsx; // this.rsx just used in the script
-        }
-        */
         CpcVm.prototype.vmReset = function () {
             this.startTime = Date.now();
             this.vmResetRandom();
@@ -861,6 +856,7 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
             this.canvas.updateColorsAndCanvasImmediately(inkList);
         };
         CpcVm.prototype.call = function (addr) {
+            var _a;
             var args = [];
             for (var _i = 1; _i < arguments.length; _i++) {
                 args[_i - 1] = arguments[_i];
@@ -1013,8 +1009,10 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
                     this.vmSetRamSelect(args.length);
                     break;
                 default:
-                    if (Utils_1.Utils.debug > 0) {
-                        Utils_1.Utils.console.debug("Ignored: CALL", addr, args);
+                    if (!(_a = this.rsx).callRsx.apply(_a, __spreadArray([this, "&" + addr.toString(16).toLowerCase().padStart(4, "0")], args, false))) { // maybe user defined addr
+                        if (Utils_1.Utils.debug > 0) {
+                            Utils_1.Utils.console.debug("Ignored: CALL", addr, args);
+                        }
                     }
                     break;
             }
@@ -1025,7 +1023,18 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
             for (var _i = 1; _i < arguments.length; _i++) {
                 args[_i - 1] = arguments[_i];
             }
-            (_a = this.rsx).callRsx.apply(_a, __spreadArray([this, name], args, false));
+            // RSX name can contain letters, digits and "." (in basic it is uppercase but here we get lowercase characters)
+            if (args.length > 32) { // more that 32 arguments?
+                throw this.vmComposeError(Error(), 2, "RSX "); // Syntax Error
+            }
+            for (var i = 0; i < args.length; i += 1) {
+                if (typeof args[i] === "number") {
+                    args[i] = this.vmRound2Complement(args[i], "RSX"); // even if the args itself are not used here
+                }
+            }
+            if (!(_a = this.rsx).callRsx.apply(_a, __spreadArray([this, name], args, false))) {
+                throw this.vmComposeError(Error(), 28, "|" + name); // Unknown command
+            }
         };
         CpcVm.prototype.cat = function () {
             var stream = 0, fileParas = {
@@ -1165,7 +1174,7 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
             stream = this.vmInRangeRound(stream, 0, 7, "COPYCHR$");
             this.vmMoveCursor2AllowedPos(stream);
             this.vmDrawUndrawCursor(stream); // undraw
-            var win = this.windowDataList[stream], charCode = this.canvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper), char = (charCode >= 0) ? String.fromCharCode(charCode) : "";
+            var win = this.windowDataList[stream], charCode = this.canvas.readChar(win.pos + win.left, win.vpos + win.top, win.pen, win.paper), char = (charCode >= 0) ? String.fromCharCode(charCode) : " "; // if not detected (-1), use space
             this.vmDrawUndrawCursor(stream); // draw
             return char;
         };
@@ -1846,25 +1855,6 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
                 line: this.line // unused
             });
         };
-        /*
-        vmGetTokenizedBasicFromMemory(): string {
-            const startAddr = 0x170;
-            let memstr = "",
-                addr = startAddr,
-                lineLen = 0;
-    
-            do {
-                lineLen = this.peek(addr) + this.peek(addr + 1) * 256;
-                if (lineLen) {
-                    for (let i = 0; i < lineLen; i += 1) {
-                        memstr += String.fromCharCode(this.peek(addr + i));
-                    }
-                    addr += lineLen;
-                }
-            } while (lineLen && addr < 0x10000);
-            return memstr;
-        }
-        */
         CpcVm.prototype.vmLoadCallback = function (input, meta) {
             var inFile = this.inFile;
             var putInMemory = false;
@@ -2423,6 +2413,9 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
             var paraList = [];
             for (var i = 0; i < para.length; i += 1) {
                 paraList.push(para.charCodeAt(i));
+            }
+            while (paraList.length < 9) { // fill up with 0 (1xchar, 8xchardata)
+                paraList.push(0);
             }
             var char = paraList[0];
             if (char >= this.minCustomChar) {
@@ -3110,11 +3103,14 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
             }
             char = this.vmInRangeRound(char, this.minCustomChar, 255, "SYMBOL");
             var charData = [];
-            for (var i = 0; i < args.length; i += 1) { // start with 1, get available args
+            for (var i = 0; i < args.length; i += 1) { // get available args
                 var bitMask = this.vmInRangeRound(args[i], 0, 255, "SYMBOL");
                 charData.push(bitMask);
             }
-            // Note: If there are less than 8 rows, the others are assumed as 0 (actually empty)
+            // Note: If there are less than 8 rows, set missing rows to 0 (needed for read char)
+            while (charData.length < 8) { // fill up with 0 (1xchar, 8xchardata)
+                charData.push(0);
+            }
             this.canvas.setCustomChar(char, charData);
         };
         CpcVm.prototype.symbolAfter = function (char) {
@@ -3306,38 +3302,9 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
             }
             return num;
         };
-        /*
-                if (s.startsWith("&x")) { // binary &x
-                    s = s.slice(2);
-                    //if (s.charAt(0) !== "0" && s.charAt(0))
-                    num = parseInt(s, 2);
-                } else if (s.startsWith("&h")) { // hex &h
-                    s = s.slice(2);
-                    num = parseInt(s, 16);
-                    if (num > 32767) { // two's complement
-                        num -= 65536;
-                    }
-                } else if (s.startsWith("&")) { // hex &
-                    s = s.slice(1);
-                    num = parseInt(s, 16);
-                    if (num > 32767) { // two's complement
-                        num -= 65536;
-                    }
-                } else if (s !== "") { // not empty string?
-                    num = parseFloat(s);
-                }
-                return num;
-        */
         CpcVm.prototype.val = function (s) {
             this.vmAssertString(s, "VAL");
             s = s.replace(/ /g, ""); // remove spaces
-            /*
-            const regEx = /^([-+]?\.?[0-9]|&h?[0-9a-f]|&x[01]|.)/;
-    
-            if (!regEx.test(s.toLowerCase())) {
-                throw this.vmComposeError(Error(), 13, "VAL " + s); // Type mismatch
-            }
-            */
             var num = this.vmVal(s);
             if (isNaN(num)) {
                 num = 0;

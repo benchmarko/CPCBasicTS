@@ -1095,15 +1095,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         // ---
         BasicParser.prototype.fnClearSymbols = function () {
             this.symbols = {};
-            /*
-            const symbols = this.symbols;
-    
-            for (const symbol in symbols) {
-                if (symbols.hasOwnProperty(symbol)) {
-                    delete symbols[symbol];
-                }
-            }
-            */
         };
         BasicParser.fnNode = function (node) {
             return node;

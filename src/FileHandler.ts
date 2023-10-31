@@ -104,24 +104,6 @@ export class FileHandler {
 		}
 	}
 
-	/*
-	private processSnaFile(data: string, name: string, imported: string[]) {
-		try {
-			const sna = new Snapshot({
-				data: data,
-				name: name
-			});
-
-			this.fnLoad2(data, name, "", imported); // recursive
-		} catch (e) {
-			Utils.console.error(e);
-			if (e instanceof Error) {
-				this.outputError(e, true);
-			}
-		}
-	}
-	*/
-
 	private processZipFile(uint8Array: Uint8Array, name: string, imported: string[]) {
 		let zip: ZipFile | undefined;
 
@@ -158,13 +140,6 @@ export class FileHandler {
 	}
 
 	fnLoad2(data: string | Uint8Array, name: string, type: string, imported: string[]): void { // eslint-disable-line complexity
-		// data instanceof Uint8Array is used only for FileSelect filereader zip file
-		/*
-		if (data instanceof Uint8Array) { // FileSelect filereader zip file?
-			this.processZipFile(data, name, imported);
-			return;
-		}
-		*/
 		let header: AmsdosHeader | undefined;
 
 		if (type === "" && !(data instanceof Uint8Array)) { // detetermine type
@@ -192,14 +167,6 @@ export class FileHandler {
 
 		case "S": // sna file?
 			header = FileHandler.createMinimalAmsdosHeader(type, 0, data.length); // currently we store it
-			/*
-			if (this.processFileImports) {
-				//this.processSnaFile(data, name, imported);
-				//howto?
-			} else {
-				header = FileHandler.createMinimalAmsdosHeader(type, 0, data.length);
-			}
-			*/
 			break;
 
 		case "X": // dsk file?
@@ -213,12 +180,7 @@ export class FileHandler {
 		case "Z": // zip file?
 			if (this.processFileImports) {
 				this.processZipFile(data instanceof Uint8Array ? data : Utils.string2Uint8Array(data), name, imported);
-			} else { //Test
-				/*
-				if (data instanceof Uint8Array) {
-					data = Utils.uint8Array2string(data);
-				}
-				*/
+			} else {
 				header = FileHandler.createMinimalAmsdosHeader(type, 0, data.length);
 			}
 			break;

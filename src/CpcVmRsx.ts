@@ -1,10 +1,8 @@
-// CpcVmRsx.ts - CPC Virtual Machine: RSX
+// CpcVmRsx.ts - CPC Virtual Machine: RSX (Resident System Extension)
 // (c) Marco Vieth, 2020
 // https://benchmarko.github.io/CPCBasicTS/
 //
 
-//import { Utils } from "./Utils";
-//import { ICpcVmRsx, , VmFileParas } from "./Interfaces";
 import { RsxCommandType, ICpcVm, ICpcVmRsx } from "./Interfaces";
 
 export class CpcVmRsx {
@@ -12,20 +10,37 @@ export class CpcVmRsx {
 	private rsxTemporary: Record<string, RsxCommandType> = {};
 
 	/*
-	constructor(vm: ICpcVm) {
-		this.vm = vm;
+	private readonly addrPermanent: Record<string, RsxCommandType> = {};
+	private addrTemporary: Record<string, RsxCommandType> = {};
+	*/
+
+	/*
+	rxAvailable(name: string): boolean {
+		return Boolean(this.rsxTemporary[name] || this.rsxPermanent[name]);
 	}
 	*/
 
-	callRsx(vm: ICpcVm, name: string, ...args: (string|number)[]): void {
+	callRsx(vm: ICpcVm, name: string, ...args: (string|number)[]): boolean {
 		const fn = this.rsxTemporary[name] || this.rsxPermanent[name];
 
 		if (fn) {
 			fn.apply(vm, args);
-		} else {
-			throw vm.vmComposeError(Error(), 28, "|" + name); // Unknown command
+		}
+		return Boolean(fn);
+	}
+
+	/*
+	// we also allow to define adresses for call
+	callAddr(vm: ICpcVm, addr: number, ...args: (string|number)[]): void {
+		const fn = this.addrTemporary[addr] || this.addrPermanent[addr];
+
+		if (fn) {
+			fn.apply(vm, args);
+		} else if (Utils.debug > 0) {
+			Utils.console.debug("Ignored: CALL", addr, args);
 		}
 	}
+	*/
 
 	registerRsx(rsxModule: ICpcVmRsx, permanent: boolean): void {
 		const rsxRegister = permanent ? this.rsxPermanent : this.rsxTemporary,

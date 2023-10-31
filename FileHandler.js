@@ -76,23 +76,6 @@ define(["require", "exports", "./Utils", "./DiskImage", "./Snapshot", "./ZipFile
                 }
             }
         };
-        /*
-        private processSnaFile(data: string, name: string, imported: string[]) {
-            try {
-                const sna = new Snapshot({
-                    data: data,
-                    name: name
-                });
-    
-                this.fnLoad2(data, name, "", imported); // recursive
-            } catch (e) {
-                Utils.console.error(e);
-                if (e instanceof Error) {
-                    this.outputError(e, true);
-                }
-            }
-        }
-        */
         FileHandler.prototype.processZipFile = function (uint8Array, name, imported) {
             var zip;
             try {
@@ -125,13 +108,6 @@ define(["require", "exports", "./Utils", "./DiskImage", "./Snapshot", "./ZipFile
             }
         };
         FileHandler.prototype.fnLoad2 = function (data, name, type, imported) {
-            // data instanceof Uint8Array is used only for FileSelect filereader zip file
-            /*
-            if (data instanceof Uint8Array) { // FileSelect filereader zip file?
-                this.processZipFile(data, name, imported);
-                return;
-            }
-            */
             var header;
             if (type === "" && !(data instanceof Uint8Array)) { // detetermine type
                 header = DiskImage_1.DiskImage.parseAmsdosHeader(data);
@@ -158,14 +134,6 @@ define(["require", "exports", "./Utils", "./DiskImage", "./Snapshot", "./ZipFile
                     break;
                 case "S": // sna file?
                     header = FileHandler.createMinimalAmsdosHeader(type, 0, data.length); // currently we store it
-                    /*
-                    if (this.processFileImports) {
-                        //this.processSnaFile(data, name, imported);
-                        //howto?
-                    } else {
-                        header = FileHandler.createMinimalAmsdosHeader(type, 0, data.length);
-                    }
-                    */
                     break;
                 case "X": // dsk file?
                     if (this.processFileImports) {
@@ -179,12 +147,7 @@ define(["require", "exports", "./Utils", "./DiskImage", "./Snapshot", "./ZipFile
                     if (this.processFileImports) {
                         this.processZipFile(data instanceof Uint8Array ? data : Utils_1.Utils.string2Uint8Array(data), name, imported);
                     }
-                    else { //Test
-                        /*
-                        if (data instanceof Uint8Array) {
-                            data = Utils.uint8Array2string(data);
-                        }
-                        */
+                    else {
                         header = FileHandler.createMinimalAmsdosHeader(type, 0, data.length);
                     }
                     break;
