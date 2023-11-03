@@ -167,6 +167,7 @@ export declare class CpcVm implements ICpcVm {
     vmReset4Run(): void;
     setCanvas(canvas: ICanvas): ICanvas;
     vmGetLoadHandler(): LoadHandlerType;
+    vmGetMem(): number[];
     private onCanvasClickCallback;
     vmRegisterRsx(rsxModule: ICpcVmRsx, permanent: boolean): void;
     vmGetAllVariables(): VariableMap;

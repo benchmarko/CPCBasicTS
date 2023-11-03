@@ -17,6 +17,7 @@ export declare class TestHelper {
     private static generateTests;
     private static fnBinaryLiteralReplacer;
     static handleBinaryLiterals(str: string): string;
+    static hexInQuotes(s: string): string;
     static stringInQuotes(s: string): string;
     private static readonly jsKeywords;
     private static createJsKeywordRegex;

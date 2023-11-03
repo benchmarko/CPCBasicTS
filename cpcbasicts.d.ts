@@ -181,6 +181,7 @@ declare module "Interfaces" {
         setBasicVersion: (basicVersion: string) => void;
         setPalette: (palette: string) => void;
         setCanvasType: (canvasType: string) => ICanvas;
+        setDisassAddr: (addr: number) => void;
         changeVariable: () => void;
         onExampleSelectChange: () => void;
         onDirectorySelectChange: () => void;
@@ -1322,6 +1323,7 @@ declare module "CommonEventHandler" {
         private onImplicitLinesInputChange;
         private onArrayBoundsInputChange;
         private onConsoleLogInputChange;
+        private onDisassInputChange;
         private onTraceInputChange;
         private onAutorunInputChange;
         private onSoundInputChange;
@@ -1644,6 +1646,7 @@ declare module "CpcVm" {
         vmReset4Run(): void;
         setCanvas(canvas: ICanvas): ICanvas;
         vmGetLoadHandler(): LoadHandlerType;
+        vmGetMem(): number[];
         private onCanvasClickCallback;
         vmRegisterRsx(rsxModule: ICpcVmRsx, permanent: boolean): void;
         vmGetAllVariables(): VariableMap;
@@ -2046,6 +2049,61 @@ declare module "RsxCpcBasic" {
         getRsxCommands(): Record<string, RsxCommandType>;
     }
 }
+declare module "Z80Disass" {
+    interface Z80DisassOptions {
+        data: Uint8Array;
+        addr: number;
+        format?: number;
+    }
+    export class Z80Disass {
+        private readonly options;
+        private out;
+        private static readonly hexMark;
+        private dissOp;
+        private prefix;
+        private disassPC;
+        setOptions(options: Partial<Z80DisassOptions>): void;
+        getOptions(): Z80DisassOptions;
+        constructor(options: Z80DisassOptions);
+        private readByte;
+        private readWord;
+        private bget;
+        private bout;
+        private wout;
+        private radrout;
+        private bregout;
+        private wregout;
+        private pupoRegout;
+        private bitout;
+        private condout;
+        private arithMOut;
+        private onlyPrefix;
+        private operUnknown;
+        private operdis00;
+        private operdis01;
+        private operdis02;
+        private operdis03;
+        private operdis04;
+        private operdis05;
+        private operdis06;
+        private operdis07;
+        private operdis10;
+        private operdis20;
+        private operdis30;
+        private operdis31;
+        private operdis32;
+        private operdisCB00;
+        private operdisCB;
+        private operdis33;
+        private operdis34;
+        private operdis35;
+        private operdis36;
+        private operdis37;
+        private operdisED;
+        private getNextLine;
+        disassLine(): string;
+    }
+}
 declare module "NoCanvas" {
     import { CanvasOptions, ICanvas, CanvasClickType, CanvasCharType } from "Interfaces";
     export class NoCanvas implements ICanvas {
@@ -2147,6 +2205,7 @@ declare module "Controller" {
         private fileHandler?;
         private fileSelect?;
         private hasStorageDatabase;
+        private z80Disass?;
         private static areaDefinitions;
         constructor(model: Model, view: View);
         private static readonly codeGenJsBasicParserOptions;
@@ -2261,6 +2320,8 @@ declare module "Controller" {
         setPalette(palette: string): void;
         setCanvasType(canvasType: string): ICanvas;
         setSoundActive(): void;
+        private getZ80Disass;
+        setDisassAddr(addr: number): void;
         private fnEndOfImport;
         private static fnOnDragover;
         private adaptFilename;

@@ -685,6 +685,10 @@ export class CpcVm implements ICpcVm {
 		return this.fnLoadHandler;
 	}
 
+	vmGetMem(): number[] {
+		return this.mem;
+	}
+
 	private onCanvasClickCallback(event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) {
 		// for graphics coordinates, adapt origin
 		const height = 400; //TTT

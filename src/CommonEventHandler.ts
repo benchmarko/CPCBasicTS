@@ -291,6 +291,13 @@ export class CommonEventHandler implements EventListenerObject {
 		}
 	}
 
+	private onDisassInputChange() {
+		const addressStr = this.view.getInputValue("disassInput"),
+			addr = parseInt(addressStr, 16); // parse as hex
+
+		this.controller.setDisassAddr(addr);
+	}
+
 	private onTraceInputChange() {
 		const checked = this.view.getInputChecked("traceInput");
 
@@ -400,6 +407,7 @@ export class CommonEventHandler implements EventListenerObject {
 		onImplicitLinesInputChange: this.onImplicitLinesInputChange,
 		onArrayBoundsInputChange: this.onArrayBoundsInputChange,
 		onConsoleLogInputChange: this.onConsoleLogInputChange,
+		onDisassInputChange: this.onDisassInputChange,
 		onTraceInputChange: this.onTraceInputChange,
 		onAutorunInputChange: this.onAutorunInputChange,
 		onSoundInputChange: this.onSoundInputChange,

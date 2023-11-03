@@ -84,6 +84,13 @@ define(["require", "exports", "../Utils"], function (require, exports, Utils_1) 
             }
             return str;
         };
+        TestHelper.hexInQuotes = function (s) {
+            var out = "";
+            for (var i = 0; i < s.length; i += 1) {
+                out += "\\x" + ("00" + s.charCodeAt(i).toString(16)).slice(-2);
+            }
+            return '"' + out + '"';
+        };
         TestHelper.stringInQuotes = function (s) {
             s = s.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/\r/g, "\\r");
             // keep \n, \r

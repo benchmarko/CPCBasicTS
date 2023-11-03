@@ -314,6 +314,9 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
         CpcVm.prototype.vmGetLoadHandler = function () {
             return this.fnLoadHandler;
         };
+        CpcVm.prototype.vmGetMem = function () {
+            return this.mem;
+        };
         CpcVm.prototype.onCanvasClickCallback = function (event, x, y, xTxt, yTxt) {
             // for graphics coordinates, adapt origin
             var height = 400; //TTT

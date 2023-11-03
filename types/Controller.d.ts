@@ -41,6 +41,7 @@ export declare class Controller implements IController {
     private fileHandler?;
     private fileSelect?;
     private hasStorageDatabase;
+    private z80Disass?;
     private static areaDefinitions;
     constructor(model: Model, view: View);
     private static readonly codeGenJsBasicParserOptions;
@@ -155,6 +156,8 @@ export declare class Controller implements IController {
     setPalette(palette: string): void;
     setCanvasType(canvasType: string): ICanvas;
     setSoundActive(): void;
+    private getZ80Disass;
+    setDisassAddr(addr: number): void;
     private fnEndOfImport;
     private static fnOnDragover;
     private adaptFilename;

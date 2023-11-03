@@ -200,6 +200,7 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
             showConsole: false,
             showConvert: false,
             showCpc: true,
+            showDisass: false,
             showGallery: false,
             showInput: true,
             showInp2: false,

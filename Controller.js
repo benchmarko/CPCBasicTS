@@ -2,7 +2,7 @@
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./BasicParser", "./BasicTokenizer", "./Canvas", "./CodeGeneratorBasic", "./CodeGeneratorJs", "./CodeGeneratorToken", "./CommonEventHandler", "./cpcCharset", "./CpcVm", "./Diff", "./DiskImage", "./FileHandler", "./FileSelect", "./InputStack", "./Keyboard", "./NoCanvas", "./TextCanvas", "./VirtualKeyboard", "./Snapshot", "./Sound", "./Variables", "./View", "./RsxAmsdos", "./RsxCpcBasic"], function (require, exports, Utils_1, BasicFormatter_1, BasicLexer_1, BasicParser_1, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, Diff_1, DiskImage_1, FileHandler_1, FileSelect_1, InputStack_1, Keyboard_1, NoCanvas_1, TextCanvas_1, VirtualKeyboard_1, Snapshot_1, Sound_1, Variables_1, View_1, RsxAmsdos_1, RsxCpcBasic_1) {
+define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./BasicParser", "./BasicTokenizer", "./Canvas", "./CodeGeneratorBasic", "./CodeGeneratorJs", "./CodeGeneratorToken", "./CommonEventHandler", "./cpcCharset", "./CpcVm", "./Diff", "./DiskImage", "./FileHandler", "./FileSelect", "./InputStack", "./Keyboard", "./NoCanvas", "./TextCanvas", "./VirtualKeyboard", "./Snapshot", "./Sound", "./Variables", "./View", "./RsxAmsdos", "./RsxCpcBasic", "./Z80Disass"], function (require, exports, Utils_1, BasicFormatter_1, BasicLexer_1, BasicParser_1, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, Diff_1, DiskImage_1, FileHandler_1, FileSelect_1, InputStack_1, Keyboard_1, NoCanvas_1, TextCanvas_1, VirtualKeyboard_1, Snapshot_1, Sound_1, Variables_1, View_1, RsxAmsdos_1, RsxCpcBasic_1, Z80Disass_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Controller = void 0;
@@ -141,6 +141,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             if (model.getProperty("showCpc")) {
                 this.canvas.startUpdateCanvas();
             }
+            // unhide box, if should be shown
+            view.setHidden("disassBox", !model.getProperty("showDisass"));
         }
         Controller.prototype.initAreas = function () {
             for (var id in Controller.areaDefinitions) { // eslint-disable-line guard-for-in
@@ -1032,7 +1034,9 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                         this.setInputText(input);
                         this.view.setAreaValue("resultText", "");
                         startLine = inFileLine;
-                        this.fnReset();
+                        if (!data || data.meta.typeString !== "S") { // keep memory, config for snapshots
+                            this.fnReset();
+                        }
                         this.fnParseRun();
                     }
                     else {
@@ -2012,6 +2016,32 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     this.vm.vmStop("", 0, true); // do not wait
                 }
             }
+        };
+        Controller.prototype.getZ80Disass = function () {
+            if (!this.z80Disass) {
+                var dataArr = this.vm.vmGetMem(), data = dataArr; //TTT
+                this.z80Disass = new Z80Disass_1.Z80Disass({
+                    data: data,
+                    addr: 0
+                });
+            }
+            return this.z80Disass;
+        };
+        /*
+        hex = this.input.substring(debug.startPos, this.pos).split("").map(function (s) {
+            return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0");
+        }).join(",");
+        */
+        Controller.prototype.setDisassAddr = function (addr) {
+            var z80Disass = this.getZ80Disass(), lines = 50;
+            var out = "";
+            z80Disass.setOptions({
+                addr: addr
+            });
+            for (var i = 1; i < lines; i += 1) {
+                out += z80Disass.disassLine() + "\n";
+            }
+            this.view.setAreaValue("disassText", out);
         };
         Controller.prototype.fnEndOfImport = function (imported) {
             var stream = 0, vm = this.vm;

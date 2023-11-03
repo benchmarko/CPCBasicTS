@@ -32,6 +32,8 @@ import { Variables } from "./Variables";
 import { View, SelectOptionElement, AreaInputElement } from "./View";
 import { RsxAmsdos } from "./RsxAmsdos";
 import { RsxCpcBasic } from "./RsxCpcBasic";
+import { Z80Disass } from "./Z80Disass"; // test
+
 
 interface FileMetaAndData {
 	meta: FileMeta
@@ -101,6 +103,8 @@ export class Controller implements IController {
 	private fileSelect?: FileSelect;
 
 	private hasStorageDatabase: boolean;
+
+	private z80Disass?: Z80Disass;
 
 	private static areaDefinitions: Record<string, AreaDefinitionType> = {
 		consoleArea: {
@@ -273,6 +277,9 @@ export class Controller implements IController {
 		if (model.getProperty<boolean>("showCpc")) {
 			this.canvas.startUpdateCanvas();
 		}
+
+		// unhide box, if should be shown
+		view.setHidden("disassBox", !model.getProperty<boolean>("showDisass"));
 	}
 
 	private static readonly codeGenJsBasicParserOptions = {
@@ -1429,7 +1436,9 @@ export class Controller implements IController {
 				this.setInputText(input);
 				this.view.setAreaValue("resultText", "");
 				startLine = inFileLine;
-				this.fnReset();
+				if (!data || data.meta.typeString !== "S") { // keep memory, config for snapshots
+					this.fnReset();
+				}
 				this.fnParseRun();
 			} else {
 				this.fnReset();
@@ -2653,6 +2662,41 @@ export class Controller implements IController {
 			}
 		}
 	}
+
+	private getZ80Disass() {
+		if (!this.z80Disass) {
+			const dataArr = this.vm.vmGetMem(),
+				data = dataArr as unknown as Uint8Array; //TTT
+
+			this.z80Disass = new Z80Disass({
+				data: data,
+				addr: 0
+			});
+		}
+		return this.z80Disass;
+	}
+
+	/*
+	hex = this.input.substring(debug.startPos, this.pos).split("").map(function (s) {
+		return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0");
+	}).join(",");
+	*/
+
+	setDisassAddr(addr: number): void {
+		const z80Disass = this.getZ80Disass(),
+			lines = 50;
+		let out = "";
+
+		z80Disass.setOptions({
+			addr: addr
+		});
+		for (let i = 1; i < lines; i += 1) {
+			out += z80Disass.disassLine() + "\n";
+		}
+
+		this.view.setAreaValue("disassText", out);
+	}
+
 
 	private fnEndOfImport(imported: string[]) {
 		const stream = 0,
