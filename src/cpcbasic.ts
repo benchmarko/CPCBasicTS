@@ -35,6 +35,7 @@ class cpcBasic {
 		showConsole: false,
 		showConvert: false,
 		showCpc: true,
+		showDisass: false, // test
 		showGallery: false,
 		showInput: true,
 		showInp2: false,

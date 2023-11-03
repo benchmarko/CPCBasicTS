@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="cpcbasic.css">
 <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
-<title id="title">CPC BasicTS v0.1.10</title>
+<title id="title">CPC BasicTS v0.1.11</title>
 </head>
 
 <body id="pageBody">
@@ -84,7 +84,7 @@
 								</span>
 								<span class="field flexStart">
 									<input id="consoleLogInput" type="checkbox" title="Show Console Log">
-									<label id="consoleLogLabel" for="consoleLogInput" class="label" title="Show Console Log">Console Log</label>
+									<labcoel id="consoleLogLabel" for="consoleLogInput" class="label" title="Show Console Log">Console Log</label>
 								</span>
 							</span>
 						</span>
@@ -295,6 +295,20 @@
 	</fieldset>
 
 	</fieldset>
+
+
+	<fieldset class="flexBox" id="cpcVert3Box">
+		<fieldset class="flexBox" id="disassBox" hidden>
+			<legend>
+				<button id="disassButton" class="legendButton" title="Z80 Disassembler">Disassembler</button>
+				<input id="disassInput" type="text" value="0" title="Address (hex)">
+			</legend>
+			<div id="disassArea" class="area clearLeft">
+				<textarea id="disassText" rows="15" cols="80"></textarea>
+			</div>
+		</fieldset>
+	</fieldset>
+
 	
 	<a id="screenshotLink"></a>
 <script>

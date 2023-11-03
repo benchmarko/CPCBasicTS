@@ -121,6 +121,15 @@ export class TestHelper {
 		return str;
 	}
 
+	static hexInQuotes(s: string): string {
+		let out = "";
+
+		for (let i = 0; i < s.length; i += 1) {
+			out += "\\x" + ("00" + s.charCodeAt(i).toString(16)).slice(-2);
+		}
+		return '"' + out + '"';
+	}
+
 	static stringInQuotes(s: string): string {
 		s = s.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/\r/g, "\\r");
 		// keep \n, \r

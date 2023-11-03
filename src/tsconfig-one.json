@@ -40,6 +40,7 @@
     "FileSelect.ts",
     "RsxAmsdos.ts",
     "RsxCpcBasic.ts",
+    "Z80Disass.ts",
     "Controller.ts",
     "cpcconfig.ts",
     "cpcbasic.ts"
