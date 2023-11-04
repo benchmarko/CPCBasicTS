@@ -58,8 +58,6 @@ export class Controller implements IController {
 	private readonly fnWaitForContinueHandler: () => void;
 	private readonly fnEditLineCallbackHandler: () => boolean;
 
-	//private static readonly metaIdent = "CPCBasic";
-
 	private fnScript?: Function = undefined; // eslint-disable-line @typescript-eslint/ban-types
 
 	private timeoutHandlerActive = false;
@@ -278,8 +276,9 @@ export class Controller implements IController {
 			this.canvas.startUpdateCanvas();
 		}
 
-		// unhide box, if should be shown
+		// unhide box, when it should be shown
 		view.setHidden("disassBox", !model.getProperty<boolean>("showDisass"));
+		view.setInputChecked("showDisassInput", model.getProperty<boolean>("showDisass"));
 	}
 
 	private static readonly codeGenJsBasicParserOptions = {

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="cpcbasic.css">
 <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
-<title id="title">CPC BasicTS v0.1.11</title>
+<title id="title">CPC BasicTS v0.1.12</title>
 </head>
 
 <body id="pageBody">
@@ -13,7 +13,7 @@
 	<fieldset class="flexBox" id="cpcVert0Box">
 		<fieldset class="flexBox">
 			<legend>
-				<button id="xxxButton" class="legendButton" title="xxx BASIC">CPCBasic</button>
+				<button id="cpcBasicButton" class="" title="CPC BASIC">CPCBasic</button>
 				<span class="buttonPopoverContainer">
 					<button id="galleryButton" class="popoverButton" title="Gallery">Gallery</button>
 					<span id="galleryArea" class="popover area flexColumn displayNone">
@@ -84,7 +84,11 @@
 								</span>
 								<span class="field flexStart">
 									<input id="consoleLogInput" type="checkbox" title="Show Console Log">
-									<labcoel id="consoleLogLabel" for="consoleLogInput" class="label" title="Show Console Log">Console Log</label>
+									<label id="consoleLogLabel" for="consoleLogInput" class="label" title="Show Console Log">Console Log</label>
+								</span>
+								<span class="field flexStart">
+									<input id="showDisassInput" type="checkbox" title="Show Disassembler">
+									<label id="showDisassLabel" for="showDisassInput" class="label" title="Show Disassembler">Disassembler</label>
 								</span>
 							</span>
 						</span>
@@ -294,22 +298,18 @@
 		</div>
 	</fieldset>
 
+	<fieldset class="flexBox clearLeft" id="disassBox" hidden>
+		<legend>
+			<button id="disassButton" class="" title="Z80 Disassembler">Disassembler</button>
+			<input id="disassInput" type="text" value="0" title="Address (hex)">
+		</legend>
+		<div id="disassArea" class="area clearLeft">
+			<textarea id="disassText" rows="15" cols="80"></textarea>
+		</div>
 	</fieldset>
 
-
-	<fieldset class="flexBox" id="cpcVert3Box">
-		<fieldset class="flexBox" id="disassBox" hidden>
-			<legend>
-				<button id="disassButton" class="legendButton" title="Z80 Disassembler">Disassembler</button>
-				<input id="disassInput" type="text" value="0" title="Address (hex)">
-			</legend>
-			<div id="disassArea" class="area clearLeft">
-				<textarea id="disassText" rows="15" cols="80"></textarea>
-			</div>
-		</fieldset>
 	</fieldset>
 
-	
 	<a id="screenshotLink"></a>
 <script>
 	var cpcConfig = { // it is possible to override the config in cpcconfig here:

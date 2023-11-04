@@ -291,6 +291,13 @@ export class CommonEventHandler implements EventListenerObject {
 		}
 	}
 
+	private onShowDisassInputChange() {
+		const checked = this.view.getInputChecked("showDisassInput");
+
+		this.model.setProperty("showDisass", checked);
+		this.view.setHidden("disassBox", !checked);
+	}
+
 	private onDisassInputChange() {
 		const addressStr = this.view.getInputValue("disassInput"),
 			addr = parseInt(addressStr, 16); // parse as hex
@@ -407,6 +414,7 @@ export class CommonEventHandler implements EventListenerObject {
 		onImplicitLinesInputChange: this.onImplicitLinesInputChange,
 		onArrayBoundsInputChange: this.onArrayBoundsInputChange,
 		onConsoleLogInputChange: this.onConsoleLogInputChange,
+		onShowDisassInputChange: this.onShowDisassInputChange,
 		onDisassInputChange: this.onDisassInputChange,
 		onTraceInputChange: this.onTraceInputChange,
 		onAutorunInputChange: this.onAutorunInputChange,
