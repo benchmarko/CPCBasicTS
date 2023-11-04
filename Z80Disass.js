@@ -11,9 +11,8 @@ define(["require", "exports"], function (require, exports) {
     /* eslint-disable no-bitwise */
     var Z80Disass = /** @class */ (function () {
         function Z80Disass(options) {
-            this.out = "";
             this.dissOp = 0; // actual op-code
-            this.prefix = 0; // actual prefix: 0=none, 1=0xED, 2=0xDD, 3=0xFD
+            this.prefix = 0; // actual prefix: 0=none, 1=0xDD, 2=0xFD, 4=0xED
             this.disassPC = 0; // PC during disassemble
             this.options = {
                 data: options.data,
@@ -44,7 +43,7 @@ define(["require", "exports"], function (require, exports) {
         };
         Z80Disass.prototype.readWord = function (i) {
             var data = this.options.data;
-            return data[i] | ((data[i + 1]) << 8); // eslint-disable-line no-bitwise
+            return data[i] | ((data[i + 1]) << 8);
         };
         Z80Disass.prototype.bget = function () {
             var by = this.readByte(this.disassPC);
@@ -53,15 +52,14 @@ define(["require", "exports"], function (require, exports) {
         };
         // byte-out: returns byte xx at PC; PC++
         Z80Disass.prototype.bout = function () {
-            var by = this.readByte(this.disassPC);
-            this.disassPC += 1;
-            return by.toString(16).toUpperCase().padStart(2, "0");
+            var by = this.bget();
+            return Z80Disass.hexMark + by.toString(16).toUpperCase().padStart(2, "0");
         };
         // word-out: returns word xxyy from PC, PC+=2
         Z80Disass.prototype.wout = function () {
             var wo = this.readWord(this.disassPC);
             this.disassPC += 2;
-            return wo.toString(16).toUpperCase().padStart(4, "0");
+            return Z80Disass.hexMark + wo.toString(16).toUpperCase().padStart(4, "0");
         };
         // relative-address-out : gets it from PC and returns PC+(signed)tt ; PC++
         Z80Disass.prototype.radrout = function () {
@@ -72,117 +70,195 @@ define(["require", "exports"], function (require, exports) {
             if (addr < 0) {
                 addr += 65536;
             }
-            return addr.toString(16).toUpperCase().padStart(4, "0");
+            return Z80Disass.hexMark + addr.toString(16).toUpperCase().padStart(4, "0");
         };
+        /* eslint-enable array-element-newline */
         // byte-register-out : returns string to an 8-bit register
         // handles prefix, special op-codes with IX,IY and h,l
         Z80Disass.prototype.bregout = function (nr) {
-            // byte-register-table
-            /* eslint-disable array-element-newline */
-            var bregtab = [
-                "B", "C", "D", "E", "H", "L", "(HL)", "A",
-                "B", "C", "D", "E", "HX", "LX", "(IX+", "A",
-                "B", "C", "D", "E", "HY", "LY", "(IY+", "A" // FD-Prefix
-            ];
-            /* eslint-enable array-element-newline */
-            var str = "";
+            var dissOp = this.dissOp;
             nr &= 0x07; // only 3 bit
-            if (this.prefix === 2) {
-                if ((this.dissOp === 0x66 || this.dissOp === 0x6e || this.dissOp === 0x74 || this.dissOp === 0x75) && (nr !== 6)) {
-                    // special cases of op-codes with h,l & (ix)
-                }
-                else {
-                    nr += 8;
-                } // ix
-                if (nr === 14) { // (ix+...
-                    str += bregtab[nr] + Z80Disass.hexMark + this.bout() + ")";
-                    return str;
-                }
+            var prefix = this.prefix;
+            // special cases of op-codes with h,l and (ix) or (iy)
+            if (prefix === 4 || (this.prefix === 1 || this.prefix === 2) && (dissOp === 0x66 || dissOp === 0x6e || dissOp === 0x74 || dissOp === 0x75) && (nr !== 6)) {
+                prefix = 0;
             }
-            else if (this.prefix === 3) {
-                if (((this.dissOp === 0x66) || (this.dissOp === 0x6e) || (this.dissOp === 0x74) || (this.dissOp === 0x75)) && (nr !== 6)) {
-                    // special cases of op-codes with h,l & (iy)
-                }
-                else {
-                    nr += 16;
-                } // iy
-                if (nr === 22) { // (iy+...
-                    str += bregtab[nr] + Z80Disass.hexMark + this.bout() + ")";
-                    return str;
-                }
-            }
-            return bregtab[nr];
+            return Z80Disass.bregtab[prefix][nr] + (prefix && (nr === 6) ? this.bout() + ")" : ""); // only 3 bit
         };
+        /* eslint-enable array-element-newline */
         // word-register-out : returns string to a 16-bit-register
         // handles prefix
         Z80Disass.prototype.wregout = function (nr) {
-            /* eslint-disable array-element-newline */
-            var wregtab = [
-                "BC", "DE", "HL", "SP",
-                "BC", "DE", "IX", "SP",
-                "BC", "DE", "IY", "SP" // FD-Prefix
-            ];
-            /* eslint-enable array-element-newline */
-            nr &= 0x03; // only 2 bit
-            if (this.prefix === 2) {
-                nr += 4; // ix
-            }
-            else if (this.prefix === 3) {
-                nr += 8; // iy
-            }
-            return wregtab[nr];
+            var prefix = (this.prefix === 1 || this.prefix === 2) ? this.prefix : 0;
+            return Z80Disass.wregtab[prefix][nr & 0x03]; // only 2 bit
         };
         // push-pop-register-out: like wregout, only SP substituted by AF
         Z80Disass.prototype.pupoRegout = function (nr) {
             nr &= 0x03; // only 2 bit
             if (nr === 3) {
-                return "AF"; // replace SP
+                return "AF"; // replace SP by AF
             }
             return this.wregout(nr);
         };
-        // bitout:  returns bits b0..b3 of input by
-        Z80Disass.prototype.bitout = function (nr) {
-            return nr & 0x07;
-        };
-        // condition-out: returns string to condition nr
-        Z80Disass.prototype.condout = function (nr) {
-            /* eslint-disable array-element-newline */
-            var condtab = [
-                "NZ", "Z", "NC", "C", "PO", "PE", "P", "M"
-            ];
-            /* eslint-enable array-element-newline */
-            return condtab[nr & 0x07]; // only 3 bit
-        };
-        // arithmetic-mnemonic-out : returns string to arith. mnemonic nr
-        Z80Disass.prototype.arithMOut = function (nr) {
-            /* eslint-disable array-element-newline */
-            var arithMTab = [
-                "ADD A,", "ADC A,", "SUB ", "SBC A,", "AND ", "XOR ", "OR ", "CP "
-            ];
-            /* eslint-enable array-element-newline */
-            nr &= 0x07; // only 0..7
-            return arithMTab[nr];
-        };
         Z80Disass.prototype.onlyPrefix = function () {
+            var out = "";
             if (this.prefix === 1) {
-                this.out += "[ED]-prefix";
+                out = "[DD]-prefix";
             }
-            else if (this.prefix === 2) {
-                this.out += "[DD]-prefix";
+            else if (this.prefix === 2) { // prefix == 2
+                out = "[FD]-prefix";
             }
-            else { // prefix == 3
-                this.out += "[FD]-prefix";
+            else { // prefix === 4
+                out = "[ED]-prefix";
             }
             this.disassPC -= 1;
+            return out;
         };
-        // unknown op-code
-        Z80Disass.prototype.operUnknown = function () {
-            this.out += "unknown";
+        Z80Disass.prototype.operdisCB = function () {
+            // rlc,rrc,rl,rr,sla,sra,sls*,srl rrr [rrr=b,c,d,e,h,l,(hl),a]
+            // bit bbb,rrr; res bbb,rrr; set bbb,rrr [rrr=b,c,d,e,h,l,(hl),a]
+            var out = "", newop; // new op
+            if (this.prefix === 1 || this.prefix === 2) { // ix/iy-flag (ix or iy !)
+                newop = ((this.readByte(this.disassPC + 1) & 0xfe) | 0x06); // transform code x0..x7=>x6 , x8..xf=>xe  (always ix.., iy.. )
+            }
+            else {
+                newop = this.readByte(this.disassPC);
+            }
+            var b6b7 = newop >> 6, // test b6,7
+            b3b4b5 = (newop >> 3) & 0x07;
+            if (b6b7 === 0) { // 00-3f (rlc,rrc,rl,rr,sla,sra,sls*,srl rrr)
+                out = Z80Disass.rlcTable[b3b4b5] + " " + this.bregout(newop); // b3b4b5
+            }
+            else { // 40-7f: bit bbb,rrr; 80-bf: res bbb,rrr; c0-ff: set bbb,rrr
+                out = Z80Disass.bitResSetTable[b6b7 - 1] + " " + b3b4b5 + "," + this.bregout(newop);
+            }
+            if (this.prefix === 1 || this.prefix === 2) { // ix/iy-flag (ix or iy !)
+                if ((newop !== this.readByte(this.disassPC)) && ((newop >> 6) !== 0x01)) { // there was a transform; not bit-instruction
+                    var premem = this.prefix; // memorize prefix
+                    this.prefix = 0; // only h or l
+                    out += " & LD " + this.bregout(this.readByte(this.disassPC));
+                    this.prefix = premem; // old prefix
+                }
+            }
+            this.disassPC += 1;
+            return out;
         };
-        Z80Disass.prototype.operdis00 = function () {
+        Z80Disass.prototype.operdisEDpart40To7F = function (dissOp) {
+            var out = "";
+            switch (dissOp & 0x07) { // test b0,b1,b2
+                case 0: // in rrr,(c),
+                    if (dissOp === 0x70) {
+                        out = "*IN X,(C)"; // 70
+                    }
+                    else {
+                        out = "IN " + this.bregout(dissOp >> 3) + ",(C)";
+                    }
+                    break;
+                case 1: // out (c),rrr, *out (c),0
+                    if (dissOp === 0x71) {
+                        out = "*OUT (C),0"; // 71
+                    }
+                    else {
+                        out = "OUT (C)," + this.bregout(dissOp >> 3);
+                    }
+                    break;
+                case 2: // sbc hl,dd; add hl,dd [dd=bc,de,hl,sp]; not ix,iy!
+                    out = (dissOp & 0x08 ? "ADC" : "SBC") + " HL," + this.wregout(dissOp >> 4); // b3=1: adc, otherwise sbc
+                    break;
+                case 3: // ld (xxyy),dd! [dd=bc,de,hl,sp]
+                    if (dissOp & 0x08) { // b3=1  ld dd,(xxyy)
+                        out = "LD " + this.wregout(dissOp >> 4) + ",(" + this.wout() + ")"; // not ix,iy
+                    }
+                    else { // b3=0  ld (xxyy),dd
+                        out = "LD (" + this.wout() + ")," + this.wregout(dissOp >> 4);
+                    }
+                    break;
+                case 4: // neg
+                    out = dissOp === 0x44 ? "NEG" : "*NEG"; // 44: NEG; 4c,54,5c,64,6c,74,7c: *NEG
+                    break;
+                case 5: // retn, reti
+                    if (dissOp === 0x45) {
+                        out = "RETN";
+                    }
+                    else if (dissOp === 0x4d) {
+                        out = "RETI";
+                    }
+                    else if ((dissOp & 0x0f) === 0x05) {
+                        out = "*RETN"; // 55,65,75
+                    }
+                    else {
+                        out = "*RETI"; // 5d,6d,7d
+                    }
+                    break;
+                case 6: // im 0; im 1; im 2
+                    switch (dissOp) {
+                        case 0x46: // im 0
+                            out = "IM 0";
+                            break;
+                        case 0x56: // im 1
+                            out = "IM 1";
+                            break;
+                        case 0x5e: // im 2
+                            out = "IM 2";
+                            break;
+                        case 0x4e: // *im 0
+                        case 0x66:
+                        case 0x6e:
+                            out = "*IM 0";
+                            break;
+                        case 0x76:
+                            out = "*IM 1";
+                            break;
+                        case 0x7e:
+                            out = "*IM 2";
+                            break;
+                        default:
+                            // impossible
+                            break;
+                    }
+                    break;
+                case 7: // ld i,a; ld r,a;  ld a,i; ld a,r; rrd; rld
+                    out = Z80Disass.ldIaTable[(dissOp >> 3) & 0x07]; // b3,b4,b5
+                    break;
+                default:
+                    break;
+            }
+            return out;
+        };
+        /* eslint-enable array-element-newline */
+        Z80Disass.prototype.operdisED = function (dissOp) {
+            var out = "";
+            switch (dissOp >> 6) { // test b6,7
+                case 0: // 00-3f // missing
+                    out = Z80Disass.unknownOp;
+                    break;
+                case 1: // 40-7f // ...
+                    out = this.operdisEDpart40To7F(dissOp);
+                    break;
+                default:
+                    break;
+                case 2: // 80-bf
+                    if ((dissOp & 0x24) === 0x20) { // b5=1 and b2=0
+                        // ldi,ldd,ldir,lddr; cp,cpd,cpir,cpdr; ini,ind,inir,indr; outi,outd,otir,otdr
+                        out = Z80Disass.repeatTable[dissOp & 0x03][(dissOp >> 3) & 0x03]; // b0b1 and b3b4
+                    }
+                    else {
+                        out = Z80Disass.unknownOp;
+                    }
+                    break;
+                case 3: // c0-f8 // missing
+                    out = Z80Disass.unknownOp;
+                    break;
+            }
+            return out;
+        };
+        //
+        // Disassemble 00-3F
+        //
+        Z80Disass.prototype.operdis00To3Fpart00 = function (b3b4b5) {
             // nop; ex af,af'; djnz; jr; jr nz,z,nc,c
             var out = "";
-            switch ((this.dissOp >> 3) & 0x07) { // test b3,b4,b5
+            switch (b3b4b5) { // test b3,b4,b5
                 case 0: // nop
                     out = "NOP";
                     break;
@@ -190,64 +266,51 @@ define(["require", "exports"], function (require, exports) {
                     out = "EX AF,AF'";
                     break;
                 case 2: // djnz tt
-                    out = "DJNZ " + Z80Disass.hexMark + this.radrout();
+                    out = "DJNZ " + this.radrout();
                     break;
                 case 3: // jr tt
-                    out = "JR " + Z80Disass.hexMark + this.radrout();
+                    out = "JR " + this.radrout();
                     break;
-                case 4: // jr nz,tt
-                    out = "JR NZ," + Z80Disass.hexMark + this.radrout();
-                    break;
-                case 5: // jr z,tt
-                    out = "JR Z," + Z80Disass.hexMark + this.radrout();
-                    break;
-                case 6: // jr nc,tt
-                    out = "JR NC," + Z80Disass.hexMark + this.radrout();
-                    break;
-                case 7: // jr c,tt
-                    out = "JR C," + Z80Disass.hexMark + this.radrout();
-                    break;
-                default:
+                default: // 4-7 (b3=1, b4b5)
+                    out = "JR " + Z80Disass.conditionTable[b3b4b5 & 0x03] + "," + this.radrout();
                     break;
             }
-            this.out += out;
-            //return out;
+            return out;
         };
-        Z80Disass.prototype.operdis01 = function () {
+        Z80Disass.prototype.operdis00To3Fpart01 = function (dissOp) {
             // ld dd,xxyy; add hl,dd [dd=bc,de,hl,sp]
             var out = "";
-            if (this.dissOp & 0x08) { // b3=1  add hl,dd
-                out = "ADD " + this.wregout(2) + "," + this.wregout(this.dissOp >> 4); // hl maybe ix,iy
+            if (dissOp & 0x08) { // b3=1  add hl,dd
+                out = "ADD " + this.wregout(2) + "," + this.wregout(dissOp >> 4); // hl maybe ix,iy
             }
             else {
-                out = "LD " + this.wregout(this.dissOp >> 4) + "," + Z80Disass.hexMark + this.wout();
+                out = "LD " + this.wregout(dissOp >> 4) + "," + this.wout();
             }
-            this.out += out;
-            //return out;
+            return out;
         };
-        Z80Disass.prototype.operdis02 = function () {
+        Z80Disass.prototype.operdis00To3Fpart02 = function (b3b4b5) {
             // ld (xxyy),a!; ld (bc de),a!; ld (xxyy),hl!
             var out = "";
-            if (this.dissOp & 0x20) { // b5=1  ld (xxyy),hl!; ld (xxyy),a!
-                switch ((this.dissOp >> 3) & 0x03) { // test b3,b4
+            if (b3b4b5 & 0x04) { // b5=1  ld (xxyy),hl!; ld (xxyy),a!
+                switch (b3b4b5 & 0x03) { // test b3,b4
                     case 0: // ld (xxyy),hl
-                        out = "LD (" + Z80Disass.hexMark + this.wout() + ")," + this.wregout(2);
+                        out = "LD (" + this.wout() + ")," + this.wregout(2);
                         break;
                     case 1: // ld hl,(xxyy)
-                        out = "LD " + this.wregout(2) + ",(" + Z80Disass.hexMark + this.wout() + ")";
+                        out = "LD " + this.wregout(2) + ",(" + this.wout() + ")";
                         break;
                     case 2: // ld (xxyy),a
-                        out = "LD (" + Z80Disass.hexMark + this.wout() + "),A";
+                        out = "LD (" + this.wout() + "),A";
                         break;
                     case 3: // ld a,(xxyy)
-                        out = "LD A,(" + Z80Disass.hexMark + this.wout() + ")";
+                        out = "LD A,(" + this.wout() + ")";
                         break;
                     default:
                         break;
                 }
             }
             else { // b5=0  ld (bc de),a ld a,(bc de)
-                switch ((this.dissOp >> 3) & 0x03) { // test b3,b4
+                switch (b3b4b5 & 0x03) { // test b3,b4
                     case 0:
                         out = "LD (BC),A";
                         break;
@@ -264,103 +327,49 @@ define(["require", "exports"], function (require, exports) {
                         break;
                 }
             }
-            this.out += out;
-            //return out;
+            return out;
         };
-        Z80Disass.prototype.operdis03 = function () {
-            // inc dd; dec dd [dd=bc,de,hl,sp]
+        Z80Disass.prototype.operdis00To3F = function (dissOp) {
             var out = "";
-            if (this.dissOp & 0x08) { // b3=1  dec dd
-                out = "DEC " + this.wregout(this.dissOp >> 4);
-            }
-            else { // b3=0  inc dd
-                out = "INC " + this.wregout(this.dissOp >> 4);
-            }
-            this.out += out;
-            //return out;
-        };
-        Z80Disass.prototype.operdis04 = function () {
-            // inc rrr [rrr=b,c,d,e,h,l,(hl),a]
-            var out = "INC " + this.bregout(this.dissOp >> 3);
-            this.out += out;
-            //return out;
-        };
-        Z80Disass.prototype.operdis05 = function () {
-            // dec rrr [rrr=b,c,d,e,h,l,(hl),a]
-            var out = "DEC " + this.bregout(this.dissOp >> 3);
-            this.out += out;
-            //return out;
-        };
-        Z80Disass.prototype.operdis06 = function () {
-            // ld rrr,xx [rrr=b,c,d,e,h,l,(hl),a]
-            // maybe (ix+d) !! , bout after this
-            var out = "LD " + this.bregout(this.dissOp >> 3) + "," + Z80Disass.hexMark + this.bout();
-            this.out += out;
-            //return out;
-        };
-        Z80Disass.prototype.operdis07 = function () {
-            // rlca,rrca,rla,rra; scf,ccf; daa,cpl
-            var out = "";
-            switch ((this.dissOp >> 3) & 0x07) { // test b3,b4,b5
-                case 0: // rlca
-                    out = "RLCA";
+            switch (dissOp & 0x07) { // test b0,b1,b2
+                case 0: // nop; ex af,af'; djnz; jr; jr nz,z,nc,c
+                    out = this.operdis00To3Fpart00((dissOp >> 3) & 0x07); // test b3,b4,b5
                     break;
-                case 1: // rrca
-                    out = "RRCA";
+                case 1: // ld dd,xxyy; add hl,dd
+                    out = this.operdis00To3Fpart01(dissOp);
                     break;
-                case 2: // rla
-                    out = "RLA";
+                case 2: // ld (xxyy),a; ld (bc de),a ld a,(bc de); ld (xxyy),hl
+                    out = this.operdis00To3Fpart02((dissOp >> 3) & 0x07); // test b3,b4,b5
                     break;
-                case 3: // rra
-                    out = "RRA";
+                case 3: // inc dd; dec dd; [dd=bc,de,hl,sp]; b3=1: dec
+                    out = (dissOp & 0x08 ? "DEC " : "INC ") + this.wregout(dissOp >> 4);
                     break;
-                case 4: // daa
-                    out = "DAA";
+                case 4: // inc rrr
+                    out = "INC " + this.bregout(dissOp >> 3);
                     break;
-                case 5: // cpl
-                    out = "CPL";
+                case 5: // dec rrr
+                    out = "DEC " + this.bregout(dissOp >> 3);
                     break;
-                case 6: // scf
-                    out = "SCF";
+                case 6: // ld rrr,xx  [rrr=b,c,d,e,h,l,(hl)|(ix+d),a]
+                    out = "LD " + this.bregout(dissOp >> 3) + "," + this.bout();
                     break;
-                case 7: // ccf
-                    out = "CCF";
+                case 7: // rlca,rrca,rla,rra; scf,ccf; daa,cpl
+                    out = Z80Disass.rlcaTable[(dissOp >> 3) & 0x07];
                     break;
                 default:
                     break;
             }
-            this.out += out;
-            //return out;
+            return out;
         };
-        Z80Disass.prototype.operdis10 = function () {
-            // halt; ld rrr,rrr2 [rrr,rr2=b,c,d,e,h,l,(hl),a]
-            var out = "";
-            if (this.dissOp === 0x76) { // halt
-                out = "HALT";
-            }
-            else { // ld rrr,rrr2
-                out = "LD " + this.bregout(this.dissOp >> 3) + "," + this.bregout(this.dissOp);
-            }
-            this.out += out;
-            //return out;
-        };
-        Z80Disass.prototype.operdis20 = function () {
-            // add,adc,sub,sbc,and,xor,or,cp a,rrr [rrr=b,c,d,e,h,l,(hl),a]
-            var out = this.arithMOut((this.dissOp >> 3) & 0x07) + this.bregout(this.dissOp); // arith depends on b3,b4,b5
-            this.out += out;
-            //return out;
-        };
-        Z80Disass.prototype.operdis30 = function () {
-            // ret ccc [ccc=nz,z,nc,c,po,pe,p,m]
-            var out = "RET " + this.condout(this.dissOp >> 3);
-            this.out += out;
-            //return out;
-        };
-        Z80Disass.prototype.operdis31 = function () {
+        //
+        // Disassemble C0-FF
+        //
+        Z80Disass.prototype.operdisC0ToFFpart01 = function (dissOp) {
             // pop ee [ee=bc,de,hl,af]; ld sp,hl; jp (hl); ret; exx
             var out = "";
-            if (this.dissOp & 0x08) { // b3=1  ld sp,hl; jp (hl); ret; exx
-                switch ((this.dissOp >> 4) & 0x03) { // test b4,b5
+            var b4b5 = (dissOp >> 4) & 0x03; // test b4,b5
+            if (dissOp & 0x08) { // b3=1  ld sp,hl; jp (hl); ret; exx
+                switch (b4b5) { // test b4,b5
                     case 0:
                         out = "RET";
                         break;
@@ -378,107 +387,25 @@ define(["require", "exports"], function (require, exports) {
                 }
             }
             else { // b3=0  pop ee [ee=bc,de,hl,af]
-                out = "POP " + this.pupoRegout((this.dissOp >> 4) & 0x03); // b4,b5
+                out = "POP " + this.pupoRegout(b4b5); // b4,b5
             }
-            this.out += out;
-            //return out;
+            return out;
         };
-        Z80Disass.prototype.operdis32 = function () {
-            // jp ccc,xxyy [ccc=nz,z,nc,c,po,pe,p,m]
-            var out = "JP " + this.condout(this.dissOp >> 3) + "," + Z80Disass.hexMark + this.wout();
-            this.out += out;
-            //return out;
-        };
-        Z80Disass.prototype.operdisCB00 = function (op2) {
-            // rlc,rrc,r{
-            var out = "";
-            switch ((op2 >> 3) & 0x07) { // test b3,b4,b5
-                case 0: // rlc rrr
-                    out = "RLC " + this.bregout(op2);
-                    break;
-                case 1: // rrc rrr
-                    out = "RRC " + this.bregout(op2);
-                    break;
-                case 2: // rl rrr
-                    out = "RL " + this.bregout(op2);
-                    break;
-                case 3: // rr rrr
-                    out = "RR " + this.bregout(op2);
-                    break;
-                case 4: // sla rrr
-                    out = "SLA " + this.bregout(op2);
-                    break;
-                case 5: // sra rrr
-                    out = "SRA " + this.bregout(op2);
-                    break;
-                case 6: // srs* rrr
-                    out = "SLS* " + this.bregout(op2);
-                    break;
-                case 7: // srl rrr
-                    out = "SRL " + this.bregout(op2);
-                    break;
-                default:
-                    break;
-            }
-            this.out += out;
-            //return out;
-        };
-        Z80Disass.prototype.operdisCB = function () {
-            // rlc,rrc,rl,rr,sla,sra,sls*,srl rrr [rrr=b,c,d,e,h,l,(hl),a]
-            // bit bbb,rrr; res bbb,rrr; set bbb,rrr [rrr=b,c,d,e,h,l,(hl),a]
-            var out = "", newop, premem; // new op
-            if (this.prefix >= 2) { // ix/iy-flag (ix or iy !)
-                newop = ((this.readByte(this.disassPC + 1) & 0xfe) | 0x06); // transform code x0..x7=>x6 , x8..xf=>xe  (always ix.., iy.. )
-            }
-            else {
-                newop = this.readByte(this.disassPC);
-            }
-            switch (newop >> 6) { // test b6,7
-                case 0: // 00-3f // rlc,rrc,rl,rr,sla,sra,sls*,srl rrr
-                    this.operdisCB00(newop);
-                    break;
-                case 1: // 40-7f // bit bbb,rrr
-                    out = "BIT " + this.bitout(newop >> 3) + "," + this.bregout(newop);
-                    break;
-                case 2: // 80-bf // res bbb,rrr
-                    out = "RES " + this.bitout(newop >> 3) + "," + this.bregout(newop);
-                    break;
-                case 3: // c0-ff // set bbb,rrr
-                    out = "SET " + this.bitout(newop >> 3) + "," + this.bregout(newop);
-                    break;
-                default:
-                    break;
-            }
-            if (this.prefix >= 2) { // ix/iy-flag (ix or iy !)
-                if ((newop !== this.readByte(this.disassPC)) && ((newop >> 6) !== 0x01)) { // there was a transform; not bit-instruction
-                    //TTT TODO!
-                    //p = 0;
-                    //while ((line[p]!='\0') && (p<20)) { p++; } // find end of string
-                    premem = this.prefix; // memorize prefix
-                    this.prefix = 0; // only h,l
-                    out += " & LD " + this.bregout(this.readByte(this.disassPC)); //TTT
-                    this.prefix = premem; // old prefix
-                }
-            }
-            this.disassPC += 1;
-            this.out += out;
-            //return out;
-        };
-        Z80Disass.prototype.operdis33 = function () {
+        Z80Disass.prototype.operdisC0ToFFpart03 = function (b3b4b5) {
             // ex (sp),hl; out (xx),a; di,ei; jp xxyy; ex de,hl; CB
             var out = "";
-            switch ((this.dissOp >> 3) & 0x07) { // test b3,b4,b5
+            switch (b3b4b5) { // test b3,b4,b5
                 case 0: // jp xxyy
-                    out = "JP " + Z80Disass.hexMark + this.wout();
+                    out = "JP " + this.wout();
                     break;
                 case 1: // CB
-                    this.operdisCB();
+                    out = this.operdisCB();
                     break;
                 case 2: // out (xx),a
-                    out = "OUT (" + Z80Disass.hexMark + this.bout() + "),A";
+                    out = "OUT (" + this.bout() + "),A";
                     break;
                 case 3: // in a,(xx)
-                    out = "IN A,(" + Z80Disass.hexMark + this.bout() + ")";
+                    out = "IN A,(" + this.bout() + ")";
                     break;
                 case 4: // ex (sp),hl
                     out = "EX (SP)," + this.wregout(2);
@@ -495,366 +422,89 @@ define(["require", "exports"], function (require, exports) {
                 default:
                     break;
             }
-            this.out += out;
-            //return out;
+            return out;
         };
-        Z80Disass.prototype.operdis34 = function () {
-            // call ccc,xxyy [ccc=nz,z,nc,c,po,pe,p,m]
-            var out = "CALL " + this.condout(this.dissOp >> 3) + "," + Z80Disass.hexMark + this.wout();
-            this.out += out;
-            //return out;
-        };
-        Z80Disass.prototype.operdis35 = function () {
+        Z80Disass.prototype.operdisC0ToFFpart05 = function (dissOp) {
             // push ee; call xxyy; ED; [IX IY]
             var out = "";
-            if (this.dissOp & 0x08) { // b3=1  call xxyy; ED; [IX IY]
-                switch ((this.dissOp >> 4) & 0x03) { // test b4,b5
-                    case 0:
-                        out = "CALL " + Z80Disass.hexMark + this.wout();
-                        break;
-                    case 1: // [IX,IY] and another IX-prefix
-                        this.onlyPrefix();
-                        break;
-                    case 2: // [IX,IY] and an ED-prefix
-                        this.onlyPrefix();
-                        break;
-                    case 3: // [IX,IY] and another IY-prefix
-                        this.onlyPrefix();
-                        break;
-                    default:
-                        break;
+            var b4b5 = (dissOp >> 4) & 0x03; // test b4,b5
+            if (dissOp & 0x08) { // b3=1  call xxyy; ED; [IX IY]
+                if (b4b5 === 0) { // test b4,b5
+                    out = "CALL " + this.wout();
+                }
+                else {
+                    out = this.onlyPrefix(); // [IX,IY] and another IX,ED or IY prefix
                 }
             }
             else { // b3=0  push ee [ee=bc,de,hl,af]
-                out = "PUSH " + this.pupoRegout((this.dissOp >> 4) & 0x03); // b4, b5
+                out = "PUSH " + this.pupoRegout(b4b5); // b4, b5
             }
-            this.out += out;
-            //return out;
+            return out;
         };
-        Z80Disass.prototype.operdis36 = function () {
-            // add,adc,sub,sbc,and,xor,or,cp a,xx
-            var out = this.arithMOut((this.dissOp >> 3) & 0x07) + Z80Disass.hexMark + this.bout(); // arith depends on b3,b4,b5
-            this.out += out;
-            //return out;
-        };
-        Z80Disass.prototype.operdis37 = function () {
-            // rst ppp*8
-            //const out = "RST " + Z80Disass.hexMark + (this.dissOp & 0x38).toString(2).toUpperCase().padStart(2, "0"); // ppp at b5..b3
-            var out = "RST " + Z80Disass.hexMark + (this.dissOp & 0x38).toString(16).toUpperCase().padStart(2, "0"); // ppp at b5..b3
-            this.out += out;
-            //return out;
-        };
-        Z80Disass.prototype.operdisED = function () {
-            // ...
+        Z80Disass.prototype.operdisC0ToFF = function (dissOp) {
             var out = "";
-            switch (this.dissOp >> 6) { // test b6,7
-                case 0: // 00-3f // missing
-                    this.operUnknown();
+            switch (dissOp & 0x07) { // test b0,b1,b2
+                case 0: // ret ccc [ccc=nz,z,nc,c,po,pe,p,m]
+                    out = "RET " + Z80Disass.conditionTable[(dissOp >> 3) & 0x07];
                     break;
-                case 1: // 40-7f // ...
-                    switch (this.dissOp & 0x07) { // test b0,b1,b2
-                        case 0: // in rrr,(c),
-                            if (this.dissOp === 0x70) {
-                                out = "*IN X,(C)"; // 70
-                            }
-                            else {
-                                out = "IN " + this.bregout(this.dissOp >> 3) + ",(C)";
-                            }
-                            break;
-                        case 1: // out (c),rrr, *out (c),0
-                            if (this.dissOp === 0x71) {
-                                out = "*OUT (C),0"; // 71
-                            }
-                            else {
-                                out = "OUT (C)," + this.bregout(this.dissOp >> 3);
-                            }
-                            break;
-                        case 2: // sbc hl,dd; add hl,dd [dd=bc,de,hl,sp]
-                            if (this.dissOp & 0x08) { // b3=1  adc
-                                out = "ADC HL," + this.wregout(this.dissOp >> 4); // HL not IX,IY !!
-                            }
-                            else { // b3=0  sbc
-                                out = "SBC HL," + this.wregout(this.dissOp >> 4); // not ix,iy
-                            }
-                            break;
-                        case 3: // ld (xxyy),dd! [dd=bc,de,hl,sp]
-                            if (this.dissOp & 0x08) { // b3=1  ld dd,(xxyy)
-                                out = "LD " + this.wregout(this.dissOp >> 4) + ",(" + Z80Disass.hexMark + this.wout() + ")"; // not ix,iy
-                            }
-                            else { // b3=0  ld (xxyy),dd
-                                out = "LD (" + Z80Disass.hexMark + this.wout() + ")," + this.wregout(this.dissOp >> 4);
-                            }
-                            break;
-                        case 4: // neg
-                            if (this.dissOp === 0x44) {
-                                out = "NEG";
-                            }
-                            else {
-                                out = "*NEG"; // 4c,54,5c,64,6c,74,7c
-                            }
-                            break;
-                        case 5: // retn, reti
-                            if (this.dissOp === 0x45) {
-                                out = "RETN";
-                            }
-                            else if (this.dissOp === 0x4d) {
-                                out = "RETI";
-                            }
-                            else if ((this.dissOp & 0x0f) === 0x05) {
-                                out = "*RETN"; // 55,65,75
-                            }
-                            else {
-                                out = "*RETI"; // 5d,6d,7d
-                            }
-                            break;
-                        case 6: // im 0; im 1; im 2
-                            switch (this.dissOp) {
-                                case 0x46: // im 0
-                                    out = "IM 0";
-                                    break;
-                                case 0x56: // im 1
-                                    out = "IM 1";
-                                    break;
-                                case 0x5e: // im 2
-                                    out = "IM 2";
-                                    break;
-                                case 0x4e: // *im 0
-                                case 0x66:
-                                case 0x6e:
-                                    out = "*IM 0";
-                                    break;
-                                case 0x76:
-                                    out = "*IM 1";
-                                    break;
-                                case 0x7e:
-                                    out = "*IM 2";
-                                    break;
-                                default:
-                                    // impossible
-                                    break;
-                            }
-                            break;
-                        case 7: // ld i,a; ld r,a;  ld a,i; ld a,r; rrd; rld
-                            switch ((this.dissOp >> 3) & 0x07) { // b3,b4,b5
-                                case 0:
-                                    out = "LD I,A";
-                                    break;
-                                case 1:
-                                    out = "LD R,A";
-                                    break;
-                                case 2:
-                                    out = "LD A,I"; // 0x57
-                                    break;
-                                case 3:
-                                    out = "LD A,R"; // 0x5f
-                                    break;
-                                case 4:
-                                    out = "RRD"; // 0x67
-                                    break;
-                                case 5:
-                                    out = "RLD"; // 0x6f
-                                    break;
-                                case 6:
-                                    this.operUnknown(); // 0x77
-                                    break;
-                                case 7:
-                                    this.operUnknown(); // 0x7f
-                                    break;
-                                default:
-                                    break;
-                            }
-                            break;
-                        default:
-                            break;
-                    }
+                case 1: // pop ee; ld sp,hl; jp (hl); ret; exx
+                    out = this.operdisC0ToFFpart01(dissOp);
+                    break;
+                case 2: // jp ccc,xxyy [ccc=nz,z,nc,c,po,pe,p,m]
+                    out = "JP " + Z80Disass.conditionTable[(dissOp >> 3) & 0x07] + "," + this.wout();
+                    break;
+                case 3: // ex (sp),hl; out (xx),a; di,ei; jp xxyy; ex de,hl; CB
+                    out = this.operdisC0ToFFpart03((dissOp >> 3) & 0x07); // test b3,b4,b5
+                    break;
+                case 4: // call ccc,xxyy [ccc=nz,z,nc,c,po,pe,p,m]
+                    out = "CALL " + Z80Disass.conditionTable[(dissOp >> 3) & 0x07] + "," + this.wout();
+                    break;
+                case 5: // push ee; call xxyy; [ED; IX IY]
+                    out = this.operdisC0ToFFpart05(dissOp);
+                    break;
+                case 6: // add,adc,sub,sbc,and,xor,or,cp a, xx
+                    out = Z80Disass.arithMTab[(dissOp >> 3) & 0x07] + this.bout(); // arith depends on b3,b4,b5
+                    break;
+                case 7: // rst ppp*3
+                    out = "RST " + Z80Disass.hexMark + (dissOp & 0x38).toString(16).toUpperCase().padStart(2, "0"); // ppp at b5..b3
                     break;
                 default:
                     break;
-                case 2: // 80-bf // ...
-                    if ((this.dissOp & 0x24) === 0x20) { // b5=1 and b2=0
-                        switch (this.dissOp & 0x03) { // b0,b1
-                            case 0:
-                                switch ((this.dissOp >> 3) & 0x03) { // b3,b4
-                                    case 0:
-                                        out = "LDI";
-                                        break;
-                                    case 1:
-                                        out = "LDD";
-                                        break;
-                                    case 2:
-                                        out = "LDIR";
-                                        break;
-                                    case 3:
-                                        out = "LDDR";
-                                        break;
-                                    default:
-                                        break;
-                                }
-                                break;
-                            case 1:
-                                switch ((this.dissOp >> 3) & 0x03) { // b3,b4
-                                    case 0:
-                                        out = "CPI";
-                                        break;
-                                    case 1:
-                                        out = "CPD";
-                                        break;
-                                    case 2:
-                                        out = "CPIR";
-                                        break;
-                                    case 3:
-                                        out = "CPDR";
-                                        break;
-                                    default:
-                                        break;
-                                }
-                                break;
-                            case 2:
-                                switch ((this.dissOp >> 3) & 0x03) { // b3,b4
-                                    case 0:
-                                        out = "INI";
-                                        break;
-                                    case 1:
-                                        out = "IND";
-                                        break;
-                                    case 2:
-                                        out = "INIR";
-                                        break;
-                                    case 3:
-                                        out = "INDR";
-                                        break;
-                                    default:
-                                        break;
-                                }
-                                break;
-                            case 3:
-                                switch ((this.dissOp >> 3) & 0x03) { // b3,b4
-                                    case 0:
-                                        out = "OUTI";
-                                        break;
-                                    case 1:
-                                        out = "OUTD";
-                                        break;
-                                    case 2:
-                                        out = "OTIR";
-                                        break;
-                                    case 3:
-                                        out = "OTDR";
-                                        break;
-                                    default:
-                                        break;
-                                }
-                                break;
-                            default:
-                                break;
-                        }
-                    }
-                    else {
-                        this.operUnknown();
-                    }
-                    break;
-                case 3: // c0-f8 // missing
-                    this.operUnknown();
-                    break;
             }
-            this.out += out;
-            //return out;
+            return out;
         };
-        // disassembles next instruction; returns command-length in bytes
+        // disassembles next instruction
         Z80Disass.prototype.getNextLine = function () {
-            this.out = "";
-            this.prefix = 0;
-            this.dissOp = this.readByte(this.disassPC);
-            this.disassPC += 1;
-            if (this.dissOp === 0xED) {
-                this.prefix = 1;
+            var dissOp = this.bget();
+            var prefix = Z80Disass.prefixMap[dissOp] || 0;
+            if (prefix) { // DD, FD, ED?
+                dissOp = this.bget();
             }
-            else if (this.dissOp === 0xDD) {
-                this.prefix = 2;
-            }
-            else if (this.dissOp === 0xFD) {
-                this.prefix = 3;
-            }
-            if (this.prefix) {
-                this.dissOp = this.readByte(this.disassPC);
-                this.disassPC += 1;
-            }
-            if (this.prefix === 1) {
-                this.operdisED();
+            this.prefix = prefix;
+            this.dissOp = dissOp;
+            var out = "";
+            if (prefix === 4) {
+                out = this.operdisED(dissOp);
             }
             else {
-                switch (this.dissOp >> 6) { // test b6,7
+                switch (dissOp >> 6) { // test b6,7
                     case 0: // 00-3f
-                        switch (this.dissOp & 0x07) { // test b0,b1,b2
-                            case 0: // nop; ex af,af'; djnz; jr; jr nz,z,nc,c
-                                this.operdis00();
-                                break;
-                            case 1: // ld dd,xxyy; add hl,dd
-                                this.operdis01();
-                                break;
-                            case 2: // ld (xxyy),a; ld (bc de),a ld a,(bc de); ld (xxyy),hl
-                                this.operdis02();
-                                break;
-                            case 3: // inc dd; dec dd
-                                this.operdis03();
-                                break;
-                            case 4: // inc rrr
-                                this.operdis04();
-                                break;
-                            case 5: // dec rrr
-                                this.operdis05();
-                                break;
-                            case 6: // ld rrr,xx
-                                this.operdis06();
-                                break;
-                            case 7: // rlca,rrca,rla,rra; scf,ccf; daa,cpl
-                                this.operdis07();
-                                break;
-                            default:
-                                break;
-                        }
+                        out = this.operdis00To3F(dissOp);
                         break;
-                    case 1: // 40-7f // halt; ld rrr,rrr2
-                        this.operdis10();
+                    case 1: // 40-7f // halt; ld rrr,rrr2 [rrr,rr2=b,c,d,e,h,l,(hl),a]
+                        out = dissOp === 0x76 ? "HALT" : "LD " + this.bregout(dissOp >> 3) + "," + this.bregout(dissOp);
                         break;
-                    case 2: // 80-bf // add,adc,sub,sbc,and,xor,or,cp a,rrr
-                        this.operdis20();
+                    case 2: // 80-bf // add,adc,sub,sbc,and,xor,or,cp a,rrr [rrr=b,c,d,e,h,l,(hl),a]
+                        out = Z80Disass.arithMTab[(dissOp >> 3) & 0x07] + this.bregout(dissOp);
                         break;
                     case 3: // c0-ff
-                        switch (this.dissOp & 0x07) { // test b0,b1,b2
-                            case 0: // ret ccc
-                                this.operdis30();
-                                break;
-                            case 1: // pop ee; ld sp,hl; jp (hl); ret; exx
-                                this.operdis31();
-                                break;
-                            case 2: // jp ccc,xxyy
-                                this.operdis32();
-                                break;
-                            case 3: // ex (sp),hl; out (xx),a; di,ei; jp xxyy; ex de,hl; CB
-                                this.operdis33();
-                                break;
-                            case 4: // call ccc,xxyy
-                                this.operdis34();
-                                break;
-                            case 5: // push ee; call xxyy; [ED; IX IY]
-                                this.operdis35();
-                                break;
-                            case 6: // add,adc,sub,sbc,and,xor,or,cp a,xx
-                                this.operdis36();
-                                break;
-                            case 7: // rst ppp
-                                this.operdis37();
-                                break;
-                            default:
-                                break;
-                        }
+                        out = this.operdisC0ToFF(dissOp);
                         break;
                     default:
                         break;
                 }
             }
-            return this.out;
+            return out;
         };
         Z80Disass.prototype.disassLine = function () {
             var _a;
@@ -886,6 +536,46 @@ define(["require", "exports"], function (require, exports) {
             return out;
         };
         Z80Disass.hexMark = "&"; // hex-marker, "&" or "#" or ""
+        /* eslint-disable array-element-newline */
+        Z80Disass.bregtab = [
+            ["B", "C", "D", "E", "H", "L", "(HL)", "A"],
+            ["B", "C", "D", "E", "HX", "LX", "(IX+", "A"],
+            ["B", "C", "D", "E", "HY", "LY", "(IY+", "A"] // FD-Prefix
+        ];
+        /* eslint-disable array-element-newline */
+        Z80Disass.wregtab = [
+            ["BC", "DE", "HL", "SP"],
+            ["BC", "DE", "IX", "SP"],
+            ["BC", "DE", "IY", "SP"] // FD-Prefix
+        ];
+        Z80Disass.unknownOp = "unknown";
+        //
+        // Disassemble CB
+        //
+        Z80Disass.rlcTable = ["RLC", "RRC", "RL", "RR", "SLA", "SRA", "SLS*", "SRL"]; // eslint-disable-line array-element-newline
+        Z80Disass.bitResSetTable = ["BIT", "RES", "SET"]; // eslint-disable-line array-element-newline
+        //
+        // Disassemble ED
+        //
+        Z80Disass.ldIaTable = ["LD I,A", "LD R,A", "LD A,I", "LD A,R", "RRD", "RLD", Z80Disass.unknownOp, Z80Disass.unknownOp]; // eslint-disable-line array-element-newline
+        /* eslint-disable array-element-newline */
+        Z80Disass.repeatTable = [
+            ["LDI", "LDD", "LDIR", "LDDR"],
+            ["CPI", "CPD", "CPIR", "CPDR"],
+            ["INI", "IND", "INIR", "INDR"],
+            ["OUTI", "OUTD", "OTIR", "OTDR"]
+        ];
+        Z80Disass.conditionTable = ["NZ", "Z", "NC", "C", "PO", "PE", "P", "M"]; // eslint-disable-line array-element-newline
+        Z80Disass.rlcaTable = ["RLCA", "RRCA", "RLA", "RRA", "DAA", "CPL", "SCF", "CCF"]; // eslint-disable-line array-element-newline
+        Z80Disass.arithMTab = ["ADD A,", "ADC A,", "SUB ", "SBC A,", "AND ", "XOR ", "OR ", "CP "]; // eslint-disable-line array-element-newline
+        //
+        // Disassemble main
+        //
+        Z80Disass.prefixMap = {
+            0xDD: 1,
+            0xFD: 2,
+            0xED: 4
+        };
         return Z80Disass;
     }());
     exports.Z80Disass = Z80Disass;

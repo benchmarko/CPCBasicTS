@@ -5,7 +5,6 @@
 define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model", "./View", "./NodeAdapt"], function (require, exports, Utils_1, Controller_1, cpcconfig_1, Model_1, View_1, NodeAdapt_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    //type RsxConstructorType = new () => ICpcVmRsx;
     var cpcBasic = /** @class */ (function () {
         function cpcBasic() {
         }

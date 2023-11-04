@@ -8,7 +8,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
     exports.Controller = void 0;
     var Controller = /** @class */ (function () {
         function Controller(model, view) {
-            //private static readonly metaIdent = "CPCBasic";
             this.fnScript = undefined; // eslint-disable-line @typescript-eslint/ban-types
             this.timeoutHandlerActive = false;
             this.nextLoopTimeOut = 0; // next timeout for the main loop
@@ -141,8 +140,9 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             if (model.getProperty("showCpc")) {
                 this.canvas.startUpdateCanvas();
             }
-            // unhide box, if should be shown
+            // unhide box, when it should be shown
             view.setHidden("disassBox", !model.getProperty("showDisass"));
+            view.setInputChecked("showDisassInput", model.getProperty("showDisass"));
         }
         Controller.prototype.initAreas = function () {
             for (var id in Controller.areaDefinitions) { // eslint-disable-line guard-for-in

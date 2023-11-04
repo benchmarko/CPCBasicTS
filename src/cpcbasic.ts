@@ -13,8 +13,6 @@ import { ICpcVmRsx } from "./Interfaces";
 
 type RedirectExamplesType = Record<string, Record<"database" | "example", string>>;
 
-//type RsxConstructorType = new () => ICpcVmRsx;
-
 class cpcBasic {
 	private static readonly config: ConfigType = {
 		arrayBounds: false,

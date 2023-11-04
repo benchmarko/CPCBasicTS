@@ -53,6 +53,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 onImplicitLinesInputChange: this.onImplicitLinesInputChange,
                 onArrayBoundsInputChange: this.onArrayBoundsInputChange,
                 onConsoleLogInputChange: this.onConsoleLogInputChange,
+                onShowDisassInputChange: this.onShowDisassInputChange,
                 onDisassInputChange: this.onDisassInputChange,
                 onTraceInputChange: this.onTraceInputChange,
                 onAutorunInputChange: this.onAutorunInputChange,
@@ -277,6 +278,11 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             if (checked && this.view.getHidden("consoleBox")) {
                 this.view.setHidden("consoleBox", !checked); // make sure the box around is visible
             }
+        };
+        CommonEventHandler.prototype.onShowDisassInputChange = function () {
+            var checked = this.view.getInputChecked("showDisassInput");
+            this.model.setProperty("showDisass", checked);
+            this.view.setHidden("disassBox", !checked);
         };
         CommonEventHandler.prototype.onDisassInputChange = function () {
             var addressStr = this.view.getInputValue("disassInput"), addr = parseInt(addressStr, 16); // parse as hex
