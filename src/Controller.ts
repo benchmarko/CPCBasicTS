@@ -116,6 +116,11 @@ export class Controller implements IController {
 		cpcArea: {
 			property: "showCpc"
 		},
+		exportArea: {
+			property: "showExport",
+			display: "flex",
+			isPopover: true
+		},
 		galleryArea: {
 			property: "showGallery",
 			display: "flex",
@@ -2042,14 +2047,43 @@ export class Controller implements IController {
 
 	fnDownload(): void {
 		const input = this.view.getAreaValue("inputText"),
-			tokens = this.encodeTokenizedBasic(input);
+			tokens = this.encodeTokenizedBasic(input),
+			exportTokenized = this.view.getInputChecked("exportTokenizedInput"),
+			exportDSK = this.view.getInputChecked("exportDSKInput");
+		let name = "file.bas",
+			data = input;
 
-		if (tokens !== "") {
-			const header = FileHandler.createMinimalAmsdosHeader("T", 0x170, tokens.length),
-				headerString = DiskImage.combineAmsdosHeader(header),
+		if (exportTokenized) {
+			if (tokens !== "") {
+				const header = FileHandler.createMinimalAmsdosHeader("T", 0x170, tokens.length),
+					headerString = DiskImage.combineAmsdosHeader(header);
+
 				data = headerString + tokens;
+			}
+		}
 
-			this.fnDownloadNewFile(data, "file.bas");
+		if (exportDSK) {
+			const diskImage = new DiskImage({
+				diskName: "test",
+				data: "" //TTT change to optional
+			});
+
+			diskImage.formatImage("data");
+
+			const dir = diskImage.readDirectory(); // is empty.
+
+			Utils.console.log("TEST: exportDSK: no files:" + Object.keys(dir));
+			// TODO: write file
+			diskImage.writeFile("file.bas", data);
+
+			const options = diskImage.getOptions();
+
+			data = options.data; // maybe modified
+			name = "file.dsk";
+		}
+
+		if (data) {
+			this.fnDownloadNewFile(data, name);
 		}
 	}
 

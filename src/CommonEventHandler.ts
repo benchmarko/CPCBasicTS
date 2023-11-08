@@ -60,6 +60,10 @@ export class CommonEventHandler implements EventListenerObject {
 		this.controller.toggleAreaHidden("settingsArea");
 	}
 
+	private onExportButtonClick() {
+		this.controller.toggleAreaHidden("exportArea");
+	}
+
 	private onGalleryButtonClick() {
 		if (this.controller.toggleAreaHidden("galleryArea")) {
 			this.controller.setGalleryAreaInputs();
@@ -379,6 +383,7 @@ export class CommonEventHandler implements EventListenerObject {
 		onCpcButtonClick: this.onCpcButtonClick,
 		onConvertButtonClick: this.onConvertButtonClick,
 		onSettingsButtonClick: this.onSettingsButtonClick,
+		onExportButtonClick: this.onExportButtonClick,
 		onGalleryButtonClick: this.onGalleryButtonClick,
 		onMoreButtonClick: this.onMoreButtonClick,
 		onKbdButtonClick: this.onKbdButtonClick,
