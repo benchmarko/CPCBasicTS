@@ -18,6 +18,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 onCpcButtonClick: this.onCpcButtonClick,
                 onConvertButtonClick: this.onConvertButtonClick,
                 onSettingsButtonClick: this.onSettingsButtonClick,
+                onExportButtonClick: this.onExportButtonClick,
                 onGalleryButtonClick: this.onGalleryButtonClick,
                 onMoreButtonClick: this.onMoreButtonClick,
                 onKbdButtonClick: this.onKbdButtonClick,
@@ -105,6 +106,9 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         };
         CommonEventHandler.prototype.onSettingsButtonClick = function () {
             this.controller.toggleAreaHidden("settingsArea");
+        };
+        CommonEventHandler.prototype.onExportButtonClick = function () {
+            this.controller.toggleAreaHidden("exportArea");
         };
         CommonEventHandler.prototype.onGalleryButtonClick = function () {
             if (this.controller.toggleAreaHidden("galleryArea")) {

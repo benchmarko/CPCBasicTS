@@ -1516,10 +1516,30 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
         };
         Controller.prototype.fnDownload = function () {
-            var input = this.view.getAreaValue("inputText"), tokens = this.encodeTokenizedBasic(input);
-            if (tokens !== "") {
-                var header = FileHandler_1.FileHandler.createMinimalAmsdosHeader("T", 0x170, tokens.length), headerString = DiskImage_1.DiskImage.combineAmsdosHeader(header), data = headerString + tokens;
-                this.fnDownloadNewFile(data, "file.bas");
+            var input = this.view.getAreaValue("inputText"), tokens = this.encodeTokenizedBasic(input), exportTokenized = this.view.getInputChecked("exportTokenizedInput"), exportDSK = this.view.getInputChecked("exportDSKInput");
+            var name = "file.bas", data = input;
+            if (exportTokenized) {
+                if (tokens !== "") {
+                    var header = FileHandler_1.FileHandler.createMinimalAmsdosHeader("T", 0x170, tokens.length), headerString = DiskImage_1.DiskImage.combineAmsdosHeader(header);
+                    data = headerString + tokens;
+                }
+            }
+            if (exportDSK) {
+                var diskImage = new DiskImage_1.DiskImage({
+                    diskName: "test",
+                    data: "" //TTT change to optional
+                });
+                diskImage.formatImage("data");
+                var dir = diskImage.readDirectory(); // is empty.
+                Utils_1.Utils.console.log("TEST: exportDSK: no files:" + Object.keys(dir));
+                // TODO: write file
+                diskImage.writeFile("file.bas", data);
+                var options = diskImage.getOptions();
+                data = options.data; // maybe modified
+                name = "file.dsk";
+            }
+            if (data) {
+                this.fnDownloadNewFile(data, name);
             }
         };
         Controller.prototype.selectJsError = function (script, e) {
@@ -2290,6 +2310,11 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             },
             cpcArea: {
                 property: "showCpc"
+            },
+            exportArea: {
+                property: "showExport",
+                display: "flex",
+                isPopover: true
             },
             galleryArea: {
                 property: "showGallery",

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="cpcbasic.css">
 <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
-<title id="title">CPC BasicTS v0.1.12</title>
+<title id="title">CPC BasicTS v0.1.13</title>
 </head>
 
 <body id="pageBody">
@@ -261,7 +261,24 @@
 						</span>
 					</span>
 				</span>
-				<button id="downloadButton" title="Download tokenized">Download</button>
+				<span class="buttonPopoverContainer">
+					<button id="exportButton" class="popoverButton" title="Export">Export</button>
+					<span id="exportArea" class="popover area flexColumn displayNone">
+						<span class="field flexStart">
+							<input id="exportTokenizedInput" type="checkbox" title="tokenized" checked>
+							<label id="exportTokenizedLabel" for="exportTokenizedInput" class="label" title="Tokenized BASIC">Tokenized</label>
+						</span>
+						<span class="field flexStart">
+							<input id="exportDSKInput" type="checkbox" title="DSK">
+							<label id="exportDSKLabel" for="exportDSKInput" class="label"	title="DSK image">DSK</label>
+						</span>
+						<span id="exportActionkArea" class="area">
+							<span class="field">
+								<button id="downloadButton" title="Export">Export</button>
+							</span>
+						</span>
+					</span>
+				</span>
 			</div>
 		</div>
 	</fieldset>
