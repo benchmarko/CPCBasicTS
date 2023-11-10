@@ -119,6 +119,7 @@ export declare class Controller implements IController {
     fnRemoveLines(): void;
     private static fnDownloadBlob;
     private fnDownloadNewFile;
+    private fnGetFilename;
     fnDownload(): void;
     private selectJsError;
     private fnChain;

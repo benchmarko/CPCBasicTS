@@ -32,20 +32,14 @@ define(["require", "exports", "./Utils", "./DiskImage", "./Snapshot", "./ZipFile
         FileHandler.getMetaIdent = function () {
             return FileHandler.metaIdent;
         };
-        FileHandler.createMinimalAmsdosHeader = function (type, start, length) {
-            return {
-                typeString: type,
-                start: start,
-                length: length
-            };
-        };
         FileHandler.joinMeta = function (meta) {
             return [
                 FileHandler.metaIdent,
                 meta.typeString,
                 meta.start,
                 meta.length,
-                meta.entry
+                meta.entry,
+                meta.encoding
             ].join(";");
         };
         // starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
@@ -128,19 +122,28 @@ define(["require", "exports", "./Utils", "./DiskImage", "./Snapshot", "./ZipFile
             switch (type) {
                 case "A": // "text/plain"
                 case "B": // binary?
-                    header = FileHandler.createMinimalAmsdosHeader(type, 0, data.length);
+                    header = DiskImage_1.DiskImage.createAmsdosHeader({
+                        typeString: type,
+                        length: data.length
+                    });
                     break;
                 case "H": // with header?
                     break;
                 case "S": // sna file?
-                    header = FileHandler.createMinimalAmsdosHeader(type, 0, data.length); // currently we store it
+                    header = DiskImage_1.DiskImage.createAmsdosHeader({
+                        typeString: type,
+                        length: data.length
+                    }); // currently we store it
                     break;
                 case "X": // dsk file?
                     if (this.processFileImports) {
                         this.processDskFile(data, name, imported); // we know data is string
                     }
                     else {
-                        header = FileHandler.createMinimalAmsdosHeader(type, 0, data.length);
+                        header = DiskImage_1.DiskImage.createAmsdosHeader({
+                            typeString: type,
+                            length: data.length
+                        });
                     }
                     break;
                 case "Z": // zip file?
@@ -148,12 +151,18 @@ define(["require", "exports", "./Utils", "./DiskImage", "./Snapshot", "./ZipFile
                         this.processZipFile(data instanceof Uint8Array ? data : Utils_1.Utils.string2Uint8Array(data), name, imported);
                     }
                     else {
-                        header = FileHandler.createMinimalAmsdosHeader(type, 0, data.length);
+                        header = DiskImage_1.DiskImage.createAmsdosHeader({
+                            typeString: type,
+                            length: data.length
+                        });
                     }
                     break;
                 default:
                     Utils_1.Utils.console.warn("fnLoad2: " + name + ": Unknown file type: " + type + ", assuming B");
-                    header = FileHandler.createMinimalAmsdosHeader("B", 0, data.length);
+                    header = DiskImage_1.DiskImage.createAmsdosHeader({
+                        typeString: "B",
+                        length: data.length
+                    });
                     break;
             }
             if (header) { // do we have a header? (means we should store it as a file in storage...)

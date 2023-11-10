@@ -9,17 +9,6 @@ export class CpcVmRsx {
 	private readonly rsxPermanent: Record<string, RsxCommandType> = {};
 	private rsxTemporary: Record<string, RsxCommandType> = {};
 
-	/*
-	private readonly addrPermanent: Record<string, RsxCommandType> = {};
-	private addrTemporary: Record<string, RsxCommandType> = {};
-	*/
-
-	/*
-	rxAvailable(name: string): boolean {
-		return Boolean(this.rsxTemporary[name] || this.rsxPermanent[name]);
-	}
-	*/
-
 	callRsx(vm: ICpcVm, name: string, ...args: (string|number)[]): boolean {
 		const fn = this.rsxTemporary[name] || this.rsxPermanent[name];
 
@@ -28,19 +17,6 @@ export class CpcVmRsx {
 		}
 		return Boolean(fn);
 	}
-
-	/*
-	// we also allow to define adresses for call
-	callAddr(vm: ICpcVm, addr: number, ...args: (string|number)[]): void {
-		const fn = this.addrTemporary[addr] || this.addrPermanent[addr];
-
-		if (fn) {
-			fn.apply(vm, args);
-		} else if (Utils.debug > 0) {
-			Utils.console.debug("Ignored: CALL", addr, args);
-		}
-	}
-	*/
 
 	registerRsx(rsxModule: ICpcVmRsx, permanent: boolean): void {
 		const rsxRegister = permanent ? this.rsxPermanent : this.rsxTemporary,

@@ -52,21 +52,14 @@ export class FileHandler {
 		return FileHandler.metaIdent;
 	}
 
-	static createMinimalAmsdosHeader(type: string,	start: number,	length: number): AmsdosHeader {
-		return {
-			typeString: type,
-			start: start,
-			length: length
-		} as AmsdosHeader;
-	}
-
 	static joinMeta(meta: FileMeta): string {
 		return [
 			FileHandler.metaIdent,
 			meta.typeString,
 			meta.start,
 			meta.length,
-			meta.entry
+			meta.entry,
+			meta.encoding
 		].join(";");
 	}
 
@@ -159,21 +152,30 @@ export class FileHandler {
 		switch (type) {
 		case "A": // "text/plain"
 		case "B": // binary?
-			header = FileHandler.createMinimalAmsdosHeader(type, 0, data.length);
+			header = DiskImage.createAmsdosHeader({
+				typeString: type,
+				length: data.length
+			});
 			break;
 
 		case "H": // with header?
 			break;
 
 		case "S": // sna file?
-			header = FileHandler.createMinimalAmsdosHeader(type, 0, data.length); // currently we store it
+			header = DiskImage.createAmsdosHeader({
+				typeString: type,
+				length: data.length
+			}); // currently we store it
 			break;
 
 		case "X": // dsk file?
 			if (this.processFileImports) {
 				this.processDskFile(data as string, name, imported); // we know data is string
 			} else {
-				header = FileHandler.createMinimalAmsdosHeader(type, 0, data.length);
+				header = DiskImage.createAmsdosHeader({
+					typeString: type,
+					length: data.length
+				});
 			}
 			break;
 
@@ -181,13 +183,19 @@ export class FileHandler {
 			if (this.processFileImports) {
 				this.processZipFile(data instanceof Uint8Array ? data : Utils.string2Uint8Array(data), name, imported);
 			} else {
-				header = FileHandler.createMinimalAmsdosHeader(type, 0, data.length);
+				header = DiskImage.createAmsdosHeader({
+					typeString: type,
+					length: data.length
+				});
 			}
 			break;
 
 		default:
 			Utils.console.warn("fnLoad2: " + name + ": Unknown file type: " + type + ", assuming B");
-			header = FileHandler.createMinimalAmsdosHeader("B", 0, data.length);
+			header = DiskImage.createAmsdosHeader({
+				typeString: "B",
+				length: data.length
+			});
 			break;
 		}
 

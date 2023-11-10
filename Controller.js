@@ -1515,13 +1515,44 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 Controller.fnDownloadBlob(blob, fileName);
             }
         };
+        Controller.prototype.fnGetFilename = function (input) {
+            var name = "file";
+            //const firstLine = input.substring(0, input.indexOf("\n")) || input;
+            var reRemMatcher = /^\d* ?(?:REM|rem) ([\w.]+)+/, matches = input.match(reRemMatcher);
+            if (matches !== null) {
+                name = matches[1];
+            }
+            else {
+                var example = this.model.getProperty("example");
+                if (example !== "") {
+                    name = example;
+                }
+            }
+            if (name.indexOf(".") < 0) {
+                name += ".bas";
+            }
+            return name;
+        };
         Controller.prototype.fnDownload = function () {
-            var input = this.view.getAreaValue("inputText"), tokens = this.encodeTokenizedBasic(input), exportTokenized = this.view.getInputChecked("exportTokenizedInput"), exportDSK = this.view.getInputChecked("exportDSKInput");
-            var name = "file.bas", data = input;
+            var input = this.view.getAreaValue("inputText"), tokens = this.encodeTokenizedBasic(input), exportTokenized = this.view.getInputChecked("exportTokenizedInput"), exportDSK = this.view.getInputChecked("exportDSKInput"), exportBase64 = this.view.getInputChecked("exportBase64Input"), meta = {
+                typeString: "A",
+                start: 0x170,
+                length: input.length,
+                entry: 0
+            };
+            var name = this.fnGetFilename(input), data = input;
             if (exportTokenized) {
                 if (tokens !== "") {
-                    var header = FileHandler_1.FileHandler.createMinimalAmsdosHeader("T", 0x170, tokens.length), headerString = DiskImage_1.DiskImage.combineAmsdosHeader(header);
+                    var _a = DiskImage_1.DiskImage.getFilenameAndExtension(name), name1 = _a[0], ext1 = _a[1], // eslint-disable-line array-element-newline
+                    header = DiskImage_1.DiskImage.createAmsdosHeader({
+                        name: name1,
+                        ext: ext1,
+                        typeString: "T",
+                        start: 0x170,
+                        length: tokens.length
+                    }), headerString = DiskImage_1.DiskImage.combineAmsdosHeader(header);
                     data = headerString + tokens;
+                    meta.typeString = "T";
                 }
             }
             if (exportDSK) {
@@ -1530,13 +1561,20 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     data: "" //TTT change to optional
                 });
                 diskImage.formatImage("data");
-                var dir = diskImage.readDirectory(); // is empty.
+                var dir = diskImage.readDirectory(); // is empty
                 Utils_1.Utils.console.log("TEST: exportDSK: no files:" + Object.keys(dir));
-                // TODO: write file
-                diskImage.writeFile("file.bas", data);
+                diskImage.writeFile(name, data);
                 var options = diskImage.getOptions();
                 data = options.data; // maybe modified
-                name = "file.dsk";
+                name = name.substring(0, name.indexOf(".") + 1) + "dsk";
+                meta.length = data.length;
+                meta.typeString = "X"; // (extended) disk image
+            }
+            if (exportBase64) {
+                meta.encoding = "base64";
+                var metaString = FileHandler_1.FileHandler.joinMeta(meta);
+                data = metaString + "," + Utils_1.Utils.btoa(data);
+                name += ".b64.txt";
             }
             if (data) {
                 this.fnDownloadNewFile(data, name);

@@ -28,6 +28,13 @@ export class BasicTokenizer {
 	private fnNum8Dec() {
 		const num = this.input.charCodeAt(this.pos);
 
+		/*
+		if (isNaN(num)) {
+			Utils.console.warn("fnNum8Dec: pos=" + this.pos + ": EOF met!");
+			num = 0;
+		}
+		*/
+
 		this.pos += 1;
 		return num;
 	}
@@ -521,6 +528,11 @@ export class BasicTokenizer {
 		}
 		this.line = this.fnNum16Dec();
 		this.lineEnd = this.pos - 4 + lineLength;
+
+		if (this.lineEnd > this.input.length) {
+			this.lineEnd = this.input.length;
+			Utils.console.warn("fnParseNextLine: pos=" + this.pos + ": EOF met!");
+		}
 
 		return this.line + " " + this.fnParseLineFragment();
 	}

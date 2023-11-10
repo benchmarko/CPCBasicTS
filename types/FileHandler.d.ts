@@ -1,5 +1,4 @@
 import { FileMeta } from "./CpcVm";
-import { AmsdosHeader } from "./DiskImage";
 export interface FileHandlerOptions {
     adaptFilename: (name: string, err: string) => string;
     updateStorageDatabase: (action: string, key: string) => void;
@@ -16,7 +15,6 @@ export declare class FileHandler {
     constructor(options: FileHandlerOptions);
     private static fnLocalStorageName;
     static getMetaIdent(): string;
-    static createMinimalAmsdosHeader(type: string, start: number, length: number): AmsdosHeader;
     static joinMeta(meta: FileMeta): string;
     private static reRegExpIsText;
     private processDskFile;

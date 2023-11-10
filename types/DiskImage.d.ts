@@ -12,9 +12,6 @@ interface ExtentEntry {
     extentHi: number;
     records: number;
     blocks: number[];
-    readOnly: boolean;
-    system: boolean;
-    backup: boolean;
 }
 export interface AmsdosHeader {
     user: number;
@@ -64,7 +61,6 @@ export declare class DiskImage {
     private createImage;
     formatImage(format: string): string;
     private static fnRemoveHighBit7;
-    private static fnAddHighBit7;
     private readDirectoryExtents;
     private static createDirectoryExtentAsString;
     private static createSeveralDirectoryExtentsAsString;
@@ -83,13 +79,14 @@ export declare class DiskImage {
     private static getFreeExtents;
     private static getBlockMask;
     private static getFreeBlocks;
-    private static getFilenameAndExtension;
+    static getFilenameAndExtension(filename: string): string[];
     writeFile(filename: string, data: string): boolean;
     private static protectTable;
     static unOrProtectData(data: string): string;
     private static computeChecksum;
     static parseAmsdosHeader(data: string): AmsdosHeader | undefined;
     static combineAmsdosHeader(header: AmsdosHeader): string;
+    static createAmsdosHeader(parameter: Partial<AmsdosHeader>): AmsdosHeader;
 }
 export {};
 //# sourceMappingURL=DiskImage.d.ts.map

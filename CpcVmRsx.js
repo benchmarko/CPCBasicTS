@@ -11,15 +11,6 @@ define(["require", "exports"], function (require, exports) {
             this.rsxPermanent = {};
             this.rsxTemporary = {};
         }
-        /*
-        private readonly addrPermanent: Record<string, RsxCommandType> = {};
-        private addrTemporary: Record<string, RsxCommandType> = {};
-        */
-        /*
-        rxAvailable(name: string): boolean {
-            return Boolean(this.rsxTemporary[name] || this.rsxPermanent[name]);
-        }
-        */
         CpcVmRsx.prototype.callRsx = function (vm, name) {
             var args = [];
             for (var _i = 2; _i < arguments.length; _i++) {
@@ -31,18 +22,6 @@ define(["require", "exports"], function (require, exports) {
             }
             return Boolean(fn);
         };
-        /*
-        // we also allow to define adresses for call
-        callAddr(vm: ICpcVm, addr: number, ...args: (string|number)[]): void {
-            const fn = this.addrTemporary[addr] || this.addrPermanent[addr];
-    
-            if (fn) {
-                fn.apply(vm, args);
-            } else if (Utils.debug > 0) {
-                Utils.console.debug("Ignored: CALL", addr, args);
-            }
-        }
-        */
         CpcVmRsx.prototype.registerRsx = function (rsxModule, permanent) {
             var rsxRegister = permanent ? this.rsxPermanent : this.rsxTemporary, rsxCommands = rsxModule.getRsxCommands();
             for (var command in rsxCommands) {

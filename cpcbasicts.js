@@ -3677,6 +3677,12 @@ define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exp
         }
         BasicTokenizer.prototype.fnNum8Dec = function () {
             var num = this.input.charCodeAt(this.pos);
+            /*
+            if (isNaN(num)) {
+                Utils.console.warn("fnNum8Dec: pos=" + this.pos + ": EOF met!");
+                num = 0;
+            }
+            */
             this.pos += 1;
             return num;
         };
@@ -3887,6 +3893,10 @@ define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exp
             }
             this.line = this.fnNum16Dec();
             this.lineEnd = this.pos - 4 + lineLength;
+            if (this.lineEnd > this.input.length) {
+                this.lineEnd = this.input.length;
+                Utils_5.Utils.console.warn("fnParseNextLine: pos=" + this.pos + ": EOF met!");
+            }
             return this.line + " " + this.fnParseLineFragment();
         };
         BasicTokenizer.prototype.fnParseProgram = function () {
@@ -7245,7 +7255,6 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             if (sectorData.length !== sectorInfo.sectorSize) {
                 Utils_11.Utils.console.error(this.composeError({}, "sectordata.length " + sectorData.length + " <> sectorSize " + sectorInfo.sectorSize, String(0)));
             }
-            //out = this.readUtf(sectorInfo.dataPos, sectorInfo.sectorSize);
             this.options.data = data.substring(0, sectorInfo.dataPos) + sectorData + data.substring(sectorInfo.dataPos + sectorInfo.sectorSize);
         };
         // ...
@@ -7371,29 +7380,29 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             }
             return out;
         };
-        DiskImage.fnAddHighBit7 = function (str, setBit7) {
-            var out = "";
-            for (var i = 0; i < str.length; i += 1) {
-                var char = str.charCodeAt(i);
+        /*
+        private static fnAddHighBit7(str: string, setBit7: boolean[]) {
+            let out = "";
+    
+            for (let i = 0; i < str.length; i += 1) {
+                const char = str.charCodeAt(i);
+    
                 out += String.fromCharCode(setBit7[i] ? (char | 0x80) : char); // eslint-disable-line no-bitwise
             }
             return out;
-        };
+        }
+        */
         DiskImage.prototype.readDirectoryExtents = function (extents, pos, endPos) {
             while (pos < endPos) {
-                var extWithFlags = this.readUtf(pos + 9, 3), // extension with high bits set for special flags
-                extent = {
+                var extent = {
                     user: this.readUInt8(pos),
-                    name: DiskImage.fnRemoveHighBit7(this.readUtf(pos + 1, 8)),
-                    ext: DiskImage.fnRemoveHighBit7(extWithFlags),
+                    name: this.readUtf(pos + 1, 8),
+                    ext: this.readUtf(pos + 9, 3),
                     extent: this.readUInt8(pos + 12),
                     lastRecBytes: this.readUInt8(pos + 13),
                     extentHi: this.readUInt8(pos + 14),
                     records: this.readUInt8(pos + 15),
-                    blocks: [],
-                    readOnly: Boolean(extWithFlags.charCodeAt(0) & 0x80),
-                    system: Boolean(extWithFlags.charCodeAt(1) & 0x80),
-                    backup: Boolean(extWithFlags.charCodeAt(2) & 0x80) /* eslint-disable-line no-bitwise */
+                    blocks: []
                 };
                 pos += 16;
                 var blocks = extent.blocks;
@@ -7412,14 +7421,16 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             return extents;
         };
         DiskImage.createDirectoryExtentAsString = function (extent) {
-            var extWithFlags = DiskImage.fnAddHighBit7(extent.ext, [
+            /*
+            const extWithFlags = DiskImage.fnAddHighBit7(extent.ext, [
                 extent.readOnly,
                 extent.system,
                 extent.backup
             ]);
+            */
             var extentString = DiskImage.uInt8ToString(extent.user)
                 + extent.name
-                + extWithFlags
+                + extent.ext
                 + DiskImage.uInt8ToString(extent.extent)
                 + DiskImage.uInt8ToString(extent.lastRecBytes)
                 + DiskImage.uInt8ToString(extent.extentHi)
@@ -7437,21 +7448,6 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             }
             return extentString;
         };
-        /*
-        private writeDirectoryExtents(extents: ExtentEntry[], pos: number, endPos: number) {
-            let extentString = "";
-    
-            for (let i = 0; i < extents.length; i += 1) {
-                extentString += DiskImage.createDirectoryExtentAsString(extents[i]);
-            }
-    
-            const data = this.options.data;
-    
-            // replace data slice with extentString (length should not change)
-            this.options.data = data.substring(0, pos) + extentString + data.substring(endPos);
-            // TODO: use writeSector!
-        }
-        */
         DiskImage.fnSortByExtentNumber = function (a, b) {
             return a.extent - b.extent;
         };
@@ -7469,7 +7465,7 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             for (var i = 0; i < extents.length; i += 1) {
                 var extent = extents[i];
                 if (fill === null || extent.user !== fill) {
-                    var name_9 = extent.name + "." + extent.ext; // and extent.user?
+                    var name_9 = DiskImage.fnRemoveHighBit7(extent.name) + "." + DiskImage.fnRemoveHighBit7(extent.ext); // and extent.user?
                     // (do not convert filename here (to display messages in filenames))
                     if (!reFilePattern || reFilePattern.test(name_9)) {
                         if (!(name_9 in dir)) {
@@ -7508,45 +7504,18 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
         };
         DiskImage.prototype.writeAllDirectoryExtents = function (extents) {
             var directoryBlocks = 2, // could be determined from al0,al1
-            extentsPerBlock = extents.length / directoryBlocks; // TODO: compute
-            //this.seekTrack(off, 0);
+            extentsPerBlock = extents.length / directoryBlocks;
             for (var i = 0; i < directoryBlocks; i += 1) {
-                //const sectorIndex = this.sectorNum2Index(firstSector + i);
                 var blockData = DiskImage.createSeveralDirectoryExtentsAsString(extents, i * extentsPerBlock, (i + 1) * extentsPerBlock);
                 this.writeBlock(i, blockData);
             }
         };
-        /*
-        private writeAllDirectoryExtents(extents: ExtentEntry[]) {
-            const directorySectors = 4, // could be determined from al0,al1
-                format = this.format,
-                off = format.off,
-                firstSector = format.firstSector;
-    
-            this.seekTrack(off, 0);
-    
-            for (let i = 0; i < directorySectors; i += 1) {
-                const sectorIndex = this.sectorNum2Index(firstSector + i);
-    
-                if (sectorIndex === undefined) {
-                    throw this.composeError(Error(), "Cannot write directory at track " + off + " sector", String(firstSector));
-                }
-                const sectorInfo = this.seekSector(sectorIndex);
-    
-                //this.writeDirectoryExtents(extents, sectorInfo.dataPos, sectorInfo.dataPos + sectorInfo.sectorSize);
-            }
-        }
-        */
         DiskImage.prototype.readDirectory = function () {
             var format = this.determineFormat(), extents = [];
             this.format = format;
             this.readAllDirectoryExtents(extents);
             return DiskImage.prepareDirectoryList(extents, format.fill);
         };
-        /*
-        writeDirectory(directoryList: DirectoryListType) {
-        }
-        */
         DiskImage.prototype.nextSector = function (pos) {
             var format = this.format;
             pos.sector += 1;
@@ -7648,32 +7617,12 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             }
             return freeExtents;
         };
-        /*
-        // http://bytes.com/groups/cpp/546879-reverse-bit-order
-        private static reverseBitOrder8(num: number) {
-            num = (num & 0x0F) << 4 | (num & 0xF0) >> 4; // eslint-disable-line no-bitwise
-            num = (num & 0x33) << 2 | (num & 0xCC) >> 2; // eslint-disable-line no-bitwise
-            num = (num & 0x55) << 1 | (num & 0xAA) >> 1; // eslint-disable-line no-bitwise
-            return num;
-        }
-        */
         DiskImage.getBlockMask = function (extents, fill, dsm, al0, al1) {
             var blockMask = [];
-            //al01 = al0 | (al1 << 8); // eslint-disable-line no-bitwise
             for (var i = 0; i < dsm - 1; i += 1) {
                 blockMask[i] = false;
             }
             // mark reserved blocks
-            /*
-            let mask1 = 0x8000;
-    
-            for (let i = 0; i < 16; i += 1) {
-                if (al01 & mask1) { // eslint-disable-line no-bitwise
-                    blockMask[i] = true; // mark reserved block
-                }
-                mask1 >>= 1; // eslint-disable-line no-bitwise
-            }
-            */
             var mask = 0x80;
             for (var i = 0; i < 8; i += 1) {
                 if (al0 & mask) { // eslint-disable-line no-bitwise
@@ -7717,8 +7666,8 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
         };
         DiskImage.getFilenameAndExtension = function (filename) {
             var _a = filename.split("."), name1 = _a[0], ext1 = _a[1]; // eslint-disable-line array-element-newline
-            name1 = name1.toUpperCase().padEnd(8, " ");
-            ext1 = ext1.toUpperCase().padEnd(3, " ");
+            name1 = name1.substring(0, 8).toUpperCase().padEnd(8, " ");
+            ext1 = ext1.substring(0, 3).toUpperCase().padEnd(3, " ");
             return [name1, ext1]; // eslint-disable-line array-element-newline
         };
         DiskImage.prototype.writeFile = function (filename, data) {
@@ -7752,10 +7701,7 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                 Utils_11.Utils.console.warn("writeFile: Directory full!");
                 return false;
             }
-            //const newBlocks = [];
-            //my $fh = _file_open('<'. $fname) || (warn("WARNING: $!: '$fname'\n"), return);
-            var size = fileSize, extent, //my $ext_r = undef();
-            extentCnt = 0, blockCnt = 0;
+            var size = fileSize, extent, extentCnt = 0, blockCnt = 0;
             while (size > 0) {
                 if (!extent || (blockCnt >= 16)) {
                     var records = ((size + 0x80 - 1) / 0x80) | 0; // eslint-disable-line no-bitwise
@@ -7763,14 +7709,13 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                     extent.user = 0;
                     extent.name = name1;
                     extent.ext = ext1;
-                    extent.readOnly = false;
-                    extent.system = false;
-                    extent.backup = false;
+                    //extent.readOnly = false;
+                    //extent.system = false;
+                    //extent.backup = false;
                     extent.extent = extentCnt;
                     extent.lastRecBytes = 0; // ($size >= 0x80) ? 0 : $size;
                     extent.extentHi = 0;
                     extent.records = (records > 0x80) ? 0x80 : records;
-                    //$ext_r->{'ftype_flags'} = ''; # R S B (RO SYS bak?)
                     extent.blocks.length = 0;
                     for (var i = 0; i < 16; i += 1) {
                         extent.blocks[i] = 0;
@@ -7779,13 +7724,13 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                     blockCnt = 0;
                 }
                 var thisSize = (size > bls) ? bls : size;
-                var dataChunk = data.substring(fileSize - size, fileSize - size + thisSize); //my $data_r = _fread_blk($fh, $this_size) || return;
+                var dataChunk = data.substring(fileSize - size, fileSize - size + thisSize);
                 if (thisSize < bls) {
                     dataChunk += DiskImage.uInt8ToString(0x1a); // EOF (maybe ASCII)
-                    dataChunk += DiskImage.uInt8ToString(0).repeat(bls - thisSize - 1); // fill up last block with 0 (or fill?)
+                    dataChunk += DiskImage.uInt8ToString(0).repeat(bls - thisSize - 1); // fill up last block with 0
                 }
                 var block = freeBlocks[(extentCnt - 1) * 16 + blockCnt];
-                this.writeBlock(block, dataChunk); //$self->write_block($block, $data_r) || return;
+                this.writeBlock(block, dataChunk);
                 extent.blocks[blockCnt] = block;
                 blockCnt += 1;
                 size -= thisSize;
@@ -7857,6 +7802,10 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                     type = typeMap.A;
                 }
             }
+            var length = header.pseudoLen || header.length; // logical length;
+            if (length > 0xffff) { // 16 bit
+                length = 0xffff;
+            }
             var data1 = DiskImage.uInt8ToString(header.user || 0)
                 + (header.name || "").padEnd(8, " ")
                 + (header.ext || "").padEnd(3, " ")
@@ -7868,13 +7817,18 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                 + DiskImage.uInt16ToString(0) // data location (unused)
                 + DiskImage.uInt16ToString(header.start || 0)
                 + DiskImage.uInt8ToString(0xff) // first block (unused, always 0xff)
-                + DiskImage.uInt16ToString(header.pseudoLen || header.length) // logical length
+                + DiskImage.uInt16ToString(length) // logical length
                 + DiskImage.uInt16ToString(header.entry || 0)
                 + " ".repeat(36)
                 + DiskImage.uInt24ToString(header.length), checksum = DiskImage.computeChecksum(data1), data = data1
                 + DiskImage.uInt16ToString(checksum)
                 + "\x00".repeat(59);
             return data;
+        };
+        DiskImage.createAmsdosHeader = function (parameter) {
+            // TTT minimal: type: string, start: number, length: number
+            var header = __assign({ user: 0, name: "", ext: "", typeNumber: 0, start: 0, pseudoLen: 0, entry: 0, length: 0, typeString: "" }, parameter);
+            return header;
         };
         DiskImage.formatDescriptors = {
             data: {
@@ -12522,15 +12476,6 @@ define("CpcVmRsx", ["require", "exports"], function (require, exports) {
             this.rsxPermanent = {};
             this.rsxTemporary = {};
         }
-        /*
-        private readonly addrPermanent: Record<string, RsxCommandType> = {};
-        private addrTemporary: Record<string, RsxCommandType> = {};
-        */
-        /*
-        rxAvailable(name: string): boolean {
-            return Boolean(this.rsxTemporary[name] || this.rsxPermanent[name]);
-        }
-        */
         CpcVmRsx.prototype.callRsx = function (vm, name) {
             var args = [];
             for (var _i = 2; _i < arguments.length; _i++) {
@@ -12542,18 +12487,6 @@ define("CpcVmRsx", ["require", "exports"], function (require, exports) {
             }
             return Boolean(fn);
         };
-        /*
-        // we also allow to define adresses for call
-        callAddr(vm: ICpcVm, addr: number, ...args: (string|number)[]): void {
-            const fn = this.addrTemporary[addr] || this.addrPermanent[addr];
-    
-            if (fn) {
-                fn.apply(vm, args);
-            } else if (Utils.debug > 0) {
-                Utils.console.debug("Ignored: CALL", addr, args);
-            }
-        }
-        */
         CpcVmRsx.prototype.registerRsx = function (rsxModule, permanent) {
             var rsxRegister = permanent ? this.rsxPermanent : this.rsxTemporary, rsxCommands = rsxModule.getRsxCommands();
             for (var command in rsxCommands) {
@@ -16300,20 +16233,14 @@ define("FileHandler", ["require", "exports", "Utils", "DiskImage", "Snapshot", "
         FileHandler.getMetaIdent = function () {
             return FileHandler.metaIdent;
         };
-        FileHandler.createMinimalAmsdosHeader = function (type, start, length) {
-            return {
-                typeString: type,
-                start: start,
-                length: length
-            };
-        };
         FileHandler.joinMeta = function (meta) {
             return [
                 FileHandler.metaIdent,
                 meta.typeString,
                 meta.start,
                 meta.length,
-                meta.entry
+                meta.entry,
+                meta.encoding
             ].join(";");
         };
         // starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
@@ -16396,19 +16323,28 @@ define("FileHandler", ["require", "exports", "Utils", "DiskImage", "Snapshot", "
             switch (type) {
                 case "A": // "text/plain"
                 case "B": // binary?
-                    header = FileHandler.createMinimalAmsdosHeader(type, 0, data.length);
+                    header = DiskImage_1.DiskImage.createAmsdosHeader({
+                        typeString: type,
+                        length: data.length
+                    });
                     break;
                 case "H": // with header?
                     break;
                 case "S": // sna file?
-                    header = FileHandler.createMinimalAmsdosHeader(type, 0, data.length); // currently we store it
+                    header = DiskImage_1.DiskImage.createAmsdosHeader({
+                        typeString: type,
+                        length: data.length
+                    }); // currently we store it
                     break;
                 case "X": // dsk file?
                     if (this.processFileImports) {
                         this.processDskFile(data, name, imported); // we know data is string
                     }
                     else {
-                        header = FileHandler.createMinimalAmsdosHeader(type, 0, data.length);
+                        header = DiskImage_1.DiskImage.createAmsdosHeader({
+                            typeString: type,
+                            length: data.length
+                        });
                     }
                     break;
                 case "Z": // zip file?
@@ -16416,12 +16352,18 @@ define("FileHandler", ["require", "exports", "Utils", "DiskImage", "Snapshot", "
                         this.processZipFile(data instanceof Uint8Array ? data : Utils_22.Utils.string2Uint8Array(data), name, imported);
                     }
                     else {
-                        header = FileHandler.createMinimalAmsdosHeader(type, 0, data.length);
+                        header = DiskImage_1.DiskImage.createAmsdosHeader({
+                            typeString: type,
+                            length: data.length
+                        });
                     }
                     break;
                 default:
                     Utils_22.Utils.console.warn("fnLoad2: " + name + ": Unknown file type: " + type + ", assuming B");
-                    header = FileHandler.createMinimalAmsdosHeader("B", 0, data.length);
+                    header = DiskImage_1.DiskImage.createAmsdosHeader({
+                        typeString: "B",
+                        length: data.length
+                    });
                     break;
             }
             if (header) { // do we have a header? (means we should store it as a file in storage...)
@@ -18943,13 +18885,44 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 Controller.fnDownloadBlob(blob, fileName);
             }
         };
+        Controller.prototype.fnGetFilename = function (input) {
+            var name = "file";
+            //const firstLine = input.substring(0, input.indexOf("\n")) || input;
+            var reRemMatcher = /^\d* ?(?:REM|rem) ([\w.]+)+/, matches = input.match(reRemMatcher);
+            if (matches !== null) {
+                name = matches[1];
+            }
+            else {
+                var example = this.model.getProperty("example");
+                if (example !== "") {
+                    name = example;
+                }
+            }
+            if (name.indexOf(".") < 0) {
+                name += ".bas";
+            }
+            return name;
+        };
         Controller.prototype.fnDownload = function () {
-            var input = this.view.getAreaValue("inputText"), tokens = this.encodeTokenizedBasic(input), exportTokenized = this.view.getInputChecked("exportTokenizedInput"), exportDSK = this.view.getInputChecked("exportDSKInput");
-            var name = "file.bas", data = input;
+            var input = this.view.getAreaValue("inputText"), tokens = this.encodeTokenizedBasic(input), exportTokenized = this.view.getInputChecked("exportTokenizedInput"), exportDSK = this.view.getInputChecked("exportDSKInput"), exportBase64 = this.view.getInputChecked("exportBase64Input"), meta = {
+                typeString: "A",
+                start: 0x170,
+                length: input.length,
+                entry: 0
+            };
+            var name = this.fnGetFilename(input), data = input;
             if (exportTokenized) {
                 if (tokens !== "") {
-                    var header = FileHandler_1.FileHandler.createMinimalAmsdosHeader("T", 0x170, tokens.length), headerString = DiskImage_2.DiskImage.combineAmsdosHeader(header);
+                    var _a = DiskImage_2.DiskImage.getFilenameAndExtension(name), name1 = _a[0], ext1 = _a[1], // eslint-disable-line array-element-newline
+                    header = DiskImage_2.DiskImage.createAmsdosHeader({
+                        name: name1,
+                        ext: ext1,
+                        typeString: "T",
+                        start: 0x170,
+                        length: tokens.length
+                    }), headerString = DiskImage_2.DiskImage.combineAmsdosHeader(header);
                     data = headerString + tokens;
+                    meta.typeString = "T";
                 }
             }
             if (exportDSK) {
@@ -18958,13 +18931,20 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     data: "" //TTT change to optional
                 });
                 diskImage.formatImage("data");
-                var dir = diskImage.readDirectory(); // is empty.
+                var dir = diskImage.readDirectory(); // is empty
                 Utils_25.Utils.console.log("TEST: exportDSK: no files:" + Object.keys(dir));
-                // TODO: write file
-                diskImage.writeFile("file.bas", data);
+                diskImage.writeFile(name, data);
                 var options = diskImage.getOptions();
                 data = options.data; // maybe modified
-                name = "file.dsk";
+                name = name.substring(0, name.indexOf(".") + 1) + "dsk";
+                meta.length = data.length;
+                meta.typeString = "X"; // (extended) disk image
+            }
+            if (exportBase64) {
+                meta.encoding = "base64";
+                var metaString = FileHandler_1.FileHandler.joinMeta(meta);
+                data = metaString + "," + Utils_25.Utils.btoa(data);
+                name += ".b64.txt";
             }
             if (data) {
                 this.fnDownloadNewFile(data, name);

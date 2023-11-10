@@ -236,7 +236,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (sectorData.length !== sectorInfo.sectorSize) {
                 Utils_1.Utils.console.error(this.composeError({}, "sectordata.length " + sectorData.length + " <> sectorSize " + sectorInfo.sectorSize, String(0)));
             }
-            //out = this.readUtf(sectorInfo.dataPos, sectorInfo.sectorSize);
             this.options.data = data.substring(0, sectorInfo.dataPos) + sectorData + data.substring(sectorInfo.dataPos + sectorInfo.sectorSize);
         };
         // ...
@@ -362,29 +361,29 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             return out;
         };
-        DiskImage.fnAddHighBit7 = function (str, setBit7) {
-            var out = "";
-            for (var i = 0; i < str.length; i += 1) {
-                var char = str.charCodeAt(i);
+        /*
+        private static fnAddHighBit7(str: string, setBit7: boolean[]) {
+            let out = "";
+    
+            for (let i = 0; i < str.length; i += 1) {
+                const char = str.charCodeAt(i);
+    
                 out += String.fromCharCode(setBit7[i] ? (char | 0x80) : char); // eslint-disable-line no-bitwise
             }
             return out;
-        };
+        }
+        */
         DiskImage.prototype.readDirectoryExtents = function (extents, pos, endPos) {
             while (pos < endPos) {
-                var extWithFlags = this.readUtf(pos + 9, 3), // extension with high bits set for special flags
-                extent = {
+                var extent = {
                     user: this.readUInt8(pos),
-                    name: DiskImage.fnRemoveHighBit7(this.readUtf(pos + 1, 8)),
-                    ext: DiskImage.fnRemoveHighBit7(extWithFlags),
+                    name: this.readUtf(pos + 1, 8),
+                    ext: this.readUtf(pos + 9, 3),
                     extent: this.readUInt8(pos + 12),
                     lastRecBytes: this.readUInt8(pos + 13),
                     extentHi: this.readUInt8(pos + 14),
                     records: this.readUInt8(pos + 15),
-                    blocks: [],
-                    readOnly: Boolean(extWithFlags.charCodeAt(0) & 0x80),
-                    system: Boolean(extWithFlags.charCodeAt(1) & 0x80),
-                    backup: Boolean(extWithFlags.charCodeAt(2) & 0x80) /* eslint-disable-line no-bitwise */
+                    blocks: []
                 };
                 pos += 16;
                 var blocks = extent.blocks;
@@ -403,14 +402,16 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return extents;
         };
         DiskImage.createDirectoryExtentAsString = function (extent) {
-            var extWithFlags = DiskImage.fnAddHighBit7(extent.ext, [
+            /*
+            const extWithFlags = DiskImage.fnAddHighBit7(extent.ext, [
                 extent.readOnly,
                 extent.system,
                 extent.backup
             ]);
+            */
             var extentString = DiskImage.uInt8ToString(extent.user)
                 + extent.name
-                + extWithFlags
+                + extent.ext
                 + DiskImage.uInt8ToString(extent.extent)
                 + DiskImage.uInt8ToString(extent.lastRecBytes)
                 + DiskImage.uInt8ToString(extent.extentHi)
@@ -428,21 +429,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             return extentString;
         };
-        /*
-        private writeDirectoryExtents(extents: ExtentEntry[], pos: number, endPos: number) {
-            let extentString = "";
-    
-            for (let i = 0; i < extents.length; i += 1) {
-                extentString += DiskImage.createDirectoryExtentAsString(extents[i]);
-            }
-    
-            const data = this.options.data;
-    
-            // replace data slice with extentString (length should not change)
-            this.options.data = data.substring(0, pos) + extentString + data.substring(endPos);
-            // TODO: use writeSector!
-        }
-        */
         DiskImage.fnSortByExtentNumber = function (a, b) {
             return a.extent - b.extent;
         };
@@ -460,7 +446,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             for (var i = 0; i < extents.length; i += 1) {
                 var extent = extents[i];
                 if (fill === null || extent.user !== fill) {
-                    var name_2 = extent.name + "." + extent.ext; // and extent.user?
+                    var name_2 = DiskImage.fnRemoveHighBit7(extent.name) + "." + DiskImage.fnRemoveHighBit7(extent.ext); // and extent.user?
                     // (do not convert filename here (to display messages in filenames))
                     if (!reFilePattern || reFilePattern.test(name_2)) {
                         if (!(name_2 in dir)) {
@@ -499,45 +485,18 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         DiskImage.prototype.writeAllDirectoryExtents = function (extents) {
             var directoryBlocks = 2, // could be determined from al0,al1
-            extentsPerBlock = extents.length / directoryBlocks; // TODO: compute
-            //this.seekTrack(off, 0);
+            extentsPerBlock = extents.length / directoryBlocks;
             for (var i = 0; i < directoryBlocks; i += 1) {
-                //const sectorIndex = this.sectorNum2Index(firstSector + i);
                 var blockData = DiskImage.createSeveralDirectoryExtentsAsString(extents, i * extentsPerBlock, (i + 1) * extentsPerBlock);
                 this.writeBlock(i, blockData);
             }
         };
-        /*
-        private writeAllDirectoryExtents(extents: ExtentEntry[]) {
-            const directorySectors = 4, // could be determined from al0,al1
-                format = this.format,
-                off = format.off,
-                firstSector = format.firstSector;
-    
-            this.seekTrack(off, 0);
-    
-            for (let i = 0; i < directorySectors; i += 1) {
-                const sectorIndex = this.sectorNum2Index(firstSector + i);
-    
-                if (sectorIndex === undefined) {
-                    throw this.composeError(Error(), "Cannot write directory at track " + off + " sector", String(firstSector));
-                }
-                const sectorInfo = this.seekSector(sectorIndex);
-    
-                //this.writeDirectoryExtents(extents, sectorInfo.dataPos, sectorInfo.dataPos + sectorInfo.sectorSize);
-            }
-        }
-        */
         DiskImage.prototype.readDirectory = function () {
             var format = this.determineFormat(), extents = [];
             this.format = format;
             this.readAllDirectoryExtents(extents);
             return DiskImage.prepareDirectoryList(extents, format.fill);
         };
-        /*
-        writeDirectory(directoryList: DirectoryListType) {
-        }
-        */
         DiskImage.prototype.nextSector = function (pos) {
             var format = this.format;
             pos.sector += 1;
@@ -639,32 +598,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             return freeExtents;
         };
-        /*
-        // http://bytes.com/groups/cpp/546879-reverse-bit-order
-        private static reverseBitOrder8(num: number) {
-            num = (num & 0x0F) << 4 | (num & 0xF0) >> 4; // eslint-disable-line no-bitwise
-            num = (num & 0x33) << 2 | (num & 0xCC) >> 2; // eslint-disable-line no-bitwise
-            num = (num & 0x55) << 1 | (num & 0xAA) >> 1; // eslint-disable-line no-bitwise
-            return num;
-        }
-        */
         DiskImage.getBlockMask = function (extents, fill, dsm, al0, al1) {
             var blockMask = [];
-            //al01 = al0 | (al1 << 8); // eslint-disable-line no-bitwise
             for (var i = 0; i < dsm - 1; i += 1) {
                 blockMask[i] = false;
             }
             // mark reserved blocks
-            /*
-            let mask1 = 0x8000;
-    
-            for (let i = 0; i < 16; i += 1) {
-                if (al01 & mask1) { // eslint-disable-line no-bitwise
-                    blockMask[i] = true; // mark reserved block
-                }
-                mask1 >>= 1; // eslint-disable-line no-bitwise
-            }
-            */
             var mask = 0x80;
             for (var i = 0; i < 8; i += 1) {
                 if (al0 & mask) { // eslint-disable-line no-bitwise
@@ -708,8 +647,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         DiskImage.getFilenameAndExtension = function (filename) {
             var _a = filename.split("."), name1 = _a[0], ext1 = _a[1]; // eslint-disable-line array-element-newline
-            name1 = name1.toUpperCase().padEnd(8, " ");
-            ext1 = ext1.toUpperCase().padEnd(3, " ");
+            name1 = name1.substring(0, 8).toUpperCase().padEnd(8, " ");
+            ext1 = ext1.substring(0, 3).toUpperCase().padEnd(3, " ");
             return [name1, ext1]; // eslint-disable-line array-element-newline
         };
         DiskImage.prototype.writeFile = function (filename, data) {
@@ -743,10 +682,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 Utils_1.Utils.console.warn("writeFile: Directory full!");
                 return false;
             }
-            //const newBlocks = [];
-            //my $fh = _file_open('<'. $fname) || (warn("WARNING: $!: '$fname'\n"), return);
-            var size = fileSize, extent, //my $ext_r = undef();
-            extentCnt = 0, blockCnt = 0;
+            var size = fileSize, extent, extentCnt = 0, blockCnt = 0;
             while (size > 0) {
                 if (!extent || (blockCnt >= 16)) {
                     var records = ((size + 0x80 - 1) / 0x80) | 0; // eslint-disable-line no-bitwise
@@ -754,14 +690,13 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     extent.user = 0;
                     extent.name = name1;
                     extent.ext = ext1;
-                    extent.readOnly = false;
-                    extent.system = false;
-                    extent.backup = false;
+                    //extent.readOnly = false;
+                    //extent.system = false;
+                    //extent.backup = false;
                     extent.extent = extentCnt;
                     extent.lastRecBytes = 0; // ($size >= 0x80) ? 0 : $size;
                     extent.extentHi = 0;
                     extent.records = (records > 0x80) ? 0x80 : records;
-                    //$ext_r->{'ftype_flags'} = ''; # R S B (RO SYS bak?)
                     extent.blocks.length = 0;
                     for (var i = 0; i < 16; i += 1) {
                         extent.blocks[i] = 0;
@@ -770,13 +705,13 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     blockCnt = 0;
                 }
                 var thisSize = (size > bls) ? bls : size;
-                var dataChunk = data.substring(fileSize - size, fileSize - size + thisSize); //my $data_r = _fread_blk($fh, $this_size) || return;
+                var dataChunk = data.substring(fileSize - size, fileSize - size + thisSize);
                 if (thisSize < bls) {
                     dataChunk += DiskImage.uInt8ToString(0x1a); // EOF (maybe ASCII)
-                    dataChunk += DiskImage.uInt8ToString(0).repeat(bls - thisSize - 1); // fill up last block with 0 (or fill?)
+                    dataChunk += DiskImage.uInt8ToString(0).repeat(bls - thisSize - 1); // fill up last block with 0
                 }
                 var block = freeBlocks[(extentCnt - 1) * 16 + blockCnt];
-                this.writeBlock(block, dataChunk); //$self->write_block($block, $data_r) || return;
+                this.writeBlock(block, dataChunk);
                 extent.blocks[blockCnt] = block;
                 blockCnt += 1;
                 size -= thisSize;
@@ -848,6 +783,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     type = typeMap.A;
                 }
             }
+            var length = header.pseudoLen || header.length; // logical length;
+            if (length > 0xffff) { // 16 bit
+                length = 0xffff;
+            }
             var data1 = DiskImage.uInt8ToString(header.user || 0)
                 + (header.name || "").padEnd(8, " ")
                 + (header.ext || "").padEnd(3, " ")
@@ -859,13 +798,18 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 + DiskImage.uInt16ToString(0) // data location (unused)
                 + DiskImage.uInt16ToString(header.start || 0)
                 + DiskImage.uInt8ToString(0xff) // first block (unused, always 0xff)
-                + DiskImage.uInt16ToString(header.pseudoLen || header.length) // logical length
+                + DiskImage.uInt16ToString(length) // logical length
                 + DiskImage.uInt16ToString(header.entry || 0)
                 + " ".repeat(36)
                 + DiskImage.uInt24ToString(header.length), checksum = DiskImage.computeChecksum(data1), data = data1
                 + DiskImage.uInt16ToString(checksum)
                 + "\x00".repeat(59);
             return data;
+        };
+        DiskImage.createAmsdosHeader = function (parameter) {
+            // TTT minimal: type: string, start: number, length: number
+            var header = __assign({ user: 0, name: "", ext: "", typeNumber: 0, start: 0, pseudoLen: 0, entry: 0, length: 0, typeString: "" }, parameter);
+            return header;
         };
         DiskImage.formatDescriptors = {
             data: {

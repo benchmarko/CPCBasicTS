@@ -825,9 +825,6 @@ declare module "DiskImage" {
         extentHi: number;
         records: number;
         blocks: number[];
-        readOnly: boolean;
-        system: boolean;
-        backup: boolean;
     }
     export interface AmsdosHeader {
         user: number;
@@ -877,7 +874,6 @@ declare module "DiskImage" {
         private createImage;
         formatImage(format: string): string;
         private static fnRemoveHighBit7;
-        private static fnAddHighBit7;
         private readDirectoryExtents;
         private static createDirectoryExtentAsString;
         private static createSeveralDirectoryExtentsAsString;
@@ -896,13 +892,14 @@ declare module "DiskImage" {
         private static getFreeExtents;
         private static getBlockMask;
         private static getFreeBlocks;
-        private static getFilenameAndExtension;
+        static getFilenameAndExtension(filename: string): string[];
         writeFile(filename: string, data: string): boolean;
         private static protectTable;
         static unOrProtectData(data: string): string;
         private static computeChecksum;
         static parseAmsdosHeader(data: string): AmsdosHeader | undefined;
         static combineAmsdosHeader(header: AmsdosHeader): string;
+        static createAmsdosHeader(parameter: Partial<AmsdosHeader>): AmsdosHeader;
     }
 }
 declare module "InputStack" {
@@ -2005,7 +2002,6 @@ declare module "Snapshot" {
 }
 declare module "FileHandler" {
     import { FileMeta } from "CpcVm";
-    import { AmsdosHeader } from "DiskImage";
     export interface FileHandlerOptions {
         adaptFilename: (name: string, err: string) => string;
         updateStorageDatabase: (action: string, key: string) => void;
@@ -2022,7 +2018,6 @@ declare module "FileHandler" {
         constructor(options: FileHandlerOptions);
         private static fnLocalStorageName;
         static getMetaIdent(): string;
-        static createMinimalAmsdosHeader(type: string, start: number, length: number): AmsdosHeader;
         static joinMeta(meta: FileMeta): string;
         private static reRegExpIsText;
         private processDskFile;
@@ -2301,6 +2296,7 @@ declare module "Controller" {
         fnRemoveLines(): void;
         private static fnDownloadBlob;
         private fnDownloadNewFile;
+        private fnGetFilename;
         fnDownload(): void;
         private selectJsError;
         private fnChain;
