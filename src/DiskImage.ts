@@ -67,10 +67,18 @@ interface ExtentEntry {
 	records: number
 	blocks: number[]
 
+	//readOnly: boolean
+	//system: boolean
+	//backup: boolean
+}
+
+/*
+type ExtentEntryWithFlags = ExtentEntry & {
 	readOnly: boolean
 	system: boolean
 	backup: boolean
-}
+};
+*/
 
 interface FormatDescriptor {
 	tracks: number // number of tracks (1-85)
@@ -496,7 +504,6 @@ export class DiskImage {
 			Utils.console.error(this.composeError({} as Error, "sectordata.length " + sectorData.length + " <> sectorSize " + sectorInfo.sectorSize, String(0)));
 		}
 
-		//out = this.readUtf(sectorInfo.dataPos, sectorInfo.sectorSize);
 		this.options.data = data.substring(0, sectorInfo.dataPos) + sectorData + data.substring(sectorInfo.dataPos + sectorInfo.sectorSize);
 	}
 
@@ -657,6 +664,7 @@ export class DiskImage {
 		return out;
 	}
 
+	/*
 	private static fnAddHighBit7(str: string, setBit7: boolean[]) {
 		let out = "";
 
@@ -667,24 +675,20 @@ export class DiskImage {
 		}
 		return out;
 	}
+	*/
 
 	private readDirectoryExtents(extents: ExtentEntry[], pos: number, endPos: number) {
 		while (pos < endPos) {
-			const extWithFlags = this.readUtf(pos + 9, 3), // extension with high bits set for special flags
-				extent: ExtentEntry = {
-					user: this.readUInt8(pos),
-					name: DiskImage.fnRemoveHighBit7(this.readUtf(pos + 1, 8)),
-					ext: DiskImage.fnRemoveHighBit7(extWithFlags), // extension
-					extent: this.readUInt8(pos + 12),
-					lastRecBytes: this.readUInt8(pos + 13),
-					extentHi: this.readUInt8(pos + 14), // used for what?
-					records: this.readUInt8(pos + 15),
-					blocks: [],
-
-					readOnly: Boolean(extWithFlags.charCodeAt(0) & 0x80), /* eslint-disable-line no-bitwise */
-					system: Boolean(extWithFlags.charCodeAt(1) & 0x80), /* eslint-disable-line no-bitwise */
-					backup: Boolean(extWithFlags.charCodeAt(2) & 0x80) /* eslint-disable-line no-bitwise */
-				};
+			const extent: ExtentEntry = {
+				user: this.readUInt8(pos),
+				name: this.readUtf(pos + 1, 8),
+				ext: this.readUtf(pos + 9, 3), // extension with flags
+				extent: this.readUInt8(pos + 12),
+				lastRecBytes: this.readUInt8(pos + 13),
+				extentHi: this.readUInt8(pos + 14), // used for what?
+				records: this.readUInt8(pos + 15),
+				blocks: []
+			};
 
 			pos += 16;
 
@@ -706,15 +710,17 @@ export class DiskImage {
 	}
 
 	private static createDirectoryExtentAsString(extent: ExtentEntry) {
+		/*
 		const extWithFlags = DiskImage.fnAddHighBit7(extent.ext, [
 			extent.readOnly,
 			extent.system,
 			extent.backup
 		]);
+		*/
 
 		let	extentString = DiskImage.uInt8ToString(extent.user)
 			+ extent.name
-			+ extWithFlags
+			+ extent.ext
 			+ DiskImage.uInt8ToString(extent.extent)
 			+ DiskImage.uInt8ToString(extent.lastRecBytes)
 			+ DiskImage.uInt8ToString(extent.extentHi)
@@ -738,22 +744,6 @@ export class DiskImage {
 		return extentString;
 	}
 
-	/*
-	private writeDirectoryExtents(extents: ExtentEntry[], pos: number, endPos: number) {
-		let extentString = "";
-
-		for (let i = 0; i < extents.length; i += 1) {
-			extentString += DiskImage.createDirectoryExtentAsString(extents[i]);
-		}
-
-		const data = this.options.data;
-
-		// replace data slice with extentString (length should not change)
-		this.options.data = data.substring(0, pos) + extentString + data.substring(endPos);
-		// TODO: use writeSector!
-	}
-	*/
-
 	private static fnSortByExtentNumber(a: ExtentEntry, b: ExtentEntry) {
 		return a.extent - b.extent;
 	}
@@ -776,7 +766,7 @@ export class DiskImage {
 			const extent = extents[i];
 
 			if (fill === null || extent.user !== fill) {
-				const name = extent.name + "." + extent.ext; // and extent.user?
+				const name = DiskImage.fnRemoveHighBit7(extent.name) + "." + DiskImage.fnRemoveHighBit7(extent.ext); // and extent.user?
 
 				// (do not convert filename here (to display messages in filenames))
 				if (!reFilePattern || reFilePattern.test(name)) {
@@ -828,40 +818,14 @@ export class DiskImage {
 
 	private writeAllDirectoryExtents(extents: ExtentEntry[]) {
 		const directoryBlocks = 2, // could be determined from al0,al1
-			extentsPerBlock = extents.length / directoryBlocks; // TODO: compute
-
-		//this.seekTrack(off, 0);
+			extentsPerBlock = extents.length / directoryBlocks;
 
 		for (let i = 0; i < directoryBlocks; i += 1) {
-			//const sectorIndex = this.sectorNum2Index(firstSector + i);
-
 			const blockData = DiskImage.createSeveralDirectoryExtentsAsString(extents, i * extentsPerBlock, (i + 1) * extentsPerBlock);
 
 			this.writeBlock(i, blockData);
 		}
 	}
-
-	/*
-	private writeAllDirectoryExtents(extents: ExtentEntry[]) {
-		const directorySectors = 4, // could be determined from al0,al1
-			format = this.format,
-			off = format.off,
-			firstSector = format.firstSector;
-
-		this.seekTrack(off, 0);
-
-		for (let i = 0; i < directorySectors; i += 1) {
-			const sectorIndex = this.sectorNum2Index(firstSector + i);
-
-			if (sectorIndex === undefined) {
-				throw this.composeError(Error(), "Cannot write directory at track " + off + " sector", String(firstSector));
-			}
-			const sectorInfo = this.seekSector(sectorIndex);
-
-			//this.writeDirectoryExtents(extents, sectorInfo.dataPos, sectorInfo.dataPos + sectorInfo.sectorSize);
-		}
-	}
-	*/
 
 	readDirectory(): DirectoryListType {
 		const format = this.determineFormat(),
@@ -872,11 +836,6 @@ export class DiskImage {
 		this.readAllDirectoryExtents(extents);
 		return DiskImage.prepareDirectoryList(extents, format.fill);
 	}
-
-	/*
-	writeDirectory(directoryList: DirectoryListType) {
-	}
-	*/
 
 	private nextSector(pos: SectorPos) {
 		const format = this.format;
@@ -1013,37 +972,14 @@ export class DiskImage {
 		return freeExtents;
 	}
 
-
-	/*
-	// http://bytes.com/groups/cpp/546879-reverse-bit-order
-	private static reverseBitOrder8(num: number) {
-		num = (num & 0x0F) << 4 | (num & 0xF0) >> 4; // eslint-disable-line no-bitwise
-		num = (num & 0x33) << 2 | (num & 0xCC) >> 2; // eslint-disable-line no-bitwise
-		num = (num & 0x55) << 1 | (num & 0xAA) >> 1; // eslint-disable-line no-bitwise
-		return num;
-	}
-	*/
-
 	private static getBlockMask(extents: ExtentEntry[], fill: number, dsm: number, al0: number, al1: number) {
 		const blockMask: boolean[] = [];
-			//al01 = al0 | (al1 << 8); // eslint-disable-line no-bitwise
 
 		for (let i = 0; i < dsm - 1; i += 1) {
 			blockMask[i] = false;
 		}
 
 		// mark reserved blocks
-		/*
-		let mask1 = 0x8000;
-
-		for (let i = 0; i < 16; i += 1) {
-			if (al01 & mask1) { // eslint-disable-line no-bitwise
-				blockMask[i] = true; // mark reserved block
-			}
-			mask1 >>= 1; // eslint-disable-line no-bitwise
-		}
-		*/
-
 		let mask = 0x80;
 
 		for (let i = 0; i < 8; i += 1) {
@@ -1094,11 +1030,11 @@ export class DiskImage {
 		return freeBlocks;
 	}
 
-	private static getFilenameAndExtension(filename: string) {
+	static getFilenameAndExtension(filename: string): string[] {
 		let [name1, ext1] = filename.split("."); // eslint-disable-line array-element-newline
 
-		name1 = name1.toUpperCase().padEnd(8, " ");
-		ext1 = ext1.toUpperCase().padEnd(3, " ");
+		name1 = name1.substring(0, 8).toUpperCase().padEnd(8, " ");
+		ext1 = ext1.substring(0, 3).toUpperCase().padEnd(3, " ");
 
 		return [name1, ext1]; // eslint-disable-line array-element-newline
 	}
@@ -1154,12 +1090,8 @@ export class DiskImage {
 			return false;
 		}
 
-		//const newBlocks = [];
-
-		//my $fh = _file_open('<'. $fname) || (warn("WARNING: $!: '$fname'\n"), return);
-
 		let size = fileSize,
-			extent: ExtentEntry | undefined, //my $ext_r = undef();
+			extent: ExtentEntry | undefined,
 			extentCnt = 0,
 			blockCnt = 0;
 
@@ -1171,14 +1103,13 @@ export class DiskImage {
 				extent.user = 0;
 				extent.name = name1;
 				extent.ext = ext1;
-				extent.readOnly = false;
-				extent.system = false;
-				extent.backup = false;
+				//extent.readOnly = false;
+				//extent.system = false;
+				//extent.backup = false;
 				extent.extent = extentCnt;
 				extent.lastRecBytes = 0; // ($size >= 0x80) ? 0 : $size;
 				extent.extentHi = 0;
 				extent.records = (records > 0x80) ? 0x80 : records;
-				//$ext_r->{'ftype_flags'} = ''; # R S B (RO SYS bak?)
 				extent.blocks.length = 0;
 				for (let i = 0; i < 16; i += 1) {
 					extent.blocks[i] = 0;
@@ -1188,16 +1119,16 @@ export class DiskImage {
 			}
 
 			const thisSize = (size > bls) ? bls : size;
-			let	dataChunk = data.substring(fileSize - size, fileSize - size + thisSize); //my $data_r = _fread_blk($fh, $this_size) || return;
+			let	dataChunk = data.substring(fileSize - size, fileSize - size + thisSize);
 
 			if (thisSize < bls) {
 				dataChunk += DiskImage.uInt8ToString(0x1a); // EOF (maybe ASCII)
-				dataChunk += DiskImage.uInt8ToString(0).repeat(bls - thisSize - 1); // fill up last block with 0 (or fill?)
+				dataChunk += DiskImage.uInt8ToString(0).repeat(bls - thisSize - 1); // fill up last block with 0
 			}
 
 			const block = freeBlocks[(extentCnt - 1) * 16 + blockCnt];
 
-			this.writeBlock(block, dataChunk); //$self->write_block($block, $data_r) || return;
+			this.writeBlock(block, dataChunk);
 			extent.blocks[blockCnt] = block;
 			blockCnt += 1;
 			size -= thisSize;
@@ -1295,6 +1226,12 @@ export class DiskImage {
 			}
 		}
 
+		let length = header.pseudoLen || header.length; // logical length;
+
+		if (length > 0xffff) { // 16 bit
+			length = 0xffff;
+		}
+
 		const data1
 			= DiskImage.uInt8ToString(header.user || 0)
 			+ (header.name || "").padEnd(8, " ")
@@ -1307,7 +1244,7 @@ export class DiskImage {
 			+ DiskImage.uInt16ToString(0) // data location (unused)
 			+ DiskImage.uInt16ToString(header.start || 0)
 			+ DiskImage.uInt8ToString(0xff) // first block (unused, always 0xff)
-			+ DiskImage.uInt16ToString(header.pseudoLen || header.length) // logical length
+			+ DiskImage.uInt16ToString(length) // logical length
 			+ DiskImage.uInt16ToString(header.entry || 0)
 			+ " ".repeat(36)
 			+ DiskImage.uInt24ToString(header.length),
@@ -1320,5 +1257,22 @@ export class DiskImage {
 
 		return data;
 	}
-}
 
+	static createAmsdosHeader(parameter: Partial<AmsdosHeader>): AmsdosHeader {
+		// TTT minimal: type: string, start: number, length: number
+		const header: AmsdosHeader = {
+			user: 0,
+			name: "",
+			ext: "",
+			typeNumber: 0,
+			start: 0,
+			pseudoLen: 0,
+			entry: 0,
+			length: 0,
+			typeString: "",
+			...parameter
+		};
+
+		return header;
+	}
+}

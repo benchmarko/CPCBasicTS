@@ -2045,20 +2045,57 @@ export class Controller implements IController {
 		}
 	}
 
+	private fnGetFilename(input: string) {
+		let name = "file";
+		//const firstLine = input.substring(0, input.indexOf("\n")) || input;
+		const reRemMatcher = /^\d* ?(?:REM|rem) ([\w.]+)+/,
+			matches = input.match(reRemMatcher);
+
+		if (matches !== null) {
+			name = matches[1];
+		} else {
+			const example = this.model.getProperty<string>("example");
+
+			if (example !== "") {
+				name = example;
+			}
+		}
+
+		if (name.indexOf(".") < 0) {
+			name += ".bas";
+		}
+		return name;
+	}
+
 	fnDownload(): void {
 		const input = this.view.getAreaValue("inputText"),
 			tokens = this.encodeTokenizedBasic(input),
 			exportTokenized = this.view.getInputChecked("exportTokenizedInput"),
-			exportDSK = this.view.getInputChecked("exportDSKInput");
-		let name = "file.bas",
+			exportDSK = this.view.getInputChecked("exportDSKInput"),
+			exportBase64 = this.view.getInputChecked("exportBase64Input"),
+			meta: FileMeta = {
+				typeString: "A", // ASCII
+				start: 0x170,
+				length: input.length,
+				entry: 0
+			};
+		let name = this.fnGetFilename(input),
 			data = input;
 
 		if (exportTokenized) {
 			if (tokens !== "") {
-				const header = FileHandler.createMinimalAmsdosHeader("T", 0x170, tokens.length),
+				const [name1, ext1] = DiskImage.getFilenameAndExtension(name), // eslint-disable-line array-element-newline
+					header = DiskImage.createAmsdosHeader({
+						name: name1,
+						ext: ext1,
+						typeString: "T", // tokenized
+						start: 0x170,
+						length: tokens.length
+					}),
 					headerString = DiskImage.combineAmsdosHeader(header);
 
 				data = headerString + tokens;
+				meta.typeString = "T";
 			}
 		}
 
@@ -2070,16 +2107,25 @@ export class Controller implements IController {
 
 			diskImage.formatImage("data");
 
-			const dir = diskImage.readDirectory(); // is empty.
+			const dir = diskImage.readDirectory(); // is empty
 
 			Utils.console.log("TEST: exportDSK: no files:" + Object.keys(dir));
-			// TODO: write file
-			diskImage.writeFile("file.bas", data);
+			diskImage.writeFile(name, data);
 
 			const options = diskImage.getOptions();
 
 			data = options.data; // maybe modified
-			name = "file.dsk";
+			name = name.substring(0, name.indexOf(".") + 1) + "dsk";
+			meta.length = data.length;
+			meta.typeString = "X"; // (extended) disk image
+		}
+
+		if (exportBase64) {
+			meta.encoding = "base64";
+			const metaString = FileHandler.joinMeta(meta);
+
+			data = metaString + "," + Utils.btoa(data);
+			name += ".b64.txt";
 		}
 
 		if (data) {
