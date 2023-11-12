@@ -43,6 +43,43 @@ export class Model {
 		this.examples = {}; // loaded examples per database
 	}
 
+	static readonly props = {
+		arrayBounds: "arrayBounds",
+		autorun: "autorun",
+		basicVersion: "basicVersion",
+		bench: "bench",
+		databaseDirs: "databaseDirs",
+		database: "database",
+		debug: "debug",
+		example: "example",
+		exampleIndex: "exampleIndex",
+		implicitLines: "implicitLines",
+		input: "input",
+		kbdLayout: "kbdLayout",
+		canvasType: "canvasType",
+		palette: "palette",
+		processFileImports: "processFileImports",
+		showConsoleLog: "showConsoleLog",
+		showConvert: "showConvert",
+		showCpc: "showCpc",
+		showDisass: "showDisass",
+		showExport: "showExport",
+		showGallery: "showGallery",
+		showInput: "showInput",
+		showInp2: "showInp2",
+		showKbd: "showKbd",
+		showKbdSettings: "showKbdSettings",
+		showMore: "showMore",
+		showOutput: "showOutput",
+		showResult: "showResult",
+		showSettings: "showSettings",
+		showVariable: "showVariable",
+		showView: "showView",
+		sound: "sound",
+		speed: "speed",
+		trace: "trace"
+	};
+
 	getProperty<T extends ConfigEntryType>(property: string): T {
 		return this.config[property] as T;
 	}
@@ -85,23 +122,23 @@ export class Model {
 		return this.databases;
 	}
 	getDatabase(): DatabaseEntry {
-		const database = this.getProperty<string>("database");
+		const database = this.getProperty<string>(Model.props.database);
 
 		return this.databases[database];
 	}
 
 	getAllExamples(): {	[x: string]: ExampleEntry; } {
-		const database = this.getProperty<string>("database");
+		const database = this.getProperty<string>(Model.props.database);
 
 		return this.examples[database];
 	}
 	getExample(key: string): ExampleEntry {
-		const database = this.getProperty<string>("database");
+		const database = this.getProperty<string>(Model.props.database);
 
 		return this.examples[database][key];
 	}
 	setExample(example: ExampleEntry): void {
-		const database = this.getProperty<string>("database"),
+		const database = this.getProperty<string>(Model.props.database),
 			key = example.key;
 
 		if (!this.examples[database][key]) {
@@ -112,7 +149,7 @@ export class Model {
 		this.examples[database][key] = example;
 	}
 	removeExample(key: string): void {
-		const database = this.getProperty<string>("database");
+		const database = this.getProperty<string>(Model.props.database);
 
 		if (!this.examples[database][key]) {
 			Utils.console.warn("removeExample: example does not exist: " + key);

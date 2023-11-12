@@ -24,67 +24,36 @@ export class CommonEventHandler implements EventListenerObject {
 		this.fnUserAction = fnAction;
 	}
 
-	private onInputButtonClick() {
-		this.controller.toggleAreaHidden("inputArea");
+	/*
+	private onKbdButtonClick() {
+		this.controller.toggleAreaHidden(View.ids.kbdSettingsArea);
 	}
-
-	private onInp2ButtonClick() {
-		this.controller.toggleAreaHidden("inp2Area");
-	}
-
-	private onOutputButtonClick() {
-		this.controller.toggleAreaHidden("outputArea");
-	}
-
-	private onResultButtonClick() {
-		this.controller.toggleAreaHidden("resultArea");
-	}
-
-	private onVariableButtonClick() {
-		this.controller.toggleAreaHidden("variableArea");
-	}
-
-	private onCpcButtonClick() {
-		if (this.controller.toggleAreaHidden("cpcArea")) {
-			this.controller.startUpdateCanvas();
-		} else {
-			this.controller.stopUpdateCanvas();
-		}
-	}
+	*/
 
 	private onConvertButtonClick() {
-		this.controller.toggleAreaHidden("convertArea");
+		this.controller.toggleAreaHidden(View.ids.convertArea);
 	}
 
 	private onSettingsButtonClick() {
-		this.controller.toggleAreaHidden("settingsArea");
+		this.controller.toggleAreaHidden(View.ids.settingsArea);
+	}
+
+	private onViewButtonClick() {
+		this.controller.toggleAreaHidden(View.ids.viewArea);
 	}
 
 	private onExportButtonClick() {
-		this.controller.toggleAreaHidden("exportArea");
+		this.controller.toggleAreaHidden(View.ids.exportArea);
 	}
 
 	private onGalleryButtonClick() {
-		if (this.controller.toggleAreaHidden("galleryArea")) {
+		if (this.controller.toggleAreaHidden(View.ids.galleryArea)) {
 			this.controller.setGalleryAreaInputs();
 		}
 	}
 
 	private onMoreButtonClick() {
-		this.controller.toggleAreaHidden("moreArea");
-	}
-
-	private onKbdButtonClick() {
-		if (this.controller.toggleAreaHidden("kbdArea")) {
-			this.controller.getVirtualKeyboard(); // maybe draw it
-			this.view.setHidden("kbdLayoutArea", true, "inherit"); // kbd visible => kbdlayout invisible
-		} else {
-			this.view.setHidden("kbdLayoutArea", false, "inherit");
-		}
-	}
-
-	private onConsoleButtonClick() {
-		this.controller.toggleAreaHidden("consoleArea");
+		this.controller.toggleAreaHidden(View.ids.moreArea);
 	}
 
 	private onParseButtonClick() {
@@ -109,7 +78,7 @@ export class CommonEventHandler implements EventListenerObject {
 
 	private fnUpdateAreaText(input: string) {
 		this.controller.setInputText(input, true);
-		this.view.setAreaValue("outputText", "");
+		this.view.setAreaValue(View.ids.outputText, "");
 	}
 
 	private onUndoButtonClick() {
@@ -158,8 +127,8 @@ export class CommonEventHandler implements EventListenerObject {
 		const target = View.getEventTarget<HTMLInputElement>(event),
 			value = target.value;
 
-		this.view.setSelectValue("exampleSelect", value);
-		this.controller.toggleAreaHidden("galleryArea"); // close
+		this.view.setSelectValue(View.ids.exampleSelect, value);
+		this.controller.toggleAreaHidden(View.ids.galleryArea); // close
 
 		this.onExampleSelectChange();
 	}
@@ -170,11 +139,11 @@ export class CommonEventHandler implements EventListenerObject {
 
 	// eslint-disable-next-line class-methods-use-this
 	private onCopyTextButtonClick() {
-		const textText = View.getElementByIdAs<HTMLTextAreaElement>("textText");
+		const textText = View.getElementByIdAs<HTMLTextAreaElement>(View.ids.textText);
 
 		textText.select();
 
-		this.view.setAreaSelection("textText", 0, 99999); // for mobile devices
+		this.view.setAreaSelection(View.ids.textText, 0, 99999); // for mobile devices
 		if (window.navigator && window.navigator.clipboard) {
 			window.navigator.clipboard.writeText(textText.value);
 		} else {
@@ -200,6 +169,9 @@ export class CommonEventHandler implements EventListenerObject {
 	}
 
 	private onReloadButtonClick() {
+		//this.onSettingsButtonClick(); // close settings dialog
+		this.controller.setPopoversHiddenExcept(""); // hide all popovers,
+
 		const changed = this.model.getChangedProperties();
 		let paras = CommonEventHandler.encodeUriParam(changed);
 
@@ -220,44 +192,44 @@ export class CommonEventHandler implements EventListenerObject {
 	}
 
 	onVarSelectChange(): void {
-		const par = this.view.getSelectValue("varSelect"),
+		const par = this.view.getSelectValue(View.ids.varSelect),
 			value = this.controller.getVariable(par),
 			valueString = (value !== undefined) ? String(value) : "";
 
-		this.view.setAreaValue("varText", valueString);
+		this.view.setAreaValue(View.ids.varText, valueString);
 	}
 
 	onKbdLayoutSelectChange(): void {
-		const value = this.view.getSelectValue("kbdLayoutSelect");
+		const value = this.view.getSelectValue(View.ids.kbdLayoutSelect);
 
-		this.model.setProperty("kbdLayout", value);
-		this.view.setSelectTitleFromSelectedOption("kbdLayoutSelect");
+		this.model.setProperty(Model.props.kbdLayout, value);
+		this.view.setSelectTitleFromSelectedOption(View.ids.kbdLayoutSelect);
 
-		this.view.setHidden("kbdAlpha", value === "num");
-		this.view.setHidden("kbdNum", value === "alpha");
+		this.view.setHidden(View.ids.kbdAlpha, value === "num");
+		this.view.setHidden(View.ids.kbdNum, value === "alpha");
 	}
 
 	private onBasicVersionSelectChange() {
-		const value = this.view.getSelectValue("basicVersionSelect");
+		const value = this.view.getSelectValue(View.ids.basicVersionSelect);
 
-		this.model.setProperty("basicVersion", value);
-		this.view.setSelectTitleFromSelectedOption("basicVersionSelect");
+		this.model.setProperty(Model.props.basicVersion, value);
+		this.view.setSelectTitleFromSelectedOption(View.ids.basicVersionSelect);
 		this.controller.setBasicVersion(value);
 	}
 
 	private onPaletteSelectChange() {
-		const value = this.view.getSelectValue("paletteSelect");
+		const value = this.view.getSelectValue(View.ids.paletteSelect);
 
-		this.model.setProperty("palette", value);
-		this.view.setSelectTitleFromSelectedOption("paletteSelect");
+		this.model.setProperty(Model.props.palette, value);
+		this.view.setSelectTitleFromSelectedOption(View.ids.paletteSelect);
 		this.controller.setPalette(value);
 	}
 
 	private onCanvasTypeSelectChange() {
-		const value = this.view.getSelectValue("canvasTypeSelect");
+		const value = this.view.getSelectValue(View.ids.canvasTypeSelect);
 
-		this.model.setProperty("canvasType", value);
-		this.view.setSelectTitleFromSelectedOption("canvasTypeSelect");
+		this.model.setProperty(Model.props.canvasType, value);
+		this.view.setSelectTitleFromSelectedOption(View.ids.canvasTypeSelect);
 		this.controller.setCanvasType(value);
 	}
 
@@ -266,80 +238,107 @@ export class CommonEventHandler implements EventListenerObject {
 	}
 
 	private onDebugInputChange() {
-		const debug = this.view.getInputValue("debugInput");
+		const debug = this.view.getInputValue(View.ids.debugInput);
 
 		this.model.setProperty<number>("debug", Number(debug));
 		Utils.debug = Number(debug);
 	}
 
 	private onImplicitLinesInputChange() {
-		const checked = this.view.getInputChecked("implicitLinesInput");
+		const checked = this.view.getInputChecked(View.ids.implicitLinesInput);
 
-		this.model.setProperty("implicitLines", checked);
+		this.model.setProperty(Model.props.implicitLines, checked);
 		this.controller.fnImplicitLines();
 	}
 
 	private onArrayBoundsInputChange() {
-		const checked = this.view.getInputChecked("arrayBoundsInput");
+		const checked = this.view.getInputChecked(View.ids.arrayBoundsInput);
 
-		this.model.setProperty("arrayBounds", checked);
+		this.model.setProperty(Model.props.arrayBounds, checked);
 		this.controller.fnArrayBounds();
 	}
 
-	private onConsoleLogInputChange() {
-		const checked = this.view.getInputChecked("consoleLogInput");
-
-		this.model.setProperty("showConsole", checked);
-		if (checked && this.view.getHidden("consoleBox")) {
-			this.view.setHidden("consoleBox", !checked); // make sure the box around is visible
+	private onShowCpcInputChange() {
+		if (this.controller.toggleAreaHidden(View.ids.cpcArea)) {
+			this.controller.startUpdateCanvas();
+		} else {
+			this.controller.stopUpdateCanvas();
 		}
 	}
 
-	private onShowDisassInputChange() {
-		const checked = this.view.getInputChecked("showDisassInput");
+	private onShowKbdInputChange() {
+		if (this.controller.toggleAreaHidden(View.ids.kbdArea)) {
+			this.controller.getVirtualKeyboard(); // maybe draw it
+		}
+	}
 
-		this.model.setProperty("showDisass", checked);
-		this.view.setHidden("disassBox", !checked);
+	private onShowInp2InputChange() {
+		this.controller.toggleAreaHidden(View.ids.inp2Area);
+	}
+
+	private onShowResultInputChange() {
+		this.controller.toggleAreaHidden(View.ids.resultArea);
+	}
+
+
+	private onShowInputInputChange() {
+		this.controller.toggleAreaHidden(View.ids.inputArea);
+	}
+
+	private onShowVariableInputChange() {
+		this.controller.toggleAreaHidden(View.ids.variableArea);
+	}
+
+	private onShowOutputInputChange() {
+		this.controller.toggleAreaHidden(View.ids.outputArea);
+	}
+
+	private onShowDisassInputChange() {
+		this.controller.toggleAreaHidden(View.ids.disassArea);
+	}
+
+	private onShowConsoleLogInputChange() {
+		this.controller.toggleAreaHidden(View.ids.consoleLogArea);
 	}
 
 	private onDisassInputChange() {
-		const addressStr = this.view.getInputValue("disassInput"),
+		const addressStr = this.view.getInputValue(View.ids.disassInput),
 			addr = parseInt(addressStr, 16); // parse as hex
 
 		this.controller.setDisassAddr(addr);
 	}
 
 	private onTraceInputChange() {
-		const checked = this.view.getInputChecked("traceInput");
+		const checked = this.view.getInputChecked(View.ids.traceInput);
 
-		this.model.setProperty("trace", checked);
+		this.model.setProperty(Model.props.trace, checked);
 		this.controller.fnTrace();
 	}
 
 	private onAutorunInputChange() {
-		const checked = this.view.getInputChecked("autorunInput");
+		const checked = this.view.getInputChecked(View.ids.autorunInput);
 
-		this.model.setProperty("autorun", checked);
+		this.model.setProperty(Model.props.autorun, checked);
 	}
 
 	private onSoundInputChange() {
-		const checked = this.view.getInputChecked("soundInput");
+		const checked = this.view.getInputChecked(View.ids.soundInput);
 
-		this.model.setProperty("sound", checked);
+		this.model.setProperty(Model.props.sound, checked);
 		this.controller.setSoundActive();
 	}
 
 	private onSpeedInputChange() {
-		const speed = this.view.getInputValue("speedInput");
+		const speed = this.view.getInputValue(View.ids.speedInput);
 
-		this.model.setProperty<number>("speed", Number(speed));
+		this.model.setProperty<number>(Model.props.speed, Number(speed));
 		this.controller.fnSpeed();
 	}
 
 	private onScreenshotButtonClick() {
-		var example = this.view.getSelectValue("exampleSelect"),
+		var example = this.view.getSelectValue(View.ids.exampleSelect),
 			image = this.controller.startScreenshot(),
-			link = View.getElementById1("screenshotLink"),
+			link = View.getElementById1(View.ids.screenshotLink),
 			name = example + ".png";
 
 		if (image) {
@@ -349,12 +348,16 @@ export class CommonEventHandler implements EventListenerObject {
 		}
 	}
 
+	private onClearInputButtonClick() {
+		this.view.setAreaValue(View.ids.inp2Text, ""); // delete input
+	}
+
 	private onEnterButtonClick() {
 		this.controller.startEnter();
 	}
 
 	private static onFullscreenButtonClick() {
-		const switched = View.requestFullscreenForId("cpcCanvas"); // make sure to use an element with tabindex set to get keyboard events
+		const switched = View.requestFullscreenForId(View.ids.cpcCanvas); // make sure to use an element with tabindex set to get keyboard events
 
 		if (!switched) {
 			Utils.console.warn("Switch to fullscreen not available");
@@ -375,19 +378,20 @@ export class CommonEventHandler implements EventListenerObject {
 
 	/* eslint-disable no-invalid-this */
 	private readonly handlers: Record<string, (e: Event | MouseEvent) => void> = {
-		onInputButtonClick: this.onInputButtonClick,
-		onInp2ButtonClick: this.onInp2ButtonClick,
-		onOutputButtonClick: this.onOutputButtonClick,
-		onResultButtonClick: this.onResultButtonClick,
-		onVariableButtonClick: this.onVariableButtonClick,
-		onCpcButtonClick: this.onCpcButtonClick,
+		//onInputButtonClick: this.onInputButtonClick,
+		//onInp2ButtonClick: this.onInp2ButtonClick,
+		//onOutputButtonClick: this.onOutputButtonClick,
+		//onResultButtonClick: this.onResultButtonClick,
+		//onVariableButtonClick: this.onVariableButtonClick,
+		//onCpcButtonClick: this.onCpcButtonClick,
 		onConvertButtonClick: this.onConvertButtonClick,
 		onSettingsButtonClick: this.onSettingsButtonClick,
+		onViewButtonClick: this.onViewButtonClick,
 		onExportButtonClick: this.onExportButtonClick,
 		onGalleryButtonClick: this.onGalleryButtonClick,
 		onMoreButtonClick: this.onMoreButtonClick,
-		onKbdButtonClick: this.onKbdButtonClick,
-		onConsoleButtonClick: this.onConsoleButtonClick,
+		//onKbdButtonClick: this.onKbdButtonClick,
+		//onConsoleButtonClick: this.onConsoleButtonClick,
 		onParseButtonClick: this.onParseButtonClick,
 		onRenumButtonClick: this.onRenumButtonClick,
 		onPrettyButtonClick: this.onPrettyButtonClick,
@@ -409,6 +413,7 @@ export class CommonEventHandler implements EventListenerObject {
 		onVarTextClick: CommonEventHandler.onNothing,
 		onOutputTextChange: this.onOutputTextChange,
 		onReloadButtonClick: this.onReloadButtonClick,
+		onReload2ButtonClick: this.onReloadButtonClick, // same as reloadButton
 		onDatabaseSelectChange: this.onDatabaseSelectChange,
 		onDirectorySelectChange: this.onDirectorySelectChange,
 		onExampleSelectChange: this.onExampleSelectChange,
@@ -418,8 +423,17 @@ export class CommonEventHandler implements EventListenerObject {
 		onDebugInputChange: this.onDebugInputChange,
 		onImplicitLinesInputChange: this.onImplicitLinesInputChange,
 		onArrayBoundsInputChange: this.onArrayBoundsInputChange,
-		onConsoleLogInputChange: this.onConsoleLogInputChange,
+
+		onShowCpcInputChange: this.onShowCpcInputChange,
+		onShowKbdInputChange: this.onShowKbdInputChange,
+		onShowInp2InputChange: this.onShowInp2InputChange,
+		onShowResultInputChange: this.onShowResultInputChange,
+		onShowInputInputChange: this.onShowInputInputChange,
+		onShowVariableInputChange: this.onShowVariableInputChange,
+		onShowOutputInputChange: this.onShowOutputInputChange,
 		onShowDisassInputChange: this.onShowDisassInputChange,
+		onShowConsoleLogInputChange: this.onShowConsoleLogInputChange,
+
 		onDisassInputChange: this.onDisassInputChange,
 		onTraceInputChange: this.onTraceInputChange,
 		onAutorunInputChange: this.onAutorunInputChange,
@@ -429,6 +443,7 @@ export class CommonEventHandler implements EventListenerObject {
 		onCanvasTypeSelectChange: this.onCanvasTypeSelectChange,
 		onPaletteSelectChange: this.onPaletteSelectChange,
 		onScreenshotButtonClick: this.onScreenshotButtonClick,
+		onClearInputButtonClick: this.onClearInputButtonClick,
 		onEnterButtonClick: this.onEnterButtonClick,
 		onFullscreenButtonClick: CommonEventHandler.onFullscreenButtonClick,
 		onCpcCanvasClick: this.onCpcCanvasClick,
@@ -470,7 +485,7 @@ export class CommonEventHandler implements EventListenerObject {
 		}
 
 		if (type === "click") { // special
-			if (id !== "cpcCanvas" && id !== "textText") {
+			if (id !== View.ids.cpcCanvas && id !== View.ids.textText) {
 				this.onWindowClick(event);
 			}
 		}

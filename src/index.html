@@ -5,314 +5,335 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="cpcbasic.css">
 <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
-<title id="title">CPC BasicTS v0.1.14</title>
+<title id="title">CPC BasicTS v0.2.0</title>
 </head>
 
 <body id="pageBody">
-	<fieldset class="flexBox">
-		<legend>
-			<button id="inputButton" class="legendButton" title="Show/Hide BASIC">CPC BASIC</button>
-			<span class="buttonPopoverContainer">
-				<button id="galleryButton" class="popoverButton" title="Gallery">Gallery</button>
-				<span id="galleryArea" class="popover area flexColumn displayNone">
-					<span id="galleryAreaInner" class="area flexColumn displayFlex">
-						<span id="galleryAreaItems" class="displayBlock" />
-					</span>
-				</span>
-			</span>
-			<span class="buttonPopoverContainer">
-				<button id="settingsButton" class="popoverButton" title="Settings">Settings</button>
-				<span id="settingsArea" class="popover area flexColumn displayNone">
-					<span id="settingsAreaInner" class="area flexColumn displayFlex">
-						<span id="compileSettingsArea" class="area flexColumn displayFlex">
-							<span class="field flexStart">
+
+	<fieldset id="cpcVert0Box" class="flexBox">
+		<fieldset class="flexBox">
+			<legend>
+				<span class="legendTitle" title="CPCBasicTS">CPCBasicTS</span>
+				<span class="buttonPopoverContainer">
+					<button id="settingsButton" class="popoverButton" title="Settings">Settings</button>
+					<span id="settingsArea" class="popover displayNone">
+						<span id="settingsAreaInner" class="area">
+							<fieldset>
+								<legend title="Compile Settings">Compile</legend>
 								<input id="arrayBoundsInput" type="checkbox" title="Check array bounds">
-								<label id="arrayBoundsLabel" for="arrayBoundsInput" class="label" title="Check array bounds">Array Bounds</label>
-							</span>
-							<span class="field flexStart">
+								<label for="arrayBoundsInput" title="Check array bounds">Array Bounds</label>
+								<br>
 								<input id="implicitLinesInput" type="checkbox" title="Allow implicit line numbers">
-								<label id="implicitLinesLabel" for="implicitLinesInput" class="label" title="Allow implicit line numbers">Implicit Lines</label>
-							</span>
-							<span class="field flexStart">
+								<label for="implicitLinesInput" title="Allow implicit line numbers">Implicit Lines</label>
+								<br>
 								<input id="traceInput" type="checkbox" title="Trace Mode">
-								<label id="traceLabel" for="traceInput" class="label" title="Trace Mode">Trace Mode</label>
-							</span>
-							<span class="field flexStart">
+								<label for="traceInput" title="Trace Mode">Trace Mode</label>
+								<br>
 								<select id="basicVersionSelect" title="Select BASIC">
 									<option value="1.0" title="BASIC 1.0">1.0</option>
 									<option value="1.1" title="BASIC 1.1" default>1.1</option>
 								</select>
-								<label id="basicVersionLabel" for="basicVersionSelect" class="label" title="BASIC version">BASIC</label>
-							</span>
-						</span>
-						<span id="runSettingsArea" class="area flexColumn displayFlex">
-							<span class="field flexStart">
+								<label for="basicVersionSelect" title="BASIC version">BASIC</label>
+							</fieldset>
+							<fieldset>
+								<legend title="Run Settings">Run</legend>
 								<input id="autorunInput" type="checkbox" title="Autorun">
-								<label id="autorunLabel" for="autorunInput" class="label" title="Autorun on select">Autorun</label>
-							</span>
-							<span class="field flexStart">
+								<label for="autorunInput" title="Autorun on select">Autorun</label>
+								<br>
 								<input id="soundInput" type="checkbox" title="Sound">
-								<label id="soundLabel" for="soundInput" class="label" title="Sound">Sound</label>
-							</span>
-							<span class="field flexStart">
+								<label for="soundInput" title="Sound">Sound</label>
+								<br>
 								<select id="canvasTypeSelect" title="Select Canvas">
 									<option value="graphics" title="Graphics" default>Graphics</option>
 									<option value="text" title="Text">Text</option>
 									<option value="none" title="None">None</option>
 								</select>
-								<label id="canvasTypeLabel" for="canvasTypeSelect" class="label" title="Canvas Type">Canvas</label>
-							</span>
-							<span class="field flexStart">
+								<label for="canvasTypeSelect" title="Canvas Type">Canvas</label>
+								<br>
 								<select id="paletteSelect" title="Select Palette">
 									<option value="color" title="Color" default>Color</option>
 									<option value="green" title="Green">Green</option>
 									<option value="grey" title="Grey">Grey</option>
 								</select>
-								<label id="paletteLabel" for="paletteSelect" class="label" title="Palette">Palette</label>
-							</span>
-							<span class="field flexStart">
+								<label for="paletteSelect" title="Palette">Palette</label>
+								<br>
 								<input id="speedInput" type="range" min="0" max="100" step="1" value="100" title="Speed">
-								<label id="speedLabel" for="speedInput" class="label" title="Speed">Speed</label>
-							</span>
-						</span>
-						<span id="debugSettingsArea" class="area flexColumn displayFlex">
-							<span class="field flexStart">
+								<label for="speedInput" title="Speed">Speed</label>
+							</fieldset>
+							<fieldset>
+								<legend title="Keyboard Settings">Keyboard</legend>
+								<select id="kbdLayoutSelect" title="Select Keyboard Layout">
+									<option value="alphanum" title="AlphaNum">AlphaNum</option>
+									<option value="alpha" title="Alpha">Alpha</option>
+									<option value="num" title="Numpad">Num</option>
+								</select>
+								<label for="kbdLayoutSelect" title="Keyboard Layout">Layout</label>
+							</fieldset>
+							<fieldset>
+								<legend title="Debug Settings">Debug</legend>
 								<input id="debugInput" type="number" min="0" max="99" value="0" title="Debug Level">
-								<label id="debugLabel" for="debugInput" class="label" title="Debug Level">Debug</label>
-							</span>
-							<span class="field flexStart">
-								<input id="consoleLogInput" type="checkbox" title="Show Console Log">
-								<label id="consoleLogLabel" for="consoleLogInput" class="label" title="Show Console Log">Console Log</label>
-							</span>
-							<span class="field flexStart">
+								<label for="debugInput" title="Debug Level">Debug</label>
+							</fieldset>
+							<button id="reloadButton" class="popoverElement" title="Reload page with URL parameter settings">Reload</button>
+							<button id="helpButton" class="popoverElement" title="Help">Help</button>
+						</span>
+					</span>
+				</span>
+				<span class="buttonPopoverContainer">
+					<button id="viewButton" class="popoverButton" title="Configure View">View</button>
+					<span id="viewArea" class="popover displayNone">
+						<span id="viewAreaInner" class="area">
+							<fieldset>
+								<legend title="Left View">Left</legend>
+								<input id="showCpcInput" type="checkbox" title="Show CPC" checked>
+								<label for="showCpcInput" title="Show CPC">CPC</label>
+								<br>
+								<input id="showKbdInput" type="checkbox" title="Show Keyboard">
+								<label for="showKbdInput" title="Show Keyboard">Keyboard</label>
+								<br>
+								<input id="showInp2Input" type="checkbox" title="Show Input">
+								<label for="showInp2Input" title="Show Input">Input</label>
+								<br>
+								<input id="showResultInput" type="checkbox" title="Show Result">
+								<label for="showResultInput" title="Show Result">Result</label>
+							</fieldset>
+							<fieldset>
+								<legend title="Right View">Right</legend>
+								<input id="showInputInput" type="checkbox" title="Show BASIC" checked>
+								<label for="showInputInput" title="Show BASIC">BASIC</label>
+								<br>
+								<input id="showVariableInput" type="checkbox" title="Show Variable">
+								<label for="showVariableInput" title="Show Variable">Variable</label>
+								<br>
+								<input id="showOutputInput" type="checkbox" title="Show Output">
+								<label for="showOutputInput" title="Show JavaScript">JavaScript</label>
+								<br>
 								<input id="showDisassInput" type="checkbox" title="Show Disassembler">
-								<label id="showDisassLabel" for="showDisassInput" class="label" title="Show Disassembler">Disassembler</label>
-							</span>
-						</span>
-					</span>
-					<span class="field flexStart">
-						<button id="helpButton" title="Help">Help</button>
-					</span>
-				</span>
-				<button id="reloadButton" title="Reload page with URL parameter settings">Reload</button>
-			</span>
-		</legend>
-		<div id="exampleSelectArea" class="area">
-			<div class="field">
-				<select id="databaseSelect" title="Select Database"></select>
-			</div>
-			<div class="field">
-				<select id="directorySelect" title="Select Directory"></select>
-			</div>
-			<div class="field selectWrap">
-				<select id="exampleSelect" title="Load Example"></select>
-			</div>
-		</div>
-		<div id="inputArea" class="area clearLeft">
-			<textarea id="inputText" rows="15" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
-			<div class="displayFlex">
-				<button id="parseButton" title="Check BASIC script (compile to JavaScript)">Check</button>
-				<span class="buttonPopoverContainer">
-					<button id="convertButton" class="popoverButton" title="Convert">Convert</button>
-					<span id="convertArea" class="popover area flexColumn displayNone">
-						<span id="renumArea" class="area flexColumn displayFlex">
-							<span class="field">
-								<label id="renumNewLabel" for="renumNewInput" class="label" title="New Line">New</label>
-								<input id="renumNewInput" value="10" min="0" max="65535" type="number" title="New" placeholder="value">
-							</span>
-							<span class="field clearLeft">
-								<label id="renumStartLabel" for="renumStartInput" class="label" title="Start Line">Start</label>
-								<input id="renumStartInput" value="1" min="0" max="65535" type="number" title="Start" placeholder="value">
-							</span>
-							<span class="field clearLeft">
-								<label id="renumStepLabel" for="renumStepInput" class="label" title="Step">Step</label>
-								<input id="renumStepInput" value="10" min="0" max="65535" type="number" title="Step" placeholder="value">
-							</span>
-							<span class="field clearLeft">
-								<label id="renumKeepLabel" for="renumKeepInput" class="label" title="First line to keep">Keep</label>
-								<input id="renumKeepInput" value="65535" min="0" max="65535" type="number" title="Keep" placeholder="value">
-							</span>
-							<span class="clearLeft"> <!-- clearLeft needed for IE -->
-								<button id="renumButton" title="Renumber lines">Renum</button>
-							</span>
-						</span>
-						<span id="prettyArea" class="area flexColumn displayFlex">
-							<span class="field flexStart">
-								<input id="prettyBracketsInput" type="checkbox" title="Keep Brackets" checked>
-								<label id="prettyBracketsLabel" for="prettyBracketsInput" class="label"	title="Keep Brackets">Brackets</label>
-							</span>
-							<span class="field flexStart">
-								<input id="prettyColonsInput" type="checkbox" title="Keep Colons" checked>
-								<label id="prettyColonsLabel" for="prettyColonsInput" class="label"	title="Keep Colons">Colons</label>
-							</span>
-							<span class="field flexStart clearLeft">
-								<input id="prettySpaceInput" type="checkbox" title="Keep Spaces">
-								<label id="prettySpaceLabel" for="prettySpaceInput" class="label" title="Keep Spaces">Spaces</label>
-							</span>
-							<span class="field clearLeft"> <!-- clearLeft needed for IE -->
-								<button id="prettyButton" title="Pretty print">Pretty</button>
-							</span>
-						</span>
-						<span id="lineNumberArea" class="area flexColumn displayFlex">
-							<span class="field">Line numbers</span>
-							<span class="field clearLeft">
-								<button id="lineNumberAddButton" title="Add (missing) line numbers">Add</button>
-								<button id="lineNumberRemoveButton" title="Remove (unreferenced) line numbers">Remove</button>
-							</span>
-						</span>
-						<span id="stackArea" class="area">
-							<span class="field">
-								<button id="undoButton" title="Undo changes" disabled>Undo</button>
-								<button id="redoButton" title="Redo changes" disabled>Redo</button>
-							</span>
+								<label for="showDisassInput" title="Show Disassembler">Disassembler</label>
+								<br>
+								<input id="showConsoleLogInput" type="checkbox" title="Show Console Log">
+								<label for="showConsoleLogInput" title="Show Console Log">Console Log</label>
+							</fieldset>
+							<button id="reload2Button" class="popoverElement" title="Reload page with URL parameter settings">Reload</button>
 						</span>
 					</span>
 				</span>
 				<span class="buttonPopoverContainer">
-					<button id="exportButton" class="popoverButton" title="Export">Export</button>
-					<span id="exportArea" class="popover area flexColumn displayNone">
-						<span class="field flexStart">
-							<input id="exportTokenizedInput" type="checkbox" title="tokenized" checked>
-							<label id="exportTokenizedLabel" for="exportTokenizedInput" class="label" title="Tokenized BASIC">Tokenized</label>
-						</span>
-						<span class="field flexStart">
-							<input id="exportDSKInput" type="checkbox" title="DSK">
-							<label id="exportDSKLabel" for="exportDSKInput" class="label"	title="DSK image">DSK</label>
-						</span>
-						<span class="field flexStart">
-							<input id="exportBase64Input" type="checkbox" title="Base64">
-							<label id="exportBase64Label" for="exportBase64Input" class="label"	title="Base64">Base64</label>
-						</span>
-						<span id="exportActionkArea" class="area">
-							<span class="field">
-								<button id="downloadButton" title="Export">Export</button>
-							</span>
+					<button id="galleryButton" class="popoverButton" title="Gallery">Gallery</button>
+					<span id="galleryArea" class="popover flexColumn displayNone">
+						<span id="galleryAreaInner" class="area flexColumn displayFlex">
+							<span id="galleryAreaItems" class="displayBlock"></span>
 						</span>
 					</span>
 				</span>
+			</legend>
+			<div id="exampleSelectArea" class="area">
+				<div class="field">
+					<select id="databaseSelect" title="Select Database"></select>
+				</div>
+				<div class="field">
+					<select id="directorySelect" title="Select Directory"></select>
+				</div>
+				<div class="field selectWrap">
+					<select id="exampleSelect" title="Load Example"></select>
+				</div>
 			</div>
-		</div>
+		</fieldset>
 	</fieldset>
-	<fieldset class="flexBox clearLeft" id="cpcAreaBox">
-		<legend>
-			<button id="cpcButton" class="legendButton" title="Show/Hide CPC">CPC</button>
-			<button id="parseRunButton" title="Compile and run script">Run</button>
-			<button id="stopButton" title="Stop/escape/break running script" disabled>Break</button>
-			<button id="continueButton" title="Continue script" disabled>Continue</button>
-			<span class="buttonPopoverContainer">
-				<button id="moreButton" class="popoverButton" title="More">More</button>
-				<span id="moreArea" class="popover area flexColumn displayNone">
-					<span id="moreAreaInner" class="area flexColumn displayFlex">
-						<span class="field flexStart">
-							<button id="resetButton" title="Reset CPC">Reset</button>
-						</span>
-						<span class="field flexStart">
-							<button id="screenshotButton" title="Take Screenshot and download">Screenshot</button>
-						</span>
-						<span class="field flexStart">
-							<button id="fullscreenButton" title="Fullscreen mode">Fullscreen</button>
-						</span>
-						<span class="field flexStart">
-							<button id="copyTextButton" title="Copy text to clipboard">Copy</button>
+
+	<fieldset id="cpcVert1Box" class="flexBox clearLeft">
+	
+		<fieldset id="cpcArea" class="flexBox">
+			<legend>
+				<span class="legendTitle" title="CPC Canvas">CPC</span>
+				<button id="parseRunButton" title="Compile and run script">Run</button>
+				<button id="stopButton" title="Stop/escape/break running script" disabled>Break</button>
+				<button id="continueButton" title="Continue script" disabled>Continue</button>
+				<span class="buttonPopoverContainer">
+					<button id="moreButton" class="popoverButton" title="More">More</button>
+					<span id="moreArea" class="popover displayNone">
+						<span id="moreAreaInner" class="area">
+							<fieldset>
+								<legend title="More Actions">More Actions</legend>
+								<button id="resetButton" class="popoverElement" title="Reset CPC">Reset</button>
+								<br>
+								<button id="screenshotButton" class="popoverElement" title="Take Screenshot and download">Screenshot</button>
+								<br>
+								<button id="fullscreenButton" class="popoverElement" title="Fullscreen mode">Fullscreen</button>
+								<br>
+								<button id="copyTextButton" class="popoverElement" title="Copy text to clipboard">Copy</button>
+							</fieldset>
 						</span>
 					</span>
 				</span>
-			</span>
-		</legend>
-		<div id="cpcArea" class="area">
-			<div id="cpcCanvasDiv">
-				<canvas id="cpcCanvas" width="640" height="400" tabindex="0"></canvas>
+			</legend>
+			<div id="cpcAreaInner" class="area">
+				<div id="cpcCanvasDiv">
+					<canvas id="cpcCanvas" width="640" height="400" tabindex="0"></canvas>
+				</div>
+				<div id="textCanvasDiv">
+					<textarea readonly id="textText" placeholder="" rows="25" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off" hidden></textarea>
+				</div>
+			</div>	
+		</fieldset>
+
+		<fieldset id="kbdArea" class="flexBox clearLeft displayNone">
+			<legend>
+				<span class="legendTitle" title="Virtual Keyboard">Keyboard</span>
+				<span id="kbdMove" class="kbdMove">Move</span>
+			</legend>
+			<div id="kbdAreaInner" class="area kbdArea" tabindex="0">
+				<div id="kbdAlpha" class="area">
+				</div>
+				<div id="kbdNum" class="area">
+				</div>
 			</div>
-			<div id="textCanvasDiv">
-				<textarea readonly id="textText" placeholder="" rows="25" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off" hidden></textarea>
-			</div>
-		</div>	
-	</fieldset>
-	<fieldset class="flexBox clearLeft" id="kbdAreaBox">
-		<legend>
-			<button id="kbdButton" class="legendButton" title="CPC Keyboard">Keyboard</button>
-			<span id="kbdMove" class="kbdMove">Move</span>
-			<span id="kbdLayoutArea">
-				<select id="kbdLayoutSelect" title="Select Keyboard Layout">
-					<option value="alphanum" title="AlphaNum">AlphaNum</option>
-					<option value="alpha" title="Alpha">Alpha</option>
-					<option value="num" title="Numpad">Num</option>
-				</select>
-			</span>
-		</legend>
-		<div id="kbdArea" class="area kbdArea displayNone" tabindex="0">
-			<div id="kbdAlpha" class="area">
-			</div>
-			<div id="kbdNum" class="area">
-			</div>
-		</div>
-	</fieldset>
-	<fieldset class="flexBox clearLeft">
-		<legend>
-			<button id="inp2Button" class="legendButton" title="Alternative way of input">Input</button>
-		</legend>
-		<div id="inp2Area" class="area clearLeft displayNone">
-			<div class="area">
-				<textarea id="inp2Text" placeholder="input" rows="2" cols="40" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+		</fieldset>
+
+		<fieldset id="inp2Area" class="flexBox clearLeft displayNone">
+			<legend>
+				<span class="legendTitle" title="Alternative way of input">Input</span>
+				<button id="clearInputButton" title="Clear Input">Clear</button>
 				<button id="enterButton" title="Send">Send</button>
+			</legend>
+			<div id="inp2AreaInner" class="area">
+				<textarea id="inp2Text" placeholder="input (with Newline)" rows="2" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+				<br>
+				<fieldset>
+					<legend title="File Import">File Import</legend>
+					<span class="area">
+						<input type="file" id="fileInput" name="files[]" multiple>
+					</span>
+					<span id="dropZone" class="area dropZone" title="drop here or on canvas">
+						Drop files here
+					</span>
+				</fieldset>
 			</div>
-			<div class="area clearLeft">
-				<input type="file" id="fileInput" name="files[]" multiple>
+		</fieldset>
+
+		<fieldset id="resultArea" class="flexBox clearLeft displayNone">
+			<legend>
+				<span class="legendTitle" title="BASIC Console">Console</span>
+			</legend>
+			<div id="resultAreaInner" class="area">
+				<textarea id="resultText" placeholder="" rows="15" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
 			</div>
-			<div class="area" id="dropZone" title="drop here or on canvas">
-				Drop files here
-			</div>
-		</div>
-	</fieldset>
-	<fieldset class="flexBox">
+		</fieldset>
+		</fieldset>
+
+    <fieldset id="cpcVert2Box" class="flexBox">
+
+	<fieldset id="inputArea" class="flexBox">
 		<legend>
-			<button id="resultButton" class="legendButton" title="Show/Hide BASIC Console">Console</button>
+			<span class="legendTitle" title="BASIC Source">BASIC</span>
+			<button id="parseButton" title="Check BASIC script (compile to JavaScript)">Check</button>
+			<span class="buttonPopoverContainer">
+				<button id="convertButton" class="popoverButton" title="Convert BASIC source">Convert</button>
+				<span id="convertArea" class="popover displayNone">
+					<span id="convertAreaInner" class="area">
+						<fieldset>
+							<legend title="Line Numbers">Line Numbers</legend>
+							<input id="renumNewInput" value="10" min="0" max="65535" type="number" title="New" placeholder="value">
+							<label for="renumNewInput" title="New Line">New</label>
+							<br>
+							<input id="renumStartInput" value="1" min="0" max="65535" type="number" title="Start" placeholder="value">
+							<label for="renumStartInput" title="Start Line">Start</label>
+							<br>
+							<input id="renumStepInput" value="10" min="0" max="65535" type="number" title="Step" placeholder="value">
+							<label for="renumStepInput" title="Step">Step</label>
+							<br>
+							<input id="renumKeepInput" value="65535" min="0" max="65535" type="number" title="Keep" placeholder="value">
+							<label for="renumKeepInput" title="First line to keep">Keep</label>
+							<br>
+							<button id="renumButton" class="popoverElement" title="Renumber lines">Renum</button>
+							<br>
+							<button id="lineNumberAddButton" class="popoverElement" title="Add (missing) line numbers">Add</button>
+							<button id="lineNumberRemoveButton" class="popoverElement" title="Remove (unreferenced) line numbers">Remove</button>
+						</fieldset>
+						<fieldset>
+							<legend title="Pretty Print">Pretty Print</legend>
+							<input id="prettyBracketsInput" type="checkbox" title="Keep Brackets" checked>
+							<label for="prettyBracketsInput" title="Keep Brackets">Brackets</label>
+							<br>
+							<input id="prettyColonsInput" type="checkbox" title="Keep Colons" checked>
+							<label for="prettyColonsInput" title="Keep Colons">Colons</label>
+							<br>
+							<input id="prettySpaceInput" type="checkbox" title="Keep Spaces">
+							<label for="prettySpaceInput" title="Keep Spaces">Spaces</label>
+							<br>
+							<button id="prettyButton" class="popoverElement" title="Pretty print">Pretty</button>
+						</fieldset>
+						<button id="undoButton" class="popoverElement" title="Undo code changes" disabled>Undo</button>
+						<button id="redoButton" class="popoverElement" title="Redo code changes" disabled>Redo</button>
+					</span>
+				</span>
+			</span>
+			<span class="buttonPopoverContainer">
+				<button id="exportButton" class="popoverButton" title="Export">Export</button>
+				<span id="exportArea" class="popover displayNone">
+					<span id="exportAreaInner" class="area">
+						<fieldset>
+						<legend title="File Export">File Export</legend>
+						<input id="exportTokenizedInput" type="checkbox" title="tokenized" checked>
+						<label for="exportTokenizedInput" title="Tokenized BASIC">Tokenized</label>
+						<br>
+						<input id="exportDSKInput" type="checkbox" title="DSK">
+						<label for="exportDSKInput" title="DSK image">DSK</label>
+						<br>
+						<input id="exportBase64Input" type="checkbox" title="Base64">
+						<label for="exportBase64Input" title="Base64">Base64</label>
+						<br>
+						<button id="downloadButton" class="popoverElement" title="Export">Export</button>
+					</span>
+				</fieldset>
+				</span>
+			</span>
 		</legend>
-		<div id="resultArea" class="area displayNone">
-			<textarea id="resultText" placeholder="" rows="15" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
-		</div>
-	</fieldset>
-	<fieldset class="flexBox">
-		<legend>
-			<button id="variableButton" class="legendButton" title="Show/Hide Variables">Variables</button>
-		</legend>
-			<div id="variableArea" class="area displayNone">
-			<div class="field">
-				<select id="varSelect" title="Select variable">
-				</select>
-			</div>
-			<div class="clearLeft">
-				<textarea id="varText" placeholder="value" rows="12" cols="40" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
-			</div>
-		</div>
-	</fieldset>
-	<fieldset class="flexBox">
-		<legend>
-			<button id="outputButton" class="legendButton" title="Show/Hide JavaScript">JavaScript</button>
-		</legend>
-		<div id="outputArea" class="area displayNone">
-			<button id="runButton" title="Run JavaScript">Run</button>
-			<br>
-			<textarea id="outputText" placeholder="Use input field, press 'Run'" rows="15" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
-		</div>
-	</fieldset>
-	<fieldset class="flexBox clearLeft" id="consoleBox" hidden>
-		<legend>
-			<button id="consoleButton" class="legendButton" title="Show/Hide Console log">Console log</button>
-		</legend>
-		<div id="consoleArea" class="area">
-			<textarea id="consoleText" rows="15" cols="80"></textarea>
+		<div id="inputAreaInner" class="area clearLeft">
+			<textarea id="inputText" rows="15" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
 		</div>
 	</fieldset>
 
-	<fieldset class="flexBox clearLeft" id="disassBox" hidden>
+	<fieldset id="variableArea" class="flexBox clearLeft displayNone">
 		<legend>
-			<button id="disassButton" class="" title="Z80 Disassembler">Disassembler</button>
+			<span class="legendTitle" title="Variables">Variables</span>
+			<select id="varSelect" title="Select variable">
+			</select>
+		</legend>
+		<div id="variableAreaInner" class="area">
+			<textarea id="varText" placeholder="value" rows="10" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+		</div>
+	</fieldset>
+
+	<fieldset id="outputArea" class="flexBox clearLeft displayNone">
+		<legend>
+			<span class="legendTitle" title="JavaScript">JavaScript</span>
+			<button id="runButton" title="Run JavaScript">Run</button>
+		</legend>
+		<div id="outputAreaInner" class="area">
+			<textarea id="outputText" placeholder="Use input field, press 'Run'" rows="15" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+		</div>
+	</fieldset>
+
+	<fieldset id="disassArea" class="flexBox clearLeft displayNone">
+		<legend>
+			<span class="legendTitle" title="Z80 Disassembler">Disassembler</span>
 			<input id="disassInput" type="text" value="0" title="Address (hex)">
 		</legend>
-		<div id="disassArea" class="area clearLeft">
+		<div id="disassAreaInner" class="area clearLeft">
 			<textarea id="disassText" rows="15" cols="80"></textarea>
 		</div>
+	</fieldset>
+
+	<fieldset id="consoleLogArea" class="flexBox clearLeft displayNone">
+		<legend>
+			<span class="legendTitle" title="Console log">Console log</span>
+		</legend>
+		<div id="consoleLogAreaInner" class="area">
+			<textarea id="consoleLogText" rows="15" cols="80" placeholder="Please set debug > 0"></textarea>
+		</div>
+	</fieldset>
+
 	</fieldset>
 
 	<a id="screenshotLink"></a>

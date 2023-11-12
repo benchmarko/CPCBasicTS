@@ -1103,9 +1103,6 @@ export class DiskImage {
 				extent.user = 0;
 				extent.name = name1;
 				extent.ext = ext1;
-				//extent.readOnly = false;
-				//extent.system = false;
-				//extent.backup = false;
 				extent.extent = extentCnt;
 				extent.lastRecBytes = 0; // ($size >= 0x80) ? 0 : $size;
 				extent.extentHi = 0;

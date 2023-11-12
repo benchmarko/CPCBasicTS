@@ -40,13 +40,12 @@ With CPC Basic we do not get that accuracy. But if we compile it to JavaScript, 
 ## Usage
 
 - Just open index.html in a browser.
-  The user interface shows several windows, which can be reduced and expanded by pressing the **green** buttons.
-- The *CPC BASIC* window is used to input and modify the BASIC program.
+  The user interface shows several components. Additional components can be configured in the **View** settings dialog.
+- The *CPCBasicTS* window is used to select an example.
   - Use the *first selection field* to select the example library: CPCBasic *examples*,
   CPCBasicApps *apps*, *examplesTS* or *storage*.
   - Use the *second selection field* to select a directory/path.
   - Use the *third selection field* to select a sample program. It will reset the CPC and run the program.
-  - The **Gallery** button opens a gallery with examples and you can select one.
   - The **Settings** button opens a popover with settings.
     - The checkbox **Array Bounds** checks array bounds of the running program. This option requires an ES6 compatible browser and is switched off per default.
     - The checkbox **Implicit Lines** allows to run BASIC programs without line numbers.
@@ -56,23 +55,28 @@ With CPC Basic we do not get that accuracy. But if we compile it to JavaScript, 
     - The selection field **Canvas** allows to set the canvas type *Graphics*, *Text* or *None*. This will change the *CPC* window, (see below).
     - The selection field **Palette** allows to set the palette to Color, Green or Grey.
     - The range slider **Speed** allows to reduce the simulation speed (0..100). This is an experimental feature.
+    - The selection field **layout** allows to select the keyboard layout AlphaNum, Alpha or Num.
     - The input field **Debug** allows to set the debug level.
        Debug messages can be seen in the Browser debugger or in the *Console Log* window.
-    - The checkbox **Console Log** allows to see the console log.
+    - The **Reload** button reloads the page with the current settings put in URL parameters. (Please note that modifications of the BASIC program are not saved!)
     - The **Help** button opens the CPCBasicTS readme in the browser.
-  - The **Reload** button reloads the page with the current settings put in URL parameters. (Please note that modifications of the BASIC program are not saved!)
+  - The **View** button opens a popover with view settings. The components can be enabled and disabled.
+    - For Example: The checkbox **Console Log** allows to see the console log.
+  - The **Gallery** button opens a gallery with examples from which you can select one.
+- The *BASIC* window is used to input and modify the BASIC program.
   - The **Check** button checks the syntax of the program. It compiles the program to JavaScript.
   - The **Convert** button opens a popover with functions to renumber lines or pretty print the program.
     - The **Renum** button renumbers the lines (see also *RENUM*)
+    - The **Add** button adds (missing) line numbers to the program. New numbers are increased by one.
+    - The **Remove** button removes unreferenced line numbers from the program. Use the setting "Implicit Lines" to run such programs.
     - The **Pretty** button performs a pretty print on the input. There are options for pretty print:
       - The checkbox **Brackets** keeps the brackets (parenthesis) during pretty print. If unchecked, brackets are used only where needed. Please note that this could lead to overflows in expressions in some cases, where brackets were used to priorize a computation without overflow.
       - The checkbox **Colons** keeps the colons. If unset, colons are only used where needed. Multiple columns are removed.
       - The checkbox **Spaces** keeps whitespace and preserves the input as much as possible.
-    - The **Add** button adds (missing) line numbers to the program. New numbers are increased by one.
-    - The **Remove** button removes unreferenced line numbers from the program. Use the setting "Implicit Lines" to run such programs.
     - The **Undo** button reverts the last renum or pretty print.
     - The **Redo** button activates the last renum or pretty print.
-  - The **Download** button downloads the program in tokenized BASIC format with AMSDOS header. It can be imported via Drag&Drop later. It can also be used directly with the *CPCEMU* emulator in *|TAPE* mode, or put in a DSK image to load with any other CPC emulator.
+  - The **Export** button opens an file export dialog. The BASIC source can be exported as ASCII, tokenized BASIC with AMSDOS header or in a DSK image file.
+    Exported files can be imported in the file selecton menu or via Drag&Drop. They can also be used with CPC emulators like *CPCEMU*.
 - The *CPC* window shows the output on a CPC screen.
   - The **Run** button compiles the BASIC program to JavaScript and runs it (simular to *RUN*).
     - If the focus is on the CPC screen, keystrokes will be detected by a running program or also in direct mode. An alternative way of input is the *virtual keyboard* below.
@@ -84,9 +88,8 @@ With CPC Basic we do not get that accuracy. But if we compile it to JavaScript, 
     - The **Fullscreen** button activates fullscreen mode of the CPC window.
     - The **Copy** button copies the text from the text view (if visible).
 - The *Keyboard* window shows a virtual keyboard which can be also used with touch devices. It can be moved around. You can test the functionality with the test program [keyboard](https://benchmarko.github.io/CPCBasicTS/?database=apps&example=test/keyboard&showKbd=true).
-When minimized, you can select the keyboard layout AlphaNum, Alpha or Num.
 - The *Input* window is an alternative way to send input to the CPC.
-  - Input a (multiline) text and press the **Send** button.
+  - Input a (multiline) text (including Newline) and press the **Send** button.
   - Use the **Select File** button (or drag&drop) to import a file.
     File types are detected. ZIP files and DSK files can also be imported.
 - The *Console* window shows the textual output. This is useful for copying and pasting the output. It is cleared when the CPC screen is cleared (*MODE* or *CLS*).
@@ -223,8 +226,8 @@ A list of *CALL*s which are supported. Other *CALL*s are ignored.
 
 - Use the URL parameter *trace=true* to compile with trace functionality. This will provide source code positioning also for runtime errors.
 - For debugging in a desktop browser, you typically use the Browser Development Tools (F12).
-- You can also use a *Console log* window, which is usually hidden. Enable it with the URL parameters *showConsole=true&debug=2*. Example:
- [CPCBasicTS Debug](https://benchmarko.github.io/CPCBasicTS/?showConsole=true&debug=2).
+- You can also use a *Console log* window, which is usually hidden. Enable it with the URL parameters *showConsoleLog=true&debug=2*. Example:
+ [CPCBasicTS Debug](https://benchmarko.github.io/CPCBasicTS/?showConsoleLog=true&debug=2).
  This is especially useful on mobile devices. If necessary, delete the content manually.
 - There is also an experimental parameter *bench=n* to time the "parsing step" n times.
   An example with a large BASIC program:
@@ -247,7 +250,7 @@ These URL parameters are also put in the URL when you press the *Reload* button 
 - kbdLayout=alphanum (virtual keyboard layout: alphanum, alpha, num)
 - canvasType="graphics" ("graphics", "text", "none")
 - palette="color" ("color", "green", "grey")
-- showConsole=false
+- showConsoleLog=false
 - showConvert=false,
 - showCpc=true (show the CPC window)
 - showGallery=false,

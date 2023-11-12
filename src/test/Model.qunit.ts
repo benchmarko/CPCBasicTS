@@ -80,15 +80,15 @@ QUnit.module("Model: Databases", function (hooks) {
 
 		assert.strictEqual(Object.keys(databases).join(" "), "db1 db2", "two databases: db1, db2");
 
-		model.setProperty("database", "db1");
+		model.setProperty(Model.props.database, "db1");
 
 		assert.strictEqual(model.getDatabase(), exampleDatabases.db1, "databases db1");
 
-		model.setProperty("database", "db2");
+		model.setProperty(Model.props.database, "db2");
 
 		assert.strictEqual(model.getDatabase(), exampleDatabases.db2, "databases db2");
 
-		model.setProperty("database", "");
+		model.setProperty(Model.props.database, "");
 
 		assert.strictEqual(model.getDatabase(), undefined, "databases undefined");
 	});
@@ -127,7 +127,7 @@ QUnit.module("Model: Examples", function (hooks) {
 			};
 
 		that.model.addDatabases(exampleDatabases);
-		that.model.setProperty("database", "db1");
+		that.model.setProperty(Model.props.database, "db1");
 		that.model.setExample(example1);
 		that.model.setExample(example2);
 	});
