@@ -54,14 +54,14 @@ export class VirtualKeyboard {
 			fnReleaseCpcKey: options.fnReleaseCpcKey
 		};
 
-		const eventNames = this.fnAttachPointerEvents("kbdArea", this.onVirtualKeyboardKeydown.bind(this), undefined, this.onVirtualKeyboardKeyup.bind(this));
+		const eventNames = this.fnAttachPointerEvents(View.ids.kbdAreaInner, this.onVirtualKeyboardKeydown.bind(this), undefined, this.onVirtualKeyboardKeyup.bind(this));
 
 		if (eventNames.out) {
 			this.pointerOutEvent = eventNames.out;
 			this.fnVirtualKeyout = this.onVirtualKeyboardKeyout.bind(this);
 		}
 
-		this.dragInit("pageBody", "kbdAreaBox");
+		this.dragInit("pageBody", View.ids.kbdArea);
 
 		this.virtualKeyboardCreate();
 	}
@@ -785,7 +785,7 @@ export class VirtualKeyboard {
 	}
 
 	private virtualKeyboardAdaptKeys(shiftLock: boolean, numLock: boolean) {
-		const keyArea = View.getElementById1("kbdArea"),
+		const keyArea = View.getElementById1(View.ids.kbdAreaInner),
 			buttons = keyArea.getElementsByTagName("button"); // or: keyArea.childNodes and filter
 
 		for (let i = 0; i < buttons.length; i += 1) {

@@ -25,12 +25,12 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 fnPressCpcKey: options.fnPressCpcKey,
                 fnReleaseCpcKey: options.fnReleaseCpcKey
             };
-            var eventNames = this.fnAttachPointerEvents("kbdArea", this.onVirtualKeyboardKeydown.bind(this), undefined, this.onVirtualKeyboardKeyup.bind(this));
+            var eventNames = this.fnAttachPointerEvents(View_1.View.ids.kbdAreaInner, this.onVirtualKeyboardKeydown.bind(this), undefined, this.onVirtualKeyboardKeyup.bind(this));
             if (eventNames.out) {
                 this.pointerOutEvent = eventNames.out;
                 this.fnVirtualKeyout = this.onVirtualKeyboardKeyout.bind(this);
             }
-            this.dragInit("pageBody", "kbdAreaBox");
+            this.dragInit("pageBody", View_1.View.ids.kbdArea);
             this.virtualKeyboardCreate();
         }
         VirtualKeyboard.prototype.fnAttachPointerEvents = function (id, fnDown, fnMove, fnUp) {
@@ -154,7 +154,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.virtualKeyboardCreatePart("kbdNum", VirtualKeyboard.virtualKeyboardNum);
         };
         VirtualKeyboard.prototype.virtualKeyboardAdaptKeys = function (shiftLock, numLock) {
-            var keyArea = View_1.View.getElementById1("kbdArea"), buttons = keyArea.getElementsByTagName("button"); // or: keyArea.childNodes and filter
+            var keyArea = View_1.View.getElementById1(View_1.View.ids.kbdAreaInner), buttons = keyArea.getElementsByTagName("button"); // or: keyArea.childNodes and filter
             for (var i = 0; i < buttons.length; i += 1) {
                 var button = buttons[i];
                 var cpcKey = Number(button.getAttribute("data-key"));

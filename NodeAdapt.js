@@ -87,7 +87,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             };
             var setAreaValueOrig = view.prototype.setAreaValue;
             view.prototype.setAreaValue = function (id, value) {
-                if (id === "resultText") {
+                if (id === "resultText") { // View.ids.resultText
                     if (value) {
                         Utils_1.Utils.console.log(value);
                     }

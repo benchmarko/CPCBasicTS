@@ -41,7 +41,8 @@ interface FileMetaAndData {
 }
 
 type AreaDefinitionType = {
-	property: string,
+	property: string, // propert in model
+	checkedId?: string,
 	display?: "flex",
 	isPopover?: boolean
 }
@@ -105,55 +106,72 @@ export class Controller implements IController {
 	private z80Disass?: Z80Disass;
 
 	private static areaDefinitions: Record<string, AreaDefinitionType> = {
-		consoleArea: {
-			property: "showConsole"
+		consoleLogArea: {
+			property: Model.props.showConsoleLog,
+			checkedId: View.ids.showConsoleLogInput
 		},
 		convertArea: {
-			property: "showConvert",
+			property: Model.props.showConvert,
 			display: "flex",
 			isPopover: true
 		},
 		cpcArea: {
-			property: "showCpc"
+			property: Model.props.showCpc,
+			checkedId: View.ids.showCpcInput
+		},
+		disassArea: {
+			property: Model.props.showDisass,
+			checkedId: View.ids.showDisassInput
 		},
 		exportArea: {
-			property: "showExport",
+			property: Model.props.showExport,
 			display: "flex",
 			isPopover: true
 		},
 		galleryArea: {
-			property: "showGallery",
+			property: Model.props.showGallery,
 			display: "flex",
 			isPopover: true
 		},
 		inp2Area: {
-			property: "showInp2"
+			property: Model.props.showInp2,
+			checkedId: View.ids.showInp2Input
 		},
 		inputArea: {
-			property: "showInput"
+			property: Model.props.showInput,
+			checkedId: View.ids.showInputInput
 		},
 		kbdArea: {
-			property: "showKbd",
+			property: Model.props.showKbd,
+			checkedId: View.ids.showKbdInput,
 			display: "flex"
 		},
 		moreArea: {
-			property: "showMore",
+			property: Model.props.showMore,
 			display: "flex",
 			isPopover: true
 		},
 		outputArea: {
-			property: "showOutput"
+			property: Model.props.showOutput,
+			checkedId: View.ids.showOutputInput
 		},
 		resultArea: {
-			property: "showResult"
+			property: Model.props.showResult,
+			checkedId: View.ids.showResultInput
 		},
 		settingsArea: {
-			property: "showSettings",
+			property: Model.props.showSettings,
 			display: "flex",
 			isPopover: true
 		},
 		variableArea: {
-			property: "showVariable"
+			property: Model.props.showVariable,
+			checkedId: View.ids.showVariableInput
+		},
+		viewArea: {
+			property: Model.props.showView,
+			display: "flex",
+			isPopover: true
 		}
 	};
 
@@ -176,47 +194,42 @@ export class Controller implements IController {
 		this.view.attachEventHandler("click", this.commonEventHandler);
 		this.view.attachEventHandler("change", this.commonEventHandler);
 
-		// unhide console box, if console should be shown
-		view.setHidden("consoleBox", !model.getProperty<boolean>("showConsole"));
-		this.view.setInputChecked("consoleLogInput", model.getProperty<boolean>("showConsole"));
+		const canvasType = model.getProperty<string>(Model.props.canvasType);
 
-		const canvasType = model.getProperty<string>("canvasType");
+		view.setSelectValue(View.ids.canvasTypeSelect, canvasType);
 
-		view.setSelectValue("canvasTypeSelect", canvasType);
+		const palette = model.getProperty<string>(Model.props.palette);
 
-		const palette = model.getProperty<string>("palette");
-
-		view.setSelectValue("paletteSelect", palette);
+		view.setSelectValue(View.ids.paletteSelect, palette);
 
 		this.canvas = this.setCanvasType(canvasType);
 
-		view.setHidden("kbdLayoutArea", model.getProperty<boolean>("showKbd"), "inherit"); // kbd visible => kbdlayout invisible
 		this.initAreas();
 
-		view.setInputValue("debugInput", String(model.getProperty<number>("debug")));
-		view.setInputChecked("implicitLinesInput", model.getProperty<boolean>("implicitLines"));
-		view.setInputChecked("arrayBoundsInput", model.getProperty<boolean>("arrayBounds"));
+		view.setInputValue(View.ids.debugInput, String(model.getProperty<number>(Model.props.debug)));
+		view.setInputChecked(View.ids.implicitLinesInput, model.getProperty<boolean>(Model.props.implicitLines));
+		view.setInputChecked(View.ids.arrayBoundsInput, model.getProperty<boolean>(Model.props.arrayBounds));
 		this.variables = new Variables({
-			arrayBounds: model.getProperty<boolean>("arrayBounds")
+			arrayBounds: model.getProperty<boolean>(Model.props.arrayBounds)
 		});
 
-		view.setInputChecked("traceInput", model.getProperty<boolean>("trace"));
-		view.setInputChecked("autorunInput", model.getProperty<boolean>("autorun"));
-		view.setInputChecked("soundInput", model.getProperty<boolean>("sound"));
+		view.setInputChecked(View.ids.traceInput, model.getProperty<boolean>(Model.props.trace));
+		view.setInputChecked(View.ids.autorunInput, model.getProperty<boolean>(Model.props.autorun));
+		view.setInputChecked(View.ids.soundInput, model.getProperty<boolean>(Model.props.sound));
 
-		view.setInputValue("speedInput", String(model.getProperty<number>("speed")));
+		view.setInputValue(View.ids.speedInput, String(model.getProperty<number>(Model.props.speed)));
 		this.fnSpeed();
 
-		const kbdLayout = model.getProperty<string>("kbdLayout");
+		const kbdLayout = model.getProperty<string>(Model.props.kbdLayout);
 
-		view.setSelectValue("kbdLayoutSelect", kbdLayout);
+		view.setSelectValue(View.ids.kbdLayoutSelect, kbdLayout);
 		this.commonEventHandler.onKbdLayoutSelectChange();
 
 		this.keyboard = new Keyboard({
 			fnOnEscapeHandler: this.fnOnEscapeHandler
 		});
 
-		if (this.model.getProperty<boolean>("showKbd")) { // maybe we need to draw virtual keyboard
+		if (this.model.getProperty<boolean>(Model.props.showKbd)) { // maybe we need to draw virtual keyboard
 			this.getVirtualKeyboard();
 		}
 
@@ -248,9 +261,9 @@ export class Controller implements IController {
 		}; // backup of stop object
 		this.setStopObject(this.noStop);
 
-		const basicVersion = this.model.getProperty<string>("basicVersion");
+		const basicVersion = this.model.getProperty<string>(Model.props.basicVersion);
 
-		view.setSelectValue("basicVersionSelect", basicVersion);
+		view.setSelectValue(View.ids.basicVersionSelect, basicVersion);
 
 		this.basicParser = new BasicParser({
 			basicVersion: basicVersion
@@ -262,28 +275,24 @@ export class Controller implements IController {
 		this.codeGeneratorJs = new CodeGeneratorJs({
 			lexer: this.basicLexer,
 			parser: this.basicParser,
-			trace: model.getProperty<boolean>("trace"),
-			implicitLines: model.getProperty<boolean>("implicitLines")
+			trace: model.getProperty<boolean>(Model.props.trace),
+			implicitLines: model.getProperty<boolean>(Model.props.implicitLines)
 		});
 
-		if (model.getProperty<boolean>("sound")) { // activate sound needs user action
+		if (model.getProperty<boolean>(Model.props.sound)) { // activate sound needs user action
 			this.setSoundActive(); // activate in waiting state
 		}
 		this.initDropZone();
 
-		const example = model.getProperty<string>("example");
+		const example = model.getProperty<string>(Model.props.example);
 
-		view.setSelectValue("exampleSelect", example);
+		view.setSelectValue(View.ids.exampleSelect, example);
 
 		this.hasStorageDatabase = this.initDatabases();
 
-		if (model.getProperty<boolean>("showCpc")) {
+		if (model.getProperty<boolean>(Model.props.showCpc)) {
 			this.canvas.startUpdateCanvas();
 		}
-
-		// unhide box, when it should be shown
-		view.setHidden("disassBox", !model.getProperty<boolean>("showDisass"));
-		view.setInputChecked("showDisassInput", model.getProperty<boolean>("showDisass"));
 	}
 
 	private static readonly codeGenJsBasicParserOptions = {
@@ -309,16 +318,21 @@ export class Controller implements IController {
 
 	private initAreas() {
 		for (const id in Controller.areaDefinitions) { // eslint-disable-line guard-for-in
-			const propertyObject = Controller.areaDefinitions[id];
+			const propertyObject = Controller.areaDefinitions[id],
+				showIt = this.model.getProperty<boolean>(propertyObject.property);
 
-			this.view.setHidden(id, !this.model.getProperty<boolean>(propertyObject.property), propertyObject.display);
+			this.view.setHidden(id, !showIt, propertyObject.display);
+
+			if (propertyObject.checkedId) {
+				this.view.setInputChecked(propertyObject.checkedId, showIt);
+			}
 		}
 	}
 
 	private initDatabases() {
 		const model = this.model,
 			databases: DatabasesType = {},
-			databaseDirs = model.getProperty<string>("databaseDirs").split(",");
+			databaseDirs = model.getProperty<string>(Model.props.databaseDirs).split(",");
 		let hasStorageDatabase = false;
 
 		for (let i = 0; i < databaseDirs.length; i += 1) {
@@ -362,7 +376,7 @@ export class Controller implements IController {
 	// Also called from example files xxxxx.js
 	addItem(key: string, input: string): string { // key maybe ""
 		if (!key) { // maybe ""
-			key = (document.currentScript && document.currentScript.getAttribute("data-key")) || this.model.getProperty<string>("example");
+			key = (document.currentScript && document.currentScript.getAttribute("data-key")) || this.model.getProperty<string>(Model.props.example);
 			// on IE we can just get the current example
 		}
 		input = input.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
@@ -379,7 +393,7 @@ export class Controller implements IController {
 
 	addRsx(key: string, RsxConstructor: new () => ICpcVmRsx): string {
 		if (!key) { // maybe ""
-			key = (document.currentScript && document.currentScript.getAttribute("data-key")) || this.model.getProperty<string>("example");
+			key = (document.currentScript && document.currentScript.getAttribute("data-key")) || this.model.getProperty<string>(Model.props.example);
 			// on IE we can just get the current example
 		}
 
@@ -393,10 +407,9 @@ export class Controller implements IController {
 	}
 
 	private setDatabaseSelectOptions() {
-		const select = "databaseSelect",
-			items: SelectOptionElement[] = [],
+		const items: SelectOptionElement[] = [],
 			databases = this.model.getAllDatabases(),
-			database = this.model.getProperty<string>("database");
+			database = this.model.getProperty<string>(Model.props.database);
 
 		for (const value in databases) {
 			if (databases.hasOwnProperty(value)) {
@@ -411,7 +424,7 @@ export class Controller implements IController {
 				items.push(item);
 			}
 		}
-		this.view.setSelectOptions(select, items);
+		this.view.setSelectOptions(View.ids.databaseSelect, items);
 	}
 
 	private static getPathFromExample(example: string) {
@@ -435,10 +448,9 @@ export class Controller implements IController {
 	}
 
 	private setDirectorySelectOptions() {
-		const select = "directorySelect",
-			items: SelectOptionElement[] = [],
+		const items: SelectOptionElement[] = [],
 			allExamples = this.model.getAllExamples(),
-			examplePath = Controller.getPathFromExample(this.model.getProperty<string>("example")),
+			examplePath = Controller.getPathFromExample(this.model.getProperty<string>(Model.props.example)),
 			directorySeen: Record<string, boolean> = {};
 
 		for (const key in allExamples) {
@@ -459,17 +471,16 @@ export class Controller implements IController {
 				}
 			}
 		}
-		this.view.setSelectOptions(select, items);
+		this.view.setSelectOptions(View.ids.directorySelect, items);
 	}
 
 	setExampleSelectOptions(): void {
 		const maxTitleLength = 160,
 			maxTextLength = 60, // (32 visible?)
-			select = "exampleSelect",
 			items: SelectOptionElement[] = [],
-			exampleName = Controller.getNameFromExample(this.model.getProperty<string>("example")),
+			exampleName = Controller.getNameFromExample(this.model.getProperty<string>(Model.props.example)),
 			allExamples = this.model.getAllExamples(),
-			directoryName = this.view.getSelectValue("directorySelect");
+			directoryName = this.view.getSelectValue(View.ids.directorySelect);
 
 		let exampleSelected = false;
 
@@ -497,13 +508,13 @@ export class Controller implements IController {
 		if (!exampleSelected && items.length) {
 			items[0].selected = true; // if example is not found, select first element
 		}
-		this.view.setSelectOptions(select, items);
+		this.view.setSelectOptions(View.ids.exampleSelect, items);
 	}
 
 	setGalleryAreaInputs(): void {
 		const database = this.model.getDatabase(),
-			directory = this.view.getSelectValue("directorySelect"),
-			options = this.view.getSelectOptions("exampleSelect"),
+			directory = this.view.getSelectValue(View.ids.directorySelect),
+			options = this.view.getSelectOptions(View.ids.exampleSelect),
 			inputs: AreaInputElement[] = [];
 
 		for (let i = 0; i < options.length; i += 1) {
@@ -517,7 +528,7 @@ export class Controller implements IController {
 
 			inputs.push(input);
 		}
-		this.view.setAreaInputList("galleryAreaItems", inputs);
+		this.view.setAreaInputList(View.ids.galleryAreaItems, inputs);
 	}
 
 	private setVarSelectOptions(select: string, variables: Variables) {
@@ -567,11 +578,11 @@ export class Controller implements IController {
 			return;
 		}
 
-		const database = this.model.getProperty<string>("database"),
+		const database = this.model.getProperty<string>(Model.props.database),
 			storage = Utils.localStorage;
 
 		if (database !== "storage") {
-			this.model.setProperty("database", "storage"); // switch to storage database
+			this.model.setProperty(Model.props.database, "storage"); // switch to storage database
 		}
 
 		let	dir: string[];
@@ -609,7 +620,7 @@ export class Controller implements IController {
 			this.setDirectorySelectOptions();
 			this.setExampleSelectOptions();
 		} else {
-			this.model.setProperty("database", database); // restore database
+			this.model.setProperty(Model.props.database, database); // restore database
 		}
 	}
 
@@ -618,7 +629,7 @@ export class Controller implements IController {
 	}
 
 	setInputText(input: string, keepStack?: boolean): void {
-		this.view.setAreaValue("inputText", input);
+		this.view.setAreaValue(View.ids.inputText, input);
 		if (!keepStack) {
 			this.fnInitUndoRedoButtons();
 		} else {
@@ -884,7 +895,7 @@ export class Controller implements IController {
 	}
 
 	private splitLines(input: string) {
-		if (this.model.getProperty<boolean>("implicitLines")) {
+		if (this.model.getProperty<boolean>(Model.props.implicitLines)) {
 			input = Controller.addLineNumbers(input);
 		}
 
@@ -1053,7 +1064,7 @@ export class Controller implements IController {
 
 	private fnFileDir(paras: VmFileParas): void {
 		const stream = paras.stream,
-			example = this.model.getProperty<string>("example"),
+			example = this.model.getProperty<string>(Model.props.example),
 			lastSlash = example.lastIndexOf("/");
 
 		let fileMask = paras.fileMask ? Controller.fnLocalStorageName(paras.fileMask) : "";
@@ -1199,7 +1210,7 @@ export class Controller implements IController {
 			this.codeGeneratorToken = new CodeGeneratorToken({
 				lexer: this.basicLexer,
 				parser: this.basicParser,
-				implicitLines: this.model.getProperty<boolean>("implicitLines")
+				implicitLines: this.model.getProperty<boolean>(Model.props.implicitLines)
 			});
 		}
 		return this.codeGeneratorToken;
@@ -1405,9 +1416,9 @@ export class Controller implements IController {
 		case "openin":
 			break;
 		case "chainMerge":
-			input = this.mergeScripts(this.view.getAreaValue("inputText"), input);
+			input = this.mergeScripts(this.view.getAreaValue(View.ids.inputText), input);
 			this.setInputText(input);
-			this.view.setAreaValue("resultText", "");
+			this.view.setAreaValue(View.ids.resultText, "");
 			startLine = inFileLine;
 			this.invalidateScript();
 			this.fnParseChain();
@@ -1415,22 +1426,22 @@ export class Controller implements IController {
 		case "load":
 			if (!putInMemory) {
 				this.setInputText(input);
-				this.view.setAreaValue("resultText", "");
+				this.view.setAreaValue(View.ids.resultText, "");
 				this.invalidateScript();
 				this.vm.vmStop("end", 90);
 			}
 			break;
 		case "merge":
-			input = this.mergeScripts(this.view.getAreaValue("inputText"), input);
+			input = this.mergeScripts(this.view.getAreaValue(View.ids.inputText), input);
 			this.setInputText(input);
-			this.view.setAreaValue("resultText", "");
+			this.view.setAreaValue(View.ids.resultText, "");
 			this.invalidateScript();
 			this.variables.removeAllVariables();
 			this.vm.vmStop("end", 90);
 			break;
 		case "chain": // TODO: if we have a line number, make sure it is not optimized away when compiling
 			this.setInputText(input);
-			this.view.setAreaValue("resultText", "");
+			this.view.setAreaValue(View.ids.resultText, "");
 			startLine = inFileLine;
 			this.invalidateScript();
 			this.fnParseChain();
@@ -1438,7 +1449,7 @@ export class Controller implements IController {
 		case "run":
 			if (!putInMemory) {
 				this.setInputText(input);
-				this.view.setAreaValue("resultText", "");
+				this.view.setAreaValue(View.ids.resultText, "");
 				startLine = inFileLine;
 				if (!data || data.meta.typeString !== "S") { // keep memory, config for snapshots
 					this.fnReset();
@@ -1467,7 +1478,7 @@ export class Controller implements IController {
 			if (!suppressLog) {
 				Utils.console.log("Example", url, (exampleEntry.meta ? exampleEntry.meta + " " : "") + " loaded");
 			}
-			this.model.setProperty("example", inFile.memorizedExample);
+			this.model.setProperty(Model.props.example, inFile.memorizedExample);
 			this.vm.vmStop("", 0, true);
 
 			if (exampleEntry.rsx) {
@@ -1483,7 +1494,7 @@ export class Controller implements IController {
 	private createFnExampleError(example: string, url: string, inFile: ReturnType<typeof this.vm.vmGetInFileObject>) {
 		return () => {
 			Utils.console.log("Example", url, "error");
-			this.model.setProperty("example", inFile.memorizedExample);
+			this.model.setProperty(Model.props.example, inFile.memorizedExample);
 
 			this.vm.vmStop("", 0, true);
 
@@ -1500,7 +1511,7 @@ export class Controller implements IController {
 
 	private loadExample() {
 		const inFile = this.vm.vmGetInFileObject(),
-			key = this.model.getProperty<string>("example");
+			key = this.model.getProperty<string>(Model.props.example);
 		let name = inFile.name;
 
 		if (name.charAt(0) === "/") { // absolute path?
@@ -1527,13 +1538,13 @@ export class Controller implements IController {
 		let url: string;
 
 		if (exampleEntry && exampleEntry.loaded) {
-			this.model.setProperty("example", example);
+			this.model.setProperty(Model.props.example, example);
 			url = example;
 			const fnExampleLoaded = this.createFnExampleLoaded(example, url, inFile);
 
 			fnExampleLoaded("", example, true);
 		} else if (example && exampleEntry) { // need to load
-			this.model.setProperty("example", example);
+			this.model.setProperty(Model.props.example, example);
 			const databaseDir = this.model.getDatabase().src;
 
 			url = databaseDir + "/" + example + ".js";
@@ -1546,7 +1557,7 @@ export class Controller implements IController {
 
 				fnExampleError();
 			} else {
-				this.model.setProperty("example", example);
+				this.model.setProperty(Model.props.example, example);
 				this.vm.vmStop("", 0, true);
 				this.loadFileContinue(""); // empty input?
 			}
@@ -1682,7 +1693,7 @@ export class Controller implements IController {
 			if (outFile.fileData.length || (type === "B") || (outFile.command === "openout")) { // type A(for openout) or B
 				fileData = outFile.fileData.join("");
 			} else { // no file data (assuming type A, P or T) => get text
-				fileData = this.view.getAreaValue("inputText");
+				fileData = this.view.getAreaValue(View.ids.inputText);
 
 				if (type === "T" || type === "P") {
 					fileData = this.encodeTokenizedBasic(fileData, storageName);
@@ -1719,7 +1730,7 @@ export class Controller implements IController {
 	}
 
 	private fnDeleteLines(paras: VmLineParas) {
-		const inputText = this.view.getAreaValue("inputText"),
+		const inputText = this.view.getAreaValue(View.ids.inputText),
 			lines = this.fnGetLinesInRange(inputText, paras.first || 0, paras.last || 65535);
 		let	error: CustomError | undefined;
 
@@ -1759,7 +1770,7 @@ export class Controller implements IController {
 	}
 
 	private fnList(paras: VmLineParas) {
-		const input = this.view.getAreaValue("inputText"),
+		const input = this.view.getAreaValue(View.ids.inputText),
 			stream = paras.stream,
 			lines = this.fnGetLinesInRange(input, paras.first || 0, paras.last || 65535),
 			regExp = new RegExp(/([\x00-\x1f])/g); // eslint-disable-line no-control-regex
@@ -1788,7 +1799,7 @@ export class Controller implements IController {
 		}
 
 		vm.vmStop("end", 0, true); // set "end" with priority 0, so that "compile only" still works
-		this.view.setAreaValue("outputText", "");
+		this.view.setAreaValue(View.ids.outputText, "");
 		this.invalidateScript();
 	}
 
@@ -1803,7 +1814,7 @@ export class Controller implements IController {
 					len = error.len || ((error.value !== undefined) ? String(error.value).length : 0),
 					endPos = startPos + len;
 
-				this.view.setAreaSelection("inputText", error.pos, endPos);
+				this.view.setAreaSelection(View.ids.inputText, error.pos, endPos);
 			}
 		} else {
 			shortError = error.message;
@@ -1817,7 +1828,7 @@ export class Controller implements IController {
 
 	private fnRenumLines(paras: VmLineRenumParas) {
 		const vm = this.vm,
-			input = this.view.getAreaValue("inputText"),
+			input = this.view.getAreaValue(View.ids.inputText),
 			basicFormatter = this.getBasicFormatter();
 
 		this.basicLexer.setOptions({
@@ -1840,21 +1851,21 @@ export class Controller implements IController {
 
 	private fnEditLineCallback() {
 		const inputParas = this.vm.vmGetStopObject().paras as VmInputParas,
-			inputText = this.view.getAreaValue("inputText");
+			inputText = this.view.getAreaValue(View.ids.inputText);
 		let input = inputParas.input;
 
 		input = this.mergeScripts(inputText, input);
 		this.setInputText(input);
 		this.vm.vmSetStartLine(0);
 		this.vm.vmGoto(0); // to be sure
-		this.view.setDisabled("continueButton", true);
+		this.view.setDisabled(View.ids.continueButton, true);
 		this.vm.cursor(inputParas.stream, 0);
 		this.vm.vmStop("end", 90);
 		return true;
 	}
 
 	private fnEditLine(paras: VmLineParas) {
-		const input = this.view.getAreaValue("inputText"),
+		const input = this.view.getAreaValue(View.ids.inputText),
 			stream = paras.stream,
 			lineNumber = paras.first || 0,
 			lines = this.fnGetLinesInRange(input, lineNumber, lineNumber);
@@ -1901,8 +1912,8 @@ export class Controller implements IController {
 	}
 
 	private fnParse(): IOutput {
-		const input = this.view.getAreaValue("inputText"),
-			bench = this.model.getProperty<number>("bench");
+		const input = this.view.getAreaValue(View.ids.inputText),
+			bench = this.model.getProperty<number>(Model.props.bench);
 
 		// keep variables; this.variables.removeAllVariables();
 		let	output: IOutput;
@@ -1942,19 +1953,19 @@ export class Controller implements IController {
 		if (outputString && outputString.length > 0) {
 			outputString += "\n";
 		}
-		this.view.setAreaValue("outputText", outputString);
+		this.view.setAreaValue(View.ids.outputText, outputString);
 
 		this.invalidateScript();
-		this.setVarSelectOptions("varSelect", this.variables);
+		this.setVarSelectOptions(View.ids.varSelect, this.variables);
 		this.commonEventHandler.onVarSelectChange();
 		return output;
 	}
 
 	fnPretty(): void {
-		const input = this.view.getAreaValue("inputText"),
-			keepWhiteSpace = this.view.getInputChecked("prettySpaceInput"),
-			keepBrackets = this.view.getInputChecked("prettyBracketsInput"),
-			keepColons = this.view.getInputChecked("prettyColonsInput"),
+		const input = this.view.getAreaValue(View.ids.inputText),
+			keepWhiteSpace = this.view.getInputChecked(View.ids.prettySpaceInput),
+			keepBrackets = this.view.getInputChecked(View.ids.prettyBracketsInput),
+			keepColons = this.view.getInputChecked(View.ids.prettyColonsInput),
 			output = this.prettyPrintBasic(input, keepWhiteSpace, keepBrackets, keepColons);
 
 		if (output) {
@@ -1965,12 +1976,12 @@ export class Controller implements IController {
 			// for testing:
 			const diff = Diff.testDiff(input.toUpperCase(), output.toUpperCase());
 
-			this.view.setAreaValue("outputText", diff);
+			this.view.setAreaValue(View.ids.outputText, diff);
 		}
 	}
 
 	fnAddLines(): void {
-		const input = this.view.getAreaValue("inputText"),
+		const input = this.view.getAreaValue(View.ids.inputText),
 			output = Controller.addLineNumbers(input);
 
 		if (output) {
@@ -1987,7 +1998,7 @@ export class Controller implements IController {
 			keepWhiteSpace: false
 		});
 		this.basicParser.setOptions(Controller.formatterBasicParserOptions);
-		const input = this.view.getAreaValue("inputText"),
+		const input = this.view.getAreaValue(View.ids.inputText),
 			output = basicFormatter.removeUnusedLines(input);
 
 		if (output.error) {
@@ -2054,7 +2065,7 @@ export class Controller implements IController {
 		if (matches !== null) {
 			name = matches[1];
 		} else {
-			const example = this.model.getProperty<string>("example");
+			const example = this.model.getProperty<string>(Model.props.example);
 
 			if (example !== "") {
 				name = example;
@@ -2068,11 +2079,11 @@ export class Controller implements IController {
 	}
 
 	fnDownload(): void {
-		const input = this.view.getAreaValue("inputText"),
+		const input = this.view.getAreaValue(View.ids.inputText),
 			tokens = this.encodeTokenizedBasic(input),
-			exportTokenized = this.view.getInputChecked("exportTokenizedInput"),
-			exportDSK = this.view.getInputChecked("exportDSKInput"),
-			exportBase64 = this.view.getInputChecked("exportBase64Input"),
+			exportTokenized = this.view.getInputChecked(View.ids.exportTokenizedInput),
+			exportDSK = this.view.getInputChecked(View.ids.exportDSKInput),
+			exportBase64 = this.view.getInputChecked(View.ids.exportBase64Input),
 			meta: FileMeta = {
 				typeString: "A", // ASCII
 				start: 0x170,
@@ -2150,12 +2161,12 @@ export class Controller implements IController {
 
 			Utils.console.warn("Info: JS Error occurred at line", lineNumber, "column", columnNumber, "pos", pos);
 
-			this.view.setAreaSelection("outputText", pos, pos + 1);
+			this.view.setAreaSelection(View.ids.outputText, pos, pos + 1);
 		}
 	}
 
 	private fnChain(paras?: VmLineParas) {
-		const script = this.view.getAreaValue("outputText"),
+		const script = this.view.getAreaValue(View.ids.outputText),
 			vm = this.vm;
 		let line = paras && paras.first || 0;
 
@@ -2188,22 +2199,23 @@ export class Controller implements IController {
 			vm.vmGoto(0); // to load DATA lines
 			this.vm.vmSetStartLine(line); // clear resets also startline
 
-			this.view.setDisabled("runButton", true);
-			this.view.setDisabled("stopButton", false);
-			this.view.setDisabled("continueButton", true);
+			this.view.setDisabled(View.ids.runButton, true);
+			this.view.setDisabled(View.ids.stopButton, false);
+			this.view.setDisabled(View.ids.continueButton, true);
 		}
 
 		if (!this.inputSet) {
 			this.inputSet = true;
-			const input = this.model.getProperty<string>("input");
+			const input = this.model.getProperty<string>(Model.props.input);
 
 			if (input !== "") {
-				this.view.setAreaValue("inp2Text", input);
+				this.view.setAreaValue(View.ids.inp2Text, input);
 				const that = this,
 					timeout = 1;
 
 				setTimeout(function () {
 					that.startEnter();
+					that.view.setAreaValue(View.ids.inp2Text, ""); // delete input
 				}, timeout);
 			}
 		}
@@ -2253,7 +2265,7 @@ export class Controller implements IController {
 					}
 				} else {
 					Utils.console.error(e);
-					this.selectJsError(this.view.getAreaValue("outputText"), e);
+					this.selectJsError(this.view.getAreaValue(View.ids.outputText), e);
 					this.vm.vmComposeError(e, 2, "JS " + String(e)); // generate Syntax Error, set also err and erl and set stop
 					this.outputError(e, true);
 				}
@@ -2272,7 +2284,7 @@ export class Controller implements IController {
 		inputParas.input = "";
 		if (input !== "") { // direct input
 			this.vm.cursor(stream, 0);
-			const inputText = this.view.getAreaValue("inputText");
+			const inputText = this.view.getAreaValue(View.ids.inputText);
 
 			if ((/^\d+($| )/).test(input)) { // start with number?
 				if (Utils.debug > 0) {
@@ -2283,7 +2295,7 @@ export class Controller implements IController {
 
 				this.vm.vmSetStartLine(0);
 				this.vm.vmGoto(0); // to be sure
-				this.view.setDisabled("continueButton", true);
+				this.view.setDisabled(View.ids.continueButton, true);
 
 				this.vm.cursor(stream, 1);
 				this.updateResultText();
@@ -2296,7 +2308,7 @@ export class Controller implements IController {
 			let	output: IOutput | undefined,
 				outputString: string;
 
-			if (inputText && ((/^\d+($| )/).test(inputText) || this.model.getProperty<boolean>("implicitLines"))) { // do we have a program starting with a line number?
+			if (inputText && ((/^\d+($| )/).test(inputText) || this.model.getProperty<boolean>(Model.props.implicitLines))) { // do we have a program starting with a line number?
 				const separator = inputText.endsWith("\n") ? "" : "\n";
 
 				this.basicParser.setOptions(Controller.codeGenJsBasicParserOptions);
@@ -2325,7 +2337,7 @@ export class Controller implements IController {
 			if (outputString && outputString.length > 0) {
 				outputString += "\n";
 			}
-			this.view.setAreaValue("outputText", outputString);
+			this.view.setAreaValue(View.ids.outputText, outputString);
 
 			if (!output.error) {
 				this.vm.vmSetStartLine(this.vm.line as number); // fast hack
@@ -2384,8 +2396,8 @@ export class Controller implements IController {
 	}
 
 	private updateResultText() {
-		this.view.setAreaValue("resultText", this.vm.vmGetOutBuffer());
-		this.view.setAreaScrollTop("resultText"); // scroll to bottom
+		this.view.setAreaValue(View.ids.resultText, this.vm.vmGetOutBuffer());
+		this.view.setAreaScrollTop(View.ids.resultText); // scroll to bottom
 	}
 
 	private exitLoop() {
@@ -2394,11 +2406,11 @@ export class Controller implements IController {
 
 		this.updateResultText();
 
-		this.view.setDisabled("runButton", reason === "reset");
-		this.view.setDisabled("stopButton", reason !== "fileLoad" && reason !== "fileSave");
-		this.view.setDisabled("continueButton", reason === "end" || reason === "fileLoad" || reason === "fileSave" || reason === "parse" || reason === "renumLines" || reason === "reset");
+		this.view.setDisabled(View.ids.runButton, reason === "reset");
+		this.view.setDisabled(View.ids.stopButton, reason !== "fileLoad" && reason !== "fileSave");
+		this.view.setDisabled(View.ids.continueButton, reason === "end" || reason === "fileLoad" || reason === "fileSave" || reason === "parse" || reason === "renumLines" || reason === "reset");
 
-		this.setVarSelectOptions("varSelect", this.variables);
+		this.setVarSelectOptions(View.ids.varSelect, this.variables);
 		this.commonEventHandler.onVarSelectChange();
 
 		if (reason === "stop" || reason === "end" || reason === "error" || reason === "parse" || reason === "parseRun") {
@@ -2473,10 +2485,10 @@ export class Controller implements IController {
 		this.vm.vmStop("renumLines", 85, false, {
 			command: "renum",
 			stream: 0, // unused
-			newLine: Number(this.view.getInputValue("renumNewInput")), // 10
-			oldLine: Number(this.view.getInputValue("renumStartInput")), // 1
-			step: Number(this.view.getInputValue("renumStepInput")), // 10
-			keep: Number(this.view.getInputValue("renumKeepInput")), // 65535, keep lines
+			newLine: Number(this.view.getInputValue(View.ids.renumNewInput)), // 10
+			oldLine: Number(this.view.getInputValue(View.ids.renumStartInput)), // 1
+			step: Number(this.view.getInputValue(View.ids.renumStepInput)), // 10
+			keep: Number(this.view.getInputValue(View.ids.renumKeepInput)), // 65535, keep lines
 			line: this.vm.line
 		});
 
@@ -2517,9 +2529,9 @@ export class Controller implements IController {
 			stop = vm.vmGetStopObject(),
 			savedStop = this.getStopObject();
 
-		this.view.setDisabled("runButton", true);
-		this.view.setDisabled("stopButton", false);
-		this.view.setDisabled("continueButton", true);
+		this.view.setDisabled(View.ids.runButton, true);
+		this.view.setDisabled(View.ids.stopButton, false);
+		this.view.setDisabled(View.ids.continueButton, true);
 		if (stop.reason === "break" || stop.reason === "escape" || stop.reason === "stop" || stop.reason === "direct") {
 			if (savedStop.paras && !(savedStop.paras as VmInputParas).fnInputCallback) { // no keyboard callback? make sure no handler is set (especially for direct->continue)
 				this.removeKeyBoardHandler();
@@ -2557,12 +2569,16 @@ export class Controller implements IController {
 	}
 
 	startEnter(): void {
-		let input = this.view.getAreaValue("inp2Text");
+		let input = this.view.getAreaValue(View.ids.inp2Text);
 
 		input = input.replace(/\n/g, "\r"); // LF => CR
 		this.fnPutKeysInBuffer(input);
 
-		this.view.setAreaValue("inp2Text", "");
+		/*
+		if (deleteInput) {
+			this.view.setAreaValue(View.ids.inp2Text, "");
+		}
+		*/
 	}
 
 	private static generateFunction(par: string, functionString: string) {
@@ -2586,7 +2602,7 @@ export class Controller implements IController {
 		return fnFunction;
 	}
 
-	private setPopoversHiddenExcept(exceptId: string): void {
+	setPopoversHiddenExcept(exceptId: string): void {
 		const areaDefinitions = Controller.areaDefinitions;
 
 		for (const id in areaDefinitions) {
@@ -2623,8 +2639,8 @@ export class Controller implements IController {
 	}
 
 	changeVariable(): void {
-		const par = this.view.getSelectValue("varSelect"),
-			valueString = this.view.getSelectValue("varText"),
+		const par = this.view.getSelectValue(View.ids.varSelect),
+			valueString = this.view.getSelectValue(View.ids.varText),
 			variables = this.variables;
 		let value = variables.getVariable(par);
 
@@ -2650,7 +2666,7 @@ export class Controller implements IController {
 				Utils.console.warn(e);
 			}
 		}
-		this.setVarSelectOptions("varSelect", variables);
+		this.setVarSelectOptions(View.ids.varSelect, variables);
 		this.commonEventHandler.onVarSelectChange(); // title change?
 	}
 
@@ -2669,7 +2685,7 @@ export class Controller implements IController {
 	}
 
 	setCanvasType(canvasType: string): ICanvas {
-		const palette = this.model.getProperty<string>("palette"),
+		const palette = this.model.getProperty<string>(Model.props.palette),
 			canvasOptions: CanvasOptions = {
 				charset: cpcCharset,
 				palette: palette === "green" || palette === "grey" ? palette : "color"
@@ -2685,7 +2701,7 @@ export class Controller implements IController {
 			}
 		} else if (canvasType !== "graphics") {
 			// initially graphics canvas is not hidden, but we must hide it, if other canvas should be shown
-			this.view.setHidden("cpcCanvas", true);
+			this.view.setHidden(View.ids.cpcCanvas, true);
 		}
 
 		if (this.canvases[canvasType]) {
@@ -2696,16 +2712,16 @@ export class Controller implements IController {
 			} else if (canvasType === "none") {
 				canvas = new NoCanvas(canvasOptions);
 			} else { // "graphics"
-				const isAreaHidden = this.view.getHidden("cpcArea");
+				const isAreaHidden = this.view.getHidden(View.ids.cpcArea);
 
 				// make sure canvas area is not hidden when creating canvas object (allows to get width, height)
 				if (isAreaHidden) {
-					this.toggleAreaHidden("cpcArea");
+					this.toggleAreaHidden(View.ids.cpcArea);
 				}
-				this.view.setHidden("cpcCanvas", false);
+				this.view.setHidden(View.ids.cpcCanvas, false);
 				canvas = new Canvas(canvasOptions);
 				if (isAreaHidden) {
-					this.toggleAreaHidden("cpcArea"); // hide again
+					this.toggleAreaHidden(View.ids.cpcArea); // hide again
 				}
 			}
 			this.canvases[canvasType] = canvas;
@@ -2720,7 +2736,7 @@ export class Controller implements IController {
 		if (canvasElement) {
 			this.view.setHidden(canvasElement.id, false);
 		}
-		if (this.model.getProperty<boolean>("showCpc")) {
+		if (this.model.getProperty<boolean>(Model.props.showCpc)) {
 			this.canvas.startUpdateCanvas();
 		}
 		return canvas;
@@ -2728,7 +2744,7 @@ export class Controller implements IController {
 
 	setSoundActive(): void {
 		const sound = this.sound,
-			active = this.model.getProperty<boolean>("sound");
+			active = this.model.getProperty<boolean>(Model.props.sound);
 
 		if (active) {
 			sound.soundOn();
@@ -2773,7 +2789,7 @@ export class Controller implements IController {
 			out += z80Disass.disassLine() + "\n";
 		}
 
-		this.view.setAreaValue("disassText", out);
+		this.view.setAreaValue(View.ids.disassText, out);
 	}
 
 
@@ -2806,7 +2822,7 @@ export class Controller implements IController {
 				adaptFilename: this.adaptFilename.bind(this),
 				updateStorageDatabase: this.updateStorageDatabase.bind(this),
 				outputError: this.outputError.bind(this),
-				processFileImports: this.model.getProperty<boolean>("processFileImports")
+				processFileImports: this.model.getProperty<boolean>(Model.props.processFileImports)
 			});
 		}
 		return this.fileHandler;
@@ -2825,7 +2841,7 @@ export class Controller implements IController {
 	private initDropZone() {
 		const fileHandler = this.getFileHandler(),
 			fileSelect = this.getFileSelect(fileHandler),
-			dropZone = View.getElementById1("dropZone");
+			dropZone = View.getElementById1(View.ids.dropZone);
 
 		dropZone.addEventListener("dragover", this.fnOnDragoverHandler, false);
 		fileSelect.addFileSelectHandler(dropZone, "drop");
@@ -2837,14 +2853,14 @@ export class Controller implements IController {
 			fileSelect.addFileSelectHandler(canvasElement, "drop");
 		}
 
-		const fileInput = View.getElementById1("fileInput");
+		const fileInput = View.getElementById1(View.ids.fileInput);
 
 		fileSelect.addFileSelectHandler(fileInput, "change");
 	}
 
 	private fnUpdateUndoRedoButtons() {
-		this.view.setDisabled("undoButton", !this.inputStack.canUndoKeepOne());
-		this.view.setDisabled("redoButton", !this.inputStack.canRedo());
+		this.view.setDisabled(View.ids.undoButton, !this.inputStack.canUndoKeepOne());
+		this.view.setDisabled(View.ids.redoButton, !this.inputStack.canRedo());
 	}
 
 	private fnInitUndoRedoButtons() {
@@ -2853,7 +2869,7 @@ export class Controller implements IController {
 	}
 
 	private fnPutChangedInputOnStack() {
-		const input = this.view.getAreaValue("inputText"),
+		const input = this.view.getAreaValue(View.ids.inputText),
 			stackInput = this.inputStack.getInput();
 
 		if (stackInput !== input) {
@@ -2894,19 +2910,19 @@ export class Controller implements IController {
 
 	private createFnDatabaseLoaded(url: string) {
 		return (_sFullUrl: string, key: string) => {
-			const selectedName = this.model.getProperty<string>("database");
+			const selectedName = this.model.getProperty<string>(Model.props.database);
 
 			if (selectedName === key) {
 				this.model.getDatabase().loaded = true;
 			} else { // should not occur
 				Utils.console.warn("databaseLoaded: name changed: " + key + " => " + selectedName);
-				this.model.setProperty("database", key);
+				this.model.setProperty(Model.props.database, key);
 				const database = this.model.getDatabase();
 
 				if (database) {
 					database.loaded = true;
 				}
-				this.model.setProperty("database", selectedName);
+				this.model.setProperty(Model.props.database, selectedName);
 			}
 
 			Utils.console.log("fnDatabaseLoaded: database loaded: " + key + ": " + url);
@@ -2921,15 +2937,15 @@ export class Controller implements IController {
 			this.setDirectorySelectOptions();
 			this.onDirectorySelectChange();
 			this.setInputText("");
-			this.view.setAreaValue("resultText", "Cannot load database: " + key);
+			this.view.setAreaValue(View.ids.resultText, "Cannot load database: " + key);
 		};
 	}
 
 	onDatabaseSelectChange(): void {
-		const databaseName = this.view.getSelectValue("databaseSelect");
+		const databaseName = this.view.getSelectValue(View.ids.databaseSelect);
 
-		this.model.setProperty("database", databaseName);
-		this.view.setSelectTitleFromSelectedOption("databaseSelect");
+		this.model.setProperty(Model.props.database, databaseName);
+		this.view.setSelectTitleFromSelectedOption(View.ids.databaseSelect);
 
 		const database = this.model.getDatabase();
 
@@ -2948,7 +2964,7 @@ export class Controller implements IController {
 			this.onDirectorySelectChange();
 		} else {
 			this.setInputText("#loading database " + databaseName + "...");
-			const exampleIndex = this.model.getProperty<string>("exampleIndex"),
+			const exampleIndex = this.model.getProperty<string>(Model.props.exampleIndex),
 				url = database.src + "/" + exampleIndex;
 
 			Utils.loadScript(url, this.createFnDatabaseLoaded(url), this.createFnDatabaseError(url), databaseName);
@@ -2963,22 +2979,22 @@ export class Controller implements IController {
 	onExampleSelectChange(): void {
 		const vm = this.vm,
 			inFile = vm.vmGetInFileObject(),
-			dataBaseName = this.model.getProperty<string>("database"),
-			directoryName = this.view.getSelectValue("directorySelect");
+			dataBaseName = this.model.getProperty<string>(Model.props.database),
+			directoryName = this.view.getSelectValue(View.ids.directorySelect);
 
 		vm.closein();
 
 		this.setPopoversHiddenExcept(""); // hide all popovers, especially the gallery
 		inFile.open = true;
 
-		let exampleName = this.view.getSelectValue("exampleSelect");
+		let exampleName = this.view.getSelectValue(View.ids.exampleSelect);
 
 		if (directoryName) {
 			exampleName = directoryName + "/" + exampleName;
 		}
 
 		const exampleEntry = this.model.getExample(exampleName);
-		let	autorun = this.model.getProperty<boolean>("autorun");
+		let	autorun = this.model.getProperty<boolean>(Model.props.autorun);
 
 		if (exampleEntry && exampleEntry.meta) { // TTT TODO: this is just a workaround, meta is in input now; should change command after loading!
 			const type = exampleEntry.meta.charAt(0);
@@ -2992,7 +3008,7 @@ export class Controller implements IController {
 		if (dataBaseName !== "storage") {
 			exampleName = "/" + exampleName; // load absolute
 		} else {
-			this.model.setProperty("example", exampleName);
+			this.model.setProperty(Model.props.example, exampleName);
 		}
 
 		inFile.name = exampleName;
@@ -3039,7 +3055,7 @@ export class Controller implements IController {
 	}
 
 	fnArrayBounds(): void {
-		const arrayBounds = this.model.getProperty<boolean>("arrayBounds");
+		const arrayBounds = this.model.getProperty<boolean>(Model.props.arrayBounds);
 
 		this.variables.setOptions({
 			arrayBounds: arrayBounds
@@ -3050,7 +3066,7 @@ export class Controller implements IController {
 	}
 
 	fnImplicitLines(): void {
-		const implicitLines = this.model.getProperty<boolean>("implicitLines");
+		const implicitLines = this.model.getProperty<boolean>(Model.props.implicitLines);
 
 		this.codeGeneratorJs.setOptions({
 			implicitLines: implicitLines
@@ -3063,7 +3079,7 @@ export class Controller implements IController {
 	}
 
 	fnTrace(): void {
-		const trace = this.model.getProperty<boolean>("trace");
+		const trace = this.model.getProperty<boolean>(Model.props.trace);
 
 		this.codeGeneratorJs.setOptions({
 			trace: trace
@@ -3071,7 +3087,7 @@ export class Controller implements IController {
 	}
 
 	fnSpeed(): void {
-		const speed = this.model.getProperty<number>("speed");
+		const speed = this.model.getProperty<number>(Model.props.speed);
 
 		this.initialLoopTimeout = 1000 - speed * 10;
 	}

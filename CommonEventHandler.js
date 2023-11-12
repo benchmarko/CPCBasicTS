@@ -1,7 +1,7 @@
 // CommonEventHandler.ts - Common event handler for browser events
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
-define(["require", "exports", "./Utils", "./View"], function (require, exports, Utils_1, View_1) {
+define(["require", "exports", "./Utils", "./Model", "./View"], function (require, exports, Utils_1, Model_1, View_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CommonEventHandler = void 0;
@@ -10,19 +10,20 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.fnUserAction = undefined;
             /* eslint-disable no-invalid-this */
             this.handlers = {
-                onInputButtonClick: this.onInputButtonClick,
-                onInp2ButtonClick: this.onInp2ButtonClick,
-                onOutputButtonClick: this.onOutputButtonClick,
-                onResultButtonClick: this.onResultButtonClick,
-                onVariableButtonClick: this.onVariableButtonClick,
-                onCpcButtonClick: this.onCpcButtonClick,
+                //onInputButtonClick: this.onInputButtonClick,
+                //onInp2ButtonClick: this.onInp2ButtonClick,
+                //onOutputButtonClick: this.onOutputButtonClick,
+                //onResultButtonClick: this.onResultButtonClick,
+                //onVariableButtonClick: this.onVariableButtonClick,
+                //onCpcButtonClick: this.onCpcButtonClick,
                 onConvertButtonClick: this.onConvertButtonClick,
                 onSettingsButtonClick: this.onSettingsButtonClick,
+                onViewButtonClick: this.onViewButtonClick,
                 onExportButtonClick: this.onExportButtonClick,
                 onGalleryButtonClick: this.onGalleryButtonClick,
                 onMoreButtonClick: this.onMoreButtonClick,
-                onKbdButtonClick: this.onKbdButtonClick,
-                onConsoleButtonClick: this.onConsoleButtonClick,
+                //onKbdButtonClick: this.onKbdButtonClick,
+                //onConsoleButtonClick: this.onConsoleButtonClick,
                 onParseButtonClick: this.onParseButtonClick,
                 onRenumButtonClick: this.onRenumButtonClick,
                 onPrettyButtonClick: this.onPrettyButtonClick,
@@ -44,6 +45,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 onVarTextClick: CommonEventHandler.onNothing,
                 onOutputTextChange: this.onOutputTextChange,
                 onReloadButtonClick: this.onReloadButtonClick,
+                onReload2ButtonClick: this.onReloadButtonClick,
                 onDatabaseSelectChange: this.onDatabaseSelectChange,
                 onDirectorySelectChange: this.onDirectorySelectChange,
                 onExampleSelectChange: this.onExampleSelectChange,
@@ -53,8 +55,15 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 onDebugInputChange: this.onDebugInputChange,
                 onImplicitLinesInputChange: this.onImplicitLinesInputChange,
                 onArrayBoundsInputChange: this.onArrayBoundsInputChange,
-                onConsoleLogInputChange: this.onConsoleLogInputChange,
+                onShowCpcInputChange: this.onShowCpcInputChange,
+                onShowKbdInputChange: this.onShowKbdInputChange,
+                onShowInp2InputChange: this.onShowInp2InputChange,
+                onShowResultInputChange: this.onShowResultInputChange,
+                onShowInputInputChange: this.onShowInputInputChange,
+                onShowVariableInputChange: this.onShowVariableInputChange,
+                onShowOutputInputChange: this.onShowOutputInputChange,
                 onShowDisassInputChange: this.onShowDisassInputChange,
+                onShowConsoleLogInputChange: this.onShowConsoleLogInputChange,
                 onDisassInputChange: this.onDisassInputChange,
                 onTraceInputChange: this.onTraceInputChange,
                 onAutorunInputChange: this.onAutorunInputChange,
@@ -64,6 +73,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 onCanvasTypeSelectChange: this.onCanvasTypeSelectChange,
                 onPaletteSelectChange: this.onPaletteSelectChange,
                 onScreenshotButtonClick: this.onScreenshotButtonClick,
+                onClearInputButtonClick: this.onClearInputButtonClick,
                 onEnterButtonClick: this.onEnterButtonClick,
                 onFullscreenButtonClick: CommonEventHandler.onFullscreenButtonClick,
                 onCpcCanvasClick: this.onCpcCanvasClick,
@@ -78,57 +88,30 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         CommonEventHandler.prototype.fnSetUserAction = function (fnAction) {
             this.fnUserAction = fnAction;
         };
-        CommonEventHandler.prototype.onInputButtonClick = function () {
-            this.controller.toggleAreaHidden("inputArea");
-        };
-        CommonEventHandler.prototype.onInp2ButtonClick = function () {
-            this.controller.toggleAreaHidden("inp2Area");
-        };
-        CommonEventHandler.prototype.onOutputButtonClick = function () {
-            this.controller.toggleAreaHidden("outputArea");
-        };
-        CommonEventHandler.prototype.onResultButtonClick = function () {
-            this.controller.toggleAreaHidden("resultArea");
-        };
-        CommonEventHandler.prototype.onVariableButtonClick = function () {
-            this.controller.toggleAreaHidden("variableArea");
-        };
-        CommonEventHandler.prototype.onCpcButtonClick = function () {
-            if (this.controller.toggleAreaHidden("cpcArea")) {
-                this.controller.startUpdateCanvas();
-            }
-            else {
-                this.controller.stopUpdateCanvas();
-            }
-        };
+        /*
+        private onKbdButtonClick() {
+            this.controller.toggleAreaHidden(View.ids.kbdSettingsArea);
+        }
+        */
         CommonEventHandler.prototype.onConvertButtonClick = function () {
-            this.controller.toggleAreaHidden("convertArea");
+            this.controller.toggleAreaHidden(View_1.View.ids.convertArea);
         };
         CommonEventHandler.prototype.onSettingsButtonClick = function () {
-            this.controller.toggleAreaHidden("settingsArea");
+            this.controller.toggleAreaHidden(View_1.View.ids.settingsArea);
+        };
+        CommonEventHandler.prototype.onViewButtonClick = function () {
+            this.controller.toggleAreaHidden(View_1.View.ids.viewArea);
         };
         CommonEventHandler.prototype.onExportButtonClick = function () {
-            this.controller.toggleAreaHidden("exportArea");
+            this.controller.toggleAreaHidden(View_1.View.ids.exportArea);
         };
         CommonEventHandler.prototype.onGalleryButtonClick = function () {
-            if (this.controller.toggleAreaHidden("galleryArea")) {
+            if (this.controller.toggleAreaHidden(View_1.View.ids.galleryArea)) {
                 this.controller.setGalleryAreaInputs();
             }
         };
         CommonEventHandler.prototype.onMoreButtonClick = function () {
-            this.controller.toggleAreaHidden("moreArea");
-        };
-        CommonEventHandler.prototype.onKbdButtonClick = function () {
-            if (this.controller.toggleAreaHidden("kbdArea")) {
-                this.controller.getVirtualKeyboard(); // maybe draw it
-                this.view.setHidden("kbdLayoutArea", true, "inherit"); // kbd visible => kbdlayout invisible
-            }
-            else {
-                this.view.setHidden("kbdLayoutArea", false, "inherit");
-            }
-        };
-        CommonEventHandler.prototype.onConsoleButtonClick = function () {
-            this.controller.toggleAreaHidden("consoleArea");
+            this.controller.toggleAreaHidden(View_1.View.ids.moreArea);
         };
         CommonEventHandler.prototype.onParseButtonClick = function () {
             this.controller.startParse();
@@ -147,7 +130,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         };
         CommonEventHandler.prototype.fnUpdateAreaText = function (input) {
             this.controller.setInputText(input, true);
-            this.view.setAreaValue("outputText", "");
+            this.view.setAreaValue(View_1.View.ids.outputText, "");
         };
         CommonEventHandler.prototype.onUndoButtonClick = function () {
             var input = this.controller.undoStackElement();
@@ -182,8 +165,8 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         };
         CommonEventHandler.prototype.onGalleryItemClick = function (event) {
             var target = View_1.View.getEventTarget(event), value = target.value;
-            this.view.setSelectValue("exampleSelect", value);
-            this.controller.toggleAreaHidden("galleryArea"); // close
+            this.view.setSelectValue(View_1.View.ids.exampleSelect, value);
+            this.controller.toggleAreaHidden(View_1.View.ids.galleryArea); // close
             this.onExampleSelectChange();
         };
         CommonEventHandler.onNothing = function () {
@@ -191,9 +174,9 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         };
         // eslint-disable-next-line class-methods-use-this
         CommonEventHandler.prototype.onCopyTextButtonClick = function () {
-            var textText = View_1.View.getElementByIdAs("textText");
+            var textText = View_1.View.getElementByIdAs(View_1.View.ids.textText);
             textText.select();
-            this.view.setAreaSelection("textText", 0, 99999); // for mobile devices
+            this.view.setAreaSelection(View_1.View.ids.textText, 0, 99999); // for mobile devices
             if (window.navigator && window.navigator.clipboard) {
                 window.navigator.clipboard.writeText(textText.value);
             }
@@ -215,6 +198,8 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             return parts.join("&");
         };
         CommonEventHandler.prototype.onReloadButtonClick = function () {
+            //this.onSettingsButtonClick(); // close settings dialog
+            this.controller.setPopoversHiddenExcept(""); // hide all popovers,
             var changed = this.model.getChangedProperties();
             var paras = CommonEventHandler.encodeUriParam(changed);
             paras = paras.replace(/%2[Ff]/g, "/"); // unescape %2F -> /
@@ -230,100 +215,125 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.controller.onExampleSelectChange();
         };
         CommonEventHandler.prototype.onVarSelectChange = function () {
-            var par = this.view.getSelectValue("varSelect"), value = this.controller.getVariable(par), valueString = (value !== undefined) ? String(value) : "";
-            this.view.setAreaValue("varText", valueString);
+            var par = this.view.getSelectValue(View_1.View.ids.varSelect), value = this.controller.getVariable(par), valueString = (value !== undefined) ? String(value) : "";
+            this.view.setAreaValue(View_1.View.ids.varText, valueString);
         };
         CommonEventHandler.prototype.onKbdLayoutSelectChange = function () {
-            var value = this.view.getSelectValue("kbdLayoutSelect");
-            this.model.setProperty("kbdLayout", value);
-            this.view.setSelectTitleFromSelectedOption("kbdLayoutSelect");
-            this.view.setHidden("kbdAlpha", value === "num");
-            this.view.setHidden("kbdNum", value === "alpha");
+            var value = this.view.getSelectValue(View_1.View.ids.kbdLayoutSelect);
+            this.model.setProperty(Model_1.Model.props.kbdLayout, value);
+            this.view.setSelectTitleFromSelectedOption(View_1.View.ids.kbdLayoutSelect);
+            this.view.setHidden(View_1.View.ids.kbdAlpha, value === "num");
+            this.view.setHidden(View_1.View.ids.kbdNum, value === "alpha");
         };
         CommonEventHandler.prototype.onBasicVersionSelectChange = function () {
-            var value = this.view.getSelectValue("basicVersionSelect");
-            this.model.setProperty("basicVersion", value);
-            this.view.setSelectTitleFromSelectedOption("basicVersionSelect");
+            var value = this.view.getSelectValue(View_1.View.ids.basicVersionSelect);
+            this.model.setProperty(Model_1.Model.props.basicVersion, value);
+            this.view.setSelectTitleFromSelectedOption(View_1.View.ids.basicVersionSelect);
             this.controller.setBasicVersion(value);
         };
         CommonEventHandler.prototype.onPaletteSelectChange = function () {
-            var value = this.view.getSelectValue("paletteSelect");
-            this.model.setProperty("palette", value);
-            this.view.setSelectTitleFromSelectedOption("paletteSelect");
+            var value = this.view.getSelectValue(View_1.View.ids.paletteSelect);
+            this.model.setProperty(Model_1.Model.props.palette, value);
+            this.view.setSelectTitleFromSelectedOption(View_1.View.ids.paletteSelect);
             this.controller.setPalette(value);
         };
         CommonEventHandler.prototype.onCanvasTypeSelectChange = function () {
-            var value = this.view.getSelectValue("canvasTypeSelect");
-            this.model.setProperty("canvasType", value);
-            this.view.setSelectTitleFromSelectedOption("canvasTypeSelect");
+            var value = this.view.getSelectValue(View_1.View.ids.canvasTypeSelect);
+            this.model.setProperty(Model_1.Model.props.canvasType, value);
+            this.view.setSelectTitleFromSelectedOption(View_1.View.ids.canvasTypeSelect);
             this.controller.setCanvasType(value);
         };
         CommonEventHandler.prototype.onVarTextChange = function () {
             this.controller.changeVariable();
         };
         CommonEventHandler.prototype.onDebugInputChange = function () {
-            var debug = this.view.getInputValue("debugInput");
+            var debug = this.view.getInputValue(View_1.View.ids.debugInput);
             this.model.setProperty("debug", Number(debug));
             Utils_1.Utils.debug = Number(debug);
         };
         CommonEventHandler.prototype.onImplicitLinesInputChange = function () {
-            var checked = this.view.getInputChecked("implicitLinesInput");
-            this.model.setProperty("implicitLines", checked);
+            var checked = this.view.getInputChecked(View_1.View.ids.implicitLinesInput);
+            this.model.setProperty(Model_1.Model.props.implicitLines, checked);
             this.controller.fnImplicitLines();
         };
         CommonEventHandler.prototype.onArrayBoundsInputChange = function () {
-            var checked = this.view.getInputChecked("arrayBoundsInput");
-            this.model.setProperty("arrayBounds", checked);
+            var checked = this.view.getInputChecked(View_1.View.ids.arrayBoundsInput);
+            this.model.setProperty(Model_1.Model.props.arrayBounds, checked);
             this.controller.fnArrayBounds();
         };
-        CommonEventHandler.prototype.onConsoleLogInputChange = function () {
-            var checked = this.view.getInputChecked("consoleLogInput");
-            this.model.setProperty("showConsole", checked);
-            if (checked && this.view.getHidden("consoleBox")) {
-                this.view.setHidden("consoleBox", !checked); // make sure the box around is visible
+        CommonEventHandler.prototype.onShowCpcInputChange = function () {
+            if (this.controller.toggleAreaHidden(View_1.View.ids.cpcArea)) {
+                this.controller.startUpdateCanvas();
+            }
+            else {
+                this.controller.stopUpdateCanvas();
             }
         };
+        CommonEventHandler.prototype.onShowKbdInputChange = function () {
+            if (this.controller.toggleAreaHidden(View_1.View.ids.kbdArea)) {
+                this.controller.getVirtualKeyboard(); // maybe draw it
+            }
+        };
+        CommonEventHandler.prototype.onShowInp2InputChange = function () {
+            this.controller.toggleAreaHidden(View_1.View.ids.inp2Area);
+        };
+        CommonEventHandler.prototype.onShowResultInputChange = function () {
+            this.controller.toggleAreaHidden(View_1.View.ids.resultArea);
+        };
+        CommonEventHandler.prototype.onShowInputInputChange = function () {
+            this.controller.toggleAreaHidden(View_1.View.ids.inputArea);
+        };
+        CommonEventHandler.prototype.onShowVariableInputChange = function () {
+            this.controller.toggleAreaHidden(View_1.View.ids.variableArea);
+        };
+        CommonEventHandler.prototype.onShowOutputInputChange = function () {
+            this.controller.toggleAreaHidden(View_1.View.ids.outputArea);
+        };
         CommonEventHandler.prototype.onShowDisassInputChange = function () {
-            var checked = this.view.getInputChecked("showDisassInput");
-            this.model.setProperty("showDisass", checked);
-            this.view.setHidden("disassBox", !checked);
+            this.controller.toggleAreaHidden(View_1.View.ids.disassArea);
+        };
+        CommonEventHandler.prototype.onShowConsoleLogInputChange = function () {
+            this.controller.toggleAreaHidden(View_1.View.ids.consoleLogArea);
         };
         CommonEventHandler.prototype.onDisassInputChange = function () {
-            var addressStr = this.view.getInputValue("disassInput"), addr = parseInt(addressStr, 16); // parse as hex
+            var addressStr = this.view.getInputValue(View_1.View.ids.disassInput), addr = parseInt(addressStr, 16); // parse as hex
             this.controller.setDisassAddr(addr);
         };
         CommonEventHandler.prototype.onTraceInputChange = function () {
-            var checked = this.view.getInputChecked("traceInput");
-            this.model.setProperty("trace", checked);
+            var checked = this.view.getInputChecked(View_1.View.ids.traceInput);
+            this.model.setProperty(Model_1.Model.props.trace, checked);
             this.controller.fnTrace();
         };
         CommonEventHandler.prototype.onAutorunInputChange = function () {
-            var checked = this.view.getInputChecked("autorunInput");
-            this.model.setProperty("autorun", checked);
+            var checked = this.view.getInputChecked(View_1.View.ids.autorunInput);
+            this.model.setProperty(Model_1.Model.props.autorun, checked);
         };
         CommonEventHandler.prototype.onSoundInputChange = function () {
-            var checked = this.view.getInputChecked("soundInput");
-            this.model.setProperty("sound", checked);
+            var checked = this.view.getInputChecked(View_1.View.ids.soundInput);
+            this.model.setProperty(Model_1.Model.props.sound, checked);
             this.controller.setSoundActive();
         };
         CommonEventHandler.prototype.onSpeedInputChange = function () {
-            var speed = this.view.getInputValue("speedInput");
-            this.model.setProperty("speed", Number(speed));
+            var speed = this.view.getInputValue(View_1.View.ids.speedInput);
+            this.model.setProperty(Model_1.Model.props.speed, Number(speed));
             this.controller.fnSpeed();
         };
         CommonEventHandler.prototype.onScreenshotButtonClick = function () {
-            var example = this.view.getSelectValue("exampleSelect"), image = this.controller.startScreenshot(), link = View_1.View.getElementById1("screenshotLink"), name = example + ".png";
+            var example = this.view.getSelectValue(View_1.View.ids.exampleSelect), image = this.controller.startScreenshot(), link = View_1.View.getElementById1(View_1.View.ids.screenshotLink), name = example + ".png";
             if (image) {
                 link.setAttribute("download", name);
                 link.setAttribute("href", image);
                 link.click();
             }
         };
+        CommonEventHandler.prototype.onClearInputButtonClick = function () {
+            this.view.setAreaValue(View_1.View.ids.inp2Text, ""); // delete input
+        };
         CommonEventHandler.prototype.onEnterButtonClick = function () {
             this.controller.startEnter();
         };
         CommonEventHandler.onFullscreenButtonClick = function () {
-            var switched = View_1.View.requestFullscreenForId("cpcCanvas"); // make sure to use an element with tabindex set to get keyboard events
+            var switched = View_1.View.requestFullscreenForId(View_1.View.ids.cpcCanvas); // make sure to use an element with tabindex set to get keyboard events
             if (!switched) {
                 Utils_1.Utils.console.warn("Switch to fullscreen not available");
             }
@@ -364,7 +374,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 }
             }
             if (type === "click") { // special
-                if (id !== "cpcCanvas" && id !== "textText") {
+                if (id !== View_1.View.ids.cpcCanvas && id !== View_1.View.ids.textText) {
                     this.onWindowClick(event);
                 }
             }

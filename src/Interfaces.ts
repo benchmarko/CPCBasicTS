@@ -180,6 +180,8 @@ export interface IController {
     fnArrayBounds: () => void
     fnTrace: () => void
     fnSpeed: () => void
+
+    setPopoversHiddenExcept: (except: string) => void
  }
 
 //

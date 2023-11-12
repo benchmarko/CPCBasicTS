@@ -92,9 +92,9 @@ export class Canvas implements ICanvas {
 		this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
 		this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
 
-		this.cpcAreaBox = View.getElementById1("cpcAreaBox");
+		this.cpcAreaBox = View.getElementById1(View.ids.cpcArea);
 
-		const canvas = View.getElementById1("cpcCanvas") as HTMLCanvasElement;
+		const canvas = View.getElementById1(View.ids.cpcCanvas) as HTMLCanvasElement;
 
 		this.canvas = canvas;
 

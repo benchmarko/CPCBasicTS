@@ -92,7 +92,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
             }
         };
         cpcBasic.initDatabases = function () {
-            var model = cpcBasic.model, databases = {}, databaseDirs = model.getProperty("databaseDirs").split(","), databaseNames = [];
+            var model = cpcBasic.model, databases = {}, databaseDirs = model.getProperty(Model_1.Model.props.databaseDirs).split(","), databaseNames = [];
             for (var i = 0; i < databaseDirs.length; i += 1) {
                 var databaseDir = databaseDirs[i], parts = databaseDir.split("/"), name_1 = parts[parts.length - 1];
                 databases[name_1] = {
@@ -116,7 +116,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
         // Also called from example files xxxxx.js
         cpcBasic.addItem2 = function (key, input) {
             if (!key) { // maybe ""
-                key = cpcBasic.model.getProperty("example");
+                key = cpcBasic.model.getProperty(Model_1.Model.props.example);
             }
             input = input.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
             // beware of data files ending with newlines! (do not use trimEnd)
@@ -146,7 +146,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
         cpcBasic.addRsx = function (key, RsxConstructor) {
             var rsx = new RsxConstructor();
             if (!key) { // maybe ""
-                key = cpcBasic.model.getProperty("example");
+                key = cpcBasic.model.getProperty(Model_1.Model.props.example);
             }
             var example = cpcBasic.model.getExample(key);
             example.key = key; // maybe changed
@@ -390,7 +390,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
         if (code) {
             fnEval(code); // load example (for nodeJs)
         }
-        var key = cpcBasic.model.getProperty("example"), example = cpcBasic.model.getExample(key), output = testParseExample(example);
+        var key = cpcBasic.model.getProperty(Model_1.Model.props.example), example = cpcBasic.model.getExample(key), output = testParseExample(example);
         if (!output.error) {
             testNextExample(); // eslint-disable-line no-use-before-define
         }
@@ -429,7 +429,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
         if (testIndex < testExamples.length) {
             var key = testExamples[testIndex];
             cpcBasic.testIndex += 1;
-            cpcBasic.model.setProperty("example", key);
+            cpcBasic.model.setProperty(Model_1.Model.props.example, key);
             var example = cpcBasic.model.getExample(key);
             testLoadExample(example);
         }
@@ -504,7 +504,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
             var key = databaseNames[databaseIndex]; // e.g. "examples";
             if (key !== "storage") { // ignore "storage"
                 cpcBasic.databaseIndex += 1;
-                cpcBasic.model.setProperty("database", key);
+                cpcBasic.model.setProperty(Model_1.Model.props.database, key);
                 var exampeDb = cpcBasic.model.getDatabase();
                 nextIndex = true;
                 testLoadIndex(exampeDb);

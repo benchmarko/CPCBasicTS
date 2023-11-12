@@ -23,7 +23,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 ctrl: {},
                 repeat: {}
             }; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
-            var name = "cpcArea", cpcArea = View_1.View.getElementById1(name);
+            var cpcArea = View_1.View.getElementById1(View_1.View.ids.cpcArea);
             cpcArea.addEventListener("keydown", this.fnCpcAreaKeydownHandler, false);
             cpcArea.addEventListener("keyup", this.fnCpcAreaKeyupHandler, false);
         }

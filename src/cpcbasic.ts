@@ -30,19 +30,22 @@ class cpcBasic {
 		canvasType: "graphics", // "graphics", "text", "none"
 		palette: "color", // "color", "green", "grey"
 		processFileImports: true, // open ZIP, DSK files on import
-		showConsole: false,
+		showConsoleLog: false,
 		showConvert: false,
 		showCpc: true,
-		showDisass: false, // test
+		showDisass: false,
+		showExport: false,
 		showGallery: false,
 		showInput: true,
 		showInp2: false,
 		showKbd: false,
+		showKbdSettings: false,
 		showMore: false,
 		showOutput: false,
 		showResult: false,
-		showVariable: false,
 		showSettings: false,
+		showVariable: false,
+		showView: false,
 		sound: true,
 		speed: 100,
 		trace: false // trace code
@@ -203,11 +206,11 @@ class cpcBasic {
 	}
 
 	private static fnRedirectExamples(redirectExamples: RedirectExamplesType) {
-		const name = this.model.getProperty("database") + "/" + this.model.getProperty("example");
+		const name = this.model.getProperty(Model.props.database) + "/" + this.model.getProperty(Model.props.example);
 
 		if (redirectExamples[name]) {
-			this.model.setProperty("database", redirectExamples[name].database);
-			this.model.setProperty("example", redirectExamples[name].example);
+			this.model.setProperty(Model.props.database, redirectExamples[name].database);
+			this.model.setProperty(Model.props.example, redirectExamples[name].example);
 		}
 	}
 
@@ -234,7 +237,7 @@ class cpcBasic {
 
 		cpcBasic.view = new View();
 
-		const debug = Number(cpcBasic.model.getProperty<number>("debug"));
+		const debug = Number(cpcBasic.model.getProperty<number>(Model.props.debug));
 
 		Utils.debug = debug;
 
@@ -246,11 +249,11 @@ class cpcBasic {
 			UtilsConsole.cpcBasicLog = undefined; // do not log any more to dummy console
 		}
 
-		if (Utils.debug > 0 && cpcBasic.model.getProperty<boolean>("showConsole")) { // console log window?
+		if (Utils.debug > 0 && cpcBasic.model.getProperty<boolean>(Model.props.showConsoleLog)) { // console log window?
 			UtilsConsole = cpcBasic.createDebugUtilsConsole(cpcBasicLog);
 			Utils.console = UtilsConsole;
 			Utils.console.log("CPCBasic log started at", Utils.dateFormat(new Date()));
-			UtilsConsole.changeLog(View.getElementById1("consoleText"));
+			UtilsConsole.changeLog(View.getElementById1(View.ids.consoleLogText));
 		}
 
 		if (redirectExamples) {

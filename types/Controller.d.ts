@@ -150,7 +150,7 @@ export declare class Controller implements IController {
     private fnPutKeysInBuffer;
     startEnter(): void;
     private static generateFunction;
-    private setPopoversHiddenExcept;
+    setPopoversHiddenExcept(exceptId: string): void;
     toggleAreaHidden(id: string): boolean;
     changeVariable(): void;
     setBasicVersion(basicVersion: string): void;

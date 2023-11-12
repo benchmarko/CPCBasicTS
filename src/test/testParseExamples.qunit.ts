@@ -283,7 +283,7 @@ class cpcBasic {
 	static initDatabases(): string[] {
 		const model = cpcBasic.model,
 			databases: DatabasesType = {},
-			databaseDirs = model.getProperty<string>("databaseDirs").split(","),
+			databaseDirs = model.getProperty<string>(Model.props.databaseDirs).split(","),
 			databaseNames: string[] = [];
 
 		for (let i = 0; i < databaseDirs.length; i += 1) {
@@ -316,7 +316,7 @@ class cpcBasic {
 	// Also called from example files xxxxx.js
 	private static addItem2(key: string, input: string) { // key maybe ""
 		if (!key) { // maybe ""
-			key = cpcBasic.model.getProperty<string>("example");
+			key = cpcBasic.model.getProperty<string>(Model.props.example);
 		}
 		input = input.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
 		// beware of data files ending with newlines! (do not use trimEnd)
@@ -353,7 +353,7 @@ class cpcBasic {
 		const rsx = new RsxConstructor();
 
 		if (!key) { // maybe ""
-			key = cpcBasic.model.getProperty<string>("example");
+			key = cpcBasic.model.getProperty<string>(Model.props.example);
 		}
 		const example = cpcBasic.model.getExample(key);
 
@@ -549,7 +549,7 @@ function fnExampleLoaded(error?: Error, code?: string) {
 		fnEval(code); // load example (for nodeJs)
 	}
 
-	const key = cpcBasic.model.getProperty<string>("example"),
+	const key = cpcBasic.model.getProperty<string>(Model.props.example),
 		example = cpcBasic.model.getExample(key),
 		output = testParseExample(example);
 
@@ -598,7 +598,7 @@ function testNextExample() {
 		const key = testExamples[testIndex];
 
 		cpcBasic.testIndex += 1;
-		cpcBasic.model.setProperty("example", key);
+		cpcBasic.model.setProperty(Model.props.example, key);
 		const example = cpcBasic.model.getExample(key);
 
 		testLoadExample(example);
@@ -693,7 +693,7 @@ function testNextIndex() {
 
 		if (key !== "storage") { // ignore "storage"
 			cpcBasic.databaseIndex += 1;
-			cpcBasic.model.setProperty("database", key);
+			cpcBasic.model.setProperty(Model.props.database, key);
 			const exampeDb = cpcBasic.model.getDatabase();
 
 			nextIndex = true;

@@ -44,8 +44,8 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.options = options;
             this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
             this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
-            this.cpcAreaBox = View_1.View.getElementById1("cpcAreaBox");
-            var canvas = View_1.View.getElementById1("cpcCanvas");
+            this.cpcAreaBox = View_1.View.getElementById1(View_1.View.ids.cpcArea);
+            var canvas = View_1.View.getElementById1(View_1.View.ids.cpcCanvas);
             this.canvas = canvas;
             // make sure canvas is not hidden (allows to get width, height, set style)
             if (canvas.offsetParent === null) {

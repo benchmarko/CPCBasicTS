@@ -33,11 +33,11 @@ export class TextCanvas implements ICanvas {
 	constructor(options: CanvasOptions) {
 		this.options = options;
 
-		this.cpcAreaBox = View.getElementById1("cpcAreaBox");
+		this.cpcAreaBox = View.getElementById1(View.ids.cpcArea);
 
 		this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
 		this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
-		this.textText = View.getElementById1("textText") as HTMLTextAreaElement; // View.setAreaValue()
+		this.textText = View.getElementById1(View.ids.textText) as HTMLTextAreaElement; // View.setAreaValue()
 
 		this.cols = parseFloat(this.textText.getAttribute("cols") || "0");
 		this.rows = parseFloat(this.textText.getAttribute("rows") || "0");

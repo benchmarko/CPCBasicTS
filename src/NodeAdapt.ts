@@ -112,7 +112,7 @@ export class NodeAdapt {
 		const setAreaValueOrig = view.prototype.setAreaValue;
 
 		view.prototype.setAreaValue = (id: string, value: string) => {
-			if (id === "resultText") {
+			if (id === "resultText") { // View.ids.resultText
 				if (value) {
 					Utils.console.log(value);
 				}

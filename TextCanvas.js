@@ -16,10 +16,10 @@ define(["require", "exports", "./View"], function (require, exports, View_1) {
             this.hasFocus = false; // canvas has focus
             this.customCharset = {};
             this.options = options;
-            this.cpcAreaBox = View_1.View.getElementById1("cpcAreaBox");
+            this.cpcAreaBox = View_1.View.getElementById1(View_1.View.ids.cpcArea);
             this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
             this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
-            this.textText = View_1.View.getElementById1("textText"); // View.setAreaValue()
+            this.textText = View_1.View.getElementById1(View_1.View.ids.textText); // View.setAreaValue()
             this.cols = parseFloat(this.textText.getAttribute("cols") || "0");
             this.rows = parseFloat(this.textText.getAttribute("rows") || "0");
             this.animationTimeoutId = undefined;

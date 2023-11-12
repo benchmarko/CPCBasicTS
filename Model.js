@@ -48,19 +48,19 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return this.databases;
         };
         Model.prototype.getDatabase = function () {
-            var database = this.getProperty("database");
+            var database = this.getProperty(Model.props.database);
             return this.databases[database];
         };
         Model.prototype.getAllExamples = function () {
-            var database = this.getProperty("database");
+            var database = this.getProperty(Model.props.database);
             return this.examples[database];
         };
         Model.prototype.getExample = function (key) {
-            var database = this.getProperty("database");
+            var database = this.getProperty(Model.props.database);
             return this.examples[database][key];
         };
         Model.prototype.setExample = function (example) {
-            var database = this.getProperty("database"), key = example.key;
+            var database = this.getProperty(Model.props.database), key = example.key;
             if (!this.examples[database][key]) {
                 if (Utils_1.Utils.debug > 1) {
                     Utils_1.Utils.console.debug("setExample: creating new example:", key);
@@ -69,11 +69,47 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.examples[database][key] = example;
         };
         Model.prototype.removeExample = function (key) {
-            var database = this.getProperty("database");
+            var database = this.getProperty(Model.props.database);
             if (!this.examples[database][key]) {
                 Utils_1.Utils.console.warn("removeExample: example does not exist: " + key);
             }
             delete this.examples[database][key];
+        };
+        Model.props = {
+            arrayBounds: "arrayBounds",
+            autorun: "autorun",
+            basicVersion: "basicVersion",
+            bench: "bench",
+            databaseDirs: "databaseDirs",
+            database: "database",
+            debug: "debug",
+            example: "example",
+            exampleIndex: "exampleIndex",
+            implicitLines: "implicitLines",
+            input: "input",
+            kbdLayout: "kbdLayout",
+            canvasType: "canvasType",
+            palette: "palette",
+            processFileImports: "processFileImports",
+            showConsoleLog: "showConsoleLog",
+            showConvert: "showConvert",
+            showCpc: "showCpc",
+            showDisass: "showDisass",
+            showExport: "showExport",
+            showGallery: "showGallery",
+            showInput: "showInput",
+            showInp2: "showInp2",
+            showKbd: "showKbd",
+            showKbdSettings: "showKbdSettings",
+            showMore: "showMore",
+            showOutput: "showOutput",
+            showResult: "showResult",
+            showSettings: "showSettings",
+            showVariable: "showVariable",
+            showView: "showView",
+            sound: "sound",
+            speed: "speed",
+            trace: "trace"
         };
         return Model;
     }());

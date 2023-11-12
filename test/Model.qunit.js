@@ -57,11 +57,11 @@ define(["require", "exports", "../Model"], function (require, exports, Model_1) 
             assert.strictEqual(Object.keys(databases).length, 0, "no databases");
             model.addDatabases(exampleDatabases);
             assert.strictEqual(Object.keys(databases).join(" "), "db1 db2", "two databases: db1, db2");
-            model.setProperty("database", "db1");
+            model.setProperty(Model_1.Model.props.database, "db1");
             assert.strictEqual(model.getDatabase(), exampleDatabases.db1, "databases db1");
-            model.setProperty("database", "db2");
+            model.setProperty(Model_1.Model.props.database, "db2");
             assert.strictEqual(model.getDatabase(), exampleDatabases.db2, "databases db2");
-            model.setProperty("database", "");
+            model.setProperty(Model_1.Model.props.database, "");
             assert.strictEqual(model.getDatabase(), undefined, "databases undefined");
         });
     });
@@ -92,7 +92,7 @@ define(["require", "exports", "../Model"], function (require, exports, Model_1) 
                 meta: ""
             };
             that.model.addDatabases(exampleDatabases);
-            that.model.setProperty("database", "db1");
+            that.model.setProperty(Model_1.Model.props.database, "db1");
             that.model.setExample(example1);
             that.model.setExample(example2);
         });
