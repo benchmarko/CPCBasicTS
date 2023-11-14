@@ -18,10 +18,12 @@ body {
 	padding-left: 2px;
     padding-right: 2px;
 	background-color: bisque;
+	user-select: none;
 }
 
 .popoverButton {
 	background-color: LightBlue;
+	user-select: none;
 }
 
 .popoverButton:hover {

@@ -3,24 +3,29 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 
-import { CanvasOptions, ICanvas, CanvasClickType, CanvasCharType } from "./Interfaces";
+import { CanvasOptions, ICanvas, CanvasCharType } from "./Interfaces";
 
 
 export class NoCanvas implements ICanvas {
-	constructor(_options: CanvasOptions) {
+	private readonly options: CanvasOptions;
+
+	constructor(options: CanvasOptions) {
+		this.options = options;
 		this.reset();
 	}
 
-	setOnCanvasClick(_onCanvasClickHandler: CanvasClickType): void { // eslint-disable-line class-methods-use-this
+	getOptions(): CanvasOptions {
+		return this.options;
+	}
+
+	setOptions(options: Partial<CanvasOptions>): void {
+		Object.assign(this.options, options);
 	}
 
 	reset(): void { // eslint-disable-line class-methods-use-this
 	}
 
 	resetCustomChars(): void { // eslint-disable-line class-methods-use-this
-	}
-
-	setPalette(_palette: "color" | "green" | "grey"): void { // eslint-disable-line class-methods-use-this
 	}
 
 	setScreenOffset(_offset: number): void { // eslint-disable-line class-methods-use-this
@@ -134,9 +139,11 @@ export class NoCanvas implements ICanvas {
 	changeMode(_mode: number): void { // eslint-disable-line class-methods-use-this
 	}
 
-	getCanvasElement(): HTMLElement | undefined { // eslint-disable-line class-methods-use-this
-		return undefined;
+	/*
+	getCanvasID(): ViewID { // eslint-disable-line class-methods-use-this
+		return ViewID.noCanvas;
 	}
+	*/
 
 	takeScreenShot(): string { // eslint-disable-line class-methods-use-this
 		return "";

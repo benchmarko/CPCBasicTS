@@ -4,7 +4,11 @@
 //
 
 import { Utils } from "./Utils";
-import { View } from "./View";
+
+interface KeyboardOptions {
+	fnOnEscapeHandler?: (key: string, pressedKey: string) => void
+	fnOnKeyDown?: () => void
+}
 
 export interface CpcKeyExpansionsOptions {
 	cpcKey: number
@@ -15,11 +19,6 @@ export interface CpcKeyExpansionsOptions {
 }
 
 export type PressReleaseCpcKey = (event: KeyboardEvent | PointerEvent, cpcKey: number, pressedKey: string, key: string) => void;
-
-interface KeyboardOptions {
-	fnOnEscapeHandler?: (key: string, pressedKey: string) => void
-	fnOnKeyDown?: () => void
-}
 
 type KeyExpansionsType = Record<string, number>; // numbers as keys are stored as string anyway, so use string
 
@@ -38,8 +37,7 @@ interface CpcKeyExpansions {
 }
 
 export class Keyboard {
-	private readonly fnCpcAreaKeydownHandler: (event: KeyboardEvent) => boolean;
-	private readonly fnCpcAreaKeyupHandler: (event: KeyboardEvent) => boolean;
+	private readonly fnKeydownOrKeyupHandler: (event: Event) => boolean;
 
 	private readonly options: KeyboardOptions;
 
@@ -56,11 +54,9 @@ export class Keyboard {
 
 
 	constructor(options: KeyboardOptions) {
-		this.fnCpcAreaKeydownHandler = this.onCpcAreaKeydown.bind(this);
-		this.fnCpcAreaKeyupHandler = this.oncpcAreaKeyup.bind(this);
+		this.fnKeydownOrKeyupHandler = this.onKeydownOrKeyup.bind(this);
 
 		this.options = options;
-
 
 		this.key2CpcKey = Keyboard.key2CpcKey;
 
@@ -71,11 +67,33 @@ export class Keyboard {
 			repeat: {}
 		}; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
 
-		const cpcArea = View.getElementById1(View.ids.cpcArea);
+		//const cpcArea = View.getElementById1(ViewID.cpcArea);
+		//const keyboardId = this.options.keyboardId;
 
-		cpcArea.addEventListener("keydown", this.fnCpcAreaKeydownHandler, false);
-		cpcArea.addEventListener("keyup", this.fnCpcAreaKeyupHandler, false);
+		//View.addEventListener("keydown", this.fnCpcAreaKeydownHandler, keyboardId);
+		//View.addEventListener("keyup", this.fnCpcAreaKeyupHandler, keyboardId);
 	}
+
+	getOptions(): KeyboardOptions {
+		return this.options;
+	}
+
+	setOptions(options: KeyboardOptions): void {
+		Object.assign(this.options, options);
+		/*
+		if (options.fnOnEscapeHandler !== undefined) {
+			this.options.fnOnEscapeHandler = options.fnOnEscapeHandler;
+		}
+		if (options.fnOnKeyDown !== undefined) {
+			this.options.fnOnKeyDown = options.fnOnKeyDown;
+		}
+		*/
+	}
+
+	getKeydownOrKeyupHandler(): (event: Event) => boolean {
+		return this.fnKeydownOrKeyupHandler;
+	}
+
 
 	// use this:
 	private static readonly key2CpcKey = {
@@ -304,6 +322,7 @@ export class Keyboard {
 		cpcKeyExpansions.repeat = {};
 	}
 
+	/*
 	//TODO: remove getKeyDownHandler, setKeyDownHandler?
 	getKeyDownHandler(): (() => void) | undefined {
 		return this.options.fnOnKeyDown;
@@ -312,6 +331,7 @@ export class Keyboard {
 	setKeyDownHandler(fnOnKeyDown?: () => void): void {
 		this.options.fnOnKeyDown = fnOnKeyDown;
 	}
+	*/
 
 	setActive(active: boolean): void {
 		this.active = active;
@@ -538,8 +558,16 @@ export class Keyboard {
 		return key;
 	}
 
-	putKeyInBuffer(key: string): void {
+	putKeyInBuffer(key: string, triggerOnkeydown?: boolean): void {
 		this.keyBuffer.push(key);
+
+		if (triggerOnkeydown) {
+			const keyDownHandler = this.options.fnOnKeyDown;
+
+			if (keyDownHandler) {
+				keyDownHandler();
+			}
+		}
 	}
 
 	putKeysInBuffer(input: string): void {
@@ -614,18 +642,15 @@ export class Keyboard {
 		}
 	}
 
-	private onCpcAreaKeydown(event: KeyboardEvent) {
+	private onKeydownOrKeyup(event: KeyboardEvent) {
 		if (this.active) {
-			this.fnKeyboardKeydown(event);
-			event.preventDefault();
-			return false;
-		}
-		return undefined;
-	}
-
-	private oncpcAreaKeyup(event: KeyboardEvent) {
-		if (this.active) {
-			this.fnKeyboardKeyup(event);
+			if (event.type === "keydown") {
+				this.fnKeyboardKeydown(event);
+			} else if (event.type === "keyup") {
+				this.fnKeyboardKeyup(event);
+			} else {
+				Utils.console.error("onKeydownOrKeyup: Unknown type:", event.type);
+			}
 			event.preventDefault();
 			return false;
 		}

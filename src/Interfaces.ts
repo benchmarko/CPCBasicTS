@@ -5,27 +5,29 @@
 //
 
 import { CustomError } from "./Utils";
+import { ViewID } from "./Constants";
 
 export interface IOutput {
     text: string
     error?: CustomError
 }
 
-export type CanvasClickType = (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
+type CanvasClickType = (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
 export type CanvasCharType = number[]; // 8 bytes char bitmap
 export type CanvasCharsetType = CanvasCharType[];
 
 export interface CanvasOptions {
+    canvasID: ViewID
 	charset: CanvasCharsetType
 	palette: "color" | "green" | "grey"
 	onCanvasClick?: CanvasClickType
 }
 
 export interface ICanvas {
-    setOnCanvasClick(onCanvasClickHandler: CanvasClickType): void
+    getOptions(): CanvasOptions
+    setOptions(options: Partial<CanvasOptions>): void
     reset(): void
     resetCustomChars(): void
-    setPalette(palette: "color" | "green" | "grey"): void
     startUpdateCanvas(): void
     stopUpdateCanvas(): void
     setScreenOffset(offset: number): void
@@ -72,7 +74,6 @@ export interface ICanvas {
     changeMode(mode: number): void
     setMode(mode: number): void
     takeScreenShot(): string
-    getCanvasElement(): HTMLElement | undefined
 }
 
 export interface VmBaseParas {
@@ -132,7 +133,7 @@ export interface ICpcVmRsx {
 }
 
 export interface IController {
-    toggleAreaHidden: (id: string) => boolean,
+    toggleAreaHidden: (id: ViewID) => boolean,
     startParse: () => void
     startRenum: () => void
 
@@ -166,6 +167,7 @@ export interface IController {
 
     onCpcCanvasClick: (event: MouseEvent) => void
     onWindowClick: (event: Event) => void
+    onVirtualKeyBoardClick: (event: Event) => void
 
     startUpdateCanvas: () => void
     stopUpdateCanvas: () => void
@@ -181,7 +183,7 @@ export interface IController {
     fnTrace: () => void
     fnSpeed: () => void
 
-    setPopoversHiddenExcept: (except: string) => void
+    setPopoversHiddenExcept: (except?: ViewID) => void
  }
 
 //

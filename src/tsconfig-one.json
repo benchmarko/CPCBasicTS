@@ -9,6 +9,7 @@
   "files": [
     "Polyfills.ts",
     "amdLoader.ts",
+    "Constants.ts",
     "Utils.ts",
     "Interfaces.ts",
     "cpcCharset.ts",

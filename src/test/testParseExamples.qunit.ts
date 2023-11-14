@@ -24,6 +24,7 @@ let https: NodeHttps, // nodeJs
 	path: NodePath,
 	__dirname: string; // eslint-disable-line no-underscore-dangle
 
+import { ModelPropID } from "../Constants";
 import { Utils } from "../Utils";
 import { ICpcVmRsx, IOutput } from "../Interfaces";
 import { BasicLexer } from "../BasicLexer";
@@ -283,7 +284,7 @@ class cpcBasic {
 	static initDatabases(): string[] {
 		const model = cpcBasic.model,
 			databases: DatabasesType = {},
-			databaseDirs = model.getProperty<string>(Model.props.databaseDirs).split(","),
+			databaseDirs = model.getProperty<string>(ModelPropID.databaseDirs).split(","),
 			databaseNames: string[] = [];
 
 		for (let i = 0; i < databaseDirs.length; i += 1) {
@@ -316,7 +317,7 @@ class cpcBasic {
 	// Also called from example files xxxxx.js
 	private static addItem2(key: string, input: string) { // key maybe ""
 		if (!key) { // maybe ""
-			key = cpcBasic.model.getProperty<string>(Model.props.example);
+			key = cpcBasic.model.getProperty<string>(ModelPropID.example);
 		}
 		input = input.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
 		// beware of data files ending with newlines! (do not use trimEnd)
@@ -353,7 +354,7 @@ class cpcBasic {
 		const rsx = new RsxConstructor();
 
 		if (!key) { // maybe ""
-			key = cpcBasic.model.getProperty<string>(Model.props.example);
+			key = cpcBasic.model.getProperty<string>(ModelPropID.example);
 		}
 		const example = cpcBasic.model.getExample(key);
 
@@ -549,7 +550,7 @@ function fnExampleLoaded(error?: Error, code?: string) {
 		fnEval(code); // load example (for nodeJs)
 	}
 
-	const key = cpcBasic.model.getProperty<string>(Model.props.example),
+	const key = cpcBasic.model.getProperty<string>(ModelPropID.example),
 		example = cpcBasic.model.getExample(key),
 		output = testParseExample(example);
 
@@ -598,7 +599,7 @@ function testNextExample() {
 		const key = testExamples[testIndex];
 
 		cpcBasic.testIndex += 1;
-		cpcBasic.model.setProperty(Model.props.example, key);
+		cpcBasic.model.setProperty(ModelPropID.example, key);
 		const example = cpcBasic.model.getExample(key);
 
 		testLoadExample(example);
@@ -693,7 +694,7 @@ function testNextIndex() {
 
 		if (key !== "storage") { // ignore "storage"
 			cpcBasic.databaseIndex += 1;
-			cpcBasic.model.setProperty(Model.props.database, key);
+			cpcBasic.model.setProperty(ModelPropID.database, key);
 			const exampeDb = cpcBasic.model.getDatabase();
 
 			nextIndex = true;

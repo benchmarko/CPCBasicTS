@@ -3,11 +3,13 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 
+import { ViewID } from "./Constants";
 import { Utils } from "./Utils";
 import { PressReleaseCpcKey } from "./Keyboard";
-import { View } from "./View";
+import { View, PointerEventNamesType } from "./View";
 
 interface VirtualKeyboardOptions {
+	view: View,
 	fnPressCpcKey: PressReleaseCpcKey,
 	fnReleaseCpcKey: PressReleaseCpcKey
 }
@@ -40,30 +42,52 @@ interface VirtualButtonRowOptions {
 }
 
 export class VirtualKeyboard {
+	private readonly fnVirtualKeyboardKeydownHandler: (event: Event) => boolean;
+	private readonly fnVirtualKeyboardKeyupHandler: (event: Event) => boolean;
+	private readonly fnVirtualKeyboardKeyoutHandler: (event: Event) => boolean;
+
 	private readonly options: VirtualKeyboardOptions;
 
-	private readonly pointerOutEvent?: string;
-	private readonly fnVirtualKeyout?: EventListener;
+	private readonly eventNames: PointerEventNamesType;
+	//private readonly pointerOutEvent?: string;
+	//private readonly fnVirtualKeyout?: EventListener;
 
 	private shiftLock = false;
 	private numLock = false;
 
 	constructor(options: VirtualKeyboardOptions) {
+		this.fnVirtualKeyboardKeydownHandler = this.onVirtualKeyboardKeydown.bind(this);
+		this.fnVirtualKeyboardKeyupHandler = this.onVirtualKeyboardKeyup.bind(this);
+		this.fnVirtualKeyboardKeyoutHandler = this.onVirtualKeyboardKeyout.bind(this);
+
 		this.options = {
+			view: options.view,
 			fnPressCpcKey: options.fnPressCpcKey,
 			fnReleaseCpcKey: options.fnReleaseCpcKey
 		};
 
-		const eventNames = this.fnAttachPointerEvents(View.ids.kbdAreaInner, this.onVirtualKeyboardKeydown.bind(this), undefined, this.onVirtualKeyboardKeyup.bind(this));
+		const view = this.options.view,
+			eventNames = view.fnAttachPointerEvents(ViewID.kbdAreaInner, this.fnVirtualKeyboardKeydownHandler, undefined, this.fnVirtualKeyboardKeyupHandler);
 
+		this.eventNames = eventNames;
+		/*
 		if (eventNames.out) {
-			this.pointerOutEvent = eventNames.out;
-			this.fnVirtualKeyout = this.onVirtualKeyboardKeyout.bind(this);
+			//this.pointerOutEvent = eventNames.out;
+			//this.fnVirtualKeyout = this.fnVirtualKeyboardKeyoutHandler;
 		}
+		*/
 
-		this.dragInit("pageBody", View.ids.kbdArea);
+		view.dragInit(ViewID.pageBody, ViewID.kbdArea);
 
 		this.virtualKeyboardCreate();
+	}
+
+	getKeydownHandler(): typeof this.fnVirtualKeyboardKeydownHandler {
+		return this.fnVirtualKeyboardKeydownHandler;
+	}
+
+	getKeyupHandler(): typeof this.fnVirtualKeyboardKeyupHandler {
+		return this.fnVirtualKeyboardKeyupHandler;
 	}
 
 	private static readonly cpcKey2Key: CpcKey2Key[] = [
@@ -598,6 +622,7 @@ export class VirtualKeyboard {
 	];
 	/* eslint-enable array-element-newline */
 
+	/*
 	private readonly dragInfo = {
 		dragItem: undefined as (HTMLElement | undefined),
 		active: false,
@@ -636,7 +661,7 @@ export class VirtualKeyboard {
 		type: "mouse"
 	};
 
-	private fnAttachPointerEvents(id: string, fnDown?: EventListener, fnMove?: EventListener, fnUp?: EventListener) { // eslint-disable-line class-methods-use-this
+	private fnAttachPointerEvents(id: ViewID, fnDown?: EventListener, fnMove?: EventListener, fnUp?: EventListener) { // eslint-disable-line class-methods-use-this
 		const area = View.getElementById1(id);
 		let eventNames: typeof VirtualKeyboard.pointerEventNames;
 
@@ -666,6 +691,7 @@ export class VirtualKeyboard {
 		}
 		return eventNames;
 	}
+	*/
 
 	reset(): void {
 		this.virtualKeyboardAdaptKeys(false, false);
@@ -707,7 +733,7 @@ export class VirtualKeyboard {
 		};
 	}
 
-	private createButtonRow(id: string, options: VirtualButtonRowOptions[]) {
+	private createButtonRow(id: ViewID, options: VirtualButtonRowOptions[]) {
 		const place = View.getElementById1(id);
 
 		if (place.insertAdjacentElement) {
@@ -739,7 +765,7 @@ export class VirtualKeyboard {
 		return this;
 	}
 
-	private virtualKeyboardCreatePart(id: string, virtualKeyboard: VirtualKeyboardLayoutType2[][]) {
+	private virtualKeyboardCreatePart(id: ViewID, virtualKeyboard: VirtualKeyboardLayoutType2[][]) {
 		const keyArea = View.getElementById1(id),
 			shiftLock = this.shiftLock,
 			numLock = this.numLock,
@@ -780,12 +806,12 @@ export class VirtualKeyboard {
 	}
 
 	private virtualKeyboardCreate(): void {
-		this.virtualKeyboardCreatePart("kbdAlpha", VirtualKeyboard.virtualKeyboardAlpha);
-		this.virtualKeyboardCreatePart("kbdNum", VirtualKeyboard.virtualKeyboardNum);
+		this.virtualKeyboardCreatePart(ViewID.kbdAlpha, VirtualKeyboard.virtualKeyboardAlpha);
+		this.virtualKeyboardCreatePart(ViewID.kbdNum, VirtualKeyboard.virtualKeyboardNum);
 	}
 
 	private virtualKeyboardAdaptKeys(shiftLock: boolean, numLock: boolean) {
-		const keyArea = View.getElementById1(View.ids.kbdAreaInner),
+		const keyArea = View.getElementById1(ViewID.kbdAreaInner),
 			buttons = keyArea.getElementsByTagName("button"); // or: keyArea.childNodes and filter
 
 		for (let i = 0; i < buttons.length; i += 1) {
@@ -839,8 +865,9 @@ export class VirtualKeyboard {
 			this.options.fnPressCpcKey(event, cpcKeyCode, pressedKey, ascii.key);
 		}
 
-		if (this.pointerOutEvent && this.fnVirtualKeyout) {
-			node.addEventListener(this.pointerOutEvent, this.fnVirtualKeyout, false);
+		// A pointerdown event can also ended by pointerout when leaving the area
+		if (this.eventNames.out) {
+			node.addEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyoutHandler, false);
 		}
 		event.preventDefault();
 		return false;
@@ -880,8 +907,14 @@ export class VirtualKeyboard {
 
 		this.fnVirtualKeyboardKeyupOrKeyout(event);
 
+		/*
 		if (this.pointerOutEvent && this.fnVirtualKeyout) {
 			node.removeEventListener(this.pointerOutEvent, this.fnVirtualKeyout); // do not need out event any more
+		}
+		*/
+
+		if (this.eventNames.out) {
+			node.removeEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyoutHandler); // do not need out event any more for this key
 		}
 		event.preventDefault();
 		return false;
@@ -894,15 +927,23 @@ export class VirtualKeyboard {
 			Utils.console.debug("onVirtualKeyboardKeyout: event=", event);
 		}
 		this.fnVirtualKeyboardKeyupOrKeyout(event);
+
+		/*
 		if (this.pointerOutEvent && this.fnVirtualKeyout) {
 			node.removeEventListener(this.pointerOutEvent, this.fnVirtualKeyout);
+		}
+		*/
+
+		if (this.eventNames.out) {
+			node.removeEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyoutHandler); // do not need out event any more for this key
 		}
 		event.preventDefault();
 		return false;
 	}
 
+	/*
 	// based on https://www.kirupa.com/html5/drag.htm
-	private dragInit(containerId: string, itemId: string) {
+	private dragInit(containerId: ViewID, itemId: ViewID) {
 		const drag = this.dragInfo;
 
 		drag.dragItem = View.getElementById1(itemId);
@@ -934,7 +975,7 @@ export class VirtualKeyboard {
 		}
 	}
 
-	private dragEnd(/* event */) {
+	private dragEnd(_event) {
 		const drag = this.dragInfo;
 
 		drag.initialX = drag.currentX;
@@ -973,4 +1014,5 @@ export class VirtualKeyboard {
 			}
 		}
 	}
+	*/
 }

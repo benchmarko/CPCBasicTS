@@ -1,11 +1,16 @@
 // Model.qunit.ts - QUnit tests for CPCBasic Model
 //
 
+import { ModelPropID } from "../Constants";
 import { Model } from "../Model";
 import { } from "qunit";
 
 QUnit.module("Model: Properties", function (hooks) {
 	const that = {} as { model: Model }; // eslint-disable-line consistent-this
+
+	function convId(id: string) {
+		return id as ModelPropID;
+	}
 
 	hooks.beforeEach(function () {
 		const config = {
@@ -13,7 +18,6 @@ QUnit.module("Model: Properties", function (hooks) {
 		};
 
 		that.model = new Model(config);
-		that.model.setProperty("p2", "v2");
 	});
 
 	QUnit.test("init without options", function (assert) {
@@ -23,26 +27,31 @@ QUnit.module("Model: Properties", function (hooks) {
 	});
 
 	QUnit.test("properties", function (assert) {
-		const model = that.model;
+		const model = that.model,
+			prop1 = convId("p1"),
+			prop2 = convId("p2"),
+			prop3 = convId("p3");
+
+		that.model.setProperty(prop2, "v2");
 
 		let allProperties = model.getAllInitialProperties();
 
 		assert.strictEqual(Object.keys(allProperties).join(" "), "p1", "all initial properties: p1");
 
-		assert.strictEqual(model.getProperty("p1"), "v1", "p1=v1");
-		assert.strictEqual(model.getProperty("p2"), "v2", "p2=v2");
-		assert.strictEqual(model.getProperty(""), undefined, "<empty>=undefiend");
+		assert.strictEqual(model.getProperty(prop1), "v1", "p1=v1");
+		assert.strictEqual(model.getProperty(prop2), "v2", "p2=v2");
+		assert.strictEqual(model.getProperty(convId("")), undefined, "<empty>=undefiend");
 
 		allProperties = model.getAllProperties();
 		assert.strictEqual(Object.keys(allProperties).join(" "), "p1 p2", "all properties: p1 p2");
 		assert.strictEqual(allProperties.p1, "v1", "p1=v1");
 		assert.strictEqual(allProperties.p2, "v2", "p2=v2");
 
-		model.setProperty("p1", "v1.2");
-		assert.strictEqual(model.getProperty("p1"), "v1.2", "p1=v1.2");
+		model.setProperty(prop1, "v1.2");
+		assert.strictEqual(model.getProperty(prop1), "v1.2", "p1=v1.2");
 
-		model.setProperty("p3", "v3");
-		assert.strictEqual(model.getProperty("p3"), "v3", "p3=v3");
+		model.setProperty(prop3, "v3");
+		assert.strictEqual(model.getProperty(prop3), "v3", "p3=v3");
 
 		allProperties = model.getAllProperties();
 		assert.strictEqual(Object.keys(allProperties).join(" "), "p1 p2 p3", "all properties: p1 p2 p3");
@@ -80,15 +89,15 @@ QUnit.module("Model: Databases", function (hooks) {
 
 		assert.strictEqual(Object.keys(databases).join(" "), "db1 db2", "two databases: db1, db2");
 
-		model.setProperty(Model.props.database, "db1");
+		model.setProperty(ModelPropID.database, "db1");
 
 		assert.strictEqual(model.getDatabase(), exampleDatabases.db1, "databases db1");
 
-		model.setProperty(Model.props.database, "db2");
+		model.setProperty(ModelPropID.database, "db2");
 
 		assert.strictEqual(model.getDatabase(), exampleDatabases.db2, "databases db2");
 
-		model.setProperty(Model.props.database, "");
+		model.setProperty(ModelPropID.database, "");
 
 		assert.strictEqual(model.getDatabase(), undefined, "databases undefined");
 	});
@@ -127,7 +136,7 @@ QUnit.module("Model: Examples", function (hooks) {
 			};
 
 		that.model.addDatabases(exampleDatabases);
-		that.model.setProperty(Model.props.database, "db1");
+		that.model.setProperty(ModelPropID.database, "db1");
 		that.model.setExample(example1);
 		that.model.setExample(example2);
 	});

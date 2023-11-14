@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="cpcbasic.css">
 <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
-<title id="title">CPC BasicTS v0.2.0</title>
+<title id="title">CPC BasicTS v0.2.1</title>
 </head>
 
 <body id="pageBody">
@@ -43,12 +43,17 @@
 								<input id="soundInput" type="checkbox" title="Sound">
 								<label for="soundInput" title="Sound">Sound</label>
 								<br>
+								<input id="speedInput" type="range" min="0" max="100" step="1" value="100" title="Speed">
+								<label for="speedInput" title="Speed">Speed</label>
+							</fieldset>
+							<fieldset>
+								<legend title="Canvas Settings">Canvas</legend>
 								<select id="canvasTypeSelect" title="Select Canvas">
 									<option value="graphics" title="Graphics" default>Graphics</option>
 									<option value="text" title="Text">Text</option>
 									<option value="none" title="None">None</option>
 								</select>
-								<label for="canvasTypeSelect" title="Canvas Type">Canvas</label>
+								<label for="canvasTypeSelect" title="Canvas Type">Type</label>
 								<br>
 								<select id="paletteSelect" title="Select Palette">
 									<option value="color" title="Color" default>Color</option>
@@ -56,9 +61,6 @@
 									<option value="grey" title="Grey">Grey</option>
 								</select>
 								<label for="paletteSelect" title="Palette">Palette</label>
-								<br>
-								<input id="speedInput" type="range" min="0" max="100" step="1" value="100" title="Speed">
-								<label for="speedInput" title="Speed">Speed</label>
 							</fieldset>
 							<fieldset>
 								<legend title="Keyboard Settings">Keyboard</legend>
@@ -174,6 +176,7 @@
 				<div id="textCanvasDiv">
 					<textarea readonly id="textText" placeholder="" rows="25" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off" hidden></textarea>
 				</div>
+				<div id="noCanvas"></div>
 			</div>	
 		</fieldset>
 
@@ -349,6 +352,7 @@
 <!--
 <script src="Polyfills.js"></script>
 <script src="amdLoader.js"></script>
+<script src="Constants.js"></script>
 <script src="Utils.js"></script>
 <script src="Interfaces.js"></script>
 <script src="cpcCharset.js"></script>

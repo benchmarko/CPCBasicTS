@@ -3,8 +3,9 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 
+import { ViewID } from "./Constants";
 import { View } from "./View";
-import { CanvasOptions, ICanvas, CanvasClickType, CanvasCharType } from "./Interfaces";
+import { CanvasOptions, ICanvas, CanvasCharType } from "./Interfaces";
 
 export class TextCanvas implements ICanvas {
 	private readonly options: CanvasOptions;
@@ -33,11 +34,11 @@ export class TextCanvas implements ICanvas {
 	constructor(options: CanvasOptions) {
 		this.options = options;
 
-		this.cpcAreaBox = View.getElementById1(View.ids.cpcArea);
+		this.textText = View.getElementByIdAs<HTMLTextAreaElement>(this.options.canvasID);
+		this.cpcAreaBox = View.getElementById1(ViewID.cpcArea);
 
 		this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
 		this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
-		this.textText = View.getElementById1(View.ids.textText) as HTMLTextAreaElement; // View.setAreaValue()
 
 		this.cols = parseFloat(this.textText.getAttribute("cols") || "0");
 		this.rows = parseFloat(this.textText.getAttribute("rows") || "0");
@@ -46,6 +47,14 @@ export class TextCanvas implements ICanvas {
 		this.animationFrame = undefined;
 
 		this.reset();
+	}
+
+	getOptions(): CanvasOptions {
+		return this.options;
+	}
+
+	setOptions(options: Partial<CanvasOptions>): void {
+		Object.assign(this.options, options);
 	}
 
 	// CPC Unicode map for text mode (https://www.unicode.org/L2/L2019/19025-terminals-prop.pdf AMSCPC.TXT) incomplete; wider chars replaed by "."
@@ -81,19 +90,12 @@ export class TextCanvas implements ICanvas {
 		}
 	];
 
-	setOnCanvasClick(onCanvasClickHandler: CanvasClickType): void {
-		this.options.onCanvasClick = onCanvasClickHandler;
-	}
-
 	reset(): void {
 		this.resetTextBuffer();
 		this.setNeedUpdate();
 	}
 
 	resetCustomChars(): void { // eslint-disable-line class-methods-use-this
-	}
-
-	setPalette(_palette: "color" | "green" | "grey"): void { // eslint-disable-line class-methods-use-this
 	}
 
 	setScreenOffset(_offset: number): void { // eslint-disable-line class-methods-use-this
@@ -205,9 +207,11 @@ export class TextCanvas implements ICanvas {
 	changeMode(_mode: number): void { // eslint-disable-line class-methods-use-this
 	}
 
-	getCanvasElement(): HTMLElement { // eslint-disable-line class-methods-use-this
-		return this.textText; // as HTML;
+	/*
+	getCanvasID(): ViewID { // eslint-disable-line class-methods-use-this
+		return ViewID.textText;
 	}
+	*/
 
 	takeScreenShot(): string { // eslint-disable-line class-methods-use-this
 		return "";
