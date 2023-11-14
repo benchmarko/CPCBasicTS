@@ -1,4 +1,4 @@
-import { CanvasOptions, ICanvas, CanvasClickType, CanvasCharType } from "./Interfaces";
+import { CanvasOptions, ICanvas, CanvasCharType } from "./Interfaces";
 export declare class TextCanvas implements ICanvas {
     private readonly options;
     private readonly fnUpdateCanvasHandler;
@@ -17,12 +17,12 @@ export declare class TextCanvas implements ICanvas {
     private hasFocus;
     private customCharset;
     constructor(options: CanvasOptions);
+    getOptions(): CanvasOptions;
+    setOptions(options: Partial<CanvasOptions>): void;
     private static readonly cpc2Unicode;
     private static readonly winData;
-    setOnCanvasClick(onCanvasClickHandler: CanvasClickType): void;
     reset(): void;
     resetCustomChars(): void;
-    setPalette(_palette: "color" | "green" | "grey"): void;
     setScreenOffset(_offset: number): void;
     updateColorsAndCanvasImmediately(_inkList: number[]): void;
     updateSpeedInk(): void;
@@ -56,7 +56,6 @@ export declare class TextCanvas implements ICanvas {
     setMaskFirst(_maskFirst: number): void;
     getMode(): number;
     changeMode(_mode: number): void;
-    getCanvasElement(): HTMLElement;
     takeScreenShot(): string;
     private resetTextBuffer;
     private setNeedUpdate;

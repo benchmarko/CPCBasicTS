@@ -1,23 +1,24 @@
 import { PressReleaseCpcKey } from "./Keyboard";
+import { View } from "./View";
 interface VirtualKeyboardOptions {
+    view: View;
     fnPressCpcKey: PressReleaseCpcKey;
     fnReleaseCpcKey: PressReleaseCpcKey;
 }
 export declare class VirtualKeyboard {
+    private readonly fnVirtualKeyboardKeydownHandler;
+    private readonly fnVirtualKeyboardKeyupHandler;
+    private readonly fnVirtualKeyboardKeyoutHandler;
     private readonly options;
-    private readonly pointerOutEvent?;
-    private readonly fnVirtualKeyout?;
+    private readonly eventNames;
     private shiftLock;
     private numLock;
     constructor(options: VirtualKeyboardOptions);
+    getKeydownHandler(): typeof this.fnVirtualKeyboardKeydownHandler;
+    getKeyupHandler(): typeof this.fnVirtualKeyboardKeyupHandler;
     private static readonly cpcKey2Key;
     private static readonly virtualKeyboardAlpha;
     private static readonly virtualKeyboardNum;
-    private readonly dragInfo;
-    private static readonly pointerEventNames;
-    private static readonly touchEventNames;
-    private static readonly mouseEventNames;
-    private fnAttachPointerEvents;
     reset(): void;
     private mapNumLockCpcKey;
     private fnVirtualGetAscii;
@@ -30,11 +31,6 @@ export declare class VirtualKeyboard {
     private fnVirtualKeyboardKeyupOrKeyout;
     private onVirtualKeyboardKeyup;
     private onVirtualKeyboardKeyout;
-    private dragInit;
-    private dragStart;
-    private dragEnd;
-    private setTranslate;
-    private drag;
 }
 export {};
 //# sourceMappingURL=VirtualKeyboard.d.ts.map

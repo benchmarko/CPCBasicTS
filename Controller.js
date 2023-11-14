@@ -2,7 +2,7 @@
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./BasicParser", "./BasicTokenizer", "./Canvas", "./CodeGeneratorBasic", "./CodeGeneratorJs", "./CodeGeneratorToken", "./CommonEventHandler", "./cpcCharset", "./CpcVm", "./Diff", "./DiskImage", "./FileHandler", "./FileSelect", "./InputStack", "./Keyboard", "./NoCanvas", "./TextCanvas", "./VirtualKeyboard", "./Model", "./Snapshot", "./Sound", "./Variables", "./View", "./RsxAmsdos", "./RsxCpcBasic", "./Z80Disass"], function (require, exports, Utils_1, BasicFormatter_1, BasicLexer_1, BasicParser_1, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, Diff_1, DiskImage_1, FileHandler_1, FileSelect_1, InputStack_1, Keyboard_1, NoCanvas_1, TextCanvas_1, VirtualKeyboard_1, Model_1, Snapshot_1, Sound_1, Variables_1, View_1, RsxAmsdos_1, RsxCpcBasic_1, Z80Disass_1) {
+define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./BasicParser", "./BasicTokenizer", "./Canvas", "./CodeGeneratorBasic", "./CodeGeneratorJs", "./CodeGeneratorToken", "./CommonEventHandler", "./cpcCharset", "./CpcVm", "./Diff", "./DiskImage", "./FileHandler", "./FileSelect", "./InputStack", "./Keyboard", "./NoCanvas", "./TextCanvas", "./VirtualKeyboard", "./Snapshot", "./Sound", "./Variables", "./View", "./RsxAmsdos", "./RsxCpcBasic", "./Z80Disass"], function (require, exports, Utils_1, BasicFormatter_1, BasicLexer_1, BasicParser_1, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, Diff_1, DiskImage_1, FileHandler_1, FileSelect_1, InputStack_1, Keyboard_1, NoCanvas_1, TextCanvas_1, VirtualKeyboard_1, Snapshot_1, Sound_1, Variables_1, View_1, RsxAmsdos_1, RsxCpcBasic_1, Z80Disass_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Controller = void 0;
@@ -60,32 +60,35 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.model = model;
             this.view = view;
             this.commonEventHandler = new CommonEventHandler_1.CommonEventHandler(model, view, this);
-            this.view.attachEventHandler("click", this.commonEventHandler);
-            this.view.attachEventHandler("change", this.commonEventHandler);
-            var canvasType = model.getProperty(Model_1.Model.props.canvasType);
-            view.setSelectValue(View_1.View.ids.canvasTypeSelect, canvasType);
-            var palette = model.getProperty(Model_1.Model.props.palette);
-            view.setSelectValue(View_1.View.ids.paletteSelect, palette);
+            this.view.addEventListener("click", this.commonEventHandler);
+            this.view.addEventListener("change", this.commonEventHandler);
+            var canvasType = model.getProperty("canvasType" /* ModelPropID.canvasType */);
+            view.setSelectValue("canvasTypeSelect" /* ViewID.canvasTypeSelect */, canvasType);
+            var palette = model.getProperty("palette" /* ModelPropID.palette */);
+            view.setSelectValue("paletteSelect" /* ViewID.paletteSelect */, palette);
             this.canvas = this.setCanvasType(canvasType);
             this.initAreas();
-            view.setInputValue(View_1.View.ids.debugInput, String(model.getProperty(Model_1.Model.props.debug)));
-            view.setInputChecked(View_1.View.ids.implicitLinesInput, model.getProperty(Model_1.Model.props.implicitLines));
-            view.setInputChecked(View_1.View.ids.arrayBoundsInput, model.getProperty(Model_1.Model.props.arrayBounds));
+            view.setInputValue("debugInput" /* ViewID.debugInput */, String(model.getProperty("debug" /* ModelPropID.debug */)));
+            view.setInputChecked("implicitLinesInput" /* ViewID.implicitLinesInput */, model.getProperty("implicitLines" /* ModelPropID.implicitLines */));
+            view.setInputChecked("arrayBoundsInput" /* ViewID.arrayBoundsInput */, model.getProperty("arrayBounds" /* ModelPropID.arrayBounds */));
             this.variables = new Variables_1.Variables({
-                arrayBounds: model.getProperty(Model_1.Model.props.arrayBounds)
+                arrayBounds: model.getProperty("arrayBounds" /* ModelPropID.arrayBounds */)
             });
-            view.setInputChecked(View_1.View.ids.traceInput, model.getProperty(Model_1.Model.props.trace));
-            view.setInputChecked(View_1.View.ids.autorunInput, model.getProperty(Model_1.Model.props.autorun));
-            view.setInputChecked(View_1.View.ids.soundInput, model.getProperty(Model_1.Model.props.sound));
-            view.setInputValue(View_1.View.ids.speedInput, String(model.getProperty(Model_1.Model.props.speed)));
+            view.setInputChecked("traceInput" /* ViewID.traceInput */, model.getProperty("trace" /* ModelPropID.trace */));
+            view.setInputChecked("autorunInput" /* ViewID.autorunInput */, model.getProperty("autorun" /* ModelPropID.autorun */));
+            view.setInputChecked("soundInput" /* ViewID.soundInput */, model.getProperty("sound" /* ModelPropID.sound */));
+            view.setInputValue("speedInput" /* ViewID.speedInput */, String(model.getProperty("speed" /* ModelPropID.speed */)));
             this.fnSpeed();
-            var kbdLayout = model.getProperty(Model_1.Model.props.kbdLayout);
-            view.setSelectValue(View_1.View.ids.kbdLayoutSelect, kbdLayout);
+            var kbdLayout = model.getProperty("kbdLayout" /* ModelPropID.kbdLayout */);
+            view.setSelectValue("kbdLayoutSelect" /* ViewID.kbdLayoutSelect */, kbdLayout);
             this.commonEventHandler.onKbdLayoutSelectChange();
             this.keyboard = new Keyboard_1.Keyboard({
                 fnOnEscapeHandler: this.fnOnEscapeHandler
             });
-            if (this.model.getProperty(Model_1.Model.props.showKbd)) { // maybe we need to draw virtual keyboard
+            var keydownOrKeyupHandler = this.keyboard.getKeydownOrKeyupHandler();
+            view.addEventListener("keydown", keydownOrKeyupHandler, "cpcArea" /* ViewID.cpcArea */);
+            view.addEventListener("keyup", keydownOrKeyupHandler, "cpcArea" /* ViewID.cpcArea */);
+            if (this.model.getProperty("showKbd" /* ModelPropID.showKbd */)) { // maybe we need to draw virtual keyboard
                 this.getVirtualKeyboard();
             }
             this.commonEventHandler.fnSetUserAction(this.fnOnUserActionHandler); // check first user action, also if sound is not yet on
@@ -112,8 +115,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 }
             }; // backup of stop object
             this.setStopObject(this.noStop);
-            var basicVersion = this.model.getProperty(Model_1.Model.props.basicVersion);
-            view.setSelectValue(View_1.View.ids.basicVersionSelect, basicVersion);
+            var basicVersion = this.model.getProperty("basicVersion" /* ModelPropID.basicVersion */);
+            view.setSelectValue("basicVersionSelect" /* ViewID.basicVersionSelect */, basicVersion);
             this.basicParser = new BasicParser_1.BasicParser({
                 basicVersion: basicVersion
             });
@@ -123,31 +126,31 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.codeGeneratorJs = new CodeGeneratorJs_1.CodeGeneratorJs({
                 lexer: this.basicLexer,
                 parser: this.basicParser,
-                trace: model.getProperty(Model_1.Model.props.trace),
-                implicitLines: model.getProperty(Model_1.Model.props.implicitLines)
+                trace: model.getProperty("trace" /* ModelPropID.trace */),
+                implicitLines: model.getProperty("implicitLines" /* ModelPropID.implicitLines */)
             });
-            if (model.getProperty(Model_1.Model.props.sound)) { // activate sound needs user action
+            if (model.getProperty("sound" /* ModelPropID.sound */)) { // activate sound needs user action
                 this.setSoundActive(); // activate in waiting state
             }
             this.initDropZone();
-            var example = model.getProperty(Model_1.Model.props.example);
-            view.setSelectValue(View_1.View.ids.exampleSelect, example);
+            var example = model.getProperty("example" /* ModelPropID.example */);
+            view.setSelectValue("exampleSelect" /* ViewID.exampleSelect */, example);
             this.hasStorageDatabase = this.initDatabases();
-            if (model.getProperty(Model_1.Model.props.showCpc)) {
+            if (model.getProperty("showCpc" /* ModelPropID.showCpc */)) {
                 this.canvas.startUpdateCanvas();
             }
         }
         Controller.prototype.initAreas = function () {
             for (var id in Controller.areaDefinitions) { // eslint-disable-line guard-for-in
                 var propertyObject = Controller.areaDefinitions[id], showIt = this.model.getProperty(propertyObject.property);
-                this.view.setHidden(id, !showIt, propertyObject.display);
+                this.view.setHidden(propertyObject.id, !showIt, propertyObject.display);
                 if (propertyObject.checkedId) {
                     this.view.setInputChecked(propertyObject.checkedId, showIt);
                 }
             }
         };
         Controller.prototype.initDatabases = function () {
-            var model = this.model, databases = {}, databaseDirs = model.getProperty(Model_1.Model.props.databaseDirs).split(",");
+            var model = this.model, databases = {}, databaseDirs = model.getProperty("databaseDirs" /* ModelPropID.databaseDirs */).split(",");
             var hasStorageDatabase = false;
             for (var i = 0; i < databaseDirs.length; i += 1) {
                 var databaseDir = databaseDirs[i], parts = databaseDir.split("/"), name_1 = parts[parts.length - 1];
@@ -181,7 +184,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         // Also called from example files xxxxx.js
         Controller.prototype.addItem = function (key, input) {
             if (!key) { // maybe ""
-                key = (document.currentScript && document.currentScript.getAttribute("data-key")) || this.model.getProperty(Model_1.Model.props.example);
+                key = (document.currentScript && document.currentScript.getAttribute("data-key")) || this.model.getProperty("example" /* ModelPropID.example */);
                 // on IE we can just get the current example
             }
             input = input.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
@@ -195,7 +198,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         };
         Controller.prototype.addRsx = function (key, RsxConstructor) {
             if (!key) { // maybe ""
-                key = (document.currentScript && document.currentScript.getAttribute("data-key")) || this.model.getProperty(Model_1.Model.props.example);
+                key = (document.currentScript && document.currentScript.getAttribute("data-key")) || this.model.getProperty("example" /* ModelPropID.example */);
                 // on IE we can just get the current example
             }
             var example = this.model.getExample(key);
@@ -206,7 +209,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             return key;
         };
         Controller.prototype.setDatabaseSelectOptions = function () {
-            var items = [], databases = this.model.getAllDatabases(), database = this.model.getProperty(Model_1.Model.props.database);
+            var items = [], databases = this.model.getAllDatabases(), database = this.model.getProperty("database" /* ModelPropID.database */);
             for (var value in databases) {
                 if (databases.hasOwnProperty(value)) {
                     var db = databases[value], item = {
@@ -218,7 +221,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     items.push(item);
                 }
             }
-            this.view.setSelectOptions(View_1.View.ids.databaseSelect, items);
+            this.view.setSelectOptions("databaseSelect" /* ViewID.databaseSelect */, items);
         };
         Controller.getPathFromExample = function (example) {
             var index = example.lastIndexOf("/");
@@ -237,7 +240,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             return name;
         };
         Controller.prototype.setDirectorySelectOptions = function () {
-            var items = [], allExamples = this.model.getAllExamples(), examplePath = Controller.getPathFromExample(this.model.getProperty(Model_1.Model.props.example)), directorySeen = {};
+            var items = [], allExamples = this.model.getAllExamples(), examplePath = Controller.getPathFromExample(this.model.getProperty("example" /* ModelPropID.example */)), directorySeen = {};
             for (var key in allExamples) {
                 if (allExamples.hasOwnProperty(key)) {
                     var exampleEntry = allExamples[key], value = Controller.getPathFromExample(exampleEntry.key);
@@ -253,11 +256,11 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     }
                 }
             }
-            this.view.setSelectOptions(View_1.View.ids.directorySelect, items);
+            this.view.setSelectOptions("directorySelect" /* ViewID.directorySelect */, items);
         };
         Controller.prototype.setExampleSelectOptions = function () {
             var maxTitleLength = 160, maxTextLength = 60, // (32 visible?)
-            items = [], exampleName = Controller.getNameFromExample(this.model.getProperty(Model_1.Model.props.example)), allExamples = this.model.getAllExamples(), directoryName = this.view.getSelectValue(View_1.View.ids.directorySelect);
+            items = [], exampleName = Controller.getNameFromExample(this.model.getProperty("example" /* ModelPropID.example */)), allExamples = this.model.getAllExamples(), directoryName = this.view.getSelectValue("directorySelect" /* ViewID.directorySelect */);
             var exampleSelected = false;
             for (var key in allExamples) {
                 if (allExamples.hasOwnProperty(key) && (Controller.getPathFromExample(key) === directoryName)) {
@@ -279,10 +282,10 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             if (!exampleSelected && items.length) {
                 items[0].selected = true; // if example is not found, select first element
             }
-            this.view.setSelectOptions(View_1.View.ids.exampleSelect, items);
+            this.view.setSelectOptions("exampleSelect" /* ViewID.exampleSelect */, items);
         };
         Controller.prototype.setGalleryAreaInputs = function () {
-            var database = this.model.getDatabase(), directory = this.view.getSelectValue(View_1.View.ids.directorySelect), options = this.view.getSelectOptions(View_1.View.ids.exampleSelect), inputs = [];
+            var database = this.model.getDatabase(), directory = this.view.getSelectValue("directorySelect" /* ViewID.directorySelect */), options = this.view.getSelectOptions("exampleSelect" /* ViewID.exampleSelect */), inputs = [];
             for (var i = 0; i < options.length; i += 1) {
                 var item = options[i], input = {
                     value: item.value,
@@ -292,7 +295,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 };
                 inputs.push(input);
             }
-            this.view.setAreaInputList(View_1.View.ids.galleryAreaItems, inputs);
+            this.view.setAreaInputList("galleryAreaItems" /* ViewID.galleryAreaItems */, inputs);
         };
         Controller.prototype.setVarSelectOptions = function (select, variables) {
             var maxVarLength = 35, varNames = variables.getAllVariableNames(), items = [], fnSortByStringProperties = function (a, b) {
@@ -327,9 +330,9 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             if (!this.hasStorageDatabase) {
                 return;
             }
-            var database = this.model.getProperty(Model_1.Model.props.database), storage = Utils_1.Utils.localStorage;
+            var database = this.model.getProperty("database" /* ModelPropID.database */), storage = Utils_1.Utils.localStorage;
             if (database !== "storage") {
-                this.model.setProperty(Model_1.Model.props.database, "storage"); // switch to storage database
+                this.model.setProperty("database" /* ModelPropID.database */, "storage"); // switch to storage database
             }
             var dir;
             if (!key) { // no key => get all
@@ -364,14 +367,17 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.setExampleSelectOptions();
             }
             else {
-                this.model.setProperty(Model_1.Model.props.database, database); // restore database
+                this.model.setProperty("database" /* ModelPropID.database */, database); // restore database
             }
         };
         Controller.prototype.removeKeyBoardHandler = function () {
-            this.keyboard.setKeyDownHandler();
+            //this.keyboard.setKeyDownHandler();
+            this.keyboard.setOptions({
+                fnOnKeyDown: undefined
+            });
         };
         Controller.prototype.setInputText = function (input, keepStack) {
-            this.view.setAreaValue(View_1.View.ids.inputText, input);
+            this.view.setAreaValue("inputText" /* ViewID.inputText */, input);
             if (!keepStack) {
                 this.fnInitUndoRedoButtons();
             }
@@ -403,7 +409,10 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             else if (stop.reason !== "escape") { // first escape?
                 this.vm.cursor(stream, 1);
                 this.keyboard.clearInput();
-                this.keyboard.setKeyDownHandler(this.fnWaitForContinueHandler);
+                //this.keyboard.setKeyDownHandler(this.fnWaitForContinueHandler);
+                this.keyboard.setOptions({
+                    fnOnKeyDown: this.fnWaitForContinueHandler
+                });
                 this.setStopObject(stop);
                 this.vm.vmStop("escape", 85, false, {
                     command: "escape",
@@ -458,7 +467,11 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             else {
                 this.fnWaitSound(); // sound and blinking events
-                this.keyboard.setKeyDownHandler(this.fnWaitKeyHandler); // wait until keypress handler (for call &bb18)
+                //this.keyboard.setKeyDownHandler(this.fnWaitKeyHandler); // wait until keypress handler (for call &bb18)
+                // wait until keypress handler (for call &bb18)
+                this.keyboard.setOptions({
+                    fnOnKeyDown: this.fnWaitKeyHandler
+                });
             }
             return key;
         };
@@ -593,7 +606,11 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 if (stop.reason === "waitInput") { // only for this reason
                     this.fnWaitSound(); // sound and blinking events
                 }
-                this.keyboard.setKeyDownHandler(this.fnWaitInputHandler); // make sure it is set
+                //this.keyboard.setKeyDownHandler(this.fnWaitInputHandler); // make sure it is set
+                // make sure the handler is set
+                this.keyboard.setOptions({
+                    fnOnKeyDown: this.fnWaitInputHandler
+                });
             }
         };
         Controller.parseLineNumber = function (line) {
@@ -617,7 +634,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             return lineParts.join("\n");
         };
         Controller.prototype.splitLines = function (input) {
-            if (this.model.getProperty(Model_1.Model.props.implicitLines)) {
+            if (this.model.getProperty("implicitLines" /* ModelPropID.implicitLines */)) {
                 input = Controller.addLineNumbers(input);
             }
             // get numbers starting at the beginning of a line (allows some simple multi line strings)
@@ -741,7 +758,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.vm.vmStop("", 0, true);
         };
         Controller.prototype.fnFileDir = function (paras) {
-            var stream = paras.stream, example = this.model.getProperty(Model_1.Model.props.example), lastSlash = example.lastIndexOf("/");
+            var stream = paras.stream, example = this.model.getProperty("example" /* ModelPropID.example */), lastSlash = example.lastIndexOf("/");
             var fileMask = paras.fileMask ? Controller.fnLocalStorageName(paras.fileMask) : "";
             var dirList = Controller.fnGetStorageDirectoryEntries(fileMask);
             var path = "";
@@ -856,7 +873,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.codeGeneratorToken = new CodeGeneratorToken_1.CodeGeneratorToken({
                     lexer: this.basicLexer,
                     parser: this.basicParser,
-                    implicitLines: this.model.getProperty(Model_1.Model.props.implicitLines)
+                    implicitLines: this.model.getProperty("implicitLines" /* ModelPropID.implicitLines */)
                 });
             }
             return this.codeGeneratorToken;
@@ -995,9 +1012,9 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 case "openin":
                     break;
                 case "chainMerge":
-                    input = this.mergeScripts(this.view.getAreaValue(View_1.View.ids.inputText), input);
+                    input = this.mergeScripts(this.view.getAreaValue("inputText" /* ViewID.inputText */), input);
                     this.setInputText(input);
-                    this.view.setAreaValue(View_1.View.ids.resultText, "");
+                    this.view.setAreaValue("resultText" /* ViewID.resultText */, "");
                     startLine = inFileLine;
                     this.invalidateScript();
                     this.fnParseChain();
@@ -1005,22 +1022,22 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 case "load":
                     if (!putInMemory) {
                         this.setInputText(input);
-                        this.view.setAreaValue(View_1.View.ids.resultText, "");
+                        this.view.setAreaValue("resultText" /* ViewID.resultText */, "");
                         this.invalidateScript();
                         this.vm.vmStop("end", 90);
                     }
                     break;
                 case "merge":
-                    input = this.mergeScripts(this.view.getAreaValue(View_1.View.ids.inputText), input);
+                    input = this.mergeScripts(this.view.getAreaValue("inputText" /* ViewID.inputText */), input);
                     this.setInputText(input);
-                    this.view.setAreaValue(View_1.View.ids.resultText, "");
+                    this.view.setAreaValue("resultText" /* ViewID.resultText */, "");
                     this.invalidateScript();
                     this.variables.removeAllVariables();
                     this.vm.vmStop("end", 90);
                     break;
                 case "chain": // TODO: if we have a line number, make sure it is not optimized away when compiling
                     this.setInputText(input);
-                    this.view.setAreaValue(View_1.View.ids.resultText, "");
+                    this.view.setAreaValue("resultText" /* ViewID.resultText */, "");
                     startLine = inFileLine;
                     this.invalidateScript();
                     this.fnParseChain();
@@ -1028,7 +1045,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 case "run":
                     if (!putInMemory) {
                         this.setInputText(input);
-                        this.view.setAreaValue(View_1.View.ids.resultText, "");
+                        this.view.setAreaValue("resultText" /* ViewID.resultText */, "");
                         startLine = inFileLine;
                         if (!data || data.meta.typeString !== "S") { // keep memory, config for snapshots
                             this.fnReset();
@@ -1057,7 +1074,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 if (!suppressLog) {
                     Utils_1.Utils.console.log("Example", url, (exampleEntry.meta ? exampleEntry.meta + " " : "") + " loaded");
                 }
-                _this.model.setProperty(Model_1.Model.props.example, inFile.memorizedExample);
+                _this.model.setProperty("example" /* ModelPropID.example */, inFile.memorizedExample);
                 _this.vm.vmStop("", 0, true);
                 if (exampleEntry.rsx) {
                     _this.vm.vmRegisterRsx(exampleEntry.rsx, false);
@@ -1070,7 +1087,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             var _this = this;
             return function () {
                 Utils_1.Utils.console.log("Example", url, "error");
-                _this.model.setProperty(Model_1.Model.props.example, inFile.memorizedExample);
+                _this.model.setProperty("example" /* ModelPropID.example */, inFile.memorizedExample);
                 _this.vm.vmStop("", 0, true);
                 var error = _this.vm.vmComposeError(Error(), 32, example + " not found"); // TODO: set also derr=146 (xx not found)
                 // error or onError set
@@ -1082,7 +1099,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             };
         };
         Controller.prototype.loadExample = function () {
-            var inFile = this.vm.vmGetInFileObject(), key = this.model.getProperty(Model_1.Model.props.example);
+            var inFile = this.vm.vmGetInFileObject(), key = this.model.getProperty("example" /* ModelPropID.example */);
             var name = inFile.name;
             if (name.charAt(0) === "/") { // absolute path?
                 name = name.substring(1); // remove "/"
@@ -1104,13 +1121,13 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             var exampleEntry = this.model.getExample(example); // already loaded
             var url;
             if (exampleEntry && exampleEntry.loaded) {
-                this.model.setProperty(Model_1.Model.props.example, example);
+                this.model.setProperty("example" /* ModelPropID.example */, example);
                 url = example;
                 var fnExampleLoaded = this.createFnExampleLoaded(example, url, inFile);
                 fnExampleLoaded("", example, true);
             }
             else if (example && exampleEntry) { // need to load
-                this.model.setProperty(Model_1.Model.props.example, example);
+                this.model.setProperty("example" /* ModelPropID.example */, example);
                 var databaseDir = this.model.getDatabase().src;
                 url = databaseDir + "/" + example + ".js";
                 Utils_1.Utils.loadScript(url, this.createFnExampleLoaded(example, url, inFile), this.createFnExampleError(example, url, inFile), example);
@@ -1123,7 +1140,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     fnExampleError();
                 }
                 else {
-                    this.model.setProperty(Model_1.Model.props.example, example);
+                    this.model.setProperty("example" /* ModelPropID.example */, example);
                     this.vm.vmStop("", 0, true);
                     this.loadFileContinue(""); // empty input?
                 }
@@ -1232,7 +1249,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     fileData = outFile.fileData.join("");
                 }
                 else { // no file data (assuming type A, P or T) => get text
-                    fileData = this.view.getAreaValue(View_1.View.ids.inputText);
+                    fileData = this.view.getAreaValue("inputText" /* ViewID.inputText */);
                     if (type === "T" || type === "P") {
                         fileData = this.encodeTokenizedBasic(fileData, storageName);
                         if (fileData === "") {
@@ -1266,7 +1283,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.vm.vmStop("", 0, true); // continue
         };
         Controller.prototype.fnDeleteLines = function (paras) {
-            var inputText = this.view.getAreaValue(View_1.View.ids.inputText), lines = this.fnGetLinesInRange(inputText, paras.first || 0, paras.last || 65535);
+            var inputText = this.view.getAreaValue("inputText" /* ViewID.inputText */), lines = this.fnGetLinesInRange(inputText, paras.first || 0, paras.last || 65535);
             var error;
             if (lines.length) {
                 for (var i = 0; i < lines.length; i += 1) {
@@ -1296,7 +1313,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.invalidateScript();
         };
         Controller.prototype.fnList = function (paras) {
-            var input = this.view.getAreaValue(View_1.View.ids.inputText), stream = paras.stream, lines = this.fnGetLinesInRange(input, paras.first || 0, paras.last || 65535), regExp = new RegExp(/([\x00-\x1f])/g); // eslint-disable-line no-control-regex
+            var input = this.view.getAreaValue("inputText" /* ViewID.inputText */), stream = paras.stream, lines = this.fnGetLinesInRange(input, paras.first || 0, paras.last || 65535), regExp = new RegExp(/([\x00-\x1f])/g); // eslint-disable-line no-control-regex
             for (var i = 0; i < lines.length; i += 1) {
                 var line = lines[i];
                 if (stream !== 9) {
@@ -1315,7 +1332,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.virtualKeyboard.reset();
             }
             vm.vmStop("end", 0, true); // set "end" with priority 0, so that "compile only" still works
-            this.view.setAreaValue(View_1.View.ids.outputText, "");
+            this.view.setAreaValue("outputText" /* ViewID.outputText */, "");
             this.invalidateScript();
         };
         Controller.prototype.outputError = function (error, noSelection) {
@@ -1325,7 +1342,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 shortError = error.shortMessage || error.message;
                 if (!noSelection) {
                     var startPos = error.pos || 0, len = error.len || ((error.value !== undefined) ? String(error.value).length : 0), endPos = startPos + len;
-                    this.view.setAreaSelection(View_1.View.ids.inputText, error.pos, endPos);
+                    this.view.setAreaSelection("inputText" /* ViewID.inputText */, error.pos, endPos);
                 }
             }
             else {
@@ -1336,7 +1353,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             return shortError;
         };
         Controller.prototype.fnRenumLines = function (paras) {
-            var vm = this.vm, input = this.view.getAreaValue(View_1.View.ids.inputText), basicFormatter = this.getBasicFormatter();
+            var vm = this.vm, input = this.view.getAreaValue("inputText" /* ViewID.inputText */), basicFormatter = this.getBasicFormatter();
             this.basicLexer.setOptions({
                 keepWhiteSpace: false
             });
@@ -1355,19 +1372,19 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             vm.vmStop("end", 0, true);
         };
         Controller.prototype.fnEditLineCallback = function () {
-            var inputParas = this.vm.vmGetStopObject().paras, inputText = this.view.getAreaValue(View_1.View.ids.inputText);
+            var inputParas = this.vm.vmGetStopObject().paras, inputText = this.view.getAreaValue("inputText" /* ViewID.inputText */);
             var input = inputParas.input;
             input = this.mergeScripts(inputText, input);
             this.setInputText(input);
             this.vm.vmSetStartLine(0);
             this.vm.vmGoto(0); // to be sure
-            this.view.setDisabled(View_1.View.ids.continueButton, true);
+            this.view.setDisabled("continueButton" /* ViewID.continueButton */, true);
             this.vm.cursor(inputParas.stream, 0);
             this.vm.vmStop("end", 90);
             return true;
         };
         Controller.prototype.fnEditLine = function (paras) {
-            var input = this.view.getAreaValue(View_1.View.ids.inputText), stream = paras.stream, lineNumber = paras.first || 0, lines = this.fnGetLinesInRange(input, lineNumber, lineNumber);
+            var input = this.view.getAreaValue("inputText" /* ViewID.inputText */), stream = paras.stream, lineNumber = paras.first || 0, lines = this.fnGetLinesInRange(input, lineNumber, lineNumber);
             if (lines.length) {
                 var lineString = lines[0];
                 this.vm.print(stream, lineString);
@@ -1403,7 +1420,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             return output;
         };
         Controller.prototype.fnParse = function () {
-            var input = this.view.getAreaValue(View_1.View.ids.inputText), bench = this.model.getProperty(Model_1.Model.props.bench);
+            var input = this.view.getAreaValue("inputText" /* ViewID.inputText */), bench = this.model.getProperty("bench" /* ModelPropID.bench */);
             // keep variables; this.variables.removeAllVariables();
             var output;
             this.basicLexer.setOptions({
@@ -1437,25 +1454,25 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             if (outputString && outputString.length > 0) {
                 outputString += "\n";
             }
-            this.view.setAreaValue(View_1.View.ids.outputText, outputString);
+            this.view.setAreaValue("outputText" /* ViewID.outputText */, outputString);
             this.invalidateScript();
-            this.setVarSelectOptions(View_1.View.ids.varSelect, this.variables);
+            this.setVarSelectOptions("varSelect" /* ViewID.varSelect */, this.variables);
             this.commonEventHandler.onVarSelectChange();
             return output;
         };
         Controller.prototype.fnPretty = function () {
-            var input = this.view.getAreaValue(View_1.View.ids.inputText), keepWhiteSpace = this.view.getInputChecked(View_1.View.ids.prettySpaceInput), keepBrackets = this.view.getInputChecked(View_1.View.ids.prettyBracketsInput), keepColons = this.view.getInputChecked(View_1.View.ids.prettyColonsInput), output = this.prettyPrintBasic(input, keepWhiteSpace, keepBrackets, keepColons);
+            var input = this.view.getAreaValue("inputText" /* ViewID.inputText */), keepWhiteSpace = this.view.getInputChecked("prettySpaceInput" /* ViewID.prettySpaceInput */), keepBrackets = this.view.getInputChecked("prettyBracketsInput" /* ViewID.prettyBracketsInput */), keepColons = this.view.getInputChecked("prettyColonsInput" /* ViewID.prettyColonsInput */), output = this.prettyPrintBasic(input, keepWhiteSpace, keepBrackets, keepColons);
             if (output) {
                 this.fnPutChangedInputOnStack();
                 this.setInputText(output, true);
                 this.fnPutChangedInputOnStack();
                 // for testing:
                 var diff = Diff_1.Diff.testDiff(input.toUpperCase(), output.toUpperCase());
-                this.view.setAreaValue(View_1.View.ids.outputText, diff);
+                this.view.setAreaValue("outputText" /* ViewID.outputText */, diff);
             }
         };
         Controller.prototype.fnAddLines = function () {
-            var input = this.view.getAreaValue(View_1.View.ids.inputText), output = Controller.addLineNumbers(input);
+            var input = this.view.getAreaValue("inputText" /* ViewID.inputText */), output = Controller.addLineNumbers(input);
             if (output) {
                 this.fnPutChangedInputOnStack();
                 this.setInputText(output, true);
@@ -1468,7 +1485,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 keepWhiteSpace: false
             });
             this.basicParser.setOptions(Controller.formatterBasicParserOptions);
-            var input = this.view.getAreaValue(View_1.View.ids.inputText), output = basicFormatter.removeUnusedLines(input);
+            var input = this.view.getAreaValue("inputText" /* ViewID.inputText */), output = basicFormatter.removeUnusedLines(input);
             if (output.error) {
                 this.outputError(output.error);
             }
@@ -1478,48 +1495,14 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.fnPutChangedInputOnStack();
             }
         };
-        // https://blog.logrocket.com/programmatic-file-downloads-in-the-browser-9a5186298d5c/
-        Controller.fnDownloadBlob = function (blob, filename) {
-            var url = URL.createObjectURL(blob), a = document.createElement("a"), clickHandler = function () {
-                setTimeout(function () {
-                    URL.revokeObjectURL(url);
-                    a.removeEventListener("click", clickHandler);
-                }, 150);
-            };
-            a.href = url;
-            a.download = filename || "download";
-            a.addEventListener("click", clickHandler, false);
-            a.click();
-            return a;
-        };
-        Controller.prototype.fnDownloadNewFile = function (data, fileName) {
-            var type = "octet/stream", buffer = new ArrayBuffer(data.length), data8 = new Uint8Array(buffer);
-            for (var i = 0; i < data.length; i += 1) {
-                data8[i] = data.charCodeAt(i);
-            }
-            if (typeof Blob === "undefined") {
-                Utils_1.Utils.console.warn("fnDownloadNewFile: Blob undefined");
-                return;
-            }
-            var blob = new Blob([data8.buffer], {
-                type: type
-            });
-            if (window.navigator && window.navigator.msSaveOrOpenBlob) { // IE11 support
-                window.navigator.msSaveOrOpenBlob(blob, fileName);
-            }
-            else {
-                Controller.fnDownloadBlob(blob, fileName);
-            }
-        };
         Controller.prototype.fnGetFilename = function (input) {
             var name = "file";
-            //const firstLine = input.substring(0, input.indexOf("\n")) || input;
             var reRemMatcher = /^\d* ?(?:REM|rem) ([\w.]+)+/, matches = input.match(reRemMatcher);
             if (matches !== null) {
                 name = matches[1];
             }
             else {
-                var example = this.model.getProperty(Model_1.Model.props.example);
+                var example = this.model.getProperty("example" /* ModelPropID.example */);
                 if (example !== "") {
                     name = example;
                 }
@@ -1530,7 +1513,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             return name;
         };
         Controller.prototype.fnDownload = function () {
-            var input = this.view.getAreaValue(View_1.View.ids.inputText), tokens = this.encodeTokenizedBasic(input), exportTokenized = this.view.getInputChecked(View_1.View.ids.exportTokenizedInput), exportDSK = this.view.getInputChecked(View_1.View.ids.exportDSKInput), exportBase64 = this.view.getInputChecked(View_1.View.ids.exportBase64Input), meta = {
+            var input = this.view.getAreaValue("inputText" /* ViewID.inputText */), tokens = this.encodeTokenizedBasic(input), exportTokenized = this.view.getInputChecked("exportTokenizedInput" /* ViewID.exportTokenizedInput */), exportDSK = this.view.getInputChecked("exportDSKInput" /* ViewID.exportDSKInput */), exportBase64 = this.view.getInputChecked("exportBase64Input" /* ViewID.exportBase64Input */), meta = {
                 typeString: "A",
                 start: 0x170,
                 length: input.length,
@@ -1573,7 +1556,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 name += ".b64.txt";
             }
             if (data) {
-                this.fnDownloadNewFile(data, name);
+                View_1.View.fnDownloadBlob(data, name);
             }
         };
         Controller.prototype.selectJsError = function (script, e) {
@@ -1588,11 +1571,11 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 }
                 pos += columnNumber;
                 Utils_1.Utils.console.warn("Info: JS Error occurred at line", lineNumber, "column", columnNumber, "pos", pos);
-                this.view.setAreaSelection(View_1.View.ids.outputText, pos, pos + 1);
+                this.view.setAreaSelection("outputText" /* ViewID.outputText */, pos, pos + 1);
             }
         };
         Controller.prototype.fnChain = function (paras) {
-            var script = this.view.getAreaValue(View_1.View.ids.outputText), vm = this.vm;
+            var script = this.view.getAreaValue("outputText" /* ViewID.outputText */), vm = this.vm;
             var line = paras && paras.first || 0;
             line = line || 0;
             if (line === 0) {
@@ -1620,19 +1603,19 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 vm.vmStop("", 0, true);
                 vm.vmGoto(0); // to load DATA lines
                 this.vm.vmSetStartLine(line); // clear resets also startline
-                this.view.setDisabled(View_1.View.ids.runButton, true);
-                this.view.setDisabled(View_1.View.ids.stopButton, false);
-                this.view.setDisabled(View_1.View.ids.continueButton, true);
+                this.view.setDisabled("runButton" /* ViewID.runButton */, true);
+                this.view.setDisabled("stopButton" /* ViewID.stopButton */, false);
+                this.view.setDisabled("continueButton" /* ViewID.continueButton */, true);
             }
             if (!this.inputSet) {
                 this.inputSet = true;
-                var input = this.model.getProperty(Model_1.Model.props.input);
+                var input = this.model.getProperty("input" /* ModelPropID.input */);
                 if (input !== "") {
-                    this.view.setAreaValue(View_1.View.ids.inp2Text, input);
+                    this.view.setAreaValue("inp2Text" /* ViewID.inp2Text */, input);
                     var that_1 = this, timeout = 1;
                     setTimeout(function () {
                         that_1.startEnter();
-                        that_1.view.setAreaValue(View_1.View.ids.inp2Text, ""); // delete input
+                        that_1.view.setAreaValue("inp2Text" /* ViewID.inp2Text */, ""); // delete input
                     }, timeout);
                 }
             }
@@ -1677,7 +1660,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     }
                     else {
                         Utils_1.Utils.console.error(e);
-                        this.selectJsError(this.view.getAreaValue(View_1.View.ids.outputText), e);
+                        this.selectJsError(this.view.getAreaValue("outputText" /* ViewID.outputText */), e);
                         this.vm.vmComposeError(e, 2, "JS " + String(e)); // generate Syntax Error, set also err and erl and set stop
                         this.outputError(e, true);
                     }
@@ -1694,7 +1677,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             inputParas.input = "";
             if (input !== "") { // direct input
                 this.vm.cursor(stream, 0);
-                var inputText = this.view.getAreaValue(View_1.View.ids.inputText);
+                var inputText = this.view.getAreaValue("inputText" /* ViewID.inputText */);
                 if ((/^\d+($| )/).test(input)) { // start with number?
                     if (Utils_1.Utils.debug > 0) {
                         Utils_1.Utils.console.debug("fnDirectInput: insert line=" + input);
@@ -1703,7 +1686,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     this.setInputText(input, true);
                     this.vm.vmSetStartLine(0);
                     this.vm.vmGoto(0); // to be sure
-                    this.view.setDisabled(View_1.View.ids.continueButton, true);
+                    this.view.setDisabled("continueButton" /* ViewID.continueButton */, true);
                     this.vm.cursor(stream, 1);
                     this.updateResultText();
                     return false; // continue direct input
@@ -1711,7 +1694,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 Utils_1.Utils.console.log("fnDirectInput: execute:", input);
                 var codeGeneratorJs = this.codeGeneratorJs;
                 var output = void 0, outputString = void 0;
-                if (inputText && ((/^\d+($| )/).test(inputText) || this.model.getProperty(Model_1.Model.props.implicitLines))) { // do we have a program starting with a line number?
+                if (inputText && ((/^\d+($| )/).test(inputText) || this.model.getProperty("implicitLines" /* ModelPropID.implicitLines */))) { // do we have a program starting with a line number?
                     var separator = inputText.endsWith("\n") ? "" : "\n";
                     this.basicParser.setOptions(Controller.codeGenJsBasicParserOptions);
                     output = codeGeneratorJs.generate(inputText + separator + input, this.variables, true); // compile both; allow direct command
@@ -1736,7 +1719,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 if (outputString && outputString.length > 0) {
                     outputString += "\n";
                 }
-                this.view.setAreaValue(View_1.View.ids.outputText, outputString);
+                this.view.setAreaValue("outputText" /* ViewID.outputText */, outputString);
                 if (!output.error) {
                     this.vm.vmSetStartLine(this.vm.line); // fast hack
                     this.vm.vmGoto("direct");
@@ -1784,16 +1767,16 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.fnWaitInput();
         };
         Controller.prototype.updateResultText = function () {
-            this.view.setAreaValue(View_1.View.ids.resultText, this.vm.vmGetOutBuffer());
-            this.view.setAreaScrollTop(View_1.View.ids.resultText); // scroll to bottom
+            this.view.setAreaValue("resultText" /* ViewID.resultText */, this.vm.vmGetOutBuffer());
+            this.view.setAreaScrollTop("resultText" /* ViewID.resultText */); // scroll to bottom
         };
         Controller.prototype.exitLoop = function () {
             var stop = this.vm.vmGetStopObject(), reason = stop.reason;
             this.updateResultText();
-            this.view.setDisabled(View_1.View.ids.runButton, reason === "reset");
-            this.view.setDisabled(View_1.View.ids.stopButton, reason !== "fileLoad" && reason !== "fileSave");
-            this.view.setDisabled(View_1.View.ids.continueButton, reason === "end" || reason === "fileLoad" || reason === "fileSave" || reason === "parse" || reason === "renumLines" || reason === "reset");
-            this.setVarSelectOptions(View_1.View.ids.varSelect, this.variables);
+            this.view.setDisabled("runButton" /* ViewID.runButton */, reason === "reset");
+            this.view.setDisabled("stopButton" /* ViewID.stopButton */, reason !== "fileLoad" && reason !== "fileSave");
+            this.view.setDisabled("continueButton" /* ViewID.continueButton */, reason === "end" || reason === "fileLoad" || reason === "fileSave" || reason === "parse" || reason === "renumLines" || reason === "reset");
+            this.setVarSelectOptions("varSelect" /* ViewID.varSelect */, this.variables);
             this.commonEventHandler.onVarSelectChange();
             if (reason === "stop" || reason === "end" || reason === "error" || reason === "parse" || reason === "parseRun") {
                 this.startWithDirectInput();
@@ -1855,10 +1838,10 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.vm.vmStop("renumLines", 85, false, {
                 command: "renum",
                 stream: 0,
-                newLine: Number(this.view.getInputValue(View_1.View.ids.renumNewInput)),
-                oldLine: Number(this.view.getInputValue(View_1.View.ids.renumStartInput)),
-                step: Number(this.view.getInputValue(View_1.View.ids.renumStepInput)),
-                keep: Number(this.view.getInputValue(View_1.View.ids.renumKeepInput)),
+                newLine: Number(this.view.getInputValue("renumNewInput" /* ViewID.renumNewInput */)),
+                oldLine: Number(this.view.getInputValue("renumStartInput" /* ViewID.renumStartInput */)),
+                step: Number(this.view.getInputValue("renumStepInput" /* ViewID.renumStepInput */)),
+                keep: Number(this.view.getInputValue("renumKeepInput" /* ViewID.renumKeepInput */)),
                 line: this.vm.line
             });
             if (this.vm.pos(stream) > 1) {
@@ -1888,9 +1871,9 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         };
         Controller.prototype.startContinue = function () {
             var vm = this.vm, stop = vm.vmGetStopObject(), savedStop = this.getStopObject();
-            this.view.setDisabled(View_1.View.ids.runButton, true);
-            this.view.setDisabled(View_1.View.ids.stopButton, false);
-            this.view.setDisabled(View_1.View.ids.continueButton, true);
+            this.view.setDisabled("runButton" /* ViewID.runButton */, true);
+            this.view.setDisabled("stopButton" /* ViewID.stopButton */, false);
+            this.view.setDisabled("continueButton" /* ViewID.continueButton */, true);
             if (stop.reason === "break" || stop.reason === "escape" || stop.reason === "stop" || stop.reason === "direct") {
                 if (savedStop.paras && !savedStop.paras.fnInputCallback) { // no keyboard callback? make sure no handler is set (especially for direct->continue)
                     this.removeKeyBoardHandler();
@@ -1916,18 +1899,19 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             for (var i = 0; i < keys.length; i += 1) {
                 this.keyboard.putKeyInBuffer(keys.charAt(i));
             }
-            var keyDownHandler = this.keyboard.getKeyDownHandler();
+            //const keyDownHandler = this.keyboard.getKeyDownHandler();
+            var options = this.keyboard.getOptions(), keyDownHandler = options.fnOnKeyDown;
             if (keyDownHandler) {
                 keyDownHandler();
             }
         };
         Controller.prototype.startEnter = function () {
-            var input = this.view.getAreaValue(View_1.View.ids.inp2Text);
+            var input = this.view.getAreaValue("inp2Text" /* ViewID.inp2Text */);
             input = input.replace(/\n/g, "\r"); // LF => CR
             this.fnPutKeysInBuffer(input);
             /*
             if (deleteInput) {
-                this.view.setAreaValue(View.ids.inp2Text, "");
+                this.view.setAreaValue(ViewID.inp2Text, "");
             }
             */
         };
@@ -1949,12 +1933,14 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         Controller.prototype.setPopoversHiddenExcept = function (exceptId) {
             var areaDefinitions = Controller.areaDefinitions;
             for (var id in areaDefinitions) {
-                if (id !== exceptId) {
-                    var propertyObject = areaDefinitions[id];
-                    if (propertyObject.isPopover && !this.view.getHidden(id)) {
-                        // we cannot use toggleAreaHidden becasue it would be recursive
-                        this.model.setProperty(propertyObject.property, false);
-                        this.view.setHidden(id, true, propertyObject.display);
+                if (areaDefinitions.hasOwnProperty(id)) {
+                    var propertyObject = areaDefinitions[id], viewId = propertyObject.id;
+                    if (propertyObject && viewId !== exceptId) {
+                        if (propertyObject.isPopover && !this.view.getHidden(viewId)) {
+                            // we cannot use toggleAreaHidden becasue it would be recursive
+                            this.model.setProperty(propertyObject.property, false);
+                            this.view.setHidden(viewId, true, propertyObject.display);
+                        }
                     }
                 }
             }
@@ -1973,7 +1959,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             return visible;
         };
         Controller.prototype.changeVariable = function () {
-            var par = this.view.getSelectValue(View_1.View.ids.varSelect), valueString = this.view.getSelectValue(View_1.View.ids.varText), variables = this.variables;
+            var par = this.view.getSelectValue("varSelect" /* ViewID.varSelect */), valueString = this.view.getSelectValue("varText" /* ViewID.varText */), variables = this.variables;
             var value = variables.getVariable(par);
             if (typeof value === "function") {
                 value = Controller.generateFunction(par, valueString);
@@ -1996,7 +1982,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     Utils_1.Utils.console.warn(e);
                 }
             }
-            this.setVarSelectOptions(View_1.View.ids.varSelect, variables);
+            this.setVarSelectOptions("varSelect" /* ViewID.varSelect */, variables);
             this.commonEventHandler.onVarSelectChange(); // title change?
         };
         Controller.prototype.setBasicVersion = function (basicVersion) {
@@ -2007,45 +1993,55 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.invalidateScript();
         };
         Controller.prototype.setPalette = function (palette) {
-            this.canvas.setPalette(palette === "green" || palette === "grey" ? palette : "color");
+            var validPalette = palette === "green" || palette === "grey" ? palette : "color";
+            this.canvas.setOptions({
+                palette: validPalette
+            });
         };
         Controller.prototype.setCanvasType = function (canvasType) {
-            var palette = this.model.getProperty(Model_1.Model.props.palette), canvasOptions = {
-                charset: cpcCharset_1.cpcCharset,
-                palette: palette === "green" || palette === "grey" ? palette : "color"
-            };
             var canvas = this.canvas;
             if (canvas) {
                 canvas.stopUpdateCanvas(); // stop updates on current canvas
-                var currentCanvasElement = canvas.getCanvasElement();
-                if (currentCanvasElement) {
-                    this.view.setHidden(currentCanvasElement.id, true);
-                }
+                var canvasID = canvas.getOptions().canvasID;
+                this.view.setHidden(canvasID, true);
             }
             else if (canvasType !== "graphics") {
                 // initially graphics canvas is not hidden, but we must hide it, if other canvas should be shown
-                this.view.setHidden(View_1.View.ids.cpcCanvas, true);
+                this.view.setHidden("cpcCanvas" /* ViewID.cpcCanvas */, true);
             }
             if (this.canvases[canvasType]) {
                 canvas = this.canvases[canvasType];
             }
             else {
+                var palette = this.model.getProperty("palette" /* ModelPropID.palette */), validPalette = palette === "green" || palette === "grey" ? palette : "color";
                 if (canvasType === "text") {
-                    canvas = new TextCanvas_1.TextCanvas(canvasOptions);
+                    canvas = new TextCanvas_1.TextCanvas({
+                        canvasID: "textText" /* ViewID.textText */,
+                        charset: cpcCharset_1.cpcCharset,
+                        palette: validPalette
+                    });
                 }
                 else if (canvasType === "none") {
-                    canvas = new NoCanvas_1.NoCanvas(canvasOptions);
+                    canvas = new NoCanvas_1.NoCanvas({
+                        canvasID: "noCanvas" /* ViewID.noCanvas */,
+                        charset: cpcCharset_1.cpcCharset,
+                        palette: validPalette
+                    });
                 }
                 else { // "graphics"
-                    var isAreaHidden = this.view.getHidden(View_1.View.ids.cpcArea);
+                    var isAreaHidden = this.view.getHidden("cpcArea" /* ViewID.cpcArea */);
                     // make sure canvas area is not hidden when creating canvas object (allows to get width, height)
                     if (isAreaHidden) {
-                        this.toggleAreaHidden(View_1.View.ids.cpcArea);
+                        this.toggleAreaHidden("cpcArea" /* ViewID.cpcArea */);
                     }
-                    this.view.setHidden(View_1.View.ids.cpcCanvas, false);
-                    canvas = new Canvas_1.Canvas(canvasOptions);
+                    this.view.setHidden("cpcCanvas" /* ViewID.cpcCanvas */, false);
+                    canvas = new Canvas_1.Canvas({
+                        canvasID: "cpcCanvas" /* ViewID.cpcCanvas */,
+                        charset: cpcCharset_1.cpcCharset,
+                        palette: validPalette
+                    });
                     if (isAreaHidden) {
-                        this.toggleAreaHidden(View_1.View.ids.cpcArea); // hide again
+                        this.toggleAreaHidden("cpcArea" /* ViewID.cpcArea */); // hide again
                     }
                 }
                 this.canvases[canvasType] = canvas;
@@ -2054,17 +2050,15 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             if (this.vm) {
                 this.vm.setCanvas(canvas);
             }
-            var canvasElement = canvas.getCanvasElement();
-            if (canvasElement) {
-                this.view.setHidden(canvasElement.id, false);
-            }
-            if (this.model.getProperty(Model_1.Model.props.showCpc)) {
+            var canvasId = canvas.getOptions().canvasID;
+            this.view.setHidden(canvasId, false);
+            if (this.model.getProperty("showCpc" /* ModelPropID.showCpc */)) {
                 this.canvas.startUpdateCanvas();
             }
             return canvas;
         };
         Controller.prototype.setSoundActive = function () {
-            var sound = this.sound, active = this.model.getProperty(Model_1.Model.props.sound);
+            var sound = this.sound, active = this.model.getProperty("sound" /* ModelPropID.sound */);
             if (active) {
                 sound.soundOn();
             }
@@ -2100,7 +2094,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             for (var i = 1; i < lines; i += 1) {
                 out += z80Disass.disassLine() + "\n";
             }
-            this.view.setAreaValue(View_1.View.ids.disassText, out);
+            this.view.setAreaValue("disassText" /* ViewID.disassText */, out);
         };
         Controller.prototype.fnEndOfImport = function (imported) {
             var stream = 0, vm = this.vm;
@@ -2126,7 +2120,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     adaptFilename: this.adaptFilename.bind(this),
                     updateStorageDatabase: this.updateStorageDatabase.bind(this),
                     outputError: this.outputError.bind(this),
-                    processFileImports: this.model.getProperty(Model_1.Model.props.processFileImports)
+                    processFileImports: this.model.getProperty("processFileImports" /* ModelPropID.processFileImports */)
                 });
             }
             return this.fileHandler;
@@ -2141,27 +2135,25 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             return this.fileSelect;
         };
         Controller.prototype.initDropZone = function () {
-            var fileHandler = this.getFileHandler(), fileSelect = this.getFileSelect(fileHandler), dropZone = View_1.View.getElementById1(View_1.View.ids.dropZone);
+            var fileHandler = this.getFileHandler(), fileSelect = this.getFileSelect(fileHandler), dropZone = View_1.View.getElementById1("dropZone" /* ViewID.dropZone */);
             dropZone.addEventListener("dragover", this.fnOnDragoverHandler, false);
             fileSelect.addFileSelectHandler(dropZone, "drop");
-            var canvasElement = this.canvas.getCanvasElement();
-            if (canvasElement) {
-                canvasElement.addEventListener("dragover", this.fnOnDragoverHandler, false);
-                fileSelect.addFileSelectHandler(canvasElement, "drop");
-            }
-            var fileInput = View_1.View.getElementById1(View_1.View.ids.fileInput);
+            var canvasID = this.canvas.getOptions().canvasID, canvasElement = View_1.View.getElementById1(canvasID);
+            canvasElement.addEventListener("dragover", this.fnOnDragoverHandler, false);
+            fileSelect.addFileSelectHandler(canvasElement, "drop");
+            var fileInput = View_1.View.getElementById1("fileInput" /* ViewID.fileInput */);
             fileSelect.addFileSelectHandler(fileInput, "change");
         };
         Controller.prototype.fnUpdateUndoRedoButtons = function () {
-            this.view.setDisabled(View_1.View.ids.undoButton, !this.inputStack.canUndoKeepOne());
-            this.view.setDisabled(View_1.View.ids.redoButton, !this.inputStack.canRedo());
+            this.view.setDisabled("undoButton" /* ViewID.undoButton */, !this.inputStack.canUndoKeepOne());
+            this.view.setDisabled("redoButton" /* ViewID.redoButton */, !this.inputStack.canRedo());
         };
         Controller.prototype.fnInitUndoRedoButtons = function () {
             this.inputStack.reset();
             this.fnUpdateUndoRedoButtons();
         };
         Controller.prototype.fnPutChangedInputOnStack = function () {
-            var input = this.view.getAreaValue(View_1.View.ids.inputText), stackInput = this.inputStack.getInput();
+            var input = this.view.getAreaValue("inputText" /* ViewID.inputText */), stackInput = this.inputStack.getInput();
             if (stackInput !== input) {
                 this.inputStack.save(input);
                 this.fnUpdateUndoRedoButtons();
@@ -2176,6 +2168,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         Controller.prototype.getVirtualKeyboard = function () {
             if (!this.virtualKeyboard) {
                 this.virtualKeyboard = new VirtualKeyboard_1.VirtualKeyboard({
+                    view: this.view,
                     fnPressCpcKey: this.keyboard.fnPressCpcKey.bind(this.keyboard),
                     fnReleaseCpcKey: this.keyboard.fnReleaseCpcKey.bind(this.keyboard)
                 });
@@ -2194,18 +2187,18 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         Controller.prototype.createFnDatabaseLoaded = function (url) {
             var _this = this;
             return function (_sFullUrl, key) {
-                var selectedName = _this.model.getProperty(Model_1.Model.props.database);
+                var selectedName = _this.model.getProperty("database" /* ModelPropID.database */);
                 if (selectedName === key) {
                     _this.model.getDatabase().loaded = true;
                 }
                 else { // should not occur
                     Utils_1.Utils.console.warn("databaseLoaded: name changed: " + key + " => " + selectedName);
-                    _this.model.setProperty(Model_1.Model.props.database, key);
+                    _this.model.setProperty("database" /* ModelPropID.database */, key);
                     var database = _this.model.getDatabase();
                     if (database) {
                         database.loaded = true;
                     }
-                    _this.model.setProperty(Model_1.Model.props.database, selectedName);
+                    _this.model.setProperty("database" /* ModelPropID.database */, selectedName);
                 }
                 Utils_1.Utils.console.log("fnDatabaseLoaded: database loaded: " + key + ": " + url);
                 _this.setDirectorySelectOptions();
@@ -2219,13 +2212,13 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 _this.setDirectorySelectOptions();
                 _this.onDirectorySelectChange();
                 _this.setInputText("");
-                _this.view.setAreaValue(View_1.View.ids.resultText, "Cannot load database: " + key);
+                _this.view.setAreaValue("resultText" /* ViewID.resultText */, "Cannot load database: " + key);
             };
         };
         Controller.prototype.onDatabaseSelectChange = function () {
-            var databaseName = this.view.getSelectValue(View_1.View.ids.databaseSelect);
-            this.model.setProperty(Model_1.Model.props.database, databaseName);
-            this.view.setSelectTitleFromSelectedOption(View_1.View.ids.databaseSelect);
+            var databaseName = this.view.getSelectValue("databaseSelect" /* ViewID.databaseSelect */);
+            this.model.setProperty("database" /* ModelPropID.database */, databaseName);
+            this.view.setSelectTitleFromSelectedOption("databaseSelect" /* ViewID.databaseSelect */);
             var database = this.model.getDatabase();
             if (!database) {
                 Utils_1.Utils.console.error("onDatabaseSelectChange: database not available:", databaseName);
@@ -2241,7 +2234,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             else {
                 this.setInputText("#loading database " + databaseName + "...");
-                var exampleIndex = this.model.getProperty(Model_1.Model.props.exampleIndex), url = database.src + "/" + exampleIndex;
+                var exampleIndex = this.model.getProperty("exampleIndex" /* ModelPropID.exampleIndex */), url = database.src + "/" + exampleIndex;
                 Utils_1.Utils.loadScript(url, this.createFnDatabaseLoaded(url), this.createFnDatabaseError(url), databaseName);
             }
         };
@@ -2250,16 +2243,16 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.onExampleSelectChange();
         };
         Controller.prototype.onExampleSelectChange = function () {
-            var vm = this.vm, inFile = vm.vmGetInFileObject(), dataBaseName = this.model.getProperty(Model_1.Model.props.database), directoryName = this.view.getSelectValue(View_1.View.ids.directorySelect);
+            var vm = this.vm, inFile = vm.vmGetInFileObject(), dataBaseName = this.model.getProperty("database" /* ModelPropID.database */), directoryName = this.view.getSelectValue("directorySelect" /* ViewID.directorySelect */);
             vm.closein();
-            this.setPopoversHiddenExcept(""); // hide all popovers, especially the gallery
+            this.setPopoversHiddenExcept(); // hide all popovers, especially the gallery
             inFile.open = true;
-            var exampleName = this.view.getSelectValue(View_1.View.ids.exampleSelect);
+            var exampleName = this.view.getSelectValue("exampleSelect" /* ViewID.exampleSelect */);
             if (directoryName) {
                 exampleName = directoryName + "/" + exampleName;
             }
             var exampleEntry = this.model.getExample(exampleName);
-            var autorun = this.model.getProperty(Model_1.Model.props.autorun);
+            var autorun = this.model.getProperty("autorun" /* ModelPropID.autorun */);
             if (exampleEntry && exampleEntry.meta) { // TTT TODO: this is just a workaround, meta is in input now; should change command after loading!
                 var type = exampleEntry.meta.charAt(0);
                 if (type === "B" || type === "D" || type === "G") { // binary, data only, Gena Assembler?
@@ -2271,7 +2264,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 exampleName = "/" + exampleName; // load absolute
             }
             else {
-                this.model.setProperty(Model_1.Model.props.example, exampleName);
+                this.model.setProperty("example" /* ModelPropID.example */, exampleName);
             }
             inFile.name = exampleName;
             inFile.start = undefined;
@@ -2300,7 +2293,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             return out;
         };
         Controller.prototype.onCpcCanvasClick = function (event) {
-            this.setPopoversHiddenExcept(""); // hide all popovers
+            this.setPopoversHiddenExcept(); // hide all popovers
             this.canvas.onCanvasClick(event);
             this.keyboard.setActive(true);
         };
@@ -2308,8 +2301,22 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.canvas.onWindowClick(event);
             this.keyboard.setActive(false);
         };
+        Controller.prototype.onVirtualKeyBoardClick = function (event) {
+            if (this.virtualKeyboard) {
+                /*
+                const target = View.getEventTarget<HTMLButtonElement>(event);
+                    //cpcKey = target.getAttribute("data-key");
+                */
+                // simulate keypress (maybe better use real keydown events for space, enter...)
+                this.virtualKeyboard.getKeydownHandler()(event);
+                var fnKeyup_1 = this.virtualKeyboard.getKeyupHandler();
+                window.setTimeout(function () {
+                    fnKeyup_1(event);
+                }, 200);
+            }
+        };
         Controller.prototype.fnArrayBounds = function () {
-            var arrayBounds = this.model.getProperty(Model_1.Model.props.arrayBounds);
+            var arrayBounds = this.model.getProperty("arrayBounds" /* ModelPropID.arrayBounds */);
             this.variables.setOptions({
                 arrayBounds: arrayBounds
             });
@@ -2318,7 +2325,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.variables.removeAllVariables();
         };
         Controller.prototype.fnImplicitLines = function () {
-            var implicitLines = this.model.getProperty(Model_1.Model.props.implicitLines);
+            var implicitLines = this.model.getProperty("implicitLines" /* ModelPropID.implicitLines */);
             this.codeGeneratorJs.setOptions({
                 implicitLines: implicitLines
             });
@@ -2329,80 +2336,95 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
         };
         Controller.prototype.fnTrace = function () {
-            var trace = this.model.getProperty(Model_1.Model.props.trace);
+            var trace = this.model.getProperty("trace" /* ModelPropID.trace */);
             this.codeGeneratorJs.setOptions({
                 trace: trace
             });
         };
         Controller.prototype.fnSpeed = function () {
-            var speed = this.model.getProperty(Model_1.Model.props.speed);
+            var speed = this.model.getProperty("speed" /* ModelPropID.speed */);
             this.initialLoopTimeout = 1000 - speed * 10;
         };
         Controller.areaDefinitions = {
             consoleLogArea: {
-                property: Model_1.Model.props.showConsoleLog,
-                checkedId: View_1.View.ids.showConsoleLogInput
+                id: "consoleLogArea" /* ViewID.consoleLogArea */,
+                property: "showConsoleLog" /* ModelPropID.showConsoleLog */,
+                checkedId: "showConsoleLogInput" /* ViewID.showConsoleLogInput */
             },
             convertArea: {
-                property: Model_1.Model.props.showConvert,
+                id: "convertArea" /* ViewID.convertArea */,
+                property: "showConvert" /* ModelPropID.showConvert */,
                 display: "flex",
                 isPopover: true
             },
             cpcArea: {
-                property: Model_1.Model.props.showCpc,
-                checkedId: View_1.View.ids.showCpcInput
+                id: "cpcArea" /* ViewID.cpcArea */,
+                property: "showCpc" /* ModelPropID.showCpc */,
+                checkedId: "showCpcInput" /* ViewID.showCpcInput */
             },
             disassArea: {
-                property: Model_1.Model.props.showDisass,
-                checkedId: View_1.View.ids.showDisassInput
+                id: "disassArea" /* ViewID.disassArea */,
+                property: "showDisass" /* ModelPropID.showDisass */,
+                checkedId: "showDisassInput" /* ViewID.showDisassInput */
             },
             exportArea: {
-                property: Model_1.Model.props.showExport,
+                id: "exportArea" /* ViewID.exportArea */,
+                property: "showExport" /* ModelPropID.showExport */,
                 display: "flex",
                 isPopover: true
             },
             galleryArea: {
-                property: Model_1.Model.props.showGallery,
+                id: "galleryArea" /* ViewID.galleryArea */,
+                property: "showGallery" /* ModelPropID.showGallery */,
                 display: "flex",
                 isPopover: true
             },
             inp2Area: {
-                property: Model_1.Model.props.showInp2,
-                checkedId: View_1.View.ids.showInp2Input
+                id: "inp2Area" /* ViewID.inp2Area */,
+                property: "showInp2" /* ModelPropID.showInp2 */,
+                checkedId: "showInp2Input" /* ViewID.showInp2Input */
             },
             inputArea: {
-                property: Model_1.Model.props.showInput,
-                checkedId: View_1.View.ids.showInputInput
+                id: "inputArea" /* ViewID.inputArea */,
+                property: "showInput" /* ModelPropID.showInput */,
+                checkedId: "showInputInput" /* ViewID.showInputInput */
             },
             kbdArea: {
-                property: Model_1.Model.props.showKbd,
-                checkedId: View_1.View.ids.showKbdInput,
+                id: "kbdArea" /* ViewID.kbdArea */,
+                property: "showKbd" /* ModelPropID.showKbd */,
+                checkedId: "showKbdInput" /* ViewID.showKbdInput */,
                 display: "flex"
             },
             moreArea: {
-                property: Model_1.Model.props.showMore,
+                id: "moreArea" /* ViewID.moreArea */,
+                property: "showMore" /* ModelPropID.showMore */,
                 display: "flex",
                 isPopover: true
             },
             outputArea: {
-                property: Model_1.Model.props.showOutput,
-                checkedId: View_1.View.ids.showOutputInput
+                id: "outputArea" /* ViewID.outputArea */,
+                property: "showOutput" /* ModelPropID.showOutput */,
+                checkedId: "showOutputInput" /* ViewID.showOutputInput */
             },
             resultArea: {
-                property: Model_1.Model.props.showResult,
-                checkedId: View_1.View.ids.showResultInput
+                id: "resultArea" /* ViewID.resultArea */,
+                property: "showResult" /* ModelPropID.showResult */,
+                checkedId: "showResultInput" /* ViewID.showResultInput */
             },
             settingsArea: {
-                property: Model_1.Model.props.showSettings,
+                id: "settingsArea" /* ViewID.settingsArea */,
+                property: "showSettings" /* ModelPropID.showSettings */,
                 display: "flex",
                 isPopover: true
             },
             variableArea: {
-                property: Model_1.Model.props.showVariable,
-                checkedId: View_1.View.ids.showVariableInput
+                id: "variableArea" /* ViewID.variableArea */,
+                property: "showVariable" /* ModelPropID.showVariable */,
+                checkedId: "showVariableInput" /* ViewID.showVariableInput */
             },
             viewArea: {
-                property: Model_1.Model.props.showView,
+                id: "viewArea" /* ViewID.viewArea */,
+                property: "showView" /* ModelPropID.showView */,
                 display: "flex",
                 isPopover: true
             }

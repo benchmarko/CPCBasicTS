@@ -1,6 +1,7 @@
 // NodeAdapt.ts - Adaptations for nodeJS
 //
 
+import { ViewID } from "./Constants";
 import { Utils } from "./Utils";
 
 // examples:
@@ -112,7 +113,7 @@ export class NodeAdapt {
 		const setAreaValueOrig = view.prototype.setAreaValue;
 
 		view.prototype.setAreaValue = (id: string, value: string) => {
-			if (id === "resultText") { // View.ids.resultText
+			if (id === ViewID.resultText) {
 				if (value) {
 					Utils.console.log(value);
 				}

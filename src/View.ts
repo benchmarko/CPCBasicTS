@@ -3,6 +3,7 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 
+import { ViewID } from "./Constants";
 import { Utils } from "./Utils";
 
 export interface SelectOptionElement { // similar to HtmlOptionElement
@@ -19,8 +20,10 @@ export interface AreaInputElement {
 	imgUrl: string
 }
 
+export type PointerEventNamesType = Record<"down"|"move"|"up"|"cancel"|"out"|"type", string>;
+
 export class View {
-	static getElementById1(id: string): HTMLElement {
+	static getElementById1(id: ViewID): HTMLElement {
 		const element = window.document.getElementById(id);
 
 		if (!element) {
@@ -29,90 +32,16 @@ export class View {
 		return element;
 	}
 
-	static getElementByIdAs<T extends HTMLButtonElement| HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | HTMLElement>(id: string): T {
+	static getElementByIdAs<T extends HTMLButtonElement| HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | HTMLElement>(id: ViewID): T {
 		return View.getElementById1(id) as T;
 	}
 
-	static readonly ids = {
-		arrayBoundsInput: "arrayBoundsInput",
-		autorunInput: "autorunInput",
-		basicVersionSelect: "basicVersionSelect",
-		canvasTypeSelect: "canvasTypeSelect",
-		consoleLogArea: "consoleLogArea",
-		consoleLogText: "consoleLogText",
-		continueButton: "continueButton",
-		convertArea: "convertArea",
-		cpcArea: "cpcArea",
-		cpcCanvas: "cpcCanvas",
-		databaseSelect: "databaseSelect",
-		debugInput: "debugInput",
-		directorySelect: "directorySelect",
-		disassArea: "disassArea",
-		disassInput: "disassInput",
-		disassText: "disassText",
-		dropZone: "dropZone",
-		exampleSelect: "exampleSelect",
-		exportArea: "exportArea",
-		exportBase64Input: "exportBase64Input",
-		exportDSKInput: "exportDSKInput",
-		exportTokenizedInput: "exportTokenizedInput",
-		fileInput: "fileInput",
-		galleryArea: "galleryArea",
-		galleryAreaItems: "galleryAreaItems",
-		implicitLinesInput: "implicitLinesInput",
-		inp2Area: "inp2Area",
-		inp2Text: "inp2Text",
-		inputArea: "inputArea",
-		inputText: "inputText",
-		kbdAlpha: "kbdAlpha",
-		kbdArea: "kbdArea",
-		kbdAreaInner: "kbdAreaInner",
-		kbdLayoutSelect: "kbdLayoutSelect",
-		kbdNum: "kbdNum",
-		moreArea: "moreArea",
-		outputArea: "outputArea",
-		outputText: "outputText",
-		paletteSelect: "paletteSelect",
-		prettyBracketsInput: "prettyBracketsInput",
-		prettyColonsInput: "prettyColonsInput",
-		prettySpaceInput: "prettySpaceInput",
-		redoButton: "redoButton",
-		renumKeepInput: "renumKeepInput",
-		renumNewInput: "renumNewInput",
-		renumStartInput: "renumStartInput",
-		renumStepInput: "renumStepInput",
-		resultArea: "resultArea",
-		resultText: "resultText",
-		runButton: "runButton",
-		screenshotLink: "screenshotLink",
-		settingsArea: "settingsArea",
-		showConsoleLogInput: "showConsoleLogInput",
-		showCpcInput: "showCpcInput",
-		showDisassInput: "showDisassInput",
-		showInp2Input: "showInp2Input",
-		showInputInput: "showInputInput",
-		showKbdInput: "showKbdInput",
-		showOutputInput: "showOutputInput",
-		showResultInput: "showResultInput",
-		showVariableInput: "showVariableInput",
-		soundInput: "soundInput",
-		speedInput: "speedInput",
-		stopButton: "stopButton",
-		traceInput: "traceInput",
-		textText: "textText",
-		undoButton: "undoButton",
-		variableArea: "variableArea",
-		varSelect: "varSelect",
-		varText: "varText",
-		viewArea: "viewArea"
-	};
-
-	getHidden(id: string): boolean { // eslint-disable-line class-methods-use-this
+	getHidden(id: ViewID): boolean { // eslint-disable-line class-methods-use-this
 		const element = View.getElementById1(id);
 
 		return element.className.indexOf("displayNone") >= 0;
 	}
-	setHidden(id: string, hidden: boolean, display?: string): this { // eslint-disable-line class-methods-use-this
+	setHidden(id: ViewID, hidden: boolean, display?: string): this { // eslint-disable-line class-methods-use-this
 		// optional display: block or flex or inherit
 		const element = View.getElementById1(id),
 			displayVisible = "display" + Utils.stringCapitalize(display || "block");
@@ -136,14 +65,14 @@ export class View {
 		return this;
 	}
 
-	setDisabled(id: string, disabled: boolean): this {
+	setDisabled(id: ViewID, disabled: boolean): this {
 		const element = View.getElementByIdAs<HTMLButtonElement>(id);
 
 		element.disabled = disabled;
 		return this;
 	}
 
-	toggleClass(id: string, className: string): void { // eslint-disable-line class-methods-use-this
+	toggleClass(id: ViewID, className: string): void { // eslint-disable-line class-methods-use-this
 		const element = View.getElementById1(id);
 		let classes = element.className;
 		const nameIndex = classes.indexOf(className);
@@ -156,43 +85,43 @@ export class View {
 		element.className = classes;
 	}
 
-	getAreaValue(id: string): string { // eslint-disable-line class-methods-use-this
+	getAreaValue(id: ViewID): string { // eslint-disable-line class-methods-use-this
 		const element = View.getElementByIdAs<HTMLTextAreaElement>(id);
 
 		return element.value;
 	}
-	setAreaValue(id: string, value: string): this {
+	setAreaValue(id: ViewID, value: string): this {
 		const element = View.getElementByIdAs<HTMLTextAreaElement>(id);
 
 		element.value = value;
 		return this;
 	}
 
-	getInputValue(id: string): string { // eslint-disable-line class-methods-use-this
+	getInputValue(id: ViewID): string { // eslint-disable-line class-methods-use-this
 		const element = View.getElementByIdAs<HTMLInputElement>(id);
 
 		return element.value;
 	}
-	setInputValue(id: string, value: string): this {
+	setInputValue(id: ViewID, value: string): this {
 		const element = View.getElementByIdAs<HTMLInputElement>(id);
 
 		element.value = value;
 		return this;
 	}
 
-	getInputChecked(id: string): boolean { // eslint-disable-line class-methods-use-this
+	getInputChecked(id: ViewID): boolean { // eslint-disable-line class-methods-use-this
 		const element = View.getElementByIdAs<HTMLInputElement>(id);
 
 		return element.checked;
 	}
-	setInputChecked(id: string, checked: boolean): this {
+	setInputChecked(id: ViewID, checked: boolean): this {
 		const element = View.getElementByIdAs<HTMLInputElement>(id);
 
 		element.checked = checked;
 		return this;
 	}
 
-	setAreaInputList(id: string, inputs: AreaInputElement[]): this {
+	setAreaInputList(id: ViewID, inputs: AreaInputElement[]): this {
 		const element = View.getElementByIdAs<HTMLElement>(id),
 			childNodes = element.childNodes;
 
@@ -243,7 +172,7 @@ export class View {
 		return this;
 	}
 
-	setSelectOptions(id: string, options: SelectOptionElement[]): this {
+	setSelectOptions(id: ViewID, options: SelectOptionElement[]): this {
 		const element = View.getElementByIdAs<HTMLSelectElement>(id),
 			optionList: HTMLOptionElement[] = [],
 			existingElements = element.length;
@@ -285,7 +214,7 @@ export class View {
 		return this;
 	}
 
-	getSelectOptions(id: string): SelectOptionElement[] { // eslint-disable-line class-methods-use-this
+	getSelectOptions(id: ViewID): SelectOptionElement[] { // eslint-disable-line class-methods-use-this
 		const element = View.getElementByIdAs<HTMLSelectElement>(id),
 			elementOptions = element.options,
 			options: SelectOptionElement[] = [];
@@ -303,12 +232,12 @@ export class View {
 		return options;
 	}
 
-	getSelectValue(id: string): string { // eslint-disable-line class-methods-use-this
+	getSelectValue(id: ViewID): string { // eslint-disable-line class-methods-use-this
 		const element = View.getElementByIdAs<HTMLSelectElement>(id);
 
 		return element.value;
 	}
-	setSelectValue(id: string, value: string): this {
+	setSelectValue(id: ViewID, value: string): this {
 		const element = View.getElementByIdAs<HTMLSelectElement>(id);
 
 		if (value) {
@@ -316,7 +245,7 @@ export class View {
 		}
 		return this;
 	}
-	setSelectTitleFromSelectedOption(id: string): this {
+	setSelectTitleFromSelectedOption(id: ViewID): this {
 		const element = View.getElementByIdAs<HTMLSelectElement>(id),
 			selectedIndex = element.selectedIndex,
 			title = (selectedIndex >= 0) ? element.options[selectedIndex].title : "";
@@ -325,7 +254,7 @@ export class View {
 		return this;
 	}
 
-	setAreaScrollTop(id: string, scrollTop?: number): this { // eslint-disable-line class-methods-use-this
+	setAreaScrollTop(id: ViewID, scrollTop?: number): this { // eslint-disable-line class-methods-use-this
 		const element = View.getElementByIdAs<HTMLTextAreaElement>(id);
 
 		if (scrollTop === undefined) {
@@ -360,7 +289,7 @@ export class View {
 		return this;
 	}
 
-	setAreaSelection(id: string, pos: number, endPos: number): this {
+	setAreaSelection(id: ViewID, pos: number, endPos: number): this {
 		const element = View.getElementByIdAs<HTMLTextAreaElement>(id);
 
 		if (element.selectionStart !== undefined) {
@@ -376,11 +305,31 @@ export class View {
 		return this;
 	}
 
-	attachEventHandler(type: string, eventHandler: EventListenerOrEventListenerObject): this {
+	addEventListener(type: string, eventListener: EventListenerOrEventListenerObject, id?: ViewID): this {
 		if (Utils.debug) {
-			Utils.console.debug("attachEventHandler: type=" + type + ", eventHandler=" + ((eventHandler !== undefined) ? "[?]" : null));
+			Utils.console.debug("addEventListener: type=" + type + ", eventHandler=" + eventListener + ", id=" + id);
 		}
-		window.document.addEventListener(type, eventHandler, false);
+		if (id) {
+			const element = View.getElementById1(id);
+
+			element.addEventListener(type, eventListener, false);
+		} else {
+			window.document.addEventListener(type, eventListener, false);
+		}
+		return this;
+	}
+
+	removeEventListener(type: string, eventListener: EventListenerOrEventListenerObject, id?: ViewID): this {
+		if (Utils.debug) {
+			Utils.console.debug("removeEventListener: type=" + type + ", eventHandler=" + eventListener + ", id=" + id);
+		}
+		if (id) {
+			const element = View.getElementById1(id);
+
+			element.removeEventListener(type, eventListener, false);
+		} else {
+			window.document.removeEventListener(type, eventListener, false);
+		}
 		return this;
 	}
 
@@ -393,7 +342,7 @@ export class View {
 		return target as T;
 	}
 
-	static requestFullscreenForId(id: string): boolean {
+	static requestFullscreenForId(id: ViewID): boolean {
 		const element = View.getElementById1(id),
 			anyEl = element as any,
 			requestMethod = element.requestFullscreen || anyEl.webkitRequestFullscreen || anyEl.mozRequestFullscreen || anyEl.msRequestFullscreen;
@@ -410,5 +359,185 @@ export class View {
 			return false;
 		}
 		return true;
+	}
+
+	// https://blog.logrocket.com/programmatic-file-downloads-in-the-browser-9a5186298d5c/
+	static fnDownloadBlob(data: string, filename: string): void {
+		if (typeof Blob === "undefined") {
+			Utils.console.warn("fnDownloadBlob: Blob undefined");
+			return;
+		}
+
+		const data8 = Utils.string2Uint8Array(data),
+			type = "octet/stream",
+			blob = new Blob([data8.buffer], {
+				type: type
+			});
+
+		if (window.navigator && (window.navigator as any).msSaveOrOpenBlob) { // IE11 support
+			(window.navigator as any).msSaveOrOpenBlob(blob, filename);
+			return;
+		}
+
+		const url = URL.createObjectURL(blob),
+			a = document.createElement("a"),
+			clickHandler = function () {
+				setTimeout(function () {
+					URL.revokeObjectURL(url);
+					a.removeEventListener("click", clickHandler);
+				}, 150);
+			};
+
+		a.href = url;
+		a.download = filename || "download";
+
+		a.addEventListener("click", clickHandler, false);
+
+		a.click();
+	}
+
+	private static readonly pointerEventNames: PointerEventNamesType = {
+		down: "pointerdown",
+		move: "pointermove",
+		up: "pointerup",
+		cancel: "pointercancel",
+		out: "pointerout",
+		type: "pointer"
+	};
+
+	private static readonly touchEventNames: PointerEventNamesType = {
+		down: "touchstart",
+		move: "touchmove",
+		up: "touchend",
+		cancel: "touchcancel",
+		out: "", // n.a.
+		type: "touch"
+	};
+
+	private static readonly mouseEventNames: PointerEventNamesType = {
+		down: "mousedown",
+		move: "mousemove",
+		up: "mouseup",
+		cancel: "", // n.a.
+		out: "mouseout",
+		type: "mouse"
+	};
+
+	fnAttachPointerEvents(id: ViewID, fnDown?: EventListener, fnMove?: EventListener, fnUp?: EventListener): PointerEventNamesType { // eslint-disable-line class-methods-use-this
+		const area = View.getElementById1(id);
+		let eventNames: typeof View.pointerEventNames;
+
+		if (window.PointerEvent) {
+			eventNames = View.pointerEventNames;
+		} else if ("ontouchstart" in window || navigator.maxTouchPoints) {
+			eventNames = View.touchEventNames;
+		} else {
+			eventNames = View.mouseEventNames;
+		}
+
+		if (Utils.debug > 0) {
+			Utils.console.log("fnAttachPointerEvents: Using", eventNames.type, "events");
+		}
+
+		if (fnDown) {
+			area.addEventListener(eventNames.down, fnDown, false); // +clicked for pointer, touch?
+		}
+		if (fnMove) {
+			area.addEventListener(eventNames.move, fnMove, false);
+		}
+		if (fnUp) {
+			area.addEventListener(eventNames.up, fnUp, false);
+			if (eventNames.cancel) {
+				area.addEventListener(eventNames.cancel, fnUp, false);
+			}
+		}
+		return eventNames;
+	}
+
+
+	// drag...
+
+	private readonly dragInfo = {
+		dragItem: undefined as (HTMLElement | undefined),
+		active: false,
+		xOffset: 0,
+		yOffset: 0,
+		initialX: 0,
+		initialY: 0,
+		currentX: 0,
+		currentY: 0
+	};
+
+	// based on https://www.kirupa.com/html5/drag.htm
+	dragInit(containerId: ViewID, itemId: ViewID): void {
+		const drag = this.dragInfo;
+
+		drag.dragItem = View.getElementById1(itemId);
+		drag.active = false;
+		drag.xOffset = 0;
+		drag.yOffset = 0;
+
+		this.fnAttachPointerEvents(containerId, this.dragStart.bind(this), this.drag.bind(this), this.dragEnd.bind(this));
+	}
+
+	private dragStart(event: DragEvent | TouchEvent) {
+		const node = View.getEventTarget<HTMLElement>(event),
+			parent = node.parentElement ? node.parentElement.parentElement : null,
+			drag = this.dragInfo;
+
+		if (node === drag.dragItem || parent === drag.dragItem) {
+			if (event.type === "touchstart") {
+				const touchEvent = event as TouchEvent;
+
+				drag.initialX = touchEvent.touches[0].clientX - drag.xOffset;
+				drag.initialY = touchEvent.touches[0].clientY - drag.yOffset;
+			} else {
+				const dragEvent = event as DragEvent;
+
+				drag.initialX = dragEvent.clientX - drag.xOffset;
+				drag.initialY = dragEvent.clientY - drag.yOffset;
+			}
+			drag.active = true;
+		}
+	}
+
+	private dragEnd(/* event */) {
+		const drag = this.dragInfo;
+
+		drag.initialX = drag.currentX;
+		drag.initialY = drag.currentY;
+
+		drag.active = false;
+	}
+
+	private setDragTranslate(xPos: number, yPos: number, el: HTMLElement) { // eslint-disable-line class-methods-use-this
+		el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)";
+	}
+
+	private drag(event: DragEvent | TouchEvent) {
+		const drag = this.dragInfo;
+
+		if (drag.active) {
+			event.preventDefault();
+
+			if (event.type === "touchmove") {
+				const touchEvent = event as TouchEvent;
+
+				drag.currentX = touchEvent.touches[0].clientX - drag.initialX;
+				drag.currentY = touchEvent.touches[0].clientY - drag.initialY;
+			} else {
+				const dragEvent = event as DragEvent;
+
+				drag.currentX = dragEvent.clientX - drag.initialX;
+				drag.currentY = dragEvent.clientY - drag.initialY;
+			}
+
+			drag.xOffset = drag.currentX;
+			drag.yOffset = drag.currentY;
+
+			if (drag.dragItem) {
+				this.setDragTranslate(drag.currentX, drag.currentY, drag.dragItem);
+			}
+		}
 	}
 }

@@ -1,10 +1,11 @@
-import { CanvasOptions, ICanvas, CanvasClickType, CanvasCharType } from "./Interfaces";
+import { CanvasOptions, ICanvas, CanvasCharType } from "./Interfaces";
 export declare class NoCanvas implements ICanvas {
-    constructor(_options: CanvasOptions);
-    setOnCanvasClick(_onCanvasClickHandler: CanvasClickType): void;
+    private readonly options;
+    constructor(options: CanvasOptions);
+    getOptions(): CanvasOptions;
+    setOptions(options: Partial<CanvasOptions>): void;
     reset(): void;
     resetCustomChars(): void;
-    setPalette(_palette: "color" | "green" | "grey"): void;
     setScreenOffset(_offset: number): void;
     updateColorsAndCanvasImmediately(_inkList: number[]): void;
     updateSpeedInk(): void;
@@ -39,7 +40,6 @@ export declare class NoCanvas implements ICanvas {
     setMaskFirst(_maskFirst: number): void;
     getMode(): number;
     changeMode(_mode: number): void;
-    getCanvasElement(): HTMLElement | undefined;
     takeScreenShot(): string;
     startUpdateCanvas(): void;
     stopUpdateCanvas(): void;

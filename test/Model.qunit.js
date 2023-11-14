@@ -5,32 +5,35 @@ define(["require", "exports", "../Model"], function (require, exports, Model_1) 
     Object.defineProperty(exports, "__esModule", { value: true });
     QUnit.module("Model: Properties", function (hooks) {
         var that = {}; // eslint-disable-line consistent-this
+        function convId(id) {
+            return id;
+        }
         hooks.beforeEach(function () {
             var config = {
                 p1: "v1"
             };
             that.model = new Model_1.Model(config);
-            that.model.setProperty("p2", "v2");
         });
         QUnit.test("init without options", function (assert) {
             var model = new Model_1.Model({});
             assert.ok(model, "defined");
         });
         QUnit.test("properties", function (assert) {
-            var model = that.model;
+            var model = that.model, prop1 = convId("p1"), prop2 = convId("p2"), prop3 = convId("p3");
+            that.model.setProperty(prop2, "v2");
             var allProperties = model.getAllInitialProperties();
             assert.strictEqual(Object.keys(allProperties).join(" "), "p1", "all initial properties: p1");
-            assert.strictEqual(model.getProperty("p1"), "v1", "p1=v1");
-            assert.strictEqual(model.getProperty("p2"), "v2", "p2=v2");
-            assert.strictEqual(model.getProperty(""), undefined, "<empty>=undefiend");
+            assert.strictEqual(model.getProperty(prop1), "v1", "p1=v1");
+            assert.strictEqual(model.getProperty(prop2), "v2", "p2=v2");
+            assert.strictEqual(model.getProperty(convId("")), undefined, "<empty>=undefiend");
             allProperties = model.getAllProperties();
             assert.strictEqual(Object.keys(allProperties).join(" "), "p1 p2", "all properties: p1 p2");
             assert.strictEqual(allProperties.p1, "v1", "p1=v1");
             assert.strictEqual(allProperties.p2, "v2", "p2=v2");
-            model.setProperty("p1", "v1.2");
-            assert.strictEqual(model.getProperty("p1"), "v1.2", "p1=v1.2");
-            model.setProperty("p3", "v3");
-            assert.strictEqual(model.getProperty("p3"), "v3", "p3=v3");
+            model.setProperty(prop1, "v1.2");
+            assert.strictEqual(model.getProperty(prop1), "v1.2", "p1=v1.2");
+            model.setProperty(prop3, "v3");
+            assert.strictEqual(model.getProperty(prop3), "v3", "p3=v3");
             allProperties = model.getAllProperties();
             assert.strictEqual(Object.keys(allProperties).join(" "), "p1 p2 p3", "all properties: p1 p2 p3");
             allProperties = model.getAllInitialProperties();
@@ -57,11 +60,11 @@ define(["require", "exports", "../Model"], function (require, exports, Model_1) 
             assert.strictEqual(Object.keys(databases).length, 0, "no databases");
             model.addDatabases(exampleDatabases);
             assert.strictEqual(Object.keys(databases).join(" "), "db1 db2", "two databases: db1, db2");
-            model.setProperty(Model_1.Model.props.database, "db1");
+            model.setProperty("database" /* ModelPropID.database */, "db1");
             assert.strictEqual(model.getDatabase(), exampleDatabases.db1, "databases db1");
-            model.setProperty(Model_1.Model.props.database, "db2");
+            model.setProperty("database" /* ModelPropID.database */, "db2");
             assert.strictEqual(model.getDatabase(), exampleDatabases.db2, "databases db2");
-            model.setProperty(Model_1.Model.props.database, "");
+            model.setProperty("database" /* ModelPropID.database */, "");
             assert.strictEqual(model.getDatabase(), undefined, "databases undefined");
         });
     });
@@ -92,7 +95,7 @@ define(["require", "exports", "../Model"], function (require, exports, Model_1) 
                 meta: ""
             };
             that.model.addDatabases(exampleDatabases);
-            that.model.setProperty(Model_1.Model.props.database, "db1");
+            that.model.setProperty("database" /* ModelPropID.database */, "db1");
             that.model.setExample(example1);
             that.model.setExample(example2);
         });

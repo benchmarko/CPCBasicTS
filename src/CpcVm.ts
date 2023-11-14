@@ -676,7 +676,9 @@ export class CpcVm implements ICpcVm {
 	setCanvas(canvas: ICanvas): ICanvas {
 		this.canvas = canvas;
 		if (this.canvas) {
-			this.canvas.setOnCanvasClick(this.fnOnCanvasClickHandler);
+			this.canvas.setOptions({
+				onCanvasClick: this.fnOnCanvasClickHandler
+			});
 		}
 		return canvas;
 	}
@@ -1328,15 +1330,18 @@ export class CpcVm implements ICpcVm {
 		this.paper(stream, tmpPen);
 	}
 
+	/*
 	private vmPutKeyInBuffer(key: string) {
-		this.keyboard.putKeyInBuffer(key);
-
+		this.keyboard.putKeyInBuffer(key, true); // with trigger onkeydown
+		/ *
 		const keyDownHandler = this.keyboard.getKeyDownHandler();
 
 		if (keyDownHandler) {
 			keyDownHandler();
 		}
+		* /
 	}
+	*/
 
 	// special function to set all inks temporarily; experimental and expensive
 	private updateColorsImmediately(addr: number) {
@@ -1376,7 +1381,8 @@ export class CpcVm implements ICpcVm {
 			// TODO: reset also speed key
 			break;
 		case 0xbb0c: // KM Char Return (ROM &1A77), depending on number of args
-			this.vmPutKeyInBuffer(String.fromCharCode(args.length));
+			//this.vmPutKeyInBuffer(String.fromCharCode(args.length));
+			this.keyboard.putKeyInBuffer(String.fromCharCode(args.length), true); // with trigger onkeydown
 			break;
 		case 0xbb06: // KM Wait Char (ROM &1A3C); since we do not return a character, we do the same as call &bb18
 		case 0xbb18: // KM Wait Key (ROM &1B56)

@@ -8,6 +8,17 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     exports.View = void 0;
     var View = /** @class */ (function () {
         function View() {
+            // drag...
+            this.dragInfo = {
+                dragItem: undefined,
+                active: false,
+                xOffset: 0,
+                yOffset: 0,
+                initialX: 0,
+                initialY: 0,
+                currentX: 0,
+                currentY: 0
+            };
         }
         View.getElementById1 = function (id) {
             var element = window.document.getElementById(id);
@@ -239,11 +250,30 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             return this;
         };
-        View.prototype.attachEventHandler = function (type, eventHandler) {
+        View.prototype.addEventListener = function (type, eventListener, id) {
             if (Utils_1.Utils.debug) {
-                Utils_1.Utils.console.debug("attachEventHandler: type=" + type + ", eventHandler=" + ((eventHandler !== undefined) ? "[?]" : null));
+                Utils_1.Utils.console.debug("addEventListener: type=" + type + ", eventHandler=" + eventListener + ", id=" + id);
             }
-            window.document.addEventListener(type, eventHandler, false);
+            if (id) {
+                var element = View.getElementById1(id);
+                element.addEventListener(type, eventListener, false);
+            }
+            else {
+                window.document.addEventListener(type, eventListener, false);
+            }
+            return this;
+        };
+        View.prototype.removeEventListener = function (type, eventListener, id) {
+            if (Utils_1.Utils.debug) {
+                Utils_1.Utils.console.debug("removeEventListener: type=" + type + ", eventHandler=" + eventListener + ", id=" + id);
+            }
+            if (id) {
+                var element = View.getElementById1(id);
+                element.removeEventListener(type, eventListener, false);
+            }
+            else {
+                window.document.removeEventListener(type, eventListener, false);
+            }
             return this;
         };
         View.getEventTarget = function (event) {
@@ -269,78 +299,137 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             return true;
         };
-        View.ids = {
-            arrayBoundsInput: "arrayBoundsInput",
-            autorunInput: "autorunInput",
-            basicVersionSelect: "basicVersionSelect",
-            canvasTypeSelect: "canvasTypeSelect",
-            consoleLogArea: "consoleLogArea",
-            consoleLogText: "consoleLogText",
-            continueButton: "continueButton",
-            convertArea: "convertArea",
-            cpcArea: "cpcArea",
-            cpcCanvas: "cpcCanvas",
-            databaseSelect: "databaseSelect",
-            debugInput: "debugInput",
-            directorySelect: "directorySelect",
-            disassArea: "disassArea",
-            disassInput: "disassInput",
-            disassText: "disassText",
-            dropZone: "dropZone",
-            exampleSelect: "exampleSelect",
-            exportArea: "exportArea",
-            exportBase64Input: "exportBase64Input",
-            exportDSKInput: "exportDSKInput",
-            exportTokenizedInput: "exportTokenizedInput",
-            fileInput: "fileInput",
-            galleryArea: "galleryArea",
-            galleryAreaItems: "galleryAreaItems",
-            implicitLinesInput: "implicitLinesInput",
-            inp2Area: "inp2Area",
-            inp2Text: "inp2Text",
-            inputArea: "inputArea",
-            inputText: "inputText",
-            kbdAlpha: "kbdAlpha",
-            kbdArea: "kbdArea",
-            kbdAreaInner: "kbdAreaInner",
-            kbdLayoutSelect: "kbdLayoutSelect",
-            kbdNum: "kbdNum",
-            moreArea: "moreArea",
-            outputArea: "outputArea",
-            outputText: "outputText",
-            paletteSelect: "paletteSelect",
-            prettyBracketsInput: "prettyBracketsInput",
-            prettyColonsInput: "prettyColonsInput",
-            prettySpaceInput: "prettySpaceInput",
-            redoButton: "redoButton",
-            renumKeepInput: "renumKeepInput",
-            renumNewInput: "renumNewInput",
-            renumStartInput: "renumStartInput",
-            renumStepInput: "renumStepInput",
-            resultArea: "resultArea",
-            resultText: "resultText",
-            runButton: "runButton",
-            screenshotLink: "screenshotLink",
-            settingsArea: "settingsArea",
-            showConsoleLogInput: "showConsoleLogInput",
-            showCpcInput: "showCpcInput",
-            showDisassInput: "showDisassInput",
-            showInp2Input: "showInp2Input",
-            showInputInput: "showInputInput",
-            showKbdInput: "showKbdInput",
-            showOutputInput: "showOutputInput",
-            showResultInput: "showResultInput",
-            showVariableInput: "showVariableInput",
-            soundInput: "soundInput",
-            speedInput: "speedInput",
-            stopButton: "stopButton",
-            traceInput: "traceInput",
-            textText: "textText",
-            undoButton: "undoButton",
-            variableArea: "variableArea",
-            varSelect: "varSelect",
-            varText: "varText",
-            viewArea: "viewArea"
+        // https://blog.logrocket.com/programmatic-file-downloads-in-the-browser-9a5186298d5c/
+        View.fnDownloadBlob = function (data, filename) {
+            if (typeof Blob === "undefined") {
+                Utils_1.Utils.console.warn("fnDownloadBlob: Blob undefined");
+                return;
+            }
+            var data8 = Utils_1.Utils.string2Uint8Array(data), type = "octet/stream", blob = new Blob([data8.buffer], {
+                type: type
+            });
+            if (window.navigator && window.navigator.msSaveOrOpenBlob) { // IE11 support
+                window.navigator.msSaveOrOpenBlob(blob, filename);
+                return;
+            }
+            var url = URL.createObjectURL(blob), a = document.createElement("a"), clickHandler = function () {
+                setTimeout(function () {
+                    URL.revokeObjectURL(url);
+                    a.removeEventListener("click", clickHandler);
+                }, 150);
+            };
+            a.href = url;
+            a.download = filename || "download";
+            a.addEventListener("click", clickHandler, false);
+            a.click();
+        };
+        View.prototype.fnAttachPointerEvents = function (id, fnDown, fnMove, fnUp) {
+            var area = View.getElementById1(id);
+            var eventNames;
+            if (window.PointerEvent) {
+                eventNames = View.pointerEventNames;
+            }
+            else if ("ontouchstart" in window || navigator.maxTouchPoints) {
+                eventNames = View.touchEventNames;
+            }
+            else {
+                eventNames = View.mouseEventNames;
+            }
+            if (Utils_1.Utils.debug > 0) {
+                Utils_1.Utils.console.log("fnAttachPointerEvents: Using", eventNames.type, "events");
+            }
+            if (fnDown) {
+                area.addEventListener(eventNames.down, fnDown, false); // +clicked for pointer, touch?
+            }
+            if (fnMove) {
+                area.addEventListener(eventNames.move, fnMove, false);
+            }
+            if (fnUp) {
+                area.addEventListener(eventNames.up, fnUp, false);
+                if (eventNames.cancel) {
+                    area.addEventListener(eventNames.cancel, fnUp, false);
+                }
+            }
+            return eventNames;
+        };
+        // based on https://www.kirupa.com/html5/drag.htm
+        View.prototype.dragInit = function (containerId, itemId) {
+            var drag = this.dragInfo;
+            drag.dragItem = View.getElementById1(itemId);
+            drag.active = false;
+            drag.xOffset = 0;
+            drag.yOffset = 0;
+            this.fnAttachPointerEvents(containerId, this.dragStart.bind(this), this.drag.bind(this), this.dragEnd.bind(this));
+        };
+        View.prototype.dragStart = function (event) {
+            var node = View.getEventTarget(event), parent = node.parentElement ? node.parentElement.parentElement : null, drag = this.dragInfo;
+            if (node === drag.dragItem || parent === drag.dragItem) {
+                if (event.type === "touchstart") {
+                    var touchEvent = event;
+                    drag.initialX = touchEvent.touches[0].clientX - drag.xOffset;
+                    drag.initialY = touchEvent.touches[0].clientY - drag.yOffset;
+                }
+                else {
+                    var dragEvent = event;
+                    drag.initialX = dragEvent.clientX - drag.xOffset;
+                    drag.initialY = dragEvent.clientY - drag.yOffset;
+                }
+                drag.active = true;
+            }
+        };
+        View.prototype.dragEnd = function ( /* event */) {
+            var drag = this.dragInfo;
+            drag.initialX = drag.currentX;
+            drag.initialY = drag.currentY;
+            drag.active = false;
+        };
+        View.prototype.setDragTranslate = function (xPos, yPos, el) {
+            el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)";
+        };
+        View.prototype.drag = function (event) {
+            var drag = this.dragInfo;
+            if (drag.active) {
+                event.preventDefault();
+                if (event.type === "touchmove") {
+                    var touchEvent = event;
+                    drag.currentX = touchEvent.touches[0].clientX - drag.initialX;
+                    drag.currentY = touchEvent.touches[0].clientY - drag.initialY;
+                }
+                else {
+                    var dragEvent = event;
+                    drag.currentX = dragEvent.clientX - drag.initialX;
+                    drag.currentY = dragEvent.clientY - drag.initialY;
+                }
+                drag.xOffset = drag.currentX;
+                drag.yOffset = drag.currentY;
+                if (drag.dragItem) {
+                    this.setDragTranslate(drag.currentX, drag.currentY, drag.dragItem);
+                }
+            }
+        };
+        View.pointerEventNames = {
+            down: "pointerdown",
+            move: "pointermove",
+            up: "pointerup",
+            cancel: "pointercancel",
+            out: "pointerout",
+            type: "pointer"
+        };
+        View.touchEventNames = {
+            down: "touchstart",
+            move: "touchmove",
+            up: "touchend",
+            cancel: "touchcancel",
+            out: "",
+            type: "touch"
+        };
+        View.mouseEventNames = {
+            down: "mousedown",
+            move: "mousemove",
+            up: "mouseup",
+            cancel: "",
+            out: "mouseout",
+            type: "mouse"
         };
         return View;
     }());

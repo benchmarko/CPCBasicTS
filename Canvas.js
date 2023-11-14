@@ -44,9 +44,9 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.options = options;
             this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
             this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
-            this.cpcAreaBox = View_1.View.getElementById1(View_1.View.ids.cpcArea);
-            var canvas = View_1.View.getElementById1(View_1.View.ids.cpcCanvas);
+            var canvas = View_1.View.getElementByIdAs(this.options.canvasID);
             this.canvas = canvas;
+            this.cpcAreaBox = View_1.View.getElementById1("cpcArea" /* ViewID.cpcArea */);
             // make sure canvas is not hidden (allows to get width, height, set style)
             if (canvas.offsetParent === null) {
                 Utils_1.Utils.console.error("Error: canvas is not visible!");
@@ -89,11 +89,18 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             }
             this.reset();
         }
+        Canvas.prototype.getOptions = function () {
+            return this.options;
+        };
+        Canvas.prototype.setOptions = function (options) {
+            var currentPalette = this.options.palette;
+            Object.assign(this.options, options);
+            if (this.options.palette !== currentPalette) { // changed?
+                this.applyPalette();
+            }
+        };
         Canvas.prototype.applyBorderColor = function () {
             this.canvas.style.borderColor = Canvas.palettes[this.options.palette][this.currentInks[this.inkSet][16]];
-        };
-        Canvas.prototype.setOnCanvasClick = function (onCanvasClickHandler) {
-            this.options.onCanvasClick = onCanvasClickHandler;
         };
         Canvas.prototype.reset = function () {
             this.changeMode(1);
@@ -126,17 +133,15 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 Canvas.palettes[palette] = monoPalette;
             }
         };
-        Canvas.prototype.setPalette = function (palette) {
-            if (palette !== this.options.palette) {
-                this.options.palette = palette;
-                if (!Canvas.palettes[this.options.palette]) {
-                    Canvas.computePalette(this.options.palette);
-                }
-                this.setColorValues(Canvas.palettes[this.options.palette]);
-                this.updateColorMap();
-                this.setNeedUpdate();
-                this.applyBorderColor();
+        Canvas.prototype.applyPalette = function () {
+            var palette = this.options.palette;
+            if (!Canvas.palettes[palette]) {
+                Canvas.computePalette(palette);
             }
+            this.setColorValues(Canvas.palettes[palette]);
+            this.updateColorMap();
+            this.setNeedUpdate();
+            this.applyBorderColor();
         };
         Canvas.isLittleEndian = function () {
             // https://gist.github.com/TooTallNate/4750953
@@ -965,9 +970,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             }
             Utils_1.Utils.console.warn("Screenshot not available");
             return "";
-        };
-        Canvas.prototype.getCanvasElement = function () {
-            return this.canvas;
         };
         // http://www.cpcwiki.eu/index.php/CPC_Palette
         // (green and gray palette will be computed if needed)

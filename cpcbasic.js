@@ -136,10 +136,10 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
             };
         };
         cpcBasic.fnRedirectExamples = function (redirectExamples) {
-            var name = this.model.getProperty(Model_1.Model.props.database) + "/" + this.model.getProperty(Model_1.Model.props.example);
+            var name = this.model.getProperty("database" /* ModelPropID.database */) + "/" + this.model.getProperty("example" /* ModelPropID.example */);
             if (redirectExamples[name]) {
-                this.model.setProperty(Model_1.Model.props.database, redirectExamples[name].database);
-                this.model.setProperty(Model_1.Model.props.example, redirectExamples[name].example);
+                this.model.setProperty("database" /* ModelPropID.database */, redirectExamples[name].database);
+                this.model.setProperty("example" /* ModelPropID.example */, redirectExamples[name].example);
             }
         };
         cpcBasic.fnDoStart = function () {
@@ -157,18 +157,18 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
                 cpcBasic.fnParseArgs(myGlobalThis.process.argv.slice(2), startConfig);
             }
             cpcBasic.view = new View_1.View();
-            var debug = Number(cpcBasic.model.getProperty(Model_1.Model.props.debug));
+            var debug = Number(cpcBasic.model.getProperty("debug" /* ModelPropID.debug */));
             Utils_1.Utils.debug = debug;
             var UtilsConsole = Utils_1.Utils.console, cpcBasicLog = "";
             if (UtilsConsole.cpcBasicLog) {
                 cpcBasicLog = UtilsConsole.cpcBasicLog;
                 UtilsConsole.cpcBasicLog = undefined; // do not log any more to dummy console
             }
-            if (Utils_1.Utils.debug > 0 && cpcBasic.model.getProperty(Model_1.Model.props.showConsoleLog)) { // console log window?
+            if (Utils_1.Utils.debug > 0 && cpcBasic.model.getProperty("showConsoleLog" /* ModelPropID.showConsoleLog */)) { // console log window?
                 UtilsConsole = cpcBasic.createDebugUtilsConsole(cpcBasicLog);
                 Utils_1.Utils.console = UtilsConsole;
                 Utils_1.Utils.console.log("CPCBasic log started at", Utils_1.Utils.dateFormat(new Date()));
-                UtilsConsole.changeLog(View_1.View.getElementById1(View_1.View.ids.consoleLogText));
+                UtilsConsole.changeLog(View_1.View.getElementById1("consoleLogText" /* ViewID.consoleLogText */));
             }
             if (redirectExamples) {
                 this.fnRedirectExamples(redirectExamples);

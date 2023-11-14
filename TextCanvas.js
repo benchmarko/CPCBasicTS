@@ -16,26 +16,27 @@ define(["require", "exports", "./View"], function (require, exports, View_1) {
             this.hasFocus = false; // canvas has focus
             this.customCharset = {};
             this.options = options;
-            this.cpcAreaBox = View_1.View.getElementById1(View_1.View.ids.cpcArea);
+            this.textText = View_1.View.getElementByIdAs(this.options.canvasID);
+            this.cpcAreaBox = View_1.View.getElementById1("cpcArea" /* ViewID.cpcArea */);
             this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
             this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
-            this.textText = View_1.View.getElementById1(View_1.View.ids.textText); // View.setAreaValue()
             this.cols = parseFloat(this.textText.getAttribute("cols") || "0");
             this.rows = parseFloat(this.textText.getAttribute("rows") || "0");
             this.animationTimeoutId = undefined;
             this.animationFrame = undefined;
             this.reset();
         }
-        TextCanvas.prototype.setOnCanvasClick = function (onCanvasClickHandler) {
-            this.options.onCanvasClick = onCanvasClickHandler;
+        TextCanvas.prototype.getOptions = function () {
+            return this.options;
+        };
+        TextCanvas.prototype.setOptions = function (options) {
+            Object.assign(this.options, options);
         };
         TextCanvas.prototype.reset = function () {
             this.resetTextBuffer();
             this.setNeedUpdate();
         };
         TextCanvas.prototype.resetCustomChars = function () {
-        };
-        TextCanvas.prototype.setPalette = function (_palette) {
         };
         TextCanvas.prototype.setScreenOffset = function (_offset) {
         };
@@ -113,9 +114,11 @@ define(["require", "exports", "./View"], function (require, exports, View_1) {
         };
         TextCanvas.prototype.changeMode = function (_mode) {
         };
-        TextCanvas.prototype.getCanvasElement = function () {
-            return this.textText; // as HTML;
-        };
+        /*
+        getCanvasID(): ViewID { // eslint-disable-line class-methods-use-this
+            return ViewID.textText;
+        }
+        */
         TextCanvas.prototype.takeScreenShot = function () {
             return "";
         };

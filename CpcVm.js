@@ -307,7 +307,9 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
         CpcVm.prototype.setCanvas = function (canvas) {
             this.canvas = canvas;
             if (this.canvas) {
-                this.canvas.setOnCanvasClick(this.fnOnCanvasClickHandler);
+                this.canvas.setOptions({
+                    onCanvasClick: this.fnOnCanvasClickHandler
+                });
             }
             return canvas;
         };
@@ -840,13 +842,18 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
             this.pen(stream, win.paper);
             this.paper(stream, tmpPen);
         };
-        CpcVm.prototype.vmPutKeyInBuffer = function (key) {
-            this.keyboard.putKeyInBuffer(key);
-            var keyDownHandler = this.keyboard.getKeyDownHandler();
+        /*
+        private vmPutKeyInBuffer(key: string) {
+            this.keyboard.putKeyInBuffer(key, true); // with trigger onkeydown
+            / *
+            const keyDownHandler = this.keyboard.getKeyDownHandler();
+    
             if (keyDownHandler) {
                 keyDownHandler();
             }
-        };
+            * /
+        }
+        */
         // special function to set all inks temporarily; experimental and expensive
         CpcVm.prototype.updateColorsImmediately = function (addr) {
             var inkList = [];
@@ -885,7 +892,8 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
                     // TODO: reset also speed key
                     break;
                 case 0xbb0c: // KM Char Return (ROM &1A77), depending on number of args
-                    this.vmPutKeyInBuffer(String.fromCharCode(args.length));
+                    //this.vmPutKeyInBuffer(String.fromCharCode(args.length));
+                    this.keyboard.putKeyInBuffer(String.fromCharCode(args.length), true); // with trigger onkeydown
                     break;
                 case 0xbb06: // KM Wait Char (ROM &1A3C); since we do not return a character, we do the same as call &bb18
                 case 0xbb18: // KM Wait Key (ROM &1B56)

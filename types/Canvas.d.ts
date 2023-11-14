@@ -1,4 +1,4 @@
-import { CanvasOptions, ICanvas, CanvasClickType, CanvasCharType } from "./Interfaces";
+import { CanvasOptions, ICanvas, CanvasCharType } from "./Interfaces";
 export declare class Canvas implements ICanvas {
     private readonly options;
     private readonly fnUpdateCanvasHandler;
@@ -48,15 +48,16 @@ export declare class Canvas implements ICanvas {
     private yBottom;
     private gTransparent;
     constructor(options: CanvasOptions);
+    getOptions(): CanvasOptions;
+    setOptions(options: Partial<CanvasOptions>): void;
     private static readonly palettes;
     private static readonly defaultInks;
     private static readonly modeData;
     private applyBorderColor;
-    setOnCanvasClick(onCanvasClickHandler: CanvasClickType): void;
     reset(): void;
     resetCustomChars(): void;
     private static computePalette;
-    setPalette(palette: "color" | "green" | "grey"): void;
+    private applyPalette;
     private static isLittleEndian;
     private static extractColorValues;
     private static extractAllColorValues;
@@ -136,6 +137,5 @@ export declare class Canvas implements ICanvas {
     changeMode(mode: number): void;
     setMode(mode: number): void;
     takeScreenShot(): string;
-    getCanvasElement(): HTMLElement | undefined;
 }
 //# sourceMappingURL=Canvas.d.ts.map

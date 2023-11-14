@@ -99,9 +99,9 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             "0xbb00": "resetCpcKeysExpansions: , clearInput: , resetExpansionTokens:",
             "0xbb03": "clearInput: , resetExpansionTokens:",
             "0xbb06": "getKeyFromBuffer:",
-            "0xbb0c": "putKeyInBuffer:\x00 , getKeyDownHandler:",
-            "0xbb0c,1,1,1,1,1,1,1,1,1": "putKeyInBuffer:\x09 , getKeyDownHandler:",
-            "0xbb0c,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32": "putKeyInBuffer:  , getKeyDownHandler:",
+            "0xbb0c": 'putKeyInBuffer:"\\u0000",true',
+            "0xbb0c,1,1,1,1,1,1,1,1,1": 'putKeyInBuffer:"\\t",true',
+            "0xbb0c,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32": 'putKeyInBuffer:" ",true',
             "0xbb0c,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33": 'CpcVm: Syntax Error in 0: CALL  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
             "0xbb18": "getKeyFromBuffer:",
             "0xbb4e": "resetCustomChars:",
@@ -1945,13 +1945,22 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
     // tests added: USING with escape character "_"; VAl...
     var lastTestFunctions = [], // eslint-disable-line one-var
     varTypesMap = {}, variablesMap = {}, mockCanvas = {
-        setOnCanvasClick: function () {
+        setOptions: function () {
             var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
                 args[_i] = arguments[_i];
             }
             lastTestFunctions.push({
-                setOnCanvasClick: [String(args)]
+                setOptions: args.map(function (arg) { return String(arg); })
+            });
+        },
+        getOptions: function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
+            }
+            lastTestFunctions.push({
+                getOptions: args
             });
         },
         changeMode: function () {
@@ -2299,71 +2308,117 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             lastTestFunctions.push({
                 updateSpeedInk: args
             });
-        }
-        /*
-        windowScrollDown: function (...args) {
+        },
+        windowScrollDown: function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
+            }
             lastTestFunctions.push({
                 windowScrollDown: args
             });
         },
+        /*
         setPalette: function (...args) {
             lastTestFunctions.push({
                 setPalette: args
             });
         },
-        startUpdateCanvas: function (...args) {
+        */
+        startUpdateCanvas: function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
+            }
             lastTestFunctions.push({
                 startUpdateCanvas: args
             });
         },
-        stopUpdateCanvas: function (...args) {
+        stopUpdateCanvas: function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
+            }
             lastTestFunctions.push({
                 stopUpdateCanvas: args
             });
         },
-        setScreenOffset: function (...args) {
+        setScreenOffset: function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
+            }
             lastTestFunctions.push({
                 startUpdateCanvas: args
             });
         },
-        updateColorsAndCanvasImmediately: function (...args) {
+        updateColorsAndCanvasImmediately: function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
+            }
             lastTestFunctions.push({
                 updateColorsAndCanvasImmediately: [String(args)] //TTT
             });
         },
-        onCanvasClick: function (...args) {
+        onCanvasClick: function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
+            }
             lastTestFunctions.push({
                 onCanvasClick: [String(args)] //TTT
             });
         },
-        onWindowClick: function (...args) {
+        onWindowClick: function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
+            }
             lastTestFunctions.push({
                 onWindowClick: [String(args)] //TTT
             });
         },
-        getXOrigin: function (...args) {
+        getXOrigin: function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
+            }
             lastTestFunctions.push({
                 getXOrigin: args
             });
             return 0;
         },
-        getYOrigin: function (...args) {
+        getYOrigin: function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
+            }
             lastTestFunctions.push({
                 getYOrigin: args
             });
             return 0;
         },
-        windowScrollUp: function (...args) {
+        windowScrollUp: function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
+            }
             lastTestFunctions.push({
                 windowScrollUp: args
             });
         },
-        takeScreenShot: function (...args) {
+        takeScreenShot: function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
+            }
             lastTestFunctions.push({
                 takeScreenShot: args
             });
             return "scr";
-        },
+        }
+        /*
         getCanvasElement: function (...args) {
             lastTestFunctions.push({
                 getCanvasElement: args
@@ -2391,16 +2446,14 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             });
             return 4 + Number(args); // example
         },
-        getKeyDownHandler: function () {
-            var args = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                args[_i] = arguments[_i];
-            }
+        /*
+        getKeyDownHandler: function (...args) {
             lastTestFunctions.push({
                 getKeyDownHandler: args
             });
             return undefined;
         },
+        */
         getKeyFromBuffer: function () {
             var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
@@ -2426,8 +2479,9 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             for (var _i = 0; _i < arguments.length; _i++) {
                 args[_i] = arguments[_i];
             }
+            var stringArgs = args.map(function (arg) { return JSON.stringify(arg); });
             lastTestFunctions.push({
-                putKeyInBuffer: args
+                putKeyInBuffer: stringArgs
             });
         },
         reset: function () {
@@ -3497,7 +3551,13 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
         QUnit.test("init without options", function (assert) {
             var minimalCanvas = {
                 reset: function () { return undefined; },
-                setOnCanvasClick: function (_onCanvasClickHandler) { return undefined; }
+                setOptions: function () {
+                    var _args = [];
+                    for (var _i = 0; _i < arguments.length; _i++) {
+                        _args[_i] = arguments[_i];
+                    }
+                    return undefined;
+                }
             }, minimalKeyboard = {
                 reset: function () { return undefined; }
             }, minimalSound = {

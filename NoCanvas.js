@@ -7,16 +7,19 @@ define(["require", "exports"], function (require, exports) {
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.NoCanvas = void 0;
     var NoCanvas = /** @class */ (function () {
-        function NoCanvas(_options) {
+        function NoCanvas(options) {
+            this.options = options;
             this.reset();
         }
-        NoCanvas.prototype.setOnCanvasClick = function (_onCanvasClickHandler) {
+        NoCanvas.prototype.getOptions = function () {
+            return this.options;
+        };
+        NoCanvas.prototype.setOptions = function (options) {
+            Object.assign(this.options, options);
         };
         NoCanvas.prototype.reset = function () {
         };
         NoCanvas.prototype.resetCustomChars = function () {
-        };
-        NoCanvas.prototype.setPalette = function (_palette) {
         };
         NoCanvas.prototype.setScreenOffset = function (_offset) {
         };
@@ -95,9 +98,11 @@ define(["require", "exports"], function (require, exports) {
         };
         NoCanvas.prototype.changeMode = function (_mode) {
         };
-        NoCanvas.prototype.getCanvasElement = function () {
-            return undefined;
-        };
+        /*
+        getCanvasID(): ViewID { // eslint-disable-line class-methods-use-this
+            return ViewID.noCanvas;
+        }
+        */
         NoCanvas.prototype.takeScreenShot = function () {
             return "";
         };

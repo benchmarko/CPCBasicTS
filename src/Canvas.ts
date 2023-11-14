@@ -4,9 +4,10 @@
 //
 /* globals ArrayBuffer, Uint8Array, Uint32Array */
 
+import { ViewID } from "./Constants";
 import { Utils } from "./Utils";
 import { View } from "./View";
-import { CanvasOptions, ICanvas, CanvasClickType, CanvasCharType } from "./Interfaces";
+import { CanvasOptions, ICanvas, CanvasCharType } from "./Interfaces";
 
 interface ModeData {
 	pens: number // number of pens
@@ -92,11 +93,11 @@ export class Canvas implements ICanvas {
 		this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
 		this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
 
-		this.cpcAreaBox = View.getElementById1(View.ids.cpcArea);
-
-		const canvas = View.getElementById1(View.ids.cpcCanvas) as HTMLCanvasElement;
+		const canvas = View.getElementByIdAs<HTMLCanvasElement>(this.options.canvasID);
 
 		this.canvas = canvas;
+
+		this.cpcAreaBox = View.getElementById1(ViewID.cpcArea);
 
 		// make sure canvas is not hidden (allows to get width, height, set style)
 		if (canvas.offsetParent === null) {
@@ -147,6 +148,20 @@ export class Canvas implements ICanvas {
 			this.imageData = {} as ImageData; // not available
 		}
 		this.reset();
+	}
+
+	getOptions(): CanvasOptions {
+		return this.options;
+	}
+
+	setOptions(options: Partial<CanvasOptions>): void {
+		const currentPalette = this.options.palette;
+
+		Object.assign(this.options, options);
+
+		if (this.options.palette !== currentPalette) { // changed?
+			this.applyPalette();
+		}
 	}
 
 	// http://www.cpcwiki.eu/index.php/CPC_Palette
@@ -221,10 +236,6 @@ export class Canvas implements ICanvas {
 		this.canvas.style.borderColor = Canvas.palettes[this.options.palette][this.currentInks[this.inkSet][16]];
 	}
 
-	setOnCanvasClick(onCanvasClickHandler: CanvasClickType): void {
-		this.options.onCanvasClick = onCanvasClickHandler;
-	}
-
 	reset(): void {
 		this.changeMode(1);
 		this.inkSet = 0;
@@ -267,19 +278,17 @@ export class Canvas implements ICanvas {
 		}
 	}
 
-	setPalette(palette: "color" | "green" | "grey"): void {
-		if (palette !== this.options.palette) {
-			this.options.palette = palette;
+	private applyPalette(): void {
+		const palette = this.options.palette;
 
-			if (!Canvas.palettes[this.options.palette]) {
-				Canvas.computePalette(this.options.palette);
-			}
-
-			this.setColorValues(Canvas.palettes[this.options.palette]);
-			this.updateColorMap();
-			this.setNeedUpdate();
-			this.applyBorderColor();
+		if (!Canvas.palettes[palette]) {
+			Canvas.computePalette(palette);
 		}
+
+		this.setColorValues(Canvas.palettes[palette]);
+		this.updateColorMap();
+		this.setNeedUpdate();
+		this.applyBorderColor();
 	}
 
 	private static isLittleEndian() {
@@ -1382,7 +1391,9 @@ export class Canvas implements ICanvas {
 		return "";
 	}
 
-	getCanvasElement(): HTMLElement | undefined {
-		return this.canvas;
+	/*
+	getCanvasID(): ViewID { // eslint-disable-line class-methods-use-this
+		return ViewID.cpcCanvas;
 	}
+	*/
 }

@@ -10,6 +10,119 @@ declare var Polyfills: {
 declare type MyDefineFunctionType = (...args: any) => void;
 declare function amd4Node(): void;
 declare function amd4browser(): void;
+declare module "Constants" {
+    export const enum ModelPropID {
+        arrayBounds = "arrayBounds",
+        autorun = "autorun",
+        basicVersion = "basicVersion",
+        bench = "bench",
+        databaseDirs = "databaseDirs",
+        database = "database",
+        debug = "debug",
+        example = "example",
+        exampleIndex = "exampleIndex",
+        implicitLines = "implicitLines",
+        input = "input",
+        kbdLayout = "kbdLayout",
+        canvasType = "canvasType",
+        palette = "palette",
+        processFileImports = "processFileImports",
+        showConsoleLog = "showConsoleLog",
+        showConvert = "showConvert",
+        showCpc = "showCpc",
+        showDisass = "showDisass",
+        showExport = "showExport",
+        showGallery = "showGallery",
+        showInput = "showInput",
+        showInp2 = "showInp2",
+        showKbd = "showKbd",
+        showKbdSettings = "showKbdSettings",
+        showMore = "showMore",
+        showOutput = "showOutput",
+        showResult = "showResult",
+        showSettings = "showSettings",
+        showVariable = "showVariable",
+        showView = "showView",
+        sound = "sound",
+        speed = "speed",
+        trace = "trace"
+    }
+    export const enum ViewID {
+        arrayBoundsInput = "arrayBoundsInput",
+        autorunInput = "autorunInput",
+        basicVersionSelect = "basicVersionSelect",
+        canvasTypeSelect = "canvasTypeSelect",
+        consoleLogArea = "consoleLogArea",
+        consoleLogText = "consoleLogText",
+        continueButton = "continueButton",
+        convertArea = "convertArea",
+        cpcArea = "cpcArea",
+        cpcCanvas = "cpcCanvas",
+        databaseSelect = "databaseSelect",
+        debugInput = "debugInput",
+        directorySelect = "directorySelect",
+        disassArea = "disassArea",
+        disassInput = "disassInput",
+        disassText = "disassText",
+        dropZone = "dropZone",
+        exampleSelect = "exampleSelect",
+        exportArea = "exportArea",
+        exportBase64Input = "exportBase64Input",
+        exportDSKInput = "exportDSKInput",
+        exportTokenizedInput = "exportTokenizedInput",
+        fileInput = "fileInput",
+        galleryArea = "galleryArea",
+        galleryAreaItems = "galleryAreaItems",
+        implicitLinesInput = "implicitLinesInput",
+        inp2Area = "inp2Area",
+        inp2Text = "inp2Text",
+        inputArea = "inputArea",
+        inputText = "inputText",
+        kbdAlpha = "kbdAlpha",
+        kbdArea = "kbdArea",
+        kbdAreaInner = "kbdAreaInner",
+        kbdLayoutSelect = "kbdLayoutSelect",
+        kbdNum = "kbdNum",
+        moreArea = "moreArea",
+        noCanvas = "noCanvas",
+        outputArea = "outputArea",
+        outputText = "outputText",
+        pageBody = "pageBody",
+        paletteSelect = "paletteSelect",
+        prettyBracketsInput = "prettyBracketsInput",
+        prettyColonsInput = "prettyColonsInput",
+        prettySpaceInput = "prettySpaceInput",
+        redoButton = "redoButton",
+        renumKeepInput = "renumKeepInput",
+        renumNewInput = "renumNewInput",
+        renumStartInput = "renumStartInput",
+        renumStepInput = "renumStepInput",
+        resultArea = "resultArea",
+        resultText = "resultText",
+        runButton = "runButton",
+        screenshotLink = "screenshotLink",
+        settingsArea = "settingsArea",
+        showConsoleLogInput = "showConsoleLogInput",
+        showCpcInput = "showCpcInput",
+        showDisassInput = "showDisassInput",
+        showInp2Input = "showInp2Input",
+        showInputInput = "showInputInput",
+        showKbdInput = "showKbdInput",
+        showOutputInput = "showOutputInput",
+        showResultInput = "showResultInput",
+        showVariableInput = "showVariableInput",
+        soundInput = "soundInput",
+        speedInput = "speedInput",
+        stopButton = "stopButton",
+        traceInput = "traceInput",
+        textText = "textText",
+        undoButton = "undoButton",
+        variableArea = "variableArea",
+        varSelect = "varSelect",
+        varText = "varText",
+        viewArea = "viewArea"
+    }
+}
 declare module "Utils" {
     export interface CustomError extends Error {
         value: string;
@@ -49,23 +162,25 @@ declare module "Utils" {
 }
 declare module "Interfaces" {
     import { CustomError } from "Utils";
+    import { ViewID } from "Constants";
     export interface IOutput {
         text: string;
         error?: CustomError;
     }
-    export type CanvasClickType = (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
+    type CanvasClickType = (event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) => void;
     export type CanvasCharType = number[];
     export type CanvasCharsetType = CanvasCharType[];
     export interface CanvasOptions {
+        canvasID: ViewID;
         charset: CanvasCharsetType;
         palette: "color" | "green" | "grey";
         onCanvasClick?: CanvasClickType;
     }
     export interface ICanvas {
-        setOnCanvasClick(onCanvasClickHandler: CanvasClickType): void;
+        getOptions(): CanvasOptions;
+        setOptions(options: Partial<CanvasOptions>): void;
         reset(): void;
         resetCustomChars(): void;
-        setPalette(palette: "color" | "green" | "grey"): void;
         startUpdateCanvas(): void;
         stopUpdateCanvas(): void;
         setScreenOffset(offset: number): void;
@@ -112,7 +227,6 @@ declare module "Interfaces" {
         changeMode(mode: number): void;
         setMode(mode: number): void;
         takeScreenShot(): string;
-        getCanvasElement(): HTMLElement | undefined;
     }
     export interface VmBaseParas {
         command: string;
@@ -159,7 +273,7 @@ declare module "Interfaces" {
         getRsxCommands: () => Record<string, RsxCommandType>;
     }
     export interface IController {
-        toggleAreaHidden: (id: string) => boolean;
+        toggleAreaHidden: (id: ViewID) => boolean;
         startParse: () => void;
         startRenum: () => void;
         startRun: () => void;
@@ -188,6 +302,7 @@ declare module "Interfaces" {
         onDatabaseSelectChange: () => void;
         onCpcCanvasClick: (event: MouseEvent) => void;
         onWindowClick: (event: Event) => void;
+        onVirtualKeyBoardClick: (event: Event) => void;
         startUpdateCanvas: () => void;
         stopUpdateCanvas: () => void;
         getVirtualKeyboard: () => void;
@@ -198,13 +313,14 @@ declare module "Interfaces" {
         fnArrayBounds: () => void;
         fnTrace: () => void;
         fnSpeed: () => void;
-        setPopoversHiddenExcept: (except: string) => void;
+        setPopoversHiddenExcept: (except?: ViewID) => void;
     }
 }
 declare module "cpcCharset" {
     export const cpcCharset: number[][];
 }
 declare module "Model" {
+    import { ModelPropID } from "Constants";
     import { ICpcVmRsx } from "Interfaces";
     export type ConfigEntryType = string | number | boolean;
     export type ConfigType = Record<string, ConfigEntryType>;
@@ -230,44 +346,8 @@ declare module "Model" {
         private databases;
         private examples;
         constructor(config: ConfigType);
-        static readonly props: {
-            arrayBounds: string;
-            autorun: string;
-            basicVersion: string;
-            bench: string;
-            databaseDirs: string;
-            database: string;
-            debug: string;
-            example: string;
-            exampleIndex: string;
-            implicitLines: string;
-            input: string;
-            kbdLayout: string;
-            canvasType: string;
-            palette: string;
-            processFileImports: string;
-            showConsoleLog: string;
-            showConvert: string;
-            showCpc: string;
-            showDisass: string;
-            showExport: string;
-            showGallery: string;
-            showInput: string;
-            showInp2: string;
-            showKbd: string;
-            showKbdSettings: string;
-            showMore: string;
-            showOutput: string;
-            showResult: string;
-            showSettings: string;
-            showVariable: string;
-            showView: string;
-            sound: string;
-            speed: string;
-            trace: string;
-        };
-        getProperty<T extends ConfigEntryType>(property: string): T;
-        setProperty<T extends ConfigEntryType>(property: string, value: T): void;
+        getProperty<T extends ConfigEntryType>(property: ModelPropID): T;
+        setProperty<T extends ConfigEntryType>(property: ModelPropID, value: T): void;
         getAllProperties(): ConfigType;
         getAllInitialProperties(): ConfigType;
         getChangedProperties(): ConfigType;
@@ -954,6 +1034,7 @@ declare module "InputStack" {
     }
 }
 declare module "View" {
+    import { ViewID } from "Constants";
     export interface SelectOptionElement {
         value: string;
         text: string;
@@ -966,107 +1047,51 @@ declare module "View" {
         checked: boolean;
         imgUrl: string;
     }
+    export type PointerEventNamesType = Record<"down" | "move" | "up" | "cancel" | "out" | "type", string>;
     export class View {
-        static getElementById1(id: string): HTMLElement;
-        static getElementByIdAs<T extends HTMLButtonElement | HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | HTMLElement>(id: string): T;
-        static readonly ids: {
-            arrayBoundsInput: string;
-            autorunInput: string;
-            basicVersionSelect: string;
-            canvasTypeSelect: string;
-            consoleLogArea: string;
-            consoleLogText: string;
-            continueButton: string;
-            convertArea: string;
-            cpcArea: string;
-            cpcCanvas: string;
-            databaseSelect: string;
-            debugInput: string;
-            directorySelect: string;
-            disassArea: string;
-            disassInput: string;
-            disassText: string;
-            dropZone: string;
-            exampleSelect: string;
-            exportArea: string;
-            exportBase64Input: string;
-            exportDSKInput: string;
-            exportTokenizedInput: string;
-            fileInput: string;
-            galleryArea: string;
-            galleryAreaItems: string;
-            implicitLinesInput: string;
-            inp2Area: string;
-            inp2Text: string;
-            inputArea: string;
-            inputText: string;
-            kbdAlpha: string;
-            kbdArea: string;
-            kbdAreaInner: string;
-            kbdLayoutSelect: string;
-            kbdNum: string;
-            moreArea: string;
-            outputArea: string;
-            outputText: string;
-            paletteSelect: string;
-            prettyBracketsInput: string;
-            prettyColonsInput: string;
-            prettySpaceInput: string;
-            redoButton: string;
-            renumKeepInput: string;
-            renumNewInput: string;
-            renumStartInput: string;
-            renumStepInput: string;
-            resultArea: string;
-            resultText: string;
-            runButton: string;
-            screenshotLink: string;
-            settingsArea: string;
-            showConsoleLogInput: string;
-            showCpcInput: string;
-            showDisassInput: string;
-            showInp2Input: string;
-            showInputInput: string;
-            showKbdInput: string;
-            showOutputInput: string;
-            showResultInput: string;
-            showVariableInput: string;
-            soundInput: string;
-            speedInput: string;
-            stopButton: string;
-            traceInput: string;
-            textText: string;
-            undoButton: string;
-            variableArea: string;
-            varSelect: string;
-            varText: string;
-            viewArea: string;
-        };
-        getHidden(id: string): boolean;
-        setHidden(id: string, hidden: boolean, display?: string): this;
-        setDisabled(id: string, disabled: boolean): this;
-        toggleClass(id: string, className: string): void;
-        getAreaValue(id: string): string;
-        setAreaValue(id: string, value: string): this;
-        getInputValue(id: string): string;
-        setInputValue(id: string, value: string): this;
-        getInputChecked(id: string): boolean;
-        setInputChecked(id: string, checked: boolean): this;
-        setAreaInputList(id: string, inputs: AreaInputElement[]): this;
-        setSelectOptions(id: string, options: SelectOptionElement[]): this;
-        getSelectOptions(id: string): SelectOptionElement[];
-        getSelectValue(id: string): string;
-        setSelectValue(id: string, value: string): this;
-        setSelectTitleFromSelectedOption(id: string): this;
-        setAreaScrollTop(id: string, scrollTop?: number): this;
+        static getElementById1(id: ViewID): HTMLElement;
+        static getElementByIdAs<T extends HTMLButtonElement | HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | HTMLElement>(id: ViewID): T;
+        getHidden(id: ViewID): boolean;
+        setHidden(id: ViewID, hidden: boolean, display?: string): this;
+        setDisabled(id: ViewID, disabled: boolean): this;
+        toggleClass(id: ViewID, className: string): void;
+        getAreaValue(id: ViewID): string;
+        setAreaValue(id: ViewID, value: string): this;
+        getInputValue(id: ViewID): string;
+        setInputValue(id: ViewID, value: string): this;
+        getInputChecked(id: ViewID): boolean;
+        setInputChecked(id: ViewID, checked: boolean): this;
+        setAreaInputList(id: ViewID, inputs: AreaInputElement[]): this;
+        setSelectOptions(id: ViewID, options: SelectOptionElement[]): this;
+        getSelectOptions(id: ViewID): SelectOptionElement[];
+        getSelectValue(id: ViewID): string;
+        setSelectValue(id: ViewID, value: string): this;
+        setSelectTitleFromSelectedOption(id: ViewID): this;
+        setAreaScrollTop(id: ViewID, scrollTop?: number): this;
         private setSelectionRange;
-        setAreaSelection(id: string, pos: number, endPos: number): this;
-        attachEventHandler(type: string, eventHandler: EventListenerOrEventListenerObject): this;
+        setAreaSelection(id: ViewID, pos: number, endPos: number): this;
+        addEventListener(type: string, eventListener: EventListenerOrEventListenerObject, id?: ViewID): this;
+        removeEventListener(type: string, eventListener: EventListenerOrEventListenerObject, id?: ViewID): this;
         static getEventTarget<T extends HTMLElement>(event: Event): T;
-        static requestFullscreenForId(id: string): boolean;
+        static requestFullscreenForId(id: ViewID): boolean;
+        static fnDownloadBlob(data: string, filename: string): void;
+        private static readonly pointerEventNames;
+        private static readonly touchEventNames;
+        private static readonly mouseEventNames;
+        fnAttachPointerEvents(id: ViewID, fnDown?: EventListener, fnMove?: EventListener, fnUp?: EventListener): PointerEventNamesType;
+        private readonly dragInfo;
+        dragInit(containerId: ViewID, itemId: ViewID): void;
+        private dragStart;
+        private dragEnd;
+        private setDragTranslate;
+        private drag;
     }
 }
 declare module "Keyboard" {
+    interface KeyboardOptions {
+        fnOnEscapeHandler?: (key: string, pressedKey: string) => void;
+        fnOnKeyDown?: () => void;
+    }
     export interface CpcKeyExpansionsOptions {
         cpcKey: number;
         repeat: number;
@@ -1075,13 +1100,8 @@ declare module "Keyboard" {
         ctrl?: number;
     }
     export type PressReleaseCpcKey = (event: KeyboardEvent | PointerEvent, cpcKey: number, pressedKey: string, key: string) => void;
-    interface KeyboardOptions {
-        fnOnEscapeHandler?: (key: string, pressedKey: string) => void;
-        fnOnKeyDown?: () => void;
-    }
     export class Keyboard {
-        private readonly fnCpcAreaKeydownHandler;
-        private readonly fnCpcAreaKeyupHandler;
+        private readonly fnKeydownOrKeyupHandler;
         private readonly options;
         private readonly keyBuffer;
         private readonly expansionTokens;
@@ -1091,6 +1111,9 @@ declare module "Keyboard" {
         private codeStringsRemoved;
         private pressedKeys;
         constructor(options: KeyboardOptions);
+        getOptions(): KeyboardOptions;
+        setOptions(options: KeyboardOptions): void;
+        getKeydownOrKeyupHandler(): (event: Event) => boolean;
         private static readonly key2CpcKey;
         private static readonly specialKeys;
         private static readonly joyKeyCodes;
@@ -1098,8 +1121,6 @@ declare module "Keyboard" {
         clearInput(): void;
         resetExpansionTokens(): void;
         resetCpcKeysExpansions(): void;
-        getKeyDownHandler(): (() => void) | undefined;
-        setKeyDownHandler(fnOnKeyDown?: () => void): void;
         setActive(active: boolean): void;
         private removeCodeStringsFromKeymap;
         fnPressCpcKey(event: KeyboardEvent | PointerEvent, cpcKeyCode: number, pressedKey: string, key: string): void;
@@ -1108,37 +1129,37 @@ declare module "Keyboard" {
         private fnKeyboardKeydown;
         private fnKeyboardKeyup;
         getKeyFromBuffer(): string;
-        putKeyInBuffer(key: string): void;
+        putKeyInBuffer(key: string, triggerOnkeydown?: boolean): void;
         putKeysInBuffer(input: string): void;
         getKeyState(cpcKeyCode: number): number;
         getJoyState(joy: number): number;
         setExpansionToken(token: number, string: string): void;
         setCpcKeyExpansion(options: CpcKeyExpansionsOptions): void;
-        private onCpcAreaKeydown;
-        private oncpcAreaKeyup;
+        private onKeydownOrKeyup;
     }
 }
 declare module "VirtualKeyboard" {
     import { PressReleaseCpcKey } from "Keyboard";
+    import { View } from "View";
     interface VirtualKeyboardOptions {
+        view: View;
         fnPressCpcKey: PressReleaseCpcKey;
         fnReleaseCpcKey: PressReleaseCpcKey;
     }
     export class VirtualKeyboard {
+        private readonly fnVirtualKeyboardKeydownHandler;
+        private readonly fnVirtualKeyboardKeyupHandler;
+        private readonly fnVirtualKeyboardKeyoutHandler;
         private readonly options;
-        private readonly pointerOutEvent?;
-        private readonly fnVirtualKeyout?;
+        private readonly eventNames;
         private shiftLock;
         private numLock;
         constructor(options: VirtualKeyboardOptions);
+        getKeydownHandler(): typeof this.fnVirtualKeyboardKeydownHandler;
+        getKeyupHandler(): typeof this.fnVirtualKeyboardKeyupHandler;
         private static readonly cpcKey2Key;
         private static readonly virtualKeyboardAlpha;
         private static readonly virtualKeyboardNum;
-        private readonly dragInfo;
-        private static readonly pointerEventNames;
-        private static readonly touchEventNames;
-        private static readonly mouseEventNames;
-        private fnAttachPointerEvents;
         reset(): void;
         private mapNumLockCpcKey;
         private fnVirtualGetAscii;
@@ -1151,15 +1172,10 @@ declare module "VirtualKeyboard" {
         private fnVirtualKeyboardKeyupOrKeyout;
         private onVirtualKeyboardKeyup;
         private onVirtualKeyboardKeyout;
-        private dragInit;
-        private dragStart;
-        private dragEnd;
-        private setTranslate;
-        private drag;
     }
 }
 declare module "Canvas" {
-    import { CanvasOptions, ICanvas, CanvasClickType, CanvasCharType } from "Interfaces";
+    import { CanvasOptions, ICanvas, CanvasCharType } from "Interfaces";
     export class Canvas implements ICanvas {
         private readonly options;
         private readonly fnUpdateCanvasHandler;
@@ -1209,15 +1225,16 @@ declare module "Canvas" {
         private yBottom;
         private gTransparent;
         constructor(options: CanvasOptions);
+        getOptions(): CanvasOptions;
+        setOptions(options: Partial<CanvasOptions>): void;
         private static readonly palettes;
         private static readonly defaultInks;
         private static readonly modeData;
         private applyBorderColor;
-        setOnCanvasClick(onCanvasClickHandler: CanvasClickType): void;
         reset(): void;
         resetCustomChars(): void;
         private static computePalette;
-        setPalette(palette: "color" | "green" | "grey"): void;
+        private applyPalette;
         private static isLittleEndian;
         private static extractColorValues;
         private static extractAllColorValues;
@@ -1297,11 +1314,10 @@ declare module "Canvas" {
         changeMode(mode: number): void;
         setMode(mode: number): void;
         takeScreenShot(): string;
-        getCanvasElement(): HTMLElement | undefined;
     }
 }
 declare module "TextCanvas" {
-    import { CanvasOptions, ICanvas, CanvasClickType, CanvasCharType } from "Interfaces";
+    import { CanvasOptions, ICanvas, CanvasCharType } from "Interfaces";
     export class TextCanvas implements ICanvas {
         private readonly options;
         private readonly fnUpdateCanvasHandler;
@@ -1320,12 +1336,12 @@ declare module "TextCanvas" {
         private hasFocus;
         private customCharset;
         constructor(options: CanvasOptions);
+        getOptions(): CanvasOptions;
+        setOptions(options: Partial<CanvasOptions>): void;
         private static readonly cpc2Unicode;
         private static readonly winData;
-        setOnCanvasClick(onCanvasClickHandler: CanvasClickType): void;
         reset(): void;
         resetCustomChars(): void;
-        setPalette(_palette: "color" | "green" | "grey"): void;
         setScreenOffset(_offset: number): void;
         updateColorsAndCanvasImmediately(_inkList: number[]): void;
         updateSpeedInk(): void;
@@ -1359,7 +1375,6 @@ declare module "TextCanvas" {
         setMaskFirst(_maskFirst: number): void;
         getMode(): number;
         changeMode(_mode: number): void;
-        getCanvasElement(): HTMLElement;
         takeScreenShot(): string;
         private resetTextBuffer;
         private setNeedUpdate;
@@ -1838,7 +1853,6 @@ declare module "CpcVm" {
         border(ink1: number, ink2?: number): void;
         private vmMcSetMode;
         private vmTxtInverse;
-        private vmPutKeyInBuffer;
         private updateColorsImmediately;
         call(addr: number, ...args: (string | number)[]): void;
         callRsx(name: string, ...args: (string | number)[]): void;
@@ -2229,13 +2243,14 @@ declare module "Z80Disass" {
     }
 }
 declare module "NoCanvas" {
-    import { CanvasOptions, ICanvas, CanvasClickType, CanvasCharType } from "Interfaces";
+    import { CanvasOptions, ICanvas, CanvasCharType } from "Interfaces";
     export class NoCanvas implements ICanvas {
-        constructor(_options: CanvasOptions);
-        setOnCanvasClick(_onCanvasClickHandler: CanvasClickType): void;
+        private readonly options;
+        constructor(options: CanvasOptions);
+        getOptions(): CanvasOptions;
+        setOptions(options: Partial<CanvasOptions>): void;
         reset(): void;
         resetCustomChars(): void;
-        setPalette(_palette: "color" | "green" | "grey"): void;
         setScreenOffset(_offset: number): void;
         updateColorsAndCanvasImmediately(_inkList: number[]): void;
         updateSpeedInk(): void;
@@ -2270,7 +2285,6 @@ declare module "NoCanvas" {
         setMaskFirst(_maskFirst: number): void;
         getMode(): number;
         changeMode(_mode: number): void;
-        getCanvasElement(): HTMLElement | undefined;
         takeScreenShot(): string;
         startUpdateCanvas(): void;
         stopUpdateCanvas(): void;
@@ -2286,6 +2300,7 @@ declare module "NoCanvas" {
     }
 }
 declare module "Controller" {
+    import { ViewID } from "Constants";
     import { IController, ICanvas, VariableValue, ICpcVmRsx } from "Interfaces";
     import { VirtualKeyboard } from "VirtualKeyboard";
     import { Model } from "Model";
@@ -2405,8 +2420,6 @@ declare module "Controller" {
         fnPretty(): void;
         fnAddLines(): void;
         fnRemoveLines(): void;
-        private static fnDownloadBlob;
-        private fnDownloadNewFile;
         private fnGetFilename;
         fnDownload(): void;
         private selectJsError;
@@ -2438,8 +2451,8 @@ declare module "Controller" {
         private fnPutKeysInBuffer;
         startEnter(): void;
         private static generateFunction;
-        setPopoversHiddenExcept(exceptId: string): void;
-        toggleAreaHidden(id: string): boolean;
+        setPopoversHiddenExcept(exceptId?: ViewID): void;
+        toggleAreaHidden(id: ViewID): boolean;
         changeVariable(): void;
         setBasicVersion(basicVersion: string): void;
         setPalette(palette: string): void;
@@ -2470,6 +2483,7 @@ declare module "Controller" {
         exportAsBase64(storageName: string): string;
         onCpcCanvasClick(event: MouseEvent): void;
         onWindowClick(event: Event): void;
+        onVirtualKeyBoardClick(event: Event): void;
         fnArrayBounds(): void;
         fnImplicitLines(): void;
         fnTrace(): void;

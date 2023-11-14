@@ -229,7 +229,6 @@ export declare class CpcVm implements ICpcVm {
     border(ink1: number, ink2?: number): void;
     private vmMcSetMode;
     private vmTxtInverse;
-    private vmPutKeyInBuffer;
     private updateColorsImmediately;
     call(addr: number, ...args: (string | number)[]): void;
     callRsx(name: string, ...args: (string | number)[]): void;

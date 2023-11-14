@@ -3,6 +3,7 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 
+import { ModelPropID, ViewID } from "./Constants";
 import { Utils } from "./Utils";
 import { Controller } from "./Controller";
 import { cpcconfig } from "./cpcconfig";
@@ -206,11 +207,11 @@ class cpcBasic {
 	}
 
 	private static fnRedirectExamples(redirectExamples: RedirectExamplesType) {
-		const name = this.model.getProperty(Model.props.database) + "/" + this.model.getProperty(Model.props.example);
+		const name = this.model.getProperty(ModelPropID.database) + "/" + this.model.getProperty(ModelPropID.example);
 
 		if (redirectExamples[name]) {
-			this.model.setProperty(Model.props.database, redirectExamples[name].database);
-			this.model.setProperty(Model.props.example, redirectExamples[name].example);
+			this.model.setProperty(ModelPropID.database, redirectExamples[name].database);
+			this.model.setProperty(ModelPropID.example, redirectExamples[name].example);
 		}
 	}
 
@@ -237,7 +238,7 @@ class cpcBasic {
 
 		cpcBasic.view = new View();
 
-		const debug = Number(cpcBasic.model.getProperty<number>(Model.props.debug));
+		const debug = Number(cpcBasic.model.getProperty<number>(ModelPropID.debug));
 
 		Utils.debug = debug;
 
@@ -249,11 +250,11 @@ class cpcBasic {
 			UtilsConsole.cpcBasicLog = undefined; // do not log any more to dummy console
 		}
 
-		if (Utils.debug > 0 && cpcBasic.model.getProperty<boolean>(Model.props.showConsoleLog)) { // console log window?
+		if (Utils.debug > 0 && cpcBasic.model.getProperty<boolean>(ModelPropID.showConsoleLog)) { // console log window?
 			UtilsConsole = cpcBasic.createDebugUtilsConsole(cpcBasicLog);
 			Utils.console = UtilsConsole;
 			Utils.console.log("CPCBasic log started at", Utils.dateFormat(new Date()));
-			UtilsConsole.changeLog(View.getElementById1(View.ids.consoleLogText));
+			UtilsConsole.changeLog(View.getElementById1(ViewID.consoleLogText));
 		}
 
 		if (redirectExamples) {

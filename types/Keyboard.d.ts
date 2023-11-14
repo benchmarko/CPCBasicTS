@@ -1,3 +1,7 @@
+interface KeyboardOptions {
+    fnOnEscapeHandler?: (key: string, pressedKey: string) => void;
+    fnOnKeyDown?: () => void;
+}
 export interface CpcKeyExpansionsOptions {
     cpcKey: number;
     repeat: number;
@@ -6,13 +10,8 @@ export interface CpcKeyExpansionsOptions {
     ctrl?: number;
 }
 export declare type PressReleaseCpcKey = (event: KeyboardEvent | PointerEvent, cpcKey: number, pressedKey: string, key: string) => void;
-interface KeyboardOptions {
-    fnOnEscapeHandler?: (key: string, pressedKey: string) => void;
-    fnOnKeyDown?: () => void;
-}
 export declare class Keyboard {
-    private readonly fnCpcAreaKeydownHandler;
-    private readonly fnCpcAreaKeyupHandler;
+    private readonly fnKeydownOrKeyupHandler;
     private readonly options;
     private readonly keyBuffer;
     private readonly expansionTokens;
@@ -22,6 +21,9 @@ export declare class Keyboard {
     private codeStringsRemoved;
     private pressedKeys;
     constructor(options: KeyboardOptions);
+    getOptions(): KeyboardOptions;
+    setOptions(options: KeyboardOptions): void;
+    getKeydownOrKeyupHandler(): (event: Event) => boolean;
     private static readonly key2CpcKey;
     private static readonly specialKeys;
     private static readonly joyKeyCodes;
@@ -29,8 +31,6 @@ export declare class Keyboard {
     clearInput(): void;
     resetExpansionTokens(): void;
     resetCpcKeysExpansions(): void;
-    getKeyDownHandler(): (() => void) | undefined;
-    setKeyDownHandler(fnOnKeyDown?: () => void): void;
     setActive(active: boolean): void;
     private removeCodeStringsFromKeymap;
     fnPressCpcKey(event: KeyboardEvent | PointerEvent, cpcKeyCode: number, pressedKey: string, key: string): void;
@@ -39,14 +39,13 @@ export declare class Keyboard {
     private fnKeyboardKeydown;
     private fnKeyboardKeyup;
     getKeyFromBuffer(): string;
-    putKeyInBuffer(key: string): void;
+    putKeyInBuffer(key: string, triggerOnkeydown?: boolean): void;
     putKeysInBuffer(input: string): void;
     getKeyState(cpcKeyCode: number): number;
     getJoyState(joy: number): number;
     setExpansionToken(token: number, string: string): void;
     setCpcKeyExpansion(options: CpcKeyExpansionsOptions): void;
-    private onCpcAreaKeydown;
-    private oncpcAreaKeyup;
+    private onKeydownOrKeyup;
 }
 export {};
 //# sourceMappingURL=Keyboard.d.ts.map

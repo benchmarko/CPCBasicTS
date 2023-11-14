@@ -1,3 +1,4 @@
+import { ViewID } from "./Constants";
 import { IController, ICanvas, VariableValue, ICpcVmRsx } from "./Interfaces";
 import { VirtualKeyboard } from "./VirtualKeyboard";
 import { Model } from "./Model";
@@ -117,8 +118,6 @@ export declare class Controller implements IController {
     fnPretty(): void;
     fnAddLines(): void;
     fnRemoveLines(): void;
-    private static fnDownloadBlob;
-    private fnDownloadNewFile;
     private fnGetFilename;
     fnDownload(): void;
     private selectJsError;
@@ -150,8 +149,8 @@ export declare class Controller implements IController {
     private fnPutKeysInBuffer;
     startEnter(): void;
     private static generateFunction;
-    setPopoversHiddenExcept(exceptId: string): void;
-    toggleAreaHidden(id: string): boolean;
+    setPopoversHiddenExcept(exceptId?: ViewID): void;
+    toggleAreaHidden(id: ViewID): boolean;
     changeVariable(): void;
     setBasicVersion(basicVersion: string): void;
     setPalette(palette: string): void;
@@ -182,6 +181,7 @@ export declare class Controller implements IController {
     exportAsBase64(storageName: string): string;
     onCpcCanvasClick(event: MouseEvent): void;
     onWindowClick(event: Event): void;
+    onVirtualKeyBoardClick(event: Event): void;
     fnArrayBounds(): void;
     fnImplicitLines(): void;
     fnTrace(): void;

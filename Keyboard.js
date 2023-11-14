@@ -2,7 +2,7 @@
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define(["require", "exports", "./Utils", "./View"], function (require, exports, Utils_1, View_1) {
+define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Keyboard = void 0;
@@ -13,8 +13,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.active = false; // flag if keyboard is active/focused, set from outside
             this.codeStringsRemoved = false;
             this.pressedKeys = {}; // currently pressed browser keys
-            this.fnCpcAreaKeydownHandler = this.onCpcAreaKeydown.bind(this);
-            this.fnCpcAreaKeyupHandler = this.oncpcAreaKeyup.bind(this);
+            this.fnKeydownOrKeyupHandler = this.onKeydownOrKeyup.bind(this);
             this.options = options;
             this.key2CpcKey = Keyboard.key2CpcKey;
             this.cpcKeyExpansions = {
@@ -23,10 +22,28 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 ctrl: {},
                 repeat: {}
             }; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
-            var cpcArea = View_1.View.getElementById1(View_1.View.ids.cpcArea);
-            cpcArea.addEventListener("keydown", this.fnCpcAreaKeydownHandler, false);
-            cpcArea.addEventListener("keyup", this.fnCpcAreaKeyupHandler, false);
+            //const cpcArea = View.getElementById1(ViewID.cpcArea);
+            //const keyboardId = this.options.keyboardId;
+            //View.addEventListener("keydown", this.fnCpcAreaKeydownHandler, keyboardId);
+            //View.addEventListener("keyup", this.fnCpcAreaKeyupHandler, keyboardId);
         }
+        Keyboard.prototype.getOptions = function () {
+            return this.options;
+        };
+        Keyboard.prototype.setOptions = function (options) {
+            Object.assign(this.options, options);
+            /*
+            if (options.fnOnEscapeHandler !== undefined) {
+                this.options.fnOnEscapeHandler = options.fnOnEscapeHandler;
+            }
+            if (options.fnOnKeyDown !== undefined) {
+                this.options.fnOnKeyDown = options.fnOnKeyDown;
+            }
+            */
+        };
+        Keyboard.prototype.getKeydownOrKeyupHandler = function () {
+            return this.fnKeydownOrKeyupHandler;
+        };
         /* eslint-enable array-element-newline */
         Keyboard.prototype.reset = function () {
             this.options.fnOnKeyDown = undefined;
@@ -72,13 +89,16 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             };
             cpcKeyExpansions.repeat = {};
         };
+        /*
         //TODO: remove getKeyDownHandler, setKeyDownHandler?
-        Keyboard.prototype.getKeyDownHandler = function () {
+        getKeyDownHandler(): (() => void) | undefined {
             return this.options.fnOnKeyDown;
-        };
-        Keyboard.prototype.setKeyDownHandler = function (fnOnKeyDown) {
+        }
+    
+        setKeyDownHandler(fnOnKeyDown?: () => void): void {
             this.options.fnOnKeyDown = fnOnKeyDown;
-        };
+        }
+        */
         Keyboard.prototype.setActive = function (active) {
             this.active = active;
         };
@@ -279,8 +299,14 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             var keyBuffer = this.keyBuffer, key = keyBuffer.length ? keyBuffer.shift() : "";
             return key;
         };
-        Keyboard.prototype.putKeyInBuffer = function (key) {
+        Keyboard.prototype.putKeyInBuffer = function (key, triggerOnkeydown) {
             this.keyBuffer.push(key);
+            if (triggerOnkeydown) {
+                var keyDownHandler = this.options.fnOnKeyDown;
+                if (keyDownHandler) {
+                    keyDownHandler();
+                }
+            }
         };
         Keyboard.prototype.putKeysInBuffer = function (input) {
             for (var i = 0; i < input.length; i += 1) {
@@ -340,17 +366,17 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 cpcKeyExpansions.ctrl[cpcKey] = options.ctrl;
             }
         };
-        Keyboard.prototype.onCpcAreaKeydown = function (event) {
+        Keyboard.prototype.onKeydownOrKeyup = function (event) {
             if (this.active) {
-                this.fnKeyboardKeydown(event);
-                event.preventDefault();
-                return false;
-            }
-            return undefined;
-        };
-        Keyboard.prototype.oncpcAreaKeyup = function (event) {
-            if (this.active) {
-                this.fnKeyboardKeyup(event);
+                if (event.type === "keydown") {
+                    this.fnKeyboardKeydown(event);
+                }
+                else if (event.type === "keyup") {
+                    this.fnKeyboardKeyup(event);
+                }
+                else {
+                    Utils_1.Utils.console.error("onKeydownOrKeyup: Unknown type:", event.type);
+                }
                 event.preventDefault();
                 return false;
             }

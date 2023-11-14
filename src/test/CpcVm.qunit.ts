@@ -3,7 +3,7 @@
 
 import { Utils } from "../Utils";
 import { CpcVm, CpcVmOptions, FileMeta } from "../CpcVm";
-import { ICanvas, CanvasClickType, VmInputParas } from "../Interfaces";
+import { ICanvas, VmInputParas } from "../Interfaces";
 import { Keyboard } from "../Keyboard";
 import { Sound } from "../Sound";
 import { Variables } from "../Variables";
@@ -108,9 +108,9 @@ const allTests: AllTestsType = {
 		"0xbb00": "resetCpcKeysExpansions: , clearInput: , resetExpansionTokens:",
 		"0xbb03": "clearInput: , resetExpansionTokens:",
 		"0xbb06": "getKeyFromBuffer:",
-		"0xbb0c": "putKeyInBuffer:\x00 , getKeyDownHandler:",
-		"0xbb0c,1,1,1,1,1,1,1,1,1": "putKeyInBuffer:\x09 , getKeyDownHandler:",
-		"0xbb0c,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32": "putKeyInBuffer:  , getKeyDownHandler:",
+		"0xbb0c": 'putKeyInBuffer:"\\u0000",true',
+		"0xbb0c,1,1,1,1,1,1,1,1,1": 'putKeyInBuffer:"\\t",true',
+		"0xbb0c,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32": 'putKeyInBuffer:" ",true',
 		"0xbb0c,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33": 'CpcVm: Syntax Error in 0: CALL  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}',
 		"0xbb18": "getKeyFromBuffer:",
 		"0xbb4e": "resetCustomChars:",
@@ -1959,9 +1959,14 @@ const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [], // esli
 	varTypesMap: Record<string, string> = {},
 	variablesMap: Record<string, string | number | string[] | number[]> = {},
 	mockCanvas = {
-		setOnCanvasClick: function (...args) {
+		setOptions: function (...args) {
 			lastTestFunctions.push({
-				setOnCanvasClick: [String(args)]
+				setOptions: args.map((arg) => String(arg))
+			});
+		},
+		getOptions: function (...args) {
+			lastTestFunctions.push({
+				getOptions: args
 			});
 		},
 		changeMode: function (...args) {
@@ -2169,18 +2174,19 @@ const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [], // esli
 			lastTestFunctions.push({
 				updateSpeedInk: args
 			});
-		}
-		/*
+		},
 		windowScrollDown: function (...args) {
 			lastTestFunctions.push({
 				windowScrollDown: args
 			});
 		},
+		/*
 		setPalette: function (...args) {
 			lastTestFunctions.push({
 				setPalette: args
 			});
 		},
+		*/
 		startUpdateCanvas: function (...args) {
 			lastTestFunctions.push({
 				startUpdateCanvas: args
@@ -2233,7 +2239,8 @@ const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [], // esli
 				takeScreenShot: args
 			});
 			return "scr";
-		},
+		}
+		/*
 		getCanvasElement: function (...args) {
 			lastTestFunctions.push({
 				getCanvasElement: args
@@ -2255,12 +2262,14 @@ const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [], // esli
 			});
 			return 4 + Number(args); // example
 		},
+		/*
 		getKeyDownHandler: function (...args) {
 			lastTestFunctions.push({
 				getKeyDownHandler: args
 			});
 			return undefined;
 		},
+		*/
 		getKeyFromBuffer: function (...args) {
 			lastTestFunctions.push({
 				getKeyFromBuffer: args
@@ -2274,8 +2283,10 @@ const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [], // esli
 			return args[0] === 79 ? 13 : -1; // example
 		},
 		putKeyInBuffer: function (...args) {
+			const stringArgs = args.map((arg) => JSON.stringify(arg));
+
 			lastTestFunctions.push({
-				putKeyInBuffer: args
+				putKeyInBuffer: stringArgs
 			});
 		},
 		reset: function (...args) {
@@ -3422,7 +3433,7 @@ QUnit.module("CpcVm: vm functions", function (hooks) {
 	QUnit.test("init without options", function (assert) {
 		const minimalCanvas = {
 			reset: () => undefined,
-			setOnCanvasClick: (_onCanvasClickHandler: CanvasClickType) => undefined
+			setOptions: (..._args) => undefined
 		} as ICanvas,
 			minimalKeyboard = {
 				reset: () => undefined
