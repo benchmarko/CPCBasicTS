@@ -5,8 +5,6 @@
 cpcBasic.addItem("", function () { /*
 */ });
 
-//10 print "testrsx.rsx loaded.""
-
 cpcBasic.addRsx("", function () {
 	return {
 		getRsxCommands: function () {

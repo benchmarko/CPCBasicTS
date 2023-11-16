@@ -5,11 +5,11 @@ define(["require", "exports", "../Variables", "./TestHelper"], function (require
     Object.defineProperty(exports, "__esModule", { value: true });
     QUnit.module("Variables", function ( /* hooks */) {
         QUnit.test("create class", function (assert) {
-            var variables = new Variables_1.Variables();
+            var variables = new Variables_1.Variables({});
             assert.ok(variables, "defined");
         });
         QUnit.test("variable types", function (assert) {
-            var variables = new Variables_1.Variables();
+            var variables = new Variables_1.Variables({});
             variables.setVarType("a1", "I");
             assert.strictEqual(variables.getVarType("a1"), "I", "a1: I");
             variables.setVarType("a2", "R");
@@ -26,7 +26,7 @@ define(["require", "exports", "../Variables", "./TestHelper"], function (require
             }, "getAll: a1:I a2:R s1:$ s$:$");
         });
         QUnit.test("plain variables: get and set", function (assert) {
-            var variables = new Variables_1.Variables();
+            var variables = new Variables_1.Variables({});
             assert.propEqual(variables.getAllVariables(), {}, "getAll:");
             assert.strictEqual(variables.getVariable("n1"), undefined, "get n1: undefined");
             variables.setVariable("a1", 11);
@@ -78,7 +78,7 @@ define(["require", "exports", "../Variables", "./TestHelper"], function (require
             return listList;
         }
         QUnit.test("array variables", function (assert) {
-            var variables = new Variables_1.Variables();
+            var variables = new Variables_1.Variables({});
             assert.propEqual(variables.getAllVariables(), {}, "getAll:");
             var zeros11 = createListOfItems(0, 11);
             variables.initVariable("a1A");
@@ -123,7 +123,7 @@ define(["require", "exports", "../Variables", "./TestHelper"], function (require
         };
         /* eslint-enable quote-props */
         function runTestsForDetermineStaticVarType(category, tests, assert, results) {
-            var variables = new Variables_1.Variables();
+            var variables = new Variables_1.Variables({});
             for (var key in tests) {
                 if (tests.hasOwnProperty(key)) {
                     var expected = tests[key], result = variables.determineStaticVarType(key);

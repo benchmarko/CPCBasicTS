@@ -21,28 +21,20 @@ export class CodeGeneratorToken {
 
 	private label = ""; // current line (label)
 
-	setOptions(options: Omit<CodeGeneratorTokenOptions, "lexer" | "parser">): void {
-		if (options.implicitLines !== undefined) {
-			this.options.implicitLines = options.implicitLines;
-		}
-		if (options.quiet !== undefined) {
-			this.options.quiet = options.quiet;
-		}
+	constructor(options: CodeGeneratorTokenOptions) {
+		this.options = {
+			implicitLines: false,
+			quiet: false
+		} as CodeGeneratorTokenOptions;
+		this.setOptions(options);
 	}
 
 	getOptions(): CodeGeneratorTokenOptions {
 		return this.options;
 	}
 
-	constructor(options: CodeGeneratorTokenOptions) {
-		this.options = {
-			lexer: options.lexer,
-			parser: options.parser,
-			implicitLines: false,
-			quiet: false
-		};
-
-		this.setOptions(options);
+	setOptions(options: Partial<CodeGeneratorTokenOptions>): void {
+		Object.assign(this.options, options);
 	}
 
 	private static readonly tokens: Record<string, number> = {

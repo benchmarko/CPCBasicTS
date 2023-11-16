@@ -1,3 +1,7 @@
+interface ZipFileOptions {
+    data: Uint8Array;
+    zipName: string;
+}
 interface CentralDirFileHeader {
     signature: number;
     version: number;
@@ -22,10 +26,12 @@ declare type ZipDirectoryType = {
     [k in string]: CentralDirFileHeader;
 };
 export declare class ZipFile {
+    private readonly options;
     private data;
-    private zipName;
     private entryTable;
-    constructor(data: Uint8Array, zipName: string);
+    constructor(options: ZipFileOptions);
+    getOptions(): ZipFileOptions;
+    setOptions(options: Partial<ZipFileOptions>, force: boolean): void;
     getZipDirectory(): ZipDirectoryType;
     private composeError;
     private subArr;

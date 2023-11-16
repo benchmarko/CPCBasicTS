@@ -25,25 +25,21 @@ export class CodeGeneratorBasic {
 
 	private line = 0; // current line (label)
 
-	setOptions(options: Partial<CodeGeneratorBasicOptions>): void {
-		if (options.quiet !== undefined) {
-			this.options.quiet = options.quiet;
-		}
+	constructor(options: CodeGeneratorBasicOptions) {
+		this.options = {
+			quiet: false
+		} as CodeGeneratorBasicOptions;
+		this.setOptions(options);
+
+		this.keywords = options.parser.getKeywords();
 	}
 
 	getOptions(): CodeGeneratorBasicOptions {
 		return this.options;
 	}
 
-	constructor(options: CodeGeneratorBasicOptions) {
-		this.options = {
-			lexer: options.lexer,
-			parser: options.parser,
-			quiet: false
-		};
-		this.setOptions(options);
-
-		this.keywords = options.parser.getKeywords();
+	setOptions(options: Partial<CodeGeneratorBasicOptions>): void {
+		Object.assign(this.options, options);
 	}
 
 	private static readonly combinedKeywords: Record<string, string> = {

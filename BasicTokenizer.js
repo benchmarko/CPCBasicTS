@@ -255,12 +255,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         }
         BasicTokenizer.prototype.fnNum8Dec = function () {
             var num = this.input.charCodeAt(this.pos);
-            /*
-            if (isNaN(num)) {
-                Utils.console.warn("fnNum8Dec: pos=" + this.pos + ": EOF met!");
-                num = 0;
-            }
-            */
             this.pos += 1;
             return num;
         };

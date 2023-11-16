@@ -32,7 +32,10 @@ define(["require", "exports", "../Utils", "../ZipFile", "./TestHelper"], functio
             for (var key in tests) {
                 if (tests.hasOwnProperty(key)) {
                     var parts = Utils_1.Utils.split2(key, ","), meta = parts[0], data = Utils_1.Utils.atob(parts[1]), // decode base64
-                    zip = new ZipFile_1.ZipFile(Utils_1.Utils.string2Uint8Array(data), "name"), expected = tests[key];
+                    zip = new ZipFile_1.ZipFile({
+                        data: Utils_1.Utils.string2Uint8Array(data),
+                        zipName: "name"
+                    }), expected = tests[key];
                     var result = void 0;
                     try {
                         result = fnExtractZipFiles(zip);

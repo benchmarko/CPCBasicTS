@@ -88,10 +88,11 @@ export class Canvas implements ICanvas {
 	private gTransparent = false;
 
 	constructor(options: CanvasOptions) {
-		this.options = options;
-
 		this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
 		this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
+
+		this.options = {} as CanvasOptions;
+		this.setOptions(options, true);
 
 		const canvas = View.getElementByIdAs<HTMLCanvasElement>(this.options.canvasID);
 
@@ -111,11 +112,6 @@ export class Canvas implements ICanvas {
 		this.height = height;
 
 		this.dataset8 = new Uint8Array(new ArrayBuffer(width * height)); // array with pen values
-
-		if (!Canvas.palettes[this.options.palette]) {
-			Canvas.computePalette(this.options.palette);
-		}
-		this.setColorValues(Canvas.palettes[this.options.palette]);
 
 		this.animationTimeoutId = undefined;
 		this.animationFrame = undefined;
@@ -154,12 +150,12 @@ export class Canvas implements ICanvas {
 		return this.options;
 	}
 
-	setOptions(options: Partial<CanvasOptions>): void {
+	setOptions(options: Partial<CanvasOptions>, force?: boolean): void {
 		const currentPalette = this.options.palette;
 
 		Object.assign(this.options, options);
 
-		if (this.options.palette !== currentPalette) { // changed?
+		if (force || (this.options.palette !== currentPalette)) { // changed?
 			this.applyPalette();
 		}
 	}
@@ -286,9 +282,11 @@ export class Canvas implements ICanvas {
 		}
 
 		this.setColorValues(Canvas.palettes[palette]);
-		this.updateColorMap();
-		this.setNeedUpdate();
-		this.applyBorderColor();
+		if (this.currentInks.length) { // only if initialized (not if called from constructor)
+			this.updateColorMap();
+			this.setNeedUpdate();
+			this.applyBorderColor();
+		}
 	}
 
 	private static isLittleEndian() {
@@ -1390,10 +1388,4 @@ export class Canvas implements ICanvas {
 		Utils.console.warn("Screenshot not available");
 		return "";
 	}
-
-	/*
-	getCanvasID(): ViewID { // eslint-disable-line class-methods-use-this
-		return ViewID.cpcCanvas;
-	}
-	*/
 }

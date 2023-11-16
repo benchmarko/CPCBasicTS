@@ -13,29 +13,16 @@ define(["require", "exports"], function (require, exports) {
         function Z80Disass(options) {
             this.dissOp = 0; // actual op-code
             this.prefix = 0; // actual prefix: 0=none, 1=0xDD, 2=0xFD, 4=0xED
-            this.disassPC = 0; // PC during disassemble
             this.options = {
-                data: options.data,
-                addr: options.addr,
                 format: 7
             };
             this.setOptions(options);
         }
-        Z80Disass.prototype.setOptions = function (options) {
-            if (options.data !== undefined) {
-                this.options.data = options.data;
-            }
-            if (options.addr !== undefined) {
-                this.options.addr = options.addr;
-                this.disassPC = options.addr;
-            }
-            if (options.format !== undefined) {
-                this.options.format = options.format;
-            }
-        };
         Z80Disass.prototype.getOptions = function () {
-            this.options.addr = this.disassPC;
             return this.options;
+        };
+        Z80Disass.prototype.setOptions = function (options) {
+            Object.assign(this.options, options);
         };
         Z80Disass.prototype.readByte = function (i) {
             var data = this.options.data;
@@ -46,8 +33,8 @@ define(["require", "exports"], function (require, exports) {
             return data[i] | ((data[i + 1]) << 8);
         };
         Z80Disass.prototype.bget = function () {
-            var by = this.readByte(this.disassPC);
-            this.disassPC += 1;
+            var by = this.readByte(this.options.addr);
+            this.options.addr += 1;
             return by;
         };
         // byte-out: returns byte xx at PC; PC++
@@ -57,8 +44,8 @@ define(["require", "exports"], function (require, exports) {
         };
         // word-out: returns word xxyy from PC, PC+=2
         Z80Disass.prototype.wout = function () {
-            var wo = this.readWord(this.disassPC);
-            this.disassPC += 2;
+            var wo = this.readWord(this.options.addr);
+            this.options.addr += 2;
             return Z80Disass.hexMark + wo.toString(16).toUpperCase().padStart(4, "0");
         };
         // relative-address-out : gets it from PC and returns PC+(signed)tt ; PC++
@@ -66,7 +53,7 @@ define(["require", "exports"], function (require, exports) {
             var dis = this.bget(); // displacement, signed! (0= next instruction)
             dis = dis << 24 >> 24; // convert to signed
             // https://stackoverflow.com/questions/56577958/how-to-convert-one-byte-8-bit-to-signed-integer-in-javascript
-            var addr = this.disassPC + dis;
+            var addr = this.options.addr + dis;
             if (addr < 0) {
                 addr += 65536;
             }
@@ -111,7 +98,7 @@ define(["require", "exports"], function (require, exports) {
             else { // prefix === 4
                 out = "[ED]-prefix";
             }
-            this.disassPC -= 1;
+            this.options.addr -= 1;
             return out;
         };
         Z80Disass.prototype.operdisCB = function () {
@@ -119,10 +106,10 @@ define(["require", "exports"], function (require, exports) {
             // bit bbb,rrr; res bbb,rrr; set bbb,rrr [rrr=b,c,d,e,h,l,(hl),a]
             var out = "", newop; // new op
             if (this.prefix === 1 || this.prefix === 2) { // ix/iy-flag (ix or iy !)
-                newop = ((this.readByte(this.disassPC + 1) & 0xfe) | 0x06); // transform code x0..x7=>x6 , x8..xf=>xe  (always ix.., iy.. )
+                newop = ((this.readByte(this.options.addr + 1) & 0xfe) | 0x06); // transform code x0..x7=>x6 , x8..xf=>xe  (always ix.., iy.. )
             }
             else {
-                newop = this.readByte(this.disassPC);
+                newop = this.readByte(this.options.addr);
             }
             var b6b7 = newop >> 6, // test b6,7
             b3b4b5 = (newop >> 3) & 0x07;
@@ -133,14 +120,14 @@ define(["require", "exports"], function (require, exports) {
                 out = Z80Disass.bitResSetTable[b6b7 - 1] + " " + b3b4b5 + "," + this.bregout(newop);
             }
             if (this.prefix === 1 || this.prefix === 2) { // ix/iy-flag (ix or iy !)
-                if ((newop !== this.readByte(this.disassPC)) && ((newop >> 6) !== 0x01)) { // there was a transform; not bit-instruction
+                if ((newop !== this.readByte(this.options.addr)) && ((newop >> 6) !== 0x01)) { // there was a transform; not bit-instruction
                     var premem = this.prefix; // memorize prefix
                     this.prefix = 0; // only h or l
-                    out += " & LD " + this.bregout(this.readByte(this.disassPC));
+                    out += " & LD " + this.bregout(this.readByte(this.options.addr));
                     this.prefix = premem; // old prefix
                 }
             }
-            this.disassPC += 1;
+            this.options.addr += 1;
             return out;
         };
         Z80Disass.prototype.operdisEDpart40To7F = function (dissOp) {
@@ -508,7 +495,7 @@ define(["require", "exports"], function (require, exports) {
         };
         Z80Disass.prototype.disassLine = function () {
             var _a;
-            var format = (_a = this.options.format) !== null && _a !== void 0 ? _a : 7, startAddr = this.disassPC, line = this.getNextLine();
+            var format = (_a = this.options.format) !== null && _a !== void 0 ? _a : 7, startAddr = this.options.addr, line = this.getNextLine();
             var out = "";
             if (format & 1) {
                 out += startAddr.toString(16).toUpperCase().padStart(4, "0");
@@ -518,7 +505,7 @@ define(["require", "exports"], function (require, exports) {
                 if (out.length) {
                     out += "  ";
                 }
-                for (var i = startAddr; i < this.disassPC; i += 1) {
+                for (var i = startAddr; i < this.options.addr; i += 1) {
                     var byte = this.readByte(i) || 0;
                     byteHex.push(byte.toString(16).toUpperCase().padStart(2, "0"));
                 }
@@ -580,6 +567,6 @@ define(["require", "exports"], function (require, exports) {
     }());
     exports.Z80Disass = Z80Disass;
 });
-/* eslint-disable no-bitwise */
+/* eslint-enable no-bitwise */
 // end
 //# sourceMappingURL=Z80Disass.js.map

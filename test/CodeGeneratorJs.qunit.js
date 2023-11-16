@@ -764,7 +764,7 @@ define(["require", "exports", "../BasicLexer", "../BasicParser", "../CodeGenerat
             hooks.codeGeneratorJs = createCodeGeneratorJs();
         });
         function runSingleTest(codeGeneratorJs, key) {
-            var allowDirect = true, variables = new Variables_1.Variables(), output = codeGeneratorJs.generate(key, variables, allowDirect), result = output.error ? String(output.error) : output.text;
+            var allowDirect = true, variables = new Variables_1.Variables({}), output = codeGeneratorJs.generate(key, variables, allowDirect), result = output.error ? String(output.error) : output.text;
             return result;
         }
         function runTestsFor(category, tests, assert, results) {

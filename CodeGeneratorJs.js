@@ -142,29 +142,16 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 write: this.usingOrWrite
             };
             this.options = {
-                lexer: options.lexer,
-                parser: options.parser,
                 quiet: false
             };
             this.setOptions(options); // optional options
             this.reJsKeywords = CodeGeneratorJs.createJsKeywordRegex();
         }
-        CodeGeneratorJs.prototype.setOptions = function (options) {
-            if (options.implicitLines !== undefined) {
-                this.options.implicitLines = options.implicitLines;
-            }
-            if (options.noCodeFrame !== undefined) {
-                this.options.noCodeFrame = options.noCodeFrame;
-            }
-            if (options.quiet !== undefined) {
-                this.options.quiet = options.quiet;
-            }
-            if (options.trace !== undefined) {
-                this.options.trace = options.trace;
-            }
-        };
         CodeGeneratorJs.prototype.getOptions = function () {
             return this.options;
+        };
+        CodeGeneratorJs.prototype.setOptions = function (options) {
+            Object.assign(this.options, options);
         };
         CodeGeneratorJs.prototype.reset = function () {
             var stack = this.stack;

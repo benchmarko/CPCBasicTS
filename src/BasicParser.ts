@@ -67,65 +67,47 @@ export class BasicParser {
 
 	private statementList: ParserNode[] = []; // just to check last statement when generating error message
 
-	setOptions(options: Partial<BasicParserOptions>): void {
-		if (options.basicVersion !== undefined) {
-			this.setBasicVersion(options.basicVersion);
-		}
-
-		if (options.keepBrackets !== undefined) {
-			this.options.keepBrackets = options.keepBrackets;
-		}
-		if (options.keepColons !== undefined) {
-			this.options.keepColons = options.keepColons;
-		}
-		if (options.keepDataComma !== undefined) {
-			this.options.keepDataComma = options.keepDataComma;
-		}
-		if (options.keepTokens !== undefined) {
-			this.options.keepTokens = options.keepTokens;
-		}
-		if (options.quiet !== undefined) {
-			this.options.quiet = options.quiet;
-		}
-	}
-
-	getOptions(): BasicParserOptions {
-		return this.options;
-	}
-
-	getKeywords(): Record<string, string> {
-		return this.keywords;
-	}
-
-	setBasicVersion(basicVersion: string): void {
-		this.options.basicVersion = basicVersion;
-
-		this.keywords = basicVersion === "1.0" ? this.getKeywords10() : BasicParser.keywordsBasic11;
-
-		// if basicVersion changes, we need to recreate the symbols
-		this.fnClearSymbols();
-		this.fnGenerateSymbols();
-	}
-
 	constructor(options: BasicParserOptions) {
 		this.options = {
-			basicVersion: "",
+			basicVersion: "1.1", // default
 			quiet: false,
 			keepBrackets: false,
 			keepColons: false,
 			keepDataComma: false,
 			keepTokens: false
 		};
-		if (options) {
-			this.setOptions(options);
-		}
-
-		if (!this.options.basicVersion) { // not yet set?
-			this.setBasicVersion("1.1"); // set default
-		}
+		this.setOptions(options, true);
 
 		this.previousToken = {} as ParserNode; // to avoid warnings
 		this.token = this.previousToken;
+	}
+
+	getOptions(): BasicParserOptions {
+		return this.options;
+	}
+
+	setOptions(options: Partial<BasicParserOptions>, force?: boolean): void {
+		const currentBasicVersion = this.options.basicVersion;
+
+		Object.assign(this.options, options);
+
+		if (force || (this.options.basicVersion !== currentBasicVersion)) { // changed?
+			this.applyBasicVersion();
+		}
+	}
+
+	getKeywords(): Record<string, string> {
+		return this.keywords;
+	}
+
+	private applyBasicVersion() {
+		const basicVersion = this.options.basicVersion;
+
+		this.keywords = basicVersion === "1.0" ? this.getKeywords10() : BasicParser.keywordsBasic11;
+
+		// if basicVersion changes, we need to recreate the symbols
+		this.fnClearSymbols();
+		this.fnGenerateSymbols();
 	}
 
 	// for basicKeywords:

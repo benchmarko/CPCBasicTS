@@ -51,20 +51,16 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 write: this.write
             };
             this.options = {
-                lexer: options.lexer,
-                parser: options.parser,
                 quiet: false
             };
             this.setOptions(options);
             this.keywords = options.parser.getKeywords();
         }
-        CodeGeneratorBasic.prototype.setOptions = function (options) {
-            if (options.quiet !== undefined) {
-                this.options.quiet = options.quiet;
-            }
-        };
         CodeGeneratorBasic.prototype.getOptions = function () {
             return this.options;
+        };
+        CodeGeneratorBasic.prototype.setOptions = function (options) {
+            Object.assign(this.options, options);
         };
         CodeGeneratorBasic.prototype.composeError = function (error, message, value, pos) {
             return Utils_1.Utils.composeError("CodeGeneratorBasic", error, message, value, pos, undefined, this.line);

@@ -17,22 +17,16 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.tokens = [];
             this.whiteSpace = ""; // collected whitespace
             this.options = {
-                keywords: options.keywords,
                 keepWhiteSpace: false,
                 quiet: false
             };
             this.setOptions(options);
         }
-        BasicLexer.prototype.setOptions = function (options) {
-            if (options.keywords !== undefined) {
-                this.options.keywords = options.keywords;
-            }
-            if (options.keepWhiteSpace !== undefined) {
-                this.options.keepWhiteSpace = options.keepWhiteSpace;
-            }
-        };
         BasicLexer.prototype.getOptions = function () {
             return this.options;
+        };
+        BasicLexer.prototype.setOptions = function (options) {
+            Object.assign(this.options, options);
         };
         BasicLexer.prototype.composeError = function (error, message, value, pos, len) {
             return Utils_1.Utils.composeError("BasicLexer", error, message, value, pos, len, this.label || undefined);

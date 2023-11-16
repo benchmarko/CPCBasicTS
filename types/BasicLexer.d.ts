@@ -18,9 +18,9 @@ export declare class BasicLexer {
     private index;
     private readonly tokens;
     private whiteSpace;
-    setOptions(options: Partial<BasicLexerOptions>): void;
-    getOptions(): BasicLexerOptions;
     constructor(options: BasicLexerOptions);
+    getOptions(): BasicLexerOptions;
+    setOptions(options: Partial<BasicLexerOptions>): void;
     private composeError;
     private static isOperatorOrStreamOrAddress;
     private static isComparison;

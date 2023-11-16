@@ -28,9 +28,9 @@ export declare class CodeGeneratorJs {
     private variables;
     private defScopeArgs?;
     private defintDefstrTypes;
-    setOptions(options: Omit<CodeGeneratorJsOptions, "lexer" | "parser" | "rsx">): void;
-    getOptions(): CodeGeneratorJsOptions;
     constructor(options: CodeGeneratorJsOptions);
+    getOptions(): CodeGeneratorJsOptions;
+    setOptions(options: Partial<CodeGeneratorJsOptions>): void;
     private static readonly jsKeywords;
     private reset;
     private resetCountsPerLine;

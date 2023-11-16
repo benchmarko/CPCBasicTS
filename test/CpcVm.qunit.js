@@ -2318,13 +2318,6 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 windowScrollDown: args
             });
         },
-        /*
-        setPalette: function (...args) {
-            lastTestFunctions.push({
-                setPalette: args
-            });
-        },
-        */
         startUpdateCanvas: function () {
             var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {
@@ -2358,7 +2351,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 args[_i] = arguments[_i];
             }
             lastTestFunctions.push({
-                updateColorsAndCanvasImmediately: [String(args)] //TTT
+                updateColorsAndCanvasImmediately: [String(args)]
             });
         },
         onCanvasClick: function () {
@@ -2367,7 +2360,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 args[_i] = arguments[_i];
             }
             lastTestFunctions.push({
-                onCanvasClick: [String(args)] //TTT
+                onCanvasClick: [String(args)]
             });
         },
         onWindowClick: function () {
@@ -2376,7 +2369,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
                 args[_i] = arguments[_i];
             }
             lastTestFunctions.push({
-                onWindowClick: [String(args)] //TTT
+                onWindowClick: [String(args)]
             });
         },
         getXOrigin: function () {
@@ -2418,14 +2411,6 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             });
             return "scr";
         }
-        /*
-        getCanvasElement: function (...args) {
-            lastTestFunctions.push({
-                getCanvasElement: args
-            });
-            return undefined;
-        }
-        */
     }, mockKeyboard = {
         clearInput: function () {
             var args = [];
@@ -2446,14 +2431,6 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             });
             return 4 + Number(args); // example
         },
-        /*
-        getKeyDownHandler: function (...args) {
-            lastTestFunctions.push({
-                getKeyDownHandler: args
-            });
-            return undefined;
-        },
-        */
         getKeyFromBuffer: function () {
             var args = [];
             for (var _i = 0; _i < arguments.length; _i++) {

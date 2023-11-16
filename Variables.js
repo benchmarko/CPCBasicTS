@@ -34,17 +34,18 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     }());
     var Variables = /** @class */ (function () {
         function Variables(options) {
-            this.arrayBounds = false;
-            if (options) {
-                this.setOptions(options);
-            }
+            this.options = {
+                arrayBounds: false
+            };
+            this.setOptions(options);
             this.variables = {};
             this.varTypes = {}; // default variable types for variables starting with letters a-z
         }
+        Variables.prototype.getOptions = function () {
+            return this.options;
+        };
         Variables.prototype.setOptions = function (options) {
-            if (options.arrayBounds !== undefined) {
-                this.arrayBounds = options.arrayBounds;
-            }
+            Object.assign(this.options, options);
         };
         Variables.prototype.removeAllVariables = function () {
             var variables = this.variables;
@@ -60,7 +61,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         Variables.prototype.createNDimArray = function (dims, initVal) {
             var that = this, fnCreateRec = function (index) {
-                var len = dims[index], arr = that.arrayBounds ? new ArrayProxy(len) : new Array(len);
+                var len = dims[index], arr = that.options.arrayBounds ? new ArrayProxy(len) : new Array(len);
                 index += 1;
                 if (index < dims.length) { // more dimensions?
                     for (var i = 0; i < len; i += 1) {

@@ -12,9 +12,9 @@ export declare class CodeGeneratorBasic {
     private hasColons;
     private keepWhiteSpace;
     private line;
-    setOptions(options: Partial<CodeGeneratorBasicOptions>): void;
-    getOptions(): CodeGeneratorBasicOptions;
     constructor(options: CodeGeneratorBasicOptions);
+    getOptions(): CodeGeneratorBasicOptions;
+    setOptions(options: Partial<CodeGeneratorBasicOptions>): void;
     private static readonly combinedKeywords;
     private static readonly operators;
     private static readonly operatorPrecedence;

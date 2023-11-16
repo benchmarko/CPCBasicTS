@@ -1,5 +1,5 @@
 export interface DiskImageOptions {
-    diskName: string;
+    diskName?: string;
     data: string;
     quiet?: boolean;
 }
@@ -28,14 +28,13 @@ declare type DirectoryListType = Record<string, ExtentEntry[]>;
 export declare class DiskImage {
     private readonly options;
     private diskInfo;
-    private format;
-    setOptions(options: DiskImageOptions): void;
-    getOptions(): DiskImageOptions;
+    private formatDescriptor?;
     constructor(options: DiskImageOptions);
+    getOptions(): DiskImageOptions;
+    setOptions(options: Partial<DiskImageOptions>): void;
     private static readonly formatDescriptors;
     private static getInitialDiskInfo;
-    private static getInitialFormatDescriptor;
-    reset(): void;
+    private getFormatDescriptor;
     private composeError;
     private static readonly diskInfoIdentMap;
     static testDiskIdent(ident: string): number;
@@ -52,11 +51,11 @@ export declare class DiskImage {
     private readTrackInfo;
     private static createTrackInfoAsString;
     private seekTrack;
-    private sectorNum2Index;
-    private seekSector;
+    private static sectorNum2Index;
+    private static seekSector;
     private readSector;
     private writeSector;
-    private getFormatDescriptor;
+    private composeFormatDescriptor;
     private determineFormat;
     private createImage;
     formatImage(format: string): string;
@@ -67,11 +66,11 @@ export declare class DiskImage {
     private static fnSortByExtentNumber;
     private static sortFileExtents;
     private static prepareDirectoryList;
-    private convertBlock2Sector;
+    private static convertBlock2Sector;
     private readAllDirectoryExtents;
     private writeAllDirectoryExtents;
     readDirectory(): DirectoryListType;
-    private nextSector;
+    private static nextSector;
     private readBlock;
     private writeBlock;
     private readExtents;

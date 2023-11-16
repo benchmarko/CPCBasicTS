@@ -1455,22 +1455,16 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
             this.tokens = [];
             this.whiteSpace = ""; // collected whitespace
             this.options = {
-                keywords: options.keywords,
                 keepWhiteSpace: false,
                 quiet: false
             };
             this.setOptions(options);
         }
-        BasicLexer.prototype.setOptions = function (options) {
-            if (options.keywords !== undefined) {
-                this.options.keywords = options.keywords;
-            }
-            if (options.keepWhiteSpace !== undefined) {
-                this.options.keepWhiteSpace = options.keepWhiteSpace;
-            }
-        };
         BasicLexer.prototype.getOptions = function () {
             return this.options;
+        };
+        BasicLexer.prototype.setOptions = function (options) {
+            Object.assign(this.options, options);
         };
         BasicLexer.prototype.composeError = function (error, message, value, pos, len) {
             return Utils_2.Utils.composeError("BasicLexer", error, message, value, pos, len, this.label || undefined);
@@ -1904,50 +1898,32 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                 write: this.write
             };
             this.options = {
-                basicVersion: "",
+                basicVersion: "1.1",
                 quiet: false,
                 keepBrackets: false,
                 keepColons: false,
                 keepDataComma: false,
                 keepTokens: false
             };
-            if (options) {
-                this.setOptions(options);
-            }
-            if (!this.options.basicVersion) { // not yet set?
-                this.setBasicVersion("1.1"); // set default
-            }
+            this.setOptions(options, true);
             this.previousToken = {}; // to avoid warnings
             this.token = this.previousToken;
         }
-        BasicParser.prototype.setOptions = function (options) {
-            if (options.basicVersion !== undefined) {
-                this.setBasicVersion(options.basicVersion);
-            }
-            if (options.keepBrackets !== undefined) {
-                this.options.keepBrackets = options.keepBrackets;
-            }
-            if (options.keepColons !== undefined) {
-                this.options.keepColons = options.keepColons;
-            }
-            if (options.keepDataComma !== undefined) {
-                this.options.keepDataComma = options.keepDataComma;
-            }
-            if (options.keepTokens !== undefined) {
-                this.options.keepTokens = options.keepTokens;
-            }
-            if (options.quiet !== undefined) {
-                this.options.quiet = options.quiet;
-            }
-        };
         BasicParser.prototype.getOptions = function () {
             return this.options;
+        };
+        BasicParser.prototype.setOptions = function (options, force) {
+            var currentBasicVersion = this.options.basicVersion;
+            Object.assign(this.options, options);
+            if (force || (this.options.basicVersion !== currentBasicVersion)) { // changed?
+                this.applyBasicVersion();
+            }
         };
         BasicParser.prototype.getKeywords = function () {
             return this.keywords;
         };
-        BasicParser.prototype.setBasicVersion = function (basicVersion) {
-            this.options.basicVersion = basicVersion;
+        BasicParser.prototype.applyBasicVersion = function () {
+            var basicVersion = this.options.basicVersion;
             this.keywords = basicVersion === "1.0" ? this.getKeywords10() : BasicParser.keywordsBasic11;
             // if basicVersion changes, we need to recreate the symbols
             this.fnClearSymbols();
@@ -3324,19 +3300,15 @@ define("BasicFormatter", ["require", "exports", "Utils"], function (require, exp
         function BasicFormatter(options) {
             this.label = ""; // current label (line) for error messages
             this.options = {
-                lexer: options.lexer,
-                parser: options.parser,
                 implicitLines: false
             };
             this.setOptions(options);
         }
-        BasicFormatter.prototype.setOptions = function (options) {
-            if (options.implicitLines !== undefined) {
-                this.options.implicitLines = options.implicitLines;
-            }
-        };
         BasicFormatter.prototype.getOptions = function () {
             return this.options;
+        };
+        BasicFormatter.prototype.setOptions = function (options) {
+            Object.assign(this.options, options);
         };
         BasicFormatter.prototype.composeError = function (error, message, value, pos, len) {
             return Utils_4.Utils.composeError("BasicFormatter", error, message, value, pos, len, this.label);
@@ -3799,12 +3771,6 @@ define("BasicTokenizer", ["require", "exports", "Utils"], function (require, exp
         }
         BasicTokenizer.prototype.fnNum8Dec = function () {
             var num = this.input.charCodeAt(this.pos);
-            /*
-            if (isNaN(num)) {
-                Utils.console.warn("fnNum8Dec: pos=" + this.pos + ": EOF met!");
-                num = 0;
-            }
-            */
             this.pos += 1;
             return num;
         };
@@ -4107,20 +4073,16 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils"], function (require,
                 write: this.write
             };
             this.options = {
-                lexer: options.lexer,
-                parser: options.parser,
                 quiet: false
             };
             this.setOptions(options);
             this.keywords = options.parser.getKeywords();
         }
-        CodeGeneratorBasic.prototype.setOptions = function (options) {
-            if (options.quiet !== undefined) {
-                this.options.quiet = options.quiet;
-            }
-        };
         CodeGeneratorBasic.prototype.getOptions = function () {
             return this.options;
+        };
+        CodeGeneratorBasic.prototype.setOptions = function (options) {
+            Object.assign(this.options, options);
         };
         CodeGeneratorBasic.prototype.composeError = function (error, message, value, pos) {
             return Utils_6.Utils.composeError("CodeGeneratorBasic", error, message, value, pos, undefined, this.line);
@@ -4587,17 +4549,18 @@ define("Variables", ["require", "exports", "Utils"], function (require, exports,
     }());
     var Variables = /** @class */ (function () {
         function Variables(options) {
-            this.arrayBounds = false;
-            if (options) {
-                this.setOptions(options);
-            }
+            this.options = {
+                arrayBounds: false
+            };
+            this.setOptions(options);
             this.variables = {};
             this.varTypes = {}; // default variable types for variables starting with letters a-z
         }
+        Variables.prototype.getOptions = function () {
+            return this.options;
+        };
         Variables.prototype.setOptions = function (options) {
-            if (options.arrayBounds !== undefined) {
-                this.arrayBounds = options.arrayBounds;
-            }
+            Object.assign(this.options, options);
         };
         Variables.prototype.removeAllVariables = function () {
             var variables = this.variables;
@@ -4613,7 +4576,7 @@ define("Variables", ["require", "exports", "Utils"], function (require, exports,
         };
         Variables.prototype.createNDimArray = function (dims, initVal) {
             var that = this, fnCreateRec = function (index) {
-                var len = dims[index], arr = that.arrayBounds ? new ArrayProxy(len) : new Array(len);
+                var len = dims[index], arr = that.options.arrayBounds ? new ArrayProxy(len) : new Array(len);
                 index += 1;
                 if (index < dims.length) { // more dimensions?
                     for (var i = 0; i < len; i += 1) {
@@ -4859,29 +4822,16 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 write: this.usingOrWrite
             };
             this.options = {
-                lexer: options.lexer,
-                parser: options.parser,
                 quiet: false
             };
             this.setOptions(options); // optional options
             this.reJsKeywords = CodeGeneratorJs.createJsKeywordRegex();
         }
-        CodeGeneratorJs.prototype.setOptions = function (options) {
-            if (options.implicitLines !== undefined) {
-                this.options.implicitLines = options.implicitLines;
-            }
-            if (options.noCodeFrame !== undefined) {
-                this.options.noCodeFrame = options.noCodeFrame;
-            }
-            if (options.quiet !== undefined) {
-                this.options.quiet = options.quiet;
-            }
-            if (options.trace !== undefined) {
-                this.options.trace = options.trace;
-            }
-        };
         CodeGeneratorJs.prototype.getOptions = function () {
             return this.options;
+        };
+        CodeGeneratorJs.prototype.setOptions = function (options) {
+            Object.assign(this.options, options);
         };
         CodeGeneratorJs.prototype.reset = function () {
             var stack = this.stack;
@@ -6296,23 +6246,16 @@ define("CodeGeneratorToken", ["require", "exports", "Utils"], function (require,
                 "'": this.fnElseOrApostrophe
             };
             this.options = {
-                lexer: options.lexer,
-                parser: options.parser,
                 implicitLines: false,
                 quiet: false
             };
             this.setOptions(options);
         }
-        CodeGeneratorToken.prototype.setOptions = function (options) {
-            if (options.implicitLines !== undefined) {
-                this.options.implicitLines = options.implicitLines;
-            }
-            if (options.quiet !== undefined) {
-                this.options.quiet = options.quiet;
-            }
-        };
         CodeGeneratorToken.prototype.getOptions = function () {
             return this.options;
+        };
+        CodeGeneratorToken.prototype.setOptions = function (options) {
+            Object.assign(this.options, options);
         };
         CodeGeneratorToken.prototype.composeError = function (error, message, value, pos) {
             return Utils_9.Utils.composeError("CodeGeneratorToken", error, message, value, pos, undefined, this.label);
@@ -7159,43 +7102,77 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
     exports.DiskImage = void 0;
     var DiskImage = /** @class */ (function () {
         function DiskImage(options) {
+            this.diskInfo = DiskImage.getInitialDiskInfo();
             this.options = {
-                diskName: options.diskName,
-                data: options.data,
+                data: "",
                 quiet: false
             };
             this.setOptions(options);
-            // reset
-            this.diskInfo = DiskImage.getInitialDiskInfo();
-            this.format = DiskImage.getInitialFormatDescriptor();
         }
-        DiskImage.prototype.setOptions = function (options) {
-            if (options.diskName !== undefined) {
-                this.options.diskName = options.diskName;
-            }
-            if (options.data !== undefined) {
-                this.options.data = options.data;
-            }
-            if (options.quiet !== undefined) {
-                this.options.quiet = options.quiet;
-            }
-        };
         DiskImage.prototype.getOptions = function () {
             return this.options;
         };
-        DiskImage.getInitialDiskInfo = function () {
+        DiskImage.prototype.setOptions = function (options) {
+            var currentData = this.options.data;
+            Object.assign(this.options, options);
+            if (this.options.data !== currentData) { // changed?
+                this.diskInfo.ident = ""; // invalidate diskinfo
+                this.diskInfo.trackInfo.ident = ""; // invalidate trackinfo
+            }
+        };
+        /*
+        private static getInitialDiskInfo() {
             return {
                 trackInfo: {
-                    sectorInfo: []
+                    sectorInfoList: [] as SectorInfo[]
                 }
-            };
-        };
-        DiskImage.getInitialFormatDescriptor = function () {
-            return {};
-        };
-        DiskImage.prototype.reset = function () {
+            } as DiskInfo;
+        }
+        */
+        /*
+        private static getInitialFormatDescriptor() {
+            return {} as FormatDescriptor;
+        }
+        */
+        /*
+        reset(): void {
             this.diskInfo = DiskImage.getInitialDiskInfo();
-            this.format = DiskImage.getInitialFormatDescriptor();
+            this.formatDescriptor = DiskImage.getInitialFormatDescriptor();
+        }
+        */
+        DiskImage.getInitialDiskInfo = function () {
+            var diskInfo = {
+                ident: "",
+                creator: "",
+                tracks: 0,
+                heads: 0,
+                trackSize: 0,
+                trackInfo: {
+                    ident: "",
+                    sectorInfoList: []
+                },
+                trackSizes: [],
+                trackInfoPosList: [],
+                extended: false
+            };
+            return diskInfo;
+        };
+        /*
+        private getDiskInfo() {
+            const diskInfo = this.diskInfo;
+    
+            if (!diskInfo) {
+                throw this.composeError(Error(), "getDiskInfo: diskInfo:", String(diskInfo));
+            }
+            return diskInfo;
+        }
+        */
+        DiskImage.prototype.getFormatDescriptor = function () {
+            var formatDescriptor = this.formatDescriptor;
+            if (!formatDescriptor) {
+                throw this.composeError(Error(), "getFormatDescriptor: formatDescriptor:", String(formatDescriptor));
+            }
+            return formatDescriptor;
         };
         DiskImage.prototype.composeError = function (error, message, value, pos) {
             var len = 0;
@@ -7231,8 +7208,8 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
         DiskImage.uInt24ToString = function (value) {
             return DiskImage.uInt16ToString(value & 0xffff) + DiskImage.uInt8ToString(value >> 16); // eslint-disable-line no-bitwise
         };
-        DiskImage.prototype.readDiskInfo = function (pos) {
-            var diskInfo = this.diskInfo, ident = this.readUtf(pos, 8), // check first 8 characters as characteristic
+        DiskImage.prototype.readDiskInfo = function (diskInfo, pos) {
+            var ident = this.readUtf(pos, 8), // check first 8 characters as characteristic
             diskType = DiskImage.testDiskIdent(ident);
             if (!diskType) {
                 throw this.composeError(Error(), "Ident not found", ident, pos);
@@ -7249,17 +7226,18 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             diskInfo.tracks = this.readUInt8(pos + 48);
             diskInfo.heads = this.readUInt8(pos + 49);
             diskInfo.trackSize = this.readUInt16(pos + 50);
-            var trackSizes = [], trackPosList = [], trackSizeCount = diskInfo.tracks * diskInfo.heads; // number of track sizes
-            var trackPos = DiskImage.diskInfoSize;
+            var trackSizes = [], trackInfoPosList = [], trackSizeCount = diskInfo.tracks * diskInfo.heads; // number of track sizes
+            var trackInfoPos = DiskImage.diskInfoSize;
             pos += 52; // track sizes high bytes start at offset 52 (0x35)
             for (var i = 0; i < trackSizeCount; i += 1) {
-                trackPosList.push(trackPos);
+                trackInfoPosList.push(trackInfoPos);
                 var trackSize = diskInfo.trackSize || (this.readUInt8(pos + i) * 256); // take common track size or read individual track size (extended)
                 trackSizes.push(trackSize);
-                trackPos += trackSize;
+                trackInfoPos += trackSize;
             }
             diskInfo.trackSizes = trackSizes;
-            diskInfo.trackPos = trackPosList;
+            diskInfo.trackInfoPosList = trackInfoPosList;
+            diskInfo.trackInfo.ident = ""; // make sure it is invalid
         };
         DiskImage.createDiskInfoAsString = function (diskInfo) {
             // only standard format
@@ -7271,9 +7249,8 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                 + DiskImage.uInt8ToString(0).repeat(204); // unused
             return diskInfoString;
         };
-        DiskImage.prototype.readTrackInfo = function (pos) {
-            var trackInfoSize = DiskImage.trackInfoSize, trackInfo = this.diskInfo.trackInfo, sectorInfoList = trackInfo.sectorInfo;
-            trackInfo.dataPos = pos + trackInfoSize;
+        DiskImage.prototype.readTrackInfo = function (trackInfo, pos) {
+            var trackInfoSize = DiskImage.trackInfoSize, sectorInfoList = trackInfo.sectorInfoList, trackDataPos = pos + trackInfoSize;
             trackInfo.ident = this.readUtf(pos, 12);
             if (trackInfo.ident.substring(0, 10) !== "Track-Info") { // some tools use "Track-Info  " instead of "Track-Info\r\n", so compare without "\r\n"
                 // "Track-Info" string is optional
@@ -7294,7 +7271,7 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             var sectorNum2Index = {};
             trackInfo.sectorNum2Index = sectorNum2Index;
             pos += 24; // start sector info
-            var sectorPos = trackInfo.dataPos;
+            var sectorPos = trackDataPos;
             for (var i = 0; i < trackInfo.spt; i += 1) {
                 var sectorInfo = sectorInfoList[i] || {}; // resue SectorInfo object if possible
                 sectorInfoList[i] = sectorInfo;
@@ -7313,7 +7290,7 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             }
         };
         DiskImage.createTrackInfoAsString = function (trackInfo) {
-            var sectorInfoList = trackInfo.sectorInfo;
+            var sectorInfoList = trackInfo.sectorInfoList;
             var trackInfoString = trackInfo.ident // 12
                 + DiskImage.uInt8ToString(0).repeat(4) // 4 unused
                 + DiskImage.uInt8ToString(trackInfo.track)
@@ -7338,70 +7315,68 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             trackInfoString += DiskImage.uInt8ToString(0).repeat(DiskImage.trackInfoSize - trackInfoString.length);
             return trackInfoString;
         };
-        DiskImage.prototype.seekTrack = function (track, head) {
-            var diskInfo = this.diskInfo, trackInfo = diskInfo.trackInfo;
-            if (trackInfo.track === track && trackInfo.head === head) { // already positionend?
+        DiskImage.prototype.seekTrack = function (diskInfo, track, head) {
+            if (!diskInfo.ident) {
+                this.readDiskInfo(diskInfo, 0);
+            }
+            var trackInfo = diskInfo.trackInfo;
+            if (trackInfo.ident && trackInfo.track === track && trackInfo.head === head) { // already positionend?
                 return;
             }
-            if (!diskInfo.ident) {
-                this.readDiskInfo(0);
-            }
-            var trackInfoPos = diskInfo.trackPos[track * diskInfo.heads + head];
+            var trackInfoPos = diskInfo.trackInfoPosList[track * diskInfo.heads + head];
             if (trackInfoPos === undefined) {
                 throw this.composeError(new Error(), "Track not found", String(track));
             }
-            this.readTrackInfo(trackInfoPos);
+            this.readTrackInfo(trackInfo, trackInfoPos);
         };
-        DiskImage.prototype.sectorNum2Index = function (sector) {
-            var trackInfo = this.diskInfo.trackInfo, sectorIndex = trackInfo.sectorNum2Index[sector];
+        DiskImage.sectorNum2Index = function (trackInfo, sector) {
+            var sectorIndex = trackInfo.sectorNum2Index[sector];
             return sectorIndex;
         };
-        DiskImage.prototype.seekSector = function (sectorIndex) {
-            var sectorInfoList = this.diskInfo.trackInfo.sectorInfo, sectorInfo = sectorInfoList[sectorIndex];
-            return sectorInfo;
+        DiskImage.seekSector = function (sectorInfoList, sectorIndex) {
+            return sectorInfoList[sectorIndex];
         };
-        DiskImage.prototype.readSector = function (sector) {
-            var trackInfo = this.diskInfo.trackInfo, sectorIndex = this.sectorNum2Index(sector);
+        DiskImage.prototype.readSector = function (trackInfo, sector) {
+            var sectorIndex = DiskImage.sectorNum2Index(trackInfo, sector);
             if (sectorIndex === undefined) {
                 throw this.composeError(Error(), "Track " + trackInfo.track + ": Sector not found", String(sector), 0);
             }
-            var sectorInfo = this.seekSector(sectorIndex), out = this.readUtf(sectorInfo.dataPos, sectorInfo.sectorSize);
+            var sectorInfo = DiskImage.seekSector(trackInfo.sectorInfoList, sectorIndex), out = this.readUtf(sectorInfo.dataPos, sectorInfo.sectorSize);
             return out;
         };
-        DiskImage.prototype.writeSector = function (sector, sectorData) {
-            var trackInfo = this.diskInfo.trackInfo, sectorIndex = this.sectorNum2Index(sector);
+        DiskImage.prototype.writeSector = function (trackInfo, sector, sectorData) {
+            var sectorIndex = DiskImage.sectorNum2Index(trackInfo, sector);
             if (sectorIndex === undefined) {
                 throw this.composeError(Error(), "Track " + trackInfo.track + ": Sector not found", String(sector), 0);
             }
-            var sectorInfo = this.seekSector(sectorIndex), data = this.options.data;
+            var sectorInfo = DiskImage.seekSector(trackInfo.sectorInfoList, sectorIndex), data = this.options.data;
             if (sectorData.length !== sectorInfo.sectorSize) {
                 Utils_11.Utils.console.error(this.composeError({}, "sectordata.length " + sectorData.length + " <> sectorSize " + sectorInfo.sectorSize, String(0)));
             }
             this.options.data = data.substring(0, sectorInfo.dataPos) + sectorData + data.substring(sectorInfo.dataPos + sectorInfo.sectorSize);
         };
         // ...
-        DiskImage.prototype.getFormatDescriptor = function (format) {
-            var derivedFormat = DiskImage.formatDescriptors[format];
-            if (!derivedFormat) {
+        DiskImage.prototype.composeFormatDescriptor = function (format) {
+            var derivedFormatDescriptor = DiskImage.formatDescriptors[format];
+            if (!derivedFormatDescriptor) {
                 throw this.composeError(Error(), "Unknown format", format);
             }
             var formatDescriptor;
-            if (derivedFormat.parentRef) {
-                var parentFormat = this.getFormatDescriptor(derivedFormat.parentRef); // recursive
-                formatDescriptor = Object.assign({}, parentFormat, derivedFormat);
+            if (derivedFormatDescriptor.parentRef) {
+                var parentFormatDescriptor = this.composeFormatDescriptor(derivedFormatDescriptor.parentRef); // recursive
+                formatDescriptor = Object.assign({}, parentFormatDescriptor, derivedFormatDescriptor);
             }
             else {
-                formatDescriptor = Object.assign({}, derivedFormat); // get a copy
+                formatDescriptor = Object.assign({}, derivedFormatDescriptor); // get a copy
             }
             return formatDescriptor;
         };
-        DiskImage.prototype.determineFormat = function () {
-            var diskInfo = this.diskInfo, track = 0, head = 0;
-            this.seekTrack(track, head);
-            var trackInfo = diskInfo.trackInfo;
+        DiskImage.prototype.determineFormat = function (diskInfo) {
+            var trackInfo = diskInfo.trackInfo, track = 0, head = 0;
+            this.seekTrack(diskInfo, track, head);
             var firstSector = 0xff;
             for (var i = 0; i < trackInfo.spt; i += 1) {
-                var sector = trackInfo.sectorInfo[i].sector;
+                var sector = trackInfo.sectorInfoList[i].sector;
                 if (sector < firstSector) {
                     firstSector = sector;
                 }
@@ -7425,10 +7400,10 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             if (diskInfo.heads > 1) { // maybe 2
                 format += String(diskInfo.heads); // e.g. "data": "data2"
             }
-            return this.getFormatDescriptor(format);
+            return format;
         };
         DiskImage.prototype.createImage = function (format) {
-            var formatDescriptor = this.getFormatDescriptor(format), sectorInfoList = [], sectorSize = (0x80 << formatDescriptor.bps), // eslint-disable-line no-bitwise
+            var formatDescriptor = this.composeFormatDescriptor(format), sectorInfoList = [], sectorSize = (0x80 << formatDescriptor.bps), // eslint-disable-line no-bitwise
             sectorInfo = {
                 track: 0,
                 head: 0,
@@ -7437,8 +7412,7 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                 state1: 0,
                 state2: 0,
                 sectorSize: sectorSize,
-                length: 0,
-                dataPos: 0 // not needed for format
+                dataPos: 0
             }, trackInfo = {
                 ident: "Track-Info\r\n",
                 track: 0,
@@ -7449,8 +7423,7 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                 spt: formatDescriptor.spt,
                 gap3: formatDescriptor.gap3,
                 fill: formatDescriptor.fill,
-                sectorInfo: sectorInfoList,
-                dataPos: 0,
+                sectorInfoList: sectorInfoList,
                 sectorNum2Index: {}
             }, diskInfo = {
                 ident: "MV - CPCEMU Disk-File\r\nDisk-Info\r\n",
@@ -7459,38 +7432,44 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                 heads: formatDescriptor.heads,
                 trackSize: DiskImage.trackInfoSize + formatDescriptor.spt * sectorSize,
                 trackInfo: trackInfo,
-                extended: false,
                 trackSizes: [],
-                trackPos: []
+                trackInfoPosList: [],
+                extended: false
             }, emptySectorData = DiskImage.uInt8ToString(formatDescriptor.fill).repeat(sectorSize);
             for (var i = 0; i < trackInfo.spt; i += 1) {
                 var sectorInfoClone = __assign({}, sectorInfo);
                 sectorInfoClone.sector = formatDescriptor.firstSector + i;
+                trackInfo.sectorNum2Index[sectorInfoClone.sector] = i;
                 sectorInfoList.push(sectorInfoClone);
             }
-            var image = DiskImage.createDiskInfoAsString(diskInfo);
+            var image = DiskImage.createDiskInfoAsString(diskInfo), trackInfoPos = DiskImage.diskInfoSize;
             for (var track = 0; track < formatDescriptor.tracks; track += 1) {
                 for (var head = 0; head < formatDescriptor.heads; head += 1) {
                     trackInfo.track = track;
                     trackInfo.head = head;
+                    diskInfo.trackInfoPosList.push(trackInfoPos);
                     for (var sector = 0; sector < trackInfo.spt; sector += 1) {
-                        sectorInfoList[sector].track = track;
-                        sectorInfoList[sector].head = head;
+                        var sectorInfo2 = sectorInfoList[sector];
+                        sectorInfo2.track = track;
+                        sectorInfo2.head = head;
+                        // in case we want to use the formatted image...
+                        sectorInfo2.dataPos = trackInfoPos + DiskImage.trackInfoSize + sector * sectorInfo2.sectorSize;
                     }
                     var trackAsString = DiskImage.createTrackInfoAsString(trackInfo);
                     image += trackAsString;
                     for (var sector = 0; sector < formatDescriptor.spt; sector += 1) {
                         image += emptySectorData;
                     }
+                    trackInfoPos += diskInfo.trackSize;
                 }
             }
             this.diskInfo = diskInfo;
-            this.format = formatDescriptor;
+            this.formatDescriptor = formatDescriptor;
             return image;
         };
         DiskImage.prototype.formatImage = function (format) {
             var image = this.createImage(format);
-            this.reset(); // reset disk info and format (TTT)
+            //TTT Why? this.reset(); // reset disk info and format (TTT)
             this.options.data = image;
             return image;
         };
@@ -7502,18 +7481,6 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             }
             return out;
         };
-        /*
-        private static fnAddHighBit7(str: string, setBit7: boolean[]) {
-            let out = "";
-    
-            for (let i = 0; i < str.length; i += 1) {
-                const char = str.charCodeAt(i);
-    
-                out += String.fromCharCode(setBit7[i] ? (char | 0x80) : char); // eslint-disable-line no-bitwise
-            }
-            return out;
-        }
-        */
         DiskImage.prototype.readDirectoryExtents = function (extents, pos, endPos) {
             while (pos < endPos) {
                 var extent = {
@@ -7543,13 +7510,6 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             return extents;
         };
         DiskImage.createDirectoryExtentAsString = function (extent) {
-            /*
-            const extWithFlags = DiskImage.fnAddHighBit7(extent.ext, [
-                extent.readOnly,
-                extent.system,
-                extent.backup
-            ]);
-            */
             var extentString = DiskImage.uInt8ToString(extent.user)
                 + extent.name
                 + extent.ext
@@ -7600,55 +7560,54 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             DiskImage.sortFileExtents(dir);
             return dir;
         };
-        DiskImage.prototype.convertBlock2Sector = function (block) {
-            var format = this.format, spt = format.spt, blockSectors = format.bls / 512, // usually 2
+        DiskImage.convertBlock2Sector = function (formatDescriptor, block) {
+            var spt = formatDescriptor.spt, blockSectors = formatDescriptor.bls / 512, // usually 2
             logSec = block * blockSectors, // directory is in block 0-1
             pos = {
-                track: Math.floor(logSec / spt) + format.off,
+                track: Math.floor(logSec / spt) + formatDescriptor.off,
                 head: 0,
-                sector: (logSec % spt) + format.firstSector
+                sector: (logSec % spt) + formatDescriptor.firstSector
             };
             return pos;
         };
-        DiskImage.prototype.readAllDirectoryExtents = function (extents) {
+        DiskImage.prototype.readAllDirectoryExtents = function (diskInfo, formatDescriptor, extents) {
             var directorySectors = 4, // could be determined from al0,al1
-            format = this.format, off = format.off, firstSector = format.firstSector;
-            this.seekTrack(off, 0);
+            off = formatDescriptor.off, firstSector = formatDescriptor.firstSector, trackInfo = diskInfo.trackInfo, sectorInfoList = trackInfo.sectorInfoList;
+            this.seekTrack(diskInfo, off, 0);
             for (var i = 0; i < directorySectors; i += 1) {
-                var sectorIndex = this.sectorNum2Index(firstSector + i);
+                var sectorIndex = DiskImage.sectorNum2Index(trackInfo, firstSector + i);
                 if (sectorIndex === undefined) {
                     throw this.composeError(Error(), "Cannot read directory at track " + off + " sector", String(firstSector));
                 }
-                var sectorInfo = this.seekSector(sectorIndex);
+                var sectorInfo = DiskImage.seekSector(sectorInfoList, sectorIndex);
                 this.readDirectoryExtents(extents, sectorInfo.dataPos, sectorInfo.dataPos + sectorInfo.sectorSize);
             }
             return extents;
         };
-        DiskImage.prototype.writeAllDirectoryExtents = function (extents) {
+        DiskImage.prototype.writeAllDirectoryExtents = function (diskInfo, formatDescriptor, extents) {
             var directoryBlocks = 2, // could be determined from al0,al1
             extentsPerBlock = extents.length / directoryBlocks;
             for (var i = 0; i < directoryBlocks; i += 1) {
                 var blockData = DiskImage.createSeveralDirectoryExtentsAsString(extents, i * extentsPerBlock, (i + 1) * extentsPerBlock);
-                this.writeBlock(i, blockData);
+                this.writeBlock(diskInfo, formatDescriptor, i, blockData);
             }
         };
         DiskImage.prototype.readDirectory = function () {
-            var format = this.determineFormat(), extents = [];
-            this.format = format;
-            this.readAllDirectoryExtents(extents);
-            return DiskImage.prepareDirectoryList(extents, format.fill);
+            var diskInfo = this.diskInfo, format = this.determineFormat(diskInfo), formatDescriptor = this.composeFormatDescriptor(format), extents = [];
+            this.formatDescriptor = formatDescriptor;
+            this.readAllDirectoryExtents(diskInfo, formatDescriptor, extents);
+            return DiskImage.prepareDirectoryList(extents, this.formatDescriptor.fill);
         };
-        DiskImage.prototype.nextSector = function (pos) {
-            var format = this.format;
+        DiskImage.nextSector = function (formatDescriptor, pos) {
             pos.sector += 1;
-            if (pos.sector >= format.firstSector + format.spt) {
+            if (pos.sector >= formatDescriptor.firstSector + formatDescriptor.spt) {
                 pos.track += 1;
-                pos.sector = format.firstSector;
+                pos.sector = formatDescriptor.firstSector;
             }
         };
-        DiskImage.prototype.readBlock = function (block) {
-            var diskInfo = this.diskInfo, blockSectors = this.format.bls / 512, // usually 2
-            pos = this.convertBlock2Sector(block);
+        DiskImage.prototype.readBlock = function (diskInfo, formatDescriptor, block) {
+            var blockSectors = formatDescriptor.bls / 512, // usually 2
+            pos = DiskImage.convertBlock2Sector(formatDescriptor, block);
             var out = "";
             if (pos.track >= diskInfo.tracks) {
                 Utils_11.Utils.console.error(this.composeError({}, "Block " + block + ": Track out of range", String(pos.track)));
@@ -7657,16 +7616,16 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                 Utils_11.Utils.console.error(this.composeError({}, "Block " + block + ": Head out of range", String(pos.track)));
             }
             for (var i = 0; i < blockSectors; i += 1) {
-                this.seekTrack(pos.track, pos.head);
-                out += this.readSector(pos.sector);
-                this.nextSector(pos);
+                this.seekTrack(diskInfo, pos.track, pos.head);
+                out += this.readSector(diskInfo.trackInfo, pos.sector);
+                DiskImage.nextSector(formatDescriptor, pos);
             }
             return out;
         };
-        DiskImage.prototype.writeBlock = function (block, blockData) {
-            var diskInfo = this.diskInfo, format = this.format, blockSectors = format.bls / 512, // usually 2
-            sectorSize = (0x80 << format.bps), // eslint-disable-line no-bitwise
-            pos = this.convertBlock2Sector(block);
+        DiskImage.prototype.writeBlock = function (diskInfo, formatDescriptor, block, blockData) {
+            var blockSectors = formatDescriptor.bls / 512, // usually 2
+            sectorSize = (0x80 << formatDescriptor.bps), // eslint-disable-line no-bitwise
+            pos = DiskImage.convertBlock2Sector(formatDescriptor, block);
             if (pos.track >= diskInfo.tracks) {
                 Utils_11.Utils.console.error(this.composeError({}, "Block " + block + ": Track out of range", String(pos.track)));
             }
@@ -7677,14 +7636,14 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                 Utils_11.Utils.console.error(this.composeError({}, "blockData.length " + blockData.length + " <> blockSize " + (blockSectors * sectorSize), String(0)));
             }
             for (var i = 0; i < blockSectors; i += 1) {
-                this.seekTrack(pos.track, pos.head);
+                this.seekTrack(diskInfo, pos.track, pos.head);
                 var sectorData = blockData.substring(i * sectorSize, (i + 1) * sectorSize);
-                this.writeSector(pos.sector, sectorData); //out += this.readSector(pos.sector);
-                this.nextSector(pos);
+                this.writeSector(diskInfo.trackInfo, pos.sector, sectorData);
+                DiskImage.nextSector(formatDescriptor, pos);
             }
         };
-        DiskImage.prototype.readExtents = function (fileExtents) {
-            var recPerBlock = this.format.bls / 128; // usually 8
+        DiskImage.prototype.readExtents = function (diskInfo, formatDescriptor, fileExtents) {
+            var recPerBlock = formatDescriptor.bls / 128; // usually 8
             var out = "";
             for (var i = 0; i < fileExtents.length; i += 1) {
                 var extent = fileExtents[i], blocks = extent.blocks;
@@ -7695,7 +7654,7 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                     }
                 }
                 for (var blockIndex = 0; blockIndex < blocks.length; blockIndex += 1) {
-                    var block = this.readBlock(blocks[blockIndex]);
+                    var block = this.readBlock(diskInfo, formatDescriptor, blocks[blockIndex]);
                     if (records < recPerBlock) { // block with some remaining data
                         block = block.substring(0, 0x80 * records);
                     }
@@ -7709,7 +7668,8 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             return out;
         };
         DiskImage.prototype.readFile = function (fileExtents) {
-            var out = this.readExtents(fileExtents);
+            var diskInfo = this.diskInfo, formatDescriptor = this.getFormatDescriptor();
+            var out = this.readExtents(diskInfo, formatDescriptor, fileExtents);
             var header = DiskImage.parseAmsdosHeader(out);
             var realLen;
             if (header) {
@@ -7793,12 +7753,12 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             return [name1, ext1]; // eslint-disable-line array-element-newline
         };
         DiskImage.prototype.writeFile = function (filename, data) {
-            var format = this.format, extents = [];
-            this.readAllDirectoryExtents(extents);
-            var fill = format.fill, freeExtents = DiskImage.getFreeExtents(extents, format.fill), sectors = (format.tracks - format.off) * format.spt, ssize = 0x80 << format.bps, // eslint-disable-line no-bitwise
-            dsm = ((sectors * ssize) / format.bls) | 0, // eslint-disable-line no-bitwise
+            var diskInfo = this.diskInfo, formatDescriptor = this.getFormatDescriptor(), extents = [];
+            this.readAllDirectoryExtents(diskInfo, formatDescriptor, extents);
+            var fill = formatDescriptor.fill, freeExtents = DiskImage.getFreeExtents(extents, formatDescriptor.fill), sectors = (formatDescriptor.tracks - formatDescriptor.off) * formatDescriptor.spt, ssize = 0x80 << formatDescriptor.bps, // eslint-disable-line no-bitwise
+            dsm = ((sectors * ssize) / formatDescriptor.bls) | 0, // eslint-disable-line no-bitwise
             // DSM: total size of disc in blocks excluding any reserved tracks
-            al0 = format.al0, al1 = format.al1, blockMask = DiskImage.getBlockMask(extents, fill, dsm, al0, al1), freeBlocks = DiskImage.getFreeBlocks(blockMask, dsm);
+            al0 = formatDescriptor.al0, al1 = formatDescriptor.al1, blockMask = DiskImage.getBlockMask(extents, fill, dsm, al0, al1), freeBlocks = DiskImage.getFreeBlocks(blockMask, dsm);
             if (Utils_11.Utils.debug > 0) {
                 Utils_11.Utils.console.debug("writeFile: freeExtents=", freeExtents.length, ", freeBlocks=", freeBlocks);
             }
@@ -7811,7 +7771,7 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                 return false;
             }
             var _a = DiskImage.getFilenameAndExtension(filename), name1 = _a[0], ext1 = _a[1], // eslint-disable-line array-element-newline
-            fileSize = data.length, bls = format.bls, requiredBlocks = ((fileSize + bls - 1) / bls) | 0; // eslint-disable-line no-bitwise
+            fileSize = data.length, bls = formatDescriptor.bls, requiredBlocks = ((fileSize + bls - 1) / bls) | 0; // eslint-disable-line no-bitwise
             if (requiredBlocks > freeBlocks.length) {
                 var requiredKB = ((requiredBlocks * bls) / 1024) | 0, // eslint-disable-line no-bitwise
                 freeKB = ((freeBlocks.length * bls) / 1024) | 0; // eslint-disable-line no-bitwise
@@ -7849,12 +7809,12 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                     dataChunk += DiskImage.uInt8ToString(0).repeat(bls - thisSize - 1); // fill up last block with 0
                 }
                 var block = freeBlocks[(extentCnt - 1) * 16 + blockCnt];
-                this.writeBlock(block, dataChunk);
+                this.writeBlock(diskInfo, formatDescriptor, block, dataChunk);
                 extent.blocks[blockCnt] = block;
                 blockCnt += 1;
                 size -= thisSize;
             }
-            this.writeAllDirectoryExtents(extents);
+            this.writeAllDirectoryExtents(diskInfo, formatDescriptor, extents);
             return true;
         };
         /* eslint-enable array-element-newline */
@@ -7945,7 +7905,6 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             return data;
         };
         DiskImage.createAmsdosHeader = function (parameter) {
-            // TTT minimal: type: string, start: number, length: number
             var header = __assign({ user: 0, name: "", ext: "", typeNumber: 0, start: 0, pseudoLen: 0, entry: 0, length: 0, typeString: "" }, parameter);
             return header;
         };
@@ -8525,7 +8484,8 @@ define("Keyboard", ["require", "exports", "Utils"], function (require, exports, 
             this.codeStringsRemoved = false;
             this.pressedKeys = {}; // currently pressed browser keys
             this.fnKeydownOrKeyupHandler = this.onKeydownOrKeyup.bind(this);
-            this.options = options;
+            this.options = {};
+            this.setOptions(options);
             this.key2CpcKey = Keyboard.key2CpcKey;
             this.cpcKeyExpansions = {
                 normal: {},
@@ -8533,24 +8493,12 @@ define("Keyboard", ["require", "exports", "Utils"], function (require, exports, 
                 ctrl: {},
                 repeat: {}
             }; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
-            //const cpcArea = View.getElementById1(ViewID.cpcArea);
-            //const keyboardId = this.options.keyboardId;
-            //View.addEventListener("keydown", this.fnCpcAreaKeydownHandler, keyboardId);
-            //View.addEventListener("keyup", this.fnCpcAreaKeyupHandler, keyboardId);
         }
         Keyboard.prototype.getOptions = function () {
             return this.options;
         };
         Keyboard.prototype.setOptions = function (options) {
             Object.assign(this.options, options);
-            /*
-            if (options.fnOnEscapeHandler !== undefined) {
-                this.options.fnOnEscapeHandler = options.fnOnEscapeHandler;
-            }
-            if (options.fnOnKeyDown !== undefined) {
-                this.options.fnOnKeyDown = options.fnOnKeyDown;
-            }
-            */
         };
         Keyboard.prototype.getKeydownOrKeyupHandler = function () {
             return this.fnKeydownOrKeyupHandler;
@@ -8600,16 +8548,6 @@ define("Keyboard", ["require", "exports", "Utils"], function (require, exports, 
             };
             cpcKeyExpansions.repeat = {};
         };
-        /*
-        //TODO: remove getKeyDownHandler, setKeyDownHandler?
-        getKeyDownHandler(): (() => void) | undefined {
-            return this.options.fnOnKeyDown;
-        }
-    
-        setKeyDownHandler(fnOnKeyDown?: () => void): void {
-            this.options.fnOnKeyDown = fnOnKeyDown;
-        }
-        */
         Keyboard.prototype.setActive = function (active) {
             this.active = active;
         };
@@ -9073,29 +9011,24 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
     exports.VirtualKeyboard = void 0;
     var VirtualKeyboard = /** @class */ (function () {
         function VirtualKeyboard(options) {
-            //private readonly pointerOutEvent?: string;
-            //private readonly fnVirtualKeyout?: EventListener;
             this.shiftLock = false;
             this.numLock = false;
             this.fnVirtualKeyboardKeydownHandler = this.onVirtualKeyboardKeydown.bind(this);
             this.fnVirtualKeyboardKeyupHandler = this.onVirtualKeyboardKeyup.bind(this);
             this.fnVirtualKeyboardKeyoutHandler = this.onVirtualKeyboardKeyout.bind(this);
-            this.options = {
-                view: options.view,
-                fnPressCpcKey: options.fnPressCpcKey,
-                fnReleaseCpcKey: options.fnReleaseCpcKey
-            };
+            this.options = {};
+            this.setOptions(options);
             var view = this.options.view, eventNames = view.fnAttachPointerEvents("kbdAreaInner" /* ViewID.kbdAreaInner */, this.fnVirtualKeyboardKeydownHandler, undefined, this.fnVirtualKeyboardKeyupHandler);
             this.eventNames = eventNames;
-            /*
-            if (eventNames.out) {
-                //this.pointerOutEvent = eventNames.out;
-                //this.fnVirtualKeyout = this.fnVirtualKeyboardKeyoutHandler;
-            }
-            */
             view.dragInit("pageBody" /* ViewID.pageBody */, "kbdArea" /* ViewID.kbdArea */);
             this.virtualKeyboardCreate();
         }
+        VirtualKeyboard.prototype.getOptions = function () {
+            return this.options;
+        };
+        VirtualKeyboard.prototype.setOptions = function (options) {
+            Object.assign(this.options, options);
+        };
         VirtualKeyboard.prototype.getKeydownHandler = function () {
             return this.fnVirtualKeyboardKeydownHandler;
         };
@@ -9103,76 +9036,6 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
             return this.fnVirtualKeyboardKeyupHandler;
         };
         /* eslint-enable array-element-newline */
-        /*
-        private readonly dragInfo = {
-            dragItem: undefined as (HTMLElement | undefined),
-            active: false,
-            xOffset: 0,
-            yOffset: 0,
-            initialX: 0,
-            initialY: 0,
-            currentX: 0,
-            currentY: 0
-        };
-    
-        private static readonly pointerEventNames = {
-            down: "pointerdown",
-            move: "pointermove",
-            up: "pointerup",
-            cancel: "pointercancel",
-            out: "pointerout",
-            type: "pointer"
-        };
-    
-        private static readonly touchEventNames = {
-            down: "touchstart",
-            move: "touchmove",
-            up: "touchend",
-            cancel: "touchcancel",
-            out: "", // n.a.
-            type: "touch"
-        };
-    
-        private static readonly mouseEventNames = {
-            down: "mousedown",
-            move: "mousemove",
-            up: "mouseup",
-            cancel: "", // n.a.
-            out: "mouseout",
-            type: "mouse"
-        };
-    
-        private fnAttachPointerEvents(id: ViewID, fnDown?: EventListener, fnMove?: EventListener, fnUp?: EventListener) { // eslint-disable-line class-methods-use-this
-            const area = View.getElementById1(id);
-            let eventNames: typeof VirtualKeyboard.pointerEventNames;
-    
-            if (window.PointerEvent) {
-                eventNames = VirtualKeyboard.pointerEventNames;
-            } else if ("ontouchstart" in window || navigator.maxTouchPoints) {
-                eventNames = VirtualKeyboard.touchEventNames;
-            } else {
-                eventNames = VirtualKeyboard.mouseEventNames;
-            }
-    
-            if (Utils.debug > 0) {
-                Utils.console.log("fnAttachPointerEvents: Using", eventNames.type, "events");
-            }
-    
-            if (fnDown) {
-                area.addEventListener(eventNames.down, fnDown, false); // +clicked for pointer, touch?
-            }
-            if (fnMove) {
-                area.addEventListener(eventNames.move, fnMove, false);
-            }
-            if (fnUp) {
-                area.addEventListener(eventNames.up, fnUp, false);
-                if (eventNames.cancel) {
-                    area.addEventListener(eventNames.cancel, fnUp, false);
-                }
-            }
-            return eventNames;
-        }
-        */
         VirtualKeyboard.prototype.reset = function () {
             this.virtualKeyboardAdaptKeys(false, false);
         };
@@ -9335,11 +9198,6 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
                 Utils_14.Utils.console.debug("onVirtualKeyboardKeyup: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", node.getAttribute("data-key"));
             }
             this.fnVirtualKeyboardKeyupOrKeyout(event);
-            /*
-            if (this.pointerOutEvent && this.fnVirtualKeyout) {
-                node.removeEventListener(this.pointerOutEvent, this.fnVirtualKeyout); // do not need out event any more
-            }
-            */
             if (this.eventNames.out) {
                 node.removeEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyoutHandler); // do not need out event any more for this key
             }
@@ -9352,11 +9210,6 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
                 Utils_14.Utils.console.debug("onVirtualKeyboardKeyout: event=", event);
             }
             this.fnVirtualKeyboardKeyupOrKeyout(event);
-            /*
-            if (this.pointerOutEvent && this.fnVirtualKeyout) {
-                node.removeEventListener(this.pointerOutEvent, this.fnVirtualKeyout);
-            }
-            */
             if (this.eventNames.out) {
                 node.removeEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyoutHandler); // do not need out event any more for this key
             }
@@ -9938,9 +9791,10 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.yTop = 399;
             this.yBottom = 0;
             this.gTransparent = false;
-            this.options = options;
             this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
             this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
+            this.options = {};
+            this.setOptions(options, true);
             var canvas = View_2.View.getElementByIdAs(this.options.canvasID);
             this.canvas = canvas;
             this.cpcAreaBox = View_2.View.getElementById1("cpcArea" /* ViewID.cpcArea */);
@@ -9952,10 +9806,6 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.width = width;
             this.height = height;
             this.dataset8 = new Uint8Array(new ArrayBuffer(width * height)); // array with pen values
-            if (!Canvas.palettes[this.options.palette]) {
-                Canvas.computePalette(this.options.palette);
-            }
-            this.setColorValues(Canvas.palettes[this.options.palette]);
             this.animationTimeoutId = undefined;
             this.animationFrame = undefined;
             if (this.canvas.getContext) { // not available on e.g. IE8
@@ -9989,10 +9839,10 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         Canvas.prototype.getOptions = function () {
             return this.options;
         };
-        Canvas.prototype.setOptions = function (options) {
+        Canvas.prototype.setOptions = function (options, force) {
             var currentPalette = this.options.palette;
             Object.assign(this.options, options);
-            if (this.options.palette !== currentPalette) { // changed?
+            if (force || (this.options.palette !== currentPalette)) { // changed?
                 this.applyPalette();
             }
         };
@@ -10036,9 +9886,11 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
                 Canvas.computePalette(palette);
             }
             this.setColorValues(Canvas.palettes[palette]);
-            this.updateColorMap();
-            this.setNeedUpdate();
-            this.applyBorderColor();
+            if (this.currentInks.length) { // only if initialized (not if called from constructor)
+                this.updateColorMap();
+                this.setNeedUpdate();
+                this.applyBorderColor();
+            }
         };
         Canvas.isLittleEndian = function () {
             // https://gist.github.com/TooTallNate/4750953
@@ -10954,7 +10806,8 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
             this.textBuffer = []; // textbuffer characters at row,column
             this.hasFocus = false; // canvas has focus
             this.customCharset = {};
-            this.options = options;
+            this.options = {};
+            this.setOptions(options);
             this.textText = View_3.View.getElementByIdAs(this.options.canvasID);
             this.cpcAreaBox = View_3.View.getElementById1("cpcArea" /* ViewID.cpcArea */);
             this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
@@ -11053,11 +10906,6 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
         };
         TextCanvas.prototype.changeMode = function (_mode) {
         };
-        /*
-        getCanvasID(): ViewID { // eslint-disable-line class-methods-use-this
-            return ViewID.textText;
-        }
-        */
         TextCanvas.prototype.takeScreenShot = function () {
             return "";
         };
@@ -11480,7 +11328,7 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CommonEventHandler = void 0;
     var CommonEventHandler = /** @class */ (function () {
-        function CommonEventHandler(model, view, controller) {
+        function CommonEventHandler(options) {
             this.fnUserAction = undefined;
             /* eslint-disable no-invalid-this */
             this.handlers = {
@@ -11547,10 +11395,19 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                 onTextTextClick: this.onTextTextClick,
                 onCopyTextButtonClick: this.onCopyTextButtonClick
             };
-            this.model = model;
-            this.view = view;
-            this.controller = controller;
+            this.options = {};
+            this.setOptions(options);
+            // copy for easy access:
+            this.model = this.options.model;
+            this.view = this.options.view;
+            this.controller = this.options.controller;
         }
+        CommonEventHandler.prototype.getOptions = function () {
+            return this.options;
+        };
+        CommonEventHandler.prototype.setOptions = function (options) {
+            Object.assign(this.options, options);
+        };
         CommonEventHandler.prototype.fnSetUserAction = function (fnAction) {
             this.fnUserAction = fnAction;
         };
@@ -11901,9 +11758,8 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
             this.fScheduleAheadTime = 0.1; // 100 ms
             this.volEnv = [];
             this.toneEnv = [];
-            this.options = {
-                AudioContextConstructor: options.AudioContextConstructor
-            };
+            this.options = {};
+            this.setOptions(options);
             for (var i = 0; i < 3; i += 1) {
                 this.queues[i] = {
                     soundData: [],
@@ -11916,6 +11772,12 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
                 this.debugLogList = []; // access: cpcBasic.controller.sound.debugLog
             }
         }
+        Sound.prototype.getOptions = function () {
+            return this.options;
+        };
+        Sound.prototype.setOptions = function (options) {
+            Object.assign(this.options, options);
+        };
         Sound.prototype.reset = function () {
             var oscillators = this.oscillators, volEnvData = {
                 steps: 1,
@@ -12373,16 +12235,27 @@ define("ZipFile", ["require", "exports", "Utils"], function (require, exports, U
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.ZipFile = void 0;
     var ZipFile = /** @class */ (function () {
-        function ZipFile(data, zipName) {
-            this.data = data;
-            this.zipName = zipName; // for error messages
-            this.entryTable = this.readZipDirectory();
+        function ZipFile(options) {
+            this.entryTable = {};
+            this.options = {};
+            this.setOptions(options, true);
         }
+        ZipFile.prototype.getOptions = function () {
+            return this.options;
+        };
+        ZipFile.prototype.setOptions = function (options, force) {
+            var currentData = this.options.data;
+            Object.assign(this.options, options);
+            if (force || (this.options.data !== currentData)) {
+                this.data = this.options.data;
+                this.entryTable = this.readZipDirectory();
+            }
+        };
         ZipFile.prototype.getZipDirectory = function () {
             return this.entryTable;
         };
         ZipFile.prototype.composeError = function (error, message, value, pos) {
-            message = this.zipName + ": " + message; // put zipname in message
+            message = this.options.zipName + ": " + message; // put zipname in message
             return Utils_19.Utils.composeError("ZipFile", error, message, value, pos);
         };
         ZipFile.prototype.subArr = function (begin, length) {
@@ -12565,7 +12438,7 @@ define("ZipFile", ["require", "exports", "Utils"], function (require, exports, U
                 var out = bitBuf;
                 while (bitCnt < need) {
                     if (inCnt === bufEnd) {
-                        throw that.composeError(Error(), "Zip: inflate: Data overflow", that.zipName, -1);
+                        throw that.composeError(Error(), "Zip: inflate: Data overflow", that.options.zipName, -1);
                     }
                     out |= data[inCnt] << bitCnt; // eslint-disable-line no-bitwise
                     inCnt += 1;
@@ -12854,6 +12727,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             this.fnInputCallbackHandler = this.vmInputCallback.bind(this);
             this.fnLineInputCallbackHandler = this.vmLineInputCallback.bind(this);
             this.fnRandomizeCallbackHandler = this.vmRandomizeCallback.bind(this);
+            this.options = {};
+            this.setOptions(options);
             this.canvas = this.setCanvas(options.canvas);
             this.keyboard = options.keyboard;
             this.soundClass = options.sound;
@@ -12926,13 +12801,10 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             this.crtcData = [];
         }
         CpcVm.prototype.getOptions = function () {
-            return {
-                canvas: this.canvas,
-                keyboard: this.keyboard,
-                sound: this.soundClass,
-                variables: this.variables,
-                quiet: this.quiet
-            };
+            return this.options;
+        };
+        CpcVm.prototype.setOptions = function (options) {
+            Object.assign(this.options, options);
         };
         CpcVm.prototype.vmReset = function () {
             this.startTime = Date.now();
@@ -13625,18 +13497,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             this.pen(stream, win.paper);
             this.paper(stream, tmpPen);
         };
-        /*
-        private vmPutKeyInBuffer(key: string) {
-            this.keyboard.putKeyInBuffer(key, true); // with trigger onkeydown
-            / *
-            const keyDownHandler = this.keyboard.getKeyDownHandler();
-    
-            if (keyDownHandler) {
-                keyDownHandler();
-            }
-            * /
-        }
-        */
         // special function to set all inks temporarily; experimental and expensive
         CpcVm.prototype.updateColorsImmediately = function (addr) {
             var inkList = [];
@@ -13675,7 +13535,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                     // TODO: reset also speed key
                     break;
                 case 0xbb0c: // KM Char Return (ROM &1A77), depending on number of args
-                    //this.vmPutKeyInBuffer(String.fromCharCode(args.length));
                     this.keyboard.putKeyInBuffer(String.fromCharCode(args.length), true); // with trigger onkeydown
                     break;
                 case 0xbb06: // KM Wait Char (ROM &1A3C); since we do not return a character, we do the same as call &bb18
@@ -15027,7 +14886,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             }
             else if (portHigh === 0xbd) {
                 this.vmSetCrtcData(this.crtcReg, byte);
-                //this.crtcData[this.crtcReg] = byte;
             }
             else if (Utils_20.Utils.debug > 0) {
                 Utils_20.Utils.console.debug("OUT", Number(port).toString(16), byte, ": unknown port");
@@ -16396,16 +16254,15 @@ define("Snapshot", ["require", "exports", "Utils"], function (require, exports, 
         function Snapshot(options) {
             this.pos = 0;
             this.options = {
-                name: options.name,
-                data: options.data,
                 quiet: false
             };
             this.setOptions(options);
         }
+        Snapshot.prototype.getOptions = function () {
+            return this.options;
+        };
         Snapshot.prototype.setOptions = function (options) {
-            if (options.quiet !== undefined) {
-                this.options.quiet = options.quiet;
-            }
+            Object.assign(this.options, options);
         };
         Snapshot.prototype.composeError = function (error, message, value, pos) {
             var len = 0;
@@ -16505,19 +16362,20 @@ define("FileHandler", ["require", "exports", "Utils", "DiskImage", "Snapshot", "
     exports.FileHandler = void 0;
     var FileHandler = /** @class */ (function () {
         function FileHandler(options) {
-            this.adaptFilename = {};
-            this.updateStorageDatabase = {};
-            this.outputError = {};
             this.processFileImports = true;
-            this.adaptFilename = options.adaptFilename;
-            this.updateStorageDatabase = options.updateStorageDatabase;
-            this.outputError = options.outputError;
+            this.options = {};
             this.setOptions(options);
         }
         FileHandler.prototype.setOptions = function (options) {
-            if (options.processFileImports !== undefined) {
-                this.processFileImports = options.processFileImports;
+            Object.assign(this.options, options);
+        };
+        FileHandler.prototype.getDiskImage = function () {
+            if (!this.diskImage) {
+                this.diskImage = new DiskImage_1.DiskImage({
+                    data: "" // will be set later
+                });
             }
+            return this.diskImage;
         };
         FileHandler.fnLocalStorageName = function (name, defaultExtension) {
             // modify name so we do not clash with localstorage methods/properites
@@ -16542,10 +16400,12 @@ define("FileHandler", ["require", "exports", "Utils", "DiskImage", "Snapshot", "
         // starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
         FileHandler.prototype.processDskFile = function (data, name, imported) {
             try {
-                var dsk = new DiskImage_1.DiskImage({
+                var dsk = this.getDiskImage();
+                dsk.setOptions({
                     data: data,
                     diskName: name
-                }), dir = dsk.readDirectory(), diskFiles = Object.keys(dir);
+                });
+                var dir = dsk.readDirectory(), diskFiles = Object.keys(dir);
                 for (var i = 0; i < diskFiles.length; i += 1) {
                     var fileName = diskFiles[i];
                     try { // eslint-disable-line max-depth
@@ -16555,7 +16415,7 @@ define("FileHandler", ["require", "exports", "Utils", "DiskImage", "Snapshot", "
                     catch (e) {
                         Utils_22.Utils.console.error(e);
                         if (e instanceof Error) { // eslint-disable-line max-depth
-                            this.outputError(e, true);
+                            this.options.outputError(e, true);
                         }
                     }
                 }
@@ -16563,19 +16423,22 @@ define("FileHandler", ["require", "exports", "Utils", "DiskImage", "Snapshot", "
             catch (e) {
                 Utils_22.Utils.console.error(e);
                 if (e instanceof Error) {
-                    this.outputError(e, true);
+                    this.options.outputError(e, true);
                 }
             }
         };
         FileHandler.prototype.processZipFile = function (uint8Array, name, imported) {
             var zip;
             try {
-                zip = new ZipFile_1.ZipFile(uint8Array, name); // rather data
+                zip = new ZipFile_1.ZipFile({
+                    data: uint8Array,
+                    zipName: name
+                });
             }
             catch (e) {
                 Utils_22.Utils.console.error(e);
                 if (e instanceof Error) {
-                    this.outputError(e, true);
+                    this.options.outputError(e, true);
                 }
             }
             if (zip) {
@@ -16589,7 +16452,7 @@ define("FileHandler", ["require", "exports", "Utils", "DiskImage", "Snapshot", "
                     catch (e) {
                         Utils_22.Utils.console.error(e);
                         if (e instanceof Error) { // eslint-disable-line max-depth
-                            this.outputError(e, true);
+                            this.options.outputError(e, true);
                         }
                     }
                     if (data2) {
@@ -16663,10 +16526,10 @@ define("FileHandler", ["require", "exports", "Utils", "DiskImage", "Snapshot", "
                     break;
             }
             if (header) { // do we have a header? (means we should store it as a file in storage...)
-                var storageName = FileHandler.fnLocalStorageName(this.adaptFilename(name, "FILE")), meta = FileHandler.joinMeta(header), dataAsString = data instanceof Uint8Array ? Utils_22.Utils.uint8Array2string(data) : data;
+                var storageName = FileHandler.fnLocalStorageName(this.options.adaptFilename(name, "FILE")), meta = FileHandler.joinMeta(header), dataAsString = data instanceof Uint8Array ? Utils_22.Utils.uint8Array2string(data) : data;
                 try {
                     Utils_22.Utils.localStorage.setItem(storageName, meta + "," + dataAsString);
-                    this.updateStorageDatabase("set", storageName);
+                    this.options.updateStorageDatabase("set", storageName);
                     Utils_22.Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
                     imported.push(name);
                 }
@@ -16676,7 +16539,7 @@ define("FileHandler", ["require", "exports", "Utils", "DiskImage", "Snapshot", "
                         if (e.name === "QuotaExceededError") {
                             e.shortMessage = storageName + ": Quota exceeded";
                         }
-                        this.outputError(e, true);
+                        this.options.outputError(e, true);
                     }
                 }
             }
@@ -16702,9 +16565,15 @@ define("FileSelect", ["require", "exports", "Utils", "View"], function (require,
             this.fnOnLoadHandler = this.fnOnLoad.bind(this);
             this.fnOnErrorHandler = this.fnOnError.bind(this);
             this.fnOnFileSelectHandler = this.fnOnFileSelect.bind(this);
-            this.fnEndOfImport = options.fnEndOfImport;
-            this.fnLoad2 = options.fnLoad2;
+            this.options = {};
+            this.setOptions(options);
         }
+        FileSelect.prototype.getOptions = function () {
+            return this.options;
+        };
+        FileSelect.prototype.setOptions = function (options) {
+            Object.assign(this.options, options);
+        };
         FileSelect.prototype.fnReadNextFile = function (reader) {
             if (this.files && this.fileIndex < this.files.length) {
                 var file = this.files[this.fileIndex];
@@ -16724,7 +16593,7 @@ define("FileSelect", ["require", "exports", "Utils", "View"], function (require,
                 this.file = file;
             }
             else {
-                this.fnEndOfImport(this.imported);
+                this.options.fnEndOfImport(this.imported);
             }
         };
         FileSelect.prototype.fnOnLoad = function (event) {
@@ -16736,7 +16605,7 @@ define("FileSelect", ["require", "exports", "Utils", "View"], function (require,
             var data = (reader && reader.result) || null, type = file.type;
             if (type === "application/x-zip-compressed" && data instanceof ArrayBuffer) {
                 type = "Z";
-                this.fnLoad2(new Uint8Array(data), name, type, this.imported);
+                this.options.fnLoad2(new Uint8Array(data), name, type, this.imported);
             }
             else if (typeof data === "string") {
                 if (type === "text/plain") { // "text/plain"
@@ -16757,7 +16626,7 @@ define("FileSelect", ["require", "exports", "Utils", "View"], function (require,
                         }
                     }
                 }
-                this.fnLoad2(data, name, type, this.imported);
+                this.options.fnLoad2(data, name, type, this.imported);
             }
             else {
                 Utils_23.Utils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);
@@ -16965,29 +16834,16 @@ define("Z80Disass", ["require", "exports"], function (require, exports) {
         function Z80Disass(options) {
             this.dissOp = 0; // actual op-code
             this.prefix = 0; // actual prefix: 0=none, 1=0xDD, 2=0xFD, 4=0xED
-            this.disassPC = 0; // PC during disassemble
             this.options = {
-                data: options.data,
-                addr: options.addr,
                 format: 7
             };
             this.setOptions(options);
         }
-        Z80Disass.prototype.setOptions = function (options) {
-            if (options.data !== undefined) {
-                this.options.data = options.data;
-            }
-            if (options.addr !== undefined) {
-                this.options.addr = options.addr;
-                this.disassPC = options.addr;
-            }
-            if (options.format !== undefined) {
-                this.options.format = options.format;
-            }
-        };
         Z80Disass.prototype.getOptions = function () {
-            this.options.addr = this.disassPC;
             return this.options;
+        };
+        Z80Disass.prototype.setOptions = function (options) {
+            Object.assign(this.options, options);
         };
         Z80Disass.prototype.readByte = function (i) {
             var data = this.options.data;
@@ -16998,8 +16854,8 @@ define("Z80Disass", ["require", "exports"], function (require, exports) {
             return data[i] | ((data[i + 1]) << 8);
         };
         Z80Disass.prototype.bget = function () {
-            var by = this.readByte(this.disassPC);
-            this.disassPC += 1;
+            var by = this.readByte(this.options.addr);
+            this.options.addr += 1;
             return by;
         };
         // byte-out: returns byte xx at PC; PC++
@@ -17009,8 +16865,8 @@ define("Z80Disass", ["require", "exports"], function (require, exports) {
         };
         // word-out: returns word xxyy from PC, PC+=2
         Z80Disass.prototype.wout = function () {
-            var wo = this.readWord(this.disassPC);
-            this.disassPC += 2;
+            var wo = this.readWord(this.options.addr);
+            this.options.addr += 2;
             return Z80Disass.hexMark + wo.toString(16).toUpperCase().padStart(4, "0");
         };
         // relative-address-out : gets it from PC and returns PC+(signed)tt ; PC++
@@ -17018,7 +16874,7 @@ define("Z80Disass", ["require", "exports"], function (require, exports) {
             var dis = this.bget(); // displacement, signed! (0= next instruction)
             dis = dis << 24 >> 24; // convert to signed
             // https://stackoverflow.com/questions/56577958/how-to-convert-one-byte-8-bit-to-signed-integer-in-javascript
-            var addr = this.disassPC + dis;
+            var addr = this.options.addr + dis;
             if (addr < 0) {
                 addr += 65536;
             }
@@ -17063,7 +16919,7 @@ define("Z80Disass", ["require", "exports"], function (require, exports) {
             else { // prefix === 4
                 out = "[ED]-prefix";
             }
-            this.disassPC -= 1;
+            this.options.addr -= 1;
             return out;
         };
         Z80Disass.prototype.operdisCB = function () {
@@ -17071,10 +16927,10 @@ define("Z80Disass", ["require", "exports"], function (require, exports) {
             // bit bbb,rrr; res bbb,rrr; set bbb,rrr [rrr=b,c,d,e,h,l,(hl),a]
             var out = "", newop; // new op
             if (this.prefix === 1 || this.prefix === 2) { // ix/iy-flag (ix or iy !)
-                newop = ((this.readByte(this.disassPC + 1) & 0xfe) | 0x06); // transform code x0..x7=>x6 , x8..xf=>xe  (always ix.., iy.. )
+                newop = ((this.readByte(this.options.addr + 1) & 0xfe) | 0x06); // transform code x0..x7=>x6 , x8..xf=>xe  (always ix.., iy.. )
             }
             else {
-                newop = this.readByte(this.disassPC);
+                newop = this.readByte(this.options.addr);
             }
             var b6b7 = newop >> 6, // test b6,7
             b3b4b5 = (newop >> 3) & 0x07;
@@ -17085,14 +16941,14 @@ define("Z80Disass", ["require", "exports"], function (require, exports) {
                 out = Z80Disass.bitResSetTable[b6b7 - 1] + " " + b3b4b5 + "," + this.bregout(newop);
             }
             if (this.prefix === 1 || this.prefix === 2) { // ix/iy-flag (ix or iy !)
-                if ((newop !== this.readByte(this.disassPC)) && ((newop >> 6) !== 0x01)) { // there was a transform; not bit-instruction
+                if ((newop !== this.readByte(this.options.addr)) && ((newop >> 6) !== 0x01)) { // there was a transform; not bit-instruction
                     var premem = this.prefix; // memorize prefix
                     this.prefix = 0; // only h or l
-                    out += " & LD " + this.bregout(this.readByte(this.disassPC));
+                    out += " & LD " + this.bregout(this.readByte(this.options.addr));
                     this.prefix = premem; // old prefix
                 }
             }
-            this.disassPC += 1;
+            this.options.addr += 1;
             return out;
         };
         Z80Disass.prototype.operdisEDpart40To7F = function (dissOp) {
@@ -17460,7 +17316,7 @@ define("Z80Disass", ["require", "exports"], function (require, exports) {
         };
         Z80Disass.prototype.disassLine = function () {
             var _a;
-            var format = (_a = this.options.format) !== null && _a !== void 0 ? _a : 7, startAddr = this.disassPC, line = this.getNextLine();
+            var format = (_a = this.options.format) !== null && _a !== void 0 ? _a : 7, startAddr = this.options.addr, line = this.getNextLine();
             var out = "";
             if (format & 1) {
                 out += startAddr.toString(16).toUpperCase().padStart(4, "0");
@@ -17470,7 +17326,7 @@ define("Z80Disass", ["require", "exports"], function (require, exports) {
                 if (out.length) {
                     out += "  ";
                 }
-                for (var i = startAddr; i < this.disassPC; i += 1) {
+                for (var i = startAddr; i < this.options.addr; i += 1) {
                     var byte = this.readByte(i) || 0;
                     byteHex.push(byte.toString(16).toUpperCase().padStart(2, "0"));
                 }
@@ -17532,7 +17388,7 @@ define("Z80Disass", ["require", "exports"], function (require, exports) {
     }());
     exports.Z80Disass = Z80Disass;
 });
-/* eslint-disable no-bitwise */
+/* eslint-enable no-bitwise */
 // end
 // NoCanvas.ts - No Canvas
 // (c) Marco Vieth, 2023
@@ -17544,7 +17400,8 @@ define("NoCanvas", ["require", "exports"], function (require, exports) {
     exports.NoCanvas = void 0;
     var NoCanvas = /** @class */ (function () {
         function NoCanvas(options) {
-            this.options = options;
+            this.options = {};
+            this.setOptions(options);
             this.reset();
         }
         NoCanvas.prototype.getOptions = function () {
@@ -17634,11 +17491,6 @@ define("NoCanvas", ["require", "exports"], function (require, exports) {
         };
         NoCanvas.prototype.changeMode = function (_mode) {
         };
-        /*
-        getCanvasID(): ViewID { // eslint-disable-line class-methods-use-this
-            return ViewID.noCanvas;
-        }
-        */
         NoCanvas.prototype.takeScreenShot = function () {
             return "";
         };
@@ -17730,7 +17582,11 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.fnEditLineCallbackHandler = this.fnEditLineCallback.bind(this);
             this.model = model;
             this.view = view;
-            this.commonEventHandler = new CommonEventHandler_1.CommonEventHandler(model, view, this);
+            this.commonEventHandler = new CommonEventHandler_1.CommonEventHandler({
+                model: model,
+                view: view,
+                controller: this
+            });
             this.view.addEventListener("click", this.commonEventHandler);
             this.view.addEventListener("change", this.commonEventHandler);
             var canvasType = model.getProperty("canvasType" /* ModelPropID.canvasType */);
@@ -18002,8 +17858,12 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 return;
             }
             var database = this.model.getProperty("database" /* ModelPropID.database */), storage = Utils_25.Utils.localStorage;
+            var selectedExample = "", exampleChanged = false;
             if (database !== "storage") {
                 this.model.setProperty("database" /* ModelPropID.database */, "storage"); // switch to storage database
+            }
+            else {
+                selectedExample = this.view.getSelectValue("exampleSelect" /* ViewID.exampleSelect */); //TTT || this.model.getProperty(ModelPropID.example);
             }
             var dir;
             if (!key) { // no key => get all
@@ -18019,6 +17879,9 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 }
                 else if (action === "set") {
                     var example = this.model.getExample(key);
+                    if (selectedExample === "" || (selectedExample === key)) {
+                        exampleChanged = true;
+                    }
                     if (!example) {
                         var dataString = storage.getItem(key) || "", data = Controller.splitMeta(dataString);
                         example = {
@@ -18035,14 +17898,18 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
             if (database === "storage") {
                 this.setDirectorySelectOptions();
-                this.setExampleSelectOptions();
+                if (exampleChanged) {
+                    this.onDirectorySelectChange();
+                }
+                else {
+                    this.setExampleSelectOptions();
+                }
             }
             else {
                 this.model.setProperty("database" /* ModelPropID.database */, database); // restore database
             }
         };
         Controller.prototype.removeKeyBoardHandler = function () {
-            //this.keyboard.setKeyDownHandler();
             this.keyboard.setOptions({
                 fnOnKeyDown: undefined
             });
@@ -18080,7 +17947,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             else if (stop.reason !== "escape") { // first escape?
                 this.vm.cursor(stream, 1);
                 this.keyboard.clearInput();
-                //this.keyboard.setKeyDownHandler(this.fnWaitForContinueHandler);
                 this.keyboard.setOptions({
                     fnOnKeyDown: this.fnWaitForContinueHandler
                 });
@@ -18138,7 +18004,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
             else {
                 this.fnWaitSound(); // sound and blinking events
-                //this.keyboard.setKeyDownHandler(this.fnWaitKeyHandler); // wait until keypress handler (for call &bb18)
                 // wait until keypress handler (for call &bb18)
                 this.keyboard.setOptions({
                     fnOnKeyDown: this.fnWaitKeyHandler
@@ -18277,7 +18142,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 if (stop.reason === "waitInput") { // only for this reason
                     this.fnWaitSound(); // sound and blinking events
                 }
-                //this.keyboard.setKeyDownHandler(this.fnWaitInputHandler); // make sure it is set
                 // make sure the handler is set
                 this.keyboard.setOptions({
                     fnOnKeyDown: this.fnWaitInputHandler
@@ -18399,7 +18263,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             for (var i = 0; i < storage.length; i += 1) {
                 var key = storage.key(i);
                 if (key !== null && storage[key].startsWith(metaIdent)) { // take only cpcBasic files
-                    if (!regExp || regExp.test(key)) {
+                    var keywithOutNl = key.replace(/[\n\r]/g, ""); // support also strange names; (newer browsers support also "s" regex modifier)
+                    if (!regExp || regExp.test(keywithOutNl)) {
                         dir.push(key);
                     }
                 }
@@ -19206,16 +19071,23 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 }
             }
             if (exportDSK) {
-                var diskImage = new DiskImage_2.DiskImage({
+                var fileData = data, diskImage = this.getFileHandler().getDiskImage();
+                diskImage.setOptions({
+                    diskName: "test",
+                    data: diskImage.formatImage("data")
+                });
+                /*
+                new DiskImage({
                     diskName: "test",
                     data: "" //TTT change to optional
                 });
-                diskImage.formatImage("data");
+                */
+                //diskImage.formatImage("data");
                 var dir = diskImage.readDirectory(); // is empty
                 Utils_25.Utils.console.log("TEST: exportDSK: no files:" + Object.keys(dir));
-                diskImage.writeFile(name, data);
+                diskImage.writeFile(name, fileData);
                 var options = diskImage.getOptions();
-                data = options.data; // maybe modified
+                data = options.data; // we need the modified disk image with the file inside
                 name = name.substring(0, name.indexOf(".") + 1) + "dsk";
                 meta.length = data.length;
                 meta.typeString = "X"; // (extended) disk image
@@ -19570,7 +19442,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             for (var i = 0; i < keys.length; i += 1) {
                 this.keyboard.putKeyInBuffer(keys.charAt(i));
             }
-            //const keyDownHandler = this.keyboard.getKeyDownHandler();
             var options = this.keyboard.getOptions(), keyDownHandler = options.fnOnKeyDown;
             if (keyDownHandler) {
                 keyDownHandler();
@@ -19580,11 +19451,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             var input = this.view.getAreaValue("inp2Text" /* ViewID.inp2Text */);
             input = input.replace(/\n/g, "\r"); // LF => CR
             this.fnPutKeysInBuffer(input);
-            /*
-            if (deleteInput) {
-                this.view.setAreaValue(ViewID.inp2Text, "");
-            }
-            */
         };
         Controller.generateFunction = function (par, functionString) {
             if (functionString.startsWith("function anonymous(")) { // already a modified function (inside an anonymous function)?
@@ -19657,7 +19523,9 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.commonEventHandler.onVarSelectChange(); // title change?
         };
         Controller.prototype.setBasicVersion = function (basicVersion) {
-            this.basicParser.setBasicVersion(basicVersion);
+            this.basicParser.setOptions({
+                basicVersion: basicVersion
+            });
             this.basicLexer.setOptions({
                 keywords: this.basicParser.getKeywords()
             });
@@ -19680,11 +19548,14 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 // initially graphics canvas is not hidden, but we must hide it, if other canvas should be shown
                 this.view.setHidden("cpcCanvas" /* ViewID.cpcCanvas */, true);
             }
+            var palette = this.model.getProperty("palette" /* ModelPropID.palette */);
             if (this.canvases[canvasType]) {
                 canvas = this.canvases[canvasType];
+                this.canvas = canvas;
+                this.setPalette(palette);
             }
             else {
-                var palette = this.model.getProperty("palette" /* ModelPropID.palette */), validPalette = palette === "green" || palette === "grey" ? palette : "color";
+                var validPalette = palette === "green" || palette === "grey" ? palette : "color";
                 if (canvasType === "text") {
                     canvas = new TextCanvas_1.TextCanvas({
                         canvasID: "textText" /* ViewID.textText */,
@@ -19716,8 +19587,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     }
                 }
                 this.canvases[canvasType] = canvas;
+                this.canvas = canvas;
             }
-            this.canvas = canvas;
             if (this.vm) {
                 this.vm.setCanvas(canvas);
             }
@@ -19751,11 +19622,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
             return this.z80Disass;
         };
-        /*
-        hex = this.input.substring(debug.startPos, this.pos).split("").map(function (s) {
-            return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0");
-        }).join(",");
-        */
         Controller.prototype.setDisassAddr = function (addr) {
             var z80Disass = this.getZ80Disass(), lines = 50;
             var out = "";
@@ -19974,10 +19840,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         };
         Controller.prototype.onVirtualKeyBoardClick = function (event) {
             if (this.virtualKeyboard) {
-                /*
-                const target = View.getEventTarget<HTMLButtonElement>(event);
-                    //cpcKey = target.getAttribute("data-key");
-                */
                 // simulate keypress (maybe better use real keydown events for space, enter...)
                 this.virtualKeyboard.getKeydownHandler()(event);
                 var fnKeyup_1 = this.virtualKeyboard.getKeyupHandler();

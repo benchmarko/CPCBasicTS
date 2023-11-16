@@ -32,7 +32,8 @@ export class TextCanvas implements ICanvas {
 	private customCharset: Record<number, CanvasCharType> = {};
 
 	constructor(options: CanvasOptions) {
-		this.options = options;
+		this.options = {} as CanvasOptions;
+		this.setOptions(options);
 
 		this.textText = View.getElementByIdAs<HTMLTextAreaElement>(this.options.canvasID);
 		this.cpcAreaBox = View.getElementById1(ViewID.cpcArea);
@@ -206,12 +207,6 @@ export class TextCanvas implements ICanvas {
 
 	changeMode(_mode: number): void { // eslint-disable-line class-methods-use-this
 	}
-
-	/*
-	getCanvasID(): ViewID { // eslint-disable-line class-methods-use-this
-		return ViewID.textText;
-	}
-	*/
 
 	takeScreenShot(): string { // eslint-disable-line class-methods-use-this
 		return "";

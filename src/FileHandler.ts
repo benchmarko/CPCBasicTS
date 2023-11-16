@@ -18,26 +18,30 @@ export interface FileHandlerOptions {
 }
 
 export class FileHandler {
-	private static readonly metaIdent = "CPCBasic";
+	private readonly options: FileHandlerOptions;
 
-	private adaptFilename = {} as (name: string, err: string) => string;
-	private updateStorageDatabase = {} as (action: string, key: string) => void;
-	private outputError = {} as (error: Error, noSelection?: boolean) => void;
+	private static readonly metaIdent = "CPCBasic";
 
 	private processFileImports = true;
 
-	setOptions(options: Partial<FileHandlerOptions>): void {
-		if (options.processFileImports !== undefined) {
-			this.processFileImports = options.processFileImports;
-		}
-	}
+	private diskImage?: DiskImage;
 
 	constructor(options: FileHandlerOptions) {
-		this.adaptFilename = options.adaptFilename;
-		this.updateStorageDatabase = options.updateStorageDatabase;
-		this.outputError = options.outputError;
-
+		this.options = {} as FileHandlerOptions;
 		this.setOptions(options);
+	}
+
+	setOptions(options: Partial<FileHandlerOptions>): void {
+		Object.assign(this.options, options);
+	}
+
+	getDiskImage(): DiskImage {
+		if (!this.diskImage) {
+			this.diskImage = new DiskImage({
+				data: "" // will be set later
+			});
+		}
+		return this.diskImage;
 	}
 
 	private static fnLocalStorageName(name: string, defaultExtension?: string) {
@@ -69,11 +73,14 @@ export class FileHandler {
 
 	private processDskFile(data: string, name: string, imported: string[]) {
 		try {
-			const dsk = new DiskImage({
-					data: data,
-					diskName: name
-				}),
-				dir = dsk.readDirectory(),
+			const dsk = this.getDiskImage();
+
+			dsk.setOptions({
+				data: data,
+				diskName: name
+			});
+
+			const dir = dsk.readDirectory(),
 				diskFiles = Object.keys(dir);
 
 			for (let i = 0; i < diskFiles.length; i += 1) {
@@ -85,14 +92,14 @@ export class FileHandler {
 				} catch (e) {
 					Utils.console.error(e);
 					if (e instanceof Error) { // eslint-disable-line max-depth
-						this.outputError(e, true);
+						this.options.outputError(e, true);
 					}
 				}
 			}
 		} catch (e) {
 			Utils.console.error(e);
 			if (e instanceof Error) {
-				this.outputError(e, true);
+				this.options.outputError(e, true);
 			}
 		}
 	}
@@ -101,11 +108,14 @@ export class FileHandler {
 		let zip: ZipFile | undefined;
 
 		try {
-			zip = new ZipFile(uint8Array, name); // rather data
+			zip = new ZipFile({
+				data: uint8Array, // rather data
+				zipName: name
+			});
 		} catch (e) {
 			Utils.console.error(e);
 			if (e instanceof Error) {
-				this.outputError(e, true);
+				this.options.outputError(e, true);
 			}
 		}
 		if (zip) {
@@ -121,7 +131,7 @@ export class FileHandler {
 				} catch (e) {
 					Utils.console.error(e);
 					if (e instanceof Error) { // eslint-disable-line max-depth
-						this.outputError(e, true);
+						this.options.outputError(e, true);
 					}
 				}
 
@@ -200,13 +210,13 @@ export class FileHandler {
 		}
 
 		if (header) { // do we have a header? (means we should store it as a file in storage...)
-			const storageName = FileHandler.fnLocalStorageName(this.adaptFilename(name, "FILE")),
+			const storageName = FileHandler.fnLocalStorageName(this.options.adaptFilename(name, "FILE")),
 				meta = FileHandler.joinMeta(header),
 				dataAsString = data instanceof Uint8Array ? Utils.uint8Array2string(data) : data;
 
 			try {
 				Utils.localStorage.setItem(storageName, meta + "," + dataAsString);
-				this.updateStorageDatabase("set", storageName);
+				this.options.updateStorageDatabase("set", storageName);
 				Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
 				imported.push(name);
 			} catch (e) { // maybe quota exceeded
@@ -215,7 +225,7 @@ export class FileHandler {
 					if (e.name === "QuotaExceededError") {
 						(e as CustomError).shortMessage = storageName + ": Quota exceeded";
 					}
-					this.outputError(e, true);
+					this.options.outputError(e, true);
 				}
 			}
 		}

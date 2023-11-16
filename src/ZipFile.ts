@@ -9,6 +9,10 @@
 
 import { Utils } from "./Utils";
 
+interface ZipFileOptions {
+	data: Uint8Array,
+	zipName: string // for error messages
+}
 
 type CodeType = {
 	count: number[],
@@ -47,14 +51,28 @@ interface EndOfCentralDir {
 
 
 export class ZipFile {
-	private data: Uint8Array;
-	private zipName: string; // for error messages
-	private entryTable: ZipDirectoryType;
+	private readonly options: ZipFileOptions;
 
-	constructor(data: Uint8Array, zipName: string) {
-		this.data = data;
-		this.zipName = zipName; // for error messages
-		this.entryTable = this.readZipDirectory();
+	private data!: Uint8Array;
+	private entryTable: ZipDirectoryType = {};
+
+	constructor(options: ZipFileOptions) {
+		this.options = {} as ZipFileOptions;
+		this.setOptions(options, true);
+	}
+
+	getOptions(): ZipFileOptions {
+		return this.options;
+	}
+
+	setOptions(options: Partial<ZipFileOptions>, force: boolean): void {
+		const currentData = this.options.data;
+
+		Object.assign(this.options, options);
+		if (force || (this.options.data !== currentData)) {
+			this.data = this.options.data;
+			this.entryTable = this.readZipDirectory();
+		}
 	}
 
 	getZipDirectory(): ZipDirectoryType {
@@ -62,7 +80,7 @@ export class ZipFile {
 	}
 
 	private composeError(error: Error, message: string, value: string, pos: number) {
-		message = this.zipName + ": " + message; // put zipname in message
+		message = this.options.zipName + ": " + message; // put zipname in message
 		return Utils.composeError("ZipFile", error, message, value, pos);
 	}
 
@@ -303,7 +321,7 @@ export class ZipFile {
 
 				while (bitCnt < need) {
 					if (inCnt === bufEnd) {
-						throw that.composeError(Error(), "Zip: inflate: Data overflow", that.zipName, -1);
+						throw that.composeError(Error(), "Zip: inflate: Data overflow", that.options.zipName, -1);
 					}
 					out |= data[inCnt] << bitCnt; // eslint-disable-line no-bitwise
 					inCnt += 1;

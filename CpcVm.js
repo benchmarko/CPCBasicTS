@@ -71,6 +71,8 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
             this.fnInputCallbackHandler = this.vmInputCallback.bind(this);
             this.fnLineInputCallbackHandler = this.vmLineInputCallback.bind(this);
             this.fnRandomizeCallbackHandler = this.vmRandomizeCallback.bind(this);
+            this.options = {};
+            this.setOptions(options);
             this.canvas = this.setCanvas(options.canvas);
             this.keyboard = options.keyboard;
             this.soundClass = options.sound;
@@ -143,13 +145,10 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
             this.crtcData = [];
         }
         CpcVm.prototype.getOptions = function () {
-            return {
-                canvas: this.canvas,
-                keyboard: this.keyboard,
-                sound: this.soundClass,
-                variables: this.variables,
-                quiet: this.quiet
-            };
+            return this.options;
+        };
+        CpcVm.prototype.setOptions = function (options) {
+            Object.assign(this.options, options);
         };
         CpcVm.prototype.vmReset = function () {
             this.startTime = Date.now();
@@ -842,18 +841,6 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
             this.pen(stream, win.paper);
             this.paper(stream, tmpPen);
         };
-        /*
-        private vmPutKeyInBuffer(key: string) {
-            this.keyboard.putKeyInBuffer(key, true); // with trigger onkeydown
-            / *
-            const keyDownHandler = this.keyboard.getKeyDownHandler();
-    
-            if (keyDownHandler) {
-                keyDownHandler();
-            }
-            * /
-        }
-        */
         // special function to set all inks temporarily; experimental and expensive
         CpcVm.prototype.updateColorsImmediately = function (addr) {
             var inkList = [];
@@ -892,7 +879,6 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
                     // TODO: reset also speed key
                     break;
                 case 0xbb0c: // KM Char Return (ROM &1A77), depending on number of args
-                    //this.vmPutKeyInBuffer(String.fromCharCode(args.length));
                     this.keyboard.putKeyInBuffer(String.fromCharCode(args.length), true); // with trigger onkeydown
                     break;
                 case 0xbb06: // KM Wait Char (ROM &1A3C); since we do not return a character, we do the same as call &bb18
@@ -2244,7 +2230,6 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
             }
             else if (portHigh === 0xbd) {
                 this.vmSetCrtcData(this.crtcReg, byte);
-                //this.crtcData[this.crtcReg] = byte;
             }
             else if (Utils_1.Utils.debug > 0) {
                 Utils_1.Utils.console.debug("OUT", Number(port).toString(16), byte, ": unknown port");

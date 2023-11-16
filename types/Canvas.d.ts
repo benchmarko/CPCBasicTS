@@ -49,7 +49,7 @@ export declare class Canvas implements ICanvas {
     private gTransparent;
     constructor(options: CanvasOptions);
     getOptions(): CanvasOptions;
-    setOptions(options: Partial<CanvasOptions>): void;
+    setOptions(options: Partial<CanvasOptions>, force?: boolean): void;
     private static readonly palettes;
     private static readonly defaultInks;
     private static readonly modeData;

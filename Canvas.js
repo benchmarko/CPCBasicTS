@@ -41,9 +41,10 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.yTop = 399;
             this.yBottom = 0;
             this.gTransparent = false;
-            this.options = options;
             this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
             this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
+            this.options = {};
+            this.setOptions(options, true);
             var canvas = View_1.View.getElementByIdAs(this.options.canvasID);
             this.canvas = canvas;
             this.cpcAreaBox = View_1.View.getElementById1("cpcArea" /* ViewID.cpcArea */);
@@ -55,10 +56,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.width = width;
             this.height = height;
             this.dataset8 = new Uint8Array(new ArrayBuffer(width * height)); // array with pen values
-            if (!Canvas.palettes[this.options.palette]) {
-                Canvas.computePalette(this.options.palette);
-            }
-            this.setColorValues(Canvas.palettes[this.options.palette]);
             this.animationTimeoutId = undefined;
             this.animationFrame = undefined;
             if (this.canvas.getContext) { // not available on e.g. IE8
@@ -92,10 +89,10 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         Canvas.prototype.getOptions = function () {
             return this.options;
         };
-        Canvas.prototype.setOptions = function (options) {
+        Canvas.prototype.setOptions = function (options, force) {
             var currentPalette = this.options.palette;
             Object.assign(this.options, options);
-            if (this.options.palette !== currentPalette) { // changed?
+            if (force || (this.options.palette !== currentPalette)) { // changed?
                 this.applyPalette();
             }
         };
@@ -139,9 +136,11 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 Canvas.computePalette(palette);
             }
             this.setColorValues(Canvas.palettes[palette]);
-            this.updateColorMap();
-            this.setNeedUpdate();
-            this.applyBorderColor();
+            if (this.currentInks.length) { // only if initialized (not if called from constructor)
+                this.updateColorMap();
+                this.setNeedUpdate();
+                this.applyBorderColor();
+            }
         };
         Canvas.isLittleEndian = function () {
             // https://gist.github.com/TooTallNate/4750953

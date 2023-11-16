@@ -56,7 +56,8 @@ export class Keyboard {
 	constructor(options: KeyboardOptions) {
 		this.fnKeydownOrKeyupHandler = this.onKeydownOrKeyup.bind(this);
 
-		this.options = options;
+		this.options = {} as KeyboardOptions;
+		this.setOptions(options);
 
 		this.key2CpcKey = Keyboard.key2CpcKey;
 
@@ -66,12 +67,6 @@ export class Keyboard {
 			ctrl: {},
 			repeat: {}
 		}; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
-
-		//const cpcArea = View.getElementById1(ViewID.cpcArea);
-		//const keyboardId = this.options.keyboardId;
-
-		//View.addEventListener("keydown", this.fnCpcAreaKeydownHandler, keyboardId);
-		//View.addEventListener("keyup", this.fnCpcAreaKeyupHandler, keyboardId);
 	}
 
 	getOptions(): KeyboardOptions {
@@ -80,14 +75,6 @@ export class Keyboard {
 
 	setOptions(options: KeyboardOptions): void {
 		Object.assign(this.options, options);
-		/*
-		if (options.fnOnEscapeHandler !== undefined) {
-			this.options.fnOnEscapeHandler = options.fnOnEscapeHandler;
-		}
-		if (options.fnOnKeyDown !== undefined) {
-			this.options.fnOnKeyDown = options.fnOnKeyDown;
-		}
-		*/
 	}
 
 	getKeydownOrKeyupHandler(): (event: Event) => boolean {
@@ -321,17 +308,6 @@ export class Keyboard {
 
 		cpcKeyExpansions.repeat = {};
 	}
-
-	/*
-	//TODO: remove getKeyDownHandler, setKeyDownHandler?
-	getKeyDownHandler(): (() => void) | undefined {
-		return this.options.fnOnKeyDown;
-	}
-
-	setKeyDownHandler(fnOnKeyDown?: () => void): void {
-		this.options.fnOnKeyDown = fnOnKeyDown;
-	}
-	*/
 
 	setActive(active: boolean): void {
 		this.active = active;

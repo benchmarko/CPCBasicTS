@@ -36,23 +36,16 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 "'": this.fnElseOrApostrophe
             };
             this.options = {
-                lexer: options.lexer,
-                parser: options.parser,
                 implicitLines: false,
                 quiet: false
             };
             this.setOptions(options);
         }
-        CodeGeneratorToken.prototype.setOptions = function (options) {
-            if (options.implicitLines !== undefined) {
-                this.options.implicitLines = options.implicitLines;
-            }
-            if (options.quiet !== undefined) {
-                this.options.quiet = options.quiet;
-            }
-        };
         CodeGeneratorToken.prototype.getOptions = function () {
             return this.options;
+        };
+        CodeGeneratorToken.prototype.setOptions = function (options) {
+            Object.assign(this.options, options);
         };
         CodeGeneratorToken.prototype.composeError = function (error, message, value, pos) {
             return Utils_1.Utils.composeError("CodeGeneratorToken", error, message, value, pos, undefined, this.label);

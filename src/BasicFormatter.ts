@@ -34,23 +34,19 @@ export class BasicFormatter {
 
 	private label = ""; // current label (line) for error messages
 
-	setOptions(options: BasicFormatterOptions): void {
-		if (options.implicitLines !== undefined) {
-			this.options.implicitLines = options.implicitLines;
-		}
+	constructor(options: BasicFormatterOptions) {
+		this.options = {
+			implicitLines: false
+		} as BasicFormatterOptions;
+		this.setOptions(options);
 	}
 
 	getOptions(): BasicFormatterOptions {
 		return this.options;
 	}
 
-	constructor(options: BasicFormatterOptions) {
-		this.options = {
-			lexer: options.lexer,
-			parser: options.parser,
-			implicitLines: false
-		};
-		this.setOptions(options);
+	setOptions(options: Partial<BasicFormatterOptions>): void {
+		Object.assign(this.options, options);
 	}
 
 	private composeError(error: Error, message: string, value: string, pos: number, len?: number) {

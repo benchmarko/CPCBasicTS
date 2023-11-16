@@ -9,8 +9,6 @@ interface VariablesOptions {
 	arrayBounds?: boolean // check array bounds
 }
 
-//export type VariableValue = string | number | Function | [] | VariableValue[]; // eslint-disable-line @typescript-eslint/ban-types
-
 export type VariableMap = Record<string, VariableValue>;
 
 export type VarTypes = "I"|"R"|"$"; // or string
@@ -51,23 +49,27 @@ class ArrayProxy {
 
 
 export class Variables {
-	private arrayBounds = false;
+	private readonly options: VariablesOptions;
 
 	private variables: VariableMap;
 	private varTypes: VariableTypeMap; // default variable types for variables starting with letters a-z
 
-	setOptions(options: VariablesOptions): void {
-		if (options.arrayBounds !== undefined) {
-			this.arrayBounds = options.arrayBounds;
-		}
-	}
+	constructor(options: VariablesOptions) {
+		this.options = {
+			arrayBounds: false
+		};
+		this.setOptions(options);
 
-	constructor(options?: VariablesOptions) {
-		if (options) {
-			this.setOptions(options);
-		}
 		this.variables = {};
 		this.varTypes = {}; // default variable types for variables starting with letters a-z
+	}
+
+	getOptions(): VariablesOptions {
+		return this.options;
+	}
+
+	setOptions(options: Partial<VariablesOptions>): void {
+		Object.assign(this.options, options);
 	}
 
 	removeAllVariables(): void {
@@ -90,7 +92,7 @@ export class Variables {
 		const that = this,
 			fnCreateRec = function (index: number) {
 				const len = dims[index],
-					arr: VariableValue[] = that.arrayBounds ? new ArrayProxy(len) as any as VariableValue[] : new Array(len);
+					arr: VariableValue[] = that.options.arrayBounds ? new ArrayProxy(len) as any as VariableValue[] : new Array(len);
 
 				index += 1;
 				if (index < dims.length) { // more dimensions?

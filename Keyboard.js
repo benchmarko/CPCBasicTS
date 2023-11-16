@@ -14,7 +14,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.codeStringsRemoved = false;
             this.pressedKeys = {}; // currently pressed browser keys
             this.fnKeydownOrKeyupHandler = this.onKeydownOrKeyup.bind(this);
-            this.options = options;
+            this.options = {};
+            this.setOptions(options);
             this.key2CpcKey = Keyboard.key2CpcKey;
             this.cpcKeyExpansions = {
                 normal: {},
@@ -22,24 +23,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 ctrl: {},
                 repeat: {}
             }; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
-            //const cpcArea = View.getElementById1(ViewID.cpcArea);
-            //const keyboardId = this.options.keyboardId;
-            //View.addEventListener("keydown", this.fnCpcAreaKeydownHandler, keyboardId);
-            //View.addEventListener("keyup", this.fnCpcAreaKeyupHandler, keyboardId);
         }
         Keyboard.prototype.getOptions = function () {
             return this.options;
         };
         Keyboard.prototype.setOptions = function (options) {
             Object.assign(this.options, options);
-            /*
-            if (options.fnOnEscapeHandler !== undefined) {
-                this.options.fnOnEscapeHandler = options.fnOnEscapeHandler;
-            }
-            if (options.fnOnKeyDown !== undefined) {
-                this.options.fnOnKeyDown = options.fnOnKeyDown;
-            }
-            */
         };
         Keyboard.prototype.getKeydownOrKeyupHandler = function () {
             return this.fnKeydownOrKeyupHandler;
@@ -89,16 +78,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             };
             cpcKeyExpansions.repeat = {};
         };
-        /*
-        //TODO: remove getKeyDownHandler, setKeyDownHandler?
-        getKeyDownHandler(): (() => void) | undefined {
-            return this.options.fnOnKeyDown;
-        }
-    
-        setKeyDownHandler(fnOnKeyDown?: () => void): void {
-            this.options.fnOnKeyDown = fnOnKeyDown;
-        }
-        */
         Keyboard.prototype.setActive = function (active) {
             this.active = active;
         };

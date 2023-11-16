@@ -11,19 +11,15 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         function BasicFormatter(options) {
             this.label = ""; // current label (line) for error messages
             this.options = {
-                lexer: options.lexer,
-                parser: options.parser,
                 implicitLines: false
             };
             this.setOptions(options);
         }
-        BasicFormatter.prototype.setOptions = function (options) {
-            if (options.implicitLines !== undefined) {
-                this.options.implicitLines = options.implicitLines;
-            }
-        };
         BasicFormatter.prototype.getOptions = function () {
             return this.options;
+        };
+        BasicFormatter.prototype.setOptions = function (options) {
+            Object.assign(this.options, options);
         };
         BasicFormatter.prototype.composeError = function (error, message, value, pos, len) {
             return Utils_1.Utils.composeError("BasicFormatter", error, message, value, pos, len, this.label);

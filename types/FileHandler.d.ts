@@ -1,4 +1,5 @@
 import { FileMeta } from "./CpcVm";
+import { DiskImage } from "./DiskImage";
 export interface FileHandlerOptions {
     adaptFilename: (name: string, err: string) => string;
     updateStorageDatabase: (action: string, key: string) => void;
@@ -6,13 +7,13 @@ export interface FileHandlerOptions {
     processFileImports?: boolean;
 }
 export declare class FileHandler {
+    private readonly options;
     private static readonly metaIdent;
-    private adaptFilename;
-    private updateStorageDatabase;
-    private outputError;
     private processFileImports;
-    setOptions(options: Partial<FileHandlerOptions>): void;
+    private diskImage?;
     constructor(options: FileHandlerOptions);
+    setOptions(options: Partial<FileHandlerOptions>): void;
+    getDiskImage(): DiskImage;
     private static fnLocalStorageName;
     static getMetaIdent(): string;
     static joinMeta(meta: FileMeta): string;

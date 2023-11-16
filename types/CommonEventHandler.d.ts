@@ -1,12 +1,20 @@
 import { IController } from "./Interfaces";
 import { Model } from "./Model";
 import { View } from "./View";
+interface CommonEventHandlerOptions {
+    model: Model;
+    view: View;
+    controller: IController;
+}
 export declare class CommonEventHandler implements EventListenerObject {
+    private readonly options;
     private readonly model;
     private readonly view;
     private readonly controller;
     private fnUserAction;
-    constructor(model: Model, view: View, controller: IController);
+    constructor(options: CommonEventHandlerOptions);
+    getOptions(): CommonEventHandlerOptions;
+    private setOptions;
     fnSetUserAction(fnAction: ((event: Event, id: string) => void) | undefined): void;
     private onConvertButtonClick;
     private onSettingsButtonClick;
@@ -71,4 +79,5 @@ export declare class CommonEventHandler implements EventListenerObject {
     private readonly handlers;
     handleEvent(event: Event): void;
 }
+export {};
 //# sourceMappingURL=CommonEventHandler.d.ts.map

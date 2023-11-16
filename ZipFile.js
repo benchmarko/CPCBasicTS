@@ -7,16 +7,27 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.ZipFile = void 0;
     var ZipFile = /** @class */ (function () {
-        function ZipFile(data, zipName) {
-            this.data = data;
-            this.zipName = zipName; // for error messages
-            this.entryTable = this.readZipDirectory();
+        function ZipFile(options) {
+            this.entryTable = {};
+            this.options = {};
+            this.setOptions(options, true);
         }
+        ZipFile.prototype.getOptions = function () {
+            return this.options;
+        };
+        ZipFile.prototype.setOptions = function (options, force) {
+            var currentData = this.options.data;
+            Object.assign(this.options, options);
+            if (force || (this.options.data !== currentData)) {
+                this.data = this.options.data;
+                this.entryTable = this.readZipDirectory();
+            }
+        };
         ZipFile.prototype.getZipDirectory = function () {
             return this.entryTable;
         };
         ZipFile.prototype.composeError = function (error, message, value, pos) {
-            message = this.zipName + ": " + message; // put zipname in message
+            message = this.options.zipName + ": " + message; // put zipname in message
             return Utils_1.Utils.composeError("ZipFile", error, message, value, pos);
         };
         ZipFile.prototype.subArr = function (begin, length) {
@@ -199,7 +210,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 var out = bitBuf;
                 while (bitCnt < need) {
                     if (inCnt === bufEnd) {
-                        throw that.composeError(Error(), "Zip: inflate: Data overflow", that.zipName, -1);
+                        throw that.composeError(Error(), "Zip: inflate: Data overflow", that.options.zipName, -1);
                     }
                     out |= data[inCnt] << bitCnt; // eslint-disable-line no-bitwise
                     inCnt += 1;

@@ -77,6 +77,7 @@ declare type PrintObjectType = {
 declare type DataEntryType = (string | undefined);
 declare type LoadHandlerType = (input: string, meta: FileMeta) => boolean;
 export declare class CpcVm implements ICpcVm {
+    private readonly options;
     private quiet;
     private readonly onClickKey?;
     private readonly fnOpeninHandler;
@@ -151,8 +152,9 @@ export declare class CpcVm implements ICpcVm {
     private static readonly controlCodeParameterCount;
     private static readonly errors;
     private static readonly stopPriority;
-    getOptions(): CpcVmOptions;
     constructor(options: CpcVmOptions);
+    getOptions(): CpcVmOptions;
+    private setOptions;
     vmReset(): void;
     vmResetMemory(): void;
     vmResetRandom(): void;

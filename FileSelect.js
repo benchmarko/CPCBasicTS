@@ -13,9 +13,15 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.fnOnLoadHandler = this.fnOnLoad.bind(this);
             this.fnOnErrorHandler = this.fnOnError.bind(this);
             this.fnOnFileSelectHandler = this.fnOnFileSelect.bind(this);
-            this.fnEndOfImport = options.fnEndOfImport;
-            this.fnLoad2 = options.fnLoad2;
+            this.options = {};
+            this.setOptions(options);
         }
+        FileSelect.prototype.getOptions = function () {
+            return this.options;
+        };
+        FileSelect.prototype.setOptions = function (options) {
+            Object.assign(this.options, options);
+        };
         FileSelect.prototype.fnReadNextFile = function (reader) {
             if (this.files && this.fileIndex < this.files.length) {
                 var file = this.files[this.fileIndex];
@@ -35,7 +41,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 this.file = file;
             }
             else {
-                this.fnEndOfImport(this.imported);
+                this.options.fnEndOfImport(this.imported);
             }
         };
         FileSelect.prototype.fnOnLoad = function (event) {
@@ -47,7 +53,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             var data = (reader && reader.result) || null, type = file.type;
             if (type === "application/x-zip-compressed" && data instanceof ArrayBuffer) {
                 type = "Z";
-                this.fnLoad2(new Uint8Array(data), name, type, this.imported);
+                this.options.fnLoad2(new Uint8Array(data), name, type, this.imported);
             }
             else if (typeof data === "string") {
                 if (type === "text/plain") { // "text/plain"
@@ -68,7 +74,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                         }
                     }
                 }
-                this.fnLoad2(data, name, type, this.imported);
+                this.options.fnLoad2(data, name, type, this.imported);
             }
             else {
                 Utils_1.Utils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);

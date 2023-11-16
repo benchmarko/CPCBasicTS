@@ -48,6 +48,8 @@ export declare class Sound {
     private readonly toneEnv;
     private readonly debugLogList?;
     constructor(options: SoundOptions);
+    getOptions(): SoundOptions;
+    setOptions(options: Partial<SoundOptions>): void;
     reset(): void;
     private stopOscillator;
     private debugLog;

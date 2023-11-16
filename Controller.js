@@ -59,7 +59,11 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.fnEditLineCallbackHandler = this.fnEditLineCallback.bind(this);
             this.model = model;
             this.view = view;
-            this.commonEventHandler = new CommonEventHandler_1.CommonEventHandler(model, view, this);
+            this.commonEventHandler = new CommonEventHandler_1.CommonEventHandler({
+                model: model,
+                view: view,
+                controller: this
+            });
             this.view.addEventListener("click", this.commonEventHandler);
             this.view.addEventListener("change", this.commonEventHandler);
             var canvasType = model.getProperty("canvasType" /* ModelPropID.canvasType */);
@@ -331,8 +335,12 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 return;
             }
             var database = this.model.getProperty("database" /* ModelPropID.database */), storage = Utils_1.Utils.localStorage;
+            var selectedExample = "", exampleChanged = false;
             if (database !== "storage") {
                 this.model.setProperty("database" /* ModelPropID.database */, "storage"); // switch to storage database
+            }
+            else {
+                selectedExample = this.view.getSelectValue("exampleSelect" /* ViewID.exampleSelect */); //TTT || this.model.getProperty(ModelPropID.example);
             }
             var dir;
             if (!key) { // no key => get all
@@ -348,6 +356,9 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 }
                 else if (action === "set") {
                     var example = this.model.getExample(key);
+                    if (selectedExample === "" || (selectedExample === key)) {
+                        exampleChanged = true;
+                    }
                     if (!example) {
                         var dataString = storage.getItem(key) || "", data = Controller.splitMeta(dataString);
                         example = {
@@ -364,14 +375,18 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             if (database === "storage") {
                 this.setDirectorySelectOptions();
-                this.setExampleSelectOptions();
+                if (exampleChanged) {
+                    this.onDirectorySelectChange();
+                }
+                else {
+                    this.setExampleSelectOptions();
+                }
             }
             else {
                 this.model.setProperty("database" /* ModelPropID.database */, database); // restore database
             }
         };
         Controller.prototype.removeKeyBoardHandler = function () {
-            //this.keyboard.setKeyDownHandler();
             this.keyboard.setOptions({
                 fnOnKeyDown: undefined
             });
@@ -409,7 +424,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             else if (stop.reason !== "escape") { // first escape?
                 this.vm.cursor(stream, 1);
                 this.keyboard.clearInput();
-                //this.keyboard.setKeyDownHandler(this.fnWaitForContinueHandler);
                 this.keyboard.setOptions({
                     fnOnKeyDown: this.fnWaitForContinueHandler
                 });
@@ -467,7 +481,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             else {
                 this.fnWaitSound(); // sound and blinking events
-                //this.keyboard.setKeyDownHandler(this.fnWaitKeyHandler); // wait until keypress handler (for call &bb18)
                 // wait until keypress handler (for call &bb18)
                 this.keyboard.setOptions({
                     fnOnKeyDown: this.fnWaitKeyHandler
@@ -606,7 +619,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 if (stop.reason === "waitInput") { // only for this reason
                     this.fnWaitSound(); // sound and blinking events
                 }
-                //this.keyboard.setKeyDownHandler(this.fnWaitInputHandler); // make sure it is set
                 // make sure the handler is set
                 this.keyboard.setOptions({
                     fnOnKeyDown: this.fnWaitInputHandler
@@ -728,7 +740,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             for (var i = 0; i < storage.length; i += 1) {
                 var key = storage.key(i);
                 if (key !== null && storage[key].startsWith(metaIdent)) { // take only cpcBasic files
-                    if (!regExp || regExp.test(key)) {
+                    var keywithOutNl = key.replace(/[\n\r]/g, ""); // support also strange names; (newer browsers support also "s" regex modifier)
+                    if (!regExp || regExp.test(keywithOutNl)) {
                         dir.push(key);
                     }
                 }
@@ -1535,16 +1548,23 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 }
             }
             if (exportDSK) {
-                var diskImage = new DiskImage_1.DiskImage({
+                var fileData = data, diskImage = this.getFileHandler().getDiskImage();
+                diskImage.setOptions({
+                    diskName: "test",
+                    data: diskImage.formatImage("data")
+                });
+                /*
+                new DiskImage({
                     diskName: "test",
                     data: "" //TTT change to optional
                 });
-                diskImage.formatImage("data");
+                */
+                //diskImage.formatImage("data");
                 var dir = diskImage.readDirectory(); // is empty
                 Utils_1.Utils.console.log("TEST: exportDSK: no files:" + Object.keys(dir));
-                diskImage.writeFile(name, data);
+                diskImage.writeFile(name, fileData);
                 var options = diskImage.getOptions();
-                data = options.data; // maybe modified
+                data = options.data; // we need the modified disk image with the file inside
                 name = name.substring(0, name.indexOf(".") + 1) + "dsk";
                 meta.length = data.length;
                 meta.typeString = "X"; // (extended) disk image
@@ -1899,7 +1919,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             for (var i = 0; i < keys.length; i += 1) {
                 this.keyboard.putKeyInBuffer(keys.charAt(i));
             }
-            //const keyDownHandler = this.keyboard.getKeyDownHandler();
             var options = this.keyboard.getOptions(), keyDownHandler = options.fnOnKeyDown;
             if (keyDownHandler) {
                 keyDownHandler();
@@ -1909,11 +1928,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             var input = this.view.getAreaValue("inp2Text" /* ViewID.inp2Text */);
             input = input.replace(/\n/g, "\r"); // LF => CR
             this.fnPutKeysInBuffer(input);
-            /*
-            if (deleteInput) {
-                this.view.setAreaValue(ViewID.inp2Text, "");
-            }
-            */
         };
         Controller.generateFunction = function (par, functionString) {
             if (functionString.startsWith("function anonymous(")) { // already a modified function (inside an anonymous function)?
@@ -1986,7 +2000,9 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.commonEventHandler.onVarSelectChange(); // title change?
         };
         Controller.prototype.setBasicVersion = function (basicVersion) {
-            this.basicParser.setBasicVersion(basicVersion);
+            this.basicParser.setOptions({
+                basicVersion: basicVersion
+            });
             this.basicLexer.setOptions({
                 keywords: this.basicParser.getKeywords()
             });
@@ -2009,11 +2025,14 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 // initially graphics canvas is not hidden, but we must hide it, if other canvas should be shown
                 this.view.setHidden("cpcCanvas" /* ViewID.cpcCanvas */, true);
             }
+            var palette = this.model.getProperty("palette" /* ModelPropID.palette */);
             if (this.canvases[canvasType]) {
                 canvas = this.canvases[canvasType];
+                this.canvas = canvas;
+                this.setPalette(palette);
             }
             else {
-                var palette = this.model.getProperty("palette" /* ModelPropID.palette */), validPalette = palette === "green" || palette === "grey" ? palette : "color";
+                var validPalette = palette === "green" || palette === "grey" ? palette : "color";
                 if (canvasType === "text") {
                     canvas = new TextCanvas_1.TextCanvas({
                         canvasID: "textText" /* ViewID.textText */,
@@ -2045,8 +2064,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     }
                 }
                 this.canvases[canvasType] = canvas;
+                this.canvas = canvas;
             }
-            this.canvas = canvas;
             if (this.vm) {
                 this.vm.setCanvas(canvas);
             }
@@ -2080,11 +2099,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             return this.z80Disass;
         };
-        /*
-        hex = this.input.substring(debug.startPos, this.pos).split("").map(function (s) {
-            return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0");
-        }).join(",");
-        */
         Controller.prototype.setDisassAddr = function (addr) {
             var z80Disass = this.getZ80Disass(), lines = 50;
             var out = "";
@@ -2303,10 +2317,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         };
         Controller.prototype.onVirtualKeyBoardClick = function (event) {
             if (this.virtualKeyboard) {
-                /*
-                const target = View.getEventTarget<HTMLButtonElement>(event);
-                    //cpcKey = target.getAttribute("data-key");
-                */
                 // simulate keypress (maybe better use real keydown events for space, enter...)
                 this.virtualKeyboard.getKeydownHandler()(event);
                 var fnKeyup_1 = this.virtualKeyboard.getKeyupHandler();

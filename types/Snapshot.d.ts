@@ -50,8 +50,9 @@ export interface SnapshotOptions {
 export declare class Snapshot {
     private readonly options;
     private pos;
-    setOptions(options: SnapshotOptions): void;
     constructor(options: SnapshotOptions);
+    getOptions(): SnapshotOptions;
+    setOptions(options: Partial<SnapshotOptions>): void;
     private composeError;
     static testSnapIdent(ident: string): boolean;
     private readUInt8;

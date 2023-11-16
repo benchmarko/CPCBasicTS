@@ -73,9 +73,8 @@ export class Sound {
 	private readonly debugLogList?: [number, string][];
 
 	constructor(options: SoundOptions) {
-		this.options = {
-			AudioContextConstructor: options.AudioContextConstructor
-		};
+		this.options = {} as SoundOptions;
+		this.setOptions(options);
 
 		for (let i = 0; i < 3; i += 1) {
 			this.queues[i] = {
@@ -89,6 +88,14 @@ export class Sound {
 		if (Utils.debug > 1) {
 			this.debugLogList = []; // access: cpcBasic.controller.sound.debugLog
 		}
+	}
+
+	getOptions(): SoundOptions {
+		return this.options;
+	}
+
+	setOptions(options: Partial<SoundOptions>): void {
+		Object.assign(this.options, options);
 	}
 
 	reset(): void {

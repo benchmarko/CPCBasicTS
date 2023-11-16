@@ -2180,13 +2180,6 @@ const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [], // esli
 				windowScrollDown: args
 			});
 		},
-		/*
-		setPalette: function (...args) {
-			lastTestFunctions.push({
-				setPalette: args
-			});
-		},
-		*/
 		startUpdateCanvas: function (...args) {
 			lastTestFunctions.push({
 				startUpdateCanvas: args
@@ -2204,17 +2197,17 @@ const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [], // esli
 		},
 		updateColorsAndCanvasImmediately: function (...args) {
 			lastTestFunctions.push({
-				updateColorsAndCanvasImmediately: [String(args)] //TTT
+				updateColorsAndCanvasImmediately: [String(args)]
 			});
 		},
 		onCanvasClick: function (...args) {
 			lastTestFunctions.push({
-				onCanvasClick: [String(args)] //TTT
+				onCanvasClick: [String(args)]
 			});
 		},
 		onWindowClick: function (...args) {
 			lastTestFunctions.push({
-				onWindowClick: [String(args)] //TTT
+				onWindowClick: [String(args)]
 			});
 		},
 		getXOrigin: function (...args) {
@@ -2240,14 +2233,6 @@ const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [], // esli
 			});
 			return "scr";
 		}
-		/*
-		getCanvasElement: function (...args) {
-			lastTestFunctions.push({
-				getCanvasElement: args
-			});
-			return undefined;
-		}
-		*/
 	} as ICanvas,
 
 	mockKeyboard = {
@@ -2262,14 +2247,6 @@ const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [], // esli
 			});
 			return 4 + Number(args); // example
 		},
-		/*
-		getKeyDownHandler: function (...args) {
-			lastTestFunctions.push({
-				getKeyDownHandler: args
-			});
-			return undefined;
-		},
-		*/
 		getKeyFromBuffer: function (...args) {
 			lastTestFunctions.push({
 				getKeyFromBuffer: args

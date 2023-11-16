@@ -45,7 +45,10 @@ QUnit.module("ZipFile: Tests", function (hooks) {
 				const parts = Utils.split2(key, ","),
 					meta = parts[0],
 					data = Utils.atob(parts[1]), // decode base64
-					zip = new ZipFile(Utils.string2Uint8Array(data), "name"),
+					zip = new ZipFile({
+						data: Utils.string2Uint8Array(data),
+						zipName: "name"
+					}),
 					expected = tests[key];
 				let result: string;
 

@@ -68,34 +68,21 @@ export class CodeGeneratorJs {
 	private defScopeArgs?: Record<string, boolean>;
 	private defintDefstrTypes: VariableTypeMap = {};
 
-	setOptions(options: Omit<CodeGeneratorJsOptions, "lexer" | "parser" | "rsx">): void {
-		if (options.implicitLines !== undefined) {
-			this.options.implicitLines = options.implicitLines;
-		}
-		if (options.noCodeFrame !== undefined) {
-			this.options.noCodeFrame = options.noCodeFrame;
-		}
-		if (options.quiet !== undefined) {
-			this.options.quiet = options.quiet;
-		}
-		if (options.trace !== undefined) {
-			this.options.trace = options.trace;
-		}
+	constructor(options: CodeGeneratorJsOptions) {
+		this.options = {
+			quiet: false
+		} as CodeGeneratorJsOptions;
+		this.setOptions(options); // optional options
+
+		this.reJsKeywords = CodeGeneratorJs.createJsKeywordRegex();
 	}
 
 	getOptions(): CodeGeneratorJsOptions {
 		return this.options;
 	}
 
-	constructor(options: CodeGeneratorJsOptions) {
-		this.options = {
-			lexer: options.lexer,
-			parser: options.parser,
-			quiet: false
-		};
-		this.setOptions(options); // optional options
-
-		this.reJsKeywords = CodeGeneratorJs.createJsKeywordRegex();
+	setOptions(options: Partial<CodeGeneratorJsOptions>): void {
+		Object.assign(this.options, options);
 	}
 
 	// ECMA 3 JS Keywords which must be avoided in dot notation for properties when using IE8

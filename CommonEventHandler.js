@@ -6,7 +6,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CommonEventHandler = void 0;
     var CommonEventHandler = /** @class */ (function () {
-        function CommonEventHandler(model, view, controller) {
+        function CommonEventHandler(options) {
             this.fnUserAction = undefined;
             /* eslint-disable no-invalid-this */
             this.handlers = {
@@ -73,10 +73,19 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 onTextTextClick: this.onTextTextClick,
                 onCopyTextButtonClick: this.onCopyTextButtonClick
             };
-            this.model = model;
-            this.view = view;
-            this.controller = controller;
+            this.options = {};
+            this.setOptions(options);
+            // copy for easy access:
+            this.model = this.options.model;
+            this.view = this.options.view;
+            this.controller = this.options.controller;
         }
+        CommonEventHandler.prototype.getOptions = function () {
+            return this.options;
+        };
+        CommonEventHandler.prototype.setOptions = function (options) {
+            Object.assign(this.options, options);
+        };
         CommonEventHandler.prototype.fnSetUserAction = function (fnAction) {
             this.fnUserAction = fnAction;
         };

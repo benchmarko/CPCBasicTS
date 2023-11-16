@@ -82,7 +82,10 @@ QUnit.module("DiskImage: Tests", function (hooks) {
 				const parts = Utils.split2(key, ","),
 					meta = parts[0],
 					compressed = Utils.atob(parts[1]), // decode base64
-					zip = new ZipFile(Utils.string2Uint8Array(compressed), "name"),
+					zip = new ZipFile({
+						data: Utils.string2Uint8Array(compressed),
+						zipName: "name"
+					}),
 					firstFileInZip = Object.keys(zip.getZipDirectory())[0],
 					uncompressed = zip.readData(firstFileInZip),
 					disk = new DiskImage({

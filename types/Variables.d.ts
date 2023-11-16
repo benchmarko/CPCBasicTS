@@ -6,11 +6,12 @@ export declare type VariableMap = Record<string, VariableValue>;
 export declare type VarTypes = "I" | "R" | "$";
 export declare type VariableTypeMap = Record<string, VarTypes>;
 export declare class Variables {
-    private arrayBounds;
+    private readonly options;
     private variables;
     private varTypes;
-    setOptions(options: VariablesOptions): void;
-    constructor(options?: VariablesOptions);
+    constructor(options: VariablesOptions);
+    getOptions(): VariablesOptions;
+    setOptions(options: Partial<VariablesOptions>): void;
     removeAllVariables(): void;
     getAllVariables(): VariableMap;
     getAllVarTypes(): VariableTypeMap;

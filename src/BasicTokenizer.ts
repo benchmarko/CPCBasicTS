@@ -28,13 +28,6 @@ export class BasicTokenizer {
 	private fnNum8Dec() {
 		const num = this.input.charCodeAt(this.pos);
 
-		/*
-		if (isNaN(num)) {
-			Utils.console.warn("fnNum8Dec: pos=" + this.pos + ": EOF met!");
-			num = 0;
-		}
-		*/
-
 		this.pos += 1;
 		return num;
 	}

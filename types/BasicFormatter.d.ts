@@ -9,9 +9,9 @@ interface BasicFormatterOptions {
 export declare class BasicFormatter {
     private readonly options;
     private label;
-    setOptions(options: BasicFormatterOptions): void;
-    getOptions(): BasicFormatterOptions;
     constructor(options: BasicFormatterOptions);
+    getOptions(): BasicFormatterOptions;
+    setOptions(options: Partial<BasicFormatterOptions>): void;
     private composeError;
     private static fnHasLabel;
     private fnCreateLabelEntry;

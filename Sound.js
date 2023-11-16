@@ -18,9 +18,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.fScheduleAheadTime = 0.1; // 100 ms
             this.volEnv = [];
             this.toneEnv = [];
-            this.options = {
-                AudioContextConstructor: options.AudioContextConstructor
-            };
+            this.options = {};
+            this.setOptions(options);
             for (var i = 0; i < 3; i += 1) {
                 this.queues[i] = {
                     soundData: [],
@@ -33,6 +32,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 this.debugLogList = []; // access: cpcBasic.controller.sound.debugLog
             }
         }
+        Sound.prototype.getOptions = function () {
+            return this.options;
+        };
+        Sound.prototype.setOptions = function (options) {
+            Object.assign(this.options, options);
+        };
         Sound.prototype.reset = function () {
             var oscillators = this.oscillators, volEnvData = {
                 steps: 1,

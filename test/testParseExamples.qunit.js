@@ -187,7 +187,7 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
         });
         cpcBasic.vmMock = {
             line: "",
-            testVariables1: new Variables_1.Variables(),
+            testVariables1: new Variables_1.Variables({}),
             testStepCounter1: 0,
             maxSteps: 10,
             initTest1: function () {

@@ -383,9 +383,9 @@ declare module "BasicLexer" {
         private index;
         private readonly tokens;
         private whiteSpace;
-        setOptions(options: Partial<BasicLexerOptions>): void;
-        getOptions(): BasicLexerOptions;
         constructor(options: BasicLexerOptions);
+        getOptions(): BasicLexerOptions;
+        setOptions(options: Partial<BasicLexerOptions>): void;
         private composeError;
         private static isOperatorOrStreamOrAddress;
         private static isComparison;
@@ -450,11 +450,11 @@ declare module "BasicParser" {
         private token;
         private readonly parseTree;
         private statementList;
-        setOptions(options: Partial<BasicParserOptions>): void;
-        getOptions(): BasicParserOptions;
-        getKeywords(): Record<string, string>;
-        setBasicVersion(basicVersion: string): void;
         constructor(options: BasicParserOptions);
+        getOptions(): BasicParserOptions;
+        setOptions(options: Partial<BasicParserOptions>, force?: boolean): void;
+        getKeywords(): Record<string, string>;
+        private applyBasicVersion;
         private static readonly parameterTypes;
         private static readonly keywordsBasic11;
         private readonly specialStatements;
@@ -549,9 +549,9 @@ declare module "BasicFormatter" {
     export class BasicFormatter {
         private readonly options;
         private label;
-        setOptions(options: BasicFormatterOptions): void;
-        getOptions(): BasicFormatterOptions;
         constructor(options: BasicFormatterOptions);
+        getOptions(): BasicFormatterOptions;
+        setOptions(options: Partial<BasicFormatterOptions>): void;
         private composeError;
         private static fnHasLabel;
         private fnCreateLabelEntry;
@@ -622,9 +622,9 @@ declare module "CodeGeneratorBasic" {
         private hasColons;
         private keepWhiteSpace;
         private line;
-        setOptions(options: Partial<CodeGeneratorBasicOptions>): void;
-        getOptions(): CodeGeneratorBasicOptions;
         constructor(options: CodeGeneratorBasicOptions);
+        getOptions(): CodeGeneratorBasicOptions;
+        setOptions(options: Partial<CodeGeneratorBasicOptions>): void;
         private static readonly combinedKeywords;
         private static readonly operators;
         private static readonly operatorPrecedence;
@@ -679,11 +679,12 @@ declare module "Variables" {
     export type VarTypes = "I" | "R" | "$";
     export type VariableTypeMap = Record<string, VarTypes>;
     export class Variables {
-        private arrayBounds;
+        private readonly options;
         private variables;
         private varTypes;
-        setOptions(options: VariablesOptions): void;
-        constructor(options?: VariablesOptions);
+        constructor(options: VariablesOptions);
+        getOptions(): VariablesOptions;
+        setOptions(options: Partial<VariablesOptions>): void;
         removeAllVariables(): void;
         getAllVariables(): VariableMap;
         getAllVarTypes(): VariableTypeMap;
@@ -734,9 +735,9 @@ declare module "CodeGeneratorJs" {
         private variables;
         private defScopeArgs?;
         private defintDefstrTypes;
-        setOptions(options: Omit<CodeGeneratorJsOptions, "lexer" | "parser" | "rsx">): void;
-        getOptions(): CodeGeneratorJsOptions;
         constructor(options: CodeGeneratorJsOptions);
+        getOptions(): CodeGeneratorJsOptions;
+        setOptions(options: Partial<CodeGeneratorJsOptions>): void;
         private static readonly jsKeywords;
         private reset;
         private resetCountsPerLine;
@@ -876,9 +877,9 @@ declare module "CodeGeneratorToken" {
     export class CodeGeneratorToken {
         private readonly options;
         private label;
-        setOptions(options: Omit<CodeGeneratorTokenOptions, "lexer" | "parser">): void;
-        getOptions(): CodeGeneratorTokenOptions;
         constructor(options: CodeGeneratorTokenOptions);
+        getOptions(): CodeGeneratorTokenOptions;
+        setOptions(options: Partial<CodeGeneratorTokenOptions>): void;
         private static readonly tokens;
         private static readonly tokensFF;
         private composeError;
@@ -929,7 +930,7 @@ declare module "Diff" {
 }
 declare module "DiskImage" {
     export interface DiskImageOptions {
-        diskName: string;
+        diskName?: string;
         data: string;
         quiet?: boolean;
     }
@@ -958,14 +959,13 @@ declare module "DiskImage" {
     export class DiskImage {
         private readonly options;
         private diskInfo;
-        private format;
-        setOptions(options: DiskImageOptions): void;
-        getOptions(): DiskImageOptions;
+        private formatDescriptor?;
         constructor(options: DiskImageOptions);
+        getOptions(): DiskImageOptions;
+        setOptions(options: Partial<DiskImageOptions>): void;
         private static readonly formatDescriptors;
         private static getInitialDiskInfo;
-        private static getInitialFormatDescriptor;
-        reset(): void;
+        private getFormatDescriptor;
         private composeError;
         private static readonly diskInfoIdentMap;
         static testDiskIdent(ident: string): number;
@@ -982,11 +982,11 @@ declare module "DiskImage" {
         private readTrackInfo;
         private static createTrackInfoAsString;
         private seekTrack;
-        private sectorNum2Index;
-        private seekSector;
+        private static sectorNum2Index;
+        private static seekSector;
         private readSector;
         private writeSector;
-        private getFormatDescriptor;
+        private composeFormatDescriptor;
         private determineFormat;
         private createImage;
         formatImage(format: string): string;
@@ -997,11 +997,11 @@ declare module "DiskImage" {
         private static fnSortByExtentNumber;
         private static sortFileExtents;
         private static prepareDirectoryList;
-        private convertBlock2Sector;
+        private static convertBlock2Sector;
         private readAllDirectoryExtents;
         private writeAllDirectoryExtents;
         readDirectory(): DirectoryListType;
-        private nextSector;
+        private static nextSector;
         private readBlock;
         private writeBlock;
         private readExtents;
@@ -1155,6 +1155,8 @@ declare module "VirtualKeyboard" {
         private shiftLock;
         private numLock;
         constructor(options: VirtualKeyboardOptions);
+        getOptions(): VirtualKeyboardOptions;
+        setOptions(options: Partial<VirtualKeyboardOptions>): void;
         getKeydownHandler(): typeof this.fnVirtualKeyboardKeydownHandler;
         getKeyupHandler(): typeof this.fnVirtualKeyboardKeyupHandler;
         private static readonly cpcKey2Key;
@@ -1226,7 +1228,7 @@ declare module "Canvas" {
         private gTransparent;
         constructor(options: CanvasOptions);
         getOptions(): CanvasOptions;
-        setOptions(options: Partial<CanvasOptions>): void;
+        setOptions(options: Partial<CanvasOptions>, force?: boolean): void;
         private static readonly palettes;
         private static readonly defaultInks;
         private static readonly modeData;
@@ -1412,12 +1414,20 @@ declare module "CommonEventHandler" {
     import { IController } from "Interfaces";
     import { Model } from "Model";
     import { View } from "View";
+    interface CommonEventHandlerOptions {
+        model: Model;
+        view: View;
+        controller: IController;
+    }
     export class CommonEventHandler implements EventListenerObject {
+        private readonly options;
         private readonly model;
         private readonly view;
         private readonly controller;
         private fnUserAction;
-        constructor(model: Model, view: View, controller: IController);
+        constructor(options: CommonEventHandlerOptions);
+        getOptions(): CommonEventHandlerOptions;
+        private setOptions;
         fnSetUserAction(fnAction: ((event: Event, id: string) => void) | undefined): void;
         private onConvertButtonClick;
         private onSettingsButtonClick;
@@ -1542,6 +1552,8 @@ declare module "Sound" {
         private readonly toneEnv;
         private readonly debugLogList?;
         constructor(options: SoundOptions);
+        getOptions(): SoundOptions;
+        setOptions(options: Partial<SoundOptions>): void;
         reset(): void;
         private stopOscillator;
         private debugLog;
@@ -1568,6 +1580,10 @@ declare module "Sound" {
     }
 }
 declare module "ZipFile" {
+    interface ZipFileOptions {
+        data: Uint8Array;
+        zipName: string;
+    }
     interface CentralDirFileHeader {
         signature: number;
         version: number;
@@ -1592,10 +1608,12 @@ declare module "ZipFile" {
         [k in string]: CentralDirFileHeader;
     };
     export class ZipFile {
+        private readonly options;
         private data;
-        private zipName;
         private entryTable;
-        constructor(data: Uint8Array, zipName: string);
+        constructor(options: ZipFileOptions);
+        getOptions(): ZipFileOptions;
+        setOptions(options: Partial<ZipFileOptions>, force: boolean): void;
         getZipDirectory(): ZipDirectoryType;
         private composeError;
         private subArr;
@@ -1701,6 +1719,7 @@ declare module "CpcVm" {
     type DataEntryType = (string | undefined);
     type LoadHandlerType = (input: string, meta: FileMeta) => boolean;
     export class CpcVm implements ICpcVm {
+        private readonly options;
         private quiet;
         private readonly onClickKey?;
         private readonly fnOpeninHandler;
@@ -1775,8 +1794,9 @@ declare module "CpcVm" {
         private static readonly controlCodeParameterCount;
         private static readonly errors;
         private static readonly stopPriority;
-        getOptions(): CpcVmOptions;
         constructor(options: CpcVmOptions);
+        getOptions(): CpcVmOptions;
+        private setOptions;
         vmReset(): void;
         vmResetMemory(): void;
         vmResetRandom(): void;
@@ -2113,8 +2133,9 @@ declare module "Snapshot" {
     export class Snapshot {
         private readonly options;
         private pos;
-        setOptions(options: SnapshotOptions): void;
         constructor(options: SnapshotOptions);
+        getOptions(): SnapshotOptions;
+        setOptions(options: Partial<SnapshotOptions>): void;
         private composeError;
         static testSnapIdent(ident: string): boolean;
         private readUInt8;
@@ -2127,6 +2148,7 @@ declare module "Snapshot" {
 }
 declare module "FileHandler" {
     import { FileMeta } from "CpcVm";
+    import { DiskImage } from "DiskImage";
     export interface FileHandlerOptions {
         adaptFilename: (name: string, err: string) => string;
         updateStorageDatabase: (action: string, key: string) => void;
@@ -2134,13 +2156,13 @@ declare module "FileHandler" {
         processFileImports?: boolean;
     }
     export class FileHandler {
+        private readonly options;
         private static readonly metaIdent;
-        private adaptFilename;
-        private updateStorageDatabase;
-        private outputError;
         private processFileImports;
-        setOptions(options: Partial<FileHandlerOptions>): void;
+        private diskImage?;
         constructor(options: FileHandlerOptions);
+        setOptions(options: Partial<FileHandlerOptions>): void;
+        getDiskImage(): DiskImage;
         private static fnLocalStorageName;
         static getMetaIdent(): string;
         static joinMeta(meta: FileMeta): string;
@@ -2156,16 +2178,17 @@ declare module "FileSelect" {
         fnLoad2: (data: string | Uint8Array, name: string, type: string, imported: string[]) => void;
     }
     export class FileSelect {
+        private readonly options;
         private readonly fnOnErrorHandler;
         private readonly fnOnLoadHandler;
         private readonly fnOnFileSelectHandler;
-        private readonly fnEndOfImport;
-        private readonly fnLoad2;
         private files?;
         private fileIndex;
         private imported;
         private file?;
         constructor(options: FileSelectOptions);
+        getOptions(): FileSelectOptions;
+        setOptions(options: Partial<FileSelectOptions>): void;
         private fnReadNextFile;
         private fnOnLoad;
         private fnOnError;
@@ -2202,10 +2225,9 @@ declare module "Z80Disass" {
         private static readonly hexMark;
         private dissOp;
         private prefix;
-        private disassPC;
-        setOptions(options: Partial<Z80DisassOptions>): void;
-        getOptions(): Z80DisassOptions;
         constructor(options: Z80DisassOptions);
+        getOptions(): Z80DisassOptions;
+        setOptions(options: Partial<Z80DisassOptions>): void;
         private readByte;
         private readWord;
         private bget;

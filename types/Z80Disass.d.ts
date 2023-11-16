@@ -8,10 +8,9 @@ export declare class Z80Disass {
     private static readonly hexMark;
     private dissOp;
     private prefix;
-    private disassPC;
-    setOptions(options: Partial<Z80DisassOptions>): void;
-    getOptions(): Z80DisassOptions;
     constructor(options: Z80DisassOptions);
+    getOptions(): Z80DisassOptions;
+    setOptions(options: Partial<Z80DisassOptions>): void;
     private readByte;
     private readWord;
     private bget;

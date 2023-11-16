@@ -25,11 +25,11 @@ export declare class BasicParser {
     private token;
     private readonly parseTree;
     private statementList;
-    setOptions(options: Partial<BasicParserOptions>): void;
-    getOptions(): BasicParserOptions;
-    getKeywords(): Record<string, string>;
-    setBasicVersion(basicVersion: string): void;
     constructor(options: BasicParserOptions);
+    getOptions(): BasicParserOptions;
+    setOptions(options: Partial<BasicParserOptions>, force?: boolean): void;
+    getKeywords(): Record<string, string>;
+    private applyBasicVersion;
     private static readonly parameterTypes;
     private static readonly keywordsBasic11;
     private readonly specialStatements;

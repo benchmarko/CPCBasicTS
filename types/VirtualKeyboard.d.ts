@@ -14,6 +14,8 @@ export declare class VirtualKeyboard {
     private shiftLock;
     private numLock;
     constructor(options: VirtualKeyboardOptions);
+    getOptions(): VirtualKeyboardOptions;
+    setOptions(options: Partial<VirtualKeyboardOptions>): void;
     getKeydownHandler(): typeof this.fnVirtualKeyboardKeydownHandler;
     getKeyupHandler(): typeof this.fnVirtualKeyboardKeyupHandler;
     private static readonly cpcKey2Key;

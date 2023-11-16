@@ -8,7 +8,8 @@ define(["require", "exports"], function (require, exports) {
     exports.NoCanvas = void 0;
     var NoCanvas = /** @class */ (function () {
         function NoCanvas(options) {
-            this.options = options;
+            this.options = {};
+            this.setOptions(options);
             this.reset();
         }
         NoCanvas.prototype.getOptions = function () {
@@ -98,11 +99,6 @@ define(["require", "exports"], function (require, exports) {
         };
         NoCanvas.prototype.changeMode = function (_mode) {
         };
-        /*
-        getCanvasID(): ViewID { // eslint-disable-line class-methods-use-this
-            return ViewID.noCanvas;
-        }
-        */
         NoCanvas.prototype.takeScreenShot = function () {
             return "";
         };

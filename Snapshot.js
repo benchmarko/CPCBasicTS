@@ -9,16 +9,15 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         function Snapshot(options) {
             this.pos = 0;
             this.options = {
-                name: options.name,
-                data: options.data,
                 quiet: false
             };
             this.setOptions(options);
         }
+        Snapshot.prototype.getOptions = function () {
+            return this.options;
+        };
         Snapshot.prototype.setOptions = function (options) {
-            if (options.quiet !== undefined) {
-                this.options.quiet = options.quiet;
-            }
+            Object.assign(this.options, options);
         };
         Snapshot.prototype.composeError = function (error, message, value, pos) {
             var len = 0;

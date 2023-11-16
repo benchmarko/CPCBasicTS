@@ -8,19 +8,20 @@ define(["require", "exports", "./Utils", "./DiskImage", "./Snapshot", "./ZipFile
     exports.FileHandler = void 0;
     var FileHandler = /** @class */ (function () {
         function FileHandler(options) {
-            this.adaptFilename = {};
-            this.updateStorageDatabase = {};
-            this.outputError = {};
             this.processFileImports = true;
-            this.adaptFilename = options.adaptFilename;
-            this.updateStorageDatabase = options.updateStorageDatabase;
-            this.outputError = options.outputError;
+            this.options = {};
             this.setOptions(options);
         }
         FileHandler.prototype.setOptions = function (options) {
-            if (options.processFileImports !== undefined) {
-                this.processFileImports = options.processFileImports;
+            Object.assign(this.options, options);
+        };
+        FileHandler.prototype.getDiskImage = function () {
+            if (!this.diskImage) {
+                this.diskImage = new DiskImage_1.DiskImage({
+                    data: "" // will be set later
+                });
             }
+            return this.diskImage;
         };
         FileHandler.fnLocalStorageName = function (name, defaultExtension) {
             // modify name so we do not clash with localstorage methods/properites
@@ -45,10 +46,12 @@ define(["require", "exports", "./Utils", "./DiskImage", "./Snapshot", "./ZipFile
         // starting with (line) number, or 7 bit ASCII characters without control codes except \x1a=EOF
         FileHandler.prototype.processDskFile = function (data, name, imported) {
             try {
-                var dsk = new DiskImage_1.DiskImage({
+                var dsk = this.getDiskImage();
+                dsk.setOptions({
                     data: data,
                     diskName: name
-                }), dir = dsk.readDirectory(), diskFiles = Object.keys(dir);
+                });
+                var dir = dsk.readDirectory(), diskFiles = Object.keys(dir);
                 for (var i = 0; i < diskFiles.length; i += 1) {
                     var fileName = diskFiles[i];
                     try { // eslint-disable-line max-depth
@@ -58,7 +61,7 @@ define(["require", "exports", "./Utils", "./DiskImage", "./Snapshot", "./ZipFile
                     catch (e) {
                         Utils_1.Utils.console.error(e);
                         if (e instanceof Error) { // eslint-disable-line max-depth
-                            this.outputError(e, true);
+                            this.options.outputError(e, true);
                         }
                     }
                 }
@@ -66,19 +69,22 @@ define(["require", "exports", "./Utils", "./DiskImage", "./Snapshot", "./ZipFile
             catch (e) {
                 Utils_1.Utils.console.error(e);
                 if (e instanceof Error) {
-                    this.outputError(e, true);
+                    this.options.outputError(e, true);
                 }
             }
         };
         FileHandler.prototype.processZipFile = function (uint8Array, name, imported) {
             var zip;
             try {
-                zip = new ZipFile_1.ZipFile(uint8Array, name); // rather data
+                zip = new ZipFile_1.ZipFile({
+                    data: uint8Array,
+                    zipName: name
+                });
             }
             catch (e) {
                 Utils_1.Utils.console.error(e);
                 if (e instanceof Error) {
-                    this.outputError(e, true);
+                    this.options.outputError(e, true);
                 }
             }
             if (zip) {
@@ -92,7 +98,7 @@ define(["require", "exports", "./Utils", "./DiskImage", "./Snapshot", "./ZipFile
                     catch (e) {
                         Utils_1.Utils.console.error(e);
                         if (e instanceof Error) { // eslint-disable-line max-depth
-                            this.outputError(e, true);
+                            this.options.outputError(e, true);
                         }
                     }
                     if (data2) {
@@ -166,10 +172,10 @@ define(["require", "exports", "./Utils", "./DiskImage", "./Snapshot", "./ZipFile
                     break;
             }
             if (header) { // do we have a header? (means we should store it as a file in storage...)
-                var storageName = FileHandler.fnLocalStorageName(this.adaptFilename(name, "FILE")), meta = FileHandler.joinMeta(header), dataAsString = data instanceof Uint8Array ? Utils_1.Utils.uint8Array2string(data) : data;
+                var storageName = FileHandler.fnLocalStorageName(this.options.adaptFilename(name, "FILE")), meta = FileHandler.joinMeta(header), dataAsString = data instanceof Uint8Array ? Utils_1.Utils.uint8Array2string(data) : data;
                 try {
                     Utils_1.Utils.localStorage.setItem(storageName, meta + "," + dataAsString);
-                    this.updateStorageDatabase("set", storageName);
+                    this.options.updateStorageDatabase("set", storageName);
                     Utils_1.Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
                     imported.push(name);
                 }
@@ -179,7 +185,7 @@ define(["require", "exports", "./Utils", "./DiskImage", "./Snapshot", "./ZipFile
                         if (e.name === "QuotaExceededError") {
                             e.shortMessage = storageName + ": Quota exceeded";
                         }
-                        this.outputError(e, true);
+                        this.options.outputError(e, true);
                     }
                 }
             }

@@ -65,7 +65,10 @@ define(["require", "exports", "../Utils", "../BasicTokenizer", "../DiskImage", "
             for (var key in tests) {
                 if (tests.hasOwnProperty(key)) {
                     var parts = Utils_1.Utils.split2(key, ","), meta = parts[0], compressed = Utils_1.Utils.atob(parts[1]), // decode base64
-                    zip = new ZipFile_1.ZipFile(Utils_1.Utils.string2Uint8Array(compressed), "name"), firstFileInZip = Object.keys(zip.getZipDirectory())[0], uncompressed = zip.readData(firstFileInZip), disk = new DiskImage_1.DiskImage({
+                    zip = new ZipFile_1.ZipFile({
+                        data: Utils_1.Utils.string2Uint8Array(compressed),
+                        zipName: "name"
+                    }), firstFileInZip = Object.keys(zip.getZipDirectory())[0], uncompressed = zip.readData(firstFileInZip), disk = new DiskImage_1.DiskImage({
                         data: uncompressed,
                         diskName: "name",
                         quiet: true

@@ -66,19 +66,19 @@ export class Snapshot {
 
 	private pos = 0;
 
-	setOptions(options: SnapshotOptions): void {
-		if (options.quiet !== undefined) {
-			this.options.quiet = options.quiet;
-		}
-	}
-
 	constructor(options: SnapshotOptions) {
 		this.options = {
-			name: options.name,
-			data: options.data,
 			quiet: false
-		};
+		} as SnapshotOptions;
 		this.setOptions(options);
+	}
+
+	getOptions(): SnapshotOptions {
+		return this.options;
+	}
+
+	setOptions(options: Partial<SnapshotOptions>): void {
+		Object.assign(this.options, options);
 	}
 
 	private composeError(error: Error, message: string, value: string, pos?: number) {

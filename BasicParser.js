@@ -60,50 +60,32 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 write: this.write
             };
             this.options = {
-                basicVersion: "",
+                basicVersion: "1.1",
                 quiet: false,
                 keepBrackets: false,
                 keepColons: false,
                 keepDataComma: false,
                 keepTokens: false
             };
-            if (options) {
-                this.setOptions(options);
-            }
-            if (!this.options.basicVersion) { // not yet set?
-                this.setBasicVersion("1.1"); // set default
-            }
+            this.setOptions(options, true);
             this.previousToken = {}; // to avoid warnings
             this.token = this.previousToken;
         }
-        BasicParser.prototype.setOptions = function (options) {
-            if (options.basicVersion !== undefined) {
-                this.setBasicVersion(options.basicVersion);
-            }
-            if (options.keepBrackets !== undefined) {
-                this.options.keepBrackets = options.keepBrackets;
-            }
-            if (options.keepColons !== undefined) {
-                this.options.keepColons = options.keepColons;
-            }
-            if (options.keepDataComma !== undefined) {
-                this.options.keepDataComma = options.keepDataComma;
-            }
-            if (options.keepTokens !== undefined) {
-                this.options.keepTokens = options.keepTokens;
-            }
-            if (options.quiet !== undefined) {
-                this.options.quiet = options.quiet;
-            }
-        };
         BasicParser.prototype.getOptions = function () {
             return this.options;
+        };
+        BasicParser.prototype.setOptions = function (options, force) {
+            var currentBasicVersion = this.options.basicVersion;
+            Object.assign(this.options, options);
+            if (force || (this.options.basicVersion !== currentBasicVersion)) { // changed?
+                this.applyBasicVersion();
+            }
         };
         BasicParser.prototype.getKeywords = function () {
             return this.keywords;
         };
-        BasicParser.prototype.setBasicVersion = function (basicVersion) {
-            this.options.basicVersion = basicVersion;
+        BasicParser.prototype.applyBasicVersion = function () {
+            var basicVersion = this.options.basicVersion;
             this.keywords = basicVersion === "1.0" ? this.getKeywords10() : BasicParser.keywordsBasic11;
             // if basicVersion changes, we need to recreate the symbols
             this.fnClearSymbols();

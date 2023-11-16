@@ -10,9 +10,9 @@ interface CodeGeneratorTokenOptions {
 export declare class CodeGeneratorToken {
     private readonly options;
     private label;
-    setOptions(options: Omit<CodeGeneratorTokenOptions, "lexer" | "parser">): void;
-    getOptions(): CodeGeneratorTokenOptions;
     constructor(options: CodeGeneratorTokenOptions);
+    getOptions(): CodeGeneratorTokenOptions;
+    setOptions(options: Partial<CodeGeneratorTokenOptions>): void;
     private static readonly tokens;
     private static readonly tokensFF;
     private composeError;

@@ -15,7 +15,8 @@ define(["require", "exports", "./View"], function (require, exports, View_1) {
             this.textBuffer = []; // textbuffer characters at row,column
             this.hasFocus = false; // canvas has focus
             this.customCharset = {};
-            this.options = options;
+            this.options = {};
+            this.setOptions(options);
             this.textText = View_1.View.getElementByIdAs(this.options.canvasID);
             this.cpcAreaBox = View_1.View.getElementById1("cpcArea" /* ViewID.cpcArea */);
             this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
@@ -114,11 +115,6 @@ define(["require", "exports", "./View"], function (require, exports, View_1) {
         };
         TextCanvas.prototype.changeMode = function (_mode) {
         };
-        /*
-        getCanvasID(): ViewID { // eslint-disable-line class-methods-use-this
-            return ViewID.textText;
-        }
-        */
         TextCanvas.prototype.takeScreenShot = function () {
             return "";
         };

@@ -8,17 +8,37 @@ import { IController } from "./Interfaces";
 import { Model, ConfigType } from "./Model";
 import { View } from "./View";
 
+interface CommonEventHandlerOptions {
+	model: Model,
+	view: View,
+	controller: IController
+}
+
 export class CommonEventHandler implements EventListenerObject {
+	private readonly options: CommonEventHandlerOptions;
+
 	private readonly model: Model;
 	private readonly view: View;
 	private readonly controller: IController;
 
 	private fnUserAction: ((event: Event, id: string) => void) | undefined = undefined;
 
-	constructor(model: Model, view: View, controller: IController) {
-		this.model = model;
-		this.view = view;
-		this.controller = controller;
+	constructor(options: CommonEventHandlerOptions) {
+		this.options = {} as CommonEventHandlerOptions;
+		this.setOptions(options);
+
+		// copy for easy access:
+		this.model = this.options.model;
+		this.view = this.options.view;
+		this.controller = this.options.controller;
+	}
+
+	getOptions(): CommonEventHandlerOptions {
+		return this.options;
+	}
+
+	private setOptions(options: Partial<CommonEventHandlerOptions>): void {
+		Object.assign(this.options, options);
 	}
 
 	fnSetUserAction(fnAction: ((event: Event, id: string) => void) | undefined): void {

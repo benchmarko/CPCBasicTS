@@ -6,14 +6,14 @@ import { TestHelper, TestsType, AllTestsType, ResultType } from "./TestHelper";
 
 QUnit.module("Variables", function (/* hooks */) {
 	QUnit.test("create class", function (assert) {
-		const variables = new Variables();
+		const variables = new Variables({});
 
 		assert.ok(variables, "defined");
 	});
 
 
 	QUnit.test("variable types", function (assert) {
-		const variables = new Variables();
+		const variables = new Variables({});
 
 		variables.setVarType("a1", "I");
 		assert.strictEqual(variables.getVarType("a1"), "I", "a1: I");
@@ -36,7 +36,7 @@ QUnit.module("Variables", function (/* hooks */) {
 	});
 
 	QUnit.test("plain variables: get and set", function (assert) {
-		const variables = new Variables();
+		const variables = new Variables({});
 
 		assert.propEqual(variables.getAllVariables(), {}, "getAll:");
 
@@ -106,7 +106,7 @@ QUnit.module("Variables", function (/* hooks */) {
 	}
 
 	QUnit.test("array variables", function (assert) {
-		const variables = new Variables();
+		const variables = new Variables({});
 
 		assert.propEqual(variables.getAllVariables(), {}, "getAll:");
 
@@ -166,7 +166,7 @@ QUnit.module("Variables: determineStaticVarType", function (hooks) {
 	/* eslint-enable quote-props */
 
 	function runTestsForDetermineStaticVarType(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
-		const variables = new Variables();
+		const variables = new Variables({});
 
 		for (const key in tests) {
 			if (tests.hasOwnProperty(key)) {

@@ -25,33 +25,19 @@ export class Z80Disass {
 
 	private prefix = 0;	// actual prefix: 0=none, 1=0xDD, 2=0xFD, 4=0xED
 
-	private disassPC = 0 // PC during disassemble
-
-	setOptions(options: Partial<Z80DisassOptions>): void {
-		if (options.data !== undefined) {
-			this.options.data = options.data;
-		}
-		if (options.addr !== undefined) {
-			this.options.addr = options.addr;
-			this.disassPC = options.addr;
-		}
-		if (options.format !== undefined) {
-			this.options.format = options.format;
-		}
+	constructor(options: Z80DisassOptions) {
+		this.options = {
+			format: 7
+		} as Z80DisassOptions;
+		this.setOptions(options);
 	}
 
 	getOptions(): Z80DisassOptions {
-		this.options.addr = this.disassPC;
 		return this.options;
 	}
 
-	constructor(options: Z80DisassOptions) {
-		this.options = {
-			data: options.data,
-			addr: options.addr,
-			format: 7
-		};
-		this.setOptions(options);
+	setOptions(options: Partial<Z80DisassOptions>): void {
+		Object.assign(this.options, options);
 	}
 
 	private readByte(i: number) {
@@ -68,9 +54,9 @@ export class Z80Disass {
 
 
 	private bget() {
-		const by = this.readByte(this.disassPC);
+		const by = this.readByte(this.options.addr);
 
-		this.disassPC += 1;
+		this.options.addr += 1;
 		return by;
 	}
 
@@ -84,9 +70,9 @@ export class Z80Disass {
 
 	// word-out: returns word xxyy from PC, PC+=2
 	private wout() {
-		const wo = this.readWord(this.disassPC);
+		const wo = this.readWord(this.options.addr);
 
-		this.disassPC += 2;
+		this.options.addr += 2;
 		return Z80Disass.hexMark + wo.toString(16).toUpperCase().padStart(4, "0");
 	}
 
@@ -97,7 +83,7 @@ export class Z80Disass {
 		dis = dis << 24 >> 24; // convert to signed
 		// https://stackoverflow.com/questions/56577958/how-to-convert-one-byte-8-bit-to-signed-integer-in-javascript
 
-		let addr = this.disassPC + dis;
+		let addr = this.options.addr + dis;
 
 		if (addr < 0) {
 			addr += 65536;
@@ -165,7 +151,7 @@ export class Z80Disass {
 		} else { // prefix === 4
 			out = "[ED]-prefix";
 		}
-		this.disassPC -= 1;
+		this.options.addr -= 1;
 		return out;
 	}
 
@@ -188,9 +174,9 @@ export class Z80Disass {
 			newop; // new op
 
 		if (this.prefix === 1 || this.prefix === 2) { // ix/iy-flag (ix or iy !)
-			newop = ((this.readByte(this.disassPC + 1) & 0xfe) | 0x06); // transform code x0..x7=>x6 , x8..xf=>xe  (always ix.., iy.. )
+			newop = ((this.readByte(this.options.addr + 1) & 0xfe) | 0x06); // transform code x0..x7=>x6 , x8..xf=>xe  (always ix.., iy.. )
 		} else {
-			newop = this.readByte(this.disassPC);
+			newop = this.readByte(this.options.addr);
 		}
 
 		const b6b7 = newop >> 6, // test b6,7
@@ -203,15 +189,15 @@ export class Z80Disass {
 		}
 
 		if (this.prefix === 1 || this.prefix === 2) { // ix/iy-flag (ix or iy !)
-			if ((newop !== this.readByte(this.disassPC)) && ((newop >> 6) !== 0x01)) {	// there was a transform; not bit-instruction
+			if ((newop !== this.readByte(this.options.addr)) && ((newop >> 6) !== 0x01)) {	// there was a transform; not bit-instruction
 				const premem = this.prefix;	// memorize prefix
 
 				this.prefix = 0; // only h or l
-				out += " & LD " + this.bregout(this.readByte(this.disassPC));
+				out += " & LD " + this.bregout(this.readByte(this.options.addr));
 				this.prefix = premem; // old prefix
 			}
 		}
-		this.disassPC += 1;
+		this.options.addr += 1;
 		return out;
 	}
 
@@ -629,7 +615,7 @@ export class Z80Disass {
 
 	disassLine(): string {
 		const format = this.options.format ?? 7,
-			startAddr = this.disassPC,
+			startAddr = this.options.addr,
 			line = this.getNextLine();
 		let out = "";
 
@@ -644,7 +630,7 @@ export class Z80Disass {
 				out += "  ";
 			}
 
-			for (let i = startAddr; i < this.disassPC; i += 1) {
+			for (let i = startAddr; i < this.options.addr; i += 1) {
 				const byte = this.readByte(i) || 0;
 
 				byteHex.push(byte.toString(16).toUpperCase().padStart(2, "0"));
@@ -667,6 +653,6 @@ export class Z80Disass {
 		return out;
 	}
 }
-/* eslint-disable no-bitwise */
+/* eslint-enable no-bitwise */
 
 // end
