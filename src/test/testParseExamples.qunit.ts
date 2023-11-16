@@ -171,7 +171,7 @@ class cpcBasic {
 	static vmMock = {
 		line: "" as string | number,
 
-		testVariables1: new Variables(),
+		testVariables1: new Variables({}),
 		testStepCounter1: 0,
 
 		maxSteps: 10, // number of steps to simulate

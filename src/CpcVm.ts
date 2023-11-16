@@ -95,6 +95,8 @@ type DataEntryType = (string | undefined);
 type LoadHandlerType = (input: string, meta: FileMeta) => boolean;
 
 export class CpcVm implements ICpcVm {
+	private readonly options: CpcVmOptions;
+
 	private quiet = false;
 	private readonly onClickKey?: (arg0: string) => void;
 	private readonly fnOpeninHandler: FileBase["fnFileCallback"]; // = undefined;
@@ -360,16 +362,6 @@ export class CpcVm implements ICpcVm {
 		reset: 99 // reset system
 	};
 
-	getOptions(): CpcVmOptions {
-		return {
-			canvas: this.canvas,
-			keyboard: this.keyboard,
-			sound: this.soundClass,
-			variables: this.variables,
-			quiet: this.quiet
-		};
-	}
-
 	constructor(options: CpcVmOptions) {
 		this.fnOpeninHandler = this.vmOpeninCallback.bind(this);
 		this.fnCloseinHandler = this.vmCloseinCallback.bind(this);
@@ -380,6 +372,9 @@ export class CpcVm implements ICpcVm {
 		this.fnInputCallbackHandler = this.vmInputCallback.bind(this);
 		this.fnLineInputCallbackHandler = this.vmLineInputCallback.bind(this);
 		this.fnRandomizeCallbackHandler = this.vmRandomizeCallback.bind(this);
+
+		this.options = {} as CpcVmOptions;
+		this.setOptions(options);
 
 		this.canvas = this.setCanvas(options.canvas);
 		this.keyboard = options.keyboard;
@@ -466,6 +461,14 @@ export class CpcVm implements ICpcVm {
 		}
 
 		this.crtcData = [];
+	}
+
+	getOptions(): CpcVmOptions {
+		return this.options;
+	}
+
+	private setOptions(options: Partial<CpcVmOptions>): void {
+		Object.assign(this.options, options);
 	}
 
 	vmReset(): void {
@@ -1330,19 +1333,6 @@ export class CpcVm implements ICpcVm {
 		this.paper(stream, tmpPen);
 	}
 
-	/*
-	private vmPutKeyInBuffer(key: string) {
-		this.keyboard.putKeyInBuffer(key, true); // with trigger onkeydown
-		/ *
-		const keyDownHandler = this.keyboard.getKeyDownHandler();
-
-		if (keyDownHandler) {
-			keyDownHandler();
-		}
-		* /
-	}
-	*/
-
 	// special function to set all inks temporarily; experimental and expensive
 	private updateColorsImmediately(addr: number) {
 		const inkList: number[] = [];
@@ -1381,7 +1371,6 @@ export class CpcVm implements ICpcVm {
 			// TODO: reset also speed key
 			break;
 		case 0xbb0c: // KM Char Return (ROM &1A77), depending on number of args
-			//this.vmPutKeyInBuffer(String.fromCharCode(args.length));
 			this.keyboard.putKeyInBuffer(String.fromCharCode(args.length), true); // with trigger onkeydown
 			break;
 		case 0xbb06: // KM Wait Char (ROM &1A3C); since we do not return a character, we do the same as call &bb18
@@ -2901,7 +2890,6 @@ export class CpcVm implements ICpcVm {
 			this.crtcReg = byte % 14;
 		} else if (portHigh === 0xbd) {
 			this.vmSetCrtcData(this.crtcReg, byte);
-			//this.crtcData[this.crtcReg] = byte;
 		} else if (Utils.debug > 0) {
 			Utils.console.debug("OUT", Number(port).toString(16), byte, ": unknown port");
 		}

@@ -783,7 +783,7 @@ QUnit.module("CodeGeneratorJs: Tests", function (hooks) {
 
 	function runSingleTest(codeGeneratorJs: CodeGeneratorJs, key: string) {
 		const allowDirect = true,
-			variables = new Variables(),
+			variables = new Variables({}),
 			output = codeGeneratorJs.generate(key, variables, allowDirect),
 			result = output.error ? String(output.error) : output.text;
 

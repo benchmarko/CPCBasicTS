@@ -49,8 +49,6 @@ export class VirtualKeyboard {
 	private readonly options: VirtualKeyboardOptions;
 
 	private readonly eventNames: PointerEventNamesType;
-	//private readonly pointerOutEvent?: string;
-	//private readonly fnVirtualKeyout?: EventListener;
 
 	private shiftLock = false;
 	private numLock = false;
@@ -60,26 +58,23 @@ export class VirtualKeyboard {
 		this.fnVirtualKeyboardKeyupHandler = this.onVirtualKeyboardKeyup.bind(this);
 		this.fnVirtualKeyboardKeyoutHandler = this.onVirtualKeyboardKeyout.bind(this);
 
-		this.options = {
-			view: options.view,
-			fnPressCpcKey: options.fnPressCpcKey,
-			fnReleaseCpcKey: options.fnReleaseCpcKey
-		};
+		this.options = {} as VirtualKeyboardOptions;
+		this.setOptions(options);
 
 		const view = this.options.view,
 			eventNames = view.fnAttachPointerEvents(ViewID.kbdAreaInner, this.fnVirtualKeyboardKeydownHandler, undefined, this.fnVirtualKeyboardKeyupHandler);
 
 		this.eventNames = eventNames;
-		/*
-		if (eventNames.out) {
-			//this.pointerOutEvent = eventNames.out;
-			//this.fnVirtualKeyout = this.fnVirtualKeyboardKeyoutHandler;
-		}
-		*/
-
 		view.dragInit(ViewID.pageBody, ViewID.kbdArea);
-
 		this.virtualKeyboardCreate();
+	}
+
+	getOptions(): VirtualKeyboardOptions {
+		return this.options;
+	}
+
+	setOptions(options: Partial<VirtualKeyboardOptions>): void {
+		Object.assign(this.options, options);
 	}
 
 	getKeydownHandler(): typeof this.fnVirtualKeyboardKeydownHandler {
@@ -622,77 +617,6 @@ export class VirtualKeyboard {
 	];
 	/* eslint-enable array-element-newline */
 
-	/*
-	private readonly dragInfo = {
-		dragItem: undefined as (HTMLElement | undefined),
-		active: false,
-		xOffset: 0,
-		yOffset: 0,
-		initialX: 0,
-		initialY: 0,
-		currentX: 0,
-		currentY: 0
-	};
-
-	private static readonly pointerEventNames = {
-		down: "pointerdown",
-		move: "pointermove",
-		up: "pointerup",
-		cancel: "pointercancel",
-		out: "pointerout",
-		type: "pointer"
-	};
-
-	private static readonly touchEventNames = {
-		down: "touchstart",
-		move: "touchmove",
-		up: "touchend",
-		cancel: "touchcancel",
-		out: "", // n.a.
-		type: "touch"
-	};
-
-	private static readonly mouseEventNames = {
-		down: "mousedown",
-		move: "mousemove",
-		up: "mouseup",
-		cancel: "", // n.a.
-		out: "mouseout",
-		type: "mouse"
-	};
-
-	private fnAttachPointerEvents(id: ViewID, fnDown?: EventListener, fnMove?: EventListener, fnUp?: EventListener) { // eslint-disable-line class-methods-use-this
-		const area = View.getElementById1(id);
-		let eventNames: typeof VirtualKeyboard.pointerEventNames;
-
-		if (window.PointerEvent) {
-			eventNames = VirtualKeyboard.pointerEventNames;
-		} else if ("ontouchstart" in window || navigator.maxTouchPoints) {
-			eventNames = VirtualKeyboard.touchEventNames;
-		} else {
-			eventNames = VirtualKeyboard.mouseEventNames;
-		}
-
-		if (Utils.debug > 0) {
-			Utils.console.log("fnAttachPointerEvents: Using", eventNames.type, "events");
-		}
-
-		if (fnDown) {
-			area.addEventListener(eventNames.down, fnDown, false); // +clicked for pointer, touch?
-		}
-		if (fnMove) {
-			area.addEventListener(eventNames.move, fnMove, false);
-		}
-		if (fnUp) {
-			area.addEventListener(eventNames.up, fnUp, false);
-			if (eventNames.cancel) {
-				area.addEventListener(eventNames.cancel, fnUp, false);
-			}
-		}
-		return eventNames;
-	}
-	*/
-
 	reset(): void {
 		this.virtualKeyboardAdaptKeys(false, false);
 	}
@@ -907,12 +831,6 @@ export class VirtualKeyboard {
 
 		this.fnVirtualKeyboardKeyupOrKeyout(event);
 
-		/*
-		if (this.pointerOutEvent && this.fnVirtualKeyout) {
-			node.removeEventListener(this.pointerOutEvent, this.fnVirtualKeyout); // do not need out event any more
-		}
-		*/
-
 		if (this.eventNames.out) {
 			node.removeEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyoutHandler); // do not need out event any more for this key
 		}
@@ -928,91 +846,10 @@ export class VirtualKeyboard {
 		}
 		this.fnVirtualKeyboardKeyupOrKeyout(event);
 
-		/*
-		if (this.pointerOutEvent && this.fnVirtualKeyout) {
-			node.removeEventListener(this.pointerOutEvent, this.fnVirtualKeyout);
-		}
-		*/
-
 		if (this.eventNames.out) {
 			node.removeEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyoutHandler); // do not need out event any more for this key
 		}
 		event.preventDefault();
 		return false;
 	}
-
-	/*
-	// based on https://www.kirupa.com/html5/drag.htm
-	private dragInit(containerId: ViewID, itemId: ViewID) {
-		const drag = this.dragInfo;
-
-		drag.dragItem = View.getElementById1(itemId);
-		drag.active = false;
-		drag.xOffset = 0;
-		drag.yOffset = 0;
-
-		this.fnAttachPointerEvents(containerId, this.dragStart.bind(this), this.drag.bind(this), this.dragEnd.bind(this));
-	}
-
-	private dragStart(event: DragEvent | TouchEvent) {
-		const node = View.getEventTarget<HTMLElement>(event),
-			parent = node.parentElement ? node.parentElement.parentElement : null,
-			drag = this.dragInfo;
-
-		if (node === drag.dragItem || parent === drag.dragItem) {
-			if (event.type === "touchstart") {
-				const touchEvent = event as TouchEvent;
-
-				drag.initialX = touchEvent.touches[0].clientX - drag.xOffset;
-				drag.initialY = touchEvent.touches[0].clientY - drag.yOffset;
-			} else {
-				const dragEvent = event as DragEvent;
-
-				drag.initialX = dragEvent.clientX - drag.xOffset;
-				drag.initialY = dragEvent.clientY - drag.yOffset;
-			}
-			drag.active = true;
-		}
-	}
-
-	private dragEnd(_event) {
-		const drag = this.dragInfo;
-
-		drag.initialX = drag.currentX;
-		drag.initialY = drag.currentY;
-
-		drag.active = false;
-	}
-
-	private setTranslate(xPos: number, yPos: number, el: HTMLElement) { // eslint-disable-line class-methods-use-this
-		el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)";
-	}
-
-	private drag(event: DragEvent | TouchEvent) {
-		const drag = this.dragInfo;
-
-		if (drag.active) {
-			event.preventDefault();
-
-			if (event.type === "touchmove") {
-				const touchEvent = event as TouchEvent;
-
-				drag.currentX = touchEvent.touches[0].clientX - drag.initialX;
-				drag.currentY = touchEvent.touches[0].clientY - drag.initialY;
-			} else {
-				const dragEvent = event as DragEvent;
-
-				drag.currentX = dragEvent.clientX - drag.initialX;
-				drag.currentY = dragEvent.clientY - drag.initialY;
-			}
-
-			drag.xOffset = drag.currentX;
-			drag.yOffset = drag.currentY;
-
-			if (drag.dragItem) {
-				this.setTranslate(drag.currentX, drag.currentY, drag.dragItem);
-			}
-		}
-	}
-	*/
 }

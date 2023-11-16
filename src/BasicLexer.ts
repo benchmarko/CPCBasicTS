@@ -34,26 +34,20 @@ export class BasicLexer {
 	private readonly tokens: LexerToken[] = [];
 	private whiteSpace = ""; // collected whitespace
 
-	setOptions(options: Partial<BasicLexerOptions>): void {
-		if (options.keywords !== undefined) {
-			this.options.keywords = options.keywords;
-		}
-		if (options.keepWhiteSpace !== undefined) {
-			this.options.keepWhiteSpace = options.keepWhiteSpace;
-		}
+	constructor(options: BasicLexerOptions) {
+		this.options = {
+			keepWhiteSpace: false,
+			quiet: false
+		} as BasicLexerOptions;
+		this.setOptions(options);
 	}
 
 	getOptions(): BasicLexerOptions {
 		return this.options;
 	}
 
-	constructor(options: BasicLexerOptions) {
-		this.options = {
-			keywords: options.keywords,
-			keepWhiteSpace: false,
-			quiet: false
-		};
-		this.setOptions(options);
+	setOptions(options: Partial<BasicLexerOptions>): void {
+		Object.assign(this.options, options);
 	}
 
 	private composeError(error: Error, message: string, value: string, pos: number, len?: number) {

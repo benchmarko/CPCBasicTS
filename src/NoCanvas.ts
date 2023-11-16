@@ -10,7 +10,9 @@ export class NoCanvas implements ICanvas {
 	private readonly options: CanvasOptions;
 
 	constructor(options: CanvasOptions) {
-		this.options = options;
+		this.options = {} as CanvasOptions;
+		this.setOptions(options);
+
 		this.reset();
 	}
 
@@ -138,12 +140,6 @@ export class NoCanvas implements ICanvas {
 
 	changeMode(_mode: number): void { // eslint-disable-line class-methods-use-this
 	}
-
-	/*
-	getCanvasID(): ViewID { // eslint-disable-line class-methods-use-this
-		return ViewID.noCanvas;
-	}
-	*/
 
 	takeScreenShot(): string { // eslint-disable-line class-methods-use-this
 		return "";

@@ -207,7 +207,11 @@ export class Controller implements IController {
 		this.model = model;
 		this.view = view;
 
-		this.commonEventHandler = new CommonEventHandler(model, view, this);
+		this.commonEventHandler = new CommonEventHandler({
+			model: model,
+			view: view,
+			controller: this
+		});
 		this.view.addEventListener("click", this.commonEventHandler);
 		this.view.addEventListener("change", this.commonEventHandler);
 
@@ -602,8 +606,13 @@ export class Controller implements IController {
 		const database = this.model.getProperty<string>(ModelPropID.database),
 			storage = Utils.localStorage;
 
+		let selectedExample = "",
+			exampleChanged = false;
+
 		if (database !== "storage") {
 			this.model.setProperty(ModelPropID.database, "storage"); // switch to storage database
+		} else {
+			selectedExample = this.view.getSelectValue(ViewID.exampleSelect); //TTT || this.model.getProperty(ModelPropID.example);
 		}
 
 		let	dir: string[];
@@ -620,6 +629,10 @@ export class Controller implements IController {
 				this.model.removeExample(key);
 			} else if (action === "set") {
 				let example = this.model.getExample(key);
+
+				if (selectedExample === "" || (selectedExample === key)) {
+					exampleChanged = true;
+				}
 
 				if (!example) {
 					const dataString = storage.getItem(key) || "",
@@ -639,14 +652,17 @@ export class Controller implements IController {
 
 		if (database === "storage") {
 			this.setDirectorySelectOptions();
-			this.setExampleSelectOptions();
+			if (exampleChanged) {
+				this.onDirectorySelectChange();
+			} else {
+				this.setExampleSelectOptions();
+			}
 		} else {
 			this.model.setProperty(ModelPropID.database, database); // restore database
 		}
 	}
 
 	private removeKeyBoardHandler() {
-		//this.keyboard.setKeyDownHandler();
 		this.keyboard.setOptions({
 			fnOnKeyDown: undefined
 		});
@@ -691,7 +707,6 @@ export class Controller implements IController {
 			this.vm.cursor(stream, 1);
 			this.keyboard.clearInput();
 
-			//this.keyboard.setKeyDownHandler(this.fnWaitForContinueHandler);
 			this.keyboard.setOptions({
 				fnOnKeyDown: this.fnWaitForContinueHandler
 			});
@@ -758,7 +773,6 @@ export class Controller implements IController {
 			this.removeKeyBoardHandler();
 		} else {
 			this.fnWaitSound(); // sound and blinking events
-			//this.keyboard.setKeyDownHandler(this.fnWaitKeyHandler); // wait until keypress handler (for call &bb18)
 			// wait until keypress handler (for call &bb18)
 			this.keyboard.setOptions({
 				fnOnKeyDown: this.fnWaitKeyHandler
@@ -898,7 +912,6 @@ export class Controller implements IController {
 			if (stop.reason === "waitInput") { // only for this reason
 				this.fnWaitSound(); // sound and blinking events
 			}
-			//this.keyboard.setKeyDownHandler(this.fnWaitInputHandler); // make sure it is set
 			// make sure the handler is set
 			this.keyboard.setOptions({
 				fnOnKeyDown: this.fnWaitInputHandler
@@ -1059,7 +1072,9 @@ export class Controller implements IController {
 			const key = storage.key(i);
 
 			if (key !== null && storage[key].startsWith(metaIdent)) { // take only cpcBasic files
-				if (!regExp || regExp.test(key)) {
+				const keywithOutNl = key.replace(/[\n\r]/g, ""); // support also strange names; (newer browsers support also "s" regex modifier)
+
+				if (!regExp || regExp.test(keywithOutNl)) {
 					dir.push(key);
 				}
 			}
@@ -2101,21 +2116,31 @@ export class Controller implements IController {
 		}
 
 		if (exportDSK) {
-			const diskImage = new DiskImage({
+			const fileData = data,
+				diskImage = this.getFileHandler().getDiskImage();
+
+			diskImage.setOptions({
+				diskName: "test",
+				data: diskImage.formatImage("data")
+			});
+
+			/*
+			new DiskImage({
 				diskName: "test",
 				data: "" //TTT change to optional
 			});
+			*/
 
-			diskImage.formatImage("data");
+			//diskImage.formatImage("data");
 
 			const dir = diskImage.readDirectory(); // is empty
 
 			Utils.console.log("TEST: exportDSK: no files:" + Object.keys(dir));
-			diskImage.writeFile(name, data);
+			diskImage.writeFile(name, fileData);
 
 			const options = diskImage.getOptions();
 
-			data = options.data; // maybe modified
+			data = options.data; // we need the modified disk image with the file inside
 			name = name.substring(0, name.indexOf(".") + 1) + "dsk";
 			meta.length = data.length;
 			meta.typeString = "X"; // (extended) disk image
@@ -2551,7 +2576,6 @@ export class Controller implements IController {
 			this.keyboard.putKeyInBuffer(keys.charAt(i));
 		}
 
-		//const keyDownHandler = this.keyboard.getKeyDownHandler();
 		const options = this.keyboard.getOptions(),
 			keyDownHandler = options.fnOnKeyDown;
 
@@ -2565,12 +2589,6 @@ export class Controller implements IController {
 
 		input = input.replace(/\n/g, "\r"); // LF => CR
 		this.fnPutKeysInBuffer(input);
-
-		/*
-		if (deleteInput) {
-			this.view.setAreaValue(ViewID.inp2Text, "");
-		}
-		*/
 	}
 
 	private static generateFunction(par: string, functionString: string) {
@@ -2666,7 +2684,9 @@ export class Controller implements IController {
 	}
 
 	setBasicVersion(basicVersion: string): void {
-		this.basicParser.setBasicVersion(basicVersion);
+		this.basicParser.setOptions({
+			basicVersion: basicVersion
+		});
 
 		this.basicLexer.setOptions({
 			keywords: this.basicParser.getKeywords()
@@ -2696,11 +2716,14 @@ export class Controller implements IController {
 			this.view.setHidden(ViewID.cpcCanvas, true);
 		}
 
+		const palette = this.model.getProperty<string>(ModelPropID.palette);
+
 		if (this.canvases[canvasType]) {
 			canvas = this.canvases[canvasType];
+			this.canvas = canvas;
+			this.setPalette(palette);
 		} else {
-			const palette = this.model.getProperty<string>(ModelPropID.palette),
-				validPalette = palette === "green" || palette === "grey" ? palette : "color";
+			const validPalette = palette === "green" || palette === "grey" ? palette : "color";
 
 			if (canvasType === "text") {
 				canvas = new TextCanvas({
@@ -2732,8 +2755,9 @@ export class Controller implements IController {
 				}
 			}
 			this.canvases[canvasType] = canvas;
+			this.canvas = canvas;
 		}
-		this.canvas = canvas;
+
 		if (this.vm) {
 			this.vm.setCanvas(canvas);
 		}
@@ -2775,12 +2799,6 @@ export class Controller implements IController {
 		}
 		return this.z80Disass;
 	}
-
-	/*
-	hex = this.input.substring(debug.startPos, this.pos).split("").map(function (s) {
-		return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0");
-	}).join(",");
-	*/
 
 	setDisassAddr(addr: number): void {
 		const z80Disass = this.getZ80Disass(),
@@ -3061,11 +3079,6 @@ export class Controller implements IController {
 
 	onVirtualKeyBoardClick(event: Event): void {
 		if (this.virtualKeyboard) {
-			/*
-			const target = View.getEventTarget<HTMLButtonElement>(event);
-				//cpcKey = target.getAttribute("data-key");
-			*/
-
 			// simulate keypress (maybe better use real keydown events for space, enter...)
 			this.virtualKeyboard.getKeydownHandler()(event as PointerEvent);
 

@@ -13,12 +13,11 @@ export interface FileSelectOptions {
 }
 
 export class FileSelect {
+	private readonly options: FileSelectOptions;
+
 	private readonly fnOnErrorHandler: () => void;
 	private readonly fnOnLoadHandler: () => void;
 	private readonly fnOnFileSelectHandler: () => void;
-
-	private readonly fnEndOfImport: FileSelectOptions["fnEndOfImport"]; //(imported: string[]) => void;
-	private readonly fnLoad2: FileSelectOptions["fnLoad2"]; //(data: string | Uint8Array, name: string, type: string, imported: string[]) => void;
 
 	private files?: FileList;
 	private fileIndex = 0;
@@ -30,8 +29,16 @@ export class FileSelect {
 		this.fnOnErrorHandler = this.fnOnError.bind(this);
 		this.fnOnFileSelectHandler = this.fnOnFileSelect.bind(this);
 
-		this.fnEndOfImport = options.fnEndOfImport;
-		this.fnLoad2 = options.fnLoad2;
+		this.options = {} as FileSelectOptions;
+		this.setOptions(options);
+	}
+
+	getOptions(): FileSelectOptions {
+		return this.options;
+	}
+
+	setOptions(options: Partial<FileSelectOptions>): void {
+		Object.assign(this.options, options);
 	}
 
 	private fnReadNextFile(reader: FileReader) {
@@ -53,7 +60,7 @@ export class FileSelect {
 			}
 			this.file = file;
 		} else {
-			this.fnEndOfImport(this.imported);
+			this.options.fnEndOfImport(this.imported);
 		}
 	}
 
@@ -70,7 +77,7 @@ export class FileSelect {
 
 		if (type === "application/x-zip-compressed" && data instanceof ArrayBuffer) {
 			type = "Z";
-			this.fnLoad2(new Uint8Array(data), name, type, this.imported);
+			this.options.fnLoad2(new Uint8Array(data), name, type, this.imported);
 		} else if (typeof data === "string") {
 			if (type === "text/plain") { // "text/plain"
 				type = "A";
@@ -91,7 +98,7 @@ export class FileSelect {
 					}
 				}
 			}
-			this.fnLoad2(data, name, type, this.imported);
+			this.options.fnLoad2(data, name, type, this.imported);
 		} else {
 			Utils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);
 		}

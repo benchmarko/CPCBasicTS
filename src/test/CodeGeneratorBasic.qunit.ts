@@ -754,7 +754,7 @@ const allTests: AllTestsType = {
 // "a=(1=0)": "a=(1=0)", // optimal: a=1=0
 // "data &a3,4,abc,": "DATA &a3,4,abc,", // &a3 is not converted
 // "else a=7": "ELSE a = 7", // TODO: whitespace
-// "a=1 else a=2": "a=1:ELSE a = 2", //TTT
+// "a=1 else a=2": "a=1:ELSE a = 2",
 
 type hooksWithCodeGeneratorBasic = NestedHooks & {
 	codeGeneratorBasic: CodeGeneratorBasic
