@@ -80,7 +80,7 @@ export declare class DiskImage {
     private static getFreeBlocks;
     static getFilenameAndExtension(filename: string): string[];
     writeFile(filename: string, data: string): boolean;
-    private static protectTable;
+    private static readonly protectTable;
     static unOrProtectData(data: string): string;
     private static computeChecksum;
     static parseAmsdosHeader(data: string): AmsdosHeader | undefined;

@@ -807,10 +807,13 @@ define("Constants", ["require", "exports"], function (require, exports) {
         ViewID["autorunInput"] = "autorunInput";
         ViewID["basicVersionSelect"] = "basicVersionSelect";
         ViewID["canvasTypeSelect"] = "canvasTypeSelect";
+        ViewID["clearInputButton"] = "clearInputButton";
         ViewID["consoleLogArea"] = "consoleLogArea";
         ViewID["consoleLogText"] = "consoleLogText";
         ViewID["continueButton"] = "continueButton";
         ViewID["convertArea"] = "convertArea";
+        ViewID["convertButton"] = "convertButton";
+        ViewID["copyTextButton"] = "copyTextButton";
         ViewID["cpcArea"] = "cpcArea";
         ViewID["cpcCanvas"] = "cpcCanvas";
         ViewID["databaseSelect"] = "databaseSelect";
@@ -819,15 +822,22 @@ define("Constants", ["require", "exports"], function (require, exports) {
         ViewID["disassArea"] = "disassArea";
         ViewID["disassInput"] = "disassInput";
         ViewID["disassText"] = "disassText";
+        ViewID["downloadButton"] = "downloadButton";
         ViewID["dropZone"] = "dropZone";
+        ViewID["enterButton"] = "enterButton";
         ViewID["exampleSelect"] = "exampleSelect";
         ViewID["exportArea"] = "exportArea";
+        ViewID["exportButton"] = "exportButton";
         ViewID["exportBase64Input"] = "exportBase64Input";
         ViewID["exportDSKInput"] = "exportDSKInput";
         ViewID["exportTokenizedInput"] = "exportTokenizedInput";
         ViewID["fileInput"] = "fileInput";
+        ViewID["fullscreenButton"] = "fullscreenButton";
         ViewID["galleryArea"] = "galleryArea";
         ViewID["galleryAreaItems"] = "galleryAreaItems";
+        ViewID["galleryButton"] = "galleryButton";
+        ViewID["galleryItem"] = "galleryItem";
+        ViewID["helpButton"] = "helpButton";
         ViewID["implicitLinesInput"] = "implicitLinesInput";
         ViewID["inp2Area"] = "inp2Area";
         ViewID["inp2Text"] = "inp2Text";
@@ -838,25 +848,37 @@ define("Constants", ["require", "exports"], function (require, exports) {
         ViewID["kbdAreaInner"] = "kbdAreaInner";
         ViewID["kbdLayoutSelect"] = "kbdLayoutSelect";
         ViewID["kbdNum"] = "kbdNum";
+        ViewID["lineNumberAddButton"] = "lineNumberAddButton";
+        ViewID["lineNumberRemoveButton"] = "lineNumberRemoveButton";
         ViewID["moreArea"] = "moreArea";
+        ViewID["moreButton"] = "moreButton";
         ViewID["noCanvas"] = "noCanvas";
         ViewID["outputArea"] = "outputArea";
         ViewID["outputText"] = "outputText";
         ViewID["pageBody"] = "pageBody";
         ViewID["paletteSelect"] = "paletteSelect";
+        ViewID["parseButton"] = "parseButton";
+        ViewID["parseRunButton"] = "parseRunButton";
         ViewID["prettyBracketsInput"] = "prettyBracketsInput";
+        ViewID["prettyButton"] = "prettyButton";
         ViewID["prettyColonsInput"] = "prettyColonsInput";
         ViewID["prettySpaceInput"] = "prettySpaceInput";
         ViewID["redoButton"] = "redoButton";
+        ViewID["reloadButton"] = "reloadButton";
+        ViewID["reloadButton2"] = "reloadButton2";
+        ViewID["renumButton"] = "renumButton";
         ViewID["renumKeepInput"] = "renumKeepInput";
         ViewID["renumNewInput"] = "renumNewInput";
         ViewID["renumStartInput"] = "renumStartInput";
         ViewID["renumStepInput"] = "renumStepInput";
+        ViewID["resetButton"] = "resetButton";
         ViewID["resultArea"] = "resultArea";
         ViewID["resultText"] = "resultText";
         ViewID["runButton"] = "runButton";
+        ViewID["screenshotButton"] = "screenshotButton";
         ViewID["screenshotLink"] = "screenshotLink";
         ViewID["settingsArea"] = "settingsArea";
+        ViewID["settingsButton"] = "settingsButton";
         ViewID["showConsoleLogInput"] = "showConsoleLogInput";
         ViewID["showCpcInput"] = "showCpcInput";
         ViewID["showDisassInput"] = "showDisassInput";
@@ -876,6 +898,8 @@ define("Constants", ["require", "exports"], function (require, exports) {
         ViewID["varSelect"] = "varSelect";
         ViewID["varText"] = "varText";
         ViewID["viewArea"] = "viewArea";
+        ViewID["viewButton"] = "viewButton";
+        ViewID["window"] = "window"; //TTT does this work?
     })(ViewID = exports.ViewID || (exports.ViewID = {}));
 });
 // Utils.ts - Utililities for CPCBasic
@@ -7120,26 +7144,6 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                 this.diskInfo.trackInfo.ident = ""; // invalidate trackinfo
             }
         };
-        /*
-        private static getInitialDiskInfo() {
-            return {
-                trackInfo: {
-                    sectorInfoList: [] as SectorInfo[]
-                }
-            } as DiskInfo;
-        }
-        */
-        /*
-        private static getInitialFormatDescriptor() {
-            return {} as FormatDescriptor;
-        }
-        */
-        /*
-        reset(): void {
-            this.diskInfo = DiskImage.getInitialDiskInfo();
-            this.formatDescriptor = DiskImage.getInitialFormatDescriptor();
-        }
-        */
         DiskImage.getInitialDiskInfo = function () {
             var diskInfo = {
                 ident: "",
@@ -7157,16 +7161,6 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             };
             return diskInfo;
         };
-        /*
-        private getDiskInfo() {
-            const diskInfo = this.diskInfo;
-    
-            if (!diskInfo) {
-                throw this.composeError(Error(), "getDiskInfo: diskInfo:", String(diskInfo));
-            }
-            return diskInfo;
-        }
-        */
         DiskImage.prototype.getFormatDescriptor = function () {
             var formatDescriptor = this.formatDescriptor;
             if (!formatDescriptor) {
@@ -7469,7 +7463,6 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
         };
         DiskImage.prototype.formatImage = function (format) {
             var image = this.createImage(format);
-            //TTT Why? this.reset(); // reset disk info and format (TTT)
             this.options.data = image;
             return image;
         };
@@ -9016,6 +9009,7 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
             this.fnVirtualKeyboardKeydownHandler = this.onVirtualKeyboardKeydown.bind(this);
             this.fnVirtualKeyboardKeyupHandler = this.onVirtualKeyboardKeyup.bind(this);
             this.fnVirtualKeyboardKeyoutHandler = this.onVirtualKeyboardKeyout.bind(this);
+            this.fnKeydownOrKeyupHandler = this.onKeydownOrKeyup.bind(this); // for real Enter and Space
             this.options = {};
             this.setOptions(options);
             var view = this.options.view, eventNames = view.fnAttachPointerEvents("kbdAreaInner" /* ViewID.kbdAreaInner */, this.fnVirtualKeyboardKeydownHandler, undefined, this.fnVirtualKeyboardKeyupHandler);
@@ -9029,11 +9023,14 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
         VirtualKeyboard.prototype.setOptions = function (options) {
             Object.assign(this.options, options);
         };
-        VirtualKeyboard.prototype.getKeydownHandler = function () {
+        VirtualKeyboard.prototype.getVirtualKeydownHandler = function () {
             return this.fnVirtualKeyboardKeydownHandler;
         };
-        VirtualKeyboard.prototype.getKeyupHandler = function () {
+        VirtualKeyboard.prototype.getVirtualKeyupHandler = function () {
             return this.fnVirtualKeyboardKeyupHandler;
+        };
+        VirtualKeyboard.prototype.getKeydownOrKeyupHandler = function () {
+            return this.fnKeydownOrKeyupHandler;
         };
         /* eslint-enable array-element-newline */
         VirtualKeyboard.prototype.reset = function () {
@@ -9215,6 +9212,48 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
             }
             event.preventDefault();
             return false;
+        };
+        VirtualKeyboard.keyIdentifier2Char = function (event) {
+            // SliTaz web browser has not key but keyIdentifier
+            var identifier = event.keyIdentifier, // eslint-disable-line @typescript-eslint/no-explicit-any
+            shiftKey = event.shiftKey;
+            var char = "";
+            if ((/^U\+/i).test(identifier || "")) { // unicode string?
+                char = String.fromCharCode(parseInt(identifier.substr(2), 16));
+                if (char === "\0") { // ignore
+                    char = "";
+                }
+                char = shiftKey ? char.toUpperCase() : char.toLowerCase(); // do we get keys in unicode always in uppercase?
+            }
+            else {
+                char = identifier; // take it, could be "Enter"
+            }
+            return char;
+        };
+        VirtualKeyboard.prototype.onKeydownOrKeyup = function (event) {
+            var key = event.key || VirtualKeyboard.keyIdentifier2Char(event) || "", // SliTaz web browser has not key but keyIdentifier (also in Keyboard)
+            activeElement = window.document.activeElement;
+            if (key === "Enter" || key === " ") { // enter or space
+                var simPointerEvent = {
+                    type: event.type,
+                    target: activeElement,
+                    preventDefault: function () {
+                        // empty
+                    }
+                };
+                if (event.type === "keydown") {
+                    this.onVirtualKeyboardKeydown(simPointerEvent);
+                }
+                else if (event.type === "keyup") {
+                    this.onVirtualKeyboardKeyup(simPointerEvent);
+                }
+                else {
+                    Utils_14.Utils.console.error("onKeydownOrKeyup: Unknown type:", event.type);
+                }
+                event.preventDefault();
+                return false;
+            }
+            return undefined;
         };
         VirtualKeyboard.cpcKey2Key = [
             {
@@ -11329,78 +11368,15 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
     exports.CommonEventHandler = void 0;
     var CommonEventHandler = /** @class */ (function () {
         function CommonEventHandler(options) {
+            this.eventDefInternalMap = {};
             this.fnUserAction = undefined;
-            /* eslint-disable no-invalid-this */
-            this.handlers = {
-                onConvertButtonClick: this.onConvertButtonClick,
-                onSettingsButtonClick: this.onSettingsButtonClick,
-                onViewButtonClick: this.onViewButtonClick,
-                onExportButtonClick: this.onExportButtonClick,
-                onGalleryButtonClick: this.onGalleryButtonClick,
-                onMoreButtonClick: this.onMoreButtonClick,
-                onParseButtonClick: this.onParseButtonClick,
-                onRenumButtonClick: this.onRenumButtonClick,
-                onPrettyButtonClick: this.onPrettyButtonClick,
-                onLineNumberAddButtonClick: this.onLineNumberAddButtonClick,
-                onLineNumberRemoveButtonClick: this.onLineNumberRemoveButtonClick,
-                onUndoButtonClick: this.onUndoButtonClick,
-                onRedoButtonClick: this.onRedoButtonClick,
-                onDownloadButtonClick: this.onDownloadButtonClick,
-                onRunButtonClick: this.onRunButtonClick,
-                onStopButtonClick: this.onStopButtonClick,
-                onContinueButtonClick: this.onContinueButtonClick,
-                onResetButtonClick: this.onResetButtonClick,
-                onParseRunButtonClick: this.onParseRunButtonClick,
-                onHelpButtonClick: CommonEventHandler.onHelpButtonClick,
-                onGalleryItemClick: this.onGalleryItemClick,
-                onInputTextClick: CommonEventHandler.onNothing,
-                onOutputTextClick: CommonEventHandler.onNothing,
-                onResultTextClick: CommonEventHandler.onNothing,
-                onVarTextClick: CommonEventHandler.onNothing,
-                onOutputTextChange: this.onOutputTextChange,
-                onReloadButtonClick: this.onReloadButtonClick,
-                onReload2ButtonClick: this.onReloadButtonClick,
-                onDatabaseSelectChange: this.onDatabaseSelectChange,
-                onDirectorySelectChange: this.onDirectorySelectChange,
-                onExampleSelectChange: this.onExampleSelectChange,
-                onVarSelectChange: this.onVarSelectChange,
-                onKbdLayoutSelectChange: this.onKbdLayoutSelectChange,
-                onVarTextChange: this.onVarTextChange,
-                onDebugInputChange: this.onDebugInputChange,
-                onImplicitLinesInputChange: this.onImplicitLinesInputChange,
-                onArrayBoundsInputChange: this.onArrayBoundsInputChange,
-                onShowCpcInputChange: this.onShowCpcInputChange,
-                onShowKbdInputChange: this.onShowKbdInputChange,
-                onShowInp2InputChange: this.onShowInp2InputChange,
-                onShowResultInputChange: this.onShowResultInputChange,
-                onShowInputInputChange: this.onShowInputInputChange,
-                onShowVariableInputChange: this.onShowVariableInputChange,
-                onShowOutputInputChange: this.onShowOutputInputChange,
-                onShowDisassInputChange: this.onShowDisassInputChange,
-                onShowConsoleLogInputChange: this.onShowConsoleLogInputChange,
-                onDisassInputChange: this.onDisassInputChange,
-                onTraceInputChange: this.onTraceInputChange,
-                onAutorunInputChange: this.onAutorunInputChange,
-                onSoundInputChange: this.onSoundInputChange,
-                onSpeedInputChange: this.onSpeedInputChange,
-                onBasicVersionSelectChange: this.onBasicVersionSelectChange,
-                onCanvasTypeSelectChange: this.onCanvasTypeSelectChange,
-                onPaletteSelectChange: this.onPaletteSelectChange,
-                onScreenshotButtonClick: this.onScreenshotButtonClick,
-                onClearInputButtonClick: this.onClearInputButtonClick,
-                onEnterButtonClick: this.onEnterButtonClick,
-                onFullscreenButtonClick: CommonEventHandler.onFullscreenButtonClick,
-                onCpcCanvasClick: this.onCpcCanvasClick,
-                onWindowClick: this.onWindowClick,
-                onTextTextClick: this.onTextTextClick,
-                onCopyTextButtonClick: this.onCopyTextButtonClick
-            };
             this.options = {};
             this.setOptions(options);
             // copy for easy access:
             this.model = this.options.model;
             this.view = this.options.view;
             this.controller = this.options.controller;
+            this.createEventDefMap();
         }
         CommonEventHandler.prototype.getOptions = function () {
             return this.options;
@@ -11411,40 +11387,10 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
         CommonEventHandler.prototype.fnSetUserAction = function (fnAction) {
             this.fnUserAction = fnAction;
         };
-        CommonEventHandler.prototype.onConvertButtonClick = function () {
-            this.controller.toggleAreaHidden("convertArea" /* ViewID.convertArea */);
-        };
-        CommonEventHandler.prototype.onSettingsButtonClick = function () {
-            this.controller.toggleAreaHidden("settingsArea" /* ViewID.settingsArea */);
-        };
-        CommonEventHandler.prototype.onViewButtonClick = function () {
-            this.controller.toggleAreaHidden("viewArea" /* ViewID.viewArea */);
-        };
-        CommonEventHandler.prototype.onExportButtonClick = function () {
-            this.controller.toggleAreaHidden("exportArea" /* ViewID.exportArea */);
-        };
         CommonEventHandler.prototype.onGalleryButtonClick = function () {
             if (this.controller.toggleAreaHidden("galleryArea" /* ViewID.galleryArea */)) {
                 this.controller.setGalleryAreaInputs();
             }
-        };
-        CommonEventHandler.prototype.onMoreButtonClick = function () {
-            this.controller.toggleAreaHidden("moreArea" /* ViewID.moreArea */);
-        };
-        CommonEventHandler.prototype.onParseButtonClick = function () {
-            this.controller.startParse();
-        };
-        CommonEventHandler.prototype.onRenumButtonClick = function () {
-            this.controller.startRenum();
-        };
-        CommonEventHandler.prototype.onPrettyButtonClick = function () {
-            this.controller.fnPretty();
-        };
-        CommonEventHandler.prototype.onLineNumberAddButtonClick = function () {
-            this.controller.fnAddLines();
-        };
-        CommonEventHandler.prototype.onLineNumberRemoveButtonClick = function () {
-            this.controller.fnRemoveLines();
         };
         CommonEventHandler.prototype.fnUpdateAreaText = function (input) {
             this.controller.setInputText(input, true);
@@ -11458,25 +11404,13 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             var input = this.controller.redoStackElement();
             this.fnUpdateAreaText(input);
         };
-        CommonEventHandler.prototype.onDownloadButtonClick = function () {
-            this.controller.fnDownload();
-        };
-        CommonEventHandler.prototype.onRunButtonClick = function () {
-            this.controller.startRun();
-        };
-        CommonEventHandler.prototype.onStopButtonClick = function () {
-            this.controller.startBreak();
-        };
         CommonEventHandler.prototype.onContinueButtonClick = function (event) {
             this.controller.startContinue();
-            this.onCpcCanvasClick(event);
-        };
-        CommonEventHandler.prototype.onResetButtonClick = function () {
-            this.controller.startReset();
+            this.controller.onCpcCanvasClick(event);
         };
         CommonEventHandler.prototype.onParseRunButtonClick = function (event) {
             this.controller.startParseRun();
-            this.onCpcCanvasClick(event);
+            this.controller.onCpcCanvasClick(event);
         };
         CommonEventHandler.onHelpButtonClick = function () {
             window.open("https://github.com/benchmarko/CPCBasicTS/#readme");
@@ -11485,10 +11419,7 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             var target = View_4.View.getEventTarget(event), value = target.value;
             this.view.setSelectValue("exampleSelect" /* ViewID.exampleSelect */, value);
             this.controller.toggleAreaHidden("galleryArea" /* ViewID.galleryArea */); // close
-            this.onExampleSelectChange();
-        };
-        CommonEventHandler.onNothing = function () {
-            // nothing
+            this.controller.onExampleSelectChange();
         };
         // eslint-disable-next-line class-methods-use-this
         CommonEventHandler.prototype.onCopyTextButtonClick = function () {
@@ -11502,9 +11433,6 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                 Utils_17.Utils.console.warn("Copy to clipboard not available");
             }
         };
-        CommonEventHandler.prototype.onOutputTextChange = function () {
-            this.controller.invalidateScript();
-        };
         CommonEventHandler.encodeUriParam = function (params) {
             var parts = [];
             for (var key in params) {
@@ -11516,21 +11444,11 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             return parts.join("&");
         };
         CommonEventHandler.prototype.onReloadButtonClick = function () {
-            //this.onSettingsButtonClick(); // close settings dialog
             this.controller.setPopoversHiddenExcept(); // hide all popovers,
             var changed = this.model.getChangedProperties();
             var paras = CommonEventHandler.encodeUriParam(changed);
             paras = paras.replace(/%2[Ff]/g, "/"); // unescape %2F -> /
             window.location.search = "?" + paras;
-        };
-        CommonEventHandler.prototype.onDatabaseSelectChange = function () {
-            this.controller.onDatabaseSelectChange();
-        };
-        CommonEventHandler.prototype.onDirectorySelectChange = function () {
-            this.controller.onDirectorySelectChange();
-        };
-        CommonEventHandler.prototype.onExampleSelectChange = function () {
-            this.controller.onExampleSelectChange();
         };
         CommonEventHandler.prototype.onVarSelectChange = function () {
             var par = this.view.getSelectValue("varSelect" /* ViewID.varSelect */), value = this.controller.getVariable(par), valueString = (value !== undefined) ? String(value) : "";
@@ -11561,9 +11479,6 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             this.view.setSelectTitleFromSelectedOption("canvasTypeSelect" /* ViewID.canvasTypeSelect */);
             this.controller.setCanvasType(value);
         };
-        CommonEventHandler.prototype.onVarTextChange = function () {
-            this.controller.changeVariable();
-        };
         CommonEventHandler.prototype.onDebugInputChange = function () {
             var debug = this.view.getInputValue("debugInput" /* ViewID.debugInput */);
             this.model.setProperty("debug" /* ModelPropID.debug */, Number(debug));
@@ -11591,27 +11506,6 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             if (this.controller.toggleAreaHidden("kbdArea" /* ViewID.kbdArea */)) {
                 this.controller.getVirtualKeyboard(); // maybe draw it
             }
-        };
-        CommonEventHandler.prototype.onShowInp2InputChange = function () {
-            this.controller.toggleAreaHidden("inp2Area" /* ViewID.inp2Area */);
-        };
-        CommonEventHandler.prototype.onShowResultInputChange = function () {
-            this.controller.toggleAreaHidden("resultArea" /* ViewID.resultArea */);
-        };
-        CommonEventHandler.prototype.onShowInputInputChange = function () {
-            this.controller.toggleAreaHidden("inputArea" /* ViewID.inputArea */);
-        };
-        CommonEventHandler.prototype.onShowVariableInputChange = function () {
-            this.controller.toggleAreaHidden("variableArea" /* ViewID.variableArea */);
-        };
-        CommonEventHandler.prototype.onShowOutputInputChange = function () {
-            this.controller.toggleAreaHidden("outputArea" /* ViewID.outputArea */);
-        };
-        CommonEventHandler.prototype.onShowDisassInputChange = function () {
-            this.controller.toggleAreaHidden("disassArea" /* ViewID.disassArea */);
-        };
-        CommonEventHandler.prototype.onShowConsoleLogInputChange = function () {
-            this.controller.toggleAreaHidden("consoleLogArea" /* ViewID.consoleLogArea */);
         };
         CommonEventHandler.prototype.onDisassInputChange = function () {
             var addressStr = this.view.getInputValue("disassInput" /* ViewID.disassInput */), addr = parseInt(addressStr, 16); // parse as hex
@@ -11647,54 +11541,302 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
         CommonEventHandler.prototype.onClearInputButtonClick = function () {
             this.view.setAreaValue("inp2Text" /* ViewID.inp2Text */, ""); // delete input
         };
-        CommonEventHandler.prototype.onEnterButtonClick = function () {
-            this.controller.startEnter();
-        };
         CommonEventHandler.onFullscreenButtonClick = function () {
             var switched = View_4.View.requestFullscreenForId("cpcCanvas" /* ViewID.cpcCanvas */); // make sure to use an element with tabindex set to get keyboard events
             if (!switched) {
                 Utils_17.Utils.console.warn("Switch to fullscreen not available");
             }
         };
-        CommonEventHandler.prototype.onCpcCanvasClick = function (event) {
-            this.controller.onCpcCanvasClick(event);
+        CommonEventHandler.prototype.createEventDefMap = function () {
+            var eventDefInternalMap = this.eventDefInternalMap, eventDefs = {
+                click: [
+                    {
+                        id: "clearInputButton" /* ViewID.clearInputButton */,
+                        func: this.onClearInputButtonClick
+                    },
+                    {
+                        id: "continueButton" /* ViewID.continueButton */,
+                        func: this.onContinueButtonClick
+                    },
+                    {
+                        id: "convertButton" /* ViewID.convertButton */,
+                        toggleId: "convertArea" /* ViewID.convertArea */
+                    },
+                    {
+                        id: "cpcCanvas" /* ViewID.cpcCanvas */,
+                        controllerFunc: this.controller.onCpcCanvasClick
+                    },
+                    {
+                        id: "copyTextButton" /* ViewID.copyTextButton */,
+                        func: this.onCopyTextButtonClick
+                    },
+                    {
+                        id: "downloadButton" /* ViewID.downloadButton */,
+                        controllerFunc: this.controller.fnDownload
+                    },
+                    {
+                        id: "enterButton" /* ViewID.enterButton */,
+                        controllerFunc: this.controller.startEnter
+                    },
+                    {
+                        id: "exportButton" /* ViewID.exportButton */,
+                        toggleId: "exportArea" /* ViewID.exportArea */
+                    },
+                    {
+                        id: "fullscreenButton" /* ViewID.fullscreenButton */,
+                        func: CommonEventHandler.onFullscreenButtonClick
+                    },
+                    {
+                        id: "galleryButton" /* ViewID.galleryButton */,
+                        func: this.onGalleryButtonClick
+                    },
+                    {
+                        id: "galleryItem" /* ViewID.galleryItem */,
+                        func: this.onGalleryItemClick
+                    },
+                    {
+                        id: "helpButton" /* ViewID.helpButton */,
+                        func: CommonEventHandler.onHelpButtonClick
+                    },
+                    {
+                        id: "lineNumberAddButton" /* ViewID.lineNumberAddButton */,
+                        controllerFunc: this.controller.fnAddLines
+                    },
+                    {
+                        id: "lineNumberRemoveButton" /* ViewID.lineNumberRemoveButton */,
+                        controllerFunc: this.controller.fnRemoveLines
+                    },
+                    {
+                        id: "moreButton" /* ViewID.moreButton */,
+                        toggleId: "moreArea" /* ViewID.moreArea */
+                    },
+                    {
+                        id: "parseButton" /* ViewID.parseButton */,
+                        controllerFunc: this.controller.startParse
+                    },
+                    {
+                        id: "parseRunButton" /* ViewID.parseRunButton */,
+                        func: this.onParseRunButtonClick
+                    },
+                    {
+                        id: "prettyButton" /* ViewID.prettyButton */,
+                        controllerFunc: this.controller.fnPretty
+                    },
+                    {
+                        id: "redoButton" /* ViewID.redoButton */,
+                        func: this.onRedoButtonClick
+                    },
+                    {
+                        id: "reloadButton" /* ViewID.reloadButton */,
+                        func: this.onReloadButtonClick
+                    },
+                    {
+                        id: "reloadButton2" /* ViewID.reloadButton2 */,
+                        func: this.onReloadButtonClick // same as relaodButton
+                    },
+                    {
+                        id: "renumButton" /* ViewID.renumButton */,
+                        controllerFunc: this.controller.startRenum
+                    },
+                    {
+                        id: "resetButton" /* ViewID.resetButton */,
+                        controllerFunc: this.controller.startReset
+                    },
+                    {
+                        id: "runButton" /* ViewID.runButton */,
+                        controllerFunc: this.controller.startRun
+                    },
+                    {
+                        id: "screenshotButton" /* ViewID.screenshotButton */,
+                        func: this.onScreenshotButtonClick
+                    },
+                    {
+                        id: "screenshotLink" /* ViewID.screenshotLink */ // nothing
+                    },
+                    {
+                        id: "settingsButton" /* ViewID.settingsButton */,
+                        toggleId: "settingsArea" /* ViewID.settingsArea */
+                    },
+                    {
+                        id: "stopButton" /* ViewID.stopButton */,
+                        controllerFunc: this.controller.startBreak
+                    },
+                    {
+                        id: "textText" /* ViewID.textText */,
+                        controllerFunc: this.controller.onCpcCanvasClick // same as for cpcCanvas
+                    },
+                    {
+                        id: "undoButton" /* ViewID.undoButton */,
+                        func: this.onUndoButtonClick
+                    },
+                    {
+                        id: "viewButton" /* ViewID.viewButton */,
+                        toggleId: "viewArea" /* ViewID.viewArea */
+                    },
+                    {
+                        id: "window" /* ViewID.window */,
+                        controllerFunc: this.controller.onWindowClick
+                    }
+                ],
+                change: [
+                    {
+                        id: "arrayBoundsInput" /* ViewID.arrayBoundsInput */,
+                        func: this.onArrayBoundsInputChange
+                    },
+                    {
+                        id: "autorunInput" /* ViewID.autorunInput */,
+                        func: this.onAutorunInputChange
+                    },
+                    {
+                        id: "basicVersionSelect" /* ViewID.basicVersionSelect */,
+                        func: this.onBasicVersionSelectChange
+                    },
+                    {
+                        id: "canvasTypeSelect" /* ViewID.canvasTypeSelect */,
+                        func: this.onCanvasTypeSelectChange
+                    },
+                    {
+                        id: "databaseSelect" /* ViewID.databaseSelect */,
+                        controllerFunc: this.controller.onDatabaseSelectChange
+                    },
+                    {
+                        id: "debugInput" /* ViewID.debugInput */,
+                        func: this.onDebugInputChange
+                    },
+                    {
+                        id: "directorySelect" /* ViewID.directorySelect */,
+                        controllerFunc: this.controller.onDirectorySelectChange
+                    },
+                    {
+                        id: "disassInput" /* ViewID.disassInput */,
+                        func: this.onDisassInputChange
+                    },
+                    {
+                        id: "exampleSelect" /* ViewID.exampleSelect */,
+                        controllerFunc: this.controller.onExampleSelectChange
+                    },
+                    {
+                        id: "implicitLinesInput" /* ViewID.implicitLinesInput */,
+                        func: this.onImplicitLinesInputChange
+                    },
+                    {
+                        id: "kbdLayoutSelect" /* ViewID.kbdLayoutSelect */,
+                        func: this.onKbdLayoutSelectChange
+                    },
+                    {
+                        id: "outputText" /* ViewID.outputText */,
+                        controllerFunc: this.controller.invalidateScript
+                    },
+                    {
+                        id: "paletteSelect" /* ViewID.paletteSelect */,
+                        func: this.onPaletteSelectChange
+                    },
+                    {
+                        id: "showConsoleLogInput" /* ViewID.showConsoleLogInput */,
+                        toggleId: "consoleLogArea" /* ViewID.consoleLogArea */
+                    },
+                    {
+                        id: "showCpcInput" /* ViewID.showCpcInput */,
+                        func: this.onShowCpcInputChange
+                    },
+                    {
+                        id: "showDisassInput" /* ViewID.showDisassInput */,
+                        toggleId: "disassArea" /* ViewID.disassArea */
+                    },
+                    {
+                        id: "showInp2Input" /* ViewID.showInp2Input */,
+                        toggleId: "inp2Area" /* ViewID.inp2Area */
+                    },
+                    {
+                        id: "showInputInput" /* ViewID.showInputInput */,
+                        toggleId: "inputArea" /* ViewID.inputArea */
+                    },
+                    {
+                        id: "showKbdInput" /* ViewID.showKbdInput */,
+                        func: this.onShowKbdInputChange
+                    },
+                    {
+                        id: "showOutputInput" /* ViewID.showOutputInput */,
+                        toggleId: "outputArea" /* ViewID.outputArea */
+                    },
+                    {
+                        id: "showResultInput" /* ViewID.showResultInput */,
+                        toggleId: "resultArea" /* ViewID.resultArea */
+                    },
+                    {
+                        id: "showVariableInput" /* ViewID.showVariableInput */,
+                        toggleId: "variableArea" /* ViewID.variableArea */
+                    },
+                    {
+                        id: "soundInput" /* ViewID.soundInput */,
+                        func: this.onSoundInputChange
+                    },
+                    {
+                        id: "speedInput" /* ViewID.speedInput */,
+                        func: this.onSpeedInputChange
+                    },
+                    {
+                        id: "traceInput" /* ViewID.traceInput */,
+                        func: this.onTraceInputChange
+                    },
+                    {
+                        id: "varSelect" /* ViewID.varSelect */,
+                        func: this.onVarSelectChange
+                    },
+                    {
+                        id: "varText" /* ViewID.varText */,
+                        controllerFunc: this.controller.changeVariable
+                    }
+                ]
+            };
+            for (var type in eventDefs) {
+                if (eventDefs.hasOwnProperty(type)) {
+                    eventDefInternalMap[type] = {};
+                    var eventDefList = eventDefs[type], itemForType = eventDefInternalMap[type];
+                    for (var i = 0; i < eventDefList.length; i += 1) {
+                        itemForType[eventDefList[i].id] = eventDefList[i];
+                    }
+                }
+            }
         };
-        CommonEventHandler.prototype.onWindowClick = function (event) {
-            this.controller.onWindowClick(event);
-        };
-        CommonEventHandler.prototype.onTextTextClick = function (event) {
-            this.controller.onCpcCanvasClick(event);
-        };
-        /* eslint-enable no-invalid-this */
         CommonEventHandler.prototype.handleEvent = function (event) {
-            var target = View_4.View.getEventTarget(event), id = (target) ? target.getAttribute("id") : String(target), type = event.type; // click or change
+            var target = View_4.View.getEventTarget(event), type = event.type; // click or change
+            var id = (target) ? target.getAttribute("id") : String(target);
             if (this.fnUserAction) {
                 this.fnUserAction(event, id);
             }
             if (id) {
-                if (!target.disabled) { // check needed for IE which also fires for disabled buttons
-                    var idNoNum = id.replace(/\d+$/, ""), // remove a trailing number
-                    handler = "on" + Utils_17.Utils.stringCapitalize(idNoNum) + Utils_17.Utils.stringCapitalize(type);
+                if (target.disabled) { // check needed for IE which also fires for disabled buttons
+                    return; // ignore
+                }
+                if (id.startsWith("galleryItem")) {
+                    id = "galleryItem"; // replace galleryitem<num> by galleryitem
+                }
+                if (this.eventDefInternalMap[type] && this.eventDefInternalMap[type][id]) {
+                    var eventDef = this.eventDefInternalMap[type][id];
                     if (Utils_17.Utils.debug) {
-                        Utils_17.Utils.console.debug("fnCommonEventHandler: handler=" + handler);
+                        Utils_17.Utils.console.debug("handleEvent: " + type + ", " + id + ":", eventDef);
                     }
-                    if (handler in this.handlers) {
-                        this.handlers[handler].call(this, event);
+                    if (eventDef.func) {
+                        eventDef.func.call(this, event, eventDef);
                     }
-                    else if (!handler.endsWith("SelectClick") && !handler.endsWith("InputClick")) { // do not print all messages
-                        Utils_17.Utils.console.log("Event handler not found:", handler);
+                    else if (eventDef.controllerFunc) {
+                        eventDef.controllerFunc.call(this.controller, event, eventDef);
+                    }
+                    else if (eventDef.toggleId) {
+                        this.controller.toggleAreaHidden(eventDef.toggleId);
                     }
                 }
-            }
-            else if ((target.getAttribute("data-key") !== null) && (event && event.currentTarget && event.currentTarget.id !== "kbdAreaInner" /* ViewID.kbdAreaInner */)) { // only for virtual buttons activated by keyboard (enter, space)
-                this.controller.onVirtualKeyBoardClick(event); // e.g with enter
+                else if (!id.endsWith("Select") && !id.endsWith("Input")) { // do not print all messages; these are usually handled by change
+                    Utils_17.Utils.console.log("handleEvent: " + type + ", " + id + ": No handler");
+                }
             }
             else if (Utils_17.Utils.debug) {
-                Utils_17.Utils.console.debug("Event handler for", type, "unknown target:", target.tagName, target.id);
+                Utils_17.Utils.console.log("handleEvent: " + type + ": unknown target:", target.tagName, target.id);
             }
             if (type === "click") { // special
                 if (id !== "cpcCanvas" /* ViewID.cpcCanvas */ && id !== "textText" /* ViewID.textText */) {
-                    this.onWindowClick(event);
+                    this.controller.onWindowClick(event);
                 }
             }
         };
@@ -19709,6 +19851,9 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     fnPressCpcKey: this.keyboard.fnPressCpcKey.bind(this.keyboard),
                     fnReleaseCpcKey: this.keyboard.fnReleaseCpcKey.bind(this.keyboard)
                 });
+                var keydownOrKeyupHandler = this.virtualKeyboard.getKeydownOrKeyupHandler();
+                this.view.addEventListener("keydown", keydownOrKeyupHandler, "kbdAreaInner" /* ViewID.kbdAreaInner */);
+                this.view.addEventListener("keyup", keydownOrKeyupHandler, "kbdAreaInner" /* ViewID.kbdAreaInner */);
             }
             return this.virtualKeyboard;
         };
@@ -19837,16 +19982,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.onWindowClick = function (event) {
             this.canvas.onWindowClick(event);
             this.keyboard.setActive(false);
-        };
-        Controller.prototype.onVirtualKeyBoardClick = function (event) {
-            if (this.virtualKeyboard) {
-                // simulate keypress (maybe better use real keydown events for space, enter...)
-                this.virtualKeyboard.getKeydownHandler()(event);
-                var fnKeyup_1 = this.virtualKeyboard.getKeyupHandler();
-                window.setTimeout(function () {
-                    fnKeyup_1(event);
-                }, 200);
-            }
         };
         Controller.prototype.fnArrayBounds = function () {
             var arrayBounds = this.model.getProperty("arrayBounds" /* ModelPropID.arrayBounds */);

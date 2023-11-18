@@ -13,6 +13,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.fnVirtualKeyboardKeydownHandler = this.onVirtualKeyboardKeydown.bind(this);
             this.fnVirtualKeyboardKeyupHandler = this.onVirtualKeyboardKeyup.bind(this);
             this.fnVirtualKeyboardKeyoutHandler = this.onVirtualKeyboardKeyout.bind(this);
+            this.fnKeydownOrKeyupHandler = this.onKeydownOrKeyup.bind(this); // for real Enter and Space
             this.options = {};
             this.setOptions(options);
             var view = this.options.view, eventNames = view.fnAttachPointerEvents("kbdAreaInner" /* ViewID.kbdAreaInner */, this.fnVirtualKeyboardKeydownHandler, undefined, this.fnVirtualKeyboardKeyupHandler);
@@ -26,11 +27,14 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         VirtualKeyboard.prototype.setOptions = function (options) {
             Object.assign(this.options, options);
         };
-        VirtualKeyboard.prototype.getKeydownHandler = function () {
+        VirtualKeyboard.prototype.getVirtualKeydownHandler = function () {
             return this.fnVirtualKeyboardKeydownHandler;
         };
-        VirtualKeyboard.prototype.getKeyupHandler = function () {
+        VirtualKeyboard.prototype.getVirtualKeyupHandler = function () {
             return this.fnVirtualKeyboardKeyupHandler;
+        };
+        VirtualKeyboard.prototype.getKeydownOrKeyupHandler = function () {
+            return this.fnKeydownOrKeyupHandler;
         };
         /* eslint-enable array-element-newline */
         VirtualKeyboard.prototype.reset = function () {
@@ -212,6 +216,48 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             }
             event.preventDefault();
             return false;
+        };
+        VirtualKeyboard.keyIdentifier2Char = function (event) {
+            // SliTaz web browser has not key but keyIdentifier
+            var identifier = event.keyIdentifier, // eslint-disable-line @typescript-eslint/no-explicit-any
+            shiftKey = event.shiftKey;
+            var char = "";
+            if ((/^U\+/i).test(identifier || "")) { // unicode string?
+                char = String.fromCharCode(parseInt(identifier.substr(2), 16));
+                if (char === "\0") { // ignore
+                    char = "";
+                }
+                char = shiftKey ? char.toUpperCase() : char.toLowerCase(); // do we get keys in unicode always in uppercase?
+            }
+            else {
+                char = identifier; // take it, could be "Enter"
+            }
+            return char;
+        };
+        VirtualKeyboard.prototype.onKeydownOrKeyup = function (event) {
+            var key = event.key || VirtualKeyboard.keyIdentifier2Char(event) || "", // SliTaz web browser has not key but keyIdentifier (also in Keyboard)
+            activeElement = window.document.activeElement;
+            if (key === "Enter" || key === " ") { // enter or space
+                var simPointerEvent = {
+                    type: event.type,
+                    target: activeElement,
+                    preventDefault: function () {
+                        // empty
+                    }
+                };
+                if (event.type === "keydown") {
+                    this.onVirtualKeyboardKeydown(simPointerEvent);
+                }
+                else if (event.type === "keyup") {
+                    this.onVirtualKeyboardKeyup(simPointerEvent);
+                }
+                else {
+                    Utils_1.Utils.console.error("onKeydownOrKeyup: Unknown type:", event.type);
+                }
+                event.preventDefault();
+                return false;
+            }
+            return undefined;
         };
         VirtualKeyboard.cpcKey2Key = [
             {

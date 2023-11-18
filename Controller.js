@@ -2186,6 +2186,9 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     fnPressCpcKey: this.keyboard.fnPressCpcKey.bind(this.keyboard),
                     fnReleaseCpcKey: this.keyboard.fnReleaseCpcKey.bind(this.keyboard)
                 });
+                var keydownOrKeyupHandler = this.virtualKeyboard.getKeydownOrKeyupHandler();
+                this.view.addEventListener("keydown", keydownOrKeyupHandler, "kbdAreaInner" /* ViewID.kbdAreaInner */);
+                this.view.addEventListener("keyup", keydownOrKeyupHandler, "kbdAreaInner" /* ViewID.kbdAreaInner */);
             }
             return this.virtualKeyboard;
         };
@@ -2314,16 +2317,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         Controller.prototype.onWindowClick = function (event) {
             this.canvas.onWindowClick(event);
             this.keyboard.setActive(false);
-        };
-        Controller.prototype.onVirtualKeyBoardClick = function (event) {
-            if (this.virtualKeyboard) {
-                // simulate keypress (maybe better use real keydown events for space, enter...)
-                this.virtualKeyboard.getKeydownHandler()(event);
-                var fnKeyup_1 = this.virtualKeyboard.getKeyupHandler();
-                window.setTimeout(function () {
-                    fnKeyup_1(event);
-                }, 200);
-            }
         };
         Controller.prototype.fnArrayBounds = function () {
             var arrayBounds = this.model.getProperty("arrayBounds" /* ModelPropID.arrayBounds */);

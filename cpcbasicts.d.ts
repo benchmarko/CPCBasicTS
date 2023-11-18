@@ -52,10 +52,13 @@ declare module "Constants" {
         autorunInput = "autorunInput",
         basicVersionSelect = "basicVersionSelect",
         canvasTypeSelect = "canvasTypeSelect",
+        clearInputButton = "clearInputButton",
         consoleLogArea = "consoleLogArea",
         consoleLogText = "consoleLogText",
         continueButton = "continueButton",
         convertArea = "convertArea",
+        convertButton = "convertButton",
+        copyTextButton = "copyTextButton",
         cpcArea = "cpcArea",
         cpcCanvas = "cpcCanvas",
         databaseSelect = "databaseSelect",
@@ -64,15 +67,22 @@ declare module "Constants" {
         disassArea = "disassArea",
         disassInput = "disassInput",
         disassText = "disassText",
+        downloadButton = "downloadButton",
         dropZone = "dropZone",
+        enterButton = "enterButton",
         exampleSelect = "exampleSelect",
         exportArea = "exportArea",
+        exportButton = "exportButton",
         exportBase64Input = "exportBase64Input",
         exportDSKInput = "exportDSKInput",
         exportTokenizedInput = "exportTokenizedInput",
         fileInput = "fileInput",
+        fullscreenButton = "fullscreenButton",
         galleryArea = "galleryArea",
         galleryAreaItems = "galleryAreaItems",
+        galleryButton = "galleryButton",
+        galleryItem = "galleryItem",
+        helpButton = "helpButton",
         implicitLinesInput = "implicitLinesInput",
         inp2Area = "inp2Area",
         inp2Text = "inp2Text",
@@ -83,25 +93,37 @@ declare module "Constants" {
         kbdAreaInner = "kbdAreaInner",
         kbdLayoutSelect = "kbdLayoutSelect",
         kbdNum = "kbdNum",
+        lineNumberAddButton = "lineNumberAddButton",
+        lineNumberRemoveButton = "lineNumberRemoveButton",
         moreArea = "moreArea",
+        moreButton = "moreButton",
         noCanvas = "noCanvas",
         outputArea = "outputArea",
         outputText = "outputText",
         pageBody = "pageBody",
         paletteSelect = "paletteSelect",
+        parseButton = "parseButton",
+        parseRunButton = "parseRunButton",
         prettyBracketsInput = "prettyBracketsInput",
+        prettyButton = "prettyButton",
         prettyColonsInput = "prettyColonsInput",
         prettySpaceInput = "prettySpaceInput",
         redoButton = "redoButton",
+        reloadButton = "reloadButton",
+        reloadButton2 = "reloadButton2",
+        renumButton = "renumButton",
         renumKeepInput = "renumKeepInput",
         renumNewInput = "renumNewInput",
         renumStartInput = "renumStartInput",
         renumStepInput = "renumStepInput",
+        resetButton = "resetButton",
         resultArea = "resultArea",
         resultText = "resultText",
         runButton = "runButton",
+        screenshotButton = "screenshotButton",
         screenshotLink = "screenshotLink",
         settingsArea = "settingsArea",
+        settingsButton = "settingsButton",
         showConsoleLogInput = "showConsoleLogInput",
         showCpcInput = "showCpcInput",
         showDisassInput = "showDisassInput",
@@ -120,7 +142,9 @@ declare module "Constants" {
         variableArea = "variableArea",
         varSelect = "varSelect",
         varText = "varText",
-        viewArea = "viewArea"
+        viewArea = "viewArea",
+        viewButton = "viewButton",
+        window = "window"
     }
 }
 declare module "Utils" {
@@ -302,7 +326,6 @@ declare module "Interfaces" {
         onDatabaseSelectChange: () => void;
         onCpcCanvasClick: (event: MouseEvent) => void;
         onWindowClick: (event: Event) => void;
-        onVirtualKeyBoardClick: (event: Event) => void;
         startUpdateCanvas: () => void;
         stopUpdateCanvas: () => void;
         getVirtualKeyboard: () => void;
@@ -1011,7 +1034,7 @@ declare module "DiskImage" {
         private static getFreeBlocks;
         static getFilenameAndExtension(filename: string): string[];
         writeFile(filename: string, data: string): boolean;
-        private static protectTable;
+        private static readonly protectTable;
         static unOrProtectData(data: string): string;
         private static computeChecksum;
         static parseAmsdosHeader(data: string): AmsdosHeader | undefined;
@@ -1150,6 +1173,7 @@ declare module "VirtualKeyboard" {
         private readonly fnVirtualKeyboardKeydownHandler;
         private readonly fnVirtualKeyboardKeyupHandler;
         private readonly fnVirtualKeyboardKeyoutHandler;
+        private readonly fnKeydownOrKeyupHandler;
         private readonly options;
         private readonly eventNames;
         private shiftLock;
@@ -1157,8 +1181,9 @@ declare module "VirtualKeyboard" {
         constructor(options: VirtualKeyboardOptions);
         getOptions(): VirtualKeyboardOptions;
         setOptions(options: Partial<VirtualKeyboardOptions>): void;
-        getKeydownHandler(): typeof this.fnVirtualKeyboardKeydownHandler;
-        getKeyupHandler(): typeof this.fnVirtualKeyboardKeyupHandler;
+        getVirtualKeydownHandler(): typeof this.fnVirtualKeyboardKeydownHandler;
+        getVirtualKeyupHandler(): typeof this.fnVirtualKeyboardKeyupHandler;
+        getKeydownOrKeyupHandler(): (event: Event) => boolean;
         private static readonly cpcKey2Key;
         private static readonly virtualKeyboardAlpha;
         private static readonly virtualKeyboardNum;
@@ -1174,6 +1199,8 @@ declare module "VirtualKeyboard" {
         private fnVirtualKeyboardKeyupOrKeyout;
         private onVirtualKeyboardKeyup;
         private onVirtualKeyboardKeyout;
+        private static keyIdentifier2Char;
+        private onKeydownOrKeyup;
     }
 }
 declare module "Canvas" {
@@ -1424,59 +1451,33 @@ declare module "CommonEventHandler" {
         private readonly model;
         private readonly view;
         private readonly controller;
+        private readonly eventDefInternalMap;
         private fnUserAction;
         constructor(options: CommonEventHandlerOptions);
         getOptions(): CommonEventHandlerOptions;
         private setOptions;
         fnSetUserAction(fnAction: ((event: Event, id: string) => void) | undefined): void;
-        private onConvertButtonClick;
-        private onSettingsButtonClick;
-        private onViewButtonClick;
-        private onExportButtonClick;
         private onGalleryButtonClick;
-        private onMoreButtonClick;
-        private onParseButtonClick;
-        private onRenumButtonClick;
-        private onPrettyButtonClick;
-        private onLineNumberAddButtonClick;
-        private onLineNumberRemoveButtonClick;
         private fnUpdateAreaText;
         private onUndoButtonClick;
         private onRedoButtonClick;
-        private onDownloadButtonClick;
-        private onRunButtonClick;
-        private onStopButtonClick;
         private onContinueButtonClick;
-        private onResetButtonClick;
         private onParseRunButtonClick;
         private static onHelpButtonClick;
         private onGalleryItemClick;
-        private static onNothing;
         private onCopyTextButtonClick;
-        private onOutputTextChange;
         private static encodeUriParam;
         private onReloadButtonClick;
-        private onDatabaseSelectChange;
-        private onDirectorySelectChange;
-        private onExampleSelectChange;
         onVarSelectChange(): void;
         onKbdLayoutSelectChange(): void;
         private onBasicVersionSelectChange;
         private onPaletteSelectChange;
         private onCanvasTypeSelectChange;
-        private onVarTextChange;
         private onDebugInputChange;
         private onImplicitLinesInputChange;
         private onArrayBoundsInputChange;
         private onShowCpcInputChange;
         private onShowKbdInputChange;
-        private onShowInp2InputChange;
-        private onShowResultInputChange;
-        private onShowInputInputChange;
-        private onShowVariableInputChange;
-        private onShowOutputInputChange;
-        private onShowDisassInputChange;
-        private onShowConsoleLogInputChange;
         private onDisassInputChange;
         private onTraceInputChange;
         private onAutorunInputChange;
@@ -1484,12 +1485,8 @@ declare module "CommonEventHandler" {
         private onSpeedInputChange;
         private onScreenshotButtonClick;
         private onClearInputButtonClick;
-        private onEnterButtonClick;
         private static onFullscreenButtonClick;
-        private onCpcCanvasClick;
-        private onWindowClick;
-        private onTextTextClick;
-        private readonly handlers;
+        private createEventDefMap;
         handleEvent(event: Event): void;
     }
 }
@@ -2505,7 +2502,6 @@ declare module "Controller" {
         exportAsBase64(storageName: string): string;
         onCpcCanvasClick(event: MouseEvent): void;
         onWindowClick(event: Event): void;
-        onVirtualKeyBoardClick(event: Event): void;
         fnArrayBounds(): void;
         fnImplicitLines(): void;
         fnTrace(): void;

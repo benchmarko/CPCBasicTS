@@ -14,12 +14,24 @@ interface CommonEventHandlerOptions {
 	controller: IController
 }
 
+type EventDefType = {
+	id: ViewID,
+	toggleId?: ViewID;
+	func?: Function // eslint-disable-line @typescript-eslint/ban-types
+	controllerFunc?: Function // eslint-disable-line @typescript-eslint/ban-types
+}
+
+type EventDefMapType = Record<string, EventDefType[]>;
+
+
 export class CommonEventHandler implements EventListenerObject {
 	private readonly options: CommonEventHandlerOptions;
 
 	private readonly model: Model;
 	private readonly view: View;
 	private readonly controller: IController;
+
+	private readonly eventDefInternalMap: Record<string, Record<ViewID, EventDefType>> = {};
 
 	private fnUserAction: ((event: Event, id: string) => void) | undefined = undefined;
 
@@ -31,6 +43,8 @@ export class CommonEventHandler implements EventListenerObject {
 		this.model = this.options.model;
 		this.view = this.options.view;
 		this.controller = this.options.controller;
+
+		this.createEventDefMap();
 	}
 
 	getOptions(): CommonEventHandlerOptions {
@@ -45,50 +59,10 @@ export class CommonEventHandler implements EventListenerObject {
 		this.fnUserAction = fnAction;
 	}
 
-	private onConvertButtonClick() {
-		this.controller.toggleAreaHidden(ViewID.convertArea);
-	}
-
-	private onSettingsButtonClick() {
-		this.controller.toggleAreaHidden(ViewID.settingsArea);
-	}
-
-	private onViewButtonClick() {
-		this.controller.toggleAreaHidden(ViewID.viewArea);
-	}
-
-	private onExportButtonClick() {
-		this.controller.toggleAreaHidden(ViewID.exportArea);
-	}
-
 	private onGalleryButtonClick() {
 		if (this.controller.toggleAreaHidden(ViewID.galleryArea)) {
 			this.controller.setGalleryAreaInputs();
 		}
-	}
-
-	private onMoreButtonClick() {
-		this.controller.toggleAreaHidden(ViewID.moreArea);
-	}
-
-	private onParseButtonClick() {
-		this.controller.startParse();
-	}
-
-	private onRenumButtonClick() {
-		this.controller.startRenum();
-	}
-
-	private onPrettyButtonClick() {
-		this.controller.fnPretty();
-	}
-
-	private onLineNumberAddButtonClick() {
-		this.controller.fnAddLines();
-	}
-
-	private onLineNumberRemoveButtonClick() {
-		this.controller.fnRemoveLines();
 	}
 
 	private fnUpdateAreaText(input: string) {
@@ -108,30 +82,14 @@ export class CommonEventHandler implements EventListenerObject {
 		this.fnUpdateAreaText(input);
 	}
 
-	private onDownloadButtonClick() {
-		this.controller.fnDownload();
-	}
-
-	private onRunButtonClick() {
-		this.controller.startRun();
-	}
-
-	private onStopButtonClick() {
-		this.controller.startBreak();
-	}
-
 	private onContinueButtonClick(event: Event) {
 		this.controller.startContinue();
-		this.onCpcCanvasClick(event as MouseEvent);
-	}
-
-	private onResetButtonClick() {
-		this.controller.startReset();
+		this.controller.onCpcCanvasClick(event as MouseEvent);
 	}
 
 	private onParseRunButtonClick(event: Event) {
 		this.controller.startParseRun();
-		this.onCpcCanvasClick(event as MouseEvent);
+		this.controller.onCpcCanvasClick(event as MouseEvent);
 	}
 
 	private static onHelpButtonClick() {
@@ -145,11 +103,7 @@ export class CommonEventHandler implements EventListenerObject {
 		this.view.setSelectValue(ViewID.exampleSelect, value);
 		this.controller.toggleAreaHidden(ViewID.galleryArea); // close
 
-		this.onExampleSelectChange();
-	}
-
-	private static onNothing() {
-		// nothing
+		this.controller.onExampleSelectChange();
 	}
 
 	// eslint-disable-next-line class-methods-use-this
@@ -166,10 +120,6 @@ export class CommonEventHandler implements EventListenerObject {
 		}
 	}
 
-	private onOutputTextChange() {
-		this.controller.invalidateScript();
-	}
-
 	private static encodeUriParam(params: ConfigType) {
 		const parts = [];
 
@@ -184,7 +134,6 @@ export class CommonEventHandler implements EventListenerObject {
 	}
 
 	private onReloadButtonClick() {
-		//this.onSettingsButtonClick(); // close settings dialog
 		this.controller.setPopoversHiddenExcept(); // hide all popovers,
 
 		const changed = this.model.getChangedProperties();
@@ -194,17 +143,6 @@ export class CommonEventHandler implements EventListenerObject {
 		window.location.search = "?" + paras;
 	}
 
-	private onDatabaseSelectChange(): void {
-		this.controller.onDatabaseSelectChange();
-	}
-
-	private onDirectorySelectChange(): void {
-		this.controller.onDirectorySelectChange();
-	}
-
-	private onExampleSelectChange(): void {
-		this.controller.onExampleSelectChange();
-	}
 
 	onVarSelectChange(): void {
 		const par = this.view.getSelectValue(ViewID.varSelect),
@@ -248,10 +186,6 @@ export class CommonEventHandler implements EventListenerObject {
 		this.controller.setCanvasType(value);
 	}
 
-	private onVarTextChange() {
-		this.controller.changeVariable();
-	}
-
 	private onDebugInputChange() {
 		const debug = this.view.getInputValue(ViewID.debugInput);
 
@@ -285,35 +219,6 @@ export class CommonEventHandler implements EventListenerObject {
 		if (this.controller.toggleAreaHidden(ViewID.kbdArea)) {
 			this.controller.getVirtualKeyboard(); // maybe draw it
 		}
-	}
-
-	private onShowInp2InputChange() {
-		this.controller.toggleAreaHidden(ViewID.inp2Area);
-	}
-
-	private onShowResultInputChange() {
-		this.controller.toggleAreaHidden(ViewID.resultArea);
-	}
-
-
-	private onShowInputInputChange() {
-		this.controller.toggleAreaHidden(ViewID.inputArea);
-	}
-
-	private onShowVariableInputChange() {
-		this.controller.toggleAreaHidden(ViewID.variableArea);
-	}
-
-	private onShowOutputInputChange() {
-		this.controller.toggleAreaHidden(ViewID.outputArea);
-	}
-
-	private onShowDisassInputChange() {
-		this.controller.toggleAreaHidden(ViewID.disassArea);
-	}
-
-	private onShowConsoleLogInputChange() {
-		this.controller.toggleAreaHidden(ViewID.consoleLogArea);
 	}
 
 	private onDisassInputChange() {
@@ -367,10 +272,6 @@ export class CommonEventHandler implements EventListenerObject {
 		this.view.setAreaValue(ViewID.inp2Text, ""); // delete input
 	}
 
-	private onEnterButtonClick() {
-		this.controller.startEnter();
-	}
-
 	private static onFullscreenButtonClick() {
 		const switched = View.requestFullscreenForId(ViewID.cpcCanvas); // make sure to use an element with tabindex set to get keyboard events
 
@@ -379,121 +280,304 @@ export class CommonEventHandler implements EventListenerObject {
 		}
 	}
 
-	private onCpcCanvasClick(event: Event) {
-		this.controller.onCpcCanvasClick(event as MouseEvent);
+	private createEventDefMap() {
+		const eventDefInternalMap = this.eventDefInternalMap,
+			eventDefs: EventDefMapType = {
+				click: [
+					{
+						id: ViewID.clearInputButton,
+						func: this.onClearInputButtonClick
+					},
+					{
+						id: ViewID.continueButton,
+						func: this.onContinueButtonClick
+					},
+					{
+						id: ViewID.convertButton,
+						toggleId: ViewID.convertArea
+					},
+					{
+						id: ViewID.cpcCanvas,
+						controllerFunc: this.controller.onCpcCanvasClick
+					},
+					{
+						id: ViewID.copyTextButton,
+						func: this.onCopyTextButtonClick
+					},
+					{
+						id: ViewID.downloadButton,
+						controllerFunc: this.controller.fnDownload
+					},
+					{
+						id: ViewID.enterButton,
+						controllerFunc: this.controller.startEnter
+					},
+					{
+						id: ViewID.exportButton,
+						toggleId: ViewID.exportArea
+					},
+					{
+						id: ViewID.fullscreenButton,
+						func: CommonEventHandler.onFullscreenButtonClick
+					},
+					{
+						id: ViewID.galleryButton,
+						func: this.onGalleryButtonClick
+					},
+					{
+						id: ViewID.galleryItem,
+						func: this.onGalleryItemClick
+					},
+					{
+						id: ViewID.helpButton,
+						func: CommonEventHandler.onHelpButtonClick
+					},
+					{
+						id: ViewID.lineNumberAddButton,
+						controllerFunc: this.controller.fnAddLines
+					},
+					{
+						id: ViewID.lineNumberRemoveButton,
+						controllerFunc: this.controller.fnRemoveLines
+					},
+					{
+						id: ViewID.moreButton,
+						toggleId: ViewID.moreArea
+					},
+					{
+						id: ViewID.parseButton,
+						controllerFunc: this.controller.startParse
+					},
+					{
+						id: ViewID.parseRunButton,
+						func: this.onParseRunButtonClick
+					},
+					{
+						id: ViewID.prettyButton,
+						controllerFunc: this.controller.fnPretty
+					},
+					{
+						id: ViewID.redoButton,
+						func: this.onRedoButtonClick
+					},
+					{
+						id: ViewID.reloadButton,
+						func: this.onReloadButtonClick
+					},
+					{
+						id: ViewID.reloadButton2,
+						func: this.onReloadButtonClick // same as relaodButton
+					},
+					{
+						id: ViewID.renumButton,
+						controllerFunc: this.controller.startRenum
+					},
+					{
+						id: ViewID.resetButton,
+						controllerFunc: this.controller.startReset
+					},
+					{
+						id: ViewID.runButton,
+						controllerFunc: this.controller.startRun
+					},
+					{
+						id: ViewID.screenshotButton,
+						func: this.onScreenshotButtonClick
+					},
+					{
+						id: ViewID.screenshotLink // nothing
+					},
+					{
+						id: ViewID.settingsButton,
+						toggleId: ViewID.settingsArea
+					},
+					{
+						id: ViewID.stopButton,
+						controllerFunc: this.controller.startBreak
+					},
+					{
+						id: ViewID.textText,
+						controllerFunc: this.controller.onCpcCanvasClick // same as for cpcCanvas
+					},
+					{
+						id: ViewID.undoButton,
+						func: this.onUndoButtonClick
+					},
+					{
+						id: ViewID.viewButton,
+						toggleId: ViewID.viewArea
+					},
+					{
+						id: ViewID.window,
+						controllerFunc: this.controller.onWindowClick
+					}
+				],
+				change: [
+					{
+						id: ViewID.arrayBoundsInput,
+						func: this.onArrayBoundsInputChange
+					},
+					{
+						id: ViewID.autorunInput,
+						func: this.onAutorunInputChange
+					},
+					{
+						id: ViewID.basicVersionSelect,
+						func: this.onBasicVersionSelectChange
+					},
+					{
+						id: ViewID.canvasTypeSelect,
+						func: this.onCanvasTypeSelectChange
+					},
+					{
+						id: ViewID.databaseSelect,
+						controllerFunc: this.controller.onDatabaseSelectChange
+					},
+					{
+						id: ViewID.debugInput,
+						func: this.onDebugInputChange
+					},
+					{
+						id: ViewID.directorySelect,
+						controllerFunc: this.controller.onDirectorySelectChange
+					},
+					{
+						id: ViewID.disassInput,
+						func: this.onDisassInputChange
+					},
+					{
+						id: ViewID.exampleSelect,
+						controllerFunc: this.controller.onExampleSelectChange
+					},
+					{
+						id: ViewID.implicitLinesInput,
+						func: this.onImplicitLinesInputChange
+					},
+					{
+						id: ViewID.kbdLayoutSelect,
+						func: this.onKbdLayoutSelectChange
+					},
+					{
+						id: ViewID.outputText,
+						controllerFunc: this.controller.invalidateScript
+					},
+					{
+						id: ViewID.paletteSelect,
+						func: this.onPaletteSelectChange
+					},
+					{
+						id: ViewID.showConsoleLogInput,
+						toggleId: ViewID.consoleLogArea
+					},
+					{
+						id: ViewID.showCpcInput,
+						func: this.onShowCpcInputChange
+					},
+					{
+						id: ViewID.showDisassInput,
+						toggleId: ViewID.disassArea
+					},
+					{
+						id: ViewID.showInp2Input,
+						toggleId: ViewID.inp2Area
+					},
+					{
+						id: ViewID.showInputInput,
+						toggleId: ViewID.inputArea
+					},
+					{
+						id: ViewID.showKbdInput,
+						func: this.onShowKbdInputChange
+					},
+					{
+						id: ViewID.showOutputInput,
+						toggleId: ViewID.outputArea
+					},
+					{
+						id: ViewID.showResultInput,
+						toggleId: ViewID.resultArea
+					},
+					{
+						id: ViewID.showVariableInput,
+						toggleId: ViewID.variableArea
+					},
+					{
+						id: ViewID.soundInput,
+						func: this.onSoundInputChange
+					},
+					{
+						id: ViewID.speedInput,
+						func: this.onSpeedInputChange
+					},
+					{
+						id: ViewID.traceInput,
+						func: this.onTraceInputChange
+					},
+					{
+						id: ViewID.varSelect,
+						func: this.onVarSelectChange
+					},
+					{
+						id: ViewID.varText,
+						controllerFunc: this.controller.changeVariable
+					}
+				]
+			};
+
+		for (const type in eventDefs) {
+			if (eventDefs.hasOwnProperty(type)) {
+				eventDefInternalMap[type] = {} as Record<ViewID, EventDefType>;
+				const eventDefList = eventDefs[type],
+					itemForType = eventDefInternalMap[type];
+
+				for (let i = 0; i < eventDefList.length; i += 1) {
+					itemForType[eventDefList[i].id] = eventDefList[i];
+				}
+			}
+		}
 	}
 
-	private onWindowClick(event: Event) {
-		this.controller.onWindowClick(event);
-	}
-
-	private onTextTextClick(event: Event) {
-		this.controller.onCpcCanvasClick(event as MouseEvent);
-	}
-
-	/* eslint-disable no-invalid-this */
-	private readonly handlers: Record<string, (e: Event | MouseEvent) => void> = {
-		onConvertButtonClick: this.onConvertButtonClick,
-		onSettingsButtonClick: this.onSettingsButtonClick,
-		onViewButtonClick: this.onViewButtonClick,
-		onExportButtonClick: this.onExportButtonClick,
-		onGalleryButtonClick: this.onGalleryButtonClick,
-		onMoreButtonClick: this.onMoreButtonClick,
-		onParseButtonClick: this.onParseButtonClick,
-		onRenumButtonClick: this.onRenumButtonClick,
-		onPrettyButtonClick: this.onPrettyButtonClick,
-		onLineNumberAddButtonClick: this.onLineNumberAddButtonClick,
-		onLineNumberRemoveButtonClick: this.onLineNumberRemoveButtonClick,
-		onUndoButtonClick: this.onUndoButtonClick,
-		onRedoButtonClick: this.onRedoButtonClick,
-		onDownloadButtonClick: this.onDownloadButtonClick,
-		onRunButtonClick: this.onRunButtonClick,
-		onStopButtonClick: this.onStopButtonClick,
-		onContinueButtonClick: this.onContinueButtonClick,
-		onResetButtonClick: this.onResetButtonClick,
-		onParseRunButtonClick: this.onParseRunButtonClick,
-		onHelpButtonClick: CommonEventHandler.onHelpButtonClick,
-		onGalleryItemClick: this.onGalleryItemClick,
-		onInputTextClick: CommonEventHandler.onNothing,
-		onOutputTextClick: CommonEventHandler.onNothing,
-		onResultTextClick: CommonEventHandler.onNothing,
-		onVarTextClick: CommonEventHandler.onNothing,
-		onOutputTextChange: this.onOutputTextChange,
-		onReloadButtonClick: this.onReloadButtonClick,
-		onReload2ButtonClick: this.onReloadButtonClick, // same as reloadButton
-		onDatabaseSelectChange: this.onDatabaseSelectChange,
-		onDirectorySelectChange: this.onDirectorySelectChange,
-		onExampleSelectChange: this.onExampleSelectChange,
-		onVarSelectChange: this.onVarSelectChange,
-		onKbdLayoutSelectChange: this.onKbdLayoutSelectChange,
-		onVarTextChange: this.onVarTextChange,
-		onDebugInputChange: this.onDebugInputChange,
-		onImplicitLinesInputChange: this.onImplicitLinesInputChange,
-		onArrayBoundsInputChange: this.onArrayBoundsInputChange,
-
-		onShowCpcInputChange: this.onShowCpcInputChange,
-		onShowKbdInputChange: this.onShowKbdInputChange,
-		onShowInp2InputChange: this.onShowInp2InputChange,
-		onShowResultInputChange: this.onShowResultInputChange,
-		onShowInputInputChange: this.onShowInputInputChange,
-		onShowVariableInputChange: this.onShowVariableInputChange,
-		onShowOutputInputChange: this.onShowOutputInputChange,
-		onShowDisassInputChange: this.onShowDisassInputChange,
-		onShowConsoleLogInputChange: this.onShowConsoleLogInputChange,
-
-		onDisassInputChange: this.onDisassInputChange,
-		onTraceInputChange: this.onTraceInputChange,
-		onAutorunInputChange: this.onAutorunInputChange,
-		onSoundInputChange: this.onSoundInputChange,
-		onSpeedInputChange: this.onSpeedInputChange,
-		onBasicVersionSelectChange: this.onBasicVersionSelectChange,
-		onCanvasTypeSelectChange: this.onCanvasTypeSelectChange,
-		onPaletteSelectChange: this.onPaletteSelectChange,
-		onScreenshotButtonClick: this.onScreenshotButtonClick,
-		onClearInputButtonClick: this.onClearInputButtonClick,
-		onEnterButtonClick: this.onEnterButtonClick,
-		onFullscreenButtonClick: CommonEventHandler.onFullscreenButtonClick,
-		onCpcCanvasClick: this.onCpcCanvasClick,
-		onWindowClick: this.onWindowClick,
-		onTextTextClick: this.onTextTextClick,
-		onCopyTextButtonClick: this.onCopyTextButtonClick
-	};
-	/* eslint-enable no-invalid-this */
-
-
-	handleEvent(event: Event): void {
+	handleEvent(event: Event): void { // eslint-disable-line complexity
 		const target = View.getEventTarget<HTMLButtonElement>(event),
-			id = (target) ? target.getAttribute("id") as string : String(target),
 			type = event.type; // click or change
+		let	id = (target) ? target.getAttribute("id") as string : String(target);
 
 		if (this.fnUserAction) {
 			this.fnUserAction(event, id);
 		}
 
 		if (id) {
-			if (!target.disabled) { // check needed for IE which also fires for disabled buttons
-				const idNoNum = id.replace(/\d+$/, ""), // remove a trailing number
-					handler = "on" + Utils.stringCapitalize(idNoNum) + Utils.stringCapitalize(type);
+			if (target.disabled) { // check needed for IE which also fires for disabled buttons
+				return; // ignore
+			}
+
+			if (id.startsWith("galleryItem")) {
+				id = "galleryItem"; // replace galleryitem<num> by galleryitem
+			}
+
+			if (this.eventDefInternalMap[type] && this.eventDefInternalMap[type][id as ViewID]) {
+				const eventDef = this.eventDefInternalMap[type][id as ViewID];
 
 				if (Utils.debug) {
-					Utils.console.debug("fnCommonEventHandler: handler=" + handler);
+					Utils.console.debug("handleEvent: " + type + ", " + id + ":", eventDef);
 				}
-
-				if (handler in this.handlers) {
-					this.handlers[handler].call(this, event);
-				} else if (!handler.endsWith("SelectClick") && !handler.endsWith("InputClick")) { // do not print all messages
-					Utils.console.log("Event handler not found:", handler);
+				if (eventDef.func) {
+					eventDef.func.call(this, event, eventDef);
+				} else if (eventDef.controllerFunc) {
+					eventDef.controllerFunc.call(this.controller, event, eventDef);
+				} else if (eventDef.toggleId) {
+					this.controller.toggleAreaHidden(eventDef.toggleId);
 				}
+			} else if (!id.endsWith("Select") && !id.endsWith("Input")) { // do not print all messages; these are usually handled by change
+				Utils.console.log("handleEvent: " + type + ", " + id + ": No handler");
 			}
-		} else if ((target.getAttribute("data-key") !== null) && (event && event.currentTarget && (event.currentTarget as HTMLElement).id !== ViewID.kbdAreaInner)) { // only for virtual buttons activated by keyboard (enter, space)
-			this.controller.onVirtualKeyBoardClick(event); // e.g with enter
 		} else if (Utils.debug) {
-			Utils.console.debug("Event handler for", type, "unknown target:", target.tagName, target.id);
+			Utils.console.log("handleEvent: " + type + ": unknown target:", target.tagName, target.id);
 		}
 
 		if (type === "click") { // special
 			if (id !== ViewID.cpcCanvas && id !== ViewID.textText) {
-				this.onWindowClick(event);
+				this.controller.onWindowClick(event);
 			}
 		}
 	}

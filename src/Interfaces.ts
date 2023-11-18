@@ -167,7 +167,6 @@ export interface IController {
 
     onCpcCanvasClick: (event: MouseEvent) => void
     onWindowClick: (event: Event) => void
-    onVirtualKeyBoardClick: (event: Event) => void
 
     startUpdateCanvas: () => void
     stopUpdateCanvas: () => void

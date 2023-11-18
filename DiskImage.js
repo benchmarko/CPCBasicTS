@@ -36,26 +36,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 this.diskInfo.trackInfo.ident = ""; // invalidate trackinfo
             }
         };
-        /*
-        private static getInitialDiskInfo() {
-            return {
-                trackInfo: {
-                    sectorInfoList: [] as SectorInfo[]
-                }
-            } as DiskInfo;
-        }
-        */
-        /*
-        private static getInitialFormatDescriptor() {
-            return {} as FormatDescriptor;
-        }
-        */
-        /*
-        reset(): void {
-            this.diskInfo = DiskImage.getInitialDiskInfo();
-            this.formatDescriptor = DiskImage.getInitialFormatDescriptor();
-        }
-        */
         DiskImage.getInitialDiskInfo = function () {
             var diskInfo = {
                 ident: "",
@@ -73,16 +53,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             };
             return diskInfo;
         };
-        /*
-        private getDiskInfo() {
-            const diskInfo = this.diskInfo;
-    
-            if (!diskInfo) {
-                throw this.composeError(Error(), "getDiskInfo: diskInfo:", String(diskInfo));
-            }
-            return diskInfo;
-        }
-        */
         DiskImage.prototype.getFormatDescriptor = function () {
             var formatDescriptor = this.formatDescriptor;
             if (!formatDescriptor) {
@@ -385,7 +355,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         DiskImage.prototype.formatImage = function (format) {
             var image = this.createImage(format);
-            //TTT Why? this.reset(); // reset disk info and format (TTT)
             this.options.data = image;
             return image;
         };

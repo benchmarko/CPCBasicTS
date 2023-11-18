@@ -45,6 +45,7 @@ export class VirtualKeyboard {
 	private readonly fnVirtualKeyboardKeydownHandler: (event: Event) => boolean;
 	private readonly fnVirtualKeyboardKeyupHandler: (event: Event) => boolean;
 	private readonly fnVirtualKeyboardKeyoutHandler: (event: Event) => boolean;
+	private readonly fnKeydownOrKeyupHandler: (event: Event) => boolean;
 
 	private readonly options: VirtualKeyboardOptions;
 
@@ -57,6 +58,7 @@ export class VirtualKeyboard {
 		this.fnVirtualKeyboardKeydownHandler = this.onVirtualKeyboardKeydown.bind(this);
 		this.fnVirtualKeyboardKeyupHandler = this.onVirtualKeyboardKeyup.bind(this);
 		this.fnVirtualKeyboardKeyoutHandler = this.onVirtualKeyboardKeyout.bind(this);
+		this.fnKeydownOrKeyupHandler = this.onKeydownOrKeyup.bind(this); // for real Enter and Space
 
 		this.options = {} as VirtualKeyboardOptions;
 		this.setOptions(options);
@@ -77,12 +79,16 @@ export class VirtualKeyboard {
 		Object.assign(this.options, options);
 	}
 
-	getKeydownHandler(): typeof this.fnVirtualKeyboardKeydownHandler {
+	getVirtualKeydownHandler(): typeof this.fnVirtualKeyboardKeydownHandler {
 		return this.fnVirtualKeyboardKeydownHandler;
 	}
 
-	getKeyupHandler(): typeof this.fnVirtualKeyboardKeyupHandler {
+	getVirtualKeyupHandler(): typeof this.fnVirtualKeyboardKeyupHandler {
 		return this.fnVirtualKeyboardKeyupHandler;
+	}
+
+	getKeydownOrKeyupHandler(): (event: Event) => boolean {
+		return this.fnKeydownOrKeyupHandler;
 	}
 
 	private static readonly cpcKey2Key: CpcKey2Key[] = [
@@ -851,5 +857,49 @@ export class VirtualKeyboard {
 		}
 		event.preventDefault();
 		return false;
+	}
+
+	private static keyIdentifier2Char(event: KeyboardEvent) { // duplicate from Keyboard)
+		// SliTaz web browser has not key but keyIdentifier
+		const identifier = (event as any).keyIdentifier, // eslint-disable-line @typescript-eslint/no-explicit-any
+			shiftKey = event.shiftKey;
+		let char = "";
+
+		if ((/^U\+/i).test(identifier || "")) { // unicode string?
+			char = String.fromCharCode(parseInt(identifier.substr(2), 16));
+			if (char === "\0") { // ignore
+				char = "";
+			}
+			char = shiftKey ? char.toUpperCase() : char.toLowerCase(); // do we get keys in unicode always in uppercase?
+		} else {
+			char = identifier; // take it, could be "Enter"
+		}
+		return char;
+	}
+
+	private onKeydownOrKeyup(event: KeyboardEvent) {
+		const key = event.key || VirtualKeyboard.keyIdentifier2Char(event) || "", // SliTaz web browser has not key but keyIdentifier (also in Keyboard)
+			activeElement = window.document.activeElement;
+
+		if (key === "Enter" || key === " ") { // enter or space
+			const simPointerEvent = {
+				type: event.type,
+				target: activeElement, // active selected element
+				preventDefault: function () {
+					// empty
+				}
+			} as PointerEvent;
+
+			if (event.type === "keydown") {
+				this.onVirtualKeyboardKeydown(simPointerEvent);
+			} else if (event.type === "keyup") {
+				this.onVirtualKeyboardKeyup(simPointerEvent);
+			} else {
+				Utils.console.error("onKeydownOrKeyup: Unknown type:", event.type);
+			}
+			event.preventDefault();
+			return false;
+		}
+		return undefined;
 	}
 }

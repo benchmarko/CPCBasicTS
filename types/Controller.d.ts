@@ -181,7 +181,6 @@ export declare class Controller implements IController {
     exportAsBase64(storageName: string): string;
     onCpcCanvasClick(event: MouseEvent): void;
     onWindowClick(event: Event): void;
-    onVirtualKeyBoardClick(event: Event): void;
     fnArrayBounds(): void;
     fnImplicitLines(): void;
     fnTrace(): void;

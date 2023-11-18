@@ -210,30 +210,6 @@ export class DiskImage {
 		}
 	}
 
-	/*
-	private static getInitialDiskInfo() {
-		return {
-			trackInfo: {
-				sectorInfoList: [] as SectorInfo[]
-			}
-		} as DiskInfo;
-	}
-	*/
-
-	/*
-	private static getInitialFormatDescriptor() {
-		return {} as FormatDescriptor;
-	}
-	*/
-
-	/*
-	reset(): void {
-		this.diskInfo = DiskImage.getInitialDiskInfo();
-		this.formatDescriptor = DiskImage.getInitialFormatDescriptor();
-	}
-	*/
-
-
 	private static getInitialDiskInfo() {
 		const diskInfo: DiskInfo = {
 			ident: "",
@@ -252,17 +228,6 @@ export class DiskImage {
 
 		return diskInfo;
 	}
-
-	/*
-	private getDiskInfo() {
-		const diskInfo = this.diskInfo;
-
-		if (!diskInfo) {
-			throw this.composeError(Error(), "getDiskInfo: diskInfo:", String(diskInfo));
-		}
-		return diskInfo;
-	}
-	*/
 
 	private getFormatDescriptor() {
 		const formatDescriptor = this.formatDescriptor;
@@ -675,7 +640,6 @@ export class DiskImage {
 	formatImage(format: string): string {
 		const image = this.createImage(format);
 
-		//TTT Why? this.reset(); // reset disk info and format (TTT)
 		this.options.data = image;
 		return image;
 	}
@@ -1143,7 +1107,7 @@ export class DiskImage {
 
 	// see AMSDOS ROM, &D252
 	/* eslint-disable array-element-newline */
-	private static protectTable = [
+	private static readonly protectTable = [
 		[0xe2, 0x9d, 0xdb, 0x1a, 0x42, 0x29, 0x39, 0xc6, 0xb3, 0xc6, 0x90, 0x45, 0x8a], // 13 bytes
 		[0x49, 0xb1, 0x36, 0xf0, 0x2e, 0x1e, 0x06, 0x2a, 0x28, 0x19, 0xea] // 11 bytes
 	];

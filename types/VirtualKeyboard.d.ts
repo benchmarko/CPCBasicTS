@@ -9,6 +9,7 @@ export declare class VirtualKeyboard {
     private readonly fnVirtualKeyboardKeydownHandler;
     private readonly fnVirtualKeyboardKeyupHandler;
     private readonly fnVirtualKeyboardKeyoutHandler;
+    private readonly fnKeydownOrKeyupHandler;
     private readonly options;
     private readonly eventNames;
     private shiftLock;
@@ -16,8 +17,9 @@ export declare class VirtualKeyboard {
     constructor(options: VirtualKeyboardOptions);
     getOptions(): VirtualKeyboardOptions;
     setOptions(options: Partial<VirtualKeyboardOptions>): void;
-    getKeydownHandler(): typeof this.fnVirtualKeyboardKeydownHandler;
-    getKeyupHandler(): typeof this.fnVirtualKeyboardKeyupHandler;
+    getVirtualKeydownHandler(): typeof this.fnVirtualKeyboardKeydownHandler;
+    getVirtualKeyupHandler(): typeof this.fnVirtualKeyboardKeyupHandler;
+    getKeydownOrKeyupHandler(): (event: Event) => boolean;
     private static readonly cpcKey2Key;
     private static readonly virtualKeyboardAlpha;
     private static readonly virtualKeyboardNum;
@@ -33,6 +35,8 @@ export declare class VirtualKeyboard {
     private fnVirtualKeyboardKeyupOrKeyout;
     private onVirtualKeyboardKeyup;
     private onVirtualKeyboardKeyout;
+    private static keyIdentifier2Char;
+    private onKeydownOrKeyup;
 }
 export {};
 //# sourceMappingURL=VirtualKeyboard.d.ts.map
