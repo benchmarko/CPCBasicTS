@@ -2915,6 +2915,10 @@ export class Controller implements IController {
 				fnPressCpcKey: this.keyboard.fnPressCpcKey.bind(this.keyboard),
 				fnReleaseCpcKey: this.keyboard.fnReleaseCpcKey.bind(this.keyboard)
 			});
+			const keydownOrKeyupHandler = this.virtualKeyboard.getKeydownOrKeyupHandler();
+
+			this.view.addEventListener("keydown", keydownOrKeyupHandler, ViewID.kbdAreaInner);
+			this.view.addEventListener("keyup", keydownOrKeyupHandler, ViewID.kbdAreaInner);
 		}
 		return this.virtualKeyboard;
 	}
@@ -3075,19 +3079,6 @@ export class Controller implements IController {
 	onWindowClick(event: Event): void {
 		this.canvas.onWindowClick(event);
 		this.keyboard.setActive(false);
-	}
-
-	onVirtualKeyBoardClick(event: Event): void {
-		if (this.virtualKeyboard) {
-			// simulate keypress (maybe better use real keydown events for space, enter...)
-			this.virtualKeyboard.getKeydownHandler()(event as PointerEvent);
-
-			const fnKeyup = this.virtualKeyboard.getKeyupHandler();
-
-			window.setTimeout(function () {
-				fnKeyup(event);
-			}, 200);
-		}
 	}
 
 	fnArrayBounds(): void {
