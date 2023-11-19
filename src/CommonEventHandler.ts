@@ -14,9 +14,13 @@ interface CommonEventHandlerOptions {
 	controller: IController
 }
 
-type EventDefType = {
-	id: ViewID,
-	toggleId?: ViewID;
+export type EventDefType = {
+	id: ViewID
+	viewType?: string // "checked", "select", "input", "numberInput"
+	toggleId?: ViewID
+	property?: ModelPropID
+	display?: string
+	isPopover?: boolean
 	func?: Function // eslint-disable-line @typescript-eslint/ban-types
 	controllerFunc?: Function // eslint-disable-line @typescript-eslint/ban-types
 }
@@ -59,8 +63,166 @@ export class CommonEventHandler implements EventListenerObject {
 		this.fnUserAction = fnAction;
 	}
 
-	private onGalleryButtonClick() {
-		if (this.controller.toggleAreaHidden(ViewID.galleryArea)) {
+	private initOneToggle(_type: string, id: ViewID, eventDef: EventDefType) {
+		if (eventDef.property) {
+			if (eventDef.toggleId) {
+				const isEnabled = this.model.getProperty<boolean>(eventDef.property);
+
+				this.view.setHidden(eventDef.toggleId, !isEnabled, eventDef.display);
+				if (Utils.debug > 3) {
+					Utils.console.debug("initToggles: setHidden: togglId:", eventDef.toggleId, ", property:", eventDef.property, ", hidden:", !isEnabled, ", display:", eventDef.display);
+				}
+			}
+
+			if (eventDef.viewType === "checked") {
+				const isEnabled2 = this.model.getProperty<boolean>(eventDef.property);
+
+				this.view.setInputChecked(id, isEnabled2);
+				if (Utils.debug > 3) {
+					Utils.console.debug("initToggles: checked: id:", id, ", property:", eventDef.property, ", checked:", isEnabled2);
+				}
+			} else if (eventDef.viewType === "select") {
+				const value = this.model.getProperty<string>(eventDef.property);
+
+				this.view.setSelectValue(id, value);
+				if (Utils.debug > 3) {
+					Utils.console.debug("initToggles: select: id:", id, ", property:", eventDef.property, ", value:", value);
+				}
+			} else if (eventDef.viewType === "numberInput") {
+				const value = this.model.getProperty<number>(eventDef.property);
+
+				this.view.setInputValue(id, String(value));
+				if (Utils.debug > 3) {
+					Utils.console.debug("initToggles: numberInput: id:", id, ", property:", eventDef.property, ", value:", value);
+				}
+			}
+		}
+	}
+
+	initToggles(): void {
+		const eventDefInternalMap = this.eventDefInternalMap;
+
+		for (const type in eventDefInternalMap) {
+			if (eventDefInternalMap.hasOwnProperty(type)) {
+				const eventDefMap4Type = eventDefInternalMap[type];
+
+				for (const id in eventDefMap4Type) {
+					if (eventDefMap4Type.hasOwnProperty(id)) {
+						const eventDef = eventDefMap4Type[id as ViewID];
+
+						this.initOneToggle(type, id as ViewID, eventDef);
+					}
+				}
+			}
+		}
+	}
+
+	private static getToggleId(eventDef: EventDefType) {
+		if (!eventDef.toggleId) {
+			Utils.console.error("getToggleId: id=" + eventDef.id + ": toggleId missing!");
+			return "" as ViewID; //TTT
+		}
+		return eventDef.toggleId;
+	}
+
+	private static getproperty(eventDef: EventDefType) {
+		if (!eventDef.property) {
+			Utils.console.error("setPopoversHiddenExcept: id=" + eventDef.id + ": property missing!");
+			return "" as ModelPropID; //TTT
+		}
+		return eventDef.property;
+	}
+
+	setPopoversHiddenExcept(exceptId?: ViewID): void {
+		const eventDefInternalMap = this.eventDefInternalMap,
+			eventDefMapClick = eventDefInternalMap.click;
+
+		for (const id in eventDefMapClick) {
+			if (eventDefMapClick.hasOwnProperty(id)) {
+				const eventDef = eventDefMapClick[id as ViewID];
+
+				if (eventDef.isPopover && (eventDef.toggleId !== exceptId)) {
+					const toggleId = CommonEventHandler.getToggleId(eventDef),
+						property = CommonEventHandler.getproperty(eventDef);
+
+					if (!this.view.getHidden(toggleId)) {
+						// we cannot use toggleAreaHidden because it would be recursive
+						this.model.setProperty(property, false);
+						this.view.setHidden(toggleId, true, eventDef.display);
+					}
+				}
+			}
+		}
+	}
+
+	private toggleAreaHidden(eventDef: EventDefType): boolean {
+		const toggleId = CommonEventHandler.getToggleId(eventDef),
+			property = CommonEventHandler.getproperty(eventDef),
+			visible = !this.model.getProperty<boolean>(property);
+
+		this.model.setProperty(property, visible);
+		this.view.setHidden(toggleId, !visible, eventDef.display);
+
+		// on old browsers display "flex" is not available, so set default "" (="block"), if still hidden
+		if (visible && eventDef.display === "flex" && this.view.getHidden(toggleId)) {
+			this.view.setHidden(toggleId, !visible);
+		}
+
+		if (visible && eventDef.isPopover) {
+			this.setPopoversHiddenExcept(toggleId);
+		}
+
+		return visible;
+	}
+
+	// maybe we can avoid this...
+	getEventDefById(type: string, id: ViewID): EventDefType {
+		const eventDefForType = this.eventDefInternalMap[type],
+			eventDef = eventDefForType[id];
+
+		if (!eventDef) {
+			Utils.console.error("getEventDefById: type=" + type + ", id=" + id + ": No eventDef!");
+		}
+		return eventDef;
+	}
+
+	toggleAreaHiddenById(type: string, id: ViewID): boolean {
+		const eventDef = this.getEventDefById(type, id);
+
+		return this.toggleAreaHidden(eventDef);
+	}
+
+	private onCheckedChange(eventDef: EventDefType) {
+		const id = eventDef.id,
+			property = CommonEventHandler.getproperty(eventDef),
+			checked = this.view.getInputChecked(id);
+
+		this.model.setProperty(property, checked);
+	}
+
+	private onNumberInputChange(eventDef: EventDefType) {
+		const id = eventDef.id,
+			property = CommonEventHandler.getproperty(eventDef),
+			valueAsString = this.view.getInputValue(id),
+			value = Number(valueAsString);
+
+		this.model.setProperty(property, value);
+		return value;
+	}
+
+	private onSelectChange(eventDef: EventDefType) {
+		const id = eventDef.id,
+			property = CommonEventHandler.getproperty(eventDef),
+			value = this.view.getSelectValue(id);
+
+		this.model.setProperty(property, value);
+		this.view.setSelectTitleFromSelectedOption(id);
+		return value;
+	}
+
+
+	private onGalleryButtonClick(eventDef: EventDefType) {
+		if (this.toggleAreaHidden(eventDef)) {
 			this.controller.setGalleryAreaInputs();
 		}
 	}
@@ -82,26 +244,26 @@ export class CommonEventHandler implements EventListenerObject {
 		this.fnUpdateAreaText(input);
 	}
 
-	private onContinueButtonClick(event: Event) {
+	private onContinueButtonClick(eventDef: EventDefType, event: Event) {
 		this.controller.startContinue();
-		this.controller.onCpcCanvasClick(event as MouseEvent);
+		this.onCpcCanvasClick(eventDef, event as MouseEvent);
 	}
 
-	private onParseRunButtonClick(event: Event) {
+	private onParseRunButtonClick(eventDef: EventDefType, event: Event) {
 		this.controller.startParseRun();
-		this.controller.onCpcCanvasClick(event as MouseEvent);
+		this.onCpcCanvasClick(eventDef, event as MouseEvent);
 	}
 
 	private static onHelpButtonClick() {
 		window.open("https://github.com/benchmarko/CPCBasicTS/#readme");
 	}
 
-	private onGalleryItemClick(event: Event) {
+	private onGalleryItemClick(_eventDef: EventDefType, event: Event) {
 		const target = View.getEventTarget<HTMLInputElement>(event),
 			value = target.value;
 
 		this.view.setSelectValue(ViewID.exampleSelect, value);
-		this.controller.toggleAreaHidden(ViewID.galleryArea); // close
+		this.setPopoversHiddenExcept(); // close
 
 		this.controller.onExampleSelectChange();
 	}
@@ -134,7 +296,7 @@ export class CommonEventHandler implements EventListenerObject {
 	}
 
 	private onReloadButtonClick() {
-		this.controller.setPopoversHiddenExcept(); // hide all popovers,
+		this.setPopoversHiddenExcept(); // hide all popovers,
 
 		const changed = this.model.getChangedProperties();
 		let paras = CommonEventHandler.encodeUriParam(changed);
@@ -152,71 +314,47 @@ export class CommonEventHandler implements EventListenerObject {
 		this.view.setAreaValue(ViewID.varText, valueString);
 	}
 
-	onKbdLayoutSelectChange(): void {
-		const value = this.view.getSelectValue(ViewID.kbdLayoutSelect);
-
-		this.model.setProperty(ModelPropID.kbdLayout, value);
-		this.view.setSelectTitleFromSelectedOption(ViewID.kbdLayoutSelect);
+	onKbdLayoutSelectChange(eventDef: EventDefType): void {
+		const value = this.onSelectChange(eventDef);
 
 		this.view.setHidden(ViewID.kbdAlpha, value === "num");
 		this.view.setHidden(ViewID.kbdNum, value === "alpha");
 	}
 
-	private onBasicVersionSelectChange() {
-		const value = this.view.getSelectValue(ViewID.basicVersionSelect);
+	private onBasicVersionSelectChange(eventDef: EventDefType) {
+		const value = this.onSelectChange(eventDef);
 
-		this.model.setProperty(ModelPropID.basicVersion, value);
-		this.view.setSelectTitleFromSelectedOption(ViewID.basicVersionSelect);
 		this.controller.setBasicVersion(value);
 	}
 
-	private onPaletteSelectChange() {
-		const value = this.view.getSelectValue(ViewID.paletteSelect);
+	private onPaletteSelectChange(eventDef: EventDefType) {
+		const value = this.onSelectChange(eventDef);
 
-		this.model.setProperty(ModelPropID.palette, value);
-		this.view.setSelectTitleFromSelectedOption(ViewID.paletteSelect);
 		this.controller.setPalette(value);
 	}
 
-	private onCanvasTypeSelectChange() {
-		const value = this.view.getSelectValue(ViewID.canvasTypeSelect);
+	private onCanvasTypeSelectChange(eventDef: EventDefType) {
+		const value = this.onSelectChange(eventDef);
 
-		this.model.setProperty(ModelPropID.canvasType, value);
-		this.view.setSelectTitleFromSelectedOption(ViewID.canvasTypeSelect);
 		this.controller.setCanvasType(value);
 	}
 
-	private onDebugInputChange() {
-		const debug = this.view.getInputValue(ViewID.debugInput);
+	private onDebugInputChange(eventDef: EventDefType) {
+		const value = this.onNumberInputChange(eventDef);
 
-		this.model.setProperty<number>(ModelPropID.debug, Number(debug));
-		Utils.debug = Number(debug);
+		Utils.debug = value;
 	}
 
-	private onImplicitLinesInputChange() {
-		const checked = this.view.getInputChecked(ViewID.implicitLinesInput);
-
-		this.model.setProperty(ModelPropID.implicitLines, checked);
-		this.controller.fnImplicitLines();
-	}
-
-	private onArrayBoundsInputChange() {
-		const checked = this.view.getInputChecked(ViewID.arrayBoundsInput);
-
-		this.model.setProperty(ModelPropID.arrayBounds, checked);
-		this.controller.fnArrayBounds();
-	}
-
-	private onShowCpcInputChange() {
-		if (this.controller.toggleAreaHidden(ViewID.cpcArea)) {
+	private onShowCpcInputChange(eventDef: EventDefType) {
+		if (this.toggleAreaHidden(eventDef)) {
 			this.controller.startUpdateCanvas();
 		} else {
 			this.controller.stopUpdateCanvas();
 		}
 	}
 
-	private onShowKbdInputChange() {
-		if (this.controller.toggleAreaHidden(ViewID.kbdArea)) {
+	private onShowKbdInputChange(eventDef: EventDefType) {
+		if (this.toggleAreaHidden(eventDef)) {
 			this.controller.getVirtualKeyboard(); // maybe draw it
 		}
 	}
@@ -228,31 +366,9 @@ export class CommonEventHandler implements EventListenerObject {
 		this.controller.setDisassAddr(addr);
 	}
 
-	private onTraceInputChange() {
-		const checked = this.view.getInputChecked(ViewID.traceInput);
-
-		this.model.setProperty(ModelPropID.trace, checked);
-		this.controller.fnTrace();
-	}
-
-	private onAutorunInputChange() {
-		const checked = this.view.getInputChecked(ViewID.autorunInput);
-
-		this.model.setProperty(ModelPropID.autorun, checked);
-	}
-
-	private onSoundInputChange() {
-		const checked = this.view.getInputChecked(ViewID.soundInput);
-
-		this.model.setProperty(ModelPropID.sound, checked);
+	private onSoundInputChange(eventDef: EventDefType) {
+		this.onCheckedChange(eventDef);
 		this.controller.setSoundActive();
-	}
-
-	private onSpeedInputChange() {
-		const speed = this.view.getInputValue(ViewID.speedInput);
-
-		this.model.setProperty<number>(ModelPropID.speed, Number(speed));
-		this.controller.fnSpeed();
 	}
 
 	private onScreenshotButtonClick() {
@@ -280,6 +396,11 @@ export class CommonEventHandler implements EventListenerObject {
 		}
 	}
 
+	private onCpcCanvasClick(_eventDef: EventDefType, event: MouseEvent) {
+		this.setPopoversHiddenExcept(); // hide all popovers
+		this.controller.onCpcCanvasClick(event);
+	}
+
 	private createEventDefMap() {
 		const eventDefInternalMap = this.eventDefInternalMap,
 			eventDefs: EventDefMapType = {
@@ -294,11 +415,15 @@ export class CommonEventHandler implements EventListenerObject {
 					},
 					{
 						id: ViewID.convertButton,
-						toggleId: ViewID.convertArea
+						toggleId: ViewID.convertArea,
+						property: ModelPropID.showConvert,
+						display: "flex",
+						isPopover: true,
+						func: this.toggleAreaHidden
 					},
 					{
 						id: ViewID.cpcCanvas,
-						controllerFunc: this.controller.onCpcCanvasClick
+						func: this.onCpcCanvasClick
 					},
 					{
 						id: ViewID.copyTextButton,
@@ -314,7 +439,11 @@ export class CommonEventHandler implements EventListenerObject {
 					},
 					{
 						id: ViewID.exportButton,
-						toggleId: ViewID.exportArea
+						toggleId: ViewID.exportArea,
+						property: ModelPropID.showExport,
+						display: "flex",
+						isPopover: true,
+						func: this.toggleAreaHidden
 					},
 					{
 						id: ViewID.fullscreenButton,
@@ -322,6 +451,10 @@ export class CommonEventHandler implements EventListenerObject {
 					},
 					{
 						id: ViewID.galleryButton,
+						toggleId: ViewID.galleryArea,
+						property: ModelPropID.showGallery,
+						display: "flex",
+						isPopover: true,
 						func: this.onGalleryButtonClick
 					},
 					{
@@ -342,7 +475,11 @@ export class CommonEventHandler implements EventListenerObject {
 					},
 					{
 						id: ViewID.moreButton,
-						toggleId: ViewID.moreArea
+						toggleId: ViewID.moreArea,
+						property: ModelPropID.showMore,
+						display: "flex",
+						isPopover: true,
+						func: this.toggleAreaHidden
 					},
 					{
 						id: ViewID.parseButton,
@@ -365,7 +502,7 @@ export class CommonEventHandler implements EventListenerObject {
 						func: this.onReloadButtonClick
 					},
 					{
-						id: ViewID.reloadButton2,
+						id: ViewID.reload2Button,
 						func: this.onReloadButtonClick // same as relaodButton
 					},
 					{
@@ -389,7 +526,11 @@ export class CommonEventHandler implements EventListenerObject {
 					},
 					{
 						id: ViewID.settingsButton,
-						toggleId: ViewID.settingsArea
+						toggleId: ViewID.settingsArea,
+						property: ModelPropID.showSettings,
+						display: "flex",
+						isPopover: true,
+						func: this.toggleAreaHidden
 					},
 					{
 						id: ViewID.stopButton,
@@ -397,7 +538,7 @@ export class CommonEventHandler implements EventListenerObject {
 					},
 					{
 						id: ViewID.textText,
-						controllerFunc: this.controller.onCpcCanvasClick // same as for cpcCanvas
+						func: this.onCpcCanvasClick // same as for cpcCanvas
 					},
 					{
 						id: ViewID.undoButton,
@@ -405,28 +546,42 @@ export class CommonEventHandler implements EventListenerObject {
 					},
 					{
 						id: ViewID.viewButton,
-						toggleId: ViewID.viewArea
+						toggleId: ViewID.viewArea,
+						property: ModelPropID.showView,
+						display: "flex",
+						isPopover: true,
+						func: this.toggleAreaHidden
 					},
 					{
-						id: ViewID.window,
+						id: ViewID.window, //TTT do we need this?
 						controllerFunc: this.controller.onWindowClick
 					}
 				],
 				change: [
 					{
 						id: ViewID.arrayBoundsInput,
-						func: this.onArrayBoundsInputChange
+						viewType: "checked",
+						property: ModelPropID.arrayBounds,
+						func: this.onCheckedChange,
+						controllerFunc: this.controller.fnArrayBounds
 					},
 					{
 						id: ViewID.autorunInput,
-						func: this.onAutorunInputChange
+						viewType: "checked",
+						property: ModelPropID.autorun,
+						func: this.onCheckedChange
 					},
 					{
 						id: ViewID.basicVersionSelect,
+						viewType: "select",
+						property: ModelPropID.basicVersion,
 						func: this.onBasicVersionSelectChange
+						//controllerFunc: this.controller.setBasicVersion(value) // needs value
 					},
 					{
 						id: ViewID.canvasTypeSelect,
+						viewType: "select",
+						property: ModelPropID.canvasType,
 						func: this.onCanvasTypeSelectChange
 					},
 					{
@@ -435,6 +590,8 @@ export class CommonEventHandler implements EventListenerObject {
 					},
 					{
 						id: ViewID.debugInput,
+						viewType: "numberInput",
+						property: ModelPropID.debug,
 						func: this.onDebugInputChange
 					},
 					{
@@ -451,10 +608,15 @@ export class CommonEventHandler implements EventListenerObject {
 					},
 					{
 						id: ViewID.implicitLinesInput,
-						func: this.onImplicitLinesInputChange
+						viewType: "checked",
+						property: ModelPropID.implicitLines,
+						func: this.onCheckedChange,
+						controllerFunc: this.controller.fnImplicitLines
 					},
 					{
 						id: ViewID.kbdLayoutSelect,
+						viewType: "select",
+						property: ModelPropID.kbdLayout,
 						func: this.onKbdLayoutSelectChange
 					},
 					{
@@ -463,55 +625,93 @@ export class CommonEventHandler implements EventListenerObject {
 					},
 					{
 						id: ViewID.paletteSelect,
+						viewType: "select",
+						property: ModelPropID.palette,
 						func: this.onPaletteSelectChange
 					},
 					{
 						id: ViewID.showConsoleLogInput,
-						toggleId: ViewID.consoleLogArea
+						viewType: "checked",
+						toggleId: ViewID.consoleLogArea,
+						property: ModelPropID.showConsoleLog,
+						func: this.toggleAreaHidden
 					},
 					{
 						id: ViewID.showCpcInput,
+						viewType: "checked",
+						toggleId: ViewID.cpcArea,
+						property: ModelPropID.showCpc,
 						func: this.onShowCpcInputChange
 					},
 					{
 						id: ViewID.showDisassInput,
-						toggleId: ViewID.disassArea
+						viewType: "checked",
+						toggleId: ViewID.disassArea,
+						property: ModelPropID.showDisass,
+						func: this.toggleAreaHidden
 					},
 					{
 						id: ViewID.showInp2Input,
-						toggleId: ViewID.inp2Area
+						viewType: "checked",
+						toggleId: ViewID.inp2Area,
+						property: ModelPropID.showInp2,
+						func: this.toggleAreaHidden
 					},
 					{
 						id: ViewID.showInputInput,
-						toggleId: ViewID.inputArea
+						viewType: "checked",
+						toggleId: ViewID.inputArea,
+						property: ModelPropID.showInput,
+						func: this.toggleAreaHidden
 					},
 					{
 						id: ViewID.showKbdInput,
+						viewType: "checked",
+						toggleId: ViewID.kbdArea,
+						property: ModelPropID.showKbd,
+						display: "flex",
 						func: this.onShowKbdInputChange
 					},
 					{
 						id: ViewID.showOutputInput,
-						toggleId: ViewID.outputArea
+						viewType: "checked",
+						toggleId: ViewID.outputArea,
+						property: ModelPropID.showOutput,
+						func: this.toggleAreaHidden
 					},
 					{
 						id: ViewID.showResultInput,
-						toggleId: ViewID.resultArea
+						viewType: "checked",
+						toggleId: ViewID.resultArea,
+						property: ModelPropID.showResult,
+						func: this.toggleAreaHidden
 					},
 					{
 						id: ViewID.showVariableInput,
-						toggleId: ViewID.variableArea
+						viewType: "checked",
+						toggleId: ViewID.variableArea,
+						property: ModelPropID.showVariable,
+						func: this.toggleAreaHidden
 					},
 					{
 						id: ViewID.soundInput,
+						viewType: "checked",
+						property: ModelPropID.sound,
 						func: this.onSoundInputChange
 					},
 					{
 						id: ViewID.speedInput,
-						func: this.onSpeedInputChange
+						viewType: "numberInput",
+						property: ModelPropID.speed,
+						func: this.onNumberInputChange,
+						controllerFunc: this.controller.fnSpeed
 					},
 					{
 						id: ViewID.traceInput,
-						func: this.onTraceInputChange
+						viewType: "checked",
+						property: ModelPropID.trace,
+						func: this.onCheckedChange,
+						controllerFunc: this.controller.fnTrace
 					},
 					{
 						id: ViewID.varSelect,
@@ -562,11 +762,10 @@ export class CommonEventHandler implements EventListenerObject {
 					Utils.console.debug("handleEvent: " + type + ", " + id + ":", eventDef);
 				}
 				if (eventDef.func) {
-					eventDef.func.call(this, event, eventDef);
-				} else if (eventDef.controllerFunc) {
-					eventDef.controllerFunc.call(this.controller, event, eventDef);
-				} else if (eventDef.toggleId) {
-					this.controller.toggleAreaHidden(eventDef.toggleId);
+					eventDef.func.call(this, eventDef, event);
+				}
+				if (eventDef.controllerFunc) {
+					eventDef.controllerFunc.call(this.controller, eventDef, event);
 				}
 			} else if (!id.endsWith("Select") && !id.endsWith("Input")) { // do not print all messages; these are usually handled by change
 				Utils.console.log("handleEvent: " + type + ", " + id + ": No handler");
