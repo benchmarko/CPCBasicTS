@@ -1,3 +1,4 @@
+import { ModelPropID, ViewID } from "./Constants";
 import { IController } from "./Interfaces";
 import { Model } from "./Model";
 import { View } from "./View";
@@ -6,6 +7,16 @@ interface CommonEventHandlerOptions {
     view: View;
     controller: IController;
 }
+export declare type EventDefType = {
+    id: ViewID;
+    viewType?: string;
+    toggleId?: ViewID;
+    property?: ModelPropID;
+    display?: string;
+    isPopover?: boolean;
+    func?: Function;
+    controllerFunc?: Function;
+};
 export declare class CommonEventHandler implements EventListenerObject {
     private readonly options;
     private readonly model;
@@ -17,6 +28,17 @@ export declare class CommonEventHandler implements EventListenerObject {
     getOptions(): CommonEventHandlerOptions;
     private setOptions;
     fnSetUserAction(fnAction: ((event: Event, id: string) => void) | undefined): void;
+    private initOneToggle;
+    initToggles(): void;
+    private static getToggleId;
+    private static getproperty;
+    setPopoversHiddenExcept(exceptId?: ViewID): void;
+    private toggleAreaHidden;
+    getEventDefById(type: string, id: ViewID): EventDefType;
+    toggleAreaHiddenById(type: string, id: ViewID): boolean;
+    private onCheckedChange;
+    private onNumberInputChange;
+    private onSelectChange;
     private onGalleryButtonClick;
     private fnUpdateAreaText;
     private onUndoButtonClick;
@@ -29,23 +51,19 @@ export declare class CommonEventHandler implements EventListenerObject {
     private static encodeUriParam;
     private onReloadButtonClick;
     onVarSelectChange(): void;
-    onKbdLayoutSelectChange(): void;
+    onKbdLayoutSelectChange(eventDef: EventDefType): void;
     private onBasicVersionSelectChange;
     private onPaletteSelectChange;
     private onCanvasTypeSelectChange;
     private onDebugInputChange;
-    private onImplicitLinesInputChange;
-    private onArrayBoundsInputChange;
     private onShowCpcInputChange;
     private onShowKbdInputChange;
     private onDisassInputChange;
-    private onTraceInputChange;
-    private onAutorunInputChange;
     private onSoundInputChange;
-    private onSpeedInputChange;
     private onScreenshotButtonClick;
     private onClearInputButtonClick;
     private static onFullscreenButtonClick;
+    private onCpcCanvasClick;
     private createEventDefMap;
     handleEvent(event: Event): void;
 }

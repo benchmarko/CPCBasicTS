@@ -41,14 +41,6 @@ interface FileMetaAndData {
 	data: string
 }
 
-type AreaDefinitionType = {
-	id: ViewID,
-	property: ModelPropID,
-	checkedId?: ViewID,
-	display?: "flex",
-	isPopover?: boolean
-}
-
 export class Controller implements IController {
 	private readonly fnRunLoopHandler: () => void;
 	private readonly fnWaitKeyHandler: () => void;
@@ -107,90 +99,6 @@ export class Controller implements IController {
 
 	private z80Disass?: Z80Disass;
 
-	private static areaDefinitions: Record<string, AreaDefinitionType> = {
-		consoleLogArea: {
-			id: ViewID.consoleLogArea,
-			property: ModelPropID.showConsoleLog,
-			checkedId: ViewID.showConsoleLogInput
-		},
-		convertArea: {
-			id: ViewID.convertArea,
-			property: ModelPropID.showConvert,
-			display: "flex",
-			isPopover: true
-		},
-		cpcArea: {
-			id: ViewID.cpcArea,
-			property: ModelPropID.showCpc,
-			checkedId: ViewID.showCpcInput
-		},
-		disassArea: {
-			id: ViewID.disassArea,
-			property: ModelPropID.showDisass,
-			checkedId: ViewID.showDisassInput
-		},
-		exportArea: {
-			id: ViewID.exportArea,
-			property: ModelPropID.showExport,
-			display: "flex",
-			isPopover: true
-		},
-		galleryArea: {
-			id: ViewID.galleryArea,
-			property: ModelPropID.showGallery,
-			display: "flex",
-			isPopover: true
-		},
-		inp2Area: {
-			id: ViewID.inp2Area,
-			property: ModelPropID.showInp2,
-			checkedId: ViewID.showInp2Input
-		},
-		inputArea: {
-			id: ViewID.inputArea,
-			property: ModelPropID.showInput,
-			checkedId: ViewID.showInputInput
-		},
-		kbdArea: {
-			id: ViewID.kbdArea,
-			property: ModelPropID.showKbd,
-			checkedId: ViewID.showKbdInput,
-			display: "flex"
-		},
-		moreArea: {
-			id: ViewID.moreArea,
-			property: ModelPropID.showMore,
-			display: "flex",
-			isPopover: true
-		},
-		outputArea: {
-			id: ViewID.outputArea,
-			property: ModelPropID.showOutput,
-			checkedId: ViewID.showOutputInput
-		},
-		resultArea: {
-			id: ViewID.resultArea,
-			property: ModelPropID.showResult,
-			checkedId: ViewID.showResultInput
-		},
-		settingsArea: {
-			id: ViewID.settingsArea,
-			property: ModelPropID.showSettings,
-			display: "flex",
-			isPopover: true
-		},
-		variableArea: {
-			id: ViewID.variableArea,
-			property: ModelPropID.showVariable,
-			checkedId: ViewID.showVariableInput
-		},
-		viewArea: {
-			id: ViewID.viewArea,
-			property: ModelPropID.showView,
-			display: "flex",
-			isPopover: true
-		}
-	};
 
 	constructor(model: Model, view: View) {
 		this.fnRunLoopHandler = this.fnRunLoop.bind(this);
@@ -215,36 +123,17 @@ export class Controller implements IController {
 		this.view.addEventListener("click", this.commonEventHandler);
 		this.view.addEventListener("change", this.commonEventHandler);
 
-		const canvasType = model.getProperty<string>(ModelPropID.canvasType);
+		this.commonEventHandler.initToggles();
 
-		view.setSelectValue(ViewID.canvasTypeSelect, canvasType);
+		this.canvas = this.setCanvasType(model.getProperty<string>(ModelPropID.canvasType));
 
-		const palette = model.getProperty<string>(ModelPropID.palette);
-
-		view.setSelectValue(ViewID.paletteSelect, palette);
-
-		this.canvas = this.setCanvasType(canvasType);
-
-		this.initAreas();
-
-		view.setInputValue(ViewID.debugInput, String(model.getProperty<number>(ModelPropID.debug)));
-		view.setInputChecked(ViewID.implicitLinesInput, model.getProperty<boolean>(ModelPropID.implicitLines));
-		view.setInputChecked(ViewID.arrayBoundsInput, model.getProperty<boolean>(ModelPropID.arrayBounds));
 		this.variables = new Variables({
 			arrayBounds: model.getProperty<boolean>(ModelPropID.arrayBounds)
 		});
 
-		view.setInputChecked(ViewID.traceInput, model.getProperty<boolean>(ModelPropID.trace));
-		view.setInputChecked(ViewID.autorunInput, model.getProperty<boolean>(ModelPropID.autorun));
-		view.setInputChecked(ViewID.soundInput, model.getProperty<boolean>(ModelPropID.sound));
-
-		view.setInputValue(ViewID.speedInput, String(model.getProperty<number>(ModelPropID.speed)));
 		this.fnSpeed();
 
-		const kbdLayout = model.getProperty<string>(ModelPropID.kbdLayout);
-
-		view.setSelectValue(ViewID.kbdLayoutSelect, kbdLayout);
-		this.commonEventHandler.onKbdLayoutSelectChange();
+		this.commonEventHandler.onKbdLayoutSelectChange(this.commonEventHandler.getEventDefById("change", ViewID.kbdLayoutSelect));
 
 		this.keyboard = new Keyboard({
 			fnOnEscapeHandler: this.fnOnEscapeHandler
@@ -286,12 +175,8 @@ export class Controller implements IController {
 		}; // backup of stop object
 		this.setStopObject(this.noStop);
 
-		const basicVersion = this.model.getProperty<string>(ModelPropID.basicVersion);
-
-		view.setSelectValue(ViewID.basicVersionSelect, basicVersion);
-
 		this.basicParser = new BasicParser({
-			basicVersion: basicVersion
+			basicVersion: this.model.getProperty<string>(ModelPropID.basicVersion)
 		});
 		this.basicLexer = new BasicLexer({
 			keywords: this.basicParser.getKeywords()
@@ -340,19 +225,6 @@ export class Controller implements IController {
 		keepDataComma: false,
 		keepTokens: false
 	};
-
-	private initAreas() {
-		for (const id in Controller.areaDefinitions) { // eslint-disable-line guard-for-in
-			const propertyObject = Controller.areaDefinitions[id],
-				showIt = this.model.getProperty<boolean>(propertyObject.property);
-
-			this.view.setHidden(propertyObject.id, !showIt, propertyObject.display);
-
-			if (propertyObject.checkedId) {
-				this.view.setInputChecked(propertyObject.checkedId, showIt);
-			}
-		}
-	}
 
 	private initDatabases() {
 		const model = this.model,
@@ -2612,6 +2484,7 @@ export class Controller implements IController {
 		return fnFunction;
 	}
 
+	/*
 	setPopoversHiddenExcept(exceptId?: ViewID): void {
 		const areaDefinitions = Controller.areaDefinitions;
 
@@ -2650,6 +2523,7 @@ export class Controller implements IController {
 
 		return visible;
 	}
+	*/
 
 	changeVariable(): void {
 		const par = this.view.getSelectValue(ViewID.varSelect),
@@ -2742,7 +2616,7 @@ export class Controller implements IController {
 
 				// make sure canvas area is not hidden when creating canvas object (allows to get width, height)
 				if (isAreaHidden) {
-					this.toggleAreaHidden(ViewID.cpcArea);
+					this.commonEventHandler.toggleAreaHiddenById("change", ViewID.showCpcInput); // show: ViewID.cpcArea
 				}
 				this.view.setHidden(ViewID.cpcCanvas, false);
 				canvas = new Canvas({
@@ -2751,7 +2625,7 @@ export class Controller implements IController {
 					palette: validPalette
 				});
 				if (isAreaHidden) {
-					this.toggleAreaHidden(ViewID.cpcArea); // hide again
+					this.commonEventHandler.toggleAreaHiddenById("change", ViewID.showCpcInput); // hide again: ViewID.cpcArea
 				}
 			}
 			this.canvases[canvasType] = canvas;
@@ -3011,7 +2885,7 @@ export class Controller implements IController {
 
 		vm.closein();
 
-		this.setPopoversHiddenExcept(); // hide all popovers, especially the gallery
+		this.commonEventHandler.setPopoversHiddenExcept(); // hide all popovers, especially the gallery
 		inFile.open = true;
 
 		let exampleName = this.view.getSelectValue(ViewID.exampleSelect);
@@ -3070,7 +2944,7 @@ export class Controller implements IController {
 	}
 
 	onCpcCanvasClick(event: MouseEvent): void {
-		this.setPopoversHiddenExcept(); // hide all popovers
+		this.commonEventHandler.setPopoversHiddenExcept(); // hide all popovers
 
 		this.canvas.onCanvasClick(event);
 		this.keyboard.setActive(true);

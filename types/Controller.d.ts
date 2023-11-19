@@ -1,4 +1,3 @@
-import { ViewID } from "./Constants";
 import { IController, ICanvas, VariableValue, ICpcVmRsx } from "./Interfaces";
 import { VirtualKeyboard } from "./VirtualKeyboard";
 import { Model } from "./Model";
@@ -43,12 +42,10 @@ export declare class Controller implements IController {
     private fileSelect?;
     private hasStorageDatabase;
     private z80Disass?;
-    private static areaDefinitions;
     constructor(model: Model, view: View);
     private static readonly codeGenJsBasicParserOptions;
     private static readonly codeGenTokenBasicParserOptions;
     private static readonly formatterBasicParserOptions;
-    private initAreas;
     private initDatabases;
     private onUserAction;
     addIndex(dir: string, input: string): void;
@@ -149,8 +146,6 @@ export declare class Controller implements IController {
     private fnPutKeysInBuffer;
     startEnter(): void;
     private static generateFunction;
-    setPopoversHiddenExcept(exceptId?: ViewID): void;
-    toggleAreaHidden(id: ViewID): boolean;
     changeVariable(): void;
     setBasicVersion(basicVersion: string): void;
     setPalette(palette: string): void;

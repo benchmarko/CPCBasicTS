@@ -107,7 +107,7 @@ define(["require", "exports"], function (require, exports) {
         ViewID["prettySpaceInput"] = "prettySpaceInput";
         ViewID["redoButton"] = "redoButton";
         ViewID["reloadButton"] = "reloadButton";
-        ViewID["reloadButton2"] = "reloadButton2";
+        ViewID["reload2Button"] = "reload2Button";
         ViewID["renumButton"] = "renumButton";
         ViewID["renumKeepInput"] = "renumKeepInput";
         ViewID["renumNewInput"] = "renumNewInput";

@@ -66,26 +66,13 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             });
             this.view.addEventListener("click", this.commonEventHandler);
             this.view.addEventListener("change", this.commonEventHandler);
-            var canvasType = model.getProperty("canvasType" /* ModelPropID.canvasType */);
-            view.setSelectValue("canvasTypeSelect" /* ViewID.canvasTypeSelect */, canvasType);
-            var palette = model.getProperty("palette" /* ModelPropID.palette */);
-            view.setSelectValue("paletteSelect" /* ViewID.paletteSelect */, palette);
-            this.canvas = this.setCanvasType(canvasType);
-            this.initAreas();
-            view.setInputValue("debugInput" /* ViewID.debugInput */, String(model.getProperty("debug" /* ModelPropID.debug */)));
-            view.setInputChecked("implicitLinesInput" /* ViewID.implicitLinesInput */, model.getProperty("implicitLines" /* ModelPropID.implicitLines */));
-            view.setInputChecked("arrayBoundsInput" /* ViewID.arrayBoundsInput */, model.getProperty("arrayBounds" /* ModelPropID.arrayBounds */));
+            this.commonEventHandler.initToggles();
+            this.canvas = this.setCanvasType(model.getProperty("canvasType" /* ModelPropID.canvasType */));
             this.variables = new Variables_1.Variables({
                 arrayBounds: model.getProperty("arrayBounds" /* ModelPropID.arrayBounds */)
             });
-            view.setInputChecked("traceInput" /* ViewID.traceInput */, model.getProperty("trace" /* ModelPropID.trace */));
-            view.setInputChecked("autorunInput" /* ViewID.autorunInput */, model.getProperty("autorun" /* ModelPropID.autorun */));
-            view.setInputChecked("soundInput" /* ViewID.soundInput */, model.getProperty("sound" /* ModelPropID.sound */));
-            view.setInputValue("speedInput" /* ViewID.speedInput */, String(model.getProperty("speed" /* ModelPropID.speed */)));
             this.fnSpeed();
-            var kbdLayout = model.getProperty("kbdLayout" /* ModelPropID.kbdLayout */);
-            view.setSelectValue("kbdLayoutSelect" /* ViewID.kbdLayoutSelect */, kbdLayout);
-            this.commonEventHandler.onKbdLayoutSelectChange();
+            this.commonEventHandler.onKbdLayoutSelectChange(this.commonEventHandler.getEventDefById("change", "kbdLayoutSelect" /* ViewID.kbdLayoutSelect */));
             this.keyboard = new Keyboard_1.Keyboard({
                 fnOnEscapeHandler: this.fnOnEscapeHandler
             });
@@ -119,10 +106,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 }
             }; // backup of stop object
             this.setStopObject(this.noStop);
-            var basicVersion = this.model.getProperty("basicVersion" /* ModelPropID.basicVersion */);
-            view.setSelectValue("basicVersionSelect" /* ViewID.basicVersionSelect */, basicVersion);
             this.basicParser = new BasicParser_1.BasicParser({
-                basicVersion: basicVersion
+                basicVersion: this.model.getProperty("basicVersion" /* ModelPropID.basicVersion */)
             });
             this.basicLexer = new BasicLexer_1.BasicLexer({
                 keywords: this.basicParser.getKeywords()
@@ -144,15 +129,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.canvas.startUpdateCanvas();
             }
         }
-        Controller.prototype.initAreas = function () {
-            for (var id in Controller.areaDefinitions) { // eslint-disable-line guard-for-in
-                var propertyObject = Controller.areaDefinitions[id], showIt = this.model.getProperty(propertyObject.property);
-                this.view.setHidden(propertyObject.id, !showIt, propertyObject.display);
-                if (propertyObject.checkedId) {
-                    this.view.setInputChecked(propertyObject.checkedId, showIt);
-                }
-            }
-        };
         Controller.prototype.initDatabases = function () {
             var model = this.model, databases = {}, databaseDirs = model.getProperty("databaseDirs" /* ModelPropID.databaseDirs */).split(",");
             var hasStorageDatabase = false;
@@ -1944,11 +1920,15 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             // we support at most 5 arguments
             return fnFunction;
         };
-        Controller.prototype.setPopoversHiddenExcept = function (exceptId) {
-            var areaDefinitions = Controller.areaDefinitions;
-            for (var id in areaDefinitions) {
+        /*
+        setPopoversHiddenExcept(exceptId?: ViewID): void {
+            const areaDefinitions = Controller.areaDefinitions;
+    
+            for (const id in areaDefinitions) {
                 if (areaDefinitions.hasOwnProperty(id)) {
-                    var propertyObject = areaDefinitions[id], viewId = propertyObject.id;
+                    const propertyObject = areaDefinitions[id],
+                        viewId = propertyObject.id;
+    
                     if (propertyObject && viewId !== exceptId) {
                         if (propertyObject.isPopover && !this.view.getHidden(viewId)) {
                             // we cannot use toggleAreaHidden becasue it would be recursive
@@ -1958,20 +1938,28 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     }
                 }
             }
-        };
-        Controller.prototype.toggleAreaHidden = function (id) {
-            var propertyObject = Controller.areaDefinitions[id], propertyName = propertyObject.property, visible = !this.model.getProperty(propertyName);
+        }
+    
+        toggleAreaHidden(id: ViewID): boolean {
+            const propertyObject = Controller.areaDefinitions[id],
+                propertyName = propertyObject.property,
+                visible = !this.model.getProperty<boolean>(propertyName);
+    
             this.model.setProperty(propertyName, visible);
             this.view.setHidden(id, !visible, propertyObject.display);
+    
             // on old browsers display "flex" is not available, so set default "" (="block"), if still hidden
             if (visible && propertyObject.display === "flex" && this.view.getHidden(id)) {
                 this.view.setHidden(id, !visible);
             }
+    
             if (visible && propertyObject.isPopover) {
                 this.setPopoversHiddenExcept(id);
             }
+    
             return visible;
-        };
+        }
+        */
         Controller.prototype.changeVariable = function () {
             var par = this.view.getSelectValue("varSelect" /* ViewID.varSelect */), valueString = this.view.getSelectValue("varText" /* ViewID.varText */), variables = this.variables;
             var value = variables.getVariable(par);
@@ -2051,7 +2039,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     var isAreaHidden = this.view.getHidden("cpcArea" /* ViewID.cpcArea */);
                     // make sure canvas area is not hidden when creating canvas object (allows to get width, height)
                     if (isAreaHidden) {
-                        this.toggleAreaHidden("cpcArea" /* ViewID.cpcArea */);
+                        this.commonEventHandler.toggleAreaHiddenById("change", "showCpcInput" /* ViewID.showCpcInput */); // show: ViewID.cpcArea
                     }
                     this.view.setHidden("cpcCanvas" /* ViewID.cpcCanvas */, false);
                     canvas = new Canvas_1.Canvas({
@@ -2060,7 +2048,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                         palette: validPalette
                     });
                     if (isAreaHidden) {
-                        this.toggleAreaHidden("cpcArea" /* ViewID.cpcArea */); // hide again
+                        this.commonEventHandler.toggleAreaHiddenById("change", "showCpcInput" /* ViewID.showCpcInput */); // hide again: ViewID.cpcArea
                     }
                 }
                 this.canvases[canvasType] = canvas;
@@ -2262,7 +2250,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         Controller.prototype.onExampleSelectChange = function () {
             var vm = this.vm, inFile = vm.vmGetInFileObject(), dataBaseName = this.model.getProperty("database" /* ModelPropID.database */), directoryName = this.view.getSelectValue("directorySelect" /* ViewID.directorySelect */);
             vm.closein();
-            this.setPopoversHiddenExcept(); // hide all popovers, especially the gallery
+            this.commonEventHandler.setPopoversHiddenExcept(); // hide all popovers, especially the gallery
             inFile.open = true;
             var exampleName = this.view.getSelectValue("exampleSelect" /* ViewID.exampleSelect */);
             if (directoryName) {
@@ -2310,7 +2298,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             return out;
         };
         Controller.prototype.onCpcCanvasClick = function (event) {
-            this.setPopoversHiddenExcept(); // hide all popovers
+            this.commonEventHandler.setPopoversHiddenExcept(); // hide all popovers
             this.canvas.onCanvasClick(event);
             this.keyboard.setActive(true);
         };
@@ -2347,90 +2335,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         Controller.prototype.fnSpeed = function () {
             var speed = this.model.getProperty("speed" /* ModelPropID.speed */);
             this.initialLoopTimeout = 1000 - speed * 10;
-        };
-        Controller.areaDefinitions = {
-            consoleLogArea: {
-                id: "consoleLogArea" /* ViewID.consoleLogArea */,
-                property: "showConsoleLog" /* ModelPropID.showConsoleLog */,
-                checkedId: "showConsoleLogInput" /* ViewID.showConsoleLogInput */
-            },
-            convertArea: {
-                id: "convertArea" /* ViewID.convertArea */,
-                property: "showConvert" /* ModelPropID.showConvert */,
-                display: "flex",
-                isPopover: true
-            },
-            cpcArea: {
-                id: "cpcArea" /* ViewID.cpcArea */,
-                property: "showCpc" /* ModelPropID.showCpc */,
-                checkedId: "showCpcInput" /* ViewID.showCpcInput */
-            },
-            disassArea: {
-                id: "disassArea" /* ViewID.disassArea */,
-                property: "showDisass" /* ModelPropID.showDisass */,
-                checkedId: "showDisassInput" /* ViewID.showDisassInput */
-            },
-            exportArea: {
-                id: "exportArea" /* ViewID.exportArea */,
-                property: "showExport" /* ModelPropID.showExport */,
-                display: "flex",
-                isPopover: true
-            },
-            galleryArea: {
-                id: "galleryArea" /* ViewID.galleryArea */,
-                property: "showGallery" /* ModelPropID.showGallery */,
-                display: "flex",
-                isPopover: true
-            },
-            inp2Area: {
-                id: "inp2Area" /* ViewID.inp2Area */,
-                property: "showInp2" /* ModelPropID.showInp2 */,
-                checkedId: "showInp2Input" /* ViewID.showInp2Input */
-            },
-            inputArea: {
-                id: "inputArea" /* ViewID.inputArea */,
-                property: "showInput" /* ModelPropID.showInput */,
-                checkedId: "showInputInput" /* ViewID.showInputInput */
-            },
-            kbdArea: {
-                id: "kbdArea" /* ViewID.kbdArea */,
-                property: "showKbd" /* ModelPropID.showKbd */,
-                checkedId: "showKbdInput" /* ViewID.showKbdInput */,
-                display: "flex"
-            },
-            moreArea: {
-                id: "moreArea" /* ViewID.moreArea */,
-                property: "showMore" /* ModelPropID.showMore */,
-                display: "flex",
-                isPopover: true
-            },
-            outputArea: {
-                id: "outputArea" /* ViewID.outputArea */,
-                property: "showOutput" /* ModelPropID.showOutput */,
-                checkedId: "showOutputInput" /* ViewID.showOutputInput */
-            },
-            resultArea: {
-                id: "resultArea" /* ViewID.resultArea */,
-                property: "showResult" /* ModelPropID.showResult */,
-                checkedId: "showResultInput" /* ViewID.showResultInput */
-            },
-            settingsArea: {
-                id: "settingsArea" /* ViewID.settingsArea */,
-                property: "showSettings" /* ModelPropID.showSettings */,
-                display: "flex",
-                isPopover: true
-            },
-            variableArea: {
-                id: "variableArea" /* ViewID.variableArea */,
-                property: "showVariable" /* ModelPropID.showVariable */,
-                checkedId: "showVariableInput" /* ViewID.showVariableInput */
-            },
-            viewArea: {
-                id: "viewArea" /* ViewID.viewArea */,
-                property: "showView" /* ModelPropID.showView */,
-                display: "flex",
-                isPopover: true
-            }
         };
         Controller.codeGenJsBasicParserOptions = {
             keepBrackets: false,

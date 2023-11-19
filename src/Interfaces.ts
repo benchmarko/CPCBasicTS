@@ -133,7 +133,7 @@ export interface ICpcVmRsx {
 }
 
 export interface IController {
-    toggleAreaHidden: (id: ViewID) => boolean,
+    //toggleAreaHidden: (id: ViewID) => boolean,
     startParse: () => void
     startRenum: () => void
 
@@ -182,7 +182,7 @@ export interface IController {
     fnTrace: () => void
     fnSpeed: () => void
 
-    setPopoversHiddenExcept: (except?: ViewID) => void
+    //setPopoversHiddenExcept: (except?: ViewID) => void
  }
 
 //

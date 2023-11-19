@@ -97,7 +97,7 @@ export declare const enum ViewID {
     prettySpaceInput = "prettySpaceInput",
     redoButton = "redoButton",
     reloadButton = "reloadButton",
-    reloadButton2 = "reloadButton2",
+    reload2Button = "reload2Button",
     renumButton = "renumButton",
     renumKeepInput = "renumKeepInput",
     renumNewInput = "renumNewInput",

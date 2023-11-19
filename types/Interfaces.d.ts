@@ -110,7 +110,6 @@ export interface ICpcVmRsx {
     getRsxCommands: () => Record<string, RsxCommandType>;
 }
 export interface IController {
-    toggleAreaHidden: (id: ViewID) => boolean;
     startParse: () => void;
     startRenum: () => void;
     startRun: () => void;
@@ -149,7 +148,6 @@ export interface IController {
     fnArrayBounds: () => void;
     fnTrace: () => void;
     fnSpeed: () => void;
-    setPopoversHiddenExcept: (except?: ViewID) => void;
 }
 export {};
 //# sourceMappingURL=Interfaces.d.ts.map

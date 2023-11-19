@@ -110,7 +110,7 @@ declare module "Constants" {
         prettySpaceInput = "prettySpaceInput",
         redoButton = "redoButton",
         reloadButton = "reloadButton",
-        reloadButton2 = "reloadButton2",
+        reload2Button = "reload2Button",
         renumButton = "renumButton",
         renumKeepInput = "renumKeepInput",
         renumNewInput = "renumNewInput",
@@ -297,7 +297,6 @@ declare module "Interfaces" {
         getRsxCommands: () => Record<string, RsxCommandType>;
     }
     export interface IController {
-        toggleAreaHidden: (id: ViewID) => boolean;
         startParse: () => void;
         startRenum: () => void;
         startRun: () => void;
@@ -336,7 +335,6 @@ declare module "Interfaces" {
         fnArrayBounds: () => void;
         fnTrace: () => void;
         fnSpeed: () => void;
-        setPopoversHiddenExcept: (except?: ViewID) => void;
     }
 }
 declare module "cpcCharset" {
@@ -1438,6 +1436,7 @@ declare module "NodeAdapt" {
     }
 }
 declare module "CommonEventHandler" {
+    import { ModelPropID, ViewID } from "Constants";
     import { IController } from "Interfaces";
     import { Model } from "Model";
     import { View } from "View";
@@ -1446,6 +1445,16 @@ declare module "CommonEventHandler" {
         view: View;
         controller: IController;
     }
+    export type EventDefType = {
+        id: ViewID;
+        viewType?: string;
+        toggleId?: ViewID;
+        property?: ModelPropID;
+        display?: string;
+        isPopover?: boolean;
+        func?: Function;
+        controllerFunc?: Function;
+    };
     export class CommonEventHandler implements EventListenerObject {
         private readonly options;
         private readonly model;
@@ -1457,6 +1466,17 @@ declare module "CommonEventHandler" {
         getOptions(): CommonEventHandlerOptions;
         private setOptions;
         fnSetUserAction(fnAction: ((event: Event, id: string) => void) | undefined): void;
+        private initOneToggle;
+        initToggles(): void;
+        private static getToggleId;
+        private static getproperty;
+        setPopoversHiddenExcept(exceptId?: ViewID): void;
+        private toggleAreaHidden;
+        getEventDefById(type: string, id: ViewID): EventDefType;
+        toggleAreaHiddenById(type: string, id: ViewID): boolean;
+        private onCheckedChange;
+        private onNumberInputChange;
+        private onSelectChange;
         private onGalleryButtonClick;
         private fnUpdateAreaText;
         private onUndoButtonClick;
@@ -1469,23 +1489,19 @@ declare module "CommonEventHandler" {
         private static encodeUriParam;
         private onReloadButtonClick;
         onVarSelectChange(): void;
-        onKbdLayoutSelectChange(): void;
+        onKbdLayoutSelectChange(eventDef: EventDefType): void;
         private onBasicVersionSelectChange;
         private onPaletteSelectChange;
         private onCanvasTypeSelectChange;
         private onDebugInputChange;
-        private onImplicitLinesInputChange;
-        private onArrayBoundsInputChange;
         private onShowCpcInputChange;
         private onShowKbdInputChange;
         private onDisassInputChange;
-        private onTraceInputChange;
-        private onAutorunInputChange;
         private onSoundInputChange;
-        private onSpeedInputChange;
         private onScreenshotButtonClick;
         private onClearInputButtonClick;
         private static onFullscreenButtonClick;
+        private onCpcCanvasClick;
         private createEventDefMap;
         handleEvent(event: Event): void;
     }
@@ -2319,7 +2335,6 @@ declare module "NoCanvas" {
     }
 }
 declare module "Controller" {
-    import { ViewID } from "Constants";
     import { IController, ICanvas, VariableValue, ICpcVmRsx } from "Interfaces";
     import { VirtualKeyboard } from "VirtualKeyboard";
     import { Model } from "Model";
@@ -2364,12 +2379,10 @@ declare module "Controller" {
         private fileSelect?;
         private hasStorageDatabase;
         private z80Disass?;
-        private static areaDefinitions;
         constructor(model: Model, view: View);
         private static readonly codeGenJsBasicParserOptions;
         private static readonly codeGenTokenBasicParserOptions;
         private static readonly formatterBasicParserOptions;
-        private initAreas;
         private initDatabases;
         private onUserAction;
         addIndex(dir: string, input: string): void;
@@ -2470,8 +2483,6 @@ declare module "Controller" {
         private fnPutKeysInBuffer;
         startEnter(): void;
         private static generateFunction;
-        setPopoversHiddenExcept(exceptId?: ViewID): void;
-        toggleAreaHidden(id: ViewID): boolean;
         changeVariable(): void;
         setBasicVersion(basicVersion: string): void;
         setPalette(palette: string): void;

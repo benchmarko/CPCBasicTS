@@ -26,8 +26,124 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         CommonEventHandler.prototype.fnSetUserAction = function (fnAction) {
             this.fnUserAction = fnAction;
         };
-        CommonEventHandler.prototype.onGalleryButtonClick = function () {
-            if (this.controller.toggleAreaHidden("galleryArea" /* ViewID.galleryArea */)) {
+        CommonEventHandler.prototype.initOneToggle = function (_type, id, eventDef) {
+            if (eventDef.property) {
+                if (eventDef.toggleId) {
+                    var isEnabled = this.model.getProperty(eventDef.property);
+                    this.view.setHidden(eventDef.toggleId, !isEnabled, eventDef.display);
+                    if (Utils_1.Utils.debug > 3) {
+                        Utils_1.Utils.console.debug("initToggles: setHidden: togglId:", eventDef.toggleId, ", property:", eventDef.property, ", hidden:", !isEnabled, ", display:", eventDef.display);
+                    }
+                }
+                if (eventDef.viewType === "checked") {
+                    var isEnabled2 = this.model.getProperty(eventDef.property);
+                    this.view.setInputChecked(id, isEnabled2);
+                    if (Utils_1.Utils.debug > 3) {
+                        Utils_1.Utils.console.debug("initToggles: checked: id:", id, ", property:", eventDef.property, ", checked:", isEnabled2);
+                    }
+                }
+                else if (eventDef.viewType === "select") {
+                    var value = this.model.getProperty(eventDef.property);
+                    this.view.setSelectValue(id, value);
+                    if (Utils_1.Utils.debug > 3) {
+                        Utils_1.Utils.console.debug("initToggles: select: id:", id, ", property:", eventDef.property, ", value:", value);
+                    }
+                }
+                else if (eventDef.viewType === "numberInput") {
+                    var value = this.model.getProperty(eventDef.property);
+                    this.view.setInputValue(id, String(value));
+                    if (Utils_1.Utils.debug > 3) {
+                        Utils_1.Utils.console.debug("initToggles: numberInput: id:", id, ", property:", eventDef.property, ", value:", value);
+                    }
+                }
+            }
+        };
+        CommonEventHandler.prototype.initToggles = function () {
+            var eventDefInternalMap = this.eventDefInternalMap;
+            for (var type in eventDefInternalMap) {
+                if (eventDefInternalMap.hasOwnProperty(type)) {
+                    var eventDefMap4Type = eventDefInternalMap[type];
+                    for (var id in eventDefMap4Type) {
+                        if (eventDefMap4Type.hasOwnProperty(id)) {
+                            var eventDef = eventDefMap4Type[id];
+                            this.initOneToggle(type, id, eventDef);
+                        }
+                    }
+                }
+            }
+        };
+        CommonEventHandler.getToggleId = function (eventDef) {
+            if (!eventDef.toggleId) {
+                Utils_1.Utils.console.error("getToggleId: id=" + eventDef.id + ": toggleId missing!");
+                return ""; //TTT
+            }
+            return eventDef.toggleId;
+        };
+        CommonEventHandler.getproperty = function (eventDef) {
+            if (!eventDef.property) {
+                Utils_1.Utils.console.error("setPopoversHiddenExcept: id=" + eventDef.id + ": property missing!");
+                return ""; //TTT
+            }
+            return eventDef.property;
+        };
+        CommonEventHandler.prototype.setPopoversHiddenExcept = function (exceptId) {
+            var eventDefInternalMap = this.eventDefInternalMap, eventDefMapClick = eventDefInternalMap.click;
+            for (var id in eventDefMapClick) {
+                if (eventDefMapClick.hasOwnProperty(id)) {
+                    var eventDef = eventDefMapClick[id];
+                    if (eventDef.isPopover && (eventDef.toggleId !== exceptId)) {
+                        var toggleId = CommonEventHandler.getToggleId(eventDef), property = CommonEventHandler.getproperty(eventDef);
+                        if (!this.view.getHidden(toggleId)) {
+                            // we cannot use toggleAreaHidden because it would be recursive
+                            this.model.setProperty(property, false);
+                            this.view.setHidden(toggleId, true, eventDef.display);
+                        }
+                    }
+                }
+            }
+        };
+        CommonEventHandler.prototype.toggleAreaHidden = function (eventDef) {
+            var toggleId = CommonEventHandler.getToggleId(eventDef), property = CommonEventHandler.getproperty(eventDef), visible = !this.model.getProperty(property);
+            this.model.setProperty(property, visible);
+            this.view.setHidden(toggleId, !visible, eventDef.display);
+            // on old browsers display "flex" is not available, so set default "" (="block"), if still hidden
+            if (visible && eventDef.display === "flex" && this.view.getHidden(toggleId)) {
+                this.view.setHidden(toggleId, !visible);
+            }
+            if (visible && eventDef.isPopover) {
+                this.setPopoversHiddenExcept(toggleId);
+            }
+            return visible;
+        };
+        // maybe we can avoid this...
+        CommonEventHandler.prototype.getEventDefById = function (type, id) {
+            var eventDefForType = this.eventDefInternalMap[type], eventDef = eventDefForType[id];
+            if (!eventDef) {
+                Utils_1.Utils.console.error("getEventDefById: type=" + type + ", id=" + id + ": No eventDef!");
+            }
+            return eventDef;
+        };
+        CommonEventHandler.prototype.toggleAreaHiddenById = function (type, id) {
+            var eventDef = this.getEventDefById(type, id);
+            return this.toggleAreaHidden(eventDef);
+        };
+        CommonEventHandler.prototype.onCheckedChange = function (eventDef) {
+            var id = eventDef.id, property = CommonEventHandler.getproperty(eventDef), checked = this.view.getInputChecked(id);
+            this.model.setProperty(property, checked);
+        };
+        CommonEventHandler.prototype.onNumberInputChange = function (eventDef) {
+            var id = eventDef.id, property = CommonEventHandler.getproperty(eventDef), valueAsString = this.view.getInputValue(id), value = Number(valueAsString);
+            this.model.setProperty(property, value);
+            return value;
+        };
+        CommonEventHandler.prototype.onSelectChange = function (eventDef) {
+            var id = eventDef.id, property = CommonEventHandler.getproperty(eventDef), value = this.view.getSelectValue(id);
+            this.model.setProperty(property, value);
+            this.view.setSelectTitleFromSelectedOption(id);
+            return value;
+        };
+        CommonEventHandler.prototype.onGalleryButtonClick = function (eventDef) {
+            if (this.toggleAreaHidden(eventDef)) {
                 this.controller.setGalleryAreaInputs();
             }
         };
@@ -43,21 +159,21 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             var input = this.controller.redoStackElement();
             this.fnUpdateAreaText(input);
         };
-        CommonEventHandler.prototype.onContinueButtonClick = function (event) {
+        CommonEventHandler.prototype.onContinueButtonClick = function (eventDef, event) {
             this.controller.startContinue();
-            this.controller.onCpcCanvasClick(event);
+            this.onCpcCanvasClick(eventDef, event);
         };
-        CommonEventHandler.prototype.onParseRunButtonClick = function (event) {
+        CommonEventHandler.prototype.onParseRunButtonClick = function (eventDef, event) {
             this.controller.startParseRun();
-            this.controller.onCpcCanvasClick(event);
+            this.onCpcCanvasClick(eventDef, event);
         };
         CommonEventHandler.onHelpButtonClick = function () {
             window.open("https://github.com/benchmarko/CPCBasicTS/#readme");
         };
-        CommonEventHandler.prototype.onGalleryItemClick = function (event) {
+        CommonEventHandler.prototype.onGalleryItemClick = function (_eventDef, event) {
             var target = View_1.View.getEventTarget(event), value = target.value;
             this.view.setSelectValue("exampleSelect" /* ViewID.exampleSelect */, value);
-            this.controller.toggleAreaHidden("galleryArea" /* ViewID.galleryArea */); // close
+            this.setPopoversHiddenExcept(); // close
             this.controller.onExampleSelectChange();
         };
         // eslint-disable-next-line class-methods-use-this
@@ -83,7 +199,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             return parts.join("&");
         };
         CommonEventHandler.prototype.onReloadButtonClick = function () {
-            this.controller.setPopoversHiddenExcept(); // hide all popovers,
+            this.setPopoversHiddenExcept(); // hide all popovers,
             var changed = this.model.getChangedProperties();
             var paras = CommonEventHandler.encodeUriParam(changed);
             paras = paras.replace(/%2[Ff]/g, "/"); // unescape %2F -> /
@@ -93,56 +209,37 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             var par = this.view.getSelectValue("varSelect" /* ViewID.varSelect */), value = this.controller.getVariable(par), valueString = (value !== undefined) ? String(value) : "";
             this.view.setAreaValue("varText" /* ViewID.varText */, valueString);
         };
-        CommonEventHandler.prototype.onKbdLayoutSelectChange = function () {
-            var value = this.view.getSelectValue("kbdLayoutSelect" /* ViewID.kbdLayoutSelect */);
-            this.model.setProperty("kbdLayout" /* ModelPropID.kbdLayout */, value);
-            this.view.setSelectTitleFromSelectedOption("kbdLayoutSelect" /* ViewID.kbdLayoutSelect */);
+        CommonEventHandler.prototype.onKbdLayoutSelectChange = function (eventDef) {
+            var value = this.onSelectChange(eventDef);
             this.view.setHidden("kbdAlpha" /* ViewID.kbdAlpha */, value === "num");
             this.view.setHidden("kbdNum" /* ViewID.kbdNum */, value === "alpha");
         };
-        CommonEventHandler.prototype.onBasicVersionSelectChange = function () {
-            var value = this.view.getSelectValue("basicVersionSelect" /* ViewID.basicVersionSelect */);
-            this.model.setProperty("basicVersion" /* ModelPropID.basicVersion */, value);
-            this.view.setSelectTitleFromSelectedOption("basicVersionSelect" /* ViewID.basicVersionSelect */);
+        CommonEventHandler.prototype.onBasicVersionSelectChange = function (eventDef) {
+            var value = this.onSelectChange(eventDef);
             this.controller.setBasicVersion(value);
         };
-        CommonEventHandler.prototype.onPaletteSelectChange = function () {
-            var value = this.view.getSelectValue("paletteSelect" /* ViewID.paletteSelect */);
-            this.model.setProperty("palette" /* ModelPropID.palette */, value);
-            this.view.setSelectTitleFromSelectedOption("paletteSelect" /* ViewID.paletteSelect */);
+        CommonEventHandler.prototype.onPaletteSelectChange = function (eventDef) {
+            var value = this.onSelectChange(eventDef);
             this.controller.setPalette(value);
         };
-        CommonEventHandler.prototype.onCanvasTypeSelectChange = function () {
-            var value = this.view.getSelectValue("canvasTypeSelect" /* ViewID.canvasTypeSelect */);
-            this.model.setProperty("canvasType" /* ModelPropID.canvasType */, value);
-            this.view.setSelectTitleFromSelectedOption("canvasTypeSelect" /* ViewID.canvasTypeSelect */);
+        CommonEventHandler.prototype.onCanvasTypeSelectChange = function (eventDef) {
+            var value = this.onSelectChange(eventDef);
             this.controller.setCanvasType(value);
         };
-        CommonEventHandler.prototype.onDebugInputChange = function () {
-            var debug = this.view.getInputValue("debugInput" /* ViewID.debugInput */);
-            this.model.setProperty("debug" /* ModelPropID.debug */, Number(debug));
-            Utils_1.Utils.debug = Number(debug);
+        CommonEventHandler.prototype.onDebugInputChange = function (eventDef) {
+            var value = this.onNumberInputChange(eventDef);
+            Utils_1.Utils.debug = value;
         };
-        CommonEventHandler.prototype.onImplicitLinesInputChange = function () {
-            var checked = this.view.getInputChecked("implicitLinesInput" /* ViewID.implicitLinesInput */);
-            this.model.setProperty("implicitLines" /* ModelPropID.implicitLines */, checked);
-            this.controller.fnImplicitLines();
-        };
-        CommonEventHandler.prototype.onArrayBoundsInputChange = function () {
-            var checked = this.view.getInputChecked("arrayBoundsInput" /* ViewID.arrayBoundsInput */);
-            this.model.setProperty("arrayBounds" /* ModelPropID.arrayBounds */, checked);
-            this.controller.fnArrayBounds();
-        };
-        CommonEventHandler.prototype.onShowCpcInputChange = function () {
-            if (this.controller.toggleAreaHidden("cpcArea" /* ViewID.cpcArea */)) {
+        CommonEventHandler.prototype.onShowCpcInputChange = function (eventDef) {
+            if (this.toggleAreaHidden(eventDef)) {
                 this.controller.startUpdateCanvas();
             }
             else {
                 this.controller.stopUpdateCanvas();
             }
         };
-        CommonEventHandler.prototype.onShowKbdInputChange = function () {
-            if (this.controller.toggleAreaHidden("kbdArea" /* ViewID.kbdArea */)) {
+        CommonEventHandler.prototype.onShowKbdInputChange = function (eventDef) {
+            if (this.toggleAreaHidden(eventDef)) {
                 this.controller.getVirtualKeyboard(); // maybe draw it
             }
         };
@@ -150,24 +247,9 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             var addressStr = this.view.getInputValue("disassInput" /* ViewID.disassInput */), addr = parseInt(addressStr, 16); // parse as hex
             this.controller.setDisassAddr(addr);
         };
-        CommonEventHandler.prototype.onTraceInputChange = function () {
-            var checked = this.view.getInputChecked("traceInput" /* ViewID.traceInput */);
-            this.model.setProperty("trace" /* ModelPropID.trace */, checked);
-            this.controller.fnTrace();
-        };
-        CommonEventHandler.prototype.onAutorunInputChange = function () {
-            var checked = this.view.getInputChecked("autorunInput" /* ViewID.autorunInput */);
-            this.model.setProperty("autorun" /* ModelPropID.autorun */, checked);
-        };
-        CommonEventHandler.prototype.onSoundInputChange = function () {
-            var checked = this.view.getInputChecked("soundInput" /* ViewID.soundInput */);
-            this.model.setProperty("sound" /* ModelPropID.sound */, checked);
+        CommonEventHandler.prototype.onSoundInputChange = function (eventDef) {
+            this.onCheckedChange(eventDef);
             this.controller.setSoundActive();
-        };
-        CommonEventHandler.prototype.onSpeedInputChange = function () {
-            var speed = this.view.getInputValue("speedInput" /* ViewID.speedInput */);
-            this.model.setProperty("speed" /* ModelPropID.speed */, Number(speed));
-            this.controller.fnSpeed();
         };
         CommonEventHandler.prototype.onScreenshotButtonClick = function () {
             var example = this.view.getSelectValue("exampleSelect" /* ViewID.exampleSelect */), image = this.controller.startScreenshot(), link = View_1.View.getElementById1("screenshotLink" /* ViewID.screenshotLink */), name = example + ".png";
@@ -186,6 +268,10 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 Utils_1.Utils.console.warn("Switch to fullscreen not available");
             }
         };
+        CommonEventHandler.prototype.onCpcCanvasClick = function (_eventDef, event) {
+            this.setPopoversHiddenExcept(); // hide all popovers
+            this.controller.onCpcCanvasClick(event);
+        };
         CommonEventHandler.prototype.createEventDefMap = function () {
             var eventDefInternalMap = this.eventDefInternalMap, eventDefs = {
                 click: [
@@ -199,11 +285,15 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                     },
                     {
                         id: "convertButton" /* ViewID.convertButton */,
-                        toggleId: "convertArea" /* ViewID.convertArea */
+                        toggleId: "convertArea" /* ViewID.convertArea */,
+                        property: "showConvert" /* ModelPropID.showConvert */,
+                        display: "flex",
+                        isPopover: true,
+                        func: this.toggleAreaHidden
                     },
                     {
                         id: "cpcCanvas" /* ViewID.cpcCanvas */,
-                        controllerFunc: this.controller.onCpcCanvasClick
+                        func: this.onCpcCanvasClick
                     },
                     {
                         id: "copyTextButton" /* ViewID.copyTextButton */,
@@ -219,7 +309,11 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                     },
                     {
                         id: "exportButton" /* ViewID.exportButton */,
-                        toggleId: "exportArea" /* ViewID.exportArea */
+                        toggleId: "exportArea" /* ViewID.exportArea */,
+                        property: "showExport" /* ModelPropID.showExport */,
+                        display: "flex",
+                        isPopover: true,
+                        func: this.toggleAreaHidden
                     },
                     {
                         id: "fullscreenButton" /* ViewID.fullscreenButton */,
@@ -227,6 +321,10 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                     },
                     {
                         id: "galleryButton" /* ViewID.galleryButton */,
+                        toggleId: "galleryArea" /* ViewID.galleryArea */,
+                        property: "showGallery" /* ModelPropID.showGallery */,
+                        display: "flex",
+                        isPopover: true,
                         func: this.onGalleryButtonClick
                     },
                     {
@@ -247,7 +345,11 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                     },
                     {
                         id: "moreButton" /* ViewID.moreButton */,
-                        toggleId: "moreArea" /* ViewID.moreArea */
+                        toggleId: "moreArea" /* ViewID.moreArea */,
+                        property: "showMore" /* ModelPropID.showMore */,
+                        display: "flex",
+                        isPopover: true,
+                        func: this.toggleAreaHidden
                     },
                     {
                         id: "parseButton" /* ViewID.parseButton */,
@@ -270,7 +372,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                         func: this.onReloadButtonClick
                     },
                     {
-                        id: "reloadButton2" /* ViewID.reloadButton2 */,
+                        id: "reload2Button" /* ViewID.reload2Button */,
                         func: this.onReloadButtonClick // same as relaodButton
                     },
                     {
@@ -294,7 +396,11 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                     },
                     {
                         id: "settingsButton" /* ViewID.settingsButton */,
-                        toggleId: "settingsArea" /* ViewID.settingsArea */
+                        toggleId: "settingsArea" /* ViewID.settingsArea */,
+                        property: "showSettings" /* ModelPropID.showSettings */,
+                        display: "flex",
+                        isPopover: true,
+                        func: this.toggleAreaHidden
                     },
                     {
                         id: "stopButton" /* ViewID.stopButton */,
@@ -302,7 +408,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                     },
                     {
                         id: "textText" /* ViewID.textText */,
-                        controllerFunc: this.controller.onCpcCanvasClick // same as for cpcCanvas
+                        func: this.onCpcCanvasClick // same as for cpcCanvas
                     },
                     {
                         id: "undoButton" /* ViewID.undoButton */,
@@ -310,7 +416,11 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                     },
                     {
                         id: "viewButton" /* ViewID.viewButton */,
-                        toggleId: "viewArea" /* ViewID.viewArea */
+                        toggleId: "viewArea" /* ViewID.viewArea */,
+                        property: "showView" /* ModelPropID.showView */,
+                        display: "flex",
+                        isPopover: true,
+                        func: this.toggleAreaHidden
                     },
                     {
                         id: "window" /* ViewID.window */,
@@ -320,18 +430,28 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 change: [
                     {
                         id: "arrayBoundsInput" /* ViewID.arrayBoundsInput */,
-                        func: this.onArrayBoundsInputChange
+                        viewType: "checked",
+                        property: "arrayBounds" /* ModelPropID.arrayBounds */,
+                        func: this.onCheckedChange,
+                        controllerFunc: this.controller.fnArrayBounds
                     },
                     {
                         id: "autorunInput" /* ViewID.autorunInput */,
-                        func: this.onAutorunInputChange
+                        viewType: "checked",
+                        property: "autorun" /* ModelPropID.autorun */,
+                        func: this.onCheckedChange
                     },
                     {
                         id: "basicVersionSelect" /* ViewID.basicVersionSelect */,
+                        viewType: "select",
+                        property: "basicVersion" /* ModelPropID.basicVersion */,
                         func: this.onBasicVersionSelectChange
+                        //controllerFunc: this.controller.setBasicVersion(value) // needs value
                     },
                     {
                         id: "canvasTypeSelect" /* ViewID.canvasTypeSelect */,
+                        viewType: "select",
+                        property: "canvasType" /* ModelPropID.canvasType */,
                         func: this.onCanvasTypeSelectChange
                     },
                     {
@@ -340,6 +460,8 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                     },
                     {
                         id: "debugInput" /* ViewID.debugInput */,
+                        viewType: "numberInput",
+                        property: "debug" /* ModelPropID.debug */,
                         func: this.onDebugInputChange
                     },
                     {
@@ -356,10 +478,15 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                     },
                     {
                         id: "implicitLinesInput" /* ViewID.implicitLinesInput */,
-                        func: this.onImplicitLinesInputChange
+                        viewType: "checked",
+                        property: "implicitLines" /* ModelPropID.implicitLines */,
+                        func: this.onCheckedChange,
+                        controllerFunc: this.controller.fnImplicitLines
                     },
                     {
                         id: "kbdLayoutSelect" /* ViewID.kbdLayoutSelect */,
+                        viewType: "select",
+                        property: "kbdLayout" /* ModelPropID.kbdLayout */,
                         func: this.onKbdLayoutSelectChange
                     },
                     {
@@ -368,55 +495,93 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                     },
                     {
                         id: "paletteSelect" /* ViewID.paletteSelect */,
+                        viewType: "select",
+                        property: "palette" /* ModelPropID.palette */,
                         func: this.onPaletteSelectChange
                     },
                     {
                         id: "showConsoleLogInput" /* ViewID.showConsoleLogInput */,
-                        toggleId: "consoleLogArea" /* ViewID.consoleLogArea */
+                        viewType: "checked",
+                        toggleId: "consoleLogArea" /* ViewID.consoleLogArea */,
+                        property: "showConsoleLog" /* ModelPropID.showConsoleLog */,
+                        func: this.toggleAreaHidden
                     },
                     {
                         id: "showCpcInput" /* ViewID.showCpcInput */,
+                        viewType: "checked",
+                        toggleId: "cpcArea" /* ViewID.cpcArea */,
+                        property: "showCpc" /* ModelPropID.showCpc */,
                         func: this.onShowCpcInputChange
                     },
                     {
                         id: "showDisassInput" /* ViewID.showDisassInput */,
-                        toggleId: "disassArea" /* ViewID.disassArea */
+                        viewType: "checked",
+                        toggleId: "disassArea" /* ViewID.disassArea */,
+                        property: "showDisass" /* ModelPropID.showDisass */,
+                        func: this.toggleAreaHidden
                     },
                     {
                         id: "showInp2Input" /* ViewID.showInp2Input */,
-                        toggleId: "inp2Area" /* ViewID.inp2Area */
+                        viewType: "checked",
+                        toggleId: "inp2Area" /* ViewID.inp2Area */,
+                        property: "showInp2" /* ModelPropID.showInp2 */,
+                        func: this.toggleAreaHidden
                     },
                     {
                         id: "showInputInput" /* ViewID.showInputInput */,
-                        toggleId: "inputArea" /* ViewID.inputArea */
+                        viewType: "checked",
+                        toggleId: "inputArea" /* ViewID.inputArea */,
+                        property: "showInput" /* ModelPropID.showInput */,
+                        func: this.toggleAreaHidden
                     },
                     {
                         id: "showKbdInput" /* ViewID.showKbdInput */,
+                        viewType: "checked",
+                        toggleId: "kbdArea" /* ViewID.kbdArea */,
+                        property: "showKbd" /* ModelPropID.showKbd */,
+                        display: "flex",
                         func: this.onShowKbdInputChange
                     },
                     {
                         id: "showOutputInput" /* ViewID.showOutputInput */,
-                        toggleId: "outputArea" /* ViewID.outputArea */
+                        viewType: "checked",
+                        toggleId: "outputArea" /* ViewID.outputArea */,
+                        property: "showOutput" /* ModelPropID.showOutput */,
+                        func: this.toggleAreaHidden
                     },
                     {
                         id: "showResultInput" /* ViewID.showResultInput */,
-                        toggleId: "resultArea" /* ViewID.resultArea */
+                        viewType: "checked",
+                        toggleId: "resultArea" /* ViewID.resultArea */,
+                        property: "showResult" /* ModelPropID.showResult */,
+                        func: this.toggleAreaHidden
                     },
                     {
                         id: "showVariableInput" /* ViewID.showVariableInput */,
-                        toggleId: "variableArea" /* ViewID.variableArea */
+                        viewType: "checked",
+                        toggleId: "variableArea" /* ViewID.variableArea */,
+                        property: "showVariable" /* ModelPropID.showVariable */,
+                        func: this.toggleAreaHidden
                     },
                     {
                         id: "soundInput" /* ViewID.soundInput */,
+                        viewType: "checked",
+                        property: "sound" /* ModelPropID.sound */,
                         func: this.onSoundInputChange
                     },
                     {
                         id: "speedInput" /* ViewID.speedInput */,
-                        func: this.onSpeedInputChange
+                        viewType: "numberInput",
+                        property: "speed" /* ModelPropID.speed */,
+                        func: this.onNumberInputChange,
+                        controllerFunc: this.controller.fnSpeed
                     },
                     {
                         id: "traceInput" /* ViewID.traceInput */,
-                        func: this.onTraceInputChange
+                        viewType: "checked",
+                        property: "trace" /* ModelPropID.trace */,
+                        func: this.onCheckedChange,
+                        controllerFunc: this.controller.fnTrace
                     },
                     {
                         id: "varSelect" /* ViewID.varSelect */,
@@ -457,13 +622,10 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                         Utils_1.Utils.console.debug("handleEvent: " + type + ", " + id + ":", eventDef);
                     }
                     if (eventDef.func) {
-                        eventDef.func.call(this, event, eventDef);
+                        eventDef.func.call(this, eventDef, event);
                     }
-                    else if (eventDef.controllerFunc) {
-                        eventDef.controllerFunc.call(this.controller, event, eventDef);
-                    }
-                    else if (eventDef.toggleId) {
-                        this.controller.toggleAreaHidden(eventDef.toggleId);
+                    if (eventDef.controllerFunc) {
+                        eventDef.controllerFunc.call(this.controller, eventDef, event);
                     }
                 }
                 else if (!id.endsWith("Select") && !id.endsWith("Input")) { // do not print all messages; these are usually handled by change
