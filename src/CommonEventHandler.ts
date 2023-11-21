@@ -221,6 +221,12 @@ export class CommonEventHandler implements EventListenerObject {
 	}
 
 
+	private onExportButtonClick(eventDef: EventDefType) {
+		if (this.toggleAreaHidden(eventDef)) {
+			this.controller.setExportSelectOptions(ViewID.exportFileSelect);
+		}
+	}
+
 	private onGalleryButtonClick(eventDef: EventDefType) {
 		if (this.toggleAreaHidden(eventDef)) {
 			this.controller.setGalleryAreaInputs();
@@ -443,7 +449,7 @@ export class CommonEventHandler implements EventListenerObject {
 						property: ModelPropID.showExport,
 						display: "flex",
 						isPopover: true,
-						func: this.toggleAreaHidden
+						func: this.onExportButtonClick
 					},
 					{
 						id: ViewID.fullscreenButton,

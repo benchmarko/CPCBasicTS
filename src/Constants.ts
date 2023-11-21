@@ -68,6 +68,7 @@ export const enum ViewID { // eslint-disable-line no-shadow
 	exportButton = "exportButton",
 	exportBase64Input = "exportBase64Input",
 	exportDSKInput = "exportDSKInput",
+	exportFileSelect = "exportFileSelect",
 	exportTokenizedInput = "exportTokenizedInput",
 	fileInput = "fileInput",
 	fullscreenButton = "fullscreenButton",

@@ -675,11 +675,7 @@ export class DiskImage {
 			for (let i = 0; i < 16; i += 1) {
 				const block = this.readUInt8(pos + i);
 
-				if (block) {
-					blocks.push(block);
-				} else { // last block
-					break;
-				}
+				blocks.push(block);
 			}
 			pos += 16;
 			extents.push(extent);
@@ -965,17 +961,19 @@ export class DiskImage {
 			mask >>= 1; // eslint-disable-line no-bitwise
 		}
 
-
 		for (let i = 0; i < extents.length; i += 1) {
-			const extent = extents[i];
+			const extent = extents[i],
+				blockList = extent.blocks;
 
 			if (extent.user !== fill) {
-				for (let block = 0; block < extent.blocks.length; block += 1) {
-					if (extent.blocks[block]) {
+				for (let blockindex = 0; blockindex < blockList.length; blockindex += 1) {
+					const block = blockList[blockindex];
+
+					if (block) {
 						if (blockMask[block]) { // eslint-disable-line max-depth
-							Utils.console.warn("getBlockMask: Block number $block already in use:", block);
+							Utils.console.warn("getBlockMask: Block number already in use: ", block);
 						}
-						blockMask[i] = true;
+						blockMask[block] = true;
 					} else {
 						break; // block=0 -> no more for this extent
 					}
@@ -1029,11 +1027,11 @@ export class DiskImage {
 		}
 
 		if (!freeBlocks.length) {
-			Utils.console.warn("writeFile: No space left!");
+			Utils.console.warn("writeFile: " + filename + ": No space left!");
 			return false;
 		}
 		if (!freeExtents.length) {
-			Utils.console.warn("writeFile: Directory full!");
+			Utils.console.warn("writeFile: " + filename + ": Directory full!");
 			return false;
 		}
 
@@ -1046,7 +1044,7 @@ export class DiskImage {
 			const requiredKB = ((requiredBlocks * bls) / 1024) | 0, // eslint-disable-line no-bitwise
 				freeKB = ((freeBlocks.length * bls) / 1024) | 0; // eslint-disable-line no-bitwise
 
-			Utils.console.warn("writeFile: Not enough space left (" + requiredKB + "K > " + freeKB + "K). Ignoring.");
+			Utils.console.warn("writeFile: " + filename + ": Not enough space left (" + requiredKB + "K > " + freeKB + "K). Ignoring.");
 			return false;
 		}
 
@@ -1054,7 +1052,7 @@ export class DiskImage {
 			requiredExtents = ((requiredBlocks + blocksPerExtent - 1) / blocksPerExtent) | 0; // eslint-disable-line no-bitwise
 
 		if (requiredExtents > freeExtents.length) {
-			Utils.console.warn("writeFile: Directory full!");
+			Utils.console.warn("writeFile: " + filename + ": Directory full!");
 			return false;
 		}
 
