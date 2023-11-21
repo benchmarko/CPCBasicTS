@@ -62,6 +62,7 @@ export declare const enum ViewID {
     exportButton = "exportButton",
     exportBase64Input = "exportBase64Input",
     exportDSKInput = "exportDSKInput",
+    exportFileSelect = "exportFileSelect",
     exportTokenizedInput = "exportTokenizedInput",
     fileInput = "fileInput",
     fullscreenButton = "fullscreenButton",

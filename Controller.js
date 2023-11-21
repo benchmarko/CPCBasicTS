@@ -277,17 +277,18 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             this.view.setAreaInputList("galleryAreaItems" /* ViewID.galleryAreaItems */, inputs);
         };
+        Controller.fnSortByStringProperties = function (a, b) {
+            var x = a.value, y = b.value;
+            if (x < y) {
+                return -1;
+            }
+            else if (x > y) {
+                return 1;
+            }
+            return 0;
+        };
         Controller.prototype.setVarSelectOptions = function (select, variables) {
-            var maxVarLength = 35, varNames = variables.getAllVariableNames(), items = [], fnSortByStringProperties = function (a, b) {
-                var x = a.value, y = b.value;
-                if (x < y) {
-                    return -1;
-                }
-                else if (x > y) {
-                    return 1;
-                }
-                return 0;
-            };
+            var maxVarLength = 35, varNames = variables.getAllVariableNames(), items = [];
             for (var i = 0; i < varNames.length; i += 1) {
                 var key = varNames[i], value = variables.getVariable(key), title = key + "=" + value;
                 var strippedTitle = title.substring(0, maxVarLength); // limit length
@@ -300,10 +301,25 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     title: strippedTitle,
                     selected: false
                 };
-                item.text = item.title;
+                //item.text = item.title;
                 items.push(item);
             }
-            items.sort(fnSortByStringProperties);
+            items.sort(Controller.fnSortByStringProperties);
+            this.view.setSelectOptions(select, items);
+        };
+        Controller.prototype.setExportSelectOptions = function (select) {
+            var dirList = Controller.fnGetStorageDirectoryEntries(), items = [], editorText = "<editor>";
+            dirList.unshift(editorText);
+            for (var i = 0; i < dirList.length; i += 1) {
+                var key = dirList[i], title = key, item = {
+                    value: key,
+                    text: title,
+                    title: title,
+                    selected: title === editorText
+                };
+                items.push(item);
+            }
+            items.sort(Controller.fnSortByStringProperties);
             this.view.setSelectOptions(select, items);
         };
         Controller.prototype.updateStorageDatabase = function (action, key) {
@@ -321,6 +337,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             var dir;
             if (!key) { // no key => get all
                 dir = Controller.fnGetStorageDirectoryEntries();
+                dir.sort();
             }
             else {
                 dir = [key];
@@ -1502,57 +1519,89 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             return name;
         };
         Controller.prototype.fnDownload = function () {
-            var input = this.view.getAreaValue("inputText" /* ViewID.inputText */), tokens = this.encodeTokenizedBasic(input), exportTokenized = this.view.getInputChecked("exportTokenizedInput" /* ViewID.exportTokenizedInput */), exportDSK = this.view.getInputChecked("exportDSKInput" /* ViewID.exportDSKInput */), exportBase64 = this.view.getInputChecked("exportBase64Input" /* ViewID.exportBase64Input */), meta = {
+            var options = this.view.getSelectOptions("exportFileSelect" /* ViewID.exportFileSelect */), exportTokenized = this.view.getInputChecked("exportTokenizedInput" /* ViewID.exportTokenizedInput */), exportDSK = this.view.getInputChecked("exportDSKInput" /* ViewID.exportDSKInput */), exportBase64 = this.view.getInputChecked("exportBase64Input" /* ViewID.exportBase64Input */), meta = {
                 typeString: "A",
                 start: 0x170,
-                length: input.length,
+                length: 0,
                 entry: 0
             };
-            var name = this.fnGetFilename(input), data = input;
-            if (exportTokenized) {
-                if (tokens !== "") {
-                    var _a = DiskImage_1.DiskImage.getFilenameAndExtension(name), name1 = _a[0], ext1 = _a[1], // eslint-disable-line array-element-newline
-                    header = DiskImage_1.DiskImage.createAmsdosHeader({
-                        name: name1,
-                        ext: ext1,
-                        typeString: "T",
-                        start: 0x170,
-                        length: tokens.length
-                    }), headerString = DiskImage_1.DiskImage.combineAmsdosHeader(header);
-                    data = headerString + tokens;
-                    meta.typeString = "T";
-                }
-            }
-            if (exportDSK) {
-                var fileData = data, diskImage = this.getFileHandler().getDiskImage();
-                diskImage.setOptions({
-                    diskName: "test",
-                    data: diskImage.formatImage("data")
-                });
-                /*
-                new DiskImage({
-                    diskName: "test",
-                    data: "" //TTT change to optional
-                });
-                */
-                //diskImage.formatImage("data");
-                var dir = diskImage.readDirectory(); // is empty
-                Utils_1.Utils.console.log("TEST: exportDSK: no files:" + Object.keys(dir));
-                diskImage.writeFile(name, fileData);
-                var options = diskImage.getOptions();
-                data = options.data; // we need the modified disk image with the file inside
-                name = name.substring(0, name.indexOf(".") + 1) + "dsk";
-                meta.length = data.length;
-                meta.typeString = "X"; // (extended) disk image
-            }
-            if (exportBase64) {
+            var diskImage, name = "", data = "";
+            var fnExportBase64 = function () {
                 meta.encoding = "base64";
                 var metaString = FileHandler_1.FileHandler.joinMeta(meta);
                 data = metaString + "," + Utils_1.Utils.btoa(data);
                 name += ".b64.txt";
+            };
+            if (exportDSK) {
+                diskImage = this.getFileHandler().getDiskImage();
+                diskImage.setOptions({
+                    diskName: "test",
+                    data: diskImage.formatImage("data")
+                });
             }
-            if (data) {
-                View_1.View.fnDownloadBlob(data, name);
+            for (var i = 0; i < options.length; i += 1) {
+                var item = options[i];
+                if (item.selected) {
+                    if (item.value === "<editor>") {
+                        data = this.view.getAreaValue("inputText" /* ViewID.inputText */);
+                        name = this.fnGetFilename(data);
+                        meta.typeString = "A"; // ASCII
+                        meta.start = 0x170;
+                        meta.length = data.length;
+                        meta.entry = 0;
+                    }
+                    else {
+                        name = item.value;
+                        data = Controller.tryLoadingFromLocalStorage(name) || "";
+                        var metaAndData = Controller.splitMeta(data);
+                        Object.assign(meta, metaAndData.meta); // copy meta info
+                        data = metaAndData.data;
+                    }
+                    if (exportTokenized && meta.typeString === "A") { // do we need to tokenize it?
+                        var tokens = this.encodeTokenizedBasic(data);
+                        data = tokens;
+                        meta.typeString = "T";
+                        meta.start = 0x170;
+                        meta.length = data.length;
+                        meta.entry = 0;
+                    }
+                    if (meta.typeString !== "A") {
+                        var _a = DiskImage_1.DiskImage.getFilenameAndExtension(name), name1 = _a[0], ext1 = _a[1], // eslint-disable-line array-element-newline
+                        header = DiskImage_1.DiskImage.createAmsdosHeader({
+                            name: name1,
+                            ext: ext1,
+                            typeString: meta.typeString,
+                            start: meta.start,
+                            length: meta.length,
+                            entry: meta.entry
+                        }), headerString = DiskImage_1.DiskImage.combineAmsdosHeader(header);
+                        data = headerString + data;
+                    }
+                    if (diskImage) {
+                        diskImage.writeFile(name, data);
+                        var diskOptions = diskImage.getOptions();
+                        data = diskOptions.data; // we need the modified disk image with the file(s) inside
+                        name = name.substring(0, name.indexOf(".") + 1) + "dsk";
+                        meta.length = data.length;
+                        meta.typeString = "X"; // (extended) disk image
+                    }
+                    else {
+                        if (exportBase64) {
+                            fnExportBase64();
+                        }
+                        if (data) {
+                            View_1.View.fnDownloadBlob(data, name);
+                        }
+                    }
+                }
+            }
+            if (diskImage) {
+                if (exportBase64) {
+                    fnExportBase64();
+                }
+                if (data) {
+                    View_1.View.fnDownloadBlob(data, name);
+                }
             }
         };
         Controller.prototype.selectJsError = function (script, e) {
@@ -2229,7 +2278,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 Utils_1.Utils.console.error("onDatabaseSelectChange: database not available:", databaseName);
                 return;
             }
-            if (database.text === "storage") { // sepcial handling: browser localStorage
+            if (database.text === "storage") { // special handling: browser localStorage
                 this.updateStorageDatabase("set", ""); // set all
                 database.loaded = true;
             }

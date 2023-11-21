@@ -75,6 +75,7 @@ declare module "Constants" {
         exportButton = "exportButton",
         exportBase64Input = "exportBase64Input",
         exportDSKInput = "exportDSKInput",
+        exportFileSelect = "exportFileSelect",
         exportTokenizedInput = "exportTokenizedInput",
         fileInput = "fileInput",
         fullscreenButton = "fullscreenButton",
@@ -312,6 +313,7 @@ declare module "Interfaces" {
         fnDownload: () => void;
         setInputText: (input: string, keepStack?: boolean) => void;
         setExampleSelectOptions: () => void;
+        setExportSelectOptions: (id: ViewID) => void;
         setGalleryAreaInputs: () => void;
         invalidateScript: () => void;
         setSoundActive: () => void;
@@ -1477,6 +1479,7 @@ declare module "CommonEventHandler" {
         private onCheckedChange;
         private onNumberInputChange;
         private onSelectChange;
+        private onExportButtonClick;
         private onGalleryButtonClick;
         private fnUpdateAreaText;
         private onUndoButtonClick;
@@ -2335,6 +2338,7 @@ declare module "NoCanvas" {
     }
 }
 declare module "Controller" {
+    import { ViewID } from "Constants";
     import { IController, ICanvas, VariableValue, ICpcVmRsx } from "Interfaces";
     import { VirtualKeyboard } from "VirtualKeyboard";
     import { Model } from "Model";
@@ -2394,7 +2398,9 @@ declare module "Controller" {
         private setDirectorySelectOptions;
         setExampleSelectOptions(): void;
         setGalleryAreaInputs(): void;
+        private static fnSortByStringProperties;
         private setVarSelectOptions;
+        setExportSelectOptions(select: ViewID): void;
         private updateStorageDatabase;
         private removeKeyBoardHandler;
         setInputText(input: string, keepStack?: boolean): void;

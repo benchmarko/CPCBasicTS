@@ -428,22 +428,22 @@ export class Controller implements IController {
 		this.view.setAreaInputList(ViewID.galleryAreaItems, inputs);
 	}
 
+	private static fnSortByStringProperties(a: SelectOptionElement, b: SelectOptionElement) {
+		const x = a.value,
+			y = b.value;
+
+		if (x < y) {
+			return -1;
+		} else if (x > y) {
+			return 1;
+		}
+		return 0;
+	}
+
 	private setVarSelectOptions(select: ViewID, variables: Variables) {
 		const maxVarLength = 35,
 			varNames = variables.getAllVariableNames(),
-			items: SelectOptionElement[] = [],
-
-			fnSortByStringProperties = function (a: SelectOptionElement, b: SelectOptionElement) { // can be used without "this" context
-				const x = a.value,
-					y = b.value;
-
-				if (x < y) {
-					return -1;
-				} else if (x > y) {
-					return 1;
-				}
-				return 0;
-			};
+			items: SelectOptionElement[] = [];
 
 		for (let i = 0; i < varNames.length; i += 1) {
 			const key = varNames[i],
@@ -463,10 +463,32 @@ export class Controller implements IController {
 				selected: false
 			};
 
-			item.text = item.title;
+			//item.text = item.title;
 			items.push(item);
 		}
-		items.sort(fnSortByStringProperties);
+		items.sort(Controller.fnSortByStringProperties);
+		this.view.setSelectOptions(select, items);
+	}
+
+	setExportSelectOptions(select: ViewID): void {
+		const dirList = Controller.fnGetStorageDirectoryEntries(),
+			items: SelectOptionElement[] = [],
+			editorText = "<editor>";
+
+		dirList.unshift(editorText);
+		for (let i = 0; i < dirList.length; i += 1) {
+			const key = dirList[i],
+				title = key,
+				item: SelectOptionElement = {
+					value: key,
+					text: title,
+					title: title,
+					selected: title === editorText
+				};
+
+			items.push(item);
+		}
+		items.sort(Controller.fnSortByStringProperties);
 		this.view.setSelectOptions(select, items);
 	}
 
@@ -491,6 +513,7 @@ export class Controller implements IController {
 
 		if (!key) { // no key => get all
 			dir = Controller.fnGetStorageDirectoryEntries();
+			dir.sort();
 		} else {
 			dir = [key];
 		}
@@ -1956,78 +1979,110 @@ export class Controller implements IController {
 	}
 
 	fnDownload(): void {
-		const input = this.view.getAreaValue(ViewID.inputText),
-			tokens = this.encodeTokenizedBasic(input),
+		const options = this.view.getSelectOptions(ViewID.exportFileSelect),
 			exportTokenized = this.view.getInputChecked(ViewID.exportTokenizedInput),
 			exportDSK = this.view.getInputChecked(ViewID.exportDSKInput),
 			exportBase64 = this.view.getInputChecked(ViewID.exportBase64Input),
 			meta: FileMeta = {
 				typeString: "A", // ASCII
 				start: 0x170,
-				length: input.length,
+				length: 0,
 				entry: 0
 			};
-		let name = this.fnGetFilename(input),
-			data = input;
 
-		if (exportTokenized) {
-			if (tokens !== "") {
-				const [name1, ext1] = DiskImage.getFilenameAndExtension(name), // eslint-disable-line array-element-newline
-					header = DiskImage.createAmsdosHeader({
-						name: name1,
-						ext: ext1,
-						typeString: "T", // tokenized
-						start: 0x170,
-						length: tokens.length
-					}),
-					headerString = DiskImage.combineAmsdosHeader(header);
+		let diskImage: DiskImage | undefined,
+			name = "",
+			data = "";
 
-				data = headerString + tokens;
-				meta.typeString = "T";
-			}
-		}
-
-		if (exportDSK) {
-			const fileData = data,
-				diskImage = this.getFileHandler().getDiskImage();
-
-			diskImage.setOptions({
-				diskName: "test",
-				data: diskImage.formatImage("data")
-			});
-
-			/*
-			new DiskImage({
-				diskName: "test",
-				data: "" //TTT change to optional
-			});
-			*/
-
-			//diskImage.formatImage("data");
-
-			const dir = diskImage.readDirectory(); // is empty
-
-			Utils.console.log("TEST: exportDSK: no files:" + Object.keys(dir));
-			diskImage.writeFile(name, fileData);
-
-			const options = diskImage.getOptions();
-
-			data = options.data; // we need the modified disk image with the file inside
-			name = name.substring(0, name.indexOf(".") + 1) + "dsk";
-			meta.length = data.length;
-			meta.typeString = "X"; // (extended) disk image
-		}
-
-		if (exportBase64) {
+		const fnExportBase64 = function () {
 			meta.encoding = "base64";
 			const metaString = FileHandler.joinMeta(meta);
 
 			data = metaString + "," + Utils.btoa(data);
 			name += ".b64.txt";
+		};
+
+		if (exportDSK) {
+			diskImage = this.getFileHandler().getDiskImage();
+
+			diskImage.setOptions({
+				diskName: "test",
+				data: diskImage.formatImage("data")
+			});
 		}
 
-		if (data) {
-			View.fnDownloadBlob(data, name);
+		for (let i = 0; i < options.length; i += 1) {
+			const item = options[i];
+
+			if (item.selected) {
+				if (item.value === "<editor>") {
+					data = this.view.getAreaValue(ViewID.inputText);
+					name = this.fnGetFilename(data);
+					meta.typeString = "A"; // ASCII
+					meta.start = 0x170;
+					meta.length = data.length;
+					meta.entry = 0;
+				} else {
+					name = item.value;
+					data = Controller.tryLoadingFromLocalStorage(name) || "";
+					const metaAndData = Controller.splitMeta(data);
+
+					Object.assign(meta, metaAndData.meta); // copy meta info
+					data = metaAndData.data;
+				}
+
+				if (exportTokenized && meta.typeString === "A") { // do we need to tokenize it?
+					const tokens = this.encodeTokenizedBasic(data);
+
+					data = tokens;
+					meta.typeString = "T";
+					meta.start = 0x170;
+					meta.length = data.length;
+					meta.entry = 0;
+				}
+
+				if (meta.typeString !== "A") {
+					const [name1, ext1] = DiskImage.getFilenameAndExtension(name), // eslint-disable-line array-element-newline
+						header = DiskImage.createAmsdosHeader({
+							name: name1,
+							ext: ext1,
+							typeString: meta.typeString,
+							start: meta.start,
+							length: meta.length,
+							entry: meta.entry
+						}),
+						headerString = DiskImage.combineAmsdosHeader(header);
+
+					data = headerString + data;
+				}
+
+				if (diskImage) {
+					diskImage.writeFile(name, data);
+
+					const diskOptions = diskImage.getOptions();
+
+					data = diskOptions.data; // we need the modified disk image with the file(s) inside
+					name = name.substring(0, name.indexOf(".") + 1) + "dsk";
+					meta.length = data.length;
+					meta.typeString = "X"; // (extended) disk image
+				} else {
+					if (exportBase64) {
+						fnExportBase64();
+					}
+					if (data) {
+						View.fnDownloadBlob(data, name);
+					}
+				}
+			}
+		}
+
+		if (diskImage) {
+			if (exportBase64) {
+				fnExportBase64();
+			}
+			if (data) {
+				View.fnDownloadBlob(data, name);
+			}
 		}
 	}
 
@@ -2855,7 +2910,7 @@ export class Controller implements IController {
 			return;
 		}
 
-		if (database.text === "storage") { // sepcial handling: browser localStorage
+		if (database.text === "storage") { // special handling: browser localStorage
 			this.updateStorageDatabase("set", ""); // set all
 			database.loaded = true;
 		}

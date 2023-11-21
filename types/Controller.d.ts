@@ -1,3 +1,4 @@
+import { ViewID } from "./Constants";
 import { IController, ICanvas, VariableValue, ICpcVmRsx } from "./Interfaces";
 import { VirtualKeyboard } from "./VirtualKeyboard";
 import { Model } from "./Model";
@@ -57,7 +58,9 @@ export declare class Controller implements IController {
     private setDirectorySelectOptions;
     setExampleSelectOptions(): void;
     setGalleryAreaInputs(): void;
+    private static fnSortByStringProperties;
     private setVarSelectOptions;
+    setExportSelectOptions(select: ViewID): void;
     private updateStorageDatabase;
     private removeKeyBoardHandler;
     setInputText(input: string, keepStack?: boolean): void;

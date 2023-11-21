@@ -39,6 +39,7 @@ export declare class CommonEventHandler implements EventListenerObject {
     private onCheckedChange;
     private onNumberInputChange;
     private onSelectChange;
+    private onExportButtonClick;
     private onGalleryButtonClick;
     private fnUpdateAreaText;
     private onUndoButtonClick;

@@ -830,6 +830,7 @@ define("Constants", ["require", "exports"], function (require, exports) {
         ViewID["exportButton"] = "exportButton";
         ViewID["exportBase64Input"] = "exportBase64Input";
         ViewID["exportDSKInput"] = "exportDSKInput";
+        ViewID["exportFileSelect"] = "exportFileSelect";
         ViewID["exportTokenizedInput"] = "exportTokenizedInput";
         ViewID["fileInput"] = "fileInput";
         ViewID["fullscreenButton"] = "fullscreenButton";
@@ -7490,12 +7491,7 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                 var blocks = extent.blocks;
                 for (var i = 0; i < 16; i += 1) {
                     var block = this.readUInt8(pos + i);
-                    if (block) {
-                        blocks.push(block);
-                    }
-                    else { // last block
-                        break;
-                    }
+                    blocks.push(block);
                 }
                 pos += 16;
                 extents.push(extent);
@@ -7713,14 +7709,15 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                 mask >>= 1; // eslint-disable-line no-bitwise
             }
             for (var i = 0; i < extents.length; i += 1) {
-                var extent = extents[i];
+                var extent = extents[i], blockList = extent.blocks;
                 if (extent.user !== fill) {
-                    for (var block = 0; block < extent.blocks.length; block += 1) {
-                        if (extent.blocks[block]) {
+                    for (var blockindex = 0; blockindex < blockList.length; blockindex += 1) {
+                        var block = blockList[blockindex];
+                        if (block) {
                             if (blockMask[block]) { // eslint-disable-line max-depth
-                                Utils_11.Utils.console.warn("getBlockMask: Block number $block already in use:", block);
+                                Utils_11.Utils.console.warn("getBlockMask: Block number already in use: ", block);
                             }
-                            blockMask[i] = true;
+                            blockMask[block] = true;
                         }
                         else {
                             break; // block=0 -> no more for this extent
@@ -7756,11 +7753,11 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                 Utils_11.Utils.console.debug("writeFile: freeExtents=", freeExtents.length, ", freeBlocks=", freeBlocks);
             }
             if (!freeBlocks.length) {
-                Utils_11.Utils.console.warn("writeFile: No space left!");
+                Utils_11.Utils.console.warn("writeFile: " + filename + ": No space left!");
                 return false;
             }
             if (!freeExtents.length) {
-                Utils_11.Utils.console.warn("writeFile: Directory full!");
+                Utils_11.Utils.console.warn("writeFile: " + filename + ": Directory full!");
                 return false;
             }
             var _a = DiskImage.getFilenameAndExtension(filename), name1 = _a[0], ext1 = _a[1], // eslint-disable-line array-element-newline
@@ -7768,12 +7765,12 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             if (requiredBlocks > freeBlocks.length) {
                 var requiredKB = ((requiredBlocks * bls) / 1024) | 0, // eslint-disable-line no-bitwise
                 freeKB = ((freeBlocks.length * bls) / 1024) | 0; // eslint-disable-line no-bitwise
-                Utils_11.Utils.console.warn("writeFile: Not enough space left (" + requiredKB + "K > " + freeKB + "K). Ignoring.");
+                Utils_11.Utils.console.warn("writeFile: " + filename + ": Not enough space left (" + requiredKB + "K > " + freeKB + "K). Ignoring.");
                 return false;
             }
             var blocksPerExtent = 16, requiredExtents = ((requiredBlocks + blocksPerExtent - 1) / blocksPerExtent) | 0; // eslint-disable-line no-bitwise
             if (requiredExtents > freeExtents.length) {
-                Utils_11.Utils.console.warn("writeFile: Directory full!");
+                Utils_11.Utils.console.warn("writeFile: " + filename + ": Directory full!");
                 return false;
             }
             var size = fileSize, extent, extentCnt = 0, blockCnt = 0;
@@ -11503,6 +11500,11 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             this.view.setSelectTitleFromSelectedOption(id);
             return value;
         };
+        CommonEventHandler.prototype.onExportButtonClick = function (eventDef) {
+            if (this.toggleAreaHidden(eventDef)) {
+                this.controller.setExportSelectOptions("exportFileSelect" /* ViewID.exportFileSelect */);
+            }
+        };
         CommonEventHandler.prototype.onGalleryButtonClick = function (eventDef) {
             if (this.toggleAreaHidden(eventDef)) {
                 this.controller.setGalleryAreaInputs();
@@ -11674,7 +11676,7 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                         property: "showExport" /* ModelPropID.showExport */,
                         display: "flex",
                         isPopover: true,
-                        func: this.toggleAreaHidden
+                        func: this.onExportButtonClick
                     },
                     {
                         id: "fullscreenButton" /* ViewID.fullscreenButton */,
@@ -18104,17 +18106,18 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
             this.view.setAreaInputList("galleryAreaItems" /* ViewID.galleryAreaItems */, inputs);
         };
+        Controller.fnSortByStringProperties = function (a, b) {
+            var x = a.value, y = b.value;
+            if (x < y) {
+                return -1;
+            }
+            else if (x > y) {
+                return 1;
+            }
+            return 0;
+        };
         Controller.prototype.setVarSelectOptions = function (select, variables) {
-            var maxVarLength = 35, varNames = variables.getAllVariableNames(), items = [], fnSortByStringProperties = function (a, b) {
-                var x = a.value, y = b.value;
-                if (x < y) {
-                    return -1;
-                }
-                else if (x > y) {
-                    return 1;
-                }
-                return 0;
-            };
+            var maxVarLength = 35, varNames = variables.getAllVariableNames(), items = [];
             for (var i = 0; i < varNames.length; i += 1) {
                 var key = varNames[i], value = variables.getVariable(key), title = key + "=" + value;
                 var strippedTitle = title.substring(0, maxVarLength); // limit length
@@ -18127,10 +18130,25 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     title: strippedTitle,
                     selected: false
                 };
-                item.text = item.title;
+                //item.text = item.title;
                 items.push(item);
             }
-            items.sort(fnSortByStringProperties);
+            items.sort(Controller.fnSortByStringProperties);
+            this.view.setSelectOptions(select, items);
+        };
+        Controller.prototype.setExportSelectOptions = function (select) {
+            var dirList = Controller.fnGetStorageDirectoryEntries(), items = [], editorText = "<editor>";
+            dirList.unshift(editorText);
+            for (var i = 0; i < dirList.length; i += 1) {
+                var key = dirList[i], title = key, item = {
+                    value: key,
+                    text: title,
+                    title: title,
+                    selected: title === editorText
+                };
+                items.push(item);
+            }
+            items.sort(Controller.fnSortByStringProperties);
             this.view.setSelectOptions(select, items);
         };
         Controller.prototype.updateStorageDatabase = function (action, key) {
@@ -18148,6 +18166,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             var dir;
             if (!key) { // no key => get all
                 dir = Controller.fnGetStorageDirectoryEntries();
+                dir.sort();
             }
             else {
                 dir = [key];
@@ -19329,57 +19348,89 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             return name;
         };
         Controller.prototype.fnDownload = function () {
-            var input = this.view.getAreaValue("inputText" /* ViewID.inputText */), tokens = this.encodeTokenizedBasic(input), exportTokenized = this.view.getInputChecked("exportTokenizedInput" /* ViewID.exportTokenizedInput */), exportDSK = this.view.getInputChecked("exportDSKInput" /* ViewID.exportDSKInput */), exportBase64 = this.view.getInputChecked("exportBase64Input" /* ViewID.exportBase64Input */), meta = {
+            var options = this.view.getSelectOptions("exportFileSelect" /* ViewID.exportFileSelect */), exportTokenized = this.view.getInputChecked("exportTokenizedInput" /* ViewID.exportTokenizedInput */), exportDSK = this.view.getInputChecked("exportDSKInput" /* ViewID.exportDSKInput */), exportBase64 = this.view.getInputChecked("exportBase64Input" /* ViewID.exportBase64Input */), meta = {
                 typeString: "A",
                 start: 0x170,
-                length: input.length,
+                length: 0,
                 entry: 0
             };
-            var name = this.fnGetFilename(input), data = input;
-            if (exportTokenized) {
-                if (tokens !== "") {
-                    var _a = DiskImage_2.DiskImage.getFilenameAndExtension(name), name1 = _a[0], ext1 = _a[1], // eslint-disable-line array-element-newline
-                    header = DiskImage_2.DiskImage.createAmsdosHeader({
-                        name: name1,
-                        ext: ext1,
-                        typeString: "T",
-                        start: 0x170,
-                        length: tokens.length
-                    }), headerString = DiskImage_2.DiskImage.combineAmsdosHeader(header);
-                    data = headerString + tokens;
-                    meta.typeString = "T";
-                }
-            }
-            if (exportDSK) {
-                var fileData = data, diskImage = this.getFileHandler().getDiskImage();
-                diskImage.setOptions({
-                    diskName: "test",
-                    data: diskImage.formatImage("data")
-                });
-                /*
-                new DiskImage({
-                    diskName: "test",
-                    data: "" //TTT change to optional
-                });
-                */
-                //diskImage.formatImage("data");
-                var dir = diskImage.readDirectory(); // is empty
-                Utils_25.Utils.console.log("TEST: exportDSK: no files:" + Object.keys(dir));
-                diskImage.writeFile(name, fileData);
-                var options = diskImage.getOptions();
-                data = options.data; // we need the modified disk image with the file inside
-                name = name.substring(0, name.indexOf(".") + 1) + "dsk";
-                meta.length = data.length;
-                meta.typeString = "X"; // (extended) disk image
-            }
-            if (exportBase64) {
+            var diskImage, name = "", data = "";
+            var fnExportBase64 = function () {
                 meta.encoding = "base64";
                 var metaString = FileHandler_1.FileHandler.joinMeta(meta);
                 data = metaString + "," + Utils_25.Utils.btoa(data);
                 name += ".b64.txt";
+            };
+            if (exportDSK) {
+                diskImage = this.getFileHandler().getDiskImage();
+                diskImage.setOptions({
+                    diskName: "test",
+                    data: diskImage.formatImage("data")
+                });
             }
-            if (data) {
-                View_6.View.fnDownloadBlob(data, name);
+            for (var i = 0; i < options.length; i += 1) {
+                var item = options[i];
+                if (item.selected) {
+                    if (item.value === "<editor>") {
+                        data = this.view.getAreaValue("inputText" /* ViewID.inputText */);
+                        name = this.fnGetFilename(data);
+                        meta.typeString = "A"; // ASCII
+                        meta.start = 0x170;
+                        meta.length = data.length;
+                        meta.entry = 0;
+                    }
+                    else {
+                        name = item.value;
+                        data = Controller.tryLoadingFromLocalStorage(name) || "";
+                        var metaAndData = Controller.splitMeta(data);
+                        Object.assign(meta, metaAndData.meta); // copy meta info
+                        data = metaAndData.data;
+                    }
+                    if (exportTokenized && meta.typeString === "A") { // do we need to tokenize it?
+                        var tokens = this.encodeTokenizedBasic(data);
+                        data = tokens;
+                        meta.typeString = "T";
+                        meta.start = 0x170;
+                        meta.length = data.length;
+                        meta.entry = 0;
+                    }
+                    if (meta.typeString !== "A") {
+                        var _a = DiskImage_2.DiskImage.getFilenameAndExtension(name), name1 = _a[0], ext1 = _a[1], // eslint-disable-line array-element-newline
+                        header = DiskImage_2.DiskImage.createAmsdosHeader({
+                            name: name1,
+                            ext: ext1,
+                            typeString: meta.typeString,
+                            start: meta.start,
+                            length: meta.length,
+                            entry: meta.entry
+                        }), headerString = DiskImage_2.DiskImage.combineAmsdosHeader(header);
+                        data = headerString + data;
+                    }
+                    if (diskImage) {
+                        diskImage.writeFile(name, data);
+                        var diskOptions = diskImage.getOptions();
+                        data = diskOptions.data; // we need the modified disk image with the file(s) inside
+                        name = name.substring(0, name.indexOf(".") + 1) + "dsk";
+                        meta.length = data.length;
+                        meta.typeString = "X"; // (extended) disk image
+                    }
+                    else {
+                        if (exportBase64) {
+                            fnExportBase64();
+                        }
+                        if (data) {
+                            View_6.View.fnDownloadBlob(data, name);
+                        }
+                    }
+                }
+            }
+            if (diskImage) {
+                if (exportBase64) {
+                    fnExportBase64();
+                }
+                if (data) {
+                    View_6.View.fnDownloadBlob(data, name);
+                }
             }
         };
         Controller.prototype.selectJsError = function (script, e) {
@@ -20056,7 +20107,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 Utils_25.Utils.console.error("onDatabaseSelectChange: database not available:", databaseName);
                 return;
             }
-            if (database.text === "storage") { // sepcial handling: browser localStorage
+            if (database.text === "storage") { // special handling: browser localStorage
                 this.updateStorageDatabase("set", ""); // set all
                 database.loaded = true;
             }

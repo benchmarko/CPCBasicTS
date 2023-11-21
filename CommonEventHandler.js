@@ -142,6 +142,11 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.view.setSelectTitleFromSelectedOption(id);
             return value;
         };
+        CommonEventHandler.prototype.onExportButtonClick = function (eventDef) {
+            if (this.toggleAreaHidden(eventDef)) {
+                this.controller.setExportSelectOptions("exportFileSelect" /* ViewID.exportFileSelect */);
+            }
+        };
         CommonEventHandler.prototype.onGalleryButtonClick = function (eventDef) {
             if (this.toggleAreaHidden(eventDef)) {
                 this.controller.setGalleryAreaInputs();
@@ -313,7 +318,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                         property: "showExport" /* ModelPropID.showExport */,
                         display: "flex",
                         isPopover: true,
-                        func: this.toggleAreaHidden
+                        func: this.onExportButtonClick
                     },
                     {
                         id: "fullscreenButton" /* ViewID.fullscreenButton */,

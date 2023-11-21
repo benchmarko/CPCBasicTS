@@ -72,6 +72,7 @@ define(["require", "exports"], function (require, exports) {
         ViewID["exportButton"] = "exportButton";
         ViewID["exportBase64Input"] = "exportBase64Input";
         ViewID["exportDSKInput"] = "exportDSKInput";
+        ViewID["exportFileSelect"] = "exportFileSelect";
         ViewID["exportTokenizedInput"] = "exportTokenizedInput";
         ViewID["fileInput"] = "fileInput";
         ViewID["fullscreenButton"] = "fullscreenButton";

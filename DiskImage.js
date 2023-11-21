@@ -382,12 +382,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 var blocks = extent.blocks;
                 for (var i = 0; i < 16; i += 1) {
                     var block = this.readUInt8(pos + i);
-                    if (block) {
-                        blocks.push(block);
-                    }
-                    else { // last block
-                        break;
-                    }
+                    blocks.push(block);
                 }
                 pos += 16;
                 extents.push(extent);
@@ -605,14 +600,15 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 mask >>= 1; // eslint-disable-line no-bitwise
             }
             for (var i = 0; i < extents.length; i += 1) {
-                var extent = extents[i];
+                var extent = extents[i], blockList = extent.blocks;
                 if (extent.user !== fill) {
-                    for (var block = 0; block < extent.blocks.length; block += 1) {
-                        if (extent.blocks[block]) {
+                    for (var blockindex = 0; blockindex < blockList.length; blockindex += 1) {
+                        var block = blockList[blockindex];
+                        if (block) {
                             if (blockMask[block]) { // eslint-disable-line max-depth
-                                Utils_1.Utils.console.warn("getBlockMask: Block number $block already in use:", block);
+                                Utils_1.Utils.console.warn("getBlockMask: Block number already in use: ", block);
                             }
-                            blockMask[i] = true;
+                            blockMask[block] = true;
                         }
                         else {
                             break; // block=0 -> no more for this extent
@@ -648,11 +644,11 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 Utils_1.Utils.console.debug("writeFile: freeExtents=", freeExtents.length, ", freeBlocks=", freeBlocks);
             }
             if (!freeBlocks.length) {
-                Utils_1.Utils.console.warn("writeFile: No space left!");
+                Utils_1.Utils.console.warn("writeFile: " + filename + ": No space left!");
                 return false;
             }
             if (!freeExtents.length) {
-                Utils_1.Utils.console.warn("writeFile: Directory full!");
+                Utils_1.Utils.console.warn("writeFile: " + filename + ": Directory full!");
                 return false;
             }
             var _a = DiskImage.getFilenameAndExtension(filename), name1 = _a[0], ext1 = _a[1], // eslint-disable-line array-element-newline
@@ -660,12 +656,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (requiredBlocks > freeBlocks.length) {
                 var requiredKB = ((requiredBlocks * bls) / 1024) | 0, // eslint-disable-line no-bitwise
                 freeKB = ((freeBlocks.length * bls) / 1024) | 0; // eslint-disable-line no-bitwise
-                Utils_1.Utils.console.warn("writeFile: Not enough space left (" + requiredKB + "K > " + freeKB + "K). Ignoring.");
+                Utils_1.Utils.console.warn("writeFile: " + filename + ": Not enough space left (" + requiredKB + "K > " + freeKB + "K). Ignoring.");
                 return false;
             }
             var blocksPerExtent = 16, requiredExtents = ((requiredBlocks + blocksPerExtent - 1) / blocksPerExtent) | 0; // eslint-disable-line no-bitwise
             if (requiredExtents > freeExtents.length) {
-                Utils_1.Utils.console.warn("writeFile: Directory full!");
+                Utils_1.Utils.console.warn("writeFile: " + filename + ": Directory full!");
                 return false;
             }
             var size = fileSize, extent, extentCnt = 0, blockCnt = 0;
