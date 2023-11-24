@@ -8,17 +8,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
     exports.View = void 0;
     var View = /** @class */ (function () {
         function View() {
-            // drag...
-            this.dragInfo = {
-                dragItem: undefined,
-                active: false,
-                xOffset: 0,
-                yOffset: 0,
-                initialX: 0,
-                initialY: 0,
-                currentX: 0,
-                currentY: 0
-            };
         }
         View.getElementById1 = function (id) {
             var element = window.document.getElementById(id);
@@ -250,12 +239,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             return this;
         };
-        View.prototype.addEventListener = function (type, eventListener, id) {
-            if (Utils_1.Utils.debug) {
-                Utils_1.Utils.console.debug("addEventListener: type=" + type + ", eventHandler=" + eventListener + ", id=" + id);
-            }
-            if (id) {
-                var element = View.getElementById1(id);
+        View.prototype.addEventListener = function (type, eventListener, element) {
+            if (element) {
                 element.addEventListener(type, eventListener, false);
             }
             else {
@@ -263,18 +248,75 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             return this;
         };
-        View.prototype.removeEventListener = function (type, eventListener, id) {
+        View.prototype.addEventListenerById = function (type, eventListener, id) {
             if (Utils_1.Utils.debug) {
-                Utils_1.Utils.console.debug("removeEventListener: type=" + type + ", eventHandler=" + eventListener + ", id=" + id);
+                Utils_1.Utils.console.debug("addEventListenerById: type=" + type + ", eventHandler=" + eventListener + ", id=" + id);
             }
-            if (id) {
-                var element = View.getElementById1(id);
+            var element = id === "window" /* ViewID.window */ ? undefined : View.getElementById1(id);
+            this.addEventListener(type, eventListener, element);
+            return this;
+        };
+        View.prototype.removeEventListener = function (type, eventListener, element) {
+            if (element) {
                 element.removeEventListener(type, eventListener, false);
             }
             else {
                 window.document.removeEventListener(type, eventListener, false);
             }
             return this;
+        };
+        View.prototype.removeEventListenerById = function (type, eventListener, id) {
+            if (Utils_1.Utils.debug) {
+                Utils_1.Utils.console.debug("removeEventListener: type=" + type + ", eventHandler=" + eventListener + ", id=" + id);
+            }
+            var element = id === "window" /* ViewID.window */ ? undefined : View.getElementById1(id);
+            this.removeEventListener(type, eventListener, element);
+            return this;
+        };
+        View.getPointerEventNames = function () {
+            var eventNames;
+            if (window.PointerEvent) {
+                eventNames = View.pointerEventNames;
+            }
+            else if ("ontouchstart" in window || navigator.maxTouchPoints) {
+                eventNames = View.touchEventNames;
+            }
+            else {
+                eventNames = View.mouseEventNames;
+            }
+            return eventNames;
+        };
+        View.prototype.fnAttachPointerEvents = function (id, fnDown, fnMove, fnUp) {
+            var element = id === "window" /* ViewID.window */ ? undefined : View.getElementById1(id), eventNames = View.getPointerEventNames();
+            if (fnDown) {
+                this.addEventListener(eventNames.down, fnDown, element);
+            }
+            if (fnMove) {
+                this.addEventListener(eventNames.move, fnMove, element);
+            }
+            if (fnUp) {
+                this.addEventListener(eventNames.up, fnUp, element);
+                if (eventNames.cancel) {
+                    this.addEventListener(eventNames.cancel, fnUp, element); // also fnUp handler
+                }
+            }
+            return eventNames;
+        };
+        View.prototype.fnDetachPointerEvents = function (id, fnDown, fnMove, fnUp) {
+            var element = id === "window" /* ViewID.window */ ? undefined : View.getElementById1(id), eventNames = View.getPointerEventNames();
+            if (fnDown) {
+                this.removeEventListener(eventNames.down, fnDown, element);
+            }
+            if (fnMove) {
+                this.removeEventListener(eventNames.move, fnMove, element);
+            }
+            if (fnUp) {
+                this.removeEventListener(eventNames.up, fnUp, element);
+                if (eventNames.cancel) {
+                    this.removeEventListener(eventNames.cancel, fnUp, element); // also fnUp handler
+                }
+            }
+            return eventNames;
         };
         View.getEventTarget = function (event) {
             var target = event.target || event.srcElement; // target, not currentTarget; srcElement for IE8
@@ -300,7 +342,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return true;
         };
         // https://blog.logrocket.com/programmatic-file-downloads-in-the-browser-9a5186298d5c/
-        View.fnDownloadBlob = function (data, filename) {
+        View.prototype.fnDownloadBlob = function (data, filename) {
             if (typeof Blob === "undefined") {
                 Utils_1.Utils.console.warn("fnDownloadBlob: Blob undefined");
                 return;
@@ -320,92 +362,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             };
             a.href = url;
             a.download = filename || "download";
-            a.addEventListener("click", clickHandler, false);
+            this.addEventListener("click", clickHandler, a);
             a.click();
-        };
-        View.prototype.fnAttachPointerEvents = function (id, fnDown, fnMove, fnUp) {
-            var area = View.getElementById1(id);
-            var eventNames;
-            if (window.PointerEvent) {
-                eventNames = View.pointerEventNames;
-            }
-            else if ("ontouchstart" in window || navigator.maxTouchPoints) {
-                eventNames = View.touchEventNames;
-            }
-            else {
-                eventNames = View.mouseEventNames;
-            }
-            if (Utils_1.Utils.debug > 0) {
-                Utils_1.Utils.console.log("fnAttachPointerEvents: Using", eventNames.type, "events");
-            }
-            if (fnDown) {
-                area.addEventListener(eventNames.down, fnDown, false); // +clicked for pointer, touch?
-            }
-            if (fnMove) {
-                area.addEventListener(eventNames.move, fnMove, false);
-            }
-            if (fnUp) {
-                area.addEventListener(eventNames.up, fnUp, false);
-                if (eventNames.cancel) {
-                    area.addEventListener(eventNames.cancel, fnUp, false);
-                }
-            }
-            return eventNames;
-        };
-        // based on https://www.kirupa.com/html5/drag.htm
-        View.prototype.dragInit = function (containerId, itemId) {
-            var drag = this.dragInfo;
-            drag.dragItem = View.getElementById1(itemId);
-            drag.active = false;
-            drag.xOffset = 0;
-            drag.yOffset = 0;
-            this.fnAttachPointerEvents(containerId, this.dragStart.bind(this), this.drag.bind(this), this.dragEnd.bind(this));
-        };
-        View.prototype.dragStart = function (event) {
-            var node = View.getEventTarget(event), parent = node.parentElement ? node.parentElement.parentElement : null, drag = this.dragInfo;
-            if (node === drag.dragItem || parent === drag.dragItem) {
-                if (event.type === "touchstart") {
-                    var touchEvent = event;
-                    drag.initialX = touchEvent.touches[0].clientX - drag.xOffset;
-                    drag.initialY = touchEvent.touches[0].clientY - drag.yOffset;
-                }
-                else {
-                    var dragEvent = event;
-                    drag.initialX = dragEvent.clientX - drag.xOffset;
-                    drag.initialY = dragEvent.clientY - drag.yOffset;
-                }
-                drag.active = true;
-            }
-        };
-        View.prototype.dragEnd = function ( /* event */) {
-            var drag = this.dragInfo;
-            drag.initialX = drag.currentX;
-            drag.initialY = drag.currentY;
-            drag.active = false;
-        };
-        View.prototype.setDragTranslate = function (xPos, yPos, el) {
-            el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)";
-        };
-        View.prototype.drag = function (event) {
-            var drag = this.dragInfo;
-            if (drag.active) {
-                event.preventDefault();
-                if (event.type === "touchmove") {
-                    var touchEvent = event;
-                    drag.currentX = touchEvent.touches[0].clientX - drag.initialX;
-                    drag.currentY = touchEvent.touches[0].clientY - drag.initialY;
-                }
-                else {
-                    var dragEvent = event;
-                    drag.currentX = dragEvent.clientX - drag.initialX;
-                    drag.currentY = dragEvent.clientY - drag.initialY;
-                }
-                drag.xOffset = drag.currentX;
-                drag.yOffset = drag.currentY;
-                if (drag.dragItem) {
-                    this.setDragTranslate(drag.currentX, drag.currentY, drag.dragItem);
-                }
-            }
         };
         View.pointerEventNames = {
             down: "pointerdown",

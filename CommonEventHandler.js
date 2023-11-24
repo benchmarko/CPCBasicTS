@@ -130,6 +130,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         CommonEventHandler.prototype.onCheckedChange = function (eventDef) {
             var id = eventDef.id, property = CommonEventHandler.getproperty(eventDef), checked = this.view.getInputChecked(id);
             this.model.setProperty(property, checked);
+            return checked;
         };
         CommonEventHandler.prototype.onNumberInputChange = function (eventDef) {
             var id = eventDef.id, property = CommonEventHandler.getproperty(eventDef), valueAsString = this.view.getInputValue(id), value = Number(valueAsString);
@@ -234,6 +235,10 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         CommonEventHandler.prototype.onDebugInputChange = function (eventDef) {
             var value = this.onNumberInputChange(eventDef);
             Utils_1.Utils.debug = value;
+        };
+        CommonEventHandler.prototype.onDragElementsInputChange = function (eventDef) {
+            var checked = this.onCheckedChange(eventDef);
+            this.controller.fnDragElementsActive(checked);
         };
         CommonEventHandler.prototype.onShowCpcInputChange = function (eventDef) {
             if (this.toggleAreaHidden(eventDef)) {
@@ -495,6 +500,12 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                         func: this.onKbdLayoutSelectChange
                     },
                     {
+                        id: "dragElementsInput" /* ViewID.dragElementsInput */,
+                        viewType: "checked",
+                        property: "dragElements" /* ModelPropID.dragElements */,
+                        func: this.onDragElementsInputChange
+                    },
+                    {
                         id: "outputText" /* ViewID.outputText */,
                         controllerFunc: this.controller.invalidateScript
                     },
@@ -544,7 +555,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                         viewType: "checked",
                         toggleId: "kbdArea" /* ViewID.kbdArea */,
                         property: "showKbd" /* ModelPropID.showKbd */,
-                        display: "flex",
                         func: this.onShowKbdInputChange
                     },
                     {

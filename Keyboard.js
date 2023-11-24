@@ -23,15 +23,15 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 ctrl: {},
                 repeat: {}
             }; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
+            var view = this.options.view;
+            view.addEventListenerById("keydown", this.fnKeydownOrKeyupHandler, "cpcArea" /* ViewID.cpcArea */);
+            view.addEventListenerById("keyup", this.fnKeydownOrKeyupHandler, "cpcArea" /* ViewID.cpcArea */);
         }
         Keyboard.prototype.getOptions = function () {
             return this.options;
         };
         Keyboard.prototype.setOptions = function (options) {
             Object.assign(this.options, options);
-        };
-        Keyboard.prototype.getKeydownOrKeyupHandler = function () {
-            return this.fnKeydownOrKeyupHandler;
         };
         /* eslint-enable array-element-newline */
         Keyboard.prototype.reset = function () {
@@ -361,6 +361,11 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             return undefined;
         };
+        /*
+        getKeydownOrKeyupHandler(): (event: Event) => boolean {
+            return this.fnKeydownOrKeyupHandler;
+        }
+        */
         // use this:
         Keyboard.key2CpcKey = {
             "38ArrowUp": 0,

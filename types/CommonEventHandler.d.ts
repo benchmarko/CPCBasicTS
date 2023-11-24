@@ -57,6 +57,7 @@ export declare class CommonEventHandler implements EventListenerObject {
     private onPaletteSelectChange;
     private onCanvasTypeSelectChange;
     private onDebugInputChange;
+    private onDragElementsInputChange;
     private onShowCpcInputChange;
     private onShowKbdInputChange;
     private onDisassInputChange;

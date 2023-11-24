@@ -770,6 +770,7 @@ define("Constants", ["require", "exports"], function (require, exports) {
         ModelPropID["autorun"] = "autorun";
         ModelPropID["basicVersion"] = "basicVersion";
         ModelPropID["bench"] = "bench";
+        ModelPropID["canvasType"] = "canvasType";
         ModelPropID["databaseDirs"] = "databaseDirs";
         ModelPropID["database"] = "database";
         ModelPropID["debug"] = "debug";
@@ -778,7 +779,7 @@ define("Constants", ["require", "exports"], function (require, exports) {
         ModelPropID["implicitLines"] = "implicitLines";
         ModelPropID["input"] = "input";
         ModelPropID["kbdLayout"] = "kbdLayout";
-        ModelPropID["canvasType"] = "canvasType";
+        ModelPropID["dragElements"] = "dragElements";
         ModelPropID["palette"] = "palette";
         ModelPropID["processFileImports"] = "processFileImports";
         ModelPropID["showConsoleLog"] = "showConsoleLog";
@@ -851,8 +852,10 @@ define("Constants", ["require", "exports"], function (require, exports) {
         ViewID["kbdNum"] = "kbdNum";
         ViewID["lineNumberAddButton"] = "lineNumberAddButton";
         ViewID["lineNumberRemoveButton"] = "lineNumberRemoveButton";
+        ViewID["mainArea"] = "mainArea";
         ViewID["moreArea"] = "moreArea";
         ViewID["moreButton"] = "moreButton";
+        ViewID["dragElementsInput"] = "dragElementsInput";
         ViewID["noCanvas"] = "noCanvas";
         ViewID["outputArea"] = "outputArea";
         ViewID["outputText"] = "outputText";
@@ -900,7 +903,7 @@ define("Constants", ["require", "exports"], function (require, exports) {
         ViewID["varText"] = "varText";
         ViewID["viewArea"] = "viewArea";
         ViewID["viewButton"] = "viewButton";
-        ViewID["window"] = "window"; //TTT does this work?
+        ViewID["window"] = "window"; // for window.document
     })(ViewID = exports.ViewID || (exports.ViewID = {}));
 });
 // Utils.ts - Utililities for CPCBasic
@@ -8031,17 +8034,6 @@ define("View", ["require", "exports", "Utils"], function (require, exports, Util
     exports.View = void 0;
     var View = /** @class */ (function () {
         function View() {
-            // drag...
-            this.dragInfo = {
-                dragItem: undefined,
-                active: false,
-                xOffset: 0,
-                yOffset: 0,
-                initialX: 0,
-                initialY: 0,
-                currentX: 0,
-                currentY: 0
-            };
         }
         View.getElementById1 = function (id) {
             var element = window.document.getElementById(id);
@@ -8273,12 +8265,8 @@ define("View", ["require", "exports", "Utils"], function (require, exports, Util
             }
             return this;
         };
-        View.prototype.addEventListener = function (type, eventListener, id) {
-            if (Utils_12.Utils.debug) {
-                Utils_12.Utils.console.debug("addEventListener: type=" + type + ", eventHandler=" + eventListener + ", id=" + id);
-            }
-            if (id) {
-                var element = View.getElementById1(id);
+        View.prototype.addEventListener = function (type, eventListener, element) {
+            if (element) {
                 element.addEventListener(type, eventListener, false);
             }
             else {
@@ -8286,18 +8274,75 @@ define("View", ["require", "exports", "Utils"], function (require, exports, Util
             }
             return this;
         };
-        View.prototype.removeEventListener = function (type, eventListener, id) {
+        View.prototype.addEventListenerById = function (type, eventListener, id) {
             if (Utils_12.Utils.debug) {
-                Utils_12.Utils.console.debug("removeEventListener: type=" + type + ", eventHandler=" + eventListener + ", id=" + id);
+                Utils_12.Utils.console.debug("addEventListenerById: type=" + type + ", eventHandler=" + eventListener + ", id=" + id);
             }
-            if (id) {
-                var element = View.getElementById1(id);
+            var element = id === "window" /* ViewID.window */ ? undefined : View.getElementById1(id);
+            this.addEventListener(type, eventListener, element);
+            return this;
+        };
+        View.prototype.removeEventListener = function (type, eventListener, element) {
+            if (element) {
                 element.removeEventListener(type, eventListener, false);
             }
             else {
                 window.document.removeEventListener(type, eventListener, false);
             }
             return this;
+        };
+        View.prototype.removeEventListenerById = function (type, eventListener, id) {
+            if (Utils_12.Utils.debug) {
+                Utils_12.Utils.console.debug("removeEventListener: type=" + type + ", eventHandler=" + eventListener + ", id=" + id);
+            }
+            var element = id === "window" /* ViewID.window */ ? undefined : View.getElementById1(id);
+            this.removeEventListener(type, eventListener, element);
+            return this;
+        };
+        View.getPointerEventNames = function () {
+            var eventNames;
+            if (window.PointerEvent) {
+                eventNames = View.pointerEventNames;
+            }
+            else if ("ontouchstart" in window || navigator.maxTouchPoints) {
+                eventNames = View.touchEventNames;
+            }
+            else {
+                eventNames = View.mouseEventNames;
+            }
+            return eventNames;
+        };
+        View.prototype.fnAttachPointerEvents = function (id, fnDown, fnMove, fnUp) {
+            var element = id === "window" /* ViewID.window */ ? undefined : View.getElementById1(id), eventNames = View.getPointerEventNames();
+            if (fnDown) {
+                this.addEventListener(eventNames.down, fnDown, element);
+            }
+            if (fnMove) {
+                this.addEventListener(eventNames.move, fnMove, element);
+            }
+            if (fnUp) {
+                this.addEventListener(eventNames.up, fnUp, element);
+                if (eventNames.cancel) {
+                    this.addEventListener(eventNames.cancel, fnUp, element); // also fnUp handler
+                }
+            }
+            return eventNames;
+        };
+        View.prototype.fnDetachPointerEvents = function (id, fnDown, fnMove, fnUp) {
+            var element = id === "window" /* ViewID.window */ ? undefined : View.getElementById1(id), eventNames = View.getPointerEventNames();
+            if (fnDown) {
+                this.removeEventListener(eventNames.down, fnDown, element);
+            }
+            if (fnMove) {
+                this.removeEventListener(eventNames.move, fnMove, element);
+            }
+            if (fnUp) {
+                this.removeEventListener(eventNames.up, fnUp, element);
+                if (eventNames.cancel) {
+                    this.removeEventListener(eventNames.cancel, fnUp, element); // also fnUp handler
+                }
+            }
+            return eventNames;
         };
         View.getEventTarget = function (event) {
             var target = event.target || event.srcElement; // target, not currentTarget; srcElement for IE8
@@ -8323,7 +8368,7 @@ define("View", ["require", "exports", "Utils"], function (require, exports, Util
             return true;
         };
         // https://blog.logrocket.com/programmatic-file-downloads-in-the-browser-9a5186298d5c/
-        View.fnDownloadBlob = function (data, filename) {
+        View.prototype.fnDownloadBlob = function (data, filename) {
             if (typeof Blob === "undefined") {
                 Utils_12.Utils.console.warn("fnDownloadBlob: Blob undefined");
                 return;
@@ -8343,92 +8388,8 @@ define("View", ["require", "exports", "Utils"], function (require, exports, Util
             };
             a.href = url;
             a.download = filename || "download";
-            a.addEventListener("click", clickHandler, false);
+            this.addEventListener("click", clickHandler, a);
             a.click();
-        };
-        View.prototype.fnAttachPointerEvents = function (id, fnDown, fnMove, fnUp) {
-            var area = View.getElementById1(id);
-            var eventNames;
-            if (window.PointerEvent) {
-                eventNames = View.pointerEventNames;
-            }
-            else if ("ontouchstart" in window || navigator.maxTouchPoints) {
-                eventNames = View.touchEventNames;
-            }
-            else {
-                eventNames = View.mouseEventNames;
-            }
-            if (Utils_12.Utils.debug > 0) {
-                Utils_12.Utils.console.log("fnAttachPointerEvents: Using", eventNames.type, "events");
-            }
-            if (fnDown) {
-                area.addEventListener(eventNames.down, fnDown, false); // +clicked for pointer, touch?
-            }
-            if (fnMove) {
-                area.addEventListener(eventNames.move, fnMove, false);
-            }
-            if (fnUp) {
-                area.addEventListener(eventNames.up, fnUp, false);
-                if (eventNames.cancel) {
-                    area.addEventListener(eventNames.cancel, fnUp, false);
-                }
-            }
-            return eventNames;
-        };
-        // based on https://www.kirupa.com/html5/drag.htm
-        View.prototype.dragInit = function (containerId, itemId) {
-            var drag = this.dragInfo;
-            drag.dragItem = View.getElementById1(itemId);
-            drag.active = false;
-            drag.xOffset = 0;
-            drag.yOffset = 0;
-            this.fnAttachPointerEvents(containerId, this.dragStart.bind(this), this.drag.bind(this), this.dragEnd.bind(this));
-        };
-        View.prototype.dragStart = function (event) {
-            var node = View.getEventTarget(event), parent = node.parentElement ? node.parentElement.parentElement : null, drag = this.dragInfo;
-            if (node === drag.dragItem || parent === drag.dragItem) {
-                if (event.type === "touchstart") {
-                    var touchEvent = event;
-                    drag.initialX = touchEvent.touches[0].clientX - drag.xOffset;
-                    drag.initialY = touchEvent.touches[0].clientY - drag.yOffset;
-                }
-                else {
-                    var dragEvent = event;
-                    drag.initialX = dragEvent.clientX - drag.xOffset;
-                    drag.initialY = dragEvent.clientY - drag.yOffset;
-                }
-                drag.active = true;
-            }
-        };
-        View.prototype.dragEnd = function ( /* event */) {
-            var drag = this.dragInfo;
-            drag.initialX = drag.currentX;
-            drag.initialY = drag.currentY;
-            drag.active = false;
-        };
-        View.prototype.setDragTranslate = function (xPos, yPos, el) {
-            el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)";
-        };
-        View.prototype.drag = function (event) {
-            var drag = this.dragInfo;
-            if (drag.active) {
-                event.preventDefault();
-                if (event.type === "touchmove") {
-                    var touchEvent = event;
-                    drag.currentX = touchEvent.touches[0].clientX - drag.initialX;
-                    drag.currentY = touchEvent.touches[0].clientY - drag.initialY;
-                }
-                else {
-                    var dragEvent = event;
-                    drag.currentX = dragEvent.clientX - drag.initialX;
-                    drag.currentY = dragEvent.clientY - drag.initialY;
-                }
-                drag.xOffset = drag.currentX;
-                drag.yOffset = drag.currentY;
-                if (drag.dragItem) {
-                    this.setDragTranslate(drag.currentX, drag.currentY, drag.dragItem);
-                }
-            }
         };
         View.pointerEventNames = {
             down: "pointerdown",
@@ -8458,11 +8419,110 @@ define("View", ["require", "exports", "Utils"], function (require, exports, Util
     }());
     exports.View = View;
 });
+// DragElement.ts - DragElement
+// (c) Marco Vieth, 2023
+// https://benchmarko.github.io/CPCBasicTS/
+//
+define("DragElement", ["require", "exports", "Utils", "View"], function (require, exports, Utils_13, View_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.DragElement = void 0;
+    var DragElement = /** @class */ (function () {
+        function DragElement(options) {
+            this.containerId = "window" /* ViewID.window */;
+            this.initialX = 0;
+            this.initialY = 0;
+            this.currentX = 0;
+            this.currentY = 0;
+            this.fnDragStartHandler = this.dragStart.bind(this);
+            this.fnDragMoveHandler = this.dragMove.bind(this);
+            this.fnDragEndHandler = this.dragEnd.bind(this);
+            this.options = {};
+            this.setOptions(options);
+        }
+        DragElement.prototype.getOptions = function () {
+            return this.options;
+        };
+        DragElement.prototype.setOptions = function (options) {
+            Object.assign(this.options, options);
+            var entries = this.options.entries;
+            for (var key in entries) {
+                if (entries.hasOwnProperty(key)) {
+                    var item = entries[key];
+                    //item.xOffset = 0;
+                    //item.yOffset = 0;
+                    if (item.enabled) {
+                        this.options.view.fnAttachPointerEvents(item.itemId, this.fnDragStartHandler);
+                    }
+                    else {
+                        this.options.view.fnDetachPointerEvents(item.itemId, this.fnDragStartHandler);
+                    }
+                }
+            }
+        };
+        DragElement.prototype.dragStart = function (event) {
+            var node = View_1.View.getEventTarget(event), entries = this.options.entries;
+            var entry = entries[node.id];
+            if (!entry) {
+                var parentElement = node.parentElement;
+                if (parentElement && entries[parentElement.id]) {
+                    entry = entries[parentElement.id];
+                    this.dragItem = parentElement;
+                }
+                else {
+                    return;
+                }
+            }
+            else {
+                this.dragItem = node;
+            }
+            this.dragInfo = entry;
+            var dragInfo = this.dragInfo, clientObject = (event.type === "touchstart") ? event.touches[0] : event; // special handling for TouchEvent (otherwise MouseEvent or similar PointerEvent)
+            this.initialX = clientObject.clientX - dragInfo.xOffset;
+            this.initialY = clientObject.clientY - dragInfo.yOffset;
+            this.options.view.fnAttachPointerEvents(this.containerId, undefined, this.fnDragMoveHandler, this.fnDragEndHandler);
+            if (Utils_13.Utils.debug > 0) {
+                Utils_13.Utils.console.debug("dragStart: " + dragInfo.itemId + ": x=" + this.initialX + ", y=" + this.initialY);
+            }
+        };
+        DragElement.setDragTranslate = function (xPos, yPos, el) {
+            el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)";
+        };
+        DragElement.prototype.dragMove = function (event) {
+            var dragInfo = this.dragInfo;
+            if (dragInfo) {
+                event.preventDefault();
+                var clientObject = (event.type === "touchstart") ? event.touches[0] : event;
+                this.currentX = clientObject.clientX - this.initialX;
+                this.currentY = clientObject.clientY - this.initialY;
+                dragInfo.xOffset = this.currentX;
+                dragInfo.yOffset = this.currentY;
+                DragElement.setDragTranslate(this.currentX, this.currentY, this.dragItem); //TTT
+                // or use position: absolute and set .style.top, .style.left
+                //drag.dragItem.style.left = xPos + "px";
+                //drag.dragItem.style.top = yPos + "px";
+            }
+        };
+        DragElement.prototype.dragEnd = function (_event) {
+            var dragInfo = this.dragInfo;
+            if (dragInfo) {
+                //dragInfo.initialX = this.currentX;
+                //dragInfo.initialY = this.currentY;
+                this.options.view.fnDetachPointerEvents(this.containerId, undefined, this.fnDragMoveHandler, this.fnDragEndHandler);
+                if (Utils_13.Utils.debug > 0) {
+                    Utils_13.Utils.console.debug("dragEnd: " + dragInfo.itemId + ": x=" + this.currentX + ", y=" + this.currentY);
+                }
+            }
+        };
+        return DragElement;
+    }());
+    exports.DragElement = DragElement;
+});
 // Keyboard.ts - Keyboard handling
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("Keyboard", ["require", "exports", "Utils"], function (require, exports, Utils_13) {
+define("Keyboard", ["require", "exports", "Utils"], function (require, exports, Utils_14) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Keyboard = void 0;
@@ -8483,15 +8543,15 @@ define("Keyboard", ["require", "exports", "Utils"], function (require, exports, 
                 ctrl: {},
                 repeat: {}
             }; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
+            var view = this.options.view;
+            view.addEventListenerById("keydown", this.fnKeydownOrKeyupHandler, "cpcArea" /* ViewID.cpcArea */);
+            view.addEventListenerById("keyup", this.fnKeydownOrKeyupHandler, "cpcArea" /* ViewID.cpcArea */);
         }
         Keyboard.prototype.getOptions = function () {
             return this.options;
         };
         Keyboard.prototype.setOptions = function (options) {
             Object.assign(this.options, options);
-        };
-        Keyboard.prototype.getKeydownOrKeyupHandler = function () {
-            return this.fnKeydownOrKeyupHandler;
         };
         /* eslint-enable array-element-newline */
         Keyboard.prototype.reset = function () {
@@ -8543,8 +8603,8 @@ define("Keyboard", ["require", "exports", "Utils"], function (require, exports, 
         };
         Keyboard.prototype.removeCodeStringsFromKeymap = function () {
             var key2CpcKey = this.key2CpcKey, newMap = {};
-            if (Utils_13.Utils.debug > 1) {
-                Utils_13.Utils.console.log("removeCodeStringsFromKeymap: Unfortunately not all keys can be used.");
+            if (Utils_14.Utils.debug > 1) {
+                Utils_14.Utils.console.log("removeCodeStringsFromKeymap: Unfortunately not all keys can be used.");
             }
             for (var key in key2CpcKey) {
                 if (key2CpcKey.hasOwnProperty(key)) {
@@ -8569,8 +8629,8 @@ define("Keyboard", ["require", "exports", "Utils"], function (require, exports, 
             cpcKeyEntry.keys[pressedKey] = true;
             cpcKeyEntry.shift = shiftKey;
             cpcKeyEntry.ctrl = ctrlKey;
-            if (Utils_13.Utils.debug > 1) {
-                Utils_13.Utils.console.log("fnPressCpcKey: pressedKey=" + pressedKey + ", key=" + key + ", affected cpc key=" + cpcKey);
+            if (Utils_14.Utils.debug > 1) {
+                Utils_14.Utils.console.log("fnPressCpcKey: pressedKey=" + pressedKey + ", key=" + key + ", affected cpc key=" + cpcKey);
             }
             var repeat = cpcKeyExpansions.repeat;
             if (keyAlreadyPressed && ((cpcKey in repeat) && !repeat[cpcKey])) {
@@ -8626,11 +8686,11 @@ define("Keyboard", ["require", "exports", "Utils"], function (require, exports, 
         };
         Keyboard.prototype.fnReleaseCpcKey = function (event, cpcKeyCode, pressedKey, key) {
             var shiftKey = event.shiftKey, ctrlKey = event.ctrlKey, pressedKeys = this.pressedKeys, cpcKey = pressedKeys[cpcKeyCode];
-            if (Utils_13.Utils.debug > 1) {
-                Utils_13.Utils.console.log("fnReleaseCpcKey: pressedKey=" + pressedKey + ", key=" + key + ", affected cpc key=" + cpcKeyCode + ", keys:", (cpcKey ? cpcKey.keys : "undef."));
+            if (Utils_14.Utils.debug > 1) {
+                Utils_14.Utils.console.log("fnReleaseCpcKey: pressedKey=" + pressedKey + ", key=" + key + ", affected cpc key=" + cpcKeyCode + ", keys:", (cpcKey ? cpcKey.keys : "undef."));
             }
             if (!cpcKey) {
-                Utils_13.Utils.console.warn("fnReleaseCpcKey: cpcKey was not pressed:", cpcKeyCode);
+                Utils_14.Utils.console.warn("fnReleaseCpcKey: cpcKey was not pressed:", cpcKeyCode);
             }
             else {
                 delete cpcKey.keys[pressedKey];
@@ -8667,8 +8727,8 @@ define("Keyboard", ["require", "exports", "Utils"], function (require, exports, 
                 this.removeCodeStringsFromKeymap(); // remove code information from the mapping. Not all keys can be detected any more
                 this.codeStringsRemoved = true;
             }
-            if (Utils_13.Utils.debug > 1) {
-                Utils_13.Utils.console.log("fnKeyboardKeydown: keyCode=" + keyCode + " pressedKey=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
+            if (Utils_14.Utils.debug > 1) {
+                Utils_14.Utils.console.log("fnKeyboardKeydown: keyCode=" + keyCode + " pressedKey=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
             }
             if (pressedKey in this.key2CpcKey) {
                 var cpcKey = this.key2CpcKey[pressedKey];
@@ -8711,17 +8771,17 @@ define("Keyboard", ["require", "exports", "Utils"], function (require, exports, 
             }
             else if (key.length === 1) { // put normal keys in buffer, ignore special keys with more than 1 character
                 this.putKeyInBuffer(key);
-                Utils_13.Utils.console.log("fnKeyboardKeydown: Partly unhandled key", pressedKey + ":", key);
+                Utils_14.Utils.console.log("fnKeyboardKeydown: Partly unhandled key", pressedKey + ":", key);
             }
             else {
-                Utils_13.Utils.console.log("fnKeyboardKeydown: Unhandled key", pressedKey + ":", key);
+                Utils_14.Utils.console.log("fnKeyboardKeydown: Unhandled key", pressedKey + ":", key);
             }
         };
         Keyboard.prototype.fnKeyboardKeyup = function (event) {
             var keyCode = event.which || event.keyCode, pressedKey = String(keyCode) + (event.code ? event.code : ""), // event.code available for e.g. Chrome, Firefox
             key = event.key || Keyboard.keyIdentifier2Char(event) || ""; // SliTaz web browser has not key but keyIdentifier
-            if (Utils_13.Utils.debug > 1) {
-                Utils_13.Utils.console.log("fnKeyboardKeyup: keyCode=" + keyCode + " pressedKey=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
+            if (Utils_14.Utils.debug > 1) {
+                Utils_14.Utils.console.log("fnKeyboardKeyup: keyCode=" + keyCode + " pressedKey=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
             }
             if (pressedKey in this.key2CpcKey) {
                 var cpcKey = this.key2CpcKey[pressedKey];
@@ -8731,7 +8791,7 @@ define("Keyboard", ["require", "exports", "Utils"], function (require, exports, 
                 this.fnReleaseCpcKey(event, cpcKey, pressedKey, key);
             }
             else {
-                Utils_13.Utils.console.log("fnKeyboardKeyup: Unhandled key", pressedKey + ":", key);
+                Utils_14.Utils.console.log("fnKeyboardKeyup: Unhandled key", pressedKey + ":", key);
             }
         };
         Keyboard.prototype.getKeyFromBuffer = function () {
@@ -8814,13 +8874,18 @@ define("Keyboard", ["require", "exports", "Utils"], function (require, exports, 
                     this.fnKeyboardKeyup(event);
                 }
                 else {
-                    Utils_13.Utils.console.error("onKeydownOrKeyup: Unknown type:", event.type);
+                    Utils_14.Utils.console.error("onKeydownOrKeyup: Unknown type:", event.type);
                 }
                 event.preventDefault();
                 return false;
             }
             return undefined;
         };
+        /*
+        getKeydownOrKeyupHandler(): (event: Event) => boolean {
+            return this.fnKeydownOrKeyupHandler;
+        }
+        */
         // use this:
         Keyboard.key2CpcKey = {
             "38ArrowUp": 0,
@@ -8995,7 +9060,7 @@ define("Keyboard", ["require", "exports", "Utils"], function (require, exports, 
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (require, exports, Utils_14, View_1) {
+define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (require, exports, Utils_15, View_2) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.VirtualKeyboard = void 0;
@@ -9004,14 +9069,14 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
             this.shiftLock = false;
             this.numLock = false;
             this.fnVirtualKeyboardKeydownHandler = this.onVirtualKeyboardKeydown.bind(this);
-            this.fnVirtualKeyboardKeyupHandler = this.onVirtualKeyboardKeyup.bind(this);
-            this.fnVirtualKeyboardKeyoutHandler = this.onVirtualKeyboardKeyout.bind(this);
+            this.fnVirtualKeyboardKeyupOrKeyoutHandler = this.onVirtualKeyboardKeyupOrKeyout.bind(this);
             this.fnKeydownOrKeyupHandler = this.onKeydownOrKeyup.bind(this); // for real Enter and Space
             this.options = {};
             this.setOptions(options);
-            var view = this.options.view, eventNames = view.fnAttachPointerEvents("kbdAreaInner" /* ViewID.kbdAreaInner */, this.fnVirtualKeyboardKeydownHandler, undefined, this.fnVirtualKeyboardKeyupHandler);
-            this.eventNames = eventNames;
-            view.dragInit("pageBody" /* ViewID.pageBody */, "kbdArea" /* ViewID.kbdArea */);
+            var view = this.options.view;
+            this.eventNames = this.options.view.fnAttachPointerEvents("kbdAreaInner" /* ViewID.kbdAreaInner */, this.fnVirtualKeyboardKeydownHandler, undefined, this.fnVirtualKeyboardKeyupOrKeyoutHandler);
+            view.addEventListenerById("keydown", this.fnKeydownOrKeyupHandler, "kbdAreaInner" /* ViewID.kbdAreaInner */);
+            view.addEventListenerById("keyup", this.fnKeydownOrKeyupHandler, "kbdAreaInner" /* ViewID.kbdAreaInner */);
             this.virtualKeyboardCreate();
         }
         VirtualKeyboard.prototype.getOptions = function () {
@@ -9019,15 +9084,6 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
         };
         VirtualKeyboard.prototype.setOptions = function (options) {
             Object.assign(this.options, options);
-        };
-        VirtualKeyboard.prototype.getVirtualKeydownHandler = function () {
-            return this.fnVirtualKeyboardKeydownHandler;
-        };
-        VirtualKeyboard.prototype.getVirtualKeyupHandler = function () {
-            return this.fnVirtualKeyboardKeyupHandler;
-        };
-        VirtualKeyboard.prototype.getKeydownOrKeyupHandler = function () {
-            return this.fnKeydownOrKeyupHandler;
         };
         /* eslint-enable array-element-newline */
         VirtualKeyboard.prototype.reset = function () {
@@ -9065,7 +9121,7 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
             };
         };
         VirtualKeyboard.prototype.createButtonRow = function (id, options) {
-            var place = View_1.View.getElementById1(id);
+            var place = View_2.View.getElementById1(id);
             if (place.insertAdjacentElement) {
                 var buttonList = document.createElement("div");
                 buttonList.className = "displayFlex";
@@ -9091,7 +9147,7 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
             return this;
         };
         VirtualKeyboard.prototype.virtualKeyboardCreatePart = function (id, virtualKeyboard) {
-            var keyArea = View_1.View.getElementById1(id), shiftLock = this.shiftLock, numLock = this.numLock, cpcKey2Key = VirtualKeyboard.cpcKey2Key, buttons = keyArea.getElementsByTagName("button");
+            var keyArea = View_2.View.getElementById1(id), shiftLock = this.shiftLock, numLock = this.numLock, cpcKey2Key = VirtualKeyboard.cpcKey2Key, buttons = keyArea.getElementsByTagName("button");
             if (!buttons.length) { // not yet created?
                 for (var row = 0; row < virtualKeyboard.length; row += 1) {
                     var rowList = virtualKeyboard[row], optionsList = [];
@@ -9122,7 +9178,7 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
             this.virtualKeyboardCreatePart("kbdNum" /* ViewID.kbdNum */, VirtualKeyboard.virtualKeyboardNum);
         };
         VirtualKeyboard.prototype.virtualKeyboardAdaptKeys = function (shiftLock, numLock) {
-            var keyArea = View_1.View.getElementById1("kbdAreaInner" /* ViewID.kbdAreaInner */), buttons = keyArea.getElementsByTagName("button"); // or: keyArea.childNodes and filter
+            var keyArea = View_2.View.getElementById1("kbdAreaInner" /* ViewID.kbdAreaInner */), buttons = keyArea.getElementsByTagName("button"); // or: keyArea.childNodes and filter
             for (var i = 0; i < buttons.length; i += 1) {
                 var button = buttons[i];
                 var cpcKey = Number(button.getAttribute("data-key"));
@@ -9148,9 +9204,9 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
             return pressedKey;
         };
         VirtualKeyboard.prototype.onVirtualKeyboardKeydown = function (event) {
-            var node = View_1.View.getEventTarget(event), cpcKey = node.getAttribute("data-key");
-            if (Utils_14.Utils.debug > 1) {
-                Utils_14.Utils.console.debug("onVirtualKeyboardKeydown: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", cpcKey);
+            var node = View_2.View.getEventTarget(event), cpcKey = node.getAttribute("data-key");
+            if (Utils_15.Utils.debug > 1) {
+                Utils_15.Utils.console.debug("onVirtualKeyboardKeydown: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", cpcKey);
             }
             if (cpcKey !== null) {
                 var cpcKeyCode = Number(cpcKey);
@@ -9162,13 +9218,14 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
             }
             // A pointerdown event can also ended by pointerout when leaving the area
             if (this.eventNames.out) {
-                node.addEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyoutHandler, false);
+                //node.addEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyupOrKeyoutHandler, false);
+                this.options.view.addEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyupOrKeyoutHandler, node);
             }
             event.preventDefault();
             return false;
         };
         VirtualKeyboard.prototype.fnVirtualKeyboardKeyupOrKeyout = function (event) {
-            var node = View_1.View.getEventTarget(event), cpcKey = node.getAttribute("data-key");
+            var node = View_2.View.getEventTarget(event), cpcKey = node.getAttribute("data-key");
             if (cpcKey !== null) {
                 var cpcKeyCode = Number(cpcKey);
                 if (this.numLock) {
@@ -9186,30 +9243,35 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
                 }
             }
         };
-        VirtualKeyboard.prototype.onVirtualKeyboardKeyup = function (event) {
-            var node = View_1.View.getEventTarget(event);
-            if (Utils_14.Utils.debug > 1) {
-                Utils_14.Utils.console.debug("onVirtualKeyboardKeyup: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", node.getAttribute("data-key"));
+        VirtualKeyboard.prototype.onVirtualKeyboardKeyupOrKeyout = function (event) {
+            var node = View_2.View.getEventTarget(event);
+            if (Utils_15.Utils.debug > 1) {
+                Utils_15.Utils.console.debug("onVirtualKeyboardKeyupOrKeyout: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", node.getAttribute("data-key"));
             }
             this.fnVirtualKeyboardKeyupOrKeyout(event);
+            if (this.eventNames.out) {
+                //node.removeEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyupOrKeyoutHandler); // do not need out event any more for this key
+                this.options.view.removeEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyupOrKeyoutHandler, node);
+            }
+            event.preventDefault();
+            return false;
+        };
+        /*
+        private onVirtualKeyboardKeyout(event: PointerEvent) {
+            const node = View.getEventTarget<HTMLElement>(event);
+    
+            if (Utils.debug > 1) {
+                Utils.console.debug("onVirtualKeyboardKeyout: event=", event);
+            }
+            this.fnVirtualKeyboardKeyupOrKeyout(event);
+    
             if (this.eventNames.out) {
                 node.removeEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyoutHandler); // do not need out event any more for this key
             }
             event.preventDefault();
             return false;
-        };
-        VirtualKeyboard.prototype.onVirtualKeyboardKeyout = function (event) {
-            var node = View_1.View.getEventTarget(event);
-            if (Utils_14.Utils.debug > 1) {
-                Utils_14.Utils.console.debug("onVirtualKeyboardKeyout: event=", event);
-            }
-            this.fnVirtualKeyboardKeyupOrKeyout(event);
-            if (this.eventNames.out) {
-                node.removeEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyoutHandler); // do not need out event any more for this key
-            }
-            event.preventDefault();
-            return false;
-        };
+        }
+        */
         VirtualKeyboard.keyIdentifier2Char = function (event) {
             // SliTaz web browser has not key but keyIdentifier
             var identifier = event.keyIdentifier, // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -9242,16 +9304,29 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
                     this.onVirtualKeyboardKeydown(simPointerEvent);
                 }
                 else if (event.type === "keyup") {
-                    this.onVirtualKeyboardKeyup(simPointerEvent);
+                    this.onVirtualKeyboardKeyupOrKeyout(simPointerEvent);
                 }
                 else {
-                    Utils_14.Utils.console.error("onKeydownOrKeyup: Unknown type:", event.type);
+                    Utils_15.Utils.console.error("onKeydownOrKeyup: Unknown type:", event.type);
                 }
                 event.preventDefault();
                 return false;
             }
             return undefined;
         };
+        /*
+        getVirtualKeydownHandler(): typeof this.fnVirtualKeyboardKeydownHandler {
+            return this.fnVirtualKeyboardKeydownHandler;
+        }
+    
+        getVirtualKeyupHandler(): typeof this.fnVirtualKeyboardKeyupOrKeyoutHandler {
+            return this.fnVirtualKeyboardKeyupOrKeyoutHandler;
+        }
+    
+        getKeydownOrKeyupHandler(): (event: Event) => boolean {
+            return this.fnKeydownOrKeyupHandler;
+        }
+        */
         VirtualKeyboard.cpcKey2Key = [
             {
                 keys: "38ArrowUp",
@@ -9789,7 +9864,7 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
 // https://benchmarko.github.io/CPCBasicTS/
 //
 /* globals ArrayBuffer, Uint8Array, Uint32Array */
-define("Canvas", ["require", "exports", "Utils", "View"], function (require, exports, Utils_15, View_2) {
+define("Canvas", ["require", "exports", "Utils", "View"], function (require, exports, Utils_16, View_3) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Canvas = void 0;
@@ -9831,12 +9906,12 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
             this.options = {};
             this.setOptions(options, true);
-            var canvas = View_2.View.getElementByIdAs(this.options.canvasID);
+            var canvas = View_3.View.getElementByIdAs(this.options.canvasID);
             this.canvas = canvas;
-            this.cpcAreaBox = View_2.View.getElementById1("cpcArea" /* ViewID.cpcArea */);
+            this.cpcAreaBox = View_3.View.getElementById1("cpcArea" /* ViewID.cpcArea */);
             // make sure canvas is not hidden (allows to get width, height, set style)
             if (canvas.offsetParent === null) {
-                Utils_15.Utils.console.error("Error: canvas is not visible!");
+                Utils_16.Utils.console.error("Error: canvas is not visible!");
             }
             var width = canvas.width, height = canvas.height;
             this.width = width;
@@ -9852,17 +9927,17 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
                     this.pen2Color32 = new Uint32Array(new ArrayBuffer(Canvas.modeData[3].pens * 4));
                     this.data32 = new Uint32Array(this.imageData.data.buffer);
                     this.use32BitCopy = true;
-                    Utils_15.Utils.console.log("Canvas: using optimized copy2Canvas32bit, littleEndian:", this.littleEndian);
+                    Utils_16.Utils.console.log("Canvas: using optimized copy2Canvas32bit, littleEndian:", this.littleEndian);
                 }
                 else {
                     this.setAlpha(255);
                     this.use32BitCopy = false;
-                    Utils_15.Utils.console.log("Canvas: using copy2Canvas8bit");
+                    Utils_16.Utils.console.log("Canvas: using copy2Canvas8bit");
                 }
                 this.fnCopy2Canvas = this.getCopy2CanvasFunction(this.offset);
             }
             else {
-                Utils_15.Utils.console.warn("Error: canvas.getContext is not supported.");
+                Utils_16.Utils.console.warn("Error: canvas.getContext is not supported.");
                 // not available on e.g. IE8, nodeJS
                 this.fnCopy2Canvas = function () {
                     // nothing
@@ -10260,7 +10335,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
                             this.dataset8[i] |= gPen;
                             break;
                         default:
-                            Utils_15.Utils.console.warn("setSubPixels: Unknown colMode:", gColMode);
+                            Utils_16.Utils.console.warn("setSubPixels: Unknown colMode:", gColMode);
                             break;
                     }
                     i += 1;
@@ -10502,7 +10577,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         Canvas.prototype.printGChar = function (char) {
             var charWidth = this.modeData.pixelWidth * 8;
             if (char >= this.options.charset.length) {
-                Utils_15.Utils.console.warn("printGChar: Ignoring char with code", char);
+                Utils_16.Utils.console.warn("printGChar: Ignoring char with code", char);
                 return;
             }
             this.setChar(char, this.xPos, this.yPos, this.gPen, this.gPaper, this.gTransparent, this.gColMode, true);
@@ -10512,7 +10587,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
         Canvas.prototype.printChar = function (char, x, y, pen, paper, transparent) {
             var charWidth = this.modeData.pixelWidth * 8, charHeight = this.modeData.pixelHeight * 8, pens = this.modeData.pens;
             if (char >= this.options.charset.length) {
-                Utils_15.Utils.console.warn("printChar: Ignoring char with code", char);
+                Utils_16.Utils.console.warn("printChar: Ignoring char with code", char);
                 return;
             }
             pen %= pens;
@@ -10753,7 +10828,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
             if (this.canvas.toDataURL) {
                 return this.canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"); // here is the most important part because if you do not replace you will get a DOM 18 exception.
             }
-            Utils_15.Utils.console.warn("Screenshot not available");
+            Utils_16.Utils.console.warn("Screenshot not available");
             return "";
         };
         // http://www.cpcwiki.eu/index.php/CPC_Palette
@@ -10829,7 +10904,7 @@ define("Canvas", ["require", "exports", "Utils", "View"], function (require, exp
 // (c) Marco Vieth, 2022
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("TextCanvas", ["require", "exports", "View"], function (require, exports, View_3) {
+define("TextCanvas", ["require", "exports", "View"], function (require, exports, View_4) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.TextCanvas = void 0;
@@ -10844,8 +10919,8 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
             this.customCharset = {};
             this.options = {};
             this.setOptions(options);
-            this.textText = View_3.View.getElementByIdAs(this.options.canvasID);
-            this.cpcAreaBox = View_3.View.getElementById1("cpcArea" /* ViewID.cpcArea */);
+            this.textText = View_4.View.getElementByIdAs(this.options.canvasID);
+            this.cpcAreaBox = View_4.View.getElementById1("cpcArea" /* ViewID.cpcArea */);
             this.fnUpdateCanvasHandler = this.updateCanvas.bind(this);
             this.fnUpdateCanvas2Handler = this.updateCanvas2.bind(this);
             this.cols = parseFloat(this.textText.getAttribute("cols") || "0");
@@ -11194,7 +11269,7 @@ define("TextCanvas", ["require", "exports", "View"], function (require, exports,
 });
 // NodeAdapt.ts - Adaptations for nodeJS
 //
-define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports, Utils_16) {
+define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports, Utils_17) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.NodeAdapt = void 0;
@@ -11257,7 +11332,7 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
                         if (type === "option") {
                             return {};
                         }
-                        Utils_16.Utils.console.error("createElement: unknown type", type);
+                        Utils_17.Utils.console.error("createElement: unknown type", type);
                         return {};
                     }
                 },
@@ -11283,7 +11358,7 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
             view.prototype.setAreaValue = function (id, value) {
                 if (id === "resultText" /* ViewID.resultText */) {
                     if (value) {
-                        Utils_16.Utils.console.log(value);
+                        Utils_17.Utils.console.log(value);
                     }
                 }
                 return setAreaValueOrig(id, value);
@@ -11293,7 +11368,7 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
             var controller = nodeExports.Controller;
             controller.prototype.startWithDirectInput = function () {
                 this.stopUpdateCanvas();
-                Utils_16.Utils.console.log("We are ready.");
+                Utils_17.Utils.console.log("We are ready.");
             };
             function isUrl(s) {
                 return s.startsWith("http"); // http or https
@@ -11313,7 +11388,7 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
                         fnDataLoaded(undefined, data);
                     });
                 }).on("error", function (err) {
-                    Utils_16.Utils.console.log("Error: " + err.message);
+                    Utils_17.Utils.console.log("Error: " + err.message);
                     fnDataLoaded(err);
                 });
             }
@@ -11326,7 +11401,7 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
                     fnEval('module = require("module");'); // to trick TypeScript
                     modulePath = module.path || "";
                     if (!modulePath) {
-                        Utils_16.Utils.console.warn("nodeReadFile: Cannot determine module path");
+                        Utils_17.Utils.console.warn("nodeReadFile: Cannot determine module path");
                     }
                 }
                 var name2 = modulePath ? modulePath + "/" + name : name;
@@ -11336,7 +11411,7 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
             utils.loadScript = function (fileOrUrl, fnSuccess, _fnError, key) {
                 var fnLoaded = function (error, data) {
                     if (error) {
-                        Utils_16.Utils.console.error("file error: ", error);
+                        Utils_17.Utils.console.error("file error: ", error);
                     }
                     if (data) {
                         fnEval(data); // load js (for nodeJs)
@@ -11359,7 +11434,7 @@ define("NodeAdapt", ["require", "exports", "Utils"], function (require, exports,
 // CommonEventHandler.ts - Common event handler for browser events
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
-define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (require, exports, Utils_17, View_4) {
+define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (require, exports, Utils_18, View_5) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CommonEventHandler = void 0;
@@ -11389,29 +11464,29 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                 if (eventDef.toggleId) {
                     var isEnabled = this.model.getProperty(eventDef.property);
                     this.view.setHidden(eventDef.toggleId, !isEnabled, eventDef.display);
-                    if (Utils_17.Utils.debug > 3) {
-                        Utils_17.Utils.console.debug("initToggles: setHidden: togglId:", eventDef.toggleId, ", property:", eventDef.property, ", hidden:", !isEnabled, ", display:", eventDef.display);
+                    if (Utils_18.Utils.debug > 3) {
+                        Utils_18.Utils.console.debug("initToggles: setHidden: togglId:", eventDef.toggleId, ", property:", eventDef.property, ", hidden:", !isEnabled, ", display:", eventDef.display);
                     }
                 }
                 if (eventDef.viewType === "checked") {
                     var isEnabled2 = this.model.getProperty(eventDef.property);
                     this.view.setInputChecked(id, isEnabled2);
-                    if (Utils_17.Utils.debug > 3) {
-                        Utils_17.Utils.console.debug("initToggles: checked: id:", id, ", property:", eventDef.property, ", checked:", isEnabled2);
+                    if (Utils_18.Utils.debug > 3) {
+                        Utils_18.Utils.console.debug("initToggles: checked: id:", id, ", property:", eventDef.property, ", checked:", isEnabled2);
                     }
                 }
                 else if (eventDef.viewType === "select") {
                     var value = this.model.getProperty(eventDef.property);
                     this.view.setSelectValue(id, value);
-                    if (Utils_17.Utils.debug > 3) {
-                        Utils_17.Utils.console.debug("initToggles: select: id:", id, ", property:", eventDef.property, ", value:", value);
+                    if (Utils_18.Utils.debug > 3) {
+                        Utils_18.Utils.console.debug("initToggles: select: id:", id, ", property:", eventDef.property, ", value:", value);
                     }
                 }
                 else if (eventDef.viewType === "numberInput") {
                     var value = this.model.getProperty(eventDef.property);
                     this.view.setInputValue(id, String(value));
-                    if (Utils_17.Utils.debug > 3) {
-                        Utils_17.Utils.console.debug("initToggles: numberInput: id:", id, ", property:", eventDef.property, ", value:", value);
+                    if (Utils_18.Utils.debug > 3) {
+                        Utils_18.Utils.console.debug("initToggles: numberInput: id:", id, ", property:", eventDef.property, ", value:", value);
                     }
                 }
             }
@@ -11432,14 +11507,14 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
         };
         CommonEventHandler.getToggleId = function (eventDef) {
             if (!eventDef.toggleId) {
-                Utils_17.Utils.console.error("getToggleId: id=" + eventDef.id + ": toggleId missing!");
+                Utils_18.Utils.console.error("getToggleId: id=" + eventDef.id + ": toggleId missing!");
                 return ""; //TTT
             }
             return eventDef.toggleId;
         };
         CommonEventHandler.getproperty = function (eventDef) {
             if (!eventDef.property) {
-                Utils_17.Utils.console.error("setPopoversHiddenExcept: id=" + eventDef.id + ": property missing!");
+                Utils_18.Utils.console.error("setPopoversHiddenExcept: id=" + eventDef.id + ": property missing!");
                 return ""; //TTT
             }
             return eventDef.property;
@@ -11477,7 +11552,7 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
         CommonEventHandler.prototype.getEventDefById = function (type, id) {
             var eventDefForType = this.eventDefInternalMap[type], eventDef = eventDefForType[id];
             if (!eventDef) {
-                Utils_17.Utils.console.error("getEventDefById: type=" + type + ", id=" + id + ": No eventDef!");
+                Utils_18.Utils.console.error("getEventDefById: type=" + type + ", id=" + id + ": No eventDef!");
             }
             return eventDef;
         };
@@ -11488,6 +11563,7 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
         CommonEventHandler.prototype.onCheckedChange = function (eventDef) {
             var id = eventDef.id, property = CommonEventHandler.getproperty(eventDef), checked = this.view.getInputChecked(id);
             this.model.setProperty(property, checked);
+            return checked;
         };
         CommonEventHandler.prototype.onNumberInputChange = function (eventDef) {
             var id = eventDef.id, property = CommonEventHandler.getproperty(eventDef), valueAsString = this.view.getInputValue(id), value = Number(valueAsString);
@@ -11534,21 +11610,21 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             window.open("https://github.com/benchmarko/CPCBasicTS/#readme");
         };
         CommonEventHandler.prototype.onGalleryItemClick = function (_eventDef, event) {
-            var target = View_4.View.getEventTarget(event), value = target.value;
+            var target = View_5.View.getEventTarget(event), value = target.value;
             this.view.setSelectValue("exampleSelect" /* ViewID.exampleSelect */, value);
             this.setPopoversHiddenExcept(); // close
             this.controller.onExampleSelectChange();
         };
         // eslint-disable-next-line class-methods-use-this
         CommonEventHandler.prototype.onCopyTextButtonClick = function () {
-            var textText = View_4.View.getElementByIdAs("textText" /* ViewID.textText */);
+            var textText = View_5.View.getElementByIdAs("textText" /* ViewID.textText */);
             textText.select();
             this.view.setAreaSelection("textText" /* ViewID.textText */, 0, 99999); // for mobile devices
             if (window.navigator && window.navigator.clipboard) {
                 window.navigator.clipboard.writeText(textText.value);
             }
             else {
-                Utils_17.Utils.console.warn("Copy to clipboard not available");
+                Utils_18.Utils.console.warn("Copy to clipboard not available");
             }
         };
         CommonEventHandler.encodeUriParam = function (params) {
@@ -11591,7 +11667,11 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
         };
         CommonEventHandler.prototype.onDebugInputChange = function (eventDef) {
             var value = this.onNumberInputChange(eventDef);
-            Utils_17.Utils.debug = value;
+            Utils_18.Utils.debug = value;
+        };
+        CommonEventHandler.prototype.onDragElementsInputChange = function (eventDef) {
+            var checked = this.onCheckedChange(eventDef);
+            this.controller.fnDragElementsActive(checked);
         };
         CommonEventHandler.prototype.onShowCpcInputChange = function (eventDef) {
             if (this.toggleAreaHidden(eventDef)) {
@@ -11615,7 +11695,7 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             this.controller.setSoundActive();
         };
         CommonEventHandler.prototype.onScreenshotButtonClick = function () {
-            var example = this.view.getSelectValue("exampleSelect" /* ViewID.exampleSelect */), image = this.controller.startScreenshot(), link = View_4.View.getElementById1("screenshotLink" /* ViewID.screenshotLink */), name = example + ".png";
+            var example = this.view.getSelectValue("exampleSelect" /* ViewID.exampleSelect */), image = this.controller.startScreenshot(), link = View_5.View.getElementById1("screenshotLink" /* ViewID.screenshotLink */), name = example + ".png";
             if (image) {
                 link.setAttribute("download", name);
                 link.setAttribute("href", image);
@@ -11626,9 +11706,9 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             this.view.setAreaValue("inp2Text" /* ViewID.inp2Text */, ""); // delete input
         };
         CommonEventHandler.onFullscreenButtonClick = function () {
-            var switched = View_4.View.requestFullscreenForId("cpcCanvas" /* ViewID.cpcCanvas */); // make sure to use an element with tabindex set to get keyboard events
+            var switched = View_5.View.requestFullscreenForId("cpcCanvas" /* ViewID.cpcCanvas */); // make sure to use an element with tabindex set to get keyboard events
             if (!switched) {
-                Utils_17.Utils.console.warn("Switch to fullscreen not available");
+                Utils_18.Utils.console.warn("Switch to fullscreen not available");
             }
         };
         CommonEventHandler.prototype.onCpcCanvasClick = function (_eventDef, event) {
@@ -11853,6 +11933,12 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                         func: this.onKbdLayoutSelectChange
                     },
                     {
+                        id: "dragElementsInput" /* ViewID.dragElementsInput */,
+                        viewType: "checked",
+                        property: "dragElements" /* ModelPropID.dragElements */,
+                        func: this.onDragElementsInputChange
+                    },
+                    {
                         id: "outputText" /* ViewID.outputText */,
                         controllerFunc: this.controller.invalidateScript
                     },
@@ -11902,7 +11988,6 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                         viewType: "checked",
                         toggleId: "kbdArea" /* ViewID.kbdArea */,
                         property: "showKbd" /* ModelPropID.showKbd */,
-                        display: "flex",
                         func: this.onShowKbdInputChange
                     },
                     {
@@ -11967,7 +12052,7 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             }
         };
         CommonEventHandler.prototype.handleEvent = function (event) {
-            var target = View_4.View.getEventTarget(event), type = event.type; // click or change
+            var target = View_5.View.getEventTarget(event), type = event.type; // click or change
             var id = (target) ? target.getAttribute("id") : String(target);
             if (this.fnUserAction) {
                 this.fnUserAction(event, id);
@@ -11981,8 +12066,8 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                 }
                 if (this.eventDefInternalMap[type] && this.eventDefInternalMap[type][id]) {
                     var eventDef = this.eventDefInternalMap[type][id];
-                    if (Utils_17.Utils.debug) {
-                        Utils_17.Utils.console.debug("handleEvent: " + type + ", " + id + ":", eventDef);
+                    if (Utils_18.Utils.debug) {
+                        Utils_18.Utils.console.debug("handleEvent: " + type + ", " + id + ":", eventDef);
                     }
                     if (eventDef.func) {
                         eventDef.func.call(this, eventDef, event);
@@ -11992,11 +12077,11 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                     }
                 }
                 else if (!id.endsWith("Select") && !id.endsWith("Input")) { // do not print all messages; these are usually handled by change
-                    Utils_17.Utils.console.log("handleEvent: " + type + ", " + id + ": No handler");
+                    Utils_18.Utils.console.log("handleEvent: " + type + ", " + id + ": No handler");
                 }
             }
-            else if (Utils_17.Utils.debug) {
-                Utils_17.Utils.console.log("handleEvent: " + type + ": unknown target:", target.tagName, target.id);
+            else if (Utils_18.Utils.debug) {
+                Utils_18.Utils.console.log("handleEvent: " + type + ": unknown target:", target.tagName, target.id);
             }
             if (type === "click") { // special
                 if (id !== "cpcCanvas" /* ViewID.cpcCanvas */ && id !== "textText" /* ViewID.textText */) {
@@ -12048,7 +12133,7 @@ define("Random", ["require", "exports"], function (require, exports) {
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("Sound", ["require", "exports", "Utils"], function (require, exports, Utils_18) {
+define("Sound", ["require", "exports", "Utils"], function (require, exports, Utils_19) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Sound = void 0;
@@ -12074,7 +12159,7 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
                     rendevousMask: 0
                 };
             }
-            if (Utils_18.Utils.debug > 1) {
+            if (Utils_19.Utils.debug > 1) {
                 this.debugLogList = []; // access: cpcBasic.controller.sound.debugLog
             }
         }
@@ -12148,7 +12233,7 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
                 }
             }
             catch (e) {
-                Utils_18.Utils.console.warn("createSoundContext:", e);
+                Utils_19.Utils.console.warn("createSoundContext:", e);
                 this.contextNotAvailable = true;
             }
             var oldContextStartTime = this.contextStartTime;
@@ -12320,7 +12405,7 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
             return fDuration;
         };
         Sound.prototype.scheduleNote = function (oscillator, fTime, soundData) {
-            if (Utils_18.Utils.debug > 1) {
+            if (Utils_19.Utils.debug > 1) {
                 this.debugLog("scheduleNote: " + oscillator + " " + fTime);
             }
             if (!this.isSoundOn) {
@@ -12331,8 +12416,8 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
             oscillatorNode.frequency.value = (soundData.period >= 3) ? 62500 / soundData.period : 0;
             oscillatorNode.connect(this.gainNodes[oscillator]);
             if (fTime < context.currentTime) {
-                if (Utils_18.Utils.debug) {
-                    Utils_18.Utils.console.debug("Test: sound: scheduleNote:", fTime, "<", context.currentTime);
+                if (Utils_19.Utils.debug) {
+                    Utils_19.Utils.console.debug("Test: sound: scheduleNote:", fTime, "<", context.currentTime);
                 }
             }
             var volume = soundData.volume, gain = this.gainNodes[oscillator].gain, maxVolume = 15, fVolume = volume / maxVolume;
@@ -12390,7 +12475,7 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
                         this.stopOscillator(i);
                     }
                     queue.soundData.push(soundData); // just a reference
-                    if (Utils_18.Utils.debug > 1) {
+                    if (Utils_19.Utils.debug > 1) {
                         this.debugLog("sound: " + i + " " + state + ":" + queue.soundData.length);
                     }
                     this.updateQueueStatus(i, queue);
@@ -12465,7 +12550,7 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
             if (!queues.length) {
                 return;
             }
-            if (Utils_18.Utils.debug > 1) {
+            if (Utils_19.Utils.debug > 1) {
                 this.debugLog("release: " + releaseMask);
             }
             for (var i = 0; i < 3; i += 1) {
@@ -12511,8 +12596,8 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
                     this.mergerNode.connect(this.context.destination);
                 }
                 this.isSoundOn = true;
-                if (Utils_18.Utils.debug) {
-                    Utils_18.Utils.console.debug("soundOn: Sound switched on");
+                if (Utils_19.Utils.debug) {
+                    Utils_19.Utils.console.debug("soundOn: Sound switched on");
                 }
             }
             return Boolean(this.context); // true if sound is available
@@ -12523,8 +12608,8 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
                     this.mergerNode.disconnect(this.context.destination);
                 }
                 this.isSoundOn = false;
-                if (Utils_18.Utils.debug) {
-                    Utils_18.Utils.console.debug("soundOff: Sound switched off");
+                if (Utils_19.Utils.debug) {
+                    Utils_19.Utils.console.debug("soundOff: Sound switched off");
                 }
             }
         };
@@ -12536,7 +12621,7 @@ define("Sound", ["require", "exports", "Utils"], function (require, exports, Uti
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("ZipFile", ["require", "exports", "Utils"], function (require, exports, Utils_19) {
+define("ZipFile", ["require", "exports", "Utils"], function (require, exports, Utils_20) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.ZipFile = void 0;
@@ -12562,7 +12647,7 @@ define("ZipFile", ["require", "exports", "Utils"], function (require, exports, U
         };
         ZipFile.prototype.composeError = function (error, message, value, pos) {
             message = this.options.zipName + ": " + message; // put zipname in message
-            return Utils_19.Utils.composeError("ZipFile", error, message, value, pos);
+            return Utils_20.Utils.composeError("ZipFile", error, message, value, pos);
         };
         ZipFile.prototype.subArr = function (begin, length) {
             var data = this.data, end = begin + length;
@@ -12670,7 +12755,7 @@ define("ZipFile", ["require", "exports", "Utils"], function (require, exports, U
                 cdfh.timestamp = new Date(((dostime >> 25) & 0x7F) + 1980, ((dostime >> 21) & 0x0F) - 1, (dostime >> 16) & 0x1F, (dostime >> 11) & 0x1F, (dostime >> 5) & 0x3F, (dostime & 0x1F) << 1).getTime(); // eslint-disable-line no-bitwise
                 // local file header... much more info
                 if (this.readUInt(cdfh.localOffset) !== lfhSignature) {
-                    Utils_19.Utils.console.error("Zip: readZipDirectory: LFH signature not found at offset", cdfh.localOffset);
+                    Utils_20.Utils.console.error("Zip: readZipDirectory: LFH signature not found at offset", cdfh.localOffset);
                 }
                 var lfhExtrafieldLength = this.readUShort(cdfh.localOffset + 28); // extra field length
                 cdfh.dataStart = cdfh.localOffset + lfhLen + cdfh.name.length + lfhExtrafieldLength;
@@ -12922,7 +13007,7 @@ define("ZipFile", ["require", "exports", "Utils"], function (require, exports, U
                 throw this.composeError(Error(), "Zip: readData: compression method not supported:" + cdfh.compressionMethod, "", 0);
             }
             if (dataUTF8.length !== cdfh.size) { // assert
-                Utils_19.Utils.console.error("Zip: readData: different length 2!");
+                Utils_20.Utils.console.error("Zip: readData: different length 2!");
             }
             return dataUTF8;
         };
@@ -12973,7 +13058,7 @@ define("CpcVmRsx", ["require", "exports"], function (require, exports) {
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function (require, exports, Utils_20, Random_1, CpcVmRsx_1) {
+define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function (require, exports, Utils_21, Random_1, CpcVmRsx_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CpcVm = void 0;
@@ -13304,8 +13389,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                     this.onClickKey(String.fromCharCode(char));
                 }
             }
-            if (Utils_20.Utils.debug > 0) {
-                Utils_20.Utils.console.debug("onCanvasClickCallback: x", x, "y", y, "xTxt", xTxt, "yTxt", yTxt, "char", char);
+            if (Utils_21.Utils.debug > 0) {
+                Utils_21.Utils.console.debug("onCanvasClickCallback: x", x, "y", y, "xTxt", xTxt, "yTxt", yTxt, "char", char);
             }
         };
         CpcVm.prototype.vmRegisterRsx = function (rsxModule, permanent) {
@@ -13361,7 +13446,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             this.vmAssertNumber(n, err);
             if (n < min || n > max) {
                 if (!this.quiet) {
-                    Utils_20.Utils.console.warn("vmAssertInRange: number not in range:", min + "<=" + n + "<=" + max);
+                    Utils_21.Utils.console.warn("vmAssertInRange: number not in range:", min + "<=" + n + "<=" + max);
                 }
                 throw this.vmComposeError(Error(), 5, err + " " + n); // 5=Improper argument
             }
@@ -13376,7 +13461,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             n = this.vmRound(n, err);
             if (n < min || n > max) {
                 if (!this.quiet) {
-                    Utils_20.Utils.console.warn("vmInRangeRound: number not in range:", min + "<=" + n + "<=" + max);
+                    Utils_21.Utils.console.warn("vmInRangeRound: number not in range:", min + "<=" + n + "<=" + max);
                 }
                 throw this.vmComposeError(Error(), n < -32768 || n > 32767 ? 6 : 5, err + " " + n); // 6=Overflow, 5=Improper argument
             }
@@ -13389,7 +13474,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             }
             if (n < min || n > max) {
                 if (!this.quiet) {
-                    Utils_20.Utils.console.warn("vmLineInRange: number not in range:", min + "<=" + n + "<=" + max);
+                    Utils_21.Utils.console.warn("vmLineInRange: number not in range:", min + "<=" + n + "<=" + max);
                 }
                 throw this.vmComposeError(Error(), 5, err + " " + n); // 5=Improper argument
             }
@@ -13431,7 +13516,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             else if (type === "$") { // string
                 if (typeof value !== "string") {
                     if (!this.quiet) {
-                        Utils_20.Utils.console.warn("vmAssign: expected string but got:", value);
+                        Utils_21.Utils.console.warn("vmAssign: expected string but got:", value);
                     }
                     throw this.vmComposeError(Error(), 13, "type " + type + "=" + value); // "Type mismatch"
                 }
@@ -13559,7 +13644,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
         CpcVm.prototype.vmStop = function (reason, priority, force, paras) {
             var defaultPriority = CpcVm.stopPriority[reason];
             if (defaultPriority === undefined) {
-                Utils_20.Utils.console.warn("Programming error: vmStop: Unknown reason:", reason);
+                Utils_21.Utils.console.warn("Programming error: vmStop: Unknown reason:", reason);
             }
             priority = priority || 0;
             if (priority !== 0) {
@@ -13572,8 +13657,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             }
         };
         CpcVm.prototype.vmNotImplemented = function (name) {
-            if (Utils_20.Utils.debug > 0) {
-                Utils_20.Utils.console.debug("Not implemented:", name);
+            if (Utils_21.Utils.debug > 0) {
+                Utils_21.Utils.console.debug("Not implemented:", name);
             }
         };
         CpcVm.prototype.vmUsingStringFormat = function (format, arg) {
@@ -13611,7 +13696,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                 str = arg.toFixed(decimals);
             }
             if (format.indexOf(",") >= 0) { // contains comma => insert thousands separator
-                str = Utils_20.Utils.numberWithCommas(str);
+                str = Utils_21.Utils.numberWithCommas(str);
             }
             var padLen = format.length - str.length, pad = (padLen > 0) ? padChar.repeat(padLen) : "";
             str = pad + str;
@@ -13762,7 +13847,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
         CpcVm.prototype.atn = function (n) {
             this.vmAssertNumber(n, "ATN");
             n = Math.atan(n);
-            return this.degFlag ? Utils_20.Utils.toDegrees(n) : n;
+            return this.degFlag ? Utils_21.Utils.toDegrees(n) : n;
         };
         CpcVm.prototype.auto = function (line, increment) {
             line = line === undefined ? 10 : this.vmLineInRange(line, "AUTO");
@@ -13969,8 +14054,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                     break;
                 default:
                     if (!(_a = this.rsx).callRsx.apply(_a, __spreadArray([this, "&" + addr.toString(16).toLowerCase().padStart(4, "0")], args, false))) { // maybe user defined addr
-                        if (Utils_20.Utils.debug > 0) {
-                            Utils_20.Utils.console.debug("Ignored: CALL", addr, args);
+                        if (Utils_21.Utils.debug > 0) {
+                            Utils_21.Utils.console.debug("Ignored: CALL", addr, args);
                         }
                     }
                     break;
@@ -14083,7 +14168,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             if (outFile.open) {
                 if (outFile.command !== "openout") {
                     if (!this.quiet) {
-                        Utils_20.Utils.console.warn("closeout: command=", outFile.command); // should not occur
+                        Utils_21.Utils.console.warn("closeout: command=", outFile.command); // should not occur
                     }
                 }
                 if (!outFile.fileData.length) { // openout without data?
@@ -14139,7 +14224,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
         };
         CpcVm.prototype.cos = function (n) {
             this.vmAssertNumber(n, "COS");
-            return Math.cos((this.degFlag) ? Utils_20.Utils.toRadians(n) : n);
+            return Math.cos((this.degFlag) ? Utils_21.Utils.toRadians(n) : n);
         };
         CpcVm.prototype.creal = function (n) {
             this.vmAssertNumber(n, "CREAL");
@@ -14311,7 +14396,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             }
             else { // 0
                 if (!this.quiet) {
-                    Utils_20.Utils.console.warn("ENT: toneEnv", toneEnv);
+                    Utils_21.Utils.console.warn("ENT: toneEnv", toneEnv);
                 }
                 throw this.vmComposeError(Error(), 5, "ENT " + toneEnv); // Improper argument
             }
@@ -14392,7 +14477,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                 }
                 else {
                     if (!this.quiet) {
-                        Utils_20.Utils.console.warn("erase: Array variable not found:", args[i]);
+                        Utils_21.Utils.console.warn("erase: Array variable not found:", args[i]);
                     }
                     throw this.vmComposeError(Error(), 5, "ERASE " + args[i]); // Improper argument
                 }
@@ -14421,10 +14506,10 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                 this.vmStop("error", 50);
             }
             if (!this.quiet) {
-                Utils_20.Utils.console.log("BASIC error(" + err + "):", errorWithInfo + (hidden ? " (hidden: " + hidden + ")" : ""));
+                Utils_21.Utils.console.log("BASIC error(" + err + "):", errorWithInfo + (hidden ? " (hidden: " + hidden + ")" : ""));
             }
             var traceLine = this.line, sourceMapEntry = this.sourceMap[traceLine], pos = sourceMapEntry && sourceMapEntry[0], len = sourceMapEntry && sourceMapEntry[1];
-            return Utils_20.Utils.composeError("CpcVm", error, errorString, errInfo, pos, len, this.line, hidden);
+            return Utils_21.Utils.composeError("CpcVm", error, errorString, errInfo, pos, len, this.line, hidden);
         };
         CpcVm.prototype.error = function (err, errInfo) {
             err = this.vmInRangeRound(err, 0, 255, "ERROR"); // could trigger another error
@@ -14542,8 +14627,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
         CpcVm.prototype.vmInputCallback = function () {
             var inputParas = this.vmGetStopObject().paras, stream = inputParas.stream, input = inputParas.input, inputValues = input.split(","), convertedInputValues = [], types = inputParas.types;
             var inputOk = true;
-            if (Utils_20.Utils.debug > 0) {
-                Utils_20.Utils.console.debug("vmInputCallback:", input);
+            if (Utils_21.Utils.debug > 0) {
+                Utils_21.Utils.console.debug("vmInputCallback:", input);
             }
             if (types && (inputValues.length === types.length)) {
                 for (var i = 0; i < types.length; i += 1) {
@@ -14743,8 +14828,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
         // let
         CpcVm.prototype.vmLineInputCallback = function () {
             var inputParas = this.vmGetStopObject().paras, input = inputParas.input;
-            if (Utils_20.Utils.debug > 0) {
-                Utils_20.Utils.console.debug("vmLineInputCallback:", input);
+            if (Utils_21.Utils.debug > 0) {
+                Utils_21.Utils.console.debug("vmLineInputCallback:", input);
             }
             this.vmSetInputValues([input]);
             this.cursor(inputParas.stream, 0);
@@ -14824,8 +14909,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                     if (isNaN(length_1)) {
                         length_1 = input.length; // only valid after atob()
                     }
-                    if (Utils_20.Utils.debug > 1) {
-                        Utils_20.Utils.console.debug("vmLoadCallback:", inFile.name + ": putting data in memory", start, "-", start + length_1);
+                    if (Utils_21.Utils.debug > 1) {
+                        Utils_21.Utils.console.debug("vmLoadCallback:", inFile.name + ": putting data in memory", start, "-", start + length_1);
                     }
                     if (meta.typeString === "S") {
                         for (var i = 0; i < length_1; i += 1) {
@@ -14917,7 +15002,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             }
             else if (args.length === 1) { // if just one argument, return it, even if it is a string
                 if (typeof args[0] !== "number" && !this.quiet) {
-                    Utils_20.Utils.console.warn("MAX: Not a number:", args[0]);
+                    Utils_21.Utils.console.warn("MAX: Not a number:", args[0]);
                 }
                 return args[0];
             }
@@ -14975,7 +15060,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             }
             else if (args.length === 1) { // if just one argument, return it, even if it is a string
                 if (typeof args[0] !== "number" && !this.quiet) {
-                    Utils_20.Utils.console.warn("MIN: Not a number:", args[0]);
+                    Utils_21.Utils.console.warn("MIN: Not a number:", args[0]);
                 }
                 return args[0];
             }
@@ -15052,8 +15137,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             n = this.vmInRangeRound(n, 0, 255, "ON GOSUB");
             var line;
             if (!n || n > args.length) { // out of range? => continue with line after onGosub
-                if (Utils_20.Utils.debug > 1) {
-                    Utils_20.Utils.console.debug("onGosub: out of range: n=" + n + " in " + this.line);
+                if (Utils_21.Utils.debug > 1) {
+                    Utils_21.Utils.console.debug("onGosub: out of range: n=" + n + " in " + this.line);
                 }
                 line = retLabel;
             }
@@ -15074,8 +15159,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             n = this.vmInRangeRound(n, 0, 255, "ON GOTO");
             var line;
             if (!n || n > args.length) { // out of range? => continue with line after onGoto
-                if (Utils_20.Utils.debug > 1) {
-                    Utils_20.Utils.console.debug("onGoto: out of range: n=" + n + " in " + this.line);
+                if (Utils_21.Utils.debug > 1) {
+                    Utils_21.Utils.console.debug("onGoto: out of range: n=" + n + " in " + this.line);
                 }
                 line = retLabel;
             }
@@ -15193,8 +15278,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             else if (portHigh === 0xbd) {
                 this.vmSetCrtcData(this.crtcReg, byte);
             }
-            else if (Utils_20.Utils.debug > 0) {
-                Utils_20.Utils.console.debug("OUT", Number(port).toString(16), byte, ": unknown port");
+            else if (Utils_21.Utils.debug > 0) {
+                Utils_21.Utils.console.debug("OUT", Number(port).toString(16), byte, ": unknown port");
             }
         };
         CpcVm.prototype.paper = function (stream, paper) {
@@ -15349,8 +15434,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
         CpcVm.prototype.vmPrintChars = function (stream, str) {
             var win = this.windowDataList[stream];
             if (!win.textEnabled) {
-                if (Utils_20.Utils.debug > 0) {
-                    Utils_20.Utils.console.debug("vmPrintChars: text output disabled:", str);
+                if (Utils_21.Utils.debug > 0) {
+                    Utils_21.Utils.console.debug("vmPrintChars: text output disabled:", str);
                 }
                 return;
             }
@@ -15379,8 +15464,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             if (char >= this.minCustomChar) {
                 this.symbol.apply(this, paraList);
             }
-            else if (Utils_20.Utils.debug > 0) {
-                Utils_20.Utils.console.debug("vmControlSymbol: define SYMBOL ignored:", char);
+            else if (Utils_21.Utils.debug > 0) {
+                Utils_21.Utils.console.debug("vmControlSymbol: define SYMBOL ignored:", char);
             }
         };
         CpcVm.prototype.vmControlWindow = function (para, stream) {
@@ -15510,7 +15595,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                     this.vmLocate(stream, para.charCodeAt(0), para.charCodeAt(1));
                     break;
                 default:
-                    Utils_20.Utils.console.warn("vmHandleControlCode: Unknown control code:", code);
+                    Utils_21.Utils.console.warn("vmHandleControlCode: Unknown control code:", code);
                     break;
             }
             return out;
@@ -15589,7 +15674,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                     }
                 }
                 else if (typeof arg === "number") {
-                    str = ((arg >= 0) ? " " : "") + Utils_20.Utils.toPrecision9(arg) + " ";
+                    str = ((arg >= 0) ? " " : "") + Utils_21.Utils.toPrecision9(arg) + " ";
                 }
                 else { // e.g. string
                     str = String(arg);
@@ -15659,8 +15744,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
         CpcVm.prototype.vmRandomizeCallback = function () {
             var inputParas = this.vmGetStopObject().paras, input = inputParas.input, value = this.vmVal(input); // convert to number (also binary, hex)
             var inputOk = true;
-            if (Utils_20.Utils.debug > 0) {
-                Utils_20.Utils.console.debug("vmRandomizeCallback:", input);
+            if (Utils_21.Utils.debug > 0) {
+                Utils_21.Utils.console.debug("vmRandomizeCallback:", input);
             }
             if (isNaN(value)) {
                 inputOk = false;
@@ -15694,8 +15779,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                 if (n === 0) {
                     n = rndInit;
                 }
-                if (Utils_20.Utils.debug > 1) {
-                    Utils_20.Utils.console.debug("randomize:", n);
+                if (Utils_21.Utils.debug > 1) {
+                    Utils_21.Utils.console.debug("randomize:", n);
                 }
                 this.random.init(n);
             }
@@ -15767,8 +15852,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                 this.dataIndex = dataLineIndex[line];
             }
             else {
-                if (Utils_20.Utils.debug > 0) {
-                    Utils_20.Utils.console.debug("restore: search for dataLine >", line);
+                if (Utils_21.Utils.debug > 0) {
+                    Utils_21.Utils.console.debug("restore: search for dataLine >", line);
                 }
                 for (var dataLine in dataLineIndex) { // linear search a data line > line
                     if (dataLineIndex.hasOwnProperty(dataLine)) {
@@ -15782,8 +15867,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                     this.dataIndex = dataLineIndex[line];
                 }
                 else {
-                    if (Utils_20.Utils.debug > 0) {
-                        Utils_20.Utils.console.debug("restore", line + ": No DATA found starting at line");
+                    if (Utils_21.Utils.debug > 0) {
+                        Utils_21.Utils.console.debug("restore", line + ": No DATA found starting at line");
                     }
                     this.dataIndex = this.dataList.length;
                 }
@@ -15805,7 +15890,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             }
             var resumeLineIndex = this.labelList.indexOf(this.errorResumeLine);
             if (resumeLineIndex < 0) {
-                Utils_20.Utils.console.error("resumeNext: line not found: " + this.errorResumeLine);
+                Utils_21.Utils.console.error("resumeNext: line not found: " + this.errorResumeLine);
                 this.errorResumeLine = 0;
                 return;
             }
@@ -15950,7 +16035,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
         };
         CpcVm.prototype.sin = function (n) {
             this.vmAssertNumber(n, "SIN");
-            return Math.sin((this.degFlag) ? Utils_20.Utils.toRadians(n) : n);
+            return Math.sin((this.degFlag) ? Utils_21.Utils.toRadians(n) : n);
         };
         CpcVm.prototype.sound = function (state, period, duration, volume, volEnv, toneEnv, noise) {
             state = this.vmInRangeRound(state, 1, 255, "SOUND");
@@ -15994,7 +16079,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                 str = " ".repeat(n);
             }
             else if (!this.quiet) {
-                Utils_20.Utils.console.log("SPC: negative number ignored:", n);
+                Utils_21.Utils.console.log("SPC: negative number ignored:", n);
             }
             return str;
         };
@@ -16114,7 +16199,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                 str = " ".repeat(count);
             }
             else if (!this.quiet) {
-                Utils_20.Utils.console.log("TAB: no tab for value", n);
+                Utils_21.Utils.console.log("TAB: no tab for value", n);
             }
             return str;
         };
@@ -16130,7 +16215,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
         };
         CpcVm.prototype.tan = function (n) {
             this.vmAssertNumber(n, "TAN");
-            return Math.tan((this.degFlag) ? Utils_20.Utils.toRadians(n) : n);
+            return Math.tan((this.degFlag) ? Utils_21.Utils.toRadians(n) : n);
         };
         CpcVm.prototype.test = function (x, y) {
             x = this.vmInRangeRound(x, -32768, 32767, "TEST");
@@ -16205,7 +16290,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             }
             if (formatList.length < 2) {
                 if (!this.quiet) {
-                    Utils_20.Utils.console.warn("USING: empty or invalid format:", format);
+                    Utils_21.Utils.console.warn("USING: empty or invalid format:", format);
                 }
                 throw this.vmComposeError(Error(), 5, "USING format " + format); // Improper argument
             }
@@ -16334,7 +16419,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             for (var i = 0; i < args.length; i += 1) {
                 var arg = args[i];
                 if (typeof arg === "number") {
-                    str = Utils_20.Utils.toPrecision9(arg);
+                    str = Utils_21.Utils.toPrecision9(arg);
                 }
                 else {
                     str = '"' + String(arg) + '"';
@@ -16552,7 +16637,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
 // Snapshot.ts - Snapshot
 // (c) Marco Vieth, 2023
 // https://benchmarko.github.io/CPCBasicTS/
-define("Snapshot", ["require", "exports", "Utils"], function (require, exports, Utils_21) {
+define("Snapshot", ["require", "exports", "Utils"], function (require, exports, Utils_22) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Snapshot = void 0;
@@ -16572,7 +16657,7 @@ define("Snapshot", ["require", "exports", "Utils"], function (require, exports, 
         };
         Snapshot.prototype.composeError = function (error, message, value, pos) {
             var len = 0;
-            return Utils_21.Utils.composeError("DiskImage", error, this.options.name + ": " + message, value, pos || 0, len);
+            return Utils_22.Utils.composeError("DiskImage", error, this.options.name + ": " + message, value, pos || 0, len);
         };
         Snapshot.testSnapIdent = function (ident) {
             return ident === "MV - SNA";
@@ -16662,7 +16747,7 @@ define("Snapshot", ["require", "exports", "Utils"], function (require, exports, 
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("FileHandler", ["require", "exports", "Utils", "DiskImage", "Snapshot", "ZipFile"], function (require, exports, Utils_22, DiskImage_1, Snapshot_1, ZipFile_1) {
+define("FileHandler", ["require", "exports", "Utils", "DiskImage", "Snapshot", "ZipFile"], function (require, exports, Utils_23, DiskImage_1, Snapshot_1, ZipFile_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.FileHandler = void 0;
@@ -16719,7 +16804,7 @@ define("FileHandler", ["require", "exports", "Utils", "DiskImage", "Snapshot", "
                         this.fnLoad2(data, fileName, "", imported); // recursive
                     }
                     catch (e) {
-                        Utils_22.Utils.console.error(e);
+                        Utils_23.Utils.console.error(e);
                         if (e instanceof Error) { // eslint-disable-line max-depth
                             this.options.outputError(e, true);
                         }
@@ -16727,7 +16812,7 @@ define("FileHandler", ["require", "exports", "Utils", "DiskImage", "Snapshot", "
                 }
             }
             catch (e) {
-                Utils_22.Utils.console.error(e);
+                Utils_23.Utils.console.error(e);
                 if (e instanceof Error) {
                     this.options.outputError(e, true);
                 }
@@ -16742,7 +16827,7 @@ define("FileHandler", ["require", "exports", "Utils", "DiskImage", "Snapshot", "
                 });
             }
             catch (e) {
-                Utils_22.Utils.console.error(e);
+                Utils_23.Utils.console.error(e);
                 if (e instanceof Error) {
                     this.options.outputError(e, true);
                 }
@@ -16756,7 +16841,7 @@ define("FileHandler", ["require", "exports", "Utils", "DiskImage", "Snapshot", "
                         data2 = zip.readData(name2);
                     }
                     catch (e) {
-                        Utils_22.Utils.console.error(e);
+                        Utils_23.Utils.console.error(e);
                         if (e instanceof Error) { // eslint-disable-line max-depth
                             this.options.outputError(e, true);
                         }
@@ -16814,7 +16899,7 @@ define("FileHandler", ["require", "exports", "Utils", "DiskImage", "Snapshot", "
                     break;
                 case "Z": // zip file?
                     if (this.processFileImports) {
-                        this.processZipFile(data instanceof Uint8Array ? data : Utils_22.Utils.string2Uint8Array(data), name, imported);
+                        this.processZipFile(data instanceof Uint8Array ? data : Utils_23.Utils.string2Uint8Array(data), name, imported);
                     }
                     else {
                         header = DiskImage_1.DiskImage.createAmsdosHeader({
@@ -16824,7 +16909,7 @@ define("FileHandler", ["require", "exports", "Utils", "DiskImage", "Snapshot", "
                     }
                     break;
                 default:
-                    Utils_22.Utils.console.warn("fnLoad2: " + name + ": Unknown file type: " + type + ", assuming B");
+                    Utils_23.Utils.console.warn("fnLoad2: " + name + ": Unknown file type: " + type + ", assuming B");
                     header = DiskImage_1.DiskImage.createAmsdosHeader({
                         typeString: "B",
                         length: data.length
@@ -16832,15 +16917,15 @@ define("FileHandler", ["require", "exports", "Utils", "DiskImage", "Snapshot", "
                     break;
             }
             if (header) { // do we have a header? (means we should store it as a file in storage...)
-                var storageName = FileHandler.fnLocalStorageName(this.options.adaptFilename(name, "FILE")), meta = FileHandler.joinMeta(header), dataAsString = data instanceof Uint8Array ? Utils_22.Utils.uint8Array2string(data) : data;
+                var storageName = FileHandler.fnLocalStorageName(this.options.adaptFilename(name, "FILE")), meta = FileHandler.joinMeta(header), dataAsString = data instanceof Uint8Array ? Utils_23.Utils.uint8Array2string(data) : data;
                 try {
-                    Utils_22.Utils.localStorage.setItem(storageName, meta + "," + dataAsString);
+                    Utils_23.Utils.localStorage.setItem(storageName, meta + "," + dataAsString);
                     this.options.updateStorageDatabase("set", storageName);
-                    Utils_22.Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
+                    Utils_23.Utils.console.log("fnOnLoad: file: " + storageName + " meta: " + meta + " imported");
                     imported.push(name);
                 }
                 catch (e) { // maybe quota exceeded
-                    Utils_22.Utils.console.error(e);
+                    Utils_23.Utils.console.error(e);
                     if (e instanceof Error) {
                         if (e.name === "QuotaExceededError") {
                             e.shortMessage = storageName + ": Quota exceeded";
@@ -16860,7 +16945,7 @@ define("FileHandler", ["require", "exports", "Utils", "DiskImage", "Snapshot", "
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("FileSelect", ["require", "exports", "Utils", "View"], function (require, exports, Utils_23, View_5) {
+define("FileSelect", ["require", "exports", "Utils", "View"], function (require, exports, Utils_24, View_6) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.FileSelect = void 0;
@@ -16886,7 +16971,7 @@ define("FileSelect", ["require", "exports", "Utils", "View"], function (require,
                 this.fileIndex += 1;
                 var lastModified = file.lastModified, lastModifiedDate = lastModified ? new Date(lastModified) : file.lastModifiedDate, // lastModifiedDate deprecated, but for old IE
                 text = file.name + " " + (file.type || "n/a") + " " + file.size + " " + (lastModifiedDate ? lastModifiedDate.toLocaleDateString() : "n/a");
-                Utils_23.Utils.console.log(text);
+                Utils_24.Utils.console.log(text);
                 if (file.type === "text/plain") {
                     reader.readAsText(file);
                 }
@@ -16904,7 +16989,7 @@ define("FileSelect", ["require", "exports", "Utils", "View"], function (require,
         };
         FileSelect.prototype.fnOnLoad = function (event) {
             if (!this.file) {
-                Utils_23.Utils.console.error("fnOnLoad: Programming error: No file");
+                Utils_24.Utils.console.error("fnOnLoad: Programming error: No file");
                 return;
             }
             var file = this.file, name = file.name, reader = event.target;
@@ -16925,7 +17010,7 @@ define("FileSelect", ["require", "exports", "Utils", "View"], function (require,
                         // remove meta prefix
                         data = data.substring(index + 1);
                         if (info1.indexOf("base64") >= 0) {
-                            data = Utils_23.Utils.atob(data); // decode base64
+                            data = Utils_24.Utils.atob(data); // decode base64
                         }
                         if (info1.indexOf("text/") >= 0) {
                             type = "A";
@@ -16935,7 +17020,7 @@ define("FileSelect", ["require", "exports", "Utils", "View"], function (require,
                 this.options.fnLoad2(data, name, type, this.imported);
             }
             else {
-                Utils_23.Utils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);
+                Utils_24.Utils.console.warn("Error loading file", name, "with type", type, " unexpected data:", data);
             }
             if (reader) {
                 this.fnReadNextFile(reader);
@@ -16947,7 +17032,7 @@ define("FileSelect", ["require", "exports", "Utils", "View"], function (require,
             if (reader && reader.error) {
                 msg += ": " + String(reader.error);
             }
-            Utils_23.Utils.console.error(msg);
+            Utils_24.Utils.console.error(msg);
             if (reader) {
                 this.fnReadNextFile(reader);
             }
@@ -16957,9 +17042,9 @@ define("FileSelect", ["require", "exports", "Utils", "View"], function (require,
         FileSelect.prototype.fnOnFileSelect = function (event) {
             event.stopPropagation();
             event.preventDefault();
-            var dataTransfer = event.dataTransfer, files = dataTransfer ? dataTransfer.files : View_5.View.getEventTarget(event).files; // dataTransfer for drag&drop, target.files for file input
+            var dataTransfer = event.dataTransfer, files = dataTransfer ? dataTransfer.files : View_6.View.getEventTarget(event).files; // dataTransfer for drag&drop, target.files for file input
             if (!files || !files.length) {
-                Utils_23.Utils.console.error("fnHandleFileSelect: No files!");
+                Utils_24.Utils.console.error("fnHandleFileSelect: No files!");
                 return;
             }
             this.files = files;
@@ -16972,7 +17057,7 @@ define("FileSelect", ["require", "exports", "Utils", "View"], function (require,
                 this.fnReadNextFile(reader);
             }
             else {
-                Utils_23.Utils.console.warn("fnHandleFileSelect: FileReader API not supported.");
+                Utils_24.Utils.console.warn("fnHandleFileSelect: FileReader API not supported.");
             }
         };
         //TODO: can we use View.attachEventHandler() somehow?
@@ -17094,7 +17179,7 @@ define("RsxAmsdos", ["require", "exports"], function (require, exports) {
 // (c) Marco Vieth, 2023
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("RsxCpcBasic", ["require", "exports", "Utils"], function (require, exports, Utils_24) {
+define("RsxCpcBasic", ["require", "exports", "Utils"], function (require, exports, Utils_25) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.RsxCpcBasic = void 0;
@@ -17106,7 +17191,7 @@ define("RsxCpcBasic", ["require", "exports", "Utils"], function (require, export
         };
         RsxCpcBasic.rsxCommands = {
             basic: function () {
-                Utils_24.Utils.console.log("basic: |BASIC");
+                Utils_25.Utils.console.log("basic: |BASIC");
                 this.vmStop("reset", 90);
             },
             mode: function (mode) {
@@ -17831,7 +17916,7 @@ define("NoCanvas", ["require", "exports"], function (require, exports) {
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLexer", "BasicParser", "BasicTokenizer", "Canvas", "CodeGeneratorBasic", "CodeGeneratorJs", "CodeGeneratorToken", "CommonEventHandler", "cpcCharset", "CpcVm", "Diff", "DiskImage", "FileHandler", "FileSelect", "InputStack", "Keyboard", "NoCanvas", "TextCanvas", "VirtualKeyboard", "Snapshot", "Sound", "Variables", "View", "RsxAmsdos", "RsxCpcBasic", "Z80Disass"], function (require, exports, Utils_25, BasicFormatter_1, BasicLexer_1, BasicParser_1, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, Diff_1, DiskImage_2, FileHandler_1, FileSelect_1, InputStack_1, Keyboard_1, NoCanvas_1, TextCanvas_1, VirtualKeyboard_1, Snapshot_2, Sound_1, Variables_1, View_6, RsxAmsdos_1, RsxCpcBasic_1, Z80Disass_1) {
+define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLexer", "BasicParser", "BasicTokenizer", "Canvas", "CodeGeneratorBasic", "CodeGeneratorJs", "CodeGeneratorToken", "CommonEventHandler", "cpcCharset", "CpcVm", "Diff", "DiskImage", "FileHandler", "FileSelect", "InputStack", "Keyboard", "NoCanvas", "TextCanvas", "VirtualKeyboard", "Snapshot", "Sound", "Variables", "View", "DragElement", "RsxAmsdos", "RsxCpcBasic", "Z80Disass"], function (require, exports, Utils_26, BasicFormatter_1, BasicLexer_1, BasicParser_1, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, Diff_1, DiskImage_2, FileHandler_1, FileSelect_1, InputStack_1, Keyboard_1, NoCanvas_1, TextCanvas_1, VirtualKeyboard_1, Snapshot_2, Sound_1, Variables_1, View_7, DragElement_1, RsxAmsdos_1, RsxCpcBasic_1, Z80Disass_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Controller = void 0;
@@ -17847,6 +17932,70 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.sound = new Sound_1.Sound({
                 AudioContextConstructor: window.AudioContext
             });
+            this.dragElementsData = {
+                entries: {
+                    consoleLogArea: {
+                        itemId: "consoleLogArea" /* ViewID.consoleLogArea */,
+                        xOffset: 0,
+                        yOffset: 0,
+                        enabled: false
+                    },
+                    cpcArea: {
+                        itemId: "cpcArea" /* ViewID.cpcArea */,
+                        xOffset: 0,
+                        yOffset: 0,
+                        enabled: false
+                    },
+                    disassArea: {
+                        itemId: "disassArea" /* ViewID.disassArea */,
+                        xOffset: 0,
+                        yOffset: 0,
+                        enabled: false
+                    },
+                    inp2Area: {
+                        itemId: "inp2Area" /* ViewID.inp2Area */,
+                        xOffset: 0,
+                        yOffset: 0,
+                        enabled: false
+                    },
+                    inputArea: {
+                        itemId: "inputArea" /* ViewID.inputArea */,
+                        xOffset: 0,
+                        yOffset: 0,
+                        enabled: false
+                    },
+                    kbdArea: {
+                        itemId: "kbdArea" /* ViewID.kbdArea */,
+                        xOffset: 0,
+                        yOffset: 0,
+                        enabled: false
+                    },
+                    mainArea: {
+                        itemId: "mainArea" /* ViewID.mainArea */,
+                        xOffset: 0,
+                        yOffset: 0,
+                        enabled: false
+                    },
+                    outputArea: {
+                        itemId: "outputArea" /* ViewID.outputArea */,
+                        xOffset: 0,
+                        yOffset: 0,
+                        enabled: false
+                    },
+                    resultArea: {
+                        itemId: "resultArea" /* ViewID.resultArea */,
+                        xOffset: 0,
+                        yOffset: 0,
+                        enabled: false
+                    },
+                    variableArea: {
+                        itemId: "variableArea" /* ViewID.variableArea */,
+                        xOffset: 0,
+                        yOffset: 0,
+                        enabled: false
+                    }
+                }
+            };
             /* eslint-disable no-invalid-this */
             this.handlers = {
                 timer: this.fnTimer,
@@ -17903,11 +18052,15 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.fnSpeed();
             this.commonEventHandler.onKbdLayoutSelectChange(this.commonEventHandler.getEventDefById("change", "kbdLayoutSelect" /* ViewID.kbdLayoutSelect */));
             this.keyboard = new Keyboard_1.Keyboard({
+                view: this.view,
                 fnOnEscapeHandler: this.fnOnEscapeHandler
             });
-            var keydownOrKeyupHandler = this.keyboard.getKeydownOrKeyupHandler();
-            view.addEventListener("keydown", keydownOrKeyupHandler, "cpcArea" /* ViewID.cpcArea */);
-            view.addEventListener("keyup", keydownOrKeyupHandler, "cpcArea" /* ViewID.cpcArea */);
+            /*
+            const keydownOrKeyupHandler = this.keyboard.getKeydownOrKeyupHandler();
+    
+            view.addEventListenerById("keydown", keydownOrKeyupHandler, ViewID.cpcArea);
+            view.addEventListenerById("keyup", keydownOrKeyupHandler, ViewID.cpcArea);
+            */
             if (this.model.getProperty("showKbd" /* ModelPropID.showKbd */)) { // maybe we need to draw virtual keyboard
                 this.getVirtualKeyboard();
             }
@@ -17957,6 +18110,9 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             if (model.getProperty("showCpc" /* ModelPropID.showCpc */)) {
                 this.canvas.startUpdateCanvas();
             }
+            if (model.getProperty("dragElements" /* ModelPropID.dragElements */)) {
+                this.fnDragElementsActive(true);
+            }
         }
         Controller.prototype.initDatabases = function () {
             var model = this.model, databases = {}, databaseDirs = model.getProperty("databaseDirs" /* ModelPropID.databaseDirs */).split(",");
@@ -18002,7 +18158,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             example.key = key; // maybe changed
             example.script = input;
             example.loaded = true;
-            Utils_25.Utils.console.log("addItem:", key);
+            Utils_26.Utils.console.log("addItem:", key);
             return key;
         };
         Controller.prototype.addRsx = function (key, RsxConstructor) {
@@ -18014,7 +18170,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             example.key = key; // maybe changed
             example.rsx = new RsxConstructor();
             example.loaded = true;
-            Utils_25.Utils.console.log("addItem:", key);
+            Utils_26.Utils.console.log("addItem:", key);
             return key;
         };
         Controller.prototype.setDatabaseSelectOptions = function () {
@@ -18155,7 +18311,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             if (!this.hasStorageDatabase) {
                 return;
             }
-            var database = this.model.getProperty("database" /* ModelPropID.database */), storage = Utils_25.Utils.localStorage;
+            var database = this.model.getProperty("database" /* ModelPropID.database */), storage = Utils_26.Utils.localStorage;
             var selectedExample = "", exampleChanged = false;
             if (database !== "storage") {
                 this.model.setProperty("database" /* ModelPropID.database */, "storage"); // switch to storage database
@@ -18192,7 +18348,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     }
                 }
                 else {
-                    Utils_25.Utils.console.error("updateStorageDatabase: unknown action", action);
+                    Utils_26.Utils.console.error("updateStorageDatabase: unknown action", action);
                 }
             }
             if (database === "storage") {
@@ -18297,7 +18453,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.fnWaitKey = function () {
             var key = this.keyboard.getKeyFromBuffer();
             if (key !== "") { // do we have a key from the buffer already?
-                Utils_25.Utils.console.log("Wait for key:", key);
+                Utils_26.Utils.console.log("Wait for key:", key);
                 this.vm.vmStop("", 0, true);
                 this.removeKeyBoardHandler();
             }
@@ -18417,7 +18573,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             inputParas.input = input;
             var inputOk = false;
             if (key === "\r") {
-                Utils_25.Utils.console.log("fnWaitInput:", input, "reason", stop.reason);
+                Utils_26.Utils.console.log("fnWaitInput:", input, "reason", stop.reason);
                 if (!inputParas.noCRLF) {
                     this.vm.print(stream, "\r\n");
                 }
@@ -18488,7 +18644,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         };
         // merge two scripts with sorted line numbers, lines from script2 overwrite lines from script1
         Controller.prototype.mergeScripts = function (script1, script2) {
-            var lines1 = this.splitLines(Utils_25.Utils.stringTrimEnd(script1)), lines2 = this.splitLines(Utils_25.Utils.stringTrimEnd(script2));
+            var lines1 = this.splitLines(Utils_26.Utils.stringTrimEnd(script1)), lines2 = this.splitLines(Utils_26.Utils.stringTrimEnd(script2));
             var result = [], lineNumber1, lineNumber2;
             while (lines1.length && lines2.length) {
                 lineNumber1 = lineNumber1 || Controller.parseLineNumber(lines1[0]);
@@ -18554,7 +18710,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             return dir;
         };
         Controller.fnGetStorageDirectoryEntries = function (mask) {
-            var storage = Utils_25.Utils.localStorage, metaIdent = FileHandler_1.FileHandler.getMetaIdent(), dir = [];
+            var storage = Utils_26.Utils.localStorage, metaIdent = FileHandler_1.FileHandler.getMetaIdent(), dir = [];
             var regExp;
             if (mask) {
                 regExp = Controller.fnPrepareMaskRegExp(mask);
@@ -18617,7 +18773,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.vm.vmStop("", 0, true);
         };
         Controller.prototype.fnFileEra = function (paras) {
-            var stream = paras.stream, storage = Utils_25.Utils.localStorage, fileMask = Controller.fnLocalStorageName(paras.fileMask || ""), dir = Controller.fnGetStorageDirectoryEntries(fileMask);
+            var stream = paras.stream, storage = Utils_26.Utils.localStorage, fileMask = Controller.fnLocalStorageName(paras.fileMask || ""), dir = Controller.fnGetStorageDirectoryEntries(fileMask);
             if (!dir.length) {
                 this.vm.print(stream, fileMask + " not found\r\n");
             }
@@ -18626,19 +18782,19 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 if (storage.getItem(name_13) !== null) {
                     storage.removeItem(name_13);
                     this.updateStorageDatabase("remove", name_13);
-                    if (Utils_25.Utils.debug > 0) {
-                        Utils_25.Utils.console.debug("fnEraseFile: name=" + name_13 + ": removed from localStorage");
+                    if (Utils_26.Utils.debug > 0) {
+                        Utils_26.Utils.console.debug("fnEraseFile: name=" + name_13 + ": removed from localStorage");
                     }
                 }
                 else {
                     this.vm.print(stream, name_13 + " not found\r\n");
-                    Utils_25.Utils.console.warn("fnEraseFile: file not found in localStorage:", name_13);
+                    Utils_26.Utils.console.warn("fnEraseFile: file not found in localStorage:", name_13);
                 }
             }
             this.vm.vmStop("", 0, true);
         };
         Controller.prototype.fnFileRen = function (paras) {
-            var stream = paras.stream, storage = Utils_25.Utils.localStorage, newName = Controller.fnLocalStorageName(paras.newName), oldName = Controller.fnLocalStorageName(paras.oldName), item = storage.getItem(oldName);
+            var stream = paras.stream, storage = Utils_26.Utils.localStorage, newName = Controller.fnLocalStorageName(paras.newName), oldName = Controller.fnLocalStorageName(paras.oldName), item = storage.getItem(oldName);
             if (item !== null) {
                 if (!storage.getItem(newName)) {
                     storage.setItem(newName, item);
@@ -18728,12 +18884,12 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             if (output.error) {
                 this.outputError(output.error);
             }
-            else if (Utils_25.Utils.debug > 1) {
+            else if (Utils_26.Utils.debug > 1) {
                 var outputText = output.text, hex = outputText.split("").map(function (s) { return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0"); }).join(","), decoded = this.decodeTokenizedBasic(outputText), diff = Diff_1.Diff.testDiff(input.toUpperCase(), decoded.toUpperCase()); // for testing
-                Utils_25.Utils.console.debug("TokenizerInput (" + name + "):\n" + input);
-                Utils_25.Utils.console.debug("TokenizerHex (" + name + "):\n" + hex);
-                Utils_25.Utils.console.debug("TokenizerDecoded (" + name + "):\n" + decoded);
-                Utils_25.Utils.console.debug("TokenizerDiff (" + name + "):\n" + diff);
+                Utils_26.Utils.console.debug("TokenizerInput (" + name + "):\n" + input);
+                Utils_26.Utils.console.debug("TokenizerHex (" + name + "):\n" + hex);
+                Utils_26.Utils.console.debug("TokenizerDecoded (" + name + "):\n" + decoded);
+                Utils_26.Utils.console.debug("TokenizerDiff (" + name + "):\n" + diff);
             }
             return output.text;
         };
@@ -18784,7 +18940,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 data = Controller.splitMeta(input);
                 input = data.data; // maybe changed
                 if (data.meta.encoding === "base64") {
-                    input = Utils_25.Utils.atob(input); // decode base64
+                    input = Utils_26.Utils.atob(input); // decode base64
                 }
                 var type = data.meta.typeString;
                 if (type === "T") { // tokenized basic?
@@ -18826,11 +18982,11 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     putInMemory = inFile.fnFileCallback(input, data && data.meta);
                 }
                 catch (e) {
-                    Utils_25.Utils.console.warn(e);
+                    Utils_26.Utils.console.warn(e);
                 }
             }
             if (input === undefined) {
-                Utils_25.Utils.console.error("loadFileContinue: File " + inFile.name + ": input undefined!");
+                Utils_26.Utils.console.error("loadFileContinue: File " + inFile.name + ": input undefined!");
                 this.vm.vmStop("stop", 60, true);
                 this.startMainLoop();
                 return;
@@ -18893,7 +19049,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     }
                     break;
                 default:
-                    Utils_25.Utils.console.error("loadExample: Unknown command:", command);
+                    Utils_26.Utils.console.error("loadExample: Unknown command:", command);
                     break;
             }
             this.vm.vmSetStartLine(startLine);
@@ -18903,11 +19059,11 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             var _this = this;
             return function (_sFullUrl, key, suppressLog) {
                 if (key !== example) {
-                    Utils_25.Utils.console.warn("fnExampleLoaded: Unexpected", key, "<>", example);
+                    Utils_26.Utils.console.warn("fnExampleLoaded: Unexpected", key, "<>", example);
                 }
                 var exampleEntry = _this.model.getExample(example);
                 if (!suppressLog) {
-                    Utils_25.Utils.console.log("Example", url, (exampleEntry.meta ? exampleEntry.meta + " " : "") + " loaded");
+                    Utils_26.Utils.console.log("Example", url, (exampleEntry.meta ? exampleEntry.meta + " " : "") + " loaded");
                 }
                 _this.model.setProperty("example" /* ModelPropID.example */, inFile.memorizedExample);
                 _this.vm.vmStop("", 0, true);
@@ -18921,7 +19077,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.createFnExampleError = function (example, url, inFile) {
             var _this = this;
             return function () {
-                Utils_25.Utils.console.log("Example", url, "error");
+                Utils_26.Utils.console.log("Example", url, "error");
                 _this.model.setProperty("example" /* ModelPropID.example */, inFile.memorizedExample);
                 _this.vm.vmStop("", 0, true);
                 var error = _this.vm.vmComposeError(Error(), 32, example + " not found"); // TODO: set also derr=146 (xx not found)
@@ -18950,8 +19106,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 }
             }
             var example = name;
-            if (Utils_25.Utils.debug > 0) {
-                Utils_25.Utils.console.debug("loadExample: name=" + name + " (current=" + key + ")");
+            if (Utils_26.Utils.debug > 0) {
+                Utils_26.Utils.console.debug("loadExample: name=" + name + " (current=" + key + ")");
             }
             var exampleEntry = this.model.getExample(example); // already loaded
             var url;
@@ -18965,12 +19121,12 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.model.setProperty("example" /* ModelPropID.example */, example);
                 var databaseDir = this.model.getDatabase().src;
                 url = databaseDir + "/" + example + ".js";
-                Utils_25.Utils.loadScript(url, this.createFnExampleLoaded(example, url, inFile), this.createFnExampleError(example, url, inFile), example);
+                Utils_26.Utils.loadScript(url, this.createFnExampleLoaded(example, url, inFile), this.createFnExampleError(example, url, inFile), example);
             }
             else { // keep original example in this error case
                 url = example;
                 if (example !== "") { // only if not empty
-                    Utils_25.Utils.console.warn("loadExample: Unknown file:", example);
+                    Utils_26.Utils.console.warn("loadExample: Unknown file:", example);
                     var fnExampleError = this.createFnExampleError(example, url, inFile);
                     fnExampleError();
                 }
@@ -18989,7 +19145,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             return name;
         };
         Controller.tryLoadingFromLocalStorage = function (name) {
-            var storage = Utils_25.Utils.localStorage;
+            var storage = Utils_26.Utils.localStorage;
             var input = null;
             if (name.indexOf(".") >= 0) { // extension specified?
                 input = storage.getItem(name);
@@ -19019,13 +19175,13 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     this.vm.vmStop("fileLoad", 90); // restore
                 }
                 var name_14 = inFile.name;
-                if (Utils_25.Utils.debug > 1) {
-                    Utils_25.Utils.console.debug("fnFileLoad:", inFile.command, name_14, "details:", inFile);
+                if (Utils_26.Utils.debug > 1) {
+                    Utils_26.Utils.console.debug("fnFileLoad:", inFile.command, name_14, "details:", inFile);
                 }
                 var input = Controller.tryLoadingFromLocalStorage(name_14);
                 if (input !== null) {
-                    if (Utils_25.Utils.debug > 0) {
-                        Utils_25.Utils.console.debug("fnFileLoad:", inFile.command, name_14, "from localStorage");
+                    if (Utils_26.Utils.debug > 0) {
+                        Utils_26.Utils.console.debug("fnFileLoad:", inFile.command, name_14, "from localStorage");
                     }
                     this.vm.vmStop("", 0, true);
                     this.loadFileContinue(input);
@@ -19035,7 +19191,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 }
             }
             else {
-                Utils_25.Utils.console.error("fnFileLoad:", inFile.name, "File not open!"); // hopefully isName is defined
+                Utils_26.Utils.console.error("fnFileLoad:", inFile.name, "File not open!"); // hopefully isName is defined
             }
             this.nextLoopTimeOut = this.vm.vmGetTimeUntilFrame(); // wait until next frame
         };
@@ -19068,7 +19224,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             return metaAndData;
         };
         Controller.prototype.fnFileSave = function () {
-            var outFile = this.vm.vmGetOutFileObject(), storage = Utils_25.Utils.localStorage;
+            var outFile = this.vm.vmGetOutFileObject(), storage = Utils_26.Utils.localStorage;
             var defaultExtension = "";
             if (outFile.open) {
                 var type = outFile.typeString, name_15 = outFile.name;
@@ -19096,8 +19252,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     }
                     outFile.length = fileData.length; // set length
                 }
-                if (Utils_25.Utils.debug > 0) {
-                    Utils_25.Utils.console.debug("fnFileSave: name=" + name_15 + ": put into localStorage");
+                if (Utils_26.Utils.debug > 0) {
+                    Utils_26.Utils.console.debug("fnFileSave: name=" + name_15 + ": put into localStorage");
                 }
                 var meta = FileHandler_1.FileHandler.joinMeta(outFile);
                 storage.setItem(storageName, meta + "," + fileData);
@@ -19107,13 +19263,13 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                         outFile.fnFileCallback(fileData); // close file
                     }
                     catch (e) {
-                        Utils_25.Utils.console.warn(e);
+                        Utils_26.Utils.console.warn(e);
                     }
                 }
                 this.vm.vmResetOutFileHandling(); // make sure it is closed
             }
             else {
-                Utils_25.Utils.console.error("fnFileSave: file not open!");
+                Utils_26.Utils.console.error("fnFileSave: file not open!");
             }
             this.vm.vmStop("", 0, true); // continue
         };
@@ -19173,7 +19329,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.outputError = function (error, noSelection) {
             var stream = 0;
             var shortError;
-            if (Utils_25.Utils.isCustomError(error)) {
+            if (Utils_26.Utils.isCustomError(error)) {
                 shortError = error.shortMessage || error.message;
                 if (!noSelection) {
                     var startPos = error.pos || 0, len = error.len || ((error.value !== undefined) ? String(error.value).length : 0), endPos = startPos + len;
@@ -19195,7 +19351,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.basicParser.setOptions(Controller.formatterBasicParserOptions);
             var output = basicFormatter.renumber(input, paras.newLine || 10, paras.oldLine || 1, paras.step || 10, paras.keep || 65535);
             if (output.error) {
-                Utils_25.Utils.console.warn(output.error);
+                Utils_26.Utils.console.warn(output.error);
                 this.outputError(output.error);
             }
             else {
@@ -19247,7 +19403,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 var time = Date.now();
                 output = this.codeGeneratorJs.generate(input, this.variables);
                 time = Date.now() - time;
-                Utils_25.Utils.console.debug("bench size", input.length, "labels", this.codeGeneratorJs.debugGetLabelsCount(), "loop", i, ":", time, "ms");
+                Utils_26.Utils.console.debug("bench size", input.length, "labels", this.codeGeneratorJs.debugGetLabelsCount(), "loop", i, ":", time, "ms");
                 if (output.error) {
                     break;
                 }
@@ -19280,7 +19436,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 for (var i = 0; i < tokens.length; i += 1) {
                     var code = tokens.charCodeAt(i);
                     if (code > 255) {
-                        Utils_25.Utils.console.warn("Put token in memory: addr=" + (addr + i) + ", code=" + code + ", char=" + tokens.charAt(i));
+                        Utils_26.Utils.console.warn("Put token in memory: addr=" + (addr + i) + ", code=" + code + ", char=" + tokens.charAt(i));
                         code = 0x20;
                     }
                     this.vm.poke(addr + i, code);
@@ -19358,7 +19514,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             var fnExportBase64 = function () {
                 meta.encoding = "base64";
                 var metaString = FileHandler_1.FileHandler.joinMeta(meta);
-                data = metaString + "," + Utils_25.Utils.btoa(data);
+                data = metaString + "," + Utils_26.Utils.btoa(data);
                 name += ".b64.txt";
             };
             if (exportDSK) {
@@ -19419,7 +19575,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                             fnExportBase64();
                         }
                         if (data) {
-                            View_6.View.fnDownloadBlob(data, name);
+                            this.view.fnDownloadBlob(data, name);
                         }
                     }
                 }
@@ -19429,7 +19585,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     fnExportBase64();
                 }
                 if (data) {
-                    View_6.View.fnDownloadBlob(data, name);
+                    this.view.fnDownloadBlob(data, name);
                 }
             }
         };
@@ -19444,7 +19600,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     line += 1;
                 }
                 pos += columnNumber;
-                Utils_25.Utils.console.warn("Info: JS Error occurred at line", lineNumber, "column", columnNumber, "pos", pos);
+                Utils_26.Utils.console.warn("Info: JS Error occurred at line", lineNumber, "column", columnNumber, "pos", pos);
                 this.view.setAreaSelection("outputText" /* ViewID.outputText */, pos, pos + 1);
             }
         };
@@ -19463,7 +19619,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     this.fnScript = new Function("o", script); // eslint-disable-line no-new-func
                 }
                 catch (e) {
-                    Utils_25.Utils.console.error(e);
+                    Utils_26.Utils.console.error(e);
                     if (e instanceof Error) {
                         this.selectJsError(script, e);
                         e.shortMessage = "JS " + String(e);
@@ -19493,8 +19649,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     }, timeout);
                 }
             }
-            if (Utils_25.Utils.debug > 1) {
-                Utils_25.Utils.console.debug("End of fnRun");
+            if (Utils_26.Utils.debug > 1) {
+                Utils_26.Utils.console.debug("End of fnRun");
             }
         };
         Controller.prototype.fnRun = function (paras) {
@@ -19525,22 +19681,22 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                             customError = this.vm.vmComposeError(customError, customError.errCode, customError.value);
                         }
                         if (!customError.hidden) {
-                            Utils_25.Utils.console.warn(customError);
+                            Utils_26.Utils.console.warn(customError);
                             this.outputError(customError, !customError.pos);
                         }
                         else {
-                            Utils_25.Utils.console.log(customError.message);
+                            Utils_26.Utils.console.log(customError.message);
                         }
                     }
                     else {
-                        Utils_25.Utils.console.error(e);
+                        Utils_26.Utils.console.error(e);
                         this.selectJsError(this.view.getAreaValue("outputText" /* ViewID.outputText */), e);
                         this.vm.vmComposeError(e, 2, "JS " + String(e)); // generate Syntax Error, set also err and erl and set stop
                         this.outputError(e, true);
                     }
                 }
                 else {
-                    Utils_25.Utils.console.error(e);
+                    Utils_26.Utils.console.error(e);
                 }
             }
         };
@@ -19553,8 +19709,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.vm.cursor(stream, 0);
                 var inputText = this.view.getAreaValue("inputText" /* ViewID.inputText */);
                 if ((/^\d+($| )/).test(input)) { // start with number?
-                    if (Utils_25.Utils.debug > 0) {
-                        Utils_25.Utils.console.debug("fnDirectInput: insert line=" + input);
+                    if (Utils_26.Utils.debug > 0) {
+                        Utils_26.Utils.console.debug("fnDirectInput: insert line=" + input);
                     }
                     input = this.mergeScripts(inputText, input);
                     this.setInputText(input, true);
@@ -19565,7 +19721,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     this.updateResultText();
                     return false; // continue direct input
                 }
-                Utils_25.Utils.console.log("fnDirectInput: execute:", input);
+                Utils_26.Utils.console.log("fnDirectInput: execute:", input);
                 var codeGeneratorJs = this.codeGeneratorJs;
                 var output = void 0, outputString = void 0;
                 if (inputText && ((/^\d+($| )/).test(inputText) || this.model.getProperty("implicitLines" /* ModelPropID.implicitLines */))) { // do we have a program starting with a line number?
@@ -19603,7 +19759,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                         this.vm.vmSetSourceMap(codeGeneratorJs.getSourceMap());
                     }
                     catch (e) {
-                        Utils_25.Utils.console.error(e);
+                        Utils_26.Utils.console.error(e);
                         if (e instanceof Error) {
                             this.outputError(e, true);
                         }
@@ -19679,7 +19835,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.handlers[stop.reason].call(this, stop.paras);
             }
             else {
-                Utils_25.Utils.console.warn("runLoop: Unknown run mode:", stop.reason);
+                Utils_26.Utils.console.warn("runLoop: Unknown run mode:", stop.reason);
                 this.vm.vmStop("error", 50);
             }
             if (stop.reason && stop.reason !== "waitSound" && stop.reason !== "waitKey" && stop.reason !== "waitInput") {
@@ -19856,10 +20012,10 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 try {
                     var value2 = this.vm.vmAssign(varType, value);
                     variables.setVariable(par, value2);
-                    Utils_25.Utils.console.log("Variable", par, "changed:", variables.getVariable(par), "=>", value);
+                    Utils_26.Utils.console.log("Variable", par, "changed:", variables.getVariable(par), "=>", value);
                 }
                 catch (e) {
-                    Utils_25.Utils.console.warn(e);
+                    Utils_26.Utils.console.warn(e);
                 }
             }
             this.setVarSelectOptions("varSelect" /* ViewID.varSelect */, variables);
@@ -20015,13 +20171,13 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             return this.fileSelect;
         };
         Controller.prototype.initDropZone = function () {
-            var fileHandler = this.getFileHandler(), fileSelect = this.getFileSelect(fileHandler), dropZone = View_6.View.getElementById1("dropZone" /* ViewID.dropZone */);
+            var fileHandler = this.getFileHandler(), fileSelect = this.getFileSelect(fileHandler), dropZone = View_7.View.getElementById1("dropZone" /* ViewID.dropZone */);
             dropZone.addEventListener("dragover", this.fnOnDragoverHandler, false);
             fileSelect.addFileSelectHandler(dropZone, "drop");
-            var canvasID = this.canvas.getOptions().canvasID, canvasElement = View_6.View.getElementById1(canvasID);
+            var canvasID = this.canvas.getOptions().canvasID, canvasElement = View_7.View.getElementById1(canvasID);
             canvasElement.addEventListener("dragover", this.fnOnDragoverHandler, false);
             fileSelect.addFileSelectHandler(canvasElement, "drop");
-            var fileInput = View_6.View.getElementById1("fileInput" /* ViewID.fileInput */);
+            var fileInput = View_7.View.getElementById1("fileInput" /* ViewID.fileInput */);
             fileSelect.addFileSelectHandler(fileInput, "change");
         };
         Controller.prototype.fnUpdateUndoRedoButtons = function () {
@@ -20045,6 +20201,15 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.stopUpdateCanvas = function () {
             this.canvas.stopUpdateCanvas();
         };
+        Controller.prototype.getDragElement = function () {
+            if (!this.dragElement) {
+                this.dragElement = new DragElement_1.DragElement({
+                    view: this.view,
+                    entries: {}
+                });
+            }
+            return this.dragElement;
+        };
         Controller.prototype.getVirtualKeyboard = function () {
             if (!this.virtualKeyboard) {
                 this.virtualKeyboard = new VirtualKeyboard_1.VirtualKeyboard({
@@ -20052,11 +20217,46 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     fnPressCpcKey: this.keyboard.fnPressCpcKey.bind(this.keyboard),
                     fnReleaseCpcKey: this.keyboard.fnReleaseCpcKey.bind(this.keyboard)
                 });
-                var keydownOrKeyupHandler = this.virtualKeyboard.getKeydownOrKeyupHandler();
-                this.view.addEventListener("keydown", keydownOrKeyupHandler, "kbdAreaInner" /* ViewID.kbdAreaInner */);
-                this.view.addEventListener("keyup", keydownOrKeyupHandler, "kbdAreaInner" /* ViewID.kbdAreaInner */);
+                /*
+                const keydownOrKeyupHandler = this.virtualKeyboard.getKeydownOrKeyupHandler();
+    
+                this.view.addEventListener("keydown", keydownOrKeyupHandler, ViewID.kbdAreaInner);
+                this.view.addEventListener("keyup", keydownOrKeyupHandler, ViewID.kbdAreaInner);
+                */
+                /*
+                const dragElement = this.getDragElement();
+    
+                dragElement.setOptions({
+                    entries: {
+                        kbdArea: {
+                            itemId: ViewID.kbdArea,
+                            xOffset: 0,
+                            yOffset: 0
+                        },
+                        cpcArea: {
+                            itemId: ViewID.cpcArea,
+                            xOffset: 0,
+                            yOffset: 0
+                        },
+                        inputArea: {
+                            itemId: ViewID.inputArea,
+                            xOffset: 0,
+                            yOffset: 0
+                        }
+                    }
+                });
+                */
             }
             return this.virtualKeyboard;
+        };
+        Controller.prototype.fnDragElementsActive = function (enabled) {
+            var dragElement = this.getDragElement(), dragElementsData = this.dragElementsData;
+            for (var entry in dragElementsData.entries) {
+                if (dragElementsData.entries.hasOwnProperty(entry)) {
+                    dragElementsData.entries[entry].enabled = enabled;
+                }
+            }
+            dragElement.setOptions(this.dragElementsData);
         };
         Controller.prototype.getVariable = function (par) {
             return this.variables.getVariable(par);
@@ -20075,7 +20275,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     _this.model.getDatabase().loaded = true;
                 }
                 else { // should not occur
-                    Utils_25.Utils.console.warn("databaseLoaded: name changed: " + key + " => " + selectedName);
+                    Utils_26.Utils.console.warn("databaseLoaded: name changed: " + key + " => " + selectedName);
                     _this.model.setProperty("database" /* ModelPropID.database */, key);
                     var database = _this.model.getDatabase();
                     if (database) {
@@ -20083,7 +20283,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     }
                     _this.model.setProperty("database" /* ModelPropID.database */, selectedName);
                 }
-                Utils_25.Utils.console.log("fnDatabaseLoaded: database loaded: " + key + ": " + url);
+                Utils_26.Utils.console.log("fnDatabaseLoaded: database loaded: " + key + ": " + url);
                 _this.setDirectorySelectOptions();
                 _this.onDirectorySelectChange();
             };
@@ -20091,7 +20291,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.createFnDatabaseError = function (url) {
             var _this = this;
             return function (_sFullUrl, key) {
-                Utils_25.Utils.console.error("fnDatabaseError: database error: " + key + ": " + url);
+                Utils_26.Utils.console.error("fnDatabaseError: database error: " + key + ": " + url);
                 _this.setDirectorySelectOptions();
                 _this.onDirectorySelectChange();
                 _this.setInputText("");
@@ -20104,7 +20304,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.view.setSelectTitleFromSelectedOption("databaseSelect" /* ViewID.databaseSelect */);
             var database = this.model.getDatabase();
             if (!database) {
-                Utils_25.Utils.console.error("onDatabaseSelectChange: database not available:", databaseName);
+                Utils_26.Utils.console.error("onDatabaseSelectChange: database not available:", databaseName);
                 return;
             }
             if (database.text === "storage") { // special handling: browser localStorage
@@ -20118,7 +20318,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             else {
                 this.setInputText("#loading database " + databaseName + "...");
                 var exampleIndex = this.model.getProperty("exampleIndex" /* ModelPropID.exampleIndex */), url = database.src + "/" + exampleIndex;
-                Utils_25.Utils.loadScript(url, this.createFnDatabaseLoaded(url), this.createFnDatabaseError(url), databaseName);
+                Utils_26.Utils.loadScript(url, this.createFnDatabaseLoaded(url), this.createFnDatabaseError(url), databaseName);
             }
         };
         Controller.prototype.onDirectorySelectChange = function () {
@@ -20157,22 +20357,22 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         };
         // currently not used. Can be called manually: cpcBasic.controller.exportAsBase64(file);
         Controller.prototype.exportAsBase64 = function (storageName) {
-            var storage = Utils_25.Utils.localStorage;
+            var storage = Utils_26.Utils.localStorage;
             var data = storage.getItem(storageName), out = "";
             if (data !== null) {
                 var index = data.indexOf(","); // metadata separator
                 if (index >= 0) {
                     var meta = data.substring(0, index);
                     data = data.substring(index + 1);
-                    data = Utils_25.Utils.btoa(data);
+                    data = Utils_26.Utils.btoa(data);
                     out = meta + ";base64," + data;
                 }
                 else { // hmm, no meta info
-                    data = Utils_25.Utils.btoa(data);
+                    data = Utils_26.Utils.btoa(data);
                     out = "base64," + data;
                 }
             }
-            Utils_25.Utils.console.log(out);
+            Utils_26.Utils.console.log(out);
             return out;
         };
         Controller.prototype.onCpcCanvasClick = function (event) {
@@ -20301,7 +20501,7 @@ define("cpcconfig", ["require", "exports"], function (require, exports) {
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "Model", "View", "NodeAdapt"], function (require, exports, Utils_26, Controller_1, cpcconfig_1, Model_1, View_7, NodeAdapt_1) {
+define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "Model", "View", "NodeAdapt"], function (require, exports, Utils_27, Controller_1, cpcconfig_1, Model_1, View_8, NodeAdapt_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var cpcBasic = /** @class */ (function () {
@@ -20328,7 +20528,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
         // can be used for nodeJS
         cpcBasic.fnParseArgs = function (args, config) {
             for (var i = 0; i < args.length; i += 1) {
-                var nameValue = args[i], nameValueList = Utils_26.Utils.split2(nameValue, "="), name_16 = nameValueList[0];
+                var nameValue = args[i], nameValueList = Utils_27.Utils.split2(nameValue, "="), name_16 = nameValueList[0];
                 if (config.hasOwnProperty(name_16)) {
                     var value = nameValueList[1]; // string|number|boolean
                     if (value !== undefined && config.hasOwnProperty(name_16)) {
@@ -20360,7 +20560,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             }
             catch (err) {
                 err.message += ": " + s;
-                Utils_26.Utils.console.error(err);
+                Utils_27.Utils.console.error(err);
             }
             return decoded;
         };
@@ -20391,7 +20591,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             return arg;
         };
         cpcBasic.createDebugUtilsConsole = function (cpcBasicLog) {
-            var currentConsole = Utils_26.Utils.console;
+            var currentConsole = Utils_27.Utils.console;
             return {
                 consoleLog: {
                     value: cpcBasicLog || "" // already something collected?
@@ -20455,19 +20655,19 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             else { // nodeJs
                 cpcBasic.fnParseArgs(myGlobalThis.process.argv.slice(2), startConfig);
             }
-            cpcBasic.view = new View_7.View();
+            cpcBasic.view = new View_8.View();
             var debug = Number(cpcBasic.model.getProperty("debug" /* ModelPropID.debug */));
-            Utils_26.Utils.debug = debug;
-            var UtilsConsole = Utils_26.Utils.console, cpcBasicLog = "";
+            Utils_27.Utils.debug = debug;
+            var UtilsConsole = Utils_27.Utils.console, cpcBasicLog = "";
             if (UtilsConsole.cpcBasicLog) {
                 cpcBasicLog = UtilsConsole.cpcBasicLog;
                 UtilsConsole.cpcBasicLog = undefined; // do not log any more to dummy console
             }
-            if (Utils_26.Utils.debug > 0 && cpcBasic.model.getProperty("showConsoleLog" /* ModelPropID.showConsoleLog */)) { // console log window?
+            if (Utils_27.Utils.debug > 0 && cpcBasic.model.getProperty("showConsoleLog" /* ModelPropID.showConsoleLog */)) { // console log window?
                 UtilsConsole = cpcBasic.createDebugUtilsConsole(cpcBasicLog);
-                Utils_26.Utils.console = UtilsConsole;
-                Utils_26.Utils.console.log("CPCBasic log started at", Utils_26.Utils.dateFormat(new Date()));
-                UtilsConsole.changeLog(View_7.View.getElementById1("consoleLogText" /* ViewID.consoleLogText */));
+                Utils_27.Utils.console = UtilsConsole;
+                Utils_27.Utils.console.log("CPCBasic log started at", Utils_27.Utils.dateFormat(new Date()));
+                UtilsConsole.changeLog(View_8.View.getElementById1("consoleLogText" /* ViewID.consoleLogText */));
             }
             if (redirectExamples) {
                 this.fnRedirectExamples(redirectExamples);
@@ -20476,7 +20676,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             cpcBasic.controller.onDatabaseSelectChange(); // trigger loading example
         };
         cpcBasic.fnOnLoad = function () {
-            Utils_26.Utils.console.log("CPCBasic started at", Utils_26.Utils.dateFormat(new Date()));
+            Utils_27.Utils.console.log("CPCBasic started at", Utils_27.Utils.dateFormat(new Date()));
             cpcBasic.fnDoStart();
         };
         cpcBasic.config = {
@@ -20484,6 +20684,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             autorun: true,
             basicVersion: "1.1",
             bench: 0,
+            canvasType: "graphics",
             databaseDirs: "examples",
             database: "examples",
             debug: 0,
@@ -20492,7 +20693,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             implicitLines: false,
             input: "",
             kbdLayout: "alphanum",
-            canvasType: "graphics",
+            dragElements: false,
             palette: "color",
             processFileImports: true,
             showConsoleLog: false,
@@ -20524,7 +20725,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
     if (window.Polyfills.isNodeAvailable) {
         NodeAdapt_1.NodeAdapt.doAdapt();
         cpcBasic.fnOnLoad();
-        Utils_26.Utils.console.debug("End of main.");
+        Utils_27.Utils.console.debug("End of main.");
     }
 });
 //# sourceMappingURL=cpcbasicts.js.map

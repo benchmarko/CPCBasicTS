@@ -159,7 +159,7 @@ export interface IController {
     setBasicVersion: (basicVersion: string) => void
     setPalette: (palette: string) => void
     setCanvasType: (canvasType: string) => ICanvas
-    setDisassAddr: (addr:number) => void
+    setDisassAddr: (addr: number) => void
 
     changeVariable: () => void
     onExampleSelectChange: () => void
@@ -184,6 +184,7 @@ export interface IController {
     fnSpeed: () => void
 
     //setPopoversHiddenExcept: (except?: ViewID) => void
+    fnDragElementsActive: (enabled: boolean) => void
  }
 
 //

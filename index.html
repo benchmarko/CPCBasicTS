@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="cpcbasic.css">
 <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
-<title id="title">CPC BasicTS v0.2.5</title>
+<title id="title">CPC BasicTS v0.2.6</title>
 </head>
 
 <body id="pageBody">
 
-	<fieldset id="cpcVert0Box" class="flexBox">
-		<fieldset class="flexBox">
-			<legend>
+	<div id="vertFlexBox0Box" class="vertFlexBox">
+		<div id="mainArea" class="flexBox">
+			<div>
 				<span class="legendTitle" title="CPCBasicTS">CPCBasicTS</span>
 				<span class="buttonPopoverContainer">
 					<button id="settingsButton" class="popoverButton" title="Settings">Settings</button>
@@ -116,6 +116,11 @@
 								<input id="showConsoleLogInput" type="checkbox" title="Show Console Log">
 								<label for="showConsoleLogInput" title="Show Console Log">Console Log</label>
 							</fieldset>
+							<fieldset>
+								<legend title="Drag Elements">Drag</legend>
+								<input id="dragElementsInput" type="checkbox" title="Drag Elements">
+								<label for="dragElementsInput" title="Drag Elements">Drag</label>
+							</fieldset>
 							<button id="reload2Button" class="popoverElement" title="Reload page with URL parameter settings">Reload</button>
 						</span>
 					</span>
@@ -128,7 +133,7 @@
 						</span>
 					</span>
 				</span>
-			</legend>
+			</div>
 			<div id="exampleSelectArea" class="area">
 				<div class="field">
 					<select id="databaseSelect" title="Select Database"></select>
@@ -140,13 +145,13 @@
 					<select id="exampleSelect" title="Load Example"></select>
 				</div>
 			</div>
-		</fieldset>
-	</fieldset>
+		</div>
+	</div>
 
-	<fieldset id="cpcVert1Box" class="flexBox clearLeft">
+	<div id="cpcVert1Box" class="vertFlexBox clearLeft">
 	
-		<fieldset id="cpcArea" class="flexBox">
-			<legend>
+		<div id="cpcArea" class="flexBox">
+			<div>
 				<span class="legendTitle" title="CPC Canvas">CPC</span>
 				<button id="parseRunButton" title="Compile and run script">Run</button>
 				<button id="stopButton" title="Stop/escape/break running script" disabled>Break</button>
@@ -168,7 +173,7 @@
 						</span>
 					</span>
 				</span>
-			</legend>
+			</div>
 			<div id="cpcAreaInner" class="area">
 				<div id="cpcCanvasDiv">
 					<canvas id="cpcCanvas" width="640" height="400" tabindex="0"></canvas>
@@ -178,27 +183,26 @@
 				</div>
 				<div id="noCanvas"></div>
 			</div>	
-		</fieldset>
+		</div>
 
-		<fieldset id="kbdArea" class="flexBox clearLeft displayNone">
-			<legend>
+		<div id="kbdArea" class="flexBox clearLeft displayNone">
+			<div>
 				<span class="legendTitle" title="Virtual Keyboard">Keyboard</span>
-				<span id="kbdMove" class="kbdMove">Move</span>
-			</legend>
+			</div>
 			<div id="kbdAreaInner" class="area kbdArea" tabindex="0">
 				<div id="kbdAlpha" class="area">
 				</div>
 				<div id="kbdNum" class="area">
 				</div>
 			</div>
-		</fieldset>
+		</div>
 
-		<fieldset id="inp2Area" class="flexBox clearLeft displayNone">
-			<legend>
+		<div id="inp2Area" class="flexBox clearLeft displayNone">
+			<div>
 				<span class="legendTitle" title="Alternative way of input">Input</span>
 				<button id="clearInputButton" title="Clear Input">Clear</button>
 				<button id="enterButton" title="Send">Send</button>
-			</legend>
+			</div>
 			<div id="inp2AreaInner" class="area">
 				<textarea id="inp2Text" placeholder="input (with Newline)" rows="2" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
 				<br>
@@ -212,22 +216,22 @@
 					</span>
 				</fieldset>
 			</div>
-		</fieldset>
+		</div>
 
-		<fieldset id="resultArea" class="flexBox clearLeft displayNone">
-			<legend>
+		<div id="resultArea" class="flexBox clearLeft displayNone">
+			<div>
 				<span class="legendTitle" title="BASIC Console">Console</span>
-			</legend>
+			</div>
 			<div id="resultAreaInner" class="area">
 				<textarea id="resultText" placeholder="" rows="15" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
 			</div>
-		</fieldset>
-		</fieldset>
+		</div>
+	</div>
 
-    <fieldset id="cpcVert2Box" class="flexBox">
+    <div id="cpcVert2Box" class="vertFlexBox">
 
-	<fieldset id="inputArea" class="flexBox">
-		<legend>
+	<div id="inputArea" class="flexBox">
+		<div>
 			<span class="legendTitle" title="BASIC Source">BASIC</span>
 			<button id="parseButton" title="Check BASIC script (compile to JavaScript)">Check</button>
 			<span class="buttonPopoverContainer">
@@ -276,73 +280,73 @@
 				<span id="exportArea" class="popover displayNone">
 					<span id="exportAreaInner" class="area">
 						<fieldset>
-						<legend title="File Export">File Export</legend>
-						<label for="exportFileSelect" title="Select files to export">Files...</label>
-						<br>
-						<select id="exportFileSelect" title="Select Files" multiple></select>
-						<br>
-						<hr>
-						<input id="exportTokenizedInput" type="checkbox" title="tokenized" checked>
-						<label for="exportTokenizedInput" title="Tokenized BASIC">Tokenized</label>
-						<br>
-						<input id="exportDSKInput" type="checkbox" title="DSK">
-						<label for="exportDSKInput" title="DSK image">DSK</label>
-						<br>
-						<input id="exportBase64Input" type="checkbox" title="Base64">
-						<label for="exportBase64Input" title="Base64">Base64</label>
-						<br>
-						<button id="downloadButton" class="popoverElement" title="Export">Export</button>
+							<legend title="File Export">File Export</legend>
+							<label for="exportFileSelect" title="Select files to export">Files...</label>
+							<br>
+							<select id="exportFileSelect" title="Select Files" multiple></select>
+							<br>
+							<hr>
+							<input id="exportTokenizedInput" type="checkbox" title="tokenized" checked>
+							<label for="exportTokenizedInput" title="Tokenized BASIC">Tokenized</label>
+							<br>
+							<input id="exportDSKInput" type="checkbox" title="DSK">
+							<label for="exportDSKInput" title="DSK image">DSK</label>
+							<br>
+							<input id="exportBase64Input" type="checkbox" title="Base64">
+							<label for="exportBase64Input" title="Base64">Base64</label>
+							<br>
+							<button id="downloadButton" class="popoverElement" title="Export">Export</button>
+						</fieldset>
 					</span>
-				</fieldset>
 				</span>
 			</span>
-		</legend>
+		</div>
 		<div id="inputAreaInner" class="area clearLeft">
 			<textarea id="inputText" rows="15" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
 		</div>
-	</fieldset>
+	</div>
 
-	<fieldset id="variableArea" class="flexBox clearLeft displayNone">
-		<legend>
+	<div id="variableArea" class="flexBox clearLeft displayNone">
+		<div>
 			<span class="legendTitle" title="Variables">Variables</span>
 			<select id="varSelect" title="Select variable">
 			</select>
-		</legend>
+		</div>
 		<div id="variableAreaInner" class="area">
 			<textarea id="varText" placeholder="value" rows="10" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
 		</div>
-	</fieldset>
+	</div>
 
-	<fieldset id="outputArea" class="flexBox clearLeft displayNone">
-		<legend>
+	<div id="outputArea" class="flexBox clearLeft displayNone">
+		<div>
 			<span class="legendTitle" title="JavaScript">JavaScript</span>
 			<button id="runButton" title="Run JavaScript">Run</button>
-		</legend>
+		</div>
 		<div id="outputAreaInner" class="area">
 			<textarea id="outputText" placeholder="Use input field, press 'Run'" rows="15" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
 		</div>
-	</fieldset>
+	</div>
 
-	<fieldset id="disassArea" class="flexBox clearLeft displayNone">
-		<legend>
+	<div id="disassArea" class="flexBox clearLeft displayNone">
+		<div>
 			<span class="legendTitle" title="Z80 Disassembler">Disassembler</span>
 			<input id="disassInput" type="text" value="0" title="Address (hex)">
-		</legend>
+		</div>
 		<div id="disassAreaInner" class="area clearLeft">
 			<textarea id="disassText" rows="15" cols="80"></textarea>
 		</div>
-	</fieldset>
+	</div>
 
-	<fieldset id="consoleLogArea" class="flexBox clearLeft displayNone">
-		<legend>
+	<div id="consoleLogArea" class="flexBox clearLeft displayNone">
+		<div>
 			<span class="legendTitle" title="Console log">Console log</span>
-		</legend>
+		</div>
 		<div id="consoleLogAreaInner" class="area">
 			<textarea id="consoleLogText" rows="15" cols="80" placeholder="Please set debug > 0"></textarea>
 		</div>
-	</fieldset>
+	</div>
 
-	</fieldset>
+</div>
 
 	<a id="screenshotLink"></a>
 <script>
@@ -373,6 +377,7 @@
 <script src="DiskImage.js"></script>
 <script src="InputStack.js"></script>
 <script src="View.js"></script>
+<script src="DragElement.js"></script>
 <script src="Keyboard.js"></script>
 <script src="VirtualKeyboard.js"></script>
 <script src="Canvas.js"></script>

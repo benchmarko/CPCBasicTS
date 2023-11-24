@@ -2,7 +2,7 @@
 // (c) Marco Vieth, 2019
 // https://benchmarko.github.io/CPCBasicTS/
 //
-define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./BasicParser", "./BasicTokenizer", "./Canvas", "./CodeGeneratorBasic", "./CodeGeneratorJs", "./CodeGeneratorToken", "./CommonEventHandler", "./cpcCharset", "./CpcVm", "./Diff", "./DiskImage", "./FileHandler", "./FileSelect", "./InputStack", "./Keyboard", "./NoCanvas", "./TextCanvas", "./VirtualKeyboard", "./Snapshot", "./Sound", "./Variables", "./View", "./RsxAmsdos", "./RsxCpcBasic", "./Z80Disass"], function (require, exports, Utils_1, BasicFormatter_1, BasicLexer_1, BasicParser_1, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, Diff_1, DiskImage_1, FileHandler_1, FileSelect_1, InputStack_1, Keyboard_1, NoCanvas_1, TextCanvas_1, VirtualKeyboard_1, Snapshot_1, Sound_1, Variables_1, View_1, RsxAmsdos_1, RsxCpcBasic_1, Z80Disass_1) {
+define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./BasicParser", "./BasicTokenizer", "./Canvas", "./CodeGeneratorBasic", "./CodeGeneratorJs", "./CodeGeneratorToken", "./CommonEventHandler", "./cpcCharset", "./CpcVm", "./Diff", "./DiskImage", "./FileHandler", "./FileSelect", "./InputStack", "./Keyboard", "./NoCanvas", "./TextCanvas", "./VirtualKeyboard", "./Snapshot", "./Sound", "./Variables", "./View", "./DragElement", "./RsxAmsdos", "./RsxCpcBasic", "./Z80Disass"], function (require, exports, Utils_1, BasicFormatter_1, BasicLexer_1, BasicParser_1, BasicTokenizer_1, Canvas_1, CodeGeneratorBasic_1, CodeGeneratorJs_1, CodeGeneratorToken_1, CommonEventHandler_1, cpcCharset_1, CpcVm_1, Diff_1, DiskImage_1, FileHandler_1, FileSelect_1, InputStack_1, Keyboard_1, NoCanvas_1, TextCanvas_1, VirtualKeyboard_1, Snapshot_1, Sound_1, Variables_1, View_1, DragElement_1, RsxAmsdos_1, RsxCpcBasic_1, Z80Disass_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Controller = void 0;
@@ -18,6 +18,70 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.sound = new Sound_1.Sound({
                 AudioContextConstructor: window.AudioContext
             });
+            this.dragElementsData = {
+                entries: {
+                    consoleLogArea: {
+                        itemId: "consoleLogArea" /* ViewID.consoleLogArea */,
+                        xOffset: 0,
+                        yOffset: 0,
+                        enabled: false
+                    },
+                    cpcArea: {
+                        itemId: "cpcArea" /* ViewID.cpcArea */,
+                        xOffset: 0,
+                        yOffset: 0,
+                        enabled: false
+                    },
+                    disassArea: {
+                        itemId: "disassArea" /* ViewID.disassArea */,
+                        xOffset: 0,
+                        yOffset: 0,
+                        enabled: false
+                    },
+                    inp2Area: {
+                        itemId: "inp2Area" /* ViewID.inp2Area */,
+                        xOffset: 0,
+                        yOffset: 0,
+                        enabled: false
+                    },
+                    inputArea: {
+                        itemId: "inputArea" /* ViewID.inputArea */,
+                        xOffset: 0,
+                        yOffset: 0,
+                        enabled: false
+                    },
+                    kbdArea: {
+                        itemId: "kbdArea" /* ViewID.kbdArea */,
+                        xOffset: 0,
+                        yOffset: 0,
+                        enabled: false
+                    },
+                    mainArea: {
+                        itemId: "mainArea" /* ViewID.mainArea */,
+                        xOffset: 0,
+                        yOffset: 0,
+                        enabled: false
+                    },
+                    outputArea: {
+                        itemId: "outputArea" /* ViewID.outputArea */,
+                        xOffset: 0,
+                        yOffset: 0,
+                        enabled: false
+                    },
+                    resultArea: {
+                        itemId: "resultArea" /* ViewID.resultArea */,
+                        xOffset: 0,
+                        yOffset: 0,
+                        enabled: false
+                    },
+                    variableArea: {
+                        itemId: "variableArea" /* ViewID.variableArea */,
+                        xOffset: 0,
+                        yOffset: 0,
+                        enabled: false
+                    }
+                }
+            };
             /* eslint-disable no-invalid-this */
             this.handlers = {
                 timer: this.fnTimer,
@@ -74,11 +138,15 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.fnSpeed();
             this.commonEventHandler.onKbdLayoutSelectChange(this.commonEventHandler.getEventDefById("change", "kbdLayoutSelect" /* ViewID.kbdLayoutSelect */));
             this.keyboard = new Keyboard_1.Keyboard({
+                view: this.view,
                 fnOnEscapeHandler: this.fnOnEscapeHandler
             });
-            var keydownOrKeyupHandler = this.keyboard.getKeydownOrKeyupHandler();
-            view.addEventListener("keydown", keydownOrKeyupHandler, "cpcArea" /* ViewID.cpcArea */);
-            view.addEventListener("keyup", keydownOrKeyupHandler, "cpcArea" /* ViewID.cpcArea */);
+            /*
+            const keydownOrKeyupHandler = this.keyboard.getKeydownOrKeyupHandler();
+    
+            view.addEventListenerById("keydown", keydownOrKeyupHandler, ViewID.cpcArea);
+            view.addEventListenerById("keyup", keydownOrKeyupHandler, ViewID.cpcArea);
+            */
             if (this.model.getProperty("showKbd" /* ModelPropID.showKbd */)) { // maybe we need to draw virtual keyboard
                 this.getVirtualKeyboard();
             }
@@ -127,6 +195,9 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.hasStorageDatabase = this.initDatabases();
             if (model.getProperty("showCpc" /* ModelPropID.showCpc */)) {
                 this.canvas.startUpdateCanvas();
+            }
+            if (model.getProperty("dragElements" /* ModelPropID.dragElements */)) {
+                this.fnDragElementsActive(true);
             }
         }
         Controller.prototype.initDatabases = function () {
@@ -1590,7 +1661,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                             fnExportBase64();
                         }
                         if (data) {
-                            View_1.View.fnDownloadBlob(data, name);
+                            this.view.fnDownloadBlob(data, name);
                         }
                     }
                 }
@@ -1600,7 +1671,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     fnExportBase64();
                 }
                 if (data) {
-                    View_1.View.fnDownloadBlob(data, name);
+                    this.view.fnDownloadBlob(data, name);
                 }
             }
         };
@@ -2216,6 +2287,15 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         Controller.prototype.stopUpdateCanvas = function () {
             this.canvas.stopUpdateCanvas();
         };
+        Controller.prototype.getDragElement = function () {
+            if (!this.dragElement) {
+                this.dragElement = new DragElement_1.DragElement({
+                    view: this.view,
+                    entries: {}
+                });
+            }
+            return this.dragElement;
+        };
         Controller.prototype.getVirtualKeyboard = function () {
             if (!this.virtualKeyboard) {
                 this.virtualKeyboard = new VirtualKeyboard_1.VirtualKeyboard({
@@ -2223,11 +2303,46 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     fnPressCpcKey: this.keyboard.fnPressCpcKey.bind(this.keyboard),
                     fnReleaseCpcKey: this.keyboard.fnReleaseCpcKey.bind(this.keyboard)
                 });
-                var keydownOrKeyupHandler = this.virtualKeyboard.getKeydownOrKeyupHandler();
-                this.view.addEventListener("keydown", keydownOrKeyupHandler, "kbdAreaInner" /* ViewID.kbdAreaInner */);
-                this.view.addEventListener("keyup", keydownOrKeyupHandler, "kbdAreaInner" /* ViewID.kbdAreaInner */);
+                /*
+                const keydownOrKeyupHandler = this.virtualKeyboard.getKeydownOrKeyupHandler();
+    
+                this.view.addEventListener("keydown", keydownOrKeyupHandler, ViewID.kbdAreaInner);
+                this.view.addEventListener("keyup", keydownOrKeyupHandler, ViewID.kbdAreaInner);
+                */
+                /*
+                const dragElement = this.getDragElement();
+    
+                dragElement.setOptions({
+                    entries: {
+                        kbdArea: {
+                            itemId: ViewID.kbdArea,
+                            xOffset: 0,
+                            yOffset: 0
+                        },
+                        cpcArea: {
+                            itemId: ViewID.cpcArea,
+                            xOffset: 0,
+                            yOffset: 0
+                        },
+                        inputArea: {
+                            itemId: ViewID.inputArea,
+                            xOffset: 0,
+                            yOffset: 0
+                        }
+                    }
+                });
+                */
             }
             return this.virtualKeyboard;
+        };
+        Controller.prototype.fnDragElementsActive = function (enabled) {
+            var dragElement = this.getDragElement(), dragElementsData = this.dragElementsData;
+            for (var entry in dragElementsData.entries) {
+                if (dragElementsData.entries.hasOwnProperty(entry)) {
+                    dragElementsData.entries[entry].enabled = enabled;
+                }
+            }
+            dragElement.setOptions(this.dragElementsData);
         };
         Controller.prototype.getVariable = function (par) {
             return this.variables.getVariable(par);

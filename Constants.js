@@ -12,6 +12,7 @@ define(["require", "exports"], function (require, exports) {
         ModelPropID["autorun"] = "autorun";
         ModelPropID["basicVersion"] = "basicVersion";
         ModelPropID["bench"] = "bench";
+        ModelPropID["canvasType"] = "canvasType";
         ModelPropID["databaseDirs"] = "databaseDirs";
         ModelPropID["database"] = "database";
         ModelPropID["debug"] = "debug";
@@ -20,7 +21,7 @@ define(["require", "exports"], function (require, exports) {
         ModelPropID["implicitLines"] = "implicitLines";
         ModelPropID["input"] = "input";
         ModelPropID["kbdLayout"] = "kbdLayout";
-        ModelPropID["canvasType"] = "canvasType";
+        ModelPropID["dragElements"] = "dragElements";
         ModelPropID["palette"] = "palette";
         ModelPropID["processFileImports"] = "processFileImports";
         ModelPropID["showConsoleLog"] = "showConsoleLog";
@@ -93,8 +94,10 @@ define(["require", "exports"], function (require, exports) {
         ViewID["kbdNum"] = "kbdNum";
         ViewID["lineNumberAddButton"] = "lineNumberAddButton";
         ViewID["lineNumberRemoveButton"] = "lineNumberRemoveButton";
+        ViewID["mainArea"] = "mainArea";
         ViewID["moreArea"] = "moreArea";
         ViewID["moreButton"] = "moreButton";
+        ViewID["dragElementsInput"] = "dragElementsInput";
         ViewID["noCanvas"] = "noCanvas";
         ViewID["outputArea"] = "outputArea";
         ViewID["outputText"] = "outputText";
@@ -142,7 +145,7 @@ define(["require", "exports"], function (require, exports) {
         ViewID["varText"] = "varText";
         ViewID["viewArea"] = "viewArea";
         ViewID["viewButton"] = "viewButton";
-        ViewID["window"] = "window"; //TTT does this work?
+        ViewID["window"] = "window"; // for window.document
     })(ViewID = exports.ViewID || (exports.ViewID = {}));
 });
 //# sourceMappingURL=Constants.js.map

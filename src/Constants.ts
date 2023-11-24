@@ -8,6 +8,7 @@ export const enum ModelPropID { // eslint-disable-line no-shadow
 	autorun = "autorun",
 	basicVersion = "basicVersion",
 	bench = "bench",
+	canvasType = "canvasType",
 	databaseDirs = "databaseDirs",
 	database = "database",
 	debug = "debug",
@@ -16,7 +17,7 @@ export const enum ModelPropID { // eslint-disable-line no-shadow
 	implicitLines = "implicitLines",
 	input = "input",
 	kbdLayout = "kbdLayout",
-	canvasType = "canvasType",
+	dragElements = "dragElements",
 	palette = "palette",
 	processFileImports = "processFileImports",
 	showConsoleLog = "showConsoleLog",
@@ -89,8 +90,10 @@ export const enum ViewID { // eslint-disable-line no-shadow
 	kbdNum = "kbdNum",
 	lineNumberAddButton = "lineNumberAddButton",
 	lineNumberRemoveButton = "lineNumberRemoveButton",
+	mainArea = "mainArea",
 	moreArea = "moreArea",
 	moreButton = "moreButton",
+	dragElementsInput = "dragElementsInput",
 	noCanvas = "noCanvas",
 	outputArea = "outputArea",
 	outputText = "outputText",
@@ -138,5 +141,5 @@ export const enum ViewID { // eslint-disable-line no-shadow
 	varText = "varText",
 	viewArea = "viewArea",
 	viewButton = "viewButton",
-	window = "window" //TTT does this work?
+	window = "window" // for window.document
 }

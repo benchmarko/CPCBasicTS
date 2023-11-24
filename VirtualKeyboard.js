@@ -11,14 +11,14 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             this.shiftLock = false;
             this.numLock = false;
             this.fnVirtualKeyboardKeydownHandler = this.onVirtualKeyboardKeydown.bind(this);
-            this.fnVirtualKeyboardKeyupHandler = this.onVirtualKeyboardKeyup.bind(this);
-            this.fnVirtualKeyboardKeyoutHandler = this.onVirtualKeyboardKeyout.bind(this);
+            this.fnVirtualKeyboardKeyupOrKeyoutHandler = this.onVirtualKeyboardKeyupOrKeyout.bind(this);
             this.fnKeydownOrKeyupHandler = this.onKeydownOrKeyup.bind(this); // for real Enter and Space
             this.options = {};
             this.setOptions(options);
-            var view = this.options.view, eventNames = view.fnAttachPointerEvents("kbdAreaInner" /* ViewID.kbdAreaInner */, this.fnVirtualKeyboardKeydownHandler, undefined, this.fnVirtualKeyboardKeyupHandler);
-            this.eventNames = eventNames;
-            view.dragInit("pageBody" /* ViewID.pageBody */, "kbdArea" /* ViewID.kbdArea */);
+            var view = this.options.view;
+            this.eventNames = this.options.view.fnAttachPointerEvents("kbdAreaInner" /* ViewID.kbdAreaInner */, this.fnVirtualKeyboardKeydownHandler, undefined, this.fnVirtualKeyboardKeyupOrKeyoutHandler);
+            view.addEventListenerById("keydown", this.fnKeydownOrKeyupHandler, "kbdAreaInner" /* ViewID.kbdAreaInner */);
+            view.addEventListenerById("keyup", this.fnKeydownOrKeyupHandler, "kbdAreaInner" /* ViewID.kbdAreaInner */);
             this.virtualKeyboardCreate();
         }
         VirtualKeyboard.prototype.getOptions = function () {
@@ -26,15 +26,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         };
         VirtualKeyboard.prototype.setOptions = function (options) {
             Object.assign(this.options, options);
-        };
-        VirtualKeyboard.prototype.getVirtualKeydownHandler = function () {
-            return this.fnVirtualKeyboardKeydownHandler;
-        };
-        VirtualKeyboard.prototype.getVirtualKeyupHandler = function () {
-            return this.fnVirtualKeyboardKeyupHandler;
-        };
-        VirtualKeyboard.prototype.getKeydownOrKeyupHandler = function () {
-            return this.fnKeydownOrKeyupHandler;
         };
         /* eslint-enable array-element-newline */
         VirtualKeyboard.prototype.reset = function () {
@@ -169,7 +160,8 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             }
             // A pointerdown event can also ended by pointerout when leaving the area
             if (this.eventNames.out) {
-                node.addEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyoutHandler, false);
+                //node.addEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyupOrKeyoutHandler, false);
+                this.options.view.addEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyupOrKeyoutHandler, node);
             }
             event.preventDefault();
             return false;
@@ -193,30 +185,35 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 }
             }
         };
-        VirtualKeyboard.prototype.onVirtualKeyboardKeyup = function (event) {
+        VirtualKeyboard.prototype.onVirtualKeyboardKeyupOrKeyout = function (event) {
             var node = View_1.View.getEventTarget(event);
             if (Utils_1.Utils.debug > 1) {
-                Utils_1.Utils.console.debug("onVirtualKeyboardKeyup: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", node.getAttribute("data-key"));
+                Utils_1.Utils.console.debug("onVirtualKeyboardKeyupOrKeyout: event", String(event), "type:", event.type, "title:", node.title, "cpcKey:", node.getAttribute("data-key"));
             }
             this.fnVirtualKeyboardKeyupOrKeyout(event);
+            if (this.eventNames.out) {
+                //node.removeEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyupOrKeyoutHandler); // do not need out event any more for this key
+                this.options.view.removeEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyupOrKeyoutHandler, node);
+            }
+            event.preventDefault();
+            return false;
+        };
+        /*
+        private onVirtualKeyboardKeyout(event: PointerEvent) {
+            const node = View.getEventTarget<HTMLElement>(event);
+    
+            if (Utils.debug > 1) {
+                Utils.console.debug("onVirtualKeyboardKeyout: event=", event);
+            }
+            this.fnVirtualKeyboardKeyupOrKeyout(event);
+    
             if (this.eventNames.out) {
                 node.removeEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyoutHandler); // do not need out event any more for this key
             }
             event.preventDefault();
             return false;
-        };
-        VirtualKeyboard.prototype.onVirtualKeyboardKeyout = function (event) {
-            var node = View_1.View.getEventTarget(event);
-            if (Utils_1.Utils.debug > 1) {
-                Utils_1.Utils.console.debug("onVirtualKeyboardKeyout: event=", event);
-            }
-            this.fnVirtualKeyboardKeyupOrKeyout(event);
-            if (this.eventNames.out) {
-                node.removeEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyoutHandler); // do not need out event any more for this key
-            }
-            event.preventDefault();
-            return false;
-        };
+        }
+        */
         VirtualKeyboard.keyIdentifier2Char = function (event) {
             // SliTaz web browser has not key but keyIdentifier
             var identifier = event.keyIdentifier, // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -249,7 +246,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                     this.onVirtualKeyboardKeydown(simPointerEvent);
                 }
                 else if (event.type === "keyup") {
-                    this.onVirtualKeyboardKeyup(simPointerEvent);
+                    this.onVirtualKeyboardKeyupOrKeyout(simPointerEvent);
                 }
                 else {
                     Utils_1.Utils.console.error("onKeydownOrKeyup: Unknown type:", event.type);
@@ -259,6 +256,19 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             }
             return undefined;
         };
+        /*
+        getVirtualKeydownHandler(): typeof this.fnVirtualKeyboardKeydownHandler {
+            return this.fnVirtualKeyboardKeydownHandler;
+        }
+    
+        getVirtualKeyupHandler(): typeof this.fnVirtualKeyboardKeyupOrKeyoutHandler {
+            return this.fnVirtualKeyboardKeyupOrKeyoutHandler;
+        }
+    
+        getKeydownOrKeyupHandler(): (event: Event) => boolean {
+            return this.fnKeydownOrKeyupHandler;
+        }
+        */
         VirtualKeyboard.cpcKey2Key = [
             {
                 keys: "38ArrowUp",

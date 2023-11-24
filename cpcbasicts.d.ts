@@ -16,6 +16,7 @@ declare module "Constants" {
         autorun = "autorun",
         basicVersion = "basicVersion",
         bench = "bench",
+        canvasType = "canvasType",
         databaseDirs = "databaseDirs",
         database = "database",
         debug = "debug",
@@ -24,7 +25,7 @@ declare module "Constants" {
         implicitLines = "implicitLines",
         input = "input",
         kbdLayout = "kbdLayout",
-        canvasType = "canvasType",
+        dragElements = "dragElements",
         palette = "palette",
         processFileImports = "processFileImports",
         showConsoleLog = "showConsoleLog",
@@ -96,8 +97,10 @@ declare module "Constants" {
         kbdNum = "kbdNum",
         lineNumberAddButton = "lineNumberAddButton",
         lineNumberRemoveButton = "lineNumberRemoveButton",
+        mainArea = "mainArea",
         moreArea = "moreArea",
         moreButton = "moreButton",
+        dragElementsInput = "dragElementsInput",
         noCanvas = "noCanvas",
         outputArea = "outputArea",
         outputText = "outputText",
@@ -337,6 +340,7 @@ declare module "Interfaces" {
         fnArrayBounds: () => void;
         fnTrace: () => void;
         fnSpeed: () => void;
+        fnDragElementsActive: (enabled: boolean) => void;
     }
 }
 declare module "cpcCharset" {
@@ -1093,25 +1097,59 @@ declare module "View" {
         setAreaScrollTop(id: ViewID, scrollTop?: number): this;
         private setSelectionRange;
         setAreaSelection(id: ViewID, pos: number, endPos: number): this;
-        addEventListener(type: string, eventListener: EventListenerOrEventListenerObject, id?: ViewID): this;
-        removeEventListener(type: string, eventListener: EventListenerOrEventListenerObject, id?: ViewID): this;
-        static getEventTarget<T extends HTMLElement>(event: Event): T;
-        static requestFullscreenForId(id: ViewID): boolean;
-        static fnDownloadBlob(data: string, filename: string): void;
+        addEventListener(type: string, eventListener: EventListenerOrEventListenerObject, element?: HTMLElement): this;
+        addEventListenerById(type: string, eventListener: EventListenerOrEventListenerObject, id: ViewID): this;
+        removeEventListener(type: string, eventListener: EventListenerOrEventListenerObject, element?: HTMLElement): this;
+        removeEventListenerById(type: string, eventListener: EventListenerOrEventListenerObject, id: ViewID): this;
         private static readonly pointerEventNames;
         private static readonly touchEventNames;
         private static readonly mouseEventNames;
+        private static getPointerEventNames;
         fnAttachPointerEvents(id: ViewID, fnDown?: EventListener, fnMove?: EventListener, fnUp?: EventListener): PointerEventNamesType;
-        private readonly dragInfo;
-        dragInit(containerId: ViewID, itemId: ViewID): void;
+        fnDetachPointerEvents(id: ViewID, fnDown?: EventListener, fnMove?: EventListener, fnUp?: EventListener): PointerEventNamesType;
+        static getEventTarget<T extends HTMLElement>(event: Event): T;
+        static requestFullscreenForId(id: ViewID): boolean;
+        fnDownloadBlob(data: string, filename: string): void;
+    }
+}
+declare module "DragElement" {
+    import { ViewID } from "Constants";
+    import { View } from "View";
+    type DragElementOptionEntryType = {
+        itemId: ViewID;
+        xOffset: number;
+        yOffset: number;
+        enabled: boolean;
+    };
+    export type DragElementOptions = {
+        view: View;
+        entries: Record<string, DragElementOptionEntryType>;
+    };
+    export class DragElement {
+        private readonly fnDragStartHandler;
+        private readonly fnDragMoveHandler;
+        private readonly fnDragEndHandler;
+        private readonly options;
+        private containerId;
+        private initialX;
+        private initialY;
+        private currentX;
+        private currentY;
+        private dragInfo?;
+        private dragItem?;
+        constructor(options: DragElementOptions);
+        getOptions(): DragElementOptions;
+        setOptions(options: Partial<DragElementOptions>): void;
         private dragStart;
+        private static setDragTranslate;
+        private dragMove;
         private dragEnd;
-        private setDragTranslate;
-        private drag;
     }
 }
 declare module "Keyboard" {
+    import { View } from "View";
     interface KeyboardOptions {
+        view: View;
         fnOnEscapeHandler?: (key: string, pressedKey: string) => void;
         fnOnKeyDown?: () => void;
     }
@@ -1135,8 +1173,7 @@ declare module "Keyboard" {
         private pressedKeys;
         constructor(options: KeyboardOptions);
         getOptions(): KeyboardOptions;
-        setOptions(options: KeyboardOptions): void;
-        getKeydownOrKeyupHandler(): (event: Event) => boolean;
+        setOptions(options: Partial<KeyboardOptions>): void;
         private static readonly key2CpcKey;
         private static readonly specialKeys;
         private static readonly joyKeyCodes;
@@ -1171,8 +1208,7 @@ declare module "VirtualKeyboard" {
     }
     export class VirtualKeyboard {
         private readonly fnVirtualKeyboardKeydownHandler;
-        private readonly fnVirtualKeyboardKeyupHandler;
-        private readonly fnVirtualKeyboardKeyoutHandler;
+        private readonly fnVirtualKeyboardKeyupOrKeyoutHandler;
         private readonly fnKeydownOrKeyupHandler;
         private readonly options;
         private readonly eventNames;
@@ -1181,9 +1217,6 @@ declare module "VirtualKeyboard" {
         constructor(options: VirtualKeyboardOptions);
         getOptions(): VirtualKeyboardOptions;
         setOptions(options: Partial<VirtualKeyboardOptions>): void;
-        getVirtualKeydownHandler(): typeof this.fnVirtualKeyboardKeydownHandler;
-        getVirtualKeyupHandler(): typeof this.fnVirtualKeyboardKeyupHandler;
-        getKeydownOrKeyupHandler(): (event: Event) => boolean;
         private static readonly cpcKey2Key;
         private static readonly virtualKeyboardAlpha;
         private static readonly virtualKeyboardNum;
@@ -1197,8 +1230,7 @@ declare module "VirtualKeyboard" {
         private fnVirtualGetPressedKey;
         private onVirtualKeyboardKeydown;
         private fnVirtualKeyboardKeyupOrKeyout;
-        private onVirtualKeyboardKeyup;
-        private onVirtualKeyboardKeyout;
+        private onVirtualKeyboardKeyupOrKeyout;
         private static keyIdentifier2Char;
         private onKeydownOrKeyup;
     }
@@ -1497,6 +1529,7 @@ declare module "CommonEventHandler" {
         private onPaletteSelectChange;
         private onCanvasTypeSelectChange;
         private onDebugInputChange;
+        private onDragElementsInputChange;
         private onShowCpcInputChange;
         private onShowKbdInputChange;
         private onDisassInputChange;
@@ -2375,6 +2408,7 @@ declare module "Controller" {
         private readonly inputStack;
         private readonly keyboard;
         private virtualKeyboard?;
+        private dragElement?;
         private readonly sound;
         private readonly vm;
         private readonly noStop;
@@ -2507,7 +2541,10 @@ declare module "Controller" {
         private fnPutChangedInputOnStack;
         startUpdateCanvas(): void;
         stopUpdateCanvas(): void;
+        private getDragElement;
         getVirtualKeyboard(): VirtualKeyboard;
+        private dragElementsData;
+        fnDragElementsActive(enabled: boolean): void;
         getVariable(par: string): VariableValue;
         undoStackElement(): string;
         redoStackElement(): string;

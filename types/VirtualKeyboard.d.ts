@@ -7,8 +7,7 @@ interface VirtualKeyboardOptions {
 }
 export declare class VirtualKeyboard {
     private readonly fnVirtualKeyboardKeydownHandler;
-    private readonly fnVirtualKeyboardKeyupHandler;
-    private readonly fnVirtualKeyboardKeyoutHandler;
+    private readonly fnVirtualKeyboardKeyupOrKeyoutHandler;
     private readonly fnKeydownOrKeyupHandler;
     private readonly options;
     private readonly eventNames;
@@ -17,9 +16,6 @@ export declare class VirtualKeyboard {
     constructor(options: VirtualKeyboardOptions);
     getOptions(): VirtualKeyboardOptions;
     setOptions(options: Partial<VirtualKeyboardOptions>): void;
-    getVirtualKeydownHandler(): typeof this.fnVirtualKeyboardKeydownHandler;
-    getVirtualKeyupHandler(): typeof this.fnVirtualKeyboardKeyupHandler;
-    getKeydownOrKeyupHandler(): (event: Event) => boolean;
     private static readonly cpcKey2Key;
     private static readonly virtualKeyboardAlpha;
     private static readonly virtualKeyboardNum;
@@ -33,8 +29,7 @@ export declare class VirtualKeyboard {
     private fnVirtualGetPressedKey;
     private onVirtualKeyboardKeydown;
     private fnVirtualKeyboardKeyupOrKeyout;
-    private onVirtualKeyboardKeyup;
-    private onVirtualKeyboardKeyout;
+    private onVirtualKeyboardKeyupOrKeyout;
     private static keyIdentifier2Char;
     private onKeydownOrKeyup;
 }

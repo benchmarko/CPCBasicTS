@@ -198,6 +198,7 @@ export class CommonEventHandler implements EventListenerObject {
 			checked = this.view.getInputChecked(id);
 
 		this.model.setProperty(property, checked);
+		return checked;
 	}
 
 	private onNumberInputChange(eventDef: EventDefType) {
@@ -349,6 +350,12 @@ export class CommonEventHandler implements EventListenerObject {
 		const value = this.onNumberInputChange(eventDef);
 
 		Utils.debug = value;
+	}
+
+	private onDragElementsInputChange(eventDef: EventDefType) {
+		const checked = this.onCheckedChange(eventDef);
+
+		this.controller.fnDragElementsActive(checked);
 	}
 
 	private onShowCpcInputChange(eventDef: EventDefType) {
@@ -626,6 +633,12 @@ export class CommonEventHandler implements EventListenerObject {
 						func: this.onKbdLayoutSelectChange
 					},
 					{
+						id: ViewID.dragElementsInput,
+						viewType: "checked",
+						property: ModelPropID.dragElements,
+						func: this.onDragElementsInputChange
+					},
+					{
 						id: ViewID.outputText,
 						controllerFunc: this.controller.invalidateScript
 					},
@@ -675,7 +688,6 @@ export class CommonEventHandler implements EventListenerObject {
 						viewType: "checked",
 						toggleId: ViewID.kbdArea,
 						property: ModelPropID.showKbd,
-						display: "flex",
 						func: this.onShowKbdInputChange
 					},
 					{

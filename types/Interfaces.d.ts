@@ -149,6 +149,7 @@ export interface IController {
     fnArrayBounds: () => void;
     fnTrace: () => void;
     fnSpeed: () => void;
+    fnDragElementsActive: (enabled: boolean) => void;
 }
 export {};
 //# sourceMappingURL=Interfaces.d.ts.map

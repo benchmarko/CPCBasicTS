@@ -35,6 +35,7 @@ export declare class Controller implements IController {
     private readonly inputStack;
     private readonly keyboard;
     private virtualKeyboard?;
+    private dragElement?;
     private readonly sound;
     private readonly vm;
     private readonly noStop;
@@ -167,7 +168,10 @@ export declare class Controller implements IController {
     private fnPutChangedInputOnStack;
     startUpdateCanvas(): void;
     stopUpdateCanvas(): void;
+    private getDragElement;
     getVirtualKeyboard(): VirtualKeyboard;
+    private dragElementsData;
+    fnDragElementsActive(enabled: boolean): void;
     getVariable(par: string): VariableValue;
     undoStackElement(): string;
     redoStackElement(): string;

@@ -1,4 +1,6 @@
+import { View } from "./View";
 interface KeyboardOptions {
+    view: View;
     fnOnEscapeHandler?: (key: string, pressedKey: string) => void;
     fnOnKeyDown?: () => void;
 }
@@ -22,8 +24,7 @@ export declare class Keyboard {
     private pressedKeys;
     constructor(options: KeyboardOptions);
     getOptions(): KeyboardOptions;
-    setOptions(options: KeyboardOptions): void;
-    getKeydownOrKeyupHandler(): (event: Event) => boolean;
+    setOptions(options: Partial<KeyboardOptions>): void;
     private static readonly key2CpcKey;
     private static readonly specialKeys;
     private static readonly joyKeyCodes;

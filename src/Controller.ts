@@ -31,6 +31,7 @@ import { Snapshot } from "./Snapshot";
 import { Sound, SoundData } from "./Sound";
 import { Variables } from "./Variables";
 import { View, SelectOptionElement, AreaInputElement } from "./View";
+import { DragElement, DragElementOptions } from "./DragElement";
 import { RsxAmsdos } from "./RsxAmsdos";
 import { RsxCpcBasic } from "./RsxCpcBasic";
 import { Z80Disass } from "./Z80Disass"; // test
@@ -83,6 +84,9 @@ export class Controller implements IController {
 
 	private readonly keyboard: Keyboard;
 	private virtualKeyboard?: VirtualKeyboard;
+
+	private dragElement?: DragElement;
+
 	private readonly sound = new Sound({
 		AudioContextConstructor: window.AudioContext
 	});
@@ -136,12 +140,15 @@ export class Controller implements IController {
 		this.commonEventHandler.onKbdLayoutSelectChange(this.commonEventHandler.getEventDefById("change", ViewID.kbdLayoutSelect));
 
 		this.keyboard = new Keyboard({
+			view: this.view,
 			fnOnEscapeHandler: this.fnOnEscapeHandler
 		});
+		/*
 		const keydownOrKeyupHandler = this.keyboard.getKeydownOrKeyupHandler();
 
-		view.addEventListener("keydown", keydownOrKeyupHandler, ViewID.cpcArea);
-		view.addEventListener("keyup", keydownOrKeyupHandler, ViewID.cpcArea);
+		view.addEventListenerById("keydown", keydownOrKeyupHandler, ViewID.cpcArea);
+		view.addEventListenerById("keyup", keydownOrKeyupHandler, ViewID.cpcArea);
+		*/
 
 		if (this.model.getProperty<boolean>(ModelPropID.showKbd)) { // maybe we need to draw virtual keyboard
 			this.getVirtualKeyboard();
@@ -202,6 +209,9 @@ export class Controller implements IController {
 
 		if (model.getProperty<boolean>(ModelPropID.showCpc)) {
 			this.canvas.startUpdateCanvas();
+		}
+		if (model.getProperty<boolean>(ModelPropID.dragElements)) {
+			this.fnDragElementsActive(true);
 		}
 	}
 
@@ -2070,7 +2080,7 @@ export class Controller implements IController {
 						fnExportBase64();
 					}
 					if (data) {
-						View.fnDownloadBlob(data, name);
+						this.view.fnDownloadBlob(data, name);
 					}
 				}
 			}
@@ -2081,7 +2091,7 @@ export class Controller implements IController {
 				fnExportBase64();
 			}
 			if (data) {
-				View.fnDownloadBlob(data, name);
+				this.view.fnDownloadBlob(data, name);
 			}
 		}
 	}
@@ -2837,6 +2847,16 @@ export class Controller implements IController {
 		this.canvas.stopUpdateCanvas();
 	}
 
+	private getDragElement(): DragElement {
+		if (!this.dragElement) {
+			this.dragElement = new DragElement({
+				view: this.view,
+				entries: {}
+			});
+		}
+		return this.dragElement;
+	}
+
 	getVirtualKeyboard(): VirtualKeyboard {
 		if (!this.virtualKeyboard) {
 			this.virtualKeyboard = new VirtualKeyboard({
@@ -2844,12 +2864,116 @@ export class Controller implements IController {
 				fnPressCpcKey: this.keyboard.fnPressCpcKey.bind(this.keyboard),
 				fnReleaseCpcKey: this.keyboard.fnReleaseCpcKey.bind(this.keyboard)
 			});
+			/*
 			const keydownOrKeyupHandler = this.virtualKeyboard.getKeydownOrKeyupHandler();
 
 			this.view.addEventListener("keydown", keydownOrKeyupHandler, ViewID.kbdAreaInner);
 			this.view.addEventListener("keyup", keydownOrKeyupHandler, ViewID.kbdAreaInner);
+			*/
+
+			/*
+			const dragElement = this.getDragElement();
+
+			dragElement.setOptions({
+				entries: {
+					kbdArea: {
+						itemId: ViewID.kbdArea,
+						xOffset: 0,
+						yOffset: 0
+					},
+					cpcArea: {
+						itemId: ViewID.cpcArea,
+						xOffset: 0,
+						yOffset: 0
+					},
+					inputArea: {
+						itemId: ViewID.inputArea,
+						xOffset: 0,
+						yOffset: 0
+					}
+				}
+			});
+			*/
 		}
 		return this.virtualKeyboard;
+	}
+
+	private dragElementsData: Partial<DragElementOptions> = {
+		entries: {
+			consoleLogArea: {
+				itemId: ViewID.consoleLogArea,
+				xOffset: 0,
+				yOffset: 0,
+				enabled: false
+			},
+			cpcArea: {
+				itemId: ViewID.cpcArea,
+				xOffset: 0,
+				yOffset: 0,
+				enabled: false
+			},
+			disassArea: {
+				itemId: ViewID.disassArea,
+				xOffset: 0,
+				yOffset: 0,
+				enabled: false
+			},
+			inp2Area: {
+				itemId: ViewID.inp2Area,
+				xOffset: 0,
+				yOffset: 0,
+				enabled: false
+			},
+			inputArea: {
+				itemId: ViewID.inputArea,
+				xOffset: 0,
+				yOffset: 0,
+				enabled: false
+			},
+			kbdArea: {
+				itemId: ViewID.kbdArea,
+				xOffset: 0,
+				yOffset: 0,
+				enabled: false
+			},
+			mainArea: {
+				itemId: ViewID.mainArea,
+				xOffset: 0,
+				yOffset: 0,
+				enabled: false
+			},
+			outputArea: {
+				itemId: ViewID.outputArea,
+				xOffset: 0,
+				yOffset: 0,
+				enabled: false
+			},
+			resultArea: {
+				itemId: ViewID.resultArea,
+				xOffset: 0,
+				yOffset: 0,
+				enabled: false
+			},
+			variableArea: {
+				itemId: ViewID.variableArea,
+				xOffset: 0,
+				yOffset: 0,
+				enabled: false
+			}
+		}
+	};
+
+	fnDragElementsActive(enabled: boolean): void {
+		const dragElement = this.getDragElement(),
+			dragElementsData = this.dragElementsData;
+
+		for (const entry in dragElementsData.entries) {
+			if (dragElementsData.entries.hasOwnProperty(entry)) {
+				dragElementsData.entries[entry].enabled = enabled;
+			}
+		}
+
+		dragElement.setOptions(this.dragElementsData);
 	}
 
 	getVariable(par: string): VariableValue {

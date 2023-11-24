@@ -34,20 +34,18 @@ export declare class View {
     setAreaScrollTop(id: ViewID, scrollTop?: number): this;
     private setSelectionRange;
     setAreaSelection(id: ViewID, pos: number, endPos: number): this;
-    addEventListener(type: string, eventListener: EventListenerOrEventListenerObject, id?: ViewID): this;
-    removeEventListener(type: string, eventListener: EventListenerOrEventListenerObject, id?: ViewID): this;
-    static getEventTarget<T extends HTMLElement>(event: Event): T;
-    static requestFullscreenForId(id: ViewID): boolean;
-    static fnDownloadBlob(data: string, filename: string): void;
+    addEventListener(type: string, eventListener: EventListenerOrEventListenerObject, element?: HTMLElement): this;
+    addEventListenerById(type: string, eventListener: EventListenerOrEventListenerObject, id: ViewID): this;
+    removeEventListener(type: string, eventListener: EventListenerOrEventListenerObject, element?: HTMLElement): this;
+    removeEventListenerById(type: string, eventListener: EventListenerOrEventListenerObject, id: ViewID): this;
     private static readonly pointerEventNames;
     private static readonly touchEventNames;
     private static readonly mouseEventNames;
+    private static getPointerEventNames;
     fnAttachPointerEvents(id: ViewID, fnDown?: EventListener, fnMove?: EventListener, fnUp?: EventListener): PointerEventNamesType;
-    private readonly dragInfo;
-    dragInit(containerId: ViewID, itemId: ViewID): void;
-    private dragStart;
-    private dragEnd;
-    private setDragTranslate;
-    private drag;
+    fnDetachPointerEvents(id: ViewID, fnDown?: EventListener, fnMove?: EventListener, fnUp?: EventListener): PointerEventNamesType;
+    static getEventTarget<T extends HTMLElement>(event: Event): T;
+    static requestFullscreenForId(id: ViewID): boolean;
+    fnDownloadBlob(data: string, filename: string): void;
 }
 //# sourceMappingURL=View.d.ts.map
