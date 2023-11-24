@@ -305,13 +305,8 @@ export class View {
 		return this;
 	}
 
-	addEventListener(type: string, eventListener: EventListenerOrEventListenerObject, id?: ViewID): this {
-		if (Utils.debug) {
-			Utils.console.debug("addEventListener: type=" + type + ", eventHandler=" + eventListener + ", id=" + id);
-		}
-		if (id) {
-			const element = View.getElementById1(id);
-
+	addEventListener(type: string, eventListener: EventListenerOrEventListenerObject, element?: HTMLElement): this {
+		if (element) {
 			element.addEventListener(type, eventListener, false);
 		} else {
 			window.document.addEventListener(type, eventListener, false);
@@ -319,18 +314,111 @@ export class View {
 		return this;
 	}
 
-	removeEventListener(type: string, eventListener: EventListenerOrEventListenerObject, id?: ViewID): this {
+	addEventListenerById(type: string, eventListener: EventListenerOrEventListenerObject, id: ViewID): this {
 		if (Utils.debug) {
-			Utils.console.debug("removeEventListener: type=" + type + ", eventHandler=" + eventListener + ", id=" + id);
+			Utils.console.debug("addEventListenerById: type=" + type + ", eventHandler=" + eventListener + ", id=" + id);
 		}
-		if (id) {
-			const element = View.getElementById1(id);
+		const element = id === ViewID.window ? undefined : View.getElementById1(id);
 
+		this.addEventListener(type, eventListener, element);
+		return this;
+	}
+
+	removeEventListener(type: string, eventListener: EventListenerOrEventListenerObject, element?: HTMLElement): this {
+		if (element) {
 			element.removeEventListener(type, eventListener, false);
 		} else {
 			window.document.removeEventListener(type, eventListener, false);
 		}
 		return this;
+	}
+
+	removeEventListenerById(type: string, eventListener: EventListenerOrEventListenerObject, id: ViewID): this {
+		if (Utils.debug) {
+			Utils.console.debug("removeEventListener: type=" + type + ", eventHandler=" + eventListener + ", id=" + id);
+		}
+		const element = id === ViewID.window ? undefined : View.getElementById1(id);
+
+		this.removeEventListener(type, eventListener, element);
+		return this;
+	}
+
+	private static readonly pointerEventNames: PointerEventNamesType = {
+		down: "pointerdown",
+		move: "pointermove",
+		up: "pointerup",
+		cancel: "pointercancel",
+		out: "pointerout",
+		type: "pointer"
+	};
+
+	private static readonly touchEventNames: PointerEventNamesType = {
+		down: "touchstart",
+		move: "touchmove",
+		up: "touchend",
+		cancel: "touchcancel",
+		out: "", // n.a.
+		type: "touch"
+	};
+
+	private static readonly mouseEventNames: PointerEventNamesType = {
+		down: "mousedown",
+		move: "mousemove",
+		up: "mouseup",
+		cancel: "", // n.a.
+		out: "mouseout",
+		type: "mouse"
+	};
+
+	private static getPointerEventNames() {
+		let eventNames: typeof View.pointerEventNames;
+
+		if (window.PointerEvent) {
+			eventNames = View.pointerEventNames;
+		} else if ("ontouchstart" in window || navigator.maxTouchPoints) {
+			eventNames = View.touchEventNames;
+		} else {
+			eventNames = View.mouseEventNames;
+		}
+		return eventNames;
+	}
+
+	fnAttachPointerEvents(id: ViewID, fnDown?: EventListener, fnMove?: EventListener, fnUp?: EventListener): PointerEventNamesType {
+		const element = id === ViewID.window ? undefined : View.getElementById1(id),
+			eventNames = View.getPointerEventNames();
+
+		if (fnDown) {
+			this.addEventListener(eventNames.down, fnDown, element);
+		}
+		if (fnMove) {
+			this.addEventListener(eventNames.move, fnMove, element);
+		}
+		if (fnUp) {
+			this.addEventListener(eventNames.up, fnUp, element);
+			if (eventNames.cancel) {
+				this.addEventListener(eventNames.cancel, fnUp, element); // also fnUp handler
+			}
+		}
+		return eventNames;
+	}
+
+	fnDetachPointerEvents(id: ViewID, fnDown?: EventListener, fnMove?: EventListener, fnUp?: EventListener): PointerEventNamesType {
+		const element = id === ViewID.window ? undefined : View.getElementById1(id),
+			eventNames = View.getPointerEventNames();
+
+		if (fnDown) {
+			this.removeEventListener(eventNames.down, fnDown, element);
+		}
+		if (fnMove) {
+			this.removeEventListener(eventNames.move, fnMove, element);
+		}
+		if (fnUp) {
+			this.removeEventListener(eventNames.up, fnUp, element);
+			if (eventNames.cancel) {
+				this.removeEventListener(eventNames.cancel, fnUp, element); // also fnUp handler
+			}
+		}
+		return eventNames;
 	}
 
 	static getEventTarget<T extends HTMLElement>(event: Event): T {
@@ -362,7 +450,7 @@ export class View {
 	}
 
 	// https://blog.logrocket.com/programmatic-file-downloads-in-the-browser-9a5186298d5c/
-	static fnDownloadBlob(data: string, filename: string): void {
+	fnDownloadBlob(data: string, filename: string): void {
 		if (typeof Blob === "undefined") {
 			Utils.console.warn("fnDownloadBlob: Blob undefined");
 			return;
@@ -391,153 +479,8 @@ export class View {
 		a.href = url;
 		a.download = filename || "download";
 
-		a.addEventListener("click", clickHandler, false);
+		this.addEventListener("click", clickHandler, a);
 
 		a.click();
-	}
-
-	private static readonly pointerEventNames: PointerEventNamesType = {
-		down: "pointerdown",
-		move: "pointermove",
-		up: "pointerup",
-		cancel: "pointercancel",
-		out: "pointerout",
-		type: "pointer"
-	};
-
-	private static readonly touchEventNames: PointerEventNamesType = {
-		down: "touchstart",
-		move: "touchmove",
-		up: "touchend",
-		cancel: "touchcancel",
-		out: "", // n.a.
-		type: "touch"
-	};
-
-	private static readonly mouseEventNames: PointerEventNamesType = {
-		down: "mousedown",
-		move: "mousemove",
-		up: "mouseup",
-		cancel: "", // n.a.
-		out: "mouseout",
-		type: "mouse"
-	};
-
-	fnAttachPointerEvents(id: ViewID, fnDown?: EventListener, fnMove?: EventListener, fnUp?: EventListener): PointerEventNamesType { // eslint-disable-line class-methods-use-this
-		const area = View.getElementById1(id);
-		let eventNames: typeof View.pointerEventNames;
-
-		if (window.PointerEvent) {
-			eventNames = View.pointerEventNames;
-		} else if ("ontouchstart" in window || navigator.maxTouchPoints) {
-			eventNames = View.touchEventNames;
-		} else {
-			eventNames = View.mouseEventNames;
-		}
-
-		if (Utils.debug > 0) {
-			Utils.console.log("fnAttachPointerEvents: Using", eventNames.type, "events");
-		}
-
-		if (fnDown) {
-			area.addEventListener(eventNames.down, fnDown, false); // +clicked for pointer, touch?
-		}
-		if (fnMove) {
-			area.addEventListener(eventNames.move, fnMove, false);
-		}
-		if (fnUp) {
-			area.addEventListener(eventNames.up, fnUp, false);
-			if (eventNames.cancel) {
-				area.addEventListener(eventNames.cancel, fnUp, false);
-			}
-		}
-		return eventNames;
-	}
-
-
-	// drag...
-
-	private readonly dragInfo = {
-		dragItem: undefined as (HTMLElement | undefined),
-		active: false,
-		xOffset: 0,
-		yOffset: 0,
-		initialX: 0,
-		initialY: 0,
-		currentX: 0,
-		currentY: 0
-	};
-
-	// based on https://www.kirupa.com/html5/drag.htm
-	dragInit(containerId: ViewID, itemId: ViewID): void {
-		const drag = this.dragInfo;
-
-		drag.dragItem = View.getElementById1(itemId);
-		drag.active = false;
-		drag.xOffset = 0;
-		drag.yOffset = 0;
-
-		this.fnAttachPointerEvents(containerId, this.dragStart.bind(this), this.drag.bind(this), this.dragEnd.bind(this));
-	}
-
-	private dragStart(event: DragEvent | TouchEvent) {
-		const node = View.getEventTarget<HTMLElement>(event),
-			parent = node.parentElement ? node.parentElement.parentElement : null,
-			drag = this.dragInfo;
-
-		if (node === drag.dragItem || parent === drag.dragItem) {
-			if (event.type === "touchstart") {
-				const touchEvent = event as TouchEvent;
-
-				drag.initialX = touchEvent.touches[0].clientX - drag.xOffset;
-				drag.initialY = touchEvent.touches[0].clientY - drag.yOffset;
-			} else {
-				const dragEvent = event as DragEvent;
-
-				drag.initialX = dragEvent.clientX - drag.xOffset;
-				drag.initialY = dragEvent.clientY - drag.yOffset;
-			}
-			drag.active = true;
-		}
-	}
-
-	private dragEnd(/* event */) {
-		const drag = this.dragInfo;
-
-		drag.initialX = drag.currentX;
-		drag.initialY = drag.currentY;
-
-		drag.active = false;
-	}
-
-	private setDragTranslate(xPos: number, yPos: number, el: HTMLElement) { // eslint-disable-line class-methods-use-this
-		el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)";
-	}
-
-	private drag(event: DragEvent | TouchEvent) {
-		const drag = this.dragInfo;
-
-		if (drag.active) {
-			event.preventDefault();
-
-			if (event.type === "touchmove") {
-				const touchEvent = event as TouchEvent;
-
-				drag.currentX = touchEvent.touches[0].clientX - drag.initialX;
-				drag.currentY = touchEvent.touches[0].clientY - drag.initialY;
-			} else {
-				const dragEvent = event as DragEvent;
-
-				drag.currentX = dragEvent.clientX - drag.initialX;
-				drag.currentY = dragEvent.clientY - drag.initialY;
-			}
-
-			drag.xOffset = drag.currentX;
-			drag.yOffset = drag.currentY;
-
-			if (drag.dragItem) {
-				this.setDragTranslate(drag.currentX, drag.currentY, drag.dragItem);
-			}
-		}
 	}
 }

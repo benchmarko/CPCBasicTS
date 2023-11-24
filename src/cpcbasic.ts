@@ -20,6 +20,7 @@ class cpcBasic {
 		autorun: true,
 		basicVersion: "1.1", // "1.1" or "1.0"
 		bench: 0, // debug: number of parse bench loops
+		canvasType: "graphics", // "graphics", "text", "none"
 		databaseDirs: "examples", // example base directories (comma separated)
 		database: "examples", // examples, apps, saved
 		debug: 0,
@@ -28,7 +29,7 @@ class cpcBasic {
 		implicitLines: false, // allow implicit line numbers
 		input: "", // keyboard input when starting the app
 		kbdLayout: "alphanum", // alphanum, alpha, num
-		canvasType: "graphics", // "graphics", "text", "none"
+		dragElements: false,
 		palette: "color", // "color", "green", "grey"
 		processFileImports: true, // open ZIP, DSK files on import
 		showConsoleLog: false,

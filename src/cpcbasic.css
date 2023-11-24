@@ -3,11 +3,18 @@ body {
 	background-color: Beige;
 }
 
+.vertFlexBox {
+	float: left;
+	padding: 2px;
+	margin: 2px;
+}
+
 .flexBox {
 	float: left;
 	padding: 2px;
 	margin: 2px;
 	background-color: LightGrey;
+	border: 1px solid grey;
 }
 
 .clearLeft {
@@ -139,13 +146,6 @@ body {
 
 .kbdNoRightMargin {
 	margin-right: 0px;
-}
-
-.kbdMove {
-	border: 1px solid lightgrey;
-	background-color: rgba(173, 222, 232, 0.5); /* lightblue transparent */
-	font: 400 13px arial;
-	user-select: none;
 }
 
 .dropZone {

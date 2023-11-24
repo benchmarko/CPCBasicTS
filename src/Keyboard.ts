@@ -3,9 +3,12 @@
 // https://benchmarko.github.io/CPCBasicTS/
 //
 
+import { ViewID } from "./Constants";
 import { Utils } from "./Utils";
+import { View } from "./View";
 
 interface KeyboardOptions {
+	view: View,
 	fnOnEscapeHandler?: (key: string, pressedKey: string) => void
 	fnOnKeyDown?: () => void
 }
@@ -67,19 +70,26 @@ export class Keyboard {
 			ctrl: {},
 			repeat: {}
 		}; // cpc keys to expansion tokens for normal, shift, ctrl; also repeat
+
+		const view = this.options.view;
+
+		view.addEventListenerById("keydown", this.fnKeydownOrKeyupHandler, ViewID.cpcArea);
+		view.addEventListenerById("keyup", this.fnKeydownOrKeyupHandler, ViewID.cpcArea);
 	}
 
 	getOptions(): KeyboardOptions {
 		return this.options;
 	}
 
-	setOptions(options: KeyboardOptions): void {
+	setOptions(options: Partial<KeyboardOptions>): void {
 		Object.assign(this.options, options);
 	}
 
+	/*
 	getKeydownOrKeyupHandler(): (event: Event) => boolean {
 		return this.fnKeydownOrKeyupHandler;
 	}
+	*/
 
 
 	// use this:

@@ -25,6 +25,7 @@
     "DiskImage.ts",
     "InputStack.ts",
     "View.ts",
+    "DragElement.ts",
     "Keyboard.ts",
     "VirtualKeyboard.ts",
     "Canvas.ts",
