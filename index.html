@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="cpcbasic.css">
 <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
-<title id="title">CPC BasicTS v0.2.6</title>
+<title id="title">CPC BasicTS v0.2.7</title>
 </head>
 
 <body id="pageBody">
@@ -14,6 +14,14 @@
 		<div id="mainArea" class="flexBox">
 			<div>
 				<span class="legendTitle" title="CPCBasicTS">CPCBasicTS</span>
+				<span class="buttonPopoverContainer">
+					<button id="galleryButton" class="popoverButton" title="Gallery">Gallery</button>
+					<span id="galleryArea" class="popover flexColumn displayNone">
+						<span id="galleryAreaInner" class="area flexColumn displayFlex">
+							<span id="galleryAreaItems" class="displayBlock" tabindex="0"></span>
+						</span>
+					</span>
+				</span>
 				<span class="buttonPopoverContainer">
 					<button id="settingsButton" class="popoverButton" title="Settings">Settings</button>
 					<span id="settingsArea" class="popover displayNone">
@@ -122,14 +130,6 @@
 								<label for="dragElementsInput" title="Drag Elements">Drag</label>
 							</fieldset>
 							<button id="reload2Button" class="popoverElement" title="Reload page with URL parameter settings">Reload</button>
-						</span>
-					</span>
-				</span>
-				<span class="buttonPopoverContainer">
-					<button id="galleryButton" class="popoverButton" title="Gallery">Gallery</button>
-					<span id="galleryArea" class="popover flexColumn displayNone">
-						<span id="galleryAreaInner" class="area flexColumn displayFlex">
-							<span id="galleryAreaItems" class="displayBlock" tabindex="0"></span>
 						</span>
 					</span>
 				</span>

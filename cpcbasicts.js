@@ -7798,8 +7798,9 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                 var thisSize = (size > bls) ? bls : size;
                 var dataChunk = data.substring(fileSize - size, fileSize - size + thisSize);
                 if (thisSize < bls) {
-                    dataChunk += DiskImage.uInt8ToString(0x1a); // EOF (maybe ASCII)
-                    dataChunk += DiskImage.uInt8ToString(0).repeat(bls - thisSize - 1); // fill up last block with 0
+                    dataChunk += DiskImage.uInt8ToString(0x1a); // add EOF (0x1a)
+                    var remain = bls - thisSize - 1;
+                    dataChunk += DiskImage.uInt8ToString(0).repeat(remain); // fill up last block with 0
                 }
                 var block = freeBlocks[(extentCnt - 1) * 16 + blockCnt];
                 this.writeBlock(diskInfo, formatDescriptor, block, dataChunk);
@@ -7829,6 +7830,14 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             }
             return sum;
         };
+        DiskImage.hasAmsdosHeader = function (data) {
+            var hasHeader = false;
+            if (data.length >= 0x80) {
+                var computed = DiskImage.computeChecksum(data.substring(0, 66)), sum = data.charCodeAt(67) + data.charCodeAt(68) * 256;
+                hasHeader = computed === sum;
+            }
+            return hasHeader;
+        };
         DiskImage.parseAmsdosHeader = function (data) {
             var typeMap = {
                 0: "T",
@@ -7840,22 +7849,19 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             var header;
             // http://www.benchmarko.de/cpcemu/cpcdoc/chapter/cpcdoc7_e.html#I_AMSDOS_HD
             // http://www.cpcwiki.eu/index.php/AMSDOS_Header
-            if (data.length >= 0x80) {
-                var computed = DiskImage.computeChecksum(data.substring(0, 66)), sum = data.charCodeAt(67) + data.charCodeAt(68) * 256;
-                if (computed === sum) {
-                    header = {
-                        user: data.charCodeAt(0),
-                        name: data.substring(1, 1 + 8),
-                        ext: data.substring(9, 9 + 3),
-                        typeNumber: data.charCodeAt(18),
-                        start: data.charCodeAt(21) + data.charCodeAt(22) * 256,
-                        pseudoLen: data.charCodeAt(24) + data.charCodeAt(25) * 256,
-                        entry: data.charCodeAt(26) + data.charCodeAt(27) * 256,
-                        length: data.charCodeAt(64) + data.charCodeAt(65) * 256 + data.charCodeAt(66) * 65536,
-                        typeString: ""
-                    };
-                    header.typeString = typeMap[header.typeNumber] || typeMap[16]; // default: ASCII
-                }
+            if (DiskImage.hasAmsdosHeader(data)) {
+                header = {
+                    user: data.charCodeAt(0),
+                    name: data.substring(1, 1 + 8),
+                    ext: data.substring(9, 9 + 3),
+                    typeNumber: data.charCodeAt(18),
+                    start: data.charCodeAt(21) + data.charCodeAt(22) * 256,
+                    pseudoLen: data.charCodeAt(24) + data.charCodeAt(25) * 256,
+                    entry: data.charCodeAt(26) + data.charCodeAt(27) * 256,
+                    length: data.charCodeAt(64) + data.charCodeAt(65) * 256 + data.charCodeAt(66) * 65536,
+                    typeString: ""
+                };
+                header.typeString = typeMap[header.typeNumber] || typeMap[16]; // default: ASCII
             }
             return header;
         };
@@ -14176,6 +14182,8 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                 }
                 else { // data to save
                     outFile.command = "closeout";
+                    outFile.start = 0;
+                    outFile.length = 0; // will be set during fileSave
                     outFile.fnFileCallback = this.fnCloseoutHandler;
                     this.vmStop("fileSave", 90); // must stop directly after closeout
                 }
@@ -15191,12 +15199,20 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
         };
         CpcVm.prototype.vmOpeninCallback = function (input) {
             if (input !== null) {
+                /*
                 input = input.replace(/\r\n/g, "\n"); // remove CR (maybe from ASCII file in "binary" form)
                 if (input.endsWith("\n")) {
                     input = input.substring(0, input.length - 1); // remove last "\n" (TTT: also for data files?)
                 }
-                var inFile = this.inFile;
+                */
+                var inFile = this.inFile, eolStr = input.indexOf("\r\n") > 0 ? "\r\n" : "\n"; // heuristic: if CRLF found, use it as split
+                if (input.endsWith(eolStr)) {
+                    input = input.substring(0, input.length - eolStr.length); // remove last eol marker (also for data files)
+                }
+                /*
                 inFile.fileData = input.split("\n");
+                */
+                inFile.fileData = input.split(eolStr);
             }
             else {
                 this.closein();
@@ -15702,12 +15718,12 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                     else {
                         win.pos += str.length;
                     }
-                    if (str === "\r\n") { // for now we replace CRLF by LF
-                        str = "\n";
+                    if (str === "\r\n") {
+                        //str = "\n"; // for now we replace CRLF by LF
                         win.pos = 0;
                     }
                     if (win.pos >= win.right) {
-                        str = "\n" + str; // e.g. after tab(256)
+                        str = "\r\n" + str; // e.g. after tab(256)
                         win.pos = 0;
                     }
                     buf += str;
@@ -16448,7 +16464,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                 if (!this.outFile.open) {
                     throw this.vmComposeError(Error(), 31, "WRITE #" + stream); // File not open
                 }
-                this.outFile.fileData.push(str + "\n"); // real CPC would use CRLF, we use LF
+                this.outFile.fileData.push(str + "\r\n"); // real CPC use CRLF
                 // currently we print data also to console...
             }
         };
@@ -18293,7 +18309,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.view.setSelectOptions(select, items);
         };
         Controller.prototype.setExportSelectOptions = function (select) {
-            var dirList = Controller.fnGetStorageDirectoryEntries(), items = [], editorText = "<editor>";
+            var dirList = Controller.fnGetStorageDirectoryEntries(), items = [], editorText = Controller.exportEditorText;
             dirList.unshift(editorText);
             for (var i = 0; i < dirList.length; i += 1) {
                 var key = dirList[i], title = key, item = {
@@ -19238,6 +19254,9 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 var fileData = void 0;
                 if (outFile.fileData.length || (type === "B") || (outFile.command === "openout")) { // type A(for openout) or B
                     fileData = outFile.fileData.join("");
+                    if (!outFile.length) { // not yet set, e.g. for ASCII? (or can we set it always?)
+                        outFile.length = fileData.length; // set length
+                    }
                 }
                 else { // no file data (assuming type A, P or T) => get text
                     fileData = this.view.getAreaValue("inputText" /* ViewID.inputText */);
@@ -19504,7 +19523,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             return name;
         };
         Controller.prototype.fnDownload = function () {
-            var options = this.view.getSelectOptions("exportFileSelect" /* ViewID.exportFileSelect */), exportTokenized = this.view.getInputChecked("exportTokenizedInput" /* ViewID.exportTokenizedInput */), exportDSK = this.view.getInputChecked("exportDSKInput" /* ViewID.exportDSKInput */), exportBase64 = this.view.getInputChecked("exportBase64Input" /* ViewID.exportBase64Input */), meta = {
+            var options = this.view.getSelectOptions("exportFileSelect" /* ViewID.exportFileSelect */), exportTokenized = this.view.getInputChecked("exportTokenizedInput" /* ViewID.exportTokenizedInput */), exportDSK = this.view.getInputChecked("exportDSKInput" /* ViewID.exportDSKInput */), exportBase64 = this.view.getInputChecked("exportBase64Input" /* ViewID.exportBase64Input */), editorText = Controller.exportEditorText, meta = {
                 typeString: "A",
                 start: 0x170,
                 length: 0,
@@ -19527,7 +19546,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             for (var i = 0; i < options.length; i += 1) {
                 var item = options[i];
                 if (item.selected) {
-                    if (item.value === "<editor>") {
+                    if (item.value === editorText) {
                         data = this.view.getAreaValue("inputText" /* ViewID.inputText */);
                         name = this.fnGetFilename(data);
                         meta.typeString = "A"; // ASCII
@@ -19544,13 +19563,15 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     }
                     if (exportTokenized && meta.typeString === "A") { // do we need to tokenize it?
                         var tokens = this.encodeTokenizedBasic(data);
-                        data = tokens;
-                        meta.typeString = "T";
-                        meta.start = 0x170;
-                        meta.length = data.length;
-                        meta.entry = 0;
+                        if (tokens) { // successful?
+                            data = tokens;
+                            meta.typeString = "T";
+                            meta.start = 0x170;
+                            meta.length = data.length;
+                            meta.entry = 0;
+                        }
                     }
-                    if (meta.typeString !== "A") {
+                    if (meta.typeString !== "A" && meta.typeString !== "X" && meta.typeString !== "Z") {
                         var _a = DiskImage_2.DiskImage.getFilenameAndExtension(name), name1 = _a[0], ext1 = _a[1], // eslint-disable-line array-element-newline
                         header = DiskImage_2.DiskImage.createAmsdosHeader({
                             name: name1,
@@ -20432,6 +20453,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             keepDataComma: false,
             keepTokens: false
         };
+        Controller.exportEditorText = "<editor>";
         // gate array ink to basic ink
         Controller.gaInk2Ink = [
             13,

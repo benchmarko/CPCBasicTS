@@ -1041,6 +1041,7 @@ declare module "DiskImage" {
         private static readonly protectTable;
         static unOrProtectData(data: string): string;
         private static computeChecksum;
+        private static hasAmsdosHeader;
         static parseAmsdosHeader(data: string): AmsdosHeader | undefined;
         static combineAmsdosHeader(header: AmsdosHeader): string;
         static createAmsdosHeader(parameter: Partial<AmsdosHeader>): AmsdosHeader;
@@ -2434,6 +2435,7 @@ declare module "Controller" {
         setGalleryAreaInputs(): void;
         private static fnSortByStringProperties;
         private setVarSelectOptions;
+        private static readonly exportEditorText;
         setExportSelectOptions(select: ViewID): void;
         private updateStorageDatabase;
         private removeKeyBoardHandler;

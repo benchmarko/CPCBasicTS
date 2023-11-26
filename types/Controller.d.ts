@@ -61,6 +61,7 @@ export declare class Controller implements IController {
     setGalleryAreaInputs(): void;
     private static fnSortByStringProperties;
     private setVarSelectOptions;
+    private static readonly exportEditorText;
     setExportSelectOptions(select: ViewID): void;
     private updateStorageDatabase;
     private removeKeyBoardHandler;

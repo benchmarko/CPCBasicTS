@@ -379,7 +379,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.view.setSelectOptions(select, items);
         };
         Controller.prototype.setExportSelectOptions = function (select) {
-            var dirList = Controller.fnGetStorageDirectoryEntries(), items = [], editorText = "<editor>";
+            var dirList = Controller.fnGetStorageDirectoryEntries(), items = [], editorText = Controller.exportEditorText;
             dirList.unshift(editorText);
             for (var i = 0; i < dirList.length; i += 1) {
                 var key = dirList[i], title = key, item = {
@@ -1324,6 +1324,9 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 var fileData = void 0;
                 if (outFile.fileData.length || (type === "B") || (outFile.command === "openout")) { // type A(for openout) or B
                     fileData = outFile.fileData.join("");
+                    if (!outFile.length) { // not yet set, e.g. for ASCII? (or can we set it always?)
+                        outFile.length = fileData.length; // set length
+                    }
                 }
                 else { // no file data (assuming type A, P or T) => get text
                     fileData = this.view.getAreaValue("inputText" /* ViewID.inputText */);
@@ -1590,7 +1593,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             return name;
         };
         Controller.prototype.fnDownload = function () {
-            var options = this.view.getSelectOptions("exportFileSelect" /* ViewID.exportFileSelect */), exportTokenized = this.view.getInputChecked("exportTokenizedInput" /* ViewID.exportTokenizedInput */), exportDSK = this.view.getInputChecked("exportDSKInput" /* ViewID.exportDSKInput */), exportBase64 = this.view.getInputChecked("exportBase64Input" /* ViewID.exportBase64Input */), meta = {
+            var options = this.view.getSelectOptions("exportFileSelect" /* ViewID.exportFileSelect */), exportTokenized = this.view.getInputChecked("exportTokenizedInput" /* ViewID.exportTokenizedInput */), exportDSK = this.view.getInputChecked("exportDSKInput" /* ViewID.exportDSKInput */), exportBase64 = this.view.getInputChecked("exportBase64Input" /* ViewID.exportBase64Input */), editorText = Controller.exportEditorText, meta = {
                 typeString: "A",
                 start: 0x170,
                 length: 0,
@@ -1613,7 +1616,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             for (var i = 0; i < options.length; i += 1) {
                 var item = options[i];
                 if (item.selected) {
-                    if (item.value === "<editor>") {
+                    if (item.value === editorText) {
                         data = this.view.getAreaValue("inputText" /* ViewID.inputText */);
                         name = this.fnGetFilename(data);
                         meta.typeString = "A"; // ASCII
@@ -1630,13 +1633,15 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     }
                     if (exportTokenized && meta.typeString === "A") { // do we need to tokenize it?
                         var tokens = this.encodeTokenizedBasic(data);
-                        data = tokens;
-                        meta.typeString = "T";
-                        meta.start = 0x170;
-                        meta.length = data.length;
-                        meta.entry = 0;
+                        if (tokens) { // successful?
+                            data = tokens;
+                            meta.typeString = "T";
+                            meta.start = 0x170;
+                            meta.length = data.length;
+                            meta.entry = 0;
+                        }
                     }
-                    if (meta.typeString !== "A") {
+                    if (meta.typeString !== "A" && meta.typeString !== "X" && meta.typeString !== "Z") {
                         var _a = DiskImage_1.DiskImage.getFilenameAndExtension(name), name1 = _a[0], ext1 = _a[1], // eslint-disable-line array-element-newline
                         header = DiskImage_1.DiskImage.createAmsdosHeader({
                             name: name1,
@@ -2518,6 +2523,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             keepDataComma: false,
             keepTokens: false
         };
+        Controller.exportEditorText = "<editor>";
         // gate array ink to basic ink
         Controller.gaInk2Ink = [
             13,
