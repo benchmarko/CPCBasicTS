@@ -480,10 +480,12 @@ export class Controller implements IController {
 		this.view.setSelectOptions(select, items);
 	}
 
+	private static readonly exportEditorText = "<editor>";
+
 	setExportSelectOptions(select: ViewID): void {
 		const dirList = Controller.fnGetStorageDirectoryEntries(),
 			items: SelectOptionElement[] = [],
-			editorText = "<editor>";
+			editorText = Controller.exportEditorText;
 
 		dirList.unshift(editorText);
 		for (let i = 0; i < dirList.length; i += 1) {
@@ -1649,6 +1651,9 @@ export class Controller implements IController {
 
 			if (outFile.fileData.length || (type === "B") || (outFile.command === "openout")) { // type A(for openout) or B
 				fileData = outFile.fileData.join("");
+				if (!outFile.length) { // not yet set, e.g. for ASCII? (or can we set it always?)
+					outFile.length = fileData.length; // set length
+				}
 			} else { // no file data (assuming type A, P or T) => get text
 				fileData = this.view.getAreaValue(ViewID.inputText);
 
@@ -1993,6 +1998,7 @@ export class Controller implements IController {
 			exportTokenized = this.view.getInputChecked(ViewID.exportTokenizedInput),
 			exportDSK = this.view.getInputChecked(ViewID.exportDSKInput),
 			exportBase64 = this.view.getInputChecked(ViewID.exportBase64Input),
+			editorText = Controller.exportEditorText,
 			meta: FileMeta = {
 				typeString: "A", // ASCII
 				start: 0x170,
@@ -2025,7 +2031,7 @@ export class Controller implements IController {
 			const item = options[i];
 
 			if (item.selected) {
-				if (item.value === "<editor>") {
+				if (item.value === editorText) {
 					data = this.view.getAreaValue(ViewID.inputText);
 					name = this.fnGetFilename(data);
 					meta.typeString = "A"; // ASCII
@@ -2044,14 +2050,16 @@ export class Controller implements IController {
 				if (exportTokenized && meta.typeString === "A") { // do we need to tokenize it?
 					const tokens = this.encodeTokenizedBasic(data);
 
-					data = tokens;
-					meta.typeString = "T";
-					meta.start = 0x170;
-					meta.length = data.length;
-					meta.entry = 0;
+					if (tokens) { // successful?
+						data = tokens;
+						meta.typeString = "T";
+						meta.start = 0x170;
+						meta.length = data.length;
+						meta.entry = 0;
+					}
 				}
 
-				if (meta.typeString !== "A") {
+				if (meta.typeString !== "A" && meta.typeString !== "X" && meta.typeString !== "Z") {
 					const [name1, ext1] = DiskImage.getFilenameAndExtension(name), // eslint-disable-line array-element-newline
 						header = DiskImage.createAmsdosHeader({
 							name: name1,

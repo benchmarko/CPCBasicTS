@@ -289,7 +289,7 @@ const allTests: AllTestsType = {
 	closeout: {
 		'"_testCase1"': "",
 		'"_testCase2"': "",
-		'"_testCase3"': '{"_key":"stop","reason":"fileSave","priority":90,"paras":{}} -- {"_key":"outFile","open":true,"command":"closeout","name":"name1","line":0,"fileData":["A"],"stream":0,"typeString":"","length":0,"entry":0}'
+		'"_testCase3"': '{"_key":"stop","reason":"fileSave","priority":90,"paras":{}} -- {"_key":"outFile","open":true,"command":"closeout","name":"name1","line":0,"start":0,"fileData":["A"],"stream":0,"typeString":"","length":0,"entry":0}'
 	},
 	cls: {
 		"0 ": "clearTextWindow:0,39,0,24,0",

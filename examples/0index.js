@@ -32,7 +32,8 @@ cpcBasic.addIndex("./examples", function () { /*
 	},
 	{
 		"key": "test/testrsx.rsx",
-		"title": "Test RSX TS: JS module"
+		"title": "Test RSX TS: JS module",
+		"meta": "D"
 	}
 ]
 */ });

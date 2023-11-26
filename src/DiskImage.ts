@@ -1085,8 +1085,10 @@ export class DiskImage {
 			let	dataChunk = data.substring(fileSize - size, fileSize - size + thisSize);
 
 			if (thisSize < bls) {
-				dataChunk += DiskImage.uInt8ToString(0x1a); // EOF (maybe ASCII)
-				dataChunk += DiskImage.uInt8ToString(0).repeat(bls - thisSize - 1); // fill up last block with 0
+				dataChunk += DiskImage.uInt8ToString(0x1a); // add EOF (0x1a)
+				const remain = bls - thisSize - 1;
+
+				dataChunk += DiskImage.uInt8ToString(0).repeat(remain); // fill up last block with 0
 			}
 
 			const block = freeBlocks[(extentCnt - 1) * 16 + blockCnt];
@@ -1136,6 +1138,18 @@ export class DiskImage {
 		return sum;
 	}
 
+	private static hasAmsdosHeader(data: string) {
+		let hasHeader = false;
+
+		if (data.length >= 0x80) {
+			const computed = DiskImage.computeChecksum(data.substring(0, 66)),
+				sum = data.charCodeAt(67) + data.charCodeAt(68) * 256;
+
+			hasHeader = computed === sum;
+		}
+		return hasHeader;
+	}
+
 	static parseAmsdosHeader(data: string): AmsdosHeader | undefined {
 		const typeMap: Record<number, string> = {
 			0: "T", // tokenized BASIC (T=not official)
@@ -1149,25 +1163,20 @@ export class DiskImage {
 
 		// http://www.benchmarko.de/cpcemu/cpcdoc/chapter/cpcdoc7_e.html#I_AMSDOS_HD
 		// http://www.cpcwiki.eu/index.php/AMSDOS_Header
-		if (data.length >= 0x80) {
-			const computed = DiskImage.computeChecksum(data.substring(0, 66)),
-				sum = data.charCodeAt(67) + data.charCodeAt(68) * 256;
+		if (DiskImage.hasAmsdosHeader(data)) {
+			header = {
+				user: data.charCodeAt(0),
+				name: data.substring(1, 1 + 8),
+				ext: data.substring(9, 9 + 3),
+				typeNumber: data.charCodeAt(18),
+				start: data.charCodeAt(21) + data.charCodeAt(22) * 256,
+				pseudoLen: data.charCodeAt(24) + data.charCodeAt(25) * 256,
+				entry: data.charCodeAt(26) + data.charCodeAt(27) * 256,
+				length: data.charCodeAt(64) + data.charCodeAt(65) * 256 + data.charCodeAt(66) * 65536,
+				typeString: ""
+			};
 
-			if (computed === sum) {
-				header = {
-					user: data.charCodeAt(0),
-					name: data.substring(1, 1 + 8),
-					ext: data.substring(9, 9 + 3),
-					typeNumber: data.charCodeAt(18),
-					start: data.charCodeAt(21) + data.charCodeAt(22) * 256,
-					pseudoLen: data.charCodeAt(24) + data.charCodeAt(25) * 256,
-					entry: data.charCodeAt(26) + data.charCodeAt(27) * 256,
-					length: data.charCodeAt(64) + data.charCodeAt(65) * 256 + data.charCodeAt(66) * 65536,
-					typeString: ""
-				};
-
-				header.typeString = typeMap[header.typeNumber] || typeMap[16]; // default: ASCII
-			}
+			header.typeString = typeMap[header.typeNumber] || typeMap[16]; // default: ASCII
 		}
 		return header;
 	}

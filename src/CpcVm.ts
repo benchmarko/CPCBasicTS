@@ -1635,6 +1635,8 @@ export class CpcVm implements ICpcVm {
 				this.vmCloseoutCallback(); // close directly
 			} else { // data to save
 				outFile.command = "closeout";
+				outFile.start = 0;
+				outFile.length = 0; // will be set during fileSave
 				outFile.fnFileCallback = this.fnCloseoutHandler;
 				this.vmStop("fileSave", 90); // must stop directly after closeout
 			}
@@ -2789,14 +2791,24 @@ export class CpcVm implements ICpcVm {
 
 	private vmOpeninCallback(input: string | null) {
 		if (input !== null) {
+			/*
 			input = input.replace(/\r\n/g, "\n"); // remove CR (maybe from ASCII file in "binary" form)
 			if (input.endsWith("\n")) {
 				input = input.substring(0, input.length - 1); // remove last "\n" (TTT: also for data files?)
 			}
+			*/
 
-			const inFile = this.inFile;
+			const inFile = this.inFile,
+				eolStr = input.indexOf("\r\n") > 0 ? "\r\n" : "\n"; // heuristic: if CRLF found, use it as split
 
+			if (input.endsWith(eolStr)) {
+				input = input.substring(0, input.length - eolStr.length); // remove last eol marker (also for data files)
+			}
+
+			/*
 			inFile.fileData = input.split("\n");
+			*/
+			inFile.fileData = input.split(eolStr);
 		} else {
 			this.closein();
 		}
@@ -3374,12 +3386,13 @@ export class CpcVm implements ICpcVm {
 					win.pos += str.length;
 				}
 
-				if (str === "\r\n") { // for now we replace CRLF by LF
-					str = "\n";
+				if (str === "\r\n") {
+					//str = "\n"; // for now we replace CRLF by LF
 					win.pos = 0;
 				}
+
 				if (win.pos >= win.right) {
-					str = "\n" + str; // e.g. after tab(256)
+					str = "\r\n" + str; // e.g. after tab(256)
 					win.pos = 0;
 				}
 				buf += str;
@@ -4231,7 +4244,7 @@ export class CpcVm implements ICpcVm {
 			if (!this.outFile.open) {
 				throw this.vmComposeError(Error(), 31, "WRITE #" + stream); // File not open
 			}
-			this.outFile.fileData.push(str + "\n"); // real CPC would use CRLF, we use LF
+			this.outFile.fileData.push(str + "\r\n"); // real CPC use CRLF
 			// currently we print data also to console...
 		}
 	}
