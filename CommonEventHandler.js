@@ -254,8 +254,10 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             }
         };
         CommonEventHandler.prototype.onDisassInputChange = function () {
-            var addressStr = this.view.getInputValue("disassInput" /* ViewID.disassInput */), addr = parseInt(addressStr, 16); // parse as hex
-            this.controller.setDisassAddr(addr);
+            var addressStr = this.view.getInputValue("disassInput" /* ViewID.disassInput */), addrList = addressStr.split("-"), // maybe range
+            addr = parseInt(addrList[0], 16), // parse as hex
+            endAddr = addrList[1] ? parseInt(addrList[1], 16) : undefined; // parse as hex
+            this.controller.setDisassAddr(addr, endAddr);
         };
         CommonEventHandler.prototype.onSoundInputChange = function (eventDef) {
             this.onCheckedChange(eventDef);

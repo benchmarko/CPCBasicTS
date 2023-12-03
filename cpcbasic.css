@@ -3,6 +3,11 @@ body {
 	background-color: Beige;
 }
 
+/* for Safari (OS X) */
+textarea {
+font-family: monospace;
+}
+
 .vertFlexBox {
 	float: left;
 	padding: 2px;

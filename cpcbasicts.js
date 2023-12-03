@@ -11693,8 +11693,10 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
             }
         };
         CommonEventHandler.prototype.onDisassInputChange = function () {
-            var addressStr = this.view.getInputValue("disassInput" /* ViewID.disassInput */), addr = parseInt(addressStr, 16); // parse as hex
-            this.controller.setDisassAddr(addr);
+            var addressStr = this.view.getInputValue("disassInput" /* ViewID.disassInput */), addrList = addressStr.split("-"), // maybe range
+            addr = parseInt(addrList[0], 16), // parse as hex
+            endAddr = addrList[1] ? parseInt(addrList[1], 16) : undefined; // parse as hex
+            this.controller.setDisassAddr(addr, endAddr);
         };
         CommonEventHandler.prototype.onSoundInputChange = function (eventDef) {
             this.onCheckedChange(eventDef);
@@ -18620,11 +18622,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
         };
         Controller.parseLineNumber = function (line) {
-            var lineNumber = parseInt(line, 10);
-            if (lineNumber < 0 || lineNumber > 65535) {
-                // we must not throw an error
-            }
-            return lineNumber;
+            return parseInt(line, 10); // we do not check for linenumber in range 0...65535
         };
         Controller.addLineNumbers = function (input) {
             var lineParts = input.split("\n");
@@ -18692,13 +18690,13 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         // get line range from a script with sorted line numbers
         Controller.prototype.fnGetLinesInRange = function (script, firstLine, lastLine) {
             var lines = script ? this.splitLines(script) : [];
-            while (lines.length && parseInt(lines[0], 10) < firstLine) {
+            while (lines.length && Controller.parseLineNumber(lines[0]) < firstLine) {
                 lines.shift();
             }
             if (lines.length && lines[lines.length - 1] === "") { // trailing empty line?
                 lines.pop(); // remove
             }
-            while (lines.length && parseInt(lines[lines.length - 1], 10) > lastLine) {
+            while (lines.length && Controller.parseLineNumber(lines[lines.length - 1]) > lastLine) {
                 lines.pop();
             }
             return lines;
@@ -20142,15 +20140,33 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
             return this.z80Disass;
         };
-        Controller.prototype.setDisassAddr = function (addr) {
-            var z80Disass = this.getZ80Disass(), lines = 50;
-            var out = "";
+        Controller.prototype.setDisassAddr = function (addr, endAddr) {
+            var z80Disass = this.getZ80Disass();
+            //let out = "";
+            if (endAddr === undefined) {
+                endAddr = addr + 0x100;
+            }
             z80Disass.setOptions({
                 addr: addr
             });
-            for (var i = 1; i < lines; i += 1) {
+            var opts = z80Disass.getOptions(), lines = [];
+            while (addr < endAddr) { //} && addr < 0x10000) {
+                //out += z80Disass.disassLine() + "\n";
+                lines.push(z80Disass.disassLine());
+                if (opts.addr > addr) {
+                    addr = opts.addr;
+                }
+                else {
+                    Utils_26.Utils.console.error("setDisassAddr: Not increasing:", addr, opts.addr);
+                    break;
+                }
+            }
+            /*
+            for (let i = 1; i < lines; i += 1) {
                 out += z80Disass.disassLine() + "\n";
             }
+            */
+            var out = lines.join("\n") + "\n";
             this.view.setAreaValue("disassText" /* ViewID.disassText */, out);
         };
         Controller.prototype.fnEndOfImport = function (imported) {

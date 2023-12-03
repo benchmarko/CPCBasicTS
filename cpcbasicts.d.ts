@@ -323,7 +323,7 @@ declare module "Interfaces" {
         setBasicVersion: (basicVersion: string) => void;
         setPalette: (palette: string) => void;
         setCanvasType: (canvasType: string) => ICanvas;
-        setDisassAddr: (addr: number) => void;
+        setDisassAddr: (addr: number, endAddr?: number) => void;
         changeVariable: () => void;
         onExampleSelectChange: () => void;
         onDirectorySelectChange: () => void;
@@ -2531,7 +2531,7 @@ declare module "Controller" {
         setCanvasType(canvasType: string): ICanvas;
         setSoundActive(): void;
         private getZ80Disass;
-        setDisassAddr(addr: number): void;
+        setDisassAddr(addr: number, endAddr?: number): void;
         private fnEndOfImport;
         private static fnOnDragover;
         private adaptFilename;

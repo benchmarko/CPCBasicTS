@@ -374,9 +374,11 @@ export class CommonEventHandler implements EventListenerObject {
 
 	private onDisassInputChange() {
 		const addressStr = this.view.getInputValue(ViewID.disassInput),
-			addr = parseInt(addressStr, 16); // parse as hex
+			addrList = addressStr.split("-"), // maybe range
+			addr = parseInt(addrList[0], 16), // parse as hex
+			endAddr = addrList[1] ? parseInt(addrList[1], 16) : undefined; // parse as hex
 
-		this.controller.setDisassAddr(addr);
+		this.controller.setDisassAddr(addr, endAddr);
 	}
 
 	private onSoundInputChange(eventDef: EventDefType) {

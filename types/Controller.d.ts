@@ -157,7 +157,7 @@ export declare class Controller implements IController {
     setCanvasType(canvasType: string): ICanvas;
     setSoundActive(): void;
     private getZ80Disass;
-    setDisassAddr(addr: number): void;
+    setDisassAddr(addr: number, endAddr?: number): void;
     private fnEndOfImport;
     private static fnOnDragover;
     private adaptFilename;

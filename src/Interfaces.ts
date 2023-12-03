@@ -159,7 +159,7 @@ export interface IController {
     setBasicVersion: (basicVersion: string) => void
     setPalette: (palette: string) => void
     setCanvasType: (canvasType: string) => ICanvas
-    setDisassAddr: (addr: number) => void
+    setDisassAddr: (addr: number, endAddr?: number) => void
 
     changeVariable: () => void
     onExampleSelectChange: () => void

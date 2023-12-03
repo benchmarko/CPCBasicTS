@@ -33,7 +33,7 @@ import { BasicTokenizer } from "../BasicTokenizer";
 import { CodeGeneratorJs } from "../CodeGeneratorJs";
 import { CodeGeneratorToken } from "../CodeGeneratorToken";
 import { Model, DatabaseEntry, DatabasesType, ExampleEntry } from "../Model";
-import { Variables } from "../Variables";
+import { VarTypes, Variables } from "../Variables";
 import { DiskImage } from "../DiskImage";
 import { cpcconfig } from "../cpcconfig";
 import { TestHelper } from "./TestHelper";
@@ -171,6 +171,8 @@ class cpcBasic {
 	static vmMock = {
 		line: "" as string | number,
 
+		gosubStack: [] as (number | string)[],
+
 		testVariables1: new Variables({}),
 		testStepCounter1: 0,
 
@@ -179,6 +181,7 @@ class cpcBasic {
 		initTest1: function () {
 			cpcBasic.vmMock.testStepCounter1 = cpcBasic.vmMock.maxSteps;
 			cpcBasic.vmMock.line = 0; // or "start";
+			cpcBasic.vmMock.gosubStack.length = 0;
 			cpcBasic.vmMock.testVariables1.initAllVariables();
 
 			for (let i = "a".charCodeAt(0); i <= "z".charCodeAt(0); i += 1) {
@@ -227,6 +230,30 @@ class cpcBasic {
 			// empty
 		},
 
+		vmDefineVarTypes(type: VarTypes, _err: string, first: string, last?: string) {
+			const firstNum = first.toLowerCase().charCodeAt(0),
+				lastNum = last ? last.toLowerCase().charCodeAt(0) : firstNum;
+
+			for (let i = firstNum; i <= lastNum; i += 1) {
+				const varChar = String.fromCharCode(i);
+
+				cpcBasic.vmMock.testVariables1.setVarType(varChar, type);
+			}
+		},
+
+		// defxxx needed to access correct multidimensional arrays
+		defint(first: string, last?: string): void {
+			this.vmDefineVarTypes("I", "DEFINT", first, last);
+		},
+
+		defreal(first: string, last?: string): void {
+			this.vmDefineVarTypes("R", "DEFREAL", first, last);
+		},
+
+		defstr(first: string, last?: string): void {
+			this.vmDefineVarTypes("$", "DEFSTR", first, last);
+		},
+
 		dim(varName: string): void { // varargs
 			const dimensions = [];
 
@@ -256,8 +283,15 @@ class cpcBasic {
 			cpcBasic.vmMock.line = line;
 		},
 
-		gosub: function (retLabel: string | number /* , line: string | number */) {
-			cpcBasic.vmMock.line = retLabel; // we could use retLabel or line
+		gosub: function (retLabel: string | number, line: number) {
+			this.gosubStack.push(retLabel);
+			cpcBasic.vmMock.vmGoto(line);
+		},
+
+		"return"(): void {
+			const line = this.gosubStack.pop() || 0;
+
+			cpcBasic.vmMock.vmGoto(line);
 		}
 
 		// will be programmatically extended by methods...
