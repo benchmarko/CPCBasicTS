@@ -827,12 +827,7 @@ export class Controller implements IController {
 	}
 
 	private static parseLineNumber(line: string) {
-		const lineNumber = parseInt(line, 10);
-
-		if (lineNumber < 0 || lineNumber > 65535) {
-			// we must not throw an error
-		}
-		return lineNumber;
+		return parseInt(line, 10); // we do not check for linenumber in range 0...65535
 	}
 
 	private static addLineNumbers(input: string) {
@@ -920,7 +915,7 @@ export class Controller implements IController {
 	private fnGetLinesInRange(script: string, firstLine: number, lastLine: number) {
 		const lines = script ? this.splitLines(script) : [];
 
-		while (lines.length && parseInt(lines[0], 10) < firstLine) {
+		while (lines.length && Controller.parseLineNumber(lines[0]) < firstLine) {
 			lines.shift();
 		}
 
@@ -928,7 +923,7 @@ export class Controller implements IController {
 			lines.pop(); // remove
 		}
 
-		while (lines.length && parseInt(lines[lines.length - 1], 10) > lastLine) {
+		while (lines.length && Controller.parseLineNumber(lines[lines.length - 1]) > lastLine) {
 			lines.pop();
 		}
 		return lines;
@@ -2747,17 +2742,38 @@ export class Controller implements IController {
 		return this.z80Disass;
 	}
 
-	setDisassAddr(addr: number): void {
-		const z80Disass = this.getZ80Disass(),
-			lines = 50;
-		let out = "";
+	setDisassAddr(addr: number, endAddr?: number): void {
+		const z80Disass = this.getZ80Disass();
+		//let out = "";
+
+		if (endAddr === undefined) {
+			endAddr = addr + 0x100;
+		}
 
 		z80Disass.setOptions({
 			addr: addr
 		});
+
+		const opts = z80Disass.getOptions(),
+			lines = [];
+
+		while (addr < endAddr) { //} && addr < 0x10000) {
+			//out += z80Disass.disassLine() + "\n";
+			lines.push(z80Disass.disassLine());
+			if (opts.addr > addr) {
+				addr = opts.addr;
+			} else {
+				Utils.console.error("setDisassAddr: Not increasing:", addr, opts.addr);
+				break;
+			}
+		}
+
+		/*
 		for (let i = 1; i < lines; i += 1) {
 			out += z80Disass.disassLine() + "\n";
 		}
+		*/
+		const out = lines.join("\n") + "\n";
 
 		this.view.setAreaValue(ViewID.disassText, out);
 	}
