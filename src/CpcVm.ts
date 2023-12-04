@@ -202,7 +202,22 @@ export class CpcVm implements ICpcVm {
 
 	private static readonly emptyParas = {};
 
-	private static readonly winData = [ // window data for mode mode 0,1,2,3 (we are counting from 0 here)
+	private static readonly modeData = [ // mode data for mode 0,1,2,3
+		{
+			pens: 16 // number of pens (see also Canvas: modeData)
+		},
+		{
+			pens: 4
+		},
+		{
+			pens: 2
+		},
+		{
+			pens: 16
+		}
+	];
+
+	private static readonly winData = [ // window data for mode 0,1,2,3 (we are counting from 0 here)
 		{
 			left: 0,
 			right: 19,
@@ -520,10 +535,11 @@ export class CpcVm implements ICpcVm {
 
 		this.defreal("a", "z"); // init vartypes
 
-		this.modeValue = -1;
-		this.vmResetWindowData(true); // reset all, including pen and paper
-		this.width(132); // set default printer width
+		//this.modeValue = -1;
+		//this.vmResetWindowData(true); // reset all, including pen and paper
+		//this.width(132); // done in vmResetWindowData (default printer width)
 
+		this.vmResetPenPaperWindowData();
 		this.mode(1); // including vmResetWindowData() without pen and paper
 
 		this.canvas.reset();
@@ -577,9 +593,60 @@ export class CpcVm implements ICpcVm {
 		}
 	}
 
+	private vmResetPenPaperWindowData() {
+		const penPaperData = {
+				pen: 1,
+				paper: 0
+			},
+			windowDataList = this.windowDataList;
+
+		for (let i = 0; i < windowDataList.length - 2; i += 1) { // for window streams
+			Object.assign(windowDataList[i], penPaperData);
+		}
+	}
+
+	vmResetWindowData(resetPenPaper?: boolean): void {
+		if (resetPenPaper) {
+			this.vmResetPenPaperWindowData();
+		}
+
+		const data = {
+				pos: 0, // current text position in line
+				vpos: 0,
+				textEnabled: true, // text enabled
+				tag: false, // tag=text at graphics
+				transparent: false, // transparent mode
+				cursorOn: false, // system switch
+				cursorEnabled: true // user switch
+			},
+			printData = {
+				pos: 0,
+				vpos: 0,
+				right: 132 // override
+			},
+			cassetteData = {
+				pos: 0,
+				vpos: 0,
+				right: 255 // override
+			},
+			winData = CpcVm.winData[this.modeValue],
+			windowDataList = this.windowDataList,
+			modeDataPens = CpcVm.modeData[this.modeValue].pens;
+
+		for (let i = 0; i < windowDataList.length - 2; i += 1) { // for window streams
+			const modeWinData = Object.assign(windowDataList[i], winData, data);
+
+			modeWinData.pen %= modeDataPens;
+			modeWinData.paper %= modeDataPens; // limit also paper to number of pens
+		}
+
+		Object.assign(windowDataList[8], winData, printData); // printer
+		Object.assign(windowDataList[9], winData, cassetteData); // cassette
+	}
+
+	/*
 	vmResetWindowData(resetPenPaper: boolean): void {
-		const winData = CpcVm.winData[this.modeValue],
-			data = {
+		const data = {
 				pos: 0, // current text position in line
 				vpos: 0,
 				textEnabled: true, // text enabled
@@ -601,18 +668,29 @@ export class CpcVm implements ICpcVm {
 				pos: 0,
 				vpos: 0,
 				right: 255 // override
-			};
+			},
+			winData = CpcVm.winData[this.modeValue],
+			windowDataList = this.windowDataList,
+			modeDataPens = this.modeValue >= 0 ? CpcVm.modeData[this.modeValue].pens : 0;
 
 		if (resetPenPaper) {
 			Object.assign(data, penPaperData);
 		}
 
-		for (let i = 0; i < this.windowDataList.length - 2; i += 1) { // for window streams
-			Object.assign(this.windowDataList[i], winData, data);
+		for (let i = 0; i < windowDataList.length - 2; i += 1) { // for window streams
+			const modeWinData = Object.assign(windowDataList[i], winData, data);
+
+			if (!resetPenPaper) { // do not reset but limit to mode
+				modeWinData.pen %= modeDataPens;
+				modeWinData.paper %= modeDataPens; // limit also paper to number of pens
+			}
 		}
-		Object.assign(this.windowDataList[8], winData, printData); // printer
-		Object.assign(this.windowDataList[9], winData, cassetteData); // cassette
+
+		Object.assign(windowDataList[8], winData, printData); // printer
+		Object.assign(windowDataList[9], winData, cassetteData); // cassette
 	}
+	*/
+
 
 	vmResetControlBuffer(): void {
 		this.printControlBuf = ""; // collected control characters for PRINT
@@ -1381,7 +1459,8 @@ export class CpcVm implements ICpcVm {
 			break;
 		case 0xbb4e: // TXT Initialize (ROM &1078)
 			this.canvas.resetCustomChars();
-			this.vmResetWindowData(true); // reset windows, including pen and paper
+			this.vmResetPenPaperWindowData(); // reset pen and paper
+			this.vmResetWindowData(); // reset windows
 			// and TXT Reset...
 			this.vmResetControlBuffer();
 			break;
@@ -2674,7 +2753,7 @@ export class CpcVm implements ICpcVm {
 	mode(mode: number): void {
 		mode = this.vmInRangeRound(mode, 0, 3, "MODE");
 		this.modeValue = mode;
-		this.vmResetWindowData(false); // do not reset pen and paper
+		this.vmResetWindowData(); // do not reset pen and paper but limit them to the mode
 		this.outBuffer = ""; // clear console
 		this.canvas.setMode(mode); // does not clear canvas
 		this.canvas.clearFullWindow(); // always with paper 0 (SCR MODE CLEAR)
@@ -2911,9 +2990,10 @@ export class CpcVm implements ICpcVm {
 		stream = this.vmInRangeRound(stream, 0, 7, "PAPER");
 		paper = this.vmInRangeRound(paper, 0, 15, "PAPER");
 
-		const win = this.windowDataList[stream];
+		const win = this.windowDataList[stream],
+			modeData = CpcVm.modeData[this.modeValue];
 
-		win.paper = paper;
+		win.paper = paper % modeData.pens; // limit to available pens
 	}
 
 	vmGetCharDataByte(addr: number): number {
@@ -2959,10 +3039,12 @@ export class CpcVm implements ICpcVm {
 	pen(stream: number, pen: number | undefined, transparent?: number): void {
 		stream = this.vmInRangeRound(stream, 0, 7, "PEN");
 		if (pen !== undefined) {
-			const win = this.windowDataList[stream];
+			const win = this.windowDataList[stream],
+				modeData = CpcVm.modeData[this.modeValue];
 
 			pen = this.vmInRangeRound(pen, 0, 15, "PEN");
-			win.pen = pen;
+
+			win.pen = pen % modeData.pens; // limit to available pens
 		}
 
 		if (transparent !== undefined) {
