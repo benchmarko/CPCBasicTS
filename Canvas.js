@@ -703,12 +703,10 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             }
         };
         Canvas.prototype.setGPen = function (gPen) {
-            gPen %= this.modeData.pens; // limit pens
-            this.gPen = gPen;
+            this.gPen = gPen % this.modeData.pens; // limit pens
         };
         Canvas.prototype.setGPaper = function (gPaper) {
-            gPaper %= this.modeData.pens; // limit pens
-            this.gPaper = gPaper;
+            this.gPaper = gPaper % this.modeData.pens; // limit to pens
         };
         Canvas.prototype.setGTransparentMode = function (transparent) {
             this.gTransparent = transparent;

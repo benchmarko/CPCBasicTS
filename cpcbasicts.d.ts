@@ -1839,6 +1839,7 @@ declare module "CpcVm" {
         private static readonly minHimem;
         private static readonly maxHimem;
         private static readonly emptyParas;
+        private static readonly modeData;
         private static readonly winData;
         private static readonly utf8ToCpc;
         private static readonly controlCodeParameterCount;
@@ -1851,7 +1852,8 @@ declare module "CpcVm" {
         vmResetMemory(): void;
         vmResetRandom(): void;
         vmResetTimers(): void;
-        vmResetWindowData(resetPenPaper: boolean): void;
+        private vmResetPenPaperWindowData;
+        vmResetWindowData(resetPenPaper?: boolean): void;
         vmResetControlBuffer(): void;
         private static vmResetFileHandling;
         vmResetInFileHandling(): void;

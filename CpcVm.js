@@ -181,9 +181,10 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
             this.timerPriority = -1; // priority of running task: -1=low (min priority to start new timers)
             this.zoneValue = 13; // print tab zone value
             this.defreal("a", "z"); // init vartypes
-            this.modeValue = -1;
-            this.vmResetWindowData(true); // reset all, including pen and paper
-            this.width(132); // set default printer width
+            //this.modeValue = -1;
+            //this.vmResetWindowData(true); // reset all, including pen and paper
+            //this.width(132); // done in vmResetWindowData (default printer width)
+            this.vmResetPenPaperWindowData();
             this.mode(1); // including vmResetWindowData() without pen and paper
             this.canvas.reset();
             this.keyboard.reset();
@@ -223,8 +224,20 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
                 Object.assign(sqTimer[i], data);
             }
         };
+        CpcVm.prototype.vmResetPenPaperWindowData = function () {
+            var penPaperData = {
+                pen: 1,
+                paper: 0
+            }, windowDataList = this.windowDataList;
+            for (var i = 0; i < windowDataList.length - 2; i += 1) { // for window streams
+                Object.assign(windowDataList[i], penPaperData);
+            }
+        };
         CpcVm.prototype.vmResetWindowData = function (resetPenPaper) {
-            var winData = CpcVm.winData[this.modeValue], data = {
+            if (resetPenPaper) {
+                this.vmResetPenPaperWindowData();
+            }
+            var data = {
                 pos: 0,
                 vpos: 0,
                 textEnabled: true,
@@ -232,9 +245,6 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
                 transparent: false,
                 cursorOn: false,
                 cursorEnabled: true // user switch
-            }, penPaperData = {
-                pen: 1,
-                paper: 0
             }, printData = {
                 pos: 0,
                 vpos: 0,
@@ -243,16 +253,61 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
                 pos: 0,
                 vpos: 0,
                 right: 255 // override
-            };
+            }, winData = CpcVm.winData[this.modeValue], windowDataList = this.windowDataList, modeDataPens = CpcVm.modeData[this.modeValue].pens;
+            for (var i = 0; i < windowDataList.length - 2; i += 1) { // for window streams
+                var modeWinData = Object.assign(windowDataList[i], winData, data);
+                modeWinData.pen %= modeDataPens;
+                modeWinData.paper %= modeDataPens; // limit also paper to number of pens
+            }
+            Object.assign(windowDataList[8], winData, printData); // printer
+            Object.assign(windowDataList[9], winData, cassetteData); // cassette
+        };
+        /*
+        vmResetWindowData(resetPenPaper: boolean): void {
+            const data = {
+                    pos: 0, // current text position in line
+                    vpos: 0,
+                    textEnabled: true, // text enabled
+                    tag: false, // tag=text at graphics
+                    transparent: false, // transparent mode
+                    cursorOn: false, // system switch
+                    cursorEnabled: true // user switch
+                },
+                penPaperData = {
+                    pen: 1,
+                    paper: 0
+                },
+                printData = {
+                    pos: 0,
+                    vpos: 0,
+                    right: 132 // override
+                },
+                cassetteData = {
+                    pos: 0,
+                    vpos: 0,
+                    right: 255 // override
+                },
+                winData = CpcVm.winData[this.modeValue],
+                windowDataList = this.windowDataList,
+                modeDataPens = this.modeValue >= 0 ? CpcVm.modeData[this.modeValue].pens : 0;
+    
             if (resetPenPaper) {
                 Object.assign(data, penPaperData);
             }
-            for (var i = 0; i < this.windowDataList.length - 2; i += 1) { // for window streams
-                Object.assign(this.windowDataList[i], winData, data);
+    
+            for (let i = 0; i < windowDataList.length - 2; i += 1) { // for window streams
+                const modeWinData = Object.assign(windowDataList[i], winData, data);
+    
+                if (!resetPenPaper) { // do not reset but limit to mode
+                    modeWinData.pen %= modeDataPens;
+                    modeWinData.paper %= modeDataPens; // limit also paper to number of pens
+                }
             }
-            Object.assign(this.windowDataList[8], winData, printData); // printer
-            Object.assign(this.windowDataList[9], winData, cassetteData); // cassette
-        };
+    
+            Object.assign(windowDataList[8], winData, printData); // printer
+            Object.assign(windowDataList[9], winData, cassetteData); // cassette
+        }
+        */
         CpcVm.prototype.vmResetControlBuffer = function () {
             this.printControlBuf = ""; // collected control characters for PRINT
         };
@@ -889,7 +944,8 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
                     break;
                 case 0xbb4e: // TXT Initialize (ROM &1078)
                     this.canvas.resetCustomChars();
-                    this.vmResetWindowData(true); // reset windows, including pen and paper
+                    this.vmResetPenPaperWindowData(); // reset pen and paper
+                    this.vmResetWindowData(); // reset windows
                     // and TXT Reset...
                     this.vmResetControlBuffer();
                     break;
@@ -2038,7 +2094,7 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
         CpcVm.prototype.mode = function (mode) {
             mode = this.vmInRangeRound(mode, 0, 3, "MODE");
             this.modeValue = mode;
-            this.vmResetWindowData(false); // do not reset pen and paper
+            this.vmResetWindowData(); // do not reset pen and paper but limit them to the mode
             this.outBuffer = ""; // clear console
             this.canvas.setMode(mode); // does not clear canvas
             this.canvas.clearFullWindow(); // always with paper 0 (SCR MODE CLEAR)
@@ -2248,8 +2304,8 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
         CpcVm.prototype.paper = function (stream, paper) {
             stream = this.vmInRangeRound(stream, 0, 7, "PAPER");
             paper = this.vmInRangeRound(paper, 0, 15, "PAPER");
-            var win = this.windowDataList[stream];
-            win.paper = paper;
+            var win = this.windowDataList[stream], modeData = CpcVm.modeData[this.modeValue];
+            win.paper = paper % modeData.pens; // limit to available pens
         };
         CpcVm.prototype.vmGetCharDataByte = function (addr) {
             var dataPos = (addr - 1 - this.minCharHimem) % 8, char = this.minCustomChar + (addr - 1 - dataPos - this.minCharHimem) / 8, charData = this.canvas.getCharData(char);
@@ -2286,9 +2342,9 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
         CpcVm.prototype.pen = function (stream, pen, transparent) {
             stream = this.vmInRangeRound(stream, 0, 7, "PEN");
             if (pen !== undefined) {
-                var win = this.windowDataList[stream];
+                var win = this.windowDataList[stream], modeData = CpcVm.modeData[this.modeValue];
                 pen = this.vmInRangeRound(pen, 0, 15, "PEN");
-                win.pen = pen;
+                win.pen = pen % modeData.pens; // limit to available pens
             }
             if (transparent !== undefined) {
                 transparent = this.vmInRangeRound(transparent, 0, 1, "PEN");
@@ -3438,6 +3494,20 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
         CpcVm.minHimem = 370;
         CpcVm.maxHimem = 42747; // high memory limit (42747 after symbol after 256)
         CpcVm.emptyParas = {};
+        CpcVm.modeData = [
+            {
+                pens: 16 // number of pens (see also Canvas: modeData)
+            },
+            {
+                pens: 4
+            },
+            {
+                pens: 2
+            },
+            {
+                pens: 16
+            }
+        ];
         CpcVm.winData = [
             {
                 left: 0,

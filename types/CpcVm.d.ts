@@ -147,6 +147,7 @@ export declare class CpcVm implements ICpcVm {
     private static readonly minHimem;
     private static readonly maxHimem;
     private static readonly emptyParas;
+    private static readonly modeData;
     private static readonly winData;
     private static readonly utf8ToCpc;
     private static readonly controlCodeParameterCount;
@@ -159,7 +160,8 @@ export declare class CpcVm implements ICpcVm {
     vmResetMemory(): void;
     vmResetRandom(): void;
     vmResetTimers(): void;
-    vmResetWindowData(resetPenPaper: boolean): void;
+    private vmResetPenPaperWindowData;
+    vmResetWindowData(resetPenPaper?: boolean): void;
     vmResetControlBuffer(): void;
     private static vmResetFileHandling;
     vmResetInFileHandling(): void;

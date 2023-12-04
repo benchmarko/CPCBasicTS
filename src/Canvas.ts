@@ -1033,13 +1033,11 @@ export class Canvas implements ICanvas {
 	}
 
 	setGPen(gPen: number): void {
-		gPen %= this.modeData.pens; // limit pens
-		this.gPen = gPen;
+		this.gPen = gPen % this.modeData.pens; // limit pens
 	}
 
 	setGPaper(gPaper: number): void {
-		gPaper %= this.modeData.pens; // limit pens
-		this.gPaper = gPaper;
+		this.gPaper = gPaper % this.modeData.pens; // limit to pens
 	}
 
 	setGTransparentMode(transparent: boolean): void {
