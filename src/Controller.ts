@@ -143,12 +143,6 @@ export class Controller implements IController {
 			view: this.view,
 			fnOnEscapeHandler: this.fnOnEscapeHandler
 		});
-		/*
-		const keydownOrKeyupHandler = this.keyboard.getKeydownOrKeyupHandler();
-
-		view.addEventListenerById("keydown", keydownOrKeyupHandler, ViewID.cpcArea);
-		view.addEventListenerById("keyup", keydownOrKeyupHandler, ViewID.cpcArea);
-		*/
 
 		if (this.model.getProperty<boolean>(ModelPropID.showKbd)) { // maybe we need to draw virtual keyboard
 			this.getVirtualKeyboard();
@@ -473,7 +467,6 @@ export class Controller implements IController {
 				selected: false
 			};
 
-			//item.text = item.title;
 			items.push(item);
 		}
 		items.sort(Controller.fnSortByStringProperties);
@@ -502,7 +495,6 @@ export class Controller implements IController {
 			items.push(item);
 		}
 		// sort already done
-		//items.sort(Controller.fnSortByStringProperties);
 		this.view.setSelectOptions(select, items);
 	}
 
@@ -520,7 +512,7 @@ export class Controller implements IController {
 		if (database !== "storage") {
 			this.model.setProperty(ModelPropID.database, "storage"); // switch to storage database
 		} else {
-			selectedExample = this.view.getSelectValue(ViewID.exampleSelect); //TTT || this.model.getProperty(ModelPropID.example);
+			selectedExample = this.view.getSelectValue(ViewID.exampleSelect);
 		}
 
 		let	dir: string[];
@@ -2035,14 +2027,11 @@ export class Controller implements IController {
 					data = this.view.getAreaValue(ViewID.inputText);
 					name = this.fnGetFilename(data);
 
-					//if (!exportTokenized) {
 					const eolStr = data.indexOf("\r\n") > 0 ? "\r\n" : "\n"; // heuristic: if CRLF found, use it as split
 
-					//XXX eslint-disable-next-line max-depth
 					if (eolStr === "\n") {
-						data = data.replace(/\n/g, "\r\n"); //replace LF by CRLF
+						data = data.replace(/\n/g, "\r\n"); // replace LF by CRLF (not really needed if tokenized is used)
 					}
-					//}
 
 					meta.typeString = "A"; // ASCII
 					meta.start = 0x170;
@@ -2571,47 +2560,6 @@ export class Controller implements IController {
 		return fnFunction;
 	}
 
-	/*
-	setPopoversHiddenExcept(exceptId?: ViewID): void {
-		const areaDefinitions = Controller.areaDefinitions;
-
-		for (const id in areaDefinitions) {
-			if (areaDefinitions.hasOwnProperty(id)) {
-				const propertyObject = areaDefinitions[id],
-					viewId = propertyObject.id;
-
-				if (propertyObject && viewId !== exceptId) {
-					if (propertyObject.isPopover && !this.view.getHidden(viewId)) {
-						// we cannot use toggleAreaHidden becasue it would be recursive
-						this.model.setProperty(propertyObject.property, false);
-						this.view.setHidden(viewId, true, propertyObject.display);
-					}
-				}
-			}
-		}
-	}
-
-	toggleAreaHidden(id: ViewID): boolean {
-		const propertyObject = Controller.areaDefinitions[id],
-			propertyName = propertyObject.property,
-			visible = !this.model.getProperty<boolean>(propertyName);
-
-		this.model.setProperty(propertyName, visible);
-		this.view.setHidden(id, !visible, propertyObject.display);
-
-		// on old browsers display "flex" is not available, so set default "" (="block"), if still hidden
-		if (visible && propertyObject.display === "flex" && this.view.getHidden(id)) {
-			this.view.setHidden(id, !visible);
-		}
-
-		if (visible && propertyObject.isPopover) {
-			this.setPopoversHiddenExcept(id);
-		}
-
-		return visible;
-	}
-	*/
-
 	changeVariable(): void {
 		const par = this.view.getSelectValue(ViewID.varSelect),
 			valueString = this.view.getSelectValue(ViewID.varText),
@@ -2751,7 +2699,7 @@ export class Controller implements IController {
 	private getZ80Disass() {
 		if (!this.z80Disass) {
 			const dataArr = this.vm.vmGetMem(),
-				data = dataArr as unknown as Uint8Array; //TTT
+				data = dataArr as unknown as Uint8Array; // fast hack: we take number array as Uint8Array
 
 			this.z80Disass = new Z80Disass({
 				data: data,
@@ -2763,7 +2711,6 @@ export class Controller implements IController {
 
 	setDisassAddr(addr: number, endAddr?: number): void {
 		const z80Disass = this.getZ80Disass();
-		//let out = "";
 
 		if (endAddr === undefined) {
 			endAddr = addr + 0x100;
@@ -2776,8 +2723,7 @@ export class Controller implements IController {
 		const opts = z80Disass.getOptions(),
 			lines = [];
 
-		while (addr < endAddr) { //} && addr < 0x10000) {
-			//out += z80Disass.disassLine() + "\n";
+		while (addr < endAddr) { // currently not limited to < 0x10000
 			lines.push(z80Disass.disassLine());
 			if (opts.addr > addr) {
 				addr = opts.addr;
@@ -2787,11 +2733,6 @@ export class Controller implements IController {
 			}
 		}
 
-		/*
-		for (let i = 1; i < lines; i += 1) {
-			out += z80Disass.disassLine() + "\n";
-		}
-		*/
 		const out = lines.join("\n") + "\n";
 
 		this.view.setAreaValue(ViewID.disassText, out);
@@ -2907,36 +2848,6 @@ export class Controller implements IController {
 				fnPressCpcKey: this.keyboard.fnPressCpcKey.bind(this.keyboard),
 				fnReleaseCpcKey: this.keyboard.fnReleaseCpcKey.bind(this.keyboard)
 			});
-			/*
-			const keydownOrKeyupHandler = this.virtualKeyboard.getKeydownOrKeyupHandler();
-
-			this.view.addEventListener("keydown", keydownOrKeyupHandler, ViewID.kbdAreaInner);
-			this.view.addEventListener("keyup", keydownOrKeyupHandler, ViewID.kbdAreaInner);
-			*/
-
-			/*
-			const dragElement = this.getDragElement();
-
-			dragElement.setOptions({
-				entries: {
-					kbdArea: {
-						itemId: ViewID.kbdArea,
-						xOffset: 0,
-						yOffset: 0
-					},
-					cpcArea: {
-						itemId: ViewID.cpcArea,
-						xOffset: 0,
-						yOffset: 0
-					},
-					inputArea: {
-						itemId: ViewID.inputArea,
-						xOffset: 0,
-						yOffset: 0
-					}
-				}
-			});
-			*/
 		}
 		return this.virtualKeyboard;
 	}

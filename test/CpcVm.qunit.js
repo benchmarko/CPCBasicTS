@@ -2598,10 +2598,10 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             for (var _i = 0; _i < arguments.length; _i++) {
                 args[_i] = arguments[_i];
             }
-            var varName = args[0];
+            var varName = args[0], stringArgs = args.map(function (arg) { return String(arg); });
             variablesMap[varName] = this.getVarType(varName.charAt(0)) === "$" ? [""] : [0]; // we set one dimension, one element
             lastTestFunctions.push({
-                dimVariable: args //TTT: it is string and numbers
+                dimVariable: stringArgs
             });
         },
         getVariableIndex: function (name) {

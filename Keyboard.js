@@ -361,11 +361,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             return undefined;
         };
-        /*
-        getKeydownOrKeyupHandler(): (event: Event) => boolean {
-            return this.fnKeydownOrKeyupHandler;
-        }
-        */
         // use this:
         Keyboard.key2CpcKey = {
             "38ArrowUp": 0,

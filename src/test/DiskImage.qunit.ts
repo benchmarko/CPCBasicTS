@@ -24,7 +24,7 @@ const allTests: AllTestsType = {
 		"CPCBasic;B;0;1455;0;base64,UEsDBBQACAAIAK68iFcAAAAAAAAAAAAnAAAMACAAdHN0ZnR5X2QuZHNrVVQNAAepmnNlqZpzZSCbc2V1eAsAAQT3AQAABBQAAADzDVPQVXAOcHb1DVVwySzO1nXLzEnl5QIzPfPS8nm5nAuSnRKLM5NDghWAgImRQZhhGIGQosRkmE9hYkycfk8ZGA4yQXiHoPRhKH0ESh+F0seg9HEofQJKn2SipbupBkKCQ9xCIuMdHYOdgTxmDEdD5Z2cPP2APCZmHPIBTo7BIP0sOORDoPKsaNJPR8EoGAWjYBSMglFAd2BooBDk6qtQUlySVlIJbAqGpBaXKIDagAohlQWpxVxGBgoBQZ5+IQpKwEYiuB2oxGVkquDs6OOjoObkZGjBZWKgEOwY5qqgBGtJ6AGbEko6jlymaBIhesA2gBKXGZpwAFhYJ4DL3EChRMUWYY+Vm3+QQqatoUKIv4KPq59GiYqmVYC/t6uCmrOBgYF2pq6hDtAmDV9PFxWgnE6mjqGmppWfa0QIlwWaFU56wNaLko6TDlinDtQwLksDBVc/Fy6pgY6DUTAKBgqgte9BTXwgPsDAQWT3AajOCqPNTwKA5fbRTDgKRgH9AVr/HQgYGRgKGBn+EJl/geruovfpSQFbdJ6/WinuPf/9Tr5S6Z++CxPNyw1nGjx2Cdbb+nmHc5bi5dlM/g6e17d82Zh0m/P1JedHfVELPJfoenvIX37ReqDQd2NMu13Ws7iKxu3rb715WL9M22SuPtu7GTpCV+a5PZgYZRNRX3HF9Pmztj+NH/miOQJCL6a+kr0x8dWke543Y0Q2Xp22+s/bBTmF9u9n3+97LDnddpubakHFnuq+/cHlZ5pN7qcK2K//+88jY8oT51tMYg5TPjTLNDsvUC60q+eRe+jSenhXbrrKzSydaG2NlxveW65/Evxb+38Nr/vef1m9ax8HzG0PVVPmUfxVnjJzx5/ou2dDXxeXtx6aHt114v2hDO4Z/IOhzEMf/wLGPnj8ixE6/sUIHf9ihI5/MULHvxih41+M0PEvRuj4FyN0/ItxiIx/DXT4j4KBBWjjkxBAWvn3gJLyT56Bi+Eozu4XgyCDCMN+pL4XULUkQ7OCjMRuBikGDYbT6L0uXgaGgwyiDEZIMpBuF1C5DZIgtNMFVH6BwYvBjYGZgeHLe4Q1jPMUgFIv3/MrvFH4z6cBktVk3Kcgw3DgC0j8K7/Of0aNNWBxkBkvdfg1NRk3MKgzBCDZAe11AeUP6QB16sAMYmBjiGKYAfT7YCj/RsEoGAWjYBSMglEwCkbBKBgFo2AUjAwAAFBLBwjPrZn8jAMAAAAnAABQSwMEFAAIAAgArryIVwAAAAAAAAAAFAEAABcAIABfX01BQ09TWC8uX3RzdGZ0eV9kLmRza1VUDQAHqZpzZamac2VDm3NldXgLAAEE9wEAAAQUAAAAY2AVY2dgYmDwTUxW8A9WiFCAApAYAycQGwHxIyAG8hlFGIgCjiEhQRAWWMcWIE5AU8IEFfdgYOBPzs/VSywoyEnVy01MzoHI/wFiCQYGUYRcYWliUWJeSWZeKgND45nvFxvupTrbTtoTUzFtesd7VgZ0EWLcWahvYGBhaG1mam5smZhoae2cUZSfm2rNAABQSwcI/gICQY8AAAAUAQAAUEsBAhQDFAAIAAgArryIV8+tmfyMAwAAACcAAAwAIAAAAAAAAAAAAKSBAAAAAHRzdGZ0eV9kLmRza1VUDQAHqZpzZamac2Ugm3NldXgLAAEE9wEAAAQUAAAAUEsBAhQDFAAIAAgArryIV/4CAkGPAAAAFAEAABcAIAAAAAAAAAAAAKSB5gMAAF9fTUFDT1NYLy5fdHN0ZnR5X2QuZHNrVVQNAAepmnNlqZpzZUObc2V1eAsAAQT3AQAABBQAAABQSwUGAAAAAAIAAgC/AAAA2gQAAAAA": 'TSTFTY_A.ASC -- {"typeString":"A","start":0,"length":259} -- 10 REM tstfty - Test File Types\n20 PRINT "CPCBasic"\n25 CALL &BB18\n40 SAVE "TSTFTY_A.ASC",A\n50 SAVE "TSTFTY_T.BAS"\n60 SAVE "TSTFTY_P.BAS",P\n70 t$="CPCBasic":FOR i=1 TO LEN(t$):POKE &C000+i-1,ASC(MID$(t$,i,1)):NEXT\n80 SAVE "TSTFTY_B.BIN",B,&C000,LEN(t$)\n90 END\n --- TSTFTY_B.BIN -- {"user":0,"name":"TSTFTY_B","ext":"BIN","typeNumber":2,"start":49152,"pseudoLen":8,"entry":0,"length":8,"typeString":"B"} -- CPCBasic --- TSTFTY_P.BAS -- {"user":0,"name":"TSTFTY_P","ext":"BAS","typeNumber":1,"start":368,"pseudoLen":252,"entry":0,"length":252,"typeString":"P"} -- 10 REM tstfty - Test File Types\n20 PRINT "CPCBasic"\n25 CALL &BB18\n40 SAVE "TSTFTY_A.ASC",A\n50 SAVE "TSTFTY_T.BAS"\n60 SAVE "TSTFTY_P.BAS",P\n70 t$="CPCBasic":FOR i=1 TO LEN(t$):POKE &C000+i-1,ASC(MID$(t$,i,1)):NEXT\n80 SAVE "TSTFTY_B.BIN",B,&C000,LEN(t$)\n90 END\n --- TSTFTY_T.BAS -- {"user":0,"name":"TSTFTY_T","ext":"BAS","typeNumber":0,"start":368,"pseudoLen":252,"entry":0,"length":252,"typeString":"T"} -- 10 REM tstfty - Test File Types\n20 PRINT "CPCBasic"\n25 CALL &BB18\n40 SAVE "TSTFTY_A.ASC",A\n50 SAVE "TSTFTY_T.BAS"\n60 SAVE "TSTFTY_P.BAS",P\n70 t$="CPCBasic":FOR i=1 TO LEN(t$):POKE &C000+i-1,ASC(MID$(t$,i,1)):NEXT\n80 SAVE "TSTFTY_B.BIN",B,&C000,LEN(t$)\n90 END\n'
 	},
 	system: {
-		"CPCBasic;B;0;1455;0;base64,UEsDBBQACAAIAK68iFcAAAAAAAAAAAAnAAAMACAAdHN0ZnR5X2QuZHNrVVQNAAepmnNlqZpzZSCbc2V1eAsAAQT3AQAABBQAAADzDVPQVXAOcHb1DVVwySzO1nXLzEnl5QIzPfPS8nm5nAuSnRKLM5NDghWAgImRQZhhGIGQosRkmE9hYkycfk8ZGA4yQXiHoPRhKH0ESh+F0seg9HEofQJKn2SipbupBkKCQ9xCIuMdHYOdgTxmDEdD5Z2cPP2APCZmHPIBTo7BIP0sOORDoPKsaNJPR8EoGAWjYBSMglFAd2BooBDk6qtQUlySVlIJbAqGpBaXKIDagAohlQWpxVxGBgoBQZ5+IQpKwEYiuB2oxGVkquDs6OOjoObkZGjBZWKgEOwY5qqgBGtJ6AGbEko6jlymaBIhesA2gBKXGZpwAFhYJ4DL3EChRMUWYY+Vm3+QQqatoUKIv4KPq59GiYqmVYC/t6uCmrOBgYF2pq6hDtAmDV9PFxWgnE6mjqGmppWfa0QIlwWaFU56wNaLko6TDlinDtQwLksDBVc/Fy6pgY6DUTAKBgqgte9BTXwgPsDAQWT3AajOCqPNTwKA5fbRTDgKRgH9AVr/HQgYGRgKGBn+EJl/geruovfpSQFbdJ6/WinuPf/9Tr5S6Z++CxPNyw1nGjx2Cdbb+nmHc5bi5dlM/g6e17d82Zh0m/P1JedHfVELPJfoenvIX37ReqDQd2NMu13Ws7iKxu3rb715WL9M22SuPtu7GTpCV+a5PZgYZRNRX3HF9Pmztj+NH/miOQJCL6a+kr0x8dWke543Y0Q2Xp22+s/bBTmF9u9n3+97LDnddpubakHFnuq+/cHlZ5pN7qcK2K//+88jY8oT51tMYg5TPjTLNDsvUC60q+eRe+jSenhXbrrKzSydaG2NlxveW65/Evxb+38Nr/vef1m9ax8HzG0PVVPmUfxVnjJzx5/ou2dDXxeXtx6aHt114v2hDO4Z/IOhzEMf/wLGPnj8ixE6/sUIHf9ihI5/MULHvxih41+M0PEvRuj4FyN0/ItxiIx/DXT4j4KBBWjjkxBAWvn3gJLyT56Bi+Eozu4XgyCDCMN+pL4XULUkQ7OCjMRuBikGDYbT6L0uXgaGgwyiDEZIMpBuF1C5DZIgtNMFVH6BwYvBjYGZgeHLe4Q1jPMUgFIv3/MrvFH4z6cBktVk3Kcgw3DgC0j8K7/Of0aNNWBxkBkvdfg1NRk3MKgzBCDZAe11AeUP6QB16sAMYmBjiGKYAfT7YCj/RsEoGAWjYBSMglEwCkbBKBgFo2AUjAwAAFBLBwjPrZn8jAMAAAAnAABQSwMEFAAIAAgArryIVwAAAAAAAAAAFAEAABcAIABfX01BQ09TWC8uX3RzdGZ0eV9kLmRza1VUDQAHqZpzZamac2VDm3NldXgLAAEE9wEAAAQUAAAAY2AVY2dgYmDwTUxW8A9WiFCAApAYAycQGwHxIyAG8hlFGIgCjiEhQRAWWMcWIE5AU8IEFfdgYOBPzs/VSywoyEnVy01MzoHI/wFiCQYGUYRcYWliUWJeSWZeKgND45nvFxvupTrbTtoTUzFtesd7VgZ0EWLcWahvYGBhaG1mam5smZhoae2cUZSfm2rNAABQSwcI/gICQY8AAAAUAQAAUEsBAhQDFAAIAAgArryIV8+tmfyMAwAAACcAAAwAIAAAAAAAAAAAAKSBAAAAAHRzdGZ0eV9kLmRza1VUDQAHqZpzZamac2Ugm3NldXgLAAEE9wEAAAQUAAAAUEsBAhQDFAAIAAgArryIV/4CAkGPAAAAFAEAABcAIAAAAAAAAAAAAKSB5gMAAF9fTUFDT1NYLy5fdHN0ZnR5X2QuZHNrVVQNAAepmnNlqZpzZUObc2V1eAsAAQT3AQAABBQAAABQSwUGAAAAAAIAAgC/AAAA2gQAAAAA": 'TSTFTY_A.ASC -- {"typeString":"A","start":0,"length":259} -- 10 REM tstfty - Test File Types\n20 PRINT "CPCBasic"\n25 CALL &BB18\n40 SAVE "TSTFTY_A.ASC",A\n50 SAVE "TSTFTY_T.BAS"\n60 SAVE "TSTFTY_P.BAS",P\n70 t$="CPCBasic":FOR i=1 TO LEN(t$):POKE &C000+i-1,ASC(MID$(t$,i,1)):NEXT\n80 SAVE "TSTFTY_B.BIN",B,&C000,LEN(t$)\n90 END\n --- TSTFTY_B.BIN -- {"user":0,"name":"TSTFTY_B","ext":"BIN","typeNumber":2,"start":49152,"pseudoLen":8,"entry":0,"length":8,"typeString":"B"} -- CPCBasic --- TSTFTY_P.BAS -- {"user":0,"name":"TSTFTY_P","ext":"BAS","typeNumber":1,"start":368,"pseudoLen":252,"entry":0,"length":252,"typeString":"P"} -- 10 REM tstfty - Test File Types\n20 PRINT "CPCBasic"\n25 CALL &BB18\n40 SAVE "TSTFTY_A.ASC",A\n50 SAVE "TSTFTY_T.BAS"\n60 SAVE "TSTFTY_P.BAS",P\n70 t$="CPCBasic":FOR i=1 TO LEN(t$):POKE &C000+i-1,ASC(MID$(t$,i,1)):NEXT\n80 SAVE "TSTFTY_B.BIN",B,&C000,LEN(t$)\n90 END\n --- TSTFTY_T.BAS -- {"user":0,"name":"TSTFTY_T","ext":"BAS","typeNumber":0,"start":368,"pseudoLen":252,"entry":0,"length":252,"typeString":"T"} -- 10 REM tstfty - Test File Types\n20 PRINT "CPCBasic"\n25 CALL &BB18\n40 SAVE "TSTFTY_A.ASC",A\n50 SAVE "TSTFTY_T.BAS"\n60 SAVE "TSTFTY_P.BAS",P\n70 t$="CPCBasic":FOR i=1 TO LEN(t$):POKE &C000+i-1,ASC(MID$(t$,i,1)):NEXT\n80 SAVE "TSTFTY_B.BIN",B,&C000,LEN(t$)\n90 END\n'
+		"CPCBasic;B;0;1577;0;base64,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": 'TSTFTY_A.ASC -- {"typeString":"A","start":0,"length":259} -- 10 REM tstfty - Test File Types\n20 PRINT "CPCBasic"\n25 CALL &BB18\n40 SAVE "TSTFTY_A.ASC",A\n50 SAVE "TSTFTY_T.BAS"\n60 SAVE "TSTFTY_P.BAS",P\n70 t$="CPCBasic":FOR i=1 TO LEN(t$):POKE &C000+i-1,ASC(MID$(t$,i,1)):NEXT\n80 SAVE "TSTFTY_B.BIN",B,&C000,LEN(t$)\n90 END\n --- TSTFTY_B.BIN -- {"user":0,"name":"TSTFTY_B","ext":"BIN","typeNumber":2,"start":49152,"pseudoLen":8,"entry":0,"length":8,"typeString":"B"} -- CPCBasic --- TSTFTY_P.BAS -- {"user":0,"name":"TSTFTY_P","ext":"BAS","typeNumber":1,"start":368,"pseudoLen":252,"entry":0,"length":252,"typeString":"P"} -- 10 REM tstfty - Test File Types\n20 PRINT "CPCBasic"\n25 CALL &BB18\n40 SAVE "TSTFTY_A.ASC",A\n50 SAVE "TSTFTY_T.BAS"\n60 SAVE "TSTFTY_P.BAS",P\n70 t$="CPCBasic":FOR i=1 TO LEN(t$):POKE &C000+i-1,ASC(MID$(t$,i,1)):NEXT\n80 SAVE "TSTFTY_B.BIN",B,&C000,LEN(t$)\n90 END\n --- TSTFTY_T.BAS -- {"user":0,"name":"TSTFTY_T","ext":"BAS","typeNumber":0,"start":368,"pseudoLen":252,"entry":0,"length":252,"typeString":"T"} -- 10 REM tstfty - Test File Types\n20 PRINT "CPCBasic"\n25 CALL &BB18\n40 SAVE "TSTFTY_A.ASC",A\n50 SAVE "TSTFTY_T.BAS"\n60 SAVE "TSTFTY_P.BAS",P\n70 t$="CPCBasic":FOR i=1 TO LEN(t$):POKE &C000+i-1,ASC(MID$(t$,i,1)):NEXT\n80 SAVE "TSTFTY_B.BIN",B,&C000,LEN(t$)\n90 END\n'
 	},
 	noDskIdent: {
 		"CPCBasic;B;0;247;;base64,UEsDBBQAAAAIAEKCj1KUjyNHeQAAAAAUAAAOAAAAbm9Ec2tJZGVudC5kc2uLiFDQVXAOcHb1DVVwySzO1nXLzEnl5QIzPfPS8nm5UoDMTCBLAQw0GBmEGYYRCClKTIb5FCbGxOn3lIHhIBOEdwhKH4bSR6D0USh9DEofh9InoPRJKD24wdNRMApGwSgYBaNgFIyCUTAKRsEoGAWjYBSMglEwrAEAUEsBAhQAFAAAAAgAQoKPUpSPI0d5AAAAABQAAA4AAAAAAAAAAAAgAAAAAAAAAG5vRHNrSWRlbnQuZHNrUEsFBgAAAAABAAEAPAAAAKUAAAAAAA==": "DiskImage: name: Ident not found at pos 0: XX - CPC"
@@ -80,7 +80,6 @@ function readFilesFromDiskImage(disk: DiskImage) {
 
 function extractFirstFileFromZip(key: string) {
 	const parts = Utils.split2(key, ","),
-		//meta = parts[0],
 		compressed = Utils.atob(parts[1]), // decode base64
 		zip = new ZipFile({
 			data: Utils.string2Uint8Array(compressed),
@@ -97,17 +96,6 @@ QUnit.module("DiskImage: Read files tests", function (hooks) {
 	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
 		for (const key in tests) {
 			if (tests.hasOwnProperty(key)) {
-				/*
-				const parts = Utils.split2(key, ","),
-					//meta = parts[0],
-					compressed = Utils.atob(parts[1]), // decode base64
-					zip = new ZipFile({
-						data: Utils.string2Uint8Array(compressed),
-						zipName: "name"
-					}),
-					firstFileInZip = Object.keys(zip.getZipDirectory())[0],
-					uncompressed = zip.readData(firstFileInZip),
-				*/
 				const uncompressed = extractFirstFileFromZip(key),
 					disk = new DiskImage({
 						data: uncompressed,
@@ -164,44 +152,11 @@ function createCodeGeneratorToken() {
 	});
 }
 
-/*
-function isTrackEmpty(data: string, index: number, tsize: number) {
-	const filler = 0xe5,
-		endIndex = (index + tsize) <= data.length ? index + tsize : data.length - index;
-	let isEmpty = true;
-
-	for (let i = index; i < endIndex; i += 1) {
-		if (data.charCodeAt(i) !== filler) {
-			isEmpty = false;
-			break;
-		}
-	}
-	return isEmpty;
-}
-
-function stripEmptyTracks(data: string) {
-	const diskinfoSize = 0x100,
-		trackInfoSize = 0x100,
-		tsize = trackInfoSize + 9 * 0x200;
-	let index = diskinfoSize + trackInfoSize;
-
-	while (!isTrackEmpty(data, index, tsize - trackInfoSize) && index < data.length) {
-		index += tsize;
-	}
-	data = data.substring(0, index - trackInfoSize);
-
-	return data;
-}
-*/
-
 // check also: https://stackoverflow.com/questions/40031688/javascript-arraybuffer-to-hex
 // https://gist.github.com/taniarascia/7ff2e83577d83b85a421ab36ab2ced84
 // https://gist.github.com/igorgatis/d294fe714a4f523ac3a3
 
 function fnBin2Hex(bin: string) {
-	//return bin.split("").map(function (s) {
-	//	return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0");
-	//}).join(",");
 	const hexList = [],
 		asciiList = [],
 		lineList = [];
@@ -226,78 +181,32 @@ function fnBin2Hex(bin: string) {
 	return lineList.join("\n");
 }
 
-/*
-function replaceAndFillRemaining(str: string, search: string) {
-	const recordSize = 0x80,
-		index1 = str.indexOf(search);
-
-	if (index1 < 0) {
-		Utils.console.error("replaceAndFillRemaining: Not found: ", search);
-		return str;
-	}
-	const recordPart = str.substring(index1, index1 + search.length),
-		record = recordPart + "\xE5".repeat(recordSize - search.length);
-
-	str = str.substring(0, index1) + record + str.substring(index1 + recordSize);
-	return str;
-}
-
-function prepareExpected(str: string) {
-	const search1 = "10 PRINT \"CPCBasic\"\r\n\x1a";
-		//search2 = "\x11\x00\x0A\x00\xBF\x20\"CPCBasic\"\x00\x00\x1a";
-
-	str = replaceAndFillRemaining(str, search1);
-	//str = replaceAndFillRemaining(str, search2);
-
-	return str;
-}
-*/
-
-/*
-function prepareExpected(str: string) {
-	const recordSize = 0x80,
-		index1 = str.indexOf("10 PRINT \"CPCBasic\""),
-		index2 = str.indexOf("\x1a", index1),
-		partSize = index2 + 1 - index1,
-		recordPart = str.substring(index1, index2 + 1),
-		record = recordPart + "\xE5".repeat(recordSize - partSize);
-
-	str = str.substring(0, index1) + record + str.substring(index1 + recordSize);
-
-	return str;
-}
-*/
 
 QUnit.module("DiskImage: Write files tests", function (hooks) {
 	function runTestsFor(category: string, tests: TestsType, assert?: Assert, results?: ResultType) {
 		for (const key in tests) {
 			if (tests.hasOwnProperty(key)) {
-				if (category === "data") {
+				if (category === "data" || category === "system") {
 					const input = tests[key],
 						fileInfos = input.split(" --- "),
 						diskImage = new DiskImage({
-							//diskName: "test",
 							quiet: true,
 							data: ""
-							//creator: "diskinfo" // we set another creator
 						});
 
 					diskImage.setOptions({
 						diskName: "test",
-						data: diskImage.formatImage("data")
+						data: diskImage.formatImage(category)
 					});
 
 					const codeGeneratorToken = createCodeGeneratorToken();
 
 					for (let i = 0; i < fileInfos.length; i += 1) {
 						const fileInfo = fileInfos[i],
-							// eslint-disable-next-line array-element-newline
-							[name, metaJson, data1] = fileInfo.split(" -- "),
-							//closeBracketIndex = metaJsonAndData.indexOf("}"),
-							//metaJson = metaJsonAndData.substring(0, closeBracketIndex + 1),
+							[name, metaJson, data1] = fileInfo.split(" -- "), // eslint-disable-line array-element-newline
 							headerEntry = JSON.parse(metaJson) as AmsdosHeader;
 
-						let data = data1; //metaJsonAndData.substring(closeBracketIndex + 1);
+						let data = data1;
 
 						// eslint-disable-next-line max-depth
 						if (headerEntry.typeString === "P") { // protected BASIC?
@@ -306,7 +215,6 @@ QUnit.module("DiskImage: Write files tests", function (hooks) {
 							data = output.error ? String(output.error) : output.text;
 							data = DiskImage.unOrProtectData(data);
 						} else if (headerEntry.typeString === "T") { // tokenized BASIC?
-							//data = new BasicTokenizer().decode(data);
 							const output2 = codeGeneratorToken.generate(data);
 
 							data = output2.error ? String(output2.error) : output2.text;
@@ -327,16 +235,13 @@ QUnit.module("DiskImage: Write files tests", function (hooks) {
 							const header = DiskImage.createAmsdosHeader(headerEntry),
 								headerString = DiskImage.combineAmsdosHeader(header);
 
-							// header.length should be data.length
 							data = headerString + data;
 						}
 
-						diskImage.writeFile(name, data); //TTT
+						diskImage.writeFile(name, data);
 					}
 
-					const //diskOptions = diskImage.getOptions(),
-						//imageData = diskOptions.data, // we need the modified disk image with the file(s) inside
-						result = diskImage.stripEmptyTracks(), //stripEmptyTracks(imageData),
+					const result = diskImage.stripEmptyTracks(),
 						uncompressed = extractFirstFileFromZip(key),
 						expected = uncompressed;
 
@@ -367,7 +272,7 @@ QUnit.module("DiskImage: Write files tests", function (hooks) {
 						assert.strictEqual(result2, expected2, message);
 					}
 				} else if (assert) {
-					assert.expect(0); //TTT
+					assert.expect(0); // not testing this
 				}
 			}
 		}

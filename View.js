@@ -337,7 +337,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     if (Utils_1.Utils.debug > 0) {
                         Utils_1.Utils.console.debug("Leaving fullscreen mode.");
                     }
-                    //that.removeEventListenerById("fullscreenchange", fullscreenchangedHandler, id);
                     that.removeEventListener("fullscreenchange", fullscreenchangedHandler, target);
                     // for Safari we need to do some change to make sure the window size is set (can we do better?)
                     that.setHidden(id, true);

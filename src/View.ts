@@ -446,7 +446,6 @@ export class View {
 					if (Utils.debug > 0) {
 						Utils.console.debug("Leaving fullscreen mode.");
 					}
-					//that.removeEventListenerById("fullscreenchange", fullscreenchangedHandler, id);
 					that.removeEventListener("fullscreenchange", fullscreenchangedHandler, target);
 
 					// for Safari we need to do some change to make sure the window size is set (can we do better?)

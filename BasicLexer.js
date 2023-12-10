@@ -191,12 +191,6 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 if (whiteSpace && this.options.keepWhiteSpace) {
                     this.whiteSpace = whiteSpace;
                 }
-                /*
-                const token = this.advanceWhile(char, BasicLexer.isNotNewLine);
-    
-                char = this.getChar();
-                this.addToken("unquoted", token, startPos);
-                */
             }
             return char;
         };

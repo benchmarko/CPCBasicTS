@@ -91,18 +91,23 @@ define(["require", "exports", "./Utils", "./DiskImage", "./Snapshot", "./ZipFile
                 var zipDirectory = zip.getZipDirectory(), entries = Object.keys(zipDirectory);
                 for (var i = 0; i < entries.length; i += 1) {
                     var name2 = entries[i];
-                    var data2 = void 0;
-                    try {
-                        data2 = zip.readData(name2);
+                    if (name2.startsWith("__MACOSX/")) { // MacOS X creates some extra folder in ZIP files
+                        Utils_1.Utils.console.log("processZipFile: Ignoring file:", name2);
                     }
-                    catch (e) {
-                        Utils_1.Utils.console.error(e);
-                        if (e instanceof Error) { // eslint-disable-line max-depth
-                            this.options.outputError(e, true);
+                    else {
+                        var data2 = void 0;
+                        try {
+                            data2 = zip.readData(name2);
                         }
-                    }
-                    if (data2) {
-                        this.fnLoad2(data2, name2, "", imported); // type not known but without meta
+                        catch (e) {
+                            Utils_1.Utils.console.error(e);
+                            if (e instanceof Error) { // eslint-disable-line max-depth
+                                this.options.outputError(e, true);
+                            }
+                        }
+                        if (data2) {
+                            this.fnLoad2(data2, name2, "", imported); // type not known but without meta
+                        }
                     }
                 }
             }

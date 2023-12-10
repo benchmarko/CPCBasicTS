@@ -141,12 +141,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 view: this.view,
                 fnOnEscapeHandler: this.fnOnEscapeHandler
             });
-            /*
-            const keydownOrKeyupHandler = this.keyboard.getKeydownOrKeyupHandler();
-    
-            view.addEventListenerById("keydown", keydownOrKeyupHandler, ViewID.cpcArea);
-            view.addEventListenerById("keyup", keydownOrKeyupHandler, ViewID.cpcArea);
-            */
             if (this.model.getProperty("showKbd" /* ModelPropID.showKbd */)) { // maybe we need to draw virtual keyboard
                 this.getVirtualKeyboard();
             }
@@ -372,7 +366,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     title: strippedTitle,
                     selected: false
                 };
-                //item.text = item.title;
                 items.push(item);
             }
             items.sort(Controller.fnSortByStringProperties);
@@ -392,7 +385,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 items.push(item);
             }
             // sort already done
-            //items.sort(Controller.fnSortByStringProperties);
             this.view.setSelectOptions(select, items);
         };
         Controller.prototype.updateStorageDatabase = function (action, key) {
@@ -405,7 +397,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.model.setProperty("database" /* ModelPropID.database */, "storage"); // switch to storage database
             }
             else {
-                selectedExample = this.view.getSelectValue("exampleSelect" /* ViewID.exampleSelect */); //TTT || this.model.getProperty(ModelPropID.example);
+                selectedExample = this.view.getSelectValue("exampleSelect" /* ViewID.exampleSelect */);
             }
             var dir;
             if (!key) { // no key => get all
@@ -1618,13 +1610,10 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     if (item.value === editorText) {
                         data = this.view.getAreaValue("inputText" /* ViewID.inputText */);
                         name = this.fnGetFilename(data);
-                        //if (!exportTokenized) {
                         var eolStr = data.indexOf("\r\n") > 0 ? "\r\n" : "\n"; // heuristic: if CRLF found, use it as split
-                        //XXX eslint-disable-next-line max-depth
                         if (eolStr === "\n") {
-                            data = data.replace(/\n/g, "\r\n"); //replace LF by CRLF
+                            data = data.replace(/\n/g, "\r\n"); // replace LF by CRLF (not really needed if tokenized is used)
                         }
-                        //}
                         meta.typeString = "A"; // ASCII
                         meta.start = 0x170;
                         meta.length = data.length;
@@ -2054,46 +2043,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             // we support at most 5 arguments
             return fnFunction;
         };
-        /*
-        setPopoversHiddenExcept(exceptId?: ViewID): void {
-            const areaDefinitions = Controller.areaDefinitions;
-    
-            for (const id in areaDefinitions) {
-                if (areaDefinitions.hasOwnProperty(id)) {
-                    const propertyObject = areaDefinitions[id],
-                        viewId = propertyObject.id;
-    
-                    if (propertyObject && viewId !== exceptId) {
-                        if (propertyObject.isPopover && !this.view.getHidden(viewId)) {
-                            // we cannot use toggleAreaHidden becasue it would be recursive
-                            this.model.setProperty(propertyObject.property, false);
-                            this.view.setHidden(viewId, true, propertyObject.display);
-                        }
-                    }
-                }
-            }
-        }
-    
-        toggleAreaHidden(id: ViewID): boolean {
-            const propertyObject = Controller.areaDefinitions[id],
-                propertyName = propertyObject.property,
-                visible = !this.model.getProperty<boolean>(propertyName);
-    
-            this.model.setProperty(propertyName, visible);
-            this.view.setHidden(id, !visible, propertyObject.display);
-    
-            // on old browsers display "flex" is not available, so set default "" (="block"), if still hidden
-            if (visible && propertyObject.display === "flex" && this.view.getHidden(id)) {
-                this.view.setHidden(id, !visible);
-            }
-    
-            if (visible && propertyObject.isPopover) {
-                this.setPopoversHiddenExcept(id);
-            }
-    
-            return visible;
-        }
-        */
         Controller.prototype.changeVariable = function () {
             var par = this.view.getSelectValue("varSelect" /* ViewID.varSelect */), valueString = this.view.getSelectValue("varText" /* ViewID.varText */), variables = this.variables;
             var value = variables.getVariable(par);
@@ -2213,7 +2162,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         };
         Controller.prototype.getZ80Disass = function () {
             if (!this.z80Disass) {
-                var dataArr = this.vm.vmGetMem(), data = dataArr; //TTT
+                var dataArr = this.vm.vmGetMem(), data = dataArr; // fast hack: we take number array as Uint8Array
                 this.z80Disass = new Z80Disass_1.Z80Disass({
                     data: data,
                     addr: 0
@@ -2223,7 +2172,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         };
         Controller.prototype.setDisassAddr = function (addr, endAddr) {
             var z80Disass = this.getZ80Disass();
-            //let out = "";
             if (endAddr === undefined) {
                 endAddr = addr + 0x100;
             }
@@ -2231,8 +2179,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 addr: addr
             });
             var opts = z80Disass.getOptions(), lines = [];
-            while (addr < endAddr) { //} && addr < 0x10000) {
-                //out += z80Disass.disassLine() + "\n";
+            while (addr < endAddr) { // currently not limited to < 0x10000
                 lines.push(z80Disass.disassLine());
                 if (opts.addr > addr) {
                     addr = opts.addr;
@@ -2242,11 +2189,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     break;
                 }
             }
-            /*
-            for (let i = 1; i < lines; i += 1) {
-                out += z80Disass.disassLine() + "\n";
-            }
-            */
             var out = lines.join("\n") + "\n";
             this.view.setAreaValue("disassText" /* ViewID.disassText */, out);
         };
@@ -2335,35 +2277,6 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     fnPressCpcKey: this.keyboard.fnPressCpcKey.bind(this.keyboard),
                     fnReleaseCpcKey: this.keyboard.fnReleaseCpcKey.bind(this.keyboard)
                 });
-                /*
-                const keydownOrKeyupHandler = this.virtualKeyboard.getKeydownOrKeyupHandler();
-    
-                this.view.addEventListener("keydown", keydownOrKeyupHandler, ViewID.kbdAreaInner);
-                this.view.addEventListener("keyup", keydownOrKeyupHandler, ViewID.kbdAreaInner);
-                */
-                /*
-                const dragElement = this.getDragElement();
-    
-                dragElement.setOptions({
-                    entries: {
-                        kbdArea: {
-                            itemId: ViewID.kbdArea,
-                            xOffset: 0,
-                            yOffset: 0
-                        },
-                        cpcArea: {
-                            itemId: ViewID.cpcArea,
-                            xOffset: 0,
-                            yOffset: 0
-                        },
-                        inputArea: {
-                            itemId: ViewID.inputArea,
-                            xOffset: 0,
-                            yOffset: 0
-                        }
-                    }
-                });
-                */
             }
             return this.virtualKeyboard;
         };

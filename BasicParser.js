@@ -155,7 +155,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             this.previousToken = this.token;
             if (id && id !== token.type) {
                 if (!this.fnLastStatementIsOnErrorGotoX()) {
-                    throw this.composeError(Error(), "Expected " + id, token.value === "" ? token.type : token.value, token.pos); //TTT we cannot mask this error because advance is very generic
+                    throw this.composeError(Error(), "Expected " + id, token.value === "" ? token.type : token.value, token.pos); // we cannot mask this error because advance is very generic
                 }
                 else if (!this.options.quiet) {
                     Utils_1.Utils.console.warn(this.composeError({}, "Expected " + id, token.value === "" ? token.type : token.value, token.pos).message);

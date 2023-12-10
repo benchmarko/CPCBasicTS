@@ -124,19 +124,24 @@ export class FileHandler {
 
 			for (let i = 0; i < entries.length; i += 1) {
 				const name2 = entries[i];
-				let data2: string | undefined;
 
-				try {
-					data2 = zip.readData(name2);
-				} catch (e) {
-					Utils.console.error(e);
-					if (e instanceof Error) { // eslint-disable-line max-depth
-						this.options.outputError(e, true);
+				if (name2.startsWith("__MACOSX/")) { // MacOS X creates some extra folder in ZIP files
+					Utils.console.log("processZipFile: Ignoring file:", name2);
+				} else {
+					let data2: string | undefined;
+
+					try {
+						data2 = zip.readData(name2);
+					} catch (e) {
+						Utils.console.error(e);
+						if (e instanceof Error) { // eslint-disable-line max-depth
+							this.options.outputError(e, true);
+						}
 					}
-				}
 
-				if (data2) {
-					this.fnLoad2(data2, name2, "", imported); // type not known but without meta
+					if (data2) {
+						this.fnLoad2(data2, name2, "", imported); // type not known but without meta
+					}
 				}
 			}
 		}

@@ -436,7 +436,7 @@ export class DiskImage {
 				+ DiskImage.uInt8ToString(sectorInfo.bps)
 				+ DiskImage.uInt8ToString(sectorInfo.state1)
 				+ DiskImage.uInt8ToString(sectorInfo.state2)
-				+ DiskImage.uInt16ToString(0); // DiskImage.uInt16ToString(sectorInfo.sectorSize); //DiskImage.uInt16ToString(0); // sectorInfo.sectorSize only needed for extended format
+				+ DiskImage.uInt16ToString(0); // We use 0 (sectorInfo.sectorSize only needed for extended format)
 
 			trackInfoString += sectorinfoString;
 		}
@@ -1162,43 +1162,12 @@ export class DiskImage {
 				const trackDataPos = sectorInfoList[0].dataPos;
 
 				data = DiskImage.createDiskInfoAsString(diskInfo) + data.substring(DiskImage.diskInfoSize, trackDataPos - DiskImage.trackInfoSize); // set new track count and remove empty track and rest
-				//data = data.substring(0, trackDataPos - DiskImage.trackInfoSize); // remove empty track and rest
 				this.options.data = data;
 				break;
 			}
 		}
 		return data;
 	}
-
-	/*
-	private static isTrackEmpty(data: string, index: number, tsize: number) {
-		const filler = 0xe5,
-			endIndex = (index + tsize) <= data.length ? index + tsize : data.length - index;
-		let isEmpty = true;
-
-		for (let i = index; i < endIndex; i += 1) {
-			if (data.charCodeAt(i) !== filler) {
-				isEmpty = false;
-				break;
-			}
-		}
-		return isEmpty;
-	}
-
-	static stripEmptyTracks(data: string): string {
-		const diskinfoSize = 0x100,
-			trackInfoSize = 0x100,
-			tsize = trackInfoSize + 9 * 0x200;
-		let index = diskinfoSize + trackInfoSize;
-
-		while (!DiskImage.isTrackEmpty(data, index, tsize - trackInfoSize) && index < data.length) {
-			index += tsize;
-		}
-		data = data.substring(0, index - trackInfoSize);
-
-		return data;
-	}
-	*/
 
 	// ...
 

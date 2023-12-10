@@ -470,7 +470,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                         viewType: "select",
                         property: "basicVersion" /* ModelPropID.basicVersion */,
                         func: this.onBasicVersionSelectChange
-                        //controllerFunc: this.controller.setBasicVersion(value) // needs value
                     },
                     {
                         id: "canvasTypeSelect" /* ViewID.canvasTypeSelect */,

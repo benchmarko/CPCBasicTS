@@ -1660,12 +1660,6 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
                 if (whiteSpace && this.options.keepWhiteSpace) {
                     this.whiteSpace = whiteSpace;
                 }
-                /*
-                const token = this.advanceWhile(char, BasicLexer.isNotNewLine);
-    
-                char = this.getChar();
-                this.addToken("unquoted", token, startPos);
-                */
             }
             return char;
         };
@@ -2046,7 +2040,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
             this.previousToken = this.token;
             if (id && id !== token.type) {
                 if (!this.fnLastStatementIsOnErrorGotoX()) {
-                    throw this.composeError(Error(), "Expected " + id, token.value === "" ? token.type : token.value, token.pos); //TTT we cannot mask this error because advance is very generic
+                    throw this.composeError(Error(), "Expected " + id, token.value === "" ? token.type : token.value, token.pos); // we cannot mask this error because advance is very generic
                 }
                 else if (!this.options.quiet) {
                     Utils_3.Utils.console.warn(this.composeError({}, "Expected " + id, token.value === "" ? token.type : token.value, token.pos).message);
@@ -7334,7 +7328,7 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                     + DiskImage.uInt8ToString(sectorInfo.bps)
                     + DiskImage.uInt8ToString(sectorInfo.state1)
                     + DiskImage.uInt8ToString(sectorInfo.state2)
-                    + DiskImage.uInt16ToString(0); // DiskImage.uInt16ToString(sectorInfo.sectorSize); //DiskImage.uInt16ToString(0); // sectorInfo.sectorSize only needed for extended format
+                    + DiskImage.uInt16ToString(0); // We use 0 (sectorInfo.sectorSize only needed for extended format)
                 trackInfoString += sectorinfoString;
             }
             // fill up
@@ -7872,7 +7866,6 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                     diskInfo.tracks = track; // set new number of tracks
                     var trackDataPos = sectorInfoList[0].dataPos;
                     data = DiskImage.createDiskInfoAsString(diskInfo) + data.substring(DiskImage.diskInfoSize, trackDataPos - DiskImage.trackInfoSize); // set new track count and remove empty track and rest
-                    //data = data.substring(0, trackDataPos - DiskImage.trackInfoSize); // remove empty track and rest
                     this.options.data = data;
                     break;
                 }
@@ -8047,35 +8040,6 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
         };
         DiskImage.diskInfoSize = 0x100;
         DiskImage.trackInfoSize = 0x100;
-        /*
-        private static isTrackEmpty(data: string, index: number, tsize: number) {
-            const filler = 0xe5,
-                endIndex = (index + tsize) <= data.length ? index + tsize : data.length - index;
-            let isEmpty = true;
-    
-            for (let i = index; i < endIndex; i += 1) {
-                if (data.charCodeAt(i) !== filler) {
-                    isEmpty = false;
-                    break;
-                }
-            }
-            return isEmpty;
-        }
-    
-        static stripEmptyTracks(data: string): string {
-            const diskinfoSize = 0x100,
-                trackInfoSize = 0x100,
-                tsize = trackInfoSize + 9 * 0x200;
-            let index = diskinfoSize + trackInfoSize;
-    
-            while (!DiskImage.isTrackEmpty(data, index, tsize - trackInfoSize) && index < data.length) {
-                index += tsize;
-            }
-            data = data.substring(0, index - trackInfoSize);
-    
-            return data;
-        }
-        */
         // ...
         // see AMSDOS ROM, &D252
         /* eslint-disable array-element-newline */
@@ -8471,7 +8435,6 @@ define("View", ["require", "exports", "Utils"], function (require, exports, Util
                     if (Utils_12.Utils.debug > 0) {
                         Utils_12.Utils.console.debug("Leaving fullscreen mode.");
                     }
-                    //that.removeEventListenerById("fullscreenchange", fullscreenchangedHandler, id);
                     that.removeEventListener("fullscreenchange", fullscreenchangedHandler, target);
                     // for Safari we need to do some change to make sure the window size is set (can we do better?)
                     that.setHidden(id, true);
@@ -8586,8 +8549,6 @@ define("DragElement", ["require", "exports", "Utils", "View"], function (require
             for (var key in entries) {
                 if (entries.hasOwnProperty(key)) {
                     var item = entries[key];
-                    //item.xOffset = 0;
-                    //item.yOffset = 0;
                     if (item.enabled) {
                         this.options.view.fnAttachPointerEvents(item.itemId, this.fnDragStartHandler);
                     }
@@ -8634,17 +8595,12 @@ define("DragElement", ["require", "exports", "Utils", "View"], function (require
                 this.currentY = clientObject.clientY - this.initialY;
                 dragInfo.xOffset = this.currentX;
                 dragInfo.yOffset = this.currentY;
-                DragElement.setDragTranslate(this.currentX, this.currentY, this.dragItem); //TTT
-                // or use position: absolute and set .style.top, .style.left
-                //drag.dragItem.style.left = xPos + "px";
-                //drag.dragItem.style.top = yPos + "px";
+                DragElement.setDragTranslate(this.currentX, this.currentY, this.dragItem);
             }
         };
         DragElement.prototype.dragEnd = function (_event) {
             var dragInfo = this.dragInfo;
             if (dragInfo) {
-                //dragInfo.initialX = this.currentX;
-                //dragInfo.initialY = this.currentY;
                 this.options.view.fnDetachPointerEvents(this.containerId, undefined, this.fnDragMoveHandler, this.fnDragEndHandler);
                 if (Utils_13.Utils.debug > 0) {
                     Utils_13.Utils.console.debug("dragEnd: " + dragInfo.itemId + ": x=" + this.currentX + ", y=" + this.currentY);
@@ -9018,11 +8974,6 @@ define("Keyboard", ["require", "exports", "Utils"], function (require, exports, 
             }
             return undefined;
         };
-        /*
-        getKeydownOrKeyupHandler(): (event: Event) => boolean {
-            return this.fnKeydownOrKeyupHandler;
-        }
-        */
         // use this:
         Keyboard.key2CpcKey = {
             "38ArrowUp": 0,
@@ -9355,7 +9306,6 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
             }
             // A pointerdown event can also ended by pointerout when leaving the area
             if (this.eventNames.out) {
-                //node.addEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyupOrKeyoutHandler, false);
                 this.options.view.addEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyupOrKeyoutHandler, node);
             }
             event.preventDefault();
@@ -9387,28 +9337,11 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
             }
             this.fnVirtualKeyboardKeyupOrKeyout(event);
             if (this.eventNames.out) {
-                //node.removeEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyupOrKeyoutHandler); // do not need out event any more for this key
-                this.options.view.removeEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyupOrKeyoutHandler, node);
+                this.options.view.removeEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyupOrKeyoutHandler, node); // do not need out event any more for this key
             }
             event.preventDefault();
             return false;
         };
-        /*
-        private onVirtualKeyboardKeyout(event: PointerEvent) {
-            const node = View.getEventTarget<HTMLElement>(event);
-    
-            if (Utils.debug > 1) {
-                Utils.console.debug("onVirtualKeyboardKeyout: event=", event);
-            }
-            this.fnVirtualKeyboardKeyupOrKeyout(event);
-    
-            if (this.eventNames.out) {
-                node.removeEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyoutHandler); // do not need out event any more for this key
-            }
-            event.preventDefault();
-            return false;
-        }
-        */
         VirtualKeyboard.keyIdentifier2Char = function (event) {
             // SliTaz web browser has not key but keyIdentifier
             var identifier = event.keyIdentifier, // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -9451,19 +9384,6 @@ define("VirtualKeyboard", ["require", "exports", "Utils", "View"], function (req
             }
             return undefined;
         };
-        /*
-        getVirtualKeydownHandler(): typeof this.fnVirtualKeyboardKeydownHandler {
-            return this.fnVirtualKeyboardKeydownHandler;
-        }
-    
-        getVirtualKeyupHandler(): typeof this.fnVirtualKeyboardKeyupOrKeyoutHandler {
-            return this.fnVirtualKeyboardKeyupOrKeyoutHandler;
-        }
-    
-        getKeydownOrKeyupHandler(): (event: Event) => boolean {
-            return this.fnKeydownOrKeyupHandler;
-        }
-        */
         VirtualKeyboard.cpcKey2Key = [
             {
                 keys: "38ArrowUp",
@@ -12038,7 +11958,6 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                         viewType: "select",
                         property: "basicVersion" /* ModelPropID.basicVersion */,
                         func: this.onBasicVersionSelectChange
-                        //controllerFunc: this.controller.setBasicVersion(value) // needs value
                     },
                     {
                         id: "canvasTypeSelect" /* ViewID.canvasTypeSelect */,
@@ -13377,9 +13296,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             this.timerPriority = -1; // priority of running task: -1=low (min priority to start new timers)
             this.zoneValue = 13; // print tab zone value
             this.defreal("a", "z"); // init vartypes
-            //this.modeValue = -1;
-            //this.vmResetWindowData(true); // reset all, including pen and paper
-            //this.width(132); // done in vmResetWindowData (default printer width)
             this.vmResetPenPaperWindowData();
             this.mode(1); // including vmResetWindowData() without pen and paper
             this.canvas.reset();
@@ -13458,52 +13374,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             Object.assign(windowDataList[8], winData, printData); // printer
             Object.assign(windowDataList[9], winData, cassetteData); // cassette
         };
-        /*
-        vmResetWindowData(resetPenPaper: boolean): void {
-            const data = {
-                    pos: 0, // current text position in line
-                    vpos: 0,
-                    textEnabled: true, // text enabled
-                    tag: false, // tag=text at graphics
-                    transparent: false, // transparent mode
-                    cursorOn: false, // system switch
-                    cursorEnabled: true // user switch
-                },
-                penPaperData = {
-                    pen: 1,
-                    paper: 0
-                },
-                printData = {
-                    pos: 0,
-                    vpos: 0,
-                    right: 132 // override
-                },
-                cassetteData = {
-                    pos: 0,
-                    vpos: 0,
-                    right: 255 // override
-                },
-                winData = CpcVm.winData[this.modeValue],
-                windowDataList = this.windowDataList,
-                modeDataPens = this.modeValue >= 0 ? CpcVm.modeData[this.modeValue].pens : 0;
-    
-            if (resetPenPaper) {
-                Object.assign(data, penPaperData);
-            }
-    
-            for (let i = 0; i < windowDataList.length - 2; i += 1) { // for window streams
-                const modeWinData = Object.assign(windowDataList[i], winData, data);
-    
-                if (!resetPenPaper) { // do not reset but limit to mode
-                    modeWinData.pen %= modeDataPens;
-                    modeWinData.paper %= modeDataPens; // limit also paper to number of pens
-                }
-            }
-    
-            Object.assign(windowDataList[8], winData, printData); // printer
-            Object.assign(windowDataList[9], winData, cassetteData); // cassette
-        }
-        */
         CpcVm.prototype.vmResetControlBuffer = function () {
             this.printControlBuf = ""; // collected control characters for PRINT
         };
@@ -13571,7 +13441,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
         };
         CpcVm.prototype.onCanvasClickCallback = function (event, x, y, xTxt, yTxt) {
             // for graphics coordinates, adapt origin
-            var height = 400; //TTT
+            var height = 400;
             var char = -1;
             x -= this.canvas.getXOrigin();
             y = height - 1 - (y + this.canvas.getYOrigin());
@@ -15398,19 +15268,10 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
         };
         CpcVm.prototype.vmOpeninCallback = function (input) {
             if (input !== null) {
-                /*
-                input = input.replace(/\r\n/g, "\n"); // remove CR (maybe from ASCII file in "binary" form)
-                if (input.endsWith("\n")) {
-                    input = input.substring(0, input.length - 1); // remove last "\n" (TTT: also for data files?)
-                }
-                */
                 var inFile = this.inFile, eolStr = input.indexOf("\r\n") > 0 ? "\r\n" : "\n"; // heuristic: if CRLF found, use it as split
                 if (input.endsWith(eolStr)) {
                     input = input.substring(0, input.length - eolStr.length); // remove last eol marker (also for data files)
                 }
-                /*
-                inFile.fileData = input.split("\n");
-                */
                 inFile.fileData = input.split(eolStr);
             }
             else {
@@ -15918,7 +15779,6 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                         win.pos += str.length;
                     }
                     if (str === "\r\n") {
-                        //str = "\n"; // for now we replace CRLF by LF
                         win.pos = 0;
                     }
                     if (win.pos >= win.right) {
@@ -17065,18 +16925,23 @@ define("FileHandler", ["require", "exports", "Utils", "DiskImage", "Snapshot", "
                 var zipDirectory = zip.getZipDirectory(), entries = Object.keys(zipDirectory);
                 for (var i = 0; i < entries.length; i += 1) {
                     var name2 = entries[i];
-                    var data2 = void 0;
-                    try {
-                        data2 = zip.readData(name2);
+                    if (name2.startsWith("__MACOSX/")) { // MacOS X creates some extra folder in ZIP files
+                        Utils_23.Utils.console.log("processZipFile: Ignoring file:", name2);
                     }
-                    catch (e) {
-                        Utils_23.Utils.console.error(e);
-                        if (e instanceof Error) { // eslint-disable-line max-depth
-                            this.options.outputError(e, true);
+                    else {
+                        var data2 = void 0;
+                        try {
+                            data2 = zip.readData(name2);
                         }
-                    }
-                    if (data2) {
-                        this.fnLoad2(data2, name2, "", imported); // type not known but without meta
+                        catch (e) {
+                            Utils_23.Utils.console.error(e);
+                            if (e instanceof Error) { // eslint-disable-line max-depth
+                                this.options.outputError(e, true);
+                            }
+                        }
+                        if (data2) {
+                            this.fnLoad2(data2, name2, "", imported); // type not known but without meta
+                        }
                     }
                 }
             }
@@ -17204,7 +17069,7 @@ define("FileSelect", ["require", "exports", "Utils", "View"], function (require,
                 if (file.type === "text/plain") {
                     reader.readAsText(file);
                 }
-                else if (file.type === "application/x-zip-compressed") {
+                else if (file.type === "application/x-zip-compressed" || file.type === "application/zip") { // on Mac OS it is "application/zip"
                     reader.readAsArrayBuffer(file);
                 }
                 else {
@@ -17223,7 +17088,7 @@ define("FileSelect", ["require", "exports", "Utils", "View"], function (require,
             }
             var file = this.file, name = file.name, reader = event.target;
             var data = (reader && reader.result) || null, type = file.type;
-            if (type === "application/x-zip-compressed" && data instanceof ArrayBuffer) {
+            if ((type === "application/x-zip-compressed" || type === "application/zip") && data instanceof ArrayBuffer) { // on Mac OS it is "application/zip"
                 type = "Z";
                 this.options.fnLoad2(new Uint8Array(data), name, type, this.imported);
             }
@@ -18284,12 +18149,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 view: this.view,
                 fnOnEscapeHandler: this.fnOnEscapeHandler
             });
-            /*
-            const keydownOrKeyupHandler = this.keyboard.getKeydownOrKeyupHandler();
-    
-            view.addEventListenerById("keydown", keydownOrKeyupHandler, ViewID.cpcArea);
-            view.addEventListenerById("keyup", keydownOrKeyupHandler, ViewID.cpcArea);
-            */
             if (this.model.getProperty("showKbd" /* ModelPropID.showKbd */)) { // maybe we need to draw virtual keyboard
                 this.getVirtualKeyboard();
             }
@@ -18515,7 +18374,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     title: strippedTitle,
                     selected: false
                 };
-                //item.text = item.title;
                 items.push(item);
             }
             items.sort(Controller.fnSortByStringProperties);
@@ -18535,7 +18393,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 items.push(item);
             }
             // sort already done
-            //items.sort(Controller.fnSortByStringProperties);
             this.view.setSelectOptions(select, items);
         };
         Controller.prototype.updateStorageDatabase = function (action, key) {
@@ -18548,7 +18405,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.model.setProperty("database" /* ModelPropID.database */, "storage"); // switch to storage database
             }
             else {
-                selectedExample = this.view.getSelectValue("exampleSelect" /* ViewID.exampleSelect */); //TTT || this.model.getProperty(ModelPropID.example);
+                selectedExample = this.view.getSelectValue("exampleSelect" /* ViewID.exampleSelect */);
             }
             var dir;
             if (!key) { // no key => get all
@@ -19761,13 +19618,10 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     if (item.value === editorText) {
                         data = this.view.getAreaValue("inputText" /* ViewID.inputText */);
                         name = this.fnGetFilename(data);
-                        //if (!exportTokenized) {
                         var eolStr = data.indexOf("\r\n") > 0 ? "\r\n" : "\n"; // heuristic: if CRLF found, use it as split
-                        //XXX eslint-disable-next-line max-depth
                         if (eolStr === "\n") {
-                            data = data.replace(/\n/g, "\r\n"); //replace LF by CRLF
+                            data = data.replace(/\n/g, "\r\n"); // replace LF by CRLF (not really needed if tokenized is used)
                         }
-                        //}
                         meta.typeString = "A"; // ASCII
                         meta.start = 0x170;
                         meta.length = data.length;
@@ -20197,46 +20051,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             // we support at most 5 arguments
             return fnFunction;
         };
-        /*
-        setPopoversHiddenExcept(exceptId?: ViewID): void {
-            const areaDefinitions = Controller.areaDefinitions;
-    
-            for (const id in areaDefinitions) {
-                if (areaDefinitions.hasOwnProperty(id)) {
-                    const propertyObject = areaDefinitions[id],
-                        viewId = propertyObject.id;
-    
-                    if (propertyObject && viewId !== exceptId) {
-                        if (propertyObject.isPopover && !this.view.getHidden(viewId)) {
-                            // we cannot use toggleAreaHidden becasue it would be recursive
-                            this.model.setProperty(propertyObject.property, false);
-                            this.view.setHidden(viewId, true, propertyObject.display);
-                        }
-                    }
-                }
-            }
-        }
-    
-        toggleAreaHidden(id: ViewID): boolean {
-            const propertyObject = Controller.areaDefinitions[id],
-                propertyName = propertyObject.property,
-                visible = !this.model.getProperty<boolean>(propertyName);
-    
-            this.model.setProperty(propertyName, visible);
-            this.view.setHidden(id, !visible, propertyObject.display);
-    
-            // on old browsers display "flex" is not available, so set default "" (="block"), if still hidden
-            if (visible && propertyObject.display === "flex" && this.view.getHidden(id)) {
-                this.view.setHidden(id, !visible);
-            }
-    
-            if (visible && propertyObject.isPopover) {
-                this.setPopoversHiddenExcept(id);
-            }
-    
-            return visible;
-        }
-        */
         Controller.prototype.changeVariable = function () {
             var par = this.view.getSelectValue("varSelect" /* ViewID.varSelect */), valueString = this.view.getSelectValue("varText" /* ViewID.varText */), variables = this.variables;
             var value = variables.getVariable(par);
@@ -20356,7 +20170,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         };
         Controller.prototype.getZ80Disass = function () {
             if (!this.z80Disass) {
-                var dataArr = this.vm.vmGetMem(), data = dataArr; //TTT
+                var dataArr = this.vm.vmGetMem(), data = dataArr; // fast hack: we take number array as Uint8Array
                 this.z80Disass = new Z80Disass_1.Z80Disass({
                     data: data,
                     addr: 0
@@ -20366,7 +20180,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         };
         Controller.prototype.setDisassAddr = function (addr, endAddr) {
             var z80Disass = this.getZ80Disass();
-            //let out = "";
             if (endAddr === undefined) {
                 endAddr = addr + 0x100;
             }
@@ -20374,8 +20187,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 addr: addr
             });
             var opts = z80Disass.getOptions(), lines = [];
-            while (addr < endAddr) { //} && addr < 0x10000) {
-                //out += z80Disass.disassLine() + "\n";
+            while (addr < endAddr) { // currently not limited to < 0x10000
                 lines.push(z80Disass.disassLine());
                 if (opts.addr > addr) {
                     addr = opts.addr;
@@ -20385,11 +20197,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     break;
                 }
             }
-            /*
-            for (let i = 1; i < lines; i += 1) {
-                out += z80Disass.disassLine() + "\n";
-            }
-            */
             var out = lines.join("\n") + "\n";
             this.view.setAreaValue("disassText" /* ViewID.disassText */, out);
         };
@@ -20478,35 +20285,6 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     fnPressCpcKey: this.keyboard.fnPressCpcKey.bind(this.keyboard),
                     fnReleaseCpcKey: this.keyboard.fnReleaseCpcKey.bind(this.keyboard)
                 });
-                /*
-                const keydownOrKeyupHandler = this.virtualKeyboard.getKeydownOrKeyupHandler();
-    
-                this.view.addEventListener("keydown", keydownOrKeyupHandler, ViewID.kbdAreaInner);
-                this.view.addEventListener("keyup", keydownOrKeyupHandler, ViewID.kbdAreaInner);
-                */
-                /*
-                const dragElement = this.getDragElement();
-    
-                dragElement.setOptions({
-                    entries: {
-                        kbdArea: {
-                            itemId: ViewID.kbdArea,
-                            xOffset: 0,
-                            yOffset: 0
-                        },
-                        cpcArea: {
-                            itemId: ViewID.cpcArea,
-                            xOffset: 0,
-                            yOffset: 0
-                        },
-                        inputArea: {
-                            itemId: ViewID.inputArea,
-                            xOffset: 0,
-                            yOffset: 0
-                        }
-                    }
-                });
-                */
             }
             return this.virtualKeyboard;
         };

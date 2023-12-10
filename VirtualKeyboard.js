@@ -160,7 +160,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             }
             // A pointerdown event can also ended by pointerout when leaving the area
             if (this.eventNames.out) {
-                //node.addEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyupOrKeyoutHandler, false);
                 this.options.view.addEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyupOrKeyoutHandler, node);
             }
             event.preventDefault();
@@ -192,28 +191,11 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             }
             this.fnVirtualKeyboardKeyupOrKeyout(event);
             if (this.eventNames.out) {
-                //node.removeEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyupOrKeyoutHandler); // do not need out event any more for this key
-                this.options.view.removeEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyupOrKeyoutHandler, node);
+                this.options.view.removeEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyupOrKeyoutHandler, node); // do not need out event any more for this key
             }
             event.preventDefault();
             return false;
         };
-        /*
-        private onVirtualKeyboardKeyout(event: PointerEvent) {
-            const node = View.getEventTarget<HTMLElement>(event);
-    
-            if (Utils.debug > 1) {
-                Utils.console.debug("onVirtualKeyboardKeyout: event=", event);
-            }
-            this.fnVirtualKeyboardKeyupOrKeyout(event);
-    
-            if (this.eventNames.out) {
-                node.removeEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyoutHandler); // do not need out event any more for this key
-            }
-            event.preventDefault();
-            return false;
-        }
-        */
         VirtualKeyboard.keyIdentifier2Char = function (event) {
             // SliTaz web browser has not key but keyIdentifier
             var identifier = event.keyIdentifier, // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -256,19 +238,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             }
             return undefined;
         };
-        /*
-        getVirtualKeydownHandler(): typeof this.fnVirtualKeyboardKeydownHandler {
-            return this.fnVirtualKeyboardKeydownHandler;
-        }
-    
-        getVirtualKeyupHandler(): typeof this.fnVirtualKeyboardKeyupOrKeyoutHandler {
-            return this.fnVirtualKeyboardKeyupOrKeyoutHandler;
-        }
-    
-        getKeydownOrKeyupHandler(): (event: Event) => boolean {
-            return this.fnKeydownOrKeyupHandler;
-        }
-        */
         VirtualKeyboard.cpcKey2Key = [
             {
                 keys: "38ArrowUp",

@@ -32,7 +32,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 if (file.type === "text/plain") {
                     reader.readAsText(file);
                 }
-                else if (file.type === "application/x-zip-compressed") {
+                else if (file.type === "application/x-zip-compressed" || file.type === "application/zip") { // on Mac OS it is "application/zip"
                     reader.readAsArrayBuffer(file);
                 }
                 else {
@@ -51,7 +51,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             }
             var file = this.file, name = file.name, reader = event.target;
             var data = (reader && reader.result) || null, type = file.type;
-            if (type === "application/x-zip-compressed" && data instanceof ArrayBuffer) {
+            if ((type === "application/x-zip-compressed" || type === "application/zip") && data instanceof ArrayBuffer) { // on Mac OS it is "application/zip"
                 type = "Z";
                 this.options.fnLoad2(new Uint8Array(data), name, type, this.imported);
             }

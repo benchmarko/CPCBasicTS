@@ -28,8 +28,6 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
             for (var key in entries) {
                 if (entries.hasOwnProperty(key)) {
                     var item = entries[key];
-                    //item.xOffset = 0;
-                    //item.yOffset = 0;
                     if (item.enabled) {
                         this.options.view.fnAttachPointerEvents(item.itemId, this.fnDragStartHandler);
                     }
@@ -76,17 +74,12 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                 this.currentY = clientObject.clientY - this.initialY;
                 dragInfo.xOffset = this.currentX;
                 dragInfo.yOffset = this.currentY;
-                DragElement.setDragTranslate(this.currentX, this.currentY, this.dragItem); //TTT
-                // or use position: absolute and set .style.top, .style.left
-                //drag.dragItem.style.left = xPos + "px";
-                //drag.dragItem.style.top = yPos + "px";
+                DragElement.setDragTranslate(this.currentX, this.currentY, this.dragItem);
             }
         };
         DragElement.prototype.dragEnd = function (_event) {
             var dragInfo = this.dragInfo;
             if (dragInfo) {
-                //dragInfo.initialX = this.currentX;
-                //dragInfo.initialY = this.currentY;
                 this.options.view.fnDetachPointerEvents(this.containerId, undefined, this.fnDragMoveHandler, this.fnDragEndHandler);
                 if (Utils_1.Utils.debug > 0) {
                     Utils_1.Utils.console.debug("dragEnd: " + dragInfo.itemId + ": x=" + this.currentX + ", y=" + this.currentY);
