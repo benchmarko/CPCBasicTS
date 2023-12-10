@@ -403,8 +403,20 @@ export class CommonEventHandler implements EventListenerObject {
 		this.view.setAreaValue(ViewID.inp2Text, ""); // delete input
 	}
 
-	private static onFullscreenButtonClick() {
-		const switched = View.requestFullscreenForId(ViewID.cpcCanvas); // make sure to use an element with tabindex set to get keyboard events
+	private onFullscreenButtonClick() {
+		let id: ViewID | undefined;
+
+		if (!this.view.getHidden(ViewID.cpcCanvas)) {
+			id = ViewID.cpcCanvas;
+		} else if (!this.view.getHidden(ViewID.textText)) {
+			// for ViewID.textText (textArea), we use the surrounding div...
+			id = ViewID.textCanvasDiv;
+		} else {
+			Utils.console.warn("Fullscreen only possible for graphics or text canvas");
+			return;
+		}
+
+		const switched = this.view.requestFullscreenForId(id); // make sure to use an element with tabindex set to get keyboard events
 
 		if (!switched) {
 			Utils.console.warn("Switch to fullscreen not available");
@@ -462,7 +474,7 @@ export class CommonEventHandler implements EventListenerObject {
 					},
 					{
 						id: ViewID.fullscreenButton,
-						func: CommonEventHandler.onFullscreenButtonClick
+						func: this.onFullscreenButtonClick
 					},
 					{
 						id: ViewID.galleryButton,

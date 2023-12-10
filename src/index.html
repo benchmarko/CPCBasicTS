@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="cpcbasic.css">
 <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
-<title id="title">CPC BasicTS v0.2.9</title>
+<title id="title">CPC BasicTS v0.2.10</title>
 </head>
 
 <body id="pageBody">
@@ -179,9 +179,9 @@
 					<canvas id="cpcCanvas" width="640" height="400" tabindex="0"></canvas>
 				</div>
 				<div id="textCanvasDiv">
-					<textarea readonly id="textText" placeholder="" rows="25" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off" hidden></textarea>
+					<textarea readonly id="textText" class="displayNone" placeholder="" rows="25" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off" tabindex="0"></textarea>
 				</div>
-				<div id="noCanvas"></div>
+				<div id="noCanvas" class="displayNone"></div>
 			</div>	
 		</div>
 
@@ -287,14 +287,27 @@
 							<br>
 							<hr>
 							<input id="exportTokenizedInput" type="checkbox" title="tokenized" checked>
-							<label for="exportTokenizedInput" title="Tokenized BASIC">Tokenized</label>
+							<label for="exportTokenizedInput" title="Export ASCII as tokenized BASIC">Tokenized</label>
 							<br>
 							<input id="exportDSKInput" type="checkbox" title="DSK">
 							<label for="exportDSKInput" title="DSK image">DSK</label>
+							<fieldset>
+								<legend title="Format Options">Format Options</legend>
+								<label for="exportDSKFormatSelect" title="Format">Format</label>
+								<select id="exportDSKFormatSelect" title="Select Format">
+									<option value="data" title="Data" default>Data</option>
+									<option value="system" title="System">System</option>
+									<option value="data42t" title="Data 42 Tracks">Data 42</option>
+								</select>
+								<br>
+								<input id="exportDSKStripEmptyInput" type="checkbox" title="Strip empty tracks">
+								<label for="exportDSKStripEmptyInput" title="Strip empty tracks">Strip Empty</label>
+							</fieldset>
 							<br>
 							<input id="exportBase64Input" type="checkbox" title="Base64">
 							<label for="exportBase64Input" title="Base64">Base64</label>
 							<br>
+							<hr>
 							<button id="downloadButton" class="popoverElement" title="Export">Export</button>
 						</fieldset>
 					</span>

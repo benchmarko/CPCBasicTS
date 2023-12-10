@@ -229,10 +229,29 @@ export class BasicLexer {
 	}
 	private fnParseCompleteLineForRemOrApostrophe(char: string, startPos: number) { // special handling for line comment
 		if (BasicLexer.isNotNewLine(char)) {
+			let token = this.advanceWhile(char, BasicLexer.isNotNewLine),
+				whiteSpace = "";
+
+			char = this.getChar();
+
+			if (token.endsWith("\r")) {
+				token = token.substring(0, token.length - 1);
+				whiteSpace = "\r";
+				// now token can be empty?
+			}
+
+			this.addToken("unquoted", token, startPos);
+
+			if (whiteSpace && this.options.keepWhiteSpace) {
+				this.whiteSpace = whiteSpace;
+			}
+
+			/*
 			const token = this.advanceWhile(char, BasicLexer.isNotNewLine);
 
 			char = this.getChar();
 			this.addToken("unquoted", token, startPos);
+			*/
 		}
 		return char;
 	}
@@ -381,7 +400,8 @@ export class BasicLexer {
 	private fnParseString(startPos: number) {
 		let char = "",
 			token = this.advanceWhile(char, BasicLexer.isNotQuotes),
-			type = "string";
+			type = "string",
+			whiteSpace = "";
 
 		char = this.getChar();
 		if (char !== '"') {
@@ -402,9 +422,19 @@ export class BasicLexer {
 				Utils.console.debug(this.composeError({} as Error, "Unterminated string", token, startPos + 1).message);
 			}
 			type = "ustring"; // unterminated string
+
+			if (token.endsWith("\r")) {
+				token = token.substring(0, token.length - 1);
+				whiteSpace = "\r";
+				// now token can be empty?
+			}
 		}
 
 		this.addToken(type, token, startPos + 1);
+
+		if (whiteSpace && this.options.keepWhiteSpace) {
+			this.whiteSpace = whiteSpace;
+		}
 	}
 
 	private fnParseRsx(char: string, startPos: number) {

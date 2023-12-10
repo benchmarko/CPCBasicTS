@@ -8,23 +8,24 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "pwa-node",
+            "type": "node",
             "request": "launch",
             "name": "Launch Program",
             "skipFiles": [
                 "<node_internals>/**"
             ],
             //"program_XXX": "${workspaceFolder}\\src\\loader\\amd1.js",
-            "program": "${workspaceFolder}\\dist\\cpcbasicts.js",
+            //"program": "${workspaceFolder}\\dist\\cpcbasicts.js",
+            "program": "${workspaceFolder}/dist/cpcbasicts.js",
             //"runtimeArgs": [
             //    "--require=.\\dist\\amdLoader.js"
             //],
             "args": [
                 "sound=false",
                 "debug=0",
-                "showCpc=false",
-                //"example=test/testpage",
-                "example=math/euler"
+                "canvasType=text",
+                "example=test/testpage"
+                //"example=math/euler"
             ],
             "outFiles": [
                 "${workspaceFolder}/**//**/*.js"

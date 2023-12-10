@@ -316,7 +316,7 @@ export class View {
 
 	addEventListenerById(type: string, eventListener: EventListenerOrEventListenerObject, id: ViewID): this {
 		if (Utils.debug) {
-			Utils.console.debug("addEventListenerById: type=" + type + ", eventHandler=" + eventListener + ", id=" + id);
+			Utils.console.debug("addEventListenerById: type=" + type + ", id=" + id);
 		}
 		const element = id === ViewID.window ? undefined : View.getElementById1(id);
 
@@ -335,7 +335,7 @@ export class View {
 
 	removeEventListenerById(type: string, eventListener: EventListenerOrEventListenerObject, id: ViewID): this {
 		if (Utils.debug) {
-			Utils.console.debug("removeEventListener: type=" + type + ", eventHandler=" + eventListener + ", id=" + id);
+			Utils.console.debug("removeEventListener: type=" + type + ", id=" + id);
 		}
 		const element = id === ViewID.window ? undefined : View.getElementById1(id);
 
@@ -430,13 +430,46 @@ export class View {
 		return target as T;
 	}
 
-	static requestFullscreenForId(id: ViewID): boolean {
+	requestFullscreenForId(id: ViewID): boolean {
 		const element = View.getElementById1(id),
 			anyEl = element as any,
-			requestMethod = element.requestFullscreen || anyEl.webkitRequestFullscreen || anyEl.mozRequestFullscreen || anyEl.msRequestFullscreen;
+			that = this,
+			requestMethod = element.requestFullscreen || anyEl.webkitRequestFullscreen || anyEl.mozRequestFullscreen || anyEl.msRequestFullscreen,
+			fullscreenchangedHandler = function (event: Event) {
+				const target = View.getEventTarget(event);
+
+				if (document.fullscreenElement) {
+					if (Utils.debug > 0) {
+						Utils.console.debug("Entered fullscreen mode: " + document.fullscreenElement.id);
+					}
+				} else {
+					if (Utils.debug > 0) {
+						Utils.console.debug("Leaving fullscreen mode.");
+					}
+					//that.removeEventListenerById("fullscreenchange", fullscreenchangedHandler, id);
+					that.removeEventListener("fullscreenchange", fullscreenchangedHandler, target);
+
+					// for Safari we need to do some change to make sure the window size is set (can we do better?)
+					that.setHidden(id, true);
+					window.setTimeout(function () {
+						that.setHidden(id, false);
+					}, 0);
+				}
+			};
 
 		if (requestMethod) {
-			requestMethod.call(element); // can we ALLOW_KEYBOARD_INPUT?
+			const promise = requestMethod.call(element); // can we ALLOW_KEYBOARD_INPUT?
+
+			if (promise) {
+				promise.then(function () {
+					if (Utils.debug > 0) {
+						Utils.console.debug("requestFullscreenForId: " + id + ": success");
+					}
+					that.addEventListenerById("fullscreenchange", fullscreenchangedHandler, id);
+				}).catch(function (err: unknown) {
+					Utils.console.error("requestFullscreenForId: " + id + ": Error attempting to enable fullscreen mode: ", err);
+				});
+			}
 		} else if (typeof (window as any).ActiveXObject !== "undefined") { // older IE
 			const wscript = new (window as any).ActiveXObject("WScript.Shell");
 
