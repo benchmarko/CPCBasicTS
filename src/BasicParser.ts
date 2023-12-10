@@ -454,7 +454,7 @@ export class BasicParser {
 		this.previousToken = this.token;
 		if (id && id !== token.type) {
 			if (!this.fnLastStatementIsOnErrorGotoX()) {
-				throw this.composeError(Error(), "Expected " + id, token.value === "" ? token.type : token.value, token.pos); //TTT we cannot mask this error because advance is very generic
+				throw this.composeError(Error(), "Expected " + id, token.value === "" ? token.type : token.value, token.pos); // we cannot mask this error because advance is very generic
 			} else if (!this.options.quiet) {
 				Utils.console.warn(this.composeError({} as Error, "Expected " + id, token.value === "" ? token.type : token.value, token.pos).message);
 			}

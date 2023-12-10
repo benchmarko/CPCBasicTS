@@ -85,13 +85,6 @@ export class Keyboard {
 		Object.assign(this.options, options);
 	}
 
-	/*
-	getKeydownOrKeyupHandler(): (event: Event) => boolean {
-		return this.fnKeydownOrKeyupHandler;
-	}
-	*/
-
-
 	// use this:
 	private static readonly key2CpcKey = {
 		"38ArrowUp": 0,

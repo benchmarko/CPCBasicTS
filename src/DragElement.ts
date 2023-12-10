@@ -7,17 +7,12 @@ import { ViewID } from "./Constants";
 import { Utils } from "./Utils";
 import { View } from "./View";
 
-
 // see also:
 // https://www.kirupa.com/html5/drag.htm
 // https://www.w3schools.com/howto/tryit.asp?filename=tryhow_js_draggable
 
-
 type DragElementOptionEntryType = {
 	itemId: ViewID,
-	//containerId: ViewID,
-	//initialX: number,
-	//initialY: number,
 	xOffset: number,
 	yOffset: number,
 	enabled: boolean
@@ -67,8 +62,6 @@ export class DragElement {
 			if (entries.hasOwnProperty(key)) {
 				const item = entries[key];
 
-				//item.xOffset = 0;
-				//item.yOffset = 0;
 				if (item.enabled) {
 					this.options.view.fnAttachPointerEvents(item.itemId, this.fnDragStartHandler);
 				} else {
@@ -124,11 +117,7 @@ export class DragElement {
 			dragInfo.xOffset = this.currentX;
 			dragInfo.yOffset = this.currentY;
 
-			DragElement.setDragTranslate(this.currentX, this.currentY, this.dragItem as HTMLElement); //TTT
-
-			// or use position: absolute and set .style.top, .style.left
-			//drag.dragItem.style.left = xPos + "px";
-			//drag.dragItem.style.top = yPos + "px";
+			DragElement.setDragTranslate(this.currentX, this.currentY, this.dragItem as HTMLElement);
 		}
 	}
 
@@ -136,9 +125,6 @@ export class DragElement {
 		const dragInfo = this.dragInfo;
 
 		if (dragInfo) {
-			//dragInfo.initialX = this.currentX;
-			//dragInfo.initialY = this.currentY;
-
 			this.options.view.fnDetachPointerEvents(this.containerId, undefined, this.fnDragMoveHandler, this.fnDragEndHandler);
 			if (Utils.debug > 0) {
 				Utils.console.debug("dragEnd: " + dragInfo.itemId + ": x=" + this.currentX + ", y=" + this.currentY);

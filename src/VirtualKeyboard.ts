@@ -79,20 +79,6 @@ export class VirtualKeyboard {
 		Object.assign(this.options, options);
 	}
 
-	/*
-	getVirtualKeydownHandler(): typeof this.fnVirtualKeyboardKeydownHandler {
-		return this.fnVirtualKeyboardKeydownHandler;
-	}
-
-	getVirtualKeyupHandler(): typeof this.fnVirtualKeyboardKeyupOrKeyoutHandler {
-		return this.fnVirtualKeyboardKeyupOrKeyoutHandler;
-	}
-
-	getKeydownOrKeyupHandler(): (event: Event) => boolean {
-		return this.fnKeydownOrKeyupHandler;
-	}
-	*/
-
 	private static readonly cpcKey2Key: CpcKey2Key[] = [
 		{
 			keys: "38ArrowUp", // 0: cursor up
@@ -530,7 +516,7 @@ export class VirtualKeyboard {
 			title: "Joy fire 1"
 		},
 		{
-			keys: "", // 78: ""? not null? (joy 0 fire 3?) TTT
+			keys: "", // 78: ""? not null? (joy 0 fire 3?)
 			key: ""
 		},
 		{
@@ -567,7 +553,7 @@ export class VirtualKeyboard {
 			title: "Joy down+right"
 		},
 		{
-			keys: "", // 84: (not null?) TTT
+			keys: "", // 84: (not null?)
 			key: ""
 		},
 		{
@@ -799,7 +785,6 @@ export class VirtualKeyboard {
 
 		// A pointerdown event can also ended by pointerout when leaving the area
 		if (this.eventNames.out) {
-			//node.addEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyupOrKeyoutHandler, false);
 			this.options.view.addEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyupOrKeyoutHandler, node);
 		}
 		event.preventDefault();
@@ -841,29 +826,11 @@ export class VirtualKeyboard {
 		this.fnVirtualKeyboardKeyupOrKeyout(event);
 
 		if (this.eventNames.out) {
-			//node.removeEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyupOrKeyoutHandler); // do not need out event any more for this key
-			this.options.view.removeEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyupOrKeyoutHandler, node);
+			this.options.view.removeEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyupOrKeyoutHandler, node); // do not need out event any more for this key
 		}
 		event.preventDefault();
 		return false;
 	}
-
-	/*
-	private onVirtualKeyboardKeyout(event: PointerEvent) {
-		const node = View.getEventTarget<HTMLElement>(event);
-
-		if (Utils.debug > 1) {
-			Utils.console.debug("onVirtualKeyboardKeyout: event=", event);
-		}
-		this.fnVirtualKeyboardKeyupOrKeyout(event);
-
-		if (this.eventNames.out) {
-			node.removeEventListener(this.eventNames.out, this.fnVirtualKeyboardKeyoutHandler); // do not need out event any more for this key
-		}
-		event.preventDefault();
-		return false;
-	}
-	*/
 
 	private static keyIdentifier2Char(event: KeyboardEvent) { // duplicate from Keyboard)
 		// SliTaz web browser has not key but keyIdentifier

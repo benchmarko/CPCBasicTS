@@ -535,10 +535,6 @@ export class CpcVm implements ICpcVm {
 
 		this.defreal("a", "z"); // init vartypes
 
-		//this.modeValue = -1;
-		//this.vmResetWindowData(true); // reset all, including pen and paper
-		//this.width(132); // done in vmResetWindowData (default printer width)
-
 		this.vmResetPenPaperWindowData();
 		this.mode(1); // including vmResetWindowData() without pen and paper
 
@@ -644,54 +640,6 @@ export class CpcVm implements ICpcVm {
 		Object.assign(windowDataList[9], winData, cassetteData); // cassette
 	}
 
-	/*
-	vmResetWindowData(resetPenPaper: boolean): void {
-		const data = {
-				pos: 0, // current text position in line
-				vpos: 0,
-				textEnabled: true, // text enabled
-				tag: false, // tag=text at graphics
-				transparent: false, // transparent mode
-				cursorOn: false, // system switch
-				cursorEnabled: true // user switch
-			},
-			penPaperData = {
-				pen: 1,
-				paper: 0
-			},
-			printData = {
-				pos: 0,
-				vpos: 0,
-				right: 132 // override
-			},
-			cassetteData = {
-				pos: 0,
-				vpos: 0,
-				right: 255 // override
-			},
-			winData = CpcVm.winData[this.modeValue],
-			windowDataList = this.windowDataList,
-			modeDataPens = this.modeValue >= 0 ? CpcVm.modeData[this.modeValue].pens : 0;
-
-		if (resetPenPaper) {
-			Object.assign(data, penPaperData);
-		}
-
-		for (let i = 0; i < windowDataList.length - 2; i += 1) { // for window streams
-			const modeWinData = Object.assign(windowDataList[i], winData, data);
-
-			if (!resetPenPaper) { // do not reset but limit to mode
-				modeWinData.pen %= modeDataPens;
-				modeWinData.paper %= modeDataPens; // limit also paper to number of pens
-			}
-		}
-
-		Object.assign(windowDataList[8], winData, printData); // printer
-		Object.assign(windowDataList[9], winData, cassetteData); // cassette
-	}
-	*/
-
-
 	vmResetControlBuffer(): void {
 		this.printControlBuf = ""; // collected control characters for PRINT
 	}
@@ -774,7 +722,7 @@ export class CpcVm implements ICpcVm {
 
 	private onCanvasClickCallback(event: MouseEvent, x: number, y: number, xTxt: number, yTxt: number) {
 		// for graphics coordinates, adapt origin
-		const height = 400; //TTT
+		const height = 400;
 		let char = -1;
 
 		x -= this.canvas.getXOrigin();
@@ -2870,23 +2818,12 @@ export class CpcVm implements ICpcVm {
 
 	private vmOpeninCallback(input: string | null) {
 		if (input !== null) {
-			/*
-			input = input.replace(/\r\n/g, "\n"); // remove CR (maybe from ASCII file in "binary" form)
-			if (input.endsWith("\n")) {
-				input = input.substring(0, input.length - 1); // remove last "\n" (TTT: also for data files?)
-			}
-			*/
-
 			const inFile = this.inFile,
 				eolStr = input.indexOf("\r\n") > 0 ? "\r\n" : "\n"; // heuristic: if CRLF found, use it as split
 
 			if (input.endsWith(eolStr)) {
 				input = input.substring(0, input.length - eolStr.length); // remove last eol marker (also for data files)
 			}
-
-			/*
-			inFile.fileData = input.split("\n");
-			*/
 			inFile.fileData = input.split(eolStr);
 		} else {
 			this.closein();
@@ -3469,7 +3406,6 @@ export class CpcVm implements ICpcVm {
 				}
 
 				if (str === "\r\n") {
-					//str = "\n"; // for now we replace CRLF by LF
 					win.pos = 0;
 				}
 

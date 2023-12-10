@@ -603,7 +603,6 @@ export class CommonEventHandler implements EventListenerObject {
 						viewType: "select",
 						property: ModelPropID.basicVersion,
 						func: this.onBasicVersionSelectChange
-						//controllerFunc: this.controller.setBasicVersion(value) // needs value
 					},
 					{
 						id: ViewID.canvasTypeSelect,

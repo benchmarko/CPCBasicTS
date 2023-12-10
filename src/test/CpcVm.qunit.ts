@@ -2359,11 +2359,13 @@ const lastTestFunctions: Record<string, TestFunctionInputType[]>[] = [], // esli
 
 	mockVariables = {
 		dimVariable: function (...args) {
-			const varName = args[0];
+			const varName = args[0],
+				stringArgs = args.map((arg) => String(arg));
 
 			variablesMap[varName] = this.getVarType(varName.charAt(0)) === "$" ? [""] : [0]; // we set one dimension, one element
+
 			lastTestFunctions.push({
-				dimVariable: args as string[] //TTT: it is string and numbers
+				dimVariable: stringArgs
 			});
 		},
 		getVariableIndex: function (name: string) {
