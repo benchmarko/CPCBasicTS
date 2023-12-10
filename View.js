@@ -250,7 +250,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         View.prototype.addEventListenerById = function (type, eventListener, id) {
             if (Utils_1.Utils.debug) {
-                Utils_1.Utils.console.debug("addEventListenerById: type=" + type + ", eventHandler=" + eventListener + ", id=" + id);
+                Utils_1.Utils.console.debug("addEventListenerById: type=" + type + ", id=" + id);
             }
             var element = id === "window" /* ViewID.window */ ? undefined : View.getElementById1(id);
             this.addEventListener(type, eventListener, element);
@@ -267,7 +267,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         View.prototype.removeEventListenerById = function (type, eventListener, id) {
             if (Utils_1.Utils.debug) {
-                Utils_1.Utils.console.debug("removeEventListener: type=" + type + ", eventHandler=" + eventListener + ", id=" + id);
+                Utils_1.Utils.console.debug("removeEventListener: type=" + type + ", id=" + id);
             }
             var element = id === "window" /* ViewID.window */ ? undefined : View.getElementById1(id);
             this.removeEventListener(type, eventListener, element);
@@ -325,10 +325,39 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             return target;
         };
-        View.requestFullscreenForId = function (id) {
-            var element = View.getElementById1(id), anyEl = element, requestMethod = element.requestFullscreen || anyEl.webkitRequestFullscreen || anyEl.mozRequestFullscreen || anyEl.msRequestFullscreen;
+        View.prototype.requestFullscreenForId = function (id) {
+            var element = View.getElementById1(id), anyEl = element, that = this, requestMethod = element.requestFullscreen || anyEl.webkitRequestFullscreen || anyEl.mozRequestFullscreen || anyEl.msRequestFullscreen, fullscreenchangedHandler = function (event) {
+                var target = View.getEventTarget(event);
+                if (document.fullscreenElement) {
+                    if (Utils_1.Utils.debug > 0) {
+                        Utils_1.Utils.console.debug("Entered fullscreen mode: " + document.fullscreenElement.id);
+                    }
+                }
+                else {
+                    if (Utils_1.Utils.debug > 0) {
+                        Utils_1.Utils.console.debug("Leaving fullscreen mode.");
+                    }
+                    //that.removeEventListenerById("fullscreenchange", fullscreenchangedHandler, id);
+                    that.removeEventListener("fullscreenchange", fullscreenchangedHandler, target);
+                    // for Safari we need to do some change to make sure the window size is set (can we do better?)
+                    that.setHidden(id, true);
+                    window.setTimeout(function () {
+                        that.setHidden(id, false);
+                    }, 0);
+                }
+            };
             if (requestMethod) {
-                requestMethod.call(element); // can we ALLOW_KEYBOARD_INPUT?
+                var promise = requestMethod.call(element); // can we ALLOW_KEYBOARD_INPUT?
+                if (promise) {
+                    promise.then(function () {
+                        if (Utils_1.Utils.debug > 0) {
+                            Utils_1.Utils.console.debug("requestFullscreenForId: " + id + ": success");
+                        }
+                        that.addEventListenerById("fullscreenchange", fullscreenchangedHandler, id);
+                    }).catch(function (err) {
+                        Utils_1.Utils.console.error("requestFullscreenForId: " + id + ": Error attempting to enable fullscreen mode: ", err);
+                    });
+                }
             }
             else if (typeof window.ActiveXObject !== "undefined") { // older IE
                 var wscript = new window.ActiveXObject("WScript.Shell");

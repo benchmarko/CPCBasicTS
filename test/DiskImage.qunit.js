@@ -1,6 +1,6 @@
 // DiskImage.qunit.ts - QUnit tests for CPCBasic DiskImage
 //
-define(["require", "exports", "../Utils", "../BasicTokenizer", "../DiskImage", "../ZipFile", "./TestHelper"], function (require, exports, Utils_1, BasicTokenizer_1, DiskImage_1, ZipFile_1, TestHelper_1) {
+define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "../CodeGeneratorToken", "../BasicTokenizer", "../DiskImage", "../ZipFile", "./TestHelper"], function (require, exports, Utils_1, BasicLexer_1, BasicParser_1, CodeGeneratorToken_1, BasicTokenizer_1, DiskImage_1, ZipFile_1, TestHelper_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     QUnit.dump.maxDepth = 10;
@@ -12,10 +12,10 @@ define(["require", "exports", "../Utils", "../BasicTokenizer", "../DiskImage", "
             "CPCBasic;B;0;245;;base64,UEsDBBQAAAAIAMiAj1IH4jtleQAAAAAUAAANAAAAZGF0YUVtcHR5LmRza/MNU9BVcA5wdvUNVXDJLM7WdcvMSeXlAjM989LyeblSgMxMIEsBDDQYGYQZhhEIKUpMhvkUJsbE6feUgeEgE4R3CEofhtJHoPRRKH0MSh+H0ieg9EkoPbjB01EwCkbBKBgFo2AUjIJRMApGwSgYBaNgFIyCUTCsAQBQSwECFAAUAAAACADIgI9SB+I7ZXkAAAAAFAAADQAAAAAAAAAAACAAAAAAAAAAZGF0YUVtcHR5LmRza1BLBQYAAAAAAQABADsAAACkAAAAAAA=": ""
         },
         data: {
-            "CPCBasic;B;0;609;;base64,UEsDBBQAAAAIAOyBdVI5vxGB6QEAAAAnAAALAAAAY3BjZGF0YS5kc2vzDVPQVXAOcHb1DVVwySzO1nXLzEnl5QIzPfPS8nm5UoDMTCBLAQw0GBmEGYYRCClKTIb5FCbGxOn3lIHhIBOEdwhKH4bSR6D0USh9DEofh9InoPRJKD3IATDunRyD4x0dg52BPEYMR0PlQ4AEkMfEjEM+ACrPgkPeycnTDyTPiib9dBSMglEwCkbBKBgFdAeGBgoBQZ5+IQpKoIo6sTgzWYmXS+r/f1Dd/P8/7WlC7hsFo2AU0A6gte8hoID4Th5Q3RlmQQYuhv1IJQhQXIrIQoQCrVShCYXPKBgFwxmg9d+BgJHU/H+SeZfO81eXxWXXn55jkeuxl+86iwsz91XngnvFVWealc5PPX+5n+nD/CnZ0ts/M6+YX86/50Wf8wLT6nNrPsufpEDriyB710mTOa5kXfb9cePAzHedATZrQrRNYvTfCIZevvllj5CP1ePpjAo6vzoivaL/zP5otMSmv6PVbF90sbmX7QfuGfwnk9QzCYXPcAfo41/A2AePfzFCx78YoeNfjNDxL0bo+BcjdPyLETr+xQgd/2KEjn8xDpHxL0LhMwqGN0AbnwQCULI9wMCBN9UgAFDdD2ZY60XKSUVF5T/DfxIKMQq0jpZ/o2AUjIJRMApGwSgYBaNgFIyCUTAKRgGRAABQSwECFAAUAAAACADsgXVSOb8RgekBAAAAJwAACwAAAAAAAAAAACAAAAAAAAAAY3BjZGF0YS5kc2tQSwUGAAAAAAEAAQA5AAAAEgIAAAAA": 'CPCBAS_A.ASC={"typeString":"A","start":0,"length":21} 10 PRINT "CPCBasic"\r\nCPCBAS_T.BAS={"user":0,"name":"CPCBAS_T","ext":"BAS","typeNumber":0,"start":368,"pseudoLen":19,"entry":0,"length":19,"typeString":"T"} 10 PRINT "CPCBasic"\nCPCBAS_P.BAS={"user":0,"name":"CPCBAS_P","ext":"BAS","typeNumber":1,"start":368,"pseudoLen":19,"entry":0,"length":19,"typeString":"P"} 10 PRINT "CPCBasic"\nCPCBAS_B.BIN={"user":0,"name":"CPCBAS_B","ext":"BIN","typeNumber":2,"start":49152,"pseudoLen":8,"entry":0,"length":8,"typeString":"B"} CPCBasic'
+            "CPCBasic;B;0;1455;0;base64,UEsDBBQACAAIAK68iFcAAAAAAAAAAAAnAAAMACAAdHN0ZnR5X2QuZHNrVVQNAAepmnNlqZpzZSCbc2V1eAsAAQT3AQAABBQAAADzDVPQVXAOcHb1DVVwySzO1nXLzEnl5QIzPfPS8nm5nAuSnRKLM5NDghWAgImRQZhhGIGQosRkmE9hYkycfk8ZGA4yQXiHoPRhKH0ESh+F0seg9HEofQJKn2SipbupBkKCQ9xCIuMdHYOdgTxmDEdD5Z2cPP2APCZmHPIBTo7BIP0sOORDoPKsaNJPR8EoGAWjYBSMglFAd2BooBDk6qtQUlySVlIJbAqGpBaXKIDagAohlQWpxVxGBgoBQZ5+IQpKwEYiuB2oxGVkquDs6OOjoObkZGjBZWKgEOwY5qqgBGtJ6AGbEko6jlymaBIhesA2gBKXGZpwAFhYJ4DL3EChRMUWYY+Vm3+QQqatoUKIv4KPq59GiYqmVYC/t6uCmrOBgYF2pq6hDtAmDV9PFxWgnE6mjqGmppWfa0QIlwWaFU56wNaLko6TDlinDtQwLksDBVc/Fy6pgY6DUTAKBgqgte9BTXwgPsDAQWT3AajOCqPNTwKA5fbRTDgKRgH9AVr/HQgYGRgKGBn+EJl/geruovfpSQFbdJ6/WinuPf/9Tr5S6Z++CxPNyw1nGjx2Cdbb+nmHc5bi5dlM/g6e17d82Zh0m/P1JedHfVELPJfoenvIX37ReqDQd2NMu13Ws7iKxu3rb715WL9M22SuPtu7GTpCV+a5PZgYZRNRX3HF9Pmztj+NH/miOQJCL6a+kr0x8dWke543Y0Q2Xp22+s/bBTmF9u9n3+97LDnddpubakHFnuq+/cHlZ5pN7qcK2K//+88jY8oT51tMYg5TPjTLNDsvUC60q+eRe+jSenhXbrrKzSydaG2NlxveW65/Evxb+38Nr/vef1m9ax8HzG0PVVPmUfxVnjJzx5/ou2dDXxeXtx6aHt114v2hDO4Z/IOhzEMf/wLGPnj8ixE6/sUIHf9ihI5/MULHvxih41+M0PEvRuj4FyN0/ItxiIx/DXT4j4KBBWjjkxBAWvn3gJLyT56Bi+Eozu4XgyCDCMN+pL4XULUkQ7OCjMRuBikGDYbT6L0uXgaGgwyiDEZIMpBuF1C5DZIgtNMFVH6BwYvBjYGZgeHLe4Q1jPMUgFIv3/MrvFH4z6cBktVk3Kcgw3DgC0j8K7/Of0aNNWBxkBkvdfg1NRk3MKgzBCDZAe11AeUP6QB16sAMYmBjiGKYAfT7YCj/RsEoGAWjYBSMglEwCkbBKBgFo2AUjAwAAFBLBwjPrZn8jAMAAAAnAABQSwMEFAAIAAgArryIVwAAAAAAAAAAFAEAABcAIABfX01BQ09TWC8uX3RzdGZ0eV9kLmRza1VUDQAHqZpzZamac2VDm3NldXgLAAEE9wEAAAQUAAAAY2AVY2dgYmDwTUxW8A9WiFCAApAYAycQGwHxIyAG8hlFGIgCjiEhQRAWWMcWIE5AU8IEFfdgYOBPzs/VSywoyEnVy01MzoHI/wFiCQYGUYRcYWliUWJeSWZeKgND45nvFxvupTrbTtoTUzFtesd7VgZ0EWLcWahvYGBhaG1mam5smZhoae2cUZSfm2rNAABQSwcI/gICQY8AAAAUAQAAUEsBAhQDFAAIAAgArryIV8+tmfyMAwAAACcAAAwAIAAAAAAAAAAAAKSBAAAAAHRzdGZ0eV9kLmRza1VUDQAHqZpzZamac2Ugm3NldXgLAAEE9wEAAAQUAAAAUEsBAhQDFAAIAAgArryIV/4CAkGPAAAAFAEAABcAIAAAAAAAAAAAAKSB5gMAAF9fTUFDT1NYLy5fdHN0ZnR5X2QuZHNrVVQNAAepmnNlqZpzZUObc2V1eAsAAQT3AQAABBQAAABQSwUGAAAAAAIAAgC/AAAA2gQAAAAA": 'TSTFTY_A.ASC -- {"typeString":"A","start":0,"length":259} -- 10 REM tstfty - Test File Types\n20 PRINT "CPCBasic"\n25 CALL &BB18\n40 SAVE "TSTFTY_A.ASC",A\n50 SAVE "TSTFTY_T.BAS"\n60 SAVE "TSTFTY_P.BAS",P\n70 t$="CPCBasic":FOR i=1 TO LEN(t$):POKE &C000+i-1,ASC(MID$(t$,i,1)):NEXT\n80 SAVE "TSTFTY_B.BIN",B,&C000,LEN(t$)\n90 END\n --- TSTFTY_B.BIN -- {"user":0,"name":"TSTFTY_B","ext":"BIN","typeNumber":2,"start":49152,"pseudoLen":8,"entry":0,"length":8,"typeString":"B"} -- CPCBasic --- TSTFTY_P.BAS -- {"user":0,"name":"TSTFTY_P","ext":"BAS","typeNumber":1,"start":368,"pseudoLen":252,"entry":0,"length":252,"typeString":"P"} -- 10 REM tstfty - Test File Types\n20 PRINT "CPCBasic"\n25 CALL &BB18\n40 SAVE "TSTFTY_A.ASC",A\n50 SAVE "TSTFTY_T.BAS"\n60 SAVE "TSTFTY_P.BAS",P\n70 t$="CPCBasic":FOR i=1 TO LEN(t$):POKE &C000+i-1,ASC(MID$(t$,i,1)):NEXT\n80 SAVE "TSTFTY_B.BIN",B,&C000,LEN(t$)\n90 END\n --- TSTFTY_T.BAS -- {"user":0,"name":"TSTFTY_T","ext":"BAS","typeNumber":0,"start":368,"pseudoLen":252,"entry":0,"length":252,"typeString":"T"} -- 10 REM tstfty - Test File Types\n20 PRINT "CPCBasic"\n25 CALL &BB18\n40 SAVE "TSTFTY_A.ASC",A\n50 SAVE "TSTFTY_T.BAS"\n60 SAVE "TSTFTY_P.BAS",P\n70 t$="CPCBasic":FOR i=1 TO LEN(t$):POKE &C000+i-1,ASC(MID$(t$,i,1)):NEXT\n80 SAVE "TSTFTY_B.BIN",B,&C000,LEN(t$)\n90 END\n'
         },
         system: {
-            "CPCBasic;B;0;429;;base64,UEsDBBQAAAAIANWJdVLsLMeMNwEAAAA6AAAKAAAAY3Bjc3lzLmRza+3bQUvCYBzH8ed5PDXYIbp5Gp66CPUS5tTaQZGcXUOsYBQV+QJ7A70NX8d6pj8h1mFCCWt8Pwf/zzaFucMmX3ByG/WjZJaMJotomK+f+uP8+SEMtsv05fE1DO79MveraOvcmjPTItn7crX/pvt97mS6MSZ2u62BZqI51BxpjjWvNK81U81m2wAAAAAAAKDVqv3Lml3/supfVv3Lqn9Z9S+r/mXVv6z6l1X/svQvAAAAAAAANEC1f5XRquxfTv3LqX859S+n/uXUv5z6l1P/cupf7p/0L5PMkkE8v4vjeeK37I+T1vHMv/gt16kcrru+AACgeS4votlNOs2iXvmgX67zVS8MukVRPtuL4viz7vwAHE/l9/3O2+F/8vHv++ycmsB8fLuD+P3dA28iv/jon8y66wMAbfUFUEsBAhQAFAAAAAgA1Yl1Uuwsx4w3AQAAADoAAAoAAAAAAAAAAAAgAAAAAAAAAGNwY3N5cy5kc2tQSwUGAAAAAAEAAQA4AAAAXwEAAAAA": 'CPCBAS_A.ASC={"typeString":"A","start":0,"length":21} 10 PRINT "CPCBasic"\r\nCPCBAS_T.BAS={"user":0,"name":"CPCBAS_T","ext":"BAS","typeNumber":0,"start":368,"pseudoLen":19,"entry":0,"length":19,"typeString":"T"} 10 PRINT "CPCBasic"\n'
+            "CPCBasic;B;0;1455;0;base64,UEsDBBQACAAIAK68iFcAAAAAAAAAAAAnAAAMACAAdHN0ZnR5X2QuZHNrVVQNAAepmnNlqZpzZSCbc2V1eAsAAQT3AQAABBQAAADzDVPQVXAOcHb1DVVwySzO1nXLzEnl5QIzPfPS8nm5nAuSnRKLM5NDghWAgImRQZhhGIGQosRkmE9hYkycfk8ZGA4yQXiHoPRhKH0ESh+F0seg9HEofQJKn2SipbupBkKCQ9xCIuMdHYOdgTxmDEdD5Z2cPP2APCZmHPIBTo7BIP0sOORDoPKsaNJPR8EoGAWjYBSMglFAd2BooBDk6qtQUlySVlIJbAqGpBaXKIDagAohlQWpxVxGBgoBQZ5+IQpKwEYiuB2oxGVkquDs6OOjoObkZGjBZWKgEOwY5qqgBGtJ6AGbEko6jlymaBIhesA2gBKXGZpwAFhYJ4DL3EChRMUWYY+Vm3+QQqatoUKIv4KPq59GiYqmVYC/t6uCmrOBgYF2pq6hDtAmDV9PFxWgnE6mjqGmppWfa0QIlwWaFU56wNaLko6TDlinDtQwLksDBVc/Fy6pgY6DUTAKBgqgte9BTXwgPsDAQWT3AajOCqPNTwKA5fbRTDgKRgH9AVr/HQgYGRgKGBn+EJl/geruovfpSQFbdJ6/WinuPf/9Tr5S6Z++CxPNyw1nGjx2Cdbb+nmHc5bi5dlM/g6e17d82Zh0m/P1JedHfVELPJfoenvIX37ReqDQd2NMu13Ws7iKxu3rb715WL9M22SuPtu7GTpCV+a5PZgYZRNRX3HF9Pmztj+NH/miOQJCL6a+kr0x8dWke543Y0Q2Xp22+s/bBTmF9u9n3+97LDnddpubakHFnuq+/cHlZ5pN7qcK2K//+88jY8oT51tMYg5TPjTLNDsvUC60q+eRe+jSenhXbrrKzSydaG2NlxveW65/Evxb+38Nr/vef1m9ax8HzG0PVVPmUfxVnjJzx5/ou2dDXxeXtx6aHt114v2hDO4Z/IOhzEMf/wLGPnj8ixE6/sUIHf9ihI5/MULHvxih41+M0PEvRuj4FyN0/ItxiIx/DXT4j4KBBWjjkxBAWvn3gJLyT56Bi+Eozu4XgyCDCMN+pL4XULUkQ7OCjMRuBikGDYbT6L0uXgaGgwyiDEZIMpBuF1C5DZIgtNMFVH6BwYvBjYGZgeHLe4Q1jPMUgFIv3/MrvFH4z6cBktVk3Kcgw3DgC0j8K7/Of0aNNWBxkBkvdfg1NRk3MKgzBCDZAe11AeUP6QB16sAMYmBjiGKYAfT7YCj/RsEoGAWjYBSMglEwCkbBKBgFo2AUjAwAAFBLBwjPrZn8jAMAAAAnAABQSwMEFAAIAAgArryIVwAAAAAAAAAAFAEAABcAIABfX01BQ09TWC8uX3RzdGZ0eV9kLmRza1VUDQAHqZpzZamac2VDm3NldXgLAAEE9wEAAAQUAAAAY2AVY2dgYmDwTUxW8A9WiFCAApAYAycQGwHxIyAG8hlFGIgCjiEhQRAWWMcWIE5AU8IEFfdgYOBPzs/VSywoyEnVy01MzoHI/wFiCQYGUYRcYWliUWJeSWZeKgND45nvFxvupTrbTtoTUzFtesd7VgZ0EWLcWahvYGBhaG1mam5smZhoae2cUZSfm2rNAABQSwcI/gICQY8AAAAUAQAAUEsBAhQDFAAIAAgArryIV8+tmfyMAwAAACcAAAwAIAAAAAAAAAAAAKSBAAAAAHRzdGZ0eV9kLmRza1VUDQAHqZpzZamac2Ugm3NldXgLAAEE9wEAAAQUAAAAUEsBAhQDFAAIAAgArryIV/4CAkGPAAAAFAEAABcAIAAAAAAAAAAAAKSB5gMAAF9fTUFDT1NYLy5fdHN0ZnR5X2QuZHNrVVQNAAepmnNlqZpzZUObc2V1eAsAAQT3AQAABBQAAABQSwUGAAAAAAIAAgC/AAAA2gQAAAAA": 'TSTFTY_A.ASC -- {"typeString":"A","start":0,"length":259} -- 10 REM tstfty - Test File Types\n20 PRINT "CPCBasic"\n25 CALL &BB18\n40 SAVE "TSTFTY_A.ASC",A\n50 SAVE "TSTFTY_T.BAS"\n60 SAVE "TSTFTY_P.BAS",P\n70 t$="CPCBasic":FOR i=1 TO LEN(t$):POKE &C000+i-1,ASC(MID$(t$,i,1)):NEXT\n80 SAVE "TSTFTY_B.BIN",B,&C000,LEN(t$)\n90 END\n --- TSTFTY_B.BIN -- {"user":0,"name":"TSTFTY_B","ext":"BIN","typeNumber":2,"start":49152,"pseudoLen":8,"entry":0,"length":8,"typeString":"B"} -- CPCBasic --- TSTFTY_P.BAS -- {"user":0,"name":"TSTFTY_P","ext":"BAS","typeNumber":1,"start":368,"pseudoLen":252,"entry":0,"length":252,"typeString":"P"} -- 10 REM tstfty - Test File Types\n20 PRINT "CPCBasic"\n25 CALL &BB18\n40 SAVE "TSTFTY_A.ASC",A\n50 SAVE "TSTFTY_T.BAS"\n60 SAVE "TSTFTY_P.BAS",P\n70 t$="CPCBasic":FOR i=1 TO LEN(t$):POKE &C000+i-1,ASC(MID$(t$,i,1)):NEXT\n80 SAVE "TSTFTY_B.BIN",B,&C000,LEN(t$)\n90 END\n --- TSTFTY_T.BAS -- {"user":0,"name":"TSTFTY_T","ext":"BAS","typeNumber":0,"start":368,"pseudoLen":252,"entry":0,"length":252,"typeString":"T"} -- 10 REM tstfty - Test File Types\n20 PRINT "CPCBasic"\n25 CALL &BB18\n40 SAVE "TSTFTY_A.ASC",A\n50 SAVE "TSTFTY_T.BAS"\n60 SAVE "TSTFTY_P.BAS",P\n70 t$="CPCBasic":FOR i=1 TO LEN(t$):POKE &C000+i-1,ASC(MID$(t$,i,1)):NEXT\n80 SAVE "TSTFTY_B.BIN",B,&C000,LEN(t$)\n90 END\n'
         },
         noDskIdent: {
             "CPCBasic;B;0;247;;base64,UEsDBBQAAAAIAEKCj1KUjyNHeQAAAAAUAAAOAAAAbm9Ec2tJZGVudC5kc2uLiFDQVXAOcHb1DVVwySzO1nXLzEnl5QIzPfPS8nm5UoDMTCBLAQw0GBmEGYYRCClKTIb5FCbGxOn3lIHhIBOEdwhKH4bSR6D0USh9DEofh9InoPRJKD24wdNRMApGwSgYBaNgFIyCUTAKRsEoGAWjYBSMglEwrAEAUEsBAhQAFAAAAAgAQoKPUpSPI0d5AAAAABQAAA4AAAAAAAAAAAAgAAAAAAAAAG5vRHNrSWRlbnQuZHNrUEsFBgAAAAABAAEAPAAAAKUAAAAAAA==": "DiskImage: name: Ident not found at pos 0: XX - CPC"
@@ -27,55 +27,72 @@ define(["require", "exports", "../Utils", "../BasicTokenizer", "../DiskImage", "
             "CPCBasic;B;0;249;;base64,UEsDBBQAAAAIAJODj1JUALEMeQAAAAAUAAAPAAAAbm9UcmFja0luZm8uZHNr8w1T0FVwDnB29Q1VcMksztZ1y8xJ5eUCMz3z0vJ5uVKAzEwgSwEMNBgZhBmGEYiISEyG+RQmxsTp95SB4SAThHcISh+G0keg9FEofQxKH4fSJ6D0SSg9uMHTUTAKRsEoGAWjYBSMglEwCkbBKBgFo2AUjIJRMKwBAFBLAQIUABQAAAAIAJODj1JUALEMeQAAAAAUAAAPAAAAAAAAAAAAIAAAAAAAAABub1RyYWNrSW5mby5kc2tQSwUGAAAAAAEAAQA9AAAApgAAAAAA": ""
         }
     };
-    QUnit.module("DiskImage: Tests", function (hooks) {
-        function createMinimalAmsdosHeader(type, start, length) {
-            return {
-                typeString: type,
-                start: start,
-                length: length
-            };
-        }
-        function fnExtractDiskImage(disk) {
-            var result = [], dir = disk.readDirectory(), entries = Object.keys(dir);
-            for (var i = 0; i < entries.length; i += 1) {
-                var name_1 = entries[i];
-                var data = disk.readFile(dir[name_1]);
-                if (data) {
-                    var headerEntry = DiskImage_1.DiskImage.parseAmsdosHeader(data);
-                    if (headerEntry) {
-                        data = data.substr(0x80); // remove header
-                        if (headerEntry.typeString === "P") { // protected BASIC?
-                            data = DiskImage_1.DiskImage.unOrProtectData(data);
-                            data = new BasicTokenizer_1.BasicTokenizer().decode(data);
-                        }
-                        else if (headerEntry.typeString === "T") { // tokenized BASIC?
-                            data = new BasicTokenizer_1.BasicTokenizer().decode(data);
-                        }
+    function createMinimalAmsdosHeader(type, start, length) {
+        return {
+            typeString: type,
+            start: start,
+            length: length
+        };
+    }
+    function readFilesFromDiskImage(disk) {
+        var result = [], dir = disk.readDirectory(), entries = Object.keys(dir);
+        for (var i = 0; i < entries.length; i += 1) {
+            var name_1 = entries[i];
+            var data = disk.readFile(dir[name_1]);
+            if (data) {
+                var headerEntry = DiskImage_1.DiskImage.parseAmsdosHeader(data);
+                if (headerEntry) {
+                    data = data.substring(0x80); // remove header
+                    if (headerEntry.typeString === "P") { // protected BASIC?
+                        data = DiskImage_1.DiskImage.unOrProtectData(data);
+                        data = new BasicTokenizer_1.BasicTokenizer().decode(data);
                     }
-                    else {
-                        headerEntry = createMinimalAmsdosHeader("A", 0, data.length);
+                    else if (headerEntry.typeString === "T") { // tokenized BASIC?
+                        data = new BasicTokenizer_1.BasicTokenizer().decode(data);
                     }
-                    var headerString = JSON.stringify(headerEntry);
-                    result.push(name_1 + "=" + headerString + " " + data);
                 }
+                else {
+                    headerEntry = createMinimalAmsdosHeader("A", 0, data.length);
+                }
+                var headerString = JSON.stringify(headerEntry);
+                result.push(name_1 + " -- " + headerString + " -- " + data);
             }
-            return result.join("");
         }
+        return result.join(" --- ");
+    }
+    function extractFirstFileFromZip(key) {
+        var parts = Utils_1.Utils.split2(key, ","), 
+        //meta = parts[0],
+        compressed = Utils_1.Utils.atob(parts[1]), // decode base64
+        zip = new ZipFile_1.ZipFile({
+            data: Utils_1.Utils.string2Uint8Array(compressed),
+            zipName: "name"
+        }), firstFileInZip = Object.keys(zip.getZipDirectory())[0], uncompressed = zip.readData(firstFileInZip);
+        return uncompressed;
+    }
+    QUnit.module("DiskImage: Read files tests", function (hooks) {
         function runTestsFor(category, tests, assert, results) {
             for (var key in tests) {
                 if (tests.hasOwnProperty(key)) {
-                    var parts = Utils_1.Utils.split2(key, ","), meta = parts[0], compressed = Utils_1.Utils.atob(parts[1]), // decode base64
-                    zip = new ZipFile_1.ZipFile({
-                        data: Utils_1.Utils.string2Uint8Array(compressed),
-                        zipName: "name"
-                    }), firstFileInZip = Object.keys(zip.getZipDirectory())[0], uncompressed = zip.readData(firstFileInZip), disk = new DiskImage_1.DiskImage({
+                    /*
+                    const parts = Utils.split2(key, ","),
+                        //meta = parts[0],
+                        compressed = Utils.atob(parts[1]), // decode base64
+                        zip = new ZipFile({
+                            data: Utils.string2Uint8Array(compressed),
+                            zipName: "name"
+                        }),
+                        firstFileInZip = Object.keys(zip.getZipDirectory())[0],
+                        uncompressed = zip.readData(firstFileInZip),
+                    */
+                    var uncompressed = extractFirstFileFromZip(key), disk = new DiskImage_1.DiskImage({
                         data: uncompressed,
                         diskName: "name",
                         quiet: true
                     }), expected = tests[key];
                     var result = void 0;
                     try {
-                        result = fnExtractDiskImage(disk);
+                        result = readFilesFromDiskImage(disk);
                     }
                     catch (e) {
                         result = String(e);
@@ -87,7 +104,210 @@ define(["require", "exports", "../Utils", "../BasicTokenizer", "../DiskImage", "
                         results[category].push(TestHelper_1.TestHelper.stringInQuotes(key) + ": " + TestHelper_1.TestHelper.stringInQuotes(result));
                     }
                     if (assert) {
-                        assert.strictEqual(result, expected, meta);
+                        var message = "uncompressed DSK: " + uncompressed.length;
+                        assert.strictEqual(result, expected, message);
+                    }
+                }
+            }
+        }
+        TestHelper_1.TestHelper.generateAllTests(allTests, runTestsFor, hooks);
+    });
+    function createCodeGeneratorToken() {
+        var basicParser = new BasicParser_1.BasicParser({
+            quiet: true,
+            keepTokens: true,
+            keepBrackets: true,
+            keepColons: true,
+            keepDataComma: true
+        }), basicLexer = new BasicLexer_1.BasicLexer({
+            keywords: basicParser.getKeywords(),
+            keepWhiteSpace: true,
+            quiet: true
+        });
+        return new CodeGeneratorToken_1.CodeGeneratorToken({
+            quiet: true,
+            lexer: basicLexer,
+            parser: basicParser
+        });
+    }
+    /*
+    function isTrackEmpty(data: string, index: number, tsize: number) {
+        const filler = 0xe5,
+            endIndex = (index + tsize) <= data.length ? index + tsize : data.length - index;
+        let isEmpty = true;
+    
+        for (let i = index; i < endIndex; i += 1) {
+            if (data.charCodeAt(i) !== filler) {
+                isEmpty = false;
+                break;
+            }
+        }
+        return isEmpty;
+    }
+    
+    function stripEmptyTracks(data: string) {
+        const diskinfoSize = 0x100,
+            trackInfoSize = 0x100,
+            tsize = trackInfoSize + 9 * 0x200;
+        let index = diskinfoSize + trackInfoSize;
+    
+        while (!isTrackEmpty(data, index, tsize - trackInfoSize) && index < data.length) {
+            index += tsize;
+        }
+        data = data.substring(0, index - trackInfoSize);
+    
+        return data;
+    }
+    */
+    // check also: https://stackoverflow.com/questions/40031688/javascript-arraybuffer-to-hex
+    // https://gist.github.com/taniarascia/7ff2e83577d83b85a421ab36ab2ced84
+    // https://gist.github.com/igorgatis/d294fe714a4f523ac3a3
+    function fnBin2Hex(bin) {
+        //return bin.split("").map(function (s) {
+        //	return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0");
+        //}).join(",");
+        var hexList = [], asciiList = [], lineList = [];
+        for (var i = 0; i < bin.length; i += 1) {
+            var charCode = bin.charCodeAt(i);
+            hexList.push(charCode.toString(16).toUpperCase().padStart(2, "0"));
+            asciiList.push(charCode >= 0x20 ? bin.charAt(i) : ".");
+            if (i % 16 === 15) {
+                var addr = (i - 15).toString(16).toUpperCase().padStart(4, "0");
+                lineList.push(addr + "  " + hexList.join(" ") + "  " + asciiList.join(""));
+                hexList.length = 0;
+                asciiList.length = 0;
+            }
+        }
+        if (hexList.length) {
+            lineList.push(hexList.join(" ") + "  " + asciiList.join(""));
+        }
+        return lineList.join("\n");
+    }
+    /*
+    function replaceAndFillRemaining(str: string, search: string) {
+        const recordSize = 0x80,
+            index1 = str.indexOf(search);
+    
+        if (index1 < 0) {
+            Utils.console.error("replaceAndFillRemaining: Not found: ", search);
+            return str;
+        }
+        const recordPart = str.substring(index1, index1 + search.length),
+            record = recordPart + "\xE5".repeat(recordSize - search.length);
+    
+        str = str.substring(0, index1) + record + str.substring(index1 + recordSize);
+        return str;
+    }
+    
+    function prepareExpected(str: string) {
+        const search1 = "10 PRINT \"CPCBasic\"\r\n\x1a";
+            //search2 = "\x11\x00\x0A\x00\xBF\x20\"CPCBasic\"\x00\x00\x1a";
+    
+        str = replaceAndFillRemaining(str, search1);
+        //str = replaceAndFillRemaining(str, search2);
+    
+        return str;
+    }
+    */
+    /*
+    function prepareExpected(str: string) {
+        const recordSize = 0x80,
+            index1 = str.indexOf("10 PRINT \"CPCBasic\""),
+            index2 = str.indexOf("\x1a", index1),
+            partSize = index2 + 1 - index1,
+            recordPart = str.substring(index1, index2 + 1),
+            record = recordPart + "\xE5".repeat(recordSize - partSize);
+    
+        str = str.substring(0, index1) + record + str.substring(index1 + recordSize);
+    
+        return str;
+    }
+    */
+    QUnit.module("DiskImage: Write files tests", function (hooks) {
+        function runTestsFor(category, tests, assert, results) {
+            for (var key in tests) {
+                if (tests.hasOwnProperty(key)) {
+                    if (category === "data") {
+                        var input = tests[key], fileInfos = input.split(" --- "), diskImage = new DiskImage_1.DiskImage({
+                            //diskName: "test",
+                            quiet: true,
+                            data: ""
+                            //creator: "diskinfo" // we set another creator
+                        });
+                        diskImage.setOptions({
+                            diskName: "test",
+                            data: diskImage.formatImage("data")
+                        });
+                        var codeGeneratorToken = createCodeGeneratorToken();
+                        for (var i = 0; i < fileInfos.length; i += 1) {
+                            var fileInfo = fileInfos[i], 
+                            // eslint-disable-next-line array-element-newline
+                            _a = fileInfo.split(" -- "), name_2 = _a[0], metaJson = _a[1], data1 = _a[2], 
+                            //closeBracketIndex = metaJsonAndData.indexOf("}"),
+                            //metaJson = metaJsonAndData.substring(0, closeBracketIndex + 1),
+                            headerEntry = JSON.parse(metaJson);
+                            var data = data1; //metaJsonAndData.substring(closeBracketIndex + 1);
+                            // eslint-disable-next-line max-depth
+                            if (headerEntry.typeString === "P") { // protected BASIC?
+                                var output = codeGeneratorToken.generate(data);
+                                data = output.error ? String(output.error) : output.text;
+                                data = DiskImage_1.DiskImage.unOrProtectData(data);
+                            }
+                            else if (headerEntry.typeString === "T") { // tokenized BASIC?
+                                //data = new BasicTokenizer().decode(data);
+                                var output2 = codeGeneratorToken.generate(data);
+                                data = output2.error ? String(output2.error) : output2.text;
+                            }
+                            else if (headerEntry.typeString === "B") { // Binary
+                                // take it as it is
+                            }
+                            else if (headerEntry.typeString === "A") { // ASCII
+                                // take it as it is
+                            }
+                            else {
+                                Utils_1.Utils.console.error("runTestsFor: Unknon file type:", headerEntry.typeString);
+                            }
+                            if (headerEntry.typeString !== "A") {
+                                if (data.length !== headerEntry.length) {
+                                    Utils_1.Utils.console.warn("runTestsFor: " + name_2 + ": Need to adapt length:", data.length);
+                                    headerEntry.length = data.length;
+                                    headerEntry.pseudoLen = data.length;
+                                }
+                                var header = DiskImage_1.DiskImage.createAmsdosHeader(headerEntry), headerString = DiskImage_1.DiskImage.combineAmsdosHeader(header);
+                                // header.length should be data.length
+                                data = headerString + data;
+                            }
+                            diskImage.writeFile(name_2, data); //TTT
+                        }
+                        var //diskOptions = diskImage.getOptions(),
+                        //imageData = diskOptions.data, // we need the modified disk image with the file(s) inside
+                        result = diskImage.stripEmptyTracks(), //stripEmptyTracks(imageData),
+                        uncompressed = extractFirstFileFromZip(key), expected = uncompressed;
+                        if (results) {
+                            results[category].push(TestHelper_1.TestHelper.stringInQuotes(key) + ": " + TestHelper_1.TestHelper.stringInQuotes(result));
+                        }
+                        if (assert) {
+                            var message = category + " DSK";
+                            if (Utils_1.Utils.debug > 5) {
+                                Utils_1.Utils.console.debug(message + ": result: ", fnBin2Hex(result));
+                                Utils_1.Utils.console.debug(message + ": expected: ", fnBin2Hex(expected));
+                            }
+                            // compare disk images
+                            assert.strictEqual(fnBin2Hex(result), fnBin2Hex(expected), message);
+                            // read back files anf compare
+                            var expected2 = input;
+                            var result2 = "";
+                            try {
+                                result2 = readFilesFromDiskImage(diskImage);
+                            }
+                            catch (e) {
+                                result2 = String(e);
+                            }
+                            assert.strictEqual(result2, expected2, message);
+                        }
+                    }
+                    else if (assert) {
+                        assert.expect(0); //TTT
                     }
                 }
             }

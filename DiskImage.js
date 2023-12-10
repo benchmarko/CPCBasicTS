@@ -124,6 +124,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             diskInfo.trackSizes = trackSizes;
             diskInfo.trackInfoPosList = trackInfoPosList;
             diskInfo.trackInfo.ident = ""; // make sure it is invalid
+            if (Utils_1.Utils.debug > 1) {
+                Utils_1.Utils.console.debug("readDiskInfo: extended=" + diskInfo.extended + ", tracks=" + diskInfo.tracks + ", heads=" + diskInfo.heads + ", trackSize=" + diskInfo.trackSize);
+            }
         };
         DiskImage.createDiskInfoAsString = function (diskInfo) {
             // only standard format
@@ -159,7 +162,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             pos += 24; // start sector info
             var sectorPos = trackDataPos;
             for (var i = 0; i < trackInfo.spt; i += 1) {
-                var sectorInfo = sectorInfoList[i] || {}; // resue SectorInfo object if possible
+                var sectorInfo = sectorInfoList[i] || {}; // reuse SectorInfo object if possible
                 sectorInfoList[i] = sectorInfo;
                 sectorInfo.dataPos = sectorPos;
                 sectorInfo.track = this.readUInt8(pos);
@@ -194,7 +197,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     + DiskImage.uInt8ToString(sectorInfo.bps)
                     + DiskImage.uInt8ToString(sectorInfo.state1)
                     + DiskImage.uInt8ToString(sectorInfo.state2)
-                    + DiskImage.uInt16ToString(sectorInfo.sectorSize);
+                    + DiskImage.uInt16ToString(0); // DiskImage.uInt16ToString(sectorInfo.sectorSize); //DiskImage.uInt16ToString(0); // sectorInfo.sectorSize only needed for extended format
                 trackInfoString += sectorinfoString;
             }
             // fill up
@@ -286,6 +289,9 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             if (diskInfo.heads > 1) { // maybe 2
                 format += String(diskInfo.heads); // e.g. "data": "data2"
             }
+            if (Utils_1.Utils.debug > 1) {
+                Utils_1.Utils.console.debug("determineFormat: format=", format);
+            }
             return format;
         };
         DiskImage.prototype.createImage = function (format) {
@@ -313,7 +319,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 sectorNum2Index: {}
             }, diskInfo = {
                 ident: "MV - CPCEMU Disk-File\r\nDisk-Info\r\n",
-                creator: "CpcBasicTS    ",
+                creator: (this.options.creator || "CpcBasicTS").padEnd(14, " "),
                 tracks: formatDescriptor.tracks,
                 heads: formatDescriptor.heads,
                 trackSize: DiskImage.trackInfoSize + formatDescriptor.spt * sectorSize,
@@ -688,7 +694,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 if (thisSize < bls) {
                     dataChunk += DiskImage.uInt8ToString(0x1a); // add EOF (0x1a)
                     var remain = bls - thisSize - 1;
-                    dataChunk += DiskImage.uInt8ToString(0).repeat(remain); // fill up last block with 0
+                    dataChunk += DiskImage.uInt8ToString(formatDescriptor.fill).repeat(remain); // fill up last block with fill byte
                 }
                 var block = freeBlocks[(extentCnt - 1) * 16 + blockCnt];
                 this.writeBlock(diskInfo, formatDescriptor, block, dataChunk);
@@ -698,6 +704,43 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             }
             this.writeAllDirectoryExtents(diskInfo, formatDescriptor, extents);
             return true;
+        };
+        DiskImage.isSectorEmpty = function (data, index, size, fill) {
+            var endIndex = (index + size) <= data.length ? index + size : data.length - index;
+            var isEmpty = true;
+            for (var i = index; i < endIndex; i += 1) {
+                if (data.charCodeAt(i) !== fill) {
+                    isEmpty = false;
+                    break;
+                }
+            }
+            return isEmpty;
+        };
+        DiskImage.prototype.stripEmptyTracks = function () {
+            var diskInfo = this.diskInfo, format = this.determineFormat(diskInfo), formatDescriptor = this.composeFormatDescriptor(format), tracks = diskInfo.tracks, firstDataTrack = formatDescriptor.off, head = 0;
+            var data = this.options.data;
+            this.formatDescriptor = formatDescriptor;
+            for (var track = firstDataTrack; track < tracks; track += 1) {
+                this.seekTrack(diskInfo, track, head);
+                var trackInfo = diskInfo.trackInfo, fill = diskInfo.trackInfo.fill, sectorInfoList = trackInfo.sectorInfoList;
+                var isEmpty = true;
+                for (var i = 0; i < trackInfo.spt; i += 1) {
+                    var sectorInfo = sectorInfoList[i];
+                    if (!DiskImage.isSectorEmpty(data, sectorInfo.dataPos, sectorInfo.sectorSize, fill)) {
+                        isEmpty = false;
+                        break;
+                    }
+                }
+                if (isEmpty) {
+                    diskInfo.tracks = track; // set new number of tracks
+                    var trackDataPos = sectorInfoList[0].dataPos;
+                    data = DiskImage.createDiskInfoAsString(diskInfo) + data.substring(DiskImage.diskInfoSize, trackDataPos - DiskImage.trackInfoSize); // set new track count and remove empty track and rest
+                    //data = data.substring(0, trackDataPos - DiskImage.trackInfoSize); // remove empty track and rest
+                    this.options.data = data;
+                    break;
+                }
+            }
+            return data;
         };
         /* eslint-enable array-element-newline */
         DiskImage.unOrProtectData = function (data) {
@@ -737,6 +780,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var header;
             // http://www.benchmarko.de/cpcemu/cpcdoc/chapter/cpcdoc7_e.html#I_AMSDOS_HD
             // http://www.cpcwiki.eu/index.php/AMSDOS_Header
+            // https://www.cpcwiki.eu/imgs/b/bc/S968se09.pdf (Firmware Guide Section 9)
             if (DiskImage.hasAmsdosHeader(data)) {
                 header = {
                     user: data.charCodeAt(0),
@@ -782,10 +826,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 + DiskImage.uInt8ToString(type)
                 + DiskImage.uInt16ToString(0) // data location (unused)
                 + DiskImage.uInt16ToString(header.start || 0)
-                + DiskImage.uInt8ToString(0xff) // first block (unused, always 0xff)
+                + DiskImage.uInt8ToString(0x00) // first block (unused; always 0x00 or 0xff?)
                 + DiskImage.uInt16ToString(length) // logical length
                 + DiskImage.uInt16ToString(header.entry || 0)
-                + " ".repeat(36)
+                + "\x00".repeat(36)
                 + DiskImage.uInt24ToString(header.length), checksum = DiskImage.computeChecksum(data1), data = data1
                 + DiskImage.uInt16ToString(checksum)
                 + "\x00".repeat(59);
@@ -812,8 +856,12 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 al1: 0x00,
                 off: 0 // number of reserved tracks (also the track where the directory starts)
             },
+            data42t: {
+                parentRef: "data",
+                tracks: 42
+            },
             // double sided data
-            data2: {
+            data2h: {
                 parentRef: "data",
                 heads: 2
             },
@@ -823,7 +871,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 off: 2
             },
             // double sided system
-            system2: {
+            system2h: {
                 parentRef: "system",
                 heads: 2
             },
@@ -851,7 +899,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 off: 1,
                 firstSector: 0x01
             },
-            big780k2: {
+            big780k2h: {
                 parentRef: "big780k",
                 heads: 2
             }
@@ -862,6 +910,35 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         DiskImage.diskInfoSize = 0x100;
         DiskImage.trackInfoSize = 0x100;
+        /*
+        private static isTrackEmpty(data: string, index: number, tsize: number) {
+            const filler = 0xe5,
+                endIndex = (index + tsize) <= data.length ? index + tsize : data.length - index;
+            let isEmpty = true;
+    
+            for (let i = index; i < endIndex; i += 1) {
+                if (data.charCodeAt(i) !== filler) {
+                    isEmpty = false;
+                    break;
+                }
+            }
+            return isEmpty;
+        }
+    
+        static stripEmptyTracks(data: string): string {
+            const diskinfoSize = 0x100,
+                trackInfoSize = 0x100,
+                tsize = trackInfoSize + 9 * 0x200;
+            let index = diskinfoSize + trackInfoSize;
+    
+            while (!DiskImage.isTrackEmpty(data, index, tsize - trackInfoSize) && index < data.length) {
+                index += tsize;
+            }
+            data = data.substring(0, index - trackInfoSize);
+    
+            return data;
+        }
+        */
         // ...
         // see AMSDOS ROM, &D252
         /* eslint-disable array-element-newline */

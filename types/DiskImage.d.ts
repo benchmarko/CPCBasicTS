@@ -1,6 +1,7 @@
 export interface DiskImageOptions {
     diskName?: string;
     data: string;
+    creator?: string;
     quiet?: boolean;
 }
 interface ExtentEntry {
@@ -80,6 +81,8 @@ export declare class DiskImage {
     private static getFreeBlocks;
     static getFilenameAndExtension(filename: string): string[];
     writeFile(filename: string, data: string): boolean;
+    private static isSectorEmpty;
+    stripEmptyTracks(): string;
     private static readonly protectTable;
     static unOrProtectData(data: string): string;
     private static computeChecksum;

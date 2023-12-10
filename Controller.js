@@ -380,6 +380,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         };
         Controller.prototype.setExportSelectOptions = function (select) {
             var dirList = Controller.fnGetStorageDirectoryEntries(), items = [], editorText = Controller.exportEditorText;
+            dirList.sort(); // we sort keys without editorText
             dirList.unshift(editorText);
             for (var i = 0; i < dirList.length; i += 1) {
                 var key = dirList[i], title = key, item = {
@@ -390,7 +391,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 };
                 items.push(item);
             }
-            items.sort(Controller.fnSortByStringProperties);
+            // sort already done
+            //items.sort(Controller.fnSortByStringProperties);
             this.view.setSelectOptions(select, items);
         };
         Controller.prototype.updateStorageDatabase = function (action, key) {
@@ -1588,8 +1590,9 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             return name;
         };
+        // eslint-disable-next-line complexity
         Controller.prototype.fnDownload = function () {
-            var options = this.view.getSelectOptions("exportFileSelect" /* ViewID.exportFileSelect */), exportTokenized = this.view.getInputChecked("exportTokenizedInput" /* ViewID.exportTokenizedInput */), exportDSK = this.view.getInputChecked("exportDSKInput" /* ViewID.exportDSKInput */), exportBase64 = this.view.getInputChecked("exportBase64Input" /* ViewID.exportBase64Input */), editorText = Controller.exportEditorText, meta = {
+            var options = this.view.getSelectOptions("exportFileSelect" /* ViewID.exportFileSelect */), exportTokenized = this.view.getInputChecked("exportTokenizedInput" /* ViewID.exportTokenizedInput */), exportDSK = this.view.getInputChecked("exportDSKInput" /* ViewID.exportDSKInput */), format = this.view.getSelectValue("exportDSKFormatSelect" /* ViewID.exportDSKFormatSelect */), stripEmpty = this.view.getInputChecked("exportDSKStripEmptyInput" /* ViewID.exportDSKStripEmptyInput */), exportBase64 = this.view.getInputChecked("exportBase64Input" /* ViewID.exportBase64Input */), editorText = Controller.exportEditorText, meta = {
                 typeString: "A",
                 start: 0x170,
                 length: 0,
@@ -1606,7 +1609,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 diskImage = this.getFileHandler().getDiskImage();
                 diskImage.setOptions({
                     diskName: "test",
-                    data: diskImage.formatImage("data")
+                    data: diskImage.formatImage(format) // data or system
                 });
             }
             for (var i = 0; i < options.length; i += 1) {
@@ -1615,6 +1618,13 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     if (item.value === editorText) {
                         data = this.view.getAreaValue("inputText" /* ViewID.inputText */);
                         name = this.fnGetFilename(data);
+                        //if (!exportTokenized) {
+                        var eolStr = data.indexOf("\r\n") > 0 ? "\r\n" : "\n"; // heuristic: if CRLF found, use it as split
+                        //XXX eslint-disable-next-line max-depth
+                        if (eolStr === "\n") {
+                            data = data.replace(/\n/g, "\r\n"); //replace LF by CRLF
+                        }
+                        //}
                         meta.typeString = "A"; // ASCII
                         meta.start = 0x170;
                         meta.length = data.length;
@@ -1668,6 +1678,9 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 }
             }
             if (diskImage) {
+                if (stripEmpty) {
+                    data = diskImage.stripEmptyTracks();
+                }
                 if (exportBase64) {
                     fnExportBase64();
                 }

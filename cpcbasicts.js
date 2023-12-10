@@ -831,6 +831,8 @@ define("Constants", ["require", "exports"], function (require, exports) {
         ViewID["exportButton"] = "exportButton";
         ViewID["exportBase64Input"] = "exportBase64Input";
         ViewID["exportDSKInput"] = "exportDSKInput";
+        ViewID["exportDSKFormatSelect"] = "exportDSKFormatSelect";
+        ViewID["exportDSKStripEmptyInput"] = "exportDSKStripEmptyInput";
         ViewID["exportFileSelect"] = "exportFileSelect";
         ViewID["exportTokenizedInput"] = "exportTokenizedInput";
         ViewID["fileInput"] = "fileInput";
@@ -896,6 +898,7 @@ define("Constants", ["require", "exports"], function (require, exports) {
         ViewID["speedInput"] = "speedInput";
         ViewID["stopButton"] = "stopButton";
         ViewID["traceInput"] = "traceInput";
+        ViewID["textCanvasDiv"] = "textCanvasDiv";
         ViewID["textText"] = "textText";
         ViewID["undoButton"] = "undoButton";
         ViewID["variableArea"] = "variableArea";
@@ -1646,9 +1649,23 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
         };
         BasicLexer.prototype.fnParseCompleteLineForRemOrApostrophe = function (char, startPos) {
             if (BasicLexer.isNotNewLine(char)) {
-                var token = this.advanceWhile(char, BasicLexer.isNotNewLine);
+                var token = this.advanceWhile(char, BasicLexer.isNotNewLine), whiteSpace = "";
+                char = this.getChar();
+                if (token.endsWith("\r")) {
+                    token = token.substring(0, token.length - 1);
+                    whiteSpace = "\r";
+                    // now token can be empty?
+                }
+                this.addToken("unquoted", token, startPos);
+                if (whiteSpace && this.options.keepWhiteSpace) {
+                    this.whiteSpace = whiteSpace;
+                }
+                /*
+                const token = this.advanceWhile(char, BasicLexer.isNotNewLine);
+    
                 char = this.getChar();
                 this.addToken("unquoted", token, startPos);
+                */
             }
             return char;
         };
@@ -1780,7 +1797,7 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
             return out;
         };
         BasicLexer.prototype.fnParseString = function (startPos) {
-            var char = "", token = this.advanceWhile(char, BasicLexer.isNotQuotes), type = "string";
+            var char = "", token = this.advanceWhile(char, BasicLexer.isNotQuotes), type = "string", whiteSpace = "";
             char = this.getChar();
             if (char !== '"') {
                 var contString = this.fnTryContinueString(char); // heuristic to detect an LF in the string
@@ -1800,8 +1817,16 @@ define("BasicLexer", ["require", "exports", "Utils"], function (require, exports
                     Utils_2.Utils.console.debug(this.composeError({}, "Unterminated string", token, startPos + 1).message);
                 }
                 type = "ustring"; // unterminated string
+                if (token.endsWith("\r")) {
+                    token = token.substring(0, token.length - 1);
+                    whiteSpace = "\r";
+                    // now token can be empty?
+                }
             }
             this.addToken(type, token, startPos + 1);
+            if (whiteSpace && this.options.keepWhiteSpace) {
+                this.whiteSpace = whiteSpace;
+            }
         };
         BasicLexer.prototype.fnParseRsx = function (char, startPos) {
             var token = char;
@@ -7236,6 +7261,9 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             diskInfo.trackSizes = trackSizes;
             diskInfo.trackInfoPosList = trackInfoPosList;
             diskInfo.trackInfo.ident = ""; // make sure it is invalid
+            if (Utils_11.Utils.debug > 1) {
+                Utils_11.Utils.console.debug("readDiskInfo: extended=" + diskInfo.extended + ", tracks=" + diskInfo.tracks + ", heads=" + diskInfo.heads + ", trackSize=" + diskInfo.trackSize);
+            }
         };
         DiskImage.createDiskInfoAsString = function (diskInfo) {
             // only standard format
@@ -7271,7 +7299,7 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             pos += 24; // start sector info
             var sectorPos = trackDataPos;
             for (var i = 0; i < trackInfo.spt; i += 1) {
-                var sectorInfo = sectorInfoList[i] || {}; // resue SectorInfo object if possible
+                var sectorInfo = sectorInfoList[i] || {}; // reuse SectorInfo object if possible
                 sectorInfoList[i] = sectorInfo;
                 sectorInfo.dataPos = sectorPos;
                 sectorInfo.track = this.readUInt8(pos);
@@ -7306,7 +7334,7 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                     + DiskImage.uInt8ToString(sectorInfo.bps)
                     + DiskImage.uInt8ToString(sectorInfo.state1)
                     + DiskImage.uInt8ToString(sectorInfo.state2)
-                    + DiskImage.uInt16ToString(sectorInfo.sectorSize);
+                    + DiskImage.uInt16ToString(0); // DiskImage.uInt16ToString(sectorInfo.sectorSize); //DiskImage.uInt16ToString(0); // sectorInfo.sectorSize only needed for extended format
                 trackInfoString += sectorinfoString;
             }
             // fill up
@@ -7398,6 +7426,9 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             if (diskInfo.heads > 1) { // maybe 2
                 format += String(diskInfo.heads); // e.g. "data": "data2"
             }
+            if (Utils_11.Utils.debug > 1) {
+                Utils_11.Utils.console.debug("determineFormat: format=", format);
+            }
             return format;
         };
         DiskImage.prototype.createImage = function (format) {
@@ -7425,7 +7456,7 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                 sectorNum2Index: {}
             }, diskInfo = {
                 ident: "MV - CPCEMU Disk-File\r\nDisk-Info\r\n",
-                creator: "CpcBasicTS    ",
+                creator: (this.options.creator || "CpcBasicTS").padEnd(14, " "),
                 tracks: formatDescriptor.tracks,
                 heads: formatDescriptor.heads,
                 trackSize: DiskImage.trackInfoSize + formatDescriptor.spt * sectorSize,
@@ -7800,7 +7831,7 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                 if (thisSize < bls) {
                     dataChunk += DiskImage.uInt8ToString(0x1a); // add EOF (0x1a)
                     var remain = bls - thisSize - 1;
-                    dataChunk += DiskImage.uInt8ToString(0).repeat(remain); // fill up last block with 0
+                    dataChunk += DiskImage.uInt8ToString(formatDescriptor.fill).repeat(remain); // fill up last block with fill byte
                 }
                 var block = freeBlocks[(extentCnt - 1) * 16 + blockCnt];
                 this.writeBlock(diskInfo, formatDescriptor, block, dataChunk);
@@ -7810,6 +7841,43 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             }
             this.writeAllDirectoryExtents(diskInfo, formatDescriptor, extents);
             return true;
+        };
+        DiskImage.isSectorEmpty = function (data, index, size, fill) {
+            var endIndex = (index + size) <= data.length ? index + size : data.length - index;
+            var isEmpty = true;
+            for (var i = index; i < endIndex; i += 1) {
+                if (data.charCodeAt(i) !== fill) {
+                    isEmpty = false;
+                    break;
+                }
+            }
+            return isEmpty;
+        };
+        DiskImage.prototype.stripEmptyTracks = function () {
+            var diskInfo = this.diskInfo, format = this.determineFormat(diskInfo), formatDescriptor = this.composeFormatDescriptor(format), tracks = diskInfo.tracks, firstDataTrack = formatDescriptor.off, head = 0;
+            var data = this.options.data;
+            this.formatDescriptor = formatDescriptor;
+            for (var track = firstDataTrack; track < tracks; track += 1) {
+                this.seekTrack(diskInfo, track, head);
+                var trackInfo = diskInfo.trackInfo, fill = diskInfo.trackInfo.fill, sectorInfoList = trackInfo.sectorInfoList;
+                var isEmpty = true;
+                for (var i = 0; i < trackInfo.spt; i += 1) {
+                    var sectorInfo = sectorInfoList[i];
+                    if (!DiskImage.isSectorEmpty(data, sectorInfo.dataPos, sectorInfo.sectorSize, fill)) {
+                        isEmpty = false;
+                        break;
+                    }
+                }
+                if (isEmpty) {
+                    diskInfo.tracks = track; // set new number of tracks
+                    var trackDataPos = sectorInfoList[0].dataPos;
+                    data = DiskImage.createDiskInfoAsString(diskInfo) + data.substring(DiskImage.diskInfoSize, trackDataPos - DiskImage.trackInfoSize); // set new track count and remove empty track and rest
+                    //data = data.substring(0, trackDataPos - DiskImage.trackInfoSize); // remove empty track and rest
+                    this.options.data = data;
+                    break;
+                }
+            }
+            return data;
         };
         /* eslint-enable array-element-newline */
         DiskImage.unOrProtectData = function (data) {
@@ -7849,6 +7917,7 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             var header;
             // http://www.benchmarko.de/cpcemu/cpcdoc/chapter/cpcdoc7_e.html#I_AMSDOS_HD
             // http://www.cpcwiki.eu/index.php/AMSDOS_Header
+            // https://www.cpcwiki.eu/imgs/b/bc/S968se09.pdf (Firmware Guide Section 9)
             if (DiskImage.hasAmsdosHeader(data)) {
                 header = {
                     user: data.charCodeAt(0),
@@ -7894,10 +7963,10 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                 + DiskImage.uInt8ToString(type)
                 + DiskImage.uInt16ToString(0) // data location (unused)
                 + DiskImage.uInt16ToString(header.start || 0)
-                + DiskImage.uInt8ToString(0xff) // first block (unused, always 0xff)
+                + DiskImage.uInt8ToString(0x00) // first block (unused; always 0x00 or 0xff?)
                 + DiskImage.uInt16ToString(length) // logical length
                 + DiskImage.uInt16ToString(header.entry || 0)
-                + " ".repeat(36)
+                + "\x00".repeat(36)
                 + DiskImage.uInt24ToString(header.length), checksum = DiskImage.computeChecksum(data1), data = data1
                 + DiskImage.uInt16ToString(checksum)
                 + "\x00".repeat(59);
@@ -7924,8 +7993,12 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                 al1: 0x00,
                 off: 0 // number of reserved tracks (also the track where the directory starts)
             },
+            data42t: {
+                parentRef: "data",
+                tracks: 42
+            },
             // double sided data
-            data2: {
+            data2h: {
                 parentRef: "data",
                 heads: 2
             },
@@ -7935,7 +8008,7 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                 off: 2
             },
             // double sided system
-            system2: {
+            system2h: {
                 parentRef: "system",
                 heads: 2
             },
@@ -7963,7 +8036,7 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
                 off: 1,
                 firstSector: 0x01
             },
-            big780k2: {
+            big780k2h: {
                 parentRef: "big780k",
                 heads: 2
             }
@@ -7974,6 +8047,35 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
         };
         DiskImage.diskInfoSize = 0x100;
         DiskImage.trackInfoSize = 0x100;
+        /*
+        private static isTrackEmpty(data: string, index: number, tsize: number) {
+            const filler = 0xe5,
+                endIndex = (index + tsize) <= data.length ? index + tsize : data.length - index;
+            let isEmpty = true;
+    
+            for (let i = index; i < endIndex; i += 1) {
+                if (data.charCodeAt(i) !== filler) {
+                    isEmpty = false;
+                    break;
+                }
+            }
+            return isEmpty;
+        }
+    
+        static stripEmptyTracks(data: string): string {
+            const diskinfoSize = 0x100,
+                trackInfoSize = 0x100,
+                tsize = trackInfoSize + 9 * 0x200;
+            let index = diskinfoSize + trackInfoSize;
+    
+            while (!DiskImage.isTrackEmpty(data, index, tsize - trackInfoSize) && index < data.length) {
+                index += tsize;
+            }
+            data = data.substring(0, index - trackInfoSize);
+    
+            return data;
+        }
+        */
         // ...
         // see AMSDOS ROM, &D252
         /* eslint-disable array-element-newline */
@@ -8282,7 +8384,7 @@ define("View", ["require", "exports", "Utils"], function (require, exports, Util
         };
         View.prototype.addEventListenerById = function (type, eventListener, id) {
             if (Utils_12.Utils.debug) {
-                Utils_12.Utils.console.debug("addEventListenerById: type=" + type + ", eventHandler=" + eventListener + ", id=" + id);
+                Utils_12.Utils.console.debug("addEventListenerById: type=" + type + ", id=" + id);
             }
             var element = id === "window" /* ViewID.window */ ? undefined : View.getElementById1(id);
             this.addEventListener(type, eventListener, element);
@@ -8299,7 +8401,7 @@ define("View", ["require", "exports", "Utils"], function (require, exports, Util
         };
         View.prototype.removeEventListenerById = function (type, eventListener, id) {
             if (Utils_12.Utils.debug) {
-                Utils_12.Utils.console.debug("removeEventListener: type=" + type + ", eventHandler=" + eventListener + ", id=" + id);
+                Utils_12.Utils.console.debug("removeEventListener: type=" + type + ", id=" + id);
             }
             var element = id === "window" /* ViewID.window */ ? undefined : View.getElementById1(id);
             this.removeEventListener(type, eventListener, element);
@@ -8357,10 +8459,39 @@ define("View", ["require", "exports", "Utils"], function (require, exports, Util
             }
             return target;
         };
-        View.requestFullscreenForId = function (id) {
-            var element = View.getElementById1(id), anyEl = element, requestMethod = element.requestFullscreen || anyEl.webkitRequestFullscreen || anyEl.mozRequestFullscreen || anyEl.msRequestFullscreen;
+        View.prototype.requestFullscreenForId = function (id) {
+            var element = View.getElementById1(id), anyEl = element, that = this, requestMethod = element.requestFullscreen || anyEl.webkitRequestFullscreen || anyEl.mozRequestFullscreen || anyEl.msRequestFullscreen, fullscreenchangedHandler = function (event) {
+                var target = View.getEventTarget(event);
+                if (document.fullscreenElement) {
+                    if (Utils_12.Utils.debug > 0) {
+                        Utils_12.Utils.console.debug("Entered fullscreen mode: " + document.fullscreenElement.id);
+                    }
+                }
+                else {
+                    if (Utils_12.Utils.debug > 0) {
+                        Utils_12.Utils.console.debug("Leaving fullscreen mode.");
+                    }
+                    //that.removeEventListenerById("fullscreenchange", fullscreenchangedHandler, id);
+                    that.removeEventListener("fullscreenchange", fullscreenchangedHandler, target);
+                    // for Safari we need to do some change to make sure the window size is set (can we do better?)
+                    that.setHidden(id, true);
+                    window.setTimeout(function () {
+                        that.setHidden(id, false);
+                    }, 0);
+                }
+            };
             if (requestMethod) {
-                requestMethod.call(element); // can we ALLOW_KEYBOARD_INPUT?
+                var promise = requestMethod.call(element); // can we ALLOW_KEYBOARD_INPUT?
+                if (promise) {
+                    promise.then(function () {
+                        if (Utils_12.Utils.debug > 0) {
+                            Utils_12.Utils.console.debug("requestFullscreenForId: " + id + ": success");
+                        }
+                        that.addEventListenerById("fullscreenchange", fullscreenchangedHandler, id);
+                    }).catch(function (err) {
+                        Utils_12.Utils.console.error("requestFullscreenForId: " + id + ": Error attempting to enable fullscreen mode: ", err);
+                    });
+                }
             }
             else if (typeof window.ActiveXObject !== "undefined") { // older IE
                 var wscript = new window.ActiveXObject("WScript.Shell");
@@ -11711,8 +11842,20 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
         CommonEventHandler.prototype.onClearInputButtonClick = function () {
             this.view.setAreaValue("inp2Text" /* ViewID.inp2Text */, ""); // delete input
         };
-        CommonEventHandler.onFullscreenButtonClick = function () {
-            var switched = View_5.View.requestFullscreenForId("cpcCanvas" /* ViewID.cpcCanvas */); // make sure to use an element with tabindex set to get keyboard events
+        CommonEventHandler.prototype.onFullscreenButtonClick = function () {
+            var id;
+            if (!this.view.getHidden("cpcCanvas" /* ViewID.cpcCanvas */)) {
+                id = "cpcCanvas" /* ViewID.cpcCanvas */;
+            }
+            else if (!this.view.getHidden("textText" /* ViewID.textText */)) {
+                // for ViewID.textText (textArea), we use the surrounding div...
+                id = "textCanvasDiv" /* ViewID.textCanvasDiv */;
+            }
+            else {
+                Utils_18.Utils.console.warn("Fullscreen only possible for graphics or text canvas");
+                return;
+            }
+            var switched = this.view.requestFullscreenForId(id); // make sure to use an element with tabindex set to get keyboard events
             if (!switched) {
                 Utils_18.Utils.console.warn("Switch to fullscreen not available");
             }
@@ -11766,7 +11909,7 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                     },
                     {
                         id: "fullscreenButton" /* ViewID.fullscreenButton */,
-                        func: CommonEventHandler.onFullscreenButtonClick
+                        func: this.onFullscreenButtonClick
                     },
                     {
                         id: "galleryButton" /* ViewID.galleryButton */,
@@ -18380,6 +18523,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         };
         Controller.prototype.setExportSelectOptions = function (select) {
             var dirList = Controller.fnGetStorageDirectoryEntries(), items = [], editorText = Controller.exportEditorText;
+            dirList.sort(); // we sort keys without editorText
             dirList.unshift(editorText);
             for (var i = 0; i < dirList.length; i += 1) {
                 var key = dirList[i], title = key, item = {
@@ -18390,7 +18534,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 };
                 items.push(item);
             }
-            items.sort(Controller.fnSortByStringProperties);
+            // sort already done
+            //items.sort(Controller.fnSortByStringProperties);
             this.view.setSelectOptions(select, items);
         };
         Controller.prototype.updateStorageDatabase = function (action, key) {
@@ -19588,8 +19733,9 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
             return name;
         };
+        // eslint-disable-next-line complexity
         Controller.prototype.fnDownload = function () {
-            var options = this.view.getSelectOptions("exportFileSelect" /* ViewID.exportFileSelect */), exportTokenized = this.view.getInputChecked("exportTokenizedInput" /* ViewID.exportTokenizedInput */), exportDSK = this.view.getInputChecked("exportDSKInput" /* ViewID.exportDSKInput */), exportBase64 = this.view.getInputChecked("exportBase64Input" /* ViewID.exportBase64Input */), editorText = Controller.exportEditorText, meta = {
+            var options = this.view.getSelectOptions("exportFileSelect" /* ViewID.exportFileSelect */), exportTokenized = this.view.getInputChecked("exportTokenizedInput" /* ViewID.exportTokenizedInput */), exportDSK = this.view.getInputChecked("exportDSKInput" /* ViewID.exportDSKInput */), format = this.view.getSelectValue("exportDSKFormatSelect" /* ViewID.exportDSKFormatSelect */), stripEmpty = this.view.getInputChecked("exportDSKStripEmptyInput" /* ViewID.exportDSKStripEmptyInput */), exportBase64 = this.view.getInputChecked("exportBase64Input" /* ViewID.exportBase64Input */), editorText = Controller.exportEditorText, meta = {
                 typeString: "A",
                 start: 0x170,
                 length: 0,
@@ -19606,7 +19752,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 diskImage = this.getFileHandler().getDiskImage();
                 diskImage.setOptions({
                     diskName: "test",
-                    data: diskImage.formatImage("data")
+                    data: diskImage.formatImage(format) // data or system
                 });
             }
             for (var i = 0; i < options.length; i += 1) {
@@ -19615,6 +19761,13 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     if (item.value === editorText) {
                         data = this.view.getAreaValue("inputText" /* ViewID.inputText */);
                         name = this.fnGetFilename(data);
+                        //if (!exportTokenized) {
+                        var eolStr = data.indexOf("\r\n") > 0 ? "\r\n" : "\n"; // heuristic: if CRLF found, use it as split
+                        //XXX eslint-disable-next-line max-depth
+                        if (eolStr === "\n") {
+                            data = data.replace(/\n/g, "\r\n"); //replace LF by CRLF
+                        }
+                        //}
                         meta.typeString = "A"; // ASCII
                         meta.start = 0x170;
                         meta.length = data.length;
@@ -19668,6 +19821,9 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 }
             }
             if (diskImage) {
+                if (stripEmpty) {
+                    data = diskImage.stripEmptyTracks();
+                }
                 if (exportBase64) {
                     fnExportBase64();
                 }

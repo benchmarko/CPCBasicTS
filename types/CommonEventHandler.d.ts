@@ -64,7 +64,7 @@ export declare class CommonEventHandler implements EventListenerObject {
     private onSoundInputChange;
     private onScreenshotButtonClick;
     private onClearInputButtonClick;
-    private static onFullscreenButtonClick;
+    private onFullscreenButtonClick;
     private onCpcCanvasClick;
     private createEventDefMap;
     handleEvent(event: Event): void;

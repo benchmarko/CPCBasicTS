@@ -76,6 +76,8 @@ declare module "Constants" {
         exportButton = "exportButton",
         exportBase64Input = "exportBase64Input",
         exportDSKInput = "exportDSKInput",
+        exportDSKFormatSelect = "exportDSKFormatSelect",
+        exportDSKStripEmptyInput = "exportDSKStripEmptyInput",
         exportFileSelect = "exportFileSelect",
         exportTokenizedInput = "exportTokenizedInput",
         fileInput = "fileInput",
@@ -141,6 +143,7 @@ declare module "Constants" {
         speedInput = "speedInput",
         stopButton = "stopButton",
         traceInput = "traceInput",
+        textCanvasDiv = "textCanvasDiv",
         textText = "textText",
         undoButton = "undoButton",
         variableArea = "variableArea",
@@ -959,6 +962,7 @@ declare module "DiskImage" {
     export interface DiskImageOptions {
         diskName?: string;
         data: string;
+        creator?: string;
         quiet?: boolean;
     }
     interface ExtentEntry {
@@ -1038,6 +1042,8 @@ declare module "DiskImage" {
         private static getFreeBlocks;
         static getFilenameAndExtension(filename: string): string[];
         writeFile(filename: string, data: string): boolean;
+        private static isSectorEmpty;
+        stripEmptyTracks(): string;
         private static readonly protectTable;
         static unOrProtectData(data: string): string;
         private static computeChecksum;
@@ -1109,7 +1115,7 @@ declare module "View" {
         fnAttachPointerEvents(id: ViewID, fnDown?: EventListener, fnMove?: EventListener, fnUp?: EventListener): PointerEventNamesType;
         fnDetachPointerEvents(id: ViewID, fnDown?: EventListener, fnMove?: EventListener, fnUp?: EventListener): PointerEventNamesType;
         static getEventTarget<T extends HTMLElement>(event: Event): T;
-        static requestFullscreenForId(id: ViewID): boolean;
+        requestFullscreenForId(id: ViewID): boolean;
         fnDownloadBlob(data: string, filename: string): void;
     }
 }
@@ -1537,7 +1543,7 @@ declare module "CommonEventHandler" {
         private onSoundInputChange;
         private onScreenshotButtonClick;
         private onClearInputButtonClick;
-        private static onFullscreenButtonClick;
+        private onFullscreenButtonClick;
         private onCpcCanvasClick;
         private createEventDefMap;
         handleEvent(event: Event): void;

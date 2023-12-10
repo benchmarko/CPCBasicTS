@@ -12,6 +12,7 @@ import { Utils } from "./Utils";
 export interface DiskImageOptions {
 	diskName?: string,
 	data: string, // we should convert it to Uint8Array for improved writing to DSK
+	creator?: string,
 	quiet?: boolean
 }
 
@@ -158,8 +159,14 @@ export class DiskImage {
 			al1: 0x00, // bit significant representation of reserved directory blocks 8..15 (0x80=8,...)
 			off: 0 // number of reserved tracks (also the track where the directory starts)
 		},
+
+		data42t: {
+			parentRef: "data",
+			tracks: 42
+		},
+
 		// double sided data
-		data2: {
+		data2h: {
 			parentRef: "data",
 			heads: 2
 		},
@@ -171,7 +178,7 @@ export class DiskImage {
 		},
 
 		// double sided system
-		system2: {
+		system2h: {
 			parentRef: "system",
 			heads: 2
 		},
@@ -204,7 +211,7 @@ export class DiskImage {
 			firstSector: 0x01
 		},
 
-		big780k2: {
+		big780k2h: {
 			parentRef: "big780k",
 			heads: 2
 		}
@@ -332,6 +339,10 @@ export class DiskImage {
 		diskInfo.trackSizes = trackSizes;
 		diskInfo.trackInfoPosList = trackInfoPosList;
 		diskInfo.trackInfo.ident = ""; // make sure it is invalid
+
+		if (Utils.debug > 1) {
+			Utils.console.debug("readDiskInfo: extended=" + diskInfo.extended + ", tracks=" + diskInfo.tracks + ", heads=" + diskInfo.heads + ", trackSize=" + diskInfo.trackSize);
+		}
 	}
 
 	private static createDiskInfoAsString(diskInfo: DiskInfo) {
@@ -381,7 +392,7 @@ export class DiskImage {
 		let sectorPos = trackDataPos;
 
 		for (let i = 0; i < trackInfo.spt; i += 1) {
-			const sectorInfo = sectorInfoList[i] || {} as SectorInfo; // resue SectorInfo object if possible
+			const sectorInfo = sectorInfoList[i] || {} as SectorInfo; // reuse SectorInfo object if possible
 
 			sectorInfoList[i] = sectorInfo;
 
@@ -425,7 +436,7 @@ export class DiskImage {
 				+ DiskImage.uInt8ToString(sectorInfo.bps)
 				+ DiskImage.uInt8ToString(sectorInfo.state1)
 				+ DiskImage.uInt8ToString(sectorInfo.state2)
-				+ DiskImage.uInt16ToString(sectorInfo.sectorSize);
+				+ DiskImage.uInt16ToString(0); // DiskImage.uInt16ToString(sectorInfo.sectorSize); //DiskImage.uInt16ToString(0); // sectorInfo.sectorSize only needed for extended format
 
 			trackInfoString += sectorinfoString;
 		}
@@ -550,6 +561,9 @@ export class DiskImage {
 			format += String(diskInfo.heads); // e.g. "data": "data2"
 		}
 
+		if (Utils.debug > 1) {
+			Utils.console.debug("determineFormat: format=", format);
+		}
 		return format;
 	}
 
@@ -582,7 +596,7 @@ export class DiskImage {
 			},
 			diskInfo: DiskInfo = {
 				ident: "MV - CPCEMU Disk-File\r\nDisk-Info\r\n", // 34
-				creator: "CpcBasicTS    ", // 14
+				creator: (this.options.creator || "CpcBasicTS").padEnd(14, " "), // 14
 				tracks: formatDescriptor.tracks,
 				heads: formatDescriptor.heads,
 				trackSize: DiskImage.trackInfoSize + formatDescriptor.spt * sectorSize, // eslint-disable-line no-bitwise
@@ -1088,7 +1102,7 @@ export class DiskImage {
 				dataChunk += DiskImage.uInt8ToString(0x1a); // add EOF (0x1a)
 				const remain = bls - thisSize - 1;
 
-				dataChunk += DiskImage.uInt8ToString(0).repeat(remain); // fill up last block with 0
+				dataChunk += DiskImage.uInt8ToString(formatDescriptor.fill).repeat(remain); // fill up last block with fill byte
 			}
 
 			const block = freeBlocks[(extentCnt - 1) * 16 + blockCnt];
@@ -1102,6 +1116,89 @@ export class DiskImage {
 		this.writeAllDirectoryExtents(diskInfo, formatDescriptor, extents);
 		return true;
 	}
+
+	private static isSectorEmpty(data: string, index: number, size: number, fill: number) {
+		const endIndex = (index + size) <= data.length ? index + size : data.length - index;
+		let isEmpty = true;
+
+		for (let i = index; i < endIndex; i += 1) {
+			if (data.charCodeAt(i) !== fill) {
+				isEmpty = false;
+				break;
+			}
+		}
+		return isEmpty;
+	}
+
+	stripEmptyTracks(): string {
+		const diskInfo = this.diskInfo,
+			format = this.determineFormat(diskInfo),
+			formatDescriptor = this.composeFormatDescriptor(format),
+			tracks = diskInfo.tracks,
+			firstDataTrack = formatDescriptor.off,
+			head = 0;
+		let data = this.options.data;
+
+		this.formatDescriptor = formatDescriptor;
+
+		for (let track = firstDataTrack; track < tracks; track += 1) {
+			this.seekTrack(diskInfo, track, head);
+			const trackInfo = diskInfo.trackInfo,
+				fill = diskInfo.trackInfo.fill,
+				sectorInfoList = trackInfo.sectorInfoList;
+			let isEmpty = true;
+
+			for (let i = 0; i < trackInfo.spt; i += 1) {
+				const sectorInfo = sectorInfoList[i];
+
+				if (!DiskImage.isSectorEmpty(data, sectorInfo.dataPos, sectorInfo.sectorSize, fill)) {
+					isEmpty = false;
+					break;
+				}
+			}
+			if (isEmpty) {
+				diskInfo.tracks = track; // set new number of tracks
+
+				const trackDataPos = sectorInfoList[0].dataPos;
+
+				data = DiskImage.createDiskInfoAsString(diskInfo) + data.substring(DiskImage.diskInfoSize, trackDataPos - DiskImage.trackInfoSize); // set new track count and remove empty track and rest
+				//data = data.substring(0, trackDataPos - DiskImage.trackInfoSize); // remove empty track and rest
+				this.options.data = data;
+				break;
+			}
+		}
+		return data;
+	}
+
+	/*
+	private static isTrackEmpty(data: string, index: number, tsize: number) {
+		const filler = 0xe5,
+			endIndex = (index + tsize) <= data.length ? index + tsize : data.length - index;
+		let isEmpty = true;
+
+		for (let i = index; i < endIndex; i += 1) {
+			if (data.charCodeAt(i) !== filler) {
+				isEmpty = false;
+				break;
+			}
+		}
+		return isEmpty;
+	}
+
+	static stripEmptyTracks(data: string): string {
+		const diskinfoSize = 0x100,
+			trackInfoSize = 0x100,
+			tsize = trackInfoSize + 9 * 0x200;
+		let index = diskinfoSize + trackInfoSize;
+
+		while (!DiskImage.isTrackEmpty(data, index, tsize - trackInfoSize) && index < data.length) {
+			index += tsize;
+		}
+		data = data.substring(0, index - trackInfoSize);
+
+		return data;
+	}
+	*/
 
 	// ...
 
@@ -1163,6 +1260,7 @@ export class DiskImage {
 
 		// http://www.benchmarko.de/cpcemu/cpcdoc/chapter/cpcdoc7_e.html#I_AMSDOS_HD
 		// http://www.cpcwiki.eu/index.php/AMSDOS_Header
+		// https://www.cpcwiki.eu/imgs/b/bc/S968se09.pdf (Firmware Guide Section 9)
 		if (DiskImage.hasAmsdosHeader(data)) {
 			header = {
 				user: data.charCodeAt(0),
@@ -1215,10 +1313,10 @@ export class DiskImage {
 			+ DiskImage.uInt8ToString(type)
 			+ DiskImage.uInt16ToString(0) // data location (unused)
 			+ DiskImage.uInt16ToString(header.start || 0)
-			+ DiskImage.uInt8ToString(0xff) // first block (unused, always 0xff)
+			+ DiskImage.uInt8ToString(0x00) // first block (unused; always 0x00 or 0xff?)
 			+ DiskImage.uInt16ToString(length) // logical length
 			+ DiskImage.uInt16ToString(header.entry || 0)
-			+ " ".repeat(36)
+			+ "\x00".repeat(36)
 			+ DiskImage.uInt24ToString(header.length),
 
 			checksum = DiskImage.computeChecksum(data1),

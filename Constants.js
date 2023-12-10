@@ -73,6 +73,8 @@ define(["require", "exports"], function (require, exports) {
         ViewID["exportButton"] = "exportButton";
         ViewID["exportBase64Input"] = "exportBase64Input";
         ViewID["exportDSKInput"] = "exportDSKInput";
+        ViewID["exportDSKFormatSelect"] = "exportDSKFormatSelect";
+        ViewID["exportDSKStripEmptyInput"] = "exportDSKStripEmptyInput";
         ViewID["exportFileSelect"] = "exportFileSelect";
         ViewID["exportTokenizedInput"] = "exportTokenizedInput";
         ViewID["fileInput"] = "fileInput";
@@ -138,6 +140,7 @@ define(["require", "exports"], function (require, exports) {
         ViewID["speedInput"] = "speedInput";
         ViewID["stopButton"] = "stopButton";
         ViewID["traceInput"] = "traceInput";
+        ViewID["textCanvasDiv"] = "textCanvasDiv";
         ViewID["textText"] = "textText";
         ViewID["undoButton"] = "undoButton";
         ViewID["variableArea"] = "variableArea";

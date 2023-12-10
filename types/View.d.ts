@@ -45,7 +45,7 @@ export declare class View {
     fnAttachPointerEvents(id: ViewID, fnDown?: EventListener, fnMove?: EventListener, fnUp?: EventListener): PointerEventNamesType;
     fnDetachPointerEvents(id: ViewID, fnDown?: EventListener, fnMove?: EventListener, fnUp?: EventListener): PointerEventNamesType;
     static getEventTarget<T extends HTMLElement>(event: Event): T;
-    static requestFullscreenForId(id: ViewID): boolean;
+    requestFullscreenForId(id: ViewID): boolean;
     fnDownloadBlob(data: string, filename: string): void;
 }
 //# sourceMappingURL=View.d.ts.map

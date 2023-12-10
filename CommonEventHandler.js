@@ -274,8 +274,20 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
         CommonEventHandler.prototype.onClearInputButtonClick = function () {
             this.view.setAreaValue("inp2Text" /* ViewID.inp2Text */, ""); // delete input
         };
-        CommonEventHandler.onFullscreenButtonClick = function () {
-            var switched = View_1.View.requestFullscreenForId("cpcCanvas" /* ViewID.cpcCanvas */); // make sure to use an element with tabindex set to get keyboard events
+        CommonEventHandler.prototype.onFullscreenButtonClick = function () {
+            var id;
+            if (!this.view.getHidden("cpcCanvas" /* ViewID.cpcCanvas */)) {
+                id = "cpcCanvas" /* ViewID.cpcCanvas */;
+            }
+            else if (!this.view.getHidden("textText" /* ViewID.textText */)) {
+                // for ViewID.textText (textArea), we use the surrounding div...
+                id = "textCanvasDiv" /* ViewID.textCanvasDiv */;
+            }
+            else {
+                Utils_1.Utils.console.warn("Fullscreen only possible for graphics or text canvas");
+                return;
+            }
+            var switched = this.view.requestFullscreenForId(id); // make sure to use an element with tabindex set to get keyboard events
             if (!switched) {
                 Utils_1.Utils.console.warn("Switch to fullscreen not available");
             }
@@ -329,7 +341,7 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                     },
                     {
                         id: "fullscreenButton" /* ViewID.fullscreenButton */,
-                        func: CommonEventHandler.onFullscreenButtonClick
+                        func: this.onFullscreenButtonClick
                     },
                     {
                         id: "galleryButton" /* ViewID.galleryButton */,

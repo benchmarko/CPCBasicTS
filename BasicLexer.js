@@ -180,9 +180,23 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         BasicLexer.prototype.fnParseCompleteLineForRemOrApostrophe = function (char, startPos) {
             if (BasicLexer.isNotNewLine(char)) {
-                var token = this.advanceWhile(char, BasicLexer.isNotNewLine);
+                var token = this.advanceWhile(char, BasicLexer.isNotNewLine), whiteSpace = "";
+                char = this.getChar();
+                if (token.endsWith("\r")) {
+                    token = token.substring(0, token.length - 1);
+                    whiteSpace = "\r";
+                    // now token can be empty?
+                }
+                this.addToken("unquoted", token, startPos);
+                if (whiteSpace && this.options.keepWhiteSpace) {
+                    this.whiteSpace = whiteSpace;
+                }
+                /*
+                const token = this.advanceWhile(char, BasicLexer.isNotNewLine);
+    
                 char = this.getChar();
                 this.addToken("unquoted", token, startPos);
+                */
             }
             return char;
         };
@@ -314,7 +328,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             return out;
         };
         BasicLexer.prototype.fnParseString = function (startPos) {
-            var char = "", token = this.advanceWhile(char, BasicLexer.isNotQuotes), type = "string";
+            var char = "", token = this.advanceWhile(char, BasicLexer.isNotQuotes), type = "string", whiteSpace = "";
             char = this.getChar();
             if (char !== '"') {
                 var contString = this.fnTryContinueString(char); // heuristic to detect an LF in the string
@@ -334,8 +348,16 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                     Utils_1.Utils.console.debug(this.composeError({}, "Unterminated string", token, startPos + 1).message);
                 }
                 type = "ustring"; // unterminated string
+                if (token.endsWith("\r")) {
+                    token = token.substring(0, token.length - 1);
+                    whiteSpace = "\r";
+                    // now token can be empty?
+                }
             }
             this.addToken(type, token, startPos + 1);
+            if (whiteSpace && this.options.keepWhiteSpace) {
+                this.whiteSpace = whiteSpace;
+            }
         };
         BasicLexer.prototype.fnParseRsx = function (char, startPos) {
             var token = char;

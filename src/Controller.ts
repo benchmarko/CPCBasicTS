@@ -487,6 +487,7 @@ export class Controller implements IController {
 			items: SelectOptionElement[] = [],
 			editorText = Controller.exportEditorText;
 
+		dirList.sort(); // we sort keys without editorText
 		dirList.unshift(editorText);
 		for (let i = 0; i < dirList.length; i += 1) {
 			const key = dirList[i],
@@ -500,7 +501,8 @@ export class Controller implements IController {
 
 			items.push(item);
 		}
-		items.sort(Controller.fnSortByStringProperties);
+		// sort already done
+		//items.sort(Controller.fnSortByStringProperties);
 		this.view.setSelectOptions(select, items);
 	}
 
@@ -1988,10 +1990,13 @@ export class Controller implements IController {
 		return name;
 	}
 
+	// eslint-disable-next-line complexity
 	fnDownload(): void {
 		const options = this.view.getSelectOptions(ViewID.exportFileSelect),
 			exportTokenized = this.view.getInputChecked(ViewID.exportTokenizedInput),
 			exportDSK = this.view.getInputChecked(ViewID.exportDSKInput),
+			format = this.view.getSelectValue(ViewID.exportDSKFormatSelect),
+			stripEmpty = this.view.getInputChecked(ViewID.exportDSKStripEmptyInput),
 			exportBase64 = this.view.getInputChecked(ViewID.exportBase64Input),
 			editorText = Controller.exportEditorText,
 			meta: FileMeta = {
@@ -2018,7 +2023,7 @@ export class Controller implements IController {
 
 			diskImage.setOptions({
 				diskName: "test",
-				data: diskImage.formatImage("data")
+				data: diskImage.formatImage(format) // data or system
 			});
 		}
 
@@ -2029,6 +2034,16 @@ export class Controller implements IController {
 				if (item.value === editorText) {
 					data = this.view.getAreaValue(ViewID.inputText);
 					name = this.fnGetFilename(data);
+
+					//if (!exportTokenized) {
+					const eolStr = data.indexOf("\r\n") > 0 ? "\r\n" : "\n"; // heuristic: if CRLF found, use it as split
+
+					//XXX eslint-disable-next-line max-depth
+					if (eolStr === "\n") {
+						data = data.replace(/\n/g, "\r\n"); //replace LF by CRLF
+					}
+					//}
+
 					meta.typeString = "A"; // ASCII
 					meta.start = 0x170;
 					meta.length = data.length;
@@ -2090,6 +2105,10 @@ export class Controller implements IController {
 		}
 
 		if (diskImage) {
+			if (stripEmpty) {
+				data = diskImage.stripEmptyTracks();
+			}
+
 			if (exportBase64) {
 				fnExportBase64();
 			}
