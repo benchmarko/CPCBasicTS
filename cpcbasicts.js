@@ -8814,8 +8814,9 @@ define("Keyboard", ["require", "exports", "Utils"], function (require, exports, 
             return char;
         };
         Keyboard.prototype.fnKeyboardKeydown = function (event) {
-            var keyCode = event.which || event.keyCode, pressedKey = String(keyCode) + (event.code ? event.code : ""); // event.code available for e.g. Chrome, Firefox
-            var key = event.key || Keyboard.keyIdentifier2Char(event) || ""; // SliTaz web browser has not key but keyIdentifier
+            var keyCode = event.which || event.keyCode;
+            var pressedKey = String(keyCode) + (event.code ? event.code : ""), // event.code available for e.g. Chrome, Firefox
+            key = event.key || Keyboard.keyIdentifier2Char(event) || ""; // SliTaz web browser has not key but keyIdentifier
             if (!event.code && !this.codeStringsRemoved) { // event.code not available on e.g. IE, Edge
                 this.removeCodeStringsFromKeymap(); // remove code information from the mapping. Not all keys can be detected any more
                 this.codeStringsRemoved = true;
@@ -8824,6 +8825,10 @@ define("Keyboard", ["require", "exports", "Utils"], function (require, exports, 
                 Utils_14.Utils.console.log("fnKeyboardKeydown: keyCode=" + keyCode + " pressedKey=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
             }
             if (pressedKey in this.key2CpcKey) {
+                var numTabOffKey = this.simulatedNumLock === false ? Keyboard.numPadOffKeyMap[pressedKey] : undefined;
+                if (numTabOffKey) {
+                    pressedKey = numTabOffKey;
+                }
                 var cpcKey = this.key2CpcKey[pressedKey];
                 if (cpcKey === 85) { // map virtual cpc key 85 to 22 (english keyboard)
                     cpcKey = 22;
@@ -8866,22 +8871,37 @@ define("Keyboard", ["require", "exports", "Utils"], function (require, exports, 
                 this.putKeyInBuffer(key);
                 Utils_14.Utils.console.log("fnKeyboardKeydown: Partly unhandled key", pressedKey + ":", key);
             }
+            else if (pressedKey === "12NumLock") { // key = "Clear"; MacOS
+                this.simulatedNumLock = this.simulatedNumLock !== undefined ? !this.simulatedNumLock : false;
+                if (Utils_14.Utils.debug > 1) {
+                    Utils_14.Utils.console.log("fnKeyboardKeydown: simulatedNumLock=" + this.simulatedNumLock);
+                }
+            }
             else {
                 Utils_14.Utils.console.log("fnKeyboardKeydown: Unhandled key", pressedKey + ":", key);
             }
         };
         Keyboard.prototype.fnKeyboardKeyup = function (event) {
-            var keyCode = event.which || event.keyCode, pressedKey = String(keyCode) + (event.code ? event.code : ""), // event.code available for e.g. Chrome, Firefox
-            key = event.key || Keyboard.keyIdentifier2Char(event) || ""; // SliTaz web browser has not key but keyIdentifier
+            var keyCode = event.which || event.keyCode, key = event.key || Keyboard.keyIdentifier2Char(event) || ""; // SliTaz web browser has not key but keyIdentifier
+            var pressedKey = String(keyCode) + (event.code ? event.code : ""); // event.code available for e.g. Chrome, Firefox
             if (Utils_14.Utils.debug > 1) {
                 Utils_14.Utils.console.log("fnKeyboardKeyup: keyCode=" + keyCode + " pressedKey=" + pressedKey + " key='" + key + "' " + key.charCodeAt(0) + " loc=" + event.location + " ", event);
             }
             if (pressedKey in this.key2CpcKey) {
+                var numTabOffKey = this.simulatedNumLock === false ? Keyboard.numPadOffKeyMap[pressedKey] : undefined;
+                if (numTabOffKey) {
+                    pressedKey = numTabOffKey;
+                }
                 var cpcKey = this.key2CpcKey[pressedKey];
                 if (cpcKey === 85) { // map virtual cpc key 85 to 22 (english keyboard)
                     cpcKey = 22;
                 }
                 this.fnReleaseCpcKey(event, cpcKey, pressedKey, key);
+            }
+            else if (pressedKey === "12NumLock") { // key = "Clear"; MacOS
+                if (Utils_14.Utils.debug > 1) {
+                    Utils_14.Utils.console.log("fnKeyboardKeyup: simulatedNumLock=" + this.simulatedNumLock);
+                }
             }
             else {
                 Utils_14.Utils.console.log("fnKeyboardKeyup: Unhandled key", pressedKey + ":", key);
@@ -9140,6 +9160,19 @@ define("Keyboard", ["require", "exports", "Utils"], function (require, exports, 
             [72, 73, 74, 75, 76, 77],
             [48, 49, 50, 51, 52, 53]
         ];
+        Keyboard.numPadOffKeyMap = {
+            "96Numpad0": "45Numpad0",
+            "97Numpad1": "35Numpad1",
+            "98Numpad2": "40Numpad2",
+            "99Numpad3": "34Numpad3",
+            "100Numpad4": "37Numpad4",
+            "101Numpad5": "12Numpad5",
+            "102Numpad6": "39Numpad6",
+            "103Numpad7": "36Numpad7",
+            "104Numpad8": "38Numpad8",
+            "105Numpad9": "33Numpad9",
+            "110NumpadDecimal": "46NumpadDecimal"
+        };
         return Keyboard;
     }());
     exports.Keyboard = Keyboard;

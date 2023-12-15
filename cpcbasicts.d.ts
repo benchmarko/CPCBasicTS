@@ -1178,6 +1178,7 @@ declare module "Keyboard" {
         private key2CpcKey;
         private codeStringsRemoved;
         private pressedKeys;
+        private simulatedNumLock?;
         constructor(options: KeyboardOptions);
         getOptions(): KeyboardOptions;
         setOptions(options: Partial<KeyboardOptions>): void;
@@ -1193,6 +1194,7 @@ declare module "Keyboard" {
         fnPressCpcKey(event: KeyboardEvent | PointerEvent, cpcKeyCode: number, pressedKey: string, key: string): void;
         fnReleaseCpcKey(event: KeyboardEvent | PointerEvent, cpcKeyCode: number, pressedKey: string, key: string): void;
         private static keyIdentifier2Char;
+        private static readonly numPadOffKeyMap;
         private fnKeyboardKeydown;
         private fnKeyboardKeyup;
         getKeyFromBuffer(): string;
