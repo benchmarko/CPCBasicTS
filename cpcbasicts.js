@@ -1074,7 +1074,8 @@ define("Utils", ["require", "exports"], function (require, exports) {
             if (len !== undefined) {
                 customError.len = len;
             }
-            if (line !== undefined) {
+            // Safari: Some additional properties are already defined: line, column. Shall we use "cause" property now?
+            if (line !== customError.line) {
                 customError.line = line;
             }
             if (hidden !== undefined) {
