@@ -187,7 +187,8 @@ export class Controller implements IController {
 			lexer: this.basicLexer,
 			parser: this.basicParser,
 			trace: model.getProperty<boolean>(ModelPropID.trace),
-			implicitLines: model.getProperty<boolean>(ModelPropID.implicitLines)
+			implicitLines: model.getProperty<boolean>(ModelPropID.implicitLines),
+			integerOverflow: model.getProperty<boolean>(ModelPropID.integerOverflow)
 		});
 
 		if (model.getProperty<boolean>(ModelPropID.sound)) { // activate sound needs user action
@@ -3110,6 +3111,14 @@ export class Controller implements IController {
 				implicitLines: implicitLines
 			});
 		}
+	}
+
+	fnIntegerOverflow(): void {
+		const integerOverflow = this.model.getProperty<boolean>(ModelPropID.integerOverflow);
+
+		this.codeGeneratorJs.setOptions({
+			integerOverflow: integerOverflow
+		});
 	}
 
 	fnTrace(): void {

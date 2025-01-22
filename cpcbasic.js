@@ -193,6 +193,7 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
             exampleIndex: "0index.js",
             implicitLines: false,
             input: "",
+            integerOverflow: false,
             kbdLayout: "alphanum",
             dragElements: false,
             palette: "color",

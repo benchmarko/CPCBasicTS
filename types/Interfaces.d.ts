@@ -146,6 +146,7 @@ export interface IController {
     undoStackElement: () => string;
     redoStackElement: () => string;
     fnImplicitLines: () => void;
+    fnIntegerOverflow: () => void;
     fnArrayBounds: () => void;
     fnTrace: () => void;
     fnSpeed: () => void;

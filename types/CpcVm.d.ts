@@ -187,6 +187,7 @@ export declare class CpcVm implements ICpcVm {
     private vmAssertInRange;
     vmRound(n: number | undefined, err?: string): number;
     vmInRangeRound(n: number | undefined, min: number, max: number, err: string): number;
+    vmInRange16(n: number, err?: string): number;
     private vmLineInRange;
     private vmRound2Complement;
     private vmGetLetterCode;

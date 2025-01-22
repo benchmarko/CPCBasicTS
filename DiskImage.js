@@ -286,8 +286,8 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             else {
                 throw this.composeError(Error(), "Unknown format with sector", String(firstSector));
             }
-            if (diskInfo.heads > 1) { // maybe 2
-                format += String(diskInfo.heads); // e.g. "data": "data2"
+            if (diskInfo.heads > 1) { // maybe 2 heads
+                format += DiskImage.twoHeads; // e.g. "data": "data2h"
             }
             if (Utils_1.Utils.debug > 1) {
                 Utils_1.Utils.console.debug("determineFormat: format=", format);
@@ -838,6 +838,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var header = __assign({ user: 0, name: "", ext: "", typeNumber: 0, start: 0, pseudoLen: 0, entry: 0, length: 0, typeString: "" }, parameter);
             return header;
         };
+        DiskImage.twoHeads = "2h";
         DiskImage.formatDescriptors = {
             data: {
                 tracks: 40,

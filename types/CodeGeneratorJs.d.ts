@@ -7,6 +7,7 @@ interface CodeGeneratorJsOptions {
     parser: BasicParser;
     implicitLines?: boolean;
     noCodeFrame?: boolean;
+    integerOverflow?: boolean;
     quiet?: boolean;
     trace?: boolean;
 }
@@ -47,7 +48,7 @@ export declare class CodeGeneratorJs {
     private static fnExtractVarName;
     private static fnGetNameTypeExpression;
     private static fnIsIntConst;
-    private static fnGetRoundString;
+    private fnGetRoundString;
     private static fnIsInString;
     private fnPropagateStaticTypes;
     private plus;
@@ -59,7 +60,7 @@ export declare class CodeGeneratorJs {
     private and;
     private or;
     private xor;
-    private static not;
+    private not;
     private mod;
     private greater;
     private less;

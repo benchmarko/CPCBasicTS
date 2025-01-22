@@ -640,6 +640,13 @@ export class CommonEventHandler implements EventListenerObject {
 						controllerFunc: this.controller.fnImplicitLines
 					},
 					{
+						id: ViewID.integerOverflowInput,
+						viewType: "checked",
+						property: ModelPropID.integerOverflow,
+						func: this.onCheckedChange,
+						controllerFunc: this.controller.fnIntegerOverflow
+					},
+					{
 						id: ViewID.kbdLayoutSelect,
 						viewType: "select",
 						property: ModelPropID.kbdLayout,

@@ -178,7 +178,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 lexer: this.basicLexer,
                 parser: this.basicParser,
                 trace: model.getProperty("trace" /* ModelPropID.trace */),
-                implicitLines: model.getProperty("implicitLines" /* ModelPropID.implicitLines */)
+                implicitLines: model.getProperty("implicitLines" /* ModelPropID.implicitLines */),
+                integerOverflow: model.getProperty("integerOverflow" /* ModelPropID.integerOverflow */)
             });
             if (model.getProperty("sound" /* ModelPropID.sound */)) { // activate sound needs user action
                 this.setSoundActive(); // activate in waiting state
@@ -2434,6 +2435,12 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     implicitLines: implicitLines
                 });
             }
+        };
+        Controller.prototype.fnIntegerOverflow = function () {
+            var integerOverflow = this.model.getProperty("integerOverflow" /* ModelPropID.integerOverflow */);
+            this.codeGeneratorJs.setOptions({
+                integerOverflow: integerOverflow
+            });
         };
         Controller.prototype.fnTrace = function () {
             var trace = this.model.getProperty("trace" /* ModelPropID.trace */);

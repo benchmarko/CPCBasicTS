@@ -33,6 +33,7 @@ export declare class DiskImage {
     constructor(options: DiskImageOptions);
     getOptions(): DiskImageOptions;
     setOptions(options: Partial<DiskImageOptions>): void;
+    private static readonly twoHeads;
     private static readonly formatDescriptors;
     private static getInitialDiskInfo;
     private getFormatDescriptor;

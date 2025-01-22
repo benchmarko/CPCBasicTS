@@ -15,6 +15,7 @@ interface CodeGeneratorJsOptions {
 	parser: BasicParser
 	implicitLines?: boolean // generate missing line numbers
 	noCodeFrame?: boolean // suppress generation of a code frame
+	integerOverflow?: boolean // check for integer overflow
 	quiet?: boolean // quiet mode: suppress most warnings
 	trace?: boolean
 }
@@ -341,11 +342,11 @@ export class CodeGeneratorJs {
 		return reIntConst.test(a);
 	}
 
-	private static fnGetRoundString(node: CodeNode) {
+	private fnGetRoundString(node: CodeNode, err: string) {
 		if (node.pt !== "I") { // no rounding needed for integer, hex, binary constants, integer variables, functions returning integer (optimization)
 			node.pv = "o.vmRound(" + node.pv + ")";
 		}
-		return node.pv;
+		return this.options.integerOverflow ? "o.vmInRange16(" + node.pv + ', "' + err + '")' : node.pv;
 	}
 
 	private static fnIsInString(string: string, find: string) {
@@ -421,7 +422,7 @@ export class CodeGeneratorJs {
 	}
 
 	private intDiv(node: CodeNode, left: CodeNode, right: CodeNode) { // "\\"
-		node.pv = "(" + left.pv + " / " + right.pv + ") | 0"; // integer division
+		node.pv = "(" + this.fnGetRoundString(left, "IDIV") + " / " + this.fnGetRoundString(right, "IDIV") + ") | 0"; // integer division
 		this.fnPropagateStaticTypes(node, left, right, "II RR IR RI");
 		node.pt = "I";
 	}
@@ -432,30 +433,30 @@ export class CodeGeneratorJs {
 	}
 
 	private and(node: CodeNode, left: CodeNode, right: CodeNode) {
-		node.pv = CodeGeneratorJs.fnGetRoundString(left) + " & " + CodeGeneratorJs.fnGetRoundString(right);
+		node.pv = this.fnGetRoundString(left, "AND") + " & " + this.fnGetRoundString(right, "AND");
 		this.fnPropagateStaticTypes(node, left, right, "II RR IR RI");
 		node.pt = "I";
 	}
 
 	private or(node: CodeNode, left: CodeNode, right: CodeNode) {
-		node.pv = CodeGeneratorJs.fnGetRoundString(left) + " | " + CodeGeneratorJs.fnGetRoundString(right);
+		node.pv = this.fnGetRoundString(left, "OR") + " | " + this.fnGetRoundString(right, "OR");
 		this.fnPropagateStaticTypes(node, left, right, "II RR IR RI");
 		node.pt = "I";
 	}
 
 	private xor(node: CodeNode, left: CodeNode, right: CodeNode) {
-		node.pv = CodeGeneratorJs.fnGetRoundString(left) + " ^ " + CodeGeneratorJs.fnGetRoundString(right);
+		node.pv = this.fnGetRoundString(left, "XOR") + " ^ " + this.fnGetRoundString(right, "XOR");
 		this.fnPropagateStaticTypes(node, left, right, "II RR IR RI");
 		node.pt = "I";
 	}
 
-	private static not(node: CodeNode, _oLeft: CodeNode | undefined, right: CodeNode) { // (unary operator)
-		node.pv = "~(" + CodeGeneratorJs.fnGetRoundString(right) + ")"; // a can be an expression
+	private not(node: CodeNode, _oLeft: CodeNode | undefined, right: CodeNode) { // (unary operator)
+		node.pv = "~(" + this.fnGetRoundString(right, "NOT") + ")"; // a can be an expression
 		node.pt = "I";
 	}
 
 	private mod(node: CodeNode, left: CodeNode, right: CodeNode) {
-		node.pv = CodeGeneratorJs.fnGetRoundString(left) + " % " + CodeGeneratorJs.fnGetRoundString(right);
+		node.pv = this.fnGetRoundString(left, "MOD") + " % " + this.fnGetRoundString(right, "MOD");
 		this.fnPropagateStaticTypes(node, left, right, "II RR IR RI");
 		node.pt = "I";
 	}
@@ -525,7 +526,7 @@ export class CodeGeneratorJs {
 		and: this.and,
 		or: this.or,
 		xor: this.xor,
-		not: CodeGeneratorJs.not,
+		not: this.not,
 		mod: this.mod,
 		">": this.greater,
 		"<": this.less,
@@ -540,7 +541,7 @@ export class CodeGeneratorJs {
 	private unaryOperators: Record<string, (node: CodeNode, left: undefined, right: CodeNode) => void> = { // to call methods, use unaryOperators[].call(this,...)
 		"+": this.plus,
 		"-": this.minus,
-		not: CodeGeneratorJs.not,
+		not: this.not,
 		"@": this.addressOf,
 		"#": CodeGeneratorJs.stream
 	};

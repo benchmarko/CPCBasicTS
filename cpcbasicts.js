@@ -778,6 +778,7 @@ define("Constants", ["require", "exports"], function (require, exports) {
         ModelPropID["exampleIndex"] = "exampleIndex";
         ModelPropID["implicitLines"] = "implicitLines";
         ModelPropID["input"] = "input";
+        ModelPropID["integerOverflow"] = "integerOverflow";
         ModelPropID["kbdLayout"] = "kbdLayout";
         ModelPropID["dragElements"] = "dragElements";
         ModelPropID["palette"] = "palette";
@@ -847,6 +848,7 @@ define("Constants", ["require", "exports"], function (require, exports) {
         ViewID["inp2Text"] = "inp2Text";
         ViewID["inputArea"] = "inputArea";
         ViewID["inputText"] = "inputText";
+        ViewID["integerOverflowInput"] = "integerOverflowInput";
         ViewID["kbdAlpha"] = "kbdAlpha";
         ViewID["kbdArea"] = "kbdArea";
         ViewID["kbdAreaInner"] = "kbdAreaInner";
@@ -4767,7 +4769,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
                 and: this.and,
                 or: this.or,
                 xor: this.xor,
-                not: CodeGeneratorJs.not,
+                not: this.not,
                 mod: this.mod,
                 ">": this.greater,
                 "<": this.less,
@@ -4781,7 +4783,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             this.unaryOperators = {
                 "+": this.plus,
                 "-": this.minus,
-                not: CodeGeneratorJs.not,
+                not: this.not,
                 "@": this.addressOf,
                 "#": CodeGeneratorJs.stream
             };
@@ -5030,11 +5032,11 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             var reIntConst = /^[+-]?(\d+|0x[0-9a-f]+|0b[0-1]+)$/; // regex for integer, hex, binary constant
             return reIntConst.test(a);
         };
-        CodeGeneratorJs.fnGetRoundString = function (node) {
+        CodeGeneratorJs.prototype.fnGetRoundString = function (node, err) {
             if (node.pt !== "I") { // no rounding needed for integer, hex, binary constants, integer variables, functions returning integer (optimization)
                 node.pv = "o.vmRound(" + node.pv + ")";
             }
-            return node.pv;
+            return this.options.integerOverflow ? "o.vmInRange16(" + node.pv + ', "' + err + '")' : node.pv;
         };
         CodeGeneratorJs.fnIsInString = function (string, find) {
             return find && string.indexOf(find) >= 0;
@@ -5106,7 +5108,7 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             node.pt = "R"; // event II can get a fraction
         };
         CodeGeneratorJs.prototype.intDiv = function (node, left, right) {
-            node.pv = "(" + left.pv + " / " + right.pv + ") | 0"; // integer division
+            node.pv = "(" + this.fnGetRoundString(left, "IDIV") + " / " + this.fnGetRoundString(right, "IDIV") + ") | 0"; // integer division
             this.fnPropagateStaticTypes(node, left, right, "II RR IR RI");
             node.pt = "I";
         };
@@ -5115,26 +5117,26 @@ define("CodeGeneratorJs", ["require", "exports", "Utils"], function (require, ex
             this.fnPropagateStaticTypes(node, left, right, "II RR IR RI");
         };
         CodeGeneratorJs.prototype.and = function (node, left, right) {
-            node.pv = CodeGeneratorJs.fnGetRoundString(left) + " & " + CodeGeneratorJs.fnGetRoundString(right);
+            node.pv = this.fnGetRoundString(left, "AND") + " & " + this.fnGetRoundString(right, "AND");
             this.fnPropagateStaticTypes(node, left, right, "II RR IR RI");
             node.pt = "I";
         };
         CodeGeneratorJs.prototype.or = function (node, left, right) {
-            node.pv = CodeGeneratorJs.fnGetRoundString(left) + " | " + CodeGeneratorJs.fnGetRoundString(right);
+            node.pv = this.fnGetRoundString(left, "OR") + " | " + this.fnGetRoundString(right, "OR");
             this.fnPropagateStaticTypes(node, left, right, "II RR IR RI");
             node.pt = "I";
         };
         CodeGeneratorJs.prototype.xor = function (node, left, right) {
-            node.pv = CodeGeneratorJs.fnGetRoundString(left) + " ^ " + CodeGeneratorJs.fnGetRoundString(right);
+            node.pv = this.fnGetRoundString(left, "XOR") + " ^ " + this.fnGetRoundString(right, "XOR");
             this.fnPropagateStaticTypes(node, left, right, "II RR IR RI");
             node.pt = "I";
         };
-        CodeGeneratorJs.not = function (node, _oLeft, right) {
-            node.pv = "~(" + CodeGeneratorJs.fnGetRoundString(right) + ")"; // a can be an expression
+        CodeGeneratorJs.prototype.not = function (node, _oLeft, right) {
+            node.pv = "~(" + this.fnGetRoundString(right, "NOT") + ")"; // a can be an expression
             node.pt = "I";
         };
         CodeGeneratorJs.prototype.mod = function (node, left, right) {
-            node.pv = CodeGeneratorJs.fnGetRoundString(left) + " % " + CodeGeneratorJs.fnGetRoundString(right);
+            node.pv = this.fnGetRoundString(left, "MOD") + " % " + this.fnGetRoundString(right, "MOD");
             this.fnPropagateStaticTypes(node, left, right, "II RR IR RI");
             node.pt = "I";
         };
@@ -7418,8 +7420,8 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             else {
                 throw this.composeError(Error(), "Unknown format with sector", String(firstSector));
             }
-            if (diskInfo.heads > 1) { // maybe 2
-                format += String(diskInfo.heads); // e.g. "data": "data2"
+            if (diskInfo.heads > 1) { // maybe 2 heads
+                format += DiskImage.twoHeads; // e.g. "data": "data2h"
             }
             if (Utils_11.Utils.debug > 1) {
                 Utils_11.Utils.console.debug("determineFormat: format=", format);
@@ -7970,6 +7972,7 @@ define("DiskImage", ["require", "exports", "Utils"], function (require, exports,
             var header = __assign({ user: 0, name: "", ext: "", typeNumber: 0, start: 0, pseudoLen: 0, entry: 0, length: 0, typeString: "" }, parameter);
             return header;
         };
+        DiskImage.twoHeads = "2h";
         DiskImage.formatDescriptors = {
             data: {
                 tracks: 40,
@@ -12029,6 +12032,13 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                         controllerFunc: this.controller.fnImplicitLines
                     },
                     {
+                        id: "integerOverflowInput" /* ViewID.integerOverflowInput */,
+                        viewType: "checked",
+                        property: "integerOverflow" /* ModelPropID.integerOverflow */,
+                        func: this.onCheckedChange,
+                        controllerFunc: this.controller.fnIntegerOverflow
+                    },
+                    {
                         id: "kbdLayoutSelect" /* ViewID.kbdLayoutSelect */,
                         viewType: "select",
                         property: "kbdLayout" /* ModelPropID.kbdLayout */,
@@ -13575,6 +13585,16 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             }
             return n;
         };
+        CpcVm.prototype.vmInRange16 = function (n, err) {
+            var min = -32768, max = 32767;
+            if (n < min || n > max) {
+                if (!this.quiet) {
+                    Utils_21.Utils.console.warn("vmInRange16: number not in range:", min + "<=" + n + "<=" + max);
+                }
+                throw this.vmComposeError(Error(), n < min || n > max ? 6 : 5, err + " " + n); // 6=Overflow, 5=Improper argument
+            }
+            return n;
+        };
         CpcVm.prototype.vmLineInRange = function (n, err) {
             var min = 1, max = 65535, num2 = this.vmRound(n, err);
             if (n !== num2) { // fractional number? => integer expected
@@ -13945,6 +13965,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             }
             return code;
         };
+        // and
         CpcVm.prototype.asc = function (s) {
             this.vmAssertString(s, "ASC");
             if (!s.length) {
@@ -16026,7 +16047,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
         CpcVm.prototype.right$ = function (s, len) {
             this.vmAssertString(s, "RIGHT$");
             len = this.vmInRangeRound(len, 0, 255, "RIGHT$");
-            return s.slice(-len);
+            return s.substring(s.length - len);
         };
         CpcVm.prototype.rnd = function (n) {
             if (n !== undefined) {
@@ -16561,6 +16582,7 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                 // currently we print data also to console...
             }
         };
+        // xor
         CpcVm.prototype.xpos = function () {
             return this.canvas.getXpos();
         };
@@ -18220,7 +18242,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 lexer: this.basicLexer,
                 parser: this.basicParser,
                 trace: model.getProperty("trace" /* ModelPropID.trace */),
-                implicitLines: model.getProperty("implicitLines" /* ModelPropID.implicitLines */)
+                implicitLines: model.getProperty("implicitLines" /* ModelPropID.implicitLines */),
+                integerOverflow: model.getProperty("integerOverflow" /* ModelPropID.integerOverflow */)
             });
             if (model.getProperty("sound" /* ModelPropID.sound */)) { // activate sound needs user action
                 this.setSoundActive(); // activate in waiting state
@@ -20477,6 +20500,12 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 });
             }
         };
+        Controller.prototype.fnIntegerOverflow = function () {
+            var integerOverflow = this.model.getProperty("integerOverflow" /* ModelPropID.integerOverflow */);
+            this.codeGeneratorJs.setOptions({
+                integerOverflow: integerOverflow
+            });
+        };
         Controller.prototype.fnTrace = function () {
             var trace = this.model.getProperty("trace" /* ModelPropID.trace */);
             this.codeGeneratorJs.setOptions({
@@ -20766,6 +20795,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             exampleIndex: "0index.js",
             implicitLines: false,
             input: "",
+            integerOverflow: false,
             kbdLayout: "alphanum",
             dragElements: false,
             palette: "color",

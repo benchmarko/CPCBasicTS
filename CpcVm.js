@@ -426,6 +426,16 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
             }
             return n;
         };
+        CpcVm.prototype.vmInRange16 = function (n, err) {
+            var min = -32768, max = 32767;
+            if (n < min || n > max) {
+                if (!this.quiet) {
+                    Utils_1.Utils.console.warn("vmInRange16: number not in range:", min + "<=" + n + "<=" + max);
+                }
+                throw this.vmComposeError(Error(), n < min || n > max ? 6 : 5, err + " " + n); // 6=Overflow, 5=Improper argument
+            }
+            return n;
+        };
         CpcVm.prototype.vmLineInRange = function (n, err) {
             var min = 1, max = 65535, num2 = this.vmRound(n, err);
             if (n !== num2) { // fractional number? => integer expected
@@ -796,6 +806,7 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
             }
             return code;
         };
+        // and
         CpcVm.prototype.asc = function (s) {
             this.vmAssertString(s, "ASC");
             if (!s.length) {
@@ -2877,7 +2888,7 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
         CpcVm.prototype.right$ = function (s, len) {
             this.vmAssertString(s, "RIGHT$");
             len = this.vmInRangeRound(len, 0, 255, "RIGHT$");
-            return s.slice(-len);
+            return s.substring(s.length - len);
         };
         CpcVm.prototype.rnd = function (n) {
             if (n !== undefined) {
@@ -3412,6 +3423,7 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
                 // currently we print data also to console...
             }
         };
+        // xor
         CpcVm.prototype.xpos = function () {
             return this.canvas.getXpos();
         };

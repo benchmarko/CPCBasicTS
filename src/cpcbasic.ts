@@ -28,6 +28,7 @@ class cpcBasic {
 		exampleIndex: "0index.js", // example index for every databaseDir
 		implicitLines: false, // allow implicit line numbers
 		input: "", // keyboard input when starting the app
+		integerOverflow: false, // check for integer overflow
 		kbdLayout: "alphanum", // alphanum, alpha, num
 		dragElements: false,
 		palette: "color", // "color", "green", "grey"

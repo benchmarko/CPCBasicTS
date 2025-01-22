@@ -507,6 +507,13 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                         controllerFunc: this.controller.fnImplicitLines
                     },
                     {
+                        id: "integerOverflowInput" /* ViewID.integerOverflowInput */,
+                        viewType: "checked",
+                        property: "integerOverflow" /* ModelPropID.integerOverflow */,
+                        func: this.onCheckedChange,
+                        controllerFunc: this.controller.fnIntegerOverflow
+                    },
+                    {
                         id: "kbdLayoutSelect" /* ViewID.kbdLayoutSelect */,
                         viewType: "select",
                         property: "kbdLayout" /* ModelPropID.kbdLayout */,

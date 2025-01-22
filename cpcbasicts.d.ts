@@ -24,6 +24,7 @@ declare module "Constants" {
         exampleIndex = "exampleIndex",
         implicitLines = "implicitLines",
         input = "input",
+        integerOverflow = "integerOverflow",
         kbdLayout = "kbdLayout",
         dragElements = "dragElements",
         palette = "palette",
@@ -92,6 +93,7 @@ declare module "Constants" {
         inp2Text = "inp2Text",
         inputArea = "inputArea",
         inputText = "inputText",
+        integerOverflowInput = "integerOverflowInput",
         kbdAlpha = "kbdAlpha",
         kbdArea = "kbdArea",
         kbdAreaInner = "kbdAreaInner",
@@ -340,6 +342,7 @@ declare module "Interfaces" {
         undoStackElement: () => string;
         redoStackElement: () => string;
         fnImplicitLines: () => void;
+        fnIntegerOverflow: () => void;
         fnArrayBounds: () => void;
         fnTrace: () => void;
         fnSpeed: () => void;
@@ -744,6 +747,7 @@ declare module "CodeGeneratorJs" {
         parser: BasicParser;
         implicitLines?: boolean;
         noCodeFrame?: boolean;
+        integerOverflow?: boolean;
         quiet?: boolean;
         trace?: boolean;
     }
@@ -784,7 +788,7 @@ declare module "CodeGeneratorJs" {
         private static fnExtractVarName;
         private static fnGetNameTypeExpression;
         private static fnIsIntConst;
-        private static fnGetRoundString;
+        private fnGetRoundString;
         private static fnIsInString;
         private fnPropagateStaticTypes;
         private plus;
@@ -796,7 +800,7 @@ declare module "CodeGeneratorJs" {
         private and;
         private or;
         private xor;
-        private static not;
+        private not;
         private mod;
         private greater;
         private less;
@@ -994,6 +998,7 @@ declare module "DiskImage" {
         constructor(options: DiskImageOptions);
         getOptions(): DiskImageOptions;
         setOptions(options: Partial<DiskImageOptions>): void;
+        private static readonly twoHeads;
         private static readonly formatDescriptors;
         private static getInitialDiskInfo;
         private getFormatDescriptor;
@@ -1887,6 +1892,7 @@ declare module "CpcVm" {
         private vmAssertInRange;
         vmRound(n: number | undefined, err?: string): number;
         vmInRangeRound(n: number | undefined, min: number, max: number, err: string): number;
+        vmInRange16(n: number, err?: string): number;
         private vmLineInRange;
         private vmRound2Complement;
         private vmGetLetterCode;
@@ -2570,6 +2576,7 @@ declare module "Controller" {
         onWindowClick(event: Event): void;
         fnArrayBounds(): void;
         fnImplicitLines(): void;
+        fnIntegerOverflow(): void;
         fnTrace(): void;
         fnSpeed(): void;
         private readonly handlers;

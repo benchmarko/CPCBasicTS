@@ -1436,7 +1436,7 @@ define(["require", "exports", "../Utils", "../CpcVm", "./TestHelper"], function 
             '""': 'CpcVm: Unexpected RETURN in 0:  -- {"_key":"stop","reason":"error","priority":50,"paras":{}}'
         },
         right$: {
-            '"abc",0': "abc",
+            '"abc",0': "",
             '"abc",1': "c",
             '"abc",2': "bc",
             '"abc",4': "abc",
