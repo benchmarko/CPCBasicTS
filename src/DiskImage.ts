@@ -141,6 +141,8 @@ export class DiskImage {
 		}
 	}
 
+	private static readonly twoHeads = "2h";
+
 	private static readonly formatDescriptors: PartialFormatDescriptorMap = {
 		data: {
 			tracks: 40, // number of tracks (1-85)
@@ -557,8 +559,8 @@ export class DiskImage {
 			throw this.composeError(Error(), "Unknown format with sector", String(firstSector));
 		}
 
-		if (diskInfo.heads > 1) { // maybe 2
-			format += String(diskInfo.heads); // e.g. "data": "data2"
+		if (diskInfo.heads > 1) { // maybe 2 heads
+			format += DiskImage.twoHeads; // e.g. "data": "data2h"
 		}
 
 		if (Utils.debug > 1) {

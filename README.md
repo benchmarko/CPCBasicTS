@@ -247,6 +247,7 @@ These URL parameters are also put in the URL when you press the *Reload* button 
 - exampleIndex=0index.js (example index file in every entry of exampleDirs)
 - implicitLines=false (allow implicit line numbers)
 - input= (keyboard input when starting the app, use %0D as return charcter)
+- integerOverflow=false (check for integer overflow in integer DIV, MOD, AND, OR, XOR, NOT)
 - kbdLayout=alphanum (virtual keyboard layout: alphanum, alpha, num)
 - canvasType="graphics" ("graphics", "text", "none")
 - palette="color" ("color", "green", "grey")

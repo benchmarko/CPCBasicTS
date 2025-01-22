@@ -845,6 +845,19 @@ export class CpcVm implements ICpcVm {
 		return n;
 	}
 
+	vmInRange16(n: number, err?: string): number {
+		const min = -32768,
+			max = 32767;
+
+		if (n < min || n > max) {
+			if (!this.quiet) {
+				Utils.console.warn("vmInRange16: number not in range:", min + "<=" + n + "<=" + max);
+			}
+			throw this.vmComposeError(Error(), n < min || n > max ? 6 : 5, err + " " + n); // 6=Overflow, 5=Improper argument
+		}
+		return n;
+	}
+
 	private vmLineInRange(n: number | undefined, err: string) {
 		const min = 1,
 			max = 65535,
@@ -1294,6 +1307,8 @@ export class CpcVm implements ICpcVm {
 		}
 		return code;
 	}
+
+	// and
 
 	asc(s: string): number {
 		this.vmAssertString(s, "ASC");
@@ -3640,7 +3655,7 @@ export class CpcVm implements ICpcVm {
 	right$(s: string, len: number): string {
 		this.vmAssertString(s, "RIGHT$");
 		len = this.vmInRangeRound(len, 0, 255, "RIGHT$");
-		return s.slice(-len);
+		return s.substring(s.length - len);
 	}
 
 	rnd(n?: number): number {
@@ -4266,6 +4281,8 @@ export class CpcVm implements ICpcVm {
 			// currently we print data also to console...
 		}
 	}
+
+	// xor
 
 	xpos(): number {
 		return this.canvas.getXpos();

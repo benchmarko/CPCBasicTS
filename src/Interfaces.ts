@@ -178,6 +178,7 @@ export interface IController {
     redoStackElement: () => string
 
     fnImplicitLines: () => void
+    fnIntegerOverflow: () => void
     fnArrayBounds: () => void
     fnTrace: () => void
     fnSpeed: () => void
