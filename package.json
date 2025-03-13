@@ -1,6 +1,6 @@
 {
   "name": "cpcbasicts",
-  "version": "0.2.14",
+  "version": "0.2.15",
   "description": "# CPCBasicTS - Run CPC BASIC in a Browser",
   "main": "src/cpcbasic.ts",
   "directories": {
@@ -30,7 +30,7 @@
     "copy": "cp src/*.html src/*.css LICENSE favicon.ico dist/ && mkdirp -p dist/src && cp -r src/*.ts dist/src && mkdirp -p dist/src/test && cp -r src/test/*.ts dist/src/test && cp src/test/*.html dist/test/ && mkdirp -p dist/examples && cp -r examples/* dist/examples && mkdirp -p dist/img && cp img/* dist/img",
     "build:one": "tsc --build src/tsconfig-one.json",
     "build:separate": "tsc --build",
-    "build": "npm run build:separate && npm run build:one && npm run copy",
+    "build": "npm run build:separate && npm run build:one && node updateVersion.js && npm run copy",
     "testnode": "node dist/cpcbasicts.js sound=false canvasType=text example=test/testpage",
     "test": "qunit --require ./dist/Polyfills.js --require ./dist/amdLoader.js dist/test/*.qunit.js",
     "deploy": "gh-pages -d dist",
