@@ -520,6 +520,12 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                         func: this.onKbdLayoutSelectChange
                     },
                     {
+                        id: "linesOnLoadInput" /* ViewID.linesOnLoadInput */,
+                        viewType: "checked",
+                        property: "linesOnLoad" /* ModelPropID.linesOnLoad */,
+                        func: this.onCheckedChange
+                    },
+                    {
                         id: "dragElementsInput" /* ViewID.dragElementsInput */,
                         viewType: "checked",
                         property: "dragElements" /* ModelPropID.dragElements */,

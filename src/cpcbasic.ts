@@ -30,6 +30,7 @@ class cpcBasic {
 		input: "", // keyboard input when starting the app
 		integerOverflow: false, // check for integer overflow
 		kbdLayout: "alphanum", // alphanum, alpha, num
+		linesOnLoad: true, // add missing line numbers on load
 		dragElements: false,
 		palette: "color", // "color", "green", "grey"
 		processFileImports: true, // open ZIP, DSK files on import

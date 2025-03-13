@@ -653,6 +653,12 @@ export class CommonEventHandler implements EventListenerObject {
 						func: this.onKbdLayoutSelectChange
 					},
 					{
+						id: ViewID.linesOnLoadInput,
+						viewType: "checked",
+						property: ModelPropID.linesOnLoad,
+						func: this.onCheckedChange
+					},
+					{
 						id: ViewID.dragElementsInput,
 						viewType: "checked",
 						property: ModelPropID.dragElements,

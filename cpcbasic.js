@@ -195,6 +195,7 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
             input: "",
             integerOverflow: false,
             kbdLayout: "alphanum",
+            linesOnLoad: true,
             dragElements: false,
             palette: "color",
             processFileImports: true,

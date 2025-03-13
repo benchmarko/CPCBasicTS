@@ -113,6 +113,19 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
                 cpcBasic.model.setExample(index[i]);
             }
         };
+        cpcBasic.addLineNumbers = function (input) {
+            var lineParts = input.split("\n");
+            var lastLine = 0;
+            for (var i = 0; i < lineParts.length; i += 1) {
+                var lineNum = parseInt(lineParts[i], 10);
+                if (isNaN(lineNum)) {
+                    lineNum = lastLine + 1;
+                    lineParts[i] = String(lastLine + 1) + " " + lineParts[i];
+                }
+                lastLine = lineNum;
+            }
+            return lineParts.join("\n");
+        };
         // Also called from example files xxxxx.js
         cpcBasic.addItem2 = function (key, input) {
             if (!key) { // maybe ""
@@ -120,6 +133,10 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
             }
             input = input.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
             // beware of data files ending with newlines! (do not use trimEnd)
+            var implicitLines = false, linesOnLoad = true;
+            if (input.startsWith("REM ") && !implicitLines && linesOnLoad) {
+                input = cpcBasic.addLineNumbers(input);
+            }
             var example = cpcBasic.model.getExample(key);
             example.key = key; // maybe changed
             example.script = input;
@@ -341,10 +358,23 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
         }
         return input;
     }
+    // needed for example "rosetta/execute" which has a line without line number
+    function hasLineNumbers(input) {
+        var hasNumbers = true;
+        var lineParts = input.split("\n");
+        for (var i = 0; i < lineParts.length; i += 1) {
+            var lineNum = parseInt(lineParts[i], 10);
+            if (isNaN(lineNum)) {
+                hasNumbers = false;
+                break;
+            }
+        }
+        return hasNumbers;
+    }
     function testParseExample(example) {
         var codeGeneratorJs = cpcBasic.codeGeneratorJs, codeGeneratorToken = cpcBasic.codeGeneratorToken, basicTokenizer = cpcBasic.basicTokenizer, script = example.script || "", input = testCheckMeta(script);
         var checks = "", output, fnScript; // eslint-disable-line @typescript-eslint/ban-types
-        if (example.meta !== "D") { // skip data files  && example.meta !== "X" && example.meta !== "Z") { // skip data, dsk and zip files
+        if (example.meta !== "D" && hasLineNumbers(input)) { // skip data files  && example.meta !== "X" && example.meta !== "Z") { // skip data, dsk and zip files
             checks = "Js";
             var variables = cpcBasic.vmMock.testVariables1;
             // test lexer, parser and JS code generator

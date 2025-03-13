@@ -780,6 +780,7 @@ define("Constants", ["require", "exports"], function (require, exports) {
         ModelPropID["input"] = "input";
         ModelPropID["integerOverflow"] = "integerOverflow";
         ModelPropID["kbdLayout"] = "kbdLayout";
+        ModelPropID["linesOnLoad"] = "linesOnLoad";
         ModelPropID["dragElements"] = "dragElements";
         ModelPropID["palette"] = "palette";
         ModelPropID["processFileImports"] = "processFileImports";
@@ -856,6 +857,7 @@ define("Constants", ["require", "exports"], function (require, exports) {
         ViewID["kbdNum"] = "kbdNum";
         ViewID["lineNumberAddButton"] = "lineNumberAddButton";
         ViewID["lineNumberRemoveButton"] = "lineNumberRemoveButton";
+        ViewID["linesOnLoadInput"] = "linesOnLoadInput";
         ViewID["mainArea"] = "mainArea";
         ViewID["moreArea"] = "moreArea";
         ViewID["moreButton"] = "moreButton";
@@ -12045,6 +12047,12 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                         func: this.onKbdLayoutSelectChange
                     },
                     {
+                        id: "linesOnLoadInput" /* ViewID.linesOnLoadInput */,
+                        viewType: "checked",
+                        property: "linesOnLoad" /* ModelPropID.linesOnLoad */,
+                        func: this.onCheckedChange
+                    },
+                    {
                         id: "dragElementsInput" /* ViewID.dragElementsInput */,
                         viewType: "checked",
                         property: "dragElements" /* ModelPropID.dragElements */,
@@ -18299,6 +18307,10 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
             input = input.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
             // beware of data files ending with newlines! (do not use trimEnd)
+            var implicitLines = this.model.getProperty("implicitLines" /* ModelPropID.implicitLines */), linesOnLoad = this.model.getProperty("linesOnLoad" /* ModelPropID.linesOnLoad */);
+            if (input.startsWith("REM ") && !implicitLines && linesOnLoad) {
+                input = Controller.addLineNumbers(input);
+            }
             var example = this.model.getExample(key);
             example.key = key; // maybe changed
             example.script = input;
@@ -20797,6 +20809,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             input: "",
             integerOverflow: false,
             kbdLayout: "alphanum",
+            linesOnLoad: true,
             dragElements: false,
             palette: "color",
             processFileImports: true,

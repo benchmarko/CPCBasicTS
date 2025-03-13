@@ -22,6 +22,7 @@ define(["require", "exports"], function (require, exports) {
         ModelPropID["input"] = "input";
         ModelPropID["integerOverflow"] = "integerOverflow";
         ModelPropID["kbdLayout"] = "kbdLayout";
+        ModelPropID["linesOnLoad"] = "linesOnLoad";
         ModelPropID["dragElements"] = "dragElements";
         ModelPropID["palette"] = "palette";
         ModelPropID["processFileImports"] = "processFileImports";
@@ -98,6 +99,7 @@ define(["require", "exports"], function (require, exports) {
         ViewID["kbdNum"] = "kbdNum";
         ViewID["lineNumberAddButton"] = "lineNumberAddButton";
         ViewID["lineNumberRemoveButton"] = "lineNumberRemoveButton";
+        ViewID["linesOnLoadInput"] = "linesOnLoadInput";
         ViewID["mainArea"] = "mainArea";
         ViewID["moreArea"] = "moreArea";
         ViewID["moreButton"] = "moreButton";

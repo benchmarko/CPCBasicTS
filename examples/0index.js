@@ -23,10 +23,6 @@ cpcBasic.addIndex("./examples", function () { /*
 		"meta": "D"
 	},
 	{
-		"key": "test/testspec",
-		"title": "Test Special TS"
-	},
-	{
 		"key": "test/testrsx",
 		"title": "Test RSX TS"
 	},
@@ -34,6 +30,14 @@ cpcBasic.addIndex("./examples", function () { /*
 		"key": "test/testrsx.rsx",
 		"title": "Test RSX TS: JS module",
 		"meta": "D"
+	},
+	{
+		"key": "test/testspec",
+		"title": "Test Special TS"
+	},
+	{
+		"key": "test/testsub",
+		"title": "Test Subroutines TS"
 	}
 ]
 */ });

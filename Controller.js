@@ -235,6 +235,10 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             }
             input = input.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
             // beware of data files ending with newlines! (do not use trimEnd)
+            var implicitLines = this.model.getProperty("implicitLines" /* ModelPropID.implicitLines */), linesOnLoad = this.model.getProperty("linesOnLoad" /* ModelPropID.linesOnLoad */);
+            if (input.startsWith("REM ") && !implicitLines && linesOnLoad) {
+                input = Controller.addLineNumbers(input);
+            }
             var example = this.model.getExample(key);
             example.key = key; // maybe changed
             example.script = input;
