@@ -34,6 +34,7 @@ class cpcBasic {
 		dragElements: false,
 		palette: "color", // "color", "green", "grey"
 		processFileImports: true, // open ZIP, DSK files on import
+		selectDataFiles: false, // select data files in example selection
 		showConsoleLog: false,
 		showConvert: false,
 		showCpc: true,

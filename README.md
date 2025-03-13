@@ -252,6 +252,7 @@ These URL parameters are also put in the URL when you press the *Reload* button 
 - kbdLayout=alphanum (virtual keyboard layout: alphanum, alpha, num)
 - linesOnLoad=true (add missing line numbers on load, if script starts with "REM " and not in implicitLines mode)
 - palette="color" ("color", "green", "grey")
+- selectDataFiles=false (select data files in example selection)
 - showConsoleLog=false
 - showConvert=false,
 - showCpc=true (show the CPC window)

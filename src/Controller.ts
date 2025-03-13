@@ -389,7 +389,8 @@ export class Controller implements IController {
 			items: SelectOptionElement[] = [],
 			exampleName = Controller.getNameFromExample(this.model.getProperty<string>(ModelPropID.example)),
 			allExamples = this.model.getAllExamples(),
-			directoryName = this.view.getSelectValue(ViewID.directorySelect);
+			directoryName = this.view.getSelectValue(ViewID.directorySelect),
+			selectDataFiles = this.model.getProperty<boolean>(ModelPropID.selectDataFiles);
 
 		let exampleSelected = false;
 
@@ -398,7 +399,7 @@ export class Controller implements IController {
 				const exampleEntry = allExamples[key],
 					exampleName2 = Controller.getNameFromExample(exampleEntry.key);
 
-				if (exampleEntry.meta !== "D") { // skip data files
+				if (selectDataFiles || (exampleEntry.meta !== "D")) { // skip data files
 					const title = (exampleName2 + ": " + exampleEntry.title).substring(0, maxTitleLength),
 						item: SelectOptionElement = {
 							value: exampleName2,
