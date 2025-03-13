@@ -310,12 +310,12 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         };
         Controller.prototype.setExampleSelectOptions = function () {
             var maxTitleLength = 160, maxTextLength = 60, // (32 visible?)
-            items = [], exampleName = Controller.getNameFromExample(this.model.getProperty("example" /* ModelPropID.example */)), allExamples = this.model.getAllExamples(), directoryName = this.view.getSelectValue("directorySelect" /* ViewID.directorySelect */);
+            items = [], exampleName = Controller.getNameFromExample(this.model.getProperty("example" /* ModelPropID.example */)), allExamples = this.model.getAllExamples(), directoryName = this.view.getSelectValue("directorySelect" /* ViewID.directorySelect */), selectDataFiles = this.model.getProperty("selectDataFiles" /* ModelPropID.selectDataFiles */);
             var exampleSelected = false;
             for (var key in allExamples) {
                 if (allExamples.hasOwnProperty(key) && (Controller.getPathFromExample(key) === directoryName)) {
                     var exampleEntry = allExamples[key], exampleName2 = Controller.getNameFromExample(exampleEntry.key);
-                    if (exampleEntry.meta !== "D") { // skip data files
+                    if (selectDataFiles || (exampleEntry.meta !== "D")) { // skip data files
                         var title = (exampleName2 + ": " + exampleEntry.title).substring(0, maxTitleLength), item = {
                             value: exampleName2,
                             title: title,

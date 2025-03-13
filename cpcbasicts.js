@@ -784,6 +784,7 @@ define("Constants", ["require", "exports"], function (require, exports) {
         ModelPropID["dragElements"] = "dragElements";
         ModelPropID["palette"] = "palette";
         ModelPropID["processFileImports"] = "processFileImports";
+        ModelPropID["selectDataFiles"] = "selectDataFiles";
         ModelPropID["showConsoleLog"] = "showConsoleLog";
         ModelPropID["showConvert"] = "showConvert";
         ModelPropID["showCpc"] = "showCpc";
@@ -887,6 +888,7 @@ define("Constants", ["require", "exports"], function (require, exports) {
         ViewID["runButton"] = "runButton";
         ViewID["screenshotButton"] = "screenshotButton";
         ViewID["screenshotLink"] = "screenshotLink";
+        ViewID["selectDataFilesInput"] = "selectDataFilesInput";
         ViewID["settingsArea"] = "settingsArea";
         ViewID["settingsButton"] = "settingsButton";
         ViewID["showConsoleLogInput"] = "showConsoleLogInput";
@@ -12069,6 +12071,12 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                         func: this.onPaletteSelectChange
                     },
                     {
+                        id: "selectDataFilesInput" /* ViewID.selectDataFilesInput */,
+                        viewType: "checked",
+                        property: "selectDataFiles" /* ModelPropID.selectDataFiles */,
+                        func: this.onCheckedChange
+                    },
+                    {
                         id: "showConsoleLogInput" /* ViewID.showConsoleLogInput */,
                         viewType: "checked",
                         toggleId: "consoleLogArea" /* ViewID.consoleLogArea */,
@@ -18382,12 +18390,12 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         };
         Controller.prototype.setExampleSelectOptions = function () {
             var maxTitleLength = 160, maxTextLength = 60, // (32 visible?)
-            items = [], exampleName = Controller.getNameFromExample(this.model.getProperty("example" /* ModelPropID.example */)), allExamples = this.model.getAllExamples(), directoryName = this.view.getSelectValue("directorySelect" /* ViewID.directorySelect */);
+            items = [], exampleName = Controller.getNameFromExample(this.model.getProperty("example" /* ModelPropID.example */)), allExamples = this.model.getAllExamples(), directoryName = this.view.getSelectValue("directorySelect" /* ViewID.directorySelect */), selectDataFiles = this.model.getProperty("selectDataFiles" /* ModelPropID.selectDataFiles */);
             var exampleSelected = false;
             for (var key in allExamples) {
                 if (allExamples.hasOwnProperty(key) && (Controller.getPathFromExample(key) === directoryName)) {
                     var exampleEntry = allExamples[key], exampleName2 = Controller.getNameFromExample(exampleEntry.key);
-                    if (exampleEntry.meta !== "D") { // skip data files
+                    if (selectDataFiles || (exampleEntry.meta !== "D")) { // skip data files
                         var title = (exampleName2 + ": " + exampleEntry.title).substring(0, maxTitleLength), item = {
                             value: exampleName2,
                             title: title,
@@ -20813,6 +20821,7 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             dragElements: false,
             palette: "color",
             processFileImports: true,
+            selectDataFiles: false,
             showConsoleLog: false,
             showConvert: false,
             showCpc: true,

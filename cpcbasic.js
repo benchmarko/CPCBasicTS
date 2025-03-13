@@ -199,6 +199,7 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
             dragElements: false,
             palette: "color",
             processFileImports: true,
+            selectDataFiles: false,
             showConsoleLog: false,
             showConvert: false,
             showCpc: true,

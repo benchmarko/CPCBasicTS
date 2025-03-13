@@ -542,6 +542,12 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                         func: this.onPaletteSelectChange
                     },
                     {
+                        id: "selectDataFilesInput" /* ViewID.selectDataFilesInput */,
+                        viewType: "checked",
+                        property: "selectDataFiles" /* ModelPropID.selectDataFiles */,
+                        func: this.onCheckedChange
+                    },
+                    {
                         id: "showConsoleLogInput" /* ViewID.showConsoleLogInput */,
                         viewType: "checked",
                         toggleId: "consoleLogArea" /* ViewID.consoleLogArea */,

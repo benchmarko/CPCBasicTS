@@ -26,6 +26,7 @@ define(["require", "exports"], function (require, exports) {
         ModelPropID["dragElements"] = "dragElements";
         ModelPropID["palette"] = "palette";
         ModelPropID["processFileImports"] = "processFileImports";
+        ModelPropID["selectDataFiles"] = "selectDataFiles";
         ModelPropID["showConsoleLog"] = "showConsoleLog";
         ModelPropID["showConvert"] = "showConvert";
         ModelPropID["showCpc"] = "showCpc";
@@ -129,6 +130,7 @@ define(["require", "exports"], function (require, exports) {
         ViewID["runButton"] = "runButton";
         ViewID["screenshotButton"] = "screenshotButton";
         ViewID["screenshotLink"] = "screenshotLink";
+        ViewID["selectDataFilesInput"] = "selectDataFilesInput";
         ViewID["settingsArea"] = "settingsArea";
         ViewID["settingsButton"] = "settingsButton";
         ViewID["showConsoleLogInput"] = "showConsoleLogInput";

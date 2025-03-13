@@ -675,6 +675,12 @@ export class CommonEventHandler implements EventListenerObject {
 						func: this.onPaletteSelectChange
 					},
 					{
+						id: ViewID.selectDataFilesInput,
+						viewType: "checked",
+						property: ModelPropID.selectDataFiles,
+						func: this.onCheckedChange
+					},
+					{
 						id: ViewID.showConsoleLogInput,
 						viewType: "checked",
 						toggleId: ViewID.consoleLogArea,
