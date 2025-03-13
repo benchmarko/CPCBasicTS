@@ -240,6 +240,7 @@ These URL parameters are also put in the URL when you press the *Reload* button 
 - arrayBounds=false (check array bounds)
 - autorun=true
 - bench=0 (only for debugging: number of parse bench loops)
+- canvasType="graphics" ("graphics", "text", "none")
 - databaseDirs=examples (example base directories, comma separated)
 - database=examples (selected database)
 - debug=0 (debug level)
@@ -249,7 +250,7 @@ These URL parameters are also put in the URL when you press the *Reload* button 
 - input= (keyboard input when starting the app, use %0D as return charcter)
 - integerOverflow=false (check for integer overflow in integer DIV, MOD, AND, OR, XOR, NOT)
 - kbdLayout=alphanum (virtual keyboard layout: alphanum, alpha, num)
-- canvasType="graphics" ("graphics", "text", "none")
+- linesOnLoad=true (add missing line numbers on load, if script starts with "REM " and not in implicitLines mode)
 - palette="color" ("color", "green", "grey")
 - showConsoleLog=false
 - showConvert=false,

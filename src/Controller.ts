@@ -284,6 +284,13 @@ export class Controller implements IController {
 		input = input.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
 		// beware of data files ending with newlines! (do not use trimEnd)
 
+		const implicitLines = this.model.getProperty<boolean>(ModelPropID.implicitLines),
+			linesOnLoad = this.model.getProperty<boolean>(ModelPropID.linesOnLoad);
+
+		if (input.startsWith("REM ") && !implicitLines && linesOnLoad) {
+			input = Controller.addLineNumbers(input);
+		}
+
 		const example = this.model.getExample(key);
 
 		example.key = key; // maybe changed

@@ -348,6 +348,22 @@ class cpcBasic {
 		}
 	}
 
+	private static addLineNumbers(input: string) {
+		const lineParts = input.split("\n");
+		let lastLine = 0;
+
+		for (let i = 0; i < lineParts.length; i += 1) {
+			let lineNum = parseInt(lineParts[i], 10);
+
+			if (isNaN(lineNum)) {
+				lineNum = lastLine + 1;
+				lineParts[i] = String(lastLine + 1) + " " + lineParts[i];
+			}
+			lastLine = lineNum;
+		}
+		return lineParts.join("\n");
+	}
+
 	// Also called from example files xxxxx.js
 	private static addItem2(key: string, input: string) { // key maybe ""
 		if (!key) { // maybe ""
@@ -355,6 +371,13 @@ class cpcBasic {
 		}
 		input = input.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
 		// beware of data files ending with newlines! (do not use trimEnd)
+
+		const implicitLines = false,
+			linesOnLoad = true;
+
+		if (input.startsWith("REM ") && !implicitLines && linesOnLoad) {
+			input = cpcBasic.addLineNumbers(input);
+		}
 
 		const example = cpcBasic.model.getExample(key);
 
@@ -488,6 +511,21 @@ function testCheckMeta(input: string) {
 	return input;
 }
 
+// needed for example "rosetta/execute" which has a line without line number
+function hasLineNumbers(input: string) {
+	let hasNumbers = true;
+	const lineParts = input.split("\n");
+
+	for (let i = 0; i < lineParts.length; i += 1) {
+		const lineNum = parseInt(lineParts[i], 10);
+
+		if (isNaN(lineNum)) {
+			hasNumbers = false;
+			break;
+		}
+	}
+	return hasNumbers;
+}
 
 function testParseExample(example: ExampleEntry) {
 	const codeGeneratorJs = cpcBasic.codeGeneratorJs,
@@ -500,7 +538,7 @@ function testParseExample(example: ExampleEntry) {
 		output: IOutput,
 		fnScript: Function; // eslint-disable-line @typescript-eslint/ban-types
 
-	if (example.meta !== "D") { // skip data files  && example.meta !== "X" && example.meta !== "Z") { // skip data, dsk and zip files
+	if (example.meta !== "D" && hasLineNumbers(input)) { // skip data files  && example.meta !== "X" && example.meta !== "Z") { // skip data, dsk and zip files
 		checks = "Js";
 		const variables = cpcBasic.vmMock.testVariables1;
 
