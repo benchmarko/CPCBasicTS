@@ -66,9 +66,11 @@ class cpcBasic {
 			replace(/\*\/[^/]+$/, "");
 	}
 
-	static addIndex(dir: string, input: string | (() => void)) {
-		if (typeof input !== "string") {
-			input = this.fnHereDoc(input);
+	static addIndex(dir: string, input: Record<string, unknown> | (() => void)) {
+		if (typeof input === "function") {
+			input = {
+				[dir]: JSON.parse(this.fnHereDoc(input).trim())
+			};
 		}
 		return cpcBasic.controller.addIndex(dir, input);
 	}

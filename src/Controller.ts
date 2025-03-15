@@ -26,7 +26,7 @@ import { Keyboard } from "./Keyboard";
 import { NoCanvas } from "./NoCanvas";
 import { TextCanvas } from "./TextCanvas";
 import { VirtualKeyboard } from "./VirtualKeyboard";
-import { Model, DatabasesType } from "./Model";
+import { Model, DatabasesType, ExampleEntry } from "./Model";
 import { Snapshot } from "./Snapshot";
 import { Sound, SoundData } from "./Sound";
 import { Variables } from "./Variables";
@@ -264,14 +264,16 @@ export class Controller implements IController {
 	}
 
 	// Also called from index file 0index.js
-	addIndex(dir: string, input: string): void { // dir maybe ""
-		input = input.trim();
+	addIndex(_dir: string, input: Record<string, unknown>): void { // dir maybe ""
+		for (const value in input) {
+			if (input.hasOwnProperty(value)) {
+				const item = input[value] as ExampleEntry[];
 
-		const index = JSON.parse(input);
-
-		for (let i = 0; i < index.length; i += 1) {
-			index[i].dir = dir;
-			this.model.setExample(index[i]);
+				for (let i = 0; i < item.length; i += 1) {
+					//item[i].dir = dir; // TTT to check
+					this.model.setExample(item[i]);
+				}
+			}
 		}
 	}
 
