@@ -25,6 +25,10 @@ define(["require", "exports"], function (require, exports) {
         ModelPropID["linesOnLoad"] = "linesOnLoad";
         ModelPropID["dragElements"] = "dragElements";
         ModelPropID["palette"] = "palette";
+        ModelPropID["prettyBrackets"] = "prettyBrackets";
+        ModelPropID["prettyColons"] = "prettyColons";
+        ModelPropID["prettyLowercaseVars"] = "prettyLowercaseVars";
+        ModelPropID["prettySpace"] = "prettySpace";
         ModelPropID["processFileImports"] = "processFileImports";
         ModelPropID["selectDataFiles"] = "selectDataFiles";
         ModelPropID["showConsoleLog"] = "showConsoleLog";
@@ -115,6 +119,7 @@ define(["require", "exports"], function (require, exports) {
         ViewID["prettyBracketsInput"] = "prettyBracketsInput";
         ViewID["prettyButton"] = "prettyButton";
         ViewID["prettyColonsInput"] = "prettyColonsInput";
+        ViewID["prettyLowercaseVarsInput"] = "prettyLowercaseVarsInput";
         ViewID["prettySpaceInput"] = "prettySpaceInput";
         ViewID["redoButton"] = "redoButton";
         ViewID["reloadButton"] = "reloadButton";

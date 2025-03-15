@@ -186,6 +186,7 @@ export declare class Controller implements IController {
     onWindowClick(event: Event): void;
     fnArrayBounds(): void;
     fnImplicitLines(): void;
+    fnPrettyLowercaseVars(): void;
     fnIntegerOverflow(): void;
     fnTrace(): void;
     fnSpeed(): void;

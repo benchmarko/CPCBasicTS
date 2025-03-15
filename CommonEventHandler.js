@@ -542,6 +542,31 @@ define(["require", "exports", "./Utils", "./View"], function (require, exports, 
                         func: this.onPaletteSelectChange
                     },
                     {
+                        id: "prettyBracketsInput" /* ViewID.prettyBracketsInput */,
+                        viewType: "checked",
+                        property: "prettyBrackets" /* ModelPropID.prettyBrackets */,
+                        func: this.onCheckedChange
+                    },
+                    {
+                        id: "prettyColonsInput" /* ViewID.prettyColonsInput */,
+                        viewType: "checked",
+                        property: "prettyColons" /* ModelPropID.prettyColons */,
+                        func: this.onCheckedChange
+                    },
+                    {
+                        id: "prettyLowercaseVarsInput" /* ViewID.prettyLowercaseVarsInput */,
+                        viewType: "checked",
+                        property: "prettyLowercaseVars" /* ModelPropID.prettyLowercaseVars */,
+                        func: this.onCheckedChange,
+                        controllerFunc: this.controller.fnPrettyLowercaseVars
+                    },
+                    {
+                        id: "prettySpaceInput" /* ViewID.prettySpaceInput */,
+                        viewType: "checked",
+                        property: "prettySpace" /* ModelPropID.prettySpace */,
+                        func: this.onCheckedChange
+                    },
+                    {
                         id: "selectDataFilesInput" /* ViewID.selectDataFilesInput */,
                         viewType: "checked",
                         property: "selectDataFiles" /* ModelPropID.selectDataFiles */,

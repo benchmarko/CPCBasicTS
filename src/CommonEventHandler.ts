@@ -675,6 +675,31 @@ export class CommonEventHandler implements EventListenerObject {
 						func: this.onPaletteSelectChange
 					},
 					{
+						id: ViewID.prettyBracketsInput,
+						viewType: "checked",
+						property: ModelPropID.prettyBrackets,
+						func: this.onCheckedChange
+					},
+					{
+						id: ViewID.prettyColonsInput,
+						viewType: "checked",
+						property: ModelPropID.prettyColons,
+						func: this.onCheckedChange
+					},
+					{
+						id: ViewID.prettyLowercaseVarsInput,
+						viewType: "checked",
+						property: ModelPropID.prettyLowercaseVars,
+						func: this.onCheckedChange,
+						controllerFunc: this.controller.fnPrettyLowercaseVars
+					},
+					{
+						id: ViewID.prettySpaceInput,
+						viewType: "checked",
+						property: ModelPropID.prettySpace,
+						func: this.onCheckedChange
+					},
+					{
 						id: ViewID.selectDataFilesInput,
 						viewType: "checked",
 						property: ModelPropID.selectDataFiles,

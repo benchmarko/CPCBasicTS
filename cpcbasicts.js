@@ -783,6 +783,10 @@ define("Constants", ["require", "exports"], function (require, exports) {
         ModelPropID["linesOnLoad"] = "linesOnLoad";
         ModelPropID["dragElements"] = "dragElements";
         ModelPropID["palette"] = "palette";
+        ModelPropID["prettyBrackets"] = "prettyBrackets";
+        ModelPropID["prettyColons"] = "prettyColons";
+        ModelPropID["prettyLowercaseVars"] = "prettyLowercaseVars";
+        ModelPropID["prettySpace"] = "prettySpace";
         ModelPropID["processFileImports"] = "processFileImports";
         ModelPropID["selectDataFiles"] = "selectDataFiles";
         ModelPropID["showConsoleLog"] = "showConsoleLog";
@@ -873,6 +877,7 @@ define("Constants", ["require", "exports"], function (require, exports) {
         ViewID["prettyBracketsInput"] = "prettyBracketsInput";
         ViewID["prettyButton"] = "prettyButton";
         ViewID["prettyColonsInput"] = "prettyColonsInput";
+        ViewID["prettyLowercaseVarsInput"] = "prettyLowercaseVarsInput";
         ViewID["prettySpaceInput"] = "prettySpaceInput";
         ViewID["redoButton"] = "redoButton";
         ViewID["reloadButton"] = "reloadButton";
@@ -4447,6 +4452,9 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils"], function (require,
                 value = this.parseFunctions[type].call(this, node);
             }
             else { // for other functions, generate code directly
+                if ((type === "identifier" || type === "letter") && this.options.lowercaseVars) {
+                    node.value = node.value.toLowerCase();
+                }
                 value = this.fnParseOther(node);
             }
             return value;
@@ -12071,6 +12079,31 @@ define("CommonEventHandler", ["require", "exports", "Utils", "View"], function (
                         func: this.onPaletteSelectChange
                     },
                     {
+                        id: "prettyBracketsInput" /* ViewID.prettyBracketsInput */,
+                        viewType: "checked",
+                        property: "prettyBrackets" /* ModelPropID.prettyBrackets */,
+                        func: this.onCheckedChange
+                    },
+                    {
+                        id: "prettyColonsInput" /* ViewID.prettyColonsInput */,
+                        viewType: "checked",
+                        property: "prettyColons" /* ModelPropID.prettyColons */,
+                        func: this.onCheckedChange
+                    },
+                    {
+                        id: "prettyLowercaseVarsInput" /* ViewID.prettyLowercaseVarsInput */,
+                        viewType: "checked",
+                        property: "prettyLowercaseVars" /* ModelPropID.prettyLowercaseVars */,
+                        func: this.onCheckedChange,
+                        controllerFunc: this.controller.fnPrettyLowercaseVars
+                    },
+                    {
+                        id: "prettySpaceInput" /* ViewID.prettySpaceInput */,
+                        viewType: "checked",
+                        property: "prettySpace" /* ModelPropID.prettySpace */,
+                        func: this.onCheckedChange
+                    },
+                    {
                         id: "selectDataFilesInput" /* ViewID.selectDataFilesInput */,
                         viewType: "checked",
                         property: "selectDataFiles" /* ModelPropID.selectDataFiles */,
@@ -19018,7 +19051,8 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             if (!this.codeGeneratorBasic) {
                 this.codeGeneratorBasic = new CodeGeneratorBasic_1.CodeGeneratorBasic({
                     lexer: this.basicLexer,
-                    parser: this.basicParser
+                    parser: this.basicParser,
+                    lowercaseVars: this.model.getProperty("prettyLowercaseVars" /* ModelPropID.prettyLowercaseVars */)
                 });
             }
             return this.codeGeneratorBasic;
@@ -20523,6 +20557,12 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 });
             }
         };
+        Controller.prototype.fnPrettyLowercaseVars = function () {
+            var prettyLowercaseVars = this.model.getProperty("prettyLowercaseVars" /* ModelPropID.prettyLowercaseVars */);
+            this.getCodeGeneratorBasic().setOptions({
+                lowercaseVars: prettyLowercaseVars
+            });
+        };
         Controller.prototype.fnIntegerOverflow = function () {
             var integerOverflow = this.model.getProperty("integerOverflow" /* ModelPropID.integerOverflow */);
             this.codeGeneratorJs.setOptions({
@@ -20826,6 +20866,10 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
             linesOnLoad: true,
             dragElements: false,
             palette: "color",
+            prettyBrackets: true,
+            prettyColons: true,
+            prettyLowercaseVars: false,
+            prettySpace: false,
             processFileImports: true,
             selectDataFiles: false,
             showConsoleLog: false,

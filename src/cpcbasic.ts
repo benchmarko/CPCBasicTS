@@ -33,6 +33,10 @@ class cpcBasic {
 		linesOnLoad: true, // add missing line numbers on load
 		dragElements: false,
 		palette: "color", // "color", "green", "grey"
+		prettyBrackets: true, // pretty print: brackets
+		prettyColons: true, // pretty print: colons
+		prettyLowercaseVars: false, // pretty print: lowercase variables
+		prettySpace: false, // pretty print: spaces
 		processFileImports: true, // open ZIP, DSK files on import
 		selectDataFiles: false, // select data files in example selection
 		showConsoleLog: false,

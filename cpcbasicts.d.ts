@@ -29,6 +29,10 @@ declare module "Constants" {
         linesOnLoad = "linesOnLoad",
         dragElements = "dragElements",
         palette = "palette",
+        prettyBrackets = "prettyBrackets",
+        prettyColons = "prettyColons",
+        prettyLowercaseVars = "prettyLowercaseVars",
+        prettySpace = "prettySpace",
         processFileImports = "processFileImports",
         selectDataFiles = "selectDataFiles",
         showConsoleLog = "showConsoleLog",
@@ -118,6 +122,7 @@ declare module "Constants" {
         prettyBracketsInput = "prettyBracketsInput",
         prettyButton = "prettyButton",
         prettyColonsInput = "prettyColonsInput",
+        prettyLowercaseVarsInput = "prettyLowercaseVarsInput",
         prettySpaceInput = "prettySpaceInput",
         redoButton = "redoButton",
         reloadButton = "reloadButton",
@@ -347,6 +352,7 @@ declare module "Interfaces" {
         redoStackElement: () => string;
         fnImplicitLines: () => void;
         fnIntegerOverflow: () => void;
+        fnPrettyLowercaseVars: () => void;
         fnArrayBounds: () => void;
         fnTrace: () => void;
         fnSpeed: () => void;
@@ -652,6 +658,7 @@ declare module "CodeGeneratorBasic" {
         lexer: BasicLexer;
         parser: BasicParser;
         quiet?: boolean;
+        lowercaseVars?: boolean;
     }
     export class CodeGeneratorBasic {
         private readonly options;
@@ -2580,6 +2587,7 @@ declare module "Controller" {
         onWindowClick(event: Event): void;
         fnArrayBounds(): void;
         fnImplicitLines(): void;
+        fnPrettyLowercaseVars(): void;
         fnIntegerOverflow(): void;
         fnTrace(): void;
         fnSpeed(): void;

@@ -1158,7 +1158,8 @@ export class Controller implements IController {
 		if (!this.codeGeneratorBasic) {
 			this.codeGeneratorBasic = new CodeGeneratorBasic({
 				lexer: this.basicLexer,
-				parser: this.basicParser
+				parser: this.basicParser,
+				lowercaseVars: this.model.getProperty<boolean>(ModelPropID.prettyLowercaseVars)
 			});
 		}
 		return this.codeGeneratorBasic;
@@ -3121,6 +3122,14 @@ export class Controller implements IController {
 				implicitLines: implicitLines
 			});
 		}
+	}
+
+	fnPrettyLowercaseVars(): void {
+		const prettyLowercaseVars = this.model.getProperty<boolean>(ModelPropID.prettyLowercaseVars);
+
+		this.getCodeGeneratorBasic().setOptions({
+			lowercaseVars: prettyLowercaseVars
+		});
 	}
 
 	fnIntegerOverflow(): void {

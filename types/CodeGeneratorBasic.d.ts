@@ -5,6 +5,7 @@ interface CodeGeneratorBasicOptions {
     lexer: BasicLexer;
     parser: BasicParser;
     quiet?: boolean;
+    lowercaseVars?: boolean;
 }
 export declare class CodeGeneratorBasic {
     private readonly options;

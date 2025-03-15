@@ -938,7 +938,8 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             if (!this.codeGeneratorBasic) {
                 this.codeGeneratorBasic = new CodeGeneratorBasic_1.CodeGeneratorBasic({
                     lexer: this.basicLexer,
-                    parser: this.basicParser
+                    parser: this.basicParser,
+                    lowercaseVars: this.model.getProperty("prettyLowercaseVars" /* ModelPropID.prettyLowercaseVars */)
                 });
             }
             return this.codeGeneratorBasic;
@@ -2442,6 +2443,12 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     implicitLines: implicitLines
                 });
             }
+        };
+        Controller.prototype.fnPrettyLowercaseVars = function () {
+            var prettyLowercaseVars = this.model.getProperty("prettyLowercaseVars" /* ModelPropID.prettyLowercaseVars */);
+            this.getCodeGeneratorBasic().setOptions({
+                lowercaseVars: prettyLowercaseVars
+            });
         };
         Controller.prototype.fnIntegerOverflow = function () {
             var integerOverflow = this.model.getProperty("integerOverflow" /* ModelPropID.integerOverflow */);
