@@ -179,6 +179,7 @@ export interface IController {
 
     fnImplicitLines: () => void
     fnIntegerOverflow: () => void
+    fnPrettyLowercaseVars: () => void
     fnArrayBounds: () => void
     fnTrace: () => void
     fnSpeed: () => void

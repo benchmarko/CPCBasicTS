@@ -13,6 +13,7 @@ interface CodeGeneratorBasicOptions {
 	lexer: BasicLexer
 	parser: BasicParser
 	quiet?: boolean
+	lowercaseVars?: boolean
 }
 
 export class CodeGeneratorBasic {
@@ -547,6 +548,9 @@ export class CodeGeneratorBasic {
 		} else if (this.parseFunctions[type]) { // function with special handling?
 			value = this.parseFunctions[type].call(this, node);
 		} else { // for other functions, generate code directly
+			if ((type === "identifier" || type === "letter") && this.options.lowercaseVars) {
+				node.value = node.value.toLowerCase();
+			}
 			value = this.fnParseOther(node);
 		}
 
