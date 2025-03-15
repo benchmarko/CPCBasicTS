@@ -50,7 +50,7 @@ export declare class Controller implements IController {
     private static readonly formatterBasicParserOptions;
     private initDatabases;
     private onUserAction;
-    addIndex(dir: string, input: string): void;
+    addIndex(_dir: string, input: Record<string, unknown>): void;
     addItem(key: string, input: string): string;
     addRsx(key: string, RsxConstructor: new () => ICpcVmRsx): string;
     private setDatabaseSelectOptions;

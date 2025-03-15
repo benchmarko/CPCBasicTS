@@ -219,12 +219,15 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.setSoundActive();
         };
         // Also called from index file 0index.js
-        Controller.prototype.addIndex = function (dir, input) {
-            input = input.trim();
-            var index = JSON.parse(input);
-            for (var i = 0; i < index.length; i += 1) {
-                index[i].dir = dir;
-                this.model.setExample(index[i]);
+        Controller.prototype.addIndex = function (_dir, input) {
+            for (var value in input) {
+                if (input.hasOwnProperty(value)) {
+                    var item = input[value];
+                    for (var i = 0; i < item.length; i += 1) {
+                        //item[i].dir = dir; // TTT to check
+                        this.model.setExample(item[i]);
+                    }
+                }
             }
         };
         // Also called from example files xxxxx.js

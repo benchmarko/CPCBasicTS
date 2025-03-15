@@ -18299,12 +18299,15 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.setSoundActive();
         };
         // Also called from index file 0index.js
-        Controller.prototype.addIndex = function (dir, input) {
-            input = input.trim();
-            var index = JSON.parse(input);
-            for (var i = 0; i < index.length; i += 1) {
-                index[i].dir = dir;
-                this.model.setExample(index[i]);
+        Controller.prototype.addIndex = function (_dir, input) {
+            for (var value in input) {
+                if (input.hasOwnProperty(value)) {
+                    var item = input[value];
+                    for (var i = 0; i < item.length; i += 1) {
+                        //item[i].dir = dir; // TTT to check
+                        this.model.setExample(item[i]);
+                    }
+                }
             }
         };
         // Also called from example files xxxxx.js
@@ -20605,8 +20608,8 @@ define("cpcconfig", ["require", "exports"], function (require, exports) {
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.cpcconfig = void 0;
     exports.cpcconfig = {
-        databaseDirs: "./examples,https://benchmarko.github.io/CPCBasicApps/apps,storage",
-        //databaseDirs: "./examples,../../CPCBasicApps/apps,storage", // local test
+        databaseDirs: "./examples,https://benchmarko.github.io/CPCBasicApps/apps,https://benchmarko.github.io/CPCBasicApps/rosetta,storage",
+        //databaseDirs: "./examples,../../CPCBasicApps/apps,../../CPCBasicApps/rosetta,storage", // local test
         // just an example, not the full list of moved examples...
         redirectExamples: {
             "examples/art": {
@@ -20636,8 +20639,11 @@ define("cpcbasic", ["require", "exports", "Utils", "Controller", "cpcconfig", "M
                 replace(/\*\/[^/]+$/, "");
         };
         cpcBasic.addIndex = function (dir, input) {
-            if (typeof input !== "string") {
-                input = this.fnHereDoc(input);
+            var _a;
+            if (typeof input === "function") {
+                input = (_a = {},
+                    _a[dir] = JSON.parse(this.fnHereDoc(input).trim()),
+                    _a);
             }
             return cpcBasic.controller.addIndex(dir, input);
         };

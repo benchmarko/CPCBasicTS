@@ -2444,7 +2444,7 @@ declare module "Controller" {
         private static readonly formatterBasicParserOptions;
         private initDatabases;
         private onUserAction;
-        addIndex(dir: string, input: string): void;
+        addIndex(_dir: string, input: Record<string, unknown>): void;
         addItem(key: string, input: string): string;
         addRsx(key: string, RsxConstructor: new () => ICpcVmRsx): string;
         private setDatabaseSelectOptions;
@@ -2610,7 +2610,7 @@ declare module "cpcbasic" {
         private static view;
         private static controller;
         private static fnHereDoc;
-        static addIndex(dir: string, input: string | (() => void)): void;
+        static addIndex(dir: string, input: Record<string, unknown> | (() => void)): void;
         static addItem(key: string, input: string | (() => void)): string;
         static addRsx(key: string, RsxConstructor: new () => ICpcVmRsx): string;
         private static fnParseArgs;

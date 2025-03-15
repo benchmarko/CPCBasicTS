@@ -337,14 +337,16 @@ class cpcBasic {
 		return databaseNames;
 	}
 
-	private static addIndex2(dir: string, input: string) { // dir maybe ""
-		input = input.trim();
+	private static addIndex2(_dir: string, input: Record<string, unknown>) { // dir maybe ""
+		for (const value in input) {
+			if (input.hasOwnProperty(value)) {
+				const item = input[value] as ExampleEntry[];
 
-		const index = JSON.parse(input);
-
-		for (let i = 0; i < index.length; i += 1) {
-			index[i].dir = dir;
-			cpcBasic.model.setExample(index[i]);
+				for (let i = 0; i < item.length; i += 1) {
+					//item[i].dir = dir; // TTT to check
+					this.model.setExample(item[i]);
+				}
+			}
 		}
 	}
 
@@ -393,9 +395,11 @@ class cpcBasic {
 			replace(/\*\/[^/]+$/, "");
 	}
 
-	static addIndex(dir: string, input: string | (() => void)) {
-		if (typeof input !== "string") {
-			input = this.fnHereDoc(input);
+	static addIndex(dir: string, input: Record<string, unknown> | (() => void)) {
+		if (typeof input === "function") {
+			input = {
+				[dir]: JSON.parse(this.fnHereDoc(input).trim())
+			};
 		}
 		return this.addIndex2(dir, input);
 	}

@@ -14,8 +14,11 @@ define(["require", "exports", "./Utils", "./Controller", "./cpcconfig", "./Model
                 replace(/\*\/[^/]+$/, "");
         };
         cpcBasic.addIndex = function (dir, input) {
-            if (typeof input !== "string") {
-                input = this.fnHereDoc(input);
+            var _a;
+            if (typeof input === "function") {
+                input = (_a = {},
+                    _a[dir] = JSON.parse(this.fnHereDoc(input).trim()),
+                    _a);
             }
             return cpcBasic.controller.addIndex(dir, input);
         };

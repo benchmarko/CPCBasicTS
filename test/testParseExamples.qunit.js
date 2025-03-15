@@ -105,12 +105,15 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
             cpcBasic.model.addDatabases(databases);
             return databaseNames;
         };
-        cpcBasic.addIndex2 = function (dir, input) {
-            input = input.trim();
-            var index = JSON.parse(input);
-            for (var i = 0; i < index.length; i += 1) {
-                index[i].dir = dir;
-                cpcBasic.model.setExample(index[i]);
+        cpcBasic.addIndex2 = function (_dir, input) {
+            for (var value in input) {
+                if (input.hasOwnProperty(value)) {
+                    var item = input[value];
+                    for (var i = 0; i < item.length; i += 1) {
+                        //item[i].dir = dir; // TTT to check
+                        this.model.setExample(item[i]);
+                    }
+                }
             }
         };
         cpcBasic.addLineNumbers = function (input) {
@@ -149,8 +152,11 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
                 replace(/\*\/[^/]+$/, "");
         };
         cpcBasic.addIndex = function (dir, input) {
-            if (typeof input !== "string") {
-                input = this.fnHereDoc(input);
+            var _a;
+            if (typeof input === "function") {
+                input = (_a = {},
+                    _a[dir] = JSON.parse(this.fnHereDoc(input).trim()),
+                    _a);
             }
             return this.addIndex2(dir, input);
         };

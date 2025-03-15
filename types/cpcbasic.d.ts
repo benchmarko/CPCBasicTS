@@ -6,7 +6,7 @@ declare class cpcBasic {
     private static view;
     private static controller;
     private static fnHereDoc;
-    static addIndex(dir: string, input: string | (() => void)): void;
+    static addIndex(dir: string, input: Record<string, unknown> | (() => void)): void;
     static addItem(key: string, input: string | (() => void)): string;
     static addRsx(key: string, RsxConstructor: new () => ICpcVmRsx): string;
     private static fnParseArgs;
