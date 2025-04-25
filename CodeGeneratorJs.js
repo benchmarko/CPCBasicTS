@@ -188,7 +188,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             var defScopeArgs = this.defScopeArgs;
             name = name.toLowerCase().replace(/\./g, "_");
             var firstChar = name.charAt(0);
-            if (defScopeArgs || !Utils_1.Utils.supportReservedNames) { // avoid keywords as def fn parameters; and for IE8 avoid keywords in dot notation
+            if ((defScopeArgs && !defScopeArgs.suppressEscape) || !Utils_1.Utils.supportReservedNames) { // avoid keywords as def fn parameters (keep for ERASE); and for IE8 avoid keywords in dot notation
                 if (this.reJsKeywords.test(name)) { // IE8: avoid keywords in dot notation
                     name = "_" + name; // prepend underscore
                 }
@@ -204,8 +204,10 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             name += mappedTypeChar; // put type at the end
             var needDeclare = false;
             if (defScopeArgs) {
-                if (name === "o" || name === "t" || name === "v") { // we must not use formal parameter "o", "t", "v", since we use them already
-                    name = "N" + name; // change variable name to something we cannot set in BASIC
+                if (!defScopeArgs.suppressEscape) { // do not escape variable names for ERASE
+                    if (name === "o" || name === "t" || name === "v") { // we must not use formal parameter "o", "t", "v", since we use them already
+                        name = "N" + name; // change variable name to something we cannot set in BASIC
+                    }
                 }
                 if (!defScopeArgs.collectDone) { // in collection mode?
                     defScopeArgs[name] = true; // declare DEF scope variable
@@ -803,6 +805,7 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
         };
         CodeGeneratorJs.prototype.erase = function (node) {
             this.defScopeArgs = {}; // collect DEF scope args
+            this.defScopeArgs.suppressEscape = true; // suppress escape with prefix "N"
             var nodeArgs = this.fnParseArgs(node.args);
             this.defScopeArgs = undefined;
             for (var i = 0; i < nodeArgs.length; i += 1) {
