@@ -205,7 +205,7 @@ export class CodeGeneratorJs {
 
 		const firstChar = name.charAt(0);
 
-		if (defScopeArgs || !Utils.supportReservedNames) { // avoid keywords as def fn parameters; and for IE8 avoid keywords in dot notation
+		if ((defScopeArgs && !defScopeArgs.suppressEscape) || !Utils.supportReservedNames) { // avoid keywords as def fn parameters (keep for ERASE); and for IE8 avoid keywords in dot notation
 			if (this.reJsKeywords.test(name)) { // IE8: avoid keywords in dot notation
 				name = "_" + name; // prepend underscore
 			}
@@ -227,8 +227,10 @@ export class CodeGeneratorJs {
 		let needDeclare = false;
 
 		if (defScopeArgs) {
-			if (name === "o" || name === "t" || name === "v") { // we must not use formal parameter "o", "t", "v", since we use them already
-				name = "N" + name; // change variable name to something we cannot set in BASIC
+			if (!defScopeArgs.suppressEscape) { // do not escape variable names for ERASE
+				if (name === "o" || name === "t" || name === "v") { // we must not use formal parameter "o", "t", "v", since we use them already
+					name = "N" + name; // change variable name to something we cannot set in BASIC
+				}
 			}
 
 			if (!defScopeArgs.collectDone) { // in collection mode?
@@ -987,6 +989,7 @@ export class CodeGeneratorJs {
 	}
 	private erase(node: CodeNode) { // somehow special because we need to get plain variables
 		this.defScopeArgs = {}; // collect DEF scope args
+		this.defScopeArgs.suppressEscape = true; // suppress escape with prefix "N"
 		const nodeArgs = this.fnParseArgs(node.args);
 
 		this.defScopeArgs = undefined;

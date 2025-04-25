@@ -201,6 +201,8 @@ cpcBasic.addItem("", function () { /*
 2080 a%=FN f2%:IF a%<>6 THEN ERROR 33
 2090 DEF FNf1(o,v,t)=o+v+t
 2100 a=FNf1(1,2,3):IF a<>6 THEN ERROR 33
+2102 DEF FNo(o,t,v,do)=o+t+v+do+go
+2103 go=5:a=FNo(1,2,3,4):IF a<>15 THEN ERROR 33
 2110 '
 2120 PRINT"DEFINT, DEFREAL, DEFSTR"
 2130 i=0:i!=2:i%=3.5:i$="i"
@@ -259,6 +261,8 @@ cpcBasic.addItem("", function () { /*
 2660 ERASE a
 2670 IF a<>10 THEN ERROR 33
 2680 a=0:FOR i=0 TO 4:a=a+a(i):NEXT:IF a<>0 THEN ERROR 33
+2682 DIM o(2),t(2),v(2),do(2)
+2683 ERASE o,t,v,do: 'special variable names are not escaped
 2690 GOSUB 9040
 2700 '
 2710 PRINT"FIX"
