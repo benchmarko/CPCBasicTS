@@ -1411,7 +1411,7 @@ export class Controller implements IController {
 			this.setInputText(input);
 			this.view.setAreaValue(ViewID.resultText, "");
 			this.invalidateScript();
-			this.variables.removeAllVariables();
+			this.fnRemoveAllVariables();
 			this.vm.vmStop("end", 90);
 			break;
 		case "chain": // TODO: if we have a line number, make sure it is not optimized away when compiling
@@ -1740,7 +1740,7 @@ export class Controller implements IController {
 		const input = "";
 
 		this.setInputText(input);
-		this.variables.removeAllVariables();
+		this.fnRemoveAllVariables();
 
 		this.vm.vmGoto(0); // reset current line
 		this.vm.vmStop("end", 0, true);
@@ -1769,7 +1769,7 @@ export class Controller implements IController {
 	private fnReset() {
 		const vm = this.vm;
 
-		this.variables.removeAllVariables();
+		this.fnRemoveAllVariables();
 
 		vm.vmReset();
 		if (this.virtualKeyboard) {
@@ -2221,6 +2221,7 @@ export class Controller implements IController {
 	}
 
 	private fnParseRun() {
+		this.fnRemoveAllVariables();
 		const output = this.fnParse();
 
 		if (!output.error) {
@@ -3123,7 +3124,7 @@ export class Controller implements IController {
 		});
 		this.vm.vmGoto(0); // reset current line
 		this.vm.vmStop("end", 0, true);
-		this.variables.removeAllVariables();
+		this.fnRemoveAllVariables();
 	}
 
 	fnImplicitLines(): void {
@@ -3136,6 +3137,13 @@ export class Controller implements IController {
 			this.codeGeneratorToken.setOptions({
 				implicitLines: implicitLines
 			});
+		}
+	}
+
+	fnRemoveAllVariables(): void {
+		if (Object.keys(this.variables.getAllVariables()).length) {
+			this.variables.removeAllVariables();
+			this.setVarSelectOptions(ViewID.varSelect, this.variables);
 		}
 	}
 
