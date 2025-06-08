@@ -2661,9 +2661,11 @@ QUnit.module("CpcVm: Tests", function (hooks) {
 			return String(cpcVm.eof.apply(cpcVm, input));
 		},
 		erase: function (cpcVm: CpcVm, input: TestFunctionInputType[]) {
-			cpcVm.dim("abc4A", 4);
+			cpcVm.dim("abc4AR", 4);
 			cpcVm.dim("abc5A$", 5);
+			// two array variables with same name and different dimensions:
 			cpcVm.dim("abc52AA$", 5, 2);
+			cpcVm.dim("abc52A$", 5);
 			clearLastTestFunctions();
 			cpcVm.erase.apply(cpcVm, input);
 		},
