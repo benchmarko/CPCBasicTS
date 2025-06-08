@@ -231,6 +231,17 @@ export class Controller implements IController {
 		keepTokens: false
 	};
 
+	private static getUniqueDbKey(name: string, databases: DatabasesType) {
+		let key = name,
+			index = 2;
+
+		while (databases[key]) {
+			key = name + index;
+			index += 1;
+		}
+		return key;
+	}
+
 	private initDatabases() {
 		const model = this.model,
 			databases: DatabasesType = {},
@@ -239,15 +250,19 @@ export class Controller implements IController {
 
 		for (let i = 0; i < databaseDirs.length; i += 1) {
 			const databaseDir = databaseDirs[i],
-				parts = databaseDir.split("/"),
-				name = parts[parts.length - 1];
+				parts1 = databaseDir.split("="),
+				databaseSrc = parts1[0],
+				assignedName = parts1.length > 1 ? parts1[1] : "",
+				parts2 = databaseSrc.split("/"),
+				name = assignedName || parts2[parts2.length - 1],
+				key = Controller.getUniqueDbKey(name, databases);
 
-			databases[name] = {
-				text: name,
-				title: databaseDir,
-				src: databaseDir
+			databases[key] = {
+				text: key,
+				title: databaseSrc,
+				src: databaseSrc
 			};
-			if (name === "storage") {
+			if (databaseDir === "storage") {
 				hasStorageDatabase = true;
 			}
 		}

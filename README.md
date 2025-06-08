@@ -241,11 +241,12 @@ These URL parameters are also put in the URL when you press the *Reload* button 
 - autorun=true
 - bench=0 (only for debugging: number of parse bench loops)
 - canvasType="graphics" ("graphics", "text", "none")
-- databaseDirs=examples (example base directories, comma separated)
+- databaseDirs=examples (example base directories, comma separated, name can be assigned with "=")
+  - Example: `databaseDirs=./examples,https://benchmarko.github.io/CPCBasicApps/apps,https://benchmarko.github.io/LocoBasic/examples=locobasic,storage`
 - database=examples (selected database)
 - debug=0 (debug level)
 - example=cpcbasic (selected sample program)
-- exampleIndex=0index.js (example index file in every entry of exampleDirs)
+- exampleIndex=0index.js (example index file, in every entry of exampleDirs)
 - implicitLines=false (allow implicit line numbers)
 - input= (keyboard input when starting the app, use %0D as return charcter)
 - integerOverflow=false (check for integer overflow in integer DIV, MOD, AND, OR, XOR, NOT)
