@@ -1420,19 +1420,16 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
                 name = name.slice(0, -1); // remove type char
             }
             else {
-                typeChar = "";
+                typeChar = this.vmDetermineVarType(name.charAt(0)); // determine type char
             }
             name += "A";
-            if (this.variables.variableExist(name + typeChar)) { // one dim array variable?
-                return name + typeChar;
-            }
-            // find multi-dim array variable
+            // find array variable(s) of same type, including multi-dim
             var fnArrayVarFilter = function (variable) {
-                return (variable.indexOf(name) === 0 && (!typeChar || variable.charAt(variable.length - 1) === typeChar)) ? variable : null; // find array varA(typeChar?)
+                return (variable.indexOf(name) === 0 && (variable.charAt(variable.length - 1) === typeChar)) ? variable : null; // find array var(A)*<typeChar>
             };
             var names = this.variables.getAllVariableNames();
-            names = names.filter(fnArrayVarFilter); // find array varA... with any number of indices
-            return names[0]; // we should find exactly one
+            names = names.filter(fnArrayVarFilter);
+            return names;
         };
         CpcVm.prototype.erase = function () {
             var args = [];
@@ -1444,9 +1441,12 @@ define(["require", "exports", "./Utils", "./Random", "./CpcVmRsx"], function (re
             }
             for (var i = 0; i < args.length; i += 1) {
                 this.vmAssertString(args[i], "ERASE");
-                var name_1 = this.vmFindArrayVariable(args[i]);
-                if (name_1) {
-                    this.variables.initVariable(name_1);
+                var names = this.vmFindArrayVariable(args[i]);
+                if (names.length) {
+                    for (var j = 0; j < names.length; j += 1) {
+                        var name_1 = names[j];
+                        this.variables.initVariable(name_1);
+                    }
                 }
                 else {
                     if (!this.quiet) {

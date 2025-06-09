@@ -91,16 +91,24 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
                 _loop_1(key);
             }
         };
+        cpcBasic.getUniqueDbKey = function (name, databases) {
+            var key = name, index = 2;
+            while (databases[key]) {
+                key = name + index;
+                index += 1;
+            }
+            return key;
+        };
         cpcBasic.initDatabases = function () {
             var model = cpcBasic.model, databases = {}, databaseDirs = model.getProperty("databaseDirs" /* ModelPropID.databaseDirs */).split(","), databaseNames = [];
             for (var i = 0; i < databaseDirs.length; i += 1) {
-                var databaseDir = databaseDirs[i], parts = databaseDir.split("/"), name_1 = parts[parts.length - 1];
-                databases[name_1] = {
-                    text: name_1,
-                    title: databaseDir,
-                    src: databaseDir
+                var databaseDir = databaseDirs[i], parts1 = databaseDir.split("="), databaseSrc = parts1[0], assignedName = parts1.length > 1 ? parts1[1] : "", parts2 = databaseSrc.split("/"), name_1 = assignedName || parts2[parts2.length - 1], key = this.getUniqueDbKey(name_1, databases);
+                databases[key] = {
+                    text: key,
+                    title: databaseSrc,
+                    src: databaseSrc
                 };
-                databaseNames.push(name_1);
+                databaseNames.push(key);
             }
             cpcBasic.model.addDatabases(databases);
             return databaseNames;

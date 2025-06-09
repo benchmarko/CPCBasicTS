@@ -14631,19 +14631,16 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
                 name = name.slice(0, -1); // remove type char
             }
             else {
-                typeChar = "";
+                typeChar = this.vmDetermineVarType(name.charAt(0)); // determine type char
             }
             name += "A";
-            if (this.variables.variableExist(name + typeChar)) { // one dim array variable?
-                return name + typeChar;
-            }
-            // find multi-dim array variable
+            // find array variable(s) of same type, including multi-dim
             var fnArrayVarFilter = function (variable) {
-                return (variable.indexOf(name) === 0 && (!typeChar || variable.charAt(variable.length - 1) === typeChar)) ? variable : null; // find array varA(typeChar?)
+                return (variable.indexOf(name) === 0 && (variable.charAt(variable.length - 1) === typeChar)) ? variable : null; // find array var(A)*<typeChar>
             };
             var names = this.variables.getAllVariableNames();
-            names = names.filter(fnArrayVarFilter); // find array varA... with any number of indices
-            return names[0]; // we should find exactly one
+            names = names.filter(fnArrayVarFilter);
+            return names;
         };
         CpcVm.prototype.erase = function () {
             var args = [];
@@ -14655,9 +14652,12 @@ define("CpcVm", ["require", "exports", "Utils", "Random", "CpcVmRsx"], function 
             }
             for (var i = 0; i < args.length; i += 1) {
                 this.vmAssertString(args[i], "ERASE");
-                var name_10 = this.vmFindArrayVariable(args[i]);
-                if (name_10) {
-                    this.variables.initVariable(name_10);
+                var names = this.vmFindArrayVariable(args[i]);
+                if (names.length) {
+                    for (var j = 0; j < names.length; j += 1) {
+                        var name_10 = names[j];
+                        this.variables.initVariable(name_10);
+                    }
                 }
                 else {
                     if (!this.quiet) {
@@ -18311,17 +18311,25 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.fnDragElementsActive(true);
             }
         }
+        Controller.getUniqueDbKey = function (name, databases) {
+            var key = name, index = 2;
+            while (databases[key]) {
+                key = name + index;
+                index += 1;
+            }
+            return key;
+        };
         Controller.prototype.initDatabases = function () {
             var model = this.model, databases = {}, databaseDirs = model.getProperty("databaseDirs" /* ModelPropID.databaseDirs */).split(",");
             var hasStorageDatabase = false;
             for (var i = 0; i < databaseDirs.length; i += 1) {
-                var databaseDir = databaseDirs[i], parts = databaseDir.split("/"), name_12 = parts[parts.length - 1];
-                databases[name_12] = {
-                    text: name_12,
-                    title: databaseDir,
-                    src: databaseDir
+                var databaseDir = databaseDirs[i], parts1 = databaseDir.split("="), databaseSrc = parts1[0], assignedName = parts1.length > 1 ? parts1[1] : "", parts2 = databaseSrc.split("/"), name_12 = assignedName || parts2[parts2.length - 1], key = Controller.getUniqueDbKey(name_12, databases);
+                databases[key] = {
+                    text: key,
+                    title: databaseSrc,
+                    src: databaseSrc
                 };
-                if (name_12 === "storage") {
+                if (databaseDir === "storage") {
                     hasStorageDatabase = true;
                 }
             }
@@ -19224,7 +19232,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                     this.setInputText(input);
                     this.view.setAreaValue("resultText" /* ViewID.resultText */, "");
                     this.invalidateScript();
-                    this.variables.removeAllVariables();
+                    this.fnRemoveAllVariables();
                     this.vm.vmStop("end", 90);
                     break;
                 case "chain": // TODO: if we have a line number, make sure it is not optimized away when compiling
@@ -19502,7 +19510,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         Controller.prototype.fnNew = function () {
             var input = "";
             this.setInputText(input);
-            this.variables.removeAllVariables();
+            this.fnRemoveAllVariables();
             this.vm.vmGoto(0); // reset current line
             this.vm.vmStop("end", 0, true);
             this.invalidateScript();
@@ -19521,7 +19529,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
         };
         Controller.prototype.fnReset = function () {
             var vm = this.vm;
-            this.variables.removeAllVariables();
+            this.fnRemoveAllVariables();
             vm.vmReset();
             if (this.virtualKeyboard) {
                 this.virtualKeyboard.reset();
@@ -19872,6 +19880,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             this.fnChain(paras);
         };
         Controller.prototype.fnParseRun = function () {
+            this.fnRemoveAllVariables();
             var output = this.fnParse();
             if (!output.error) {
                 this.fnRun();
@@ -20547,7 +20556,7 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             });
             this.vm.vmGoto(0); // reset current line
             this.vm.vmStop("end", 0, true);
-            this.variables.removeAllVariables();
+            this.fnRemoveAllVariables();
         };
         Controller.prototype.fnImplicitLines = function () {
             var implicitLines = this.model.getProperty("implicitLines" /* ModelPropID.implicitLines */);
@@ -20558,6 +20567,12 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
                 this.codeGeneratorToken.setOptions({
                     implicitLines: implicitLines
                 });
+            }
+        };
+        Controller.prototype.fnRemoveAllVariables = function () {
+            if (Object.keys(this.variables.getAllVariables()).length) {
+                this.variables.removeAllVariables();
+                this.setVarSelectOptions("varSelect" /* ViewID.varSelect */, this.variables);
             }
         };
         Controller.prototype.fnPrettyLowercaseVars = function () {
@@ -20651,8 +20666,8 @@ define("cpcconfig", ["require", "exports"], function (require, exports) {
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.cpcconfig = void 0;
     exports.cpcconfig = {
-        databaseDirs: "./examples,https://benchmarko.github.io/CPCBasicApps/apps,https://benchmarko.github.io/CPCBasicApps/rosetta,storage",
-        //databaseDirs: "./examples,../../CPCBasicApps/apps,../../CPCBasicApps/rosetta,storage", // local test
+        databaseDirs: "./examples,https://benchmarko.github.io/CPCBasicApps/apps,https://benchmarko.github.io/LocoBasic/examples=locobasic,https://benchmarko.github.io/CPCBasicApps/rosetta,storage",
+        //databaseDirs: "./examples,../../CPCBasicApps/apps,../../LocoBasic/dist/examples=locobasic,../../CPCBasicApps/rosetta,storage", // local test
         // just an example, not the full list of moved examples...
         redirectExamples: {
             "examples/art": {

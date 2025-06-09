@@ -315,6 +315,17 @@ class cpcBasic {
 	}
 
 
+	static getUniqueDbKey(name: string, databases: DatabasesType) {
+		let key = name,
+			index = 2;
+
+		while (databases[key]) {
+			key = name + index;
+			index += 1;
+		}
+		return key;
+	}
+
 	static initDatabases(): string[] {
 		const model = cpcBasic.model,
 			databases: DatabasesType = {},
@@ -323,15 +334,19 @@ class cpcBasic {
 
 		for (let i = 0; i < databaseDirs.length; i += 1) {
 			const databaseDir = databaseDirs[i],
-				parts = databaseDir.split("/"),
-				name = parts[parts.length - 1];
+				parts1 = databaseDir.split("="),
+				databaseSrc = parts1[0],
+				assignedName = parts1.length > 1 ? parts1[1] : "",
+				parts2 = databaseSrc.split("/"),
+				name = assignedName || parts2[parts2.length - 1],
+				key = this.getUniqueDbKey(name, databases);
 
-			databases[name] = {
-				text: name,
-				title: databaseDir,
-				src: databaseDir
+			databases[key] = {
+				text: key,
+				title: databaseSrc,
+				src: databaseSrc
 			};
-			databaseNames.push(name);
+			databaseNames.push(key);
 		}
 		cpcBasic.model.addDatabases(databases);
 		return databaseNames;

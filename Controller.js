@@ -195,17 +195,25 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.fnDragElementsActive(true);
             }
         }
+        Controller.getUniqueDbKey = function (name, databases) {
+            var key = name, index = 2;
+            while (databases[key]) {
+                key = name + index;
+                index += 1;
+            }
+            return key;
+        };
         Controller.prototype.initDatabases = function () {
             var model = this.model, databases = {}, databaseDirs = model.getProperty("databaseDirs" /* ModelPropID.databaseDirs */).split(",");
             var hasStorageDatabase = false;
             for (var i = 0; i < databaseDirs.length; i += 1) {
-                var databaseDir = databaseDirs[i], parts = databaseDir.split("/"), name_1 = parts[parts.length - 1];
-                databases[name_1] = {
-                    text: name_1,
-                    title: databaseDir,
-                    src: databaseDir
+                var databaseDir = databaseDirs[i], parts1 = databaseDir.split("="), databaseSrc = parts1[0], assignedName = parts1.length > 1 ? parts1[1] : "", parts2 = databaseSrc.split("/"), name_1 = assignedName || parts2[parts2.length - 1], key = Controller.getUniqueDbKey(name_1, databases);
+                databases[key] = {
+                    text: key,
+                    title: databaseSrc,
+                    src: databaseSrc
                 };
-                if (name_1 === "storage") {
+                if (databaseDir === "storage") {
                     hasStorageDatabase = true;
                 }
             }
@@ -1108,7 +1116,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                     this.setInputText(input);
                     this.view.setAreaValue("resultText" /* ViewID.resultText */, "");
                     this.invalidateScript();
-                    this.variables.removeAllVariables();
+                    this.fnRemoveAllVariables();
                     this.vm.vmStop("end", 90);
                     break;
                 case "chain": // TODO: if we have a line number, make sure it is not optimized away when compiling
@@ -1386,7 +1394,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         Controller.prototype.fnNew = function () {
             var input = "";
             this.setInputText(input);
-            this.variables.removeAllVariables();
+            this.fnRemoveAllVariables();
             this.vm.vmGoto(0); // reset current line
             this.vm.vmStop("end", 0, true);
             this.invalidateScript();
@@ -1405,7 +1413,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
         };
         Controller.prototype.fnReset = function () {
             var vm = this.vm;
-            this.variables.removeAllVariables();
+            this.fnRemoveAllVariables();
             vm.vmReset();
             if (this.virtualKeyboard) {
                 this.virtualKeyboard.reset();
@@ -1756,6 +1764,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             this.fnChain(paras);
         };
         Controller.prototype.fnParseRun = function () {
+            this.fnRemoveAllVariables();
             var output = this.fnParse();
             if (!output.error) {
                 this.fnRun();
@@ -2431,7 +2440,7 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
             });
             this.vm.vmGoto(0); // reset current line
             this.vm.vmStop("end", 0, true);
-            this.variables.removeAllVariables();
+            this.fnRemoveAllVariables();
         };
         Controller.prototype.fnImplicitLines = function () {
             var implicitLines = this.model.getProperty("implicitLines" /* ModelPropID.implicitLines */);
@@ -2442,6 +2451,12 @@ define(["require", "exports", "./Utils", "./BasicFormatter", "./BasicLexer", "./
                 this.codeGeneratorToken.setOptions({
                     implicitLines: implicitLines
                 });
+            }
+        };
+        Controller.prototype.fnRemoveAllVariables = function () {
+            if (Object.keys(this.variables.getAllVariables()).length) {
+                this.variables.removeAllVariables();
+                this.setVarSelectOptions("varSelect" /* ViewID.varSelect */, this.variables);
             }
         };
         Controller.prototype.fnPrettyLowercaseVars = function () {

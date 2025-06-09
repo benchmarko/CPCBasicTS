@@ -48,6 +48,7 @@ export declare class Controller implements IController {
     private static readonly codeGenJsBasicParserOptions;
     private static readonly codeGenTokenBasicParserOptions;
     private static readonly formatterBasicParserOptions;
+    private static getUniqueDbKey;
     private initDatabases;
     private onUserAction;
     addIndex(_dir: string, input: Record<string, unknown>): void;
@@ -186,6 +187,7 @@ export declare class Controller implements IController {
     onWindowClick(event: Event): void;
     fnArrayBounds(): void;
     fnImplicitLines(): void;
+    fnRemoveAllVariables(): void;
     fnPrettyLowercaseVars(): void;
     fnIntegerOverflow(): void;
     fnTrace(): void;

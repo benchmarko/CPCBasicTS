@@ -1979,28 +1979,25 @@ export class CpcVm implements ICpcVm {
 	}
 
 	// find array variable matching <name>(A+)(typeChar?)
-	private vmFindArrayVariable(name: string): string {
+	private vmFindArrayVariable(name: string): string[] {
 		let typeChar = name.charAt(name.length - 1); // last character
 
 		if (typeChar === "I" || typeChar === "R" || typeChar === "$") { // explicit type specified?
 			name = name.slice(0, -1); // remove type char
 		} else {
-			typeChar = "";
+			typeChar = this.vmDetermineVarType(name.charAt(0)); // determine type char
 		}
 
 		name += "A";
-		if (this.variables.variableExist(name + typeChar)) { // one dim array variable?
-			return name + typeChar;
-		}
 
-		// find multi-dim array variable
+		// find array variable(s) of same type, including multi-dim
 		const fnArrayVarFilter = function (variable: string) {
-			return (variable.indexOf(name) === 0 && (!typeChar || variable.charAt(variable.length - 1) === typeChar)) ? variable : null; // find array varA(typeChar?)
+			return (variable.indexOf(name) === 0 && (variable.charAt(variable.length - 1) === typeChar)) ? variable : null; // find array var(A)*<typeChar>
 		};
 		let names = this.variables.getAllVariableNames();
 
-		names = names.filter(fnArrayVarFilter); // find array varA... with any number of indices
-		return names[0]; // we should find exactly one
+		names = names.filter(fnArrayVarFilter);
+		return names;
 	}
 
 	erase(...args: string[]): void { // varargs
@@ -2009,10 +2006,14 @@ export class CpcVm implements ICpcVm {
 		}
 		for (let i = 0; i < args.length; i += 1) {
 			this.vmAssertString(args[i], "ERASE");
-			const name = this.vmFindArrayVariable(args[i]);
+			const names = this.vmFindArrayVariable(args[i]);
 
-			if (name) {
-				this.variables.initVariable(name);
+			if (names.length) {
+				for (let j = 0; j < names.length; j += 1) {
+					const name = names[j];
+
+					this.variables.initVariable(name);
+				}
 			} else {
 				if (!this.quiet) {
 					Utils.console.warn("erase: Array variable not found:", args[i]);
