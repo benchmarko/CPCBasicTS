@@ -555,7 +555,13 @@ define(["require", "exports", "../Utils", "../BasicLexer", "../BasicParser", "..
         Utils_1.Utils.console.log("testParseExamples: Using Database index:", fileOrUrl);
         if (nodeJsAvail) {
             if (isUrl(dir)) {
-                nodeReadUrl(fileOrUrl, fnIndexLoaded);
+                if (TestHelper_1.TestHelper.config.testAll) {
+                    nodeReadUrl(fileOrUrl, fnIndexLoaded);
+                }
+                else {
+                    Utils_1.Utils.console.log("testParseExamples: testAll=" + TestHelper_1.TestHelper.config.testAll + ": skipping index loading for", fileOrUrl);
+                    fnIndexLoaded(undefined, ""); // skip loading index
+                }
             }
             else {
                 nodeReadFile(fileOrUrl, fnIndexLoaded);

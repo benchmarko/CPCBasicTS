@@ -178,7 +178,8 @@ define(["require", "exports", "../Utils"], function (require, exports, Utils_1) 
             debug: 0,
             generateAll: false,
             generateKeys: false,
-            test: "" // a specific test
+            test: "",
+            testAll: false // run all tests
         };
         // ECMA 3 JS Keywords which must be avoided in dot notation for properties when using IE8
         TestHelper.jsKeywords = [
