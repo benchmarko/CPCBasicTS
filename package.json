@@ -1,6 +1,6 @@
 {
   "name": "cpcbasicts",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "description": "# CPCBasicTS - Run CPC BASIC in a Browser",
   "main": "src/cpcbasic.ts",
   "directories": {
@@ -33,6 +33,7 @@
     "build": "npm run build:separate && npm run build:one && node updateVersion.js && npm run copy",
     "testnode": "node dist/cpcbasicts.js sound=false canvasType=text example=test/testpage",
     "test": "qunit --require ./dist/Polyfills.js --require ./dist/amdLoader.js dist/test/*.qunit.js",
+    "testAll": "qunit --require ./dist/Polyfills.js --require ./dist/amdLoader.js dist/test/*.qunit.js testAll=true",
     "deploy": "gh-pages -d dist",
     "lint": "eslint src --ext .ts"
   },

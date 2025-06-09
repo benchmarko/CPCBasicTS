@@ -766,7 +766,12 @@ function testLoadIndex(exampeDb: DatabaseEntry) {
 
 	if (nodeJsAvail) {
 		if (isUrl(dir)) {
-			nodeReadUrl(fileOrUrl, fnIndexLoaded);
+			if (TestHelper.config.testAll) {
+				nodeReadUrl(fileOrUrl, fnIndexLoaded);
+			} else {
+				Utils.console.log("testParseExamples: testAll=" + TestHelper.config.testAll + ": skipping index loading for", fileOrUrl);
+				fnIndexLoaded(undefined, ""); // skip loading index
+			}
 		} else {
 			nodeReadFile(fileOrUrl, fnIndexLoaded);
 		}

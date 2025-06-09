@@ -26,7 +26,8 @@ export class TestHelper {
 		debug: 0,
 		generateAll: false,
 		generateKeys: false,
-		test: "" // a specific test
+		test: "", // a specific test
+		testAll: false // run all tests
 	};
 
 	static init(): void {
