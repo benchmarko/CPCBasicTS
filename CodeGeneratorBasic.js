@@ -320,8 +320,30 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
                 var value2 = this.parseNode(right);
                 var pr = CodeGeneratorBasic.getLeftOrRightOperatorPrecedence(right);
                 if (pr !== undefined) {
-                    if ((pr < p) || ((pr === p) && node.type === "-")) { // "-" is special
+                    if (pr < p) {
+                        // Lower precedence on right: always needs parentheses
                         value2 = "(" + value2 + ")";
+                    }
+                    else if (pr === p) {
+                        // Equal precedence: check associativity
+                        var assoc = CodeGeneratorBasic.operatorAssociativity[node.type];
+                        if (assoc === "right") {
+                            // Right-associative: no parentheses needed for equal precedence
+                            // e.g., 2^3^4 = 2^(3^4)
+                        }
+                        else if (assoc === "left") {
+                            // Left-associative: parentheses needed for non-commutative operators
+                            // Commutative operators: + and * (associativity handles it)
+                            // Non-commutative: - / \ mod (must preserve grouping)
+                            // eslint-disable-next-line max-depth
+                            if ((/(^|-|\/|\\|mod|=|<>|<|<=|>|>=)$/).test(node.type)) {
+                                value2 = "(" + value2 + ")";
+                            }
+                        }
+                        else {
+                            // "none" (comparison operators): always keep parentheses
+                            value2 = "(" + value2 + ")";
+                        }
                     }
                 }
                 var operator = CodeGeneratorBasic.fnWs(node) + operators[node.type].toUpperCase();
@@ -489,6 +511,24 @@ define(["require", "exports", "./Utils"], function (require, exports, Utils_1) {
             or: 21,
             xor: 20,
             "#": 10 // priority?
+        };
+        CodeGeneratorBasic.operatorAssociativity = {
+            "^": "right",
+            "*": "left",
+            "+": "left",
+            "/": "left",
+            "\\": "left",
+            mod: "left",
+            "-": "left",
+            "=": "none",
+            "<>": "none",
+            "<": "none",
+            "<=": "none",
+            ">": "none",
+            ">=": "none",
+            and: "left",
+            or: "left",
+            xor: "left"
         };
         return CodeGeneratorBasic;
     }());

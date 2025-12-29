@@ -19,6 +19,7 @@ export declare class CodeGeneratorBasic {
     private static readonly combinedKeywords;
     private static readonly operators;
     private static readonly operatorPrecedence;
+    private static readonly operatorAssociativity;
     private composeError;
     private static fnWs;
     private static fnSpace1;

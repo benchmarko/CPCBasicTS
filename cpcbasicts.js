@@ -2551,7 +2551,7 @@ define("BasicParser", ["require", "exports", "Utils"], function (require, export
                     node.args.push(this.previousToken);
                 }
                 var numberExpression = false; // line number (expression) found
-                if (this.token.type !== "," && this.token.type !== "(eol)" && this.token.type !== "(eof)") {
+                if (this.token.type !== "," && this.token.type !== "(eol)" && this.token.type !== "(end)") {
                     node2 = this.expression(0); // line number or expression
                     node.args.push(node2);
                     numberExpression = true;
@@ -4401,8 +4401,30 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils"], function (require,
                 var value2 = this.parseNode(right);
                 var pr = CodeGeneratorBasic.getLeftOrRightOperatorPrecedence(right);
                 if (pr !== undefined) {
-                    if ((pr < p) || ((pr === p) && node.type === "-")) { // "-" is special
+                    if (pr < p) {
+                        // Lower precedence on right: always needs parentheses
                         value2 = "(" + value2 + ")";
+                    }
+                    else if (pr === p) {
+                        // Equal precedence: check associativity
+                        var assoc = CodeGeneratorBasic.operatorAssociativity[node.type];
+                        if (assoc === "right") {
+                            // Right-associative: no parentheses needed for equal precedence
+                            // e.g., 2^3^4 = 2^(3^4)
+                        }
+                        else if (assoc === "left") {
+                            // Left-associative: parentheses needed for non-commutative operators
+                            // Commutative operators: + and * (associativity handles it)
+                            // Non-commutative: - / \ mod (must preserve grouping)
+                            // eslint-disable-next-line max-depth
+                            if ((/(^|-|\/|\\|mod|=|<>|<|<=|>|>=)$/).test(node.type)) {
+                                value2 = "(" + value2 + ")";
+                            }
+                        }
+                        else {
+                            // "none" (comparison operators): always keep parentheses
+                            value2 = "(" + value2 + ")";
+                        }
                     }
                 }
                 var operator = CodeGeneratorBasic.fnWs(node) + operators[node.type].toUpperCase();
@@ -4570,6 +4592,24 @@ define("CodeGeneratorBasic", ["require", "exports", "Utils"], function (require,
             or: 21,
             xor: 20,
             "#": 10 // priority?
+        };
+        CodeGeneratorBasic.operatorAssociativity = {
+            "^": "right",
+            "*": "left",
+            "+": "left",
+            "/": "left",
+            "\\": "left",
+            mod: "left",
+            "-": "left",
+            "=": "none",
+            "<>": "none",
+            "<": "none",
+            "<=": "none",
+            ">": "none",
+            ">=": "none",
+            and: "left",
+            or: "left",
+            xor: "left"
         };
         return CodeGeneratorBasic;
     }());
@@ -19095,10 +19135,10 @@ define("Controller", ["require", "exports", "Utils", "BasicFormatter", "BasicLex
             }
             else if (Utils_26.Utils.debug > 1) {
                 var outputText = output.text, hex = outputText.split("").map(function (s) { return s.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0"); }).join(","), decoded = this.decodeTokenizedBasic(outputText), diff = Diff_1.Diff.testDiff(input.toUpperCase(), decoded.toUpperCase()); // for testing
-                Utils_26.Utils.console.debug("TokenizerInput (" + name + "):\n" + input);
-                Utils_26.Utils.console.debug("TokenizerHex (" + name + "):\n" + hex);
-                Utils_26.Utils.console.debug("TokenizerDecoded (" + name + "):\n" + decoded);
-                Utils_26.Utils.console.debug("TokenizerDiff (" + name + "):\n" + diff);
+                Utils_26.Utils.console.debug("TokenizerInput (" + name + ") [len=" + input.length + "]:\n" + input);
+                Utils_26.Utils.console.debug("TokenizerOutputHex (" + name + ") [len=" + outputText.length + "]:\n" + hex);
+                Utils_26.Utils.console.debug("TokenizerOutputDecoded (" + name + ") [len=" + decoded.length + "]:\n" + decoded);
+                Utils_26.Utils.console.debug("TokenizerDiff (" + name + ") [len=" + diff.length + "]:\n" + diff);
             }
             return output.text;
         };
