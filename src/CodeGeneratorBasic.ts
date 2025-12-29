@@ -115,6 +115,25 @@ export class CodeGeneratorBasic {
 		"#": 10 // priority?
 	}
 
+	private static readonly operatorAssociativity: Record<string, "left" | "right" | "none"> = {
+		"^": "right", // right-associative
+		"*": "left", // left-associative (commutative, so parens not needed for equal precedence)
+		"+": "left", // left-associative (commutative, so parens not needed for equal precedence)
+		"/": "left", // left-associative (non-commutative, so parens ARE needed for equal precedence)
+		"\\": "left", // left-associative (non-commutative, so parens ARE needed)
+		mod: "left", // left-associative (non-commutative)
+		"-": "left", // left-associative (non-commutative, so parens ARE needed for equal precedence)
+		"=": "none", // comparison operators are non-associative
+		"<>": "none",
+		"<": "none",
+		"<=": "none",
+		">": "none",
+		">=": "none",
+		and: "left",
+		or: "left",
+		xor: "left"
+	}
+
 	private composeError(error: Error, message: string, value: string, pos: number) { // eslint-disable-line class-methods-use-this
 		return Utils.composeError("CodeGeneratorBasic", error, message, value, pos, undefined, this.line);
 	}
@@ -494,8 +513,28 @@ export class CodeGeneratorBasic {
 			const pr = CodeGeneratorBasic.getLeftOrRightOperatorPrecedence(right);
 
 			if (pr !== undefined) {
-				if ((pr < p) || ((pr === p) && node.type === "-")) { // "-" is special
+				if (pr < p) {
+					// Lower precedence on right: always needs parentheses
 					value2 = "(" + value2 + ")";
+				} else if (pr === p) {
+					// Equal precedence: check associativity
+					const assoc = CodeGeneratorBasic.operatorAssociativity[node.type];
+
+					if (assoc === "right") {
+						// Right-associative: no parentheses needed for equal precedence
+						// e.g., 2^3^4 = 2^(3^4)
+					} else if (assoc === "left") {
+						// Left-associative: parentheses needed for non-commutative operators
+						// Commutative operators: + and * (associativity handles it)
+						// Non-commutative: - / \ mod (must preserve grouping)
+						// eslint-disable-next-line max-depth
+						if ((/(^|-|\/|\\|mod|=|<>|<|<=|>|>=)$/).test(node.type)) {
+							value2 = "(" + value2 + ")";
+						}
+					} else {
+						// "none" (comparison operators): always keep parentheses
+						value2 = "(" + value2 + ")";
+					}
 				}
 			}
 

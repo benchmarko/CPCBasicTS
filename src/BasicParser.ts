@@ -1047,7 +1047,7 @@ export class BasicParser {
 
 			let numberExpression = false; // line number (expression) found
 
-			if (this.token.type !== "," && this.token.type !== "(eol)" && this.token.type !== "(eof)") {
+			if (this.token.type !== "," && this.token.type !== "(eol)" && this.token.type !== "(end)") {
 				node2 = this.expression(0); // line number or expression
 				node.args.push(node2);
 				numberExpression = true;
