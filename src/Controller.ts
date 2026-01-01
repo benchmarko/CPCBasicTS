@@ -2833,7 +2833,9 @@ export class Controller implements IController {
 
 	private fnUpdateUndoRedoButtons() {
 		this.view.setDisabled(ViewID.undoButton, !this.inputStack.canUndoKeepOne());
+		this.view.setDisabled(ViewID.undoButton2, !this.inputStack.canUndoKeepOne());
 		this.view.setDisabled(ViewID.redoButton, !this.inputStack.canRedo());
+		this.view.setDisabled(ViewID.redoButton2, !this.inputStack.canRedo());
 	}
 
 	private fnInitUndoRedoButtons() {

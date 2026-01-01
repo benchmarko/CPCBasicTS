@@ -441,14 +441,6 @@ export class CommonEventHandler implements EventListenerObject {
 						func: this.onContinueButtonClick
 					},
 					{
-						id: ViewID.convertButton,
-						toggleId: ViewID.convertArea,
-						property: ModelPropID.showConvert,
-						display: "flex",
-						isPopover: true,
-						func: this.toggleAreaHidden
-					},
-					{
 						id: ViewID.cpcCanvas,
 						func: this.onCpcCanvasClick
 					},
@@ -521,8 +513,20 @@ export class CommonEventHandler implements EventListenerObject {
 						controllerFunc: this.controller.fnPretty
 					},
 					{
+						id: ViewID.prettyPopoverButton,
+						toggleId: ViewID.prettyArea,
+						property: ModelPropID.showPretty,
+						display: "flex",
+						isPopover: true,
+						func: this.toggleAreaHidden
+					},
+					{
 						id: ViewID.redoButton,
 						func: this.onRedoButtonClick
+					},
+					{
+						id: ViewID.redoButton2,
+						func: this.onRedoButtonClick // same redo
 					},
 					{
 						id: ViewID.reloadButton,
@@ -535,6 +539,14 @@ export class CommonEventHandler implements EventListenerObject {
 					{
 						id: ViewID.renumButton,
 						controllerFunc: this.controller.startRenum
+					},
+					{
+						id: ViewID.renumPopoverButton,
+						toggleId: ViewID.renumArea,
+						property: ModelPropID.showRenum,
+						display: "flex",
+						isPopover: true,
+						func: this.toggleAreaHidden
 					},
 					{
 						id: ViewID.resetButton,
@@ -570,6 +582,10 @@ export class CommonEventHandler implements EventListenerObject {
 					{
 						id: ViewID.undoButton,
 						func: this.onUndoButtonClick
+					},
+					{
+						id: ViewID.undoButton2,
+						func: this.onUndoButtonClick // same undo
 					},
 					{
 						id: ViewID.viewButton,

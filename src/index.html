@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="cpcbasic.css">
 <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
-<title id="title">CPCBasicTS v0.3.6</title>
+<title id="title">CPCBasicTS v0.3.7</title>
 </head>
 
 <body id="pageBody">
@@ -242,13 +242,14 @@
     <div id="cpcVert2Box" class="vertFlexBox">
 
 	<div id="inputArea" class="flexBox">
-		<div>
+		<div class="toolbarLine">
 			<span class="legendTitle" title="BASIC Source">BASIC</span>
 			<button id="parseButton" title="Check BASIC script (compile to JavaScript)">Check</button>
+			<span class="toolbarLineItemRight">
 			<span class="buttonPopoverContainer">
-				<button id="convertButton" class="popoverButton" title="Convert BASIC source">Convert</button>
-				<span id="convertArea" class="popover displayNone">
-					<span id="convertAreaInner" class="area">
+				<button id="renumPopoverButton" class="popoverButton" title="Renumber lines">Renum</button>
+				<span id="renumArea" class="popover right-align displayNone">
+					<span id="renumAreaInner" class="area">
 						<fieldset>
 							<legend title="Line Numbers">Line Numbers</legend>
 							<input id="renumNewInput" value="10" min="0" max="65535" type="number" title="New" placeholder="value">
@@ -268,6 +269,15 @@
 							<button id="lineNumberAddButton" class="popoverElement" title="Add (missing) line numbers">Add</button>
 							<button id="lineNumberRemoveButton" class="popoverElement" title="Remove (unreferenced) line numbers">Remove</button>
 						</fieldset>
+						<button id="undoButton" class="popoverElement" title="Undo code changes" disabled>Undo</button>
+						<button id="redoButton" class="popoverElement" title="Redo code changes" disabled>Redo</button>
+					</span>
+				</span>
+			</span>
+			<span class="buttonPopoverContainer">
+				<button id="prettyPopoverButton" class="popoverButton" title="Pretty Print">Pretty</button>
+				<span id="prettyArea" class="popover right-align displayNone">
+					<span id="prettyAreaInner" class="area">
 						<fieldset>
 							<legend title="Pretty Print">Pretty Print</legend>
 							<input id="prettyBracketsInput" type="checkbox" title="Keep Brackets">
@@ -284,14 +294,14 @@
 							<br>
 							<button id="prettyButton" class="popoverElement" title="Pretty print">Pretty</button>
 						</fieldset>
-						<button id="undoButton" class="popoverElement" title="Undo code changes" disabled>Undo</button>
-						<button id="redoButton" class="popoverElement" title="Redo code changes" disabled>Redo</button>
+						<button id="undoButton2" class="popoverElement" title="Undo code changes" disabled>Undo</button>
+						<button id="redoButton2" class="popoverElement" title="Redo code changes" disabled>Redo</button>
 					</span>
 				</span>
 			</span>
 			<span class="buttonPopoverContainer">
 				<button id="exportButton" class="popoverButton" title="Export">Export</button>
-				<span id="exportArea" class="popover displayNone">
+				<span id="exportArea" class="popover right-align displayNone">
 					<span id="exportAreaInner" class="area">
 						<fieldset>
 							<legend title="File Export">File Export</legend>
@@ -326,6 +336,7 @@
 						</fieldset>
 					</span>
 				</span>
+			</span>
 			</span>
 		</div>
 		<div id="inputAreaInner" class="area clearLeft">

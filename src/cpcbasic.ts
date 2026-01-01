@@ -40,7 +40,6 @@ class cpcBasic {
 		processFileImports: true, // open ZIP, DSK files on import
 		selectDataFiles: false, // select data files in example selection
 		showConsoleLog: false,
-		showConvert: false,
 		showCpc: true,
 		showDisass: false,
 		showExport: false,
@@ -51,6 +50,8 @@ class cpcBasic {
 		showKbdSettings: false,
 		showMore: false,
 		showOutput: false,
+		showPretty: false,
+		showRenum: false,
 		showResult: false,
 		showSettings: false,
 		showVariable: false,

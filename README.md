@@ -65,11 +65,14 @@ With CPC Basic we do not get that accuracy. But if we compile it to JavaScript, 
   - The **Gallery** button opens a gallery with examples from which you can select one.
 - The *BASIC* window is used to input and modify the BASIC program.
   - The **Check** button checks the syntax of the program. It compiles the program to JavaScript.
-  - The **Convert** button opens a popover with functions to renumber lines or pretty print the program.
-    - The **Renum** button renumbers the lines (see also *RENUM*)
+  - The **Renum** button opens a popover with functions to renumber lines.
+    - The **Renum** popover button renumbers the lines (see also *RENUM*)
     - The **Add** button adds (missing) line numbers to the program. New numbers are increased by one.
     - The **Remove** button removes unreferenced line numbers from the program. Use the setting "Implicit Lines" to run such programs.
-    - The **Pretty** button performs a pretty print on the input. There are options for pretty print:
+    - The **Undo** button reverts the last renum or pretty print.
+    - The **Redo** button activates the last renum or pretty print.
+  - The **Pretty** button opens a popover with functions to pretty print the program.
+    - The **Pretty** popover button performs a pretty print on the input. There are options for pretty print:
       - The checkbox **Brackets** keeps the brackets (parenthesis) during pretty print. If unchecked, brackets are used only where needed. Please note that this could lead to overflows in expressions in some cases, where brackets were used to priorize a computation without overflow.
       - The checkbox **Colons** keeps the colons. If unset, colons are only used where needed. Multiple columns are removed.
       - The checkbox **Spaces** keeps whitespace and preserves the input as much as possible.
@@ -255,7 +258,6 @@ These URL parameters are also put in the URL when you press the *Reload* button 
 - palette="color" ("color", "green", "grey")
 - selectDataFiles=false (select data files in example selection)
 - showConsoleLog=false
-- showConvert=false,
 - showCpc=true (show the CPC window)
 - showGallery=false,
 - showInput=true
@@ -263,6 +265,8 @@ These URL parameters are also put in the URL when you press the *Reload* button 
 - showKbd=false
 - showMore=false
 - showOutput=false
+- showPretty=false
+- showRenum=false
 - showResult=false
 - showVariable=false
 - showSettings=false
